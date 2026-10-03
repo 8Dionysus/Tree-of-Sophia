@@ -4,8 +4,8 @@
 //! retained archives are not relabelled as current catalog source files.
 use crate::knowledge_normalization::SourceRow;
 use crate::knowledge_stage::{
-    ColdAuthoredBinding, ColdExactInputReceipt, ExactInputReceipt, InputCollectionReceipt,
-    InputRow, KnowledgeStage,
+    CandidateExactInputReceipt, CandidateValidationBinding, ColdAuthoredBinding,
+    ColdExactInputReceipt, ExactInputReceipt, InputCollectionReceipt, InputRow, KnowledgeStage,
 };
 use crate::source_bibliographic::{
     self as graph, BibliographicForms, BibliographicLimits, BibliographicReceipt,
@@ -22,6 +22,9 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Instant;
 use tos_foundation::{Digest256, Digest256Hasher, RelativePath, SourceRevision};
 use tos_source_store::{CorpusCutReader, SourceMembershipV1};
+use tos_validation::record_biblio_cut::{
+    SourceCutInput, SourceCutInputCoverage, SourceCutInputWithIdentity,
+};
 
 const ENTITY: &str = "ToS/doctrine/semantic-interchange/entity-types.v1.json";
 const RELATION: &str = "ToS/doctrine/semantic-interchange/relation-types.v1.json";
@@ -73,15 +76,21 @@ struct PlanInput<B> {
 }
 pub struct SourceCatalogInputPlan<B = SourceBinding> {
     receipt: PlanInput<B>,
-    revision: SourceRevision,
+    revision: Option<SourceRevision>,
     membership: SourceMembershipV1,
     members: BTreeMap<String, Member>,
     limits: SourceCatalogInputLimits,
     work_bytes: u64,
+    retained_plan_bytes: usize,
     raw_input_max_bytes: usize,
     workspace_limit: Option<usize>,
 }
 impl SourceCatalogInputPlan {
+    /// A projection plan must retain the independently selected real revision.
+    pub fn source_revision(&self) -> Result<SourceRevision> {
+        self.revision
+            .ok_or(Error::Invalid("projection plan revision missing"))
+    }
     pub fn input_receipt(&self) -> ExactInputReceipt {
         ExactInputReceipt {
             binding: self.receipt.binding.clone(),
@@ -91,6 +100,9 @@ impl SourceCatalogInputPlan {
 }
 pub type ColdSourceCatalogInputPlan = SourceCatalogInputPlan<ColdAuthoredBinding>;
 impl SourceCatalogInputPlan<ColdAuthoredBinding> {
+    pub fn source_revision(&self) -> SourceRevision {
+        self.receipt.binding.revision()
+    }
     pub fn input_receipt(&self) -> ColdExactInputReceipt {
         ColdExactInputReceipt {
             binding: self.receipt.binding.clone(),
@@ -101,9 +113,6 @@ impl SourceCatalogInputPlan<ColdAuthoredBinding> {
 impl<B> SourceCatalogInputPlan<B> {
     pub fn selected_member_count(&self) -> usize {
         self.members.len()
-    }
-    pub fn source_revision(&self) -> SourceRevision {
-        self.revision
     }
     pub fn source_membership(&self) -> SourceMembershipV1 {
         self.membership
@@ -129,6 +138,20 @@ impl<B> SourceCatalogInputPlan<B> {
 pub struct SourceBibliographicCandidate<B = SourceBinding> {
     pub catalog: SourceCatalogReceipt<B>,
     pub bibliographic: BibliographicReceipt,
+}
+/// Preserve the source adapter refusal category without requiring Display or
+/// inventing observations absent from the adapter's actual error.
+pub(crate) fn candidate_input_refusal(error: tos_validation::item_rules::ItemRefusal) -> Error {
+    use tos_validation::item_rules::ItemRefusal;
+    match error {
+        ItemRefusal::Budget => Error::Budget("candidate source input"),
+        ItemRefusal::BudgetCheck { check, .. } => Error::Budget(check),
+        ItemRefusal::Deadline => Error::Budget("candidate source input deadline"),
+        ItemRefusal::Source(detail) => Error::Source(detail),
+        ItemRefusal::Unsupported(detail) => {
+            Error::Source(format!("unsupported candidate source input: {detail}"))
+        }
+    }
 }
 fn check(deadline: Instant, cancelled: &AtomicBool) -> Result<()> {
     if cancelled.load(Ordering::Relaxed) {
@@ -440,38 +463,124 @@ impl PlanningEntries<'_> {
         Ok(())
     }
 }
+#[derive(Clone, Copy)]
 enum PlanningCut<'a> {
+    Candidate(&'a dyn SourceCutInput),
     Resident(&'a CorpusCutReader),
     Streamed(&'a tos_source_store::StreamedCorpusCutReaderV1),
 }
 impl PlanningCut<'_> {
     fn member(
         &self,
-        revision: SourceRevision,
+        revision: Option<SourceRevision>,
         path: &RelativePath,
+        cap: usize,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+        work: &mut u64,
+        max_work: u64,
     ) -> Result<Option<(u64, Digest256)>> {
         match self {
+            Self::Candidate(input) => {
+                check(deadline, cancelled)?;
+                if input
+                    .path_presence(path.as_str(), deadline, cancelled)
+                    .map_err(candidate_input_refusal)?
+                    != Some(tos_source_store::SourcePresenceV1::File)
+                {
+                    return Ok(None);
+                }
+                let mut facts = None;
+                input
+                    .with_current_member(
+                        path.as_str(),
+                        cap,
+                        deadline,
+                        cancelled,
+                        &mut |meta, raw| {
+                            if meta.path != path.as_str()
+                                || meta.size_bytes != raw.len() as u64
+                                || raw.len() > cap
+                            {
+                                return Err(tos_validation::item_rules::ItemRefusal::Source(
+                                    "candidate member facts".into(),
+                                ));
+                            }
+                            *work = work
+                                .checked_add(meta.size_bytes)
+                                .filter(|n| *n <= max_work)
+                                .ok_or(tos_validation::item_rules::ItemRefusal::Budget)?;
+                            facts = Some((meta.size_bytes, Digest256::of_bytes(raw)));
+                            Ok(())
+                        },
+                    )
+                    .map_err(candidate_input_refusal)?;
+                check(deadline, cancelled)?;
+                Ok(facts)
+            }
             Self::Resident(cut) => Ok(cut.current().member(path).map(|m| (m.size_bytes, m.sha256))),
             Self::Streamed(cut) => cut
-                .member(revision, path)
+                .member(
+                    revision.ok_or(Error::Invalid("streamed plan revision missing"))?,
+                    path,
+                )
                 .map(|m| m.map(|m| (m.size_bytes, m.sha256)))
                 .map_err(|e| Error::Source(e.to_string())),
         }
     }
     fn read(
         &self,
-        revision: SourceRevision,
+        revision: Option<SourceRevision>,
         path: &RelativePath,
         cap: u64,
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> Result<Vec<u8>> {
         match self {
+            Self::Candidate(input) => {
+                let cap =
+                    usize::try_from(cap).map_err(|_| Error::Budget("candidate read byte range"))?;
+                let mut result = None;
+                input
+                    .with_current_member(
+                        path.as_str(),
+                        cap,
+                        deadline,
+                        cancelled,
+                        &mut |meta, raw| {
+                            if meta.path != path.as_str()
+                                || meta.size_bytes != raw.len() as u64
+                                || raw.len() > cap
+                            {
+                                return Err(tos_validation::item_rules::ItemRefusal::Source(
+                                    "candidate read identity".into(),
+                                ));
+                            }
+                            result = Some(raw.to_vec());
+                            Ok(())
+                        },
+                    )
+                    .map_err(candidate_input_refusal)?;
+                check(deadline, cancelled)?;
+                return result.ok_or(Error::Invalid("candidate source member absent"));
+            }
             Self::Resident(cut) => cut
-                .read_member(revision, path, cap, deadline, cancelled)
+                .read_member(
+                    revision.ok_or(Error::Invalid("resident plan revision missing"))?,
+                    path,
+                    cap,
+                    deadline,
+                    cancelled,
+                )
                 .map(|m| m.raw),
             Self::Streamed(cut) => cut
-                .read_member(revision, path, cap, deadline, cancelled)
+                .read_member(
+                    revision.ok_or(Error::Invalid("resident plan revision missing"))?,
+                    path,
+                    cap,
+                    deadline,
+                    cancelled,
+                )
                 .map(|m| m.raw),
         }
         .map_err(|e| Error::Source(e.to_string()))
@@ -479,7 +588,7 @@ impl PlanningCut<'_> {
 }
 struct Planning<'a, 's> {
     cut: PlanningCut<'a>,
-    revision: SourceRevision,
+    revision: Option<SourceRevision>,
     limits: SourceCatalogInputLimits,
     graph_limits: BibliographicLimits,
     cancelled: &'a AtomicBool,
@@ -551,7 +660,16 @@ impl Planning<'_, '_> {
         }
         let relative =
             RelativePath::parse(path).map_err(|_| Error::Invalid("cold catalog relative path"))?;
-        let Some((size, sha)) = self.cut.member(self.revision, &relative)? else {
+        let Some((size, sha)) = self.cut.member(
+            self.revision,
+            &relative,
+            self.raw_input_max_bytes,
+            self.graph_limits.deadline,
+            self.cancelled,
+            &mut self.work_bytes,
+            self.limits.max_work_bytes,
+        )?
+        else {
             return Ok(false);
         };
         if size > self.raw_input_max_bytes as u64 {
@@ -1168,7 +1286,7 @@ pub fn plan_streamed_cold_source_catalog_inputs<'a>(
     isolation.verify(&file, limits, ColdSourceCatalogSpoolPhase::Grow)?;
     let mut plan = Planning {
         cut: PlanningCut::Streamed(cut),
-        revision,
+        revision: Some(revision),
         limits: SourceCatalogInputLimits {
             max_manifest_members: membership.count,
             max_selected_members: 4096,
@@ -1386,9 +1504,38 @@ fn plan_inputs<B: catalog::CatalogInputBinding>(
         l.deadline,
         cancelled,
     )?;
+    plan_inputs_kernel(
+        PlanningCut::Resident(cut),
+        Some(expected_revision),
+        expected_membership,
+        binding,
+        limits,
+        l,
+        cancelled,
+        raw_input_max_bytes,
+        json_input_max_bytes,
+        cold_raw_parser,
+        workspace_limit,
+        0,
+    )
+}
+fn plan_inputs_kernel<B: catalog::CatalogInputBinding>(
+    cut: PlanningCut<'_>,
+    revision: Option<SourceRevision>,
+    expected_membership: SourceMembershipV1,
+    binding: &B,
+    limits: SourceCatalogInputLimits,
+    l: BibliographicLimits,
+    cancelled: &AtomicBool,
+    raw_input_max_bytes: usize,
+    json_input_max_bytes: usize,
+    cold_raw_parser: bool,
+    workspace_limit: Option<usize>,
+    initial_work: u64,
+) -> Result<SourceCatalogInputPlan<B>> {
     let mut plan = Planning {
-        cut: PlanningCut::Resident(cut),
-        revision: expected_revision,
+        cut,
+        revision,
         limits,
         graph_limits: l,
         cancelled,
@@ -1398,7 +1545,7 @@ fn plan_inputs<B: catalog::CatalogInputBinding>(
             scanned: BTreeSet::new(),
         },
         plan_bytes: 0,
-        work_bytes: 0,
+        work_bytes: initial_work,
         raw_input_max_bytes,
         json_input_max_bytes,
         cold_raw_parser,
@@ -1424,10 +1571,23 @@ fn plan_inputs<B: catalog::CatalogInputBinding>(
         plan.check_workspace()?;
     }
     let basenames = catalog::source_basenames(entities.value())?;
-    for member in cut.current().members() {
-        check(l.deadline, cancelled)?;
-        let path = member.path.as_str();
-        plan.initial(path, &basenames)?;
+    match cut {
+        PlanningCut::Resident(cut) => {
+            for member in cut.current().members() {
+                check(l.deadline, cancelled)?;
+                plan.initial(member.path.as_str(), &basenames)?;
+            }
+        }
+        PlanningCut::Candidate(input) => {
+            input
+                .for_each_current_member_meta(l.deadline, cancelled, &mut |meta| {
+                    plan.initial(meta.path, &basenames)
+                        .map_err(|e| tos_validation::item_rules::ItemRefusal::Source(e.to_string()))
+                })
+                .map_err(candidate_input_refusal)?;
+            check(l.deadline, cancelled)?;
+        }
+        PlanningCut::Streamed(_) => return Err(Error::Invalid("resident recipe storage kind")),
     }
     drop(basenames);
     drop(entities);
@@ -1456,11 +1616,12 @@ fn plan_inputs<B: catalog::CatalogInputBinding>(
     };
     Ok(SourceCatalogInputPlan {
         receipt,
-        revision: expected_revision,
+        revision,
         membership: expected_membership,
         members,
         limits,
         work_bytes: plan.work_bytes,
+        retained_plan_bytes: plan.plan_bytes,
         raw_input_max_bytes,
         workspace_limit,
     })
@@ -1571,7 +1732,41 @@ fn prepare_catalog_plan<B: catalog::CatalogInputBinding>(
             l.deadline,
             validator.cancelled,
         )?;
-        if plan.revision != expected_revision
+        prepare_catalog_plan_kernel(
+            plan,
+            PlanningCut::Resident(cut),
+            Some(expected_revision),
+            expected_membership,
+            target,
+            validator,
+            l,
+            observer,
+            observed,
+            0,
+            &mut 0,
+        )
+    })();
+    if result.is_err() {
+        target.poison();
+    }
+    result
+}
+fn prepare_catalog_plan_kernel<B: catalog::CatalogInputBinding>(
+    plan: &SourceCatalogInputPlan<B>,
+    cut: PlanningCut<'_>,
+    revision: Option<SourceRevision>,
+    expected_membership: SourceMembershipV1,
+    target: &mut KnowledgeStage<'_>,
+    validator: &SourceCatalogValidator<'_>,
+    l: BibliographicLimits,
+    observer: &mut impl catalog::SourceCatalogProfileObserver,
+    observed: &mut SourceCatalogRenderWorkV1,
+    initial_work: u64,
+    work_after: &mut u64,
+) -> Result<SourceCatalogReceipt<B>> {
+    let result = (|| {
+        plan.limits.validate(l)?;
+        if plan.revision != revision
             || plan.membership != expected_membership
             || !plan.receipt.binding.matches_source(&B::selected(target)?)
         {
@@ -1598,32 +1793,47 @@ fn prepare_catalog_plan<B: catalog::CatalogInputBinding>(
                 return Err(Error::Invalid("cold catalog independent target roots"));
             }
         }
-        let mut work = 0u64;
+        *work_after = initial_work;
+        let work = &mut *work_after;
         for (path, member) in &plan.members {
             check(l.deadline, validator.cancelled)?;
             let relative = RelativePath::parse(path)
                 .map_err(|_| Error::Invalid("cold catalog transfer path"))?;
-            let metadata = cut
-                .current()
-                .member(&relative)
+            if let Some(limit) = plan.workspace_limit {
+                let retained = plan.retained_plan_bytes;
+                usize::try_from(member.size)
+                    .ok()
+                    .and_then(|n| n.max(8).checked_mul(4))
+                    .and_then(|n| n.checked_add(128 * 1024))
+                    .and_then(|n| n.checked_add(retained))
+                    .filter(|n| *n <= limit)
+                    .ok_or(Error::Budget("candidate transfer workspace"))?;
+            }
+            let (metadata_size, metadata_sha) = cut
+                .member(
+                    revision,
+                    &relative,
+                    plan.raw_input_max_bytes.min(l.catalog.max_file_bytes),
+                    l.deadline,
+                    validator.cancelled,
+                    work,
+                    plan.limits.max_work_bytes,
+                )?
                 .ok_or(Error::Invalid("cold catalog planned member absent"))?;
-            if metadata.sha256 != member.sha || metadata.size_bytes != member.size {
+            if metadata_sha != member.sha || metadata_size != member.size {
                 return Err(Error::Invalid("cold catalog planned member changed"));
             }
-            work = work
+            *work = work
                 .checked_add(member.size)
                 .filter(|n| *n <= plan.limits.max_work_bytes)
                 .ok_or(Error::Budget("cold catalog transfer work"))?;
-            let raw = cut
-                .read_member(
-                    expected_revision,
-                    &relative,
-                    plan.raw_input_max_bytes.min(l.catalog.max_file_bytes) as u64,
-                    l.deadline,
-                    validator.cancelled,
-                )
-                .map_err(|e| Error::Source(e.to_string()))?
-                .raw;
+            let raw = cut.read(
+                revision,
+                &relative,
+                plan.raw_input_max_bytes.min(l.catalog.max_file_bytes) as u64,
+                l.deadline,
+                validator.cancelled,
+            )?;
             charge_render_work(&mut observed.source_members_returned, 1)?;
             charge_render_work(
                 &mut observed.source_payload_bytes_returned,
@@ -1681,7 +1891,10 @@ fn prepare_catalog_plan<B: catalog::CatalogInputBinding>(
                 }
             }
         }
-        catalog::prepare_catalog_receipt_observed(target, validator, l.catalog, observer)
+        let receipt =
+            catalog::prepare_catalog_receipt_observed(target, validator, l.catalog, observer)?;
+
+        Ok(receipt)
     })();
     if result.is_err() {
         target.poison();
@@ -1768,6 +1981,286 @@ pub fn render_source_bibliographic_plan_with_work(
             catalog: receipt,
             bibliographic,
         })
+    })();
+    if result.is_err() {
+        target.poison();
+    }
+    result
+}
+
+fn verify_candidate_input_eof<I: Eq>(
+    input: &dyn SourceCutInputWithIdentity<I>,
+    identity: &I,
+    coverage: &SourceCutInputCoverage,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+    max_members: u64,
+    max_file: usize,
+    work: &mut u64,
+    max_work: u64,
+) -> Result<()> {
+    check(deadline, cancelled)?;
+    if input.input_identity() != identity {
+        return Err(Error::Invalid("candidate EOF identity"));
+    }
+    let mut hash = Digest256Hasher::new();
+    hash.update(b"tos-val-full-membership-v1\0");
+    let mut count = 0u64;
+    let mut bytes = 0u64;
+    let mut previous = String::new();
+    let observed = input
+        .for_each_current_member(deadline, cancelled, &mut |meta, raw| {
+            if meta.path.len() > 4096
+                || (!previous.is_empty() && meta.path <= previous.as_str())
+                || meta.size_bytes != raw.len() as u64
+                || raw.len() > max_file
+            {
+                return Err(tos_validation::item_rules::ItemRefusal::Source(
+                    "candidate full member stream".into(),
+                ));
+            }
+            RelativePath::parse(meta.path).map_err(|_| {
+                tos_validation::item_rules::ItemRefusal::Source("candidate EOF path".into())
+            })?;
+            count = count
+                .checked_add(1)
+                .filter(|n| *n <= max_members)
+                .ok_or(tos_validation::item_rules::ItemRefusal::Budget)?;
+            bytes = bytes
+                .checked_add(meta.size_bytes)
+                .ok_or(tos_validation::item_rules::ItemRefusal::Budget)?;
+            *work = work
+                .checked_add(meta.size_bytes)
+                .filter(|n| *n <= max_work)
+                .ok_or(tos_validation::item_rules::ItemRefusal::Budget)?;
+            hash.update(&(meta.path.len() as u64).to_be_bytes());
+            hash.update(meta.path.as_bytes());
+            hash.update(&meta.size_bytes.to_be_bytes());
+            hash.update(Digest256::of_bytes(raw).as_bytes());
+            previous.clear();
+            previous.push_str(meta.path);
+            Ok(())
+        })
+        .map_err(candidate_input_refusal)?;
+    if &observed != coverage
+        || count != coverage.member_count()
+        || bytes != coverage.source_bytes_read()
+        || (SourceMembershipV1 {
+            count,
+            digest: hash.finalize(),
+        }) != coverage.membership()
+    {
+        return Err(Error::Invalid("candidate complete input coverage"));
+    }
+    input
+        .verify_current_fence(&observed, deadline, cancelled)
+        .map_err(candidate_input_refusal)?;
+    check(deadline, cancelled)?;
+    if input.input_identity() != identity {
+        return Err(Error::Invalid("candidate EOF final identity"));
+    }
+    Ok(())
+}
+/// Unpublished input recipe. It carries opaque source identity and verified EOF,
+/// never a source revision, metadata publication epoch or cold-publication receipt.
+pub struct CandidateSourceCatalogInputPlan<'a, I: Copy + Eq + 'static> {
+    plan: SourceCatalogInputPlan<CandidateValidationBinding<I>>,
+    consumed: bool,
+    deadline: Instant,
+    cancelled: &'a AtomicBool,
+    work_bytes: u64,
+}
+impl<I: Copy + Eq + 'static> CandidateSourceCatalogInputPlan<'_, I> {
+    /// Bound the fixed five-collection receipt before a planner constructs it.
+    /// The bound is derived from the same owned constants and role/profile law.
+    pub fn receipt_state_upper_bound(identity_heap_bytes: usize) -> Result<usize> {
+        let mut bytes = std::mem::size_of::<CandidateExactInputReceipt<I>>()
+            .checked_add(identity_heap_bytes)
+            .and_then(|n| n.checked_add(128))
+            .ok_or(Error::Budget("candidate receipt state"))?;
+        for collection in COLLECTIONS {
+            let (role, profile) = catalog::input_role(collection)?;
+            bytes = std::mem::size_of::<InputCollectionReceipt>()
+                .checked_mul(2)
+                .and_then(|n| bytes.checked_add(n))
+                .ok_or(Error::Budget("candidate receipt state"))?;
+            for length in [
+                CATALOG_SOURCE.len(),
+                collection.len(),
+                role.len(),
+                profile.len(),
+                64,
+            ] {
+                bytes = length
+                    .checked_mul(2)
+                    .and_then(|n| n.checked_add(128))
+                    .and_then(|n| bytes.checked_add(n))
+                    .ok_or(Error::Budget("candidate receipt state"))?;
+            }
+        }
+        Ok(bytes)
+    }
+    /// Reserve a clone BEFORE allocating its receipt/vector/string storage.
+    /// Inline identity/coverage bytes are included; a generic identity owner
+    /// supplies its own additional deep-clone heap bound (zero for fixed Copy
+    /// identities). This observation does not clone or admit any source bytes.
+    pub fn input_receipt_clone_state_bytes(&self, identity_heap_bytes: usize) -> Result<usize> {
+        let mut bytes = std::mem::size_of::<CandidateExactInputReceipt<I>>()
+            .checked_add(identity_heap_bytes)
+            .and_then(|n| n.checked_add(128))
+            .ok_or(Error::Budget("candidate receipt clone state"))?;
+        for collection in &self.plan.receipt.collections {
+            bytes = std::mem::size_of::<InputCollectionReceipt>()
+                .checked_mul(2)
+                .and_then(|n| bytes.checked_add(n))
+                .ok_or(Error::Budget("candidate receipt clone state"))?;
+            for value in [
+                &collection.source_graph,
+                &collection.collection,
+                &collection.input_role,
+                &collection.adapter_profile,
+                &collection.expected_root_sha256,
+            ] {
+                // Conservative allocator/string framing, beyond logical bytes.
+                bytes = value
+                    .len()
+                    .checked_mul(2)
+                    .and_then(|n| n.checked_add(128))
+                    .and_then(|n| bytes.checked_add(n))
+                    .ok_or(Error::Budget("candidate receipt clone state"))?;
+            }
+        }
+        Ok(bytes)
+    }
+    pub fn input_receipt(&self) -> CandidateExactInputReceipt<I> {
+        CandidateExactInputReceipt {
+            binding: self.plan.receipt.binding.clone(),
+            collections: self.plan.receipt.collections.clone(),
+        }
+    }
+    pub fn observed_work_bytes(&self) -> u64 {
+        self.work_bytes
+    }
+}
+pub fn plan_candidate_source_catalog_inputs_with_workspace<'a, I: Copy + Eq + 'static>(
+    input: &dyn SourceCutInputWithIdentity<I>,
+    expected_identity: &I,
+    coverage: &SourceCutInputCoverage,
+    limits: SourceCatalogInputLimits,
+    l: BibliographicLimits,
+    cancelled: &'a AtomicBool,
+    max_workspace_bytes: usize,
+) -> Result<CandidateSourceCatalogInputPlan<'a, I>> {
+    limits.validate(l)?;
+    // EOF path validation retains one bounded previous key and transient path framing.
+    if max_workspace_bytes < 16 * 1024 {
+        return Err(Error::Budget("candidate catalog workspace"));
+    }
+    check(l.deadline, cancelled)?;
+    let binding = CandidateValidationBinding::from_verified_input(
+        input,
+        expected_identity,
+        coverage.clone(),
+        l.deadline,
+        cancelled,
+    )?;
+    let mut initial_work = 0;
+    verify_candidate_input_eof(
+        input,
+        expected_identity,
+        coverage,
+        l.deadline,
+        cancelled,
+        limits.max_manifest_members,
+        l.catalog.max_file_bytes,
+        &mut initial_work,
+        limits.max_work_bytes,
+    )?;
+    let plan = plan_inputs_kernel(
+        PlanningCut::Candidate(input.source_input()),
+        None,
+        coverage.membership(),
+        &binding,
+        limits,
+        l,
+        cancelled,
+        l.catalog.max_file_bytes.min(64 * 1024 * 1024),
+        l.catalog.max_file_bytes.min(64 * 1024 * 1024),
+        true,
+        Some(max_workspace_bytes),
+        initial_work,
+    )?;
+    input
+        .verify_current_fence(coverage, l.deadline, cancelled)
+        .map_err(candidate_input_refusal)?;
+    check(l.deadline, cancelled)?;
+    if input.input_identity() != expected_identity {
+        return Err(Error::Invalid("candidate catalog input identity"));
+    }
+    let work_bytes = plan.work_bytes;
+    Ok(CandidateSourceCatalogInputPlan {
+        plan,
+        consumed: false,
+        deadline: l.deadline,
+        cancelled,
+        work_bytes,
+    })
+}
+pub fn prepare_candidate_source_catalog_plan_observed<I: Copy + Eq + 'static>(
+    plan: &mut CandidateSourceCatalogInputPlan<'_, I>,
+    input: &dyn SourceCutInputWithIdentity<I>,
+    target: &mut KnowledgeStage<'_>,
+    validator: &SourceCatalogValidator<'_>,
+    mut l: BibliographicLimits,
+    observer: &mut impl catalog::SourceCatalogProfileObserver,
+    observed: &mut SourceCatalogRenderWorkV1,
+) -> Result<catalog::CandidateSourceCatalogReceipt<I>> {
+    if plan.consumed {
+        return Err(Error::Invalid("candidate catalog plan consumed"));
+    }
+    plan.consumed = true;
+    let result = (|| {
+        if !std::ptr::eq(plan.cancelled, validator.cancelled) {
+            return Err(Error::Invalid("candidate catalog cancellation identity"));
+        }
+        l.deadline = l.deadline.min(plan.deadline);
+        check(l.deadline, validator.cancelled)?;
+        let binding = &plan.plan.receipt.binding;
+        if input.input_identity() != binding.input_identity() {
+            return Err(Error::Invalid("candidate catalog input identity"));
+        }
+        input
+            .verify_current_fence(binding.coverage(), l.deadline, validator.cancelled)
+            .map_err(candidate_input_refusal)?;
+        validator.verify_candidate_schema_binding(binding.input_identity())?;
+        let receipt = prepare_catalog_plan_kernel(
+            &plan.plan,
+            PlanningCut::Candidate(input.source_input()),
+            None,
+            binding.coverage().membership(),
+            target,
+            validator,
+            l,
+            observer,
+            observed,
+            plan.work_bytes,
+            &mut plan.work_bytes,
+        )?;
+        verify_candidate_input_eof(
+            input,
+            binding.input_identity(),
+            binding.coverage(),
+            l.deadline,
+            validator.cancelled,
+            plan.plan.limits.max_manifest_members,
+            l.catalog.max_file_bytes,
+            &mut plan.work_bytes,
+            plan.plan.limits.max_work_bytes,
+        )?;
+        target.verify_candidate_inputs::<I>()?;
+        validator.verify_candidate_schema_binding(binding.input_identity())?;
+        check(l.deadline, validator.cancelled)?;
+        Ok(receipt)
     })();
     if result.is_err() {
         target.poison();

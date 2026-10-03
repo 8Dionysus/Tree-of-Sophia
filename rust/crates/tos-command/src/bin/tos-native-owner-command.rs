@@ -28,9 +28,9 @@ fn main() {
         // One sentinel preserves the CLI's bounded argument refusal without
         // collecting an arbitrary process argument sequence.
         let args = std::env::args_os().skip(2).take(65).collect::<Vec<_>>();
-        let cancelled = std::sync::atomic::AtomicBool::new(false);
+        let cancelled = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
         let git_signal = std::sync::atomic::AtomicI32::new(0);
-        let result = tos_command::source_admission_cli::run(
+        let result = tos_command::source_admission_cli::run_shared_cancel(
             &args,
             &cancelled,
             &git_signal,

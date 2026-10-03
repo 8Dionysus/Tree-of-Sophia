@@ -1117,6 +1117,10 @@ pub struct ExecutorBudget {
 }
 
 impl ExecutorBudget {
+    /// Existing per-scalar child CPU ceiling; aggregate invocation quotas are
+    /// separate and must not be passed through as one scalar child limit.
+    pub const MAX_SCALAR_CPU_SECONDS: u64 = 60;
+
     pub fn laboratory() -> Self {
         Self {
             execution_wall: Duration::from_secs(5),
@@ -3263,7 +3267,7 @@ mod native {
         if budget.execution_wall.is_zero()
             || budget.cleanup_grace > Duration::from_secs(1)
             || budget.cpu_seconds == 0
-            || budget.cpu_seconds > 60
+            || budget.cpu_seconds > ExecutorBudget::MAX_SCALAR_CPU_SECONDS
             || budget.address_space_bytes < 64 * 1024 * 1024
             || budget.address_space_bytes > 8 * 1024 * 1024 * 1024
         {

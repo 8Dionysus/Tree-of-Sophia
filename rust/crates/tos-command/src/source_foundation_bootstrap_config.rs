@@ -596,7 +596,7 @@ fn capture_member_state_upper_bound() -> Result<usize> {
     Ok(metadata)
 }
 
-fn control_parse_state() -> Result<usize> {
+pub(crate) fn control_parse_state() -> Result<usize> {
     let visits = JsonLimits::default()
         .max_visits
         .min(PUBLICATION_CONTROL_READ_CAP_BYTES as usize);

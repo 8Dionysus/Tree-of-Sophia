@@ -260,15 +260,16 @@ pub use selected::{
     open_selected_model,
 };
 pub use source_bibliographic_source::{
-    ColdSourceCatalogInputPlan, ColdSourceCatalogInputSpool, ColdSourceCatalogSpoolIsolation,
-    ColdSourceCatalogSpoolLimits, ColdSourceCatalogSpoolPhase, SourceBibliographicCandidate,
-    SourceCatalogInputLimits, SourceCatalogInputPlan, SourceCatalogRenderWorkV1,
+    CandidateSourceCatalogInputPlan, ColdSourceCatalogInputPlan, ColdSourceCatalogInputSpool,
+    ColdSourceCatalogSpoolIsolation, ColdSourceCatalogSpoolLimits, ColdSourceCatalogSpoolPhase,
+    SourceBibliographicCandidate, SourceCatalogInputLimits, SourceCatalogInputPlan,
+    SourceCatalogRenderWorkV1, plan_candidate_source_catalog_inputs_with_workspace,
     plan_cold_source_catalog_inputs, plan_cold_source_catalog_inputs_with_workspace,
     plan_source_catalog_inputs, plan_streamed_cold_source_catalog_inputs,
-    prepare_cold_source_catalog_plan, prepare_cold_source_catalog_plan_observed,
-    prepare_source_catalog_plan, prepare_streamed_cold_source_catalog_spool,
-    render_source_bibliographic_plan, render_source_bibliographic_plan_with_work,
-    render_streamed_source_bibliographic_spool,
+    prepare_candidate_source_catalog_plan_observed, prepare_cold_source_catalog_plan,
+    prepare_cold_source_catalog_plan_observed, prepare_source_catalog_plan,
+    prepare_streamed_cold_source_catalog_spool, render_source_bibliographic_plan,
+    render_source_bibliographic_plan_with_work, render_streamed_source_bibliographic_spool,
 };
 pub use vocabulary::{QueryVocabulary, RegisteredSource, VocabularyBinding};
 

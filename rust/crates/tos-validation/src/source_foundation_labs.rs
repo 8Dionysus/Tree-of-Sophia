@@ -7,6 +7,7 @@
 
 use crate::item_rules::{ItemLimits, ItemRefusal};
 use crate::layer_family_rules::{LayerFamilyReport, LayerFamilyRules, LayerFamilySource};
+use crate::source_foundation_default_rules::{SliceDefaultPaths, SourceFoundationDefaultPaths};
 use crate::source_foundation_discovery::SourcePhysicalFacts;
 use serde_json::{Value, json};
 use std::io::{self, Write};
@@ -521,6 +522,18 @@ pub fn inspect_source_foundation_lab(
     lab: SourceFoundationLab,
     current_paths: &[String],
 ) -> Result<SourceFoundationLabResult, ItemRefusal> {
+    let current_paths = SliceDefaultPaths(current_paths);
+    inspect_source_foundation_lab_inner(source, limits, lab, &current_paths, None)
+}
+
+/// Run one lab against caller-owned current-path membership without requiring a
+/// materialized copy of the complete member list.
+pub fn inspect_source_foundation_lab_from_paths(
+    source: &mut impl LayerFamilySource,
+    limits: ItemLimits,
+    lab: SourceFoundationLab,
+    current_paths: &dyn SourceFoundationDefaultPaths,
+) -> Result<SourceFoundationLabResult, ItemRefusal> {
     inspect_source_foundation_lab_inner(source, limits, lab, current_paths, None)
 }
 
@@ -534,6 +547,19 @@ pub fn inspect_source_foundation_lab_with_physical(
     current_paths: &[String],
     physical: &SourcePhysicalFacts,
 ) -> Result<SourceFoundationLabResult, ItemRefusal> {
+    let current_paths = SliceDefaultPaths(current_paths);
+    inspect_source_foundation_lab_inner(source, limits, lab, &current_paths, Some(physical))
+}
+
+/// Run one lab with exact physical observations and caller-owned current-path
+/// membership.
+pub fn inspect_source_foundation_lab_with_physical_from_paths(
+    source: &mut impl LayerFamilySource,
+    limits: ItemLimits,
+    lab: SourceFoundationLab,
+    current_paths: &dyn SourceFoundationDefaultPaths,
+    physical: &SourcePhysicalFacts,
+) -> Result<SourceFoundationLabResult, ItemRefusal> {
     inspect_source_foundation_lab_inner(source, limits, lab, current_paths, Some(physical))
 }
 
@@ -541,7 +567,7 @@ fn inspect_source_foundation_lab_inner(
     source: &mut impl LayerFamilySource,
     limits: ItemLimits,
     lab: SourceFoundationLab,
-    current_paths: &[String],
+    current_paths: &dyn SourceFoundationDefaultPaths,
     physical: Option<&SourcePhysicalFacts>,
 ) -> Result<SourceFoundationLabResult, ItemRefusal> {
     source.checkpoint(limits.deadline)?;
@@ -555,6 +581,17 @@ pub fn inspect_source_foundation_labs(
     limits: ItemLimits,
     current_paths: &[String],
 ) -> Result<SourceFoundationLabsReport, ItemRefusal> {
+    let current_paths = SliceDefaultPaths(current_paths);
+    inspect_source_foundation_labs_inner(source, limits, &current_paths, None)
+}
+
+/// Run all lab and authored routes against caller-owned current-path
+/// membership without materializing the complete member list.
+pub fn inspect_source_foundation_labs_from_paths(
+    source: &mut impl LayerFamilySource,
+    limits: ItemLimits,
+    current_paths: &dyn SourceFoundationDefaultPaths,
+) -> Result<SourceFoundationLabsReport, ItemRefusal> {
     inspect_source_foundation_labs_inner(source, limits, current_paths, None)
 }
 
@@ -566,13 +603,25 @@ pub fn inspect_source_foundation_labs_with_physical(
     current_paths: &[String],
     physical: &SourcePhysicalFacts,
 ) -> Result<SourceFoundationLabsReport, ItemRefusal> {
+    let current_paths = SliceDefaultPaths(current_paths);
+    inspect_source_foundation_labs_inner(source, limits, &current_paths, Some(physical))
+}
+
+/// Run the maintained lab order using the supplied physical snapshot and a
+/// caller-owned current-path lookup.
+pub fn inspect_source_foundation_labs_with_physical_from_paths(
+    source: &mut impl LayerFamilySource,
+    limits: ItemLimits,
+    current_paths: &dyn SourceFoundationDefaultPaths,
+    physical: &SourcePhysicalFacts,
+) -> Result<SourceFoundationLabsReport, ItemRefusal> {
     inspect_source_foundation_labs_inner(source, limits, current_paths, Some(physical))
 }
 
 fn inspect_source_foundation_labs_inner(
     source: &mut impl LayerFamilySource,
     limits: ItemLimits,
-    current_paths: &[String],
+    current_paths: &dyn SourceFoundationDefaultPaths,
     physical: Option<&SourcePhysicalFacts>,
 ) -> Result<SourceFoundationLabsReport, ItemRefusal> {
     let fixed_output_bytes = SourceFoundationLab::DEFAULT_ORDER
@@ -695,7 +744,7 @@ fn inspect_one(
     source: &mut impl LayerFamilySource,
     limits: ItemLimits,
     lab: SourceFoundationLab,
-    current_paths: &[String],
+    current_paths: &dyn SourceFoundationDefaultPaths,
     physical: Option<&SourcePhysicalFacts>,
 ) -> Result<SourceFoundationLabResult, ItemRefusal> {
     match lab {
@@ -7929,7 +7978,7 @@ fn inspect_antonovsky_collation(
 fn inspect_authored_canon_bridge(
     source: &mut impl LayerFamilySource,
     limits: ItemLimits,
-    current_paths: &[String],
+    current_paths: &dyn SourceFoundationDefaultPaths,
     physical: Option<&SourcePhysicalFacts>,
 ) -> Result<SourceFoundationLabResult, ItemRefusal> {
     let plan = "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/authored-canon-evidence-bridge.plan.v1.json";
@@ -9276,7 +9325,7 @@ fn authored_canon_inventory_and_closure(
     plan: &Value,
     plan_raw: &[u8],
     outputs: &std::collections::BTreeMap<String, (String, Value, Vec<u8>)>,
-    current_paths: &[String],
+    current_paths: &dyn SourceFoundationDefaultPaths,
     limits: ItemLimits,
 ) -> Result<(), ItemRefusal> {
     let authored = plan.get("authored_surfaces").unwrap_or(&Value::Null);
@@ -9304,7 +9353,7 @@ fn authored_canon_inventory_and_closure(
             )?;
             continue;
         };
-        if !current_paths.iter().any(|path| path == reference) {
+        if !current_paths.contains(reference)? {
             state.issue(
                 plan_path,
                 format!("authored surface is absent: {plan_field}"),
@@ -9346,7 +9395,7 @@ fn authored_canon_inventory_and_closure(
             state.issue(plan_path, "legacy review record is absent: ", limits)?;
             continue;
         };
-        if !current_paths.iter().any(|path| path == reference) {
+        if !current_paths.contains(reference)? {
             state.issue(
                 plan_path,
                 format!("legacy review record is absent: {reference}"),
@@ -9377,7 +9426,7 @@ fn authored_canon_inventory_and_closure(
 
     let source_node_ref = authored.get("source_node_ref").and_then(Value::as_str);
     let source_node = if let Some(reference) = source_node_ref {
-        if current_paths.iter().any(|path| path == reference) {
+        if current_paths.contains(reference)? {
             state
                 .read_json(source, reference, limits)?
                 .map(|(value, raw)| {
@@ -9491,16 +9540,19 @@ fn authored_canon_inventory_and_closure(
     for family in family_roots {
         let prefix =
             format!("ToS/canon/{family}/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/");
-        for reference in current_paths {
+        current_paths.for_each_path(&mut |reference| {
+            source.checkpoint(limits.deadline)?;
             if reference.starts_with(&prefix) && reference.ends_with("/node.json") {
-                if route_node_refs.insert(reference.clone()) {
+                if !route_node_refs.contains(reference) {
                     state.reserve(
                         reference.len().checked_add(32).ok_or(ItemRefusal::Budget)?,
                         limits,
                     )?;
+                    route_node_refs.insert(reference.to_owned());
                 }
             }
-        }
+            Ok(())
+        })?;
     }
     for reference in [
         "ToS/canon/concept/becoming/node.json",
@@ -9548,9 +9600,11 @@ fn authored_canon_inventory_and_closure(
     let mut relation_kind_counts = std::collections::BTreeMap::<String, usize>::new();
     let mut relation_ids_digest = Digest256::of_bytes(b"\n").to_hex();
     let mut legacy_locator_count = 0usize;
-    if let Some(reference) =
-        relation_ref.filter(|reference| current_paths.iter().any(|path| path == *reference))
-    {
+    let current_relation_ref = match relation_ref {
+        Some(reference) if current_paths.contains(reference)? => Some(reference),
+        _ => None,
+    };
+    if let Some(reference) = current_relation_ref {
         if let Some(raw) = state.read(source, reference, limits)? {
             if let Some((headers, rows)) = parse_csv_records(&raw) {
                 let edge_index = headers.iter().rposition(|header| header == "edge_id");
@@ -9783,7 +9837,7 @@ fn authored_canon_inventory_and_closure(
         .iter()
         .filter(|reference| Some(reference.as_str()) != source_input_ref)
     {
-        if !current_paths.iter().any(|path| path == reference) {
+        if !current_paths.contains(reference)? {
             closure_ok = false;
             continue;
         }

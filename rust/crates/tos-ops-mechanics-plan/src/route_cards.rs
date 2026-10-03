@@ -24,6 +24,8 @@ const MAX_FILE: usize = 8 * 1024 * 1024;
 const MAX_INPUT: usize = 64 * 1024 * 1024;
 const MAX_OUTPUT: usize = 16 * 1024 * 1024;
 const MAX_ENTRIES: usize = 10_000;
+const MAX_RELATIVE_PATH_BYTES: usize = 4096;
+const MAX_RELATIVE_COMPONENTS: usize = 128;
 const MAX_OPERATIONS: usize = 100_000;
 const MAX_ISSUES: usize = 4096;
 const DEFAULT_ROOTS: &[&str] = &[
@@ -105,10 +107,10 @@ fn field<'a>(value: &'a Value, name: &str) -> io::Result<&'a str> {
 }
 fn validate_relative(value: &str) -> io::Result<()> {
     if value.is_empty()
-        || value.len() > 4096
+        || value.len() > MAX_RELATIVE_PATH_BYTES
         || value.contains('\0')
         || value.contains('\n')
-        || Path::new(value).components().count() > 128
+        || Path::new(value).components().count() > MAX_RELATIVE_COMPONENTS
         || Path::new(value)
             .components()
             .any(|c| !matches!(c, Component::Normal(_) | Component::CurDir))
@@ -1204,6 +1206,46 @@ impl RouteSources {
         let mut paths = BTreeSet::new();
         self.walk(relative, &mut paths, true, &|_, _| true, false)?;
         Ok(paths.into_iter().collect())
+    }
+    /// Conservative source-state reservation for selected_paths(), including
+    /// changed-current names. Derived from the same traversal count/path/depth
+    /// laws; performs no I/O/allocation and grants no quota or RSS guarantee.
+    /// Linux walk charges each entry before allocating its name. It retains
+    /// child vectors and cloned tree keys before consuming keys into a Vec.
+    pub fn selected_paths_workspace_upper_bound_bytes() -> io::Result<usize> {
+        let word = std::mem::size_of::<usize>();
+        let string = std::mem::size_of::<String>();
+        let child = std::mem::size_of::<(String, bool, bool)>();
+        // Retained names already passed the actual full relative path bound.
+        // One format buffer plus one cloned tree key; Vec capacity reserves
+        // twice live entries. Tree/iterator bookkeeping uses 64 words/name.
+        let entry = MAX_RELATIVE_PATH_BYTES
+            .checked_mul(3)
+            .and_then(|n| n.checked_add(child.checked_mul(2)?))
+            .and_then(|n| n.checked_add(string.checked_mul(4)?))
+            .and_then(|n| n.checked_add(word.checked_mul(64)?));
+        let frames = MAX_RELATIVE_PATH_BYTES
+            .checked_mul(2)
+            .and_then(|n| n.checked_add(word.checked_mul(64)?))
+            .and_then(|n| n.checked_mul(MAX_RELATIVE_COMPONENTS));
+        // A rejected overlong next filename is transient, never retained for
+        // every entry. Linux getdents64 d_reclen is u16; d_name fits that record.
+        // Reserve its name buffer and formatting alongside the existing prefix.
+        let failed_entry = (u16::MAX as usize)
+            .checked_mul(2)
+            .and_then(|n| {
+                let formatted = MAX_RELATIVE_PATH_BYTES
+                    .checked_add(u16::MAX as usize)?
+                    .checked_add(1)?
+                    .checked_mul(2)?;
+                n.checked_add(formatted)
+            });
+        entry
+            .and_then(|n| n.checked_mul(MAX_ENTRIES))
+            .and_then(|n| n.checked_add(frames?))
+            .and_then(|n| n.checked_add(failed_entry?))
+            .and_then(|n| n.checked_add(8192))
+            .ok_or_else(|| invalid("selected route traversal workspace overflow"))
     }
     /// Caller-owned eligibility prunes directories before traversal and files
     /// before opening. It conveys no source membership or read authority.

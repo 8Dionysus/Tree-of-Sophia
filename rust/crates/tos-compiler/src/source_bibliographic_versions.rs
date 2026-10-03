@@ -91,37 +91,146 @@ pub struct StreamedBibliographicSourceCut<'a> {
     pub read_ledger: &'a std::cell::RefCell<StreamedBibliographicReadLedger>,
     pub max_workspace_bytes: usize,
 }
+// This erased view is private to the selected-source kernel. Its sole generic
+// implementation retains the adapter-owned identity and typed stage receipt.
+mod candidate_source_seal {
+    pub trait Sealed {}
+}
+pub(crate) trait ErasedCandidateSource: candidate_source_seal::Sealed {
+    fn source(&self) -> &dyn tos_validation::record_biblio_cut::SourceCutInput;
+    fn coverage(&self) -> &tos_validation::record_biblio_cut::SourceCutInputCoverage;
+    fn verify(&self, stage: &KnowledgeStage<'_>, l: BibliographicLimits) -> Result<()>;
+    fn charge(&self, bytes: u64) -> Result<()>;
+    fn workspace(&self) -> usize;
+    fn deadline(&self, limits: BibliographicLimits) -> std::time::Instant;
+    fn cancelled(&self) -> &std::sync::atomic::AtomicBool;
+    fn check(&self, l: BibliographicLimits) -> Result<()> {
+        if std::time::Instant::now() >= self.deadline(l) {
+            return Err(Error::Budget("candidate bibliographic original deadline"));
+        }
+        if self.cancelled().load(std::sync::atomic::Ordering::Relaxed) {
+            return Err(Error::Invalid(
+                "candidate bibliographic original cancellation",
+            ));
+        }
+        Ok(())
+    }
+}
+pub(crate) struct CandidateBibliographicSource<'a, 'b, I: Eq + Copy + 'static> {
+    pub(crate) input: &'a dyn tos_validation::record_biblio_cut::SourceCutInputWithIdentity<I>,
+    pub(crate) binding: &'a crate::knowledge_stage::CandidateValidationBinding<I>,
+    pub(crate) read_ledger: &'a std::cell::RefCell<StreamedBibliographicReadLedger>,
+    pub(crate) max_workspace_bytes: usize,
+    pub(crate) validator: &'a SourceCatalogValidator<'b>,
+    pub(crate) original_deadline: std::time::Instant,
+}
+impl<I: Eq + Copy + 'static> candidate_source_seal::Sealed
+    for CandidateBibliographicSource<'_, '_, I>
+{
+}
+impl<I: Eq + Copy + 'static> ErasedCandidateSource for CandidateBibliographicSource<'_, '_, I> {
+    fn source(&self) -> &dyn tos_validation::record_biblio_cut::SourceCutInput {
+        self.input.source_input()
+    }
+    fn coverage(&self) -> &tos_validation::record_biblio_cut::SourceCutInputCoverage {
+        self.binding.coverage()
+    }
+    fn verify(&self, stage: &KnowledgeStage<'_>, l: BibliographicLimits) -> Result<()> {
+        let mut held = l;
+        held.deadline = self.deadline(l);
+        check(self.validator, held)?;
+        self.validator
+            .verify_candidate_schema_binding(self.input.input_identity())?;
+        let selected = &stage.candidate_receipt::<I>()?.binding;
+        if self.max_workspace_bytes == 0
+            || self.input.input_identity() != self.binding.input_identity()
+            || selected.input_identity() != self.binding.input_identity()
+            || selected.coverage() != self.coverage()
+        {
+            return Err(Error::Invalid(
+                "bibliographic actual candidate input/receipt binding",
+            ));
+        }
+        self.source()
+            .verify_current_fence(self.coverage(), self.deadline(l), self.cancelled())
+            .map_err(crate::source_bibliographic_source::candidate_input_refusal)?;
+        self.validator
+            .verify_candidate_schema_binding(self.input.input_identity())?;
+        check(self.validator, held)
+    }
+    fn charge(&self, bytes: u64) -> Result<()> {
+        self.read_ledger
+            .try_borrow_mut()
+            .map_err(|_| Error::Invalid("candidate bibliographic read ledger in use"))?
+            .charge(bytes)
+    }
+    fn workspace(&self) -> usize {
+        self.max_workspace_bytes
+    }
+    fn deadline(&self, l: BibliographicLimits) -> std::time::Instant {
+        self.original_deadline.min(l.deadline)
+    }
+    fn cancelled(&self) -> &std::sync::atomic::AtomicBool {
+        self.validator.cancelled
+    }
+}
 #[derive(Clone, Copy)]
 pub(crate) enum SelectedBibliographicSourceCut<'a, 'b> {
     Resident(&'a BibliographicSourceCut<'b>),
     Streamed(&'a StreamedBibliographicSourceCut<'b>),
+    Candidate(&'a dyn ErasedCandidateSource),
 }
 impl<'a, 'b> SelectedBibliographicSourceCut<'a, 'b> {
-    pub(crate) fn revision(self) -> SourceRevision {
+    fn verify_selected(self, stage: &KnowledgeStage<'_>, l: BibliographicLimits) -> Result<()> {
         match self {
-            Self::Resident(i) => i.expected_revision,
-            Self::Streamed(i) => i.expected_revision,
+            Self::Resident(i) => {
+                if i.cut.current().revision() != i.expected_revision
+                    || stage.input_source_cut()? != i.stage_source_cut
+                {
+                    return Err(Error::Invalid(
+                        "bibliographic independently selected source cut",
+                    ));
+                }
+            }
+            Self::Streamed(i) => {
+                if i.cut.current_revision() != i.expected_revision
+                    || stage.input_source_cut()? != i.stage_source_cut
+                {
+                    return Err(Error::Invalid(
+                        "bibliographic independently selected source cut",
+                    ));
+                }
+            }
+            Self::Candidate(i) => i.verify(stage, l)?,
         }
+        Ok(())
     }
-    pub(crate) fn membership(self) -> SourceMembershipV1 {
+    fn membership(self) -> SourceMembershipV1 {
         match self {
             Self::Resident(i) => i.expected_membership,
             Self::Streamed(i) => i.expected_membership,
+            Self::Candidate(i) => i.coverage().membership(),
         }
     }
-    pub(crate) fn stage_source_cut(self) -> &'b str {
+    fn binding(self) -> Value {
         match self {
-            Self::Resident(i) => i.stage_source_cut,
-            Self::Streamed(i) => i.stage_source_cut,
+            Self::Resident(i) => {
+                json!({"source_revision":i.expected_revision.0.to_hex(), "membership_count":i.expected_membership.count, "membership_sha256":i.expected_membership.digest.to_hex(), "stage_source_cut":i.stage_source_cut})
+            }
+            Self::Streamed(i) => {
+                json!({"source_revision":i.expected_revision.0.to_hex(), "membership_count":i.expected_membership.count, "membership_sha256":i.expected_membership.digest.to_hex(), "stage_source_cut":i.stage_source_cut})
+            }
+            Self::Candidate(i) => {
+                json!({"input_kind":"candidate", "membership_count":i.coverage().membership().count, "membership_sha256":i.coverage().membership().digest.to_hex(), "source_bytes_read":i.coverage().source_bytes_read()})
+            }
         }
     }
-    pub(crate) fn current_revision(self) -> SourceRevision {
-        match self {
-            Self::Resident(i) => i.cut.current().revision(),
-            Self::Streamed(i) => i.cut.current_revision(),
-        }
-    }
-    fn member_facts(self, path: &RelativePath) -> Result<Option<(u64, Digest256)>> {
+    fn member_facts(
+        self,
+        path: &RelativePath,
+        validator: &SourceCatalogValidator<'_>,
+        l: BibliographicLimits,
+    ) -> Result<Option<(u64, Digest256)>> {
         match self {
             Self::Resident(i) => Ok(i
                 .cut
@@ -133,9 +242,21 @@ impl<'a, 'b> SelectedBibliographicSourceCut<'a, 'b> {
                 .member(i.expected_revision, path)
                 .map(|m| m.map(|m| (m.size_bytes, m.sha256)))
                 .map_err(|e| Error::Source(e.to_string())),
+            Self::Candidate(_) => {
+                if !self.present(path, validator, l)? {
+                    return Ok(None);
+                }
+                let raw = self.read(path, validator, l)?;
+                Ok(Some((raw.len() as u64, Digest256::of_bytes(&raw))))
+            }
         }
     }
-    fn present(self, path: &RelativePath) -> Result<bool> {
+    fn present(
+        self,
+        path: &RelativePath,
+        validator: &SourceCatalogValidator<'_>,
+        l: BibliographicLimits,
+    ) -> Result<bool> {
         match self {
             Self::Resident(i) => Ok(i.cut.current().member(path).is_some()),
             Self::Streamed(i) => i
@@ -143,6 +264,11 @@ impl<'a, 'b> SelectedBibliographicSourceCut<'a, 'b> {
                 .member(i.expected_revision, path)
                 .map(|m| m.is_some())
                 .map_err(|e| Error::Source(e.to_string())),
+            Self::Candidate(i) => i
+                .source()
+                .path_presence(path.as_str(), i.deadline(l), i.cancelled())
+                .map(|v| v == Some(tos_source_store::SourcePresenceV1::File))
+                .map_err(crate::source_bibliographic_source::candidate_input_refusal),
         }
     }
     pub(crate) fn visit_members(
@@ -172,6 +298,61 @@ impl<'a, 'b> SelectedBibliographicSourceCut<'a, 'b> {
                     visit(m.path.as_str(), m.size_bytes, m.sha256)?;
                     after = Some(m.path);
                 }
+            }
+            Self::Candidate(i) => {
+                let mut previous = None::<String>;
+                let (mut observed_count, mut observed_bytes) = (0u64, 0u64);
+                let coverage = i
+                    .source()
+                    .for_each_current_member(i.deadline(l), i.cancelled(), &mut |meta, raw| {
+                        i.charge(raw.len() as u64)
+                            .and_then(|()| {
+                                i.check(l)?;
+                                check(validator, l)?;
+                                path(meta.path)?;
+                                if previous.as_deref().is_some_and(|p| p >= meta.path) {
+                                    return Err(Error::Invalid(
+                                        "candidate bibliographic complete membership order",
+                                    ));
+                                }
+                                previous = Some(meta.path.to_owned());
+                                observed_count = observed_count.checked_add(1).ok_or(
+                                    Error::Budget("candidate bibliographic full EOF member count"),
+                                )?;
+                                observed_bytes =
+                                    observed_bytes.checked_add(raw.len() as u64).ok_or(
+                                        Error::Budget("candidate bibliographic full EOF bytes"),
+                                    )?;
+                                if raw.len() > l.catalog.max_file_bytes {
+                                    return Err(Error::Budget(
+                                        "candidate bibliographic current member bytes",
+                                    ));
+                                }
+                                if raw.len() as u64 != meta.size_bytes {
+                                    return Err(Error::Invalid(
+                                        "candidate bibliographic metadata/raw size",
+                                    ));
+                                }
+                                visit(meta.path, meta.size_bytes, Digest256::of_bytes(raw))?;
+                                i.check(l)
+                            })
+                            .map_err(|e| {
+                                tos_validation::item_rules::ItemRefusal::Source(e.to_string())
+                            })
+                    })
+                    .map_err(crate::source_bibliographic_source::candidate_input_refusal)?;
+                if &coverage != i.coverage()
+                    || observed_count != coverage.member_count()
+                    || observed_count != coverage.membership().count
+                    || observed_bytes != coverage.source_bytes_read()
+                {
+                    return Err(Error::Invalid(
+                        "candidate bibliographic complete EOF coverage",
+                    ));
+                }
+                i.source()
+                    .verify_current_fence(&coverage, i.deadline(l), i.cancelled())
+                    .map_err(crate::source_bibliographic_source::candidate_input_refusal)?;
             }
         }
         Ok(())
@@ -216,6 +397,21 @@ impl<'a, 'b> SelectedBibliographicSourceCut<'a, 'b> {
                 }
                 Ok(())
             }
+            Self::Candidate(i) => i
+                .source()
+                .for_each_current_member_meta(i.deadline(l), i.cancelled(), &mut |meta| {
+                    check(validator, l)
+                        .and_then(|()| {
+                            i.check(l)?;
+                            path(meta.path)?;
+                            if let Some(name) = meta.path.strip_prefix(&prefix) {
+                                visit(name)?;
+                            }
+                            Ok(())
+                        })
+                        .map_err(|e| tos_validation::item_rules::ItemRefusal::Source(e.to_string()))
+                })
+                .map_err(crate::source_bibliographic_source::candidate_input_refusal),
         }
     }
     pub(crate) fn read(
@@ -269,6 +465,53 @@ impl<'a, 'b> SelectedBibliographicSourceCut<'a, 'b> {
                 }
                 check(validator, l)?;
                 Ok(raw)
+            }
+            Self::Candidate(i) => {
+                let mut result = None;
+                i.source()
+                    .with_current_member(
+                        path.as_str(),
+                        l.catalog.max_file_bytes,
+                        i.deadline(l),
+                        i.cancelled(),
+                        &mut |meta, raw| {
+                            check(validator, l)
+                                .and_then(|()| {
+                                    i.check(l)?;
+                                    i.charge(raw.len() as u64)?;
+                                    if raw.len() > l.catalog.max_file_bytes {
+                                        return Err(Error::Budget(
+                                            "candidate bibliographic selected member bytes",
+                                        ));
+                                    }
+                                    if meta.path != path.as_str()
+                                        || raw.len() as u64 != meta.size_bytes
+                                        || result.is_some()
+                                    {
+                                        return Err(Error::Invalid(
+                                            "candidate bibliographic selected raw member",
+                                        ));
+                                    }
+                                    raw.len()
+                                        .max(8)
+                                        .checked_mul(4)
+                                        .and_then(|n| n.checked_add(128 * 1024))
+                                        .filter(|n| *n <= i.workspace())
+                                        .ok_or(Error::Budget(
+                                            "candidate bibliographic raw workspace",
+                                        ))?;
+                                    result = Some(raw.to_vec());
+                                    Ok(())
+                                })
+                                .map_err(|e| {
+                                    tos_validation::item_rules::ItemRefusal::Source(e.to_string())
+                                })
+                        },
+                    )
+                    .map_err(crate::source_bibliographic_source::candidate_input_refusal)?;
+                result.ok_or(Error::Invalid(
+                    "candidate bibliographic raw callback absent",
+                ))
             }
         }
     }
@@ -325,13 +568,7 @@ impl<'a, 'b> Versions<'a, 'b> {
         l: BibliographicLimits,
     ) -> Result<Self> {
         catalog::verify_catalog(stage, receipt, l.catalog)?;
-        if input.current_revision() != input.revision()
-            || stage.input_source_cut() != input.stage_source_cut()
-        {
-            return Err(Error::Invalid(
-                "bibliographic independently selected source cut",
-            ));
-        }
+        input.verify_selected(stage, l)?;
         match input {
             SelectedBibliographicSourceCut::Resident(i) => {
                 if i.max_read_files == 0
@@ -366,6 +603,7 @@ impl<'a, 'b> Versions<'a, 'b> {
                     ));
                 }
             }
+            SelectedBibliographicSourceCut::Candidate(_) => {}
         }
         // Metadata is authenticated by SourceRevision. Complete traversal to
         // EOF does not read original payloads; those are outside this carrier.
@@ -422,9 +660,11 @@ impl<'a, 'b> Versions<'a, 'b> {
                     stage.scan_input(catalog::CATALOG_SOURCE, collection, after.as_deref(), 1)?;
                 for row in page.rows {
                     check(validator, l)?;
-                    let (size_bytes, sha256) = input.member_facts(&path(&row.id)?)?.ok_or(
-                        Error::Invalid("bibliographic staged source outside selected current cut"),
-                    )?;
+                    let (size_bytes, sha256) = input
+                        .member_facts(&path(&row.id)?, validator, l)?
+                        .ok_or(Error::Invalid(
+                        "bibliographic staged source outside selected current cut",
+                    ))?;
                     check(validator, l)?;
                     if size_bytes != row.payload.len() as u64
                         || sha256 != Digest256::of_bytes(&row.payload)
@@ -446,10 +686,7 @@ impl<'a, 'b> Versions<'a, 'b> {
         Ok(result)
     }
     pub(crate) fn binding(&self) -> Value {
-        json!({"source_revision":self.input.revision().0.to_hex(),
-            "membership_count":self.input.membership().count,
-            "membership_sha256":self.input.membership().digest.to_hex(),
-            "stage_source_cut":self.input.stage_source_cut()})
+        self.input.binding()
     }
     fn optional(
         &mut self,
@@ -459,7 +696,7 @@ impl<'a, 'b> Versions<'a, 'b> {
     ) -> Result<Option<Vec<u8>>> {
         check(validator, l)?;
         let parsed = path(reference)?;
-        if !self.input.present(&parsed)? {
+        if !self.input.present(&parsed, validator, l)? {
             return Ok(None);
         }
         if let SelectedBibliographicSourceCut::Resident(input) = self.input {
@@ -626,14 +863,12 @@ impl<'a, 'b> Versions<'a, 'b> {
         receipt: &catalog::SourceCatalogReceipt<B>,
         l: BibliographicLimits,
     ) -> Result<()> {
-        if self.catalog_root != receipt.row_root_sha256
-            || stage.input_source_cut() != self.input.stage_source_cut()
-            || self.input.current_revision() != self.input.revision()
-        {
+        if self.catalog_root != receipt.row_root_sha256 {
             return Err(Error::Invalid(
                 "navigation version resolver catalog/cut binding",
             ));
         }
+        self.input.verify_selected(stage, l)?;
         catalog::verify_catalog(stage, receipt, l.catalog)
     }
     /// Checked family and locator dispatch, matching MetadataVersionReader.supports.

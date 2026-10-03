@@ -698,6 +698,8 @@ impl CreationOwnerFence<'_> {
 /// opaque identity is retained through fixture seeding and publication.
 pub struct IsolatedCreationRoot {
     path: PathBuf,
+    parent: File,
+    name: String,
     directory: File,
     identity: (u64, u64),
 }
@@ -729,7 +731,11 @@ impl IsolatedCreationRoot {
                         .sync_all()
                         .map_err(|_| SourceCommandError::Invalid("isolated root parent fsync"))?;
                     return Ok(Self {
-                        path: parent.join(name),
+                        path: parent.join(&name),
+                        parent: parent_fd.try_clone().map_err(|_| {
+                            SourceCommandError::Invalid("isolated root parent custody")
+                        })?,
+                        name,
                         directory,
                         identity,
                     });
@@ -755,16 +761,66 @@ impl IsolatedCreationRoot {
         if rustix::process::getuid().as_raw() != uid {
             return Err(SourceCommandError::Denied("isolated root account changed"));
         }
+        let parent_path = self
+            .path
+            .parent()
+            .ok_or(SourceCommandError::Invalid("isolated root parent absent"))?;
+        let current_parent = tos_fd_open::open_absolute_directory(parent_path)
+            .map_err(|_| SourceCommandError::Conflict("isolated root parent path replaced"))?;
         let current = tos_fd_open::open_absolute_directory(&self.path)
             .map_err(|_| SourceCommandError::Conflict("isolated root path replaced"))?;
-        if inode(&owned(&current, uid, true)?) != self.identity
+        if inode(&owned(&current_parent, uid, true)?) != inode(&owned(&self.parent, uid, true)?)
+            || inode(&owned(&current, uid, true)?) != self.identity
             || inode(&owned(&self.directory, uid, true)?) != self.identity
+            || inode(&owned(&child(&self.parent, &self.name)?, uid, true)?) != self.identity
         {
             return Err(SourceCommandError::Conflict(
                 "isolated root identity changed",
             ));
         }
         Ok(current)
+    }
+
+    /// Remove only this verified isolated directory, and only if it is empty.
+    /// Verify the held parent and root identities, then remove only the named
+    /// empty directory through the held parent; REMOVEDIR refuses any child.
+    pub(crate) fn cleanup_empty(
+        &self,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<()> {
+        active(deadline, cancelled)?;
+        let uid = rustix::process::geteuid().as_raw();
+        if rustix::process::getuid().as_raw() != uid {
+            return Err(SourceCommandError::Denied("isolated root account changed"));
+        }
+        let parent_path = self
+            .path
+            .parent()
+            .ok_or(SourceCommandError::Invalid("isolated root parent absent"))?;
+        let current_parent = tos_fd_open::open_absolute_directory(parent_path)
+            .map_err(|_| SourceCommandError::Conflict("isolated root parent path replaced"))?;
+        if inode(&owned(&current_parent, uid, true)?) != inode(&owned(&self.parent, uid, true)?) {
+            return Err(SourceCommandError::Conflict(
+                "isolated root parent identity changed",
+            ));
+        }
+        let current = child(&self.parent, &self.name)?;
+        if inode(&owned(&current, uid, true)?) != self.identity
+            || inode(&owned(&self.directory, uid, true)?) != self.identity
+        {
+            return Err(SourceCommandError::Conflict(
+                "isolated root identity changed before cleanup",
+            ));
+        }
+        drop(current);
+        active(deadline, cancelled)?;
+        rustix::fs::unlinkat(&self.parent, self.name.as_str(), AtFlags::REMOVEDIR)
+            .map_err(|_| SourceCommandError::Conflict("isolated root not empty or replaced"))?;
+        self.parent
+            .sync_all()
+            .map_err(|_| SourceCommandError::Invalid("isolated root cleanup parent fsync"))?;
+        Ok(())
     }
 }
 

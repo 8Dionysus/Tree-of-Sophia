@@ -10,6 +10,10 @@
 use crate::item_rules::{ItemLimits, ItemRefusal};
 use crate::layer_family_rules::{LayerFamilySource, LayerPayload};
 use crate::record_biblio_cut::BiblioCurrentRecord;
+use crate::source_foundation_default_rules::{
+    BorrowedDefaultRecords, SliceDefaultPaths, SourceFoundationDefaultEventLookup,
+    SourceFoundationDefaultPaths, SourceFoundationDefaultRecordsLookup,
+};
 use crate::source_foundation_discovery::{
     PhysicalPathFacts, PhysicalResolvedTargetFacts as ResolvedTargetFacts, SourcePhysicalFacts,
 };
@@ -195,6 +199,7 @@ struct SampleBinding {
 
 struct GoldsetChecks<'a, S: LayerFamilySource> {
     source: &'a mut S,
+    paths: &'a dyn SourceFoundationDefaultPaths,
     limits: ItemLimits,
     report: SourceFoundationGoldsetsReport,
     current_digests: BTreeMap<String, String>,
@@ -266,18 +271,11 @@ impl<'a, S: LayerFamilySource> GoldsetChecks<'a, S> {
         Ok(())
     }
 
-    fn current_path_present(
-        &mut self,
-        current_paths: &[String],
-        path: &str,
-    ) -> Result<bool, ItemRefusal> {
-        for current in current_paths {
-            self.checkpoint()?;
-            if current == path {
-                return Ok(true);
-            }
-        }
-        Ok(false)
+    fn current_path_present(&mut self, path: &str) -> Result<bool, ItemRefusal> {
+        let paths = self.paths;
+        let deadline = self.limits.deadline;
+        let source = &mut *self.source;
+        paths.contains_with_checkpoint(path, &mut || source.checkpoint(deadline))
     }
 
     fn charge(&mut self, bytes: usize) -> Result<(), ItemRefusal> {
@@ -716,7 +714,39 @@ pub fn inspect_source_foundation_goldsets(
     require_local_payloads: bool,
     limits: ItemLimits,
 ) -> Result<SourceFoundationGoldsetsReport, ItemRefusal> {
-    let (roots, roots_state_bytes) = gold_roots(source, current_paths, limits)?;
+    let paths = SliceDefaultPaths(current_paths);
+    let declared_profile_kinds = BTreeSet::new();
+    let records = BorrowedDefaultRecords {
+        current_records,
+        item_editions,
+        rights_ids,
+        file_memberships,
+        declared_profile_kinds: &declared_profile_kinds,
+    };
+    inspect_source_foundation_goldsets_with_lookups(
+        source,
+        &paths,
+        source_events,
+        &records,
+        physical,
+        require_local_payloads,
+        limits,
+    )
+}
+
+/// Inspect Gold over the same bounded lookup kernels used by the cold owner
+/// maps. Stored candidates provide these lookups from their authenticated
+/// Records, Events, and path indexes without reconstructing full reports.
+pub fn inspect_source_foundation_goldsets_with_lookups(
+    source: &mut impl LayerFamilySource,
+    paths: &dyn SourceFoundationDefaultPaths,
+    source_events: &dyn SourceFoundationDefaultEventLookup,
+    records: &dyn SourceFoundationDefaultRecordsLookup,
+    physical: &SourcePhysicalFacts,
+    require_local_payloads: bool,
+    limits: ItemLimits,
+) -> Result<SourceFoundationGoldsetsReport, ItemRefusal> {
+    let (roots, roots_state_bytes) = gold_roots(source, paths, limits)?;
     let mut combined = SourceFoundationGoldsetsReport::default();
     combined.retained_state_bytes = roots_state_bytes;
     let mut prior_graph_claim_ids = BTreeSet::new();
@@ -743,15 +773,12 @@ pub fn inspect_source_foundation_goldsets(
         let mut next = inspect_source_foundation_goldset_root(
             source,
             &root,
-            current_paths,
+            paths,
             source_events,
             &prior_graph_claim_ids,
             &mut seen_anchor_ids,
             &mut seen_gold_event_ids,
-            current_records,
-            item_editions,
-            rights_ids,
-            file_memberships,
+            records,
             physical,
             require_local_payloads,
             remaining,
@@ -813,16 +840,16 @@ pub fn inspect_source_foundation_goldsets(
 
 fn gold_roots(
     source: &mut impl LayerFamilySource,
-    current_paths: &[String],
+    paths: &dyn SourceFoundationDefaultPaths,
     limits: ItemLimits,
 ) -> Result<(BTreeSet<String>, usize), ItemRefusal> {
     let mut roots = BTreeSet::<String>::new();
     let mut state_bytes = 0usize;
-    for path in current_paths {
+    paths.for_each_path(&mut |path| {
         source.checkpoint(limits.deadline)?;
         let mut components = path.split('/');
         if components.next() != Some("ToS") || components.next() != Some("source-witnesses") {
-            continue;
+            return Ok(());
         }
         let mut component_start = "ToS/source-witnesses/".len();
         while let Some(component) = components.next() {
@@ -859,28 +886,27 @@ fn gold_roots(
                 .and_then(|offset| offset.checked_add(1))
                 .ok_or(ItemRefusal::Budget)?;
         }
-    }
+        Ok(())
+    })?;
     Ok((roots, state_bytes))
 }
 
 fn inspect_source_foundation_goldset_root(
     source: &mut impl LayerFamilySource,
     root: &str,
-    current_paths: &[String],
-    source_events: &BTreeMap<String, Value>,
+    paths: &dyn SourceFoundationDefaultPaths,
+    source_events: &dyn SourceFoundationDefaultEventLookup,
     prior_graph_claim_ids: &BTreeSet<String>,
     seen_anchor_ids: &mut BTreeSet<String>,
     seen_gold_event_ids: &mut BTreeSet<String>,
-    current_records: &BTreeMap<String, BiblioCurrentRecord>,
-    item_editions: &BTreeMap<String, String>,
-    rights_ids: &BTreeSet<String>,
-    file_memberships: &SourceFileMembershipIndex,
+    records: &dyn SourceFoundationDefaultRecordsLookup,
     physical: &SourcePhysicalFacts,
     require_local_payloads: bool,
     limits: ItemLimits,
 ) -> Result<SourceFoundationGoldsetsReport, ItemRefusal> {
     let mut checks = GoldsetChecks {
         source,
+        paths,
         limits,
         report: SourceFoundationGoldsetsReport::default(),
         current_digests: BTreeMap::new(),
@@ -915,7 +941,7 @@ fn inspect_source_foundation_goldset_root(
         "experimental-translation-candidate.admitted-ekgwb.za-i-vorrede-1-opening.variant-a.v1.json",
     ];
     let ocr_plan_path = path("ocr-visual-samples.json");
-    if checks.current_path_present(current_paths, &ocr_plan_path)? {
+    if checks.current_path_present(&ocr_plan_path)? {
         if let Some(document) = checks.json(&ocr_plan_path, true)? {
             optional_documents.insert(ocr_plan_path, document);
         }
@@ -925,7 +951,7 @@ fn inspect_source_foundation_goldset_root(
     let translation = checks.json(&path(TRANSLATION_PLAN), true)?;
     for name in early_optional_names {
         let member = path(name);
-        if checks.current_path_present(current_paths, &member)? {
+        if checks.current_path_present(&member)? {
             if let Some(document) = checks.json(&member, true)? {
                 optional_documents.insert(member, document);
             }
@@ -933,16 +959,18 @@ fn inspect_source_foundation_goldset_root(
     }
     let critical_prefix = format!("{root}/critical-edition-witness.");
     let mut critical_witness_paths = Vec::<String>::new();
-    for member in current_paths {
+    let paths = checks.paths;
+    paths.for_each_path(&mut |member| {
         checks.checkpoint()?;
         if member
             .strip_prefix(&critical_prefix)
             .is_some_and(|suffix| !suffix.contains('/') && suffix.ends_with(".json"))
         {
             checks.charge(member.len() + size_of::<String>() + 32)?;
-            critical_witness_paths.push(member.clone());
+            critical_witness_paths.push(member.to_owned());
         }
-    }
+        Ok(())
+    })?;
     critical_witness_paths.sort();
     for member in &critical_witness_paths {
         if let Some(document) = checks.json(member, true)? {
@@ -951,7 +979,7 @@ fn inspect_source_foundation_goldset_root(
     }
     for name in later_optional_names {
         let member = path(name);
-        if checks.current_path_present(current_paths, &member)? {
+        if checks.current_path_present(&member)? {
             if let Some(document) = checks.json(&member, true)? {
                 optional_documents.insert(member, document);
             }
@@ -959,16 +987,18 @@ fn inspect_source_foundation_goldset_root(
     }
     let episode_prefix = format!("{root}/experimental-translation-episode.");
     let mut experimental_episode_paths = Vec::<String>::new();
-    for member in current_paths {
+    let paths = checks.paths;
+    paths.for_each_path(&mut |member| {
         checks.checkpoint()?;
         if member
             .strip_prefix(&episode_prefix)
             .is_some_and(|suffix| !suffix.contains('/') && suffix.ends_with(".json"))
         {
             checks.charge(member.len() + size_of::<String>() + 32)?;
-            experimental_episode_paths.push(member.clone());
+            experimental_episode_paths.push(member.to_owned());
         }
-    }
+        Ok(())
+    })?;
     experimental_episode_paths.sort();
     for member in &experimental_episode_paths {
         if let Some(document) = checks.json(member, true)? {
@@ -991,7 +1021,7 @@ fn inspect_source_foundation_goldset_root(
     let llm = checks.json(&path(LLM_PLAN), true)?;
     let retrieval = checks.json(&path(RETRIEVAL_PLAN), true)?;
     let visual_plan_path = path("visual-retrieval-plan.v1.json");
-    if checks.current_path_present(current_paths, &visual_plan_path)? {
+    if checks.current_path_present(&visual_plan_path)? {
         if let Some(document) = checks.json(&visual_plan_path, true)? {
             optional_documents.insert(visual_plan_path, document);
         }
@@ -1015,14 +1045,15 @@ fn inspect_source_foundation_goldset_root(
         "provenance.semantic-source-observation-v1.jsonl",
         "provenance.semantic-source-recurrence-v1.jsonl",
     ] {
-        if checks.current_path_present(current_paths, &path(name))? {
+        if checks.current_path_present(&path(name))? {
             provenance_file_slots = provenance_file_slots
                 .checked_add(1)
                 .ok_or(ItemRefusal::Budget)?;
         }
     }
     let episode_provenance_prefix = format!("{root}/provenance.experimental-translation-episodes");
-    for member in current_paths {
+    let paths = checks.paths;
+    paths.for_each_path(&mut |member| {
         checks.checkpoint()?;
         if member
             .strip_prefix(&episode_provenance_prefix)
@@ -1032,7 +1063,8 @@ fn inspect_source_foundation_goldset_root(
                 .checked_add(1)
                 .ok_or(ItemRefusal::Budget)?;
         }
-    }
+        Ok(())
+    })?;
     let mut next_anchor_stage = advance_diagnostic_stage(
         DIAG_STAGE_PROVENANCE,
         provenance_file_slots
@@ -1065,7 +1097,7 @@ fn inspect_source_foundation_goldset_root(
         "semantic-source-observation-anchors.v1.jsonl",
     ] {
         let member = path(name);
-        if checks.current_path_present(current_paths, &member)? {
+        if checks.current_path_present(&member)? {
             checks.set_diagnostic_stage(next_anchor_stage);
             if let Some(rows) = checks.jsonl(&member, true)? {
                 let validation_stage = advance_diagnostic_stage(next_anchor_stage, 1)?;
@@ -1108,22 +1140,24 @@ fn inspect_source_foundation_goldset_root(
     .collect();
     let mut present_supplemental_provenance_paths = Vec::new();
     for member in supplemental_provenance_paths {
-        if checks.current_path_present(current_paths, &member)? {
+        if checks.current_path_present(&member)? {
             present_supplemental_provenance_paths.push(member);
         }
     }
     let mut supplemental_provenance_paths = present_supplemental_provenance_paths;
     let mut episode_provenance_paths = Vec::<String>::new();
-    for member in current_paths {
+    let paths = checks.paths;
+    paths.for_each_path(&mut |member| {
         checks.checkpoint()?;
         if member
             .strip_prefix(&episode_provenance_prefix)
             .is_some_and(|suffix| !suffix.contains('/') && suffix.ends_with(".jsonl"))
         {
             checks.charge(member.len() + size_of::<String>() + 32)?;
-            episode_provenance_paths.push(member.clone());
+            episode_provenance_paths.push(member.to_owned());
         }
-    }
+        Ok(())
+    })?;
     episode_provenance_paths.sort();
     supplemental_provenance_paths.extend(episode_provenance_paths);
     for provenance_path in &supplemental_provenance_paths {
@@ -1207,7 +1241,7 @@ fn inspect_source_foundation_goldset_root(
             }
         }
         let readiness_path = path("transfer-route-readiness.v1.json");
-        let readiness_document = if checks.current_path_present(current_paths, &readiness_path)? {
+        let readiness_document = if checks.current_path_present(&readiness_path)? {
             checks.json(&readiness_path, true)?
         } else {
             None
@@ -1330,8 +1364,8 @@ fn inspect_source_foundation_goldset_root(
             }
         }
         if let Some(id) = row.value.get("event_id").and_then(Value::as_str) {
-            let duplicate =
-                source_events.contains_key(id) || !checks.insert_string(seen_gold_event_ids, id)?;
+            let duplicate = source_events.event_contains(id)?
+                || !checks.insert_string(seen_gold_event_ids, id)?;
             if duplicate {
                 checks.issue(&row.location, format!("duplicate event_id: {id}"))?;
             }
@@ -1388,17 +1422,18 @@ fn inspect_source_foundation_goldset_root(
             anchors_by_id.insert(id.to_owned(), row.value.clone());
         }
         let item_ref = row.value.get("item_id").unwrap_or(&Value::Null);
-        if item_ref
-            .as_str()
-            .is_none_or(|item_id| !current_records.contains_key(item_id))
-        {
+        let item_exists = match item_ref.as_str() {
+            Some(item_id) => records.current_record(item_id)?.is_some(),
+            None => false,
+        };
+        if !item_exists {
             checks.issue(
                 &row.location,
                 format!("unresolved item_id: {}", display(item_ref)),
             )?;
         }
         let file_ref = row.value.get("file_id").unwrap_or(&Value::Null);
-        if !file_memberships.contains(item_ref, file_ref) {
+        if !records.file_contains(item_ref, file_ref)? {
             checks.issue(
                 &row.location,
                 format!(
@@ -1408,10 +1443,8 @@ fn inspect_source_foundation_goldset_root(
                 ),
             )?;
         }
-        if checks.python_different(
-            file_memberships.sha256_for(file_ref),
-            row.value.get("file_sha256"),
-        )? {
+        let file_sha256 = records.file_sha256(file_ref)?;
+        if checks.python_different(file_sha256.as_deref(), row.value.get("file_sha256"))? {
             checks.issue(
                 &row.location,
                 format!(
@@ -1437,12 +1470,8 @@ fn inspect_source_foundation_goldset_root(
     // full source-bound projection law below.
     let ocr_plan_path = path("ocr-visual-samples.json");
     let ocr_anchor_path = path("ocr-anchors.jsonl");
-    let has_ocr_plan = current_paths
-        .iter()
-        .any(|current| current == &ocr_plan_path);
-    let has_ocr_anchors = current_paths
-        .iter()
-        .any(|current| current == &ocr_anchor_path);
+    let has_ocr_plan = checks.current_path_present(&ocr_plan_path)?;
+    let has_ocr_anchors = checks.current_path_present(&ocr_anchor_path)?;
     let mut sample_bindings = BTreeMap::<String, SampleBinding>::new();
     let mut gold_sample_ids = BTreeSet::new();
     checks.set_diagnostic_stage(DIAG_STAGE_PACKET_SCHEMAS);
@@ -1491,8 +1520,8 @@ fn inspect_source_foundation_goldset_root(
                 .and_then(Value::as_array)
                 .map(Vec::as_slice)
                 .unwrap_or(&[]);
-            let group_language = item_language(current_records, &item_ref);
-            if !file_memberships.contains(&item_ref, &file_ref) {
+            let group_language = item_language(records, &item_ref)?;
+            if !records.file_contains(&item_ref, &file_ref)? {
                 checks.issue(
                     &document.path,
                     format!(
@@ -1502,10 +1531,8 @@ fn inspect_source_foundation_goldset_root(
                     ),
                 )?;
             }
-            if checks.python_different(
-                file_memberships.sha256_for(&file_ref),
-                group.get("file_sha256"),
-            )? {
+            let file_sha256 = records.file_sha256(&file_ref)?;
+            if checks.python_different(file_sha256.as_deref(), group.get("file_sha256"))? {
                 checks.issue(
                     &document.path,
                     format!(
@@ -2015,16 +2042,14 @@ fn inspect_source_foundation_goldset_root(
             .get("file_ref")
             .cloned()
             .unwrap_or(Value::Null);
-        if !file_memberships.contains(&target_item, &target_file) {
+        if !records.file_contains(&target_item, &target_file)? {
             checks.issue(
                 &document.path,
                 "transfer target file does not belong to its collection item",
             )?;
         }
-        if checks.python_different(
-            file_memberships.sha256_for(&target_file),
-            target_source.get("file_sha256"),
-        )? {
+        let file_sha256 = records.file_sha256(&target_file)?;
+        if checks.python_different(file_sha256.as_deref(), target_source.get("file_sha256"))? {
             checks.issue(&document.path, "transfer target file digest drifted")?;
         }
         if let Some(rights_ref) = target_source
@@ -2423,14 +2448,19 @@ fn inspect_source_foundation_goldset_root(
                 )?;
             }
             let work_ref = candidate.get("work_ref").and_then(Value::as_str);
-            let work = work_ref.and_then(|work_ref| current_records.get(work_ref));
-            if work.is_none_or(|record| record.kind != "work") {
+            let work = match work_ref {
+                Some(work_ref) => records.current_record(work_ref)?,
+                None => None,
+            };
+            if work.as_deref().is_none_or(|record| record.kind != "work") {
                 checks.issue(&document.path, format!("{unit_id} work_ref is unresolved"))?;
             }
             let expression_ref = candidate.get("expression_ref").and_then(Value::as_str);
-            let expression =
-                expression_ref.and_then(|expression_ref| current_records.get(expression_ref));
-            let expression_wrong = match expression {
+            let expression = match expression_ref {
+                Some(expression_ref) => records.current_record(expression_ref)?,
+                None => None,
+            };
+            let expression_wrong = match expression.as_deref() {
                 Some(record) => {
                     record.kind != "expression"
                         || checks.python_different(
@@ -2446,10 +2476,10 @@ fn inspect_source_foundation_goldset_root(
                     format!("{unit_id} expression does not belong to its work"),
                 )?;
             }
-            if !file_memberships.contains(
+            if !records.file_contains(
                 candidate.get("item_ref").unwrap_or(&Value::Null),
                 candidate.get("file_ref").unwrap_or(&Value::Null),
-            ) {
+            )? {
                 checks.issue(
                     &document.path,
                     format!("{unit_id} file does not belong to its item"),
@@ -5315,9 +5345,9 @@ fn inspect_source_foundation_goldset_root(
                     continue;
                 };
                 let known = if record_ref.starts_with("tos.rights.") {
-                    rights_ids.contains(record_ref)
+                    records.rights_contains(record_ref)?
                 } else {
-                    current_records.contains_key(record_ref)
+                    records.current_record(record_ref)?.is_some()
                 };
                 if !known {
                     checks.issue(
@@ -5438,9 +5468,14 @@ fn inspect_source_foundation_goldset_root(
             .value
             .get("source_discovery_event_ref")
             .and_then(Value::as_str);
-        if discovery_ref.is_none_or(|event_ref| {
-            !source_events.contains_key(event_ref) && !seen_gold_event_ids.contains(event_ref)
-        }) {
+        let unresolved_discovery = match discovery_ref {
+            Some(event_ref) => {
+                !source_events.event_contains(event_ref)?
+                    && !seen_gold_event_ids.contains(event_ref)
+            }
+            None => true,
+        };
+        if unresolved_discovery {
             checks.issue(&ocr.path, "OCR source_discovery_event_ref is unresolved")?;
         }
         let projection_ref = ocr
@@ -5533,10 +5568,11 @@ fn inspect_source_foundation_goldset_root(
                 .unwrap_or(&Value::Null),
             "reference_item_refs",
         ) {
-            let target = item_ref
-                .as_str()
-                .and_then(|reference| current_records.get(reference));
-            if target.is_none_or(|record| record.kind != "item") {
+            let target = match item_ref.as_str() {
+                Some(reference) => records.current_record(reference)?,
+                None => None,
+            };
+            if target.as_deref().is_none_or(|record| record.kind != "item") {
                 checks.issue(
                     &ocr.path,
                     format!(
@@ -5588,7 +5624,7 @@ fn inspect_source_foundation_goldset_root(
                 )?;
             }
             let item_value = group.get("item_ref").cloned().unwrap_or(Value::Null);
-            if !file_memberships.contains(&item_value, &file_ref) {
+            if !records.file_contains(&item_value, &file_ref)? {
                 checks.issue(
                     &ocr.path,
                     format!(
@@ -5598,10 +5634,8 @@ fn inspect_source_foundation_goldset_root(
                     ),
                 )?;
             }
-            if checks.python_different(
-                file_memberships.sha256_for(&file_ref),
-                group.get("file_sha256"),
-            )? {
+            let file_sha256 = records.file_sha256(&file_ref)?;
+            if checks.python_different(file_sha256.as_deref(), group.get("file_sha256"))? {
                 checks.issue(
                     &ocr.path,
                     format!(
@@ -5772,12 +5806,15 @@ fn inspect_source_foundation_goldset_root(
                                 ),
                             )?;
                         }
-                        let source_edition = source_binding
-                            .item_ref
-                            .as_str()
-                            .and_then(|id| item_editions.get(id));
-                        let target_edition = item_ref.and_then(|id| item_editions.get(id));
-                        if source_edition != target_edition {
+                        let source_edition = match source_binding.item_ref.as_str() {
+                            Some(id) => records.item_edition(id)?,
+                            None => None,
+                        };
+                        let target_edition = match item_ref {
+                            Some(id) => records.item_edition(id)?,
+                            None => None,
+                        };
+                        if source_edition.as_deref() != target_edition.as_deref() {
                             checks.issue(
                                 &ocr.path,
                                 format!(
@@ -5812,12 +5849,15 @@ fn inspect_source_foundation_goldset_root(
                     }
                     Some("replacement_for_nonvisual_unit") => {
                         replacement_count += 1;
-                        let source_edition = source_binding
-                            .item_ref
-                            .as_str()
-                            .and_then(|id| item_editions.get(id));
-                        let target_edition = item_ref.and_then(|id| item_editions.get(id));
-                        if source_edition != target_edition {
+                        let source_edition = match source_binding.item_ref.as_str() {
+                            Some(id) => records.item_edition(id)?,
+                            None => None,
+                        };
+                        let target_edition = match item_ref {
+                            Some(id) => records.item_edition(id)?,
+                            None => None,
+                        };
+                        if source_edition.as_deref() != target_edition.as_deref() {
                             checks.issue(
                                 &ocr.path,
                                 format!(
@@ -6537,12 +6577,12 @@ fn inspect_source_foundation_goldset_root(
     for row in &graph_claim_rows {
         for field in ["subject_ref", "object"] {
             if let Some(reference) = row.value.get(field).and_then(Value::as_str) {
-                let known = current_records.contains_key(reference)
+                let known = records.current_record(reference)?.is_some()
                     || anchors_by_id.contains_key(reference)
-                    || source_events.contains_key(reference)
+                    || source_events.event_contains(reference)?
                     || seen_gold_event_ids.contains(reference)
                     || local_event_ids.contains(reference)
-                    || rights_ids.contains(reference)
+                    || records.rights_contains(reference)?
                     || prior_graph_claim_ids.contains(reference)
                     || graph_claim_ids.contains(reference);
                 if reference.starts_with("tos.") && !known {
@@ -7757,33 +7797,45 @@ fn json_error_kind(error: &serde_json::Error) -> &'static str {
 }
 
 fn item_language(
-    records: &BTreeMap<String, BiblioCurrentRecord>,
+    records: &dyn SourceFoundationDefaultRecordsLookup,
     item_id: &Value,
-) -> Option<String> {
-    let item = records
-        .get(item_id.as_str()?)
-        .filter(|record| record.kind == "item")?;
-    let edition_ref = item.value.get("embodiment_ref")?.as_str()?;
-    let edition = records
-        .get(edition_ref)
-        .filter(|record| record.kind == "edition")?;
-    let mut languages = BTreeSet::new();
+) -> Result<Option<String>, ItemRefusal> {
+    let Some(item_id) = item_id.as_str() else {
+        return Ok(None);
+    };
+    let Some(item) = records.current_record(item_id)? else {
+        return Ok(None);
+    };
+    if item.kind != "item" {
+        return Ok(None);
+    }
+    let Some(edition_ref) = item.value.get("embodiment_ref").and_then(Value::as_str) else {
+        return Ok(None);
+    };
+    let Some(edition) = records.current_record(edition_ref)? else {
+        return Ok(None);
+    };
+    if edition.kind != "edition" {
+        return Ok(None);
+    }
+    let mut language: Option<String> = None;
+    let mut multiple_languages = false;
     for expression_ref in array(&edition.value, "embodies_expression_refs") {
         let Some(expression_id) = expression_ref.as_str() else {
             continue;
         };
-        if let Some(language) = records
-            .get(expression_id)
-            .filter(|record| record.kind == "expression")
-            .and_then(|record| record.value.get("language"))
-            .and_then(Value::as_str)
+        if let Some(expression) = records.current_record(expression_id)?
+            && expression.kind == "expression"
+            && let Some(next_language) = expression.value.get("language").and_then(Value::as_str)
         {
-            languages.insert(language.to_owned());
+            match language.as_deref() {
+                Some(previous) if previous != next_language => multiple_languages = true,
+                Some(_) => {}
+                None => language = Some(next_language.to_owned()),
+            }
         }
     }
-    (languages.len() == 1)
-        .then(|| languages.into_iter().next())
-        .flatten()
+    Ok((!multiple_languages).then_some(language).flatten())
 }
 
 fn encoded_len(value: &Value) -> Result<usize, ItemRefusal> {

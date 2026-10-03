@@ -11,7 +11,19 @@ use crate::executor::schema_diagnostics::{
 use crate::item_rules::{ItemLimits, ItemRefusal};
 use crate::layer_family_rules::LayerFamilySource;
 use crate::native_compound::{NativeRecordHistoryReadObservation, NativeTransportState};
-use crate::record_biblio_cut::{BiblioCurrentRecord, SourceCutRecordReport};
+use crate::record_biblio_cut::{
+    BiblioCurrentRecord, SourceCutInput, SourceCutInputCoverage, SourceCutInputWithIdentity,
+    SourceCutRecordReport,
+};
+use crate::source_foundation_default_rules::{
+    SourceFoundationDefaultEventLookup, SourceFoundationDefaultPaths,
+    SourceFoundationDefaultRecordsLookup,
+};
+use crate::source_foundation_records::{
+    SourceFoundationRecordsCollection, SourceFoundationRecordsCursor,
+    SourceFoundationRecordsPageBudget, SourceFoundationRecordsStoredFact,
+    SourceFoundationRecordsStreamedReport,
+};
 use serde_json::{Value, json};
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -21,7 +33,7 @@ use tos_foundation::{
     JsonValue, RelativePath, SourceRevision, canonical_bytes_v1, emit_json_profile,
     emit_value_preserved_json, parse_json,
 };
-use tos_source_store::{CorpusCutReader, SourceMembershipV1};
+use tos_source_store::{CorpusCutReader, SourceMembershipV1, SourcePresenceV1};
 
 const SOURCE_HOME: &str = "ToS/source-witnesses/";
 const DISCOVERY_RUNS: &str = "ToS/source-witnesses/discovery/runs/";
@@ -236,6 +248,26 @@ pub trait ArtifactCorrectionReplayEvidence {
 pub type ArtifactCorrectionReplayMap<'a> =
     BTreeMap<String, &'a dyn ArtifactCorrectionReplayEvidence>;
 
+/// Candidate-fenced correction replay evidence. Its opaque source identity
+/// remains the candidate's own type and never borrows `SourceRevision`.
+pub trait CandidateArtifactCorrectionReplayEvidence<I: Copy + Eq> {
+    fn input_identity(&self) -> &I;
+    fn current_membership(&self) -> SourceMembershipV1;
+    fn source_path(&self) -> &str;
+    fn record_id(&self) -> &str;
+    fn origin_record_sha256(&self) -> &str;
+    fn origin_record_byte_size(&self) -> usize;
+    fn history_sha256(&self) -> Option<&str>;
+    fn transaction_count(&self) -> usize;
+    fn transaction_at(&self, index: usize) -> Option<ArtifactCorrectionReplayTransactionRef<'_>>;
+    fn publication_state_bytes(&self) -> usize;
+    fn returned_state_bytes(&self) -> usize;
+}
+
+/// Caller-owned map of candidate Artifact paths to their typed replay proof.
+pub type CandidateArtifactCorrectionReplayMap<'a, I> =
+    BTreeMap<String, &'a dyn CandidateArtifactCorrectionReplayEvidence<I>>;
+
 /// Bounded observations supplied by the host/CMD owner. Authored metadata
 /// posture is keyed by exact selected path. `private_files` is the physical
 /// file inventory under the private correspondence root, including ignored
@@ -289,6 +321,39 @@ pub struct Report {
     pub cost: Cost,
 }
 
+/// Completed Discovery result bound to one opaque candidate input identity
+/// and the membership already authenticated by its Records EOF fence.
+/// Candidate identity is never represented as `SourceRevision`.
+pub struct SourceFoundationCandidateDiscoveryReport<I> {
+    input_identity: I,
+    source_membership: SourceMembershipV1,
+    candidate_direct_source_bytes: u64,
+    report: Report,
+}
+
+impl<I> SourceFoundationCandidateDiscoveryReport<I> {
+    pub fn input_identity(&self) -> &I {
+        &self.input_identity
+    }
+
+    pub fn source_membership(&self) -> SourceMembershipV1 {
+        self.source_membership
+    }
+
+    pub fn candidate_direct_source_bytes(&self) -> u64 {
+        self.candidate_direct_source_bytes
+    }
+
+    pub fn into_report(self) -> Report {
+        self.report
+    }
+}
+
+struct DiscoveryKernelOutput {
+    report: Report,
+    candidate_direct_source_bytes: u64,
+}
+
 impl Report {
     /// A missing owner observation or a pending whole-source subcheck can
     /// never be represented as a valid empty report.
@@ -317,9 +382,88 @@ struct DiscoveryInfo {
     captured_acquisitions: BTreeSet<(String, String, String, u64)>,
 }
 
-struct Inspector<'s, 'p, S: LayerFamilySource> {
+trait DiscoveryCurrentPaths: SourceFoundationDefaultPaths {
+    fn for_each_discovery_path(
+        &self,
+        visit: &mut dyn FnMut(&str) -> Result<(), ItemRefusal>,
+    ) -> Result<(), ItemRefusal>;
+}
+
+struct ResidentDiscoveryPaths<'a> {
+    ordered: Vec<&'a str>,
+    members: BTreeSet<&'a str>,
+}
+
+impl<'a> ResidentDiscoveryPaths<'a> {
+    fn new(paths: &'a [String]) -> Self {
+        let mut ordered: Vec<&str> = paths.iter().map(String::as_str).collect();
+        ordered.sort_unstable();
+        Self {
+            ordered,
+            members: paths.iter().map(String::as_str).collect(),
+        }
+    }
+}
+
+impl SourceFoundationDefaultPaths for ResidentDiscoveryPaths<'_> {
+    fn contains(&self, path: &str) -> Result<bool, ItemRefusal> {
+        Ok(self.members.contains(path))
+    }
+
+    fn for_each_path(
+        &self,
+        visit: &mut dyn FnMut(&str) -> Result<(), ItemRefusal>,
+    ) -> Result<(), ItemRefusal> {
+        for path in &self.ordered {
+            visit(path)?;
+        }
+        Ok(())
+    }
+}
+
+impl DiscoveryCurrentPaths for ResidentDiscoveryPaths<'_> {
+    fn for_each_discovery_path(
+        &self,
+        visit: &mut dyn FnMut(&str) -> Result<(), ItemRefusal>,
+    ) -> Result<(), ItemRefusal> {
+        self.for_each_path(visit)
+    }
+}
+
+struct BorrowedDiscoveryPaths<'a>(&'a dyn SourceFoundationDefaultPaths);
+
+impl SourceFoundationDefaultPaths for BorrowedDiscoveryPaths<'_> {
+    fn contains(&self, path: &str) -> Result<bool, ItemRefusal> {
+        self.0.contains(path)
+    }
+
+    fn for_each_path(
+        &self,
+        visit: &mut dyn FnMut(&str) -> Result<(), ItemRefusal>,
+    ) -> Result<(), ItemRefusal> {
+        self.0.for_each_path(visit)
+    }
+}
+
+impl DiscoveryCurrentPaths for BorrowedDiscoveryPaths<'_> {
+    fn for_each_discovery_path(
+        &self,
+        visit: &mut dyn FnMut(&str) -> Result<(), ItemRefusal>,
+    ) -> Result<(), ItemRefusal> {
+        self.0.for_each_path(visit)
+    }
+}
+
+struct Inspector<'s, 'p, S: LayerFamilySource + ?Sized, I: Copy + Eq = ()> {
     source: &'s mut S,
-    members: BTreeSet<&'p str>,
+    paths: &'p dyn DiscoveryCurrentPaths,
+    candidate_input: Option<&'p dyn SourceCutInput>,
+    records_lookup: Option<&'p dyn SourceFoundationDefaultRecordsLookup>,
+    candidate_identity: Option<&'p I>,
+    candidate_membership: Option<SourceMembershipV1>,
+    native_histories: NativeHistorySet<'p, I>,
+    artifact_replays: ArtifactReplaySet<'p, I>,
+    candidate_invalid_schema_proofs: Option<&'p dyn CandidateInvalidArtifactSchemaProof<I>>,
     limits: ItemLimits,
     physical: Option<&'s SourcePhysicalFacts>,
     issues: Vec<Issue>,
@@ -329,6 +473,7 @@ struct Inspector<'s, 'p, S: LayerFamilySource> {
     digests: BTreeMap<String, String>,
     payload_observation_paths: BTreeSet<String>,
     read_bytes: u64,
+    candidate_direct_source_bytes: u64,
     payload_bytes: u64,
     state_bytes: usize,
     document_copies: usize,
@@ -339,7 +484,7 @@ struct Inspector<'s, 'p, S: LayerFamilySource> {
     artifact_replay_referenced_state_bytes: usize,
 }
 
-impl<S: LayerFamilySource> Inspector<'_, '_, S> {
+impl<S: LayerFamilySource + ?Sized, I: Copy + Eq> Inspector<'_, '_, S, I> {
     fn checkpoint(&self) -> Result<(), ItemRefusal> {
         if self.source.cancellation().load(Ordering::Relaxed) {
             return Err(ItemRefusal::Source(
@@ -347,6 +492,36 @@ impl<S: LayerFamilySource> Inspector<'_, '_, S> {
             ));
         }
         self.source.checkpoint(self.limits.deadline)
+    }
+
+    fn has_current_member(&self, path: &str) -> Result<bool, ItemRefusal> {
+        self.paths.contains(path)
+    }
+
+    fn for_each_current_path(
+        &mut self,
+        visit: &mut dyn FnMut(&mut Self, &str) -> Result<(), ItemRefusal>,
+    ) -> Result<(), ItemRefusal> {
+        let paths = self.paths;
+        paths.for_each_discovery_path(&mut |path| {
+            self.checkpoint()?;
+            visit(self, path)
+        })
+    }
+
+    fn collect_current_paths_matching(
+        &mut self,
+        mut matches: impl FnMut(&str) -> bool,
+    ) -> Result<Vec<String>, ItemRefusal> {
+        let mut paths = Vec::new();
+        self.for_each_current_path(&mut |inspector, path| {
+            if matches(path) {
+                inspector.reserve_state(path.len().checked_add(24).ok_or(ItemRefusal::Budget)?)?;
+                paths.push(path.to_owned());
+            }
+            Ok(())
+        })?;
+        Ok(paths)
     }
 
     fn reserve_state(&mut self, bytes: usize) -> Result<(), ItemRefusal> {
@@ -400,7 +575,7 @@ impl<S: LayerFamilySource> Inspector<'_, '_, S> {
 
     fn reference_native_history(
         &mut self,
-        observation: &NativeRecordHistoryReadObservation,
+        observation: &NativeHistoryRef<'_, I>,
     ) -> Result<(), ItemRefusal> {
         self.native_history_referenced_bytes = self
             .native_history_referenced_bytes
@@ -416,7 +591,7 @@ impl<S: LayerFamilySource> Inspector<'_, '_, S> {
     fn reference_artifact_replay(
         &mut self,
         path: &str,
-        evidence: &dyn ArtifactCorrectionReplayEvidence,
+        evidence: &ArtifactReplayRef<'_, I>,
     ) -> Result<(), ItemRefusal> {
         if !self
             .artifact_replay_referenced_paths
@@ -477,27 +652,92 @@ impl<S: LayerFamilySource> Inspector<'_, '_, S> {
 
     fn current_bytes(&mut self, path: &str) -> Result<Option<Vec<u8>>, ItemRefusal> {
         self.checkpoint()?;
-        if !self.members.contains(path) {
+        if !self.has_current_member(path)? {
             return Ok(None);
         }
-        let raw = self
-            .source
-            .current(path, self.limits.max_member_bytes, self.limits.deadline)?
-            .ok_or_else(|| {
-                ItemRefusal::Source(format!(
-                    "captured source member disappeared through exact current reader: {path}"
-                ))
-            })?;
+        let mut candidate_cost_precharged = false;
+        let raw = if let Some(input) = self.candidate_input {
+            let mut current = None;
+            let max_member_bytes = self.limits.max_member_bytes;
+            let max_total_bytes = self.limits.max_total_bytes;
+            let max_state_bytes = self.limits.max_state_bytes;
+            // The input must receive the remaining allowance before its raw
+            // or SQL read. Preserve the same eight-times-copy charge used by
+            // this kernel below; a post-read check cannot bound that read.
+            let remaining_read_bytes = max_total_bytes
+                .checked_sub(self.read_bytes)
+                .ok_or(ItemRefusal::Budget)?;
+            let remaining_copy_bytes = max_state_bytes
+                .checked_sub(self.state_bytes)
+                .ok_or(ItemRefusal::Budget)?
+                / 8;
+            let max_request_bytes = max_member_bytes
+                .min(usize::try_from(remaining_read_bytes).unwrap_or(usize::MAX))
+                .min(remaining_copy_bytes);
+            let deadline = self.limits.deadline;
+            let cancellation = self.source.cancellation();
+            let read_bytes = &mut self.read_bytes;
+            let candidate_direct_source_bytes = &mut self.candidate_direct_source_bytes;
+            let state_bytes = &mut self.state_bytes;
+            input.with_current_member(
+                path,
+                max_request_bytes,
+                deadline,
+                cancellation,
+                &mut |meta, bytes| {
+                    let byte_count = u64::try_from(bytes.len()).map_err(|_| ItemRefusal::Budget)?;
+                    if meta.path != path || current.is_some() || meta.size_bytes != byte_count {
+                        return Err(ItemRefusal::Source(
+                            "candidate Discovery current member metadata differs from its bytes"
+                                .into(),
+                        ));
+                    }
+                    if bytes.len() > max_request_bytes {
+                        return Err(ItemRefusal::Budget);
+                    }
+                    let next_read_bytes = read_bytes
+                        .checked_add(byte_count)
+                        .filter(|used| *used <= max_total_bytes)
+                        .ok_or(ItemRefusal::Budget)?;
+                    let next_candidate_source_bytes = candidate_direct_source_bytes
+                        .checked_add(byte_count)
+                        .ok_or(ItemRefusal::Budget)?;
+                    let copy_state_bytes = bytes.len().checked_mul(8).ok_or(ItemRefusal::Budget)?;
+                    let next_state_bytes = state_bytes
+                        .checked_add(copy_state_bytes)
+                        .filter(|used| *used <= max_state_bytes)
+                        .ok_or(ItemRefusal::Budget)?;
+                    *read_bytes = next_read_bytes;
+                    *candidate_direct_source_bytes = next_candidate_source_bytes;
+                    *state_bytes = next_state_bytes;
+                    candidate_cost_precharged = true;
+                    current = Some(bytes.to_vec());
+                    Ok(())
+                },
+            )?;
+            current
+        } else {
+            self.source
+                .current(path, self.limits.max_member_bytes, self.limits.deadline)?
+        }
+        .ok_or_else(|| {
+            ItemRefusal::Source(format!(
+                "captured source member disappeared through exact current reader: {path}"
+            ))
+        })?;
         self.checkpoint()?;
         if raw.len() > self.limits.max_member_bytes {
             return Err(ItemRefusal::Budget);
         }
-        self.read_bytes = self
-            .read_bytes
-            .checked_add(raw.len() as u64)
-            .filter(|used| *used <= self.limits.max_total_bytes)
-            .ok_or(ItemRefusal::Budget)?;
-        self.reserve_state(raw.len().checked_mul(8).ok_or(ItemRefusal::Budget)?)?;
+        if !candidate_cost_precharged {
+            let raw_bytes = u64::try_from(raw.len()).map_err(|_| ItemRefusal::Budget)?;
+            self.read_bytes = self
+                .read_bytes
+                .checked_add(raw_bytes)
+                .filter(|used| *used <= self.limits.max_total_bytes)
+                .ok_or(ItemRefusal::Budget)?;
+            self.reserve_state(raw.len().checked_mul(8).ok_or(ItemRefusal::Budget)?)?;
+        }
         self.digests
             .entry(path.to_owned())
             .or_insert_with(|| Digest256::of_bytes(&raw).to_hex());
@@ -514,7 +754,7 @@ impl<S: LayerFamilySource> Inspector<'_, '_, S> {
         if !self.schema_locations.insert(location.to_owned()) {
             return Ok(());
         }
-        if !self.members.contains(contract) {
+        if !self.has_current_member(contract)? {
             self.issue(location, "missing-current-schema", contract)?;
             return Ok(());
         }
@@ -597,7 +837,7 @@ impl<S: LayerFamilySource> Inspector<'_, '_, S> {
             return Ok(true);
         }
         self.checkpoint()?;
-        if !self.members.contains(path) {
+        if !self.has_current_member(path)? {
             return Ok(false);
         }
         self.source
@@ -815,7 +1055,7 @@ impl<S: LayerFamilySource> Inspector<'_, '_, S> {
         if let Some(facts) = self.physical_path_facts(path) {
             return Ok(Some(facts.exists));
         }
-        if self.members.contains(path) {
+        if self.has_current_member(path)? {
             self.unsupported(
                 owner,
                 "physical existence for a selected authored path is unobserved",
@@ -853,7 +1093,7 @@ impl<S: LayerFamilySource> Inspector<'_, '_, S> {
         &mut self,
         path: &str,
     ) -> Result<Option<(Value, String, usize)>, ItemRefusal> {
-        if !self.members.contains(path) {
+        if !self.has_current_member(path)? {
             self.issue(path, "missing-current-document", "file is missing")?;
             return Ok(None);
         }
@@ -877,7 +1117,7 @@ impl<S: LayerFamilySource> Inspector<'_, '_, S> {
         &mut self,
         path: &str,
     ) -> Result<Option<(Value, JsonValue, String, usize)>, ItemRefusal> {
-        if !self.members.contains(path) {
+        if !self.has_current_member(path)? {
             self.issue(path, "missing-current-document", "file is missing")?;
             return Ok(None);
         }
@@ -964,7 +1204,7 @@ impl<S: LayerFamilySource> Inspector<'_, '_, S> {
             return Ok(None);
         }
         let physical = self.exact_file_posture(reference, owner)?;
-        if !self.members.contains(reference) {
+        if !self.has_current_member(reference)? {
             self.issue(
                 owner,
                 "digest-bound-reference-not-current",
@@ -1030,7 +1270,7 @@ impl<S: LayerFamilySource> Inspector<'_, '_, S> {
         path: &str,
         contract: &str,
     ) -> Result<Vec<Value>, ItemRefusal> {
-        if !self.members.contains(path) {
+        if !self.has_current_member(path)? {
             self.issue(path, "missing-current-jsonl", "file is missing")?;
             return Ok(Vec::new());
         }
@@ -1232,7 +1472,7 @@ impl<S: LayerFamilySource> Inspector<'_, '_, S> {
             let actual = if let Some(facts) = self.physical.and_then(|f| f.payloads.get(reference))
             {
                 facts.sha256.clone()
-            } else if self.members.contains(reference.as_str()) {
+            } else if self.has_current_member(reference.as_str())? {
                 self.digest(reference)?
             } else {
                 None
@@ -1250,7 +1490,7 @@ impl<S: LayerFamilySource> Inspector<'_, '_, S> {
     }
 }
 
-impl<S: LayerFamilySource> Inspector<'_, '_, S> {
+impl<S: LayerFamilySource + ?Sized, I: Copy + Eq> Inspector<'_, '_, S, I> {
     fn referenced_json(
         &mut self,
         reference: &str,
@@ -1299,7 +1539,7 @@ impl<S: LayerFamilySource> Inspector<'_, '_, S> {
     fn private_route(&mut self) -> Result<(), ItemRefusal> {
         let root = "ToS/source-witnesses/access-requests/private";
         let route = format!("{root}/README.md");
-        if !self.members.contains(route.as_str()) {
+        if !self.has_current_member(route.as_str())? {
             self.issue(
                 &route,
                 "private-route-card-missing",
@@ -2781,8 +3021,8 @@ fn hierarchical_target_map_issues(payload: &Value) -> Vec<String> {
     issues
 }
 
-fn inspect_companion_district<S: LayerFamilySource>(
-    inspector: &mut Inspector<'_, '_, S>,
+fn inspect_companion_district<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
+    inspector: &mut Inspector<'_, '_, S, I>,
 ) -> Result<(), ItemRefusal> {
     let handoff = inspector.required_object(PRIVATE_HANDOFF_PATH, PRIVATE_HANDOFF_SCHEMA)?;
     let mut handoff_value = None;
@@ -3043,8 +3283,8 @@ fn serde_value_as_ordered(value: &Value, max_bytes: usize) -> Result<JsonValue, 
         })
 }
 
-fn replay_native_artifact_initial_forms<S: LayerFamilySource>(
-    inspector: &mut Inspector<'_, '_, S>,
+fn replay_native_artifact_initial_forms<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
+    inspector: &mut Inspector<'_, '_, S, I>,
     request_path: &str,
     forms_path: &str,
     request_ordered: &JsonValue,
@@ -3254,6 +3494,367 @@ struct NativeCutBinding {
     membership: SourceMembershipV1,
 }
 
+enum NativeHistoryRef<'a, I: Copy + Eq> {
+    Cut(&'a NativeRecordHistoryReadObservation),
+    Candidate(&'a crate::native_compound::CandidateNativeRecordHistoryReadObservation<I>),
+}
+
+impl<I: Copy + Eq> Copy for NativeHistoryRef<'_, I> {}
+
+impl<I: Copy + Eq> Clone for NativeHistoryRef<'_, I> {
+    fn clone(&self) -> Self {
+        *self
+    }
+}
+
+#[derive(Clone, Copy)]
+enum NativeArtifactBinding<'a, I: Copy + Eq> {
+    Cut(NativeCutBinding),
+    Candidate {
+        identity: &'a I,
+        membership: SourceMembershipV1,
+    },
+}
+
+impl<I: Copy + Eq> NativeHistoryRef<'_, I> {
+    fn belongs_to_cut(&self, binding: NativeCutBinding) -> bool {
+        matches!(self, Self::Cut(observation)
+            if observation.source_revision() == binding.revision
+                && observation.current_membership() == binding.membership)
+    }
+
+    fn belongs_to_candidate(&self, identity: &I, membership: SourceMembershipV1) -> bool {
+        matches!(self, Self::Candidate(observation)
+            if observation.input_identity() == identity
+                && observation.current_membership() == membership)
+    }
+
+    fn matches_binding(&self, binding: NativeArtifactBinding<'_, I>) -> bool {
+        match binding {
+            NativeArtifactBinding::Cut(cut) => self.belongs_to_cut(cut),
+            NativeArtifactBinding::Candidate {
+                identity,
+                membership,
+            } => self.belongs_to_candidate(identity, membership),
+        }
+    }
+
+    fn record_path(&self) -> &str {
+        match self {
+            Self::Cut(observation) => observation.record_path(),
+            Self::Candidate(observation) => observation.record_path(),
+        }
+    }
+
+    fn identity_field(&self) -> &str {
+        match self {
+            Self::Cut(observation) => observation.identity_field(),
+            Self::Candidate(observation) => observation.identity_field(),
+        }
+    }
+
+    fn identity(&self) -> &str {
+        match self {
+            Self::Cut(observation) => observation.identity(),
+            Self::Candidate(observation) => observation.identity(),
+        }
+    }
+
+    fn selected_package(&self) -> &BTreeMap<String, Vec<u8>> {
+        match self {
+            Self::Cut(observation) => observation.selected_package(),
+            Self::Candidate(observation) => observation.selected_package(),
+        }
+    }
+
+    fn current_record(&self) -> &Value {
+        match self {
+            Self::Cut(observation) => observation.current_record(),
+            Self::Candidate(observation) => observation.current_record(),
+        }
+    }
+
+    fn origin_record_sha256(&self) -> &str {
+        match self {
+            Self::Cut(observation) => observation.origin_record_sha256(),
+            Self::Candidate(observation) => observation.origin_record_sha256(),
+        }
+    }
+
+    fn origin_record_byte_size(&self) -> usize {
+        match self {
+            Self::Cut(observation) => observation.origin_record_byte_size(),
+            Self::Candidate(observation) => observation.origin_record_byte_size(),
+        }
+    }
+
+    fn history_sha256(&self) -> Option<&str> {
+        match self {
+            Self::Cut(observation) => observation.history_sha256(),
+            Self::Candidate(observation) => observation.history_sha256(),
+        }
+    }
+
+    fn history(&self) -> &Value {
+        match self {
+            Self::Cut(observation) => observation.history(),
+            Self::Candidate(observation) => observation.history(),
+        }
+    }
+
+    fn history_receipt_count(&self) -> usize {
+        match self {
+            Self::Cut(observation) => observation.history_receipt_count(),
+            Self::Candidate(observation) => observation.history_receipt_count(),
+        }
+    }
+
+    fn transaction_count(&self) -> usize {
+        match self {
+            Self::Cut(observation) => observation.transactions().len(),
+            Self::Candidate(observation) => observation.transactions().len(),
+        }
+    }
+
+    fn transaction_is_committed(&self, id: &str) -> bool {
+        match self {
+            Self::Cut(observation) => observation.transactions().iter().any(|transaction| {
+                transaction.transaction_id() == id
+                    && transaction.transport() == NativeTransportState::Committed
+            }),
+            Self::Candidate(observation) => observation.transactions().iter().any(|transaction| {
+                transaction.transaction_id() == id
+                    && transaction.transport() == NativeTransportState::Committed
+            }),
+        }
+    }
+
+    fn has_transaction(&self, id: &str) -> bool {
+        match self {
+            Self::Cut(observation) => observation
+                .transactions()
+                .iter()
+                .any(|transaction| transaction.transaction_id() == id),
+            Self::Candidate(observation) => observation
+                .transactions()
+                .iter()
+                .any(|transaction| transaction.transaction_id() == id),
+        }
+    }
+
+    fn transaction_manifest_sha256(&self, id: &str) -> Option<&str> {
+        match self {
+            Self::Cut(observation) => observation
+                .transactions()
+                .iter()
+                .find(|transaction| transaction.transaction_id() == id)
+                .map(|transaction| transaction.manifest_sha256()),
+            Self::Candidate(observation) => observation
+                .transactions()
+                .iter()
+                .find(|transaction| transaction.transaction_id() == id)
+                .map(|transaction| transaction.manifest_sha256()),
+        }
+    }
+
+    fn bytes_read(&self) -> u64 {
+        match self {
+            Self::Cut(observation) => observation.bytes_read(),
+            Self::Candidate(observation) => observation.bytes_read(),
+        }
+    }
+
+    fn returned_state_bytes(&self) -> usize {
+        match self {
+            Self::Cut(observation) => observation.returned_state_bytes(),
+            Self::Candidate(observation) => observation.returned_state_bytes(),
+        }
+    }
+}
+
+enum ArtifactReplayRef<'a, I: Copy + Eq> {
+    Cut(&'a dyn ArtifactCorrectionReplayEvidence),
+    Candidate(&'a dyn CandidateArtifactCorrectionReplayEvidence<I>),
+}
+
+impl<I: Copy + Eq> Copy for ArtifactReplayRef<'_, I> {}
+
+impl<I: Copy + Eq> Clone for ArtifactReplayRef<'_, I> {
+    fn clone(&self) -> Self {
+        *self
+    }
+}
+
+impl<I: Copy + Eq> ArtifactReplayRef<'_, I> {
+    fn belongs_to_cut(&self, binding: NativeCutBinding) -> bool {
+        matches!(self, Self::Cut(replay)
+            if replay.source_revision() == binding.revision
+                && replay.current_membership() == binding.membership)
+    }
+
+    fn belongs_to_candidate(&self, identity: &I, membership: SourceMembershipV1) -> bool {
+        matches!(self, Self::Candidate(replay)
+            if replay.input_identity() == identity
+                && replay.current_membership() == membership)
+    }
+
+    fn matches_binding(&self, binding: NativeArtifactBinding<'_, I>) -> bool {
+        match binding {
+            NativeArtifactBinding::Cut(cut) => self.belongs_to_cut(cut),
+            NativeArtifactBinding::Candidate {
+                identity,
+                membership,
+            } => self.belongs_to_candidate(identity, membership),
+        }
+    }
+
+    fn source_path(&self) -> &str {
+        match self {
+            Self::Cut(replay) => replay.source_path(),
+            Self::Candidate(replay) => replay.source_path(),
+        }
+    }
+
+    fn record_id(&self) -> &str {
+        match self {
+            Self::Cut(replay) => replay.record_id(),
+            Self::Candidate(replay) => replay.record_id(),
+        }
+    }
+
+    fn origin_record_sha256(&self) -> &str {
+        match self {
+            Self::Cut(replay) => replay.origin_record_sha256(),
+            Self::Candidate(replay) => replay.origin_record_sha256(),
+        }
+    }
+
+    fn origin_record_byte_size(&self) -> usize {
+        match self {
+            Self::Cut(replay) => replay.origin_record_byte_size(),
+            Self::Candidate(replay) => replay.origin_record_byte_size(),
+        }
+    }
+
+    fn history_sha256(&self) -> Option<&str> {
+        match self {
+            Self::Cut(replay) => replay.history_sha256(),
+            Self::Candidate(replay) => replay.history_sha256(),
+        }
+    }
+
+    fn transaction_count(&self) -> usize {
+        match self {
+            Self::Cut(replay) => replay.transaction_count(),
+            Self::Candidate(replay) => replay.transaction_count(),
+        }
+    }
+
+    fn transaction_at(&self, index: usize) -> Option<ArtifactCorrectionReplayTransactionRef<'_>> {
+        match self {
+            Self::Cut(replay) => replay.transaction_at(index),
+            Self::Candidate(replay) => replay.transaction_at(index),
+        }
+    }
+
+    fn publication_state_bytes(&self) -> usize {
+        match self {
+            Self::Cut(replay) => replay.publication_state_bytes(),
+            Self::Candidate(replay) => replay.publication_state_bytes(),
+        }
+    }
+
+    fn returned_state_bytes(&self) -> usize {
+        match self {
+            Self::Cut(replay) => replay.returned_state_bytes(),
+            Self::Candidate(replay) => replay.returned_state_bytes(),
+        }
+    }
+}
+
+enum NativeHistorySet<'a, I: Copy + Eq> {
+    Empty,
+    Cut(&'a BTreeMap<String, NativeRecordHistoryReadObservation>),
+    Candidate(
+        &'a BTreeMap<
+            String,
+            crate::native_compound::CandidateNativeRecordHistoryReadObservation<I>,
+        >,
+    ),
+}
+
+impl<I: Copy + Eq> Copy for NativeHistorySet<'_, I> {}
+
+impl<I: Copy + Eq> Clone for NativeHistorySet<'_, I> {
+    fn clone(&self) -> Self {
+        *self
+    }
+}
+
+impl<I: Copy + Eq> NativeHistorySet<'_, I> {
+    fn get(&self, path: &str) -> Option<NativeHistoryRef<'_, I>> {
+        match self {
+            Self::Empty => None,
+            Self::Cut(rows) => rows.get(path).map(NativeHistoryRef::Cut),
+            Self::Candidate(rows) => rows.get(path).map(NativeHistoryRef::Candidate),
+        }
+    }
+}
+
+enum ArtifactReplaySet<'a, I: Copy + Eq> {
+    Empty,
+    Cut(&'a ArtifactCorrectionReplayMap<'a>),
+    Candidate(&'a CandidateArtifactCorrectionReplayMap<'a, I>),
+}
+
+impl<I: Copy + Eq> Copy for ArtifactReplaySet<'_, I> {}
+
+impl<I: Copy + Eq> Clone for ArtifactReplaySet<'_, I> {
+    fn clone(&self) -> Self {
+        *self
+    }
+}
+
+impl<I: Copy + Eq> ArtifactReplaySet<'_, I> {
+    fn get(&self, path: &str) -> Option<ArtifactReplayRef<'_, I>> {
+        match self {
+            Self::Empty => None,
+            Self::Cut(rows) => rows
+                .get(path)
+                .map(|evidence| ArtifactReplayRef::Cut(*evidence)),
+            Self::Candidate(rows) => rows
+                .get(path)
+                .map(|evidence| ArtifactReplayRef::Candidate(*evidence)),
+        }
+    }
+
+    fn for_each_path(
+        &self,
+        visit: &mut dyn FnMut(&str) -> Result<(), ItemRefusal>,
+    ) -> Result<(), ItemRefusal> {
+        match self {
+            Self::Empty => Ok(()),
+            Self::Cut(rows) => {
+                for path in rows.keys() {
+                    visit(path)?;
+                }
+                Ok(())
+            }
+            Self::Candidate(rows) => {
+                for path in rows.keys() {
+                    visit(path)?;
+                }
+                Ok(())
+            }
+        }
+    }
+}
+
+trait CandidateInvalidArtifactSchemaProof<I: Copy + Eq> {
+    fn binding_matches(&self, identity: &I, membership: SourceMembershipV1) -> bool;
+    fn proves_invalid(&self, path: &str, member_sha256: Digest256, member_size_bytes: u64) -> bool;
+}
+
 #[derive(Debug, Clone, Copy)]
 struct CurrentArtifactSchemaDiagnosticProof {
     record_id_sha256: Digest256,
@@ -3278,6 +3879,542 @@ pub struct CurrentArtifactInvalidSchemaProofCost {
     pub preparation_scan_work_upper_bound: usize,
     pub validation_scan_work_upper_bound: usize,
     pub hash_input_bytes_upper_bound: usize,
+}
+
+/// Bounded logical accounting for a candidate-bound Artifact schema proof.
+/// Index page reads and typed diagnostic work are source evidence; the cost is
+/// not a source verdict or an admission receipt.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct CandidateArtifactInvalidSchemaProofCost {
+    pub retained_state_bytes: usize,
+    pub current_record_rows_scanned: usize,
+    pub schema_diagnostic_rows_scanned: usize,
+    pub diagnostic_validation_work_upper_bound: usize,
+    pub hash_input_bytes_upper_bound: usize,
+    pub index_page_peak_state_bytes: usize,
+    pub candidate_record_count: usize,
+    pub target_diagnostic_count: usize,
+    /// Exact input path probes performed while preparing this proof. A later
+    /// binding check performs one more probe per unique retained Artifact path.
+    pub current_path_probe_count: usize,
+}
+
+#[derive(Debug, Clone, Copy)]
+struct CandidateArtifactSchemaDiagnosticProof {
+    record_id_sha256: Digest256,
+    member_sha256: Option<Digest256>,
+    member_size_bytes: Option<u64>,
+    record_count: usize,
+    target_diagnostic_count: usize,
+    diagnostic_unit_sha256: Option<Digest256>,
+    diagnostic_report_sha256: Option<Digest256>,
+    consistent_member_binding: bool,
+    invalid: bool,
+}
+
+/// Opaque proof over one exact candidate Records report. It borrows that
+/// report so the evidence cannot be rebound to another report with the same
+/// membership summary. Candidate identity remains its own typed value and is
+/// never represented as `SourceRevision`.
+pub struct CandidateArtifactInvalidSchemaProofs<'report, 'store, I: Copy + Eq> {
+    records: &'report SourceFoundationRecordsStreamedReport<'store, I>,
+    input_identity: I,
+    current_membership: SourceMembershipV1,
+    schema_identity: crate::source_foundation_records::SourceFoundationCandidateSchemaIdentity,
+    entries: BTreeMap<String, CandidateArtifactSchemaDiagnosticProof>,
+    candidate_record_count: usize,
+    candidate_records_sha256: Digest256,
+    target_diagnostic_count: usize,
+    target_diagnostics_sha256: Digest256,
+    max_state_bytes: usize,
+    cost: CandidateArtifactInvalidSchemaProofCost,
+}
+
+impl<I: Copy + Eq> CandidateArtifactInvalidSchemaProofs<'_, '_, I> {
+    pub fn input_identity(&self) -> I {
+        self.input_identity
+    }
+
+    pub fn current_membership(&self) -> SourceMembershipV1 {
+        self.current_membership
+    }
+
+    pub fn cost(&self) -> CandidateArtifactInvalidSchemaProofCost {
+        self.cost
+    }
+
+    pub fn candidate_record_count(&self) -> usize {
+        self.candidate_record_count
+    }
+
+    pub fn candidate_records_sha256(&self) -> Digest256 {
+        self.candidate_records_sha256
+    }
+
+    pub fn target_diagnostic_count(&self) -> usize {
+        self.target_diagnostic_count
+    }
+
+    pub fn target_diagnostics_sha256(&self) -> Digest256 {
+        self.target_diagnostics_sha256
+    }
+
+    /// Return true only for one current v2 Artifact record and one complete
+    /// invalid diagnostics-v2 result from this report's prepared schema set.
+    pub fn proves_invalid(
+        &self,
+        path: &str,
+        input_identity: &I,
+        current_membership: SourceMembershipV1,
+        member_sha256: Digest256,
+        member_size_bytes: u64,
+    ) -> bool {
+        if &self.input_identity != input_identity || self.current_membership != current_membership {
+            return false;
+        }
+        self.entries.get(path).is_some_and(|proof| {
+            proof.record_count == 1
+                && proof.target_diagnostic_count == 1
+                && proof.consistent_member_binding
+                && proof.invalid
+                && proof.member_sha256 == Some(member_sha256)
+                && proof.member_size_bytes == Some(member_size_bytes)
+                && proof.diagnostic_unit_sha256.is_some()
+                && proof.diagnostic_report_sha256.is_some()
+        })
+    }
+
+    /// Check the exact borrowed report and candidate identity before a caller
+    /// uses the proof. Point probes exercise the candidate's live fence for
+    /// every retained Artifact path without rebuilding the full member map.
+    pub fn validate_report_binding(
+        &self,
+        input: &dyn SourceCutInputWithIdentity<I>,
+        records: &SourceFoundationRecordsStreamedReport<'_, I>,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<(), ItemRefusal> {
+        if !std::ptr::eq(self.records, records)
+            || self.input_identity != *input.input_identity()
+            || self.input_identity != *records.input_identity()
+            || self.current_membership != *records.source_membership()
+            || records.candidate_schema_identity() != Some(&self.schema_identity)
+        {
+            return Err(ItemRefusal::Source(
+                "source-foundation candidate Artifact proof binding differs".into(),
+            ));
+        }
+        for path in self.entries.keys() {
+            if cancelled.load(Ordering::Relaxed) {
+                return Err(ItemRefusal::Source(
+                    "source-foundation candidate Artifact proof validation cancelled".into(),
+                ));
+            }
+            if Instant::now() >= deadline {
+                return Err(ItemRefusal::Deadline);
+            }
+            let lookup_state = path
+                .len()
+                .checked_mul(32)
+                .and_then(|bytes| bytes.checked_add(8_192))
+                .ok_or(ItemRefusal::Budget)?;
+            if self
+                .cost
+                .retained_state_bytes
+                .checked_add(lookup_state)
+                .is_none_or(|used| used > self.max_state_bytes)
+            {
+                return Err(ItemRefusal::Budget);
+            }
+            if input.path_presence(path, deadline, cancelled)? != Some(SourcePresenceV1::File) {
+                return Err(ItemRefusal::Source(
+                    "source-foundation candidate Artifact proof path is not a current file".into(),
+                ));
+            }
+        }
+        Ok(())
+    }
+}
+
+impl<'report, 'store, I: Copy + Eq> CandidateArtifactInvalidSchemaProofs<'report, 'store, I> {
+    /// Prepare the shared proof from complete, bounded pages in the same
+    /// candidate Records report consumed by Discovery. The record scan cap and
+    /// diagnostic-work cap are explicit caller limits; neither is inferred
+    /// from available memory or replaced by a resident report.
+    #[allow(clippy::too_many_arguments)]
+    pub fn prepare_candidate(
+        input: &dyn SourceCutInputWithIdentity<I>,
+        records: &'report SourceFoundationRecordsStreamedReport<'store, I>,
+        page_budget: SourceFoundationRecordsPageBudget,
+        max_state_bytes: usize,
+        max_scan_rows: usize,
+        max_diagnostic_validation_work: usize,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<Self, ItemRefusal> {
+        let check_active = || -> Result<(), ItemRefusal> {
+            if cancelled.load(Ordering::Relaxed) {
+                Err(ItemRefusal::Source(
+                    "source-foundation candidate Artifact proof preparation cancelled".into(),
+                ))
+            } else if Instant::now() >= deadline {
+                Err(ItemRefusal::Deadline)
+            } else {
+                Ok(())
+            }
+        };
+        check_active()?;
+        let input_identity = *input.input_identity();
+        let current_membership = *records.source_membership();
+        let schema_identity = *records.candidate_schema_identity().ok_or_else(|| {
+            ItemRefusal::Source(
+                "source-foundation candidate Artifact proof requires the prepared schema binding"
+                    .into(),
+            )
+        })?;
+        if input_identity != *records.input_identity()
+            || max_state_bytes == 0
+            || max_scan_rows == 0
+            || max_diagnostic_validation_work == 0
+            || page_budget.max_state_bytes.get() > max_state_bytes
+        {
+            return Err(ItemRefusal::Source(
+                "source-foundation candidate Artifact proof input profile differs".into(),
+            ));
+        }
+
+        let mut rows_scanned = 0usize;
+        let mut page_peak_state_bytes = 0usize;
+        let mut candidate_record_count = 0usize;
+        let mut max_candidate_path_bytes = 0usize;
+        let mut current_record_rows_scanned = 0usize;
+        let current_rows_before = rows_scanned;
+        visit_candidate_record_pages(
+            records,
+            SourceFoundationRecordsCollection::CurrentRecords,
+            page_budget,
+            max_scan_rows,
+            &mut rows_scanned,
+            &mut page_peak_state_bytes,
+            deadline,
+            cancelled,
+            &mut |row, page_state_bytes| {
+                let SourceFoundationRecordsStoredFact::CurrentRecord { record_id, record } = row
+                else {
+                    return Err(ItemRefusal::Source(
+                        "source-foundation candidate CurrentRecords page kind differs".into(),
+                    ));
+                };
+                if !is_current_v2_artifact_record(record) {
+                    return Ok(());
+                }
+                let lookup_state = record
+                    .path
+                    .len()
+                    .checked_mul(32)
+                    .and_then(|bytes| bytes.checked_add(8_192))
+                    .ok_or(ItemRefusal::Budget)?;
+                if page_state_bytes
+                    .checked_add(lookup_state)
+                    .is_none_or(|used| used > max_state_bytes)
+                {
+                    return Err(ItemRefusal::Budget);
+                }
+                if input.path_presence(&record.path, deadline, cancelled)?
+                    != Some(SourcePresenceV1::File)
+                {
+                    return Err(ItemRefusal::Source(
+                        "source-foundation candidate Artifact record is not a current file".into(),
+                    ));
+                }
+                let _ = record_id;
+                candidate_record_count = candidate_record_count
+                    .checked_add(1)
+                    .ok_or(ItemRefusal::Budget)?;
+                max_candidate_path_bytes = max_candidate_path_bytes.max(record.path.len());
+                Ok(())
+            },
+        )?;
+        current_record_rows_scanned = current_record_rows_scanned
+            .checked_add(
+                rows_scanned
+                    .checked_sub(current_rows_before)
+                    .ok_or(ItemRefusal::Budget)?,
+            )
+            .ok_or(ItemRefusal::Budget)?;
+
+        let per_entry = std::mem::size_of::<CandidateArtifactSchemaDiagnosticProof>()
+            .checked_add(std::mem::size_of::<String>())
+            .and_then(|bytes| bytes.checked_add(max_candidate_path_bytes))
+            .and_then(|bytes| bytes.checked_add(128))
+            .ok_or(ItemRefusal::Budget)?;
+        let retained_state_bytes = candidate_record_count
+            .checked_mul(per_entry)
+            .and_then(|bytes| bytes.checked_add(std::mem::size_of::<Self>()))
+            .and_then(|bytes| {
+                max_candidate_path_bytes
+                    .checked_mul(2)
+                    .and_then(|scratch| scratch.checked_add(64))
+                    .and_then(|scratch| bytes.checked_add(scratch))
+            })
+            .ok_or(ItemRefusal::Budget)?;
+        if retained_state_bytes
+            .checked_add(page_budget.max_state_bytes.get())
+            .is_none_or(|used| used > max_state_bytes)
+        {
+            return Err(ItemRefusal::Budget);
+        }
+
+        let mut entries = BTreeMap::new();
+        let mut candidate_hasher = Digest256Hasher::new();
+        hash_text(
+            &mut candidate_hasher,
+            "tos-candidate-artifact-schema-proof-records-v1",
+        )?;
+        let mut hash_input_bytes_upper_bound = 0usize;
+        let current_rows_before = rows_scanned;
+        visit_candidate_record_pages(
+            records,
+            SourceFoundationRecordsCollection::CurrentRecords,
+            page_budget,
+            max_scan_rows,
+            &mut rows_scanned,
+            &mut page_peak_state_bytes,
+            deadline,
+            cancelled,
+            &mut |row, page_state_bytes| {
+                let SourceFoundationRecordsStoredFact::CurrentRecord { record_id, record } = row
+                else {
+                    return Err(ItemRefusal::Source(
+                        "source-foundation candidate CurrentRecords page kind differs".into(),
+                    ));
+                };
+                if !is_current_v2_artifact_record(record) {
+                    return Ok(());
+                }
+                update_candidate_artifact_record_fingerprint(
+                    &mut candidate_hasher,
+                    record_id,
+                    record,
+                )?;
+                hash_input_bytes_upper_bound = hash_input_bytes_upper_bound
+                    .checked_add(candidate_artifact_record_fingerprint_bytes(
+                        record_id, record,
+                    )?)
+                    .ok_or(ItemRefusal::Budget)?;
+                let path = record.path.as_str();
+                if retained_state_bytes
+                    .checked_add(page_state_bytes)
+                    .is_none_or(|used| used > max_state_bytes)
+                {
+                    return Err(ItemRefusal::Budget);
+                }
+                if !entries.contains_key(path) {
+                    let proof = CandidateArtifactSchemaDiagnosticProof {
+                        record_id_sha256: Digest256::of_bytes(record_id.as_bytes()),
+                        member_sha256: None,
+                        member_size_bytes: None,
+                        record_count: 0,
+                        target_diagnostic_count: 0,
+                        diagnostic_unit_sha256: None,
+                        diagnostic_report_sha256: None,
+                        consistent_member_binding: true,
+                        invalid: false,
+                    };
+                    entries.insert(path.to_owned(), proof);
+                }
+                let proof = entries.get_mut(path).ok_or(ItemRefusal::Budget)?;
+                if proof.record_count > 0 {
+                    proof.consistent_member_binding &=
+                        proof.record_id_sha256 == Digest256::of_bytes(record_id.as_bytes());
+                }
+                proof.record_count = proof
+                    .record_count
+                    .checked_add(1)
+                    .ok_or(ItemRefusal::Budget)?;
+                Ok(())
+            },
+        )?;
+        current_record_rows_scanned = current_record_rows_scanned
+            .checked_add(
+                rows_scanned
+                    .checked_sub(current_rows_before)
+                    .ok_or(ItemRefusal::Budget)?,
+            )
+            .ok_or(ItemRefusal::Budget)?;
+
+        let mut target_diagnostic_count = 0usize;
+        let mut diagnostic_validation_work_upper_bound = 0usize;
+        let mut diagnostic_hasher = Digest256Hasher::new();
+        hash_text(
+            &mut diagnostic_hasher,
+            "tos-candidate-artifact-schema-proof-diagnostics-v1",
+        )?;
+        let mut schema_diagnostic_rows_scanned = 0usize;
+        visit_candidate_record_pages(
+            records,
+            SourceFoundationRecordsCollection::RecordSchemaDiagnostics,
+            page_budget,
+            max_scan_rows,
+            &mut rows_scanned,
+            &mut page_peak_state_bytes,
+            deadline,
+            cancelled,
+            &mut |row, page_state_bytes| {
+                let SourceFoundationRecordsStoredFact::RecordSchemaDiagnostic(row) = row else {
+                    return Err(ItemRefusal::Source(
+                        "source-foundation candidate schema-diagnostic page kind differs".into(),
+                    ));
+                };
+                schema_diagnostic_rows_scanned = schema_diagnostic_rows_scanned
+                    .checked_add(1)
+                    .ok_or(ItemRefusal::Budget)?;
+                let diagnostic = &row.diagnostic;
+                if !diagnostic_targets_artifact_schema(diagnostic) {
+                    return Ok(());
+                }
+                target_diagnostic_count = target_diagnostic_count
+                    .checked_add(1)
+                    .ok_or(ItemRefusal::Budget)?;
+                diagnostic_validation_work_upper_bound = diagnostic_validation_work_upper_bound
+                    .checked_add(diagnostic_issue_validation_work_upper_bound(diagnostic)?)
+                    .filter(|work| *work <= max_diagnostic_validation_work)
+                    .ok_or(ItemRefusal::Budget)?;
+                hash_input_bytes_upper_bound = hash_input_bytes_upper_bound
+                    .checked_add(diagnostic_fingerprint_input_upper_bound(diagnostic)?)
+                    .ok_or(ItemRefusal::Budget)?;
+                if page_state_bytes
+                    .checked_add(retained_state_bytes)
+                    .is_none_or(|used| used > max_state_bytes)
+                {
+                    return Err(ItemRefusal::Budget);
+                }
+                update_diagnostic_fingerprint(&mut diagnostic_hasher, diagnostic)?;
+                if let Some(proof) = entries.get_mut(diagnostic.path.as_str()) {
+                    proof.target_diagnostic_count = proof
+                        .target_diagnostic_count
+                        .checked_add(1)
+                        .ok_or(ItemRefusal::Budget)?;
+                    let member_sha256 = diagnostic.unit.raw_sha256;
+                    let member_size_bytes = u64::try_from(diagnostic.input_instance_bytes)
+                        .map_err(|_| ItemRefusal::Budget)?;
+                    match (proof.member_sha256, proof.member_size_bytes) {
+                        (None, None) => {
+                            proof.member_sha256 = Some(member_sha256);
+                            proof.member_size_bytes = Some(member_size_bytes);
+                        }
+                        (Some(existing_sha), Some(existing_size)) => {
+                            proof.consistent_member_binding &=
+                                existing_sha == member_sha256 && existing_size == member_size_bytes;
+                        }
+                        _ => proof.consistent_member_binding = false,
+                    }
+                    if proof.target_diagnostic_count == 1 {
+                        proof.diagnostic_unit_sha256 = Some(diagnostic.unit.unit_sha256);
+                        proof.diagnostic_report_sha256 = Some(diagnostic.unit.report.report_sha256);
+                    }
+                    let exact_schema_set = diagnostic.verdict.format_profile
+                        == schema_identity.profile()
+                        && diagnostic.verdict.schema_set_digest
+                            == schema_identity.schema_set_digest()
+                        && diagnostic.verdict.worker_binary_digest
+                            == schema_identity.worker_digest();
+                    proof.invalid = proof.target_diagnostic_count == 1
+                        && proof.consistent_member_binding
+                        && exact_schema_set
+                        && complete_invalid_artifact_schema_diagnostic(
+                            diagnostic,
+                            diagnostic.path.as_str(),
+                            member_sha256,
+                            member_size_bytes,
+                        );
+                }
+                Ok(())
+            },
+        )?;
+        check_active()?;
+        if input.input_identity() != records.input_identity()
+            || *records.source_membership() != current_membership
+        {
+            return Err(ItemRefusal::Source(
+                "source-foundation candidate Artifact proof input changed during preparation"
+                    .into(),
+            ));
+        }
+        hash_input_bytes_upper_bound = hash_input_bytes_upper_bound
+            .checked_add(512)
+            .ok_or(ItemRefusal::Budget)?;
+        let cost = CandidateArtifactInvalidSchemaProofCost {
+            retained_state_bytes,
+            current_record_rows_scanned,
+            schema_diagnostic_rows_scanned,
+            diagnostic_validation_work_upper_bound,
+            hash_input_bytes_upper_bound,
+            index_page_peak_state_bytes: page_peak_state_bytes,
+            candidate_record_count,
+            target_diagnostic_count,
+            current_path_probe_count: candidate_record_count,
+        };
+        Ok(Self {
+            records,
+            input_identity,
+            current_membership,
+            schema_identity,
+            entries,
+            candidate_record_count,
+            candidate_records_sha256: candidate_hasher.finalize(),
+            target_diagnostic_count,
+            target_diagnostics_sha256: diagnostic_hasher.finalize(),
+            max_state_bytes,
+            cost,
+        })
+    }
+}
+
+fn visit_candidate_record_pages<I, F>(
+    records: &SourceFoundationRecordsStreamedReport<'_, I>,
+    collection: SourceFoundationRecordsCollection,
+    budget: SourceFoundationRecordsPageBudget,
+    max_scan_rows: usize,
+    rows_scanned: &mut usize,
+    page_peak_state_bytes: &mut usize,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+    visit: &mut F,
+) -> Result<(), ItemRefusal>
+where
+    F: FnMut(&SourceFoundationRecordsStoredFact, usize) -> Result<(), ItemRefusal>,
+{
+    let mut after: Option<SourceFoundationRecordsCursor> = None;
+    loop {
+        let page = records
+            .index()
+            .page(collection, after.as_ref(), budget, deadline, cancelled)?;
+        *page_peak_state_bytes = (*page_peak_state_bytes).max(page.charged_state_bytes);
+        *rows_scanned = (*rows_scanned)
+            .checked_add(page.rows.len())
+            .filter(|rows| *rows <= max_scan_rows)
+            .ok_or(ItemRefusal::Budget)?;
+        for (index, row) in page.rows.iter().enumerate() {
+            if index % 128 == 0 {
+                if cancelled.load(Ordering::Relaxed) {
+                    return Err(ItemRefusal::Source(
+                        "source-foundation candidate Artifact proof page cancelled".into(),
+                    ));
+                }
+                if Instant::now() >= deadline {
+                    return Err(ItemRefusal::Deadline);
+                }
+            }
+            visit(row, page.charged_state_bytes)?;
+        }
+        let next = page.next_cursor.clone();
+        drop(page);
+        let Some(next) = next else {
+            return Ok(());
+        };
+        after = Some(next);
+    }
 }
 
 /// Opaque, exact-cut evidence that a current v2 Artifact schema unit already
@@ -3718,6 +4855,25 @@ impl<'cut> CurrentArtifactInvalidSchemaProofs<'cut> {
     }
 }
 
+impl<I: Copy + Eq> CandidateInvalidArtifactSchemaProof<I>
+    for CandidateArtifactInvalidSchemaProofs<'_, '_, I>
+{
+    fn binding_matches(&self, identity: &I, membership: SourceMembershipV1) -> bool {
+        &self.input_identity == identity && self.current_membership == membership
+    }
+
+    fn proves_invalid(&self, path: &str, member_sha256: Digest256, member_size_bytes: u64) -> bool {
+        CandidateArtifactInvalidSchemaProofs::proves_invalid(
+            self,
+            path,
+            &self.input_identity,
+            self.current_membership,
+            member_sha256,
+            member_size_bytes,
+        )
+    }
+}
+
 fn is_current_v2_artifact_record(record: &BiblioCurrentRecord) -> bool {
     record.path.starts_with(ARTIFACTS)
         && record.path.ends_with("/artifact-witness.json")
@@ -3903,6 +5059,41 @@ fn update_candidate_fingerprint(
     Ok(())
 }
 
+fn candidate_artifact_record_fingerprint_bytes(
+    record_id: &str,
+    record: &BiblioCurrentRecord,
+) -> Result<usize, ItemRefusal> {
+    [
+        record_id.len(),
+        record.path.len(),
+        string(&record.value, "schema_version").unwrap_or("").len(),
+        string(&record.value, "$schema").unwrap_or("").len(),
+    ]
+    .into_iter()
+    .try_fold(256usize, |bytes, field| {
+        bytes
+            .checked_add(field)
+            .and_then(|sum| sum.checked_add(8))
+            .ok_or(ItemRefusal::Budget)
+    })
+}
+
+fn update_candidate_artifact_record_fingerprint(
+    hasher: &mut Digest256Hasher,
+    record_id: &str,
+    record: &BiblioCurrentRecord,
+) -> Result<(), ItemRefusal> {
+    hash_text(hasher, "candidate-artifact-record")?;
+    hash_text(hasher, record_id)?;
+    hash_text(hasher, &record.path)?;
+    hash_text(
+        hasher,
+        string(&record.value, "schema_version").unwrap_or(""),
+    )?;
+    hash_text(hasher, string(&record.value, "$schema").unwrap_or(""))?;
+    Ok(())
+}
+
 fn update_diagnostic_fingerprint(
     hasher: &mut Digest256Hasher,
     diagnostic: &crate::record_biblio_cut::SourceCutSchemaDiagnostic,
@@ -3987,23 +5178,21 @@ fn update_diagnostic_fingerprint(
     hasher.update(&[u8::from(diagnostic.unit.report.failure == Failure::None)]);
     Ok(())
 }
-fn check_native_artifact_history<S: LayerFamilySource>(
-    inspector: &mut Inspector<'_, '_, S>,
+fn check_native_artifact_history<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
+    inspector: &mut Inspector<'_, '_, S, I>,
     artifact_path: &str,
     current_record: &Value,
-    cut_binding: NativeCutBinding,
-    observation: &NativeRecordHistoryReadObservation,
-    replay: Option<&dyn ArtifactCorrectionReplayEvidence>,
+    binding: NativeArtifactBinding<'_, I>,
+    observation: &NativeHistoryRef<'_, I>,
+    replay: Option<&ArtifactReplayRef<'_, I>>,
 ) -> Result<(bool, bool), ItemRefusal> {
     inspector.reference_native_history(observation)?;
     let mut valid = true;
-    if observation.source_revision() != cut_binding.revision
-        || observation.current_membership() != cut_binding.membership
-    {
+    if !observation.matches_binding(binding) {
         inspector.issue(
             artifact_path,
-            "native-artifact-history-cut-drift",
-            "selected native Artifact history belongs to a different exact source cut",
+            "native-artifact-history-input-drift",
+            "selected native Artifact history belongs to a different exact source input",
         )?;
         valid = false;
     }
@@ -4056,8 +5245,7 @@ fn check_native_artifact_history<S: LayerFamilySource>(
     let mut replay_valid = true;
     if let Some(replay) = replay {
         inspector.reference_artifact_replay(artifact_path, replay)?;
-        if replay.source_revision() != cut_binding.revision
-            || replay.current_membership() != cut_binding.membership
+        if !replay.matches_binding(binding)
             || replay.source_path() != artifact_path
             || replay.record_id() != observation.identity()
             || replay.record_id() != string(current_record, "artifact_id").unwrap_or("")
@@ -4065,7 +5253,7 @@ fn check_native_artifact_history<S: LayerFamilySource>(
             || replay.origin_record_byte_size() != observation.origin_record_byte_size()
             || replay.history_sha256() != observation.history_sha256()
             || replay.transaction_count() != history_receipts.len()
-            || observation.transactions().len() != history_receipts.len()
+            || observation.transaction_count() != history_receipts.len()
         {
             inspector.issue(
                 artifact_path,
@@ -4104,11 +5292,7 @@ fn check_native_artifact_history<S: LayerFamilySource>(
             )?;
             valid = false;
         }
-        let Some(transaction) = observation
-            .transactions()
-            .iter()
-            .find(|transaction| transaction.transaction_id() == transaction_id)
-        else {
+        if !observation.has_transaction(transaction_id) {
             inspector.issue(
                 artifact_path,
                 "native-artifact-correction-transaction-missing",
@@ -4116,8 +5300,8 @@ fn check_native_artifact_history<S: LayerFamilySource>(
             )?;
             valid = false;
             continue;
-        };
-        if transaction.transport() != NativeTransportState::Committed {
+        }
+        if !observation.transaction_is_committed(transaction_id) {
             inspector.issue(
                 artifact_path,
                 "native-artifact-correction-transaction-uncommitted",
@@ -4131,8 +5315,8 @@ fn check_native_artifact_history<S: LayerFamilySource>(
             match replay.transaction_at(index) {
                 Some(replay_transaction)
                     if replay_transaction.transaction_id == transaction_id
-                        && replay_transaction.transaction_id == transaction.transaction_id()
-                        && replay_transaction.manifest_sha256 == transaction.manifest_sha256()
+                        && Some(replay_transaction.manifest_sha256.as_str())
+                            == observation.transaction_manifest_sha256(transaction_id)
                         && replay_transaction.receipt_sha256 == current_receipt_sha256 => {}
                 _ => {
                     inspector.issue(
@@ -4152,15 +5336,15 @@ fn check_native_artifact_history<S: LayerFamilySource>(
     Ok((valid, correction_replay_pending))
 }
 
-fn native_artifact_capture<S: LayerFamilySource>(
-    inspector: &mut Inspector<'_, '_, S>,
+fn native_artifact_capture<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
+    inspector: &mut Inspector<'_, '_, S, I>,
     artifact_path: &str,
     current_record: &Value,
     current_member_size_bytes: u64,
     discoveries: &BTreeMap<String, DiscoveryInfo>,
-    cut_binding: Option<NativeCutBinding>,
-    native_history: Option<&NativeRecordHistoryReadObservation>,
-    artifact_replay: Option<&dyn ArtifactCorrectionReplayEvidence>,
+    binding: Option<NativeArtifactBinding<'_, I>>,
+    native_history: Option<NativeHistoryRef<'_, I>>,
+    artifact_replay: Option<ArtifactReplayRef<'_, I>>,
     invalid_current_schema_proofs: Option<&CurrentArtifactInvalidSchemaProofs<'_>>,
 ) -> Result<NativeArtifactCapture, ItemRefusal> {
     let issue_start = inspector.issues.len();
@@ -4211,7 +5395,7 @@ fn native_artifact_capture<S: LayerFamilySource>(
         )?;
         return Ok(NativeArtifactCapture::Invalid);
     }
-    let exact_invalid_current_schema = cut_binding.is_some_and(|binding| {
+    let exact_invalid_current_schema = if let Some(NativeArtifactBinding::Cut(binding)) = binding {
         invalid_current_schema_proofs.is_some_and(|proofs| {
             inspector
                 .cached_digest(artifact_path)
@@ -4225,7 +5409,20 @@ fn native_artifact_capture<S: LayerFamilySource>(
                     )
                 })
         })
-    });
+    } else if let (Some(identity), Some(membership), Some(proofs)) = (
+        inspector.candidate_identity,
+        inspector.candidate_membership,
+        inspector.candidate_invalid_schema_proofs,
+    ) {
+        proofs.binding_matches(identity, membership)
+            && inspector
+                .cached_digest(artifact_path)
+                .is_some_and(|digest| {
+                    proofs.proves_invalid(artifact_path, digest, current_member_size_bytes)
+                })
+    } else {
+        false
+    };
 
     let request_path = &companion_paths[0];
     let receipt_path = &companion_paths[1];
@@ -4238,7 +5435,7 @@ fn native_artifact_capture<S: LayerFamilySource>(
     if let Some((forms_value, _, _, forms_size)) = human_forms.as_ref() {
         inspector.request_schema(&forms_path, HUMAN_FORM_SET_SCHEMA, forms_value, *forms_size)?;
     }
-    let _environment_digest = if inspector.members.contains(environment_path.as_str()) {
+    let _environment_digest = if inspector.has_current_member(environment_path.as_str())? {
         inspector.digest(environment_path)?
     } else {
         inspector.issue(
@@ -4664,14 +5861,14 @@ fn native_artifact_capture<S: LayerFamilySource>(
         let (history_valid, correction_replay_pending) = if exact_invalid_current_schema {
             (false, false)
         } else {
-            match (cut_binding, native_history) {
+            match (binding, native_history) {
                 (Some(binding), Some(observation)) => check_native_artifact_history(
                     inspector,
                     artifact_path,
                     current_record,
                     binding,
-                    observation,
-                    artifact_replay,
+                    &observation,
+                    artifact_replay.as_ref(),
                 )?,
                 (Some(_), None) => {
                     inspector.unsupported(
@@ -4681,9 +5878,9 @@ fn native_artifact_capture<S: LayerFamilySource>(
                     (false, false)
                 }
                 (None, Some(observation)) => {
-                    inspector.reference_native_history(observation)?;
+                    inspector.reference_native_history(&observation)?;
                     if let Some(replay) = artifact_replay {
-                        inspector.reference_artifact_replay(artifact_path, replay)?;
+                        inspector.reference_artifact_replay(artifact_path, &replay)?;
                         inspector.issue(
                         artifact_path,
                         "native-artifact-correction-replay-cut-unavailable",
@@ -4698,7 +5895,7 @@ fn native_artifact_capture<S: LayerFamilySource>(
                 }
                 (None, None) => {
                     if let Some(replay) = artifact_replay {
-                        inspector.reference_artifact_replay(artifact_path, replay)?;
+                        inspector.reference_artifact_replay(artifact_path, &replay)?;
                         inspector.issue(
                         artifact_path,
                         "native-artifact-correction-replay-history-unavailable",
@@ -4838,7 +6035,7 @@ fn native_artifact_capture<S: LayerFamilySource>(
             }
         }
         for (name, file_path) in &expected_file_paths {
-            if !inspector.members.contains(file_path.as_str()) {
+            if !inspector.has_current_member(file_path.as_str())? {
                 inspector.issue(
                     receipt_path,
                     "native-artifact-capture-not-current",
@@ -5054,7 +6251,7 @@ fn native_artifact_capture<S: LayerFamilySource>(
 
 /// Inspect the complete exact-current authored membership without claiming
 /// physical payload or Git posture that this source interface does not own.
-pub fn inspect<S: LayerFamilySource>(
+pub fn inspect<S: LayerFamilySource + ?Sized>(
     source: &mut S,
     current_paths: &[String],
     prior_events: &BTreeMap<String, Value>,
@@ -5076,7 +6273,7 @@ pub fn inspect<S: LayerFamilySource>(
 
 /// Inspect authored metadata plus the bounded physical/Git facts captured by
 /// the selected host adapter. Payload bytes are never reopened here.
-pub fn inspect_with_physical_facts<S: LayerFamilySource>(
+pub fn inspect_with_physical_facts<S: LayerFamilySource + ?Sized>(
     source: &mut S,
     current_paths: &[String],
     prior_events: &BTreeMap<String, Value>,
@@ -5101,7 +6298,7 @@ pub fn inspect_with_physical_facts<S: LayerFamilySource>(
 /// by the native-history kernel and Closure. CMD supplies the complete current
 /// member list and the genuine measured observations; this function never
 /// replays selected history itself.
-pub fn inspect_with_cut<S: LayerFamilySource>(
+pub fn inspect_with_cut<S: LayerFamilySource + ?Sized>(
     source: &mut S,
     current_paths: &[String],
     prior_events: &BTreeMap<String, Value>,
@@ -5129,7 +6326,7 @@ pub fn inspect_with_cut<S: LayerFamilySource>(
 /// correction replay observations from CMD. The borrowed proof map is an
 /// evidence input; current receipts, native history and cut identity are
 /// independently joined here before replay-pending can be cleared.
-pub fn inspect_with_cut_and_artifact_replays<S: LayerFamilySource>(
+pub fn inspect_with_cut_and_artifact_replays<S: LayerFamilySource + ?Sized>(
     source: &mut S,
     current_paths: &[String],
     prior_events: &BTreeMap<String, Value>,
@@ -5158,7 +6355,7 @@ pub fn inspect_with_cut_and_artifact_replays<S: LayerFamilySource>(
 /// Inspect the exact source cut with the completed Records report. This entry
 /// preserves the strict native-history requirement; callers that have prepared
 /// the shared invalid-schema proof use the additive proof-aware entry below.
-pub fn inspect_with_cut_and_artifact_replays_and_records<S: LayerFamilySource>(
+pub fn inspect_with_cut_and_artifact_replays_and_records<S: LayerFamilySource + ?Sized>(
     source: &mut S,
     current_paths: &[String],
     prior_events: &BTreeMap<String, Value>,
@@ -5190,7 +6387,9 @@ pub fn inspect_with_cut_and_artifact_replays_and_records<S: LayerFamilySource>(
 /// consumer validates its exact cut/report binding in one linear scan before
 /// allowing the already-invalid schema branch to skip native history.
 #[allow(clippy::too_many_arguments)]
-pub fn inspect_with_cut_and_artifact_replays_and_records_with_proofs<S: LayerFamilySource>(
+pub fn inspect_with_cut_and_artifact_replays_and_records_with_proofs<
+    S: LayerFamilySource + ?Sized,
+>(
     source: &mut S,
     current_paths: &[String],
     prior_events: &BTreeMap<String, Value>,
@@ -5218,7 +6417,7 @@ pub fn inspect_with_cut_and_artifact_replays_and_records_with_proofs<S: LayerFam
     )
 }
 
-fn inspect_with_cut_inputs<S: LayerFamilySource>(
+fn inspect_with_cut_inputs<S: LayerFamilySource + ?Sized>(
     source: &mut S,
     current_paths: &[String],
     prior_events: &BTreeMap<String, Value>,
@@ -5288,7 +6487,7 @@ fn inspect_with_cut_inputs<S: LayerFamilySource>(
     )
 }
 
-fn inspect_internal<S: LayerFamilySource>(
+fn inspect_internal<S: LayerFamilySource + ?Sized>(
     source: &mut S,
     current_paths: &[String],
     prior_events: &BTreeMap<String, Value>,
@@ -5300,16 +6499,157 @@ fn inspect_internal<S: LayerFamilySource>(
     artifact_replays: Option<&ArtifactCorrectionReplayMap<'_>>,
     invalid_current_artifact_schema_proofs: Option<&CurrentArtifactInvalidSchemaProofs<'_>>,
 ) -> Result<Report, ItemRefusal> {
-    let mut members: BTreeSet<&str> = BTreeSet::new();
-    let mut ordered: Vec<&str> = Vec::with_capacity(current_paths.len());
-    for path in current_paths {
-        ordered.push(path.as_str());
-        members.insert(path.as_str());
+    let paths = ResidentDiscoveryPaths::new(current_paths);
+    let native_history_set =
+        native_histories.map_or(NativeHistorySet::Empty, NativeHistorySet::Cut);
+    let artifact_replay_set =
+        artifact_replays.map_or(ArtifactReplaySet::Empty, ArtifactReplaySet::Cut);
+    inspect_kernel::<S, ()>(
+        source,
+        &paths,
+        None,
+        None,
+        None,
+        None,
+        native_history_set,
+        artifact_replay_set,
+        None,
+        prior_events,
+        limits,
+        physical,
+        require_local_payloads,
+        native_cut,
+        invalid_current_artifact_schema_proofs,
+    )
+    .map(|output| output.report)
+}
+
+/// Inspect one already-completed candidate Records scope through the shared
+/// Discovery rules. Current paths are traversed through the bounded provider;
+/// point membership comes from that same provider and bytes are read from the
+/// exact identity-bearing input. The verified Records coverage is reused as
+/// the source fence, never translated into a `SourceRevision`.
+#[allow(clippy::too_many_arguments)]
+pub fn inspect_candidate_with_artifact_replays_and_records_with_proofs<
+    S: LayerFamilySource + ?Sized,
+    I: Copy + Eq,
+>(
+    source: &mut S,
+    input: &dyn SourceCutInputWithIdentity<I>,
+    coverage: &SourceCutInputCoverage,
+    paths: &dyn SourceFoundationDefaultPaths,
+    prior_events: &dyn SourceFoundationDefaultEventLookup,
+    records_lookup: &dyn SourceFoundationDefaultRecordsLookup,
+    records: &SourceFoundationRecordsStreamedReport<'_, I>,
+    limits: ItemLimits,
+    physical: &SourcePhysicalFacts,
+    native_histories: &BTreeMap<
+        String,
+        crate::native_compound::CandidateNativeRecordHistoryReadObservation<I>,
+    >,
+    artifact_replays: &CandidateArtifactCorrectionReplayMap<'_, I>,
+    invalid_schema_proofs: &CandidateArtifactInvalidSchemaProofs<'_, '_, I>,
+    require_local_payloads: bool,
+) -> Result<SourceFoundationCandidateDiscoveryReport<I>, ItemRefusal> {
+    source.checkpoint(limits.deadline)?;
+    let input_identity = *input.input_identity();
+    let membership = *records.source_membership();
+    if input_identity != *records.input_identity()
+        || coverage.membership() != membership
+        || invalid_schema_proofs.input_identity() != input_identity
+        || invalid_schema_proofs.current_membership() != membership
+    {
+        return Err(ItemRefusal::Source(
+            "source-foundation candidate Discovery input/report binding differs".into(),
+        ));
     }
-    ordered.sort_unstable();
+    input.verify_current_fence(coverage, limits.deadline, source.cancellation())?;
+    invalid_schema_proofs.validate_report_binding(
+        input,
+        records,
+        limits.deadline,
+        source.cancellation(),
+    )?;
+    for (path, observation) in native_histories {
+        if observation.input_identity() != &input_identity
+            || observation.current_membership() != membership
+            || observation.record_path() != path
+            || !paths.contains(path)?
+            || input.path_presence(path, limits.deadline, source.cancellation())?
+                != Some(SourcePresenceV1::File)
+        {
+            return Err(ItemRefusal::Source(
+                "source-foundation candidate native Artifact history binding differs".into(),
+            ));
+        }
+    }
+    for (path, replay) in artifact_replays {
+        if replay.input_identity() != &input_identity
+            || replay.current_membership() != membership
+            || replay.source_path() != path
+            || !paths.contains(path)?
+            || input.path_presence(path, limits.deadline, source.cancellation())?
+                != Some(SourcePresenceV1::File)
+        {
+            return Err(ItemRefusal::Source(
+                "source-foundation candidate Artifact replay binding differs".into(),
+            ));
+        }
+    }
+    let path_view = BorrowedDiscoveryPaths(paths);
+    let output = inspect_kernel::<S, I>(
+        source,
+        &path_view,
+        Some(input.source_input()),
+        Some(records_lookup),
+        Some(&input_identity),
+        Some(membership),
+        NativeHistorySet::Candidate(native_histories),
+        ArtifactReplaySet::Candidate(artifact_replays),
+        Some(invalid_schema_proofs),
+        prior_events,
+        limits,
+        Some(physical),
+        require_local_payloads,
+        None,
+        None,
+    )?;
+    input.verify_current_fence(coverage, limits.deadline, source.cancellation())?;
+    Ok(SourceFoundationCandidateDiscoveryReport {
+        input_identity,
+        source_membership: membership,
+        candidate_direct_source_bytes: output.candidate_direct_source_bytes,
+        report: output.report,
+    })
+}
+
+fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
+    source: &mut S,
+    paths: &dyn DiscoveryCurrentPaths,
+    candidate_input: Option<&dyn SourceCutInput>,
+    records_lookup: Option<&dyn SourceFoundationDefaultRecordsLookup>,
+    candidate_identity: Option<&I>,
+    candidate_membership: Option<SourceMembershipV1>,
+    native_histories: NativeHistorySet<'_, I>,
+    artifact_replays: ArtifactReplaySet<'_, I>,
+    candidate_invalid_schema_proofs: Option<&dyn CandidateInvalidArtifactSchemaProof<I>>,
+    prior_events: &dyn SourceFoundationDefaultEventLookup,
+    limits: ItemLimits,
+    physical: Option<&SourcePhysicalFacts>,
+    require_local_payloads: bool,
+    native_cut: Option<NativeCutBinding>,
+    invalid_current_artifact_schema_proofs: Option<&CurrentArtifactInvalidSchemaProofs<'_>>,
+) -> Result<DiscoveryKernelOutput, ItemRefusal> {
     let mut inspector = Inspector {
         source,
-        members,
+        paths,
+        candidate_input,
+        records_lookup,
+        candidate_identity,
+        candidate_membership,
+        native_histories,
+        artifact_replays,
+        candidate_invalid_schema_proofs,
         limits,
         physical,
         issues: Vec::new(),
@@ -5319,6 +6659,7 @@ fn inspect_internal<S: LayerFamilySource>(
         digests: BTreeMap::new(),
         payload_observation_paths: BTreeSet::new(),
         read_bytes: 0,
+        candidate_direct_source_bytes: 0,
         payload_bytes: 0,
         state_bytes: 0,
         document_copies: 0,
@@ -5328,36 +6669,43 @@ fn inspect_internal<S: LayerFamilySource>(
         artifact_replay_referenced_publication_state_bytes: 0,
         artifact_replay_referenced_state_bytes: 0,
     };
-    inspector.reserve_state(
-        ordered
-            .iter()
-            .try_fold(0usize, |used, path| used.checked_add(path.len() + 24))
-            .ok_or(ItemRefusal::Budget)?,
-    )?;
-    for (index, path) in ordered.iter().enumerate() {
-        inspector.checkpoint()?;
+    let mut previous_path: Option<String> = None;
+    let mut previous_path_state = 0usize;
+    inspector.for_each_current_path(&mut |inspector, path| {
         if !safe_relative_path(path) {
             inspector.issue(
-                *path,
+                path,
                 "unsafe-current-member-path",
                 "captured member is not a safe relative path",
             )?;
         }
-        if index > 0 && ordered[index - 1] == *path {
+        if previous_path.as_deref() == Some(path) {
             inspector.issue(
-                *path,
+                path,
                 "duplicate-current-member-path",
                 "exact current membership contains a duplicate path",
             )?;
         }
-    }
+        let next_state = path.len().checked_add(24).ok_or(ItemRefusal::Budget)?;
+        if next_state > previous_path_state {
+            inspector.reserve_state(next_state - previous_path_state)?;
+            previous_path_state = next_state;
+        }
+        previous_path.get_or_insert_with(String::new).clear();
+        previous_path.as_mut().unwrap().push_str(path);
+        Ok(())
+    })?;
 
-    let prior_event_cost = prior_events
-        .keys()
-        .try_fold(0usize, |used, id| used.checked_add(id.len() + 64))
-        .ok_or(ItemRefusal::Budget)?;
+    let mut prior_event_cost = 0usize;
+    let mut event_ids: BTreeSet<String> = BTreeSet::new();
+    prior_events.for_each_event(&mut |id, _| {
+        prior_event_cost = prior_event_cost
+            .checked_add(id.len().checked_add(64).ok_or(ItemRefusal::Budget)?)
+            .ok_or(ItemRefusal::Budget)?;
+        event_ids.insert(id.to_owned());
+        Ok(())
+    })?;
     inspector.reserve_state(prior_event_cost)?;
-    let mut event_ids: BTreeSet<String> = prior_events.keys().cloned().collect();
     let mut source_event_insertions: Vec<(String, Value)> = Vec::new();
     let mut boundary_events: BTreeMap<String, EventInfo> = BTreeMap::new();
 
@@ -5386,10 +6734,12 @@ fn inspect_internal<S: LayerFamilySource>(
     }
 
     let mut discoveries: BTreeMap<String, DiscoveryInfo> = BTreeMap::new();
-    for path in ordered.iter().copied().filter(|path| {
+    let discovery_paths = inspector.collect_current_paths_matching(|path| {
         path.strip_prefix(DISCOVERY_RUNS)
             .is_some_and(|tail| !tail.contains('/') && tail.ends_with(".json"))
-    }) {
+    })?;
+    for path in &discovery_paths {
+        let path = path.as_str();
         let Some((value, _, _)) = inspector.json(path, path, DISCOVERY_SCHEMA)? else {
             continue;
         };
@@ -5483,12 +6833,11 @@ fn inspect_internal<S: LayerFamilySource>(
 
     let mut artifact_ids = BTreeSet::new();
     let mut artifacts_by_path: BTreeMap<String, Value> = BTreeMap::new();
-    let artifact_paths: Vec<&str> = ordered
-        .iter()
-        .copied()
-        .filter(|path| path.starts_with(ARTIFACTS) && path.ends_with("/artifact-witness.json"))
-        .collect();
-    for path in artifact_paths {
+    let artifact_paths = inspector.collect_current_paths_matching(|path| {
+        path.starts_with(ARTIFACTS) && path.ends_with("/artifact-witness.json")
+    })?;
+    for path in &artifact_paths {
+        let path = path.as_str();
         inspector.checkpoint()?;
         let Some(raw) = inspector.current_bytes(path)? else {
             continue;
@@ -5504,6 +6853,22 @@ fn inspect_internal<S: LayerFamilySource>(
                 continue;
             }
         };
+        if let Some(records) = inspector.records_lookup {
+            match records.record_by_path(path)? {
+                Some(record) if record.path == path && python_json_equal(&record.value, &value) => {
+                }
+                Some(_) => inspector.issue(
+                    path,
+                    "candidate-discovery-current-record-drift",
+                    "stored Records lookup differs from the exact candidate Artifact member",
+                )?,
+                None => inspector.issue(
+                    path,
+                    "candidate-discovery-current-record-unindexed",
+                    "candidate Artifact member is absent from the completed Records lookup",
+                )?,
+            }
+        }
         let v2 = string(&value, "$schema") == Some(V2_ARTIFACT_SCHEMA);
         inspector.request_schema(
             path,
@@ -5604,15 +6969,23 @@ fn inspect_internal<S: LayerFamilySource>(
             )?,
         }
         let event_ref = string(&value, "provenance_event_ref").unwrap_or("");
-        let native_history = native_histories.and_then(|rows| rows.get(path));
-        let artifact_replay = artifact_replays.and_then(|rows| rows.get(path)).copied();
+        let native_history = inspector.native_histories.get(path);
+        let artifact_replay = inspector.artifact_replays.get(path);
+        let artifact_binding = native_cut.map(NativeArtifactBinding::Cut).or_else(|| {
+            candidate_identity
+                .zip(candidate_membership)
+                .map(|(identity, membership)| NativeArtifactBinding::Candidate {
+                    identity,
+                    membership,
+                })
+        });
         let native_capture = native_artifact_capture(
             &mut inspector,
             path,
             &value,
             u64::try_from(raw.len()).map_err(|_| ItemRefusal::Budget)?,
             &discoveries,
-            native_cut,
+            artifact_binding,
             native_history,
             artifact_replay,
             invalid_current_artifact_schema_proofs,
@@ -5660,32 +7033,30 @@ fn inspect_internal<S: LayerFamilySource>(
         artifacts_by_path.insert(path.to_owned(), value);
     }
 
-    if let Some(artifact_replays) = artifact_replays {
-        for path in artifact_replays.keys() {
-            inspector.checkpoint()?;
-            if inspector.artifact_replay_referenced_paths.contains(path) {
-                continue;
-            }
-            let location = if safe_relative_path(path) && path.starts_with(ARTIFACTS) {
-                path.as_str()
-            } else {
-                ARTIFACTS.trim_end_matches('/')
-            };
-            inspector.issue(
-                location,
-                "unresolved-artifact-correction-replay-evidence",
-                "CMD correction replay evidence does not resolve to an exact current native Artifact history",
-            )?;
+    let artifact_replays = inspector.artifact_replays;
+    artifact_replays.for_each_path(&mut |path| {
+        inspector.checkpoint()?;
+        if inspector.artifact_replay_referenced_paths.contains(path) {
+            return Ok(());
         }
-    }
+        let location = if safe_relative_path(path) && path.starts_with(ARTIFACTS) {
+            path
+        } else {
+            ARTIFACTS.trim_end_matches('/')
+        };
+        inspector.issue(
+            location,
+            "unresolved-artifact-correction-replay-evidence",
+            "CMD correction replay evidence does not resolve to an exact current native Artifact history",
+        )
+    })?;
 
     let mut representation_file_ids = BTreeSet::new();
-    let artifact_representation_paths: Vec<&str> = ordered
-        .iter()
-        .copied()
-        .filter(|path| path.starts_with(ARTIFACTS) && path.ends_with("/representation.json"))
-        .collect();
-    for path in artifact_representation_paths {
+    let artifact_representation_paths = inspector.collect_current_paths_matching(|path| {
+        path.starts_with(ARTIFACTS) && path.ends_with("/representation.json")
+    })?;
+    for path in &artifact_representation_paths {
+        let path = path.as_str();
         let Some((value, _, _)) = inspector.json(path, path, ARTIFACT_REPRESENTATION_SCHEMA)?
         else {
             continue;
@@ -5861,12 +7232,11 @@ fn inspect_internal<S: LayerFamilySource>(
 
     let mut composite_ids = BTreeSet::new();
     let mut composites_by_path: BTreeMap<String, Value> = BTreeMap::new();
-    let composite_paths: Vec<&str> = ordered
-        .iter()
-        .copied()
-        .filter(|path| path.starts_with(COMPOSITES) && path.ends_with("/composite-witness.json"))
-        .collect();
-    for path in composite_paths {
+    let composite_paths = inspector.collect_current_paths_matching(|path| {
+        path.starts_with(COMPOSITES) && path.ends_with("/composite-witness.json")
+    })?;
+    for path in &composite_paths {
+        let path = path.as_str();
         let Some((value, _, _)) = inspector.json(path, path, COMPOSITE_SCHEMA)? else {
             continue;
         };
@@ -6027,27 +7397,24 @@ fn inspect_internal<S: LayerFamilySource>(
     }
 
     let mut composite_representation_ids = BTreeSet::new();
-    let composite_representation_paths: Vec<&str> = ordered
-        .iter()
-        .copied()
-        .filter(|path| {
-            if !path.starts_with(COMPOSITES) || !path.ends_with("/representation.json") {
-                return false;
-            }
-            let parent = path
-                .rsplit_once('/')
-                .map(|(parent, _)| parent)
-                .unwrap_or("");
-            let Some(relative) = parent.strip_prefix(COMPOSITES) else {
-                return false;
-            };
-            let parts: Vec<&str> = relative.split('/').collect();
-            parts.len() >= 2
-                && parts[parts.len() - 2] == "representations"
-                && !parts[parts.len() - 1].is_empty()
-        })
-        .collect();
-    for path in composite_representation_paths {
+    let composite_representation_paths = inspector.collect_current_paths_matching(|path| {
+        if !path.starts_with(COMPOSITES) || !path.ends_with("/representation.json") {
+            return false;
+        }
+        let parent = path
+            .rsplit_once('/')
+            .map(|(parent, _)| parent)
+            .unwrap_or("");
+        let Some(relative) = parent.strip_prefix(COMPOSITES) else {
+            return false;
+        };
+        let parts: Vec<&str> = relative.split('/').collect();
+        parts.len() >= 2
+            && parts[parts.len() - 2] == "representations"
+            && !parts[parts.len() - 1].is_empty()
+    })?;
+    for path in &composite_representation_paths {
+        let path = path.as_str();
         let Some((value, _, _)) = inspector.json(path, path, COMPOSITE_REPRESENTATION_SCHEMA)?
         else {
             continue;
@@ -6265,10 +7632,12 @@ fn inspect_internal<S: LayerFamilySource>(
         }
     }
 
-    for path in ordered.iter().copied().filter(|path| {
+    let access_request_paths = inspector.collect_current_paths_matching(|path| {
         path.strip_prefix(ACCESS_LEDGER)
             .is_some_and(|tail| !tail.contains('/') && tail.ends_with(".json"))
-    }) {
+    })?;
+    for path in &access_request_paths {
+        let path = path.as_str();
         let Some((value, _, _)) = inspector.json(path, path, ACCESS_REQUEST_SCHEMA)? else {
             continue;
         };
@@ -6284,17 +7653,21 @@ fn inspect_internal<S: LayerFamilySource>(
     }
     inspector.private_route()?;
 
-    let expected_manifest_refs: BTreeSet<String> = ordered
-        .iter()
-        .copied()
-        .filter(|path| path.starts_with(SOURCE_HOME) && path.ends_with(ITEM_MANIFEST_SUFFIX))
-        .map(str::to_owned)
-        .collect();
+    let mut expected_manifest_refs = BTreeSet::new();
+    inspector.for_each_current_path(&mut |inspector, path| {
+        if path.starts_with(SOURCE_HOME) && path.ends_with(ITEM_MANIFEST_SUFFIX) {
+            inspector.reserve_state(path.len().checked_add(96).ok_or(ItemRefusal::Budget)?)?;
+            expected_manifest_refs.insert(path.to_owned());
+        }
+        Ok(())
+    })?;
     let mut planned_manifest_refs = BTreeSet::new();
-    for path in ordered.iter().copied().filter(|path| {
+    let server_plan_paths = inspector.collect_current_paths_matching(|path| {
         path.strip_prefix(SERVER_PLANS)
             .is_some_and(|tail| !tail.contains('/') && tail.ends_with(".json"))
-    }) {
+    })?;
+    for path in &server_plan_paths {
+        let path = path.as_str();
         let Some((plan, plan_digest, _)) = inspector.json(path, path, SERVER_PLAN_SCHEMA)? else {
             continue;
         };
@@ -6438,23 +7811,27 @@ fn inspect_internal<S: LayerFamilySource>(
     } else {
         ScopeStatus::Unsupported
     };
-    Ok(Report {
-        status,
-        issues: inspector.issues,
-        schema_requests: inspector.schema_requests,
-        source_event_insertions,
-        unsupported: inspector.unsupported,
-        cost: Cost {
-            source_bytes_read: inspector.read_bytes,
-            observed_payload_bytes: inspector.payload_bytes,
-            aggregate_document_copies: inspector.document_copies,
-            state_bytes: inspector.state_bytes,
-            native_history_referenced_bytes: inspector.native_history_referenced_bytes,
-            native_history_referenced_state_bytes: inspector.native_history_referenced_state_bytes,
-            artifact_replay_referenced_publication_state_bytes: inspector
-                .artifact_replay_referenced_publication_state_bytes,
-            artifact_replay_referenced_state_bytes: inspector
-                .artifact_replay_referenced_state_bytes,
+    Ok(DiscoveryKernelOutput {
+        report: Report {
+            status,
+            issues: inspector.issues,
+            schema_requests: inspector.schema_requests,
+            source_event_insertions,
+            unsupported: inspector.unsupported,
+            cost: Cost {
+                source_bytes_read: inspector.read_bytes,
+                observed_payload_bytes: inspector.payload_bytes,
+                aggregate_document_copies: inspector.document_copies,
+                state_bytes: inspector.state_bytes,
+                native_history_referenced_bytes: inspector.native_history_referenced_bytes,
+                native_history_referenced_state_bytes: inspector
+                    .native_history_referenced_state_bytes,
+                artifact_replay_referenced_publication_state_bytes: inspector
+                    .artifact_replay_referenced_publication_state_bytes,
+                artifact_replay_referenced_state_bytes: inspector
+                    .artifact_replay_referenced_state_bytes,
+            },
         },
+        candidate_direct_source_bytes: inspector.candidate_direct_source_bytes,
     })
 }

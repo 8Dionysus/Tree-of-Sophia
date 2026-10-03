@@ -1142,6 +1142,21 @@ pub(super) fn strict_main_policy(
     }))
 }
 
+/// Fixed allocations made by strict_main_policy, excluding the shared request
+/// ledgers, SQLite/VFS allocations and allocator overhead. Arc headers are
+/// charged conservatively alongside their concrete payloads.
+pub(super) fn strict_main_declared_custody_bytes() -> Result<usize> {
+    [
+        std::mem::size_of::<MainOnlyPolicy>(),
+        std::mem::size_of::<AuxState>(),
+        std::mem::size_of::<AtomicUsize>(),
+        6 * std::mem::size_of::<usize>(),
+    ]
+    .into_iter()
+    .try_fold(0usize, |sum, bytes| sum.checked_add(bytes))
+    .ok_or_else(|| budget_error("strict SQLite declared custody state overflow"))
+}
+
 #[derive(Debug)]
 struct AuxPolicy {
     state: Arc<AuxState>,

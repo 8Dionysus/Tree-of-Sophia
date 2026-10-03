@@ -312,6 +312,29 @@ impl CorpusReader {
 }
 
 impl StreamedCorpusCutReaderV1 {
+    /// Declared retained terms: (fixed Rust/custody bytes, selected SQLite page
+    /// cache budget). These are not a complete heap bound. Opaque rusqlite,
+    /// SQLite/VFS allocations, statement caches, page pins, allocator overhead
+    /// and process RSS require the caller's separately admitted whole runtime
+    /// envelope across all live connections. Shared request ledgers are charged
+    /// by their original owner, not again here. The shared StoreRoot is included
+    /// conservatively; a whole owner may deduplicate that exact held allocation.
+    pub fn declared_retained_state_bytes(&self) -> Result<(usize, usize)> {
+        if let Some(request) = &self.budgeted_request {
+            check_time_budgeted(request.deadline, &request.cancelled, Some(&request.io))?;
+        }
+        let mut fixed = std::mem::size_of::<Self>()
+            .checked_add(std::mem::size_of::<crate::secure_open::StoreRoot>())
+            .and_then(|bytes| bytes.checked_add(2 * std::mem::size_of::<usize>()))
+            .ok_or_else(|| refusal("streamed declared custody state overflow"))?;
+        if self._index_policy.is_some() {
+            fixed = fixed
+                .checked_add(crate::pinned_sqlite_aux::strict_main_declared_custody_bytes()?)
+                .ok_or_else(|| refusal("streamed declared custody state overflow"))?;
+        }
+        Ok((fixed, self.limits.sqlite_cache_bytes))
+    }
+
     /// Compare the constructor's resource identities, not limits or freshness.
     /// Legacy readers are never associated with a budgeted request.
     pub fn shares_budgeted_request(

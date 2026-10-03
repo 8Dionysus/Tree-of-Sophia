@@ -10,6 +10,10 @@ use std::collections::{BTreeMap, BTreeSet};
 use serde_json::Value;
 use tos_foundation::Digest256;
 
+use crate::biblio_rules::SourceFoundationBiblioManifestSink;
+use crate::source_foundation_default_rules::{
+    SourceFoundationDefaultClaims, SourceFoundationDefaultRecordsLookup,
+};
 use crate::{
     KeyState, PredicateRead, SchemaBackendProbe, SchemaProbeError, ValidationFact, published_value,
 };
@@ -811,6 +815,7 @@ pub fn inspect_current_topology(
         union_generation,
         None,
         &cancelled,
+        true,
     ) {
         Ok((shadow, _)) => shadow,
         Err(_) => {
@@ -1012,8 +1017,237 @@ pub(crate) fn inspect_current_topology_bounded(
         union_generation,
         Some(limits),
         cancelled,
+        true,
     )
 }
+
+/// Run the existing topology owner kernel against the candidate's bounded
+/// current-record, Claim, and Item-manifest providers. The projection keeps
+/// every record's identity pair for global duplicate detection, adds only the
+/// route-specific fields needed by topology, and retains only topology Claim
+/// rows plus malformed Claim values. Unrelated record fields/events and
+/// non-topology Claim values remain in their provider. Projection values and
+/// the kernel's indexes/report are charged simultaneously before row copies.
+/// For N rows in these selected projections, the charge follows their actual
+/// retained JSON and index fields; N is not a capacity or total-input claim.
+pub(crate) fn inspect_current_topology_from_stored<
+    C: SourceFoundationDefaultClaims + ?Sized,
+    R: SourceFoundationDefaultRecordsLookup + ?Sized,
+    M: SourceFoundationBiblioManifestSink + ?Sized,
+>(
+    records: &R,
+    claims: &C,
+    manifests: &M,
+    verified_complete_union: bool,
+    total_record_count: usize,
+    total_claim_count: usize,
+    union_generation: &str,
+    limits: crate::item_rules::ItemLimits,
+    cancelled: &std::sync::atomic::AtomicBool,
+) -> Result<(RelationShadow, usize), crate::item_rules::ItemRefusal> {
+    if !verified_complete_union || union_generation.is_empty() {
+        return empty_topology_skip("verified-current-topology-union", limits, cancelled);
+    }
+    if union_generation.len() > MAX_GENERATION_BYTES {
+        return empty_topology_skip("current-topology-generation-capacity", limits, cancelled);
+    }
+    if total_record_count > MAX_TOPOLOGY_OBJECTS || total_claim_count > MAX_TOPOLOGY_OBJECTS {
+        return empty_topology_skip("current-topology-input-capacity", limits, cancelled);
+    }
+
+    let mut projection = TopologyState {
+        shadow: RelationShadow::default(),
+        state: 0,
+        report_state: 0,
+        limits: Some(limits),
+        cancelled,
+    };
+    let mut records_projection = Vec::new();
+    let mut claims_projection = Vec::new();
+    let mut item_edition = BTreeMap::new();
+    let mut non_topology_profiles = Vec::new();
+    let mut seen_non_topology_profiles = BTreeSet::new();
+    let mut overlong_profile_seen = false;
+    let mut manifests_over_capacity = false;
+    let mut manifest_count = 0usize;
+    projection.reserve(
+        std::mem::size_of::<TopologyState<'_>>()
+            .checked_add(std::mem::size_of::<Vec<Value>>() * 2)
+            .and_then(|n| n.checked_add(std::mem::size_of::<BTreeMap<String, String>>()))
+            .and_then(|n| n.checked_add(std::mem::size_of::<Vec<String>>()))
+            .and_then(|n| n.checked_add(std::mem::size_of::<BTreeSet<String>>()))
+            .ok_or(crate::item_rules::ItemRefusal::Budget)?,
+    )?;
+
+    manifests.for_each_biblio_manifest(&mut |id, edition| {
+        projection.reserve(0)?;
+        manifest_count = manifest_count
+            .checked_add(1)
+            .ok_or(crate::item_rules::ItemRefusal::Budget)?;
+        if manifest_count > MAX_TOPOLOGY_OBJECTS {
+            manifests_over_capacity = true;
+            return Ok(());
+        }
+        let cost = std::mem::size_of::<(String, String)>()
+            .checked_add(id.len())
+            .and_then(|n| n.checked_add(edition.len()))
+            .ok_or(crate::item_rules::ItemRefusal::Budget)?;
+        projection.reserve(cost)?;
+        item_edition.insert(id.to_owned(), edition.to_owned());
+        Ok(())
+    })?;
+    if manifests_over_capacity {
+        drop(records_projection);
+        drop(claims_projection);
+        drop(item_edition);
+        drop(non_topology_profiles);
+        drop(seen_non_topology_profiles);
+        return empty_topology_skip("current-topology-input-capacity", limits, cancelled);
+    }
+
+    claims.for_each_claim(&mut |_, claim| {
+        projection.reserve(0)?;
+        if !claim.value.is_object() {
+            let cost = crate::record_biblio_cut::decoded_state(&claim.value)?;
+            projection.reserve(cost)?;
+            claims_projection.push(claim.value.clone());
+            return Ok(());
+        }
+        let Some(predicate) = field_str(&claim.value, "predicate") else {
+            return Ok(());
+        };
+        if matches!(
+            predicate,
+            "has_expression" | "embodied_by" | "exemplified_by"
+        ) {
+            let cost = crate::record_biblio_cut::decoded_state(&claim.value)?;
+            projection.reserve(cost)?;
+            claims_projection.push(claim.value.clone());
+        } else if predicate.len() <= MAX_GENERATION_BYTES {
+            let prefix_len = "non-topology-claim-profile:".len();
+            let profile_len = prefix_len
+                .checked_add(predicate.len())
+                .ok_or(crate::item_rules::ItemRefusal::Budget)?;
+            if !seen_non_topology_profiles.contains(predicate)
+                && non_topology_profiles.len() <= MAX_SKIPPED_PROFILES
+            {
+                let cost = std::mem::size_of::<String>()
+                    .checked_mul(2)
+                    .and_then(|n| n.checked_add(profile_len))
+                    .and_then(|n| n.checked_add(predicate.len()))
+                    .ok_or(crate::item_rules::ItemRefusal::Budget)?;
+                projection.reserve(cost)?;
+                let profile = format!("non-topology-claim-profile:{predicate}");
+                seen_non_topology_profiles.insert(predicate.to_owned());
+                non_topology_profiles.push(profile);
+            }
+        } else if !overlong_profile_seen && non_topology_profiles.len() <= MAX_SKIPPED_PROFILES {
+            let profile_len = "non-topology-claim-profile-overlong".len();
+            let cost = std::mem::size_of::<String>()
+                .checked_add(profile_len)
+                .ok_or(crate::item_rules::ItemRefusal::Budget)?;
+            projection.reserve(cost)?;
+            let profile = "non-topology-claim-profile-overlong".to_owned();
+            non_topology_profiles.push(profile);
+            overlong_profile_seen = true;
+        }
+        Ok(())
+    })?;
+
+    records.for_each_current_record(&mut |id, record| {
+        projection.reserve(0)?;
+        let record_id = field_str(&record.value, "record_id");
+        let record_type = field_str(&record.value, "record_type");
+        // The unchanged topology kernel detects duplicate IDs across every
+        // record, so retain this minimal identity pair for all rows. Only the
+        // route-specific fields below are copied when their type can use them.
+        let route_fields: &[&str] = match record_type {
+            Some("work") => &["expression_claim_refs"],
+            Some("expression") => &["work_ref", "embodiment_claim_refs"],
+            Some("edition") => &["embodies_expression_refs", "exemplar_claim_refs"],
+            _ => &[],
+        };
+        const ID_FIELDS: [&str; 2] = ["record_id", "record_type"];
+        let mut projection_cost = std::mem::size_of::<Value>();
+        for field in ID_FIELDS.into_iter().chain(route_fields.iter().copied()) {
+            if let Some(value) = record.value.get(field) {
+                let child_heap = crate::record_biblio_cut::decoded_state(value)?
+                    .checked_sub(std::mem::size_of::<Value>())
+                    .ok_or(crate::item_rules::ItemRefusal::Budget)?;
+                projection_cost = projection_cost
+                    .checked_add(std::mem::size_of::<(String, Value)>())
+                    .and_then(|n| n.checked_add(field.len()))
+                    .and_then(|n| n.checked_add(child_heap))
+                    .ok_or(crate::item_rules::ItemRefusal::Budget)?;
+            }
+        }
+        projection.reserve(projection_cost)?;
+        let mut projected = serde_json::Map::new();
+        for field in ID_FIELDS.into_iter().chain(route_fields.iter().copied()) {
+            if let Some(value) = record.value.get(field) {
+                projected.insert(field.to_owned(), value.clone());
+            }
+        }
+        records_projection.push(Value::Object(projected));
+        Ok(())
+    })?;
+
+    let mut topology_limits = limits;
+    topology_limits.max_state_bytes = limits
+        .max_state_bytes
+        .checked_sub(projection.state)
+        .ok_or(crate::item_rules::ItemRefusal::Budget)?;
+    let (mut shadow, report_state) = inspect_current_topology_inner(
+        &records_projection,
+        &claims_projection,
+        &item_edition,
+        true,
+        union_generation,
+        Some(topology_limits),
+        cancelled,
+        false,
+    )?;
+    let mut combined_state = TopologyState {
+        shadow,
+        state: report_state,
+        report_state,
+        // The projection remains live while profile findings are appended,
+        // so additions must fit the post-projection allowance too.
+        limits: Some(topology_limits),
+        cancelled,
+    };
+    for profile in non_topology_profiles {
+        combined_state.skip(profile)?;
+    }
+    shadow = combined_state.shadow;
+    drop(records_projection);
+    drop(claims_projection);
+    drop(item_edition);
+    drop(seen_non_topology_profiles);
+    Ok((shadow, combined_state.report_state))
+}
+
+fn empty_topology_skip(
+    profile: &str,
+    limits: crate::item_rules::ItemLimits,
+    cancelled: &std::sync::atomic::AtomicBool,
+) -> Result<(RelationShadow, usize), crate::item_rules::ItemRefusal> {
+    let root = std::mem::size_of::<RelationShadow>();
+    let mut state = TopologyState {
+        shadow: RelationShadow::default(),
+        state: 0,
+        report_state: 0,
+        limits: Some(limits),
+        cancelled,
+    };
+    state.report(root)?;
+    state.reserve(
+        std::mem::size_of::<TopologyState<'_>>() - root + std::mem::size_of::<TopologyDigest>(),
+    )?;
+    state.skip(profile)?;
+    Ok((state.shadow, state.report_state))
+}
+
 fn inspect_current_topology_inner(
     records: &[Value],
     claims: &[Value],
@@ -1022,6 +1256,7 @@ fn inspect_current_topology_inner(
     union_generation: &str,
     limits: Option<crate::item_rules::ItemLimits>,
     cancelled: &std::sync::atomic::AtomicBool,
+    include_compound_skip: bool,
 ) -> Result<(RelationShadow, usize), crate::item_rules::ItemRefusal> {
     let root = std::mem::size_of::<RelationShadow>();
     let mut shadow = TopologyState {
@@ -1478,7 +1713,9 @@ fn inspect_current_topology_inner(
         )?;
     }
     shadow.checked("source-bibliographic-topology-current-union@1")?;
-    shadow.skip("compound-native-and-retained-provenance-verification")?;
+    if include_compound_skip {
+        shadow.skip("compound-native-and-retained-provenance-verification")?;
+    }
     Ok((shadow.shadow, shadow.report_state))
 }
 fn topology_strings<'a>(record: &'a Value, field: &str) -> Option<Vec<&'a str>> {

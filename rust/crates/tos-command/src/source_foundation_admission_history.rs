@@ -3,6 +3,7 @@
 //! software, and never grants source, semantic, publication or rights authority.
 use super::source_admission::{active, invalid};
 use super::source_admission_candidate::Candidate;
+use crate::source_admission_candidate_records::CandidateRecordsInput;
 use serde_json::Value;
 use std::{
     cell::Cell, collections::BTreeSet, io, path::PathBuf, sync::atomic::AtomicBool, time::Instant,
@@ -11,10 +12,10 @@ use tos_foundation::{
     CanonicalProfile, Digest256, Digest256Hasher, JsonMode, RelativePath, canonical_bytes_v1,
     parse_json,
 };
-use tos_ops_mechanics_plan::route_cards::RouteSources;
+use tos_ops_mechanics_plan::route_cards::{RouteSourceReadHooks, RouteSources};
 use tos_source_store::{
-    CaptureRestoreLimits, ReadLimits, SoftwareCaptureReader, SoftwareCaptureSelectionV1,
-    verify_capture_with_usage,
+    CaptureRestoreLimits, PinnedSqliteIoBudget, ReadLimits, SoftwareCaptureReader,
+    SoftwareCaptureSelectionV1, verify_capture_with_usage,
 };
 
 pub(crate) struct HistorySelection {
@@ -55,6 +56,8 @@ pub(crate) struct HistoryEvidence {
     entries: Vec<Evidence>,
     deadline: Instant,
     read_bytes: Cell<u64>,
+    shared_runtime_read_bytes_returned: Cell<u64>,
+    shared_io_budget: Option<PinnedSqliteIoBudget>,
     read_limit: u64,
     retained_state: usize,
     peak_state: usize,
@@ -90,6 +93,38 @@ fn eligible(path: &str) -> bool {
             || path.starts_with("ToS/derived-exports/")
             || parts.contains(&"payload"))
 }
+
+struct SharedHistoryReadHooks<'a> {
+    budget: &'a PinnedSqliteIoBudget,
+    deadline: Instant,
+    cancelled: &'a AtomicBool,
+    shared_returned_bytes: &'a Cell<u64>,
+    total_returned_bytes: &'a Cell<u64>,
+}
+
+impl RouteSourceReadHooks for SharedHistoryReadHooks<'_> {
+    fn before_read(&mut self, requested_bytes: u64) -> io::Result<()> {
+        active(self.deadline, self.cancelled)?;
+        self.budget
+            .charge_read(requested_bytes)
+            .map_err(|error| invalid(format!("shared historical read budget refused: {error}")))?;
+        active(self.deadline, self.cancelled)
+    }
+
+    fn read_returned(&mut self, actual_bytes: u64) -> io::Result<()> {
+        self.budget
+            .record_read_returned(actual_bytes)
+            .map_err(|error| {
+                invalid(format!("shared historical returned read rejected: {error}"))
+            })?;
+        self.shared_returned_bytes
+            .set(add(self.shared_returned_bytes.get(), actual_bytes)?);
+        self.total_returned_bytes
+            .set(add(self.total_returned_bytes.get(), actual_bytes)?);
+        active(self.deadline, self.cancelled)
+    }
+}
+
 // The Host reserves the existing stream_regular 32KiB workspace once. Only
 // the exact member/control Vec consumes the per-request remaining state here.
 fn bounded(
@@ -100,6 +135,7 @@ fn bounded(
     total: usize,
     deadline: Instant,
     cancel: &AtomicBool,
+    shared: Option<(&PinnedSqliteIoBudget, &Cell<u64>, &Cell<u64>)>,
 ) -> io::Result<Vec<u8>> {
     if cap > total.saturating_sub(*read) {
         return Err(invalid(
@@ -108,11 +144,30 @@ fn bounded(
     }
     let mut bytes = Vec::with_capacity(cap);
     let mut used = *read as u64;
-    let result = sources.stream_regular(path, cap as u64, &mut used, total as u64, |chunk| {
+    let mut consume = |chunk: &[u8]| {
         active(deadline, cancel)?;
         bytes.extend_from_slice(chunk);
         Ok(())
-    });
+    };
+    let result = if let Some((budget, shared_returned_bytes, total_returned_bytes)) = shared {
+        let mut hooks = SharedHistoryReadHooks {
+            budget,
+            deadline,
+            cancelled: cancel,
+            shared_returned_bytes,
+            total_returned_bytes,
+        };
+        sources.stream_regular_with_hooks(
+            path,
+            cap as u64,
+            &mut used,
+            total as u64,
+            &mut hooks,
+            &mut consume,
+        )
+    } else {
+        sources.stream_regular(path, cap as u64, &mut used, total as u64, &mut consume)
+    };
     *read = usize::try_from(used).map_err(invalid)?;
     result?.ok_or_else(|| invalid("historical regular operand missing"))?;
     Ok(bytes)
@@ -151,7 +206,7 @@ impl HistoryEvidence {
         let mut seen_paths = BTreeSet::new();
         let mut direct_read = 0usize;
         let mut external_read = 0u64;
-        let mut retained = 1024u64;
+        let mut retained = u64::try_from(std::mem::size_of::<Self>().max(1024)).map_err(invalid)?;
         let mut peak = retained;
         for selected in selections {
             active(deadline, cancel)?;
@@ -225,6 +280,7 @@ impl HistoryEvidence {
                 total,
                 deadline,
                 cancel,
+                None,
             )?;
             let requested: Value = serde_json::from_slice(&manifest_raw).map_err(invalid)?;
             let selection = SoftwareCaptureSelectionV1 {
@@ -254,6 +310,7 @@ impl HistoryEvidence {
                 total,
                 deadline,
                 cancel,
+                None,
             )?;
             if Digest256::of_bytes(&members_raw) != members_sha {
                 return Err(invalid("historical capture members changed"));
@@ -381,6 +438,7 @@ impl HistoryEvidence {
                 total,
                 deadline,
                 cancel,
+                None,
             )?;
             if Digest256::of_bytes(&recheck) != selection.capture_manifest_sha256 {
                 return Err(invalid("historical capture manifest changed"));
@@ -394,6 +452,7 @@ impl HistoryEvidence {
                 total,
                 deadline,
                 cancel,
+                None,
             )?;
             if Digest256::of_bytes(&members_recheck) != members_sha {
                 return Err(invalid(
@@ -409,6 +468,7 @@ impl HistoryEvidence {
                 total,
                 deadline,
                 cancel,
+                None,
             )?;
             let receipt =
                 parse_json(&receipt_raw, JsonMode::PublishedStrict, meta.json).map_err(invalid)?;
@@ -455,10 +515,39 @@ impl HistoryEvidence {
             entries,
             deadline,
             read_bytes: Cell::new(add(external_read, direct_read as u64)?),
+            shared_runtime_read_bytes_returned: Cell::new(0),
+            shared_io_budget: None,
             read_limit: limits.max_read_bytes,
             retained_state: usize::try_from(retained).map_err(invalid)?,
             peak_state: usize::try_from(peak).map_err(invalid)?,
         })
+    }
+    /// Bind only the actual concrete candidate whose SQLite pager already
+    /// owns `original_io`. Initial capture selection remains ordinary; this
+    /// binding must happen before any candidate-phase history reads.
+    pub(crate) fn bind_candidate_io_budget(
+        &mut self,
+        candidate: &CandidateRecordsInput<'_, '_>,
+        original_io: &PinnedSqliteIoBudget,
+    ) -> io::Result<()> {
+        if self.shared_io_budget.is_some() || !candidate.shares_io_budget(original_io) {
+            candidate.abandon();
+            return Err(invalid(
+                "historical evidence candidate does not share the original IO ledger",
+            ));
+        }
+        self.shared_io_budget = Some(original_io.clone());
+        Ok(())
+    }
+    pub(crate) fn shared_io_budget_matches(&self, original_io: &PinnedSqliteIoBudget) -> bool {
+        self.shared_io_budget
+            .as_ref()
+            .is_some_and(|budget| budget.shares_with(original_io))
+    }
+    /// Actual raw bytes returned through the candidate's shared ledger. This
+    /// excludes initial capture selection reads and EOF probes (which return zero).
+    pub(crate) fn shared_runtime_read_bytes_returned(&self) -> u64 {
+        self.shared_runtime_read_bytes_returned.get()
     }
     pub(crate) fn original_rows(&self) -> impl Iterator<Item = &Value> {
         self.entries.iter().map(|e| &e.row)
@@ -473,6 +562,32 @@ impl HistoryEvidence {
     }
     pub(crate) fn state_bytes(&self) -> usize {
         self.peak_state
+    }
+    /// Historical rows must remain outside the actual current candidate.
+    /// Each presence query is fenced by the same input and charged by it.
+    pub(crate) fn verify_candidate_input(
+        &self,
+        input: &dyn tos_validation::record_biblio_cut::SourceCutInput,
+        coverage: &tos_validation::record_biblio_cut::SourceCutInputCoverage,
+        cancelled: &AtomicBool,
+    ) -> io::Result<()> {
+        input
+            .verify_current_fence(coverage, self.deadline, cancelled)
+            .map_err(|_| invalid("historical candidate fence refused"))?;
+        for entry in &self.entries {
+            active(self.deadline, cancelled)?;
+            if input
+                .path_presence(&entry.path, self.deadline, cancelled)
+                .map_err(|_| invalid("historical candidate presence refused"))?
+                == Some(tos_source_store::SourcePresenceV1::File)
+            {
+                return Err(invalid("historical validation evidence overlaps source"));
+            }
+        }
+        input
+            .verify_current_fence(coverage, self.deadline, cancelled)
+            .map_err(|_| invalid("historical candidate fence refused"))?;
+        active(self.deadline, cancelled)
     }
     pub(crate) fn verify_candidate(&self, candidate: &Candidate<'_>) -> io::Result<()> {
         for e in &self.entries {
@@ -494,6 +609,13 @@ impl HistoryEvidence {
         active(self.deadline, cancel)?;
         let cap = usize::try_from(remaining_read).map_err(invalid)?;
         let mut read = 0usize;
+        let shared = self.shared_io_budget.as_ref().map(|budget| {
+            (
+                budget,
+                &self.shared_runtime_read_bytes_returned,
+                &self.read_bytes,
+            )
+        });
         let result = (|| {
             for p in &mut self.packs {
                 p.capture.verify_root()?;
@@ -514,8 +636,16 @@ impl HistoryEvidence {
                             "historical identity recheck transient state bound exceeded",
                         ));
                     }
-                    let bytes =
-                        bounded(sources, path, size, &mut read, cap, self.deadline, cancel)?;
+                    let bytes = bounded(
+                        sources,
+                        path,
+                        size,
+                        &mut read,
+                        cap,
+                        self.deadline,
+                        cancel,
+                        shared,
+                    )?;
                     if bytes.len() != size || Digest256::of_bytes(&bytes) != sha {
                         return Err(invalid("historical evidence control bytes changed"));
                     }
@@ -526,8 +656,10 @@ impl HistoryEvidence {
             active(self.deadline, cancel)?;
             Ok(read as u64)
         })();
-        self.read_bytes
-            .set(add(self.read_bytes.get(), read as u64)?);
+        if shared.is_none() {
+            self.read_bytes
+                .set(add(self.read_bytes.get(), read as u64)?);
+        }
         result
     }
     pub(crate) fn binding(&self, path: &str) -> Option<&Value> {
@@ -567,6 +699,13 @@ impl HistoryEvidence {
         }
         let cap = usize::try_from(remaining_read).map_err(invalid)?;
         let mut read = 0usize;
+        let shared = self.shared_io_budget.as_ref().map(|budget| {
+            (
+                budget,
+                &self.shared_runtime_read_bytes_returned,
+                &self.read_bytes,
+            )
+        });
         let result = (|| {
             let p = &mut self.packs[e.pack];
             p.capture.verify_root()?;
@@ -587,7 +726,16 @@ impl HistoryEvidence {
                         "historical control recheck exceeds transient state profile",
                     ));
                 }
-                let bytes = bounded(sources, path, size, &mut read, cap, self.deadline, cancel)?;
+                let bytes = bounded(
+                    sources,
+                    path,
+                    size,
+                    &mut read,
+                    cap,
+                    self.deadline,
+                    cancel,
+                    shared,
+                )?;
                 if bytes.len() != size || Digest256::of_bytes(&bytes) != sha {
                     return Err(invalid("historical evidence control bytes changed"));
                 }
@@ -600,6 +748,7 @@ impl HistoryEvidence {
                 cap,
                 self.deadline,
                 cancel,
+                shared,
             )?;
             if bytes.len() != e.size || Digest256::of_bytes(&bytes) != e.sha256 {
                 return Err(invalid(
@@ -614,8 +763,10 @@ impl HistoryEvidence {
                 read_bytes: read as u64,
             }))
         })();
-        self.read_bytes
-            .set(add(self.read_bytes.get(), read as u64)?);
+        if shared.is_none() {
+            self.read_bytes
+                .set(add(self.read_bytes.get(), read as u64)?);
+        }
         result
     }
 }
@@ -690,18 +841,46 @@ impl crate::source_current_cut::foundation_reader::FoundationHistoricalEvidence
             .min(max_read_bytes);
         let mut read = 0u64;
         let mut hash = Digest256Hasher::new();
-        let result = self.packs[e.pack].restored.stream_regular(
-            path,
-            size as u64,
-            &mut read,
-            remaining,
-            |chunk| {
-                active(deadline, cancelled)?;
-                hash.update(chunk);
-                Ok(())
-            },
-        );
-        self.read_bytes.set(add(self.read_bytes.get(), read)?);
+        let shared = self.shared_io_budget.as_ref().map(|budget| {
+            (
+                budget,
+                &self.shared_runtime_read_bytes_returned,
+                &self.read_bytes,
+            )
+        });
+        let mut consume = |chunk: &[u8]| {
+            active(deadline, cancelled)?;
+            hash.update(chunk);
+            Ok(())
+        };
+        let result = if let Some((budget, shared_returned_bytes, total_returned_bytes)) = shared {
+            let mut hooks = SharedHistoryReadHooks {
+                budget,
+                deadline,
+                cancelled,
+                shared_returned_bytes,
+                total_returned_bytes,
+            };
+            self.packs[e.pack].restored.stream_regular_with_hooks(
+                path,
+                size as u64,
+                &mut read,
+                remaining,
+                &mut hooks,
+                &mut consume,
+            )
+        } else {
+            self.packs[e.pack].restored.stream_regular(
+                path,
+                size as u64,
+                &mut read,
+                remaining,
+                &mut consume,
+            )
+        };
+        if shared.is_none() {
+            self.read_bytes.set(add(self.read_bytes.get(), read)?);
+        }
         let metadata =
             result?.ok_or_else(|| invalid("historical evidence physical binding disappeared"))?;
         if metadata.len() != size as u64 || hash.finalize() != expected {
@@ -740,5 +919,11 @@ impl crate::source_current_cut::foundation_reader::FoundationHistoricalEvidence
     }
     fn usage(&self) -> (u64, usize) {
         (self.read_bytes(), self.retained_state_bytes())
+    }
+    fn shared_runtime_read_bytes_returned(&self) -> u64 {
+        HistoryEvidence::shared_runtime_read_bytes_returned(self)
+    }
+    fn shared_io_budget_matches(&self, original_io: &PinnedSqliteIoBudget) -> bool {
+        HistoryEvidence::shared_io_budget_matches(self, original_io)
     }
 }

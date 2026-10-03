@@ -1,14 +1,17 @@
 //! Bounded physical/Git observations for the source-foundation owner.
 //!
 //! Build this snapshot before schema/stage workers, lend `facts()` only while
-//! they run, then call `recheck` after every worker has ended. The caller must
-//! also recheck `FoundationCapturedCut` after the workers: authored SHA-256
-//! facts below are seeded from that actual capture, and its final recheck owns
-//! byte-for-byte verification. Payload bytes are similarly owned by the
-//! separate payload adapter and must be reverified after workers. An absent
-//! artifact provider means unknown artifact facts, never an observed absence.
+//! they run, then call the matching recheck method after every worker has
+//! ended. Captured authored bytes are rechecked by `FoundationCapturedCut`;
+//! borrowed candidate bytes retain their own `SourceCutInputCoverage` fence
+//! and stay independent of working-tree physical facts. Payload bytes are
+//! owned by the separate payload adapter and must be reverified after workers.
+//! An absent artifact provider means unknown artifact facts, never an observed
+//! absence.
 
 use super::foundation_capture::FoundationCapturedCut;
+use crate::source_admission_candidate_records::CandidateRecordsInput;
+use crate::source_admission_spooled_candidate::CandidateFence;
 use std::cell::Cell;
 use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
@@ -17,8 +20,12 @@ use std::path::{Component, Path};
 use std::sync::atomic::{AtomicBool, AtomicI32, Ordering};
 use std::time::{Duration, Instant};
 use tos_foundation::{Digest256, RelativePath};
-use tos_ops_mechanics_plan::route_cards::{RouteResolvedTarget, RouteSources};
+use tos_ops_mechanics_plan::route_cards::{
+    RouteResolvedTarget, RouteSourceReadHooks, RouteSources,
+};
+use tos_source_store::PinnedSqliteIoBudget;
 use tos_validation::item_rules::ItemRefusal;
+use tos_validation::record_biblio_cut::{SourceCutInputCoverage, SourceCutInputWithIdentity};
 use tos_validation::source_foundation_discovery::{
     GitPathFacts, PhysicalPathFacts, PhysicalPayloadFacts, PhysicalResolvedTargetFacts,
     SourcePhysicalFacts,
@@ -64,6 +71,10 @@ pub struct PhysicalSourceLimits {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct PhysicalSourceCost {
     pub bytes_read: usize,
+    /// Payload bytes returned by physical reads already forwarded to the
+    /// retained shared candidate ledger. The outer candidate debit excludes
+    /// only this amount after matching that exact ledger identity.
+    pub shared_read_bytes_returned: usize,
     pub path_observations: usize,
     pub git_path_queries: usize,
     pub retained_state_bytes: usize,
@@ -131,6 +142,54 @@ struct PathObservation {
     resolved_stamp: Option<FileStamp>,
 }
 
+struct SharedPhysicalReadHooks<'budget, 'returned, 'cancel, 'signal> {
+    budget: &'budget PinnedSqliteIoBudget,
+    returned_bytes: &'returned mut usize,
+    deadline: Instant,
+    cancelled: &'cancel AtomicBool,
+    git_signal: &'signal AtomicI32,
+}
+
+impl RouteSourceReadHooks for SharedPhysicalReadHooks<'_, '_, '_, '_> {
+    fn before_read(&mut self, requested_bytes: u64) -> io::Result<()> {
+        physical_read_checkpoint(self.deadline, self.cancelled, self.git_signal)?;
+        self.budget.charge_read(requested_bytes).map_err(|error| {
+            io::Error::new(
+                io::ErrorKind::InvalidData,
+                format!("shared physical read budget refused: {error}"),
+            )
+        })?;
+        physical_read_checkpoint(self.deadline, self.cancelled, self.git_signal)
+    }
+
+    fn read_returned(&mut self, actual_bytes: u64) -> io::Result<()> {
+        self.budget
+            .record_read_returned(actual_bytes)
+            .map_err(|error| {
+                io::Error::new(
+                    io::ErrorKind::InvalidData,
+                    format!("shared physical read ledger rejected returned bytes: {error}"),
+                )
+            })?;
+        let actual_bytes = usize::try_from(actual_bytes).map_err(|_| {
+            io::Error::new(
+                io::ErrorKind::InvalidData,
+                "shared physical returned byte accounting overflow",
+            )
+        })?;
+        *self.returned_bytes = self
+            .returned_bytes
+            .checked_add(actual_bytes)
+            .ok_or_else(|| {
+                io::Error::new(
+                    io::ErrorKind::InvalidData,
+                    "shared physical returned byte accounting overflow",
+                )
+            })?;
+        physical_read_checkpoint(self.deadline, self.cancelled, self.git_signal)
+    }
+}
+
 #[derive(Debug)]
 struct ResolvedObservation {
     facts: PhysicalResolvedTargetFacts,
@@ -146,6 +205,7 @@ pub struct FoundationPhysicalSnapshot<'cancel, 'signal> {
     historical_originals: BTreeMap<String, PhysicalPathFacts>,
     repo_paths: BTreeSet<String>,
     authored_capture_paths: BTreeSet<String>,
+    candidate_member_paths: BTreeSet<String>,
     private_declared_paths: BTreeSet<String>,
     private_prefixes: Vec<String>,
     git_paths: BTreeSet<String>,
@@ -166,7 +226,10 @@ pub struct FoundationPhysicalSnapshot<'cancel, 'signal> {
     deadline: Instant,
     cancelled: &'cancel AtomicBool,
     git_signal: &'signal AtomicI32,
+    candidate_identity: Option<CandidateFence>,
+    candidate_io_budget: Option<PinnedSqliteIoBudget>,
     bytes_read: usize,
+    shared_read_bytes_returned: usize,
     path_observations: usize,
     git_path_queries: usize,
     state_bytes: usize,
@@ -296,6 +359,116 @@ impl<'cancel, 'signal> FoundationPhysicalSnapshot<'cancel, 'signal> {
         cancelled: &'cancel AtomicBool,
         git_signal: &'signal AtomicI32,
     ) -> Result<Self, ItemRefusal> {
+        Self::observe_kernel(
+            sources,
+            Some(captured),
+            BTreeSet::new(),
+            None,
+            authored_paths,
+            payloads,
+            private_paths,
+            private_prefixes,
+            artifact_sources,
+            artifact_paths,
+            resolved_source_directories,
+            limits,
+            deadline,
+            cancelled,
+            git_signal,
+        )
+    }
+
+    /// Observe selected physical targets for the concrete borrowed candidate
+    /// adapter. Before any candidate or root read, require its wrapped spool
+    /// to share the caller's original ledger. The candidate fence authenticates
+    /// its own source stream; physical facts remain independent working-tree
+    /// observations and need not equal candidate bytes.
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn observe_candidate_with_resolved_targets(
+        sources: &mut RouteSources,
+        candidate: &CandidateRecordsInput<'_, '_>,
+        coverage: &SourceCutInputCoverage,
+        original_io: &PinnedSqliteIoBudget,
+        authored_paths: &[String],
+        payloads: BTreeMap<String, PhysicalPayloadFacts>,
+        private_paths: &[String],
+        private_prefixes: &[String],
+        artifact_sources: Option<&mut RouteSources>,
+        artifact_paths: &[String],
+        resolved_source_directories: &BTreeMap<String, String>,
+        limits: PhysicalSourceLimits,
+        deadline: Instant,
+        cancelled: &'cancel AtomicBool,
+        git_signal: &'signal AtomicI32,
+    ) -> Result<Self, ItemRefusal> {
+        if !candidate.shares_io_budget(original_io) {
+            candidate.abandon();
+            return Err(ItemRefusal::Source(
+                "candidate physical input does not share the original IO ledger".into(),
+            ));
+        }
+        validate_limits(limits)?;
+        candidate
+            .source_input()
+            .verify_current_fence(coverage, deadline, cancelled)?;
+        let identity = *candidate.input_identity();
+        let mut candidate_member_paths = BTreeSet::new();
+        let mut candidate_member_state = 0usize;
+        for path in authored_paths {
+            if candidate
+                .source_input()
+                .path_presence(path, deadline, cancelled)?
+                == Some(tos_source_store::SourcePresenceV1::File)
+            {
+                charge_path_value(path, &mut candidate_member_state, limits.max_state_bytes)?;
+                candidate_member_paths.insert(path.clone());
+            }
+        }
+        candidate
+            .source_input()
+            .verify_current_fence(coverage, deadline, cancelled)?;
+        let mut snapshot = Self::observe_kernel(
+            sources,
+            None,
+            candidate_member_paths,
+            Some(original_io),
+            authored_paths,
+            payloads,
+            private_paths,
+            private_prefixes,
+            artifact_sources,
+            artifact_paths,
+            resolved_source_directories,
+            limits,
+            deadline,
+            cancelled,
+            git_signal,
+        )?;
+        candidate
+            .source_input()
+            .verify_current_fence(coverage, deadline, cancelled)?;
+        snapshot.candidate_identity = Some(identity);
+        Ok(snapshot)
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn observe_kernel(
+        sources: &mut RouteSources,
+        captured: Option<&FoundationCapturedCut>,
+        candidate_member_paths: BTreeSet<String>,
+        candidate_io_budget: Option<&PinnedSqliteIoBudget>,
+        authored_paths: &[String],
+        payloads: BTreeMap<String, PhysicalPayloadFacts>,
+        private_paths: &[String],
+        private_prefixes: &[String],
+        mut artifact_sources: Option<&mut RouteSources>,
+        artifact_paths: &[String],
+        resolved_source_directories: &BTreeMap<String, String>,
+        limits: PhysicalSourceLimits,
+        deadline: Instant,
+        cancelled: &'cancel AtomicBool,
+        git_signal: &'signal AtomicI32,
+    ) -> Result<Self, ItemRefusal> {
         let source_root_component_open_count_initial = sources.root_component_open_count();
         let artifact_root_component_open_count_initial = artifact_sources
             .as_deref()
@@ -314,6 +487,9 @@ impl<'cancel, 'signal> FoundationPhysicalSnapshot<'cancel, 'signal> {
             >())
             .and_then(|bytes| bytes.checked_add(std::mem::size_of::<PhysicalSourceCost>()))
             .ok_or(ItemRefusal::Budget)?;
+        for path in &candidate_member_paths {
+            charge_path_value(path, &mut state_bytes, limits.max_state_bytes)?;
+        }
         if resolved_source_directories.len() > limits.max_paths {
             return Err(budget(
                 "physical-source-resolution-roots",
@@ -355,6 +531,7 @@ impl<'cancel, 'signal> FoundationPhysicalSnapshot<'cancel, 'signal> {
         };
 
         let mut bytes_read = 0usize;
+        let mut shared_read_bytes_returned = 0usize;
         let mut path_observations = 0usize;
         let mut authored_stamps = BTreeMap::new();
         let mut authored_resolved_stamps = BTreeMap::new();
@@ -395,109 +572,113 @@ impl<'cancel, 'signal> FoundationPhysicalSnapshot<'cancel, 'signal> {
                 );
             }
         }
-        for (path, member) in captured.observed_members() {
-            if !authored_requested.contains(path) {
-                continue;
-            }
-            checkpoint(sources, deadline, cancelled, git_signal)?;
-            let selected_directory = owned_resolved_source_directories
-                .get(path)
-                .map(String::as_str);
-            let resolved_observation = if let Some(selected_directory) = selected_directory {
-                Some(observe_path(
-                    sources,
-                    path,
-                    false,
-                    Some(selected_directory),
-                    true,
-                    &mut bytes_read,
-                    &mut path_observations,
-                    &mut state_bytes,
-                    limits,
-                    deadline,
-                    cancelled,
-                    git_signal,
-                )?)
-            } else {
-                charge_path_observation(&mut path_observations, limits.max_path_observations)?;
-                None
-            };
-            let metadata = sources
-                .metadata(path)
-                .map_err(|error| route_error(error, deadline, cancelled, git_signal))?
-                .ok_or_else(|| ItemRefusal::Source("captured authored path disappeared".into()))?;
-            if !metadata.is_file()
-                || metadata.len() != member.size_bytes
-                || file_mode(&metadata) != Some(member.mode)
-            {
-                return Err(ItemRefusal::Source(
-                    "captured authored physical metadata changed".into(),
-                ));
-            }
-            let stamp = FileStamp::from_metadata(&metadata);
-            if let Some(observation) = resolved_observation.as_ref() {
-                if !observation.facts.regular_file
-                    || observation.facts.directory
-                    || observation.facts.symlink
-                    || observation.stamp != Some(stamp)
+        if let Some(captured) = captured {
+            for (path, member) in captured.observed_members() {
+                if !authored_requested.contains(path) {
+                    continue;
+                }
+                checkpoint(sources, deadline, cancelled, git_signal)?;
+                let selected_directory = owned_resolved_source_directories
+                    .get(path)
+                    .map(String::as_str);
+                let resolved_observation = if let Some(selected_directory) = selected_directory {
+                    Some(observe_path(
+                        sources,
+                        path,
+                        false,
+                        Some(selected_directory),
+                        true,
+                        &mut bytes_read,
+                        &mut path_observations,
+                        &mut state_bytes,
+                        limits,
+                        deadline,
+                        cancelled,
+                        git_signal,
+                    )?)
+                } else {
+                    charge_path_observation(&mut path_observations, limits.max_path_observations)?;
+                    None
+                };
+                let metadata = sources
+                    .metadata(path)
+                    .map_err(|error| route_error(error, deadline, cancelled, git_signal))?
+                    .ok_or_else(|| {
+                        ItemRefusal::Source("captured authored path disappeared".into())
+                    })?;
+                if !metadata.is_file()
+                    || metadata.len() != member.size_bytes
+                    || file_mode(&metadata) != Some(member.mode)
                 {
                     return Err(ItemRefusal::Source(
-                        "captured authored resolved path changed type".into(),
+                        "captured authored physical metadata changed".into(),
                     ));
                 }
-                if let Some(resolved_stamp) = observation.resolved_stamp {
-                    charge_map_entry(
-                        path,
-                        std::mem::size_of::<FileStamp>(),
-                        0,
-                        &mut state_bytes,
-                        limits.max_state_bytes,
-                    )?;
-                    authored_resolved_stamps.insert(path.to_owned(), resolved_stamp);
+                let stamp = FileStamp::from_metadata(&metadata);
+                if let Some(observation) = resolved_observation.as_ref() {
+                    if !observation.facts.regular_file
+                        || observation.facts.directory
+                        || observation.facts.symlink
+                        || observation.stamp != Some(stamp)
+                    {
+                        return Err(ItemRefusal::Source(
+                            "captured authored resolved path changed type".into(),
+                        ));
+                    }
+                    if let Some(resolved_stamp) = observation.resolved_stamp {
+                        charge_map_entry(
+                            path,
+                            std::mem::size_of::<FileStamp>(),
+                            0,
+                            &mut state_bytes,
+                            limits.max_state_bytes,
+                        )?;
+                        authored_resolved_stamps.insert(path.to_owned(), resolved_stamp);
+                    }
                 }
+                if authored_capture_paths.insert(path.to_owned()) {
+                    charge_path_value(path, &mut state_bytes, limits.max_state_bytes)?;
+                }
+                charge_map_entry(
+                    path,
+                    std::mem::size_of::<PhysicalPathFacts>(),
+                    64usize
+                        .checked_add(
+                            resolved_observation
+                                .as_ref()
+                                .map(|observation| physical_dynamic_bytes(&observation.facts))
+                                .transpose()?
+                                .unwrap_or_default(),
+                        )
+                        .ok_or(ItemRefusal::Budget)?,
+                    &mut state_bytes,
+                    limits.max_state_bytes,
+                )?;
+                facts.authored_paths.insert(
+                    path.to_owned(),
+                    PhysicalPathFacts {
+                        exists: true,
+                        regular_file: true,
+                        directory: false,
+                        symlink: false,
+                        resolved_target: resolved_observation
+                            .and_then(|observation| observation.facts.resolved_target),
+                        git_tracked: None,
+                        git_ignored: None,
+                        file_mode: Some(member.mode),
+                        byte_size: Some(member.size_bytes),
+                        sha256: Some(member.sha256.to_hex()),
+                    },
+                );
+                charge_map_entry(
+                    path,
+                    std::mem::size_of::<FileStamp>(),
+                    0,
+                    &mut state_bytes,
+                    limits.max_state_bytes,
+                )?;
+                authored_stamps.insert(path.to_owned(), stamp);
             }
-            if authored_capture_paths.insert(path.to_owned()) {
-                charge_path_value(path, &mut state_bytes, limits.max_state_bytes)?;
-            }
-            charge_map_entry(
-                path,
-                std::mem::size_of::<PhysicalPathFacts>(),
-                64usize
-                    .checked_add(
-                        resolved_observation
-                            .as_ref()
-                            .map(|observation| physical_dynamic_bytes(&observation.facts))
-                            .transpose()?
-                            .unwrap_or_default(),
-                    )
-                    .ok_or(ItemRefusal::Budget)?,
-                &mut state_bytes,
-                limits.max_state_bytes,
-            )?;
-            facts.authored_paths.insert(
-                path.to_owned(),
-                PhysicalPathFacts {
-                    exists: true,
-                    regular_file: true,
-                    directory: false,
-                    symlink: false,
-                    resolved_target: resolved_observation
-                        .and_then(|observation| observation.facts.resolved_target),
-                    git_tracked: None,
-                    git_ignored: None,
-                    file_mode: Some(member.mode),
-                    byte_size: Some(member.size_bytes),
-                    sha256: Some(member.sha256.to_hex()),
-                },
-            );
-            charge_map_entry(
-                path,
-                std::mem::size_of::<FileStamp>(),
-                0,
-                &mut state_bytes,
-                limits.max_state_bytes,
-            )?;
-            authored_stamps.insert(path.to_owned(), stamp);
         }
 
         for path in &authored_requested {
@@ -507,7 +688,7 @@ impl<'cancel, 'signal> FoundationPhysicalSnapshot<'cancel, 'signal> {
             let selected_directory = owned_resolved_source_directories
                 .get(path)
                 .map(String::as_str);
-            let observation = observe_path(
+            let observation = observe_path_with_shared(
                 sources,
                 path,
                 true,
@@ -520,6 +701,8 @@ impl<'cancel, 'signal> FoundationPhysicalSnapshot<'cancel, 'signal> {
                 deadline,
                 cancelled,
                 git_signal,
+                candidate_io_budget,
+                &mut shared_read_bytes_returned,
             )?;
             if let Some(stamp) = observation.stamp {
                 charge_map_entry(
@@ -613,7 +796,7 @@ impl<'cancel, 'signal> FoundationPhysicalSnapshot<'cancel, 'signal> {
                 ));
             }
             let selected_directory = requested_directory.or(inventory_directory);
-            let observation = observe_path(
+            let observation = observe_path_with_shared(
                 sources,
                 path,
                 true,
@@ -626,6 +809,8 @@ impl<'cancel, 'signal> FoundationPhysicalSnapshot<'cancel, 'signal> {
                 deadline,
                 cancelled,
                 git_signal,
+                candidate_io_budget,
+                &mut shared_read_bytes_returned,
             )?;
             if let Some(stamp) = observation.stamp {
                 charge_map_entry(
@@ -829,7 +1014,7 @@ impl<'cancel, 'signal> FoundationPhysicalSnapshot<'cancel, 'signal> {
             let stamp = FileStamp::from_metadata(&metadata);
             artifact_root_stamp = Some(stamp);
             for path in &artifact_requested_paths {
-                let observation = observe_path(
+                let observation = observe_path_with_shared(
                     artifact_root,
                     path,
                     true,
@@ -842,6 +1027,8 @@ impl<'cancel, 'signal> FoundationPhysicalSnapshot<'cancel, 'signal> {
                     deadline,
                     cancelled,
                     git_signal,
+                    candidate_io_budget,
+                    &mut shared_read_bytes_returned,
                 )?;
                 charge_map_entry(
                     path,
@@ -951,6 +1138,7 @@ impl<'cancel, 'signal> FoundationPhysicalSnapshot<'cancel, 'signal> {
             historical_originals: BTreeMap::new(),
             repo_paths,
             authored_capture_paths,
+            candidate_member_paths,
             private_declared_paths,
             private_prefixes: prefixes,
             git_paths,
@@ -971,7 +1159,10 @@ impl<'cancel, 'signal> FoundationPhysicalSnapshot<'cancel, 'signal> {
             deadline,
             cancelled,
             git_signal,
+            candidate_identity: None,
+            candidate_io_budget: candidate_io_budget.cloned(),
             bytes_read,
+            shared_read_bytes_returned,
             path_observations,
             git_path_queries,
             state_bytes,
@@ -1006,6 +1197,7 @@ impl<'cancel, 'signal> FoundationPhysicalSnapshot<'cancel, 'signal> {
                 continue;
             }
             if self.authored_capture_paths.contains(path)
+                || self.candidate_member_paths.contains(path)
                 || self.historical_originals.contains_key(path)
             {
                 return Err(ItemRefusal::Source(
@@ -1110,9 +1302,26 @@ impl<'cancel, 'signal> FoundationPhysicalSnapshot<'cancel, 'signal> {
         self.state_bytes
     }
 
+    /// True only when this candidate snapshot retained the exact original
+    /// cumulative read ledger supplied at construction.
+    pub fn shared_io_budget_matches(&self, budget: &PinnedSqliteIoBudget) -> bool {
+        self.candidate_identity.is_some()
+            && self
+                .candidate_io_budget
+                .as_ref()
+                .is_some_and(|retained| retained.shares_with(budget))
+    }
+
+    /// Candidate snapshots forward every bounded physical content read through
+    /// their retained shared ledger; captured snapshots retain the legacy route.
+    pub fn forwards_physical_reads_to_shared_io(&self) -> bool {
+        self.candidate_identity.is_some() && self.candidate_io_budget.is_some()
+    }
+
     pub fn cost(&self) -> PhysicalSourceCost {
         PhysicalSourceCost {
             bytes_read: self.bytes_read,
+            shared_read_bytes_returned: self.shared_read_bytes_returned,
             path_observations: self.path_observations,
             git_path_queries: self.git_path_queries,
             retained_state_bytes: self.state_bytes,
@@ -1132,12 +1341,58 @@ impl<'cancel, 'signal> FoundationPhysicalSnapshot<'cancel, 'signal> {
         self.repo_paths.len() + self.artifact_requested_paths.len()
     }
 
-    /// Recheck exact physical/Git facts after every worker has stopped. The
-    /// caller must then run `FoundationCapturedCut::recheck` with the same
-    /// operation deadline and its captured read limits to verify authored
-    /// bytes plus publication epoch. The separate payload adapter likewise
-    /// needs its final verification after workers.
+    /// Recheck physical/Git facts for a captured-source snapshot. Candidate
+    /// snapshots must use `recheck_candidate` so their original source fence
+    /// is also verified. The caller separately rechecks captured bytes or the
+    /// candidate fence, publication epoch, and payload adapter as applicable.
     pub fn recheck(
+        &mut self,
+        sources: &mut RouteSources,
+        artifact_sources: Option<&mut RouteSources>,
+    ) -> Result<(), ItemRefusal> {
+        if self.candidate_identity.is_some() || self.candidate_io_budget.is_some() {
+            return Err(ItemRefusal::Source(
+                "candidate physical snapshot requires its source fence".into(),
+            ));
+        }
+        self.recheck_observations(sources, artifact_sources)
+    }
+
+    /// Recheck physical observations and the same candidate coverage after
+    /// dependent workers have stopped. Candidate bytes remain owned by the
+    /// candidate adapter; this verifies its original fence without comparing
+    /// those bytes to the selected working tree.
+    pub(crate) fn recheck_candidate(
+        &mut self,
+        sources: &mut RouteSources,
+        artifact_sources: Option<&mut RouteSources>,
+        candidate: &CandidateRecordsInput<'_, '_>,
+        coverage: &SourceCutInputCoverage,
+    ) -> Result<(), ItemRefusal> {
+        let Some(original_io) = self.candidate_io_budget.as_ref() else {
+            candidate.abandon();
+            return Err(ItemRefusal::Source(
+                "candidate physical source identity changed".into(),
+            ));
+        };
+        if !candidate.shares_io_budget(original_io)
+            || self.candidate_identity != Some(*candidate.input_identity())
+        {
+            candidate.abandon();
+            return Err(ItemRefusal::Source(
+                "candidate physical source identity changed".into(),
+            ));
+        }
+        candidate
+            .source_input()
+            .verify_current_fence(coverage, self.deadline, self.cancelled)?;
+        self.recheck_observations(sources, artifact_sources)?;
+        candidate
+            .source_input()
+            .verify_current_fence(coverage, self.deadline, self.cancelled)
+    }
+
+    fn recheck_observations(
         &mut self,
         sources: &mut RouteSources,
         mut artifact_sources: Option<&mut RouteSources>,
@@ -1157,12 +1412,16 @@ impl<'cancel, 'signal> FoundationPhysicalSnapshot<'cancel, 'signal> {
         }
 
         for path in self.facts.authored_paths.keys() {
-            let hash_file = !self.authored_capture_paths.contains(path);
+            // Captured authored bytes have their own exact-cut recheck. A
+            // candidate's bytes are held in its independent spool, so every
+            // selected working-tree path is still hashed as a physical fact.
+            let hash_file =
+                self.candidate_identity.is_some() || !self.authored_capture_paths.contains(path);
             let selected_directory = self
                 .resolved_source_directories
                 .get(path)
                 .map(String::as_str);
-            let current = observe_path(
+            let current = observe_path_with_shared(
                 sources,
                 path,
                 hash_file,
@@ -1175,6 +1434,8 @@ impl<'cancel, 'signal> FoundationPhysicalSnapshot<'cancel, 'signal> {
                 self.deadline,
                 self.cancelled,
                 self.git_signal,
+                self.candidate_io_budget.as_ref(),
+                &mut self.shared_read_bytes_returned,
             )?;
             let expected = self
                 .historical_originals
@@ -1220,7 +1481,7 @@ impl<'cancel, 'signal> FoundationPhysicalSnapshot<'cancel, 'signal> {
                 ));
             }
             let selected_directory = requested_directory.or(inventory_directory);
-            let current = observe_path(
+            let current = observe_path_with_shared(
                 sources,
                 path,
                 true,
@@ -1233,6 +1494,8 @@ impl<'cancel, 'signal> FoundationPhysicalSnapshot<'cancel, 'signal> {
                 self.deadline,
                 self.cancelled,
                 self.git_signal,
+                self.candidate_io_budget.as_ref(),
+                &mut self.shared_read_bytes_returned,
             )?;
             if !same_physical_path(expected, &current.facts)
                 || self.private_stamps.get(path).copied() != current.stamp
@@ -1353,7 +1616,7 @@ fn recheck_artifacts(
         ));
     }
     for path in &snapshot.artifact_requested_paths {
-        let observation = observe_path(
+        let observation = observe_path_with_shared(
             sources,
             path,
             true,
@@ -1366,6 +1629,8 @@ fn recheck_artifacts(
             snapshot.deadline,
             snapshot.cancelled,
             snapshot.git_signal,
+            snapshot.candidate_io_budget.as_ref(),
+            &mut snapshot.shared_read_bytes_returned,
         )?;
         let expected = snapshot
             .facts
@@ -1821,6 +2086,7 @@ fn inventory_is_file(facts: &PhysicalPathFacts) -> bool {
         )
 }
 
+#[allow(clippy::too_many_arguments)]
 fn observe_path(
     sources: &mut RouteSources,
     path: &str,
@@ -1834,6 +2100,41 @@ fn observe_path(
     deadline: Instant,
     cancelled: &AtomicBool,
     git_signal: &AtomicI32,
+) -> Result<PathObservation, ItemRefusal> {
+    let mut shared_read_bytes_returned = 0usize;
+    observe_path_with_shared(
+        sources,
+        path,
+        hash_file,
+        selected_directory,
+        resolve_target,
+        bytes_read,
+        path_observations,
+        state_bytes,
+        limits,
+        deadline,
+        cancelled,
+        git_signal,
+        None,
+        &mut shared_read_bytes_returned,
+    )
+}
+
+fn observe_path_with_shared(
+    sources: &mut RouteSources,
+    path: &str,
+    hash_file: bool,
+    selected_directory: Option<&str>,
+    resolve_target: bool,
+    bytes_read: &mut usize,
+    path_observations: &mut usize,
+    state_bytes: &mut usize,
+    limits: PhysicalSourceLimits,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+    git_signal: &AtomicI32,
+    shared_io_budget: Option<&PinnedSqliteIoBudget>,
+    shared_read_bytes_returned: &mut usize,
 ) -> Result<PathObservation, ItemRefusal> {
     charge_path_observation(path_observations, limits.max_path_observations)?;
     checkpoint(sources, deadline, cancelled, git_signal)?;
@@ -1944,14 +2245,31 @@ fn observe_path(
                 limits.max_state_bytes,
             ));
         }
-        let (raw, content_metadata) = sources
-            .bounded_metadata_bytes(
+        let read_result = if let Some(budget) = shared_io_budget {
+            let mut hooks = SharedPhysicalReadHooks {
+                budget,
+                returned_bytes: shared_read_bytes_returned,
+                deadline,
+                cancelled,
+                git_signal,
+            };
+            sources.bounded_metadata_bytes_with_hooks(
+                target_path,
+                limits.max_file_bytes,
+                bytes_read,
+                limits.max_total_bytes,
+                &mut hooks,
+            )
+        } else {
+            sources.bounded_metadata_bytes(
                 target_path,
                 limits.max_file_bytes,
                 bytes_read,
                 limits.max_total_bytes,
             )
-            .map_err(|error| route_error(error, deadline, cancelled, git_signal))?;
+        };
+        let (raw, content_metadata) =
+            read_result.map_err(|error| route_error(error, deadline, cancelled, git_signal))?;
         let content_stamp = FileStamp::from_metadata(&content_metadata);
         if resolved.is_some() {
             if resolved_stamp != Some(content_stamp) {
@@ -2882,6 +3200,26 @@ fn checkpoint(
         .map_err(|error| route_error(error, deadline, cancelled, git_signal))
 }
 
+fn physical_read_checkpoint(
+    deadline: Instant,
+    cancelled: &AtomicBool,
+    git_signal: &AtomicI32,
+) -> io::Result<()> {
+    if cancelled.load(Ordering::Relaxed) || git_signal.load(Ordering::Relaxed) != 0 {
+        return Err(io::Error::new(
+            io::ErrorKind::Interrupted,
+            "physical source operation cancelled",
+        ));
+    }
+    if Instant::now() >= deadline {
+        return Err(io::Error::new(
+            io::ErrorKind::TimedOut,
+            "physical source operation deadline exceeded",
+        ));
+    }
+    Ok(())
+}
+
 fn route_error(
     error: io::Error,
     deadline: Instant,
@@ -2904,9 +3242,13 @@ fn route_error(
             | "operand aggregate byte accounting exceeded"
             | "operand input byte bound exceeded"
             | "operand aggregate byte accounting overflow"
+            | "shared physical returned byte accounting overflow"
             | "foundation Git output bound"
             | "foundation Git FD census bound"
             | "foundation Git status bound" => return ItemRefusal::Budget,
+            value if value.starts_with("shared physical read budget refused:") => {
+                return ItemRefusal::Budget;
+            }
             "foundation Git deadline" | "route operation deadline exceeded" => {
                 return ItemRefusal::Deadline;
             }

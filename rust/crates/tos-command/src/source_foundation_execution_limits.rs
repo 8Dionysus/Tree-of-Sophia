@@ -406,10 +406,39 @@ impl<'cancel> FoundationRemainingBudget<'cancel> {
         ticket: FoundationBudgetTicket,
         admitted_worst_use: FoundationPhaseUse,
     ) -> Result<()> {
+        self.fail_window_with_source_basis(
+            ticket,
+            admitted_worst_use,
+            FoundationChargeBasis::AdmittedUpperBound,
+        )
+    }
+
+    /// The shared IO owner observed this exact attempted-read term. Preserve
+    /// its measured basis while all other unknown terms retain their worst case.
+    pub(crate) fn fail_window_with_measured_source_reads(
+        &mut self,
+        ticket: FoundationBudgetTicket,
+        mut admitted_worst_use: FoundationPhaseUse,
+        actual_read_bytes: u64,
+    ) -> Result<()> {
+        admitted_worst_use.source_read_bytes = FoundationCharge::measured(actual_read_bytes);
+        self.fail_window_with_source_basis(
+            ticket,
+            admitted_worst_use,
+            FoundationChargeBasis::Measured,
+        )
+    }
+
+    fn fail_window_with_source_basis(
+        &mut self,
+        ticket: FoundationBudgetTicket,
+        admitted_worst_use: FoundationPhaseUse,
+        source_read_basis: FoundationChargeBasis,
+    ) -> Result<()> {
         self.close_ticket(&ticket)?;
         self.poisoned = true;
         let mut worst = admitted_worst_use;
-        worst.source_read_bytes.basis = FoundationChargeBasis::AdmittedUpperBound;
+        worst.source_read_bytes.basis = source_read_basis;
         worst.worker_wire_bytes.basis = FoundationChargeBasis::AdmittedUpperBound;
         worst.state_bytes.basis = FoundationChargeBasis::AdmittedUpperBound;
         worst.issue_count.basis = FoundationChargeBasis::AdmittedUpperBound;
@@ -464,6 +493,40 @@ impl<'cancel> FoundationRemainingBudget<'cancel> {
             .ok_or(Error::Unsupported("foundation invocation budget exhausted"))?;
         remaining.worker_cpu_seconds = seconds_ceiling(remaining.worker_cpu_micros)?;
         Ok(remaining)
+    }
+
+    /// Record only an already-observed terminal source-read suffix. This does
+    /// no work, opens no ticket and returns no remaining allowance. Callers
+    /// may inspect the measured counter delta even when terminal liveness or
+    /// capacity refusal follows the retained charge.
+    pub(crate) fn record_terminal_measured_source_read_suffix(&mut self, bytes: u64) -> Result<()> {
+        let total = self.charged.source_read_bytes.checked_add(bytes);
+        let measured = self.measured_charged.source_read_bytes.checked_add(bytes);
+        let (Some(total), Some(measured)) = (total, measured) else {
+            self.poisoned = true;
+            return Err(Error::Unsupported(
+                "foundation terminal source-read accounting overflow",
+            ));
+        };
+        self.charged.source_read_bytes = total;
+        self.measured_charged.source_read_bytes = measured;
+        if total > self.caps.max_total_read_bytes {
+            self.poisoned = true;
+            return Err(Error::Unsupported(
+                "foundation terminal source reads exceed invocation",
+            ));
+        }
+        if self.open_ticket_id.is_some() {
+            self.poisoned = true;
+            return Err(Error::Unsupported(
+                "foundation terminal source reads with open window",
+            ));
+        }
+        if let Err(error) = self.check_live() {
+            self.poisoned = true;
+            return Err(error);
+        }
+        Ok(())
     }
 
     fn charge(&mut self, usage: FoundationPhaseUse) -> Result<()> {
@@ -885,6 +948,47 @@ impl FoundationExecutionLimits {
         })
     }
 
+    /// Intersect nominal bootstrap count ceilings with this named live window.
+    /// Required actual-count callers continue to use `physical_limits`.
+    pub(crate) fn physical_limits_from_ceilings(
+        &self,
+        ceilings: PhysicalSourceLimits,
+    ) -> Result<PhysicalSourceLimits> {
+        let (path_capacity, inventory_capacity, observation_capacity) = path_count_capacities(
+            self.reservations
+                .physical
+                .state_bytes
+                .min(ceilings.max_state_bytes),
+        )?;
+        let paths = ceilings.max_paths.min(path_capacity);
+        let observations = ceilings.max_path_observations.min(observation_capacity);
+        self.physical_limits(
+            paths,
+            ceilings.max_private_prefixes.min(paths),
+            ceilings.max_inventory_paths.min(inventory_capacity),
+            observations,
+            ceilings.max_git_path_queries.min(observations),
+        )
+    }
+
+    /// Payload bootstrap counts are ceilings, not observed required rows.
+    /// The existing actual-count validator still refuses any required excess.
+    pub(crate) fn payload_limits_from_ceilings(
+        &self,
+        ceilings: PhysicalPayloadLimits,
+    ) -> Result<PhysicalPayloadLimits> {
+        let (file_capacity, _, observation_capacity) = path_count_capacities(
+            self.reservations
+                .payload
+                .state_bytes
+                .min(ceilings.max_state_bytes),
+        )?;
+        self.payload_limits(
+            ceilings.max_files.min(file_capacity),
+            ceilings.max_observations.min(observation_capacity),
+        )
+    }
+
     /// Convert explicit path/work counts selected by the caller into the
     /// physical provider's concrete bounds. Counts are checked against a
     /// state-derived ceiling; this adapter does not infer inventory contents.
@@ -897,18 +1001,8 @@ impl FoundationExecutionLimits {
         max_git_path_queries: usize,
     ) -> Result<PhysicalSourceLimits> {
         let reservation = self.reservations.physical;
-        let minimum_path_state = 1usize
-            .checked_add(size_of::<String>())
-            .and_then(|bytes| bytes.checked_add(32 * size_of::<usize>()))
-            .ok_or(Error::Unsupported(
-                "foundation physical path limit overflow",
-            ))?;
-        let inventory_path_state = minimum_path_state
-            .checked_mul(3)
-            .ok_or(Error::Unsupported("foundation inventory limit overflow"))?;
-        let max_paths_by_state = reservation.state_bytes / minimum_path_state;
-        let max_inventory_by_state = reservation.state_bytes / inventory_path_state;
-        let max_observations_by_state = reservation.state_bytes / size_of::<usize>();
+        let (max_paths_by_state, max_inventory_by_state, max_observations_by_state) =
+            path_count_capacities(reservation.state_bytes)?;
         let max_file_bytes = as_usize(
             self.invocation_budgets
                 .max_member_bytes
@@ -966,12 +1060,8 @@ impl FoundationExecutionLimits {
         max_observations: usize,
     ) -> Result<PhysicalPayloadLimits> {
         let reservation = self.reservations.payload;
-        let min_file_row = 1usize
-            .checked_add(size_of::<String>())
-            .and_then(|bytes| bytes.checked_add(32 * size_of::<usize>()))
-            .ok_or(Error::Unsupported("foundation payload row limit overflow"))?;
-        let max_files_by_state = reservation.state_bytes / min_file_row;
-        let max_observations_by_state = reservation.state_bytes / size_of::<usize>();
+        let (max_files_by_state, _, max_observations_by_state) =
+            path_count_capacities(reservation.state_bytes)?;
         let max_file_bytes = self
             .invocation_budgets
             .max_member_bytes
@@ -1518,7 +1608,7 @@ impl FoundationExecutionLimits {
         let worker = ExecutorBudget {
             execution_wall: wall,
             cleanup_grace: shape.batch.cleanup_grace,
-            cpu_seconds: operation_cpu,
+            cpu_seconds: operation_cpu.min(ExecutorBudget::MAX_SCALAR_CPU_SECONDS),
             address_space_bytes: address_space,
         };
         let worker_limits = CutWorkerLimits {
@@ -1560,11 +1650,16 @@ impl FoundationExecutionLimits {
                 "foundation catalog diagnostics exceed named output or wire reservation",
             ));
         }
-        let diagnostics = CutSchemaDiagnosticsLimits {
-            max_total_issues,
-            max_total_report_bytes,
-            max_total_state_bytes: reservation.state_bytes,
-        };
+        let diagnostics = CutSchemaDiagnosticsLimits::from_operation_ceilings(
+            CutSchemaDiagnosticsLimits {
+                max_total_issues,
+                max_total_report_bytes,
+                max_total_state_bytes: reservation.state_bytes,
+            },
+            worker_limits.max_receipts,
+            stream,
+        )
+        .map_err(|_| Error::Unsupported("foundation catalog diagnostics operation envelope"))?;
         Ok((worker, worker_limits, stream, diagnostics))
     }
 
@@ -1830,6 +1925,25 @@ impl FoundationExecutionLimits {
             reservations.final_custody_and_output,
         ]
     }
+}
+
+// One capacity formula owns both strict required-count and nominal-ceiling
+// adapters. These are the existing modeled retained-state allowances, not RSS.
+fn path_count_capacities(state_bytes: usize) -> Result<(usize, usize, usize)> {
+    let minimum_path_state = 1usize
+        .checked_add(size_of::<String>())
+        .and_then(|bytes| bytes.checked_add(32 * size_of::<usize>()))
+        .ok_or(Error::Unsupported(
+            "foundation physical path limit overflow",
+        ))?;
+    let inventory_path_state = minimum_path_state
+        .checked_mul(3)
+        .ok_or(Error::Unsupported("foundation inventory limit overflow"))?;
+    Ok((
+        state_bytes / minimum_path_state,
+        state_bytes / inventory_path_state,
+        state_bytes / size_of::<usize>(),
+    ))
 }
 
 fn as_usize(value: u64, label: &'static str) -> Result<usize> {

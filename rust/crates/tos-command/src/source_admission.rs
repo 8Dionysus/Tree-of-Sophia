@@ -87,6 +87,7 @@ pub struct AdmissionBatch {
     pub retirements: BTreeMap<String, SourceRetirement>,
     input: File,
     bytes_read: u64,
+    budgeted_io: Option<tos_source_store::PinnedSqliteIoBudget>,
 }
 
 fn keys(value: &Value, expected: &[&str]) -> io::Result<()> {
@@ -160,6 +161,14 @@ impl AdmissionBatch {
     pub(crate) fn bytes_read(&self) -> u64 {
         self.bytes_read
     }
+    pub(crate) fn shares_spooled_io_budget(
+        &self,
+        budget: &tos_source_store::PinnedSqliteIoBudget,
+    ) -> bool {
+        self.budgeted_io
+            .as_ref()
+            .is_some_and(|selected| selected.shares_with(budget))
+    }
     /// Bind the strict canonical maintained batch and an exact no-follow input
     /// directory. No store, objects, revision or pointer is created here.
     pub fn read(
@@ -168,6 +177,26 @@ impl AdmissionBatch {
         limits: AdmissionLimits,
         deadline: Instant,
         cancel: &AtomicBool,
+    ) -> io::Result<Self> {
+        Self::read_with_budget(batch_path, input_root, limits, deadline, cancel, None)
+    }
+    pub(crate) fn read_budgeted(
+        batch_path: &Path,
+        input_root: &Path,
+        limits: AdmissionLimits,
+        deadline: Instant,
+        cancel: &AtomicBool,
+        io: &tos_source_store::PinnedSqliteIoBudget,
+    ) -> io::Result<Self> {
+        Self::read_with_budget(batch_path, input_root, limits, deadline, cancel, Some(io))
+    }
+    fn read_with_budget(
+        batch_path: &Path,
+        input_root: &Path,
+        limits: AdmissionLimits,
+        deadline: Instant,
+        cancel: &AtomicBool,
+        io: Option<&tos_source_store::PinnedSqliteIoBudget>,
     ) -> io::Result<Self> {
         let limits = limits.validate()?;
         active(deadline, cancel)?;
@@ -179,7 +208,14 @@ impl AdmissionBatch {
         let mut chunk = [0; 65536];
         loop {
             active(deadline, cancel)?;
+            if let Some(io) = io {
+                io.charge_read(chunk.len() as u64).map_err(invalid)?;
+            }
             let count = file.read(&mut chunk)?;
+            if let Some(io) = io {
+                io.record_read_returned(count as u64).map_err(invalid)?;
+            }
+            active(deadline, cancel)?;
             if count == 0 {
                 break;
             }
@@ -293,6 +329,7 @@ impl AdmissionBatch {
             retirements,
             input,
             bytes_read: raw.len() as u64,
+            budgeted_io: io.cloned(),
         })
     }
 

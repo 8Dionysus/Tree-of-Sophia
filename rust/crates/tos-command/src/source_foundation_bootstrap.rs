@@ -200,6 +200,63 @@ pub(crate) struct FoundationBootstrapView<'work, 'cancel, 'signal> {
         Option<&'work mut (dyn super::foundation_reader::FoundationHistoricalEvidence + 'static)>,
 }
 
+/// Borrowed unpublished current source under the one original invocation.
+/// Candidate read/write counters remain owned by the original spool ledger.
+/// Each observed shared read prefix is adopted once before another independent
+/// window; protected controls and unforwarded auxiliary reads are charged here.
+pub(crate) struct CandidateFoundationBootstrapInputs<'input, 'cancel> {
+    pub clock: FoundationBootstrapClock,
+    pub launch: FoundationLaunchArguments,
+    pub invocation: FoundationInvocation<'cancel>,
+    pub execution_limits: FoundationExecutionLimits,
+    pub remaining_budget: FoundationRemainingBudget<'cancel>,
+    pub selected_roots: FoundationSelectedRoots,
+    pub stage: PrivateTmpfsStageIsolation,
+    pub isolated: IsolatedCreationRoot,
+    pub sources: RouteSources,
+    pub payload_sources: RouteSources,
+    pub artifact_sources: Option<RouteSources>,
+    pub input: &'input dyn tos_validation::record_biblio_cut::SourceCutInputWithIdentity<
+        crate::source_admission_spooled_candidate::CandidateFence,
+    >,
+    pub coverage: tos_validation::record_biblio_cut::SourceCutInputCoverage,
+    pub original_epoch: tos_source_store::MetadataPublicationEpoch,
+    original_io: tos_source_store::PinnedSqliteIoBudget,
+    pub candidate_io_adopted: (u64, u64),
+    remaining_write_bytes: u64,
+    pub selection: FoundationPhysicalSelection,
+    pub cost: FoundationSourceBootstrapCost,
+    cancelled: &'cancel AtomicBool,
+    config: FoundationBootstrapConfig,
+}
+pub(crate) struct CandidateFoundationBootstrapView<'work, 'input, 'cancel, 'signal> {
+    pub clock: &'work FoundationBootstrapClock,
+    pub launch: &'work FoundationLaunchArguments,
+    pub invocation: &'work mut FoundationInvocation<'cancel>,
+    pub execution_limits: &'work mut FoundationExecutionLimits,
+    pub remaining_budget: &'work mut FoundationRemainingBudget<'cancel>,
+    pub selected_roots: &'work FoundationSelectedRoots,
+    pub stage: &'work PrivateTmpfsStageIsolation,
+    pub isolated: &'work IsolatedCreationRoot,
+    pub sources: &'work mut RouteSources,
+    pub artifact_sources: Option<&'work mut RouteSources>,
+    pub input: &'input dyn tos_validation::record_biblio_cut::SourceCutInputWithIdentity<
+        crate::source_admission_spooled_candidate::CandidateFence,
+    >,
+    pub coverage: &'work tos_validation::record_biblio_cut::SourceCutInputCoverage,
+    pub original_epoch: &'work tos_source_store::MetadataPublicationEpoch,
+    pub original_io: &'work tos_source_store::PinnedSqliteIoBudget,
+    pub candidate_io_adopted: &'work mut (u64, u64),
+    pub remaining_write_bytes: &'work mut u64,
+    pub selection: &'work FoundationPhysicalSelection,
+    pub physical: &'work mut FoundationPhysicalSnapshot<'cancel, 'signal>,
+    pub cancelled: &'cancel AtomicBool,
+    pub cost: &'work mut FoundationSourceBootstrapCost,
+    // The provider is owned by the caller. Its trait-object type is static;
+    // only this view's temporary mutable loan is shortened to `'work`.
+    pub history:
+        Option<&'work mut (dyn super::foundation_reader::FoundationHistoricalEvidence + 'static)>,
+}
 impl<'cancel> FoundationBootstrapInputs<'cancel> {
     /// Continue from the one real invocation read performed by the entry
     /// adapter. No arguments, roots, budgets, cancellation flag, or clock are
@@ -832,10 +889,7 @@ impl<'cancel> FoundationBootstrapInputs<'cancel> {
                 FoundationPhaseReservation::default(),
                 |execution_limits, _ticket| {
                     let derived = execution_limits
-                        .payload_limits(
-                            config.payload_limits.max_files,
-                            config.payload_limits.max_observations,
-                        )
+                        .payload_limits_from_ceilings(config.payload_limits)
                         .map_err(FoundationBootstrapError::Command)?;
                     let limits = intersect_payload_limits(derived, config.payload_limits)?;
                     let mut payloads = FoundationPayloadSources::new(
@@ -894,13 +948,7 @@ impl<'cancel> FoundationBootstrapInputs<'cancel> {
                 physical_baseline,
                 |execution_limits, _ticket| {
                     let derived = execution_limits
-                        .physical_limits(
-                            config.physical_limits.max_paths,
-                            config.physical_limits.max_private_prefixes,
-                            config.physical_limits.max_inventory_paths,
-                            config.physical_limits.max_path_observations,
-                            config.physical_limits.max_git_path_queries,
-                        )
+                        .physical_limits_from_ceilings(config.physical_limits)
                         .map_err(FoundationBootstrapError::Command)?;
                     let limits = intersect_physical_limits(derived, config.physical_limits)?;
                     let mut physical = FoundationPhysicalSnapshot::observe_with_resolved_targets(
@@ -1009,6 +1057,948 @@ impl<'cancel> FoundationBootstrapInputs<'cancel> {
             .map(RouteSources::root_component_open_count);
         self.cost.whole_budget_after_callback = Some(budget_cost(&self.remaining_budget));
     }
+}
+
+/// Preparation refusal retains the one moved invocation and its charged
+/// ledger/root custody so Native can bill the actual unadopted suffix before
+/// reporting terminal failure. No original control or ledger is cloned.
+pub(crate) struct CandidateFoundationBootstrapFailure<'cancel> {
+    pub error: FoundationBootstrapError,
+    pub clock: FoundationBootstrapClock,
+    pub launch: FoundationLaunchArguments,
+    pub invocation: FoundationInvocation<'cancel>,
+    pub remaining_budget: FoundationRemainingBudget<'cancel>,
+    pub sources: RouteSources,
+}
+impl std::fmt::Debug for CandidateFoundationBootstrapFailure<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("CandidateFoundationBootstrapFailure")
+            .field("error", &self.error)
+            .finish_non_exhaustive()
+    }
+}
+
+impl<'input, 'cancel> CandidateFoundationBootstrapInputs<'input, 'cancel> {
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn prepare(
+        clock: FoundationBootstrapClock,
+        launch: FoundationLaunchArguments,
+        invocation: FoundationInvocation<'cancel>,
+        mut remaining_budget: FoundationRemainingBudget<'cancel>,
+        input: &'input crate::source_admission_candidate_records::CandidateRecordsInput<'_, '_>,
+        coverage: tos_validation::record_biblio_cut::SourceCutInputCoverage,
+        original_io: &tos_source_store::PinnedSqliteIoBudget,
+        mut remaining_write_bytes: u64,
+        candidate_io_adopted: &mut (u64, u64),
+        mut sources: RouteSources,
+    ) -> Result<Self, CandidateFoundationBootstrapFailure<'cancel>> {
+        let prepared: Result<_, FoundationBootstrapError> = (|| {
+            if !input.shares_io_budget(original_io) {
+                return Err(FoundationBootstrapError::Configuration(
+                    "candidate bootstrap shared IO identity differs",
+                ));
+            }
+            if remaining_write_bytes == u64::MAX {
+                return Err(FoundationBootstrapError::Configuration(
+                    "candidate bootstrap write headroom is not finite",
+                ));
+            }
+            let entry_io = original_io.snapshot();
+            validate_candidate_shared_io_snapshot(&entry_io)?;
+            if *candidate_io_adopted
+                != (
+                    entry_io.read_attempted_bytes,
+                    entry_io.write_attempted_bytes,
+                )
+            {
+                return Err(FoundationBootstrapError::Configuration(
+                    "candidate bootstrap Native IO adoption differs",
+                ));
+            }
+            let input: &'input dyn tos_validation::record_biblio_cut::SourceCutInputWithIdentity<
+                crate::source_admission_spooled_candidate::CandidateFence,
+            > = input;
+            let cancelled = invocation.cancellation_flag();
+            let deadline = invocation.deadline();
+            checkpoint(deadline, cancelled).map_err(FoundationBootstrapError::Command)?;
+            if launch.arguments.help
+                || invocation.started() != clock.started()
+                || deadline > clock.hard_deadline()
+            {
+                return Err(FoundationBootstrapError::Configuration(
+                    "candidate bootstrap original invocation",
+                ));
+            }
+            remaining_budget
+                .verify_invocation(&invocation)
+                .map_err(FoundationBootstrapError::Command)?;
+            input
+                .verify_current_fence(&coverage, deadline, cancelled)
+                .map_err(FoundationBootstrapError::Selection)?;
+            adopt_candidate_shared_io_with_budget(
+                original_io,
+                candidate_io_adopted,
+                &mut remaining_write_bytes,
+                &mut remaining_budget,
+            )?;
+            charge_admitted_state(
+                &mut remaining_budget,
+                "candidate-shared-io-custody",
+                size_of::<tos_source_store::PinnedSqliteIoBudget>()
+                    + size_of::<(u64, u64)>()
+                    + size_of::<u64>(),
+            )?;
+            let config = super::foundation_bootstrap_config::from_candidate_invocation(&invocation)
+                .map_err(FoundationBootstrapError::Command)?;
+            let mut execution_limits = FoundationExecutionLimits::new_whole(&invocation)
+                .map_err(FoundationBootstrapError::Command)?;
+            let mut selected_roots = invocation
+                .selected_roots(&launch)
+                .map_err(FoundationBootstrapError::Command)?;
+            if sources.selected_root_path() != selected_roots.repo_root
+                || sources.deadline() > deadline
+            {
+                return Err(FoundationBootstrapError::Configuration(
+                    "candidate primary root selection differs",
+                ));
+            }
+            sources
+                .verify_root()
+                .map_err(FoundationBootstrapError::RouteRoot)?;
+            let payload_root_defaulted = selected_roots.payload_source_root.is_none();
+            let payload_root = selected_roots
+                .payload_source_root
+                .clone()
+                .unwrap_or_else(|| selected_roots.repo_root.join(PAYLOAD_SOURCE_SUFFIX));
+            selected_roots.payload_source_root = Some(payload_root.clone());
+            let selected_roots_state_upper_bound_bytes =
+                selected_roots_state_upper_bound(&selected_roots, &payload_root)?;
+            let whole_budget_after_invocation = budget_cost(&remaining_budget);
+            charge_admitted_state(
+                &mut remaining_budget,
+                "candidate-selected-roots",
+                selected_roots_state_upper_bound_bytes,
+            )?;
+            let payload_sources =
+                RouteSources::new_until_related(&payload_root, deadline, &sources)
+                    .map_err(FoundationBootstrapError::RouteRoot)?;
+            let artifact_sources = selected_roots
+                .artifact_root
+                .as_deref()
+                .map(|root| RouteSources::new_until_related(root, deadline, &sources))
+                .transpose()
+                .map_err(FoundationBootstrapError::RouteRoot)?;
+            let whole_budget_after_selected_roots = budget_cost(&remaining_budget);
+            let (stage, isolated, original_epoch) = run_budget_window(
+                &mut remaining_budget,
+                &mut execution_limits,
+                "candidate-stage-and-original-epoch",
+                FoundationWindowKind::Capture,
+                FoundationPhaseReservation::default(),
+                |_limits, ticket| {
+                    let operation = ticket.operation_limits();
+                    let guard = tos_compiler::private_tmpfs_stage::PRIVATE_TMPFS_SELECT_COST;
+                    let epoch_state = candidate_original_epoch_state_upper_bound()?;
+                    let retained_state = guard
+                        .retained_bytes
+                        .checked_add(size_of::<IsolatedCreationRoot>())
+                        .and_then(|n| n.checked_add(epoch_state))
+                        .ok_or(FoundationBootstrapError::Configuration(
+                            "candidate stage/epoch state overflow",
+                        ))?;
+                    if operation.state_bytes < guard.workspace_bytes.max(retained_state)
+                        || operation.source_read_bytes
+                            < guard
+                                .read_bytes
+                                .checked_add(PUBLICATION_CONTROL_READ_CAP_BYTES as u64)
+                                .ok_or(FoundationBootstrapError::Configuration(
+                                    "candidate guard read overflow",
+                                ))?
+                        || operation.tmpfs_inodes < 1
+                    {
+                        return Err(FoundationBootstrapError::Configuration(
+                            "candidate stage/control reservation",
+                        ));
+                    }
+                    let stage = invocation
+                        .select_stage()
+                        .map_err(FoundationBootstrapError::StageSelection)?;
+                    let isolated = IsolatedCreationRoot::create(stage.root(), deadline, cancelled)
+                        .map_err(FoundationBootstrapError::IsolatedRoot)?;
+                    let (epoch, read) = foundation_capture::select_epoch_with_cost(&mut sources)
+                        .map_err(FoundationBootstrapError::Capture)?;
+                    Ok((
+                        (stage, isolated, epoch),
+                        FoundationPhaseUse {
+                            source_read_bytes: FoundationCharge::admitted_upper_bound(
+                                guard.read_bytes.checked_add(read as u64).ok_or(
+                                    FoundationBootstrapError::Configuration(
+                                        "candidate control read overflow",
+                                    ),
+                                )?,
+                            ),
+                            state_bytes: FoundationCharge::admitted_upper_bound(retained_state),
+                            tmpfs_inodes: FoundationCharge::admitted_upper_bound(1),
+                            ..FoundationPhaseUse::default()
+                        },
+                    ))
+                },
+            )?;
+            adopt_candidate_shared_io_with_budget(
+                original_io,
+                candidate_io_adopted,
+                &mut remaining_write_bytes,
+                &mut remaining_budget,
+            )?;
+            let selection = run_candidate_shared_budget_window(
+                &mut remaining_budget,
+                &mut execution_limits,
+                "candidate-selection",
+                FoundationWindowKind::Selection,
+                FoundationPhaseReservation::default(),
+                original_io,
+                candidate_io_adopted,
+                &mut remaining_write_bytes,
+                |limits, _ticket| {
+                    let selected = intersect_selection_limits(
+                        limits
+                            .selection_limits()
+                            .map_err(FoundationBootstrapError::Command)?,
+                        config.selection_limits,
+                        deadline,
+                    )?;
+                    let selection = foundation_selection::select_candidate(
+                        input.source_input(),
+                        selected,
+                        cancelled,
+                    )
+                    .map_err(FoundationBootstrapError::Selection)?;
+                    let state = selection.cost.retained_state_bytes;
+                    Ok((
+                        selection,
+                        FoundationPhaseUse {
+                            state_bytes: FoundationCharge::admitted_upper_bound(state),
+                            ..FoundationPhaseUse::default()
+                        },
+                    ))
+                },
+            )?;
+            input
+                .verify_current_fence(&coverage, deadline, cancelled)
+                .map_err(FoundationBootstrapError::Selection)?;
+            adopt_candidate_shared_io_with_budget(
+                original_io,
+                candidate_io_adopted,
+                &mut remaining_write_bytes,
+                &mut remaining_budget,
+            )?;
+            let cost = FoundationSourceBootstrapCost {
+                invocation_after_initial_read: invocation.cost,
+                entry_source_read_bytes: invocation
+                    .cost
+                    .invocation_read_bytes
+                    .checked_add(invocation.cost.self_image_read_bytes)
+                    .ok_or(FoundationBootstrapError::Configuration(
+                        "candidate entry accounting overflow",
+                    ))?,
+                selected_roots_state_upper_bound_bytes,
+                payload_root_defaulted,
+                selection: selection.cost,
+                shared_route_operations_after_roots: sources.operation_count(),
+                source_root_component_opens_after_roots: sources.root_component_open_count(),
+                payload_root_component_opens_after_roots: payload_sources
+                    .root_component_open_count(),
+                artifact_root_component_opens_after_roots: artifact_sources
+                    .as_ref()
+                    .map(RouteSources::root_component_open_count),
+                whole_budget_after_invocation,
+                whole_budget_after_selected_roots,
+                whole_budget_after_selection: Some(budget_cost(&remaining_budget)),
+                ..FoundationSourceBootstrapCost::default()
+            };
+            Ok((
+                execution_limits,
+                selected_roots,
+                stage,
+                isolated,
+                payload_sources,
+                artifact_sources,
+                input,
+                coverage,
+                original_epoch,
+                selection,
+                cost,
+                cancelled,
+                config,
+            ))
+        })();
+        match prepared {
+            Ok((
+                execution_limits,
+                selected_roots,
+                stage,
+                isolated,
+                payload_sources,
+                artifact_sources,
+                input,
+                coverage,
+                original_epoch,
+                selection,
+                cost,
+                cancelled,
+                config,
+            )) => Ok(Self {
+                clock,
+                launch,
+                invocation,
+                execution_limits,
+                remaining_budget,
+                selected_roots,
+                stage,
+                isolated,
+                sources,
+                payload_sources,
+                artifact_sources,
+                input,
+                coverage,
+                original_epoch,
+                original_io: original_io.clone(),
+                candidate_io_adopted: *candidate_io_adopted,
+                remaining_write_bytes,
+                selection,
+                cost,
+                cancelled,
+                config,
+            }),
+            Err(error) => Err(CandidateFoundationBootstrapFailure {
+                error,
+                clock,
+                launch,
+                invocation,
+                remaining_budget,
+                sources,
+            }),
+        }
+    }
+    pub(crate) fn with_initial_candidate_snapshots<'signal, T, E, F>(
+        &mut self,
+        git_signal: &'signal AtomicI32,
+        actual_input: &crate::source_admission_candidate_records::CandidateRecordsInput<'_, '_>,
+        run: F,
+    ) -> Result<T, E>
+    where
+        F: for<'work> FnOnce(
+            CandidateFoundationBootstrapView<'work, 'input, 'cancel, 'signal>,
+            FoundationPayloadSources<'work>,
+        ) -> Result<T, E>,
+        E: From<FoundationBootstrapError>,
+    {
+        self.with_initial_candidate_snapshots_with_history(git_signal, actual_input, None, run)
+    }
+
+    pub(crate) fn with_initial_candidate_snapshots_with_history<'signal, T, E, F>(
+        &mut self,
+        git_signal: &'signal AtomicI32,
+        actual_input: &crate::source_admission_candidate_records::CandidateRecordsInput<'_, '_>,
+        mut history: Option<
+            &mut (dyn super::foundation_reader::FoundationHistoricalEvidence + 'static),
+        >,
+        run: F,
+    ) -> Result<T, E>
+    where
+        F: for<'work> FnOnce(
+            CandidateFoundationBootstrapView<'work, 'input, 'cancel, 'signal>,
+            FoundationPayloadSources<'work>,
+        ) -> Result<T, E>,
+        E: From<FoundationBootstrapError>,
+    {
+        let actual_source: &dyn tos_validation::record_biblio_cut::SourceCutInputWithIdentity<
+            crate::source_admission_spooled_candidate::CandidateFence,
+        > = actual_input;
+        if !std::ptr::addr_eq(self.input, actual_source)
+            || !actual_input.shares_io_budget(&self.original_io)
+        {
+            return Err(E::from(FoundationBootstrapError::Configuration(
+                "candidate snapshot input/shared IO loan differs",
+            )));
+        }
+        let deadline = self.invocation.deadline();
+        checkpoint(deadline, self.cancelled)
+            .map_err(|error| E::from(FoundationBootstrapError::Command(error)))?;
+        let outcome = {
+            let clock = &self.clock;
+            let launch = &self.launch;
+            let invocation = &mut self.invocation;
+            let execution_limits = &mut self.execution_limits;
+            let remaining_budget = &mut self.remaining_budget;
+            let selected_roots = &self.selected_roots;
+            let stage = &self.stage;
+            let isolated = &self.isolated;
+            let sources = &mut self.sources;
+            let payload_root = &mut self.payload_sources;
+            let artifact_roots = &mut self.artifact_sources;
+            let input = self.input;
+            let coverage = &self.coverage;
+            let original_epoch = &self.original_epoch;
+            let original_io = &self.original_io;
+            let candidate_io_adopted = &mut self.candidate_io_adopted;
+            let remaining_write_bytes = &mut self.remaining_write_bytes;
+            let selection = &mut self.selection;
+            let cancelled = self.cancelled;
+            let config = self.config;
+            let cost = &mut self.cost;
+
+            adopt_candidate_shared_io_with_budget(
+                original_io,
+                candidate_io_adopted,
+                remaining_write_bytes,
+                remaining_budget,
+            )
+            .map_err(E::from)?;
+            if let Some(history) = history.as_deref() {
+                input
+                    .for_each_current_member_meta(deadline, cancelled, &mut |member| {
+                        if history.selected(member.path) {
+                            return Err(ItemRefusal::Source(
+                                "historical input overlaps candidate".into(),
+                            ));
+                        }
+                        Ok(())
+                    })
+                    .map_err(|error| E::from(FoundationBootstrapError::Selection(error)))?;
+            }
+
+            adopt_candidate_shared_io_with_budget(
+                original_io,
+                candidate_io_adopted,
+                remaining_write_bytes,
+                remaining_budget,
+            )
+            .map_err(E::from)?;
+            let selection_before_auxiliary = selection.cost;
+            let selection_baseline = FoundationPhaseReservation {
+                source_read_bytes: 0,
+                state_bytes: selection_before_auxiliary.retained_state_bytes,
+                ..FoundationPhaseReservation::default()
+            };
+            run_budget_window(
+                remaining_budget,
+                execution_limits,
+                "auxiliary-selection",
+                FoundationWindowKind::Selection,
+                selection_baseline,
+                |execution_limits, _ticket| {
+                    let selected_limits = execution_limits
+                        .selection_limits()
+                        .map_err(FoundationBootstrapError::Command)?;
+                    let limits = intersect_selection_limits(
+                        selected_limits,
+                        config.selection_limits,
+                        deadline,
+                    )?;
+                    foundation_selection::read_auxiliary_query_documents_with_remaining_read(
+                        selection,
+                        sources,
+                        limits.max_total_read_bytes,
+                        cancelled,
+                    )
+                    .map_err(FoundationBootstrapError::Selection)?;
+                    if selection.cost.peak_state_bytes > limits.max_state_bytes {
+                        return Err(FoundationBootstrapError::Configuration(
+                            "auxiliary selection exceeded its whole-operation window",
+                        ));
+                    }
+                    let read_delta = selection
+                        .cost
+                        .source_bytes_read
+                        .checked_sub(selection_before_auxiliary.source_bytes_read)
+                        .ok_or(FoundationBootstrapError::Configuration(
+                            "auxiliary selection read cost regressed",
+                        ))?;
+                    let state_delta = selection
+                        .cost
+                        .retained_state_bytes
+                        .checked_sub(selection_before_auxiliary.retained_state_bytes)
+                        .ok_or(FoundationBootstrapError::Configuration(
+                            "auxiliary selection state cost regressed",
+                        ))?;
+                    Ok((
+                        (),
+                        FoundationPhaseUse {
+                            source_read_bytes: FoundationCharge::measured(read_delta),
+                            state_bytes: FoundationCharge::admitted_upper_bound(state_delta),
+                            ..FoundationPhaseUse::default()
+                        },
+                    ))
+                },
+            )
+            .map_err(E::from)?;
+            cost.selection_after_auxiliary_read = Some(selection.cost);
+            cost.whole_budget_after_auxiliary_selection = Some(budget_cost(remaining_budget));
+            cost.shared_route_operations_after_auxiliary_selection =
+                Some(sources.operation_count());
+            cost.source_root_component_opens_after_auxiliary_selection =
+                Some(sources.root_component_open_count());
+
+            adopt_candidate_shared_io_with_budget(
+                original_io,
+                candidate_io_adopted,
+                remaining_write_bytes,
+                remaining_budget,
+            )
+            .map_err(E::from)?;
+            let (mut payloads, payload_facts) = run_candidate_shared_budget_window(
+                remaining_budget,
+                execution_limits,
+                "payload-snapshot",
+                FoundationWindowKind::Payload,
+                FoundationPhaseReservation::default(),
+                original_io,
+                candidate_io_adopted,
+                remaining_write_bytes,
+                |execution_limits, _ticket| {
+                    let derived = execution_limits
+                        .payload_limits_from_ceilings(config.payload_limits)
+                        .map_err(FoundationBootstrapError::Command)?;
+                    let limits = intersect_payload_limits(derived, config.payload_limits)?;
+                    let mut payloads = FoundationPayloadSources::new_candidate(
+                        payload_root,
+                        actual_input,
+                        original_io,
+                        limits,
+                        deadline,
+                        cancelled,
+                    )
+                    .map_err(FoundationBootstrapError::Payload)?;
+                    let payload_facts = payloads
+                        .snapshot_facts(&selection.payload_paths)
+                        .map_err(FoundationBootstrapError::Payload)?;
+                    if !payloads.shared_io_budget_matches(original_io)
+                        || !payloads.forwards_payload_reads_to_shared_io()
+                    {
+                        return Err(FoundationBootstrapError::Configuration(
+                            "candidate payload shared IO identity differs",
+                        ));
+                    }
+                    let payload_cost = payloads.cost();
+                    let retained_state = payload_cost
+                        .retained_state_bytes
+                        .checked_add(payload_cost.snapshot_facts_state_bytes)
+                        .ok_or(FoundationBootstrapError::Configuration(
+                            "payload snapshot state accounting overflow",
+                        ))?;
+                    if payload_cost.initial_bytes_read > limits.max_total_bytes
+                        || payload_cost.peak_state_bytes > limits.max_state_bytes
+                        || retained_state > limits.max_state_bytes
+                    {
+                        return Err(FoundationBootstrapError::Configuration(
+                            "payload snapshot exceeded its whole-operation window",
+                        ));
+                    }
+                    let use_amount = FoundationPhaseUse {
+                        source_read_bytes: FoundationCharge::measured(
+                            payload_cost
+                                .initial_bytes_read
+                                .checked_sub(payload_cost.shared_read_bytes_returned)
+                                .ok_or(FoundationBootstrapError::Configuration(
+                                    "candidate payload shared return accounting",
+                                ))?,
+                        ),
+                        // The facts map moves into the physical snapshot and
+                        // is charged here once; the physical window reuses it
+                        // as an already-admitted state baseline.
+                        state_bytes: FoundationCharge::admitted_upper_bound(retained_state),
+                        ..FoundationPhaseUse::default()
+                    };
+                    Ok(((payloads, payload_facts), use_amount))
+                },
+            )
+            .map_err(E::from)?;
+            let payload_snapshot_cost = payloads.cost();
+            cost.payload_after_snapshot = Some(payload_snapshot_cost);
+            cost.whole_budget_after_payload_snapshot = Some(budget_cost(remaining_budget));
+
+            adopt_candidate_shared_io_with_budget(
+                original_io,
+                candidate_io_adopted,
+                remaining_write_bytes,
+                remaining_budget,
+            )
+            .map_err(E::from)?;
+            let physical_baseline = FoundationPhaseReservation {
+                state_bytes: payload_snapshot_cost.snapshot_facts_state_bytes,
+                ..FoundationPhaseReservation::default()
+            };
+            let mut physical = run_candidate_shared_budget_window(
+                remaining_budget,
+                execution_limits,
+                "physical-snapshot",
+                FoundationWindowKind::Physical,
+                physical_baseline,
+                original_io,
+                candidate_io_adopted,
+                remaining_write_bytes,
+                |execution_limits, _ticket| {
+                    let derived = execution_limits
+                        .physical_limits_from_ceilings(config.physical_limits)
+                        .map_err(FoundationBootstrapError::Command)?;
+                    let limits = intersect_physical_limits(derived, config.physical_limits)?;
+                    let mut physical =
+                        FoundationPhysicalSnapshot::observe_candidate_with_resolved_targets(
+                            sources,
+                            actual_input,
+                            coverage,
+                            original_io,
+                            &selection.authored_paths,
+                            payload_facts,
+                            &selection.private_paths,
+                            &selection.private_prefixes,
+                            artifact_roots.as_mut(),
+                            &selection.artifact_paths,
+                            &selection.resolved_source_directories,
+                            limits,
+                            deadline,
+                            cancelled,
+                            git_signal,
+                        )
+                        .map_err(FoundationBootstrapError::Physical)?;
+                    if let Some(history) = history.as_deref_mut() {
+                        physical
+                            .select_historical(history)
+                            .map_err(FoundationBootstrapError::Physical)?;
+                    }
+                    if !physical.shared_io_budget_matches(original_io)
+                        || !physical.forwards_physical_reads_to_shared_io()
+                    {
+                        return Err(FoundationBootstrapError::Configuration(
+                            "candidate physical shared IO identity differs",
+                        ));
+                    }
+                    let physical_cost = physical.cost();
+                    let incremental_state = physical_cost
+                        .retained_state_bytes
+                        .checked_sub(physical_baseline.state_bytes)
+                        .ok_or(FoundationBootstrapError::Configuration(
+                            "physical snapshot state cost regressed",
+                        ))?;
+                    if physical_cost.bytes_read > limits.max_total_bytes
+                        || physical_cost.retained_state_bytes > limits.max_state_bytes
+                    {
+                        return Err(FoundationBootstrapError::Configuration(
+                            "physical snapshot exceeded its whole-operation window",
+                        ));
+                    }
+                    let use_amount = FoundationPhaseUse {
+                        source_read_bytes: FoundationCharge::measured(
+                            u64::try_from(
+                                physical_cost
+                                    .bytes_read
+                                    .checked_sub(physical_cost.shared_read_bytes_returned)
+                                    .ok_or(FoundationBootstrapError::Configuration(
+                                        "candidate physical shared return accounting",
+                                    ))?,
+                            )
+                            .map_err(|_| {
+                                FoundationBootstrapError::Configuration(
+                                    "physical snapshot read cost range",
+                                )
+                            })?,
+                        ),
+                        state_bytes: FoundationCharge::admitted_upper_bound(incremental_state),
+                        ..FoundationPhaseUse::default()
+                    };
+                    Ok((physical, use_amount))
+                },
+            )
+            .map_err(E::from)?;
+            let initial_physical_cost = physical.cost();
+            cost.physical_after_snapshot = Some(initial_physical_cost);
+            cost.whole_budget_after_physical_snapshot = Some(budget_cost(remaining_budget));
+            cost.shared_route_operations_after_snapshot = sources.operation_count();
+            cost.source_root_component_opens_after_snapshot =
+                Some(sources.root_component_open_count());
+            cost.payload_root_component_opens_after_snapshot =
+                Some(payloads.root_component_open_count());
+            cost.artifact_root_component_opens_after_snapshot = artifact_roots
+                .as_ref()
+                .map(|root| root.root_component_open_count());
+
+            adopt_candidate_shared_io_with_budget(
+                original_io,
+                candidate_io_adopted,
+                remaining_write_bytes,
+                remaining_budget,
+            )
+            .map_err(E::from)?;
+            let view = CandidateFoundationBootstrapView {
+                clock,
+                launch,
+                invocation,
+                execution_limits,
+                remaining_budget,
+                selected_roots,
+                stage,
+                isolated,
+                sources,
+                artifact_sources: artifact_roots.as_mut(),
+                input,
+                coverage,
+                original_epoch,
+                original_io,
+                candidate_io_adopted,
+                remaining_write_bytes,
+                selection,
+                physical: &mut physical,
+                cancelled,
+                cost,
+                history,
+            };
+            let outcome = run(view, payloads);
+            let final_physical_cost = physical.cost();
+            (outcome, final_physical_cost)
+        };
+
+        self.cost.physical_after_callback = Some(outcome.1);
+        self.cost.invocation_after_callback = Some(self.invocation.cost);
+        self.cost.whole_budget_after_callback = Some(budget_cost(&self.remaining_budget));
+        self.cost.shared_route_operations_after_callback = Some(self.sources.operation_count());
+        self.cost.source_root_component_opens_after_callback =
+            Some(self.sources.root_component_open_count());
+        self.cost.payload_root_component_opens_after_callback =
+            Some(self.payload_sources.root_component_open_count());
+        self.cost.artifact_root_component_opens_after_callback = self
+            .artifact_sources
+            .as_ref()
+            .map(RouteSources::root_component_open_count);
+        outcome.0
+    }
+}
+
+/// Candidate windows account all hooked IO through the one original ledger.
+/// On failure only the shared read term is known exactly; other unknown terms
+/// retain the ordinary window's conservative failure law.
+fn run_candidate_shared_budget_window<T, F>(
+    budget: &mut FoundationRemainingBudget<'_>,
+    execution_limits: &mut FoundationExecutionLimits,
+    label: &'static str,
+    kind: FoundationWindowKind,
+    already_admitted: FoundationPhaseReservation,
+    original_io: &tos_source_store::PinnedSqliteIoBudget,
+    adopted: &mut (u64, u64),
+    remaining_write_bytes: &mut u64,
+    work: F,
+) -> Result<T, FoundationBootstrapError>
+where
+    F: FnOnce(
+        &mut FoundationExecutionLimits,
+        &FoundationBudgetTicket,
+    ) -> Result<(T, FoundationPhaseUse), FoundationBootstrapError>,
+{
+    adopt_candidate_shared_io_with_budget(original_io, adopted, remaining_write_bytes, budget)?;
+    let ticket = budget
+        .begin_window(label, already_admitted)
+        .map_err(FoundationBootstrapError::Command)?;
+    let worst = admitted_remaining(&ticket);
+    if let Err(error) = execution_limits.select_window(&ticket, kind) {
+        // No work/read occurred in this window.
+        let _ = budget.fail_window_with_measured_source_reads(ticket, worst, 0);
+        return Err(FoundationBootstrapError::Command(error));
+    }
+    let outcome = work(execution_limits, &ticket);
+    let clear_result = execution_limits.clear_window(&ticket);
+    let usage = original_io.snapshot();
+    let read = usage.read_attempted_bytes.checked_sub(adopted.0);
+    let write = usage.write_attempted_bytes.checked_sub(adopted.1);
+    let remaining_write = write.and_then(|used| remaining_write_bytes.checked_sub(used));
+    let Some(read) = read else {
+        let _ = budget.fail_window(ticket, worst);
+        return Err(FoundationBootstrapError::Configuration(
+            "candidate shared read accounting regressed",
+        ));
+    };
+    // This read term is observable even when a denied permit made the shared
+    // ledger sticky-failed. Keep its actual attempt debit without refund.
+    let accounting = validate_candidate_shared_io_snapshot(&usage).and_then(|()| {
+        remaining_write.ok_or(FoundationBootstrapError::Configuration(
+            "candidate shared write headroom exceeded",
+        ))
+    });
+    let result = match (outcome, clear_result, accounting) {
+        (Ok((value, mut actual)), Ok(()), Ok(_)) => {
+            match actual.source_read_bytes.amount.checked_add(read) {
+                Some(total) => {
+                    actual.source_read_bytes = FoundationCharge::measured(total);
+                    budget
+                        .complete_window(ticket, actual)
+                        .map_err(FoundationBootstrapError::Command)
+                        .map(|()| value)
+                }
+                None => {
+                    let _ = budget.fail_window_with_measured_source_reads(ticket, worst, read);
+                    Err(FoundationBootstrapError::Configuration(
+                        "candidate shared read charge overflow",
+                    ))
+                }
+            }
+        }
+        (Err(error), _, _) => {
+            let _ = budget.fail_window_with_measured_source_reads(ticket, worst, read);
+            Err(error)
+        }
+        (_, Err(error), _) => {
+            let _ = budget.fail_window_with_measured_source_reads(ticket, worst, read);
+            Err(FoundationBootstrapError::Command(error))
+        }
+        (_, _, Err(error)) => {
+            let _ = budget.fail_window_with_measured_source_reads(ticket, worst, read);
+            Err(error)
+        }
+    };
+    // Both close paths retained the shared read debit, including terminal Err.
+    adopted.0 = usage.read_attempted_bytes;
+    if write.is_some() {
+        adopted.1 = usage.write_attempted_bytes;
+    }
+    if let Some(remaining) = remaining_write {
+        *remaining_write_bytes = remaining;
+    }
+    result
+}
+
+fn validate_candidate_shared_io_snapshot(
+    usage: &tos_source_store::PinnedSqliteIoSnapshot,
+) -> Result<(), FoundationBootstrapError> {
+    if usage.failure.is_some()
+        || usage.read_permitted_bytes > usage.read_attempted_bytes
+        || usage.read_returned_bytes > usage.read_permitted_bytes
+        || usage.write_permitted_bytes > usage.write_attempted_bytes
+        || usage.write_returned_bytes > usage.write_permitted_bytes
+    {
+        return Err(FoundationBootstrapError::Configuration(
+            "candidate original shared IO accounting refused",
+        ));
+    }
+    Ok(())
+}
+
+/// Adopt actual attempted reads from the SAME original ledger before granting
+/// another independent window. Native receives these exact adopted counters
+/// before it bills any later candidate delta.
+pub(crate) fn adopt_candidate_shared_io_with_budget(
+    original_io: &tos_source_store::PinnedSqliteIoBudget,
+    adopted: &mut (u64, u64),
+    remaining_write_bytes: &mut u64,
+    budget: &mut FoundationRemainingBudget<'_>,
+) -> Result<(), FoundationBootstrapError> {
+    let usage = original_io.snapshot();
+    validate_candidate_shared_io_snapshot(&usage)?;
+    let read = usage.read_attempted_bytes.checked_sub(adopted.0).ok_or(
+        FoundationBootstrapError::Configuration("candidate shared read accounting regressed"),
+    )?;
+    let write = usage.write_attempted_bytes.checked_sub(adopted.1).ok_or(
+        FoundationBootstrapError::Configuration("candidate shared write accounting regressed"),
+    )?;
+    let remaining_write =
+        remaining_write_bytes
+            .checked_sub(write)
+            .ok_or(FoundationBootstrapError::Configuration(
+                "candidate shared write headroom exceeded",
+            ))?;
+    let ticket = budget
+        .begin_window(
+            "candidate-shared-io-adoption",
+            FoundationPhaseReservation::default(),
+        )
+        .map_err(FoundationBootstrapError::Command)?;
+    let debit = budget.complete_window(
+        ticket,
+        FoundationPhaseUse {
+            source_read_bytes: FoundationCharge::measured(read),
+            ..FoundationPhaseUse::default()
+        },
+    );
+    // complete_window retains the measured debit even on terminal refusal.
+    *adopted = (usage.read_attempted_bytes, usage.write_attempted_bytes);
+    *remaining_write_bytes = remaining_write;
+    debit.map_err(FoundationBootstrapError::Command)?;
+    let remaining = budget
+        .remaining()
+        .map_err(FoundationBootstrapError::Command)?;
+    original_io
+        .restrict_remaining_io(remaining.source_read_bytes, remaining_write)
+        .map_err(|_| {
+            FoundationBootstrapError::Configuration(
+                "candidate original shared IO narrowing refused",
+            )
+        })
+}
+
+/// Conservative custody for a present protected control, even when this
+/// invocation selects the legacy absent epoch. The maintained parse envelope
+/// includes raw/parser nodes; two envelopes cover selected DOM, the token
+/// validation clone and simultaneous canonical buffers without assuming a
+/// trivial epoch shape. It is admitted BEFORE the protected read.
+pub(crate) fn candidate_original_epoch_state_upper_bound() -> Result<usize, FoundationBootstrapError>
+{
+    super::foundation_bootstrap_config::control_parse_state()
+        .map_err(FoundationBootstrapError::Command)?
+        .checked_mul(2)
+        .and_then(|n| n.checked_add(size_of::<tos_source_store::MetadataPublicationEpoch>()))
+        .ok_or(FoundationBootstrapError::Configuration(
+            "candidate original epoch state overflow",
+        ))
+}
+
+/// Verify the same original protected epoch after workers, with its actual
+/// retained custody reused as baseline and a separately reserved new parse /
+/// token / canonical-comparison workspace. No candidate control is admitted
+/// in place of the original selected control.
+pub(crate) fn verify_candidate_original_epoch_with_budget(
+    sources: &mut RouteSources,
+    epoch: &tos_source_store::MetadataPublicationEpoch,
+    execution_limits: &mut FoundationExecutionLimits,
+    budget: &mut FoundationRemainingBudget<'_>,
+) -> Result<(), FoundationBootstrapError> {
+    let retained = candidate_original_epoch_state_upper_bound()?;
+    run_budget_window(
+        budget,
+        execution_limits,
+        "candidate-original-epoch-eof",
+        FoundationWindowKind::Capture,
+        FoundationPhaseReservation {
+            state_bytes: retained,
+            ..FoundationPhaseReservation::default()
+        },
+        |_limits, ticket| {
+            let operation = ticket.operation_limits();
+            let peak = retained
+                .checked_mul(2)
+                .ok_or(FoundationBootstrapError::Configuration(
+                    "candidate epoch EOF state overflow",
+                ))?;
+            if operation.state_bytes < peak
+                || operation.source_read_bytes < PUBLICATION_CONTROL_READ_CAP_BYTES as u64
+            {
+                return Err(FoundationBootstrapError::Configuration(
+                    "candidate epoch EOF reservation",
+                ));
+            }
+            let read = foundation_capture::verify_epoch_with_cost(sources, epoch)
+                .map_err(FoundationBootstrapError::Capture)?;
+            if read > PUBLICATION_CONTROL_READ_CAP_BYTES {
+                return Err(FoundationBootstrapError::Configuration(
+                    "candidate epoch EOF read bound",
+                ));
+            }
+            Ok((
+                (),
+                FoundationPhaseUse {
+                    source_read_bytes: FoundationCharge::measured(read as u64),
+                    ..FoundationPhaseUse::default()
+                },
+            ))
+        },
+    )
 }
 
 /// Final protected invocation/self-image custody for identity-only or genuine
