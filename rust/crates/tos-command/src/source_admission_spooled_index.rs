@@ -536,6 +536,7 @@ impl<'candidate> IndexSink<'candidate> {
              CREATE INDEX sf_rows_order ON sf_rows(collection,seq);\
              CREATE INDEX sf_rows_key_order ON sf_rows(collection,key1 COLLATE BINARY,key2 COLLATE BINARY);\
              CREATE TABLE sf_current_paths(path TEXT PRIMARY KEY COLLATE BINARY,record_id TEXT NOT NULL COLLATE BINARY,record_count INTEGER NOT NULL,schema_matches INTEGER NOT NULL,artifact_scope INTEGER NOT NULL,artifact_visited INTEGER NOT NULL) WITHOUT ROWID;\
+             CREATE INDEX sf_unvisited_artifact_paths ON sf_current_paths(artifact_visited,path COLLATE BINARY) WHERE artifact_scope=1;\
              CREATE TABLE sf_candidate_artifact_schema_proofs(path TEXT PRIMARY KEY COLLATE BINARY,record_count INTEGER NOT NULL,target_diagnostic_count INTEGER NOT NULL,member_sha256_hex TEXT,member_size_bytes BLOB,diagnostic_unit_sha256_hex TEXT,diagnostic_report_sha256_hex TEXT,invalid INTEGER NOT NULL) WITHOUT ROWID;\
              CREATE TABLE sf_facts(collection INTEGER NOT NULL,ordinal INTEGER NOT NULL,key1 TEXT COLLATE BINARY NOT NULL,payload BLOB NOT NULL,state_bytes INTEGER NOT NULL,PRIMARY KEY(collection,ordinal)) WITHOUT ROWID;\
              CREATE INDEX sf_facts_key_order ON sf_facts(collection,key1 COLLATE BINARY,ordinal);",
