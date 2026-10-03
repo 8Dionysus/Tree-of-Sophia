@@ -1458,7 +1458,9 @@ pub fn inspect_bibliography_from_input_stored<I: Copy + Eq>(
 
     // Bind the Biblio-specific bound before any provider read or write;
     // Records/default-event scans retain their independent counters.
-    stored.bind_biblio_query_budget(biblio_query_row_operation_budget(limits.max_total_bytes)?)?;
+    stored.bind_biblio_query_budget(biblio_query_row_operation_budget(
+        usize::try_from(limits.max_total_bytes).map_err(|_| ItemRefusal::Budget)?,
+    )?)?;
 
     let source = CandidateBiblioSource {
         input: input.source_input(),
@@ -2991,21 +2993,31 @@ fn inspect_claim_inner(
             let ceiling = rules.limits.max_state_bytes;
             rules.limits.max_state_bytes =
                 ceiling.checked_sub(scratch).ok_or(ItemRefusal::Budget)?;
+            let supplied: BTreeSet<_> = string_iter(row, "evidence_refs").collect();
             let mut expected_evidence = BTreeSet::new();
+            let mut missing_expected = false;
+            // Keep only references into this Claim's supplied evidence. Provider
+            // records may be scoped owned values and cannot lend retained strings.
+            let mut expect = |path: &str| {
+                if let Some(path) = supplied.get(path) {
+                    expected_evidence.insert(*path);
+                } else {
+                    missing_expected = true;
+                }
+            };
             for field in ["subject_ref", "object"] {
                 if let Some(id) = s(row, field) {
                     if let Some(record) = records.current_record(id)? {
-                        expected_evidence.insert(record.path.as_str());
+                        expect(record.path.as_str());
                         if record.kind == "item" {
                             if let Some(manifest) = s(&record.value, "item_manifest_ref") {
-                                expected_evidence.insert(manifest);
+                                expect(manifest);
                             }
                         }
                     }
                 }
             }
-            let supplied: BTreeSet<_> = string_iter(row, "evidence_refs").collect();
-            let result = if supplied != expected_evidence {
+            let result = if missing_expected || supplied != expected_evidence {
                 rules.issue("legacy-topology-exact-endpoint-evidence", &location)
             } else {
                 Ok(())
@@ -4440,7 +4452,7 @@ fn inspect_batches(
         let location = "ToS/source-witnesses/relations/provenance.jsonl";
         if let Some(event) = events.event(TOPOLOGY_EVENT)? {
             event_posture(
-                event,
+                &event,
                 "declared-bibliographic-topology-materialization",
                 rules,
                 location,
@@ -4527,20 +4539,20 @@ fn inspect_batches(
             }
             if let Some(event) = events.event(CHRONOLOGY_EVENT)? {
                 event_posture(
-                    event,
+                    &event,
                     "faceted-first-publication-chronology-materialization",
                     rules,
                     path,
                 )?;
                 if !singleton_output(
-                    event,
+                    &event,
                     path,
                     "unreviewed-evidence-bearing-work-chronology-claims",
                     &chronology[0].raw_sha256,
                 ) {
                     rules.issue("chronology-exact-batch-output", path)?;
                 }
-                exact_batch_inputs(event, inputs, rules, path)?;
+                exact_batch_inputs(&event, inputs, rules, path)?;
                 let expected = [
                     ("works_materialized", BatchConfigValue::Count(7)),
                     ("chronology_claims_materialized", BatchConfigValue::Count(7)),
@@ -4686,20 +4698,20 @@ fn inspect_batches(
             }
             if let Some(event) = events.event(DERIVATION_EVENT)? {
                 event_posture(
-                    event,
+                    &event,
                     "source-reported-expression-derivation-materialization",
                     rules,
                     path,
                 )?;
                 if !singleton_output(
-                    event,
+                    &event,
                     path,
                     "unreviewed-source-reported-expression-derivation-claims",
                     &derivations[0].raw_sha256,
                 ) {
                     rules.issue("derivation-exact-batch-output", path)?;
                 }
-                exact_batch_inputs(event, inputs, rules, path)?;
+                exact_batch_inputs(&event, inputs, rules, path)?;
                 let expected = [
                     (
                         "expression_identities_materialized",

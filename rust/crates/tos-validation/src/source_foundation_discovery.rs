@@ -3791,9 +3791,9 @@ impl<I: Copy + Eq> Clone for NativeHistorySet<'_, I> {
     }
 }
 
-impl<I: Copy + Eq> NativeHistorySet<'_, I> {
-    fn get(&self, path: &str) -> Option<NativeHistoryRef<'_, I>> {
-        match self {
+impl<'a, I: Copy + Eq> NativeHistorySet<'a, I> {
+    fn get(&self, path: &str) -> Option<NativeHistoryRef<'a, I>> {
+        match *self {
             Self::Empty => None,
             Self::Cut(rows) => rows.get(path).map(NativeHistoryRef::Cut),
             Self::Candidate(rows) => rows.get(path).map(NativeHistoryRef::Candidate),
@@ -3815,9 +3815,9 @@ impl<I: Copy + Eq> Clone for ArtifactReplaySet<'_, I> {
     }
 }
 
-impl<I: Copy + Eq> ArtifactReplaySet<'_, I> {
-    fn get(&self, path: &str) -> Option<ArtifactReplayRef<'_, I>> {
-        match self {
+impl<'a, I: Copy + Eq> ArtifactReplaySet<'a, I> {
+    fn get(&self, path: &str) -> Option<ArtifactReplayRef<'a, I>> {
+        match *self {
             Self::Empty => None,
             Self::Cut(rows) => rows
                 .get(path)
@@ -5315,7 +5315,7 @@ fn check_native_artifact_history<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
             match replay.transaction_at(index) {
                 Some(replay_transaction)
                     if replay_transaction.transaction_id == transaction_id
-                        && Some(replay_transaction.manifest_sha256.as_str())
+                        && Some(replay_transaction.manifest_sha256)
                             == observation.transaction_manifest_sha256(transaction_id)
                         && replay_transaction.receipt_sha256 == current_receipt_sha256 => {}
                 _ => {

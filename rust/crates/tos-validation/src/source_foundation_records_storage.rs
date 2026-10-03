@@ -21,6 +21,9 @@ use std::time::Instant;
 use tos_foundation::Digest256;
 use tos_source_store::SourceMembershipV1;
 
+pub const NATIVE_ARTIFACT_RECORD_SCHEMA_URI: &str =
+    "https://tree-of-sophia.local/ToS/contracts/artifact-source-witness-v2.schema.json";
+
 /// Collections exposed by the completed stored report. The store preserves
 /// the legacy Python owner order for each collection: source insertion order
 /// for records, Item selections, editions, events, issues, schema positions,
@@ -298,6 +301,27 @@ pub struct SourceFoundationRecordsLookup {
 #[derive(Debug, Clone)]
 pub struct SourceFoundationCurrentRecordPathLookup {
     pub record: BiblioCurrentRecord,
+    pub charged_state_bytes: usize,
+}
+
+/// Bounded point result from the candidate's held index while joining current
+/// native Artifact Records to the exact source-path stream. `schema_matches`
+/// belongs to the first Record ID in binary order, matching the former sorted
+/// page merge; duplicate path counts remain explicit.
+#[derive(Debug, Clone, Copy)]
+pub struct SourceFoundationArtifactRecordPathSummary {
+    pub record_count: usize,
+    pub schema_matches: bool,
+    pub charged_state_bytes: usize,
+}
+
+/// Keyset page over candidate Artifact schema-proof paths stored beside the
+/// streamed Records facts. Proof payloads stay in the same SQLite scope; only
+/// this bounded path page is materialized for live input-presence probes.
+#[derive(Debug, Clone)]
+pub struct SourceFoundationCandidateArtifactProofPathPage {
+    pub paths: Vec<String>,
+    pub has_more: bool,
     pub charged_state_bytes: usize,
 }
 

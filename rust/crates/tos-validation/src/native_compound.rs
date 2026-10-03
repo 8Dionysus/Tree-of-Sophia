@@ -1396,7 +1396,7 @@ pub fn verify_collection_version_from_cut(
             {
                 return Err(bad("Collection transition current qualified association"));
             }
-            let observed = reader.verify_inner(claim_path, &claim, schemas)?;
+            let observed = reader.verify(claim_path, &claim, schemas)?;
             if observed.transport != NativeTransportState::Committed
                 || observed.transaction_id != transaction_id
                 || observed.manifest_sha256 != transaction.manifest_sha256
@@ -2376,12 +2376,23 @@ impl<'a> NativeCompoundReader<'a> {
             {
                 return Ok(None);
             }
+            // Bound the provider read before IO by this same phase's remaining
+            // bytes. Cached buffers above were already charged when first read.
+            let remaining = self
+                .limits
+                .max_total_bytes
+                .checked_sub(self.bytes)
+                .ok_or(ItemRefusal::Budget)?;
+            let read_cap = usize::try_from(
+                remaining.min(u64::try_from(cap).map_err(|_| ItemRefusal::Budget)?),
+            )
+            .map_err(|_| ItemRefusal::Budget)?;
             let mut selected = None;
             let state_before = self.state;
             let state_limit = self.limits.max_state_bytes;
             input.with_current_member(
                 path,
-                cap,
+                read_cap,
                 self.limits.deadline,
                 self.cancelled,
                 &mut |meta: SourceCutMemberMeta<'_>, bytes| {
@@ -2389,7 +2400,7 @@ impl<'a> NativeCompoundReader<'a> {
                         .len()
                         .checked_add(std::mem::size_of::<Vec<u8>>())
                         .ok_or(ItemRefusal::Budget)?;
-                    if bytes.len() > cap || meta.size_bytes != bytes.len() as u64 {
+                    if bytes.len() > read_cap || meta.size_bytes != bytes.len() as u64 {
                         return Err(bad("compound candidate member size"));
                     }
                     if state_before
@@ -2409,17 +2420,14 @@ impl<'a> NativeCompoundReader<'a> {
                 },
             )?;
             let raw = selected.ok_or_else(|| bad("compound candidate member disappeared"))?;
-            self.bytes = self
-                .bytes
-                .checked_add(raw.len() as u64)
-                .ok_or(ItemRefusal::Budget)?;
+            account(&mut self.bytes, raw.len(), self.limits.max_total_bytes)?;
             raw
         } else {
             if !self.paths.contains(path) {
                 return Ok(None);
             }
             current(
-                self.cut(),
+                self.cut.ok_or_else(|| bad("compound corpus cut absent"))?,
                 path,
                 self.limits,
                 self.cancelled,
@@ -3059,7 +3067,7 @@ impl<'a> NativeCompoundReader<'a> {
             files.insert(name.clone(), raw);
             expected.insert(blob);
         }
-        let actual = self.current_member_names_under(home, 65)?;
+        let actual = self.current_member_names_under(&home, 65)?;
         self.temporary(
             actual
                 .iter()
@@ -7301,18 +7309,20 @@ impl NativeCompoundReader<'_> {
         digests: &BTreeMap<String, String>,
     ) -> Result<(), ItemRefusal> {
         for (path, sha) in dependencies {
-            let relative = RelativePath::parse(&path).map_err(|_| bad("Claim contract path"))?;
-            let size = self
-                .cut
-                .current()
-                .member(&relative)
-                .ok_or_else(|| bad("Claim dependency membership"))?
-                .size_bytes;
-            account(
-                &mut self.bytes,
-                usize::try_from(size).map_err(|_| ItemRefusal::Budget)?,
-                self.limits.max_total_bytes,
-            )?;
+            RelativePath::parse(&path).map_err(|_| bad("Claim contract path"))?;
+            let (current_digest, size) = self.current_digest_size(&path)?;
+            if current_digest != sha {
+                return Err(bad("Work prechecked Claim dependency membership drift"));
+            }
+            // Candidate digest lookup already reads and charges the member;
+            // cut-backed lookup obtains metadata and retains its original charge.
+            if self.cut.is_some() {
+                account(
+                    &mut self.bytes,
+                    usize::try_from(size).map_err(|_| ItemRefusal::Budget)?,
+                    self.limits.max_total_bytes,
+                )?;
+            }
             self.release_temporary(std::mem::size_of::<(String, Digest256)>() + path.len());
             if digests.get(&path).map(String::as_str) != Some(sha.to_hex().as_str()) {
                 return Err(bad("Work prechecked Claim dependency drift"));

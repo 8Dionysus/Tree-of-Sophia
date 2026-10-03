@@ -636,6 +636,7 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
         location: impl Into<String>,
         message: impl Into<String>,
     ) -> Result<(), ItemRefusal> {
+        let location = location.into();
         push_bounded_issue(
             &mut self.issues,
             &mut self.cost,
@@ -643,7 +644,7 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
             self.temporary_state_bytes,
             self.limits,
             self.source.cancellation(),
-            location.into(),
+            &location,
             message.into(),
         )
     }

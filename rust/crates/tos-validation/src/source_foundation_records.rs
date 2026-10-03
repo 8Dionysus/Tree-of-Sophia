@@ -2721,6 +2721,7 @@ fn append_item_direct_issues(
                     cancelled,
                     physical,
                     schema_checks,
+                    schema_request_state_bytes,
                     previous,
                     index,
                     membership_issues,
@@ -2837,6 +2838,8 @@ fn append_item_direct_issues(
                 &schema_checks[index].location,
                 &inventory,
                 source,
+                limits.items.deadline,
+                cancelled,
             )?;
             append_direct_legacy_inventory_issues(
                 issues,
@@ -2914,6 +2917,8 @@ fn append_item_direct_issues(
                     &request.location,
                     manifest,
                     source,
+                    limits.items.deadline,
+                    cancelled,
                 )?;
                 let item_id = manifest.get("item_id").unwrap_or(&Value::Null);
                 if let Some(item_id) = item_id.as_str() {
@@ -3101,6 +3106,8 @@ fn append_item_direct_issues(
                     &request.location,
                     inventory,
                     source,
+                    limits.items.deadline,
+                    cancelled,
                 )?;
                 let manifest = schema_checks[current.manifest_index]
                     .decoded_instance
@@ -3309,6 +3316,8 @@ fn append_item_direct_issues(
                     &request.location,
                     rights,
                     source,
+                    limits.items.deadline,
+                    cancelled,
                 )?;
                 let manifest = schema_checks[current.manifest_index]
                     .decoded_instance
@@ -3372,6 +3381,8 @@ fn append_item_direct_issues(
                             &layer_location,
                             |field| layer.get(field),
                             source,
+                            limits.items.deadline,
+                            cancelled,
                         )?;
                     }
                 }
@@ -3412,6 +3423,8 @@ fn append_item_direct_issues(
                     &request.location,
                     event,
                     source,
+                    limits.items.deadline,
+                    cancelled,
                 )?;
                 if let Some(id) = event.get("event_id").and_then(Value::as_str) {
                     if global_event_ids.contains(id) {
@@ -3449,6 +3462,7 @@ fn append_item_direct_issues(
             cancelled,
             physical,
             schema_checks,
+            schema_request_state_bytes,
             previous,
             schema_checks.len(),
             membership_issues,
@@ -3779,6 +3793,7 @@ fn finish_direct_item_manifest(
     cancelled: &AtomicBool,
     physical: &SourcePhysicalFacts,
     schema_checks: &[SourceFoundationRecordsSchemaCheck],
+    schema_request_state_bytes: &usize,
     context: DirectItemManifest,
     event_end_index: usize,
     membership_issues: &[SourceFoundationRecordsIssue],
@@ -5503,7 +5518,7 @@ fn inspect_source_foundation_records_with_mode(
             relative.as_str(),
             read_limit,
             item_rule_index_state_bytes
-                .checked_add(schema_request_state_bytes)
+                .checked_add(*item_source.schema_request_state_bytes)
                 .ok_or(ItemRefusal::Budget)?,
             limits.items.max_state_bytes,
             limits.items.deadline,
@@ -5984,7 +5999,7 @@ fn schema_resource_cost(
     })
 }
 
-fn candidate_schema_resource_cost<I: Eq>(
+fn candidate_schema_resource_cost<I: Eq + Clone>(
     source: SourceFoundationCurrentInput<'_>,
     schema_binding: &impl SourceFoundationCandidateSchemaBinding<I>,
     limits: ItemLimits,
@@ -6231,11 +6246,11 @@ fn current_member_size(cut: &CorpusCutReader, path: &str) -> Result<u64, ItemRef
         })
 }
 
-struct CurrentItemSource<'a, P: CutPayloadReader> {
+struct CurrentItemSource<'a, 'store, P: CutPayloadReader> {
     cut: Option<&'a CorpusCutReader>,
     input: Option<&'a dyn SourceCutInput>,
     current_records: Option<&'a BTreeMap<String, BiblioCurrentRecord>>,
-    indexed_records: Option<SourceFoundationRecordsStoreHandle<'a>>,
+    indexed_records: Option<SourceFoundationRecordsStoreHandle<'store>>,
     record_cache: Option<(String, BiblioCurrentRecord, usize)>,
     payloads: &'a mut P,
     physical_facts: &'a SourcePhysicalFacts,
@@ -6277,7 +6292,7 @@ struct ItemCompanionSchemaPath {
     consumed: bool,
 }
 
-impl<P: CutPayloadReader> CurrentItemSource<'_, P> {
+impl<P: CutPayloadReader> CurrentItemSource<'_, '_, P> {
     fn path_presence(
         &self,
         path: &str,
@@ -6503,10 +6518,15 @@ impl<P: CutPayloadReader> CurrentItemSource<'_, P> {
         if let Some(records) = self.current_records {
             return Ok(records.get(id).map(|record| record.kind.as_str()));
         }
-        if let Some((key, record, _)) = &self.record_cache {
-            if key == id {
-                return Ok(Some(record.kind.as_str()));
-            }
+        if self
+            .record_cache
+            .as_ref()
+            .is_some_and(|(key, _, _)| key == id)
+        {
+            return Ok(self
+                .record_cache
+                .as_ref()
+                .map(|(_, record, _)| record.kind.as_str()));
         }
         let store = self.indexed_records.as_ref().ok_or_else(|| {
             ItemRefusal::Source("source-foundation Item record index is unavailable".into())
@@ -6727,7 +6747,7 @@ impl<P: CutPayloadReader> CurrentItemSource<'_, P> {
     }
 }
 
-impl<P: CutPayloadReader> ItemSource for CurrentItemSource<'_, P> {
+impl<P: CutPayloadReader> ItemSource for CurrentItemSource<'_, '_, P> {
     fn cancellation_flag(&self) -> &AtomicBool {
         self.cancelled
     }
