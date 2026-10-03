@@ -76,6 +76,27 @@ impl ProtectedAssessmentJournal {
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> SourceCommandResult<Self> {
+        Self::select_public(configuration_path, source_root, false, deadline, cancelled)
+    }
+
+    /// Direct public Journal owner selection; the Sign selector above remains
+    /// restricted to its source-bound v2/v3 profiles.
+    pub(crate) fn select_public_command(
+        configuration_path: &Path,
+        source_root: &Path,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<Self> {
+        Self::select_public(configuration_path, source_root, true, deadline, cancelled)
+    }
+
+    fn select_public(
+        configuration_path: &Path,
+        source_root: &Path,
+        allow_inline: bool,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<Self> {
         active(deadline, cancelled)?;
         let uid = rustix::process::getuid().as_raw();
         if uid != rustix::process::geteuid().as_raw() {
@@ -89,9 +110,10 @@ impl ProtectedAssessmentJournal {
         protected(&file, uid, false)?;
         let configuration_raw = raw(&mut file, 8_388_608, deadline, cancelled)?;
         let configuration = cmd::parse(&configuration_raw)?;
-        let native = match cmd::text(&configuration, "schema_version")? {
-            "tos_local_assessment_owner_v2" => false,
-            "tos_local_assessment_owner_v3" => true,
+        let (source_bound, native) = match cmd::text(&configuration, "schema_version")? {
+            "tos_local_assessment_owner_v1" if allow_inline => (false, false),
+            "tos_local_assessment_owner_v2" => (true, false),
+            "tos_local_assessment_owner_v3" => (true, true),
             _ => {
                 return Err(SourceCommandError::Denied(
                     "Sign assessment owner v2/v3 required",
@@ -109,9 +131,10 @@ impl ProtectedAssessmentJournal {
             "records",
             "subjects",
             "journal_directory",
-            "source_root",
-            "source_records",
         ];
+        if source_bound {
+            keys.extend(["source_root", "source_records"]);
+        }
         if native {
             keys.push("native_text_units");
         }
@@ -123,7 +146,7 @@ impl ProtectedAssessmentJournal {
             )
             .map_err(|_| SourceCommandError::Invalid("assessment principal Unicode budget"))?
             .is_empty()
-            || Path::new(cmd::text(&configuration, "source_root")?) != source_root
+            || source_bound && Path::new(cmd::text(&configuration, "source_root")?) != source_root
         {
             return Err(SourceCommandError::Denied(
                 "assessment current account/source root differs",

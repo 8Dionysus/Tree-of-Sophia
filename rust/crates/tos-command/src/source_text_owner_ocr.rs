@@ -558,7 +558,7 @@ pub(crate) fn validate_page_binding(binding: &JsonValue) -> SourceCommandResult<
         || cmd::integer(binding, "page_index_origin")? != 1
         || cmd::text(binding, "media_type")? != "image/png"
         || cmd::text(binding, "renderer")? != "poppler-pdftoppm"
-        || cmd::text(binding, "renderer_version")? != "26.01.0"
+        || !["26.01.0", "26.05.0"].contains(&cmd::text(binding, "renderer_version")?)
         || cmd::integer(binding, "resolution_dpi")? != 300
         || cmd::text(binding, "render_execution")? != "retained-not-observed-this-run"
         || cmd::text(binding, "historical_receipt_signature")? != "absent"

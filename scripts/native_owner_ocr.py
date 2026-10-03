@@ -49,7 +49,7 @@ def validate_page_binding(binding, *, source_scope=None):
             or binding['source_file_ref'] != 'tos.file.sha256.' + str(binding['source_file_sha256'])
             or binding['input_file_ref'] != 'tos.file.sha256.' + str(binding['input_sha256'])
             or binding['media_type'] != 'image/png' or binding['renderer'] != 'poppler-pdftoppm'
-            or binding['renderer_version'] != '26.01.0' or binding['resolution_dpi'] != 300
+            or binding['renderer_version'] not in {'26.01.0', '26.05.0'} or binding['resolution_dpi'] != 300
             or binding['render_execution'] != 'retained-not-observed-this-run' or binding['historical_receipt_signature'] != 'absent'
             or type(binding['input_bytes']) is not int or not 1 <= binding['input_bytes'] <= 10 * 1024 * 1024
             or any(type(binding[key]) is not int or binding[key] < 1 for key in ('width_pixels', 'height_pixels'))

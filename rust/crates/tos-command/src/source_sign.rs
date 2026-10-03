@@ -88,6 +88,7 @@ struct SignSourceReader<'a> {
     native_reads: BTreeSet<String>,
     native_bytes: usize,
     publication: Option<Vec<u8>>,
+    publication_selected: bool,
     source_reads: BTreeSet<String>,
     source_bytes: usize,
     source_carriers: Vec<String>,
@@ -99,6 +100,15 @@ impl<'a> SignSourceReader<'a> {
     fn select(
         root_path: &Path,
         cut: &'a CorpusCutReader,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<Self> {
+        Self::select_with_publication(root_path, cut, true, deadline, cancelled)
+    }
+    fn select_with_publication(
+        root_path: &Path,
+        cut: &'a CorpusCutReader,
+        publication_selected: bool,
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> Result<Self> {
@@ -126,6 +136,7 @@ impl<'a> SignSourceReader<'a> {
             native_reads: BTreeSet::new(),
             native_bytes: 0,
             publication: None,
+            publication_selected,
             source_reads: BTreeSet::new(),
             source_bytes: 0,
             source_carriers: Vec::new(),
@@ -133,7 +144,9 @@ impl<'a> SignSourceReader<'a> {
             identity_snapshot: None,
             profile_native_inputs: BTreeMap::new(),
         };
-        reader.publication = reader.publication_current(deadline, cancelled)?;
+        if publication_selected {
+            reader.publication = reader.publication_current(deadline, cancelled)?;
+        }
         Ok(reader)
     }
     fn open_optional(&self, name: &str) -> Result<Option<File>> {
@@ -364,7 +377,9 @@ impl SignNativeRead for SignSourceReader<'_> {
         {
             return Err(Error::Conflict("Sign selected root replaced"));
         }
-        if self.publication_current(deadline, cancelled)? != self.publication {
+        if self.publication_selected
+            && self.publication_current(deadline, cancelled)? != self.publication
+        {
             return Err(Error::Conflict("Sign source publication epoch changed"));
         }
         for (name, bytes) in &self.observed {
@@ -485,6 +500,26 @@ fn local_claim(
     }
     Ok(())
 }
+// Journal generic families retain schema validation observations without
+// promoting those mechanical reads into the legacy semantic source snapshot.
+fn generic_family_schema(
+    reader: &mut SignSourceReader<'_>,
+    worker: &mut CutWorkerSchemaExecutor,
+    name: &str,
+    value: &JsonValue,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+    semantic_dependency: bool,
+) -> Result<()> {
+    let already_semantic = reader.source_dependencies.contains(name);
+    let result = schema(reader, worker, name, value, deadline, cancelled);
+    if !semantic_dependency && !already_semantic {
+        reader.source_dependencies.remove(name);
+    }
+    // Restore membership on success and error; propagate any validation error.
+    result
+}
+
 fn source_envelopes(
     reader: &mut SignSourceReader<'_>,
     base: &CommandContext,
@@ -492,6 +527,7 @@ fn source_envelopes(
     worker: &mut CutWorkerSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
+    generic_schema_dependencies: bool,
 ) -> Result<Vec<JsonValue>> {
     let bindings = cmd::array(config, "source_records")?;
     if bindings.len() > 1024 {
@@ -657,22 +693,24 @@ fn source_envelopes(
                         continue;
                     }
                 } else if value.object_get("form_id").is_some() {
-                    schema(
+                    generic_family_schema(
                         reader,
                         worker,
                         "ToS/contracts/human-form.schema.json",
                         &value,
                         deadline,
                         cancelled,
+                        generic_schema_dependencies,
                     )?;
                 } else if cmd::text(&value, "schema_version")? == "tos_corpus_record_v1" {
-                    schema(
+                    generic_family_schema(
                         reader,
                         worker,
                         "ToS/contracts/corpus-record.schema.json",
                         &value,
                         deadline,
                         cancelled,
+                        generic_schema_dependencies,
                     )?;
                 } else if cmd::text(&value, "schema_version")? == "tos_historical_record_v1" {
                     schema(
@@ -741,6 +779,9 @@ fn source_envelopes(
 pub(crate) struct OwnerAssessmentPublicSources<'a> {
     reader: SignSourceReader<'a>,
     pub(crate) rows: Vec<JsonValue>,
+    pub(crate) native_rows: Vec<JsonValue>,
+    pub(crate) native_summaries: Vec<JsonValue>,
+    pub(crate) native_contracts: BTreeMap<String, String>,
     pub(crate) claim_dependencies: BTreeMap<String, Vec<JsonValue>>,
     pub(crate) fixity: Vec<JsonValue>,
     pub(crate) identity_snapshots: BTreeMap<String, JsonValue>,
@@ -818,8 +859,40 @@ pub(crate) fn select_owner_assessment_public_sources<'a>(
             "private assessment public source cut differs from its selected context",
         ));
     }
-    let mut reader = SignSourceReader::select(public_root, cut, deadline, cancelled)?;
-    let rows = source_envelopes(&mut reader, base, config, worker, deadline, cancelled)?;
+    let inline = cmd::text(config, "schema_version")? == "tos_local_assessment_owner_v1";
+    let mut reader =
+        SignSourceReader::select_with_publication(public_root, cut, !inline, deadline, cancelled)?;
+    let source_bindings: &[JsonValue] = if inline {
+        &[]
+    } else {
+        cmd::array(config, "source_records")?
+    };
+    let rows = if inline {
+        Vec::new()
+    } else {
+        source_envelopes(
+            &mut reader,
+            base,
+            config,
+            worker,
+            deadline,
+            cancelled,
+            false,
+        )?
+    };
+    // Direct v3 Journal reads reuse the Sign source-owned native resolver.
+    // Private profiles select their own confidential adapter separately.
+    let native = if cmd::text(config, "schema_version")? == "tos_local_assessment_owner_v3" {
+        native_envelopes(&mut reader, config, worker, deadline, cancelled)?
+    } else {
+        NativeSelection {
+            rows: Vec::new(),
+            summaries: Vec::new(),
+            snapshots: Vec::new(),
+            contracts: BTreeMap::new(),
+        }
+    };
+    let native_contracts = native.contracts;
     let mut record_paths = BTreeMap::new();
     let mut form_paths = BTreeMap::new();
     let mut form_sets = BTreeMap::new();
@@ -827,7 +900,7 @@ pub(crate) fn select_owner_assessment_public_sources<'a>(
         .iter()
         .map(|row| Ok((cmd::text(row, "id")?.to_owned(), row)))
         .collect::<Result<BTreeMap<_, _>>>()?;
-    for binding in cmd::array(config, "source_records")? {
+    for binding in source_bindings {
         let path = cmd::text(binding, "path")?.to_owned();
         let identity = cmd::text(binding, "record_id")?.to_owned();
         if record_paths
@@ -860,7 +933,8 @@ pub(crate) fn select_owner_assessment_public_sources<'a>(
     }
     if !form_sets.is_empty() {
         let name = "ToS/contracts/human-form-set.schema.json";
-        reader.source_dependencies.insert(name.to_owned());
+        // Current form-set validation still owns this observed schema read.
+        // Preserve any prior semantic membership without adding a generic tag.
         reader.source(name, 1_048_576, deadline, cancelled)?;
     }
     let has_claims = rows.iter().any(|row| {
@@ -932,6 +1006,12 @@ pub(crate) fn select_owner_assessment_public_sources<'a>(
         ]));
     }
     let mut identity_snapshots = BTreeMap::new();
+    if cmd::text(config, "schema_version")? == "tos_local_assessment_owner_v3" {
+        identity_snapshots.insert(
+            "native_text_snapshots".to_owned(),
+            JsonValue::Array(native.snapshots),
+        );
+    }
     if let Some(identity) = &reader.identity_snapshot {
         identity_snapshots.insert(
             "native_semantic_identity_snapshot".to_owned(),
@@ -961,6 +1041,9 @@ pub(crate) fn select_owner_assessment_public_sources<'a>(
     Ok(OwnerAssessmentPublicSources {
         reader,
         rows,
+        native_rows: native.rows,
+        native_summaries: native.summaries,
+        native_contracts,
         claim_dependencies,
         fixity,
         identity_snapshots,
@@ -1377,6 +1460,7 @@ struct NativeSelection {
     rows: Vec<JsonValue>,
     summaries: Vec<JsonValue>,
     snapshots: Vec<JsonValue>,
+    contracts: BTreeMap<String, String>,
 }
 
 fn native_envelopes(
@@ -1391,6 +1475,7 @@ fn native_envelopes(
             rows: vec![],
             summaries: vec![],
             snapshots: vec![],
+            contracts: BTreeMap::new(),
         });
     };
     let selections = selections
@@ -1434,6 +1519,7 @@ fn native_envelopes(
     let mut rows = Vec::<JsonValue>::new();
     let mut summaries = Vec::new();
     let mut snapshots = Vec::new();
+    let mut contracts = BTreeMap::new();
     for selection in selections {
         let binding = cmd::field(selection, "binding")?;
         let scope = match cmd::text(selection, "read_scope")? {
@@ -1451,6 +1537,12 @@ fn native_envelopes(
             deadline,
             cancelled,
         )?;
+        contracts.extend(
+            adapted
+                .schema_digests
+                .iter()
+                .map(|(path, digest)| (path.clone(), digest.to_prefixed())),
+        );
         let unit = &adapted.records[0];
         let layer = &adapted.records[1];
         let packet = cmd::field(cmd::field(unit, "payload")?, "packet")?;
@@ -1500,10 +1592,11 @@ fn native_envelopes(
         rows,
         summaries,
         snapshots,
+        contracts,
     })
 }
 
-fn required_sources(
+pub(crate) fn required_sources(
     subject: &str,
     dependencies: &BTreeMap<String, Vec<JsonValue>>,
     rows: &[JsonValue],
@@ -1886,6 +1979,7 @@ fn assemble_sign_sources(
         local_worker,
         limits.deadline,
         cancelled,
+        true,
     )?;
     let dependencies = claim_ground_refs(
         reader,

@@ -370,6 +370,10 @@ from pathlib import Path
 repository,root=map(Path,sys.argv[1:])
 sys.dont_write_bytecode=True
 sys.path[:0]=[str(repository/'mechanics/growth-cycle/tests'),str(repository/'mechanics/growth-cycle/parts/branch-growth-cycle/scripts'),str(repository/'scripts'),str(repository/'tests')]
+from datetime import datetime,timedelta,timezone
+import test_knowledge_assessment as policy_fixture
+# Native commands use real time; retain a finite synthetic grant window.
+policy_fixture.END=(datetime.now(timezone.utc)+timedelta(days=7)).isoformat()
 import test_owner_local_assessment as maintained
 class ExistingRoot:
     serial=0
@@ -570,13 +574,22 @@ fn assessment_feature_sources() -> [&'static str; 13] {
     ]
 }
 
-fn native_layer_journal_fixture(repository: &Path, root: &Path, deadline: Instant) -> Value {
-    let script = r#"
+fn native_layer_journal_fixture(
+    repository: &Path,
+    root: &Path,
+    deadline: Instant,
+    derived: bool,
+) -> Value {
+    let template = r#"
 import copy,json,sys,tempfile,unittest
 from pathlib import Path
 repository,root=map(Path,sys.argv[1:])
 sys.dont_write_bytecode=True
 sys.path[:0]=[str(repository/'mechanics/growth-cycle/tests'),str(repository/'mechanics/growth-cycle/parts/branch-growth-cycle/scripts'),str(repository/'scripts'),str(repository/'tests')]
+from datetime import datetime,timedelta,timezone
+import test_knowledge_assessment as policy_fixture
+# Native commands use real time; retain a finite synthetic grant window.
+policy_fixture.END=(datetime.now(timezone.utc)+timedelta(days=7)).isoformat()
 class ExistingRoot:
     serial=0
     def __init__(self,*args,**kwargs):
@@ -592,7 +605,16 @@ try:
     tempfile.TemporaryDirectory=ExistingRoot
     test=unittest.TestCase(methodName='runTest')
     import test_native_layer_quality_journal as maintained
-    fx=maintained.QualityJournalFixture(test)
+    if JOURNAL_DERIVED_METHOD:
+        from test_native_text_layer_assessment import NativeDerivedLayerAssessmentFixture
+        # Late handler imports must use this exact fixture source tree.
+        sys.path[:0]=[str(repository/'mechanics/growth-cycle/parts/branch-growth-cycle/scripts'),str(repository/'scripts')]
+        layer=NativeDerivedLayerAssessmentFixture(test)
+        layer.member=layer.seed.member
+        layer.payload=layer.seed.payload
+        fx=maintained.QualityJournalFixture(test,layer_fixture=layer)
+    else:
+        fx=maintained.QualityJournalFixture(test)
     assert fx.fx.layer['admission']['human_review_performed'] is False
     index=next(i for i,g in enumerate(fx.config['authorities']) if g['payload']['actor_id']==fx.config['principal_id'])
     def template(record,profile,name):
@@ -607,29 +629,34 @@ try:
         'layer_template':template(fx.layer_record,'text-layer-quality','synthetic-native-layer-admit'),
         'unit_template':template(fx.unit,'source-observation','synthetic-native-unit-admit'),
         'source_member':fx.fx.member.decode(),'content':fx.fx.content.decode(),
-        'preserved':[str(fx.fx.store/fx.fx.source_ref),str(fx.fx.store/fx.packet_ref),str(fx.fx.payload)]}
+        'derived':JOURNAL_DERIVED_METHOD,
+        'preserved':([str(path) for path in sorted(fx.fx.store.rglob('*')) if path.is_file() and fx.journal not in path.parents] if JOURNAL_DERIVED_METHOD else [str(fx.fx.store/fx.fx.source_ref),str(fx.fx.store/fx.packet_ref),str(fx.fx.payload)])}
 finally:
     tempfile.TemporaryDirectory=original
 print(json.dumps(result,ensure_ascii=False,separators=(',',':')))
 "#;
+    let script = template.replace(
+        "JOURNAL_DERIVED_METHOD",
+        if derived { "True" } else { "False" },
+    );
     fixture_json(
         repository,
         root,
         &root.join("layer-fixture.stdout"),
         &root.join("layer-fixture.stderr"),
         deadline,
-        script,
+        &script,
     )
 }
 
-fn native_layer_journal_case() {
+fn native_layer_journal_case(derived: bool) {
     let repository = super::validation_cut_cases::repository()
         .canonicalize()
         .unwrap();
     let deadline = Instant::now() + Duration::from_secs(240);
     let cancelled = AtomicBool::new(false);
     let temporary = tempfile::tempdir().unwrap();
-    let fixture = native_layer_journal_fixture(&repository, temporary.path(), deadline);
+    let fixture = native_layer_journal_fixture(&repository, temporary.path(), deadline, derived);
     let owner = PathBuf::from(fixture["owner"].as_str().unwrap());
     let public = PathBuf::from(fixture["public"].as_str().unwrap());
     let context = PathBuf::from(fixture["context"].as_str().unwrap());
@@ -695,6 +722,27 @@ fn native_layer_journal_case() {
     let invocation_path = temporary.path().join("layer-journal-invocation.json");
     fs::write(&invocation_path, serde_json::to_vec(&invocation).unwrap()).unwrap();
     fs::set_permissions(&invocation_path, fs::Permissions::from_mode(0o600)).unwrap();
+    // An unselected layer in a unit's closure remains supporting evidence.
+    let configuration_raw = fs::read(&owner).unwrap();
+    let mut supporting_only: Value = serde_json::from_slice(&configuration_raw).unwrap();
+    supporting_only["native_text_layers"] = serde_json::json!([]);
+    fs::write(&owner, serde_json::to_vec(&supporting_only).unwrap()).unwrap();
+    fs::set_permissions(&owner, fs::Permissions::from_mode(0o600)).unwrap();
+    let (denied_status, _, denied_error) = super::command_text_cases::native_owner_cli_observation(
+        &repository,
+        &owner,
+        &invocation_path,
+        &serde_json::json!({"schema_version":"tos_local_assessment_command_v1",
+            "operation":"describe","subject_id":fixture["layer_subject"]["id"]}),
+        deadline,
+    );
+    assert!(!denied_status.success());
+    assert!(
+        String::from_utf8_lossy(&denied_error)
+            .contains("native supporting evidence is not an assessment target")
+    );
+    fs::write(&owner, configuration_raw).unwrap();
+    fs::set_permissions(&owner, fs::Permissions::from_mode(0o600)).unwrap();
     let invoke = |request: &Value| -> Value {
         let (status, raw, errors) = super::command_text_cases::native_owner_cli_observation(
             &repository,
@@ -735,10 +783,29 @@ fn native_layer_journal_case() {
             .unwrap()
             .contains(fixture["content"].as_str().unwrap())
     );
-    assert_eq!(
-        comparison["result"]["source_comparison"]["payload"]["source_member_utf8"],
-        fixture["source_member"]
-    );
+    let comparison_payload = &comparison["result"]["source_comparison"]["payload"];
+    if derived {
+        assert_eq!(
+            comparison_payload["schema_version"],
+            "tos_native_text_layer_derivation_comparison_v1"
+        );
+        assert_eq!(
+            comparison_payload["source_view"]["source_member_utf8"],
+            fixture["source_member"]
+        );
+        assert_eq!(comparison_payload["inherited_quality"], "not-transferred");
+        assert_eq!(comparison_payload["lineage"].as_array().unwrap().len(), 2);
+        assert_eq!(
+            comparison_payload["lineage"][1]["record_payload"]["admission"]["review_status"],
+            "unreviewed"
+        );
+        assert_eq!(comparison_payload["performs_semantic_assessment"], false);
+    } else {
+        assert_eq!(
+            comparison_payload["source_member_utf8"],
+            fixture["source_member"]
+        );
+    }
     let append_request = |template: &Value, described: &Value| {
         let mut request = template.clone();
         request["expected_snapshot"] = described["owner_snapshot"].clone();
@@ -828,5 +895,457 @@ fn native_layer_journal_case() {
 
 #[test]
 fn native_private_assessment_v5_quality_dependency_withdrawal_preserves_source() {
-    native_layer_journal_case();
+    native_layer_journal_case(false);
+}
+
+#[test]
+fn native_derived_layer_assessment_lineage_quality_withdrawal_preserves_source() {
+    native_layer_journal_case(true);
+}
+
+#[test]
+#[ignore = "requires retained signed synthetic OCR evidence and admitted native owner/worker"]
+fn native_private_assessment_v6_retained_signed_ocr_comparison_preserves_source() {
+    native_owner_ocr_comparison_case(false);
+}
+
+#[test]
+#[ignore = "requires separately retained genuine current synthetic PageOCR producer and exact native products"]
+fn native_retained_page_ocr_assessment_comparison_preserves_original_and_signed_capture() {
+    native_owner_ocr_comparison_case(true);
+}
+
+fn native_owner_ocr_comparison_case(retained_page: bool) {
+    let repository = super::validation_cut_cases::repository()
+        .canonicalize()
+        .unwrap();
+    let deadline = Instant::now() + Duration::from_secs(if retained_page { 480 } else { 240 });
+    let cancelled = AtomicBool::new(false);
+    let temporary = tempfile::tempdir().unwrap();
+    let fixture_module = if retained_page {
+        "journal_page_fixture.py"
+    } else {
+        "journal_v6_fixture.py"
+    };
+    let script = r#"
+import json,runpy,sys
+from pathlib import Path
+repository,root=map(Path,sys.argv[1:])
+f=runpy.run_path(str(repository/'tests/conformance/rust/__FIXTURE__'))
+print(json.dumps(f['prepare'](repository,root),separators=(',',':')))
+"#
+    .replace("__FIXTURE__", fixture_module);
+    let fixture = fixture_json(
+        &repository,
+        temporary.path(),
+        &temporary.path().join("v6-prepare.stdout"),
+        &temporary.path().join("v6-prepare.stderr"),
+        deadline,
+        &script,
+    );
+    let owner = PathBuf::from(fixture["owner"].as_str().unwrap());
+    let public = PathBuf::from(fixture["public"].as_str().unwrap());
+    let context = PathBuf::from(fixture["context"].as_str().unwrap());
+    let images = [
+        std::env::current_exe().unwrap(),
+        PathBuf::from(
+            std::env::var_os("TOS_NATIVE_OWNER_COMMAND_PATH").expect("native CLI required"),
+        ),
+        PathBuf::from(std::env::var_os("TOS_SCHEMA_WORKER_PATH").expect("worker required")),
+    ];
+    let custody = |path: &Path| {
+        let metadata = path.symlink_metadata().unwrap();
+        assert!(metadata.is_file() && metadata.len() > 0 && metadata.len() <= 536_870_912);
+        assert_eq!(metadata.mode() & 0o022, 0);
+        (
+            metadata.dev(),
+            metadata.ino(),
+            metadata.len(),
+            metadata.mode(),
+            super::command_text_cases::alignment_image_digest(path),
+        )
+    };
+    let image_before_native: Vec<_> = images.iter().map(|path| custody(path)).collect();
+    let authored = super::command_text_cases::authored_text_files(&public);
+    let mut captured = authored.clone();
+    for reference in assessment_feature_sources() {
+        let path = repository.join(reference);
+        assert!(path.symlink_metadata().unwrap().is_file());
+        assert!(fs::metadata(&path).unwrap().len() <= 2_097_152);
+        assert!(
+            captured
+                .insert(reference.to_owned(), fs::read(path).unwrap())
+                .is_none()
+        );
+        assert!(Instant::now() < deadline);
+    }
+    assert!(captured.len() <= 2048);
+    assert!(captured.values().map(Vec::len).sum::<usize>() <= 33_554_432);
+    let (capture, _software, components) =
+        super::command_record_cases::captured_components(&captured, deadline, &cancelled);
+    let store = temporary.path().join("layer-journal-source-cut");
+    let selected = super::validation_cut_cases::write_cut_store(&authored, &store);
+    let invocation = serde_json::json!({"schema_version":"tos_local_native_source_invocation_v1",
+        "owner_config":owner,"owner_context":context,"native_executable":images[1],"native_executable_sha256":image_before_native[1].4.to_prefixed(),
+        "corpus_store":store,"source_revision":selected.0.to_prefixed(),"original_source_revision":selected.0.to_prefixed(),
+        "software_capture":capture.capture,"software_restored_root":capture.restored,
+        "software_selection":{"source_git_commit":capture.selection.source_git_commit,"source_git_tree":capture.selection.source_git_tree,"capture_manifest_sha256":capture.selection.capture_manifest_sha256.to_prefixed()},
+        "software_components":components.members().map(|member|member.path.as_str()).collect::<Vec<_>>(),
+        "schema_worker":{"absolute_path":images[2],"sha256":image_before_native[2].4.to_prefixed()},
+        "assessment_schema_worker":{"absolute_path":images[2],"sha256":image_before_native[2].4.to_prefixed()},
+        "budgets":{"max_revisions":4,"max_members":2048,"max_total_bytes":33554432,"max_member_bytes":8388608,"max_schema_receipts":128,"max_schema_receipt_bytes":262144,"worker_cpu_seconds":3,"worker_address_space_bytes":1073741824}});
+    let invocation_path = temporary.path().join("layer-journal-invocation.json");
+    fs::write(&invocation_path, serde_json::to_vec(&invocation).unwrap()).unwrap();
+    fs::set_permissions(&invocation_path, fs::Permissions::from_mode(0o600)).unwrap();
+    let observe = |selected_owner: &Path, request: &Value| {
+        let mut selected_invocation = invocation.clone();
+        selected_invocation["owner_config"] = Value::from(selected_owner.to_str().unwrap());
+        if request["schema_version"] != "tos_local_assessment_command_v1" {
+            selected_invocation["assessment_schema_worker"] = Value::Null;
+        }
+        fs::write(
+            &invocation_path,
+            serde_json::to_vec(&selected_invocation).unwrap(),
+        )
+        .unwrap();
+        super::command_text_cases::native_owner_cli_observation(
+            &repository,
+            selected_owner,
+            &invocation_path,
+            request,
+            deadline,
+        )
+    };
+    let invoke = |selected_owner: &Path, request: &Value| -> Value {
+        let (status, raw, errors) = observe(selected_owner, request);
+        assert!(
+            status.success(),
+            "native v6 retained OCR: {}",
+            String::from_utf8_lossy(&errors)
+        );
+        serde_json::from_slice(&raw).unwrap()
+    };
+    let prepared = invoke(
+        &owner,
+        &serde_json::json!({
+        "schema_version":"tos_local_source_command_v1","operation":"prepare-create"}),
+    );
+    let record_request = serde_json::json!({
+        "schema_version":"tos_local_source_command_v1","operation":if retained_page { "text-layer.record-owner-page-ocr" } else { "text-layer.record-owner-ocr" },
+        "command_id":if retained_page { "synthetic-current-page-authenticated-ocr-record" } else { "synthetic-v6-authenticated-ocr-record" },
+        "expected_configuration":prepared["owner_configuration"],
+        "expected_dependencies":prepared["expected_dependencies"],
+        "expected_source":null,"expected_revision":null});
+    let created = invoke(&owner, &record_request);
+    assert_eq!(created["replayed"], false);
+    if retained_page {
+        let replayed = invoke(&owner, &record_request);
+        assert_eq!(replayed["replayed"], true);
+        assert_eq!(replayed["receipt_sha256"], created["receipt_sha256"]);
+    }
+    let finish_script = r#"
+import json,runpy,sys
+from pathlib import Path
+repository,root=map(Path,sys.argv[1:])
+f=runpy.run_path(str(repository/'tests/conformance/rust/__FIXTURE__'))
+print(json.dumps(f['finish'](repository,root),separators=(',',':')))
+"#
+    .replace("__FIXTURE__", fixture_module);
+    let selected = fixture_json(
+        &repository,
+        temporary.path(),
+        &temporary.path().join("v6-finish.stdout"),
+        &temporary.path().join("v6-finish.stderr"),
+        deadline,
+        &finish_script,
+    );
+    let assessment_owner = PathBuf::from(selected["assessment_owner"].as_str().unwrap());
+    let package = PathBuf::from(selected["package"].as_str().unwrap());
+    let retained = package_files(&package);
+    assert_eq!(
+        Digest256::of_bytes(&retained["owner-ocr-signature.sigstore.json"]).to_hex(),
+        selected["original_signature_sha256"].as_str().unwrap()
+    );
+    let receipt: Value = serde_json::from_slice(&retained["owner-ocr-receipt.json"]).unwrap();
+    assert_eq!(
+        receipt["owner"]["source_ref"],
+        selected["original_owner_source_ref"]
+    );
+    assert_eq!(
+        Digest256::of_bytes(&retained["owner-ocr-receipt.json"]).to_hex(),
+        selected["original_receipt_sha256"].as_str().unwrap()
+    );
+    let image = PathBuf::from(selected["image_path"].as_str().unwrap());
+    let image_before = custody(&image);
+    let original_pdf =
+        retained_page.then(|| PathBuf::from(selected["source_pdf_path"].as_str().unwrap()));
+    let original_before = original_pdf.as_ref().map(|path| custody(path));
+    let described = invoke(
+        &assessment_owner,
+        &serde_json::json!({
+        "schema_version":"tos_local_assessment_command_v1","operation":"describe",
+        "subject_id":selected["subject"]["id"]}),
+    );
+    let request = serde_json::json!({
+        "schema_version":"tos_local_assessment_command_v1","operation":"read-layer-comparison",
+        "subject_id":selected["subject"]["id"],"expected_subject":selected["subject"],
+        "expected_snapshot":described["owner_snapshot"]});
+    let compared = invoke(&assessment_owner, &request);
+    assert_eq!(compared["schema_version"], "tos_local_assessment_result_v1");
+    assert_eq!(compared["visibility"], "local_only");
+    assert_eq!(compared["publication_authorized"], false);
+    assert_eq!(compared["result"]["current_admission"]["can_use"], false);
+    assert_eq!(compared["result"]["revision"], Value::Null);
+    assert_eq!(
+        compared["result"]["source_comparison"]["payload"]["source_image"]["sha256"],
+        selected["image_sha256"]
+    );
+    if retained_page {
+        let comparison = &compared["result"]["source_comparison"]["payload"];
+        assert_eq!(
+            comparison["owner_execution"]["input_verification"]["render_execution"],
+            "not_performed"
+        );
+        assert_eq!(
+            comparison["owner_execution"]["input_verification"]["historical_receipt_signature"],
+            "absent"
+        );
+        assert_ne!(
+            comparison["source_scope"]["file_sha256"],
+            comparison["source_image"]["sha256"]
+        );
+        assert_eq!(
+            comparison["input_representation"],
+            fixture["input_representation"]
+        );
+    }
+    assert_eq!(
+        compared["result"]["source_comparison"]["payload"]["performs_semantic_assessment"],
+        false
+    );
+
+    assert_eq!(
+        compared["result"]["source_comparison"]["payload"]["source_image"]["model_disclosure_authorized"],
+        false
+    );
+    let mut expired: Value = serde_json::from_slice(&fs::read(&assessment_owner).unwrap()).unwrap();
+    expired["native_text_layers"][0]["image_access"]["expires_at"] =
+        Value::from("2000-01-01T00:00:00Z");
+    fs::write(&assessment_owner, serde_json::to_vec(&expired).unwrap()).unwrap();
+    assert!(!observe(&assessment_owner, &request).0.success());
+    assert_eq!(package_files(&package), retained);
+    assert_eq!(custody(&image), image_before);
+    if let Some(path) = original_pdf.as_ref() {
+        assert_eq!(custody(path), original_before.unwrap());
+    }
+    assert_authored_text_unchanged(&public, &authored);
+    for (index, path) in images.iter().enumerate() {
+        assert_eq!(custody(path), image_before_native[index]);
+    }
+    assert!(Instant::now() < deadline);
+}
+
+#[test]
+fn native_public_assessment_v1_v2_v3_append_replay_and_revocation_preserve_source() {
+    let repository = super::validation_cut_cases::repository()
+        .canonicalize()
+        .unwrap();
+    let deadline = Instant::now() + Duration::from_secs(600);
+    let cancelled = AtomicBool::new(false);
+    for version in [1u8, 2, 3] {
+        let temporary = tempfile::tempdir().unwrap();
+        let script = format!(
+            r#"
+import json,runpy,sys
+from pathlib import Path
+repository,root=map(Path,sys.argv[1:])
+f=runpy.run_path(str(repository/'tests/conformance/rust/journal_public_fixture.py'))
+print(json.dumps(f['prepare'](repository,root,{version}),ensure_ascii=False,separators=(',',':')))
+"#
+        );
+        let fixture = fixture_json(
+            &repository,
+            temporary.path(),
+            &temporary.path().join("public-fixture.stdout"),
+            &temporary.path().join("public-fixture.stderr"),
+            deadline,
+            &script,
+        );
+        let owner = PathBuf::from(fixture["owner"].as_str().unwrap());
+        let public = PathBuf::from(fixture["public"].as_str().unwrap());
+        let context = PathBuf::from(fixture["context"].as_str().unwrap());
+        let images = [
+            std::env::current_exe().unwrap(),
+            PathBuf::from(
+                std::env::var_os("TOS_NATIVE_OWNER_COMMAND_PATH").expect("native CLI required"),
+            ),
+            PathBuf::from(
+                std::env::var_os("TOS_SCHEMA_WORKER_PATH").expect("native worker required"),
+            ),
+        ];
+        let custody = |path: &Path| {
+            let metadata = path.symlink_metadata().unwrap();
+            assert!(metadata.is_file() && metadata.len() > 0 && metadata.len() <= 536_870_912);
+            assert_eq!(metadata.mode() & 0o022, 0);
+            (
+                metadata.dev(),
+                metadata.ino(),
+                metadata.len(),
+                metadata.mode(),
+                super::command_text_cases::alignment_image_digest(path),
+            )
+        };
+        let before: Vec<_> = images.iter().map(|path| custody(path)).collect();
+        let authored = super::command_text_cases::authored_text_files(&public);
+        let mut captured = authored.clone();
+        for reference in assessment_feature_sources() {
+            let path = repository.join(reference);
+            assert!(
+                path.symlink_metadata().unwrap().is_file()
+                    && fs::metadata(&path).unwrap().len() <= 2_097_152
+            );
+            assert!(
+                captured
+                    .insert(reference.to_owned(), fs::read(path).unwrap())
+                    .is_none()
+            );
+        }
+        assert!(
+            captured.len() <= 2048 && captured.values().map(Vec::len).sum::<usize>() <= 33_554_432
+        );
+        let (capture, _software, components) =
+            super::command_record_cases::captured_components(&captured, deadline, &cancelled);
+        let store = temporary.path().join("public-journal-cut");
+        let selected = super::validation_cut_cases::write_cut_store(&authored, &store);
+        let invocation = serde_json::json!({"schema_version":"tos_local_native_source_invocation_v1",
+            "owner_config":owner,"owner_context":context,"native_executable":images[1],"native_executable_sha256":before[1].4.to_prefixed(),
+            "corpus_store":store,"source_revision":selected.0.to_prefixed(),"original_source_revision":selected.0.to_prefixed(),
+            "software_capture":capture.capture,"software_restored_root":capture.restored,
+            "software_selection":{"source_git_commit":capture.selection.source_git_commit,"source_git_tree":capture.selection.source_git_tree,"capture_manifest_sha256":capture.selection.capture_manifest_sha256.to_prefixed()},
+            "software_components":components.members().map(|member|member.path.as_str()).collect::<Vec<_>>(),
+            "schema_worker":{"absolute_path":images[2],"sha256":before[2].4.to_prefixed()},
+            "assessment_schema_worker":{"absolute_path":images[2],"sha256":before[2].4.to_prefixed()},
+            "budgets":{"max_revisions":4,"max_members":2048,"max_total_bytes":33554432,"max_member_bytes":8388608,"max_schema_receipts":128,"max_schema_receipt_bytes":262144,"worker_cpu_seconds":3,"worker_address_space_bytes":1073741824}});
+        let invocation_path = temporary.path().join("public-journal-invocation.json");
+        fs::write(&invocation_path, serde_json::to_vec(&invocation).unwrap()).unwrap();
+        fs::set_permissions(&invocation_path, fs::Permissions::from_mode(0o600)).unwrap();
+        let observe = |request: &Value| {
+            super::command_text_cases::native_owner_cli_observation(
+                &repository,
+                &owner,
+                &invocation_path,
+                request,
+                deadline,
+            )
+        };
+        let invoke = |request: &Value| -> Value {
+            let (status, raw, errors) = observe(request);
+            assert!(
+                status.success(),
+                "public Journal v{version}: {}",
+                String::from_utf8_lossy(&errors)
+            );
+            serde_json::from_slice(&raw).unwrap()
+        };
+        let describe = serde_json::json!({"schema_version":"tos_local_assessment_command_v1",
+            "operation":"describe","subject_id":fixture["subject_id"]});
+        let described = invoke(&describe);
+        assert_eq!(
+            described, fixture["expected_describe"],
+            "whole public description v{version}"
+        );
+        let mut request = fixture["request"].clone();
+        request["expected_snapshot"] = described["owner_snapshot"].clone();
+        let mut inspect = serde_json::json!({"schema_version":"tos_local_assessment_command_v1",
+            "operation":"inspect","subject_id":fixture["subject_id"],
+            "expected_subject":request["expected_subject"],"expected_snapshot":request["expected_snapshot"]});
+        if version == 2 {
+            inspect["operation"] = Value::from("materialize-form");
+            let pending = invoke(&inspect);
+            assert_eq!(
+                pending["result"]["materialization"]["state"],
+                "needs-assessment"
+            );
+            assert!(pending["result"]["materialization"]["display_text"].is_null());
+        }
+        let committed = invoke(&request);
+        assert_eq!(committed["result"]["current_admission"]["can_use"], true);
+        if version == 2 {
+            let ready = invoke(&inspect);
+            assert_eq!(ready["result"]["materialization"]["state"], "ready");
+            assert!(
+                ready["result"]["materialization"]["display_text"]
+                    .as_str()
+                    .is_some_and(|text| !text.is_empty())
+            );
+        } else {
+            assert_eq!(invoke(&inspect)["result"]["batch_count"], 1);
+        }
+        let replay = invoke(&request);
+        assert_eq!(replay["result"]["replayed"], true);
+        assert_eq!(replay["result"]["receipt"], committed["result"]["receipt"]);
+        let mut config: Value = serde_json::from_slice(&fs::read(&owner).unwrap()).unwrap();
+        let original_authority = config["authorities"][0].clone();
+        let authority = &mut config["authorities"][0];
+        authority["version"] = Value::from(
+            authority["version"]
+                .as_u64()
+                .unwrap()
+                .checked_add(1)
+                .unwrap(),
+        );
+        authority["payload"]["authority_version"] = Value::from(
+            authority["payload"]["authority_version"]
+                .as_u64()
+                .unwrap()
+                .checked_add(1)
+                .unwrap(),
+        );
+        authority["payload"]["state"] = Value::from("revoked");
+        fs::write(&owner, serde_json::to_vec(&config).unwrap()).unwrap();
+        fs::set_permissions(&owner, fs::Permissions::from_mode(0o600)).unwrap();
+        request["expected_snapshot"] = invoke(&describe)["owner_snapshot"].clone();
+        inspect["expected_snapshot"] = request["expected_snapshot"].clone();
+        if version == 2 {
+            let closed = invoke(&inspect);
+            assert_eq!(
+                closed["result"]["materialization"]["state"],
+                "needs-assessment"
+            );
+            assert!(closed["result"]["materialization"]["display_text"].is_null());
+        }
+        let revoked = invoke(&request);
+        assert_eq!(revoked["result"]["replayed"], true);
+        assert_eq!(
+            revoked["result"]["receipt"]["admission_at_commit"]["can_use"],
+            true
+        );
+        assert_eq!(revoked["result"]["current_admission"]["can_use"], false);
+        if version == 3 {
+            config["authorities"][0] = original_authority;
+            config["native_text_units"][0]["read_scope"] = Value::from("metadata_only");
+            fs::write(&owner, serde_json::to_vec(&config).unwrap()).unwrap();
+            fs::set_permissions(&owner, fs::Permissions::from_mode(0o600)).unwrap();
+            let metadata = invoke(&describe);
+            assert_eq!(
+                metadata["result"]["command_context"]["supported_operations"],
+                serde_json::json!(["describe", "inspect"])
+            );
+            request["expected_snapshot"] = metadata["owner_snapshot"].clone();
+            assert!(!observe(&request).0.success());
+        }
+        let mut unknown = describe.clone();
+        unknown["subject_id"] = Value::from("tos.subject.outside-public-selection");
+        assert!(!observe(&unknown).0.success());
+        for preserved in fixture["preserved"].as_array().unwrap() {
+            let digest = super::command_text_cases::alignment_image_digest(Path::new(
+                preserved["path"].as_str().unwrap(),
+            ));
+            assert_eq!(digest.to_hex(), preserved["sha256"].as_str().unwrap());
+        }
+        for (index, path) in images.iter().enumerate() {
+            assert_eq!(custody(path), before[index]);
+        }
+        assert!(Instant::now() < deadline);
+    }
 }

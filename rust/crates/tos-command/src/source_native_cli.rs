@@ -403,12 +403,15 @@ pub fn run(invocation_path: &Path, input: impl Read) -> SourceCommandResult<Valu
     }
     if source_invocation {
         let owner_path = absolute(text(&invocation, "owner_config")?)?;
-        let hint_raw = read_absolute(&owner_path, uid, true, MAX_REQUEST, deadline, &cancelled)?;
+        let hint_raw = read_absolute(&owner_path, uid, true, 8_388_608, deadline, &cancelled)?;
         let hint = cmd::parse(&hint_raw)?;
         // This protected hint routes code only. Each family independently
         // reselects its full grant/current owner boundary before any use.
         match cmd::text(&hint, "schema_version")? {
-            "tos_local_assessment_owner_v4"
+            "tos_local_assessment_owner_v1"
+            | "tos_local_assessment_owner_v2"
+            | "tos_local_assessment_owner_v3"
+            | "tos_local_assessment_owner_v4"
             | "tos_local_assessment_owner_v5"
             | "tos_local_assessment_owner_v6" => {
                 return private_assessment::run(
