@@ -347,3 +347,24 @@ The software archive owner still independently verifies all images/receipts and
 source identities at build, verify, and install. These source changes require
 matching native tests and the actual producer/download/package CI consumers;
 formatting or wrapper assertions alone do not establish that acceptance.
+
+## Independent KAG provider controls
+
+`tos-kag-provider-controls` owns the complete bounded provider control closure.
+Its `template`, `materialize` and `verify` actions accept an explicit
+`--template PATH`; the latter two also require `--root PATH`. `verify` reads
+the ordered receipt array on stdin; each action returns JSON on stdout and
+reports refusal on stderr with a nonzero status. It uses the foundation's
+`CorpusSnapshotV1` canonical profile, preserving `corpus_store.canonical` bytes.
+The source template and emitted closure are capped at 64 KiB; the nine route
+files, duplicate rejection, finite JSON, nonblank cards, new regular output
+paths, sizes, hashes and unchanged template remain native owner checks.
+
+The imported `scripts/kag_provider_controls.py` API requires this installed
+product (`TOS_KAG_PROVIDER_CONTROLS_BIN` may select it explicitly). It has no
+Python fallback. The exact pre-cutover Python source is retained in
+`scripts/kag_provider_controls_legacy_oracle.py` as an explicit cold oracle;
+maintained imports never execute it. The controlled `publish_kag_release.py`
+consumer retains its materialize/verify API. This source cutover requires native
+product and controlled publisher acceptance before deployment claims; it does
+not publish a KAG artifact or accept source, rights, canon or runtime authority.
