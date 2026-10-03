@@ -227,7 +227,7 @@ export async function verifyNativeWorker(request, wholeDeadline) {
   const args = ['--root', request.source_root, 'core-snapshot', '--operation', 'tos_native_serve',
     '--work-deadline-ns', startup.work_deadline_ns];
   let child, closed, refusal, stdoutBytes = 0, stderrBytes = 0, termStarted = false, killStarted = false;
-  let killTimer, deadlineTimer, logWrites = Promise.resolve();
+  let killTimer, deadlineTimer, readinessTimer, logWrites = Promise.resolve();
   let receiptChunks = [], receiptBytes = 0, receiptFinished = false, receiptResolve, receiptReject;
   const startupReceipt = new Promise((resolve, reject) => {receiptResolve = resolve; receiptReject = reject;});
   startupReceipt.catch(() => {}); // Terminal close may reject before the awaited readiness branch.
@@ -292,6 +292,7 @@ export async function verifyNativeWorker(request, wholeDeadline) {
   };
   try {
     remaining(deadline);
+    const readyDeadline = Math.min(deadline, Date.now() + startup.maximum_readiness_milliseconds);
     child = spawn(request.native_binary, args, {stdio});
     closed = new Promise(resolve => child.once('close', resolve));
     child.on('error', error => {refusal ??= error; receiptReject(error);});
@@ -301,10 +302,13 @@ export async function verifyNativeWorker(request, wholeDeadline) {
     child.stderr.on('data', bytes => observe(bytes, 'stderr'));
     process.on('SIGTERM', onSignal); process.on('SIGINT', onSignal);
     deadlineTimer = setTimeout(() => cancel(new Error('native server exceeds original verifier deadline')), Math.max(1, deadline - Date.now()));
+    readinessTimer = setTimeout(() => {
+      const error = new Error('native startup exceeds original readiness deadline');
+      receiptReject(error); cancel(error);
+    }, Math.max(1, readyDeadline - Date.now()));
     child.stdin.end(raw); // EXACT raw request; no JSON.stringify DTO and no synthesized admission.
     const heldStartup = await startupReceipt;
-    remaining(deadline);
-    const readyDeadline = Math.min(deadline, Date.now() + startup.maximum_readiness_milliseconds);
+    remaining(readyDeadline);
     for (;;) {
       remaining(readyDeadline);
       if (refusal) throw refusal;
@@ -313,7 +317,7 @@ export async function verifyNativeWorker(request, wholeDeadline) {
         const response = await fetch(nativeBase + '/health', {redirect: 'error', signal: AbortSignal.timeout(Math.max(1, readyDeadline - Date.now()))});
         if (response.status !== 200 || !response.body) throw new Error('native accepted readiness request failed');
         const reader = response.body.getReader(); let chunks = [], size = 0;
-        try {for (;;) {remaining(deadline); const {done,value} = await reader.read(); if (done) break; size += value.byteLength;
+        try {for (;;) {remaining(readyDeadline); const {done,value} = await reader.read(); if (done) break; size += value.byteLength;
           assert.ok(size <= request.maximum_response_bytes, 'native readiness packet exceeds bound'); chunks.push(value);}}
         finally {await reader.cancel();}
         const health = JSON.parse(new TextDecoder('utf-8', {fatal: true}).decode(Buffer.concat(chunks,size)));
@@ -325,6 +329,8 @@ export async function verifyNativeWorker(request, wholeDeadline) {
         await new Promise(resolve => setTimeout(resolve, Math.max(1, Math.min(50, readyDeadline - Date.now()))));
       }
     }
+    remaining(readyDeadline);
+    clearTimeout(readinessTimer);
     const receipt = await verifyHeldNativeWorker({...request, source_revision: heldStartup.source_revision, schema: 'tos_native_worker_reader_verification_v1'}, deadline);
     const code = await closed; // Native final callback/model/capture/evidence fences must naturally finish.
     if (refusal) throw refusal;
@@ -333,6 +339,7 @@ export async function verifyNativeWorker(request, wholeDeadline) {
   } catch (error) {
     cancel(error); throw error;
   } finally {
+    clearTimeout(readinessTimer);
     clearTimeout(deadlineTimer);
     if (running()) cancel(new Error('native verifier scope closed before server completion'));
     if (closed) await closed; // Do not release lifecycle scope before actual child close.
