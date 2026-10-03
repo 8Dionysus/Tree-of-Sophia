@@ -38,6 +38,9 @@ pub enum PinnedSqliteIoFailure {
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub struct PinnedSqliteIoSnapshot {
     pub read_attempted_bytes: u64,
+    /// Admitted logical guard envelopes included in attempted reads. These
+    /// are upper bounds, not measured payload or kernel transfer bytes.
+    pub read_upper_bound_attempted_bytes: u64,
     pub read_permitted_bytes: u64,
     pub read_returned_bytes: u64,
     /// Includes bytes submitted to `xWrite` and logical extension bytes
@@ -64,6 +67,8 @@ struct IoState {
     // alone would permit a charge to commit against a stale, larger limit.
     limits: Mutex<IoLimits>,
     read_attempted: AtomicU64,
+    read_upper_bound_attempted: AtomicU64,
+    read_upper_bound_permitted: AtomicU64,
     read_permitted: AtomicU64,
     read_returned: AtomicU64,
     write_attempted: AtomicU64,
@@ -97,6 +102,8 @@ impl PinnedSqliteIoBudget {
                 max_write: max_write_bytes,
             }),
             read_attempted: AtomicU64::new(0),
+            read_upper_bound_attempted: AtomicU64::new(0),
+            read_upper_bound_permitted: AtomicU64::new(0),
             read_permitted: AtomicU64::new(0),
             read_returned: AtomicU64::new(0),
             write_attempted: AtomicU64::new(0),
@@ -107,11 +114,28 @@ impl PinnedSqliteIoBudget {
     }
 
     pub fn charge_read(&self, bytes: u64) -> Result<()> {
+        self.charge_read_classified(bytes, false)
+    }
+
+    /// Debit a source-owned conservative metadata/guard envelope against the
+    /// same cumulative read ceiling. Keep its classification through denied
+    /// attempts; callers must not report this amount as returned payload.
+    pub fn charge_read_upper_bound(&self, bytes: u64) -> Result<()> {
+        self.charge_read_classified(bytes, true)
+    }
+
+    fn charge_read_classified(&self, bytes: u64, upper_bound: bool) -> Result<()> {
         let limits = self.0.limits.lock().map_err(|_| {
+            if upper_bound {
+                saturating_add(&self.0.read_upper_bound_attempted, bytes);
+            }
             saturating_add(&self.0.read_attempted, bytes);
             self.fail(PinnedSqliteIoFailure::Io);
             budget_error("SQLite logical I/O limit lock is poisoned")
         })?;
+        if upper_bound {
+            saturating_add(&self.0.read_upper_bound_attempted, bytes);
+        }
         if self.0.failure.load(Ordering::Acquire) != 0 {
             saturating_add(&self.0.read_attempted, bytes);
             return Err(budget_error(
@@ -127,7 +151,13 @@ impl PinnedSqliteIoBudget {
         .map_err(|_| {
             self.fail(PinnedSqliteIoFailure::ReadLimit);
             budget_error("SQLite cumulative read budget exceeded")
-        })
+        })?;
+        if upper_bound {
+            // The same limit lock protects total and tagged permits, so a
+            // payload return cannot borrow a metadata-only envelope.
+            saturating_add(&self.0.read_upper_bound_permitted, bytes);
+        }
+        Ok(())
     }
 
     pub fn charge_write(&self, bytes: u64) -> Result<()> {
@@ -155,9 +185,22 @@ impl PinnedSqliteIoBudget {
     }
 
     pub fn record_read_returned(&self, bytes: u64) -> Result<()> {
-        record_returned(&self.0.read_returned, &self.0.read_permitted, bytes).map_err(|_| {
+        let _limits = self.0.limits.lock().map_err(|_| {
             self.fail(PinnedSqliteIoFailure::Io);
-            budget_error("SQLite read return exceeded permitted bytes")
+            budget_error("SQLite logical I/O limit lock is poisoned")
+        })?;
+        let allowed = self
+            .0
+            .read_permitted
+            .load(Ordering::Acquire)
+            .checked_sub(self.0.read_upper_bound_permitted.load(Ordering::Acquire))
+            .ok_or_else(|| {
+                self.fail(PinnedSqliteIoFailure::Io);
+                budget_error("SQLite read permit classification regressed")
+            })?;
+        record_returned_up_to(&self.0.read_returned, allowed, bytes).map_err(|_| {
+            self.fail(PinnedSqliteIoFailure::Io);
+            budget_error("SQLite read return exceeded payload permits")
         })
     }
 
@@ -222,6 +265,10 @@ impl PinnedSqliteIoBudget {
     pub fn snapshot(&self) -> PinnedSqliteIoSnapshot {
         PinnedSqliteIoSnapshot {
             read_attempted_bytes: self.0.read_attempted.load(Ordering::Acquire),
+            read_upper_bound_attempted_bytes: self
+                .0
+                .read_upper_bound_attempted
+                .load(Ordering::Acquire),
             read_permitted_bytes: self.0.read_permitted.load(Ordering::Acquire),
             read_returned_bytes: self.0.read_returned.load(Ordering::Acquire),
             write_attempted_bytes: self.0.write_attempted.load(Ordering::Acquire),
@@ -255,7 +302,10 @@ fn charge(attempted: &AtomicU64, permitted: &AtomicU64, max: u64, bytes: u64) ->
 }
 
 fn record_returned(returned: &AtomicU64, permitted: &AtomicU64, bytes: u64) -> Result<()> {
-    let allowed = permitted.load(Ordering::Acquire);
+    record_returned_up_to(returned, permitted.load(Ordering::Acquire), bytes)
+}
+
+fn record_returned_up_to(returned: &AtomicU64, allowed: u64, bytes: u64) -> Result<()> {
     let mut current = returned.load(Ordering::Acquire);
     loop {
         let next = current
@@ -2125,6 +2175,27 @@ fn invalid(detail: &'static str) -> StoreError {
 #[cfg(test)]
 mod io_restriction_tests {
     use super::*;
+
+    #[test]
+    fn guard_upper_shares_ceiling_without_becoming_payload() {
+        let io = PinnedSqliteIoBudget::new(10, 10).unwrap();
+        let clone = io.clone();
+        clone.charge_read_upper_bound(3).unwrap();
+        io.charge_read(7).unwrap();
+        io.record_read_returned(7).unwrap();
+        assert!(clone.charge_read_upper_bound(1).is_err());
+        let seen = io.snapshot();
+        assert_eq!(seen.read_attempted_bytes, 11);
+        assert_eq!(seen.read_upper_bound_attempted_bytes, 4);
+        assert_eq!(seen.read_permitted_bytes, 10);
+        assert_eq!(seen.read_returned_bytes, 7);
+        assert_eq!(seen.failure, Some(PinnedSqliteIoFailure::ReadLimit));
+
+        let only_guard = PinnedSqliteIoBudget::new(10, 10).unwrap();
+        only_guard.charge_read_upper_bound(3).unwrap();
+        assert!(only_guard.record_read_returned(1).is_err());
+        assert_eq!(only_guard.snapshot().read_returned_bytes, 0);
+    }
 
     #[test]
     fn narrowing_keeps_identity_counters_and_inflight_permits() {
