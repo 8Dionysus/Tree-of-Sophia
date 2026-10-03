@@ -250,7 +250,7 @@ impl JpegDimensions {
 /// rehashed every observed present regular file and rechecked non-file classes.
 pub struct FoundationPayloadSources<'a> {
     sources: &'a mut RouteSources,
-    membership: PayloadMembership<'a>,
+    cut: &'a CorpusCutReader,
     deadline: Instant,
     cancelled: &'a AtomicBool,
     limits: PhysicalPayloadLimits,
@@ -267,12 +267,6 @@ pub struct FoundationPayloadSources<'a> {
     final_verification: bool,
     observations: usize,
     observed: BTreeMap<String, Observation>,
-}
-
-#[derive(Clone, Copy)]
-enum PayloadMembership<'a> {
-    Cut(&'a CorpusCutReader),
-    Candidate(&'a dyn tos_validation::record_biblio_cut::SourceCutInput),
 }
 
 impl<'a> FoundationPayloadSources<'a> {
@@ -319,38 +313,6 @@ impl<'a> FoundationPayloadSources<'a> {
         deadline: Instant,
         cancelled: &'a AtomicBool,
     ) -> Result<Self, ItemRefusal> {
-        Self::new_membership(
-            sources,
-            PayloadMembership::Cut(cut),
-            limits,
-            deadline,
-            cancelled,
-        )
-    }
-
-    pub(crate) fn new_candidate(
-        sources: &'a mut RouteSources,
-        input: &'a dyn tos_validation::record_biblio_cut::SourceCutInput,
-        limits: PhysicalPayloadLimits,
-        deadline: Instant,
-        cancelled: &'a AtomicBool,
-    ) -> Result<Self, ItemRefusal> {
-        Self::new_membership(
-            sources,
-            PayloadMembership::Candidate(input),
-            limits,
-            deadline,
-            cancelled,
-        )
-    }
-
-    fn new_membership(
-        sources: &'a mut RouteSources,
-        membership: PayloadMembership<'a>,
-        limits: PhysicalPayloadLimits,
-        deadline: Instant,
-        cancelled: &'a AtomicBool,
-    ) -> Result<Self, ItemRefusal> {
         let base_state_bytes = std::mem::size_of::<Self>();
         if limits.max_files == 0
             || limits.max_observations == 0
@@ -362,7 +324,7 @@ impl<'a> FoundationPayloadSources<'a> {
         }
         Ok(Self {
             sources,
-            membership,
+            cut,
             deadline,
             cancelled,
             limits,
@@ -812,13 +774,7 @@ impl<'a> FoundationPayloadSources<'a> {
     fn source_member(&self, path: &str) -> Result<bool, ItemRefusal> {
         let relative = RelativePath::parse(path)
             .map_err(|_| ItemRefusal::Unsupported("physical payload source membership".into()))?;
-        match self.membership {
-            PayloadMembership::Cut(cut) => Ok(cut.current().member(&relative).is_some()),
-            PayloadMembership::Candidate(input) => Ok(matches!(
-                input.path_presence(path, self.deadline, self.cancelled)?,
-                Some(tos_source_store::SourcePresenceV1::File)
-            )),
-        }
+        Ok(self.cut.current().member(&relative).is_some())
     }
 
     /// Revalidate all observed physical facts and return them for the

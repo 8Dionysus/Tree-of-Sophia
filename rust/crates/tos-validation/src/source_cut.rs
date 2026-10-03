@@ -28,10 +28,6 @@ use crate::item_rules::{
 };
 use crate::provenance_rules::{ProvenanceReport, ProvenanceRules, ProvenanceSource};
 use crate::record_rules::RecordFamily;
-use crate::source_foundation_schema::{
-    CandidateSourceFoundationSchemaSet, SOURCE_FOUNDATION_CONTRACT_PATHS, SelectedSchemaResource,
-    schema_resource_set_digest, source_foundation_schema_resource_uri,
-};
 use crate::{FormatProfile, SchemaBackendProbe, SchemaResource, published_value};
 
 /// Exact owner schema executor, with separately enforced process custody.
@@ -303,17 +299,9 @@ pub struct CutSchemaDiagnosticsLimits {
 /// worker, closure, unit, report, caps, and source bindings were checked.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CutSchemaDiagnostic {
-    source_revision: SourceRevision,
-    result: SchemaDiagnosticResult,
-}
-
-/// Verified diagnostics-v2 exchange result with no source identity imposed.
-/// A cut envelope adds a `SourceRevision`; a candidate envelope adds its own
-/// opaque typed fence. The worker bytes and aggregate accounting are shared.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct SchemaDiagnosticResult {
     path: String,
     contract: String,
+    source_revision: SourceRevision,
     source_raw_sha256: Digest256,
     decoded_instance_sha256: Digest256,
     aggregate_caps_sha256: Digest256,
@@ -334,28 +322,14 @@ pub struct SchemaDiagnosticResult {
 }
 
 impl CutSchemaDiagnostic {
-    pub fn source_revision(&self) -> SourceRevision {
-        self.source_revision
-    }
-    pub fn result(&self) -> &SchemaDiagnosticResult {
-        &self.result
-    }
-}
-
-impl std::ops::Deref for CutSchemaDiagnostic {
-    type Target = SchemaDiagnosticResult;
-
-    fn deref(&self) -> &Self::Target {
-        &self.result
-    }
-}
-
-impl SchemaDiagnosticResult {
     pub fn path(&self) -> &str {
         &self.path
     }
     pub fn contract(&self) -> &str {
         &self.contract
+    }
+    pub fn source_revision(&self) -> SourceRevision {
+        self.source_revision
     }
     pub fn source_raw_sha256(&self) -> Digest256 {
         self.source_raw_sha256
@@ -432,52 +406,6 @@ impl SchemaDiagnosticResult {
     }
 }
 
-/// Candidate-bound diagnostics-v2 result. The opaque input fence and exact
-/// prepared schema binding are retained beside the same verified worker result
-/// used by immutable-cut diagnostics.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct CandidateCutSchemaDiagnostic<I> {
-    input_identity: I,
-    schema_set_sha256: Digest256,
-    contract_selection_sha256: Digest256,
-    prepared_execution: CutPreparedSchemaExecutionBinding,
-    result: SchemaDiagnosticResult,
-}
-
-impl<I> CandidateCutSchemaDiagnostic<I> {
-    pub fn input_identity(&self) -> &I {
-        &self.input_identity
-    }
-
-    pub fn schema_set_sha256(&self) -> Digest256 {
-        self.schema_set_sha256
-    }
-
-    pub fn profile(&self) -> FormatProfile {
-        self.prepared_execution.schema_profile
-    }
-
-    pub fn contract_selection_sha256(&self) -> Digest256 {
-        self.contract_selection_sha256
-    }
-
-    pub fn prepared_execution_binding(&self) -> CutPreparedSchemaExecutionBinding {
-        self.prepared_execution
-    }
-
-    pub fn result(&self) -> &SchemaDiagnosticResult {
-        &self.result
-    }
-}
-
-impl<I> std::ops::Deref for CandidateCutSchemaDiagnostic<I> {
-    type Target = SchemaDiagnosticResult;
-
-    fn deref(&self) -> &Self::Target {
-        &self.result
-    }
-}
-
 /// Checked cumulative execution cost for complete diagnostics-v2 exchanges.
 /// Schema resources are counted as bytes read into each worker request; request
 /// and response fields are the measured wire byte counts, and CPU comes from
@@ -543,30 +471,13 @@ pub struct CutExecutionBinding {
     pub worker_sha256: Digest256,
 }
 
-/// Actual prepared-worker binding for schema execution over candidate input.
-/// It deliberately omits the selected cut's `SourceRevision`; candidate
-/// identity is carried by the source adapter's own opaque fence.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct CutPreparedSchemaExecutionBinding {
-    pub schema_profile: FormatProfile,
-    pub schema_set_sha256: Digest256,
-    pub worker_sha256: Digest256,
-    pub protocol: CutPreparedSchemaProtocol,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum CutPreparedSchemaProtocol {
-    LegacyScalar,
-    DiagnosticsV2 { caps_sha256: Digest256 },
-}
-
 /// Logical controller-workspace upper bound for preparing the exact schema
 /// resources selected from this cut. This reads authenticated member metadata
 /// only; it does not read or parse payload bytes. It bounds the transient
-/// constructor peak, including bounded schema-resource parsing workspace,
-/// rather than retained closure state. The shared worker image is accounted
-/// by its operation owner, and allocator bookkeeping/RSS remain governed by
-/// the caller's physical host envelope.
+/// constructor peak, including the full `SchemaBackendProbe::new` serde closure,
+/// rather than retained closure state. The shared worker image is accounted by
+/// its operation owner, and allocator bookkeeping/RSS remain governed by the
+/// caller's physical host envelope.
 pub fn cut_schema_resource_preparation_state_upper_bound(
     cut: &CorpusCutReader,
     deadline: Instant,
@@ -589,81 +500,6 @@ pub fn cut_schema_resource_preparation_state_upper_bound(
     let upper_bound = stats.upper_bound()?;
     check(deadline, cancelled)?;
     Ok(upper_bound)
-}
-
-/// Logical controller-workspace upper bound for preparing the exact schema
-/// resources selected from a streamed cut. This uses only authenticated
-/// member metadata and a bounded keyset walk; it does not read payload bytes or
-/// retain the whole member catalog in memory.
-pub fn streamed_cut_schema_resource_preparation_state_upper_bound(
-    cut: &StreamedCorpusCutReaderV1,
-    deadline: Instant,
-    cancelled: &AtomicBool,
-) -> Result<usize, ItemRefusal> {
-    let mut stats = SchemaResourcePreparationStats::default();
-    for_each_streamed_current_member(cut, deadline, cancelled, |_revision, member| {
-        let path = member.path.as_str();
-        if path.starts_with("ToS/contracts/") && path.ends_with(".schema.json") {
-            stats.add_schema(
-                path,
-                usize::try_from(member.size_bytes).map_err(|_| ItemRefusal::Budget)?,
-            )?;
-        }
-        Ok(())
-    })?;
-    let upper_bound = stats.upper_bound()?;
-    check(deadline, cancelled)?;
-    Ok(upper_bound)
-}
-
-/// Visit the current revision's metadata in keyset order and authenticate the
-/// census against its declared member count. Each index query and each visit
-/// is surrounded by liveness checks, including the terminal `None` query.
-fn for_each_streamed_current_member(
-    cut: &StreamedCorpusCutReaderV1,
-    deadline: Instant,
-    cancelled: &AtomicBool,
-    mut visit: impl FnMut(SourceRevision, &tos_source_store::MemberMetadata) -> Result<(), ItemRefusal>,
-) -> Result<SourceRevision, ItemRefusal> {
-    check(deadline, cancelled)?;
-    let current = cut.revision_at(0);
-    check(deadline, cancelled)?;
-    let current = current
-        .map_err(store_error)?
-        .ok_or_else(|| ItemRefusal::Source("streamed current revision absent".into()))?;
-    if current.revision != cut.current_revision() {
-        return Err(ItemRefusal::Source(
-            "streamed current revision identity mismatch".into(),
-        ));
-    }
-
-    let mut observed_members = 0u64;
-    let mut after: Option<RelativePath> = None;
-    loop {
-        check(deadline, cancelled)?;
-        let next = cut.member_after(current.revision, after.as_ref());
-        check(deadline, cancelled)?;
-        let Some(member) = next.map_err(store_error)? else {
-            break;
-        };
-        observed_members = observed_members
-            .checked_add(1)
-            .filter(|count| *count <= current.member_count)
-            .ok_or_else(|| {
-                ItemRefusal::Source("streamed current revision member count mismatch".into())
-            })?;
-        after = Some(member.path.clone());
-        let visited = visit(current.revision, &member);
-        check(deadline, cancelled)?;
-        visited?;
-    }
-    if observed_members != current.member_count {
-        return Err(ItemRefusal::Source(
-            "streamed current revision member count mismatch".into(),
-        ));
-    }
-    check(deadline, cancelled)?;
-    Ok(current.revision)
 }
 
 /// Shared resource-only accounting kernel for the source cut and the selected
@@ -730,67 +566,15 @@ impl SchemaResourcePreparationStats {
             .and_then(|bytes| bytes.checked_add(self.count.checked_mul(4096)?))
             .and_then(|bytes| bytes.checked_add(65536))
             .ok_or(ItemRefusal::Budget)?;
-        let selected_resource_metadata =
-            crate::source_foundation_schema::selected_source_resource_metadata_state_upper_bound(
-                self.count,
-            )
-            .ok_or(ItemRefusal::Budget)?;
         self.serde_workspace
             .checked_add(foundation_workspace)
             .and_then(|bytes| bytes.checked_add(closure_buffers))
-            .and_then(|bytes| bytes.checked_add(selected_resource_metadata))
             .ok_or(ItemRefusal::Budget)
     }
 }
 
-/// Conservative caller-side admission for selecting and compiling a complete
-/// candidate schema closure. It uses the same preparation kernel as cut
-/// workers, with the caller's declared maximum resource count, bytes and path
-/// length. Candidate adapters should reserve this before entering raw-member
-/// callbacks so source-owned input state and schema construction workspace are
-/// both inside one finite operation envelope.
-pub fn source_foundation_candidate_schema_preparation_state_upper_bound(
-    limits: crate::source_foundation_schema::SourceFoundationSchemaLimits,
-    max_source_resource_metadata_state_bytes: usize,
-) -> Result<usize, ItemRefusal> {
-    if !limits.validate() || max_source_resource_metadata_state_bytes == 0 {
-        return Err(ItemRefusal::Budget);
-    }
-    let count = limits.max_schema_resources;
-    let total_bytes = limits.max_total_schema_bytes;
-    let one_resource_serde = finite_serde_json_controller_workspace_upper_bound(total_bytes)?;
-    let per_extra_resource = std::mem::size_of::<serde_json::Value>()
-        .checked_mul(129)
-        .and_then(|bytes| bytes.checked_add(64))
-        .ok_or(ItemRefusal::Budget)?;
-    let serde_workspace = one_resource_serde
-        .checked_add(
-            count
-                .saturating_sub(1)
-                .checked_mul(per_extra_resource)
-                .ok_or(ItemRefusal::Budget)?,
-        )
-        .ok_or(ItemRefusal::Budget)?;
-    let stats = SchemaResourcePreparationStats {
-        count,
-        raw_bytes: total_bytes,
-        path_bytes: count
-            .checked_mul(crate::source_foundation_schema::MAX_LOCATION_BYTES)
-            .ok_or(ItemRefusal::Budget)?,
-        largest_resource: limits.max_schema_resource_bytes.min(total_bytes),
-        serde_workspace,
-    };
-    let preparation = stats.upper_bound()?;
-    let selected_metadata =
-        crate::source_foundation_schema::selected_source_resource_metadata_state_upper_bound(count)
-            .ok_or(ItemRefusal::Budget)?;
-    preparation
-        .checked_add(max_source_resource_metadata_state_bytes.saturating_sub(selected_metadata))
-        .ok_or(ItemRefusal::Budget)
-}
-
 pub struct CutWorkerSchemaExecutor {
-    revision: Option<SourceRevision>,
+    revision: SourceRevision,
     prepared: PreparedSchemaWorker,
     contracts: BTreeMap<String, (String, Digest256)>,
     schema_set_digest: Digest256,
@@ -799,8 +583,8 @@ pub struct CutWorkerSchemaExecutor {
     worker: ExactWorkerIdentity,
     budget: ExecutorBudget,
     limits: CutWorkerLimits,
-    scalar_check_count: usize,
     receipt_bytes: usize,
+    receipt_count: usize,
     receipts: Vec<CutSchemaReceipt>,
     diagnostics_v2: Option<CutSchemaDiagnosticsLimits>,
     diagnostics_v2_controller_state_cap: Option<usize>,
@@ -813,476 +597,9 @@ pub struct CutWorkerSchemaExecutor {
     diagnostic_issues_used: usize,
     diagnostic_report_bytes_used: usize,
     diagnostic_state_bytes_used: usize,
-    pending_diagnostics: Vec<SchemaDiagnosticResult>,
+    pending_diagnostics: Vec<CutSchemaDiagnostic>,
     finished: bool,
     protocol_started: bool,
-}
-
-/// Candidate-fenced wrapper around the same prepared schema executor used by
-/// immutable cuts. The input identity and selected source census stay typed;
-/// the inner worker has no SourceRevision and owns the same image, protocol,
-/// quota and cumulative diagnostics accounting as the cut route.
-pub struct CandidateCutWorkerSchemaExecutor<I> {
-    input_identity: I,
-    profile: FormatProfile,
-    schema_set_digest: Digest256,
-    contract_selection_digest: Digest256,
-    limits_digest: Digest256,
-    schema_bytes: usize,
-    source_resources: Vec<SelectedSchemaResource>,
-    source_resource_metadata_state_bytes: usize,
-    selected_contracts: BTreeMap<String, (String, Digest256)>,
-    catalog_entry_schema_present: bool,
-    catalog_claim_entry_schema_present: bool,
-    inner: CutWorkerSchemaExecutor,
-}
-
-impl<I: Copy + Eq> CandidateCutWorkerSchemaExecutor<I> {
-    /// Consume the exactly selected candidate closure into the established
-    /// worker preparation kernel. Resource bytes are moved into that kernel;
-    /// only the bounded fixity/path census and selected root bindings remain.
-    pub fn from_schema_set(
-        schema_set: CandidateSourceFoundationSchemaSet<I>,
-        image: &VerifiedWorkerImageHandle,
-        budget: ExecutorBudget,
-        limits: CutWorkerLimits,
-        deadline: Instant,
-        cancelled: &AtomicBool,
-    ) -> Result<Self, ItemRefusal> {
-        let operation_origin = Instant::now();
-        let deadline = deadline.min(image.operation_deadline());
-        check(deadline, cancelled)?;
-        if limits.max_receipts == 0
-            || limits.max_receipts == usize::MAX
-            || limits.max_receipt_bytes == 0
-            || limits.max_receipt_bytes == usize::MAX
-        {
-            return Err(ItemRefusal::Budget);
-        }
-        if schema_set.resources.is_empty()
-            || schema_set.resources.len() != schema_set.source_resources.len()
-            || schema_set.resources.len() > SchemaBackendProbe::MAX_RESOURCES
-        {
-            return Err(ItemRefusal::Source(
-                "candidate schema resource census is incomplete".into(),
-            ));
-        }
-
-        let mut worker_contracts = BTreeMap::new();
-        for (metadata, resource) in schema_set
-            .source_resources
-            .iter()
-            .zip(&schema_set.resources)
-        {
-            check(deadline, cancelled)?;
-            if metadata.path.is_empty()
-                || !metadata.path.starts_with("ToS/contracts/")
-                || !metadata.path.ends_with(".schema.json")
-                || metadata.size_bytes != resource.raw.len() as u64
-                || metadata.sha256 != Digest256::of_bytes(&resource.raw)
-                || worker_contracts
-                    .insert(
-                        metadata.path.clone(),
-                        (resource.uri.clone(), metadata.sha256),
-                    )
-                    .is_some()
-            {
-                return Err(ItemRefusal::Source(
-                    "candidate schema source bytes differ from selected metadata".into(),
-                ));
-            }
-        }
-        if worker_contracts.len() != schema_set.resources.len()
-            || schema_set.contracts.len() != SOURCE_FOUNDATION_CONTRACT_PATHS.len()
-        {
-            return Err(ItemRefusal::Source(
-                "candidate schema root selection is incomplete".into(),
-            ));
-        }
-        let source_resource_metadata_state_bytes =
-            crate::source_foundation_schema::selected_source_resource_metadata_state(
-                &schema_set.source_resources,
-                schema_set.source_resources.capacity(),
-            )
-            .ok_or(ItemRefusal::Budget)?;
-        let profile = schema_set.profile;
-        let schema_set_digest = schema_set.schema_set_sha256;
-        let contract_selection_digest = schema_set.contract_selection_sha256;
-        let limits_digest = schema_set.limits_sha256;
-        let schema_bytes = schema_set.schema_bytes;
-        let catalog_entry_schema_present = schema_set.catalog_entry_schema_present;
-        let catalog_claim_entry_schema_present = schema_set.catalog_claim_entry_schema_present;
-        let inner = CutWorkerSchemaExecutor::prepare_selected_resources(
-            None,
-            worker_contracts,
-            schema_set.resources,
-            profile,
-            image.identity().clone(),
-            Some(image),
-            budget,
-            limits,
-            deadline,
-            cancelled,
-            operation_origin,
-        )?;
-        if inner.schema_set_digest != schema_set_digest
-            || inner.profile != profile
-            || inner.worker.sha256 != image.identity().sha256
-        {
-            return Err(ItemRefusal::Source(
-                "candidate prepared schema worker binding differs from selected source".into(),
-            ));
-        }
-        check(deadline, cancelled)?;
-        Ok(Self {
-            input_identity: schema_set.input_identity,
-            profile,
-            schema_set_digest,
-            contract_selection_digest,
-            limits_digest,
-            schema_bytes,
-            source_resources: schema_set.source_resources,
-            source_resource_metadata_state_bytes,
-            selected_contracts: schema_set.contracts,
-            catalog_entry_schema_present,
-            catalog_claim_entry_schema_present,
-            inner,
-        })
-    }
-
-    pub fn input_identity(&self) -> &I {
-        &self.input_identity
-    }
-
-    pub fn profile(&self) -> FormatProfile {
-        self.profile
-    }
-
-    pub fn schema_set_digest(&self) -> Digest256 {
-        self.schema_set_digest
-    }
-
-    pub fn contract_selection_digest(&self) -> Digest256 {
-        self.contract_selection_digest
-    }
-
-    pub fn contract_digest(&self, contract: &str) -> Option<Digest256> {
-        let base = contract.split_once('#').map_or(contract, |(base, _)| base);
-        self.selected_contracts.get(base).map(|(_, digest)| *digest)
-    }
-
-    pub fn source_resources(
-        &self,
-    ) -> impl Iterator<Item = crate::source_foundation_schema::SourceFoundationSelectedSchemaResource<'_>>
-    {
-        self.source_resources.iter().map(|resource| {
-            crate::source_foundation_schema::SourceFoundationSelectedSchemaResource {
-                path: &resource.path,
-                size_bytes: resource.size_bytes,
-                sha256: resource.sha256,
-            }
-        })
-    }
-
-    pub fn source_resource_count(&self) -> usize {
-        self.source_resources.len()
-    }
-
-    pub fn source_resource_metadata_state_bytes(&self) -> Option<usize> {
-        Some(self.source_resource_metadata_state_bytes)
-    }
-
-    pub fn schema_bytes(&self) -> usize {
-        self.schema_bytes
-    }
-
-    pub fn limits_sha256(&self) -> Digest256 {
-        self.limits_digest
-    }
-
-    pub fn catalog_entry_schema_present(&self) -> bool {
-        self.catalog_entry_schema_present
-    }
-
-    pub fn catalog_claim_entry_schema_present(&self) -> bool {
-        self.catalog_claim_entry_schema_present
-    }
-
-    pub fn prepared_execution_binding(&self) -> CutPreparedSchemaExecutionBinding {
-        self.inner.prepared_execution_binding()
-    }
-
-    pub fn set_operation_budget(&mut self, budget: BatchStreamBudget) -> Result<(), ItemRefusal> {
-        self.inner.set_operation_budget(budget)
-    }
-
-    pub fn set_shared_schema_worker_quota(
-        &mut self,
-        quota: SharedSchemaWorkerQuota,
-    ) -> Result<(), ItemRefusal> {
-        self.inner.set_shared_schema_worker_quota(quota)
-    }
-
-    pub fn enable_diagnostics_v2(
-        &mut self,
-        limits: CutSchemaDiagnosticsLimits,
-    ) -> Result<(), ItemRefusal> {
-        self.inner.enable_diagnostics_v2(limits)
-    }
-
-    pub fn set_diagnostics_v2_controller_state_cap(
-        &mut self,
-        cap_bytes: usize,
-    ) -> Result<(), ItemRefusal> {
-        self.inner
-            .set_diagnostics_v2_controller_state_cap(cap_bytes)
-    }
-
-    pub fn diagnostics_v2_controller_state_upper_bound(
-        &self,
-        max_instance_bytes: usize,
-        max_path_bytes: usize,
-    ) -> Result<usize, ItemRefusal> {
-        let base = self
-            .inner
-            .diagnostics_v2_controller_state_upper_bound(max_instance_bytes, max_path_bytes)?;
-        let envelope = std::mem::size_of::<CandidateCutSchemaDiagnostic<I>>();
-        let shared_result = std::mem::size_of::<SchemaDiagnosticResult>();
-        let typed_and_boxed = envelope
-            .checked_mul(2)
-            .and_then(|bytes| bytes.checked_sub(shared_result))
-            .ok_or(ItemRefusal::Budget)?;
-        base.checked_add(typed_and_boxed).ok_or(ItemRefusal::Budget)
-    }
-
-    pub fn check_diagnostics_v2(
-        &mut self,
-        path: &str,
-        raw: &[u8],
-        contract: &str,
-        deadline: Instant,
-        cancelled: &AtomicBool,
-    ) -> Result<CandidateCutSchemaDiagnostic<I>, ItemRefusal> {
-        let mut result = self
-            .inner
-            .check_diagnostics_v2_result(path, raw, contract, deadline, cancelled)?;
-        self.account_candidate_envelope_state(&mut result)?;
-        Ok(self.envelope(result))
-    }
-
-    pub fn take_schema_diagnostic_rejection(&mut self) -> Option<CandidateCutSchemaDiagnostic<I>> {
-        self.inner
-            .take_candidate_schema_diagnostic_rejection()
-            .map(|result| self.envelope(result))
-    }
-
-    pub fn diagnostic_execution_count(&self) -> Result<usize, ItemRefusal> {
-        if self.inner.diagnostics_v2.is_none() || self.inner.diagnostics_v2_cost_unknown {
-            return Err(ItemRefusal::Unsupported(
-                "candidate diagnostics-v2 execution count is unavailable".into(),
-            ));
-        }
-        Ok(self.inner.diagnostic_executions)
-    }
-
-    pub fn diagnostics_v2_cumulative_cost(
-        &self,
-    ) -> Result<CutSchemaDiagnosticsCumulativeCost, ItemRefusal> {
-        self.inner.diagnostics_v2_cumulative_cost()
-    }
-
-    fn envelope(&self, result: SchemaDiagnosticResult) -> CandidateCutSchemaDiagnostic<I> {
-        CandidateCutSchemaDiagnostic {
-            input_identity: self.input_identity,
-            schema_set_sha256: self.schema_set_digest,
-            contract_selection_sha256: self.contract_selection_digest,
-            prepared_execution: self.prepared_execution_binding(),
-            result,
-        }
-    }
-
-    fn account_candidate_envelope_state(
-        &mut self,
-        result: &mut SchemaDiagnosticResult,
-    ) -> Result<(), ItemRefusal> {
-        let envelope_bytes = std::mem::size_of::<CandidateCutSchemaDiagnostic<I>>();
-        let result_header_bytes = std::mem::size_of::<SchemaDiagnosticResult>();
-        let extra = envelope_bytes
-            .checked_mul(2)
-            .and_then(|bytes| bytes.checked_sub(result_header_bytes))
-            .ok_or(ItemRefusal::Budget)?;
-        let limits = self
-            .inner
-            .diagnostics_v2
-            .ok_or_else(|| ItemRefusal::Unsupported("schema diagnostics v2 not selected".into()))?;
-        let used = self
-            .inner
-            .diagnostic_state_bytes_used
-            .checked_add(extra)
-            .ok_or(ItemRefusal::Budget)?;
-        if used > limits.max_total_state_bytes {
-            self.inner.prepared.poison(ExecutorFailure::InputBudget);
-            self.inner.pending_diagnostics.clear();
-            self.inner.pending_diagnostics.shrink_to_fit();
-            return Err(ItemRefusal::BudgetCheck {
-                check: "candidate schema diagnostics typed envelope state",
-                used: u64::try_from(used).ok(),
-                limit: u64::try_from(limits.max_total_state_bytes).ok(),
-            });
-        }
-        let accounted_state_bytes = result
-            .accounted_state_bytes
-            .checked_add(extra)
-            .ok_or(ItemRefusal::Budget)?;
-        result.accounted_state_bytes = accounted_state_bytes;
-        self.inner.diagnostic_state_bytes_used = used;
-        Ok(())
-    }
-}
-
-impl<I: Copy + Eq> CutSchemaExecutor for CandidateCutWorkerSchemaExecutor<I> {
-    fn check(
-        &mut self,
-        path: &str,
-        raw: &[u8],
-        contract: &str,
-        deadline: Instant,
-        cancelled: &AtomicBool,
-    ) -> Result<bool, ItemRefusal> {
-        let previous_pending = self.inner.pending_diagnostics.len();
-        let result = self.inner.check(path, raw, contract, deadline, cancelled)?;
-        if self.inner.pending_diagnostics.len() > previous_pending {
-            let mut diagnostic = self
-                .inner
-                .pending_diagnostics
-                .pop()
-                .ok_or(ItemRefusal::Budget)?;
-            self.account_candidate_envelope_state(&mut diagnostic)?;
-            self.inner.pending_diagnostics.push(diagnostic);
-        }
-        Ok(result)
-    }
-
-    fn check_reusing_scalar(
-        &mut self,
-        path: &str,
-        raw: &[u8],
-        contract: &str,
-        deadline: Instant,
-        cancelled: &AtomicBool,
-    ) -> Result<bool, ItemRefusal> {
-        self.check(path, raw, contract, deadline, cancelled)
-    }
-
-    fn schema_input_cost(
-        &self,
-        path: &str,
-        raw: &[u8],
-        contract: &str,
-        ordinal: u64,
-    ) -> Result<CutSchemaInputCost, ItemRefusal> {
-        CutSchemaExecutor::schema_input_cost(&self.inner, path, raw, contract, ordinal)
-    }
-
-    fn set_operation_budget(&mut self, budget: BatchStreamBudget) -> Result<(), ItemRefusal> {
-        self.inner.set_operation_budget(budget)
-    }
-
-    fn set_shared_schema_worker_quota(
-        &mut self,
-        quota: SharedSchemaWorkerQuota,
-    ) -> Result<(), ItemRefusal> {
-        self.inner.set_shared_schema_worker_quota(quota)
-    }
-
-    fn finish(&mut self, deadline: Instant, cancelled: &AtomicBool) -> Result<(), ItemRefusal> {
-        CutSchemaExecutor::finish(&mut self.inner, deadline, cancelled)
-    }
-
-    fn check_batch(
-        &mut self,
-        checks: &[CutSchemaCheck],
-        budget: BatchBudget,
-        deadline: Instant,
-        cancelled: &AtomicBool,
-    ) -> Result<Vec<bool>, ItemRefusal> {
-        CutSchemaExecutor::check_batch(&mut self.inner, checks, budget, deadline, cancelled)
-    }
-}
-
-impl<I: Copy + Eq> crate::source_foundation_records::SourceFoundationCandidateSchemaBinding<I>
-    for CandidateCutWorkerSchemaExecutor<I>
-{
-    fn input_identity(&self) -> &I {
-        CandidateCutWorkerSchemaExecutor::input_identity(self)
-    }
-
-    fn prepared_execution_binding(&self) -> CutPreparedSchemaExecutionBinding {
-        CandidateCutWorkerSchemaExecutor::prepared_execution_binding(self)
-    }
-
-    fn profile(&self) -> FormatProfile {
-        CandidateCutWorkerSchemaExecutor::profile(self)
-    }
-
-    fn schema_set_digest(&self) -> Digest256 {
-        CandidateCutWorkerSchemaExecutor::schema_set_digest(self)
-    }
-
-    fn contract_selection_digest(&self) -> Digest256 {
-        CandidateCutWorkerSchemaExecutor::contract_selection_digest(self)
-    }
-
-    fn contract_digest(&self, contract: &str) -> Option<Digest256> {
-        CandidateCutWorkerSchemaExecutor::contract_digest(self, contract)
-    }
-
-    fn for_each_selected_resource(
-        &self,
-        visit: &mut dyn FnMut(
-            crate::source_foundation_records::SourceFoundationCandidateSchemaResource<'_>,
-        ) -> Result<(), ItemRefusal>,
-    ) -> Result<(), ItemRefusal> {
-        for resource in self.source_resources() {
-            visit(
-                crate::source_foundation_records::SourceFoundationCandidateSchemaResource {
-                    path: resource.path,
-                    size_bytes: resource.size_bytes,
-                    sha256: resource.sha256,
-                },
-            )?;
-        }
-        Ok(())
-    }
-
-    fn check_diagnostics_v2(
-        &mut self,
-        path: &str,
-        raw: &[u8],
-        contract: &str,
-        deadline: Instant,
-        cancelled: &AtomicBool,
-    ) -> Result<CandidateCutSchemaDiagnostic<I>, ItemRefusal> {
-        CandidateCutWorkerSchemaExecutor::check_diagnostics_v2(
-            self, path, raw, contract, deadline, cancelled,
-        )
-    }
-
-    fn take_schema_diagnostic_rejection(
-        &mut self,
-    ) -> Result<Option<CandidateCutSchemaDiagnostic<I>>, ItemRefusal> {
-        Ok(CandidateCutWorkerSchemaExecutor::take_schema_diagnostic_rejection(self))
-    }
-
-    fn diagnostic_execution_count(&self) -> Result<usize, ItemRefusal> {
-        CandidateCutWorkerSchemaExecutor::diagnostic_execution_count(self)
-    }
-
-    fn diagnostics_v2_cumulative_cost(
-        &self,
-    ) -> Result<CutSchemaDiagnosticsCumulativeCost, ItemRefusal> {
-        CandidateCutWorkerSchemaExecutor::diagnostics_v2_cumulative_cost(self)
-    }
 }
 
 impl CutWorkerSchemaExecutor {
@@ -1391,7 +708,7 @@ impl CutWorkerSchemaExecutor {
             });
         }
         Self::prepare_selected_resources(
-            Some(revision),
+            revision,
             contracts,
             resources,
             profile,
@@ -1430,56 +747,65 @@ impl CutWorkerSchemaExecutor {
         {
             return Err(ItemRefusal::Budget);
         }
+        let revision = cut
+            .revision_at(0)
+            .map_err(store_error)?
+            .ok_or_else(|| ItemRefusal::Source("streamed current revision absent".into()))?
+            .revision;
         let mut resources = Vec::new();
         let mut contracts = BTreeMap::new();
         let mut total_bytes = 0usize;
         // Derive schema membership from the exact anchored manifest and read
         // only those selected bytes. A narrow retirement must not scan an
         // unrelated surviving raw source while compiling its schema closure.
-        let revision =
-            for_each_streamed_current_member(cut, deadline, cancelled, |revision, metadata| {
-                let path = metadata.path.as_str();
-                if !path.starts_with("ToS/contracts/") || !path.ends_with(".schema.json") {
-                    return Ok(());
-                }
-                let member = cut
-                    .read_member(
-                        revision,
-                        &metadata.path,
-                        SchemaBackendProbe::MAX_RESOURCE_BYTES as u64,
-                        deadline,
-                        cancelled,
-                    )
-                    .map_err(store_error)?;
-                total_bytes = total_bytes
-                    .checked_add(member.raw.len())
-                    .filter(|n| *n <= SchemaBackendProbe::MAX_TOTAL_BYTES)
-                    .ok_or(ItemRefusal::Budget)?;
-                if resources.len() >= SchemaBackendProbe::MAX_RESOURCES
-                    || member.raw.len() > SchemaBackendProbe::MAX_RESOURCE_BYTES
-                {
-                    return Err(ItemRefusal::Budget);
-                }
-                let value = published_value(&member.raw, SchemaBackendProbe::MAX_RESOURCE_BYTES)
-                    .map_err(|error| {
-                        ItemRefusal::Unsupported(format!("schema resource {path}: {error:?}"))
-                    })?;
-                let uri = value["$id"]
-                    .as_str()
-                    .ok_or_else(|| ItemRefusal::Unsupported("schema resource ID".into()))?
-                    .to_owned();
-                contracts.insert(
-                    path.to_owned(),
-                    (uri.clone(), Digest256::of_bytes(&member.raw)),
-                );
-                resources.push(SchemaResource {
-                    uri,
-                    raw: member.raw,
-                });
-                Ok(())
-            })?;
+        let mut after: Option<RelativePath> = None;
+        while let Some(metadata) = cut
+            .member_after(revision, after.as_ref())
+            .map_err(store_error)?
+        {
+            after = Some(metadata.path.clone());
+            check(deadline, cancelled)?;
+            let path = metadata.path.as_str();
+            if !path.starts_with("ToS/contracts/") || !path.ends_with(".schema.json") {
+                continue;
+            }
+            let member = cut
+                .read_member(
+                    revision,
+                    &metadata.path,
+                    SchemaBackendProbe::MAX_RESOURCE_BYTES as u64,
+                    deadline,
+                    cancelled,
+                )
+                .map_err(store_error)?;
+            total_bytes = total_bytes
+                .checked_add(member.raw.len())
+                .filter(|n| *n <= SchemaBackendProbe::MAX_TOTAL_BYTES)
+                .ok_or(ItemRefusal::Budget)?;
+            if resources.len() >= SchemaBackendProbe::MAX_RESOURCES
+                || member.raw.len() > SchemaBackendProbe::MAX_RESOURCE_BYTES
+            {
+                return Err(ItemRefusal::Budget);
+            }
+            let value = published_value(&member.raw, SchemaBackendProbe::MAX_RESOURCE_BYTES)
+                .map_err(|error| {
+                    ItemRefusal::Unsupported(format!("schema resource {path}: {error:?}"))
+                })?;
+            let uri = value["$id"]
+                .as_str()
+                .ok_or_else(|| ItemRefusal::Unsupported("schema resource ID".into()))?
+                .to_owned();
+            contracts.insert(
+                path.to_owned(),
+                (uri.clone(), Digest256::of_bytes(&member.raw)),
+            );
+            resources.push(SchemaResource {
+                uri,
+                raw: member.raw,
+            });
+        }
         Self::prepare_selected_resources(
-            Some(revision),
+            revision,
             contracts,
             resources,
             profile,
@@ -1508,7 +834,7 @@ impl CutWorkerSchemaExecutor {
         cancelled: &AtomicBool,
     ) -> Result<Self, ItemRefusal> {
         Self::prepare_selected_resources(
-            Some(revision),
+            revision,
             contracts,
             resources,
             profile,
@@ -1523,7 +849,7 @@ impl CutWorkerSchemaExecutor {
     }
 
     fn prepare_selected_resources(
-        revision: Option<SourceRevision>,
+        revision: SourceRevision,
         contracts: BTreeMap<String, (String, Digest256)>,
         resources: Vec<SchemaResource>,
         profile: FormatProfile,
@@ -1585,18 +911,11 @@ impl CutWorkerSchemaExecutor {
                 .filter(|n| *n <= SchemaBackendProbe::MAX_TOTAL_BYTES)
                 .ok_or(ItemRefusal::Budget)?;
         }
-        for resource in &resources {
-            check(deadline, cancelled)?;
-            let value = published_value(&resource.raw, SchemaBackendProbe::MAX_RESOURCE_BYTES)
-                .map_err(|_| ItemRefusal::Unsupported("schema resource".into()))?;
-            if source_foundation_schema_resource_uri(&value) != Some(resource.uri.as_str()) {
-                return Err(ItemRefusal::Unsupported(
-                    "schema resource identifier".into(),
-                ));
-            }
-        }
-        let schema_set_digest = schema_resource_set_digest(&resources)
-            .ok_or_else(|| ItemRefusal::Unsupported("schema resource closure".into()))?;
+        let schema_set_digest = SchemaBackendProbe::new(resources.clone(), profile)
+            .map_err(|error| {
+                ItemRefusal::Unsupported(format!("schema resource closure: {error:?}"))
+            })?
+            .schema_set_digest();
         check(deadline, cancelled)?;
         let prepared_result = match image {
             Some(image) => PreparedSchemaWorker::prepare_with_image(
@@ -1633,8 +952,8 @@ impl CutWorkerSchemaExecutor {
             worker,
             budget,
             limits,
-            scalar_check_count: 0,
             receipt_bytes: 0,
+            receipt_count: 0,
             receipts: Vec::new(),
             diagnostics_v2: None,
             diagnostics_v2_controller_state_cap: None,
@@ -1692,7 +1011,7 @@ impl CutWorkerSchemaExecutor {
             || self.protocol_started
             || self.diagnostic_executions != 0
             || self.diagnostics_v2_controller_state_cap.is_some()
-            || !self.receipts.is_empty()
+            || self.receipt_count != 0
             || self.finished
         {
             return Err(ItemRefusal::Unsupported(
@@ -1714,7 +1033,7 @@ impl CutWorkerSchemaExecutor {
     ) -> Result<(), ItemRefusal> {
         if self.diagnostics_v2.is_some()
             || self.diagnostic_executions != 0
-            || !self.receipts.is_empty()
+            || self.receipt_count != 0
             || self.finished
             || self.protocol_started
         {
@@ -1757,7 +1076,7 @@ impl CutWorkerSchemaExecutor {
             || self.diagnostics_v2_controller_state_cap.is_some()
             || self.protocol_started
             || self.diagnostic_executions != 0
-            || !self.receipts.is_empty()
+            || self.receipt_count != 0
             || self.finished
             || max_instance_bytes == 0
             || self.diagnostics_v2_legacy_selected_limits.is_some()
@@ -1793,7 +1112,7 @@ impl CutWorkerSchemaExecutor {
             || self.diagnostics_v2_shared_quota_attached
             || self.protocol_started
             || self.diagnostic_executions != 0
-            || !self.receipts.is_empty()
+            || self.receipt_count != 0
             || self.finished
             || limits.validate().is_err()
             || limits.max_instance_bytes > operation.batch.max_total_raw_bytes
@@ -1973,11 +1292,11 @@ impl CutWorkerSchemaExecutor {
             .diagnostics_v2_request_response_bytes_upper_bound(request_bytes)
             .map_err(operation_failure)?;
 
-        let pending_capacity_state = std::mem::size_of::<Vec<SchemaDiagnosticResult>>()
+        let pending_capacity_state = std::mem::size_of::<Vec<CutSchemaDiagnostic>>()
             .checked_add(
                 self.pending_diagnostics
                     .capacity()
-                    .checked_mul(std::mem::size_of::<SchemaDiagnosticResult>())
+                    .checked_mul(std::mem::size_of::<CutSchemaDiagnostic>())
                     .ok_or(ItemRefusal::Budget)?,
             )
             .ok_or(ItemRefusal::Budget)?;
@@ -1995,7 +1314,7 @@ impl CutWorkerSchemaExecutor {
             .ok_or(ItemRefusal::Budget)?;
         let retained_schema_closure_bytes = self.prepared.encoded_schema_resource_buffer_bytes();
         let issue_workspace = diagnostic_issue_workspace_upper_bound()?;
-        let future_diagnostic_state = std::mem::size_of::<SchemaDiagnosticResult>()
+        let future_diagnostic_state = std::mem::size_of::<CutSchemaDiagnostic>()
             .checked_add(std::mem::size_of::<SchemaDiagnosticsCheckpoint>())
             .and_then(|bytes| bytes.checked_add(std::mem::size_of::<SchemaDiagnosticUnit>()))
             .and_then(|bytes| bytes.checked_add(std::mem::size_of::<BatchUnit>().checked_mul(3)?))
@@ -2009,7 +1328,7 @@ impl CutWorkerSchemaExecutor {
             .pending_diagnostics
             .capacity()
             .max(1)
-            .checked_mul(std::mem::size_of::<SchemaDiagnosticResult>())
+            .checked_mul(std::mem::size_of::<CutSchemaDiagnostic>())
             .ok_or(ItemRefusal::Budget)?;
         let input_instance_copies = max_instance_bytes
             .checked_mul(2)
@@ -2162,26 +1481,6 @@ impl CutWorkerSchemaExecutor {
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> Result<CutSchemaDiagnostic, ItemRefusal> {
-        let source_revision = self.revision.ok_or_else(|| {
-            ItemRefusal::Unsupported(
-                "candidate diagnostics require the typed candidate result envelope".into(),
-            )
-        })?;
-        let result = self.check_diagnostics_v2_result(path, raw, contract, deadline, cancelled)?;
-        Ok(CutSchemaDiagnostic {
-            source_revision,
-            result,
-        })
-    }
-
-    pub(crate) fn check_diagnostics_v2_result(
-        &mut self,
-        path: &str,
-        raw: &[u8],
-        contract: &str,
-        deadline: Instant,
-        cancelled: &AtomicBool,
-    ) -> Result<SchemaDiagnosticResult, ItemRefusal> {
         if self.diagnostics_v2.is_none() {
             return Err(ItemRefusal::Unsupported(
                 "schema diagnostics v2 not selected".into(),
@@ -2207,11 +1506,6 @@ impl CutWorkerSchemaExecutor {
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> Result<CutSchemaDiagnostic, ItemRefusal> {
-        let source_revision = self.revision.ok_or_else(|| {
-            ItemRefusal::Unsupported(
-                "candidate diagnostics require the typed candidate result envelope".into(),
-            )
-        })?;
         let limits = self.diagnostics_v2_legacy_selected_limits.ok_or_else(|| {
             ItemRefusal::Unsupported("selected Legacy diagnostics-v2 limits not selected".into())
         })?;
@@ -2233,33 +1527,16 @@ impl CutWorkerSchemaExecutor {
             self.diagnostics_v2_cost_unknown = true;
             self.prepared.poison(ExecutorFailure::Protocol);
         }
-        result.map(|result| CutSchemaDiagnostic {
-            source_revision,
-            result,
-        })
+        result
     }
 
     /// Retrieve the next actual complete invalid diagnostics report produced
     /// through the trait's bool projection. Valid v2 reports are not retained.
     pub fn take_schema_diagnostic_rejection(&mut self) -> Option<CutSchemaDiagnostic> {
-        let source_revision = self.revision?;
         let index = self
             .pending_diagnostics
             .iter()
-            .position(SchemaDiagnosticResult::is_invalid)?;
-        Some(CutSchemaDiagnostic {
-            source_revision,
-            result: self.pending_diagnostics.remove(index),
-        })
-    }
-
-    pub(crate) fn take_candidate_schema_diagnostic_rejection(
-        &mut self,
-    ) -> Option<SchemaDiagnosticResult> {
-        let index = self
-            .pending_diagnostics
-            .iter()
-            .position(SchemaDiagnosticResult::is_invalid)?;
+            .position(CutSchemaDiagnostic::is_invalid)?;
         Some(self.pending_diagnostics.remove(index))
     }
 
@@ -2269,15 +1546,34 @@ impl CutWorkerSchemaExecutor {
     pub(crate) fn take_spooled_diagnostics_v2_status_refusal(
         &mut self,
     ) -> Option<CutSchemaDiagnostic> {
-        let source_revision = self.revision?;
         let index = self
             .pending_diagnostics
             .iter()
             .position(|diagnostic| !diagnostic.is_valid() && !diagnostic.is_invalid())?;
-        Some(CutSchemaDiagnostic {
-            source_revision,
-            result: self.pending_diagnostics.remove(index),
-        })
+        Some(self.pending_diagnostics.remove(index))
+    }
+
+    fn produce_diagnostics_v2_terminal(
+        &mut self,
+        path: &str,
+        raw: &[u8],
+        contract: &str,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<CutSchemaDiagnostic, ItemRefusal> {
+        let diagnostic = if self.diagnostics_v2_legacy_selected_limits.is_some() {
+            self.check_diagnostics_v2_legacy_selected(path, raw, contract, deadline, cancelled)?
+        } else {
+            self.check_diagnostics_v2(path, raw, contract, deadline, cancelled)?
+        };
+        if diagnostic.is_valid() || diagnostic.is_invalid() {
+            return Ok(diagnostic);
+        }
+        self.prepared.poison(ExecutorFailure::Protocol);
+        self.diagnostics_v2_cost_unknown = true;
+        Err(ItemRefusal::Unsupported(
+            "cut schema diagnostics status incomplete".into(),
+        ))
     }
 
     /// Spool-only opt-in for retaining a fully authenticated non-verdict
@@ -2291,11 +1587,6 @@ impl CutWorkerSchemaExecutor {
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> Result<CutSchemaDiagnostic, ItemRefusal> {
-        let source_revision = self.revision.ok_or_else(|| {
-            ItemRefusal::Unsupported(
-                "candidate diagnostics require the typed candidate result envelope".into(),
-            )
-        })?;
         let result = self.check_diagnostics_v2_inner_with_selected_limits(
             path,
             raw,
@@ -2309,17 +1600,13 @@ impl CutWorkerSchemaExecutor {
             self.diagnostics_v2_cost_unknown = true;
             self.prepared.poison(ExecutorFailure::Protocol);
         }
-        result.map(|result| CutSchemaDiagnostic {
-            source_revision,
-            result,
-        })
+        result
     }
 
     fn retain_pending_diagnostic(
         &mut self,
-        diagnostic: SchemaDiagnosticResult,
+        mut diagnostic: CutSchemaDiagnostic,
     ) -> Result<(), ItemRefusal> {
-        let mut diagnostic = diagnostic;
         self.precharge_pending_diagnostic(&mut diagnostic)?;
         if self.pending_diagnostics.len() >= self.pending_diagnostics.capacity() {
             self.prepared.poison(ExecutorFailure::Protocol);
@@ -2333,7 +1620,7 @@ impl CutWorkerSchemaExecutor {
 
     fn precharge_pending_diagnostic(
         &mut self,
-        diagnostic: &mut SchemaDiagnosticResult,
+        diagnostic: &mut CutSchemaDiagnostic,
     ) -> Result<(), ItemRefusal> {
         let limits = self
             .diagnostics_v2
@@ -2346,7 +1633,7 @@ impl CutWorkerSchemaExecutor {
         let previous_bytes = self
             .pending_diagnostics
             .capacity()
-            .checked_mul(std::mem::size_of::<SchemaDiagnosticResult>())
+            .checked_mul(std::mem::size_of::<CutSchemaDiagnostic>())
             .ok_or(ItemRefusal::Budget)?;
         let will_grow = required_len > self.pending_diagnostics.capacity();
         let requested_capacity = if will_grow {
@@ -2355,7 +1642,7 @@ impl CutWorkerSchemaExecutor {
             self.pending_diagnostics.capacity()
         };
         let requested_capacity_bytes = requested_capacity
-            .checked_mul(std::mem::size_of::<SchemaDiagnosticResult>())
+            .checked_mul(std::mem::size_of::<CutSchemaDiagnostic>())
             .ok_or(ItemRefusal::Budget)?;
         let transient_state_bytes = self
             .diagnostic_state_bytes_used
@@ -2380,7 +1667,7 @@ impl CutWorkerSchemaExecutor {
         let next_capacity_bytes = self
             .pending_diagnostics
             .capacity()
-            .checked_mul(std::mem::size_of::<SchemaDiagnosticResult>())
+            .checked_mul(std::mem::size_of::<CutSchemaDiagnostic>())
             .ok_or(ItemRefusal::Budget)?;
         let Some(new_capacity_bytes) = next_capacity_bytes.checked_sub(previous_bytes) else {
             self.prepared.poison(ExecutorFailure::Protocol);
@@ -2446,7 +1733,7 @@ impl CutWorkerSchemaExecutor {
         cancelled: &AtomicBool,
         selected_limits: Option<LegacySelectedDiagnosticsLimits>,
         retain_nonverdict_terminal: bool,
-    ) -> Result<SchemaDiagnosticResult, ItemRefusal> {
+    ) -> Result<CutSchemaDiagnostic, ItemRefusal> {
         self.prepared
             .preflight(deadline, cancelled)
             .map_err(|reason| {
@@ -2757,9 +2044,10 @@ impl CutWorkerSchemaExecutor {
             .map_err(|reason| {
                 operation_failure_with_context(reason, self.prepared.exchange_failure())
             })?;
-        let diagnostic = SchemaDiagnosticResult {
+        let diagnostic = CutSchemaDiagnostic {
             path: retained_path,
             contract: retained_contract,
+            source_revision: self.revision,
             source_raw_sha256,
             decoded_instance_sha256: decoded_sha256,
             aggregate_caps_sha256,
@@ -2818,9 +2106,7 @@ impl CutWorkerSchemaExecutor {
                 receipt.batch.is_none()
                     && receipt.path == path
                     && receipt.contract == contract
-                    && self
-                        .revision
-                        .is_some_and(|revision| receipt.source_revision == revision)
+                    && receipt.source_revision == self.revision
                     && receipt.source_raw_sha256 == raw_sha
                     && receipt.decoded_instance_sha256 == decoded_sha
                     && receipt.execution.instance_sha256 == decoded_sha
@@ -2915,7 +2201,7 @@ impl CutWorkerSchemaExecutor {
     }
 
     pub fn receipt_count(&self) -> usize {
-        self.scalar_check_count
+        self.receipt_count
     }
 
     /// Move this verified executor into the opt-in bounded receipt store.
@@ -2930,11 +2216,6 @@ impl CutWorkerSchemaExecutor {
         deadline: Instant,
         cancelled: std::sync::Arc<AtomicBool>,
     ) -> Result<CutWorkerSchemaExecutorSpooling, ItemRefusal> {
-        if self.revision.is_none() {
-            return Err(ItemRefusal::Unsupported(
-                "candidate schema executor cannot spool cut receipts".into(),
-            ));
-        }
         CutWorkerSchemaExecutorSpooling::new(
             self,
             workspace_dir,
@@ -2947,41 +2228,21 @@ impl CutWorkerSchemaExecutor {
 
     pub fn source_revision(&self) -> SourceRevision {
         self.revision
-            .expect("candidate schema workers do not have a SourceRevision")
     }
 
     pub fn execution_binding(&self) -> CutExecutionBinding {
         CutExecutionBinding {
-            source_revision: self.source_revision(),
+            source_revision: self.revision,
             schema_profile: self.profile,
             schema_set_sha256: self.schema_set_digest,
             worker_sha256: self.worker.sha256,
-        }
-    }
-
-    /// Return the prepared worker's actual schema/profile/protocol identity
-    /// for a candidate adapter. This is projected from the executor's own
-    /// immutable binding and selected protocol state, never caller fields.
-    pub fn prepared_execution_binding(&self) -> CutPreparedSchemaExecutionBinding {
-        let protocol = if self.diagnostics_v2.is_some() {
-            CutPreparedSchemaProtocol::DiagnosticsV2 {
-                caps_sha256: schema_diagnostics::Caps::CURRENT.digest(),
-            }
-        } else {
-            CutPreparedSchemaProtocol::LegacyScalar
-        };
-        CutPreparedSchemaExecutionBinding {
-            schema_profile: self.profile,
-            schema_set_sha256: self.schema_set_digest,
-            worker_sha256: self.worker.sha256,
-            protocol,
         }
     }
 }
 
 impl CutSchemaExecutor for CutWorkerSchemaExecutor {
     fn selected_source_revision(&self) -> Option<SourceRevision> {
-        self.revision
+        Some(CutWorkerSchemaExecutor::source_revision(self))
     }
 
     fn check_reusing_scalar(
@@ -3041,10 +2302,7 @@ impl CutSchemaExecutor for CutWorkerSchemaExecutor {
             operation_wire_bytes: operation,
             frame_wire_bytes: frame,
             receipt_bytes: receipt as u64,
-            remaining_receipts: self
-                .limits
-                .max_receipts
-                .saturating_sub(self.scalar_check_count) as u64,
+            remaining_receipts: self.limits.max_receipts.saturating_sub(self.receipt_count) as u64,
             remaining_receipt_bytes: self
                 .limits
                 .max_receipt_bytes
@@ -3081,11 +2339,6 @@ impl CutSchemaExecutor for CutWorkerSchemaExecutor {
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> Result<Vec<bool>, ItemRefusal> {
-        if self.revision.is_none() {
-            return Err(ItemRefusal::Unsupported(
-                "candidate schema batch execution is unavailable".into(),
-            ));
-        }
         if self.diagnostics_v2.is_some() {
             self.prepared.poison_shared_schema_worker_quota();
             return Err(ItemRefusal::Unsupported(
@@ -3104,7 +2357,7 @@ impl CutSchemaExecutor for CutWorkerSchemaExecutor {
             || checks.is_empty()
             || checks.len() > budget.max_units
             || self
-                .scalar_check_count
+                .receipt_count
                 .checked_add(checks.len())
                 .filter(|n| *n <= self.limits.max_receipts)
                 .is_none()
@@ -3192,9 +2445,6 @@ impl CutSchemaExecutor for CutWorkerSchemaExecutor {
         }
         let mut staged = Vec::with_capacity(checks.len());
         let mut verdicts = Vec::with_capacity(checks.len());
-        let source_revision = self.revision.ok_or_else(|| {
-            ItemRefusal::Unsupported("candidate schema batch execution is unavailable".into())
-        })?;
         for (ordinal, ((input, unit), receipt)) in
             checks.iter().zip(&units).zip(receipts).enumerate()
         {
@@ -3219,7 +2469,7 @@ impl CutSchemaExecutor for CutWorkerSchemaExecutor {
             staged.push(CutSchemaReceipt {
                 path: input.path.clone(),
                 contract: input.contract.clone(),
-                source_revision,
+                source_revision: self.revision,
                 source_raw_sha256: raw_digests[ordinal],
                 decoded_instance_sha256: decoded_digest,
                 execution: ExecutionIdentity {
@@ -3244,9 +2494,9 @@ impl CutSchemaExecutor for CutWorkerSchemaExecutor {
                 operation_failure_with_context(reason, self.prepared.exchange_failure())
             })?;
         self.receipt_bytes = next_bytes;
-        self.scalar_check_count = self
-            .scalar_check_count
-            .checked_add(checks.len())
+        self.receipt_count = self
+            .receipt_count
+            .checked_add(staged.len())
             .ok_or(ItemRefusal::Budget)?;
         self.receipts.extend(staged);
         Ok(verdicts)
@@ -3261,61 +2511,22 @@ impl CutSchemaExecutor for CutWorkerSchemaExecutor {
         cancelled: &AtomicBool,
     ) -> Result<bool, ItemRefusal> {
         if self.diagnostics_v2.is_some() {
-            let result: Result<bool, ItemRefusal> = (|| {
-                let mut diagnostic =
-                    self.check_diagnostics_v2_result(path, raw, contract, deadline, cancelled)?;
-                if diagnostic.is_valid() {
-                    return Ok(true);
-                }
-                if diagnostic.is_invalid() {
-                    let previous_bytes = self
-                        .pending_diagnostics
-                        .capacity()
-                        .checked_mul(std::mem::size_of::<SchemaDiagnosticResult>())
-                        .ok_or(ItemRefusal::Budget)?;
-                    if self.pending_diagnostics.try_reserve(1).is_err() {
-                        self.prepared.poison(ExecutorFailure::InputBudget);
-                        return Err(ItemRefusal::Budget);
+            let result = self
+                .produce_diagnostics_v2_terminal(path, raw, contract, deadline, cancelled)
+                .and_then(|diagnostic| {
+                    if diagnostic.is_invalid() {
+                        self.retain_pending_diagnostic(diagnostic)?;
+                        Ok(false)
+                    } else if diagnostic.is_valid() {
+                        Ok(true)
+                    } else {
+                        self.diagnostics_v2_cost_unknown = true;
+                        self.prepared.poison(ExecutorFailure::Protocol);
+                        Err(ItemRefusal::Unsupported(
+                            "cut schema diagnostics status incomplete".into(),
+                        ))
                     }
-                    let next_capacity_bytes = self
-                        .pending_diagnostics
-                        .capacity()
-                        .checked_mul(std::mem::size_of::<SchemaDiagnosticResult>())
-                        .ok_or(ItemRefusal::Budget)?;
-                    let new_capacity_bytes = next_capacity_bytes.saturating_sub(previous_bytes);
-                    let limits = self.diagnostics_v2.ok_or_else(|| {
-                        ItemRefusal::Unsupported("schema diagnostics v2 not selected".into())
-                    })?;
-                    let next_state_bytes = self
-                        .diagnostic_state_bytes_used
-                        .checked_add(new_capacity_bytes)
-                        .filter(|bytes| *bytes <= limits.max_total_state_bytes)
-                        .ok_or_else(|| {
-                            self.prepared.poison(ExecutorFailure::InputBudget);
-                            self.pending_diagnostics.clear();
-                            self.pending_diagnostics.shrink_to_fit();
-                            ItemRefusal::BudgetCheck {
-                                check: "cut schema diagnostics retained vector",
-                                used: self
-                                    .diagnostic_state_bytes_used
-                                    .checked_add(new_capacity_bytes)
-                                    .and_then(|bytes| u64::try_from(bytes).ok()),
-                                limit: u64::try_from(limits.max_total_state_bytes).ok(),
-                            }
-                        })?;
-                    diagnostic.accounted_state_bytes = diagnostic
-                        .accounted_state_bytes
-                        .checked_add(new_capacity_bytes)
-                        .ok_or(ItemRefusal::Budget)?;
-                    self.diagnostic_state_bytes_used = next_state_bytes;
-                    self.pending_diagnostics.push(diagnostic);
-                    return Ok(false);
-                }
-                self.prepared.poison(ExecutorFailure::Protocol);
-                Err(ItemRefusal::Unsupported(
-                    "cut schema diagnostics status incomplete".into(),
-                ))
-            })();
+                });
             if result.is_err() {
                 self.diagnostics_v2_cost_unknown = true;
                 self.prepared.poison_shared_schema_worker_quota();
@@ -3327,22 +2538,10 @@ impl CutSchemaExecutor for CutWorkerSchemaExecutor {
             .map_err(|reason| {
                 operation_failure_with_context(reason, self.prepared.exchange_failure())
             })?;
-        let next_check_count = self
-            .scalar_check_count
-            .checked_add(1)
-            .filter(|count| *count <= self.limits.max_receipts)
-            .ok_or(ItemRefusal::BudgetCheck {
-                check: "Cut scalar receipt count",
-                used: self
-                    .scalar_check_count
-                    .checked_add(1)
-                    .and_then(|count| u64::try_from(count).ok()),
-                limit: Some(self.limits.max_receipts as u64),
-            })?;
-        if self.scalar_check_count >= self.limits.max_receipts {
+        if self.receipt_count >= self.limits.max_receipts {
             return Err(ItemRefusal::BudgetCheck {
                 check: "Cut scalar receipt count",
-                used: u64::try_from(next_check_count).ok(),
+                used: (self.receipt_count as u64).checked_add(1),
                 limit: Some(self.limits.max_receipts as u64),
             });
         }
@@ -3407,19 +2606,20 @@ impl CutSchemaExecutor for CutWorkerSchemaExecutor {
             ));
         }
         self.receipt_bytes = next_bytes;
-        self.scalar_check_count = next_check_count;
-        if let Some(source_revision) = self.revision {
-            self.receipts.push(CutSchemaReceipt {
-                path: path.into(),
-                contract: contract.into(),
-                source_revision,
-                source_raw_sha256: Digest256::of_bytes(raw),
-                decoded_instance_sha256: decoded_digest,
-                execution,
-                valid,
-                batch: None,
-            });
-        }
+        self.receipt_count = self
+            .receipt_count
+            .checked_add(1)
+            .ok_or(ItemRefusal::Budget)?;
+        self.receipts.push(CutSchemaReceipt {
+            path: path.into(),
+            contract: contract.into(),
+            source_revision: self.revision,
+            source_raw_sha256: Digest256::of_bytes(raw),
+            decoded_instance_sha256: decoded_digest,
+            execution,
+            valid,
+            batch: None,
+        });
         Ok(valid)
     }
 }
@@ -4153,7 +3353,7 @@ fn cut_diagnostic_state_bytes(
         )
     }
 
-    let mut total = std::mem::size_of::<SchemaDiagnosticResult>()
+    let mut total = std::mem::size_of::<CutSchemaDiagnostic>()
         .checked_add(std::mem::size_of::<SchemaDiagnosticsCheckpoint>())?
         .checked_add(std::mem::size_of::<SchemaDiagnosticUnit>())?
         .checked_add(std::mem::size_of::<schema_diagnostics::Report>())?

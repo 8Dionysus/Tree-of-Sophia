@@ -474,32 +474,6 @@ impl HistoryEvidence {
     pub(crate) fn state_bytes(&self) -> usize {
         self.peak_state
     }
-    /// Historical rows must remain outside the actual current candidate.
-    /// Each presence query is fenced by the same input and charged by it.
-    pub(crate) fn verify_candidate_input(
-        &self,
-        input: &dyn tos_validation::record_biblio_cut::SourceCutInput,
-        coverage: &tos_validation::record_biblio_cut::SourceCutInputCoverage,
-        cancelled: &AtomicBool,
-    ) -> io::Result<()> {
-        input
-            .verify_current_fence(coverage, self.deadline, cancelled)
-            .map_err(|_| invalid("historical candidate fence refused"))?;
-        for entry in &self.entries {
-            active(self.deadline, cancelled)?;
-            if input
-                .path_presence(&entry.path, self.deadline, cancelled)
-                .map_err(|_| invalid("historical candidate presence refused"))?
-                == Some(tos_source_store::SourcePresenceV1::File)
-            {
-                return Err(invalid("historical validation evidence overlaps source"));
-            }
-        }
-        input
-            .verify_current_fence(coverage, self.deadline, cancelled)
-            .map_err(|_| invalid("historical candidate fence refused"))?;
-        active(self.deadline, cancelled)
-    }
     pub(crate) fn verify_candidate(&self, candidate: &Candidate<'_>) -> io::Result<()> {
         for e in &self.entries {
             candidate.tick()?;

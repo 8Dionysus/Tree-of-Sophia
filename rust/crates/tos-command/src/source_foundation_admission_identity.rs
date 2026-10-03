@@ -407,68 +407,6 @@ impl GrammarIdentity {
         active(self.deadline, cancel)?;
         Ok(read_bytes as u64)
     }
-    /// Verify the same selected grammar against the actual borrowed candidate
-    /// bytes. The input owns its read budget and fence; no revision is minted.
-    pub(crate) fn verify_candidate_input(
-        &self,
-        input: &dyn tos_validation::record_biblio_cut::SourceCutInput,
-        cancelled: &AtomicBool,
-    ) -> io::Result<tos_validation::record_biblio_cut::SourceCutInputCoverage> {
-        active(self.deadline, cancelled)?;
-        let mut count = 0usize;
-        let mut failure = None;
-        let coverage = input.for_each_current_member(self.deadline, cancelled, &mut |meta, raw| {
-            let result = (|| {
-                active(self.deadline, cancelled)?;
-                if !grammar(meta.path) {
-                    return Ok(());
-                }
-                // The authentic candidate traverses paths in byte order. Match
-                // the next selected binding, so duplicate callbacks cannot
-                // replace an omitted path while preserving the total count.
-                let binding = self
-                    .bindings
-                    .get(count)
-                    .filter(|binding| binding.path.as_str() == meta.path)
-                    .ok_or_else(|| {
-                        invalid("candidate grammar differs from selected native validator grammar")
-                    })?;
-                if raw.len() > self.limits.max_member_bytes
-                    || meta.size_bytes != raw.len() as u64
-                    || meta.size_bytes != binding.size_bytes
-                    || Digest256::of_bytes(raw) != binding.sha256
-                {
-                    return Err(invalid(
-                        "candidate grammar bytes differ from selected native validator grammar",
-                    ));
-                }
-                count = count
-                    .checked_add(1)
-                    .ok_or_else(|| invalid("candidate grammar count overflow"))?;
-                Ok(())
-            })();
-            result.map_err(|error| {
-                failure = Some(error);
-                tos_validation::item_rules::ItemRefusal::Source(
-                    "native candidate grammar refused".into(),
-                )
-            })
-        });
-        if let Some(error) = failure {
-            return Err(error);
-        }
-        let coverage = coverage.map_err(|_| invalid("native candidate grammar input refused"))?;
-        if count != self.bindings.len() {
-            return Err(invalid(
-                "candidate grammar differs from selected native validator grammar",
-            ));
-        }
-        input
-            .verify_current_fence(&coverage, self.deadline, cancelled)
-            .map_err(|_| invalid("native candidate grammar fence refused"))?;
-        active(self.deadline, cancelled)?;
-        Ok(coverage)
-    }
     /// Candidate reads charge the actual admission ledger and become touched
     /// paths, therefore publication re-verifies them before CAS as well.
     pub(crate) fn verify_candidate(&self, candidate: &Candidate<'_>) -> io::Result<()> {

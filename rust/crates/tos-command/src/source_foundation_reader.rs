@@ -1,17 +1,14 @@
 //! Full-rule reader over the authenticated authored cut and separately held
 //! physical auxiliary namespace. Physical observations never extend the cut.
-use crate::source_admission_candidate_records::CandidateRecordsInput;
-use crate::source_admission_spooled_candidate::CandidateFence;
 use std::collections::BTreeMap;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Instant;
-use tos_foundation::{Digest256, Digest256Hasher, RelativePath};
+use tos_foundation::{Digest256, RelativePath};
 use tos_ops_mechanics_plan::route_cards::{RouteRootCustody, RouteSources};
 use tos_source_store::{CorpusCutReader, is_authored_source_path_v1};
 use tos_validation::item_rules::ItemRefusal;
 use tos_validation::layer_family_cut::CutLayerPayloadReader;
 use tos_validation::layer_family_rules::{LayerFamilySource, LayerPayload};
-use tos_validation::record_biblio_cut::SourceCutInputWithIdentity;
 use tos_validation::source_cut::CutSchemaExecutor;
 
 /// Exact, explicitly selected historical evidence. This capability cannot
@@ -222,13 +219,8 @@ fn reader_checkpoint(deadline: Instant, cancelled: &AtomicBool) -> Result<(), It
     }
 }
 
-enum FoundationRuleInput<'a> {
-    Cut(&'a CorpusCutReader),
-    Candidate(&'a dyn SourceCutInputWithIdentity<CandidateFence>),
-}
-
 pub(crate) struct FoundationRuleSource<'a, 'cancel> {
-    input: FoundationRuleInput<'a>,
+    pub cut: &'a CorpusCutReader,
     pub physical: &'a mut RouteSources,
     pub schemas: &'a mut dyn CutSchemaExecutor,
     pub payloads: &'a mut dyn CutLayerPayloadReader,
@@ -266,59 +258,6 @@ impl<'a, 'cancel> FoundationRuleSource<'a, 'cancel> {
         cancelled: &'cancel AtomicBool,
         limits: FoundationRuleReadLimits,
     ) -> Result<Self, ItemRefusal> {
-        Self::new_inner(
-            FoundationRuleInput::Cut(cut),
-            physical,
-            schemas,
-            payloads,
-            cancelled,
-            limits,
-        )
-    }
-
-    /// Borrow the actual candidate input; neither a corpus revision nor a
-    /// physical authored-source fallback can be supplied by this route.
-    #[allow(clippy::too_many_arguments)]
-    pub(crate) fn from_candidate(
-        input: &'a CandidateRecordsInput<'_, '_>,
-        physical: &'a mut RouteSources,
-        schemas: &'a mut dyn CutSchemaExecutor,
-        payloads: &'a mut dyn CutLayerPayloadReader,
-        cancelled: &'cancel AtomicBool,
-        limits: FoundationRuleReadLimits,
-        retained_state_bytes: usize,
-        max_operation_state_bytes: usize,
-    ) -> Result<Self, ItemRefusal> {
-        // The adapter retains its raw callback bytes while this reader copies
-        // the selected operand into the existing LayerFamilySource interface.
-        // Reserve that simultaneous copy and the complete auxiliary namespace
-        // before the first borrowed callback can allocate.
-        input.verify_invocation(limits.deadline, cancelled)?;
-        let callback_state = retained_state_bytes
-            .checked_add(std::mem::size_of::<Self>())
-            .and_then(|bytes| bytes.checked_add(limits.max_auxiliary_state_bytes))
-            .and_then(|bytes| bytes.checked_add(limits.max_member_bytes))
-            .filter(|bytes| *bytes <= max_operation_state_bytes)
-            .ok_or(ItemRefusal::Budget)?;
-        input.require_callback_state(callback_state, max_operation_state_bytes)?;
-        Self::new_inner(
-            FoundationRuleInput::Candidate(input),
-            physical,
-            schemas,
-            payloads,
-            cancelled,
-            limits,
-        )
-    }
-
-    fn new_inner(
-        input: FoundationRuleInput<'a>,
-        physical: &'a mut RouteSources,
-        schemas: &'a mut dyn CutSchemaExecutor,
-        payloads: &'a mut dyn CutLayerPayloadReader,
-        cancelled: &'cancel AtomicBool,
-        limits: FoundationRuleReadLimits,
-    ) -> Result<Self, ItemRefusal> {
         if limits.max_member_bytes == 0
             || limits.max_read_bytes == 0
             || limits.max_auxiliary_paths == 0
@@ -327,7 +266,7 @@ impl<'a, 'cancel> FoundationRuleSource<'a, 'cancel> {
             return Err(ItemRefusal::Budget);
         }
         let selected = Self {
-            input,
+            cut,
             physical,
             schemas,
             payloads,
@@ -347,31 +286,12 @@ impl<'a, 'cancel> FoundationRuleSource<'a, 'cancel> {
         history: &'a mut (dyn FoundationHistoricalEvidence + 'static),
     ) -> Result<Self, ItemRefusal> {
         // A historical capability may never shadow a proposed authored member.
-        match &self.input {
-            FoundationRuleInput::Cut(cut) => {
-                for member in cut.current().members() {
-                    self.checkpoint(self.limits.deadline)?;
-                    if history.selected(member.path.as_str()) {
-                        return Err(ItemRefusal::Source(
-                            "historical input overlaps candidate".into(),
-                        ));
-                    }
-                }
-            }
-            FoundationRuleInput::Candidate(input) => {
-                input.for_each_current_member_meta(
-                    self.limits.deadline,
-                    self.cancelled,
-                    &mut |member| {
-                        reader_checkpoint(self.limits.deadline, self.cancelled)?;
-                        if history.selected(member.path) {
-                            return Err(ItemRefusal::Source(
-                                "historical input overlaps candidate".into(),
-                            ));
-                        }
-                        Ok(())
-                    },
-                )?;
+        for member in self.cut.current().members() {
+            self.checkpoint(self.limits.deadline)?;
+            if history.selected(member.path.as_str()) {
+                return Err(ItemRefusal::Source(
+                    "historical input overlaps candidate".into(),
+                ));
             }
         }
         self.history = Some(history);
@@ -572,67 +492,24 @@ impl LayerFamilySource for FoundationRuleSource<'_, '_> {
         if is_authored_source_path_v1(path) {
             let relative = RelativePath::parse(path)
                 .map_err(|_| ItemRefusal::Source("foundation current input path".into()))?;
-            let cap = self.remaining(requested)?;
-            let raw = match &self.input {
-                FoundationRuleInput::Cut(cut) => {
-                    let Some(metadata) = cut.current().member(&relative) else {
-                        return Ok(None);
-                    };
-                    if metadata.size_bytes > cap as u64 {
-                        return Err(ItemRefusal::Budget);
-                    }
-                    cut.read_member(
-                        cut.current().revision(),
-                        &relative,
-                        cap as u64,
-                        deadline.min(self.limits.deadline),
-                        self.cancelled,
-                    )
-                    .map_err(|_| ItemRefusal::Source("foundation immutable input custody".into()))?
-                    .raw
-                }
-                FoundationRuleInput::Candidate(input) => {
-                    let until = deadline.min(self.limits.deadline);
-                    if input.path_presence(path, until, self.cancelled)?
-                        != Some(tos_source_store::SourcePresenceV1::File)
-                    {
-                        return Ok(None);
-                    }
-                    let mut selected = None;
-                    input.with_current_member(
-                        path,
-                        cap,
-                        until,
-                        self.cancelled,
-                        &mut |meta, bytes| {
-                            if selected.is_some()
-                                || meta.path != path
-                                || meta.size_bytes != bytes.len() as u64
-                                || bytes.len() > cap
-                            {
-                                return Err(ItemRefusal::Source(
-                                    "foundation candidate member custody".into(),
-                                ));
-                            }
-                            let mut raw = Vec::new();
-                            raw.try_reserve_exact(bytes.len())
-                                .map_err(|_| ItemRefusal::Budget)?;
-                            if raw.capacity() > cap {
-                                return Err(ItemRefusal::Budget);
-                            }
-                            for chunk in bytes.chunks(64 * 1024) {
-                                reader_checkpoint(until, self.cancelled)?;
-                                raw.extend_from_slice(chunk);
-                            }
-                            selected = Some(raw);
-                            Ok(())
-                        },
-                    )?;
-                    selected.ok_or_else(|| {
-                        ItemRefusal::Source("foundation candidate member callback missing".into())
-                    })?
-                }
+            let Some(metadata) = self.cut.current().member(&relative) else {
+                return Ok(None);
             };
+            let cap = self.remaining(requested)?;
+            if metadata.size_bytes > cap as u64 {
+                return Err(ItemRefusal::Budget);
+            }
+            let raw = self
+                .cut
+                .read_member(
+                    self.cut.current().revision(),
+                    &relative,
+                    cap as u64,
+                    deadline.min(self.limits.deadline),
+                    self.cancelled,
+                )
+                .map_err(|_| ItemRefusal::Source("foundation immutable input custody".into()))?
+                .raw;
             self.read_bytes = self
                 .read_bytes
                 .checked_add(raw.len() as u64)
@@ -786,31 +663,7 @@ impl LayerFamilySource for FoundationRuleSource<'_, '_> {
         self.cancelled
     }
     fn generation(&self) -> String {
-        match &self.input {
-            FoundationRuleInput::Cut(cut) => cut.current().revision().0.to_hex(),
-            // Generation is an opaque layer namespace, not SourceRevision.
-            // The fixed-size candidate fence includes the complete selection.
-            FoundationRuleInput::Candidate(input) => {
-                let fence = input.input_identity();
-                let mut hash = Digest256Hasher::new();
-                hash.update(b"tos-foundation-candidate-layer-generation-v1\0");
-                hash.update(fence.batch_sha256.as_bytes());
-                match fence.base_revision {
-                    Some(revision) => {
-                        hash.update(&[1]);
-                        hash.update(revision.0.as_bytes());
-                    }
-                    None => hash.update(&[0]),
-                }
-                hash.update(fence.validator_sha256.as_bytes());
-                hash.update(&fence.membership.count.to_be_bytes());
-                hash.update(fence.membership.digest.as_bytes());
-                hash.update(&fence.source_bytes.to_be_bytes());
-                hash.update(&fence.retirement_count.to_be_bytes());
-                hash.update(fence.retirement_digest.as_bytes());
-                format!("candidate/{}", hash.finalize().to_hex())
-            }
-        }
+        self.cut.current().revision().0.to_hex()
     }
     fn checkpoint(&self, deadline: Instant) -> Result<(), ItemRefusal> {
         if self.cancelled.load(Ordering::Relaxed) {

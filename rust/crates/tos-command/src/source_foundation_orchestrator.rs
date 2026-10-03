@@ -39,7 +39,6 @@ use tos_validation::record_biblio_cut::{BiblioRecordExecutor, BiblioSchemaDiagno
 use tos_validation::source_cut::{
     CutSchemaDiagnosticsLimits, CutSchemaExecutor, CutWorkerLimits, CutWorkerSchemaExecutor,
     cut_schema_resource_preparation_state_upper_bound,
-    streamed_cut_schema_resource_preparation_state_upper_bound,
 };
 use tos_validation::source_foundation_discovery::SourcePhysicalFacts;
 use tos_validation::source_foundation_records::SourceFoundationRecordsReport;
@@ -70,35 +69,7 @@ impl From<FoundationBootstrapError> for FoundationOrchestratorError {
 impl FoundationOrchestratorError {
     pub(crate) fn public_reason(&self) -> &'static str {
         match self {
-            Self::Bootstrap(error) => match error {
-                FoundationBootstrapError::Command(_) => {
-                    "source-foundation bootstrap invocation refused"
-                }
-                FoundationBootstrapError::StageSelection(_) => {
-                    "source-foundation bootstrap stage selection refused"
-                }
-                FoundationBootstrapError::IsolatedRoot(_) => {
-                    "source-foundation bootstrap isolated root refused"
-                }
-                FoundationBootstrapError::RouteRoot(_) => {
-                    "source-foundation bootstrap route root refused"
-                }
-                FoundationBootstrapError::Capture(_) => {
-                    "source-foundation bootstrap capture refused"
-                }
-                FoundationBootstrapError::Selection(_) => {
-                    "source-foundation bootstrap physical selection refused"
-                }
-                FoundationBootstrapError::Payload(_) => {
-                    "source-foundation bootstrap payload snapshot refused"
-                }
-                FoundationBootstrapError::Physical(_) => {
-                    "source-foundation bootstrap physical snapshot refused"
-                }
-                FoundationBootstrapError::Configuration(_) => {
-                    "source-foundation bootstrap configuration refused"
-                }
-            },
+            Self::Bootstrap(_) => "source-foundation bootstrap refused",
             Self::Command(_) => "source-foundation invocation refused",
             Self::Owner(_) => "source-foundation owner phase refused",
             Self::Default(_) => "source-foundation default rules refused",
@@ -463,7 +434,6 @@ fn cut_worker_shape(
 fn schema_state_upper_bound(
     bytes: usize,
     resources: usize,
-    source_resource_metadata: usize,
 ) -> Result<usize, FoundationOrchestratorError> {
     bytes
         .checked_mul(8)
@@ -472,7 +442,6 @@ fn schema_state_upper_bound(
                 .checked_mul(512)
                 .and_then(|rows| state.checked_add(rows))
         })
-        .and_then(|state| state.checked_add(source_resource_metadata))
         .and_then(|state| state.checked_add(std::mem::size_of::<SourceFoundationSchemaSet>()))
         .ok_or_else(|| incomplete("source-foundation schema state overflow"))
 }
@@ -492,8 +461,8 @@ fn default_issue_count(evaluated: &EvaluatedFoundationDefault<'_>) -> usize {
     evaluated.rules.cost.issue_count
 }
 
-fn catalog_issue_count<B>(
-    outcome: &FoundationCatalogOutcome<B>,
+fn catalog_issue_count(
+    outcome: &FoundationCatalogOutcome,
 ) -> Result<usize, FoundationOrchestratorError> {
     match outcome {
         FoundationCatalogOutcome::Complete(result) => Ok(result.issues.len()),
@@ -505,8 +474,8 @@ fn catalog_issue_count<B>(
     }
 }
 
-fn catalog_read_bytes<B, D>(
-    outcome: &FoundationCatalogOutcome<B, D>,
+fn catalog_read_bytes(
+    outcome: &FoundationCatalogOutcome,
 ) -> Result<u64, FoundationOrchestratorError> {
     let (work, generated, recheck) = match outcome {
         FoundationCatalogOutcome::Complete(result) => (
@@ -534,8 +503,8 @@ fn catalog_read_bytes<B, D>(
     )
 }
 
-fn catalog_retained_state<B, D>(
-    outcome: &FoundationCatalogOutcome<B, D>,
+fn catalog_retained_state(
+    outcome: &FoundationCatalogOutcome,
 ) -> Result<usize, FoundationOrchestratorError> {
     match outcome {
         FoundationCatalogOutcome::Complete(result) => checked_add_usize(
@@ -555,8 +524,8 @@ fn catalog_retained_state<B, D>(
     }
 }
 
-fn outcome_schema_execution_cost<B, D>(
-    outcome: &FoundationCatalogOutcome<B, D>,
+fn outcome_schema_execution_cost(
+    outcome: &FoundationCatalogOutcome,
 ) -> tos_validation::source_cut::CutSchemaDiagnosticsCumulativeCost {
     match outcome {
         FoundationCatalogOutcome::Complete(result) => result.schema_execution_cost,
@@ -567,8 +536,8 @@ fn outcome_schema_execution_cost<B, D>(
     }
 }
 
-fn catalog_profiles<B, D>(
-    outcome: &FoundationCatalogOutcome<B, D>,
+fn catalog_profiles(
+    outcome: &FoundationCatalogOutcome,
 ) -> Result<&[(String, String)], FoundationOrchestratorError> {
     let profiles = match outcome {
         FoundationCatalogOutcome::Complete(result) => &result.profiles,
@@ -625,24 +594,21 @@ fn run<'work, 'receive, 'cancel, 'signal>(
     let mut schema_count = 0usize;
     let mut schema_total = 0usize;
     let mut schema_max = 0usize;
-    captured
-        .for_each_member(deadline, cancelled, |member| {
-            let path = member.path.as_str();
-            if path.starts_with("ToS/contracts/") && path.ends_with(".schema.json") {
-                schema_count = schema_count.checked_add(1).ok_or_else(|| {
-                    io::Error::new(io::ErrorKind::InvalidData, "schema resource count overflow")
-                })?;
-                let bytes = usize::try_from(member.size_bytes).map_err(|_| {
-                    io::Error::new(io::ErrorKind::InvalidData, "schema resource size range")
-                })?;
-                schema_total = schema_total.checked_add(bytes).ok_or_else(|| {
-                    io::Error::new(io::ErrorKind::InvalidData, "schema resource byte overflow")
-                })?;
-                schema_max = schema_max.max(bytes);
-            }
-            Ok(())
-        })
-        .map_err(|_| incomplete("source-foundation schema census refused"))?;
+    for member in captured.cut().current().members() {
+        if Instant::now() >= deadline || cancelled.load(Ordering::Acquire) {
+            return Err(incomplete("source-foundation schema census interrupted"));
+        }
+        let path = member.path.as_str();
+        if path.starts_with("ToS/contracts/") && path.ends_with(".schema.json") {
+            schema_count = schema_count
+                .checked_add(1)
+                .ok_or_else(|| incomplete("schema resource count overflow"))?;
+            let bytes = usize::try_from(member.size_bytes)
+                .map_err(|_| incomplete("schema resource size range"))?;
+            schema_total = checked_add_usize(schema_total, bytes)?;
+            schema_max = schema_max.max(bytes);
+        }
+    }
     let max_checks = max_members.min(65_536).max(1);
     let quota_caps = remaining_budget
         .remaining()
@@ -673,15 +639,11 @@ fn run<'work, 'receive, 'cancel, 'signal>(
         schema_total,
         max_checks,
     )?;
-    let preparation = match captured.streamed_cut() {
-        Some(cut) => {
-            streamed_cut_schema_resource_preparation_state_upper_bound(cut, deadline, cancelled)
-        }
-        None => {
-            cut_schema_resource_preparation_state_upper_bound(captured.cut(), deadline, cancelled)
-        }
-    };
-    let schema_preparation_state = match preparation {
+    let schema_preparation_state = match cut_schema_resource_preparation_state_upper_bound(
+        captured.cut(),
+        deadline,
+        cancelled,
+    ) {
         Ok(bytes) => bytes,
         Err(error) => {
             return fail_window(
@@ -700,24 +662,13 @@ fn run<'work, 'receive, 'cancel, 'signal>(
             incomplete("schema closure preparation exceeds remaining state"),
         );
     }
-    let selected_schema_set = match captured.streamed_cut() {
-        Some(cut) => SourceFoundationSchemaSet::from_streamed_cut(
-            cut,
-            FormatProfile::LegacyPythonObserved20260923,
-            schema_limits,
-            schema_preparation_state,
-            deadline,
-            cancelled,
-        ),
-        None => SourceFoundationSchemaSet::from_cut(
-            captured.cut(),
-            FormatProfile::LegacyPythonObserved20260923,
-            schema_limits,
-            deadline,
-            cancelled,
-        ),
-    };
-    let schema_set = match selected_schema_set {
+    let schema_set = match SourceFoundationSchemaSet::from_cut(
+        captured.cut(),
+        FormatProfile::LegacyPythonObserved20260923,
+        schema_limits,
+        deadline,
+        cancelled,
+    ) {
         Ok(set) => set,
         Err(error) => {
             return fail_window(
@@ -729,14 +680,8 @@ fn run<'work, 'receive, 'cancel, 'signal>(
         }
     };
     let loaded_schema_bytes = schema_set.schema_bytes();
-    let source_resource_metadata_state = schema_set
-        .source_resource_metadata_state_bytes()
-        .ok_or_else(|| incomplete("source-foundation selected resource state overflow"))?;
-    let schema_state = schema_state_upper_bound(
-        loaded_schema_bytes,
-        schema_set.schema_resource_count(),
-        source_resource_metadata_state,
-    )?;
+    let schema_state =
+        schema_state_upper_bound(loaded_schema_bytes, schema_set.schema_resource_count())?;
     if schema_state > schema_ticket.operation_limits().state_bytes {
         return fail_window(
             execution_limits,
@@ -1082,27 +1027,15 @@ fn run<'work, 'receive, 'cancel, 'signal>(
             incomplete("Item schema preparation exceeds remaining state"),
         );
     }
-    let selected_worker = match captured.streamed_cut() {
-        Some(cut) => CutWorkerSchemaExecutor::from_streamed_cut_with_image(
-            cut,
-            FormatProfile::LegacyPythonObserved20260923,
-            &worker_image,
-            executor_budget,
-            worker_limits,
-            deadline,
-            cancelled,
-        ),
-        None => CutWorkerSchemaExecutor::from_cut_with_image(
-            captured.cut(),
-            FormatProfile::LegacyPythonObserved20260923,
-            &worker_image,
-            executor_budget,
-            worker_limits,
-            deadline,
-            cancelled,
-        ),
-    };
-    let mut item_schemas = match selected_worker {
+    let mut item_schemas = match CutWorkerSchemaExecutor::from_cut_with_image(
+        captured.cut(),
+        FormatProfile::LegacyPythonObserved20260923,
+        &worker_image,
+        executor_budget,
+        worker_limits,
+        deadline,
+        cancelled,
+    ) {
         Ok(executor) => executor,
         Err(error) => {
             return fail_window(
@@ -1451,27 +1384,15 @@ fn run<'work, 'receive, 'cancel, 'signal>(
             incomplete("layer schema preparation exceeds remaining state"),
         );
     }
-    let selected_worker = match captured.streamed_cut() {
-        Some(cut) => CutWorkerSchemaExecutor::from_streamed_cut_with_image(
-            cut,
-            FormatProfile::LegacyPythonObserved20260923,
-            &worker_image,
-            executor_budget,
-            layer_worker_limits,
-            deadline,
-            cancelled,
-        ),
-        None => CutWorkerSchemaExecutor::from_cut_with_image(
-            captured.cut(),
-            FormatProfile::LegacyPythonObserved20260923,
-            &worker_image,
-            executor_budget,
-            layer_worker_limits,
-            deadline,
-            cancelled,
-        ),
-    };
-    let mut layer_schemas = match selected_worker {
+    let mut layer_schemas = match CutWorkerSchemaExecutor::from_cut_with_image(
+        captured.cut(),
+        FormatProfile::LegacyPythonObserved20260923,
+        &worker_image,
+        executor_budget,
+        layer_worker_limits,
+        deadline,
+        cancelled,
+    ) {
         Ok(executor) => executor,
         Err(error) => {
             return fail_window(
@@ -1720,27 +1641,22 @@ fn run<'work, 'receive, 'cancel, 'signal>(
     let catalog_free = catalog_ticket.remaining();
     let mut catalog_members = 0usize;
     let mut largest_captured_member_bytes = 0u64;
-    if captured
-        .for_each_member(deadline, cancelled, |member| {
-            largest_captured_member_bytes = largest_captured_member_bytes.max(member.size_bytes);
-            if member.path.as_str().starts_with("ToS/source-witnesses/") {
-                catalog_members = catalog_members.checked_add(1).ok_or_else(|| {
-                    io::Error::new(
-                        io::ErrorKind::InvalidData,
-                        "catalog source-shape count overflow",
-                    )
-                })?;
-            }
-            Ok(())
-        })
-        .is_err()
-    {
-        return fail_window(
-            execution_limits,
-            remaining_budget,
-            catalog_ticket,
-            incomplete("catalog source-shape census refused"),
-        );
+    for member in captured.cut().current().members() {
+        let path = member.path.as_str();
+        if Instant::now() >= deadline || cancelled.load(Ordering::Acquire) {
+            return fail_window(
+                execution_limits,
+                remaining_budget,
+                catalog_ticket,
+                incomplete("catalog source-shape census interrupted"),
+            );
+        }
+        largest_captured_member_bytes = largest_captured_member_bytes.max(member.size_bytes);
+        if path.starts_with("ToS/source-witnesses/") {
+            catalog_members = catalog_members
+                .checked_add(1)
+                .ok_or_else(|| incomplete("catalog source-shape count overflow"))?;
+        }
     }
     let max_catalog_members = catalog_members.min(4096).max(1);
     let max_catalog_files = max_members.min(u64::MAX as usize - 1).max(1) as u64;
@@ -1963,7 +1879,6 @@ fn run<'work, 'receive, 'cancel, 'signal>(
                     .unwrap_or(usize::MAX - 4)
                     .saturating_add(3),
             },
-            None,
             cancelled,
         ) {
             Ok(result) => {
@@ -2261,27 +2176,15 @@ fn run<'work, 'receive, 'cancel, 'signal>(
                     incomplete("admission callback schema preparation exceeds remaining state"),
                 );
             }
-            let selected_worker = match captured.streamed_cut() {
-                Some(cut) => CutWorkerSchemaExecutor::from_streamed_cut_with_image(
-                    cut,
-                    FormatProfile::LegacyPythonObserved20260923,
-                    &worker_image,
-                    callback_worker_budget,
-                    callback_limits,
-                    deadline,
-                    cancelled,
-                ),
-                None => CutWorkerSchemaExecutor::from_cut_with_image(
-                    captured.cut(),
-                    FormatProfile::LegacyPythonObserved20260923,
-                    &worker_image,
-                    callback_worker_budget,
-                    callback_limits,
-                    deadline,
-                    cancelled,
-                ),
-            };
-            let mut callback_schema = match selected_worker {
+            let mut callback_schema = match CutWorkerSchemaExecutor::from_cut_with_image(
+                captured.cut(),
+                FormatProfile::LegacyPythonObserved20260923,
+                &worker_image,
+                callback_worker_budget,
+                callback_limits,
+                deadline,
+                cancelled,
+            ) {
                 Ok(executor) => executor,
                 Err(error) => {
                     return fail_window(
@@ -2812,16 +2715,21 @@ fn run<'work, 'receive, 'cancel, 'signal>(
     // Reserve the exact selected-member byte census plus the fixed publication
     // control ceiling before any other final input provider can spend source
     // reads. The capture helper enforces this total before each member stream.
-    let captured_member_read_upper = match usize::try_from(captured.source_bytes()) {
-        Ok(bytes) => bytes,
-        Err(_) => {
-            return fail_window(
-                execution_limits,
-                remaining_budget,
-                final_ticket,
-                incomplete("captured EOF member byte census overflow"),
-            );
-        }
+    let Some(captured_member_read_upper) =
+        captured
+            .observed_members()
+            .try_fold(0usize, |sum, (_, member)| {
+                usize::try_from(member.size_bytes)
+                    .ok()
+                    .and_then(|bytes| sum.checked_add(bytes))
+            })
+    else {
+        return fail_window(
+            execution_limits,
+            remaining_budget,
+            final_ticket,
+            incomplete("captured EOF member byte census overflow"),
+        );
     };
     let Some(final_member_read_limit) = captured_member_read_upper
         .checked_add(usize::try_from(FINAL_CONTROL_RESERVE).unwrap_or(usize::MAX))

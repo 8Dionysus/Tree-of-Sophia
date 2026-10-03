@@ -1,16 +1,14 @@
 //! Bounded physical/Git observations for the source-foundation owner.
 //!
 //! Build this snapshot before schema/stage workers, lend `facts()` only while
-//! they run, then call the matching recheck method after every worker has
-//! ended. Captured authored bytes are rechecked by `FoundationCapturedCut`;
-//! borrowed candidate bytes retain their own `SourceCutInputCoverage` fence
-//! and stay independent of working-tree physical facts. Payload bytes are
-//! owned by the separate payload adapter and must be reverified after workers.
-//! An absent artifact provider means unknown artifact facts, never an observed
-//! absence.
+//! they run, then call `recheck` after every worker has ended. The caller must
+//! also recheck `FoundationCapturedCut` after the workers: authored SHA-256
+//! facts below are seeded from that actual capture, and its final recheck owns
+//! byte-for-byte verification. Payload bytes are similarly owned by the
+//! separate payload adapter and must be reverified after workers. An absent
+//! artifact provider means unknown artifact facts, never an observed absence.
 
 use super::foundation_capture::FoundationCapturedCut;
-use crate::source_admission_spooled_candidate::CandidateFence;
 use std::cell::Cell;
 use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
@@ -21,7 +19,6 @@ use std::time::{Duration, Instant};
 use tos_foundation::{Digest256, RelativePath};
 use tos_ops_mechanics_plan::route_cards::{RouteResolvedTarget, RouteSources};
 use tos_validation::item_rules::ItemRefusal;
-use tos_validation::record_biblio_cut::{SourceCutInputCoverage, SourceCutInputWithIdentity};
 use tos_validation::source_foundation_discovery::{
     GitPathFacts, PhysicalPathFacts, PhysicalPayloadFacts, PhysicalResolvedTargetFacts,
     SourcePhysicalFacts,
@@ -149,7 +146,6 @@ pub struct FoundationPhysicalSnapshot<'cancel, 'signal> {
     historical_originals: BTreeMap<String, PhysicalPathFacts>,
     repo_paths: BTreeSet<String>,
     authored_capture_paths: BTreeSet<String>,
-    candidate_member_paths: BTreeSet<String>,
     private_declared_paths: BTreeSet<String>,
     private_prefixes: Vec<String>,
     git_paths: BTreeSet<String>,
@@ -170,7 +166,6 @@ pub struct FoundationPhysicalSnapshot<'cancel, 'signal> {
     deadline: Instant,
     cancelled: &'cancel AtomicBool,
     git_signal: &'signal AtomicI32,
-    candidate_identity: Option<CandidateFence>,
     bytes_read: usize,
     path_observations: usize,
     git_path_queries: usize,
@@ -301,105 +296,6 @@ impl<'cancel, 'signal> FoundationPhysicalSnapshot<'cancel, 'signal> {
         cancelled: &'cancel AtomicBool,
         git_signal: &'signal AtomicI32,
     ) -> Result<Self, ItemRefusal> {
-        Self::observe_kernel(
-            sources,
-            Some(captured),
-            BTreeSet::new(),
-            authored_paths,
-            payloads,
-            private_paths,
-            private_prefixes,
-            artifact_sources,
-            artifact_paths,
-            resolved_source_directories,
-            limits,
-            deadline,
-            cancelled,
-            git_signal,
-        )
-    }
-
-    /// Observe selected physical targets for a borrowed candidate source. The
-    /// candidate fence authenticates its own complete source stream; physical
-    /// facts independently describe the selected repository paths and are
-    /// never required to equal the candidate bytes.
-    #[allow(clippy::too_many_arguments)]
-    pub fn observe_candidate_with_resolved_targets(
-        sources: &mut RouteSources,
-        candidate: &dyn SourceCutInputWithIdentity<CandidateFence>,
-        coverage: &SourceCutInputCoverage,
-        authored_paths: &[String],
-        payloads: BTreeMap<String, PhysicalPayloadFacts>,
-        private_paths: &[String],
-        private_prefixes: &[String],
-        artifact_sources: Option<&mut RouteSources>,
-        artifact_paths: &[String],
-        resolved_source_directories: &BTreeMap<String, String>,
-        limits: PhysicalSourceLimits,
-        deadline: Instant,
-        cancelled: &'cancel AtomicBool,
-        git_signal: &'signal AtomicI32,
-    ) -> Result<Self, ItemRefusal> {
-        validate_limits(limits)?;
-        candidate
-            .source_input()
-            .verify_current_fence(coverage, deadline, cancelled)?;
-        let identity = *candidate.input_identity();
-        let mut candidate_member_paths = BTreeSet::new();
-        let mut candidate_member_state = 0usize;
-        for path in authored_paths {
-            if candidate
-                .source_input()
-                .path_presence(path, deadline, cancelled)?
-                == Some(tos_source_store::SourcePresenceV1::File)
-            {
-                charge_path_value(path, &mut candidate_member_state, limits.max_state_bytes)?;
-                candidate_member_paths.insert(path.clone());
-            }
-        }
-        candidate
-            .source_input()
-            .verify_current_fence(coverage, deadline, cancelled)?;
-        let mut snapshot = Self::observe_kernel(
-            sources,
-            None,
-            candidate_member_paths,
-            authored_paths,
-            payloads,
-            private_paths,
-            private_prefixes,
-            artifact_sources,
-            artifact_paths,
-            resolved_source_directories,
-            limits,
-            deadline,
-            cancelled,
-            git_signal,
-        )?;
-        candidate
-            .source_input()
-            .verify_current_fence(coverage, deadline, cancelled)?;
-        snapshot.candidate_identity = Some(identity);
-        Ok(snapshot)
-    }
-
-    #[allow(clippy::too_many_arguments)]
-    fn observe_kernel(
-        sources: &mut RouteSources,
-        captured: Option<&FoundationCapturedCut>,
-        candidate_member_paths: BTreeSet<String>,
-        authored_paths: &[String],
-        payloads: BTreeMap<String, PhysicalPayloadFacts>,
-        private_paths: &[String],
-        private_prefixes: &[String],
-        mut artifact_sources: Option<&mut RouteSources>,
-        artifact_paths: &[String],
-        resolved_source_directories: &BTreeMap<String, String>,
-        limits: PhysicalSourceLimits,
-        deadline: Instant,
-        cancelled: &'cancel AtomicBool,
-        git_signal: &'signal AtomicI32,
-    ) -> Result<Self, ItemRefusal> {
         let source_root_component_open_count_initial = sources.root_component_open_count();
         let artifact_root_component_open_count_initial = artifact_sources
             .as_deref()
@@ -418,9 +314,6 @@ impl<'cancel, 'signal> FoundationPhysicalSnapshot<'cancel, 'signal> {
             >())
             .and_then(|bytes| bytes.checked_add(std::mem::size_of::<PhysicalSourceCost>()))
             .ok_or(ItemRefusal::Budget)?;
-        for path in &candidate_member_paths {
-            charge_path_value(path, &mut state_bytes, limits.max_state_bytes)?;
-        }
         if resolved_source_directories.len() > limits.max_paths {
             return Err(budget(
                 "physical-source-resolution-roots",
@@ -502,113 +395,109 @@ impl<'cancel, 'signal> FoundationPhysicalSnapshot<'cancel, 'signal> {
                 );
             }
         }
-        if let Some(captured) = captured {
-            for (path, member) in captured.observed_members() {
-                if !authored_requested.contains(path) {
-                    continue;
-                }
-                checkpoint(sources, deadline, cancelled, git_signal)?;
-                let selected_directory = owned_resolved_source_directories
-                    .get(path)
-                    .map(String::as_str);
-                let resolved_observation = if let Some(selected_directory) = selected_directory {
-                    Some(observe_path(
-                        sources,
-                        path,
-                        false,
-                        Some(selected_directory),
-                        true,
-                        &mut bytes_read,
-                        &mut path_observations,
-                        &mut state_bytes,
-                        limits,
-                        deadline,
-                        cancelled,
-                        git_signal,
-                    )?)
-                } else {
-                    charge_path_observation(&mut path_observations, limits.max_path_observations)?;
-                    None
-                };
-                let metadata = sources
-                    .metadata(path)
-                    .map_err(|error| route_error(error, deadline, cancelled, git_signal))?
-                    .ok_or_else(|| {
-                        ItemRefusal::Source("captured authored path disappeared".into())
-                    })?;
-                if !metadata.is_file()
-                    || metadata.len() != member.size_bytes
-                    || file_mode(&metadata) != Some(member.mode)
+        for (path, member) in captured.observed_members() {
+            if !authored_requested.contains(path) {
+                continue;
+            }
+            checkpoint(sources, deadline, cancelled, git_signal)?;
+            let selected_directory = owned_resolved_source_directories
+                .get(path)
+                .map(String::as_str);
+            let resolved_observation = if let Some(selected_directory) = selected_directory {
+                Some(observe_path(
+                    sources,
+                    path,
+                    false,
+                    Some(selected_directory),
+                    true,
+                    &mut bytes_read,
+                    &mut path_observations,
+                    &mut state_bytes,
+                    limits,
+                    deadline,
+                    cancelled,
+                    git_signal,
+                )?)
+            } else {
+                charge_path_observation(&mut path_observations, limits.max_path_observations)?;
+                None
+            };
+            let metadata = sources
+                .metadata(path)
+                .map_err(|error| route_error(error, deadline, cancelled, git_signal))?
+                .ok_or_else(|| ItemRefusal::Source("captured authored path disappeared".into()))?;
+            if !metadata.is_file()
+                || metadata.len() != member.size_bytes
+                || file_mode(&metadata) != Some(member.mode)
+            {
+                return Err(ItemRefusal::Source(
+                    "captured authored physical metadata changed".into(),
+                ));
+            }
+            let stamp = FileStamp::from_metadata(&metadata);
+            if let Some(observation) = resolved_observation.as_ref() {
+                if !observation.facts.regular_file
+                    || observation.facts.directory
+                    || observation.facts.symlink
+                    || observation.stamp != Some(stamp)
                 {
                     return Err(ItemRefusal::Source(
-                        "captured authored physical metadata changed".into(),
+                        "captured authored resolved path changed type".into(),
                     ));
                 }
-                let stamp = FileStamp::from_metadata(&metadata);
-                if let Some(observation) = resolved_observation.as_ref() {
-                    if !observation.facts.regular_file
-                        || observation.facts.directory
-                        || observation.facts.symlink
-                        || observation.stamp != Some(stamp)
-                    {
-                        return Err(ItemRefusal::Source(
-                            "captured authored resolved path changed type".into(),
-                        ));
-                    }
-                    if let Some(resolved_stamp) = observation.resolved_stamp {
-                        charge_map_entry(
-                            path,
-                            std::mem::size_of::<FileStamp>(),
-                            0,
-                            &mut state_bytes,
-                            limits.max_state_bytes,
-                        )?;
-                        authored_resolved_stamps.insert(path.to_owned(), resolved_stamp);
-                    }
+                if let Some(resolved_stamp) = observation.resolved_stamp {
+                    charge_map_entry(
+                        path,
+                        std::mem::size_of::<FileStamp>(),
+                        0,
+                        &mut state_bytes,
+                        limits.max_state_bytes,
+                    )?;
+                    authored_resolved_stamps.insert(path.to_owned(), resolved_stamp);
                 }
-                if authored_capture_paths.insert(path.to_owned()) {
-                    charge_path_value(path, &mut state_bytes, limits.max_state_bytes)?;
-                }
-                charge_map_entry(
-                    path,
-                    std::mem::size_of::<PhysicalPathFacts>(),
-                    64usize
-                        .checked_add(
-                            resolved_observation
-                                .as_ref()
-                                .map(|observation| physical_dynamic_bytes(&observation.facts))
-                                .transpose()?
-                                .unwrap_or_default(),
-                        )
-                        .ok_or(ItemRefusal::Budget)?,
-                    &mut state_bytes,
-                    limits.max_state_bytes,
-                )?;
-                facts.authored_paths.insert(
-                    path.to_owned(),
-                    PhysicalPathFacts {
-                        exists: true,
-                        regular_file: true,
-                        directory: false,
-                        symlink: false,
-                        resolved_target: resolved_observation
-                            .and_then(|observation| observation.facts.resolved_target),
-                        git_tracked: None,
-                        git_ignored: None,
-                        file_mode: Some(member.mode),
-                        byte_size: Some(member.size_bytes),
-                        sha256: Some(member.sha256.to_hex()),
-                    },
-                );
-                charge_map_entry(
-                    path,
-                    std::mem::size_of::<FileStamp>(),
-                    0,
-                    &mut state_bytes,
-                    limits.max_state_bytes,
-                )?;
-                authored_stamps.insert(path.to_owned(), stamp);
             }
+            if authored_capture_paths.insert(path.to_owned()) {
+                charge_path_value(path, &mut state_bytes, limits.max_state_bytes)?;
+            }
+            charge_map_entry(
+                path,
+                std::mem::size_of::<PhysicalPathFacts>(),
+                64usize
+                    .checked_add(
+                        resolved_observation
+                            .as_ref()
+                            .map(|observation| physical_dynamic_bytes(&observation.facts))
+                            .transpose()?
+                            .unwrap_or_default(),
+                    )
+                    .ok_or(ItemRefusal::Budget)?,
+                &mut state_bytes,
+                limits.max_state_bytes,
+            )?;
+            facts.authored_paths.insert(
+                path.to_owned(),
+                PhysicalPathFacts {
+                    exists: true,
+                    regular_file: true,
+                    directory: false,
+                    symlink: false,
+                    resolved_target: resolved_observation
+                        .and_then(|observation| observation.facts.resolved_target),
+                    git_tracked: None,
+                    git_ignored: None,
+                    file_mode: Some(member.mode),
+                    byte_size: Some(member.size_bytes),
+                    sha256: Some(member.sha256.to_hex()),
+                },
+            );
+            charge_map_entry(
+                path,
+                std::mem::size_of::<FileStamp>(),
+                0,
+                &mut state_bytes,
+                limits.max_state_bytes,
+            )?;
+            authored_stamps.insert(path.to_owned(), stamp);
         }
 
         for path in &authored_requested {
@@ -1062,7 +951,6 @@ impl<'cancel, 'signal> FoundationPhysicalSnapshot<'cancel, 'signal> {
             historical_originals: BTreeMap::new(),
             repo_paths,
             authored_capture_paths,
-            candidate_member_paths,
             private_declared_paths,
             private_prefixes: prefixes,
             git_paths,
@@ -1083,7 +971,6 @@ impl<'cancel, 'signal> FoundationPhysicalSnapshot<'cancel, 'signal> {
             deadline,
             cancelled,
             git_signal,
-            candidate_identity: None,
             bytes_read,
             path_observations,
             git_path_queries,
@@ -1119,7 +1006,6 @@ impl<'cancel, 'signal> FoundationPhysicalSnapshot<'cancel, 'signal> {
                 continue;
             }
             if self.authored_capture_paths.contains(path)
-                || self.candidate_member_paths.contains(path)
                 || self.historical_originals.contains_key(path)
             {
                 return Err(ItemRefusal::Source(
@@ -1246,49 +1132,12 @@ impl<'cancel, 'signal> FoundationPhysicalSnapshot<'cancel, 'signal> {
         self.repo_paths.len() + self.artifact_requested_paths.len()
     }
 
-    /// Recheck physical/Git facts for a captured-source snapshot. Candidate
-    /// snapshots must use `recheck_candidate` so their original source fence
-    /// is also verified. The caller separately rechecks captured bytes or the
-    /// candidate fence, publication epoch, and payload adapter as applicable.
+    /// Recheck exact physical/Git facts after every worker has stopped. The
+    /// caller must then run `FoundationCapturedCut::recheck` with the same
+    /// operation deadline and its captured read limits to verify authored
+    /// bytes plus publication epoch. The separate payload adapter likewise
+    /// needs its final verification after workers.
     pub fn recheck(
-        &mut self,
-        sources: &mut RouteSources,
-        artifact_sources: Option<&mut RouteSources>,
-    ) -> Result<(), ItemRefusal> {
-        if self.candidate_identity.is_some() {
-            return Err(ItemRefusal::Source(
-                "candidate physical snapshot requires its source fence".into(),
-            ));
-        }
-        self.recheck_observations(sources, artifact_sources)
-    }
-
-    /// Recheck physical observations and the same candidate coverage after
-    /// dependent workers have stopped. Candidate bytes remain owned by the
-    /// candidate adapter; this verifies its original fence without comparing
-    /// those bytes to the selected working tree.
-    pub fn recheck_candidate(
-        &mut self,
-        sources: &mut RouteSources,
-        artifact_sources: Option<&mut RouteSources>,
-        candidate: &dyn SourceCutInputWithIdentity<CandidateFence>,
-        coverage: &SourceCutInputCoverage,
-    ) -> Result<(), ItemRefusal> {
-        if self.candidate_identity != Some(*candidate.input_identity()) {
-            return Err(ItemRefusal::Source(
-                "candidate physical source identity changed".into(),
-            ));
-        }
-        candidate
-            .source_input()
-            .verify_current_fence(coverage, self.deadline, self.cancelled)?;
-        self.recheck_observations(sources, artifact_sources)?;
-        candidate
-            .source_input()
-            .verify_current_fence(coverage, self.deadline, self.cancelled)
-    }
-
-    fn recheck_observations(
         &mut self,
         sources: &mut RouteSources,
         mut artifact_sources: Option<&mut RouteSources>,
@@ -1308,11 +1157,7 @@ impl<'cancel, 'signal> FoundationPhysicalSnapshot<'cancel, 'signal> {
         }
 
         for path in self.facts.authored_paths.keys() {
-            // Captured authored bytes have their own exact-cut recheck. A
-            // candidate's bytes are held in its independent spool, so every
-            // selected working-tree path is still hashed as a physical fact.
-            let hash_file =
-                self.candidate_identity.is_some() || !self.authored_capture_paths.contains(path);
+            let hash_file = !self.authored_capture_paths.contains(path);
             let selected_directory = self
                 .resolved_source_directories
                 .get(path)

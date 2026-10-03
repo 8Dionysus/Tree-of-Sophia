@@ -147,8 +147,7 @@ impl CutWorkerSchemaExecutorSpooling {
             || limits.max_database_pages == u64::MAX
             || limits.max_cache_pages == 0
             || limits.max_cache_pages > limits.max_database_pages
-            || inner.revision.is_none()
-            || inner.scalar_check_count != 0
+            || inner.receipt_count != 0
             || !inner.receipts.is_empty()
             || inner.diagnostic_executions != 0
             || !inner.pending_diagnostics.is_empty()
@@ -723,9 +722,7 @@ impl CutWorkerSchemaExecutorSpooling {
         };
         let status = diagnostic.status();
         if status != schema_diagnostics::Status::Valid
-            && let Err(error) = self
-                .inner
-                .precharge_pending_diagnostic(&mut diagnostic.result)
+            && let Err(error) = self.inner.precharge_pending_diagnostic(&mut diagnostic)
         {
             self.release_reservation(encoded_upper_bound);
             self.mark_storage_failure();
@@ -760,16 +757,16 @@ impl CutWorkerSchemaExecutorSpooling {
                 // Keep the same move-only invalid report available through
                 // the legacy immediate rejection drain. Its report state and
                 // encoded-row limits are charged independently.
-                if let Err(error) = self.inner.retain_pending_diagnostic(diagnostic.result) {
+                if let Err(error) = self.inner.retain_pending_diagnostic(diagnostic) {
                     self.mark_storage_failure();
                     return Err(error);
                 }
                 Ok(false)
             }
             _ => {
-                let refusal = diagnostic_status_refusal(&diagnostic.result.unit.report);
+                let refusal = diagnostic_status_refusal(&diagnostic.unit.report);
                 self.status_refused = true;
-                if let Err(error) = self.inner.retain_pending_diagnostic(diagnostic.result) {
+                if let Err(error) = self.inner.retain_pending_diagnostic(diagnostic) {
                     self.mark_storage_failure();
                     return Err(error);
                 }

@@ -9,7 +9,6 @@ use std::{
     borrow::Cow,
     collections::{BTreeMap, BTreeSet},
     io,
-    ops::Bound,
 };
 use tos_foundation::{
     Digest256, FoundationErrorCode, JsonLimits, JsonMode, JsonValue, RelativePath, parse_json,
@@ -19,236 +18,6 @@ use tos_foundation::{
 pub const RETIREMENT_SCHEMA: &str = "ToS/contracts/provenance-event.schema.json";
 pub const MAX_EVENT_BYTES: usize = 1_048_576;
 const STRUCTURED_JSON_BYTES: u64 = 16 * 1024 * 1024;
-
-/// Logical dependency row codec for the SAME source-index kernel. A valid row
-/// is not a completed native root, publication fence, or accepted delta.
-/// The mechanical tree key space distinguishes forward and reverse ordering.
-#[derive(Clone, Copy)]
-pub(crate) enum NativeDependencyDirectionV1 {
-    Forward,
-    Reverse,
-}
-#[derive(Clone, Copy)]
-pub(crate) struct NativeDependencyRowLimitsV1 {
-    pub max_path_bytes: usize,
-    pub max_key_bytes: usize,
-    pub max_value_bytes: usize,
-    pub max_state_bytes: usize,
-    pub retained_context_bytes: usize,
-}
-pub(crate) struct EncodedNativeDependencyRowV1 {
-    pub key: Vec<u8>,
-    pub value: Vec<u8>,
-}
-pub(crate) struct BorrowedNativeDependencyRowV1<'a> {
-    pub source: &'a str,
-    pub target: &'a str,
-}
-const NATIVE_DEPENDENCY_TAG_V1: &[u8; 8] = b"TOSDEP1\0";
-
-fn dependency_row_state(
-    source_bytes: usize,
-    target_bytes: usize,
-    limits: NativeDependencyRowLimitsV1,
-) -> io::Result<(usize, usize)> {
-    if [
-        limits.max_path_bytes,
-        limits.max_key_bytes,
-        limits.max_value_bytes,
-        limits.max_state_bytes,
-    ]
-    .iter()
-    .any(|n| *n == 0 || *n == usize::MAX)
-        || source_bytes == 0
-        || target_bytes == 0
-        || source_bytes > limits.max_path_bytes
-        || target_bytes > limits.max_path_bytes
-        || u32::try_from(source_bytes).is_err()
-        || u32::try_from(target_bytes).is_err()
-    {
-        return Err(invalid("native dependency finite row profile"));
-    }
-    let paths = source_bytes
-        .checked_add(target_bytes)
-        .ok_or_else(|| invalid("native dependency path size overflow"))?;
-    let key = paths
-        .checked_add(1)
-        .ok_or_else(|| invalid("native dependency key size overflow"))?;
-    let value = paths
-        .checked_add(16)
-        .ok_or_else(|| invalid("native dependency value size overflow"))?;
-    // Include path validation clones, both output buffers and fixed framing
-    // BEFORE validating paths or reserving any variable allocation.
-    let peak = paths
-        .checked_mul(2)
-        .and_then(|n| n.checked_add(key))
-        .and_then(|n| n.checked_add(value))
-        .and_then(|n| n.checked_add(limits.retained_context_bytes))
-        .and_then(|n| n.checked_add(1024))
-        .ok_or_else(|| invalid("native dependency simultaneous state overflow"))?;
-    if key > limits.max_key_bytes || value > limits.max_value_bytes || peak > limits.max_state_bytes
-    {
-        return Err(invalid("native dependency row exceeds selected profile"));
-    }
-    Ok((key, value))
-}
-
-/// Call only from rows emitted by the maintained `insert_dependency` kernel.
-/// Keys are S||00||T and T||00||S; normalized ToS paths contain no NUL.
-pub(crate) fn encode_native_dependency_row_v1(
-    direction: NativeDependencyDirectionV1,
-    source: &str,
-    target: &str,
-    limits: NativeDependencyRowLimitsV1,
-    check: &mut dyn FnMut() -> io::Result<()>,
-) -> io::Result<EncodedNativeDependencyRowV1> {
-    check()?;
-    let (key_bytes, value_bytes) = dependency_row_state(source.len(), target.len(), limits)?;
-    RelativePath::parse(source).map_err(|_| invalid("native dependency source path"))?;
-    RelativePath::parse(target).map_err(|_| invalid("native dependency target path"))?;
-    if source == target || source.contains('\0') || target.contains('\0') {
-        return Err(invalid("native dependency pair differs from global kernel"));
-    }
-    let mut key = Vec::new();
-    let mut value = Vec::new();
-    key.try_reserve_exact(key_bytes)
-        .map_err(|_| invalid("native dependency key allocation"))?;
-    value
-        .try_reserve_exact(value_bytes)
-        .map_err(|_| invalid("native dependency value allocation"))?;
-    if key.capacity() > key_bytes || value.capacity() > value_bytes {
-        return Err(invalid("native dependency allocator exceeds reservation"));
-    }
-    let (first, second) = match direction {
-        NativeDependencyDirectionV1::Forward => (source, target),
-        NativeDependencyDirectionV1::Reverse => (target, source),
-    };
-    for chunk in first.as_bytes().chunks(256) {
-        check()?;
-        key.extend_from_slice(chunk);
-    }
-    key.push(0);
-    for chunk in second.as_bytes().chunks(256) {
-        check()?;
-        key.extend_from_slice(chunk);
-    }
-    value.extend_from_slice(NATIVE_DEPENDENCY_TAG_V1);
-    value.extend_from_slice(&(source.len() as u32).to_be_bytes());
-    value.extend_from_slice(&(target.len() as u32).to_be_bytes());
-    for path in [source, target] {
-        for chunk in path.as_bytes().chunks(256) {
-            check()?;
-            value.extend_from_slice(chunk);
-        }
-    }
-    check()?;
-    Ok(EncodedNativeDependencyRowV1 { key, value })
-}
-
-/// Export each actual global-kernel edge once in native key order. The view
-/// exists only after the full validator completed; this function grants no new
-/// authority. The caller reserves its retained root-writer/cache state in limits.
-pub(crate) fn for_each_native_dependency_row_v1(
-    view: &crate::source_admission_spooled_index::IndexView<'_>,
-    direction: NativeDependencyDirectionV1,
-    limits: NativeDependencyRowLimitsV1,
-    check: &mut dyn FnMut() -> io::Result<()>,
-    visit: &mut dyn FnMut(&[u8], &[u8]) -> io::Result<()>,
-) -> io::Result<u64> {
-    check()?;
-    view.verify_candidate()?;
-    let mut after: Option<(RelativePath, RelativePath)> = None;
-    let mut rows = 0u64;
-    loop {
-        check()?;
-        let pair = view.dependency_pair_after(
-            direction,
-            after.as_ref().map(|(source, target)| (source, target)),
-        )?;
-        // SQLite charged the old cursor and new tuple overlap before allocating
-        // its result. Release the old cursor before encoding the new pair.
-        drop(after.take());
-        let Some((source, target)) = pair else {
-            break;
-        };
-        let tuple_state = source
-            .as_str()
-            .len()
-            .checked_add(target.as_str().len())
-            .and_then(|bytes| bytes.checked_mul(16))
-            .and_then(|bytes| bytes.checked_add(2048))
-            .ok_or_else(|| invalid("native dependency export tuple state overflow"))?;
-        let mut row_limits = limits;
-        row_limits.retained_context_bytes = limits
-            .retained_context_bytes
-            .checked_add(tuple_state)
-            .ok_or_else(|| invalid("native dependency export retained state overflow"))?;
-        let row = encode_native_dependency_row_v1(
-            direction,
-            source.as_str(),
-            target.as_str(),
-            row_limits,
-            check,
-        )?;
-        rows = rows
-            .checked_add(1)
-            .filter(|rows| *rows <= view.dependency_count())
-            .ok_or_else(|| invalid("native dependency export exceeds verified edge count"))?;
-        visit(&row.key, &row.value)?;
-        drop(row);
-        after = Some((source, target));
-    }
-    if rows != view.dependency_count() {
-        return Err(invalid("native dependency export omitted verified edges"));
-    }
-    view.verify_candidate()?;
-    check()?;
-    Ok(rows)
-}
-
-/// Borrowed physical-tree value validation: exact framing, normalized paths,
-/// direction/key relation and true raw EOF precede a retirement dependency use.
-pub(crate) fn decode_native_dependency_row_v1<'a>(
-    direction: NativeDependencyDirectionV1,
-    key: &[u8],
-    raw: &'a [u8],
-    limits: NativeDependencyRowLimitsV1,
-    check: &mut dyn FnMut() -> io::Result<()>,
-) -> io::Result<BorrowedNativeDependencyRowV1<'a>> {
-    check()?;
-    if raw.len() < 16 || raw.get(..8) != Some(NATIVE_DEPENDENCY_TAG_V1.as_slice()) {
-        return Err(invalid("native dependency value version/framing"));
-    }
-    let source_len = u32::from_be_bytes(raw[8..12].try_into().unwrap()) as usize;
-    let target_len = u32::from_be_bytes(raw[12..16].try_into().unwrap()) as usize;
-    let (key_bytes, value_bytes) = dependency_row_state(source_len, target_len, limits)?;
-    if raw.len() != value_bytes || key.len() != key_bytes {
-        return Err(invalid("native dependency value or key EOF differs"));
-    }
-    let source = std::str::from_utf8(&raw[16..16 + source_len])
-        .map_err(|_| invalid("native dependency source encoding"))?;
-    let target = std::str::from_utf8(&raw[16 + source_len..])
-        .map_err(|_| invalid("native dependency target encoding"))?;
-    RelativePath::parse(source).map_err(|_| invalid("native dependency source path"))?;
-    RelativePath::parse(target).map_err(|_| invalid("native dependency target path"))?;
-    if source == target || source.contains('\0') || target.contains('\0') {
-        return Err(invalid("native dependency pair differs from global kernel"));
-    }
-    let (first, second) = match direction {
-        NativeDependencyDirectionV1::Forward => (source, target),
-        NativeDependencyDirectionV1::Reverse => (target, source),
-    };
-    if key.get(..first.len()) != Some(first.as_bytes())
-        || key.get(first.len()) != Some(&0)
-        || key.get(first.len() + 1..) != Some(second.as_bytes())
-    {
-        return Err(invalid(
-            "native dependency typed key/value relation differs",
-        ));
-    }
-    check()?;
-    Ok(BorrowedNativeDependencyRowV1 { source, target })
-}
 
 /// All closures use ONE caller-owned cumulative byte/state/deadline budget.
 /// `read` verifies length/digest against membership before returning bytes;
@@ -264,47 +33,6 @@ pub struct CandidateInput<'a> {
     /// raw/decoded bytes and the growing retained source index.
     pub json_state_bytes: usize,
 }
-
-/// Bounded path and member lookups shared by resident and disk-backed index
-/// storage. The streamed implementation uses only the sealed candidate's
-/// typed metadata and held-object reads; no caller-supplied iterator is used.
-pub(crate) trait CandidateIndexInput {
-    fn tick(&mut self) -> io::Result<()>;
-    fn check_row_state(&self, _bytes: usize) -> io::Result<()> {
-        Ok(())
-    }
-    fn row_state_limit(&self) -> usize {
-        usize::MAX
-    }
-    fn member(&mut self, path: &str) -> io::Result<bool>;
-    fn member_after(&mut self, after: Option<&str>) -> io::Result<Option<String>>;
-    fn member_size(&mut self, path: &str) -> io::Result<u64>;
-    fn member_digest(&mut self, path: &str) -> io::Result<Digest256>;
-    fn read_raw(&mut self, path: &str, cap: usize) -> io::Result<Vec<u8>>;
-    fn verify_member(&mut self, path: &str) -> io::Result<()>;
-    fn json_limits(&self) -> JsonLimits;
-    fn json_state_bytes(&self) -> usize;
-
-    fn bytes(&mut self, path: &str, cap: usize) -> io::Result<Vec<u8>> {
-        self.tick()?;
-        if !self.member(path)? {
-            return Err(invalid("source companion is missing"));
-        }
-        let size = self.member_size(path)?;
-        if size > cap as u64 {
-            return Err(invalid("source companion exceeds its bounded size"));
-        }
-        let digest = self.member_digest(path)?;
-        let raw = self.read_raw(path, cap)?;
-        self.tick()?;
-        if raw.len() as u64 != size || Digest256::of_bytes(&raw) != digest {
-            return Err(invalid(
-                "candidate source bytes differ from exact membership",
-            ));
-        }
-        Ok(raw)
-    }
-}
 /// Constructed only by the caller receiving its complete sealed FND report.
 /// Catalog rows are from that same fresh render, not an existing catalog file.
 pub struct FreshRows {
@@ -312,122 +40,11 @@ pub struct FreshRows {
     pub claims: Vec<Value>,
     pub native_semantic: BTreeMap<String, Vec<String>>,
 }
-
-/// A replayable, one-row-at-a-time source for the fresh native catalog facts.
-///
-/// The resident validator adapts its existing vectors without changing their
-/// behavior. A bounded provider can instead read each exact callback row from
-/// an already-reserved spool, validate its EOF/count, and keep at most one
-/// decoded row live while the shared source-index law consumes it.
-pub(crate) trait FreshIndexRows {
-    fn record_count(&self) -> io::Result<u64>;
-    fn claim_count(&self) -> io::Result<u64>;
-    fn native_semantic_count(&self) -> io::Result<u64>;
-    fn native_semantic_row_count(&self) -> io::Result<u64>;
-    fn for_each_record(
-        &self,
-        visit: &mut dyn FnMut(&str, &str) -> io::Result<()>,
-    ) -> io::Result<()>;
-    fn for_each_claim(&self, visit: &mut dyn FnMut(&str, &str) -> io::Result<()>)
-    -> io::Result<()>;
-    fn for_each_native_semantic(
-        &self,
-        visit: &mut dyn FnMut(&str, &str, bool) -> io::Result<()>,
-    ) -> io::Result<()>;
-}
-
-/// Optional bounded producer interface for a catalog renderer. The store is
-/// reserved by the current candidate invocation; callers give it only the two
-/// exact identity bindings extracted by the maintained renderer callback.
-pub(crate) trait FreshIndexRowsWriter {
-    fn push_record(&mut self, id: &str, source_ref: &str) -> io::Result<()>;
-    fn push_claim(&mut self, id: &str, source_ref: &str) -> io::Result<()>;
-    fn push_native_semantic(&mut self, id: &str, path: &str) -> io::Result<()>;
-}
-
-impl FreshIndexRows for FreshRows {
-    fn record_count(&self) -> io::Result<u64> {
-        Ok(self.records.len() as u64)
-    }
-
-    fn claim_count(&self) -> io::Result<u64> {
-        Ok(self.claims.len() as u64)
-    }
-
-    fn native_semantic_count(&self) -> io::Result<u64> {
-        Ok(self.native_semantic.len() as u64)
-    }
-
-    fn native_semantic_row_count(&self) -> io::Result<u64> {
-        self.native_semantic
-            .values()
-            .try_fold(0u64, |count, paths| {
-                let rows = u64::try_from(paths.len())
-                    .map_err(|_| invalid("fresh semantic source row count overflow"))?;
-                count
-                    .checked_add(rows)
-                    .ok_or_else(|| invalid("fresh semantic source row count overflow"))
-            })
-    }
-
-    fn for_each_record(
-        &self,
-        visit: &mut dyn FnMut(&str, &str) -> io::Result<()>,
-    ) -> io::Result<()> {
-        for row in &self.records {
-            visit(string(row, "record_id")?, string(row, "source_record_ref")?)?;
-        }
-        Ok(())
-    }
-
-    fn for_each_claim(
-        &self,
-        visit: &mut dyn FnMut(&str, &str) -> io::Result<()>,
-    ) -> io::Result<()> {
-        for row in &self.claims {
-            visit(
-                string(row, "claim_id")?,
-                string(row, "source_claim_file_ref")?,
-            )?;
-        }
-        Ok(())
-    }
-
-    fn for_each_native_semantic(
-        &self,
-        visit: &mut dyn FnMut(&str, &str, bool) -> io::Result<()>,
-    ) -> io::Result<()> {
-        for (id, refs) in &self.native_semantic {
-            for (position, path) in refs.iter().enumerate() {
-                visit(id, path, position == 0)?;
-            }
-        }
-        Ok(())
-    }
-}
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct Index {
     pub identities: BTreeMap<String, String>,
     pub dependencies: BTreeMap<String, Vec<String>>,
 }
-
-/// One prior identity path, represented by the original resident string or an
-/// already bounded streamed relative path. Keeping the latter avoids cloning
-/// a second owned string after the base lookup's preallocation check.
-pub(crate) enum BaseIdentityPath {
-    Resident(String),
-    Streamed(RelativePath),
-}
-
-impl BaseIdentityPath {
-    fn as_str(&self) -> &str {
-        match self {
-            Self::Resident(path) => path,
-            Self::Streamed(path) => path.as_str(),
-        }
-    }
-}
-
 #[derive(Clone, Copy)]
 pub struct IndexLimits {
     pub max_edges: usize,
@@ -471,31 +88,6 @@ fn member_size(value: &Value) -> io::Result<u64> {
         .as_u64()
         .ok_or_else(|| invalid("candidate member size is invalid"))
 }
-
-fn owned_text_state_upper_bound(bytes: usize) -> io::Result<usize> {
-    // Match the existing conservative row-state multiplier and include
-    // allocator/string headers. Callers use this for short-lived copies while
-    // the backend row and cursor are still live.
-    bytes
-        .checked_mul(16)
-        .and_then(|n| n.checked_add(2048))
-        .ok_or_else(|| invalid("native source owned-text state overflow"))
-}
-
-fn lookup_allowance(
-    input: &dyn CandidateIndexInput,
-    state: &IndexAccounting,
-    held_bytes: usize,
-) -> io::Result<usize> {
-    input.check_row_state(held_bytes)?;
-    let candidate_remaining = input
-        .row_state_limit()
-        .checked_sub(held_bytes)
-        .ok_or_else(|| invalid("native source candidate row state exceeded"))?;
-    Ok(state
-        .remaining_temporary(held_bytes)?
-        .min(candidate_remaining))
-}
 impl CandidateInput<'_> {
     fn tick(&mut self) -> io::Result<()> {
         (self.check)()
@@ -522,72 +114,12 @@ impl CandidateInput<'_> {
         Ok(raw)
     }
 }
-
-impl CandidateIndexInput for CandidateInput<'_> {
-    fn tick(&mut self) -> io::Result<()> {
-        CandidateInput::tick(self)
-    }
-
-    fn member(&mut self, path: &str) -> io::Result<bool> {
-        Ok(self.members.contains_key(path))
-    }
-
-    fn member_after(&mut self, after: Option<&str>) -> io::Result<Option<String>> {
-        Ok(match after {
-            Some(path) => self
-                .members
-                .range::<str, _>((Bound::Excluded(path), Bound::Unbounded))
-                .next()
-                .map(|(path, _)| path.clone()),
-            None => self.members.keys().next().cloned(),
-        })
-    }
-
-    fn member_size(&mut self, path: &str) -> io::Result<u64> {
-        member_size(
-            self.members
-                .get(path)
-                .ok_or_else(|| invalid("source companion is missing"))?,
-        )
-    }
-
-    fn member_digest(&mut self, path: &str) -> io::Result<Digest256> {
-        let raw = string(
-            self.members
-                .get(path)
-                .ok_or_else(|| invalid("source companion is missing"))?,
-            "sha256",
-        )?;
-        let digest = Digest256::from_hex(raw).map_err(invalid)?;
-        if digest.to_hex() != raw {
-            return Err(invalid("candidate member digest is not canonical"));
-        }
-        Ok(digest)
-    }
-
-    fn read_raw(&mut self, path: &str, cap: usize) -> io::Result<Vec<u8>> {
-        (self.read)(path, cap)
-    }
-
-    fn verify_member(&mut self, path: &str) -> io::Result<()> {
-        (self.verify_member)(path)
-    }
-
-    fn json_limits(&self) -> JsonLimits {
-        self.json
-    }
-
-    fn json_state_bytes(&self) -> usize {
-        self.json_state_bytes
-    }
-}
-
-pub(crate) struct IndexAccounting {
+struct State {
     limits: IndexLimits,
     bytes: usize,
     edges: usize,
 }
-impl IndexAccounting {
+impl State {
     fn new(limits: IndexLimits) -> io::Result<Self> {
         if limits.max_edges == 0
             || limits.max_edges == usize::MAX
@@ -617,284 +149,51 @@ impl IndexAccounting {
         }
         Ok(())
     }
-    fn check_temporary(&self, bytes: usize) -> io::Result<()> {
-        self.bytes
-            .checked_add(bytes)
-            .filter(|n| *n <= self.limits.max_state_bytes)
-            .ok_or_else(|| invalid("source index temporary state budget exceeded"))?;
-        Ok(())
-    }
-    fn remaining_temporary(&self, bytes: usize) -> io::Result<usize> {
-        self.limits
-            .max_state_bytes
-            .checked_sub(self.bytes)
-            .and_then(|remaining| remaining.checked_sub(bytes))
-            .ok_or_else(|| invalid("source index temporary state budget exceeded"))
-    }
-    fn reserve_edge_count(&mut self) -> io::Result<()> {
-        self.edges = self
-            .edges
-            .checked_add(1)
-            .filter(|n| *n <= self.limits.max_edges)
-            .ok_or_else(|| invalid("source index edge budget exceeded"))?;
-        Ok(())
-    }
 }
-
-/// Storage boundary for the one maintained global identity/link kernel.
-/// The resident adapter retains the historic `Index` maps. The spooled FND
-/// adapter stores the same sorted relations in its private quota-bound SQLite
-/// database and returns a cursor-only view after EOF.
-pub(crate) trait AdmissionIndexBackend {
-    fn retains_index_rows(&self) -> bool;
-    fn source_record_count(&self) -> io::Result<u64>;
-    fn source_claim_count(&self) -> io::Result<u64>;
-    fn source_native_semantic_count(&self) -> io::Result<u64>;
-    fn source_native_semantic_row_count(&self) -> io::Result<u64>;
-    fn for_each_source_record(
-        &mut self,
-        visit: &mut dyn FnMut(&mut dyn AdmissionIndexBackend, &str, &str) -> io::Result<()>,
-    ) -> io::Result<()>;
-    fn for_each_source_claim(
-        &mut self,
-        visit: &mut dyn FnMut(&mut dyn AdmissionIndexBackend, &str, &str) -> io::Result<()>,
-    ) -> io::Result<()>;
-    fn for_each_source_native_semantic(
-        &mut self,
-        visit: &mut dyn for<'row> FnMut(NativeSemanticStep<'row>) -> io::Result<()>,
-    ) -> io::Result<()>;
-    fn identity_path(
-        &mut self,
-        id: &str,
-        max_owned_state_bytes: usize,
-    ) -> io::Result<Option<String>>;
-    fn insert_identity(&mut self, id: &str, path: &str) -> io::Result<()>;
-    fn dependency_source_exists(&mut self, source: &str) -> io::Result<bool>;
-    fn dependency_exists(&mut self, source: &str, target: &str) -> io::Result<bool>;
-    fn insert_dependency(&mut self, source: &str, target: &str) -> io::Result<()>;
-}
-
-pub(crate) enum NativeSemanticStep<'row> {
-    Preflight {
-        cursor_id_bytes: usize,
-        id_bytes: usize,
-        path_bytes: usize,
-    },
-    Row {
-        backend: &'row mut dyn AdmissionIndexBackend,
-        cursor_id_bytes: usize,
-        id: &'row str,
-        path: &'row str,
-        group_first: bool,
-    },
-}
-
-pub(crate) struct ResidentIndexBackend<'rows> {
-    pub(crate) index: Index,
-    dependencies: BTreeMap<String, BTreeSet<String>>,
-    fresh: &'rows dyn FreshIndexRows,
-}
-
-impl<'rows> ResidentIndexBackend<'rows> {
-    fn new(fresh: &'rows dyn FreshIndexRows) -> Self {
-        Self {
-            index: Index::default(),
-            dependencies: BTreeMap::new(),
-            fresh,
-        }
-    }
-
-    fn finish(mut self) -> Index {
-        self.index.dependencies = self
-            .dependencies
-            .into_iter()
-            .map(|(source, targets)| (source, targets.into_iter().collect()))
-            .collect();
-        self.index
-    }
-}
-
-impl AdmissionIndexBackend for ResidentIndexBackend<'_> {
-    fn retains_index_rows(&self) -> bool {
-        true
-    }
-
-    fn source_record_count(&self) -> io::Result<u64> {
-        self.fresh.record_count()
-    }
-
-    fn source_claim_count(&self) -> io::Result<u64> {
-        self.fresh.claim_count()
-    }
-
-    fn source_native_semantic_count(&self) -> io::Result<u64> {
-        self.fresh.native_semantic_count()
-    }
-
-    fn source_native_semantic_row_count(&self) -> io::Result<u64> {
-        self.fresh.native_semantic_row_count()
-    }
-
-    fn for_each_source_record(
-        &mut self,
-        visit: &mut dyn FnMut(&mut dyn AdmissionIndexBackend, &str, &str) -> io::Result<()>,
-    ) -> io::Result<()> {
-        let fresh = self.fresh;
-        fresh.for_each_record(&mut |id, source_ref| visit(self, id, source_ref))
-    }
-
-    fn for_each_source_claim(
-        &mut self,
-        visit: &mut dyn FnMut(&mut dyn AdmissionIndexBackend, &str, &str) -> io::Result<()>,
-    ) -> io::Result<()> {
-        let fresh = self.fresh;
-        fresh.for_each_claim(&mut |id, source_ref| visit(self, id, source_ref))
-    }
-
-    fn for_each_source_native_semantic(
-        &mut self,
-        visit: &mut dyn for<'row> FnMut(NativeSemanticStep<'row>) -> io::Result<()>,
-    ) -> io::Result<()> {
-        let fresh = self.fresh;
-        fresh.for_each_native_semantic(&mut |id, path, group_first| {
-            visit(NativeSemanticStep::Preflight {
-                cursor_id_bytes: 0,
-                id_bytes: id.len(),
-                path_bytes: path.len(),
-            })?;
-            visit(NativeSemanticStep::Row {
-                backend: self,
-                cursor_id_bytes: 0,
-                id,
-                path,
-                group_first,
-            })
-        })
-    }
-
-    fn identity_path(
-        &mut self,
-        id: &str,
-        max_owned_state_bytes: usize,
-    ) -> io::Result<Option<String>> {
-        let Some(path) = self.index.identities.get(id) else {
-            return Ok(None);
-        };
-        let bytes = path
-            .len()
-            .checked_mul(16)
-            .and_then(|n| n.checked_add(2048))
-            .ok_or_else(|| invalid("source identity lookup state overflow"))?;
-        if bytes > max_owned_state_bytes {
-            return Err(invalid("source identity lookup exceeds state budget"));
-        }
-        Ok(Some(path.clone()))
-    }
-
-    fn insert_identity(&mut self, id: &str, path: &str) -> io::Result<()> {
-        self.index.identities.insert(id.to_owned(), path.to_owned());
-        Ok(())
-    }
-
-    fn dependency_source_exists(&mut self, source: &str) -> io::Result<bool> {
-        Ok(self.dependencies.contains_key(source))
-    }
-
-    fn dependency_exists(&mut self, source: &str, target: &str) -> io::Result<bool> {
-        Ok(self
-            .dependencies
-            .get(source)
-            .is_some_and(|targets| targets.contains(target)))
-    }
-
-    fn insert_dependency(&mut self, source: &str, target: &str) -> io::Result<()> {
-        self.dependencies
-            .entry(source.to_owned())
-            .or_default()
-            .insert(target.to_owned());
-        Ok(())
-    }
-}
-
 fn bind(
-    input: &mut dyn CandidateIndexInput,
-    backend: &mut dyn AdmissionIndexBackend,
-    state: &mut IndexAccounting,
+    input: &mut CandidateInput<'_>,
+    index: &mut Index,
+    state: &mut State,
     id: &str,
     path: &str,
 ) -> io::Result<()> {
     input.tick()?;
-    let held_bytes = owned_text_state_upper_bound(
-        id.len()
-            .checked_add(path.len())
-            .ok_or_else(|| invalid("source identity row state overflow"))?,
-    )?;
-    input.check_row_state(held_bytes)?;
-    if !input.member(path)? {
+    if !input.members.contains_key(path) {
         return Err(invalid(
             "source identity is outside the admitted member set",
         ));
     }
-    let max_owned_state_bytes = lookup_allowance(input, state, held_bytes)?;
-    if let Some(old) = backend.identity_path(id, max_owned_state_bytes)? {
+    if let Some(old) = index.identities.get(id) {
         if old != path {
             return Err(invalid("duplicate source identity"));
         }
         return Ok(());
     }
-    if backend.retains_index_rows() {
-        state.reserve(
-            id.len()
-                .checked_add(path.len())
-                .and_then(|n| n.checked_add(96))
-                .ok_or_else(|| invalid("source identity state overflow"))?,
-            false,
-        )?;
-    }
-    backend.insert_identity(id, path)
+    state.reserve(
+        id.len().saturating_add(path.len()).saturating_add(96),
+        false,
+    )?;
+    index.identities.insert(id.to_owned(), path.to_owned());
+    Ok(())
 }
 fn edge(
-    input: &mut dyn CandidateIndexInput,
-    backend: &mut dyn AdmissionIndexBackend,
-    state: &mut IndexAccounting,
+    deps: &mut BTreeMap<String, BTreeSet<String>>,
+    state: &mut State,
     source: &str,
     target: &str,
 ) -> io::Result<()> {
-    if source == target {
+    if source == target || deps.get(source).is_some_and(|s| s.contains(target)) {
         return Ok(());
     }
-    input.check_row_state(
-        source
-            .len()
-            .checked_add(target.len())
-            .and_then(|n| n.checked_add(1024))
-            .ok_or_else(|| invalid("source dependency row state overflow"))?,
-    )?;
-    if backend.dependency_exists(source, target)? {
-        return Ok(());
+    if !deps.contains_key(source) {
+        state.reserve(source.len().saturating_add(96), false)?;
+        deps.insert(source.to_owned(), BTreeSet::new());
     }
-    let source_exists = backend.dependency_source_exists(source)?;
-    if backend.retains_index_rows() {
-        if !source_exists {
-            state.reserve(
-                source
-                    .len()
-                    .checked_add(96)
-                    .ok_or_else(|| invalid("source dependency state overflow"))?,
-                false,
-            )?;
-        }
-        state.reserve(
-            target
-                .len()
-                .checked_add(64)
-                .ok_or_else(|| invalid("source dependency state overflow"))?,
-            true,
-        )?;
-    } else {
-        state.reserve_edge_count()?;
-    }
-    backend.insert_dependency(source, target)
+    state.reserve(target.len().saturating_add(64), true)?;
+    deps.get_mut(source)
+        .ok_or_else(|| invalid("dependency accumulator missing"))?
+        .insert(target.to_owned());
+    Ok(())
 }
 /// Python json.loads(bytes) observes BOM / zero-pattern UTF-16 and UTF-32.
 /// Raw digest custody precedes decoding. This does not normalize authored text.
@@ -1075,11 +374,10 @@ fn strict_object(raw: &[u8], limits: JsonLimits) -> io::Result<Value> {
     }
     Ok(result)
 }
-fn event_limits(input: &dyn CandidateIndexInput) -> JsonLimits {
-    let json = input.json_limits();
+fn event_limits(input: &CandidateInput<'_>) -> JsonLimits {
     JsonLimits {
-        max_bytes: MAX_EVENT_BYTES.min(json.max_bytes),
-        ..json
+        max_bytes: MAX_EVENT_BYTES.min(input.json.max_bytes),
+        ..input.json
     }
 }
 fn reference_path(value: &str) -> Cow<'_, str> {
@@ -1102,9 +400,10 @@ fn reference_path(value: &str) -> Cow<'_, str> {
     Cow::Borrowed(value)
 }
 fn references(
-    input: &mut dyn CandidateIndexInput,
-    backend: &mut dyn AdmissionIndexBackend,
-    state: &mut IndexAccounting,
+    input: &mut CandidateInput<'_>,
+    index: &Index,
+    deps: &mut BTreeMap<String, BTreeSet<String>>,
+    state: &mut State,
     source: &str,
     value: &JsonValue,
 ) -> io::Result<()> {
@@ -1112,20 +411,13 @@ fn references(
     match value {
         JsonValue::String(s) => {
             if let Some(s) = s.as_str() {
-                let held_bytes = owned_text_state_upper_bound(
-                    source
-                        .len()
-                        .checked_add(s.len())
-                        .ok_or_else(|| invalid("source reference state overflow"))?,
-                )?;
-                let max_owned_state_bytes = lookup_allowance(input, state, held_bytes)?;
-                if let Some(target) = backend.identity_path(s, max_owned_state_bytes)? {
-                    edge(input, backend, state, source, &target)?;
+                if let Some(target) = index.identities.get(s) {
+                    edge(deps, state, source, target)?;
                 }
                 if s.starts_with("ToS/") {
                     let p = reference_path(s);
-                    if input.member(p.as_ref())? {
-                        edge(input, backend, state, source, p.as_ref())?;
+                    if input.members.contains_key(p.as_ref()) {
+                        edge(deps, state, source, p.as_ref())?;
                     }
                 }
             } else {
@@ -1139,8 +431,8 @@ fn references(
                 if let Ok(prefix) = String::from_utf16(prefix) {
                     if prefix.starts_with("ToS/") {
                         let path = reference_path(&prefix);
-                        if input.member(path.as_ref())? {
-                            edge(input, backend, state, source, path.as_ref())?;
+                        if input.members.contains_key(path.as_ref()) {
+                            edge(deps, state, source, path.as_ref())?;
                         }
                     }
                 }
@@ -1148,12 +440,12 @@ fn references(
         }
         JsonValue::Array(v) => {
             for item in v {
-                references(input, backend, state, source, item)?;
+                references(input, index, deps, state, source, item)?;
             }
         }
         JsonValue::Object(v) => {
             for (_, item) in v {
-                references(input, backend, state, source, item)?;
+                references(input, index, deps, state, source, item)?;
             }
         }
         _ => {}
@@ -1181,360 +473,51 @@ pub fn build_index_accounted(
     limits: IndexLimits,
     schemas: &mut SchemaCheck<'_>,
 ) -> io::Result<(Index, usize)> {
-    build_index_from_rows_accounted(input, fresh, base, limits, schemas)
-}
-
-/// Same resident return contract for a privately retained, replayable row
-/// source. This is the narrow bridge used by the spooled admission callback;
-/// source-law decisions still run only in `build_index_into` below.
-pub(crate) fn build_index_from_rows_accounted(
-    input: &mut CandidateInput<'_>,
-    fresh: &dyn FreshIndexRows,
-    base: Option<&Index>,
-    limits: IndexLimits,
-    schemas: &mut SchemaCheck<'_>,
-) -> io::Result<(Index, usize)> {
-    let mut backend = ResidentIndexBackend::new(fresh);
-    let mut base_identity = |id: &str, max_state_bytes: usize| {
-        let Some(path) = base.and_then(|index| index.identities.get(id)) else {
-            return Ok(None);
-        };
-        let owned_state = path
-            .len()
-            .checked_mul(16)
-            .and_then(|bytes| bytes.checked_add(2048))
-            .ok_or_else(|| invalid("base source identity clone state overflow"))?;
-        if owned_state > max_state_bytes {
-            return Err(invalid("base source identity clone exceeds state budget"));
-        }
-        Ok(Some(BaseIdentityPath::Resident(path.clone())))
-    };
-    let retained_state =
-        build_index_into(input, &mut base_identity, limits, &mut backend, schemas)?;
-    Ok((backend.finish(), retained_state))
-}
-
-/// The resident API and the streamed FND index use the same maintained parser,
-/// schema, duplicate-ID, structured-reference and dependency predicates.
-/// Backends own only row storage; they cannot attest a candidate or mint a view.
-pub(crate) fn build_index_into(
-    input: &mut dyn CandidateIndexInput,
-    base_identity: &mut dyn FnMut(&str, usize) -> io::Result<Option<BaseIdentityPath>>,
-    limits: IndexLimits,
-    backend: &mut dyn AdmissionIndexBackend,
-    schemas: &mut SchemaCheck<'_>,
-) -> io::Result<usize> {
     input.tick()?;
-    let retained_rows = backend.retains_index_rows();
-    let mut state = IndexAccounting::new(limits)?;
-    if retained_rows {
-        state.reserve(std::mem::size_of::<Index>(), false)?;
-    }
-    let expected_records = backend.source_record_count()?;
-    let mut record_count = 0u64;
-    backend.for_each_source_record(&mut |backend, id, source_ref| {
-        record_count = record_count
-            .checked_add(1)
-            .ok_or_else(|| invalid("fresh record row count overflow"))?;
-        bind(input, backend, &mut state, id, source_ref)
-    })?;
-    if record_count != expected_records || backend.source_record_count()? != expected_records {
-        return Err(invalid(
-            "fresh record source did not reach authenticated EOF",
-        ));
-    }
-    let expected_claims = backend.source_claim_count()?;
-    let mut claim_count = 0u64;
-    backend.for_each_source_claim(&mut |backend, id, source_ref| {
-        claim_count = claim_count
-            .checked_add(1)
-            .ok_or_else(|| invalid("fresh claim row count overflow"))?;
-        bind(input, backend, &mut state, id, source_ref)
-    })?;
-    if claim_count != expected_claims || backend.source_claim_count()? != expected_claims {
-        return Err(invalid(
-            "fresh claim source did not reach authenticated EOF",
-        ));
-    }
-    struct SemanticGroup {
-        id: String,
-        minimum_path: String,
-        previous_path: Option<BaseIdentityPath>,
-        previous_seen: bool,
-    }
-    fn semantic_group_state_upper_bound(
-        id: &str,
-        minimum_path: &str,
-        previous_path: Option<&BaseIdentityPath>,
-    ) -> io::Result<usize> {
-        let text_bytes = id
-            .len()
-            .checked_add(minimum_path.len())
-            .and_then(|n| n.checked_add(previous_path.map_or(0, |path| path.as_str().len())))
-            .ok_or_else(|| invalid("native semantic group text state overflow"))?;
-        std::mem::size_of::<SemanticGroup>()
-            .checked_add(owned_text_state_upper_bound(text_bytes)?)
-            .ok_or_else(|| invalid("native semantic group state overflow"))
-    }
-    fn semantic_row_state_upper_bound(id: &str, path: &str) -> io::Result<usize> {
-        owned_text_state_upper_bound(
-            id.len()
-                .checked_add(path.len())
-                .ok_or_else(|| invalid("native semantic provider row state overflow"))?,
-        )
-    }
-    fn check_semantic_peak(
-        input: &dyn CandidateIndexInput,
-        state: &IndexAccounting,
-        group_bytes: usize,
-        provider_row_bytes: usize,
-        cursor_bytes: usize,
-    ) -> io::Result<()> {
-        let peak = group_bytes
-            .checked_add(provider_row_bytes)
-            .and_then(|n| n.checked_add(cursor_bytes))
-            .ok_or_else(|| invalid("native semantic peak state overflow"))?;
-        state.check_temporary(peak)?;
-        input.check_row_state(peak)
-    }
-    fn finish_semantic_group(
-        input: &mut dyn CandidateIndexInput,
-        backend: &mut dyn AdmissionIndexBackend,
-        state: &mut IndexAccounting,
-        group: SemanticGroup,
-        provider_row_bytes: usize,
-        cursor_bytes: usize,
-    ) -> io::Result<()> {
-        let anchor = if group.previous_seen {
-            group
-                .previous_path
-                .as_ref()
-                .map(BaseIdentityPath::as_str)
-                .ok_or_else(|| invalid("native semantic previous-path state is inconsistent"))?
-        } else {
-            group.minimum_path.as_str()
-        };
-        let group_bytes = semantic_group_state_upper_bound(
-            &group.id,
-            &group.minimum_path,
-            group.previous_path.as_ref(),
-        )?;
-        let binding_bytes = owned_text_state_upper_bound(
-            group
-                .id
-                .len()
-                .checked_add(anchor.len())
-                .ok_or_else(|| invalid("native semantic binding state overflow"))?,
-        )?;
-        check_semantic_peak(
+    let mut state = State::new(limits)?;
+    state.reserve(std::mem::size_of::<Index>(), false)?;
+    let mut index = Index::default();
+    for row in &fresh.records {
+        bind(
             input,
-            state,
-            group_bytes,
-            binding_bytes
-                .checked_add(provider_row_bytes)
-                .ok_or_else(|| invalid("native semantic binding peak overflow"))?,
-            cursor_bytes,
+            &mut index,
+            &mut state,
+            string(row, "record_id")?,
+            string(row, "source_record_ref")?,
         )?;
-        bind(input, backend, state, &group.id, anchor)
     }
-    let mut current_group: Option<SemanticGroup> = None;
-    let mut semantic_count = 0u64;
-    let expected_semantic_rows = backend.source_native_semantic_row_count()?;
-    let mut semantic_rows = 0u64;
-    backend.for_each_source_native_semantic(&mut |step| match step {
-        NativeSemanticStep::Preflight {
-            cursor_id_bytes,
-            id_bytes,
-            path_bytes,
-        } => {
-            input.tick()?;
-            let provider_row_bytes = owned_text_state_upper_bound(
-                id_bytes
-                    .checked_add(path_bytes)
-                    .ok_or_else(|| invalid("native semantic provider row state overflow"))?,
-            )?;
-            let cursor_bytes = if cursor_id_bytes == 0 {
-                0
-            } else {
-                owned_text_state_upper_bound(cursor_id_bytes)?
-            };
-            let current_group_bytes = current_group
-                .as_ref()
-                .map(|group| {
-                    semantic_group_state_upper_bound(
-                        &group.id,
-                        &group.minimum_path,
-                        group.previous_path.as_ref(),
-                    )
-                })
-                .transpose()?
-                .unwrap_or(0);
-            check_semantic_peak(
-                input,
-                &state,
-                current_group_bytes,
-                provider_row_bytes,
-                cursor_bytes,
-            )
-        }
-        NativeSemanticStep::Row {
-            backend,
-            cursor_id_bytes,
-            id,
-            path,
-            group_first,
-        } => {
-            input.tick()?;
-            let provider_row_bytes = semantic_row_state_upper_bound(id, path)?;
-            let cursor_bytes = if cursor_id_bytes == 0 {
-                0
-            } else {
-                owned_text_state_upper_bound(cursor_id_bytes)?
-            };
-            let current_group_bytes = current_group
-                .as_ref()
-                .map(|group| {
-                    semantic_group_state_upper_bound(
-                        &group.id,
-                        &group.minimum_path,
-                        group.previous_path.as_ref(),
-                    )
-                })
-                .transpose()?
-                .unwrap_or(0);
-            check_semantic_peak(
-                input,
-                &state,
-                current_group_bytes,
-                provider_row_bytes,
-                cursor_bytes,
-            )?;
-            if !input.member(path)? {
+    for row in &fresh.claims {
+        bind(
+            input,
+            &mut index,
+            &mut state,
+            string(row, "claim_id")?,
+            string(row, "source_claim_file_ref")?,
+        )?;
+    }
+    for (id, refs) in &fresh.native_semantic {
+        input.tick()?;
+        let previous = base
+            .and_then(|b| b.identities.get(id))
+            .filter(|p| refs.contains(p));
+        let anchor = previous
+            .or_else(|| refs.iter().min())
+            .ok_or_else(|| invalid("native semantic identity has no version path"))?;
+        for path in refs {
+            if !input.members.contains_key(path) {
                 return Err(invalid(
                     "source identity is outside the admitted member set",
                 ));
             }
-            let starts_group = current_group
-                .as_ref()
-                .is_none_or(|group| group.id.as_str() != id);
-            if group_first != starts_group {
-                return Err(invalid(
-                    "fresh semantic group marker differs from ordered source rows",
-                ));
-            }
-            if starts_group {
-                if current_group
-                    .as_ref()
-                    .is_some_and(|group| id <= group.id.as_str())
-                {
-                    return Err(invalid(
-                        "fresh semantic identities are not strictly ordered",
-                    ));
-                }
-                if let Some(group) = current_group.take() {
-                    finish_semantic_group(
-                        input,
-                        backend,
-                        &mut state,
-                        group,
-                        provider_row_bytes,
-                        cursor_bytes,
-                    )?;
-                }
-                semantic_count = semantic_count
-                    .checked_add(1)
-                    .ok_or_else(|| invalid("fresh semantic row count overflow"))?;
-                // Hold room for old cursor, the provider row, and the fixed
-                // new-group state before the base lookup can allocate a path.
-                let prelookup_group_bytes = semantic_group_state_upper_bound(id, path, None)?;
-                check_semantic_peak(
-                    input,
-                    &state,
-                    prelookup_group_bytes,
-                    provider_row_bytes,
-                    cursor_bytes,
-                )?;
-                let base_path_state_allowance = lookup_allowance(
-                    input,
-                    &state,
-                    prelookup_group_bytes
-                        .checked_add(provider_row_bytes)
-                        .and_then(|n| n.checked_add(cursor_bytes))
-                        .ok_or_else(|| invalid("native semantic base lookup state overflow"))?,
-                )?;
-                let previous_path = base_identity(id, base_path_state_allowance)?;
-                let next_group_bytes =
-                    semantic_group_state_upper_bound(id, path, previous_path.as_ref())?;
-                check_semantic_peak(
-                    input,
-                    &state,
-                    next_group_bytes,
-                    provider_row_bytes,
-                    cursor_bytes,
-                )?;
-                current_group = Some(SemanticGroup {
-                    id: id.to_owned(),
-                    minimum_path: path.to_owned(),
-                    previous_seen: previous_path
-                        .as_ref()
-                        .is_some_and(|previous| previous.as_str() == path),
-                    previous_path,
-                });
-            } else if let Some(group) = current_group.as_mut() {
-                if group
-                    .previous_path
-                    .as_ref()
-                    .is_some_and(|previous| previous.as_str() == path)
-                {
-                    group.previous_seen = true;
-                }
-                if path < group.minimum_path.as_str() {
-                    let old_group_bytes = semantic_group_state_upper_bound(
-                        &group.id,
-                        &group.minimum_path,
-                        group.previous_path.as_ref(),
-                    )?;
-                    let new_minimum_bytes = owned_text_state_upper_bound(path.len())?;
-                    let replacement_peak = old_group_bytes
-                        .checked_add(new_minimum_bytes)
-                        .ok_or_else(|| invalid("native semantic replacement state overflow"))?;
-                    check_semantic_peak(
-                        input,
-                        &state,
-                        replacement_peak,
-                        provider_row_bytes,
-                        cursor_bytes,
-                    )?;
-                    // Build the replacement while old group, cursor and row
-                    // buffers remain live under the peak check above.
-                    let replacement = path.to_owned();
-                    group.minimum_path = replacement;
-                }
-            }
-            semantic_rows = semantic_rows
-                .checked_add(1)
-                .ok_or_else(|| invalid("fresh semantic source row count overflow"))?;
-            Ok(())
         }
-    })?;
-    if let Some(group) = current_group.take() {
-        finish_semantic_group(input, backend, &mut state, group, 0, 0)?;
-    }
-    let expected_semantics = backend.source_native_semantic_count()?;
-    if semantic_count != expected_semantics
-        || semantic_rows != expected_semantic_rows
-        || backend.source_native_semantic_row_count()? != expected_semantic_rows
-    {
-        return Err(invalid(
-            "fresh semantic source did not reach authenticated EOF",
-        ));
+        bind(input, &mut index, &mut state, id, anchor)?;
     }
     let mut schema = None;
-    let mut after: Option<String> = None;
-    while let Some(path) = input.member_after(after.as_deref())? {
-        after = Some(path.clone());
+    // Borrowed membership paths avoid a second complete path inventory.
+    let members = input.members;
+    for path in members.keys() {
         if path.starts_with("ToS/source-witnesses/retirements/") && path.ends_with(".json") {
-            let raw = input.bytes(&path, MAX_EVENT_BYTES)?;
+            let raw = input.bytes(path, MAX_EVENT_BYTES)?;
             let row = strict_object(&raw, event_limits(input))?;
             if schema.is_none() {
                 let raw = input.bytes(RETIREMENT_SCHEMA, MAX_EVENT_BYTES)?;
@@ -1544,7 +527,7 @@ pub(crate) fn build_index_into(
             let schema = schema
                 .as_deref()
                 .ok_or_else(|| invalid("retirement schema missing"))?;
-            if schemas(&path, &raw, schema)?.is_some()
+            if schemas(path, &raw, schema)?.is_some()
                 || string(&row, "schema_version")? != "tos_provenance_event_v1"
                 || string(&row, "event_type")? != "migration"
                 || string(field(&row, "method")?, "name")? != "corpus-source-retirement"
@@ -1554,167 +537,68 @@ pub(crate) fn build_index_into(
                     "source retirement record has an invalid operation or ID",
                 ));
             }
-            bind(input, backend, &mut state, string(&row, "event_id")?, &path)?;
+            bind(
+                input,
+                &mut index,
+                &mut state,
+                string(&row, "event_id")?,
+                path,
+            )?;
         }
     }
-    let json = input.json_limits();
-    let json_state_bytes = input.json_state_bytes();
-    let mut after: Option<String> = None;
-    while let Some(path) = input.member_after(after.as_deref())? {
-        after = Some(path.clone());
+    let mut deps = BTreeMap::new();
+    for (path, member) in members {
         input.tick()?;
         if path.starts_with("ToS/contracts/")
             || path.starts_with("ToS/doctrine/semantic-interchange/")
         {
             continue;
         }
-        if path.ends_with(".json") && input.member_size(&path)? <= STRUCTURED_JSON_BYTES {
-            let raw = input.bytes(&path, json.max_bytes)?;
-            if let Some(row) =
-                document(&raw, JsonMode::LegacyPythonObserved, json, json_state_bytes)?
-            {
-                references(input, backend, &mut state, &path, &row)?;
+        if path.ends_with(".json") && member_size(member)? <= STRUCTURED_JSON_BYTES {
+            let raw = input.bytes(path, input.json.max_bytes)?;
+            if let Some(row) = document(
+                &raw,
+                JsonMode::LegacyPythonObserved,
+                input.json,
+                input.json_state_bytes,
+            )? {
+                references(input, &index, &mut deps, &mut state, path, &row)?;
             }
         } else if path.ends_with(".jsonl") {
-            let raw = input.bytes(&path, json.max_bytes)?;
+            let raw = input.bytes(path, input.json.max_bytes)?;
             for line in raw.split(|b| *b == b'\n') {
                 input.tick()?;
                 if line.iter().all(u8::is_ascii_whitespace) {
                     continue;
                 }
-                if let Some(row) =
-                    document(line, JsonMode::LegacyPythonObserved, json, json_state_bytes)?
-                {
-                    references(input, backend, &mut state, &path, &row)?;
+                if let Some(row) = document(
+                    line,
+                    JsonMode::LegacyPythonObserved,
+                    input.json,
+                    input.json_state_bytes,
+                )? {
+                    references(input, &index, &mut deps, &mut state, path, &row)?;
                 }
             }
         }
     }
-    struct SemanticReplayGroup {
-        id: String,
-        anchor: String,
-    }
-    fn semantic_replay_group_state_upper_bound(id: &str, anchor: &str) -> io::Result<usize> {
-        std::mem::size_of::<SemanticReplayGroup>()
-            .checked_add(owned_text_state_upper_bound(
-                id.len()
-                    .checked_add(anchor.len())
-                    .ok_or_else(|| invalid("native semantic replay group state overflow"))?,
-            )?)
-            .ok_or_else(|| invalid("native semantic replay group state overflow"))
-    }
-    let mut replay_group: Option<SemanticReplayGroup> = None;
-    let expected_replay_rows = backend.source_native_semantic_row_count()?;
-    let mut replay_rows = 0u64;
-    let mut replay_groups = 0u64;
-    backend.for_each_source_native_semantic(&mut |step| match step {
-        NativeSemanticStep::Preflight {
-            cursor_id_bytes,
-            id_bytes,
-            path_bytes,
-        } => {
+    for (id, refs) in &fresh.native_semantic {
+        let anchor = index
+            .identities
+            .get(id)
+            .ok_or_else(|| invalid("native semantic anchor missing"))?;
+        for path in refs {
             input.tick()?;
-            let row_bytes = owned_text_state_upper_bound(
-                id_bytes
-                    .checked_add(path_bytes)
-                    .ok_or_else(|| invalid("native semantic replay row state overflow"))?,
-            )?;
-            let cursor_bytes = if cursor_id_bytes == 0 {
-                0
-            } else {
-                owned_text_state_upper_bound(cursor_id_bytes)?
-            };
-            let group_bytes = replay_group
-                .as_ref()
-                .map(|group| semantic_replay_group_state_upper_bound(&group.id, &group.anchor))
-                .transpose()?
-                .unwrap_or(0);
-            check_semantic_peak(input, &state, group_bytes, row_bytes, cursor_bytes)
+            edge(&mut deps, &mut state, anchor, path)?;
         }
-        NativeSemanticStep::Row {
-            backend,
-            cursor_id_bytes,
-            id,
-            path,
-            group_first,
-        } => {
-            input.tick()?;
-            let row_bytes = semantic_row_state_upper_bound(id, path)?;
-            let cursor_bytes = if cursor_id_bytes == 0 {
-                0
-            } else {
-                owned_text_state_upper_bound(cursor_id_bytes)?
-            };
-            let old_group_bytes = replay_group
-                .as_ref()
-                .map(|group| semantic_replay_group_state_upper_bound(&group.id, &group.anchor))
-                .transpose()?
-                .unwrap_or(0);
-            check_semantic_peak(input, &state, old_group_bytes, row_bytes, cursor_bytes)?;
-            let starts_group = replay_group
-                .as_ref()
-                .is_none_or(|group| group.id.as_str() != id);
-            if starts_group != group_first {
-                return Err(invalid(
-                    "fresh semantic replay marker differs from ordered source rows",
-                ));
-            }
-            if starts_group {
-                if replay_group
-                    .as_ref()
-                    .is_some_and(|group| id <= group.id.as_str())
-                {
-                    return Err(invalid(
-                        "fresh semantic replay identities are not strictly ordered",
-                    ));
-                }
-                let id_copy_bytes = owned_text_state_upper_bound(id.len())?;
-                let lookup_held_bytes = old_group_bytes
-                    .checked_add(row_bytes)
-                    .and_then(|n| n.checked_add(cursor_bytes))
-                    .and_then(|n| n.checked_add(id_copy_bytes))
-                    .ok_or_else(|| invalid("native semantic replay lookup state overflow"))?;
-                let max_anchor_state = lookup_allowance(input, &state, lookup_held_bytes)?;
-                let anchor = backend
-                    .identity_path(id, max_anchor_state)?
-                    .ok_or_else(|| invalid("native semantic anchor missing"))?;
-                let next_group_bytes = semantic_replay_group_state_upper_bound(id, &anchor)?;
-                let replacement_peak = old_group_bytes
-                    .checked_add(next_group_bytes)
-                    .and_then(|n| n.checked_add(row_bytes))
-                    .and_then(|n| n.checked_add(cursor_bytes))
-                    .ok_or_else(|| invalid("native semantic replay replacement overflow"))?;
-                state.check_temporary(replacement_peak)?;
-                input.check_row_state(replacement_peak)?;
-                replay_group = Some(SemanticReplayGroup {
-                    id: id.to_owned(),
-                    anchor,
-                });
-                replay_groups = replay_groups
-                    .checked_add(1)
-                    .ok_or_else(|| invalid("native semantic replay group count overflow"))?;
-            }
-            let group = replay_group
-                .as_ref()
-                .ok_or_else(|| invalid("native semantic replay group is missing"))?;
-            edge(input, backend, &mut state, &group.anchor, path)?;
-            replay_rows = replay_rows
-                .checked_add(1)
-                .ok_or_else(|| invalid("native semantic replay row count overflow"))?;
-            Ok(())
-        }
-    })?;
-    let expected_replay_groups = backend.source_native_semantic_count()?;
-    if replay_groups != expected_replay_groups
-        || replay_rows != expected_replay_rows
-        || backend.source_native_semantic_row_count()? != expected_replay_rows
-    {
-        return Err(invalid(
-            "fresh semantic edge replay did not reach authenticated EOF",
-        ));
     }
+    // Moving strings, not cloning another complete dependency index.
+    index.dependencies = deps
+        .into_iter()
+        .map(|(p, v)| (p, v.into_iter().collect()))
+        .collect();
     input.tick()?;
-    Ok(state.bytes)
+    Ok((index, state.bytes))
 }
 
 pub fn validate_retirements(
