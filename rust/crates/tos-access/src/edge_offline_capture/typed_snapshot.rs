@@ -926,7 +926,115 @@ fn storage_name(tag: u8) -> Result<&'static str, String> {
     }
 }
 
-fn sql_value(cursor: &mut Cursor<'_>, max_cell_bytes: usize) -> Result<(u8, SqlValue), String> {
+fn utf16_unit(bytes: &[u8], offset: usize, encoding: DatabaseEncoding) -> u16 {
+    let pair = [bytes[offset], bytes[offset + 1]];
+    match encoding {
+        DatabaseEncoding::Utf16Le => u16::from_le_bytes(pair),
+        DatabaseEncoding::Utf16Be => u16::from_be_bytes(pair),
+        DatabaseEncoding::Utf8 => unreachable!("UTF-16 decoder used for UTF-8"),
+    }
+}
+
+fn utf16_text_len(bytes: &[u8], encoding: DatabaseEncoding) -> Result<usize, String> {
+    if bytes.len() % 2 != 0 {
+        return Err("typed snapshot odd-length UTF-16 text".into());
+    }
+    let mut offset = 0usize;
+    let mut output_bytes = 0usize;
+    while offset < bytes.len() {
+        let first = utf16_unit(bytes, offset, encoding);
+        let (scalar, consumed) = if (0xd800..=0xdbff).contains(&first) {
+            let next_offset = offset
+                .checked_add(2)
+                .ok_or("typed snapshot UTF-16 offset overflow")?;
+            if next_offset >= bytes.len() {
+                return Err("typed snapshot unpaired UTF-16 high surrogate".into());
+            }
+            let second = utf16_unit(bytes, next_offset, encoding);
+            if !(0xdc00..=0xdfff).contains(&second) {
+                return Err("typed snapshot unpaired UTF-16 high surrogate".into());
+            }
+            let high = u32::from(first - 0xd800);
+            let low = u32::from(second - 0xdc00);
+            (0x1_0000 + (high << 10) + low, 4)
+        } else if (0xdc00..=0xdfff).contains(&first) {
+            return Err("typed snapshot unpaired UTF-16 low surrogate".into());
+        } else {
+            (u32::from(first), 2)
+        };
+        let character = char::from_u32(scalar)
+            .ok_or_else(|| "typed snapshot invalid UTF-16 scalar".to_owned())?;
+        output_bytes = output_bytes
+            .checked_add(character.len_utf8())
+            .ok_or("typed snapshot decoded text length overflow")?;
+        offset = offset
+            .checked_add(consumed)
+            .ok_or("typed snapshot UTF-16 offset overflow")?;
+    }
+    Ok(output_bytes)
+}
+
+fn decode_utf16_text(
+    allocations: &mut SchemaAllocationBudget,
+    bytes: &[u8],
+    encoding: DatabaseEncoding,
+) -> Result<String, String> {
+    if !matches!(
+        encoding,
+        DatabaseEncoding::Utf16Le | DatabaseEncoding::Utf16Be
+    ) {
+        return Err("typed snapshot UTF-16 decoder encoding".into());
+    }
+    if bytes.len() % 2 != 0 {
+        return Err("typed snapshot odd-length UTF-16 text".into());
+    }
+    let units = bytes.len() / 2;
+    // Charge both bounded scans and the maximum UTF-8 buffer before decoding
+    // or allocating. A BMP unit needs at most three UTF-8 bytes; a surrogate
+    // pair needs four bytes for two units.
+    let decode_work = bytes
+        .len()
+        .checked_mul(2)
+        .ok_or("typed snapshot UTF-16 work overflow")?;
+    let max_output = units
+        .checked_mul(3)
+        .ok_or("typed snapshot UTF-16 output overflow")?;
+    let charged = decode_work
+        .checked_add(max_output)
+        .and_then(|value| value.checked_add(std::mem::size_of::<String>()))
+        .ok_or("typed snapshot UTF-16 allocation overflow")?;
+    allocations.charge(charged)?;
+
+    let output_len = utf16_text_len(bytes, encoding)?;
+    let mut output = String::new();
+    output
+        .try_reserve_exact(output_len)
+        .map_err(|_| "typed snapshot UTF-16 text allocation".to_owned())?;
+    let mut offset = 0usize;
+    while offset < bytes.len() {
+        let first = utf16_unit(bytes, offset, encoding);
+        let (scalar, consumed) = if (0xd800..=0xdbff).contains(&first) {
+            let second = utf16_unit(bytes, offset + 2, encoding);
+            let high = u32::from(first - 0xd800);
+            let low = u32::from(second - 0xdc00);
+            (0x1_0000 + (high << 10) + low, 4)
+        } else {
+            (u32::from(first), 2)
+        };
+        output.push(
+            char::from_u32(scalar)
+                .ok_or_else(|| "typed snapshot invalid UTF-16 scalar".to_owned())?,
+        );
+        offset += consumed;
+    }
+    Ok(output)
+}
+
+fn sql_value(
+    cursor: &mut Cursor<'_>,
+    max_cell_bytes: usize,
+    encoding: DatabaseEncoding,
+) -> Result<(u8, SqlValue), String> {
     let tag = cursor.u8()?;
     let value = match tag {
         0 => SqlValue::Null,
@@ -938,10 +1046,16 @@ fn sql_value(cursor: &mut Cursor<'_>, max_cell_bytes: usize) -> Result<(u8, SqlV
             if length > max_cell_bytes {
                 return Err("typed snapshot owner cell byte limit".into());
             }
+            if tag == 3 && encoding != DatabaseEncoding::Utf8 {
+                // Charge the retained source carrier before copying it. The
+                // decoder separately charges its scans and UTF-8 output.
+                cursor.charge(length)?;
+            }
             let bytes = cursor.take(length)?.to_vec();
-            // A BLOB parameter cast by the trusted INSERT statement restores
-            // TEXT storage with the original bytes, including NUL or invalid
-            // UTF-8, without a lossy Rust String conversion.
+            // Keep TEXT in its source database encoding until the owner table
+            // profile is known. UTF-8 can use SQLite's same-encoding cast;
+            // UTF-16 must be decoded before binding, since SQLite casts a BLOB
+            // as UTF-8 and would replace malformed UTF-8 bytes.
             SqlValue::Blob(bytes)
         }
         _ => return Err("typed snapshot storage tag".into()),
@@ -1003,6 +1117,8 @@ fn compare_returned(
 
 fn import_row(
     db: &Connection,
+    encoding: DatabaseEncoding,
+    allocations: &mut SchemaAllocationBudget,
     spec: &TableSpec,
     rowid: Option<i64>,
     cells: &[(u8, SqlValue)],
@@ -1052,11 +1168,13 @@ fn import_row(
     for (index, column) in spec.columns.iter().enumerate() {
         insert_names.push(quote(column.name));
         let bind = index + usize::from(import_rowid) + 1;
-        values_sql.push(if column.ty == "TEXT" {
-            format!("CAST(?{bind} AS TEXT)")
-        } else {
-            format!("?{bind}")
-        });
+        values_sql.push(
+            if column.ty == "TEXT" && encoding == DatabaseEncoding::Utf8 {
+                format!("CAST(?{bind} AS TEXT)")
+            } else {
+                format!("?{bind}")
+            },
+        );
     }
     let returning = spec
         .columns
@@ -1085,7 +1203,12 @@ fn import_row(
     for (column, (tag, value)) in spec.columns.iter().zip(cells) {
         bind_values.push(if *tag == 3 {
             match value {
-                SqlValue::Blob(bytes) => SqlValue::Blob(bytes.clone()),
+                SqlValue::Blob(bytes) if encoding == DatabaseEncoding::Utf8 => {
+                    SqlValue::Blob(bytes.clone())
+                }
+                SqlValue::Blob(bytes) => {
+                    SqlValue::Text(decode_utf16_text(allocations, bytes, encoding)?)
+                }
                 _ => return Err("typed snapshot text bytes".into()),
             }
         } else {
@@ -1121,6 +1244,7 @@ fn parse_table(
     cursor: &mut Cursor<'_>,
     role_tables: &[TableSpec],
     expected_id: u16,
+    encoding: DatabaseEncoding,
     db: &Connection,
     max_cell_bytes: usize,
 ) -> Result<TableEvidence, String> {
@@ -1216,13 +1340,21 @@ fn parse_table(
         };
         let mut cells = Vec::with_capacity(column_count);
         for column in spec.columns {
-            let (tag, value) = sql_value(cursor, max_cell_bytes)?;
+            let (tag, value) = sql_value(cursor, max_cell_bytes, encoding)?;
             if !expected_tag(column, tag) {
                 return Err(format!("typed snapshot {} column storage class", spec.name));
             }
             cells.push((tag, value));
         }
-        import_row(db, spec, rowid, &cells, &columns)?;
+        import_row(
+            db,
+            encoding,
+            cursor.allocations,
+            spec,
+            rowid,
+            &cells,
+            &columns,
+        )?;
     }
     install_search_indexes(db, spec, &indexes)?;
     Ok(TableEvidence {
@@ -1378,6 +1510,72 @@ fn object_kind_name(kind: u8) -> &'static str {
     }
 }
 
+// WITHOUT ROWID primary keys are the table b-tree itself. SQLite exposes
+// their index_list/index_xinfo descriptors but no separate sqlite_schema row.
+// Only this structurally complete descriptor can be absent from that inventory.
+fn implicit_without_rowid_primary(table: &TableEvidence, index: &IndexEvidence) -> bool {
+    if table.id != u16::MAX
+        || table.flags != 1
+        || index.origin != 2
+        || !index.unique
+        || index.partial
+        || index.keys.is_empty()
+        || table.indexes.iter().filter(|item| item.origin == 2).count() != 1
+    {
+        return false;
+    }
+    let prefix = format!("sqlite_autoindex_{}_", table.name);
+    let Some(suffix) = index.name.strip_prefix(&prefix) else {
+        return false;
+    };
+    if suffix.is_empty()
+        || !suffix.bytes().all(|byte| byte.is_ascii_digit())
+        || suffix.parse::<u64>().ok().is_none_or(|number| number == 0)
+    {
+        return false;
+    }
+    let primary_count = table
+        .columns
+        .iter()
+        .filter(|column| column.primary_key > 0)
+        .count();
+    if primary_count == 0 || table.columns.iter().any(|column| column.hidden != 0) {
+        return false;
+    }
+    let mut seen_columns = BTreeSet::new();
+    let mut primary_ordinal = 0usize;
+    let mut payload_started = false;
+    for key in &index.keys {
+        let Ok(cid) = usize::try_from(key.cid) else {
+            return false;
+        };
+        let Some(column) = table.columns.get(cid) else {
+            return false;
+        };
+        if !seen_columns.insert(cid)
+            || key.name.as_deref() != Some(column.name.as_str())
+            || key.collation.is_empty()
+        {
+            return false;
+        }
+        if key.key {
+            if payload_started {
+                return false;
+            }
+            primary_ordinal += 1;
+            if usize::from(column.primary_key) != primary_ordinal || !column.not_null {
+                return false;
+            }
+        } else {
+            payload_started = true;
+            if column.primary_key != 0 {
+                return false;
+            }
+        }
+    }
+    primary_ordinal == primary_count && seen_columns.len() == table.columns.len()
+}
+
 fn validate_schema_objects(
     objects: &[SchemaObject],
     tables: &[TableEvidence],
@@ -1385,6 +1583,7 @@ fn validate_schema_objects(
     let mut table_names = BTreeSet::new();
     let mut index_names = BTreeSet::new();
     let mut evidenced_index_names = BTreeSet::new();
+    let mut descriptor_index_names = BTreeSet::new();
     let mut previous: Option<(&str, &str)> = None;
     for object in objects {
         let key = (object_kind_name(object.kind), object.name.as_str());
@@ -1441,7 +1640,12 @@ fn validate_schema_objects(
     for table in tables.iter().filter(|table| table.present) {
         for index in &table.indexes {
             let key = (index.name.as_str(), table.name.as_str());
-            if !index_names.contains(&key) || !evidenced_index_names.insert(key) {
+            if !descriptor_index_names.insert(key) {
+                return Err("typed snapshot duplicate index descriptor".into());
+            }
+            if index_names.contains(&key) {
+                evidenced_index_names.insert(key);
+            } else if !implicit_without_rowid_primary(table, index) {
                 return Err("typed snapshot index schema inventory differs".into());
             }
         }
@@ -1580,6 +1784,7 @@ pub(crate) fn import(
             &mut cursor,
             role_tables,
             *expected_id,
+            encoding,
             &tx,
             max_cell_bytes,
         )?);
@@ -1882,6 +2087,114 @@ mod tests {
     }
 
     #[test]
+    fn without_rowid_implicit_primary_keeps_schema_inventory_exact() {
+        let column = |name: &str, primary_key| ColumnEvidence {
+            name: name.into(),
+            declared_type: "TEXT".into(),
+            not_null: true,
+            primary_key,
+            hidden: 0,
+            default: None,
+        };
+        let key = |cid, name: &str, is_primary| IndexKey {
+            cid,
+            name: Some(name.into()),
+            descending: false,
+            collation: "BINARY".into(),
+            key: is_primary,
+        };
+        let mut table = TableEvidence {
+            id: u16::MAX,
+            name: "opaque".into(),
+            present: true,
+            flags: 1,
+            columns: vec![column("id", 1), column("value", 0)],
+            indexes: vec![IndexEvidence {
+                name: "sqlite_autoindex_opaque_1".into(),
+                unique: true,
+                origin: 2,
+                partial: false,
+                keys: vec![key(0, "id", true), key(1, "value", false)],
+            }],
+            row_count: 0,
+            wire_range: 0..0,
+        };
+        let objects = vec![SchemaObject {
+            kind: 1,
+            name: "opaque".into(),
+            table_name: "opaque".into(),
+            sql: Some("CREATE TABLE opaque(id TEXT PRIMARY KEY,value TEXT) WITHOUT ROWID".into()),
+        }];
+        assert!(validate_schema_objects(&objects, &[table.clone()]).is_ok());
+        for (flags, origin, unique, partial) in [
+            (4, 2, true, false),
+            (1, 0, true, false),
+            (1, 1, true, false),
+            (1, 2, false, false),
+            (1, 2, true, true),
+        ] {
+            let mut wrong = table.clone();
+            wrong.flags = flags;
+            wrong.indexes[0].origin = origin;
+            wrong.indexes[0].unique = unique;
+            wrong.indexes[0].partial = partial;
+            assert!(validate_schema_objects(&objects, &[wrong]).is_err());
+        }
+        let mut wrong = table.clone();
+        wrong.indexes[0].keys[0].name = Some("value".into());
+        assert!(validate_schema_objects(&objects, &[wrong]).is_err());
+        let mut wrong = table.clone();
+        wrong.indexes[0].keys.swap(0, 1);
+        assert!(validate_schema_objects(&objects, &[wrong]).is_err());
+        let mut wrong = table.clone();
+        wrong.indexes[0].keys.pop();
+        assert!(validate_schema_objects(&objects, &[wrong]).is_err());
+        let mut wrong = table.clone();
+        wrong.indexes.push(wrong.indexes[0].clone());
+        assert!(validate_schema_objects(&objects, &[wrong]).is_err());
+        table.indexes.push(IndexEvidence {
+            name: "opaque_value_idx".into(),
+            unique: false,
+            origin: 0,
+            partial: false,
+            keys: vec![key(1, "value", true)],
+        });
+        assert!(validate_schema_objects(&objects, &[table.clone()]).is_err());
+        let mut complete = objects;
+        complete.insert(
+            0,
+            SchemaObject {
+                kind: 2,
+                name: "opaque_value_idx".into(),
+                table_name: "opaque".into(),
+                sql: Some("CREATE INDEX opaque_value_idx ON opaque(value)".into()),
+            },
+        );
+        assert!(validate_schema_objects(&complete, &[table.clone()]).is_ok());
+        complete.insert(
+            1,
+            SchemaObject {
+                kind: 2,
+                name: "orphan_idx".into(),
+                table_name: "opaque".into(),
+                sql: Some("CREATE INDEX orphan_idx ON opaque(value)".into()),
+            },
+        );
+        assert!(validate_schema_objects(&complete, &[table]).is_err());
+    }
+
+    #[test]
+    fn utf16_raw_carrier_is_charged_before_copy() {
+        let mut wire = vec![3];
+        wire.extend_from_slice(&2u64.to_le_bytes());
+        wire.extend_from_slice(&[0x41, 0x00]);
+        let mut allocations = SchemaAllocationBudget::new(1);
+        let mut cursor = Cursor::new(&wire, &mut allocations);
+        assert!(sql_value(&mut cursor, 2, DatabaseEncoding::Utf16Le).is_err());
+        assert_eq!(cursor.position, 9);
+    }
+
+    #[test]
     fn owner_table_collation_is_refused_without_copying_sql() {
         let table = TableEvidence {
             id: 0x0024,
@@ -1975,7 +2288,7 @@ mod tests {
     }
 
     #[test]
-    fn blob_to_text_cast_retains_utf16_bom_and_nul_bytes() {
+    fn utf16_text_binding_retains_bom_and_nul_bytes_and_rejects_invalid_sequences() {
         for encoding in [DatabaseEncoding::Utf16Le, DatabaseEncoding::Utf16Be] {
             let db = Connection::open_in_memory().unwrap();
             db.pragma_update(None, "encoding", encoding.pragma())
@@ -1983,19 +2296,34 @@ mod tests {
             db.execute_batch("CREATE TABLE raw_text(value TEXT NOT NULL)")
                 .unwrap();
             let raw = match encoding {
-                DatabaseEncoding::Utf16Le => vec![0xff, 0xfe, 0x41, 0x00, 0x00, 0x00],
-                DatabaseEncoding::Utf16Be => vec![0xfe, 0xff, 0x00, 0x41, 0x00, 0x00],
+                DatabaseEncoding::Utf16Le => {
+                    vec![0xff, 0xfe, 0x41, 0x00, 0x00, 0x00, 0x3d, 0xd8, 0x00, 0xde]
+                }
+                DatabaseEncoding::Utf16Be => {
+                    vec![0xfe, 0xff, 0x00, 0x41, 0x00, 0x00, 0xd8, 0x3d, 0xde, 0x00]
+                }
                 DatabaseEncoding::Utf8 => unreachable!(),
             };
+            let mut allocations = SchemaAllocationBudget::new(1024);
+            let text = decode_utf16_text(&mut allocations, &raw, encoding).unwrap();
             let (storage, returned): (String, Vec<u8>) = db
                 .query_row(
-                    "INSERT INTO raw_text VALUES(CAST(?1 AS TEXT)) RETURNING typeof(value),CAST(value AS BLOB)",
-                    [SqlValue::Blob(raw.clone())],
+                    "INSERT INTO raw_text VALUES(?1) RETURNING typeof(value),CAST(value AS BLOB)",
+                    [SqlValue::Text(text)],
                     |row| Ok((row.get(0)?, row.get(1)?)),
                 )
                 .unwrap();
             assert_eq!(storage, "text");
             assert_eq!(returned, raw);
         }
+
+        let mut allocations = SchemaAllocationBudget::new(1024);
+        assert!(decode_utf16_text(&mut allocations, &[0x41], DatabaseEncoding::Utf16Le).is_err());
+        assert!(
+            decode_utf16_text(&mut allocations, &[0x00, 0xd8], DatabaseEncoding::Utf16Le).is_err()
+        );
+        assert!(
+            decode_utf16_text(&mut allocations, &[0xdc, 0x00], DatabaseEncoding::Utf16Be).is_err()
+        );
     }
 }
