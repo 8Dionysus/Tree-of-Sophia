@@ -289,12 +289,12 @@ fn bounded_rank(raw: &str) -> Result<usize, AccessError> {
     Ok(if negative { 1 } else { value.max(1) })
 }
 
-pub(crate) fn prepare_capability(
-    executor: &dyn AccessExecutor,
+pub(crate) fn prepare_capability<'hold, E: crate::common::ScopedAccessExecutor<'hold> + ?Sized>(
+    executor: &E,
     arguments: &tos_foundation::JsonValue,
     profile: AccessProfile,
     probe: std::sync::Arc<dyn tos_query::AbortProbe>,
-) -> Result<crate::PreparedPacket<'static>, AccessError> {
+) -> Result<crate::PreparedPacket<'hold>, AccessError> {
     crate::knowledge::check_abort(&probe)?;
     let request = from_arguments(arguments, profile)?;
     let mut packet = executor.word_analysis(request, None, probe.clone())?;

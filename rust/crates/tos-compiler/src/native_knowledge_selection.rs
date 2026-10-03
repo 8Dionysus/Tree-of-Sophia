@@ -225,6 +225,34 @@ fn process(value: NativeProcessLimits) -> Result<()> {
     }
     Ok(())
 }
+
+pub(crate) fn verify_native_process_limits(value: NativeProcessLimits) -> Result<()> {
+    process(value)?;
+    finite_soft_limit(libc::RLIMIT_AS as u32, value.address_space_bytes)?;
+    finite_soft_limit(libc::RLIMIT_FSIZE as u32, value.file_size_bytes)
+}
+
+pub(crate) fn verify_native_file_size_limit(minimum_bytes: u64) -> Result<()> {
+    if minimum_bytes == 0 {
+        return Err(Error::Budget("native selected copy file-size limit"));
+    }
+    let mut limit = libc::rlimit {
+        rlim_cur: 0,
+        rlim_max: 0,
+    };
+    if unsafe { libc::getrlimit(libc::RLIMIT_FSIZE as _, &mut limit) } != 0 {
+        return Err(Error::Io(std::io::Error::last_os_error()));
+    }
+    if limit.rlim_cur == 0
+        || limit.rlim_cur == libc::RLIM_INFINITY
+        || (limit.rlim_cur as u64) < minimum_bytes
+    {
+        return Err(Error::Budget(
+            "native selected copy file-size limit too small",
+        ));
+    }
+    Ok(())
+}
 fn validate_packet(p: &Packet) -> Result<()> {
     let schema = if p.expectation.model_abi == crate::KNOWLEDGE_MANAGED_MODEL_ABI {
         crate::managed_source::MANAGED_SELECTION_SCHEMA
@@ -444,16 +472,14 @@ impl LinuxFsVerityCustody {
 }
 impl ImmutableKnowledgeCustody for LinuxFsVerityCustody {
     fn verify(&self, pinned: &File, _: &KnowledgeSelectedExpectation) -> Result<()> {
-        finite_soft_limit(libc::RLIMIT_AS as u32, self.process.address_space_bytes)?;
-        finite_soft_limit(libc::RLIMIT_FSIZE as u32, self.process.file_size_bytes)?;
+        verify_native_process_limits(self.process)?;
         if measured(pinned)? != self.measurement {
             return Err(Error::Invalid("native fs-verity measurement changed"));
         }
         Ok(())
     }
     fn verify_cold_resources(&self, _: ColdOpenLimits) -> Result<()> {
-        finite_soft_limit(libc::RLIMIT_AS as u32, self.process.address_space_bytes)?;
-        finite_soft_limit(libc::RLIMIT_FSIZE as u32, self.process.file_size_bytes)
+        verify_native_process_limits(self.process)
     }
 }
 #[cfg(all(target_os = "linux", target_arch = "x86_64"))]

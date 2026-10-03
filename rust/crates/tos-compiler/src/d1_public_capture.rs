@@ -1,6 +1,7 @@
-//! Exact, disposable capture of the three allowlisted public graph projections.
-//! Rows live on disk in source encounter order. This is a read-model input,
-//! never a source, rights, canon or installed-current grant.
+//! Exact, disposable capture of the three allowlisted public graph projections
+//! and selected original-carrier files. Rows live on disk in source encounter
+//! order. This is a read-model input, never a source, rights, canon or
+//! installed-current grant.
 
 use crate::{Error, Limits, Result, legacy::decode_partition_part, safe_open, sqlite_budget};
 use rusqlite::{Connection, OpenFlags, OptionalExtension, params};
@@ -26,6 +27,8 @@ use tos_foundation::{
 const CORPUS: &str = "corpus";
 const PHILOSOPHY: &str = "philosophy";
 const CLAIMS: &str = "bibliographic";
+const PHILOSOPHY_AUDIT_RELATIVE: &str =
+    "ToS/philosophy/graph-workbench/review-packets/table-i-post-planting-audit.json";
 const MAX_ROOT_BYTES: u64 = 256 * 1024;
 pub(crate) const MAX_ROW_BYTES: usize = 8 * 1024 * 1024;
 pub(crate) const MAX_HEADER_BYTES: usize = 2 * 1024 * 1024;
@@ -41,6 +44,95 @@ pub struct PublicCaptureLimits {
     pub max_work_bytes: u64,
     pub max_sql_vm_steps: u64,
     pub sqlite_cache_kib: u32,
+}
+
+/// Exact seven-path selector inherited from Reference Core construction.
+/// Five files form the whole graph/catalog source identity; the two optional
+/// files retain their selected-path presence for isolated header/evidence
+/// calls. Paths are inputs, never copied or re-rooted under `root`.
+#[derive(Clone, Debug)]
+pub struct PublicCaptureInputPaths {
+    pub index_path: PathBuf,
+    pub philosophy_graph_projection_path: PathBuf,
+    pub bibliographic_graph_path: PathBuf,
+    pub entity_type_registry_path: PathBuf,
+    pub relation_type_registry_path: PathBuf,
+    pub philosophy_post_planting_audit_path: PathBuf,
+    pub evidence_projection_path: PathBuf,
+}
+
+/// One original source carrier needed by a lower-level Core operation. These
+/// profiles deliberately omit unrelated graph roles and registries so an
+/// index or bibliography read still works on a partial source root.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum RuntimeCaptureRole {
+    Corpus,
+    Philosophy,
+    Bibliographic,
+    PhilosophyAudit,
+}
+
+fn check_capture_active(
+    cancelled: Option<&std::sync::atomic::AtomicBool>,
+    deadline: Instant,
+) -> Result<()> {
+    if cancelled.is_some_and(|value| value.load(std::sync::atomic::Ordering::Relaxed)) {
+        return Err(Error::Budget("public D1 capture cancelled"));
+    }
+    if Instant::now() >= deadline {
+        return Err(Error::Budget("public D1 capture deadline"));
+    }
+    Ok(())
+}
+
+impl PublicCaptureInputPaths {
+    fn validate(&self) -> Result<()> {
+        for path in [
+            &self.index_path,
+            &self.philosophy_graph_projection_path,
+            &self.bibliographic_graph_path,
+            &self.entity_type_registry_path,
+            &self.relation_type_registry_path,
+            &self.philosophy_post_planting_audit_path,
+            &self.evidence_projection_path,
+        ] {
+            if !path.is_absolute() || path.to_str().is_none() {
+                return Err(Error::Invalid("selected public D1 input path"));
+            }
+        }
+        Ok(())
+    }
+
+    fn core_path(&self, relative: &str) -> Option<&Path> {
+        match relative {
+            "ToS/derived-exports/tos_corpus_index.min.json" => Some(&self.index_path),
+            "ToS/derived-exports/philosophy_graph_projection.min.json" => {
+                Some(&self.philosophy_graph_projection_path)
+            }
+            "ToS/derived-exports/graph/source-witness-bibliographic-claims.min.json" => {
+                Some(&self.bibliographic_graph_path)
+            }
+            "ToS/doctrine/semantic-interchange/entity-types.v1.json" => {
+                Some(&self.entity_type_registry_path)
+            }
+            "ToS/doctrine/semantic-interchange/relation-types.v1.json" => {
+                Some(&self.relation_type_registry_path)
+            }
+            _ => None,
+        }
+    }
+
+    fn optional_path(&self, relative: &str) -> Option<&Path> {
+        match relative {
+            "ToS/derived-exports/epistemic_evidence_projection.min.json" => {
+                Some(&self.evidence_projection_path)
+            }
+            "ToS/philosophy/graph-workbench/review-packets/table-i-post-planting-audit.json" => {
+                Some(&self.philosophy_post_planting_audit_path)
+            }
+            _ => None,
+        }
+    }
 }
 
 impl PublicCaptureLimits {
@@ -74,17 +166,20 @@ pub struct PublicCapture {
     root: PathBuf,
     prepared_profile: bool,
     evidence_profile: bool,
+    runtime_capture_role: Option<RuntimeCaptureRole>,
     prepared_state: Vec<(PathBuf, PathBuf, u64, u64, i64, i64, i64, i64)>,
     path: PathBuf,
     inode: (u64, u64),
     sources: Vec<SourceFile>,
     partitioned: bool,
+    file_state: (u64, u64, u64, i64, i64, i64, i64),
     pub rows: u64,
-    work_bytes: Rc<Cell<u64>>,
+    work_bytes: Arc<AtomicU64>,
     max_work_bytes: u64,
     deadline: Instant,
     limits: PublicCaptureLimits,
     vm_used: Arc<AtomicU64>,
+    cancelled: Arc<std::sync::atomic::AtomicBool>,
 }
 
 enum SourceOrigin {
@@ -208,6 +303,12 @@ fn selected_rows(role: &str, collection: &str) -> bool {
     }
 }
 
+fn valid_top_level_collection(name: &str) -> bool {
+    let mut bytes = name.bytes();
+    bytes.next().is_some_and(|first| first.is_ascii_lowercase())
+        && bytes.all(|byte| byte.is_ascii_lowercase() || byte.is_ascii_digit() || byte == b'_')
+}
+
 struct CaptureWriter<'a> {
     db: &'a Connection,
     role: &'static str,
@@ -217,6 +318,8 @@ struct CaptureWriter<'a> {
     ordinals: BTreeMap<String, u64>,
     read_budget: Rc<Cell<usize>>,
     deadline: Instant,
+    cancelled: Option<&'a std::sync::atomic::AtomicBool>,
+    dynamic_philosophy: bool,
     page_rows: usize,
     page_bytes: usize,
 }
@@ -224,12 +327,24 @@ struct CaptureWriter<'a> {
 // serde_json's RawValue owns a row before the row callback can inspect it.
 // Bound bytes delivered to that allocation, including punctuation/whitespace.
 // The underlying file reader has a fixed 64 KiB buffer.
-struct CaptureReader<R> {
+struct CaptureReader<'a, R> {
     inner: R,
     remaining: Rc<Cell<usize>>,
+    deadline: Instant,
+    cancelled: Option<&'a std::sync::atomic::AtomicBool>,
 }
-impl<R: Read> Read for CaptureReader<R> {
+impl<R: Read> Read for CaptureReader<'_, R> {
     fn read(&mut self, output: &mut [u8]) -> io::Result<usize> {
+        if self
+            .cancelled
+            .is_some_and(|value| value.load(std::sync::atomic::Ordering::Relaxed))
+            || Instant::now() >= self.deadline
+        {
+            return Err(io::Error::new(
+                io::ErrorKind::Interrupted,
+                "public D1 capture cancelled or expired",
+            ));
+        }
         if output.is_empty() {
             return Ok(0);
         }
@@ -249,6 +364,7 @@ impl<R: Read> Read for CaptureReader<R> {
 
 impl CaptureWriter<'_> {
     fn page_step(&mut self, bytes: usize) -> Result<()> {
+        check_capture_active(self.cancelled, self.deadline)?;
         self.page_rows = self
             .page_rows
             .checked_add(1)
@@ -265,7 +381,16 @@ impl CaptureWriter<'_> {
         Ok(())
     }
     fn collection(&mut self, collection: &str, kind: &str) -> Result<()> {
-        if !selected_rows(self.role, collection) || !matches!(kind, "array" | "mapping") {
+        check_capture_active(self.cancelled, self.deadline)?;
+        checked_add(self.work, collection.len(), self.limits.max_work_bytes)?;
+        let source_navigation_object =
+            self.role == CORPUS && collection == "source_navigation" && kind == "object";
+        let dynamic = self.dynamic_philosophy
+            && self.role == PHILOSOPHY
+            && valid_top_level_collection(collection);
+        if (!selected_rows(self.role, collection) && !source_navigation_object && !dynamic)
+            || (!matches!(kind, "array" | "mapping") && !source_navigation_object)
+        {
             return Err(Error::Invalid("public D1 collection declaration"));
         }
         self.db.execute(
@@ -280,11 +405,13 @@ impl CaptureWriter<'_> {
         raw: &[u8],
         source_key: Option<&str>,
         order: &[String],
+        allow_non_object: bool,
     ) -> Result<()> {
-        if Instant::now() >= self.deadline {
-            return Err(Error::Budget("public D1 capture deadline"));
-        }
-        if !selected_rows(self.role, collection) {
+        check_capture_active(self.cancelled, self.deadline)?;
+        let dynamic = self.dynamic_philosophy
+            && self.role == PHILOSOPHY
+            && valid_top_level_collection(collection);
+        if !selected_rows(self.role, collection) && !dynamic {
             return Err(Error::Invalid("public D1 collection outside fixed input"));
         }
         if raw.len() > MAX_ROW_BYTES {
@@ -292,7 +419,7 @@ impl CaptureWriter<'_> {
         }
         checked_add(self.work, raw.len(), self.limits.max_work_bytes)?;
         let value = json(raw, MAX_ROW_BYTES)?;
-        if value.as_object().is_none() {
+        if !allow_non_object && value.as_object().is_none() {
             return Err(Error::Invalid("public D1 row object"));
         }
         let next = self.ordinals.entry(collection.to_owned()).or_default();
@@ -380,14 +507,245 @@ impl<'de> DeserializeSeed<'de> for RowsSeed<'_, '_> {
                     let Some(raw) = seq.next_element::<Box<RawValue>>()? else {
                         break;
                     };
+                    let allow_non_object = self.writer.dynamic_philosophy;
                     self.writer
-                        .row(&self.collection, raw.get().as_bytes(), None, &[])
+                        .row(
+                            &self.collection,
+                            raw.get().as_bytes(),
+                            None,
+                            &[],
+                            allow_non_object,
+                        )
                         .map_err(A::Error::custom)?;
                 }
                 Ok(())
             }
         }
         deserializer.deserialize_seq(RowsVisitor {
+            writer: self.writer,
+            collection: self.collection,
+        })
+    }
+}
+
+struct PhilosophyMemberSeed<'a, 'b> {
+    writer: &'a mut CaptureWriter<'b>,
+    collection: String,
+}
+
+struct CheckedValueSeed;
+
+impl<'de> DeserializeSeed<'de> for CheckedValueSeed {
+    type Value = serde_json::Value;
+
+    fn deserialize<D: serde::Deserializer<'de>>(
+        self,
+        deserializer: D,
+    ) -> std::result::Result<Self::Value, D::Error> {
+        struct CheckedValueVisitor;
+
+        impl<'de> Visitor<'de> for CheckedValueVisitor {
+            type Value = serde_json::Value;
+
+            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+                formatter.write_str("a strict JSON value without duplicate object keys")
+            }
+
+            fn visit_bool<E: serde::de::Error>(
+                self,
+                value: bool,
+            ) -> std::result::Result<Self::Value, E> {
+                Ok(serde_json::Value::Bool(value))
+            }
+
+            fn visit_i64<E: serde::de::Error>(
+                self,
+                value: i64,
+            ) -> std::result::Result<Self::Value, E> {
+                Ok(serde_json::Value::Number(value.into()))
+            }
+
+            fn visit_u64<E: serde::de::Error>(
+                self,
+                value: u64,
+            ) -> std::result::Result<Self::Value, E> {
+                Ok(serde_json::Value::Number(value.into()))
+            }
+
+            fn visit_f64<E: serde::de::Error>(
+                self,
+                value: f64,
+            ) -> std::result::Result<Self::Value, E> {
+                serde_json::Number::from_f64(value)
+                    .map(serde_json::Value::Number)
+                    .ok_or_else(|| E::custom("non-finite philosophy projection number"))
+            }
+
+            fn visit_str<E: serde::de::Error>(
+                self,
+                value: &str,
+            ) -> std::result::Result<Self::Value, E> {
+                Ok(serde_json::Value::String(value.to_owned()))
+            }
+
+            fn visit_string<E: serde::de::Error>(
+                self,
+                value: String,
+            ) -> std::result::Result<Self::Value, E> {
+                Ok(serde_json::Value::String(value))
+            }
+
+            fn visit_none<E: serde::de::Error>(self) -> std::result::Result<Self::Value, E> {
+                Ok(serde_json::Value::Null)
+            }
+
+            fn visit_unit<E: serde::de::Error>(self) -> std::result::Result<Self::Value, E> {
+                Ok(serde_json::Value::Null)
+            }
+
+            fn visit_seq<A: SeqAccess<'de>>(
+                self,
+                mut seq: A,
+            ) -> std::result::Result<Self::Value, A::Error> {
+                let mut values = Vec::new();
+                while let Some(value) = seq.next_element_seed(CheckedValueSeed)? {
+                    values.push(value);
+                }
+                Ok(serde_json::Value::Array(values))
+            }
+
+            fn visit_map<A: MapAccess<'de>>(
+                self,
+                mut map: A,
+            ) -> std::result::Result<Self::Value, A::Error> {
+                let mut fields = serde_json::Map::new();
+                let mut seen = BTreeSet::new();
+                while let Some(name) = map.next_key::<String>()? {
+                    if !seen.insert(name.clone()) {
+                        return Err(A::Error::custom(
+                            "duplicate philosophy projection object key",
+                        ));
+                    }
+                    let value = map.next_value_seed(CheckedValueSeed)?;
+                    fields.insert(name, value);
+                }
+                Ok(serde_json::Value::Object(fields))
+            }
+        }
+
+        deserializer.deserialize_any(CheckedValueVisitor)
+    }
+}
+
+impl<'de> DeserializeSeed<'de> for PhilosophyMemberSeed<'_, '_> {
+    type Value = ();
+
+    fn deserialize<D: serde::Deserializer<'de>>(
+        self,
+        deserializer: D,
+    ) -> std::result::Result<(), D::Error> {
+        struct MemberVisitor<'a, 'b> {
+            writer: &'a mut CaptureWriter<'b>,
+            collection: String,
+        }
+
+        impl MemberVisitor<'_, '_> {
+            fn header<E: serde::de::Error>(
+                &mut self,
+                value: serde_json::Value,
+            ) -> std::result::Result<(), E> {
+                let raw = serde_json::to_vec(&value).map_err(E::custom)?;
+                self.writer
+                    .header(&self.collection, &raw)
+                    .map_err(E::custom)
+            }
+        }
+
+        impl<'de> Visitor<'de> for MemberVisitor<'_, '_> {
+            type Value = ();
+
+            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+                formatter.write_str("a philosophy projection member")
+            }
+
+            fn visit_seq<A: SeqAccess<'de>>(self, mut seq: A) -> std::result::Result<(), A::Error> {
+                self.writer
+                    .collection(&self.collection, "array")
+                    .map_err(A::Error::custom)?;
+                loop {
+                    self.writer.read_budget.set(MAX_ROW_BYTES + 65536);
+                    let Some(raw) = seq.next_element::<Box<RawValue>>()? else {
+                        break;
+                    };
+                    self.writer
+                        .row(&self.collection, raw.get().as_bytes(), None, &[], true)
+                        .map_err(A::Error::custom)?;
+                }
+                Ok(())
+            }
+
+            fn visit_map<A: MapAccess<'de>>(mut self, map: A) -> std::result::Result<(), A::Error> {
+                let value = CheckedValueSeed
+                    .deserialize(serde::de::value::MapAccessDeserializer::new(map))?;
+                self.header(value)
+            }
+
+            fn visit_bool<E: serde::de::Error>(
+                mut self,
+                value: bool,
+            ) -> std::result::Result<(), E> {
+                self.header(serde_json::Value::Bool(value))
+            }
+
+            fn visit_i64<E: serde::de::Error>(mut self, value: i64) -> std::result::Result<(), E> {
+                self.header(serde_json::Value::Number(value.into()))
+            }
+
+            fn visit_u64<E: serde::de::Error>(mut self, value: u64) -> std::result::Result<(), E> {
+                self.header(serde_json::Value::Number(value.into()))
+            }
+
+            fn visit_f64<E: serde::de::Error>(mut self, value: f64) -> std::result::Result<(), E> {
+                let number = serde_json::Number::from_f64(value)
+                    .ok_or_else(|| E::custom("non-finite philosophy projection number"))?;
+                self.header(serde_json::Value::Number(number))
+            }
+
+            fn visit_str<E: serde::de::Error>(mut self, value: &str) -> std::result::Result<(), E> {
+                self.header(serde_json::Value::String(value.to_owned()))
+            }
+
+            fn visit_string<E: serde::de::Error>(
+                mut self,
+                value: String,
+            ) -> std::result::Result<(), E> {
+                self.header(serde_json::Value::String(value))
+            }
+
+            fn visit_none<E: serde::de::Error>(mut self) -> std::result::Result<(), E> {
+                self.header(serde_json::Value::Null)
+            }
+
+            fn visit_unit<E: serde::de::Error>(mut self) -> std::result::Result<(), E> {
+                self.header(serde_json::Value::Null)
+            }
+
+            fn visit_some<D: serde::Deserializer<'de>>(
+                self,
+                deserializer: D,
+            ) -> std::result::Result<(), D::Error> {
+                deserializer.deserialize_any(self)
+            }
+
+            fn visit_newtype_struct<D: serde::Deserializer<'de>>(
+                self,
+                deserializer: D,
+            ) -> std::result::Result<(), D::Error> {
+                deserializer.deserialize_any(self)
+            }
+        }
+
+        deserializer.deserialize_any(MemberVisitor {
             writer: self.writer,
             collection: self.collection,
         })
@@ -416,6 +774,11 @@ impl<'de> DeserializeSeed<'de> for ObjectSeed<'_, '_> {
                 formatter.write_str("a public projection object")
             }
             fn visit_map<A: MapAccess<'de>>(self, mut map: A) -> std::result::Result<(), A::Error> {
+                if self.prefix == "source_navigation" && self.writer.role == CORPUS {
+                    self.writer
+                        .collection("source_navigation", "object")
+                        .map_err(A::Error::custom)?;
+                }
                 let mut seen = BTreeSet::new();
                 loop {
                     self.writer.read_budget.set(MAX_HEADER_BYTES + 65536);
@@ -458,6 +821,11 @@ impl<'de> DeserializeSeed<'de> for ObjectSeed<'_, '_> {
                         && selected_rows(self.writer.role, &collection)
                     {
                         map.next_value_seed(RowsSeed {
+                            writer: self.writer,
+                            collection,
+                        })?;
+                    } else if self.writer.dynamic_philosophy && self.prefix.is_empty() {
+                        map.next_value_seed(PhilosophyMemberSeed {
                             writer: self.writer,
                             collection,
                         })?;
@@ -560,6 +928,8 @@ fn policy(
 fn order_value(value: Option<&JsonValue>) -> Result<String> {
     match value {
         None => Ok("1:".to_owned()),
+        Some(JsonValue::Null) => Ok("1:None".to_owned()),
+        Some(JsonValue::Bool(value)) => Ok(format!("1:{value}")),
         Some(JsonValue::String(value)) => Ok(format!(
             "1:{}",
             value
@@ -570,25 +940,70 @@ fn order_value(value: Option<&JsonValue>) -> Result<String> {
             let decimal = number.lexeme.as_str();
             Ok(format!("0:{:020}:{decimal}", decimal.len()))
         }
+        Some(JsonValue::Number(number)) if number.lexeme == "-0" => {
+            Ok("0:00000000000000000001:0".to_owned())
+        }
+        Some(JsonValue::Number(number))
+            if number.lexeme.starts_with('-')
+                && number.lexeme[1..].bytes().all(|byte| byte.is_ascii_digit()) =>
+        {
+            Ok(format!("1:{}", number.lexeme))
+        }
         _ => Err(Error::Invalid("public projection order value")),
     }
 }
 
-fn partition_order(row: &JsonValue, fields: &[&str]) -> Result<Vec<String>> {
-    fields
-        .iter()
-        .map(|field| order_value(row.object_get(field)))
-        .collect()
+fn partition_order(row: &JsonValue, fields: &[String], max_bytes: u64) -> Result<Vec<String>> {
+    let mut result = Vec::with_capacity(fields.len());
+    let mut total = 0u64;
+    for field in fields {
+        let order = order_value(row.object_get(field.as_str()))?;
+        total = total
+            .checked_add(order.len() as u64)
+            .filter(|bytes| *bytes <= max_bytes)
+            .ok_or(Error::Budget("public projection order bytes"))?;
+        result.push(order);
+    }
+    Ok(result)
 }
 
-fn partition_record_key(value: &JsonValue, fields: &[&str]) -> Result<String> {
+fn partition_record_key(value: &JsonValue, fields: &[String]) -> Result<String> {
+    if fields.len() == 1 {
+        return value
+            .object_get(fields[0].as_str())
+            .and_then(JsonValue::as_str)
+            .filter(|key| !key.is_empty() && key.len() <= 4096)
+            .map(str::to_owned)
+            .ok_or(Error::Invalid("public projection record identity"));
+    }
     let mut keys = Vec::with_capacity(fields.len());
+    let mut encoded_len = 2usize;
     for field in fields {
         let key = value
-            .object_get(field)
+            .object_get(field.as_str())
             .and_then(JsonValue::as_str)
             .filter(|key| !key.is_empty() && key.len() <= 4096)
             .ok_or(Error::Invalid("public projection record identity"))?;
+        if keys.len() != 0 {
+            encoded_len = encoded_len
+                .checked_add(1)
+                .ok_or(Error::Budget("public projection record identity bytes"))?;
+        }
+        encoded_len = encoded_len
+            .checked_add(2)
+            .filter(|bytes| *bytes <= 4096)
+            .ok_or(Error::Budget("public projection record identity bytes"))?;
+        for byte in key.as_bytes() {
+            let escaped = match byte {
+                b'"' | b'\\' | b'\x08' | b'\x0c' | b'\n' | b'\r' | b'\t' => 2,
+                0x00..=0x1f => 6,
+                _ => 1,
+            };
+            encoded_len = encoded_len
+                .checked_add(escaped)
+                .filter(|bytes| *bytes <= 4096)
+                .ok_or(Error::Budget("public projection record identity bytes"))?;
+        }
         keys.push(key);
     }
     if keys.len() == 1 {
@@ -597,14 +1012,129 @@ fn partition_record_key(value: &JsonValue, fields: &[&str]) -> Result<String> {
     serde_json::to_string(&keys).map_err(|e| Error::Source(e.to_string()))
 }
 
+fn partition_collection_policy(
+    role: &str,
+    collection: &str,
+    spec: &serde_json::Value,
+    dynamic_philosophy: bool,
+) -> Result<(Vec<String>, Vec<String>, bool)> {
+    let object = spec
+        .as_object()
+        .ok_or(Error::Invalid("public projection collection spec"))?;
+    if object.len() != 3
+        || !["key_field", "order_fields", "root"]
+            .iter()
+            .all(|field| object.contains_key(*field))
+    {
+        return Err(Error::Invalid("public projection collection spec"));
+    }
+    if dynamic_philosophy {
+        let (key_fields, mapping) = match spec.get("key_field") {
+            Some(serde_json::Value::Null) => (Vec::new(), true),
+            Some(serde_json::Value::String(field)) if !field.is_empty() => {
+                (vec![field.clone()], false)
+            }
+            Some(serde_json::Value::Array(fields)) => {
+                let fields = fields
+                    .iter()
+                    .map(|field| {
+                        field
+                            .as_str()
+                            .filter(|field| !field.is_empty())
+                            .map(str::to_owned)
+                            .ok_or(Error::Invalid("public projection key field"))
+                    })
+                    .collect::<Result<Vec<_>>>()?;
+                (fields, false)
+            }
+            _ => return Err(Error::Invalid("public projection key field")),
+        };
+        let declared_order = spec
+            .get("order_fields")
+            .and_then(serde_json::Value::as_array)
+            .ok_or(Error::Invalid("public projection ordering fields"))?
+            .iter()
+            .map(|field| {
+                field
+                    .as_str()
+                    .filter(|field| !field.is_empty())
+                    .map(str::to_owned)
+                    .ok_or(Error::Invalid("public projection ordering field"))
+            })
+            .collect::<Result<Vec<_>>>()?;
+        if key_fields.is_empty() && !mapping && !declared_order.is_empty() {
+            return Err(Error::Invalid("public projection positional ordering"));
+        }
+        let effective_order = if mapping || key_fields.is_empty() {
+            Vec::new()
+        } else if declared_order.is_empty() {
+            key_fields.clone()
+        } else {
+            declared_order
+        };
+        return Ok((key_fields, effective_order, mapping));
+    }
+
+    let (key_fields, order_fields, mapping) = policy(role, collection).ok_or(Error::Invalid(
+        "public projection collection outside owner policy",
+    ))?;
+    let expected_key = if mapping {
+        serde_json::Value::Null
+    } else if key_fields.is_empty() {
+        serde_json::json!([])
+    } else if key_fields.len() == 1 {
+        serde_json::json!(key_fields[0])
+    } else {
+        serde_json::json!(key_fields)
+    };
+    let expected_order = serde_json::json!(order_fields);
+    if spec.get("key_field") != Some(&expected_key)
+        || spec.get("order_fields") != Some(&expected_order)
+    {
+        return Err(Error::Invalid("public projection owner ordering policy"));
+    }
+    Ok((
+        key_fields.iter().map(|field| (*field).to_owned()).collect(),
+        order_fields
+            .iter()
+            .map(|field| (*field).to_owned())
+            .collect(),
+        mapping,
+    ))
+}
+
+fn encode_order_tuple(order: &[String], max_bytes: usize) -> Result<String> {
+    const HEX: &[u8; 16] = b"0123456789abcdef";
+    let capacity = order.iter().try_fold(0usize, |total, field| {
+        field
+            .len()
+            .checked_mul(2)
+            .and_then(|bytes| bytes.checked_add(1))
+            .and_then(|bytes| total.checked_add(bytes))
+            .filter(|bytes| *bytes <= max_bytes)
+            .ok_or(Error::Budget("public projection order bytes"))
+    })?;
+    let mut encoded = String::with_capacity(capacity);
+    for field in order {
+        for byte in field.as_bytes() {
+            encoded.push(HEX[(byte >> 4) as usize] as char);
+            encoded.push(HEX[(byte & 0x0f) as usize] as char);
+        }
+        // Hex contains no exclamation mark, and the terminator sorts before
+        // another encoded byte. This preserves lexicographic tuple order.
+        encoded.push('!');
+    }
+    Ok(encoded)
+}
+
 fn capture_part(
     root_path: &Path,
     descriptor: &serde_json::Value,
     prefix: &str,
     writer: &mut CaptureWriter<'_>,
     collection: &str,
-    key_fields: &[&str],
-    order_fields: &[&str],
+    key_fields: &[String],
+    order_fields: &[String],
     mapping: bool,
     collection_count: u64,
 ) -> Result<u64> {
@@ -817,9 +1347,30 @@ fn capture_part(
         let order = if key_fields.is_empty() {
             vec![key.to_owned()]
         } else {
-            partition_order(value, order_fields)?
+            partition_order(
+                value,
+                order_fields,
+                writer.limits.max_work_bytes.saturating_sub(*writer.work),
+            )?
         };
-        writer.row(collection, &encoded, Some(key), &order)?;
+        let order = if writer.dynamic_philosophy {
+            if mapping || key_fields.is_empty() {
+                vec![key.to_owned()]
+            } else {
+                vec![
+                    encode_order_tuple(
+                        &order,
+                        usize::try_from(writer.limits.max_work_bytes.saturating_sub(*writer.work))
+                            .unwrap_or(usize::MAX),
+                    )?,
+                    Digest256::of_bytes(key.as_bytes()).to_hex(),
+                ]
+            }
+        } else {
+            order
+        };
+        let allow_non_object = writer.dynamic_philosophy && key_fields.is_empty() && !mapping;
+        writer.row(collection, &encoded, Some(key), &order, allow_non_object)?;
         count = count
             .checked_add(1)
             .ok_or(Error::Budget("public projection row count"))?;
@@ -852,7 +1403,18 @@ fn capture_partitioned(root_path: &Path, raw: &[u8], writer: &mut CaptureWriter<
     let schema = field(&root, "logical_schema")?;
     let expected_schema = match writer.role {
         CORPUS | "evidence-corpus" => "tos_corpus_index_v1",
-        PHILOSOPHY | "evidence-philosophy" => "tos_philosophy_graph_projection_v2",
+        PHILOSOPHY | "evidence-philosophy" => {
+            if writer.dynamic_philosophy
+                && matches!(
+                    schema,
+                    "tos_philosophy_graph_projection_v1" | "tos_philosophy_graph_projection_v2"
+                )
+            {
+                schema
+            } else {
+                "tos_philosophy_graph_projection_v2"
+            }
+        }
         CLAIMS => "tos_source_witness_bibliographic_graph_v1",
         _ => return Err(Error::Invalid("public projection role")),
     };
@@ -909,22 +1471,26 @@ fn capture_partitioned(root_path: &Path, raw: &[u8], writer: &mut CaptureWriter<
         .and_then(serde_json::Value::as_object)
         .filter(|collections| !collections.is_empty())
         .ok_or(Error::Invalid("public projection collections"))?;
-    let required: &[&str] = match writer.role {
-        "evidence-corpus" => &["nodes", "relation_edges"],
-        "evidence-philosophy" => &["views"],
-        CORPUS => &[
-            "nodes",
-            "resources",
-            "manifests",
-            "relation_packs",
-            "relation_edges",
-            "source_navigation/nodes",
-            "source_navigation/edges",
-            "source_navigation/rights",
-        ],
-        PHILOSOPHY => &["nodes", "edges", "clusters", "views"],
-        CLAIMS => &["nodes", "edges", "claim_traces", "input_digests"],
-        _ => return Err(Error::Invalid("public projection role")),
+    let required: &[&str] = if writer.dynamic_philosophy {
+        &[]
+    } else {
+        match writer.role {
+            "evidence-corpus" => &["nodes", "relation_edges"],
+            "evidence-philosophy" => &["views"],
+            CORPUS => &[
+                "nodes",
+                "resources",
+                "manifests",
+                "relation_packs",
+                "relation_edges",
+                "source_navigation/nodes",
+                "source_navigation/edges",
+                "source_navigation/rights",
+            ],
+            PHILOSOPHY => &["nodes", "edges", "clusters", "views"],
+            CLAIMS => &["nodes", "edges", "claim_traces", "input_digests"],
+            _ => return Err(Error::Invalid("public projection role")),
+        }
     };
     if !required.iter().all(|name| collections.contains_key(*name)) {
         return Err(Error::Invalid(
@@ -932,32 +1498,26 @@ fn capture_partitioned(root_path: &Path, raw: &[u8], writer: &mut CaptureWriter<
         ));
     }
     for (name, spec) in collections {
+        if writer.dynamic_philosophy && !valid_top_level_collection(name) {
+            return Err(Error::Invalid("partitioned philosophy collection name"));
+        }
         if writer.role.starts_with("evidence-") && !selected_rows(writer.role, name) {
             continue;
         }
-        let (key_fields, order_fields, mapping) = policy(writer.role, name).ok_or(
-            Error::Invalid("public projection collection outside owner policy"),
-        )?;
-        writer.collection(name, if mapping { "mapping" } else { "array" })?;
-        let expected_key = if mapping {
-            serde_json::Value::Null
-        } else if key_fields.is_empty() {
-            serde_json::json!([])
-        } else if key_fields.len() == 1 {
-            serde_json::json!(key_fields[0])
-        } else {
-            serde_json::json!(key_fields)
-        };
-        let expected_order = serde_json::json!(order_fields);
-        let spec_object = spec
-            .as_object()
-            .ok_or(Error::Invalid("public projection collection spec"))?;
-        if spec_object.len() != 3
-            || spec.get("key_field") != Some(&expected_key)
-            || spec.get("order_fields") != Some(&expected_order)
-        {
-            return Err(Error::Invalid("public projection owner ordering policy"));
+        let (key_fields, order_fields, mapping) =
+            partition_collection_policy(writer.role, name, spec, writer.dynamic_philosophy)?;
+        let header_collision: Option<i64> = writer
+            .db
+            .query_row(
+                "SELECT 1 FROM capture_headers WHERE role=?1 AND path=?2",
+                params![writer.role, name],
+                |row| row.get(0),
+            )
+            .optional()?;
+        if header_collision.is_some() {
+            return Err(Error::Invalid("partitioned collection overlaps header"));
         }
+        writer.collection(name, if mapping { "mapping" } else { "array" })?;
         let descriptor = spec
             .get("root")
             .ok_or(Error::Invalid("public projection collection root"))?;
@@ -1041,7 +1601,9 @@ impl PublicCapture {
         limits: PublicCaptureLimits,
         deadline: Instant,
     ) -> Result<Self> {
-        Self::create_profile(root, staging, limits, deadline, false, false, false)
+        Self::create_profile(
+            root, staging, limits, deadline, false, false, false, None, None, None,
+        )
     }
 
     /// Five maintained prepare input roles. Software contracts are compiled
@@ -1052,7 +1614,9 @@ impl PublicCapture {
         limits: PublicCaptureLimits,
         deadline: Instant,
     ) -> Result<Self> {
-        Self::create_profile(root, staging, limits, deadline, true, false, false)
+        Self::create_profile(
+            root, staging, limits, deadline, true, false, false, None, None, None,
+        )
     }
     /// Evidence Lens opens only views and canon node/edge collections.
     pub(crate) fn create_evidence(
@@ -1061,7 +1625,37 @@ impl PublicCapture {
         limits: PublicCaptureLimits,
         deadline: Instant,
     ) -> Result<Self> {
-        Self::create_profile(root, staging, limits, deadline, false, true, false)
+        Self::create_profile(
+            root, staging, limits, deadline, false, true, false, None, None, None,
+        )
+    }
+
+    /// Evidence Lens capture using the same selected Core input paths and
+    /// caller-owned operation token. Its own source and route refs remain
+    /// rooted at `root`; only the selected corpus/philosophy projections are
+    /// redirected by this exact constructor.
+    pub(crate) fn create_evidence_selected(
+        root: &Path,
+        selected: &PublicCaptureInputPaths,
+        staging: &Path,
+        limits: PublicCaptureLimits,
+        deadline: Instant,
+        cancelled: Arc<std::sync::atomic::AtomicBool>,
+    ) -> Result<Self> {
+        selected.validate()?;
+        check_capture_active(Some(cancelled.as_ref()), deadline)?;
+        Self::create_profile(
+            root,
+            staging,
+            limits,
+            deadline,
+            false,
+            true,
+            false,
+            Some(selected),
+            Some(cancelled),
+            None,
+        )
     }
     /// Runtime projection data belongs to the selected source root; executable
     /// contract/vocabulary companions belong to this exact compiled producer.
@@ -1071,7 +1665,59 @@ impl PublicCapture {
         limits: PublicCaptureLimits,
         deadline: Instant,
     ) -> Result<Self> {
-        let capture = Self::create_profile(root, staging, limits, deadline, false, false, true)?;
+        let cancelled = Arc::new(std::sync::atomic::AtomicBool::new(false));
+        Self::create_runtime_selected(
+            root,
+            &PublicCaptureInputPaths {
+                index_path: root.join("ToS/derived-exports/tos_corpus_index.min.json"),
+                philosophy_graph_projection_path:
+                    root.join("ToS/derived-exports/philosophy_graph_projection.min.json"),
+                bibliographic_graph_path: root.join(
+                    "ToS/derived-exports/graph/source-witness-bibliographic-claims.min.json",
+                ),
+                entity_type_registry_path: root
+                    .join("ToS/doctrine/semantic-interchange/entity-types.v1.json"),
+                relation_type_registry_path: root
+                    .join("ToS/doctrine/semantic-interchange/relation-types.v1.json"),
+                philosophy_post_planting_audit_path: root.join(
+                    "ToS/philosophy/graph-workbench/review-packets/table-i-post-planting-audit.json",
+                ),
+                evidence_projection_path:
+                    root.join("ToS/derived-exports/epistemic_evidence_projection.min.json"),
+            },
+            staging,
+            limits,
+            deadline,
+            cancelled,
+        )
+    }
+
+    /// Capture Reference Core's exact seven selected paths. The five graph
+    /// inputs are required. The selected audit and Evidence Lens projection
+    /// are represented even when absent, so existence queries cannot silently
+    /// fall back to a different root-relative file.
+    pub fn create_runtime_selected(
+        root: &Path,
+        selected: &PublicCaptureInputPaths,
+        staging: &Path,
+        limits: PublicCaptureLimits,
+        deadline: Instant,
+        cancelled: Arc<std::sync::atomic::AtomicBool>,
+    ) -> Result<Self> {
+        selected.validate()?;
+        check_capture_active(Some(cancelled.as_ref()), deadline)?;
+        let capture = Self::create_profile(
+            root,
+            staging,
+            limits,
+            deadline,
+            false,
+            false,
+            true,
+            Some(selected),
+            Some(Arc::clone(&cancelled)),
+            None,
+        )?;
         let total = capture
             .retained_input_members()?
             .iter()
@@ -1083,6 +1729,68 @@ impl PublicCapture {
         if total == 0 {
             return Err(Error::Invalid("runtime capture empty input"));
         }
+        check_capture_active(Some(cancelled.as_ref()), deadline)?;
+        Ok(capture)
+    }
+
+    /// Capture one selected original carrier without opening other graph roles,
+    /// registries, evidence files or the public ledger. The audit role reads
+    /// only its exact selected optional file. The callback below supplies the
+    /// same pre/post capture fence as a full completed snapshot.
+    pub fn create_runtime_carrier_selected(
+        root: &Path,
+        selected: &PublicCaptureInputPaths,
+        role: RuntimeCaptureRole,
+        staging: &Path,
+        limits: PublicCaptureLimits,
+        deadline: Instant,
+        cancelled: Arc<std::sync::atomic::AtomicBool>,
+    ) -> Result<Self> {
+        selected.validate()?;
+        check_capture_active(Some(cancelled.as_ref()), deadline)?;
+        let capture = Self::create_profile(
+            root,
+            staging,
+            limits,
+            deadline,
+            false,
+            false,
+            true,
+            Some(selected),
+            Some(Arc::clone(&cancelled)),
+            Some(role),
+        )?;
+        let selected_label = match role {
+            RuntimeCaptureRole::Corpus => "ToS/derived-exports/tos_corpus_index.min.json",
+            RuntimeCaptureRole::Philosophy => {
+                "ToS/derived-exports/philosophy_graph_projection.min.json"
+            }
+            RuntimeCaptureRole::Bibliographic => {
+                "ToS/derived-exports/graph/source-witness-bibliographic-claims.min.json"
+            }
+            RuntimeCaptureRole::PhilosophyAudit => PHILOSOPHY_AUDIT_RELATIVE,
+        };
+        if !capture
+            .sources
+            .iter()
+            .any(|source| source.label == selected_label && source.digest.is_some())
+        {
+            return Err(Error::Invalid("runtime carrier selected input absent"));
+        }
+        let total =
+            capture
+                .retained_input_members()?
+                .iter()
+                .try_fold(0u64, |total, (_, _, len)| {
+                    total
+                        .checked_add(*len)
+                        .filter(|bytes| *bytes <= limits.max_input_bytes)
+                        .ok_or(Error::Budget("runtime carrier aggregate source bytes"))
+                })?;
+        if total == 0 && role != RuntimeCaptureRole::PhilosophyAudit {
+            return Err(Error::Invalid("runtime carrier capture empty input"));
+        }
+        check_capture_active(Some(cancelled.as_ref()), deadline)?;
         Ok(capture)
     }
     fn create_profile(
@@ -1093,16 +1801,20 @@ impl PublicCapture {
         prepared_profile: bool,
         evidence_profile: bool,
         runtime_profile: bool,
+        selected_paths: Option<&PublicCaptureInputPaths>,
+        cancelled: Option<Arc<std::sync::atomic::AtomicBool>>,
+        runtime_capture_role: Option<RuntimeCaptureRole>,
     ) -> Result<Self> {
         limits.validate()?;
+        let cancelled =
+            cancelled.unwrap_or_else(|| Arc::new(std::sync::atomic::AtomicBool::new(false)));
+        let cancelled_ref = Some(cancelled.as_ref());
         let prepared_state = if prepared_profile {
             prepared_state(root)?
         } else {
             Vec::new()
         };
-        if Instant::now() >= deadline {
-            return Err(Error::Budget("public D1 capture deadline"));
-        }
+        check_capture_active(cancelled_ref, deadline)?;
         if staging.exists() || staging.is_symlink() {
             return Err(Error::Invalid("public D1 capture staging must be fresh"));
         }
@@ -1146,6 +1858,16 @@ impl PublicCapture {
                 "ToS/derived-exports/graph/source-witness-bibliographic-claims.min.json",
             ),
         ] {
+            if runtime_capture_role.is_some_and(|selected_role| {
+                !matches!(
+                    (selected_role, role),
+                    (RuntimeCaptureRole::Corpus, CORPUS)
+                        | (RuntimeCaptureRole::Philosophy, PHILOSOPHY)
+                        | (RuntimeCaptureRole::Bibliographic, CLAIMS)
+                )
+            }) {
+                continue;
+            }
             if evidence_profile && role == CLAIMS {
                 continue;
             }
@@ -1158,14 +1880,16 @@ impl PublicCapture {
             } else {
                 role
             };
-            let path = root.join(relative);
+            let path = selected_paths
+                .and_then(|selected| selected.core_path(relative))
+                .map(Path::to_owned)
+                .unwrap_or_else(|| root.join(relative));
             let mut file = profile_open(&path, limits.max_input_bytes, prepared_profile)?;
             let (digest, len) = source_digest(&mut file, limits.max_input_bytes, |n| {
-                if Instant::now() >= deadline {
-                    return Err(Error::Budget("public D1 capture deadline"));
-                }
+                check_capture_active(cancelled_ref, deadline)?;
                 checked_add(&mut work_bytes, n, limits.max_work_bytes)
             })?;
+            check_capture_active(cancelled_ref, deadline)?;
             db.execute_batch("BEGIN IMMEDIATE")?;
             let mut writer = CaptureWriter {
                 db: &db,
@@ -1176,6 +1900,9 @@ impl PublicCapture {
                 ordinals: BTreeMap::new(),
                 read_budget: Rc::new(Cell::new(MAX_HEADER_BYTES + 65536)),
                 deadline,
+                cancelled: cancelled_ref,
+                dynamic_philosophy: role == PHILOSOPHY
+                    && runtime_capture_role == Some(RuntimeCaptureRole::Philosophy),
                 page_rows: 0,
                 page_bytes: 0,
             };
@@ -1187,7 +1914,9 @@ impl PublicCapture {
                     return Err(Error::Invalid("public D1 source changed during capture"));
                 }
                 file.seek(SeekFrom::Start(0))?;
+                check_capture_active(cancelled_ref, deadline)?;
                 let first = strict_value(&raw, MAX_ROOT_BYTES as usize)?;
+                check_capture_active(cancelled_ref, deadline)?;
                 if first
                     .get("schema_version")
                     .and_then(serde_json::Value::as_str)
@@ -1202,6 +1931,8 @@ impl PublicCapture {
                 let bounded = CaptureReader {
                     inner: buffered,
                     remaining: Rc::clone(&writer.read_budget),
+                    deadline,
+                    cancelled: cancelled_ref,
                 };
                 let mut deserializer = serde_json::Deserializer::from_reader(bounded);
                 ObjectSeed {
@@ -1232,7 +1963,16 @@ impl PublicCapture {
                 .as_deref()
                 .map(|raw| json(raw, 4096))
                 .transpose()?;
-            if prepared_profile {
+            if runtime_capture_role == Some(RuntimeCaptureRole::Philosophy) {
+                if !matches!(
+                    schema.as_ref().and_then(JsonValue::as_str),
+                    Some(
+                        "tos_philosophy_graph_projection_v1" | "tos_philosophy_graph_projection_v2"
+                    )
+                ) {
+                    return Err(Error::Invalid("runtime philosophy source schema"));
+                }
+            } else if prepared_profile {
                 if role == PHILOSOPHY
                     && !matches!(
                         schema.as_ref().and_then(JsonValue::as_str),
@@ -1255,6 +1995,7 @@ impl PublicCapture {
             }
             drop(writer);
             db.execute_batch("COMMIT")?;
+            check_capture_active(cancelled_ref, deadline)?;
             sources.push(SourceFile {
                 label: relative.to_owned(),
                 origin: SourceOrigin::File(path),
@@ -1262,7 +2003,29 @@ impl PublicCapture {
                 len,
             });
         }
-        if !prepared_profile && !evidence_profile && corpus_partitioned != claims_partitioned {
+        if runtime_capture_role == Some(RuntimeCaptureRole::PhilosophyAudit) {
+            let path = selected_paths
+                .and_then(|selected| selected.optional_path(PHILOSOPHY_AUDIT_RELATIVE))
+                .map(Path::to_owned)
+                .ok_or(Error::Invalid("selected philosophy audit path absent"))?;
+            let mut file = profile_open(&path, limits.max_input_bytes, prepared_profile)?;
+            let (digest, len) = source_digest(&mut file, limits.max_input_bytes, |n| {
+                check_capture_active(cancelled_ref, deadline)?;
+                checked_add(&mut work_bytes, n, limits.max_work_bytes)
+            })?;
+            check_capture_active(cancelled_ref, deadline)?;
+            sources.push(SourceFile {
+                label: PHILOSOPHY_AUDIT_RELATIVE.to_owned(),
+                origin: SourceOrigin::File(path),
+                digest: Some(digest),
+                len,
+            });
+        }
+        if !prepared_profile
+            && !evidence_profile
+            && runtime_capture_role.is_none()
+            && corpus_partitioned != claims_partitioned
+        {
             return Err(Error::Invalid("public D1 coupled projection storage mode"));
         }
         for relative in [
@@ -1285,7 +2048,7 @@ impl PublicCapture {
             "ToS/contracts/semantic-entity-type-registry.schema.json",
             "ToS/contracts/semantic-relation-type-registry.schema.json",
         ] {
-            if evidence_profile {
+            if evidence_profile || runtime_capture_role.is_some() {
                 continue;
             }
             if prepared_profile
@@ -1312,14 +2075,16 @@ impl PublicCapture {
                     continue;
                 }
             }
-            let path = root.join(relative);
+            let path = selected_paths
+                .and_then(|selected| selected.core_path(relative))
+                .map(Path::to_owned)
+                .unwrap_or_else(|| root.join(relative));
             let mut file = profile_open(&path, limits.max_input_bytes, prepared_profile)?;
             let (digest, len) = source_digest(&mut file, limits.max_input_bytes, |n| {
-                if Instant::now() >= deadline {
-                    return Err(Error::Budget("public D1 capture deadline"));
-                }
+                check_capture_active(cancelled_ref, deadline)?;
                 checked_add(&mut work_bytes, n, limits.max_work_bytes)
             })?;
+            check_capture_active(cancelled_ref, deadline)?;
             sources.push(SourceFile {
                 label: relative.to_owned(),
                 origin: SourceOrigin::File(path),
@@ -1327,20 +2092,22 @@ impl PublicCapture {
                 len,
             });
         }
-        if !prepared_profile && !evidence_profile {
+        if !prepared_profile && !evidence_profile && runtime_capture_role.is_none() {
             for relative in [
                 "ToS/derived-exports/epistemic_evidence_projection.min.json",
                 "ToS/philosophy/graph-workbench/review-packets/table-i-post-planting-audit.json",
             ] {
-                let path = root.join(relative);
+                let path = selected_paths
+                    .and_then(|selected| selected.optional_path(relative))
+                    .map(Path::to_owned)
+                    .unwrap_or_else(|| root.join(relative));
                 if path.exists() || path.is_symlink() {
                     let mut file = profile_open(&path, limits.max_input_bytes, prepared_profile)?;
                     let (digest, len) = source_digest(&mut file, limits.max_input_bytes, |n| {
-                        if Instant::now() >= deadline {
-                            return Err(Error::Budget("public D1 capture deadline"));
-                        }
+                        check_capture_active(cancelled_ref, deadline)?;
                         checked_add(&mut work_bytes, n, limits.max_work_bytes)
                     })?;
+                    check_capture_active(cancelled_ref, deadline)?;
                     sources.push(SourceFile {
                         label: relative.to_owned(),
                         origin: SourceOrigin::File(path),
@@ -1386,11 +2153,10 @@ impl PublicCapture {
                     let path = ledger.join(name);
                     let mut file = safe_open::open_regular(&path, 256_000)?;
                     let (digest, len) = source_digest(&mut file, 256_000, |n| {
-                        if Instant::now() >= deadline {
-                            return Err(Error::Budget("public D1 capture deadline"));
-                        }
+                        check_capture_active(cancelled_ref, deadline)?;
                         checked_add(&mut work_bytes, n, limits.max_work_bytes)
                     })?;
+                    check_capture_active(cancelled_ref, deadline)?;
                     sources.push(SourceFile {
                         label: format!("{ledger_relative}/{name}"),
                         origin: SourceOrigin::File(path),
@@ -1403,6 +2169,7 @@ impl PublicCapture {
         if std::fs::metadata(staging)?.len() > limits.max_staging_bytes {
             return Err(Error::Budget("public D1 capture physical bytes"));
         }
+        check_capture_active(cancelled_ref, deadline)?;
         drop(db);
         let metadata = fs::symlink_metadata(staging)?;
         if !metadata.file_type().is_file() {
@@ -1413,37 +2180,104 @@ impl PublicCapture {
             root: root.to_owned(),
             prepared_profile,
             evidence_profile,
+            runtime_capture_role,
             prepared_state,
             path: staging.to_owned(),
             inode: (metadata.dev(), metadata.ino()),
+            file_state: (
+                metadata.dev(),
+                metadata.ino(),
+                metadata.len(),
+                metadata.mtime(),
+                metadata.mtime_nsec(),
+                metadata.ctime(),
+                metadata.ctime_nsec(),
+            ),
             sources,
             partitioned: corpus_partitioned == Some(true)
                 || (prepared_profile && claims_partitioned == Some(true)),
             rows,
-            work_bytes: Rc::new(Cell::new(work_bytes)),
+            work_bytes: Arc::new(AtomicU64::new(work_bytes)),
             max_work_bytes: limits.max_work_bytes,
             deadline,
             limits,
             vm_used,
+            cancelled,
         })
     }
 
     pub fn charge_work(&self, bytes: u64) -> Result<()> {
+        check_capture_active(Some(self.cancelled.as_ref()), self.deadline)?;
         if Instant::now() >= self.deadline {
             return Err(Error::Budget("public D1 build deadline"));
         }
-        let next = self
-            .work_bytes
-            .get()
-            .checked_add(bytes)
-            .filter(|value| *value <= self.max_work_bytes)
-            .ok_or(Error::Budget("public D1 build work bytes"))?;
-        self.work_bytes.set(next);
-        Ok(())
+        let mut current = self.work_bytes.load(std::sync::atomic::Ordering::Acquire);
+        loop {
+            let next = current
+                .checked_add(bytes)
+                .filter(|value| *value <= self.max_work_bytes)
+                .ok_or(Error::Budget("public D1 build work bytes"))?;
+            match self.work_bytes.compare_exchange_weak(
+                current,
+                next,
+                std::sync::atomic::Ordering::AcqRel,
+                std::sync::atomic::Ordering::Acquire,
+            ) {
+                Ok(_) => return Ok(()),
+                Err(observed) => current = observed,
+            }
+            check_capture_active(Some(self.cancelled.as_ref()), self.deadline)?;
+        }
+    }
+
+    /// Lend the exact selected original carrier under this capture's pre/post
+    /// source fence. A partial-role capture intentionally has no whole Core
+    /// `source_revision`; the view reports that absence explicitly.
+    pub fn with_captured_carriers<'a, T>(
+        &'a self,
+        consume: impl for<'view> FnOnce(
+            &'view crate::native_snapshot::CompletedCaptureCarriers<'a>,
+        ) -> Result<T>,
+    ) -> Result<T> {
+        if self.runtime_capture_role.is_none() {
+            return Err(Error::Invalid("selected carrier profile required"));
+        }
+        self.verify_captured_inputs()?;
+        let view = crate::native_snapshot::CompletedCaptureCarriers::from_selected_capture(self);
+        let result = consume(&view);
+        let current = self.verify_captured_inputs();
+        match current {
+            Err(error) => Err(error),
+            Ok(()) => result,
+        }
+    }
+
+    /// Borrow only the present audit member already owned by this exact capture.
+    /// The path is provenance metadata; bytes still pass through `read_input`.
+    pub(crate) fn selected_philosophy_audit_path(&self) -> Result<&Path> {
+        self.check_custody()?;
+        let source = self
+            .sources
+            .iter()
+            .find(|source| source.label == PHILOSOPHY_AUDIT_RELATIVE)
+            .filter(|source| source.digest.is_some())
+            .ok_or(Error::Invalid("selected philosophy audit input absent"))?;
+        match &source.origin {
+            SourceOrigin::File(path) => Ok(path),
+            SourceOrigin::Compiled(_) => {
+                Err(Error::Invalid("selected philosophy audit file required"))
+            }
+        }
+    }
+
+    pub(crate) fn read_selected_philosophy_audit(&self, cap: usize) -> Result<Vec<u8>> {
+        self.selected_philosophy_audit_path()?;
+        self.read_input(PHILOSOPHY_AUDIT_RELATIVE, cap)?
+            .ok_or(Error::Invalid("selected philosophy audit input absent"))
     }
 
     pub fn work_bytes(&self) -> u64 {
-        self.work_bytes.get()
+        self.work_bytes.load(std::sync::atomic::Ordering::Acquire)
     }
 
     pub(crate) fn vm_counter(&self) -> Arc<AtomicU64> {
@@ -1454,20 +2288,88 @@ impl PublicCapture {
         self.deadline
     }
 
-    pub(crate) fn work_counter(&self) -> Rc<Cell<u64>> {
-        Rc::clone(&self.work_bytes)
+    pub(crate) fn work_counter(&self) -> Arc<AtomicU64> {
+        Arc::clone(&self.work_bytes)
     }
 
     pub(crate) fn max_work_bytes(&self) -> u64 {
         self.max_work_bytes
     }
 
+    pub(crate) fn cancellation(&self) -> &std::sync::atomic::AtomicBool {
+        self.cancelled.as_ref()
+    }
+
+    pub(crate) fn cancellation_handle(&self) -> Arc<std::sync::atomic::AtomicBool> {
+        Arc::clone(&self.cancelled)
+    }
+
+    pub(crate) fn runtime_input_paths(&self) -> Result<PublicCaptureInputPaths> {
+        fn selected_path(capture: &PublicCapture, label: &str) -> Result<PathBuf> {
+            capture
+                .sources
+                .iter()
+                .find(|source| source.label == label)
+                .and_then(|source| match &source.origin {
+                    SourceOrigin::File(path) => Some(path.clone()),
+                    SourceOrigin::Compiled(_) => None,
+                })
+                .ok_or(Error::Invalid("runtime selected input path absent"))
+        }
+        Ok(PublicCaptureInputPaths {
+            index_path: selected_path(self, "ToS/derived-exports/tos_corpus_index.min.json")?,
+            philosophy_graph_projection_path: selected_path(
+                self,
+                "ToS/derived-exports/philosophy_graph_projection.min.json",
+            )?,
+            bibliographic_graph_path: selected_path(
+                self,
+                "ToS/derived-exports/graph/source-witness-bibliographic-claims.min.json",
+            )?,
+            entity_type_registry_path: selected_path(
+                self,
+                "ToS/doctrine/semantic-interchange/entity-types.v1.json",
+            )?,
+            relation_type_registry_path: selected_path(
+                self,
+                "ToS/doctrine/semantic-interchange/relation-types.v1.json",
+            )?,
+            philosophy_post_planting_audit_path: selected_path(
+                self,
+                "ToS/philosophy/graph-workbench/review-packets/table-i-post-planting-audit.json",
+            )?,
+            evidence_projection_path: selected_path(
+                self,
+                "ToS/derived-exports/epistemic_evidence_projection.min.json",
+            )?,
+        })
+    }
+
     pub fn check_custody(&self) -> Result<()> {
+        check_capture_active(Some(self.cancelled.as_ref()), self.deadline)?;
         let metadata = fs::symlink_metadata(&self.path)?;
         if !metadata.file_type().is_file() || (metadata.dev(), metadata.ino()) != self.inode {
             return Err(Error::Invalid("public D1 private capture replaced"));
         }
         self.charge_work(0)
+    }
+
+    pub(crate) fn capture_identity(&self) -> Result<(u64, u64, u64, i64, i64, i64, i64)> {
+        self.check_custody()?;
+        let metadata = fs::symlink_metadata(&self.path)?;
+        let state = (
+            metadata.dev(),
+            metadata.ino(),
+            metadata.len(),
+            metadata.mtime(),
+            metadata.mtime_nsec(),
+            metadata.ctime(),
+            metadata.ctime_nsec(),
+        );
+        if !metadata.file_type().is_file() || state != self.file_state {
+            return Err(Error::Invalid("public D1 private capture changed"));
+        }
+        Ok(state)
     }
 
     pub(crate) fn read_db(&self) -> Result<Connection> {
@@ -1500,6 +2402,7 @@ impl PublicCapture {
     }
 
     pub fn verify_inputs(&self, limits: PublicCaptureLimits) -> Result<()> {
+        check_capture_active(Some(self.cancelled.as_ref()), self.deadline)?;
         self.check_custody()?;
         if self.prepared_profile && prepared_state(&self.root)? != self.prepared_state {
             return Err(Error::Invalid("prepared source state changed"));
@@ -1521,13 +2424,14 @@ impl PublicCapture {
             }
             let mut file = profile_open(path, limits.max_input_bytes, self.prepared_profile)?;
             let (digest, len) = source_digest(&mut file, limits.max_input_bytes, |n| {
+                check_capture_active(Some(self.cancelled.as_ref()), self.deadline)?;
                 self.charge_work(n as u64)
             })?;
             if len != source.len || Some(digest) != source.digest {
                 return Err(Error::Invalid("public D1 source changed during build"));
             }
         }
-        if !self.prepared_profile && !self.evidence_profile {
+        if !self.prepared_profile && !self.evidence_profile && self.runtime_capture_role.is_none() {
             let ledger = self
                 .root
                 .join("ToS/source-witnesses/access-requests/public-ledger");
@@ -1537,6 +2441,7 @@ impl PublicCapture {
                     return Err(Error::Invalid("public D1 ledger changed"));
                 }
                 for entry in std::fs::read_dir(&ledger)? {
+                    check_capture_active(Some(self.cancelled.as_ref()), self.deadline)?;
                     if current.len() >= 4096 {
                         return Err(Error::Budget("public D1 ledger membership"));
                     }
@@ -1575,13 +2480,18 @@ impl PublicCapture {
             let len: u64 = row.get(2)?;
             let mut file = safe_open::open_regular(Path::new(&path), limits.max_input_bytes)?;
             let (actual, actual_len) = source_digest(&mut file, limits.max_input_bytes, |n| {
+                check_capture_active(Some(self.cancelled.as_ref()), self.deadline)?;
                 self.charge_work(n as u64)
             })?;
             if actual_len != len || actual.as_bytes().as_slice() != digest.as_slice() {
                 return Err(Error::Invalid("public D1 part changed during build"));
             }
         }
-        Ok(())
+        check_capture_active(Some(self.cancelled.as_ref()), self.deadline)
+    }
+
+    pub(crate) fn verify_captured_inputs(&self) -> Result<()> {
+        self.verify_inputs(self.limits)
     }
 
     /// Read only an exact member already selected by this retained capture,
@@ -1597,9 +2507,14 @@ impl PublicCapture {
                 .read_input(label, cap)?
                 .ok_or(Error::Invalid("captured runtime member absent"));
         }
-        let relative = tos_foundation::RelativePath::parse(label)
-            .map_err(|_| Error::Invalid("captured runtime member path"))?;
-        let path = self.root.join(relative.as_str());
+        let selected = Path::new(label);
+        let path = if selected.is_absolute() {
+            selected.to_owned()
+        } else {
+            let relative = tos_foundation::RelativePath::parse(label)
+                .map_err(|_| Error::Invalid("captured runtime member path"))?;
+            self.root.join(relative.as_str())
+        };
         let db = self.read_db()?;
         let part: Option<(Vec<u8>, u64)> = db
             .query_row(
@@ -1649,14 +2564,13 @@ impl PublicCapture {
             let raw_sha: Vec<u8> = row.get(1)?;
             let len: u64 = row.get(2)?;
             self.charge_work(path.len() as u64 + 40)?;
-            let relative = Path::new(&path)
+            let member_path = Path::new(&path);
+            let relative = member_path
                 .strip_prefix(&self.root)
-                .map_err(|_| Error::Invalid("captured runtime part outside root"))?
+                .unwrap_or(member_path)
                 .to_str()
                 .ok_or(Error::Invalid("captured runtime member UTF8"))?
                 .to_owned();
-            tos_foundation::RelativePath::parse(&relative)
-                .map_err(|_| Error::Invalid("captured runtime member path"))?;
             let bytes: [u8; 32] = raw_sha
                 .try_into()
                 .map_err(|_| Error::Invalid("captured runtime member digest"))?;
@@ -1679,6 +2593,122 @@ impl PublicCapture {
 
     pub fn root(&self) -> &Path {
         &self.root
+    }
+
+    /// Capture the exact five-file physical source-state tuple used by the
+    /// public Core graph API. The digest fence is checked on both sides of
+    /// stat collection so this tuple cannot describe a different input cut.
+    pub fn core_source_state(&self) -> Result<Vec<(String, i64, u64, u64, i64)>> {
+        if self.runtime_capture_role.is_some() {
+            return Err(Error::Invalid(
+                "whole Core source state requires all five inputs",
+            ));
+        }
+        fn collect(capture: &PublicCapture) -> Result<Vec<(String, i64, u64, u64, i64)>> {
+            let mut states = Vec::with_capacity(5);
+            for label in [
+                "ToS/derived-exports/tos_corpus_index.min.json",
+                "ToS/derived-exports/philosophy_graph_projection.min.json",
+                "ToS/derived-exports/graph/source-witness-bibliographic-claims.min.json",
+                "ToS/doctrine/semantic-interchange/entity-types.v1.json",
+                "ToS/doctrine/semantic-interchange/relation-types.v1.json",
+            ] {
+                let source = capture
+                    .sources
+                    .iter()
+                    .find(|source| source.label == label && source.digest.is_some())
+                    .ok_or(Error::Invalid("public D1 core source-state member"))?;
+                let SourceOrigin::File(path) = &source.origin else {
+                    return Err(Error::Invalid("public D1 core source-state origin"));
+                };
+                let resolved = fs::canonicalize(path)?;
+                let metadata = fs::metadata(path)?;
+                let mtime_ns = metadata
+                    .mtime()
+                    .checked_mul(1_000_000_000)
+                    .and_then(|value| value.checked_add(metadata.mtime_nsec()))
+                    .ok_or(Error::Budget("public D1 source mtime"))?;
+                let ctime_ns = metadata
+                    .ctime()
+                    .checked_mul(1_000_000_000)
+                    .and_then(|value| value.checked_add(metadata.ctime_nsec()))
+                    .ok_or(Error::Budget("public D1 source ctime"))?;
+                if metadata.len() != source.len {
+                    return Err(Error::Invalid("public D1 source-state size changed"));
+                }
+                states.push((
+                    resolved
+                        .to_str()
+                        .ok_or(Error::Invalid("public D1 source-state path UTF8"))?
+                        .to_owned(),
+                    mtime_ns,
+                    metadata.len(),
+                    metadata.ino(),
+                    ctime_ns,
+                ));
+            }
+            Ok(states)
+        }
+        let before = collect(self)?;
+        self.verify_inputs(self.limits)?;
+        let after = collect(self)?;
+        if before != after {
+            return Err(Error::Invalid("public D1 core source state changed"));
+        }
+        Ok(after)
+    }
+
+    /// Physical identity of the complete selected capture closure, including
+    /// partition members which do not appear in Reference Core's five-path
+    /// public `source_state` tuple. The returned order is canonical absolute
+    /// path order; a source edit may change metadata while preserving this
+    /// path set, but adding/removing a captured member changes the vector.
+    pub fn capture_source_state(&self) -> Result<Vec<(String, i64, u64, u64, i64)>> {
+        self.verify_inputs(self.limits)?;
+        let mut paths = BTreeSet::new();
+        for source in &self.sources {
+            if source.digest.is_some()
+                && let SourceOrigin::File(path) = &source.origin
+            {
+                paths.insert(path.clone());
+            }
+        }
+        let db = self.read_db()?;
+        let mut statement = db.prepare("SELECT path FROM capture_sources ORDER BY path")?;
+        let mut rows = statement.query([])?;
+        while let Some(row) = rows.next()? {
+            let path: String = row.get(0)?;
+            self.charge_work(path.len() as u64)?;
+            paths.insert(PathBuf::from(path));
+        }
+        let mut state = Vec::with_capacity(paths.len());
+        for path in paths {
+            let resolved = fs::canonicalize(&path)?;
+            let metadata = fs::metadata(&path)?;
+            let mtime_ns = metadata
+                .mtime()
+                .checked_mul(1_000_000_000)
+                .and_then(|value| value.checked_add(metadata.mtime_nsec()))
+                .ok_or(Error::Budget("public D1 capture source mtime"))?;
+            let ctime_ns = metadata
+                .ctime()
+                .checked_mul(1_000_000_000)
+                .and_then(|value| value.checked_add(metadata.ctime_nsec()))
+                .ok_or(Error::Budget("public D1 capture source ctime"))?;
+            state.push((
+                resolved
+                    .to_str()
+                    .ok_or(Error::Invalid("public D1 capture source path UTF8"))?
+                    .to_owned(),
+                mtime_ns,
+                metadata.len(),
+                metadata.ino(),
+                ctime_ns,
+            ));
+        }
+        state.sort_by(|left, right| left.0.cmp(&right.0));
+        self.verify_inputs(self.limits)?;
+        Ok(state)
     }
 
     pub fn source_digest(&self, label: &str) -> Result<Digest256> {
@@ -2175,10 +3205,22 @@ impl PublicCapture {
     /// Emit its container framing over the captured disk rows in owner order,
     /// never rebuilding the 61/30/10 MiB objects in memory.
     pub fn legacy_source_revision(&self) -> Result<String> {
-        use crate::knowledge_normalization::{stable_digest_value, write_len, write_string};
         if self.partitioned {
             return Err(Error::Invalid("public D1 legacy revision mode"));
         }
+        self.core_source_revision()
+    }
+
+    /// Python Core's exact whole-source revision framing, computed over the
+    /// retained logical role documents even when physical rows came from
+    /// partitioned projection members.
+    pub fn core_source_revision(&self) -> Result<String> {
+        if self.runtime_capture_role.is_some() {
+            return Err(Error::Invalid(
+                "whole Core revision requires all five inputs",
+            ));
+        }
+        use crate::knowledge_normalization::{stable_digest_value, write_len, write_string};
         let mut hash = Digest256Hasher::new();
         hash.update(b"o");
         write_len(&mut hash, 5);
@@ -2236,29 +3278,52 @@ impl PublicCapture {
             return Err(Error::Budget("public D1 header object bytes"));
         }
         let db = self.read_db()?;
-        let mut statement =
-            db.prepare("SELECT path,json FROM capture_headers WHERE role=?1 ORDER BY path")?;
-        let mut rows = statement.query([role])?;
+        let mut statement = db.prepare(
+            "SELECT path,length(json),CASE WHEN length(json) <= ?2 THEN json END
+               FROM capture_headers WHERE role=?1 ORDER BY path",
+        )?;
+        let mut rows = statement.query(params![role, max_bytes as i64])?;
         let mut fields = serde_json::Map::new();
-        let mut total = 0usize;
+        let mut total = 2usize;
         while let Some(row) = rows.next()? {
             let path: String = row.get(0)?;
+            let dynamic_philosophy = self.runtime_capture_role
+                == Some(RuntimeCaptureRole::Philosophy)
+                && role == PHILOSOPHY;
             let Some(name) = (if prefix.is_empty() {
-                (!path.contains('/')).then_some(path.as_str())
+                (dynamic_philosophy || !path.contains('/')).then_some(path.as_str())
             } else {
                 path.strip_prefix(prefix)
                     .and_then(|name| name.strip_prefix('/'))
             }) else {
                 continue;
             };
-            if name.is_empty() || name.contains('/') {
+            if name.is_empty() || (!dynamic_philosophy && name.contains('/')) {
                 return Err(Error::Invalid("public D1 nested header path"));
             }
-            let raw: Vec<u8> = row.get(1)?;
+            let declared: i64 = row.get(1)?;
+            if declared <= 0 || declared as usize > max_bytes {
+                return Err(Error::Budget("public D1 header object bytes"));
+            }
+            // Bound the JSON representation before SQLite copies the BLOB or
+            // the serde map allocates its decoded subtree. Six bytes per key
+            // byte is a conservative upper bound for JSON escaping.
+            let field_bytes = name
+                .len()
+                .checked_mul(6)
+                .and_then(|bytes| bytes.checked_add(3))
+                .and_then(|bytes| bytes.checked_add(declared as usize))
+                .and_then(|bytes| bytes.checked_add(usize::from(!fields.is_empty())))
+                .ok_or(Error::Budget("public D1 header object bytes"))?;
             total = total
-                .checked_add(path.len() + raw.len())
+                .checked_add(field_bytes)
                 .filter(|total| *total <= max_bytes)
                 .ok_or(Error::Budget("public D1 header object bytes"))?;
+            let raw: Option<Vec<u8>> = row.get(2)?;
+            let raw = raw.ok_or(Error::Budget("public D1 header object bytes"))?;
+            if raw.len() != declared as usize {
+                return Err(Error::Invalid("public D1 header length changed"));
+            }
             self.charge_work((path.len() + raw.len()) as u64)?;
             let value = strict_value(&raw, max_bytes)?;
             if fields.insert(name.to_owned(), value).is_some() {
@@ -2276,7 +3341,13 @@ impl PublicCapture {
         collection: &str,
     ) -> Result<Option<String>> {
         self.check_custody()?;
-        if !selected_rows(role, collection) {
+        let dynamic_philosophy = self.runtime_capture_role == Some(RuntimeCaptureRole::Philosophy)
+            && role == PHILOSOPHY
+            && valid_top_level_collection(collection);
+        if !selected_rows(role, collection)
+            && !dynamic_philosophy
+            && !(role == CORPUS && collection == "source_navigation")
+        {
             return Err(Error::Invalid("public D1 collection outside fixed input"));
         }
         let db = self.read_db()?;
@@ -2294,6 +3365,33 @@ impl PublicCapture {
         Ok(kind)
     }
 
+    pub(crate) fn captured_collection_names(&self, role: &str) -> Result<Vec<String>> {
+        self.check_custody()?;
+        if self.runtime_capture_role != Some(RuntimeCaptureRole::Philosophy) || role != PHILOSOPHY {
+            return Err(Error::Invalid("dynamic philosophy carrier required"));
+        }
+        let db = self.read_db()?;
+        let mut statement = db.prepare(
+            "SELECT collection FROM capture_collections WHERE role=?1 ORDER BY collection",
+        )?;
+        let mut rows = statement.query([role])?;
+        let mut names = Vec::new();
+        while let Some(row) = rows.next()? {
+            if names.len() >= 4096 {
+                return Err(Error::Budget("public D1 captured collection names"));
+            }
+            let name: String = row.get(0)?;
+            if !valid_top_level_collection(&name) {
+                return Err(Error::Invalid(
+                    "public D1 captured philosophy collection name",
+                ));
+            }
+            self.charge_work(name.len() as u64)?;
+            names.push(name);
+        }
+        Ok(names)
+    }
+
     /// Physical part order is a hash traversal. This cursor restores the
     /// owner's declared logical order from the private disk index; each row is
     /// checked against the digest recorded at capture before it is exposed.
@@ -2304,7 +3402,10 @@ impl PublicCapture {
         mut sink: impl FnMut(u64, &[u8]) -> Result<()>,
     ) -> Result<u64> {
         self.check_custody()?;
-        if !selected_rows(role, collection) {
+        let dynamic_philosophy = self.runtime_capture_role == Some(RuntimeCaptureRole::Philosophy)
+            && role == PHILOSOPHY
+            && valid_top_level_collection(collection);
+        if !selected_rows(role, collection) && !dynamic_philosophy {
             return Err(Error::Invalid("public D1 collection outside fixed input"));
         }
         let db = self.read_db()?;

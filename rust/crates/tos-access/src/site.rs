@@ -1,5 +1,5 @@
 //! Installed software delivery. Explicit data selection cannot supply code.
-use crate::{AccessError, AccessErrorCode, AccessExecutor, AccessProfile, DisclosureFence};
+use crate::{AccessError, AccessErrorCode, AccessProfile, DisclosureFence, ScopedAccessExecutor};
 use std::{
     fs::File,
     io::Read,
@@ -767,14 +767,14 @@ impl SoftwareSite {
         })
     }
 }
-struct SoftwareFence {
+struct SoftwareFence<'hold> {
     site: Arc<SoftwareSite>,
     file: Option<(File, String, Identity)>,
     probe: Arc<dyn AbortProbe>,
-    holds: Vec<Box<dyn DisclosureFence>>,
+    holds: Vec<Box<dyn DisclosureFence + 'hold>>,
     absent: Option<AbsentSoftwareMember>,
 }
-impl DisclosureFence for SoftwareFence {
+impl DisclosureFence for SoftwareFence<'_> {
     fn recheck(&mut self) -> Result<(), AccessError> {
         crate::knowledge::check_abort(&self.probe)?;
         self.site.check()?;
@@ -821,12 +821,12 @@ pub(crate) fn mime(path: &str) -> &'static str {
 }
 
 impl SoftwareSite {
-    pub(crate) fn shell(
+    pub(crate) fn shell<'hold, E: ScopedAccessExecutor<'hold> + ?Sized>(
         self: &Arc<Self>,
-        executor: &dyn AccessExecutor,
+        executor: &E,
         profile: AccessProfile,
         probe: Arc<dyn AbortProbe>,
-    ) -> Result<(crate::PreparedPacket<'static>, String), AccessError> {
+    ) -> Result<(crate::PreparedPacket<'hold>, String), AccessError> {
         crate::knowledge::check_abort(&probe)?;
         self.check()?;
         let mut holds = Vec::new();

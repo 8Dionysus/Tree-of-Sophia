@@ -1,6 +1,6 @@
 //! Software-owned exploration contracts. Data roots cannot replace these bytes;
 //! runtime metadata describes the selected executor, not a disclosure grant.
-use crate::{AccessError, AccessErrorCode, AccessExecutor, DisclosureFence, PreparedPacket};
+use crate::{AccessError, AccessErrorCode, DisclosureFence, PreparedPacket, ScopedAccessExecutor};
 use tos_foundation::{
     CanonicalProfile, JsonLimits, JsonMode, JsonNumber, JsonNumberKind, JsonString, JsonValue,
     canonical_bytes_v1, parse_json,
@@ -161,8 +161,8 @@ pub(crate) fn runtime_capabilities_for_profile(
     ])
 }
 
-pub fn execute(
-    executor: &dyn AccessExecutor,
+pub fn execute<'hold, E: ScopedAccessExecutor<'hold> + ?Sized>(
+    executor: &E,
     max_bytes: usize,
 ) -> Result<PreparedPacket<'static>, AccessError> {
     let limits = JsonLimits {
@@ -218,8 +218,8 @@ pub fn execute(
 
 /// The maintained HTTP discovery route emits the same selected capability
 /// value embedded in the software contracts packet.
-pub fn execute_capabilities(
-    executor: &dyn AccessExecutor,
+pub fn execute_capabilities<'hold, E: ScopedAccessExecutor<'hold> + ?Sized>(
+    executor: &E,
     max_bytes: usize,
 ) -> Result<PreparedPacket<'static>, AccessError> {
     let body = canonical_bytes_v1(

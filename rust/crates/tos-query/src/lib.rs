@@ -84,7 +84,7 @@ pub use knowledge_catalog::{
 pub use knowledge_inspect::{
     DisclosableInspect, INSPECT_INTENDED_USE, InspectCurrentAuthority, InspectDisclosureLease,
     InspectVisitMeter, InspectedCarrier, NODE_INSPECT_OPERATION, ObservedInspectCarrier,
-    RELATION_INSPECT_OPERATION, execute_selected_inspect,
+    RELATION_INSPECT_OPERATION, execute_selected_inspect, execute_selected_knowledge_header,
 };
 #[cfg(not(target_arch = "wasm32"))]
 pub use knowledge_packet::{

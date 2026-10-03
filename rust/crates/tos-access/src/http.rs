@@ -59,16 +59,19 @@ impl AbortProbe for HttpAbortProbe {
     }
 }
 
-pub struct HttpResponse {
+pub type HttpResponse = ScopedHttpResponse<'static>;
+
+/// A response cannot outlive the selected owner whose disclosure fence it holds.
+pub struct ScopedHttpResponse<'hold> {
     pub status: u16,
     pub body: Vec<u8>,
     pub head_only: bool,
-    fence: Option<Box<dyn DisclosureFence>>,
+    fence: Option<Box<dyn DisclosureFence + 'hold>>,
     content_type: &'static str,
     csp_nonce: Option<String>,
 }
 
-impl HttpResponse {
+impl ScopedHttpResponse<'_> {
     fn error(status: u16, message: &'static str) -> Self {
         let code = match status {
             404 => AccessErrorCode::UnknownExactId,
@@ -197,13 +200,13 @@ fn indexed_cursor(query: &str) -> Result<Option<String>, AccessError> {
     Ok(cursor)
 }
 
-fn handle_search(
-    executor: &dyn AccessExecutor,
+fn handle_search<'hold, E: crate::common::ScopedAccessExecutor<'hold> + ?Sized>(
+    executor: &E,
     method: &str,
     query: &str,
     profile: AccessProfile,
     abort_probe: Arc<dyn AbortProbe>,
-) -> HttpResponse {
+) -> ScopedHttpResponse<'hold> {
     let mode = query_value(query, "mode").unwrap_or_else(|| "legacy".into());
     if mode != "indexed" {
         use tos_foundation::JsonString;
@@ -283,11 +286,15 @@ fn handle_search(
         return packet_response(result, method, profile);
     }
     if !executor.knowledge_search_indexed_available() {
-        return HttpResponse::error_for_method(503, "indexed knowledge search unavailable", method);
+        return ScopedHttpResponse::error_for_method(
+            503,
+            "indexed knowledge search unavailable",
+            method,
+        );
     }
     let offset = bounded_legacy_int(query_value(query, "offset").as_deref(), 0, 0, 100_000);
     if offset != 0 {
-        return HttpResponse::error_for_method(
+        return ScopedHttpResponse::error_for_method(
             400,
             "indexed search uses cursor, not offset",
             method,
@@ -321,7 +328,7 @@ fn handle_search(
             Ok(packet)
         });
     match result {
-        Ok(packet) => HttpResponse {
+        Ok(packet) => ScopedHttpResponse {
             status: 200,
             body: packet.body,
             head_only: method == "HEAD",
@@ -329,7 +336,7 @@ fn handle_search(
             csp_nonce: None,
             fence: Some(packet.fence),
         },
-        Err(error) => HttpResponse {
+        Err(error) => ScopedHttpResponse {
             status: error.http_status(),
             body: error_json(&error),
             head_only: method == "HEAD",
@@ -338,6 +345,28 @@ fn handle_search(
             fence: None,
         },
     }
+}
+
+/// Parse and prepare using the existing HTTP route law inside a held owner.
+pub fn handle_get_scoped<'hold, E: crate::common::ScopedAccessExecutor<'hold> + ?Sized>(
+    executor: &E,
+    method: &str,
+    target: &str,
+    profile: AccessProfile,
+    probe: Arc<dyn AbortProbe>,
+) -> ScopedHttpResponse<'hold> {
+    handle_get_with_probe(executor, method, target, profile, probe, None)
+}
+
+/// Structured read route; no authored write or new scope is introduced.
+pub fn handle_post_scoped<'hold, E: crate::common::ScopedAccessExecutor<'hold> + ?Sized>(
+    executor: &E,
+    target: &str,
+    body: &[u8],
+    profile: AccessProfile,
+    probe: Arc<dyn AbortProbe>,
+) -> ScopedHttpResponse<'hold> {
+    handle_post_with_probe(executor, target, body, profile, probe)
 }
 
 pub fn handle_get(
@@ -374,19 +403,19 @@ pub fn handle_get_with_software(
     )
 }
 
-fn handle_get_with_probe(
-    executor: &dyn AccessExecutor,
+fn handle_get_with_probe<'hold, E: crate::common::ScopedAccessExecutor<'hold> + ?Sized>(
+    executor: &E,
     method: &str,
     target: &str,
     profile: AccessProfile,
     abort_probe: Arc<dyn AbortProbe>,
     site: Option<&Arc<crate::site::SoftwareSite>>,
-) -> HttpResponse {
+) -> ScopedHttpResponse<'hold> {
     if method != "GET" && method != "HEAD" {
-        return HttpResponse::error(405, "method not allowed");
+        return ScopedHttpResponse::error(405, "method not allowed");
     }
     if target.len() > profile.max_request_bytes {
-        return HttpResponse::error_for_method(413, "request target too large", method);
+        return ScopedHttpResponse::error_for_method(413, "request target too large", method);
     }
     let (path, query) = target.split_once('?').unwrap_or((target, ""));
     if let Some(operation) = crate::source_read::Operation::http(method, path) {
@@ -523,7 +552,7 @@ fn handle_get_with_probe(
     }
     if path == "/" || path.starts_with("/static/") {
         let Some(site) = site else {
-            return HttpResponse::error_for_method(
+            return ScopedHttpResponse::error_for_method(
                 503,
                 "installed software site unavailable",
                 method,
@@ -539,7 +568,7 @@ fn handle_get_with_probe(
             })
         };
         return match result {
-            Ok((packet, content_type, csp_nonce)) => HttpResponse {
+            Ok((packet, content_type, csp_nonce)) => ScopedHttpResponse {
                 status: 200,
                 body: packet.body,
                 head_only: method == "HEAD",
@@ -553,7 +582,7 @@ fn handle_get_with_probe(
     if path == "/api/zarathustra/word-analysis" {
         let packet = crate::reading::public_word_analysis_capability(profile.max_response_bytes);
         return match packet {
-            Ok(body) => HttpResponse {
+            Ok(body) => ScopedHttpResponse {
                 status: 200,
                 body,
                 head_only: method == "HEAD",
@@ -679,10 +708,10 @@ fn handle_get_with_probe(
         }
     }
     let Some(encoded_id) = path.strip_prefix(HTTP_PREFIX) else {
-        return HttpResponse::error_for_method(404, "not found", method);
+        return ScopedHttpResponse::error_for_method(404, "not found", method);
     };
     if !executor.source_descend_available() {
-        return HttpResponse::error_for_method(503, "source descent unavailable", method);
+        return ScopedHttpResponse::error_for_method(503, "source descent unavailable", method);
     }
     let outcome = percent_decode(encoded_id, false)
         .and_then(|node_id| {
@@ -706,7 +735,7 @@ fn handle_get_with_probe(
             Ok(packet)
         });
     match outcome {
-        Ok(packet) => HttpResponse {
+        Ok(packet) => ScopedHttpResponse {
             status: 200,
             body: packet.body,
             head_only: method == "HEAD",
@@ -714,7 +743,7 @@ fn handle_get_with_probe(
             csp_nonce: None,
             fence: Some(packet.fence),
         },
-        Err(error) => HttpResponse {
+        Err(error) => ScopedHttpResponse {
             status: error.http_status(),
             body: error_json(&error),
             head_only: method == "HEAD",
@@ -725,11 +754,11 @@ fn handle_get_with_probe(
     }
 }
 
-fn packet_response(
-    result: Result<PreparedPacket<'static>, AccessError>,
+fn packet_response<'hold>(
+    result: Result<PreparedPacket<'hold>, AccessError>,
     method: &str,
     profile: AccessProfile,
-) -> HttpResponse {
+) -> ScopedHttpResponse<'hold> {
     let result = result.and_then(|packet| {
         if packet.body.len() > profile.max_response_bytes {
             return Err(AccessError::new(
@@ -741,7 +770,7 @@ fn packet_response(
         Ok(packet)
     });
     match result {
-        Ok(packet) => HttpResponse {
+        Ok(packet) => ScopedHttpResponse {
             status: 200,
             body: packet.body,
             head_only: method == "HEAD",
@@ -749,7 +778,7 @@ fn packet_response(
             csp_nonce: None,
             fence: Some(packet.fence),
         },
-        Err(error) => HttpResponse {
+        Err(error) => ScopedHttpResponse {
             status: error.http_status(),
             body: error_json(&error),
             head_only: method == "HEAD",
@@ -759,13 +788,13 @@ fn packet_response(
         },
     }
 }
-fn knowledge_response(
-    executor: &dyn AccessExecutor,
+fn knowledge_response<'hold, E: crate::common::ScopedAccessExecutor<'hold> + ?Sized>(
+    executor: &E,
     request: Result<KnowledgeRequest, AccessError>,
     method: &str,
     profile: AccessProfile,
     probe: Arc<dyn AbortProbe>,
-) -> HttpResponse {
+) -> ScopedHttpResponse<'hold> {
     packet_response(
         request.and_then(|request| {
             if matches!(request, KnowledgeRequest::ExplorationContracts) {
@@ -794,15 +823,15 @@ pub fn handle_post(
 ) -> HttpResponse {
     handle_post_with_probe(executor, target, body, profile, profile.deadline_probe())
 }
-fn handle_post_with_probe(
-    executor: &dyn AccessExecutor,
+fn handle_post_with_probe<'hold, E: crate::common::ScopedAccessExecutor<'hold> + ?Sized>(
+    executor: &E,
     target: &str,
     body: &[u8],
     profile: AccessProfile,
     probe: Arc<dyn AbortProbe>,
-) -> HttpResponse {
+) -> ScopedHttpResponse<'hold> {
     if target.len() > profile.max_request_bytes || body.len() > profile.max_request_bytes {
-        return HttpResponse::error(413, "query request byte cap exceeded");
+        return ScopedHttpResponse::error(413, "query request byte cap exceeded");
     }
     if let Some(operation) = crate::source_read::Operation::http("POST", target) {
         return packet_response(
@@ -824,7 +853,7 @@ fn handle_post_with_probe(
     }
     let operation = post_operation(target);
     let Some(operation) = operation else {
-        return HttpResponse::error(404, "not found");
+        return ScopedHttpResponse::error(404, "not found");
     };
     let request = parse_json(body, JsonMode::RequestLastWins, profile.json_limits())
         .map_err(|_| {
@@ -848,6 +877,16 @@ pub(crate) fn post_body(
     stream: &mut TcpStream,
     text: &str,
     profile: AccessProfile,
+) -> Result<Vec<u8>, AccessError> {
+    let control = HttpConnectionControl::compatibility(profile);
+    post_body_controlled(stream, text, profile, &control)
+}
+
+fn post_body_controlled(
+    stream: &mut TcpStream,
+    text: &str,
+    profile: AccessProfile,
+    control: &HttpConnectionControl,
 ) -> Result<Vec<u8>, AccessError> {
     let mut length = None;
     let mut content_type = None;
@@ -917,25 +956,20 @@ pub(crate) fn post_body(
             "query request byte cap exceeded",
         ));
     }
-    let deadline = Instant::now() + Duration::from_secs(5);
     let mut bytes = vec![0; length];
     let mut at = 0;
     while at < length {
-        let remaining = deadline.saturating_duration_since(Instant::now());
-        if remaining.is_zero() {
-            return Err(AccessError::new(
-                AccessErrorCode::DeadlineExceeded,
-                "query body read timed out",
-            ));
-        }
-        stream.set_read_timeout(Some(remaining)).map_err(|_| {
+        let n = control.read(stream, &mut bytes[at..]).map_err(|error| {
             AccessError::new(
-                AccessErrorCode::Unavailable,
-                "query body socket unavailable",
+                if matches!(error.kind(), std::io::ErrorKind::TimedOut) {
+                    AccessErrorCode::DeadlineExceeded
+                } else if error.kind() == std::io::ErrorKind::Interrupted {
+                    AccessErrorCode::Cancelled
+                } else {
+                    AccessErrorCode::InvalidRequest
+                },
+                "query body read failed",
             )
-        })?;
-        let n = stream.read(&mut bytes[at..]).map_err(|_| {
-            AccessError::new(AccessErrorCode::InvalidRequest, "incomplete query body")
         })?;
         if n == 0 {
             return Err(AccessError::new(
@@ -969,9 +1003,129 @@ pub(crate) fn read_head(stream: &mut TcpStream) -> std::io::Result<Vec<u8>> {
     Ok(head)
 }
 
+/// One absolute owner window shared by parsing, query, socket writes and flush.
+/// This control limits transport; it supplies no source or disclosure authority.
+#[derive(Clone)]
+pub struct HttpConnectionControl {
+    deadline: Instant,
+    probe: Arc<dyn AbortProbe>,
+}
+impl HttpConnectionControl {
+    pub fn new(deadline: Instant, probe: Arc<dyn AbortProbe>) -> Self {
+        Self { deadline, probe }
+    }
+    fn compatibility(profile: AccessProfile) -> Self {
+        let now = Instant::now();
+        Self::new(
+            now.checked_add(profile.query_timeout.unwrap_or(Duration::from_secs(5)))
+                .unwrap_or(now),
+            profile.deadline_probe(),
+        )
+    }
+    pub fn check(&self) -> std::io::Result<()> {
+        match self.probe.reason() {
+            Some(AbortReason::Cancelled) => return Err(std::io::ErrorKind::Interrupted.into()),
+            Some(AbortReason::DeadlineExceeded) => return Err(std::io::ErrorKind::TimedOut.into()),
+            None => {}
+        }
+        if Instant::now() >= self.deadline {
+            return Err(std::io::ErrorKind::TimedOut.into());
+        }
+        Ok(())
+    }
+    fn timeout(&self) -> std::io::Result<Duration> {
+        self.check()?;
+        Ok(self
+            .deadline
+            .saturating_duration_since(Instant::now())
+            .min(Duration::from_millis(50)))
+    }
+    fn read(&self, stream: &mut TcpStream, bytes: &mut [u8]) -> std::io::Result<usize> {
+        loop {
+            stream.set_read_timeout(Some(self.timeout()?))?;
+            match stream.read(bytes) {
+                Err(error)
+                    if matches!(
+                        error.kind(),
+                        std::io::ErrorKind::TimedOut
+                            | std::io::ErrorKind::WouldBlock
+                            | std::io::ErrorKind::Interrupted
+                    ) =>
+                {
+                    continue;
+                }
+                result => {
+                    self.check()?;
+                    return result;
+                }
+            }
+        }
+    }
+}
+impl AbortProbe for HttpConnectionControl {
+    fn reason(&self) -> Option<AbortReason> {
+        self.probe
+            .reason()
+            .or_else(|| (Instant::now() >= self.deadline).then_some(AbortReason::DeadlineExceeded))
+    }
+}
+struct ControlledWriter<'a> {
+    stream: &'a mut TcpStream,
+    control: &'a HttpConnectionControl,
+}
+impl Write for ControlledWriter<'_> {
+    fn write(&mut self, bytes: &[u8]) -> std::io::Result<usize> {
+        loop {
+            self.stream
+                .set_write_timeout(Some(self.control.timeout()?))?;
+            match self.stream.write(bytes) {
+                Err(error)
+                    if matches!(
+                        error.kind(),
+                        std::io::ErrorKind::TimedOut
+                            | std::io::ErrorKind::WouldBlock
+                            | std::io::ErrorKind::Interrupted
+                    ) =>
+                {
+                    continue;
+                }
+                result => {
+                    self.control.check()?;
+                    return result;
+                }
+            }
+        }
+    }
+    fn flush(&mut self) -> std::io::Result<()> {
+        self.control.check()?;
+        self.stream.flush()?;
+        self.control.check()
+    }
+}
+fn read_head_controlled(
+    stream: &mut TcpStream,
+    control: &HttpConnectionControl,
+) -> std::io::Result<Vec<u8>> {
+    let mut head = Vec::new();
+    let mut byte = [0u8; 1];
+    while head.len() <= MAX_HEAD {
+        if control.read(stream, &mut byte)? == 0 {
+            break;
+        }
+        head.push(byte[0]);
+        if head.ends_with(b"\r\n\r\n") {
+            break;
+        }
+    }
+    Ok(head)
+}
+
 /// Write the prepared response through the same final current/cancellation fence
 /// used by socket delivery, retaining its disclosure hold through final flush.
-pub fn write_response<W: Write>(stream: &mut W, mut response: HttpResponse) -> std::io::Result<()> {
+pub fn write_response<'hold, W: Write>(
+    stream: &mut W,
+    mut response: ScopedHttpResponse<'hold>,
+) -> std::io::Result<()> {
     if let Some(fence) = response.fence.as_mut() {
         if let Err(error) = fence.recheck() {
             response.status = error.http_status();
@@ -1018,7 +1172,13 @@ pub fn write_response<W: Write>(stream: &mut W, mut response: HttpResponse) -> s
     if !response.head_only {
         stream.write_all(&response.body)?;
     }
-    stream.flush()
+    stream.flush()?;
+    // Bytes already delivered cannot be rolled back. A failed final fence is
+    // reported to the caller while the genuine owner lease is still retained.
+    if let Some(fence) = response.fence.as_mut() {
+        fence.recheck().map_err(std::io::Error::other)?;
+    }
+    Ok(())
 }
 
 /// Serve exactly one bounded HTTP/1.x request on an already accepted socket.
@@ -1031,15 +1191,67 @@ pub fn serve_connection(
 ) {
     serve_connection_with_software(stream, executor, profile, None)
 }
+/// Serve one request while borrowing a callback-local executor through the
+/// complete response flush and its final disclosure-fence check. Call this
+/// inside the owner callback that created the executor; the socket route does
+/// not clone, store, or extend that selected source hold.
+pub fn serve_connection_scoped<'hold, E: crate::common::ScopedAccessExecutor<'hold> + ?Sized>(
+    stream: TcpStream,
+    executor: &E,
+    profile: AccessProfile,
+) -> std::io::Result<()> {
+    serve_connection_scoped_with_software(stream, executor, profile, None)
+}
+
+/// Same borrowed transport with the explicitly installed software companion.
+/// The site handle is selected by its owner and remains borrowed through flush.
+pub fn serve_connection_scoped_with_site<
+    'hold,
+    E: crate::common::ScopedAccessExecutor<'hold> + ?Sized,
+>(
+    stream: TcpStream,
+    executor: &E,
+    site: &Arc<crate::site::SoftwareSite>,
+    profile: AccessProfile,
+) -> std::io::Result<()> {
+    serve_connection_scoped_with_software(stream, executor, profile, Some(site))
+}
+
 fn serve_connection_with_software(
-    mut stream: TcpStream,
+    stream: TcpStream,
     executor: Arc<dyn AccessExecutor>,
     profile: AccessProfile,
     site: Option<Arc<crate::site::SoftwareSite>>,
 ) {
-    let _ = stream.set_read_timeout(Some(Duration::from_secs(5)));
-    let _ = stream.set_write_timeout(Some(Duration::from_secs(5)));
-    let response = match read_head(&mut stream) {
+    let _ =
+        serve_connection_scoped_with_software(stream, executor.as_ref(), profile, site.as_ref());
+}
+
+fn serve_connection_scoped_with_software<
+    'hold,
+    E: crate::common::ScopedAccessExecutor<'hold> + ?Sized,
+>(
+    mut stream: TcpStream,
+    executor: &E,
+    profile: AccessProfile,
+    site: Option<&Arc<crate::site::SoftwareSite>>,
+) -> std::io::Result<()> {
+    let control = HttpConnectionControl::compatibility(profile);
+    serve_connection_scoped_controlled(stream, executor, site, profile, &control)
+}
+
+pub fn serve_connection_scoped_controlled<
+    'hold,
+    E: crate::common::ScopedAccessExecutor<'hold> + ?Sized,
+>(
+    mut stream: TcpStream,
+    executor: &E,
+    site: Option<&Arc<crate::site::SoftwareSite>>,
+    profile: AccessProfile,
+    control: &HttpConnectionControl,
+) -> std::io::Result<()> {
+    control.check()?;
+    let response = match read_head_controlled(&mut stream, control) {
         Ok(head) if head.len() <= MAX_HEAD && head.ends_with(b"\r\n\r\n") => {
             match std::str::from_utf8(&head) {
                 Ok(text) => {
@@ -1060,7 +1272,7 @@ fn serve_connection_with_software(
                                         "not found",
                                     ))
                                 } else {
-                                    post_body(&mut stream, text, profile)
+                                    post_body_controlled(&mut stream, text, profile, control)
                                 }
                             } else {
                                 Ok(Vec::new())
@@ -1072,67 +1284,85 @@ fn serve_connection_with_software(
                                     Ok(client)
                                 }) {
                                     Ok(client) => {
-                                        let now = Instant::now();
-                                        let probe = Arc::new(HttpAbortProbe {
-                                            client,
-                                            deadline: profile.query_timeout.map(|timeout| {
-                                                now.checked_add(timeout).unwrap_or(now)
-                                            }),
-                                            checks: AtomicU64::new(0),
+                                        struct CombinedProbe {
+                                            owner: HttpConnectionControl,
+                                            socket: HttpAbortProbe,
+                                        }
+                                        impl AbortProbe for CombinedProbe {
+                                            fn reason(&self) -> Option<AbortReason> {
+                                                self.owner.reason().or_else(|| self.socket.reason())
+                                            }
+                                        }
+                                        let probe = Arc::new(CombinedProbe {
+                                            owner: control.clone(),
+                                            socket: HttpAbortProbe {
+                                                client,
+                                                deadline: Some(control.deadline),
+                                                checks: AtomicU64::new(0),
+                                            },
                                         });
                                         if *method == "POST" {
                                             handle_post_with_probe(
-                                                executor.as_ref(),
-                                                target,
-                                                &body,
-                                                profile,
-                                                probe,
+                                                executor, target, &body, profile, probe,
                                             )
                                         } else {
                                             handle_get_with_probe(
-                                                executor.as_ref(),
-                                                method,
-                                                target,
-                                                profile,
-                                                probe,
-                                                site.as_ref(),
+                                                executor, method, target, profile, probe, site,
                                             )
                                         }
                                     }
-                                    Err(_) => HttpResponse::error(
+                                    Err(_) => ScopedHttpResponse::error(
                                         503,
                                         "client cancellation probe unavailable",
                                     ),
                                 },
                             }
                         }
-                        _ => HttpResponse::error(400, "invalid HTTP request line"),
+                        _ => ScopedHttpResponse::error(400, "invalid HTTP request line"),
                     }
                 }
-                Err(_) => HttpResponse::error(400, "HTTP header is not UTF-8"),
+                Err(_) => ScopedHttpResponse::error(400, "HTTP header is not UTF-8"),
             }
         }
-        _ => HttpResponse::error(400, "HTTP header incomplete or oversized"),
+        _ => ScopedHttpResponse::error(400, "HTTP header incomplete or oversized"),
     };
-    if stream.set_nonblocking(false).is_ok() {
-        let rejected = response.status >= 400;
-        if write_response(&mut stream, response).is_ok() && rejected {
-            // Publish the complete refusal before draining bounded unread
-            // request bytes. Dropping a socket with queued input sends RST on
-            // Linux and can erase an otherwise complete client error response.
-            let _ = stream.shutdown(Shutdown::Write);
-            drain_rejected_request(&mut stream, profile.max_request_bytes);
-        }
+    stream.set_nonblocking(false)?;
+    let rejected = response.status >= 400;
+    write_response(
+        &mut ControlledWriter {
+            stream: &mut stream,
+            control,
+        },
+        response,
+    )?;
+    if rejected {
+        // Publish the complete refusal before draining bounded unread
+        // request bytes. Dropping a socket with queued input sends RST on
+        // Linux and can erase an otherwise complete client error response.
+        let _ = stream.shutdown(Shutdown::Write);
+        drain_rejected_request_controlled(&mut stream, profile.max_request_bytes, control);
     }
+    control.check()
 }
 
-fn drain_rejected_request(stream: &mut TcpStream, max_bytes: usize) {
-    let deadline = Instant::now() + Duration::from_millis(200);
+fn drain_rejected_request_controlled(
+    stream: &mut TcpStream,
+    max_bytes: usize,
+    control: &HttpConnectionControl,
+) {
+    let deadline = control
+        .deadline
+        .min(Instant::now() + Duration::from_millis(200));
     let mut remaining = max_bytes;
     let mut buffer = [0u8; 1024];
     while remaining > 0 {
         let time = deadline.saturating_duration_since(Instant::now());
-        if time.is_zero() || stream.set_read_timeout(Some(time)).is_err() {
+        if time.is_zero()
+            || control.check().is_err()
+            || stream
+                .set_read_timeout(Some(time.min(Duration::from_millis(50))))
+                .is_err()
+        {
             break;
         }
         let size = remaining.min(buffer.len());
@@ -1140,6 +1370,98 @@ fn drain_rejected_request(stream: &mut TcpStream, max_bytes: usize) {
             Ok(0) => break,
             Ok(n) => remaining -= n,
             Err(_) => break,
+        }
+    }
+}
+
+/// Bounded, serial listener for an owner which must open and close each real
+/// selected callback around socket delivery. `finished` signals normal owner
+/// completion; cancellation and deadline remain failure conditions. No executor is cloned or stored;
+/// the caller owns current authority, capture custody and per-query admission.
+/// The installed software handle remains an independent, admitted code input.
+#[cfg(not(target_arch = "wasm32"))]
+pub fn serve_selected_connections(
+    addr: &str,
+    profile: AccessProfile,
+    deadline: Instant,
+    cancelled: &Arc<std::sync::atomic::AtomicBool>,
+    finished: &std::sync::atomic::AtomicBool,
+    mut consume: impl FnMut(
+        TcpStream,
+        Option<&Arc<crate::site::SoftwareSite>>,
+        AccessProfile,
+        &HttpConnectionControl,
+    ) -> std::io::Result<()>,
+) -> std::io::Result<()> {
+    struct ListenerAbort {
+        deadline: Instant,
+        cancelled: Arc<std::sync::atomic::AtomicBool>,
+    }
+    impl AbortProbe for ListenerAbort {
+        fn reason(&self) -> Option<AbortReason> {
+            if self.cancelled.load(Ordering::Acquire) {
+                Some(AbortReason::Cancelled)
+            } else if Instant::now() >= self.deadline {
+                Some(AbortReason::DeadlineExceeded)
+            } else {
+                None
+            }
+        }
+    }
+    fn check(probe: &dyn AbortProbe) -> std::io::Result<()> {
+        match probe.reason() {
+            Some(AbortReason::DeadlineExceeded) => Err(std::io::ErrorKind::TimedOut.into()),
+            Some(AbortReason::Cancelled) => Err(std::io::ErrorKind::Interrupted.into()),
+            None => Ok(()),
+        }
+    }
+    let probe: Arc<dyn AbortProbe> = Arc::new(ListenerAbort {
+        deadline,
+        cancelled: Arc::clone(cancelled),
+    });
+    check(probe.as_ref())?;
+    let now = Instant::now();
+    let startup: Arc<dyn AbortProbe> = Arc::new(ListenerAbort {
+        deadline: deadline.min(now.checked_add(Duration::from_secs(30)).unwrap_or(now)),
+        cancelled: Arc::clone(cancelled),
+    });
+    let (listener, site) = installed_listener(addr, profile, Some(startup))?;
+    listener.set_nonblocking(true)?;
+    loop {
+        check(probe.as_ref())?;
+        if finished.load(Ordering::Acquire) {
+            return Ok(());
+        }
+        match listener.accept() {
+            Ok((stream, _)) => {
+                check(probe.as_ref())?;
+                let remaining = deadline.saturating_duration_since(Instant::now());
+                let timeout = profile
+                    .query_timeout
+                    .map_or(remaining, |time| time.min(remaining));
+                let control = HttpConnectionControl::new(
+                    Instant::now()
+                        .checked_add(timeout)
+                        .unwrap_or(deadline)
+                        .min(deadline),
+                    Arc::clone(&probe),
+                );
+                consume(
+                    stream,
+                    site.as_ref(),
+                    profile.with_query_timeout(timeout),
+                    &control,
+                )?;
+                check(probe.as_ref())?;
+            }
+            Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => {
+                std::thread::sleep(
+                    Duration::from_millis(10)
+                        .min(deadline.saturating_duration_since(Instant::now())),
+                );
+            }
+            Err(error) if error.kind() == std::io::ErrorKind::Interrupted => continue,
+            Err(error) => return Err(error),
         }
     }
 }
@@ -1186,7 +1508,7 @@ pub fn serve(
             // must not block acceptance of later connections. Best-effort 503;
             // if the socket cannot accept it immediately, close the connection.
             if stream.set_nonblocking(true).is_ok() {
-                let _ = write_response(&mut stream, HttpResponse::error(503, "server busy"));
+                let _ = write_response(&mut stream, ScopedHttpResponse::error(503, "server busy"));
             }
             continue;
         }
@@ -1278,7 +1600,7 @@ pub fn serve_observed(
                         if stream.set_nonblocking(true).is_ok() {
                             let _ = write_response(
                                 &mut stream,
-                                HttpResponse::error(503, "server busy"),
+                                ScopedHttpResponse::error(503, "server busy"),
                             );
                         }
                         continue;
@@ -1595,13 +1917,13 @@ mod connection_lifecycle_tests {
     }
 }
 
-fn scale_export_response(
-    mut response: HttpResponse,
+fn scale_export_response<'hold>(
+    mut response: ScopedHttpResponse<'hold>,
     encoded: &str,
     method: &str,
     profile: AccessProfile,
     probe: &Arc<dyn AbortProbe>,
-) -> HttpResponse {
+) -> ScopedHttpResponse<'hold> {
     if response.status != 200 {
         return response;
     }
@@ -1747,5 +2069,114 @@ fn scale_export_response(
             response
         }
         Err(error) => packet_response(Err(error), method, profile),
+    }
+}
+
+#[cfg(all(test, not(target_arch = "wasm32")))]
+mod scoped_socket_tests {
+    use super::*;
+    use std::cell::Cell;
+
+    struct BorrowedExecutor<'a>(&'a Cell<usize>);
+    struct BorrowedFence<'a>(&'a Cell<usize>);
+    impl DisclosureFence for BorrowedFence<'_> {
+        fn recheck(&mut self) -> Result<(), AccessError> {
+            self.0.set(self.0.get() + 1);
+            Ok(())
+        }
+    }
+    impl<'a> crate::common::ScopedAccessExecutor<'a> for BorrowedExecutor<'a> {
+        fn source_descend(
+            &self,
+            _: Params,
+            _: Arc<dyn AbortProbe>,
+        ) -> Result<PreparedPacket<'a>, AccessError> {
+            Err(AccessError::new(AccessErrorCode::Unavailable, "unselected"))
+        }
+        fn knowledge_available(&self, operation: KnowledgeOperation) -> bool {
+            operation == KnowledgeOperation::Catalog
+        }
+        fn knowledge(
+            &self,
+            _: KnowledgeRequest,
+            _: Arc<dyn AbortProbe>,
+        ) -> Result<PreparedPacket<'a>, AccessError> {
+            Ok(PreparedPacket {
+                body: b"{}".to_vec(),
+                fence: Box::new(BorrowedFence(self.0)),
+            })
+        }
+    }
+
+    #[test]
+    fn controlled_socket_uses_original_deadline_before_query() {
+        struct NeverAbort;
+        impl AbortProbe for NeverAbort {
+            fn reason(&self) -> Option<AbortReason> {
+                None
+            }
+        }
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        let address = listener.local_addr().unwrap();
+        let checks = Cell::new(0);
+        let executor = BorrowedExecutor(&checks);
+        std::thread::scope(|scope| {
+            let client = scope.spawn(move || {
+                let mut socket = TcpStream::connect(address).unwrap();
+                socket
+                    .set_read_timeout(Some(Duration::from_secs(2)))
+                    .unwrap();
+                socket.write_all(b"G").unwrap();
+                let mut response = Vec::new();
+                let _ = socket.read_to_end(&mut response);
+            });
+            let (socket, _) = listener.accept().unwrap();
+            let started = Instant::now();
+            let control = HttpConnectionControl::new(
+                started + Duration::from_millis(30),
+                Arc::new(NeverAbort),
+            );
+            let error = serve_connection_scoped_controlled(
+                socket,
+                &executor,
+                None,
+                AccessProfile::new(8192, 1048576, 8192).with_query_timeout(Duration::from_secs(2)),
+                &control,
+            )
+            .unwrap_err();
+            assert_eq!(error.kind(), std::io::ErrorKind::TimedOut);
+            assert!(started.elapsed() < Duration::from_secs(1));
+            client.join().unwrap();
+        });
+        assert_eq!(checks.get(), 0);
+    }
+
+    #[test]
+    fn borrowed_socket_retains_owner_fence_through_flush() {
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        let address = listener.local_addr().unwrap();
+        let checks = Cell::new(0);
+        let executor = BorrowedExecutor(&checks);
+        std::thread::scope(|scope| {
+            let client = scope.spawn(move || {
+                let mut socket = TcpStream::connect(address).unwrap();
+                socket
+                    .set_read_timeout(Some(Duration::from_secs(5)))
+                    .unwrap();
+                socket
+                    .write_all(b"GET /api/knowledge/catalog HTTP/1.1\r\nHost: localhost\r\n\r\n")
+                    .unwrap();
+                let mut response = String::new();
+                socket.read_to_string(&mut response).unwrap();
+                response
+            });
+            let (socket, _) = listener.accept().unwrap();
+            serve_connection_scoped(socket, &executor, AccessProfile::new(8192, 1048576, 8192))
+                .unwrap();
+            let response = client.join().unwrap();
+            assert!(response.starts_with("HTTP/1.1 200 OK\r\n"));
+            assert!(response.ends_with("\r\n\r\n{}"));
+        });
+        assert_eq!(checks.get(), 2);
     }
 }

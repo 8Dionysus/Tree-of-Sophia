@@ -14,10 +14,9 @@ use std::{
     io::{Read, Seek, SeekFrom, Write},
     os::unix::fs::{MetadataExt, OpenOptionsExt, PermissionsExt},
     path::{Path, PathBuf},
-    rc::Rc,
     sync::{
         Arc,
-        atomic::{AtomicU64, Ordering},
+        atomic::{AtomicBool, AtomicU64, Ordering},
     },
     time::Instant,
 };
@@ -490,6 +489,17 @@ pub struct ScanPage {
     pub next_id: Option<String>,
 }
 
+/// Budget ledger used by public operations. Native capture and its borrowed
+/// query callback share an atomic ledger so the same held capture can be lent
+/// across a Send disclosure lease and by disposable public D1 staging.
+#[derive(Clone)]
+enum PublicWorkLedger {
+    Shared {
+        used: Arc<AtomicU64>,
+        cancelled: Arc<AtomicBool>,
+    },
+}
+
 pub struct KnowledgeStage<'a> {
     candidate: PathBuf,
     inode: (u64, u64),
@@ -508,7 +518,7 @@ pub struct KnowledgeStage<'a> {
     public_deadline: Option<Instant>,
     total_rows: u64,
     work_bytes: u64,
-    public_work: Option<(Rc<Cell<u64>>, u64)>,
+    public_work: Option<(PublicWorkLedger, u64)>,
     poisoned: bool,
     write_page: Option<WritePageCharge>,
     keep: bool,
@@ -803,7 +813,8 @@ impl<'a> KnowledgeStage<'a> {
         owner: &'a dyn StageOwner,
         isolation: &'a dyn StageIsolation,
         vm_used: Arc<AtomicU64>,
-        work_used: Rc<Cell<u64>>,
+        work_used: Arc<AtomicU64>,
+        cancelled: Arc<AtomicBool>,
         max_work_bytes: u64,
         deadline: Instant,
     ) -> Result<Self> {
@@ -817,7 +828,13 @@ impl<'a> KnowledgeStage<'a> {
             StageInputOwner::Projection(owner),
             Some(isolation),
             Some(vm_used),
-            Some((work_used, max_work_bytes)),
+            Some((
+                PublicWorkLedger::Shared {
+                    used: work_used,
+                    cancelled,
+                },
+                max_work_bytes,
+            )),
             Some(deadline),
         )
     }
@@ -831,7 +848,8 @@ impl<'a> KnowledgeStage<'a> {
         receipt: ExactInputReceipt,
         owner: &'a dyn StageOwner,
         vm_used: Arc<AtomicU64>,
-        work_used: Rc<Cell<u64>>,
+        work_used: Arc<AtomicU64>,
+        cancelled: Arc<AtomicBool>,
         max_work_bytes: u64,
         deadline: Instant,
     ) -> Result<Self> {
@@ -842,7 +860,13 @@ impl<'a> KnowledgeStage<'a> {
             StageInputOwner::Projection(owner),
             None,
             Some(vm_used),
-            Some((work_used, max_work_bytes)),
+            Some((
+                PublicWorkLedger::Shared {
+                    used: work_used,
+                    cancelled,
+                },
+                max_work_bytes,
+            )),
             Some(deadline),
         )
     }
@@ -854,7 +878,7 @@ impl<'a> KnowledgeStage<'a> {
         owner: StageInputOwner<'a>,
         isolation: Option<&'a dyn StageIsolation>,
         shared_vm_used: Option<Arc<AtomicU64>>,
-        public_work: Option<(Rc<Cell<u64>>, u64)>,
+        public_work: Option<(PublicWorkLedger, u64)>,
         public_deadline: Option<Instant>,
     ) -> Result<Self> {
         limits.validate()?;
@@ -1366,23 +1390,49 @@ impl<'a> KnowledgeStage<'a> {
         result
     }
     fn charge_public_work(&self, bytes: u64) -> Result<()> {
-        if self
+        self.check_public_work_active()?;
+        if let Some((used, limit)) = &self.public_work {
+            match used {
+                PublicWorkLedger::Shared { used, .. } => {
+                    let mut current = used.load(Ordering::Acquire);
+                    loop {
+                        self.check_public_work_active()?;
+                        let next = current
+                            .checked_add(bytes)
+                            .filter(|next| *next <= *limit)
+                            .ok_or(Error::Budget("public D1 build work bytes"))?;
+                        match used.compare_exchange_weak(
+                            current,
+                            next,
+                            Ordering::AcqRel,
+                            Ordering::Acquire,
+                        ) {
+                            Ok(_) => break,
+                            Err(observed) => current = observed,
+                        }
+                    }
+                }
+            }
+        }
+        Ok(())
+    }
+    fn check_public_work_active(&self) -> Result<()> {
+        let deadline_expired = self
             .public_deadline
-            .is_some_and(|limit| Instant::now() >= limit)
-        {
+            .is_some_and(|limit| Instant::now() >= limit);
+        let cancelled = self.public_work.as_ref().is_some_and(|(ledger, _)| {
+            matches!(
+                ledger,
+                PublicWorkLedger::Shared { cancelled, .. }
+                    if cancelled.load(Ordering::Acquire)
+            )
+        });
+        if deadline_expired || cancelled {
             return Err(Error::Budget(if self.public_build {
                 "public D1 build deadline"
             } else {
-                "cold stage deadline"
+                "cold stage deadline/cancel"
             }));
-        }
-        if let Some((used, limit)) = &self.public_work {
-            let next = used
-                .get()
-                .checked_add(bytes)
-                .filter(|next| next <= limit)
-                .ok_or(Error::Budget("public D1 build work bytes"))?;
-            used.set(next);
         }
         Ok(())
     }

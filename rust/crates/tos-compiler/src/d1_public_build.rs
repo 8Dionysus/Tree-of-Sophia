@@ -471,6 +471,7 @@ pub fn build_public_d1(request: PublicD1Build<'_>) -> Result<Value> {
         &owner,
         capture.vm_counter(),
         capture.work_counter(),
+        capture.cancellation_handle(),
         capture.max_work_bytes(),
         capture.deadline(),
     )?;
