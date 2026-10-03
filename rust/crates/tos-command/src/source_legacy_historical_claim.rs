@@ -1952,21 +1952,7 @@ fn validate_history<'a>(
             ],
         )?;
         let request = cmd::field(receipt, "request")?;
-        cmd::exact_keys(
-            request,
-            &[
-                "operation",
-                "fields",
-                "forms",
-                "reason",
-                "command_id",
-                "expected_configuration",
-                "expected_source",
-                "expected_revision",
-                "expected_dependencies",
-                "expected_inputs",
-            ],
-        )?;
+        validate_request_shape(request, true)?;
         let command_id = cmd::text(receipt, "command_id")?;
         cmd::validate_instant(cmd::text(receipt, "recorded_at")?)?;
         if !commands.insert(command_id.to_owned())
