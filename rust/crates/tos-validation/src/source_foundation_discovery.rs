@@ -3852,7 +3852,14 @@ impl<I: Copy + Eq> ArtifactReplaySet<'_, I> {
 
 trait CandidateInvalidArtifactSchemaProof<I: Copy + Eq> {
     fn binding_matches(&self, identity: &I, membership: SourceMembershipV1) -> bool;
-    fn proves_invalid(&self, path: &str, member_sha256: Digest256, member_size_bytes: u64) -> bool;
+    fn proves_invalid(
+        &self,
+        path: &str,
+        member_sha256: Digest256,
+        member_size_bytes: u64,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<bool, ItemRefusal>;
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -3899,19 +3906,6 @@ pub struct CandidateArtifactInvalidSchemaProofCost {
     pub current_path_probe_count: usize,
 }
 
-#[derive(Debug, Clone, Copy)]
-struct CandidateArtifactSchemaDiagnosticProof {
-    record_id_sha256: Digest256,
-    member_sha256: Option<Digest256>,
-    member_size_bytes: Option<u64>,
-    record_count: usize,
-    target_diagnostic_count: usize,
-    diagnostic_unit_sha256: Option<Digest256>,
-    diagnostic_report_sha256: Option<Digest256>,
-    consistent_member_binding: bool,
-    invalid: bool,
-}
-
 /// Opaque proof over one exact candidate Records report. It borrows that
 /// report so the evidence cannot be rebound to another report with the same
 /// membership summary. Candidate identity remains its own typed value and is
@@ -3921,12 +3915,12 @@ pub struct CandidateArtifactInvalidSchemaProofs<'report, 'store, I: Copy + Eq> {
     input_identity: I,
     current_membership: SourceMembershipV1,
     schema_identity: crate::source_foundation_records::SourceFoundationCandidateSchemaIdentity,
-    entries: BTreeMap<String, CandidateArtifactSchemaDiagnosticProof>,
     candidate_record_count: usize,
     candidate_records_sha256: Digest256,
     target_diagnostic_count: usize,
     target_diagnostics_sha256: Digest256,
     max_state_bytes: usize,
+    page_budget: SourceFoundationRecordsPageBudget,
     cost: CandidateArtifactInvalidSchemaProofCost,
 }
 
@@ -3968,20 +3962,22 @@ impl<I: Copy + Eq> CandidateArtifactInvalidSchemaProofs<'_, '_, I> {
         current_membership: SourceMembershipV1,
         member_sha256: Digest256,
         member_size_bytes: u64,
-    ) -> bool {
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<bool, ItemRefusal> {
         if &self.input_identity != input_identity || self.current_membership != current_membership {
-            return false;
+            return Ok(false);
         }
-        self.entries.get(path).is_some_and(|proof| {
-            proof.record_count == 1
-                && proof.target_diagnostic_count == 1
-                && proof.consistent_member_binding
-                && proof.invalid
-                && proof.member_sha256 == Some(member_sha256)
-                && proof.member_size_bytes == Some(member_size_bytes)
-                && proof.diagnostic_unit_sha256.is_some()
-                && proof.diagnostic_report_sha256.is_some()
-        })
+        self.records
+            .index()
+            .candidate_artifact_schema_proves_invalid(
+                path,
+                &member_sha256.to_hex(),
+                member_size_bytes,
+                std::num::NonZeroUsize::new(self.max_state_bytes).ok_or(ItemRefusal::Budget)?,
+                deadline,
+                cancelled,
+            )
     }
 
     /// Check the exact borrowed report and candidate identity before a caller
@@ -4004,7 +4000,8 @@ impl<I: Copy + Eq> CandidateArtifactInvalidSchemaProofs<'_, '_, I> {
                 "source-foundation candidate Artifact proof binding differs".into(),
             ));
         }
-        for path in self.entries.keys() {
+        let mut after_path: Option<String> = None;
+        loop {
             if cancelled.load(Ordering::Relaxed) {
                 return Err(ItemRefusal::Source(
                     "source-foundation candidate Artifact proof validation cancelled".into(),
@@ -4013,23 +4010,53 @@ impl<I: Copy + Eq> CandidateArtifactInvalidSchemaProofs<'_, '_, I> {
             if Instant::now() >= deadline {
                 return Err(ItemRefusal::Deadline);
             }
-            let lookup_state = path
-                .len()
-                .checked_mul(32)
-                .and_then(|bytes| bytes.checked_add(8_192))
-                .ok_or(ItemRefusal::Budget)?;
-            if self
-                .cost
-                .retained_state_bytes
-                .checked_add(lookup_state)
-                .is_none_or(|used| used > self.max_state_bytes)
-            {
-                return Err(ItemRefusal::Budget);
+            let page = records.index().candidate_artifact_schema_proof_paths_page(
+                after_path.as_deref(),
+                self.page_budget,
+                deadline,
+                cancelled,
+            )?;
+            let has_more = page.has_more;
+            let mut paths = page.paths;
+            if paths.is_empty() {
+                if has_more {
+                    return Err(ItemRefusal::Source(
+                        "source-foundation candidate Artifact proof path page stalled".into(),
+                    ));
+                }
+                break;
             }
-            if input.path_presence(path, deadline, cancelled)? != Some(SourcePresenceV1::File) {
-                return Err(ItemRefusal::Source(
-                    "source-foundation candidate Artifact proof path is not a current file".into(),
-                ));
+            for path in &paths {
+                let lookup_state = path
+                    .len()
+                    .checked_mul(32)
+                    .and_then(|bytes| bytes.checked_add(8_192))
+                    .ok_or(ItemRefusal::Budget)?;
+                if self
+                    .cost
+                    .retained_state_bytes
+                    .checked_add(page.charged_state_bytes)
+                    .and_then(|used| used.checked_add(lookup_state))
+                    .is_none_or(|used| used > self.max_state_bytes)
+                {
+                    return Err(ItemRefusal::Budget);
+                }
+                if input.path_presence(path, deadline, cancelled)? != Some(SourcePresenceV1::File) {
+                    return Err(ItemRefusal::Source(
+                        "source-foundation candidate Artifact proof path is not a current file"
+                            .into(),
+                    ));
+                }
+            }
+            if has_more {
+                after_path = paths.pop();
+                if after_path.is_none() {
+                    return Err(ItemRefusal::Source(
+                        "source-foundation candidate Artifact proof path cursor is missing".into(),
+                    ));
+                }
+            } else {
+                break;
             }
         }
         Ok(())
@@ -4086,7 +4113,6 @@ impl<'report, 'store, I: Copy + Eq> CandidateArtifactInvalidSchemaProofs<'report
         let mut rows_scanned = 0usize;
         let mut page_peak_state_bytes = 0usize;
         let mut candidate_record_count = 0usize;
-        let mut max_candidate_path_bytes = 0usize;
         let mut current_record_rows_scanned = 0usize;
         let current_rows_before = rows_scanned;
         visit_candidate_record_pages(
@@ -4131,7 +4157,6 @@ impl<'report, 'store, I: Copy + Eq> CandidateArtifactInvalidSchemaProofs<'report
                 candidate_record_count = candidate_record_count
                     .checked_add(1)
                     .ok_or(ItemRefusal::Budget)?;
-                max_candidate_path_bytes = max_candidate_path_bytes.max(record.path.len());
                 Ok(())
             },
         )?;
@@ -4143,20 +4168,8 @@ impl<'report, 'store, I: Copy + Eq> CandidateArtifactInvalidSchemaProofs<'report
             )
             .ok_or(ItemRefusal::Budget)?;
 
-        let per_entry = std::mem::size_of::<CandidateArtifactSchemaDiagnosticProof>()
-            .checked_add(std::mem::size_of::<String>())
-            .and_then(|bytes| bytes.checked_add(max_candidate_path_bytes))
-            .and_then(|bytes| bytes.checked_add(128))
-            .ok_or(ItemRefusal::Budget)?;
-        let retained_state_bytes = candidate_record_count
-            .checked_mul(per_entry)
-            .and_then(|bytes| bytes.checked_add(std::mem::size_of::<Self>()))
-            .and_then(|bytes| {
-                max_candidate_path_bytes
-                    .checked_mul(2)
-                    .and_then(|scratch| scratch.checked_add(64))
-                    .and_then(|scratch| bytes.checked_add(scratch))
-            })
+        let retained_state_bytes = std::mem::size_of::<Self>()
+            .checked_add(512)
             .ok_or(ItemRefusal::Budget)?;
         if retained_state_bytes
             .checked_add(page_budget.max_state_bytes.get())
@@ -4165,7 +4178,10 @@ impl<'report, 'store, I: Copy + Eq> CandidateArtifactInvalidSchemaProofs<'report
             return Err(ItemRefusal::Budget);
         }
 
-        let mut entries = BTreeMap::new();
+        records
+            .index()
+            .reset_candidate_artifact_schema_proofs(deadline, cancelled)?;
+
         let mut candidate_hasher = Digest256Hasher::new();
         hash_text(
             &mut candidate_hasher,
@@ -4202,36 +4218,19 @@ impl<'report, 'store, I: Copy + Eq> CandidateArtifactInvalidSchemaProofs<'report
                         record_id, record,
                     )?)
                     .ok_or(ItemRefusal::Budget)?;
-                let path = record.path.as_str();
                 if retained_state_bytes
                     .checked_add(page_state_bytes)
                     .is_none_or(|used| used > max_state_bytes)
                 {
                     return Err(ItemRefusal::Budget);
                 }
-                if !entries.contains_key(path) {
-                    let proof = CandidateArtifactSchemaDiagnosticProof {
-                        record_id_sha256: Digest256::of_bytes(record_id.as_bytes()),
-                        member_sha256: None,
-                        member_size_bytes: None,
-                        record_count: 0,
-                        target_diagnostic_count: 0,
-                        diagnostic_unit_sha256: None,
-                        diagnostic_report_sha256: None,
-                        consistent_member_binding: true,
-                        invalid: false,
-                    };
-                    entries.insert(path.to_owned(), proof);
-                }
-                let proof = entries.get_mut(path).ok_or(ItemRefusal::Budget)?;
-                if proof.record_count > 0 {
-                    proof.consistent_member_binding &=
-                        proof.record_id_sha256 == Digest256::of_bytes(record_id.as_bytes());
-                }
-                proof.record_count = proof
-                    .record_count
-                    .checked_add(1)
-                    .ok_or(ItemRefusal::Budget)?;
+                let _ = record_id;
+                records.index().retain_candidate_artifact_schema_record(
+                    &record.path,
+                    std::num::NonZeroUsize::new(max_state_bytes).ok_or(ItemRefusal::Budget)?,
+                    deadline,
+                    cancelled,
+                )?;
                 Ok(())
             },
         )?;
@@ -4290,45 +4289,42 @@ impl<'report, 'store, I: Copy + Eq> CandidateArtifactInvalidSchemaProofs<'report
                     return Err(ItemRefusal::Budget);
                 }
                 update_diagnostic_fingerprint(&mut diagnostic_hasher, diagnostic)?;
-                if let Some(proof) = entries.get_mut(diagnostic.path.as_str()) {
-                    proof.target_diagnostic_count = proof
-                        .target_diagnostic_count
-                        .checked_add(1)
-                        .ok_or(ItemRefusal::Budget)?;
-                    let member_sha256 = diagnostic.unit.raw_sha256;
-                    let member_size_bytes = u64::try_from(diagnostic.input_instance_bytes)
-                        .map_err(|_| ItemRefusal::Budget)?;
-                    match (proof.member_sha256, proof.member_size_bytes) {
-                        (None, None) => {
-                            proof.member_sha256 = Some(member_sha256);
-                            proof.member_size_bytes = Some(member_size_bytes);
-                        }
-                        (Some(existing_sha), Some(existing_size)) => {
-                            proof.consistent_member_binding &=
-                                existing_sha == member_sha256 && existing_size == member_size_bytes;
-                        }
-                        _ => proof.consistent_member_binding = false,
-                    }
-                    if proof.target_diagnostic_count == 1 {
-                        proof.diagnostic_unit_sha256 = Some(diagnostic.unit.unit_sha256);
-                        proof.diagnostic_report_sha256 = Some(diagnostic.unit.report.report_sha256);
-                    }
-                    let exact_schema_set = diagnostic.verdict.format_profile
-                        == schema_identity.profile()
-                        && diagnostic.verdict.schema_set_digest
-                            == schema_identity.schema_set_digest()
-                        && diagnostic.verdict.worker_binary_digest
-                            == schema_identity.worker_digest();
-                    proof.invalid = proof.target_diagnostic_count == 1
-                        && proof.consistent_member_binding
-                        && exact_schema_set
-                        && complete_invalid_artifact_schema_diagnostic(
-                            diagnostic,
-                            diagnostic.path.as_str(),
-                            member_sha256,
-                            member_size_bytes,
-                        );
+                let member_sha256 = diagnostic.unit.raw_sha256;
+                let member_size_bytes = u64::try_from(diagnostic.input_instance_bytes)
+                    .map_err(|_| ItemRefusal::Budget)?;
+                let exact_schema_set = diagnostic.verdict.format_profile
+                    == schema_identity.profile()
+                    && diagnostic.verdict.schema_set_digest == schema_identity.schema_set_digest()
+                    && diagnostic.verdict.worker_binary_digest == schema_identity.worker_digest();
+                let complete_invalid = exact_schema_set
+                    && complete_invalid_artifact_schema_diagnostic(
+                        diagnostic,
+                        diagnostic.path.as_str(),
+                        member_sha256,
+                        member_size_bytes,
+                    );
+                let diagnostic_state = page_state_bytes
+                    .checked_add(retained_state_bytes)
+                    .and_then(|bytes| bytes.checked_add(diagnostic.path.len().saturating_mul(2)))
+                    .and_then(|bytes| bytes.checked_add(8_192))
+                    .ok_or(ItemRefusal::Budget)?;
+                if diagnostic_state > max_state_bytes {
+                    return Err(ItemRefusal::Budget);
                 }
+                records
+                    .index()
+                    .update_candidate_artifact_schema_diagnostic(
+                        &diagnostic.path,
+                        &member_sha256.to_hex(),
+                        member_size_bytes,
+                        &diagnostic.unit.unit_sha256.to_hex(),
+                        &diagnostic.unit.report.report_sha256.to_hex(),
+                        exact_schema_set,
+                        complete_invalid,
+                        std::num::NonZeroUsize::new(max_state_bytes).ok_or(ItemRefusal::Budget)?,
+                        deadline,
+                        cancelled,
+                    )?;
                 Ok(())
             },
         )?;
@@ -4360,12 +4356,12 @@ impl<'report, 'store, I: Copy + Eq> CandidateArtifactInvalidSchemaProofs<'report
             input_identity,
             current_membership,
             schema_identity,
-            entries,
             candidate_record_count,
             candidate_records_sha256: candidate_hasher.finalize(),
             target_diagnostic_count,
             target_diagnostics_sha256: diagnostic_hasher.finalize(),
             max_state_bytes,
+            page_budget,
             cost,
         })
     }
@@ -4862,7 +4858,14 @@ impl<I: Copy + Eq> CandidateInvalidArtifactSchemaProof<I>
         &self.input_identity == identity && self.current_membership == membership
     }
 
-    fn proves_invalid(&self, path: &str, member_sha256: Digest256, member_size_bytes: u64) -> bool {
+    fn proves_invalid(
+        &self,
+        path: &str,
+        member_sha256: Digest256,
+        member_size_bytes: u64,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<bool, ItemRefusal> {
         CandidateArtifactInvalidSchemaProofs::proves_invalid(
             self,
             path,
@@ -4870,6 +4873,8 @@ impl<I: Copy + Eq> CandidateInvalidArtifactSchemaProof<I>
             self.current_membership,
             member_sha256,
             member_size_bytes,
+            deadline,
+            cancelled,
         )
     }
 }
@@ -5395,33 +5400,45 @@ fn native_artifact_capture<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
         )?;
         return Ok(NativeArtifactCapture::Invalid);
     }
-    let exact_invalid_current_schema = if let Some(NativeArtifactBinding::Cut(binding)) = binding {
-        invalid_current_schema_proofs.is_some_and(|proofs| {
-            inspector
-                .cached_digest(artifact_path)
-                .is_some_and(|digest| {
+    let exact_invalid_current_schema = match binding {
+        Some(NativeArtifactBinding::Cut(binding)) => {
+            invalid_current_schema_proofs.is_some_and(|proofs| {
+                inspector
+                    .cached_digest(artifact_path)
+                    .is_some_and(|digest| {
+                        proofs.proves_invalid(
+                            artifact_path,
+                            binding.revision,
+                            binding.membership,
+                            digest,
+                            current_member_size_bytes,
+                        )
+                    })
+            })
+        }
+        Some(NativeArtifactBinding::Candidate {
+            identity,
+            membership,
+        }) => {
+            if let Some(proofs) = inspector.candidate_invalid_schema_proofs {
+                if !proofs.binding_matches(identity, membership) {
+                    false
+                } else if let Some(digest) = inspector.cached_digest(artifact_path) {
                     proofs.proves_invalid(
                         artifact_path,
-                        binding.revision,
-                        binding.membership,
                         digest,
                         current_member_size_bytes,
-                    )
-                })
-        })
-    } else if let (Some(identity), Some(membership), Some(proofs)) = (
-        inspector.candidate_identity,
-        inspector.candidate_membership,
-        inspector.candidate_invalid_schema_proofs,
-    ) {
-        proofs.binding_matches(identity, membership)
-            && inspector
-                .cached_digest(artifact_path)
-                .is_some_and(|digest| {
-                    proofs.proves_invalid(artifact_path, digest, current_member_size_bytes)
-                })
-    } else {
-        false
+                        inspector.limits.deadline,
+                        inspector.source.cancellation(),
+                    )?
+                } else {
+                    false
+                }
+            } else {
+                false
+            }
+        }
+        None => false,
     };
 
     let request_path = &companion_paths[0];

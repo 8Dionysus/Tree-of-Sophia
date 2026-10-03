@@ -24,26 +24,34 @@ use tos_validation::{
     record_biblio_cut::{BiblioCurrentRecord, SourceCutSchemaDiagnostic, SourceCutSchemaVerdict},
     record_rules::{PathReferenceCheck, RecordObservation},
     source_foundation_records::{
-        SourceFoundationCurrentRecordPathLookup, SourceFoundationCurrentRecordsPage,
-        SourceFoundationEventInsertion, SourceFoundationFileDescriptorLookup,
-        SourceFoundationGlobalIdFact, SourceFoundationItemEditionLookup,
-        SourceFoundationItemRecordSelection, SourceFoundationItemSelectionLookup,
-        SourceFoundationLinkUriFact, SourceFoundationRecordFact,
-        SourceFoundationRecordFactCollection, SourceFoundationRecordFactPage,
-        SourceFoundationRecordIdCarrier, SourceFoundationRecordObservation,
-        SourceFoundationRecordPathReference, SourceFoundationRecordSchemaDiagnostic,
-        SourceFoundationRecordsCollection, SourceFoundationRecordsCursor,
-        SourceFoundationRecordsCursorPage, SourceFoundationRecordsIssue,
-        SourceFoundationRecordsIssueFamily, SourceFoundationRecordsLookup,
-        SourceFoundationRecordsOwnerIssue, SourceFoundationRecordsPageBudget,
-        SourceFoundationRecordsSchemaCheck, SourceFoundationRecordsSchemaFamily,
-        SourceFoundationRecordsStore, SourceFoundationRecordsStoredFact,
-        SourceFoundationTypedIdRefFact, SourceFoundationUriOwnerLookup,
+        NATIVE_ARTIFACT_RECORD_SCHEMA_URI, SourceFoundationArtifactRecordPathSummary,
+        SourceFoundationCandidateArtifactProofPathPage, SourceFoundationCurrentRecordPathLookup,
+        SourceFoundationCurrentRecordsPage, SourceFoundationEventInsertion,
+        SourceFoundationFileDescriptorLookup, SourceFoundationGlobalIdFact,
+        SourceFoundationItemEditionLookup, SourceFoundationItemRecordSelection,
+        SourceFoundationItemSelectionLookup, SourceFoundationLinkUriFact,
+        SourceFoundationRecordFact, SourceFoundationRecordFactCollection,
+        SourceFoundationRecordFactPage, SourceFoundationRecordIdCarrier,
+        SourceFoundationRecordObservation, SourceFoundationRecordPathReference,
+        SourceFoundationRecordSchemaDiagnostic, SourceFoundationRecordsCollection,
+        SourceFoundationRecordsCursor, SourceFoundationRecordsCursorPage,
+        SourceFoundationRecordsIssue, SourceFoundationRecordsIssueFamily,
+        SourceFoundationRecordsLookup, SourceFoundationRecordsOwnerIssue,
+        SourceFoundationRecordsPageBudget, SourceFoundationRecordsSchemaCheck,
+        SourceFoundationRecordsSchemaFamily, SourceFoundationRecordsStore,
+        SourceFoundationRecordsStoredFact, SourceFoundationTypedIdRefFact,
+        SourceFoundationUriOwnerLookup,
     },
 };
 
 const STORE_CODEC_VERSION: u64 = 1;
 const FACT_CODEC_VERSION: u64 = 1;
+const NATIVE_ARTIFACT_RECORD_PREFIX: &str = "ToS/source-witnesses/artifacts/";
+const NATIVE_ARTIFACT_RECORD_SUFFIX: &str = "/artifact-witness.json";
+
+fn is_candidate_artifact_record_path(path: &str) -> bool {
+    path.starts_with(NATIVE_ARTIFACT_RECORD_PREFIX) && path.ends_with(NATIVE_ARTIFACT_RECORD_SUFFIX)
+}
 
 fn refusal(_: impl std::fmt::Display) -> ItemRefusal {
     ItemRefusal::Source("source-foundation bounded index operation refused".into())
@@ -2316,10 +2324,13 @@ impl SourceFoundationRecordsStore for IndexSink<'_> {
             preflight_row_clone(self, string_fields(&[id, &record.path]).map_err(refusal)?)
                 .map_err(refusal)?;
             self.candidate.tick().map_err(refusal)?;
+            let schema_matches = record.value.get("$schema").and_then(Value::as_str)
+                == Some(NATIVE_ARTIFACT_RECORD_SCHEMA_URI);
+            let artifact_scope = is_candidate_artifact_record_path(&record.path);
             self.db
                 .execute(
-                    "INSERT INTO sf_current_paths(path,record_id) VALUES(?1,?2) ON CONFLICT(path) DO UPDATE SET record_id=excluded.record_id WHERE excluded.record_id COLLATE BINARY < sf_current_paths.record_id COLLATE BINARY",
-                    params![record.path, id],
+                    "INSERT INTO sf_current_paths(path,record_id,record_count,schema_matches,artifact_scope,artifact_visited) VALUES(?1,?2,1,?3,?4,0) ON CONFLICT(path) DO UPDATE SET record_count=sf_current_paths.record_count+1,record_id=CASE WHEN excluded.record_id COLLATE BINARY < sf_current_paths.record_id COLLATE BINARY THEN excluded.record_id ELSE sf_current_paths.record_id END,schema_matches=CASE WHEN excluded.record_id COLLATE BINARY < sf_current_paths.record_id COLLATE BINARY THEN excluded.schema_matches ELSE sf_current_paths.schema_matches END",
+                    params![record.path, id, schema_matches, artifact_scope],
                 )
                 .map_err(refusal)?;
             self.candidate.tick().map_err(refusal)?;
@@ -2900,6 +2911,380 @@ impl SourceFoundationRecordsStore for IndexSink<'_> {
             record,
             charged_state_bytes,
         }))
+    }
+
+    fn visit_candidate_artifact_record_path(
+        &self,
+        path: &str,
+        max_state_bytes: NonZeroUsize,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<Option<SourceFoundationArtifactRecordPathSummary>, ItemRefusal> {
+        let output_state = std::mem::size_of::<SourceFoundationArtifactRecordPathSummary>()
+            .checked_add(64)
+            .ok_or(ItemRefusal::Budget)?;
+        let lookup_state = string_fields(&[path])
+            .map_err(refusal)?
+            .checked_add(output_state)
+            .ok_or(ItemRefusal::Budget)?;
+        if lookup_state > max_state_bytes.get() {
+            return Err(ItemRefusal::BudgetCheck {
+                check: "candidate Artifact path summary lookup state",
+                used: Some(lookup_state as u64),
+                limit: Some(max_state_bytes.get() as u64),
+            });
+        }
+        check_operation(self, deadline, cancelled)?;
+        self.candidate.check_state(lookup_state).map_err(refusal)?;
+        let found = self
+            .db
+            .query_row(
+                "SELECT record_count,schema_matches,artifact_visited FROM sf_current_paths WHERE path=?1 COLLATE BINARY AND artifact_scope=1",
+                [path],
+                |row| {
+                    Ok((
+                        row.get::<_, i64>(0)?,
+                        row.get::<_, i64>(1)?,
+                        row.get::<_, i64>(2)?,
+                    ))
+                },
+            )
+            .optional()
+            .map_err(refusal)?;
+        check_operation(self, deadline, cancelled)?;
+        let Some((record_count, schema_matches, artifact_visited)) = found else {
+            return Ok(None);
+        };
+        if artifact_visited != 0 {
+            return Err(ItemRefusal::Source(
+                "candidate Artifact current-record path was visited more than once".into(),
+            ));
+        }
+        let record_count = usize::try_from(record_count).map_err(|_| ItemRefusal::Budget)?;
+        if record_count == 0 || (schema_matches != 0 && schema_matches != 1) {
+            return Err(ItemRefusal::Source(
+                "candidate Artifact current-record path summary is invalid".into(),
+            ));
+        }
+        check_operation(self, deadline, cancelled)?;
+        let updated = self
+            .db
+            .execute(
+                "UPDATE sf_current_paths SET artifact_visited=1 WHERE path=?1 COLLATE BINARY AND artifact_scope=1 AND artifact_visited=0",
+                [path],
+            )
+            .map_err(refusal)?;
+        check_operation(self, deadline, cancelled)?;
+        if updated != 1 {
+            return Err(ItemRefusal::Source(
+                "candidate Artifact current-record path changed during visit".into(),
+            ));
+        }
+        Ok(Some(SourceFoundationArtifactRecordPathSummary {
+            record_count,
+            schema_matches: schema_matches == 1,
+            charged_state_bytes: output_state,
+        }))
+    }
+
+    fn has_unvisited_candidate_artifact_record_paths(
+        &self,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<bool, ItemRefusal> {
+        let state = std::mem::size_of::<bool>() + 128;
+        check_operation(self, deadline, cancelled)?;
+        self.candidate.check_state(state).map_err(refusal)?;
+        let unvisited = self
+            .db
+            .query_row(
+                "SELECT EXISTS(SELECT 1 FROM sf_current_paths WHERE artifact_scope=1 AND artifact_visited=0)",
+                [],
+                |row| row.get::<_, bool>(0),
+            )
+            .map_err(refusal)?;
+        check_operation(self, deadline, cancelled)?;
+        Ok(unvisited)
+    }
+
+    fn reset_candidate_artifact_schema_proofs(
+        &self,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<(), ItemRefusal> {
+        check_operation(self, deadline, cancelled)?;
+        self.candidate.check_state(256).map_err(refusal)?;
+        self.db
+            .execute("DELETE FROM sf_candidate_artifact_schema_proofs", [])
+            .map_err(refusal)?;
+        check_operation(self, deadline, cancelled)
+    }
+
+    fn retain_candidate_artifact_schema_record(
+        &self,
+        path: &str,
+        max_state_bytes: NonZeroUsize,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<(), ItemRefusal> {
+        if !is_candidate_artifact_record_path(path) {
+            return Err(ItemRefusal::Source(
+                "candidate Artifact proof record path is outside the Artifact route".into(),
+            ));
+        }
+        let state = string_fields(&[path])
+            .map_err(refusal)?
+            .checked_add(256)
+            .ok_or(ItemRefusal::Budget)?;
+        if state > max_state_bytes.get() {
+            return Err(ItemRefusal::BudgetCheck {
+                check: "candidate Artifact proof record write state",
+                used: Some(state as u64),
+                limit: Some(max_state_bytes.get() as u64),
+            });
+        }
+        check_operation(self, deadline, cancelled)?;
+        self.candidate.check_state(state).map_err(refusal)?;
+        self.db
+            .execute(
+                "INSERT INTO sf_candidate_artifact_schema_proofs(path,record_count,target_diagnostic_count,member_sha256_hex,member_size_bytes,diagnostic_unit_sha256_hex,diagnostic_report_sha256_hex,invalid) VALUES(?1,1,0,NULL,NULL,NULL,NULL,0) ON CONFLICT(path) DO UPDATE SET record_count=record_count+1,invalid=0",
+                [path],
+            )
+            .map_err(refusal)?;
+        check_operation(self, deadline, cancelled)
+    }
+
+    fn update_candidate_artifact_schema_diagnostic(
+        &self,
+        path: &str,
+        member_sha256_hex: &str,
+        member_size_bytes: u64,
+        diagnostic_unit_sha256_hex: &str,
+        diagnostic_report_sha256_hex: &str,
+        exact_schema_set: bool,
+        complete_invalid: bool,
+        max_state_bytes: NonZeroUsize,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<(), ItemRefusal> {
+        let is_sha256 = |value: &str| {
+            value.len() == 64
+                && value
+                    .bytes()
+                    .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+        };
+        if !is_candidate_artifact_record_path(path)
+            || !is_sha256(member_sha256_hex)
+            || !is_sha256(diagnostic_unit_sha256_hex)
+            || !is_sha256(diagnostic_report_sha256_hex)
+        {
+            return Err(ItemRefusal::Source(
+                "candidate Artifact proof diagnostic binding is malformed".into(),
+            ));
+        }
+        let size_bytes = member_size_bytes.to_be_bytes();
+        let state = string_fields(&[
+            path,
+            member_sha256_hex,
+            diagnostic_unit_sha256_hex,
+            diagnostic_report_sha256_hex,
+        ])
+        .map_err(refusal)?
+        .checked_add(size_bytes.len())
+        .and_then(|bytes| bytes.checked_add(256))
+        .ok_or(ItemRefusal::Budget)?;
+        if state > max_state_bytes.get() {
+            return Err(ItemRefusal::BudgetCheck {
+                check: "candidate Artifact proof diagnostic write state",
+                used: Some(state as u64),
+                limit: Some(max_state_bytes.get() as u64),
+            });
+        }
+        check_operation(self, deadline, cancelled)?;
+        self.candidate.check_state(state).map_err(refusal)?;
+        self.db
+            .execute(
+                "UPDATE sf_candidate_artifact_schema_proofs SET target_diagnostic_count=target_diagnostic_count+1,member_sha256_hex=CASE WHEN target_diagnostic_count=0 THEN ?2 ELSE member_sha256_hex END,member_size_bytes=CASE WHEN target_diagnostic_count=0 THEN ?3 ELSE member_size_bytes END,diagnostic_unit_sha256_hex=CASE WHEN target_diagnostic_count=0 THEN ?4 ELSE diagnostic_unit_sha256_hex END,diagnostic_report_sha256_hex=CASE WHEN target_diagnostic_count=0 THEN ?5 ELSE diagnostic_report_sha256_hex END,invalid=CASE WHEN target_diagnostic_count=0 AND record_count=1 AND ?6 AND ?7 THEN 1 ELSE 0 END WHERE path=?1 COLLATE BINARY",
+                params![
+                    path,
+                    member_sha256_hex,
+                    &size_bytes[..],
+                    diagnostic_unit_sha256_hex,
+                    diagnostic_report_sha256_hex,
+                    exact_schema_set,
+                    complete_invalid,
+                ],
+            )
+            .map_err(refusal)?;
+        check_operation(self, deadline, cancelled)
+    }
+
+    fn candidate_artifact_schema_proves_invalid(
+        &self,
+        path: &str,
+        member_sha256_hex: &str,
+        member_size_bytes: u64,
+        max_state_bytes: NonZeroUsize,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<bool, ItemRefusal> {
+        let state = string_fields(&[path, member_sha256_hex])
+            .map_err(refusal)?
+            .checked_add(std::mem::size_of::<bool>() + 256)
+            .ok_or(ItemRefusal::Budget)?;
+        if state > max_state_bytes.get() {
+            return Err(ItemRefusal::BudgetCheck {
+                check: "candidate Artifact proof point lookup state",
+                used: Some(state as u64),
+                limit: Some(max_state_bytes.get() as u64),
+            });
+        }
+        check_operation(self, deadline, cancelled)?;
+        self.candidate.check_state(state).map_err(refusal)?;
+        let size_bytes = member_size_bytes.to_be_bytes();
+        let proved = self
+            .db
+            .query_row(
+                "SELECT EXISTS(SELECT 1 FROM sf_candidate_artifact_schema_proofs WHERE path=?1 COLLATE BINARY AND record_count=1 AND target_diagnostic_count=1 AND member_sha256_hex=?2 AND member_size_bytes=?3 AND diagnostic_unit_sha256_hex IS NOT NULL AND diagnostic_report_sha256_hex IS NOT NULL AND invalid=1)",
+                params![path, member_sha256_hex, &size_bytes[..]],
+                |row| row.get::<_, bool>(0),
+            )
+            .map_err(refusal)?;
+        check_operation(self, deadline, cancelled)?;
+        Ok(proved)
+    }
+
+    fn candidate_artifact_schema_proof_paths_page(
+        &self,
+        after_path: Option<&str>,
+        budget: SourceFoundationRecordsPageBudget,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<SourceFoundationCandidateArtifactProofPathPage, ItemRefusal> {
+        if after_path.is_some_and(|path| path.len() > budget.max_cursor_bytes.get()) {
+            return Err(ItemRefusal::BudgetCheck {
+                check: "candidate Artifact proof path cursor bytes",
+                used: after_path.map(|path| path.len() as u64),
+                limit: Some(budget.max_cursor_bytes.get() as u64),
+            });
+        }
+        let cursor_state = after_path.map_or(Ok(0usize), |path| {
+            path.len()
+                .checked_mul(2)
+                .and_then(|bytes| bytes.checked_add(320))
+                .ok_or(ItemRefusal::Budget)
+        })?;
+        let base_state = std::mem::size_of::<SourceFoundationCandidateArtifactProofPathPage>()
+            .checked_add(cursor_state)
+            .and_then(|bytes| bytes.checked_add(256))
+            .ok_or(ItemRefusal::Budget)?;
+        if base_state > budget.max_state_bytes.get() {
+            return Err(ItemRefusal::BudgetCheck {
+                check: "candidate Artifact proof path page cursor state",
+                used: Some(base_state as u64),
+                limit: Some(budget.max_state_bytes.get() as u64),
+            });
+        }
+        let limit = i64::try_from(budget.max_rows.get()).map_err(|_| ItemRefusal::Budget)?;
+        check_operation(self, deadline, cancelled)?;
+        self.candidate.check_state(base_state).map_err(refusal)?;
+        // Use a direct range predicate for successor pages. An optional-cursor
+        // OR predicate prevents SQLite from seeking to the primary-key cursor
+        // and repeats the prefix scan as the candidate grows.
+        let page_sql = if after_path.is_some() {
+            "SELECT path FROM sf_candidate_artifact_schema_proofs WHERE path COLLATE BINARY>?1 COLLATE BINARY ORDER BY path COLLATE BINARY LIMIT ?2"
+        } else {
+            "SELECT path FROM sf_candidate_artifact_schema_proofs ORDER BY path COLLATE BINARY LIMIT ?2"
+        };
+        let mut statement = self.db.prepare(page_sql).map_err(refusal)?;
+        let mut rows = statement
+            .query(params![after_path, limit])
+            .map_err(refusal)?;
+        let mut paths = Vec::new();
+        let mut path_bytes = 0usize;
+        while let Some(row) = rows.next().map_err(refusal)? {
+            check_operation(self, deadline, cancelled)?;
+            if paths.len() >= budget.max_rows.get() {
+                return Err(ItemRefusal::Budget);
+            }
+            let path_len = match row.get_ref(0).map_err(refusal)? {
+                rusqlite::types::ValueRef::Text(raw) => raw.len(),
+                _ => {
+                    return Err(ItemRefusal::Source(
+                        "candidate Artifact proof path key is not text".into(),
+                    ));
+                }
+            };
+            if path_len > budget.max_cursor_bytes.get() {
+                return Err(ItemRefusal::BudgetCheck {
+                    check: "candidate Artifact proof path cursor bytes",
+                    used: Some(path_len as u64),
+                    limit: Some(budget.max_cursor_bytes.get() as u64),
+                });
+            }
+            let next_path_bytes = path_bytes
+                .checked_add(path_len)
+                .and_then(|bytes| bytes.checked_add(64))
+                .ok_or(ItemRefusal::Budget)?;
+            paths
+                .try_reserve_exact(1)
+                .map_err(|_| ItemRefusal::Budget)?;
+            let allocation_state = paths
+                .capacity()
+                .checked_mul(std::mem::size_of::<String>())
+                .ok_or(ItemRefusal::Budget)?;
+            let next_state = base_state
+                .checked_add(allocation_state)
+                .and_then(|bytes| bytes.checked_add(next_path_bytes))
+                .ok_or(ItemRefusal::Budget)?;
+            if next_state > budget.max_state_bytes.get() {
+                return Err(ItemRefusal::BudgetCheck {
+                    check: "candidate Artifact proof path page state",
+                    used: Some(next_state as u64),
+                    limit: Some(budget.max_state_bytes.get() as u64),
+                });
+            }
+            self.candidate.check_state(next_state).map_err(refusal)?;
+            paths.push(row.get::<_, String>(0).map_err(refusal)?);
+            path_bytes = next_path_bytes;
+        }
+        drop(rows);
+        drop(statement);
+        let last_path = paths.last().map(String::as_str).or(after_path);
+        let has_more = if let Some(last_path) = last_path {
+            check_operation(self, deadline, cancelled)?;
+            self.candidate.check_state(base_state).map_err(refusal)?;
+            self.db
+                .query_row(
+                    "SELECT EXISTS(SELECT 1 FROM sf_candidate_artifact_schema_proofs WHERE path COLLATE BINARY>?1 COLLATE BINARY)",
+                    [last_path],
+                    |row| row.get::<_, bool>(0),
+                )
+                .map_err(refusal)?
+        } else {
+            false
+        };
+        check_operation(self, deadline, cancelled)?;
+        let allocation_state = paths
+            .capacity()
+            .checked_mul(std::mem::size_of::<String>())
+            .ok_or(ItemRefusal::Budget)?;
+        let charged_state_bytes = base_state
+            .checked_add(allocation_state)
+            .and_then(|bytes| bytes.checked_add(path_bytes))
+            .ok_or(ItemRefusal::Budget)?;
+        if charged_state_bytes > budget.max_state_bytes.get() {
+            return Err(ItemRefusal::BudgetCheck {
+                check: "candidate Artifact proof path page state",
+                used: Some(charged_state_bytes as u64),
+                limit: Some(budget.max_state_bytes.get() as u64),
+            });
+        }
+        Ok(SourceFoundationCandidateArtifactProofPathPage {
+            paths,
+            has_more,
+            charged_state_bytes,
+        })
     }
 
     fn lookup_item_edition(

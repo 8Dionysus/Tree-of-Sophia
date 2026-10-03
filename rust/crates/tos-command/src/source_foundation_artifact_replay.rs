@@ -37,17 +37,15 @@ use tos_validation::source_foundation_discovery::{
     CandidateArtifactInvalidSchemaProofs, CurrentArtifactInvalidSchemaProofs, SourcePhysicalFacts,
 };
 use tos_validation::source_foundation_records::{
-    SourceFoundationRecordKernelOutcome, SourceFoundationRecordsCollection,
-    SourceFoundationRecordsCursor,
+    NATIVE_ARTIFACT_RECORD_SCHEMA_URI, SourceFoundationRecordKernelOutcome,
+    SourceFoundationRecordsCollection, SourceFoundationRecordsCursor,
     SourceFoundationRecordsPageBudget, SourceFoundationRecordsReport,
-    SourceFoundationRecordsStoredFact,
-    SourceFoundationRecordsStreamedReport,
+    SourceFoundationRecordsStoredFact, SourceFoundationRecordsStreamedReport,
 };
 
 const ARTIFACTS: &str = "ToS/source-witnesses/artifacts/";
 const ARTIFACT_LEAF: &str = "/artifact-witness.json";
-const NATIVE_ARTIFACT_SCHEMA: &str =
-    "https://tree-of-sophia.local/ToS/contracts/artifact-source-witness-v2.schema.json";
+const NATIVE_ARTIFACT_SCHEMA: &str = NATIVE_ARTIFACT_RECORD_SCHEMA_URI;
 const ARTIFACT_V2_RECORD: &str = "tos_artifact_source_witness_v2";
 const NATIVE_ARTIFACT_COMPANIONS: [&str; 4] = [
     "source-create-request.json",
@@ -235,9 +233,7 @@ impl<I: Copy + Eq> CandidateArtifactReplayEvidence<'_, '_, I> {
         &self.skips
     }
 
-    pub(crate) fn invalid_schema_proofs(
-        &self,
-    ) -> &CandidateArtifactInvalidSchemaProofs<'_, '_, I> {
+    pub(crate) fn invalid_schema_proofs(&self) -> &CandidateArtifactInvalidSchemaProofs<'_, '_, I> {
         &self.invalid_schema_proofs
     }
 
@@ -365,18 +361,6 @@ fn companion_state(physical: &SourcePhysicalFacts, artifact_path: &str) -> Optio
     Some(values)
 }
 
-#[derive(Clone, Copy)]
-struct CandidateArtifactRecordIndexValue {
-    count: usize,
-    schema_matches: bool,
-}
-
-fn candidate_record_index_entry_state(path: &str) -> Option<usize> {
-    size_of::<(String, CandidateArtifactRecordIndexValue)>()
-        .checked_add(RETAINED_MAP_NODE_UPPER)?
-        .checked_add(path.len())
-}
-
 fn candidate_companions_present<I: Eq>(
     input: &dyn SourceCutInputWithIdentity<I>,
     artifact_path: &str,
@@ -475,15 +459,8 @@ fn retain_candidate_skip(
     {
         return Err(ItemRefusal::Budget);
     }
-    retain_skip(
-        skips,
-        cost,
-        path,
-        kind,
-        retained_state,
-        max_state,
-    )
-    .map_err(|_| ItemRefusal::Budget)?;
+    retain_skip(skips, cost, path, kind, retained_state, max_state)
+        .map_err(|_| ItemRefusal::Budget)?;
     cost.peak_temporary_state_bytes = cost.peak_temporary_state_bytes.max(
         retained_state
             .checked_add(live_temporary_state)
@@ -492,9 +469,7 @@ fn retain_candidate_skip(
     Ok(())
 }
 
-fn candidate_artifact_member_temporary_state(
-    size_bytes: u64,
-) -> Result<usize, ItemRefusal> {
+fn candidate_artifact_member_temporary_state(size_bytes: u64) -> Result<usize, ItemRefusal> {
     let size = usize::try_from(size_bytes).map_err(|_| ItemRefusal::Budget)?;
     size.checked_add(TEMP_JSON_FIXED_STATE)
         .and_then(|state| {
@@ -514,7 +489,9 @@ fn process_candidate_artifact_path<I: Copy + Eq>(
     history_limits: ItemLimits,
     path: &str,
     expected_size_bytes: u64,
-    indexed_record: Option<CandidateArtifactRecordIndexValue>,
+    indexed_record: Option<
+        tos_validation::source_foundation_records::SourceFoundationArtifactRecordPathSummary,
+    >,
     live_temporary_state: usize,
     retained_state: &mut usize,
     source_bytes_used: &mut u64,
@@ -539,8 +516,8 @@ fn process_candidate_artifact_path<I: Copy + Eq>(
         )
     })?;
 
-    let companions = candidate_companions_present(input, path, deadline, cancelled).map_err(
-        |refusal| {
+    let companions =
+        candidate_companions_present(input, path, deadline, cancelled).map_err(|refusal| {
             refusal_failure(
                 &refusal,
                 ArtifactReplayFailureStage::CompanionFacts,
@@ -549,8 +526,7 @@ fn process_candidate_artifact_path<I: Copy + Eq>(
                 remaining_source,
                 remaining_state,
             )
-        },
-    )?;
+        })?;
     let present_count = companions.iter().filter(|present| **present).count();
     match present_count {
         0 => {
@@ -739,8 +715,7 @@ fn process_candidate_artifact_path<I: Copy + Eq>(
             })?;
             return Ok(());
         };
-        if parsed.get("$schema").and_then(serde_json::Value::as_str)
-            != Some(NATIVE_ARTIFACT_SCHEMA)
+        if parsed.get("$schema").and_then(serde_json::Value::as_str) != Some(NATIVE_ARTIFACT_SCHEMA)
         {
             retain_candidate_skip(
                 skips,
@@ -807,7 +782,7 @@ fn process_candidate_artifact_path<I: Copy + Eq>(
         );
     };
 
-    if indexed_record.is_some_and(|record| record.count != 1) {
+    if indexed_record.is_some_and(|record| record.record_count != 1) {
         return Err(failure(
             ArtifactReplayFailureClass::Source,
             ArtifactReplayFailureStage::CurrentRecord,
@@ -851,8 +826,8 @@ fn process_candidate_artifact_path<I: Copy + Eq>(
             remaining_state,
         ));
     }
-    let raw_temporary = candidate_artifact_member_temporary_state(expected_size_bytes)
-        .map_err(|refusal| {
+    let raw_temporary =
+        candidate_artifact_member_temporary_state(expected_size_bytes).map_err(|refusal| {
             refusal_failure(
                 &refusal,
                 ArtifactReplayFailureStage::CurrentRecord,
@@ -936,8 +911,7 @@ fn process_candidate_artifact_path<I: Copy + Eq>(
             )
         })?;
     if !parsed.as_ref().is_some_and(|value| {
-        value.get("$schema").and_then(serde_json::Value::as_str)
-            == Some(NATIVE_ARTIFACT_SCHEMA)
+        value.get("$schema").and_then(serde_json::Value::as_str) == Some(NATIVE_ARTIFACT_SCHEMA)
     }) {
         return Err(failure(
             ArtifactReplayFailureClass::Source,
@@ -1050,23 +1024,18 @@ fn read_candidate_artifact_history<I: Copy + Eq>(
         max_issues: history_limits.max_issues,
         deadline: history_limits.deadline,
     };
-    let observation = selected_record_history_from_input(
-        input,
-        membership,
-        path,
-        native_limits,
-        cancelled,
-    )
-    .map_err(|refusal| {
-        refusal_failure(
-            &refusal,
-            ArtifactReplayFailureStage::NativeHistory,
-            Some(path),
-            *cost,
-            remaining_source,
-            max_state_bytes.saturating_sub(*retained_state),
-        )
-    })?;
+    let observation =
+        selected_record_history_from_input(input, membership, path, native_limits, cancelled)
+            .map_err(|refusal| {
+                refusal_failure(
+                    &refusal,
+                    ArtifactReplayFailureStage::NativeHistory,
+                    Some(path),
+                    *cost,
+                    remaining_source,
+                    max_state_bytes.saturating_sub(*retained_state),
+                )
+            })?;
     if observation.input_identity() != &input_identity
         || observation.current_membership() != membership
         || observation.record_path() != path
@@ -1094,30 +1063,26 @@ fn read_candidate_artifact_history<I: Copy + Eq>(
             )
         })?;
     let returned_state = observation.returned_state_bytes();
-    let added_state = returned_state
-        .checked_add(map_entry_state)
-        .ok_or_else(|| {
-            failure(
-                ArtifactReplayFailureClass::Budget,
-                ArtifactReplayFailureStage::NativeHistory,
-                Some(path),
-                *cost,
-                remaining_source.saturating_sub(observation.bytes_read()),
-                max_state_bytes.saturating_sub(*retained_state),
-            )
-        })?;
-    let next_retained = retained_state
-        .checked_add(added_state)
-        .ok_or_else(|| {
-            failure(
-                ArtifactReplayFailureClass::Budget,
-                ArtifactReplayFailureStage::NativeHistory,
-                Some(path),
-                *cost,
-                remaining_source.saturating_sub(observation.bytes_read()),
-                max_state_bytes.saturating_sub(*retained_state),
-            )
-        })?;
+    let added_state = returned_state.checked_add(map_entry_state).ok_or_else(|| {
+        failure(
+            ArtifactReplayFailureClass::Budget,
+            ArtifactReplayFailureStage::NativeHistory,
+            Some(path),
+            *cost,
+            remaining_source.saturating_sub(observation.bytes_read()),
+            max_state_bytes.saturating_sub(*retained_state),
+        )
+    })?;
+    let next_retained = retained_state.checked_add(added_state).ok_or_else(|| {
+        failure(
+            ArtifactReplayFailureClass::Budget,
+            ArtifactReplayFailureStage::NativeHistory,
+            Some(path),
+            *cost,
+            remaining_source.saturating_sub(observation.bytes_read()),
+            max_state_bytes.saturating_sub(*retained_state),
+        )
+    })?;
     if next_retained
         .checked_add(live_temporary_state)
         .is_none_or(|state| state > max_state_bytes)
@@ -1334,30 +1299,6 @@ pub(crate) fn prepare_candidate_artifact_replay<'report, 'store, I: Copy + Eq>(
         })?;
 
     let mut retained_state = proof_cost.retained_state_bytes;
-    let index_base_state = size_of::<BTreeMap<String, CandidateArtifactRecordIndexValue>>();
-    retained_state = retained_state.checked_add(index_base_state).ok_or_else(|| {
-        failure(
-            ArtifactReplayFailureClass::Budget,
-            ArtifactReplayFailureStage::CurrentRecord,
-            None,
-            cost,
-            max_source_bytes,
-            max_state_bytes.saturating_sub(proof_cost.retained_state_bytes),
-        )
-    })?;
-    if retained_state > max_state_bytes {
-        return Err(failure(
-            ArtifactReplayFailureClass::Budget,
-            ArtifactReplayFailureStage::CurrentRecord,
-            None,
-            cost,
-            max_source_bytes,
-            max_state_bytes.saturating_sub(proof_cost.retained_state_bytes),
-        ));
-    }
-    let mut record_index = BTreeMap::<String, CandidateArtifactRecordIndexValue>::new();
-    let mut record_index_state = index_base_state;
-    cost.candidate_record_index_state_bytes = record_index_state;
     let proof_page_peak = proof_cost
         .retained_state_bytes
         .checked_add(proof_cost.index_page_peak_state_bytes)
@@ -1371,256 +1312,7 @@ pub(crate) fn prepare_candidate_artifact_replay<'report, 'store, I: Copy + Eq>(
                 max_state_bytes.saturating_sub(proof_cost.retained_state_bytes),
             )
         })?;
-    cost.peak_temporary_state_bytes = proof_page_peak.max(retained_state);
-    let mut scan_rows_used = proof_scan_rows;
-    let mut after: Option<SourceFoundationRecordsCursor> = None;
-    loop {
-        let remaining_scan_rows = max_scan_rows
-            .checked_sub(scan_rows_used)
-            .ok_or_else(|| {
-                failure(
-                    ArtifactReplayFailureClass::Budget,
-                    ArtifactReplayFailureStage::CurrentRecord,
-                    None,
-                    cost,
-                    max_source_bytes,
-                    max_state_bytes.saturating_sub(retained_state),
-                )
-            })?;
-        if remaining_scan_rows == 0 {
-            return Err(failure(
-                ArtifactReplayFailureClass::Budget,
-                ArtifactReplayFailureStage::CurrentRecord,
-                None,
-                cost,
-                max_source_bytes,
-                max_state_bytes.saturating_sub(retained_state),
-            ));
-        }
-        let selected_rows = page_budget.max_rows.get().min(remaining_scan_rows);
-        let selected_state = page_budget
-            .max_state_bytes
-            .get()
-            .min(max_state_bytes.saturating_sub(retained_state));
-        let page_budget_now = SourceFoundationRecordsPageBudget {
-            max_rows: std::num::NonZeroUsize::new(selected_rows).ok_or_else(|| {
-                failure(
-                    ArtifactReplayFailureClass::Budget,
-                    ArtifactReplayFailureStage::CurrentRecord,
-                    None,
-                    cost,
-                    max_source_bytes,
-                    max_state_bytes.saturating_sub(retained_state),
-                )
-            })?,
-            max_state_bytes: std::num::NonZeroUsize::new(selected_state).ok_or_else(|| {
-                failure(
-                    ArtifactReplayFailureClass::Budget,
-                    ArtifactReplayFailureStage::CurrentRecord,
-                    None,
-                    cost,
-                    max_source_bytes,
-                    max_state_bytes.saturating_sub(retained_state),
-                )
-            })?,
-            max_cursor_bytes: page_budget.max_cursor_bytes,
-        };
-        let page = records
-            .index()
-            .page(
-                SourceFoundationRecordsCollection::CurrentRecords,
-                after.as_ref(),
-                page_budget_now,
-                deadline,
-                cancelled,
-            )
-            .map_err(|refusal| {
-                refusal_failure(
-                    &refusal,
-                    ArtifactReplayFailureStage::CurrentRecord,
-                    None,
-                    cost,
-                    max_source_bytes,
-                    max_state_bytes.saturating_sub(retained_state),
-                )
-            })?;
-        scan_rows_used = scan_rows_used
-            .checked_add(page.rows.len())
-            .filter(|rows| *rows <= max_scan_rows)
-            .ok_or_else(|| {
-                failure(
-                    ArtifactReplayFailureClass::Budget,
-                    ArtifactReplayFailureStage::CurrentRecord,
-                    None,
-                    cost,
-                    max_source_bytes,
-                    max_state_bytes.saturating_sub(retained_state),
-                )
-            })?;
-        cost.candidate_record_index_work_upper_bound = cost
-            .candidate_record_index_work_upper_bound
-            .checked_add(page.rows.len())
-            .ok_or_else(|| {
-                failure(
-                    ArtifactReplayFailureClass::Budget,
-                    ArtifactReplayFailureStage::CurrentRecord,
-                    None,
-                    cost,
-                    max_source_bytes,
-                    max_state_bytes.saturating_sub(retained_state),
-                )
-            })?;
-        cost.peak_temporary_state_bytes = cost.peak_temporary_state_bytes.max(
-            retained_state
-                .checked_add(page.charged_state_bytes)
-                .ok_or_else(|| {
-                    failure(
-                        ArtifactReplayFailureClass::Budget,
-                        ArtifactReplayFailureStage::CurrentRecord,
-                        None,
-                        cost,
-                        max_source_bytes,
-                        max_state_bytes.saturating_sub(retained_state),
-                    )
-                })?,
-        );
-        for (row_index, row) in page.rows.iter().enumerate() {
-            if row_index % 128 == 0 {
-                active(deadline, cancelled).map_err(|class| {
-                    failure(
-                        class,
-                        ArtifactReplayFailureStage::CurrentRecord,
-                        None,
-                        cost,
-                        max_source_bytes,
-                        max_state_bytes.saturating_sub(retained_state),
-                    )
-                })?;
-            }
-            let SourceFoundationRecordsStoredFact::CurrentRecord { record, .. } = row else {
-                return Err(failure(
-                    ArtifactReplayFailureClass::Source,
-                    ArtifactReplayFailureStage::CurrentRecord,
-                    None,
-                    cost,
-                    max_source_bytes,
-                    max_state_bytes.saturating_sub(retained_state),
-                ));
-            };
-            if !is_artifact_record_path(&record.path) {
-                continue;
-            }
-            let canonical = RelativePath::parse(&record.path).map_err(|_| {
-                failure(
-                    ArtifactReplayFailureClass::Source,
-                    ArtifactReplayFailureStage::CurrentRecord,
-                    Some(&record.path),
-                    cost,
-                    max_source_bytes,
-                    max_state_bytes.saturating_sub(retained_state),
-                )
-            })?;
-            if canonical.as_str() != record.path {
-                return Err(failure(
-                    ArtifactReplayFailureClass::Source,
-                    ArtifactReplayFailureStage::CurrentRecord,
-                    Some(&record.path),
-                    cost,
-                    max_source_bytes,
-                    max_state_bytes.saturating_sub(retained_state),
-                ));
-            }
-            if let Some(indexed) = record_index.get_mut(&record.path) {
-                indexed.count = indexed.count.checked_add(1).ok_or_else(|| {
-                    failure(
-                        ArtifactReplayFailureClass::Budget,
-                        ArtifactReplayFailureStage::CurrentRecord,
-                        Some(&record.path),
-                        cost,
-                        max_source_bytes,
-                        max_state_bytes.saturating_sub(retained_state),
-                    )
-                })?;
-                continue;
-            }
-            let entry_state = candidate_record_index_entry_state(&record.path).ok_or_else(|| {
-                failure(
-                    ArtifactReplayFailureClass::Budget,
-                    ArtifactReplayFailureStage::CurrentRecord,
-                    Some(&record.path),
-                    cost,
-                    max_source_bytes,
-                    max_state_bytes.saturating_sub(retained_state),
-                )
-            })?;
-            let next_retained = retained_state.checked_add(entry_state).ok_or_else(|| {
-                failure(
-                    ArtifactReplayFailureClass::Budget,
-                    ArtifactReplayFailureStage::CurrentRecord,
-                    Some(&record.path),
-                    cost,
-                    max_source_bytes,
-                    max_state_bytes.saturating_sub(retained_state),
-                )
-            })?;
-            if next_retained
-                .checked_add(page.charged_state_bytes)
-                .is_none_or(|state| state > max_state_bytes)
-            {
-                return Err(failure(
-                    ArtifactReplayFailureClass::Budget,
-                    ArtifactReplayFailureStage::CurrentRecord,
-                    Some(&record.path),
-                    cost,
-                    max_source_bytes,
-                    max_state_bytes.saturating_sub(retained_state),
-                ));
-            }
-            record_index.insert(
-                record.path.clone(),
-                CandidateArtifactRecordIndexValue {
-                    count: 1,
-                    schema_matches: record
-                        .value
-                        .get("$schema")
-                        .and_then(serde_json::Value::as_str)
-                        == Some(NATIVE_ARTIFACT_SCHEMA),
-                },
-            );
-            retained_state = next_retained;
-            record_index_state = record_index_state
-                .checked_add(entry_state)
-                .ok_or_else(|| {
-                    failure(
-                        ArtifactReplayFailureClass::Budget,
-                        ArtifactReplayFailureStage::CurrentRecord,
-                        Some(&record.path),
-                        cost,
-                        max_source_bytes,
-                        max_state_bytes.saturating_sub(retained_state),
-                    )
-                })?;
-            cost.candidate_record_index_state_bytes = cost
-                .candidate_record_index_state_bytes
-                .max(record_index_state);
-        }
-        let next = page.next_cursor;
-        let Some(next) = next else {
-            break;
-        };
-        if scan_rows_used >= max_scan_rows {
-            return Err(failure(
-                ArtifactReplayFailureClass::Budget,
-                ArtifactReplayFailureStage::CurrentRecord,
-                None,
-                cost,
-                max_source_bytes,
-                max_state_bytes.saturating_sub(retained_state),
-            ));
-        }
-        after = Some(next);
-    }
-
+    cost.peak_temporary_state_bytes = cost.peak_temporary_state_bytes.max(proof_page_peak);
     let source_root = source_root.to_str().ok_or_else(|| {
         failure(
             ArtifactReplayFailureClass::Source,
@@ -1674,17 +1366,6 @@ pub(crate) fn prepare_candidate_artifact_replay<'report, 'store, I: Copy + Eq>(
                     "candidate Artifact path is not canonical".into(),
                 ));
             }
-            let indexed_record = record_index.remove(meta.path);
-            if let Some(indexed_record) = indexed_record {
-                let entry_state = candidate_record_index_entry_state(meta.path)
-                    .ok_or(ItemRefusal::Budget)?;
-                record_index_state = record_index_state
-                    .checked_sub(entry_state)
-                    .ok_or(ItemRefusal::Budget)?;
-                retained_state = retained_state
-                    .checked_sub(entry_state)
-                    .ok_or(ItemRefusal::Budget)?;
-            }
             let path_temporary = meta
                 .path
                 .len()
@@ -1707,9 +1388,21 @@ pub(crate) fn prepare_candidate_artifact_replay<'report, 'store, I: Copy + Eq>(
                 .checked_add(companion_name_bytes)
                 .and_then(|state| state.checked_add(1 + size_of::<String>() + 1_024))
                 .ok_or(ItemRefusal::Budget)?;
-            let live_temporary = path_temporary
-                .max(companion_temporary)
-                .checked_add(size_of::<Option<CandidateArtifactRecordIndexValue>>())
+            let path_live_temporary = path_temporary.max(companion_temporary);
+            let lookup_allowance = max_state_bytes
+                .checked_sub(retained_state)
+                .and_then(|state| state.checked_sub(path_live_temporary))
+                .and_then(std::num::NonZeroUsize::new)
+                .ok_or(ItemRefusal::Budget)?;
+            let indexed_record = records.index().visit_candidate_artifact_record_path(
+                meta.path,
+                lookup_allowance,
+                deadline,
+                cancelled,
+            )?;
+            let lookup_state = indexed_record.map_or(0, |summary| summary.charged_state_bytes);
+            let live_temporary = path_live_temporary
+                .checked_add(lookup_state)
                 .ok_or(ItemRefusal::Budget)?;
             if retained_state
                 .checked_add(live_temporary)
@@ -1717,6 +1410,12 @@ pub(crate) fn prepare_candidate_artifact_replay<'report, 'store, I: Copy + Eq>(
             {
                 return Err(ItemRefusal::Budget);
             }
+            cost.candidate_record_index_state_bytes =
+                cost.candidate_record_index_state_bytes.max(lookup_state);
+            cost.candidate_record_index_work_upper_bound = cost
+                .candidate_record_index_work_upper_bound
+                .checked_add(1)
+                .ok_or(ItemRefusal::Budget)?;
             cost.peak_temporary_state_bytes = cost
                 .peak_temporary_state_bytes
                 .max(retained_state.saturating_add(live_temporary));
@@ -1768,9 +1467,22 @@ pub(crate) fn prepare_candidate_artifact_replay<'report, 'store, I: Copy + Eq>(
             max_state_bytes.saturating_sub(retained_state),
         )
     })?;
+    let unvisited_artifact_records = records
+        .index()
+        .has_unvisited_candidate_artifact_record_paths(deadline, cancelled)
+        .map_err(|refusal| {
+            refusal_failure(
+                &refusal,
+                ArtifactReplayFailureStage::CurrentRecord,
+                None,
+                cost,
+                max_source_bytes.saturating_sub(source_bytes_used),
+                max_state_bytes.saturating_sub(retained_state),
+            )
+        })?;
     if prefix_coverage.directory() != ARTIFACTS.trim_end_matches('/')
         || prefix_coverage.member_count() != prefix_member_count
-        || !record_index.is_empty()
+        || unvisited_artifact_records
     {
         return Err(failure(
             ArtifactReplayFailureClass::Source,
@@ -1781,17 +1493,6 @@ pub(crate) fn prepare_candidate_artifact_replay<'report, 'store, I: Copy + Eq>(
             max_state_bytes.saturating_sub(retained_state),
         ));
     }
-    drop(record_index);
-    retained_state = retained_state.checked_sub(index_base_state).ok_or_else(|| {
-        failure(
-            ArtifactReplayFailureClass::Budget,
-            ArtifactReplayFailureStage::CurrentRecord,
-            None,
-            cost,
-            max_source_bytes.saturating_sub(source_bytes_used),
-            max_state_bytes.saturating_sub(retained_state),
-        )
-    })?;
 
     for (path, history) in &histories {
         if history.history_receipt_count() == 0 {
@@ -1807,18 +1508,19 @@ pub(crate) fn prepare_candidate_artifact_replay<'report, 'store, I: Copy + Eq>(
                 max_state_bytes.saturating_sub(retained_state),
             )
         })?;
-        let remaining_source = max_source_bytes
-            .checked_sub(source_bytes_used)
-            .ok_or_else(|| {
-                failure(
-                    ArtifactReplayFailureClass::Budget,
-                    ArtifactReplayFailureStage::CorrectionReplay,
-                    Some(path),
-                    cost,
-                    0,
-                    max_state_bytes.saturating_sub(retained_state),
-                )
-            })?;
+        let remaining_source =
+            max_source_bytes
+                .checked_sub(source_bytes_used)
+                .ok_or_else(|| {
+                    failure(
+                        ArtifactReplayFailureClass::Budget,
+                        ArtifactReplayFailureStage::CorrectionReplay,
+                        Some(path),
+                        cost,
+                        0,
+                        max_state_bytes.saturating_sub(retained_state),
+                    )
+                })?;
         let map_entry_state = map_state(path).ok_or_else(|| {
             failure(
                 ArtifactReplayFailureClass::Budget,
@@ -2005,9 +1707,7 @@ pub(crate) fn prepare_candidate_artifact_replay<'report, 'store, I: Copy + Eq>(
                     max_state_bytes.saturating_sub(retained_state),
                 )
             })?;
-        cost.peak_temporary_state_bytes = cost
-            .peak_temporary_state_bytes
-            .max(next_retained);
+        cost.peak_temporary_state_bytes = cost.peak_temporary_state_bytes.max(next_retained);
         retained_state = next_retained;
         replays.insert(path.clone(), observation);
     }
