@@ -28,6 +28,7 @@ use std::{
     fs::File,
     io::{self, Write},
     mem::size_of,
+    os::unix::{ffi::OsStrExt, fs::MetadataExt},
     path::{Path, PathBuf},
     sync::{
         Arc,
@@ -189,8 +190,15 @@ pub(crate) struct PreparedSpooledExecution {
     pub(crate) max_index_allocated_bytes: u64,
     pub(crate) max_manifest_allocated_bytes: u64,
     pub(crate) v2_case: Option<foundation_entry::FoundationV2CaseSelection>,
+    pub(crate) v2_target_root: Option<PreparedV2ArtifactRoot>,
     pub(crate) v2_allocation_accountant:
         Option<Arc<super::source_admission_segment_v2::NativeV2TreeIo>>,
+}
+
+pub(crate) struct PreparedV2ArtifactRoot {
+    pub(crate) path: PathBuf,
+    pub(crate) held: File,
+    pub(crate) identity: (u64, u64),
 }
 
 pub(crate) struct NativeSourceValidator<'c> {
@@ -754,8 +762,21 @@ impl<'c> NativeSourceValidator<'c> {
             .transpose()
             .map_err(invalid)?
             .unwrap_or(0);
+        let v2_target_root_state_bytes = if v2_case_state_bytes != 0 {
+            let root_path = self
+                .prepared
+                .as_ref()
+                .and_then(|prepared| prepared.invocation.artifact_root.as_ref())
+                .ok_or_else(|| invalid("V2 case artifact root absent"))?;
+            size_of::<PreparedV2ArtifactRoot>()
+                .checked_add(root_path.as_os_str().as_bytes().len())
+                .ok_or_else(|| invalid("V2 target root retained-state overflow"))?
+        } else {
+            0
+        };
         let case_clone_preflight = size_of::<PreparedSpooledExecution>()
             .checked_add(v2_case_state_bytes)
+            .and_then(|n| n.checked_add(v2_target_root_state_bytes))
             .and_then(|n| n.checked_add(4096))
             .ok_or_else(|| invalid("V2 case clone state overflow"))?;
         if case_clone_preflight > remaining.state_bytes {
@@ -1026,6 +1047,7 @@ impl<'c> NativeSourceValidator<'c> {
             .and_then(|n| n.checked_add(size_of::<PinnedSqliteSpaceBudget>()))
             .and_then(|n| n.checked_add(size_of::<Option<NativeSegmentV2Budget>>()))
             .and_then(|n| n.checked_add(v2_case_state_bytes))
+            .and_then(|n| n.checked_add(v2_target_root_state_bytes))
             .and_then(|n| n.checked_add(root_len.checked_mul(2)?))
             .and_then(|n| n.checked_add(4096))
             .ok_or_else(|| invalid("spooled profile retained state overflow"))?;
@@ -1289,6 +1311,51 @@ impl<'c> NativeSourceValidator<'c> {
             .segment_v2_profile
             .as_ref()
             .map(|profile| Arc::clone(&profile.allocation_accountant));
+        let v2_target_root = if v2_case.is_some() {
+            let path = self
+                .prepared
+                .as_ref()
+                .and_then(|prepared| prepared.invocation.artifact_root.as_ref())
+                .ok_or_else(|| invalid("V2 case artifact root absent"))?
+                .clone();
+            // Charge the complete bounded root-open guard before touching the
+            // selected namespace. The path is already normalized by the
+            // protected invocation; account its bytes plus the same 4 KiB
+            // metadata envelope reserved for the private root checks. These
+            // are attempted-IO units only: fstat/openat2 do not create file
+            // bytes, so do not synthesize a returned-read observation.
+            const V2_TARGET_ROOT_METADATA_BOUND: u64 = 4096;
+            let root_open_upper = u64::try_from(path.as_os_str().as_bytes().len())
+                .ok()
+                .and_then(|bytes| bytes.checked_add(V2_TARGET_ROOT_METADATA_BOUND))
+                .ok_or_else(|| invalid("V2 target root guard bound overflow"))?;
+            self.segment_v2_profile
+                .as_ref()
+                .ok_or_else(|| invalid("V2 target root lacks selected IO profile"))?
+                .io
+                .charge_read(root_open_upper)
+                .map_err(invalid)?;
+            active(self.deadline, self.cancel)?;
+            let held = tos_fd_open::open_absolute_directory(&path).map_err(invalid)?;
+            let metadata = held.metadata()?;
+            let expected_uid = self
+                .prepared
+                .as_ref()
+                .ok_or_else(|| invalid("foundation invocation disappeared"))?
+                .invocation
+                .uid();
+            if !metadata.is_dir() || metadata.uid() != expected_uid || metadata.mode() & 0o022 != 0
+            {
+                return Err(invalid("V2 selected artifact root custody differs"));
+            }
+            Some(PreparedV2ArtifactRoot {
+                path,
+                identity: (metadata.dev(), metadata.ino()),
+                held,
+            })
+        } else {
+            None
+        };
 
         Ok(PreparedAdmissionExecution::Spooled(
             PreparedSpooledExecution {
@@ -1303,6 +1370,7 @@ impl<'c> NativeSourceValidator<'c> {
                 max_index_allocated_bytes: reader_partition,
                 max_manifest_allocated_bytes,
                 v2_case,
+                v2_target_root,
                 v2_allocation_accountant,
             },
         ))

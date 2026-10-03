@@ -344,6 +344,34 @@ impl AdmissionStore {
             return Err(invalid("corpus store must be absolute"));
         }
         let root = owned_directory(tos_fd_open::open_absolute_directory(path).map_err(invalid)?)?;
+        Self::open_existing_at_named(path, &root, deadline, cancel)
+    }
+
+    /// Open all namespaces from the caller's exact held root descriptor after
+    /// verifying that its normalized name still resolves to that same object.
+    /// Reads remain descriptor-rooted; name checks only fence substitution.
+    pub(crate) fn open_existing_at_named(
+        path: &Path,
+        held_root: &File,
+        deadline: Instant,
+        cancel: &AtomicBool,
+    ) -> io::Result<Self> {
+        active(deadline, cancel)?;
+        if !path.is_absolute()
+            || path.components().any(|component| {
+                matches!(
+                    component,
+                    std::path::Component::CurDir | std::path::Component::ParentDir
+                )
+            })
+        {
+            return Err(invalid("corpus store path must be absolute and normalized"));
+        }
+        let root = owned_directory(held_root.try_clone()?)?;
+        let named = owned_directory(tos_fd_open::open_absolute_directory(path).map_err(invalid)?)?;
+        if identity(&named)? != identity(&root)? {
+            return Err(invalid("named corpus root differs from held root"));
+        }
         let objects = owned_directory(
             tos_fd_open::open_directory_at(&root, Path::new("objects")).map_err(invalid)?,
         )?;

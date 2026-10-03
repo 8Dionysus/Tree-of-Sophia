@@ -122,9 +122,34 @@ impl V2ReadSession {
         deadline: Instant,
         cancel: Arc<AtomicBool>,
     ) -> io::Result<Self> {
+        let store = AdmissionStore::open_existing(path, deadline, &cancel)?;
+        Self::open_store(store, limits, original_io, deadline, cancel)
+    }
+
+    /// Open from an exact held root while checking its normalized name before
+    /// and after the reader is constructed. Physical reads stay rooted at the
+    /// supplied descriptor even if an unrelated path is later replaced.
+    pub fn open_at_named(
+        path: &Path,
+        held_root: &File,
+        limits: V2PointReadLimits,
+        original_io: PinnedSqliteIoBudget,
+        deadline: Instant,
+        cancel: Arc<AtomicBool>,
+    ) -> io::Result<Self> {
+        let store = AdmissionStore::open_existing_at_named(path, held_root, deadline, &cancel)?;
+        Self::open_store(store, limits, original_io, deadline, cancel)
+    }
+
+    fn open_store(
+        store: AdmissionStore,
+        limits: V2PointReadLimits,
+        original_io: PinnedSqliteIoBudget,
+        deadline: Instant,
+        cancel: Arc<AtomicBool>,
+    ) -> io::Result<Self> {
         let limits = limits.validate()?;
         active(deadline, &cancel)?;
-        let store = AdmissionStore::open_existing(path, deadline, &cancel)?;
         let selection = store
             .current_selection(limits.pointer, deadline, &cancel, Some(&original_io))?
             .ok_or_else(|| invalid("V2 point selected revision absent"))?;
