@@ -94,12 +94,12 @@ fn original_payloads<'hold, A: InspectCurrentAuthority<'hold> + ?Sized>(
             after = Some((graph, position));
             let carriers = read.items(kind, "id", &id, 1, false)?;
             let carrier = carriers
-                .first()
+                .into_iter().next()
                 .ok_or_else(|| corrupt("selected dossier carrier absent"))?;
-            if s(get(carrier, "source_graph")) != source {
+            if s(get(&carrier, "source_graph")) != source {
                 return Err(corrupt("selected dossier source differs"));
             }
-            let record = get(carrier, "source_record");
+            let record = get(&carrier, "source_record");
             let payload = get(record, "payload");
             let native = s(get(
                 payload,
@@ -133,9 +133,11 @@ fn original_payloads<'hold, A: InspectCurrentAuthority<'hold> + ?Sized>(
             {
                 return Err(corrupt("selected dossier original digest differs"));
             }
-            originals
-                .entry(native.to_owned())
-                .or_insert_with(|| payload.clone());
+            let native = native.to_owned();
+            if let std::collections::btree_map::Entry::Vacant(slot) = originals.entry(native) {
+                let record = take_field(carrier, "source_record")?;
+                slot.insert(take_field(record, "payload")?);
+            }
         }
     }
     if scanned != expected || originals.len() != members.len() {
@@ -181,6 +183,145 @@ pub fn execute_selected_dossier<'hold, A: InspectCurrentAuthority<'hold> + ?Size
         DOSSIER_INTENDED_USE,
         budget.inspect,
         |read| {
+            let (header, nodes, edges, rights) = load_original_navigation(read, bound, budget, None)?;
+            compute_dossier(
+                &header,
+                &nodes,
+                &edges.into_values().collect::<Vec<_>>(),
+                &rights,
+                object_id,
+                limit,
+                budget.max_work_steps,
+                &mut || read.check_interrupt(),
+            )
+        },
+    )
+}
+/// Availability reflects the real selected original component, never the
+/// normalized graph alone or a borrowed dossier result.
+pub fn selected_source_navigation_descend_available(
+    model: &VerifiedKnowledgeModel<'_>,
+    bound: &BoundCmpKnowledge<'_>,
+) -> bool {
+    if !model.navigation_original_available() || bound.check_model(model).is_err() {
+        return false;
+    }
+    let Ok(receipt) = model.navigation_original_receipt() else { return false; };
+    receipt.profile == tos_compiler::NAVIGATION_ORIGINAL_PROFILE
+        && Some(receipt.source_graph.as_str()) == bound.source_for_adapter("source-navigation-node-edge-v1")
+        && receipt.descriptor_sha256 == bound.selection().vocabulary.descriptor_sha256.to_hex()
+        && receipt.source_cut == bound.selection().source_cut
+        && receipt.membership_root == bound.selection().source_membership_root.to_hex()
+}
+
+/// Native selected-original descent, with the same bibliographic visibility,
+/// BFS ordering and terminal owner disclosure lease as the maintained route.
+pub fn execute_selected_source_navigation_descend<'hold, A: InspectCurrentAuthority<'hold> + ?Sized>(
+    model: &mut VerifiedKnowledgeModel<'_>,
+    bound: &BoundCmpKnowledge<'_>,
+    authority: &mut A,
+    request: &crate::SourceDescendRequest,
+    budget: DossierBudget,
+    max_retained_bytes: usize,
+) -> Result<DisclosableInspect<'hold>, SearchV2Error> {
+    if request.node_id.is_empty() || request.node_id.len() > budget.inspect.max_field_bytes
+        || !(1..=8).contains(&request.max_depth) || !(1..=300).contains(&request.limit)
+        || request.at_least_commit_seq.is_some() {
+        // This immutable selected-original receipt has no publication sequence.
+        return Err(err(SearchV2ErrorCode::InvalidRequest, "invalid selected original descent request"));
+    }
+    if budget.max_candidates == 0 || budget.max_work_steps == 0 || budget.block_size == 0
+        || budget.block_size > budget.inspect.max_rows as usize {
+        return Err(err(SearchV2ErrorCode::BudgetExceeded, "invalid selected original descent budget"));
+    }
+    execute_selected_carrier_packet(model, bound, authority,
+        "tos.source.descend", "read_only_public_metadata_navigation_v1", budget.inspect, |read| {
+            let (header, mut nodes, mut edges, _rights) =
+                load_original_navigation(read, bound, budget, Some(max_retained_bytes))?;
+            nodes.retain(|_, node| !crate::knowledge_lens_spec::truthy(get(get(node, "properties"), "packet_id")));
+            if !nodes.contains_key(&request.node_id) {
+                return Err(err(SearchV2ErrorCode::UnknownExactId, "unknown source-navigation node"));
+            }
+            let mut depths = BTreeMap::from([(request.node_id.clone(), 0u8)]);
+            let mut queue = VecDeque::from([(request.node_id.clone(), 0u8)]);
+            let mut selected_edges = Vec::new();
+            let mut selected_edge_ids = BTreeSet::new();
+            let mut truncated = false;
+            let mut work = Work { left: budget.max_work_steps, interrupt: &mut || read.check_interrupt() };
+            while let Some((current, depth)) = queue.pop_front() {
+                work.step(1)?;
+                if depth >= request.max_depth { continue; }
+                // The root-bound BTree membership map supplies edge-ID order.
+                for (id, edge) in &edges {
+                    work.step(1)?;
+                    if s(get(edge, "from_id")) != current { continue; }
+                    let target = s(get(edge, "to_id"));
+                    if !nodes.contains_key(target) { continue; }
+                    if !depths.contains_key(target) && depths.len() >= request.limit {
+                        truncated = true;
+                        continue;
+                    }
+                    if selected_edge_ids.insert(id.clone()) { selected_edges.push(id.clone()); }
+                    if !depths.contains_key(target) {
+                        depths.insert(target.to_owned(), depth + 1);
+                        queue.push_back((target.to_owned(), depth + 1));
+                    }
+                }
+            }
+            let mut ordered: Vec<_> = depths.into_iter().collect();
+            ordered.sort_by(|a, b| (a.1, &a.0).cmp(&(b.1, &b.0)));
+            let mut selected_nodes = Vec::with_capacity(ordered.len());
+            for (id, depth) in ordered {
+                work.step(1)?;
+                let JsonValue::Object(mut fields) = nodes.remove(&id)
+                    .ok_or_else(|| corrupt("selected descent node absent"))? else {
+                    return Err(corrupt("selected descent node is not object"));
+                };
+                if fields.iter().any(|(key, _)| key.as_str() == Some("depth")) {
+                    return Err(corrupt("selected source node owns reserved depth field"));
+                }
+                fields.push((tos_foundation::JsonString::from_utf8("depth"), descent_number(depth as usize)));
+                selected_nodes.push(JsonValue::Object(fields));
+            }
+            let mut result_edges = Vec::with_capacity(selected_edges.len());
+            for id in selected_edges {
+                work.step(1)?;
+                result_edges.push(edges.remove(&id).ok_or_else(|| corrupt("selected descent edge absent"))?);
+            }
+            let authority_note = take_field(header, "authority_boundary")?;
+            if authority_note.as_str().is_none_or(str::is_empty) {
+                return Err(corrupt("source-navigation authority boundary must be nonempty string"));
+            }
+            Ok(object(vec![
+                ("schema", text("tos_source_descent_v1")), ("root_id", text(&request.node_id)),
+                ("max_depth", descent_number(request.max_depth as usize)), ("limit", descent_number(request.limit)),
+                ("truncated", JsonValue::Bool(truncated)),
+                ("counts", object(vec![("nodes", descent_number(selected_nodes.len())), ("edges", descent_number(result_edges.len()))])),
+                ("nodes", JsonValue::Array(selected_nodes)), ("edges", JsonValue::Array(result_edges)),
+                ("authority_note", authority_note),
+            ]))
+        })
+}
+
+fn descent_number(value: usize) -> JsonValue {
+    JsonValue::Number(tos_foundation::JsonNumber { kind: tos_foundation::JsonNumberKind::Int, lexeme: value.to_string() })
+}
+
+fn take_field(value: JsonValue, field: &str) -> Result<JsonValue, SearchV2Error> {
+    let JsonValue::Object(entries) = value else {
+        return Err(corrupt("selected original envelope is not an object"));
+    };
+    entries.into_iter().find_map(|(key, value)|
+        (key.as_str() == Some(field)).then_some(value)
+    ).ok_or_else(|| corrupt("selected original envelope field absent"))
+}
+
+fn load_original_navigation<'hold, A: InspectCurrentAuthority<'hold> + ?Sized>(
+    read: &mut Reader<'_, '_, A>,
+    bound: &BoundCmpKnowledge<'_>,
+    budget: DossierBudget,
+    max_retained_bytes: Option<usize>,
+) -> Result<(JsonValue, BTreeMap<String, JsonValue>, BTreeMap<String, JsonValue>, Vec<JsonValue>), SearchV2Error> {
             let receipt = read.original_receipt()?;
             let source = bound
                 .source_for_adapter("source-navigation-node-edge-v1")
@@ -199,6 +340,49 @@ pub fn execute_selected_dossier<'hold, A: InspectCurrentAuthority<'hold> + ?Size
             {
                 return Err(corrupt("selected dossier original binding differs"));
             }
+            let navigation_state_base = if let Some(cap) = max_retained_bytes {
+                // The receipt total covers header/rights; member_index_bytes
+                // covers metadata, not node/edge raw bodies. Price those bodies
+                // from the authenticated member raw sizes below, before loading.
+                let original = receipt.total_bytes.checked_add(receipt.member_index_bytes)
+                    .and_then(|n| usize::try_from(n).ok())
+                    .ok_or_else(|| err(SearchV2ErrorCode::BudgetExceeded, "navigation retained byte range"))?;
+                let members = receipt.nodes.checked_add(receipt.edges)
+                    .and_then(|n| usize::try_from(n).ok())
+                    .ok_or_else(|| err(SearchV2ErrorCode::BudgetExceeded, "navigation retained member range"))?;
+                let sources = [source.to_owned()];
+                let candidates = read.scope_count(SearchKind::Nodes, &sources)?
+                    .checked_add(read.scope_count(SearchKind::Relations, &sources)?)
+                    .and_then(|n| usize::try_from(n).ok())
+                    .ok_or_else(|| err(SearchV2ErrorCode::BudgetExceeded, "navigation candidate count range"))?;
+                if candidates > budget.max_candidates {
+                    return Err(err(SearchV2ErrorCode::BudgetExceeded, "navigation candidate cap exceeded"));
+                }
+                // ObservedInspectCarrier has two owned bounded strings. Price
+                // vector capacity growth and the source/id candidate-page tuple.
+                let observed_slot = budget.inspect.max_field_bytes.checked_mul(2)
+                    .and_then(|n| n.checked_add(std::mem::size_of::<crate::knowledge_inspect::ObservedInspectCarrier>()))
+                    .and_then(|n| n.checked_mul(2))
+                    .ok_or_else(|| err(SearchV2ErrorCode::BudgetExceeded, "navigation observed state overflow"))?;
+                let page_slot = budget.inspect.max_field_bytes.checked_mul(2)
+                    .and_then(|n| n.checked_add(std::mem::size_of::<(String, i64, String)>()))
+                    .and_then(|n| n.checked_mul(2))
+                    .ok_or_else(|| err(SearchV2ErrorCode::BudgetExceeded, "navigation page state overflow"))?;
+                // A conservative logical DOM/index/controller/BFS/encoding
+                // ceiling, not RSS or an allocator-fit assertion.
+                let state = original.checked_mul(256)
+                    .and_then(|n| n.checked_add(budget.inspect.max_payload_bytes.checked_mul(256)?))
+                    .and_then(|n| n.checked_add(members.checked_mul(512)?))
+                    .and_then(|n| n.checked_add(candidates.checked_mul(observed_slot)?))
+                    .and_then(|n| n.checked_add(budget.block_size.checked_mul(page_slot)?))
+                    .and_then(|n| n.checked_add(budget.inspect.max_response_bytes.checked_mul(4)?))
+                    .and_then(|n| n.checked_add(4096))
+                    .ok_or_else(|| err(SearchV2ErrorCode::BudgetExceeded, "navigation retained state overflow"))?;
+                if cap == 0 || state > cap {
+                    return Err(err(SearchV2ErrorCode::BudgetExceeded, "navigation retained state exceeds owner allowance"));
+                }
+                Some(state)
+            } else { None };
             let (ordinal, header) = read
                 .original_row(&receipt, None)?
                 .ok_or_else(|| corrupt("selected original header absent"))?;
@@ -219,6 +403,17 @@ pub fn execute_selected_dossier<'hold, A: InspectCurrentAuthority<'hold> + ?Size
             }
             let node_members = members(read, "nodes", receipt.nodes)?;
             let edge_members = members(read, "edges", receipt.edges)?;
+            if let Some((base, cap)) = navigation_state_base.zip(max_retained_bytes) {
+                let raw_bytes = node_members.values().chain(edge_members.values())
+                    .try_fold(0u64, |sum, member| sum.checked_add(member.raw_bytes))
+                    .and_then(|n| usize::try_from(n).ok())
+                    .ok_or_else(|| err(SearchV2ErrorCode::BudgetExceeded, "navigation raw member byte range"))?;
+                let state = raw_bytes.checked_mul(256).and_then(|n| n.checked_add(base))
+                    .ok_or_else(|| err(SearchV2ErrorCode::BudgetExceeded, "navigation original DOM state overflow"))?;
+                if state > cap {
+                    return Err(err(SearchV2ErrorCode::BudgetExceeded, "navigation original DOM exceeds owner allowance"));
+                }
+            }
             let mut candidate_work = 0;
             let nodes = original_payloads(
                 read,
@@ -236,19 +431,9 @@ pub fn execute_selected_dossier<'hold, A: InspectCurrentAuthority<'hold> + ?Size
                 budget,
                 &mut candidate_work,
             )?;
-            compute_dossier(
-                &header,
-                &nodes,
-                &edges.into_values().collect::<Vec<_>>(),
-                &rights,
-                object_id,
-                limit,
-                budget.max_work_steps,
-                &mut || read.check_interrupt(),
-            )
-        },
-    )
+    Ok((header, nodes, edges, rights))
 }
+
 const KINDS: &[&str] = &[
     "branch",
     "era",

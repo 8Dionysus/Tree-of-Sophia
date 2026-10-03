@@ -350,6 +350,14 @@ impl AccessError {
     }
 }
 
+impl std::fmt::Display for AccessError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}: {}", self.code_str(), self.message)
+    }
+}
+
+impl std::error::Error for AccessError {}
+
 impl From<QueryError> for AccessError {
     fn from(value: QueryError) -> Self {
         let code = match value.code {

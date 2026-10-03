@@ -1267,7 +1267,7 @@ impl AbortProbe for CombinedProbe {
         self.transport.reason().or_else(|| self.owner.reason())
     }
 }
-fn combined_probe(
+pub(crate) fn combined_probe(
     transport: Arc<dyn AbortProbe>,
     owner: Option<Arc<dyn AbortProbe>>,
 ) -> Arc<dyn AbortProbe> {

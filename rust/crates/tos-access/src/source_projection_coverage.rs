@@ -778,7 +778,7 @@ impl RootFence {
         validate_relative_ref(reference)?;
         reference
             .rsplit_once('/')
-            .ok_or("source projection selected file has no parent")
+            .ok_or_else(|| "source projection selected file has no parent".to_owned())
     }
 
     fn names_in(&mut self, directory: &File) -> Result<Vec<(String, fs::FileType)>, String> {

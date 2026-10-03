@@ -110,8 +110,55 @@ pub trait IndexedKnowledgeAuthority {
     ) -> Result<Box<dyn IndexedDisclosureLease>, SearchV2Error>;
 }
 
-struct AuthorityAdapter<'a, A: ?Sized>(&'a mut A);
-impl<A: IndexedKnowledgeAuthority + ?Sized> SearchCurrentAuthority for AuthorityAdapter<'_, A> {
+/// Borrowed owner disclosure contract for a selected invocation whose hold
+/// cannot outlive its authenticated source capture. It shares the static
+/// route's kernel and all currentness, scope and budget checks.
+pub trait ScopedIndexedKnowledgeAuthority<'hold> {
+    fn policy_binding(&self) -> CurrentPolicyBinding;
+    fn disclosure_scope(&self) -> IndexedDisclosureScope;
+    fn check_selected(&mut self) -> Result<(), SearchV2Error>;
+    fn authorize_current(
+        &mut self,
+        candidate: &SelectedSearchCandidate,
+    ) -> Result<(), SearchV2Error>;
+    fn acquire_disclosure(
+        &mut self,
+        scope: &IndexedDisclosureScope,
+        consulted: &[ObservedSearchCandidate],
+    ) -> Result<Box<dyn IndexedDisclosureLease + 'hold>, SearchV2Error>;
+}
+
+// An existing static owner already returns an owned lease, which may safely
+// serve any shorter delivery hold without changing its authority or payload.
+impl<'hold, A: IndexedKnowledgeAuthority + ?Sized> ScopedIndexedKnowledgeAuthority<'hold> for A {
+    fn policy_binding(&self) -> CurrentPolicyBinding {
+        IndexedKnowledgeAuthority::policy_binding(self)
+    }
+    fn disclosure_scope(&self) -> IndexedDisclosureScope {
+        IndexedKnowledgeAuthority::disclosure_scope(self)
+    }
+    fn check_selected(&mut self) -> Result<(), SearchV2Error> {
+        IndexedKnowledgeAuthority::check_selected(self)
+    }
+    fn authorize_current(&mut self, candidate: &SelectedSearchCandidate) -> Result<(), SearchV2Error> {
+        IndexedKnowledgeAuthority::authorize_current(self, candidate)
+    }
+    fn acquire_disclosure(
+        &mut self,
+        scope: &IndexedDisclosureScope,
+        consulted: &[ObservedSearchCandidate],
+    ) -> Result<Box<dyn IndexedDisclosureLease + 'hold>, SearchV2Error> {
+        IndexedKnowledgeAuthority::acquire_disclosure(self, scope, consulted)
+    }
+}
+
+struct AuthorityAdapter<'a, 'hold, A: ?Sized>(
+    &'a mut A,
+    std::marker::PhantomData<&'hold ()>,
+);
+impl<'hold, A: ScopedIndexedKnowledgeAuthority<'hold> + ?Sized> SearchCurrentAuthority
+    for AuthorityAdapter<'_, 'hold, A>
+{
     fn check_selected(&mut self) -> Result<(), SearchV2Error> {
         self.0.check_selected()
     }
@@ -174,6 +221,30 @@ impl DisclosableIndexedSearch {
     pub fn recheck(&mut self) -> Result<(), SearchV2Error> {
         self.lease.recheck()
     }
+}
+
+/// Packet carrying an actual borrowed disclosure lease through synchronous
+/// delivery. Bytes and hold move together; cancellation drops both.
+pub struct DisclosableScopedIndexedSearch<'hold> {
+    body: Vec<u8>,
+    lease: Box<dyn IndexedDisclosureLease + 'hold>,
+}
+
+impl std::fmt::Debug for DisclosableScopedIndexedSearch<'_> {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter.debug_struct("DisclosableScopedIndexedSearch")
+            .field("body_bytes", &self.body.len()).finish_non_exhaustive()
+    }
+}
+impl Deref for DisclosableScopedIndexedSearch<'_> {
+    type Target = [u8];
+    fn deref(&self) -> &Self::Target { &self.body }
+}
+impl<'hold> DisclosableScopedIndexedSearch<'hold> {
+    pub fn into_parts(self) -> (Vec<u8>, Box<dyn IndexedDisclosureLease + 'hold>) {
+        (self.body, self.lease)
+    }
+    pub fn recheck(&mut self) -> Result<(), SearchV2Error> { self.lease.recheck() }
 }
 
 fn key(name: &str) -> JsonString {
@@ -359,6 +430,23 @@ pub fn execute_indexed_search_page<A: IndexedKnowledgeAuthority + ?Sized>(
     cursor_in: Option<&str>,
     budget: IndexedPageBudget,
 ) -> Result<DisclosableIndexedSearch, SearchV2Error> {
+    let scoped = execute_scoped_indexed_search_page::<'static, A>(
+        model, bound, authority, cursor_codec, request, cursor_in, budget,
+    )?;
+    let (body, lease) = scoped.into_parts();
+    Ok(DisclosableIndexedSearch { body, lease })
+}
+
+/// Same indexed page kernel with a borrowed owner-issued delivery hold.
+pub fn execute_scoped_indexed_search_page<'hold, A: ScopedIndexedKnowledgeAuthority<'hold> + ?Sized>(
+    model: &mut VerifiedKnowledgeModel<'_>,
+    bound: &BoundCmpKnowledge<'_>,
+    authority: &mut A,
+    cursor_codec: &mut dyn IndexedWireCursorCodec,
+    request: IndexedSearchV2Request,
+    cursor_in: Option<&str>,
+    budget: IndexedPageBudget,
+) -> Result<DisclosableScopedIndexedSearch<'hold>, SearchV2Error> {
     bound.require_source_revision()?;
     let raw_query = request.query.clone();
     if budget.max_open_vm_steps == 0
@@ -422,7 +510,7 @@ pub fn execute_indexed_search_page<A: IndexedKnowledgeAuthority + ?Sized>(
         ));
     }
     let mut next_state = state.clone();
-    let mut owner = AuthorityAdapter(authority);
+    let mut owner = AuthorityAdapter::<'_, 'hold, A>(authority, std::marker::PhantomData);
     let nodes = if next_state.is_exhausted(SearchKind::Nodes) {
         exhausted_private_kind()
     } else {
@@ -489,5 +577,5 @@ pub fn execute_indexed_search_page<A: IndexedKnowledgeAuthority + ?Sized>(
     let mut lease = owner.0.acquire_disclosure(&scope, &consulted)?;
     lease.recheck()?;
     bound.check_model(model)?;
-    Ok(DisclosableIndexedSearch { body, lease })
+    Ok(DisclosableScopedIndexedSearch { body, lease })
 }

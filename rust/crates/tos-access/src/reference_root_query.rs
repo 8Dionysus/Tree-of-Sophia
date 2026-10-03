@@ -360,7 +360,7 @@ impl InspectDisclosureLease for ReferenceDisclosureLease<'_, '_> {
         self.recheck_selected()
     }
 }
-impl<'view, 'capture> CatalogCurrentAuthority<'view>
+impl<'delivery, 'view: 'delivery, 'capture> CatalogCurrentAuthority<'delivery>
     for ReferenceRootMetadataHold<'view, 'capture>
 {
     fn abort_probe(&self) -> Option<Arc<dyn tos_query::AbortProbe>> {
@@ -388,7 +388,7 @@ impl<'view, 'capture> CatalogCurrentAuthority<'view>
         &mut self,
         scope: &CatalogDisclosureScope,
         sha: Digest256,
-    ) -> std::result::Result<Box<dyn CatalogDisclosureLease + 'view>, CatalogError> {
+    ) -> std::result::Result<Box<dyn CatalogDisclosureLease + 'delivery>, CatalogError> {
         self.current().map_err(catalog_delivery_error)?;
         if scope != &self.catalog_scope() {
             return Err(catalog_refusal());
@@ -400,7 +400,7 @@ impl<'view, 'capture> CatalogCurrentAuthority<'view>
         }))
     }
 }
-impl<'view, 'capture> InspectCurrentAuthority<'view>
+impl<'delivery, 'view: 'delivery, 'capture> InspectCurrentAuthority<'delivery>
     for ReferenceRootMetadataHold<'view, 'capture>
 {
     fn abort_probe(&self) -> Option<Arc<dyn tos_query::AbortProbe>> {
@@ -517,7 +517,7 @@ impl<'view, 'capture> InspectCurrentAuthority<'view>
         &mut self,
         scope: &IndexedDisclosureScope,
         _: &[ObservedInspectCarrier],
-    ) -> std::result::Result<Box<dyn InspectDisclosureLease + 'view>, SearchV2Error> {
+    ) -> std::result::Result<Box<dyn InspectDisclosureLease + 'delivery>, SearchV2Error> {
         self.current()?;
         if scope != &self.indexed_scope() {
             return Err(search_refusal());
@@ -534,7 +534,7 @@ impl tos_query::IndexedDisclosureLease for ReferenceDisclosureLease<'_, '_> {
         self.recheck_selected()
     }
 }
-impl<'view, 'capture> tos_query::IndexedKnowledgeAuthority<'view>
+impl<'delivery, 'view: 'delivery, 'capture> tos_query::ScopedIndexedKnowledgeAuthority<'delivery>
     for ReferenceRootMetadataHold<'view, 'capture>
 {
     fn policy_binding(&self) -> CurrentPolicyBinding {
@@ -560,7 +560,7 @@ impl<'view, 'capture> tos_query::IndexedKnowledgeAuthority<'view>
         &mut self,
         scope: &IndexedDisclosureScope,
         _: &[tos_query::ObservedSearchCandidate],
-    ) -> std::result::Result<Box<dyn tos_query::IndexedDisclosureLease + 'view>, SearchV2Error>
+    ) -> std::result::Result<Box<dyn tos_query::IndexedDisclosureLease + 'delivery>, SearchV2Error>
     {
         self.current()?;
         if !matches!(self.operation, ReferenceMetadataOperation::IndexedSearch)
@@ -594,13 +594,14 @@ impl<'view, 'capture> ReferenceMetadataContext<'view, 'capture> {
         consume: impl FnOnce(
             &mut ReferenceRootMetadataHold<'view, 'capture>,
             &mut ReferenceRootMetadataHold<'view, 'capture>,
+            &mut ReferenceRootMetadataHold<'view, 'capture>,
         ) -> std::result::Result<T, crate::AccessError>,
     ) -> std::result::Result<T, crate::AccessError> {
         self.hold.active()?;
         self.hold.operation = operation;
         // Existing QRY takes two mutable authority slots. Both borrow the one
         // actual source epoch; only the related Catalog scope is distinct.
-        let abort = crate::knowledge::combined_probe(Arc::clone(&self.hold.abort), probe);
+        let abort = crate::knowledge::combined_probe(Arc::clone(&self.hold.abort), Some(probe));
         let scoped = |operation| ReferenceRootMetadataHold {
             view: self.hold.view,
             selection: self.hold.selection.clone(),
@@ -614,7 +615,8 @@ impl<'view, 'capture> ReferenceMetadataContext<'view, 'capture> {
         };
         let mut catalog = scoped(ReferenceMetadataOperation::Catalog);
         let mut inspect = scoped(operation);
-        let result = consume(&mut catalog, &mut inspect);
+        let mut indexed = scoped(operation);
+        let result = consume(&mut catalog, &mut inspect, &mut indexed);
         self.hold.active()?;
         result
     }

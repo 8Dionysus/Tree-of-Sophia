@@ -25,11 +25,14 @@ pub trait SelectedQueryContext<'hold> {
         consume: impl FnOnce(
             &mut dyn CatalogCurrentAuthority<'hold>,
             &mut dyn InspectCurrentAuthority<'hold>,
+            &mut dyn tos_query::ScopedIndexedKnowledgeAuthority<'hold>,
         ) -> Result<T, AccessError>,
     ) -> Result<T, AccessError>;
 }
 
-impl<'hold, 'capture> SelectedQueryContext<'hold> for ReferenceMetadataContext<'hold, 'capture> {
+impl<'hold, 'view: 'hold, 'capture> SelectedQueryContext<'hold>
+    for ReferenceMetadataContext<'view, 'capture>
+{
     fn validate_inputs(
         &self,
         bound: &BoundCmpKnowledge<'_>,
@@ -61,10 +64,11 @@ impl<'hold, 'capture> SelectedQueryContext<'hold> for ReferenceMetadataContext<'
         consume: impl FnOnce(
             &mut dyn CatalogCurrentAuthority<'hold>,
             &mut dyn InspectCurrentAuthority<'hold>,
+            &mut dyn tos_query::ScopedIndexedKnowledgeAuthority<'hold>,
         ) -> Result<T, AccessError>,
     ) -> Result<T, AccessError> {
-        ReferenceMetadataContext::prepare_operation(self, operation, probe, |catalog, inspect| {
-            consume(catalog, inspect)
+        ReferenceMetadataContext::prepare_operation(self, operation, probe, |catalog, inspect, indexed| {
+            consume(catalog, inspect, indexed)
         })
     }
 }
@@ -93,7 +97,7 @@ pub struct ReferenceQueryExecutor<'owner, 'model, 'bound, 'view, 'capture, 'evid
 impl<'owner, 'model, 'bound, 'view, 'capture, 'evidence, C>
     ReferenceQueryExecutor<'owner, 'model, 'bound, 'view, 'capture, 'evidence, C>
 where
-    C: SelectedQueryContext<'view>,
+    C: SelectedQueryContext<'owner>,
 {
     /// Call inside the owner callback which supplies `context`, `view`, and any
     /// Evidence view. The socket must finish flushing before those callbacks
@@ -140,6 +144,13 @@ where
         })
     }
 }
+struct ReferenceIndexedFence<'hold>(Box<dyn tos_query::IndexedDisclosureLease + 'hold>);
+impl crate::DisclosureFence for ReferenceIndexedFence<'_> {
+    fn recheck(&mut self) -> Result<(), AccessError> {
+        self.0.recheck().map_err(Into::into)
+    }
+}
+
 fn busy() -> AccessError {
     AccessError::new(
         AccessErrorCode::Unavailable,
@@ -206,7 +217,7 @@ where
         context.prepare_operation(
             ReferenceMetadataOperation::SourceDescend,
             Arc::clone(&probe),
-            |_, inspect| {
+            |_, inspect, _| {
                 let packet = tos_query::source_dossier::execute_selected_source_navigation_descend(
                     &mut model,
                     self.bound,
@@ -237,7 +248,7 @@ where
         context.prepare_operation(
             ReferenceMetadataOperation::LegacySearch,
             Arc::clone(&probe),
-            |_, inspect| {
+            |_, inspect, _| {
                 crate::knowledge::execute_selected_legacy_search(
                     &mut model,
                     self.bound,
@@ -263,8 +274,8 @@ where
         context.prepare_operation(
             ReferenceMetadataOperation::IndexedSearch,
             Arc::clone(&probe),
-            |_, authority| {
-                let selected = tos_query::IndexedSearchV2Request {
+            |_, _, authority| {
+                let selected = tos_query::search_v2::IndexedSearchV2Request {
                     query: request.query,
                     sources: request.sources,
                     kind_ids: request.kind_ids,
@@ -274,7 +285,7 @@ where
                 let normalized = selected
                     .clone()
                     .normalize(self.bound.selection(), self.bound)?;
-                let initial = tos_query::SearchContinuationState::new(
+                let initial = tos_query::search_v2::SearchContinuationState::new(
                     self.bound.selection().clone(),
                     normalized,
                     authority.policy_binding().clone(),
@@ -284,7 +295,7 @@ where
                     initial,
                     self.bound.owner_receipt_id(),
                 );
-                let packet = tos_query::execute_indexed_search_page(
+                let packet = tos_query::execute_scoped_indexed_search_page(
                     &mut model,
                     self.bound,
                     authority,
@@ -294,7 +305,8 @@ where
                     self.indexed,
                 )?;
                 crate::knowledge::check_abort(&probe)?;
-                Ok(crate::knowledge::from_indexed_search(packet))
+                let (body, lease) = packet.into_parts();
+                Ok(PreparedPacket { body, fence: Box::new(ReferenceIndexedFence(lease)) })
             },
         )
     }
@@ -395,7 +407,7 @@ where
         let mut model = self.model.try_borrow_mut().map_err(|_| busy())?;
         let mut context = self.context.try_borrow_mut().map_err(|_| busy())?;
         let mut checkpoints = self.checkpoints.try_borrow_mut().map_err(|_| busy())?;
-        context.prepare_operation(scope, Arc::clone(&probe), |catalog, inspect| {
+        context.prepare_operation(scope, Arc::clone(&probe), |catalog, inspect, _| {
             let current_probe = crate::knowledge::combined_probe(
                 Arc::clone(&probe),
                 tos_query::InspectCurrentAuthority::abort_probe(inspect),
@@ -418,7 +430,7 @@ where
                     self.bound,
                     inspect,
                     path,
-                    raw.as_deref(),
+                    Some(raw.as_slice()),
                     tos_query::philosophy_read::PhilosophyReadBudget {
                         inspect: self.budgets.inspect,
                         max_work_steps: self.budgets.inspect.max_read_vm_steps,
