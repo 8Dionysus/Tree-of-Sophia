@@ -323,14 +323,18 @@ fn optional_regular(directory: &File, name: &str) -> io::Result<Option<File>> {
     }
 }
 fn lock(file: &File, exclusive: bool) -> io::Result<()> {
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(5);
     loop {
+        if std::time::Instant::now() >= deadline {
+            return Err(bad("downstream status lock deadline"));
+        }
         if unsafe {
             libc::flock(
                 file.as_raw_fd(),
                 if exclusive {
-                    libc::LOCK_EX
+                    libc::LOCK_EX | libc::LOCK_NB
                 } else {
-                    libc::LOCK_SH
+                    libc::LOCK_SH | libc::LOCK_NB
                 },
             )
         } == 0
@@ -338,7 +342,9 @@ fn lock(file: &File, exclusive: bool) -> io::Result<()> {
             return Ok(());
         }
         let e = io::Error::last_os_error();
-        if e.kind() != io::ErrorKind::Interrupted {
+        if e.kind() == io::ErrorKind::WouldBlock {
+            std::thread::sleep(std::time::Duration::from_millis(10));
+        } else if e.kind() != io::ErrorKind::Interrupted {
             return Err(e);
         }
     }

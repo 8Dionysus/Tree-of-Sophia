@@ -7,6 +7,12 @@ pub mod ci_artifacts;
 mod conformance_products;
 pub mod derived_kag;
 pub mod executor;
+#[cfg(target_os = "linux")]
+pub mod kag_corpus_export;
+#[cfg(target_os = "linux")]
+pub mod kag_downstream_status;
+#[cfg(target_os = "linux")]
+pub mod kag_release;
 pub mod mechanics_topology;
 #[cfg(feature = "compiler-backed-validators")]
 pub mod philosophy_graph_views;

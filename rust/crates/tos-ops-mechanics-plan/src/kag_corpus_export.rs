@@ -71,6 +71,7 @@ fn directory(root: &Path) -> io::Result<()> {
     Ok(())
 }
 fn read(root: &Path, relative: &str, cap: u64) -> io::Result<Vec<u8>> {
+    crate::kag_release::budget_check()?;
     let path = root.join(relative);
     if fs::canonicalize(&path)? != path || !fs::symlink_metadata(&path)?.is_file() {
         return Err(bad(
@@ -111,6 +112,7 @@ fn inventory(
     files: &mut BTreeSet<String>,
     dirs: &mut Vec<PathBuf>,
 ) -> io::Result<()> {
+    crate::kag_release::budget_check()?;
     if relative.components().count() > 32 || files.len() > 4096 || dirs.len() > 4096 {
         return Err(bad("export inventory exceeds finite traversal bound"));
     }
@@ -137,6 +139,7 @@ fn inventory(
 /// Verify exact membership, aggregate size, every byte binding and source-return
 /// semantics. The receiver deliberately does not require the current producer.
 pub fn verify_export(root: &Path) -> io::Result<Value> {
+    crate::kag_release::budget_check()?;
     directory(root)?;
     let manifest = json_file(root, "export.json")?;
     keys(
@@ -258,6 +261,7 @@ pub fn verify_export(root: &Path) -> io::Result<Value> {
     Ok(manifest)
 }
 fn producer(repo: &Path) -> io::Result<String> {
+    crate::kag_release::budget_check()?;
     directory(repo)?;
     let mut files = BTreeSet::new();
     for subtree in [
@@ -300,6 +304,7 @@ fn producer(repo: &Path) -> io::Result<String> {
     let mut count = 0u64;
     let mut block = [0u8; 32768];
     loop {
+        crate::kag_release::budget_check()?;
         let n = file.read(&mut block)?;
         if n == 0 {
             break;
@@ -349,6 +354,7 @@ fn publish(stage: &Path, output: &Path) -> io::Result<()> {
 /// Construct the whole export from six exact immutable corpus members. A
 /// manifest budget is finite and independent from the 8MiB exported-byte cap.
 pub fn build_export(repo: &Path, store: &Path, revision: &str, output: &Path) -> io::Result<Value> {
+    crate::kag_release::budget_check()?;
     directory(store)?;
     directory(repo)?;
     let revision = SourceRevision(Digest256::from_hex(revision).map_err(bad)?);

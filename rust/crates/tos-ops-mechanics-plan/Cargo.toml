@@ -18,6 +18,7 @@ regex = "=1.13.1"
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["arbitrary_precision", "preserve_order"] }
 tos-foundation = { path = "../tos-foundation" }
+tos-source-store = { path = "../tos-source-store" }
 tos-compiler = { path = "../tos-compiler", optional = true }
 tos-validation = { path = "../tos-validation" }
 unicode-general-category = "=1.1.0"
@@ -53,3 +54,7 @@ path = "src/route_harness_main.rs"
 [[bin]]
 name = "tos-kag-provider-controls"
 path = "src/provider_controls_main.rs"
+
+[[bin]]
+name = "tos-kag-release"
+path = "src/kag_release_main.rs"

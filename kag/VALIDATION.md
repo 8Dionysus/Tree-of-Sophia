@@ -3,6 +3,15 @@
 Under TOS-D-0062, select one accepted corpus revision and build its bounded
 source-return export outside the software checkout:
 
+Prepare `tos-kag-release` before invoking the maintained Python wrappers, then
+bind its exact verified image through `TOS_KAG_RELEASE_BIN` (or the installed
+PATH). For direct provider-control tests also prepare `tos-kag-provider-controls`
+and bind `TOS_KAG_PROVIDER_CONTROLS_BIN`. The existing controlled consumer checks
+remain `tests/test_build_kag_export.py` and `tests/test_publish_kag_release.py`;
+they exercise the imported maintained native route with the selected local KAG
+producer/probe, including failure preservation and tamper refusal. Source-only
+native wiring does not establish their runtime result or installed default fate.
+
 ```sh
 python scripts/build_kag_export.py build --store /path/to/corpus-store --revision CORPUS_SHA256 --output /path/to/new-export
 python scripts/validate_local_kag_provider.py --export /path/to/new-export
