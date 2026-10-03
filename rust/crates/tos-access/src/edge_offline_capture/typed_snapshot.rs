@@ -1515,7 +1515,7 @@ fn object_kind_name(kind: u8) -> &'static str {
 // Only this structurally complete descriptor can be absent from that inventory.
 fn implicit_without_rowid_primary(table: &TableEvidence, index: &IndexEvidence) -> bool {
     if table.id != u16::MAX
-        || table.flags != 1
+        || !matches!(table.flags, 1 | 3)
         || index.origin != 2
         || !index.unique
         || index.partial
@@ -2126,6 +2126,9 @@ mod tests {
             sql: Some("CREATE TABLE opaque(id TEXT PRIMARY KEY,value TEXT) WITHOUT ROWID".into()),
         }];
         assert!(validate_schema_objects(&objects, &[table.clone()]).is_ok());
+        let mut strict = table.clone();
+        strict.flags = 3; // STRICT does not add a separate primary-key schema row.
+        assert!(validate_schema_objects(&objects, &[strict]).is_ok());
         for (flags, origin, unique, partial) in [
             (4, 2, true, false),
             (1, 0, true, false),
