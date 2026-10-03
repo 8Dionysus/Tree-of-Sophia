@@ -30,6 +30,8 @@ pub struct CatalogueSourceRow<'a> {
     pub source_ref: &'a str,
     pub source_line: Option<u64>,
     pub source_file_sha256: Digest256,
+    pub source_file_bytes: u64,
+    pub retained_state_budget: usize,
     pub source_record: Value,
     pub catalogue_entry: &'a Value,
 }
@@ -122,7 +124,7 @@ pub fn observe_owned_catalogue(
     receipt: &ColdSourceCatalogReceipt,
     catalogue_limits: SourceCatalogLimits,
     limits: CaptureObservationLimits,
-    mut observe: impl FnMut(CatalogueSourceRow<'_>) -> Result<()>,
+    mut observe: impl FnMut(CatalogueSourceRow<'_>) -> Result<usize>,
 ) -> Result<()> {
     if limits.max_addressed_rows == 0
         || limits.max_addressed_bytes == 0
@@ -154,6 +156,7 @@ pub fn observe_owned_catalogue(
         return Err(Error::Invalid("coverage complete source slot count"));
     }
     let mut source_read_bytes = 0u64;
+    let mut callback_retained = 0usize;
     let mut records = 0u64;
     let mut claims = 0u64;
     let mut groups = BTreeMap::<&str, Vec<(&str, &str, &Value, Option<u64>, &Value)>>::new();
@@ -217,12 +220,33 @@ pub fn observe_owned_catalogue(
             .filter(|n| *n <= limits.max_source_read_bytes)
             .ok_or(Error::Budget("coverage cumulative source reads"))?;
         // Preflight before raw_by_id allocates the complete source file.
+        let remaining_state = limits
+            .max_state_bytes
+            .checked_sub(callback_retained)
+            .ok_or(Error::Budget("coverage callback retained state"))?;
+        let shared_limits = CaptureObservationLimits {
+            max_state_bytes: remaining_state,
+            ..limits
+        };
         reserve_state(
             sink.bytes,
             sink.rows.len(),
             usize::try_from(file_bytes).map_err(|_| Error::Budget("coverage source byte range"))?,
-            limits,
+            shared_limits,
         )?;
+        let live_estimate = sink
+            .bytes
+            .checked_add(
+                usize::try_from(file_bytes).map_err(|_| Error::Budget("coverage source bytes"))?,
+            )
+            .and_then(|n| n.checked_mul(128))
+            .and_then(|n| {
+                sink.rows
+                    .len()
+                    .checked_mul(1024)
+                    .and_then(|r| n.checked_add(r))
+            })
+            .ok_or(Error::Budget("coverage shared state arithmetic"))?;
         let raw = stage
             .raw_by_id(CATALOG_SOURCE, SOURCE_FILES, reference)?
             .ok_or(Error::Invalid("coverage catalogue source absent"))?;
@@ -278,15 +302,28 @@ pub fn observe_owned_catalogue(
             } else {
                 &raw.payload
             };
-            observe(CatalogueSourceRow {
+            let retained_state_budget = limits
+                .max_state_bytes
+                .checked_sub(live_estimate)
+                .and_then(|n| n.checked_sub(callback_retained))
+                .ok_or(Error::Budget("coverage callback shared state"))?;
+            let retained = observe(CatalogueSourceRow {
                 kind,
                 identity,
                 source_ref: reference,
                 source_line: line,
                 source_file_sha256: file_digest,
+                source_file_bytes: file_bytes,
+                retained_state_budget,
                 source_record: decode(record_raw, catalogue_limits.max_file_bytes)?,
                 catalogue_entry: entry,
             })?;
+            if retained > retained_state_budget {
+                return Err(Error::Budget("coverage callback reported retained state"));
+            }
+            callback_retained = callback_retained
+                .checked_add(retained)
+                .ok_or(Error::Budget("coverage callback retained state arithmetic"))?;
         }
     }
     Ok(())

@@ -381,8 +381,14 @@ existing fields even when the display's 240-character title or 1024-character
 description is shortened.
 
 For an explicit source-first migration observation, run
-`TOS_NATIVE_PREFIX=/absolute/installed/prefix python scripts/source_witness_projection_coverage.py --rows`
-from the repository. The Rust `tos-access` command validates the exact public
+`TOS_NATIVE_PREFIX=/absolute/installed/prefix python scripts/source_witness_projection_coverage.py --invocation /absolute/protected-invocation.json --rows`
+from the repository. `--invocation` selects the actual Access executable digest,
+native schema-worker image and original capture/resource controls using the
+protected `tos_local_native_foundation_invocation_v1` contract. The maintained
+Foundation kernel owns the complete catalogue and worker exchange; coverage
+consumes its sealed stage in a borrowed callback and checks final source/root
+and metadata-publication currentness before its complete summary. The Rust
+`tos-access` command validates the exact public
 catalog inputs and Claims, checks generated-catalog currentness, then compares
 the full source JSON values (including unknown fields and explicit nulls) with
 the ordinary normalized read model. Rows distinguish direct/adapted mapping,
@@ -393,7 +399,7 @@ completed; an interrupted, stale-input or refused-budget stream is incomplete.
 `--graph /absolute/graph.json` supplies an explicit normalized graph snapshot
 instead of reading the native held snapshot. `--native-prefix` may be used
 instead of `TOS_NATIVE_PREFIX`. Imported callers retain `observe_record` and
-`coverage_report` callbacks, which forward to the same installed native
+`coverage_report(..., invocation=protected_path)` callbacks, which forward to the same installed native
 command; their graph-currentness callback remains caller-owned and runs after
 the native stream has reached successful EOF/status and child cleanup, before
 the summary is returned. `coverage_report` accepts an encoded graph request up

@@ -4,6 +4,7 @@
 //! fields present on normalized graph carriers. It never assesses meaning,
 //! admits source, or mutates an owner surface.
 
+use crate::source_projection_catalog_capture::{CaptureObservationLimits, observe_owned_catalogue};
 use serde_json::{Value, json};
 use std::{
     collections::{BTreeMap, BTreeSet},
@@ -12,11 +13,8 @@ use std::{
     os::fd::AsRawFd,
     os::unix::fs::MetadataExt,
     path::{Path, PathBuf},
-    sync::atomic::AtomicBool,
+    sync::atomic::{AtomicBool, AtomicI32},
     time::{Duration, Instant},
-};
-use tos_compiler::source_witness_catalog::{
-    SourceCatalogLimits, SourceRootClaimProfiles, SourceRootNativeMetadataReader,
 };
 use tos_foundation::{
     CanonicalProfile, Digest256, Digest256Hasher, JsonEmissionProfile, JsonLimits, JsonMode,
@@ -1048,155 +1046,6 @@ impl RootFence {
         self.record_directory(&relative_dir, &directory, after)
     }
 
-    fn collect_contract_paths(&mut self, deadline: Instant) -> Result<Vec<String>, String> {
-        let root = self.open_dir_ref("ToS/contracts")?;
-        let mut selected = Vec::new();
-        let mut select = |path: &str, kind: &fs::FileType| {
-            if tos_compiler::source_witness_catalog::is_root_contract_path(path) {
-                if !kind.is_file() {
-                    return Err("source projection contract selector is not a regular file".into());
-                }
-                return Ok(Some(SourceCandidateKind::Contract));
-            }
-            Ok(None)
-        };
-        let mut skip = |_path: &str| false;
-        self.walk_tree(
-            root,
-            "ToS/contracts".into(),
-            0,
-            MAX_CONTRACT_FILES as usize,
-            "source projection contract-file budget exceeded",
-            &mut select,
-            &mut skip,
-            &mut selected,
-        )?;
-        if Instant::now() >= deadline {
-            return Err("source projection original deadline exceeded".into());
-        }
-        selected.sort_by(|left, right| left.0.cmp(&right.0));
-        Ok(selected
-            .into_iter()
-            .map(|(path, candidate)| {
-                debug_assert!(matches!(candidate, SourceCandidateKind::Contract));
-                path
-            })
-            .collect())
-    }
-
-    fn collect_source_paths(
-        &mut self,
-        profiles: &SourceRootClaimProfiles,
-    ) -> Result<Vec<(String, SourceCandidateKind)>, String> {
-        let selected_names = profiles
-            .source_basenames()
-            .map_err(|error| error.to_string())?;
-        let claim_names = profiles
-            .claim_source_basenames()
-            .map(str::to_owned)
-            .collect::<BTreeSet<_>>();
-        let mut record_kinds = BTreeMap::<String, String>::new();
-        for (kind, _catalog_filename) in BASE_FAMILIES {
-            record_kinds.insert(format!("{kind}.json"), kind.to_owned());
-        }
-        profiles
-            .visit_record_profiles(|kind, basename, _catalog_filename| {
-                if let Some(previous) = record_kinds.insert(basename.to_owned(), kind.to_owned()) {
-                    if previous != kind {
-                        return Err(tos_compiler::Error::Invalid(
-                            "root coverage duplicate source basename",
-                        ));
-                    }
-                }
-                Ok(())
-            })
-            .map_err(|error| error.to_string())?;
-        if record_kinds
-            .keys()
-            .any(|name| !selected_names.contains(name))
-            || claim_names
-                .iter()
-                .any(|name| !selected_names.contains(name))
-        {
-            return Err("source projection owner basename selection is inconsistent".into());
-        }
-        let root = self.open_dir_ref(SOURCE_HOME)?;
-        let mut selected = Vec::new();
-        let mut select = |path: &str, kind: &fs::FileType| {
-            let Some(basename) = path.rsplit('/').next() else {
-                return Ok(None);
-            };
-            let native = basename.starts_with("semantic-annotation") && basename.ends_with(".json");
-            let adapted = if basename == "artifact-witness.json"
-                && path.starts_with(&format!("{SOURCE_HOME}/artifacts/"))
-            {
-                Some("artifact")
-            } else if basename == "composite-witness.json"
-                && path.starts_with(&format!("{SOURCE_HOME}/scholarly-composites/"))
-            {
-                Some("composite")
-            } else {
-                None
-            };
-            let ordinary = record_kinds.get(basename).cloned();
-            let claim = claim_names.contains(basename);
-            let candidate = if native {
-                if path
-                    .split('/')
-                    .any(|part| matches!(part, "payload" | "local-content" | "catalog"))
-                {
-                    None
-                } else {
-                    Some(SourceCandidateKind::Native)
-                }
-            } else if let Some(kind) = adapted {
-                Some(SourceCandidateKind::Record(kind.to_owned()))
-            } else if let Some(kind) = ordinary {
-                Some(SourceCandidateKind::Record(kind))
-            } else if claim {
-                Some(SourceCandidateKind::Claim)
-            } else {
-                None
-            };
-            if let Some(candidate) = candidate.as_ref() {
-                if !native && !public_source_path(path) {
-                    return Err(
-                        "source projection selected path is outside the public metadata route"
-                            .into(),
-                    );
-                }
-                if native
-                    && path.split('/').any(|part| {
-                        matches!(part, "private" | "owner-local") || part.starts_with('.')
-                    })
-                {
-                    return Err(
-                        "source projection native identity locator is not public metadata".into(),
-                    );
-                }
-                if !kind.is_file() {
-                    return Err(
-                        "source projection selected path is not a regular metadata file".into(),
-                    );
-                }
-            }
-            Ok(candidate)
-        };
-        let mut skip = |_path: &str| false;
-        self.walk_tree(
-            root,
-            SOURCE_HOME.into(),
-            0,
-            MAX_SELECTED_FILES,
-            "source projection selected-file budget exceeded",
-            &mut select,
-            &mut skip,
-            &mut selected,
-        )?;
-        selected.sort_by(|left, right| left.0.cmp(&right.0));
-        Ok(selected)
-    }
-
     fn verify_currentness(&mut self) -> Result<(), String> {
         let files = self
             .files
@@ -1277,59 +1126,6 @@ fn public_source_path(reference: &str) -> bool {
                     "catalog" | "payload" | "private" | "owner-local" | "local-content"
                 )
         })
-}
-
-impl SourceRootNativeMetadataReader for RootFence {
-    fn read_held_metadata(
-        &mut self,
-        reference: &str,
-        max_bytes: usize,
-    ) -> tos_compiler::Result<Option<Vec<u8>>> {
-        if !reference.starts_with("ToS/")
-            || reference.len() > 4096
-            || reference.contains(['\\', '\0'])
-            || reference.split('/').any(|part| {
-                part.is_empty()
-                    || part == "."
-                    || part == ".."
-                    || part == "catalog"
-                    || part == "owner-local"
-                    || part == "payload"
-                    || part == "local-content"
-                    || part == "private"
-                    || part.starts_with('.')
-            })
-        {
-            return Err(tos_compiler::Error::Invalid(
-                "root source projection native metadata path",
-            ));
-        }
-        self.read_optional(reference, max_bytes, 8)
-            .map_err(tos_compiler::Error::Source)
-    }
-}
-
-fn walk_contract_paths(fence: &mut RootFence, deadline: Instant) -> Result<Vec<String>, String> {
-    fence.collect_contract_paths(deadline)
-}
-
-fn source_limits(max_rows: u64) -> SourceCatalogLimits {
-    SourceCatalogLimits {
-        max_files: MAX_CONTRACT_FILES,
-        max_rows,
-        max_file_bytes: MAX_SOURCE_FILE_BYTES,
-        max_row_bytes: MAX_SOURCE_ROW_BYTES,
-        max_contract_bytes: 16 * 1024 * 1024,
-        max_output_row_bytes: MAX_OUTPUT_ROW_BYTES,
-    }
-}
-
-fn read_contract_file(
-    fence: &mut RootFence,
-    reference: &str,
-    cap: usize,
-) -> Result<Vec<u8>, String> {
-    fence.read_required(reference, cap, 16)
 }
 
 fn json_limits(cap: usize) -> JsonLimits {
@@ -1628,142 +1424,6 @@ fn verify_expected_file(
     Ok(Digest256::of_bytes(expected).to_hex())
 }
 
-fn build_and_verify_catalog(
-    fence: &mut RootFence,
-    profiles: &SourceRootClaimProfiles,
-    records: &mut BTreeMap<String, Vec<SourceEntry>>,
-    claims: &mut Vec<SourceEntry>,
-    publication: &MetadataPublicationEpoch,
-) -> Result<CatalogCurrentness, String> {
-    let mut profile_families = Vec::<(String, String)>::new();
-    profiles
-        .visit_record_profiles(|kind, _basename, filename| {
-            if records.contains_key(kind) {
-                profile_families.push((kind.to_owned(), filename.to_owned()));
-            }
-            Ok(())
-        })
-        .map_err(|error| error.to_string())?;
-    let mut family_order = BASE_FAMILIES
-        .iter()
-        .map(|(kind, filename)| (kind.to_string(), filename.to_string()))
-        .collect::<Vec<_>>();
-    for (kind, filename) in profile_families {
-        if family_order.iter().any(|(existing, _)| existing == &kind) {
-            return Err("source projection record family conflicts with the base catalog".into());
-        }
-        family_order.push((kind, filename));
-    }
-    for (kind, _, filename) in ADAPTED_FAMILIES {
-        if records.get(kind).is_some_and(|entries| !entries.is_empty())
-            && !family_order.iter().any(|(existing, _)| existing == kind)
-        {
-            family_order.push((kind.to_owned(), filename.to_owned()));
-        }
-    }
-    claims.sort_by(|left, right| left.identity.cmp(&right.identity));
-    let mut object_count = 0u64;
-    let mut claim_count = 0u64;
-    let mut counts = BTreeMap::new();
-    let mut extensions = BTreeSet::new();
-    let mut catalog_hash = Digest256Hasher::new();
-    let mut output_hashes = Vec::<(String, String)>::new();
-    for (kind, filename) in &family_order {
-        let family_entries = records.entry(kind.clone()).or_default();
-        family_entries.sort_by(|left, right| left.identity.cmp(&right.identity));
-        let mut file_bytes = Vec::new();
-        for entry in family_entries.iter() {
-            fence.meter.checkpoint()?;
-            let row = canonical_bytes(&entry.catalog_entry, MAX_OUTPUT_ROW_BYTES)?;
-            if row.len() > MAX_OUTPUT_ROW_BYTES {
-                return Err("source projection catalog output row budget exceeded".into());
-            }
-            fence
-                .meter
-                .charge_state((row.len() as u64).saturating_mul(2))?;
-            if file_bytes.len() > MAX_OUTPUT_FILE_BYTES.saturating_sub(row.len() + 1) {
-                return Err("source projection catalog output file budget exceeded".into());
-            }
-            catalog_hash.update(kind.as_bytes());
-            catalog_hash.update(b"\0");
-            catalog_hash.update(&row);
-            catalog_hash.update(b"\n");
-            file_bytes.extend_from_slice(&row);
-            file_bytes.push(b'\n');
-            if let Some(schema) = entry
-                .catalog_entry
-                .get("source_schema_ref")
-                .and_then(Value::as_str)
-            {
-                extensions.insert(schema.to_owned());
-            }
-        }
-        let count = family_entries.len() as u64;
-        object_count = object_count
-            .checked_add(count)
-            .ok_or("source projection object count overflow")?;
-        counts.insert(kind.clone(), count);
-        let path = format!("{CATALOG_HOME}/{filename}");
-        let digest = verify_expected_file(fence, &path, &file_bytes)?;
-        output_hashes.push((path, digest));
-    }
-    catalog_hash.update(b"claim\0");
-    let mut claims_bytes = Vec::new();
-    for entry in claims.iter() {
-        fence.meter.checkpoint()?;
-        let row = canonical_bytes(&entry.catalog_entry, MAX_OUTPUT_ROW_BYTES)?;
-        if claims_bytes.len() > MAX_OUTPUT_FILE_BYTES.saturating_sub(row.len() + 1) {
-            return Err("source projection claim catalog output file budget exceeded".into());
-        }
-        fence
-            .meter
-            .charge_state((row.len() as u64).saturating_mul(2))?;
-        catalog_hash.update(&row);
-        catalog_hash.update(b"\n");
-        claims_bytes.extend_from_slice(&row);
-        claims_bytes.push(b'\n');
-        if let Some(schema) = entry
-            .catalog_entry
-            .get("source_schema_ref")
-            .and_then(Value::as_str)
-        {
-            extensions.insert(schema.to_owned());
-        }
-    }
-    claim_count = claims.len() as u64;
-    counts.insert("claim".into(), claim_count);
-    let catalog_sha256 = catalog_hash.finalize().to_hex();
-    let claim_path = format!("{CATALOG_HOME}/claims.jsonl");
-    let claim_digest = verify_expected_file(fence, &claim_path, &claims_bytes)?;
-    output_hashes.push((claim_path, claim_digest));
-    let has_extension_family = family_order
-        .iter()
-        .any(|(kind, _)| !BASE_FAMILIES.iter().any(|(base, _)| base == kind));
-    let manifest = manifest_bytes(
-        &family_order,
-        &counts,
-        claim_count,
-        object_count,
-        &catalog_sha256,
-        &extensions,
-        has_extension_family,
-        publication.token(),
-        &output_hashes,
-    )?;
-    verify_expected_file(
-        fence,
-        &format!("{CATALOG_HOME}/catalog.manifest.json"),
-        &manifest,
-    )?;
-    let kinds = family_order.iter().map(|(kind, _)| kind.clone()).collect();
-    Ok(CatalogCurrentness {
-        catalog_sha256,
-        record_count: object_count,
-        claim_count,
-        kinds,
-    })
-}
-
 fn claim_rows(raw: &[u8], max_rows: u64) -> Result<Vec<(u64, &[u8])>, String> {
     let text = std::str::from_utf8(raw).map_err(|_| "source projection claim file is not UTF-8")?;
     let mut rows = Vec::new();
@@ -1815,6 +1475,7 @@ fn claim_rows(raw: &[u8], max_rows: u64) -> Result<Vec<(u64, &[u8])>, String> {
 
 fn load_source_catalog(
     root: &Path,
+    invocation: &str,
     max_input_bytes: u64,
     max_rows: u64,
     deadline: Instant,
@@ -1829,202 +1490,161 @@ fn load_source_catalog(
     ),
     String,
 > {
+    use tos_command::source_current_cut::foundation_command::{
+        SourceFoundationCatalogueObservationLimits, run_with_owned_catalogue_observation,
+    };
     let mut fence = RootFence::open(root, max_input_bytes, max_rows, deadline)?;
     let publication = selected_publication(&mut fence)?;
-    let contract_paths = walk_contract_paths(&mut fence, deadline)?;
-    let limits = source_limits(max_rows);
-    let profiles = SourceRootClaimProfiles::load_from_held_reader(
-        contract_paths,
-        |reference, cap| {
-            read_contract_file(&mut fence, reference, cap).map_err(tos_compiler::Error::Source)
-        },
-        limits,
-    )
-    .map_err(|error| {
-        format!("public source catalog schema/profile inventory is incomplete: {error}")
-    })?;
-    let candidates = fence.collect_source_paths(&profiles)?;
     let cancelled = AtomicBool::new(false);
-    let mut native_ids = BTreeSet::new();
-    let mut native_bytes = 0usize;
-    let mut native_packets = 0usize;
-    for (reference, candidate) in &candidates {
-        if !matches!(candidate, SourceCandidateKind::Native) {
-            continue;
-        }
-        native_packets += 1;
-        if native_packets > MAX_NATIVE_PACKETS {
-            return Err("source projection native identity packet budget exceeded".into());
-        }
-        let remaining = MAX_NATIVE_PACKET_BYTES
-            .checked_sub(native_bytes)
-            .filter(|remaining| *remaining > 0)
-            .ok_or("source projection native identity byte budget exceeded")?;
-        let raw = fence.read_required(reference, remaining.min(MAX_SOURCE_ROW_BYTES), 8)?;
-        native_bytes = native_bytes
-            .checked_add(raw.len())
-            .filter(|bytes| *bytes <= MAX_NATIVE_PACKET_BYTES)
-            .ok_or("source projection native identity byte budget exceeded")?;
-        profiles
-            .visit_native_semantic_identities(&raw, reference, |identity, _private_ref| {
-                fence
-                    .meter
-                    .charge_state(identity.len() as u64 + 64)
-                    .map_err(tos_compiler::Error::Source)?;
-                native_ids.insert(identity.to_owned());
-                Ok(())
-            })
-            .map_err(|error| format!("private native identity inventory is incomplete: {error}"))?;
-    }
-
-    let mut source_hashes = BTreeMap::<String, String>::new();
-    let mut object_seen = BTreeSet::<String>::new();
-    let mut claim_seen = BTreeSet::<String>::new();
-    let mut by_kind = BTreeMap::<String, Vec<SourceEntry>>::new();
-    let mut claims = Vec::<SourceEntry>::new();
-    for (reference, candidate) in candidates {
-        fence.meter.checkpoint()?;
-        match candidate {
-            SourceCandidateKind::Native => continue,
-            SourceCandidateKind::Contract => {
-                return Err("source projection contract path escaped its selector".into());
-            }
-            SourceCandidateKind::Record(kind) => {
-                let raw = fence.read_required(&reference, MAX_SOURCE_FILE_BYTES, 12)?;
-                let digest = Digest256::of_bytes(&raw).to_hex();
-                remember_source_hash(&mut fence.meter, &mut source_hashes, &reference, &digest)?;
-                let validated = profiles
-                    .validate_record(&raw, &reference, &mut fence, deadline, &cancelled)
-                    .map_err(|error| {
-                        format!("public source record validation is incomplete: {error}")
-                    })?;
-                let identity = string(&validated.catalog_entry, "record_id")?.to_owned();
-                if native_ids.contains(&identity) || !object_seen.insert(identity.clone()) {
-                    return Err("duplicate source record identity or native reservation".into());
-                }
-                fence.meter.charge_row()?;
-                let adapter = if kind == "artifact"
-                    || validated
-                        .catalog_entry
-                        .get("source_schema_ref")
-                        .and_then(Value::as_str)
-                        == Some(COMPOSITE_SCHEMA)
-                {
-                    "native-witness"
-                } else {
-                    "source-record"
+    let git_signal = AtomicI32::new(0);
+    let native_args = [
+        std::ffi::OsString::from("--repo-root"),
+        root.as_os_str().to_owned(),
+        std::ffi::OsString::from("--invocation"),
+        std::ffi::OsString::from(invocation),
+    ];
+    let mut entries = Vec::new();
+    let mut hashes = BTreeMap::new();
+    let mut complete = None;
+    let mut captured_error = None;
+    let observation_limits = CaptureObservationLimits {
+        max_addressed_rows: max_rows,
+        max_addressed_bytes: usize::try_from(max_input_bytes)
+            .map_err(|_| "coverage address byte range")?,
+        max_source_read_bytes: max_input_bytes,
+        max_state_bytes: MAX_STATE_BYTES as usize,
+        deadline,
+    };
+    let result = run_with_owned_catalogue_observation(
+        &native_args,
+        &cancelled,
+        &git_signal,
+        &mut io::sink(),
+        &mut io::sink(),
+        SourceFoundationCatalogueObservationLimits {
+            max_stage_read_bytes: max_input_bytes,
+            // RootFence and catalogue observer retain state simultaneously.
+            // Reservation is deducted from the unchanged invocation grant.
+            max_state_bytes: (MAX_STATE_BYTES as usize)
+                .checked_mul(2)
+                .ok_or("coverage shared state reservation overflow")?,
+        },
+        |stage, receipt, catalogue_limits| {
+            let mut populate = || -> Result<(), String> {
+                observe_owned_catalogue(
+                    stage,
+                    receipt,
+                    catalogue_limits,
+                    observation_limits,
+                    |row| {
+                        let mut append = || -> Result<usize, String> {
+                            fence.meter.charge_row()?;
+                            if !hashes.contains_key(row.source_ref) {
+                                // Stage and root reads are separate physical work.
+                                fence.meter.charge_read(row.source_file_bytes, 8)?;
+                                if !public_source_path(row.source_ref) {
+                                    return Err("coverage catalogue selected nonpublic path".into());
+                                }
+                                let raw = fence.read_required(
+                                    row.source_ref,
+                                    MAX_SOURCE_FILE_BYTES,
+                                    8,
+                                )?;
+                                let digest = Digest256::of_bytes(&raw).to_hex();
+                                if digest != row.source_file_sha256.to_hex() {
+                                    return Err(
+                                        "coverage root differs from captured source file".into()
+                                    );
+                                }
+                                remember_source_hash(
+                                    &mut fence.meter,
+                                    &mut hashes,
+                                    row.source_ref,
+                                    &digest,
+                                )?;
+                            }
+                            let source_bytes =
+                                canonical_bytes(&row.source_record, MAX_SOURCE_FILE_BYTES)?;
+                            let retained = source_bytes
+                                .len()
+                                .checked_add(
+                                    canonical_bytes(row.catalogue_entry, MAX_OUTPUT_ROW_BYTES)?
+                                        .len(),
+                                )
+                                .and_then(|n| n.checked_mul(128))
+                                .and_then(|n| {
+                                    n.checked_add(
+                                        row.identity.len()
+                                            + row.source_ref.len()
+                                            + row.kind.len()
+                                            + 1024,
+                                    )
+                                })
+                                .ok_or("coverage callback retained state overflow")?;
+                            if retained > row.retained_state_budget {
+                                return Err("coverage shared callback state budget exceeded".into());
+                            }
+                            fence.meter.charge_state(retained as u64)?;
+                            let adapter = if row.kind == "claim" {
+                                "reified-claim"
+                            } else if matches!(row.kind, "artifact" | "composite") {
+                                "native-witness"
+                            } else {
+                                "source-record"
+                            };
+                            entries.push(SourceEntry {
+                                identity: row.identity.to_owned(),
+                                record: row.source_record,
+                                catalog_entry: row.catalogue_entry.clone(),
+                                source_ref: row.source_ref.to_owned(),
+                                source_file_sha256: row.source_file_sha256.to_hex(),
+                                kind: row.kind.to_owned(),
+                                adapter: adapter.to_owned(),
+                                source_line: row.source_line,
+                            });
+                            Ok(retained)
+                        };
+                        append().map_err(tos_compiler::Error::Source)
+                    },
+                )
+                .map_err(|e| format!("coverage genuine catalogue observation: {e}"))?;
+                let files = receipt.manifest["record_files"]
+                    .as_object()
+                    .ok_or("coverage genuine catalogue record files")?;
+                let kinds = files.keys().cloned().collect::<Vec<_>>();
+                let currentness = CatalogCurrentness {
+                    catalog_sha256: string(&receipt.manifest, "catalog_sha256")?.to_owned(),
+                    record_count: receipt.record_count,
+                    claim_count: receipt.claim_count,
+                    kinds: kinds.clone(),
                 };
-                by_kind.entry(kind.clone()).or_default().push(SourceEntry {
-                    identity,
-                    record: validated.source,
-                    catalog_entry: validated.catalog_entry,
-                    source_ref: reference,
-                    source_file_sha256: digest,
-                    kind,
-                    adapter: adapter.into(),
-                    source_line: None,
-                });
-            }
-            SourceCandidateKind::Claim => {
-                let raw = fence.read_required(&reference, MAX_CLAIM_FILE_BYTES, 12)?;
-                let digest = Digest256::of_bytes(&raw).to_hex();
-                remember_source_hash(&mut fence.meter, &mut source_hashes, &reference, &digest)?;
-                let remaining_rows = fence.meter.max_rows.saturating_sub(fence.meter.rows);
-                let rows = claim_rows(&raw, remaining_rows)?;
-                fence
-                    .meter
-                    .charge_state((rows.len() as u64).saturating_mul(32))?;
-                for (line, raw_line) in rows {
-                    if raw_line.len() > MAX_SOURCE_ROW_BYTES {
-                        return Err("source projection claim row byte budget exceeded".into());
-                    }
-                    let validated = profiles
-                        .validate_claim(raw_line, &reference, line)
-                        .map_err(|error| {
-                            format!("public source Claim validation is incomplete: {error}")
-                        })?;
-                    let identity = string(&validated.catalog_entry, "claim_id")?.to_owned();
-                    if !claim_seen.insert(identity.clone()) {
-                        return Err("duplicate public source Claim identity".into());
-                    }
-                    fence.meter.charge_row()?;
-                    claims.push(SourceEntry {
-                        identity,
-                        record: validated.source,
-                        catalog_entry: validated.catalog_entry,
-                        source_ref: reference.clone(),
-                        source_file_sha256: digest.clone(),
-                        kind: "claim".into(),
-                        adapter: "reified-claim".into(),
-                        source_line: Some(line),
-                    });
+                for reference in receipt.file_sha256.keys() {
+                    fence.read_required(reference, MAX_OUTPUT_FILE_BYTES, 2)?;
                 }
-            }
-        }
+                fence.read_required(
+                    &format!("{CATALOG_HOME}/catalog.manifest.json"),
+                    MAX_OUTPUT_FILE_BYTES,
+                    2,
+                )?;
+                complete = Some((kinds, currentness));
+                Ok(())
+            };
+            populate().map_err(|error| {
+                captured_error = Some(error.clone());
+                tos_compiler::Error::Source(error)
+            })
+        },
+    );
+    if let Some(error) = captured_error {
+        return Err(error);
     }
-    if fence.meter.rows > max_rows {
-        return Err("source projection catalog row budget exceeded".into());
+    if result.map_err(|e| format!("coverage native foundation refused: {e:?}"))? != 0 {
+        return Err("coverage native foundation did not complete".into());
     }
-    let total_entries = by_kind.values().map(Vec::len).sum::<usize>() + claims.len();
-    fence
-        .meter
-        .charge_state((total_entries as u64).saturating_mul(256))?;
-    let mut object_entries = by_kind.into_values().flatten().collect::<Vec<_>>();
-    object_entries.sort_by(|left, right| left.identity.cmp(&right.identity));
-    claims.sort_by(|left, right| left.identity.cmp(&right.identity));
-    let mut all_entries = object_entries;
-    all_entries.extend(claims);
-    let (mut object_entries, mut claim_entries) = (Vec::new(), Vec::new());
-    for entry in all_entries {
-        if entry.kind == "claim" {
-            claim_entries.push(entry);
-        } else {
-            object_entries.push(entry);
-        }
-    }
-    object_entries.sort_by(|left: &SourceEntry, right| left.identity.cmp(&right.identity));
-    claim_entries.sort_by(|left: &SourceEntry, right| left.identity.cmp(&right.identity));
-    let mut catalog_records = BTreeMap::<String, Vec<SourceEntry>>::new();
-    for entry in object_entries.iter().cloned() {
-        catalog_records
-            .entry(entry.kind.clone())
-            .or_default()
-            .push(entry);
-    }
-    let currentness = build_and_verify_catalog(
-        &mut fence,
-        &profiles,
-        &mut catalog_records,
-        &mut claim_entries,
-        &publication,
-    )?;
-    if currentness.record_count != object_entries.len() as u64
-        || currentness.claim_count != claim_entries.len() as u64
-    {
-        return Err("source projection catalog count differs from full source enumeration".into());
-    }
-    for entry in &object_entries {
-        if source_hashes.get(&entry.source_ref) != Some(&entry.source_file_sha256) {
-            return Err("source projection source file digest is inconsistent".into());
-        }
-    }
-    for entry in &claim_entries {
-        if source_hashes.get(&entry.source_ref) != Some(&entry.source_file_sha256) {
-            return Err("source projection Claim file digest is inconsistent".into());
-        }
-    }
-    let kinds = currentness.kinds.clone();
-    let mut entries = object_entries;
-    entries.extend(claim_entries);
+    let (kinds, currentness) =
+        complete.ok_or("coverage native foundation produced no complete catalogue observation")?;
     verify_source_snapshot(&mut fence, &publication)?;
-    Ok((
-        fence,
-        publication,
-        entries,
-        source_hashes,
-        currentness.kinds.clone(),
-        currentness,
-    ))
+    Ok((fence, publication, entries, hashes, kinds, currentness))
 }
 
 fn open_store(
@@ -2210,6 +1830,7 @@ fn execute_native_store(
 
 fn execute_root(
     root: &Path,
+    invocation: &str,
     graph: Option<&str>,
     input_bytes: u64,
     max_rows: u64,
@@ -2218,7 +1839,7 @@ fn execute_root(
     output: &mut dyn Write,
 ) -> Result<(), String> {
     let (mut fence, publication, entries, source_hashes, kinds, currentness) =
-        load_source_catalog(root, input_bytes, max_rows, deadline)?;
+        load_source_catalog(root, invocation, input_bytes, max_rows, deadline)?;
     if let Some(graph_path) = graph {
         let remaining = fence.meter.remaining_input();
         if remaining == 0 {
@@ -2262,6 +1883,7 @@ fn execute_root(
 fn execute(args: &[String], output: &mut dyn Write) -> Result<(), String> {
     let mut root = None;
     let mut graph = None;
+    let mut invocation = None;
     let mut input = None;
     let mut observe = false;
     let mut rows = false;
@@ -2296,6 +1918,7 @@ fn execute(args: &[String], output: &mut dyn Write) -> Result<(), String> {
         }
         match flag {
             "--root" => root = Some(PathBuf::from(value)),
+            "--invocation" => invocation = Some(value.as_str()),
             "--graph" => graph = Some(value.as_str()),
             "--input" => input = Some(value.as_str()),
             "--max-input-bytes" => {
@@ -2329,7 +1952,7 @@ fn execute(args: &[String], output: &mut dyn Write) -> Result<(), String> {
         .checked_add(Duration::from_secs(max_seconds))
         .ok_or("source projection deadline arithmetic")?;
     if observe {
-        if rows || root.is_some() || graph.is_some() {
+        if rows || root.is_some() || graph.is_some() || invocation.is_some() {
             return Err("--observe-record does not accept root, graph or rows options".into());
         }
         let path = input.ok_or("--observe-record requires --input")?;
@@ -2344,6 +1967,8 @@ fn execute(args: &[String], output: &mut dyn Write) -> Result<(), String> {
     }
     execute_root(
         root.as_deref().expect("checked root"),
+        invocation
+            .ok_or("source-projection-coverage requires protected native --invocation ABS")?,
         graph,
         max_input_bytes,
         max_rows,
@@ -2367,7 +1992,7 @@ pub fn run_if_requested(
     if args.len() == 2 && matches!(args[1].as_str(), "--help" | "-h") {
         let _ = writeln!(
             output,
-            "source-projection-coverage --root ABS [--graph ABS_JSON|-] [--rows] [--max-input-bytes N --max-rows N --max-seconds N]\nsource-projection-coverage --observe-record --input ABS|-\nA stream without its terminal summary is incomplete. No assessment, admission or source mutation."
+            "source-projection-coverage --root ABS --invocation ABS [--graph ABS_JSON|-] [--rows] [--max-input-bytes N --max-rows N --max-seconds N]\nsource-projection-coverage --observe-record --input ABS|-\nA stream without its terminal summary is incomplete. No assessment, admission or source mutation."
         );
         return Some(0);
     }

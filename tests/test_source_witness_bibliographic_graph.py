@@ -258,7 +258,7 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
                'source_revision': 'synthetic', 'observation': {}}
         with patch.object(coverage, '_native_packets', return_value=(v for v in [row])):
             with self.assertRaisesRegex(ValueError, 'terminal summary'):
-                coverage.coverage_report(REPO_ROOT, graph, emit_row=lambda _: None)
+                coverage.coverage_report(REPO_ROOT, graph, invocation=Path(__file__), emit_row=lambda _: None)
 
     def test_source_coverage_source_byte_or_read_model_drift_cannot_return_terminal_summary(self):
         import source_witness_projection_coverage as coverage
@@ -270,7 +270,7 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
         rows = []
         with patch.object(coverage, '_native_packets', return_value=(v for v in [row, summary])):
             with self.assertRaisesRegex(ValueError, 'read-model changed'):
-                coverage.coverage_report(REPO_ROOT, graph, emit_row=rows.append,
+                coverage.coverage_report(REPO_ROOT, graph, invocation=Path(__file__), emit_row=rows.append,
                                          verify_graph=lambda _: (_ for _ in ()).throw(ValueError('read-model changed')))
         self.assertEqual(rows, [row])
 

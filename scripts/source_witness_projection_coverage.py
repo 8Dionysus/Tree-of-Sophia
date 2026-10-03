@@ -66,7 +66,7 @@ def observe_record(identity, record, source_ref, candidates, *, kind, adapter,
     return packets[0]
 
 
-def coverage_report(root, graph, *, emit_row=None, verify_graph=None):
+def coverage_report(root, graph, *, invocation=None, emit_row=None, verify_graph=None):
     """Enumerate current root catalog inputs against one supplied graph packet.
 
     The native provider owns catalog/schema/native-text validation, complete
@@ -78,7 +78,10 @@ def coverage_report(root, graph, *, emit_row=None, verify_graph=None):
     root = Path(root).resolve(strict=True)
     if not isinstance(graph, dict) or not isinstance(graph.get('source_revision'), str):
         raise ValueError('coverage graph must carry a string source_revision')
-    arguments = ['source-projection-coverage', '--root', str(root), '--graph', '-']
+    if invocation is None:
+        raise ValueError('source coverage requires protected native invocation')
+    arguments = ['source-projection-coverage', '--root', str(root), '--invocation',
+                 str(Path(invocation).resolve(strict=True)), '--graph', '-']
     if emit_row is not None:
         arguments.append('--rows')
     stream = _native_packets(arguments, graph, input_cap=_GRAPH_INPUT_CAP,
@@ -113,6 +116,8 @@ def main(argv=None):
                         help='installed native software prefix (defaults to TOS_NATIVE_PREFIX)')
     parser.add_argument('--root', type=Path, default=REPO_ROOT,
                         help='source repository root; defaults to this checkout')
+    parser.add_argument('--invocation', type=Path, required=True,
+                        help='protected native Foundation invocation selecting exact worker, custody and budgets')
     parser.add_argument('--graph', type=Path,
                         help='optional supplied normalized graph JSON snapshot; default reads the held native snapshot')
     parser.add_argument('--rows', action='store_true',
@@ -125,7 +130,7 @@ def main(argv=None):
                         help='one operation deadline in seconds (maximum 3600)')
     args = parser.parse_args(argv)
     root = args.root.resolve(strict=True)
-    arguments = ['source-projection-coverage', '--root', str(root)]
+    arguments = ['source-projection-coverage', '--root', str(root), '--invocation', str(args.invocation.resolve(strict=True))]
     if args.graph is not None:
         arguments.extend(['--graph', str(args.graph.resolve(strict=True))])
     if args.rows:
