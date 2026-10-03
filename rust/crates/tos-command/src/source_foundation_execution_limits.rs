@@ -885,6 +885,47 @@ impl FoundationExecutionLimits {
         })
     }
 
+    /// Intersect nominal bootstrap count ceilings with this named live window.
+    /// Required actual-count callers continue to use `physical_limits`.
+    pub(crate) fn physical_limits_from_ceilings(
+        &self,
+        ceilings: PhysicalSourceLimits,
+    ) -> Result<PhysicalSourceLimits> {
+        let (path_capacity, inventory_capacity, observation_capacity) = path_count_capacities(
+            self.reservations
+                .physical
+                .state_bytes
+                .min(ceilings.max_state_bytes),
+        )?;
+        let paths = ceilings.max_paths.min(path_capacity);
+        let observations = ceilings.max_path_observations.min(observation_capacity);
+        self.physical_limits(
+            paths,
+            ceilings.max_private_prefixes.min(paths),
+            ceilings.max_inventory_paths.min(inventory_capacity),
+            observations,
+            ceilings.max_git_path_queries.min(observations),
+        )
+    }
+
+    /// Payload bootstrap counts are ceilings, not observed required rows.
+    /// The existing actual-count validator still refuses any required excess.
+    pub(crate) fn payload_limits_from_ceilings(
+        &self,
+        ceilings: PhysicalPayloadLimits,
+    ) -> Result<PhysicalPayloadLimits> {
+        let (file_capacity, _, observation_capacity) = path_count_capacities(
+            self.reservations
+                .payload
+                .state_bytes
+                .min(ceilings.max_state_bytes),
+        )?;
+        self.payload_limits(
+            ceilings.max_files.min(file_capacity),
+            ceilings.max_observations.min(observation_capacity),
+        )
+    }
+
     /// Convert explicit path/work counts selected by the caller into the
     /// physical provider's concrete bounds. Counts are checked against a
     /// state-derived ceiling; this adapter does not infer inventory contents.
@@ -897,18 +938,8 @@ impl FoundationExecutionLimits {
         max_git_path_queries: usize,
     ) -> Result<PhysicalSourceLimits> {
         let reservation = self.reservations.physical;
-        let minimum_path_state = 1usize
-            .checked_add(size_of::<String>())
-            .and_then(|bytes| bytes.checked_add(32 * size_of::<usize>()))
-            .ok_or(Error::Unsupported(
-                "foundation physical path limit overflow",
-            ))?;
-        let inventory_path_state = minimum_path_state
-            .checked_mul(3)
-            .ok_or(Error::Unsupported("foundation inventory limit overflow"))?;
-        let max_paths_by_state = reservation.state_bytes / minimum_path_state;
-        let max_inventory_by_state = reservation.state_bytes / inventory_path_state;
-        let max_observations_by_state = reservation.state_bytes / size_of::<usize>();
+        let (max_paths_by_state, max_inventory_by_state, max_observations_by_state) =
+            path_count_capacities(reservation.state_bytes)?;
         let max_file_bytes = as_usize(
             self.invocation_budgets
                 .max_member_bytes
@@ -966,12 +997,8 @@ impl FoundationExecutionLimits {
         max_observations: usize,
     ) -> Result<PhysicalPayloadLimits> {
         let reservation = self.reservations.payload;
-        let min_file_row = 1usize
-            .checked_add(size_of::<String>())
-            .and_then(|bytes| bytes.checked_add(32 * size_of::<usize>()))
-            .ok_or(Error::Unsupported("foundation payload row limit overflow"))?;
-        let max_files_by_state = reservation.state_bytes / min_file_row;
-        let max_observations_by_state = reservation.state_bytes / size_of::<usize>();
+        let (max_files_by_state, _, max_observations_by_state) =
+            path_count_capacities(reservation.state_bytes)?;
         let max_file_bytes = self
             .invocation_budgets
             .max_member_bytes
@@ -1830,6 +1857,25 @@ impl FoundationExecutionLimits {
             reservations.final_custody_and_output,
         ]
     }
+}
+
+// One capacity formula owns both strict required-count and nominal-ceiling
+// adapters. These are the existing modeled retained-state allowances, not RSS.
+fn path_count_capacities(state_bytes: usize) -> Result<(usize, usize, usize)> {
+    let minimum_path_state = 1usize
+        .checked_add(size_of::<String>())
+        .and_then(|bytes| bytes.checked_add(32 * size_of::<usize>()))
+        .ok_or(Error::Unsupported(
+            "foundation physical path limit overflow",
+        ))?;
+    let inventory_path_state = minimum_path_state
+        .checked_mul(3)
+        .ok_or(Error::Unsupported("foundation inventory limit overflow"))?;
+    Ok((
+        state_bytes / minimum_path_state,
+        state_bytes / inventory_path_state,
+        state_bytes / size_of::<usize>(),
+    ))
 }
 
 fn as_usize(value: u64, label: &'static str) -> Result<usize> {

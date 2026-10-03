@@ -832,10 +832,7 @@ impl<'cancel> FoundationBootstrapInputs<'cancel> {
                 FoundationPhaseReservation::default(),
                 |execution_limits, _ticket| {
                     let derived = execution_limits
-                        .payload_limits(
-                            config.payload_limits.max_files,
-                            config.payload_limits.max_observations,
-                        )
+                        .payload_limits_from_ceilings(config.payload_limits)
                         .map_err(FoundationBootstrapError::Command)?;
                     let limits = intersect_payload_limits(derived, config.payload_limits)?;
                     let mut payloads = FoundationPayloadSources::new(
@@ -894,13 +891,7 @@ impl<'cancel> FoundationBootstrapInputs<'cancel> {
                 physical_baseline,
                 |execution_limits, _ticket| {
                     let derived = execution_limits
-                        .physical_limits(
-                            config.physical_limits.max_paths,
-                            config.physical_limits.max_private_prefixes,
-                            config.physical_limits.max_inventory_paths,
-                            config.physical_limits.max_path_observations,
-                            config.physical_limits.max_git_path_queries,
-                        )
+                        .physical_limits_from_ceilings(config.physical_limits)
                         .map_err(FoundationBootstrapError::Command)?;
                     let limits = intersect_physical_limits(derived, config.physical_limits)?;
                     let mut physical = FoundationPhysicalSnapshot::observe_with_resolved_targets(
