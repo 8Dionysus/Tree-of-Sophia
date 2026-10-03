@@ -4413,9 +4413,9 @@ fn batch_configuration(
     }
     Ok(true)
 }
-fn exact_batch_inputs(
+fn exact_batch_inputs<T: AsRef<str>>(
     event: &Value,
-    expected: BTreeSet<&str>,
+    expected: BTreeSet<T>,
     rules: &mut Rules<'_>,
     location: &str,
 ) -> Result<(), ItemRefusal> {
@@ -4425,7 +4425,9 @@ fn exact_batch_inputs(
     let ceiling = rules.limits.max_state_bytes;
     rules.limits.max_state_bytes = ceiling.checked_sub(scratch).ok_or(ItemRefusal::Budget)?;
     let actual: BTreeSet<_> = rows.iter().filter_map(|r| s(r, "ref")).collect();
-    let result = if actual != expected || rows.len() != actual.len() {
+    let result = if !actual.iter().copied().eq(expected.iter().map(AsRef::as_ref))
+        || rows.len() != actual.len()
+    {
         rules.issue("bibliography-batch-exact-input-set", location)
     } else {
         Ok(())
@@ -4603,8 +4605,10 @@ fn inspect_batches(
             + edge_slots * std::mem::size_of::<(&str, &str)>()
             + std::mem::size_of::<BTreeSet<&str>>()
             + endpoint_slots * std::mem::size_of::<&str>()
-            + std::mem::size_of::<BTreeSet<&str>>()
-            + input_slots * std::mem::size_of::<&str>()
+            + std::mem::size_of::<BTreeSet<Cow<'_, str>>>()
+            + input_slots
+                .checked_mul(std::mem::size_of::<Cow<'_, str>>() + 96)
+                .ok_or(ItemRefusal::Budget)?
             + std::mem::size_of::<BTreeMap<&str, usize>>()
             + endpoint_slots * std::mem::size_of::<(&str, usize)>()
             + std::mem::size_of::<Vec<&str>>()
@@ -4619,8 +4623,8 @@ fn inspect_batches(
             let mut pairs = BTreeSet::new();
             let mut endpoints = BTreeSet::new();
             let mut inputs = BTreeSet::from([
-                LEGACY_BASE,
-                "ToS/contracts/expression-derivation.schema.json",
+                Cow::Borrowed(LEGACY_BASE),
+                Cow::Borrowed("ToS/contracts/expression-derivation.schema.json"),
             ]);
             for claim in &derivations {
                 check(rules.limits.deadline, rules.cancelled)?;
@@ -4662,11 +4666,29 @@ fn inspect_batches(
                 if !evidence.clone().any(|v| v.starts_with("tos.anchor.")) {
                     rules.issue("derivation-source-anchor-return", path)?;
                 }
-                inputs.extend(evidence.filter(|v| v.starts_with("ToS/")));
+                inputs.extend(evidence.filter(|v| v.starts_with("ToS/")).map(Cow::Borrowed));
             }
             for id in &endpoints {
                 if let Some(record) = records.current_record(id)? {
-                    inputs.insert(record.path.as_str());
+                    if inputs.contains(record.path.as_str()) {
+                        continue;
+                    }
+                    let path = match record {
+                        Cow::Borrowed(record) => Cow::Borrowed(record.path.as_str()),
+                        Cow::Owned(record) => {
+                            // Transfer the provider's existing allocation; only
+                            // its live path capacity remains after the row drops.
+                            let retained = record.path.capacity();
+                            reserve_check(rules.state, retained, rules.limits.max_state_bytes)?;
+                            rules.limits.max_state_bytes = rules
+                                .limits
+                                .max_state_bytes
+                                .checked_sub(retained)
+                                .ok_or(ItemRefusal::Budget)?;
+                            Cow::Owned(record.path)
+                        }
+                    };
+                    inputs.insert(path);
                 }
             }
             // Kahn traversal preserves cycle detection without a recursive stack.
