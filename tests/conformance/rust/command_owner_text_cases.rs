@@ -984,6 +984,10 @@ print(json.dumps(f['finish'](repository,root),separators=(',',':')))
         receipt["owner"]["source_ref"],
         selected["original_owner_source_ref"]
     );
+    assert_eq!(
+        Digest256::of_bytes(&retained["owner-ocr-receipt.json"]).to_hex(),
+        selected["original_receipt_sha256"].as_str().unwrap()
+    );
     let image = PathBuf::from(selected["image_path"].as_str().unwrap());
     let image_before = custody(&image);
     let described = invoke(
@@ -1002,6 +1006,15 @@ print(json.dumps(f['finish'](repository,root),separators=(',',':')))
     assert_eq!(compared["publication_authorized"], false);
     assert_eq!(compared["result"]["current_admission"]["can_use"], false);
     assert_eq!(compared["result"]["revision"], Value::Null);
+    assert_eq!(
+        compared["result"]["source_comparison"]["payload"]["source_image"]["sha256"],
+        selected["image_sha256"]
+    );
+    assert_eq!(
+        compared["result"]["source_comparison"]["payload"]["performs_semantic_assessment"],
+        false
+    );
+
     assert_eq!(
         compared["result"]["source_comparison"]["payload"]["source_image"]["model_disclosure_authorized"],
         false
