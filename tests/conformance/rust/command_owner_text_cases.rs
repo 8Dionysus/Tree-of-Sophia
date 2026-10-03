@@ -370,6 +370,10 @@ from pathlib import Path
 repository,root=map(Path,sys.argv[1:])
 sys.dont_write_bytecode=True
 sys.path[:0]=[str(repository/'mechanics/growth-cycle/tests'),str(repository/'mechanics/growth-cycle/parts/branch-growth-cycle/scripts'),str(repository/'scripts'),str(repository/'tests')]
+from datetime import datetime,timedelta,timezone
+import test_knowledge_assessment as policy_fixture
+# Native commands use real time; retain a finite synthetic grant window.
+policy_fixture.END=(datetime.now(timezone.utc)+timedelta(days=7)).isoformat()
 import test_owner_local_assessment as maintained
 class ExistingRoot:
     serial=0
@@ -577,6 +581,10 @@ from pathlib import Path
 repository,root=map(Path,sys.argv[1:])
 sys.dont_write_bytecode=True
 sys.path[:0]=[str(repository/'mechanics/growth-cycle/tests'),str(repository/'mechanics/growth-cycle/parts/branch-growth-cycle/scripts'),str(repository/'scripts'),str(repository/'tests')]
+from datetime import datetime,timedelta,timezone
+import test_knowledge_assessment as policy_fixture
+# Native commands use real time; retain a finite synthetic grant window.
+policy_fixture.END=(datetime.now(timezone.utc)+timedelta(days=7)).isoformat()
 class ExistingRoot:
     serial=0
     def __init__(self,*args,**kwargs):
