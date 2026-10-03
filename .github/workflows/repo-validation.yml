@@ -244,6 +244,7 @@ jobs:
           CARGO_HOME: ${{ runner.temp }}/software-cargo-home
           CARGO_TARGET_DIR: ${{ runner.temp }}/software-cargo-target
           CARGO_BUILD_JOBS: "2"
+          CARGO_PROFILE_DEV_DEBUG: "1"
         run: |
           rustup toolchain install 1.98.1 --profile minimal --target wasm32-unknown-unknown
           rustup default 1.98.1
