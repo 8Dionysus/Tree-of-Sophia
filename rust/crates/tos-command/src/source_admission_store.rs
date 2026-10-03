@@ -1059,8 +1059,11 @@ impl AdmissionStore {
         ) -> io::Result<()>,
     ) -> io::Result<()> {
         let physical = streamed.is_some();
-        let pointer_io = v2_rootset
-            .map(|rootset| rootset.tree_io.io_budget().clone())
+        let pointer_io = self
+            .v2_layout_io
+            .borrow()
+            .clone()
+            .or_else(|| v2_rootset.map(|rootset| rootset.tree_io.io_budget().clone()))
             .or_else(|| streamed.as_ref().map(|r| r.io_budget.clone()));
         let persistent_charge_read = |n| {
             if let Some(rootset) = v2_rootset {
@@ -1185,11 +1188,8 @@ impl AdmissionStore {
             }
         }
         let reader = self.reader(limits)?;
-        let selected_before_write = match &pointer_io {
-            Some(io) => reader.select_current_selection_budgeted(io, deadline, cancel),
-            None => reader.select_current_selection(),
-        }
-        .map_err(invalid)?;
+        let selected_before_write =
+            self.current_selection(limits, deadline, cancel, pointer_io.as_ref())?;
         if v2_rootset.is_some() && selected_before_write.is_some() {
             return Err(invalid(
                 "initial V2 writer requires an unselected empty store",
@@ -1501,11 +1501,7 @@ impl AdmissionStore {
         let lock = prelocked
             .or(owned_lock.as_ref())
             .ok_or_else(|| invalid("corpus publication lock is absent"))?;
-        let selection = match &pointer_io {
-            Some(io) => reader.select_current_selection_budgeted(io, deadline, cancel),
-            None => reader.select_current_selection(),
-        }
-        .map_err(invalid)?;
+        let selection = self.current_selection(limits, deadline, cancel, pointer_io.as_ref())?;
         if v2_rootset.is_some() && selection.is_some() {
             return Err(invalid("initial V2 writer lost its empty-selector CAS"));
         }
@@ -1635,11 +1631,7 @@ impl AdmissionStore {
             }
             self.root.sync_all()?;
             self.verify_layout()?;
-            let selected = match &pointer_io {
-                Some(io) => reader.select_current_selection_budgeted(io, deadline, cancel),
-                None => reader.select_current_selection(),
-            }
-            .map_err(invalid)?;
+            let selected = self.current_selection(limits, deadline, cancel, pointer_io.as_ref())?;
             let matches = selected.is_some_and(|selected| {
                 selected.revision.0 == revision
                     && match v2_rootset {
@@ -1704,16 +1696,22 @@ impl AdmissionStore {
         cancel: &AtomicBool,
         io: Option<&tos_source_store::PinnedSqliteIoBudget>,
     ) -> io::Result<()> {
-        let reader = self.reader(limits)?;
         let _lock = self.lock(deadline, cancel)?;
-        if match io {
-            Some(io) => reader.select_current_budgeted(io, deadline, cancel),
-            None => reader.select_current(),
-        }
-        .map_err(invalid)?
-        .map(|r| r.0)
-            != expected
-        {
+        let selected_revision = if self.v2_layout_io.borrow().is_some() {
+            let selected_io =
+                io.ok_or_else(|| invalid("V2 current check lacks its original IO ledger"))?;
+            self.current_selection(limits, deadline, cancel, Some(selected_io))?
+                .map(|selection| selection.revision.0)
+        } else {
+            let reader = self.reader(limits)?;
+            match io {
+                Some(io) => reader.select_current_budgeted(io, deadline, cancel),
+                None => reader.select_current(),
+            }
+            .map_err(invalid)?
+            .map(|selection| selection.0)
+        };
+        if selected_revision != expected {
             return Err(invalid(
                 "accepted base changed; re-admit against current revision",
             ));
