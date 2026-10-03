@@ -20,9 +20,9 @@ use crate::source_foundation_default_rules::{
     SourceFoundationDefaultRecordsLookup,
 };
 use crate::source_foundation_records::{
-    SourceFoundationRecordsCollection, SourceFoundationRecordsCursor,
-    SourceFoundationRecordsPageBudget, SourceFoundationRecordsStoredFact,
-    SourceFoundationRecordsStreamedReport,
+    SourceFoundationArtifactRecordPathSummary, SourceFoundationRecordsCollection,
+    SourceFoundationRecordsCursor, SourceFoundationRecordsPageBudget,
+    SourceFoundationRecordsStoredFact, SourceFoundationRecordsStreamedReport,
 };
 use serde_json::{Value, json};
 use std::collections::{BTreeMap, BTreeSet};
@@ -268,6 +268,130 @@ pub trait CandidateArtifactCorrectionReplayEvidence<I: Copy + Eq> {
 pub type CandidateArtifactCorrectionReplayMap<'a, I> =
     BTreeMap<String, &'a dyn CandidateArtifactCorrectionReplayEvidence<I>>;
 
+/// One authentic candidate-fenced Artifact evidence packet held only while
+/// Discovery checks its current record. The history comes from the maintained
+/// native-history reader and the optional replay from CMD's maintained replay
+/// kernel; this boundary carries no serialized proof or source-admission
+/// authority.
+pub struct CandidateArtifactEvidence<'evidence, I: Copy + Eq> {
+    history: crate::native_compound::CandidateNativeRecordHistoryReadObservation<I>,
+    replay: Option<Box<dyn CandidateArtifactCorrectionReplayEvidence<I> + 'evidence>>,
+    direct_source_read_bytes: u64,
+    peak_state_bytes: usize,
+}
+
+/// Result of one exact-path provider lookup. The optional schema result avoids
+/// repeating the candidate Records point probe inside native Artifact
+/// validation; `None` means that the native schema branch did not apply.
+pub struct CandidateArtifactEvidenceResponse<'evidence, I: Copy + Eq> {
+    evidence: Option<CandidateArtifactEvidence<'evidence, I>>,
+    candidate_schema_invalid: Option<bool>,
+}
+
+impl<'evidence, I: Copy + Eq> CandidateArtifactEvidenceResponse<'evidence, I> {
+    pub fn new(
+        evidence: Option<CandidateArtifactEvidence<'evidence, I>>,
+        candidate_schema_invalid: Option<bool>,
+    ) -> Self {
+        Self {
+            evidence,
+            candidate_schema_invalid,
+        }
+    }
+
+    pub fn evidence(&self) -> Option<&CandidateArtifactEvidence<'evidence, I>> {
+        self.evidence.as_ref()
+    }
+
+    pub fn candidate_schema_invalid(&self) -> Option<bool> {
+        self.candidate_schema_invalid
+    }
+}
+
+impl<'evidence, I: Copy + Eq> CandidateArtifactEvidence<'evidence, I> {
+    /// Assemble evidence from the maintained private-constructor native
+    /// history observation and CMD's correction-replay implementation. The
+    /// identity-bearing history type prevents callers from substituting a
+    /// serialized or digest-only proof packet.
+    pub fn from_observations(
+        history: crate::native_compound::CandidateNativeRecordHistoryReadObservation<I>,
+        replay: Option<Box<dyn CandidateArtifactCorrectionReplayEvidence<I> + 'evidence>>,
+        direct_source_read_bytes: u64,
+        peak_state_bytes: usize,
+    ) -> Self {
+        Self {
+            history,
+            replay,
+            direct_source_read_bytes,
+            peak_state_bytes,
+        }
+    }
+}
+
+impl<I: Copy + Eq> CandidateArtifactEvidence<'_, I> {
+    pub fn history(
+        &self,
+    ) -> &crate::native_compound::CandidateNativeRecordHistoryReadObservation<I> {
+        &self.history
+    }
+
+    pub fn replay(&self) -> Option<&dyn CandidateArtifactCorrectionReplayEvidence<I>> {
+        self.replay.as_deref()
+    }
+
+    pub fn direct_source_read_bytes(&self) -> u64 {
+        self.direct_source_read_bytes
+    }
+
+    pub fn peak_state_bytes(&self) -> usize {
+        self.peak_state_bytes
+    }
+}
+
+/// CMD-owned lazy provider for exact candidate Artifact paths. `begin` marks
+/// the current path in its held Records index exactly once, `evidence` returns
+/// at most one authentic packet, and `finish` proves EOF coverage. Portable VAL
+/// depends only on this source-first contract.
+pub trait CandidateArtifactEvidenceProvider<I: Copy + Eq> {
+    fn validate_binding(
+        &mut self,
+        input: &dyn SourceCutInputWithIdentity<I>,
+        coverage: &SourceCutInputCoverage,
+        records: &SourceFoundationRecordsStreamedReport<'_, I>,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<(), ItemRefusal>;
+
+    fn begin_artifact_path(
+        &mut self,
+        path: &str,
+        remaining_state_bytes: usize,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<Option<SourceFoundationArtifactRecordPathSummary>, ItemRefusal>;
+
+    fn evidence_for_artifact<'evidence>(
+        &'evidence mut self,
+        path: &str,
+        indexed_record: Option<SourceFoundationArtifactRecordPathSummary>,
+        current_record: &Value,
+        current_member_sha256: Digest256,
+        current_member_size_bytes: u64,
+        remaining_source_bytes: u64,
+        remaining_state_bytes: usize,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<CandidateArtifactEvidenceResponse<'evidence, I>, ItemRefusal>;
+
+    fn abandon_artifact_path(
+        &mut self,
+        path: &str,
+        remaining_state_bytes: usize,
+    ) -> Result<(), ItemRefusal>;
+
+    fn finish(&mut self, deadline: Instant, cancelled: &AtomicBool) -> Result<(), ItemRefusal>;
+}
+
 /// Bounded observations supplied by the host/CMD owner. Authored metadata
 /// posture is keyed by exact selected path. `private_files` is the physical
 /// file inventory under the private correspondence root, including ignored
@@ -307,6 +431,10 @@ pub struct Cost {
     /// kernel and referenced here rather than read or charged a second time.
     pub artifact_replay_referenced_publication_state_bytes: usize,
     pub artifact_replay_referenced_state_bytes: usize,
+    /// High-water state for the single authentic candidate evidence packet
+    /// reconstructed inside Discovery. Retained proof/index state is charged
+    /// by the CMD provider's separate cost report.
+    pub candidate_artifact_evidence_peak_state_bytes: usize,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -474,14 +602,16 @@ struct Inspector<'s, 'p, S: LayerFamilySource + ?Sized, I: Copy + Eq = ()> {
     payload_observation_paths: BTreeSet<String>,
     read_bytes: u64,
     candidate_direct_source_bytes: u64,
+    candidate_provider_source_bytes: u64,
     payload_bytes: u64,
     state_bytes: usize,
     document_copies: usize,
     native_history_referenced_bytes: u64,
     native_history_referenced_state_bytes: usize,
-    artifact_replay_referenced_paths: BTreeSet<String>,
+    artifact_replay_referenced_paths: Option<BTreeSet<String>>,
     artifact_replay_referenced_publication_state_bytes: usize,
     artifact_replay_referenced_state_bytes: usize,
+    candidate_artifact_evidence_peak_state_bytes: usize,
 }
 
 impl<S: LayerFamilySource + ?Sized, I: Copy + Eq> Inspector<'_, '_, S, I> {
@@ -593,11 +723,13 @@ impl<S: LayerFamilySource + ?Sized, I: Copy + Eq> Inspector<'_, '_, S, I> {
         path: &str,
         evidence: &ArtifactReplayRef<'_, I>,
     ) -> Result<(), ItemRefusal> {
-        if !self
-            .artifact_replay_referenced_paths
-            .insert(path.to_owned())
-        {
-            return Ok(());
+        if let Some(paths) = &mut self.artifact_replay_referenced_paths {
+            if !paths.insert(path.to_owned()) {
+                return Ok(());
+            }
+            self.reserve_state(path.len().checked_add(64).ok_or(ItemRefusal::Budget)?)?;
+        } else {
+            self.check_temporary_state(path.len().checked_add(64).ok_or(ItemRefusal::Budget)?)?;
         }
         self.artifact_replay_referenced_publication_state_bytes = self
             .artifact_replay_referenced_publication_state_bytes
@@ -607,8 +739,15 @@ impl<S: LayerFamilySource + ?Sized, I: Copy + Eq> Inspector<'_, '_, S, I> {
             .artifact_replay_referenced_state_bytes
             .checked_add(evidence.returned_state_bytes())
             .ok_or(ItemRefusal::Budget)?;
-        self.reserve_state(path.len().checked_add(64).ok_or(ItemRefusal::Budget)?)?;
         Ok(())
+    }
+
+    fn check_temporary_state(&self, bytes: usize) -> Result<(), ItemRefusal> {
+        self.state_bytes
+            .checked_add(bytes)
+            .filter(|used| *used <= self.limits.max_state_bytes)
+            .map(|_| ())
+            .ok_or(ItemRefusal::Budget)
     }
 
     fn canonical_record_sha256(&mut self, value: &Value) -> Result<String, ItemRefusal> {
@@ -5351,6 +5490,7 @@ fn native_artifact_capture<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
     native_history: Option<NativeHistoryRef<'_, I>>,
     artifact_replay: Option<ArtifactReplayRef<'_, I>>,
     invalid_current_schema_proofs: Option<&CurrentArtifactInvalidSchemaProofs<'_>>,
+    candidate_schema_invalid_override: Option<bool>,
 ) -> Result<NativeArtifactCapture, ItemRefusal> {
     let issue_start = inspector.issues.len();
     let unsupported_start = inspector.unsupported.len();
@@ -5420,7 +5560,9 @@ fn native_artifact_capture<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
             identity,
             membership,
         }) => {
-            if let Some(proofs) = inspector.candidate_invalid_schema_proofs {
+            if let Some(invalid) = candidate_schema_invalid_override {
+                invalid
+            } else if let Some(proofs) = inspector.candidate_invalid_schema_proofs {
                 if !proofs.binding_matches(identity, membership) {
                     false
                 } else if let Some(digest) = inspector.cached_digest(artifact_path) {
@@ -6537,6 +6679,7 @@ fn inspect_internal<S: LayerFamilySource + ?Sized>(
         require_local_payloads,
         native_cut,
         invalid_current_artifact_schema_proofs,
+        None,
     )
     .map(|output| output.report)
 }
@@ -6630,6 +6773,72 @@ pub fn inspect_candidate_with_artifact_replays_and_records_with_proofs<
         require_local_payloads,
         None,
         None,
+        None,
+    )?;
+    input.verify_current_fence(coverage, limits.deadline, source.cancellation())?;
+    Ok(SourceFoundationCandidateDiscoveryReport {
+        input_identity,
+        source_membership: membership,
+        candidate_direct_source_bytes: output.candidate_direct_source_bytes,
+        report: output.report,
+    })
+}
+
+/// Inspect a candidate source input while reconstructing one authentic
+/// Artifact history/replay packet at a time through CMD's provider. The held
+/// Records path index is consumed in the same Artifact traversal and checked
+/// for orphan rows at EOF.
+#[allow(clippy::too_many_arguments)]
+pub fn inspect_candidate_with_artifact_evidence_provider<
+    S: LayerFamilySource + ?Sized,
+    I: Copy + Eq,
+>(
+    source: &mut S,
+    input: &dyn SourceCutInputWithIdentity<I>,
+    coverage: &SourceCutInputCoverage,
+    paths: &dyn SourceFoundationDefaultPaths,
+    prior_events: &dyn SourceFoundationDefaultEventLookup,
+    records_lookup: &dyn SourceFoundationDefaultRecordsLookup,
+    records: &SourceFoundationRecordsStreamedReport<'_, I>,
+    limits: ItemLimits,
+    physical: &SourcePhysicalFacts,
+    evidence_provider: &mut dyn CandidateArtifactEvidenceProvider<I>,
+    require_local_payloads: bool,
+) -> Result<SourceFoundationCandidateDiscoveryReport<I>, ItemRefusal> {
+    source.checkpoint(limits.deadline)?;
+    let input_identity = *input.input_identity();
+    let membership = *records.source_membership();
+    if input_identity != *records.input_identity() || coverage.membership() != membership {
+        return Err(ItemRefusal::Source(
+            "source-foundation candidate Discovery input/report binding differs".into(),
+        ));
+    }
+    input.verify_current_fence(coverage, limits.deadline, source.cancellation())?;
+    evidence_provider.validate_binding(
+        input,
+        coverage,
+        records,
+        limits.deadline,
+        source.cancellation(),
+    )?;
+    let path_view = BorrowedDiscoveryPaths(paths);
+    let output = inspect_kernel::<S, I>(
+        source,
+        &path_view,
+        Some(input.source_input()),
+        Some(records_lookup),
+        Some(&input_identity),
+        Some(membership),
+        NativeHistorySet::Empty,
+        ArtifactReplaySet::Empty,
+        None,
+        prior_events,
+        limits,
+        Some(physical),
+        require_local_payloads,
+        None,
+        None,
+        Some(evidence_provider),
     )?;
     input.verify_current_fence(coverage, limits.deadline, source.cancellation())?;
     Ok(SourceFoundationCandidateDiscoveryReport {
@@ -6656,6 +6865,7 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
     require_local_payloads: bool,
     native_cut: Option<NativeCutBinding>,
     invalid_current_artifact_schema_proofs: Option<&CurrentArtifactInvalidSchemaProofs<'_>>,
+    mut candidate_artifact_evidence_provider: Option<&mut dyn CandidateArtifactEvidenceProvider<I>>,
 ) -> Result<DiscoveryKernelOutput, ItemRefusal> {
     let mut inspector = Inspector {
         source,
@@ -6677,14 +6887,18 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
         payload_observation_paths: BTreeSet::new(),
         read_bytes: 0,
         candidate_direct_source_bytes: 0,
+        candidate_provider_source_bytes: 0,
         payload_bytes: 0,
         state_bytes: 0,
         document_copies: 0,
         native_history_referenced_bytes: 0,
         native_history_referenced_state_bytes: 0,
-        artifact_replay_referenced_paths: BTreeSet::new(),
+        artifact_replay_referenced_paths: candidate_artifact_evidence_provider
+            .is_none()
+            .then(BTreeSet::new),
         artifact_replay_referenced_publication_state_bytes: 0,
         artifact_replay_referenced_state_bytes: 0,
+        candidate_artifact_evidence_peak_state_bytes: 0,
     };
     let mut previous_path: Option<String> = None;
     let mut previous_path_state = 0usize;
@@ -6856,7 +7070,44 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
     for path in &artifact_paths {
         let path = path.as_str();
         inspector.checkpoint()?;
+        let indexed_artifact_record =
+            if let Some(provider) = candidate_artifact_evidence_provider.as_deref_mut() {
+                let remaining_state = inspector
+                    .limits
+                    .max_state_bytes
+                    .checked_sub(inspector.state_bytes)
+                    .ok_or(ItemRefusal::Budget)?;
+                let summary = provider.begin_artifact_path(
+                    path,
+                    remaining_state,
+                    inspector.limits.deadline,
+                    inspector.source.cancellation(),
+                )?;
+                if let Some(summary) = summary {
+                    inspector.check_temporary_state(summary.charged_state_bytes)?;
+                    inspector.candidate_artifact_evidence_peak_state_bytes = inspector
+                        .candidate_artifact_evidence_peak_state_bytes
+                        .max(summary.charged_state_bytes);
+                }
+                summary
+            } else {
+                None
+            };
         let Some(raw) = inspector.current_bytes(path)? else {
+            if let Some(provider) = candidate_artifact_evidence_provider.as_deref_mut() {
+                let remaining_state = inspector
+                    .limits
+                    .max_state_bytes
+                    .checked_sub(inspector.state_bytes)
+                    .and_then(|state| {
+                        state.checked_sub(
+                            indexed_artifact_record
+                                .map_or(0, |summary| summary.charged_state_bytes),
+                        )
+                    })
+                    .ok_or(ItemRefusal::Budget)?;
+                provider.abandon_artifact_path(path, remaining_state)?;
+            }
             continue;
         };
         let value = match serde_json::from_slice::<Value>(&raw) {
@@ -6867,6 +7118,20 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
                     "invalid-json",
                     "current source document is invalid JSON",
                 )?;
+                if let Some(provider) = candidate_artifact_evidence_provider.as_deref_mut() {
+                    let remaining_state = inspector
+                        .limits
+                        .max_state_bytes
+                        .checked_sub(inspector.state_bytes)
+                        .and_then(|state| {
+                            state.checked_sub(
+                                indexed_artifact_record
+                                    .map_or(0, |summary| summary.charged_state_bytes),
+                            )
+                        })
+                        .ok_or(ItemRefusal::Budget)?;
+                    provider.abandon_artifact_path(path, remaining_state)?;
+                }
                 continue;
             }
         };
@@ -6986,8 +7251,87 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
             )?,
         }
         let event_ref = string(&value, "provenance_event_ref").unwrap_or("");
-        let native_history = inspector.native_histories.get(path);
-        let artifact_replay = inspector.artifact_replays.get(path);
+        let candidate_evidence_response =
+            if let Some(provider) = candidate_artifact_evidence_provider.as_deref_mut() {
+                let consumed_source = inspector
+                    .read_bytes
+                    .checked_add(inspector.candidate_provider_source_bytes)
+                    .ok_or(ItemRefusal::Budget)?;
+                let remaining_source = inspector
+                    .limits
+                    .max_total_bytes
+                    .checked_sub(consumed_source)
+                    .ok_or(ItemRefusal::Budget)?;
+                let indexed_record_state =
+                    indexed_artifact_record.map_or(0, |summary| summary.charged_state_bytes);
+                let remaining_state = inspector
+                    .limits
+                    .max_state_bytes
+                    .checked_sub(inspector.state_bytes)
+                    .and_then(|state| state.checked_sub(indexed_record_state))
+                    .ok_or(ItemRefusal::Budget)?;
+                Some(provider.evidence_for_artifact(
+                    path,
+                    indexed_artifact_record,
+                    &value,
+                    Digest256::of_bytes(&raw),
+                    u64::try_from(raw.len()).map_err(|_| ItemRefusal::Budget)?,
+                    remaining_source,
+                    remaining_state,
+                    inspector.limits.deadline,
+                    inspector.source.cancellation(),
+                )?)
+            } else {
+                None
+            };
+        let candidate_schema_invalid = candidate_evidence_response
+            .as_ref()
+            .and_then(|response| response.candidate_schema_invalid());
+        if let Some(evidence) = candidate_evidence_response
+            .as_ref()
+            .and_then(|response| response.evidence())
+        {
+            inspector.check_temporary_state(
+                indexed_artifact_record
+                    .map_or(0, |summary| summary.charged_state_bytes)
+                    .checked_add(evidence.peak_state_bytes())
+                    .ok_or(ItemRefusal::Budget)?,
+            )?;
+            inspector.candidate_artifact_evidence_peak_state_bytes =
+                inspector.candidate_artifact_evidence_peak_state_bytes.max(
+                    indexed_artifact_record
+                        .map_or(0, |summary| summary.charged_state_bytes)
+                        .checked_add(evidence.peak_state_bytes())
+                        .ok_or(ItemRefusal::Budget)?,
+                );
+            inspector.candidate_provider_source_bytes = inspector
+                .candidate_provider_source_bytes
+                .checked_add(evidence.direct_source_read_bytes())
+                .filter(|provider_used| {
+                    inspector
+                        .read_bytes
+                        .checked_add(*provider_used)
+                        .is_some_and(|total| total <= inspector.limits.max_total_bytes)
+                })
+                .ok_or(ItemRefusal::Budget)?;
+            inspector.candidate_direct_source_bytes = inspector
+                .candidate_direct_source_bytes
+                .checked_add(evidence.direct_source_read_bytes())
+                .ok_or(ItemRefusal::Budget)?;
+        }
+        let (native_history, artifact_replay) = match candidate_evidence_response
+            .as_ref()
+            .and_then(|response| response.evidence())
+        {
+            Some(evidence) => (
+                Some(NativeHistoryRef::Candidate(evidence.history())),
+                evidence.replay().map(ArtifactReplayRef::Candidate),
+            ),
+            None => (
+                inspector.native_histories.get(path),
+                inspector.artifact_replays.get(path),
+            ),
+        };
         let artifact_binding = native_cut.map(NativeArtifactBinding::Cut).or_else(|| {
             candidate_identity
                 .zip(candidate_membership)
@@ -7006,6 +7350,7 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
             native_history,
             artifact_replay,
             invalid_current_artifact_schema_proofs,
+            candidate_schema_invalid,
         )?;
         if native_capture == NativeArtifactCapture::Complete {
             if !event_ref.is_empty() && !event_ids.insert(event_ref.to_owned()) {
@@ -7050,10 +7395,18 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
         artifacts_by_path.insert(path.to_owned(), value);
     }
 
+    if let Some(provider) = candidate_artifact_evidence_provider.as_deref_mut() {
+        provider.finish(limits.deadline, inspector.source.cancellation())?;
+    }
+
     let artifact_replays = inspector.artifact_replays;
     artifact_replays.for_each_path(&mut |path| {
         inspector.checkpoint()?;
-        if inspector.artifact_replay_referenced_paths.contains(path) {
+        if inspector
+            .artifact_replay_referenced_paths
+            .as_ref()
+            .is_some_and(|paths| paths.contains(path))
+        {
             return Ok(());
         }
         let location = if safe_relative_path(path) && path.starts_with(ARTIFACTS) {
@@ -7847,6 +8200,8 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
                     .artifact_replay_referenced_publication_state_bytes,
                 artifact_replay_referenced_state_bytes: inspector
                     .artifact_replay_referenced_state_bytes,
+                candidate_artifact_evidence_peak_state_bytes: inspector
+                    .candidate_artifact_evidence_peak_state_bytes,
             },
         },
         candidate_direct_source_bytes: inspector.candidate_direct_source_bytes,

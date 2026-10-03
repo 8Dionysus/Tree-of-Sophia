@@ -11,14 +11,16 @@ use crate::source_command::{SourceCommandError, SourceFile};
 use crate::source_revisions::{
     self, ArtifactCorrectionReplayObservation, ReadonlyRecordFiles, RecordVersionReadInput,
 };
+use std::cell::RefCell;
 use std::collections::BTreeMap;
 use std::mem::size_of;
 use std::path::Path;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Instant;
 use tos_foundation::{Digest256, RelativePath, SourceRevision};
-use tos_source_store::{CorpusCutReader, SourceMembershipV1};
+use tos_source_store::{CorpusCutReader, SourceMembershipV1, SourcePresenceV1};
 use tos_validation::PredicateRead;
+use tos_validation::executor::SharedSchemaWorkerQuota;
 use tos_validation::item_rules::{ItemLimits, ItemRefusal};
 use tos_validation::native_compound::{
     CandidateNativeRecordHistoryReadObservation, NativeRecordHistoryReadObservation,
@@ -33,14 +35,16 @@ use tos_validation::source_cut::{
 };
 use tos_validation::source_foundation_discovery::{
     ArtifactCorrectionReplayEvidence, ArtifactCorrectionReplayMap,
-    CandidateArtifactCorrectionReplayEvidence, CandidateArtifactCorrectionReplayMap,
+    CandidateArtifactCorrectionReplayEvidence, CandidateArtifactEvidence,
+    CandidateArtifactEvidenceProvider, CandidateArtifactEvidenceResponse,
     CandidateArtifactInvalidSchemaProofs, CurrentArtifactInvalidSchemaProofs, SourcePhysicalFacts,
 };
 use tos_validation::source_foundation_records::{
-    NATIVE_ARTIFACT_RECORD_SCHEMA_URI, SourceFoundationRecordKernelOutcome,
-    SourceFoundationRecordsCollection, SourceFoundationRecordsCursor,
-    SourceFoundationRecordsPageBudget, SourceFoundationRecordsReport,
-    SourceFoundationRecordsStoredFact, SourceFoundationRecordsStreamedReport,
+    NATIVE_ARTIFACT_RECORD_SCHEMA_URI, SourceFoundationArtifactRecordPathSummary,
+    SourceFoundationRecordKernelOutcome, SourceFoundationRecordsCollection,
+    SourceFoundationRecordsCursor, SourceFoundationRecordsPageBudget,
+    SourceFoundationRecordsReport, SourceFoundationRecordsStoredFact,
+    SourceFoundationRecordsStreamedReport,
 };
 
 const ARTIFACTS: &str = "ToS/source-witnesses/artifacts/";
@@ -99,12 +103,15 @@ pub(crate) enum ArtifactReplayFailureStage {
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub(crate) struct ArtifactReplayCost {
     pub skip_state_bytes: usize,
-    /// Peak storage upper bound for the temporary borrowed path-to-record
-    /// index used while selecting current Artifact records.
+    /// Peak temporary state bound for the held Records path lookup and EOF
+    /// check, including returned summary and query scratch.
     pub candidate_record_index_state_bytes: usize,
     /// Precharged row-scan and ordered-index comparison work telemetry, not a
     /// hard CPU quota.
     pub candidate_record_index_work_upper_bound: usize,
+    /// Exact live-input point probes performed by proof, companion, and
+    /// current-Artifact path binding checks.
+    pub candidate_input_path_probe_count: usize,
     pub candidate_source_read_bytes: u64,
     pub native_history_source_read_bytes: u64,
     pub readonly: CapturedReadonlyRecordCost,
@@ -118,6 +125,15 @@ pub(crate) struct ArtifactReplayCost {
     pub schema_proof_prepare_work_upper_bound: usize,
     pub schema_proof_validation_work_upper_bound: usize,
     pub schema_proof_hash_input_bytes_upper_bound: usize,
+    /// Largest single provider packet plus its exact Records point lookup.
+    /// Candidate Discovery consumes these packets synchronously and retains
+    /// only this high-water value, not one map entry per Artifact.
+    pub candidate_artifact_evidence_peak_state_bytes: usize,
+    pub candidate_artifact_evidence_packets: usize,
+    pub candidate_artifact_skipped_paths: usize,
+    pub candidate_replay_worker_cpu_micros: u64,
+    pub candidate_replay_worker_wire_bytes: u64,
+    pub candidate_replay_worker_units: u64,
     pub peak_temporary_state_bytes: usize,
     pub failure_reserved_source_read_bytes: u64,
     pub failure_reserved_state_bytes: usize,
@@ -199,46 +215,114 @@ impl<'cut> ArtifactReplayEvidence<'cut> {
     }
 }
 
-/// Candidate-input history and correction evidence borrowed into the same
-/// Discovery join. The proof remains tied to this exact streamed Records
-/// report; its source identity is never translated into a revision.
-pub(crate) struct CandidateArtifactReplayEvidence<'report, 'store, I: Copy + Eq> {
-    histories: BTreeMap<String, CandidateNativeRecordHistoryReadObservation<I>>,
-    replays: BTreeMap<String, source_revisions::CandidateArtifactCorrectionReplayObservation<I>>,
-    invalid_schema_proofs: CandidateArtifactInvalidSchemaProofs<'report, 'store, I>,
-    skips: Vec<ArtifactReplaySkip>,
+/// Lazy candidate Artifact history and correction evidence provider. It keeps
+/// only the shared schema-rejection proof and one current path's real kernel
+/// results; candidate identity is never translated into a revision.
+pub(crate) struct CandidateArtifactReplayEvidence<'provider, 'store, 'worker, I: Copy + Eq> {
+    input: &'provider dyn SourceCutInputWithIdentity<I>,
+    coverage: &'provider SourceCutInputCoverage,
+    records: &'provider SourceFoundationRecordsStreamedReport<'store, I>,
+    source_root: String,
+    effective_uid: u64,
+    worker: &'provider RefCell<&'worker mut CandidateCutWorkerSchemaExecutor<I>>,
+    worker_quota: SharedSchemaWorkerQuota,
+    invalid_schema_proofs: CandidateArtifactInvalidSchemaProofs<'provider, 'store, I>,
+    history_limits: ItemLimits,
+    page_budget: SourceFoundationRecordsPageBudget,
+    max_scan_rows: usize,
+    max_diagnostic_validation_work: usize,
+    source_bytes_used: u64,
+    retained_state_bytes: usize,
+    active_path: Option<String>,
+    active_path_state_bytes: usize,
+    active_index_state_bytes: usize,
+    active_summary: Option<SourceFoundationArtifactRecordPathSummary>,
+    scan_rows_used: usize,
+    finished: bool,
+    has_skips: bool,
     cost: ArtifactReplayCost,
 }
 
-impl<I: Copy + Eq> CandidateArtifactReplayEvidence<'_, '_, I> {
-    pub(crate) fn histories(
-        &self,
-    ) -> &BTreeMap<String, CandidateNativeRecordHistoryReadObservation<I>> {
-        &self.histories
-    }
-
-    pub(crate) fn artifact_replays(&self) -> CandidateArtifactCorrectionReplayMap<'_, I> {
-        self.replays
-            .iter()
-            .map(|(path, observation)| {
-                (
-                    path.clone(),
-                    observation as &dyn CandidateArtifactCorrectionReplayEvidence<I>,
-                )
-            })
-            .collect()
-    }
-
-    pub(crate) fn skips(&self) -> &[ArtifactReplaySkip] {
-        &self.skips
-    }
-
-    pub(crate) fn invalid_schema_proofs(&self) -> &CandidateArtifactInvalidSchemaProofs<'_, '_, I> {
-        &self.invalid_schema_proofs
-    }
-
+impl<I: Copy + Eq> CandidateArtifactReplayEvidence<'_, '_, '_, I> {
     pub(crate) fn cost(&self) -> ArtifactReplayCost {
         self.cost
+    }
+
+    pub(crate) fn has_skips(&self) -> bool {
+        self.has_skips
+    }
+}
+
+impl<'provider, 'store, 'worker, I: Copy + Eq>
+    CandidateArtifactReplayEvidence<'provider, 'store, 'worker, I>
+{
+    fn retain_skip(&mut self, remaining_state_bytes: usize) -> Result<(), ItemRefusal> {
+        let added_skip_state = if self.has_skips {
+            0
+        } else {
+            size_of::<usize>() + size_of::<bool>()
+        };
+        let provider_peak = self
+            .retained_state_bytes
+            .checked_add(self.cost.skip_state_bytes)
+            .and_then(|state| state.checked_add(added_skip_state))
+            .and_then(|state| state.checked_add(self.active_path_state_bytes))
+            .and_then(|state| state.checked_add(self.active_index_state_bytes))
+            .ok_or(ItemRefusal::Budget)?;
+        let discovery_peak = self
+            .active_path_state_bytes
+            .checked_add(self.cost.skip_state_bytes)
+            .and_then(|state| state.checked_add(added_skip_state))
+            .ok_or(ItemRefusal::Budget)?;
+        if provider_peak > self.history_limits.max_state_bytes
+            || discovery_peak > remaining_state_bytes
+        {
+            return Err(ItemRefusal::Budget);
+        }
+        self.cost.skip_state_bytes = self
+            .cost
+            .skip_state_bytes
+            .checked_add(added_skip_state)
+            .ok_or(ItemRefusal::Budget)?;
+        self.cost.peak_temporary_state_bytes =
+            self.cost.peak_temporary_state_bytes.max(provider_peak);
+        self.has_skips = true;
+        self.cost.candidate_artifact_skipped_paths = self
+            .cost
+            .candidate_artifact_skipped_paths
+            .checked_add(1)
+            .ok_or(ItemRefusal::Budget)?;
+        Ok(())
+    }
+}
+
+/// Schema-check proxy for the same candidate worker shared with the lazy
+/// Artifact replay provider. Calls are serialized through the RefCell, so the
+/// maintained schema and correction-replay kernels share one worker/quota.
+pub(crate) struct CandidateArtifactSchemaExecutor<'cell, 'worker, I: Copy + Eq> {
+    worker: &'cell RefCell<&'worker mut CandidateCutWorkerSchemaExecutor<I>>,
+}
+
+impl<'cell, 'worker, I: Copy + Eq> CandidateArtifactSchemaExecutor<'cell, 'worker, I> {
+    pub(crate) fn new(
+        worker: &'cell RefCell<&'worker mut CandidateCutWorkerSchemaExecutor<I>>,
+    ) -> Self {
+        Self { worker }
+    }
+}
+
+impl<I: Copy + Eq> CutSchemaExecutor for CandidateArtifactSchemaExecutor<'_, '_, I> {
+    fn check(
+        &mut self,
+        path: &str,
+        raw: &[u8],
+        contract: &str,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<bool, ItemRefusal> {
+        self.worker
+            .borrow_mut()
+            .check(path, raw, contract, deadline, cancelled)
     }
 }
 
@@ -440,735 +524,30 @@ fn refusal_failure(
     )
 }
 
-fn retain_candidate_skip(
-    skips: &mut Vec<ArtifactReplaySkip>,
-    cost: &mut ArtifactReplayCost,
-    path: &str,
-    kind: ArtifactReplaySkipKind,
-    retained_state: &mut usize,
-    live_temporary_state: usize,
-    max_state: usize,
-) -> Result<(), ItemRefusal> {
-    let skip_state = size_of::<ArtifactReplaySkip>()
-        .checked_add(map_state(path).ok_or(ItemRefusal::Budget)?)
-        .ok_or(ItemRefusal::Budget)?;
-    if retained_state
-        .checked_add(live_temporary_state)
-        .and_then(|state| state.checked_add(skip_state))
-        .is_none_or(|state| state > max_state)
-    {
-        return Err(ItemRefusal::Budget);
-    }
-    retain_skip(skips, cost, path, kind, retained_state, max_state)
-        .map_err(|_| ItemRefusal::Budget)?;
-    cost.peak_temporary_state_bytes = cost.peak_temporary_state_bytes.max(
-        retained_state
-            .checked_add(live_temporary_state)
-            .ok_or(ItemRefusal::Budget)?,
-    );
-    Ok(())
-}
-
-fn candidate_artifact_member_temporary_state(size_bytes: u64) -> Result<usize, ItemRefusal> {
-    let size = usize::try_from(size_bytes).map_err(|_| ItemRefusal::Budget)?;
-    size.checked_add(TEMP_JSON_FIXED_STATE)
-        .and_then(|state| {
-            size.checked_mul(TEMP_JSON_STATE_PER_BYTE)
-                .and_then(|json| state.checked_add(json))
-        })
-        .and_then(|state| state.checked_add(8_192))
-        .ok_or(ItemRefusal::Budget)
-}
-
+/// Build the shared invalid-schema proof before Discovery, then reconstruct
+/// actual history and CMD replay packets only when the live Discovery walk
+/// reaches each current Artifact path.
 #[allow(clippy::too_many_arguments)]
-fn process_candidate_artifact_path<I: Copy + Eq>(
-    input: &dyn SourceCutInputWithIdentity<I>,
-    input_identity: I,
-    membership: SourceMembershipV1,
-    invalid_schema_proofs: &CandidateArtifactInvalidSchemaProofs<'_, '_, I>,
-    history_limits: ItemLimits,
-    path: &str,
-    expected_size_bytes: u64,
-    indexed_record: Option<
-        tos_validation::source_foundation_records::SourceFoundationArtifactRecordPathSummary,
-    >,
-    live_temporary_state: usize,
-    retained_state: &mut usize,
-    source_bytes_used: &mut u64,
-    histories: &mut BTreeMap<String, CandidateNativeRecordHistoryReadObservation<I>>,
-    skips: &mut Vec<ArtifactReplaySkip>,
-    cost: &mut ArtifactReplayCost,
-    cancelled: &AtomicBool,
-) -> Result<(), ArtifactReplayFailure> {
-    let deadline = history_limits.deadline;
-    let max_source_bytes = history_limits.max_total_bytes;
-    let max_state_bytes = history_limits.max_state_bytes;
-    let remaining_source = max_source_bytes.saturating_sub(*source_bytes_used);
-    let remaining_state = max_state_bytes.saturating_sub(*retained_state);
-    active(deadline, cancelled).map_err(|class| {
-        failure(
-            class,
-            ArtifactReplayFailureStage::CompanionFacts,
-            Some(path),
-            *cost,
-            remaining_source,
-            remaining_state,
-        )
-    })?;
-
-    let companions =
-        candidate_companions_present(input, path, deadline, cancelled).map_err(|refusal| {
-            refusal_failure(
-                &refusal,
-                ArtifactReplayFailureStage::CompanionFacts,
-                Some(path),
-                *cost,
-                remaining_source,
-                remaining_state,
-            )
-        })?;
-    let present_count = companions.iter().filter(|present| **present).count();
-    match present_count {
-        0 => {
-            retain_candidate_skip(
-                skips,
-                cost,
-                path,
-                ArtifactReplaySkipKind::LegacyNoCreationCompanions,
-                retained_state,
-                live_temporary_state,
-                max_state_bytes,
-            )
-            .map_err(|refusal| {
-                refusal_failure(
-                    &refusal,
-                    ArtifactReplayFailureStage::CompanionFacts,
-                    Some(path),
-                    *cost,
-                    remaining_source,
-                    remaining_state,
-                )
-            })?;
-            return Ok(());
-        }
-        1..4 => {
-            retain_candidate_skip(
-                skips,
-                cost,
-                path,
-                ArtifactReplaySkipKind::PartialCreationCompanions,
-                retained_state,
-                live_temporary_state,
-                max_state_bytes,
-            )
-            .map_err(|refusal| {
-                refusal_failure(
-                    &refusal,
-                    ArtifactReplayFailureStage::CompanionFacts,
-                    Some(path),
-                    *cost,
-                    remaining_source,
-                    remaining_state,
-                )
-            })?;
-            return Ok(());
-        }
-        4 => {}
-        _ => {
-            return Err(failure(
-                ArtifactReplayFailureClass::Source,
-                ArtifactReplayFailureStage::CompanionFacts,
-                Some(path),
-                *cost,
-                remaining_source,
-                remaining_state,
-            ));
-        }
-    }
-
-    let Some(schema_matches) = indexed_record.map(|record| record.schema_matches) else {
-        // No current Records row means the raw current member is the only
-        // source for the legacy schema/invalid-JSON branch.
-        if expected_size_bytes > history_limits.max_member_bytes as u64 {
-            return Err(failure(
-                ArtifactReplayFailureClass::Budget,
-                ArtifactReplayFailureStage::CurrentRecord,
-                Some(path),
-                *cost,
-                remaining_source,
-                remaining_state,
-            ));
-        }
-        if expected_size_bytes > remaining_source {
-            return Err(failure(
-                ArtifactReplayFailureClass::Budget,
-                ArtifactReplayFailureStage::CurrentRecord,
-                Some(path),
-                *cost,
-                remaining_source,
-                remaining_state,
-            ));
-        }
-        let raw_temporary = candidate_artifact_member_temporary_state(expected_size_bytes)
-            .map_err(|refusal| {
-                refusal_failure(
-                    &refusal,
-                    ArtifactReplayFailureStage::CurrentRecord,
-                    Some(path),
-                    *cost,
-                    remaining_source,
-                    remaining_state,
-                )
-            })?;
-        if retained_state
-            .checked_add(live_temporary_state)
-            .and_then(|state| state.checked_add(raw_temporary))
-            .is_none_or(|state| state > max_state_bytes)
-        {
-            return Err(failure(
-                ArtifactReplayFailureClass::Budget,
-                ArtifactReplayFailureStage::CurrentRecord,
-                Some(path),
-                *cost,
-                remaining_source,
-                remaining_state,
-            ));
-        }
-        cost.peak_temporary_state_bytes = cost.peak_temporary_state_bytes.max(
-            retained_state
-                .checked_add(live_temporary_state)
-                .and_then(|state| state.checked_add(raw_temporary))
-                .ok_or_else(|| {
-                    failure(
-                        ArtifactReplayFailureClass::Budget,
-                        ArtifactReplayFailureStage::CurrentRecord,
-                        Some(path),
-                        *cost,
-                        remaining_source,
-                        remaining_state,
-                    )
-                })?,
-        );
-        let (parsed, member_sha256, member_size_bytes) = candidate_artifact_member(
-            input,
-            path,
-            expected_size_bytes,
-            history_limits.max_member_bytes,
-            deadline,
-            cancelled,
-        )
-        .map_err(|refusal| {
-            refusal_failure(
-                &refusal,
-                ArtifactReplayFailureStage::CurrentRecord,
-                Some(path),
-                *cost,
-                remaining_source,
-                remaining_state,
-            )
-        })?;
-        *source_bytes_used = source_bytes_used
-            .checked_add(member_size_bytes)
-            .filter(|used| *used <= max_source_bytes)
-            .ok_or_else(|| {
-                failure(
-                    ArtifactReplayFailureClass::Budget,
-                    ArtifactReplayFailureStage::CurrentRecord,
-                    Some(path),
-                    *cost,
-                    remaining_source,
-                    remaining_state,
-                )
-            })?;
-        cost.candidate_source_read_bytes = cost
-            .candidate_source_read_bytes
-            .checked_add(member_size_bytes)
-            .ok_or_else(|| {
-                failure(
-                    ArtifactReplayFailureClass::Budget,
-                    ArtifactReplayFailureStage::CurrentRecord,
-                    Some(path),
-                    *cost,
-                    remaining_source,
-                    remaining_state,
-                )
-            })?;
-        let Some(parsed) = parsed else {
-            retain_candidate_skip(
-                skips,
-                cost,
-                path,
-                ArtifactReplaySkipKind::CurrentJsonInvalid,
-                retained_state,
-                live_temporary_state,
-                max_state_bytes,
-            )
-            .map_err(|refusal| {
-                refusal_failure(
-                    &refusal,
-                    ArtifactReplayFailureStage::CurrentRecord,
-                    Some(path),
-                    *cost,
-                    max_source_bytes.saturating_sub(*source_bytes_used),
-                    max_state_bytes.saturating_sub(*retained_state),
-                )
-            })?;
-            return Ok(());
-        };
-        if parsed.get("$schema").and_then(serde_json::Value::as_str) != Some(NATIVE_ARTIFACT_SCHEMA)
-        {
-            retain_candidate_skip(
-                skips,
-                cost,
-                path,
-                ArtifactReplaySkipKind::CurrentSchemaDrift,
-                retained_state,
-                live_temporary_state,
-                max_state_bytes,
-            )
-            .map_err(|refusal| {
-                refusal_failure(
-                    &refusal,
-                    ArtifactReplayFailureStage::CurrentRecord,
-                    Some(path),
-                    *cost,
-                    max_source_bytes.saturating_sub(*source_bytes_used),
-                    max_state_bytes.saturating_sub(*retained_state),
-                )
-            })?;
-            return Ok(());
-        }
-        drop(parsed);
-        if invalid_schema_proofs.proves_invalid(
-            path,
-            &input_identity,
-            membership,
-            member_sha256,
-            member_size_bytes,
-        ) {
-            retain_candidate_skip(
-                skips,
-                cost,
-                path,
-                ArtifactReplaySkipKind::CurrentRecordSchemaInvalid,
-                retained_state,
-                live_temporary_state,
-                max_state_bytes,
-            )
-            .map_err(|refusal| {
-                refusal_failure(
-                    &refusal,
-                    ArtifactReplayFailureStage::CurrentRecord,
-                    Some(path),
-                    *cost,
-                    max_source_bytes.saturating_sub(*source_bytes_used),
-                    max_state_bytes.saturating_sub(*retained_state),
-                )
-            })?;
-            return Ok(());
-        }
-        return read_candidate_artifact_history(
-            input,
-            input_identity,
-            membership,
-            history_limits,
-            path,
-            live_temporary_state,
-            retained_state,
-            source_bytes_used,
-            histories,
-            cost,
-            cancelled,
-        );
-    };
-
-    if indexed_record.is_some_and(|record| record.record_count != 1) {
-        return Err(failure(
-            ArtifactReplayFailureClass::Source,
-            ArtifactReplayFailureStage::CurrentRecord,
-            Some(path),
-            *cost,
-            remaining_source,
-            remaining_state,
-        ));
-    }
-    if !schema_matches {
-        retain_candidate_skip(
-            skips,
-            cost,
-            path,
-            ArtifactReplaySkipKind::CurrentSchemaDrift,
-            retained_state,
-            live_temporary_state,
-            max_state_bytes,
-        )
-        .map_err(|refusal| {
-            refusal_failure(
-                &refusal,
-                ArtifactReplayFailureStage::CurrentRecord,
-                Some(path),
-                *cost,
-                remaining_source,
-                remaining_state,
-            )
-        })?;
-        return Ok(());
-    }
-    if expected_size_bytes > history_limits.max_member_bytes as u64
-        || expected_size_bytes > remaining_source
-    {
-        return Err(failure(
-            ArtifactReplayFailureClass::Budget,
-            ArtifactReplayFailureStage::CurrentRecord,
-            Some(path),
-            *cost,
-            remaining_source,
-            remaining_state,
-        ));
-    }
-    let raw_temporary =
-        candidate_artifact_member_temporary_state(expected_size_bytes).map_err(|refusal| {
-            refusal_failure(
-                &refusal,
-                ArtifactReplayFailureStage::CurrentRecord,
-                Some(path),
-                *cost,
-                remaining_source,
-                remaining_state,
-            )
-        })?;
-    if retained_state
-        .checked_add(live_temporary_state)
-        .and_then(|state| state.checked_add(raw_temporary))
-        .is_none_or(|state| state > max_state_bytes)
-    {
-        return Err(failure(
-            ArtifactReplayFailureClass::Budget,
-            ArtifactReplayFailureStage::CurrentRecord,
-            Some(path),
-            *cost,
-            remaining_source,
-            remaining_state,
-        ));
-    }
-    cost.peak_temporary_state_bytes = cost.peak_temporary_state_bytes.max(
-        retained_state
-            .checked_add(live_temporary_state)
-            .and_then(|state| state.checked_add(raw_temporary))
-            .ok_or_else(|| {
-                failure(
-                    ArtifactReplayFailureClass::Budget,
-                    ArtifactReplayFailureStage::CurrentRecord,
-                    Some(path),
-                    *cost,
-                    remaining_source,
-                    remaining_state,
-                )
-            })?,
-    );
-    let (parsed, member_sha256, member_size_bytes) = candidate_artifact_member(
-        input,
-        path,
-        expected_size_bytes,
-        history_limits.max_member_bytes,
-        deadline,
-        cancelled,
-    )
-    .map_err(|refusal| {
-        refusal_failure(
-            &refusal,
-            ArtifactReplayFailureStage::CurrentRecord,
-            Some(path),
-            *cost,
-            remaining_source,
-            remaining_state,
-        )
-    })?;
-    *source_bytes_used = source_bytes_used
-        .checked_add(member_size_bytes)
-        .filter(|used| *used <= max_source_bytes)
-        .ok_or_else(|| {
-            failure(
-                ArtifactReplayFailureClass::Budget,
-                ArtifactReplayFailureStage::CurrentRecord,
-                Some(path),
-                *cost,
-                remaining_source,
-                remaining_state,
-            )
-        })?;
-    cost.candidate_source_read_bytes = cost
-        .candidate_source_read_bytes
-        .checked_add(member_size_bytes)
-        .ok_or_else(|| {
-            failure(
-                ArtifactReplayFailureClass::Budget,
-                ArtifactReplayFailureStage::CurrentRecord,
-                Some(path),
-                *cost,
-                remaining_source,
-                remaining_state,
-            )
-        })?;
-    if !parsed.as_ref().is_some_and(|value| {
-        value.get("$schema").and_then(serde_json::Value::as_str) == Some(NATIVE_ARTIFACT_SCHEMA)
-    }) {
-        return Err(failure(
-            ArtifactReplayFailureClass::Source,
-            ArtifactReplayFailureStage::CurrentRecord,
-            Some(path),
-            *cost,
-            max_source_bytes.saturating_sub(*source_bytes_used),
-            max_state_bytes.saturating_sub(*retained_state),
-        ));
-    }
-    drop(parsed);
-    if invalid_schema_proofs.proves_invalid(
-        path,
-        &input_identity,
-        membership,
-        member_sha256,
-        member_size_bytes,
-    ) {
-        retain_candidate_skip(
-            skips,
-            cost,
-            path,
-            ArtifactReplaySkipKind::CurrentRecordSchemaInvalid,
-            retained_state,
-            live_temporary_state,
-            max_state_bytes,
-        )
-        .map_err(|refusal| {
-            refusal_failure(
-                &refusal,
-                ArtifactReplayFailureStage::CurrentRecord,
-                Some(path),
-                *cost,
-                max_source_bytes.saturating_sub(*source_bytes_used),
-                max_state_bytes.saturating_sub(*retained_state),
-            )
-        })?;
-        return Ok(());
-    }
-
-    read_candidate_artifact_history(
-        input,
-        input_identity,
-        membership,
-        history_limits,
-        path,
-        live_temporary_state,
-        retained_state,
-        source_bytes_used,
-        histories,
-        cost,
-        cancelled,
-    )
-}
-
-#[allow(clippy::too_many_arguments)]
-fn read_candidate_artifact_history<I: Copy + Eq>(
-    input: &dyn SourceCutInputWithIdentity<I>,
-    input_identity: I,
-    membership: SourceMembershipV1,
-    history_limits: ItemLimits,
-    path: &str,
-    live_temporary_state: usize,
-    retained_state: &mut usize,
-    source_bytes_used: &mut u64,
-    histories: &mut BTreeMap<String, CandidateNativeRecordHistoryReadObservation<I>>,
-    cost: &mut ArtifactReplayCost,
-    cancelled: &AtomicBool,
-) -> Result<(), ArtifactReplayFailure> {
-    let max_source_bytes = history_limits.max_total_bytes;
-    let max_state_bytes = history_limits.max_state_bytes;
-    let remaining_source = max_source_bytes.saturating_sub(*source_bytes_used);
-    let map_entry_state = map_state(path).ok_or_else(|| {
-        failure(
-            ArtifactReplayFailureClass::Budget,
-            ArtifactReplayFailureStage::NativeHistory,
-            Some(path),
-            *cost,
-            remaining_source,
-            max_state_bytes.saturating_sub(*retained_state),
-        )
-    })?;
-    let before_read = retained_state
-        .checked_add(live_temporary_state)
-        .and_then(|state| state.checked_add(map_entry_state))
-        .ok_or_else(|| {
-            failure(
-                ArtifactReplayFailureClass::Budget,
-                ArtifactReplayFailureStage::NativeHistory,
-                Some(path),
-                *cost,
-                remaining_source,
-                max_state_bytes.saturating_sub(*retained_state),
-            )
-        })?;
-    let reader_state = max_state_bytes.checked_sub(before_read).ok_or_else(|| {
-        failure(
-            ArtifactReplayFailureClass::Budget,
-            ArtifactReplayFailureStage::NativeHistory,
-            Some(path),
-            *cost,
-            remaining_source,
-            max_state_bytes.saturating_sub(*retained_state),
-        )
-    })?;
-    let native_limits = ItemLimits {
-        max_member_bytes: history_limits.max_member_bytes,
-        max_total_bytes: remaining_source,
-        max_state_bytes: reader_state,
-        max_issues: history_limits.max_issues,
-        deadline: history_limits.deadline,
-    };
-    let observation =
-        selected_record_history_from_input(input, membership, path, native_limits, cancelled)
-            .map_err(|refusal| {
-                refusal_failure(
-                    &refusal,
-                    ArtifactReplayFailureStage::NativeHistory,
-                    Some(path),
-                    *cost,
-                    remaining_source,
-                    max_state_bytes.saturating_sub(*retained_state),
-                )
-            })?;
-    if observation.input_identity() != &input_identity
-        || observation.current_membership() != membership
-        || observation.record_path() != path
-    {
-        return Err(failure(
-            ArtifactReplayFailureClass::Source,
-            ArtifactReplayFailureStage::NativeHistory,
-            Some(path),
-            *cost,
-            remaining_source.saturating_sub(observation.bytes_read()),
-            max_state_bytes.saturating_sub(*retained_state),
-        ));
-    }
-    let next_source = source_bytes_used
-        .checked_add(observation.bytes_read())
-        .filter(|used| *used <= max_source_bytes)
-        .ok_or_else(|| {
-            failure(
-                ArtifactReplayFailureClass::Budget,
-                ArtifactReplayFailureStage::NativeHistory,
-                Some(path),
-                *cost,
-                remaining_source,
-                max_state_bytes.saturating_sub(*retained_state),
-            )
-        })?;
-    let returned_state = observation.returned_state_bytes();
-    let added_state = returned_state.checked_add(map_entry_state).ok_or_else(|| {
-        failure(
-            ArtifactReplayFailureClass::Budget,
-            ArtifactReplayFailureStage::NativeHistory,
-            Some(path),
-            *cost,
-            remaining_source.saturating_sub(observation.bytes_read()),
-            max_state_bytes.saturating_sub(*retained_state),
-        )
-    })?;
-    let next_retained = retained_state.checked_add(added_state).ok_or_else(|| {
-        failure(
-            ArtifactReplayFailureClass::Budget,
-            ArtifactReplayFailureStage::NativeHistory,
-            Some(path),
-            *cost,
-            remaining_source.saturating_sub(observation.bytes_read()),
-            max_state_bytes.saturating_sub(*retained_state),
-        )
-    })?;
-    if next_retained
-        .checked_add(live_temporary_state)
-        .is_none_or(|state| state > max_state_bytes)
-    {
-        return Err(failure(
-            ArtifactReplayFailureClass::Budget,
-            ArtifactReplayFailureStage::NativeHistory,
-            Some(path),
-            *cost,
-            remaining_source.saturating_sub(observation.bytes_read()),
-            max_state_bytes.saturating_sub(*retained_state),
-        ));
-    }
-    *source_bytes_used = next_source;
-    cost.native_history_source_read_bytes = cost
-        .native_history_source_read_bytes
-        .checked_add(observation.bytes_read())
-        .ok_or_else(|| {
-            failure(
-                ArtifactReplayFailureClass::Budget,
-                ArtifactReplayFailureStage::NativeHistory,
-                Some(path),
-                *cost,
-                max_source_bytes.saturating_sub(*source_bytes_used),
-                max_state_bytes.saturating_sub(*retained_state),
-            )
-        })?;
-    cost.native_history_returned_state_bytes = cost
-        .native_history_returned_state_bytes
-        .checked_add(returned_state)
-        .ok_or_else(|| {
-            failure(
-                ArtifactReplayFailureClass::Budget,
-                ArtifactReplayFailureStage::NativeHistory,
-                Some(path),
-                *cost,
-                max_source_bytes.saturating_sub(*source_bytes_used),
-                max_state_bytes.saturating_sub(*retained_state),
-            )
-        })?;
-    cost.native_history_map_state_bytes = cost
-        .native_history_map_state_bytes
-        .checked_add(map_entry_state)
-        .ok_or_else(|| {
-            failure(
-                ArtifactReplayFailureClass::Budget,
-                ArtifactReplayFailureStage::NativeHistory,
-                Some(path),
-                *cost,
-                max_source_bytes.saturating_sub(*source_bytes_used),
-                max_state_bytes.saturating_sub(*retained_state),
-            )
-        })?;
-    cost.peak_temporary_state_bytes = cost
-        .peak_temporary_state_bytes
-        .max(next_retained.saturating_add(live_temporary_state));
-    *retained_state = next_retained;
-    histories.insert(path.to_owned(), observation);
-    Ok(())
-}
-
-/// Build candidate-fenced native Artifact history/replay evidence from the
-/// completed streamed Records index. Only Artifact rows are retained while
-/// joining that index to the strict descendant metadata cursor; no whole
-/// current-source member map or synthetic revision is created.
-#[allow(clippy::too_many_arguments)]
-pub(crate) fn prepare_candidate_artifact_replay<'report, 'store, I: Copy + Eq>(
-    input: &dyn SourceCutInputWithIdentity<I>,
-    full_coverage: &SourceCutInputCoverage,
-    records: &'report SourceFoundationRecordsStreamedReport<'store, I>,
+pub(crate) fn prepare_candidate_artifact_replay<'provider, 'store, 'worker, I: Copy + Eq>(
+    input: &'provider dyn SourceCutInputWithIdentity<I>,
+    full_coverage: &'provider SourceCutInputCoverage,
+    records: &'provider SourceFoundationRecordsStreamedReport<'store, I>,
     source_root: &Path,
     effective_uid: u64,
-    worker: &mut CandidateCutWorkerSchemaExecutor<I>,
+    worker: &'provider RefCell<&'worker mut CandidateCutWorkerSchemaExecutor<I>>,
+    worker_quota: SharedSchemaWorkerQuota,
     history_limits: ItemLimits,
     page_budget: SourceFoundationRecordsPageBudget,
     max_scan_rows: usize,
     max_diagnostic_validation_work: usize,
     cancelled: &AtomicBool,
-) -> Result<CandidateArtifactReplayEvidence<'report, 'store, I>, ArtifactReplayFailure> {
+) -> Result<CandidateArtifactReplayEvidence<'provider, 'store, 'worker, I>, ArtifactReplayFailure> {
     let mut cost = ArtifactReplayCost::default();
     let deadline = history_limits.deadline;
     let max_source_bytes = history_limits.max_total_bytes;
     let max_state_bytes = history_limits.max_state_bytes;
     let input_identity = *input.input_identity();
     let membership = *records.source_membership();
-
     if !source_root.is_absolute()
         || source_root.to_str().is_none()
         || max_scan_rows == 0
@@ -1196,20 +575,23 @@ pub(crate) fn prepare_candidate_artifact_replay<'report, 'store, I: Copy + Eq>(
             max_state_bytes,
         )
     })?;
-    if worker.input_identity() != &input_identity
-        || schema_identity.profile() != worker.profile()
-        || schema_identity.schema_set_digest() != worker.schema_set_digest()
-        || schema_identity.contract_selection_digest() != worker.contract_selection_digest()
-        || schema_identity.prepared_execution_binding() != worker.prepared_execution_binding()
     {
-        return Err(failure(
-            ArtifactReplayFailureClass::Source,
-            ArtifactReplayFailureStage::CutBinding,
-            None,
-            cost,
-            max_source_bytes,
-            max_state_bytes,
-        ));
+        let worker = worker.borrow();
+        if worker.input_identity() != &input_identity
+            || schema_identity.profile() != worker.profile()
+            || schema_identity.schema_set_digest() != worker.schema_set_digest()
+            || schema_identity.contract_selection_digest() != worker.contract_selection_digest()
+            || schema_identity.prepared_execution_binding() != worker.prepared_execution_binding()
+        {
+            return Err(failure(
+                ArtifactReplayFailureClass::Source,
+                ArtifactReplayFailureStage::CutBinding,
+                None,
+                cost,
+                max_source_bytes,
+                max_state_bytes,
+            ));
+        }
     }
     input
         .verify_current_fence(full_coverage, deadline, cancelled)
@@ -1261,6 +643,7 @@ pub(crate) fn prepare_candidate_artifact_replay<'report, 'store, I: Copy + Eq>(
             )
         })?;
     cost.schema_proof_validation_work_upper_bound = proof_cost.current_path_probe_count;
+    cost.candidate_input_path_probe_count = proof_cost.current_path_probe_count;
     cost.schema_proof_hash_input_bytes_upper_bound = proof_cost.hash_input_bytes_upper_bound;
     let proof_scan_rows = proof_cost
         .current_record_rows_scanned
@@ -1297,8 +680,32 @@ pub(crate) fn prepare_candidate_artifact_replay<'report, 'store, I: Copy + Eq>(
                 max_state_bytes.saturating_sub(proof_cost.retained_state_bytes),
             )
         })?;
-
-    let mut retained_state = proof_cost.retained_state_bytes;
+    cost.schema_proof_validation_work_upper_bound = cost
+        .schema_proof_validation_work_upper_bound
+        .checked_add(proof_cost.candidate_record_count)
+        .ok_or_else(|| {
+            failure(
+                ArtifactReplayFailureClass::Budget,
+                ArtifactReplayFailureStage::CurrentRecord,
+                None,
+                cost,
+                max_source_bytes,
+                max_state_bytes.saturating_sub(proof_cost.retained_state_bytes),
+            )
+        })?;
+    cost.candidate_input_path_probe_count = cost
+        .candidate_input_path_probe_count
+        .checked_add(proof_cost.candidate_record_count)
+        .ok_or_else(|| {
+            failure(
+                ArtifactReplayFailureClass::Budget,
+                ArtifactReplayFailureStage::CurrentRecord,
+                None,
+                cost,
+                max_source_bytes,
+                max_state_bytes.saturating_sub(proof_cost.retained_state_bytes),
+            )
+        })?;
     let proof_page_peak = proof_cost
         .retained_state_bytes
         .checked_add(proof_cost.index_page_peak_state_bytes)
@@ -1312,7 +719,17 @@ pub(crate) fn prepare_candidate_artifact_replay<'report, 'store, I: Copy + Eq>(
                 max_state_bytes.saturating_sub(proof_cost.retained_state_bytes),
             )
         })?;
-    cost.peak_temporary_state_bytes = cost.peak_temporary_state_bytes.max(proof_page_peak);
+    if proof_cost.retained_state_bytes > max_state_bytes || proof_page_peak > max_state_bytes {
+        return Err(failure(
+            ArtifactReplayFailureClass::Budget,
+            ArtifactReplayFailureStage::CurrentRecord,
+            None,
+            cost,
+            max_source_bytes,
+            max_state_bytes.saturating_sub(proof_cost.retained_state_bytes),
+        ));
+    }
+    cost.peak_temporary_state_bytes = proof_page_peak;
     let source_root = source_root.to_str().ok_or_else(|| {
         failure(
             ArtifactReplayFailureClass::Source,
@@ -1320,454 +737,614 @@ pub(crate) fn prepare_candidate_artifact_replay<'report, 'store, I: Copy + Eq>(
             None,
             cost,
             max_source_bytes,
-            max_state_bytes.saturating_sub(retained_state),
+            max_state_bytes.saturating_sub(proof_cost.retained_state_bytes),
         )
     })?;
-    let mut histories = BTreeMap::new();
-    let mut replays = BTreeMap::new();
-    let mut skips = Vec::new();
-    let mut source_bytes_used = 0u64;
-    let mut prefix_member_count = 0u64;
-    let mut callback_failure = None;
-    let prefix_result = input.for_each_current_member_meta_under(
-        ARTIFACTS.trim_end_matches('/'),
-        deadline,
-        cancelled,
-        &mut |meta| {
-            if prefix_member_count % 128 == 0 {
-                if cancelled.load(Ordering::Relaxed) {
-                    return Err(ItemRefusal::Source(
-                        "candidate Artifact prefix scan cancelled".into(),
-                    ));
-                }
-                if Instant::now() >= deadline {
-                    return Err(ItemRefusal::Deadline);
-                }
+    Ok(CandidateArtifactReplayEvidence {
+        input,
+        coverage: full_coverage,
+        records,
+        source_root: source_root.to_owned(),
+        effective_uid,
+        worker,
+        worker_quota,
+        invalid_schema_proofs,
+        history_limits,
+        page_budget,
+        max_scan_rows,
+        max_diagnostic_validation_work,
+        source_bytes_used: 0,
+        retained_state_bytes: proof_cost.retained_state_bytes,
+        active_path: None,
+        active_path_state_bytes: 0,
+        active_index_state_bytes: 0,
+        active_summary: None,
+        scan_rows_used: proof_scan_rows,
+        finished: false,
+        has_skips: false,
+        cost,
+    })
+}
+
+fn candidate_artifact_path_state(path: &str) -> Result<usize, ItemRefusal> {
+    let parent_bytes = path
+        .rsplit_once('/')
+        .map(|(parent, _)| parent.len())
+        .ok_or_else(|| ItemRefusal::Source("candidate Artifact path has no parent".into()))?;
+    let companion_name_bytes = NATIVE_ARTIFACT_COMPANIONS
+        .iter()
+        .map(|name| name.len())
+        .max()
+        .ok_or(ItemRefusal::Budget)?;
+    let path_state = path
+        .len()
+        .checked_mul(2)
+        .and_then(|state| state.checked_add(size_of::<String>() + 1_024))
+        .ok_or(ItemRefusal::Budget)?;
+    let companion_state = parent_bytes
+        .checked_add(companion_name_bytes)
+        .and_then(|state| state.checked_add(1 + size_of::<String>() + 1_024))
+        .ok_or(ItemRefusal::Budget)?;
+    Ok(path_state.max(companion_state))
+}
+
+fn candidate_provider_refusal(
+    class: ArtifactReplayFailureClass,
+    message: &'static str,
+) -> ItemRefusal {
+    match class {
+        ArtifactReplayFailureClass::Budget => ItemRefusal::Budget,
+        ArtifactReplayFailureClass::Deadline => ItemRefusal::Deadline,
+        ArtifactReplayFailureClass::Source => ItemRefusal::Source(message.into()),
+        ArtifactReplayFailureClass::Incomplete => ItemRefusal::Unsupported(message.into()),
+    }
+}
+
+impl<'provider, 'store, 'worker, I: Copy + Eq> CandidateArtifactEvidenceProvider<I>
+    for CandidateArtifactReplayEvidence<'provider, 'store, 'worker, I>
+{
+    fn validate_binding(
+        &mut self,
+        input: &dyn SourceCutInputWithIdentity<I>,
+        coverage: &SourceCutInputCoverage,
+        records: &SourceFoundationRecordsStreamedReport<'_, I>,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<(), ItemRefusal> {
+        if !std::ptr::eq(self.input, input)
+            || !std::ptr::eq(self.coverage, coverage)
+            || !std::ptr::eq(self.records, records)
+            || input.input_identity() != records.input_identity()
+            || coverage.membership() != *records.source_membership()
+            || self.invalid_schema_proofs.input_identity() != *input.input_identity()
+            || self.invalid_schema_proofs.current_membership() != *records.source_membership()
+        {
+            return Err(ItemRefusal::Source(
+                "candidate Artifact provider binding differs".into(),
+            ));
+        }
+        self.invalid_schema_proofs
+            .validate_report_binding(input, records, deadline, cancelled)?;
+        self.cost.schema_proof_validation_work_upper_bound = self
+            .cost
+            .schema_proof_validation_work_upper_bound
+            .checked_add(self.invalid_schema_proofs.cost().candidate_record_count)
+            .ok_or(ItemRefusal::Budget)?;
+        self.cost.candidate_input_path_probe_count = self
+            .cost
+            .candidate_input_path_probe_count
+            .checked_add(self.invalid_schema_proofs.cost().candidate_record_count)
+            .ok_or(ItemRefusal::Budget)?;
+        Ok(())
+    }
+
+    fn begin_artifact_path(
+        &mut self,
+        path: &str,
+        remaining_state_bytes: usize,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<Option<SourceFoundationArtifactRecordPathSummary>, ItemRefusal> {
+        if self.finished || self.active_path.is_some() {
+            return Err(ItemRefusal::Source(
+                "candidate Artifact provider path sequence differs".into(),
+            ));
+        }
+        if cancelled.load(Ordering::Relaxed) {
+            return Err(ItemRefusal::Source(
+                "candidate Artifact path lookup cancelled".into(),
+            ));
+        }
+        if Instant::now() >= deadline {
+            return Err(ItemRefusal::Deadline);
+        }
+        if self.input.input_identity() != self.records.input_identity()
+            || *self.records.source_membership() != self.invalid_schema_proofs.current_membership()
+            || !is_artifact_record_path(path)
+        {
+            return Err(ItemRefusal::Source(
+                "candidate Artifact path, Records, or identity binding differs".into(),
+            ));
+        }
+        let canonical = RelativePath::parse(path)
+            .map_err(|_| ItemRefusal::Source("candidate Artifact path is not canonical".into()))?;
+        if canonical.as_str() != path {
+            return Err(ItemRefusal::Source(
+                "candidate Artifact path is not canonical".into(),
+            ));
+        }
+        if self.input.path_presence(path, deadline, cancelled)? != Some(SourcePresenceV1::File) {
+            return Err(ItemRefusal::Source(
+                "candidate Artifact path is outside the live input fence".into(),
+            ));
+        }
+        self.cost.candidate_input_path_probe_count = self
+            .cost
+            .candidate_input_path_probe_count
+            .checked_add(1)
+            .ok_or(ItemRefusal::Budget)?;
+        let path_state = candidate_artifact_path_state(path)?;
+        let provider_state = self
+            .history_limits
+            .max_state_bytes
+            .checked_sub(self.retained_state_bytes)
+            .and_then(|state| state.checked_sub(self.cost.skip_state_bytes))
+            .ok_or(ItemRefusal::Budget)?;
+        let discovery_provider_state = remaining_state_bytes
+            .checked_sub(self.cost.skip_state_bytes)
+            .ok_or(ItemRefusal::Budget)?;
+        let lookup_state = discovery_provider_state
+            .min(provider_state)
+            .checked_sub(path_state)
+            .and_then(std::num::NonZeroUsize::new)
+            .ok_or(ItemRefusal::Budget)?;
+        let summary = self.records.index().visit_candidate_artifact_record_path(
+            path,
+            lookup_state,
+            deadline,
+            cancelled,
+        )?;
+        self.scan_rows_used = self
+            .scan_rows_used
+            .checked_add(1)
+            .filter(|rows| *rows <= self.max_scan_rows)
+            .ok_or(ItemRefusal::Budget)?;
+        self.cost.candidate_record_index_work_upper_bound = self
+            .cost
+            .candidate_record_index_work_upper_bound
+            .checked_add(2)
+            .ok_or(ItemRefusal::Budget)?;
+        let index_state = summary.map_or(0, |summary| summary.charged_state_bytes);
+        let active_state = path_state
+            .checked_add(index_state)
+            .ok_or(ItemRefusal::Budget)?;
+        if active_state
+            .checked_add(self.cost.skip_state_bytes)
+            .is_none_or(|state| state > remaining_state_bytes)
+            || self
+                .retained_state_bytes
+                .checked_add(self.cost.skip_state_bytes)
+                .and_then(|state| state.checked_add(active_state))
+                .is_none_or(|state| state > self.history_limits.max_state_bytes)
+        {
+            return Err(ItemRefusal::Budget);
+        }
+        self.cost.candidate_record_index_state_bytes =
+            self.cost.candidate_record_index_state_bytes.max(
+                path_state
+                    .checked_add(lookup_state.get())
+                    .ok_or(ItemRefusal::Budget)?
+                    .max(index_state),
+            );
+        let active_peak = self
+            .retained_state_bytes
+            .checked_add(self.cost.skip_state_bytes)
+            .and_then(|state| state.checked_add(active_state))
+            .ok_or(ItemRefusal::Budget)?;
+        self.cost.peak_temporary_state_bytes =
+            self.cost.peak_temporary_state_bytes.max(active_peak);
+        self.active_path = Some(path.to_owned());
+        self.active_path_state_bytes = path_state;
+        self.active_index_state_bytes = index_state;
+        self.active_summary = summary;
+        Ok(summary)
+    }
+
+    fn evidence_for_artifact<'evidence>(
+        &'evidence mut self,
+        path: &str,
+        indexed_record: Option<SourceFoundationArtifactRecordPathSummary>,
+        current_record: &serde_json::Value,
+        current_member_sha256: Digest256,
+        current_member_size_bytes: u64,
+        remaining_source_bytes: u64,
+        remaining_state_bytes: usize,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<CandidateArtifactEvidenceResponse<'evidence, I>, ItemRefusal> {
+        let same_summary = match (indexed_record, self.active_summary) {
+            (None, None) => true,
+            (Some(left), Some(right)) => {
+                left.record_count == right.record_count
+                    && left.schema_matches == right.schema_matches
+                    && left.charged_state_bytes == right.charged_state_bytes
             }
-            prefix_member_count = prefix_member_count
-                .checked_add(1)
+            _ => false,
+        };
+        if self.active_path.as_deref() != Some(path) || !same_summary {
+            return Err(ItemRefusal::Source(
+                "candidate Artifact evidence does not match its Records point lookup".into(),
+            ));
+        }
+        let identity = *self.input.input_identity();
+        let membership = *self.records.source_membership();
+        if identity != *self.records.input_identity()
+            || membership != self.invalid_schema_proofs.current_membership()
+            || current_member_size_bytes > self.history_limits.max_member_bytes as u64
+            || indexed_record.is_some_and(|summary| summary.record_count != 1)
+        {
+            return Err(ItemRefusal::Source(
+                "candidate Artifact evidence input binding differs".into(),
+            ));
+        }
+        let clear_active = |this: &mut Self| {
+            this.active_path = None;
+            this.active_path_state_bytes = 0;
+            this.active_index_state_bytes = 0;
+            this.active_summary = None;
+        };
+        let companions = candidate_companions_present(self.input, path, deadline, cancelled)?;
+        self.cost.candidate_input_path_probe_count = self
+            .cost
+            .candidate_input_path_probe_count
+            .checked_add(NATIVE_ARTIFACT_COMPANIONS.len())
+            .ok_or(ItemRefusal::Budget)?;
+        let present_count = companions.iter().filter(|present| **present).count();
+        if present_count != 4 {
+            self.retain_skip(remaining_state_bytes)?;
+            clear_active(self);
+            return Ok(CandidateArtifactEvidenceResponse::new(None, None));
+        }
+        if current_record
+            .get("$schema")
+            .and_then(serde_json::Value::as_str)
+            != Some(NATIVE_ARTIFACT_SCHEMA)
+            || indexed_record.is_some_and(|summary| !summary.schema_matches)
+        {
+            self.retain_skip(remaining_state_bytes)?;
+            clear_active(self);
+            return Ok(CandidateArtifactEvidenceResponse::new(None, None));
+        }
+        let schema_invalid = self.invalid_schema_proofs.proves_invalid(
+            path,
+            &identity,
+            membership,
+            current_member_sha256,
+            current_member_size_bytes,
+            deadline,
+            cancelled,
+        )?;
+        self.cost.candidate_input_path_probe_count = self
+            .cost
+            .candidate_input_path_probe_count
+            .checked_add(1)
+            .ok_or(ItemRefusal::Budget)?;
+        self.cost.schema_proof_validation_work_upper_bound = self
+            .cost
+            .schema_proof_validation_work_upper_bound
+            .checked_add(1)
+            .ok_or(ItemRefusal::Budget)?;
+        if schema_invalid {
+            self.retain_skip(remaining_state_bytes)?;
+            clear_active(self);
+            return Ok(CandidateArtifactEvidenceResponse::new(None, Some(true)));
+        }
+
+        let path_state = self.active_path_state_bytes;
+        let provider_remaining_state = self
+            .history_limits
+            .max_state_bytes
+            .checked_sub(self.retained_state_bytes)
+            .and_then(|state| state.checked_sub(self.cost.skip_state_bytes))
+            .and_then(|state| state.checked_sub(path_state))
+            .and_then(|state| state.checked_sub(self.active_index_state_bytes))
+            .ok_or(ItemRefusal::Budget)?;
+        let discovery_remaining_state = remaining_state_bytes
+            .checked_sub(self.cost.skip_state_bytes)
+            .ok_or(ItemRefusal::Budget)?
+            .checked_sub(path_state)
+            .ok_or(ItemRefusal::Budget)?;
+        let per_path_state = provider_remaining_state.min(discovery_remaining_state);
+        let provider_remaining_source = self
+            .history_limits
+            .max_total_bytes
+            .checked_sub(self.source_bytes_used)
+            .ok_or(ItemRefusal::Budget)?;
+        let per_path_source = provider_remaining_source.min(remaining_source_bytes);
+        let history_limits = ItemLimits {
+            max_member_bytes: self.history_limits.max_member_bytes,
+            max_total_bytes: per_path_source,
+            max_state_bytes: per_path_state,
+            max_issues: self.history_limits.max_issues,
+            deadline: deadline.min(self.history_limits.deadline),
+        };
+        let history = selected_record_history_from_input(
+            self.input,
+            membership,
+            path,
+            history_limits,
+            cancelled,
+        )?;
+        if history.input_identity() != &identity
+            || history.current_membership() != membership
+            || history.record_path() != path
+            || history.bytes_read() > per_path_source
+            || history.returned_state_bytes() > per_path_state
+        {
+            return Err(ItemRefusal::Source(
+                "candidate native Artifact history differs from its live fence".into(),
+            ));
+        }
+        self.source_bytes_used = self
+            .source_bytes_used
+            .checked_add(history.bytes_read())
+            .filter(|used| *used <= self.history_limits.max_total_bytes)
+            .ok_or(ItemRefusal::Budget)?;
+        self.cost.native_history_source_read_bytes = self
+            .cost
+            .native_history_source_read_bytes
+            .checked_add(history.bytes_read())
+            .ok_or(ItemRefusal::Budget)?;
+        let mut packet_state = history.returned_state_bytes();
+        let mut replay_source_bytes_used = 0u64;
+        let mut replay: Option<Box<dyn CandidateArtifactCorrectionReplayEvidence<I> + 'evidence>> =
+            None;
+        if history.history_receipt_count() > 0 {
+            let replay_source = per_path_source
+                .checked_sub(history.bytes_read())
                 .ok_or(ItemRefusal::Budget)?;
-            scan_rows_used = scan_rows_used
-                .checked_add(1)
-                .filter(|rows| *rows <= max_scan_rows)
+            let replay_state = per_path_state
+                .checked_sub(history.returned_state_bytes())
                 .ok_or(ItemRefusal::Budget)?;
-            cost.candidate_record_index_work_upper_bound = cost
-                .candidate_record_index_work_upper_bound
-                .checked_add(1)
-                .ok_or(ItemRefusal::Budget)?;
-            if !is_artifact_record_path(meta.path) {
-                return Ok(());
-            }
-            let canonical = RelativePath::parse(meta.path).map_err(|_| {
-                ItemRefusal::Source("candidate Artifact path is not canonical".into())
-            })?;
-            if canonical.as_str() != meta.path {
-                return Err(ItemRefusal::Source(
-                    "candidate Artifact path is not canonical".into(),
-                ));
-            }
-            let path_temporary = meta
-                .path
-                .len()
-                .checked_mul(2)
-                .and_then(|state| state.checked_add(size_of::<String>() + 1_024))
-                .ok_or(ItemRefusal::Budget)?;
-            let parent_bytes = meta
-                .path
-                .rsplit_once('/')
-                .map(|(parent, _)| parent.len())
-                .ok_or_else(|| {
-                    ItemRefusal::Source("candidate Artifact path has no parent".into())
-                })?;
-            let companion_name_bytes = NATIVE_ARTIFACT_COMPANIONS
-                .iter()
-                .map(|name| name.len())
-                .max()
-                .ok_or(ItemRefusal::Budget)?;
-            let companion_temporary = parent_bytes
-                .checked_add(companion_name_bytes)
-                .and_then(|state| state.checked_add(1 + size_of::<String>() + 1_024))
-                .ok_or(ItemRefusal::Budget)?;
-            let path_live_temporary = path_temporary.max(companion_temporary);
-            let lookup_allowance = max_state_bytes
-                .checked_sub(retained_state)
-                .and_then(|state| state.checked_sub(path_live_temporary))
-                .and_then(std::num::NonZeroUsize::new)
-                .ok_or(ItemRefusal::Budget)?;
-            let indexed_record = records.index().visit_candidate_artifact_record_path(
-                meta.path,
-                lookup_allowance,
-                deadline,
-                cancelled,
-            )?;
-            let lookup_state = indexed_record.map_or(0, |summary| summary.charged_state_bytes);
-            let live_temporary = path_live_temporary
-                .checked_add(lookup_state)
-                .ok_or(ItemRefusal::Budget)?;
-            if retained_state
-                .checked_add(live_temporary)
-                .is_none_or(|state| state > max_state_bytes)
+            let quota_before = self.worker_quota.usage().map_err(|_| ItemRefusal::Budget)?;
+            if quota_before.worker_cpu_micros >= quota_before.max_total_cpu_micros
+                || quota_before.worker_wire_bytes >= quota_before.max_total_wire_bytes
+                || quota_before.worker_units >= quota_before.max_total_units
             {
                 return Err(ItemRefusal::Budget);
             }
-            cost.candidate_record_index_state_bytes =
-                cost.candidate_record_index_state_bytes.max(lookup_state);
-            cost.candidate_record_index_work_upper_bound = cost
-                .candidate_record_index_work_upper_bound
-                .checked_add(1)
-                .ok_or(ItemRefusal::Budget)?;
-            cost.peak_temporary_state_bytes = cost
-                .peak_temporary_state_bytes
-                .max(retained_state.saturating_add(live_temporary));
-            match process_candidate_artifact_path(
-                input,
-                input_identity,
-                membership,
-                &invalid_schema_proofs,
-                history_limits,
-                meta.path,
-                meta.size_bytes,
-                indexed_record,
-                live_temporary,
-                &mut retained_state,
-                &mut source_bytes_used,
-                &mut histories,
-                &mut skips,
-                &mut cost,
-                cancelled,
-            ) {
-                Ok(()) => Ok(()),
-                Err(failure) => {
-                    let refusal = match failure.class {
-                        ArtifactReplayFailureClass::Budget => ItemRefusal::Budget,
-                        ArtifactReplayFailureClass::Deadline => ItemRefusal::Deadline,
-                        ArtifactReplayFailureClass::Source => ItemRefusal::Source(
-                            "candidate Artifact evidence callback failed".into(),
-                        ),
-                        ArtifactReplayFailureClass::Incomplete => ItemRefusal::Unsupported(
-                            "candidate Artifact evidence callback incomplete".into(),
-                        ),
-                    };
-                    callback_failure = Some(failure);
-                    Err(refusal)
-                }
-            }
-        },
-    );
-    if let Some(failure) = callback_failure {
-        return Err(failure);
-    }
-    let prefix_coverage = prefix_result.map_err(|refusal| {
-        refusal_failure(
-            &refusal,
-            ArtifactReplayFailureStage::CompanionFacts,
-            None,
-            cost,
-            max_source_bytes.saturating_sub(source_bytes_used),
-            max_state_bytes.saturating_sub(retained_state),
-        )
-    })?;
-    let unvisited_artifact_records = records
-        .index()
-        .has_unvisited_candidate_artifact_record_paths(deadline, cancelled)
-        .map_err(|refusal| {
-            refusal_failure(
-                &refusal,
-                ArtifactReplayFailureStage::CurrentRecord,
-                None,
-                cost,
-                max_source_bytes.saturating_sub(source_bytes_used),
-                max_state_bytes.saturating_sub(retained_state),
-            )
-        })?;
-    if prefix_coverage.directory() != ARTIFACTS.trim_end_matches('/')
-        || prefix_coverage.member_count() != prefix_member_count
-        || unvisited_artifact_records
-    {
-        return Err(failure(
-            ArtifactReplayFailureClass::Source,
-            ArtifactReplayFailureStage::CompanionFacts,
-            None,
-            cost,
-            max_source_bytes.saturating_sub(source_bytes_used),
-            max_state_bytes.saturating_sub(retained_state),
-        ));
-    }
-
-    for (path, history) in &histories {
-        if history.history_receipt_count() == 0 {
-            continue;
-        }
-        active(deadline, cancelled).map_err(|class| {
-            failure(
-                class,
-                ArtifactReplayFailureStage::CorrectionReplay,
-                Some(path),
-                cost,
-                max_source_bytes.saturating_sub(source_bytes_used),
-                max_state_bytes.saturating_sub(retained_state),
-            )
-        })?;
-        let remaining_source =
-            max_source_bytes
-                .checked_sub(source_bytes_used)
-                .ok_or_else(|| {
-                    failure(
-                        ArtifactReplayFailureClass::Budget,
-                        ArtifactReplayFailureStage::CorrectionReplay,
-                        Some(path),
-                        cost,
-                        0,
-                        max_state_bytes.saturating_sub(retained_state),
+            let mut worker = self.worker.borrow_mut();
+            let (observation, source_bytes, input_copy_state) =
+                source_revisions::replay_artifact_corrections_from_candidate(
+                    self.input,
+                    self.records,
+                    &self.source_root,
+                    self.effective_uid,
+                    &history,
+                    &mut **worker,
+                    self.history_limits.max_member_bytes,
+                    replay_source,
+                    replay_state,
+                    deadline.min(self.history_limits.deadline),
+                    cancelled,
+                )
+                .map_err(|error| {
+                    candidate_provider_refusal(
+                        command_class(&error),
+                        "candidate Artifact correction replay failed",
                     )
                 })?;
-        let map_entry_state = map_state(path).ok_or_else(|| {
-            failure(
-                ArtifactReplayFailureClass::Budget,
-                ArtifactReplayFailureStage::CorrectionReplay,
-                Some(path),
-                cost,
-                remaining_source,
-                max_state_bytes.saturating_sub(retained_state),
-            )
-        })?;
-        let map_copy_state = map_entry_state.checked_mul(2).ok_or_else(|| {
-            failure(
-                ArtifactReplayFailureClass::Budget,
-                ArtifactReplayFailureStage::CorrectionReplay,
-                Some(path),
-                cost,
-                remaining_source,
-                max_state_bytes.saturating_sub(retained_state),
-            )
-        })?;
-        let replay_state_limit = max_state_bytes
-            .checked_sub(retained_state)
-            .and_then(|state| state.checked_sub(map_copy_state))
-            .ok_or_else(|| {
-                failure(
-                    ArtifactReplayFailureClass::Budget,
-                    ArtifactReplayFailureStage::CorrectionReplay,
-                    Some(path),
-                    cost,
-                    remaining_source,
-                    max_state_bytes.saturating_sub(retained_state),
+            drop(worker);
+            let quota_after = self.worker_quota.usage().map_err(|_| ItemRefusal::Budget)?;
+            self.cost.candidate_replay_worker_cpu_micros = self
+                .cost
+                .candidate_replay_worker_cpu_micros
+                .checked_add(
+                    quota_after
+                        .worker_cpu_micros
+                        .checked_sub(quota_before.worker_cpu_micros)
+                        .ok_or(ItemRefusal::Budget)?,
                 )
-            })?;
-        let (observation, source_bytes, input_copy_state) =
-            source_revisions::replay_artifact_corrections_from_candidate(
-                input,
-                records,
-                source_root,
-                effective_uid,
-                history,
-                worker,
-                history_limits.max_member_bytes,
-                remaining_source,
-                replay_state_limit,
-                deadline,
-                cancelled,
-            )
-            .map_err(|error| {
-                failure(
-                    command_class(&error),
-                    ArtifactReplayFailureStage::CorrectionReplay,
-                    Some(path),
-                    cost,
-                    remaining_source,
-                    max_state_bytes.saturating_sub(retained_state),
+                .ok_or(ItemRefusal::Budget)?;
+            self.cost.candidate_replay_worker_wire_bytes = self
+                .cost
+                .candidate_replay_worker_wire_bytes
+                .checked_add(
+                    quota_after
+                        .worker_wire_bytes
+                        .checked_sub(quota_before.worker_wire_bytes)
+                        .ok_or(ItemRefusal::Budget)?,
                 )
-            })?;
-        if observation.input_identity() != &input_identity
-            || observation.current_membership() != membership
-            || observation.source_path() != path
-            || observation.record_id() != history.identity()
+                .ok_or(ItemRefusal::Budget)?;
+            self.cost.candidate_replay_worker_units = self
+                .cost
+                .candidate_replay_worker_units
+                .checked_add(
+                    quota_after
+                        .worker_units
+                        .checked_sub(quota_before.worker_units)
+                        .ok_or(ItemRefusal::Budget)?,
+                )
+                .ok_or(ItemRefusal::Budget)?;
+            if observation.input_identity() != &identity
+                || observation.current_membership() != membership
+                || observation.source_path() != path
+                || observation.record_id() != history.identity()
+                || source_bytes > replay_source
+            {
+                return Err(ItemRefusal::Source(
+                    "candidate Artifact correction replay differs from its live fence".into(),
+                ));
+            }
+            self.source_bytes_used = self
+                .source_bytes_used
+                .checked_add(source_bytes)
+                .filter(|used| *used <= self.history_limits.max_total_bytes)
+                .ok_or(ItemRefusal::Budget)?;
+            self.cost.candidate_source_read_bytes = self
+                .cost
+                .candidate_source_read_bytes
+                .checked_add(source_bytes)
+                .ok_or(ItemRefusal::Budget)?;
+            replay_source_bytes_used = source_bytes;
+            packet_state = packet_state
+                .checked_add(input_copy_state)
+                .and_then(|state| state.checked_add(observation.publication_state_bytes()))
+                .and_then(|state| state.checked_add(observation.returned_state_bytes()))
+                .ok_or(ItemRefusal::Budget)?;
+            if packet_state > per_path_state {
+                return Err(ItemRefusal::Budget);
+            }
+            replay = Some(Box::new(observation));
+        }
+        let evidence_peak = self
+            .active_path_state_bytes
+            .checked_add(packet_state)
+            .ok_or(ItemRefusal::Budget)?;
+        let packet_peak = self
+            .active_index_state_bytes
+            .checked_add(evidence_peak)
+            .ok_or(ItemRefusal::Budget)?;
+        self.cost.candidate_artifact_evidence_peak_state_bytes = self
+            .cost
+            .candidate_artifact_evidence_peak_state_bytes
+            .max(packet_peak);
+        self.cost.candidate_artifact_evidence_packets = self
+            .cost
+            .candidate_artifact_evidence_packets
+            .checked_add(1)
+            .ok_or(ItemRefusal::Budget)?;
+        let total_peak = self
+            .retained_state_bytes
+            .checked_add(self.cost.skip_state_bytes)
+            .and_then(|state| state.checked_add(self.active_path_state_bytes))
+            .and_then(|state| state.checked_add(self.active_index_state_bytes))
+            .and_then(|state| state.checked_add(packet_state))
+            .ok_or(ItemRefusal::Budget)?;
+        if total_peak > self.history_limits.max_state_bytes
+            || self
+                .active_path_state_bytes
+                .checked_add(packet_state)
+                .is_none_or(|state| state > remaining_state_bytes)
         {
-            return Err(failure(
-                ArtifactReplayFailureClass::Source,
-                ArtifactReplayFailureStage::CorrectionReplay,
-                Some(path),
-                cost,
-                remaining_source.saturating_sub(source_bytes),
-                max_state_bytes.saturating_sub(retained_state),
-            ));
+            return Err(ItemRefusal::Budget);
         }
-        let next_source = source_bytes_used
-            .checked_add(source_bytes)
-            .filter(|used| *used <= max_source_bytes)
-            .ok_or_else(|| {
-                failure(
-                    ArtifactReplayFailureClass::Budget,
-                    ArtifactReplayFailureStage::CorrectionReplay,
-                    Some(path),
-                    cost,
-                    remaining_source,
-                    max_state_bytes.saturating_sub(retained_state),
-                )
-            })?;
-        let publication_state = observation.publication_state_bytes();
-        let returned_state = observation.returned_state_bytes();
-        let added_state = input_copy_state
-            .checked_add(publication_state)
-            .and_then(|state| state.checked_add(returned_state))
-            .and_then(|state| state.checked_add(map_copy_state))
-            .ok_or_else(|| {
-                failure(
-                    ArtifactReplayFailureClass::Budget,
-                    ArtifactReplayFailureStage::CorrectionReplay,
-                    Some(path),
-                    cost,
-                    remaining_source.saturating_sub(source_bytes),
-                    max_state_bytes.saturating_sub(retained_state),
-                )
-            })?;
-        let next_retained = retained_state.checked_add(added_state).ok_or_else(|| {
-            failure(
-                ArtifactReplayFailureClass::Budget,
-                ArtifactReplayFailureStage::CorrectionReplay,
-                Some(path),
-                cost,
-                remaining_source.saturating_sub(source_bytes),
-                max_state_bytes.saturating_sub(retained_state),
-            )
-        })?;
-        if next_retained > max_state_bytes {
-            return Err(failure(
-                ArtifactReplayFailureClass::Budget,
-                ArtifactReplayFailureStage::CorrectionReplay,
-                Some(path),
-                cost,
-                remaining_source.saturating_sub(source_bytes),
-                max_state_bytes.saturating_sub(retained_state),
-            ));
-        }
-        source_bytes_used = next_source;
-        cost.candidate_source_read_bytes = cost
-            .candidate_source_read_bytes
-            .checked_add(source_bytes)
-            .ok_or_else(|| {
-                failure(
-                    ArtifactReplayFailureClass::Budget,
-                    ArtifactReplayFailureStage::CorrectionReplay,
-                    Some(path),
-                    cost,
-                    max_source_bytes.saturating_sub(source_bytes_used),
-                    max_state_bytes.saturating_sub(retained_state),
-                )
-            })?;
-        cost.replay_input_copy_state_bytes = cost
-            .replay_input_copy_state_bytes
-            .checked_add(input_copy_state)
-            .ok_or_else(|| {
-                failure(
-                    ArtifactReplayFailureClass::Budget,
-                    ArtifactReplayFailureStage::CorrectionReplay,
-                    Some(path),
-                    cost,
-                    max_source_bytes.saturating_sub(source_bytes_used),
-                    max_state_bytes.saturating_sub(retained_state),
-                )
-            })?;
-        cost.replay_publication_state_bytes = cost
-            .replay_publication_state_bytes
-            .checked_add(publication_state)
-            .ok_or_else(|| {
-                failure(
-                    ArtifactReplayFailureClass::Budget,
-                    ArtifactReplayFailureStage::CorrectionReplay,
-                    Some(path),
-                    cost,
-                    max_source_bytes.saturating_sub(source_bytes_used),
-                    max_state_bytes.saturating_sub(retained_state),
-                )
-            })?;
-        cost.replay_returned_state_bytes = cost
-            .replay_returned_state_bytes
-            .checked_add(returned_state)
-            .ok_or_else(|| {
-                failure(
-                    ArtifactReplayFailureClass::Budget,
-                    ArtifactReplayFailureStage::CorrectionReplay,
-                    Some(path),
-                    cost,
-                    max_source_bytes.saturating_sub(source_bytes_used),
-                    max_state_bytes.saturating_sub(retained_state),
-                )
-            })?;
-        cost.replay_map_state_bytes = cost
-            .replay_map_state_bytes
-            .checked_add(map_copy_state)
-            .ok_or_else(|| {
-                failure(
-                    ArtifactReplayFailureClass::Budget,
-                    ArtifactReplayFailureStage::CorrectionReplay,
-                    Some(path),
-                    cost,
-                    max_source_bytes.saturating_sub(source_bytes_used),
-                    max_state_bytes.saturating_sub(retained_state),
-                )
-            })?;
-        cost.peak_temporary_state_bytes = cost.peak_temporary_state_bytes.max(next_retained);
-        retained_state = next_retained;
-        replays.insert(path.clone(), observation);
+        self.cost.peak_temporary_state_bytes = self.cost.peak_temporary_state_bytes.max(total_peak);
+        let direct_source_read_bytes = history
+            .bytes_read()
+            .checked_add(replay_source_bytes_used)
+            .ok_or(ItemRefusal::Budget)?;
+        let evidence = CandidateArtifactEvidence::from_observations(
+            history,
+            replay,
+            direct_source_read_bytes,
+            evidence_peak,
+        );
+        clear_active(self);
+        Ok(CandidateArtifactEvidenceResponse::new(
+            Some(evidence),
+            Some(false),
+        ))
     }
 
-    if input.input_identity() != &input_identity
-        || records.input_identity() != &input_identity
-        || *records.source_membership() != membership
-        || records.candidate_schema_identity() != Some(schema_identity)
-    {
-        return Err(failure(
-            ArtifactReplayFailureClass::Source,
-            ArtifactReplayFailureStage::CutBinding,
-            None,
-            cost,
-            max_source_bytes.saturating_sub(source_bytes_used),
-            max_state_bytes.saturating_sub(retained_state),
-        ));
+    fn abandon_artifact_path(
+        &mut self,
+        path: &str,
+        remaining_state_bytes: usize,
+    ) -> Result<(), ItemRefusal> {
+        if self.active_path.as_deref() != Some(path) {
+            return Err(ItemRefusal::Source(
+                "candidate Artifact provider abandoned a different path".into(),
+            ));
+        }
+        self.retain_skip(remaining_state_bytes)?;
+        self.active_path = None;
+        self.active_path_state_bytes = 0;
+        self.active_index_state_bytes = 0;
+        self.active_summary = None;
+        Ok(())
     }
-    input
-        .verify_current_fence(full_coverage, deadline, cancelled)
-        .map_err(|refusal| {
-            refusal_failure(
-                &refusal,
-                ArtifactReplayFailureStage::CutBinding,
-                None,
-                cost,
-                max_source_bytes.saturating_sub(source_bytes_used),
-                max_state_bytes.saturating_sub(retained_state),
-            )
-        })?;
-    let accounted_retained_state = cost.retained_state_upper_bound_bytes().ok_or_else(|| {
-        failure(
-            ArtifactReplayFailureClass::Budget,
-            ArtifactReplayFailureStage::CorrectionReplay,
-            None,
-            cost,
-            max_source_bytes.saturating_sub(source_bytes_used),
-            max_state_bytes.saturating_sub(retained_state),
-        )
-    })?;
-    if accounted_retained_state > max_state_bytes || retained_state > max_state_bytes {
-        return Err(failure(
-            ArtifactReplayFailureClass::Budget,
-            ArtifactReplayFailureStage::CorrectionReplay,
-            None,
-            cost,
-            max_source_bytes.saturating_sub(source_bytes_used),
-            max_state_bytes.saturating_sub(retained_state),
-        ));
+
+    fn finish(&mut self, deadline: Instant, cancelled: &AtomicBool) -> Result<(), ItemRefusal> {
+        if self.finished || self.active_path.is_some() {
+            return Err(ItemRefusal::Source(
+                "candidate Artifact provider did not finish its current path".into(),
+            ));
+        }
+        let mut prefix_member_count = 0u64;
+        let mut scan_rows = self.scan_rows_used;
+        let prefix = self.input.for_each_current_member_meta_under(
+            ARTIFACTS.trim_end_matches('/'),
+            deadline.min(self.history_limits.deadline),
+            cancelled,
+            &mut |meta| {
+                if scan_rows % 128 == 0 {
+                    if cancelled.load(Ordering::Relaxed) {
+                        return Err(ItemRefusal::Source(
+                            "candidate Artifact EOF scan cancelled".into(),
+                        ));
+                    }
+                    if Instant::now() >= deadline {
+                        return Err(ItemRefusal::Deadline);
+                    }
+                }
+                scan_rows = scan_rows.checked_add(1).ok_or(ItemRefusal::Budget)?;
+                if scan_rows > self.max_scan_rows {
+                    return Err(ItemRefusal::Budget);
+                }
+                prefix_member_count = prefix_member_count
+                    .checked_add(1)
+                    .ok_or(ItemRefusal::Budget)?;
+                if !safe_artifact_member_path(meta.path) {
+                    return Err(ItemRefusal::Source(
+                        "candidate Artifact prefix contains a noncanonical path".into(),
+                    ));
+                }
+                Ok(())
+            },
+        )?;
+        self.scan_rows_used = scan_rows;
+        self.cost.candidate_record_index_work_upper_bound = self
+            .cost
+            .candidate_record_index_work_upper_bound
+            .checked_add(usize::try_from(prefix_member_count).map_err(|_| ItemRefusal::Budget)?)
+            .ok_or(ItemRefusal::Budget)?;
+        let unvisited_artifact_records = self
+            .records
+            .index()
+            .has_unvisited_candidate_artifact_record_paths(deadline, cancelled)?;
+        self.cost.candidate_record_index_work_upper_bound = self
+            .cost
+            .candidate_record_index_work_upper_bound
+            .checked_add(1)
+            .ok_or(ItemRefusal::Budget)?;
+        self.cost.candidate_record_index_state_bytes = self
+            .cost
+            .candidate_record_index_state_bytes
+            .max(size_of::<bool>() + 128);
+        if scan_rows > self.max_scan_rows
+            || prefix.directory() != ARTIFACTS.trim_end_matches('/')
+            || prefix.member_count() != prefix_member_count
+            || unvisited_artifact_records
+            || self.input.input_identity() != self.records.input_identity()
+            || self.coverage.membership() != *self.records.source_membership()
+        {
+            return Err(ItemRefusal::Source(
+                "candidate Artifact Records prefix, EOF, or identity fence differs".into(),
+            ));
+        }
+        self.input.verify_current_fence(
+            self.coverage,
+            deadline.min(self.history_limits.deadline),
+            cancelled,
+        )?;
+        self.finished = true;
+        Ok(())
     }
-    cost.peak_temporary_state_bytes = cost
-        .peak_temporary_state_bytes
-        .max(accounted_retained_state);
-    Ok(CandidateArtifactReplayEvidence {
-        histories,
-        replays,
-        invalid_schema_proofs,
-        skips,
-        cost,
-    })
+}
+
+fn safe_artifact_member_path(path: &str) -> bool {
+    RelativePath::parse(path).is_ok_and(|canonical| canonical.as_str() == path)
 }
 
 fn fallback_record_value(
