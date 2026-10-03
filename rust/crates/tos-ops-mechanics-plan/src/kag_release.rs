@@ -165,7 +165,17 @@ pub(crate) fn digest(path: &Path) -> io::Result<String> {
     if meta.len() > MAX_ARTIFACT_BYTES {
         return Err(invalid("artifact byte limit exceeded"));
     }
-    let mut file = File::open(path)?;
+    let mut options = OpenOptions::new();
+    options.read(true);
+    #[cfg(target_os = "linux")]
+    {
+        use std::os::unix::fs::OpenOptionsExt;
+        options.custom_flags(libc::O_NOFOLLOW | libc::O_NONBLOCK);
+    }
+    let mut file = options.open(path)?;
+    if !file.metadata()?.is_file() {
+        return Err(invalid("artifact is not a regular file"));
+    }
     let mut hash = Digest256Hasher::new();
     let mut bytes = [0u8; 64 * 1024];
     let mut total = 0u64;
@@ -357,6 +367,15 @@ fn identity_safe(value: &Value) -> io::Result<()> {
 }
 fn program_manifest(root: &Path) -> io::Result<Value> {
     directory(root)?;
+    let mut total = 0u64;
+    for path in PROGRAM_PATHS {
+        total = total
+            .checked_add(regular(&root.join(path))?.len())
+            .ok_or_else(|| invalid("KAG program size overflow"))?;
+        if total > 32 * 1024 * 1024 {
+            return Err(invalid("selected KAG program closure exceeds 32 MiB"));
+        }
+    }
     PROGRAM_PATHS
         .into_iter()
         .map(|path| Ok(json!({"path":path,"sha256":digest(&root.join(path))?})))
