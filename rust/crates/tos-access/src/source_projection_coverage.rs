@@ -724,6 +724,7 @@ impl RootFence {
         root: &Path,
         input_bytes: u64,
         max_rows: u64,
+        max_state_bytes: u64,
         deadline: Instant,
     ) -> Result<Self, String> {
         if !root.is_absolute()
@@ -744,7 +745,7 @@ impl RootFence {
                 deadline,
                 max_input: input_bytes,
                 input: 0,
-                max_state: MAX_STATE_BYTES,
+                max_state: max_state_bytes,
                 state: 0,
                 max_work: 100_000_000,
                 work: 0,
@@ -1358,6 +1359,7 @@ fn load_source_catalog(
     invocation: &str,
     max_input_bytes: u64,
     max_rows: u64,
+    max_state_bytes: u64,
     deadline: Instant,
 ) -> Result<
     (
@@ -1373,7 +1375,7 @@ fn load_source_catalog(
     use tos_command::source_current_cut::foundation_command::{
         SourceFoundationCatalogueObservationLimits, run_with_owned_catalogue_observation,
     };
-    let mut fence = RootFence::open(root, max_input_bytes, max_rows, deadline)?;
+    let mut fence = RootFence::open(root, max_input_bytes, max_rows, max_state_bytes, deadline)?;
     let publication = selected_publication(&mut fence)?;
     fence.bind_metadata_directories()?;
     let cancelled = AtomicBool::new(false);
@@ -1393,7 +1395,8 @@ fn load_source_catalog(
         max_addressed_bytes: usize::try_from(max_input_bytes)
             .map_err(|_| "coverage address byte range")?,
         max_source_read_bytes: max_input_bytes,
-        max_state_bytes: MAX_STATE_BYTES as usize,
+        max_state_bytes: usize::try_from(max_state_bytes)
+            .map_err(|_| "coverage retained state byte range")?,
         deadline,
     };
     let result = run_with_owned_catalogue_observation(
@@ -1406,7 +1409,8 @@ fn load_source_catalog(
             max_stage_read_bytes: max_input_bytes,
             // RootFence and catalogue observer retain state simultaneously.
             // Reservation is deducted from the unchanged invocation grant.
-            max_state_bytes: (MAX_STATE_BYTES as usize)
+            max_state_bytes: usize::try_from(max_state_bytes)
+                .map_err(|_| "coverage retained state byte range")?
                 .checked_mul(2)
                 .ok_or("coverage shared state reservation overflow")?,
         },
@@ -1740,12 +1744,13 @@ fn execute_root(
     graph: Option<&str>,
     input_bytes: u64,
     max_rows: u64,
+    max_state_bytes: u64,
     deadline: Instant,
     rows: bool,
     output: &mut dyn Write,
 ) -> Result<(), String> {
     let (mut fence, publication, entries, source_hashes, kinds, currentness) =
-        load_source_catalog(root, invocation, input_bytes, max_rows, deadline)?;
+        load_source_catalog(root, invocation, input_bytes, max_rows, max_state_bytes, deadline)?;
     if let Some(graph_path) = graph {
         let remaining = fence.meter.remaining_input();
         if remaining == 0 {
@@ -1795,6 +1800,7 @@ fn execute(args: &[String], output: &mut dyn Write) -> Result<(), String> {
     let mut rows = false;
     let mut max_input_bytes = INPUT_CAP;
     let mut max_rows = MAX_ROWS;
+    let mut max_state_bytes = MAX_STATE_BYTES;
     let mut max_seconds = 120u64;
     let mut seen = BTreeSet::new();
     let mut index = 1;
@@ -1832,6 +1838,10 @@ fn execute(args: &[String], output: &mut dyn Write) -> Result<(), String> {
                     .parse::<u64>()
                     .map_err(|_| "invalid source projection input byte budget")?
             }
+            "--max-state-bytes" => {
+                max_state_bytes = value.parse::<u64>()
+                    .map_err(|_| "invalid source projection retained state budget")?
+            }
             "--max-rows" => {
                 max_rows = value
                     .parse::<u64>()
@@ -1847,6 +1857,8 @@ fn execute(args: &[String], output: &mut dyn Write) -> Result<(), String> {
     }
     if max_input_bytes == 0
         || max_input_bytes > INPUT_CAP
+        || max_state_bytes == 0
+        || max_state_bytes > MAX_STATE_BYTES
         || max_rows == 0
         || max_rows > MAX_ROWS
         || max_seconds == 0
@@ -1878,6 +1890,7 @@ fn execute(args: &[String], output: &mut dyn Write) -> Result<(), String> {
         graph,
         max_input_bytes,
         max_rows,
+        max_state_bytes,
         deadline,
         rows,
         output,
@@ -1898,7 +1911,7 @@ pub fn run_if_requested(
     if args.len() == 2 && matches!(args[1].as_str(), "--help" | "-h") {
         let _ = writeln!(
             output,
-            "source-projection-coverage --root ABS --invocation ABS [--graph ABS_JSON|-] [--rows] [--max-input-bytes N --max-rows N --max-seconds N]\nsource-projection-coverage --observe-record --input ABS|-\nA stream without its terminal summary is incomplete. No assessment, admission or source mutation."
+            "source-projection-coverage --root ABS --invocation ABS [--graph ABS_JSON|-] [--rows] [--max-input-bytes N --max-rows N --max-state-bytes N --max-seconds N]\nsource-projection-coverage --observe-record --input ABS|-\nA stream without its terminal summary is incomplete. No assessment, admission or source mutation."
         );
         return Some(0);
     }

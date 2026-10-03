@@ -13,6 +13,8 @@ use tos_foundation::{Digest256, JsonLimits, JsonMode, parse_json};
 use tos_validation::{FormatProfile, SchemaBackendProbe, SchemaResource};
 #[path = "research_concept_workbench_render.rs"]
 mod render;
+#[path = "research_concept_workbench_retained.rs"]
+mod retained;
 #[path = "research_concept_workbench_source.rs"]
 mod source;
 #[path = "research_concept_workbench_sql.rs"]
@@ -1212,7 +1214,7 @@ pub fn run_scoped(root: &ResearchExecution, args: &[String]) -> Result<Value> {
     let mut it = args.iter();
     while let Some(a) = it.next() {
         match a.as_str() {
-            "--build" | "--check" | "--preview" => {
+            "--build" | "--check" | "--preview" | "--retained-check" => {
                 if !mode.is_empty() {
                     return Err("exactly one mode required".into());
                 }
@@ -1231,7 +1233,7 @@ pub fn run_scoped(root: &ResearchExecution, args: &[String]) -> Result<Value> {
         }
     }
     if mode.is_empty() {
-        return Err("--build, --check, or --preview required".into());
+        mode = "--retained-check";
     }
     if issue && mode != "--build" {
         return Err("--issue-identities is valid only with --build".into());
@@ -1265,6 +1267,9 @@ pub fn run_scoped(root: &ResearchExecution, args: &[String]) -> Result<Value> {
         if file_hash(root, s(r, "ref"))? != s(r, "sha256") {
             return Err(format!("English generation reference drift: {role}"));
         }
+    }
+    if mode == "--retained-check" {
+        return retained::check(root, &c, &selected_plan, &request);
     }
     let maps = source::source_maps(root)?;
     let de = source::de_units(root, &maps)?;

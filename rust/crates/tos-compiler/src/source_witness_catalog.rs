@@ -106,7 +106,7 @@ const LINKS: &[&str] = &[
 /// Cold membership uses the maintained producer's exact basenames. Registry
 /// schema, mappings and profile semantics are checked by `contracts` before a
 /// catalog receipt exists; discovering a path here is no profile admission.
-pub(crate) fn source_basenames(entities: &Value) -> Result<BTreeSet<String>> {
+pub fn source_basenames(entities: &Value) -> Result<BTreeSet<String>> {
     let mut names: BTreeSet<String> = BASE
         .iter()
         .map(|(kind, _)| format!("{kind}.json"))
@@ -440,6 +440,105 @@ pub struct SourceCatalogReceipt<B = crate::SourceBinding> {
 
 pub type ColdSourceCatalogReceipt =
     SourceCatalogReceipt<crate::knowledge_stage::ColdAuthoredBinding>;
+/// Borrowed output tuple from a sealed, completed native catalogue receipt.
+/// This is navigation for the selected catalogue, not a source-write plan,
+/// publication epoch, or semantic admission. No caller can construct this view.
+pub struct SourceCatalogOutputSelection<'a> {
+    records: &'a Map<String, Value>,
+    claims: &'a str,
+    digests: &'a BTreeMap<String, String>,
+}
+impl<'a> SourceCatalogOutputSelection<'a> {
+    /// All nine base outputs (including empty files), present registered
+    /// extensions, and present artifact/composite outputs from this receipt.
+    pub fn record_files(&self) -> impl Iterator<Item = (&str, &str)> {
+        self.records.iter().map(|(kind, path)| {
+            // The private constructor checked the exact sealed manifest.
+            (
+                kind.as_str(),
+                path.as_str().expect("checked catalogue output"),
+            )
+        })
+    }
+    pub fn record_file(&self, kind: &str) -> Option<&str> {
+        self.records.get(kind).and_then(Value::as_str)
+    }
+    pub fn claim_file(&self) -> &str {
+        self.claims
+    }
+    /// Digests of the record files and Claim file. The manifest has its own
+    /// private receipt seal and is deliberately absent from this map.
+    pub fn file_sha256(&self) -> &'a BTreeMap<String, String> {
+        self.digests
+    }
+    pub fn manifest_file(&self) -> &'static str {
+        "ToS/source-witnesses/catalog/catalog.manifest.json"
+    }
+}
+fn output_selection<B: CatalogInputBinding>(
+    receipt: &SourceCatalogReceipt<B>,
+    l: SourceCatalogLimits,
+) -> Result<SourceCatalogOutputSelection<'_>> {
+    l.validate()?;
+    if summary(receipt, l)? != receipt.summary_sha256
+        || Digest256::of_bytes(&encode(&receipt.manifest, l.max_output_row_bytes)?).to_hex()
+            != receipt.manifest_sha256
+    {
+        return Err(Error::Invalid(
+            "catalog output selection exact seal mismatch",
+        ));
+    }
+    let records = receipt.manifest["record_files"]
+        .as_object()
+        .ok_or(Error::Invalid("catalog output selection records"))?;
+    for (kind, filename) in BASE {
+        if records
+            .get(*kind)
+            .and_then(Value::as_str)
+            .and_then(|path| path.strip_prefix(ROOT))
+            != Some(*filename)
+        {
+            return Err(Error::Invalid("catalog output selection base closure"));
+        }
+    }
+    for path in records.values() {
+        let path = path
+            .as_str()
+            .ok_or(Error::Invalid("catalog output selection path"))?;
+        if !receipt.file_sha256.contains_key(path) {
+            return Err(Error::Invalid("catalog output selection digest closure"));
+        }
+    }
+    let claims = text(&receipt.manifest, "claim_file")?;
+    if claims != "ToS/source-witnesses/catalog/claims.jsonl"
+        || !receipt.file_sha256.contains_key(claims)
+        || receipt.file_sha256.len() != records.len() + 1
+    {
+        return Err(Error::Invalid("catalog output selection claim closure"));
+    }
+    Ok(SourceCatalogOutputSelection {
+        records,
+        claims,
+        digests: &receipt.file_sha256,
+    })
+}
+/// Select the exact output tuple after complete cold catalogue preparation.
+/// Rendering and terminal source/root/epoch guards remain mandatory.
+pub fn cold_source_catalog_output_selection(
+    receipt: &ColdSourceCatalogReceipt,
+    l: SourceCatalogLimits,
+) -> Result<SourceCatalogOutputSelection<'_>> {
+    output_selection(receipt, l)
+}
+/// Same tuple for the candidate route's unforgeable, completed input binding.
+/// This does not substitute for the owned admission completion or publication.
+pub fn candidate_source_catalog_output_selection<I: Copy + Eq + 'static>(
+    receipt: &CandidateSourceCatalogReceipt<I>,
+    l: SourceCatalogLimits,
+) -> Result<SourceCatalogOutputSelection<'_>> {
+    output_selection(receipt, l)
+}
+
 pub(crate) trait CatalogInputBinding: Clone {
     fn selected(stage: &KnowledgeStage<'_>) -> Result<Self>;
     fn verify_validator(&self, validator: &SourceCatalogValidator<'_>) -> Result<()> {

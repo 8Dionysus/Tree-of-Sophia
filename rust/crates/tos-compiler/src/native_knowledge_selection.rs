@@ -53,6 +53,12 @@ pub struct NativeProcessLimits {
     pub address_space_bytes: u64,
     pub file_size_bytes: u64,
 }
+impl NativeProcessLimits {
+    /// Verify the live process has the exact caller's finite upper envelope.
+    pub fn verify_current(self) -> Result<()> {
+        verify_native_process_limits(self)
+    }
+}
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct Packet {

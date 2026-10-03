@@ -27,6 +27,8 @@ pub mod public_d1_build;
 pub mod public_packet_compare;
 #[cfg(target_os = "linux")]
 pub mod edge_local_verify;
+#[cfg(target_os = "linux")]
+pub mod private_stage_run;
 pub mod reading;
 pub mod release_state;
 pub mod word_analysis;

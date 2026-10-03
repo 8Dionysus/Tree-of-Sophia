@@ -79,7 +79,9 @@ class NativeAccessCore(NativeCore):
                  concept_max_file_bytes: int | None = None,
                  concept_max_total_file_bytes: int | None = None,
                  native_state_root: str | Path | None = None,
-                 source_read_service: Any | None = None):
+                 source_read_service: Any | None = None,
+                 core_snapshot_selection: Any | None = None,
+                 core_snapshot_admission_provider: Any | None = None):
         self._lifetime_lock = RLock()
         self._closed = False
         self._ephemeral_state = None
@@ -144,6 +146,19 @@ class NativeAccessCore(NativeCore):
                     raise ValueError('exploration checkpoints require a path outside software, release and source roots')
         self._has_prepared_checkpoints = published_exploration_checkpoint_path is not None
         super().__init__(prefix, arguments, inherit_data_selection=False)
+        self._core_snapshot_client = None
+        if core_snapshot_selection is not None or core_snapshot_admission_provider is not None:
+            if core_snapshot_selection is None or core_snapshot_admission_provider is None:
+                raise ValueError('native whole-Core selection requires its caller-owned per-call admission provider')
+            from .native_core_snapshot import NativeCoreSnapshotClient, NativeCoreSnapshotSelection
+            if not isinstance(core_snapshot_selection, NativeCoreSnapshotSelection):
+                raise TypeError('native whole-Core selection must be captured by NativeCoreSnapshotSelection')
+            if self.tos_root is None or core_snapshot_selection.tos_root != self.tos_root:
+                raise ValueError('native whole-Core selection must use the exact selected tos_root')
+            if self.release_root is not None or pair[0] is not None:
+                raise ValueError('native whole-Core bridge requires the raw source route, not a release or prepared reader')
+            self._core_snapshot_client = NativeCoreSnapshotClient(
+                prefix, core_snapshot_selection, core_snapshot_admission_provider)
         selectors = (reading_analysis_root, reading_max_file_bytes, reading_max_total_file_bytes)
         if self.tos_root is None:
             if any(value is not None for value in selectors):
@@ -179,6 +194,22 @@ class NativeAccessCore(NativeCore):
             word_arguments += ['--concept-max-file-bytes', str(concept_file),
                                '--concept-max-total-file-bytes', str(concept_total)]
         self._word_core = NativeCore(prefix, word_arguments, inherit_data_selection=False)
+
+    @classmethod
+    def from_source_root(cls, native_prefix: str | Path, selection,
+                         admission_provider, **independent_routes):
+        """Bind seven exact paths and a borrowed per-operation owner profile.
+
+        Selection is explicit; this constructor reads no source payload and
+        does not infer a stage ticket, quota, deadline, or publication grant.
+        """
+        from .native_core_snapshot import NativeCoreSnapshotSelection
+        if not isinstance(selection, NativeCoreSnapshotSelection):
+            raise TypeError('SourceRoot requires NativeCoreSnapshotSelection')
+        return cls(native_prefix, tos_root=selection.tos_root,
+                   core_snapshot_selection=selection,
+                   core_snapshot_admission_provider=admission_provider,
+                   **independent_routes)
 
     @classmethod
     def discover(cls, tos_root: str | Path | None = None, *,
@@ -245,6 +276,86 @@ class NativeAccessCore(NativeCore):
             return self._reading_core.zarathustra_reading_search(
                 query, language, limit, include_semantic_neighbors, group_by, absolute_deadline=deadline)
 
+
+    def _packet(self, tool, request, *, absolute_deadline=None, source_errors=True):
+        client = getattr(self, '_core_snapshot_client', None)
+        # These independently selected exact-source and private Reading/Word
+        # owners retain their existing native routes and lifetime contracts.
+        independent = (tool.startswith('tos_source_handle_') or tool == 'tos_source_read'
+                       or tool.startswith('tos_source_read_')
+                       or tool.startswith('tos_zarathustra_'))
+        if client is None or independent:
+            return super()._packet(tool, request, absolute_deadline=absolute_deadline,
+                                   source_errors=source_errors)
+        # The borrowed admission supplies the original per-call cutoff; an
+        # outer caller's earlier cutoff must remain an additional restriction.
+        return self._core_snapshot_call('call', tool, request,
+                                        absolute_deadline=absolute_deadline)
+
+    def _core_snapshot_call(self, method, *args, **kwargs):
+        with self._lifetime_lock:
+            self._ensure_open()
+            client = self._core_snapshot_client
+        if client is None:
+            raise RuntimeError('native whole-Core route requires an explicit source selection and caller admission')
+        return getattr(client, method)(*args, **kwargs)
+
+    def index_exists(self) -> bool:
+        return self._core_snapshot_call('index_exists')
+
+    def index(self) -> dict[str, Any]:
+        return self._core_snapshot_call('index')
+
+    def source_navigation(self, *, bibliographic_only: bool = False) -> dict[str, Any]:
+        return self._core_snapshot_call('source_navigation', bibliographic_only=bibliographic_only)
+
+    def bibliographic_graph(self) -> dict[str, Any]:
+        return self._core_snapshot_call('bibliographic_graph')
+
+    def evidence_projection_exists(self) -> bool:
+        return self._core_snapshot_call('evidence_projection_exists')
+
+    def evidence_projection(self) -> dict[str, Any]:
+        return self._core_snapshot_call('evidence_projection')
+
+    def corpus_header(self) -> dict[str, Any]:
+        return self._core_snapshot_call('corpus_header')
+
+    def knowledge_header(self) -> dict[str, Any]:
+        return self._core_snapshot_call('knowledge_header')
+
+    def philosophy_projection_exists(self) -> bool:
+        return self._core_snapshot_call('philosophy_projection_exists')
+
+    def philosophy_projection(self) -> dict[str, Any]:
+        if self._core_snapshot_client is None:
+            return super().philosophy_projection()
+        return self._core_snapshot_call('philosophy_projection')
+
+    def philosophy_audit_exists(self) -> bool:
+        return self._core_snapshot_call('philosophy_audit_exists')
+
+    def philosophy_audit_payload(self) -> dict[str, Any]:
+        return self._core_snapshot_call('philosophy_audit_payload')
+
+    def knowledge_graph(self) -> dict[str, Any]:
+        return self._core_snapshot_call('knowledge_graph')
+
+    def knowledge_graph_addressed(self, previous_graph: dict[str, Any], source_graph: str,
+                                  source_id: str, source_record: dict[str, Any], *,
+                                  source_revision: str, expected_parent_revision: str | None = None,
+                                  return_report: bool = False) -> dict[str, Any]:
+        return self._core_snapshot_call(
+            'knowledge_graph_addressed', previous_graph, source_graph, source_id,
+            source_record, source_revision=source_revision,
+            expected_parent_revision=expected_parent_revision, return_report=return_report)
+
+    def knowledge_snapshot(self) -> dict[str, Any]:
+        return self._core_snapshot_call('knowledge_snapshot')
+
+    def knowledge_snapshot_once(self, *, include_catalog_inputs: bool = False) -> dict[str, Any]:
+        return self._core_snapshot_call(
+            'knowledge_snapshot_once', include_catalog_inputs=include_catalog_inputs)
 
     def _ensure_open(self):
         if self._closed:
@@ -319,6 +430,9 @@ class NativeAccessCore(NativeCore):
             if self._source_provider is not None and self._owns_source_provider:
                 self._source_provider.close()
             self._source_provider = None
+            core_snapshot, self._core_snapshot_client = self._core_snapshot_client, None
+            if core_snapshot is not None:
+                core_snapshot.close()
             owned, self._ephemeral_state = self._ephemeral_state, None
             if owned is not None:
                 owned.cleanup()

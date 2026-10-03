@@ -119,13 +119,17 @@ export async function verifyHeldNativeWorker(request, wholeDeadline) {
   const failureDirectory = await realpath(request.failure_directory);
   const failureStat = await lstat(failureDirectory);
   assert.ok(failureDirectory === request.failure_directory && failureStat.isDirectory() && (failureStat.mode & 0o077) === 0, 'paired-failure directory must be canonical private directory');
+  assert.ok(isAbsolute(request.spool_directory), 'explicit private RAM spool directory required');
+  const spoolDirectory = await realpath(request.spool_directory), spoolStat = await lstat(spoolDirectory);
+  assert.ok(spoolDirectory === request.spool_directory && spoolStat.isDirectory() && (spoolStat.mode & 0o077) === 0);
+  assert.notEqual(spoolDirectory, failureDirectory, 'RAM comparison spools and retained failure custody must be distinct');
   assert.ok(isAbsolute(request.native_binary), 'explicit native comparator binary required');
   assert.ok(positive(request.maximum_native_state_bytes), 'native parser state admission required');
   let sequence = 0;
   const compareRawPackets = async ({label, actual, expected, shape}) => {
     assert.ok(actual.length <= request.maximum_response_bytes && expected.length <= request.maximum_response_bytes, 'paired evidence exceeds admitted response bound');
     const stem = sha256(Buffer.from(label)) + '-' + sequence++;
-    const actualPath = join(failureDirectory, stem + '.actual.packet'), expectedPath = join(failureDirectory, stem + '.expected.packet');
+    const actualPath = join(spoolDirectory, stem + '.actual.packet'), expectedPath = join(spoolDirectory, stem + '.expected.packet');
     await writeFile(actualPath, actual, {flag: 'wx', mode: 0o600});
     await writeFile(expectedPath, expected, {flag: 'wx', mode: 0o600});
     remaining(deadline);
@@ -154,8 +158,14 @@ export async function verifyHeldNativeWorker(request, wholeDeadline) {
       remaining(deadline);
       await unlink(actualPath); await unlink(expectedPath); // Only our create-new successful comparison spools.
     } catch (error) {
+      remaining(deadline);
+      // Successful pairs stay in quota-backed RAM. Only the terminal failing
+      // pair is copied unchanged to separately admitted persistent custody.
+      await writeFile(join(failureDirectory, stem + '.actual.packet'), actual, {flag: 'wx', mode: 0o600});
+      await writeFile(join(failureDirectory, stem + '.expected.packet'), expected, {flag: 'wx', mode: 0o600});
+      remaining(deadline);
       await writeFile(join(failureDirectory, stem + '.json'), JSON.stringify({label, shape, actual_bytes: actual.length, actual_sha256: sha256(actual), expected_bytes: expected.length, expected_sha256: sha256(expected), error: String(error).slice(0,4096)}), {flag: 'wx', mode: 0o600});
-      throw error; // Actual and expected raw spools stay as bounded private evidence.
+      throw error; // Persistent raw pair retained; temporary RAM scope remains caller-owned.
     } finally {
       clearTimeout(timer);
       stop();
@@ -224,7 +234,13 @@ export async function verifyNativeWorker(request, wholeDeadline) {
   const stdio = ['pipe', 'pipe', 'pipe'];
   while (stdio.length <= startup.stage_ticket_fd) stdio.push('ignore');
   stdio[startup.stage_ticket_fd] = startup.stage_ticket_fd;
-  const args = ['--root', request.source_root, 'core-snapshot', '--operation', 'tos_native_serve',
+  assert.ok(positive(dto.admission?.process?.address_space_bytes) && positive(dto.admission?.process?.file_size_bytes),
+    'actual native-only process limits required');
+  // V8/Worker retain the physical cgroup cap. Only the Core child receives
+  // finite AS/FSIZE, then execs this same installed product without a new PID.
+  const args = ['native-process-exec', '--address-space-bytes', String(dto.admission.process.address_space_bytes),
+    '--file-size-bytes', String(dto.admission.process.file_size_bytes), '--',
+    '--root', request.source_root, 'core-snapshot', '--operation', 'tos_native_serve',
     '--work-deadline-ns', startup.work_deadline_ns];
   let child, closed, refusal, stdoutBytes = 0, stderrBytes = 0, termStarted = false, killStarted = false;
   let killTimer, deadlineTimer, readinessTimer, logWrites = Promise.resolve();

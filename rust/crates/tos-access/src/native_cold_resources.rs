@@ -67,7 +67,7 @@ impl LinuxCgroupColdOpenResourceHold {
         Ok(hold)
     }
 
-    fn check_current(&self, deadline: Instant, cancelled: &AtomicBool) -> Result<u64> {
+    pub(crate) fn check_current(&self, deadline: Instant, cancelled: &AtomicBool) -> Result<u64> {
         if deadline != self.deadline || !std::ptr::eq(cancelled, self.cancelled.as_ref()) {
             return Err(Error::Invalid("native cold original request"));
         }

@@ -478,6 +478,11 @@ fn project_navigation_kernel<'storage, 'v: 'storage, B: catalog::CatalogInputBin
             SelectedBibliographicSourceCut::Streamed(input) => {
                 inspect_streamed_annotation_owner(input, &paths, validator, l)?
             }
+            SelectedBibliographicSourceCut::Candidate(_) => {
+                return Err(Error::Invalid(
+                    "navigation candidate annotation provenance unavailable",
+                ));
+            }
         };
         let mut branches = NavigationMap::new(projection.storage.as_ref(), "branches");
         for path in paths.selected(|p| {

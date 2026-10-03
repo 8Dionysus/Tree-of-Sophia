@@ -382,6 +382,7 @@ pub struct LegacyStore {
     pub revision: String,
     pub corpus_header: Value,
     pub graph_header: Value,
+    pub catalog: Value,
     db: tos_source_store::PinnedSqliteConnection,
     held: Vec<Held>,
     limits: Limits,
@@ -403,6 +404,20 @@ impl LegacyStore {
         deadline: Instant,
         abort: Arc<dyn AbortProbe>,
     ) -> Result<Self> {
+        Self::open_bounded(path, inputs, limits, u64::MAX, deadline, abort)
+    }
+    /// Same authenticated store owner, with a caller-selected held database cap.
+    pub fn open_bounded(
+        path: &Path,
+        inputs: &[(String, PathBuf)],
+        limits: Limits,
+        max_database_bytes: u64,
+        deadline: Instant,
+        abort: Arc<dyn AbortProbe>,
+    ) -> Result<Self> {
+        if max_database_bytes == 0 {
+            return Err(err("source diagnostic database budget"));
+        }
         let mut m = meter(limits, deadline, abort.as_ref())?;
         let keys = inputs
             .iter()
@@ -438,7 +453,7 @@ impl LegacyStore {
             m.held.push(h);
         }
         no_journal(path)?;
-        let held = Held::open(path, u64::MAX)?;
+        let held = Held::open(path, max_database_bytes)?;
         m.check()?;
         // The pager reads the exact retained inode through the shared FD VFS.
         // Source authentication and cumulative diagnostic budgets stay here.
@@ -495,11 +510,10 @@ impl LegacyStore {
             .remove("graph_header")
             .ok_or_else(|| err("missing graph_header"))?;
         object(&graph_header)?;
-        object(
-            metadata
-                .get("catalog")
-                .ok_or_else(|| err("missing catalog"))?,
-        )?;
+        let catalog = metadata
+            .remove("catalog")
+            .ok_or_else(|| err("missing catalog"))?;
+        object(&catalog)?;
         let corpus_header = metadata
             .remove("corpus_header")
             .ok_or_else(|| err("missing corpus_header"))?;
@@ -528,6 +542,7 @@ impl LegacyStore {
             revision,
             corpus_header,
             graph_header,
+            catalog,
             db,
             held,
             limits,
@@ -557,40 +572,89 @@ impl LegacyStore {
         &mut self,
         mut observe: impl FnMut(&Value) -> Result<()>,
     ) -> Result<(u64, u64)> {
+        let nodes = self.visit_knowledge_table(false, |value| observe(value))?;
+        let relations = self.visit_knowledge_table(true, |value| observe(value))?;
+        Ok((nodes, relations))
+    }
+    /// Explicit full export uses the same authenticated store and cumulative
+    /// work/row/VM limits; no source reconstruction or selected-model admission.
+    pub fn visit_knowledge_table(
+        &mut self,
+        relations: bool,
+        mut observe: impl FnMut(&Value) -> Result<()>,
+    ) -> Result<u64> {
         self.verify_currentness()?;
-        let mut counts = [0u64; 2];
-        for (index, table) in ["knowledge_nodes", "knowledge_relations"]
-            .iter()
-            .enumerate()
-        {
-            let mut statement = self.db.prepare(&format!(
-                "SELECT CASE WHEN typeof(payload)='text' AND length(CAST(payload AS BLOB))<=?1 THEN payload ELSE NULL END FROM {table} ORDER BY id"
-            )).map_err(err)?;
-            let mut rows = statement
-                .query([self.limits.max_json_bytes as i64])
-                .map_err(err)?;
-            while let Some(row) = rows.next().map_err(err)? {
-                self.verify_currentness()?;
-                self.rows = self
-                    .rows
-                    .checked_add(1)
-                    .filter(|n| *n <= self.limits.max_rows)
-                    .ok_or_else(|| err("source diagnostic carrier row budget"))?;
-                let raw: String = row.get(0).map_err(err)?;
-                let mut m = meter(self.limits, self.deadline, self.abort.as_ref())?;
-                m.bytes = self.bytes;
-                m.work = self.work;
-                m.charge(raw.len() as u64)?;
-                let value = m.parse(raw.as_bytes())?;
-                object(&value)?;
-                self.bytes = m.bytes;
-                self.work = m.work;
-                observe(&value)?;
-                counts[index] += 1;
-            }
+        let table = if relations {
+            "knowledge_relations"
+        } else {
+            "knowledge_nodes"
+        };
+        let mut count = 0u64;
+        let mut statement = self.db.prepare(&format!(
+            "SELECT CASE WHEN typeof(payload)='text' AND length(CAST(payload AS BLOB))<=?1 THEN payload ELSE NULL END FROM {table} ORDER BY id"
+        )).map_err(err)?;
+        let mut rows = statement
+            .query([self.limits.max_json_bytes as i64])
+            .map_err(err)?;
+        while let Some(row) = rows.next().map_err(err)? {
+            self.verify_currentness()?;
+            self.rows = self
+                .rows
+                .checked_add(1)
+                .filter(|n| *n <= self.limits.max_rows)
+                .ok_or_else(|| err("source diagnostic carrier row budget"))?;
+            let raw: String = row.get(0).map_err(err)?;
+            let mut m = meter(self.limits, self.deadline, self.abort.as_ref())?;
+            m.bytes = self.bytes;
+            m.work = self.work;
+            m.charge(raw.len() as u64)?;
+            let value = m.parse(raw.as_bytes())?;
+            object(&value)?;
+            self.bytes = m.bytes;
+            self.work = m.work;
+            observe(&value)?;
+            count = count
+                .checked_add(1)
+                .ok_or_else(|| err("source diagnostic count overflow"))?;
         }
         self.verify_currentness()?;
-        Ok((counts[0], counts[1]))
+        Ok(count)
+    }
+    /// Preserve Reference corpus_header's ordered graph_views selection.
+    pub fn corpus_header_with_graph_views(&mut self) -> Result<Value> {
+        self.verify_currentness()?;
+        let mut payload = self.corpus_header.clone();
+        let mut views = Vec::new();
+        let mut statement = self.db.prepare(
+            "SELECT CASE WHEN typeof(payload)='text' AND length(CAST(payload AS BLOB))<=?1 THEN payload ELSE NULL END FROM raw_records WHERE collection='corpus/graph_views' ORDER BY position"
+        ).map_err(err)?;
+        let mut rows = statement
+            .query([self.limits.max_json_bytes as i64])
+            .map_err(err)?;
+        while let Some(row) = rows.next().map_err(err)? {
+            self.verify_currentness()?;
+            self.rows = self
+                .rows
+                .checked_add(1)
+                .filter(|n| *n <= self.limits.max_rows)
+                .ok_or_else(|| err("source diagnostic corpus header row budget"))?;
+            let raw: String = row.get(0).map_err(err)?;
+            let mut m = meter(self.limits, self.deadline, self.abort.as_ref())?;
+            m.bytes = self.bytes;
+            m.work = self.work;
+            m.charge(raw.len() as u64)?;
+            let value = m.parse(raw.as_bytes())?;
+            object(&value)?;
+            self.bytes = m.bytes;
+            self.work = m.work;
+            views.push(value);
+        }
+        payload
+            .as_object_mut()
+            .ok_or_else(|| err("source diagnostic corpus header object"))?
+            .insert("graph_views".into(), Value::Array(views));
+        self.verify_currentness()?;
+        Ok(payload)
     }
     pub fn first_view_packet(&mut self, budget: PhilosophyReadBudget) -> Result<Vec<u8>> {
         self.verify_currentness()?;

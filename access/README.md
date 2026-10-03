@@ -1266,6 +1266,77 @@ every item, value type and source. These optimizations do not skip semantic
 validation or turn the build-time processing cache into a query dependency.
 
 
+## Explicit SourceRoot SDK adapter
+
+The opt-in `NativeAccessCore.from_source_root` adapter selects native software,
+seven source carrier paths, and a separate legacy QueryStore path. It uses the
+native `core-snapshot` entry; the selected installation must contain the matching
+entry. This source implementation has not established installed whole-Core parity
+or changed the `ToSAccessCore` default alias.
+
+The following selections come from the caller's data and resource owners:
+
+```python
+from tos_access import NativeAccessCore
+from tos_access.native_core_snapshot import NativeCoreSnapshotSelection
+
+selection = NativeCoreSnapshotSelection(
+    tos_root=selected_root,
+    **selected_paths,
+    query_store_path=selected_query_store,
+    query_store_configured=query_store_was_explicit,
+)
+with NativeAccessCore.from_source_root(
+    selected_native_prefix, selection, admission_provider,
+) as core:
+    snapshot = core.knowledge_snapshot()
+```
+
+`selected_paths` contains `index_path`, `philosophy_graph_projection_path`,
+`bibliographic_graph_path`, `entity_type_registry_path`,
+`relation_type_registry_path`, `philosophy_post_planting_audit_path`, and
+`evidence_projection_path`, each an explicitly selected absolute path. A caller
+may instead freeze an existing Reference instance's selectors with
+`NativeCoreSnapshotSelection.from_reference`; this copies paths without invoking
+its readers. Search read-model and compressed-search selectors remain independent.
+
+`admission_provider(operation)` must return a `NativeCoreSnapshotAdmission` for
+that operation, with its original finite monotonic deadline, all source, JSON,
+whole-export, cold-reader and process limits, and an actual borrowed stage-ticket
+FD. The resource owner creates and holds that ticket, for example through its
+compatible generic private-stage controller. The SDK neither issues tickets nor
+infers quotas, raises limits, or requires a particular host CLI. It passes the
+borrowed FD without closing it and preserves one cutoff through setup, native
+work, disclosure and owned child cleanup. Root metadata queries additionally
+use `NativeCoreQueryProfile`, immutable JSON bytes containing the complete
+explicit native query/HTTP allowances. Reading, Word and SourceRead keep their
+independently selected native owner routes.
+
+The source adapter exposes index/existence, source navigation, bibliographic
+and Evidence carriers, corpus/knowledge headers, philosophy projection/audit,
+graph, snapshot, snapshot-once and addressed-source operations. Generic metadata
+tool calls use the native registry and request parser in the same held source
+capture/model/evidence context. A source-derived projection is not an authored
+Foundation publication epoch or a rights/canon grant.
+
+An explicitly selected or discovered existing legacy QueryStore is authenticated
+against its five actual selected input digests and held read-only without a live
+journal. Its supported source paths are knowledge/corpus headers, fresh full
+Graph/Snapshot exports, and empty-argument `knowledge_catalog`; they require
+`NativeCoreQueryStoreLimits` on the operation admission. These seven explicit
+limits bound database bytes, input bytes, JSON bytes, rows, work, SQL VM steps and
+SQLite cache. Graph/Snapshot return a distinct `tos_query_store_v1` profile with
+an authenticated zero-FD reply, not a native producer-state descriptor or reuse
+verdict. They preserve the stored catalog and ordered rows without rebuilding
+sources. Other selected-store generic tools and addressed updates still refuse
+that selection explicitly.
+
+Whole constructor/discovery and default compatibility, prepared/release and
+independent search-reader behavior, persistent exploration checkpoints across
+Root calls, and installed CLI/HTTP/MCP consumer parity remain open. A source
+checkpoint or protocol check does not close those boundaries.
+
+
 ## Software archive
 
 After building the browser, package the exact reviewed Git commit:

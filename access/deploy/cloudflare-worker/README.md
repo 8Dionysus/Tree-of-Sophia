@@ -35,10 +35,45 @@ helpers remain available. This does not establish private capture acceptance.
 
 `scripts/sql_stream.py` and `scripts/import_local_sqlite.py` remain independent
 reference implementations; the maintained deploy entry uses the installed
-native commands described below. `verify:local` remains an independent Python
-differential consumer using `ReferenceToSAccessCore` and authentic local
-Worker HTTP packets. Its representative profile is a finite software gate,
+native commands described below. `verify:local` invokes the exact installed
+`TOS_ACCESS_BIN verify-edge-local` through a shell exec adapter. It requires
+explicit caller bounds, the genuine inherited stage ticket, the original
+monotonic cutoff and a pinned request. Rust owns local Worker lifecycle and
+strict packet comparison through the common Foundation parser. Node supplies
+raw HTTP transport and owns the actual Core server process. Core retains one
+captured source/model/evidence scope through all requests and final fences;
+its bounded startup receipt binds the selected source inputs before readiness.
+Independent Worker publication markers and data revisions remain separate.
+
+Use `verify:local:reference` for the historical Python differential consumer
+using `ReferenceToSAccessCore`. The native source route is not an installed
+runtime or CI verdict. Its representative matrix is a finite software gate,
 separate from production data, scale, deployment and semantic acceptance.
+
+
+The Python references have an explicit withdrawal boundary. Public maintained
+build, baseline/delta, lens/publication, navigation/static, SQL framing and
+local import responsibilities belong to the native modules named above.
+The public verification responsibility moves only after the maintained native
+reader runs the complete representative matrix, input and completion bindings,
+delta predecessor checks, lossless packet and refusal controls through its real
+held-capture HTTP entry, and its npm/CI caller has run that entry successfully.
+Keep production, large-payload and scale matrices as explicit separate profiles;
+software acceptance does not report those data-operation profiles as passed. The retained 22-packet Python/Worker
+result alone does not meet this boundary.
+
+After that acceptance, the public default must contain no call or fallback to
+these Python implementations. Keep `verify_local_runtime.py` as the explicitly
+named historical differential reference, with its exact accepted evidence;
+withdraw its default caller rather than deleting the independent evidence.
+`build_runtime.py`, `build_stages.py`, `incremental_runtime.py`,
+`lens_auxiliary_runtime.py` and `source_navigation_rows.py` also serve private
+bootstrap/delta reference consumers and software fixtures. Their physical
+archive or deletion requires those concrete consumers to be migrated and
+checked separately. `sql_stream.py` and `import_local_sqlite.py` may be archived
+only after their independent framing/import controls have native equivalents
+and the explicit reference callers are retired. Public acceptance cannot
+silently retire a shared private helper or a preserved oracle control.
 
 The maintained `deploy_edge.mjs` entry invokes installed `tos` for bounded
 `edge-sql-stream` framing and `edge-import-local` offline SQLite bootstrap.

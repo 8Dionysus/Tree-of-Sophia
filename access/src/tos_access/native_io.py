@@ -263,14 +263,15 @@ class _Exchange:
         finally:
             self._send_lock.release()
 
-    def receive_descriptor(self, peer):
-        """Receive one FD from the still-owned leader on a private socket.
+    def receive_descriptors(self, peer, *, expected_count):
+        """Receive an authenticated zero-or-one-FD state reply from this child.
 
-        Return a caller-owned FileIO and at most 4096 neutral transport bytes.
-        The caller checks descriptor roles, seals and contents and closes the
-        file after the complete child join. No callback runs in this method.
-        SO_PASSCRED must be enabled by the caller before starting the child.
+        Return (None, marker) for expected_count=0 or (caller-owned FileIO,
+        marker) for expected_count=1. The caller interprets marker bytes and
+        the descriptor. SO_PASSCRED must be enabled before the child starts.
         """
+        if type(expected_count) is not int or expected_count not in (0, 1):
+            raise ValueError('native descriptor reply expects exactly zero or one descriptor')
         self._active()
         if self._readers or self._terminal is None:
             raise NativeCustodyError('native descriptor delivery requires complete EOF and terminal observation')
@@ -303,16 +304,23 @@ class _Exchange:
                            if level == socket.SOL_SOCKET and kind == socket.SCM_CREDENTIALS]
             rights = [raw for level, kind, raw in controls
                       if level == socket.SOL_SOCKET and kind == socket.SCM_RIGHTS]
+            expected_controls = 1 + expected_count
+            envelope_matches = (
+                expected_count == 0 and not rights and not delivered
+                or expected_count == 1 and len(rights) == 1
+                and len(rights[0]) == array.array('i').itemsize and len(delivered) == 1
+            )
             if (flags & (socket.MSG_TRUNC | socket.MSG_CTRUNC)
-                    or len(controls) != 2 or len(credentials) != 1 or len(rights) != 1
-                    or len(credentials[0]) != struct.calcsize('3i')
-                    or len(rights[0]) != array.array('i').itemsize or len(delivered) != 1):
+                    or len(controls) != expected_controls or len(credentials) != 1
+                    or len(credentials[0]) != struct.calcsize('3i') or not envelope_matches):
                 raise NativeCustodyError('native descriptor envelope differs')
             pid, uid, gid = struct.unpack('3i', credentials[0])
             if pid != self._child.pid or uid != self._sender_uid or gid != self._sender_gid:
                 raise NativeCustodyError('native descriptor sender differs from the held leader')
             self._observe()
             self._active()
+            if expected_count == 0:
+                return None, data
             file = io.FileIO(delivered[0], mode='rb', closefd=True)
             delivered.clear()
             return file, data
@@ -330,6 +338,10 @@ class _Exchange:
             raise
         finally:
             signal.pthread_sigmask(signal.SIG_SETMASK, previous)
+
+    def receive_descriptor(self, peer):
+        """Backward-compatible one-FD adapter for existing selected providers."""
+        return self.receive_descriptors(peer, expected_count=1)
 
     def frames(self):
         """Yield bounded JSONL bytes, draining bounded stderr in the same reader."""

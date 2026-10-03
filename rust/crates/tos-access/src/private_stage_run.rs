@@ -1,0 +1,1269 @@
+//! Generic Linux private tmpfs stage controller; no model or resource admission.
+//! Caller owns an exclusively delegated empty consumer cgroup and capped output.
+//! Source port only: actual unprivileged namespace/cgroup placement is not proved.
+use std::{
+    ffi::{CString, OsStr},
+    fs::{self, DirBuilder, File, OpenOptions},
+    io::{Read, Write},
+    os::{
+        fd::{AsRawFd, FromRawFd},
+        unix::{
+            ffi::OsStrExt,
+            fs::{DirBuilderExt, MetadataExt, OpenOptionsExt},
+            process::CommandExt,
+        },
+    },
+    path::{Path, PathBuf},
+    process::{Child, Command},
+    sync::atomic::{AtomicBool, Ordering},
+    thread,
+    time::Duration,
+};
+const PATH_BYTES: usize = 4096;
+const PATH_PARTS: usize = 128;
+const ARGC: usize = 256;
+const ARGV_BYTES: usize = 128 * 1024;
+const FALLBACKS: [&str; 3] = ["/var/tmp", "/usr/tmp", "/tmp"];
+const SCHEMA: &str = "abyss_machine_private_tmpfs_stage_v1";
+static CANCELLED: AtomicBool = AtomicBool::new(false);
+extern "C" fn cancel(_: i32) {
+    CANCELLED.store(true, Ordering::Relaxed);
+}
+fn error() -> String {
+    std::io::Error::last_os_error().to_string()
+}
+fn clock_ns() -> Result<u64, String> {
+    let mut t = unsafe { std::mem::zeroed::<libc::timespec>() };
+    if unsafe { libc::clock_gettime(libc::CLOCK_MONOTONIC, &mut t) } != 0 {
+        return Err(error());
+    }
+    u64::try_from(t.tv_sec)
+        .ok()
+        .and_then(|n| n.checked_mul(1_000_000_000))
+        .and_then(|n| n.checked_add(t.tv_nsec as u64))
+        .ok_or_else(|| "monotonic clock overflow".into())
+}
+#[derive(Clone, Copy)]
+struct Cutoff {
+    whole: u64,
+    work: u64,
+}
+impl Cutoff {
+    fn select(original: u64, shutdown_ms: u64) -> Result<Self, String> {
+        let reserve = shutdown_ms
+            .checked_mul(1_000_000)
+            .filter(|n| *n > 0)
+            .ok_or("positive finite cleanup reserve required")?;
+        let work = original
+            .checked_sub(reserve)
+            .ok_or("cleanup reserve exceeds original cutoff")?;
+        if work <= clock_ns()? {
+            return Err("original work cutoff already expired".into());
+        }
+        Ok(Self {
+            whole: original,
+            work,
+        })
+    }
+    fn check(&self) -> Result<(), String> {
+        if CANCELLED.load(Ordering::Relaxed) || clock_ns()? >= self.work {
+            return Err("stage cancelled or original work cutoff expired".into());
+        }
+        Ok(())
+    }
+    fn cleanup_check(&self) -> Result<(), String> {
+        if clock_ns()? >= self.whole {
+            return Err(
+                "original cleanup cutoff expired; outer containment cleanup required".into(),
+            );
+        }
+        Ok(())
+    }
+}
+fn cstring(value: &OsStr) -> Result<CString, String> {
+    CString::new(value.as_bytes()).map_err(|e| e.to_string())
+}
+fn path_shape(path: &Path) -> Result<(), String> {
+    let bytes = path.as_os_str().as_bytes();
+    if bytes.is_empty()
+        || bytes.len() > PATH_BYTES
+        || !path.is_absolute()
+        || bytes
+            .iter()
+            .any(|b| b.is_ascii_whitespace() || *b == b'\\' || *b == 0)
+    {
+        return Err("bounded canonical absolute path required".into());
+    }
+    let text = std::str::from_utf8(bytes).map_err(|e| e.to_string())?;
+    let parts: Vec<&str> = text.split('/').skip(1).collect();
+    if parts.len() > PATH_PARTS
+        || parts
+            .iter()
+            .any(|p| p.is_empty() || *p == "." || *p == "..")
+    {
+        return Err("bounded canonical path components required".into());
+    }
+    Ok(())
+}
+fn directory(path: &Path) -> Result<File, String> {
+    path_shape(path)?;
+    let mut held = unsafe {
+        libc::open(
+            c"/".as_ptr(),
+            libc::O_PATH | libc::O_DIRECTORY | libc::O_CLOEXEC,
+        )
+    };
+    if held < 0 {
+        return Err(error());
+    }
+    let mut file = unsafe { File::from_raw_fd(held) };
+    for part in path.as_os_str().as_bytes().split(|b| *b == b'/').skip(1) {
+        let name = CString::new(part).map_err(|e| e.to_string())?;
+        held = unsafe {
+            libc::openat(
+                file.as_raw_fd(),
+                name.as_ptr(),
+                libc::O_PATH | libc::O_DIRECTORY | libc::O_NOFOLLOW | libc::O_CLOEXEC,
+            )
+        };
+        if held < 0 {
+            return Err(error());
+        }
+        file = unsafe { File::from_raw_fd(held) }
+    }
+    Ok(file)
+}
+fn member(root: &File, name: &str, write: bool) -> Result<File, String> {
+    let name = CString::new(name).map_err(|e| e.to_string())?;
+    let flags = (if write {
+        libc::O_WRONLY
+    } else {
+        libc::O_RDONLY
+    }) | libc::O_NOFOLLOW
+        | libc::O_CLOEXEC
+        | libc::O_NONBLOCK;
+    let fd = unsafe { libc::openat(root.as_raw_fd(), name.as_ptr(), flags) };
+    if fd < 0 {
+        return Err(error());
+    }
+    Ok(unsafe { File::from_raw_fd(fd) })
+}
+fn read_file(mut file: File, cap: usize, rows: usize, line: usize) -> Result<String, String> {
+    let mut bytes = vec![0u8; cap.checked_add(1).ok_or("kernel read bound overflow")?];
+    let mut used = 0;
+    loop {
+        let n = file.read(&mut bytes[used..]).map_err(|e| e.to_string())?;
+        if n == 0 {
+            break;
+        }
+        used += n;
+        if used > cap {
+            return Err("kernel evidence byte bound exceeded".into());
+        }
+    }
+    bytes.truncate(used);
+    let text = String::from_utf8(bytes).map_err(|e| e.to_string())?;
+    for (i, row) in text.lines().enumerate() {
+        if i >= rows || row.len() > line {
+            return Err("kernel evidence row/line bound exceeded".into());
+        }
+    }
+    Ok(text)
+}
+fn kernel(path: &Path, cap: usize, rows: usize, line: usize) -> Result<String, String> {
+    read_file(
+        OpenOptions::new()
+            .read(true)
+            .custom_flags(libc::O_NOFOLLOW | libc::O_NONBLOCK)
+            .open(path)
+            .map_err(|e| e.to_string())?,
+        cap,
+        rows,
+        line,
+    )
+}
+fn scalar(root: &File, name: &str) -> Result<u64, String> {
+    let raw = read_file(member(root, name, false)?, 64, 1, 64)?;
+    raw.trim()
+        .parse()
+        .map_err(|_| format!("finite actual cgroup scalar required: {name}"))
+}
+fn contents(root: &File, name: &str, cap: usize) -> Result<String, String> {
+    read_file(member(root, name, false)?, cap, 256, 4096)
+}
+fn identical(a: &File, b: &File) -> Result<(), String> {
+    let a = a.metadata().map_err(|e| e.to_string())?;
+    let b = b.metadata().map_err(|e| e.to_string())?;
+    if a.dev() != b.dev() || a.ino() != b.ino() {
+        return Err("held named directory identity changed".into());
+    }
+    Ok(())
+}
+fn membership() -> Result<PathBuf, String> {
+    let text = kernel(Path::new("/proc/self/cgroup"), 65536, 256, 4096)?;
+    let matches: Vec<&str> = text.lines().filter_map(|l| l.strip_prefix("0::")).collect();
+    if matches.len() != 1 {
+        return Err("unique actual cgroup v2 membership required".into());
+    }
+    let path = Path::new("/sys/fs/cgroup").join(matches[0].trim_start_matches('/'));
+    path_shape(&path)?;
+    Ok(path)
+}
+
+// Persistent IO is outside private tmpfs quota and separately admitted/priced
+// by the caller. Selecting a directory cannot acquire a resource grant.
+fn verify_persistent(path: &Path, held: &File, stage: &Path) -> Result<std::fs::Metadata, String> {
+    path_shape(path)?;
+    for forbidden in std::iter::once(stage).chain(FALLBACKS.iter().map(Path::new)) {
+        if path.starts_with(forbidden) || forbidden.starts_with(path) {
+            return Err("persistent store overlaps private stage or fallback".into());
+        }
+    }
+    let named = directory(path)?;
+    identical(held, &named)?;
+    let info = held.metadata().map_err(|e| e.to_string())?;
+    if info.mode() & 0o077 != 0 || info.uid() != unsafe { libc::getuid() } {
+        return Err("persistent store must be private and owned by actual caller UID".into());
+    }
+    Ok(info)
+}
+
+fn consumer_limits(held: &File, ram: u64) -> Result<(), String> {
+    if scalar(held, "memory.max")? != ram || scalar(held, "memory.swap.max")? != 0 {
+        return Err("consumer finite hard RAM/swap differs from caller".into());
+    }
+    Ok(())
+}
+fn topology(
+    setup: &Path,
+    consumer: &Path,
+    held: &File,
+    quota: u64,
+    ram: u64,
+    end: Cutoff,
+) -> Result<(), String> {
+    end.check()?;
+    let common = setup.parent().ok_or("setup parent absent")?;
+    if common == Path::new("/sys/fs/cgroup")
+        || consumer == setup
+        || consumer.parent() != Some(common)
+    {
+        return Err(
+            "consumer must be distinct sibling of actual setup under dedicated parent".into(),
+        );
+    }
+    let named = directory(consumer)?;
+    identical(held, &named)?;
+    consumer_limits(held, ram)?;
+    let common_fd = directory(common)?;
+    let setup_fd = directory(setup)?;
+    let aggregate = quota.checked_add(ram).ok_or("additive RAM overflow")?;
+    if scalar(&common_fd, "memory.max")? != aggregate
+        || scalar(&common_fd, "memory.swap.max")? != 0
+        || scalar(&setup_fd, "memory.max")? != quota
+        || scalar(&setup_fd, "memory.swap.max")? != 0
+    {
+        return Err("actual additive setup/common RAM envelope differs".into());
+    }
+    if !contents(&common_fd, "cgroup.procs", 4096)?
+        .trim()
+        .is_empty()
+        || !contents(&common_fd, "cgroup.subtree_control", 4096)?
+            .split_whitespace()
+            .any(|v| v == "memory")
+    {
+        return Err("aggregate parent must be empty and delegate memory controller".into());
+    }
+    let mut at = common.to_path_buf();
+    for _ in 0..PATH_PARTS {
+        end.check()?;
+        if at == Path::new("/sys/fs/cgroup") {
+            break;
+        }
+        let fd = directory(&at)?;
+        let raw = contents(&fd, "memory.max", 64)?;
+        if raw.trim() != "max" && raw.trim().parse::<u64>().map_err(|e| e.to_string())? < aggregate
+        {
+            return Err("ancestor actual hard RAM below additive caller envelope".into());
+        }
+        if !at.pop() {
+            return Err("cgroup ancestry escaped".into());
+        }
+    }
+    end.check()
+}
+#[derive(Clone)]
+struct Options {
+    unshare: PathBuf,
+    consumer: PathBuf,
+    scratch: PathBuf,
+    quota: u64,
+    inodes: u64,
+    ram: u64,
+    original: u64,
+    shutdown_ms: u64,
+    persistent: Option<PathBuf>,
+    command: Vec<String>,
+}
+fn limits(o: &Options) -> Result<(), String> {
+    if !matches!(std::env::consts::ARCH, "x86_64" | "aarch64") {
+        return Err("supported Linux syscall source architectures are x86_64/aarch64".into());
+    }
+    let page = unsafe { libc::sysconf(libc::_SC_PAGESIZE) };
+    if page <= 0
+        || o.quota < page as u64
+        || o.quota % (page as u64) != 0
+        || o.inodes < 16
+        || o.ram == 0
+    {
+        return Err(
+            "page aligned positive quota, inodes>=16 and positive working RAM required".into(),
+        );
+    }
+    o.quota.checked_add(o.ram).ok_or("additive RAM overflow")?;
+    if o.command.is_empty()
+        || o.command.len() > ARGC
+        || o.command.iter().any(|v| v.len() > PATH_BYTES)
+        || o.command
+            .iter()
+            .try_fold(0usize, |n, v| n.checked_add(v.len() + 1))
+            .filter(|n| *n <= ARGV_BYTES)
+            .is_none()
+    {
+        return Err("command argv transport exceeds finite source limits".into());
+    }
+    path_shape(Path::new(&o.command[0]))?;
+    if !Path::new(&o.command[0]).is_file() {
+        return Err("explicit consumer executable absent".into());
+    }
+    Ok(())
+}
+struct SignalGuard {
+    previous: [libc::sigaction; 2],
+    installed: usize,
+}
+impl SignalGuard {
+    fn install() -> Result<Self, String> {
+        CANCELLED.store(false, Ordering::Relaxed);
+        let mut guard = Self {
+            previous: unsafe { std::mem::zeroed() },
+            installed: 0,
+        };
+        let mut action = unsafe { std::mem::zeroed::<libc::sigaction>() };
+        action.sa_sigaction = cancel as *const () as usize;
+        unsafe { libc::sigemptyset(&mut action.sa_mask) };
+        for (i, sig) in [libc::SIGINT, libc::SIGTERM].iter().enumerate() {
+            if unsafe { libc::sigaction(*sig, &action, &mut guard.previous[i]) } != 0 {
+                return Err(error());
+            }
+            guard.installed += 1
+        }
+        Ok(guard)
+    }
+}
+impl Drop for SignalGuard {
+    fn drop(&mut self) {
+        for (i, sig) in [libc::SIGINT, libc::SIGTERM]
+            .iter()
+            .enumerate()
+            .take(self.installed)
+        {
+            unsafe { libc::sigaction(*sig, &self.previous[i], std::ptr::null_mut()) };
+        }
+    }
+}
+struct Mask {
+    old: libc::sigset_t,
+    active: bool,
+}
+impl Mask {
+    fn block() -> Result<Self, String> {
+        let mut set = unsafe { std::mem::zeroed() };
+        let mut old = unsafe { std::mem::zeroed() };
+        unsafe {
+            libc::sigemptyset(&mut set);
+            libc::sigaddset(&mut set, libc::SIGINT);
+            libc::sigaddset(&mut set, libc::SIGTERM)
+        };
+        let r = unsafe { libc::pthread_sigmask(libc::SIG_BLOCK, &set, &mut old) };
+        if r != 0 {
+            return Err(std::io::Error::from_raw_os_error(r).to_string());
+        }
+        Ok(Self { old, active: true })
+    }
+    fn restore(&mut self) -> Result<(), String> {
+        if self.active {
+            let r = unsafe {
+                libc::pthread_sigmask(libc::SIG_SETMASK, &self.old, std::ptr::null_mut())
+            };
+            if r != 0 {
+                return Err(std::io::Error::from_raw_os_error(r).to_string());
+            }
+            self.active = false
+        }
+        Ok(())
+    }
+}
+impl Drop for Mask {
+    fn drop(&mut self) {
+        let _ = self.restore();
+    }
+}
+struct Leader {
+    child: Child,
+    owned: bool,
+    reaped: bool,
+}
+impl Leader {
+    fn spawn(
+        mut command: Command,
+        held_fd: i32,
+        persistent_fd: Option<i32>,
+    ) -> Result<(Self, Option<String>), String> {
+        let mut mask = Mask::block()?;
+        let old = mask.old;
+        unsafe {
+            command.pre_exec(move || {
+                if libc::setsid() < 0 {
+                    return Err(std::io::Error::last_os_error());
+                }
+                libc::signal(libc::SIGINT, libc::SIG_DFL);
+                libc::signal(libc::SIGTERM, libc::SIG_DFL);
+                if libc::syscall(libc::SYS_close_range, 3u32, u32::MAX, 4u32) < 0 {
+                    return Err(std::io::Error::last_os_error());
+                }
+                for fd in [Some(held_fd), persistent_fd].into_iter().flatten() {
+                    let flags = libc::fcntl(fd, libc::F_GETFD);
+                    if flags < 0 || libc::fcntl(fd, libc::F_SETFD, flags & !libc::FD_CLOEXEC) < 0 {
+                        return Err(std::io::Error::last_os_error());
+                    }
+                }
+                let r = libc::pthread_sigmask(libc::SIG_SETMASK, &old, std::ptr::null_mut());
+                if r != 0 {
+                    return Err(std::io::Error::from_raw_os_error(r));
+                }
+                Ok(())
+            });
+        }
+        let result = command.spawn();
+        let leader = match result {
+            Ok(child) => Self {
+                child,
+                owned: true,
+                reaped: false,
+            },
+            Err(e) => {
+                let restored = mask.restore();
+                return Err(format!("namespace spawn: {e}; mask restore: {restored:?}"));
+            }
+        };
+        let restoration_error = mask.restore().err();
+        Ok((leader, restoration_error))
+    }
+    fn pid(&self) -> i32 {
+        self.child.id() as i32
+    }
+    fn exited(&mut self) -> Result<Option<i32>, String> {
+        if !self.owned || self.reaped {
+            return Err(
+                "unshare leader ownership lost; external containment cleanup required".into(),
+            );
+        }
+        let mut info = unsafe { std::mem::zeroed::<libc::siginfo_t>() };
+        if unsafe {
+            libc::waitid(
+                libc::P_PID,
+                self.pid() as libc::id_t,
+                &mut info,
+                libc::WEXITED | libc::WNOHANG | libc::WNOWAIT,
+            )
+        } != 0
+        {
+            self.owned = false;
+            return Err(error());
+        }
+        let pid = unsafe { info.si_pid() };
+        if pid == 0 {
+            return Ok(None);
+        }
+        if pid != self.pid() {
+            self.owned = false;
+            return Err("unexpected unshare child identity".into());
+        }
+        Ok(Some(if info.si_code == libc::CLD_EXITED {
+            unsafe { info.si_status() }
+        } else {
+            128 + unsafe { info.si_status() }
+        }))
+    }
+    fn signal(&mut self) -> Result<(), String> {
+        self.exited()?;
+        if unsafe { libc::kill(-self.pid(), libc::SIGKILL) } < 0
+            && std::io::Error::last_os_error().raw_os_error() != Some(libc::ESRCH)
+        {
+            return Err(error());
+        }
+        Ok(())
+    }
+    fn live_group(&self, end: Cutoff) -> Result<bool, String> {
+        for (count, entry) in fs::read_dir("/proc")
+            .map_err(|e| e.to_string())?
+            .enumerate()
+        {
+            end.cleanup_check()?;
+            if count >= 65536 {
+                return Err("owned setup process scan exceeds 65536 rows".into());
+            }
+            let entry = entry.map_err(|e| e.to_string())?;
+            if entry.file_name().to_string_lossy().parse::<u32>().is_err() {
+                continue;
+            }
+            let path = entry.path().join("stat");
+            let text = match kernel(&path, 4096, 1, 4096) {
+                Ok(text) => text,
+                Err(e) => {
+                    if !path.exists() {
+                        continue;
+                    }
+                    return Err(e);
+                }
+            };
+            let (_, tail) = text.rsplit_once(')').ok_or("process stat shape")?;
+            let fields: Vec<&str> = tail.split_whitespace().collect();
+            if fields.len() < 4 {
+                return Err("process stat shape".into());
+            }
+            if fields[2].parse::<i32>().map_err(|e| e.to_string())? == self.pid()
+                && fields[0] != "Z"
+                && fields[0] != "X"
+            {
+                return Ok(true);
+            }
+        }
+        Ok(false)
+    }
+}
+fn consumer_populated(held: &File) -> Result<bool, String> {
+    let text = contents(held, "cgroup.events", 4096)?;
+    match text
+        .lines()
+        .find_map(|line| line.strip_prefix("populated "))
+    {
+        Some("0") => Ok(false),
+        Some("1") => Ok(true),
+        _ => Err("actual consumer population evidence absent".into()),
+    }
+}
+fn cleanup(leader: &mut Leader, held: &File, end: Cutoff) -> Result<(), String> {
+    // Both scopes are signalled before waiting: setup descendants cannot survive
+    // while a consumer drain consumes the remaining cutoff.
+    let killed = member(held, "cgroup.kill", true)
+        .and_then(|mut f| f.write_all(b"1\n").map_err(|e| e.to_string()));
+    let group = leader.signal();
+    if killed.is_err() || group.is_err() {
+        return Err(format!(
+            "consumer kill: {killed:?}; owned setup kill: {group:?}; external containment cleanup required"
+        ));
+    }
+    loop {
+        end.cleanup_check()?;
+        if !consumer_populated(held)? && leader.exited()?.is_some() && !leader.live_group(end)? {
+            leader.child.wait().map_err(|e| e.to_string())?;
+            leader.reaped = true;
+            leader.owned = false;
+            return Ok(());
+        }
+        thread::sleep(Duration::from_millis(5));
+    }
+}
+fn outer(o: &Options) -> Result<i32, String> {
+    limits(o)?;
+    let end = Cutoff::select(o.original, o.shutdown_ms)?;
+    let _signals = SignalGuard::install()?;
+    if unsafe { libc::getuid() } == 0 {
+        return Err("ordinary unprivileged caller required".into());
+    }
+    path_shape(&o.unshare)?;
+    if !o.unshare.is_file() {
+        return Err("explicit generic unshare executable absent".into());
+    }
+    let scratch = directory(&o.scratch)?;
+    if scratch.metadata().map_err(|e| e.to_string())?.mode() & 0o077 != 0 {
+        return Err("caller selected scratch parent must be private0700".into());
+    }
+    let held = directory(&o.consumer)?;
+    let persistent = o
+        .persistent
+        .as_ref()
+        .map(|path| directory(path))
+        .transpose()?;
+    let setup = membership()?;
+    topology(&setup, &o.consumer, &held, o.quota, o.ram, end)?;
+    if !contents(&held, "cgroup.procs", 4096)?.trim().is_empty() || consumer_populated(&held)? {
+        return Err("delegated consumer must initially be empty".into());
+    }
+    drop(member(&held, "cgroup.kill", true)?); // fail before launch if cleanup not delegated
+    let parent_mnt = fs::metadata("/proc/self/ns/mnt")
+        .map_err(|e| e.to_string())?
+        .ino();
+    let parent_net = fs::metadata("/proc/self/ns/net")
+        .map_err(|e| e.to_string())?
+        .ino();
+    let root = o.scratch.join(format!(
+        "tos-private-stage-{}-{}",
+        std::process::id(),
+        clock_ns()?
+    ));
+    path_shape(&root)?;
+    if FALLBACKS
+        .iter()
+        .any(|p| root.starts_with(p) || Path::new(p).starts_with(&root))
+    {
+        return Err("private stage backing root overlaps fallback bind path".into());
+    }
+    if let Some(held) = persistent.as_ref() {
+        verify_persistent(
+            o.persistent.as_ref().ok_or("persistent selection absent")?,
+            held,
+            &root,
+        )?;
+    }
+    DirBuilder::new()
+        .mode(0o700)
+        .create(&root)
+        .map_err(|e| e.to_string())?;
+    let executable = std::env::current_exe().map_err(|e| e.to_string())?;
+    let mut command = Command::new(&o.unshare);
+    command
+        .args([
+            "--user",
+            "--map-root-user",
+            "--mount",
+            "--net",
+            "--pid",
+            "--mount-proc",
+            "--fork",
+            "--kill-child=SIGKILL",
+        ])
+        .arg(executable)
+        .arg("private-stage-run")
+        .arg("--namespace-inner");
+    command.args([
+        "--consumer-cgroup",
+        o.consumer.to_str().ok_or("consumer path UTF8")?,
+        "--scratch-parent",
+        o.scratch.to_str().ok_or("scratch path UTF8")?,
+        "--unshare-exe",
+        o.unshare.to_str().ok_or("unshare path UTF8")?,
+    ]);
+    for (key, value) in [
+        ("--quota-bytes", o.quota),
+        ("--inodes", o.inodes),
+        ("--working-ram-bytes", o.ram),
+        ("--work-deadline-ns", o.original),
+        ("--maximum-shutdown-ms", o.shutdown_ms),
+        ("--parent-mount-namespace", parent_mnt),
+        ("--parent-net-namespace", parent_net),
+        ("--host-uid", unsafe { libc::getuid() } as u64),
+        ("--host-gid", unsafe { libc::getgid() } as u64),
+        ("--consumer-fd", held.as_raw_fd() as u64),
+    ] {
+        command.arg(key).arg(value.to_string());
+    }
+    if let Some(held) = persistent.as_ref() {
+        command
+            .arg("--persistent-store")
+            .arg(o.persistent.as_ref().ok_or("persistent selection absent")?)
+            .arg("--persistent-fd")
+            .arg(held.as_raw_fd().to_string());
+    }
+    command
+        .arg("--root")
+        .arg(&root)
+        .arg("--setup-cgroup")
+        .arg(&setup)
+        .arg("--")
+        .args(&o.command);
+    let spawned = Leader::spawn(
+        command,
+        held.as_raw_fd(),
+        persistent.as_ref().map(AsRawFd::as_raw_fd),
+    );
+    let (mut leader, restoration_error) = match spawned {
+        Ok(leader) => leader,
+        Err(e) => {
+            let _ = fs::remove_dir(&root);
+            return Err(e);
+        }
+    };
+    let result = (|| {
+        if let Some(e) = restoration_error {
+            return Err(format!("parent signal mask restoration failed: {e}"));
+        }
+        loop {
+            end.check()?;
+            if let Some(code) = leader.exited()? {
+                return Ok(code);
+            }
+            thread::sleep(Duration::from_millis(5));
+        }
+    })();
+    let closed = cleanup(&mut leader, &held, end);
+    if closed.is_err() {
+        return Err(format!(
+            "consumer result: {result:?}; cleanup: {closed:?}; private empty backing path retained {}",
+            root.display()
+        ));
+    }
+    fs::remove_dir(&root).map_err(|e| format!("backing directory cleanup failed: {e}"))?;
+    end.cleanup_check()?;
+    result
+}
+fn mount(
+    source: Option<&OsStr>,
+    target: &Path,
+    kind: Option<&OsStr>,
+    flags: libc::c_ulong,
+    data: Option<&OsStr>,
+) -> Result<(), String> {
+    let source = source.map(cstring).transpose()?;
+    let target = cstring(target.as_os_str())?;
+    let kind = kind.map(cstring).transpose()?;
+    let data = data.map(cstring).transpose()?;
+    if unsafe {
+        libc::mount(
+            source.as_ref().map_or(std::ptr::null(), |v| v.as_ptr()),
+            target.as_ptr(),
+            kind.as_ref().map_or(std::ptr::null(), |v| v.as_ptr()),
+            flags,
+            data.as_ref()
+                .map_or(std::ptr::null(), |v| v.as_ptr().cast()),
+        )
+    } != 0
+    {
+        return Err(error());
+    }
+    Ok(())
+}
+fn loopback() -> Result<(), String> {
+    let fd = unsafe { libc::socket(libc::AF_INET, libc::SOCK_DGRAM | libc::SOCK_CLOEXEC, 0) };
+    if fd < 0 {
+        return Err(error());
+    }
+    let socket = unsafe { File::from_raw_fd(fd) };
+    let mut request = [0u8; 40];
+    request[..2].copy_from_slice(b"lo");
+    if unsafe { libc::ioctl(socket.as_raw_fd(), 0x8913u64, request.as_mut_ptr()) } < 0 {
+        return Err(error());
+    }
+    let flags = i16::from_ne_bytes([request[16], request[17]]) | 1;
+    request[16..18].copy_from_slice(&flags.to_ne_bytes());
+    if unsafe { libc::ioctl(socket.as_raw_fd(), 0x8914u64, request.as_mut_ptr()) } < 0 {
+        return Err(error());
+    }
+    if unsafe { libc::ioctl(socket.as_raw_fd(), 0x8913u64, request.as_mut_ptr()) } < 0
+        || i16::from_ne_bytes([request[16], request[17]]) & 1 == 0
+    {
+        return Err("isolated loopback did not become UP".into());
+    }
+    Ok(())
+}
+#[repr(C)]
+struct Ruleset {
+    handled: u64,
+}
+#[repr(C, packed)]
+struct PathRule {
+    allowed: u64,
+    parent: i32,
+}
+fn confine(root: &Path, fallbacks: &[String], persistent: Option<&File>) -> Result<(), String> {
+    if !matches!(std::env::consts::ARCH, "x86_64" | "aarch64") {
+        return Err("Landlock syscall architecture unsupported".into());
+    }
+    let abi = unsafe { libc::syscall(444, 0, 0, 1) };
+    if abi < 3 {
+        return Err("Landlock ABI>=3 required".into());
+    }
+    let handled = (1u64 << 1) | (((1u64 << 15) - 1) & !((1u64 << 4) - 1));
+    let attr = Ruleset { handled };
+    let raw = unsafe { libc::syscall(444, &attr, std::mem::size_of::<Ruleset>(), 0) };
+    if raw < 0 {
+        return Err(error());
+    }
+    let rules = unsafe { File::from_raw_fd(raw as i32) };
+    for path in std::iter::once(root).chain(fallbacks.iter().map(Path::new)) {
+        let resolved = fs::canonicalize(path).map_err(|e| e.to_string())?;
+        let parent = directory(&resolved)?;
+        let rule = PathRule {
+            allowed: handled,
+            parent: parent.as_raw_fd(),
+        };
+        if unsafe { libc::syscall(445, rules.as_raw_fd(), 1, &rule, 0) } < 0 {
+            return Err(error());
+        }
+    }
+    if let Some(held) = persistent {
+        let rule = PathRule {
+            allowed: handled,
+            parent: held.as_raw_fd(),
+        };
+        if unsafe { libc::syscall(445, rules.as_raw_fd(), 1, &rule, 0) } < 0 {
+            return Err(error());
+        }
+    }
+    if unsafe { libc::prctl(libc::PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0) } != 0
+        || unsafe { libc::syscall(446, rules.as_raw_fd(), 0) } < 0
+    {
+        return Err(error());
+    }
+    Ok(())
+}
+fn drop_caps() -> Result<(), String> {
+    let raw = kernel(Path::new("/proc/sys/kernel/cap_last_cap"), 16, 1, 16)?;
+    let last = raw.trim().parse::<u32>().map_err(|e| e.to_string())?;
+    if last > 63 {
+        return Err("capability transport source bound63 exceeded".into());
+    }
+    for cap in 0..=last {
+        if unsafe { libc::prctl(libc::PR_CAPBSET_DROP, cap, 0, 0, 0) } != 0 {
+            return Err(error());
+        }
+    }
+    if unsafe {
+        libc::prctl(
+            libc::PR_CAP_AMBIENT,
+            libc::PR_CAP_AMBIENT_CLEAR_ALL,
+            0,
+            0,
+            0,
+        )
+    } != 0
+    {
+        return Err(error());
+    }
+    #[repr(C)]
+    struct Header {
+        version: u32,
+        pid: i32,
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    struct Data {
+        effective: u32,
+        permitted: u32,
+        inheritable: u32,
+    }
+    let header = Header {
+        version: 0x20080522,
+        pid: 0,
+    };
+    let data = [Data {
+        effective: 0,
+        permitted: 0,
+        inheritable: 0,
+    }; 2];
+    if unsafe { libc::syscall(libc::SYS_capset, &header, &data) } < 0 {
+        return Err(error());
+    }
+    Ok(())
+}
+struct Inner {
+    root: PathBuf,
+    setup: PathBuf,
+    consumer_fd: i32,
+    persistent_fd: Option<i32>,
+    parent_mnt: u64,
+    parent_net: u64,
+    host_uid: u64,
+    host_gid: u64,
+}
+fn inner(o: &Options, i: &Inner) -> Result<i32, String> {
+    limits(o)?;
+    let end = Cutoff::select(o.original, o.shutdown_ms)?;
+    end.check()?;
+    path_shape(&i.root)?;
+    if i.root.parent() != Some(o.scratch.as_path()) || i.consumer_fd < 3 {
+        return Err("inner selected backing root or held consumer FD invalid".into());
+    }
+    let mnt = fs::metadata("/proc/self/ns/mnt")
+        .map_err(|e| e.to_string())?
+        .ino();
+    let net = fs::metadata("/proc/self/ns/net")
+        .map_err(|e| e.to_string())?
+        .ino();
+    if mnt == i.parent_mnt || net == i.parent_net || i.host_uid == 0 {
+        return Err("fresh ordinary user/mount/network namespaces required".into());
+    }
+    for (path, id) in [
+        ("/proc/self/uid_map", i.host_uid),
+        ("/proc/self/gid_map", i.host_gid),
+    ] {
+        let raw = kernel(Path::new(path), 4096, 16, 1024)?;
+        if raw.split_whitespace().collect::<Vec<_>>() != ["0", &id.to_string(), "1"] {
+            return Err("exact ordinary single UID/GID mapping required".into());
+        }
+    }
+    let persistent = match (&o.persistent, i.persistent_fd) {
+        (None, None) => None,
+        (Some(path), Some(fd)) if fd >= 3 => {
+            let duplicate = unsafe { libc::fcntl(fd, libc::F_DUPFD_CLOEXEC, 3) };
+            if duplicate < 0 {
+                return Err(error());
+            }
+            let held = unsafe { File::from_raw_fd(duplicate) };
+            verify_persistent(path, &held, &i.root)?;
+            Some(held)
+        }
+        _ => {
+            return Err(
+                "selected persistent store and actual held descriptor must correspond".into(),
+            );
+        }
+    };
+    let duplicate = unsafe { libc::fcntl(i.consumer_fd, libc::F_DUPFD_CLOEXEC, 3) };
+    if duplicate < 0 {
+        return Err(error());
+    }
+    let held = unsafe { File::from_raw_fd(duplicate) };
+    let actual = membership()?;
+    if actual != i.setup {
+        return Err("actual preplacement setup membership differs".into());
+    }
+    topology(&actual, &o.consumer, &held, o.quota, o.ram, end)?;
+    if consumer_populated(&held)? {
+        return Err("consumer became populated before placement".into());
+    }
+    end.check()?;
+    mount(
+        None,
+        Path::new("/"),
+        None,
+        libc::MS_REC | libc::MS_PRIVATE,
+        None,
+    )?;
+    let data = format!("size={},nr_inodes={},mode=700", o.quota, o.inodes);
+    mount(
+        Some(OsStr::new(SCHEMA)),
+        &i.root,
+        Some(OsStr::new("tmpfs")),
+        libc::MS_NOSUID | libc::MS_NODEV | libc::MS_NOEXEC,
+        Some(OsStr::new(&data)),
+    )?;
+    for name in ["tmp", "capture", "stage", "output"] {
+        end.check()?;
+        DirBuilder::new()
+            .mode(0o700)
+            .create(i.root.join(name))
+            .map_err(|e| e.to_string())?;
+    }
+    let temporary = i.root.join("tmp");
+    let temp = fs::metadata(&temporary).map_err(|e| e.to_string())?;
+    let mut fallbacks: Vec<String> = Vec::new();
+    for name in FALLBACKS {
+        end.check()?;
+        let path = Path::new(name);
+        let info = match fs::symlink_metadata(path) {
+            Ok(info) => info,
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => continue,
+            Err(e) => return Err(e.to_string()),
+        };
+        if info.file_type().is_symlink() {
+            let named = fs::canonicalize(path).map_err(|e| e.to_string())?;
+            if !fallbacks.iter().any(|p| Path::new(p) == named) {
+                return Err("unsupported SQLite fallback alias".into());
+            }
+        } else {
+            if !info.is_dir() {
+                return Err("SQLite fallback is not a directory".into());
+            }
+            mount(Some(temporary.as_os_str()), path, None, libc::MS_BIND, None)?;
+        }
+        let info = fs::metadata(path).map_err(|e| e.to_string())?;
+        if info.dev() != temp.dev() || info.ino() != temp.ino() {
+            return Err("fallback does not share aggregate private quota".into());
+        }
+        fallbacks.push(name.into());
+    }
+    let root = directory(&i.root)?;
+    let meta = root.metadata().map_err(|e| e.to_string())?;
+    let mut stats = unsafe { std::mem::zeroed::<libc::statvfs>() };
+    if unsafe { libc::fstatvfs(root.as_raw_fd(), &mut stats) } != 0
+        || stats.f_blocks.checked_mul(stats.f_frsize) != Some(o.quota)
+        || stats.f_files != o.inodes
+    {
+        return Err("actual kernel tmpfs byte/inode ceiling differs".into());
+    }
+    let mut mount_id = unsafe { std::mem::zeroed::<libc::statx>() };
+    if unsafe {
+        libc::statx(
+            root.as_raw_fd(),
+            c"".as_ptr(),
+            libc::AT_EMPTY_PATH,
+            libc::STATX_MNT_ID,
+            &mut mount_id,
+        )
+    } != 0
+        || mount_id.stx_mask & libc::STATX_MNT_ID == 0
+    {
+        return Err("actual private mount ID unavailable".into());
+    }
+    let mut ticket = serde_json::json!({"schema":SCHEMA,"quota_bytes":o.quota,"inode_limit":o.inodes,"working_ram_bytes":o.ram,"root":i.root,"root_device":meta.dev(),"root_inode":meta.ino(),"mount_id":mount_id.stx_mnt_id,"mount_namespace_inode":mnt,"parent_mount_namespace_inode":i.parent_mnt,"fallbacks":fallbacks,"lifetime":"consumer-process-mount-namespace","capabilities":"dropped-before-exec","write_confinement":"landlock-v3","consumer_requires_dumpable_zero":true});
+    if let Some(held) = persistent.as_ref() {
+        let path = o.persistent.as_ref().ok_or("persistent selection absent")?;
+        let info = verify_persistent(path, held, &i.root)?;
+        if info.dev() == meta.dev() {
+            return Err("persistent store must be outside private tmpfs device".into());
+        }
+        ticket["schema"] = serde_json::json!("abyss_machine_private_tmpfs_stage_v2");
+        ticket["persistent_store"] = serde_json::json!({"root":path,"root_device":info.dev(),"root_inode":info.ino(),"quota_scope":"outside-private-tmpfs"});
+    }
+    let bytes = serde_json::to_vec(&ticket).map_err(|e| e.to_string())?;
+    if bytes.len() > 8192 {
+        return Err("private stage ticket bound8192 exceeded".into());
+    }
+    let fd = unsafe {
+        libc::memfd_create(
+            if persistent.is_some() {
+                c"abyss_machine_private_tmpfs_stage_v2".as_ptr()
+            } else {
+                c"abyss_machine_private_tmpfs_stage_v1".as_ptr()
+            },
+            libc::MFD_ALLOW_SEALING | libc::MFD_CLOEXEC,
+        )
+    };
+    if fd < 0 {
+        return Err(error());
+    }
+    let mut custody = unsafe { File::from_raw_fd(fd) };
+    custody.write_all(&bytes).map_err(|e| e.to_string())?;
+    if unsafe {
+        libc::fcntl(
+            fd,
+            libc::F_ADD_SEALS,
+            libc::F_SEAL_SEAL | libc::F_SEAL_SHRINK | libc::F_SEAL_GROW | libc::F_SEAL_WRITE,
+        )
+    } < 0
+    {
+        return Err(error());
+    }
+    end.check()?;
+    loopback()?;
+    topology(&i.setup, &o.consumer, &held, o.quota, o.ram, end)?;
+    let mut placement = member(&held, "cgroup.procs", true)?;
+    placement.write_all(b"0\n").map_err(|e| e.to_string())?;
+    drop(placement);
+    if membership()? != o.consumer {
+        return Err("actual consumer membership differs after self placement".into());
+    }
+    consumer_limits(&held, o.ram)?;
+    drop(held);
+    unsafe { libc::close(i.consumer_fd) };
+    std::env::set_current_dir(&i.root).map_err(|e| e.to_string())?;
+    confine(&i.root, &fallbacks, persistent.as_ref())?;
+    if let Some(held) = persistent.as_ref() {
+        verify_persistent(
+            o.persistent.as_ref().ok_or("persistent selection absent")?,
+            held,
+            &i.root,
+        )?;
+    }
+    drop(persistent);
+    if let Some(fd) = i.persistent_fd {
+        unsafe { libc::close(fd) };
+    }
+    if unsafe { libc::prctl(libc::PR_SET_DUMPABLE, 0, 0, 0, 0) } != 0 {
+        return Err(error());
+    }
+    drop_caps()?;
+    end.check()?;
+    // All other inherited descriptors become CLOEXEC; only genuine sealed ticket
+    // survives the explicit consumer exec. No writable cgroup FD reaches it.
+    if unsafe { libc::syscall(libc::SYS_close_range, 3u32, u32::MAX, 4u32) } < 0 {
+        return Err(error());
+    }
+    let flags = unsafe { libc::fcntl(fd, libc::F_GETFD) };
+    if flags < 0 || unsafe { libc::fcntl(fd, libc::F_SETFD, flags & !libc::FD_CLOEXEC) } < 0 {
+        return Err(error());
+    }
+    let mut command = Command::new(&o.command[0]);
+    command
+        .args(&o.command[1..])
+        .env("ABYSS_STAGE_ROOT", &i.root)
+        .env("ABYSS_STAGE_TICKET_FD", fd.to_string())
+        .env("TMPDIR", &temporary)
+        .env("SQLITE_TMPDIR", &temporary);
+    Err(command.exec().to_string())
+}
+fn options(args: &[String]) -> Result<(Options, Option<Inner>), String> {
+    if args.len() > ARGC + 40
+        || args.iter().any(|s| s.len() > PATH_BYTES)
+        || args
+            .iter()
+            .try_fold(0usize, |n, s| n.checked_add(s.len() + 1))
+            .filter(|n| *n <= ARGV_BYTES)
+            .is_none()
+    {
+        return Err("stage CLI transport exceeds finite source limits".into());
+    }
+    let mut values = std::collections::BTreeMap::new();
+    let mut inner_flag = false;
+    let mut index = 1;
+    while index < args.len() && args[index] != "--" {
+        if args[index] == "--namespace-inner" {
+            if inner_flag {
+                return Err("duplicate inner option".into());
+            }
+            inner_flag = true;
+            index += 1;
+            continue;
+        }
+        let value = args.get(index + 1).ok_or("option requires value")?;
+        if values
+            .insert(args[index].as_str(), value.as_str())
+            .is_some()
+        {
+            return Err("duplicate option".into());
+        }
+        index += 2;
+    }
+    if args.get(index).map(String::as_str) != Some("--") {
+        return Err("explicit consumer argv separator required".into());
+    }
+    let command = args[index + 1..].to_vec();
+    let persistent = values.remove("--persistent-store").map(PathBuf::from);
+    let persistent_fd = values
+        .remove("--persistent-fd")
+        .map(|value| value.parse::<i32>().map_err(|e| e.to_string()))
+        .transpose()?;
+    if !inner_flag && persistent_fd.is_some() {
+        return Err("persistent descriptor is internal namespace handoff only".into());
+    }
+    let mut get = |name: &str| values.remove(name).ok_or_else(|| format!("missing {name}"));
+    macro_rules! n {
+        ($key:literal) => {
+            get($key)?
+                .parse::<u64>()
+                .map_err(|e| format!("{}: {e}", $key))?
+        };
+    }
+    let o = Options {
+        unshare: PathBuf::from(get("--unshare-exe")?),
+        consumer: PathBuf::from(get("--consumer-cgroup")?),
+        scratch: PathBuf::from(get("--scratch-parent")?),
+        quota: n!("--quota-bytes"),
+        inodes: n!("--inodes"),
+        ram: n!("--working-ram-bytes"),
+        original: n!("--work-deadline-ns"),
+        shutdown_ms: n!("--maximum-shutdown-ms"),
+        persistent,
+        command,
+    };
+    let i = if inner_flag {
+        Some(Inner {
+            root: PathBuf::from(get("--root")?),
+            setup: PathBuf::from(get("--setup-cgroup")?),
+            consumer_fd: i32::try_from(n!("--consumer-fd")).map_err(|e| e.to_string())?,
+            persistent_fd,
+            parent_mnt: n!("--parent-mount-namespace"),
+            parent_net: n!("--parent-net-namespace"),
+            host_uid: n!("--host-uid"),
+            host_gid: n!("--host-gid"),
+        })
+    } else {
+        None
+    };
+    if !values.is_empty() {
+        return Err("unknown stage controller option".into());
+    }
+    Ok((o, i))
+}
+
+/// Native-only exec boundary: Node/Worker V8 stays under physical cgroup limits.
+/// Original Core argv, inherited environment/stdin/stage FD and PID are retained.
+fn native_process_exec(args: &[String]) -> Result<i32, String> {
+    if args.len() < 7
+        || args.len() > ARGC + 6
+        || args.iter().any(|v| v.len() > PATH_BYTES)
+        || args
+            .iter()
+            .try_fold(0usize, |n, v| n.checked_add(v.len() + 1))
+            .filter(|n| *n <= ARGV_BYTES)
+            .is_none()
+        || args[1] != "--address-space-bytes"
+        || args[3] != "--file-size-bytes"
+        || args[5] != "--"
+    {
+        return Err("usage: native-process-exec --address-space-bytes N --file-size-bytes N -- ORIGINAL_CORE_ARGS".into());
+    }
+    let address = args[2]
+        .parse::<u64>()
+        .ok()
+        .filter(|n| *n > 0)
+        .ok_or("positive native address space limit required")?;
+    let file_size = args[4]
+        .parse::<u64>()
+        .ok()
+        .filter(|n| *n > 0)
+        .ok_or("positive native file size limit required")?;
+    for (resource, wanted) in [(libc::RLIMIT_AS, address), (libc::RLIMIT_FSIZE, file_size)] {
+        let wanted = libc::rlim_t::try_from(wanted).map_err(|e| e.to_string())?;
+        if wanted == libc::RLIM_INFINITY {
+            return Err("requested native process bound must be finite".into());
+        }
+        let mut before = unsafe { std::mem::zeroed::<libc::rlimit>() };
+        if unsafe { libc::getrlimit(resource, &mut before) } != 0 {
+            return Err(error());
+        }
+        if before.rlim_cur != libc::RLIM_INFINITY && wanted > before.rlim_cur {
+            return Err("native limit would raise finite parent soft boundary".into());
+        }
+        if before.rlim_max != libc::RLIM_INFINITY && wanted > before.rlim_max {
+            return Err("native limit would raise finite parent hard boundary".into());
+        }
+        let selected = libc::rlimit {
+            rlim_cur: wanted,
+            rlim_max: wanted,
+        };
+        if unsafe { libc::setrlimit(resource, &selected) } != 0 {
+            return Err(error());
+        }
+        let mut actual = unsafe { std::mem::zeroed::<libc::rlimit>() };
+        if unsafe { libc::getrlimit(resource, &mut actual) } != 0
+            || actual.rlim_cur != wanted
+            || actual.rlim_max != wanted
+        {
+            return Err("native actual process hard bounds differ".into());
+        }
+    }
+    let executable = std::env::current_exe().map_err(|e| e.to_string())?;
+    Err(Command::new(executable).args(&args[6..]).exec().to_string())
+}
+
+/// CLI owns process-global signal handling and a genuine OS stage lifetime.
+pub fn run_if_requested(args: &[String]) -> Option<i32> {
+    if args.first().map(String::as_str) == Some("native-process-exec") {
+        return Some(match native_process_exec(args) {
+            Ok(code) => code,
+            Err(e) => {
+                eprintln!("native process boundary refused: {e}");
+                125
+            }
+        });
+    }
+    if args.first().map(String::as_str) != Some("private-stage-run") {
+        return None;
+    }
+    Some(
+        match options(args).and_then(|(o, i)| match i {
+            Some(i) => inner(&o, &i),
+            None => outer(&o),
+        }) {
+            Ok(code) => code,
+            Err(e) => {
+                eprintln!("private stage startup/cleanup refused: {e}");
+                125
+            }
+        },
+    )
+}

@@ -7,7 +7,7 @@ use std::{collections::BTreeMap, time::Instant};
 use tos_compiler::knowledge_stage::KnowledgeStage;
 use tos_compiler::source_witness_catalog::{
     CATALOG_SOURCE, ColdSourceCatalogReceipt, SOURCE_FILES, SourceCatalogLimits, SourceCatalogSink,
-    render_cold_source_witness_catalog,
+    cold_source_catalog_output_selection, render_cold_source_witness_catalog,
 };
 use tos_compiler::{Error, Result};
 use tos_foundation::{Digest256, JsonLimits, JsonMode, parse_json};
@@ -134,6 +134,9 @@ pub fn observe_owned_catalogue(
     {
         return Err(Error::Budget("coverage capture envelope"));
     }
+    // Verify the borrowed output tuple before allocating the addressed collector;
+    // seal-encoding temporaries stay in the existing native receipt envelope.
+    let output_selection = cold_source_catalog_output_selection(receipt, catalogue_limits)?;
     let mut sink = AddressedSink {
         rows: Vec::new(),
         bytes: 0,
@@ -170,6 +173,14 @@ pub fn observe_owned_catalogue(
         }
         let entry = &row["entry"];
         let (kind, identity, source, line) = if collection == "records" {
+            if output_selection
+                .record_file(text(entry, "record_type")?)
+                .is_none()
+            {
+                return Err(Error::Invalid(
+                    "coverage record outside completed output selection",
+                ));
+            }
             records = records
                 .checked_add(1)
                 .ok_or(Error::Budget("coverage record count"))?;

@@ -164,6 +164,7 @@ struct Request {
     source_paths: Sources,
     arguments: Value,
     query_store: QueryStoreSelection,
+    query_store_limits: Option<QueryStoreLimits>,
     http: Option<crate::core_http_admission::HttpAdmission>,
 }
 
@@ -172,6 +173,228 @@ struct Request {
 struct QueryStoreSelection {
     path: PathBuf,
     configured: bool,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct QueryStoreLimits {
+    max_database_bytes: u64,
+    max_input_bytes: u64,
+    max_json_bytes: usize,
+    max_rows: u64,
+    max_work_steps: u64,
+    max_sql_vm_steps: u64,
+    sqlite_cache_kib: u32,
+}
+impl QueryStoreLimits {
+    fn native(&self) -> Result<tos_query::source_diagnostic::Limits> {
+        if self.max_database_bytes == 0
+            || self.max_input_bytes == 0
+            || self.max_json_bytes == 0
+            || self.max_json_bytes > i64::MAX as usize
+            || self.max_rows == 0
+            || self.max_work_steps == 0
+            || self.max_sql_vm_steps == 0
+            || self.sqlite_cache_kib == 0
+        {
+            return Err("Core selected QueryStore explicit limits refused");
+        }
+        Ok(tos_query::source_diagnostic::Limits {
+            max_input_bytes: self.max_input_bytes,
+            max_json_bytes: self.max_json_bytes,
+            max_rows: self.max_rows,
+            max_work_steps: self.max_work_steps,
+            max_sql_vm_steps: self.max_sql_vm_steps,
+            sqlite_cache_kib: self.sqlite_cache_kib,
+        })
+    }
+}
+struct StoreAbort {
+    deadline: Instant,
+    cancelled: Arc<AtomicBool>,
+}
+impl tos_query::AbortProbe for StoreAbort {
+    fn reason(&self) -> Option<tos_query::AbortReason> {
+        if self.cancelled.load(Ordering::Relaxed) {
+            Some(tos_query::AbortReason::Cancelled)
+        } else if Instant::now() >= self.deadline {
+            Some(tos_query::AbortReason::DeadlineExceeded)
+        } else {
+            None
+        }
+    }
+}
+fn selected_store_result(
+    request: &Request,
+    operation: &Operation,
+    reply_fd: Option<i32>,
+    deadline: Instant,
+    cancelled: &Arc<AtomicBool>,
+) -> Result<()> {
+    let selected = request
+        .query_store_limits
+        .as_ref()
+        .ok_or("Core selected QueryStore requires explicit limits")?;
+    let limits = selected.native()?;
+    bind_ticket(&request.admission)?;
+    let _isolation =
+        tos_compiler::private_tmpfs_stage::PrivateTmpfsStageIsolation::select_from_environment(
+            request.admission.tmpfs_quota_bytes,
+            request.admission.inode_limit,
+            request.admission.working_ram_bytes,
+        )
+        .map_err(|_| "Core QueryStore private stage refused")?;
+    request
+        .admission
+        .process
+        .verify_current()
+        .map_err(|_| "Core QueryStore live process envelope refused")?;
+    let resources = crate::native_cold_resources::LinuxCgroupColdOpenResourceHold::acquire(
+        request.admission.working_ram_bytes,
+        deadline,
+        cancelled.clone(),
+    )
+    .map_err(|_| "Core QueryStore actual kernel resources refused")?;
+    let s = &request.source_paths;
+    let inputs = [
+        (
+            "ToS/derived-exports/tos_corpus_index.min.json".into(),
+            s.index_path.clone(),
+        ),
+        (
+            "ToS/derived-exports/philosophy_graph_projection.min.json".into(),
+            s.philosophy_graph_projection_path.clone(),
+        ),
+        (
+            "ToS/derived-exports/graph/source-witness-bibliographic-claims.min.json".into(),
+            s.bibliographic_graph_path.clone(),
+        ),
+        (
+            "ToS/doctrine/semantic-interchange/entity-types.v1.json".into(),
+            s.entity_type_registry_path.clone(),
+        ),
+        (
+            "ToS/doctrine/semantic-interchange/relation-types.v1.json".into(),
+            s.relation_type_registry_path.clone(),
+        ),
+    ];
+    let abort: Arc<dyn tos_query::AbortProbe> = Arc::new(StoreAbort {
+        deadline,
+        cancelled: cancelled.clone(),
+    });
+    let mut store = tos_query::source_diagnostic::LegacyStore::open_bounded(
+        &request.query_store.path,
+        &inputs,
+        limits,
+        selected.max_database_bytes,
+        deadline,
+        abort,
+    )
+    .map_err(|_| "Core selected QueryStore authentication refused")?;
+    let mut out = BoundedOutput::new(OUTPUT_CAP, deadline);
+    out.literal(br#"{"schema_version":"tos_native_core_snapshot_result_v1","ok":true,"result":"#)?;
+    match operation {
+        Operation::CorpusHeader => out.value(
+            &store
+                .corpus_header_with_graph_views()
+                .map_err(|_| "Core QueryStore corpus header refused")?,
+        )?,
+        Operation::KnowledgeHeader => out.value(&store.graph_header)?,
+        Operation::QueryCall(tool, arguments)
+            if tool == "tos_knowledge_catalog"
+                && arguments
+                    .as_object()
+                    .is_some_and(|fields| fields.is_empty()) =>
+        {
+            let mut catalog =
+                BoundedOutput::new(request.admission.whole_max_catalog_bytes, deadline);
+            catalog.value(&store.catalog)?;
+            out.literal(&catalog.bytes)?;
+        }
+        Operation::Graph | Operation::Snapshot => {
+            if matches!(operation, Operation::Snapshot) {
+                out.literal(br#"{"graph":"#)?;
+            }
+            let mut graph = BoundedOutput::new(request.admission.whole_max_graph_bytes, deadline);
+            graph.literal(b"{")?;
+            for (key, value) in store
+                .graph_header
+                .as_object()
+                .ok_or("Core QueryStore graph header object")?
+            {
+                if matches!(key.as_str(), "nodes" | "relations") {
+                    continue;
+                }
+                graph.value(key)?;
+                graph.literal(b":")?;
+                graph.value(value)?;
+                graph.literal(b",")?;
+            }
+            graph.literal(br#""nodes":["#)?;
+            for relations in [false, true] {
+                if relations {
+                    graph.literal(br#"],"relations":["#)?;
+                }
+                let mut first = true;
+                store
+                    .visit_knowledge_table(relations, |value| {
+                        if !first {
+                            graph.literal(b",").map_err(|message| {
+                                tos_query::source_diagnostic::DiagnosticError(message.into())
+                            })?;
+                        }
+                        graph.value(value).map_err(|message| {
+                            tos_query::source_diagnostic::DiagnosticError(message.into())
+                        })?;
+                        first = false;
+                        Ok(())
+                    })
+                    .map_err(|_| "Core QueryStore ordered graph rows refused")?;
+            }
+            graph.literal(b"]}")?;
+            out.literal(&graph.bytes)?;
+            if matches!(operation, Operation::Snapshot) {
+                let mut catalog =
+                    BoundedOutput::new(request.admission.whole_max_catalog_bytes, deadline);
+                catalog.value(&store.catalog)?;
+                out.literal(br#", "catalog":"#)?;
+                out.literal(&catalog.bytes)?;
+                out.literal(b"}")?;
+            }
+            out.literal(br#", "state_reused":false,"state_profile":"tos_query_store_v1""#)?;
+        }
+        _ => return Err("Core QueryStore operation unsupported"),
+    }
+    out.literal(b"}\n")?;
+    let bytes = out.bytes;
+    store
+        .verify_currentness()
+        .map_err(|_| "Core QueryStore final currentness refused")?;
+    resources
+        .check_current(deadline, cancelled.as_ref())
+        .map_err(|_| "Core QueryStore final resources refused")?;
+    request
+        .admission
+        .process
+        .verify_current()
+        .map_err(|_| "Core QueryStore final process refused")?;
+    if matches!(operation, Operation::Graph | Operation::Snapshot) {
+        send_state_marker(reply_fd.ok_or("Core QueryStore reply descriptor absent")?, None,
+            br#"{"role":"tos-native-query-store-snapshot-v1","schema_version":"tos_query_store_v1"}"#, deadline)?;
+    }
+    disclose_bytes(&bytes, deadline)?;
+    store
+        .verify_currentness()
+        .map_err(|_| "Core QueryStore post-disclosure currentness refused")?;
+    resources
+        .check_current(deadline, cancelled.as_ref())
+        .map_err(|_| "Core QueryStore post-disclosure resources refused")?;
+    request
+        .admission
+        .process
+        .verify_current()
+        .map_err(|_| "Core QueryStore post-disclosure process refused")?;
+    Ok(())
 }
 
 struct Selection {
@@ -329,6 +552,7 @@ struct AddressedArguments {
 }
 enum Operation {
     Serve(String, u64),
+    QueryCall(String, Value),
     Graph,
     Snapshot,
     Once(bool),
@@ -358,6 +582,17 @@ fn operation(id: &str, arguments: Value) -> Result<Operation> {
         }
     };
     Ok(match id {
+        "tos_native_call" => {
+            #[derive(Deserialize)]
+            #[serde(deny_unknown_fields)]
+            struct CallArguments {
+                tool: String,
+                arguments: Value,
+            }
+            let args: CallArguments =
+                serde_json::from_value(arguments).map_err(|_| "Core native call arguments")?;
+            Operation::QueryCall(args.tool, args.arguments)
+        }
         "tos_native_serve" => {
             #[derive(Deserialize)]
             #[serde(deny_unknown_fields)]
@@ -635,6 +870,15 @@ fn send_state(
     state: Option<&tos_compiler::native_snapshot::ProducerIssuedCoreSnapshotState>,
     deadline: Instant,
 ) -> Result<()> {
+    send_state_marker(reply_fd, state,
+        br#"{"role":"tos-native-core-snapshot-state-v1","schema_version":"tos_native_core_snapshot_state_v1"}"#, deadline)
+}
+fn send_state_marker(
+    reply_fd: i32,
+    state: Option<&tos_compiler::native_snapshot::ProducerIssuedCoreSnapshotState>,
+    marker: &[u8],
+    deadline: Instant,
+) -> Result<()> {
     use std::os::fd::AsRawFd;
     active(deadline)?;
     let mut kind: libc::c_int = 0;
@@ -683,7 +927,6 @@ fn send_state(
     {
         return Err("Core state reply peer");
     }
-    let marker = br#"{"role":"tos-native-core-snapshot-state-v1","schema_version":"tos_native_core_snapshot_state_v1"}"#;
     let mut iov = libc::iovec {
         iov_base: marker.as_ptr().cast_mut().cast(),
         iov_len: marker.len(),
@@ -1246,13 +1489,18 @@ fn run(
             | Operation::KnowledgeHeader
             | Operation::CorpusHeader
             | Operation::Serve(_, _)
+            | Operation::QueryCall(_, _)
     );
-    if uses_query_store && (request.query_store.configured || request.query_store.path.exists()) {
-        return Err("Core selected legacy QueryStore requires its native owner");
-    }
+    let selected_store =
+        uses_query_store && (request.query_store.configured || request.query_store.path.exists());
     // Lower exact carrier reads and one-shot bootstrap do not consult the
     // Reference QueryStore; preserve their independent selectors.
-    if request.http.is_some() && !matches!(operation, Operation::Serve(_, _)) {
+    if request.http.is_some()
+        && !matches!(
+            operation,
+            Operation::Serve(_, _) | Operation::QueryCall(_, _)
+        )
+    {
         return Err("Core HTTP allowances supplied to a non-HTTP operation");
     }
     let retained = matches!(
@@ -1268,8 +1516,44 @@ fn run(
     if !retained && selection.state_fd.is_some() {
         return Err("Core lower carrier cannot borrow retained state");
     }
+    if selected_store {
+        match operation {
+            Operation::CorpusHeader
+            | Operation::KnowledgeHeader
+            | Operation::Graph
+            | Operation::Snapshot => {
+                return selected_store_result(
+                    &request,
+                    &operation,
+                    selection.reply_fd,
+                    deadline,
+                    cancelled,
+                );
+            }
+            Operation::QueryCall(ref tool, ref arguments)
+                if tool == "tos_knowledge_catalog"
+                    && arguments
+                        .as_object()
+                        .is_some_and(|fields| fields.is_empty()) =>
+            {
+                return selected_store_result(&request, &operation, None, deadline, cancelled);
+            }
+            _ => return Err("Core selected legacy QueryStore operation awaits its native owner"),
+        }
+    }
     if let Operation::Exists(kind) = operation {
         return disclose_bytes(&existence_result(kind, &request, deadline)?, deadline);
+    }
+    if let Operation::QueryCall(tool, arguments) = &operation {
+        return serve_selected_root(
+            &selection.root,
+            &request,
+            "",
+            0,
+            deadline,
+            &cancelled,
+            Some((tool, arguments)),
+        );
     }
     if let Operation::Serve(listen, max_connections) = &operation {
         return serve_selected_root(
@@ -1279,6 +1563,7 @@ fn run(
             *max_connections,
             deadline,
             &cancelled,
+            None,
         );
     }
     let carrier = match &operation {
@@ -1521,6 +1806,7 @@ fn serve_selected_root(
     max_connections: u64,
     deadline: Instant,
     cancelled: &Arc<AtomicBool>,
+    query_call: Option<(&str, &Value)>,
 ) -> Result<()> {
     let http = request
         .http
@@ -1613,11 +1899,77 @@ fn serve_selected_root(
                     Some(&corpus),
                 )
                 .map_err(|_| tos_compiler::Error::Invalid("Core HTTP selected executor refused"))?;
+                if let Some((tool, arguments)) = query_call {
+                    use crate::ScopedAccessExecutor;
+                    let mut raw = BoundedOutput::new(INPUT_CAP, deadline);
+                    raw.value(arguments).map_err(tos_compiler::Error::Invalid)?;
+                    let arguments_document = parse_json(&raw.bytes, JsonMode::PublishedStrict,
+                        request.admission.json.limits().map_err(tos_compiler::Error::Invalid)?)
+                        .map_err(|_| tos_compiler::Error::Invalid("Core query argument JSON refused"))?;
+                    let arguments = arguments_document.root();
+                    let registered = crate::common::registered_operations()
+                        .map_err(|_| tos_compiler::Error::Invalid("Core native registry unavailable"))?;
+                    let operation = registered.iter().find(|op| op.mcp_tool == tool)
+                        .ok_or(tos_compiler::Error::Invalid("Core native tool unavailable"))?;
+                    let allowed = operation.input_schema.object_get("properties")
+                        .and_then(tos_foundation::JsonValue::as_object);
+                    if arguments.as_object().is_none_or(|fields| fields.iter().any(|(name, _)| {
+                        !allowed.is_some_and(|properties| properties.iter().any(|(key, _)| key == name))
+                    })) {
+                        return Err(tos_compiler::Error::Invalid("Core native tool argument unavailable"));
+                    }
+                    let probe: Arc<dyn tos_query::AbortProbe> = Arc::new(CoreQueryProbe {
+                        deadline, cancelled: cancelled.clone(),
+                    });
+                    let mut packet = crate::common::checked_execute(probe, |probe| {
+                        if tool == crate::common::SEARCH_MCP_TOOL {
+                            return crate::search::SearchRequest::from_arguments(arguments)
+                                .and_then(|request| request.execute(&executor, probe));
+                        }
+                        if tool == crate::common::MCP_TOOL {
+                            return crate::Params::from_json(arguments)
+                                .and_then(|request| executor.source_descend(request, probe));
+                        }
+                        let op = crate::KnowledgeOperation::from_id(&operation.operation_id)
+                            .ok_or_else(|| crate::AccessError::new(crate::AccessErrorCode::Unavailable,
+                                "selected Root native tool unavailable"))?;
+                        if op == crate::KnowledgeOperation::AccessHealth {
+                            return executor.access_health(probe);
+                        }
+                        if op == crate::KnowledgeOperation::PreparedStatus {
+                            return executor.prepared_status(probe);
+                        }
+                        crate::KnowledgeRequest::from_arguments(op, arguments).and_then(|request| {
+                            if matches!(request, crate::KnowledgeRequest::ExplorationContracts) {
+                                crate::exploration_contracts::execute(&executor, profile.max_response_bytes)
+                            } else { executor.knowledge(request, probe) }
+                        })
+                    }).map_err(|_| tos_compiler::Error::Invalid("Core selected native query refused"))?;
+                    if packet.body.len() > profile.max_response_bytes {
+                        return Err(tos_compiler::Error::Budget("Core query response bytes"));
+                    }
+                    crate::common::validate_packet(&packet.body, profile.max_response_bytes)
+                        .map_err(|_| tos_compiler::Error::Invalid("Core query packet invalid"))?;
+                    packet.fence.recheck().map_err(|_| tos_compiler::Error::Invalid("Core query disclosure fence"))?;
+                    view.verify_current()?;
+                    let mut out = BoundedOutput::new(OUTPUT_CAP, deadline);
+                    out.literal(br#"{"schema_version":"tos_native_core_snapshot_result_v1","ok":true,"result":"#)
+                        .map_err(tos_compiler::Error::Invalid)?;
+                    out.literal(&packet.body).map_err(tos_compiler::Error::Invalid)?;
+                    out.literal(b"}\n").map_err(tos_compiler::Error::Invalid)?;
+                    disclose_bytes(&out.bytes, deadline).map_err(tos_compiler::Error::Invalid)?;
+                    packet.fence.recheck().map_err(|_| tos_compiler::Error::Invalid("Core query final disclosure fence"))?;
+                    return view.verify_current();
+                }
                 // This is association evidence from the admitted held model,
                 // not a Worker publication marker or a new owner grant.
+                evidence_view.charge_work(
+                    u64::try_from(evidence_view.raw().len()).map_err(|_| {
+                        tos_compiler::Error::Budget("Core HTTP startup evidence byte overflow")
+                    })?,
+                )?;
                 let inputs = view.retained_inputs()?;
                 let binding = &completed.stage().binding;
-                evidence_view.charge_work(evidence_view.raw().len() as u64)?;
                 let receipt = serde_json::json!({
                     "schema": "tos_native_core_http_startup_v1",
                     "source_revision": bound.require_source_revision().map_err(|_| {
@@ -1668,4 +2020,20 @@ fn serve_selected_root(
         },
     )
     .map_err(|_| "Core HTTP held callback or delivery refused")
+}
+
+struct CoreQueryProbe {
+    deadline: Instant,
+    cancelled: Arc<AtomicBool>,
+}
+impl tos_query::AbortProbe for CoreQueryProbe {
+    fn reason(&self) -> Option<tos_query::AbortReason> {
+        if self.cancelled.load(Ordering::Acquire) {
+            Some(tos_query::AbortReason::Cancelled)
+        } else if Instant::now() >= self.deadline {
+            Some(tos_query::AbortReason::DeadlineExceeded)
+        } else {
+            None
+        }
+    }
 }
