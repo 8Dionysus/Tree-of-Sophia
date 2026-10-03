@@ -43,6 +43,20 @@ impl StoreRoot {
         })
     }
 
+    pub(crate) fn from_held(root: &File, objects: &File, revisions: &File) -> Result<Self> {
+        Ok(Self {
+            root: root
+                .try_clone()
+                .map_err(|e| StoreError::io("clone held corpus root", e))?,
+            objects: objects
+                .try_clone()
+                .map_err(|e| StoreError::io("clone held objects", e))?,
+            revisions: revisions
+                .try_clone()
+                .map_err(|e| StoreError::io("clone held revisions", e))?,
+        })
+    }
+
     pub(crate) fn open_revision(&self, revision_hex: &str) -> Result<File> {
         open_directory(&self.revisions, revision_hex)
     }

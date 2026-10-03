@@ -115,7 +115,16 @@ fn main() {
         )),
     };
     match result {
-        Ok(value) => println!("{}", value),
+        Ok(value) => {
+            println!("{}", value);
+            if value
+                .get("schema_version")
+                .and_then(serde_json::Value::as_str)
+                == Some("tos_native_corpus_restore_committed_refusal_v1")
+            {
+                std::process::exit(2);
+            }
+        }
         Err(error) => {
             eprintln!("selected native owner refused: {error:?}");
             println!(

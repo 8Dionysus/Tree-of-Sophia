@@ -59,6 +59,9 @@ mod text_owner;
 #[path = "source_native_work_cli.rs"]
 mod work;
 
+#[path = "source_native_corpus_cli.rs"]
+mod corpus_consumer;
+
 const MAX_INVOCATION: usize = 1_048_576;
 const MAX_REQUEST: usize = 1_048_576;
 
@@ -136,6 +139,28 @@ pub fn run(invocation_path: &Path, input: impl Read) -> SourceCommandResult<Valu
     let checked = cmd::parse(&raw)?;
     let invocation: Value = serde_json::from_slice(&cmd::canonical(&checked)?)
         .map_err(|_| SourceCommandError::Invalid("native invocation JSON"))?;
+    if matches!(
+        text(&invocation, "schema_version")?,
+        "tos_local_native_corpus_read_invocation_v1"
+            | "tos_local_native_corpus_restore_invocation_v1"
+    ) {
+        let invocation_fence = || {
+            if read_absolute(&selected, uid, true, raw.len(), deadline, &cancelled)? != raw {
+                return Err(SourceCommandError::Conflict(
+                    "corpus consumer invocation changed",
+                ));
+            }
+            Ok(())
+        };
+        return corpus_consumer::run(
+            &invocation,
+            input,
+            deadline,
+            &cancelled,
+            raw.len() as u64,
+            &invocation_fence,
+        );
+    }
     let claim_invocation =
         text(&invocation, "schema_version")? == "tos_local_native_claim_invocation_v1";
     let item_invocation =

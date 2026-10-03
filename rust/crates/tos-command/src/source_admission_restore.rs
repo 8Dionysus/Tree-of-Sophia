@@ -314,6 +314,43 @@ pub(crate) fn restore(
     deadline: Instant,
     cancel: &AtomicBool,
 ) -> io::Result<Value> {
+    restore_guarded(
+        store,
+        revision,
+        output,
+        limits,
+        deadline,
+        cancel,
+        &|| Ok(()),
+    )
+}
+
+#[derive(Debug)]
+pub(crate) struct RestoreCommittedRefusal {
+    pub revision: Digest256,
+    pub output: PathBuf,
+    pub output_dev: u64,
+    pub output_ino: u64,
+    pub manifest_sha256: Digest256,
+    pub restored_files: usize,
+    pub reason: &'static str,
+}
+impl std::fmt::Display for RestoreCommittedRefusal {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "restore output committed; {}", self.reason)
+    }
+}
+impl std::error::Error for RestoreCommittedRefusal {}
+
+pub(crate) fn restore_guarded(
+    store: &AdmissionStore,
+    revision: Digest256,
+    output: &Path,
+    limits: RestoreLimits,
+    deadline: Instant,
+    cancel: &AtomicBool,
+    fence: &dyn Fn() -> io::Result<()>,
+) -> io::Result<Value> {
     let limits = limits.validate()?;
     active(deadline, cancel)?;
     let (parent_path, name, parent_depth) = output_path(output)?;
@@ -329,6 +366,11 @@ pub(crate) fn restore(
         .load_exact(SourceRevision(revision))
         .map_err(invalid)?;
     let manifest = original(&snapshot);
+    let manifest_sha256 = Digest256::of_bytes(&super::source_admission_candidate::canonical(
+        &manifest,
+        limits.reader.json,
+    )?);
+    let restored_files = snapshot.member_count();
     active(deadline, cancel)?;
     let mut directories = BTreeSet::new();
     let mut live = 0u64;
@@ -542,6 +584,9 @@ pub(crate) fn restore(
     }
     fresh(&stage.parent, &name)?;
     active(deadline, cancel)?;
+    let output_identity = identity(&stage.root)?;
+    store.verify_layout()?;
+    fence()?;
     rustix::fs::renameat_with(
         &stage.parent,
         stage.name.as_str(),
@@ -550,17 +595,34 @@ pub(crate) fn restore(
         RenameFlags::NOREPLACE,
     )?;
     stage.published = true;
-    stage.parent.sync_all()?;
-    let installed =
-        tos_fd_open::open_directory_at(&stage.parent, Path::new(&name)).map_err(invalid)?;
-    if identity(&installed)? != identity(&stage.root)? {
-        return Err(invalid("restore output replaced during publication"));
+    let terminal = (|| -> io::Result<()> {
+        stage.parent.sync_all()?;
+        let installed =
+            tos_fd_open::open_directory_at(&stage.parent, Path::new(&name)).map_err(invalid)?;
+        if identity(&installed)? != output_identity {
+            return Err(invalid("restore output replaced during publication"));
+        }
+        let selected_parent =
+            tos_fd_open::open_absolute_directory(&parent_path).map_err(invalid)?;
+        if identity(&selected_parent)? != identity(&stage.parent)? {
+            return Err(invalid("restore output parent replaced during publication"));
+        }
+        store.verify_layout()?;
+        active(deadline, cancel)?;
+        fence()?;
+        Ok(())
+    })();
+    if terminal.is_err() {
+        return Err(io::Error::other(RestoreCommittedRefusal {
+            revision,
+            output: output.to_owned(),
+            output_dev: output_identity.0,
+            output_ino: output_identity.1,
+            manifest_sha256,
+            restored_files,
+            reason: "terminal sync/layout/current/invocation/executable custody refused; preserve output",
+        }));
     }
-    let selected_parent = tos_fd_open::open_absolute_directory(&parent_path).map_err(invalid)?;
-    if identity(&selected_parent)? != identity(&stage.parent)? {
-        return Err(invalid("restore output parent replaced during publication"));
-    }
-    active(deadline, cancel)?;
     Ok(manifest)
 }
 

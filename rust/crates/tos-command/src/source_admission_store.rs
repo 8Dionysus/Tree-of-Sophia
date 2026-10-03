@@ -219,7 +219,13 @@ impl AdmissionStore {
     }
     pub(crate) fn reader(&self, limits: ReadLimits) -> io::Result<CorpusReader> {
         self.verify_layout()?;
-        let reader = CorpusReader::open_existing(&self.path, limits).map_err(invalid)?;
+        let reader = CorpusReader::open_from_held_namespaces(
+            &self.root,
+            &self.objects,
+            &self.revisions,
+            limits,
+        )
+        .map_err(invalid)?;
         self.verify_layout()?;
         Ok(reader)
     }

@@ -181,6 +181,21 @@ impl CorpusReader {
         })
     }
 
+    /// Read only from the supplied existing directory descriptor. The caller
+    /// owns its path/layout fence; no ambient pathname is reopened here.
+    pub fn open_from_held_namespaces(
+        root: &std::fs::File,
+        objects: &std::fs::File,
+        revisions: &std::fs::File,
+        limits: ReadLimits,
+    ) -> Result<Self> {
+        let limits = limits.validate()?;
+        Ok(Self {
+            root: Arc::new(StoreRoot::from_held(root, objects, revisions)?),
+            limits,
+        })
+    }
+
     /// Explicitly inspect the mutable pointer. It is never consulted by `load_exact`.
     pub fn select_current(&self) -> Result<Option<SourceRevision>> {
         self.select_current_inner(None)
