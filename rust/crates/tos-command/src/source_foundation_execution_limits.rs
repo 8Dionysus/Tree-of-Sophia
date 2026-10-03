@@ -1545,7 +1545,7 @@ impl FoundationExecutionLimits {
         let worker = ExecutorBudget {
             execution_wall: wall,
             cleanup_grace: shape.batch.cleanup_grace,
-            cpu_seconds: operation_cpu,
+            cpu_seconds: operation_cpu.min(ExecutorBudget::MAX_SCALAR_CPU_SECONDS),
             address_space_bytes: address_space,
         };
         let worker_limits = CutWorkerLimits {
