@@ -101,6 +101,7 @@ pub enum DiscoverySeenIdNamespace {
     DiscoveryEvent,
     RepresentationFile,
     SchemaLocation,
+    PayloadObservation,
 }
 
 impl DiscoverySeenIdNamespace {
@@ -113,6 +114,7 @@ impl DiscoverySeenIdNamespace {
             Self::DiscoveryEvent => "discovery-event",
             Self::RepresentationFile => "representation-file",
             Self::SchemaLocation => "schema-location",
+            Self::PayloadObservation => "payload-observation",
         }
     }
 }
@@ -894,6 +896,7 @@ struct Inspector<'s, 'p, S: LayerFamilySource + ?Sized, I: Copy + Eq = ()> {
     native_histories: NativeHistorySet<'p, I>,
     artifact_replays: ArtifactReplaySet<'p, I>,
     candidate_invalid_schema_proofs: Option<&'p dyn CandidateInvalidArtifactSchemaProof<I>>,
+    candidate_discovery_seen_ids: Option<&'p mut dyn DiscoverySeenIds>,
     candidate_discovery_run_summaries: Option<&'p mut dyn DiscoveryRunSummaryStore>,
     candidate_discovery_event_summaries: Option<&'p mut dyn DiscoveryEventSummaryStore>,
     candidate_discovery_schema_requests: Option<&'p mut dyn DiscoverySchemaRequestStore>,
@@ -2203,9 +2206,40 @@ impl<S: LayerFamilySource + ?Sized, I: Copy + Eq> Inspector<'_, '_, S, I> {
                 .and_then(|used| used.checked_add(128))
                 .ok_or(ItemRefusal::Budget)?,
         )?;
-        let first_observation = self.payload_observation_paths.insert(path.to_owned());
-        if first_observation {
+        let first_observation = if self.candidate_discovery_seen_ids.is_some() {
+            let remaining_state_bytes = self.remaining_state_bytes()?;
+            let (first, workspace_state_bytes) = self
+                .candidate_discovery_seen_ids
+                .as_deref_mut()
+                .ok_or_else(|| {
+                    ItemRefusal::Source(
+                        "candidate Discovery payload-observation index is unavailable".into(),
+                    )
+                })?
+                .remember_first(
+                    DiscoverySeenIdNamespace::PayloadObservation,
+                    path,
+                    path,
+                    remaining_state_bytes,
+                )?;
+            self.check_temporary_state(workspace_state_bytes)?;
+            self.candidate_discovery_seen_ids_peak_workspace_state_bytes = self
+                .candidate_discovery_seen_ids_peak_workspace_state_bytes
+                .max(workspace_state_bytes);
+            self.candidate_artifact_evidence_peak_state_bytes =
+                self.candidate_artifact_evidence_peak_state_bytes.max(
+                    self.candidate_current_artifact_evidence_state_bytes
+                        .checked_add(workspace_state_bytes)
+                        .ok_or(ItemRefusal::Budget)?,
+                );
+            first
+        } else if self.payload_observation_paths.contains(path) {
+            false
+        } else {
             self.reserve_state(path.len().checked_add(32).ok_or(ItemRefusal::Budget)?)?;
+            self.payload_observation_paths.insert(path.to_owned())
+        };
+        if first_observation {
             if let Some(size) = facts.byte_size {
                 self.payload_bytes = self
                     .payload_bytes
@@ -7779,22 +7813,24 @@ fn inspect_candidate_with_artifact_evidence_provider_impl<
 
 fn remember_discovery_id<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
     inspector: &mut Inspector<'_, '_, S, I>,
-    discovery_seen_ids: &mut Option<&mut dyn DiscoverySeenIds>,
     fallback: &mut BTreeSet<String>,
     namespace: DiscoverySeenIdNamespace,
     id: &str,
     first_path: &str,
 ) -> Result<bool, ItemRefusal> {
-    let Some(store) = discovery_seen_ids.as_deref_mut() else {
+    if inspector.candidate_discovery_seen_ids.is_none() {
         if fallback.contains(id) {
             return Ok(false);
         }
         inspector.reserve_state(id.len().checked_add(64).ok_or(ItemRefusal::Budget)?)?;
         return Ok(fallback.insert(id.to_owned()));
-    };
+    }
     let remaining_state_bytes = inspector.remaining_state_bytes()?;
-    let (first, workspace_state_bytes) =
-        store.remember_first(namespace, id, first_path, remaining_state_bytes)?;
+    let (first, workspace_state_bytes) = inspector
+        .candidate_discovery_seen_ids
+        .as_deref_mut()
+        .ok_or_else(|| ItemRefusal::Source("candidate Discovery ID store unavailable".into()))?
+        .remember_first(namespace, id, first_path, remaining_state_bytes)?;
     inspector.check_temporary_state(workspace_state_bytes)?;
     inspector.candidate_discovery_seen_ids_peak_workspace_state_bytes = inspector
         .candidate_discovery_seen_ids_peak_workspace_state_bytes
@@ -7811,16 +7847,19 @@ fn remember_discovery_id<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
 
 fn discovery_id_contains<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
     inspector: &mut Inspector<'_, '_, S, I>,
-    discovery_seen_ids: &mut Option<&mut dyn DiscoverySeenIds>,
     fallback: &BTreeSet<String>,
     namespace: DiscoverySeenIdNamespace,
     id: &str,
 ) -> Result<bool, ItemRefusal> {
-    let Some(store) = discovery_seen_ids.as_deref_mut() else {
+    if inspector.candidate_discovery_seen_ids.is_none() {
         return Ok(fallback.contains(id));
-    };
+    }
     let remaining_state_bytes = inspector.remaining_state_bytes()?;
-    let (found, workspace_state_bytes) = store.contains(namespace, id, remaining_state_bytes)?;
+    let (found, workspace_state_bytes) = inspector
+        .candidate_discovery_seen_ids
+        .as_deref_mut()
+        .ok_or_else(|| ItemRefusal::Source("candidate Discovery ID store unavailable".into()))?
+        .contains(namespace, id, remaining_state_bytes)?;
     inspector.check_temporary_state(workspace_state_bytes)?;
     inspector.candidate_discovery_seen_ids_peak_workspace_state_bytes = inspector
         .candidate_discovery_seen_ids_peak_workspace_state_bytes
@@ -7837,21 +7876,14 @@ fn discovery_id_contains<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
 
 fn event_id_seen<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
     inspector: &mut Inspector<'_, '_, S, I>,
-    discovery_seen_ids: &mut Option<&mut dyn DiscoverySeenIds>,
     fallback: &BTreeSet<String>,
     prior_events: &dyn SourceFoundationDefaultEventLookup,
     id: &str,
 ) -> Result<bool, ItemRefusal> {
-    if discovery_seen_ids.is_none() {
+    if inspector.candidate_discovery_seen_ids.is_none() {
         return Ok(fallback.contains(id));
     }
-    if discovery_id_contains(
-        inspector,
-        discovery_seen_ids,
-        fallback,
-        DiscoverySeenIdNamespace::Event,
-        id,
-    )? {
+    if discovery_id_contains(inspector, fallback, DiscoverySeenIdNamespace::Event, id)? {
         return Ok(true);
     }
     prior_event_contains(inspector, prior_events, id)
@@ -7894,7 +7926,7 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
     native_cut: Option<NativeCutBinding>,
     invalid_current_artifact_schema_proofs: Option<&CurrentArtifactInvalidSchemaProofs<'_>>,
     mut candidate_artifact_evidence_provider: Option<&mut dyn CandidateArtifactEvidenceProvider<I>>,
-    mut discovery_seen_ids: Option<&mut dyn DiscoverySeenIds>,
+    discovery_seen_ids: Option<&mut dyn DiscoverySeenIds>,
     candidate_discovery_run_summaries: Option<&mut dyn DiscoveryRunSummaryStore>,
     candidate_discovery_event_summaries: Option<&mut dyn DiscoveryEventSummaryStore>,
     candidate_discovery_event_json_limit: Option<usize>,
@@ -7934,6 +7966,7 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
         native_histories,
         artifact_replays,
         candidate_invalid_schema_proofs,
+        candidate_discovery_seen_ids: discovery_seen_ids,
         candidate_discovery_run_summaries,
         candidate_discovery_event_summaries,
         candidate_discovery_schema_requests,
@@ -8001,7 +8034,7 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
 
     let mut prior_event_cost = 0usize;
     let mut event_ids: BTreeSet<String> = BTreeSet::new();
-    if discovery_seen_ids.is_none() {
+    if inspector.candidate_discovery_seen_ids.is_none() {
         prior_events.for_each_event(&mut |id, _| {
             prior_event_cost = prior_event_cost
                 .checked_add(id.len().checked_add(64).ok_or(ItemRefusal::Budget)?)
@@ -8037,13 +8070,12 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
                 let id = id.to_owned();
                 let first_in_cut = remember_discovery_id(
                     inspector,
-                    &mut discovery_seen_ids,
                     &mut event_ids,
                     DiscoverySeenIdNamespace::Event,
                     &id,
                     location,
                 )?;
-                let duplicate_prior = discovery_seen_ids.is_some()
+                let duplicate_prior = inspector.candidate_discovery_seen_ids.is_some()
                     && first_in_cut
                     && prior_event_contains(inspector, prior_events, &id)?;
                 if !first_in_cut || duplicate_prior {
@@ -8219,7 +8251,6 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
             let id = id.to_owned();
             let first_discovery_event = remember_discovery_id(
                 inspector,
-                &mut discovery_seen_ids,
                 &mut discovery_event_ids,
                 DiscoverySeenIdNamespace::DiscoveryEvent,
                 &id,
@@ -8230,13 +8261,12 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
             }
             let first_event = remember_discovery_id(
                 inspector,
-                &mut discovery_seen_ids,
                 &mut event_ids,
                 DiscoverySeenIdNamespace::Event,
                 &id,
                 location,
             )?;
-            let duplicate_prior = discovery_seen_ids.is_some()
+            let duplicate_prior = inspector.candidate_discovery_seen_ids.is_some()
                 && first_event
                 && prior_event_contains(inspector, prior_events, &id)?;
             let insert_into_owner_map = first_event && !duplicate_prior;
@@ -8379,7 +8409,6 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
         if !id.is_empty()
             && !remember_discovery_id(
                 inspector,
-                &mut discovery_seen_ids,
                 &mut artifact_ids,
                 DiscoverySeenIdNamespace::Artifact,
                 id,
@@ -8552,13 +8581,12 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
             if !event_ref.is_empty() {
                 let first_event = remember_discovery_id(
                     &mut inspector,
-                    &mut discovery_seen_ids,
                     &mut event_ids,
                     DiscoverySeenIdNamespace::Event,
                     event_ref,
                     path,
                 )?;
-                let duplicate_prior = discovery_seen_ids.is_some()
+                let duplicate_prior = inspector.candidate_discovery_seen_ids.is_some()
                     && first_event
                     && prior_event_contains(inspector, prior_events, event_ref)?;
                 if !first_event || duplicate_prior {
@@ -8649,7 +8677,6 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
         if !file_id.is_empty()
             && !remember_discovery_id(
                 inspector,
-                &mut discovery_seen_ids,
                 &mut representation_file_ids,
                 DiscoverySeenIdNamespace::RepresentationFile,
                 file_id,
@@ -8662,7 +8689,6 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
         let artifact_ref = string(&value, "artifact_ref").unwrap_or("");
         if !discovery_id_contains(
             inspector,
-            &mut discovery_seen_ids,
             &artifact_ids,
             DiscoverySeenIdNamespace::Artifact,
             artifact_id,
@@ -8898,10 +8924,9 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
         let id = string(&value, "composite_id").unwrap_or("");
         let first_composite_id = if id.is_empty() {
             true
-        } else if discovery_seen_ids.is_some() {
+        } else if inspector.candidate_discovery_seen_ids.is_some() {
             remember_discovery_id(
                 inspector,
-                &mut discovery_seen_ids,
                 &mut composite_ids,
                 DiscoverySeenIdNamespace::Composite,
                 id,
@@ -8995,7 +9020,6 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
             let member_id = string(member, "member_artifact_id").unwrap_or("");
             if !discovery_id_contains(
                 inspector,
-                &mut discovery_seen_ids,
                 &artifact_ids,
                 DiscoverySeenIdNamespace::Artifact,
                 member_id,
@@ -9092,10 +9116,9 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
             let representation_id = string(&value, "representation_id").unwrap_or("");
             let first_composite_representation_id = if representation_id.is_empty() {
                 true
-            } else if discovery_seen_ids.is_some() {
+            } else if inspector.candidate_discovery_seen_ids.is_some() {
                 remember_discovery_id(
                     inspector,
-                    &mut discovery_seen_ids,
                     &mut composite_representation_ids,
                     DiscoverySeenIdNamespace::CompositeRepresentation,
                     representation_id,
@@ -9114,10 +9137,9 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
             let file_id = string(&value, "file_id").unwrap_or("");
             let first_representation_file_id = if file_id.is_empty() {
                 true
-            } else if discovery_seen_ids.is_some() {
+            } else if inspector.candidate_discovery_seen_ids.is_some() {
                 remember_discovery_id(
                     inspector,
-                    &mut discovery_seen_ids,
                     &mut representation_file_ids,
                     DiscoverySeenIdNamespace::RepresentationFile,
                     file_id,
@@ -9132,10 +9154,9 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
             let composite_id = string(&value, "composite_id").unwrap_or("");
             let composite_ref = string(&value, "composite_ref").unwrap_or("");
             let composite_id_seen = !composite_id.is_empty()
-                && if discovery_seen_ids.is_some() {
+                && if inspector.candidate_discovery_seen_ids.is_some() {
                     discovery_id_contains(
                         inspector,
-                        &mut discovery_seen_ids,
                         &composite_ids,
                         DiscoverySeenIdNamespace::Composite,
                         composite_id,
@@ -9391,13 +9412,7 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
                 .iter()
                 .filter_map(Value::as_str)
             {
-                if !event_id_seen(
-                    inspector,
-                    &mut discovery_seen_ids,
-                    &event_ids,
-                    prior_events,
-                    event_ref,
-                )? {
+                if !event_id_seen(inspector, &event_ids, prior_events, event_ref)? {
                     inspector.issue(path, "unresolved-access-request-event", event_ref)?;
                 }
             }
