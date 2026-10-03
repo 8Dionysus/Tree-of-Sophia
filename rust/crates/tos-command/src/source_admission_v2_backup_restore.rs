@@ -7,20 +7,20 @@ use super::source_admission_store::AdmissionStore;
 use super::source_admission_v2_seen_pack::{
     V2SeenPackSpill, V2SeenPackSpillLimits, V2SeenPackSpillRequest, V2SeenPackSpillRequests,
 };
-use rustix::fs::{Mode, OFlags, RenameFlags};
+use rustix::fs::{AtFlags, FileType, Mode, OFlags, RawDir, RenameFlags};
 use std::{
     fs::{File, Metadata, Permissions},
     io::{self, Read, Write},
-    mem::size_of,
-    os::{
-        fd::AsRawFd,
-        unix::fs::{MetadataExt, PermissionsExt},
+    mem::{MaybeUninit, size_of},
+    os::unix::{
+        ffi::OsStrExt,
+        fs::{MetadataExt, PermissionsExt},
     },
     path::Path,
     sync::{Arc, atomic::AtomicBool},
     time::Instant,
 };
-use tos_foundation::{Digest256, Digest256Hasher};
+use tos_foundation::{Digest256, Digest256Hasher, RelativePath};
 use tos_segment_store::{
     AuthenticatedTreeCoverageV1, AuthenticatedTreeIoLedgerV1, AuthenticatedTreeLimitsV1,
     AuthenticatedTreePackSetV2, AuthenticatedTreeWorkV1, SegmentLimits, SegmentStore,
@@ -33,6 +33,195 @@ use tos_source_store::{
 const DOMAIN: &[u8] = b"tos-native-admission-source-v2";
 const ROOT_BYTES: usize = 65_536;
 const BLOCK_BYTES: usize = 65_536;
+const NAME_METADATA_READ_GUARD_BYTES: usize = 4096;
+const MAX_HELD_ROOT_PATH_BYTES: usize = 4096;
+const MAX_HELD_ROOT_PATH_COMPONENTS: usize = 128;
+
+#[derive(Clone, Copy)]
+pub(crate) struct V2HeldSourceRoot<'a> {
+    pub(crate) path: &'a Path,
+    pub(crate) held: &'a File,
+    pub(crate) identity: (u64, u64),
+}
+
+#[derive(Clone, Copy)]
+pub(crate) struct V2HeldTargetRoot<'a> {
+    pub(crate) artifact_path: &'a Path,
+    pub(crate) artifact_held: &'a File,
+    pub(crate) artifact_identity: (u64, u64),
+    pub(crate) store_path: &'a Path,
+    pub(crate) store_relative: &'a RelativePath,
+}
+
+#[derive(Clone, Copy)]
+pub(crate) struct V2HeldImageRoots<'a> {
+    pub(crate) source: V2HeldSourceRoot<'a>,
+    pub(crate) target: V2HeldTargetRoot<'a>,
+    pub(crate) target_store_identity: (u64, u64),
+}
+
+fn identity(file: &File) -> io::Result<(u64, u64)> {
+    let metadata = file.metadata()?;
+    Ok((metadata.dev(), metadata.ino()))
+}
+
+pub(crate) fn debit_root_guard(io: &PinnedSqliteIoBudget) -> io::Result<()> {
+    io.charge_read_upper_bound(
+        tos_compiler::private_tmpfs_stage::PRIVATE_TMPFS_VERIFY_COST.read_bytes,
+    )
+    .map_err(invalid)
+}
+
+pub(crate) fn debit_name_resolution(io: &PinnedSqliteIoBudget, name: &str) -> io::Result<()> {
+    let upper = u64::try_from(
+        name.len()
+            .checked_add(1)
+            .and_then(|bytes| bytes.checked_add(NAME_METADATA_READ_GUARD_BYTES))
+            .ok_or_else(|| invalid("V2 path-component guard overflow"))?,
+    )
+    .map_err(invalid)?;
+    io.charge_read_upper_bound(upper).map_err(invalid)
+}
+
+fn debit_directory_read(io: &PinnedSqliteIoBudget) -> io::Result<()> {
+    // RawDir uses this exact fixed buffer for one getdents refill, including
+    // its final EOF probe. This upper is separate from returned file payload.
+    io.charge_read_upper_bound(8192).map_err(invalid)
+}
+
+fn validate_named_root_path(path: &Path) -> io::Result<()> {
+    let bytes = path.as_os_str().as_bytes();
+    if !path.is_absolute()
+        || bytes.is_empty()
+        || bytes.len() > MAX_HELD_ROOT_PATH_BYTES
+        || path.components().count() > MAX_HELD_ROOT_PATH_COMPONENTS
+        || path.components().any(|component| {
+            matches!(
+                component,
+                std::path::Component::CurDir | std::path::Component::ParentDir
+            )
+        })
+    {
+        return Err(invalid("V2 held root path is not bounded and normalized"));
+    }
+    Ok(())
+}
+
+fn verify_named_root_no_charge(path: &Path, held: &File, expected: (u64, u64)) -> io::Result<()> {
+    validate_named_root_path(path)?;
+    if identity(held)? != expected {
+        return Err(invalid("V2 held root identity differs"));
+    }
+    let named = tos_fd_open::open_absolute_directory(path).map_err(invalid)?;
+    if identity(&named)? != expected {
+        return Err(invalid("V2 named root identity differs"));
+    }
+    Ok(())
+}
+
+pub(crate) fn verify_named_root(
+    path: &Path,
+    held: &File,
+    expected: (u64, u64),
+    io: &PinnedSqliteIoBudget,
+    deadline: Instant,
+    cancel: &AtomicBool,
+) -> io::Result<()> {
+    debit_root_guard(io)?;
+    active(deadline, cancel)?;
+    verify_named_root_no_charge(path, held, expected)?;
+    active(deadline, cancel)
+}
+
+fn validate_target_relative(path: &RelativePath) -> io::Result<()> {
+    if path.as_str().len() > MAX_HELD_ROOT_PATH_BYTES
+        || path.as_str().split('/').count() > MAX_HELD_ROOT_PATH_COMPONENTS
+    {
+        return Err(invalid("V2 selected target relative path exceeds bound"));
+    }
+    Ok(())
+}
+
+fn resolve_target_relative(
+    root: &File,
+    relative: &RelativePath,
+    io: &PinnedSqliteIoBudget,
+    deadline: Instant,
+    cancel: &AtomicBool,
+) -> io::Result<File> {
+    validate_target_relative(relative)?;
+    let mut current = root.try_clone()?;
+    for component in relative.as_str().split('/') {
+        active(deadline, cancel)?;
+        debit_name_resolution(io, component)?;
+        current =
+            tos_fd_open::open_directory_at(&current, Path::new(component)).map_err(invalid)?;
+    }
+    Ok(current)
+}
+
+pub(crate) fn open_selected_target(
+    target: V2HeldTargetRoot<'_>,
+    expected_target_identity: Option<(u64, u64)>,
+    io: &PinnedSqliteIoBudget,
+    deadline: Instant,
+    cancel: &AtomicBool,
+) -> io::Result<File> {
+    validate_named_root_path(target.artifact_path)?;
+    validate_named_root_path(target.store_path)?;
+    validate_target_relative(target.store_relative)?;
+    if target.store_path.strip_prefix(target.artifact_path)
+        != Some(Path::new(target.store_relative.as_str()))
+    {
+        return Err(invalid("V2 selected target lexical root binding differs"));
+    }
+    debit_root_guard(io)?;
+    active(deadline, cancel)?;
+    verify_named_root_no_charge(
+        target.artifact_path,
+        target.artifact_held,
+        target.artifact_identity,
+    )?;
+    let opened = resolve_target_relative(
+        target.artifact_held,
+        target.store_relative,
+        io,
+        deadline,
+        cancel,
+    )?;
+    let opened_identity = identity(&opened)?;
+    if expected_target_identity.is_some_and(|expected| expected != opened_identity) {
+        return Err(invalid("V2 selected target identity changed"));
+    }
+    active(deadline, cancel)?;
+    Ok(opened)
+}
+
+fn directory_is_empty(
+    directory: &File,
+    io: &PinnedSqliteIoBudget,
+    deadline: Instant,
+    cancel: &AtomicBool,
+) -> io::Result<bool> {
+    let mut buffer = [MaybeUninit::uninit(); 8192];
+    let mut entries = RawDir::new(directory, &mut buffer);
+    loop {
+        if entries.is_buffer_empty() {
+            active(deadline, cancel)?;
+            debit_directory_read(io)?;
+        }
+        match entries.next() {
+            None => return Ok(true),
+            Some(Err(error)) => return Err(error.into()),
+            Some(Ok(entry)) => {
+                let name = entry.file_name().to_str().map_err(invalid)?;
+                if name != "." && name != ".." {
+                    return Ok(false);
+                }
+            }
+        }
+    }
+}
 
 /// Bounds are slices of an owning caller's operation, not grants or resets.
 #[derive(Clone, Copy)]
@@ -309,6 +498,7 @@ fn verify_closure(
     let (root, _, _) = store.backup_namespaces()?;
     // The writer's selector helper may initialize a missing namespace. A
     // backup/restore verifier must refuse its absence without mutating it.
+    debit_name_resolution(io, "segments-v2")?;
     let _existing =
         tos_fd_open::open_directory_at(root, Path::new("segments-v2")).map_err(invalid)?;
     let tree_io: Arc<dyn AuthenticatedTreeIoLedgerV1> = Arc::new(TreeIo(io.clone()));
@@ -410,9 +600,11 @@ fn verify_closure(
     }
     for revision in history {
         let (_, _, revisions) = store.backup_namespaces()?;
-        let directory =
-            tos_fd_open::open_directory_at(revisions, Path::new(&revision.revision.0.to_hex()))
-                .map_err(invalid)?;
+        let revision_name = revision.revision.0.to_hex();
+        debit_name_resolution(io, &revision_name)?;
+        let directory = tos_fd_open::open_directory_at(revisions, Path::new(&revision_name))
+            .map_err(invalid)?;
+        debit_name_resolution(io, "snapshot.json")?;
         let snapshot = tos_fd_open::open_regular_at(&directory, Path::new("snapshot.json"))
             .map_err(invalid)?;
         let snapshot_size = snapshot.metadata()?.len();
@@ -506,9 +698,10 @@ fn verify_closure(
             if !raw.is_empty() {
                 return Err(invalid("V2 image retirement tuple trailing bytes"));
             }
+            let retired_name = retired_digest.to_hex();
+            debit_name_resolution(io, &retired_name)?;
             let retired =
-                tos_fd_open::open_regular_at(objects, Path::new(&retired_digest.to_hex()))
-                    .map_err(invalid)?;
+                tos_fd_open::open_regular_at(objects, Path::new(&retired_name)).map_err(invalid)?;
             verify_object(
                 objects,
                 retired_digest,
@@ -574,6 +767,7 @@ fn verify_file(
     deadline: Instant,
     cancel: &AtomicBool,
 ) -> io::Result<()> {
+    debit_name_resolution(io, name)?;
     let mut input = tos_fd_open::open_regular_at(directory, Path::new(name)).map_err(invalid)?;
     let before = input.metadata()?;
     if before.len() != size
@@ -603,6 +797,7 @@ fn verify_file(
     io.charge_read(1).map_err(invalid)?;
     let tail = input.read(&mut block[..1])?;
     io.record_read_returned(tail as u64).map_err(invalid)?;
+    debit_name_resolution(io, name)?;
     let named = tos_fd_open::open_regular_at(directory, Path::new(name)).map_err(invalid)?;
     if tail != 0
         || hash.finalize() != digest
@@ -679,12 +874,14 @@ fn copy_file(
         .checked_add(1)
         .filter(|n| *n <= limits.max_files)
         .ok_or_else(|| invalid("V2 image file bound exceeded"))?;
+    debit_name_resolution(io, name)?;
     let mut input = tos_fd_open::open_regular_at(source, Path::new(name)).map_err(invalid)?;
     let before = input.metadata()?;
     if before.uid() != rustix::process::geteuid().as_raw() || before.mode() & 0o022 != 0 {
         return Err(invalid("V2 image leaf custody differs"));
     }
     work.reserve_allocation_upper(before.len(), limits)?;
+    debit_name_resolution(io, target_name)?;
     let mut output = File::from(rustix::fs::openat(
         target,
         target_name,
@@ -727,6 +924,7 @@ fn copy_file(
     io.charge_read(1).map_err(invalid)?;
     let tail = input.read(&mut block[..1])?;
     io.record_read_returned(tail as u64).map_err(invalid)?;
+    debit_name_resolution(io, name)?;
     let named = tos_fd_open::open_regular_at(source, Path::new(name)).map_err(invalid)?;
     if tail != 0
         || stamp(&input.metadata()?) != stamp(&before)
@@ -770,24 +968,43 @@ fn copy_directory(
         .blocks()
         .checked_mul(512)
         .ok_or_else(|| invalid("V2 image directory allocation overflow"))?;
-    for entry in std::fs::read_dir(format!("/proc/self/fd/{}", source.as_raw_fd()))? {
+    let mut directory_buffer = [MaybeUninit::uninit(); 8192];
+    let mut entries = RawDir::new(source, &mut directory_buffer);
+    loop {
         active(deadline, cancel)?;
-        let entry = entry?;
-        let name = entry.file_name();
-        let name = name
+        if entries.is_buffer_empty() {
+            debit_directory_read(io)?;
+        }
+        let entry = match entries.next() {
+            None => break,
+            Some(entry) => entry?,
+        };
+        let name = entry
+            .file_name()
             .to_str()
-            .filter(|n| !n.is_empty() && n.len() <= 255)
-            .ok_or_else(|| invalid("V2 image child name differs"))?;
+            .filter(|name| !name.is_empty() && name.len() <= 255)
+            .ok_or_else(|| invalid("V2 image child name differs"))?
+            .to_owned();
+        if name == "." || name == ".." {
+            continue;
+        }
         if depth == 0 && (name == "current.json" || name == ".admission.lock") {
             continue;
         }
-        if entry.file_type()?.is_dir() {
-            let input = tos_fd_open::open_directory_at(source, Path::new(name)).map_err(invalid)?;
+        debit_name_resolution(io, &name)?;
+        let stat = rustix::fs::statat(source, name.as_str(), AtFlags::SYMLINK_NOFOLLOW)?;
+        let entry_type = FileType::from_raw_mode(stat.st_mode);
+        if entry_type.is_dir() {
+            debit_name_resolution(io, &name)?;
+            let input =
+                tos_fd_open::open_directory_at(source, Path::new(&name)).map_err(invalid)?;
             work.reserve_allocation_upper(limits.allocation_unit_bytes, limits)?;
-            rustix::fs::mkdirat(target, name, Mode::from_raw_mode(0o700))?;
+            debit_name_resolution(io, &name)?;
+            rustix::fs::mkdirat(target, name.as_str(), Mode::from_raw_mode(0o700))?;
             account_growth(target, &mut allocated, work, reservation)?;
+            debit_name_resolution(io, &name)?;
             let output =
-                tos_fd_open::open_directory_at(target, Path::new(name)).map_err(invalid)?;
+                tos_fd_open::open_directory_at(target, Path::new(&name)).map_err(invalid)?;
             account_allocation(&output, work, reservation)?;
             copy_directory(
                 &input,
@@ -802,18 +1019,20 @@ fn copy_directory(
                 deadline,
                 cancel,
             )?;
-            let named = tos_fd_open::open_directory_at(source, Path::new(name)).map_err(invalid)?;
+            debit_name_resolution(io, &name)?;
+            let named =
+                tos_fd_open::open_directory_at(source, Path::new(&name)).map_err(invalid)?;
             if (named.metadata()?.dev(), named.metadata()?.ino())
                 != (input.metadata()?.dev(), input.metadata()?.ino())
             {
                 return Err(invalid("V2 image source directory replaced"));
             }
-        } else if entry.file_type()?.is_file() {
+        } else if entry_type.is_file() {
             let result = copy_file(
                 source,
                 target,
-                name,
-                name,
+                &name,
+                &name,
                 io,
                 reservation,
                 work,
@@ -849,6 +1068,7 @@ pub struct V2ImageReceipt {
 pub struct V2ImageOutcome {
     pub result: io::Result<V2ImageReceipt>,
     pub custody: Arc<PinnedSqliteSpaceReservation>,
+    pub(crate) held_target_root: Option<File>,
 }
 
 struct V2ImageColdSpillPlan {
@@ -885,6 +1105,7 @@ pub fn transfer_image(
         space,
         deadline,
         cancel,
+        None,
         None,
     )
 }
@@ -925,6 +1146,59 @@ pub fn transfer_image_with_cold_spill(
         deadline,
         cancel,
         Some(plan),
+        None,
+    )
+}
+
+pub(crate) fn transfer_image_with_cold_spill_at(
+    source_path: &Path,
+    source_held: &File,
+    source_identity: (u64, u64),
+    target: V2HeldTargetRoot<'_>,
+    expected_target_identity: (u64, u64),
+    limits: V2ImageLimits,
+    io: &PinnedSqliteIoBudget,
+    image_space: &PinnedSqliteSpaceBudget,
+    auxiliary_space: &PinnedSqliteSpaceBudget,
+    requests: V2SeenPackSpillRequests,
+    deadline: Instant,
+    cancel: &AtomicBool,
+) -> io::Result<V2ImageOutcome> {
+    if auxiliary_space.shares_with(image_space) {
+        return Err(invalid(
+            "V2 cold spill auxiliary space must be separately held",
+        ));
+    }
+    requests.validate_for_operation(io, auxiliary_space, deadline, cancel)?;
+    let (limits, source_limits, target_limits) = limits.validate_cold_spill(&requests)?;
+    let target_root =
+        open_selected_target(target, Some(expected_target_identity), io, deadline, cancel)?;
+    let target_store_identity = identity(&target_root)?;
+    drop(target_root);
+    let plan = V2ImageColdSpillPlan {
+        source: Some(requests.source),
+        target: Some(requests.target),
+        source_limits,
+        target_limits,
+    };
+    transfer_image_inner(
+        source_path,
+        target.store_path,
+        limits,
+        io,
+        image_space,
+        deadline,
+        cancel,
+        Some(plan),
+        Some(V2HeldImageRoots {
+            source: V2HeldSourceRoot {
+                path: source_path,
+                held: source_held,
+                identity: source_identity,
+            },
+            target,
+            target_store_identity,
+        }),
     )
 }
 
@@ -937,6 +1211,7 @@ fn transfer_image_inner(
     deadline: Instant,
     cancel: &AtomicBool,
     mut cold: Option<V2ImageColdSpillPlan>,
+    held_roots: Option<V2HeldImageRoots<'_>>,
 ) -> io::Result<V2ImageOutcome> {
     let limits = if cold.is_some() {
         limits.validate_layout()?.0
@@ -944,21 +1219,48 @@ fn transfer_image_inner(
         limits.validate()?
     };
     active(deadline, cancel)?;
-    let source = AdmissionStore::open_existing(source_path, deadline, cancel)?;
+    let source = if let Some(roots) = held_roots {
+        debit_root_guard(io)?;
+        active(deadline, cancel)?;
+        verify_named_root_no_charge(roots.source.path, roots.source.held, roots.source.identity)?;
+        AdmissionStore::open_existing_at_named_with_io(
+            roots.source.path,
+            roots.source.held,
+            io.clone(),
+            deadline,
+            cancel,
+        )?
+    } else {
+        AdmissionStore::open_existing(source_path, deadline, cancel)?
+    };
+    debit_name_resolution(io, ".admission.lock")?;
     let _lock = source.lock_for_backup(deadline, cancel)?;
+    debit_name_resolution(io, "current.json")?;
     let selection = source
         .current_selection(limits.reader, deadline, cancel, Some(io))?
         .ok_or_else(|| invalid("V2 image source selection absent"))?;
     let roots = selected_roots(&source, &selection, limits, io, deadline, cancel)?;
-    let target = tos_fd_open::open_absolute_directory(fresh_target).map_err(invalid)?;
+    let target = if let Some(roots) = held_roots {
+        if roots.target.store_path != fresh_target {
+            return Err(invalid("V2 selected target path differs from held binding"));
+        }
+        open_selected_target(
+            roots.target,
+            Some(roots.target_store_identity),
+            io,
+            deadline,
+            cancel,
+        )?
+    } else {
+        tos_fd_open::open_absolute_directory(fresh_target).map_err(invalid)?
+    };
     let metadata = target.metadata()?;
+    active(deadline, cancel)?;
+    let empty = directory_is_empty(&target, io, deadline, cancel)?;
     if metadata.uid() != rustix::process::geteuid().as_raw()
         || metadata.mode() & 0o077 != 0
         || metadata.blksize() > limits.allocation_unit_bytes
-        || std::fs::read_dir(format!("/proc/self/fd/{}", target.as_raw_fd()))?
-            .next()
-            .transpose()?
-            .is_some()
+        || !empty
     {
         return Err(invalid("V2 image target is not fresh private directory"));
     }
@@ -988,7 +1290,27 @@ fn transfer_image_inner(
         copy_directory(
             root, &target, 0, false, io, &custody, &mut work, limits, &mut block, deadline, cancel,
         )?;
-        let restored = AdmissionStore::open_existing(fresh_target, deadline, cancel)?;
+        if let Some(roots) = held_roots {
+            let _current_target = open_selected_target(
+                roots.target,
+                Some(roots.target_store_identity),
+                io,
+                deadline,
+                cancel,
+            )?;
+            active(deadline, cancel)?;
+        }
+        let restored = if held_roots.is_some() {
+            AdmissionStore::open_existing_at_named_with_io(
+                fresh_target,
+                &target,
+                io.clone(),
+                deadline,
+                cancel,
+            )?
+        } else {
+            AdmissionStore::open_existing(fresh_target, deadline, cancel)?
+        };
         let (restored_root, _, _) = restored.backup_namespaces()?;
         if (
             restored_root.metadata()?.dev(),
@@ -1012,6 +1334,7 @@ fn transfer_image_inner(
             deadline,
             cancel,
         )?;
+        debit_name_resolution(io, "current.json")?;
         if source.current_selection(limits.reader, deadline, cancel, Some(io))?
             != Some(selection.clone())
         {
@@ -1023,6 +1346,7 @@ fn transfer_image_inner(
             .checked_mul(512)
             .ok_or_else(|| invalid("V2 image directory allocation overflow"))?;
         work.reserve_allocation_upper(0, limits)?;
+        debit_name_resolution(io, ".admission.lock")?;
         let lock_file = File::from(rustix::fs::openat(
             &target,
             ".admission.lock",
@@ -1048,6 +1372,8 @@ fn transfer_image_inner(
         );
         account_growth(&target, &mut root_allocated, &mut work, &custody)?;
         copy_result?;
+        debit_name_resolution(io, ".restore-current.tmp")?;
+        debit_name_resolution(io, "current.json")?;
         rustix::fs::renameat_with(
             &target,
             ".restore-current.tmp",
@@ -1057,6 +1383,7 @@ fn transfer_image_inner(
         )?;
         target.sync_all()?;
         account_growth(&target, &mut root_allocated, &mut work, &custody)?;
+        debit_name_resolution(io, "current.json")?;
         if restored.current_selection(limits.reader, deadline, cancel, Some(io))?
             != Some(selection.clone())
         {
@@ -1073,5 +1400,33 @@ fn transfer_image_inner(
             tree_read_nodes: work.tree_nodes,
         })
     })();
-    Ok(V2ImageOutcome { result, custody })
+    let result = if let Some(roots) = held_roots {
+        let source_fence = verify_named_root(
+            roots.source.path,
+            roots.source.held,
+            roots.source.identity,
+            io,
+            deadline,
+            cancel,
+        );
+        let target_fence = open_selected_target(
+            roots.target,
+            Some(roots.target_store_identity),
+            io,
+            deadline,
+            cancel,
+        )
+        .map(|_| ());
+        match result {
+            Ok(receipt) => source_fence.and(target_fence).map(|_| receipt),
+            Err(error) => Err(error),
+        }
+    } else {
+        result
+    };
+    Ok(V2ImageOutcome {
+        result,
+        custody,
+        held_target_root: held_roots.map(|_| target),
+    })
 }

@@ -3,13 +3,15 @@
 //! This consumer creates no admission token and does not synthesize history.
 use super::source_admission::{active, invalid};
 use super::source_admission_v2_backup_restore::{
-    V2ImageLimits, V2ImageReceipt, transfer_image, transfer_image_with_cold_spill,
+    V2HeldImageRoots, V2HeldSourceRoot, V2HeldTargetRoot, V2ImageLimits, V2ImageReceipt,
+    open_selected_target, transfer_image, transfer_image_with_cold_spill,
+    transfer_image_with_cold_spill_at, verify_named_root,
 };
 use super::source_admission_v2_reader::{V2PointReadLimits, V2ReadSession};
 use super::source_admission_v2_seen_pack::V2SeenPackSpillRequests;
 use std::{
+    fs::File,
     io,
-    mem::size_of,
     path::Path,
     sync::{Arc, atomic::AtomicBool},
     time::Instant,
@@ -73,20 +75,29 @@ impl V2CaseLimits {
 
     fn validate_cold_spill(self) -> io::Result<Self> {
         let limits = self.validate()?;
-        let paired_request_state = size_of::<ImageMode<'static>>();
+        let overhead = cold_case_phase_overhead_bytes();
         if self
             .point
             .max_state_bytes
-            .checked_add(paired_request_state)
-            .and_then(|bytes| bytes.checked_add(8192))
+            .checked_add(overhead)
             .is_none_or(|bytes| bytes > self.max_state_bytes)
+            || self
+                .image
+                .max_state_bytes
+                .checked_add(overhead)
+                .is_none_or(|bytes| bytes > self.max_state_bytes)
         {
-            return Err(invalid(
-                "V2 cold spill requests exceed whole-case point state",
-            ));
+            return Err(invalid("V2 cold spill binding exceeds whole-case state"));
         }
         Ok(limits)
     }
+}
+
+pub const fn cold_case_phase_overhead_bytes() -> usize {
+    8192 + std::mem::size_of::<ImageMode<'static>>()
+        + std::mem::size_of::<super::source_admission_v2_backup_restore::V2ImageOutcome>()
+        + std::mem::size_of::<V2CaseReceipt>()
+        + std::mem::size_of::<V2CaseOutcome>()
 }
 
 pub struct V2CaseReceipt {
@@ -109,7 +120,17 @@ enum ImageMode<'a> {
     ColdSpill {
         auxiliary_space: &'a PinnedSqliteSpaceBudget,
         requests: V2SeenPackSpillRequests,
+        held_roots: Option<V2HeldImageRoots<'a>>,
     },
+}
+
+impl<'a> ImageMode<'a> {
+    fn held_roots(&self) -> Option<V2HeldImageRoots<'a>> {
+        match self {
+            Self::Compatibility => None,
+            Self::ColdSpill { held_roots, .. } => *held_roots,
+        }
+    }
 }
 
 pub fn read_backup_restore_case(
@@ -178,6 +199,82 @@ pub fn read_backup_restore_case_with_cold_spill(
         ImageMode::ColdSpill {
             auxiliary_space: original_auxiliary_space,
             requests,
+            held_roots: None,
+        },
+    )
+}
+
+#[allow(clippy::too_many_arguments)]
+pub fn read_backup_restore_case_with_cold_spill_at(
+    source_path: &Path,
+    source_held: &File,
+    source_identity: (u64, u64),
+    artifact_root_held: &File,
+    artifact_root_path: &Path,
+    artifact_root_identity: (u64, u64),
+    selected_target_path: &Path,
+    selected_target_relative: &RelativePath,
+    expected_revision: SourceRevision,
+    identity: &str,
+    expected_path: &RelativePath,
+    limits: V2CaseLimits,
+    original_io: PinnedSqliteIoBudget,
+    persistent_space: &PinnedSqliteSpaceBudget,
+    original_auxiliary_space: &PinnedSqliteSpaceBudget,
+    requests: V2SeenPackSpillRequests,
+    deadline: Instant,
+    cancel: Arc<AtomicBool>,
+) -> io::Result<V2CaseOutcome> {
+    let limits = limits.validate_cold_spill()?;
+    if original_auxiliary_space.shares_with(persistent_space) {
+        return Err(invalid(
+            "V2 cold spill auxiliary space must be separately held",
+        ));
+    }
+    requests.validate_for_operation(&original_io, original_auxiliary_space, deadline, &cancel)?;
+    let _profiles = limits.image.validate_cold_spill(&requests)?;
+    verify_named_root(
+        source_path,
+        source_held,
+        source_identity,
+        &original_io,
+        deadline,
+        &cancel,
+    )?;
+    let target = V2HeldTargetRoot {
+        artifact_path: artifact_root_path,
+        artifact_held: artifact_root_held,
+        artifact_identity: artifact_root_identity,
+        store_path: selected_target_path,
+        store_relative: selected_target_relative,
+    };
+    let target_root = open_selected_target(target, None, &original_io, deadline, &cancel)?;
+    let target_metadata = target_root.metadata()?;
+    let roots = V2HeldImageRoots {
+        source: V2HeldSourceRoot {
+            path: source_path,
+            held: source_held,
+            identity: source_identity,
+        },
+        target,
+        target_store_identity: (target_metadata.dev(), target_metadata.ino()),
+    };
+    drop(target_root);
+    read_backup_restore_case_inner(
+        source_path,
+        selected_target_path,
+        expected_revision,
+        identity,
+        expected_path,
+        limits,
+        original_io,
+        persistent_space,
+        deadline,
+        cancel,
+        ImageMode::ColdSpill {
+            auxiliary_space: original_auxiliary_space,
+            requests,
+            held_roots: Some(roots),
         },
     )
 }
@@ -200,14 +297,38 @@ fn read_backup_restore_case_inner(
         ImageMode::ColdSpill { .. } => limits.validate_cold_spill()?,
     };
     active(deadline, &cancel)?;
+    let held_roots = image_mode.held_roots();
     let (digest, bytes, mode) = {
-        let mut session = V2ReadSession::open(
-            source,
-            limits.point,
-            original_io.clone(),
-            deadline,
-            cancel.clone(),
-        )?;
+        let mut session = if let Some(roots) = held_roots {
+            verify_named_root(
+                roots.source.path,
+                roots.source.held,
+                roots.source.identity,
+                &original_io,
+                deadline,
+                &cancel,
+            )?;
+            super::source_admission_v2_backup_restore::debit_name_resolution(
+                &original_io,
+                "current.json",
+            )?;
+            V2ReadSession::open_at_named_with_io(
+                source,
+                roots.source.held,
+                limits.point,
+                original_io.clone(),
+                deadline,
+                cancel.clone(),
+            )?
+        } else {
+            V2ReadSession::open(
+                source,
+                limits.point,
+                original_io.clone(),
+                deadline,
+                cancel.clone(),
+            )?
+        };
         if session.selected_revision() != expected_revision {
             return Err(invalid("V2 case writer revision differs"));
         }
@@ -221,6 +342,16 @@ fn read_backup_restore_case_inner(
         session.verify_current_fence()?;
         tuple
     }; // Drop the actual source buffer/session before cold closure/copy.
+    if let Some(roots) = held_roots {
+        verify_named_root(
+            roots.source.path,
+            roots.source.held,
+            roots.source.identity,
+            &original_io,
+            deadline,
+            &cancel,
+        )?;
+    }
     let image = match image_mode {
         ImageMode::Compatibility => transfer_image(
             source,
@@ -234,32 +365,78 @@ fn read_backup_restore_case_inner(
         ImageMode::ColdSpill {
             auxiliary_space,
             requests,
-        } => transfer_image_with_cold_spill(
-            source,
-            fresh_target,
-            limits.image,
-            &original_io,
-            persistent_space,
-            auxiliary_space,
-            requests,
-            deadline,
-            &cancel,
-        )?,
+            held_roots,
+        } => {
+            if let Some(roots) = held_roots {
+                transfer_image_with_cold_spill_at(
+                    source,
+                    roots.source.held,
+                    roots.source.identity,
+                    roots.target,
+                    roots.target_store_identity,
+                    limits.image,
+                    &original_io,
+                    persistent_space,
+                    auxiliary_space,
+                    requests,
+                    deadline,
+                    &cancel,
+                )?
+            } else {
+                transfer_image_with_cold_spill(
+                    source,
+                    fresh_target,
+                    limits.image,
+                    &original_io,
+                    persistent_space,
+                    auxiliary_space,
+                    requests,
+                    deadline,
+                    &cancel,
+                )?
+            }
+        }
     };
     let image_result = image.result;
     let custody = image.custody;
+    let held_target_root = image.held_target_root;
     let result = (|| {
         let image_receipt = image_result?;
         if image_receipt.selection.revision != expected_revision {
             return Err(invalid("V2 case source advanced before cold image"));
         }
-        let mut restored = V2ReadSession::open(
-            fresh_target,
-            limits.point,
-            original_io,
-            deadline,
-            cancel.clone(),
-        )?;
+        let mut restored = if let Some(roots) = held_roots {
+            let target_root = held_target_root
+                .as_ref()
+                .ok_or_else(|| invalid("V2 restored held target descriptor absent"))?;
+            let _current_target = open_selected_target(
+                roots.target,
+                Some(roots.target_store_identity),
+                &original_io,
+                deadline,
+                &cancel,
+            )?;
+            super::source_admission_v2_backup_restore::debit_name_resolution(
+                &original_io,
+                "current.json",
+            )?;
+            V2ReadSession::open_at_named_with_io(
+                fresh_target,
+                target_root,
+                limits.point,
+                original_io.clone(),
+                deadline,
+                cancel.clone(),
+            )?
+        } else {
+            V2ReadSession::open(
+                fresh_target,
+                limits.point,
+                original_io.clone(),
+                deadline,
+                cancel.clone(),
+            )?
+        };
         if restored.selected_revision() != expected_revision {
             return Err(invalid("V2 case fresh restored revision differs"));
         }
@@ -284,5 +461,29 @@ fn read_backup_restore_case_inner(
             observed_bytes: bytes,
         })
     })();
+    let result = if let (Some(roots), Some(target_root)) = (held_roots, held_target_root.as_ref()) {
+        let source_fence = verify_named_root(
+            roots.source.path,
+            roots.source.held,
+            roots.source.identity,
+            &original_io,
+            deadline,
+            &cancel,
+        );
+        let target_fence = open_selected_target(
+            roots.target,
+            Some(roots.target_store_identity),
+            &original_io,
+            deadline,
+            &cancel,
+        )
+        .map(|_| ());
+        match result {
+            Ok(receipt) => source_fence.and(target_fence).map(|_| receipt),
+            Err(error) => Err(error),
+        }
+    } else {
+        result
+    };
     Ok(V2CaseOutcome { result, custody })
 }
