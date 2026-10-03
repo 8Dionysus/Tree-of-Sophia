@@ -87,6 +87,69 @@ pub fn run(
     stdout: &mut impl Write,
     stderr: &mut impl Write,
 ) -> Result<i32> {
+    run_with_observation(args, cancelled, git_signal, stdout, stderr, None)
+}
+
+/// Additional callback peak state (including retained output and closure) and
+/// cumulative private-stage reads. The caller enforces these finite bounds;
+/// the native owner reserves and charges them against the original invocation.
+/// No callback worker, filesystem mutation or publication is admitted here.
+#[derive(Clone, Copy, Debug, Default)]
+pub struct SourceFoundationCatalogueObservationLimits {
+    pub max_stage_read_bytes: u64,
+    pub max_state_bytes: usize,
+}
+
+/// Observe one genuine rendered/validated catalog in its borrowed cold stage.
+/// Keep results private until Ok(0) AND callback invocation are confirmed.
+/// Terminal source/root/epoch fences run afterward; custody ends on return.
+pub fn run_with_owned_catalogue_observation(
+    args: &[OsString],
+    cancelled: &AtomicBool,
+    git_signal: &AtomicI32,
+    stdout: &mut impl Write,
+    stderr: &mut impl Write,
+    limits: SourceFoundationCatalogueObservationLimits,
+    observe: impl FnOnce(
+        &mut tos_compiler::knowledge_stage::KnowledgeStage<'_>,
+        &tos_compiler::source_witness_catalog::ColdSourceCatalogReceipt,
+        tos_compiler::source_witness_catalog::SourceCatalogLimits,
+    ) -> tos_compiler::Result<()>,
+) -> Result<i32> {
+    let callback_state = std::mem::size_of_val(&observe)
+        .checked_add(std::mem::size_of::<
+            foundation_orchestrator::OwnedCatalogueObservation<'_>,
+        >())
+        .ok_or(Error::Unsupported(
+            "catalogue observation closure state overflow",
+        ))?;
+    if limits.max_state_bytes < callback_state || limits.max_stage_read_bytes == u64::MAX {
+        return Err(Error::Unsupported(
+            "catalogue observation finite resource bounds",
+        ));
+    }
+    run_with_observation(
+        args,
+        cancelled,
+        git_signal,
+        stdout,
+        stderr,
+        Some(foundation_orchestrator::OwnedCatalogueObservation {
+            limits,
+            callback: Box::new(observe),
+            retained_closure_state_bytes: callback_state,
+        }),
+    )
+}
+
+fn run_with_observation(
+    args: &[OsString],
+    cancelled: &AtomicBool,
+    git_signal: &AtomicI32,
+    stdout: &mut impl Write,
+    stderr: &mut impl Write,
+    observation: Option<foundation_orchestrator::OwnedCatalogueObservation<'_>>,
+) -> Result<i32> {
     let clock = FoundationBootstrapClock::begin()?;
     // Before a protected invocation is decoded, only bounded bootstrap help
     // or static refusal text can be emitted. Once decoded, its exact output
@@ -106,6 +169,7 @@ pub fn run(
         &stopped,
         &output_cap,
         &output_deadline,
+        observation,
     );
     if let Err(error) = &result {
         let reason = match error {
@@ -143,6 +207,7 @@ fn run_selected(
     stopped: &Cell<bool>,
     output_cap: &Cell<usize>,
     output_deadline: &Cell<Instant>,
+    observation: Option<foundation_orchestrator::OwnedCatalogueObservation<'_>>,
 ) -> Result<i32> {
     let launch = parse_launch_arguments(args)?;
     if launch.arguments.help {
@@ -160,7 +225,26 @@ fn run_selected(
             .map_err(|_| Error::Denied("foundation stdout failed"))?;
         return Ok(0);
     }
-    let invocation = read_invocation(&clock, &launch, cancelled)?;
+    let mut invocation = read_invocation(&clock, &launch, cancelled)?;
+    if let Some(observation) = &observation {
+        // The callback closure is already held during bootstrap. Charge its
+        // actual conservative state alongside the existing invocation input;
+        // the later observation reservation separately covers its output peak.
+        invocation.cost.retained_input_bytes = invocation
+            .cost
+            .retained_input_bytes
+            .checked_add(observation.retained_closure_state_bytes)
+            .ok_or(Error::Unsupported(
+                "catalogue observation retained startup state overflow",
+            ))?;
+        invocation.cost.peak_state_upper_bound_bytes = invocation
+            .cost
+            .peak_state_upper_bound_bytes
+            .checked_add(observation.retained_closure_state_bytes)
+            .ok_or(Error::Unsupported(
+                "catalogue observation bootstrap peak overflow",
+            ))?;
+    }
     let deadline = invocation.deadline();
     let max_output_bytes = usize::try_from(invocation.budgets.max_output_bytes)
         .map_err(|_| Error::Unsupported("foundation output byte range"))?;
@@ -179,7 +263,17 @@ fn run_selected(
         .map_err(foundation_orchestrator::FoundationOrchestratorError::from)
         .map_err(|error| Error::Denied(error.public_reason()))?;
     let outcome = inputs
-        .with_initial_snapshots(git_signal, foundation_orchestrator::evaluate)
+        .with_initial_snapshots(git_signal, |view, payloads| {
+            if let Some(observation) = observation {
+                foundation_orchestrator::evaluate_with_owned_catalogue_observation(
+                    view,
+                    payloads,
+                    observation,
+                )
+            } else {
+                foundation_orchestrator::evaluate(view, payloads)
+            }
+        })
         .map_err(|error| Error::Denied(error.public_reason()))?;
     match outcome {
         SourceFoundationOutputOutcome::Complete(assembled) => {

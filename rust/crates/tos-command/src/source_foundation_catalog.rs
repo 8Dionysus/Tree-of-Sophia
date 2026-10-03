@@ -23,9 +23,9 @@ use tos_compiler::source_bibliographic::{
     prepare_cold_bibliographic_graph_from_cut,
 };
 use tos_compiler::source_witness_catalog::{
-    ColdSourceCatalogReceipt, SourceCatalogProfileObserver, SourceCatalogReceipt,
-    SourceCatalogSink, SourceCatalogValidator, render_candidate_source_witness_catalog,
-    render_cold_source_witness_catalog,
+    ColdSourceCatalogReceipt, SourceCatalogLimits, SourceCatalogProfileObserver,
+    SourceCatalogReceipt, SourceCatalogSink, SourceCatalogValidator,
+    render_candidate_source_witness_catalog, render_cold_source_witness_catalog,
 };
 use tos_compiler::{
     Error, Result, SourceCatalogInputLimits, SourceCatalogRenderWorkV1,
@@ -1579,6 +1579,11 @@ fn compare_kernel<'candidate>(
     )>,
     index_rows: Option<&mut dyn FreshIndexRowsWriter>,
     cancelled: &AtomicBool,
+    observe: impl FnOnce(
+        &mut KnowledgeStage<'_>,
+        &ColdSourceCatalogReceipt,
+        SourceCatalogLimits,
+    ) -> Result<()>,
 ) -> Result<CatalogKernelOutput<'candidate>> {
     let binding = ColdAuthoredBinding::from_cut(
         capture.cut(),
@@ -1714,6 +1719,7 @@ fn compare_kernel<'candidate>(
             )
             .map(|_| ())
         },
+        observe,
         || owner.recheck_sealed_cut(&owner.receipt),
         || owner.source_recheck_read_bytes.get(),
         |stage| stage.finish_cold().map(|_| ()),
@@ -1777,6 +1783,11 @@ fn compare_prepared_kernel<'candidate, 'stage, B, D>(
         &mut KnowledgeStage<'stage>,
         &SourceCatalogReceipt<B>,
         &SourceCatalogValidator<'_>,
+    ) -> Result<()>,
+    observe: impl FnOnce(
+        &mut KnowledgeStage<'stage>,
+        &SourceCatalogReceipt<B>,
+        SourceCatalogLimits,
     ) -> Result<()>,
     mut recheck: impl FnMut() -> Result<()>,
     source_recheck_read_bytes: impl Fn() -> usize,
@@ -1885,6 +1896,8 @@ fn compare_prepared_kernel<'candidate, 'stage, B, D>(
             bibliographic(&mut stage, &catalog, validator)?;
         }
         validator.finish()?;
+        // Observation remains provisional until the original terminal fences succeed.
+        observe(&mut stage, &catalog, limits.catalog)?;
         let schema_execution_cost = validator.diagnostics_v2_cumulative_cost()?;
         recheck()?;
         let mut selected_generated = generated_inputs
@@ -1973,7 +1986,7 @@ fn compare_prepared_kernel<'candidate, 'stage, B, D>(
 }
 
 #[allow(clippy::too_many_arguments)]
-pub(crate) fn compare(
+pub(crate) fn compare_with_owned_catalogue_observation(
     capture: &FoundationCapturedCut,
     sources: &mut RouteSources,
     candidate: &Path,
@@ -1996,6 +2009,11 @@ pub(crate) fn compare(
     max_source_recheck_read_bytes: usize,
     quota: &tos_validation::executor::SharedSchemaWorkerQuota,
     cancelled: &AtomicBool,
+    observe: impl FnOnce(
+        &mut KnowledgeStage<'_>,
+        &ColdSourceCatalogReceipt,
+        SourceCatalogLimits,
+    ) -> Result<()>,
 ) -> Result<FoundationCatalogOutcome> {
     compare_kernel(
         capture,
@@ -2022,6 +2040,7 @@ pub(crate) fn compare(
         None,
         None,
         cancelled,
+        observe,
     )
     .map(|output| output.outcome)
 }
@@ -2083,6 +2102,7 @@ pub(crate) fn compare_candidate<'candidate, 'rows>(
         Some((isolated, tree_limits)),
         index_rows,
         cancelled,
+        |_, _, _| Ok(()),
     )?;
     if let (FoundationCatalogOutcome::Complete(result), Some(candidate)) =
         (&mut output.outcome, output.candidate.as_mut())
@@ -2300,6 +2320,7 @@ pub(crate) fn compare_spooled_candidate<'candidate>(
             )
             .map(|_| ())
         },
+        |_, _, _| Ok(()),
         || owner.recheck_current_input(&owner.receipt),
         // Physical reads are supplied once by the actual SpoolCandidate whole
         // ledger. They must not be counted twice as cold-route recheck reads.

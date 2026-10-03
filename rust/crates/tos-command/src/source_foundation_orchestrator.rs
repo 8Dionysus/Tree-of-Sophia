@@ -281,11 +281,37 @@ pub(crate) fn evaluate<'work, 'cancel, 'signal>(
     view: FoundationBootstrapView<'work, 'cancel, 'signal>,
     payloads: FoundationPayloadSources<'work>,
 ) -> Result<SourceFoundationOutputOutcome, FoundationOrchestratorError> {
-    match run(view, payloads, None)? {
+    match run(view, payloads, None, None)? {
         JoinedOutcome::Default(outcome) => Ok(outcome),
         JoinedOutcome::Admission(_) => Err(FoundationOrchestratorError::Incomplete(
             "ordinary foundation evaluation returned admission state",
         )),
+    }
+}
+
+pub(crate) type CatalogueObserver<'a> = dyn FnOnce(
+        &mut tos_compiler::knowledge_stage::KnowledgeStage<'_>,
+        &tos_compiler::source_witness_catalog::ColdSourceCatalogReceipt,
+        tos_compiler::source_witness_catalog::SourceCatalogLimits,
+    ) -> tos_compiler::Result<()>
+    + 'a;
+
+pub(crate) struct OwnedCatalogueObservation<'a> {
+    pub limits: super::foundation_command::SourceFoundationCatalogueObservationLimits,
+    pub callback: Box<CatalogueObserver<'a>>,
+    pub retained_closure_state_bytes: usize,
+}
+
+pub(crate) fn evaluate_with_owned_catalogue_observation<'work, 'observe, 'cancel, 'signal>(
+    view: FoundationBootstrapView<'work, 'cancel, 'signal>,
+    payloads: FoundationPayloadSources<'work>,
+    observation: OwnedCatalogueObservation<'observe>,
+) -> Result<SourceFoundationOutputOutcome, FoundationOrchestratorError> {
+    match run(view, payloads, None, Some(observation))? {
+        JoinedOutcome::Default(outcome) => Ok(outcome),
+        JoinedOutcome::Admission(_) => {
+            Err(incomplete("catalogue observation returned admission state"))
+        }
     }
 }
 
@@ -299,7 +325,7 @@ pub(crate) fn evaluate_admission<'work, 'receive, 'cancel, 'signal>(
     ) -> io::Result<(crate::source_admission_index::Index, FoundationPhaseUse)>
     + 'receive,
 ) -> Result<crate::source_admission_index::Index, FoundationOrchestratorError> {
-    match run(view, payloads, Some(Box::new(receive)))? {
+    match run(view, payloads, Some(Box::new(receive)), None)? {
         JoinedOutcome::Admission(index) => Ok(index),
         JoinedOutcome::Default(_) => Err(FoundationOrchestratorError::Incomplete(
             "candidate foundation did not produce a complete fresh catalog",
@@ -2910,10 +2936,11 @@ pub(crate) fn evaluate_spooled_admission<
 
 struct NativeAdmissionStateHeader;
 
-fn run<'work, 'receive, 'cancel, 'signal>(
+fn run<'work, 'receive, 'observe, 'cancel, 'signal>(
     view: FoundationBootstrapView<'work, 'cancel, 'signal>,
     mut payloads: FoundationPayloadSources<'work>,
     mut receive: Option<Box<AdmissionReceiver<'receive>>>,
+    mut observation: Option<OwnedCatalogueObservation<'observe>>,
 ) -> Result<JoinedOutcome, FoundationOrchestratorError> {
     let FoundationBootstrapView {
         clock: _,
@@ -4054,6 +4081,35 @@ fn run<'work, 'receive, 'cancel, 'signal>(
             );
         }
     };
+    let observation_limits = observation.as_ref().map(|o| o.limits).unwrap_or_default();
+    catalog_operation.source_read_bytes = match catalog_operation
+        .source_read_bytes
+        .checked_sub(observation_limits.max_stage_read_bytes)
+    {
+        Some(bytes) => bytes,
+        None => {
+            return fail_window(
+                execution_limits,
+                remaining_budget,
+                catalog_ticket,
+                incomplete("catalogue observation read reservation exceeds remaining budget"),
+            );
+        }
+    };
+    catalog_operation.state_bytes = match catalog_operation
+        .state_bytes
+        .checked_sub(observation_limits.max_state_bytes)
+    {
+        Some(bytes) => bytes,
+        None => {
+            return fail_window(
+                execution_limits,
+                remaining_budget,
+                catalog_ticket,
+                incomplete("catalogue observation state reservation exceeds remaining budget"),
+            );
+        }
+    };
     let catalog_free = catalog_ticket.remaining();
     let mut catalog_members = 0usize;
     let mut largest_captured_member_bytes = 0u64;
@@ -4319,7 +4375,7 @@ fn run<'work, 'receive, 'cancel, 'signal>(
             }
         }
     } else {
-        match foundation_catalog::compare(
+        match foundation_catalog::compare_with_owned_catalogue_observation(
             captured,
             sources,
             &candidate_path,
@@ -4352,6 +4408,14 @@ fn run<'work, 'receive, 'cancel, 'signal>(
             .unwrap_or(usize::MAX - 1),
             &worker_quota,
             cancelled,
+            |stage, receipt, limits| {
+                if let Some(observation) = observation.take() {
+                    stage.with_raw_input_read_budget(observation.limits.max_stage_read_bytes, |stage| {
+                        (observation.callback)(stage, receipt, limits)
+                    })?;
+                }
+                Ok(())
+            },
         ) {
             Ok(outcome) => outcome,
             Err(error) => {
@@ -4364,7 +4428,9 @@ fn run<'work, 'receive, 'cancel, 'signal>(
             }
         }
     };
-    let catalog_read = match catalog_read_bytes(&catalog_outcome) {
+    let catalog_read = match catalog_read_bytes(&catalog_outcome)
+        .and_then(|bytes| checked_add_u64(bytes, observation_limits.max_stage_read_bytes))
+    {
         Ok(bytes) => bytes,
         Err(error) => {
             return fail_window(execution_limits, remaining_budget, catalog_ticket, error);
@@ -4382,7 +4448,9 @@ fn run<'work, 'receive, 'cancel, 'signal>(
             return fail_window(execution_limits, remaining_budget, catalog_ticket, error);
         }
     };
-    catalog_state = match checked_add_usize(catalog_state, catalog_identity_copy_state) {
+    catalog_state = match checked_add_usize(catalog_state, catalog_identity_copy_state)
+        .and_then(|bytes| checked_add_usize(bytes, observation_limits.max_state_bytes))
+    {
         Ok(state) => state,
         Err(error) => {
             return fail_window(execution_limits, remaining_budget, catalog_ticket, error);
@@ -4864,7 +4932,11 @@ fn run<'work, 'receive, 'cancel, 'signal>(
             checked_add_u64(catalog_amounts.tmpfs_inodes, callback_amounts.tmpfs_inodes)?;
     }
     let catalog_usage = FoundationPhaseUse {
-        source_read_bytes: FoundationCharge::measured(catalog_amounts.source_read_bytes),
+        source_read_bytes: if observation_limits.max_stage_read_bytes == 0 {
+            FoundationCharge::measured(catalog_amounts.source_read_bytes)
+        } else {
+            FoundationCharge::admitted_upper_bound(catalog_amounts.source_read_bytes)
+        },
         worker_wire_bytes: FoundationCharge::measured(catalog_wire),
         state_bytes: FoundationCharge::admitted_upper_bound(catalog_amounts.state_bytes),
         issue_count: FoundationCharge::measured(catalog_amounts.issue_count),

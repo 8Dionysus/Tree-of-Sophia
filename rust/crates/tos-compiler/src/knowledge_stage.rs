@@ -519,6 +519,7 @@ pub struct KnowledgeStage<'a> {
     total_rows: u64,
     work_bytes: u64,
     public_work: Option<(PublicWorkLedger, u64)>,
+    raw_read_budget: Option<(Cell<u64>, u64, Cell<bool>)>,
     poisoned: bool,
     write_page: Option<WritePageCharge>,
     keep: bool,
@@ -971,6 +972,7 @@ impl<'a> KnowledgeStage<'a> {
             total_rows: 0,
             work_bytes: 0,
             public_work,
+            raw_read_budget: None,
             poisoned: false,
             write_page: None,
             keep: false,
@@ -1612,6 +1614,54 @@ impl<'a> KnowledgeStage<'a> {
         Ok(())
     }
 
+    /// Borrow the existing stage under a cumulative raw-input read ceiling.
+    /// Charges happen before payload copies; ignored read refusals still poison
+    /// the observation. The original SQLite, deadline and isolation guards stay.
+    pub fn with_raw_input_read_budget<T>(
+        &mut self,
+        max_bytes: u64,
+        observe: impl FnOnce(&mut Self) -> Result<T>,
+    ) -> Result<T> {
+        if self.poisoned || self.raw_read_budget.is_some() || max_bytes == u64::MAX {
+            return Err(Error::Invalid("stage raw observation budget unavailable"));
+        }
+        self.check(WritePhase::Catalog)?;
+        self.raw_read_budget = Some((Cell::new(0), max_bytes, Cell::new(false)));
+        let mut result = observe(self);
+        let failed = self
+            .raw_read_budget
+            .take()
+            .map_or(true, |(_, _, failed)| failed.get());
+        if failed {
+            result = Err(Error::Budget("stage raw observation read bytes"));
+        }
+        if result.is_ok() {
+            result = self.check(WritePhase::Catalog).and(result);
+        }
+        self.poisoned |= result.is_err();
+        result
+    }
+
+    fn charge_raw_observation_read(&self, bytes: u64) -> Result<()> {
+        if let Some((used, cap, failed)) = &self.raw_read_budget {
+            if let Err(error) = self.check(WritePhase::Catalog) {
+                failed.set(true);
+                return Err(error);
+            }
+            if failed.get() {
+                return Err(Error::Budget("stage raw observation read bytes"));
+            }
+            match used.get().checked_add(bytes).filter(|next| *next <= *cap) {
+                Some(next) => used.set(next),
+                None => {
+                    failed.set(true);
+                    return Err(Error::Budget("stage raw observation read bytes"));
+                }
+            }
+        }
+        Ok(())
+    }
+
     /// Indexed exact ID seek. One row is transferred only after its actual
     /// length predicate passes; returned bytes and digest are verified.
     pub fn raw_by_id(
@@ -1625,6 +1675,19 @@ impl<'a> KnowledgeStage<'a> {
             return Err(Error::Invalid("unregistered input collection"));
         }
         valid_id(id)?;
+        if self.raw_read_budget.is_some() {
+            let length = self.db().query_row(
+                "SELECT payload_len,length(payload) FROM raw_records WHERE source_graph=?1 AND collection=?2 AND id=?3",
+                params![source_graph, collection, id],
+                |row| Ok((row.get::<_, u64>(0)?, row.get::<_, u64>(1)?)),
+            ).optional()?;
+            if let Some((declared, actual)) = length {
+                if declared != actual || actual > self.raw_input_max_bytes as u64 {
+                    return Err(Error::Invalid("stage raw observation input length"));
+                }
+                self.charge_raw_observation_read(actual)?;
+            }
+        }
         let row = self
             .db()
             .query_row(
@@ -1700,6 +1763,13 @@ impl<'a> KnowledgeStage<'a> {
             if page.len() == max_rows {
                 has_more = true;
                 break;
+            }
+            if self.raw_read_budget.is_some() {
+                let bytes = match row.get_ref(3)? {
+                    rusqlite::types::ValueRef::Blob(raw) => raw.len() as u64,
+                    _ => return Err(Error::Invalid("stage raw observation input blob")),
+                };
+                self.charge_raw_observation_read(bytes)?;
             }
             let item = verify_seek_row(read_seek_row(row)?, self.raw_input_max_bytes)?;
             let next_bytes = bytes
