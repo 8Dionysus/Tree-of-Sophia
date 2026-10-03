@@ -500,6 +500,26 @@ fn local_claim(
     }
     Ok(())
 }
+// Journal generic families retain schema validation observations without
+// promoting those mechanical reads into the legacy semantic source snapshot.
+fn generic_family_schema(
+    reader: &mut SignSourceReader<'_>,
+    worker: &mut CutWorkerSchemaExecutor,
+    name: &str,
+    value: &JsonValue,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+    semantic_dependency: bool,
+) -> Result<()> {
+    let already_semantic = reader.source_dependencies.contains(name);
+    let result = schema(reader, worker, name, value, deadline, cancelled);
+    if !semantic_dependency && !already_semantic {
+        reader.source_dependencies.remove(name);
+    }
+    // Restore membership on success and error; propagate any validation error.
+    result
+}
+
 fn source_envelopes(
     reader: &mut SignSourceReader<'_>,
     base: &CommandContext,
@@ -507,6 +527,7 @@ fn source_envelopes(
     worker: &mut CutWorkerSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
+    generic_schema_dependencies: bool,
 ) -> Result<Vec<JsonValue>> {
     let bindings = cmd::array(config, "source_records")?;
     if bindings.len() > 1024 {
@@ -672,22 +693,24 @@ fn source_envelopes(
                         continue;
                     }
                 } else if value.object_get("form_id").is_some() {
-                    schema(
+                    generic_family_schema(
                         reader,
                         worker,
                         "ToS/contracts/human-form.schema.json",
                         &value,
                         deadline,
                         cancelled,
+                        generic_schema_dependencies,
                     )?;
                 } else if cmd::text(&value, "schema_version")? == "tos_corpus_record_v1" {
-                    schema(
+                    generic_family_schema(
                         reader,
                         worker,
                         "ToS/contracts/corpus-record.schema.json",
                         &value,
                         deadline,
                         cancelled,
+                        generic_schema_dependencies,
                     )?;
                 } else if cmd::text(&value, "schema_version")? == "tos_historical_record_v1" {
                     schema(
@@ -848,7 +871,7 @@ pub(crate) fn select_owner_assessment_public_sources<'a>(
     let rows = if inline {
         Vec::new()
     } else {
-        source_envelopes(&mut reader, base, config, worker, deadline, cancelled)?
+        source_envelopes(&mut reader, base, config, worker, deadline, cancelled, false)?
     };
     // Direct v3 Journal reads reuse the Sign source-owned native resolver.
     // Private profiles select their own confidential adapter separately.
@@ -903,7 +926,8 @@ pub(crate) fn select_owner_assessment_public_sources<'a>(
     }
     if !form_sets.is_empty() {
         let name = "ToS/contracts/human-form-set.schema.json";
-        reader.source_dependencies.insert(name.to_owned());
+        // Current form-set validation still owns this observed schema read.
+        // Preserve any prior semantic membership without adding a generic tag.
         reader.source(name, 1_048_576, deadline, cancelled)?;
     }
     let has_claims = rows.iter().any(|row| {
@@ -1948,6 +1972,7 @@ fn assemble_sign_sources(
         local_worker,
         limits.deadline,
         cancelled,
+        true,
     )?;
     let dependencies = claim_ground_refs(
         reader,
