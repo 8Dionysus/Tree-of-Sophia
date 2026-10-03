@@ -906,26 +906,42 @@ fn native_derived_layer_assessment_lineage_quality_withdrawal_preserves_source()
 #[test]
 #[ignore = "requires retained signed synthetic OCR evidence and admitted native owner/worker"]
 fn native_private_assessment_v6_retained_signed_ocr_comparison_preserves_source() {
+    native_owner_ocr_comparison_case(false);
+}
+
+#[test]
+#[ignore = "requires separately retained genuine current synthetic PageOCR producer and exact native products"]
+fn native_retained_page_ocr_assessment_comparison_preserves_original_and_signed_capture() {
+    native_owner_ocr_comparison_case(true);
+}
+
+fn native_owner_ocr_comparison_case(retained_page: bool) {
     let repository = super::validation_cut_cases::repository()
         .canonicalize()
         .unwrap();
-    let deadline = Instant::now() + Duration::from_secs(240);
+    let deadline = Instant::now() + Duration::from_secs(if retained_page { 480 } else { 240 });
     let cancelled = AtomicBool::new(false);
     let temporary = tempfile::tempdir().unwrap();
+    let fixture_module = if retained_page {
+        "journal_page_fixture.py"
+    } else {
+        "journal_v6_fixture.py"
+    };
     let script = r#"
 import json,runpy,sys
 from pathlib import Path
 repository,root=map(Path,sys.argv[1:])
-f=runpy.run_path(str(repository/'tests/conformance/rust/journal_v6_fixture.py'))
+f=runpy.run_path(str(repository/'tests/conformance/rust/__FIXTURE__'))
 print(json.dumps(f['prepare'](repository,root),separators=(',',':')))
-"#;
+"#
+    .replace("__FIXTURE__", fixture_module);
     let fixture = fixture_json(
         &repository,
         temporary.path(),
         &temporary.path().join("v6-prepare.stdout"),
         &temporary.path().join("v6-prepare.stderr"),
         deadline,
-        script,
+        &script,
     );
     let owner = PathBuf::from(fixture["owner"].as_str().unwrap());
     let public = PathBuf::from(fixture["public"].as_str().unwrap());
@@ -1014,30 +1030,34 @@ print(json.dumps(f['prepare'](repository,root),separators=(',',':')))
         &serde_json::json!({
         "schema_version":"tos_local_source_command_v1","operation":"prepare-create"}),
     );
-    let created = invoke(
-        &owner,
-        &serde_json::json!({
-        "schema_version":"tos_local_source_command_v1","operation":"text-layer.record-owner-ocr",
-        "command_id":"synthetic-v6-authenticated-ocr-record",
+    let record_request = serde_json::json!({
+        "schema_version":"tos_local_source_command_v1","operation":if retained_page { "text-layer.record-owner-page-ocr" } else { "text-layer.record-owner-ocr" },
+        "command_id":if retained_page { "synthetic-current-page-authenticated-ocr-record" } else { "synthetic-v6-authenticated-ocr-record" },
         "expected_configuration":prepared["owner_configuration"],
         "expected_dependencies":prepared["expected_dependencies"],
-        "expected_source":null,"expected_revision":null}),
-    );
+        "expected_source":null,"expected_revision":null});
+    let created = invoke(&owner, &record_request);
     assert_eq!(created["replayed"], false);
+    if retained_page {
+        let replayed = invoke(&owner, &record_request);
+        assert_eq!(replayed["replayed"], true);
+        assert_eq!(replayed["receipt_sha256"], created["receipt_sha256"]);
+    }
     let finish_script = r#"
 import json,runpy,sys
 from pathlib import Path
 repository,root=map(Path,sys.argv[1:])
-f=runpy.run_path(str(repository/'tests/conformance/rust/journal_v6_fixture.py'))
+f=runpy.run_path(str(repository/'tests/conformance/rust/__FIXTURE__'))
 print(json.dumps(f['finish'](repository,root),separators=(',',':')))
-"#;
+"#
+    .replace("__FIXTURE__", fixture_module);
     let selected = fixture_json(
         &repository,
         temporary.path(),
         &temporary.path().join("v6-finish.stdout"),
         &temporary.path().join("v6-finish.stderr"),
         deadline,
-        finish_script,
+        &finish_script,
     );
     let assessment_owner = PathBuf::from(selected["assessment_owner"].as_str().unwrap());
     let package = PathBuf::from(selected["package"].as_str().unwrap());
@@ -1057,6 +1077,9 @@ print(json.dumps(f['finish'](repository,root),separators=(',',':')))
     );
     let image = PathBuf::from(selected["image_path"].as_str().unwrap());
     let image_before = custody(&image);
+    let original_pdf =
+        retained_page.then(|| PathBuf::from(selected["source_pdf_path"].as_str().unwrap()));
+    let original_before = original_pdf.as_ref().map(|path| custody(path));
     let described = invoke(
         &assessment_owner,
         &serde_json::json!({
@@ -1077,6 +1100,25 @@ print(json.dumps(f['finish'](repository,root),separators=(',',':')))
         compared["result"]["source_comparison"]["payload"]["source_image"]["sha256"],
         selected["image_sha256"]
     );
+    if retained_page {
+        let comparison = &compared["result"]["source_comparison"]["payload"];
+        assert_eq!(
+            comparison["owner_execution"]["input_verification"]["render_execution"],
+            "not_performed"
+        );
+        assert_eq!(
+            comparison["owner_execution"]["input_verification"]["historical_receipt_signature"],
+            "absent"
+        );
+        assert_ne!(
+            comparison["source_scope"]["file_sha256"],
+            comparison["source_image"]["sha256"]
+        );
+        assert_eq!(
+            comparison["input_representation"]["renderer_version"],
+            "26.05.0"
+        );
+    }
     assert_eq!(
         compared["result"]["source_comparison"]["payload"]["performs_semantic_assessment"],
         false
@@ -1093,6 +1135,9 @@ print(json.dumps(f['finish'](repository,root),separators=(',',':')))
     assert!(!observe(&assessment_owner, &request).0.success());
     assert_eq!(package_files(&package), retained);
     assert_eq!(custody(&image), image_before);
+    if let Some(path) = original_pdf.as_ref() {
+        assert_eq!(custody(path), original_before.unwrap());
+    }
     assert_authored_text_unchanged(&public, &authored);
     for (index, path) in images.iter().enumerate() {
         assert_eq!(custody(path), image_before_native[index]);
