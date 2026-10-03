@@ -5,6 +5,7 @@ The prior implementation remains in publish_kag_release_legacy_oracle.py for
 independent compatibility assertions. Maintained calls never fall back to it.
 """
 from __future__ import annotations
+import argparse
 import json
 import os
 from pathlib import Path
@@ -48,7 +49,19 @@ def _verify_integration(root: Path, *, expected_revision: str) -> dict:
     return _native(['verify', '--release', str(root), '--expected-revision', expected_revision])
 
 def main(argv: list[str] | None = None) -> None:
-    result = _native(list(sys.argv[1:] if argv is None else argv))
+    parser = argparse.ArgumentParser(description=__doc__)
+    commands = parser.add_subparsers(dest='command', required=True)
+    build = commands.add_parser('build')
+    build.add_argument('--store', type=Path, required=True)
+    build.add_argument('--revision', required=True)
+    build.add_argument('--kag-root', type=Path, required=True)
+    build.add_argument('--release-root', type=Path, required=True)
+    status = commands.add_parser('status')
+    status.add_argument('--release-root', type=Path, required=True)
+    status.add_argument('--expected-revision', required=True)
+    args = parser.parse_args(argv)
+    result = (build_release(args.store, args.revision, args.kag_root, args.release_root)
+              if args.command == 'build' else status_release(args.release_root, args.expected_revision))
     print(json.dumps(result, ensure_ascii=False, sort_keys=True, separators=(',', ':')))
 
 if __name__ == '__main__':
