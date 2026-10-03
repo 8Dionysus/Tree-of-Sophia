@@ -470,10 +470,12 @@ impl Status {
         artifact_revision: &str,
         artifact_manifest_sha256: &str,
     ) -> io::Result<()> {
+        crate::kag_release::budget_check()?;
         hex(attempt, 32, "attempt_id")?;
         hex(artifact_revision, 64, "artifact_revision")?;
         hex(artifact_manifest_sha256, 64, "artifact_manifest_sha256")?;
         let (directory, _guard) = self.writer()?;
+        crate::kag_release::budget_check()?;
         let mut state = self.running(&directory, attempt)?;
         let mut record = state["latest"].clone();
         record.as_object_mut().unwrap().remove("state");
@@ -484,6 +486,7 @@ impl Status {
         state["last_success"] = record.clone();
         record["state"] = json!("succeeded");
         state["latest"] = record;
+        crate::kag_release::budget_check()?;
         self.write(&directory, &state)
     }
     pub fn fail(&self, attempt: &str, error: &str) -> io::Result<()> {

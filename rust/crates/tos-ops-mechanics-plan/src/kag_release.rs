@@ -761,8 +761,23 @@ pub fn build_release(
         // Complete owned staging cleanup before publishing a success status.
         // A refused cleanup retains diagnostics and records a failed attempt,
         // even if the immutable artifact already reached its release path.
-        tree(&temporary)?;
-        fs::remove_dir_all(&temporary)?;
+        let (temporary_files, temporary_dirs) = tree(&temporary)?;
+        for (_, file) in temporary_files {
+            budget_check()?;
+            regular(&file)?;
+            fs::remove_file(file)?;
+        }
+        let mut temporary_dirs: Vec<_> = temporary_dirs.into_iter().collect();
+        temporary_dirs.sort_by_key(|path| std::cmp::Reverse(path.split('/').count()));
+        for path in temporary_dirs {
+            budget_check()?;
+            let path = temporary.join(path);
+            directory(&path)?;
+            fs::remove_dir(path)?;
+        }
+        budget_check()?;
+        fs::remove_dir(&temporary)?;
+        budget_check()?;
         match status.succeed(
             &attempt,
             &integration_revision,
