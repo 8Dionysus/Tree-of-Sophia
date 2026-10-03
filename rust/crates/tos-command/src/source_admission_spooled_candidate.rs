@@ -618,6 +618,12 @@ impl<'host> SpoolCandidate<'host> {
         self.running()?;
         self.finish_read(self.ledger.record_write_returned(n).map_err(invalid))
     }
+    /// Account actual held-destination bytes in a bootstrap's precharged
+    /// original IO reservation; no second ledger or allowance is created.
+    pub(crate) fn record_bootstrap_read_returned(&self, n: u64) -> io::Result<()> {
+        self.running()?;
+        self.finish_read(self.ledger.record_read_returned(n).map_err(invalid))
+    }
     /// A failed consuming serializer/index operation cannot reuse the candidate.
     pub(crate) fn abandon(&self) {
         self.failed.set(true);

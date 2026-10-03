@@ -23,14 +23,22 @@ fn main() {
     }
     if std::env::args_os()
         .nth(1)
-        .is_some_and(|arg| arg == "corpus-admit")
+        .is_some_and(|arg| arg == "corpus-admit" || arg == "authored-bootstrap")
     {
         // One sentinel preserves the CLI's bounded argument refusal without
         // collecting an arbitrary process argument sequence.
         let args = std::env::args_os().skip(2).take(65).collect::<Vec<_>>();
         let cancelled = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
         let git_signal = std::sync::atomic::AtomicI32::new(0);
-        let result = tos_command::source_admission_cli::run_shared_cancel(
+        let run = if std::env::args_os()
+            .nth(1)
+            .is_some_and(|arg| arg == "authored-bootstrap")
+        {
+            tos_command::source_admission_cli::run_authored_bootstrap_shared_cancel
+        } else {
+            tos_command::source_admission_cli::run_shared_cancel
+        };
+        let result = run(
             &args,
             &cancelled,
             &git_signal,

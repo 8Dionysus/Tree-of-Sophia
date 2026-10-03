@@ -1756,6 +1756,9 @@ impl<'c> NativeSourceValidator<'c> {
         self.account_candidate(candidate)?;
         Ok(ValidatedCandidate(index))
     }
+    pub(crate) fn remaining_output_bytes(&self) -> io::Result<usize> {
+        Ok(self.ledger()?.remaining().map_err(command)?.output_bytes)
+    }
     pub(crate) fn write_receipt(
         &mut self,
         value: &Value,

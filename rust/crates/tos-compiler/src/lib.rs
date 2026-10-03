@@ -274,6 +274,7 @@ pub use source_bibliographic_source::{
     prepare_streamed_cold_source_catalog_spool, render_source_bibliographic_plan,
     render_source_bibliographic_plan_with_work, render_streamed_source_bibliographic_spool,
 };
+pub use source_bibliographic_versions::StreamedBibliographicReadLedger;
 pub use vocabulary::{QueryVocabulary, RegisteredSource, VocabularyBinding};
 
 use rusqlite::{Connection, params};

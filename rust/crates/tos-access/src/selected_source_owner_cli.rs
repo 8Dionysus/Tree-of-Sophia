@@ -79,6 +79,13 @@ pub(crate) fn run(
     stdout: &mut dyn Write,
     stderr: &mut dyn Write,
 ) -> i32 {
+    // This subroute parses its own explicit root after global CLI selection.
+    // Retain a configured query cutoff; otherwise use the existing root budget.
+    let profile = if profile.query_timeout.is_none() {
+        profile.with_query_timeout(std::time::Duration::from_secs(5))
+    } else {
+        profile
+    };
     #[cfg(not(target_os = "linux"))]
     {
         let _ = (args, profile, stdin, stdout);

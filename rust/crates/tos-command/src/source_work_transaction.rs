@@ -2424,7 +2424,29 @@ impl WorkCorpusFence<'_> {
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> SourceCommandResult<WorkTransportResult> {
-        self.apply_selected(plan, snapshot, None, false, guard, deadline, cancelled)
+        self.apply_selected(
+            plan, snapshot, None, false, false, guard, deadline, cancelled,
+        )
+    }
+    /// Initial-only caller uses the SAME mover and issuer. Refuse a preexisting
+    /// head/journal before decoding any foreign retained plan; this entry cannot
+    /// recover, adopt or replay another owner's serialized transaction.
+    pub(crate) fn apply_initial(
+        &self,
+        plan: WorkPlan,
+        snapshot: &PublicationSnapshot,
+        guard: impl FnMut(&JsonValue, WorkGuard<'_>) -> SourceCommandResult<()>,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<WorkTransportResult> {
+        if snapshot.token.is_some() || snapshot.generation != 0 {
+            return Err(SourceCommandError::Conflict(
+                "initial selected publication already exists",
+            ));
+        }
+        self.apply_selected(
+            plan, snapshot, None, false, true, guard, deadline, cancelled,
+        )
     }
     pub(crate) fn apply_retained_item(
         &self,
@@ -2446,7 +2468,9 @@ impl WorkCorpusFence<'_> {
                 "retained Item selection differs",
             ));
         }
-        self.apply_selected(plan, snapshot, renewal, true, guard, deadline, cancelled)
+        self.apply_selected(
+            plan, snapshot, renewal, true, false, guard, deadline, cancelled,
+        )
     }
     fn apply_selected(
         &self,
@@ -2454,6 +2478,7 @@ impl WorkCorpusFence<'_> {
         snapshot: &PublicationSnapshot,
         renewal: Option<JsonValue>,
         item_retained: bool,
+        initial_only: bool,
         mut guard: impl FnMut(&JsonValue, WorkGuard<'_>) -> SourceCommandResult<()>,
         deadline: Instant,
         cancelled: &AtomicBool,
@@ -2473,7 +2498,16 @@ impl WorkCorpusFence<'_> {
             },
         )?;
         let current = read_state(self.fs, deadline, cancelled)?;
-        let existing = load_retained(self.fs, &id, deadline, cancelled)?;
+        let existing = if initial_only {
+            if current.is_some() || journal_dir(self.fs, &id, false)?.is_some() {
+                return Err(SourceCommandError::Conflict(
+                    "initial selected transaction already exists",
+                ));
+            }
+            None
+        } else {
+            load_retained(self.fs, &id, deadline, cancelled)?
+        };
         if item_retained && existing.is_none() {
             return Err(SourceCommandError::Conflict(
                 "selected Item orphan vanished",

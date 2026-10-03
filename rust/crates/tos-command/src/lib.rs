@@ -14,7 +14,6 @@ mod source_admission_spooled_candidate;
 mod source_admission_spooled_defaults;
 mod source_admission_spooled_index;
 mod source_admission_spooled_manifest;
-mod source_admission_spooled_records;
 mod source_admission_index;
 pub mod source_admission_restore;
 mod source_admission_store;

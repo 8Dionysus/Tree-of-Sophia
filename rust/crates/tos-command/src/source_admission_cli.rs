@@ -28,9 +28,11 @@ use std::{
 use tos_foundation::{Digest256, SourceRevision};
 
 pub const HELP: &str = "usage: tos-native-owner-command corpus-admit --store PATH --batch PATH --input-root PATH --grammar-root PATH --invocation PATH [--payload-source-root PATH] [--historical-capture PATH --historical-root PATH]...\n       tos-native-owner-command corpus-admit --validator-identity --grammar-root PATH --invocation PATH [validation selections]\n\nAdmit exact proposed source bytes through the selected complete native validator.\nThe invocation selects finite operation resources and pinned workers. No semantic admission or rights change is granted.\n";
+pub const AUTHORED_BOOTSTRAP_HELP: &str = "usage: tos-native-owner-command authored-bootstrap --authored-bootstrap-owner ABSOLUTE_OWNER_CONFIG --store PATH --batch PATH --input-root PATH --grammar-root PATH --invocation PATH\n\nValidate the complete native-v4 candidate and publish its exact technical metadata bootstrap in the protected new private source root. The owner configuration pins the initial candidate and selects the fixed new metadata receipt; the existing transaction owner issues the ready epoch. An epoch-bound catalogue must subsequently complete under held source/currentness fences.\n";
 
 struct Arguments {
     store: Option<PathBuf>,
+    authored_bootstrap_owner: Option<PathBuf>,
     batch: Option<PathBuf>,
     input: Option<PathBuf>,
     validator: Vec<OsString>,
@@ -140,6 +142,7 @@ fn parse(args: &[OsString]) -> io::Result<Arguments> {
     }
     let mut result = Arguments {
         store: None,
+        authored_bootstrap_owner: None,
         batch: None,
         input: None,
         validator: Vec::new(),
@@ -167,6 +170,7 @@ fn parse(args: &[OsString]) -> io::Result<Arguments> {
                 continue;
             }
             "--store"
+            | "--authored-bootstrap-owner"
             | "--batch"
             | "--input-root"
             | "--grammar-root"
@@ -182,9 +186,15 @@ fn parse(args: &[OsString]) -> io::Result<Arguments> {
         )?;
         position += 1;
         match option {
-            "--store" | "--batch" | "--input-root" | "--grammar-root" | "--payload-source-root" => {
+            "--store"
+            | "--authored-bootstrap-owner"
+            | "--batch"
+            | "--input-root"
+            | "--grammar-root"
+            | "--payload-source-root" => {
                 let selected = match option {
                     "--store" => &mut result.store,
+                    "--authored-bootstrap-owner" => &mut result.authored_bootstrap_owner,
                     "--batch" => &mut result.batch,
                     "--input-root" => &mut result.input,
                     "--grammar-root" => &mut grammar,
@@ -256,7 +266,7 @@ pub fn run(
     stdout: &mut dyn Write,
     stderr: &mut dyn Write,
 ) -> io::Result<i32> {
-    run_with_cancel_owner(args, cancelled, None, git_signal, stdout, stderr)
+    run_with_cancel_owner(args, cancelled, None, git_signal, stdout, stderr, false)
 }
 
 /// Native binary entry retaining its actual shared cancellation owner. The
@@ -275,6 +285,27 @@ pub fn run_shared_cancel(
         git_signal,
         stdout,
         stderr,
+        false,
+    )
+}
+
+/// Explicit production bootstrap entry sharing the native validator, clock,
+/// cancellation, finite invocation and refusal output with corpus admission.
+pub fn run_authored_bootstrap_shared_cancel(
+    args: &[OsString],
+    cancelled: &Arc<AtomicBool>,
+    git_signal: &AtomicI32,
+    stdout: &mut dyn Write,
+    stderr: &mut dyn Write,
+) -> io::Result<i32> {
+    run_with_cancel_owner(
+        args,
+        cancelled.as_ref(),
+        Some(cancelled),
+        git_signal,
+        stdout,
+        stderr,
+        true,
     )
 }
 
@@ -285,6 +316,7 @@ fn run_with_cancel_owner(
     git_signal: &AtomicI32,
     stdout: &mut dyn Write,
     stderr: &mut dyn Write,
+    authored_bootstrap: bool,
 ) -> io::Result<i32> {
     let clock = FoundationBootstrapClock::begin()
         .map_err(|error| invalid(format!("admission bootstrap: {error:?}")))?;
@@ -305,19 +337,32 @@ fn run_with_cancel_owner(
         &output_cap,
         &output_deadline,
         &phase,
+        authored_bootstrap,
     );
-    if let Err(error) = &result {
-        let mut output = SelectedOutput {
-            writer: stderr,
-            bytes: &bytes,
-            stopped: &stopped,
-            max_bytes: output_cap.get(),
-            deadline: output_deadline.get(),
-            cancelled,
-        };
-        // Public context is an operation/contract label, never document bytes
-        // or a worker diagnostic. A failed/exhausted writer cannot print again.
-        if let Some(committed) = error
+    match result {
+        Ok(code) => Ok(code),
+        Err(error) => {
+            let mut output = SelectedOutput {
+                writer: stderr,
+                bytes: &bytes,
+                stopped: &stopped,
+                max_bytes: output_cap.get(),
+                deadline: output_deadline.get(),
+                cancelled,
+            };
+            // Public context is an operation/contract label, never document bytes
+            // or a worker diagnostic. A failed/exhausted writer cannot print again.
+            if let Some(packet) = error.get_ref()
+            .and_then(|source| source.downcast_ref::<crate::source_creation_store::authored_catalogue_bootstrap::BootstrapRefusal>())
+            .and_then(|refusal| refusal.packet())
+        {
+            if writeln!(output, "{}", packet).and_then(|_| output.flush()).is_err() {
+                let cause = error.into_inner().expect("typed bootstrap refusal retains owner");
+                let refusal = cause.downcast::<crate::source_creation_store::authored_catalogue_bootstrap::BootstrapRefusal>()
+                    .expect("checked bootstrap refusal type");
+                return Err(io::Error::other((*refusal).with_output_refused()));
+            }
+        } else if let Some(committed) = error
             .get_ref()
             .and_then(|source| source.downcast_ref::<PublicationCommittedRefusal>())
         {
@@ -349,8 +394,9 @@ fn run_with_cancel_owner(
             )
             .and_then(|_| output.flush());
         }
+            Err(error)
+        }
     }
-    result
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -366,6 +412,7 @@ fn run_selected(
     output_cap: &Cell<usize>,
     output_deadline: &Cell<Instant>,
     phase: &Cell<&'static str>,
+    authored_bootstrap: bool,
 ) -> io::Result<i32> {
     let args = parse(args)?;
     if args.help {
@@ -377,9 +424,18 @@ fn run_selected(
             deadline: output_deadline.get(),
             cancelled,
         };
-        output.write_all(HELP.as_bytes())?;
+        output.write_all(if authored_bootstrap {
+            AUTHORED_BOOTSTRAP_HELP.as_bytes()
+        } else {
+            HELP.as_bytes()
+        })?;
         output.flush()?;
         return Ok(0);
+    }
+    if args.authored_bootstrap_owner.is_some() != authored_bootstrap {
+        return Err(invalid(
+            "authored bootstrap requires its explicit command and protected owner",
+        ));
     }
     phase.set("protected invocation and validator identity");
     let select_output = |cap, deadline| {
@@ -413,6 +469,11 @@ fn run_selected(
     let stdout: &mut dyn Write = &mut selected_output;
     let identity = validator.identity();
     if args.identity_only {
+        if args.authored_bootstrap_owner.is_some() {
+            return Err(invalid(
+                "authored bootstrap cannot be a validator identity request",
+            ));
+        }
         phase.set("validator identity final custody");
         validator.finalize_without_evaluation()?;
         validator.write_receipt(
@@ -448,7 +509,13 @@ fn run_selected(
                 stdout,
             );
         }
-        PreparedAdmissionExecution::Resident => (),
+        PreparedAdmissionExecution::Resident => {
+            if args.authored_bootstrap_owner.is_some() {
+                return Err(invalid(
+                    "authored bootstrap requires genuine native-v4 completion",
+                ));
+            }
+        }
     }
     phase.set("admission resource profile");
     let mut limits = validator.candidate_limits()?.validate()?;
@@ -527,7 +594,7 @@ fn run_spooled(
 ) -> io::Result<i32> {
     let result = run_spooled_inner(args, validator, &resources, cancelled, store_path, identity);
     match result {
-        Ok((receipt, publication)) => {
+        Ok((receipt, Some(publication))) => {
             // The publication result is real store state. Preserve its exact
             // manifest allocation custody through cleanup and bounded output.
             let accounting = validator.account_spooled_external_io();
@@ -570,6 +637,25 @@ fn run_spooled(
             drop(publication);
             Ok(0)
         }
+        Ok((receipt, None)) => {
+            // Authored bootstrap publishes only its real metadata transaction.
+            // It does not advance the auxiliary admission-store current pointer.
+            let accounting = validator.account_spooled_external_io();
+            let store = validator.verify_store_authority(store_path);
+            drop(resources.workspace);
+            let cleanup =
+                validator.cleanup_spooled_workspace(&resources.workspace_root, cancelled.as_ref());
+            let terminal = accounting
+                .and(store)
+                .and(cleanup)
+                .and_then(|_| validator.write_receipt(&receipt, stdout));
+            if let Err(error) = terminal {
+                return Err(io::Error::other(
+                    crate::source_creation_store::authored_catalogue_bootstrap::BootstrapRefusal::after_publication(receipt, error),
+                ));
+            }
+            Ok(0)
+        }
         Err(error) => {
             // Record attempted shared-ledger IO even on parse, identity, base,
             // native-kernel or publication refusal. Cleanup is exact and
@@ -595,6 +681,12 @@ fn run_spooled(
             drop(resources.workspace);
             let cleanup =
                 validator.cleanup_spooled_workspace(&resources.workspace_root, cancelled.as_ref());
+            if error.get_ref().is_some_and(|source| source.is::<crate::source_creation_store::authored_catalogue_bootstrap::BootstrapRefusal>()) {
+                let cause = error.into_inner().expect("typed bootstrap error contains its owner cause");
+                let refusal = cause.downcast::<crate::source_creation_store::authored_catalogue_bootstrap::BootstrapRefusal>()
+                    .expect("checked bootstrap error type");
+                return Err(io::Error::other((*refusal).with_terminal_checks(accounting.is_ok(), cleanup.is_ok())));
+            }
             if let Some((revision, manifest, batch, validator_sha, custody)) = committed {
                 if let Err(cleanup_error) = cleanup {
                     phase.set("publication committed; isolated workspace cleanup failed");
@@ -647,7 +739,7 @@ fn run_spooled_inner(
     cancelled: &Arc<AtomicBool>,
     store_path: &std::path::Path,
     identity: Digest256,
-) -> io::Result<(serde_json::Value, SpooledPublicationReceipt)> {
+) -> io::Result<(serde_json::Value, Option<SpooledPublicationReceipt>)> {
     let deadline = validator.deadline();
     let limits = resources.candidate_limits;
     let request = &resources.request;
@@ -729,6 +821,39 @@ fn run_spooled_inner(
     let index = validator.validate_spooled(&candidate, resources.index_limits)?;
     validator.verify_store_authority(store_path)?;
 
+    if let Some(owner) = &args.authored_bootstrap_owner {
+        let output_cap = validator.remaining_output_bytes()?;
+        let mut fence = || {
+            validator
+                .finalize_without_evaluation()
+                .and_then(|_| validator.verify_store_authority(store_path))
+                .map_err(|_| {
+                    crate::source_command::SourceCommandError::Conflict(
+                        "authored bootstrap protected native invocation changed",
+                    )
+                })
+        };
+        let bootstrap = crate::source_creation_store::authored_catalogue_bootstrap::publish(
+            owner,
+            &candidate,
+            &index,
+            resources.candidate_limits,
+            resources.index_limits,
+            output_cap,
+            deadline,
+            cancelled,
+            &mut fence,
+        )
+        .map_err(|refusal| io::Error::other(refusal.with_candidate_io(candidate.io_snapshot())))?;
+        let receipt = bootstrap
+            .value()
+            .map_err(|error| invalid(format!("authored bootstrap encoding refused: {error:?}")))?;
+        drop(index);
+        drop(candidate);
+        drop(base);
+        return Ok((receipt, None));
+    }
+
     let cut = candidate.create_streamed_cut_workspace_file()?;
     let streamed = StreamedPublicationRead {
         limits: resources.streamed_cut_limits,
@@ -749,7 +874,7 @@ fn run_spooled_inner(
     drop(index);
     drop(candidate);
     drop(base);
-    Ok((receipt, publication))
+    Ok((receipt, Some(publication)))
 }
 
 fn spooled_receipt(publication: &SpooledPublicationReceipt) -> serde_json::Value {

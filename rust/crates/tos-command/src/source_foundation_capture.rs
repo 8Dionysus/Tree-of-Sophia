@@ -7,6 +7,7 @@ use super::{
     object_with_limit, verify_named_export_chain,
 };
 use crate::source_admission_candidate::Candidate;
+use crate::source_admission_spooled_index::feed_membership;
 use crate::source_command::{
     self as cmd, SourceCommandError as Error, SourceCommandResult as Result,
 };

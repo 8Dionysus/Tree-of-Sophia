@@ -9,7 +9,7 @@
 use crate::source_command::{self as cmd, *};
 use crate::source_forms;
 use std::collections::{BTreeMap, BTreeSet};
-use std::sync::atomic::AtomicBool;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Instant;
 use tos_foundation::{
     CanonicalProfile, Digest256, JsonLimits, JsonString, JsonValue, RelativePath,
@@ -2937,7 +2937,7 @@ where
             worker,
             deadline,
             cancelled,
-            input,
+            ctx,
             &config,
             RevisionFamily::NativeSelected,
             retained,

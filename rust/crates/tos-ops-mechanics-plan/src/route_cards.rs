@@ -148,6 +148,13 @@ struct SourceFile {
     text_lines: usize,
     text_tokens: usize,
 }
+/// Caller-owned shared read admission. Each physical read is permitted before
+/// IO, then its actual returned bytes are recorded once, including EOF probes.
+/// Hooks may narrow a caller's original budget and never grant source custody.
+pub trait RouteSourceReadHooks {
+    fn before_read(&mut self, requested_bytes: u64) -> io::Result<()>;
+    fn read_returned(&mut self, actual_bytes: u64) -> io::Result<()>;
+}
 /// One operation's cached raw/text inputs and cumulative discovery/read deadline.
 /// Raw cache is <=64MiB; normalized UTF-8 text occupies at most another64MiB.
 /// Consumers copying bytes/text or constructing output must account for those copies.
@@ -837,6 +844,29 @@ impl RouteSources {
         max_file_bytes: u64,
         read_bytes: &mut u64,
         max_total_bytes: u64,
+        consume: impl FnMut(&[u8]) -> io::Result<()>,
+    ) -> io::Result<Option<fs::Metadata>> {
+        self.stream_regular_inner(value, max_file_bytes, read_bytes, max_total_bytes, None, consume)
+    }
+    /// Same held uncached reader, joined to the caller's original shared IO ledger.
+    pub fn stream_regular_with_hooks(
+        &mut self,
+        value: &str,
+        max_file_bytes: u64,
+        read_bytes: &mut u64,
+        max_total_bytes: u64,
+        hooks: &mut dyn RouteSourceReadHooks,
+        consume: impl FnMut(&[u8]) -> io::Result<()>,
+    ) -> io::Result<Option<fs::Metadata>> {
+        self.stream_regular_inner(value, max_file_bytes, read_bytes, max_total_bytes, Some(hooks), consume)
+    }
+    fn stream_regular_inner(
+        &mut self,
+        value: &str,
+        max_file_bytes: u64,
+        read_bytes: &mut u64,
+        max_total_bytes: u64,
+        mut hooks: Option<&mut dyn RouteSourceReadHooks>,
         mut consume: impl FnMut(&[u8]) -> io::Result<()>,
     ) -> io::Result<Option<fs::Metadata>> {
         self.verify_root()?;
@@ -861,7 +891,26 @@ impl RouteSources {
         let mut observed = 0u64;
         loop {
             self.check()?;
-            let count = file.read(&mut buffer)?;
+            let requested = (before.len() - observed).max(1).min(buffer.len() as u64) as usize;
+            if let Some(hooks) = hooks.as_deref_mut() {
+                hooks.before_read(requested as u64)?;
+            }
+            let count = match file.read(&mut buffer[..requested]) {
+                Ok(count) => count,
+                Err(error) => {
+                    if let Some(hooks) = hooks.as_deref_mut() {
+                        hooks.read_returned(0)?;
+                    }
+                    return Err(error);
+                }
+            };
+            *read_bytes = read_bytes
+                .checked_add(count as u64)
+                .ok_or_else(|| invalid("physical operand accounting overflow"))?;
+            if let Some(hooks) = hooks.as_deref_mut() {
+                hooks.read_returned(count as u64)?;
+            }
+            self.check()?;
             if count == 0 {
                 break;
             }
@@ -869,9 +918,6 @@ impl RouteSources {
                 .checked_add(count as u64)
                 .filter(|n| *n <= before.len())
                 .ok_or_else(|| invalid("physical operand grew during read"))?;
-            *read_bytes = read_bytes
-                .checked_add(count as u64)
-                .ok_or_else(|| invalid("physical operand accounting overflow"))?;
             consume(&buffer[..count])?;
         }
         if observed != before.len() {
@@ -988,6 +1034,28 @@ impl RouteSources {
         read_bytes: &mut usize,
         max_total_bytes: usize,
     ) -> io::Result<(Vec<u8>, fs::Metadata)> {
+        self.bounded_metadata_bytes_inner(value, max_file_bytes, read_bytes, max_total_bytes, None)
+    }
+    /// Descriptor bytes and metadata with pre-IO shared permits and actual returns.
+    pub fn bounded_metadata_bytes_with_hooks(
+        &mut self,
+        value: &str,
+        max_file_bytes: usize,
+        read_bytes: &mut usize,
+        max_total_bytes: usize,
+        hooks: &mut dyn RouteSourceReadHooks,
+    ) -> io::Result<(Vec<u8>, fs::Metadata)> {
+        self.bounded_metadata_bytes_inner(value, max_file_bytes, read_bytes, max_total_bytes, Some(hooks))
+    }
+    fn bounded_metadata_bytes_inner(
+        &mut self,
+        value: &str,
+        max_file_bytes: usize,
+        read_bytes: &mut usize,
+        max_total_bytes: usize,
+        mut hooks: Option<&mut dyn RouteSourceReadHooks>,
+    ) -> io::Result<(Vec<u8>, fs::Metadata)> {
+        self.verify_root()?;
         let remaining = max_total_bytes
             .checked_sub(*read_bytes)
             .ok_or_else(|| invalid("operand aggregate byte accounting exceeded"))?;
@@ -1006,8 +1074,53 @@ impl RouteSources {
         // growth copy when a large operand exactly fills the admitted buffer.
         let mut raw = vec![0; meta.len() as usize];
         let mut file = file;
-        file.read_exact(&mut raw)?;
-        if file.read(&mut [0; 1])? != 0 {
+        let mut observed = 0;
+        while observed < raw.len() {
+            self.check()?;
+            let requested = (raw.len() - observed).min(32 * 1024);
+            if let Some(hooks) = hooks.as_deref_mut() {
+                hooks.before_read(requested as u64)?;
+            }
+            let count = match file.read(&mut raw[observed..observed + requested]) {
+                Ok(count) => count,
+                Err(error) => {
+                    if let Some(hooks) = hooks.as_deref_mut() {
+                        hooks.read_returned(0)?;
+                    }
+                    return Err(error);
+                }
+            };
+            *read_bytes = read_bytes.checked_add(count)
+                .ok_or_else(|| invalid("operand aggregate byte accounting overflow"))?;
+            if let Some(hooks) = hooks.as_deref_mut() {
+                hooks.read_returned(count as u64)?;
+            }
+            self.check()?;
+            if count == 0 {
+                return Err(invalid("operand input shortened during read"));
+            }
+            observed += count;
+        }
+        self.check()?;
+        if let Some(hooks) = hooks.as_deref_mut() {
+            hooks.before_read(1)?;
+        }
+        let count = match file.read(&mut [0; 1]) {
+                Ok(count) => count,
+                Err(error) => {
+                    if let Some(hooks) = hooks.as_deref_mut() {
+                        hooks.read_returned(0)?;
+                    }
+                    return Err(error);
+                }
+            };
+        *read_bytes = read_bytes.checked_add(count)
+            .ok_or_else(|| invalid("operand aggregate byte accounting overflow"))?;
+        if let Some(hooks) = hooks.as_deref_mut() {
+            hooks.read_returned(count as u64)?;
+        }
+        self.check()?;
+        if count != 0 {
             return Err(invalid("operand input changed or exceeded byte bound"));
         }
         #[cfg(target_os = "linux")]
@@ -1034,9 +1147,7 @@ impl RouteSources {
                 return Err(invalid("operand input changed or replaced during read"));
             }
         }
-        *read_bytes = read_bytes
-            .checked_add(raw.len())
-            .ok_or_else(|| invalid("operand aggregate byte accounting overflow"))?;
+        self.verify_root()?;
         self.check()?;
         Ok((raw, meta))
     }

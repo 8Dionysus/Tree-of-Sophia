@@ -20,7 +20,7 @@ use tos_validation::{
         SourceFoundationBiblioStoredSink,
     },
     item_rules::ItemRefusal,
-    record_biblio_cut::{SourceCutInput, SourceCutInputWithIdentity},
+    record_biblio_cut::{BiblioCurrentRecord, SourceCutInput, SourceCutInputWithIdentity},
     source_foundation_default_rules::{
         SourceFoundationDefaultClaims, SourceFoundationDefaultEventLookup,
         SourceFoundationDefaultEventStore, SourceFoundationDefaultEventStoreCost,
