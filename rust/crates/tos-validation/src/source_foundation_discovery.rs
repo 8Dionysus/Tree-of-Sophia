@@ -88,6 +88,49 @@ const HIERARCHICAL_TARGET_ROOTS: &[&str] = &[
     "ToS/source-witnesses/works/friedrich-nietzsche/zur-genealogie-der-moral/expressions/ru-svasyan-mysl-1996/structure/mysl-1996-volume-2-operator-pdf",
     "ToS/source-witnesses/works/friedrich-nietzsche/der-antichrist/expressions/ru-flerova-mysl-1996/structure/mysl-1996-volume-2-operator-pdf",
 ];
+
+/// Namespace for the exact IDs whose first source occurrence is preserved by
+/// a candidate's bounded Discovery scratch index. These are mechanical scan
+/// keys, not source-admission evidence.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum DiscoverySeenIdNamespace {
+    Artifact,
+    Event,
+    DiscoveryEvent,
+    RepresentationFile,
+}
+
+impl DiscoverySeenIdNamespace {
+    pub const fn storage_key(self) -> &'static str {
+        match self {
+            Self::Artifact => "artifact",
+            Self::Event => "event",
+            Self::DiscoveryEvent => "discovery-event",
+            Self::RepresentationFile => "representation-file",
+        }
+    }
+}
+
+/// Candidate-local, bounded uniqueness scratch for Discovery. `remember_first`
+/// returns true only for the first key and stores its exact source location;
+/// `workspace_state_bytes` is the precharged row workspace used for that
+/// operation, while persistent scratch bytes remain disk custody in CMD.
+pub trait DiscoverySeenIds {
+    fn contains(
+        &mut self,
+        namespace: DiscoverySeenIdNamespace,
+        id: &str,
+        max_state_bytes: usize,
+    ) -> Result<(bool, usize), ItemRefusal>;
+
+    fn remember_first(
+        &mut self,
+        namespace: DiscoverySeenIdNamespace,
+        id: &str,
+        first_path: &str,
+        max_state_bytes: usize,
+    ) -> Result<(bool, usize), ItemRefusal>;
+}
 const PRIVATE_HANDOFF_REQUIRED_FORBIDDEN_CLASSES: &[&str] = &[
     "source_page_bytes",
     "source_text_or_transcription",
@@ -435,6 +478,10 @@ pub struct Cost {
     /// reconstructed inside Discovery. Retained proof/index state is charged
     /// by the CMD provider's separate cost report.
     pub candidate_artifact_evidence_peak_state_bytes: usize,
+    /// High-water per-row workspace precharged by the CMD-owned candidate
+    /// Discovery uniqueness index. Its growing rows are disk custody, not
+    /// retained process state.
+    pub candidate_discovery_seen_ids_peak_workspace_state_bytes: usize,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -612,6 +659,8 @@ struct Inspector<'s, 'p, S: LayerFamilySource + ?Sized, I: Copy + Eq = ()> {
     artifact_replay_referenced_publication_state_bytes: usize,
     artifact_replay_referenced_state_bytes: usize,
     candidate_artifact_evidence_peak_state_bytes: usize,
+    candidate_current_artifact_evidence_state_bytes: usize,
+    candidate_discovery_seen_ids_peak_workspace_state_bytes: usize,
 }
 
 impl<S: LayerFamilySource + ?Sized, I: Copy + Eq> Inspector<'_, '_, S, I> {
@@ -658,8 +707,33 @@ impl<S: LayerFamilySource + ?Sized, I: Copy + Eq> Inspector<'_, '_, S, I> {
         self.state_bytes = self
             .state_bytes
             .checked_add(bytes)
-            .filter(|used| *used <= self.limits.max_state_bytes)
+            .filter(|used| {
+                used.checked_add(self.candidate_current_artifact_evidence_state_bytes)
+                    .is_some_and(|total| total <= self.limits.max_state_bytes)
+            })
             .ok_or(ItemRefusal::Budget)?;
+        Ok(())
+    }
+
+    fn remaining_state_bytes(&self) -> Result<usize, ItemRefusal> {
+        self.limits
+            .max_state_bytes
+            .checked_sub(self.state_bytes)
+            .and_then(|remaining| {
+                remaining.checked_sub(self.candidate_current_artifact_evidence_state_bytes)
+            })
+            .ok_or(ItemRefusal::Budget)
+    }
+
+    fn set_current_artifact_evidence_state(&mut self, bytes: usize) -> Result<(), ItemRefusal> {
+        let previous = self.candidate_current_artifact_evidence_state_bytes;
+        self.candidate_current_artifact_evidence_state_bytes = bytes;
+        if let Err(error) = self.check_temporary_state(0) {
+            self.candidate_current_artifact_evidence_state_bytes = previous;
+            return Err(error);
+        }
+        self.candidate_artifact_evidence_peak_state_bytes =
+            self.candidate_artifact_evidence_peak_state_bytes.max(bytes);
         Ok(())
     }
 
@@ -745,6 +819,7 @@ impl<S: LayerFamilySource + ?Sized, I: Copy + Eq> Inspector<'_, '_, S, I> {
     fn check_temporary_state(&self, bytes: usize) -> Result<(), ItemRefusal> {
         self.state_bytes
             .checked_add(bytes)
+            .and_then(|used| used.checked_add(self.candidate_current_artifact_evidence_state_bytes))
             .filter(|used| *used <= self.limits.max_state_bytes)
             .map(|_| ())
             .ok_or(ItemRefusal::Budget)
@@ -808,6 +883,9 @@ impl<S: LayerFamilySource + ?Sized, I: Copy + Eq> Inspector<'_, '_, S, I> {
                 .ok_or(ItemRefusal::Budget)?;
             let remaining_copy_bytes = max_state_bytes
                 .checked_sub(self.state_bytes)
+                .and_then(|remaining| {
+                    remaining.checked_sub(self.candidate_current_artifact_evidence_state_bytes)
+                })
                 .ok_or(ItemRefusal::Budget)?
                 / 8;
             let max_request_bytes = max_member_bytes
@@ -6680,6 +6758,7 @@ fn inspect_internal<S: LayerFamilySource + ?Sized>(
         native_cut,
         invalid_current_artifact_schema_proofs,
         None,
+        None,
     )
     .map(|output| output.report)
 }
@@ -6774,6 +6853,7 @@ pub fn inspect_candidate_with_artifact_replays_and_records_with_proofs<
         None,
         None,
         None,
+        None,
     )?;
     input.verify_current_fence(coverage, limits.deadline, source.cancellation())?;
     Ok(SourceFoundationCandidateDiscoveryReport {
@@ -6803,6 +6883,76 @@ pub fn inspect_candidate_with_artifact_evidence_provider<
     limits: ItemLimits,
     physical: &SourcePhysicalFacts,
     evidence_provider: &mut dyn CandidateArtifactEvidenceProvider<I>,
+    require_local_payloads: bool,
+) -> Result<SourceFoundationCandidateDiscoveryReport<I>, ItemRefusal> {
+    inspect_candidate_with_artifact_evidence_provider_impl(
+        source,
+        input,
+        coverage,
+        paths,
+        prior_events,
+        records_lookup,
+        records,
+        limits,
+        physical,
+        evidence_provider,
+        None,
+        require_local_payloads,
+    )
+}
+
+/// Candidate variant that also uses CMD's bounded exact-ID scratch index to
+/// preserve first-path and duplicate laws without retaining every ID in RAM.
+#[allow(clippy::too_many_arguments)]
+pub fn inspect_candidate_with_artifact_evidence_provider_and_seen_ids<
+    S: LayerFamilySource + ?Sized,
+    I: Copy + Eq,
+>(
+    source: &mut S,
+    input: &dyn SourceCutInputWithIdentity<I>,
+    coverage: &SourceCutInputCoverage,
+    paths: &dyn SourceFoundationDefaultPaths,
+    prior_events: &dyn SourceFoundationDefaultEventLookup,
+    records_lookup: &dyn SourceFoundationDefaultRecordsLookup,
+    records: &SourceFoundationRecordsStreamedReport<'_, I>,
+    limits: ItemLimits,
+    physical: &SourcePhysicalFacts,
+    evidence_provider: &mut dyn CandidateArtifactEvidenceProvider<I>,
+    discovery_seen_ids: &mut dyn DiscoverySeenIds,
+    require_local_payloads: bool,
+) -> Result<SourceFoundationCandidateDiscoveryReport<I>, ItemRefusal> {
+    inspect_candidate_with_artifact_evidence_provider_impl(
+        source,
+        input,
+        coverage,
+        paths,
+        prior_events,
+        records_lookup,
+        records,
+        limits,
+        physical,
+        evidence_provider,
+        Some(discovery_seen_ids),
+        require_local_payloads,
+    )
+}
+
+#[allow(clippy::too_many_arguments)]
+fn inspect_candidate_with_artifact_evidence_provider_impl<
+    S: LayerFamilySource + ?Sized,
+    I: Copy + Eq,
+>(
+    source: &mut S,
+    input: &dyn SourceCutInputWithIdentity<I>,
+    coverage: &SourceCutInputCoverage,
+    paths: &dyn SourceFoundationDefaultPaths,
+    prior_events: &dyn SourceFoundationDefaultEventLookup,
+    records_lookup: &dyn SourceFoundationDefaultRecordsLookup,
+    records: &SourceFoundationRecordsStreamedReport<'_, I>,
+    limits: ItemLimits,
+    physical: &SourcePhysicalFacts,
+    evidence_provider: &mut dyn CandidateArtifactEvidenceProvider<I>,
+    discovery_seen_ids: Option<&mut dyn DiscoverySeenIds>,
     require_local_payloads: bool,
 ) -> Result<SourceFoundationCandidateDiscoveryReport<I>, ItemRefusal> {
     source.checkpoint(limits.deadline)?;
@@ -6839,6 +6989,7 @@ pub fn inspect_candidate_with_artifact_evidence_provider<
         None,
         None,
         Some(evidence_provider),
+        discovery_seen_ids,
     )?;
     input.verify_current_fence(coverage, limits.deadline, source.cancellation())?;
     Ok(SourceFoundationCandidateDiscoveryReport {
@@ -6847,6 +6998,106 @@ pub fn inspect_candidate_with_artifact_evidence_provider<
         candidate_direct_source_bytes: output.candidate_direct_source_bytes,
         report: output.report,
     })
+}
+
+fn remember_discovery_id<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
+    inspector: &mut Inspector<'_, '_, S, I>,
+    discovery_seen_ids: &mut Option<&mut dyn DiscoverySeenIds>,
+    fallback: &mut BTreeSet<String>,
+    namespace: DiscoverySeenIdNamespace,
+    id: &str,
+    first_path: &str,
+) -> Result<bool, ItemRefusal> {
+    let Some(store) = discovery_seen_ids.as_deref_mut() else {
+        if fallback.contains(id) {
+            return Ok(false);
+        }
+        inspector.reserve_state(id.len().checked_add(64).ok_or(ItemRefusal::Budget)?)?;
+        return Ok(fallback.insert(id.to_owned()));
+    };
+    let remaining_state_bytes = inspector.remaining_state_bytes()?;
+    let (first, workspace_state_bytes) =
+        store.remember_first(namespace, id, first_path, remaining_state_bytes)?;
+    inspector.check_temporary_state(workspace_state_bytes)?;
+    inspector.candidate_discovery_seen_ids_peak_workspace_state_bytes = inspector
+        .candidate_discovery_seen_ids_peak_workspace_state_bytes
+        .max(workspace_state_bytes);
+    inspector.candidate_artifact_evidence_peak_state_bytes =
+        inspector.candidate_artifact_evidence_peak_state_bytes.max(
+            inspector
+                .candidate_current_artifact_evidence_state_bytes
+                .checked_add(workspace_state_bytes)
+                .ok_or(ItemRefusal::Budget)?,
+        );
+    Ok(first)
+}
+
+fn discovery_id_contains<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
+    inspector: &mut Inspector<'_, '_, S, I>,
+    discovery_seen_ids: &mut Option<&mut dyn DiscoverySeenIds>,
+    fallback: &BTreeSet<String>,
+    namespace: DiscoverySeenIdNamespace,
+    id: &str,
+) -> Result<bool, ItemRefusal> {
+    let Some(store) = discovery_seen_ids.as_deref_mut() else {
+        return Ok(fallback.contains(id));
+    };
+    let remaining_state_bytes = inspector.remaining_state_bytes()?;
+    let (found, workspace_state_bytes) = store.contains(namespace, id, remaining_state_bytes)?;
+    inspector.check_temporary_state(workspace_state_bytes)?;
+    inspector.candidate_discovery_seen_ids_peak_workspace_state_bytes = inspector
+        .candidate_discovery_seen_ids_peak_workspace_state_bytes
+        .max(workspace_state_bytes);
+    inspector.candidate_artifact_evidence_peak_state_bytes =
+        inspector.candidate_artifact_evidence_peak_state_bytes.max(
+            inspector
+                .candidate_current_artifact_evidence_state_bytes
+                .checked_add(workspace_state_bytes)
+                .ok_or(ItemRefusal::Budget)?,
+        );
+    Ok(found)
+}
+
+fn event_id_seen<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
+    inspector: &mut Inspector<'_, '_, S, I>,
+    discovery_seen_ids: &mut Option<&mut dyn DiscoverySeenIds>,
+    fallback: &BTreeSet<String>,
+    prior_events: &dyn SourceFoundationDefaultEventLookup,
+    id: &str,
+) -> Result<bool, ItemRefusal> {
+    if discovery_seen_ids.is_none() {
+        return Ok(fallback.contains(id));
+    }
+    if discovery_id_contains(
+        inspector,
+        discovery_seen_ids,
+        fallback,
+        DiscoverySeenIdNamespace::Event,
+        id,
+    )? {
+        return Ok(true);
+    }
+    prior_event_contains(inspector, prior_events, id)
+}
+
+fn prior_event_contains<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
+    inspector: &mut Inspector<'_, '_, S, I>,
+    prior_events: &dyn SourceFoundationDefaultEventLookup,
+    id: &str,
+) -> Result<bool, ItemRefusal> {
+    let workspace_state_bytes = id.len().checked_add(256).ok_or(ItemRefusal::Budget)?;
+    inspector.check_temporary_state(workspace_state_bytes)?;
+    let combined = inspector
+        .candidate_current_artifact_evidence_state_bytes
+        .checked_add(workspace_state_bytes)
+        .ok_or(ItemRefusal::Budget)?;
+    inspector.candidate_discovery_seen_ids_peak_workspace_state_bytes = inspector
+        .candidate_discovery_seen_ids_peak_workspace_state_bytes
+        .max(workspace_state_bytes);
+    inspector.candidate_artifact_evidence_peak_state_bytes = inspector
+        .candidate_artifact_evidence_peak_state_bytes
+        .max(combined);
+    prior_events.event_contains(id)
 }
 
 fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
@@ -6866,6 +7117,7 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
     native_cut: Option<NativeCutBinding>,
     invalid_current_artifact_schema_proofs: Option<&CurrentArtifactInvalidSchemaProofs<'_>>,
     mut candidate_artifact_evidence_provider: Option<&mut dyn CandidateArtifactEvidenceProvider<I>>,
+    mut discovery_seen_ids: Option<&mut dyn DiscoverySeenIds>,
 ) -> Result<DiscoveryKernelOutput, ItemRefusal> {
     let mut inspector = Inspector {
         source,
@@ -6899,6 +7151,8 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
         artifact_replay_referenced_publication_state_bytes: 0,
         artifact_replay_referenced_state_bytes: 0,
         candidate_artifact_evidence_peak_state_bytes: 0,
+        candidate_current_artifact_evidence_state_bytes: 0,
+        candidate_discovery_seen_ids_peak_workspace_state_bytes: 0,
     };
     let mut previous_path: Option<String> = None;
     let mut previous_path_state = 0usize;
@@ -6929,14 +7183,16 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
 
     let mut prior_event_cost = 0usize;
     let mut event_ids: BTreeSet<String> = BTreeSet::new();
-    prior_events.for_each_event(&mut |id, _| {
-        prior_event_cost = prior_event_cost
-            .checked_add(id.len().checked_add(64).ok_or(ItemRefusal::Budget)?)
-            .ok_or(ItemRefusal::Budget)?;
-        event_ids.insert(id.to_owned());
-        Ok(())
-    })?;
-    inspector.reserve_state(prior_event_cost)?;
+    if discovery_seen_ids.is_none() {
+        prior_events.for_each_event(&mut |id, _| {
+            prior_event_cost = prior_event_cost
+                .checked_add(id.len().checked_add(64).ok_or(ItemRefusal::Budget)?)
+                .ok_or(ItemRefusal::Budget)?;
+            event_ids.insert(id.to_owned());
+            Ok(())
+        })?;
+        inspector.reserve_state(prior_event_cost)?;
+    }
     let mut source_event_insertions: Vec<(String, Value)> = Vec::new();
     let mut boundary_events: BTreeMap<String, EventInfo> = BTreeMap::new();
 
@@ -6956,7 +7212,18 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
                 continue;
             };
             let id = id.to_owned();
-            if !event_ids.insert(id.clone()) {
+            let first_in_cut = remember_discovery_id(
+                &mut inspector,
+                &mut discovery_seen_ids,
+                &mut event_ids,
+                DiscoverySeenIdNamespace::Event,
+                &id,
+                &location,
+            )?;
+            let duplicate_prior = discovery_seen_ids.is_some()
+                && first_in_cut
+                && prior_event_contains(inspector, prior_events, &id)?;
+            if !first_in_cut || duplicate_prior {
                 inspector.issue(&location, "duplicate-event-id", id.as_str())?;
             }
             boundary_events.insert(id.clone(), info);
@@ -7051,10 +7318,29 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
             continue;
         };
         let id = id.to_owned();
-        if !discovery_event_ids.insert(id.clone()) {
+        let first_discovery_event = remember_discovery_id(
+            &mut inspector,
+            &mut discovery_seen_ids,
+            &mut discovery_event_ids,
+            DiscoverySeenIdNamespace::DiscoveryEvent,
+            &id,
+            &location,
+        )?;
+        if !first_discovery_event {
             inspector.issue(&location, "duplicate-discovery-event-id", id.as_str())?;
         }
-        if !event_ids.insert(id.clone()) {
+        let first_event = remember_discovery_id(
+            &mut inspector,
+            &mut discovery_seen_ids,
+            &mut event_ids,
+            DiscoverySeenIdNamespace::Event,
+            &id,
+            &location,
+        )?;
+        let duplicate_prior = discovery_seen_ids.is_some()
+            && first_event
+            && prior_event_contains(&mut inspector, prior_events, &id)?;
+        if !first_event || duplicate_prior {
             inspector.issue(&location, "duplicate-event-id", id.as_str())?;
         } else {
             source_event_insertions.push((id.clone(), value));
@@ -7063,20 +7349,13 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
     }
 
     let mut artifact_ids = BTreeSet::new();
-    let mut artifacts_by_path: BTreeMap<String, Value> = BTreeMap::new();
-    let artifact_paths = inspector.collect_current_paths_matching(|path| {
-        path.starts_with(ARTIFACTS) && path.ends_with("/artifact-witness.json")
-    })?;
-    for path in &artifact_paths {
-        let path = path.as_str();
-        inspector.checkpoint()?;
+    inspector.for_each_current_path(&mut |inspector, path| {
+        if !path.starts_with(ARTIFACTS) || !path.ends_with("/artifact-witness.json") {
+            return Ok(());
+        }
         let indexed_artifact_record =
             if let Some(provider) = candidate_artifact_evidence_provider.as_deref_mut() {
-                let remaining_state = inspector
-                    .limits
-                    .max_state_bytes
-                    .checked_sub(inspector.state_bytes)
-                    .ok_or(ItemRefusal::Budget)?;
+                let remaining_state = inspector.remaining_state_bytes()?;
                 let summary = provider.begin_artifact_path(
                     path,
                     remaining_state,
@@ -7084,10 +7363,9 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
                     inspector.source.cancellation(),
                 )?;
                 if let Some(summary) = summary {
-                    inspector.check_temporary_state(summary.charged_state_bytes)?;
-                    inspector.candidate_artifact_evidence_peak_state_bytes = inspector
-                        .candidate_artifact_evidence_peak_state_bytes
-                        .max(summary.charged_state_bytes);
+                    inspector.set_current_artifact_evidence_state(summary.charged_state_bytes)?;
+                } else {
+                    inspector.set_current_artifact_evidence_state(0)?;
                 }
                 summary
             } else {
@@ -7095,20 +7373,10 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
             };
         let Some(raw) = inspector.current_bytes(path)? else {
             if let Some(provider) = candidate_artifact_evidence_provider.as_deref_mut() {
-                let remaining_state = inspector
-                    .limits
-                    .max_state_bytes
-                    .checked_sub(inspector.state_bytes)
-                    .and_then(|state| {
-                        state.checked_sub(
-                            indexed_artifact_record
-                                .map_or(0, |summary| summary.charged_state_bytes),
-                        )
-                    })
-                    .ok_or(ItemRefusal::Budget)?;
-                provider.abandon_artifact_path(path, remaining_state)?;
+                provider.abandon_artifact_path(path, inspector.remaining_state_bytes()?)?;
+                inspector.set_current_artifact_evidence_state(0)?;
             }
-            continue;
+            return Ok(());
         };
         let value = match serde_json::from_slice::<Value>(&raw) {
             Ok(value) => value,
@@ -7119,36 +7387,43 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
                     "current source document is invalid JSON",
                 )?;
                 if let Some(provider) = candidate_artifact_evidence_provider.as_deref_mut() {
-                    let remaining_state = inspector
-                        .limits
-                        .max_state_bytes
-                        .checked_sub(inspector.state_bytes)
-                        .and_then(|state| {
-                            state.checked_sub(
-                                indexed_artifact_record
-                                    .map_or(0, |summary| summary.charged_state_bytes),
-                            )
-                        })
-                        .ok_or(ItemRefusal::Budget)?;
-                    provider.abandon_artifact_path(path, remaining_state)?;
+                    provider.abandon_artifact_path(path, inspector.remaining_state_bytes()?)?;
+                    inspector.set_current_artifact_evidence_state(0)?;
                 }
-                continue;
+                return Ok(());
             }
         };
         if let Some(records) = inspector.records_lookup {
-            match records.record_by_path(path)? {
-                Some(record) if record.path == path && python_json_equal(&record.value, &value) => {
-                }
-                Some(_) => inspector.issue(
+            let (record, charged_state_bytes) = records.record_by_path_with_state_budget(
+                path,
+                inspector.remaining_state_bytes()?,
+            )?;
+            inspector.check_temporary_state(charged_state_bytes)?;
+            inspector.candidate_artifact_evidence_peak_state_bytes = inspector
+                .candidate_artifact_evidence_peak_state_bytes
+                .max(
+                    inspector
+                        .candidate_current_artifact_evidence_state_bytes
+                        .checked_add(charged_state_bytes)
+                        .ok_or(ItemRefusal::Budget)?,
+                );
+            let is_exact_record = record.as_ref().is_some_and(|record| {
+                record.path == path && python_json_equal(&record.value, &value)
+            });
+            let found_record = record.is_some();
+            drop(record);
+            if found_record && !is_exact_record {
+                inspector.issue(
                     path,
                     "candidate-discovery-current-record-drift",
                     "stored Records lookup differs from the exact candidate Artifact member",
-                )?,
-                None => inspector.issue(
+                )?;
+            } else if !found_record {
+                inspector.issue(
                     path,
                     "candidate-discovery-current-record-unindexed",
                     "candidate Artifact member is absent from the completed Records lookup",
-                )?,
+                )?;
             }
         }
         let v2 = string(&value, "$schema") == Some(V2_ARTIFACT_SCHEMA);
@@ -7180,7 +7455,16 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
             )?;
         }
         let id = string(&value, "artifact_id").unwrap_or("");
-        if !id.is_empty() && !artifact_ids.insert(id.to_owned()) {
+        if !id.is_empty()
+            && !remember_discovery_id(
+                inspector,
+                &mut discovery_seen_ids,
+                &mut artifact_ids,
+                DiscoverySeenIdNamespace::Artifact,
+                id,
+                path,
+            )?
+        {
             inspector.issue(path, "duplicate-artifact-id", id)?;
         }
         let relative = path.strip_prefix(ARTIFACTS).unwrap_or(path);
@@ -7262,14 +7546,7 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
                     .max_total_bytes
                     .checked_sub(consumed_source)
                     .ok_or(ItemRefusal::Budget)?;
-                let indexed_record_state =
-                    indexed_artifact_record.map_or(0, |summary| summary.charged_state_bytes);
-                let remaining_state = inspector
-                    .limits
-                    .max_state_bytes
-                    .checked_sub(inspector.state_bytes)
-                    .and_then(|state| state.checked_sub(indexed_record_state))
-                    .ok_or(ItemRefusal::Budget)?;
+                let remaining_state = inspector.remaining_state_bytes()?;
                 Some(provider.evidence_for_artifact(
                     path,
                     indexed_artifact_record,
@@ -7291,19 +7568,12 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
             .as_ref()
             .and_then(|response| response.evidence())
         {
-            inspector.check_temporary_state(
+            inspector.set_current_artifact_evidence_state(
                 indexed_artifact_record
                     .map_or(0, |summary| summary.charged_state_bytes)
                     .checked_add(evidence.peak_state_bytes())
                     .ok_or(ItemRefusal::Budget)?,
             )?;
-            inspector.candidate_artifact_evidence_peak_state_bytes =
-                inspector.candidate_artifact_evidence_peak_state_bytes.max(
-                    indexed_artifact_record
-                        .map_or(0, |summary| summary.charged_state_bytes)
-                        .checked_add(evidence.peak_state_bytes())
-                        .ok_or(ItemRefusal::Budget)?,
-                );
             inspector.candidate_provider_source_bytes = inspector
                 .candidate_provider_source_bytes
                 .checked_add(evidence.direct_source_read_bytes())
@@ -7353,8 +7623,21 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
             candidate_schema_invalid,
         )?;
         if native_capture == NativeArtifactCapture::Complete {
-            if !event_ref.is_empty() && !event_ids.insert(event_ref.to_owned()) {
-                inspector.issue(path, "duplicate-native-artifact-event-id", event_ref)?;
+            if !event_ref.is_empty() {
+                let first_event = remember_discovery_id(
+                    &mut inspector,
+                    &mut discovery_seen_ids,
+                    &mut event_ids,
+                    DiscoverySeenIdNamespace::Event,
+                    event_ref,
+                    path,
+                )?;
+                let duplicate_prior = discovery_seen_ids.is_some()
+                    && first_event
+                    && prior_event_contains(inspector, prior_events, event_ref)?;
+                if !first_event || duplicate_prior {
+                    inspector.issue(path, "duplicate-native-artifact-event-id", event_ref)?;
+                }
             }
         } else if native_capture == NativeArtifactCapture::Legacy {
             if let Some(event) = discovery_events.get(event_ref).cloned() {
@@ -7392,8 +7675,9 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
                 )?;
             }
         }
-        artifacts_by_path.insert(path.to_owned(), value);
-    }
+        inspector.set_current_artifact_evidence_state(0)?;
+        Ok(())
+    })?;
 
     if let Some(provider) = candidate_artifact_evidence_provider.as_deref_mut() {
         provider.finish(limits.deadline, inspector.source.cancellation())?;
@@ -7422,32 +7706,80 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
     })?;
 
     let mut representation_file_ids = BTreeSet::new();
-    let artifact_representation_paths = inspector.collect_current_paths_matching(|path| {
-        path.starts_with(ARTIFACTS) && path.ends_with("/representation.json")
-    })?;
-    for path in &artifact_representation_paths {
-        let path = path.as_str();
+    inspector.for_each_current_path(&mut |inspector, path| {
+        if !path.starts_with(ARTIFACTS) || !path.ends_with("/representation.json") {
+            return Ok(());
+        }
         let Some((value, _, _)) = inspector.json(path, path, ARTIFACT_REPRESENTATION_SCHEMA)?
         else {
-            continue;
+            return Ok(());
         };
         inspector.source_refs(&value, path)?;
         let file_id = string(&value, "file_id").unwrap_or("");
-        if !file_id.is_empty() && !representation_file_ids.insert(file_id.to_owned()) {
+        if !file_id.is_empty()
+            && !remember_discovery_id(
+                inspector,
+                &mut discovery_seen_ids,
+                &mut representation_file_ids,
+                DiscoverySeenIdNamespace::RepresentationFile,
+                file_id,
+                path,
+            )?
+        {
             inspector.issue(path, "duplicate-representation-file-id", file_id)?;
         }
         let artifact_id = string(&value, "artifact_id").unwrap_or("");
         let artifact_ref = string(&value, "artifact_ref").unwrap_or("");
-        if !artifact_ids.contains(artifact_id) {
+        if !discovery_id_contains(
+            inspector,
+            &mut discovery_seen_ids,
+            &artifact_ids,
+            DiscoverySeenIdNamespace::Artifact,
+            artifact_id,
+        )? {
             inspector.issue(path, "unresolved-represented-artifact", artifact_id)?;
         }
-        match artifacts_by_path.get(artifact_ref) {
-            Some(artifact) if string(artifact, "artifact_id") == Some(artifact_id) => {}
-            _ => inspector.issue(
+        let artifact_ref_matches = if artifact_ref.starts_with(ARTIFACTS)
+            && artifact_ref.ends_with("/artifact-witness.json")
+        {
+            let indexed_match = if let Some(records) = inspector.records_lookup {
+                let (record, charged_state_bytes) = records.record_by_path_with_state_budget(
+                    artifact_ref,
+                    inspector.remaining_state_bytes()?,
+                )?;
+                inspector.check_temporary_state(charged_state_bytes)?;
+                inspector.candidate_artifact_evidence_peak_state_bytes =
+                    inspector.candidate_artifact_evidence_peak_state_bytes.max(
+                        inspector
+                            .candidate_current_artifact_evidence_state_bytes
+                            .checked_add(charged_state_bytes)
+                            .ok_or(ItemRefusal::Budget)?,
+                    );
+                let exact_match = record.as_ref().and_then(|record| {
+                    (record.path == artifact_ref)
+                        .then(|| string(&record.value, "artifact_id") == Some(artifact_id))
+                });
+                drop(record);
+                exact_match
+            } else {
+                None
+            };
+            match indexed_match {
+                Some(matches) => matches,
+                None => inspector
+                    .current_bytes(artifact_ref)?
+                    .and_then(|raw| serde_json::from_slice::<Value>(&raw).ok())
+                    .is_some_and(|artifact| string(&artifact, "artifact_id") == Some(artifact_id)),
+            }
+        } else {
+            false
+        };
+        if !artifact_ref_matches {
+            inspector.issue(
                 path,
                 "artifact-reference-id-drift",
                 "artifact_ref does not resolve the represented artifact_id",
-            )?,
+            )?;
         }
 
         let payload = value.get("payload").unwrap_or(&Value::Null);
@@ -7598,7 +7930,8 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
                 event_ref,
             )?,
         }
-    }
+        Ok(())
+    })?;
 
     let mut composite_ids = BTreeSet::new();
     let mut composites_by_path: BTreeMap<String, Value> = BTreeMap::new();
@@ -7706,7 +8039,13 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
         }
         for member in rows(&value, "member_observations") {
             let member_id = string(member, "member_artifact_id").unwrap_or("");
-            if !artifact_ids.contains(member_id) {
+            if !discovery_id_contains(
+                &mut inspector,
+                &mut discovery_seen_ids,
+                &artifact_ids,
+                DiscoverySeenIdNamespace::Artifact,
+                member_id,
+            )? {
                 inspector.issue(path, "unresolved-composite-member-artifact", member_id)?;
             }
         }
@@ -8016,7 +8355,13 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
             .iter()
             .filter_map(Value::as_str)
         {
-            if !event_ids.contains(event_ref) {
+            if !event_id_seen(
+                &mut inspector,
+                &mut discovery_seen_ids,
+                &event_ids,
+                prior_events,
+                event_ref,
+            )? {
                 inspector.issue(path, "unresolved-access-request-event", event_ref)?;
             }
         }
@@ -8202,6 +8547,8 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
                     .artifact_replay_referenced_state_bytes,
                 candidate_artifact_evidence_peak_state_bytes: inspector
                     .candidate_artifact_evidence_peak_state_bytes,
+                candidate_discovery_seen_ids_peak_workspace_state_bytes: inspector
+                    .candidate_discovery_seen_ids_peak_workspace_state_bytes,
             },
         },
         candidate_direct_source_bytes: inspector.candidate_direct_source_bytes,

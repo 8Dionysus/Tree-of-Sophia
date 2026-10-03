@@ -27,6 +27,7 @@ use tos_validation::{
         SourceFoundationDefaultPaths, SourceFoundationDefaultRecordsLookup,
         SourceFoundationDefaultStoredLimits,
     },
+    source_foundation_discovery::{DiscoverySeenIdNamespace, DiscoverySeenIds},
     source_foundation_records::{
         SourceFoundationRecordsCollection as RecordsCollection,
         SourceFoundationRecordsStoredFact as StoredFact, SourceFoundationRecordsStreamedReport,
@@ -183,10 +184,7 @@ fn bounded_row_text(
     }
 }
 
-fn row_text_state(
-    row: &rusqlite::Row<'_>,
-    column: usize,
-) -> rusqlite::Result<usize> {
+fn row_text_state(row: &rusqlite::Row<'_>, column: usize) -> rusqlite::Result<usize> {
     match row.get_ref(column)? {
         rusqlite::types::ValueRef::Text(raw) => raw
             .len()
@@ -696,6 +694,12 @@ impl<'candidate, 'host> SpoolDefaultStore<'candidate, 'host> {
                  id TEXT NOT NULL COLLATE BINARY UNIQUE,\
                  value BLOB NOT NULL\
              ) WITHOUT ROWID;\
+             CREATE TABLE sf_discovery_seen_ids(\
+                 namespace TEXT NOT NULL COLLATE BINARY CHECK(namespace IN ('artifact','event','discovery-event','representation-file')),\
+                 key TEXT NOT NULL COLLATE BINARY,\
+                 first_path TEXT NOT NULL COLLATE BINARY CHECK(length(first_path)>0),\
+                 PRIMARY KEY(namespace,key)\
+             ) WITHOUT ROWID;\
              CREATE TABLE biblio_events(\
                  slot BLOB NOT NULL PRIMARY KEY CHECK(length(slot)=8),\
                  id TEXT NOT NULL COLLATE BINARY UNIQUE,\
@@ -840,6 +844,7 @@ impl<'candidate, 'host> SpoolDefaultStore<'candidate, 'host> {
         let mut events = DefaultEventsProvider {
             context,
             db: &self.db,
+            scan_rows,
             limits: self.limits,
             state: &mut self.default_events,
             active_page_state: Cell::new(0),
@@ -1040,7 +1045,8 @@ fn query_event_value(
     };
     let result = db
         .query_row(query, [id], |row| {
-            let id_text = bounded_row_text_precharged(context, row, 0, context.operation_state_limit)?;
+            let id_text =
+                bounded_row_text_precharged(context, row, 0, context.operation_state_limit)?;
             if id_text != id {
                 return Err(rusqlite::Error::InvalidQuery);
             }
@@ -1114,6 +1120,7 @@ fn event_for_each(
 struct DefaultEventsProvider<'a, 'candidate, 'host, 'cancel> {
     context: ProviderContext<'candidate, 'host, 'cancel>,
     db: &'a PinnedSqliteConnection,
+    scan_rows: &'a Cell<u64>,
     limits: SpoolIndexLimits,
     state: &'a mut EventProjectionState,
     active_page_state: Cell<usize>,
@@ -1172,6 +1179,33 @@ impl SourceFoundationDefaultEventLookup for DefaultEventsProvider<'_, '_, '_, '_
             }
             Ok(value)
         })
+    }
+
+    fn event_contains(&self, id: &str) -> Result<bool, ItemRefusal> {
+        let workspace = estimate_string_state(id)?
+            .checked_add(256)
+            .ok_or(ItemRefusal::Budget)?;
+        self.context.row_state(workspace)?;
+        self.context.add_scan_rows(self.scan_rows, 1)?;
+        self.context.check()?;
+        let mut statement = self
+            .db
+            .prepare("SELECT id FROM default_events WHERE id=?1")
+            .map_err(sql_refusal)?;
+        let mut rows = statement.query([id]).map_err(sql_refusal)?;
+        let found = if let Some(row) = rows.next().map_err(sql_refusal)? {
+            match row.get_ref(0).map_err(sql_refusal)? {
+                rusqlite::types::ValueRef::Text(raw) if raw == id.as_bytes() => true,
+                _ => return Err(source_refusal()),
+            }
+        } else {
+            false
+        };
+        if rows.next().map_err(sql_refusal)?.is_some() {
+            return Err(source_refusal());
+        }
+        self.context.check()?;
+        Ok(found)
     }
 
     fn for_each_event(
@@ -1274,6 +1308,134 @@ impl SourceFoundationDefaultEventStore for DefaultEventsProvider<'_, '_, '_, '_>
 
     fn event_lookup(&self) -> &dyn SourceFoundationDefaultEventLookup {
         self
+    }
+}
+
+struct CandidateDiscoverySeenIds<'a, 'candidate, 'host, 'cancel, 'budget> {
+    context: ProviderContext<'candidate, 'host, 'cancel>,
+    db: &'a PinnedSqliteConnection,
+    scan_rows: &'budget Cell<u64>,
+}
+
+impl CandidateDiscoverySeenIds<'_, '_, '_, '_, '_> {
+    fn preflight(
+        &self,
+        namespace: DiscoverySeenIdNamespace,
+        id: &str,
+        first_path: Option<&str>,
+        max_state_bytes: usize,
+    ) -> Result<usize, ItemRefusal> {
+        if max_state_bytes == 0 || max_state_bytes > self.context.operation_state_limit {
+            return Err(ItemRefusal::Budget);
+        }
+        let input_bytes = namespace
+            .storage_key()
+            .len()
+            .checked_add(id.len())
+            .and_then(|bytes| bytes.checked_add(first_path.map_or(0, str::len)))
+            .ok_or(ItemRefusal::Budget)?;
+        let workspace = input_bytes
+            .checked_mul(2)
+            .and_then(|bytes| bytes.checked_add(size_of::<(String, String, String)>() + 256))
+            .ok_or(ItemRefusal::Budget)?;
+        if workspace > max_state_bytes {
+            return Err(ItemRefusal::Budget);
+        }
+        self.context.row_state(workspace)?;
+        self.context.check()?;
+        Ok(workspace)
+    }
+
+    fn verify_existing_first_path(
+        &self,
+        namespace: DiscoverySeenIdNamespace,
+        id: &str,
+        max_state_bytes: usize,
+    ) -> Result<usize, ItemRefusal> {
+        let workspace = self.preflight(namespace, id, None, max_state_bytes)?;
+        self.context.add_scan_rows(self.scan_rows, 1)?;
+        let mut statement = self.db.prepare(
+            "SELECT length(first_path) FROM sf_discovery_seen_ids WHERE namespace=?1 AND key=?2",
+        )
+        .map_err(sql_refusal)?;
+        let mut rows = statement
+            .query(params![namespace.storage_key(), id])
+            .map_err(sql_refusal)?;
+        let first_path_len = rows
+            .next()
+            .map_err(sql_refusal)?
+            .map(|row| row.get::<_, i64>(0).map_err(sql_refusal))
+            .transpose()?
+            .ok_or_else(source_refusal)?;
+        if first_path_len <= 0 || rows.next().map_err(sql_refusal)?.is_some() {
+            return Err(source_refusal());
+        }
+        self.context.check()?;
+        Ok(workspace)
+    }
+}
+
+impl DiscoverySeenIds for CandidateDiscoverySeenIds<'_, '_, '_, '_, '_> {
+    fn contains(
+        &mut self,
+        namespace: DiscoverySeenIdNamespace,
+        id: &str,
+        max_state_bytes: usize,
+    ) -> Result<(bool, usize), ItemRefusal> {
+        let workspace = self.preflight(namespace, id, None, max_state_bytes)?;
+        self.context.add_scan_rows(self.scan_rows, 1)?;
+        let mut statement = self
+            .db
+            .prepare(
+                "SELECT length(first_path) FROM sf_discovery_seen_ids WHERE namespace=?1 AND key=?2",
+            )
+            .map_err(sql_refusal)?;
+        let mut rows = statement
+            .query(params![namespace.storage_key(), id])
+            .map_err(sql_refusal)?;
+        let found = if let Some(row) = rows.next().map_err(sql_refusal)? {
+            if row.get::<_, i64>(0).map_err(sql_refusal)? <= 0 {
+                return Err(source_refusal());
+            }
+            true
+        } else {
+            false
+        };
+        if rows.next().map_err(sql_refusal)?.is_some() {
+            return Err(source_refusal());
+        }
+        self.context.check()?;
+        Ok((found, workspace))
+    }
+
+    fn remember_first(
+        &mut self,
+        namespace: DiscoverySeenIdNamespace,
+        id: &str,
+        first_path: &str,
+        max_state_bytes: usize,
+    ) -> Result<(bool, usize), ItemRefusal> {
+        if first_path.is_empty() {
+            return Err(source_refusal());
+        }
+        let workspace = self.preflight(namespace, id, Some(first_path), max_state_bytes)?;
+        self.context.add_scan_rows(self.scan_rows, 1)?;
+        let changed = self
+            .db
+            .execute(
+                "INSERT OR IGNORE INTO sf_discovery_seen_ids(namespace,key,first_path) VALUES(?1,?2,?3)",
+                params![namespace.storage_key(), id, first_path],
+            )
+            .map_err(sql_refusal)?;
+        self.context.check()?;
+        if changed == 1 {
+            return Ok((true, workspace));
+        }
+        if changed != 0 {
+            return Err(source_refusal());
+        }
+        let verify_workspace = self.verify_existing_first_path(namespace, id, max_state_bytes)?;
+        Ok((false, workspace.max(verify_workspace)))
     }
 }
 
@@ -1485,10 +1647,13 @@ fn decode_claim_row(
     };
     let strings_state = checked_add(text_state(path_ref.len())?, text_state(digest_ref.len())?)?;
     let upper = json_state_upper_bound(raw_value.len())?;
-    let precharge = checked_add(live_state_bytes, checked_add(
-        checked_add(strings_state, upper)?,
-        size_of::<BiblioClaim>() + size_of::<u64>(),
-    )?)?;
+    let precharge = checked_add(
+        live_state_bytes,
+        checked_add(
+            checked_add(strings_state, upper)?,
+            size_of::<BiblioClaim>() + size_of::<u64>(),
+        )?,
+    )?;
     if raw_value.is_empty() || precharge > max_state_bytes {
         return Err(ItemRefusal::Budget);
     }
@@ -1507,16 +1672,19 @@ fn decode_claim_row(
         raw_sha256,
         native,
     };
-    let actual = checked_add(live_state_bytes, checked_add(
+    let actual = checked_add(
+        live_state_bytes,
         checked_add(
-            estimate_string_state(&claim.path)?,
-            estimate_string_state(&claim.raw_sha256)?,
+            checked_add(
+                estimate_string_state(&claim.path)?,
+                estimate_string_state(&claim.raw_sha256)?,
+            )?,
+            checked_add(
+                estimate_value_state(&claim.value)?,
+                size_of::<BiblioClaim>(),
+            )?,
         )?,
-        checked_add(
-            estimate_value_state(&claim.value)?,
-            size_of::<BiblioClaim>(),
-        )?,
-    )?)?;
+    )?;
     if actual > max_state_bytes {
         return Err(ItemRefusal::Budget);
     }
@@ -1866,10 +2034,22 @@ impl CandidateDefaultRecords<'_, '_, '_, '_, '_, '_> {
         }
     }
 
-    fn record_for_path(&self, path: &str) -> Result<Option<BiblioCurrentRecord>, ItemRefusal> {
+    fn record_for_path(
+        &self,
+        path: &str,
+        max_state_bytes: usize,
+    ) -> Result<(Option<BiblioCurrentRecord>, usize), ItemRefusal> {
         self.context.check()?;
-        let max_state =
-            std::num::NonZeroUsize::new(self.lookup_state_limit).ok_or(ItemRefusal::Budget)?;
+        let workspace_state = estimate_string_state(path)?
+            .checked_add(256)
+            .ok_or(ItemRefusal::Budget)?;
+        let max_state = max_state_bytes.min(self.lookup_state_limit);
+        if workspace_state > max_state {
+            return Err(ItemRefusal::Budget);
+        }
+        self.context.row_state(workspace_state)?;
+        let max_state = std::num::NonZeroUsize::new(max_state).ok_or(ItemRefusal::Budget)?;
+        self.context.add_scan_rows(self.scan_rows, 1)?;
         let found = self.report.index().lookup_current_record_by_path(
             path,
             max_state,
@@ -1878,14 +2058,16 @@ impl CandidateDefaultRecords<'_, '_, '_, '_, '_, '_> {
         )?;
         self.context.check()?;
         let Some(found) = found else {
-            return Ok(None);
+            self.context.active_state(workspace_state)?;
+            return Ok((None, workspace_state));
         };
         if found.record.path != path {
             self.context.candidate.abandon();
             return Err(source_refusal());
         }
-        self.context.active_state(found.charged_state_bytes)?;
-        Ok(Some(found.record))
+        let charged_state_bytes = found.charged_state_bytes.max(workspace_state);
+        self.context.active_state(charged_state_bytes)?;
+        Ok((Some(found.record), charged_state_bytes))
     }
 }
 
@@ -1915,8 +2097,17 @@ impl SourceFoundationDefaultRecordsLookup for CandidateDefaultRecords<'_, '_, '_
         &self,
         path: &str,
     ) -> Result<Option<Cow<'_, BiblioCurrentRecord>>, ItemRefusal> {
-        self.record_for_path(path)
-            .map(|record| record.map(Cow::Owned))
+        self.record_for_path(path, self.lookup_state_limit)
+            .map(|(record, _)| record.map(Cow::Owned))
+    }
+
+    fn record_by_path_with_state_budget(
+        &self,
+        path: &str,
+        max_state_bytes: usize,
+    ) -> Result<(Option<Cow<'_, BiblioCurrentRecord>>, usize), ItemRefusal> {
+        self.record_for_path(path, max_state_bytes)
+            .map(|(record, charged)| (record.map(Cow::Owned), charged))
     }
 
     fn item_edition(&self, id: &str) -> Result<Option<Cow<'_, str>>, ItemRefusal> {
@@ -2124,14 +2315,7 @@ impl BiblioManifestProvider<'_, '_, '_, '_> {
             .query_row(
                 "SELECT edition FROM biblio_manifests WHERE id=?1",
                 [id],
-                |row| {
-                    bounded_row_text_precharged(
-                        self.context,
-                        row,
-                        0,
-                        self.max_state_bytes,
-                    )
-                },
+                |row| bounded_row_text_precharged(self.context, row, 0, self.max_state_bytes),
             )
             .optional()
             .map_err(sql_refusal)?;
@@ -2316,6 +2500,7 @@ impl<'candidate, 'host> SpoolDefaultStore<'candidate, 'host> {
             &dyn SourceFoundationDefaultRecordsLookup,
             &dyn SourceFoundationDefaultPaths,
             &mut dyn SourceFoundationDefaultEventStore,
+            &mut dyn DiscoverySeenIds,
             &mut dyn SourceFoundationBiblioStoredSink,
         ) -> Result<R, ItemRefusal>,
     ) -> Result<R, ItemRefusal> {
@@ -2367,10 +2552,16 @@ impl<'candidate, 'host> SpoolDefaultStore<'candidate, 'host> {
             let mut default_events = DefaultEventsProvider {
                 context,
                 db: &self.db,
+                scan_rows,
                 limits: self.limits,
                 state: &mut self.default_events,
                 active_page_state: Cell::new(0),
                 json_ceiling: self.default_event_json_limit.ok_or_else(source_refusal)?,
+            };
+            let mut discovery_seen_ids = CandidateDiscoverySeenIds {
+                context,
+                db: &self.db,
+                scan_rows,
             };
             let mut biblio = BiblioStoredProvider {
                 events: BiblioEventsProvider {
@@ -2397,8 +2588,15 @@ impl<'candidate, 'host> SpoolDefaultStore<'candidate, 'host> {
                     query_budget: &self.biblio_query_budget,
                 },
             };
-            let value = callback(&records_provider, &paths, &mut default_events, &mut biblio)?;
+            let value = callback(
+                &records_provider,
+                &paths,
+                &mut default_events,
+                &mut discovery_seen_ids,
+                &mut biblio,
+            )?;
             drop(biblio);
+            drop(discovery_seen_ids);
             drop(default_events);
             paths.verify_eof()?;
             input.verify_invocation(deadline, cancelled)?;

@@ -16,7 +16,7 @@ use crate::source_foundation_closure::{
 use crate::source_foundation_discovery::{
     ArtifactCorrectionReplayMap, CandidateArtifactCorrectionReplayMap,
     CandidateArtifactEvidenceProvider, CandidateArtifactInvalidSchemaProofs, Cost as DiscoveryCost,
-    CurrentArtifactInvalidSchemaProofs, Issue as DiscoveryIssue,
+    CurrentArtifactInvalidSchemaProofs, DiscoverySeenIds, Issue as DiscoveryIssue,
     SchemaRequest as DiscoverySchemaRequest, SourcePhysicalFacts,
     UnsupportedScope as DiscoveryUnsupported, inspect_with_cut_and_artifact_replays,
     inspect_with_cut_and_artifact_replays_and_records,
@@ -113,6 +113,25 @@ pub trait SourceFoundationDefaultRecordsLookup {
         Option<std::borrow::Cow<'_, crate::record_biblio_cut::BiblioCurrentRecord>>,
         ItemRefusal,
     >;
+    /// Point lookup for a streamed candidate caller that must reserve an
+    /// owned row before reading it. The default permits caller-owned borrowed
+    /// records; owned adapters must override this method to enforce the row
+    /// budget before materialization and return their charged workspace.
+    fn record_by_path_with_state_budget(
+        &self,
+        _path: &str,
+        _max_state_bytes: usize,
+    ) -> Result<
+        (
+            Option<std::borrow::Cow<'_, crate::record_biblio_cut::BiblioCurrentRecord>>,
+            usize,
+        ),
+        ItemRefusal,
+    > {
+        Err(ItemRefusal::Unsupported(
+            "Records path lookup lacks a precharged state adapter".into(),
+        ))
+    }
     fn item_edition(&self, id: &str) -> Result<Option<std::borrow::Cow<'_, str>>, ItemRefusal>;
     fn rights_contains(&self, id: &str) -> Result<bool, ItemRefusal>;
     fn file_contains(&self, item: &Value, file: &Value) -> Result<bool, ItemRefusal>;
@@ -358,6 +377,19 @@ impl SourceFoundationDefaultRecordsLookup for BorrowedDefaultRecords<'_> {
             .find(|record| record.path == path)
             .map(std::borrow::Cow::Borrowed))
     }
+    fn record_by_path_with_state_budget(
+        &self,
+        path: &str,
+        _max_state_bytes: usize,
+    ) -> Result<
+        (
+            Option<std::borrow::Cow<'_, crate::record_biblio_cut::BiblioCurrentRecord>>,
+            usize,
+        ),
+        ItemRefusal,
+    > {
+        Ok((self.record_by_path(path)?, 0))
+    }
     fn item_edition(&self, id: &str) -> Result<Option<std::borrow::Cow<'_, str>>, ItemRefusal> {
         Ok(self
             .item_editions
@@ -433,6 +465,9 @@ pub struct SourceFoundationDefaultRulesCost {
     pub records_state_reservation_upper_bound_bytes: usize,
     /// Retained-state estimates charged by Labs, Gold, Discovery and Closure.
     pub later_district_state_bytes: usize,
+    /// High-water workspace of the candidate's disk-backed Discovery
+    /// uniqueness lookups, reported separately from retained row state.
+    pub discovery_seen_ids_peak_workspace_state_bytes: usize,
     /// Additional clone state for the merged event map and first-insertion
     /// order vector.
     pub merged_event_state_bytes: usize,
@@ -775,6 +810,7 @@ pub fn inspect_source_foundation_default_rules_from_input_stored<
         Some(artifact_replays),
         Some(invalid_artifact_proofs),
         None,
+        None,
         require_local_payloads,
         limits,
         stored_limits,
@@ -820,6 +856,52 @@ pub fn inspect_source_foundation_default_rules_from_input_stored_with_artifact_e
         None,
         None,
         Some(evidence_provider),
+        None,
+        require_local_payloads,
+        limits,
+        stored_limits,
+        cancelled,
+    )
+}
+
+/// Candidate stored composition with the held disk-backed exact-ID scratch
+/// index used by Discovery to preserve duplicate and negative-membership laws.
+#[allow(clippy::too_many_arguments)]
+pub fn inspect_source_foundation_default_rules_from_input_stored_with_artifact_evidence_provider_and_seen_ids<
+    I: Copy + Eq,
+    S: LayerFamilySource + ?Sized,
+>(
+    source: &mut S,
+    input: &dyn crate::record_biblio_cut::SourceCutInputWithIdentity<I>,
+    coverage: &crate::record_biblio_cut::SourceCutInputCoverage,
+    records: &crate::source_foundation_records::SourceFoundationRecordsStreamedReport<'_, I>,
+    records_lookup: &dyn SourceFoundationDefaultRecordsLookup,
+    paths: &dyn SourceFoundationDefaultPaths,
+    events: &mut dyn SourceFoundationDefaultEventStore,
+    claims: &dyn SourceFoundationDefaultClaims,
+    physical: &SourcePhysicalFacts,
+    evidence_provider: &mut dyn CandidateArtifactEvidenceProvider<I>,
+    discovery_seen_ids: &mut dyn DiscoverySeenIds,
+    require_local_payloads: bool,
+    limits: SourceFoundationDefaultRulesLimits,
+    stored_limits: SourceFoundationDefaultStoredLimits,
+    cancelled: &AtomicBool,
+) -> Result<SourceFoundationDefaultRulesStoredReport<I>, ItemRefusal> {
+    inspect_source_foundation_default_rules_from_input_stored_inner(
+        source,
+        input,
+        coverage,
+        records,
+        records_lookup,
+        paths,
+        events,
+        None,
+        claims,
+        physical,
+        None,
+        None,
+        Some(evidence_provider),
+        Some(discovery_seen_ids),
         require_local_payloads,
         limits,
         stored_limits,
@@ -847,6 +929,7 @@ fn inspect_source_foundation_default_rules_from_input_stored_inner<
     artifact_replays: Option<&CandidateArtifactCorrectionReplayMap<'_, I>>,
     invalid_artifact_proofs: Option<&CandidateArtifactInvalidSchemaProofs<'_, '_, I>>,
     mut evidence_provider: Option<&mut dyn CandidateArtifactEvidenceProvider<I>>,
+    mut discovery_seen_ids: Option<&mut dyn DiscoverySeenIds>,
     require_local_payloads: bool,
     limits: SourceFoundationDefaultRulesLimits,
     stored_limits: SourceFoundationDefaultStoredLimits,
@@ -972,19 +1055,36 @@ fn inspect_source_foundation_default_rules_from_input_stored_inner<
         direct_owner_issue_count,
     )?;
     let discovery = if let Some(provider) = evidence_provider.as_deref_mut() {
-        crate::source_foundation_discovery::inspect_candidate_with_artifact_evidence_provider(
-            &mut aggregate_source,
-            input,
-            coverage,
-            paths,
-            events.event_lookup(),
-            records_lookup,
-            records,
-            discovery_limits,
-            physical,
-            provider,
-            require_local_payloads,
-        )?
+        if let Some(seen_ids) = discovery_seen_ids.as_deref_mut() {
+            crate::source_foundation_discovery::inspect_candidate_with_artifact_evidence_provider_and_seen_ids(
+                &mut aggregate_source,
+                input,
+                coverage,
+                paths,
+                events.event_lookup(),
+                records_lookup,
+                records,
+                discovery_limits,
+                physical,
+                provider,
+                seen_ids,
+                require_local_payloads,
+            )?
+        } else {
+            crate::source_foundation_discovery::inspect_candidate_with_artifact_evidence_provider(
+                &mut aggregate_source,
+                input,
+                coverage,
+                paths,
+                events.event_lookup(),
+                records_lookup,
+                records,
+                discovery_limits,
+                physical,
+                provider,
+                require_local_payloads,
+            )?
+        }
     } else {
         crate::source_foundation_discovery::inspect_candidate_with_artifact_replays_and_records_with_proofs(
             &mut aggregate_source,
@@ -1117,6 +1217,9 @@ fn inspect_source_foundation_default_rules_from_input_stored_inner<
             later_counted_source_bytes: aggregate_source.read_bytes,
             records_state_reservation_upper_bound_bytes,
             later_district_state_bytes,
+            discovery_seen_ids_peak_workspace_state_bytes: discovery
+                .cost
+                .candidate_discovery_seen_ids_peak_workspace_state_bytes,
             merged_event_state_bytes: final_event_cost.retained_state_bytes,
             aggregate_state_reservation_bytes: used_state,
             merged_event_json_bytes: final_event_cost.merged_event_json_bytes,
@@ -1486,6 +1589,9 @@ fn inspect_source_foundation_default_rules_internal<S: LayerFamilySource + ?Size
             later_counted_source_bytes: later_source_read_bytes,
             records_state_reservation_upper_bound_bytes,
             later_district_state_bytes,
+            discovery_seen_ids_peak_workspace_state_bytes: discovery
+                .cost
+                .candidate_discovery_seen_ids_peak_workspace_state_bytes,
             merged_event_state_bytes,
             aggregate_state_reservation_bytes,
             merged_event_json_bytes,

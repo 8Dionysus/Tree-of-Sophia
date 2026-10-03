@@ -28,19 +28,19 @@ use tos_validation::{
         SourceFoundationCandidateArtifactProofPathPage, SourceFoundationCurrentRecordPathLookup,
         SourceFoundationCurrentRecordsPage, SourceFoundationEventInsertion,
         SourceFoundationFileDescriptorLookup, SourceFoundationGlobalIdFact,
-        SourceFoundationItemEditionLookup, SourceFoundationItemRecordSelection,
-        SourceFoundationItemSelectionLookup, SourceFoundationLinkUriFact,
-        SourceFoundationRecordFact, SourceFoundationRecordFactCollection,
-        SourceFoundationRecordFactPage, SourceFoundationRecordIdCarrier,
-        SourceFoundationRecordObservation, SourceFoundationRecordPathReference,
-        SourceFoundationRecordSchemaDiagnostic, SourceFoundationRecordsCollection,
-        SourceFoundationRecordsCursor, SourceFoundationRecordsCursorPage,
-        SourceFoundationRecordsIssue, SourceFoundationRecordsIssueFamily,
-        SourceFoundationRecordsLookup, SourceFoundationRecordsOwnerIssue,
-        SourceFoundationRecordsPageBudget, SourceFoundationRecordsSchemaCheck,
-        SourceFoundationRecordsSchemaFamily, SourceFoundationRecordsStore,
-        SourceFoundationRecordsStoredFact, SourceFoundationTypedIdRefFact,
-        SourceFoundationUriOwnerLookup,
+        SourceFoundationGlobalIdFactPage, SourceFoundationItemEditionLookup,
+        SourceFoundationItemRecordSelection, SourceFoundationItemSelectionLookup,
+        SourceFoundationLinkUriFact, SourceFoundationRecordFact,
+        SourceFoundationRecordFactCollection, SourceFoundationRecordFactPage,
+        SourceFoundationRecordIdCarrier, SourceFoundationRecordObservation,
+        SourceFoundationRecordPathReference, SourceFoundationRecordSchemaDiagnostic,
+        SourceFoundationRecordsCollection, SourceFoundationRecordsCursor,
+        SourceFoundationRecordsCursorPage, SourceFoundationRecordsIssue,
+        SourceFoundationRecordsIssueFamily, SourceFoundationRecordsLookup,
+        SourceFoundationRecordsOwnerIssue, SourceFoundationRecordsPageBudget,
+        SourceFoundationRecordsSchemaCheck, SourceFoundationRecordsSchemaFamily,
+        SourceFoundationRecordsStore, SourceFoundationRecordsStoredFact,
+        SourceFoundationTypedIdRefFact, SourceFoundationUriOwnerLookup,
     },
 };
 
@@ -2285,6 +2285,191 @@ fn fact_page(
     })
 }
 
+fn global_id_facts_by_id_page(
+    sink: &IndexSink<'_>,
+    id: &str,
+    after_ordinal: Option<u64>,
+    budget: SourceFoundationRecordsPageBudget,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> Result<SourceFoundationGlobalIdFactPage, ItemRefusal> {
+    check_operation(sink, deadline, cancelled)?;
+    if id.len() > budget.max_state_bytes.get() {
+        return Err(ItemRefusal::BudgetCheck {
+            check: "source-foundation exact GlobalId key state",
+            used: Some(id.len() as u64),
+            limit: Some(budget.max_state_bytes.get() as u64),
+        });
+    }
+    let after = after_ordinal
+        .map(i64::try_from)
+        .transpose()
+        .map_err(|_| ItemRefusal::Budget)?;
+    let mut capacity = page_row_capacity(budget, id.len(), true)?;
+    while capacity > 0
+        && source_foundation_global_id_fact_page_cost(
+            &[],
+            capacity,
+            capacity.checked_add(1).ok_or(ItemRefusal::Budget)?,
+            id.len(),
+            true,
+        )? > budget.max_state_bytes.get()
+    {
+        capacity -= 1;
+    }
+    if capacity == 0 {
+        return Err(ItemRefusal::Budget);
+    }
+    let metadata_capacity = capacity.checked_add(1).ok_or(ItemRefusal::Budget)?;
+    let metadata_state = metadata_capacity
+        .checked_mul(std::mem::size_of::<PageMeta>())
+        .and_then(|bytes| bytes.checked_add(id.len()))
+        .ok_or(ItemRefusal::Budget)?;
+    if metadata_state > budget.max_state_bytes.get() {
+        return Err(ItemRefusal::Budget);
+    }
+    sink.candidate
+        .check_state(metadata_state)
+        .map_err(refusal)?;
+    let mut metadata = Vec::new();
+    metadata
+        .try_reserve_exact(metadata_capacity)
+        .map_err(|_| ItemRefusal::Budget)?;
+    let mut statement = sink
+        .db
+        .prepare(
+            "SELECT ordinal,length(CAST(key1 AS BLOB)),length(payload),state_bytes FROM sf_facts WHERE collection=?1 AND key1 COLLATE BINARY=?2 COLLATE BINARY AND ordinal>?3 ORDER BY ordinal LIMIT ?4",
+        )
+        .map_err(refusal)?;
+    let limit = i64::try_from(metadata_capacity).map_err(|_| ItemRefusal::Budget)?;
+    let mut rows = statement
+        .query(params![
+            fact_collection_id(SourceFoundationRecordFactCollection::GlobalIdFacts),
+            id,
+            after.unwrap_or(-1),
+            limit
+        ])
+        .map_err(refusal)?;
+    while let Some(row) = rows.next().map_err(refusal)? {
+        check_operation(sink, deadline, cancelled)?;
+        if metadata.len() >= metadata_capacity {
+            return Err(ItemRefusal::Budget);
+        }
+        metadata.push(PageMeta {
+            seq: row.get(0).map_err(refusal)?,
+            key1_bytes: sqlite_usize(row, 1).map_err(refusal)?,
+            key2_bytes: 0,
+            payload_bytes: sqlite_usize(row, 2).map_err(refusal)?,
+            aux_bytes: 0,
+            state_bytes: sqlite_usize(row, 3).map_err(refusal)?,
+        });
+    }
+    drop(rows);
+    drop(statement);
+    check_operation(sink, deadline, cancelled)?;
+
+    let mut take = metadata.len().min(capacity);
+    let mut more = metadata.len() > take;
+    let mut charged = source_foundation_global_id_fact_page_cost(
+        &metadata[..take],
+        capacity,
+        metadata_capacity,
+        id.len(),
+        more,
+    )?;
+    while take > 0 && charged > budget.max_state_bytes.get() {
+        take -= 1;
+        more = metadata.len() > take;
+        charged = source_foundation_global_id_fact_page_cost(
+            &metadata[..take],
+            capacity,
+            metadata_capacity,
+            id.len(),
+            more,
+        )?;
+    }
+    if charged > budget.max_state_bytes.get() {
+        return Err(ItemRefusal::Budget);
+    }
+    if more && take == 0 {
+        return Err(ItemRefusal::Budget);
+    }
+    sink.candidate.check_state(charged).map_err(refusal)?;
+    let mut output = Vec::new();
+    output
+        .try_reserve_exact(capacity)
+        .map_err(|_| ItemRefusal::Budget)?;
+    for meta in &metadata[..take] {
+        let (key, payload) = read_fact_for_page(
+            sink,
+            SourceFoundationRecordFactCollection::GlobalIdFacts,
+            meta.seq,
+            *meta,
+            budget.max_state_bytes.get(),
+            deadline,
+            cancelled,
+        )?;
+        if key != id {
+            return Err(ItemRefusal::Source(
+                "GlobalId exact-key row differs from its held index key".into(),
+            ));
+        }
+        let value = decode_value(&payload, budget.max_state_bytes.get()).map_err(refusal)?;
+        let fact = fact_from_value(&value, SourceFoundationRecordFactCollection::GlobalIdFacts)
+            .map_err(refusal)?;
+        let SourceFoundationRecordFact::GlobalId(fact) = fact else {
+            return Err(ItemRefusal::Source(
+                "GlobalId exact-key page contains another fact kind".into(),
+            ));
+        };
+        if fact.id != id || i64::try_from(fact.ordinal).ok() != Some(meta.seq) {
+            return Err(ItemRefusal::Source(
+                "GlobalId exact-key payload differs from its held index row".into(),
+            ));
+        }
+        output.push(fact);
+    }
+    check_operation(sink, deadline, cancelled)?;
+    let next_after_ordinal = if more {
+        Some(u64::try_from(metadata[take - 1].seq).map_err(|_| ItemRefusal::Budget)?)
+    } else {
+        None
+    };
+    Ok(SourceFoundationGlobalIdFactPage {
+        id: id.to_owned(),
+        rows: output,
+        next_after_ordinal,
+        charged_state_bytes: charged,
+    })
+}
+
+fn source_foundation_global_id_fact_page_cost(
+    metadata: &[PageMeta],
+    capacity: usize,
+    metadata_capacity: usize,
+    id_bytes: usize,
+    more: bool,
+) -> Result<usize, ItemRefusal> {
+    let mut bytes = std::mem::size_of::<SourceFoundationGlobalIdFactPage>()
+        .checked_add(
+            capacity
+                .checked_mul(std::mem::size_of::<SourceFoundationGlobalIdFact>())
+                .ok_or(ItemRefusal::Budget)?,
+        )
+        .and_then(|bytes| {
+            bytes.checked_add(metadata_capacity.checked_mul(std::mem::size_of::<PageMeta>())?)
+        })
+        .and_then(|bytes| bytes.checked_add(id_bytes.checked_mul(2)?))
+        .and_then(|bytes| bytes.checked_add(usize::from(more) * std::mem::size_of::<u64>()))
+        .ok_or(ItemRefusal::Budget)?;
+    for row in metadata {
+        bytes = bytes
+            .checked_add(row.state_bytes)
+            .ok_or(ItemRefusal::Budget)?;
+    }
+    Ok(bytes)
+}
+
 impl SourceFoundationRecordsStore for IndexSink<'_> {
     fn current_record_first(
         &mut self,
@@ -2797,6 +2982,17 @@ impl SourceFoundationRecordsStore for IndexSink<'_> {
         cancelled: &AtomicBool,
     ) -> Result<SourceFoundationRecordFactPage, ItemRefusal> {
         fact_page(self, collection, after, budget, deadline, cancelled)
+    }
+
+    fn global_id_facts_by_id_page(
+        &self,
+        id: &str,
+        after_ordinal: Option<u64>,
+        budget: SourceFoundationRecordsPageBudget,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<SourceFoundationGlobalIdFactPage, ItemRefusal> {
+        global_id_facts_by_id_page(self, id, after_ordinal, budget, deadline, cancelled)
     }
 
     fn lookup_current_record(
