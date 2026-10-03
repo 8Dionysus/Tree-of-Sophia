@@ -5,7 +5,7 @@ use crate::item_rules::{ItemLimits, ItemRefusal};
 use crate::layer_family_rules::{
     LayerFamilyReport, LayerFamilyRules, LayerFamilySource, LayerPayload,
 };
-use crate::source_cut::{CutSchemaExecutor, CutWorkerSchemaExecutor};
+use crate::source_cut::CutSchemaExecutor;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Instant;
 use tos_foundation::{Digest256, RelativePath, SourceRevision};
@@ -488,11 +488,11 @@ pub struct SourceCutLayerFamilyReport {
 }
 /// Traverse current ordered bytes to EOF before executing selected family
 /// predicates. This does not claim complete Python source-foundation coverage.
-pub fn inspect_layers_from_cut(
+pub fn inspect_layers_from_cut<S: CutSchemaExecutor>(
     cut: &CorpusCutReader,
     limits: ItemLimits,
     cancelled: &AtomicBool,
-    schemas: &mut CutWorkerSchemaExecutor,
+    schemas: &mut S,
 ) -> Result<SourceCutLayerFamilyReport, ItemRefusal> {
     let mut payloads = UnavailableLayerPayloads;
     inspect_layers_with_payloads_from_cut(cut, limits, cancelled, schemas, &mut payloads, false)
@@ -521,17 +521,17 @@ impl CutLayerPayloadReader for UnavailableLayerPayloads {
         Ok(LayerPayload::Unavailable)
     }
 }
-pub fn inspect_layers_with_payloads_from_cut(
+pub fn inspect_layers_with_payloads_from_cut<S: CutSchemaExecutor>(
     cut: &CorpusCutReader,
     limits: ItemLimits,
     cancelled: &AtomicBool,
-    schemas: &mut CutWorkerSchemaExecutor,
+    schemas: &mut S,
     payloads: &mut dyn CutLayerPayloadReader,
     require_local_payloads: bool,
 ) -> Result<SourceCutLayerFamilyReport, ItemRefusal> {
     check(limits.deadline, cancelled)?;
     let revision = cut.current().revision();
-    if schemas.source_revision() != revision {
+    if schemas.selected_source_revision() != Some(revision) {
         return Err(ItemRefusal::Source(
             "layer schema worker belongs to another corpus cut".into(),
         ));

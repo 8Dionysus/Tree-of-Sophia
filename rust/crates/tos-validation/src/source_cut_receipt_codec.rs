@@ -32,7 +32,9 @@ pub(super) fn encoded_scalar_receipt_len(path: &str, contract: &str) -> Result<u
     Ok(total)
 }
 
-pub(super) fn encoded_receipt_len(receipt: &CutSchemaReceipt) -> Result<usize, ItemRefusal> {
+pub(in crate::source_cut) fn encoded_receipt_len(
+    receipt: &CutSchemaReceipt,
+) -> Result<usize, ItemRefusal> {
     let total = encoded_scalar_receipt_len(&receipt.path, &receipt.contract)?
         .checked_add(if receipt.batch.is_some() {
             BATCH_BINDING_BYTES

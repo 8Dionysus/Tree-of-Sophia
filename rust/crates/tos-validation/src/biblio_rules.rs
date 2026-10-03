@@ -7,7 +7,7 @@ use crate::record_biblio_cut::{
     BiblioCurrentRecord, SourceCutRecordReport, account, check, current, reserve, store_error,
 };
 use crate::relation_rules::{RelationIssue, RelationShadow, inspect_current_topology_bounded};
-use crate::source_cut::{CutSchemaExecutor, CutWorkerSchemaExecutor};
+use crate::source_cut::CutSchemaExecutor;
 use crate::{KeyState, PredicateRead, ValidationFact};
 use serde_json::{Value, json};
 use std::collections::{BTreeMap, BTreeSet};
@@ -333,15 +333,15 @@ fn claim_stream(path: &str) -> bool {
 
 /// Requires record-family output from the same exact current cut. EOF is
 /// checked again for this family's Claim/event/Item-manifest traversal.
-pub fn inspect_bibliography_from_cut(
+pub fn inspect_bibliography_from_cut<S: CutSchemaExecutor>(
     cut: &CorpusCutReader,
     records: &SourceCutRecordReport,
     limits: ItemLimits,
     cancelled: &AtomicBool,
-    schemas: &mut CutWorkerSchemaExecutor,
+    schemas: &mut S,
 ) -> Result<SourceCutBiblioReport, ItemRefusal> {
     check(limits.deadline, cancelled)?;
-    if schemas.source_revision() != cut.current().revision() {
+    if schemas.selected_source_revision() != Some(cut.current().revision()) {
         return Err(ItemRefusal::Source(
             "bibliography schema cut mismatch".into(),
         ));

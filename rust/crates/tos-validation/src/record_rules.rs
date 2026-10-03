@@ -9,6 +9,8 @@ use std::collections::{BTreeMap, BTreeSet};
 use serde_json::{Value, json};
 use tos_foundation::Digest256;
 
+use crate::source_cut::CutSchemaReceiptRange;
+
 use crate::{FormatProfile, SchemaBackendProbe, SchemaProbeError, SchemaResource, published_value};
 
 const ENTITY_REGISTRY: &str = "ToS/doctrine/semantic-interchange/entity-types.v1.json";
