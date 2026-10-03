@@ -308,10 +308,6 @@ fn read_backup_restore_case_inner(
                 deadline,
                 &cancel,
             )?;
-            super::source_admission_v2_backup_restore::debit_name_resolution(
-                &original_io,
-                "current.json",
-            )?;
             V2ReadSession::open_at_named_with_io(
                 source,
                 roots.source.held,
@@ -415,10 +411,6 @@ fn read_backup_restore_case_inner(
                 &original_io,
                 deadline,
                 &cancel,
-            )?;
-            super::source_admission_v2_backup_restore::debit_name_resolution(
-                &original_io,
-                "current.json",
             )?;
             V2ReadSession::open_at_named_with_io(
                 fresh_target,

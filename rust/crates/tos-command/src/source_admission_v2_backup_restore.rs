@@ -1235,7 +1235,6 @@ fn transfer_image_inner(
     };
     debit_name_resolution(io, ".admission.lock")?;
     let _lock = source.lock_for_backup(deadline, cancel)?;
-    debit_name_resolution(io, "current.json")?;
     let selection = source
         .current_selection(limits.reader, deadline, cancel, Some(io))?
         .ok_or_else(|| invalid("V2 image source selection absent"))?;
@@ -1334,7 +1333,6 @@ fn transfer_image_inner(
             deadline,
             cancel,
         )?;
-        debit_name_resolution(io, "current.json")?;
         if source.current_selection(limits.reader, deadline, cancel, Some(io))?
             != Some(selection.clone())
         {
@@ -1383,7 +1381,6 @@ fn transfer_image_inner(
         )?;
         target.sync_all()?;
         account_growth(&target, &mut root_allocated, &mut work, &custody)?;
-        debit_name_resolution(io, "current.json")?;
         if restored.current_selection(limits.reader, deadline, cancel, Some(io))?
             != Some(selection.clone())
         {
