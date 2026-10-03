@@ -6,10 +6,10 @@
 //! candidate snapshot, never authored semantic identity.
 use crate::research_execution::ResearchExecution;
 use regex::Regex;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::OnceLock;
-use tos_foundation::{python_strip_unicode16_v1, Digest256};
+use tos_foundation::{Digest256, python_strip_unicode16_v1};
 
 type R<T> = Result<T, String>;
 const METHOD_VERSION: &str = "zarathustra-recurring-formulas-v1";

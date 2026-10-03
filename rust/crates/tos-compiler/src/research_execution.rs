@@ -13,8 +13,8 @@ use std::{
     path::{Component, Path, PathBuf},
     rc::Rc,
     sync::{
-        atomic::{AtomicBool, Ordering},
         Arc,
+        atomic::{AtomicBool, Ordering},
     },
     time::{Duration, Instant},
 };
@@ -920,9 +920,11 @@ mod tests {
     fn absent_or_exhausted_physical_quota_cannot_create_output() {
         let temp = tempfile::tempdir().unwrap();
         let without_quota = ResearchExecution::new(temp.path(), 180).unwrap();
-        assert!(without_quota
-            .write("output", b"bytes", 0o600, true)
-            .is_err());
+        assert!(
+            without_quota
+                .write("output", b"bytes", 0o600, true)
+                .is_err()
+        );
         let too_small = ResearchExecution::new_with_scratch(temp.path(), 180, 1).unwrap();
         assert!(too_small.write("output", b"bytes", 0o600, true).is_err());
         assert_eq!(fs::read_dir(temp.path()).unwrap().count(), 0);

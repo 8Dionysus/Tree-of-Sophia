@@ -3,11 +3,10 @@
 use crate::research_eternal_return::{bytes, digest, lines, load};
 use crate::research_execution::ResearchExecution;
 use rusqlite::{
-    params_from_iter,
+    Connection, params_from_iter,
     types::{Value as SqlValue, ValueRef},
-    Connection,
 };
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::{
     collections::{BTreeMap, BTreeSet},
     fs::File,
@@ -576,11 +575,13 @@ fn database(
                 .map(|r| {
                     Ok(vec![
                         r["formula_id"].clone(),
-                        json!(arr(r, "normalized_tokens")?
-                            .iter()
-                            .map(|v| v.as_str().ok_or("formula token string required".into()))
-                            .collect::<Result<Vec<_>>>()?
-                            .join(" ")),
+                        json!(
+                            arr(r, "normalized_tokens")?
+                                .iter()
+                                .map(|v| v.as_str().ok_or("formula token string required".into()))
+                                .collect::<Result<Vec<_>>>()?
+                                .join(" ")
+                        ),
                         r["token_count"].clone(),
                         r["occurrence_count"].clone(),
                         r["reading_count"].clone(),

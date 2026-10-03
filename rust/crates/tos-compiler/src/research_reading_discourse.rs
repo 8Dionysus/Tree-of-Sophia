@@ -5,7 +5,7 @@
 //! claims and keeps unresolved quotation/voice ambiguities visible.
 use crate::research_execution::ResearchExecution;
 use regex::{Regex, RegexBuilder};
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::sync::OnceLock;
 

@@ -190,14 +190,16 @@ mod tests {
     fn research_route_requires_explicit_absolute_root_before_production() {
         assert!(selected_args(&[COMMANDS[0].into(), "--preview".into()]).is_err());
         assert!(selected_args(&[COMMANDS[0].into(), "--source-root".into(), ".".into()]).is_err());
-        assert!(selected_args(&[
-            COMMANDS[0].into(),
-            "--source-root".into(),
-            "/".into(),
-            "--source-root".into(),
-            "/".into()
-        ])
-        .is_err());
+        assert!(
+            selected_args(&[
+                COMMANDS[0].into(),
+                "--source-root".into(),
+                "/".into(),
+                "--source-root".into(),
+                "/".into()
+            ])
+            .is_err()
+        );
     }
 
     #[test]
