@@ -240,7 +240,7 @@ pub fn execute_selected_source_navigation_descend<'hold, A: InspectCurrentAuthor
                 load_original_navigation(read, bound, budget, Some(max_retained_bytes))?;
             nodes.retain(|_, node| !crate::knowledge_lens_spec::truthy(get(get(node, "properties"), "packet_id")));
             if !nodes.contains_key(&request.node_id) {
-                return Err(err(SearchV2ErrorCode::UnknownExactId, "unknown source-navigation node"));
+                return Err(err(SearchV2ErrorCode::UnknownIdentifier, "unknown source-navigation node"));
             }
             let mut depths = BTreeMap::from([(request.node_id.clone(), 0u8)]);
             let mut queue = VecDeque::from([(request.node_id.clone(), 0u8)]);
