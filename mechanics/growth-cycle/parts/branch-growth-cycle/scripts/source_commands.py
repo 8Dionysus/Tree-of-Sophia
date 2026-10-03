@@ -1697,7 +1697,8 @@ def _run_selected_native_owner(owner_config: Path, invocation_path: Path, reques
                                'tos_expression_edition_result_v1' if schema == 'tos_local_expression_edition_owner_v1' else
                                'tos_expression_responsibility_result_v1' if schema == 'tos_local_expression_responsibility_owner_v1' else
                                'tos_local_assessment_result_v1' if schema in (
-                                   'tos_local_assessment_owner_v4', 'tos_local_assessment_owner_v5',
+                                   'tos_local_assessment_owner_v1', 'tos_local_assessment_owner_v2',
+                                   'tos_local_assessment_owner_v3', 'tos_local_assessment_owner_v4', 'tos_local_assessment_owner_v5',
                                    'tos_local_assessment_owner_v6') else
                                'tos_local_native_source_result_v1' if source else
                                'tos_local_native_alignment_result_v1')

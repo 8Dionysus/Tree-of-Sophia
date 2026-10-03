@@ -1,9 +1,9 @@
-//! Installed private v4-v6 native assessment caller.
+//! Installed v1-v6 native assessment caller.
 //!
-//! This is deliberately separate from the Sign v2/v3 promotion reader. It
-//! selects the confidential owner configuration, current source context,
-//! exact source closures and common append/replay journal before asking the
-//! shared assessment policy engine for a current view.
+//! Direct public v1-v3 commands and confidential v4-v6 commands share the
+//! existing append/replay journal and assessment engine. Public v2/v3 source
+//! selection reuses the Sign resolver; Sign promotion keeps its separate
+//! protected v2/v3 selector and does not acquire new command authority.
 
 use super::{absolute, capped, digest, selected_schema_with_profile, text};
 use crate::source_assessment_journal::{
@@ -163,6 +163,9 @@ impl OperationBudget {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 enum OwnerVersion {
+    V1,
+    V2,
+    V3,
     V4,
     V5,
     V6,
@@ -171,6 +174,9 @@ enum OwnerVersion {
 impl OwnerVersion {
     fn from_config(config: &JsonValue) -> SourceCommandResult<Self> {
         match cmd::text(config, "schema_version")? {
+            "tos_local_assessment_owner_v1" => Ok(Self::V1),
+            "tos_local_assessment_owner_v2" => Ok(Self::V2),
+            "tos_local_assessment_owner_v3" => Ok(Self::V3),
             "tos_local_assessment_owner_v4" => Ok(Self::V4),
             "tos_local_assessment_owner_v5" => Ok(Self::V5),
             "tos_local_assessment_owner_v6" => Ok(Self::V6),
@@ -178,6 +184,18 @@ impl OwnerVersion {
                 "private assessment owner v4/v5/v6 required",
             )),
         }
+    }
+
+    fn is_private(self) -> bool {
+        matches!(self, Self::V4 | Self::V5 | Self::V6)
+    }
+
+    fn has_source(self) -> bool {
+        !matches!(self, Self::V1)
+    }
+
+    fn has_native(self) -> bool {
+        !matches!(self, Self::V1 | Self::V2)
     }
 
     fn has_layer_quality(self) -> bool {
@@ -274,13 +292,22 @@ pub(super) fn run(
         cancelled,
     )?;
     budget.charge_bytes(cmd::canonical(&context_configuration)?.len())?;
-    let owner = ProtectedAssessmentJournal::select_owner_local(
-        &configuration_path,
-        &context_path,
-        owner_context.private_root(),
-        deadline,
-        cancelled,
-    )?;
+    let owner = if version.is_private() {
+        ProtectedAssessmentJournal::select_owner_local(
+            &configuration_path,
+            &context_path,
+            owner_context.private_root(),
+            deadline,
+            cancelled,
+        )?
+    } else {
+        ProtectedAssessmentJournal::select_public_command(
+            &configuration_path,
+            owner_context.public_root(),
+            deadline,
+            cancelled,
+        )?
+    };
     budget.charge_bytes(owner.configuration_raw().len())?;
     let config = owner.configuration();
     if owner.configuration_raw() != hint_raw.as_slice()
@@ -304,12 +331,25 @@ pub(super) fn run(
         deadline,
         cancelled,
     )?;
+    let empty = JsonValue::Array(Vec::new());
     let private_sources = crate::source_private_assessment_sources::select_owner_local_sources(
         &owner_context,
         &context_configuration,
-        cmd::field(config, "owner_local_source_records")?,
-        cmd::field(config, "native_text_units")?,
-        config.object_get("owner_local_source_claims"),
+        if version.is_private() {
+            cmd::field(config, "owner_local_source_records")?
+        } else {
+            &empty
+        },
+        if version.is_private() {
+            cmd::field(config, "native_text_units")?
+        } else {
+            &empty
+        },
+        if version.is_private() {
+            config.object_get("owner_local_source_claims")
+        } else {
+            None
+        },
         &context,
         cut,
         &mut worker,
@@ -353,7 +393,7 @@ fn parse_request(raw: &[u8], version: OwnerVersion) -> SourceCommandResult<Parse
     }
     let operation = cmd::text(&request, "operation")?;
     let allowed = match version {
-        OwnerVersion::V4 => matches!(
+        OwnerVersion::V1 | OwnerVersion::V2 | OwnerVersion::V3 | OwnerVersion::V4 => matches!(
             operation,
             "describe" | "inspect" | "append" | "materialize-form"
         ),
@@ -455,9 +495,9 @@ fn preflight_configuration(config: &JsonValue, version: OwnerVersion) -> SourceC
     if cmd::array(config, "authorities")?.len() > MAX_ASSESSMENTS
         || cmd::array(config, "competencies")?.len() > MAX_ASSESSMENTS
         || cmd::array(config, "records")?.len() > MAX_ASSESSMENTS
-        || cmd::array(config, "source_records")?.len() > MAX_ASSESSMENTS
-        || cmd::array(config, "owner_local_source_records")?.len() > 64
-        || cmd::array(config, "native_text_units")?.len() > 64
+        || version.has_source() && cmd::array(config, "source_records")?.len() > MAX_ASSESSMENTS
+        || version.is_private() && cmd::array(config, "owner_local_source_records")?.len() > 64
+        || version.has_native() && cmd::array(config, "native_text_units")?.len() > 64
     {
         return Err(SourceCommandError::Invalid(
             "assessment configured input count",
@@ -684,6 +724,20 @@ fn run_selected(
     }
     let mut native_records = Vec::new();
     let mut native_index = BTreeMap::<String, usize>::new();
+    for row in &public_sources.native_rows {
+        budget.charge_work(1)?;
+        let id = cmd::text(row, "id")?;
+        if source_index.contains_key(id) {
+            return Err(SourceCommandError::Denied(
+                "public source selection shadows a native assessment identity",
+            ));
+        }
+        push_resolved(row.clone(), &mut native_records, &mut native_index)?;
+        push_resolved(row.clone(), &mut resolved_rows, &mut resolved_index)?;
+    }
+    if !selected.version.is_private() {
+        selected.private_sources.native_summaries = public_sources.native_summaries.clone();
+    }
     for input in &selected.private_sources.native_records {
         budget.charge_work(1)?;
         let row = parse_record_input(input)?;
@@ -813,12 +867,21 @@ fn run_selected(
             "selected native layer assessment target is absent from source closure",
         ));
     }
-    let subject_required_source_refs = required_source_refs(
-        &selected.request.subject_id,
-        &public_sources.claim_dependencies,
-        selected.private_sources.required_source_refs(),
-        selected_layer,
-    )?;
+    let subject_required_source_refs = if selected.version == OwnerVersion::V3 {
+        crate::source_sign::required_sources(
+            &selected.request.subject_id,
+            &public_sources.claim_dependencies,
+            &resolved_rows,
+            &public_sources.native_summaries,
+        )?
+    } else {
+        required_source_refs(
+            &selected.request.subject_id,
+            &public_sources.claim_dependencies,
+            selected.private_sources.required_source_refs(),
+            selected_layer,
+        )?
+    };
     let required_sources = resolve_required_sources(&subject_required_source_refs, &all_by_id)?;
     let source_route = if selected_layer.is_some() {
         AssessmentSourceRoute::LayerQuality
@@ -1414,7 +1477,9 @@ fn configured_scope(config: &JsonValue, subject_id: &str) -> SourceCommandResult
         "requested_use",
         "access_allowed",
     ];
-    if scope.object_get("form_language_context").is_some() {
+    if OwnerVersion::from_config(config)? != OwnerVersion::V1
+        && scope.object_get("form_language_context").is_some()
+    {
         keys.push("form_language_context");
     }
     cmd::exact_keys(&scope, &keys)?;
@@ -1652,16 +1717,22 @@ fn owner_snapshot(
     private_native_snapshots: &[String],
     layers: Option<&crate::source_private_assessment_layers::PrivateAssessmentLayers>,
 ) -> SourceCommandResult<String> {
+    let version = OwnerVersion::from_config(config)?;
+    if version == OwnerVersion::V1 {
+        return Ok(format!("sha256:{}", cmd::record_digest(config)?.to_hex()));
+    }
     let mut identity_rows = public_identity_snapshots.clone();
-    identity_rows.insert(
-        "native_text_snapshots".to_owned(),
-        JsonValue::Array(
-            private_native_snapshots
-                .iter()
-                .map(|value| cmd::string(value))
-                .collect(),
-        ),
-    );
+    if version.is_private() {
+        identity_rows.insert(
+            "native_text_snapshots".to_owned(),
+            JsonValue::Array(
+                private_native_snapshots
+                    .iter()
+                    .map(|value| cmd::string(value))
+                    .collect(),
+            ),
+        );
+    }
     if let Some(layers) = layers {
         identity_rows.insert(
             "native_layer_assessment_snapshot".to_owned(),
@@ -1693,14 +1764,16 @@ fn owner_snapshot(
         );
         entries.insert("public_claim_dependencies".to_owned(), dependencies);
     }
-    entries.insert(
-        "owner_local_sources".to_owned(),
-        cmd::string(private_source_snapshot),
-    );
-    entries.insert(
-        "configuration_bytes".to_owned(),
-        cmd::string(&Digest256::of_bytes(configuration_raw).to_hex()),
-    );
+    if version.is_private() {
+        entries.insert(
+            "owner_local_sources".to_owned(),
+            cmd::string(private_source_snapshot),
+        );
+        entries.insert(
+            "configuration_bytes".to_owned(),
+            cmd::string(&Digest256::of_bytes(configuration_raw).to_hex()),
+        );
+    }
     let snapshot = JsonValue::Object(
         entries
             .into_iter()
@@ -2560,7 +2633,7 @@ fn execute_journal_operation(
                 ));
             }
         };
-    let envelope = cmd::object(vec![
+    let mut envelope = cmd::object(vec![
         (
             "schema_version",
             cmd::string("tos_local_assessment_result_v1"),
@@ -2568,9 +2641,15 @@ fn execute_journal_operation(
         ("owner_snapshot", cmd::string(snapshot)),
         ("authentication", cmd::string("local-unix-account")),
         ("result", result),
-        ("visibility", cmd::string("local_only")),
-        ("publication_authorized", JsonValue::Bool(false)),
     ]);
+    if selected.version.is_private() {
+        cmd::set(&mut envelope, "visibility", cmd::string("local_only"))?;
+        cmd::set(
+            &mut envelope,
+            "publication_authorized",
+            JsonValue::Bool(false),
+        )?;
+    }
     Ok(envelope)
 }
 
@@ -2673,7 +2752,14 @@ fn describe_context(
             "policy",
             owner_reference(&cmd::field(config, "policy")?.clone())?,
         ),
-        ("scope", scope_context(scope)?),
+        (
+            "scope",
+            if selected.version.is_private() {
+                scope_context(scope)?
+            } else {
+                scope.clone()
+            },
+        ),
         (
             "supported_operations",
             JsonValue::Array(supported.iter().map(|value| cmd::string(value)).collect()),
@@ -2789,6 +2875,84 @@ fn describe_context(
             "native_text_units",
             JsonValue::Array(selected.private_sources.native_summaries.clone()),
         )?;
+    }
+    if !selected.version.is_private() && selected.version.has_source() {
+        let fixity = public_sources
+            .fixity
+            .iter()
+            .map(|row| Ok((cmd::text(row, "path")?, cmd::field(row, "digest")?.clone())))
+            .collect::<SourceCommandResult<BTreeMap<_, _>>>()?;
+        let bindings = cmd::array(config, "source_records")?;
+        let paths = bindings
+            .iter()
+            .map(|row| cmd::text(row, "path"))
+            .collect::<SourceCommandResult<BTreeSet<_>>>()?;
+        let records = bindings
+            .iter()
+            .map(|binding| {
+                let path = cmd::text(binding, "path")?;
+                let id = cmd::text(binding, "record_id")?;
+                let row = public_sources
+                    .rows
+                    .iter()
+                    .find(|row| row.object_get("id").and_then(JsonValue::as_str) == Some(id))
+                    .ok_or(SourceCommandError::Conflict(
+                        "public assessment source record absent",
+                    ))?;
+                Ok(cmd::object(vec![
+                    ("record", owner_reference(row)?),
+                    ("path", cmd::string(path)),
+                    (
+                        "file_digest",
+                        fixity
+                            .get(path)
+                            .cloned()
+                            .ok_or(SourceCommandError::Conflict(
+                                "public assessment source fixity absent",
+                            ))?,
+                    ),
+                    ("origin_id", cmd::field(row, "origin_id")?.clone()),
+                ]))
+            })
+            .collect::<SourceCommandResult<Vec<_>>>()?;
+        cmd::set(&mut context, "source_records", JsonValue::Array(records))?;
+        let contracts = public_sources
+            .fixity
+            .iter()
+            .filter(|row| {
+                row.object_get("path")
+                    .and_then(JsonValue::as_str)
+                    .is_some_and(|path| !paths.contains(path))
+            })
+            .cloned()
+            .collect();
+        cmd::set(
+            &mut context,
+            "source_contracts",
+            JsonValue::Array(contracts),
+        )?;
+        if selected.version.has_native() {
+            cmd::set(
+                &mut context,
+                "native_text_units",
+                JsonValue::Array(public_sources.native_summaries.clone()),
+            )?;
+            let contracts = public_sources
+                .native_contracts
+                .iter()
+                .map(|(path, digest)| {
+                    cmd::object(vec![
+                        ("path", cmd::string(path)),
+                        ("digest", cmd::string(digest)),
+                    ])
+                })
+                .collect();
+            cmd::set(
+                &mut context,
+                "native_contracts",
+                JsonValue::Array(contracts),
+            )?;
+        }
     }
     Ok(context)
 }
