@@ -722,6 +722,27 @@ fn native_layer_journal_case(derived: bool) {
     let invocation_path = temporary.path().join("layer-journal-invocation.json");
     fs::write(&invocation_path, serde_json::to_vec(&invocation).unwrap()).unwrap();
     fs::set_permissions(&invocation_path, fs::Permissions::from_mode(0o600)).unwrap();
+    // An unselected layer in a unit's closure remains supporting evidence.
+    let configuration_raw = fs::read(&owner).unwrap();
+    let mut supporting_only: Value = serde_json::from_slice(&configuration_raw).unwrap();
+    supporting_only["native_text_layers"] = serde_json::json!([]);
+    fs::write(&owner, serde_json::to_vec(&supporting_only).unwrap()).unwrap();
+    fs::set_permissions(&owner, fs::Permissions::from_mode(0o600)).unwrap();
+    let (denied_status, _, denied_error) = super::command_text_cases::native_owner_cli_observation(
+        &repository,
+        &owner,
+        &invocation_path,
+        &serde_json::json!({"schema_version":"tos_local_assessment_command_v1",
+            "operation":"describe","subject_id":fixture["layer_subject"]["id"]}),
+        deadline,
+    );
+    assert!(!denied_status.success());
+    assert!(
+        String::from_utf8_lossy(&denied_error)
+            .contains("native supporting evidence is not an assessment target")
+    );
+    fs::write(&owner, configuration_raw).unwrap();
+    fs::set_permissions(&owner, fs::Permissions::from_mode(0o600)).unwrap();
     let invoke = |request: &Value| -> Value {
         let (status, raw, errors) = super::command_text_cases::native_owner_cli_observation(
             &repository,

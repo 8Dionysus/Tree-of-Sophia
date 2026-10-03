@@ -848,6 +848,7 @@ fn run_selected(
     let subject_is_native = native_index.contains_key(&selected.request.subject_id);
     let subject_is_sourced = source_index.contains_key(&selected.request.subject_id);
     if subject_is_native
+        && selected_layer.is_none()
         && !cmd::array(&config, "native_text_units")?
             .iter()
             .any(|selection| {
@@ -1544,7 +1545,10 @@ fn select_current_scope(
                 "assessment source Claim scope differs from its layer or maker",
             ));
         }
-    } else if cmd::text(body, "schema_version")? == "tos_human_form_v1"
+    } else if body
+        .object_get("schema_version")
+        .and_then(JsonValue::as_str)
+        == Some("tos_human_form_v1")
         && (cmd::text(&scope, "assertion_layer")? != "human_projection"
             || cmd::field(&scope, "maker_id")? != cmd::field(body, "creator_id")?)
     {
