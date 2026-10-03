@@ -3515,11 +3515,10 @@ fn navigation_top_raw_from_predecessor(
 }
 
 fn manifest_sha(value: &Value) -> Result<&str, String> {
+    // local_prepared owns six-field change frames; the last field is a
+    // bare digest string (or null for deletion), unlike row digest metadata.
     let sha = value
-        .as_object()
-        .filter(|object| object.len() == 1)
-        .and_then(|_| value.get("sha256"))
-        .and_then(Value::as_str)
+        .as_str()
         .ok_or_else(|| invalid("prepared digest frame"))?;
     if sha.len() != 64
         || !sha
@@ -5118,7 +5117,7 @@ fn run_source_navigation_integrity(
         .map_err(|error| error.to_string())?;
 
     let mut read_bytes = D1ReadBytes::new(limits);
-    let (base_top, base_top_rows, base_top_raw) =
+    let (base_top, _, base_top_raw) =
         parse_meta_accounted(&d1_tx, "knowledge_reader_top", limits, &mut read_bytes)?;
     let (base_revision, base_revision_rows, _) =
         parse_meta_accounted(&d1_tx, "data_revision", limits, &mut read_bytes)?;
@@ -5259,31 +5258,8 @@ fn run_source_navigation_integrity(
     inspect_private_prepared_source_inputs(&spec, None, None)
         .map_err(|error| format!("offline navigation integrity pair: {error:?}"))?;
 
-    let (_, data_revision_rows, _) =
-        parse_meta_accounted(&d1_tx, "data_revision", limits, &mut read_bytes)?;
-    let target_revision_raw = compact(
-        &json!({"sha256": target_revision}),
-        limits.prepared.max_metadata_bytes,
-    )?;
-    for (key, prior, next) in [
-        (
-            "knowledge_reader_top",
-            base_top_rows.as_slice(),
-            next_top_raw.as_str(),
-        ),
-        (
-            "data_revision",
-            data_revision_rows.as_slice(),
-            target_revision_raw.as_str(),
-        ),
-    ] {
-        capture_transition_rows(
-            &mut before_rows,
-            &mut after_rows,
-            meta_raw_transitions(key, prior, next, limits)?,
-            &mut retained,
-        )?;
-    }
+    // The compiler emission owner stages reader top and data revision from
+    // spec. They are reserved publication rows, not caller transitions.
 
     let transitions = row_transitions(before_rows, after_rows, limits, &mut retained)?;
     d1.identity.verify_selected_file_identity()?;

@@ -1280,6 +1280,7 @@ struct CaptureEmission<'a> {
     limits: D1PairLimits,
     private_lineage_json: Option<&'a str>,
     initial_work_bytes: u64,
+    navigation_empty_predecessor: bool,
 }
 impl<'a> From<&'a D1PairInput> for CaptureEmission<'a> {
     fn from(spec: &'a D1PairInput) -> Self {
@@ -1293,6 +1294,7 @@ impl<'a> From<&'a D1PairInput> for CaptureEmission<'a> {
             limits: spec.limits,
             private_lineage_json: None,
             initial_work_bytes: 0,
+            navigation_empty_predecessor: false,
         }
     }
 }
@@ -1350,6 +1352,24 @@ fn publication(
         quote(base)
     ));
     body.push("SELECT CASE WHEN NOT EXISTS(SELECT 1 FROM knowledge_exploration_clock WHERE singleton=1 AND typeof(epoch)='integer' AND epoch>=0 AND epoch<=9007199254740989) OR (SELECT count(*) FROM sqlite_master WHERE type='trigger' AND name IN ('knowledge_exploration_revision_insert','knowledge_exploration_revision_update','knowledge_exploration_revision_delete'))!=3 THEN RAISE(ABORT,'D1 publication clock unavailable') END;".into());
+    // Bootstrap captures an absent whole navigation product. Recheck that
+    // global predecessor property inside the atomic publication trigger;
+    // per-key row guards alone cannot detect an intervening unrelated row.
+    if spec.navigation_empty_predecessor && !reverse {
+        for table in [
+            D1Table::SourceNavigationNodes,
+            D1Table::SourceNavigationNodePayload,
+            D1Table::SourceNavigationEdges,
+            D1Table::SourceNavigationEdgePayload,
+            D1Table::SourceNavigationRights,
+            D1Table::SourceNavigationRightsPayload,
+        ] {
+            body.push(format!(
+                "SELECT CASE WHEN EXISTS(SELECT 1 FROM {}) THEN RAISE(ABORT,'navigation bootstrap predecessor occupied') END;",
+                table.shape().0
+            ));
+        }
+    }
     let mut auxiliary_guards = Vec::new();
     let mut auxiliary_seals = Vec::new();
     if !spec.auxiliary_stores.is_empty() {
@@ -1801,6 +1821,7 @@ where
         limits: spec.limits,
         private_lineage_json: Some(&lineage),
         initial_work_bytes,
+        navigation_empty_predecessor: spec.predecessor_mode == D1PrivatePreparedMode::Bootstrap,
     };
     emit_capture_common(&context, target, rows, forward, rollback, manifest)
 }

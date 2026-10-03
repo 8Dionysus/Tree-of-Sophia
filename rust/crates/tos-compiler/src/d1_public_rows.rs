@@ -654,84 +654,84 @@ pub fn project_private_navigation_row(
             .and_then(JsonValue::as_str)
             .unwrap_or("")
     };
-    let (id, table, payload_table, selection, mut values, base_columns, selection_column) =
-        match kind {
-            "nodes" => (
-                text("node_id"),
-                D::SourceNavigationNodes,
-                D::SourceNavigationNodePayload,
-                String::from_utf8(compact(
-                    &navigation_selection(item, "properties", &["packet_id", "access_status"]),
-                    MAX_ROW_BYTES,
-                )?)
-                .map_err(|_| Error::Invalid("private navigation properties UTF-8"))?,
-                vec![
-                    text("node_id").to_owned(),
-                    ordinal.to_string(),
-                    text("node_kind").to_owned(),
-                    text("source_ref").to_owned(),
-                    text("label").to_owned(),
-                    text("identity_status").to_owned(),
-                ],
-                vec![
-                    "node_id",
-                    "ord",
-                    "node_kind",
-                    "source_ref",
-                    "label",
-                    "identity_status",
-                ],
-                "properties_json",
-            ),
-            "edges" => (
-                text("edge_id"),
-                D::SourceNavigationEdges,
-                D::SourceNavigationEdgePayload,
-                String::from_utf8(compact(
-                    &navigation_selection(item, "source_refs", &[]),
-                    MAX_ROW_BYTES,
-                )?)
-                .map_err(|_| Error::Invalid("private navigation source refs UTF-8"))?,
-                vec![
-                    text("edge_id").to_owned(),
-                    ordinal.to_string(),
-                    text("from_id").to_owned(),
-                    text("to_id").to_owned(),
-                    text("edge_kind").to_owned(),
-                    text("predicate_id").to_owned(),
-                    text("review_status").to_owned(),
-                ],
-                vec![
-                    "edge_id",
-                    "ord",
-                    "from_id",
-                    "to_id",
-                    "edge_kind",
-                    "predicate_id",
-                    "review_status",
-                ],
-                "source_refs_json",
-            ),
-            "rights" => (
-                text("rights_id"),
-                D::SourceNavigationRights,
-                D::SourceNavigationRightsPayload,
-                String::from_utf8(compact(
-                    &navigation_selection(item, "scope_refs", &[]),
-                    MAX_ROW_BYTES,
-                )?)
-                .map_err(|_| Error::Invalid("private navigation scope refs UTF-8"))?,
-                vec![text("rights_id").to_owned(), ordinal.to_string()],
-                vec!["rights_id", "ord"],
-                "scope_refs_json",
-            ),
-            _ => unreachable!(),
-        };
+    let (id, table, payload_table, selection, values, _base_columns, selection_column) = match kind
+    {
+        "nodes" => (
+            text("node_id"),
+            D::SourceNavigationNodes,
+            D::SourceNavigationNodePayload,
+            String::from_utf8(compact(
+                &navigation_selection(item, "properties", &["packet_id", "access_status"]),
+                MAX_ROW_BYTES,
+            )?)
+            .map_err(|_| Error::Invalid("private navigation properties UTF-8"))?,
+            vec![
+                text("node_id").to_owned(),
+                ordinal.to_string(),
+                text("node_kind").to_owned(),
+                text("source_ref").to_owned(),
+                text("label").to_owned(),
+                text("identity_status").to_owned(),
+            ],
+            vec![
+                "node_id",
+                "ord",
+                "node_kind",
+                "source_ref",
+                "label",
+                "identity_status",
+            ],
+            "properties_json",
+        ),
+        "edges" => (
+            text("edge_id"),
+            D::SourceNavigationEdges,
+            D::SourceNavigationEdgePayload,
+            String::from_utf8(compact(
+                &navigation_selection(item, "source_refs", &[]),
+                MAX_ROW_BYTES,
+            )?)
+            .map_err(|_| Error::Invalid("private navigation source refs UTF-8"))?,
+            vec![
+                text("edge_id").to_owned(),
+                ordinal.to_string(),
+                text("from_id").to_owned(),
+                text("to_id").to_owned(),
+                text("edge_kind").to_owned(),
+                text("predicate_id").to_owned(),
+                text("review_status").to_owned(),
+            ],
+            vec![
+                "edge_id",
+                "ord",
+                "from_id",
+                "to_id",
+                "edge_kind",
+                "predicate_id",
+                "review_status",
+            ],
+            "source_refs_json",
+        ),
+        "rights" => (
+            text("rights_id"),
+            D::SourceNavigationRights,
+            D::SourceNavigationRightsPayload,
+            String::from_utf8(compact(
+                &navigation_selection(item, "scope_refs", &[]),
+                MAX_ROW_BYTES,
+            )?)
+            .map_err(|_| Error::Invalid("private navigation scope refs UTF-8"))?,
+            vec![text("rights_id").to_owned(), ordinal.to_string()],
+            vec!["rights_id", "ord"],
+            "scope_refs_json",
+        ),
+        _ => unreachable!(),
+    };
     if id.is_empty() || id.len() > 4096 {
         return Err(Error::Invalid("private navigation row key"));
     }
     let quote_len = |value: &str| -> Result<usize> { crate::d1_public_sql::quote_len(value) };
-    let base = base_columns.iter().try_fold(1024usize, |sum, value| {
+    let base = values.iter().try_fold(1024usize, |sum, value| {
         sum.checked_add(quote_len(value)?)
             .ok_or(Error::Budget("private navigation row bytes"))
     })?;
@@ -756,14 +756,14 @@ pub fn project_private_navigation_row(
         String::new()
     };
     let retained_json = if inline { json.clone() } else { String::new() };
-    let mut row = base_columns
+    let mut row = values
         .iter()
         .enumerate()
         .map(|(index, value)| {
             if index == 1 {
                 C::Integer(ordinal)
             } else {
-                C::Text((*value).to_owned())
+                C::Text(value.to_owned())
             }
         })
         .collect::<Vec<_>>();

@@ -520,7 +520,8 @@ impl Fixture {
     }
     fn build_d1(&mut self, available: bool) {
         let db = Connection::open(&self.d1).unwrap();
-        db.execute_batch("PRAGMA temp_store=MEMORY").unwrap();
+        db.execute_batch("PRAGMA temp_store=MEMORY; BEGIN IMMEDIATE")
+            .unwrap();
         // Reuse the maintained table declarations; fixture owns rows only.
         let declarations = include_str!("../../../tos-compiler/src/d1_public_schema.rs");
         for line in declarations.lines() {
@@ -607,6 +608,7 @@ impl Fixture {
             }
         }
         db.execute_batch("INSERT INTO knowledge_search_gram_stats SELECT kind,n,gram,count(*) FROM knowledge_search_grams GROUP BY kind,n,gram;CREATE UNIQUE INDEX knowledge_search_address_id_idx ON knowledge_search_documents(kind,id);CREATE INDEX knowledge_search_address_tie_idx ON knowledge_search_documents(kind,id_lower,position);").unwrap();
+        db.execute_batch("COMMIT").unwrap();
         db.execute_batch(include_str!(
             "../../../../../access/deploy/cloudflare-worker/migrations/0001-exploration.sql"
         ))
@@ -619,7 +621,7 @@ impl Fixture {
         let binding = foundation_raw(binding_raw.as_bytes(), 1_048_576).unwrap();
         local_prepared_aux::install_compact(&db, &binding, AuxInstallLimits::default()).unwrap();
         local_prepared_aux::install_membership(&db, &binding, AuxInstallLimits::default()).unwrap();
-        db.execute_batch("COMMIT").unwrap();
+        db.execute_batch("COMMIT; BEGIN IMMEDIATE").unwrap();
         if available {
             for (kind, rows) in [
                 ("nodes", &self.raw_nav["nodes"]),
@@ -657,6 +659,7 @@ impl Fixture {
         } else {
             put_meta(&db, "source_navigation_top", "{}");
         }
+        db.execute_batch("COMMIT").unwrap();
         auxiliary_current(&db);
     }
     fn advance(&mut self, navigation_changed: bool, all_changes: bool) {
@@ -1451,6 +1454,9 @@ fn navigation_integrity_persisted_rights_drift_and_read_budget_refuse() {
     for small_budget in [false, true] {
         let f = Fixture::new(true, true, false);
         let db = Connection::open(&f.d1).unwrap();
+        // Integrity migration starts at the pre-companion product. Existing
+        // companions correctly refuse blind refresh before checking row drift.
+        db.execute("DELETE FROM edge_meta WHERE key GLOB 'source_navigation_row_digest:*' OR key='source_navigation_header_digest'", []).unwrap();
         if !small_budget {
             db.execute("UPDATE source_navigation_rights SET json='{}'", [])
                 .unwrap();
