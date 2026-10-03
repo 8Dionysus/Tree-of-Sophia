@@ -8315,12 +8315,19 @@ fn exact_metadata_version(
         ("schema_ref", string(schema_ref)),
         ("type_id", type_id),
     ]);
+    // This binding exposes the selected record chain, matching the maintained
+    // metadata reader. The resolver's whole-package observation is internal
+    // evidence and must not change the public history/dependency shape.
+    let mut history = resolved.history;
+    if let JsonValue::Object(fields) = &mut history {
+        fields.retain(|(key, _)| key.as_str() != Some("all_package_bytes_verified"));
+    }
     let provenance = object(vec![
         ("verification_scope", string("selected-record-chain")),
         ("all_package_bytes_verified", JsonValue::Bool(false)),
         ("catalog", catalog),
         ("descriptor", descriptor.clone()),
-        ("history", resolved.history),
+        ("history", history),
         ("source", resolved.source),
         ("transition", resolved.transition),
     ]);
