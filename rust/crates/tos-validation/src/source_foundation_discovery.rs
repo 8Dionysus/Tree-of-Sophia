@@ -100,6 +100,7 @@ pub enum DiscoverySeenIdNamespace {
     Event,
     DiscoveryEvent,
     RepresentationFile,
+    SchemaLocation,
 }
 
 impl DiscoverySeenIdNamespace {
@@ -111,6 +112,7 @@ impl DiscoverySeenIdNamespace {
             Self::Event => "event",
             Self::DiscoveryEvent => "discovery-event",
             Self::RepresentationFile => "representation-file",
+            Self::SchemaLocation => "schema-location",
         }
     }
 }
@@ -1176,7 +1178,36 @@ impl<S: LayerFamilySource + ?Sized, I: Copy + Eq> Inspector<'_, '_, S, I> {
         document: &Value,
         raw_size: usize,
     ) -> Result<(), ItemRefusal> {
-        if !self.schema_locations.insert(location.to_owned()) {
+        if self.candidate_discovery_seen_ids.is_some() {
+            let remaining_state_bytes = self.remaining_state_bytes()?;
+            let store = self
+                .candidate_discovery_seen_ids
+                .as_deref_mut()
+                .ok_or_else(|| {
+                    ItemRefusal::Source(
+                        "candidate Discovery schema-location index is unavailable".into(),
+                    )
+                })?;
+            let (first, workspace_state_bytes) = store.remember_first(
+                DiscoverySeenIdNamespace::SchemaLocation,
+                location,
+                location,
+                remaining_state_bytes,
+            )?;
+            self.check_temporary_state(workspace_state_bytes)?;
+            self.candidate_discovery_seen_ids_peak_workspace_state_bytes = self
+                .candidate_discovery_seen_ids_peak_workspace_state_bytes
+                .max(workspace_state_bytes);
+            self.candidate_artifact_evidence_peak_state_bytes =
+                self.candidate_artifact_evidence_peak_state_bytes.max(
+                    self.candidate_current_artifact_evidence_state_bytes
+                        .checked_add(workspace_state_bytes)
+                        .ok_or(ItemRefusal::Budget)?,
+                );
+            if !first {
+                return Ok(());
+            }
+        } else if !self.schema_locations.insert(location.to_owned()) {
             return Ok(());
         }
         if !self.has_current_member(contract)? {
