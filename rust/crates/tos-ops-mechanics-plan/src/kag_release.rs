@@ -645,7 +645,9 @@ pub fn build_release(
     let status = crate::kag_downstream_status::Status::new(&release.join("status"), "kag")?;
     let attempt = status.begin(revision)?;
     let temporary = release.join(format!(".kag-release-{attempt}"));
-    let deadline = Instant::now() + Duration::from_secs(600);
+    let deadline = DEADLINE
+        .with(|d| d.get())
+        .ok_or_else(|| invalid("missing whole KAG deadline"))?;
     let result = (|| {
         budget_check()?;
         fs::create_dir(&temporary)?;
