@@ -377,6 +377,7 @@ pub struct ReadingLocalExecutor {
     selected: Arc<ReadingRoot>,
     analysis: Arc<ReadingRoot>,
     reading_budget: ReadingSearchBudget,
+    concept_budget: ReadingSearchBudget,
 }
 struct ReadingRoot {
     path: std::path::PathBuf,
@@ -391,6 +392,7 @@ impl ReadingLocalExecutor {
             analysis: Arc::clone(&selected),
             selected,
             reading_budget: ReadingSearchBudget::local_default(),
+            concept_budget: ReadingSearchBudget::local_default(),
         })
     }
 
@@ -418,7 +420,17 @@ impl ReadingLocalExecutor {
             selected: Arc::new(ReadingRoot::open(source)?),
             analysis: Arc::new(ReadingRoot::open(analysis)?),
             reading_budget,
+            concept_budget: ReadingSearchBudget::local_default(),
         })
+    }
+    /// Explicit Concept/Word file profile; does not alter Reading defaults or authority.
+    pub fn with_concept_file_budget(mut self, file: u64, total: u64) -> Result<Self, AccessError> {
+        if file == 0 || file > total {
+            return Err(invalid());
+        }
+        self.concept_budget.max_file_bytes = file;
+        self.concept_budget.max_total_file_bytes = total;
+        Ok(self)
     }
 }
 impl ReadingRoot {
@@ -492,7 +504,7 @@ impl AccessExecutor for ReadingLocalExecutor {
             &roots,
             &ReadingSoftware::embedded(),
             &request,
-            ReadingSearchBudget::local_default(),
+            self.concept_budget,
             Arc::clone(&probe),
         )
         .map_err(query_error)?;
@@ -523,7 +535,7 @@ impl AccessExecutor for ReadingLocalExecutor {
             analysis_root: self.selected.path.clone(),
         };
         let software = ReadingSoftware::embedded();
-        let budget = ReadingSearchBudget::local_default();
+        let budget = self.concept_budget;
         let mut result = match candidate {
             Some(bytes) => tos_query::reading_search::validate_word_analysis_candidate(
                 &roots,
