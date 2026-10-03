@@ -131,6 +131,58 @@ pub trait DiscoverySeenIds {
         max_state_bytes: usize,
     ) -> Result<(bool, usize), ItemRefusal>;
 }
+
+/// Mechanical facts extracted from one current Discovery run. Candidate CMD
+/// callers may place these facts in the existing invocation-scoped SQLite
+/// auxiliary store; finite callers retain their compatible in-memory map.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DiscoveryRunSummary {
+    pub target_kind: String,
+    pub known_refs: BTreeSet<String>,
+    pub captured_acquisitions: BTreeSet<(String, String, String, u64)>,
+}
+
+/// Candidate-local keyed scratch for Discovery run summaries. Keys are exact
+/// current source paths, not authority IDs. Implementations must precharge
+/// each row before materializing it, preserve path-key replacement behavior,
+/// and prove the inserted-row count at `finish`.
+pub trait DiscoveryRunSummaryStore {
+    fn insert_summary(
+        &mut self,
+        path: &str,
+        summary: &DiscoveryRunSummary,
+        max_state_bytes: usize,
+    ) -> Result<usize, ItemRefusal>;
+
+    fn lookup_summary(
+        &mut self,
+        path: &str,
+        max_state_bytes: usize,
+    ) -> Result<(Option<DiscoveryRunSummary>, usize), ItemRefusal>;
+
+    fn finish(
+        &mut self,
+        expected_rows: u64,
+        max_state_bytes: usize,
+    ) -> Result<DiscoveryRunSummaryStoreCost, ItemRefusal>;
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct DiscoveryRunSummaryStoreCost {
+    /// Matching parseable source observations seen, including repeated paths.
+    pub observation_rows: u64,
+    /// Unique path-keyed summaries retained in the invocation scratch table.
+    pub unique_paths: u64,
+    /// Logical encoded values stored by insert/replacement operations. SQLite
+    /// page reads and writes remain charged by CMD's shared physical ledger.
+    pub serialized_summary_write_bytes: u64,
+    /// Logical serialized summary bytes materialized from SQLite point reads.
+    pub serialized_summary_read_bytes: u64,
+    /// High-water row workspace, excluding persistent SQLite bytes.
+    pub workspace_state_bytes: usize,
+    /// Scan-row equivalents charged to the shared candidate operation cap.
+    pub scan_row_operations: u64,
+}
 const PRIVATE_HANDOFF_REQUIRED_FORBIDDEN_CLASSES: &[&str] = &[
     "source_page_bytes",
     "source_text_or_transcription",
@@ -482,6 +534,22 @@ pub struct Cost {
     /// Discovery uniqueness index. Its growing rows are disk custody, not
     /// retained process state.
     pub candidate_discovery_seen_ids_peak_workspace_state_bytes: usize,
+    /// High-water workspace for candidate Discovery summary index writes and
+    /// point lookups. Persistent SQLite bytes remain in CMD's pinned scope.
+    pub candidate_discovery_run_summary_peak_workspace_state_bytes: usize,
+    /// Parseable Discovery-run observations streamed into the candidate
+    /// summary index, including repeated path observations.
+    pub candidate_discovery_run_summary_observation_rows: u64,
+    /// Unique exact paths retained by the candidate summary index.
+    pub candidate_discovery_run_summary_unique_paths: u64,
+    /// Logical serialized summary bytes written during this scan. Physical
+    /// SQLite custody comes from CMD's pinned auxiliary scope ledger.
+    pub candidate_discovery_run_summary_serialized_write_bytes: u64,
+    /// Logical serialized summary bytes read back for point lookups.
+    pub candidate_discovery_run_summary_serialized_read_bytes: u64,
+    /// SQLite point/write/count scan-row operations charged to the shared
+    /// candidate scan limit for this summary projection.
+    pub candidate_discovery_run_summary_scan_row_operations: u64,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -547,15 +615,7 @@ struct EventInfo {
     inputs: BTreeSet<(String, String)>,
 }
 
-#[derive(Debug, Clone)]
-struct DiscoveryInfo {
-    target_kind: String,
-    known_refs: BTreeSet<String>,
-    /// Exact captured snapshot/acquisition tuples usable by native Artifact
-    /// source-binding verification. Only completed downloads with matching
-    /// owner fields are retained here.
-    captured_acquisitions: BTreeSet<(String, String, String, u64)>,
-}
+type DiscoveryInfo = DiscoveryRunSummary;
 
 trait DiscoveryCurrentPaths: SourceFoundationDefaultPaths {
     fn for_each_discovery_path(
@@ -639,6 +699,7 @@ struct Inspector<'s, 'p, S: LayerFamilySource + ?Sized, I: Copy + Eq = ()> {
     native_histories: NativeHistorySet<'p, I>,
     artifact_replays: ArtifactReplaySet<'p, I>,
     candidate_invalid_schema_proofs: Option<&'p dyn CandidateInvalidArtifactSchemaProof<I>>,
+    candidate_discovery_run_summaries: Option<&'p mut dyn DiscoveryRunSummaryStore>,
     limits: ItemLimits,
     physical: Option<&'s SourcePhysicalFacts>,
     issues: Vec<Issue>,
@@ -660,6 +721,8 @@ struct Inspector<'s, 'p, S: LayerFamilySource + ?Sized, I: Copy + Eq = ()> {
     artifact_replay_referenced_state_bytes: usize,
     candidate_artifact_evidence_peak_state_bytes: usize,
     candidate_current_artifact_evidence_state_bytes: usize,
+    candidate_current_discovery_run_summary_state_bytes: usize,
+    candidate_discovery_run_summary_peak_workspace_state_bytes: usize,
     candidate_discovery_seen_ids_peak_workspace_state_bytes: usize,
 }
 
@@ -709,6 +772,9 @@ impl<S: LayerFamilySource + ?Sized, I: Copy + Eq> Inspector<'_, '_, S, I> {
             .checked_add(bytes)
             .filter(|used| {
                 used.checked_add(self.candidate_current_artifact_evidence_state_bytes)
+                    .and_then(|total| {
+                        total.checked_add(self.candidate_current_discovery_run_summary_state_bytes)
+                    })
                     .is_some_and(|total| total <= self.limits.max_state_bytes)
             })
             .ok_or(ItemRefusal::Budget)?;
@@ -722,7 +788,58 @@ impl<S: LayerFamilySource + ?Sized, I: Copy + Eq> Inspector<'_, '_, S, I> {
             .and_then(|remaining| {
                 remaining.checked_sub(self.candidate_current_artifact_evidence_state_bytes)
             })
+            .and_then(|remaining| {
+                remaining.checked_sub(self.candidate_current_discovery_run_summary_state_bytes)
+            })
             .ok_or(ItemRefusal::Budget)
+    }
+
+    fn set_current_discovery_run_summary_state(&mut self, bytes: usize) -> Result<(), ItemRefusal> {
+        let previous = self.candidate_current_discovery_run_summary_state_bytes;
+        self.candidate_current_discovery_run_summary_state_bytes = bytes;
+        if let Err(error) = self.check_temporary_state(0) {
+            self.candidate_current_discovery_run_summary_state_bytes = previous;
+            return Err(error);
+        }
+        self.candidate_discovery_run_summary_peak_workspace_state_bytes = self
+            .candidate_discovery_run_summary_peak_workspace_state_bytes
+            .max(bytes);
+        self.candidate_artifact_evidence_peak_state_bytes =
+            self.candidate_artifact_evidence_peak_state_bytes.max(
+                self.candidate_current_artifact_evidence_state_bytes
+                    .checked_add(bytes)
+                    .ok_or(ItemRefusal::Budget)?,
+            );
+        Ok(())
+    }
+
+    fn with_discovery_summary<R>(
+        &mut self,
+        path: &str,
+        in_memory: Option<&DiscoveryInfo>,
+        visit: impl FnOnce(&mut Self, Option<&DiscoveryInfo>) -> Result<R, ItemRefusal>,
+    ) -> Result<R, ItemRefusal> {
+        if self.candidate_discovery_run_summaries.is_none() {
+            return visit(self, in_memory);
+        }
+        if !safe_relative_path(path)
+            || !path
+                .strip_prefix(DISCOVERY_RUNS)
+                .is_some_and(|tail| !tail.contains('/') && tail.ends_with(".json"))
+        {
+            return visit(self, None);
+        }
+        let remaining_state = self.remaining_state_bytes()?;
+        let (summary, workspace_state_bytes) = self
+            .candidate_discovery_run_summaries
+            .as_deref_mut()
+            .ok_or(ItemRefusal::Budget)?
+            .lookup_summary(path, remaining_state)?;
+        self.check_temporary_state(workspace_state_bytes)?;
+        self.set_current_discovery_run_summary_state(workspace_state_bytes)?;
+        let result = visit(self, summary.as_ref());
+        self.set_current_discovery_run_summary_state(0)?;
+        result
     }
 
     fn set_current_artifact_evidence_state(&mut self, bytes: usize) -> Result<(), ItemRefusal> {
@@ -820,6 +937,9 @@ impl<S: LayerFamilySource + ?Sized, I: Copy + Eq> Inspector<'_, '_, S, I> {
         self.state_bytes
             .checked_add(bytes)
             .and_then(|used| used.checked_add(self.candidate_current_artifact_evidence_state_bytes))
+            .and_then(|used| {
+                used.checked_add(self.candidate_current_discovery_run_summary_state_bytes)
+            })
             .filter(|used| *used <= self.limits.max_state_bytes)
             .map(|_| ())
             .ok_or(ItemRefusal::Budget)
@@ -885,6 +1005,9 @@ impl<S: LayerFamilySource + ?Sized, I: Copy + Eq> Inspector<'_, '_, S, I> {
                 .checked_sub(self.state_bytes)
                 .and_then(|remaining| {
                     remaining.checked_sub(self.candidate_current_artifact_evidence_state_bytes)
+                })
+                .and_then(|remaining| {
+                    remaining.checked_sub(self.candidate_current_discovery_run_summary_state_bytes)
                 })
                 .ok_or(ItemRefusal::Budget)?
                 / 8;
@@ -6053,46 +6176,59 @@ fn native_artifact_capture<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
                 "ref",
             )
             .unwrap_or("");
-            if let Some(discovery) = discoveries.get(discovery_ref) {
-                for fingerprint in original
-                    .pointer("/digital_catalog_record/response_fingerprints")
-                    .and_then(Value::as_array)
-                    .into_iter()
-                    .flatten()
-                {
-                    if fingerprint.get("captured") != Some(&Value::Bool(true)) {
-                        continue;
-                    }
-                    let surface = string(fingerprint, "surface");
-                    let sha256 = string(fingerprint, "sha256");
-                    let byte_size = fingerprint.get("byte_size").and_then(Value::as_u64);
-                    let matched = match (surface, sha256, byte_size) {
-                        (Some(surface), Some(sha256), Some(byte_size)) => discovery
-                            .captured_acquisitions
-                            .iter()
-                            .any(|(candidate_surface, snapshot_sha, acquisition_sha, size)| {
-                                candidate_surface == surface
-                                    && snapshot_sha == sha256
-                                    && acquisition_sha == sha256
-                                    && *size == byte_size
-                            }),
-                        _ => false,
-                    };
-                    if !matched {
+            inspector.with_discovery_summary(
+                discovery_ref,
+                discoveries.get(discovery_ref),
+                |inspector, discovery| {
+                    if let Some(discovery) = discovery {
+                        for fingerprint in original
+                            .pointer("/digital_catalog_record/response_fingerprints")
+                            .and_then(Value::as_array)
+                            .into_iter()
+                            .flatten()
+                        {
+                            if fingerprint.get("captured") != Some(&Value::Bool(true)) {
+                                continue;
+                            }
+                            let surface = string(fingerprint, "surface");
+                            let sha256 = string(fingerprint, "sha256");
+                            let byte_size =
+                                fingerprint.get("byte_size").and_then(Value::as_u64);
+                            let matched = match (surface, sha256, byte_size) {
+                                (Some(surface), Some(sha256), Some(byte_size)) => discovery
+                                    .captured_acquisitions
+                                    .iter()
+                                    .any(|(
+                                        candidate_surface,
+                                        snapshot_sha,
+                                        acquisition_sha,
+                                        size,
+                                    )| {
+                                        candidate_surface == surface
+                                            && snapshot_sha == sha256
+                                            && acquisition_sha == sha256
+                                            && *size == byte_size
+                                    }),
+                                _ => false,
+                            };
+                            if !matched {
+                                inspector.issue(
+                                    request_path,
+                                    "native-artifact-response-fingerprint-unresolved",
+                                    "captured response fingerprint has no exact discovery snapshot and acquisition account",
+                                )?;
+                            }
+                        }
+                    } else {
                         inspector.issue(
                             request_path,
-                            "native-artifact-response-fingerprint-unresolved",
-                            "captured response fingerprint has no exact discovery snapshot and acquisition account",
+                            "native-artifact-discovery-input-unresolved",
+                            discovery_ref,
                         )?;
                     }
-                }
-            } else {
-                inspector.issue(
-                    request_path,
-                    "native-artifact-discovery-input-unresolved",
-                    discovery_ref,
-                )?;
-            }
+                    Ok(())
+                },
+            )?;
         }
 
         let (history_valid, correction_replay_pending) = if exact_invalid_current_schema {
@@ -6759,6 +6895,7 @@ fn inspect_internal<S: LayerFamilySource + ?Sized>(
         invalid_current_artifact_schema_proofs,
         None,
         None,
+        None,
     )
     .map(|output| output.report)
 }
@@ -6854,6 +6991,7 @@ pub fn inspect_candidate_with_artifact_replays_and_records_with_proofs<
         None,
         None,
         None,
+        None,
     )?;
     input.verify_current_fence(coverage, limits.deadline, source.cancellation())?;
     Ok(SourceFoundationCandidateDiscoveryReport {
@@ -6897,6 +7035,7 @@ pub fn inspect_candidate_with_artifact_evidence_provider<
         physical,
         evidence_provider,
         None,
+        None,
         require_local_payloads,
     )
 }
@@ -6933,6 +7072,47 @@ pub fn inspect_candidate_with_artifact_evidence_provider_and_seen_ids<
         physical,
         evidence_provider,
         Some(discovery_seen_ids),
+        None,
+        require_local_payloads,
+    )
+}
+
+/// Candidate variant that spills exact-path Discovery summaries beside the
+/// existing exact-ID scratch index in CMD's invocation-scoped auxiliary
+/// store. The summary projection is rebuilt from current source bytes on
+/// every invocation and carries no source-admission authority.
+#[allow(clippy::too_many_arguments)]
+pub fn inspect_candidate_with_artifact_evidence_provider_and_seen_ids_and_run_summaries<
+    S: LayerFamilySource + ?Sized,
+    I: Copy + Eq,
+>(
+    source: &mut S,
+    input: &dyn SourceCutInputWithIdentity<I>,
+    coverage: &SourceCutInputCoverage,
+    paths: &dyn SourceFoundationDefaultPaths,
+    prior_events: &dyn SourceFoundationDefaultEventLookup,
+    records_lookup: &dyn SourceFoundationDefaultRecordsLookup,
+    records: &SourceFoundationRecordsStreamedReport<'_, I>,
+    limits: ItemLimits,
+    physical: &SourcePhysicalFacts,
+    evidence_provider: &mut dyn CandidateArtifactEvidenceProvider<I>,
+    discovery_seen_ids: &mut dyn DiscoverySeenIds,
+    discovery_run_summaries: &mut dyn DiscoveryRunSummaryStore,
+    require_local_payloads: bool,
+) -> Result<SourceFoundationCandidateDiscoveryReport<I>, ItemRefusal> {
+    inspect_candidate_with_artifact_evidence_provider_impl(
+        source,
+        input,
+        coverage,
+        paths,
+        prior_events,
+        records_lookup,
+        records,
+        limits,
+        physical,
+        evidence_provider,
+        Some(discovery_seen_ids),
+        Some(discovery_run_summaries),
         require_local_payloads,
     )
 }
@@ -6953,6 +7133,7 @@ fn inspect_candidate_with_artifact_evidence_provider_impl<
     physical: &SourcePhysicalFacts,
     evidence_provider: &mut dyn CandidateArtifactEvidenceProvider<I>,
     discovery_seen_ids: Option<&mut dyn DiscoverySeenIds>,
+    discovery_run_summaries: Option<&mut dyn DiscoveryRunSummaryStore>,
     require_local_payloads: bool,
 ) -> Result<SourceFoundationCandidateDiscoveryReport<I>, ItemRefusal> {
     source.checkpoint(limits.deadline)?;
@@ -6990,6 +7171,7 @@ fn inspect_candidate_with_artifact_evidence_provider_impl<
         None,
         Some(evidence_provider),
         discovery_seen_ids,
+        discovery_run_summaries,
     )?;
     input.verify_current_fence(coverage, limits.deadline, source.cancellation())?;
     Ok(SourceFoundationCandidateDiscoveryReport {
@@ -7118,6 +7300,7 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
     invalid_current_artifact_schema_proofs: Option<&CurrentArtifactInvalidSchemaProofs<'_>>,
     mut candidate_artifact_evidence_provider: Option<&mut dyn CandidateArtifactEvidenceProvider<I>>,
     mut discovery_seen_ids: Option<&mut dyn DiscoverySeenIds>,
+    candidate_discovery_run_summaries: Option<&mut dyn DiscoveryRunSummaryStore>,
 ) -> Result<DiscoveryKernelOutput, ItemRefusal> {
     let mut inspector = Inspector {
         source,
@@ -7129,6 +7312,7 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
         native_histories,
         artifact_replays,
         candidate_invalid_schema_proofs,
+        candidate_discovery_run_summaries,
         limits,
         physical,
         issues: Vec::new(),
@@ -7152,6 +7336,8 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
         artifact_replay_referenced_state_bytes: 0,
         candidate_artifact_evidence_peak_state_bytes: 0,
         candidate_current_artifact_evidence_state_bytes: 0,
+        candidate_current_discovery_run_summary_state_bytes: 0,
+        candidate_discovery_run_summary_peak_workspace_state_bytes: 0,
         candidate_discovery_seen_ids_peak_workspace_state_bytes: 0,
     };
     let mut previous_path: Option<String> = None;
@@ -7232,18 +7418,47 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
     }
 
     let mut discoveries: BTreeMap<String, DiscoveryInfo> = BTreeMap::new();
-    let discovery_paths = inspector.collect_current_paths_matching(|path| {
-        path.strip_prefix(DISCOVERY_RUNS)
+    let mut discovery_summary_observations = 0u64;
+    inspector.for_each_current_path(&mut |inspector, path| {
+        if !path
+            .strip_prefix(DISCOVERY_RUNS)
             .is_some_and(|tail| !tail.contains('/') && tail.ends_with(".json"))
-    })?;
-    for path in &discovery_paths {
-        let path = path.as_str();
+        {
+            return Ok(());
+        }
         let Some((value, _, _)) = inspector.json(path, path, DISCOVERY_SCHEMA)? else {
-            continue;
+            return Ok(());
         };
         inspector.source_refs(&value, path)?;
         for message in discovery_semantic_issues(&value) {
             inspector.issue(path, "discovery-semantic", message)?;
+        }
+        let mut summary_workspace_state_bytes = 0usize;
+        if inspector.candidate_discovery_run_summaries.is_some() {
+            let target_kind_len = value
+                .pointer("/target/target_kind")
+                .and_then(Value::as_str)
+                .map_or(0, str::len);
+            let known_refs = array(
+                value.pointer("/target").unwrap_or(&Value::Null),
+                "known_tos_refs",
+            );
+            let mut known_refs_state = 0usize;
+            for (index, reference) in known_refs.iter().filter_map(Value::as_str).enumerate() {
+                if index % 128 == 0 {
+                    inspector.checkpoint()?;
+                }
+                known_refs_state = known_refs_state
+                    .checked_add(reference.len().checked_mul(2).ok_or(ItemRefusal::Budget)?)
+                    .and_then(|bytes| bytes.checked_add(size_of::<String>() + 256))
+                    .ok_or(ItemRefusal::Budget)?;
+            }
+            summary_workspace_state_bytes = size_of::<DiscoveryInfo>()
+                .checked_add(target_kind_len.checked_mul(2).ok_or(ItemRefusal::Budget)?)
+                .and_then(|bytes| bytes.checked_add(size_of::<String>() + 64))
+                .and_then(|bytes| bytes.checked_add(known_refs_state))
+                .ok_or(ItemRefusal::Budget)?;
+            inspector.set_current_discovery_run_summary_state(summary_workspace_state_bytes)?;
         }
         let target_kind = value
             .pointer("/target/target_kind")
@@ -7279,14 +7494,24 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
                 else {
                     continue;
                 };
-                inspector.reserve_state(
-                    surface
-                        .len()
-                        .checked_add(snapshot_sha256.len())
-                        .and_then(|used| used.checked_add(acquisition_sha256.len()))
-                        .and_then(|used| used.checked_add(96))
-                        .ok_or(ItemRefusal::Budget)?,
-                )?;
+                let tuple_state = surface
+                    .len()
+                    .checked_add(snapshot_sha256.len())
+                    .and_then(|used| used.checked_add(acquisition_sha256.len()))
+                    .and_then(|used| used.checked_mul(2))
+                    .and_then(|used| {
+                        used.checked_add(size_of::<(String, String, String, u64)>() + 256)
+                    })
+                    .ok_or(ItemRefusal::Budget)?;
+                if inspector.candidate_discovery_run_summaries.is_some() {
+                    summary_workspace_state_bytes = summary_workspace_state_bytes
+                        .checked_add(tuple_state)
+                        .ok_or(ItemRefusal::Budget)?;
+                    inspector
+                        .set_current_discovery_run_summary_state(summary_workspace_state_bytes)?;
+                } else {
+                    inspector.reserve_state(tuple_state)?;
+                }
                 captured_acquisitions.insert((
                     surface.to_owned(),
                     snapshot_sha256.to_owned(),
@@ -7295,15 +7520,31 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
                 ));
             }
         }
-        discoveries.insert(
-            path.to_owned(),
-            DiscoveryInfo {
-                target_kind,
-                known_refs,
-                captured_acquisitions,
-            },
-        );
-    }
+        let summary = DiscoveryInfo {
+            target_kind,
+            known_refs,
+            captured_acquisitions,
+        };
+        if inspector.candidate_discovery_run_summaries.is_some() {
+            let remaining_state_bytes = inspector.remaining_state_bytes()?;
+            let workspace_state_bytes = inspector
+                .candidate_discovery_run_summaries
+                .as_deref_mut()
+                .ok_or(ItemRefusal::Budget)?
+                .insert_summary(path, &summary, remaining_state_bytes)?;
+            let combined_summary_workspace = summary_workspace_state_bytes
+                .checked_add(workspace_state_bytes)
+                .ok_or(ItemRefusal::Budget)?;
+            inspector.set_current_discovery_run_summary_state(combined_summary_workspace)?;
+            discovery_summary_observations = discovery_summary_observations
+                .checked_add(1)
+                .ok_or(ItemRefusal::Budget)?;
+            inspector.set_current_discovery_run_summary_state(0)?;
+        } else {
+            discoveries.insert(path.to_owned(), summary);
+        }
+        Ok(())
+    })?;
 
     let mut discovery_events: BTreeMap<String, EventInfo> = BTreeMap::new();
     let mut discovery_event_ids = BTreeSet::new();
@@ -7511,29 +7752,34 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
             "public_metadata_only",
             &["metadata_only"],
         )?;
-        match discoveries.get(discovery_ref) {
-            Some(discovery) => {
-                if !discovery.known_refs.contains(id) {
-                    inspector.issue(
-                        path,
-                        "discovery-target-omits-owner",
-                        "artifact discovery target does not include artifact_id",
-                    )?;
+        inspector.with_discovery_summary(
+            discovery_ref,
+            discoveries.get(discovery_ref),
+            |inspector, discovery| match discovery {
+                Some(discovery) => {
+                    if !discovery.known_refs.contains(id) {
+                        inspector.issue(
+                            path,
+                            "discovery-target-omits-owner",
+                            "artifact discovery target does not include artifact_id",
+                        )?;
+                    }
+                    if discovery.target_kind != "artifact" {
+                        inspector.issue(
+                            path,
+                            "discovery-target-kind-drift",
+                            "artifact discovery target_kind must be artifact",
+                        )?;
+                    }
+                    Ok(())
                 }
-                if discovery.target_kind != "artifact" {
-                    inspector.issue(
-                        path,
-                        "discovery-target-kind-drift",
-                        "artifact discovery target_kind must be artifact",
-                    )?;
-                }
-            }
-            None => inspector.issue(
-                path,
-                "unresolved-discovery-run",
-                "artifact discovery_ref does not resolve to a validated discovery run",
-            )?,
-        }
+                None => inspector.issue(
+                    path,
+                    "unresolved-discovery-run",
+                    "artifact discovery_ref does not resolve to a validated discovery run",
+                ),
+            },
+        )?;
         let event_ref = string(&value, "provenance_event_ref").unwrap_or("");
         let candidate_evidence_response =
             if let Some(provider) = candidate_artifact_evidence_provider.as_deref_mut() {
@@ -7813,15 +8059,19 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
             PUBLIC_REPRESENTATION_POSTURES,
         )?;
         let discovery_ref = string(&value, "discovery_ref").unwrap_or("");
-        match discoveries.get(discovery_ref) {
-            Some(discovery) if discovery.known_refs.contains(artifact_id) => {}
-            Some(_) => inspector.issue(
-                path,
-                "representation-discovery-target-omits-artifact",
-                discovery_ref,
-            )?,
-            None => inspector.issue(path, "unresolved-representation-discovery", discovery_ref)?,
-        }
+        inspector.with_discovery_summary(
+            discovery_ref,
+            discoveries.get(discovery_ref),
+            |inspector, discovery| match discovery {
+                Some(discovery) if discovery.known_refs.contains(artifact_id) => Ok(()),
+                Some(_) => inspector.issue(
+                    path,
+                    "representation-discovery-target-omits-artifact",
+                    discovery_ref,
+                ),
+                None => inspector.issue(path, "unresolved-representation-discovery", discovery_ref),
+            },
+        )?;
 
         if safe_payload {
             if let Some(facts) = inspector.checked_payload_facts(&payload_path, path)? {
@@ -8014,29 +8264,34 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
             "public_metadata_only",
             &["metadata_only"],
         )?;
-        match discoveries.get(discovery_ref) {
-            Some(discovery) => {
-                if !discovery.known_refs.contains(id) {
-                    inspector.issue(
-                        path,
-                        "discovery-target-omits-owner",
-                        "scholarly-composite discovery target does not include composite_id",
-                    )?;
+        inspector.with_discovery_summary(
+            discovery_ref,
+            discoveries.get(discovery_ref),
+            |inspector, discovery| match discovery {
+                Some(discovery) => {
+                    if !discovery.known_refs.contains(id) {
+                        inspector.issue(
+                            path,
+                            "discovery-target-omits-owner",
+                            "scholarly-composite discovery target does not include composite_id",
+                        )?;
+                    }
+                    if discovery.target_kind != "scholarly-composite" {
+                        inspector.issue(
+                            path,
+                            "discovery-target-kind-drift",
+                            "scholarly-composite discovery target_kind must be scholarly-composite",
+                        )?;
+                    }
+                    Ok(())
                 }
-                if discovery.target_kind != "scholarly-composite" {
-                    inspector.issue(
-                        path,
-                        "discovery-target-kind-drift",
-                        "scholarly-composite discovery target_kind must be scholarly-composite",
-                    )?;
-                }
-            }
-            None => inspector.issue(
-                path,
-                "unresolved-discovery-run",
-                "scholarly-composite discovery_ref does not resolve to a validated discovery run",
-            )?,
-        }
+                None => inspector.issue(
+                    path,
+                    "unresolved-discovery-run",
+                    "scholarly-composite discovery_ref does not resolve to a validated discovery run",
+                ),
+            },
+        )?;
         for member in rows(&value, "member_observations") {
             let member_id = string(member, "member_artifact_id").unwrap_or("");
             if !discovery_id_contains(
@@ -8272,15 +8527,19 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
             LOCAL_REPRESENTATION_POSTURES,
         )?;
         let discovery_ref = string(&value, "discovery_ref").unwrap_or("");
-        match discoveries.get(discovery_ref) {
-            Some(discovery) if discovery.known_refs.contains(composite_id) => {}
-            Some(_) => inspector.issue(
-                path,
-                "representation-discovery-target-omits-composite",
-                discovery_ref,
-            )?,
-            None => inspector.issue(path, "unresolved-representation-discovery", discovery_ref)?,
-        }
+        inspector.with_discovery_summary(
+            discovery_ref,
+            discoveries.get(discovery_ref),
+            |inspector, discovery| match discovery {
+                Some(discovery) if discovery.known_refs.contains(composite_id) => Ok(()),
+                Some(_) => inspector.issue(
+                    path,
+                    "representation-discovery-target-omits-composite",
+                    discovery_ref,
+                ),
+                None => inspector.issue(path, "unresolved-representation-discovery", discovery_ref),
+            },
+        )?;
 
         if inspector.physical.and_then(|facts| facts.git_available) == Some(true) {
             inspector.metadata_git(path, path)?;
@@ -8521,6 +8780,19 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
     }
 
     inspector.checkpoint()?;
+    let discovery_run_summary_cost = if inspector.candidate_discovery_run_summaries.is_some() {
+        let remaining_state_bytes = inspector.remaining_state_bytes()?;
+        let cost = inspector
+            .candidate_discovery_run_summaries
+            .as_deref_mut()
+            .ok_or(ItemRefusal::Budget)?
+            .finish(discovery_summary_observations, remaining_state_bytes)?;
+        inspector.set_current_discovery_run_summary_state(cost.workspace_state_bytes)?;
+        inspector.set_current_discovery_run_summary_state(0)?;
+        Some(cost)
+    } else {
+        None
+    };
     let status = if inspector.unsupported.is_empty() {
         ScopeStatus::Complete
     } else {
@@ -8549,6 +8821,25 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
                     .candidate_artifact_evidence_peak_state_bytes,
                 candidate_discovery_seen_ids_peak_workspace_state_bytes: inspector
                     .candidate_discovery_seen_ids_peak_workspace_state_bytes,
+                candidate_discovery_run_summary_peak_workspace_state_bytes:
+                    discovery_run_summary_cost.map_or(
+                        inspector.candidate_discovery_run_summary_peak_workspace_state_bytes,
+                        |cost| {
+                            inspector
+                                .candidate_discovery_run_summary_peak_workspace_state_bytes
+                                .max(cost.workspace_state_bytes)
+                        },
+                    ),
+                candidate_discovery_run_summary_observation_rows: discovery_run_summary_cost
+                    .map_or(0, |cost| cost.observation_rows),
+                candidate_discovery_run_summary_unique_paths: discovery_run_summary_cost
+                    .map_or(0, |cost| cost.unique_paths),
+                candidate_discovery_run_summary_serialized_write_bytes: discovery_run_summary_cost
+                    .map_or(0, |cost| cost.serialized_summary_write_bytes),
+                candidate_discovery_run_summary_serialized_read_bytes: discovery_run_summary_cost
+                    .map_or(0, |cost| cost.serialized_summary_read_bytes),
+                candidate_discovery_run_summary_scan_row_operations: discovery_run_summary_cost
+                    .map_or(0, |cost| cost.scan_row_operations),
             },
         },
         candidate_direct_source_bytes: inspector.candidate_direct_source_bytes,

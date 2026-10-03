@@ -27,7 +27,10 @@ use tos_validation::{
         SourceFoundationDefaultPaths, SourceFoundationDefaultRecordsLookup,
         SourceFoundationDefaultStoredLimits,
     },
-    source_foundation_discovery::{DiscoverySeenIdNamespace, DiscoverySeenIds},
+    source_foundation_discovery::{
+        DiscoveryRunSummary, DiscoveryRunSummaryStore, DiscoveryRunSummaryStoreCost,
+        DiscoverySeenIdNamespace, DiscoverySeenIds,
+    },
     source_foundation_records::{
         SourceFoundationRecordsCollection as RecordsCollection,
         SourceFoundationRecordsStoredFact as StoredFact, SourceFoundationRecordsStreamedReport,
@@ -699,6 +702,10 @@ impl<'candidate, 'host> SpoolDefaultStore<'candidate, 'host> {
                  key TEXT NOT NULL COLLATE BINARY,\
                  first_path TEXT NOT NULL COLLATE BINARY CHECK(length(first_path)>0),\
                  PRIMARY KEY(namespace,key)\
+             ) WITHOUT ROWID;\
+             CREATE TABLE sf_discovery_run_summaries(\
+                 path TEXT NOT NULL COLLATE BINARY PRIMARY KEY CHECK(length(path)>0),\
+                 value BLOB NOT NULL CHECK(length(value)>0)\
              ) WITHOUT ROWID;\
              CREATE TABLE biblio_events(\
                  slot BLOB NOT NULL PRIMARY KEY CHECK(length(slot)=8),\
@@ -1436,6 +1443,300 @@ impl DiscoverySeenIds for CandidateDiscoverySeenIds<'_, '_, '_, '_, '_> {
         }
         let verify_workspace = self.verify_existing_first_path(namespace, id, max_state_bytes)?;
         Ok((false, workspace.max(verify_workspace)))
+    }
+}
+
+struct CandidateDiscoveryRunSummaries<'a, 'candidate, 'host, 'cancel, 'budget> {
+    context: ProviderContext<'candidate, 'host, 'cancel>,
+    db: &'a PinnedSqliteConnection,
+    scan_rows: &'budget Cell<u64>,
+    observation_rows: u64,
+    unique_paths: u64,
+    serialized_summary_write_bytes: u64,
+    serialized_summary_read_bytes: u64,
+    scan_row_operations: u64,
+    workspace_peak_bytes: usize,
+    finished: bool,
+}
+
+/// Invocation-local codec for a derived Discovery lookup projection. These
+/// bytes are scratch rebuilt from the current source cut; they are not a
+/// serialized owner record or an admission proof.
+#[derive(serde::Serialize, serde::Deserialize)]
+struct CandidateDiscoveryRunSummaryStoredV1 {
+    version: u8,
+    target_kind: String,
+    known_refs: std::collections::BTreeSet<String>,
+    captured_acquisitions: std::collections::BTreeSet<(String, String, String, u64)>,
+}
+
+#[derive(serde::Serialize)]
+struct CandidateDiscoveryRunSummaryCodecV1<'a> {
+    version: u8,
+    target_kind: &'a str,
+    known_refs: &'a std::collections::BTreeSet<String>,
+    captured_acquisitions: &'a std::collections::BTreeSet<(String, String, String, u64)>,
+}
+
+impl<'a> From<&'a DiscoveryRunSummary> for CandidateDiscoveryRunSummaryCodecV1<'a> {
+    fn from(summary: &DiscoveryRunSummary) -> Self {
+        Self {
+            version: 1,
+            target_kind: &summary.target_kind,
+            known_refs: &summary.known_refs,
+            captured_acquisitions: &summary.captured_acquisitions,
+        }
+    }
+}
+
+impl TryFrom<CandidateDiscoveryRunSummaryStoredV1> for DiscoveryRunSummary {
+    type Error = ItemRefusal;
+
+    fn try_from(codec: CandidateDiscoveryRunSummaryStoredV1) -> Result<Self, Self::Error> {
+        if codec.version != 1 {
+            return Err(source_refusal());
+        }
+        Ok(Self {
+            target_kind: codec.target_kind,
+            known_refs: codec.known_refs,
+            captured_acquisitions: codec.captured_acquisitions,
+        })
+    }
+}
+
+impl CandidateDiscoveryRunSummaries<'_, '_, '_, '_, '_> {
+    fn path_workspace(path: &str) -> Result<usize, ItemRefusal> {
+        estimate_string_state(path)?
+            .checked_add(size_of::<(String, Vec<u8>)>() + 512)
+            .ok_or(ItemRefusal::Budget)
+    }
+
+    fn encoded_summary_workspace(path: &str, encoded_bytes: usize) -> Result<usize, ItemRefusal> {
+        encoded_bytes
+            .checked_mul(2)
+            .and_then(|bytes| bytes.checked_add(Self::path_workspace(path).ok()?))
+            .ok_or(ItemRefusal::Budget)
+    }
+
+    fn decoded_summary_workspace(path: &str, encoded_bytes: usize) -> Result<usize, ItemRefusal> {
+        json_state_upper_bound(encoded_bytes)?
+            .checked_add(encoded_bytes.checked_mul(2).ok_or(ItemRefusal::Budget)?)
+            .and_then(|bytes| bytes.checked_add(Self::path_workspace(path).ok()?))
+            .ok_or(ItemRefusal::Budget)
+    }
+
+    fn preflight(&self, workspace: usize, max_state_bytes: usize) -> Result<(), ItemRefusal> {
+        if max_state_bytes == 0
+            || max_state_bytes > self.context.operation_state_limit
+            || workspace > max_state_bytes
+        {
+            return Err(ItemRefusal::Budget);
+        }
+        self.context.row_state(workspace)?;
+        self.context.check()
+    }
+
+    fn charge_scan_rows(&mut self, rows: usize) -> Result<(), ItemRefusal> {
+        self.context.add_scan_rows(self.scan_rows, rows)?;
+        self.scan_row_operations = self
+            .scan_row_operations
+            .checked_add(usize_u64(rows)?)
+            .ok_or(ItemRefusal::Budget)?;
+        Ok(())
+    }
+}
+
+impl DiscoveryRunSummaryStore for CandidateDiscoveryRunSummaries<'_, '_, '_, '_, '_> {
+    fn insert_summary(
+        &mut self,
+        path: &str,
+        summary: &DiscoveryRunSummary,
+        max_state_bytes: usize,
+    ) -> Result<usize, ItemRefusal> {
+        if self.finished || path.is_empty() {
+            return Err(source_refusal());
+        }
+        self.preflight(Self::path_workspace(path)?, max_state_bytes)?;
+        RelativePath::new(path).map_err(|_| source_refusal())?;
+        self.context.check()?;
+        let codec = CandidateDiscoveryRunSummaryCodecV1::from(summary);
+        let encoded_bytes = json_len(&codec, max_state_bytes)?;
+        self.context.check()?;
+        if encoded_bytes == 0 {
+            return Err(source_refusal());
+        }
+        let workspace = Self::encoded_summary_workspace(path, encoded_bytes)?;
+        self.preflight(workspace, max_state_bytes)?;
+        let value = encoded_json(&codec, encoded_bytes, max_state_bytes)?;
+        self.context.check()?;
+        self.charge_scan_rows(1)?;
+        let inserted = self
+            .db
+            .execute(
+                "INSERT OR IGNORE INTO sf_discovery_run_summaries(path,value) VALUES(?1,?2)",
+                params![path, &value],
+            )
+            .map_err(sql_refusal)?;
+        self.context.check()?;
+        match inserted {
+            1 => {
+                self.unique_paths = self
+                    .unique_paths
+                    .checked_add(1)
+                    .ok_or(ItemRefusal::Budget)?;
+            }
+            0 => {
+                self.charge_scan_rows(1)?;
+                let updated = self
+                    .db
+                    .execute(
+                        "UPDATE sf_discovery_run_summaries SET value=?2 WHERE path=?1",
+                        params![path, &value],
+                    )
+                    .map_err(sql_refusal)?;
+                if updated != 1 {
+                    return Err(source_refusal());
+                }
+                self.context.check()?;
+            }
+            _ => return Err(source_refusal()),
+        }
+        self.observation_rows = self
+            .observation_rows
+            .checked_add(1)
+            .ok_or(ItemRefusal::Budget)?;
+        self.serialized_summary_write_bytes = self
+            .serialized_summary_write_bytes
+            .checked_add(u64::try_from(value.len()).map_err(|_| ItemRefusal::Budget)?)
+            .ok_or(ItemRefusal::Budget)?;
+        self.workspace_peak_bytes = self.workspace_peak_bytes.max(workspace);
+        Ok(workspace)
+    }
+
+    fn lookup_summary(
+        &mut self,
+        path: &str,
+        max_state_bytes: usize,
+    ) -> Result<(Option<DiscoveryRunSummary>, usize), ItemRefusal> {
+        if self.finished || path.is_empty() {
+            return Err(source_refusal());
+        }
+        let probe_workspace = Self::path_workspace(path)?;
+        self.preflight(probe_workspace, max_state_bytes)?;
+        RelativePath::new(path).map_err(|_| source_refusal())?;
+        self.charge_scan_rows(1)?;
+        let mut statement = self
+            .db
+            .prepare("SELECT length(value) FROM sf_discovery_run_summaries WHERE path=?1")
+            .map_err(sql_refusal)?;
+        let mut rows = statement.query(params![path]).map_err(sql_refusal)?;
+        let encoded_bytes = rows
+            .next()
+            .map_err(sql_refusal)?
+            .map(|row| row.get::<_, i64>(0).map_err(sql_refusal))
+            .transpose()?;
+        if rows.next().map_err(sql_refusal)?.is_some() {
+            return Err(source_refusal());
+        }
+        drop(rows);
+        drop(statement);
+        self.context.check()?;
+        let Some(encoded_bytes) = encoded_bytes else {
+            self.workspace_peak_bytes = self.workspace_peak_bytes.max(probe_workspace);
+            return Ok((None, probe_workspace));
+        };
+        let encoded_bytes = usize::try_from(encoded_bytes).map_err(|_| source_refusal())?;
+        if encoded_bytes == 0 {
+            return Err(source_refusal());
+        }
+        let workspace = Self::decoded_summary_workspace(path, encoded_bytes)?;
+        self.preflight(workspace, max_state_bytes)?;
+        self.charge_scan_rows(1)?;
+        let mut statement = self
+            .db
+            .prepare("SELECT value FROM sf_discovery_run_summaries WHERE path=?1")
+            .map_err(sql_refusal)?;
+        let mut rows = statement.query(params![path]).map_err(sql_refusal)?;
+        let value = rows
+            .next()
+            .map_err(sql_refusal)?
+            .map(|row| match row.get_ref(0)? {
+                rusqlite::types::ValueRef::Blob(raw) if raw.len() == encoded_bytes => {
+                    Ok(raw.to_vec())
+                }
+                _ => Err(rusqlite::Error::InvalidQuery),
+            })
+            .transpose()
+            .map_err(sql_refusal)?
+            .ok_or_else(source_refusal)?;
+        self.serialized_summary_read_bytes = self
+            .serialized_summary_read_bytes
+            .checked_add(u64::try_from(value.len()).map_err(|_| ItemRefusal::Budget)?)
+            .ok_or(ItemRefusal::Budget)?;
+        if rows.next().map_err(sql_refusal)?.is_some() {
+            return Err(source_refusal());
+        }
+        drop(rows);
+        drop(statement);
+        let codec = serde_json::from_slice::<CandidateDiscoveryRunSummaryStoredV1>(&value)
+            .map_err(|_| source_refusal())?;
+        let summary = DiscoveryRunSummary::try_from(codec)?;
+        let canonical_codec = CandidateDiscoveryRunSummaryCodecV1::from(&summary);
+        let canonical_len = json_len(&canonical_codec, encoded_bytes)?;
+        let canonical = encoded_json(&canonical_codec, canonical_len, max_state_bytes)?;
+        if canonical.as_slice() != value.as_slice() {
+            return Err(source_refusal());
+        }
+        self.context.check()?;
+        self.workspace_peak_bytes = self.workspace_peak_bytes.max(workspace);
+        Ok((Some(summary), workspace))
+    }
+
+    fn finish(
+        &mut self,
+        expected_rows: u64,
+        max_state_bytes: usize,
+    ) -> Result<DiscoveryRunSummaryStoreCost, ItemRefusal> {
+        if self.finished || self.observation_rows != expected_rows {
+            return Err(source_refusal());
+        }
+        let workspace = size_of::<i64>() + 256;
+        self.preflight(workspace, max_state_bytes)?;
+        let count_scan_rows = usize::try_from(self.unique_paths)
+            .map_err(|_| ItemRefusal::Budget)?
+            .checked_add(1)
+            .ok_or(ItemRefusal::Budget)?;
+        self.charge_scan_rows(count_scan_rows)?;
+        let mut statement = self
+            .db
+            .prepare("SELECT count(*) FROM sf_discovery_run_summaries")
+            .map_err(sql_refusal)?;
+        let mut rows = statement.query([]).map_err(sql_refusal)?;
+        let actual_count = rows
+            .next()
+            .map_err(sql_refusal)?
+            .map(|row| row.get::<_, i64>(0).map_err(sql_refusal))
+            .transpose()?
+            .ok_or_else(source_refusal)?;
+        if actual_count < 0
+            || u64::try_from(actual_count).map_err(|_| source_refusal())? != self.unique_paths
+            || rows.next().map_err(sql_refusal)?.is_some()
+        {
+            return Err(source_refusal());
+        }
+        drop(rows);
+        drop(statement);
+        self.context.check()?;
+        self.finished = true;
+        self.workspace_peak_bytes = self.workspace_peak_bytes.max(workspace);
+        Ok(DiscoveryRunSummaryStoreCost {
+            observation_rows: self.observation_rows,
+            unique_paths: self.unique_paths,
+            serialized_summary_write_bytes: self.serialized_summary_write_bytes,
+            serialized_summary_read_bytes: self.serialized_summary_read_bytes,
+            workspace_state_bytes: self.workspace_peak_bytes,
+            scan_row_operations: self.scan_row_operations,
+        })
     }
 }
 
@@ -2501,6 +2802,7 @@ impl<'candidate, 'host> SpoolDefaultStore<'candidate, 'host> {
             &dyn SourceFoundationDefaultPaths,
             &mut dyn SourceFoundationDefaultEventStore,
             &mut dyn DiscoverySeenIds,
+            &mut dyn DiscoveryRunSummaryStore,
             &mut dyn SourceFoundationBiblioStoredSink,
         ) -> Result<R, ItemRefusal>,
     ) -> Result<R, ItemRefusal> {
@@ -2563,6 +2865,18 @@ impl<'candidate, 'host> SpoolDefaultStore<'candidate, 'host> {
                 db: &self.db,
                 scan_rows,
             };
+            let mut discovery_run_summaries = CandidateDiscoveryRunSummaries {
+                context,
+                db: &self.db,
+                scan_rows,
+                observation_rows: 0,
+                unique_paths: 0,
+                serialized_summary_write_bytes: 0,
+                serialized_summary_read_bytes: 0,
+                scan_row_operations: 0,
+                workspace_peak_bytes: 0,
+                finished: false,
+            };
             let mut biblio = BiblioStoredProvider {
                 events: BiblioEventsProvider {
                     context,
@@ -2593,9 +2907,11 @@ impl<'candidate, 'host> SpoolDefaultStore<'candidate, 'host> {
                 &paths,
                 &mut default_events,
                 &mut discovery_seen_ids,
+                &mut discovery_run_summaries,
                 &mut biblio,
             )?;
             drop(biblio);
+            drop(discovery_run_summaries);
             drop(discovery_seen_ids);
             drop(default_events);
             paths.verify_eof()?;

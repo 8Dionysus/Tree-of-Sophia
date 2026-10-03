@@ -2068,7 +2068,7 @@ pub(crate) fn evaluate_spooled_admission<
                 stored_operation_state,
                 deadline,
                 cancelled,
-                |records_lookup, paths, default_events, discovery_seen_ids, biblio_sink| {
+                |records_lookup, paths, default_events, discovery_seen_ids, discovery_run_summaries, biblio_sink| {
                     let mut biblio_schema_worker = schema_worker.borrow_mut();
                     let biblio_report = tos_validation::biblio_rules::inspect_bibliography_from_input_stored(
                         input,
@@ -2155,7 +2155,7 @@ pub(crate) fn evaluate_spooled_admission<
                             },
                             max_event_map_bytes: event_state_cap.min(available_after_biblio),
                         };
-                    let stored_report = tos_validation::source_foundation_default_rules::inspect_source_foundation_default_rules_from_input_stored_with_artifact_evidence_provider_and_seen_ids(
+                    let stored_report = tos_validation::source_foundation_default_rules::inspect_source_foundation_default_rules_from_input_stored_with_artifact_evidence_provider_and_seen_ids_and_run_summaries(
                         &mut rule_source,
                         input,
                         view.coverage,
@@ -2167,6 +2167,7 @@ pub(crate) fn evaluate_spooled_admission<
                         physical_facts,
                         &mut replay,
                         discovery_seen_ids,
+                        discovery_run_summaries,
                         view.launch.arguments.require_local_payloads,
                         default_rules_limits,
                         stored_limits,
@@ -2188,6 +2189,12 @@ pub(crate) fn evaluate_spooled_admission<
                                 .cost
                                 .candidate_discovery_seen_ids_peak_workspace_state_bytes,
                         );
+                    let evidence_peak_state = evidence_peak_state.max(
+                        stored_report
+                            .discovery
+                            .cost
+                            .candidate_discovery_run_summary_peak_workspace_state_bytes,
+                    );
                     replay_state = replay_cost_after_rules
                         .retained_state_upper_bound_bytes()
                         .and_then(|state| state.checked_add(evidence_peak_state))
