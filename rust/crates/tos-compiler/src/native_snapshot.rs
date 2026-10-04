@@ -2906,8 +2906,11 @@ fn build_native_snapshot_from_capture_inner(
         index_generation: binding.index_generation,
         route_map_version: binding.route_map_version,
         reader_abi: binding.reader_abi,
-        authority_boundary: serde_json::to_string(&header["authority_boundary"])
-            .map_err(|e| Error::Source(e.to_string()))?,
+        authority_boundary: String::from_utf8(crate::knowledge_seal::canonical(
+            &header["authority_boundary"],
+            limits.full.seal.max_header_bytes,
+        )?)
+        .map_err(|_| Error::Invalid("knowledge authority UTF-8"))?,
         source_scopes,
         complete: true,
     };
