@@ -773,6 +773,24 @@ impl<'candidate, 'host> SpoolDefaultStore<'candidate, 'host> {
              ) WITHOUT ROWID;\
              CREATE INDEX sf_closure_publication_subject_order\
                  ON sf_closure_publication_claims(subject COLLATE BINARY, claim_id COLLATE BINARY);\
+             CREATE TABLE sf_closure_provision_claims(\
+                 claim_id TEXT NOT NULL COLLATE BINARY PRIMARY KEY,\
+                 location TEXT NOT NULL COLLATE BINARY,\
+                 subject TEXT NOT NULL COLLATE BINARY,\
+                 predicate TEXT NOT NULL COLLATE BINARY,\
+                 object TEXT NOT NULL COLLATE BINARY,\
+                 event TEXT NOT NULL COLLATE BINARY,\
+                 native INTEGER NOT NULL CHECK(native IN (0,1))\
+             ) WITHOUT ROWID;\
+             CREATE TABLE sf_closure_provision_event_ids(\
+                 event_id TEXT NOT NULL COLLATE BINARY PRIMARY KEY\
+             ) WITHOUT ROWID;\
+             CREATE TABLE sf_closure_provision_used_events(\
+                 event_id TEXT NOT NULL COLLATE BINARY PRIMARY KEY\
+             ) WITHOUT ROWID;\
+             CREATE TABLE sf_closure_provision_validated_events(\
+                 event_id TEXT NOT NULL COLLATE BINARY PRIMARY KEY\
+             ) WITHOUT ROWID;\
              CREATE TABLE sf_closure_validated_events(\
                  check_kind TEXT NOT NULL COLLATE BINARY CHECK(check_kind IN ('responsibility','publication')),\
                  event_id TEXT NOT NULL COLLATE BINARY CHECK(length(event_id)>0),\
@@ -3068,6 +3086,55 @@ struct CandidateClosureSchemaRequests<'a, 'candidate, 'host, 'cancel, 'budget> {
     publication_claims_sealed: bool,
     publication_claim_eof_seen: bool,
     publication_claim_count_verified: bool,
+    provision_claim_rows: u64,
+    provision_claim_drained_rows: u64,
+    provision_claim_serialized_read_bytes: u64,
+    provision_claim_serialized_write_bytes: u64,
+    provision_claim_scan_row_operations: u64,
+    provision_claim_workspace_state_bytes: usize,
+    max_provision_claim_bytes: [usize; 6],
+    last_provision_claim_id: Option<String>,
+    expected_provision_claim_rows: Option<u64>,
+    provision_claims_sealed: bool,
+    provision_claim_eof_seen: bool,
+    provision_claim_count_verified: bool,
+    provision_event_id_rows: u64,
+    provision_event_id_drained_rows: u64,
+    provision_event_id_serialized_read_bytes: u64,
+    provision_event_id_serialized_write_bytes: u64,
+    provision_event_id_scan_row_operations: u64,
+    provision_event_id_workspace_state_bytes: usize,
+    provision_event_id_lookup_rows: u64,
+    max_provision_event_id_bytes: usize,
+    last_provision_event_id: Option<String>,
+    expected_provision_event_id_rows: Option<u64>,
+    provision_event_ids_sealed: bool,
+    provision_event_id_eof_seen: bool,
+    provision_event_id_count_verified: bool,
+    provision_used_event_rows: u64,
+    provision_used_event_serialized_read_bytes: u64,
+    provision_used_event_serialized_write_bytes: u64,
+    provision_used_event_scan_row_operations: u64,
+    provision_used_event_workspace_state_bytes: usize,
+    max_provision_used_event_bytes: usize,
+    expected_provision_used_event_rows: Option<u64>,
+    provision_used_event_count_verified: bool,
+    provision_validated_event_rows: u64,
+    provision_validated_event_serialized_read_bytes: u64,
+    provision_validated_event_serialized_write_bytes: u64,
+    provision_validated_event_scan_row_operations: u64,
+    provision_validated_event_workspace_state_bytes: usize,
+    max_provision_validated_event_bytes: usize,
+    expected_provision_validated_event_rows: Option<u64>,
+    provision_validated_event_count_verified: bool,
+    provision_unused_event_rows: u64,
+    provision_unused_event_drained_rows: u64,
+    provision_unused_event_serialized_read_bytes: u64,
+    provision_unused_event_scan_row_operations: u64,
+    provision_unused_event_workspace_state_bytes: usize,
+    provision_unused_event_eof_seen: bool,
+    provision_unused_event_count_verified: bool,
+    expected_provision_unused_event_rows: Option<u64>,
     responsibility_validated_event_rows: u64,
     responsibility_validated_event_serialized_read_bytes: u64,
     responsibility_validated_event_serialized_write_bytes: u64,
@@ -3108,6 +3175,13 @@ struct CandidateClosureSchemaRequests<'a, 'candidate, 'host, 'cancel, 'budget> {
     finished: bool,
     events_drained: bool,
     drained: bool,
+}
+
+#[derive(Clone, Copy)]
+enum ProvisionEventSet {
+    Source,
+    Used,
+    Validated,
 }
 
 impl CandidateClosureSchemaRequests<'_, '_, '_, '_, '_> {
@@ -3258,6 +3332,398 @@ impl CandidateClosureSchemaRequests<'_, '_, '_, '_, '_> {
         Ok(())
     }
 
+    fn remember_provision_event_set(
+        &mut self,
+        event_id: &str,
+        max_state_bytes: usize,
+        set: ProvisionEventSet,
+    ) -> Result<(bool, usize), ItemRefusal> {
+        if self.finished
+            || (self.provision_event_ids_sealed && matches!(set, ProvisionEventSet::Source))
+            || (self.provision_used_event_count_verified && matches!(set, ProvisionEventSet::Used))
+            || (self.provision_validated_event_count_verified
+                && matches!(set, ProvisionEventSet::Validated))
+        {
+            return Err(source_refusal());
+        }
+        let workspace = Self::claim_id_workspace(event_id.len(), 3)?;
+        self.preflight(workspace, max_state_bytes)?;
+        self.context.check()?;
+        match set {
+            ProvisionEventSet::Source => self.charge_provision_event_id_scan_rows(2)?,
+            ProvisionEventSet::Used => self.charge_provision_used_event_scan_rows(2)?,
+            ProvisionEventSet::Validated => self.charge_provision_validated_event_scan_rows(2)?,
+        }
+        let changed = match set {
+            ProvisionEventSet::Source => self.db.execute(
+                "INSERT OR IGNORE INTO sf_closure_provision_event_ids(event_id) VALUES(?1)",
+                [event_id],
+            ),
+            ProvisionEventSet::Used => self.db.execute(
+                "INSERT OR IGNORE INTO sf_closure_provision_used_events(event_id) VALUES(?1)",
+                [event_id],
+            ),
+            ProvisionEventSet::Validated => self.db.execute(
+                "INSERT OR IGNORE INTO sf_closure_provision_validated_events(event_id) VALUES(?1)",
+                [event_id],
+            ),
+        }
+        .map_err(sql_refusal)?;
+        if changed > 1 {
+            return Err(source_refusal());
+        }
+        self.context.check()?;
+        let stored = match set {
+            ProvisionEventSet::Source => self.db.query_row(
+                "SELECT event_id FROM sf_closure_provision_event_ids WHERE event_id=?1",
+                [event_id],
+                |row| bounded_row_text(row, 0, workspace),
+            ),
+            ProvisionEventSet::Used => self.db.query_row(
+                "SELECT event_id FROM sf_closure_provision_used_events WHERE event_id=?1",
+                [event_id],
+                |row| bounded_row_text(row, 0, workspace),
+            ),
+            ProvisionEventSet::Validated => self.db.query_row(
+                "SELECT event_id FROM sf_closure_provision_validated_events WHERE event_id=?1",
+                [event_id],
+                |row| bounded_row_text(row, 0, workspace),
+            ),
+        }
+        .map_err(sql_refusal)?;
+        if stored != event_id {
+            return Err(source_refusal());
+        }
+        self.context.check()?;
+        let bytes = usize_u64(event_id.len())?;
+        match set {
+            ProvisionEventSet::Source => {
+                self.provision_event_id_serialized_read_bytes = self
+                    .provision_event_id_serialized_read_bytes
+                    .checked_add(bytes)
+                    .ok_or(ItemRefusal::Budget)?;
+                if changed == 1 {
+                    self.provision_event_id_rows = self
+                        .provision_event_id_rows
+                        .checked_add(1)
+                        .ok_or(ItemRefusal::Budget)?;
+                    self.provision_event_id_serialized_write_bytes = self
+                        .provision_event_id_serialized_write_bytes
+                        .checked_add(bytes)
+                        .ok_or(ItemRefusal::Budget)?;
+                }
+                self.max_provision_event_id_bytes =
+                    self.max_provision_event_id_bytes.max(event_id.len());
+                self.provision_event_id_workspace_state_bytes =
+                    self.provision_event_id_workspace_state_bytes.max(workspace);
+            }
+            ProvisionEventSet::Used => {
+                self.provision_used_event_serialized_read_bytes = self
+                    .provision_used_event_serialized_read_bytes
+                    .checked_add(bytes)
+                    .ok_or(ItemRefusal::Budget)?;
+                if changed == 1 {
+                    self.provision_used_event_rows = self
+                        .provision_used_event_rows
+                        .checked_add(1)
+                        .ok_or(ItemRefusal::Budget)?;
+                    self.provision_used_event_serialized_write_bytes = self
+                        .provision_used_event_serialized_write_bytes
+                        .checked_add(bytes)
+                        .ok_or(ItemRefusal::Budget)?;
+                }
+                self.max_provision_used_event_bytes =
+                    self.max_provision_used_event_bytes.max(event_id.len());
+                self.provision_used_event_workspace_state_bytes = self
+                    .provision_used_event_workspace_state_bytes
+                    .max(workspace);
+            }
+            ProvisionEventSet::Validated => {
+                self.provision_validated_event_serialized_read_bytes = self
+                    .provision_validated_event_serialized_read_bytes
+                    .checked_add(bytes)
+                    .ok_or(ItemRefusal::Budget)?;
+                if changed == 1 {
+                    self.provision_validated_event_rows = self
+                        .provision_validated_event_rows
+                        .checked_add(1)
+                        .ok_or(ItemRefusal::Budget)?;
+                    self.provision_validated_event_serialized_write_bytes = self
+                        .provision_validated_event_serialized_write_bytes
+                        .checked_add(bytes)
+                        .ok_or(ItemRefusal::Budget)?;
+                }
+                self.max_provision_validated_event_bytes =
+                    self.max_provision_validated_event_bytes.max(event_id.len());
+                self.provision_validated_event_workspace_state_bytes = self
+                    .provision_validated_event_workspace_state_bytes
+                    .max(workspace);
+            }
+        }
+        Ok((changed == 1, workspace))
+    }
+
+    fn provision_count_query(
+        &mut self,
+        sql: &str,
+        max_state_bytes: usize,
+    ) -> Result<u64, ItemRefusal> {
+        let workspace = size_of::<i64>() + 256;
+        self.preflight(workspace, max_state_bytes)?;
+        self.context.check()?;
+        let mut statement = self.db.prepare(sql).map_err(sql_refusal)?;
+        let mut rows = statement.query([]).map_err(sql_refusal)?;
+        let count = rows
+            .next()
+            .map_err(sql_refusal)?
+            .map(|row| row.get::<_, i64>(0).map_err(sql_refusal))
+            .transpose()?
+            .ok_or_else(source_refusal)?;
+        if count < 0 || rows.next().map_err(sql_refusal)?.is_some() {
+            return Err(source_refusal());
+        }
+        drop(rows);
+        drop(statement);
+        self.context.check()?;
+        u64::try_from(count).map_err(|_| source_refusal())
+    }
+
+    fn finish_provision_claims(
+        &mut self,
+        expected_rows: u64,
+        max_state_bytes: usize,
+    ) -> Result<(), ItemRefusal> {
+        if self.provision_claim_count_verified
+            || !self.provision_claims_sealed
+            || !self.provision_claim_eof_seen
+            || self.expected_provision_claim_rows != Some(expected_rows)
+            || self.provision_claim_rows != expected_rows
+            || self.provision_claim_drained_rows != expected_rows
+            || self.last_provision_claim_id.is_some()
+        {
+            return Err(source_refusal());
+        }
+        let workspace = size_of::<i64>() + 256;
+        self.preflight(workspace, max_state_bytes)?;
+        self.context.check()?;
+        let scan_rows = usize::try_from(expected_rows)
+            .map_err(|_| ItemRefusal::Budget)?
+            .checked_add(1)
+            .ok_or(ItemRefusal::Budget)?;
+        self.charge_provision_claim_scan_rows(scan_rows)?;
+        let actual = self.provision_count_query(
+            "SELECT count(*) FROM sf_closure_provision_claims",
+            max_state_bytes,
+        )?;
+        if actual != expected_rows {
+            return Err(source_refusal());
+        }
+        self.provision_claim_serialized_read_bytes = self
+            .provision_claim_serialized_read_bytes
+            .checked_add(size_of::<i64>() as u64)
+            .ok_or(ItemRefusal::Budget)?;
+        self.provision_claim_workspace_state_bytes =
+            self.provision_claim_workspace_state_bytes.max(workspace);
+        self.provision_claim_count_verified = true;
+        Ok(())
+    }
+
+    fn finish_provision_event_ids(
+        &mut self,
+        expected_rows: u64,
+        max_state_bytes: usize,
+    ) -> Result<(), ItemRefusal> {
+        if self.provision_event_id_count_verified
+            || !self.provision_event_ids_sealed
+            || !self.provision_event_id_eof_seen
+            || self.expected_provision_event_id_rows != Some(expected_rows)
+            || self.provision_event_id_rows != expected_rows
+            || self.provision_event_id_drained_rows != expected_rows
+            || self.provision_event_id_lookup_rows != expected_rows
+            || self.provision_unused_event_drained_rows != self.provision_unused_event_rows
+            || self.last_provision_event_id.is_some()
+        {
+            return Err(source_refusal());
+        }
+        let workspace = size_of::<i64>() + 256;
+        self.preflight(workspace, max_state_bytes)?;
+        self.context.check()?;
+        let scan_rows = usize::try_from(expected_rows)
+            .map_err(|_| ItemRefusal::Budget)?
+            .checked_add(1)
+            .ok_or(ItemRefusal::Budget)?;
+        self.charge_provision_event_id_scan_rows(scan_rows)?;
+        let actual = self.provision_count_query(
+            "SELECT count(*) FROM sf_closure_provision_event_ids",
+            max_state_bytes,
+        )?;
+        if actual != expected_rows {
+            return Err(source_refusal());
+        }
+        self.provision_event_id_serialized_read_bytes = self
+            .provision_event_id_serialized_read_bytes
+            .checked_add(size_of::<i64>() as u64)
+            .ok_or(ItemRefusal::Budget)?;
+        self.provision_event_id_workspace_state_bytes =
+            self.provision_event_id_workspace_state_bytes.max(workspace);
+        self.provision_event_id_count_verified = true;
+        Ok(())
+    }
+
+    fn finish_provision_event_set(
+        &mut self,
+        set: ProvisionEventSet,
+        expected_rows: u64,
+        max_state_bytes: usize,
+    ) -> Result<(), ItemRefusal> {
+        let (table, rows, verified) = match set {
+            ProvisionEventSet::Used => (
+                "sf_closure_provision_used_events",
+                self.provision_used_event_rows,
+                self.provision_used_event_count_verified,
+            ),
+            ProvisionEventSet::Validated => (
+                "sf_closure_provision_validated_events",
+                self.provision_validated_event_rows,
+                self.provision_validated_event_count_verified,
+            ),
+            ProvisionEventSet::Source => return Err(source_refusal()),
+        };
+        if verified || rows != expected_rows {
+            return Err(source_refusal());
+        }
+        let workspace = size_of::<i64>() + 256;
+        self.preflight(workspace, max_state_bytes)?;
+        self.context.check()?;
+        let scan_rows = usize::try_from(expected_rows)
+            .map_err(|_| ItemRefusal::Budget)?
+            .checked_add(1)
+            .ok_or(ItemRefusal::Budget)?;
+        match set {
+            ProvisionEventSet::Used => self.charge_provision_used_event_scan_rows(scan_rows)?,
+            ProvisionEventSet::Validated => {
+                self.charge_provision_validated_event_scan_rows(scan_rows)?
+            }
+            ProvisionEventSet::Source => return Err(source_refusal()),
+        }
+        let actual =
+            self.provision_count_query(&format!("SELECT count(*) FROM {table}"), max_state_bytes)?;
+        if actual != expected_rows {
+            return Err(source_refusal());
+        }
+        match set {
+            ProvisionEventSet::Used => {
+                self.provision_used_event_serialized_read_bytes = self
+                    .provision_used_event_serialized_read_bytes
+                    .checked_add(size_of::<i64>() as u64)
+                    .ok_or(ItemRefusal::Budget)?;
+                self.provision_used_event_workspace_state_bytes = self
+                    .provision_used_event_workspace_state_bytes
+                    .max(workspace);
+                self.provision_used_event_count_verified = true;
+                self.expected_provision_used_event_rows = Some(expected_rows);
+            }
+            ProvisionEventSet::Validated => {
+                self.provision_validated_event_serialized_read_bytes = self
+                    .provision_validated_event_serialized_read_bytes
+                    .checked_add(size_of::<i64>() as u64)
+                    .ok_or(ItemRefusal::Budget)?;
+                self.provision_validated_event_workspace_state_bytes = self
+                    .provision_validated_event_workspace_state_bytes
+                    .max(workspace);
+                self.provision_validated_event_count_verified = true;
+                self.expected_provision_validated_event_rows = Some(expected_rows);
+            }
+            ProvisionEventSet::Source => return Err(source_refusal()),
+        }
+        Ok(())
+    }
+
+    fn finish_provision_unused_events(
+        &mut self,
+        expected_event_rows: u64,
+        expected_unused_rows: u64,
+        max_state_bytes: usize,
+    ) -> Result<(), ItemRefusal> {
+        if self.provision_unused_event_count_verified
+            || !self.provision_unused_event_eof_seen
+            || self.provision_event_id_lookup_rows != expected_event_rows
+            || self.provision_unused_event_rows != expected_unused_rows
+            || self.provision_unused_event_drained_rows != expected_unused_rows
+        {
+            return Err(source_refusal());
+        }
+        let workspace = size_of::<i64>() + 512;
+        self.preflight(workspace, max_state_bytes)?;
+        self.context.check()?;
+        // The NOT EXISTS aggregate visits each source ID and performs one
+        // exact used-set probe for it, even when the used set is small.
+        let scan_rows = usize::try_from(expected_event_rows)
+            .map_err(|_| ItemRefusal::Budget)?
+            .checked_mul(2)
+            .and_then(|rows| rows.checked_add(1))
+            .ok_or(ItemRefusal::Budget)?;
+        self.charge_provision_unused_event_scan_rows(scan_rows)?;
+        let actual = self.provision_count_query(
+            "SELECT count(*) FROM sf_closure_provision_event_ids AS source \
+             WHERE NOT EXISTS (SELECT 1 FROM sf_closure_provision_used_events AS used \
+                               WHERE used.event_id=source.event_id)",
+            max_state_bytes,
+        )?;
+        if actual != expected_unused_rows {
+            return Err(source_refusal());
+        }
+        self.provision_unused_event_serialized_read_bytes = self
+            .provision_unused_event_serialized_read_bytes
+            .checked_add(size_of::<i64>() as u64)
+            .ok_or(ItemRefusal::Budget)?;
+        self.provision_unused_event_workspace_state_bytes = self
+            .provision_unused_event_workspace_state_bytes
+            .max(workspace);
+        self.provision_unused_event_count_verified = true;
+        self.expected_provision_unused_event_rows = Some(expected_unused_rows);
+        Ok(())
+    }
+
+    fn finish_provision_counts(
+        &mut self,
+        expected_claim_rows: u64,
+        expected_event_id_rows: u64,
+        expected_used_event_rows: u64,
+        expected_validated_event_rows: u64,
+        expected_unused_event_rows: u64,
+        max_state_bytes: usize,
+    ) -> Result<(), ItemRefusal> {
+        if self.finished
+            || !self.provision_claims_sealed
+            || !self.provision_event_ids_sealed
+            || self.provision_claim_rows != expected_claim_rows
+            || self.provision_event_id_rows != expected_event_id_rows
+            || self.provision_used_event_rows != expected_used_event_rows
+            || self.provision_validated_event_rows != expected_validated_event_rows
+        {
+            return Err(source_refusal());
+        }
+        self.finish_provision_claims(expected_claim_rows, max_state_bytes)?;
+        self.finish_provision_event_ids(expected_event_id_rows, max_state_bytes)?;
+        self.finish_provision_event_set(
+            ProvisionEventSet::Used,
+            expected_used_event_rows,
+            max_state_bytes,
+        )?;
+        self.finish_provision_event_set(
+            ProvisionEventSet::Validated,
+            expected_validated_event_rows,
+            max_state_bytes,
+        )?;
+        self.finish_provision_unused_events(
+            expected_event_id_rows,
+            expected_unused_event_rows,
+            max_state_bytes,
+        )?;
+        self.context.check()
+    }
+
     fn charge_membership_claim_scan_rows(&mut self, rows: usize) -> Result<(), ItemRefusal> {
         self.charge_scan_rows(rows)?;
         self.membership_claim_scan_row_operations = self
@@ -3280,6 +3746,54 @@ impl CandidateClosureSchemaRequests<'_, '_, '_, '_, '_> {
         self.charge_scan_rows(rows)?;
         self.publication_claim_scan_row_operations = self
             .publication_claim_scan_row_operations
+            .checked_add(usize_u64(rows)?)
+            .ok_or(ItemRefusal::Budget)?;
+        Ok(())
+    }
+
+    fn charge_provision_claim_scan_rows(&mut self, rows: usize) -> Result<(), ItemRefusal> {
+        self.charge_scan_rows(rows)?;
+        self.provision_claim_scan_row_operations = self
+            .provision_claim_scan_row_operations
+            .checked_add(usize_u64(rows)?)
+            .ok_or(ItemRefusal::Budget)?;
+        Ok(())
+    }
+
+    fn charge_provision_event_id_scan_rows(&mut self, rows: usize) -> Result<(), ItemRefusal> {
+        self.charge_scan_rows(rows)?;
+        self.provision_event_id_scan_row_operations = self
+            .provision_event_id_scan_row_operations
+            .checked_add(usize_u64(rows)?)
+            .ok_or(ItemRefusal::Budget)?;
+        Ok(())
+    }
+
+    fn charge_provision_used_event_scan_rows(&mut self, rows: usize) -> Result<(), ItemRefusal> {
+        self.charge_scan_rows(rows)?;
+        self.provision_used_event_scan_row_operations = self
+            .provision_used_event_scan_row_operations
+            .checked_add(usize_u64(rows)?)
+            .ok_or(ItemRefusal::Budget)?;
+        Ok(())
+    }
+
+    fn charge_provision_validated_event_scan_rows(
+        &mut self,
+        rows: usize,
+    ) -> Result<(), ItemRefusal> {
+        self.charge_scan_rows(rows)?;
+        self.provision_validated_event_scan_row_operations = self
+            .provision_validated_event_scan_row_operations
+            .checked_add(usize_u64(rows)?)
+            .ok_or(ItemRefusal::Budget)?;
+        Ok(())
+    }
+
+    fn charge_provision_unused_event_scan_rows(&mut self, rows: usize) -> Result<(), ItemRefusal> {
+        self.charge_scan_rows(rows)?;
+        self.provision_unused_event_scan_row_operations = self
+            .provision_unused_event_scan_row_operations
             .checked_add(usize_u64(rows)?)
             .ok_or(ItemRefusal::Budget)?;
         Ok(())
@@ -3973,6 +4487,53 @@ impl CandidateClosureSchemaRequests<'_, '_, '_, '_, '_> {
             publication_claim_workspace_state_bytes: self.publication_claim_workspace_state_bytes,
             publication_claim_eof_seen: self.publication_claim_eof_seen,
             publication_claim_count_verified: self.publication_claim_count_verified,
+            provision_claim_rows: self.provision_claim_rows,
+            provision_claim_drained_rows: self.provision_claim_drained_rows,
+            provision_claim_serialized_read_bytes: self.provision_claim_serialized_read_bytes,
+            provision_claim_serialized_write_bytes: self.provision_claim_serialized_write_bytes,
+            provision_claim_scan_row_operations: self.provision_claim_scan_row_operations,
+            provision_claim_workspace_state_bytes: self.provision_claim_workspace_state_bytes,
+            provision_claim_eof_seen: self.provision_claim_eof_seen,
+            provision_claim_count_verified: self.provision_claim_count_verified,
+            provision_event_id_rows: self.provision_event_id_rows,
+            provision_event_id_drained_rows: self.provision_event_id_drained_rows,
+            provision_event_id_serialized_read_bytes: self.provision_event_id_serialized_read_bytes,
+            provision_event_id_serialized_write_bytes: self
+                .provision_event_id_serialized_write_bytes,
+            provision_event_id_scan_row_operations: self.provision_event_id_scan_row_operations,
+            provision_event_id_workspace_state_bytes: self.provision_event_id_workspace_state_bytes,
+            provision_event_id_lookup_rows: self.provision_event_id_lookup_rows,
+            provision_event_id_eof_seen: self.provision_event_id_eof_seen,
+            provision_event_id_count_verified: self.provision_event_id_count_verified,
+            provision_unused_event_rows: self.provision_unused_event_rows,
+            provision_unused_event_drained_rows: self.provision_unused_event_drained_rows,
+            provision_unused_event_serialized_read_bytes: self
+                .provision_unused_event_serialized_read_bytes,
+            provision_unused_event_scan_row_operations: self
+                .provision_unused_event_scan_row_operations,
+            provision_unused_event_workspace_state_bytes: self
+                .provision_unused_event_workspace_state_bytes,
+            provision_unused_event_eof_seen: self.provision_unused_event_eof_seen,
+            provision_unused_event_count_verified: self.provision_unused_event_count_verified,
+            provision_used_event_rows: self.provision_used_event_rows,
+            provision_used_event_serialized_read_bytes: self
+                .provision_used_event_serialized_read_bytes,
+            provision_used_event_serialized_write_bytes: self
+                .provision_used_event_serialized_write_bytes,
+            provision_used_event_scan_row_operations: self.provision_used_event_scan_row_operations,
+            provision_used_event_workspace_state_bytes: self
+                .provision_used_event_workspace_state_bytes,
+            provision_used_event_count_verified: self.provision_used_event_count_verified,
+            provision_validated_event_rows: self.provision_validated_event_rows,
+            provision_validated_event_serialized_read_bytes: self
+                .provision_validated_event_serialized_read_bytes,
+            provision_validated_event_serialized_write_bytes: self
+                .provision_validated_event_serialized_write_bytes,
+            provision_validated_event_scan_row_operations: self
+                .provision_validated_event_scan_row_operations,
+            provision_validated_event_workspace_state_bytes: self
+                .provision_validated_event_workspace_state_bytes,
+            provision_validated_event_count_verified: self.provision_validated_event_count_verified,
             responsibility_validated_event_rows: self.responsibility_validated_event_rows,
             responsibility_validated_event_serialized_read_bytes: self
                 .responsibility_validated_event_serialized_read_bytes,
@@ -4038,6 +4599,28 @@ impl CandidateClosureSchemaRequests<'_, '_, '_, '_, '_> {
             || !self.publication_claim_eof_seen
             || self.last_publication_claim_id.is_some()
             || !self.publication_claim_count_verified
+            || self.expected_provision_claim_rows != Some(self.provision_claim_rows)
+            || !self.provision_claims_sealed
+            || self.provision_claim_drained_rows != self.provision_claim_rows
+            || !self.provision_claim_eof_seen
+            || self.last_provision_claim_id.is_some()
+            || !self.provision_claim_count_verified
+            || self.expected_provision_event_id_rows != Some(self.provision_event_id_rows)
+            || !self.provision_event_ids_sealed
+            || self.provision_event_id_drained_rows != self.provision_event_id_rows
+            || self.provision_event_id_lookup_rows != self.provision_event_id_rows
+            || !self.provision_event_id_eof_seen
+            || self.last_provision_event_id.is_some()
+            || !self.provision_event_id_count_verified
+            || self.expected_provision_used_event_rows != Some(self.provision_used_event_rows)
+            || !self.provision_used_event_count_verified
+            || self.expected_provision_validated_event_rows
+                != Some(self.provision_validated_event_rows)
+            || !self.provision_validated_event_count_verified
+            || self.expected_provision_unused_event_rows != Some(self.provision_unused_event_rows)
+            || self.provision_unused_event_drained_rows != self.provision_unused_event_rows
+            || !self.provision_unused_event_eof_seen
+            || !self.provision_unused_event_count_verified
             || self.expected_responsibility_validated_event_rows
                 != Some(self.responsibility_validated_event_rows)
             || !self.responsibility_validated_event_count_verified
@@ -5028,6 +5611,493 @@ impl SourceFoundationClosureSchemaRequestStore
             row_state,
             cursor_state,
         ))
+    }
+
+    fn remember_provision_claim(
+        &mut self,
+        id: &str,
+        reference: &SourceFoundationClosureClaimRef,
+        max_state_bytes: usize,
+    ) -> Result<(bool, usize), ItemRefusal> {
+        if self.finished || self.provision_claims_sealed {
+            return Err(source_refusal());
+        }
+        let field_bytes = [
+            id.len(),
+            reference.location.len(),
+            reference.subject.len(),
+            reference.predicate.len(),
+            reference.object.len(),
+            reference.event.len(),
+        ];
+        let workspace = Self::responsibility_claim_workspace(field_bytes, 3)?;
+        self.preflight(workspace, max_state_bytes)?;
+        self.context.check()?;
+        self.charge_provision_claim_scan_rows(3)?;
+        let existed = self
+            .db
+            .query_row(
+                "SELECT 1 FROM sf_closure_provision_claims WHERE claim_id=?1",
+                [id],
+                |_| Ok(()),
+            )
+            .optional()
+            .map_err(sql_refusal)?
+            .is_some();
+        self.context.check()?;
+        let changed = self
+            .db
+            .execute(
+                "INSERT INTO sf_closure_provision_claims(claim_id,location,subject,predicate,object,event,native) \
+                 VALUES(?1,?2,?3,?4,?5,?6,?7) ON CONFLICT(claim_id) DO UPDATE SET \
+                 location=excluded.location,subject=excluded.subject,predicate=excluded.predicate, \
+                 object=excluded.object,event=excluded.event,native=excluded.native",
+                params![
+                    id,
+                    reference.location,
+                    reference.subject,
+                    reference.predicate,
+                    reference.object,
+                    reference.event,
+                    if reference.native { 1_i64 } else { 0_i64 },
+                ],
+            )
+            .map_err(sql_refusal)?;
+        if changed != 1 {
+            return Err(source_refusal());
+        }
+        self.context.check()?;
+        let mut statement = self
+            .db
+            .prepare(
+                "SELECT location,subject,predicate,object,event,native \
+                 FROM sf_closure_provision_claims WHERE claim_id=?1",
+            )
+            .map_err(sql_refusal)?;
+        let mut rows = statement.query([id]).map_err(sql_refusal)?;
+        let stored = rows
+            .next()
+            .map_err(sql_refusal)?
+            .map(|row| {
+                Ok((
+                    bounded_row_text(row, 0, workspace)?,
+                    bounded_row_text(row, 1, workspace)?,
+                    bounded_row_text(row, 2, workspace)?,
+                    bounded_row_text(row, 3, workspace)?,
+                    bounded_row_text(row, 4, workspace)?,
+                    row.get::<_, i64>(5)?,
+                ))
+            })
+            .transpose()
+            .map_err(sql_refusal)?
+            .ok_or_else(source_refusal)?;
+        if rows.next().map_err(sql_refusal)?.is_some()
+            || stored.0 != reference.location
+            || stored.1 != reference.subject
+            || stored.2 != reference.predicate
+            || stored.3 != reference.object
+            || stored.4 != reference.event
+            || stored.5 != if reference.native { 1_i64 } else { 0_i64 }
+        {
+            return Err(source_refusal());
+        }
+        drop(rows);
+        drop(statement);
+        drop(stored);
+        self.context.check()?;
+        let serialized_fields = field_bytes.iter().try_fold(0usize, |bytes, field| {
+            bytes.checked_add(*field).ok_or(ItemRefusal::Budget)
+        })?;
+        let read_bytes = serialized_fields
+            .checked_add(if existed { id.len() } else { 0 })
+            .and_then(|bytes| bytes.checked_add(size_of::<i64>()))
+            .ok_or(ItemRefusal::Budget)?;
+        self.provision_claim_serialized_read_bytes = self
+            .provision_claim_serialized_read_bytes
+            .checked_add(usize_u64(read_bytes)?)
+            .ok_or(ItemRefusal::Budget)?;
+        self.provision_claim_serialized_write_bytes = self
+            .provision_claim_serialized_write_bytes
+            .checked_add(usize_u64(
+                serialized_fields
+                    .checked_add(size_of::<i64>())
+                    .ok_or(ItemRefusal::Budget)?,
+            )?)
+            .ok_or(ItemRefusal::Budget)?;
+        if !existed {
+            self.provision_claim_rows = self
+                .provision_claim_rows
+                .checked_add(1)
+                .ok_or(ItemRefusal::Budget)?;
+        }
+        for (maximum, actual) in self.max_provision_claim_bytes.iter_mut().zip(field_bytes) {
+            *maximum = (*maximum).max(actual);
+        }
+        self.provision_claim_workspace_state_bytes =
+            self.provision_claim_workspace_state_bytes.max(workspace);
+        Ok((!existed, workspace))
+    }
+
+    fn begin_provision_claims(&mut self, expected_rows: u64) -> Result<(), ItemRefusal> {
+        if self.finished
+            || self.provision_claims_sealed
+            || self.provision_claim_eof_seen
+            || self.provision_claim_drained_rows != 0
+            || self.last_provision_claim_id.is_some()
+            || self.provision_claim_rows != expected_rows
+        {
+            return Err(source_refusal());
+        }
+        self.context.check()?;
+        self.expected_provision_claim_rows = Some(expected_rows);
+        self.provision_claims_sealed = true;
+        Ok(())
+    }
+
+    fn next_provision_claim(
+        &mut self,
+        max_state_bytes: usize,
+    ) -> Result<
+        (
+            Option<SourceFoundationClosureProvisionClaim>,
+            usize,
+            usize,
+            usize,
+        ),
+        ItemRefusal,
+    > {
+        let Some(expected_rows) = self.expected_provision_claim_rows else {
+            return Err(source_refusal());
+        };
+        if self.finished
+            || !self.provision_claims_sealed
+            || self.provision_claim_eof_seen
+            || self.provision_claim_drained_rows > expected_rows
+            || self.provision_claim_rows != expected_rows
+        {
+            return Err(source_refusal());
+        }
+        let workspace = if self.provision_claim_drained_rows < expected_rows {
+            Self::responsibility_claim_workspace(self.max_provision_claim_bytes, 3)?
+                .checked_add(estimate_string_state(
+                    self.last_provision_claim_id.as_deref().unwrap_or_default(),
+                )?)
+                .ok_or(ItemRefusal::Budget)?
+        } else {
+            size_of::<([usize; 6], Option<String>)>() + 512
+        };
+        self.preflight(workspace, max_state_bytes)?;
+        self.provision_claim_workspace_state_bytes =
+            self.provision_claim_workspace_state_bytes.max(workspace);
+        self.context.check()?;
+        self.charge_provision_claim_scan_rows(1)?;
+        let sql = if self.last_provision_claim_id.is_some() {
+            "SELECT claim_id,location,subject,predicate,object,event,native \
+             FROM sf_closure_provision_claims WHERE claim_id>?1 \
+             ORDER BY claim_id COLLATE BINARY LIMIT 1"
+        } else {
+            "SELECT claim_id,location,subject,predicate,object,event,native \
+             FROM sf_closure_provision_claims ORDER BY claim_id COLLATE BINARY LIMIT 1"
+        };
+        let mut statement = self.db.prepare(sql).map_err(sql_refusal)?;
+        let mut rows = if let Some(after_id) = self.last_provision_claim_id.as_deref() {
+            statement.query([after_id]).map_err(sql_refusal)?
+        } else {
+            statement.query([]).map_err(sql_refusal)?
+        };
+        let stored = rows
+            .next()
+            .map_err(sql_refusal)?
+            .map(|row| {
+                let id = bounded_row_text(row, 0, workspace)?;
+                let reference = SourceFoundationClosureClaimRef {
+                    location: bounded_row_text(row, 1, workspace)?,
+                    subject: bounded_row_text(row, 2, workspace)?,
+                    predicate: bounded_row_text(row, 3, workspace)?,
+                    object: bounded_row_text(row, 4, workspace)?,
+                    event: bounded_row_text(row, 5, workspace)?,
+                    native: match row.get::<_, i64>(6)? {
+                        0 => false,
+                        1 => true,
+                        _ => return Err(rusqlite::Error::InvalidQuery),
+                    },
+                };
+                Ok((id, reference))
+            })
+            .transpose()
+            .map_err(sql_refusal)?;
+        if rows.next().map_err(sql_refusal)?.is_some() {
+            return Err(source_refusal());
+        }
+        drop(rows);
+        drop(statement);
+        self.context.check()?;
+        let Some((id, reference)) = stored else {
+            self.provision_claim_eof_seen = true;
+            if self.provision_claim_drained_rows != expected_rows {
+                return Err(source_refusal());
+            }
+            return Ok((None, workspace, 0, 0));
+        };
+        if id.is_empty()
+            || self
+                .last_provision_claim_id
+                .as_deref()
+                .is_some_and(|last| last >= id.as_str())
+        {
+            return Err(source_refusal());
+        }
+        self.provision_claim_drained_rows = self
+            .provision_claim_drained_rows
+            .checked_add(1)
+            .ok_or(ItemRefusal::Budget)?;
+        if self.provision_claim_drained_rows > expected_rows {
+            return Err(source_refusal());
+        }
+        let read_bytes = [
+            id.len(),
+            reference.location.len(),
+            reference.subject.len(),
+            reference.predicate.len(),
+            reference.object.len(),
+            reference.event.len(),
+        ]
+        .iter()
+        .try_fold(size_of::<i64>(), |bytes, field| {
+            bytes.checked_add(*field).ok_or(ItemRefusal::Budget)
+        })?;
+        self.provision_claim_serialized_read_bytes = self
+            .provision_claim_serialized_read_bytes
+            .checked_add(usize_u64(read_bytes)?)
+            .ok_or(ItemRefusal::Budget)?;
+        let row_state = Self::responsibility_claim_row_state(&reference)?
+            .checked_add(estimate_string_state(&id)?)
+            .ok_or(ItemRefusal::Budget)?;
+        let cursor_state = estimate_string_state(&id)?;
+        self.last_provision_claim_id = Some(id.clone());
+        Ok((
+            Some(SourceFoundationClosureProvisionClaim { id, reference }),
+            workspace,
+            row_state,
+            cursor_state,
+        ))
+    }
+
+    fn remember_provision_event_id(
+        &mut self,
+        event_id: &str,
+        max_state_bytes: usize,
+    ) -> Result<(bool, usize), ItemRefusal> {
+        self.remember_provision_event_set(event_id, max_state_bytes, ProvisionEventSet::Source)
+    }
+
+    fn remember_provision_used_event(
+        &mut self,
+        event_id: &str,
+        max_state_bytes: usize,
+    ) -> Result<(bool, usize), ItemRefusal> {
+        self.remember_provision_event_set(event_id, max_state_bytes, ProvisionEventSet::Used)
+    }
+
+    fn contains_provision_used_event(
+        &mut self,
+        event_id: &str,
+        max_state_bytes: usize,
+    ) -> Result<(bool, usize), ItemRefusal> {
+        if self.finished
+            || !self.provision_event_ids_sealed
+            || self.provision_event_id_eof_seen
+            || self.provision_event_id_lookup_rows >= self.provision_event_id_drained_rows
+            || self.last_provision_event_id.as_deref() != Some(event_id)
+        {
+            return Err(source_refusal());
+        }
+        let workspace = Self::claim_id_workspace(event_id.len(), 3)?;
+        self.preflight(workspace, max_state_bytes)?;
+        self.context.check()?;
+        self.charge_provision_unused_event_scan_rows(1)?;
+        let mut statement = self
+            .db
+            .prepare("SELECT event_id FROM sf_closure_provision_used_events WHERE event_id=?1")
+            .map_err(sql_refusal)?;
+        let mut rows = statement.query([event_id]).map_err(sql_refusal)?;
+        let stored = rows
+            .next()
+            .map_err(sql_refusal)?
+            .map(|row| bounded_row_text(row, 0, workspace))
+            .transpose()
+            .map_err(sql_refusal)?;
+        if rows.next().map_err(sql_refusal)?.is_some()
+            || stored.as_deref().is_some_and(|stored| stored != event_id)
+        {
+            return Err(source_refusal());
+        }
+        drop(rows);
+        drop(statement);
+        self.context.check()?;
+        let found = stored.is_some();
+        if found {
+            self.provision_used_event_serialized_read_bytes = self
+                .provision_used_event_serialized_read_bytes
+                .checked_add(usize_u64(event_id.len())?)
+                .ok_or(ItemRefusal::Budget)?;
+        } else {
+            self.provision_unused_event_rows = self
+                .provision_unused_event_rows
+                .checked_add(1)
+                .ok_or(ItemRefusal::Budget)?;
+            self.provision_unused_event_drained_rows = self
+                .provision_unused_event_drained_rows
+                .checked_add(1)
+                .ok_or(ItemRefusal::Budget)?;
+        }
+        self.provision_event_id_lookup_rows = self
+            .provision_event_id_lookup_rows
+            .checked_add(1)
+            .ok_or(ItemRefusal::Budget)?;
+        self.provision_unused_event_workspace_state_bytes = self
+            .provision_unused_event_workspace_state_bytes
+            .max(workspace);
+        self.provision_used_event_workspace_state_bytes = self
+            .provision_used_event_workspace_state_bytes
+            .max(workspace);
+        Ok((found, workspace))
+    }
+
+    fn remember_provision_validated_event(
+        &mut self,
+        event_id: &str,
+        max_state_bytes: usize,
+    ) -> Result<(bool, usize), ItemRefusal> {
+        self.remember_provision_event_set(event_id, max_state_bytes, ProvisionEventSet::Validated)
+    }
+
+    fn begin_provision_event_ids(&mut self, expected_rows: u64) -> Result<(), ItemRefusal> {
+        if self.finished
+            || self.provision_event_ids_sealed
+            || self.provision_event_id_eof_seen
+            || self.provision_event_id_drained_rows != 0
+            || self.provision_event_id_lookup_rows != 0
+            || self.last_provision_event_id.is_some()
+            || self.provision_event_id_rows != expected_rows
+        {
+            return Err(source_refusal());
+        }
+        self.context.check()?;
+        self.expected_provision_event_id_rows = Some(expected_rows);
+        self.provision_event_ids_sealed = true;
+        Ok(())
+    }
+
+    fn next_provision_event_id(
+        &mut self,
+        max_state_bytes: usize,
+    ) -> Result<(Option<String>, usize, usize, usize), ItemRefusal> {
+        let Some(expected_rows) = self.expected_provision_event_id_rows else {
+            return Err(source_refusal());
+        };
+        if self.finished
+            || !self.provision_event_ids_sealed
+            || self.provision_event_id_eof_seen
+            || self.provision_event_id_drained_rows > expected_rows
+            || self.provision_event_id_rows != expected_rows
+            || self.provision_event_id_lookup_rows != self.provision_event_id_drained_rows
+        {
+            return Err(source_refusal());
+        }
+        let workspace = if self.provision_event_id_drained_rows < expected_rows {
+            Self::claim_id_workspace(self.max_provision_event_id_bytes.max(1), 4)?
+                .checked_add(estimate_string_state(
+                    self.last_provision_event_id.as_deref().unwrap_or_default(),
+                )?)
+                .ok_or(ItemRefusal::Budget)?
+        } else {
+            size_of::<Option<String>>() + 512
+        };
+        self.preflight(workspace, max_state_bytes)?;
+        self.provision_event_id_workspace_state_bytes =
+            self.provision_event_id_workspace_state_bytes.max(workspace);
+        self.context.check()?;
+        self.charge_provision_event_id_scan_rows(1)?;
+        let sql = if self.last_provision_event_id.is_some() {
+            "SELECT event_id FROM sf_closure_provision_event_ids WHERE event_id>?1 \
+             ORDER BY event_id COLLATE BINARY LIMIT 1"
+        } else {
+            "SELECT event_id FROM sf_closure_provision_event_ids \
+             ORDER BY event_id COLLATE BINARY LIMIT 1"
+        };
+        let mut statement = self.db.prepare(sql).map_err(sql_refusal)?;
+        let mut rows = if let Some(after_id) = self.last_provision_event_id.as_deref() {
+            statement.query([after_id]).map_err(sql_refusal)?
+        } else {
+            statement.query([]).map_err(sql_refusal)?
+        };
+        let next = rows
+            .next()
+            .map_err(sql_refusal)?
+            .map(|row| bounded_row_text(row, 0, workspace))
+            .transpose()
+            .map_err(sql_refusal)?;
+        if rows.next().map_err(sql_refusal)?.is_some() {
+            return Err(source_refusal());
+        }
+        drop(rows);
+        drop(statement);
+        self.context.check()?;
+        let Some(event_id) = next else {
+            if self.provision_event_id_drained_rows != expected_rows
+                || self.provision_event_id_lookup_rows != expected_rows
+            {
+                return Err(source_refusal());
+            }
+            self.last_provision_event_id = None;
+            self.provision_event_id_eof_seen = true;
+            self.provision_unused_event_eof_seen = true;
+            return Ok((None, workspace, 0, 0));
+        };
+        if event_id.len() > self.max_provision_event_id_bytes
+            || self
+                .last_provision_event_id
+                .as_deref()
+                .is_some_and(|previous| previous >= event_id.as_str())
+        {
+            return Err(source_refusal());
+        }
+        self.provision_event_id_drained_rows = self
+            .provision_event_id_drained_rows
+            .checked_add(1)
+            .ok_or(ItemRefusal::Budget)?;
+        if self.provision_event_id_drained_rows > expected_rows {
+            return Err(source_refusal());
+        }
+        self.provision_event_id_serialized_read_bytes = self
+            .provision_event_id_serialized_read_bytes
+            .checked_add(usize_u64(event_id.len())?)
+            .ok_or(ItemRefusal::Budget)?;
+        let row_state = estimate_string_state(&event_id)?;
+        let cursor_state = estimate_string_state(&event_id)?;
+        self.last_provision_event_id = Some(event_id.clone());
+        Ok((Some(event_id), workspace, row_state, cursor_state))
+    }
+
+    fn finish_provision(
+        &mut self,
+        expected_claim_rows: u64,
+        expected_event_id_rows: u64,
+        expected_used_event_rows: u64,
+        expected_validated_event_rows: u64,
+        expected_unused_event_rows: u64,
+        max_state_bytes: usize,
+    ) -> Result<(), ItemRefusal> {
+        CandidateClosureSchemaRequests::finish_provision_counts(
+            self,
+            expected_claim_rows,
+            expected_event_id_rows,
+            expected_used_event_rows,
+            expected_validated_event_rows,
+            expected_unused_event_rows,
+            max_state_bytes,
+        )
     }
 
     fn publication_claim_by_id(
@@ -6358,6 +7428,11 @@ impl SourceFoundationClosureSchemaRequestStore
         expected_responsibility_validated_event_rows: u64,
         expected_publication_validated_event_rows: u64,
         expected_boundary_responsibility_ref_rows: u64,
+        expected_provision_claim_rows: u64,
+        expected_provision_event_id_rows: u64,
+        expected_provision_used_event_rows: u64,
+        expected_provision_validated_event_rows: u64,
+        expected_provision_unused_event_rows: u64,
         direct_issue_count: usize,
         max_state_bytes: usize,
     ) -> Result<SourceFoundationClosureSchemaRequestStoreCost, ItemRefusal> {
@@ -6398,6 +7473,32 @@ impl SourceFoundationClosureSchemaRequestStore
                 != expected_boundary_responsibility_ref_rows
             || !self.boundary_responsibility_ref_eof_seen
             || self.last_boundary_responsibility_ref.is_some()
+            || self.provision_claim_rows != expected_provision_claim_rows
+            || self.expected_provision_claim_rows != Some(expected_provision_claim_rows)
+            || self.provision_claim_drained_rows != expected_provision_claim_rows
+            || !self.provision_claims_sealed
+            || !self.provision_claim_eof_seen
+            || !self.provision_claim_count_verified
+            || self.provision_event_id_rows != expected_provision_event_id_rows
+            || self.expected_provision_event_id_rows != Some(expected_provision_event_id_rows)
+            || self.provision_event_id_drained_rows != expected_provision_event_id_rows
+            || self.provision_event_id_lookup_rows != expected_provision_event_id_rows
+            || !self.provision_event_ids_sealed
+            || !self.provision_event_id_eof_seen
+            || !self.provision_event_id_count_verified
+            || self.provision_used_event_rows != expected_provision_used_event_rows
+            || self.expected_provision_used_event_rows != Some(expected_provision_used_event_rows)
+            || !self.provision_used_event_count_verified
+            || self.provision_validated_event_rows != expected_provision_validated_event_rows
+            || self.expected_provision_validated_event_rows
+                != Some(expected_provision_validated_event_rows)
+            || !self.provision_validated_event_count_verified
+            || self.provision_unused_event_rows != expected_provision_unused_event_rows
+            || self.expected_provision_unused_event_rows
+                != Some(expected_provision_unused_event_rows)
+            || self.provision_unused_event_drained_rows != expected_provision_unused_event_rows
+            || !self.provision_unused_event_eof_seen
+            || !self.provision_unused_event_count_verified
             || (expected_rows > 0) != self.max_document_bytes.is_some()
         {
             return Err(source_refusal());
@@ -6519,6 +7620,12 @@ impl SourceFoundationClosureSchemaRequestStore
         self.expected_responsibility_claim_rows = Some(expected_responsibility_claim_rows);
         self.expected_responsibility_validated_event_rows =
             Some(expected_responsibility_validated_event_rows);
+        self.expected_provision_claim_rows = Some(expected_provision_claim_rows);
+        self.expected_provision_event_id_rows = Some(expected_provision_event_id_rows);
+        self.expected_provision_used_event_rows = Some(expected_provision_used_event_rows);
+        self.expected_provision_validated_event_rows =
+            Some(expected_provision_validated_event_rows);
+        self.expected_provision_unused_event_rows = Some(expected_provision_unused_event_rows);
         self.direct_issue_count = Some(direct_issue_count);
         self.finished = true;
         self.workspace_peak_bytes = self.workspace_peak_bytes.max(workspace);
@@ -8285,6 +9392,55 @@ impl<'candidate, 'host> SpoolDefaultStore<'candidate, 'host> {
                 publication_claims_sealed: false,
                 publication_claim_eof_seen: false,
                 publication_claim_count_verified: false,
+                provision_claim_rows: 0,
+                provision_claim_drained_rows: 0,
+                provision_claim_serialized_read_bytes: 0,
+                provision_claim_serialized_write_bytes: 0,
+                provision_claim_scan_row_operations: 0,
+                provision_claim_workspace_state_bytes: 0,
+                max_provision_claim_bytes: [0; 6],
+                last_provision_claim_id: None,
+                expected_provision_claim_rows: None,
+                provision_claims_sealed: false,
+                provision_claim_eof_seen: false,
+                provision_claim_count_verified: false,
+                provision_event_id_rows: 0,
+                provision_event_id_drained_rows: 0,
+                provision_event_id_serialized_read_bytes: 0,
+                provision_event_id_serialized_write_bytes: 0,
+                provision_event_id_scan_row_operations: 0,
+                provision_event_id_workspace_state_bytes: 0,
+                provision_event_id_lookup_rows: 0,
+                max_provision_event_id_bytes: 0,
+                last_provision_event_id: None,
+                expected_provision_event_id_rows: None,
+                provision_event_ids_sealed: false,
+                provision_event_id_eof_seen: false,
+                provision_event_id_count_verified: false,
+                provision_used_event_rows: 0,
+                provision_used_event_serialized_read_bytes: 0,
+                provision_used_event_serialized_write_bytes: 0,
+                provision_used_event_scan_row_operations: 0,
+                provision_used_event_workspace_state_bytes: 0,
+                max_provision_used_event_bytes: 0,
+                expected_provision_used_event_rows: None,
+                provision_used_event_count_verified: false,
+                provision_validated_event_rows: 0,
+                provision_validated_event_serialized_read_bytes: 0,
+                provision_validated_event_serialized_write_bytes: 0,
+                provision_validated_event_scan_row_operations: 0,
+                provision_validated_event_workspace_state_bytes: 0,
+                max_provision_validated_event_bytes: 0,
+                expected_provision_validated_event_rows: None,
+                provision_validated_event_count_verified: false,
+                provision_unused_event_rows: 0,
+                provision_unused_event_drained_rows: 0,
+                provision_unused_event_serialized_read_bytes: 0,
+                provision_unused_event_scan_row_operations: 0,
+                provision_unused_event_workspace_state_bytes: 0,
+                provision_unused_event_eof_seen: false,
+                provision_unused_event_count_verified: false,
+                expected_provision_unused_event_rows: None,
                 responsibility_validated_event_rows: 0,
                 responsibility_validated_event_serialized_read_bytes: 0,
                 responsibility_validated_event_serialized_write_bytes: 0,

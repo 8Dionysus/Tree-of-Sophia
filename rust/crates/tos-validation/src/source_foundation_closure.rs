@@ -166,6 +166,42 @@ pub struct SourceFoundationClosureCost {
     pub candidate_publication_claim_serialized_write_bytes: u64,
     pub candidate_publication_claim_scan_row_operations: u64,
     pub candidate_publication_claim_peak_workspace_state_bytes: usize,
+    /// Candidate Provision ClaimRef projections stored by exact ID.
+    pub candidate_provision_claim_count: u64,
+    pub candidate_provision_claim_serialized_read_bytes: u64,
+    pub candidate_provision_claim_serialized_write_bytes: u64,
+    pub candidate_provision_claim_scan_row_operations: u64,
+    pub candidate_provision_claim_peak_workspace_state_bytes: usize,
+    pub candidate_provision_claim_drained_rows: u64,
+    pub candidate_provision_claim_eof_seen: bool,
+    pub candidate_provision_claim_count_verified: bool,
+    /// Candidate Provision event IDs and their separate used/validated sets.
+    pub candidate_provision_event_id_count: u64,
+    pub candidate_provision_event_id_serialized_read_bytes: u64,
+    pub candidate_provision_event_id_serialized_write_bytes: u64,
+    pub candidate_provision_event_id_scan_row_operations: u64,
+    pub candidate_provision_event_id_peak_workspace_state_bytes: usize,
+    pub candidate_provision_event_id_drained_rows: u64,
+    pub candidate_provision_event_id_lookup_rows: u64,
+    pub candidate_provision_event_id_eof_seen: bool,
+    pub candidate_provision_event_id_count_verified: bool,
+    pub candidate_provision_used_event_count: u64,
+    pub candidate_provision_used_event_serialized_read_bytes: u64,
+    pub candidate_provision_used_event_serialized_write_bytes: u64,
+    pub candidate_provision_used_event_scan_row_operations: u64,
+    pub candidate_provision_used_event_peak_workspace_state_bytes: usize,
+    pub candidate_provision_validated_event_count: u64,
+    pub candidate_provision_validated_event_serialized_read_bytes: u64,
+    pub candidate_provision_validated_event_serialized_write_bytes: u64,
+    pub candidate_provision_validated_event_scan_row_operations: u64,
+    pub candidate_provision_validated_event_peak_workspace_state_bytes: usize,
+    pub candidate_provision_unused_event_count: u64,
+    pub candidate_provision_unused_event_serialized_read_bytes: u64,
+    pub candidate_provision_unused_event_scan_row_operations: u64,
+    pub candidate_provision_unused_event_peak_workspace_state_bytes: usize,
+    pub candidate_provision_unused_event_drained_rows: u64,
+    pub candidate_provision_unused_event_eof_seen: bool,
+    pub candidate_provision_unused_event_count_verified: bool,
     /// Candidate event-input checks already performed for Responsibility
     /// Claims, keyed by check kind and exact event ID in the same held store.
     pub candidate_responsibility_validated_event_count: u64,
@@ -304,6 +340,44 @@ pub struct SourceFoundationClosureSchemaRequestStoreCost {
     pub publication_claim_workspace_state_bytes: usize,
     pub publication_claim_eof_seen: bool,
     pub publication_claim_count_verified: bool,
+    pub provision_claim_rows: u64,
+    pub provision_claim_drained_rows: u64,
+    pub provision_claim_serialized_read_bytes: u64,
+    pub provision_claim_serialized_write_bytes: u64,
+    pub provision_claim_scan_row_operations: u64,
+    pub provision_claim_workspace_state_bytes: usize,
+    pub provision_claim_eof_seen: bool,
+    pub provision_claim_count_verified: bool,
+    pub provision_event_id_rows: u64,
+    pub provision_event_id_drained_rows: u64,
+    pub provision_event_id_serialized_read_bytes: u64,
+    pub provision_event_id_serialized_write_bytes: u64,
+    pub provision_event_id_scan_row_operations: u64,
+    pub provision_event_id_workspace_state_bytes: usize,
+    pub provision_event_id_lookup_rows: u64,
+    pub provision_event_id_eof_seen: bool,
+    pub provision_event_id_count_verified: bool,
+    pub provision_unused_event_rows: u64,
+    pub provision_unused_event_drained_rows: u64,
+    pub provision_unused_event_serialized_read_bytes: u64,
+    pub provision_unused_event_scan_row_operations: u64,
+    pub provision_unused_event_workspace_state_bytes: usize,
+    pub provision_unused_event_eof_seen: bool,
+    pub provision_unused_event_count_verified: bool,
+    pub provision_used_event_rows: u64,
+    pub provision_used_event_serialized_read_bytes: u64,
+    pub provision_used_event_serialized_write_bytes: u64,
+    pub provision_used_event_scan_row_operations: u64,
+    pub provision_used_event_workspace_state_bytes: usize,
+    pub provision_used_event_count_verified: bool,
+    pub provision_validated_event_rows: u64,
+    pub provision_validated_event_serialized_read_bytes: u64,
+    pub provision_validated_event_serialized_write_bytes: u64,
+    pub provision_validated_event_scan_row_operations: u64,
+    pub provision_validated_event_workspace_state_bytes: usize,
+    pub provision_validated_event_count_verified: bool,
+    pub provision_unused_event_drained_rows: u64,
+    pub provision_unused_event_workspace_state_bytes: usize,
     pub responsibility_validated_event_rows: u64,
     pub responsibility_validated_event_serialized_read_bytes: u64,
     pub responsibility_validated_event_serialized_write_bytes: u64,
@@ -455,6 +529,73 @@ pub trait SourceFoundationClosureSchemaRequestStore {
         ) -> Result<(), ItemRefusal>,
     ) -> Result<(u64, usize), ItemRefusal>;
 
+    /// Upsert one plain Provision ClaimRef by exact ID with the BTreeMap's
+    /// replacement behavior, then seal and drain unique rows in binary ID order.
+    fn remember_provision_claim(
+        &mut self,
+        id: &str,
+        reference: &SourceFoundationClosureClaimRef,
+        max_state_bytes: usize,
+    ) -> Result<(bool, usize), ItemRefusal>;
+
+    fn begin_provision_claims(&mut self, expected_rows: u64) -> Result<(), ItemRefusal>;
+
+    fn next_provision_claim(
+        &mut self,
+        max_state_bytes: usize,
+    ) -> Result<
+        (
+            Option<SourceFoundationClosureProvisionClaim>,
+            usize,
+            usize,
+            usize,
+        ),
+        ItemRefusal,
+    >;
+
+    /// Keep the source Provision-event set distinct from events merely used by
+    /// claims and from events whose inputs have already been checked.
+    fn remember_provision_event_id(
+        &mut self,
+        event_id: &str,
+        max_state_bytes: usize,
+    ) -> Result<(bool, usize), ItemRefusal>;
+
+    fn remember_provision_used_event(
+        &mut self,
+        event_id: &str,
+        max_state_bytes: usize,
+    ) -> Result<(bool, usize), ItemRefusal>;
+
+    fn contains_provision_used_event(
+        &mut self,
+        event_id: &str,
+        max_state_bytes: usize,
+    ) -> Result<(bool, usize), ItemRefusal>;
+
+    fn remember_provision_validated_event(
+        &mut self,
+        event_id: &str,
+        max_state_bytes: usize,
+    ) -> Result<(bool, usize), ItemRefusal>;
+
+    fn begin_provision_event_ids(&mut self, expected_rows: u64) -> Result<(), ItemRefusal>;
+
+    fn next_provision_event_id(
+        &mut self,
+        max_state_bytes: usize,
+    ) -> Result<(Option<String>, usize, usize, usize), ItemRefusal>;
+
+    fn finish_provision(
+        &mut self,
+        expected_claim_rows: u64,
+        expected_event_id_rows: u64,
+        expected_used_event_rows: u64,
+        expected_validated_event_rows: u64,
+        expected_unused_event_rows: u64,
+        max_state_bytes: usize,
+    ) -> Result<(), ItemRefusal>;
+
     /// Remember an event whose inputs have already been checked for this
     /// Responsibility pass. The key includes this check kind so other Closure
     /// passes can share the held mechanism without sharing validation state.
@@ -590,6 +731,11 @@ pub trait SourceFoundationClosureSchemaRequestStore {
         expected_responsibility_validated_event_rows: u64,
         expected_publication_validated_event_rows: u64,
         expected_boundary_responsibility_ref_rows: u64,
+        expected_provision_claim_rows: u64,
+        expected_provision_event_id_rows: u64,
+        expected_provision_used_event_rows: u64,
+        expected_provision_validated_event_rows: u64,
+        expected_provision_unused_event_rows: u64,
         direct_issue_count: usize,
         max_state_bytes: usize,
     ) -> Result<SourceFoundationClosureSchemaRequestStoreCost, ItemRefusal>;
@@ -652,6 +798,13 @@ pub struct SourceFoundationClosureClaimRef {
 /// Plain Publication ClaimRef row selected from the exact current cut.
 #[derive(Debug, Clone, PartialEq)]
 pub struct SourceFoundationClosurePublicationClaim {
+    pub id: String,
+    pub reference: SourceFoundationClosureClaimRef,
+}
+
+/// Plain Provision ClaimRef projection selected from the exact current cut.
+#[derive(Debug, Clone, PartialEq)]
+pub struct SourceFoundationClosureProvisionClaim {
     pub id: String,
     pub reference: SourceFoundationClosureClaimRef,
 }
@@ -914,6 +1067,12 @@ fn run_source_foundation_closure<S: LayerFamilySource + ?Sized>(
         rules.cost.candidate_publication_validated_event_count;
     let expected_boundary_responsibility_ref_rows =
         rules.cost.candidate_boundary_responsibility_ref_count;
+    let expected_provision_claim_rows = rules.cost.candidate_provision_claim_count;
+    let expected_provision_event_id_rows = rules.cost.candidate_provision_event_id_count;
+    let expected_provision_used_event_rows = rules.cost.candidate_provision_used_event_count;
+    let expected_provision_validated_event_rows =
+        rules.cost.candidate_provision_validated_event_count;
+    let expected_provision_unused_event_rows = rules.cost.candidate_provision_unused_event_count;
     let schema_request_finish = if rules.schema_request_store.is_some() {
         let direct_issue_count = rules.issues.len();
         let remaining = rules.remaining_state()?;
@@ -933,6 +1092,11 @@ fn run_source_foundation_closure<S: LayerFamilySource + ?Sized>(
                 expected_responsibility_validated_event_rows,
                 expected_publication_validated_event_rows,
                 expected_boundary_responsibility_ref_rows,
+                expected_provision_claim_rows,
+                expected_provision_event_id_rows,
+                expected_provision_used_event_rows,
+                expected_provision_validated_event_rows,
+                expected_provision_unused_event_rows,
                 direct_issue_count,
                 remaining,
             )?;
@@ -957,7 +1121,12 @@ fn run_source_foundation_closure<S: LayerFamilySource + ?Sized>(
                         .max(finished.publication_claim_workspace_state_bytes)
                         .max(finished.responsibility_validated_event_workspace_state_bytes)
                         .max(finished.publication_validated_event_workspace_state_bytes)
-                        .max(finished.boundary_responsibility_ref_workspace_state_bytes),
+                        .max(finished.boundary_responsibility_ref_workspace_state_bytes)
+                        .max(finished.provision_claim_workspace_state_bytes)
+                        .max(finished.provision_event_id_workspace_state_bytes)
+                        .max(finished.provision_unused_event_workspace_state_bytes)
+                        .max(finished.provision_used_event_workspace_state_bytes)
+                        .max(finished.provision_validated_event_workspace_state_bytes),
                 )
             })
             .ok_or(ItemRefusal::Budget)?;
@@ -988,6 +1157,23 @@ fn run_source_foundation_closure<S: LayerFamilySource + ?Sized>(
                 != expected_boundary_responsibility_ref_rows
             || !finished.boundary_responsibility_ref_eof_seen
             || !finished.boundary_responsibility_ref_count_verified
+            || finished.provision_claim_rows != expected_provision_claim_rows
+            || finished.provision_claim_drained_rows != expected_provision_claim_rows
+            || !finished.provision_claim_eof_seen
+            || !finished.provision_claim_count_verified
+            || finished.provision_event_id_rows != expected_provision_event_id_rows
+            || finished.provision_event_id_drained_rows != expected_provision_event_id_rows
+            || finished.provision_event_id_lookup_rows != expected_provision_event_id_rows
+            || !finished.provision_event_id_eof_seen
+            || !finished.provision_event_id_count_verified
+            || finished.provision_used_event_rows != expected_provision_used_event_rows
+            || !finished.provision_used_event_count_verified
+            || finished.provision_validated_event_rows != expected_provision_validated_event_rows
+            || !finished.provision_validated_event_count_verified
+            || finished.provision_unused_event_rows != expected_provision_unused_event_rows
+            || finished.provision_unused_event_drained_rows != expected_provision_unused_event_rows
+            || !finished.provision_unused_event_eof_seen
+            || !finished.provision_unused_event_count_verified
         {
             return Err(ItemRefusal::Source(
                 "source-foundation Closure schema request store count or state differs".into(),
@@ -1130,6 +1316,97 @@ fn run_source_foundation_closure<S: LayerFamilySource + ?Sized>(
             .cost
             .candidate_boundary_responsibility_ref_peak_workspace_state_bytes =
             finished.boundary_responsibility_ref_workspace_state_bytes;
+        rules.cost.candidate_provision_claim_count = finished.provision_claim_rows;
+        rules.cost.candidate_provision_claim_serialized_read_bytes =
+            finished.provision_claim_serialized_read_bytes;
+        rules.cost.candidate_provision_claim_serialized_write_bytes =
+            finished.provision_claim_serialized_write_bytes;
+        rules.cost.candidate_provision_claim_scan_row_operations =
+            finished.provision_claim_scan_row_operations;
+        rules
+            .cost
+            .candidate_provision_claim_peak_workspace_state_bytes =
+            finished.provision_claim_workspace_state_bytes;
+        rules.cost.candidate_provision_event_id_count = finished.provision_event_id_rows;
+        rules
+            .cost
+            .candidate_provision_event_id_serialized_read_bytes =
+            finished.provision_event_id_serialized_read_bytes;
+        rules
+            .cost
+            .candidate_provision_event_id_serialized_write_bytes =
+            finished.provision_event_id_serialized_write_bytes;
+        rules.cost.candidate_provision_event_id_scan_row_operations =
+            finished.provision_event_id_scan_row_operations;
+        rules
+            .cost
+            .candidate_provision_event_id_peak_workspace_state_bytes =
+            finished.provision_event_id_workspace_state_bytes;
+        rules.cost.candidate_provision_used_event_count = finished.provision_used_event_rows;
+        rules
+            .cost
+            .candidate_provision_used_event_serialized_read_bytes =
+            finished.provision_used_event_serialized_read_bytes;
+        rules
+            .cost
+            .candidate_provision_used_event_serialized_write_bytes =
+            finished.provision_used_event_serialized_write_bytes;
+        rules
+            .cost
+            .candidate_provision_used_event_scan_row_operations =
+            finished.provision_used_event_scan_row_operations;
+        rules
+            .cost
+            .candidate_provision_used_event_peak_workspace_state_bytes =
+            finished.provision_used_event_workspace_state_bytes;
+        rules.cost.candidate_provision_validated_event_count =
+            finished.provision_validated_event_rows;
+        rules
+            .cost
+            .candidate_provision_validated_event_serialized_read_bytes =
+            finished.provision_validated_event_serialized_read_bytes;
+        rules
+            .cost
+            .candidate_provision_validated_event_serialized_write_bytes =
+            finished.provision_validated_event_serialized_write_bytes;
+        rules
+            .cost
+            .candidate_provision_validated_event_scan_row_operations =
+            finished.provision_validated_event_scan_row_operations;
+        rules
+            .cost
+            .candidate_provision_validated_event_peak_workspace_state_bytes =
+            finished.provision_validated_event_workspace_state_bytes;
+        rules.cost.candidate_provision_unused_event_count = finished.provision_unused_event_rows;
+        rules
+            .cost
+            .candidate_provision_unused_event_serialized_read_bytes =
+            finished.provision_unused_event_serialized_read_bytes;
+        rules
+            .cost
+            .candidate_provision_unused_event_scan_row_operations =
+            finished.provision_unused_event_scan_row_operations;
+        rules
+            .cost
+            .candidate_provision_unused_event_peak_workspace_state_bytes =
+            finished.provision_unused_event_workspace_state_bytes;
+        rules.cost.candidate_provision_claim_drained_rows = finished.provision_claim_drained_rows;
+        rules.cost.candidate_provision_claim_eof_seen = finished.provision_claim_eof_seen;
+        rules.cost.candidate_provision_claim_count_verified =
+            finished.provision_claim_count_verified;
+        rules.cost.candidate_provision_event_id_drained_rows =
+            finished.provision_event_id_drained_rows;
+        rules.cost.candidate_provision_event_id_lookup_rows =
+            finished.provision_event_id_lookup_rows;
+        rules.cost.candidate_provision_event_id_eof_seen = finished.provision_event_id_eof_seen;
+        rules.cost.candidate_provision_event_id_count_verified =
+            finished.provision_event_id_count_verified;
+        rules.cost.candidate_provision_unused_event_drained_rows =
+            finished.provision_unused_event_drained_rows;
+        rules.cost.candidate_provision_unused_event_eof_seen =
+            finished.provision_unused_event_eof_seen;
+        rules.cost.candidate_provision_unused_event_count_verified =
+            finished.provision_unused_event_count_verified;
     }
 
     Ok(SourceFoundationClosureReport {
@@ -2943,6 +3220,125 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
         Ok(())
     }
 
+    fn remember_candidate_provision_claim(
+        &mut self,
+        id: &str,
+        reference: &SourceFoundationClosureClaimRef,
+    ) -> Result<(), ItemRefusal> {
+        let remaining = self.remaining_state()?;
+        let (inserted, workspace) = self
+            .schema_request_store
+            .as_deref_mut()
+            .ok_or(ItemRefusal::Budget)?
+            .remember_provision_claim(id, reference, remaining)?;
+        self.include_store_workspace(workspace)?;
+        if inserted {
+            self.cost.candidate_provision_claim_count = self
+                .cost
+                .candidate_provision_claim_count
+                .checked_add(1)
+                .ok_or(ItemRefusal::Budget)?;
+        }
+        Ok(())
+    }
+
+    fn remember_candidate_provision_event_id(&mut self, id: &str) -> Result<(), ItemRefusal> {
+        let remaining = self.remaining_state()?;
+        let (inserted, workspace) = self
+            .schema_request_store
+            .as_deref_mut()
+            .ok_or(ItemRefusal::Budget)?
+            .remember_provision_event_id(id, remaining)?;
+        self.include_store_workspace(workspace)?;
+        if inserted {
+            self.cost.candidate_provision_event_id_count = self
+                .cost
+                .candidate_provision_event_id_count
+                .checked_add(1)
+                .ok_or(ItemRefusal::Budget)?;
+        }
+        Ok(())
+    }
+
+    fn remember_provision_used_event(
+        &mut self,
+        id: &str,
+        compatibility_ids: &mut BTreeSet<String>,
+    ) -> Result<bool, ItemRefusal> {
+        if self.schema_request_store.is_some() {
+            let remaining = self.remaining_state()?;
+            let (inserted, workspace) = self
+                .schema_request_store
+                .as_deref_mut()
+                .ok_or(ItemRefusal::Budget)?
+                .remember_provision_used_event(id, remaining)?;
+            self.include_store_workspace(workspace)?;
+            if inserted {
+                self.cost.candidate_provision_used_event_count = self
+                    .cost
+                    .candidate_provision_used_event_count
+                    .checked_add(1)
+                    .ok_or(ItemRefusal::Budget)?;
+            }
+            Ok(inserted)
+        } else if compatibility_ids.contains(id) {
+            Ok(false)
+        } else {
+            self.reserve_temporary(
+                id.len()
+                    .checked_add(std::mem::size_of::<String>() + 4 * std::mem::size_of::<usize>())
+                    .ok_or(ItemRefusal::Budget)?,
+            )?;
+            compatibility_ids.insert(id.to_owned());
+            Ok(true)
+        }
+    }
+
+    fn remember_provision_validated_event(
+        &mut self,
+        id: &str,
+        compatibility_ids: &mut BTreeSet<String>,
+    ) -> Result<bool, ItemRefusal> {
+        if self.schema_request_store.is_some() {
+            let remaining = self.remaining_state()?;
+            let (inserted, workspace) = self
+                .schema_request_store
+                .as_deref_mut()
+                .ok_or(ItemRefusal::Budget)?
+                .remember_provision_validated_event(id, remaining)?;
+            self.include_store_workspace(workspace)?;
+            if inserted {
+                self.cost.candidate_provision_validated_event_count = self
+                    .cost
+                    .candidate_provision_validated_event_count
+                    .checked_add(1)
+                    .ok_or(ItemRefusal::Budget)?;
+            }
+            Ok(inserted)
+        } else if compatibility_ids.contains(id) {
+            Ok(false)
+        } else {
+            self.reserve_temporary(
+                id.len()
+                    .checked_add(std::mem::size_of::<String>() + 4 * std::mem::size_of::<usize>())
+                    .ok_or(ItemRefusal::Budget)?,
+            )?;
+            compatibility_ids.insert(id.to_owned());
+            Ok(true)
+        }
+    }
+
+    fn contains_candidate_provision_used_event(&mut self, id: &str) -> Result<bool, ItemRefusal> {
+        let remaining = self.remaining_state()?;
+        let (found, workspace) = self
+            .schema_request_store
+            .as_deref_mut()
+            .ok_or(ItemRefusal::Budget)?
+            .contains_provision_used_event(id, remaining)?;
+        self.include_store_workspace(workspace)?;
+        Ok(found)
+    }
+
     fn remember_responsibility_validated_event(
         &mut self,
         event_id: &str,
@@ -3292,19 +3688,11 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
         for (line, event) in loaded.rows {
             check(self.limits.deadline, self.source.cancellation())?;
             self.validate_source_refs(&format!("{path}:{line}"), &event)?;
-            let Some(id) = text(&event, "event_id").map(str::to_owned) else {
+            let Some(id) = text(&event, "event_id") else {
                 continue;
             };
             let candidate_store_active = self.schema_request_store.is_some();
-            let candidate_id_workspace = if candidate_store_active {
-                let workspace = id
-                    .len()
-                    .checked_mul(2)
-                    .and_then(|bytes| bytes.checked_add(std::mem::size_of::<String>() + 64))
-                    .ok_or(ItemRefusal::Budget)?;
-                self.reserve_temporary(workspace)?;
-                workspace
-            } else {
+            if !candidate_store_active {
                 let event_state = crate::record_biblio_cut::decoded_state(&event)?;
                 self.reserve(
                     id.len()
@@ -3319,8 +3707,7 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
                         })
                         .ok_or(ItemRefusal::Budget)?,
                 )?;
-                0
-            };
+            }
             let source_has_id = self.source_events.event_contains(&id)?;
             let duplicate = if source_has_id {
                 true
@@ -3349,18 +3736,17 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
                     format!("duplicate event_id: {id}"),
                 )?;
             } else if self.schema_request_store.is_none() {
-                self.events.insert(id.clone(), event);
+                self.events.insert(id.to_owned(), event);
             }
             if path.ends_with(PROVISION_EVENT_BASENAME) {
                 if candidate_store_active {
-                    self.release_loaded_rows(candidate_id_workspace)?;
+                    self.remember_candidate_provision_event_id(id)?;
+                } else {
+                    self.reserve(
+                        id.len() + std::mem::size_of::<String>() + 4 * std::mem::size_of::<usize>(),
+                    )?;
+                    self.provision_event_ids.insert(id.to_owned());
                 }
-                self.reserve(
-                    id.len() + std::mem::size_of::<String>() + 4 * std::mem::size_of::<usize>(),
-                )?;
-                self.provision_event_ids.insert(id);
-            } else if candidate_store_active {
-                self.release_loaded_rows(candidate_id_workspace)?;
             }
         }
         self.release_loaded_rows(loaded_state_bytes)?;
@@ -4788,6 +5174,261 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
     }
 
     fn check_provision_activity(&mut self) -> Result<(), ItemRefusal> {
+        if self.schema_request_store.is_some() {
+            self.check_candidate_provision_activity()
+        } else {
+            self.check_provision_activity_finite()
+        }
+    }
+
+    fn check_candidate_provision_activity(&mut self) -> Result<(), ItemRefusal> {
+        let temporary_baseline = self.temporary_state_bytes;
+        let compatibility_headers = 2usize
+            .checked_mul(std::mem::size_of::<BTreeSet<String>>())
+            .ok_or(ItemRefusal::Budget)?;
+        self.reserve_temporary(compatibility_headers)?;
+        let mut validated_events = BTreeSet::new();
+        let mut used_events = BTreeSet::new();
+
+        let expected_claim_rows = self.cost.candidate_provision_claim_count;
+        self.schema_request_store
+            .as_deref_mut()
+            .ok_or(ItemRefusal::Budget)?
+            .begin_provision_claims(expected_claim_rows)?;
+        let mut cursor_state_bytes = 0usize;
+        loop {
+            check(self.limits.deadline, self.source.cancellation())?;
+            let remaining = self.remaining_state()?;
+            let (claim, workspace, row_state_bytes, retained_cursor_state_bytes) = self
+                .schema_request_store
+                .as_deref_mut()
+                .ok_or(ItemRefusal::Budget)?
+                .next_provision_claim(remaining)?;
+            self.release_loaded_rows(cursor_state_bytes)?;
+            let Some(claim) = claim else {
+                if row_state_bytes != 0 || retained_cursor_state_bytes != 0 {
+                    return Err(ItemRefusal::Budget);
+                }
+                self.include_store_workspace(workspace)?;
+                break;
+            };
+            let active_state_bytes = row_state_bytes
+                .checked_add(retained_cursor_state_bytes)
+                .ok_or(ItemRefusal::Budget)?;
+            self.reserve_temporary(active_state_bytes)?;
+            cursor_state_bytes = retained_cursor_state_bytes;
+            self.include_store_workspace(workspace)?;
+
+            if claim.reference.native {
+                check(self.limits.deadline, self.source.cancellation())?;
+                drop(claim);
+                self.release_temporary_state(row_state_bytes)?;
+                continue;
+            }
+            let Some((claim_path, line_text)) = claim.reference.location.rsplit_once(':') else {
+                return Err(ItemRefusal::Source(
+                    "source-foundation Provision ClaimRef location is invalid".into(),
+                ));
+            };
+            let line = line_text.parse::<usize>().map_err(|_| {
+                ItemRefusal::Source("source-foundation Provision ClaimRef line is invalid".into())
+            })?;
+            let (claim_value, claim_value_state_bytes) = self.loaded_value_at(claim_path, line)?;
+            let Some(claim_value) = claim_value else {
+                return Err(ItemRefusal::Source(
+                    "source-foundation Provision ClaimRef has no matching current row".into(),
+                ));
+            };
+            if text(&claim_value, "claim_id") != Some(claim.id.as_str())
+                || text(&claim_value, "subject_ref").unwrap_or_default() != claim.reference.subject
+                || text(&claim_value, "predicate").unwrap_or_default() != claim.reference.predicate
+                || text(&claim_value, "object").unwrap_or_default() != claim.reference.object
+                || text(&claim_value, "provenance_event_ref").unwrap_or_default()
+                    != claim.reference.event
+            {
+                drop(claim_value);
+                self.release_loaded_rows(claim_value_state_bytes)?;
+                return Err(ItemRefusal::Source(
+                    "source-foundation Provision ClaimRef differs from its current source row"
+                        .into(),
+                ));
+            }
+            let result = self.check_provision_activity_claim(
+                &claim.reference,
+                &claim_value,
+                &mut used_events,
+                &mut validated_events,
+            );
+            drop(claim_value);
+            let value_release = self.release_loaded_rows(claim_value_state_bytes);
+            drop(claim);
+            let row_release = self.release_temporary_state(row_state_bytes);
+            result?;
+            value_release?;
+            row_release?;
+        }
+        drop(used_events);
+        drop(validated_events);
+        self.release_temporary_state(compatibility_headers)?;
+        self.release_loaded_rows(cursor_state_bytes)?;
+
+        let expected_event_rows = self.cost.candidate_provision_event_id_count;
+        self.schema_request_store
+            .as_deref_mut()
+            .ok_or(ItemRefusal::Budget)?
+            .begin_provision_event_ids(expected_event_rows)?;
+        let mut event_cursor_state_bytes = 0usize;
+        let mut unused_event_count = 0u64;
+        let mut unused_event_source_bytes = 0usize;
+        let mut unused_message: Option<String> = None;
+        let mut unused_message_state_bytes = 0usize;
+        let issue_prefix = "provision-activity provenance events are not referenced by claims: ";
+        loop {
+            check(self.limits.deadline, self.source.cancellation())?;
+            let remaining = self.remaining_state()?;
+            let (event_id, workspace, row_state_bytes, retained_cursor_state_bytes) = self
+                .schema_request_store
+                .as_deref_mut()
+                .ok_or(ItemRefusal::Budget)?
+                .next_provision_event_id(remaining)?;
+            self.release_loaded_rows(event_cursor_state_bytes)?;
+            let Some(event_id) = event_id else {
+                if row_state_bytes != 0 || retained_cursor_state_bytes != 0 {
+                    return Err(ItemRefusal::Budget);
+                }
+                self.include_store_workspace(workspace)?;
+                break;
+            };
+            let active_state_bytes = row_state_bytes
+                .checked_add(retained_cursor_state_bytes)
+                .ok_or(ItemRefusal::Budget)?;
+            self.reserve_temporary(active_state_bytes)?;
+            event_cursor_state_bytes = retained_cursor_state_bytes;
+            self.include_store_workspace(workspace)?;
+
+            let is_used = self.contains_candidate_provision_used_event(&event_id)?;
+            if !is_used {
+                unused_event_count = unused_event_count
+                    .checked_add(1)
+                    .ok_or(ItemRefusal::Budget)?;
+                unused_event_source_bytes = unused_event_source_bytes
+                    .checked_add(event_id.len())
+                    .ok_or(ItemRefusal::Budget)?;
+                self.cost.candidate_provision_unused_event_count = unused_event_count;
+                let unused_event_count =
+                    usize::try_from(unused_event_count).map_err(|_| ItemRefusal::Budget)?;
+                let (_, list_bytes, _) =
+                    python_string_list_workspace(unused_event_count, unused_event_source_bytes)?;
+                let capacity = issue_prefix
+                    .len()
+                    .checked_add(list_bytes)
+                    .ok_or(ItemRefusal::Budget)?;
+                let next_message_state_bytes = bounded_string_capacity_state(capacity)?;
+                if next_message_state_bytes > unused_message_state_bytes {
+                    self.reserve_temporary(next_message_state_bytes - unused_message_state_bytes)?;
+                    unused_message_state_bytes = next_message_state_bytes;
+                }
+                let message = unused_message.get_or_insert_with(|| {
+                    let mut message = String::with_capacity(capacity);
+                    message.push_str(issue_prefix);
+                    message.push('[');
+                    message
+                });
+                if unused_event_count > 1 {
+                    message.push_str(", ");
+                }
+                push_python_string_repr(message, &event_id);
+            }
+            drop(event_id);
+            self.release_temporary_state(row_state_bytes)?;
+        }
+        self.release_loaded_rows(event_cursor_state_bytes)?;
+
+        let expected_used_rows = self.cost.candidate_provision_used_event_count;
+        let expected_validated_rows = self.cost.candidate_provision_validated_event_count;
+        let remaining = self.remaining_state()?;
+        self.schema_request_store
+            .as_deref_mut()
+            .ok_or(ItemRefusal::Budget)?
+            .finish_provision(
+                expected_claim_rows,
+                expected_event_rows,
+                expected_used_rows,
+                expected_validated_rows,
+                unused_event_count,
+                remaining,
+            )?;
+        let store_cost = self
+            .schema_request_store
+            .as_deref()
+            .ok_or(ItemRefusal::Budget)?
+            .cost();
+        if store_cost.provision_claim_rows != expected_claim_rows
+            || store_cost.provision_claim_drained_rows != expected_claim_rows
+            || !store_cost.provision_claim_eof_seen
+            || !store_cost.provision_claim_count_verified
+            || store_cost.provision_event_id_rows != expected_event_rows
+            || store_cost.provision_event_id_drained_rows != expected_event_rows
+            || store_cost.provision_event_id_lookup_rows != expected_event_rows
+            || !store_cost.provision_event_id_eof_seen
+            || !store_cost.provision_event_id_count_verified
+            || store_cost.provision_unused_event_rows != unused_event_count
+            || store_cost.provision_unused_event_drained_rows != unused_event_count
+            || !store_cost.provision_unused_event_eof_seen
+            || !store_cost.provision_unused_event_count_verified
+            || store_cost.provision_used_event_rows != expected_used_rows
+            || !store_cost.provision_used_event_count_verified
+            || store_cost.provision_validated_event_rows != expected_validated_rows
+            || !store_cost.provision_validated_event_count_verified
+        {
+            return Err(ItemRefusal::Source(
+                "source-foundation Provision store count or EOF differs".into(),
+            ));
+        }
+        self.cost.candidate_provision_claim_drained_rows = store_cost.provision_claim_drained_rows;
+        self.cost.candidate_provision_claim_eof_seen = store_cost.provision_claim_eof_seen;
+        self.cost.candidate_provision_claim_count_verified =
+            store_cost.provision_claim_count_verified;
+        self.cost.candidate_provision_event_id_drained_rows =
+            store_cost.provision_event_id_drained_rows;
+        self.cost.candidate_provision_event_id_lookup_rows =
+            store_cost.provision_event_id_lookup_rows;
+        self.cost.candidate_provision_event_id_eof_seen = store_cost.provision_event_id_eof_seen;
+        self.cost.candidate_provision_event_id_count_verified =
+            store_cost.provision_event_id_count_verified;
+        self.cost
+            .candidate_provision_unused_event_serialized_read_bytes =
+            store_cost.provision_unused_event_serialized_read_bytes;
+        self.cost
+            .candidate_provision_unused_event_scan_row_operations =
+            store_cost.provision_unused_event_scan_row_operations;
+        self.cost
+            .candidate_provision_unused_event_peak_workspace_state_bytes =
+            store_cost.provision_unused_event_workspace_state_bytes;
+        self.cost.candidate_provision_unused_event_drained_rows =
+            store_cost.provision_unused_event_drained_rows;
+        self.cost.candidate_provision_unused_event_eof_seen =
+            store_cost.provision_unused_event_eof_seen;
+        self.cost.candidate_provision_unused_event_count_verified =
+            store_cost.provision_unused_event_count_verified;
+
+        if let Some(mut message) = unused_message {
+            message.push(']');
+            let message_state = unused_message_state_bytes;
+            let location_state = estimate_string_storage(SOURCE_HOME)?;
+            self.reserve_temporary(location_state)?;
+            let issue = self.issue(SOURCE_HOME, message);
+            let location_release = self.release_temporary_state(location_state);
+            let message_release = self.release_temporary_state(message_state);
+            issue?;
+            location_release?;
+            message_release?;
+        }
+        self.release_temporary_since(temporary_baseline);
+        Ok(())
+    }
+
+    fn check_provision_activity_finite(&mut self) -> Result<(), ItemRefusal> {
         let mut clone_state =
             std::mem::size_of::<Vec<(String, SourceFoundationClosureClaimRef, Value)>>();
         for (id, reference) in &self.provision {
@@ -4820,206 +5461,12 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
         let mut validated_events = BTreeSet::new();
         let mut used_events = BTreeSet::new();
         for (_id, reference, claim) in claims {
-            check(self.limits.deadline, self.source.cancellation())?;
-            if reference.native {
-                continue;
-            }
-            let location = reference.location.clone();
-            if text(&claim, "claim_type") != Some("bibliographic") {
-                self.issue(
-                    &location,
-                    "provision-activity claim_type must be bibliographic",
-                )?;
-            }
-            if text(&claim, "assertion_layer") != Some("bibliographic_assertion") {
-                self.issue(
-                    &location,
-                    "provision-activity assertion_layer must be bibliographic_assertion",
-                )?;
-            }
-            if text(&claim, "predicate") != Some("provision_activity") {
-                self.issue(
-                    &location,
-                    "provision-activity predicate must be provision_activity",
-                )?;
-            }
-            if !self
-                .owner_record_matches_subject_at_location(&reference.location, &reference.subject)?
-            {
-                self.issue(
-                    &location,
-                    "provision-activity subject_ref differs from sibling edition.json",
-                )?;
-            }
-
-            let Some(activity) = claim.get("object") else {
-                self.issue(&location, "provision-activity object must be an object")?;
-                continue;
-            };
-            self.request_schema(&format!("{location}#object"), PROVISION_SCHEMA, activity)?;
-            if let Some(temporal) = activity.get("temporal") {
-                if text(temporal, "kind") == Some("interval") {
-                    if let (Some(start), Some(end)) =
-                        (text(temporal, "start"), text(temporal, "end"))
-                    {
-                        if start > end {
-                            self.issue(
-                                &location,
-                                "provision-activity interval starts after it ends",
-                            )?;
-                        }
-                    }
-                }
-            }
-            let kind = text(activity, "provision_kind").unwrap_or_default();
-            let (place_role, agent_roles): (&str, &[&str]) = match kind {
-                "publication" => ("publication_place", &["publisher"]),
-                "production" => ("production_place", &["producer"]),
-                "distribution" => ("distribution_place", &["distributor"]),
-                "manufacture" => ("manufacture_place", &["manufacturer", "printer"]),
-                _ => ("", &[]),
-            };
-            for place in activity
-                .get("places")
-                .and_then(Value::as_array)
-                .into_iter()
-                .flatten()
-            {
-                if let Some(role) = text(place, "role") {
-                    if !place_role.is_empty() && role != place_role {
-                        self.issue(
-                            &location,
-                            format!("{kind} provision has incompatible place role: {role}"),
-                        )?;
-                    }
-                }
-                if let Some(reference) = text(place, "normalized_place_ref") {
-                    self.expect_ref(&location, Some(reference), "place")?;
-                }
-            }
-            for agent in activity
-                .get("agents")
-                .and_then(Value::as_array)
-                .into_iter()
-                .flatten()
-            {
-                if let Some(role) = text(agent, "role") {
-                    if !agent_roles.is_empty() && !agent_roles.contains(&role) {
-                        self.issue(
-                            &location,
-                            format!("{kind} provision has incompatible agent role: {role}"),
-                        )?;
-                    }
-                }
-                if let Some(reference) = text(agent, "normalized_agent_ref") {
-                    let (record, record_workspace) =
-                        self.current_record_with_state_budget(reference)?;
-                    match record.as_ref() {
-                        None => self.issue(
-                            &location,
-                            format!("unresolved provision agent reference: {reference}"),
-                        )?,
-                        Some(record)
-                            if !matches!(record.kind.as_str(), "agent" | "organization") =>
-                        {
-                            self.issue(
-                                &location,
-                                format!(
-                                    "{reference} resolves to {}, expected agent or organization",
-                                    record.kind
-                                ),
-                            )?
-                        }
-                        Some(_) => {}
-                    }
-                    drop(record);
-                    self.release_temporary_state(record_workspace)?;
-                }
-            }
-            if text(activity, "event_posture") == Some("source_statement_only")
-                && activity.get("temporal").is_some_and(Value::is_object)
-                && text(activity.get("temporal").unwrap_or(&Value::Null), "role")
-                    != Some("statement_date")
-            {
-                self.issue(
-                    &location,
-                    "source_statement_only provision must keep its temporal role at statement_date",
-                )?;
-            }
-
-            let (event, event_state_bytes) = self.event(&reference.event)?;
-            let Some(event) = event.map(Cow::into_owned) else {
-                self.issue(
-                    &location,
-                    format!(
-                        "unresolved provision-activity provenance_event_ref: {}",
-                        reference.event
-                    ),
-                )?;
-                self.release_loaded_rows(event_state_bytes)?;
-                continue;
-            };
-            let claim_path = location
-                .rsplit_once(':')
-                .map(|(path, _)| path)
-                .unwrap_or(&location);
-            let Some(digest) = self.digest_for(claim_path)? else {
-                self.issue(
-                    &location,
-                    "provision-activity Claim file is absent from the current cut",
-                )?;
-                self.release_loaded_rows(event_state_bytes)?;
-                continue;
-            };
-            if !output_binds(
-                &event,
-                claim_path,
-                "unreviewed-evidence-bearing-provision-activity-claims",
-                &digest,
-            ) {
-                self.issue(
-                    &location,
-                    "provision-activity provenance event does not digest-bind the claim file",
-                )?;
-            }
-            if !used_events.contains(&reference.event) {
-                self.reserve_temporary(
-                    reference.event.len()
-                        + std::mem::size_of::<String>()
-                        + 4 * std::mem::size_of::<usize>(),
-                )?;
-                used_events.insert(reference.event.clone());
-            }
-            if !validated_events.contains(&reference.event) {
-                self.reserve_temporary(
-                    reference.event.len()
-                        + std::mem::size_of::<String>()
-                        + 4 * std::mem::size_of::<usize>(),
-                )?;
-                validated_events.insert(reference.event.clone());
-                self.check_event_input_bindings(
-                    &location,
-                    &event,
-                    "provision-activity provenance input",
-                )?;
-            }
-            for evidence in value_strings(&claim, "evidence_refs") {
-                if evidence.starts_with("ToS/") && !self.current_exists(&evidence)? {
-                    self.issue(
-                        &location,
-                        format!("unresolved repository evidence ref: {evidence}"),
-                    )?;
-                } else if evidence.starts_with("tos.")
-                    && !self.current_record_exists_with_state_budget(&evidence)?
-                    && !self.link_exists(&evidence)?
-                {
-                    self.issue(
-                        &location,
-                        format!("unresolved identity evidence ref: {evidence}"),
-                    )?;
-                }
-            }
-            self.release_loaded_rows(event_state_bytes)?;
+            self.check_provision_activity_claim(
+                &reference,
+                &claim,
+                &mut used_events,
+                &mut validated_events,
+            )?;
         }
         let unused: Vec<String> = self
             .provision_event_ids
@@ -5036,6 +5483,206 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
             )?;
         }
         self.release_temporary_since(temporary_baseline);
+        Ok(())
+    }
+
+    fn check_provision_activity_claim(
+        &mut self,
+        reference: &SourceFoundationClosureClaimRef,
+        claim: &Value,
+        used_events: &mut BTreeSet<String>,
+        validated_events: &mut BTreeSet<String>,
+    ) -> Result<(), ItemRefusal> {
+        check(self.limits.deadline, self.source.cancellation())?;
+        if reference.native {
+            return Ok(());
+        }
+        let location = reference.location.as_str();
+        if text(&claim, "claim_type") != Some("bibliographic") {
+            self.issue(
+                location,
+                "provision-activity claim_type must be bibliographic",
+            )?;
+        }
+        if text(&claim, "assertion_layer") != Some("bibliographic_assertion") {
+            self.issue(
+                location,
+                "provision-activity assertion_layer must be bibliographic_assertion",
+            )?;
+        }
+        if text(&claim, "predicate") != Some("provision_activity") {
+            self.issue(
+                location,
+                "provision-activity predicate must be provision_activity",
+            )?;
+        }
+        if !self
+            .owner_record_matches_subject_at_location(&reference.location, &reference.subject)?
+        {
+            self.issue(
+                location,
+                "provision-activity subject_ref differs from sibling edition.json",
+            )?;
+        }
+
+        let Some(activity) = claim.get("object") else {
+            self.issue(location, "provision-activity object must be an object")?;
+            return Ok(());
+        };
+        self.request_schema(&format!("{location}#object"), PROVISION_SCHEMA, activity)?;
+        if let Some(temporal) = activity.get("temporal") {
+            if text(temporal, "kind") == Some("interval") {
+                if let (Some(start), Some(end)) = (text(temporal, "start"), text(temporal, "end")) {
+                    if start > end {
+                        self.issue(location, "provision-activity interval starts after it ends")?;
+                    }
+                }
+            }
+        }
+        let kind = text(activity, "provision_kind").unwrap_or_default();
+        let (place_role, agent_roles): (&str, &[&str]) = match kind {
+            "publication" => ("publication_place", &["publisher"]),
+            "production" => ("production_place", &["producer"]),
+            "distribution" => ("distribution_place", &["distributor"]),
+            "manufacture" => ("manufacture_place", &["manufacturer", "printer"]),
+            _ => ("", &[]),
+        };
+        for place in activity
+            .get("places")
+            .and_then(Value::as_array)
+            .into_iter()
+            .flatten()
+        {
+            if let Some(role) = text(place, "role") {
+                if !place_role.is_empty() && role != place_role {
+                    self.issue(
+                        location,
+                        format!("{kind} provision has incompatible place role: {role}"),
+                    )?;
+                }
+            }
+            if let Some(reference) = text(place, "normalized_place_ref") {
+                self.expect_ref(location, Some(reference), "place")?;
+            }
+        }
+        for agent in activity
+            .get("agents")
+            .and_then(Value::as_array)
+            .into_iter()
+            .flatten()
+        {
+            if let Some(role) = text(agent, "role") {
+                if !agent_roles.is_empty() && !agent_roles.contains(&role) {
+                    self.issue(
+                        location,
+                        format!("{kind} provision has incompatible agent role: {role}"),
+                    )?;
+                }
+            }
+            if let Some(reference) = text(agent, "normalized_agent_ref") {
+                let (record, record_workspace) =
+                    self.current_record_with_state_budget(reference)?;
+                match record.as_ref() {
+                    None => self.issue(
+                        location,
+                        format!("unresolved provision agent reference: {reference}"),
+                    )?,
+                    Some(record) if !matches!(record.kind.as_str(), "agent" | "organization") => {
+                        self.issue(
+                            location,
+                            format!(
+                                "{reference} resolves to {}, expected agent or organization",
+                                record.kind
+                            ),
+                        )?
+                    }
+                    Some(_) => {}
+                }
+                drop(record);
+                self.release_temporary_state(record_workspace)?;
+            }
+        }
+        if text(activity, "event_posture") == Some("source_statement_only")
+            && activity.get("temporal").is_some_and(Value::is_object)
+            && text(activity.get("temporal").unwrap_or(&Value::Null), "role")
+                != Some("statement_date")
+        {
+            self.issue(
+                location,
+                "source_statement_only provision must keep its temporal role at statement_date",
+            )?;
+        }
+
+        let (event, event_state_bytes) = self.event(&reference.event)?;
+        let Some(event) = event.map(Cow::into_owned) else {
+            self.issue(
+                location,
+                format!(
+                    "unresolved provision-activity provenance_event_ref: {}",
+                    reference.event
+                ),
+            )?;
+            self.release_loaded_rows(event_state_bytes)?;
+            return Ok(());
+        };
+        let claim_path = location
+            .rsplit_once(':')
+            .map(|(path, _)| path)
+            .unwrap_or(location);
+        let Some(digest) = self.digest_for(claim_path)? else {
+            self.issue(
+                location,
+                "provision-activity Claim file is absent from the current cut",
+            )?;
+            self.release_loaded_rows(event_state_bytes)?;
+            return Ok(());
+        };
+        if !output_binds(
+            &event,
+            claim_path,
+            "unreviewed-evidence-bearing-provision-activity-claims",
+            &digest,
+        ) {
+            self.issue(
+                location,
+                "provision-activity provenance event does not digest-bind the claim file",
+            )?;
+        }
+        self.remember_provision_used_event(&reference.event, used_events)?;
+        if self.remember_provision_validated_event(&reference.event, validated_events)? {
+            self.check_event_input_bindings(
+                location,
+                &event,
+                "provision-activity provenance input",
+            )?;
+        }
+        let evidence_state = value_strings_workspace(&claim, "evidence_refs")?;
+        self.reserve_temporary(evidence_state)?;
+        let evidence_refs = value_strings(&claim, "evidence_refs");
+        let evidence_result = (|| {
+            for evidence in &evidence_refs {
+                if evidence.starts_with("ToS/") && !self.current_exists(evidence)? {
+                    self.issue(
+                        location,
+                        format!("unresolved repository evidence ref: {evidence}"),
+                    )?;
+                } else if evidence.starts_with("tos.")
+                    && !self.current_record_exists_with_state_budget(evidence)?
+                    && !self.link_exists(evidence)?
+                {
+                    self.issue(
+                        location,
+                        format!("unresolved identity evidence ref: {evidence}"),
+                    )?;
+                }
+            }
+            Ok(())
+        })();
+        drop(evidence_refs);
+        let evidence_release = self.release_temporary_state(evidence_state);
+        evidence_result?;
+        evidence_release?;
+        self.release_loaded_rows(event_state_bytes)?;
         Ok(())
     }
 
@@ -6497,16 +7144,20 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
             }
             if path.ends_with("/provision-activity-claims.jsonl") {
                 self.expect_ref(&location, Some(&subject), "edition")?;
-                self.reserve(crate::record_biblio_cut::decoded_state(claim)?)?;
-                self.reserve(
-                    id.len()
-                        + std::mem::size_of::<String>()
-                        + std::mem::size_of::<Value>()
-                        + 4 * std::mem::size_of::<usize>(),
-                )?;
-                self.reserve(claim_reference_index_state(&id, &reference)?)?;
-                self.provision_values.insert(id.clone(), claim.clone());
-                self.provision.insert(id.clone(), reference.clone());
+                if self.schema_request_store.is_some() {
+                    self.remember_candidate_provision_claim(&id, &reference)?;
+                } else {
+                    self.reserve(crate::record_biblio_cut::decoded_state(claim)?)?;
+                    self.reserve(
+                        id.len()
+                            + std::mem::size_of::<String>()
+                            + std::mem::size_of::<Value>()
+                            + 4 * std::mem::size_of::<usize>(),
+                    )?;
+                    self.reserve(claim_reference_index_state(&id, &reference)?)?;
+                    self.provision_values.insert(id.clone(), claim.clone());
+                    self.provision.insert(id.clone(), reference.clone());
+                }
             }
             if path == CHRONOLOGY_CLAIMS {
                 self.expect_ref(&location, Some(&subject), "work")?;
@@ -7164,6 +7815,28 @@ fn value_strings(value: &Value, key: &str) -> Vec<String> {
         .collect()
 }
 
+fn value_strings_workspace(value: &Value, key: &str) -> Result<usize, ItemRefusal> {
+    let references = value
+        .get(key)
+        .and_then(Value::as_array)
+        .map(Vec::as_slice)
+        .unwrap_or_default();
+    let mut state = std::mem::size_of::<Vec<String>>()
+        .checked_add(
+            references
+                .len()
+                .checked_mul(std::mem::size_of::<String>())
+                .ok_or(ItemRefusal::Budget)?,
+        )
+        .ok_or(ItemRefusal::Budget)?;
+    for reference in references.iter().filter_map(Value::as_str) {
+        state = state
+            .checked_add(estimate_string_storage(reference)?)
+            .ok_or(ItemRefusal::Budget)?;
+    }
+    Ok(state)
+}
+
 fn link_validation_workspace(
     value: &Value,
     targets: &BTreeMap<String, String>,
@@ -7239,6 +7912,42 @@ fn python_string_repr(value: &str) -> String {
     }
     rendered.push(quote);
     rendered
+}
+
+fn push_python_string_repr(rendered: &mut String, value: &str) {
+    let quote = if value.contains('\'') && !value.contains('"') {
+        '"'
+    } else {
+        '\''
+    };
+    rendered.push(quote);
+    for character in value.chars() {
+        match character {
+            '\\' => rendered.push_str("\\\\"),
+            '\n' => rendered.push_str("\\n"),
+            '\r' => rendered.push_str("\\r"),
+            '\t' => rendered.push_str("\\t"),
+            value if value == quote => {
+                rendered.push('\\');
+                rendered.push(value);
+            }
+            value if value.is_control() => {
+                rendered.push_str("\\u");
+                let codepoint = value as u32;
+                let digits = if codepoint > 0xffff {
+                    (32 - codepoint.leading_zeros()).div_ceil(4) as usize
+                } else {
+                    4
+                };
+                for shift in (0..digits).rev() {
+                    let nibble = ((codepoint >> (shift * 4)) & 0xf) as u8;
+                    rendered.push(char::from_digit(u32::from(nibble), 16).unwrap_or('0'));
+                }
+            }
+            value => rendered.push(value),
+        }
+    }
+    rendered.push(quote);
 }
 
 fn json_parse_reason(error: &serde_json::Error) -> &'static str {
