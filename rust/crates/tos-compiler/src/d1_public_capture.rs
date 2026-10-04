@@ -3327,7 +3327,10 @@ impl PublicCapture {
         max_bytes: usize,
     ) -> Result<serde_json::Value> {
         self.check_custody()?;
-        if max_bytes == 0 || max_bytes > MAX_HEADER_BYTES {
+        // The caller supplies an envelope ceiling; the header's own row and
+        // aggregate ceiling remains in force even when that envelope is larger.
+        let max_bytes = max_bytes.min(MAX_HEADER_BYTES);
+        if max_bytes == 0 {
             return Err(Error::Budget("public D1 header object bytes"));
         }
         let db = self.read_db()?;
