@@ -111,7 +111,7 @@ fn read_held(path: &Path, cap: usize, deadline: Instant) -> Result<Vec<u8>, Stri
     active(deadline)?;
     let file: File = OpenOptions::new()
         .read(true)
-        .custom_flags(libc::O_NOFOLLOW)
+        .custom_flags(libc::O_NOFOLLOW | libc::O_NONBLOCK)
         .open(path)
         .map_err(|e| e.to_string())?;
     let before = file.metadata().map_err(|e| e.to_string())?;

@@ -26,13 +26,15 @@ const CAPTURE: &[&str] = &[
     "source-create-environment.json",
     "source-create-provenance.jsonl",
 ];
-const CLAIM_CONTRACTS: &[&str] = &[
+const CLAIM_SCHEMA_CONTRACTS: &[&str] = &[
     CLAIM_SCHEMA,
     "ToS/contracts/claim-packet.schema.json",
     "ToS/contracts/historical-record.schema.json",
     "ToS/contracts/corpus-record.schema.json",
     "ToS/contracts/knowledge-assessment.schema.json",
     "ToS/contracts/claim-display-fields.schema.json",
+];
+const CLAIM_REGISTRY_REFS: &[&str] = &[
     "ToS/doctrine/semantic-interchange/entity-types.v1.json",
     "ToS/doctrine/semantic-interchange/relation-types.v1.json",
 ];
@@ -548,8 +550,9 @@ fn validate_request_shape(request: &JsonValue, revision: bool) -> SourceCommandR
 
 fn contract_digests(ctx: &CommandContext) -> SourceCommandResult<JsonValue> {
     Ok(JsonValue::Object(
-        CLAIM_CONTRACTS
+        CLAIM_SCHEMA_CONTRACTS
             .iter()
+            .chain(CLAIM_REGISTRY_REFS)
             .map(|name| {
                 let bytes = ctx
                     .file(&rel(name)?)?
@@ -1210,7 +1213,7 @@ fn validate_config_claim(
         worker,
         claim,
         CLAIM_SCHEMA,
-        CLAIM_CONTRACTS,
+        CLAIM_SCHEMA_CONTRACTS,
         deadline,
         cancelled,
     )?;
@@ -1949,34 +1952,26 @@ fn validate_history<'a>(
             ],
         )?;
         let request = cmd::field(receipt, "request")?;
-        cmd::exact_keys(
-            request,
-            &[
-                "operation",
-                "fields",
-                "forms",
-                "reason",
-                "command_id",
-                "expected_configuration",
-                "expected_source",
-                "expected_revision",
-                "expected_dependencies",
-                "expected_inputs",
-            ],
-        )?;
+        validate_request_shape(request, true)?;
         let command_id = cmd::text(receipt, "command_id")?;
         cmd::validate_instant(cmd::text(receipt, "recorded_at")?)?;
         if !commands.insert(command_id.to_owned())
             || cmd::text(request, "operation")? != "claim.revise"
             || cmd::text(receipt, "request_digest")? != cmd::record_digest(request)?.to_prefixed()
             || cmd::field(receipt, "command_id")? != cmd::field(request, "command_id")?
-            || cmd::field(receipt, "previous_source")? != cmd::field(request, "expected_source")?
+            || !same(
+                cmd::field(receipt, "previous_source")?,
+                cmd::field(request, "expected_source")?,
+            )?
             || cmd::field(receipt, "previous_revision")?
                 != cmd::field(request, "expected_revision")?
             || cmd::field(receipt, "owner_configuration")?
                 != cmd::field(request, "expected_configuration")?
             || cmd::field(receipt, "dependencies")? != cmd::field(request, "expected_dependencies")?
-            || cmd::field(receipt, "source_bindings")? != cmd::field(request, "expected_inputs")?
+            || !same(
+                cmd::field(receipt, "source_bindings")?,
+                cmd::field(request, "expected_inputs")?,
+            )?
             || cmd::field(receipt, "reason")? != cmd::field(request, "reason")?
             || cmd::field(receipt, "changed_fields")?
                 != &JsonValue::Array(vec![cmd::string("qualifiers")])
@@ -2033,14 +2028,14 @@ fn validate_history<'a>(
             }
         }
         let prior = before_rows.get(id).ok_or(invalid())?;
-        if subject(prior)? != *previous {
+        if !same(&subject(prior)?, previous)? {
             return Err(SourceCommandError::Conflict(
                 "historical Claim archive subject differs",
             ));
         }
         let fields = cmd::field(request, "fields")?;
         let revised = advance(prior, fields)?;
-        if subject(&revised)? != *cmd::field(receipt, "source")?
+        if !same(&subject(&revised)?, cmd::field(receipt, "source")?)?
             || cmd::text(cmd::field(receipt, "source")?, "id")? != id
             || cmd::integer(previous, "version")?.checked_add(1)
                 != Some(cmd::integer(cmd::field(receipt, "source")?, "version")?)
