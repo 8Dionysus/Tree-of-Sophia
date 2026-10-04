@@ -3061,20 +3061,17 @@ fn prepare_revision(
     }
     if operation == "inspect-version" {
         let selected = cmd::field(&owner.request, "source")?;
-        let found = cmd::array(&history.payload, "receipts")?
-            .iter()
-            .find(|receipt| {
-                receipt.object_get("previous_source") == Some(selected)
-                    && optional_text(
-                        receipt
-                            .object_get("previous_source")
-                            .unwrap_or(&JsonValue::Null),
-                        "id",
-                    ) == Some(owner.claim_id.as_str())
-            })
-            .ok_or(SourceCommandError::Conflict(
-                "exact historical Claim version is not retained",
-            ))?;
+        let mut found = None;
+        for receipt in cmd::array(&history.payload, "receipts")? {
+            let previous = cmd::field(receipt, "previous_source")?;
+            if same(previous, selected)? && cmd::text(previous, "id")? == owner.claim_id {
+                found = Some(receipt);
+                break;
+            }
+        }
+        let found = found.ok_or(SourceCommandError::Conflict(
+            "exact historical Claim version is not retained",
+        ))?;
         let archive_raw =
             reader.read_archive(cmd::text(found, "archive_path")?, deadline, cancelled)?;
         let (archived, locations) = decode_archive(archive_raw, &owner.config, found)?;
