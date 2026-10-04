@@ -18,6 +18,25 @@ use crate::secure_open::StoreRoot;
 
 const SNAPSHOT_SCHEMA: &str = "tos_corpus_snapshot_v1";
 const POINTER_SCHEMA: &str = "tos_corpus_pointer_v1";
+const POINTER_SCHEMA_V2: &str = "tos_corpus_pointer_v2";
+
+/// Current pointer wire format. The format is an on-disk compatibility fence;
+/// it is not source admission or a publication capability.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum CorpusPointerFormat {
+    V1,
+    V2,
+}
+
+/// Exact current pointer selection, including the V2 CMD rootset binding when
+/// present. `load_exact` remains an explicit immutable V1 manifest read.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct CorpusCurrentSelection {
+    pub revision: SourceRevision,
+    pub previous: Option<SourceRevision>,
+    pub format: CorpusPointerFormat,
+    pub rootset_sha256: Option<Digest256>,
+}
 
 /// A read-only corpus root. Opening does not create directories or select current.
 #[derive(Clone, Debug)]
@@ -196,9 +215,26 @@ impl CorpusReader {
         })
     }
 
+    /// Open from an exact caller-held root descriptor. This prevents a
+    /// current-pointer read from reopening a mutable path after the caller has
+    /// already fenced that path against the retained root.
+    pub fn open_existing_at(held_root: &File, limits: ReadLimits) -> Result<Self> {
+        let limits = limits.validate()?;
+        Ok(Self {
+            root: Arc::new(StoreRoot::open_existing_at(held_root)?),
+            limits,
+        })
+    }
+
     /// Explicitly inspect the mutable pointer. It is never consulted by `load_exact`.
     pub fn select_current(&self) -> Result<Option<SourceRevision>> {
         self.select_current_inner(None)
+    }
+
+    /// Inspect the typed V1/V2 selector while preserving the historical
+    /// `select_current` return surface for callers that need only a revision.
+    pub fn select_current_selection(&self) -> Result<Option<CorpusCurrentSelection>> {
+        self.select_current_selection_inner(None)
     }
 
     /// Preserve the same pointer parser/CAS selection law while charging each
@@ -209,8 +245,19 @@ impl CorpusReader {
         deadline: std::time::Instant,
         cancelled: &std::sync::atomic::AtomicBool,
     ) -> Result<Option<SourceRevision>> {
+        self.select_current_inner(Some((io_budget, deadline, cancelled)))
+    }
+
+    /// Budgeted typed selector read for publishers and recovery paths that
+    /// must preserve the selected V2 rootset binding.
+    pub fn select_current_selection_budgeted(
+        &self,
+        io_budget: &crate::PinnedSqliteIoBudget,
+        deadline: std::time::Instant,
+        cancelled: &std::sync::atomic::AtomicBool,
+    ) -> Result<Option<CorpusCurrentSelection>> {
         crate::streamed_cut::check_time_budgeted(deadline, cancelled, Some(io_budget))?;
-        let result = self.select_current_inner(Some((io_budget, deadline, cancelled)))?;
+        let result = self.select_current_selection_inner(Some((io_budget, deadline, cancelled)))?;
         crate::streamed_cut::check_time_budgeted(deadline, cancelled, Some(io_budget))?;
         Ok(result)
     }
@@ -223,6 +270,33 @@ impl CorpusReader {
             &std::sync::atomic::AtomicBool,
         )>,
     ) -> Result<Option<SourceRevision>> {
+        if let Some((io_budget, deadline, cancelled)) = budget {
+            crate::streamed_cut::check_time_budgeted(deadline, cancelled, Some(io_budget))?;
+        }
+        let selected = self.select_current_selection_inner(budget)?;
+        if let Some((io_budget, deadline, cancelled)) = budget {
+            crate::streamed_cut::check_time_budgeted(deadline, cancelled, Some(io_budget))?;
+        }
+        match selected {
+            Some(selection) if selection.format == CorpusPointerFormat::V1 => {
+                Ok(Some(selection.revision))
+            }
+            Some(_) => Err(StoreError::new(
+                Code::UnsupportedFormat,
+                "V1 current selector does not accept a V2 pointer",
+            )),
+            None => Ok(None),
+        }
+    }
+
+    fn select_current_selection_inner(
+        &self,
+        budget: Option<(
+            &crate::PinnedSqliteIoBudget,
+            std::time::Instant,
+            &std::sync::atomic::AtomicBool,
+        )>,
+    ) -> Result<Option<CorpusCurrentSelection>> {
         let file = match self.root.open_pointer() {
             Err(error) if is_not_found(&error) => return Ok(None),
             other => other?,
@@ -237,20 +311,45 @@ impl CorpusReader {
         } else {
             self.read_canonical(file)?
         };
-        exact_keys(
-            &value,
-            &["schema_version", "current", "previous"],
-            Code::UnsupportedFormat,
-        )?;
-        if string_field(&value, "schema_version", Code::UnsupportedFormat)? != POINTER_SCHEMA {
-            return Err(StoreError::new(
+        let schema = string_field(&value, "schema_version", Code::UnsupportedFormat)?;
+        match schema {
+            POINTER_SCHEMA => {
+                exact_keys(
+                    &value,
+                    &["schema_version", "current", "previous"],
+                    Code::UnsupportedFormat,
+                )?;
+                let current = digest_field(&value, "current", Code::UnsupportedFormat)?;
+                let previous = optional_revision(&value, "previous", Code::UnsupportedFormat)?;
+                Ok(Some(CorpusCurrentSelection {
+                    revision: SourceRevision(current),
+                    previous,
+                    format: CorpusPointerFormat::V1,
+                    rootset_sha256: None,
+                }))
+            }
+            POINTER_SCHEMA_V2 => {
+                exact_keys(
+                    &value,
+                    &["schema_version", "current", "previous", "rootset_sha256"],
+                    Code::UnsupportedFormat,
+                )?;
+                let current = digest_field(&value, "current", Code::UnsupportedFormat)?;
+                let previous = optional_revision(&value, "previous", Code::UnsupportedFormat)?;
+                let rootset_sha256 =
+                    digest_field(&value, "rootset_sha256", Code::UnsupportedFormat)?;
+                Ok(Some(CorpusCurrentSelection {
+                    revision: SourceRevision(current),
+                    previous,
+                    format: CorpusPointerFormat::V2,
+                    rootset_sha256: Some(rootset_sha256),
+                }))
+            }
+            _ => Err(StoreError::new(
                 Code::UnsupportedFormat,
                 "unsupported corpus pointer",
-            ));
+            )),
         }
-        let current = digest_field(&value, "current", Code::UnsupportedFormat)?;
-        optional_revision(&value, "previous", Code::UnsupportedFormat)?;
-        Ok(Some(SourceRevision(current)))
     }
 
     /// Validate exactly one canonical manifest, without hashing unrelated objects.

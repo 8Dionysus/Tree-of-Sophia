@@ -311,6 +311,15 @@ impl PrivateTmpfsStageIsolation {
         self.verify_kernel()
     }
 
+    /// Borrow the exact originally held store after the existing capability
+    /// and kernel checks. This adds no namespace or allocation authority.
+    pub fn persistent_store_custody(&self, requested: &Path) -> Result<&File> {
+        self.verify_persistent_store(requested)?;
+        self.persistent_custody
+            .as_ref()
+            .ok_or(Error::Invalid("persistent store custody missing"))
+    }
+
     fn verify_store_identity(&self) -> Result<()> {
         match (&self.ticket.persistent_store, &self.persistent_custody) {
             (None, None) => Ok(()),

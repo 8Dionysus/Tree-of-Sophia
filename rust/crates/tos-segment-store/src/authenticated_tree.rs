@@ -12,6 +12,7 @@ use std::time::Instant;
 
 use tos_foundation::{Digest256, Digest256Hasher};
 
+use crate::authenticated_pack_set_v2::AuthenticatedTreePackSetV2;
 use crate::error::{Result, SegmentError, SegmentErrorCode as Code};
 use crate::generation::PlacementGenerationRowV1;
 use crate::placement::PlacementV1;
@@ -80,6 +81,59 @@ pub struct AuthenticatedTreeDeltaV1 {
     pub key: Vec<u8>,
     /// `None` removes this exact key; `Some` inserts or replaces its value.
     pub value: Option<Vec<u8>>,
+}
+
+/// Invocation-owned cumulative IO ledger for one authenticated-tree operation.
+/// The store charges the maximum exact frame/payload before touching physical
+/// bytes, then reconciles the bytes the operation actually returned. This is
+/// accounting only; it carries no source authorization.
+pub trait AuthenticatedTreeIoLedgerV1: Send + Sync {
+    fn charge_read(&self, bytes: u64) -> bool;
+    fn record_read_returned(&self, bytes: u64) -> bool;
+    fn charge_write(&self, bytes: u64) -> bool;
+    fn record_write_returned(&self, bytes: u64) -> bool;
+    /// Reserve a conservative persistent-allocation upper bound before a new
+    /// immutable pack is staged. Non-owning readers may keep the default.
+    fn reserve_allocated_bytes(&self, _bytes: u64) -> bool {
+        true
+    }
+    /// Reconcile one staged file's observed allocated blocks against its
+    /// prior reservation. This does not grant filesystem capacity.
+    fn reconcile_allocated_bytes(&self, reserved: u64, actual: u64) -> bool {
+        actual <= reserved
+    }
+    /// Conservative physical allocation quantum used for the pre-write bound.
+    fn allocation_unit_bytes(&self) -> u64 {
+        65_536
+    }
+}
+
+fn charge_tree_read(ledger: Option<&dyn AuthenticatedTreeIoLedgerV1>, bytes: u64) -> Result<()> {
+    if ledger.is_some_and(|ledger| !ledger.charge_read(bytes)) {
+        return Err(budget("authenticated tree read IO reservation refused"));
+    }
+    Ok(())
+}
+
+fn record_tree_read(ledger: Option<&dyn AuthenticatedTreeIoLedgerV1>, bytes: u64) -> Result<()> {
+    if ledger.is_some_and(|ledger| !ledger.record_read_returned(bytes)) {
+        return Err(budget("authenticated tree read IO reconciliation refused"));
+    }
+    Ok(())
+}
+
+fn charge_tree_write(ledger: Option<&dyn AuthenticatedTreeIoLedgerV1>, bytes: u64) -> Result<()> {
+    if ledger.is_some_and(|ledger| !ledger.charge_write(bytes)) {
+        return Err(budget("authenticated tree write IO reservation refused"));
+    }
+    Ok(())
+}
+
+fn record_tree_write(ledger: Option<&dyn AuthenticatedTreeIoLedgerV1>, bytes: u64) -> Result<()> {
+    if ledger.is_some_and(|ledger| !ledger.record_write_returned(bytes)) {
+        return Err(budget("authenticated tree write IO reconciliation refused"));
+    }
+    Ok(())
 }
 
 /// A content address and authenticated subtree summary. The compressed
@@ -318,6 +372,10 @@ pub struct AuthenticatedTreeWorkV1 {
     pub read_bytes: u64,
     pub written_nodes: u64,
     pub written_bytes: u64,
+    /// Allocated blocks retained by newly linked content-addressed packs.
+    /// This is separate from logical read/write I/O and is zero for reused
+    /// packs. The caller must reserve this persistent space before writing.
+    pub allocated_bytes: u64,
 }
 
 impl AuthenticatedTreeWorkV1 {
@@ -366,6 +424,10 @@ impl AuthenticatedTreeWorkV1 {
                 .checked_add(install.written_bytes)
                 .ok_or_else(|| budget("tree write byte counter overflow"))?;
         }
+        self.allocated_bytes = self
+            .allocated_bytes
+            .checked_add(install.allocated_bytes)
+            .ok_or_else(|| budget("tree allocated-byte counter overflow"))?;
         check_work(*self, limits)
     }
 
@@ -569,15 +631,48 @@ pub struct AuthenticatedTreeRowStreamV2 {
     store: SegmentStore,
     descriptor: AuthenticatedTreeDescriptorV2,
     limits: AuthenticatedTreeLimitsV1,
+    io_ledger: Option<Arc<dyn AuthenticatedTreeIoLedgerV1>>,
     _pin_lock: Arc<PinDirectoryLease>,
     stack: Vec<StreamFrameV2>,
     started: bool,
     observed: u64,
     transcript: Digest256Hasher,
     work: AuthenticatedTreeWorkV1,
-    pack_digests: HashSet<Digest256>,
+    pack_capture: PackCaptureV2,
     done: bool,
     failed: bool,
+}
+
+enum PackCaptureV2 {
+    None,
+    Local(HashSet<Digest256>),
+    External(Arc<dyn AuthenticatedTreePackSetV2>),
+}
+
+impl PackCaptureV2 {
+    fn observe(&mut self, digest: Digest256) -> Result<()> {
+        match self {
+            Self::None => Ok(()),
+            Self::Local(digests) => {
+                digests
+                    .try_reserve(1)
+                    .map_err(|_| budget("cold pack receipt allocation failed"))?;
+                digests.insert(digest);
+                Ok(())
+            }
+            Self::External(set) => set.observe(digest),
+        }
+    }
+
+    fn take_local(&mut self) -> Result<HashSet<Digest256>> {
+        match std::mem::replace(self, Self::None) {
+            Self::Local(digests) => Ok(digests),
+            _ => Err(SegmentError::new(
+                Code::InvalidReceipt,
+                "local cold pack inventory is unavailable",
+            )),
+        }
+    }
 }
 
 impl AuthenticatedTreeRowStreamV2 {
@@ -632,14 +727,12 @@ impl AuthenticatedTreeRowStreamV2 {
                         self.limits,
                         &mut self.work,
                         None,
+                        self.io_ledger.as_deref(),
                         deadline,
                         cancelled,
                     )?;
                     if let Some(digest) = loaded.physical_pack_digest {
-                        self.pack_digests
-                            .try_reserve(1)
-                            .map_err(|_| budget("cold pack receipt allocation failed"))?;
-                        self.pack_digests.insert(digest);
+                        self.pack_capture.observe(digest)?;
                     }
                     self.stack
                         .try_reserve(1)
@@ -695,14 +788,12 @@ impl AuthenticatedTreeRowStreamV2 {
                     self.limits,
                     &mut self.work,
                     None,
+                    self.io_ledger.as_deref(),
                     deadline,
                     cancelled,
                 )?;
                 if let Some(digest) = loaded.physical_pack_digest {
-                    self.pack_digests
-                        .try_reserve(1)
-                        .map_err(|_| budget("cold pack receipt allocation failed"))?;
-                    self.pack_digests.insert(digest);
+                    self.pack_capture.observe(digest)?;
                 }
                 self.stack
                     .try_reserve(1)
@@ -1190,6 +1281,7 @@ impl SegmentStore {
             read_bytes: raw.len() as u64,
             written_nodes: 0,
             written_bytes: 0,
+            allocated_bytes: 0,
         };
         Ok((payload, work))
     }
@@ -1252,6 +1344,7 @@ struct PackWriterV2<'a> {
     limits: AuthenticatedTreeLimitsV1,
     pack_cap: usize,
     work: &'a mut AuthenticatedTreeWorkV1,
+    io_ledger: Option<Arc<dyn AuthenticatedTreeIoLedgerV1>>,
     active: Option<ActivePackV2>,
     deadline: Instant,
     cancelled: &'a AtomicBool,
@@ -1263,6 +1356,7 @@ impl<'a> PackWriterV2<'a> {
         limits: AuthenticatedTreeLimitsV1,
         pack_cap: usize,
         work: &'a mut AuthenticatedTreeWorkV1,
+        io_ledger: Option<Arc<dyn AuthenticatedTreeIoLedgerV1>>,
         deadline: Instant,
         cancelled: &'a AtomicBool,
     ) -> Self {
@@ -1271,6 +1365,7 @@ impl<'a> PackWriterV2<'a> {
             limits,
             pack_cap,
             work,
+            io_ledger,
             active: None,
             deadline,
             cancelled,
@@ -1439,13 +1534,20 @@ impl<'a> PackWriterV2<'a> {
             return Err(budget("authenticated pack exceeds operation budget"));
         }
         let digest = Digest256::of_bytes(&active.raw);
-        let install = self.store.install_authenticated_blob(
+        let io_ledger = self.io_ledger.as_deref();
+        let payload_bytes = active.raw.len() as u64;
+        charge_tree_read(io_ledger, payload_bytes)?;
+        charge_tree_write(io_ledger, payload_bytes)?;
+        let install = self.store.install_authenticated_blob_accounted(
             digest,
             &active.raw,
             self.pack_cap,
             self.deadline,
             self.cancelled,
+            io_ledger,
         )?;
+        record_tree_read(io_ledger, install.read_bytes)?;
+        record_tree_write(io_ledger, install.written_bytes)?;
         self.work
             .charge_pack_install(install, active.frame_count, self.limits)?;
         active
@@ -1488,11 +1590,31 @@ impl SegmentStore {
     where
         I: IntoIterator<Item = Result<AuthenticatedTreeEntryV1>>,
     {
+        self.build_authenticated_tree_v2_with_work_and_io(
+            kind, rows, limits, None, deadline, cancelled,
+        )
+    }
+
+    /// Budget-aware form used by CMD admission. Every physical pack read/write
+    /// is charged before the store touches it and reconciled after return.
+    pub fn build_authenticated_tree_v2_with_work_and_io<I>(
+        &self,
+        kind: &[u8],
+        rows: I,
+        limits: AuthenticatedTreeLimitsV1,
+        io_ledger: Option<Arc<dyn AuthenticatedTreeIoLedgerV1>>,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<(AuthenticatedTreeDescriptorV2, AuthenticatedTreeWorkV1)>
+    where
+        I: IntoIterator<Item = Result<AuthenticatedTreeEntryV1>>,
+    {
         self.build_authenticated_tree_v2_with_pack_cap(
             kind,
             rows,
             limits,
             AUTHENTICATED_PACK_MAX_BYTES,
+            io_ledger,
             deadline,
             cancelled,
         )
@@ -1504,6 +1626,7 @@ impl SegmentStore {
         rows: I,
         limits: AuthenticatedTreeLimitsV1,
         pack_cap: usize,
+        io_ledger: Option<Arc<dyn AuthenticatedTreeIoLedgerV1>>,
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> Result<(AuthenticatedTreeDescriptorV2, AuthenticatedTreeWorkV1)>
@@ -1518,7 +1641,9 @@ impl SegmentStore {
         check(deadline, cancelled)?;
         let _pin_lock = self.hold_generation_pin()?;
         let mut work = AuthenticatedTreeWorkV1::default();
-        let mut writer = PackWriterV2::new(self, limits, pack_cap, &mut work, deadline, cancelled);
+        let mut writer = PackWriterV2::new(
+            self, limits, pack_cap, &mut work, io_ledger, deadline, cancelled,
+        );
         let mut cursor = BuildCursor::new(rows.into_iter());
         let mut frames = Vec::new();
         frames
@@ -1719,11 +1844,30 @@ impl SegmentStore {
     where
         I: IntoIterator<Item = Result<AuthenticatedTreeDeltaV1>>,
     {
+        self.apply_authenticated_tree_delta_v2_with_work_and_io(
+            old, changes, limits, None, deadline, cancelled,
+        )
+    }
+
+    /// Budget-aware COW delta form used by the source admission owner.
+    pub fn apply_authenticated_tree_delta_v2_with_work_and_io<I>(
+        &self,
+        old: &AuthenticatedTreeDescriptorV2,
+        changes: I,
+        limits: AuthenticatedTreeLimitsV1,
+        io_ledger: Option<Arc<dyn AuthenticatedTreeIoLedgerV1>>,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<(AuthenticatedTreeDescriptorV2, AuthenticatedTreeWorkV1)>
+    where
+        I: IntoIterator<Item = Result<AuthenticatedTreeDeltaV1>>,
+    {
         self.apply_authenticated_tree_delta_v2_with_pack_cap(
             old,
             changes,
             limits,
             AUTHENTICATED_PACK_MAX_BYTES,
+            io_ledger,
             deadline,
             cancelled,
         )
@@ -1735,6 +1879,7 @@ impl SegmentStore {
         changes: I,
         limits: AuthenticatedTreeLimitsV1,
         pack_cap: usize,
+        io_ledger: Option<Arc<dyn AuthenticatedTreeIoLedgerV1>>,
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> Result<(AuthenticatedTreeDescriptorV2, AuthenticatedTreeWorkV1)>
@@ -1750,7 +1895,9 @@ impl SegmentStore {
         check(deadline, cancelled)?;
         let _pin_lock = self.hold_generation_pin()?;
         let mut work = AuthenticatedTreeWorkV1::default();
-        let mut writer = PackWriterV2::new(self, limits, pack_cap, &mut work, deadline, cancelled);
+        let mut writer = PackWriterV2::new(
+            self, limits, pack_cap, &mut work, io_ledger, deadline, cancelled,
+        );
         let mut root = descriptor_root_handle(old)?;
         let mut previous: Option<Vec<u8>> = None;
         let mut changed_rows = 0u64;
@@ -1828,6 +1975,20 @@ impl SegmentStore {
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> Result<(Option<Vec<u8>>, AuthenticatedTreeWorkV1)> {
+        self.lookup_authenticated_tree_v2_with_work_and_io(
+            descriptor, key, limits, None, deadline, cancelled,
+        )
+    }
+
+    pub fn lookup_authenticated_tree_v2_with_work_and_io(
+        &self,
+        descriptor: &AuthenticatedTreeDescriptorV2,
+        key: &[u8],
+        limits: AuthenticatedTreeLimitsV1,
+        io_ledger: Option<Arc<dyn AuthenticatedTreeIoLedgerV1>>,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<(Option<Vec<u8>>, AuthenticatedTreeWorkV1)> {
         let limits = limits.validate()?;
         validate_descriptor_for_store(self, &descriptor.semantic, limits)?;
         validate_descriptor_v2_shape(descriptor)?;
@@ -1840,7 +2001,15 @@ impl SegmentStore {
         };
         loop {
             let loaded = load_node_v2(
-                self, descriptor, &handle, limits, &mut work, None, deadline, cancelled,
+                self,
+                descriptor,
+                &handle,
+                limits,
+                &mut work,
+                None,
+                io_ledger.as_deref(),
+                deadline,
+                cancelled,
             )?;
             let node = loaded.node;
             let prefix_len = node_prefix_nibbles(&node);
@@ -1882,6 +2051,30 @@ impl SegmentStore {
         descriptor: &AuthenticatedTreeDescriptorV2,
         limits: AuthenticatedTreeLimitsV1,
     ) -> Result<AuthenticatedTreeRowStreamV2> {
+        self.stream_authenticated_tree_v2_with_io(descriptor, limits, None)
+    }
+
+    pub fn stream_authenticated_tree_v2_with_io(
+        &self,
+        descriptor: &AuthenticatedTreeDescriptorV2,
+        limits: AuthenticatedTreeLimitsV1,
+        io_ledger: Option<Arc<dyn AuthenticatedTreeIoLedgerV1>>,
+    ) -> Result<AuthenticatedTreeRowStreamV2> {
+        self.stream_authenticated_tree_v2_with_capture(
+            descriptor,
+            limits,
+            io_ledger,
+            PackCaptureV2::None,
+        )
+    }
+
+    fn stream_authenticated_tree_v2_with_capture(
+        &self,
+        descriptor: &AuthenticatedTreeDescriptorV2,
+        limits: AuthenticatedTreeLimitsV1,
+        io_ledger: Option<Arc<dyn AuthenticatedTreeIoLedgerV1>>,
+        pack_capture: PackCaptureV2,
+    ) -> Result<AuthenticatedTreeRowStreamV2> {
         let limits = limits.validate()?;
         validate_descriptor_for_store(self, &descriptor.semantic, limits)?;
         validate_descriptor_v2_shape(descriptor)?;
@@ -1895,21 +2088,22 @@ impl SegmentStore {
             store: self.clone(),
             descriptor: descriptor.clone(),
             limits,
+            io_ledger,
             _pin_lock: Arc::new(self.hold_generation_pin()?),
             stack: Vec::new(),
             started: false,
             observed: 0,
             transcript,
             work: AuthenticatedTreeWorkV1::default(),
-            pack_digests: HashSet::new(),
+            pack_capture,
             done: false,
             failed: false,
         })
     }
 
-    /// Full cold closure: streams every semantic node, then verifies each
-    /// distinct reachable immutable pack digest once. The temporary digest set
-    /// is operation-local and bounded by the caller's node budget.
+    /// Compatibility full cold closure: streams every semantic node, then
+    /// verifies each distinct reachable immutable pack digest once. Callers
+    /// must explicitly precharge the local set against their finite node cap.
     pub fn verify_authenticated_tree_v2(
         &self,
         descriptor: &AuthenticatedTreeDescriptorV2,
@@ -1917,22 +2111,35 @@ impl SegmentStore {
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> Result<AuthenticatedTreeCoverageV1> {
-        let mut stream = self.stream_authenticated_tree_v2(descriptor, limits)?;
+        self.verify_authenticated_tree_v2_with_io(descriptor, limits, None, deadline, cancelled)
+    }
+
+    pub fn verify_authenticated_tree_v2_with_io(
+        &self,
+        descriptor: &AuthenticatedTreeDescriptorV2,
+        limits: AuthenticatedTreeLimitsV1,
+        io_ledger: Option<Arc<dyn AuthenticatedTreeIoLedgerV1>>,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<AuthenticatedTreeCoverageV1> {
+        let mut stream = self.stream_authenticated_tree_v2_with_capture(
+            descriptor,
+            limits,
+            io_ledger.clone(),
+            PackCaptureV2::Local(HashSet::new()),
+        )?;
         while stream.next_row(deadline, cancelled)?.is_some() {}
-        let mut pack_digests = Vec::new();
-        pack_digests
-            .try_reserve_exact(stream.pack_digests.len())
-            .map_err(|_| budget("cold pack digest list allocation failed"))?;
-        pack_digests.extend(stream.pack_digests.iter().copied());
+        let pack_digests = stream.pack_capture.take_local()?;
         for digest in pack_digests {
             check(deadline, cancelled)?;
             let remaining = remaining_bytes(stream.work, stream.limits)?;
             if remaining == 0 {
                 return Err(budget("authenticated tree byte budget exceeded"));
             }
-            let raw = self.read_authenticated_blob(
+            let raw = self.read_authenticated_blob_with_io(
                 digest,
                 AUTHENTICATED_PACK_MAX_BYTES.min(remaining),
+                io_ledger.as_deref(),
                 deadline,
                 cancelled,
             )?;
@@ -1949,6 +2156,62 @@ impl SegmentStore {
             )
         })
     }
+
+    /// Full cold closure using an operation-local exact inventory spill.
+    /// The spill only orders observed pack digests; every pending row is
+    /// reopened and physically validated here by this SegmentStore.
+    pub fn verify_authenticated_tree_v2_with_pack_set(
+        &self,
+        descriptor: &AuthenticatedTreeDescriptorV2,
+        limits: AuthenticatedTreeLimitsV1,
+        io_ledger: Option<Arc<dyn AuthenticatedTreeIoLedgerV1>>,
+        pack_set: Arc<dyn AuthenticatedTreePackSetV2>,
+        closure_binding: Digest256,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<AuthenticatedTreeCoverageV1> {
+        check(deadline, cancelled)?;
+        pack_set.check_binding(
+            self.physical_root_identity()?,
+            self.store_id(),
+            self.domain_digest(),
+            closure_binding,
+        )?;
+        let mut stream = self.stream_authenticated_tree_v2_with_capture(
+            descriptor,
+            limits,
+            io_ledger.clone(),
+            PackCaptureV2::External(pack_set.clone()),
+        )?;
+        while stream.next_row(deadline, cancelled)?.is_some() {}
+        let mut verify = |digest: Digest256| {
+            check(deadline, cancelled)?;
+            let remaining = remaining_bytes(stream.work, stream.limits)?;
+            if remaining == 0 {
+                return Err(budget("authenticated tree byte budget exceeded"));
+            }
+            let raw = self.read_authenticated_blob_with_io(
+                digest,
+                AUTHENTICATED_PACK_MAX_BYTES.min(remaining),
+                io_ledger.as_deref(),
+                deadline,
+                cancelled,
+            )?;
+            let frame_count = scan_packed_chunk(&raw)?;
+            stream
+                .work
+                .charge_pack_read(raw.len(), frame_count, stream.limits)
+        };
+        pack_set.verify_pending(&mut verify)?;
+        drop(verify);
+        check(deadline, cancelled)?;
+        stream.coverage().ok_or_else(|| {
+            SegmentError::new(
+                Code::InvalidReceipt,
+                "packed authenticated tree coverage unavailable",
+            )
+        })
+    }
 }
 
 fn work_from_install(install: ImmutableBlobInstallV1) -> AuthenticatedTreeWorkV1 {
@@ -1957,6 +2220,7 @@ fn work_from_install(install: ImmutableBlobInstallV1) -> AuthenticatedTreeWorkV1
         read_bytes: install.read_bytes,
         written_nodes: u64::from(install.written_bytes > 0),
         written_bytes: install.written_bytes,
+        allocated_bytes: install.allocated_bytes,
     }
 }
 
@@ -2074,6 +2338,7 @@ fn update_one_v2(
             limits,
             work,
             active_pack,
+            writer.io_ledger.as_deref(),
             deadline,
             cancelled,
         )?;
@@ -2594,6 +2859,7 @@ fn load_node_v2(
     limits: AuthenticatedTreeLimitsV1,
     work: &mut AuthenticatedTreeWorkV1,
     active_pack: Option<&ActivePackV2>,
+    io_ledger: Option<&dyn AuthenticatedTreeIoLedgerV1>,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> Result<LoadedTreeNodeV2> {
@@ -2602,6 +2868,10 @@ fn load_node_v2(
             if *digest != handle.reference.digest {
                 return Err(invalid("legacy node locator differs from semantic address"));
             }
+            let remaining = remaining_bytes(*work, limits)?;
+            let max_bytes = limits.max_node_bytes.min(remaining);
+            charge_tree_read(io_ledger, max_bytes as u64)?;
+            let before = work.read_bytes;
             let node = load_node(
                 store,
                 &descriptor.semantic,
@@ -2610,6 +2880,12 @@ fn load_node_v2(
                 work,
                 deadline,
                 cancelled,
+            )?;
+            record_tree_read(
+                io_ledger,
+                work.read_bytes
+                    .checked_sub(before)
+                    .ok_or_else(|| budget("legacy V2 read work regressed"))?,
             )?;
             let child_locators = node
                 .children
@@ -2632,6 +2908,7 @@ fn load_node_v2(
                 return Err(budget("authenticated tree byte budget exceeded"));
             }
             let raw = if let Some(digest) = locator.state.digest.get().copied() {
+                charge_tree_read(io_ledger, locator.frame_len as u64)?;
                 store.read_authenticated_blob_range(
                     digest,
                     locator.offset,
@@ -2661,6 +2938,9 @@ fn load_node_v2(
                 copy.extend_from_slice(bytes);
                 copy
             };
+            if locator.state.digest.get().is_some() {
+                record_tree_read(io_ledger, raw.len() as u64)?;
+            }
             work.charge_read(raw.len(), limits)?;
             let (node, child_locators) = decode_packed_frame(
                 &raw,
@@ -3946,6 +4226,309 @@ pub fn decode_placement_tree_row(raw: &[u8], max_bytes: usize) -> Result<Placeme
     })
 }
 
+/// Return the first authenticated row inside an optional half-open key range
+/// that is strictly after `after_exclusive`. The root's authenticated min/max
+/// summaries let this seek skip every subtree that cannot contain a result;
+/// callers must not implement `*_after` by restarting a full stream.
+///
+/// `max_state_bytes` is the caller's already-reserved transient allowance for
+/// this seek, including its bounded stack, decoded nodes, one in-flight frame,
+/// and the returned row. The function enforces that ceiling as nodes are
+/// loaded. It does not reserve caller state or establish a source grant.
+impl SegmentStore {
+    pub fn lookup_authenticated_tree_v2_after_with_work_and_io(
+        &self,
+        descriptor: &AuthenticatedTreeDescriptorV2,
+        lower_inclusive: Option<&[u8]>,
+        upper_exclusive: Option<&[u8]>,
+        after_exclusive: Option<&[u8]>,
+        limits: AuthenticatedTreeLimitsV1,
+        max_state_bytes: usize,
+        io_ledger: Option<Arc<dyn AuthenticatedTreeIoLedgerV1>>,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<(Option<AuthenticatedTreeEntryV1>, AuthenticatedTreeWorkV1)> {
+        let limits = limits.validate()?;
+        validate_descriptor_for_store(self, &descriptor.semantic, limits)?;
+        validate_descriptor_v2_shape(descriptor)?;
+        if max_state_bytes == 0 || max_state_bytes == usize::MAX {
+            return Err(budget("authenticated range state allowance is invalid"));
+        }
+        for bound in [lower_inclusive, upper_exclusive, after_exclusive]
+            .into_iter()
+            .flatten()
+        {
+            if bound.len() > limits.max_key_bytes {
+                return Err(budget("authenticated range key exceeds limit"));
+            }
+        }
+        if lower_inclusive
+            .zip(upper_exclusive)
+            .is_some_and(|(lower, upper)| lower >= upper)
+        {
+            return Err(invalid("authenticated range bounds are reversed"));
+        }
+        if after_exclusive
+            .zip(upper_exclusive)
+            .is_some_and(|(after, upper)| after >= upper)
+        {
+            return Ok((None, AuthenticatedTreeWorkV1::default()));
+        }
+        check(deadline, cancelled)?;
+        let _pin_lock = self.hold_generation_pin()?;
+        let Some(root_reference) = descriptor.semantic.root.as_ref() else {
+            return Ok((None, AuthenticatedTreeWorkV1::default()));
+        };
+
+        // A Patricia path cannot exceed two edges per key byte plus its root.
+        // Reserve that finite stack before decoding any node, then enforce the
+        // actual retained decoded-node and transient read overlap below.
+        let max_depth = limits
+            .max_key_bytes
+            .checked_mul(2)
+            .and_then(|depth| depth.checked_add(1))
+            .ok_or_else(|| budget("authenticated range depth overflow"))?;
+        let stack_floor = max_depth
+            .checked_mul(std::mem::size_of::<RangeSearchFrameV2>())
+            .ok_or_else(|| budget("authenticated range stack size overflow"))?;
+        let transient_read = limits
+            .max_node_bytes
+            .checked_mul(4)
+            .and_then(|n| n.checked_add(4096 + 65_536))
+            .ok_or_else(|| budget("authenticated range node state overflow"))?;
+        let root_handle_state = std::mem::size_of::<TreeHandleV2>()
+            .checked_add(root_reference.min_key.len())
+            .and_then(|n| n.checked_add(root_reference.max_key.len()))
+            .and_then(|n| n.checked_add(256))
+            .ok_or_else(|| budget("authenticated range root state overflow"))?;
+        if stack_floor
+            .checked_add(transient_read)
+            .and_then(|n| n.checked_add(root_handle_state))
+            .is_none_or(|required| required > max_state_bytes)
+        {
+            return Err(budget("authenticated range preflight state exceeded"));
+        }
+        let mut stack = Vec::new();
+        stack
+            .try_reserve_exact(max_depth)
+            .map_err(|_| budget("authenticated range stack allocation failed"))?;
+        let stack_storage = stack
+            .capacity()
+            .checked_mul(std::mem::size_of::<RangeSearchFrameV2>())
+            .ok_or_else(|| budget("authenticated range stack capacity overflow"))?;
+        if stack_storage > stack_floor.saturating_add(65_536)
+            || stack_storage
+                .checked_add(transient_read)
+                .and_then(|n| n.checked_add(root_handle_state))
+                .is_none_or(|required| required > max_state_bytes)
+        {
+            return Err(budget("authenticated range stack exceeds state allowance"));
+        }
+
+        let mut work = AuthenticatedTreeWorkV1::default();
+        let root = descriptor_root_handle(descriptor)?
+            .ok_or_else(|| invalid("authenticated range root disappeared"))?;
+        let loaded = load_node_v2(
+            self,
+            descriptor,
+            &root,
+            limits,
+            &mut work,
+            None,
+            io_ledger.as_deref(),
+            deadline,
+            cancelled,
+        )?;
+        drop(root);
+        let root_state = loaded_node_retained_state(&loaded)?;
+        if stack_storage
+            .checked_add(root_state)
+            .is_none_or(|state| state > max_state_bytes)
+        {
+            return Err(budget(
+                "authenticated range decoded root exceeds state allowance",
+            ));
+        }
+        stack.push(RangeSearchFrameV2 {
+            loaded,
+            next_child: 0,
+            value_examined: false,
+            retained_state_bytes: root_state,
+        });
+        let mut retained_nodes = root_state;
+
+        while !stack.is_empty() {
+            check(deadline, cancelled)?;
+            let last = stack.len() - 1;
+            if !stack[last].value_examined {
+                stack[last].value_examined = true;
+                if let Some(row) = stack[last].loaded.node.value.take() {
+                    if authenticated_range_contains(
+                        &row.key,
+                        lower_inclusive,
+                        upper_exclusive,
+                        after_exclusive,
+                    ) {
+                        // The row moves out of the retained node. Its bytes
+                        // were included in loaded_node_retained_state before
+                        // this return, so caller ownership remains covered.
+                        return Ok((Some(row), work));
+                    }
+                }
+            }
+
+            let child = {
+                let frame = &mut stack[last];
+                if frame.next_child >= frame.loaded.node.children.len() {
+                    None
+                } else {
+                    let child_index = frame.next_child;
+                    frame.next_child += 1;
+                    let reference = &frame.loaded.node.children[child_index].1;
+                    let locator = frame
+                        .loaded
+                        .child_locators
+                        .get(child_index)
+                        .ok_or_else(|| invalid("authenticated range child locator is missing"))?;
+                    if !authenticated_range_overlaps(
+                        reference,
+                        lower_inclusive,
+                        upper_exclusive,
+                        after_exclusive,
+                    ) {
+                        continue;
+                    }
+                    let handle_state = std::mem::size_of::<TreeHandleV2>()
+                        .checked_add(reference.min_key.len())
+                        .and_then(|n| n.checked_add(reference.max_key.len()))
+                        .and_then(|n| n.checked_add(std::mem::size_of::<TreeLocatorV2>()))
+                        .and_then(|n| n.checked_add(256))
+                        .ok_or_else(|| budget("authenticated range child state overflow"))?;
+                    if stack_storage
+                        .checked_add(retained_nodes)
+                        .and_then(|n| n.checked_add(handle_state))
+                        .and_then(|n| n.checked_add(transient_read))
+                        .is_none_or(|state| state > max_state_bytes)
+                    {
+                        return Err(budget("authenticated range child preflight exceeded"));
+                    }
+                    Some(TreeHandleV2 {
+                        reference: reference.clone(),
+                        locator: locator.clone(),
+                    })
+                }
+            };
+            let Some(child) = child else {
+                let removed = stack
+                    .pop()
+                    .ok_or_else(|| invalid("authenticated range stack disappeared"))?;
+                retained_nodes = retained_nodes
+                    .checked_sub(removed.retained_state_bytes)
+                    .ok_or_else(|| budget("authenticated range retained state regressed"))?;
+                continue;
+            };
+            let loaded = load_node_v2(
+                self,
+                descriptor,
+                &child,
+                limits,
+                &mut work,
+                None,
+                io_ledger.as_deref(),
+                deadline,
+                cancelled,
+            )?;
+            drop(child);
+            let retained_state_bytes = loaded_node_retained_state(&loaded)?;
+            let next_retained = retained_nodes
+                .checked_add(retained_state_bytes)
+                .ok_or_else(|| budget("authenticated range retained state overflow"))?;
+            if stack_storage
+                .checked_add(next_retained)
+                .is_none_or(|state| state > max_state_bytes)
+            {
+                return Err(budget(
+                    "authenticated range retained nodes exceed allowance",
+                ));
+            }
+            stack.push(RangeSearchFrameV2 {
+                loaded,
+                next_child: 0,
+                value_examined: false,
+                retained_state_bytes,
+            });
+            retained_nodes = next_retained;
+        }
+        Ok((None, work))
+    }
+}
+
+struct RangeSearchFrameV2 {
+    loaded: LoadedTreeNodeV2,
+    next_child: usize,
+    value_examined: bool,
+    retained_state_bytes: usize,
+}
+
+fn authenticated_range_contains(
+    key: &[u8],
+    lower_inclusive: Option<&[u8]>,
+    upper_exclusive: Option<&[u8]>,
+    after_exclusive: Option<&[u8]>,
+) -> bool {
+    lower_inclusive.is_none_or(|lower| key >= lower)
+        && upper_exclusive.is_none_or(|upper| key < upper)
+        && after_exclusive.is_none_or(|after| key > after)
+}
+
+fn authenticated_range_overlaps(
+    node: &AuthenticatedTreeNodeRefV1,
+    lower_inclusive: Option<&[u8]>,
+    upper_exclusive: Option<&[u8]>,
+    after_exclusive: Option<&[u8]>,
+) -> bool {
+    lower_inclusive.is_none_or(|lower| node.max_key.as_slice() >= lower)
+        && upper_exclusive.is_none_or(|upper| node.min_key.as_slice() < upper)
+        && after_exclusive.is_none_or(|after| node.max_key.as_slice() > after)
+}
+
+fn loaded_node_retained_state(loaded: &LoadedTreeNodeV2) -> Result<usize> {
+    let node = &loaded.node;
+    let mut state = std::mem::size_of::<LoadedTreeNodeV2>()
+        .checked_add(node.min_key.capacity())
+        .and_then(|n| n.checked_add(node.max_key.capacity()))
+        .and_then(|n| {
+            n.checked_add(
+                node.children
+                    .capacity()
+                    .checked_mul(std::mem::size_of::<(u8, AuthenticatedTreeNodeRefV1)>())?,
+            )
+        })
+        .and_then(|n| {
+            n.checked_add(
+                loaded
+                    .child_locators
+                    .capacity()
+                    .checked_mul(std::mem::size_of::<TreeLocatorV2>())?,
+            )
+        })
+        .ok_or_else(|| budget("authenticated loaded-node state overflow"))?;
+    if let Some(value) = &node.value {
+        state = state
+            .checked_add(value.key.capacity())
+            .and_then(|n| n.checked_add(value.value.capacity()))
+            .ok_or_else(|| budget("authenticated loaded-value state overflow"))?;
+    }
+    for (_, child) in &node.children {
+        state = state
+            .checked_add(child.min_key.capacity())
+            .and_then(|n| n.checked_add(child.max_key.capacity()))
+            .and_then(|n| n.checked_add(256))
+            .ok_or_else(|| budget("authenticated child-reference state overflow"))?;
+    }
+    Ok(state)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -4273,6 +4856,7 @@ mod tests {
                 rows.clone().into_iter().map(Ok),
                 limits,
                 600,
+                None,
                 deadline,
                 &cancelled,
             )
@@ -4295,6 +4879,7 @@ mod tests {
                 std::iter::empty::<Result<AuthenticatedTreeDeltaV1>>(),
                 limits,
                 600,
+                None,
                 deadline,
                 &cancelled,
             )
@@ -4349,6 +4934,7 @@ mod tests {
                 changes.clone().into_iter().map(Ok),
                 limits,
                 600,
+                None,
                 deadline,
                 &cancelled,
             )
@@ -4398,6 +4984,7 @@ mod tests {
             limits,
             &mut AuthenticatedTreeWorkV1::default(),
             None,
+            None,
             deadline,
             &cancelled,
         )
@@ -4411,6 +4998,7 @@ mod tests {
             &old_root,
             limits,
             &mut AuthenticatedTreeWorkV1::default(),
+            None,
             None,
             deadline,
             &cancelled,

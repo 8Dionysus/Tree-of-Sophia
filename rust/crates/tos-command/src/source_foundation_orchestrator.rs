@@ -2,7 +2,9 @@
 //! command. Each real owner runs in one serial ledger window; reports are
 //! carried forward and consumed by the existing finalizer/output assembler.
 
-use super::foundation_artifact_replay::{ArtifactReplayFailure, prepare_artifact_replay};
+use super::foundation_artifact_replay::{
+    ArtifactReplayFailure, CandidateArtifactSchemaExecutor, prepare_artifact_replay,
+};
 use super::foundation_bootstrap::{FoundationBootstrapError, FoundationBootstrapView};
 use super::foundation_catalog::{
     self, EvaluatedPersistedCatalog, FoundationCatalogOutcome, PersistedCatalogEvaluationError,
@@ -25,6 +27,7 @@ use super::foundation_run::{
 };
 use crate::source_command::SourceCommandError;
 use crate::source_creation_store::DisposableCatalogTreeLimits;
+use std::cell::RefCell;
 use std::io;
 use std::mem::size_of;
 use std::path::Path;
@@ -1967,13 +1970,15 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
                 .as_deref()
                 .filter(|history| history.shared_io_budget_matches(view.original_io))
                 .map(|history| history.shared_runtime_read_bytes_returned());
+            let schema_worker = RefCell::new(schemas);
             let replay_result = super::foundation_artifact_replay::prepare_candidate_artifact_replay(
                 input,
                 view.coverage,
                 records,
                 &source_root,
                 u64::from(view.invocation.uid()),
-                schemas,
+                &schema_worker,
+                worker_quota.clone(),
                 artifact_limits,
                 page_budget,
                 max_scan_rows.min(usize::MAX as u64) as usize,
@@ -2012,7 +2017,7 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
                 }
             };
             let replay_cost = replay.cost();
-            let replay_state = replay_cost
+            let mut replay_state = replay_cost
                 .retained_state_upper_bound_bytes()
                 .ok_or_else(|| io::Error::other("candidate Artifact retained cost overflow"))?;
             let replay_external_reads = replay_cost
@@ -2055,9 +2060,6 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
                 .checked_sub(history_shared)
                 .ok_or_else(|| io::Error::other("candidate Artifact shared-read accounting differs"))?;
             callback_external_reads.set(artifact_external_reads);
-            if !replay.skips().is_empty() {
-                return Err(io::Error::other("candidate Artifact evidence is incomplete"));
-            }
             let after_replay_headroom = records_ticket
                 .remaining()
                 .source_read_bytes
@@ -2110,7 +2112,18 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
                 stored_operation_state,
                 deadline,
                 cancelled,
-                |records_lookup, paths, default_events, biblio_sink| {
+                |records_lookup,
+                 paths,
+                 default_events,
+                 closure_links,
+                 closure_schema_requests,
+                 discovery_seen_ids,
+                 discovery_run_summaries,
+                 discovery_event_summaries,
+                 discovery_schema_requests,
+                 discovery_digest_cache,
+                 biblio_sink| {
+                    let mut biblio_schema_worker = schema_worker.borrow_mut();
                     let biblio_report = tos_validation::biblio_rules::inspect_bibliography_from_input_stored(
                         input,
                         view.coverage,
@@ -2118,10 +2131,11 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
                         records_lookup,
                         default_events.event_lookup(),
                         biblio_sink,
-                        schemas,
+                        &mut **biblio_schema_worker,
                         biblio_limits,
                         cancelled,
                     )?;
+                    drop(biblio_schema_worker);
                     if biblio_report.input_identity() != &fence
                         || biblio_report.source_membership() != fence.membership
                         || !biblio_report.owner_predicates_complete()
@@ -2159,12 +2173,17 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
                         .as_deref()
                         .filter(|history| history.shared_io_budget_matches(view.original_io))
                         .map(|history| history.shared_runtime_read_bytes_returned());
+                    let worker_usage_before_rules = worker_quota
+                        .usage()
+                        .map_err(|_| ItemRefusal::Budget)?;
                     let reader_io_before = view.original_io.snapshot();
+                    let mut schema_executor =
+                        CandidateArtifactSchemaExecutor::new(&schema_worker);
                     let mut rule_source = FoundationRuleSource::from_candidate(
                         input,
                         view.original_io,
                         view.sources,
-                        schemas,
+                        &mut schema_executor,
                         payload_reader,
                         cancelled,
                         reader_limits,
@@ -2190,7 +2209,7 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
                             },
                             max_event_map_bytes: event_state_cap.min(available_after_biblio),
                         };
-                    let stored_report = tos_validation::source_foundation_default_rules::inspect_source_foundation_default_rules_from_input_stored(
+                    let stored_report = tos_validation::source_foundation_default_rules::inspect_source_foundation_default_rules_from_input_stored_with_artifact_evidence_provider_and_seen_ids_and_run_summaries_and_event_summaries_and_schema_requests_and_digests_and_closure_links_and_closure_schema_requests(
                         &mut rule_source,
                         input,
                         view.coverage,
@@ -2198,16 +2217,78 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
                         records_lookup,
                         paths,
                         default_events,
-                        replay.histories(),
                         claims,
                         physical_facts,
-                        &replay.artifact_replays(),
-                        replay.invalid_schema_proofs(),
+                        &mut replay,
+                        discovery_seen_ids,
+                        discovery_run_summaries,
+                        discovery_event_summaries,
+                        discovery_schema_requests,
+                        discovery_digest_cache,
+                        closure_links,
+                        closure_schema_requests,
                         view.launch.arguments.require_local_payloads,
                         default_rules_limits,
                         stored_limits,
                         cancelled,
                     )?;
+                    let replay_cost_after_rules = replay.cost();
+                    let evidence_peak_state = replay_cost_after_rules
+                        .candidate_artifact_evidence_peak_state_bytes
+                        .max(replay_cost_after_rules.candidate_record_index_state_bytes)
+                        .max(
+                            stored_report
+                                .discovery
+                                .cost
+                                .candidate_artifact_evidence_peak_state_bytes,
+                        )
+                        .max(
+                            stored_report
+                                .discovery
+                                .cost
+                                .candidate_discovery_seen_ids_peak_workspace_state_bytes,
+                        );
+                    let evidence_peak_state = evidence_peak_state.max(
+                        stored_report
+                            .discovery
+                            .cost
+                            .candidate_discovery_run_summary_peak_workspace_state_bytes,
+                    );
+                    let evidence_peak_state = evidence_peak_state.max(
+                        stored_report
+                            .discovery
+                            .cost
+                            .candidate_discovery_event_summary_peak_workspace_state_bytes,
+                    );
+                    replay_state = replay_cost_after_rules
+                        .retained_state_upper_bound_bytes()
+                        .and_then(|state| state.checked_add(evidence_peak_state))
+                        .ok_or(ItemRefusal::Budget)?;
+                    let replay_had_skips = replay.has_skips();
+                    let worker_usage_after_discovery = worker_quota
+                        .usage()
+                        .map_err(|_| ItemRefusal::Budget)?;
+                    let replay_worker_cpu = worker_usage_after_discovery
+                        .worker_cpu_micros
+                        .checked_sub(worker_usage_before_rules.worker_cpu_micros)
+                        .ok_or(ItemRefusal::Budget)?;
+                    let replay_worker_wire = worker_usage_after_discovery
+                        .worker_wire_bytes
+                        .checked_sub(worker_usage_before_rules.worker_wire_bytes)
+                        .ok_or(ItemRefusal::Budget)?;
+                    let replay_worker_units = worker_usage_after_discovery
+                        .worker_units
+                        .checked_sub(worker_usage_before_rules.worker_units)
+                        .ok_or(ItemRefusal::Budget)?;
+                    if replay_cost_after_rules.candidate_replay_worker_cpu_micros
+                        > replay_worker_cpu
+                        || replay_cost_after_rules.candidate_replay_worker_wire_bytes
+                            > replay_worker_wire
+                        || replay_cost_after_rules.candidate_replay_worker_units
+                            > replay_worker_units
+                    {
+                        return Err(ItemRefusal::Budget);
+                    }
                     rule_source.recheck_auxiliary()?;
                     let reader_cost = rule_source.cost();
                     drop(rule_source);
@@ -2245,22 +2326,40 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
                         .bytes_read
                         .checked_sub(reader_cost.shared_read_bytes_returned)
                         .ok_or(ItemRefusal::Budget)?;
-                    if history_rule_read > reader_cost.bytes_read
-                        || history_shared_rule_read > reader_cost.shared_read_bytes_returned
+                    if history_rule_read
+                        > reader_cost
+                            .bytes_read
+                            .checked_add(replay_cost_after_rules.native_history_source_read_bytes)
+                            .ok_or(ItemRefusal::Budget)?
                         || reader_cost.shared_read_bytes_returned > reader_shared_attempts
                     {
                         return Err(ItemRefusal::Budget);
                     }
+                    let provider_shared_history = history_shared_rule_read
+                        .saturating_sub(reader_cost.shared_read_bytes_returned);
+                    let replay_external_reads_after_rules = replay_cost_after_rules
+                        .native_history_source_read_bytes
+                        .checked_add(replay_cost_after_rules.readonly.read_bytes)
+                        .and_then(|reads| reads.checked_sub(provider_shared_history))
+                        .ok_or(ItemRefusal::Budget)?;
                     callback_external_reads.set(
-                        artifact_external_reads
+                        replay_external_reads_after_rules
                             .checked_add(reader_external_reads)
                             .ok_or(ItemRefusal::Budget)?,
                     );
+                    drop(schema_executor);
+                    drop(replay);
+                    let schemas = schema_worker.into_inner();
                     let owner_state = stored_report.cost.aggregate_state_reservation_bytes;
                     let diagnostic_state_cap = available_after_biblio
                         .checked_sub(owner_state)
                         .and_then(|state| state.checked_sub(reader_cost.auxiliary_state_bytes))
                         .ok_or(ItemRefusal::Budget)?;
+                    if replay_had_skips {
+                        return Err(ItemRefusal::Source(
+                            "candidate Artifact evidence is incomplete".into(),
+                        ));
+                    }
                     let rule_diag_limits = SourceFoundationRuleDiagnosticsLimits {
                         max_issues: biblio_operation.issue_count.max(1),
                         max_output_bytes: biblio_operation.output_bytes.max(1),
@@ -2268,6 +2367,8 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
                     };
                     let evaluated = super::foundation_rule_diagnostics::evaluate_candidate_stored_rules(
                         stored_report,
+                        discovery_schema_requests,
+                        closure_schema_requests,
                         schemas,
                         schema_limits,
                         deadline,

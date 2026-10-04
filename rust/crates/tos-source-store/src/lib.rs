@@ -23,7 +23,8 @@ pub use cut::{
 pub use error::{Result, StoreError, StoreErrorCode};
 pub use limits::ReadLimits;
 pub use manifest::{
-    CorpusDescriptor, CorpusReader, MemberMetadata, RetirementMetadata, Selector, Snapshot,
+    CorpusCurrentSelection, CorpusDescriptor, CorpusPointerFormat, CorpusReader, MemberMetadata,
+    RetirementMetadata, Selector, Snapshot,
 };
 pub use software::{
     SOFTWARE_COMPANION_PROFILE_V1, SoftwareCaptureReader, SoftwareCaptureSelectionV1,
@@ -56,3 +57,45 @@ pub use pinned_sqlite_aux::{
     PinnedSqliteIoFailure, PinnedSqliteIoSnapshot, PinnedSqliteSpaceBudget,
     PinnedSqliteSpaceReservation, PinnedSqliteSpaceSnapshot,
 };
+
+mod segment_index_read;
+mod segment_index_walk;
+mod segment_locator;
+mod segment_member;
+mod segment_object;
+pub use segment_index_read::{
+    SegmentIndexReadLimitsV1, SegmentIndexReaderV1, SegmentLocatedValueV1,
+};
+pub use segment_index_walk::SegmentIndexPageVisitV1;
+pub use segment_locator::{
+    DecodedSegmentIndexPageV1, SEGMENT_INDEX_KEY_MAX_BYTES_V1, SEGMENT_INDEX_PAGE_HEADER_BYTES_V1,
+    SEGMENT_INDEX_PAGE_MAX_BYTES_V1, SegmentExtentV1, SegmentIndexEntryV1,
+    SegmentIndexInternalEntryV1, SegmentIndexKeySpaceV1, SegmentIndexLeafEntryV1,
+    SegmentIndexPageKindV1, SegmentIndexPageLimitsV1, SegmentIndexRootV1, SegmentIndexSummaryV1,
+    SegmentLocatorRootV1, decode_segment_index_page,
+};
+pub use segment_member::{
+    SEGMENT_MEMBER_VALUE_BYTES_V1, SegmentMemberMetadataV1, SegmentMemberReaderV1,
+    decode_segment_member_value,
+};
+
+mod segment_index_read_v2;
+mod segment_index_walk_v2;
+mod segment_locator_v2;
+mod segment_member_v2;
+pub use segment_index_read_v2::{
+    SegmentIndexClosureV2, SegmentIndexMutationPathReceiptV2, SegmentIndexMutationPathVisitV2,
+    SegmentIndexMutationSelectionV2, SegmentIndexPageVisitV2, SegmentIndexReadLimitsV2,
+    SegmentIndexReaderV2, SegmentLocatedValueV2,
+};
+pub use segment_index_walk_v2::{SegmentIndexIntervalClosureV2, SegmentIndexRetainedClosureV2};
+pub use segment_locator_v2::{
+    DecodedSegmentIndexPageV2, SEGMENT_INDEX_KEY_MAX_BYTES_V2, SEGMENT_INDEX_PAGE_HEADER_BYTES_V2,
+    SEGMENT_INDEX_PAGE_MAX_BYTES_V2, SegmentIndexEntryV2, SegmentIndexInternalEntryV2,
+    SegmentIndexLeafEntryV2, SegmentIndexLogicalSummaryV2, SegmentIndexPageLimitsV2,
+    SegmentIndexRootV2, decode_segment_index_page_v2,
+};
+pub use segment_member_v2::SegmentMemberReaderV2;
+
+mod segment_subtree_memo_v2;
+pub use segment_subtree_memo_v2::{SegmentSubtreeMemoLimitsV2, SegmentSubtreeMemoV2};

@@ -529,6 +529,89 @@ impl<'cancel> FoundationRemainingBudget<'cancel> {
         Ok(())
     }
 
+    /// Record a source-owned conservative read envelope after the shared IO
+    /// ledger reports its terminal suffix. Preserve the admitted-upper-bound
+    /// classification and the exact attempted prefix even if the invocation
+    /// has already hit its capacity, deadline, cancellation, or poison fence.
+    pub(crate) fn record_terminal_admitted_source_read_upper_bound_suffix(
+        &mut self,
+        bytes: u64,
+    ) -> Result<()> {
+        let total = self.charged.source_read_bytes.checked_add(bytes);
+        let admitted = self.admitted_charged.source_read_bytes.checked_add(bytes);
+        let (Some(total), Some(admitted)) = (total, admitted) else {
+            self.poisoned = true;
+            return Err(Error::Unsupported(
+                "foundation terminal upper-bound source-read accounting overflow",
+            ));
+        };
+        self.charged.source_read_bytes = total;
+        self.admitted_charged.source_read_bytes = admitted;
+        if total > self.caps.max_total_read_bytes {
+            self.poisoned = true;
+            return Err(Error::Unsupported(
+                "foundation terminal upper-bound reads exceed invocation",
+            ));
+        }
+        if self.open_ticket_id.is_some() {
+            self.poisoned = true;
+            return Err(Error::Unsupported(
+                "foundation terminal upper-bound reads with open window",
+            ));
+        }
+        if let Err(error) = self.check_live() {
+            self.poisoned = true;
+            return Err(error);
+        }
+        Ok(())
+    }
+
+    /// Retain both measured and admitted-upper-bound parts of one terminal
+    /// source-read suffix atomically. This prevents an overflow in either
+    /// classification from advancing only half of a caller's ledger witness.
+    pub(crate) fn record_terminal_source_read_suffix(
+        &mut self,
+        measured_bytes: u64,
+        admitted_upper_bound_bytes: u64,
+    ) -> Result<()> {
+        let suffix = measured_bytes.checked_add(admitted_upper_bound_bytes);
+        let total = suffix.and_then(|bytes| self.charged.source_read_bytes.checked_add(bytes));
+        let measured = self
+            .measured_charged
+            .source_read_bytes
+            .checked_add(measured_bytes);
+        let admitted = self
+            .admitted_charged
+            .source_read_bytes
+            .checked_add(admitted_upper_bound_bytes);
+        let (Some(total), Some(measured), Some(admitted)) = (total, measured, admitted) else {
+            self.poisoned = true;
+            return Err(Error::Unsupported(
+                "foundation terminal classified source-read accounting overflow",
+            ));
+        };
+        self.charged.source_read_bytes = total;
+        self.measured_charged.source_read_bytes = measured;
+        self.admitted_charged.source_read_bytes = admitted;
+        if total > self.caps.max_total_read_bytes {
+            self.poisoned = true;
+            return Err(Error::Unsupported(
+                "foundation terminal classified source reads exceed invocation",
+            ));
+        }
+        if self.open_ticket_id.is_some() {
+            self.poisoned = true;
+            return Err(Error::Unsupported(
+                "foundation terminal classified source reads with open window",
+            ));
+        }
+        if let Err(error) = self.check_live() {
+            self.poisoned = true;
+            return Err(error);
+        }
+        Ok(())
+    }
+
     fn charge(&mut self, usage: FoundationPhaseUse) -> Result<()> {
         let amounts = usage.amounts()?;
         self.charged = reservation_add(self.charged, amounts)

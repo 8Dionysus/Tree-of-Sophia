@@ -87,11 +87,119 @@ pub struct SourceFoundationClosureCost {
     /// Bytes returned by the exact-cut current and retained read adapter.
     pub current_bytes_read: u64,
     pub recorded_bytes_read: u64,
+    /// Exact retained-history lookup calls, including absent results. This
+    /// separates worker reads from the count of file bodies returned.
+    pub recorded_read_operations: u64,
+    /// Exact retained-history calls that returned a body; absent results do
+    /// not synthesize file or byte counts.
+    pub recorded_files_read: u64,
     pub files_read: u64,
     pub schema_requests: u64,
     pub decoded_rows: u64,
     pub reserved_state_bytes: usize,
     pub emitted_issues: usize,
+    /// Candidate-local Link rows inserted into the invocation's bounded
+    /// scratch table. Persistent bytes remain disk custody in CMD.
+    pub candidate_link_rows: u64,
+    pub candidate_link_serialized_write_bytes: u64,
+    pub candidate_link_serialized_read_bytes: u64,
+    pub candidate_link_scan_row_operations: u64,
+    pub candidate_link_peak_workspace_state_bytes: usize,
+    /// Candidate-local Closure schema requests stored until the existing
+    /// diagnostic worker drains them in encounter order.
+    pub candidate_schema_request_count: u64,
+    pub candidate_schema_request_serialized_write_bytes: u64,
+    pub candidate_schema_request_serialized_read_bytes: u64,
+    pub candidate_schema_request_scan_row_operations: u64,
+    pub candidate_schema_request_peak_workspace_state_bytes: usize,
+}
+
+/// Plain current-record projection used only by the source-foundation Link
+/// join. It carries no proof, capability, or admission authority.
+#[derive(Debug, Clone, PartialEq)]
+pub struct SourceFoundationClosureLink {
+    pub id: String,
+    pub path: String,
+    pub value: Value,
+}
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct SourceFoundationClosureLinkStoreCost {
+    pub inserted_rows: u64,
+    pub drained_rows: u64,
+    pub serialized_write_bytes: u64,
+    pub serialized_read_bytes: u64,
+    pub workspace_state_bytes: usize,
+    pub scan_row_operations: u64,
+}
+
+/// Portable row/point interface for candidate Closure Link joins. Implemented
+/// storage remains an invocation-scoped CMD concern; the validator never
+/// depends on SQLite and can retain its compatible finite map path.
+pub trait SourceFoundationClosureLinkStore {
+    fn insert_link(
+        &mut self,
+        id: &str,
+        path: &str,
+        value: &Value,
+        max_state_bytes: usize,
+    ) -> Result<usize, ItemRefusal>;
+
+    fn contains_link(
+        &mut self,
+        id: &str,
+        max_state_bytes: usize,
+    ) -> Result<(bool, usize), ItemRefusal>;
+
+    fn next_link(
+        &mut self,
+        after_id: Option<&str>,
+        max_state_bytes: usize,
+    ) -> Result<(Option<SourceFoundationClosureLink>, usize), ItemRefusal>;
+
+    fn finish_links(
+        &mut self,
+        expected_rows: u64,
+        max_state_bytes: usize,
+    ) -> Result<SourceFoundationClosureLinkStoreCost, ItemRefusal>;
+
+    fn verify_finished(&self) -> Result<(), ItemRefusal>;
+}
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct SourceFoundationClosureSchemaRequestStoreCost {
+    pub observation_rows: u64,
+    pub serialized_write_bytes: u64,
+    pub serialized_read_bytes: u64,
+    pub workspace_state_bytes: usize,
+    pub scan_row_operations: u64,
+}
+
+/// Portable candidate spool for authentic Closure schema requests. Request
+/// encounter order and district-local issue insertion offsets remain explicit.
+pub trait SourceFoundationClosureSchemaRequestStore {
+    fn record_request(
+        &mut self,
+        request: &SourceFoundationClosureSchemaRequest,
+        max_document_bytes: usize,
+        max_state_bytes: usize,
+    ) -> Result<usize, ItemRefusal>;
+
+    fn finish(
+        &mut self,
+        expected_rows: u64,
+        direct_issue_count: usize,
+        max_state_bytes: usize,
+    ) -> Result<SourceFoundationClosureSchemaRequestStoreCost, ItemRefusal>;
+
+    fn next_request(
+        &mut self,
+        max_state_bytes: usize,
+    ) -> Result<(Option<SourceFoundationClosureSchemaRequest>, usize), ItemRefusal>;
+
+    fn cost(&self) -> SourceFoundationClosureSchemaRequestStoreCost;
+
+    fn verify_finished(&self) -> Result<(), ItemRefusal>;
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -166,7 +274,18 @@ pub fn inspect_source_foundation_closure<S: LayerFamilySource + ?Sized>(
     };
     let paths = SliceDefaultPaths(current_paths);
     let claims = SliceDefaultClaims(bibliographic_claims);
-    run_source_foundation_closure(source, source_events, &records, &paths, &claims, limits)
+    run_source_foundation_closure(
+        source,
+        source_events,
+        &records,
+        &paths,
+        &claims,
+        None,
+        None,
+        limits,
+        true,
+        true,
+    )
 }
 
 /// Run the same closure predicates against a current candidate carrying its
@@ -186,6 +305,105 @@ pub fn inspect_source_foundation_closure_with_identity<I: Eq, S: LayerFamilySour
     claims: &dyn SourceFoundationDefaultClaims,
     limits: ItemLimits,
 ) -> Result<SourceFoundationClosureReport, ItemRefusal> {
+    inspect_source_foundation_closure_with_identity_and_link_store_cache(
+        source,
+        input,
+        expected_identity,
+        coverage,
+        source_events,
+        records,
+        paths,
+        claims,
+        None,
+        None,
+        limits,
+        true,
+    )
+}
+
+#[allow(clippy::too_many_arguments)]
+pub fn inspect_source_foundation_closure_with_identity_and_link_store<
+    I: Eq,
+    S: LayerFamilySource + ?Sized,
+>(
+    source: &mut S,
+    input: &dyn SourceCutInputWithIdentity<I>,
+    expected_identity: &I,
+    coverage: &SourceCutInputCoverage,
+    source_events: &dyn SourceFoundationDefaultEventLookup,
+    records: &dyn SourceFoundationDefaultRecordsLookup,
+    paths: &dyn SourceFoundationDefaultPaths,
+    claims: &dyn SourceFoundationDefaultClaims,
+    link_store: Option<&mut dyn SourceFoundationClosureLinkStore>,
+    limits: ItemLimits,
+) -> Result<SourceFoundationClosureReport, ItemRefusal> {
+    inspect_source_foundation_closure_with_identity_and_link_store_cache(
+        source,
+        input,
+        expected_identity,
+        coverage,
+        source_events,
+        records,
+        paths,
+        claims,
+        link_store,
+        None,
+        limits,
+        false,
+    )
+}
+
+#[allow(clippy::too_many_arguments)]
+pub fn inspect_source_foundation_closure_with_identity_and_candidate_stores<
+    I: Eq,
+    S: LayerFamilySource + ?Sized,
+>(
+    source: &mut S,
+    input: &dyn SourceCutInputWithIdentity<I>,
+    expected_identity: &I,
+    coverage: &SourceCutInputCoverage,
+    source_events: &dyn SourceFoundationDefaultEventLookup,
+    records: &dyn SourceFoundationDefaultRecordsLookup,
+    paths: &dyn SourceFoundationDefaultPaths,
+    claims: &dyn SourceFoundationDefaultClaims,
+    link_store: Option<&mut dyn SourceFoundationClosureLinkStore>,
+    schema_request_store: Option<&mut dyn SourceFoundationClosureSchemaRequestStore>,
+    limits: ItemLimits,
+) -> Result<SourceFoundationClosureReport, ItemRefusal> {
+    inspect_source_foundation_closure_with_identity_and_link_store_cache(
+        source,
+        input,
+        expected_identity,
+        coverage,
+        source_events,
+        records,
+        paths,
+        claims,
+        link_store,
+        schema_request_store,
+        limits,
+        false,
+    )
+}
+
+#[allow(clippy::too_many_arguments)]
+fn inspect_source_foundation_closure_with_identity_and_link_store_cache<
+    I: Eq,
+    S: LayerFamilySource + ?Sized,
+>(
+    source: &mut S,
+    input: &dyn SourceCutInputWithIdentity<I>,
+    expected_identity: &I,
+    coverage: &SourceCutInputCoverage,
+    source_events: &dyn SourceFoundationDefaultEventLookup,
+    records: &dyn SourceFoundationDefaultRecordsLookup,
+    paths: &dyn SourceFoundationDefaultPaths,
+    claims: &dyn SourceFoundationDefaultClaims,
+    link_store: Option<&mut dyn SourceFoundationClosureLinkStore>,
+    schema_request_store: Option<&mut dyn SourceFoundationClosureSchemaRequestStore>,
+    limits: ItemLimits,
+    cache_recorded_checks: bool,
+) -> Result<SourceFoundationClosureReport, ItemRefusal> {
     let cancelled = source.cancellation();
     check(limits.deadline, cancelled)?;
     if input.input_identity() != expected_identity {
@@ -196,8 +414,18 @@ pub fn inspect_source_foundation_closure_with_identity<I: Eq, S: LayerFamilySour
     input
         .source_input()
         .verify_current_fence(coverage, limits.deadline, cancelled)?;
-    let result =
-        run_source_foundation_closure(source, source_events, records, paths, claims, limits);
+    let result = run_source_foundation_closure(
+        source,
+        source_events,
+        records,
+        paths,
+        claims,
+        link_store,
+        schema_request_store,
+        limits,
+        false,
+        cache_recorded_checks,
+    );
     check(limits.deadline, source.cancellation())?;
     if input.input_identity() != expected_identity {
         return Err(ItemRefusal::Source(
@@ -216,7 +444,11 @@ fn run_source_foundation_closure<S: LayerFamilySource + ?Sized>(
     records: &dyn SourceFoundationDefaultRecordsLookup,
     paths: &dyn SourceFoundationDefaultPaths,
     claims: &dyn SourceFoundationDefaultClaims,
+    link_store: Option<&mut dyn SourceFoundationClosureLinkStore>,
+    schema_request_store: Option<&mut dyn SourceFoundationClosureSchemaRequestStore>,
     limits: ItemLimits,
+    cache_digests: bool,
+    cache_recorded_checks: bool,
 ) -> Result<SourceFoundationClosureReport, ItemRefusal> {
     let mut has_declared_profile_kind = false;
     records.for_each_profile_kind(&mut |kind| {
@@ -233,7 +465,18 @@ fn run_source_foundation_closure<S: LayerFamilySource + ?Sized>(
                 || path.ends_with("/source-claims.jsonl"));
         Ok(())
     })?;
-    let mut rules = ClosureRules::new(source, source_events, records, paths, claims, limits)?;
+    let mut rules = ClosureRules::new(
+        source,
+        source_events,
+        records,
+        paths,
+        claims,
+        link_store,
+        schema_request_store,
+        limits,
+        cache_digests,
+        cache_recorded_checks,
+    )?;
     rules.check_records_map()?;
     rules.collect_events()?;
     rules.check_boundary_maps_and_anchors()?;
@@ -246,6 +489,42 @@ fn run_source_foundation_closure<S: LayerFamilySource + ?Sized>(
     rules.check_chronology()?;
     rules.check_object_links()?;
     rules.check_record_backlinks()?;
+
+    let expected_schema_rows = rules.cost.schema_requests;
+    let schema_request_finish = if rules.schema_request_store.is_some() {
+        let direct_issue_count = rules.issues.len();
+        let remaining = rules.remaining_state()?;
+        let finished = rules
+            .schema_request_store
+            .as_deref_mut()
+            .ok_or(ItemRefusal::Budget)?
+            .finish(expected_schema_rows, direct_issue_count, remaining)?;
+        Some(finished)
+    } else {
+        None
+    };
+    if let Some(finished) = schema_request_finish {
+        let combined = rules
+            .retained_state_bytes
+            .checked_add(rules.temporary_state_bytes)
+            .and_then(|state| state.checked_add(finished.workspace_state_bytes))
+            .ok_or(ItemRefusal::Budget)?;
+        if combined > rules.limits.max_state_bytes
+            || finished.observation_rows != expected_schema_rows
+        {
+            return Err(ItemRefusal::Source(
+                "source-foundation Closure schema request store count or state differs".into(),
+            ));
+        }
+        rules.cost.reserved_state_bytes = rules.cost.reserved_state_bytes.max(combined);
+        rules.cost.candidate_schema_request_count = finished.observation_rows;
+        rules.cost.candidate_schema_request_serialized_write_bytes =
+            finished.serialized_write_bytes;
+        rules.cost.candidate_schema_request_scan_row_operations = finished.scan_row_operations;
+        rules
+            .cost
+            .candidate_schema_request_peak_workspace_state_bytes = finished.workspace_state_bytes;
+    }
 
     Ok(SourceFoundationClosureReport {
         cost: rules.cost,
@@ -438,6 +717,9 @@ struct ClosureRules<'a, S: LayerFamilySource + ?Sized> {
     records: &'a dyn SourceFoundationDefaultRecordsLookup,
     source_events: &'a dyn SourceFoundationDefaultEventLookup,
     claims: &'a dyn SourceFoundationDefaultClaims,
+    link_store: Option<&'a mut dyn SourceFoundationClosureLinkStore>,
+    schema_request_store: Option<&'a mut dyn SourceFoundationClosureSchemaRequestStore>,
+    link_count: u64,
     links: BTreeMap<String, (String, Value)>,
     issues: Vec<(String, String)>,
     schema_requests: Vec<SourceFoundationClosureSchemaRequest>,
@@ -445,6 +727,8 @@ struct ClosureRules<'a, S: LayerFamilySource + ?Sized> {
     cost: SourceFoundationClosureCost,
     retained_state_bytes: usize,
     temporary_state_bytes: usize,
+    cache_digests: bool,
+    cache_recorded_checks: bool,
     loaded: BTreeMap<String, LoadedRows>,
     digests: BTreeMap<String, String>,
     recorded_checks: BTreeMap<(String, String), bool>,
@@ -473,7 +757,11 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
         records: &'a dyn SourceFoundationDefaultRecordsLookup,
         paths: &'a dyn SourceFoundationDefaultPaths,
         claims: &'a dyn SourceFoundationDefaultClaims,
+        link_store: Option<&'a mut dyn SourceFoundationClosureLinkStore>,
+        schema_request_store: Option<&'a mut dyn SourceFoundationClosureSchemaRequestStore>,
         limits: ItemLimits,
+        cache_digests: bool,
+        cache_recorded_checks: bool,
     ) -> Result<Self, ItemRefusal> {
         check(limits.deadline, source.cancellation())?;
         Ok(Self {
@@ -483,6 +771,9 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
             records,
             source_events,
             claims,
+            link_store,
+            schema_request_store,
+            link_count: 0,
             links: BTreeMap::new(),
             issues: Vec::new(),
             schema_requests: Vec::new(),
@@ -490,6 +781,8 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
             cost: SourceFoundationClosureCost::default(),
             retained_state_bytes: 0,
             temporary_state_bytes: 0,
+            cache_digests,
+            cache_recorded_checks,
             loaded: BTreeMap::new(),
             digests: BTreeMap::new(),
             recorded_checks: BTreeMap::new(),
@@ -572,6 +865,41 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
     ) -> Result<Option<Cow<'_, BiblioCurrentRecord>>, ItemRefusal> {
         check(self.limits.deadline, self.source.cancellation())?;
         self.records.current_record(id)
+    }
+
+    fn remaining_state(&self) -> Result<usize, ItemRefusal> {
+        self.limits
+            .max_state_bytes
+            .checked_sub(
+                self.retained_state_bytes
+                    .checked_add(self.temporary_state_bytes)
+                    .ok_or(ItemRefusal::Budget)?,
+            )
+            .ok_or(ItemRefusal::Budget)
+    }
+
+    fn include_link_workspace(&mut self, workspace: usize) -> Result<(), ItemRefusal> {
+        let total = self
+            .retained_state_bytes
+            .checked_add(self.temporary_state_bytes)
+            .and_then(|state| state.checked_add(workspace))
+            .ok_or(ItemRefusal::Budget)?;
+        if total > self.limits.max_state_bytes {
+            return Err(ItemRefusal::Budget);
+        }
+        self.cost.reserved_state_bytes = self.cost.reserved_state_bytes.max(total);
+        Ok(())
+    }
+
+    fn link_exists(&mut self, id: &str) -> Result<bool, ItemRefusal> {
+        check(self.limits.deadline, self.source.cancellation())?;
+        let remaining = self.remaining_state()?;
+        let Some(store) = self.link_store.as_deref_mut() else {
+            return Ok(self.links.contains_key(id));
+        };
+        let (found, workspace) = store.contains_link(id, remaining)?;
+        self.include_link_workspace(workspace)?;
+        Ok(found)
     }
 
     fn event(&self, id: &str) -> Result<Option<Cow<'_, Value>>, ItemRefusal> {
@@ -698,18 +1026,20 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
                 .files_read
                 .checked_add(1)
                 .ok_or(ItemRefusal::Budget)?;
-            let digest = Digest256::of_bytes(bytes).to_hex();
-            self.reserve(
-                path.len()
-                    .checked_add(digest.len())
-                    .and_then(|n| {
-                        n.checked_add(
-                            std::mem::size_of::<String>() + 4 * std::mem::size_of::<usize>(),
-                        )
-                    })
-                    .ok_or(ItemRefusal::Budget)?,
-            )?;
-            self.digests.insert(path.to_owned(), digest.clone());
+            if self.cache_digests {
+                let digest = Digest256::of_bytes(bytes).to_hex();
+                self.reserve(
+                    path.len()
+                        .checked_add(digest.len())
+                        .and_then(|n| {
+                            n.checked_add(
+                                std::mem::size_of::<String>() + 4 * std::mem::size_of::<usize>(),
+                            )
+                        })
+                        .ok_or(ItemRefusal::Budget)?,
+                )?;
+                self.digests.insert(path.to_owned(), digest);
+            }
         }
         Ok(raw)
     }
@@ -897,8 +1227,10 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
     }
 
     fn digest_for(&mut self, path: &str) -> Result<Option<String>, ItemRefusal> {
-        if let Some(value) = self.digests.get(path) {
-            return Ok(Some(value.clone()));
+        if self.cache_digests {
+            if let Some(value) = self.digests.get(path) {
+                return Ok(Some(value.clone()));
+            }
         }
         if !self.path_exists(path)? {
             return Ok(None);
@@ -906,7 +1238,19 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
         let Some(raw) = self.current_raw(path)? else {
             return Ok(None);
         };
-        Ok(Some(Digest256::of_bytes(&raw).to_hex()))
+        if self.cache_digests {
+            return Ok(Some(Digest256::of_bytes(&raw).to_hex()));
+        }
+        let temporary_baseline = self.temporary_state_bytes;
+        self.reserve_temporary(
+            raw.len()
+                .checked_add(std::mem::size_of::<Vec<u8>>() + 64)
+                .ok_or(ItemRefusal::Budget)?,
+        )?;
+        let digest = Digest256::of_bytes(&raw).to_hex();
+        drop(raw);
+        self.release_temporary_since(temporary_baseline);
+        Ok(Some(digest))
     }
 
     fn request_schema(
@@ -916,6 +1260,54 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
         document: &Value,
     ) -> Result<(), ItemRefusal> {
         check(self.limits.deadline, self.source.cancellation())?;
+        if self.schema_request_store.is_some() {
+            let temporary_baseline = self.temporary_state_bytes;
+            let request_state = estimate_value_storage(document)?
+                .checked_add(estimate_string_storage(location)?)
+                .and_then(|state| state.checked_add(estimate_string_storage(contract).ok()?))
+                .and_then(|state| {
+                    state.checked_add(self.limits.max_member_bytes.checked_add(
+                        std::mem::size_of::<SourceFoundationClosureSchemaRequest>() + 256,
+                    )?)
+                })
+                .ok_or(ItemRefusal::Budget)?;
+            self.reserve_temporary(request_state)?;
+            let request = SourceFoundationClosureSchemaRequest {
+                before_issue: self.issues.len(),
+                location: location.to_owned(),
+                contract: contract.to_owned(),
+                document: document.clone(),
+            };
+            let remaining = self.remaining_state()?;
+            let (workspace, store_cost) = {
+                let store = self
+                    .schema_request_store
+                    .as_deref_mut()
+                    .ok_or(ItemRefusal::Budget)?;
+                let workspace =
+                    store.record_request(&request, self.limits.max_member_bytes, remaining)?;
+                (workspace, store.cost())
+            };
+            self.reserve_temporary(workspace)?;
+            drop(request);
+            self.release_temporary_since(temporary_baseline);
+            self.cost.candidate_schema_request_count = store_cost.observation_rows;
+            self.cost.candidate_schema_request_serialized_write_bytes =
+                store_cost.serialized_write_bytes;
+            self.cost.candidate_schema_request_scan_row_operations = store_cost.scan_row_operations;
+            self.cost
+                .candidate_schema_request_peak_workspace_state_bytes = self
+                .cost
+                .candidate_schema_request_peak_workspace_state_bytes
+                .max(store_cost.workspace_state_bytes)
+                .max(workspace);
+            self.cost.schema_requests = self
+                .cost
+                .schema_requests
+                .checked_add(1)
+                .ok_or(ItemRefusal::Budget)?;
+            return Ok(());
+        }
         let retained = serde_json::to_vec(document)
             .map_err(|_| ItemRefusal::Budget)?
             .len()
@@ -947,11 +1339,36 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
 
     fn recorded_matches(&mut self, path: &str, digest: &str) -> Result<bool, ItemRefusal> {
         check(self.limits.deadline, self.source.cancellation())?;
-        let key = (path.to_owned(), digest.to_owned());
-        if let Some(matches) = self.recorded_checks.get(&key) {
-            return Ok(*matches);
+        let key = if self.cache_recorded_checks {
+            let key = (path.to_owned(), digest.to_owned());
+            if let Some(matches) = self.recorded_checks.get(&key) {
+                return Ok(*matches);
+            }
+            Some(key)
+        } else {
+            None
+        };
+        let temporary_baseline = self.temporary_state_bytes;
+        if self.cache_recorded_checks {
+            self.reserve(
+                path.len()
+                    .checked_add(digest.len())
+                    .and_then(|bytes| bytes.checked_add(96))
+                    .ok_or(ItemRefusal::Budget)?,
+            )?;
+        } else {
+            self.reserve_temporary(
+                self.limits
+                    .max_member_bytes
+                    .checked_add(std::mem::size_of::<Vec<u8>>() + 64)
+                    .ok_or(ItemRefusal::Budget)?,
+            )?;
         }
-        self.reserve(path.len() + digest.len() + 96)?;
+        self.cost.recorded_read_operations = self
+            .cost
+            .recorded_read_operations
+            .checked_add(1)
+            .ok_or(ItemRefusal::Budget)?;
         let raw = self.source.recorded(
             path,
             digest,
@@ -974,9 +1391,18 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
                 .files_read
                 .checked_add(1)
                 .ok_or(ItemRefusal::Budget)?;
+            self.cost.recorded_files_read = self
+                .cost
+                .recorded_files_read
+                .checked_add(1)
+                .ok_or(ItemRefusal::Budget)?;
         }
         let matches = raw.is_some_and(|bytes| Digest256::of_bytes(&bytes).to_hex() == digest);
-        self.recorded_checks.insert(key, matches);
+        if let Some(key) = key {
+            self.recorded_checks.insert(key, matches);
+        } else {
+            self.release_temporary_since(temporary_baseline);
+        }
         Ok(matches)
     }
 
@@ -1002,7 +1428,7 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
 
     fn check_records_map(&mut self) -> Result<(), ItemRefusal> {
         // Records owns schema, reference and duplicate findings. This boundary
-        // only verifies caller map shape and builds the Link join operand;
+        // only verifies caller map shape and supplies Link join rows;
         // repeating that owner's checks would change issue coverage/order.
         let records = self.records;
         let paths = self.paths;
@@ -1011,6 +1437,9 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
         let mut retained = self.retained_state_bytes;
         let temporary = self.temporary_state_bytes;
         let max_state = self.limits.max_state_bytes;
+        let link_store = &mut self.link_store;
+        let mut link_count = self.link_count;
+        let mut link_workspace_peak = 0usize;
         let links = &mut self.links;
         records.for_each_current_record(&mut |id, record| {
             check(deadline, cancelled)?;
@@ -1023,6 +1452,18 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
                 ));
             }
             if record.path.ends_with("/link.json") {
+                if let Some(store) = link_store.as_deref_mut() {
+                    let used = retained.checked_add(temporary).ok_or(ItemRefusal::Budget)?;
+                    let remaining = max_state.checked_sub(used).ok_or(ItemRefusal::Budget)?;
+                    let workspace =
+                        store.insert_link(id, &record.path, &record.value, remaining)?;
+                    if used.checked_add(workspace).ok_or(ItemRefusal::Budget)? > max_state {
+                        return Err(ItemRefusal::Budget);
+                    }
+                    link_count = link_count.checked_add(1).ok_or(ItemRefusal::Budget)?;
+                    link_workspace_peak = link_workspace_peak.max(workspace);
+                    return Ok(());
+                }
                 let bytes = crate::record_biblio_cut::decoded_state(&record.value)
                     .map_err(|_| ItemRefusal::Budget)?;
                 let clone_state = id
@@ -1049,10 +1490,15 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
             Ok(())
         })?;
         self.retained_state_bytes = retained;
-        self.cost.reserved_state_bytes = self
-            .cost
-            .reserved_state_bytes
-            .max(retained.saturating_add(temporary));
+        self.link_count = link_count;
+        let link_state_peak = retained
+            .checked_add(temporary)
+            .and_then(|state| state.checked_add(link_workspace_peak))
+            .ok_or(ItemRefusal::Budget)?;
+        if link_state_peak > max_state {
+            return Err(ItemRefusal::Budget);
+        }
+        self.cost.reserved_state_bytes = self.cost.reserved_state_bytes.max(link_state_peak);
         Ok(())
     }
 
@@ -2310,7 +2756,7 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
             }
             if claim.object.starts_with("tos.")
                 && self.current_record(&claim.object)?.is_none()
-                && !self.links.contains_key(&claim.object)
+                && !self.link_exists(&claim.object)?
                 && !self.event_exists(&claim.object)?
                 && !self.records.rights_contains(&claim.object)?
             {
@@ -2594,7 +3040,7 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
                     )?;
                 } else if evidence.starts_with("tos.")
                     && self.current_record(&evidence)?.is_none()
-                    && !self.links.contains_key(&evidence)
+                    && !self.link_exists(&evidence)?
                 {
                     self.issue(
                         &location,
@@ -3015,24 +3461,29 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
                     )
                     .ok_or(ItemRefusal::Budget)
             })?;
-        let links_state = self
-            .links
-            .iter()
-            .try_fold(0usize, |state, (id, (path, value))| {
-                state
-                    .checked_add(
-                        id.len()
-                            .checked_add(path.len())
-                            .and_then(|n| {
-                                n.checked_add(crate::record_biblio_cut::decoded_state(value).ok()?)
-                            })
-                            .and_then(|n| {
-                                n.checked_add(std::mem::size_of::<(String, String, Value)>())
-                            })
-                            .ok_or(ItemRefusal::Budget)?,
-                    )
-                    .ok_or(ItemRefusal::Budget)
-            })?;
+        let links_state = if self.link_store.is_some() {
+            0
+        } else {
+            self.links
+                .iter()
+                .try_fold(0usize, |state, (id, (path, value))| {
+                    state
+                        .checked_add(
+                            id.len()
+                                .checked_add(path.len())
+                                .and_then(|n| {
+                                    n.checked_add(
+                                        crate::record_biblio_cut::decoded_state(value).ok()?,
+                                    )
+                                })
+                                .and_then(|n| {
+                                    n.checked_add(std::mem::size_of::<(String, String, Value)>())
+                                })
+                                .ok_or(ItemRefusal::Budget)?,
+                        )
+                        .ok_or(ItemRefusal::Budget)
+                })?
+        };
         self.reserve_temporary(
             claims_state
                 .checked_add(targets_state)
@@ -3087,7 +3538,7 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
                     ),
                 )?;
             }
-            if !self.links.contains_key(&claim.object) {
+            if !self.link_exists(&claim.object)? {
                 self.issue(
                     location,
                     format!("unresolved Link object: {}", claim.object),
@@ -3105,82 +3556,169 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
             targets.insert(claim_id.clone(), claim.object.clone());
             events.insert(claim_id, claim.event.clone());
         }
-        let links: Vec<(String, String, Value)> = self
-            .links
-            .iter()
-            .map(|(id, (path, value))| (id.clone(), path.clone(), value.clone()))
-            .collect();
-        for (link_id, path, link) in links {
-            let location = path;
-            let refs = value_strings(&link, "association_claim_refs");
-            let ref_set: BTreeSet<String> = refs.iter().cloned().collect();
-            let missing: Vec<String> = ref_set
+        if self.link_store.is_some() {
+            self.check_stored_links(&targets, &events, temporary_baseline)?;
+        } else {
+            let links: Vec<(String, String, Value)> = self
+                .links
                 .iter()
-                .filter(|id| !self.object_links.contains_key(*id))
-                .cloned()
+                .map(|(id, (path, value))| (id.clone(), path.clone(), value.clone()))
                 .collect();
-            if !missing.is_empty() {
-                self.issue(
-                    &location,
-                    format!(
-                        "unresolved object-Link claims: {}",
-                        python_string_list(&missing)
-                    ),
-                )?;
-            }
-            let misbound: Vec<String> = ref_set
-                .iter()
-                .filter(|id| {
-                    self.object_links.contains_key(*id)
-                        && targets.get(*id).map(String::as_str) != Some(link_id.as_str())
-                })
-                .cloned()
-                .collect();
-            if !misbound.is_empty() {
-                self.issue(
-                    &location,
-                    format!(
-                        "object-Link claims target another Link: {}",
-                        python_string_list(&misbound)
-                    ),
-                )?;
-            }
-            let event_ref = text(&link, "provenance_event_ref").unwrap_or_default();
-            let event_mismatch: Vec<String> = ref_set
-                .iter()
-                .filter(|id| {
-                    self.object_links.contains_key(*id)
-                        && events.get(*id).map(String::as_str) != Some(event_ref)
-                })
-                .cloned()
-                .collect();
-            if !event_mismatch.is_empty() {
-                self.issue(
-                    &location,
-                    format!(
-                        "object-Link claims cite another provenance event: {}",
-                        python_string_list(&event_mismatch)
-                    ),
-                )?;
-            }
-            let unreferenced: Vec<String> = targets
-                .iter()
-                .filter(|(id, target)| {
-                    target.as_str() == link_id.as_str() && !ref_set.contains(*id)
-                })
-                .map(|(id, _)| id.clone())
-                .collect();
-            if !unreferenced.is_empty() {
-                self.issue(
-                    &location,
-                    format!(
-                        "object-Link claims are not referenced by Link: {}",
-                        python_string_list(&unreferenced)
-                    ),
-                )?;
+            for (link_id, path, link) in links {
+                self.check_link_row(&link_id, &path, &link, &targets, &events)?;
             }
         }
         self.release_temporary_since(temporary_baseline);
+        Ok(())
+    }
+
+    fn check_stored_links(
+        &mut self,
+        targets: &BTreeMap<String, String>,
+        events: &BTreeMap<String, String>,
+        temporary_baseline: usize,
+    ) -> Result<(), ItemRefusal> {
+        let mut store = self.link_store.take().ok_or(ItemRefusal::Budget)?;
+        let mut after_id: Option<String> = None;
+        let mut cursor_state = 0usize;
+        let mut drained = 0u64;
+        loop {
+            let remaining = self.remaining_state()?;
+            let (link, workspace) = store.next_link(after_id.as_deref(), remaining)?;
+            self.reserve_temporary(workspace)?;
+            let Some(link) = link else {
+                self.temporary_state_bytes = temporary_baseline
+                    .checked_add(cursor_state)
+                    .ok_or(ItemRefusal::Budget)?;
+                let remaining = self.remaining_state()?;
+                let finished = store.finish_links(self.link_count, remaining)?;
+                self.reserve_temporary(finished.workspace_state_bytes)?;
+                if finished.inserted_rows != self.link_count
+                    || finished.drained_rows != drained
+                    || drained != self.link_count
+                {
+                    return Err(ItemRefusal::Source(
+                        "source-foundation Closure Link store count differs from its ordered drain"
+                            .into(),
+                    ));
+                }
+                self.cost.candidate_link_rows = finished.inserted_rows;
+                self.cost.candidate_link_serialized_write_bytes = finished.serialized_write_bytes;
+                self.cost.candidate_link_serialized_read_bytes = finished.serialized_read_bytes;
+                self.cost.candidate_link_scan_row_operations = finished.scan_row_operations;
+                self.cost.candidate_link_peak_workspace_state_bytes =
+                    finished.workspace_state_bytes;
+                self.include_link_workspace(finished.workspace_state_bytes)?;
+                store.verify_finished()?;
+                break;
+            };
+            if link.id.is_empty()
+                || !link.path.ends_with("/link.json")
+                || text(&link.value, "record_id") != Some(link.id.as_str())
+                || after_id
+                    .as_deref()
+                    .is_some_and(|prior| prior >= link.id.as_str())
+                || drained >= self.link_count
+            {
+                return Err(ItemRefusal::Source(
+                    "source-foundation Closure Link rows are not exact and ID ordered".into(),
+                ));
+            }
+            let scratch = link_validation_workspace(&link.value, targets)?;
+            self.reserve_temporary(scratch)?;
+            self.check_link_row(&link.id, &link.path, &link.value, targets, events)?;
+            let next_cursor_state = estimate_string_state(&link.id)?;
+            self.reserve_temporary(next_cursor_state)?;
+            let next_after = link.id.clone();
+            drop(link);
+            self.temporary_state_bytes = temporary_baseline
+                .checked_add(next_cursor_state)
+                .ok_or(ItemRefusal::Budget)?;
+            if let Some(previous_cursor) = after_id.take() {
+                drop(previous_cursor);
+            }
+            after_id = Some(next_after);
+            cursor_state = next_cursor_state;
+            drained = drained.checked_add(1).ok_or(ItemRefusal::Budget)?;
+        }
+        self.temporary_state_bytes = temporary_baseline;
+        self.link_store = Some(store);
+        Ok(())
+    }
+
+    fn check_link_row(
+        &mut self,
+        link_id: &str,
+        path: &str,
+        link: &Value,
+        targets: &BTreeMap<String, String>,
+        events: &BTreeMap<String, String>,
+    ) -> Result<(), ItemRefusal> {
+        let refs = value_strings(link, "association_claim_refs");
+        let ref_set: BTreeSet<String> = refs.iter().cloned().collect();
+        let missing: Vec<String> = ref_set
+            .iter()
+            .filter(|id| !self.object_links.contains_key(*id))
+            .cloned()
+            .collect();
+        if !missing.is_empty() {
+            self.issue(
+                path,
+                format!(
+                    "unresolved object-Link claims: {}",
+                    python_string_list(&missing)
+                ),
+            )?;
+        }
+        let misbound: Vec<String> = ref_set
+            .iter()
+            .filter(|id| {
+                self.object_links.contains_key(*id)
+                    && targets.get(*id).map(String::as_str) != Some(link_id)
+            })
+            .cloned()
+            .collect();
+        if !misbound.is_empty() {
+            self.issue(
+                path,
+                format!(
+                    "object-Link claims target another Link: {}",
+                    python_string_list(&misbound)
+                ),
+            )?;
+        }
+        let event_ref = text(link, "provenance_event_ref").unwrap_or_default();
+        let event_mismatch: Vec<String> = ref_set
+            .iter()
+            .filter(|id| {
+                self.object_links.contains_key(*id)
+                    && events.get(*id).map(String::as_str) != Some(event_ref)
+            })
+            .cloned()
+            .collect();
+        if !event_mismatch.is_empty() {
+            self.issue(
+                path,
+                format!(
+                    "object-Link claims cite another provenance event: {}",
+                    python_string_list(&event_mismatch)
+                ),
+            )?;
+        }
+        let unreferenced: Vec<String> = targets
+            .iter()
+            .filter(|(id, target)| target.as_str() == link_id && !ref_set.contains(*id))
+            .map(|(id, _)| id.clone())
+            .collect();
+        if !unreferenced.is_empty() {
+            self.issue(
+                path,
+                format!(
+                    "object-Link claims are not referenced by Link: {}",
+                    python_string_list(&unreferenced)
+                ),
+            )?;
+        }
         Ok(())
     }
 
@@ -4065,6 +4603,46 @@ fn value_strings(value: &Value, key: &str) -> Vec<String> {
         .filter_map(Value::as_str)
         .map(str::to_owned)
         .collect()
+}
+
+fn link_validation_workspace(
+    value: &Value,
+    targets: &BTreeMap<String, String>,
+) -> Result<usize, ItemRefusal> {
+    let mut reference_bytes = std::mem::size_of::<Vec<String>>();
+    if let Some(references) = value
+        .get("association_claim_refs")
+        .and_then(Value::as_array)
+    {
+        for reference in references.iter().filter_map(Value::as_str) {
+            reference_bytes = reference_bytes
+                .checked_add(reference.len())
+                .and_then(|bytes| {
+                    bytes.checked_add(
+                        std::mem::size_of::<String>() + 4 * std::mem::size_of::<usize>() + 96,
+                    )
+                })
+                .ok_or(ItemRefusal::Budget)?;
+        }
+    }
+    let target_bytes =
+        targets
+            .iter()
+            .try_fold(std::mem::size_of::<Vec<String>>(), |state, (id, _)| {
+                state
+                    .checked_add(id.len())
+                    .and_then(|bytes| {
+                        bytes.checked_add(
+                            std::mem::size_of::<String>() + 4 * std::mem::size_of::<usize>() + 96,
+                        )
+                    })
+                    .ok_or(ItemRefusal::Budget)
+            })?;
+    reference_bytes
+        .checked_mul(5)
+        .and_then(|bytes| bytes.checked_add(target_bytes.checked_mul(3)?))
+        .and_then(|bytes| bytes.checked_add(512))
+        .ok_or(ItemRefusal::Budget)
 }
 
 fn python_string_list(values: &[String]) -> String {

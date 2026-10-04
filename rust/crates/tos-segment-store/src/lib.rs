@@ -8,6 +8,7 @@
 #[cfg(not(target_os = "linux"))]
 compile_error!("tos-segment-store currently supports Linux only");
 
+mod authenticated_pack_set_v2;
 mod authenticated_tree;
 mod error;
 mod format;
@@ -18,12 +19,13 @@ mod placement;
 mod selected;
 mod store;
 
+pub use authenticated_pack_set_v2::AuthenticatedTreePackSetV2;
 pub use authenticated_tree::{
     AuthenticatedTreeCoverageV1, AuthenticatedTreeDeltaV1, AuthenticatedTreeDescriptorV1,
-    AuthenticatedTreeDescriptorV2, AuthenticatedTreeEntryV1, AuthenticatedTreeLimitsV1,
-    AuthenticatedTreeLocatorV2, AuthenticatedTreeNodeRefV1, AuthenticatedTreeRowStreamV1,
-    AuthenticatedTreeRowStreamV2, AuthenticatedTreeWorkV1, decode_placement_tree_row,
-    encode_placement_tree_row,
+    AuthenticatedTreeDescriptorV2, AuthenticatedTreeEntryV1, AuthenticatedTreeIoLedgerV1,
+    AuthenticatedTreeLimitsV1, AuthenticatedTreeLocatorV2, AuthenticatedTreeNodeRefV1,
+    AuthenticatedTreeRowStreamV1, AuthenticatedTreeRowStreamV2, AuthenticatedTreeWorkV1,
+    decode_placement_tree_row, encode_placement_tree_row,
 };
 pub use error::{Result, SegmentError, SegmentErrorCode};
 pub use format::{FrameCoordinate, SegmentLimits};

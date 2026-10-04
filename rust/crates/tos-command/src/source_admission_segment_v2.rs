@@ -1,0 +1,1553 @@
+//! CMD-owned immutable V2 source roots and their atomic-selection descriptor.
+//!
+//! These roots are derived from a completed native candidate. Their logical
+//! membership and physical tree commitments remain separate from the V1
+//! manifest digest and from NativeAdmissionComplete.
+use std::sync::{
+    Arc,
+    atomic::{AtomicU64, Ordering},
+};
+use std::time::Instant;
+use std::{io, mem::size_of};
+use tos_foundation::{
+    CanonicalProfile, Digest256, JsonDocument, JsonLimits, JsonMode, JsonValue, RelativePath,
+    SourceRevision, canonical_bytes_v1, parse_json_with_state_budget,
+};
+use tos_segment_store::{
+    AuthenticatedTreeDescriptorV2, AuthenticatedTreeEntryV1, AuthenticatedTreeIoLedgerV1,
+    AuthenticatedTreeLimitsV1, AuthenticatedTreeWorkV1, SegmentLimits, SegmentStore,
+};
+use tos_source_store::SourceMembershipV1;
+
+const ROOTSET_SCHEMA: &str = "tos-native-source-rootset-v2";
+const LEGACY_REVISION_ROOT_SCHEMA: &str = "tos-native-source-revision-roots-v2";
+const TYPED_REVISION_ROOT_SCHEMA: &str = "tos-native-source-revision-roots-v2-records";
+const COMPACT_COMMIT_SCHEMA: &str = "tos-native-source-compact-commit-v2";
+const COMPACT_COMMIT_REVISION_DOMAIN: &[u8] = b"tos-native-source-compact-commit-revision-v2\0";
+const ROOTSET_MAX_BYTES: usize = 65_536;
+const TREE_DESCRIPTOR_MAX_BYTES: usize = 12_288;
+const ENCODE_WORKSPACE_FIXED_OVERHEAD: usize = 64 * 1024;
+pub(crate) const MAX_COMPACT_COMMIT_V2_BYTES: usize = 65_536;
+pub(crate) const MEMBERS_KIND: &[u8] = b"source-members-v2";
+pub(crate) const IDENTITIES_KIND: &[u8] = b"source-identities-v2";
+pub(crate) const DEPENDENCIES_KIND: &[u8] = b"source-dependencies-v2";
+pub(crate) const RETIREMENTS_KIND: &[u8] = b"source-retirements-v2";
+pub(crate) const HISTORY_KIND: &[u8] = b"source-history-v2";
+pub(crate) const SOURCE_ADMISSION_V2_DOMAIN: &[u8] = b"tos-native-admission-source-v2";
+
+fn validate_tree_binding(
+    tree: &AuthenticatedTreeDescriptorV2,
+    store_id: [u8; 16],
+    domain_digest: Digest256,
+    kind: &[u8],
+    entries: u64,
+) -> io::Result<()> {
+    if tree.store_id != store_id
+        || tree.domain_digest != domain_digest
+        || tree.kind.as_slice() != kind
+        || tree.entries != entries
+    {
+        return Err(invalid("source root tree binding differs"));
+    }
+    // Reuse the physical owner's descriptor shape and commitment checks.
+    let raw = tree_bytes(tree)?;
+    if AuthenticatedTreeDescriptorV2::decode(&raw, TREE_DESCRIPTOR_MAX_BYTES)
+        .map_err(|_| invalid("source root tree commitment is invalid"))?
+        != *tree
+    {
+        return Err(invalid("source root tree roundtrip differs"));
+    }
+    Ok(())
+}
+
+fn invalid(message: &'static str) -> io::Error {
+    io::Error::new(io::ErrorKind::InvalidData, message)
+}
+
+/// Conservative transient allowance for decoding one bounded wire row. The
+/// foundation parser enforces its share before each allocation; the remaining
+/// 64 raw-sized bytes cover canonical output, typed descriptors, and the
+/// compact revision preimage while the parsed document is still live.
+pub(crate) fn decode_workspace_upper_bound(raw_bytes: usize) -> io::Result<usize> {
+    if raw_bytes == 0 || raw_bytes > ROOTSET_MAX_BYTES.max(MAX_COMPACT_COMMIT_V2_BYTES) {
+        return Err(invalid("source V2 JSON byte profile exceeded"));
+    }
+    raw_bytes
+        .checked_mul(256)
+        .and_then(|bytes| bytes.checked_add(64 * 1024))
+        .ok_or_else(|| invalid("source V2 JSON workspace bound overflow"))
+}
+
+fn parse_bounded_json(
+    raw: &[u8],
+    maximum_bytes: usize,
+    workspace_bytes: usize,
+) -> io::Result<(JsonDocument, JsonLimits)> {
+    if raw.is_empty() || raw.len() > maximum_bytes {
+        return Err(invalid("source V2 JSON byte profile exceeded"));
+    }
+    let required = decode_workspace_upper_bound(raw.len())?;
+    if workspace_bytes < required {
+        return Err(invalid(
+            "source V2 JSON workspace reservation is insufficient",
+        ));
+    }
+    let fixed = raw
+        .len()
+        .checked_mul(64)
+        .and_then(|bytes| bytes.checked_add(16 * 1024))
+        .ok_or_else(|| invalid("source V2 JSON workspace overflow"))?;
+    let parser_workspace = workspace_bytes
+        .checked_sub(fixed)
+        .ok_or_else(|| invalid("source V2 JSON workspace preflight refused"))?;
+    let limits = JsonLimits::new(raw.len(), 16, raw.len(), 4300)
+        .map_err(|_| invalid("source V2 JSON limits are invalid"))?;
+    let document =
+        parse_json_with_state_budget(raw, JsonMode::PublishedStrict, limits, parser_workspace)
+            .map_err(|_| invalid("source V2 JSON parse or workspace bound refused"))?;
+    let canonical = canonical_bytes_v1(
+        document.root(),
+        CanonicalProfile::SourceRecordDigestV1,
+        limits,
+    )
+    .map_err(|_| invalid("source V2 JSON canonical emission refused"))?;
+    if canonical.as_slice() != raw {
+        return Err(invalid("source V2 JSON encoding is not canonical"));
+    }
+    Ok((document, limits))
+}
+
+fn digest(value: &JsonValue) -> io::Result<Digest256> {
+    let text = value
+        .as_str()
+        .ok_or_else(|| invalid("source rootset digest field is not text"))?;
+    Digest256::from_hex(text).map_err(|_| invalid("source rootset digest encoding differs"))
+}
+
+fn optional_revision(value: &JsonValue) -> io::Result<Option<SourceRevision>> {
+    if value.is_null() {
+        Ok(None)
+    } else {
+        digest(value).map(|revision| Some(SourceRevision(revision)))
+    }
+}
+
+fn number(value: &JsonValue) -> io::Result<u64> {
+    value
+        .as_u64()
+        .ok_or_else(|| invalid("source rootset count is not unsigned"))
+}
+
+fn tree_bytes(tree: &AuthenticatedTreeDescriptorV2) -> io::Result<Vec<u8>> {
+    tree.encode(TREE_DESCRIPTOR_MAX_BYTES)
+        .map_err(|_| invalid("source rootset tree descriptor exceeds profile"))
+}
+
+fn tree_retained_state_bytes(tree: &AuthenticatedTreeDescriptorV2) -> io::Result<usize> {
+    let mut state = size_of::<AuthenticatedTreeDescriptorV2>()
+        .checked_add(tree.kind.capacity())
+        .ok_or_else(|| invalid("V2 tree descriptor state overflow"))?;
+    if let Some(root) = &tree.root {
+        state = state
+            .checked_add(size_of::<tos_segment_store::AuthenticatedTreeNodeRefV1>())
+            .and_then(|n| n.checked_add(root.min_key.capacity()))
+            .and_then(|n| n.checked_add(root.max_key.capacity()))
+            .ok_or_else(|| invalid("V2 tree descriptor state overflow"))?;
+    }
+    Ok(state)
+}
+
+fn descriptor_wire_len(tree: &AuthenticatedTreeDescriptorV2) -> io::Result<usize> {
+    let semantic_len = 8usize
+        .checked_add(2 + 2 + 16 + 32 + 2)
+        .and_then(|n| n.checked_add(tree.kind.len()))
+        .and_then(|n| n.checked_add(8 + 1 + 32))
+        .and_then(|n| {
+            tree.root.as_ref().map_or(Some(n), |root| {
+                n.checked_add(32 + 8 + 4 + root.min_key.len() + 4 + root.max_key.len())
+            })
+        })
+        .ok_or_else(|| invalid("V2 descriptor wire length overflow"))?;
+    if tree.physical_root.is_some() {
+        8usize
+            .checked_add(2 + 2 + 4 + 92)
+            .and_then(|n| n.checked_add(semantic_len))
+            .ok_or_else(|| invalid("V2 packed descriptor wire length overflow"))
+    } else {
+        Ok(semantic_len)
+    }
+}
+
+fn descriptor_json_workspace_upper_bound(
+    trees: &[&AuthenticatedTreeDescriptorV2],
+    retained_state_bytes: usize,
+    additional_live_bytes: usize,
+) -> io::Result<usize> {
+    // A descriptor becomes a JSON byte array. Bound simultaneously retained
+    // encoded descriptor bytes, Value elements (with 2x Vec capacity slack),
+    // and compact output (three digits plus a separator per byte, again with
+    // allocator-growth slack). The fixed term covers tuple/object nodes and
+    // short schema/digest strings. All terms are computed before `wire_value`
+    // constructs serde Values or the output Vec.
+    let descriptor_bytes = trees.iter().try_fold(0usize, |total, tree| {
+        total
+            .checked_add(descriptor_wire_len(tree)?)
+            .filter(|bytes| *bytes <= trees.len().saturating_mul(TREE_DESCRIPTOR_MAX_BYTES))
+            .ok_or_else(|| invalid("V2 descriptor workspace overflow"))
+    })?;
+    let descriptor_value_bytes = descriptor_bytes
+        .checked_mul(size_of::<serde_json::Value>())
+        .and_then(|n| n.checked_mul(2))
+        .ok_or_else(|| invalid("V2 descriptor Value workspace overflow"))?;
+    let descriptor_copy_bytes = descriptor_bytes
+        .checked_mul(2)
+        .ok_or_else(|| invalid("V2 descriptor copy workspace overflow"))?;
+    let output_bytes = descriptor_bytes
+        .checked_mul(4)
+        .and_then(|n| n.checked_add(ENCODE_WORKSPACE_FIXED_OVERHEAD))
+        .ok_or_else(|| invalid("V2 encoded output workspace overflow"))?;
+    let output_capacity = output_bytes
+        .checked_mul(2)
+        .ok_or_else(|| invalid("V2 output capacity workspace overflow"))?;
+    retained_state_bytes
+        .checked_add(additional_live_bytes)
+        .and_then(|n| n.checked_add(descriptor_value_bytes))
+        .and_then(|n| n.checked_add(descriptor_copy_bytes))
+        .and_then(|n| n.checked_add(output_capacity))
+        .and_then(|n| n.checked_add(ENCODE_WORKSPACE_FIXED_OVERHEAD))
+        .ok_or_else(|| invalid("V2 encoded workspace bound overflow"))
+}
+
+fn tree(value: &JsonValue) -> io::Result<AuthenticatedTreeDescriptorV2> {
+    let fields = value
+        .as_array()
+        .filter(|fields| fields.len() <= TREE_DESCRIPTOR_MAX_BYTES)
+        .ok_or_else(|| invalid("source rootset tree descriptor is not a bounded byte array"))?;
+    let mut bytes = Vec::new();
+    bytes
+        .try_reserve_exact(fields.len())
+        .map_err(|_| invalid("source rootset tree descriptor allocation failed"))?;
+    for field in fields {
+        bytes.push(
+            u8::try_from(number(field)?)
+                .map_err(|_| invalid("source rootset tree descriptor byte is out of range"))?,
+        );
+    }
+    AuthenticatedTreeDescriptorV2::decode(&bytes, TREE_DESCRIPTOR_MAX_BYTES)
+        .map_err(|_| invalid("source rootset tree descriptor is invalid"))
+}
+
+/// The file format retained for one immutable source revision. The legacy
+/// variant exists only to decode old rootsets and preserves their original
+/// scalar wire field exactly; it is never emitted by a new writer.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) enum SourceRevisionArtifactV2 {
+    LegacyManifestV1 { sha256: Digest256 },
+    SnapshotV1 { sha256: Digest256, bytes: u64 },
+    CompactCommitV2 { sha256: Digest256, bytes: u64 },
+}
+
+impl SourceRevisionArtifactV2 {
+    pub(crate) fn format(&self) -> &'static str {
+        match self {
+            Self::LegacyManifestV1 { .. } => "legacy-manifest-v1",
+            Self::SnapshotV1 { .. } => "tos-corpus-snapshot-v1",
+            Self::CompactCommitV2 { .. } => "tos-native-source-compact-commit-v2",
+        }
+    }
+
+    pub(crate) fn sha256(&self) -> Digest256 {
+        match self {
+            Self::LegacyManifestV1 { sha256 }
+            | Self::SnapshotV1 { sha256, .. }
+            | Self::CompactCommitV2 { sha256, .. } => *sha256,
+        }
+    }
+
+    pub(crate) fn bytes(&self) -> Option<u64> {
+        match self {
+            Self::LegacyManifestV1 { .. } => None,
+            Self::SnapshotV1 { bytes, .. } | Self::CompactCommitV2 { bytes, .. } => Some(*bytes),
+        }
+    }
+
+    pub(crate) fn filename(&self) -> &'static str {
+        match self {
+            Self::LegacyManifestV1 { .. } | Self::SnapshotV1 { .. } => "snapshot.json",
+            Self::CompactCommitV2 { .. } => "commit-v2.json",
+        }
+    }
+
+    fn wire_value(&self) -> serde_json::Value {
+        match self {
+            Self::LegacyManifestV1 { sha256 } => serde_json::json!(sha256.to_hex()),
+            Self::SnapshotV1 { sha256, bytes } => {
+                serde_json::json!(["snapshot-v1", sha256.to_hex(), bytes])
+            }
+            Self::CompactCommitV2 { sha256, bytes } => {
+                serde_json::json!(["compact-commit-v2", sha256.to_hex(), bytes])
+            }
+        }
+    }
+
+    fn from_typed_wire(value: &JsonValue) -> io::Result<Self> {
+        let fields = value
+            .as_array()
+            .filter(|fields| fields.len() == 3)
+            .ok_or_else(|| invalid("source revision artifact tuple shape differs"))?;
+        let format = fields[0]
+            .as_str()
+            .ok_or_else(|| invalid("source revision artifact format is not text"))?;
+        let sha256 = digest(&fields[1])?;
+        let bytes = number(&fields[2])?;
+        if bytes == 0 {
+            return Err(invalid("source revision artifact byte length is zero"));
+        }
+        match format {
+            "snapshot-v1" => Ok(Self::SnapshotV1 { sha256, bytes }),
+            "compact-commit-v2" if bytes <= MAX_COMPACT_COMMIT_V2_BYTES as u64 => {
+                Ok(Self::CompactCommitV2 { sha256, bytes })
+            }
+            "compact-commit-v2" => Err(invalid("compact source commit exceeds its byte profile")),
+            _ => Err(invalid("source revision artifact format is unsupported")),
+        }
+    }
+}
+
+/// One revision's current persistent roots. V1 membership remains its exact
+/// historical digest; V2 tree commitments are separately named descriptors.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct SourceRevisionRootsV2 {
+    pub revision: SourceRevision,
+    pub base_revision: Option<SourceRevision>,
+    pub validator_sha256: Digest256,
+    /// Compatibility alias for existing CMD receipts. It always equals the
+    /// typed source artifact's digest, not necessarily a V1 manifest digest.
+    pub manifest_sha256: Digest256,
+    pub source_artifact: SourceRevisionArtifactV2,
+    pub batch_sha256: Option<Digest256>,
+    pub membership_v1: SourceMembershipV1,
+    pub source_bytes: u64,
+    pub member_count: u64,
+    pub identity_count: u64,
+    pub dependency_source_count: u64,
+    pub dependency_count: u64,
+    pub retirement_count: u64,
+    pub members: AuthenticatedTreeDescriptorV2,
+    pub identities: AuthenticatedTreeDescriptorV2,
+    pub dependencies: AuthenticatedTreeDescriptorV2,
+    pub retirements: AuthenticatedTreeDescriptorV2,
+}
+
+impl SourceRevisionRootsV2 {
+    pub(crate) const MAX_ENCODED_BYTES: usize = ROOTSET_MAX_BYTES;
+
+    pub(crate) fn retained_state_bytes(&self) -> io::Result<usize> {
+        [
+            tree_retained_state_bytes(&self.members),
+            tree_retained_state_bytes(&self.identities),
+            tree_retained_state_bytes(&self.dependencies),
+            tree_retained_state_bytes(&self.retirements),
+        ]
+        .into_iter()
+        .try_fold(size_of::<Self>(), |total, tree| {
+            total
+                .checked_add(tree?)
+                .ok_or_else(|| invalid("V2 root state overflow"))
+        })
+    }
+
+    pub(crate) fn encode_state_upper_bound(
+        &self,
+        additional_live_bytes: usize,
+    ) -> io::Result<usize> {
+        descriptor_json_workspace_upper_bound(
+            &[
+                &self.members,
+                &self.identities,
+                &self.dependencies,
+                &self.retirements,
+            ],
+            self.retained_state_bytes()?,
+            additional_live_bytes,
+        )
+    }
+
+    pub(crate) fn retained_state_upper_bound_for_value(
+        max_value_bytes: usize,
+    ) -> io::Result<usize> {
+        max_value_bytes
+            .checked_mul(4)
+            .and_then(|bytes| bytes.checked_add(size_of::<Self>() + 4096))
+            .ok_or_else(|| invalid("V2 root result state overflow"))
+    }
+
+    pub(crate) fn validate_store_binding(
+        &self,
+        store_id: [u8; 16],
+        domain_digest: Digest256,
+    ) -> io::Result<()> {
+        if self.manifest_sha256 != self.source_artifact.sha256()
+            || self.member_count != self.membership_v1.count
+            || self.base_revision == Some(self.revision)
+            || self.dependency_source_count > self.dependency_count
+            || (self.dependency_source_count == 0) != (self.dependency_count == 0)
+        {
+            return Err(invalid("source revision root logical counts differ"));
+        }
+        match (&self.source_artifact, self.base_revision, self.batch_sha256) {
+            (SourceRevisionArtifactV2::LegacyManifestV1 { .. }, _, None) => (),
+            (SourceRevisionArtifactV2::SnapshotV1 { bytes, .. }, None, Some(_)) if *bytes > 0 => (),
+            (SourceRevisionArtifactV2::CompactCommitV2 { bytes, .. }, Some(_), Some(_))
+                if *bytes > 0 && *bytes <= MAX_COMPACT_COMMIT_V2_BYTES as u64 =>
+            {
+                ()
+            }
+            _ => return Err(invalid("source revision artifact and batch binding differ")),
+        }
+        for (root, kind, count) in [
+            (&self.members, MEMBERS_KIND, self.member_count),
+            (&self.identities, IDENTITIES_KIND, self.identity_count),
+            (&self.dependencies, DEPENDENCIES_KIND, self.dependency_count),
+            (&self.retirements, RETIREMENTS_KIND, self.retirement_count),
+        ] {
+            validate_tree_binding(root, store_id, domain_digest, kind, count)?;
+        }
+        Ok(())
+    }
+
+    /// Canonical tuple stored as an authenticated history-tree value. The
+    /// caller still owns the shared state allowance for these bounded bytes.
+    pub(crate) fn encode_with_state_limit(
+        &self,
+        max_state_bytes: usize,
+        additional_live_bytes: usize,
+    ) -> io::Result<Vec<u8>> {
+        if self.encode_state_upper_bound(additional_live_bytes)? > max_state_bytes {
+            return Err(invalid("source revision encoding exceeds reserved state"));
+        }
+        let raw = serde_json::to_vec(&self.wire_value()?)
+            .map_err(|_| invalid("source revision root serialization failed"))?;
+        if raw.is_empty() || raw.len() > ROOTSET_MAX_BYTES {
+            return Err(invalid("source revision root byte profile exceeded"));
+        }
+        Ok(raw)
+    }
+
+    pub(crate) fn decode(raw: &[u8]) -> io::Result<Self> {
+        let workspace = decode_workspace_upper_bound(raw.len())?;
+        Self::decode_with_workspace(raw, workspace)
+    }
+
+    /// Decode with the caller's already reserved transient state allowance.
+    /// The Foundation parser charges each allocation before it is made, even
+    /// when malformed nested input will later fail the fixed tuple shape.
+    pub(crate) fn decode_with_workspace(raw: &[u8], workspace: usize) -> io::Result<Self> {
+        if raw.is_empty() || raw.len() > ROOTSET_MAX_BYTES {
+            return Err(invalid("source revision root byte profile exceeded"));
+        }
+        let (document, _) = parse_bounded_json(raw, ROOTSET_MAX_BYTES, workspace)?;
+        Self::from_wire(document.root())
+    }
+
+    fn wire_value(&self) -> io::Result<serde_json::Value> {
+        self.validate_store_binding(self.members.store_id, self.members.domain_digest)?;
+        if matches!(
+            self.source_artifact,
+            SourceRevisionArtifactV2::LegacyManifestV1 { .. }
+        ) {
+            return Ok(serde_json::json!([
+                LEGACY_REVISION_ROOT_SCHEMA,
+                self.revision.0.to_hex(),
+                self.base_revision.map(|revision| revision.0.to_hex()),
+                self.validator_sha256.to_hex(),
+                self.manifest_sha256.to_hex(),
+                self.membership_v1.count,
+                self.membership_v1.digest.to_hex(),
+                self.source_bytes,
+                self.member_count,
+                self.identity_count,
+                self.dependency_source_count,
+                self.dependency_count,
+                self.retirement_count,
+                tree_bytes(&self.members)?,
+                tree_bytes(&self.identities)?,
+                tree_bytes(&self.dependencies)?,
+                tree_bytes(&self.retirements)?
+            ]));
+        }
+        Ok(serde_json::json!([
+            TYPED_REVISION_ROOT_SCHEMA,
+            self.revision.0.to_hex(),
+            self.base_revision.map(|revision| revision.0.to_hex()),
+            self.validator_sha256.to_hex(),
+            self.source_artifact.wire_value(),
+            self.batch_sha256
+                .ok_or_else(|| invalid("typed source revision lacks its batch digest"))?
+                .to_hex(),
+            self.membership_v1.count,
+            self.membership_v1.digest.to_hex(),
+            self.source_bytes,
+            self.member_count,
+            self.identity_count,
+            self.dependency_source_count,
+            self.dependency_count,
+            self.retirement_count,
+            tree_bytes(&self.members)?,
+            tree_bytes(&self.identities)?,
+            tree_bytes(&self.dependencies)?,
+            tree_bytes(&self.retirements)?
+        ]))
+    }
+
+    fn from_wire(value: &JsonValue) -> io::Result<Self> {
+        let fields = value
+            .as_array()
+            .ok_or_else(|| invalid("source revision root tuple shape differs"))?;
+        let legacy = fields.len() == 17 && fields[0].as_str() == Some(LEGACY_REVISION_ROOT_SCHEMA);
+        let typed = fields.len() == 18 && fields[0].as_str() == Some(TYPED_REVISION_ROOT_SCHEMA);
+        if !legacy && !typed {
+            return Err(invalid("source revision root version or shape differs"));
+        }
+        let (artifact, batch_sha256, membership_index) = if legacy {
+            let sha256 = digest(&fields[4])?;
+            (
+                SourceRevisionArtifactV2::LegacyManifestV1 { sha256 },
+                None,
+                5,
+            )
+        } else {
+            (
+                SourceRevisionArtifactV2::from_typed_wire(&fields[4])?,
+                Some(digest(&fields[5])?),
+                6,
+            )
+        };
+        let tree_index = membership_index + 8;
+        let result = Self {
+            revision: SourceRevision(digest(&fields[1])?),
+            base_revision: optional_revision(&fields[2])?,
+            validator_sha256: digest(&fields[3])?,
+            manifest_sha256: artifact.sha256(),
+            source_artifact: artifact,
+            batch_sha256,
+            membership_v1: SourceMembershipV1 {
+                count: number(&fields[membership_index])?,
+                digest: digest(&fields[membership_index + 1])?,
+            },
+            source_bytes: number(&fields[membership_index + 2])?,
+            member_count: number(&fields[membership_index + 3])?,
+            identity_count: number(&fields[membership_index + 4])?,
+            dependency_source_count: number(&fields[membership_index + 5])?,
+            dependency_count: number(&fields[membership_index + 6])?,
+            retirement_count: number(&fields[membership_index + 7])?,
+            members: tree(&fields[tree_index])?,
+            identities: tree(&fields[tree_index + 1])?,
+            dependencies: tree(&fields[tree_index + 2])?,
+            retirements: tree(&fields[tree_index + 3])?,
+        };
+        result.validate_store_binding(result.members.store_id, result.members.domain_digest)?;
+        Ok(result)
+    }
+}
+
+/// Compact successor metadata persisted beside the immutable COW roots.
+/// Its revision is derived from the exact transaction identity and committed
+/// roots; it contains no whole-corpus V1 manifest.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct CompactCommitV2 {
+    pub revision: SourceRevision,
+    pub base_revision: SourceRevision,
+    pub validator_sha256: Digest256,
+    pub batch_sha256: Digest256,
+    pub membership_v1: SourceMembershipV1,
+    pub source_bytes: u64,
+    pub member_count: u64,
+    pub identity_count: u64,
+    pub dependency_source_count: u64,
+    pub dependency_count: u64,
+    pub retirement_count: u64,
+    pub members: AuthenticatedTreeDescriptorV2,
+    pub identities: AuthenticatedTreeDescriptorV2,
+    pub dependencies: AuthenticatedTreeDescriptorV2,
+    pub retirements: AuthenticatedTreeDescriptorV2,
+}
+
+impl CompactCommitV2 {
+    pub(crate) fn seal_successor(
+        mut roots: SourceRevisionRootsV2,
+        batch_sha256: Digest256,
+        max_state_bytes: usize,
+        additional_live_bytes: usize,
+    ) -> io::Result<(SourceRevisionRootsV2, Self, Vec<u8>)> {
+        let base_revision = roots
+            .base_revision
+            .ok_or_else(|| invalid("compact source successor lacks its base revision"))?;
+        let roots_retained = roots.retained_state_bytes()?;
+        let descriptors = [
+            &roots.members,
+            &roots.identities,
+            &roots.dependencies,
+            &roots.retirements,
+        ];
+        // Reserve the compact row workspace against the source descriptors
+        // before cloning them into the record. The peak includes the original
+        // roots and any retained caller state.
+        let commit_retained =
+            descriptors
+                .iter()
+                .try_fold(size_of::<Self>(), |total, descriptor| {
+                    total
+                        .checked_add(tree_retained_state_bytes(descriptor)?)
+                        .ok_or_else(|| invalid("compact source commit state overflow"))
+                })?;
+        let encode_additional_live = roots_retained
+            .checked_add(additional_live_bytes)
+            .ok_or_else(|| invalid("compact successor retained state overflow"))?;
+        if descriptor_json_workspace_upper_bound(
+            &descriptors,
+            commit_retained,
+            encode_additional_live,
+        )? > max_state_bytes
+        {
+            return Err(invalid("compact successor exceeds reserved state"));
+        }
+        let mut commit = Self {
+            revision: roots.revision,
+            base_revision,
+            validator_sha256: roots.validator_sha256,
+            batch_sha256,
+            membership_v1: roots.membership_v1,
+            source_bytes: roots.source_bytes,
+            member_count: roots.member_count,
+            identity_count: roots.identity_count,
+            dependency_source_count: roots.dependency_source_count,
+            dependency_count: roots.dependency_count,
+            retirement_count: roots.retirement_count,
+            members: roots.members.clone(),
+            identities: roots.identities.clone(),
+            dependencies: roots.dependencies.clone(),
+            retirements: roots.retirements.clone(),
+        };
+        if commit.encode_state_upper_bound(encode_additional_live)? > max_state_bytes {
+            return Err(invalid("compact successor exceeds reserved state"));
+        }
+        commit.revision = commit.derived_revision_precharged()?;
+        let bytes = commit.encode_with_state_limit(max_state_bytes, encode_additional_live)?;
+        let sha256 = Digest256::of_bytes(&bytes);
+        roots.revision = commit.revision;
+        roots.batch_sha256 = Some(batch_sha256);
+        roots.manifest_sha256 = sha256;
+        roots.source_artifact = SourceRevisionArtifactV2::CompactCommitV2 {
+            sha256,
+            bytes: u64::try_from(bytes.len())
+                .map_err(|_| invalid("compact source commit length exceeds range"))?,
+        };
+        Ok((roots, commit, bytes))
+    }
+
+    fn retained_state_bytes(&self) -> io::Result<usize> {
+        [
+            tree_retained_state_bytes(&self.members),
+            tree_retained_state_bytes(&self.identities),
+            tree_retained_state_bytes(&self.dependencies),
+            tree_retained_state_bytes(&self.retirements),
+        ]
+        .into_iter()
+        .try_fold(size_of::<Self>(), |total, tree| {
+            total
+                .checked_add(tree?)
+                .ok_or_else(|| invalid("compact source commit state overflow"))
+        })
+    }
+
+    fn encode_state_upper_bound(&self, additional_live_bytes: usize) -> io::Result<usize> {
+        descriptor_json_workspace_upper_bound(
+            &[
+                &self.members,
+                &self.identities,
+                &self.dependencies,
+                &self.retirements,
+            ],
+            self.retained_state_bytes()?,
+            additional_live_bytes,
+        )
+    }
+
+    fn root_fields(&self) -> io::Result<serde_json::Value> {
+        Ok(serde_json::json!([
+            "tos-native-source-compact-commit-v2-preimage",
+            self.base_revision.0.to_hex(),
+            self.validator_sha256.to_hex(),
+            self.batch_sha256.to_hex(),
+            self.membership_v1.count,
+            self.membership_v1.digest.to_hex(),
+            self.source_bytes,
+            self.member_count,
+            self.identity_count,
+            self.dependency_source_count,
+            self.dependency_count,
+            self.retirement_count,
+            tree_bytes(&self.members)?,
+            tree_bytes(&self.identities)?,
+            tree_bytes(&self.dependencies)?,
+            tree_bytes(&self.retirements)?
+        ]))
+    }
+
+    fn derived_revision_precharged(&self) -> io::Result<SourceRevision> {
+        if self.member_count != self.membership_v1.count
+            || self.dependency_source_count > self.dependency_count
+            || (self.dependency_source_count == 0) != (self.dependency_count == 0)
+        {
+            return Err(invalid("compact source commit logical counts differ"));
+        }
+        let preimage = serde_json::to_vec(&self.root_fields()?)
+            .map_err(|_| invalid("compact source revision preimage failed"))?;
+        let mut hasher = Digest256Hasher::new();
+        hasher.update(COMPACT_COMMIT_REVISION_DOMAIN);
+        hasher.update(&preimage);
+        Ok(SourceRevision(hasher.finalize()))
+    }
+
+    pub(crate) fn encode_with_state_limit(
+        &self,
+        max_state_bytes: usize,
+        additional_live_bytes: usize,
+    ) -> io::Result<Vec<u8>> {
+        if self.encode_state_upper_bound(additional_live_bytes)? > max_state_bytes {
+            return Err(invalid(
+                "compact source commit encoding exceeds reserved state",
+            ));
+        }
+        if self.derived_revision_precharged()? != self.revision {
+            return Err(invalid("compact source revision derivation differs"));
+        }
+        let raw = serde_json::to_vec(&serde_json::json!([
+            COMPACT_COMMIT_SCHEMA,
+            self.revision.0.to_hex(),
+            self.base_revision.0.to_hex(),
+            self.validator_sha256.to_hex(),
+            self.batch_sha256.to_hex(),
+            self.membership_v1.count,
+            self.membership_v1.digest.to_hex(),
+            self.source_bytes,
+            self.member_count,
+            self.identity_count,
+            self.dependency_source_count,
+            self.dependency_count,
+            self.retirement_count,
+            tree_bytes(&self.members)?,
+            tree_bytes(&self.identities)?,
+            tree_bytes(&self.dependencies)?,
+            tree_bytes(&self.retirements)?
+        ]))
+        .map_err(|_| invalid("compact source commit serialization failed"))?;
+        if raw.is_empty() || raw.len() > MAX_COMPACT_COMMIT_V2_BYTES {
+            return Err(invalid("compact source commit byte profile exceeded"));
+        }
+        Ok(raw)
+    }
+
+    pub(crate) fn decode(raw: &[u8]) -> io::Result<Self> {
+        let workspace = decode_workspace_upper_bound(raw.len())?;
+        Self::decode_with_workspace(raw, workspace)
+    }
+
+    pub(crate) fn decode_with_workspace(raw: &[u8], workspace: usize) -> io::Result<Self> {
+        if raw.is_empty() || raw.len() > MAX_COMPACT_COMMIT_V2_BYTES {
+            return Err(invalid("compact source commit byte profile exceeded"));
+        }
+        let (document, _) = parse_bounded_json(raw, MAX_COMPACT_COMMIT_V2_BYTES, workspace)?;
+        let fields = document
+            .root()
+            .as_array()
+            .filter(|fields| fields.len() == 17)
+            .ok_or_else(|| invalid("compact source commit tuple shape differs"))?;
+        if fields[0].as_str() != Some(COMPACT_COMMIT_SCHEMA) {
+            return Err(invalid("compact source commit version differs"));
+        }
+        let base_revision = optional_revision(&fields[2])?
+            .ok_or_else(|| invalid("compact source commit base revision is absent"))?;
+        let result = Self {
+            revision: SourceRevision(digest(&fields[1])?),
+            base_revision,
+            validator_sha256: digest(&fields[3])?,
+            batch_sha256: digest(&fields[4])?,
+            membership_v1: SourceMembershipV1 {
+                count: number(&fields[5])?,
+                digest: digest(&fields[6])?,
+            },
+            source_bytes: number(&fields[7])?,
+            member_count: number(&fields[8])?,
+            identity_count: number(&fields[9])?,
+            dependency_source_count: number(&fields[10])?,
+            dependency_count: number(&fields[11])?,
+            retirement_count: number(&fields[12])?,
+            members: tree(&fields[13])?,
+            identities: tree(&fields[14])?,
+            dependencies: tree(&fields[15])?,
+            retirements: tree(&fields[16])?,
+        };
+        if result.encode_state_upper_bound(raw.len())? > workspace {
+            return Err(invalid(
+                "compact source commit preimage exceeds decode workspace",
+            ));
+        }
+        drop(document);
+        if result.derived_revision_precharged()? != result.revision {
+            return Err(invalid("compact source revision derivation differs"));
+        }
+        Ok(result)
+    }
+
+    pub(crate) fn matches_roots(&self, roots: &SourceRevisionRootsV2) -> bool {
+        self.revision == roots.revision
+            && Some(self.base_revision) == roots.base_revision
+            && self.validator_sha256 == roots.validator_sha256
+            && Some(self.batch_sha256) == roots.batch_sha256
+            && self.membership_v1 == roots.membership_v1
+            && self.source_bytes == roots.source_bytes
+            && self.member_count == roots.member_count
+            && self.identity_count == roots.identity_count
+            && self.dependency_source_count == roots.dependency_source_count
+            && self.dependency_count == roots.dependency_count
+            && self.retirement_count == roots.retirement_count
+            && self.members == roots.members
+            && self.identities == roots.identities
+            && self.dependencies == roots.dependencies
+            && self.retirements == roots.retirements
+            && matches!(
+                roots.source_artifact,
+                SourceRevisionArtifactV2::CompactCommitV2 { .. }
+            )
+    }
+}
+
+/// The one immutable selection object named by current.json. It binds all
+/// current roots and the append-history root under a single CAS selector.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct SourceRootSetV2 {
+    pub current: SourceRevisionRootsV2,
+    pub history: AuthenticatedTreeDescriptorV2,
+}
+
+impl SourceRootSetV2 {
+    pub(crate) fn retained_state_bytes(&self) -> io::Result<usize> {
+        let state = size_of::<Self>()
+            .checked_add(self.current.retained_state_bytes()?)
+            .ok_or_else(|| invalid("V2 source rootset retained state overflow"))?;
+        state
+            .checked_add(tree_retained_state_bytes(&self.history)?)
+            .ok_or_else(|| invalid("V2 source rootset retained state overflow"))
+    }
+
+    pub(crate) fn retained_state_upper_bound_for_value(
+        max_value_bytes: usize,
+    ) -> io::Result<usize> {
+        SourceRevisionRootsV2::retained_state_upper_bound_for_value(max_value_bytes)?
+            .checked_add(size_of::<Self>())
+            .and_then(|bytes| bytes.checked_add(size_of::<AuthenticatedTreeDescriptorV2>()))
+            .and_then(|bytes| bytes.checked_add(max_value_bytes.checked_mul(2)?))
+            .and_then(|bytes| bytes.checked_add(TREE_DESCRIPTOR_MAX_BYTES + 4096))
+            .ok_or_else(|| invalid("V2 source rootset state overflow"))
+    }
+
+    pub(crate) fn encode_state_upper_bound(
+        &self,
+        additional_live_bytes: usize,
+    ) -> io::Result<usize> {
+        descriptor_json_workspace_upper_bound(
+            &[
+                &self.current.members,
+                &self.current.identities,
+                &self.current.dependencies,
+                &self.current.retirements,
+                &self.history,
+            ],
+            self.retained_state_bytes()?,
+            additional_live_bytes,
+        )
+    }
+
+    pub(crate) fn validate_store_binding(
+        &self,
+        store_id: [u8; 16],
+        domain_digest: Digest256,
+    ) -> io::Result<()> {
+        self.current
+            .validate_store_binding(store_id, domain_digest)?;
+        if self.history.entries == 0 {
+            return Err(invalid("source history root has no current revision"));
+        }
+        validate_tree_binding(
+            &self.history,
+            store_id,
+            domain_digest,
+            HISTORY_KIND,
+            self.history.entries,
+        )
+    }
+
+    /// Apply only to a row returned by the authenticated history reader. This
+    /// comparison binds the selected current tuple; it does not prove that a
+    /// caller-supplied byte slice occurs in that tree.
+    pub(crate) fn verify_current_history_row(
+        &self,
+        key: &[u8],
+        raw: &[u8],
+        decode_workspace_bytes: usize,
+    ) -> io::Result<()> {
+        if key != self.current.revision.0.as_bytes()
+            || SourceRevisionRootsV2::decode_with_workspace(raw, decode_workspace_bytes)?
+                != self.current
+        {
+            return Err(invalid("source history current revision binding differs"));
+        }
+        Ok(())
+    }
+
+    pub(crate) fn encode_with_state_limit(
+        &self,
+        max_state_bytes: usize,
+        additional_live_bytes: usize,
+    ) -> io::Result<Vec<u8>> {
+        if self.encode_state_upper_bound(additional_live_bytes)? > max_state_bytes {
+            return Err(invalid("source rootset encoding exceeds reserved state"));
+        }
+        self.validate_store_binding(
+            self.current.members.store_id,
+            self.current.members.domain_digest,
+        )?;
+        let value = serde_json::json!([
+            ROOTSET_SCHEMA,
+            self.current.wire_value()?,
+            tree_bytes(&self.history)?
+        ]);
+        let raw = serde_json::to_vec(&value)
+            .map_err(|_| invalid("source rootset serialization failed"))?;
+        if raw.is_empty() || raw.len() > ROOTSET_MAX_BYTES {
+            return Err(invalid("source rootset byte profile exceeded"));
+        }
+        Ok(raw)
+    }
+
+    pub(crate) fn decode(raw: &[u8]) -> io::Result<Self> {
+        let workspace = decode_workspace_upper_bound(raw.len())?;
+        Self::decode_with_workspace(raw, workspace)
+    }
+
+    pub(crate) fn decode_with_workspace(raw: &[u8], workspace: usize) -> io::Result<Self> {
+        if raw.is_empty() || raw.len() > ROOTSET_MAX_BYTES {
+            return Err(invalid("source rootset byte profile exceeded"));
+        }
+        let (document, _) = parse_bounded_json(raw, ROOTSET_MAX_BYTES, workspace)?;
+        let fields = document
+            .root()
+            .as_array()
+            .filter(|fields| fields.len() == 3)
+            .ok_or_else(|| invalid("source rootset tuple shape differs"))?;
+        if fields[0].as_str() != Some(ROOTSET_SCHEMA) {
+            return Err(invalid("source rootset version differs"));
+        }
+        let result = Self {
+            current: SourceRevisionRootsV2::from_wire(&fields[1])?,
+            history: tree(&fields[2])?,
+        };
+        result.validate_store_binding(
+            result.current.members.store_id,
+            result.current.members.domain_digest,
+        )?;
+        Ok(result)
+    }
+
+    pub(crate) fn digest(&self, max_state_bytes: usize) -> io::Result<Digest256> {
+        self.encode_with_state_limit(max_state_bytes, 0)
+            .map(|raw| Digest256::of_bytes(&raw))
+    }
+}
+
+/// IO and incremental persistent-allocation adapter for one completed native
+/// V2 writer. The complete reservation is selected before this object can
+/// touch the physical store; each new pack is additionally precharged by the
+/// SegmentStore install path before it is staged.
+pub(crate) struct NativeV2TreeIo {
+    io: tos_source_store::PinnedSqliteIoBudget,
+    custody: Arc<tos_source_store::PinnedSqliteSpaceReservation>,
+    max_allocated_bytes: u64,
+    allocation_unit_bytes: u64,
+    max_working_state_bytes: usize,
+    reserved: AtomicU64,
+    actual: AtomicU64,
+}
+
+impl NativeV2TreeIo {
+    pub(crate) fn new(
+        io: tos_source_store::PinnedSqliteIoBudget,
+        custody: Arc<tos_source_store::PinnedSqliteSpaceReservation>,
+        max_allocated_bytes: u64,
+        allocation_unit_bytes: u64,
+        max_working_state_bytes: usize,
+    ) -> io::Result<Arc<Self>> {
+        if max_allocated_bytes == 0
+            || max_allocated_bytes == u64::MAX
+            || allocation_unit_bytes == 0
+            || allocation_unit_bytes == u64::MAX
+            || max_working_state_bytes == 0
+            || max_working_state_bytes == usize::MAX
+        {
+            return Err(invalid("V2 allocation accountant profile is invalid"));
+        }
+        Ok(Arc::new(Self {
+            io,
+            custody,
+            max_allocated_bytes,
+            allocation_unit_bytes,
+            max_working_state_bytes,
+            reserved: AtomicU64::new(0),
+            actual: AtomicU64::new(0),
+        }))
+    }
+
+    pub(crate) fn from_budget(
+        budget: &super::source_foundation_admission::NativeSegmentV2Budget,
+    ) -> Arc<Self> {
+        Arc::clone(&budget.allocation_accountant)
+    }
+
+    pub(crate) fn reserve_file_allocation(&self, bytes: u64) -> io::Result<u64> {
+        let upper = allocation_upper_bound(bytes, self.allocation_unit_bytes)?;
+        if !self.reserve_allocated_bytes(upper) {
+            return Err(invalid("V2 persistent allocation precharge refused"));
+        }
+        Ok(upper)
+    }
+
+    pub(crate) fn reconcile_file_allocation(&self, reserved: u64, actual: u64) -> io::Result<()> {
+        if !self.reconcile_allocated_bytes(reserved, actual) {
+            return Err(invalid("V2 persistent allocation reconciliation refused"));
+        }
+        Ok(())
+    }
+
+    pub(crate) fn release_file_allocation(&self, reserved: u64) -> io::Result<()> {
+        let result = self
+            .reserved
+            .fetch_update(Ordering::AcqRel, Ordering::Acquire, |current| {
+                current.checked_sub(reserved)
+            });
+        result
+            .map(|_| ())
+            .map_err(|_| invalid("V2 persistent allocation precharge regressed"))
+    }
+
+    pub(crate) fn selected_allocation_unit_bytes(&self) -> u64 {
+        self.allocation_unit_bytes
+    }
+
+    pub(crate) fn max_working_state_bytes(&self) -> usize {
+        self.max_working_state_bytes
+    }
+
+    pub(crate) fn actual_allocated_bytes(&self) -> u64 {
+        self.actual.load(Ordering::Acquire)
+    }
+
+    pub(crate) fn io_budget(&self) -> &tos_source_store::PinnedSqliteIoBudget {
+        &self.io
+    }
+
+    pub(crate) fn custody_reservation(
+        &self,
+    ) -> Arc<tos_source_store::PinnedSqliteSpaceReservation> {
+        Arc::clone(&self.custody)
+    }
+}
+
+impl AuthenticatedTreeIoLedgerV1 for NativeV2TreeIo {
+    fn charge_read(&self, bytes: u64) -> bool {
+        self.io.charge_read(bytes).is_ok()
+    }
+    fn record_read_returned(&self, bytes: u64) -> bool {
+        self.io.record_read_returned(bytes).is_ok()
+    }
+    fn charge_write(&self, bytes: u64) -> bool {
+        self.io.charge_write(bytes).is_ok()
+    }
+    fn record_write_returned(&self, bytes: u64) -> bool {
+        self.io.record_write_returned(bytes).is_ok()
+    }
+    fn reserve_allocated_bytes(&self, bytes: u64) -> bool {
+        let Ok(next) = self
+            .reserved
+            .fetch_update(Ordering::AcqRel, Ordering::Acquire, |current| {
+                current
+                    .checked_add(bytes)
+                    .filter(|sum| *sum <= self.max_allocated_bytes)
+            })
+        else {
+            return false;
+        };
+        let _ = next;
+        true
+    }
+    fn reconcile_allocated_bytes(&self, reserved: u64, actual: u64) -> bool {
+        let Ok(previous) =
+            self.actual
+                .fetch_update(Ordering::AcqRel, Ordering::Acquire, |current| {
+                    current.checked_add(actual)
+                })
+        else {
+            return false;
+        };
+        let next = previous + actual;
+        let within_file_precharge = actual <= reserved;
+        let within_total_cap = next <= self.max_allocated_bytes;
+        self.custody.update_actual_allocated(next).is_ok()
+            && within_file_precharge
+            && within_total_cap
+    }
+    fn allocation_unit_bytes(&self) -> u64 {
+        self.allocation_unit_bytes
+    }
+}
+
+fn allocation_upper_bound(bytes: u64, unit: u64) -> io::Result<u64> {
+    if unit == 0 || unit == u64::MAX {
+        return Err(invalid("V2 allocation quantum is invalid"));
+    }
+    bytes
+        .checked_add(unit - 1)
+        .and_then(|n| n.checked_div(unit))
+        .and_then(|n| n.checked_mul(unit))
+        .and_then(|n| n.checked_add(unit))
+        .ok_or_else(|| invalid("V2 allocation precharge overflow"))
+}
+
+pub(crate) struct BuiltInitialRootSetV2 {
+    pub(crate) roots: SourceRootSetV2,
+    pub(crate) bytes: Vec<u8>,
+    pub(crate) sha256: Digest256,
+    pub(crate) tree_io: Arc<NativeV2TreeIo>,
+    pub(crate) segment_store: SegmentStore,
+    pub(crate) work: AuthenticatedTreeWorkV1,
+}
+
+/// The first CMD writer uses the real validated candidate and maintained
+/// native index cursors. It is an initial import only; warm successors must
+/// use COW deltas and retained history roots.
+pub(crate) fn build_initial_rootset_v2(
+    store: &super::source_admission_store::AdmissionStore,
+    candidate: &super::source_admission_spooled_candidate::SpoolCandidate<'_>,
+    index: &super::source_admission_spooled_index::IndexView<'_>,
+    revision: SourceRevision,
+    manifest_sha256: Digest256,
+    manifest_bytes: u64,
+    batch_sha256: Digest256,
+    deadline: Instant,
+    cancelled: &std::sync::atomic::AtomicBool,
+) -> io::Result<BuiltInitialRootSetV2> {
+    if candidate.base_revision().is_some() {
+        return Err(invalid("V2 initial root builder requires an empty base"));
+    }
+    if store.has_v2_segments()? {
+        return Err(invalid(
+            "initial V2 writer refuses an existing or interrupted segment namespace",
+        ));
+    }
+    let profile = index
+        .segment_v2_budget()
+        .ok_or_else(|| invalid("V2 root builder lacks the native completion profile"))?;
+    index.verify_candidate()?;
+    let tree_io = NativeV2TreeIo::from_budget(profile);
+    if !store.has_v2_allocation_accountant(&tree_io) {
+        return Err(invalid(
+            "V2 writer and object-ingest allocation account are not shared",
+        ));
+    }
+    store.retain_v2_store_custody(tree_io.custody_reservation());
+    let segment_bytes = profile.max_allocated_bytes;
+    if segment_bytes < 65_536 {
+        return Err(invalid(
+            "V2 persistent store profile is below metadata floor",
+        ));
+    }
+    let segment_limits = SegmentLimits {
+        max_segment_bytes: segment_bytes,
+        max_frame_bytes: segment_bytes.min(4 * 1024 * 1024).max(1),
+        max_frames: u32::try_from(profile.tree_limits.max_nodes.min(u32::MAX as u64))
+            .map_err(|_| invalid("V2 segment frame limit exceeds range"))?
+            .max(1),
+        max_journal_bytes: profile
+            .max_working_state_bytes
+            .min(4 * 1024 * 1024)
+            .max(128),
+    };
+    let tree_ledger: Arc<dyn AuthenticatedTreeIoLedgerV1> = tree_io.clone();
+    let segment = store.segment_store_v2_with_io(
+        SOURCE_ADMISSION_V2_DOMAIN,
+        segment_limits,
+        tree_ledger,
+        deadline,
+        cancelled,
+    )?;
+    if segment.custody_domain() != SOURCE_ADMISSION_V2_DOMAIN {
+        return Err(invalid("V2 segment store domain differs"));
+    }
+    let base_limits = profile.tree_limits;
+    let mut used = AuthenticatedTreeWorkV1::default();
+
+    let member_rows = {
+        let mut after: Option<RelativePath> = None;
+        let candidate = candidate;
+        std::iter::from_fn(move || {
+            match candidate
+                .member_after_bounded(after.as_ref(), profile.max_working_state_bytes / 8)
+            {
+                Ok(Some(member)) => {
+                    after = Some(member.path.clone());
+                    let mut value = Vec::with_capacity(44);
+                    value.extend_from_slice(member.sha256.as_bytes());
+                    value.extend_from_slice(&member.size_bytes.to_be_bytes());
+                    value.extend_from_slice(&member.mode.to_le_bytes());
+                    Some(Ok(AuthenticatedTreeEntryV1 {
+                        key: member.path.as_str().as_bytes().to_vec(),
+                        value,
+                    }))
+                }
+                Ok(None) => None,
+                Err(error) => Some(Err(tree_io_error(error))),
+            }
+        })
+    };
+    let (members, member_work) = segment
+        .build_authenticated_tree_v2_with_work_and_io(
+            MEMBERS_KIND,
+            member_rows,
+            remaining_tree_limits(base_limits, used)?,
+            Some(tree_io.clone()),
+            deadline,
+            cancelled,
+        )
+        .map_err(tree_io_error)?;
+    add_tree_work(&mut used, member_work, base_limits)?;
+
+    let identity_rows = {
+        let mut after: Option<String> = None;
+        let index = index;
+        std::iter::from_fn(move || match index.identities_after(after.as_deref()) {
+            Ok(Some((id, path))) => {
+                after = Some(id.clone());
+                Some(Ok(AuthenticatedTreeEntryV1 {
+                    key: id.into_bytes(),
+                    value: path.as_str().as_bytes().to_vec(),
+                }))
+            }
+            Ok(None) => None,
+            Err(error) => Some(Err(tree_io_error(error))),
+        })
+    };
+    let (identities, identity_work) = segment
+        .build_authenticated_tree_v2_with_work_and_io(
+            IDENTITIES_KIND,
+            identity_rows,
+            remaining_tree_limits(base_limits, used)?,
+            Some(tree_io.clone()),
+            deadline,
+            cancelled,
+        )
+        .map_err(tree_io_error)?;
+    add_tree_work(&mut used, identity_work, base_limits)?;
+
+    let dependency_rows = {
+        use super::source_admission_index::NativeDependencyDirectionV1::Forward;
+        let mut after: Option<(RelativePath, RelativePath)> = None;
+        let index = index;
+        std::iter::from_fn(move || {
+            match index.dependency_pair_after(Forward, after.as_ref().map(|(s, t)| (s, t))) {
+                Ok(Some((source, target))) => {
+                    after = Some((source.clone(), target.clone()));
+                    let pair = match length_prefixed_pair(&source, &target) {
+                        Ok(pair) => pair,
+                        Err(error) => return Some(Err(tree_io_error(error))),
+                    };
+                    let key_len = source
+                        .as_str()
+                        .len()
+                        .checked_add(1)
+                        .and_then(|n| n.checked_add(target.as_str().len()));
+                    let Some(key_len) = key_len else {
+                        return Some(Err(tree_error("V2 dependency key length overflow")));
+                    };
+                    if key_len > profile.tree_limits.max_key_bytes {
+                        return Some(Err(tree_error("V2 dependency key exceeds profile")));
+                    }
+                    // RelativePath excludes NUL, so this delimiter produces
+                    // a unique bytewise source/target ordering and permits
+                    // source-prefix seeks in later warm delta readers.
+                    let mut key = Vec::new();
+                    if key.try_reserve_exact(key_len).is_err() {
+                        return Some(Err(tree_error("V2 dependency key allocation failed")));
+                    }
+                    key.extend_from_slice(source.as_str().as_bytes());
+                    key.push(0);
+                    key.extend_from_slice(target.as_str().as_bytes());
+                    Some(Ok(AuthenticatedTreeEntryV1 { key, value: pair }))
+                }
+                Ok(None) => None,
+                Err(error) => Some(Err(tree_io_error(error))),
+            }
+        })
+    };
+    let (dependencies, dependency_work) = segment
+        .build_authenticated_tree_v2_with_work_and_io(
+            DEPENDENCIES_KIND,
+            dependency_rows,
+            remaining_tree_limits(base_limits, used)?,
+            Some(tree_io.clone()),
+            deadline,
+            cancelled,
+        )
+        .map_err(tree_io_error)?;
+    add_tree_work(&mut used, dependency_work, base_limits)?;
+
+    let retirement_rows = {
+        let mut ordinal = 0u64;
+        let count = candidate.retirement_count();
+        let candidate = candidate;
+        std::iter::from_fn(move || {
+            if ordinal >= count {
+                return None;
+            }
+            let row = candidate.retirement_at_bounded(ordinal, profile.max_working_state_bytes / 8);
+            ordinal += 1;
+            match row {
+                Ok(Some(row)) => Some(encode_retirement_entry(ordinal - 1, row)),
+                Ok(None) => Some(Err(tree_error("V2 retirement ordinal ended early"))),
+                Err(error) => Some(Err(tree_io_error(error))),
+            }
+        })
+    };
+    let (retirements, retirement_work) = segment
+        .build_authenticated_tree_v2_with_work_and_io(
+            RETIREMENTS_KIND,
+            retirement_rows,
+            remaining_tree_limits(base_limits, used)?,
+            Some(tree_io.clone()),
+            deadline,
+            cancelled,
+        )
+        .map_err(tree_io_error)?;
+    add_tree_work(&mut used, retirement_work, base_limits)?;
+
+    let fence = index.fence();
+    let (member_count, source_bytes) = candidate.membership_counts();
+    if member_count != fence.membership.count || source_bytes != fence.source_bytes {
+        return Err(invalid(
+            "V2 member binding differs from completed candidate",
+        ));
+    }
+    let current = SourceRevisionRootsV2 {
+        revision,
+        base_revision: None,
+        validator_sha256: fence.validator_sha256,
+        manifest_sha256,
+        source_artifact: SourceRevisionArtifactV2::SnapshotV1 {
+            sha256: manifest_sha256,
+            bytes: manifest_bytes,
+        },
+        batch_sha256: Some(batch_sha256),
+        membership_v1: fence.membership,
+        source_bytes,
+        member_count,
+        identity_count: index.identity_count(),
+        dependency_source_count: index.dependency_source_count(),
+        dependency_count: index.dependency_count(),
+        retirement_count: candidate.retirement_count(),
+        members,
+        identities,
+        dependencies,
+        retirements,
+    };
+    current.validate_store_binding(segment.store_id(), segment.domain_digest())?;
+    let writer_live_state = size_of::<SegmentStore>()
+        .checked_add(size_of::<NativeV2TreeIo>())
+        .and_then(|n| n.checked_add(size_of::<AuthenticatedTreeWorkV1>()))
+        .ok_or_else(|| invalid("V2 writer live state overflow"))?;
+    let current_row =
+        current.encode_with_state_limit(profile.max_working_state_bytes, writer_live_state)?;
+    let history_rows = [Ok(AuthenticatedTreeEntryV1 {
+        key: revision.0.as_bytes().to_vec(),
+        value: current_row,
+    })];
+    let (history, history_work) = segment
+        .build_authenticated_tree_v2_with_work_and_io(
+            HISTORY_KIND,
+            history_rows,
+            remaining_tree_limits(base_limits, used)?,
+            Some(tree_io.clone()),
+            deadline,
+            cancelled,
+        )
+        .map_err(tree_io_error)?;
+    add_tree_work(&mut used, history_work, base_limits)?;
+    let roots = SourceRootSetV2 { current, history };
+    roots.validate_store_binding(segment.store_id(), segment.domain_digest())?;
+    let (current_row, history_read_work) = segment
+        .lookup_authenticated_tree_v2_with_work_and_io(
+            &roots.history,
+            revision.0.as_bytes(),
+            remaining_tree_limits(base_limits, used)?,
+            Some(tree_io.clone()),
+            deadline,
+            cancelled,
+        )
+        .map_err(tree_io_error)?;
+    add_tree_work(&mut used, history_read_work, base_limits)?;
+    let current_row = current_row.ok_or_else(|| invalid("V2 current history row is absent"))?;
+    let decode_workspace = decode_workspace_upper_bound(current_row.len())?;
+    if decode_workspace > profile.max_working_state_bytes {
+        return Err(invalid("V2 current history decode exceeds state profile"));
+    }
+    roots.verify_current_history_row(revision.0.as_bytes(), &current_row, decode_workspace)?;
+    drop(current_row);
+    index.verify_candidate()?;
+    let bytes =
+        roots.encode_with_state_limit(profile.max_working_state_bytes, writer_live_state)?;
+    let sha256 = Digest256::of_bytes(&bytes);
+    Ok(BuiltInitialRootSetV2 {
+        roots,
+        bytes,
+        sha256,
+        tree_io,
+        segment_store: segment,
+        work: used,
+    })
+}
+
+fn remaining_tree_limits(
+    base: AuthenticatedTreeLimitsV1,
+    used: AuthenticatedTreeWorkV1,
+) -> io::Result<AuthenticatedTreeLimitsV1> {
+    let mut remaining = base;
+    let used_nodes = used
+        .read_nodes
+        .checked_add(used.written_nodes)
+        .ok_or_else(|| invalid("V2 cumulative tree node overflow"))?;
+    let used_bytes = used
+        .read_bytes
+        .checked_add(used.written_bytes)
+        .ok_or_else(|| invalid("V2 cumulative tree byte overflow"))?;
+    remaining.max_nodes = base
+        .max_nodes
+        .checked_sub(used_nodes)
+        .filter(|n| *n > 0)
+        .ok_or_else(|| invalid("V2 cumulative tree node profile exceeded"))?;
+    remaining.max_total_bytes = base
+        .max_total_bytes
+        .checked_sub(used_bytes)
+        .filter(|n| *n > 0)
+        .ok_or_else(|| invalid("V2 cumulative tree byte profile exceeded"))?;
+    Ok(remaining)
+}
+
+fn add_tree_work(
+    used: &mut AuthenticatedTreeWorkV1,
+    next: AuthenticatedTreeWorkV1,
+    limits: AuthenticatedTreeLimitsV1,
+) -> io::Result<()> {
+    used.read_nodes = used
+        .read_nodes
+        .checked_add(next.read_nodes)
+        .ok_or_else(|| invalid("V2 cumulative tree node overflow"))?;
+    used.written_nodes = used
+        .written_nodes
+        .checked_add(next.written_nodes)
+        .ok_or_else(|| invalid("V2 cumulative tree node overflow"))?;
+    used.read_bytes = used
+        .read_bytes
+        .checked_add(next.read_bytes)
+        .ok_or_else(|| invalid("V2 cumulative tree byte overflow"))?;
+    used.written_bytes = used
+        .written_bytes
+        .checked_add(next.written_bytes)
+        .ok_or_else(|| invalid("V2 cumulative tree byte overflow"))?;
+    used.allocated_bytes = used
+        .allocated_bytes
+        .checked_add(next.allocated_bytes)
+        .ok_or_else(|| invalid("V2 cumulative allocation overflow"))?;
+    if used
+        .read_nodes
+        .checked_add(used.written_nodes)
+        .is_none_or(|n| n > limits.max_nodes)
+        || used
+            .read_bytes
+            .checked_add(used.written_bytes)
+            .is_none_or(|n| n > limits.max_total_bytes)
+    {
+        return Err(invalid("V2 cumulative tree work exceeded"));
+    }
+    Ok(())
+}
+
+fn length_prefixed_pair(source: &RelativePath, target: &RelativePath) -> io::Result<Vec<u8>> {
+    let source_len = u32::try_from(source.as_str().len())
+        .map_err(|_| invalid("V2 dependency source exceeds range"))?;
+    let target_len = u32::try_from(target.as_str().len())
+        .map_err(|_| invalid("V2 dependency target exceeds range"))?;
+    let cap = 8usize
+        .checked_add(source.as_str().len())
+        .and_then(|n| n.checked_add(target.as_str().len()))
+        .ok_or_else(|| invalid("V2 dependency pair size overflow"))?;
+    let mut result = Vec::new();
+    result
+        .try_reserve_exact(cap)
+        .map_err(|_| invalid("V2 dependency pair allocation failed"))?;
+    result.extend_from_slice(&source_len.to_be_bytes());
+    result.extend_from_slice(source.as_str().as_bytes());
+    result.extend_from_slice(&target_len.to_be_bytes());
+    result.extend_from_slice(target.as_str().as_bytes());
+    Ok(result)
+}
+
+fn encode_retirement_entry(
+    ordinal: u64,
+    row: tos_source_store::RetirementMetadata,
+) -> tos_segment_store::Result<AuthenticatedTreeEntryV1> {
+    let mut value = Vec::new();
+    let path_len = u32::try_from(row.path.as_str().len())
+        .map_err(|_| tree_error("V2 retirement path exceeds range"))?;
+    let event_len = u32::try_from(row.event_ref.as_str().len())
+        .map_err(|_| tree_error("V2 retirement event path exceeds range"))?;
+    let capacity = 4usize
+        .checked_add(row.path.as_str().len())
+        .and_then(|n| n.checked_add(32 + 4))
+        .and_then(|n| n.checked_add(row.event_ref.as_str().len()))
+        .and_then(|n| n.checked_add(32 + 8))
+        .ok_or_else(|| tree_error("V2 retirement tuple size overflow"))?;
+    value
+        .try_reserve_exact(capacity)
+        .map_err(|_| tree_error("V2 retirement tuple allocation failed"))?;
+    value.extend_from_slice(&path_len.to_be_bytes());
+    value.extend_from_slice(row.path.as_str().as_bytes());
+    value.extend_from_slice(row.sha256.as_bytes());
+    value.extend_from_slice(&event_len.to_be_bytes());
+    value.extend_from_slice(row.event_ref.as_str().as_bytes());
+    value.extend_from_slice(row.event_sha256.as_bytes());
+    value.extend_from_slice(&row.event_size_bytes.to_be_bytes());
+    Ok(AuthenticatedTreeEntryV1 {
+        key: ordinal.to_be_bytes().to_vec(),
+        value,
+    })
+}
+
+fn tree_error(message: &'static str) -> tos_segment_store::SegmentError {
+    tos_segment_store::SegmentError::new(
+        tos_segment_store::SegmentErrorCode::InvalidFormat,
+        message,
+    )
+}
+
+fn tree_io_error(error: io::Error) -> tos_segment_store::SegmentError {
+    tos_segment_store::SegmentError::io("CMD source cursor failed while building V2 roots", error)
+}

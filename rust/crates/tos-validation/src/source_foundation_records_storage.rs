@@ -127,6 +127,17 @@ pub struct SourceFoundationRecordFactPage {
     pub charged_state_bytes: usize,
 }
 
+/// A key-bounded page from the held GlobalId fact index. `next_after_ordinal`
+/// is present only when another row with this exact ID remains, so `None`
+/// after a checked page is an authenticated exact-key EOF.
+#[derive(Debug, Clone)]
+pub struct SourceFoundationGlobalIdFactPage {
+    pub id: String,
+    pub rows: Vec<SourceFoundationGlobalIdFact>,
+    pub next_after_ordinal: Option<u64>,
+    pub charged_state_bytes: usize,
+}
+
 impl From<(u64, GlobalIdFact)> for SourceFoundationGlobalIdFact {
     fn from((ordinal, fact): (u64, GlobalIdFact)) -> Self {
         Self {
@@ -454,6 +465,23 @@ pub trait SourceFoundationRecordsStore {
         cancelled: &AtomicBool,
     ) -> Result<SourceFoundationRecordFactPage, ItemRefusal>;
 
+    /// Read one bounded page for an exact GlobalId key. The adapter uses the
+    /// held `(collection, key, ordinal)` index and probes one row past the
+    /// page limit before returning `next_after_ordinal` or exact-key EOF.
+    fn global_id_facts_by_id_page(
+        &self,
+        id: &str,
+        after_ordinal: Option<u64>,
+        budget: SourceFoundationRecordsPageBudget,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<SourceFoundationGlobalIdFactPage, ItemRefusal> {
+        let _ = (id, after_ordinal, budget, deadline, cancelled);
+        Err(ItemRefusal::Unsupported(
+            "exact GlobalId pages are unavailable in this Records store".into(),
+        ))
+    }
+
     fn lookup_current_record(
         &self,
         id: &str,
@@ -469,6 +497,73 @@ pub trait SourceFoundationRecordsStore {
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> Result<Option<SourceFoundationCurrentRecordPathLookup>, ItemRefusal>;
+
+    /// Mark the exact current Artifact-record path consumed by the ordered
+    /// candidate source-member walk and return its bounded duplicate/schema
+    /// summary. The matching store rejects a repeated visit and exposes an
+    /// EOF query so callers can detect orphan Records paths without a resident
+    /// path map.
+    fn visit_candidate_artifact_record_path(
+        &self,
+        path: &str,
+        max_state_bytes: NonZeroUsize,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<Option<SourceFoundationArtifactRecordPathSummary>, ItemRefusal>;
+
+    fn has_unvisited_candidate_artifact_record_paths(
+        &self,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<bool, ItemRefusal>;
+
+    /// Reset only the derived candidate schema-proof table before preparing a
+    /// fresh proof over this same completed report.
+    fn reset_candidate_artifact_schema_proofs(
+        &self,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<(), ItemRefusal>;
+
+    fn retain_candidate_artifact_schema_record(
+        &self,
+        path: &str,
+        max_state_bytes: NonZeroUsize,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<(), ItemRefusal>;
+
+    fn update_candidate_artifact_schema_diagnostic(
+        &self,
+        path: &str,
+        member_sha256_hex: &str,
+        member_size_bytes: u64,
+        diagnostic_unit_sha256_hex: &str,
+        diagnostic_report_sha256_hex: &str,
+        exact_schema_set: bool,
+        complete_invalid: bool,
+        max_state_bytes: NonZeroUsize,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<(), ItemRefusal>;
+
+    fn candidate_artifact_schema_proves_invalid(
+        &self,
+        path: &str,
+        member_sha256_hex: &str,
+        member_size_bytes: u64,
+        max_state_bytes: NonZeroUsize,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<bool, ItemRefusal>;
+
+    fn candidate_artifact_schema_proof_paths_page(
+        &self,
+        after_path: Option<&str>,
+        budget: SourceFoundationRecordsPageBudget,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<SourceFoundationCandidateArtifactProofPathPage, ItemRefusal>;
 
     fn lookup_item_edition(
         &self,
@@ -656,6 +751,173 @@ impl<'a> SourceFoundationRecordsIndex<'a> {
             });
         }
         Ok(found)
+    }
+
+    pub fn visit_candidate_artifact_record_path(
+        &self,
+        path: &str,
+        max_state_bytes: NonZeroUsize,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<Option<SourceFoundationArtifactRecordPathSummary>, ItemRefusal> {
+        check_current(deadline, cancelled)?;
+        let found = self.store.visit_candidate_artifact_record_path(
+            path,
+            max_state_bytes,
+            deadline,
+            cancelled,
+        )?;
+        check_current(deadline, cancelled)?;
+        let minimum = std::mem::size_of::<SourceFoundationArtifactRecordPathSummary>();
+        if found.as_ref().is_some_and(|summary| {
+            summary.charged_state_bytes > max_state_bytes.get()
+                || summary.charged_state_bytes < minimum
+                || summary.record_count == 0
+        }) {
+            return Err(ItemRefusal::BudgetCheck {
+                check: "source-foundation candidate Artifact path summary state",
+                used: found.map(|summary| summary.charged_state_bytes as u64),
+                limit: Some(max_state_bytes.get() as u64),
+            });
+        }
+        Ok(found)
+    }
+
+    pub fn has_unvisited_candidate_artifact_record_paths(
+        &self,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<bool, ItemRefusal> {
+        check_current(deadline, cancelled)?;
+        let found = self
+            .store
+            .has_unvisited_candidate_artifact_record_paths(deadline, cancelled)?;
+        check_current(deadline, cancelled)?;
+        Ok(found)
+    }
+
+    pub fn reset_candidate_artifact_schema_proofs(
+        &self,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<(), ItemRefusal> {
+        check_current(deadline, cancelled)?;
+        self.store
+            .reset_candidate_artifact_schema_proofs(deadline, cancelled)?;
+        check_current(deadline, cancelled)
+    }
+
+    pub fn retain_candidate_artifact_schema_record(
+        &self,
+        path: &str,
+        max_state_bytes: NonZeroUsize,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<(), ItemRefusal> {
+        check_current(deadline, cancelled)?;
+        self.store.retain_candidate_artifact_schema_record(
+            path,
+            max_state_bytes,
+            deadline,
+            cancelled,
+        )?;
+        check_current(deadline, cancelled)
+    }
+
+    pub fn update_candidate_artifact_schema_diagnostic(
+        &self,
+        path: &str,
+        member_sha256_hex: &str,
+        member_size_bytes: u64,
+        diagnostic_unit_sha256_hex: &str,
+        diagnostic_report_sha256_hex: &str,
+        exact_schema_set: bool,
+        complete_invalid: bool,
+        max_state_bytes: NonZeroUsize,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<(), ItemRefusal> {
+        check_current(deadline, cancelled)?;
+        self.store.update_candidate_artifact_schema_diagnostic(
+            path,
+            member_sha256_hex,
+            member_size_bytes,
+            diagnostic_unit_sha256_hex,
+            diagnostic_report_sha256_hex,
+            exact_schema_set,
+            complete_invalid,
+            max_state_bytes,
+            deadline,
+            cancelled,
+        )?;
+        check_current(deadline, cancelled)
+    }
+
+    pub fn candidate_artifact_schema_proves_invalid(
+        &self,
+        path: &str,
+        member_sha256_hex: &str,
+        member_size_bytes: u64,
+        max_state_bytes: NonZeroUsize,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<bool, ItemRefusal> {
+        check_current(deadline, cancelled)?;
+        let proved = self.store.candidate_artifact_schema_proves_invalid(
+            path,
+            member_sha256_hex,
+            member_size_bytes,
+            max_state_bytes,
+            deadline,
+            cancelled,
+        )?;
+        check_current(deadline, cancelled)?;
+        Ok(proved)
+    }
+
+    pub fn candidate_artifact_schema_proof_paths_page(
+        &self,
+        after_path: Option<&str>,
+        budget: SourceFoundationRecordsPageBudget,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<SourceFoundationCandidateArtifactProofPathPage, ItemRefusal> {
+        check_current(deadline, cancelled)?;
+        if after_path.is_some_and(|path| path.len() > budget.max_cursor_bytes.get()) {
+            return Err(ItemRefusal::BudgetCheck {
+                check: "source-foundation candidate Artifact proof path cursor bytes",
+                used: after_path.map(|path| path.len() as u64),
+                limit: Some(budget.max_cursor_bytes.get() as u64),
+            });
+        }
+        let page = self
+            .store
+            .candidate_artifact_schema_proof_paths_page(after_path, budget, deadline, cancelled)?;
+        check_current(deadline, cancelled)?;
+        let minimum = page.paths.iter().try_fold(
+            std::mem::size_of::<SourceFoundationCandidateArtifactProofPathPage>(),
+            |bytes, path| {
+                bytes
+                    .checked_add(std::mem::size_of::<String>())
+                    .and_then(|bytes| bytes.checked_add(path.len()))
+                    .ok_or(ItemRefusal::Budget)
+            },
+        )?;
+        let ordered = page.paths.windows(2).all(|rows| rows[0] < rows[1]);
+        if !ordered
+            || after_path.is_some_and(|after| page.paths.first().is_some_and(|path| path <= after))
+            || page.paths.len() > budget.max_rows.get()
+            || page.charged_state_bytes > budget.max_state_bytes.get()
+            || page.charged_state_bytes < minimum
+            || page.paths.is_empty() && page.has_more
+        {
+            return Err(ItemRefusal::BudgetCheck {
+                check: "source-foundation candidate Artifact proof path page envelope",
+                used: Some(page.charged_state_bytes as u64),
+                limit: Some(budget.max_state_bytes.get() as u64),
+            });
+        }
+        Ok(page)
     }
 
     pub fn lookup_item_edition(
@@ -962,6 +1224,89 @@ impl<'a> SourceFoundationRecordsIndex<'a> {
         }
         Ok(page)
     }
+
+    pub(crate) fn global_id_facts_by_id_page(
+        &self,
+        id: &str,
+        after_ordinal: Option<u64>,
+        budget: SourceFoundationRecordsPageBudget,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<SourceFoundationGlobalIdFactPage, ItemRefusal> {
+        check_current(deadline, cancelled)?;
+        if id.len() > budget.max_state_bytes.get() {
+            return Err(ItemRefusal::BudgetCheck {
+                check: "source-foundation GlobalId key input state",
+                used: Some(id.len() as u64),
+                limit: Some(budget.max_state_bytes.get() as u64),
+            });
+        }
+        let page = self.store.global_id_facts_by_id_page(
+            id,
+            after_ordinal,
+            budget,
+            deadline,
+            cancelled,
+        )?;
+        let minimum = source_foundation_global_id_fact_page_minimum_state_bytes(&page)?;
+        let ordinals_advance = page.rows.iter().enumerate().all(|(index, row)| {
+            let after = if index == 0 {
+                after_ordinal
+            } else {
+                Some(page.rows[index - 1].ordinal)
+            };
+            after.is_none_or(|ordinal| row.ordinal > ordinal)
+        });
+        let cursor_matches = match (page.rows.last(), page.next_after_ordinal) {
+            (Some(last), Some(next)) => next == last.ordinal,
+            (Some(_), None) | (None, None) => true,
+            (None, Some(_)) => false,
+        };
+        if page.id != id
+            || page.rows.iter().any(|row| row.id != id)
+            || !ordinals_advance
+            || !cursor_matches
+            || page
+                .next_after_ordinal
+                .is_some_and(|next| after_ordinal.is_some_and(|after| next <= after))
+            || page.rows.len() > budget.max_rows.get()
+            || page.charged_state_bytes > budget.max_state_bytes.get()
+            || page.charged_state_bytes < minimum
+        {
+            return Err(ItemRefusal::BudgetCheck {
+                check: "source-foundation exact GlobalId page envelope",
+                used: Some(page.charged_state_bytes as u64),
+                limit: Some(budget.max_state_bytes.get() as u64),
+            });
+        }
+        check_current(deadline, cancelled)?;
+        Ok(page)
+    }
+}
+
+fn source_foundation_global_id_fact_page_minimum_state_bytes(
+    page: &SourceFoundationGlobalIdFactPage,
+) -> Result<usize, ItemRefusal> {
+    let mut bytes = std::mem::size_of::<SourceFoundationGlobalIdFactPage>()
+        .checked_add(page.id.len())
+        .and_then(|bytes| {
+            bytes.checked_add(
+                page.rows
+                    .len()
+                    .checked_mul(std::mem::size_of::<SourceFoundationGlobalIdFact>())?,
+            )
+        })
+        .ok_or(ItemRefusal::Budget)?;
+    for row in &page.rows {
+        bytes = bytes
+            .checked_add(add_state_fields(&[
+                row.id.len(),
+                row.kind.len(),
+                row.path.len(),
+            ])?)
+            .ok_or(ItemRefusal::Budget)?;
+    }
+    Ok(bytes)
 }
 
 fn record_fact_matches_collection(

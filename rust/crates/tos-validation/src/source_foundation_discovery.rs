@@ -20,9 +20,9 @@ use crate::source_foundation_default_rules::{
     SourceFoundationDefaultRecordsLookup,
 };
 use crate::source_foundation_records::{
-    SourceFoundationRecordsCollection, SourceFoundationRecordsCursor,
-    SourceFoundationRecordsPageBudget, SourceFoundationRecordsStoredFact,
-    SourceFoundationRecordsStreamedReport,
+    SourceFoundationArtifactRecordPathSummary, SourceFoundationRecordsCollection,
+    SourceFoundationRecordsCursor, SourceFoundationRecordsPageBudget,
+    SourceFoundationRecordsStoredFact, SourceFoundationRecordsStreamedReport,
 };
 use serde_json::{Value, json};
 use std::collections::{BTreeMap, BTreeSet};
@@ -88,6 +88,180 @@ const HIERARCHICAL_TARGET_ROOTS: &[&str] = &[
     "ToS/source-witnesses/works/friedrich-nietzsche/zur-genealogie-der-moral/expressions/ru-svasyan-mysl-1996/structure/mysl-1996-volume-2-operator-pdf",
     "ToS/source-witnesses/works/friedrich-nietzsche/der-antichrist/expressions/ru-flerova-mysl-1996/structure/mysl-1996-volume-2-operator-pdf",
 ];
+
+/// Namespace for the exact IDs whose first source occurrence is preserved by
+/// a candidate's bounded Discovery scratch index. These are mechanical scan
+/// keys, not source-admission evidence.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum DiscoverySeenIdNamespace {
+    Artifact,
+    Composite,
+    CompositeRepresentation,
+    Event,
+    DiscoveryEvent,
+    RepresentationFile,
+    SchemaLocation,
+    PayloadObservation,
+    ArtifactReplayReference,
+    PlannedManifest,
+    NativeArtifactTransaction,
+}
+
+impl DiscoverySeenIdNamespace {
+    pub const fn storage_key(self) -> &'static str {
+        match self {
+            Self::Artifact => "artifact",
+            Self::Composite => "composite",
+            Self::CompositeRepresentation => "composite-representation",
+            Self::Event => "event",
+            Self::DiscoveryEvent => "discovery-event",
+            Self::RepresentationFile => "representation-file",
+            Self::SchemaLocation => "schema-location",
+            Self::PayloadObservation => "payload-observation",
+            Self::ArtifactReplayReference => "artifact-replay-reference",
+            Self::PlannedManifest => "planned-manifest",
+            Self::NativeArtifactTransaction => "native-artifact-transaction",
+        }
+    }
+}
+
+/// Candidate-local, bounded uniqueness scratch for Discovery. `remember_first`
+/// returns true only for the first key and stores its exact source location;
+/// `workspace_state_bytes` is the precharged row workspace used for that
+/// operation, while persistent scratch bytes remain disk custody in CMD.
+pub trait DiscoverySeenIds {
+    fn contains(
+        &mut self,
+        namespace: DiscoverySeenIdNamespace,
+        id: &str,
+        max_state_bytes: usize,
+    ) -> Result<(bool, usize), ItemRefusal>;
+
+    fn remember_first(
+        &mut self,
+        namespace: DiscoverySeenIdNamespace,
+        id: &str,
+        first_path: &str,
+        max_state_bytes: usize,
+    ) -> Result<(bool, usize), ItemRefusal>;
+}
+
+/// Mechanical facts extracted from one current Discovery run. Candidate CMD
+/// callers may place these facts in the existing invocation-scoped SQLite
+/// auxiliary store; finite callers retain their compatible in-memory map.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DiscoveryRunSummary {
+    pub target_kind: String,
+    pub known_refs: BTreeSet<String>,
+    pub captured_acquisitions: BTreeSet<(String, String, String, u64)>,
+}
+
+/// Candidate-local keyed scratch for Discovery run summaries. Keys are exact
+/// current source paths, not authority IDs. Implementations must precharge
+/// each row before materializing it, preserve path-key replacement behavior,
+/// and prove the inserted-row count at `finish`.
+pub trait DiscoveryRunSummaryStore {
+    fn insert_summary(
+        &mut self,
+        path: &str,
+        summary: &DiscoveryRunSummary,
+        max_state_bytes: usize,
+    ) -> Result<usize, ItemRefusal>;
+
+    fn lookup_summary(
+        &mut self,
+        path: &str,
+        max_state_bytes: usize,
+    ) -> Result<(Option<DiscoveryRunSummary>, usize), ItemRefusal>;
+
+    fn finish(
+        &mut self,
+        expected_rows: u64,
+        max_state_bytes: usize,
+    ) -> Result<DiscoveryRunSummaryStoreCost, ItemRefusal>;
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct DiscoveryRunSummaryStoreCost {
+    /// Matching parseable source observations seen, including repeated paths.
+    pub observation_rows: u64,
+    /// Unique path-keyed summaries retained in the invocation scratch table.
+    pub unique_paths: u64,
+    /// Logical encoded values stored by insert/replacement operations. SQLite
+    /// page reads and writes remain charged by CMD's shared physical ledger.
+    pub serialized_summary_write_bytes: u64,
+    /// Logical serialized summary bytes materialized from SQLite point reads.
+    pub serialized_summary_read_bytes: u64,
+    /// High-water row workspace, excluding persistent SQLite bytes.
+    pub workspace_state_bytes: usize,
+    /// Scan-row equivalents charged to the shared candidate operation cap.
+    pub scan_row_operations: u64,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum DiscoveryEventSummaryNamespace {
+    Boundary,
+    Discovery,
+}
+
+impl DiscoveryEventSummaryNamespace {
+    pub const fn storage_key(self) -> &'static str {
+        match self {
+            Self::Boundary => "boundary",
+            Self::Discovery => "discovery",
+        }
+    }
+}
+
+/// Candidate-local keyed summary and ordered insertion spool for Discovery
+/// provenance. Lookups preserve the source map's last-value replacement law;
+/// owner insertions are drained later in their original encounter order.
+pub trait DiscoveryEventSummaryStore {
+    fn record_event(
+        &mut self,
+        namespace: DiscoveryEventSummaryNamespace,
+        id: &str,
+        location: &str,
+        value: &Value,
+        insert_into_owner_map: bool,
+        max_serialized_value_bytes: usize,
+        max_state_bytes: usize,
+    ) -> Result<usize, ItemRefusal>;
+
+    fn lookup_event(
+        &mut self,
+        namespace: DiscoveryEventSummaryNamespace,
+        id: &str,
+        max_state_bytes: usize,
+    ) -> Result<(Option<(String, Value)>, usize), ItemRefusal>;
+
+    fn finish(
+        &mut self,
+        expected_observation_rows: u64,
+        expected_owner_insertion_rows: u64,
+        max_state_bytes: usize,
+    ) -> Result<DiscoveryEventSummaryStoreCost, ItemRefusal>;
+
+    /// Stream the accepted source rows to the existing DefaultEventStore.
+    /// `remaining_state_bytes` is called before each SQLite row is
+    /// materialized so the enclosing owner map and its row workspace overlap
+    /// under one operation budget.
+    fn for_each_owner_insertion(
+        &mut self,
+        remaining_state_bytes: &mut dyn FnMut() -> Result<usize, ItemRefusal>,
+        visit: &mut dyn FnMut(&str, &Value, usize) -> Result<(), ItemRefusal>,
+    ) -> Result<DiscoveryEventSummaryStoreCost, ItemRefusal>;
+}
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct DiscoveryEventSummaryStoreCost {
+    pub observation_rows: u64,
+    pub owner_insertion_rows: u64,
+    pub serialized_write_bytes: u64,
+    pub serialized_read_bytes: u64,
+    pub workspace_state_bytes: usize,
+    pub scan_row_operations: u64,
+}
 const PRIVATE_HANDOFF_REQUIRED_FORBIDDEN_CLASSES: &[&str] = &[
     "source_page_bytes",
     "source_text_or_transcription",
@@ -149,6 +323,92 @@ pub struct SchemaRequest {
     pub location: String,
     pub contract: String,
     pub document: Value,
+}
+
+/// Candidate-local spool for decoded Discovery schema instances. CMD owns
+/// persistent storage and candidate binding; this portable port carries only
+/// the authentic request metadata and parsed current document.
+pub trait DiscoverySchemaRequestStore {
+    fn record_request(
+        &mut self,
+        before_issue: usize,
+        location: &str,
+        contract: &str,
+        document: &Value,
+        max_document_bytes: usize,
+        max_state_bytes: usize,
+    ) -> Result<usize, ItemRefusal>;
+
+    fn finish(
+        &mut self,
+        expected_rows: u64,
+        direct_issue_count: usize,
+        max_state_bytes: usize,
+    ) -> Result<DiscoverySchemaRequestStoreCost, ItemRefusal>;
+
+    /// Return one request at a time from the completed keyed spool. The row
+    /// workspace includes parsing its stored JSON and must be precharged by
+    /// the consumer alongside the actual schema worker's remaining budget.
+    fn next_request(
+        &mut self,
+        max_state_bytes: usize,
+    ) -> Result<(Option<SchemaRequest>, usize), ItemRefusal>;
+
+    fn cost(&self) -> DiscoverySchemaRequestStoreCost;
+}
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct DiscoverySchemaRequestStoreCost {
+    pub observation_rows: u64,
+    pub serialized_write_bytes: u64,
+    pub serialized_read_bytes: u64,
+    pub workspace_state_bytes: usize,
+    pub scan_row_operations: u64,
+}
+
+/// Candidate-local point cache for exact digests of current source members.
+/// The portable validator passes only paths and authentic digests computed
+/// from bytes returned by its current-source reader; CMD owns the held store.
+pub trait DiscoveryDigestCache {
+    fn lookup_digest(
+        &mut self,
+        path: &str,
+        max_state_bytes: usize,
+    ) -> Result<(Option<String>, usize), ItemRefusal>;
+
+    fn remember_digest(
+        &mut self,
+        path: &str,
+        digest: &str,
+        max_state_bytes: usize,
+    ) -> Result<(bool, usize), ItemRefusal>;
+
+    fn finish(
+        &mut self,
+        expected_observation_rows: u64,
+        expected_unique_paths: u64,
+        max_state_bytes: usize,
+    ) -> Result<DiscoveryDigestCacheCost, ItemRefusal>;
+
+    fn verify_finished(&self) -> Result<(), ItemRefusal>;
+
+    fn cost(&self) -> DiscoveryDigestCacheCost;
+}
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct DiscoveryDigestCacheCost {
+    /// Source reads whose digest was verified into the point cache.
+    pub observation_rows: u64,
+    /// Exact current paths represented in the cache.
+    pub unique_paths: u64,
+    /// Logical path+digest bytes first written to the cache.
+    pub serialized_write_bytes: u64,
+    /// Digest values and exact path/digest rows materialized by reads.
+    pub serialized_read_bytes: u64,
+    /// High-water one-row workspace for cache operations.
+    pub workspace_state_bytes: usize,
+    /// SQL point, verification, insertion, and EOF-audit rows charged.
+    pub scan_row_operations: u64,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -268,6 +528,130 @@ pub trait CandidateArtifactCorrectionReplayEvidence<I: Copy + Eq> {
 pub type CandidateArtifactCorrectionReplayMap<'a, I> =
     BTreeMap<String, &'a dyn CandidateArtifactCorrectionReplayEvidence<I>>;
 
+/// One authentic candidate-fenced Artifact evidence packet held only while
+/// Discovery checks its current record. The history comes from the maintained
+/// native-history reader and the optional replay from CMD's maintained replay
+/// kernel; this boundary carries no serialized proof or source-admission
+/// authority.
+pub struct CandidateArtifactEvidence<'evidence, I: Copy + Eq> {
+    history: crate::native_compound::CandidateNativeRecordHistoryReadObservation<I>,
+    replay: Option<Box<dyn CandidateArtifactCorrectionReplayEvidence<I> + 'evidence>>,
+    direct_source_read_bytes: u64,
+    peak_state_bytes: usize,
+}
+
+/// Result of one exact-path provider lookup. The optional schema result avoids
+/// repeating the candidate Records point probe inside native Artifact
+/// validation; `None` means that the native schema branch did not apply.
+pub struct CandidateArtifactEvidenceResponse<'evidence, I: Copy + Eq> {
+    evidence: Option<CandidateArtifactEvidence<'evidence, I>>,
+    candidate_schema_invalid: Option<bool>,
+}
+
+impl<'evidence, I: Copy + Eq> CandidateArtifactEvidenceResponse<'evidence, I> {
+    pub fn new(
+        evidence: Option<CandidateArtifactEvidence<'evidence, I>>,
+        candidate_schema_invalid: Option<bool>,
+    ) -> Self {
+        Self {
+            evidence,
+            candidate_schema_invalid,
+        }
+    }
+
+    pub fn evidence(&self) -> Option<&CandidateArtifactEvidence<'evidence, I>> {
+        self.evidence.as_ref()
+    }
+
+    pub fn candidate_schema_invalid(&self) -> Option<bool> {
+        self.candidate_schema_invalid
+    }
+}
+
+impl<'evidence, I: Copy + Eq> CandidateArtifactEvidence<'evidence, I> {
+    /// Assemble evidence from the maintained private-constructor native
+    /// history observation and CMD's correction-replay implementation. The
+    /// identity-bearing history type prevents callers from substituting a
+    /// serialized or digest-only proof packet.
+    pub fn from_observations(
+        history: crate::native_compound::CandidateNativeRecordHistoryReadObservation<I>,
+        replay: Option<Box<dyn CandidateArtifactCorrectionReplayEvidence<I> + 'evidence>>,
+        direct_source_read_bytes: u64,
+        peak_state_bytes: usize,
+    ) -> Self {
+        Self {
+            history,
+            replay,
+            direct_source_read_bytes,
+            peak_state_bytes,
+        }
+    }
+}
+
+impl<I: Copy + Eq> CandidateArtifactEvidence<'_, I> {
+    pub fn history(
+        &self,
+    ) -> &crate::native_compound::CandidateNativeRecordHistoryReadObservation<I> {
+        &self.history
+    }
+
+    pub fn replay(&self) -> Option<&dyn CandidateArtifactCorrectionReplayEvidence<I>> {
+        self.replay.as_deref()
+    }
+
+    pub fn direct_source_read_bytes(&self) -> u64 {
+        self.direct_source_read_bytes
+    }
+
+    pub fn peak_state_bytes(&self) -> usize {
+        self.peak_state_bytes
+    }
+}
+
+/// CMD-owned lazy provider for exact candidate Artifact paths. `begin` marks
+/// the current path in its held Records index exactly once, `evidence` returns
+/// at most one authentic packet, and `finish` proves EOF coverage. Portable VAL
+/// depends only on this source-first contract.
+pub trait CandidateArtifactEvidenceProvider<I: Copy + Eq> {
+    fn validate_binding(
+        &mut self,
+        input: &dyn SourceCutInputWithIdentity<I>,
+        coverage: &SourceCutInputCoverage,
+        records: &SourceFoundationRecordsStreamedReport<'_, I>,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<(), ItemRefusal>;
+
+    fn begin_artifact_path(
+        &mut self,
+        path: &str,
+        remaining_state_bytes: usize,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<Option<SourceFoundationArtifactRecordPathSummary>, ItemRefusal>;
+
+    fn evidence_for_artifact<'evidence>(
+        &'evidence mut self,
+        path: &str,
+        indexed_record: Option<SourceFoundationArtifactRecordPathSummary>,
+        current_record: &Value,
+        current_member_sha256: Digest256,
+        current_member_size_bytes: u64,
+        remaining_source_bytes: u64,
+        remaining_state_bytes: usize,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<CandidateArtifactEvidenceResponse<'evidence, I>, ItemRefusal>;
+
+    fn abandon_artifact_path(
+        &mut self,
+        path: &str,
+        remaining_state_bytes: usize,
+    ) -> Result<(), ItemRefusal>;
+
+    fn finish(&mut self, deadline: Instant, cancelled: &AtomicBool) -> Result<(), ItemRefusal>;
+}
+
 /// Bounded observations supplied by the host/CMD owner. Authored metadata
 /// posture is keyed by exact selected path. `private_files` is the physical
 /// file inventory under the private correspondence root, including ignored
@@ -307,6 +691,67 @@ pub struct Cost {
     /// kernel and referenced here rather than read or charged a second time.
     pub artifact_replay_referenced_publication_state_bytes: usize,
     pub artifact_replay_referenced_state_bytes: usize,
+    /// High-water state for the single authentic candidate evidence packet
+    /// reconstructed inside Discovery. Retained proof/index state is charged
+    /// by the CMD provider's separate cost report.
+    pub candidate_artifact_evidence_peak_state_bytes: usize,
+    /// High-water per-row workspace precharged by the CMD-owned candidate
+    /// Discovery uniqueness index. Its growing rows are disk custody, not
+    /// retained process state.
+    pub candidate_discovery_seen_ids_peak_workspace_state_bytes: usize,
+    /// High-water workspace for candidate Discovery summary index writes and
+    /// point lookups. Persistent SQLite bytes remain in CMD's pinned scope.
+    pub candidate_discovery_run_summary_peak_workspace_state_bytes: usize,
+    /// Parseable Discovery-run observations streamed into the candidate
+    /// summary index, including repeated path observations.
+    pub candidate_discovery_run_summary_observation_rows: u64,
+    /// Unique exact paths retained by the candidate summary index.
+    pub candidate_discovery_run_summary_unique_paths: u64,
+    /// Logical serialized summary bytes written during this scan. Physical
+    /// SQLite custody comes from CMD's pinned auxiliary scope ledger.
+    pub candidate_discovery_run_summary_serialized_write_bytes: u64,
+    /// Logical serialized summary bytes read back for point lookups.
+    pub candidate_discovery_run_summary_serialized_read_bytes: u64,
+    /// SQLite point/write/count scan-row operations charged to the shared
+    /// candidate scan limit for this summary projection.
+    pub candidate_discovery_run_summary_scan_row_operations: u64,
+    /// Valid boundary and discovery event observations recorded in the
+    /// candidate event-summary spool.
+    pub candidate_discovery_event_summary_observation_rows: u64,
+    /// Owner event rows streamed to CMD's replacement-law event map.
+    pub candidate_discovery_event_summary_owner_insertion_rows: u64,
+    /// Logical event value bytes serialized into the candidate summary spool.
+    pub candidate_discovery_event_summary_serialized_write_bytes: u64,
+    /// Logical event summary and insertion rows materialized from SQLite.
+    pub candidate_discovery_event_summary_serialized_read_bytes: u64,
+    /// High-water row workspace used by candidate event summary operations.
+    pub candidate_discovery_event_summary_peak_workspace_state_bytes: usize,
+    /// SQLite event summary point/write/count operations charged to the shared
+    /// candidate scan-row limit.
+    pub candidate_discovery_event_summary_scan_row_operations: u64,
+    /// Discovery schema documents written to the candidate request spool.
+    /// Finite callers retain the compatible request vector and report zero.
+    pub candidate_discovery_schema_request_count: u64,
+    /// Logical serialized JSON bytes written to the candidate request spool.
+    pub candidate_discovery_schema_request_serialized_write_bytes: u64,
+    /// Logical serialized JSON bytes materialized for one-at-a-time worker use.
+    pub candidate_discovery_schema_request_serialized_read_bytes: u64,
+    /// High-water row workspace for request writes and worker-side rereads.
+    pub candidate_discovery_schema_request_peak_workspace_state_bytes: usize,
+    /// SQL row operations charged to the shared candidate scan limit.
+    pub candidate_discovery_schema_request_scan_row_operations: u64,
+    /// Current source-member byte reads whose digests were cached.
+    pub candidate_discovery_digest_observation_rows: u64,
+    /// Exact current member paths represented in the digest cache.
+    pub candidate_discovery_digest_unique_paths: u64,
+    /// Logical path+digest bytes written to the held candidate cache.
+    pub candidate_discovery_digest_serialized_write_bytes: u64,
+    /// Digest values and path/digest rows materialized by point checks and the ordered audit.
+    pub candidate_discovery_digest_serialized_read_bytes: u64,
+    /// High-water row workspace for held candidate digest operations.
+    pub candidate_discovery_digest_peak_workspace_state_bytes: usize,
+    /// SQL row operations charged to the shared candidate scan limit.
+    pub candidate_discovery_digest_scan_row_operations: u64,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -315,7 +760,8 @@ pub struct Report {
     pub issues: Vec<Issue>,
     pub schema_requests: Vec<SchemaRequest>,
     /// Parsed owner event records in maintained insertion/overwrite order.
-    /// CMD folds these over its Records→Gold event map before Closure.
+    /// Candidate event-summary callers leave this empty and stream those rows
+    /// into CMD's Records→Gold event map before Closure.
     pub source_event_insertions: Vec<(String, Value)>,
     pub unsupported: Vec<UnsupportedScope>,
     pub cost: Cost,
@@ -372,15 +818,7 @@ struct EventInfo {
     inputs: BTreeSet<(String, String)>,
 }
 
-#[derive(Debug, Clone)]
-struct DiscoveryInfo {
-    target_kind: String,
-    known_refs: BTreeSet<String>,
-    /// Exact captured snapshot/acquisition tuples usable by native Artifact
-    /// source-binding verification. Only completed downloads with matching
-    /// owner fields are retained here.
-    captured_acquisitions: BTreeSet<(String, String, String, u64)>,
-}
+type DiscoveryInfo = DiscoveryRunSummary;
 
 trait DiscoveryCurrentPaths: SourceFoundationDefaultPaths {
     fn for_each_discovery_path(
@@ -464,6 +902,11 @@ struct Inspector<'s, 'p, S: LayerFamilySource + ?Sized, I: Copy + Eq = ()> {
     native_histories: NativeHistorySet<'p, I>,
     artifact_replays: ArtifactReplaySet<'p, I>,
     candidate_invalid_schema_proofs: Option<&'p dyn CandidateInvalidArtifactSchemaProof<I>>,
+    candidate_discovery_seen_ids: Option<&'p mut dyn DiscoverySeenIds>,
+    candidate_discovery_run_summaries: Option<&'p mut dyn DiscoveryRunSummaryStore>,
+    candidate_discovery_event_summaries: Option<&'p mut dyn DiscoveryEventSummaryStore>,
+    candidate_discovery_schema_requests: Option<&'p mut dyn DiscoverySchemaRequestStore>,
+    candidate_discovery_digest_cache: Option<&'p mut dyn DiscoveryDigestCache>,
     limits: ItemLimits,
     physical: Option<&'s SourcePhysicalFacts>,
     issues: Vec<Issue>,
@@ -474,14 +917,27 @@ struct Inspector<'s, 'p, S: LayerFamilySource + ?Sized, I: Copy + Eq = ()> {
     payload_observation_paths: BTreeSet<String>,
     read_bytes: u64,
     candidate_direct_source_bytes: u64,
+    candidate_provider_source_bytes: u64,
     payload_bytes: u64,
     state_bytes: usize,
     document_copies: usize,
     native_history_referenced_bytes: u64,
     native_history_referenced_state_bytes: usize,
-    artifact_replay_referenced_paths: BTreeSet<String>,
+    artifact_replay_referenced_paths: Option<BTreeSet<String>>,
     artifact_replay_referenced_publication_state_bytes: usize,
     artifact_replay_referenced_state_bytes: usize,
+    candidate_artifact_evidence_peak_state_bytes: usize,
+    candidate_current_artifact_evidence_state_bytes: usize,
+    candidate_current_discovery_run_summary_state_bytes: usize,
+    candidate_discovery_run_summary_peak_workspace_state_bytes: usize,
+    candidate_discovery_seen_ids_peak_workspace_state_bytes: usize,
+    candidate_discovery_event_summary_peak_workspace_state_bytes: usize,
+    candidate_discovery_schema_request_peak_workspace_state_bytes: usize,
+    candidate_discovery_schema_request_count: u64,
+    candidate_discovery_digest_observation_rows: u64,
+    candidate_discovery_digest_unique_paths: u64,
+    candidate_discovery_digest_peak_workspace_state_bytes: usize,
+    candidate_discovery_event_json_limit: Option<usize>,
 }
 
 impl<S: LayerFamilySource + ?Sized, I: Copy + Eq> Inspector<'_, '_, S, I> {
@@ -509,27 +965,104 @@ impl<S: LayerFamilySource + ?Sized, I: Copy + Eq> Inspector<'_, '_, S, I> {
         })
     }
 
-    fn collect_current_paths_matching(
+    fn for_each_current_path_matching(
         &mut self,
         mut matches: impl FnMut(&str) -> bool,
-    ) -> Result<Vec<String>, ItemRefusal> {
-        let mut paths = Vec::new();
+        visit: &mut dyn FnMut(&mut Self, &str) -> Result<(), ItemRefusal>,
+    ) -> Result<(), ItemRefusal> {
         self.for_each_current_path(&mut |inspector, path| {
-            if matches(path) {
-                inspector.reserve_state(path.len().checked_add(24).ok_or(ItemRefusal::Budget)?)?;
-                paths.push(path.to_owned());
+            if !matches(path) {
+                return Ok(());
             }
-            Ok(())
-        })?;
-        Ok(paths)
+            visit(inspector, path)
+        })
     }
 
     fn reserve_state(&mut self, bytes: usize) -> Result<(), ItemRefusal> {
         self.state_bytes = self
             .state_bytes
             .checked_add(bytes)
-            .filter(|used| *used <= self.limits.max_state_bytes)
+            .filter(|used| {
+                used.checked_add(self.candidate_current_artifact_evidence_state_bytes)
+                    .and_then(|total| {
+                        total.checked_add(self.candidate_current_discovery_run_summary_state_bytes)
+                    })
+                    .is_some_and(|total| total <= self.limits.max_state_bytes)
+            })
             .ok_or(ItemRefusal::Budget)?;
+        Ok(())
+    }
+
+    fn remaining_state_bytes(&self) -> Result<usize, ItemRefusal> {
+        self.limits
+            .max_state_bytes
+            .checked_sub(self.state_bytes)
+            .and_then(|remaining| {
+                remaining.checked_sub(self.candidate_current_artifact_evidence_state_bytes)
+            })
+            .and_then(|remaining| {
+                remaining.checked_sub(self.candidate_current_discovery_run_summary_state_bytes)
+            })
+            .ok_or(ItemRefusal::Budget)
+    }
+
+    fn set_current_discovery_run_summary_state(&mut self, bytes: usize) -> Result<(), ItemRefusal> {
+        let previous = self.candidate_current_discovery_run_summary_state_bytes;
+        self.candidate_current_discovery_run_summary_state_bytes = bytes;
+        if let Err(error) = self.check_temporary_state(0) {
+            self.candidate_current_discovery_run_summary_state_bytes = previous;
+            return Err(error);
+        }
+        self.candidate_discovery_run_summary_peak_workspace_state_bytes = self
+            .candidate_discovery_run_summary_peak_workspace_state_bytes
+            .max(bytes);
+        self.candidate_artifact_evidence_peak_state_bytes =
+            self.candidate_artifact_evidence_peak_state_bytes.max(
+                self.candidate_current_artifact_evidence_state_bytes
+                    .checked_add(bytes)
+                    .ok_or(ItemRefusal::Budget)?,
+            );
+        Ok(())
+    }
+
+    fn with_discovery_summary<R>(
+        &mut self,
+        path: &str,
+        in_memory: Option<&DiscoveryInfo>,
+        visit: impl FnOnce(&mut Self, Option<&DiscoveryInfo>) -> Result<R, ItemRefusal>,
+    ) -> Result<R, ItemRefusal> {
+        if self.candidate_discovery_run_summaries.is_none() {
+            return visit(self, in_memory);
+        }
+        if !safe_relative_path(path)
+            || !path
+                .strip_prefix(DISCOVERY_RUNS)
+                .is_some_and(|tail| !tail.contains('/') && tail.ends_with(".json"))
+        {
+            return visit(self, None);
+        }
+        let remaining_state = self.remaining_state_bytes()?;
+        let (summary, workspace_state_bytes) = self
+            .candidate_discovery_run_summaries
+            .as_deref_mut()
+            .ok_or(ItemRefusal::Budget)?
+            .lookup_summary(path, remaining_state)?;
+        self.check_temporary_state(workspace_state_bytes)?;
+        self.set_current_discovery_run_summary_state(workspace_state_bytes)?;
+        let result = visit(self, summary.as_ref());
+        self.set_current_discovery_run_summary_state(0)?;
+        result
+    }
+
+    fn set_current_artifact_evidence_state(&mut self, bytes: usize) -> Result<(), ItemRefusal> {
+        let previous = self.candidate_current_artifact_evidence_state_bytes;
+        self.candidate_current_artifact_evidence_state_bytes = bytes;
+        if let Err(error) = self.check_temporary_state(0) {
+            self.candidate_current_artifact_evidence_state_bytes = previous;
+            return Err(error);
+        }
+        self.candidate_artifact_evidence_peak_state_bytes =
+            self.candidate_artifact_evidence_peak_state_bytes.max(bytes);
         Ok(())
     }
 
@@ -593,10 +1126,31 @@ impl<S: LayerFamilySource + ?Sized, I: Copy + Eq> Inspector<'_, '_, S, I> {
         path: &str,
         evidence: &ArtifactReplayRef<'_, I>,
     ) -> Result<(), ItemRefusal> {
-        if !self
-            .artifact_replay_referenced_paths
-            .insert(path.to_owned())
-        {
+        let first_reference = if self.candidate_discovery_seen_ids.is_some() {
+            self.candidate_seen_id_remember_first(
+                DiscoverySeenIdNamespace::ArtifactReplayReference,
+                path,
+                path,
+            )?
+        } else if self.artifact_replay_referenced_paths.is_some() {
+            if self
+                .artifact_replay_referenced_paths
+                .as_ref()
+                .is_some_and(|paths| paths.contains(path))
+            {
+                false
+            } else {
+                self.reserve_state(path.len().checked_add(64).ok_or(ItemRefusal::Budget)?)?;
+                self.artifact_replay_referenced_paths
+                    .as_mut()
+                    .ok_or(ItemRefusal::Budget)?
+                    .insert(path.to_owned())
+            }
+        } else {
+            self.check_temporary_state(path.len().checked_add(64).ok_or(ItemRefusal::Budget)?)?;
+            true
+        };
+        if !first_reference {
             return Ok(());
         }
         self.artifact_replay_referenced_publication_state_bytes = self
@@ -607,8 +1161,30 @@ impl<S: LayerFamilySource + ?Sized, I: Copy + Eq> Inspector<'_, '_, S, I> {
             .artifact_replay_referenced_state_bytes
             .checked_add(evidence.returned_state_bytes())
             .ok_or(ItemRefusal::Budget)?;
-        self.reserve_state(path.len().checked_add(64).ok_or(ItemRefusal::Budget)?)?;
         Ok(())
+    }
+
+    fn artifact_replay_was_referenced(&mut self, path: &str) -> Result<bool, ItemRefusal> {
+        if self.candidate_discovery_seen_ids.is_some() {
+            self.candidate_seen_id_contains(DiscoverySeenIdNamespace::ArtifactReplayReference, path)
+        } else {
+            Ok(self
+                .artifact_replay_referenced_paths
+                .as_ref()
+                .is_some_and(|paths| paths.contains(path)))
+        }
+    }
+
+    fn check_temporary_state(&self, bytes: usize) -> Result<(), ItemRefusal> {
+        self.state_bytes
+            .checked_add(bytes)
+            .and_then(|used| used.checked_add(self.candidate_current_artifact_evidence_state_bytes))
+            .and_then(|used| {
+                used.checked_add(self.candidate_current_discovery_run_summary_state_bytes)
+            })
+            .filter(|used| *used <= self.limits.max_state_bytes)
+            .map(|_| ())
+            .ok_or(ItemRefusal::Budget)
     }
 
     fn canonical_record_sha256(&mut self, value: &Value) -> Result<String, ItemRefusal> {
@@ -650,6 +1226,126 @@ impl<S: LayerFamilySource + ?Sized, I: Copy + Eq> Inspector<'_, '_, S, I> {
         Ok(Digest256::of_bytes(&canonical).to_prefixed())
     }
 
+    fn candidate_digest_lookup(&mut self, path: &str) -> Result<Option<String>, ItemRefusal> {
+        self.checkpoint()?;
+        let remaining_state_bytes = self.remaining_state_bytes()?;
+        let (value, workspace_state_bytes) = self
+            .candidate_discovery_digest_cache
+            .as_deref_mut()
+            .ok_or_else(|| {
+                ItemRefusal::Source("candidate Discovery digest cache unavailable".into())
+            })?
+            .lookup_digest(path, remaining_state_bytes)?;
+        self.check_temporary_state(workspace_state_bytes)?;
+        self.candidate_discovery_digest_peak_workspace_state_bytes = self
+            .candidate_discovery_digest_peak_workspace_state_bytes
+            .max(workspace_state_bytes);
+        self.candidate_artifact_evidence_peak_state_bytes =
+            self.candidate_artifact_evidence_peak_state_bytes.max(
+                self.candidate_current_artifact_evidence_state_bytes
+                    .checked_add(workspace_state_bytes)
+                    .ok_or(ItemRefusal::Budget)?,
+            );
+        Ok(value)
+    }
+
+    fn candidate_digest_remember(&mut self, path: &str, digest: &str) -> Result<bool, ItemRefusal> {
+        let remaining_state_bytes = self.remaining_state_bytes()?;
+        let (first, workspace_state_bytes) = self
+            .candidate_discovery_digest_cache
+            .as_deref_mut()
+            .ok_or_else(|| {
+                ItemRefusal::Source("candidate Discovery digest cache unavailable".into())
+            })?
+            .remember_digest(path, digest, remaining_state_bytes)?;
+        self.check_temporary_state(workspace_state_bytes)?;
+        self.candidate_discovery_digest_observation_rows = self
+            .candidate_discovery_digest_observation_rows
+            .checked_add(1)
+            .ok_or(ItemRefusal::Budget)?;
+        if first {
+            self.candidate_discovery_digest_unique_paths = self
+                .candidate_discovery_digest_unique_paths
+                .checked_add(1)
+                .ok_or(ItemRefusal::Budget)?;
+        }
+        self.candidate_discovery_digest_peak_workspace_state_bytes = self
+            .candidate_discovery_digest_peak_workspace_state_bytes
+            .max(workspace_state_bytes);
+        self.candidate_artifact_evidence_peak_state_bytes =
+            self.candidate_artifact_evidence_peak_state_bytes.max(
+                self.candidate_current_artifact_evidence_state_bytes
+                    .checked_add(workspace_state_bytes)
+                    .ok_or(ItemRefusal::Budget)?,
+            );
+        Ok(first)
+    }
+
+    fn candidate_seen_id_remember_first(
+        &mut self,
+        namespace: DiscoverySeenIdNamespace,
+        id: &str,
+        first_path: &str,
+    ) -> Result<bool, ItemRefusal> {
+        self.candidate_seen_id_remember_first_with_scratch(namespace, id, first_path, 0)
+    }
+
+    fn candidate_seen_id_remember_first_with_scratch(
+        &mut self,
+        namespace: DiscoverySeenIdNamespace,
+        id: &str,
+        first_path: &str,
+        caller_scratch_state_bytes: usize,
+    ) -> Result<bool, ItemRefusal> {
+        let remaining_state_bytes = self
+            .remaining_state_bytes()?
+            .checked_sub(caller_scratch_state_bytes)
+            .ok_or(ItemRefusal::Budget)?;
+        let (first, workspace_state_bytes) = self
+            .candidate_discovery_seen_ids
+            .as_deref_mut()
+            .ok_or_else(|| ItemRefusal::Source("candidate Discovery ID store unavailable".into()))?
+            .remember_first(namespace, id, first_path, remaining_state_bytes)?;
+        let combined_workspace_state_bytes = caller_scratch_state_bytes
+            .checked_add(workspace_state_bytes)
+            .ok_or(ItemRefusal::Budget)?;
+        self.check_temporary_state(combined_workspace_state_bytes)?;
+        self.candidate_discovery_seen_ids_peak_workspace_state_bytes = self
+            .candidate_discovery_seen_ids_peak_workspace_state_bytes
+            .max(combined_workspace_state_bytes);
+        self.candidate_artifact_evidence_peak_state_bytes =
+            self.candidate_artifact_evidence_peak_state_bytes.max(
+                self.candidate_current_artifact_evidence_state_bytes
+                    .checked_add(combined_workspace_state_bytes)
+                    .ok_or(ItemRefusal::Budget)?,
+            );
+        Ok(first)
+    }
+
+    fn candidate_seen_id_contains(
+        &mut self,
+        namespace: DiscoverySeenIdNamespace,
+        id: &str,
+    ) -> Result<bool, ItemRefusal> {
+        let remaining_state_bytes = self.remaining_state_bytes()?;
+        let (found, workspace_state_bytes) = self
+            .candidate_discovery_seen_ids
+            .as_deref_mut()
+            .ok_or_else(|| ItemRefusal::Source("candidate Discovery ID store unavailable".into()))?
+            .contains(namespace, id, remaining_state_bytes)?;
+        self.check_temporary_state(workspace_state_bytes)?;
+        self.candidate_discovery_seen_ids_peak_workspace_state_bytes = self
+            .candidate_discovery_seen_ids_peak_workspace_state_bytes
+            .max(workspace_state_bytes);
+        self.candidate_artifact_evidence_peak_state_bytes =
+            self.candidate_artifact_evidence_peak_state_bytes.max(
+                self.candidate_current_artifact_evidence_state_bytes
+                    .checked_add(workspace_state_bytes)
+                    .ok_or(ItemRefusal::Budget)?,
+            );
+        Ok(found)
+    }
+
     fn current_bytes(&mut self, path: &str) -> Result<Option<Vec<u8>>, ItemRefusal> {
         self.checkpoint()?;
         if !self.has_current_member(path)? {
@@ -669,6 +1365,12 @@ impl<S: LayerFamilySource + ?Sized, I: Copy + Eq> Inspector<'_, '_, S, I> {
                 .ok_or(ItemRefusal::Budget)?;
             let remaining_copy_bytes = max_state_bytes
                 .checked_sub(self.state_bytes)
+                .and_then(|remaining| {
+                    remaining.checked_sub(self.candidate_current_artifact_evidence_state_bytes)
+                })
+                .and_then(|remaining| {
+                    remaining.checked_sub(self.candidate_current_discovery_run_summary_state_bytes)
+                })
                 .ok_or(ItemRefusal::Budget)?
                 / 8;
             let max_request_bytes = max_member_bytes
@@ -738,9 +1440,27 @@ impl<S: LayerFamilySource + ?Sized, I: Copy + Eq> Inspector<'_, '_, S, I> {
                 .ok_or(ItemRefusal::Budget)?;
             self.reserve_state(raw.len().checked_mul(8).ok_or(ItemRefusal::Budget)?)?;
         }
-        self.digests
-            .entry(path.to_owned())
-            .or_insert_with(|| Digest256::of_bytes(&raw).to_hex());
+        let candidate_digest_cache = self.candidate_discovery_digest_cache.is_some();
+        let new_resident_digest = !candidate_digest_cache && !self.digests.contains_key(path);
+        if candidate_digest_cache {
+            self.check_temporary_state(size_of::<String>() + 64)?;
+        } else if new_resident_digest {
+            let digest_state = path
+                .len()
+                .checked_mul(2)
+                .and_then(|bytes| bytes.checked_add(64 * 2))
+                .and_then(|bytes| bytes.checked_add(size_of::<(String, String)>() + 96))
+                .ok_or(ItemRefusal::Budget)?;
+            self.reserve_state(digest_state)?;
+        }
+        if candidate_digest_cache || new_resident_digest {
+            let digest = Digest256::of_bytes(&raw).to_hex();
+            if candidate_digest_cache {
+                self.candidate_digest_remember(path, &digest)?;
+            } else {
+                self.digests.insert(path.to_owned(), digest);
+            }
+        }
         Ok(Some(raw))
     }
 
@@ -751,29 +1471,79 @@ impl<S: LayerFamilySource + ?Sized, I: Copy + Eq> Inspector<'_, '_, S, I> {
         document: &Value,
         raw_size: usize,
     ) -> Result<(), ItemRefusal> {
-        if !self.schema_locations.insert(location.to_owned()) {
+        if self.candidate_discovery_seen_ids.is_some() {
+            let first = self.candidate_seen_id_remember_first(
+                DiscoverySeenIdNamespace::SchemaLocation,
+                location,
+                location,
+            )?;
+            if !first {
+                return Ok(());
+            }
+        } else if !self.schema_locations.insert(location.to_owned()) {
             return Ok(());
         }
         if !self.has_current_member(contract)? {
             self.issue(location, "missing-current-schema", contract)?;
             return Ok(());
         }
-        if self.schema_requests.len() >= self.limits.max_issues {
+        let request_count = if self.candidate_discovery_schema_requests.is_some() {
+            usize::try_from(self.candidate_discovery_schema_request_count)
+                .map_err(|_| ItemRefusal::Budget)?
+        } else {
+            self.schema_requests.len()
+        };
+        if request_count >= self.limits.max_issues {
             return Err(ItemRefusal::Budget);
         }
-        // The scheduled decoded document is the one bounded aggregate copy
-        // retained for schema diagnostics; no second boolean execution runs.
-        self.reserve_state(raw_size.checked_mul(8).ok_or(ItemRefusal::Budget)?)?;
+        if self.candidate_discovery_schema_requests.is_some() {
+            let remaining_state_bytes = self.remaining_state_bytes()?;
+            let store = self
+                .candidate_discovery_schema_requests
+                .as_deref_mut()
+                .ok_or_else(|| {
+                    ItemRefusal::Source(
+                        "candidate Discovery schema request store is unavailable".into(),
+                    )
+                })?;
+            let workspace_state_bytes = store.record_request(
+                self.issues.len(),
+                location,
+                contract,
+                document,
+                self.limits.max_member_bytes,
+                remaining_state_bytes,
+            )?;
+            self.check_temporary_state(workspace_state_bytes)?;
+            self.candidate_discovery_schema_request_peak_workspace_state_bytes = self
+                .candidate_discovery_schema_request_peak_workspace_state_bytes
+                .max(workspace_state_bytes);
+            self.candidate_artifact_evidence_peak_state_bytes =
+                self.candidate_artifact_evidence_peak_state_bytes.max(
+                    self.candidate_current_artifact_evidence_state_bytes
+                        .checked_add(workspace_state_bytes)
+                        .ok_or(ItemRefusal::Budget)?,
+                );
+            self.candidate_discovery_schema_request_count = self
+                .candidate_discovery_schema_request_count
+                .checked_add(1)
+                .ok_or(ItemRefusal::Budget)?;
+        } else {
+            // The scheduled decoded document is the one bounded aggregate
+            // copy retained for schema diagnostics; no second boolean path
+            // runs alongside it.
+            self.reserve_state(raw_size.checked_mul(8).ok_or(ItemRefusal::Budget)?)?;
+            self.schema_requests.push(SchemaRequest {
+                before_issue: self.issues.len(),
+                location: location.to_owned(),
+                contract: contract.to_owned(),
+                document: document.clone(),
+            });
+        }
         self.document_copies = self
             .document_copies
             .checked_add(1)
             .ok_or(ItemRefusal::Budget)?;
-        self.schema_requests.push(SchemaRequest {
-            before_issue: self.issues.len(),
-            location: location.to_owned(),
-            contract: contract.to_owned(),
-            document: document.clone(),
-        });
         Ok(())
     }
 
@@ -815,21 +1585,31 @@ impl<S: LayerFamilySource + ?Sized, I: Copy + Eq> Inspector<'_, '_, S, I> {
     }
 
     fn digest(&mut self, path: &str) -> Result<Option<String>, ItemRefusal> {
-        if let Some(value) = self.digests.get(path) {
+        if self.candidate_discovery_digest_cache.is_some() {
+            if let Some(value) = self.candidate_digest_lookup(path)? {
+                return Ok(Some(value));
+            }
+        } else if let Some(value) = self.digests.get(path) {
             return Ok(Some(value.clone()));
         }
         let Some(raw) = self.current_bytes(path)? else {
             return Ok(None);
         };
         let value = Digest256::of_bytes(&raw).to_hex();
-        self.digests.insert(path.to_owned(), value.clone());
         Ok(Some(value))
     }
 
-    fn cached_digest(&self, path: &str) -> Option<Digest256> {
-        self.digests
-            .get(path)
-            .and_then(|value| Digest256::from_hex(value).ok())
+    fn cached_digest(&mut self, path: &str) -> Result<Option<Digest256>, ItemRefusal> {
+        let value = if self.candidate_discovery_digest_cache.is_some() {
+            self.candidate_digest_lookup(path)?
+        } else {
+            self.digests.get(path).cloned()
+        };
+        value
+            .as_deref()
+            .map(Digest256::from_hex)
+            .transpose()
+            .map_err(|_| ItemRefusal::Source("cached current-member digest is invalid".into()))
     }
 
     fn exists_source_ref(&mut self, path: &str) -> Result<bool, ItemRefusal> {
@@ -880,9 +1660,14 @@ impl<S: LayerFamilySource + ?Sized, I: Copy + Eq> Inspector<'_, '_, S, I> {
         Ok(())
     }
 
-    fn jsonl(&mut self, path: &str, contract: &str) -> Result<Vec<(String, Value)>, ItemRefusal> {
+    fn for_each_jsonl(
+        &mut self,
+        path: &str,
+        contract: &str,
+        visit: &mut dyn FnMut(&mut Self, &str, &Value) -> Result<(), ItemRefusal>,
+    ) -> Result<(), ItemRefusal> {
         let Some(raw) = self.current_bytes(path)? else {
-            return Ok(Vec::new());
+            return Ok(());
         };
         let text = match std::str::from_utf8(&raw) {
             Ok(text) => text,
@@ -892,10 +1677,9 @@ impl<S: LayerFamilySource + ?Sized, I: Copy + Eq> Inspector<'_, '_, S, I> {
                     "invalid-jsonl-utf8",
                     "current provenance stream is not UTF-8",
                 )?;
-                return Ok(Vec::new());
+                return Ok(());
             }
         };
-        let mut parsed = Vec::new();
         for (index, line) in text.lines().enumerate() {
             self.checkpoint()?;
             if line.trim().is_empty() {
@@ -929,13 +1713,17 @@ impl<S: LayerFamilySource + ?Sized, I: Copy + Eq> Inspector<'_, '_, S, I> {
             let raw_size = line.len();
             self.reserve_state(raw_size.checked_mul(8).ok_or(ItemRefusal::Budget)?)?;
             self.request_schema(&location, contract, &value, raw_size)?;
-            parsed.push((location, value));
+            visit(self, &location, &value)?;
         }
-        Ok(parsed)
+        Ok(())
     }
 
     fn event_info(&mut self, value: &Value, location: &str) -> Result<EventInfo, ItemRefusal> {
         self.source_refs(value, location)?;
+        Ok(Self::event_info_from_value(value, location))
+    }
+
+    fn event_info_from_value(value: &Value, location: &str) -> EventInfo {
         let mut outputs = BTreeMap::new();
         for row in array(value, "outputs") {
             if let Some(reference) = string(row, "ref") {
@@ -951,11 +1739,76 @@ impl<S: LayerFamilySource + ?Sized, I: Copy + Eq> Inspector<'_, '_, S, I> {
                 inputs.insert((reference.to_owned(), sha256.to_owned()));
             }
         }
-        Ok(EventInfo {
+        EventInfo {
             location: location.to_owned(),
             outputs,
             inputs,
-        })
+        }
+    }
+
+    fn record_candidate_event_summary(
+        &mut self,
+        namespace: DiscoveryEventSummaryNamespace,
+        id: &str,
+        location: &str,
+        value: &Value,
+        insert_into_owner_map: bool,
+    ) -> Result<(), ItemRefusal> {
+        if self.candidate_discovery_event_summaries.is_none() {
+            return Err(ItemRefusal::Source(
+                "candidate Discovery event summary store is unavailable".into(),
+            ));
+        }
+        let remaining_state_bytes = self.remaining_state_bytes()?;
+        let max_serialized_value_bytes =
+            self.candidate_discovery_event_json_limit.ok_or_else(|| {
+                ItemRefusal::Source("candidate Discovery event JSON limit is unavailable".into())
+            })?;
+        let store = self
+            .candidate_discovery_event_summaries
+            .as_deref_mut()
+            .ok_or_else(|| {
+                ItemRefusal::Source("candidate Discovery event summary store is unavailable".into())
+            })?;
+        let workspace_state_bytes = store.record_event(
+            namespace,
+            id,
+            location,
+            value,
+            insert_into_owner_map,
+            max_serialized_value_bytes,
+            remaining_state_bytes,
+        )?;
+        self.check_temporary_state(workspace_state_bytes)?;
+        self.candidate_discovery_event_summary_peak_workspace_state_bytes = self
+            .candidate_discovery_event_summary_peak_workspace_state_bytes
+            .max(workspace_state_bytes);
+        Ok(())
+    }
+
+    fn event_summary(
+        &mut self,
+        namespace: DiscoveryEventSummaryNamespace,
+        id: &str,
+        fallback: &BTreeMap<String, EventInfo>,
+    ) -> Result<Option<EventInfo>, ItemRefusal> {
+        if self.candidate_discovery_event_summaries.is_none() {
+            return Ok(fallback.get(id).cloned());
+        }
+        let remaining_state_bytes = self.remaining_state_bytes()?;
+        let store = self
+            .candidate_discovery_event_summaries
+            .as_deref_mut()
+            .ok_or_else(|| {
+                ItemRefusal::Source("candidate Discovery event summary store is unavailable".into())
+            })?;
+        let (stored, workspace_state_bytes) =
+            store.lookup_event(namespace, id, remaining_state_bytes)?;
+        self.check_temporary_state(workspace_state_bytes)?;
+        self.candidate_discovery_event_summary_peak_workspace_state_bytes = self
+            .candidate_discovery_event_summary_peak_workspace_state_bytes
+            .max(workspace_state_bytes);
+        Ok(stored.map(|(location, value)| Self::event_info_from_value(&value, &location)))
     }
 
     fn metadata_git(&mut self, path: &str, location: &str) -> Result<(), ItemRefusal> {
@@ -1434,9 +2287,19 @@ impl<S: LayerFamilySource + ?Sized, I: Copy + Eq> Inspector<'_, '_, S, I> {
                 .and_then(|used| used.checked_add(128))
                 .ok_or(ItemRefusal::Budget)?,
         )?;
-        let first_observation = self.payload_observation_paths.insert(path.to_owned());
-        if first_observation {
+        let first_observation = if self.candidate_discovery_seen_ids.is_some() {
+            self.candidate_seen_id_remember_first(
+                DiscoverySeenIdNamespace::PayloadObservation,
+                path,
+                path,
+            )?
+        } else if self.payload_observation_paths.contains(path) {
+            false
+        } else {
             self.reserve_state(path.len().checked_add(32).ok_or(ItemRefusal::Budget)?)?;
+            self.payload_observation_paths.insert(path.to_owned())
+        };
+        if first_observation {
             if let Some(size) = facts.byte_size {
                 self.payload_bytes = self
                     .payload_bytes
@@ -3852,7 +4715,14 @@ impl<'a, I: Copy + Eq> ArtifactReplaySet<'a, I> {
 
 trait CandidateInvalidArtifactSchemaProof<I: Copy + Eq> {
     fn binding_matches(&self, identity: &I, membership: SourceMembershipV1) -> bool;
-    fn proves_invalid(&self, path: &str, member_sha256: Digest256, member_size_bytes: u64) -> bool;
+    fn proves_invalid(
+        &self,
+        path: &str,
+        member_sha256: Digest256,
+        member_size_bytes: u64,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<bool, ItemRefusal>;
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -3899,19 +4769,6 @@ pub struct CandidateArtifactInvalidSchemaProofCost {
     pub current_path_probe_count: usize,
 }
 
-#[derive(Debug, Clone, Copy)]
-struct CandidateArtifactSchemaDiagnosticProof {
-    record_id_sha256: Digest256,
-    member_sha256: Option<Digest256>,
-    member_size_bytes: Option<u64>,
-    record_count: usize,
-    target_diagnostic_count: usize,
-    diagnostic_unit_sha256: Option<Digest256>,
-    diagnostic_report_sha256: Option<Digest256>,
-    consistent_member_binding: bool,
-    invalid: bool,
-}
-
 /// Opaque proof over one exact candidate Records report. It borrows that
 /// report so the evidence cannot be rebound to another report with the same
 /// membership summary. Candidate identity remains its own typed value and is
@@ -3921,12 +4778,12 @@ pub struct CandidateArtifactInvalidSchemaProofs<'report, 'store, I: Copy + Eq> {
     input_identity: I,
     current_membership: SourceMembershipV1,
     schema_identity: crate::source_foundation_records::SourceFoundationCandidateSchemaIdentity,
-    entries: BTreeMap<String, CandidateArtifactSchemaDiagnosticProof>,
     candidate_record_count: usize,
     candidate_records_sha256: Digest256,
     target_diagnostic_count: usize,
     target_diagnostics_sha256: Digest256,
     max_state_bytes: usize,
+    page_budget: SourceFoundationRecordsPageBudget,
     cost: CandidateArtifactInvalidSchemaProofCost,
 }
 
@@ -3968,20 +4825,22 @@ impl<I: Copy + Eq> CandidateArtifactInvalidSchemaProofs<'_, '_, I> {
         current_membership: SourceMembershipV1,
         member_sha256: Digest256,
         member_size_bytes: u64,
-    ) -> bool {
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<bool, ItemRefusal> {
         if &self.input_identity != input_identity || self.current_membership != current_membership {
-            return false;
+            return Ok(false);
         }
-        self.entries.get(path).is_some_and(|proof| {
-            proof.record_count == 1
-                && proof.target_diagnostic_count == 1
-                && proof.consistent_member_binding
-                && proof.invalid
-                && proof.member_sha256 == Some(member_sha256)
-                && proof.member_size_bytes == Some(member_size_bytes)
-                && proof.diagnostic_unit_sha256.is_some()
-                && proof.diagnostic_report_sha256.is_some()
-        })
+        self.records
+            .index()
+            .candidate_artifact_schema_proves_invalid(
+                path,
+                &member_sha256.to_hex(),
+                member_size_bytes,
+                std::num::NonZeroUsize::new(self.max_state_bytes).ok_or(ItemRefusal::Budget)?,
+                deadline,
+                cancelled,
+            )
     }
 
     /// Check the exact borrowed report and candidate identity before a caller
@@ -4004,7 +4863,8 @@ impl<I: Copy + Eq> CandidateArtifactInvalidSchemaProofs<'_, '_, I> {
                 "source-foundation candidate Artifact proof binding differs".into(),
             ));
         }
-        for path in self.entries.keys() {
+        let mut after_path: Option<String> = None;
+        loop {
             if cancelled.load(Ordering::Relaxed) {
                 return Err(ItemRefusal::Source(
                     "source-foundation candidate Artifact proof validation cancelled".into(),
@@ -4013,23 +4873,53 @@ impl<I: Copy + Eq> CandidateArtifactInvalidSchemaProofs<'_, '_, I> {
             if Instant::now() >= deadline {
                 return Err(ItemRefusal::Deadline);
             }
-            let lookup_state = path
-                .len()
-                .checked_mul(32)
-                .and_then(|bytes| bytes.checked_add(8_192))
-                .ok_or(ItemRefusal::Budget)?;
-            if self
-                .cost
-                .retained_state_bytes
-                .checked_add(lookup_state)
-                .is_none_or(|used| used > self.max_state_bytes)
-            {
-                return Err(ItemRefusal::Budget);
+            let page = records.index().candidate_artifact_schema_proof_paths_page(
+                after_path.as_deref(),
+                self.page_budget,
+                deadline,
+                cancelled,
+            )?;
+            let has_more = page.has_more;
+            let mut paths = page.paths;
+            if paths.is_empty() {
+                if has_more {
+                    return Err(ItemRefusal::Source(
+                        "source-foundation candidate Artifact proof path page stalled".into(),
+                    ));
+                }
+                break;
             }
-            if input.path_presence(path, deadline, cancelled)? != Some(SourcePresenceV1::File) {
-                return Err(ItemRefusal::Source(
-                    "source-foundation candidate Artifact proof path is not a current file".into(),
-                ));
+            for path in &paths {
+                let lookup_state = path
+                    .len()
+                    .checked_mul(32)
+                    .and_then(|bytes| bytes.checked_add(8_192))
+                    .ok_or(ItemRefusal::Budget)?;
+                if self
+                    .cost
+                    .retained_state_bytes
+                    .checked_add(page.charged_state_bytes)
+                    .and_then(|used| used.checked_add(lookup_state))
+                    .is_none_or(|used| used > self.max_state_bytes)
+                {
+                    return Err(ItemRefusal::Budget);
+                }
+                if input.path_presence(path, deadline, cancelled)? != Some(SourcePresenceV1::File) {
+                    return Err(ItemRefusal::Source(
+                        "source-foundation candidate Artifact proof path is not a current file"
+                            .into(),
+                    ));
+                }
+            }
+            if has_more {
+                after_path = paths.pop();
+                if after_path.is_none() {
+                    return Err(ItemRefusal::Source(
+                        "source-foundation candidate Artifact proof path cursor is missing".into(),
+                    ));
+                }
+            } else {
+                break;
             }
         }
         Ok(())
@@ -4086,7 +4976,6 @@ impl<'report, 'store, I: Copy + Eq> CandidateArtifactInvalidSchemaProofs<'report
         let mut rows_scanned = 0usize;
         let mut page_peak_state_bytes = 0usize;
         let mut candidate_record_count = 0usize;
-        let mut max_candidate_path_bytes = 0usize;
         let mut current_record_rows_scanned = 0usize;
         let current_rows_before = rows_scanned;
         visit_candidate_record_pages(
@@ -4131,7 +5020,6 @@ impl<'report, 'store, I: Copy + Eq> CandidateArtifactInvalidSchemaProofs<'report
                 candidate_record_count = candidate_record_count
                     .checked_add(1)
                     .ok_or(ItemRefusal::Budget)?;
-                max_candidate_path_bytes = max_candidate_path_bytes.max(record.path.len());
                 Ok(())
             },
         )?;
@@ -4143,20 +5031,8 @@ impl<'report, 'store, I: Copy + Eq> CandidateArtifactInvalidSchemaProofs<'report
             )
             .ok_or(ItemRefusal::Budget)?;
 
-        let per_entry = std::mem::size_of::<CandidateArtifactSchemaDiagnosticProof>()
-            .checked_add(std::mem::size_of::<String>())
-            .and_then(|bytes| bytes.checked_add(max_candidate_path_bytes))
-            .and_then(|bytes| bytes.checked_add(128))
-            .ok_or(ItemRefusal::Budget)?;
-        let retained_state_bytes = candidate_record_count
-            .checked_mul(per_entry)
-            .and_then(|bytes| bytes.checked_add(std::mem::size_of::<Self>()))
-            .and_then(|bytes| {
-                max_candidate_path_bytes
-                    .checked_mul(2)
-                    .and_then(|scratch| scratch.checked_add(64))
-                    .and_then(|scratch| bytes.checked_add(scratch))
-            })
+        let retained_state_bytes = std::mem::size_of::<Self>()
+            .checked_add(512)
             .ok_or(ItemRefusal::Budget)?;
         if retained_state_bytes
             .checked_add(page_budget.max_state_bytes.get())
@@ -4165,7 +5041,10 @@ impl<'report, 'store, I: Copy + Eq> CandidateArtifactInvalidSchemaProofs<'report
             return Err(ItemRefusal::Budget);
         }
 
-        let mut entries = BTreeMap::new();
+        records
+            .index()
+            .reset_candidate_artifact_schema_proofs(deadline, cancelled)?;
+
         let mut candidate_hasher = Digest256Hasher::new();
         hash_text(
             &mut candidate_hasher,
@@ -4202,36 +5081,19 @@ impl<'report, 'store, I: Copy + Eq> CandidateArtifactInvalidSchemaProofs<'report
                         record_id, record,
                     )?)
                     .ok_or(ItemRefusal::Budget)?;
-                let path = record.path.as_str();
                 if retained_state_bytes
                     .checked_add(page_state_bytes)
                     .is_none_or(|used| used > max_state_bytes)
                 {
                     return Err(ItemRefusal::Budget);
                 }
-                if !entries.contains_key(path) {
-                    let proof = CandidateArtifactSchemaDiagnosticProof {
-                        record_id_sha256: Digest256::of_bytes(record_id.as_bytes()),
-                        member_sha256: None,
-                        member_size_bytes: None,
-                        record_count: 0,
-                        target_diagnostic_count: 0,
-                        diagnostic_unit_sha256: None,
-                        diagnostic_report_sha256: None,
-                        consistent_member_binding: true,
-                        invalid: false,
-                    };
-                    entries.insert(path.to_owned(), proof);
-                }
-                let proof = entries.get_mut(path).ok_or(ItemRefusal::Budget)?;
-                if proof.record_count > 0 {
-                    proof.consistent_member_binding &=
-                        proof.record_id_sha256 == Digest256::of_bytes(record_id.as_bytes());
-                }
-                proof.record_count = proof
-                    .record_count
-                    .checked_add(1)
-                    .ok_or(ItemRefusal::Budget)?;
+                let _ = record_id;
+                records.index().retain_candidate_artifact_schema_record(
+                    &record.path,
+                    std::num::NonZeroUsize::new(max_state_bytes).ok_or(ItemRefusal::Budget)?,
+                    deadline,
+                    cancelled,
+                )?;
                 Ok(())
             },
         )?;
@@ -4290,45 +5152,42 @@ impl<'report, 'store, I: Copy + Eq> CandidateArtifactInvalidSchemaProofs<'report
                     return Err(ItemRefusal::Budget);
                 }
                 update_diagnostic_fingerprint(&mut diagnostic_hasher, diagnostic)?;
-                if let Some(proof) = entries.get_mut(diagnostic.path.as_str()) {
-                    proof.target_diagnostic_count = proof
-                        .target_diagnostic_count
-                        .checked_add(1)
-                        .ok_or(ItemRefusal::Budget)?;
-                    let member_sha256 = diagnostic.unit.raw_sha256;
-                    let member_size_bytes = u64::try_from(diagnostic.input_instance_bytes)
-                        .map_err(|_| ItemRefusal::Budget)?;
-                    match (proof.member_sha256, proof.member_size_bytes) {
-                        (None, None) => {
-                            proof.member_sha256 = Some(member_sha256);
-                            proof.member_size_bytes = Some(member_size_bytes);
-                        }
-                        (Some(existing_sha), Some(existing_size)) => {
-                            proof.consistent_member_binding &=
-                                existing_sha == member_sha256 && existing_size == member_size_bytes;
-                        }
-                        _ => proof.consistent_member_binding = false,
-                    }
-                    if proof.target_diagnostic_count == 1 {
-                        proof.diagnostic_unit_sha256 = Some(diagnostic.unit.unit_sha256);
-                        proof.diagnostic_report_sha256 = Some(diagnostic.unit.report.report_sha256);
-                    }
-                    let exact_schema_set = diagnostic.verdict.format_profile
-                        == schema_identity.profile()
-                        && diagnostic.verdict.schema_set_digest
-                            == schema_identity.schema_set_digest()
-                        && diagnostic.verdict.worker_binary_digest
-                            == schema_identity.worker_digest();
-                    proof.invalid = proof.target_diagnostic_count == 1
-                        && proof.consistent_member_binding
-                        && exact_schema_set
-                        && complete_invalid_artifact_schema_diagnostic(
-                            diagnostic,
-                            diagnostic.path.as_str(),
-                            member_sha256,
-                            member_size_bytes,
-                        );
+                let member_sha256 = diagnostic.unit.raw_sha256;
+                let member_size_bytes = u64::try_from(diagnostic.input_instance_bytes)
+                    .map_err(|_| ItemRefusal::Budget)?;
+                let exact_schema_set = diagnostic.verdict.format_profile
+                    == schema_identity.profile()
+                    && diagnostic.verdict.schema_set_digest == schema_identity.schema_set_digest()
+                    && diagnostic.verdict.worker_binary_digest == schema_identity.worker_digest();
+                let complete_invalid = exact_schema_set
+                    && complete_invalid_artifact_schema_diagnostic(
+                        diagnostic,
+                        diagnostic.path.as_str(),
+                        member_sha256,
+                        member_size_bytes,
+                    );
+                let diagnostic_state = page_state_bytes
+                    .checked_add(retained_state_bytes)
+                    .and_then(|bytes| bytes.checked_add(diagnostic.path.len().saturating_mul(2)))
+                    .and_then(|bytes| bytes.checked_add(8_192))
+                    .ok_or(ItemRefusal::Budget)?;
+                if diagnostic_state > max_state_bytes {
+                    return Err(ItemRefusal::Budget);
                 }
+                records
+                    .index()
+                    .update_candidate_artifact_schema_diagnostic(
+                        &diagnostic.path,
+                        &member_sha256.to_hex(),
+                        member_size_bytes,
+                        &diagnostic.unit.unit_sha256.to_hex(),
+                        &diagnostic.unit.report.report_sha256.to_hex(),
+                        exact_schema_set,
+                        complete_invalid,
+                        std::num::NonZeroUsize::new(max_state_bytes).ok_or(ItemRefusal::Budget)?,
+                        deadline,
+                        cancelled,
+                    )?;
                 Ok(())
             },
         )?;
@@ -4360,12 +5219,12 @@ impl<'report, 'store, I: Copy + Eq> CandidateArtifactInvalidSchemaProofs<'report
             input_identity,
             current_membership,
             schema_identity,
-            entries,
             candidate_record_count,
             candidate_records_sha256: candidate_hasher.finalize(),
             target_diagnostic_count,
             target_diagnostics_sha256: diagnostic_hasher.finalize(),
             max_state_bytes,
+            page_budget,
             cost,
         })
     }
@@ -4862,7 +5721,14 @@ impl<I: Copy + Eq> CandidateInvalidArtifactSchemaProof<I>
         &self.input_identity == identity && self.current_membership == membership
     }
 
-    fn proves_invalid(&self, path: &str, member_sha256: Digest256, member_size_bytes: u64) -> bool {
+    fn proves_invalid(
+        &self,
+        path: &str,
+        member_sha256: Digest256,
+        member_size_bytes: u64,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<bool, ItemRefusal> {
         CandidateArtifactInvalidSchemaProofs::proves_invalid(
             self,
             path,
@@ -4870,6 +5736,8 @@ impl<I: Copy + Eq> CandidateInvalidArtifactSchemaProof<I>
             self.current_membership,
             member_sha256,
             member_size_bytes,
+            deadline,
+            cancelled,
         )
     }
 }
@@ -5284,7 +6152,45 @@ fn check_native_artifact_history<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
             valid = false;
             continue;
         };
-        if !transaction_ids.insert(transaction_id) {
+        let first_transaction = if inspector.candidate_discovery_seen_ids.is_some() {
+            // This uniqueness law is local to one Artifact history, unlike
+            // global Discovery event IDs. Length-prefix the path into the
+            // scratch key so another Artifact may legitimately reuse a
+            // transaction ID without sharing this set.
+            let mut path_bytes = artifact_path.len();
+            let mut path_length_digits = 1usize;
+            while path_bytes >= 10 {
+                path_bytes /= 10;
+                path_length_digits = path_length_digits
+                    .checked_add(1)
+                    .ok_or(ItemRefusal::Budget)?;
+            }
+            let scoped_key_bytes = path_length_digits
+                .checked_add(1)
+                .and_then(|bytes| bytes.checked_add(artifact_path.len()))
+                .and_then(|bytes| bytes.checked_add(transaction_id.len()))
+                .ok_or(ItemRefusal::Budget)?;
+            let scoped_key_state_bytes = scoped_key_bytes
+                .checked_add(path_length_digits)
+                .and_then(|bytes| bytes.checked_add(size_of::<String>() + 32))
+                .ok_or(ItemRefusal::Budget)?;
+            inspector.check_temporary_state(scoped_key_state_bytes)?;
+            let path_length_prefix = artifact_path.len().to_string();
+            let mut scoped_key = String::with_capacity(scoped_key_bytes);
+            scoped_key.push_str(&path_length_prefix);
+            scoped_key.push(':');
+            scoped_key.push_str(artifact_path);
+            scoped_key.push_str(transaction_id);
+            inspector.candidate_seen_id_remember_first_with_scratch(
+                DiscoverySeenIdNamespace::NativeArtifactTransaction,
+                &scoped_key,
+                artifact_path,
+                scoped_key_state_bytes,
+            )?
+        } else {
+            transaction_ids.insert(transaction_id)
+        };
+        if !first_transaction {
             inspector.issue(
                 artifact_path,
                 "native-artifact-correction-transaction-duplicate",
@@ -5346,6 +6252,7 @@ fn native_artifact_capture<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
     native_history: Option<NativeHistoryRef<'_, I>>,
     artifact_replay: Option<ArtifactReplayRef<'_, I>>,
     invalid_current_schema_proofs: Option<&CurrentArtifactInvalidSchemaProofs<'_>>,
+    candidate_schema_invalid_override: Option<bool>,
 ) -> Result<NativeArtifactCapture, ItemRefusal> {
     let issue_start = inspector.issues.len();
     let unsupported_start = inspector.unsupported.len();
@@ -5395,33 +6302,48 @@ fn native_artifact_capture<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
         )?;
         return Ok(NativeArtifactCapture::Invalid);
     }
-    let exact_invalid_current_schema = if let Some(NativeArtifactBinding::Cut(binding)) = binding {
-        invalid_current_schema_proofs.is_some_and(|proofs| {
-            inspector
-                .cached_digest(artifact_path)
-                .is_some_and(|digest| {
+    let cached_current_digest = inspector.cached_digest(artifact_path)?;
+    let exact_invalid_current_schema = match binding {
+        Some(NativeArtifactBinding::Cut(binding)) => {
+            if let (Some(proofs), Some(digest)) =
+                (invalid_current_schema_proofs, cached_current_digest)
+            {
+                proofs.proves_invalid(
+                    artifact_path,
+                    binding.revision,
+                    binding.membership,
+                    digest,
+                    current_member_size_bytes,
+                )
+            } else {
+                false
+            }
+        }
+        Some(NativeArtifactBinding::Candidate {
+            identity,
+            membership,
+        }) => {
+            if let Some(invalid) = candidate_schema_invalid_override {
+                invalid
+            } else if let Some(proofs) = inspector.candidate_invalid_schema_proofs {
+                if !proofs.binding_matches(identity, membership) {
+                    false
+                } else if let Some(digest) = cached_current_digest {
                     proofs.proves_invalid(
                         artifact_path,
-                        binding.revision,
-                        binding.membership,
                         digest,
                         current_member_size_bytes,
-                    )
-                })
-        })
-    } else if let (Some(identity), Some(membership), Some(proofs)) = (
-        inspector.candidate_identity,
-        inspector.candidate_membership,
-        inspector.candidate_invalid_schema_proofs,
-    ) {
-        proofs.binding_matches(identity, membership)
-            && inspector
-                .cached_digest(artifact_path)
-                .is_some_and(|digest| {
-                    proofs.proves_invalid(artifact_path, digest, current_member_size_bytes)
-                })
-    } else {
-        false
+                        inspector.limits.deadline,
+                        inspector.source.cancellation(),
+                    )?
+                } else {
+                    false
+                }
+            } else {
+                false
+            }
+        }
+        None => false,
     };
 
     let request_path = &companion_paths[0];
@@ -5816,46 +6738,59 @@ fn native_artifact_capture<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
                 "ref",
             )
             .unwrap_or("");
-            if let Some(discovery) = discoveries.get(discovery_ref) {
-                for fingerprint in original
-                    .pointer("/digital_catalog_record/response_fingerprints")
-                    .and_then(Value::as_array)
-                    .into_iter()
-                    .flatten()
-                {
-                    if fingerprint.get("captured") != Some(&Value::Bool(true)) {
-                        continue;
-                    }
-                    let surface = string(fingerprint, "surface");
-                    let sha256 = string(fingerprint, "sha256");
-                    let byte_size = fingerprint.get("byte_size").and_then(Value::as_u64);
-                    let matched = match (surface, sha256, byte_size) {
-                        (Some(surface), Some(sha256), Some(byte_size)) => discovery
-                            .captured_acquisitions
-                            .iter()
-                            .any(|(candidate_surface, snapshot_sha, acquisition_sha, size)| {
-                                candidate_surface == surface
-                                    && snapshot_sha == sha256
-                                    && acquisition_sha == sha256
-                                    && *size == byte_size
-                            }),
-                        _ => false,
-                    };
-                    if !matched {
+            inspector.with_discovery_summary(
+                discovery_ref,
+                discoveries.get(discovery_ref),
+                |inspector, discovery| {
+                    if let Some(discovery) = discovery {
+                        for fingerprint in original
+                            .pointer("/digital_catalog_record/response_fingerprints")
+                            .and_then(Value::as_array)
+                            .into_iter()
+                            .flatten()
+                        {
+                            if fingerprint.get("captured") != Some(&Value::Bool(true)) {
+                                continue;
+                            }
+                            let surface = string(fingerprint, "surface");
+                            let sha256 = string(fingerprint, "sha256");
+                            let byte_size =
+                                fingerprint.get("byte_size").and_then(Value::as_u64);
+                            let matched = match (surface, sha256, byte_size) {
+                                (Some(surface), Some(sha256), Some(byte_size)) => discovery
+                                    .captured_acquisitions
+                                    .iter()
+                                    .any(|(
+                                        candidate_surface,
+                                        snapshot_sha,
+                                        acquisition_sha,
+                                        size,
+                                    )| {
+                                        candidate_surface == surface
+                                            && snapshot_sha == sha256
+                                            && acquisition_sha == sha256
+                                            && *size == byte_size
+                                    }),
+                                _ => false,
+                            };
+                            if !matched {
+                                inspector.issue(
+                                    request_path,
+                                    "native-artifact-response-fingerprint-unresolved",
+                                    "captured response fingerprint has no exact discovery snapshot and acquisition account",
+                                )?;
+                            }
+                        }
+                    } else {
                         inspector.issue(
                             request_path,
-                            "native-artifact-response-fingerprint-unresolved",
-                            "captured response fingerprint has no exact discovery snapshot and acquisition account",
+                            "native-artifact-discovery-input-unresolved",
+                            discovery_ref,
                         )?;
                     }
-                }
-            } else {
-                inspector.issue(
-                    request_path,
-                    "native-artifact-discovery-input-unresolved",
-                    discovery_ref,
-                )?;
-            }
+                    Ok(())
+                },
+            )?;
         }
 
         let (history_valid, correction_replay_pending) = if exact_invalid_current_schema {
@@ -6520,6 +7455,13 @@ fn inspect_internal<S: LayerFamilySource + ?Sized>(
         require_local_payloads,
         native_cut,
         invalid_current_artifact_schema_proofs,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
     )
     .map(|output| output.report)
 }
@@ -6549,6 +7491,91 @@ pub fn inspect_candidate_with_artifact_replays_and_records_with_proofs<
     >,
     artifact_replays: &CandidateArtifactCorrectionReplayMap<'_, I>,
     invalid_schema_proofs: &CandidateArtifactInvalidSchemaProofs<'_, '_, I>,
+    require_local_payloads: bool,
+) -> Result<SourceFoundationCandidateDiscoveryReport<I>, ItemRefusal> {
+    inspect_candidate_with_artifact_replays_and_records_with_proofs_impl(
+        source,
+        input,
+        coverage,
+        paths,
+        prior_events,
+        records_lookup,
+        records,
+        limits,
+        physical,
+        native_histories,
+        artifact_replays,
+        invalid_schema_proofs,
+        None,
+        require_local_payloads,
+    )
+}
+
+/// Direct candidate history/replay input with the same bounded exact-ID
+/// scratch index used by the lazy evidence-provider route. The old finite-map
+/// API remains available for callers that do not own that provider.
+#[allow(clippy::too_many_arguments)]
+pub fn inspect_candidate_with_artifact_replays_and_records_with_proofs_and_seen_ids<
+    S: LayerFamilySource + ?Sized,
+    I: Copy + Eq,
+>(
+    source: &mut S,
+    input: &dyn SourceCutInputWithIdentity<I>,
+    coverage: &SourceCutInputCoverage,
+    paths: &dyn SourceFoundationDefaultPaths,
+    prior_events: &dyn SourceFoundationDefaultEventLookup,
+    records_lookup: &dyn SourceFoundationDefaultRecordsLookup,
+    records: &SourceFoundationRecordsStreamedReport<'_, I>,
+    limits: ItemLimits,
+    physical: &SourcePhysicalFacts,
+    native_histories: &BTreeMap<
+        String,
+        crate::native_compound::CandidateNativeRecordHistoryReadObservation<I>,
+    >,
+    artifact_replays: &CandidateArtifactCorrectionReplayMap<'_, I>,
+    invalid_schema_proofs: &CandidateArtifactInvalidSchemaProofs<'_, '_, I>,
+    discovery_seen_ids: &mut dyn DiscoverySeenIds,
+    require_local_payloads: bool,
+) -> Result<SourceFoundationCandidateDiscoveryReport<I>, ItemRefusal> {
+    inspect_candidate_with_artifact_replays_and_records_with_proofs_impl(
+        source,
+        input,
+        coverage,
+        paths,
+        prior_events,
+        records_lookup,
+        records,
+        limits,
+        physical,
+        native_histories,
+        artifact_replays,
+        invalid_schema_proofs,
+        Some(discovery_seen_ids),
+        require_local_payloads,
+    )
+}
+
+#[allow(clippy::too_many_arguments)]
+fn inspect_candidate_with_artifact_replays_and_records_with_proofs_impl<
+    S: LayerFamilySource + ?Sized,
+    I: Copy + Eq,
+>(
+    source: &mut S,
+    input: &dyn SourceCutInputWithIdentity<I>,
+    coverage: &SourceCutInputCoverage,
+    paths: &dyn SourceFoundationDefaultPaths,
+    prior_events: &dyn SourceFoundationDefaultEventLookup,
+    records_lookup: &dyn SourceFoundationDefaultRecordsLookup,
+    records: &SourceFoundationRecordsStreamedReport<'_, I>,
+    limits: ItemLimits,
+    physical: &SourcePhysicalFacts,
+    native_histories: &BTreeMap<
+        String,
+        crate::native_compound::CandidateNativeRecordHistoryReadObservation<I>,
+    >,
+    artifact_replays: &CandidateArtifactCorrectionReplayMap<'_, I>,
+    invalid_schema_proofs: &CandidateArtifactInvalidSchemaProofs<'_, '_, I>,
+    discovery_seen_ids: Option<&mut dyn DiscoverySeenIds>,
     require_local_payloads: bool,
 ) -> Result<SourceFoundationCandidateDiscoveryReport<I>, ItemRefusal> {
     source.checkpoint(limits.deadline)?;
@@ -6613,6 +7640,13 @@ pub fn inspect_candidate_with_artifact_replays_and_records_with_proofs<
         require_local_payloads,
         None,
         None,
+        discovery_seen_ids,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
     )?;
     input.verify_current_fence(coverage, limits.deadline, source.cancellation())?;
     Ok(SourceFoundationCandidateDiscoveryReport {
@@ -6621,6 +7655,407 @@ pub fn inspect_candidate_with_artifact_replays_and_records_with_proofs<
         candidate_direct_source_bytes: output.candidate_direct_source_bytes,
         report: output.report,
     })
+}
+
+/// Inspect a candidate source input while reconstructing one authentic
+/// Artifact history/replay packet at a time through CMD's provider. The held
+/// Records path index is consumed in the same Artifact traversal and checked
+/// for orphan rows at EOF.
+#[allow(clippy::too_many_arguments)]
+pub fn inspect_candidate_with_artifact_evidence_provider<
+    S: LayerFamilySource + ?Sized,
+    I: Copy + Eq,
+>(
+    source: &mut S,
+    input: &dyn SourceCutInputWithIdentity<I>,
+    coverage: &SourceCutInputCoverage,
+    paths: &dyn SourceFoundationDefaultPaths,
+    prior_events: &dyn SourceFoundationDefaultEventLookup,
+    records_lookup: &dyn SourceFoundationDefaultRecordsLookup,
+    records: &SourceFoundationRecordsStreamedReport<'_, I>,
+    limits: ItemLimits,
+    physical: &SourcePhysicalFacts,
+    evidence_provider: &mut dyn CandidateArtifactEvidenceProvider<I>,
+    require_local_payloads: bool,
+) -> Result<SourceFoundationCandidateDiscoveryReport<I>, ItemRefusal> {
+    inspect_candidate_with_artifact_evidence_provider_impl(
+        source,
+        input,
+        coverage,
+        paths,
+        prior_events,
+        records_lookup,
+        records,
+        limits,
+        physical,
+        evidence_provider,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        require_local_payloads,
+    )
+}
+
+/// Candidate variant that also uses CMD's bounded exact-ID scratch index to
+/// preserve first-path and duplicate laws without retaining every ID in RAM.
+#[allow(clippy::too_many_arguments)]
+pub fn inspect_candidate_with_artifact_evidence_provider_and_seen_ids<
+    S: LayerFamilySource + ?Sized,
+    I: Copy + Eq,
+>(
+    source: &mut S,
+    input: &dyn SourceCutInputWithIdentity<I>,
+    coverage: &SourceCutInputCoverage,
+    paths: &dyn SourceFoundationDefaultPaths,
+    prior_events: &dyn SourceFoundationDefaultEventLookup,
+    records_lookup: &dyn SourceFoundationDefaultRecordsLookup,
+    records: &SourceFoundationRecordsStreamedReport<'_, I>,
+    limits: ItemLimits,
+    physical: &SourcePhysicalFacts,
+    evidence_provider: &mut dyn CandidateArtifactEvidenceProvider<I>,
+    discovery_seen_ids: &mut dyn DiscoverySeenIds,
+    require_local_payloads: bool,
+) -> Result<SourceFoundationCandidateDiscoveryReport<I>, ItemRefusal> {
+    inspect_candidate_with_artifact_evidence_provider_impl(
+        source,
+        input,
+        coverage,
+        paths,
+        prior_events,
+        records_lookup,
+        records,
+        limits,
+        physical,
+        evidence_provider,
+        Some(discovery_seen_ids),
+        None,
+        None,
+        None,
+        None,
+        None,
+        require_local_payloads,
+    )
+}
+
+/// Candidate variant that spills exact-path Discovery summaries beside the
+/// existing exact-ID scratch index in CMD's invocation-scoped auxiliary
+/// store. The summary projection is rebuilt from current source bytes on
+/// every invocation and carries no source-admission authority.
+#[allow(clippy::too_many_arguments)]
+pub fn inspect_candidate_with_artifact_evidence_provider_and_seen_ids_and_run_summaries<
+    S: LayerFamilySource + ?Sized,
+    I: Copy + Eq,
+>(
+    source: &mut S,
+    input: &dyn SourceCutInputWithIdentity<I>,
+    coverage: &SourceCutInputCoverage,
+    paths: &dyn SourceFoundationDefaultPaths,
+    prior_events: &dyn SourceFoundationDefaultEventLookup,
+    records_lookup: &dyn SourceFoundationDefaultRecordsLookup,
+    records: &SourceFoundationRecordsStreamedReport<'_, I>,
+    limits: ItemLimits,
+    physical: &SourcePhysicalFacts,
+    evidence_provider: &mut dyn CandidateArtifactEvidenceProvider<I>,
+    discovery_seen_ids: &mut dyn DiscoverySeenIds,
+    discovery_run_summaries: &mut dyn DiscoveryRunSummaryStore,
+    require_local_payloads: bool,
+) -> Result<SourceFoundationCandidateDiscoveryReport<I>, ItemRefusal> {
+    inspect_candidate_with_artifact_evidence_provider_impl(
+        source,
+        input,
+        coverage,
+        paths,
+        prior_events,
+        records_lookup,
+        records,
+        limits,
+        physical,
+        evidence_provider,
+        Some(discovery_seen_ids),
+        Some(discovery_run_summaries),
+        None,
+        None,
+        None,
+        None,
+        require_local_payloads,
+    )
+}
+
+/// Candidate variant that also spills provenance event summaries and owner
+/// insertions to CMD's invocation-scoped event scratch store.
+#[allow(clippy::too_many_arguments)]
+pub fn inspect_candidate_with_artifact_evidence_provider_and_seen_ids_and_run_summaries_and_event_summaries<
+    S: LayerFamilySource + ?Sized,
+    I: Copy + Eq,
+>(
+    source: &mut S,
+    input: &dyn SourceCutInputWithIdentity<I>,
+    coverage: &SourceCutInputCoverage,
+    paths: &dyn SourceFoundationDefaultPaths,
+    prior_events: &dyn SourceFoundationDefaultEventLookup,
+    records_lookup: &dyn SourceFoundationDefaultRecordsLookup,
+    records: &SourceFoundationRecordsStreamedReport<'_, I>,
+    limits: ItemLimits,
+    physical: &SourcePhysicalFacts,
+    evidence_provider: &mut dyn CandidateArtifactEvidenceProvider<I>,
+    discovery_seen_ids: &mut dyn DiscoverySeenIds,
+    discovery_run_summaries: &mut dyn DiscoveryRunSummaryStore,
+    discovery_event_summaries: &mut dyn DiscoveryEventSummaryStore,
+    max_event_json_bytes: usize,
+    require_local_payloads: bool,
+) -> Result<SourceFoundationCandidateDiscoveryReport<I>, ItemRefusal> {
+    inspect_candidate_with_artifact_evidence_provider_impl(
+        source,
+        input,
+        coverage,
+        paths,
+        prior_events,
+        records_lookup,
+        records,
+        limits,
+        physical,
+        evidence_provider,
+        Some(discovery_seen_ids),
+        Some(discovery_run_summaries),
+        Some(discovery_event_summaries),
+        Some(max_event_json_bytes),
+        None,
+        None,
+        require_local_payloads,
+    )
+}
+
+/// Candidate variant that streams each decoded Discovery document into the
+/// invocation-scoped schema-request store for the maintained CMD diagnostics
+/// worker to read back one request at a time.
+#[allow(clippy::too_many_arguments)]
+pub fn inspect_candidate_with_artifact_evidence_provider_and_seen_ids_and_run_summaries_and_event_summaries_and_schema_requests<
+    S: LayerFamilySource + ?Sized,
+    I: Copy + Eq,
+>(
+    source: &mut S,
+    input: &dyn SourceCutInputWithIdentity<I>,
+    coverage: &SourceCutInputCoverage,
+    paths: &dyn SourceFoundationDefaultPaths,
+    prior_events: &dyn SourceFoundationDefaultEventLookup,
+    records_lookup: &dyn SourceFoundationDefaultRecordsLookup,
+    records: &SourceFoundationRecordsStreamedReport<'_, I>,
+    limits: ItemLimits,
+    physical: &SourcePhysicalFacts,
+    evidence_provider: &mut dyn CandidateArtifactEvidenceProvider<I>,
+    discovery_seen_ids: &mut dyn DiscoverySeenIds,
+    discovery_run_summaries: &mut dyn DiscoveryRunSummaryStore,
+    discovery_event_summaries: &mut dyn DiscoveryEventSummaryStore,
+    discovery_schema_requests: &mut dyn DiscoverySchemaRequestStore,
+    max_event_json_bytes: usize,
+    require_local_payloads: bool,
+) -> Result<SourceFoundationCandidateDiscoveryReport<I>, ItemRefusal> {
+    inspect_candidate_with_artifact_evidence_provider_impl(
+        source,
+        input,
+        coverage,
+        paths,
+        prior_events,
+        records_lookup,
+        records,
+        limits,
+        physical,
+        evidence_provider,
+        Some(discovery_seen_ids),
+        Some(discovery_run_summaries),
+        Some(discovery_event_summaries),
+        Some(max_event_json_bytes),
+        Some(discovery_schema_requests),
+        None,
+        require_local_payloads,
+    )
+}
+
+/// Candidate variant that also holds exact current-member digests in CMD's
+/// invocation-scoped cache, keeping the portable Discovery kernel's digest
+/// point facts out of its resident path map.
+#[allow(clippy::too_many_arguments)]
+pub fn inspect_candidate_with_artifact_evidence_provider_and_seen_ids_and_run_summaries_and_event_summaries_and_schema_requests_and_digests<
+    S: LayerFamilySource + ?Sized,
+    I: Copy + Eq,
+>(
+    source: &mut S,
+    input: &dyn SourceCutInputWithIdentity<I>,
+    coverage: &SourceCutInputCoverage,
+    paths: &dyn SourceFoundationDefaultPaths,
+    prior_events: &dyn SourceFoundationDefaultEventLookup,
+    records_lookup: &dyn SourceFoundationDefaultRecordsLookup,
+    records: &SourceFoundationRecordsStreamedReport<'_, I>,
+    limits: ItemLimits,
+    physical: &SourcePhysicalFacts,
+    evidence_provider: &mut dyn CandidateArtifactEvidenceProvider<I>,
+    discovery_seen_ids: &mut dyn DiscoverySeenIds,
+    discovery_run_summaries: &mut dyn DiscoveryRunSummaryStore,
+    discovery_event_summaries: &mut dyn DiscoveryEventSummaryStore,
+    discovery_schema_requests: &mut dyn DiscoverySchemaRequestStore,
+    discovery_digest_cache: &mut dyn DiscoveryDigestCache,
+    max_event_json_bytes: usize,
+    require_local_payloads: bool,
+) -> Result<SourceFoundationCandidateDiscoveryReport<I>, ItemRefusal> {
+    inspect_candidate_with_artifact_evidence_provider_impl(
+        source,
+        input,
+        coverage,
+        paths,
+        prior_events,
+        records_lookup,
+        records,
+        limits,
+        physical,
+        evidence_provider,
+        Some(discovery_seen_ids),
+        Some(discovery_run_summaries),
+        Some(discovery_event_summaries),
+        Some(max_event_json_bytes),
+        Some(discovery_schema_requests),
+        Some(discovery_digest_cache),
+        require_local_payloads,
+    )
+}
+
+#[allow(clippy::too_many_arguments)]
+fn inspect_candidate_with_artifact_evidence_provider_impl<
+    S: LayerFamilySource + ?Sized,
+    I: Copy + Eq,
+>(
+    source: &mut S,
+    input: &dyn SourceCutInputWithIdentity<I>,
+    coverage: &SourceCutInputCoverage,
+    paths: &dyn SourceFoundationDefaultPaths,
+    prior_events: &dyn SourceFoundationDefaultEventLookup,
+    records_lookup: &dyn SourceFoundationDefaultRecordsLookup,
+    records: &SourceFoundationRecordsStreamedReport<'_, I>,
+    limits: ItemLimits,
+    physical: &SourcePhysicalFacts,
+    evidence_provider: &mut dyn CandidateArtifactEvidenceProvider<I>,
+    discovery_seen_ids: Option<&mut dyn DiscoverySeenIds>,
+    discovery_run_summaries: Option<&mut dyn DiscoveryRunSummaryStore>,
+    discovery_event_summaries: Option<&mut dyn DiscoveryEventSummaryStore>,
+    candidate_discovery_event_json_limit: Option<usize>,
+    discovery_schema_requests: Option<&mut dyn DiscoverySchemaRequestStore>,
+    discovery_digest_cache: Option<&mut dyn DiscoveryDigestCache>,
+    require_local_payloads: bool,
+) -> Result<SourceFoundationCandidateDiscoveryReport<I>, ItemRefusal> {
+    source.checkpoint(limits.deadline)?;
+    let input_identity = *input.input_identity();
+    let membership = *records.source_membership();
+    if input_identity != *records.input_identity() || coverage.membership() != membership {
+        return Err(ItemRefusal::Source(
+            "source-foundation candidate Discovery input/report binding differs".into(),
+        ));
+    }
+    input.verify_current_fence(coverage, limits.deadline, source.cancellation())?;
+    evidence_provider.validate_binding(
+        input,
+        coverage,
+        records,
+        limits.deadline,
+        source.cancellation(),
+    )?;
+    let path_view = BorrowedDiscoveryPaths(paths);
+    let output = inspect_kernel::<S, I>(
+        source,
+        &path_view,
+        Some(input.source_input()),
+        Some(records_lookup),
+        Some(&input_identity),
+        Some(membership),
+        NativeHistorySet::Empty,
+        ArtifactReplaySet::Empty,
+        None,
+        prior_events,
+        limits,
+        Some(physical),
+        require_local_payloads,
+        None,
+        None,
+        Some(evidence_provider),
+        discovery_seen_ids,
+        discovery_run_summaries,
+        discovery_event_summaries,
+        candidate_discovery_event_json_limit,
+        discovery_schema_requests,
+        discovery_digest_cache,
+    )?;
+    input.verify_current_fence(coverage, limits.deadline, source.cancellation())?;
+    Ok(SourceFoundationCandidateDiscoveryReport {
+        input_identity,
+        source_membership: membership,
+        candidate_direct_source_bytes: output.candidate_direct_source_bytes,
+        report: output.report,
+    })
+}
+
+fn remember_discovery_id<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
+    inspector: &mut Inspector<'_, '_, S, I>,
+    fallback: &mut BTreeSet<String>,
+    namespace: DiscoverySeenIdNamespace,
+    id: &str,
+    first_path: &str,
+) -> Result<bool, ItemRefusal> {
+    if inspector.candidate_discovery_seen_ids.is_none() {
+        if fallback.contains(id) {
+            return Ok(false);
+        }
+        inspector.reserve_state(id.len().checked_add(64).ok_or(ItemRefusal::Budget)?)?;
+        return Ok(fallback.insert(id.to_owned()));
+    }
+    inspector.candidate_seen_id_remember_first(namespace, id, first_path)
+}
+
+fn discovery_id_contains<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
+    inspector: &mut Inspector<'_, '_, S, I>,
+    fallback: &BTreeSet<String>,
+    namespace: DiscoverySeenIdNamespace,
+    id: &str,
+) -> Result<bool, ItemRefusal> {
+    if inspector.candidate_discovery_seen_ids.is_none() {
+        return Ok(fallback.contains(id));
+    }
+    inspector.candidate_seen_id_contains(namespace, id)
+}
+
+fn event_id_seen<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
+    inspector: &mut Inspector<'_, '_, S, I>,
+    fallback: &BTreeSet<String>,
+    prior_events: &dyn SourceFoundationDefaultEventLookup,
+    id: &str,
+) -> Result<bool, ItemRefusal> {
+    if inspector.candidate_discovery_seen_ids.is_none() {
+        return Ok(fallback.contains(id));
+    }
+    if discovery_id_contains(inspector, fallback, DiscoverySeenIdNamespace::Event, id)? {
+        return Ok(true);
+    }
+    prior_event_contains(inspector, prior_events, id)
+}
+
+fn prior_event_contains<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
+    inspector: &mut Inspector<'_, '_, S, I>,
+    prior_events: &dyn SourceFoundationDefaultEventLookup,
+    id: &str,
+) -> Result<bool, ItemRefusal> {
+    let workspace_state_bytes = id.len().checked_add(256).ok_or(ItemRefusal::Budget)?;
+    inspector.check_temporary_state(workspace_state_bytes)?;
+    let combined = inspector
+        .candidate_current_artifact_evidence_state_bytes
+        .checked_add(workspace_state_bytes)
+        .ok_or(ItemRefusal::Budget)?;
+    inspector.candidate_discovery_seen_ids_peak_workspace_state_bytes = inspector
+        .candidate_discovery_seen_ids_peak_workspace_state_bytes
+        .max(workspace_state_bytes);
+    inspector.candidate_artifact_evidence_peak_state_bytes = inspector
+        .candidate_artifact_evidence_peak_state_bytes
+        .max(combined);
+    prior_events.event_contains(id)
 }
 
 fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
@@ -6639,7 +8074,37 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
     require_local_payloads: bool,
     native_cut: Option<NativeCutBinding>,
     invalid_current_artifact_schema_proofs: Option<&CurrentArtifactInvalidSchemaProofs<'_>>,
+    mut candidate_artifact_evidence_provider: Option<&mut dyn CandidateArtifactEvidenceProvider<I>>,
+    discovery_seen_ids: Option<&mut dyn DiscoverySeenIds>,
+    candidate_discovery_run_summaries: Option<&mut dyn DiscoveryRunSummaryStore>,
+    candidate_discovery_event_summaries: Option<&mut dyn DiscoveryEventSummaryStore>,
+    candidate_discovery_event_json_limit: Option<usize>,
+    candidate_discovery_schema_requests: Option<&mut dyn DiscoverySchemaRequestStore>,
+    candidate_discovery_digest_cache: Option<&mut dyn DiscoveryDigestCache>,
 ) -> Result<DiscoveryKernelOutput, ItemRefusal> {
+    if candidate_discovery_event_summaries.is_some()
+        && (candidate_input.is_none()
+            || discovery_seen_ids.is_none()
+            || candidate_artifact_evidence_provider.is_none())
+        || candidate_discovery_event_summaries.is_some()
+            != candidate_discovery_event_json_limit.is_some()
+        || candidate_discovery_event_json_limit
+            .is_some_and(|limit| limit < 2 || limit > limits.max_member_bytes)
+        || candidate_discovery_schema_requests.is_some()
+            && (candidate_input.is_none()
+                || discovery_seen_ids.is_none()
+                || candidate_artifact_evidence_provider.is_none()
+                || candidate_discovery_event_summaries.is_none())
+        || candidate_discovery_digest_cache.is_some()
+            && (candidate_input.is_none()
+                || discovery_seen_ids.is_none()
+                || candidate_discovery_schema_requests.is_none()
+                || candidate_artifact_evidence_provider.is_none())
+    {
+        return Err(ItemRefusal::Source(
+            "candidate Discovery spill requires its bounded evidence and ID providers".into(),
+        ));
+    }
     let mut inspector = Inspector {
         source,
         paths,
@@ -6650,6 +8115,12 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
         native_histories,
         artifact_replays,
         candidate_invalid_schema_proofs,
+        candidate_discovery_seen_ids: discovery_seen_ids,
+        candidate_discovery_run_summaries,
+        candidate_discovery_event_summaries,
+        candidate_discovery_schema_requests,
+        candidate_discovery_digest_cache,
+        candidate_discovery_event_json_limit,
         limits,
         physical,
         issues: Vec::new(),
@@ -6660,14 +8131,28 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
         payload_observation_paths: BTreeSet::new(),
         read_bytes: 0,
         candidate_direct_source_bytes: 0,
+        candidate_provider_source_bytes: 0,
         payload_bytes: 0,
         state_bytes: 0,
         document_copies: 0,
         native_history_referenced_bytes: 0,
         native_history_referenced_state_bytes: 0,
-        artifact_replay_referenced_paths: BTreeSet::new(),
+        artifact_replay_referenced_paths: candidate_artifact_evidence_provider
+            .is_none()
+            .then(BTreeSet::new),
         artifact_replay_referenced_publication_state_bytes: 0,
         artifact_replay_referenced_state_bytes: 0,
+        candidate_artifact_evidence_peak_state_bytes: 0,
+        candidate_current_artifact_evidence_state_bytes: 0,
+        candidate_current_discovery_run_summary_state_bytes: 0,
+        candidate_discovery_run_summary_peak_workspace_state_bytes: 0,
+        candidate_discovery_seen_ids_peak_workspace_state_bytes: 0,
+        candidate_discovery_event_summary_peak_workspace_state_bytes: 0,
+        candidate_discovery_schema_request_peak_workspace_state_bytes: 0,
+        candidate_discovery_schema_request_count: 0,
+        candidate_discovery_digest_observation_rows: 0,
+        candidate_discovery_digest_unique_paths: 0,
+        candidate_discovery_digest_peak_workspace_state_bytes: 0,
     };
     let mut previous_path: Option<String> = None;
     let mut previous_path_state = 0usize;
@@ -6698,54 +8183,118 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
 
     let mut prior_event_cost = 0usize;
     let mut event_ids: BTreeSet<String> = BTreeSet::new();
-    prior_events.for_each_event(&mut |id, _| {
-        prior_event_cost = prior_event_cost
-            .checked_add(id.len().checked_add(64).ok_or(ItemRefusal::Budget)?)
-            .ok_or(ItemRefusal::Budget)?;
-        event_ids.insert(id.to_owned());
-        Ok(())
-    })?;
-    inspector.reserve_state(prior_event_cost)?;
+    if inspector.candidate_discovery_seen_ids.is_none() {
+        prior_events.for_each_event(&mut |id, _| {
+            prior_event_cost = prior_event_cost
+                .checked_add(id.len().checked_add(64).ok_or(ItemRefusal::Budget)?)
+                .ok_or(ItemRefusal::Budget)?;
+            event_ids.insert(id.to_owned());
+            Ok(())
+        })?;
+        inspector.reserve_state(prior_event_cost)?;
+    }
     let mut source_event_insertions: Vec<(String, Value)> = Vec::new();
     let mut boundary_events: BTreeMap<String, EventInfo> = BTreeMap::new();
+    let mut discovery_event_observation_rows = 0u64;
+    let mut discovery_event_owner_insertion_rows = 0u64;
 
     // The maintained Python route validates this earlier private/handoff and
     // target-map district before its later discovery and artifact pass.
     inspect_companion_district(&mut inspector)?;
 
     for path in [ACCESS_EVENTS, SERVER_EVENTS] {
-        for (location, value) in inspector.jsonl(path, PROVENANCE_SCHEMA)? {
-            let info = inspector.event_info(&value, &location)?;
-            let Some(id) = string(&value, "event_id") else {
-                inspector.issue(
-                    &location,
-                    "missing-event-id",
-                    "boundary provenance event has no event_id",
+        inspector.for_each_jsonl(
+            path,
+            PROVENANCE_SCHEMA,
+            &mut |inspector, location, value| {
+                let info = inspector.event_info(value, location)?;
+                let Some(id) = string(value, "event_id") else {
+                    inspector.issue(
+                        location,
+                        "missing-event-id",
+                        "boundary provenance event has no event_id",
+                    )?;
+                    return Ok(());
+                };
+                let id = id.to_owned();
+                let first_in_cut = remember_discovery_id(
+                    inspector,
+                    &mut event_ids,
+                    DiscoverySeenIdNamespace::Event,
+                    &id,
+                    location,
                 )?;
-                continue;
-            };
-            let id = id.to_owned();
-            if !event_ids.insert(id.clone()) {
-                inspector.issue(&location, "duplicate-event-id", id.as_str())?;
-            }
-            boundary_events.insert(id.clone(), info);
-            source_event_insertions.push((id, value));
-        }
+                let duplicate_prior = inspector.candidate_discovery_seen_ids.is_some()
+                    && first_in_cut
+                    && prior_event_contains(inspector, prior_events, &id)?;
+                if !first_in_cut || duplicate_prior {
+                    inspector.issue(location, "duplicate-event-id", id.as_str())?;
+                }
+                if inspector.candidate_discovery_event_summaries.is_some() {
+                    inspector.record_candidate_event_summary(
+                        DiscoveryEventSummaryNamespace::Boundary,
+                        &id,
+                        location,
+                        value,
+                        true,
+                    )?;
+                    discovery_event_observation_rows = discovery_event_observation_rows
+                        .checked_add(1)
+                        .ok_or(ItemRefusal::Budget)?;
+                    discovery_event_owner_insertion_rows = discovery_event_owner_insertion_rows
+                        .checked_add(1)
+                        .ok_or(ItemRefusal::Budget)?;
+                } else {
+                    boundary_events.insert(id.clone(), info);
+                    source_event_insertions.push((id, value.clone()));
+                }
+                Ok(())
+            },
+        )?;
     }
 
     let mut discoveries: BTreeMap<String, DiscoveryInfo> = BTreeMap::new();
-    let discovery_paths = inspector.collect_current_paths_matching(|path| {
-        path.strip_prefix(DISCOVERY_RUNS)
+    let mut discovery_summary_observations = 0u64;
+    inspector.for_each_current_path(&mut |inspector, path| {
+        if !path
+            .strip_prefix(DISCOVERY_RUNS)
             .is_some_and(|tail| !tail.contains('/') && tail.ends_with(".json"))
-    })?;
-    for path in &discovery_paths {
-        let path = path.as_str();
+        {
+            return Ok(());
+        }
         let Some((value, _, _)) = inspector.json(path, path, DISCOVERY_SCHEMA)? else {
-            continue;
+            return Ok(());
         };
         inspector.source_refs(&value, path)?;
         for message in discovery_semantic_issues(&value) {
             inspector.issue(path, "discovery-semantic", message)?;
+        }
+        let mut summary_workspace_state_bytes = 0usize;
+        if inspector.candidate_discovery_run_summaries.is_some() {
+            let target_kind_len = value
+                .pointer("/target/target_kind")
+                .and_then(Value::as_str)
+                .map_or(0, str::len);
+            let known_refs = array(
+                value.pointer("/target").unwrap_or(&Value::Null),
+                "known_tos_refs",
+            );
+            let mut known_refs_state = 0usize;
+            for (index, reference) in known_refs.iter().filter_map(Value::as_str).enumerate() {
+                if index % 128 == 0 {
+                    inspector.checkpoint()?;
+                }
+                known_refs_state = known_refs_state
+                    .checked_add(reference.len().checked_mul(2).ok_or(ItemRefusal::Budget)?)
+                    .and_then(|bytes| bytes.checked_add(size_of::<String>() + 256))
+                    .ok_or(ItemRefusal::Budget)?;
+            }
+            summary_workspace_state_bytes = size_of::<DiscoveryInfo>()
+                .checked_add(target_kind_len.checked_mul(2).ok_or(ItemRefusal::Budget)?)
+                .and_then(|bytes| bytes.checked_add(size_of::<String>() + 64))
+                .and_then(|bytes| bytes.checked_add(known_refs_state))
+                .ok_or(ItemRefusal::Budget)?;
+            inspector.set_current_discovery_run_summary_state(summary_workspace_state_bytes)?;
         }
         let target_kind = value
             .pointer("/target/target_kind")
@@ -6781,14 +8330,24 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
                 else {
                     continue;
                 };
-                inspector.reserve_state(
-                    surface
-                        .len()
-                        .checked_add(snapshot_sha256.len())
-                        .and_then(|used| used.checked_add(acquisition_sha256.len()))
-                        .and_then(|used| used.checked_add(96))
-                        .ok_or(ItemRefusal::Budget)?,
-                )?;
+                let tuple_state = surface
+                    .len()
+                    .checked_add(snapshot_sha256.len())
+                    .and_then(|used| used.checked_add(acquisition_sha256.len()))
+                    .and_then(|used| used.checked_mul(2))
+                    .and_then(|used| {
+                        used.checked_add(size_of::<(String, String, String, u64)>() + 256)
+                    })
+                    .ok_or(ItemRefusal::Budget)?;
+                if inspector.candidate_discovery_run_summaries.is_some() {
+                    summary_workspace_state_bytes = summary_workspace_state_bytes
+                        .checked_add(tuple_state)
+                        .ok_or(ItemRefusal::Budget)?;
+                    inspector
+                        .set_current_discovery_run_summary_state(summary_workspace_state_bytes)?;
+                } else {
+                    inspector.reserve_state(tuple_state)?;
+                }
                 captured_acquisitions.insert((
                     surface.to_owned(),
                     snapshot_sha256.to_owned(),
@@ -6797,50 +8356,127 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
                 ));
             }
         }
-        discoveries.insert(
-            path.to_owned(),
-            DiscoveryInfo {
-                target_kind,
-                known_refs,
-                captured_acquisitions,
-            },
-        );
-    }
+        let summary = DiscoveryInfo {
+            target_kind,
+            known_refs,
+            captured_acquisitions,
+        };
+        if inspector.candidate_discovery_run_summaries.is_some() {
+            let remaining_state_bytes = inspector.remaining_state_bytes()?;
+            let workspace_state_bytes = inspector
+                .candidate_discovery_run_summaries
+                .as_deref_mut()
+                .ok_or(ItemRefusal::Budget)?
+                .insert_summary(path, &summary, remaining_state_bytes)?;
+            let combined_summary_workspace = summary_workspace_state_bytes
+                .checked_add(workspace_state_bytes)
+                .ok_or(ItemRefusal::Budget)?;
+            inspector.set_current_discovery_run_summary_state(combined_summary_workspace)?;
+            discovery_summary_observations = discovery_summary_observations
+                .checked_add(1)
+                .ok_or(ItemRefusal::Budget)?;
+            inspector.set_current_discovery_run_summary_state(0)?;
+        } else {
+            discoveries.insert(path.to_owned(), summary);
+        }
+        Ok(())
+    })?;
 
     let mut discovery_events: BTreeMap<String, EventInfo> = BTreeMap::new();
     let mut discovery_event_ids = BTreeSet::new();
-    for (location, value) in inspector.jsonl(DISCOVERY_EVENTS, PROVENANCE_SCHEMA)? {
-        let info = inspector.event_info(&value, &location)?;
-        let Some(id) = string(&value, "event_id") else {
-            inspector.issue(
-                &location,
-                "missing-event-id",
-                "discovery provenance event has no event_id",
+    inspector.for_each_jsonl(
+        DISCOVERY_EVENTS,
+        PROVENANCE_SCHEMA,
+        &mut |inspector, location, value| {
+            let info = inspector.event_info(value, location)?;
+            let Some(id) = string(value, "event_id") else {
+                inspector.issue(
+                    location,
+                    "missing-event-id",
+                    "discovery provenance event has no event_id",
+                )?;
+                return Ok(());
+            };
+            let id = id.to_owned();
+            let first_discovery_event = remember_discovery_id(
+                inspector,
+                &mut discovery_event_ids,
+                DiscoverySeenIdNamespace::DiscoveryEvent,
+                &id,
+                location,
             )?;
-            continue;
-        };
-        let id = id.to_owned();
-        if !discovery_event_ids.insert(id.clone()) {
-            inspector.issue(&location, "duplicate-discovery-event-id", id.as_str())?;
-        }
-        if !event_ids.insert(id.clone()) {
-            inspector.issue(&location, "duplicate-event-id", id.as_str())?;
-        } else {
-            source_event_insertions.push((id.clone(), value));
-        }
-        discovery_events.insert(id, info);
-    }
+            if !first_discovery_event {
+                inspector.issue(location, "duplicate-discovery-event-id", id.as_str())?;
+            }
+            let first_event = remember_discovery_id(
+                inspector,
+                &mut event_ids,
+                DiscoverySeenIdNamespace::Event,
+                &id,
+                location,
+            )?;
+            let duplicate_prior = inspector.candidate_discovery_seen_ids.is_some()
+                && first_event
+                && prior_event_contains(inspector, prior_events, &id)?;
+            let insert_into_owner_map = first_event && !duplicate_prior;
+            if !insert_into_owner_map {
+                inspector.issue(location, "duplicate-event-id", id.as_str())?;
+            }
+            if inspector.candidate_discovery_event_summaries.is_some() {
+                inspector.record_candidate_event_summary(
+                    DiscoveryEventSummaryNamespace::Discovery,
+                    &id,
+                    location,
+                    value,
+                    insert_into_owner_map,
+                )?;
+                discovery_event_observation_rows = discovery_event_observation_rows
+                    .checked_add(1)
+                    .ok_or(ItemRefusal::Budget)?;
+                if insert_into_owner_map {
+                    discovery_event_owner_insertion_rows = discovery_event_owner_insertion_rows
+                        .checked_add(1)
+                        .ok_or(ItemRefusal::Budget)?;
+                }
+            } else {
+                if insert_into_owner_map {
+                    source_event_insertions.push((id.clone(), value.clone()));
+                }
+                discovery_events.insert(id, info);
+            }
+            Ok(())
+        },
+    )?;
 
     let mut artifact_ids = BTreeSet::new();
-    let mut artifacts_by_path: BTreeMap<String, Value> = BTreeMap::new();
-    let artifact_paths = inspector.collect_current_paths_matching(|path| {
-        path.starts_with(ARTIFACTS) && path.ends_with("/artifact-witness.json")
-    })?;
-    for path in &artifact_paths {
-        let path = path.as_str();
-        inspector.checkpoint()?;
+    inspector.for_each_current_path(&mut |inspector, path| {
+        if !path.starts_with(ARTIFACTS) || !path.ends_with("/artifact-witness.json") {
+            return Ok(());
+        }
+        let indexed_artifact_record =
+            if let Some(provider) = candidate_artifact_evidence_provider.as_deref_mut() {
+                let remaining_state = inspector.remaining_state_bytes()?;
+                let summary = provider.begin_artifact_path(
+                    path,
+                    remaining_state,
+                    inspector.limits.deadline,
+                    inspector.source.cancellation(),
+                )?;
+                if let Some(summary) = summary {
+                    inspector.set_current_artifact_evidence_state(summary.charged_state_bytes)?;
+                } else {
+                    inspector.set_current_artifact_evidence_state(0)?;
+                }
+                summary
+            } else {
+                None
+            };
         let Some(raw) = inspector.current_bytes(path)? else {
-            continue;
+            if let Some(provider) = candidate_artifact_evidence_provider.as_deref_mut() {
+                provider.abandon_artifact_path(path, inspector.remaining_state_bytes()?)?;
+                inspector.set_current_artifact_evidence_state(0)?;
+            }
+            return Ok(());
         };
         let value = match serde_json::from_slice::<Value>(&raw) {
             Ok(value) => value,
@@ -6850,23 +8486,44 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
                     "invalid-json",
                     "current source document is invalid JSON",
                 )?;
-                continue;
+                if let Some(provider) = candidate_artifact_evidence_provider.as_deref_mut() {
+                    provider.abandon_artifact_path(path, inspector.remaining_state_bytes()?)?;
+                    inspector.set_current_artifact_evidence_state(0)?;
+                }
+                return Ok(());
             }
         };
         if let Some(records) = inspector.records_lookup {
-            match records.record_by_path(path)? {
-                Some(record) if record.path == path && python_json_equal(&record.value, &value) => {
-                }
-                Some(_) => inspector.issue(
+            let (record, charged_state_bytes) = records.record_by_path_with_state_budget(
+                path,
+                inspector.remaining_state_bytes()?,
+            )?;
+            inspector.check_temporary_state(charged_state_bytes)?;
+            inspector.candidate_artifact_evidence_peak_state_bytes = inspector
+                .candidate_artifact_evidence_peak_state_bytes
+                .max(
+                    inspector
+                        .candidate_current_artifact_evidence_state_bytes
+                        .checked_add(charged_state_bytes)
+                        .ok_or(ItemRefusal::Budget)?,
+                );
+            let is_exact_record = record.as_ref().is_some_and(|record| {
+                record.path == path && python_json_equal(&record.value, &value)
+            });
+            let found_record = record.is_some();
+            drop(record);
+            if found_record && !is_exact_record {
+                inspector.issue(
                     path,
                     "candidate-discovery-current-record-drift",
                     "stored Records lookup differs from the exact candidate Artifact member",
-                )?,
-                None => inspector.issue(
+                )?;
+            } else if !found_record {
+                inspector.issue(
                     path,
                     "candidate-discovery-current-record-unindexed",
                     "candidate Artifact member is absent from the completed Records lookup",
-                )?,
+                )?;
             }
         }
         let v2 = string(&value, "$schema") == Some(V2_ARTIFACT_SCHEMA);
@@ -6898,7 +8555,15 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
             )?;
         }
         let id = string(&value, "artifact_id").unwrap_or("");
-        if !id.is_empty() && !artifact_ids.insert(id.to_owned()) {
+        if !id.is_empty()
+            && !remember_discovery_id(
+                inspector,
+                &mut artifact_ids,
+                DiscoverySeenIdNamespace::Artifact,
+                id,
+                path,
+            )?
+        {
             inspector.issue(path, "duplicate-artifact-id", id)?;
         }
         let relative = path.strip_prefix(ARTIFACTS).unwrap_or(path);
@@ -6945,32 +8610,102 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
             "public_metadata_only",
             &["metadata_only"],
         )?;
-        match discoveries.get(discovery_ref) {
-            Some(discovery) => {
-                if !discovery.known_refs.contains(id) {
-                    inspector.issue(
-                        path,
-                        "discovery-target-omits-owner",
-                        "artifact discovery target does not include artifact_id",
-                    )?;
+        inspector.with_discovery_summary(
+            discovery_ref,
+            discoveries.get(discovery_ref),
+            |inspector, discovery| match discovery {
+                Some(discovery) => {
+                    if !discovery.known_refs.contains(id) {
+                        inspector.issue(
+                            path,
+                            "discovery-target-omits-owner",
+                            "artifact discovery target does not include artifact_id",
+                        )?;
+                    }
+                    if discovery.target_kind != "artifact" {
+                        inspector.issue(
+                            path,
+                            "discovery-target-kind-drift",
+                            "artifact discovery target_kind must be artifact",
+                        )?;
+                    }
+                    Ok(())
                 }
-                if discovery.target_kind != "artifact" {
-                    inspector.issue(
-                        path,
-                        "discovery-target-kind-drift",
-                        "artifact discovery target_kind must be artifact",
-                    )?;
-                }
-            }
-            None => inspector.issue(
-                path,
-                "unresolved-discovery-run",
-                "artifact discovery_ref does not resolve to a validated discovery run",
-            )?,
-        }
+                None => inspector.issue(
+                    path,
+                    "unresolved-discovery-run",
+                    "artifact discovery_ref does not resolve to a validated discovery run",
+                ),
+            },
+        )?;
         let event_ref = string(&value, "provenance_event_ref").unwrap_or("");
-        let native_history = inspector.native_histories.get(path);
-        let artifact_replay = inspector.artifact_replays.get(path);
+        let candidate_evidence_response =
+            if let Some(provider) = candidate_artifact_evidence_provider.as_deref_mut() {
+                let consumed_source = inspector
+                    .read_bytes
+                    .checked_add(inspector.candidate_provider_source_bytes)
+                    .ok_or(ItemRefusal::Budget)?;
+                let remaining_source = inspector
+                    .limits
+                    .max_total_bytes
+                    .checked_sub(consumed_source)
+                    .ok_or(ItemRefusal::Budget)?;
+                let remaining_state = inspector.remaining_state_bytes()?;
+                Some(provider.evidence_for_artifact(
+                    path,
+                    indexed_artifact_record,
+                    &value,
+                    Digest256::of_bytes(&raw),
+                    u64::try_from(raw.len()).map_err(|_| ItemRefusal::Budget)?,
+                    remaining_source,
+                    remaining_state,
+                    inspector.limits.deadline,
+                    inspector.source.cancellation(),
+                )?)
+            } else {
+                None
+            };
+        let candidate_schema_invalid = candidate_evidence_response
+            .as_ref()
+            .and_then(|response| response.candidate_schema_invalid());
+        if let Some(evidence) = candidate_evidence_response
+            .as_ref()
+            .and_then(|response| response.evidence())
+        {
+            inspector.set_current_artifact_evidence_state(
+                indexed_artifact_record
+                    .map_or(0, |summary| summary.charged_state_bytes)
+                    .checked_add(evidence.peak_state_bytes())
+                    .ok_or(ItemRefusal::Budget)?,
+            )?;
+            inspector.candidate_provider_source_bytes = inspector
+                .candidate_provider_source_bytes
+                .checked_add(evidence.direct_source_read_bytes())
+                .filter(|provider_used| {
+                    inspector
+                        .read_bytes
+                        .checked_add(*provider_used)
+                        .is_some_and(|total| total <= inspector.limits.max_total_bytes)
+                })
+                .ok_or(ItemRefusal::Budget)?;
+            inspector.candidate_direct_source_bytes = inspector
+                .candidate_direct_source_bytes
+                .checked_add(evidence.direct_source_read_bytes())
+                .ok_or(ItemRefusal::Budget)?;
+        }
+        let (native_history, artifact_replay) = match candidate_evidence_response
+            .as_ref()
+            .and_then(|response| response.evidence())
+        {
+            Some(evidence) => (
+                Some(NativeHistoryRef::Candidate(evidence.history())),
+                evidence.replay().map(ArtifactReplayRef::Candidate),
+            ),
+            None => (
+                inspector.native_histories.get(path),
+                inspector.artifact_replays.get(path),
+            ),
+        };
         let artifact_binding = native_cut.map(NativeArtifactBinding::Cut).or_else(|| {
             candidate_identity
                 .zip(candidate_membership)
@@ -6989,13 +8724,30 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
             native_history,
             artifact_replay,
             invalid_current_artifact_schema_proofs,
+            candidate_schema_invalid,
         )?;
         if native_capture == NativeArtifactCapture::Complete {
-            if !event_ref.is_empty() && !event_ids.insert(event_ref.to_owned()) {
-                inspector.issue(path, "duplicate-native-artifact-event-id", event_ref)?;
+            if !event_ref.is_empty() {
+                let first_event = remember_discovery_id(
+                    &mut inspector,
+                    &mut event_ids,
+                    DiscoverySeenIdNamespace::Event,
+                    event_ref,
+                    path,
+                )?;
+                let duplicate_prior = inspector.candidate_discovery_seen_ids.is_some()
+                    && first_event
+                    && prior_event_contains(inspector, prior_events, event_ref)?;
+                if !first_event || duplicate_prior {
+                    inspector.issue(path, "duplicate-native-artifact-event-id", event_ref)?;
+                }
             }
         } else if native_capture == NativeArtifactCapture::Legacy {
-            if let Some(event) = discovery_events.get(event_ref).cloned() {
+            if let Some(event) = inspector.event_summary(
+                DiscoveryEventSummaryNamespace::Discovery,
+                event_ref,
+                &discovery_events,
+            )? {
                 let mut required = BTreeSet::from([
                     path.to_owned(),
                     rights_ref.to_owned(),
@@ -7030,13 +8782,18 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
                 )?;
             }
         }
-        artifacts_by_path.insert(path.to_owned(), value);
+        inspector.set_current_artifact_evidence_state(0)?;
+        Ok(())
+    })?;
+
+    if let Some(provider) = candidate_artifact_evidence_provider.as_deref_mut() {
+        provider.finish(limits.deadline, inspector.source.cancellation())?;
     }
 
     let artifact_replays = inspector.artifact_replays;
     artifact_replays.for_each_path(&mut |path| {
         inspector.checkpoint()?;
-        if inspector.artifact_replay_referenced_paths.contains(path) {
+        if inspector.artifact_replay_was_referenced(path)? {
             return Ok(());
         }
         let location = if safe_relative_path(path) && path.starts_with(ARTIFACTS) {
@@ -7052,32 +8809,78 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
     })?;
 
     let mut representation_file_ids = BTreeSet::new();
-    let artifact_representation_paths = inspector.collect_current_paths_matching(|path| {
-        path.starts_with(ARTIFACTS) && path.ends_with("/representation.json")
-    })?;
-    for path in &artifact_representation_paths {
-        let path = path.as_str();
+    inspector.for_each_current_path(&mut |inspector, path| {
+        if !path.starts_with(ARTIFACTS) || !path.ends_with("/representation.json") {
+            return Ok(());
+        }
         let Some((value, _, _)) = inspector.json(path, path, ARTIFACT_REPRESENTATION_SCHEMA)?
         else {
-            continue;
+            return Ok(());
         };
         inspector.source_refs(&value, path)?;
         let file_id = string(&value, "file_id").unwrap_or("");
-        if !file_id.is_empty() && !representation_file_ids.insert(file_id.to_owned()) {
+        if !file_id.is_empty()
+            && !remember_discovery_id(
+                inspector,
+                &mut representation_file_ids,
+                DiscoverySeenIdNamespace::RepresentationFile,
+                file_id,
+                path,
+            )?
+        {
             inspector.issue(path, "duplicate-representation-file-id", file_id)?;
         }
         let artifact_id = string(&value, "artifact_id").unwrap_or("");
         let artifact_ref = string(&value, "artifact_ref").unwrap_or("");
-        if !artifact_ids.contains(artifact_id) {
+        if !discovery_id_contains(
+            inspector,
+            &artifact_ids,
+            DiscoverySeenIdNamespace::Artifact,
+            artifact_id,
+        )? {
             inspector.issue(path, "unresolved-represented-artifact", artifact_id)?;
         }
-        match artifacts_by_path.get(artifact_ref) {
-            Some(artifact) if string(artifact, "artifact_id") == Some(artifact_id) => {}
-            _ => inspector.issue(
+        let artifact_ref_matches = if artifact_ref.starts_with(ARTIFACTS)
+            && artifact_ref.ends_with("/artifact-witness.json")
+        {
+            let indexed_match = if let Some(records) = inspector.records_lookup {
+                let (record, charged_state_bytes) = records.record_by_path_with_state_budget(
+                    artifact_ref,
+                    inspector.remaining_state_bytes()?,
+                )?;
+                inspector.check_temporary_state(charged_state_bytes)?;
+                inspector.candidate_artifact_evidence_peak_state_bytes =
+                    inspector.candidate_artifact_evidence_peak_state_bytes.max(
+                        inspector
+                            .candidate_current_artifact_evidence_state_bytes
+                            .checked_add(charged_state_bytes)
+                            .ok_or(ItemRefusal::Budget)?,
+                    );
+                let exact_match = record.as_ref().and_then(|record| {
+                    (record.path == artifact_ref)
+                        .then(|| string(&record.value, "artifact_id") == Some(artifact_id))
+                });
+                drop(record);
+                exact_match
+            } else {
+                None
+            };
+            match indexed_match {
+                Some(matches) => matches,
+                None => inspector
+                    .current_bytes(artifact_ref)?
+                    .and_then(|raw| serde_json::from_slice::<Value>(&raw).ok())
+                    .is_some_and(|artifact| string(&artifact, "artifact_id") == Some(artifact_id)),
+            }
+        } else {
+            false
+        };
+        if !artifact_ref_matches {
+            inspector.issue(
                 path,
                 "artifact-reference-id-drift",
                 "artifact_ref does not resolve the represented artifact_id",
-            )?,
+            )?;
         }
 
         let payload = value.get("payload").unwrap_or(&Value::Null);
@@ -7111,15 +8914,19 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
             PUBLIC_REPRESENTATION_POSTURES,
         )?;
         let discovery_ref = string(&value, "discovery_ref").unwrap_or("");
-        match discoveries.get(discovery_ref) {
-            Some(discovery) if discovery.known_refs.contains(artifact_id) => {}
-            Some(_) => inspector.issue(
-                path,
-                "representation-discovery-target-omits-artifact",
-                discovery_ref,
-            )?,
-            None => inspector.issue(path, "unresolved-representation-discovery", discovery_ref)?,
-        }
+        inspector.with_discovery_summary(
+            discovery_ref,
+            discoveries.get(discovery_ref),
+            |inspector, discovery| match discovery {
+                Some(discovery) if discovery.known_refs.contains(artifact_id) => Ok(()),
+                Some(_) => inspector.issue(
+                    path,
+                    "representation-discovery-target-omits-artifact",
+                    discovery_ref,
+                ),
+                None => inspector.issue(path, "unresolved-representation-discovery", discovery_ref),
+            },
+        )?;
 
         if safe_payload {
             if let Some(facts) = inspector.checked_payload_facts(&payload_path, path)? {
@@ -7199,7 +9006,11 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
             }
         }
         let event_ref = string(&value, "provenance_event_ref").unwrap_or("");
-        match discovery_events.get(event_ref).cloned() {
+        match inspector.event_summary(
+            DiscoveryEventSummaryNamespace::Discovery,
+            event_ref,
+            &discovery_events,
+        )? {
             Some(event) => {
                 let mut required = BTreeSet::from([path.to_owned(), rights_ref.to_owned()]);
                 if safe_payload {
@@ -7228,17 +9039,15 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
                 event_ref,
             )?,
         }
-    }
+        Ok(())
+    })?;
 
     let mut composite_ids = BTreeSet::new();
-    let mut composites_by_path: BTreeMap<String, Value> = BTreeMap::new();
-    let composite_paths = inspector.collect_current_paths_matching(|path| {
-        path.starts_with(COMPOSITES) && path.ends_with("/composite-witness.json")
-    })?;
-    for path in &composite_paths {
-        let path = path.as_str();
+    inspector.for_each_current_path_matching(
+        |path| path.starts_with(COMPOSITES) && path.ends_with("/composite-witness.json"),
+        &mut |inspector, path| {
         let Some((value, _, _)) = inspector.json(path, path, COMPOSITE_SCHEMA)? else {
-            continue;
+            return Ok(());
         };
         inspector.source_refs(&value, path)?;
         if let Some(fields) = first_forbidden_content_fields(&value) {
@@ -7258,7 +9067,20 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
             )?;
         }
         let id = string(&value, "composite_id").unwrap_or("");
-        if !id.is_empty() && !composite_ids.insert(id.to_owned()) {
+        let first_composite_id = if id.is_empty() {
+            true
+        } else if inspector.candidate_discovery_seen_ids.is_some() {
+            remember_discovery_id(
+                inspector,
+                &mut composite_ids,
+                DiscoverySeenIdNamespace::Composite,
+                id,
+                path,
+            )?
+        } else {
+            composite_ids.insert(id.to_owned())
+        };
+        if !id.is_empty() && !first_composite_id {
             inspector.issue(path, "duplicate-composite-id", id)?;
         }
         let relative = path.strip_prefix(COMPOSITES).unwrap_or(path);
@@ -7311,32 +9133,42 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
             "public_metadata_only",
             &["metadata_only"],
         )?;
-        match discoveries.get(discovery_ref) {
-            Some(discovery) => {
-                if !discovery.known_refs.contains(id) {
-                    inspector.issue(
-                        path,
-                        "discovery-target-omits-owner",
-                        "scholarly-composite discovery target does not include composite_id",
-                    )?;
+        inspector.with_discovery_summary(
+            discovery_ref,
+            discoveries.get(discovery_ref),
+            |inspector, discovery| match discovery {
+                Some(discovery) => {
+                    if !discovery.known_refs.contains(id) {
+                        inspector.issue(
+                            path,
+                            "discovery-target-omits-owner",
+                            "scholarly-composite discovery target does not include composite_id",
+                        )?;
+                    }
+                    if discovery.target_kind != "scholarly-composite" {
+                        inspector.issue(
+                            path,
+                            "discovery-target-kind-drift",
+                            "scholarly-composite discovery target_kind must be scholarly-composite",
+                        )?;
+                    }
+                    Ok(())
                 }
-                if discovery.target_kind != "scholarly-composite" {
-                    inspector.issue(
-                        path,
-                        "discovery-target-kind-drift",
-                        "scholarly-composite discovery target_kind must be scholarly-composite",
-                    )?;
-                }
-            }
-            None => inspector.issue(
-                path,
-                "unresolved-discovery-run",
-                "scholarly-composite discovery_ref does not resolve to a validated discovery run",
-            )?,
-        }
+                None => inspector.issue(
+                    path,
+                    "unresolved-discovery-run",
+                    "scholarly-composite discovery_ref does not resolve to a validated discovery run",
+                ),
+            },
+        )?;
         for member in rows(&value, "member_observations") {
             let member_id = string(member, "member_artifact_id").unwrap_or("");
-            if !artifact_ids.contains(member_id) {
+            if !discovery_id_contains(
+                inspector,
+                &artifact_ids,
+                DiscoverySeenIdNamespace::Artifact,
+                member_id,
+            )? {
                 inspector.issue(path, "unresolved-composite-member-artifact", member_id)?;
             }
         }
@@ -7358,7 +9190,11 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
             }
         }
         let event_ref = string(&value, "provenance_event_ref").unwrap_or("");
-        match discovery_events.get(event_ref).cloned() {
+        match inspector.event_summary(
+            DiscoveryEventSummaryNamespace::Discovery,
+            event_ref,
+            &discovery_events,
+        )? {
             Some(event) => {
                 let mut required = BTreeSet::from([
                     path.to_owned(),
@@ -7393,289 +9229,386 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
                 "scholarly-composite provenance_event_ref is absent from discovery provenance",
             )?,
         }
-        composites_by_path.insert(path.to_owned(), value);
-    }
+        Ok(())
+    },
+    )?;
 
     let mut composite_representation_ids = BTreeSet::new();
-    let composite_representation_paths = inspector.collect_current_paths_matching(|path| {
-        if !path.starts_with(COMPOSITES) || !path.ends_with("/representation.json") {
-            return false;
-        }
-        let parent = path
-            .rsplit_once('/')
-            .map(|(parent, _)| parent)
-            .unwrap_or("");
-        let Some(relative) = parent.strip_prefix(COMPOSITES) else {
-            return false;
-        };
-        let parts: Vec<&str> = relative.split('/').collect();
-        parts.len() >= 2
-            && parts[parts.len() - 2] == "representations"
-            && !parts[parts.len() - 1].is_empty()
-    })?;
-    for path in &composite_representation_paths {
-        let path = path.as_str();
-        let Some((value, _, _)) = inspector.json(path, path, COMPOSITE_REPRESENTATION_SCHEMA)?
-        else {
-            continue;
-        };
-        inspector.source_refs(&value, path)?;
-        let representation_id = string(&value, "representation_id").unwrap_or("");
-        if !representation_id.is_empty()
-            && !composite_representation_ids.insert(representation_id.to_owned())
-        {
-            inspector.issue(
-                path,
-                "duplicate-composite-representation-id",
-                representation_id,
-            )?;
-        }
-        let file_id = string(&value, "file_id").unwrap_or("");
-        if !file_id.is_empty() && !representation_file_ids.insert(file_id.to_owned()) {
-            inspector.issue(path, "duplicate-representation-file-id", file_id)?;
-        }
-        let composite_id = string(&value, "composite_id").unwrap_or("");
-        let composite_ref = string(&value, "composite_ref").unwrap_or("");
-        if !composite_ids.contains(composite_id) {
-            inspector.issue(path, "unresolved-represented-composite", composite_id)?;
-        }
-        match composites_by_path.get(composite_ref) {
-            Some(composite) if string(composite, "composite_id") == Some(composite_id) => {}
-            _ => inspector.issue(
-                path,
-                "composite-reference-id-drift",
-                "composite_ref does not resolve the represented composite_id",
-            )?,
-        }
-
-        let payload = value.get("payload").unwrap_or(&Value::Null);
-        let relative = string(payload, "relative_path").unwrap_or("");
-        let payload_name = relative.strip_prefix("payload/").unwrap_or("");
-        let safe_name = !payload_name.is_empty()
-            && !payload_name.contains('/')
-            && !payload_name.contains('\\')
-            && !payload_name.contains('\0')
-            && payload_name != "."
-            && payload_name != "..";
-        let payload_path = format!(
-            "{}/{}",
-            path.rsplit_once('/')
+    inspector.for_each_current_path_matching(
+        |path| {
+            if !path.starts_with(COMPOSITES) || !path.ends_with("/representation.json") {
+                return false;
+            }
+            let parent = path
+                .rsplit_once('/')
                 .map(|(parent, _)| parent)
-                .unwrap_or(""),
-            relative
-        );
-        if !safe_name || !safe_relative_path(&payload_path) {
-            inspector.issue(path, "composite-payload-not-direct-owned-file", relative)?;
-            continue;
-        }
-        if safe_name && safe_relative_path(&payload_path) {
-            if let Some(facts) = inspector.checked_payload_facts(&payload_path, path)? {
-                if facts.symlink || (facts.exists && !facts.regular_file) {
-                    inspector.issue(
-                        path,
-                        "composite-payload-nonregular-or-symlink",
-                        &payload_path,
-                    )?;
-                    continue;
-                }
-                if facts.exists {
-                    if string(payload, "materialization_status") != Some("materialized")
-                        || string(payload, "storage_posture") != Some("tracked_repository_payload")
-                        || payload.get("git_tracked").and_then(Value::as_bool) != Some(true)
-                    {
-                        inspector.issue(
-                            path,
-                            "composite-payload-declared-posture-drift",
-                            &payload_path,
-                        )?;
-                    }
-                    inspector.tracked_composite_payload_git(&payload_path, path)?;
-                    let expected_file_id = format!(
-                        "tos.file.sha256.{}",
-                        string(payload, "sha256").unwrap_or("")
-                    );
-                    if file_id != expected_file_id {
-                        inspector.issue(
-                            path,
-                            "representation-file-id-not-content-addressed",
-                            file_id,
-                        )?;
-                    }
-                    match facts.byte_size {
-                        Some(actual)
-                            if payload.get("byte_size").is_some_and(|expected| {
-                                python_json_equal(&json!(actual), expected)
-                            }) => {}
-                        Some(_) => inspector.issue(
-                            path,
-                            "composite-representation-size-drift",
-                            &payload_path,
-                        )?,
-                        None => inspector.unsupported(
-                            &payload_path,
-                            "local composite payload size is unobserved",
-                        )?,
-                    }
-                    match facts.sha256.as_deref() {
-                        Some(actual)
-                            if payload.get("sha256").is_some_and(|expected| {
-                                python_json_equal(&Value::String(actual.to_owned()), expected)
-                            }) => {}
-                        Some(_) => inspector.issue(
-                            path,
-                            "composite-representation-sha256-drift",
-                            &payload_path,
-                        )?,
-                        None => inspector.unsupported(
-                            &payload_path,
-                            "local composite payload SHA-256 is unobserved",
-                        )?,
-                    }
+                .unwrap_or("");
+            let Some(relative) = parent.strip_prefix(COMPOSITES) else {
+                return false;
+            };
+            let Some((container, name)) = relative.rsplit_once('/') else {
+                return false;
+            };
+            container.rsplit('/').next() == Some("representations") && !name.is_empty()
+        },
+        &mut |inspector, path| {
+            let Some((value, _, _)) =
+                inspector.json(path, path, COMPOSITE_REPRESENTATION_SCHEMA)?
+            else {
+                return Ok(());
+            };
+            inspector.source_refs(&value, path)?;
+            let representation_id = string(&value, "representation_id").unwrap_or("");
+            let first_composite_representation_id = if representation_id.is_empty() {
+                true
+            } else if inspector.candidate_discovery_seen_ids.is_some() {
+                remember_discovery_id(
+                    inspector,
+                    &mut composite_representation_ids,
+                    DiscoverySeenIdNamespace::CompositeRepresentation,
+                    representation_id,
+                    path,
+                )?
+            } else {
+                composite_representation_ids.insert(representation_id.to_owned())
+            };
+            if !representation_id.is_empty() && !first_composite_representation_id {
+                inspector.issue(
+                    path,
+                    "duplicate-composite-representation-id",
+                    representation_id,
+                )?;
+            }
+            let file_id = string(&value, "file_id").unwrap_or("");
+            let first_representation_file_id = if file_id.is_empty() {
+                true
+            } else if inspector.candidate_discovery_seen_ids.is_some() {
+                remember_discovery_id(
+                    inspector,
+                    &mut representation_file_ids,
+                    DiscoverySeenIdNamespace::RepresentationFile,
+                    file_id,
+                    path,
+                )?
+            } else {
+                representation_file_ids.insert(file_id.to_owned())
+            };
+            if !file_id.is_empty() && !first_representation_file_id {
+                inspector.issue(path, "duplicate-representation-file-id", file_id)?;
+            }
+            let composite_id = string(&value, "composite_id").unwrap_or("");
+            let composite_ref = string(&value, "composite_ref").unwrap_or("");
+            let composite_id_seen = !composite_id.is_empty()
+                && if inspector.candidate_discovery_seen_ids.is_some() {
+                    discovery_id_contains(
+                        inspector,
+                        &composite_ids,
+                        DiscoverySeenIdNamespace::Composite,
+                        composite_id,
+                    )?
                 } else {
-                    if string(payload, "materialization_status") != Some("not_materialized")
-                        || string(payload, "storage_posture") != Some("unmaterialized_payload")
-                        || payload.get("git_tracked").and_then(Value::as_bool) != Some(false)
-                    {
+                    composite_ids.contains(composite_id)
+                };
+            if !composite_id_seen {
+                inspector.issue(path, "unresolved-represented-composite", composite_id)?;
+            }
+            // The first pass already emitted parse diagnostics. Re-read the
+            // exact current member here instead of retaining every decoded
+            // composite; malformed JSON remains absent from the old path map.
+            let composite_matches = if composite_ref.starts_with(COMPOSITES)
+                && composite_ref.ends_with("/composite-witness.json")
+            {
+                inspector
+                    .current_bytes(composite_ref)?
+                    .and_then(|raw| serde_json::from_slice::<Value>(&raw).ok())
+                    .is_some_and(|composite| {
+                        string(&composite, "composite_id") == Some(composite_id)
+                    })
+            } else {
+                false
+            };
+            if !composite_matches {
+                inspector.issue(
+                    path,
+                    "composite-reference-id-drift",
+                    "composite_ref does not resolve the represented composite_id",
+                )?;
+            }
+
+            let payload = value.get("payload").unwrap_or(&Value::Null);
+            let relative = string(payload, "relative_path").unwrap_or("");
+            let payload_name = relative.strip_prefix("payload/").unwrap_or("");
+            let safe_name = !payload_name.is_empty()
+                && !payload_name.contains('/')
+                && !payload_name.contains('\\')
+                && !payload_name.contains('\0')
+                && payload_name != "."
+                && payload_name != "..";
+            let payload_path = format!(
+                "{}/{}",
+                path.rsplit_once('/')
+                    .map(|(parent, _)| parent)
+                    .unwrap_or(""),
+                relative
+            );
+            if !safe_name || !safe_relative_path(&payload_path) {
+                inspector.issue(path, "composite-payload-not-direct-owned-file", relative)?;
+                return Ok(());
+            }
+            if safe_name && safe_relative_path(&payload_path) {
+                if let Some(facts) = inspector.checked_payload_facts(&payload_path, path)? {
+                    if facts.symlink || (facts.exists && !facts.regular_file) {
                         inspector.issue(
                             path,
-                            "composite-payload-declared-posture-drift",
+                            "composite-payload-nonregular-or-symlink",
                             &payload_path,
                         )?;
+                        return Ok(());
                     }
-                    match require_local_payloads {
-                        true => inspector.issue(
-                            path,
-                            "composite-payload-required-but-missing",
-                            "scholarly-composite representation payload is missing",
-                        )?,
-                        false => {}
+                    if facts.exists {
+                        if string(payload, "materialization_status") != Some("materialized")
+                            || string(payload, "storage_posture")
+                                != Some("tracked_repository_payload")
+                            || payload.get("git_tracked").and_then(Value::as_bool) != Some(true)
+                        {
+                            inspector.issue(
+                                path,
+                                "composite-payload-declared-posture-drift",
+                                &payload_path,
+                            )?;
+                        }
+                        inspector.tracked_composite_payload_git(&payload_path, path)?;
+                        let expected_file_id = format!(
+                            "tos.file.sha256.{}",
+                            string(payload, "sha256").unwrap_or("")
+                        );
+                        if file_id != expected_file_id {
+                            inspector.issue(
+                                path,
+                                "representation-file-id-not-content-addressed",
+                                file_id,
+                            )?;
+                        }
+                        match facts.byte_size {
+                            Some(actual)
+                                if payload.get("byte_size").is_some_and(|expected| {
+                                    python_json_equal(&json!(actual), expected)
+                                }) => {}
+                            Some(_) => inspector.issue(
+                                path,
+                                "composite-representation-size-drift",
+                                &payload_path,
+                            )?,
+                            None => inspector.unsupported(
+                                &payload_path,
+                                "local composite payload size is unobserved",
+                            )?,
+                        }
+                        match facts.sha256.as_deref() {
+                            Some(actual)
+                                if payload.get("sha256").is_some_and(|expected| {
+                                    python_json_equal(&Value::String(actual.to_owned()), expected)
+                                }) => {}
+                            Some(_) => inspector.issue(
+                                path,
+                                "composite-representation-sha256-drift",
+                                &payload_path,
+                            )?,
+                            None => inspector.unsupported(
+                                &payload_path,
+                                "local composite payload SHA-256 is unobserved",
+                            )?,
+                        }
+                    } else {
+                        if string(payload, "materialization_status") != Some("not_materialized")
+                            || string(payload, "storage_posture") != Some("unmaterialized_payload")
+                            || payload.get("git_tracked").and_then(Value::as_bool) != Some(false)
+                        {
+                            inspector.issue(
+                                path,
+                                "composite-payload-declared-posture-drift",
+                                &payload_path,
+                            )?;
+                        }
+                        match require_local_payloads {
+                            true => inspector.issue(
+                                path,
+                                "composite-payload-required-but-missing",
+                                "scholarly-composite representation payload is missing",
+                            )?,
+                            false => {}
+                        }
                     }
                 }
             }
-        }
 
-        let rights_ref = string(&value, "rights_ref").unwrap_or("");
-        let _ = inspector.check_rights(
-            path,
-            rights_ref,
-            &[composite_id, representation_id, file_id],
-            "local_only",
-            LOCAL_REPRESENTATION_POSTURES,
-        )?;
-        let discovery_ref = string(&value, "discovery_ref").unwrap_or("");
-        match discoveries.get(discovery_ref) {
-            Some(discovery) if discovery.known_refs.contains(composite_id) => {}
-            Some(_) => inspector.issue(
+            let rights_ref = string(&value, "rights_ref").unwrap_or("");
+            let _ = inspector.check_rights(
                 path,
-                "representation-discovery-target-omits-composite",
-                discovery_ref,
-            )?,
-            None => inspector.issue(path, "unresolved-representation-discovery", discovery_ref)?,
-        }
-
-        if inspector.physical.and_then(|facts| facts.git_available) == Some(true) {
-            inspector.metadata_git(path, path)?;
-            inspector.metadata_git(DISCOVERY_EVENTS, path)?;
-            if !rights_ref.is_empty() {
-                inspector.metadata_git(rights_ref, path)?;
-            }
-            if !discovery_ref.is_empty() {
-                inspector.metadata_git(discovery_ref, path)?;
-            }
-        } else if inspector
-            .physical
-            .and_then(|facts| facts.git_available)
-            .is_none()
-        {
-            inspector.unsupported(
-                path,
-                "repository Git availability is unobserved for composite metadata posture",
+                rights_ref,
+                &[composite_id, representation_id, file_id],
+                "local_only",
+                LOCAL_REPRESENTATION_POSTURES,
             )?;
-        }
+            let discovery_ref = string(&value, "discovery_ref").unwrap_or("");
+            inspector.with_discovery_summary(
+                discovery_ref,
+                discoveries.get(discovery_ref),
+                |inspector, discovery| match discovery {
+                    Some(discovery) if discovery.known_refs.contains(composite_id) => Ok(()),
+                    Some(_) => inspector.issue(
+                        path,
+                        "representation-discovery-target-omits-composite",
+                        discovery_ref,
+                    ),
+                    None => {
+                        inspector.issue(path, "unresolved-representation-discovery", discovery_ref)
+                    }
+                },
+            )?;
 
-        let event_ref = string(&value, "provenance_event_ref").unwrap_or("");
-        match discovery_events.get(event_ref).cloned() {
-            Some(event) => {
-                let mut required =
-                    BTreeSet::from([path.to_owned(), rights_ref.to_owned(), payload_path.clone()]);
-                let absent: Vec<String> = required
-                    .iter()
-                    .filter(|reference| !event.outputs.contains_key(*reference))
-                    .cloned()
-                    .collect();
-                if !absent.is_empty() {
-                    inspector.issue(
-                        &event.location,
-                        "composite-representation-output-closure",
-                        format!(
-                            "composite representation provenance lacks output closure: {}",
-                            python_repr_string_list(absent.iter().map(String::as_str))
-                        ),
-                    )?;
+            if inspector.physical.and_then(|facts| facts.git_available) == Some(true) {
+                inspector.metadata_git(path, path)?;
+                inspector.metadata_git(DISCOVERY_EVENTS, path)?;
+                if !rights_ref.is_empty() {
+                    inspector.metadata_git(rights_ref, path)?;
                 }
-                if inspector
-                    .physical
-                    .and_then(|facts| facts.payloads.get(&payload_path))
-                    .is_some_and(|facts| facts.exists)
-                {
-                    inspector.check_required_output_digests(&event, &required, &event.location)?;
-                } else {
-                    required.remove(&payload_path);
-                    inspector.check_required_output_digests(&event, &required, &event.location)?;
+                if !discovery_ref.is_empty() {
+                    inspector.metadata_git(discovery_ref, path)?;
                 }
+            } else if inspector
+                .physical
+                .and_then(|facts| facts.git_available)
+                .is_none()
+            {
+                inspector.unsupported(
+                    path,
+                    "repository Git availability is unobserved for composite metadata posture",
+                )?;
             }
-            None => inspector.issue(
-                path,
-                "unresolved-representation-provenance-event",
+
+            let event_ref = string(&value, "provenance_event_ref").unwrap_or("");
+            match inspector.event_summary(
+                DiscoveryEventSummaryNamespace::Discovery,
                 event_ref,
-            )?,
-        }
-    }
-
-    let access_request_paths = inspector.collect_current_paths_matching(|path| {
-        path.strip_prefix(ACCESS_LEDGER)
-            .is_some_and(|tail| !tail.contains('/') && tail.ends_with(".json"))
-    })?;
-    for path in &access_request_paths {
-        let path = path.as_str();
-        let Some((value, _, _)) = inspector.json(path, path, ACCESS_REQUEST_SCHEMA)? else {
-            continue;
-        };
-        inspector.source_refs(&value, path)?;
-        for event_ref in array(&value, "provenance_event_refs")
-            .iter()
-            .filter_map(Value::as_str)
-        {
-            if !event_ids.contains(event_ref) {
-                inspector.issue(path, "unresolved-access-request-event", event_ref)?;
+                &discovery_events,
+            )? {
+                Some(event) => {
+                    let mut required = BTreeSet::from([
+                        path.to_owned(),
+                        rights_ref.to_owned(),
+                        payload_path.clone(),
+                    ]);
+                    let absent: Vec<String> = required
+                        .iter()
+                        .filter(|reference| !event.outputs.contains_key(*reference))
+                        .cloned()
+                        .collect();
+                    if !absent.is_empty() {
+                        inspector.issue(
+                            &event.location,
+                            "composite-representation-output-closure",
+                            format!(
+                                "composite representation provenance lacks output closure: {}",
+                                python_repr_string_list(absent.iter().map(String::as_str))
+                            ),
+                        )?;
+                    }
+                    if inspector
+                        .physical
+                        .and_then(|facts| facts.payloads.get(&payload_path))
+                        .is_some_and(|facts| facts.exists)
+                    {
+                        inspector.check_required_output_digests(
+                            &event,
+                            &required,
+                            &event.location,
+                        )?;
+                    } else {
+                        required.remove(&payload_path);
+                        inspector.check_required_output_digests(
+                            &event,
+                            &required,
+                            &event.location,
+                        )?;
+                    }
+                }
+                None => inspector.issue(
+                    path,
+                    "unresolved-representation-provenance-event",
+                    event_ref,
+                )?,
             }
-        }
-    }
+            Ok(())
+        },
+    )?;
+
+    inspector.for_each_current_path_matching(
+        |path| {
+            path.strip_prefix(ACCESS_LEDGER)
+                .is_some_and(|tail| !tail.contains('/') && tail.ends_with(".json"))
+        },
+        &mut |inspector, path| {
+            let Some((value, _, _)) = inspector.json(path, path, ACCESS_REQUEST_SCHEMA)? else {
+                return Ok(());
+            };
+            inspector.source_refs(&value, path)?;
+            for event_ref in array(&value, "provenance_event_refs")
+                .iter()
+                .filter_map(Value::as_str)
+            {
+                if !event_id_seen(inspector, &event_ids, prior_events, event_ref)? {
+                    inspector.issue(path, "unresolved-access-request-event", event_ref)?;
+                }
+            }
+            Ok(())
+        },
+    )?;
     inspector.private_route()?;
 
     let mut expected_manifest_refs = BTreeSet::new();
     inspector.for_each_current_path(&mut |inspector, path| {
         if path.starts_with(SOURCE_HOME) && path.ends_with(ITEM_MANIFEST_SUFFIX) {
-            inspector.reserve_state(path.len().checked_add(96).ok_or(ItemRefusal::Budget)?)?;
-            expected_manifest_refs.insert(path.to_owned());
+            if inspector.candidate_discovery_seen_ids.is_none() {
+                inspector.reserve_state(path.len().checked_add(96).ok_or(ItemRefusal::Budget)?)?;
+                expected_manifest_refs.insert(path.to_owned());
+            }
         }
         Ok(())
     })?;
     let mut planned_manifest_refs = BTreeSet::new();
-    let server_plan_paths = inspector.collect_current_paths_matching(|path| {
-        path.strip_prefix(SERVER_PLANS)
-            .is_some_and(|tail| !tail.contains('/') && tail.ends_with(".json"))
-    })?;
-    for path in &server_plan_paths {
-        let path = path.as_str();
+    let mut planned_manifest_coverage_drift = false;
+    inspector.for_each_current_path_matching(
+        |path| {
+            path.strip_prefix(SERVER_PLANS)
+                .is_some_and(|tail| !tail.contains('/') && tail.ends_with(".json"))
+        },
+        &mut |inspector, path| {
         let Some((plan, plan_digest, _)) = inspector.json(path, path, SERVER_PLAN_SCHEMA)? else {
-            continue;
+            return Ok(());
         };
         inspector.source_refs(&plan, path)?;
         let manifest_evidence = plan.get("manifest").unwrap_or(&Value::Null);
         let manifest_ref = string(manifest_evidence, "ref").unwrap_or("");
         if !manifest_ref.is_empty() {
-            planned_manifest_refs.insert(manifest_ref.to_owned());
+            if inspector.candidate_discovery_seen_ids.is_some() {
+                let is_current_manifest = manifest_ref.starts_with(SOURCE_HOME)
+                    && manifest_ref.ends_with(ITEM_MANIFEST_SUFFIX)
+                    && inspector.has_current_member(manifest_ref)?;
+                if is_current_manifest {
+                    let _ = remember_discovery_id(
+                        inspector,
+                        &mut planned_manifest_refs,
+                        DiscoverySeenIdNamespace::PlannedManifest,
+                        manifest_ref,
+                        path,
+                    )?;
+                } else {
+                    planned_manifest_coverage_drift = true;
+                }
+            } else {
+                planned_manifest_refs.insert(manifest_ref.to_owned());
+            }
             match inspector.referenced_json(
                 manifest_ref,
                 path,
@@ -7758,7 +9691,11 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
             .iter()
             .filter_map(Value::as_str)
         {
-            let Some(event) = boundary_events.get(event_ref).cloned() else {
+            let Some(event) = inspector.event_summary(
+                DiscoveryEventSummaryNamespace::Boundary,
+                event_ref,
+                &boundary_events,
+            )? else {
                 inspector.issue(path, "unresolved-server-plan-boundary-event", event_ref)?;
                 continue;
             };
@@ -7796,8 +9733,30 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
                 inspector.issue(path, "server-plan-provenance-input-digest-drift", event_ref)?;
             }
         }
-    }
-    if planned_manifest_refs != expected_manifest_refs {
+        Ok(())
+    },
+    )?;
+    let candidate_manifest_coverage_drift = if inspector.candidate_discovery_seen_ids.is_some() {
+        let mut drift = planned_manifest_coverage_drift;
+        inspector.for_each_current_path(&mut |inspector, path| {
+            if path.starts_with(SOURCE_HOME) && path.ends_with(ITEM_MANIFEST_SUFFIX) {
+                let is_planned = discovery_id_contains(
+                    inspector,
+                    &planned_manifest_refs,
+                    DiscoverySeenIdNamespace::PlannedManifest,
+                    path,
+                )?;
+                if !is_planned {
+                    drift = true;
+                }
+            }
+            Ok(())
+        })?;
+        drift
+    } else {
+        planned_manifest_refs != expected_manifest_refs
+    };
+    if candidate_manifest_coverage_drift {
         inspector.issue(
             SERVER_PLANS.trim_end_matches('/'),
             "server-plan-manifest-coverage-drift",
@@ -7806,6 +9765,85 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
     }
 
     inspector.checkpoint()?;
+    let discovery_event_summary_cost = if inspector.candidate_discovery_event_summaries.is_some() {
+        let remaining_state_bytes = inspector.remaining_state_bytes()?;
+        let cost = inspector
+            .candidate_discovery_event_summaries
+            .as_deref_mut()
+            .ok_or(ItemRefusal::Budget)?
+            .finish(
+                discovery_event_observation_rows,
+                discovery_event_owner_insertion_rows,
+                remaining_state_bytes,
+            )?;
+        inspector.candidate_discovery_event_summary_peak_workspace_state_bytes = inspector
+            .candidate_discovery_event_summary_peak_workspace_state_bytes
+            .max(cost.workspace_state_bytes);
+        Some(cost)
+    } else {
+        None
+    };
+    let discovery_run_summary_cost = if inspector.candidate_discovery_run_summaries.is_some() {
+        let remaining_state_bytes = inspector.remaining_state_bytes()?;
+        let cost = inspector
+            .candidate_discovery_run_summaries
+            .as_deref_mut()
+            .ok_or(ItemRefusal::Budget)?
+            .finish(discovery_summary_observations, remaining_state_bytes)?;
+        inspector.set_current_discovery_run_summary_state(cost.workspace_state_bytes)?;
+        inspector.set_current_discovery_run_summary_state(0)?;
+        Some(cost)
+    } else {
+        None
+    };
+    let discovery_schema_request_cost = if inspector.candidate_discovery_schema_requests.is_some() {
+        let expected_rows = inspector.candidate_discovery_schema_request_count;
+        let direct_issue_count = inspector.issues.len();
+        let remaining_state_bytes = inspector.remaining_state_bytes()?;
+        let cost = inspector
+            .candidate_discovery_schema_requests
+            .as_deref_mut()
+            .ok_or(ItemRefusal::Budget)?
+            .finish(expected_rows, direct_issue_count, remaining_state_bytes)?;
+        inspector.check_temporary_state(cost.workspace_state_bytes)?;
+        inspector.candidate_discovery_schema_request_peak_workspace_state_bytes = inspector
+            .candidate_discovery_schema_request_peak_workspace_state_bytes
+            .max(cost.workspace_state_bytes);
+        inspector.candidate_artifact_evidence_peak_state_bytes =
+            inspector.candidate_artifact_evidence_peak_state_bytes.max(
+                inspector
+                    .candidate_current_artifact_evidence_state_bytes
+                    .checked_add(cost.workspace_state_bytes)
+                    .ok_or(ItemRefusal::Budget)?,
+            );
+        Some(cost)
+    } else {
+        None
+    };
+    let discovery_digest_cache_cost = if inspector.candidate_discovery_digest_cache.is_some() {
+        let remaining_state_bytes = inspector.remaining_state_bytes()?;
+        let observation_rows = inspector.candidate_discovery_digest_observation_rows;
+        let unique_paths = inspector.candidate_discovery_digest_unique_paths;
+        let cost = inspector
+            .candidate_discovery_digest_cache
+            .as_deref_mut()
+            .ok_or(ItemRefusal::Budget)?
+            .finish(observation_rows, unique_paths, remaining_state_bytes)?;
+        inspector.check_temporary_state(cost.workspace_state_bytes)?;
+        inspector.candidate_discovery_digest_peak_workspace_state_bytes = inspector
+            .candidate_discovery_digest_peak_workspace_state_bytes
+            .max(cost.workspace_state_bytes);
+        inspector.candidate_artifact_evidence_peak_state_bytes =
+            inspector.candidate_artifact_evidence_peak_state_bytes.max(
+                inspector
+                    .candidate_current_artifact_evidence_state_bytes
+                    .checked_add(cost.workspace_state_bytes)
+                    .ok_or(ItemRefusal::Budget)?,
+            );
+        Some(cost)
+    } else {
+        None
+    };
     let status = if inspector.unsupported.is_empty() {
         ScopeStatus::Complete
     } else {
@@ -7830,6 +9868,84 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
                     .artifact_replay_referenced_publication_state_bytes,
                 artifact_replay_referenced_state_bytes: inspector
                     .artifact_replay_referenced_state_bytes,
+                candidate_artifact_evidence_peak_state_bytes: inspector
+                    .candidate_artifact_evidence_peak_state_bytes,
+                candidate_discovery_seen_ids_peak_workspace_state_bytes: inspector
+                    .candidate_discovery_seen_ids_peak_workspace_state_bytes,
+                candidate_discovery_run_summary_peak_workspace_state_bytes:
+                    discovery_run_summary_cost.map_or(
+                        inspector.candidate_discovery_run_summary_peak_workspace_state_bytes,
+                        |cost| {
+                            inspector
+                                .candidate_discovery_run_summary_peak_workspace_state_bytes
+                                .max(cost.workspace_state_bytes)
+                        },
+                    ),
+                candidate_discovery_run_summary_observation_rows: discovery_run_summary_cost
+                    .map_or(0, |cost| cost.observation_rows),
+                candidate_discovery_run_summary_unique_paths: discovery_run_summary_cost
+                    .map_or(0, |cost| cost.unique_paths),
+                candidate_discovery_run_summary_serialized_write_bytes: discovery_run_summary_cost
+                    .map_or(0, |cost| cost.serialized_summary_write_bytes),
+                candidate_discovery_run_summary_serialized_read_bytes: discovery_run_summary_cost
+                    .map_or(0, |cost| cost.serialized_summary_read_bytes),
+                candidate_discovery_run_summary_scan_row_operations: discovery_run_summary_cost
+                    .map_or(0, |cost| cost.scan_row_operations),
+                candidate_discovery_event_summary_observation_rows: discovery_event_summary_cost
+                    .map_or(0, |cost| cost.observation_rows),
+                candidate_discovery_event_summary_owner_insertion_rows:
+                    discovery_event_summary_cost.map_or(0, |cost| cost.owner_insertion_rows),
+                candidate_discovery_event_summary_serialized_write_bytes:
+                    discovery_event_summary_cost.map_or(0, |cost| cost.serialized_write_bytes),
+                candidate_discovery_event_summary_serialized_read_bytes:
+                    discovery_event_summary_cost.map_or(0, |cost| cost.serialized_read_bytes),
+                candidate_discovery_event_summary_peak_workspace_state_bytes:
+                    discovery_event_summary_cost.map_or(
+                        inspector.candidate_discovery_event_summary_peak_workspace_state_bytes,
+                        |cost| {
+                            inspector
+                                .candidate_discovery_event_summary_peak_workspace_state_bytes
+                                .max(cost.workspace_state_bytes)
+                        },
+                    ),
+                candidate_discovery_event_summary_scan_row_operations: discovery_event_summary_cost
+                    .map_or(0, |cost| cost.scan_row_operations),
+                candidate_discovery_schema_request_count: discovery_schema_request_cost
+                    .map_or(0, |cost| cost.observation_rows),
+                candidate_discovery_schema_request_serialized_write_bytes:
+                    discovery_schema_request_cost.map_or(0, |cost| cost.serialized_write_bytes),
+                candidate_discovery_schema_request_serialized_read_bytes:
+                    discovery_schema_request_cost.map_or(0, |cost| cost.serialized_read_bytes),
+                candidate_discovery_schema_request_peak_workspace_state_bytes:
+                    discovery_schema_request_cost.map_or(
+                        inspector.candidate_discovery_schema_request_peak_workspace_state_bytes,
+                        |cost| {
+                            inspector
+                                .candidate_discovery_schema_request_peak_workspace_state_bytes
+                                .max(cost.workspace_state_bytes)
+                        },
+                    ),
+                candidate_discovery_schema_request_scan_row_operations:
+                    discovery_schema_request_cost.map_or(0, |cost| cost.scan_row_operations),
+                candidate_discovery_digest_observation_rows: discovery_digest_cache_cost
+                    .map_or(0, |cost| cost.observation_rows),
+                candidate_discovery_digest_unique_paths: discovery_digest_cache_cost
+                    .map_or(0, |cost| cost.unique_paths),
+                candidate_discovery_digest_serialized_write_bytes: discovery_digest_cache_cost
+                    .map_or(0, |cost| cost.serialized_write_bytes),
+                candidate_discovery_digest_serialized_read_bytes: discovery_digest_cache_cost
+                    .map_or(0, |cost| cost.serialized_read_bytes),
+                candidate_discovery_digest_peak_workspace_state_bytes: discovery_digest_cache_cost
+                    .map_or(
+                        inspector.candidate_discovery_digest_peak_workspace_state_bytes,
+                        |cost| {
+                            inspector
+                                .candidate_discovery_digest_peak_workspace_state_bytes
+                                .max(cost.workspace_state_bytes)
+                        },
+                    ),
+                candidate_discovery_digest_scan_row_operations: discovery_digest_cache_cost
+                    .map_or(0, |cost| cost.scan_row_operations),
             },
         },
         candidate_direct_source_bytes: inspector.candidate_direct_source_bytes,
