@@ -2626,14 +2626,14 @@ fn add_text_bytes(total: &mut usize, text: &str) -> Result<(), ItemRefusal> {
     Ok(())
 }
 
-fn estimate_string_storage(text: &str) -> Result<usize, ItemRefusal> {
+pub(crate) fn estimate_string_storage(text: &str) -> Result<usize, ItemRefusal> {
     text.len()
         .checked_mul(2)
         .and_then(|bytes| bytes.checked_add(size_of::<String>() + 32))
         .ok_or(ItemRefusal::Budget)
 }
 
-fn estimate_value_storage(value: &Value) -> Result<usize, ItemRefusal> {
+pub(crate) fn estimate_value_storage(value: &Value) -> Result<usize, ItemRefusal> {
     fn walk(value: &Value, depth: usize) -> Result<usize, ItemRefusal> {
         if depth > 128 {
             return Err(ItemRefusal::Budget);

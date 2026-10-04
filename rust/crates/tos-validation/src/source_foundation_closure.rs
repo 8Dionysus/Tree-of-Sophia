@@ -18,7 +18,7 @@ use crate::record_biblio_cut::{
 use crate::source_foundation_default_rules::{
     BorrowedDefaultRecords, SliceDefaultClaims, SliceDefaultPaths, SourceFoundationDefaultClaims,
     SourceFoundationDefaultEventLookup, SourceFoundationDefaultPaths,
-    SourceFoundationDefaultRecordsLookup,
+    SourceFoundationDefaultRecordsLookup, estimate_string_storage, estimate_value_storage,
 };
 use crate::source_witness_foundation::SourceFileMembershipIndex;
 use serde_json::Value;
@@ -129,6 +129,12 @@ pub struct SourceFoundationClosureCost {
     pub candidate_event_serialized_write_bytes: u64,
     pub candidate_event_scan_row_operations: u64,
     pub candidate_event_peak_workspace_state_bytes: usize,
+    /// Candidate event-path locators spooled before source reads begin.
+    pub candidate_event_path_count: u64,
+    pub candidate_event_path_serialized_read_bytes: u64,
+    pub candidate_event_path_serialized_write_bytes: u64,
+    pub candidate_event_path_scan_row_operations: u64,
+    pub candidate_event_path_peak_workspace_state_bytes: usize,
 }
 
 /// Plain current-record projection used only by the source-foundation Link
@@ -212,6 +218,11 @@ pub struct SourceFoundationClosureSchemaRequestStoreCost {
     pub event_serialized_write_bytes: u64,
     pub event_scan_row_operations: u64,
     pub event_workspace_state_bytes: usize,
+    pub event_path_rows: u64,
+    pub event_path_serialized_read_bytes: u64,
+    pub event_path_serialized_write_bytes: u64,
+    pub event_path_scan_row_operations: u64,
+    pub event_path_workspace_state_bytes: usize,
 }
 
 /// Portable candidate spool for authentic Closure schema requests,
@@ -264,6 +275,29 @@ pub trait SourceFoundationClosureSchemaRequestStore {
         max_state_bytes: usize,
     ) -> Result<(Option<SourceFoundationClosureEvent>, usize), ItemRefusal>;
 
+    /// Queue one selected current event path during the authenticated path
+    /// walk; source reads happen only after that walk reaches EOF.
+    fn remember_event_path(
+        &mut self,
+        path: &str,
+        max_state_bytes: usize,
+    ) -> Result<(bool, usize), ItemRefusal>;
+
+    /// Seal the exact number of queued current event paths before ordered
+    /// point processing begins.
+    fn seal_event_paths(&mut self, expected_rows: u64) -> Result<(), ItemRefusal>;
+
+    /// Read one selected path in strict binary order, or `None` only after the
+    /// store observes the actual ordered EOF.
+    fn next_event_path(
+        &mut self,
+        after_path: Option<&str>,
+        max_state_bytes: usize,
+    ) -> Result<(Option<String>, usize, usize), ItemRefusal>;
+
+    /// Bind the path queue's drain count to its sealed insert count and EOF.
+    fn finish_event_paths(&mut self, expected_rows: u64) -> Result<(), ItemRefusal>;
+
     fn record_request(
         &mut self,
         request: &SourceFoundationClosureSchemaRequest,
@@ -276,6 +310,7 @@ pub trait SourceFoundationClosureSchemaRequestStore {
         expected_rows: u64,
         expected_loaded_documents: u64,
         expected_event_rows: u64,
+        expected_event_path_rows: u64,
         direct_issue_count: usize,
         max_state_bytes: usize,
     ) -> Result<SourceFoundationClosureSchemaRequestStoreCost, ItemRefusal>;
@@ -582,6 +617,7 @@ fn run_source_foundation_closure<S: LayerFamilySource + ?Sized>(
     let expected_schema_rows = rules.cost.schema_requests;
     let expected_loaded_documents = rules.cost.candidate_loaded_document_count;
     let expected_event_rows = rules.cost.candidate_event_count;
+    let expected_event_path_rows = rules.cost.candidate_event_path_count;
     let schema_request_finish = if rules.schema_request_store.is_some() {
         let direct_issue_count = rules.issues.len();
         let remaining = rules.remaining_state()?;
@@ -593,6 +629,7 @@ fn run_source_foundation_closure<S: LayerFamilySource + ?Sized>(
                 expected_schema_rows,
                 expected_loaded_documents,
                 expected_event_rows,
+                expected_event_path_rows,
                 direct_issue_count,
                 remaining,
             )?;
@@ -609,7 +646,8 @@ fn run_source_foundation_closure<S: LayerFamilySource + ?Sized>(
                     finished
                         .workspace_state_bytes
                         .max(finished.loaded_document_workspace_state_bytes)
-                        .max(finished.event_workspace_state_bytes),
+                        .max(finished.event_workspace_state_bytes)
+                        .max(finished.event_path_workspace_state_bytes),
                 )
             })
             .ok_or(ItemRefusal::Budget)?;
@@ -645,6 +683,15 @@ fn run_source_foundation_closure<S: LayerFamilySource + ?Sized>(
         rules.cost.candidate_event_scan_row_operations = finished.event_scan_row_operations;
         rules.cost.candidate_event_peak_workspace_state_bytes =
             finished.event_workspace_state_bytes;
+        rules.cost.candidate_event_path_count = finished.event_path_rows;
+        rules.cost.candidate_event_path_serialized_read_bytes =
+            finished.event_path_serialized_read_bytes;
+        rules.cost.candidate_event_path_serialized_write_bytes =
+            finished.event_path_serialized_write_bytes;
+        rules.cost.candidate_event_path_scan_row_operations =
+            finished.event_path_scan_row_operations;
+        rules.cost.candidate_event_path_peak_workspace_state_bytes =
+            finished.event_path_workspace_state_bytes;
     }
 
     Ok(SourceFoundationClosureReport {
@@ -1983,106 +2030,225 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
                 "earlier-district event map key differs from event_id",
             )?;
         }
-        self.reserve(
-            std::mem::size_of::<BTreeSet<String>>()
-                + 3 * (std::mem::size_of::<String>() + 4 * std::mem::size_of::<usize>())
-                + TOPOLOGY_PROVENANCE.len()
-                + DERIVATION_PROVENANCE.len()
-                + CHRONOLOGY_PROVENANCE.len(),
-        )?;
-        let mut event_paths = BTreeSet::from([
-            TOPOLOGY_PROVENANCE.to_owned(),
-            DERIVATION_PROVENANCE.to_owned(),
-            CHRONOLOGY_PROVENANCE.to_owned(),
-        ]);
-        event_paths.extend(self.collect_current_paths(
-            |path| path.ends_with(PROVISION_EVENT_BASENAME),
-            "source-foundation closure event-path index",
-        )?);
-        for path in event_paths {
-            if !self.path_exists(&path)? {
-                continue;
+        if self.schema_request_store.is_some() {
+            // Queue matching paths while the owner performs its authenticated
+            // full walk. Read their source bytes only after that walk has
+            // reached EOF, so the source adapter never has to reenter its
+            // active member callback.
+            let path_source = self.paths;
+            let deadline = self.limits.deadline;
+            let cancelled = self.source.cancellation();
+            let mut event_path_rows = 0u64;
+            for path in [
+                TOPOLOGY_PROVENANCE,
+                DERIVATION_PROVENANCE,
+                CHRONOLOGY_PROVENANCE,
+            ] {
+                self.remember_candidate_event_path(path, &mut event_path_rows)?;
             }
-            let Some(loaded) = self.json_rows(&path, PROVENANCE_SCHEMA, false)? else {
+            path_source.for_each_path(&mut |path| {
+                check(deadline, cancelled)?;
+                if path.ends_with(PROVISION_EVENT_BASENAME) {
+                    self.remember_candidate_event_path(path, &mut event_path_rows)?;
+                }
+                Ok(())
+            })?;
+            self.schema_request_store
+                .as_deref_mut()
+                .ok_or(ItemRefusal::Budget)?
+                .seal_event_paths(event_path_rows)?;
+            let mut after_path: Option<String> = None;
+            let mut cursor_state_bytes = 0usize;
+            loop {
+                let remaining = self.remaining_state()?;
+                let (next_path, workspace, retained_cursor_state_bytes) = self
+                    .schema_request_store
+                    .as_deref_mut()
+                    .ok_or(ItemRefusal::Budget)?
+                    .next_event_path(after_path.as_deref(), remaining)?;
+                self.include_store_workspace(workspace)?;
+                let Some(path) = next_path else {
+                    if retained_cursor_state_bytes != 0 {
+                        return Err(ItemRefusal::Budget);
+                    }
+                    break;
+                };
+                let next_local_cursor_state_bytes = path
+                    .len()
+                    .checked_mul(2)
+                    .and_then(|state| {
+                        state.checked_add(
+                            std::mem::size_of::<String>() + 4 * std::mem::size_of::<usize>(),
+                        )
+                    })
+                    .ok_or(ItemRefusal::Budget)?;
+                let next_cursor_state_bytes = next_local_cursor_state_bytes
+                    .checked_add(retained_cursor_state_bytes)
+                    .ok_or(ItemRefusal::Budget)?;
+                self.reserve_temporary(next_cursor_state_bytes)?;
+                drop(after_path.take());
+                self.release_loaded_rows(cursor_state_bytes)?;
+                after_path = Some(path);
+                cursor_state_bytes = next_cursor_state_bytes;
+                let event_path = after_path.as_deref().ok_or(ItemRefusal::Budget)?;
+                let path_lookup_state = event_path
+                    .len()
+                    .checked_mul(32)
+                    .and_then(|state| state.checked_add(10_240))
+                    .ok_or(ItemRefusal::Budget)?;
+                self.reserve_temporary(path_lookup_state)?;
+                let exists = self.path_exists(event_path);
+                let release = self.release_loaded_rows(path_lookup_state);
+                let exists = exists?;
+                release?;
+                if exists {
+                    self.collect_event_path(event_path)?;
+                }
+            }
+            drop(after_path.take());
+            self.release_loaded_rows(cursor_state_bytes)?;
+            self.schema_request_store
+                .as_deref_mut()
+                .ok_or(ItemRefusal::Budget)?
+                .finish_event_paths(event_path_rows)?;
+        } else {
+            self.reserve(
+                std::mem::size_of::<BTreeSet<String>>()
+                    + 3 * (std::mem::size_of::<String>() + 4 * std::mem::size_of::<usize>())
+                    + TOPOLOGY_PROVENANCE.len()
+                    + DERIVATION_PROVENANCE.len()
+                    + CHRONOLOGY_PROVENANCE.len(),
+            )?;
+            let mut event_paths = BTreeSet::from([
+                TOPOLOGY_PROVENANCE.to_owned(),
+                DERIVATION_PROVENANCE.to_owned(),
+                CHRONOLOGY_PROVENANCE.to_owned(),
+            ]);
+            event_paths.extend(self.collect_current_paths(
+                |path| path.ends_with(PROVISION_EVENT_BASENAME),
+                "source-foundation closure event-path index",
+            )?);
+            for path in event_paths {
+                if self.path_exists(&path)? {
+                    self.collect_event_path(&path)?;
+                }
+            }
+        }
+        Ok(())
+    }
+
+    fn remember_candidate_event_path(
+        &mut self,
+        path: &str,
+        event_path_rows: &mut u64,
+    ) -> Result<(), ItemRefusal> {
+        let path_state_bytes = path
+            .len()
+            .checked_mul(2)
+            .and_then(|state| {
+                state.checked_add(std::mem::size_of::<String>() + 4 * std::mem::size_of::<usize>())
+            })
+            .ok_or(ItemRefusal::Budget)?;
+        self.reserve_temporary(path_state_bytes)?;
+        let result = (|| {
+            let remaining = self.remaining_state()?;
+            let (inserted, workspace) = self
+                .schema_request_store
+                .as_deref_mut()
+                .ok_or(ItemRefusal::Budget)?
+                .remember_event_path(path, remaining)?;
+            self.include_store_workspace(workspace)?;
+            if inserted {
+                *event_path_rows = event_path_rows.checked_add(1).ok_or(ItemRefusal::Budget)?;
+                self.cost.candidate_event_path_count = *event_path_rows;
+            }
+            Ok(())
+        })();
+        let release = self.release_loaded_rows(path_state_bytes);
+        result?;
+        release
+    }
+
+    fn collect_event_path(&mut self, path: &str) -> Result<(), ItemRefusal> {
+        let Some(loaded) = self.json_rows(path, PROVENANCE_SCHEMA, false)? else {
+            return Ok(());
+        };
+        let loaded_state_bytes = loaded.temporary_state_bytes;
+        for (line, event) in loaded.rows {
+            check(self.limits.deadline, self.source.cancellation())?;
+            self.validate_source_refs(&format!("{path}:{line}"), &event)?;
+            let Some(id) = text(&event, "event_id").map(str::to_owned) else {
                 continue;
             };
-            let loaded_state_bytes = loaded.temporary_state_bytes;
-            for (line, event) in loaded.rows {
-                check(self.limits.deadline, self.source.cancellation())?;
-                self.validate_source_refs(&format!("{path}:{line}"), &event)?;
-                let Some(id) = text(&event, "event_id").map(str::to_owned) else {
-                    continue;
-                };
-                let candidate_store_active = self.schema_request_store.is_some();
-                let candidate_id_workspace = if candidate_store_active {
-                    let workspace = id
-                        .len()
+            let candidate_store_active = self.schema_request_store.is_some();
+            let candidate_id_workspace = if candidate_store_active {
+                let workspace = id
+                    .len()
+                    .checked_mul(2)
+                    .and_then(|bytes| bytes.checked_add(std::mem::size_of::<String>() + 64))
+                    .ok_or(ItemRefusal::Budget)?;
+                self.reserve_temporary(workspace)?;
+                workspace
+            } else {
+                let event_state = crate::record_biblio_cut::decoded_state(&event)?;
+                self.reserve(
+                    id.len()
                         .checked_mul(2)
-                        .and_then(|bytes| bytes.checked_add(std::mem::size_of::<String>() + 64))
+                        .and_then(|n| n.checked_add(event_state))
+                        .and_then(|n| {
+                            n.checked_add(
+                                2 * std::mem::size_of::<String>()
+                                    + 2 * std::mem::size_of::<usize>()
+                                    + std::mem::size_of::<Value>(),
+                            )
+                        })
+                        .ok_or(ItemRefusal::Budget)?,
+                )?;
+                0
+            };
+            let source_has_id = self.source_events.event_contains(&id)?;
+            let duplicate = if source_has_id {
+                true
+            } else if candidate_store_active {
+                let remaining = self.remaining_state()?;
+                let (inserted, workspace) = self
+                    .schema_request_store
+                    .as_deref_mut()
+                    .ok_or(ItemRefusal::Budget)?
+                    .remember_event(&id, path, line, &loaded.digest, &event, remaining)?;
+                self.include_store_workspace(workspace)?;
+                if inserted {
+                    self.cost.candidate_event_count = self
+                        .cost
+                        .candidate_event_count
+                        .checked_add(1)
                         .ok_or(ItemRefusal::Budget)?;
-                    self.reserve_temporary(workspace)?;
-                    workspace
-                } else {
-                    let event_state = crate::record_biblio_cut::decoded_state(&event)?;
-                    self.reserve(
-                        id.len()
-                            .checked_mul(2)
-                            .and_then(|n| n.checked_add(event_state))
-                            .and_then(|n| {
-                                n.checked_add(
-                                    2 * std::mem::size_of::<String>()
-                                        + 2 * std::mem::size_of::<usize>()
-                                        + std::mem::size_of::<Value>(),
-                                )
-                            })
-                            .ok_or(ItemRefusal::Budget)?,
-                    )?;
-                    0
-                };
-                let source_has_id = self.source_events.event_contains(&id)?;
-                let duplicate = if source_has_id {
-                    true
-                } else if candidate_store_active {
-                    let remaining = self.remaining_state()?;
-                    let (inserted, workspace) = self
-                        .schema_request_store
-                        .as_deref_mut()
-                        .ok_or(ItemRefusal::Budget)?
-                        .remember_event(&id, &path, line, &loaded.digest, &event, remaining)?;
-                    self.include_store_workspace(workspace)?;
-                    if inserted {
-                        self.cost.candidate_event_count = self
-                            .cost
-                            .candidate_event_count
-                            .checked_add(1)
-                            .ok_or(ItemRefusal::Budget)?;
-                    }
-                    !inserted
-                } else {
-                    !self.event_ids.insert(id.clone())
-                };
-                if duplicate {
-                    self.issue(
-                        format!("{path}:{line}"),
-                        format!("duplicate event_id: {id}"),
-                    )?;
-                } else if self.schema_request_store.is_none() {
-                    self.events.insert(id.clone(), event);
                 }
-                if path.ends_with(PROVISION_EVENT_BASENAME) {
-                    if candidate_store_active {
-                        self.release_loaded_rows(candidate_id_workspace)?;
-                    }
-                    self.reserve(
-                        id.len() + std::mem::size_of::<String>() + 4 * std::mem::size_of::<usize>(),
-                    )?;
-                    self.provision_event_ids.insert(id);
-                } else if candidate_store_active {
+                !inserted
+            } else {
+                !self.event_ids.insert(id.clone())
+            };
+            if duplicate {
+                self.issue(
+                    format!("{path}:{line}"),
+                    format!("duplicate event_id: {id}"),
+                )?;
+            } else if self.schema_request_store.is_none() {
+                self.events.insert(id.clone(), event);
+            }
+            if path.ends_with(PROVISION_EVENT_BASENAME) {
+                if candidate_store_active {
                     self.release_loaded_rows(candidate_id_workspace)?;
                 }
+                self.reserve(
+                    id.len() + std::mem::size_of::<String>() + 4 * std::mem::size_of::<usize>(),
+                )?;
+                self.provision_event_ids.insert(id);
+            } else if candidate_store_active {
+                self.release_loaded_rows(candidate_id_workspace)?;
             }
-            self.release_loaded_rows(loaded_state_bytes)?;
         }
+        self.release_loaded_rows(loaded_state_bytes)?;
         Ok(())
     }
 
@@ -4173,7 +4339,7 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
             let scratch = link_validation_workspace(&link.value, targets)?;
             self.reserve_temporary(scratch)?;
             self.check_link_row(&link.id, &link.path, &link.value, targets, events)?;
-            let next_cursor_state = estimate_string_state(&link.id)?;
+            let next_cursor_state = estimate_string_storage(&link.id)?;
             self.reserve_temporary(next_cursor_state)?;
             let next_after = link.id.clone();
             drop(link);

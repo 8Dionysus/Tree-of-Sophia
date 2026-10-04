@@ -414,6 +414,24 @@ fn candidate_request_count<I>(
                 .closure
                 .cost
                 .candidate_event_peak_workspace_state_bytes
+        || closure_store_cost.event_path_rows != owner.closure.cost.candidate_event_path_count
+        || closure_store_cost.event_path_serialized_read_bytes
+            != owner
+                .closure
+                .cost
+                .candidate_event_path_serialized_read_bytes
+        || closure_store_cost.event_path_serialized_write_bytes
+            != owner
+                .closure
+                .cost
+                .candidate_event_path_serialized_write_bytes
+        || closure_store_cost.event_path_scan_row_operations
+            != owner.closure.cost.candidate_event_path_scan_row_operations
+        || closure_store_cost.event_path_workspace_state_bytes
+            != owner
+                .closure
+                .cost
+                .candidate_event_path_peak_workspace_state_bytes
         || (reported_closure_spooled_count > 0 && !owner.closure.schema_requests.is_empty())
         || closure_spooled_count.checked_add(owner.closure.schema_requests.len())
             != Some(closure_total_count)

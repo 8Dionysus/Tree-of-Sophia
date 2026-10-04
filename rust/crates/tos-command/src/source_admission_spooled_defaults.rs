@@ -732,6 +732,9 @@ impl<'candidate, 'host> SpoolDefaultStore<'candidate, 'host> {
                  document_sha256 TEXT NOT NULL COLLATE BINARY CHECK(length(document_sha256)=64),\
                  event_json BLOB NOT NULL CHECK(length(event_json)>0)\
              ) WITHOUT ROWID;\
+             CREATE TABLE sf_closure_event_paths(\
+                 path TEXT NOT NULL COLLATE BINARY PRIMARY KEY CHECK(length(path)>0)\
+             ) WITHOUT ROWID;\
              CREATE TABLE sf_discovery_seen_ids(\
                  namespace TEXT NOT NULL COLLATE BINARY CHECK(namespace IN ('artifact','composite','composite-representation','event','discovery-event','representation-file','schema-location','payload-observation','artifact-replay-reference','planned-manifest','native-artifact-transaction')),\
                  key TEXT NOT NULL COLLATE BINARY,\
@@ -2957,6 +2960,18 @@ struct CandidateClosureSchemaRequests<'a, 'candidate, 'host, 'cancel, 'budget> {
     event_serialized_write_bytes: u64,
     event_scan_row_operations: u64,
     event_workspace_state_bytes: usize,
+    event_path_rows: u64,
+    event_path_drained_rows: u64,
+    event_path_serialized_read_bytes: u64,
+    event_path_serialized_write_bytes: u64,
+    event_path_scan_row_operations: u64,
+    event_path_workspace_state_bytes: usize,
+    max_event_path_queue_bytes: usize,
+    last_event_path: Option<String>,
+    expected_event_path_rows: Option<u64>,
+    event_paths_sealed: bool,
+    event_paths_eof_seen: bool,
+    event_paths_drained: bool,
     max_event_id_bytes: usize,
     max_event_path_bytes: usize,
     max_event_json_bytes: usize,
@@ -3035,6 +3050,22 @@ impl CandidateClosureSchemaRequests<'_, '_, '_, '_, '_> {
         self.charge_scan_rows(rows)?;
         self.event_scan_row_operations = self
             .event_scan_row_operations
+            .checked_add(usize_u64(rows)?)
+            .ok_or(ItemRefusal::Budget)?;
+        Ok(())
+    }
+
+    fn event_path_workspace(path_bytes: usize, copies: usize) -> Result<usize, ItemRefusal> {
+        Self::row_text_state(path_bytes)?
+            .checked_mul(copies)
+            .and_then(|state| state.checked_add(size_of::<(String, String)>() + 512))
+            .ok_or(ItemRefusal::Budget)
+    }
+
+    fn charge_event_path_scan_rows(&mut self, rows: usize) -> Result<(), ItemRefusal> {
+        self.charge_scan_rows(rows)?;
+        self.event_path_scan_row_operations = self
+            .event_path_scan_row_operations
             .checked_add(usize_u64(rows)?)
             .ok_or(ItemRefusal::Budget)?;
         Ok(())
@@ -3229,6 +3260,11 @@ impl CandidateClosureSchemaRequests<'_, '_, '_, '_, '_> {
             event_serialized_write_bytes: self.event_serialized_write_bytes,
             event_scan_row_operations: self.event_scan_row_operations,
             event_workspace_state_bytes: self.event_workspace_state_bytes,
+            event_path_rows: self.event_path_rows,
+            event_path_serialized_read_bytes: self.event_path_serialized_read_bytes,
+            event_path_serialized_write_bytes: self.event_path_serialized_write_bytes,
+            event_path_scan_row_operations: self.event_path_scan_row_operations,
+            event_path_workspace_state_bytes: self.event_path_workspace_state_bytes,
         }
     }
 
@@ -3240,6 +3276,8 @@ impl CandidateClosureSchemaRequests<'_, '_, '_, '_, '_> {
             || self.expected_loaded_documents != Some(self.loaded_document_rows)
             || self.expected_event_rows != Some(self.event_rows)
             || !self.events_drained
+            || self.expected_event_path_rows != Some(self.event_path_rows)
+            || !self.event_paths_drained
         {
             return Err(source_refusal());
         }
@@ -3482,6 +3520,183 @@ impl SourceFoundationClosureSchemaRequestStore
         ))
     }
 
+    fn remember_event_path(
+        &mut self,
+        path: &str,
+        max_state_bytes: usize,
+    ) -> Result<(bool, usize), ItemRefusal> {
+        if self.finished
+            || self.event_paths_sealed
+            || self.event_paths_drained
+            || path.is_empty()
+            || path.len() > 4096
+        {
+            return Err(source_refusal());
+        }
+        RelativePath::new(path).map_err(|_| source_refusal())?;
+        let workspace = Self::event_path_workspace(path.len(), 2)?;
+        self.preflight(workspace, max_state_bytes)?;
+        self.context.check()?;
+        // Reserve the attempted insert and exact-key readback before either
+        // SQL operation; duplicate paths retain the original BTreeSet law.
+        self.charge_event_path_scan_rows(2)?;
+        let inserted = self
+            .db
+            .execute(
+                "INSERT OR IGNORE INTO sf_closure_event_paths(path) VALUES(?1)",
+                [path],
+            )
+            .map_err(sql_refusal)?;
+        if inserted > 1 {
+            return Err(source_refusal());
+        }
+        self.context.check()?;
+        let mut statement = self
+            .db
+            .prepare("SELECT path FROM sf_closure_event_paths WHERE path=?1")
+            .map_err(sql_refusal)?;
+        let mut rows = statement.query([path]).map_err(sql_refusal)?;
+        let stored = rows
+            .next()
+            .map_err(sql_refusal)?
+            .map(|row| bounded_row_text(row, 0, workspace))
+            .transpose()
+            .map_err(sql_refusal)?
+            .ok_or_else(source_refusal)?;
+        if rows.next().map_err(sql_refusal)?.is_some() || stored != path {
+            return Err(source_refusal());
+        }
+        drop(rows);
+        drop(statement);
+        self.context.check()?;
+        self.event_path_serialized_read_bytes = self
+            .event_path_serialized_read_bytes
+            .checked_add(usize_u64(stored.len())?)
+            .ok_or(ItemRefusal::Budget)?;
+        if inserted == 1 {
+            self.event_path_rows = self
+                .event_path_rows
+                .checked_add(1)
+                .ok_or(ItemRefusal::Budget)?;
+            self.event_path_serialized_write_bytes = self
+                .event_path_serialized_write_bytes
+                .checked_add(usize_u64(path.len())?)
+                .ok_or(ItemRefusal::Budget)?;
+            self.max_event_path_queue_bytes = self.max_event_path_queue_bytes.max(path.len());
+        }
+        self.event_path_workspace_state_bytes =
+            self.event_path_workspace_state_bytes.max(workspace);
+        Ok((inserted == 1, workspace))
+    }
+
+    fn seal_event_paths(&mut self, expected_rows: u64) -> Result<(), ItemRefusal> {
+        if self.finished
+            || self.event_paths_sealed
+            || self.event_paths_drained
+            || self.event_path_rows != expected_rows
+        {
+            return Err(source_refusal());
+        }
+        self.context.check()?;
+        self.expected_event_path_rows = Some(expected_rows);
+        self.event_paths_sealed = true;
+        Ok(())
+    }
+
+    fn next_event_path(
+        &mut self,
+        after_path: Option<&str>,
+        max_state_bytes: usize,
+    ) -> Result<(Option<String>, usize, usize), ItemRefusal> {
+        if self.finished
+            || !self.event_paths_sealed
+            || self.event_paths_drained
+            || self.event_paths_eof_seen
+            || self.event_path_drained_rows > self.event_path_rows
+            || after_path.is_some_and(|path| path.is_empty() || path.len() > 4096)
+        {
+            return Err(source_refusal());
+        }
+        if after_path != self.last_event_path.as_deref() {
+            return Err(source_refusal());
+        }
+        let workspace = Self::event_path_workspace(self.max_event_path_queue_bytes.max(1), 3)?;
+        self.preflight(workspace, max_state_bytes)?;
+        self.context.check()?;
+        self.charge_event_path_scan_rows(1)?;
+        let sql = if after_path.is_some() {
+            "SELECT path FROM sf_closure_event_paths WHERE path>?1 ORDER BY path COLLATE BINARY LIMIT 1"
+        } else {
+            "SELECT path FROM sf_closure_event_paths ORDER BY path COLLATE BINARY LIMIT 1"
+        };
+        let mut statement = self.db.prepare(sql).map_err(sql_refusal)?;
+        let mut rows = if let Some(after) = after_path {
+            statement.query([after]).map_err(sql_refusal)?
+        } else {
+            statement.query([]).map_err(sql_refusal)?
+        };
+        let path = rows
+            .next()
+            .map_err(sql_refusal)?
+            .map(|row| bounded_row_text(row, 0, workspace))
+            .transpose()
+            .map_err(sql_refusal)?;
+        if rows.next().map_err(sql_refusal)?.is_some() {
+            return Err(source_refusal());
+        }
+        drop(rows);
+        drop(statement);
+        self.context.check()?;
+        let Some(path) = path else {
+            if self.event_path_drained_rows != self.event_path_rows {
+                return Err(source_refusal());
+            }
+            self.event_path_eof_seen = true;
+            self.last_event_path = None;
+            self.event_path_workspace_state_bytes =
+                self.event_path_workspace_state_bytes.max(workspace);
+            return Ok((None, workspace, 0));
+        };
+        RelativePath::new(&path).map_err(|_| source_refusal())?;
+        if path.len() > self.max_event_path_queue_bytes
+            || after_path.is_some_and(|previous| previous >= path.as_str())
+            || self.event_path_drained_rows >= self.event_path_rows
+        {
+            return Err(source_refusal());
+        }
+        self.event_path_drained_rows = self
+            .event_path_drained_rows
+            .checked_add(1)
+            .ok_or(ItemRefusal::Budget)?;
+        self.event_path_serialized_read_bytes = self
+            .event_path_serialized_read_bytes
+            .checked_add(usize_u64(path.len())?)
+            .ok_or(ItemRefusal::Budget)?;
+        self.last_event_path = Some(path.clone());
+        self.event_path_workspace_state_bytes =
+            self.event_path_workspace_state_bytes.max(workspace);
+        let retained_cursor_state_bytes = Self::row_text_state(path.len())?;
+        self.context.check()?;
+        Ok((Some(path), workspace, retained_cursor_state_bytes))
+    }
+
+    fn finish_event_paths(&mut self, expected_rows: u64) -> Result<(), ItemRefusal> {
+        if self.finished
+            || !self.event_paths_sealed
+            || self.event_paths_drained
+            || self.expected_event_path_rows != Some(expected_rows)
+            || self.event_path_rows != expected_rows
+            || self.event_path_drained_rows != expected_rows
+            || !self.event_path_eof_seen
+            || self.last_event_path.is_some()
+        {
+            return Err(source_refusal());
+        }
+        self.context.check()?;
+        self.event_paths_drained = true;
+        Ok(())
+    }
+
     fn observe_loaded_document(
         &mut self,
         path: &str,
@@ -3683,6 +3898,7 @@ impl SourceFoundationClosureSchemaRequestStore
         expected_rows: u64,
         expected_loaded_documents: u64,
         expected_event_rows: u64,
+        expected_event_path_rows: u64,
         direct_issue_count: usize,
         max_state_bytes: usize,
     ) -> Result<SourceFoundationClosureSchemaRequestStoreCost, ItemRefusal> {
@@ -3693,6 +3909,9 @@ impl SourceFoundationClosureSchemaRequestStore
                 .is_some_and(|ordinal| ordinal > direct_issue_count)
             || self.loaded_document_rows != expected_loaded_documents
             || self.event_rows != expected_event_rows
+            || self.event_path_rows != expected_event_path_rows
+            || self.expected_event_path_rows != Some(expected_event_path_rows)
+            || !self.event_paths_drained
             || (expected_rows > 0) != self.max_document_bytes.is_some()
         {
             return Err(source_refusal());
@@ -5445,6 +5664,18 @@ impl<'candidate, 'host> SpoolDefaultStore<'candidate, 'host> {
                 event_serialized_write_bytes: 0,
                 event_scan_row_operations: 0,
                 event_workspace_state_bytes: 0,
+                event_path_rows: 0,
+                event_path_drained_rows: 0,
+                event_path_serialized_read_bytes: 0,
+                event_path_serialized_write_bytes: 0,
+                event_path_scan_row_operations: 0,
+                event_path_workspace_state_bytes: 0,
+                max_event_path_queue_bytes: 0,
+                last_event_path: None,
+                expected_event_path_rows: None,
+                event_paths_sealed: false,
+                event_paths_eof_seen: false,
+                event_paths_drained: false,
                 max_event_id_bytes: 0,
                 max_event_path_bytes: 0,
                 max_event_json_bytes: 0,
