@@ -257,6 +257,9 @@ pub struct SourceFoundationClosureCost {
     /// Candidate Expression-derivation graph projections and external DFS
     /// state in the invocation-scoped Closure store.
     pub candidate_derivation_store: SourceFoundationClosureDerivationStoreCost,
+    /// Candidate bibliographic-topology ClaimRef projections held in the
+    /// invocation-scoped Closure store.
+    pub candidate_topology_store: SourceFoundationClosureTopologyStoreCost,
 }
 
 /// Plain current-record projection used only by the source-foundation Link
@@ -335,6 +338,20 @@ pub struct SourceFoundationClosureDerivationStoreCost {
     pub serialized_write_bytes: u64,
     pub scan_row_operations: u64,
     pub peak_workspace_state_bytes: usize,
+}
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct SourceFoundationClosureTopologyStoreCost {
+    pub claim_rows: u64,
+    pub drained_rows: u64,
+    pub subject_stream_rows: u64,
+    pub subject_stream_eof_count: u64,
+    pub serialized_read_bytes: u64,
+    pub serialized_write_bytes: u64,
+    pub scan_row_operations: u64,
+    pub peak_workspace_state_bytes: usize,
+    pub eof_seen: bool,
+    pub count_verified: bool,
 }
 
 /// Exact ordered set owned by the held Closure derivation scratch store.
@@ -497,6 +514,7 @@ pub struct SourceFoundationClosureSchemaRequestStoreCost {
     pub boundary_responsibility_ref_eof_seen: bool,
     pub boundary_responsibility_ref_count_verified: bool,
     pub derivation: SourceFoundationClosureDerivationStoreCost,
+    pub topology: SourceFoundationClosureTopologyStoreCost,
 }
 
 /// Portable candidate spool for authentic Closure schema requests,
@@ -943,9 +961,35 @@ pub trait SourceFoundationClosureSchemaRequestStore {
         expected_provision_used_event_rows: u64,
         expected_provision_validated_event_rows: u64,
         expected_provision_unused_event_rows: u64,
+        expected_topology_claim_rows: u64,
         direct_issue_count: usize,
         max_state_bytes: usize,
     ) -> Result<SourceFoundationClosureSchemaRequestStoreCost, ItemRefusal>;
+
+    /// Upsert one source-derived topology ClaimRef using the old map's
+    /// last-write projection semantics.
+    fn remember_topology_claim(
+        &mut self,
+        id: &str,
+        reference: &SourceFoundationClosureClaimRef,
+        max_state_bytes: usize,
+    ) -> Result<(bool, usize), ItemRefusal>;
+
+    fn topology_claim_by_id(
+        &mut self,
+        id: &str,
+        max_state_bytes: usize,
+    ) -> Result<(Option<SourceFoundationClosureClaimRef>, usize), ItemRefusal>;
+
+    /// Stream one predicate/subject projection in strict binary Claim ID
+    /// order; the returned count is valid only after actual query EOF.
+    fn for_each_topology_claim_for_subject(
+        &mut self,
+        subject: &str,
+        predicate: &str,
+        max_state_bytes: usize,
+        visit: &mut dyn FnMut(&str, usize) -> Result<(), ItemRefusal>,
+    ) -> Result<(u64, usize), ItemRefusal>;
 
     fn next_request(
         &mut self,
@@ -1280,6 +1324,7 @@ fn run_source_foundation_closure<S: LayerFamilySource + ?Sized>(
     let expected_provision_validated_event_rows =
         rules.cost.candidate_provision_validated_event_count;
     let expected_provision_unused_event_rows = rules.cost.candidate_provision_unused_event_count;
+    let expected_topology_claim_rows = rules.cost.candidate_topology_store.claim_rows;
     let schema_request_finish = if rules.schema_request_store.is_some() {
         let direct_issue_count = rules.issues.len();
         let remaining = rules.remaining_state()?;
@@ -1304,6 +1349,7 @@ fn run_source_foundation_closure<S: LayerFamilySource + ?Sized>(
                 expected_provision_used_event_rows,
                 expected_provision_validated_event_rows,
                 expected_provision_unused_event_rows,
+                expected_topology_claim_rows,
                 direct_issue_count,
                 remaining,
             )?;
@@ -1334,6 +1380,7 @@ fn run_source_foundation_closure<S: LayerFamilySource + ?Sized>(
                         .max(finished.provision_unused_event_workspace_state_bytes)
                         .max(finished.provision_used_event_workspace_state_bytes)
                         .max(finished.provision_validated_event_workspace_state_bytes)
+                        .max(finished.topology.peak_workspace_state_bytes)
                         .max(finished.derivation.peak_workspace_state_bytes),
                 )
             })
@@ -1382,6 +1429,10 @@ fn run_source_foundation_closure<S: LayerFamilySource + ?Sized>(
             || finished.provision_unused_event_drained_rows != expected_provision_unused_event_rows
             || !finished.provision_unused_event_eof_seen
             || !finished.provision_unused_event_count_verified
+            || finished.topology.claim_rows != expected_topology_claim_rows
+            || finished.topology.drained_rows != expected_topology_claim_rows
+            || !finished.topology.eof_seen
+            || !finished.topology.count_verified
             || finished.derivation != rules.cost.candidate_derivation_store
         {
             return Err(ItemRefusal::Source(
@@ -1616,6 +1667,7 @@ fn run_source_foundation_closure<S: LayerFamilySource + ?Sized>(
             finished.provision_unused_event_eof_seen;
         rules.cost.candidate_provision_unused_event_count_verified =
             finished.provision_unused_event_count_verified;
+        rules.cost.candidate_topology_store = finished.topology;
     }
 
     Ok(SourceFoundationClosureReport {
@@ -3429,6 +3481,29 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
         Ok(())
     }
 
+    fn remember_candidate_topology_claim(
+        &mut self,
+        id: &str,
+        reference: &SourceFoundationClosureClaimRef,
+    ) -> Result<(), ItemRefusal> {
+        let remaining = self.remaining_state()?;
+        let (inserted, workspace) = self
+            .schema_request_store
+            .as_deref_mut()
+            .ok_or(ItemRefusal::Budget)?
+            .remember_topology_claim(id, reference, remaining)?;
+        self.include_store_workspace(workspace)?;
+        if inserted {
+            self.cost.candidate_topology_store.claim_rows = self
+                .cost
+                .candidate_topology_store
+                .claim_rows
+                .checked_add(1)
+                .ok_or(ItemRefusal::Budget)?;
+        }
+        Ok(())
+    }
+
     fn remember_candidate_provision_claim(
         &mut self,
         id: &str,
@@ -4306,10 +4381,26 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
                 }
                 self.expect_ref(&location, subject_ref, subject_kind)?;
                 self.expect_ref(&location, object_ref, object_kind)?;
-                if !self.python_equal(
-                    claim.get("maker").unwrap_or(&Value::Null),
-                    &serde_json::json!({"maker_type":"model","agent_ref":"model:codex"}),
-                )? {
+                let maker_matches = if self.schema_request_store.is_some() {
+                    let maker_state = estimate_fixed_json_object_storage(&[
+                        ("maker_type", Some("model")),
+                        ("agent_ref", Some("model:codex")),
+                    ])?;
+                    self.reserve_temporary(maker_state)?;
+                    let expected_maker =
+                        serde_json::json!({"maker_type":"model","agent_ref":"model:codex"});
+                    let matches = self
+                        .python_equal(claim.get("maker").unwrap_or(&Value::Null), &expected_maker);
+                    drop(expected_maker);
+                    self.release_temporary_state(maker_state)?;
+                    matches?
+                } else {
+                    self.python_equal(
+                        claim.get("maker").unwrap_or(&Value::Null),
+                        &serde_json::json!({"maker_type":"model","agent_ref":"model:codex"}),
+                    )?
+                };
+                if !maker_matches {
                     self.issue(
                         &location,
                         "bibliographic topology maker must be model:codex",
@@ -4442,16 +4533,33 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
                 drop(expected_evidence);
                 self.release_temporary_state(expected_evidence_state)?;
                 if !claim_id.is_empty() {
-                    if let Some(reference) = self.topology.get(claim_id) {
-                        if reference.subject != subject_ref.unwrap_or_default()
-                            || reference.predicate != predicate
-                            || reference.object != object_ref.unwrap_or_default()
-                        {
-                            self.issue(
-                                &location,
-                                "bibliographic topology claim differs from its source Claim row",
-                            )?;
-                        }
+                    let differs = if self.schema_request_store.is_some() {
+                        let remaining = self.remaining_state()?;
+                        let (reference, workspace) = self
+                            .schema_request_store
+                            .as_deref_mut()
+                            .ok_or(ItemRefusal::Budget)?
+                            .topology_claim_by_id(claim_id, remaining)?;
+                        self.include_store_workspace(workspace)?;
+                        let differs = reference.as_ref().is_some_and(|reference| {
+                            reference.subject != subject_ref.unwrap_or_default()
+                                || reference.predicate != predicate
+                                || reference.object != object_ref.unwrap_or_default()
+                        });
+                        drop(reference);
+                        differs
+                    } else {
+                        self.topology.get(claim_id).is_some_and(|reference| {
+                            reference.subject != subject_ref.unwrap_or_default()
+                                || reference.predicate != predicate
+                                || reference.object != object_ref.unwrap_or_default()
+                        })
+                    };
+                    if differs {
+                        self.issue(
+                            &location,
+                            "bibliographic topology claim differs from its source Claim row",
+                        )?;
                     }
                 }
             }
@@ -4460,6 +4568,24 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
         }
 
         if let Some(event) = &event {
+            let expected_configuration_state = if self.schema_request_store.is_some() {
+                Some(estimate_fixed_json_object_storage(&[
+                    ("work_expression_claims_materialized", None),
+                    ("expression_edition_claims_materialized", None),
+                    ("edition_item_claims_materialized", None),
+                    ("topology_claims_reviewed", None),
+                    ("source_text_admitted", None),
+                    ("human_review_performed", None),
+                    ("textual_equivalence_claims_created", None),
+                    ("semantic_claims_created", None),
+                    ("canon_promotion_performed", None),
+                ])?)
+            } else {
+                None
+            };
+            if let Some(state) = expected_configuration_state {
+                self.reserve_temporary(state)?;
+            }
             let expected_configuration = serde_json::json!({
                 "work_expression_claims_materialized": counts.get("has_expression").copied().unwrap_or_default(),
                 "expression_edition_claims_materialized": counts.get("embodied_by").copied().unwrap_or_default(),
@@ -4471,13 +4597,18 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
                 "semantic_claims_created": 0,
                 "canon_promotion_performed": false,
             });
-            if !self.python_equal(
+            let configuration_matches = self.python_equal(
                 event
                     .get("method")
                     .and_then(|method| method.get("configuration"))
                     .unwrap_or(&Value::Null),
                 &expected_configuration,
-            )? {
+            );
+            drop(expected_configuration);
+            if let Some(state) = expected_configuration_state {
+                self.release_temporary_state(state)?;
+            }
+            if !configuration_matches? {
                 self.issue(TOPOLOGY_PROVENANCE, "bibliographic topology provenance configuration differs from exact legacy batch counts and authority limits")?;
             }
         }
@@ -4492,46 +4623,53 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
         field: &str,
         predicate: &str,
     ) -> Result<(), ItemRefusal> {
-        let index_state = self
-            .topology
-            .iter()
-            .filter(|(_, claim)| claim.predicate == predicate)
-            .try_fold(
-                std::mem::size_of::<BTreeMap<String, BTreeSet<String>>>(),
-                |state, (id, claim)| {
-                    state
-                        .checked_add(
-                            id.len()
-                                .checked_add(claim.subject.len())
-                                .and_then(|n| {
-                                    n.checked_add(
-                                        2 * std::mem::size_of::<String>()
-                                            + std::mem::size_of::<BTreeSet<String>>()
-                                            + 8 * std::mem::size_of::<usize>(),
-                                    )
-                                })
-                                .ok_or(ItemRefusal::Budget)?,
-                        )
-                        .ok_or(ItemRefusal::Budget)
-                },
-            )?;
-        self.reserve(index_state)?;
-        let mut ids_by_subject = BTreeMap::<String, BTreeSet<String>>::new();
-        for (id, claim) in self
-            .topology
-            .iter()
-            .filter(|(_, claim)| claim.predicate == predicate)
-        {
-            ids_by_subject
-                .entry(claim.subject.clone())
-                .or_default()
-                .insert(id.clone());
-        }
+        let candidate = self.schema_request_store.is_some();
+        let ids_by_subject = if candidate {
+            None
+        } else {
+            let index_state = self
+                .topology
+                .iter()
+                .filter(|(_, claim)| claim.predicate == predicate)
+                .try_fold(
+                    std::mem::size_of::<BTreeMap<String, BTreeSet<String>>>(),
+                    |state, (id, claim)| {
+                        state
+                            .checked_add(
+                                id.len()
+                                    .checked_add(claim.subject.len())
+                                    .and_then(|n| {
+                                        n.checked_add(
+                                            2 * std::mem::size_of::<String>()
+                                                + std::mem::size_of::<BTreeSet<String>>()
+                                                + 8 * std::mem::size_of::<usize>(),
+                                        )
+                                    })
+                                    .ok_or(ItemRefusal::Budget)?,
+                            )
+                            .ok_or(ItemRefusal::Budget)
+                    },
+                )?;
+            self.reserve(index_state)?;
+            let mut ids_by_subject = BTreeMap::<String, BTreeSet<String>>::new();
+            for (id, claim) in self
+                .topology
+                .iter()
+                .filter(|(_, claim)| claim.predicate == predicate)
+            {
+                ids_by_subject
+                    .entry(claim.subject.clone())
+                    .or_default()
+                    .insert(id.clone());
+            }
+            Some(ids_by_subject)
+        };
         let records = self.records;
         let deadline = self.limits.deadline;
         let cancelled = self.source.cancellation();
         let limits = self.limits;
         let temporary = self.temporary_state_bytes;
+        let mut schema_request_store = self.schema_request_store.as_deref_mut();
         let issues = &mut self.issues;
         let cost = &mut self.cost;
         let retained = &mut self.retained_state_bytes;
@@ -4558,15 +4696,57 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
             cost.reserved_state_bytes = cost.reserved_state_bytes.max(used);
             let actual: BTreeSet<String> =
                 value_strings(&record.value, field).into_iter().collect();
-            let matches = ids_by_subject
-                .get(id)
-                .map_or(actual.is_empty(), |expected| expected == &actual);
+            let active_temporary = temporary;
+            let matches = if let Some(ids_by_subject) = ids_by_subject.as_ref() {
+                ids_by_subject
+                    .get(id)
+                    .map_or(actual.is_empty(), |expected| expected == &actual)
+            } else {
+                let remaining = limits
+                    .max_state_bytes
+                    .checked_sub(used)
+                    .ok_or(ItemRefusal::Budget)?;
+                let mut actual_ids = actual.iter();
+                let mut ordered_match = true;
+                let mut visited = 0u64;
+                let mut visit = |expected_id: &str, _workspace: usize| {
+                    visited = visited.checked_add(1).ok_or(ItemRefusal::Budget)?;
+                    if actual_ids.next().map(String::as_str) != Some(expected_id) {
+                        ordered_match = false;
+                    }
+                    Ok(())
+                };
+                let (drained, store_workspace) = schema_request_store
+                    .as_deref_mut()
+                    .ok_or(ItemRefusal::Budget)?
+                    .for_each_topology_claim_for_subject(id, predicate, remaining, &mut visit)?;
+                drop(visit);
+                if actual_ids.next().is_some() {
+                    ordered_match = false;
+                }
+                drop(actual_ids);
+                if visited != drained {
+                    return Err(ItemRefusal::Budget);
+                }
+                let total = used
+                    .checked_add(store_workspace)
+                    .ok_or(ItemRefusal::Budget)?;
+                if total > limits.max_state_bytes {
+                    return Err(ItemRefusal::BudgetCheck {
+                        check: "source-foundation closure topology stream workspace",
+                        used: Some(total as u64),
+                        limit: Some(limits.max_state_bytes as u64),
+                    });
+                }
+                cost.reserved_state_bytes = cost.reserved_state_bytes.max(total);
+                ordered_match
+            };
             if !matches {
                 push_bounded_issue(
                     issues,
                     cost,
                     retained,
-                    temporary,
+                    active_temporary,
                     limits,
                     cancelled,
                     &record.path,
@@ -8473,8 +8653,12 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
                     "has_expression" | "embodied_by" | "exemplified_by"
                 )
             {
-                self.reserve(claim_reference_index_state(&id, &reference)?)?;
-                self.topology.insert(id.clone(), reference.clone());
+                if self.schema_request_store.is_some() {
+                    self.remember_candidate_topology_claim(&id, &reference)?;
+                } else {
+                    self.reserve(claim_reference_index_state(&id, &reference)?)?;
+                    self.topology.insert(id.clone(), reference.clone());
+                }
             }
             if path == DERIVATION_CLAIMS || predicate == "is_derivative_of" {
                 if self.schema_request_store.is_some() {

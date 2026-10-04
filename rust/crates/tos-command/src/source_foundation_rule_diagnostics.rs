@@ -407,6 +407,7 @@ fn candidate_request_count<I>(
         .map_err(|_| "candidate stored Closure schema request count overflow")?;
     if closure_store_cost.observation_rows != reported_closure_spooled_count
         || closure_store_cost.derivation != owner.closure.cost.candidate_derivation_store
+        || closure_store_cost.topology != owner.closure.cost.candidate_topology_store
         || closure_store_cost.loaded_document_rows != reported_loaded_document_count
         || closure_store_cost.loaded_document_serialized_read_bytes
             != owner
@@ -1434,6 +1435,7 @@ pub(crate) fn evaluate_candidate_stored_rules<I: Copy + Eq>(
         if closure_spool_cost.observation_rows
             != owner_report.closure.cost.candidate_schema_request_count
             || closure_spool_cost.derivation != owner_report.closure.cost.candidate_derivation_store
+            || closure_spool_cost.topology != owner_report.closure.cost.candidate_topology_store
             || usize::try_from(closure_spool_cost.observation_rows).ok()
                 != Some(expected_closure_requests)
             || closure_spool_cost.serialized_write_bytes

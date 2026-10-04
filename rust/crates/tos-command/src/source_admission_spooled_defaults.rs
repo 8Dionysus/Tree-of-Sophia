@@ -27,7 +27,7 @@ use tos_validation::{
         SourceFoundationClosureEvent, SourceFoundationClosureLink,
         SourceFoundationClosureLinkStore, SourceFoundationClosureLinkStoreCost,
         SourceFoundationClosureSchemaRequest, SourceFoundationClosureSchemaRequestStore,
-        SourceFoundationClosureSchemaRequestStoreCost,
+        SourceFoundationClosureSchemaRequestStoreCost, SourceFoundationClosureTopologyStoreCost,
     },
     source_foundation_default_rules::{
         SourceFoundationDefaultClaims, SourceFoundationDefaultEventLookup,
@@ -784,6 +784,17 @@ impl<'candidate, 'host> SpoolDefaultStore<'candidate, 'host> {
                  event TEXT NOT NULL COLLATE BINARY,\
                  native INTEGER NOT NULL CHECK(native IN (0,1))\
              ) WITHOUT ROWID;\
+             CREATE TABLE sf_closure_topology_claims(\
+                 claim_id TEXT NOT NULL COLLATE BINARY PRIMARY KEY,\
+                 location TEXT NOT NULL COLLATE BINARY,\
+                 subject TEXT NOT NULL COLLATE BINARY,\
+                 predicate TEXT NOT NULL COLLATE BINARY,\
+                 object TEXT NOT NULL COLLATE BINARY,\
+                 event TEXT NOT NULL COLLATE BINARY,\
+                 native INTEGER NOT NULL CHECK(native IN (0,1))\
+             ) WITHOUT ROWID;\
+             CREATE INDEX sf_closure_topology_subject_order\
+                 ON sf_closure_topology_claims(predicate COLLATE BINARY, subject COLLATE BINARY, claim_id COLLATE BINARY);\
              CREATE TABLE sf_closure_provision_event_ids(\
                  event_id TEXT NOT NULL COLLATE BINARY PRIMARY KEY\
              ) WITHOUT ROWID;\
@@ -3196,6 +3207,10 @@ struct CandidateClosureSchemaRequests<'a, 'candidate, 'host, 'cancel, 'budget> {
     boundary_responsibility_ref_eof_seen: bool,
     boundary_responsibility_ref_count_verified: bool,
     derivation_cost: SourceFoundationClosureDerivationStoreCost,
+    topology_cost: SourceFoundationClosureTopologyStoreCost,
+    max_topology_claim_bytes: [usize; 6],
+    expected_topology_claim_rows: Option<u64>,
+    topology_finished: bool,
     derivation_keyset_expected: [Option<u64>; 5],
     derivation_keyset_drained: [u64; 5],
     derivation_keyset_eof: [bool; 5],
@@ -4515,6 +4530,161 @@ impl CandidateClosureSchemaRequests<'_, '_, '_, '_, '_> {
         Ok(())
     }
 
+    fn charge_topology_scan_rows(&mut self, rows: usize) -> Result<(), ItemRefusal> {
+        self.charge_scan_rows(rows)?;
+        self.topology_cost.scan_row_operations = self
+            .topology_cost
+            .scan_row_operations
+            .checked_add(usize_u64(rows)?)
+            .ok_or(ItemRefusal::Budget)?;
+        Ok(())
+    }
+
+    fn finish_topology_claims_inner(
+        &mut self,
+        expected_rows: u64,
+        max_state_bytes: usize,
+    ) -> Result<(), ItemRefusal> {
+        if self.finished || self.topology_finished || self.topology_cost.claim_rows != expected_rows
+        {
+            return Err(source_refusal());
+        }
+        let count_workspace = size_of::<i64>() + 256;
+        self.preflight(count_workspace, max_state_bytes)?;
+        let count_scan_rows = usize::try_from(expected_rows)
+            .map_err(|_| ItemRefusal::Budget)?
+            .checked_add(1)
+            .ok_or(ItemRefusal::Budget)?;
+        self.charge_topology_scan_rows(count_scan_rows)?;
+        let mut statement = self
+            .db
+            .prepare("SELECT count(*) FROM sf_closure_topology_claims")
+            .map_err(sql_refusal)?;
+        let mut rows = statement.query([]).map_err(sql_refusal)?;
+        let actual_rows = rows
+            .next()
+            .map_err(sql_refusal)?
+            .map(|row| row.get::<_, i64>(0).map_err(sql_refusal))
+            .transpose()?
+            .ok_or_else(source_refusal)?;
+        if rows.next().map_err(sql_refusal)?.is_some()
+            || actual_rows < 0
+            || u64::try_from(actual_rows).map_err(|_| source_refusal())? != expected_rows
+        {
+            return Err(source_refusal());
+        }
+        self.topology_cost.serialized_read_bytes = self
+            .topology_cost
+            .serialized_read_bytes
+            .checked_add(size_of::<i64>() as u64)
+            .ok_or(ItemRefusal::Budget)?;
+        drop(rows);
+        drop(statement);
+        self.topology_cost.peak_workspace_state_bytes = self
+            .topology_cost
+            .peak_workspace_state_bytes
+            .max(count_workspace);
+
+        let id_bound = self.max_topology_claim_bytes[0];
+        let drain_base = size_of::<Option<String>>() + size_of::<String>() + 512;
+        let drain_workspace = drain_base
+            .checked_add(Self::row_text_state(id_bound)?)
+            .and_then(|state| state.checked_add(Self::row_text_state(id_bound).ok()?))
+            .ok_or(ItemRefusal::Budget)?;
+        self.preflight(drain_workspace, max_state_bytes)?;
+        let drain_scan_rows = usize::try_from(expected_rows)
+            .map_err(|_| ItemRefusal::Budget)?
+            .checked_add(1)
+            .ok_or(ItemRefusal::Budget)?;
+        self.charge_topology_scan_rows(drain_scan_rows)?;
+        let mut statement = self
+            .db
+            .prepare(
+                "SELECT claim_id FROM sf_closure_topology_claims ORDER BY claim_id COLLATE BINARY",
+            )
+            .map_err(sql_refusal)?;
+        let mut rows = statement.query([]).map_err(sql_refusal)?;
+        let mut previous: Option<String> = None;
+        let mut drained = 0u64;
+        let mut read_bytes = 0u64;
+        let mut workspace_peak = drain_workspace;
+        loop {
+            if drained % 128 == 0 {
+                self.context.check()?;
+            }
+            let Some(row) = rows.next().map_err(sql_refusal)? else {
+                let eof_workspace = drain_base
+                    .checked_add(
+                        previous
+                            .as_deref()
+                            .map(|id| Self::row_text_state(id.len()))
+                            .transpose()?
+                            .unwrap_or_default(),
+                    )
+                    .ok_or(ItemRefusal::Budget)?;
+                if eof_workspace > max_state_bytes {
+                    return Err(source_refusal());
+                }
+                self.context.row_state(eof_workspace)?;
+                workspace_peak = workspace_peak.max(eof_workspace);
+                break;
+            };
+            if drained >= expected_rows {
+                return Err(source_refusal());
+            }
+            let id_len = row_text_length(row, 0).map_err(sql_refusal)?;
+            if id_len > id_bound {
+                return Err(source_refusal());
+            }
+            let previous_state = previous
+                .as_deref()
+                .map(|id| Self::row_text_state(id.len()))
+                .transpose()?
+                .unwrap_or_default();
+            let workspace = drain_base
+                .checked_add(Self::row_text_state(id_len)?)
+                .and_then(|state| state.checked_add(previous_state))
+                .ok_or(ItemRefusal::Budget)?;
+            if workspace > max_state_bytes {
+                return Err(source_refusal());
+            }
+            self.context.row_state(workspace)?;
+            let id = bounded_row_text(row, 0, workspace).map_err(sql_refusal)?;
+            if previous
+                .as_deref()
+                .is_some_and(|prior| prior >= id.as_str())
+            {
+                return Err(source_refusal());
+            }
+            read_bytes = read_bytes
+                .checked_add(usize_u64(id.len())?)
+                .ok_or(ItemRefusal::Budget)?;
+            previous = Some(id);
+            drained = drained.checked_add(1).ok_or(ItemRefusal::Budget)?;
+            workspace_peak = workspace_peak.max(workspace);
+        }
+        drop(rows);
+        drop(statement);
+        self.context.check()?;
+        if drained != expected_rows {
+            return Err(source_refusal());
+        }
+        self.topology_cost.drained_rows = drained;
+        self.topology_cost.eof_seen = true;
+        self.topology_cost.count_verified = true;
+        self.topology_cost.serialized_read_bytes = self
+            .topology_cost
+            .serialized_read_bytes
+            .checked_add(read_bytes)
+            .ok_or(ItemRefusal::Budget)?;
+        self.topology_cost.peak_workspace_state_bytes = self
+            .topology_cost
+            .peak_workspace_state_bytes
+            .max(workspace_peak);
+        self.topology_finished = true;
+        Ok(())
+    }
+
     fn derivation_workspace(strings: &[usize], fixed: usize) -> Result<usize, ItemRefusal> {
         strings.iter().try_fold(fixed, |state, bytes| {
             state
@@ -5761,6 +5931,7 @@ impl CandidateClosureSchemaRequests<'_, '_, '_, '_, '_> {
             boundary_responsibility_ref_count_verified: self
                 .boundary_responsibility_ref_count_verified,
             derivation: self.derivation_cost,
+            topology: self.topology_cost,
         }
     }
 
@@ -5829,6 +6000,11 @@ impl CandidateClosureSchemaRequests<'_, '_, '_, '_, '_> {
             || !self.boundary_responsibility_ref_count_verified
             || !self.derivation_finished
             || !self.derivation_cost.derivation_finished
+            || self.expected_topology_claim_rows != Some(self.topology_cost.claim_rows)
+            || !self.topology_finished
+            || self.topology_cost.drained_rows != self.topology_cost.claim_rows
+            || !self.topology_cost.eof_seen
+            || !self.topology_cost.count_verified
         {
             return Err(source_refusal());
         }
@@ -7505,6 +7681,301 @@ impl SourceFoundationClosureSchemaRequestStore
         Ok((drained, workspace_peak))
     }
 
+    fn remember_topology_claim(
+        &mut self,
+        id: &str,
+        reference: &SourceFoundationClosureClaimRef,
+        max_state_bytes: usize,
+    ) -> Result<(bool, usize), ItemRefusal> {
+        if self.finished || self.topology_finished {
+            return Err(source_refusal());
+        }
+        let field_bytes = [
+            id.len(),
+            reference.location.len(),
+            reference.subject.len(),
+            reference.predicate.len(),
+            reference.object.len(),
+            reference.event.len(),
+        ];
+        let workspace = Self::responsibility_claim_workspace(field_bytes, 3)?;
+        self.preflight(workspace, max_state_bytes)?;
+        self.context.check()?;
+        self.charge_topology_scan_rows(3)?;
+        let existed = self
+            .db
+            .query_row(
+                "SELECT 1 FROM sf_closure_topology_claims WHERE claim_id=?1",
+                [id],
+                |_| Ok(()),
+            )
+            .optional()
+            .map_err(sql_refusal)?
+            .is_some();
+        self.context.check()?;
+        let changed = self
+            .db
+            .execute(
+                "INSERT INTO sf_closure_topology_claims(claim_id,location,subject,predicate,object,event,native) \
+                 VALUES(?1,?2,?3,?4,?5,?6,?7) ON CONFLICT(claim_id) DO UPDATE SET \
+                 location=excluded.location,subject=excluded.subject,predicate=excluded.predicate, \
+                 object=excluded.object,event=excluded.event,native=excluded.native",
+                params![
+                    id,
+                    reference.location,
+                    reference.subject,
+                    reference.predicate,
+                    reference.object,
+                    reference.event,
+                    if reference.native { 1_i64 } else { 0_i64 },
+                ],
+            )
+            .map_err(sql_refusal)?;
+        if changed != 1 {
+            return Err(source_refusal());
+        }
+        self.context.check()?;
+        let mut statement = self
+            .db
+            .prepare(
+                "SELECT location,subject,predicate,object,event,native \
+                 FROM sf_closure_topology_claims WHERE claim_id=?1",
+            )
+            .map_err(sql_refusal)?;
+        let mut rows = statement.query([id]).map_err(sql_refusal)?;
+        let stored = rows
+            .next()
+            .map_err(sql_refusal)?
+            .map(|row| {
+                Ok((
+                    bounded_row_text(row, 0, workspace)?,
+                    bounded_row_text(row, 1, workspace)?,
+                    bounded_row_text(row, 2, workspace)?,
+                    bounded_row_text(row, 3, workspace)?,
+                    bounded_row_text(row, 4, workspace)?,
+                    row.get::<_, i64>(5)?,
+                ))
+            })
+            .transpose()
+            .map_err(sql_refusal)?
+            .ok_or_else(source_refusal)?;
+        if rows.next().map_err(sql_refusal)?.is_some()
+            || stored.0 != reference.location
+            || stored.1 != reference.subject
+            || stored.2 != reference.predicate
+            || stored.3 != reference.object
+            || stored.4 != reference.event
+            || stored.5 != if reference.native { 1_i64 } else { 0_i64 }
+        {
+            return Err(source_refusal());
+        }
+        drop(rows);
+        drop(statement);
+        drop(stored);
+        self.context.check()?;
+        let serialized_fields = field_bytes.iter().try_fold(0usize, |bytes, field| {
+            bytes.checked_add(*field).ok_or(ItemRefusal::Budget)
+        })?;
+        let read_bytes = serialized_fields
+            .checked_add(if existed { id.len() } else { 0 })
+            .and_then(|bytes| bytes.checked_add(size_of::<i64>()))
+            .ok_or(ItemRefusal::Budget)?;
+        self.topology_cost.serialized_read_bytes = self
+            .topology_cost
+            .serialized_read_bytes
+            .checked_add(usize_u64(read_bytes)?)
+            .ok_or(ItemRefusal::Budget)?;
+        self.topology_cost.serialized_write_bytes = self
+            .topology_cost
+            .serialized_write_bytes
+            .checked_add(usize_u64(
+                serialized_fields
+                    .checked_add(size_of::<i64>())
+                    .ok_or(ItemRefusal::Budget)?,
+            )?)
+            .ok_or(ItemRefusal::Budget)?;
+        if !existed {
+            self.topology_cost.claim_rows = self
+                .topology_cost
+                .claim_rows
+                .checked_add(1)
+                .ok_or(ItemRefusal::Budget)?;
+        }
+        for (maximum, actual) in self.max_topology_claim_bytes.iter_mut().zip(field_bytes) {
+            *maximum = (*maximum).max(actual);
+        }
+        self.topology_cost.peak_workspace_state_bytes =
+            self.topology_cost.peak_workspace_state_bytes.max(workspace);
+        Ok((!existed, workspace))
+    }
+
+    fn topology_claim_by_id(
+        &mut self,
+        id: &str,
+        max_state_bytes: usize,
+    ) -> Result<(Option<SourceFoundationClosureClaimRef>, usize), ItemRefusal> {
+        if self.finished || self.topology_finished {
+            return Err(source_refusal());
+        }
+        let mut field_bytes = self.max_topology_claim_bytes;
+        field_bytes[0] = id.len();
+        let workspace = Self::responsibility_claim_workspace(field_bytes, 3)?;
+        self.preflight(workspace, max_state_bytes)?;
+        self.context.check()?;
+        self.charge_topology_scan_rows(1)?;
+        let mut statement = self
+            .db
+            .prepare(
+                "SELECT claim_id,location,subject,predicate,object,event,native \
+                 FROM sf_closure_topology_claims WHERE claim_id=?1",
+            )
+            .map_err(sql_refusal)?;
+        let mut rows = statement.query([id]).map_err(sql_refusal)?;
+        let stored = rows
+            .next()
+            .map_err(sql_refusal)?
+            .map(|row| {
+                let stored_id = bounded_row_text(row, 0, workspace)?;
+                let reference = SourceFoundationClosureClaimRef {
+                    location: bounded_row_text(row, 1, workspace)?,
+                    subject: bounded_row_text(row, 2, workspace)?,
+                    predicate: bounded_row_text(row, 3, workspace)?,
+                    object: bounded_row_text(row, 4, workspace)?,
+                    event: bounded_row_text(row, 5, workspace)?,
+                    native: match row.get::<_, i64>(6)? {
+                        0 => false,
+                        1 => true,
+                        _ => return Err(rusqlite::Error::InvalidQuery),
+                    },
+                };
+                Ok((stored_id, reference))
+            })
+            .transpose()
+            .map_err(sql_refusal)?;
+        if rows.next().map_err(sql_refusal)?.is_some()
+            || stored
+                .as_ref()
+                .is_some_and(|(stored_id, _)| stored_id != id)
+        {
+            return Err(source_refusal());
+        }
+        drop(rows);
+        drop(statement);
+        self.context.check()?;
+        if let Some((_, reference)) = &stored {
+            self.topology_cost.serialized_read_bytes = self
+                .topology_cost
+                .serialized_read_bytes
+                .checked_add(usize_u64(
+                    id.len()
+                        .checked_add(reference.location.len())
+                        .and_then(|bytes| bytes.checked_add(reference.subject.len()))
+                        .and_then(|bytes| bytes.checked_add(reference.predicate.len()))
+                        .and_then(|bytes| bytes.checked_add(reference.object.len()))
+                        .and_then(|bytes| bytes.checked_add(reference.event.len()))
+                        .and_then(|bytes| bytes.checked_add(size_of::<i64>()))
+                        .ok_or(ItemRefusal::Budget)?,
+                )?)
+                .ok_or(ItemRefusal::Budget)?;
+        }
+        self.topology_cost.peak_workspace_state_bytes =
+            self.topology_cost.peak_workspace_state_bytes.max(workspace);
+        Ok((stored.map(|(_, reference)| reference), workspace))
+    }
+
+    fn for_each_topology_claim_for_subject(
+        &mut self,
+        subject: &str,
+        predicate: &str,
+        max_state_bytes: usize,
+        visit: &mut dyn FnMut(&str, usize) -> Result<(), ItemRefusal>,
+    ) -> Result<(u64, usize), ItemRefusal> {
+        if self.finished || self.topology_finished {
+            return Err(source_refusal());
+        }
+        let subject_state = Self::row_text_state(subject.len())?;
+        let predicate_state = Self::row_text_state(predicate.len())?;
+        let base_workspace = subject_state
+            .checked_mul(2)
+            .and_then(|state| {
+                predicate_state
+                    .checked_mul(2)
+                    .and_then(|predicate| state.checked_add(predicate))
+            })
+            .and_then(|state| {
+                state.checked_add(size_of::<Option<String>>() + size_of::<String>() + 768)
+            })
+            .ok_or(ItemRefusal::Budget)?;
+        self.preflight(base_workspace, max_state_bytes)?;
+        let mut statement = self
+            .db
+            .prepare(
+                "SELECT claim_id FROM sf_closure_topology_claims \
+                 WHERE predicate COLLATE BINARY=?1 AND subject COLLATE BINARY=?2 \
+                 ORDER BY claim_id COLLATE BINARY",
+            )
+            .map_err(sql_refusal)?;
+        let mut rows = statement
+            .query(params![predicate, subject])
+            .map_err(sql_refusal)?;
+        let mut previous: Option<String> = None;
+        let mut drained = 0u64;
+        let mut workspace_peak = base_workspace;
+        loop {
+            self.context.check()?;
+            self.charge_topology_scan_rows(1)?;
+            let Some(row) = rows.next().map_err(sql_refusal)? else {
+                self.topology_cost.subject_stream_eof_count = self
+                    .topology_cost
+                    .subject_stream_eof_count
+                    .checked_add(1)
+                    .ok_or(ItemRefusal::Budget)?;
+                break;
+            };
+            let id_len = row_text_length(row, 0).map_err(sql_refusal)?;
+            let previous_state = previous
+                .as_deref()
+                .map(|id| Self::row_text_state(id.len()))
+                .transpose()?
+                .unwrap_or_default();
+            let workspace = base_workspace
+                .checked_add(Self::row_text_state(id_len)?)
+                .and_then(|state| state.checked_add(previous_state))
+                .ok_or(ItemRefusal::Budget)?;
+            if workspace > max_state_bytes {
+                return Err(ItemRefusal::Budget);
+            }
+            self.context.row_state(workspace)?;
+            let id = bounded_row_text(row, 0, workspace).map_err(sql_refusal)?;
+            if previous
+                .as_deref()
+                .is_some_and(|prior| prior >= id.as_str())
+            {
+                return Err(source_refusal());
+            }
+            self.topology_cost.serialized_read_bytes = self
+                .topology_cost
+                .serialized_read_bytes
+                .checked_add(usize_u64(id.len())?)
+                .ok_or(ItemRefusal::Budget)?;
+            self.topology_cost.subject_stream_rows = self
+                .topology_cost
+                .subject_stream_rows
+                .checked_add(1)
+                .ok_or(ItemRefusal::Budget)?;
+            self.topology_cost.peak_workspace_state_bytes =
+                self.topology_cost.peak_workspace_state_bytes.max(workspace);
+            visit(&id, workspace)?;
+            previous = Some(id);
+            drained = drained.checked_add(1).ok_or(ItemRefusal::Budget)?;
+            workspace_peak = workspace_peak.max(workspace);
+        }
+        drop(rows);
+        drop(statement);
+        self.context.check()?;
+        Ok((drained, workspace_peak))
+    }
+
     fn remember_derivation_id(
         &mut self,
         id: &str,
@@ -8783,6 +9254,7 @@ impl SourceFoundationClosureSchemaRequestStore
         expected_provision_used_event_rows: u64,
         expected_provision_validated_event_rows: u64,
         expected_provision_unused_event_rows: u64,
+        expected_topology_claim_rows: u64,
         direct_issue_count: usize,
         max_state_bytes: usize,
     ) -> Result<SourceFoundationClosureSchemaRequestStoreCost, ItemRefusal> {
@@ -8849,10 +9321,12 @@ impl SourceFoundationClosureSchemaRequestStore
             || self.provision_unused_event_drained_rows != expected_provision_unused_event_rows
             || !self.provision_unused_event_eof_seen
             || !self.provision_unused_event_count_verified
+            || self.topology_cost.claim_rows != expected_topology_claim_rows
             || (expected_rows > 0) != self.max_document_bytes.is_some()
         {
             return Err(source_refusal());
         }
+        self.finish_topology_claims_inner(expected_topology_claim_rows, max_state_bytes)?;
         let workspace = size_of::<(i64, [u8; 8], [u8; 8])>() + 256;
         self.preflight(workspace, max_state_bytes)?;
         let scan_rows = usize::try_from(expected_rows)
@@ -8976,6 +9450,7 @@ impl SourceFoundationClosureSchemaRequestStore
         self.expected_provision_validated_event_rows =
             Some(expected_provision_validated_event_rows);
         self.expected_provision_unused_event_rows = Some(expected_provision_unused_event_rows);
+        self.expected_topology_claim_rows = Some(expected_topology_claim_rows);
         self.direct_issue_count = Some(direct_issue_count);
         self.finished = true;
         self.workspace_peak_bytes = self.workspace_peak_bytes.max(workspace);
@@ -10818,6 +11293,10 @@ impl<'candidate, 'host> SpoolDefaultStore<'candidate, 'host> {
                 boundary_responsibility_ref_eof_seen: false,
                 boundary_responsibility_ref_count_verified: false,
                 derivation_cost: SourceFoundationClosureDerivationStoreCost::default(),
+                topology_cost: SourceFoundationClosureTopologyStoreCost::default(),
+                max_topology_claim_bytes: [0; 6],
+                expected_topology_claim_rows: None,
+                topology_finished: false,
                 derivation_keyset_expected: [None; 5],
                 derivation_keyset_drained: [0; 5],
                 derivation_keyset_eof: [false; 5],
