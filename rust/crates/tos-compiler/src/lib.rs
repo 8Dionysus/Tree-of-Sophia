@@ -118,6 +118,8 @@ pub mod knowledge_repository_source;
 mod knowledge_scope;
 mod knowledge_seal;
 mod knowledge_search;
+mod knowledge_payload_codec;
+pub mod knowledge_payload_read;
 mod knowledge_selected;
 mod knowledge_semantic_join;
 pub mod knowledge_source_claims;
@@ -583,11 +585,23 @@ fn root_item(hasher: &mut Digest256Hasher, id: &str, digest: &str) {
     );
 }
 fn stream_digest(file: &mut impl Read) -> Result<(String, u64)> {
+    stream_digest_with_check(file, |_| Ok(()))
+}
+
+/// Existing digest primitive with the serial owner's original work/cutoff hook.
+/// The callback sees each actually read chunk before hashing; refusal does not
+/// refund observed bytes. This helper creates no grant or source authority.
+fn stream_digest_with_check(
+    file: &mut impl Read,
+    mut check_and_charge: impl FnMut(usize) -> Result<()>,
+) -> Result<(String, u64)> {
     let mut hash = Digest256Hasher::new();
     let mut total = 0u64;
     let mut buf = [0u8; 65536];
     loop {
+        check_and_charge(0)?;
         let n = file.read(&mut buf)?;
+        check_and_charge(n)?;
         if n == 0 {
             break;
         }

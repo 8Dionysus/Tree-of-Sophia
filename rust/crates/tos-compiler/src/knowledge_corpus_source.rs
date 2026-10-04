@@ -1,7 +1,7 @@
 //! Exact selected public corpus compatibility input. Reads only explicitly
 //! selected capture members; it never claims an authored native builder result.
 use crate::knowledge_corpus_original::*;
-use crate::knowledge_stage::{KnowledgeStage, WritePhase};
+use crate::knowledge_stage::{KnowledgeStage, WritePhase, KnowledgePayloadLayout};
 use crate::{Error, NavigationOriginalLimits, QueryVocabulary, Result, SourceBinding};
 use rusqlite::params;
 use serde_json::Value;
@@ -852,6 +852,7 @@ pub fn retain_captured_corpus_original_from_capture(
     cancelled: &AtomicBool,
 ) -> Result<CorpusOriginalReceipt> {
     let result = (|| {
+        let layout = stage.payload_layout();
         let binding = stage.exact_receipt()?.binding.clone();
         let mut source =
             captured_source(capture, source_path, &binding, limits, deadline, cancelled)?;
@@ -905,16 +906,19 @@ pub fn retain_captured_corpus_original_from_capture(
             .ok_or(Error::Budget("corpus original header bytes"))?;
         // Header is not a pending row: reserve its one actual final copy.
         source.charge(header.len() as u64)?;
-        stage.charge_materialized(1, header.len() as u64)?;
+        let header_physical = if layout == KnowledgePayloadLayout::CarrierOnceV1 {
+            preload_original_carrier(stage, CorpusOriginalCollection::Header, &header)?
+        } else { header.len() as u64 };
+        stage.charge_materialized(1, header_physical)?;
         stage.with_connection(WritePhase::Finalize, |db| {
             let tx = db.transaction()?;
             tx.execute_batch(META_DDL)?;
-            tx.execute_batch(ROW_DDL)?;
+            tx.execute_batch(if layout == KnowledgePayloadLayout::CarrierOnceV1 { ROW_DDL_CARRIER } else { ROW_DDL })?;
             for (_, ddl) in INDEXES {
                 tx.execute_batch(ddl)?;
             }
-            let mut insert = tx.prepare(INSERT_ROW)?;
-            insert_original_row(&mut insert, CorpusOriginalCollection::Header, 0, &header)?;
+            let mut insert = tx.prepare(if layout == KnowledgePayloadLayout::CarrierOnceV1 { INSERT_ROW_CARRIER } else { INSERT_ROW })?;
+            insert_original_row_with_layout(&mut insert, CorpusOriginalCollection::Header, 0, &header, layout)?;
             drop(insert);
             tx.commit()?;
             Ok(())
@@ -957,13 +961,21 @@ pub fn retain_captured_corpus_original_from_capture(
                 }
                 let bytes = rows.iter().map(|r| r.3.len() as u64).sum();
                 source.charge(bytes)?;
-                stage.charge_materialized(rows.len() as u64, bytes)?;
+                let physical_bytes = if layout == KnowledgePayloadLayout::CarrierOnceV1 {
+                    let mut physical = 0u64;
+                    for (_, _, _, raw) in &rows {
+                        physical = physical.checked_add(preload_original_carrier(stage, collection, raw)?)
+                            .ok_or(Error::Budget("corpus captured metadata page bytes"))?;
+                    }
+                    physical
+                } else { bytes };
+                stage.charge_materialized(rows.len() as u64, physical_bytes)?;
                 stage.with_connection(WritePhase::Finalize, |db| {
                     let tx = db.transaction()?;
-                    let mut insert = tx.prepare(INSERT_ROW)?;
+                    let mut insert = tx.prepare(if layout == KnowledgePayloadLayout::CarrierOnceV1 { INSERT_ROW_CARRIER } else { INSERT_ROW })?;
                     for (a, b, c, raw) in &rows {
                         check_originals(deadline, cancelled)?;
-                        insert_original_row(&mut insert, collection, ordinal, raw)?;
+                        insert_original_row_with_layout(&mut insert, collection, ordinal, raw, layout)?;
                         order_item(&mut root_hash, ordinal, raw);
                         ordinal += 1;
                         cursor = Some((a.clone(), b.clone(), *c));

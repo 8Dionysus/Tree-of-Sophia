@@ -204,7 +204,7 @@ impl<'a> VerifiedKnowledgeModel<'a> {
         max_page_bytes: u64,
     ) -> Result<crate::CorpusOriginalPage> {
         self.corpus_original_receipt()?;
-        let page = crate::knowledge_corpus_original::page(
+        let page = crate::knowledge_corpus_original::page_with_layout(
             &self.connection,
             collection,
             selector,
@@ -212,6 +212,7 @@ impl<'a> VerifiedKnowledgeModel<'a> {
             max_rows,
             max_row_bytes,
             max_page_bytes,
+            selected_payload_layout(&self.selection.model_abi),
         )?;
         self.check_pin()?;
         Ok(page)
@@ -226,13 +227,14 @@ impl<'a> VerifiedKnowledgeModel<'a> {
         available_state_bytes: usize,
     ) -> Result<Option<crate::CorpusOriginalRow>> {
         self.corpus_original_receipt()?;
-        let row = crate::knowledge_corpus_original::all_row_with_state_budget(
+        let row = crate::knowledge_corpus_original::all_row_with_state_budget_and_layout(
             &self.connection,
             collection,
             after,
             max_row_bytes,
             max_page_bytes,
             available_state_bytes,
+            selected_payload_layout(&self.selection.model_abi),
         )?;
         self.check_pin()?;
         Ok(row)
@@ -283,13 +285,14 @@ impl<'a> VerifiedKnowledgeModel<'a> {
         max_page_bytes: u64,
     ) -> Result<crate::PhilosophyOriginalPage> {
         self.philosophy_original_receipt()?;
-        let page = crate::knowledge_philosophy_original::page(
+        let page = crate::knowledge_philosophy_original::page_with_layout(
             &self.connection,
             collection,
             after,
             max_rows,
             max_row_bytes,
             max_page_bytes,
+            selected_payload_layout(&self.selection.model_abi),
         )?;
         self.check_pin()?;
         Ok(page)
@@ -651,12 +654,37 @@ fn open_sqlite(
     Ok((db, used))
 }
 
-fn metadata(db: &Connection, key: &str, max_bytes: usize) -> Result<String> {
-    let bytes: Vec<u8> = db.query_row(
+fn metadata_matches(db: &Connection, key: &str, max_bytes: usize, expected: &str) -> Result<bool> {
+    let mut statement = db.prepare(
         "SELECT CAST(value AS BLOB) FROM metadata WHERE key=?1 AND typeof(value) IN ('text','blob') AND length(CAST(value AS BLOB))<=?2",
-        params![key, max_bytes as i64], |r| r.get(0),
-    ).optional()?.ok_or(Error::Invalid("knowledge metadata absent/oversized"))?;
-    String::from_utf8(bytes).map_err(|_| Error::Invalid("knowledge metadata UTF-8"))
+    )?;
+    let mut rows = statement.query(params![key, max_bytes as i64])?;
+    let row = rows
+        .next()?
+        .ok_or(Error::Invalid("knowledge metadata absent/oversized"))?;
+    let value = match row.get_ref(0)? {
+        rusqlite::types::ValueRef::Blob(value) => value,
+        _ => return Err(Error::Invalid("knowledge metadata BLOB")),
+    };
+    let value =
+        std::str::from_utf8(value).map_err(|_| Error::Invalid("knowledge metadata UTF-8"))?;
+    Ok(value == expected)
+}
+
+/// Exact decimal spelling without an owned formatting allocation.
+fn decimal_u64(value: u64, storage: &mut [u8; 20]) -> &str {
+    let mut value = value;
+    let mut start = storage.len();
+    loop {
+        start -= 1;
+        storage[start] = b'0' + (value % 10) as u8;
+        value /= 10;
+        if value == 0 {
+            break;
+        }
+    }
+    // Every emitted byte is an ASCII decimal digit.
+    std::str::from_utf8(&storage[start..]).expect("decimal digits")
 }
 
 fn check_metadata(
@@ -717,7 +745,7 @@ fn check_metadata(
         ("authority_boundary", expected.authority_boundary.as_str()),
         ("complete", "true"),
     ] {
-        if metadata(db, key, cap)? != value {
+        if !metadata_matches(db, key, cap, value)? {
             return Err(Error::Invalid("knowledge metadata binding"));
         }
     }
@@ -733,7 +761,8 @@ fn check_metadata(
         ("node_count", expected.node_count),
         ("relation_count", expected.relation_count),
     ] {
-        if metadata(db, key, 32)? != value.to_string() {
+        let mut decimal = [0u8; 20];
+        if !metadata_matches(db, key, 32, decimal_u64(value, &mut decimal))? {
             return Err(Error::Invalid("knowledge metadata count/version"));
         }
     }
@@ -1203,6 +1232,16 @@ pub fn open_selected_knowledge_model_owned(
     open_selected_inner(path, expected, CustodyRef::Owned(custody), limits)
 }
 
+// Layout follows the authenticated selected ABI, never table presence. Old
+// admitted ABIs retain their exact Inline path; new cold admission is separate.
+fn selected_payload_layout(model_abi: &str) -> crate::knowledge_stage::KnowledgePayloadLayout {
+    if model_abi == crate::knowledge_stage::KNOWLEDGE_CARRIER_ONCE_MODEL_ABI {
+        crate::knowledge_stage::KnowledgePayloadLayout::CarrierOnceV1
+    } else {
+        crate::knowledge_stage::KnowledgePayloadLayout::InlineV1
+    }
+}
+
 fn open_selected_inner<'a>(
     path: &Path,
     expected: KnowledgeSelectedExpectation,
@@ -1557,6 +1596,163 @@ const SELECTED_TABLES: [(&str, &str); 13] = [
     ),
 ];
 
+const SELECTED_COLUMN_SPECS: &[(&str, &[&str])] = &[
+    ("metadata", &["key:TEXT:1", "value:BLOB:0"][..]),
+    (
+        "graph_header",
+        &[
+            "singleton:INTEGER:1",
+            "packet_len:INTEGER:0",
+            "packet_sha256:BLOB:0",
+            "packet:BLOB:0",
+        ][..],
+    ),
+    (
+        "knowledge_nodes",
+        &[
+            "id:TEXT:1",
+            "source_graph:TEXT:0",
+            "native_id:TEXT:0",
+            "entity_id:TEXT:0",
+            "kind_id:TEXT:0",
+            "type_id:TEXT:0",
+            "source_order:INTEGER:0",
+            "payload_len:INTEGER:0",
+            "payload_sha256:BLOB:0",
+            "payload:BLOB:0",
+        ][..],
+    ),
+    (
+        "knowledge_relations",
+        &[
+            "id:TEXT:1",
+            "source_graph:TEXT:0",
+            "native_id:TEXT:0",
+            "from_id:TEXT:0",
+            "to_id:TEXT:0",
+            "predicate_id:TEXT:0",
+            "relation_type_id:TEXT:0",
+            "source_order:INTEGER:0",
+            "payload_len:INTEGER:0",
+            "payload_sha256:BLOB:0",
+            "payload:BLOB:0",
+        ][..],
+    ),
+    (
+        "source_scope",
+        &[
+            "source_graph:TEXT:1",
+            "input_role:TEXT:0",
+            "adapter_profile:TEXT:0",
+            "expected_node_count:INTEGER:0",
+            "expected_relation_count:INTEGER:0",
+            "node_root_sha256:BLOB:0",
+            "relation_root_sha256:BLOB:0",
+        ][..],
+    ),
+    (
+        "search_documents",
+        &[
+            "kind:TEXT:1",
+            "position:INTEGER:2",
+            "id:TEXT:0",
+            "source_graph:TEXT:0",
+            "kind_id:TEXT:0",
+            "predicate_id:TEXT:0",
+            "id_lower:TEXT:0",
+            "native_id_lower:TEXT:0",
+            "identity_values:TEXT:0",
+            "visible_values:TEXT:0",
+            "document_chars:INTEGER:0",
+            "document_digest:BLOB:0",
+        ][..],
+    ),
+    (
+        "search_posting_blocks",
+        &[
+            "kind:TEXT:1",
+            "n:INTEGER:2",
+            "gram:BLOB:3",
+            "last_position:INTEGER:4",
+            "first_position:INTEGER:0",
+            "postings:INTEGER:0",
+            "deltas:BLOB:0",
+        ][..],
+    ),
+    (
+        "search_gram_stats",
+        &[
+            "kind:TEXT:1",
+            "n:INTEGER:2",
+            "gram:BLOB:3",
+            "postings:INTEGER:0",
+        ][..],
+    ),
+    (
+        "catalog_index_meta",
+        &[
+            "descriptor_sha256:TEXT:1",
+            "catalog_packet_sha256:TEXT:0",
+            "index_schema:TEXT:0",
+            "order_profile:TEXT:0",
+            "source_count:INTEGER:0",
+            "facet_field_count:INTEGER:0",
+            "facet_value_count:INTEGER:0",
+            "route_count:INTEGER:0",
+            "catalog_index_root_sha256:TEXT:0",
+            "packet_len:INTEGER:0",
+            "packet_sha256:BLOB:0",
+            "packet:BLOB:0",
+        ][..],
+    ),
+    (
+        "catalog_facet_fields",
+        &[
+            "descriptor_sha256:TEXT:1",
+            "domain:TEXT:2",
+            "field_id:TEXT:3",
+            "value_count:INTEGER:0",
+            "total_count:INTEGER:0",
+        ][..],
+    ),
+    (
+        "catalog_facets",
+        &[
+            "descriptor_sha256:TEXT:1",
+            "domain:TEXT:2",
+            "field_id:TEXT:3",
+            "ordinal:INTEGER:4",
+            "value_json:TEXT:0",
+            "item_count:INTEGER:0",
+        ][..],
+    ),
+    (
+        "catalog_routes",
+        &[
+            "descriptor_sha256:TEXT:1",
+            "route_id:TEXT:2",
+            "ordinal:INTEGER:0",
+            "node_count:INTEGER:0",
+            "confirming_relation_count:INTEGER:0",
+            "semantic_confirming_relation_count:INTEGER:0",
+            "availability:TEXT:0",
+            "role_readiness:TEXT:0",
+            "packet_len:INTEGER:0",
+            "packet_sha256:BLOB:0",
+            "packet:BLOB:0",
+        ][..],
+    ),
+    (
+        "catalog_source_counts",
+        &[
+            "descriptor_sha256:TEXT:1",
+            "source_graph_id:TEXT:2",
+            "node_count:INTEGER:0",
+            "relation_count:INTEGER:0",
+        ][..],
+    ),
+];
+
 fn verify_selected_table_allowlist(db: &Connection) -> Result<()> {
     // The selected file contains only the read model. In particular, private
     // raw input and intermediate build tables must not survive publication.
@@ -1628,162 +1824,7 @@ pub(crate) fn verify_schema(db: &Connection) -> Result<()> {
             return Err(Error::Invalid("selected table DDL differs from model ABI"));
         }
     }
-    for (table, columns) in [
-        ("metadata", &["key:TEXT:1", "value:BLOB:0"][..]),
-        (
-            "graph_header",
-            &[
-                "singleton:INTEGER:1",
-                "packet_len:INTEGER:0",
-                "packet_sha256:BLOB:0",
-                "packet:BLOB:0",
-            ][..],
-        ),
-        (
-            "knowledge_nodes",
-            &[
-                "id:TEXT:1",
-                "source_graph:TEXT:0",
-                "native_id:TEXT:0",
-                "entity_id:TEXT:0",
-                "kind_id:TEXT:0",
-                "type_id:TEXT:0",
-                "source_order:INTEGER:0",
-                "payload_len:INTEGER:0",
-                "payload_sha256:BLOB:0",
-                "payload:BLOB:0",
-            ][..],
-        ),
-        (
-            "knowledge_relations",
-            &[
-                "id:TEXT:1",
-                "source_graph:TEXT:0",
-                "native_id:TEXT:0",
-                "from_id:TEXT:0",
-                "to_id:TEXT:0",
-                "predicate_id:TEXT:0",
-                "relation_type_id:TEXT:0",
-                "source_order:INTEGER:0",
-                "payload_len:INTEGER:0",
-                "payload_sha256:BLOB:0",
-                "payload:BLOB:0",
-            ][..],
-        ),
-        (
-            "source_scope",
-            &[
-                "source_graph:TEXT:1",
-                "input_role:TEXT:0",
-                "adapter_profile:TEXT:0",
-                "expected_node_count:INTEGER:0",
-                "expected_relation_count:INTEGER:0",
-                "node_root_sha256:BLOB:0",
-                "relation_root_sha256:BLOB:0",
-            ][..],
-        ),
-        (
-            "search_documents",
-            &[
-                "kind:TEXT:1",
-                "position:INTEGER:2",
-                "id:TEXT:0",
-                "source_graph:TEXT:0",
-                "kind_id:TEXT:0",
-                "predicate_id:TEXT:0",
-                "id_lower:TEXT:0",
-                "native_id_lower:TEXT:0",
-                "identity_values:TEXT:0",
-                "visible_values:TEXT:0",
-                "document_chars:INTEGER:0",
-                "document_digest:BLOB:0",
-            ][..],
-        ),
-        (
-            "search_posting_blocks",
-            &[
-                "kind:TEXT:1",
-                "n:INTEGER:2",
-                "gram:BLOB:3",
-                "last_position:INTEGER:4",
-                "first_position:INTEGER:0",
-                "postings:INTEGER:0",
-                "deltas:BLOB:0",
-            ][..],
-        ),
-        (
-            "search_gram_stats",
-            &[
-                "kind:TEXT:1",
-                "n:INTEGER:2",
-                "gram:BLOB:3",
-                "postings:INTEGER:0",
-            ][..],
-        ),
-        (
-            "catalog_index_meta",
-            &[
-                "descriptor_sha256:TEXT:1",
-                "catalog_packet_sha256:TEXT:0",
-                "index_schema:TEXT:0",
-                "order_profile:TEXT:0",
-                "source_count:INTEGER:0",
-                "facet_field_count:INTEGER:0",
-                "facet_value_count:INTEGER:0",
-                "route_count:INTEGER:0",
-                "catalog_index_root_sha256:TEXT:0",
-                "packet_len:INTEGER:0",
-                "packet_sha256:BLOB:0",
-                "packet:BLOB:0",
-            ][..],
-        ),
-        (
-            "catalog_facet_fields",
-            &[
-                "descriptor_sha256:TEXT:1",
-                "domain:TEXT:2",
-                "field_id:TEXT:3",
-                "value_count:INTEGER:0",
-                "total_count:INTEGER:0",
-            ][..],
-        ),
-        (
-            "catalog_facets",
-            &[
-                "descriptor_sha256:TEXT:1",
-                "domain:TEXT:2",
-                "field_id:TEXT:3",
-                "ordinal:INTEGER:4",
-                "value_json:TEXT:0",
-                "item_count:INTEGER:0",
-            ][..],
-        ),
-        (
-            "catalog_routes",
-            &[
-                "descriptor_sha256:TEXT:1",
-                "route_id:TEXT:2",
-                "ordinal:INTEGER:0",
-                "node_count:INTEGER:0",
-                "confirming_relation_count:INTEGER:0",
-                "semantic_confirming_relation_count:INTEGER:0",
-                "availability:TEXT:0",
-                "role_readiness:TEXT:0",
-                "packet_len:INTEGER:0",
-                "packet_sha256:BLOB:0",
-                "packet:BLOB:0",
-            ][..],
-        ),
-        (
-            "catalog_source_counts",
-            &[
-                "descriptor_sha256:TEXT:1",
-                "source_graph_id:TEXT:2",
-                "node_count:INTEGER:0",
-                "relation_count:INTEGER:0",
-            ][..],
-        ),
-    ] {
+    for (table, columns) in SELECTED_COLUMN_SPECS.iter().copied() {
         let create: Option<String> = db
             .query_row(
                 "SELECT CASE WHEN typeof(sql)='text' AND length(CAST(sql AS BLOB))<=65536 THEN sql ELSE NULL END
@@ -1859,6 +1900,466 @@ pub(crate) fn verify_schema(db: &Connection) -> Result<()> {
     }
     Ok(())
 }
+
+// A borrowed statement remains inside its actual owner; all Rust/native error
+// paths are bounded before work. The caller installs the same prepaid SQL hook.
+fn with_owned_schema_statement<T>(
+    db: &Connection,
+    sql: &std::ffi::CStr,
+    state: &crate::d1_public_capture::CreationState<'_>,
+    consume: impl FnOnce(&mut tos_source_store::PinnedBoundedStatement<'_>) -> Result<T>,
+) -> Result<T> {
+    let fixed =
+        tos_source_store::PinnedBoundedStatement::owned_connection_rust_workspace_upper_bound()
+            .checked_add(std::mem::size_of::<(
+                &Connection,
+                &std::ffi::CStr,
+                &crate::d1_public_capture::CreationState<'_>,
+                Result<T>,
+                Result<T>,
+            )>())
+            .and_then(|n| n.checked_add(std::mem::size_of_val(&consume)))
+            .ok_or(Error::Budget("owned schema statement state"))?;
+    let _hold = state.hold(fixed)?;
+    state.active()?;
+    state.charge_work(sql.to_bytes().len())?;
+    let mut statement =
+        tos_source_store::PinnedBoundedStatement::prepare_on_owned_connection(db, sql)
+            .map_err(owned_schema_sql_error)?;
+    let result = consume(&mut statement);
+    state.active()?;
+    result
+}
+fn owned_schema_sql_error(error: tos_source_store::StoreError) -> Error {
+    if error.code == tos_source_store::StoreErrorCode::BudgetExceeded {
+        Error::Budget("owned selected schema SQL")
+    } else {
+        Error::Invalid("owned selected schema SQL")
+    }
+}
+fn owned_schema_step(
+    statement: &mut tos_source_store::PinnedBoundedStatement<'_>,
+    state: &crate::d1_public_capture::CreationState<'_>,
+) -> Result<bool> {
+    state.active()?;
+    let row = statement.step().map_err(owned_schema_sql_error)?;
+    state.active()?;
+    Ok(row)
+}
+fn owned_schema_equal(
+    state: &crate::d1_public_capture::CreationState<'_>,
+    a: &[u8],
+    b: &[u8],
+) -> Result<bool> {
+    state.charge_work(
+        a.len()
+            .checked_add(b.len())
+            .ok_or(Error::Budget("schema comparison work"))?,
+    )?;
+    state.active()?;
+    let equal = a == b;
+    state.active()?;
+    Ok(equal)
+}
+fn owned_schema_present(
+    db: &Connection,
+    table: &str,
+    state: &crate::d1_public_capture::CreationState<'_>,
+) -> Result<bool> {
+    with_owned_schema_statement(
+        db,
+        c"SELECT 1 FROM sqlite_master WHERE type='table' AND name=?1",
+        state,
+        |statement| {
+            state.charge_work(table.len())?;
+            statement
+                .bind_text(1, table)
+                .map_err(owned_schema_sql_error)?;
+            let found = owned_schema_step(statement, state)?;
+            if found && owned_schema_step(statement, state)? {
+                return Err(Error::Invalid("selected duplicate table"));
+            }
+            Ok(found)
+        },
+    )
+}
+fn owned_schema_ddl(
+    db: &Connection,
+    table: &str,
+    expected_hash: Option<&str>,
+    expected_sql: Option<&str>,
+    state: &crate::d1_public_capture::CreationState<'_>,
+) -> Result<()> {
+    let _hold = state.hold(std::mem::size_of::<(
+        &Connection,
+        &str,
+        Option<&str>,
+        Option<&str>,
+        &crate::d1_public_capture::CreationState<'_>,
+        Digest256Hasher,
+        Digest256,
+        &[u8],
+        std::slice::Chunks<'_, u8>,
+        Result<()>,
+    )>())?;
+    with_owned_schema_statement(db, c"SELECT CASE WHEN typeof(sql)='text' AND length(CAST(sql AS BLOB))<=4096 THEN CAST(sql AS BLOB) ELSE NULL END FROM sqlite_master WHERE type='table' AND name=?1", state, |statement| {
+        state.charge_work(table.len())?;
+        statement.bind_text(1, table).map_err(owned_schema_sql_error)?;
+        if !owned_schema_step(statement, state)? { return Err(Error::Invalid("selected DDL omitted")); }
+        let rusqlite::types::ValueRef::Blob(raw) = statement.value_ref(0).map_err(owned_schema_sql_error)? else { return Err(Error::Invalid("selected DDL type/size")); };
+        if let Some(expected) = expected_sql {
+            if !owned_schema_equal(state, raw, expected.as_bytes())? { return Err(Error::Invalid("selected Original DDL differs")); }
+        } else if let Some(expected) = expected_hash {
+            state.charge_work(raw.len())?;
+            let mut hash = Digest256Hasher::new();
+            for chunk in raw.chunks(4096) { state.active()?; hash.update(chunk); }
+            if hash.finalize() != Digest256::from_hex(expected).map_err(|_| Error::Invalid("selected expected DDL hash"))? {
+                return Err(Error::Invalid("selected DDL hash differs"));
+            }
+        } else { return Err(Error::Invalid("selected DDL expectation absent")); }
+        if owned_schema_step(statement, state)? { return Err(Error::Invalid("selected duplicate DDL")); }
+        Ok(())
+    })
+}
+fn owned_schema_column_sql(table: &str) -> Result<&'static std::ffi::CStr> {
+    Ok(match table {
+        "metadata" => c"PRAGMA table_xinfo(metadata)",
+        "graph_header" => c"PRAGMA table_xinfo(graph_header)",
+        "knowledge_nodes" => c"PRAGMA table_xinfo(knowledge_nodes)",
+        "knowledge_relations" => c"PRAGMA table_xinfo(knowledge_relations)",
+        "source_scope" => c"PRAGMA table_xinfo(source_scope)",
+        "search_documents" => c"PRAGMA table_xinfo(search_documents)",
+        "search_posting_blocks" => c"PRAGMA table_xinfo(search_posting_blocks)",
+        "search_gram_stats" => c"PRAGMA table_xinfo(search_gram_stats)",
+        "catalog_index_meta" => c"PRAGMA table_xinfo(catalog_index_meta)",
+        "catalog_facet_fields" => c"PRAGMA table_xinfo(catalog_facet_fields)",
+        "catalog_facets" => c"PRAGMA table_xinfo(catalog_facets)",
+        "catalog_routes" => c"PRAGMA table_xinfo(catalog_routes)",
+        "catalog_source_counts" => c"PRAGMA table_xinfo(catalog_source_counts)",
+        "knowledge_source_carriers" => c"PRAGMA table_xinfo(knowledge_source_carriers)",
+        _ => return Err(Error::Invalid("owned schema column table")),
+    })
+}
+fn owned_schema_columns(
+    db: &Connection,
+    table: &str,
+    columns: &[&str],
+    extra: &[&str],
+    layout: knowledge_stage::KnowledgePayloadLayout,
+    state: &crate::d1_public_capture::CreationState<'_>,
+) -> Result<()> {
+    let _hold = state.hold(std::mem::size_of::<(
+        &Connection,
+        &str,
+        &[&str],
+        &[&str],
+        knowledge_stage::KnowledgePayloadLayout,
+        &crate::d1_public_capture::CreationState<'_>,
+        std::iter::Chain<std::slice::Iter<'_, &str>, std::slice::Iter<'_, &str>>,
+        std::str::Split<'_, char>,
+        Option<&str>,
+        Option<&str>,
+        Option<&str>,
+        rusqlite::types::ValueRef<'_>,
+        rusqlite::types::ValueRef<'_>,
+        i64,
+        i64,
+        i64,
+        bool,
+        Result<()>,
+    )>())?;
+    with_owned_schema_statement(db, owned_schema_column_sql(table)?, state, |statement| {
+        for spec in columns.iter().chain(extra.iter()) {
+            state.active()?;
+            if !owned_schema_step(statement, state)? {
+                return Err(Error::Invalid("selected column omitted"));
+            }
+            let mut parts = spec.split(':');
+            let name = parts
+                .next()
+                .ok_or(Error::Invalid("column expectation name"))?;
+            let ty = parts
+                .next()
+                .ok_or(Error::Invalid("column expectation type"))?;
+            let pk = match parts.next() {
+                Some("0") => 0,
+                Some("1") => 1,
+                Some("2") => 2,
+                Some("3") => 3,
+                Some("4") => 4,
+                _ => return Err(Error::Invalid("column expectation PK")),
+            };
+            let rusqlite::types::ValueRef::Text(raw_name) =
+                statement.value_ref(1).map_err(owned_schema_sql_error)?
+            else {
+                return Err(Error::Invalid("selected column name type"));
+            };
+            if !owned_schema_equal(state, raw_name, name.as_bytes())? {
+                return Err(Error::Invalid("selected column name"));
+            }
+            let rusqlite::types::ValueRef::Text(raw_ty) =
+                statement.value_ref(2).map_err(owned_schema_sql_error)?
+            else {
+                return Err(Error::Invalid("selected column type"));
+            };
+            state.charge_work(
+                raw_ty
+                    .len()
+                    .checked_add(ty.len())
+                    .ok_or(Error::Budget("column type comparison"))?,
+            )?;
+            let type_equal = raw_ty.eq_ignore_ascii_case(ty.as_bytes());
+            state.active()?;
+            let nullable = matches!(
+                (table, name),
+                ("graph_header", "singleton")
+                    | ("knowledge_nodes", "native_id" | "entity_id")
+                    | ("knowledge_relations", "native_id")
+            ) || layout == knowledge_stage::KnowledgePayloadLayout::CarrierOnceV1
+                && name == "source_packet_sha256"
+                && matches!(table, "knowledge_nodes" | "knowledge_relations");
+            if !type_equal
+                || statement.integer(3).map_err(owned_schema_sql_error)? != i64::from(!nullable)
+                || statement.integer(5).map_err(owned_schema_sql_error)? != pk
+                || statement.integer(6).map_err(owned_schema_sql_error)? != 0
+            {
+                return Err(Error::Invalid("selected column shape"));
+            }
+        }
+        if owned_schema_step(statement, state)? {
+            return Err(Error::Invalid("selected extra column"));
+        }
+        Ok(())
+    })
+}
+/// Layout is selected by the authenticated expected ABI, never schema census.
+/// Some(state) is mandatory for Carrier and selects this original-owner path.
+/// The caller retains the SQLite pool and installs its prepaid SQL controller.
+pub(crate) fn verify_schema_with_layout(
+    db: &Connection,
+    layout: knowledge_stage::KnowledgePayloadLayout,
+    state: Option<&crate::d1_public_capture::CreationState<'_>>,
+) -> Result<()> {
+    let Some(state) = state else {
+        return if layout == knowledge_stage::KnowledgePayloadLayout::InlineV1 {
+            verify_schema(db)
+        } else {
+            Err(Error::Invalid("carrier schema requires owned state"))
+        };
+    };
+    type Frame<'a> = (
+        &'a Connection,
+        knowledge_stage::KnowledgePayloadLayout,
+        &'a crate::d1_public_capture::CreationState<'a>,
+        [Option<&'static str>; 32],
+        [bool; 32],
+        usize,
+        usize,
+        usize,
+        bool,
+        bool,
+        bool,
+        Option<usize>,
+        std::slice::Iter<'a, (&'a str, &'a str)>,
+        Result<()>,
+    );
+    let _frame = state.hold(std::mem::size_of::<Frame<'_>>())?;
+    state.active()?;
+    let navigation =
+        owned_schema_present(db, crate::knowledge_navigation_original::META_TABLE, state)?;
+    let philosophy =
+        owned_schema_present(db, crate::knowledge_philosophy_original::META_TABLE, state)?;
+    let corpus = owned_schema_present(db, crate::knowledge_corpus_original::META_TABLE, state)?;
+    let carrier = layout == knowledge_stage::KnowledgePayloadLayout::CarrierOnceV1;
+    let mut tables: [Option<&str>; 32] = [None; 32];
+    let mut count = 0usize;
+    for (table, _) in SELECTED_TABLES {
+        tables[count] = Some(table);
+        count += 1;
+    }
+    if carrier {
+        tables[count] = Some("knowledge_source_carriers");
+        count += 1;
+    }
+    for (present, names) in [
+        (
+            navigation,
+            &[
+                crate::knowledge_navigation_original::META_TABLE,
+                crate::knowledge_navigation_original::ROW_TABLE,
+                crate::knowledge_navigation_original::MEMBER_TABLE,
+            ][..],
+        ),
+        (
+            philosophy,
+            &[
+                crate::knowledge_philosophy_original::META_TABLE,
+                crate::knowledge_philosophy_original::ROW_TABLE,
+            ][..],
+        ),
+        (
+            corpus,
+            &[
+                crate::knowledge_corpus_original::META_TABLE,
+                crate::knowledge_corpus_original::ROW_TABLE,
+            ][..],
+        ),
+    ] {
+        if present {
+            for name in names {
+                if count == tables.len() {
+                    return Err(Error::Budget("selected table controller"));
+                }
+                tables[count] = Some(name);
+                count += 1;
+            }
+        }
+    }
+    let mut seen = [false; 32];
+    with_owned_schema_statement(db, c"SELECT CASE WHEN typeof(name)='text' AND length(CAST(name AS BLOB))<=128 THEN CAST(name AS BLOB) ELSE NULL END FROM sqlite_master WHERE type='table' ORDER BY name", state, |statement| {
+        while owned_schema_step(statement, state)? {
+            let rusqlite::types::ValueRef::Blob(name) = statement.value_ref(0).map_err(owned_schema_sql_error)? else { return Err(Error::Invalid("selected table name type/bytes")); };
+            let mut found = None;
+            for (i, expected) in tables[..count].iter().enumerate() {
+                if owned_schema_equal(state, name, expected.ok_or(Error::Invalid("selected table controller slot"))?.as_bytes())? { found = Some(i); break; }
+            }
+            let index = found.ok_or(Error::Invalid("selected extra table"))?;
+            if seen[index] { return Err(Error::Invalid("selected duplicate table")); }
+            seen[index] = true;
+        }
+        if seen[..count].iter().any(|value| !value) { return Err(Error::Invalid("selected table omitted")); }
+        Ok(())
+    })?;
+    knowledge_stage::verify_selected_payload_ddl(db, layout, Some(state))?;
+    for (table, hash) in SELECTED_TABLES {
+        if !(carrier && matches!(table, "knowledge_nodes" | "knowledge_relations")) {
+            owned_schema_ddl(db, table, Some(hash), None, state)?;
+        }
+    }
+    if navigation {
+        for (name, ddl) in [
+            (
+                crate::knowledge_navigation_original::META_TABLE,
+                crate::knowledge_navigation_original::META_DDL,
+            ),
+            (
+                crate::knowledge_navigation_original::ROW_TABLE,
+                crate::knowledge_navigation_original::ROW_DDL,
+            ),
+            (
+                crate::knowledge_navigation_original::MEMBER_TABLE,
+                crate::knowledge_navigation_original::MEMBER_DDL,
+            ),
+        ] {
+            owned_schema_ddl(db, name, None, Some(ddl), state)?;
+        }
+    }
+    if philosophy {
+        owned_schema_ddl(
+            db,
+            crate::knowledge_philosophy_original::META_TABLE,
+            None,
+            Some(crate::knowledge_philosophy_original::META_DDL),
+            state,
+        )?;
+        owned_schema_ddl(
+            db,
+            crate::knowledge_philosophy_original::ROW_TABLE,
+            None,
+            Some(if carrier {
+                crate::knowledge_philosophy_original::ROW_DDL_CARRIER
+            } else {
+                crate::knowledge_philosophy_original::ROW_DDL
+            }),
+            state,
+        )?;
+    }
+    if corpus {
+        owned_schema_ddl(
+            db,
+            crate::knowledge_corpus_original::META_TABLE,
+            None,
+            Some(crate::knowledge_corpus_original::META_DDL),
+            state,
+        )?;
+        owned_schema_ddl(
+            db,
+            crate::knowledge_corpus_original::ROW_TABLE,
+            None,
+            Some(if carrier {
+                crate::knowledge_corpus_original::ROW_DDL_CARRIER
+            } else {
+                crate::knowledge_corpus_original::ROW_DDL
+            }),
+            state,
+        )?;
+    }
+    for (table, columns) in SELECTED_COLUMN_SPECS.iter().copied() {
+        owned_schema_columns(
+            db,
+            table,
+            columns,
+            if carrier && matches!(table, "knowledge_nodes" | "knowledge_relations") {
+                &["payload_codec:INTEGER:0", "source_packet_sha256:BLOB:0"]
+            } else {
+                &[]
+            },
+            layout,
+            state,
+        )?;
+    }
+    if carrier {
+        owned_schema_columns(
+            db,
+            "knowledge_source_carriers",
+            &[
+                "packet_sha256:BLOB:1",
+                "packet_len:INTEGER:0",
+                "packet:BLOB:0",
+            ],
+            &[],
+            layout,
+            state,
+        )?;
+    }
+    let index_count = knowledge_stage::SELECTED_EXPLICIT_INDEXES.len()
+        + if corpus {
+            crate::knowledge_corpus_original::INDEXES.len()
+        } else {
+            0
+        };
+    if index_count > seen.len() {
+        return Err(Error::Budget("selected index controller"));
+    }
+    seen.fill(false);
+    with_owned_schema_statement(db,c"SELECT CASE WHEN typeof(name)='text' AND length(CAST(name AS BLOB))<=128 THEN CAST(name AS BLOB) ELSE NULL END, CASE WHEN typeof(sql)='text' AND length(CAST(sql AS BLOB))<=1024 THEN CAST(sql AS BLOB) ELSE NULL END FROM sqlite_master WHERE type='index' AND sql IS NOT NULL ORDER BY name",state,|statement| {
+        while owned_schema_step(statement,state)? {
+            let rusqlite::types::ValueRef::Blob(name)=statement.value_ref(0).map_err(owned_schema_sql_error)? else {return Err(Error::Invalid("selected index name type/bytes"));};
+            let rusqlite::types::ValueRef::Blob(sql)=statement.value_ref(1).map_err(owned_schema_sql_error)? else {return Err(Error::Invalid("selected index SQL type/bytes"));};
+            let mut found=None;
+            for (i,(expected_name,expected_sql)) in knowledge_stage::SELECTED_EXPLICIT_INDEXES.iter().chain(crate::knowledge_corpus_original::INDEXES[..if corpus {crate::knowledge_corpus_original::INDEXES.len()} else {0}].iter()).enumerate() {
+                if owned_schema_equal(state,name,expected_name.as_bytes())? && owned_schema_equal(state,sql,expected_sql.as_bytes())? { found=Some(i);break; }
+            }
+            let i=found.ok_or(Error::Invalid("selected extra/different index"))?;
+            if seen[i] {return Err(Error::Invalid("selected duplicate index"));} seen[i]=true;
+        }
+        if seen[..index_count].iter().any(|value| !value) {return Err(Error::Invalid("selected index omitted"));}
+        Ok(())
+    })?;
+    with_owned_schema_statement(
+        db,
+        c"SELECT 1 FROM sqlite_master WHERE type NOT IN ('table','index') LIMIT 1",
+        state,
+        |statement| {
+            if owned_schema_step(statement, state)? {
+                return Err(Error::Invalid("selected extra schema object"));
+            }
+            Ok(())
+        },
+    )?;
+    state.active()
+}
+
 struct ScopeAcc {
     node_count: u64,
     relation_count: u64,

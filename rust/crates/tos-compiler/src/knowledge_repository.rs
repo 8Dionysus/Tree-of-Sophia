@@ -294,7 +294,7 @@ fn prepare_inner(
             CREATE TABLE knowledge_repository_branches(path TEXT PRIMARY KEY,branch_id TEXT NOT NULL,
             ordinal INTEGER NOT NULL) WITHOUT ROWID;")?; Ok(())
     })?;
-    let root_row = SourceRow::parse(root.material, limits.max_row_bytes)?;
+    let root_row = SourceRow::parse_scoped_with_optional_owned_state(root.material, limits.max_row_bytes, stage.owned_creation_state())?;
     let root_native = required(root_row.value(), "node_id")?;
     add_material(
         stage,
@@ -334,7 +334,7 @@ fn prepare_inner(
         )?;
         for raw in page.rows {
             charge(&mut work, raw.payload.len(), limits)?;
-            let row = SourceRow::parse(&raw.payload, limits.max_row_bytes)?;
+            let row = SourceRow::parse_scoped_with_optional_owned_state(&raw.payload, limits.max_row_bytes, stage.owned_creation_state())?;
             let collection = required(row.value(), "collection")?;
             let id = required(row.value(), "id")?;
             let ordinal = row
@@ -407,7 +407,7 @@ fn prepare_inner(
                 if ordinal >= entry.expected_count || ordinal > i64::MAX as u64 {
                     return Err(Error::Invalid("repository source ordinal"));
                 }
-                let original = SourceRow::parse(&raw.payload, limits.max_row_bytes)?;
+                let original = SourceRow::parse_scoped_with_optional_owned_state(&raw.payload, limits.max_row_bytes, stage.owned_creation_state())?;
                 let item = original.value();
                 let mut material = item.clone();
                 let native = text(item.get("id"))
@@ -503,7 +503,7 @@ fn prepare_inner(
                 if raw.len() > limits.max_row_bytes || sha != Digest256::of_bytes(&raw).as_bytes() {
                     return Err(Error::Invalid("repository ordered raw binding"));
                 }
-                let source_row = SourceRow::parse(&raw, limits.max_row_bytes)?;
+                let source_row = SourceRow::parse_scoped_with_optional_owned_state(&raw, limits.max_row_bytes, stage.owned_creation_state())?;
                 let item = source_row.value();
                 let relation = if collection == "branches" {
                     text(item.get("id")).map(|id|json!({"edge_id":format!("corpus-topology:{id}"),"from_id":root.identity_id,"to_id":format!("branch:{id}"),"predicate_id":"contains",
@@ -658,7 +658,7 @@ where
             let mut write_page = |stage: &mut KnowledgeStage<'_>| -> Result<()> {
                 for row in &rows {
                     after = row.key.clone();
-                    let source = SourceRow::parse(&row.material, limits.max_row_bytes)?;
+                    let source = SourceRow::parse_scoped_with_optional_owned_state(&row.material, limits.max_row_bytes, stage.owned_creation_state())?;
                     visit(stage, &receipt.source_graph, &source)?;
                 }
                 Ok(())
@@ -714,32 +714,43 @@ pub fn materialize_repository_nodes(
                             break;
                         }
                         after = row.key.clone();
-                        let source = SourceRow::parse(&row.material, limits.max_row_bytes)?;
-                        let value = normalizer.normalize_node(
-                            &source,
-                            &receipt.source_graph,
-                            false,
-                            BaseNodeOverrides {
-                                native_id: Some(&row.native),
-                                identity_id: Some(&row.identity),
-                                kind_id: if row.kind.is_empty() {
-                                    None
-                                } else {
-                                    Some(&row.kind)
+                        let source = SourceRow::parse_scoped_with_optional_owned_state(&row.material, limits.max_row_bytes, stage.owned_creation_state())?;
+                        let overrides=BaseNodeOverrides {
+                            native_id:Some(&row.native),
+                            identity_id:Some(&row.identity),
+                            kind_id:if row.kind.is_empty(){None}else{Some(&row.kind)},
+                        };
+                        if stage.owned_creation_state().is_some() {
+                            normalizer.with_normalized_node_owned(
+                                &source,&receipt.source_graph,false,overrides,limits.max_row_bytes,
+                                |value,payload| {
+                                    stage.insert_node(NodeRow {
+                                        id:required(value,"id")?,
+                                        source_graph:&receipt.source_graph,
+                                        native_id:Some(required(value,"native_id")?),
+                                        entity_id:Some(required(value,"entity_id")?),
+                                        kind_id:required(value,"kind_id")?,
+                                        type_id:required(value,"type_id")?,
+                                        source_order:order,
+                                        payload,
+                                    })?;
+                                    Ok(())
                                 },
-                            },
-                        )?;
-                        let payload = bytes(&value, limits)?;
-                        stage.insert_node(NodeRow {
-                            id: required(&value, "id")?,
-                            source_graph: &receipt.source_graph,
-                            native_id: Some(required(&value, "native_id")?),
-                            entity_id: Some(required(&value, "entity_id")?),
-                            kind_id: required(&value, "kind_id")?,
-                            type_id: required(&value, "type_id")?,
-                            source_order: order,
-                            payload: &payload,
-                        })?;
+                            )?;
+                        } else {
+                            let value=normalizer.normalize_node(&source,&receipt.source_graph,false,overrides)?;
+                            let payload=bytes(&value,limits)?;
+                            stage.insert_node(NodeRow {
+                                id:required(&value,"id")?,
+                                source_graph:&receipt.source_graph,
+                                native_id:Some(required(&value,"native_id")?),
+                                entity_id:Some(required(&value,"entity_id")?),
+                                kind_id:required(&value,"kind_id")?,
+                                type_id:required(&value,"type_id")?,
+                                source_order:order,
+                                payload:&payload,
+                            })?;
+                        }
                         order += 1;
                         rows += 1;
                     }
@@ -803,7 +814,7 @@ where
                 |stage| {
                     for row in rows {
                         after = row.key;
-                        let source = SourceRow::parse(&row.material, limits.max_row_bytes)?;
+                        let source = SourceRow::parse_scoped_with_optional_owned_state(&row.material, limits.max_row_bytes, stage.owned_creation_state())?;
                         let item = source.value();
                         let from =
                             format!("{}:{}", receipt.source_graph, required(item, "from_id")?);

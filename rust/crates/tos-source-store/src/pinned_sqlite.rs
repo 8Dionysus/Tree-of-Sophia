@@ -11,7 +11,7 @@ use std::os::fd::FromRawFd;
 use std::sync::atomic::AtomicBool;
 use std::{
     cell::RefCell,
-    ffi::CStr,
+    ffi::{CStr, c_char},
     fs::{File, TryLockError},
     io::{ErrorKind, Read},
     ops::{Deref, DerefMut},
@@ -22,17 +22,6 @@ use std::{
     sync::{Arc, OnceLock},
     time::Instant,
 };
-
-// This owner already requires Linux through tos-fd-open. Use the same local
-// C-ABI convention as git_capture, without a new crate or pathname allocation.
-// No O_CREAT argument is used: the retained kernel FD is the sole target.
-const LINUX_O_RDONLY: std::ffi::c_int = 0;
-const LINUX_O_RDWR: std::ffi::c_int = 2;
-const LINUX_O_CLOEXEC: std::ffi::c_int = 0x80000;
-unsafe extern "C" {
-    #[link_name = "open"]
-    fn linux_open(path: *const std::ffi::c_char, flags: std::ffi::c_int, ...) -> std::ffi::c_int;
-}
 
 const VFS_NAME: &CStr = c"tos-pinned-fd-v1";
 static VFS: OnceLock<std::result::Result<usize, i32>> = OnceLock::new();
@@ -109,7 +98,7 @@ impl PinnedSqliteConnection {
     /// Maximum distinct Rust controllers for a bounded statement/cache pragma.
     /// The statement itself lives in native SQLite's separate admitted pool.
     pub fn bounded_statement_rust_workspace_upper_bound() -> usize {
-        std::mem::size_of::<PinnedBoundedStatement<'_>>()
+        PinnedBoundedStatement::owned_connection_rust_workspace_upper_bound()
             + std::mem::size_of::<FdSpelling>()
             + 10 * std::mem::size_of::<u8>()
     }
@@ -121,32 +110,9 @@ impl PinnedSqliteConnection {
         if !self.ordinary_fd_without_policy {
             return Err(invalid("bounded statement requires ordinary FD VFS"));
         }
-        let mut statement = std::ptr::null_mut();
-        let status = unsafe {
-            ffi::sqlite3_prepare_v2(
-                self.db.handle(),
-                sql.as_ptr(),
-                -1,
-                &mut statement,
-                std::ptr::null_mut(),
-            )
-        };
-        if status != ffi::SQLITE_OK || statement.is_null() {
-            if !statement.is_null() {
-                unsafe {
-                    ffi::sqlite3_finalize(statement);
-                }
-            }
-            return Err(invalid("pinned SQLite bounded statement prepare failed"));
-        }
-        Ok(PinnedBoundedStatement {
-            owner: self,
-            statement,
-            current_row: false,
-            started: false,
-            finished: std::cell::Cell::new(false),
-        })
+        PinnedBoundedStatement::prepare_on_owned_connection(&self.db, sql)
     }
+
     pub fn execute_static_bounded(&self, sql: &CStr) -> Result<()> {
         let mut statement = self.prepare_static_bounded(sql)?;
         while statement.step()? {}
@@ -439,50 +405,210 @@ impl PinnedSqliteConnection {
 /// A native statement borrowing the exact pinned owner. No Send/Sync model
 /// transfer or error-message heap is introduced. Column borrows end before
 /// the next mutable step; finalization always precedes connection release.
+struct BorrowedPrepareState {
+    statement: *mut ffi::sqlite3_stmt,
+    tail: *const c_char,
+    status: i32,
+}
+struct BorrowedBatchState {
+    cursor: *const c_char,
+    remaining: usize,
+}
+
 pub struct PinnedBoundedStatement<'a> {
-    owner: &'a PinnedSqliteConnection,
+    owner: &'a Connection,
     statement: *mut ffi::sqlite3_stmt,
     current_row: bool,
     started: bool,
     finished: std::cell::Cell<bool>,
 }
-impl PinnedBoundedStatement<'_> {
-    pub fn bind_i64(&mut self, index: i32, value: i64) -> Result<()> {
-        if self.finished.get()
-            || self.started
-            || index <= 0
-            || unsafe { ffi::sqlite3_bind_int64(self.statement, index, value) } != ffi::SQLITE_OK
-        {
+impl<'a> PinnedBoundedStatement<'a> {
+    /// Borrow the caller's actual Connection, with no FD/VFS/pin authority claim.
+    /// Caller admits this helper's Rust workspace + exact SQL bytes and installs
+    /// its original SQL/cancel hook before entry. SQLite allocations belong to
+    /// the same already-established dedicated backend pool. No native errmsg is
+    /// converted to a Rust heap. The connection outlives statement and columns.
+    pub fn prepare_on_owned_connection(owner: &'a Connection, sql: &CStr) -> Result<Self> {
+        let length = i32::try_from(sql.to_bytes_with_nul().len())
+            .map_err(|_| invalid("SQLite bounded SQL length"))?;
+        let (statement, _) = Self::prepare_part(owner, sql.as_ptr(), length)?;
+        statement.ok_or_else(|| invalid("SQLite bounded SQL has no statement"))
+    }
+    fn prepare_part(owner: &'a Connection, sql: *const c_char, length: i32)
+        -> Result<(Option<Self>, *const c_char)> {
+        let mut control = BorrowedPrepareState {
+            statement: std::ptr::null_mut(), tail: std::ptr::null(), status: 0,
+        };
+        control.status = unsafe {
+            ffi::sqlite3_prepare_v2(owner.handle(), sql, length,
+                &mut control.statement, &mut control.tail)
+        };
+        if control.status != ffi::SQLITE_OK {
+            if !control.statement.is_null() {
+                unsafe { ffi::sqlite3_finalize(control.statement); }
+            }
+            return Err(bounded_sql_error(control.status, "pinned SQLite bounded statement prepare failed"));
+        }
+        let statement = if control.statement.is_null() { None } else {
+            Some(Self { owner, statement: control.statement, current_row: false,
+                started: false, finished: std::cell::Cell::new(false) })
+        };
+        Ok((statement, control.tail))
+    }
+    /// One maintained static batch, without CString/SQL splitting allocations.
+    /// before_statement is the caller's SAME original active/state/work hook;
+    /// its target/failure floor and batch bytes must be admitted separately.
+    /// Native prepare/step stay under the caller's installed original VM meter.
+    /// Any error finalizes current statement and terminates the batch, no reset.
+    pub fn execute_static_batch_on_owned_connection(owner: &'a Connection,
+        sql: &'static CStr, before_statement: &dyn Fn() -> Result<()>) -> Result<()> {
+        let bytes = sql.to_bytes();
+        if bytes.len() >= i32::MAX as usize {
+            return Err(invalid("SQLite bounded batch length"));
+        }
+        let mut control = BorrowedBatchState { cursor: sql.as_ptr(), remaining: bytes.len() };
+        before_statement()?;
+        while control.remaining != 0 {
+            before_statement()?;
+            let (statement, tail) = Self::prepare_part(owner, control.cursor,
+                (control.remaining + 1) as i32)?;
+            let begin = control.cursor as usize;
+            let finish = tail as usize;
+            let consumed = finish.checked_sub(begin)
+                .filter(|n| *n > 0 && *n <= control.remaining)
+                .ok_or_else(|| invalid("SQLite bounded batch tail"))?;
+            // Actual Drop/finalize occurs before advancing to the next prepare.
+            if let Some(mut statement) = statement {
+                while statement.step()? { before_statement()?; }
+            }
+            control.cursor = tail;
+            control.remaining -= consumed;
+        }
+        before_statement()
+    }
+    pub fn owned_connection_rust_workspace_upper_bound() -> usize {
+        std::mem::size_of::<Self>()
+            + std::mem::size_of::<Result<Self>>()
+            + std::mem::size_of::<BorrowedPrepareState>()
+            + std::mem::size_of::<BorrowedBatchState>()
+            + std::mem::size_of::<(StoreError, StoreError, StoreError)>()
+            + std::mem::size_of::<(Option<Self>, *const c_char)>()
+            + std::mem::size_of::<(&Connection, &CStr, &dyn Fn() -> Result<()>,
+                i32, usize, usize, usize, bool)>()
+            + std::mem::size_of::<(i32, i32, *const u8, usize,
+                rusqlite::types::ValueRef<'_>, Result<rusqlite::types::ValueRef<'_>>,
+                Result<i64>, Result<u64>)>()
+    }
+    /// Native integer only; NULL/real/text coercion is refused terminally.
+    pub fn integer(&self, column: i32) -> Result<i64> {
+        if self.current_column_type(column)? != ffi::SQLITE_INTEGER {
             self.finished.set(true);
-            self.started = true;
-            self.current_row = false;
-            return Err(invalid("pinned SQLite bounded integer binding failed"));
+            return Err(invalid("SQLite bounded integer column type"));
+        }
+        Ok(unsafe { ffi::sqlite3_column_int64(self.statement, column) })
+    }
+    pub fn unsigned_integer(&self, column: i32) -> Result<u64> {
+        let value = self.integer(column)?;
+        u64::try_from(value).map_err(|_| {
+            self.finished.set(true);
+            invalid("SQLite bounded unsigned integer column")
+        })
+    }
+    fn current_column_type(&self, column: i32) -> Result<i32> {
+        if self.finished.get() || !self.current_row || column < 0
+            || column >= unsafe { ffi::sqlite3_column_count(self.statement) } {
+            self.finished.set(true);
+            return Err(invalid("SQLite bounded column is not current"));
+        }
+        Ok(unsafe { ffi::sqlite3_column_type(self.statement, column) })
+    }
+    /// Borrow native bytes without UTF8 traversal or conversion. Caller admits
+    /// the observed byte length/work BEFORE validating/parsing/copying. A column
+    /// borrow prevents next mutable bind/step/drop; backend owns these bytes.
+    pub fn value_ref(&self, column: i32) -> Result<rusqlite::types::ValueRef<'_>> {
+        use rusqlite::types::ValueRef;
+        let result = (|| {
+            Ok(match self.current_column_type(column)? {
+                ffi::SQLITE_NULL => ValueRef::Null,
+                ffi::SQLITE_INTEGER => ValueRef::Integer(unsafe {
+                    ffi::sqlite3_column_int64(self.statement, column) }),
+                ffi::SQLITE_FLOAT => ValueRef::Real(unsafe {
+                    ffi::sqlite3_column_double(self.statement, column) }),
+                kind @ (ffi::SQLITE_TEXT | ffi::SQLITE_BLOB) => {
+                    let pointer = unsafe { if kind == ffi::SQLITE_TEXT {
+                        ffi::sqlite3_column_text(self.statement, column)
+                    } else { ffi::sqlite3_column_blob(self.statement, column).cast::<u8>() } };
+                    let length = unsafe { ffi::sqlite3_column_bytes(self.statement, column) };
+                    let status = unsafe { ffi::sqlite3_errcode(self.owner.handle()) };
+                    if matches!(status & 0xff, ffi::SQLITE_NOMEM | ffi::SQLITE_INTERRUPT) {
+                        return Err(bounded_sql_error(status, "SQLite bounded native column bytes"));
+                    }
+                    if length < 0 || (pointer.is_null() && length != 0) {
+                        return Err(invalid("SQLite bounded native column bytes"));
+                    }
+                    let bytes = if length == 0 { &[] } else {
+                        unsafe { std::slice::from_raw_parts(pointer, length as usize) }
+                    };
+                    if kind == ffi::SQLITE_TEXT { ValueRef::Text(bytes) } else { ValueRef::Blob(bytes) }
+                }
+                _ => return Err(invalid("SQLite bounded native column type")),
+            })
+        })();
+        if result.is_err() { self.finished.set(true); }
+        result
+    }
+    fn poison_binding(&mut self, error: StoreError) -> StoreError {
+        self.finished.set(true);
+        self.started = true;
+        self.current_row = false;
+        error
+    }
+    pub fn bind_null(&mut self, index: i32) -> Result<()> {
+        if self.finished.get() || self.started || index <= 0 {
+            return Err(self.poison_binding(invalid("SQLite bounded null binding failed")));
+        }
+        let status = unsafe { ffi::sqlite3_bind_null(self.statement, index) };
+        if status != ffi::SQLITE_OK {
+            return Err(self.poison_binding(bounded_sql_error(status,
+                "SQLite bounded null binding failed")));
         }
         Ok(())
     }
-    /// Copy one already-admitted borrowed text parameter into the same dedicated
-    /// SQLite pool. No Rust String/CString or error-message copy is allocated.
+    /// Copied native bytes stay in the same already-admitted backend pool.
+    pub fn bind_blob(&mut self, index: i32, value: &[u8]) -> Result<()> {
+        if self.finished.get() || self.started || index <= 0 || value.len() > i32::MAX as usize {
+            return Err(self.poison_binding(invalid("SQLite bounded blob binding failed")));
+        }
+        let status = unsafe { ffi::sqlite3_bind_blob(self.statement, index,
+            value.as_ptr().cast(), value.len() as i32, ffi::SQLITE_TRANSIENT()) };
+        if status != ffi::SQLITE_OK {
+            return Err(self.poison_binding(bounded_sql_error(status,
+                "SQLite bounded blob binding failed")));
+        }
+        Ok(())
+    }
+    pub fn bind_i64(&mut self, index: i32, value: i64) -> Result<()> {
+        if self.finished.get() || self.started || index <= 0 {
+            return Err(self.poison_binding(invalid("pinned SQLite bounded integer binding failed")));
+        }
+        let status = unsafe { ffi::sqlite3_bind_int64(self.statement, index, value) };
+        if status != ffi::SQLITE_OK {
+            return Err(self.poison_binding(bounded_sql_error(status,
+                "pinned SQLite bounded integer binding failed")));
+        }
+        Ok(())
+    }
+    /// Copy one already-admitted borrowed parameter into the same native pool.
+    /// No Rust String/CString/native-error-message copy is allocated.
     pub fn bind_text(&mut self, index: i32, value: &str) -> Result<()> {
         if self.finished.get() || self.started || index <= 0 || value.len() > i32::MAX as usize {
-            self.finished.set(true);
-            self.started = true;
-            self.current_row = false;
-            return Err(invalid("pinned SQLite bounded text binding failed"));
+            return Err(self.poison_binding(invalid("pinned SQLite bounded text binding failed")));
         }
-        let status = unsafe {
-            ffi::sqlite3_bind_text(
-                self.statement,
-                index,
-                value.as_ptr().cast(),
-                value.len() as i32,
-                ffi::SQLITE_TRANSIENT(),
-            )
-        };
+        let status = unsafe { ffi::sqlite3_bind_text(self.statement, index,
+            value.as_ptr().cast(), value.len() as i32, ffi::SQLITE_TRANSIENT()) };
         if status != ffi::SQLITE_OK {
-            self.finished.set(true);
-            self.started = true;
-            self.current_row = false;
-            return Err(invalid("pinned SQLite bounded text binding failed"));
+            return Err(self.poison_binding(bounded_sql_error(status,
+                "pinned SQLite bounded text binding failed")));
         }
         Ok(())
     }
@@ -497,7 +623,7 @@ impl PinnedBoundedStatement<'_> {
         match status {
             ffi::SQLITE_ROW => Ok(true),
             ffi::SQLITE_DONE => Ok(false),
-            _ => Err(invalid("pinned SQLite bounded statement step failed")),
+            _ => Err(bounded_sql_error(status, "pinned SQLite bounded statement step failed")),
         }
     }
     fn text_bytes(&self, column: i32) -> Result<&[u8]> {
@@ -512,6 +638,11 @@ impl PinnedBoundedStatement<'_> {
         }
         let length = unsafe { ffi::sqlite3_column_bytes(self.statement, column) };
         let pointer = unsafe { ffi::sqlite3_column_text(self.statement, column) };
+        let status = unsafe { ffi::sqlite3_errcode(self.owner.handle()) };
+        if matches!(status & 0xff, ffi::SQLITE_NOMEM | ffi::SQLITE_INTERRUPT) {
+            self.finished.set(true);
+            return Err(bounded_sql_error(status, "pinned SQLite bounded text unavailable"));
+        }
         if length < 0 || pointer.is_null() {
             self.finished.set(true);
             return Err(invalid("pinned SQLite bounded text unavailable"));
@@ -748,6 +879,17 @@ impl FdSpelling {
     }
 }
 
+// Native SQLite status owns the refusal class. No diagnostic text is copied;
+// genuine original SQL/cancel/heap exhaustion remains budget refusal, while
+// invalid SQL, bind range and other failures retain descriptor diagnostics.
+fn bounded_sql_error(status: i32, detail: &'static str) -> StoreError {
+    match status & 0xff {
+        ffi::SQLITE_INTERRUPT | ffi::SQLITE_NOMEM =>
+            StoreError::new(StoreErrorCode::BudgetExceeded, detail),
+        _ => invalid(detail),
+    }
+}
+
 fn invalid(detail: &'static str) -> StoreError {
     StoreError::new(StoreErrorCode::DescriptorMismatch, detail)
 }
@@ -908,11 +1050,11 @@ unsafe extern "C" fn open_main(
     // std pathname adapter's separate temporary C buffer. No CREATE, and the
     // exact observer/actual inode check below remains the custody authority.
     let access = if readonly {
-        LINUX_O_RDONLY
+        libc::O_RDONLY
     } else {
-        LINUX_O_RDWR
+        libc::O_RDWR
     };
-    let opened = unsafe { linux_open(path.bytes.as_ptr().cast(), access | LINUX_O_CLOEXEC) };
+    let opened = unsafe { libc::open(path.bytes.as_ptr().cast(), access | libc::O_CLOEXEC) };
     if opened < 0 {
         return ffi::SQLITE_CANTOPEN;
     }

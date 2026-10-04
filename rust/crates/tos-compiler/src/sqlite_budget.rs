@@ -75,6 +75,84 @@ pub(crate) fn configure_with_counter_until(
     configure_limits(db, limits)
 }
 
+pub(crate) fn configure_prepaid_limits(db: &Connection, limits: Limits) -> Result<()> {
+    configure_limits(db, limits)
+}
+
+/// Same maintained settings under the existing serial VM hook and original
+/// state/work owner. Dynamic PRAGMA spelling uses a held fixed stack buffer.
+pub(crate) fn configure_prepaid_limits_with_owned_state(
+    db: &Connection, limits: Limits, state: &crate::d1_public_capture::CreationState<'_>,
+) -> Result<()> {
+    use std::fmt::Write;
+    struct Sql { bytes: [u8; 96], len: usize }
+    impl std::fmt::Write for Sql {
+        fn write_str(&mut self, value: &str) -> std::fmt::Result {
+            let end = self.len.checked_add(value.len()).ok_or(std::fmt::Error)?;
+            if end >= self.bytes.len() { return Err(std::fmt::Error); }
+            self.bytes[self.len..end].copy_from_slice(value.as_bytes());
+            self.len = end; Ok(())
+        }
+    }
+    fn store_error(error: tos_source_store::StoreError) -> Error {
+        if error.code == tos_source_store::StoreErrorCode::BudgetExceeded {
+            Error::Budget("owned SQLite settings")
+        } else { Error::Invalid("owned SQLite settings") }
+    }
+    fn run(db: &Connection, sql: &std::ffi::CStr,
+        state: &crate::d1_public_capture::CreationState<'_>, integer: bool,
+    ) -> Result<Option<i64>> {
+        state.active()?;
+        state.charge_work(sql.to_bytes().len())?;
+        let _hold = state.hold(tos_source_store::PinnedBoundedStatement::owned_connection_rust_workspace_upper_bound())?;
+        let mut statement = tos_source_store::PinnedBoundedStatement::prepare_on_owned_connection(db, sql)
+            .map_err(store_error)?;
+        let mut result = None;
+        loop {
+            state.active()?;
+            if !statement.step().map_err(store_error)? { break; }
+            if integer {
+                if result.is_some() { return Err(Error::Invalid("owned SQLite setting rows")); }
+                result = Some(statement.integer(0).map_err(store_error)?);
+            }
+        }
+        Ok(result)
+    }
+    let _sql_hold = state.hold(std::mem::size_of::<Sql>())?;
+    for sql in [c"PRAGMA journal_mode=DELETE", c"PRAGMA synchronous=FULL", c"PRAGMA temp_store=FILE"] {
+        run(db, sql, state, false)?;
+    }
+    // Admit both initialization and bounded spelling-copy passes before build.
+    state.charge_work(96 + 95)?;
+    let mut sql = Sql { bytes: [0;96], len: 0 };
+    write!(&mut sql, "PRAGMA cache_size={}", -(limits.sqlite_cache_kib as i64))
+        .map_err(|_| Error::Budget("owned SQLite setting SQL"))?;
+    run(db, std::ffi::CStr::from_bytes_with_nul(&sql.bytes[..sql.len+1])
+        .map_err(|_| Error::Invalid("owned SQLite setting SQL"))?, state, false)?;
+    let cache = run(db, c"PRAGMA cache_size", state, true)?;
+    let temp = run(db, c"PRAGMA temp_store", state, true)?;
+    if cache != Some(-(limits.sqlite_cache_kib as i64)) || temp != Some(1) {
+        return Err(Error::Invalid("SQLite cache/temp policy not applied"));
+    }
+    let page_size = run(db, c"PRAGMA page_size", state, true)?
+        .and_then(|n| u64::try_from(n).ok()).filter(|n| *n != 0)
+        .ok_or(Error::Invalid("owned SQLite page size"))?;
+    if limits.max_output_bytes < page_size { return Err(Error::Budget("output smaller than SQLite page")); }
+    let page_cap = limits.max_output_bytes / page_size;
+    // Clearing and replacement spelling coexist under the same byte-work law.
+    state.charge_work(96 + 95)?;
+    sql.len = 0; sql.bytes.fill(0);
+    write!(&mut sql, "PRAGMA max_page_count={page_cap}")
+        .map_err(|_| Error::Budget("owned SQLite setting SQL"))?;
+    run(db, std::ffi::CStr::from_bytes_with_nul(&sql.bytes[..sql.len+1])
+        .map_err(|_| Error::Invalid("owned SQLite setting SQL"))?, state, false)?;
+    let effective = run(db, c"PRAGMA max_page_count", state, true)?
+        .and_then(|n| u64::try_from(n).ok())
+        .ok_or(Error::Invalid("owned SQLite page cap"))?;
+    if effective > page_cap { return Err(Error::Invalid("SQLite output page cap not applied")); }
+    state.active()
+}
+
 fn configure_limits(db: &Connection, limits: Limits) -> Result<()> {
     db.execute_batch(
         "PRAGMA journal_mode=DELETE; PRAGMA synchronous=FULL; PRAGMA temp_store=FILE;",
@@ -117,6 +195,21 @@ fn reserve_vm_window(used: &AtomicU64, cap: u64, interval: u64) -> Result<()> {
         }
     }
 }
+// The installed closure captures this single owner, so its boxed payload
+// geometry has one maintained source independent of compiler field capture.
+struct SharedVmCallback {
+    window: SharedVmWindow,
+    deadline: Instant,
+    cancelled: Arc<std::sync::atomic::AtomicBool>,
+}
+impl SharedVmCallback {
+    fn interrupted(&self) -> bool {
+        if Instant::now() >= self.deadline || self.cancelled.load(Ordering::Acquire) {
+            return true;
+        }
+        reserve_vm_window(&self.window.used, self.window.cap, self.window.interval).is_err()
+    }
+}
 impl SharedVmWindow {
     /// Call before opening/using the new connection; this does not create one.
     pub(crate) fn reserve(used: Arc<AtomicU64>, cap: u64) -> Result<Self> {
@@ -128,17 +221,21 @@ impl SharedVmWindow {
         reserve_vm_window(&used, cap, interval)?;
         Ok(Self { used, cap, interval })
     }
+    /// Boxed callback payload plus its fat Box controller and the native
+    /// registration/free-controller pointers. Connection and Arc allocations
+    /// are distinct existing owners; Arc clones here share their allocations.
+    /// Retain once per live hook and admit another whole bound before replacing
+    /// it: rusqlite constructs the new Box while the previous hook is live.
+    pub(crate) fn callback_state_upper_bound() -> usize {
+        std::mem::size_of::<SharedVmCallback>()
+            + std::mem::size_of::<Box<dyn FnMut() -> bool + Send>>()
+            + 2 * std::mem::size_of::<usize>()
+    }
     pub(crate) fn install(self, db: &Connection, deadline: Instant,
         cancelled: Arc<std::sync::atomic::AtomicBool>) {
         let interval = self.interval;
-        db.progress_handler(interval as i32, Some(move || {
-            if Instant::now() >= deadline || cancelled.load(Ordering::Acquire) {
-                return true;
-            }
-            // Prior window has completed. Reserve the next before continuing;
-            // refusal preserves the original counter and stops this statement.
-            reserve_vm_window(&self.used, self.cap, interval).is_err()
-        }));
+        let callback = SharedVmCallback { window: self, deadline, cancelled };
+        db.progress_handler(interval as i32, Some(move || callback.interrupted()));
     }
 }
 

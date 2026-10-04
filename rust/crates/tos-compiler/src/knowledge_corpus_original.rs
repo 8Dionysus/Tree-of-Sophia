@@ -1,7 +1,7 @@
 //! Named original corpus projection custody. Capture identity is distinct from
 //! authored-source identity; neither projection custody nor selection admits it.
 use crate::knowledge_selected::{ColdOpenLimits, KnowledgeSelectedExpectation};
-use crate::knowledge_stage::{KnowledgeStage, WritePhase};
+use crate::knowledge_stage::{KnowledgeStage, WritePhase, KnowledgePayloadLayout, KNOWLEDGE_CARRIER_ONCE_MODEL_ABI};
 use crate::{Error, QueryVocabulary, Result, SourceBinding};
 use rusqlite::{Connection, OptionalExtension, params, params_from_iter};
 use serde_json::Value;
@@ -182,6 +182,7 @@ pub(crate) const META_TABLE: &str = "corpus_original_meta";
 pub(crate) const ROW_TABLE: &str = "corpus_original_rows";
 pub(crate) const META_DDL: &str = "CREATE TABLE corpus_original_meta(singleton INTEGER PRIMARY KEY CHECK(singleton=1),receipt BLOB NOT NULL)";
 pub(crate) const ROW_DDL: &str = "CREATE TABLE corpus_original_rows(collection TEXT NOT NULL,ordinal INTEGER NOT NULL CHECK(ordinal>=0),packet_len INTEGER NOT NULL,packet_sha256 BLOB NOT NULL,packet BLOB NOT NULL,node_id TEXT,from_id TEXT,to_id TEXT,pack_id TEXT,view_id TEXT,resource_kind TEXT,owner_branch TEXT,PRIMARY KEY(collection,ordinal)) WITHOUT ROWID";
+pub(crate) const ROW_DDL_CARRIER: &str = "CREATE TABLE corpus_original_rows(collection TEXT NOT NULL,ordinal INTEGER NOT NULL CHECK(ordinal>=0),packet_len INTEGER NOT NULL,packet_sha256 BLOB NOT NULL,node_id TEXT,from_id TEXT,to_id TEXT,pack_id TEXT,view_id TEXT,resource_kind TEXT,owner_branch TEXT,PRIMARY KEY(collection,ordinal)) WITHOUT ROWID";
 pub(crate) const INDEXES: [(&str, &str); 7] = [
     (
         "corpus_original_node",
@@ -462,6 +463,47 @@ pub(crate) fn insert_original_row(
     ])?;
     Ok(())
 }
+/// Same indexed semantic row, with exact packet bytes already retained by
+/// the Stage carrier owner before the metadata transaction starts.
+pub(crate) fn insert_original_row_with_layout(
+    insert: &mut rusqlite::Statement<'_>, collection: CorpusOriginalCollection,
+    ordinal: u64, raw: &[u8], layout: KnowledgePayloadLayout,
+) -> Result<()> {
+    if layout == KnowledgePayloadLayout::InlineV1 {
+        return insert_original_row(insert, collection, ordinal, raw);
+    }
+    let value = values(raw, crate::knowledge_original_rows::MAX_ROW_BYTES)?;
+    let fields = indexed_fields(collection, &value)?;
+    insert.execute(params![collection.as_str(), ordinal as i64, raw.len() as i64,
+        Digest256::of_bytes(raw).as_bytes().as_slice(), fields[0], fields[1], fields[2],
+        fields[3], fields[4], fields[5], fields[6]])?;
+    Ok(())
+}
+/// Exact physical metadata size; packet bytes belong to the carrier owner.
+/// Caller precharges the two parsing passes here, two insertion parsing passes
+/// and insertion digest pass before this planning traversal (carrier hash and
+/// collision comparison are charged separately by the carrier primitive).
+pub(crate) fn preload_original_carrier(
+    stage: &mut KnowledgeStage<'_>, collection: CorpusOriginalCollection, raw: &[u8],
+) -> Result<u64> {
+    let work = (raw.len() as u64).checked_mul(5)
+        .ok_or(Error::Budget("corpus carrier metadata work"))?;
+    stage.charge_preparation_work(work)?;
+    let value = values(raw, crate::knowledge_original_rows::MAX_ROW_BYTES)?;
+    let fields = indexed_fields(collection, &value)?;
+    let mut bytes = 48u64.checked_add(collection.as_str().len() as u64)
+        .ok_or(Error::Budget("corpus carrier metadata bytes"))?;
+    for field in fields.into_iter().flatten() {
+        bytes = bytes.checked_add(field.len() as u64)
+            .ok_or(Error::Budget("corpus carrier metadata bytes"))?;
+    }
+    stage.retain_exact_source_carrier(raw)?;
+    Ok(bytes)
+}
+
+pub(crate) const INSERT_ROW_CARRIER: &str =
+    "INSERT INTO corpus_original_rows VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11)";
+
 pub(crate) const INSERT_ROW: &str =
     "INSERT INTO corpus_original_rows VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12)";
 
@@ -492,11 +534,23 @@ pub fn retain_corpus_original(
             .iter()
             .try_fold(1u64, |n, (_, r)| n.checked_add(r.len() as u64))
             .ok_or(Error::Budget("corpus original row count"))?;
-        stage.charge_materialized(rows + 1, plan.receipt.total_bytes + raw.len() as u64)?;
+        let layout = stage.payload_layout();
+        let physical_bytes = if layout == KnowledgePayloadLayout::CarrierOnceV1 {
+            let mut bytes = preload_original_carrier(stage, CorpusOriginalCollection::Header, &plan.header)?;
+            for (collection, packets) in &plan.rows {
+                for packet in packets {
+                    bytes = bytes.checked_add(preload_original_carrier(stage, *collection, packet)?)
+                        .ok_or(Error::Budget("corpus carrier metadata total"))?;
+                }
+            }
+            bytes
+        } else { plan.receipt.total_bytes };
+        stage.charge_materialized(rows + 1, physical_bytes.checked_add(raw.len() as u64)
+            .ok_or(Error::Budget("corpus original materialized bytes"))?)?;
         stage.with_connection(WritePhase::Finalize, |db| {
             let tx = db.transaction()?;
             tx.execute_batch(META_DDL)?;
-            tx.execute_batch(ROW_DDL)?;
+            tx.execute_batch(if layout == KnowledgePayloadLayout::CarrierOnceV1 { ROW_DDL_CARRIER } else { ROW_DDL })?;
             for (_, ddl) in INDEXES {
                 tx.execute_batch(ddl)?;
             }
@@ -504,13 +558,13 @@ pub fn retain_corpus_original(
                 "INSERT INTO corpus_original_meta VALUES(1,?1)",
                 [raw.as_slice()],
             )?;
-            let mut insert = tx.prepare(INSERT_ROW)?;
+            let mut insert = tx.prepare(if layout == KnowledgePayloadLayout::CarrierOnceV1 { INSERT_ROW_CARRIER } else { INSERT_ROW })?;
             let header = vec![plan.header.clone()];
             for (collection, rows) in std::iter::once((CorpusOriginalCollection::Header, &header))
                 .chain(plan.rows.iter().map(|(c, r)| (*c, r)))
             {
                 for (ordinal, raw) in rows.iter().enumerate() {
-                    insert_original_row(&mut insert, collection, ordinal as u64, raw)?;
+                    insert_original_row_with_layout(&mut insert, collection, ordinal as u64, raw, layout)?;
                 }
             }
             drop(insert);
@@ -532,9 +586,12 @@ pub(crate) fn present(db: &Connection) -> Result<bool> {
     Ok(n == 2)
 }
 pub(crate) fn verify_ddl(db: &Connection) -> Result<()> {
+    verify_ddl_with_layout(db, KnowledgePayloadLayout::InlineV1)
+}
+pub(crate) fn verify_ddl_with_layout(db: &Connection, layout: KnowledgePayloadLayout) -> Result<()> {
     for (kind, name, ddl) in [
         ("table", META_TABLE, META_DDL),
-        ("table", ROW_TABLE, ROW_DDL),
+        ("table", ROW_TABLE, if layout == KnowledgePayloadLayout::CarrierOnceV1 { ROW_DDL_CARRIER } else { ROW_DDL }),
     ]
     .into_iter()
     .chain(INDEXES.into_iter().map(|(n, d)| ("index", n, d)))
@@ -614,6 +671,18 @@ pub(crate) fn page(
     max_row_bytes: usize,
     max_page_bytes: u64,
 ) -> Result<CorpusOriginalPage> {
+    page_with_layout(db, collection, selector, after, max_rows, max_row_bytes, max_page_bytes, KnowledgePayloadLayout::InlineV1)
+}
+pub(crate) fn page_with_layout(
+    db: &Connection,
+    collection: CorpusOriginalCollection,
+    selector: &CorpusOriginalSelector,
+    after: Option<u64>,
+    max_rows: usize,
+    max_row_bytes: usize,
+    max_page_bytes: u64,
+    layout: KnowledgePayloadLayout,
+) -> Result<CorpusOriginalPage> {
     crate::knowledge_original_rows::page_limits(max_rows, max_row_bytes, max_page_bytes)?;
     if after.is_some_and(|n| n > i64::MAX as u64) {
         return Err(Error::Budget("corpus page ordinal"));
@@ -635,8 +704,11 @@ pub(crate) fn page(
         } => " INDEXED BY corpus_original_owner",
         _ => "",
     };
+    let carrier_join = if layout == KnowledgePayloadLayout::CarrierOnceV1 {
+        " LEFT JOIN knowledge_source_carriers USING(packet_sha256,packet_len)"
+    } else { "" };
     let sql = format!(
-        "SELECT ordinal,packet_len,CASE WHEN typeof(packet_sha256)='blob' AND length(packet_sha256)=32 THEN packet_sha256 ELSE NULL END,CASE WHEN typeof(packet)='blob' AND packet_len=length(packet) AND length(packet)<=? THEN packet ELSE NULL END FROM corpus_original_rows{index} WHERE collection=? AND ordinal>? AND ({where_sql}) ORDER BY ordinal LIMIT ?"
+        "SELECT ordinal,packet_len,CASE WHEN typeof(packet_sha256)='blob' AND length(packet_sha256)=32 THEN packet_sha256 ELSE NULL END,CASE WHEN typeof(packet)='blob' AND packet_len=length(packet) AND length(packet)<=? THEN packet ELSE NULL END FROM corpus_original_rows{index}{carrier_join} WHERE collection=? AND ordinal>? AND ({where_sql}) ORDER BY ordinal LIMIT ?"
     );
     let mut values = vec![
         rusqlite::types::Value::Integer(max_row_bytes as i64),
@@ -680,13 +752,27 @@ pub(crate) fn all_row_with_state_budget(
     max_page_bytes: u64,
     available: usize,
 ) -> Result<Option<CorpusOriginalRow>> {
+    all_row_with_state_budget_and_layout(db, collection, after, max_row_bytes, max_page_bytes, available, KnowledgePayloadLayout::InlineV1)
+}
+pub(crate) fn all_row_with_state_budget_and_layout(
+    db: &Connection,
+    collection: CorpusOriginalCollection,
+    after: Option<u64>,
+    max_row_bytes: usize,
+    max_page_bytes: u64,
+    available: usize,
+    layout: KnowledgePayloadLayout,
+) -> Result<Option<CorpusOriginalRow>> {
     crate::knowledge_original_rows::page_limits(1, max_row_bytes, max_page_bytes)?;
     if after.is_some_and(|n| n > i64::MAX as u64) {
         return Err(Error::Budget("corpus page ordinal"));
     }
-    let mut statement = db.prepare(
+    let sql = if layout == KnowledgePayloadLayout::CarrierOnceV1 {
+        "SELECT ordinal,packet_len,CASE WHEN typeof(packet_sha256)='blob' AND length(packet_sha256)=32 THEN packet_sha256 ELSE NULL END,CASE WHEN typeof(packet)='blob' AND packet_len=length(packet) AND length(packet)<=?1 THEN packet ELSE NULL END FROM corpus_original_rows LEFT JOIN knowledge_source_carriers USING(packet_sha256,packet_len) WHERE collection=?2 AND ordinal>?3 ORDER BY ordinal LIMIT 1"
+    } else {
         "SELECT ordinal,packet_len,CASE WHEN typeof(packet_sha256)='blob' AND length(packet_sha256)=32 THEN packet_sha256 ELSE NULL END,CASE WHEN typeof(packet)='blob' AND packet_len=length(packet) AND length(packet)<=?1 THEN packet ELSE NULL END FROM corpus_original_rows WHERE collection=?2 AND ordinal>?3 ORDER BY ordinal LIMIT 1"
-    )?;
+    };
+    let mut statement = db.prepare(sql)?;
     let mut scan = statement.query(params![
         max_row_bytes as i64,
         collection.as_str(),
@@ -822,6 +908,7 @@ fn verify_rows(
     l: crate::NavigationOriginalLimits,
     work: &mut u64,
     cap: u64,
+    layout: KnowledgePayloadLayout,
 ) -> Result<()> {
     l.validate()?;
     let mut total = 0u64;
@@ -842,7 +929,7 @@ fn verify_rows(
         let mut after = None;
         let mut n = 0;
         loop {
-            let p = page(
+            let p = page_with_layout(
                 db,
                 collection,
                 &CorpusOriginalSelector::All,
@@ -850,6 +937,7 @@ fn verify_rows(
                 1,
                 l.max_row_bytes,
                 l.max_row_bytes as u64,
+                layout,
             )?;
             for row in p.rows {
                 if row.ordinal != n {
@@ -940,12 +1028,13 @@ pub(crate) fn verify_stage(
     stage: &mut KnowledgeStage<'_>,
     descriptor: Option<&str>,
 ) -> Result<Option<CorpusOriginalReceipt>> {
+    let layout = stage.payload_layout();
     let binding = stage.exact_receipt()?.binding.clone();
     stage.with_connection(WritePhase::Finalize, |db| {
         if !present(db)? {
             return Ok(None);
         }
-        verify_ddl(db)?;
+        verify_ddl_with_layout(db, layout)?;
         let r = receipt(db)?;
         if r.source_cut != binding.source_cut
             || r.membership_root != binding.membership_root
@@ -959,6 +1048,7 @@ pub(crate) fn verify_stage(
             crate::knowledge_original_rows::maximum_limits(),
             &mut 0,
             crate::knowledge_original_rows::MAX_COLD_WORK,
+            layout,
         )?;
         if descriptor.is_none() {
             sealed_root(db, &r)?;
@@ -972,7 +1062,7 @@ pub(crate) fn verify_stage(
                 [],
                 |r| r.get(0),
             )?;
-            if abi != KNOWLEDGE_CORPUS_MODEL_ABI || sha != r.descriptor_sha256 {
+            if abi != if layout == KnowledgePayloadLayout::CarrierOnceV1 { KNOWLEDGE_CARRIER_ONCE_MODEL_ABI } else { KNOWLEDGE_CORPUS_MODEL_ABI } || sha != r.descriptor_sha256 {
                 return Err(Error::Invalid("corpus finish ABI/descriptor"));
             }
         }
@@ -985,9 +1075,12 @@ pub(crate) fn verify(
     l: ColdOpenLimits,
     work: &mut u64,
 ) -> Result<Option<CorpusOriginalReceipt>> {
+    let layout = if e.model_abi == KNOWLEDGE_CARRIER_ONCE_MODEL_ABI {
+        KnowledgePayloadLayout::CarrierOnceV1
+    } else { KnowledgePayloadLayout::InlineV1 };
     let found = present(db)?;
     if found != e.corpus_original_root_sha256.is_some()
-        || found != (e.model_abi == KNOWLEDGE_CORPUS_MODEL_ABI)
+        || found != ([KNOWLEDGE_CORPUS_MODEL_ABI, KNOWLEDGE_CARRIER_ONCE_MODEL_ABI].contains(&e.model_abi.as_str()))
     {
         return Err(Error::Invalid("corpus original ABI/expected presence"));
     }
@@ -1002,7 +1095,7 @@ pub(crate) fn verify(
         }
         return Ok(None);
     }
-    verify_ddl(db)?;
+    verify_ddl_with_layout(db, layout)?;
     let r = receipt(db)?;
     if e.corpus_original_root_sha256.as_deref() != Some(r.component_root_sha256.as_str())
         || r.descriptor_sha256 != e.descriptor_sha256
@@ -1032,6 +1125,7 @@ pub(crate) fn verify(
         },
         work,
         l.max_work_bytes,
+        layout,
     )?;
     sealed_root(db, &r)?;
     Ok(Some(r))
