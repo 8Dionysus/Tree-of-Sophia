@@ -508,7 +508,7 @@
         "command_timeout_ms": 900000,
         "command": [
           "cargo", "test", "--workspace", "--locked", "--test", "conformance", "command_", "--",
-          "--nocapture",
+          "--nocapture", "--test-threads=1",
           "--skip", "command_form_cases::",
           "--skip", "command_record_cases::",
           "--skip", "command_claim_cases::",

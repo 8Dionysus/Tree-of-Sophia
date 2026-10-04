@@ -6340,7 +6340,7 @@ fn validate_receipt_ref_files(
     expected_files: &PrivatePackage,
 ) -> SourceCommandResult<()> {
     let expected = crate::source_revisions::file_refs(expected_files, false);
-    if cmd::field(receipt, "files")? != &expected {
+    if !same_json(cmd::field(receipt, "files")?, &expected)? {
         return Err(SourceCommandError::Conflict(
             "private Claim creation receipt file closure differs",
         ));
