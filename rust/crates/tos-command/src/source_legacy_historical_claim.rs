@@ -1959,13 +1959,19 @@ fn validate_history<'a>(
             || cmd::text(request, "operation")? != "claim.revise"
             || cmd::text(receipt, "request_digest")? != cmd::record_digest(request)?.to_prefixed()
             || cmd::field(receipt, "command_id")? != cmd::field(request, "command_id")?
-            || cmd::field(receipt, "previous_source")? != cmd::field(request, "expected_source")?
+            || !same(
+                cmd::field(receipt, "previous_source")?,
+                cmd::field(request, "expected_source")?,
+            )?
             || cmd::field(receipt, "previous_revision")?
                 != cmd::field(request, "expected_revision")?
             || cmd::field(receipt, "owner_configuration")?
                 != cmd::field(request, "expected_configuration")?
             || cmd::field(receipt, "dependencies")? != cmd::field(request, "expected_dependencies")?
-            || cmd::field(receipt, "source_bindings")? != cmd::field(request, "expected_inputs")?
+            || !same(
+                cmd::field(receipt, "source_bindings")?,
+                cmd::field(request, "expected_inputs")?,
+            )?
             || cmd::field(receipt, "reason")? != cmd::field(request, "reason")?
             || cmd::field(receipt, "changed_fields")?
                 != &JsonValue::Array(vec![cmd::string("qualifiers")])
