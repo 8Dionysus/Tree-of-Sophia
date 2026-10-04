@@ -5,7 +5,7 @@
 //! exact source closures and common append/replay journal before asking the
 //! shared assessment policy engine for a current view.
 
-use super::{absolute, capped, digest, selected_schema_with_profile, text};
+use super::{absolute, capped, selected_schema_with_profile, text};
 use crate::source_assessment_journal::{
     AssessmentHistory, AssessmentJournalFence, ProtectedAssessmentJournal,
 };
@@ -412,7 +412,7 @@ fn parse_request(raw: &[u8], version: OwnerVersion) -> SourceCommandResult<Parse
                 let text = value.as_str().ok_or(SourceCommandError::Invalid(
                     "assessment expected journal revision UTF-8",
                 ))?;
-                if digest(text).is_err() {
+                if Digest256::from_hex(text).is_err() {
                     return Err(SourceCommandError::Invalid(
                         "assessment expected journal revision",
                     ));
