@@ -12,6 +12,7 @@ mod source_admission_candidate_records;
 mod source_admission_candidate_schema;
 pub(crate) mod source_admission_fresh_revision;
 mod source_admission_index;
+mod source_admission_initial_cut;
 pub(crate) mod source_admission_source_census;
 pub mod source_admission_restore;
 mod source_admission_segment_v2;

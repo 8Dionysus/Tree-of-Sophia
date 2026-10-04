@@ -850,8 +850,53 @@ impl<'host> SpoolCandidate<'host> {
         max_manifest_allocated_bytes: u64,
         streamed: super::source_admission_store::StreamedPublicationRead,
     ) -> io::Result<SpooledPublicationReceipt> {
-        self.tick()?;
+        self.publish_validated_inner(
+            index,
+            manifest_limits,
+            max_manifest_allocated_bytes,
+            streamed,
+            None,
+        )
+    }
+
+    /// Recheck the initial source proposal under the existing publication
+    /// lock, before any V2 rootset build or current-selector CAS. The callback
+    /// carries no admission authority; all ordinary Native fences still run.
+    pub(crate) fn publish_validated_initial_checked(
+        &self,
+        index: &super::source_admission_spooled_index::IndexView<'_>,
+        manifest_limits: super::source_admission_spooled_manifest::ManifestStreamLimits,
+        max_manifest_allocated_bytes: u64,
+        streamed: super::source_admission_store::StreamedPublicationRead,
+        before_initial_publish: &mut dyn FnMut() -> io::Result<()>,
+    ) -> io::Result<SpooledPublicationReceipt> {
+        if let Err(error) = self.tick() {
+            self.abandon();
+            return Err(error);
+        }
+        if self.batch.base_revision.is_some() || index.segment_v2_budget().is_none() {
+            self.abandon();
+            return Err(invalid("initial publication fence requires a new V2 cut"));
+        }
+        self.publish_validated_inner(
+            index,
+            manifest_limits,
+            max_manifest_allocated_bytes,
+            streamed,
+            Some(before_initial_publish),
+        )
+    }
+
+    fn publish_validated_inner(
+        &self,
+        index: &super::source_admission_spooled_index::IndexView<'_>,
+        manifest_limits: super::source_admission_spooled_manifest::ManifestStreamLimits,
+        max_manifest_allocated_bytes: u64,
+        streamed: super::source_admission_store::StreamedPublicationRead,
+        mut before_initial_publish: Option<&mut dyn FnMut() -> io::Result<()>>,
+    ) -> io::Result<SpooledPublicationReceipt> {
         let result = (|| {
+            self.tick()?;
             if !self.ledger.shares_with(&streamed.io_budget)
                 || !self.space_budget.shares_with(&streamed.space_budget)
                 || !Arc::ptr_eq(&self.cancelled, &streamed.cancelled)
@@ -1052,9 +1097,38 @@ impl<'host> SpoolCandidate<'host> {
                         bytes: manifest_bytes,
                     },
                 );
+                let initial_refusal = |error: io::Error| {
+                    io::Error::new(
+                        error.kind(),
+                        SpooledPublicationV2Refusal {
+                            revision: SourceRevision(revision),
+                            manifest_sha256: Some(manifest_sha256),
+                            source_artifact: source_artifact.clone(),
+                            rootset_sha256: None,
+                            batch_sha256: fence.batch_sha256,
+                            validator_sha256: fence.validator_sha256,
+                            persistent_store_custody: self.store.v2_store_custody(),
+                            cause: error,
+                        },
+                    )
+                };
                 let lock = self
                     .store
-                    .lock_for_v2_publication(self.deadline, &self.cancelled)?;
+                    .lock_for_v2_publication(self.deadline, &self.cancelled)
+                    .map_err(&initial_refusal)?;
+                if let Some(check) = before_initial_publish.as_deref_mut() {
+                    let initial_fence_result = (|| {
+                        check()?;
+                        self.tick()?;
+                        index.verify_candidate()?;
+                        self.verify_consumed()?;
+                        if self.fence()? != fence {
+                            return Err(invalid("initial publication candidate fence changed"));
+                        }
+                        Ok(())
+                    })();
+                    initial_fence_result.map_err(&initial_refusal)?;
+                }
                 if self
                     .store
                     .current_selection(
@@ -1062,12 +1136,13 @@ impl<'host> SpoolCandidate<'host> {
                         self.deadline,
                         &self.cancelled,
                         Some(&profile.io),
-                    )?
+                    )
+                    .map_err(&initial_refusal)?
                     .is_some()
                 {
-                    return Err(invalid(
+                    return Err(initial_refusal(invalid(
                         "V2 initial writer requires no selected corpus revision",
-                    ));
+                    )));
                 }
                 let built = match super::source_admission_segment_v2::build_initial_rootset_v2(
                     self.store,
