@@ -517,6 +517,12 @@ impl<'host> SpoolCandidate<'host> {
         .map_err(sql)?;
         let clock_cancel = cancelled.clone();
         db.progress_handler(1000, Some(move || active(deadline, &clock_cancel).is_err()));
+        // The private preparation is one finite SQLite unit. Per-row
+        // autocommit repeatedly flushes the same pages and can exhaust the
+        // original shared write budget before immutable-object ingestion.
+        // This transaction keeps the same pager/space/deadline accounting;
+        // no prepared candidate is returned until its metered commit succeeds.
+        db.execute_batch("BEGIN IMMEDIATE").map_err(sql)?;
         db.execute_batch("CREATE TABLE members(path TEXT COLLATE BINARY PRIMARY KEY,sha BLOB NOT NULL CHECK(length(sha)=32),size BLOB NOT NULL CHECK(length(size)=8),mode INTEGER NOT NULL,changed INTEGER NOT NULL,touched INTEGER NOT NULL) WITHOUT ROWID; CREATE INDEX members_changed_path ON members(path COLLATE BINARY) WHERE changed=1; CREATE TABLE retirements(ordinal INTEGER PRIMARY KEY,path TEXT,sha BLOB,event_ref TEXT,event_sha BLOB,event_size BLOB); CREATE INDEX retirements_by_path ON retirements(path COLLATE BINARY,ordinal); CREATE TABLE affected(path TEXT COLLATE BINARY PRIMARY KEY,visited INTEGER NOT NULL) WITHOUT ROWID; CREATE TABLE reverse_dependencies(target TEXT COLLATE BINARY,source TEXT COLLATE BINARY,PRIMARY KEY(target,source)) WITHOUT ROWID; CREATE INDEX reverse_dependencies_by_source ON reverse_dependencies(source COLLATE BINARY,target COLLATE BINARY); CREATE TABLE historical_ids(id TEXT COLLATE BINARY PRIMARY KEY,path TEXT NOT NULL) WITHOUT ROWID; CREATE INDEX historical_ids_by_path ON historical_ids(path COLLATE BINARY,id COLLATE BINARY); CREATE INDEX affected_queue ON affected(visited,path);").map_err(sql)?;
         let batch_bytes = batch.bytes_read();
         let mut candidate = Self {
@@ -548,6 +554,8 @@ impl<'host> SpoolCandidate<'host> {
             cancelled,
         };
         candidate.import_and_prepare()?;
+        candidate.running()?;
+        candidate.db.execute_batch("COMMIT").map_err(sql)?;
         candidate.failed.set(false);
         candidate.tick()?;
         Ok(candidate)

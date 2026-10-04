@@ -745,10 +745,18 @@ fn native_layer_journal_case(derived: bool) {
             "operation":"describe","subject_id":fixture["layer_subject"]["id"]}),
         deadline,
     );
-    assert!(!denied_status.success());
+    let denied_prefix =
+        String::from_utf8_lossy(&denied_error[..denied_error.len().min(16_384)]);
+    assert!(
+        !denied_status.success(),
+        "supporting-only native refusal unexpectedly succeeded: status={denied_status:?} stderr_bytes={} prefix={denied_prefix}",
+        denied_error.len()
+    );
     assert!(
         String::from_utf8_lossy(&denied_error)
-            .contains("native supporting evidence is not an assessment target")
+            .contains("native supporting evidence is not an assessment target"),
+        "supporting-only native refusal differs: status={denied_status:?} stderr_bytes={} prefix={denied_prefix}",
+        denied_error.len()
     );
     fs::write(&owner, configuration_raw).unwrap();
     fs::set_permissions(&owner, fs::Permissions::from_mode(0o600)).unwrap();
@@ -1028,11 +1036,16 @@ print(json.dumps(f['prepare'](repository,root),separators=(',',':')))
             deadline,
         )
     };
+    let invocation_count = std::cell::Cell::new(0u32);
     let invoke = |selected_owner: &Path, request: &Value| -> Value {
+        let ordinal = invocation_count.get() + 1;
+        invocation_count.set(ordinal);
         let (status, raw, errors) = observe(selected_owner, request);
         assert!(
             status.success(),
-            "native v6 retained OCR: {}",
+            "native retained OCR invocation {} operation {}: {}",
+            ordinal,
+            request["operation"].as_str().unwrap_or("<absent>"),
             String::from_utf8_lossy(&errors)
         );
         serde_json::from_slice(&raw).unwrap()

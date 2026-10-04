@@ -10,14 +10,16 @@
 use crate::prepared_dossier_docx_adapter::NativePreparedDossierContentValidator;
 use crate::prepared_dossier_native_directory::visit_selected_directory;
 use crate::prepared_dossier_readiness::{
-    self, PreparedDossierDirectoryEntry, PreparedDossierDirectoryStatus, PreparedDossierEntryKind,
-    PreparedDossierReadinessExecution, PreparedSourceProfile, ReadinessAssessment, ReadinessInputs,
+    self as readiness, PreparedDossierDirectoryEntry, PreparedDossierDirectoryStatus,
+    PreparedDossierEntryKind, PreparedDossierReadinessExecution, PreparedSourceProfile,
+    ReadinessAssessment, ReadinessInputs,
 };
 use crate::prepared_dossier_render::{
     self, ObsoleteBranchIntent, PlantingDirectoryPreimage, PlantingOutputLeafState,
     PlantingOutputPreimage, PlantingSourcePreimage, PreparedDossierPackageInput,
     PreparedDossierPackageRefs, PreparedDossierPlantingInputs,
 };
+use fs2::FileExt;
 use serde_json::{Map, Value, json};
 use std::collections::{BTreeMap, BTreeSet};
 use std::ffi::{CString, OsStr, OsString};

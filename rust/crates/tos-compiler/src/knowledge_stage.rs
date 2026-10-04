@@ -1201,27 +1201,21 @@ impl<'a> KnowledgeStage<'a> {
             let value = match page {
                 Ok(value) => value,
                 Err(error) => {
-                    let rollback = self.db().execute_batch("ROLLBACK");
+                    // SQLite may already have aborted this transaction. Cleanup
+                    // must not replace the failure that poisoned this page.
+                    if !self.db().is_autocommit() {
+                        let _ = self.db().execute_batch("ROLLBACK");
+                    }
                     self.write_page = None;
-                    return match rollback {
-                        Ok(()) => Err(error),
-                        Err(reason) => Err(Error::SqlitePhase {
-                            phase,
-                            error: reason,
-                        }),
-                    };
+                    return Err(error);
                 }
             };
             if let Err(error) = self.db().execute_batch("COMMIT") {
-                let rollback = self.db().execute_batch("ROLLBACK");
+                if !self.db().is_autocommit() {
+                    let _ = self.db().execute_batch("ROLLBACK");
+                }
                 self.write_page = None;
-                return Err(match rollback {
-                    Ok(()) => Error::SqlitePhase { phase, error },
-                    Err(reason) => Error::SqlitePhase {
-                        phase,
-                        error: reason,
-                    },
-                });
+                return Err(Error::SqlitePhase { phase, error });
             }
             self.write_page = None;
             self.check(phase)?;

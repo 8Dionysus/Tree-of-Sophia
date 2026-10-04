@@ -160,6 +160,11 @@ fn capture_process(command: &mut Command, deadline: Instant) -> Vec<u8> {
         .env("GIT_NO_REPLACE_OBJECTS", "1")
         .env("GIT_CONFIG_NOSYSTEM", "1")
         .env("GIT_CONFIG_GLOBAL", "/dev/null")
+        .env("GIT_CONFIG_COUNT", "2")
+        .env("GIT_CONFIG_KEY_0", "core.packedGitWindowSize")
+        .env("GIT_CONFIG_VALUE_0", "16m")
+        .env("GIT_CONFIG_KEY_1", "core.packedGitLimit")
+        .env("GIT_CONFIG_VALUE_1", "64m")
         .env("PYTHONDONTWRITEBYTECODE", "1");
     let mut output = tempfile::tempfile().unwrap();
     let mut errors = tempfile::tempfile().unwrap();

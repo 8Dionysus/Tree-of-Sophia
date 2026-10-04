@@ -21,3 +21,6 @@ members = [
 edition = "2024"
 rust-version = "1.98.1"
 license = "Apache-2.0"
+
+[profile.test.package.tos-conformance]
+strip = "debuginfo"

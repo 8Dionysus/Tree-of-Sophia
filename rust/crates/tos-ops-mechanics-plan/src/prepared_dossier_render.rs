@@ -498,7 +498,7 @@ fn route_fields(
     fields.insert(
         "review_posture".into(),
         json!(if manual_review {
-            "manual_review_required"
+            "manual_review_required".to_owned()
         } else {
             text(route.get("review_posture"))
         }),
@@ -1388,11 +1388,12 @@ fn graph_workbench(
     )?;
     for table_id in &inputs.supported_table_ids {
         let package = package(inputs, table_id)?;
-        let ds = admitted
+        let mut ds = admitted
             .iter()
             .copied()
             .filter(|d| d.table_id == *table_id)
             .collect::<Vec<_>>();
+        ds.sort_by_key(|dossier| dossier_sort_key(dossier));
         let table_nodes = nodes
             .iter()
             .filter(|row| table_for_row(row) == *table_id)
@@ -1420,7 +1421,7 @@ fn graph_workbench(
             check,
         )?;
         let mut branches = Vec::new();
-        for dossier in sorted_dossiers(&ds) {
+        for dossier in &ds {
             let route = package
                 .routes
                 .get(&dossier.dossier_id)
@@ -1472,7 +1473,7 @@ fn branch_id(path: &str) -> String {
         "philosophy.{}",
         path.strip_prefix("ToS/philosophy/")
             .unwrap_or(path)
-            .replace('/', '.')
+            .replace('/', ".")
     )
 }
 

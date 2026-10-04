@@ -69,6 +69,7 @@ pub struct ResearchExecution {
     max_seconds: u64,
     file_cap: u64,
     read_cap: u64,
+    work_cap: u64,
     io: PinnedSqliteIoBudget,
     space: Option<PinnedSqliteSpaceBudget>,
     retained_space: Rc<RefCell<Vec<PinnedSqliteSpaceReservation>>>,
@@ -102,11 +103,38 @@ impl ResearchExecution {
         max_seconds: u64,
         available_bytes: Option<u64>,
     ) -> Result<Self, String> {
+        Self::selected_profile(
+            root,
+            max_seconds,
+            available_bytes,
+            600,
+            WORK_CAP,
+            Arc::new(AtomicBool::new(false)),
+        )
+    }
+    fn selected_profile(
+        root: &Path,
+        max_seconds: u64,
+        available_bytes: Option<u64>,
+        max_window_seconds: u64,
+        work_cap: u64,
+        cancelled: Arc<AtomicBool>,
+    ) -> Result<Self, String> {
         let started = Instant::now();
-        if !(1..=600).contains(&max_seconds) {
-            return Err("research max-seconds must be 1..600".into());
+        if !(1..=max_window_seconds).contains(&max_seconds) {
+            return Err(if max_window_seconds == 600 {
+                "research max-seconds must be 1..600".into()
+            } else {
+                format!("operation max-seconds must be 1..{max_window_seconds}")
+            });
+        }
+        if cancelled.load(Ordering::Relaxed) {
+            return Err("research operation cancelled".into());
         }
         let directory = tos_fd_open::open_absolute_directory(root).map_err(|e| e.to_string())?;
+        if cancelled.load(Ordering::Relaxed) {
+            return Err("research operation cancelled".into());
+        }
         Ok(Self {
             root: root.to_owned(),
             directory,
@@ -114,13 +142,14 @@ impl ResearchExecution {
             max_seconds,
             file_cap: FILE_CAP,
             read_cap: READ_CAP,
+            work_cap,
             io: PinnedSqliteIoBudget::new(READ_CAP, WRITE_CAP).map_err(|e| e.to_string())?,
             space: available_bytes
                 .map(PinnedSqliteSpaceBudget::new)
                 .transpose()
                 .map_err(|e| e.to_string())?,
             retained_space: Rc::new(RefCell::new(Vec::new())),
-            cancelled: Arc::new(AtomicBool::new(false)),
+            cancelled,
             structural_reserved: Rc::new(Cell::new(0)),
             structural_returned: Rc::new(Cell::new(0)),
             work: Rc::new(Cell::new(0)),
@@ -143,6 +172,44 @@ impl ResearchExecution {
             PinnedSqliteIoBudget::new(selected.read_cap, WRITE_CAP).map_err(|e| e.to_string())?;
         Ok(selected)
     }
+    /// Explicit philosophy consumer envelope. The earned f650 whole-authored
+    /// producer uses PhilosophySourceLimits::default().max_work_bytes (1 GiB)
+    /// and one OPS-selected original window up to 3600 seconds. This keeps
+    /// generic and Reading producers at their existing 100M work/600s limits;
+    /// selecting another directory cannot renew either allowance. It does not
+    /// admit memory, storage, capacity, source meaning, or a runtime result.
+    pub fn new_philosophy_products(
+        root: &Path,
+        max_seconds: u64,
+        available_bytes: u64,
+    ) -> Result<Self, String> {
+        Self::selected_profile(
+            root,
+            max_seconds,
+            Some(available_bytes),
+            3600,
+            crate::source_philosophy::PhilosophySourceLimits::default().max_work_bytes,
+            Arc::new(AtomicBool::new(false)),
+        )
+    }
+    /// Bind the standalone caller's original cancellation flag before any
+    /// selected-directory or producer work. The profile and ledgers remain
+    /// exactly those of `new_philosophy_products`.
+    pub fn new_philosophy_products_with_cancellation(
+        root: &Path,
+        max_seconds: u64,
+        available_bytes: u64,
+        cancelled: Arc<AtomicBool>,
+    ) -> Result<Self, String> {
+        Self::selected_profile(
+            root,
+            max_seconds,
+            Some(available_bytes),
+            3600,
+            crate::source_philosophy::PhilosophySourceLimits::default().max_work_bytes,
+            cancelled,
+        )
+    }
     /// Select another data directory within this same operation. The original
     /// deadline, cancellation, IO, work and scratch ledgers remain shared.
     /// Selecting a directory does not grant storage or extend any allowance.
@@ -157,6 +224,7 @@ impl ResearchExecution {
             max_seconds: self.max_seconds,
             file_cap: self.file_cap,
             read_cap: self.read_cap,
+            work_cap: self.work_cap,
             io: self.io.clone(),
             space: self.space.clone(),
             retained_space: self.retained_space.clone(),
@@ -239,7 +307,7 @@ impl ResearchExecution {
             let s = space.snapshot();
             serde_json::json!({"declared_available_bytes":s.declared_available_bytes,"reserved_current_bytes":s.reserved_current_bytes,"reserved_high_water_bytes":s.reserved_high_water_bytes,"actual_observed_current_bytes":s.actual_observed_current_bytes,"actual_observed_high_water_bytes":s.actual_observed_high_water_bytes,"allocation_anomalies":s.allocation_anomalies,"ledger_consistent":s.ledger_consistent,"is_storage_grant":false})
         });
-        serde_json::json!({"whole_operation_seconds":self.max_seconds,"file_bytes_max":self.file_cap,"file_bytes_max_scope":"source and read-only artifact inputs","output_file_bytes_max":FILE_CAP,"logical_source_and_sqlite_read_bytes_max":self.read_cap,"logical_source_and_sqlite_write_bytes_max":WRITE_CAP,"io_counter_scope":"Rust source/hash/import/entropy and SQLite pager requests; reserved upstream Structural Rust reads","io_counter_exclusions":["separately bounded native-child protocol and internal reads","bounded helper control metadata/proc reads","filesystem metadata and host verification"],"work_units_max":WORK_CAP,"charged_work_units":self.work.get(),"read_attempted_bytes":io.read_attempted_bytes,"read_permitted_bytes":io.read_permitted_bytes,"read_returned_bytes":io.read_returned_bytes,"write_attempted_bytes":io.write_attempted_bytes,"write_permitted_bytes":io.write_permitted_bytes,"write_returned_bytes":io.write_returned_bytes,"io_failure":io.failure.map(|failure|format!("{failure:?}")),"structural_reserved_read_allowance":self.structural_reserved.get(),"structural_actual_returned_read_bytes":self.structural_returned.get(),"physical_scratch":physical})
+        serde_json::json!({"whole_operation_seconds":self.max_seconds,"file_bytes_max":self.file_cap,"file_bytes_max_scope":"source and read-only artifact inputs","output_file_bytes_max":FILE_CAP,"logical_source_and_sqlite_read_bytes_max":self.read_cap,"logical_source_and_sqlite_write_bytes_max":WRITE_CAP,"io_counter_scope":"Rust source/hash/import/entropy and SQLite pager requests; reserved upstream Structural Rust reads","io_counter_exclusions":["separately bounded native-child protocol and internal reads","bounded helper control metadata/proc reads","filesystem metadata and host verification"],"work_units_max":self.work_cap,"charged_work_units":self.work.get(),"read_attempted_bytes":io.read_attempted_bytes,"read_permitted_bytes":io.read_permitted_bytes,"read_returned_bytes":io.read_returned_bytes,"write_attempted_bytes":io.write_attempted_bytes,"write_permitted_bytes":io.write_permitted_bytes,"write_returned_bytes":io.write_returned_bytes,"io_failure":io.failure.map(|failure|format!("{failure:?}")),"structural_reserved_read_allowance":self.structural_reserved.get(),"structural_actual_returned_read_bytes":self.structural_returned.get(),"physical_scratch":physical})
     }
     pub fn root(&self) -> &Path {
         &self.root
@@ -280,7 +348,7 @@ impl ResearchExecution {
         Ok(())
     }
     pub fn tick(&self, n: u64) -> Result<(), String> {
-        self.charge(&self.work, n, WORK_CAP, "work")
+        self.charge(&self.work, n, self.work_cap, "work")
     }
     fn reserve_space(&self, bytes: u64) -> Result<PinnedSqliteSpaceReservation, String> {
         self.check()?;

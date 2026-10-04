@@ -74,7 +74,7 @@ def prepare(repository, root):
     for name in ('source_access','derivation_access','material'):
         config[name]['expires_at']=expiry
         config[name]['authority_ref']='test:journal-v6-'+name
-    config['maker']['agent_ref']='test:journal-v6-retained-authenticated-ocr'
+    config['maker']['agent_ref']=config['principal_id']
     # Separate synthetic scope record; never amend the earlier layer's rights.
     rights_ref=PREFIX+'rights/journal-v6-synthetic-layer.json'
     rights=json.loads((BASE/'private'/PREFIX/'rights/synthetic-new-ocr-layer.json').read_bytes())
