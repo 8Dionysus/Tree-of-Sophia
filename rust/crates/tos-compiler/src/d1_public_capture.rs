@@ -3549,8 +3549,10 @@ impl PublicCapture {
             db.prepare("SELECT path,sha256,size_bytes FROM capture_sources ORDER BY path")?;
         let mut rows = statement.query([])?;
         while let Some(row) = rows.next()? {
-            let path = row.get_ref(0)?.as_str()?;
-            let digest = row.get_ref(1)?.as_blob()?;
+            let path = row.get_ref(0)?.as_str()
+                .map_err(|_| Error::Invalid("captured source path UTF8"))?;
+            let digest = row.get_ref(1)?.as_blob()
+                .map_err(|_| Error::Invalid("captured source digest type"))?;
             if self.sqlite_heap.is_some() && (path.len() > 8194 || digest.len() != 32) {
                 return Err(Error::Budget("controlled captured source metadata"));
             }
