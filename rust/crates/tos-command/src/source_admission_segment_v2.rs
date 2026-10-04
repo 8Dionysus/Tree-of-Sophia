@@ -3,6 +3,8 @@
 //! These roots are derived from a completed native candidate. Their logical
 //! membership and physical tree commitments remain separate from the V1
 //! manifest digest and from NativeAdmissionComplete.
+use super::source_admission::active;
+use super::source_admission_spooled_candidate::feed;
 use std::cell::{Cell, RefCell};
 use std::sync::{
     Arc,
@@ -1898,7 +1900,7 @@ fn build_legacy_revision_roots_v2(
             match reader.retirement_at(metadata.revision, current) {
                 Ok(Some(row)) => {
                     observed_retirements_ref.set(ordinal);
-                    Some(encode_retirement_entry(current, row).map_err(tree_io_error))
+                    Some(encode_retirement_entry(current, row))
                 }
                 Ok(None) => Some(Err(tree_error("legacy retirement ordinal ended early"))),
                 Err(error) => Some(Err(tree_io_error(io::Error::new(
@@ -2372,7 +2374,7 @@ pub(crate) fn build_v1_migration_rootset_v2(
             let current = ordinal;
             ordinal += 1;
             match candidate.retirement_at_bounded(current, profile.max_working_state_bytes / 8) {
-                Ok(Some(row)) => Some(encode_retirement_entry(current, row).map_err(tree_io_error)),
+                Ok(Some(row)) => Some(encode_retirement_entry(current, row)),
                 Ok(None) => Some(Err(tree_error("migration current retirement ended early"))),
                 Err(error) => Some(Err(tree_io_error(error))),
             }
@@ -2555,14 +2557,19 @@ pub(crate) fn build_v1_migration_rootset_v2(
     add_tree_work(&mut used, history_read_work, profile.tree_limits)?;
     let history_row =
         history_row.ok_or_else(|| invalid("V1 migration current history row absent"))?;
-    if history_row.value.len() != current_row_len
-        || Digest256::of_bytes(&history_row.value) != current_row_sha
+    if history_row.len() != current_row_len || Digest256::of_bytes(&history_row) != current_row_sha
     {
         return Err(invalid("V1 migration current history row differs"));
     }
     drop(history_row);
-    base.verify_current_fence()
-        .map_err(|error| io::Error::new(io::ErrorKind::InvalidData, error))?;
+    // V1 is an immutable invocation-held streamed projection, not a mutable
+    // V2 session. Recheck its original request association and candidate fence;
+    // the actual source-store selector is re-read immediately below.
+    if candidate.v1_base_reader()?.current_revision() != expected_base
+        || candidate.fence()? != fence
+    {
+        return Err(invalid("V1 migration held base or candidate fence changed"));
+    }
     let selected_after =
         store.current_selection(pointer_limits, deadline, cancelled, Some(&profile.io))?;
     if selected_after != Some(selected) {

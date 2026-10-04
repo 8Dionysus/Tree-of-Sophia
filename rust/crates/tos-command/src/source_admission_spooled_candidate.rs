@@ -914,10 +914,11 @@ impl<'host> SpoolCandidate<'host> {
                                 // current roots and the compact record are
                                 // complete. This field names the selected base;
                                 // the absent artifact/rootset makes that clear.
-                                revision: self
-                                    .batch
-                                    .base_revision
-                                    .ok_or_else(|| invalid("V2 successor base is absent"))?,
+                                revision: SourceRevision(
+                                    self.batch
+                                        .base_revision
+                                        .ok_or_else(|| invalid("V2 successor base is absent"))?,
+                                ),
                                 manifest_sha256: None,
                                 source_artifact: None,
                                 rootset_sha256: None,
@@ -3558,7 +3559,8 @@ impl<'host> SpoolCandidate<'host> {
         result
     }
 }
-fn feed(hash: &mut Digest256Hasher, m: &MemberMetadata) {
+// Shared CMD membership framing for the retained V1 migration and candidate.
+pub(crate) fn feed(hash: &mut Digest256Hasher, m: &MemberMetadata) {
     hash.update(&(m.path.as_str().len() as u64).to_be_bytes());
     hash.update(m.path.as_str().as_bytes());
     hash.update(&m.size_bytes.to_be_bytes());

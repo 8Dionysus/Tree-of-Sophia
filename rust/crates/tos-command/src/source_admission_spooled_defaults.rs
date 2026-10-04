@@ -24,8 +24,8 @@ use tos_validation::{
     source_foundation_closure::{
         SourceFoundationClosureClaimRef, SourceFoundationClosureEvent, SourceFoundationClosureLink,
         SourceFoundationClosureLinkStore, SourceFoundationClosureLinkStoreCost,
-        SourceFoundationClosureSchemaRequest, SourceFoundationClosureSchemaRequestStore,
-        SourceFoundationClosureSchemaRequestStoreCost,
+        SourceFoundationClosurePublicationClaim, SourceFoundationClosureSchemaRequest,
+        SourceFoundationClosureSchemaRequestStore, SourceFoundationClosureSchemaRequestStoreCost,
     },
     source_foundation_default_rules::{
         SourceFoundationDefaultClaims, SourceFoundationDefaultEventLookup,
@@ -5983,7 +5983,7 @@ impl SourceFoundationClosureSchemaRequestStore
         {
             return Err(source_refusal());
         }
-        RelativePath::new(path).map_err(|_| source_refusal())?;
+        RelativePath::parse(path).map_err(|_| source_refusal())?;
         let workspace = Self::event_path_workspace(path.len(), 2)?;
         self.preflight(workspace, max_state_bytes)?;
         self.context.check()?;
@@ -6101,13 +6101,13 @@ impl SourceFoundationClosureSchemaRequestStore
             if self.event_path_drained_rows != self.event_path_rows {
                 return Err(source_refusal());
             }
-            self.event_path_eof_seen = true;
+            self.event_paths_eof_seen = true;
             self.last_event_path = None;
             self.event_path_workspace_state_bytes =
                 self.event_path_workspace_state_bytes.max(workspace);
             return Ok((None, workspace, 0));
         };
-        RelativePath::new(&path).map_err(|_| source_refusal())?;
+        RelativePath::parse(&path).map_err(|_| source_refusal())?;
         if path.len() > self.max_event_path_queue_bytes
             || after_path.is_some_and(|previous| previous >= path.as_str())
             || self.event_path_drained_rows >= self.event_path_rows
@@ -6137,7 +6137,7 @@ impl SourceFoundationClosureSchemaRequestStore
             || self.expected_event_path_rows != Some(expected_rows)
             || self.event_path_rows != expected_rows
             || self.event_path_drained_rows != expected_rows
-            || !self.event_path_eof_seen
+            || !self.event_paths_eof_seen
             || self.last_event_path.is_some()
         {
             return Err(source_refusal());
