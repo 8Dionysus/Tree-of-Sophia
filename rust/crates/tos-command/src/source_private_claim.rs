@@ -3220,7 +3220,7 @@ fn validate_endpoint_closure(
         }
     }
     for key in ["evidence_refs", "counterevidence_refs"] {
-        for reference in cmd::array(claim, key)? {
+        for reference in optional_array(claim, key)? {
             let reference = reference.as_str().ok_or(SourceCommandError::Invalid(
                 "private Claim evidence identity",
             ))?;
@@ -4646,7 +4646,7 @@ fn ground_claims(
         }
         let sorted_sources = required_records
             .values()
-            .map(record_ref)
+            .map(assessment_native_ref)
             .collect::<SourceCommandResult<Vec<_>>>()?;
         let summaries = native_summaries.clone();
         bindings.push(cmd::object(vec![
@@ -5559,7 +5559,7 @@ pub(crate) fn resolve_assessment_claim_sources(
             ("payload", claim.clone()),
             ("origin_id", cmd::string(&selection.origin_id)),
         ]);
-        let claim_reference = record_ref(&claim_envelope)?;
+        let claim_reference = assessment_native_ref(&claim_envelope)?;
         for source in source_records.values() {
             let envelope = cmd::object(vec![
                 ("id", cmd::field(&source.reference, "id")?.clone()),
@@ -5581,7 +5581,7 @@ pub(crate) fn resolve_assessment_claim_sources(
         required_languages.insert(selection.claim_id.clone(), languages.clone());
         let mut dependency_refs = claim_required
             .values()
-            .map(record_ref)
+            .map(assessment_native_ref)
             .collect::<SourceCommandResult<Vec<_>>>()?;
         dependency_refs.sort_by(|left, right| {
             left.object_get("id")
@@ -5617,7 +5617,7 @@ pub(crate) fn resolve_assessment_claim_sources(
             super::profile::validate_form_set(
                 ctx, worker, &form_path, &forms, deadline, cancelled,
             )?;
-            let subject = record_ref(&claim_envelope)?;
+            let subject = assessment_native_ref(&claim_envelope)?;
             if cmd::canonical(cmd::field(&forms, "subject")?)? != cmd::canonical(&subject)? {
                 return Err(SourceCommandError::Conflict(
                     "private Claim form set binds a different source snapshot",

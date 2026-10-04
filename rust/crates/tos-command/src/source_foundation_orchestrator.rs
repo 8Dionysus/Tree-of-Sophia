@@ -625,7 +625,9 @@ fn ticket_worker_budget(
 ) -> Result<ExecutorBudget, FoundationOrchestratorError> {
     let operation = ticket.operation_limits();
     let wall = deadline.saturating_duration_since(Instant::now());
-    let cpu_seconds = operation.worker_cpu_seconds.min(3_600);
+    let cpu_seconds = operation
+        .worker_cpu_seconds
+        .min(ExecutorBudget::MAX_SCALAR_CPU_SECONDS);
     if wall.is_zero() || cpu_seconds == 0 || address_space_bytes < 64 * 1024 * 1024 {
         return Err(incomplete("source-foundation worker reservation exhausted"));
     }

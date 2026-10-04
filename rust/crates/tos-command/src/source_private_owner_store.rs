@@ -778,8 +778,13 @@ impl<'a> PrivateOwnerStore<'a> {
         .map_err(|_| SourceCommandError::Conflict("private metadata exchange uncertain"))?;
         parent.sync_all().map_err(|_| bad_plan())?;
         root.sync_all().map_err(|_| bad_plan())?;
-        if self.read_package(deadline, cancelled)?.as_ref() != Some(after)
-            || read_flat(&stage, self.uid, false, deadline, cancelled)? != *before
+        // EXCHANGE moves names; held FDs remain attached to their original inodes.
+        let exchanged = child(&root, &name, self.uid)?;
+        let exchanged_identity = stamp(&directory(&exchanged, self.uid, true)?);
+        if (exchanged_identity.0, exchanged_identity.1)
+            != (predecessor_identity.0, predecessor_identity.1)
+            || self.read_package(deadline, cancelled)?.as_ref() != Some(after)
+            || read_flat(&predecessor, self.uid, false, deadline, cancelled)? != *before
         {
             return Err(bad_plan());
         }
@@ -787,10 +792,10 @@ impl<'a> PrivateOwnerStore<'a> {
         // record/Claim revisions, archived evidence have been reread.
         for member in before.keys() {
             active(deadline, cancelled)?;
-            rustix::fs::unlinkat(&stage, member.as_str(), AtFlags::empty())
+            rustix::fs::unlinkat(&predecessor, member.as_str(), AtFlags::empty())
                 .map_err(|_| bad_plan())?;
         }
-        stage.sync_all().map_err(|_| bad_plan())?;
+        predecessor.sync_all().map_err(|_| bad_plan())?;
         rustix::fs::unlinkat(&root, name.as_str(), AtFlags::REMOVEDIR).map_err(|_| bad_plan())?;
         root.sync_all().map_err(|_| bad_plan())?;
         Ok(())

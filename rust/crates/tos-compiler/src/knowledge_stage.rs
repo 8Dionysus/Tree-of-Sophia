@@ -12,7 +12,10 @@ use std::{
     collections::{BTreeMap, BTreeSet},
     fs,
     io::{Read, Seek, SeekFrom, Write},
-    os::unix::fs::{MetadataExt, OpenOptionsExt, PermissionsExt},
+    os::{
+        fd::AsRawFd,
+        unix::fs::{MetadataExt, OpenOptionsExt, PermissionsExt},
+    },
     path::{Path, PathBuf},
     rc::Rc,
     sync::{
@@ -1007,16 +1010,23 @@ impl<'a> KnowledgeStage<'a> {
         // This must precede every TEMP page allocation, including reading its
         // page geometry for the disposable public-build page cap.
         configure_stage_temp_reclamation(stage.db())?;
-        if stage.public_build {
+        // The captured native profile closes all raw inputs before selecting
+        // its model. Other stage profiles retain their existing main layout.
+        let disposable_native_inputs = matches!(
+            &stage.receipt,
+            StageInputReceipt::Projection(receipt)
+                if receipt.binding.owner_profile == "tos-native-projection-snapshot-v1"
+        );
+        if stage.public_build || disposable_native_inputs {
             let page_size: u64 = stage
                 .db()
                 .query_row("PRAGMA temp.page_size", [], |row| row.get(0))?;
             if page_size == 0 {
-                return Err(Error::Invalid("public D1 TEMP page size"));
+                return Err(Error::Invalid("stage TEMP page size"));
             }
             let pages = limits.max_temp_bytes / page_size;
             if pages == 0 || pages > i64::MAX as u64 {
-                return Err(Error::Budget("public D1 TEMP page cap"));
+                return Err(Error::Budget("stage TEMP page cap"));
             }
             let applied: i64 = stage.db().query_row(
                 &format!("PRAGMA temp.max_page_count={pages}"),
@@ -1024,11 +1034,23 @@ impl<'a> KnowledgeStage<'a> {
                 |row| row.get(0),
             )?;
             if applied <= 0 || applied as u64 > pages {
-                return Err(Error::Invalid("public D1 TEMP page cap unavailable"));
+                return Err(Error::Invalid("stage TEMP page cap unavailable"));
             }
         }
         stage.check(WritePhase::Schema)?;
-        stage.db().execute_batch(SCHEMA)?;
+        if disposable_native_inputs {
+            // The static schema copy is charged before allocating it; the
+            // original shared work/deadline and both page ceilings stay active.
+            stage.charge_public_work(SCHEMA.len() as u64 + 5)?;
+            let schema = SCHEMA.replacen(
+                "CREATE TABLE raw_records",
+                "CREATE TEMP TABLE raw_records",
+                1,
+            );
+            stage.db().execute_batch(&schema)?;
+        } else {
+            stage.db().execute_batch(SCHEMA)?;
+        }
         stage.check(WritePhase::Schema)?;
         Ok(stage)
     }
@@ -1201,6 +1223,7 @@ impl<'a> KnowledgeStage<'a> {
             let value = match page {
                 Ok(value) => value,
                 Err(error) => {
+                    let error = self.annotate_sqlite_full(phase, error);
                     // SQLite may already have aborted this transaction. Cleanup
                     // must not replace the failure that poisoned this page.
                     if !self.db().is_autocommit() {
@@ -1211,11 +1234,12 @@ impl<'a> KnowledgeStage<'a> {
                 }
             };
             if let Err(error) = self.db().execute_batch("COMMIT") {
+                let error = self.annotate_sqlite_full(phase, Error::SqlitePhase { phase, error });
                 if !self.db().is_autocommit() {
                     let _ = self.db().execute_batch("ROLLBACK");
                 }
                 self.write_page = None;
-                return Err(Error::SqlitePhase { phase, error });
+                return Err(error);
             }
             self.write_page = None;
             self.check(phase)?;
@@ -1223,6 +1247,87 @@ impl<'a> KnowledgeStage<'a> {
         })();
         self.poisoned |= result.is_err();
         result
+    }
+
+    // Failure-only observation; the original SQLite code/message survive.
+    fn annotate_sqlite_full(&self, phase: WritePhase, error: Error) -> Error {
+        let (sqlite, original_phase) = match error {
+            Error::Sql(error) => (error, None),
+            Error::SqlitePhase { phase, error } => (error, Some(phase)),
+            other => return other,
+        };
+        let wrap = |error| match original_phase {
+            Some(phase) => Error::SqlitePhase { phase, error },
+            None => Error::Sql(error),
+        };
+        let (failure, message) = match sqlite {
+            rusqlite::Error::SqliteFailure(failure, message)
+                if failure.extended_code & 0xff == rusqlite::ffi::SQLITE_FULL =>
+            {
+                (failure, message)
+            }
+            other => return wrap(other),
+        };
+        // Same shared progress handler, deadline and cancellation owner.
+        let active = || self.check_public_work_active().is_ok();
+        if !active() {
+            return wrap(rusqlite::Error::SqliteFailure(failure, message));
+        }
+        let pager = |sql| {
+            if !active() {
+                None
+            } else {
+                self.db()
+                    .query_row(sql, [], |row| row.get::<_, u64>(0))
+                    .ok()
+            }
+        };
+        let page_size = pager("PRAGMA main.page_size");
+        let page_count = pager("PRAGMA main.page_count");
+        let max_page_count = pager("PRAGMA main.max_page_count");
+        let temp_page_size = pager("PRAGMA temp.page_size");
+        let temp_page_count = pager("PRAGMA temp.page_count");
+        let temp_max_page_count = pager("PRAGMA temp.max_page_count");
+        let mut file_bytes = None;
+        let mut fs_total_bytes = None;
+        let mut fs_free_bytes = None;
+        let mut fs_available_bytes = None;
+        let mut fs_free_inodes = None;
+        if active() {
+            if let Ok(file) =
+                safe_open::open_regular(&self.candidate, self.limits.sqlite.max_output_bytes)
+            {
+                if active() {
+                    if let Ok(metadata) = file.metadata() {
+                        if metadata.file_type().is_file()
+                            && (metadata.dev(), metadata.ino()) == self.inode
+                        {
+                            file_bytes = Some(metadata.len());
+                            let mut stats: libc::statvfs = unsafe { std::mem::zeroed() };
+                            if active()
+                                && unsafe { libc::fstatvfs(file.as_raw_fd(), &mut stats) } == 0
+                            {
+                                fs_total_bytes = stats.f_blocks.checked_mul(stats.f_frsize);
+                                fs_free_bytes = stats.f_bfree.checked_mul(stats.f_frsize);
+                                fs_available_bytes = stats.f_bavail.checked_mul(stats.f_frsize);
+                                fs_free_inodes = Some(stats.f_ffree);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        if !active() {
+            return wrap(rusqlite::Error::SqliteFailure(failure, message));
+        }
+        let details = format!(
+            "{}; stage_sqlite_full phase={phase:?}; extended_code={}; page_size={page_size:?}; page_count={page_count:?}; max_page_count={max_page_count:?}; temp_page_size={temp_page_size:?}; temp_page_count={temp_page_count:?}; temp_max_page_count={temp_max_page_count:?}; file_bytes={file_bytes:?}; selected_output_bytes={}; selected_temp_bytes={}; fs_total_bytes={fs_total_bytes:?}; fs_free_bytes={fs_free_bytes:?}; fs_available_bytes={fs_available_bytes:?}; fs_free_inodes={fs_free_inodes:?}; observation=after_failure_before_owned_cleanup; attempted_allocation=unknown",
+            message.as_deref().unwrap_or("database or disk is full"),
+            failure.extended_code,
+            self.limits.sqlite.max_output_bytes,
+            self.limits.max_temp_bytes,
+        );
+        wrap(rusqlite::Error::SqliteFailure(failure, Some(details)))
     }
 
     fn require_open_inputs(&self) -> Result<()> {
@@ -1263,7 +1368,9 @@ impl<'a> KnowledgeStage<'a> {
             self.owner.recheck_sealed_cut(&self.receipt)?;
             let rows = self.verified_input_rows()?;
             self.with_connection(WritePhase::Finalize, |db| {
-                db.execute_batch("PRAGMA secure_delete=ON; DROP TABLE raw_records")?;
+                db.execute_batch(
+                    "PRAGMA secure_delete=ON; PRAGMA temp.secure_delete=ON; DROP TABLE raw_records",
+                )?;
                 Ok(())
             })?;
             self.closed_input_rows = Some(rows);
@@ -1911,8 +2018,9 @@ impl<'a> KnowledgeStage<'a> {
             // containing the allowlisted logical tables; the private stage
             // inode is never the selected artifact.
             if self.closed_input_rows.is_none() {
-                self.db()
-                    .execute_batch("PRAGMA secure_delete=ON; DROP TABLE raw_records")?;
+                self.db().execute_batch(
+                    "PRAGMA secure_delete=ON; PRAGMA temp.secure_delete=ON; DROP TABLE raw_records",
+                )?;
             }
             selected_table_closure(self.db())?;
             self.check(WritePhase::Finalize)?;

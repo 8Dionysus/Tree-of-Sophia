@@ -2020,6 +2020,7 @@ impl<'c> NativeSourceValidator<'c> {
         // metadata pass. Raw coverage is earned separately below.
         let mut after = None;
         let mut observed_max = 1usize;
+        let mut observed_max_locator = 0usize;
         while let Some(member) =
             candidate.member_after_bounded(after.as_ref(), selected_index.max_row_state_bytes)?
         {
@@ -2028,6 +2029,7 @@ impl<'c> NativeSourceValidator<'c> {
                 return Err(invalid("candidate member exceeds selected source ceiling"));
             }
             observed_max = observed_max.max(bytes);
+            observed_max_locator = observed_max_locator.max(member.path.as_str().len());
             after = Some(member.path);
         }
         drop(after);
@@ -2042,9 +2044,22 @@ impl<'c> NativeSourceValidator<'c> {
             .checked_mul(4)
             .and_then(|n| n.checked_add(16384))
             .ok_or_else(|| invalid("candidate raw callback state overflow"))?;
+        // for_each_verified_member retains the previous locator (16x), then
+        // preallocates the current SQL row (16x + 1024) and checks the current
+        // locator overlap (32x). Reserve their simultaneous upper bound from
+        // these actual selected paths before lending any remainder to callback.
+        // Otherwise its raw + callback baseline consumes input_state exactly,
+        // leaving zero for the first metadata row even under a valid profile.
+        let metadata_state = observed_max_locator
+            .checked_mul(48)
+            .and_then(|n| n.checked_add(1024))
+            .ok_or_else(|| invalid("candidate member metadata state overflow"))?;
+        let callback_reserve = raw_state
+            .checked_add(metadata_state)
+            .ok_or_else(|| invalid("candidate raw/member callback state overflow"))?;
         let callback_state = input_state
-            .checked_sub(raw_state)
-            .ok_or_else(|| invalid("candidate raw callback exceeds selected state"))?;
+            .checked_sub(callback_reserve)
+            .ok_or_else(|| invalid("candidate raw/member callback exceeds selected state"))?;
         let held_declared = candidate
             .own_retained_state_upper_bound_bytes()?
             .checked_add(base_state)
