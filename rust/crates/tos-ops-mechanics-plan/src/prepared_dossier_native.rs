@@ -19,7 +19,6 @@ use crate::prepared_dossier_render::{
     PlantingOutputPreimage, PlantingSourcePreimage, PreparedDossierPackageInput,
     PreparedDossierPackageRefs, PreparedDossierPlantingInputs,
 };
-use fs2::FileExt;
 use serde_json::{Map, Value, json};
 use std::collections::{BTreeMap, BTreeSet};
 use std::ffi::{CString, OsStr, OsString};
@@ -44,6 +43,17 @@ const PHILOSOPHY_TREE: &str = "ToS/philosophy";
 const OUTPUT_MODE: u32 = 0o644;
 const FILE_CAP: u64 = 256 * 1024 * 1024;
 const JSON_CAP: usize = 256 * 1024 * 1024;
+
+// Same Linux nonblocking advisory lock used by fs2::FileExt, without adding
+// a dependency: the held parent descriptor owns the lock until it is dropped.
+fn try_lock_parent(parent: &File) -> std::io::Result<()> {
+    let result = unsafe { libc::flock(parent.as_raw_fd(), libc::LOCK_EX | libc::LOCK_NB) };
+    if result < 0 {
+        Err(std::io::Error::last_os_error())
+    } else {
+        Ok(())
+    }
+}
 
 #[derive(Clone, Debug)]
 pub struct NativePreparedDossierInputs {
@@ -1522,9 +1532,7 @@ fn capture_written_stamp(
     let Some((parent, leaf)) = parent_and_leaf(target, reference)? else {
         return Err(format!("written output parent disappeared: {reference}"));
     };
-    parent
-        .try_lock_exclusive()
-        .map_err(|error| format!("written output parent busy: {error}"))?;
+    try_lock_parent(&parent).map_err(|error| format!("written output parent busy: {error}"))?;
     let before_path = stat_at(&parent, &leaf)?
         .ok_or_else(|| format!("written output disappeared: {reference}"))?;
     if before_path.st_mode & libc::S_IFMT != libc::S_IFREG
@@ -1608,9 +1616,7 @@ fn unlink_checked_file(
     let Some((parent, leaf)) = parent_and_leaf(target, reference)? else {
         return Err(format!("obsolete generated leaf disappeared: {reference}"));
     };
-    parent
-        .try_lock_exclusive()
-        .map_err(|error| format!("cleanup parent busy: {error}"))?;
+    try_lock_parent(&parent).map_err(|error| format!("cleanup parent busy: {error}"))?;
     let expected = present_output_state(pin.preimage.sha256.clone(), pin.stamp);
     if pin.preimage.reference != reference
         || output_pin.reference != reference
@@ -1775,9 +1781,7 @@ fn remove_obsolete_branch(
                 expected.reference
             ));
         };
-        parent
-            .try_lock_exclusive()
-            .map_err(|error| format!("cleanup parent busy: {error}"))?;
+        try_lock_parent(&parent).map_err(|error| format!("cleanup parent busy: {error}"))?;
         let directory =
             descriptor_open_directory(target, &expected.reference)?.ok_or_else(|| {
                 format!(

@@ -3859,6 +3859,64 @@ fn hash_map(values: BTreeMap<String, String>) -> JsonValue {
     )
 }
 
+// Configuration binds freshly constructed delegated readers, before any Claim
+// or record is loaded. Execution schemas and form/public-identity fingerprints
+// have their own bindings and must not enter this constructor grammar.
+fn configuration_grammars(
+    ctx: &CommandContext,
+    owner: &OwnerTextContext,
+    cut: &CorpusCutReader,
+    context: &JsonValue,
+    grant: &Grant,
+    reads: &mut ExactReads,
+    worker: &mut CutWorkerSchemaExecutor,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<JsonValue> {
+    let mut grammars = Vec::new();
+    for (identity, selection) in &grant.selections {
+        let mut refs = BTreeSet::from([
+            RELATIONS,
+            ENTITIES,
+            CLAIM_REGISTRY_SCHEMA,
+            ENTITY_REGISTRY_SCHEMA,
+            CONTEXT_SCHEMA_REF,
+        ]);
+        for selector in &selection.source_records {
+            let type_id = cmd::text(selector, "profile_type_id")?;
+            if type_id
+                .strip_prefix("tos.entity.")
+                .is_some_and(|kind| NATIVE_CORPUS_KINDS.contains(&kind))
+            {
+                refs.insert(CORPUS_SCHEMA);
+            }
+            if !cmd::field(selector, "source_binding")?.is_null() {
+                refs.insert("ToS/contracts/native-text-unit-binding.schema.json");
+            }
+        }
+        if !selection.native_bindings.is_empty() {
+            refs.insert("ToS/contracts/native-text-unit-binding.schema.json");
+        }
+        let mut digests = BTreeMap::new();
+        for reference in refs {
+            let raw = selected_authored(
+                ctx, owner, cut, context, reference, 1_048_576, reads, deadline, cancelled,
+            )?;
+            if reference != RELATIONS && reference != ENTITIES {
+                require_contract_digest(worker, reference, &raw)?;
+            }
+            // Python reader input_digests use bare hex; the outer configuration
+            // digest and public identity fingerprints remain prefixed digests.
+            digests.insert(reference.to_owned(), Digest256::of_bytes(&raw).to_hex());
+        }
+        grammars.push((
+            tos_foundation::JsonString::from_utf8(identity),
+            hash_map(digests),
+        ));
+    }
+    Ok(JsonValue::Object(grammars))
+}
+
 fn source_schema_fingerprints(
     reads: &ExactReads,
     route: &ClaimRoute,
@@ -4377,57 +4435,16 @@ fn ground_claims(
         cancelled,
     )?;
     require_contract_digest(worker, CONTEXT_SCHEMA_REF, &context_schema)?;
-    let mut configuration_grammars = Vec::new();
-    for (identity, route) in &routes {
-        let mut schema_map = BTreeMap::new();
-        schema_map.insert(
-            CONTEXT_SCHEMA_REF.to_owned(),
-            Digest256::of_bytes(&context_schema).to_prefixed(),
-        );
-        schema_map.insert(PROVENANCE_SCHEMA.to_owned(), provenance_digest.clone());
-        let selected = source_schema_fingerprints(&reads, route)?;
-        for (reference, value) in selected
-            .as_object()
-            .ok_or(SourceCommandError::Invalid("Claim grammar fingerprint map"))?
-        {
-            schema_map.insert(
-                reference
-                    .as_str()
-                    .ok_or(SourceCommandError::Invalid("Claim grammar ref"))?
-                    .to_owned(),
-                value
-                    .as_str()
-                    .ok_or(SourceCommandError::Invalid("Claim grammar digest"))?
-                    .to_owned(),
-            );
-        }
-        for (reference, value) in form_grammar
-            .as_object()
-            .ok_or(SourceCommandError::Invalid("Claim form grammar map"))?
-        {
-            schema_map.insert(
-                reference
-                    .as_str()
-                    .ok_or(SourceCommandError::Invalid("Claim form grammar ref"))?
-                    .to_owned(),
-                value
-                    .as_str()
-                    .ok_or(SourceCommandError::Invalid("Claim form grammar digest"))?
-                    .to_owned(),
-            );
-        }
-        configuration_grammars.push((
-            tos_foundation::JsonString::from_utf8(identity),
-            hash_map(schema_map),
-        ));
-    }
+    let configuration_grammars = configuration_grammars(
+        ctx, owner, cut, context, grant, &mut reads, worker, deadline, cancelled,
+    )?;
     let configuration_basis = cmd::object(vec![
         (
             "configuration_bytes",
             cmd::string(&Digest256::of_bytes(&grant.raw).to_prefixed()),
         ),
         ("context", cmd::string(&grant.context_snapshot)),
-        ("grammars", JsonValue::Object(configuration_grammars)),
+        ("grammars", configuration_grammars),
     ]);
     grant.digest = cmd::record_digest(&configuration_basis)?.to_prefixed();
     let mut snapshots = BTreeMap::new();
@@ -7569,7 +7586,7 @@ fn initialize_grant_digest(
         ctx, owner, cut, context, worker, &mut reads, deadline, cancelled,
     )?;
     validate_allowed_predicates(grant, &grammar)?;
-    let form_grammar = super::profile::form_grammar_digests(ctx, worker, deadline, cancelled)?;
+    let _form_grammar = super::profile::form_grammar_digests(ctx, worker, deadline, cancelled)?;
     for reference in CLAIM_SHARED_SCHEMAS {
         let raw = selected_authored(
             ctx, owner, cut, context, reference, 1_048_576, &mut reads, deadline, cancelled,
@@ -7709,68 +7726,29 @@ fn initialize_grant_digest(
             require_contract_digest(worker, reference, &raw)?;
         }
     }
-    let forms = form_grammar.as_object().ok_or(SourceCommandError::Invalid(
-        "private Claim form grammar map",
-    ))?;
-    let mut configuration_grammars = Vec::new();
-    for (identity, selection) in &grant.selections {
-        let candidates = grammar
+    for selection in grant.selections.values() {
+        if grammar
             .routes
             .values()
             .filter(|route| route.relation_type_id == selection.relation_type_id)
-            .collect::<Vec<_>>();
-        if candidates.len() != 1 {
+            .count()
+            != 1
+        {
             return Err(SourceCommandError::Unsupported(
                 "private Claim relation selection is ambiguous",
             ));
         }
-        let route = candidates[0];
-        let mut schema_map = BTreeMap::new();
-        schema_map.insert(
-            CONTEXT_SCHEMA_REF.to_owned(),
-            Digest256::of_bytes(&context_schema).to_prefixed(),
-        );
-        schema_map.insert(
-            PROVENANCE_SCHEMA.to_owned(),
-            Digest256::of_bytes(&provenance).to_prefixed(),
-        );
-        for (path, value) in source_schema_fingerprints(&reads, route)?
-            .as_object()
-            .ok_or(SourceCommandError::Invalid("Claim grammar map"))?
-        {
-            schema_map.insert(
-                path.as_str()
-                    .ok_or(SourceCommandError::Invalid("Claim grammar path"))?
-                    .to_owned(),
-                value
-                    .as_str()
-                    .ok_or(SourceCommandError::Invalid("Claim grammar digest"))?
-                    .to_owned(),
-            );
-        }
-        for (path, value) in forms {
-            schema_map.insert(
-                path.as_str()
-                    .ok_or(SourceCommandError::Invalid("Claim form schema path"))?
-                    .to_owned(),
-                value
-                    .as_str()
-                    .ok_or(SourceCommandError::Invalid("Claim form schema digest"))?
-                    .to_owned(),
-            );
-        }
-        configuration_grammars.push((
-            tos_foundation::JsonString::from_utf8(identity),
-            hash_map(schema_map),
-        ));
     }
+    let configuration_grammars = configuration_grammars(
+        ctx, owner, cut, context, grant, &mut reads, worker, deadline, cancelled,
+    )?;
     let basis = cmd::object(vec![
         (
             "configuration_bytes",
             cmd::string(&Digest256::of_bytes(&grant.raw).to_prefixed()),
         ),
         ("context", cmd::string(&grant.context_snapshot)),
-        ("grammars", JsonValue::Object(configuration_grammars)),
+        ("grammars", configuration_grammars),
     ]);
     grant.digest = cmd::record_digest(&basis)?.to_prefixed();
     reads.into_source_files()

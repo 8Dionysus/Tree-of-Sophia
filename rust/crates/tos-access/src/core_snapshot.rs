@@ -1324,7 +1324,28 @@ fn build_whole_selected(
             deadline,
             cancelled.as_ref(),
         )
-        .map_err(|_| "Core native whole snapshot refused")?;
+        .map_err(|error| {
+            // Mechanical category and static owner context only; no carrier payload.
+            match error {
+                tos_compiler::Error::Invalid(context) =>
+                    eprintln!("Core whole snapshot invalid: {:.256}", context),
+                tos_compiler::Error::Budget(context) =>
+                    eprintln!("Core whole snapshot budget: {:.256}", context),
+                tos_compiler::Error::PreparedUnsupported(context) =>
+                    eprintln!("Core whole snapshot prepared unsupported: {:.256}", context),
+                tos_compiler::Error::ManagedSourceUnsupported(context) =>
+                    eprintln!("Core whole snapshot managed source unsupported: {:.256}", context),
+                tos_compiler::Error::Io(error) =>
+                    eprintln!("Core whole snapshot I/O kind: {:?}", error.kind()),
+                tos_compiler::Error::Sql(_) => eprintln!("Core whole snapshot SQLite refused"),
+                tos_compiler::Error::SqlitePhase { phase, .. } =>
+                    eprintln!("Core whole snapshot SQLite phase: {:?}", phase),
+                tos_compiler::Error::SqliteVmBudget { phase, .. } =>
+                    eprintln!("Core whole snapshot SQLite VM budget phase: {:?}", phase),
+                tos_compiler::Error::Source(_) => eprintln!("Core whole snapshot source carrier refused"),
+            }
+            "Core native whole snapshot refused"
+        })?;
     active(deadline)?;
     // The retained capture, completed receipt, actual source closure and state
     // remain alive together until the final caller disclosure checks.

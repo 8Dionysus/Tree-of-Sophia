@@ -451,6 +451,125 @@ fn markers(o: &SupervisionOptions, revision: &str, digest: &str) -> Result<(), S
     }
     Ok(())
 }
+// A complete framed response does not require peer TCP EOF. Preserve the
+// admitted wire/body bounds and the same readiness deadline while scanning.
+fn health_frame_complete(
+    wire: &[u8],
+    maximum: usize,
+    eof: bool,
+    until: Instant,
+) -> Result<bool, String> {
+    if Instant::now() >= until {
+        return Err("readiness cutoff exhausted".into());
+    }
+    let Some(split) = wire.windows(4).position(|p| p == b"\r\n\r\n") else {
+        if wire.len() > 8195 || eof {
+            return Err("health header absent or exceeds bound".into());
+        }
+        return Ok(false);
+    };
+    if split > 8192 || !(wire.starts_with(b"HTTP/1.0 200 ") || wire.starts_with(b"HTTP/1.1 200 ")) {
+        return Err("Worker health status/header refused".into());
+    }
+    let header = std::str::from_utf8(&wire[..split]).map_err(|e| e.to_string())?;
+    let mut length = None;
+    let mut chunked = false;
+    for line in header.split("\r\n").skip(1) {
+        if Instant::now() >= until {
+            return Err("readiness cutoff exhausted".into());
+        }
+        let (key, value) = line.split_once(':').ok_or("malformed health header")?;
+        if key.is_empty() || !key.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'-') {
+            return Err("malformed health header name".into());
+        }
+        if key.eq_ignore_ascii_case("content-length") {
+            let value = value.trim();
+            if length.is_some() || value.is_empty() || !value.bytes().all(|b| b.is_ascii_digit()) {
+                return Err("duplicate or invalid health Content-Length".into());
+            }
+            let n = value
+                .parse::<usize>()
+                .map_err(|_| "health Content-Length overflow")?;
+            if n > maximum {
+                return Err("health body exceeds admission".into());
+            }
+            length = Some(n);
+        } else if key.eq_ignore_ascii_case("transfer-encoding") {
+            if chunked || !value.trim().eq_ignore_ascii_case("chunked") {
+                return Err("duplicate or unsupported health transfer coding".into());
+            }
+            chunked = true;
+        }
+    }
+    if chunked && length.is_some() {
+        return Err("ambiguous health framing".into());
+    }
+    let body = &wire[split + 4..];
+    if let Some(n) = length {
+        if body.len() > n {
+            return Err("health body exceeds declared length".into());
+        }
+        if eof && body.len() != n {
+            return Err("truncated health body".into());
+        }
+        return Ok(body.len() == n);
+    }
+    if !chunked {
+        if body.len() > maximum {
+            return Err("health body exceeds admission".into());
+        }
+        return Ok(eof);
+    }
+    let mut rest = body;
+    let mut decoded = 0usize;
+    loop {
+        if Instant::now() >= until {
+            return Err("readiness cutoff exhausted".into());
+        }
+        let Some(line) = rest.windows(2).position(|p| p == b"\r\n") else {
+            if rest.len() > 32 || eof {
+                return Err("chunk header absent or exceeds bound".into());
+            }
+            return Ok(false);
+        };
+        if line == 0 || line > 32 || !rest[..line].iter().all(u8::is_ascii_hexdigit) {
+            return Err("invalid health chunk size".into());
+        }
+        let n = usize::from_str_radix(
+            std::str::from_utf8(&rest[..line]).map_err(|e| e.to_string())?,
+            16,
+        )
+        .map_err(|e| e.to_string())?;
+        rest = &rest[line + 2..];
+        if n == 0 {
+            if rest.len() < 2 && !eof {
+                return Ok(false);
+            }
+            if rest != b"\r\n" {
+                return Err("health trailers refused".into());
+            }
+            return Ok(true);
+        }
+        decoded = decoded
+            .checked_add(n)
+            .ok_or("health chunk bound overflow")?;
+        if decoded > maximum {
+            return Err("health chunk exceeds admission".into());
+        }
+        let needed = n.checked_add(2).ok_or("health chunk bound overflow")?;
+        if rest.len() < needed {
+            if eof {
+                return Err("truncated health chunk".into());
+            }
+            return Ok(false);
+        }
+        if &rest[n..needed] != b"\r\n" {
+            return Err("malformed health chunk".into());
+        }
+        rest = &rest[needed..];
+    }
+}
+
 fn health(
     o: &SupervisionOptions,
     until: Instant,
@@ -497,12 +616,16 @@ fn health(
             .map_err(|e| e.to_string())?;
         let n = stream.read(&mut buffer).map_err(|e| e.to_string())?;
         if n == 0 {
+            health_frame_complete(wire, o.maximum_health_bytes, true, until)?;
             break;
         }
         if wire.len() + n > limit {
             return Err("health wire exceeds admission".into());
         }
         wire.extend_from_slice(&buffer[..n]);
+        if health_frame_complete(wire, o.maximum_health_bytes, false, until)? {
+            break;
+        }
     }
     let split = wire
         .windows(4)
