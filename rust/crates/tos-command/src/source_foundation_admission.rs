@@ -1681,6 +1681,33 @@ impl<'c> NativeSourceValidator<'c> {
         self.account_spooled_terminal_budget()
     }
 
+    /// Reserve caller-held source-operation state on the existing invocation
+    /// ledger before an external bounded preparation allocates it. The debit
+    /// remains monotonic through candidate validation and publication.
+    pub(crate) fn reserve_spooled_external_state(
+        &mut self,
+        bytes: usize,
+        io: &PinnedSqliteIoBudget,
+    ) -> io::Result<()> {
+        active(self.deadline, self.cancel)?;
+        if bytes == 0
+            || bytes == usize::MAX
+            || !self.spooled_route_selected
+            || self
+                .spooled_profile
+                .as_ref()
+                .is_none_or(|profile| !profile.2.shares_with(io))
+        {
+            return Err(invalid("spooled external state original owner differs"));
+        }
+        debit(
+            self.ledger_mut()?,
+            "admission-spooled-external-state",
+            0,
+            bytes,
+        )
+    }
+
     /// Account the same original physical ledger when a spooled operation
     /// refuses before a candidate exists or after publication has retired it.
     /// This carries no new IO authority; it only records the attempted suffix.
