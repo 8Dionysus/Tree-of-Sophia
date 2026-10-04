@@ -705,16 +705,6 @@ impl SegmentStore {
     pub fn store_id(&self) -> [u8; 16] {
         self.inner.store_id
     }
-    /// Identity of the exact physical root directory held by this instance.
-    /// It distinguishes a same-metadata clone from the selected source store.
-    pub fn physical_root_identity(&self) -> Result<(u64, u64)> {
-        let metadata = self
-            .inner
-            ._root
-            .metadata()
-            .map_err(|error| SegmentError::io("cannot stat held segment root", error))?;
-        Ok((metadata.dev(), metadata.ino()))
-    }
     /// Upper bound for heap state retained by this held store handle. Clones
     /// share the same `Arc<Inner>`, so callers count this once per physical
     /// store session, including the Arc header and the only owned variable

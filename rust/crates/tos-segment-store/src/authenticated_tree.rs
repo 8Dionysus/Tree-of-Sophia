@@ -1426,6 +1426,7 @@ impl<'a> PackWriterV2<'a> {
         kind: &[u8],
         node: TreeNode,
         child_locators: &[TreeLocatorV2],
+        child_locator_capacity: usize,
     ) -> Result<TreeHandleV2> {
         check(self.deadline, self.cancelled)?;
         validate_node(&node, self.limits)?;
@@ -1467,7 +1468,10 @@ impl<'a> PackWriterV2<'a> {
             )
             .ok_or_else(|| budget("authenticated COW persist state overflow"))?;
         let node_state = tree_node_state_bytes(&node)?
-            .checked_add(tree_locator_slice_state_bytes(child_locators)?)
+            .checked_add(tree_locator_slice_state_bytes(
+                child_locators,
+                child_locator_capacity,
+            )?)
             .ok_or_else(|| budget("authenticated COW node state overflow"))?;
         self.check_cow_state(
             node_state
@@ -2708,7 +2712,7 @@ fn close_build_frame_v2(
     }
     let node = make_node(frame.value, children, limits)?;
     writer.root_live_state_bytes = retained_builder_state;
-    let handle = writer.persist(kind, node, &locators)?;
+    let handle = writer.persist(kind, node, &locators, locators.capacity())?;
     *pending_payload_bytes = pending_payload_bytes
         .checked_sub(payload_bytes)
         .ok_or_else(|| invalid("packed pending payload accounting differs"))?;
@@ -2936,9 +2940,15 @@ fn tree_node_state_bytes(node: &TreeNode) -> Result<usize> {
     Ok(state)
 }
 
-fn tree_locator_slice_state_bytes(locators: &[TreeLocatorV2]) -> Result<usize> {
-    let mut state = locators
-        .capacity()
+// The slice preserves row borrowing; its owner supplies the actual retained
+// allocation capacity. Temporary array callers supply their exact slot count.
+fn tree_locator_slice_state_bytes(locators: &[TreeLocatorV2], capacity: usize) -> Result<usize> {
+    if capacity < locators.len() {
+        return Err(invalid(
+            "authenticated COW locator capacity is below length",
+        ));
+    }
+    let mut state = capacity
         .checked_mul(std::mem::size_of::<TreeLocatorV2>())
         .ok_or_else(|| budget("authenticated COW locator state overflow"))?;
     let seal_state_bytes = pack_seal_arc_allocation_state_bytes()?;
@@ -2952,7 +2962,9 @@ fn tree_locator_slice_state_bytes(locators: &[TreeLocatorV2]) -> Result<usize> {
     Ok(state)
 }
 
-fn ancestor_stack_state_bytes(ancestors: &[(TreeNode, Vec<TreeLocatorV2>, u8)]) -> Result<usize> {
+fn ancestor_stack_state_bytes(
+    ancestors: &Vec<(TreeNode, Vec<TreeLocatorV2>, u8)>,
+) -> Result<usize> {
     let mut state = ancestors
         .capacity()
         .checked_mul(std::mem::size_of::<(TreeNode, Vec<TreeLocatorV2>, u8)>())
@@ -2960,7 +2972,9 @@ fn ancestor_stack_state_bytes(ancestors: &[(TreeNode, Vec<TreeLocatorV2>, u8)]) 
     for (node, locators, _) in ancestors {
         state = state
             .checked_add(tree_node_state_bytes(node)?)
-            .and_then(|n| n.checked_add(tree_locator_slice_state_bytes(locators).ok()?))
+            .and_then(|n| {
+                n.checked_add(tree_locator_slice_state_bytes(locators, locators.capacity()).ok()?)
+            })
             .ok_or_else(|| budget("authenticated COW ancestor state overflow"))?;
     }
     Ok(state)
@@ -3044,7 +3058,7 @@ fn update_one_v2(
                     Vec::new(),
                     limits,
                 )?;
-                writer.persist(&descriptor.kind, node, &[]).map(Some)
+                writer.persist(&descriptor.kind, node, &[], 0).map(Some)
             }
         };
     };
@@ -3082,7 +3096,10 @@ fn update_one_v2(
         if writer.state_limit.is_some() {
             let stack_bytes = ancestor_stack_state_bytes(&ancestors)?;
             let node_bytes = tree_node_state_bytes(&node)?
-                .checked_add(tree_locator_slice_state_bytes(&loaded.child_locators)?)
+                .checked_add(tree_locator_slice_state_bytes(
+                    &loaded.child_locators,
+                    loaded.child_locators.capacity(),
+                )?)
                 .ok_or_else(|| budget("authenticated COW loaded-node state overflow"))?;
             let operation_scratch = tree_node_mutation_upper_bound(limits)?;
             writer.check_cow_state(
@@ -3111,7 +3128,7 @@ fn update_one_v2(
                     limits,
                 )?;
                 replacement =
-                    Some(writer.persist(&descriptor.kind, parent, &[handle.locator.clone()])?);
+                    Some(writer.persist(&descriptor.kind, parent, &[handle.locator.clone()], 1)?);
             } else {
                 let new_edge = nibble_at(&change.key, shared)
                     .ok_or_else(|| invalid("packed split lacks new edge"))?;
@@ -3126,7 +3143,7 @@ fn update_one_v2(
                     Vec::new(),
                     limits,
                 )?;
-                let leaf_handle = writer.persist(&descriptor.kind, leaf, &[])?;
+                let leaf_handle = writer.persist(&descriptor.kind, leaf, &[], 0)?;
                 let mut children = vec![(old_edge, handle.clone()), (new_edge, leaf_handle)];
                 children.sort_by_key(|(edge, _)| *edge);
                 let refs = children
@@ -3138,7 +3155,8 @@ fn update_one_v2(
                     .into_iter()
                     .map(|(_, child)| child.locator)
                     .collect::<Vec<_>>();
-                replacement = Some(writer.persist(&descriptor.kind, node, &locators)?);
+                replacement =
+                    Some(writer.persist(&descriptor.kind, node, &locators, locators.capacity())?);
             }
             break;
         }
@@ -3192,7 +3210,13 @@ fn update_one_v2(
                 let stored = ancestor_stack_state_bytes(&ancestors)?
                     .checked_add(tree_node_state_bytes(&node)?)
                     .and_then(|n| {
-                        n.checked_add(tree_locator_slice_state_bytes(&loaded.child_locators).ok()?)
+                        n.checked_add(
+                            tree_locator_slice_state_bytes(
+                                &loaded.child_locators,
+                                loaded.child_locators.capacity(),
+                            )
+                            .ok()?,
+                        )
                     })
                     .and_then(|n| n.checked_add(growth))
                     .and_then(|n| {
@@ -3215,7 +3239,11 @@ fn update_one_v2(
                             .checked_add(tree_node_state_bytes(&node)?)
                             .and_then(|n| {
                                 n.checked_add(
-                                    tree_locator_slice_state_bytes(&loaded.child_locators).ok()?,
+                                    tree_locator_slice_state_bytes(
+                                        &loaded.child_locators,
+                                        loaded.child_locators.capacity(),
+                                    )
+                                    .ok()?,
                                 )
                             })
                             .and_then(|n| {
@@ -3256,7 +3284,7 @@ fn update_one_v2(
             Vec::new(),
             limits,
         )?;
-        let leaf_handle = writer.persist(&descriptor.kind, leaf, &[])?;
+        let leaf_handle = writer.persist(&descriptor.kind, leaf, &[], 0)?;
         let mut paired: Vec<(u8, TreeHandleV2)> = node
             .children
             .iter()
@@ -3354,7 +3382,9 @@ fn normalize_node_v2(
         return Ok(Some(TreeHandleV2 { reference, locator }));
     }
     let node = make_node(node.value, node.children, limits)?;
-    writer.persist(kind, node, &child_locators).map(Some)
+    writer
+        .persist(kind, node, &child_locators, child_locators.capacity())
+        .map(Some)
 }
 
 fn descriptor_root_handle(
