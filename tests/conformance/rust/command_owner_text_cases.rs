@@ -391,6 +391,11 @@ original=tempfile.TemporaryDirectory
 try:
     tempfile.TemporaryDirectory=ExistingRoot
     fixture=maintained.OwnerLocalAssessmentFixture(unittest.TestCase(methodName='runTest'))
+    # Native assessment uses its real clock; renew only synthetic fixture grants.
+    for grant in fixture.config['authorities']+fixture.config['competencies']:
+        grant['payload']['valid_until']='2099-01-01T00:00:00Z'
+    fixture._grants()
+    fixture.save()
 finally:
     tempfile.TemporaryDirectory=original
 assert fixture.native.packet['reviews']==[]
@@ -599,6 +604,12 @@ try:
     test=unittest.TestCase(methodName='runTest')
     import test_native_layer_quality_journal as maintained
     fx=maintained.QualityJournalFixture(test)
+    # Keep these synthetic native grants finite and independent of Python's fixed NOW.
+    for grant in fx.config['authorities']+fx.config['competencies']:
+        grant['payload']['valid_until']='2099-01-01T00:00:00Z'
+    for index,competency in enumerate(fx.config['competencies']):
+        fx.config['authorities'][index]['payload']['competence_refs']=[maintained.Record.from_payload(**competency).ref]
+    fx.save()
     assert fx.fx.layer['admission']['human_review_performed'] is False
     index=next(i for i,g in enumerate(fx.config['authorities']) if g['payload']['actor_id']==fx.config['principal_id'])
     def template(record,profile,name):
