@@ -607,6 +607,21 @@ impl<'a> KnowledgeBaseNormalizer<'a> {
             Some(state),
         )
     }
+    /// Require the repository and normalizer to share the exact capture owner.
+    pub(crate) fn ensure_same_owned_state(
+        &self,
+        state: &crate::d1_public_capture::CreationState<'_>,
+    ) -> Result<()> {
+        let owner = self
+            .owner_state
+            .ok_or(Error::Invalid("owned normalizer state absent"))?;
+        let owner_address = std::ptr::from_ref(owner).cast::<()>();
+        let state_address = std::ptr::from_ref(state).cast::<()>();
+        if owner_address != state_address {
+            return Err(Error::Invalid("owned normalizer state mismatch"));
+        }
+        Ok(())
+    }
     fn new_inner(
         registry: &'a KnowledgeRegistry,
         entity_bytes: &[u8],

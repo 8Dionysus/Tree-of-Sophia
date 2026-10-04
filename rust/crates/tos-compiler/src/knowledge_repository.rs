@@ -1,6 +1,7 @@
 //! Source-bound repository topology. Paths select ownership routes only;
 //! source IDs and source array ordinals are supplied by their owner.
 
+use crate::d1_public_capture::{CreationState, CreationStateHold};
 use crate::knowledge_base::{BaseNodeOverrides, KnowledgeBaseNormalizer};
 use crate::knowledge_global_titles::CompleteBaseNodes;
 use crate::knowledge_normalization::SourceRow;
@@ -10,6 +11,7 @@ use rusqlite::{OptionalExtension, params};
 use serde_json::{Value, json};
 use std::collections::BTreeSet;
 use tos_foundation::{Digest256, Digest256Hasher};
+use tos_source_store::{PinnedBoundedStatement, StoreError, StoreErrorCode};
 
 const PROFILE: &str = "repository-topology-v1";
 const COLLECTIONS: [&str; 3] = ["branches", "manifests", "resources"];
@@ -227,6 +229,473 @@ fn material_page(
     })
 }
 
+fn bounded_repository_store_error(error: StoreError) -> Error {
+    match error.code {
+        StoreErrorCode::BudgetExceeded => Error::Budget("repository bounded SQLite"),
+        _ => Error::Invalid("repository bounded SQLite"),
+    }
+}
+
+fn bounded_repository_text<'statement>(
+    statement: &'statement PinnedBoundedStatement<'_>,
+    column: i32,
+    state: &CreationState<'_>,
+) -> Result<&'statement str> {
+    let bytes = match statement
+        .value_ref(column)
+        .map_err(bounded_repository_store_error)?
+    {
+        rusqlite::types::ValueRef::Text(bytes) => bytes,
+        _ => return Err(Error::Invalid("repository material text column")),
+    };
+    state.charge_work(bytes.len())?;
+    std::str::from_utf8(bytes).map_err(|_| Error::Invalid("repository material text UTF-8"))
+}
+
+fn copy_bounded_repository_text(
+    statement: &PinnedBoundedStatement<'_>,
+    column: i32,
+    state: &CreationState<'_>,
+) -> Result<String> {
+    let text = bounded_repository_text(statement, column, state)?;
+    state.charge_work(text.len())?;
+    let mut owned = String::with_capacity(text.len());
+    owned.push_str(text);
+    Ok(owned)
+}
+
+fn bounded_repository_blob<'statement>(
+    statement: &'statement PinnedBoundedStatement<'_>,
+    column: i32,
+) -> Result<&'statement [u8]> {
+    match statement
+        .value_ref(column)
+        .map_err(bounded_repository_store_error)?
+    {
+        rusqlite::types::ValueRef::Blob(bytes) => Ok(bytes),
+        _ => Err(Error::Budget("repository material blob")),
+    }
+}
+
+/// A page and all text/material copies stay admitted through the consumer.
+/// The statement is finalized before the callback; any value returned by the
+/// callback must carry its own admission under this same CreationState.
+fn with_material_page_owned<T>(
+    stage: &mut KnowledgeStage<'_>,
+    after_kind: i64,
+    after_id: &str,
+    limits: TopologyLimits,
+    consume: impl FnOnce(&mut KnowledgeStage<'_>, &[Material]) -> Result<T>,
+) -> Result<T> {
+    let state = stage
+        .owned_creation_state()
+        .ok_or(Error::Invalid("repository owned material state absent"))?;
+    let sql = c"SELECT relation,native,identity,kind,source_order,
+        CASE WHEN material_len=length(material) AND length(material)<=?3 THEN material ELSE NULL END,
+        material_len,material_sha256,proof,material_key FROM knowledge_repository_material
+        WHERE relation>?1 OR (relation=?1 AND material_key>?2)
+        ORDER BY relation,material_key LIMIT ?4";
+    let sql_bytes = sql.to_bytes_with_nul().len();
+    let statement_workspace = PinnedBoundedStatement::owned_connection_rust_workspace_upper_bound()
+        .checked_add(sql_bytes)
+        .and_then(|n| n.checked_add(std::mem::size_of::<(i64, &str, i64, i64)>()))
+        .and_then(|n| {
+            n.checked_add(std::mem::size_of::<
+                std::result::Result<&str, std::str::Utf8Error>,
+            >())
+        })
+        .and_then(|n| n.checked_add(std::mem::size_of::<std::str::Utf8Error>()))
+        .ok_or(Error::Budget("repository bounded SQL workspace"))?;
+    let (row_count, text_bytes, material_bytes) =
+        stage.with_connection(WritePhase::Sort, |db| {
+            let _sql_hold: CreationStateHold<'_, '_> = state.hold(statement_workspace)?;
+            state.active()?;
+            let mut statement = PinnedBoundedStatement::prepare_on_owned_connection(db, sql)
+                .map_err(bounded_repository_store_error)?;
+            state.charge_work(after_id.len())?;
+            statement
+                .bind_i64(1, after_kind)
+                .map_err(bounded_repository_store_error)?;
+            statement
+                .bind_text(2, after_id)
+                .map_err(bounded_repository_store_error)?;
+            statement
+                .bind_i64(3, limits.max_row_bytes as i64)
+                .map_err(bounded_repository_store_error)?;
+            statement
+                .bind_i64(4, limits.max_page_rows as i64)
+                .map_err(bounded_repository_store_error)?;
+            let mut rows = 0usize;
+            let mut text_total = 0usize;
+            let mut material_total = 0usize;
+            while statement.step().map_err(bounded_repository_store_error)? {
+                state.active()?;
+                let relation = statement
+                    .integer(0)
+                    .map_err(bounded_repository_store_error)?;
+                if relation != 0 && relation != 1 {
+                    return Err(Error::Invalid("repository material relation flag"));
+                }
+                let native = bounded_repository_text(&statement, 1, state)?;
+                let identity = bounded_repository_text(&statement, 2, state)?;
+                let kind = bounded_repository_text(&statement, 3, state)?;
+                let _order = statement
+                    .integer(4)
+                    .map_err(bounded_repository_store_error)?;
+                let raw = bounded_repository_blob(&statement, 5)?;
+                let stored_len = statement
+                    .integer(6)
+                    .map_err(bounded_repository_store_error)?;
+                let sha = bounded_repository_blob(&statement, 7)?;
+                let proof = bounded_repository_text(&statement, 8, state)?;
+                let key = bounded_repository_text(&statement, 9, state)?;
+                if stored_len < 0
+                    || stored_len as usize != raw.len()
+                    || raw.len() > limits.max_row_bytes
+                    || sha.len() != 32
+                {
+                    return Err(Error::Budget("repository prepared material"));
+                }
+                let row_text_bytes = native
+                    .len()
+                    .checked_add(identity.len())
+                    .and_then(|n| n.checked_add(kind.len()))
+                    .and_then(|n| n.checked_add(proof.len()))
+                    .and_then(|n| n.checked_add(key.len()))
+                    .ok_or(Error::Budget("repository material text geometry"))?;
+                text_total = text_total
+                    .checked_add(row_text_bytes)
+                    .ok_or(Error::Budget("repository material text geometry"))?;
+                material_total = material_total
+                    .checked_add(raw.len())
+                    .ok_or(Error::Budget("repository material bytes"))?;
+                rows = rows
+                    .checked_add(1)
+                    .filter(|n| *n <= limits.max_page_rows)
+                    .ok_or(Error::Budget("repository material page rows"))?;
+            }
+            Ok((rows, text_total, material_total))
+        })?;
+    if row_count == 0 {
+        return consume(stage, &[]);
+    }
+    let page_geometry = row_count
+        .checked_mul(std::mem::size_of::<Material>())
+        .and_then(|n| n.checked_add(text_bytes))
+        .and_then(|n| n.checked_add(material_bytes))
+        .and_then(|n| n.checked_add(std::mem::size_of::<Vec<Material>>()))
+        .and_then(|n| n.checked_add(statement_workspace))
+        .ok_or(Error::Budget("repository material page geometry"))?;
+    let page_hold = state.hold(page_geometry)?;
+    let rows = stage.with_connection(WritePhase::Sort, |db| {
+        state.active()?;
+        let mut statement = PinnedBoundedStatement::prepare_on_owned_connection(db, sql)
+            .map_err(bounded_repository_store_error)?;
+        state.charge_work(after_id.len())?;
+        statement
+            .bind_i64(1, after_kind)
+            .map_err(bounded_repository_store_error)?;
+        statement
+            .bind_text(2, after_id)
+            .map_err(bounded_repository_store_error)?;
+        statement
+            .bind_i64(3, limits.max_row_bytes as i64)
+            .map_err(bounded_repository_store_error)?;
+        statement
+            .bind_i64(4, limits.max_page_rows as i64)
+            .map_err(bounded_repository_store_error)?;
+        let mut out = Vec::with_capacity(row_count);
+        let mut actual_text_bytes = 0usize;
+        let mut actual_material_bytes = 0usize;
+        while statement.step().map_err(bounded_repository_store_error)? {
+            state.active()?;
+            let relation = statement
+                .integer(0)
+                .map_err(bounded_repository_store_error)?;
+            if relation != 0 && relation != 1 {
+                return Err(Error::Invalid("repository material relation flag"));
+            }
+            let native = copy_bounded_repository_text(&statement, 1, state)?;
+            let identity = copy_bounded_repository_text(&statement, 2, state)?;
+            let kind = copy_bounded_repository_text(&statement, 3, state)?;
+            let order = statement
+                .integer(4)
+                .map_err(bounded_repository_store_error)?;
+            let raw = bounded_repository_blob(&statement, 5)?;
+            let stored_len = statement
+                .integer(6)
+                .map_err(bounded_repository_store_error)?;
+            let sha = bounded_repository_blob(&statement, 7)?;
+            let proof = copy_bounded_repository_text(&statement, 8, state)?;
+            let key = copy_bounded_repository_text(&statement, 9, state)?;
+            if stored_len < 0
+                || stored_len as usize != raw.len()
+                || raw.len() > limits.max_row_bytes
+                || sha.len() != 32
+            {
+                return Err(Error::Budget("repository prepared material"));
+            }
+            state.charge_work(raw.len())?;
+            let digest = Digest256::of_bytes(raw);
+            if digest.as_bytes().as_slice() != sha {
+                return Err(Error::Invalid("repository prepared material SHA"));
+            }
+            state.charge_work(raw.len())?;
+            let mut material = Vec::with_capacity(raw.len());
+            material.extend_from_slice(raw);
+            actual_text_bytes = actual_text_bytes
+                .checked_add(native.len())
+                .and_then(|n| n.checked_add(identity.len()))
+                .and_then(|n| n.checked_add(kind.len()))
+                .and_then(|n| n.checked_add(proof.len()))
+                .and_then(|n| n.checked_add(key.len()))
+                .ok_or(Error::Budget("repository material text geometry"))?;
+            actual_material_bytes = actual_material_bytes
+                .checked_add(material.len())
+                .ok_or(Error::Budget("repository material bytes"))?;
+            out.push(Material {
+                relation: relation == 1,
+                native,
+                identity,
+                kind,
+                order,
+                material,
+                proof,
+                key,
+            });
+        }
+        if out.len() != row_count
+            || actual_text_bytes != text_bytes
+            || actual_material_bytes != material_bytes
+        {
+            return Err(Error::Invalid(
+                "repository material changed during bounded page",
+            ));
+        }
+        Ok(out)
+    })?;
+    let result = consume(stage, &rows);
+    drop(rows);
+    drop(page_hold);
+    result
+}
+
+struct OwnedMaterialCursor<'state, 'budget> {
+    key: String,
+    _hold: CreationStateHold<'state, 'budget>,
+}
+
+fn owned_material_cursor<'state, 'budget>(
+    key: &str,
+    state: &'state CreationState<'budget>,
+) -> Result<OwnedMaterialCursor<'state, 'budget>> {
+    state.charge_work(key.len())?;
+    let hold = state.hold(
+        std::mem::size_of::<String>()
+            .checked_add(key.len())
+            .ok_or(Error::Budget("repository material cursor"))?,
+    )?;
+    let mut owned = String::with_capacity(key.len());
+    owned.push_str(key);
+    Ok(OwnedMaterialCursor {
+        key: owned,
+        _hold: hold,
+    })
+}
+
+fn owned_title_id<'state, 'budget>(
+    graph: &str,
+    id: &str,
+    state: &'state CreationState<'budget>,
+) -> Result<OwnedTitleId<'state, 'budget>> {
+    let len = graph
+        .len()
+        .checked_add(1)
+        .and_then(|n| n.checked_add(id.len()))
+        .ok_or(Error::Budget("repository endpoint ID"))?;
+    if len == 0 || len > 4096 {
+        return Err(Error::Invalid("global title lookup binding"));
+    }
+    state.charge_work(len)?;
+    let hold = state.hold(
+        std::mem::size_of::<String>()
+            .checked_add(len)
+            .ok_or(Error::Budget("repository endpoint ID"))?,
+    )?;
+    let mut text = String::with_capacity(len);
+    text.push_str(graph);
+    text.push(':');
+    text.push_str(id);
+    Ok(OwnedTitleId { text, _hold: hold })
+}
+
+struct OwnedTitleId<'state, 'budget> {
+    text: String,
+    _hold: CreationStateHold<'state, 'budget>,
+}
+
+fn next_repository_relation_order_owned(
+    stage: &mut KnowledgeStage<'_>,
+    state: &CreationState<'_>,
+) -> Result<i64> {
+    let sql = c"SELECT coalesce(max(source_order)+1,0) FROM knowledge_relations";
+    stage.with_connection(WritePhase::Sort, |db| {
+        let bytes = PinnedBoundedStatement::owned_connection_rust_workspace_upper_bound()
+            .checked_add(sql.to_bytes_with_nul().len())
+            .and_then(|n| n.checked_add(std::mem::size_of::<(i64,)>()))
+            .ok_or(Error::Budget("repository relation order SQL workspace"))?;
+        let _hold = state.hold(bytes)?;
+        state.active()?;
+        let mut statement = PinnedBoundedStatement::prepare_on_owned_connection(db, sql)
+            .map_err(bounded_repository_store_error)?;
+        if !statement.step().map_err(bounded_repository_store_error)? {
+            return Err(Error::Invalid("repository relation order row"));
+        }
+        let order = statement
+            .integer(0)
+            .map_err(bounded_repository_store_error)?;
+        if statement.step().map_err(bounded_repository_store_error)? {
+            return Err(Error::Invalid("repository relation order rows"));
+        }
+        Ok(order)
+    })
+}
+
+fn next_repository_node_order_owned(
+    stage: &mut KnowledgeStage<'_>,
+    state: &CreationState<'_>,
+) -> Result<i64> {
+    let sql = c"SELECT coalesce(max(source_order)+1,0) FROM knowledge_nodes";
+    stage.with_connection(WritePhase::Sort, |db| {
+        let bytes = PinnedBoundedStatement::owned_connection_rust_workspace_upper_bound()
+            .checked_add(sql.to_bytes_with_nul().len())
+            .and_then(|n| n.checked_add(std::mem::size_of::<(i64,)>()))
+            .ok_or(Error::Budget("repository node order SQL workspace"))?;
+        let _hold = state.hold(bytes)?;
+        state.active()?;
+        let mut statement = PinnedBoundedStatement::prepare_on_owned_connection(db, sql)
+            .map_err(bounded_repository_store_error)?;
+        if !statement.step().map_err(bounded_repository_store_error)? {
+            return Err(Error::Invalid("repository node order row"));
+        }
+        let order = statement
+            .integer(0)
+            .map_err(bounded_repository_store_error)?;
+        if statement.step().map_err(bounded_repository_store_error)? {
+            return Err(Error::Invalid("repository node order rows"));
+        }
+        Ok(order)
+    })
+}
+
+fn with_prepared_root_owned<T>(
+    stage: &mut KnowledgeStage<'_>,
+    receipt: &RepositoryPrepareReceipt,
+    limits: TopologyLimits,
+    state: &CreationState<'_>,
+    consume: impl FnOnce(u64, u64, &str) -> Result<T>,
+) -> Result<T> {
+    let mut hash = Digest256Hasher::new();
+    hash.update(b"tos-repository-topology-prepare-v1\0");
+    for value in [
+        &receipt.source_graph,
+        &receipt.source_cut,
+        &receipt.descriptor_sha256,
+        &receipt.root_input_sha256,
+        &receipt.ordering_root_sha256,
+    ] {
+        state.charge_work(value.len())?;
+        root_item(&mut hash, value, b"");
+    }
+    for (collection, count, root) in &receipt.input_roots {
+        state.charge_work(collection.len())?;
+        root_item(&mut hash, collection, &count.to_be_bytes());
+        state.charge_work(root.len())?;
+        root_item(&mut hash, root, b"");
+    }
+    let mut counts = [0u64; 2];
+    let mut work = 0u64;
+    let mut after_kind = -1i64;
+    let mut cursor: Option<OwnedMaterialCursor<'_, '_>> = None;
+    loop {
+        let after_id = cursor.as_ref().map_or("", |cursor| cursor.key.as_str());
+        let next = with_material_page_owned(stage, after_kind, after_id, limits, |_, rows| {
+            if rows.is_empty() {
+                return Ok(None);
+            }
+            for row in rows {
+                state.active()?;
+                charge(&mut work, row.material.len(), limits)?;
+                let index = usize::from(row.relation);
+                counts[index] = counts[index]
+                    .checked_add(1)
+                    .ok_or(Error::Budget("repository prepared rows"))?;
+                if counts[0]
+                    .checked_add(counts[1])
+                    .filter(|count| *count <= limits.max_rows)
+                    .is_none()
+                {
+                    return Err(Error::Budget("repository prepared rows"));
+                }
+                let fields = [&row.native, &row.identity, &row.kind, &row.proof];
+                let mut hash_work = 32usize;
+                for field in fields {
+                    hash_work = hash_work
+                        .checked_add(field.len())
+                        .ok_or(Error::Budget("repository prepared root work"))?;
+                }
+                state.charge_work(hash_work)?;
+                for field in fields {
+                    root_item(&mut hash, field, b"");
+                }
+                hash.update(&row.order.to_be_bytes());
+                hash.update(&[row.relation as u8]);
+                state.charge_work(row.material.len())?;
+                hash.update(Digest256::of_bytes(&row.material).as_bytes());
+                after_kind = i64::from(row.relation);
+            }
+            let last = rows
+                .last()
+                .ok_or(Error::Invalid("repository material page cursor"))?;
+            Ok(Some(owned_material_cursor(&last.key, state)?))
+        })?;
+        let Some(next) = next else {
+            break;
+        };
+        cursor = Some(next);
+    }
+    let root_hold = state.hold(std::mem::size_of::<String>() + 64)?;
+    state.charge_work(64)?;
+    let root = hash.finalize().to_hex();
+    let result = consume(counts[0], counts[1], &root);
+    drop(root);
+    drop(root_hold);
+    result
+}
+
+fn verify_owned(
+    stage: &mut KnowledgeStage<'_>,
+    receipt: &RepositoryPrepareReceipt,
+    limits: TopologyLimits,
+) -> Result<()> {
+    limits.validate()?;
+    if stage.exact_receipt()?.binding.source_cut != receipt.source_cut {
+        return Err(Error::Invalid("repository source cut"));
+    }
+    let state = stage
+        .owned_creation_state()
+        .ok_or(Error::Invalid("repository owned material state absent"))?;
+    with_prepared_root_owned(stage, receipt, limits, state, |nodes, relations, root| {
+        if nodes != receipt.nodes
+            || relations != receipt.relations
+            || root != receipt.dependency_root_sha256
+        {
+            return Err(Error::Invalid("repository prepared root"));
+        }
+        Ok(())
+    })
+}
+
 fn prepare_inner(
     stage: &mut KnowledgeStage<'_>,
     vocab: &QueryVocabulary,
@@ -294,7 +763,11 @@ fn prepare_inner(
             CREATE TABLE knowledge_repository_branches(path TEXT PRIMARY KEY,branch_id TEXT NOT NULL,
             ordinal INTEGER NOT NULL) WITHOUT ROWID;")?; Ok(())
     })?;
-    let root_row = SourceRow::parse_scoped_with_optional_owned_state(root.material, limits.max_row_bytes, stage.owned_creation_state())?;
+    let root_row = SourceRow::parse_scoped_with_optional_owned_state(
+        root.material,
+        limits.max_row_bytes,
+        stage.owned_creation_state(),
+    )?;
     let root_native = required(root_row.value(), "node_id")?;
     add_material(
         stage,
@@ -334,7 +807,11 @@ fn prepare_inner(
         )?;
         for raw in page.rows {
             charge(&mut work, raw.payload.len(), limits)?;
-            let row = SourceRow::parse_scoped_with_optional_owned_state(&raw.payload, limits.max_row_bytes, stage.owned_creation_state())?;
+            let row = SourceRow::parse_scoped_with_optional_owned_state(
+                &raw.payload,
+                limits.max_row_bytes,
+                stage.owned_creation_state(),
+            )?;
             let collection = required(row.value(), "collection")?;
             let id = required(row.value(), "id")?;
             let ordinal = row
@@ -407,7 +884,11 @@ fn prepare_inner(
                 if ordinal >= entry.expected_count || ordinal > i64::MAX as u64 {
                     return Err(Error::Invalid("repository source ordinal"));
                 }
-                let original = SourceRow::parse_scoped_with_optional_owned_state(&raw.payload, limits.max_row_bytes, stage.owned_creation_state())?;
+                let original = SourceRow::parse_scoped_with_optional_owned_state(
+                    &raw.payload,
+                    limits.max_row_bytes,
+                    stage.owned_creation_state(),
+                )?;
                 let item = original.value();
                 let mut material = item.clone();
                 let native = text(item.get("id"))
@@ -503,7 +984,11 @@ fn prepare_inner(
                 if raw.len() > limits.max_row_bytes || sha != Digest256::of_bytes(&raw).as_bytes() {
                     return Err(Error::Invalid("repository ordered raw binding"));
                 }
-                let source_row = SourceRow::parse_scoped_with_optional_owned_state(&raw, limits.max_row_bytes, stage.owned_creation_state())?;
+                let source_row = SourceRow::parse_scoped_with_optional_owned_state(
+                    &raw,
+                    limits.max_row_bytes,
+                    stage.owned_creation_state(),
+                )?;
                 let item = source_row.value();
                 let relation = if collection == "branches" {
                     text(item.get("id")).map(|id|json!({"edge_id":format!("corpus-topology:{id}"),"from_id":root.identity_id,"to_id":format!("branch:{id}"),"predicate_id":"contains",
@@ -658,7 +1143,11 @@ where
             let mut write_page = |stage: &mut KnowledgeStage<'_>| -> Result<()> {
                 for row in &rows {
                     after = row.key.clone();
-                    let source = SourceRow::parse_scoped_with_optional_owned_state(&row.material, limits.max_row_bytes, stage.owned_creation_state())?;
+                    let source = SourceRow::parse_scoped_with_optional_owned_state(
+                        &row.material,
+                        limits.max_row_bytes,
+                        stage.owned_creation_state(),
+                    )?;
                     visit(stage, &receipt.source_graph, &source)?;
                 }
                 Ok(())
@@ -688,6 +1177,9 @@ pub fn materialize_repository_nodes(
     normalizer: &KnowledgeBaseNormalizer<'_>,
     limits: TopologyLimits,
 ) -> Result<u64> {
+    if stage.owned_creation_state().is_some() {
+        return materialize_repository_nodes_owned(stage, receipt, normalizer, limits);
+    }
     let result = (|| {
         verify(stage, receipt, limits)?;
         let mut after = String::new();
@@ -714,41 +1206,58 @@ pub fn materialize_repository_nodes(
                             break;
                         }
                         after = row.key.clone();
-                        let source = SourceRow::parse_scoped_with_optional_owned_state(&row.material, limits.max_row_bytes, stage.owned_creation_state())?;
-                        let overrides=BaseNodeOverrides {
-                            native_id:Some(&row.native),
-                            identity_id:Some(&row.identity),
-                            kind_id:if row.kind.is_empty(){None}else{Some(&row.kind)},
+                        let source = SourceRow::parse_scoped_with_optional_owned_state(
+                            &row.material,
+                            limits.max_row_bytes,
+                            stage.owned_creation_state(),
+                        )?;
+                        let overrides = BaseNodeOverrides {
+                            native_id: Some(&row.native),
+                            identity_id: Some(&row.identity),
+                            kind_id: if row.kind.is_empty() {
+                                None
+                            } else {
+                                Some(&row.kind)
+                            },
                         };
                         if stage.owned_creation_state().is_some() {
                             normalizer.with_normalized_node_owned(
-                                &source,&receipt.source_graph,false,overrides,limits.max_row_bytes,
-                                |value,payload| {
+                                &source,
+                                &receipt.source_graph,
+                                false,
+                                overrides,
+                                limits.max_row_bytes,
+                                |value, payload| {
                                     stage.insert_node(NodeRow {
-                                        id:required(value,"id")?,
-                                        source_graph:&receipt.source_graph,
-                                        native_id:Some(required(value,"native_id")?),
-                                        entity_id:Some(required(value,"entity_id")?),
-                                        kind_id:required(value,"kind_id")?,
-                                        type_id:required(value,"type_id")?,
-                                        source_order:order,
+                                        id: required(value, "id")?,
+                                        source_graph: &receipt.source_graph,
+                                        native_id: Some(required(value, "native_id")?),
+                                        entity_id: Some(required(value, "entity_id")?),
+                                        kind_id: required(value, "kind_id")?,
+                                        type_id: required(value, "type_id")?,
+                                        source_order: order,
                                         payload,
                                     })?;
                                     Ok(())
                                 },
                             )?;
                         } else {
-                            let value=normalizer.normalize_node(&source,&receipt.source_graph,false,overrides)?;
-                            let payload=bytes(&value,limits)?;
+                            let value = normalizer.normalize_node(
+                                &source,
+                                &receipt.source_graph,
+                                false,
+                                overrides,
+                            )?;
+                            let payload = bytes(&value, limits)?;
                             stage.insert_node(NodeRow {
-                                id:required(&value,"id")?,
-                                source_graph:&receipt.source_graph,
-                                native_id:Some(required(&value,"native_id")?),
-                                entity_id:Some(required(&value,"entity_id")?),
-                                kind_id:required(&value,"kind_id")?,
-                                type_id:required(&value,"type_id")?,
-                                source_order:order,
-                                payload:&payload,
+                                id: required(&value, "id")?,
+                                source_graph: &receipt.source_graph,
+                                native_id: Some(required(&value, "native_id")?),
+                                entity_id: Some(required(&value, "entity_id")?),
+                                kind_id: required(&value, "kind_id")?,
+                                type_id: required(&value, "type_id")?,
+                                source_order: order,
+                                payload: &payload,
                             })?;
                         }
                         order += 1;
@@ -767,6 +1276,103 @@ pub fn materialize_repository_nodes(
             return Err(Error::Invalid("repository node completeness"));
         }
         Ok(rows)
+    })();
+    if result.is_err() {
+        stage.poison();
+    }
+    result
+}
+
+fn materialize_repository_nodes_owned(
+    stage: &mut KnowledgeStage<'_>,
+    receipt: &RepositoryPrepareReceipt,
+    normalizer: &KnowledgeBaseNormalizer<'_>,
+    limits: TopologyLimits,
+) -> Result<u64> {
+    let result = (|| {
+        let state = stage
+            .owned_creation_state()
+            .ok_or(Error::Invalid("repository owned material state absent"))?;
+        normalizer.ensure_same_owned_state(state)?;
+        verify_owned(stage, receipt, limits)?;
+        let mut order = next_repository_node_order_owned(stage, state)?;
+        let mut count = 0u64;
+        let mut cursor: Option<OwnedMaterialCursor<'_, '_>> = None;
+        loop {
+            let after_id = cursor.as_ref().map_or("", |cursor| cursor.key.as_str());
+            let next = with_material_page_owned(stage, 0, after_id, limits, |stage, rows| {
+                let node_count = rows.iter().take_while(|row| !row.relation).count();
+                if node_count == 0 {
+                    return Ok(None);
+                }
+                let node_rows = &rows[..node_count];
+                let page_bytes = node_count
+                    .checked_mul(limits.max_row_bytes)
+                    .and_then(|bytes| u64::try_from(bytes).ok())
+                    .ok_or(Error::Budget("repository node page bytes"))?;
+                stage.with_write_page(WritePhase::Normalized, node_count, page_bytes, |stage| {
+                    for row in node_rows {
+                        state.active()?;
+                        let source = SourceRow::parse_scoped_with_owned_state(
+                            &row.material,
+                            limits.max_row_bytes,
+                            state,
+                        )?;
+                        let overrides = BaseNodeOverrides {
+                            native_id: Some(&row.native),
+                            identity_id: Some(&row.identity),
+                            kind_id: if row.kind.is_empty() {
+                                None
+                            } else {
+                                Some(&row.kind)
+                            },
+                        };
+                        normalizer.with_normalized_node_owned(
+                            &source,
+                            &receipt.source_graph,
+                            false,
+                            overrides,
+                            limits.max_row_bytes,
+                            |value, payload| {
+                                stage.insert_node_with_exact_source(
+                                    NodeRow {
+                                        id: required(value, "id")?,
+                                        source_graph: &receipt.source_graph,
+                                        native_id: Some(required(value, "native_id")?),
+                                        entity_id: Some(required(value, "entity_id")?),
+                                        kind_id: required(value, "kind_id")?,
+                                        type_id: required(value, "type_id")?,
+                                        source_order: order,
+                                        payload,
+                                    },
+                                    &row.material,
+                                )?;
+                                order = order
+                                    .checked_add(1)
+                                    .ok_or(Error::Budget("repository node order"))?;
+                                count = count
+                                    .checked_add(1)
+                                    .ok_or(Error::Budget("repository node count"))?;
+                                Ok(())
+                            },
+                        )?;
+                    }
+                    Ok(())
+                })?;
+                let last = node_rows
+                    .last()
+                    .ok_or(Error::Invalid("repository material node cursor"))?;
+                Ok(Some(owned_material_cursor(&last.key, state)?))
+            })?;
+            let Some(next) = next else {
+                break;
+            };
+            cursor = Some(next);
+        }
+        if count != receipt.nodes {
+            return Err(Error::Invalid("repository node completeness"));
+        }
+        Ok(count)
     })();
     if result.is_err() {
         stage.poison();
@@ -814,7 +1420,11 @@ where
                 |stage| {
                     for row in rows {
                         after = row.key;
-                        let source = SourceRow::parse_scoped_with_optional_owned_state(&row.material, limits.max_row_bytes, stage.owned_creation_state())?;
+                        let source = SourceRow::parse_scoped_with_optional_owned_state(
+                            &row.material,
+                            limits.max_row_bytes,
+                            stage.owned_creation_state(),
+                        )?;
                         let item = source.value();
                         let from =
                             format!("{}:{}", receipt.source_graph, required(item, "from_id")?);
@@ -847,6 +1457,139 @@ where
                     Ok(())
                 },
             )?;
+        }
+        if count != receipt.relations {
+            return Err(Error::Invalid("repository relation completeness"));
+        }
+        Ok(count)
+    })();
+    if result.is_err() {
+        stage.poison();
+    }
+    result
+}
+
+/// Materialize repository relations with the same creation owner carried by
+/// the stage. The admitted material page, decoded source row, both endpoint
+/// title trees, normalized relation and encoded payload remain live through
+/// the bounded synchronous insert. Only the admitted continuation cursor
+/// escapes a page callback.
+pub(crate) fn materialize_repository_relations_with_titles_owned(
+    stage: &mut KnowledgeStage<'_>,
+    receipt: &RepositoryPrepareReceipt,
+    normalizer: &KnowledgeBaseNormalizer<'_>,
+    titles: &crate::knowledge_global_titles::GlobalTitleReceipt,
+    max_title_bytes: usize,
+    limits: TopologyLimits,
+) -> Result<u64> {
+    let result = (|| {
+        let state = stage
+            .owned_creation_state()
+            .ok_or(Error::Invalid("repository owned material state absent"))?;
+        normalizer.ensure_same_owned_state(state)?;
+        verify_owned(stage, receipt, limits)?;
+        if titles.source_cut != receipt.source_cut
+            || Digest256::from_hex(&titles.title_root_sha256).is_err()
+            || max_title_bytes == 0
+            || max_title_bytes > 64 * 1024
+        {
+            return Err(Error::Invalid("repository title closure"));
+        }
+        let mut order = next_repository_relation_order_owned(stage, state)?;
+        let mut count = 0u64;
+        let mut work = 0u64;
+        let mut cursor: Option<OwnedMaterialCursor<'_, '_>> = None;
+        loop {
+            let after_id = cursor.as_ref().map_or("", |cursor| cursor.key.as_str());
+            let next = with_material_page_owned(stage, 1, after_id, limits, |stage, rows| {
+                if rows.is_empty() {
+                    return Ok(None);
+                }
+                let page_bytes = rows
+                    .len()
+                    .checked_mul(limits.max_row_bytes)
+                    .and_then(|bytes| u64::try_from(bytes).ok())
+                    .ok_or(Error::Budget("repository relation page bytes"))?;
+                stage.with_write_page(WritePhase::Normalized, rows.len(), page_bytes, |stage| {
+                    for row in rows {
+                        state.active()?;
+                        let source = SourceRow::parse_scoped_with_owned_state(
+                            &row.material,
+                            limits.max_row_bytes,
+                            state,
+                        )?;
+                        let item = source.value();
+                        let from = owned_title_id(
+                            &receipt.source_graph,
+                            required(item, "from_id")?,
+                            state,
+                        )?;
+                        let to =
+                            owned_title_id(&receipt.source_graph, required(item, "to_id")?, state)?;
+                        crate::knowledge_global_titles::with_endpoint_title_pair_owned(
+                            stage,
+                            titles,
+                            &from.text,
+                            &to.text,
+                            max_title_bytes,
+                            |stage, left_title, right_title| {
+                                normalizer.with_normalized_relation_owned(
+                                    &source,
+                                    &receipt.source_graph,
+                                    None,
+                                    left_title,
+                                    right_title,
+                                    "derived-export",
+                                    limits.max_row_bytes,
+                                    |value, encoded| {
+                                        let row_work =
+                                            row.material.len().checked_add(encoded.len()).ok_or(
+                                                Error::Budget("repository relation work bytes"),
+                                            )?;
+                                        charge(&mut work, row_work, limits)?;
+                                        // Preserve the exact bytes parsed above. Repository
+                                        // relation material may itself be a generated packet;
+                                        // never substitute a separately retrieved raw record.
+                                        stage.insert_relation_with_exact_source(
+                                            RelationRow {
+                                                id: required(value, "id")?,
+                                                source_graph: &receipt.source_graph,
+                                                native_id: Some(required(value, "native_id")?),
+                                                from_id: required(value, "from_id")?,
+                                                to_id: required(value, "to_id")?,
+                                                predicate_id: required(value, "predicate_id")?,
+                                                relation_type_id: required(
+                                                    value,
+                                                    "relation_type_id",
+                                                )?,
+                                                source_order: order,
+                                                payload: encoded,
+                                            },
+                                            &row.material,
+                                        )?;
+                                        order = order
+                                            .checked_add(1)
+                                            .ok_or(Error::Budget("repository relation order"))?;
+                                        count = count
+                                            .checked_add(1)
+                                            .ok_or(Error::Budget("repository relation count"))?;
+                                        Ok(())
+                                    },
+                                )
+                            },
+                        )?;
+                    }
+                    Ok(())
+                })?;
+                let last = rows
+                    .last()
+                    .ok_or(Error::Invalid("repository material page cursor"))?;
+                Ok(Some(owned_material_cursor(&last.key, state)?))
+            })?;
+            let Some(next) = next else {
+                break;
+            };
+            cursor = Some(next);
         }
         if count != receipt.relations {
             return Err(Error::Invalid("repository relation completeness"));
