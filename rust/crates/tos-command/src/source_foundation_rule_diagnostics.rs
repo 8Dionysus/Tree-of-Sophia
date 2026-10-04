@@ -429,6 +429,8 @@ fn candidate_request_count<I>(
                 .closure
                 .cost
                 .candidate_loaded_document_peak_workspace_state_bytes
+        || closure_store_cost.loaded_rows != owner.closure.cost.candidate_loaded_row_store
+        || !closure_store_cost.loaded_rows.count_verified
         || closure_store_cost.event_rows != reported_event_count
         || closure_store_cost.event_serialized_read_bytes
             != owner.closure.cost.candidate_event_serialized_read_bytes
@@ -1436,6 +1438,9 @@ pub(crate) fn evaluate_candidate_stored_rules<I: Copy + Eq>(
             != owner_report.closure.cost.candidate_schema_request_count
             || closure_spool_cost.derivation != owner_report.closure.cost.candidate_derivation_store
             || closure_spool_cost.topology != owner_report.closure.cost.candidate_topology_store
+            || closure_spool_cost.loaded_rows
+                != owner_report.closure.cost.candidate_loaded_row_store
+            || !closure_spool_cost.loaded_rows.count_verified
             || usize::try_from(closure_spool_cost.observation_rows).ok()
                 != Some(expected_closure_requests)
             || closure_spool_cost.serialized_write_bytes

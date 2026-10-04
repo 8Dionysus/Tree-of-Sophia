@@ -55,6 +55,18 @@ const CHRONOLOGY_EVENT: &str =
 const WORK_CHRONOLOGY_SCHEMA: &str = "ToS/contracts/first-publication-chronology.schema.json";
 const PROVISION_EVENT_BASENAME: &str = "provision-activity-provenance.jsonl";
 
+/// Conservative pre-decode state bound for one source JSON value. Keep the
+/// same bound used by the candidate command spool so both owners preflight
+/// raw JSON before serde can allocate nested maps and strings.
+pub fn source_foundation_closure_json_state_upper_bound(
+    raw_bytes: usize,
+) -> Result<usize, ItemRefusal> {
+    raw_bytes
+        .checked_mul(128)
+        .and_then(|bytes| bytes.checked_add(8192))
+        .ok_or(ItemRefusal::Budget)
+}
+
 fn estimate_fixed_json_object_storage(
     fields: &[(&str, Option<&str>)],
 ) -> Result<usize, ItemRefusal> {
@@ -146,13 +158,17 @@ pub struct SourceFoundationClosureCost {
     pub candidate_schema_request_serialized_read_bytes: u64,
     pub candidate_schema_request_scan_row_operations: u64,
     pub candidate_schema_request_peak_workspace_state_bytes: usize,
-    /// Candidate-local, exact-cut document digests used to reread parsed
-    /// documents without retaining the complete path-to-rows map in memory.
+    /// Candidate-local, exact-cut document digests bound to held source-row
+    /// projections without retaining a path-to-rows map in memory.
     pub candidate_loaded_document_count: u64,
     pub candidate_loaded_document_serialized_read_bytes: u64,
     pub candidate_loaded_document_serialized_write_bytes: u64,
     pub candidate_loaded_document_scan_row_operations: u64,
     pub candidate_loaded_document_peak_workspace_state_bytes: usize,
+    /// Exact physical rows copied into the held loaded-document spool. The
+    /// bytes remain a source-derived scratch projection bound to the same
+    /// document digest and current-input fence.
+    pub candidate_loaded_row_store: SourceFoundationClosureLoadedRowStoreCost,
     /// Candidate Closure event rows retained as plain source-derived JSON
     /// projections in the invocation-scoped event store.
     pub candidate_event_count: u64,
@@ -416,6 +432,7 @@ pub struct SourceFoundationClosureSchemaRequestStoreCost {
     pub loaded_document_serialized_write_bytes: u64,
     pub loaded_document_scan_row_operations: u64,
     pub loaded_document_workspace_state_bytes: usize,
+    pub loaded_rows: SourceFoundationClosureLoadedRowStoreCost,
     pub event_rows: u64,
     pub event_serialized_read_bytes: u64,
     pub event_serialized_write_bytes: u64,
@@ -515,6 +532,22 @@ pub struct SourceFoundationClosureSchemaRequestStoreCost {
     pub boundary_responsibility_ref_count_verified: bool,
     pub derivation: SourceFoundationClosureDerivationStoreCost,
     pub topology: SourceFoundationClosureTopologyStoreCost,
+}
+
+/// Actual source-line bytes retained for bounded point and ordered reads.
+/// This is a mechanical projection, not a parsed-row authority or proof.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct SourceFoundationClosureLoadedRowStoreCost {
+    pub inserted_rows: u64,
+    pub point_lookup_operations: u64,
+    pub point_read_rows: u64,
+    pub streamed_rows: u64,
+    pub stream_eof_count: u64,
+    pub serialized_write_bytes: u64,
+    pub serialized_read_bytes: u64,
+    pub scan_row_operations: u64,
+    pub peak_workspace_state_bytes: usize,
+    pub count_verified: bool,
 }
 
 /// Portable candidate spool for authentic Closure schema requests,
@@ -877,14 +910,66 @@ pub trait SourceFoundationClosureSchemaRequestStore {
         max_state_bytes: usize,
     ) -> Result<(bool, usize), ItemRefusal>;
 
-    /// Point lookup for later Closure passes that previously reused a
-    /// materialized row vector. The caller rereads the actual current bytes
-    /// and checks this digest before parsing them again.
+    /// Point lookup for later Closure passes. The digest comes from the
+    /// actual first-load current bytes. Later lookups use that invocation's
+    /// held source projection; the enclosing inspection verifies the same
+    /// candidate input identity and current fence before and after the walk.
+    /// This does not re-read or re-hash the member on each point lookup.
     fn loaded_document_digest(
         &mut self,
         path: &str,
         max_state_bytes: usize,
     ) -> Result<(Option<String>, usize), ItemRefusal>;
+
+    /// Store one successfully parsed physical source line without changing
+    /// its bytes. Rows are keyed by exact path and physical line and carry the
+    /// digest of the document from the same first-load read.
+    fn remember_loaded_row(
+        &mut self,
+        path: &str,
+        line: usize,
+        document_sha256: &str,
+        raw_line: &[u8],
+        max_state_bytes: usize,
+    ) -> Result<(bool, usize), ItemRefusal>;
+
+    /// Bind a document's loaded-row count to the actual rows stored for its
+    /// first-load digest. This is called after schema and issue traversal.
+    fn finish_loaded_document_rows(
+        &mut self,
+        path: &str,
+        document_sha256: &str,
+        expected_rows: u64,
+        max_state_bytes: usize,
+    ) -> Result<usize, ItemRefusal>;
+
+    /// Return the sealed row count for a previously loaded document.
+    fn loaded_document_row_count(
+        &mut self,
+        path: &str,
+        document_sha256: &str,
+        max_state_bytes: usize,
+    ) -> Result<(Option<u64>, usize), ItemRefusal>;
+
+    /// Exact physical-line point lookup. A missing line is distinct from a
+    /// missing document; digest mismatch refuses the candidate projection.
+    fn loaded_row(
+        &mut self,
+        path: &str,
+        line: usize,
+        document_sha256: &str,
+        max_state_bytes: usize,
+    ) -> Result<(Option<Vec<u8>>, usize), ItemRefusal>;
+
+    /// Read the next valid source line in strict physical-line order. `None`
+    /// is returned only after the selected document query reaches EOF.
+    fn next_loaded_row(
+        &mut self,
+        path: &str,
+        document_sha256: &str,
+        after_line: Option<usize>,
+        max_state_bytes: usize,
+    ) -> Result<(Option<(usize, Vec<u8>)>, usize), ItemRefusal>;
 
     /// Insert the first current event under its exact ID. Duplicate IDs are
     /// reported as `false` without replacing the first source row.
@@ -947,6 +1032,7 @@ pub trait SourceFoundationClosureSchemaRequestStore {
         &mut self,
         expected_rows: u64,
         expected_loaded_documents: u64,
+        expected_loaded_row_store: SourceFoundationClosureLoadedRowStoreCost,
         expected_event_rows: u64,
         expected_event_path_rows: u64,
         expected_claim_id_rows: u64,
@@ -1306,6 +1392,7 @@ fn run_source_foundation_closure<S: LayerFamilySource + ?Sized>(
 
     let expected_schema_rows = rules.cost.schema_requests;
     let expected_loaded_documents = rules.cost.candidate_loaded_document_count;
+    let expected_loaded_row_store = rules.cost.candidate_loaded_row_store;
     let expected_event_rows = rules.cost.candidate_event_count;
     let expected_event_path_rows = rules.cost.candidate_event_path_count;
     let expected_claim_id_rows = rules.cost.candidate_claim_id_count;
@@ -1335,6 +1422,7 @@ fn run_source_foundation_closure<S: LayerFamilySource + ?Sized>(
             .finish(
                 expected_schema_rows,
                 expected_loaded_documents,
+                expected_loaded_row_store,
                 expected_event_rows,
                 expected_event_path_rows,
                 expected_claim_id_rows,
@@ -1366,6 +1454,7 @@ fn run_source_foundation_closure<S: LayerFamilySource + ?Sized>(
                     finished
                         .workspace_state_bytes
                         .max(finished.loaded_document_workspace_state_bytes)
+                        .max(finished.loaded_rows.peak_workspace_state_bytes)
                         .max(finished.event_workspace_state_bytes)
                         .max(finished.event_path_workspace_state_bytes)
                         .max(finished.claim_id_workspace_state_bytes)
@@ -1434,6 +1523,13 @@ fn run_source_foundation_closure<S: LayerFamilySource + ?Sized>(
             || !finished.topology.eof_seen
             || !finished.topology.count_verified
             || finished.derivation != rules.cost.candidate_derivation_store
+            || finished.loaded_rows.inserted_rows != expected_loaded_row_store.inserted_rows
+            || finished.loaded_rows.point_lookup_operations
+                != expected_loaded_row_store.point_lookup_operations
+            || finished.loaded_rows.point_read_rows != expected_loaded_row_store.point_read_rows
+            || finished.loaded_rows.streamed_rows != expected_loaded_row_store.streamed_rows
+            || finished.loaded_rows.stream_eof_count != expected_loaded_row_store.stream_eof_count
+            || !finished.loaded_rows.count_verified
         {
             return Err(ItemRefusal::Source(
                 "source-foundation Closure schema request store count or state differs".into(),
@@ -1458,6 +1554,7 @@ fn run_source_foundation_closure<S: LayerFamilySource + ?Sized>(
             .cost
             .candidate_loaded_document_peak_workspace_state_bytes =
             finished.loaded_document_workspace_state_bytes;
+        rules.cost.candidate_loaded_row_store = finished.loaded_rows;
         rules.cost.candidate_event_count = finished.event_rows;
         rules.cost.candidate_event_serialized_read_bytes = finished.event_serialized_read_bytes;
         rules.cost.candidate_event_serialized_write_bytes = finished.event_serialized_write_bytes;
@@ -2402,6 +2499,129 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
         Ok(digest)
     }
 
+    fn remember_candidate_loaded_row(
+        &mut self,
+        path: &str,
+        line: usize,
+        digest: &str,
+        raw_line: &[u8],
+    ) -> Result<(), ItemRefusal> {
+        let remaining = self.remaining_state()?;
+        let (inserted, workspace) = self
+            .schema_request_store
+            .as_deref_mut()
+            .ok_or(ItemRefusal::Budget)?
+            .remember_loaded_row(path, line, digest, raw_line, remaining)?;
+        self.include_store_workspace(workspace)?;
+        if !inserted {
+            return Err(ItemRefusal::Source(
+                "source-foundation loaded physical row was duplicated".into(),
+            ));
+        }
+        self.cost.candidate_loaded_row_store.inserted_rows = self
+            .cost
+            .candidate_loaded_row_store
+            .inserted_rows
+            .checked_add(1)
+            .ok_or(ItemRefusal::Budget)?;
+        Ok(())
+    }
+
+    fn finish_candidate_loaded_document_rows(
+        &mut self,
+        path: &str,
+        digest: &str,
+        expected_rows: u64,
+    ) -> Result<(), ItemRefusal> {
+        let remaining = self.remaining_state()?;
+        let workspace = self
+            .schema_request_store
+            .as_deref_mut()
+            .ok_or(ItemRefusal::Budget)?
+            .finish_loaded_document_rows(path, digest, expected_rows, remaining)?;
+        self.include_store_workspace(workspace)
+    }
+
+    fn candidate_loaded_document_row_count(
+        &mut self,
+        path: &str,
+        digest: &str,
+    ) -> Result<u64, ItemRefusal> {
+        let remaining = self.remaining_state()?;
+        let (count, workspace) = self
+            .schema_request_store
+            .as_deref_mut()
+            .ok_or(ItemRefusal::Budget)?
+            .loaded_document_row_count(path, digest, remaining)?;
+        self.include_store_workspace(workspace)?;
+        count.ok_or_else(|| {
+            ItemRefusal::Source(
+                "source-foundation loaded document has no sealed physical-row index".into(),
+            )
+        })
+    }
+
+    fn candidate_loaded_row(
+        &mut self,
+        path: &str,
+        line: usize,
+        digest: &str,
+    ) -> Result<Option<Vec<u8>>, ItemRefusal> {
+        let remaining = self.remaining_state()?;
+        let (raw_line, workspace) = self
+            .schema_request_store
+            .as_deref_mut()
+            .ok_or(ItemRefusal::Budget)?
+            .loaded_row(path, line, digest, remaining)?;
+        self.include_store_workspace(workspace)?;
+        self.cost.candidate_loaded_row_store.point_lookup_operations = self
+            .cost
+            .candidate_loaded_row_store
+            .point_lookup_operations
+            .checked_add(1)
+            .ok_or(ItemRefusal::Budget)?;
+        if raw_line.is_some() {
+            self.cost.candidate_loaded_row_store.point_read_rows = self
+                .cost
+                .candidate_loaded_row_store
+                .point_read_rows
+                .checked_add(1)
+                .ok_or(ItemRefusal::Budget)?;
+        }
+        Ok(raw_line)
+    }
+
+    fn next_candidate_loaded_row(
+        &mut self,
+        path: &str,
+        digest: &str,
+        after_line: Option<usize>,
+    ) -> Result<Option<(usize, Vec<u8>)>, ItemRefusal> {
+        let remaining = self.remaining_state()?;
+        let (row, workspace) = self
+            .schema_request_store
+            .as_deref_mut()
+            .ok_or(ItemRefusal::Budget)?
+            .next_loaded_row(path, digest, after_line, remaining)?;
+        self.include_store_workspace(workspace)?;
+        if row.is_some() {
+            self.cost.candidate_loaded_row_store.streamed_rows = self
+                .cost
+                .candidate_loaded_row_store
+                .streamed_rows
+                .checked_add(1)
+                .ok_or(ItemRefusal::Budget)?;
+        } else {
+            self.cost.candidate_loaded_row_store.stream_eof_count = self
+                .cost
+                .candidate_loaded_row_store
+                .stream_eof_count
+                .checked_add(1)
+                .ok_or(ItemRefusal::Budget)?;
+        }
+        Ok(row)
+    }
+
     fn observe_candidate_loaded_digest(
         &mut self,
         path: &str,
@@ -2807,6 +3027,103 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
             .min(usize::try_from(remaining_total).unwrap_or(usize::MAX)))
     }
 
+    fn candidate_loaded_rows_for_document(
+        &mut self,
+        path: &str,
+        digest: String,
+    ) -> Result<LoadedRows, ItemRefusal> {
+        let loaded_header_state = estimate_string_storage(&digest)?
+            .checked_add(std::mem::size_of::<LoadedRows>())
+            .ok_or(ItemRefusal::Budget)?;
+        let mut loaded_state_bytes = loaded_header_state;
+        self.reserve_temporary(loaded_state_bytes)?;
+        let expected_rows = self.candidate_loaded_document_row_count(path, &digest)?;
+        let row_capacity = usize::try_from(expected_rows).map_err(|_| ItemRefusal::Budget)?;
+        let row_slots_state = row_capacity
+            .checked_mul(std::mem::size_of::<(usize, Value)>())
+            .ok_or(ItemRefusal::Budget)?;
+        let requested_loaded_state = loaded_header_state
+            .checked_add(row_slots_state)
+            .ok_or(ItemRefusal::Budget)?;
+        self.adjust_loaded_state(&mut loaded_state_bytes, requested_loaded_state)?;
+        let mut rows = Vec::new();
+        rows.try_reserve_exact(row_capacity)
+            .map_err(|_| ItemRefusal::Budget)?;
+        let actual_row_slots_state = rows
+            .capacity()
+            .checked_mul(std::mem::size_of::<(usize, Value)>())
+            .ok_or(ItemRefusal::Budget)?;
+        let actual_loaded_header_state = loaded_header_state
+            .checked_add(actual_row_slots_state)
+            .ok_or(ItemRefusal::Budget)?;
+        self.adjust_loaded_state(&mut loaded_state_bytes, actual_loaded_header_state)?;
+        let mut after_line = None;
+        let mut drained_rows = 0u64;
+        loop {
+            check(self.limits.deadline, self.source.cancellation())?;
+            let Some((line, raw_line)) =
+                self.next_candidate_loaded_row(path, &digest, after_line)?
+            else {
+                break;
+            };
+            if line == 0 || after_line.is_some_and(|previous| line <= previous) {
+                return Err(ItemRefusal::Source(
+                    "source-foundation loaded physical rows are not strictly ordered".into(),
+                ));
+            }
+            if rows.len() >= row_capacity {
+                return Err(ItemRefusal::Source(
+                    "source-foundation loaded physical-row count exceeds its sealed document"
+                        .into(),
+                ));
+            }
+            let decoded_upper = source_foundation_closure_json_state_upper_bound(raw_line.len())?;
+            let raw_line_state = raw_line
+                .len()
+                .checked_add(decoded_upper)
+                .ok_or(ItemRefusal::Budget)?;
+            self.reserve_temporary(raw_line_state)?;
+            let value = serde_json::from_slice::<Value>(&raw_line).map_err(|_| {
+                ItemRefusal::Source("source-foundation loaded physical row no longer parses".into())
+            })?;
+            let value_state = crate::record_biblio_cut::decoded_state(&value)?;
+            if value_state > decoded_upper {
+                return Err(ItemRefusal::Budget);
+            }
+            rows.push((line, value));
+            drop(raw_line);
+            let next_loaded_state_bytes = loaded_state_bytes
+                .checked_add(value_state)
+                .ok_or(ItemRefusal::Budget)?;
+            let released_parse_state = raw_line_state
+                .checked_sub(value_state)
+                .ok_or(ItemRefusal::Budget)?;
+            self.release_temporary_state(released_parse_state)?;
+            loaded_state_bytes = next_loaded_state_bytes;
+            after_line = Some(line);
+            drained_rows = drained_rows.checked_add(1).ok_or(ItemRefusal::Budget)?;
+        }
+        if drained_rows != expected_rows {
+            return Err(ItemRefusal::Source(
+                "source-foundation loaded physical-row count differs from its sealed document"
+                    .into(),
+            ));
+        }
+        self.cost.decoded_rows = self
+            .cost
+            .decoded_rows
+            .checked_add(drained_rows)
+            .ok_or(ItemRefusal::Budget)?;
+        let mut loaded = LoadedRows {
+            digest,
+            rows,
+            temporary_state_bytes: loaded_state_bytes,
+        };
+        self.adjust_loaded_state(&mut loaded_state_bytes, loaded_clone_cost(&loaded)?)?;
+        loaded.temporary_state_bytes = loaded_state_bytes;
+        Ok(loaded)
+    }
+
     fn json_rows(
         &mut self,
         path: &str,
@@ -2836,6 +3153,13 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
             return Ok(None);
         }
         let candidate_cached = self.schema_request_store.is_some();
+        if candidate_cached {
+            if let Some(digest) = self.candidate_loaded_digest(path)? {
+                return self
+                    .candidate_loaded_rows_for_document(path, digest)
+                    .map(Some);
+            }
+        }
         let temporary_baseline = self.temporary_state_bytes;
         let mut loaded_state_bytes = 0usize;
         if candidate_cached {
@@ -2902,6 +3226,9 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
                             std::mem::size_of::<Value>(),
                             &mut loaded_state_bytes,
                         )?;
+                        if candidate_cached && first_load {
+                            self.remember_candidate_loaded_row(path, line, &digest, bytes)?;
+                        }
                         rows.push((line, value));
                     }
                     Err(error) if first_load => self.issue(
@@ -2917,6 +3244,9 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
                     if first_load {
                         self.request_schema(path, schema, &value)?;
                     }
+                    if candidate_cached && first_load {
+                        self.remember_candidate_loaded_row(path, 1, &digest, &raw)?;
+                    }
                     rows.push((1, value));
                 }
                 Err(error) if first_load => {
@@ -2930,6 +3260,9 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
             .decoded_rows
             .checked_add(rows.len() as u64)
             .ok_or(ItemRefusal::Budget)?;
+        if candidate_cached && first_load {
+            self.finish_candidate_loaded_document_rows(path, &digest, rows.len() as u64)?;
+        }
         drop(raw);
         let mut loaded = LoadedRows {
             digest,
@@ -2970,6 +3303,13 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
             return Ok(None);
         }
         let candidate_cached = self.schema_request_store.is_some();
+        if candidate_cached {
+            if let Some(digest) = self.candidate_loaded_digest(path)? {
+                return self
+                    .candidate_loaded_rows_for_document(path, digest)
+                    .map(Some);
+            }
+        }
         let temporary_baseline = self.temporary_state_bytes;
         let mut loaded_state_bytes = 0usize;
         if candidate_cached {
@@ -3030,6 +3370,9 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
                         std::mem::size_of::<Value>(),
                         &mut loaded_state_bytes,
                     )?;
+                    if candidate_cached && first_load {
+                        self.remember_candidate_loaded_row(path, line, &digest, bytes)?;
+                    }
                     rows.push((line, value));
                 }
                 Err(error) if first_load => self.issue(
@@ -3044,6 +3387,9 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
             .decoded_rows
             .checked_add(rows.len() as u64)
             .ok_or(ItemRefusal::Budget)?;
+        if candidate_cached && first_load {
+            self.finish_candidate_loaded_document_rows(path, &digest, rows.len() as u64)?;
+        }
         drop(raw);
         let mut loaded = LoadedRows {
             digest,
@@ -3076,29 +3422,43 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
                 0,
             ));
         }
-        if self.candidate_loaded_digest(path)?.is_none() {
+        let Some(digest) = self.candidate_loaded_digest(path)? else {
             return Ok((None, 0));
+        };
+        let digest_state = estimate_string_storage(&digest)?;
+        self.reserve_temporary(digest_state)?;
+        let Some(raw_line) = self.candidate_loaded_row(path, line, &digest)? else {
+            drop(digest);
+            self.release_temporary_state(digest_state)?;
+            return Ok((None, 0));
+        };
+        drop(digest);
+        self.release_temporary_state(digest_state)?;
+        let reservation = raw_line
+            .len()
+            .checked_mul(6)
+            .and_then(|state| state.checked_add(std::mem::size_of::<Value>()))
+            .ok_or(ItemRefusal::Budget)?;
+        self.reserve_temporary(reservation)?;
+        let value = serde_json::from_slice::<Value>(&raw_line).map_err(|_| {
+            ItemRefusal::Source("source-foundation loaded physical row no longer parses".into())
+        })?;
+        let value_state = crate::record_biblio_cut::decoded_state(&value)?;
+        if value_state > reservation {
+            self.reserve_temporary(value_state - reservation)?;
+        } else if value_state < reservation {
+            self.temporary_state_bytes = self
+                .temporary_state_bytes
+                .checked_sub(reservation - value_state)
+                .ok_or(ItemRefusal::Budget)?;
         }
-        let Some(rows) = self.json_rows(path, CLAIM_SCHEMA, true)? else {
-            return Err(ItemRefusal::Source(
-                "source-foundation cached document is absent from the exact current cut".into(),
-            ));
-        };
-        let rows_state = rows.temporary_state_bytes;
-        let value = rows
-            .rows
-            .iter()
-            .find(|(candidate, _)| *candidate == line)
-            .map(|(_, value)| value);
-        let (value, value_state) = if let Some(value) = value {
-            let state = crate::record_biblio_cut::decoded_state(value)?;
-            self.reserve_temporary(state)?;
-            (Some(value.clone()), state)
-        } else {
-            (None, 0)
-        };
-        self.release_loaded_rows(rows_state)?;
-        Ok((value, value_state))
+        drop(raw_line);
+        self.cost.decoded_rows = self
+            .cost
+            .decoded_rows
+            .checked_add(1)
+            .ok_or(ItemRefusal::Budget)?;
+        Ok((Some(value), value_state))
     }
 
     fn expect_ref(
@@ -3155,6 +3515,11 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
         if self.cache_digests {
             if let Some(value) = self.digests.get(path) {
                 return Ok(Some(value.clone()));
+            }
+        }
+        if self.schema_request_store.is_some() {
+            if let Some(digest) = self.candidate_loaded_digest(path)? {
+                return Ok(Some(digest));
             }
         }
         if !self.path_exists(path)? {
@@ -9242,7 +9607,7 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
 }
 
 fn loaded_clone_cost(rows: &LoadedRows) -> Result<usize, ItemRefusal> {
-    rows.rows.iter().try_fold(
+    let state = rows.rows.iter().try_fold(
         rows.digest
             .len()
             .checked_add(std::mem::size_of::<LoadedRows>())
@@ -9257,7 +9622,19 @@ fn loaded_clone_cost(rows: &LoadedRows) -> Result<usize, ItemRefusal> {
                 })
                 .ok_or(ItemRefusal::Budget)
         },
-    )
+    )?;
+    let spare_rows = rows
+        .rows
+        .capacity()
+        .checked_sub(rows.rows.len())
+        .ok_or(ItemRefusal::Budget)?;
+    state
+        .checked_add(
+            spare_rows
+                .checked_mul(std::mem::size_of::<(usize, Value)>())
+                .ok_or(ItemRefusal::Budget)?,
+        )
+        .ok_or(ItemRefusal::Budget)
 }
 
 fn check(deadline: Instant, cancelled: &std::sync::atomic::AtomicBool) -> Result<(), ItemRefusal> {
