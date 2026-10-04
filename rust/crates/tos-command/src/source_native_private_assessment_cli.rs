@@ -2685,7 +2685,12 @@ fn describe_context(
         cmd::set(
             &mut context,
             "required_sources",
-            JsonValue::Array(required_sources.to_vec()),
+            JsonValue::Array(
+                required_sources
+                    .iter()
+                    .map(owner_reference)
+                    .collect::<SourceCommandResult<Vec<_>>>()?,
+            ),
         )?;
     }
     if selected.version.has_layer_quality() {
