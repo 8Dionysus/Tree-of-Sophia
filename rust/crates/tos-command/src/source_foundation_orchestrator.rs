@@ -57,6 +57,7 @@ pub(crate) enum FoundationOrchestratorError {
     Bootstrap(FoundationBootstrapError),
     Command(SourceCommandError),
     Owner(ItemRefusal),
+    OwnerAt(&'static str, ItemRefusal),
     Default(FoundationDefaultStage, FoundationDefaultReadError),
     Final(FoundationFinalInputError),
     Replay(ArtifactReplayFailure),
@@ -83,6 +84,43 @@ impl From<FoundationBootstrapError> for FoundationOrchestratorError {
 
 impl FoundationOrchestratorError {
     pub(crate) fn public_reason(&self) -> String {
+        let owner = match self {
+            Self::Owner(error) => Some(("owner", error)),
+            Self::OwnerAt(stage, error) => Some((*stage, error)),
+            _ => None,
+        };
+        if let Some((stage, error)) = owner {
+            let kind = match error {
+                ItemRefusal::Budget => "budget",
+                ItemRefusal::BudgetCheck { .. } => "budget check",
+                ItemRefusal::Deadline => "deadline",
+                ItemRefusal::Source(_) => "source",
+                ItemRefusal::Unsupported(_) => "unsupported",
+            };
+            use std::fmt::Write as _;
+            let mut reason = String::with_capacity(MAX_PUBLIC_BUDGET_REASON_BYTES);
+            let formatted: std::fmt::Result = (|| {
+                write!(reason, "source-foundation {stage}: owner {kind}")?;
+                if let ItemRefusal::BudgetCheck { check, used, limit } = error
+                    && matches!(*check, "record_issue_sink" | "biblio_sink")
+                {
+                    write!(reason, " {check} used=")?;
+                    match used {
+                        Some(value) => write!(reason, "{value}")?,
+                        None => reason.push_str("unknown"),
+                    }
+                    reason.push_str(" limit=");
+                    match limit {
+                        Some(value) => write!(reason, "{value}")?,
+                        None => reason.push_str("unknown"),
+                    }
+                }
+                Ok(())
+            })();
+            if formatted.is_ok() && reason.len() <= MAX_PUBLIC_BUDGET_REASON_BYTES {
+                return reason;
+            }
+        }
         if let Self::Default(
             stage,
             FoundationDefaultReadError::Owner(ItemRefusal::BudgetCheck { check, used, limit }),
@@ -157,7 +195,7 @@ impl FoundationOrchestratorError {
                 }
             },
             Self::Command(_) => "source-foundation invocation refused",
-            Self::Owner(_) => "source-foundation owner phase refused",
+            Self::Owner(_) | Self::OwnerAt(_, _) => "source-foundation owner phase refused",
             Self::Default(stage, error) => match (stage, error) {
                 (
                     FoundationDefaultStage::CapturedCurrentPaths,
@@ -1359,6 +1397,7 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
     use tos_validation::record_biblio_cut::{SourceCutInput, SourceCutInputWithIdentity};
     use tos_validation::source_foundation_records::SourceFoundationRecordsPageBudget;
 
+    let owner = |error| FoundationOrchestratorError::OwnerAt("candidate entry", error);
     let deadline = view.invocation.deadline();
     let cancelled = view.cancelled;
     let budgets = view.invocation.budgets;
@@ -1471,6 +1510,7 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
         FoundationWindowKind::Schema,
         FoundationPhaseReservation::default(),
     )?;
+    let owner = |error| FoundationOrchestratorError::OwnerAt("candidate schema", error);
     let schema_operation = schema_ticket.operation_limits();
     let worker_quota = SharedSchemaWorkerQuota::new(
         view.remaining_budget
@@ -1701,6 +1741,7 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
         FoundationWindowKind::RecordsAndBibliography,
         FoundationPhaseReservation::default(),
     )?;
+    let owner = |error| FoundationOrchestratorError::OwnerAt("candidate records", error);
     let records_operation = records_ticket.operation_limits();
     if records_operation.source_read_bytes == 0
         || records_operation.state_bytes == 0
@@ -2548,6 +2589,7 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
         FoundationWindowKind::CatalogAndPersisted,
         FoundationPhaseReservation::default(),
     )?;
+    let owner = |error| FoundationOrchestratorError::OwnerAt("candidate catalogue", error);
     let catalog_operation = catalog_ticket.operation_limits();
     let catalog_output_bytes = u64::try_from(catalog_operation.output_bytes)
         .map_err(|_| incomplete("candidate catalog output byte range"))?;
