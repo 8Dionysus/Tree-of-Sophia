@@ -7640,8 +7640,8 @@ fn inspect_candidate_with_artifact_replays_and_records_with_proofs_impl<
         require_local_payloads,
         None,
         None,
-        discovery_seen_ids,
         None,
+        discovery_seen_ids,
         None,
         None,
         None,
@@ -8075,12 +8075,12 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
     native_cut: Option<NativeCutBinding>,
     invalid_current_artifact_schema_proofs: Option<&CurrentArtifactInvalidSchemaProofs<'_>>,
     mut candidate_artifact_evidence_provider: Option<&mut dyn CandidateArtifactEvidenceProvider<I>>,
-    discovery_seen_ids: Option<&mut dyn DiscoverySeenIds>,
-    candidate_discovery_run_summaries: Option<&mut dyn DiscoveryRunSummaryStore>,
-    candidate_discovery_event_summaries: Option<&mut dyn DiscoveryEventSummaryStore>,
+    mut discovery_seen_ids: Option<&mut dyn DiscoverySeenIds>,
+    mut candidate_discovery_run_summaries: Option<&mut dyn DiscoveryRunSummaryStore>,
+    mut candidate_discovery_event_summaries: Option<&mut dyn DiscoveryEventSummaryStore>,
     candidate_discovery_event_json_limit: Option<usize>,
-    candidate_discovery_schema_requests: Option<&mut dyn DiscoverySchemaRequestStore>,
-    candidate_discovery_digest_cache: Option<&mut dyn DiscoveryDigestCache>,
+    mut candidate_discovery_schema_requests: Option<&mut dyn DiscoverySchemaRequestStore>,
+    mut candidate_discovery_digest_cache: Option<&mut dyn DiscoveryDigestCache>,
 ) -> Result<DiscoveryKernelOutput, ItemRefusal> {
     if candidate_discovery_event_summaries.is_some()
         && (candidate_input.is_none()
@@ -8115,11 +8115,21 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
         native_histories,
         artifact_replays,
         candidate_invalid_schema_proofs,
-        candidate_discovery_seen_ids: discovery_seen_ids,
-        candidate_discovery_run_summaries,
-        candidate_discovery_event_summaries,
-        candidate_discovery_schema_requests,
-        candidate_discovery_digest_cache,
+        candidate_discovery_seen_ids: discovery_seen_ids
+            .as_mut()
+            .map(|store| &mut **store as &mut dyn DiscoverySeenIds),
+        candidate_discovery_run_summaries: candidate_discovery_run_summaries
+            .as_mut()
+            .map(|store| &mut **store as &mut dyn DiscoveryRunSummaryStore),
+        candidate_discovery_event_summaries: candidate_discovery_event_summaries
+            .as_mut()
+            .map(|store| &mut **store as &mut dyn DiscoveryEventSummaryStore),
+        candidate_discovery_schema_requests: candidate_discovery_schema_requests
+            .as_mut()
+            .map(|store| &mut **store as &mut dyn DiscoverySchemaRequestStore),
+        candidate_discovery_digest_cache: candidate_discovery_digest_cache
+            .as_mut()
+            .map(|store| &mut **store as &mut dyn DiscoveryDigestCache),
         candidate_discovery_event_json_limit,
         limits,
         physical,
@@ -8715,7 +8725,7 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
                 })
         });
         let native_capture = native_artifact_capture(
-            &mut inspector,
+            &mut *inspector,
             path,
             &value,
             u64::try_from(raw.len()).map_err(|_| ItemRefusal::Budget)?,
@@ -8729,7 +8739,7 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
         if native_capture == NativeArtifactCapture::Complete {
             if !event_ref.is_empty() {
                 let first_event = remember_discovery_id(
-                    &mut inspector,
+                    &mut *inspector,
                     &mut event_ids,
                     DiscoverySeenIdNamespace::Event,
                     event_ref,

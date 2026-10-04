@@ -18,7 +18,7 @@ use crate::record_biblio_cut::{
 use crate::source_foundation_default_rules::{
     BorrowedDefaultRecords, SliceDefaultClaims, SliceDefaultPaths, SourceFoundationDefaultClaims,
     SourceFoundationDefaultEventLookup, SourceFoundationDefaultPaths,
-    SourceFoundationDefaultRecordsLookup,
+    SourceFoundationDefaultRecordsLookup, estimate_string_storage, estimate_value_storage,
 };
 use crate::source_witness_foundation::SourceFileMembershipIndex;
 use serde_json::Value;
@@ -710,15 +710,16 @@ pub fn source_foundation_requires_bibliographic(
         })
 }
 
-struct ClosureRules<'a, S: LayerFamilySource + ?Sized> {
+// Store object bounds remain independent from this short inspection borrow.
+struct ClosureRules<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> {
     source: &'a mut S,
     limits: ItemLimits,
     paths: &'a dyn SourceFoundationDefaultPaths,
     records: &'a dyn SourceFoundationDefaultRecordsLookup,
     source_events: &'a dyn SourceFoundationDefaultEventLookup,
     claims: &'a dyn SourceFoundationDefaultClaims,
-    link_store: Option<&'a mut dyn SourceFoundationClosureLinkStore>,
-    schema_request_store: Option<&'a mut dyn SourceFoundationClosureSchemaRequestStore>,
+    link_store: Option<&'a mut (dyn SourceFoundationClosureLinkStore + 'link)>,
+    schema_request_store: Option<&'a mut (dyn SourceFoundationClosureSchemaRequestStore + 'schema)>,
     link_count: u64,
     links: BTreeMap<String, (String, Value)>,
     issues: Vec<(String, String)>,
@@ -750,15 +751,15 @@ struct ClosureRules<'a, S: LayerFamilySource + ?Sized> {
     derivation: BTreeMap<String, ClaimRef>,
 }
 
-impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
+impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 'schema, S> {
     fn new(
         source: &'a mut S,
         source_events: &'a dyn SourceFoundationDefaultEventLookup,
         records: &'a dyn SourceFoundationDefaultRecordsLookup,
         paths: &'a dyn SourceFoundationDefaultPaths,
         claims: &'a dyn SourceFoundationDefaultClaims,
-        link_store: Option<&'a mut dyn SourceFoundationClosureLinkStore>,
-        schema_request_store: Option<&'a mut dyn SourceFoundationClosureSchemaRequestStore>,
+        link_store: Option<&'a mut (dyn SourceFoundationClosureLinkStore + 'link)>,
+        schema_request_store: Option<&'a mut (dyn SourceFoundationClosureSchemaRequestStore + 'schema)>,
         limits: ItemLimits,
         cache_digests: bool,
         cache_recorded_checks: bool,
@@ -3627,7 +3628,7 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
             let scratch = link_validation_workspace(&link.value, targets)?;
             self.reserve_temporary(scratch)?;
             self.check_link_row(&link.id, &link.path, &link.value, targets, events)?;
-            let next_cursor_state = estimate_string_state(&link.id)?;
+            let next_cursor_state = estimate_string_storage(&link.id)?;
             self.reserve_temporary(next_cursor_state)?;
             let next_after = link.id.clone();
             drop(link);

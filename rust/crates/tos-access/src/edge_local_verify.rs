@@ -451,7 +451,13 @@ fn markers(o: &SupervisionOptions, revision: &str, digest: &str) -> Result<(), S
     }
     Ok(())
 }
-fn health(o: &SupervisionOptions, until: Instant, revision: &str) -> Result<(), String> {
+fn health(
+    o: &SupervisionOptions,
+    until: Instant,
+    revision: &str,
+    wire: &mut Vec<u8>,
+) -> Result<(), String> {
+    wire.clear();
     let remaining = until
         .checked_duration_since(Instant::now())
         .ok_or("readiness cutoff exhausted")?
@@ -472,7 +478,6 @@ fn health(o: &SupervisionOptions, until: Instant, revision: &str) -> Result<(), 
         o.worker_port
     )
     .map_err(|e| e.to_string())?;
-    let mut wire = Vec::new();
     let limit = o
         .maximum_health_bytes
         .checked_add(8192)
@@ -775,6 +780,9 @@ pub fn supervise(o: &SupervisionOptions) -> Result<(), String> {
     )?;
     let mut node: Option<Group> = None;
     let mut total = 0usize;
+    let mut health_diagnostics = 0usize;
+    let mut preliminary_health_diagnostic = false;
+    let mut health_signatures = [None; 8];
     let result = (|| {
         let ready = work.min(
             started
@@ -789,7 +797,63 @@ pub fn supervise(o: &SupervisionOptions) -> Result<(), String> {
             if worker.exited()?.is_some() {
                 return Err("Worker leader exited before readiness".into());
             }
-            if worker_listener_owned(&worker, o, ready)? && health(o, ready, revision).is_ok() {
+            let mut health_wire = Vec::new();
+            let listener_owned = worker_listener_owned(&worker, o, ready)?;
+            let healthy = if listener_owned {
+                match health(o, ready, revision, &mut health_wire) {
+                    Ok(()) => true,
+                    Err(reason) => {
+                        // Preserve bounded transport evidence in the existing Worker log.
+                        // The complete response is still refused by the unchanged health
+                        // predicate; a prefix here is explicitly diagnostic only.
+                        let header_end = health_wire.windows(4).position(|p| p == b"\r\n\r\n");
+                        let status_200 = header_end.is_some()
+                            && (health_wire.starts_with(b"HTTP/1.0 200 ")
+                                || health_wire.starts_with(b"HTTP/1.1 200 "));
+                        let body_start = header_end.map_or(0, |p| p + 4);
+                        let body_prefix =
+                            &health_wire[body_start..health_wire.len().min(body_start + 4096)];
+                        let signature = (
+                            Digest256::of_bytes(reason.as_bytes()),
+                            Digest256::of_bytes(body_prefix),
+                        );
+                        if health_diagnostics < 8
+                            && (status_200 || !preliminary_health_diagnostic)
+                            && !health_signatures[..health_diagnostics].contains(&Some(signature))
+                        {
+                            let prefix = &health_wire[..health_wire.len().min(4096)];
+                            let reason = &reason.as_bytes()[..reason.len().min(256)];
+                            let parts: [&[u8]; 7] = [
+                                b"\n[readiness health refusal; expected data_revision=",
+                                revision.as_bytes(),
+                                b"; reason=",
+                                reason,
+                                b"; raw wire prefix follows, at most 4096 bytes]\n",
+                                prefix,
+                                b"\n[end readiness wire prefix]\n",
+                            ];
+                            let bytes = parts
+                                .iter()
+                                .try_fold(0usize, |n, p| n.checked_add(p.len()))
+                                .ok_or("health diagnostic bound overflow")?;
+                            total = total.checked_add(bytes).ok_or("log aggregate overflow")?;
+                            if total > o.maximum_log_bytes {
+                                return Err("aggregate Worker+Node logs exceeded admission".into());
+                            }
+                            for part in parts {
+                                worker.log.write_all(part).map_err(|e| e.to_string())?;
+                            }
+                            preliminary_health_diagnostic |= !status_200;
+                            health_signatures[health_diagnostics] = Some(signature);
+                            health_diagnostics += 1;
+                        }
+                        false
+                    }
+                }
+            } else {
+                false
+            };
+            if healthy {
                 markers(o, revision, marker)?;
                 if !worker_listener_owned(&worker, o, ready)? {
                     return Err("Worker listener ownership changed across readiness".into());
