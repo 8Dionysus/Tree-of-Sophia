@@ -21,6 +21,10 @@ use tos_validation::{
     },
     item_rules::ItemRefusal,
     record_biblio_cut::{SourceCutInput, SourceCutInputWithIdentity},
+    source_foundation_closure::{
+        SourceFoundationClosureLink, SourceFoundationClosureLinkStore,
+        SourceFoundationClosureLinkStoreCost,
+    },
     source_foundation_default_rules::{
         SourceFoundationDefaultClaims, SourceFoundationDefaultEventLookup,
         SourceFoundationDefaultEventStore, SourceFoundationDefaultEventStoreCost,
@@ -64,8 +68,11 @@ fn checked_add(left: usize, right: usize) -> Result<usize, ItemRefusal> {
 }
 
 fn estimate_string_state(value: &str) -> Result<usize, ItemRefusal> {
-    value
-        .len()
+    estimate_string_state_len(value.len())
+}
+
+fn estimate_string_state_len(length: usize) -> Result<usize, ItemRefusal> {
+    length
         .checked_mul(2)
         .and_then(|bytes| bytes.checked_add(size_of::<String>() + 32))
         .ok_or(ItemRefusal::Budget)
@@ -699,6 +706,11 @@ impl<'candidate, 'host> SpoolDefaultStore<'candidate, 'host> {
                  slot BLOB NOT NULL PRIMARY KEY CHECK(length(slot)=8),\
                  id TEXT NOT NULL COLLATE BINARY UNIQUE,\
                  value BLOB NOT NULL\
+             ) WITHOUT ROWID;\
+             CREATE TABLE sf_closure_links(\
+                 id TEXT NOT NULL COLLATE BINARY PRIMARY KEY CHECK(length(id)>0),\
+                 path TEXT NOT NULL COLLATE BINARY CHECK(length(path)>0),\
+                 value BLOB NOT NULL CHECK(length(value)>0)\
              ) WITHOUT ROWID;\
              CREATE TABLE sf_discovery_seen_ids(\
                  namespace TEXT NOT NULL COLLATE BINARY CHECK(namespace IN ('artifact','composite','composite-representation','event','discovery-event','representation-file','schema-location','payload-observation','artifact-replay-reference','planned-manifest','native-artifact-transaction')),\
@@ -1339,6 +1351,337 @@ impl SourceFoundationDefaultEventStore for DefaultEventsProvider<'_, '_, '_, '_>
 
     fn event_lookup(&self) -> &dyn SourceFoundationDefaultEventLookup {
         self
+    }
+}
+
+struct CandidateClosureLinks<'a, 'candidate, 'host, 'cancel, 'budget> {
+    context: ProviderContext<'candidate, 'host, 'cancel>,
+    db: &'a PinnedSqliteConnection,
+    scan_rows: &'budget Cell<u64>,
+    active_records_page_state: &'budget Cell<usize>,
+    inserted_rows: u64,
+    drained_rows: u64,
+    serialized_write_bytes: u64,
+    serialized_read_bytes: u64,
+    workspace_peak_bytes: usize,
+    scan_row_operations: u64,
+    eof_seen: bool,
+    finished: bool,
+}
+
+impl CandidateClosureLinks<'_, '_, '_, '_, '_> {
+    fn preflight(&self, workspace: usize, max_state_bytes: usize) -> Result<usize, ItemRefusal> {
+        if self.finished
+            || max_state_bytes == 0
+            || max_state_bytes > self.context.operation_state_limit
+        {
+            return Err(source_refusal());
+        }
+        let total = self
+            .active_records_page_state
+            .get()
+            .checked_add(workspace)
+            .filter(|bytes| *bytes <= max_state_bytes)
+            .ok_or(ItemRefusal::Budget)?;
+        self.context.row_state(workspace)?;
+        self.context.active_state(total)?;
+        self.context.check()?;
+        Ok(total)
+    }
+
+    fn charge_scan_row(&mut self) -> Result<(), ItemRefusal> {
+        self.context.add_scan_rows(self.scan_rows, 1)?;
+        self.scan_row_operations = self
+            .scan_row_operations
+            .checked_add(1)
+            .ok_or(ItemRefusal::Budget)?;
+        Ok(())
+    }
+
+    fn cost(&self) -> SourceFoundationClosureLinkStoreCost {
+        SourceFoundationClosureLinkStoreCost {
+            inserted_rows: self.inserted_rows,
+            drained_rows: self.drained_rows,
+            serialized_write_bytes: self.serialized_write_bytes,
+            serialized_read_bytes: self.serialized_read_bytes,
+            workspace_state_bytes: self.workspace_peak_bytes,
+            scan_row_operations: self.scan_row_operations,
+        }
+    }
+}
+
+impl SourceFoundationClosureLinkStore for CandidateClosureLinks<'_, '_, '_, '_, '_> {
+    fn insert_link(
+        &mut self,
+        id: &str,
+        path: &str,
+        value: &Value,
+        max_state_bytes: usize,
+    ) -> Result<usize, ItemRefusal> {
+        self.context.check()?;
+        if self.eof_seen
+            || id.is_empty()
+            || path.is_empty()
+            || !path.ends_with("/link.json")
+            || value.get("record_id").and_then(Value::as_str) != Some(id)
+        {
+            return Err(source_refusal());
+        }
+        let json_bytes = json_len(value, max_state_bytes)?;
+        let text_state = estimate_string_state(id)?
+            .checked_add(estimate_string_state(path)?)
+            .ok_or(ItemRefusal::Budget)?;
+        let serialization_workspace = json_bytes
+            .checked_mul(2)
+            .and_then(|bytes| bytes.checked_add(size_of::<Vec<u8>>() + 1024))
+            .ok_or(ItemRefusal::Budget)?;
+        let workspace = text_state
+            .checked_add(serialization_workspace)
+            .and_then(|bytes| bytes.checked_add(size_of::<(String, String, Value)>() + 256))
+            .ok_or(ItemRefusal::Budget)?;
+        let total_workspace = self.preflight(workspace, max_state_bytes)?;
+        let encode_limit = max_state_bytes
+            .checked_sub(self.active_records_page_state.get())
+            .and_then(|bytes| bytes.checked_sub(text_state))
+            .ok_or(ItemRefusal::Budget)?;
+        let encoded = encoded_json(value, json_bytes, encode_limit)?;
+        self.charge_scan_row()?;
+        self.context.check()?;
+        let changed = self
+            .db
+            .execute(
+                "INSERT INTO sf_closure_links(id,path,value) VALUES(?1,?2,?3)",
+                params![id, path, encoded],
+            )
+            .map_err(sql_refusal)?;
+        self.context.check()?;
+        if changed != 1 {
+            return Err(source_refusal());
+        }
+        self.inserted_rows = self
+            .inserted_rows
+            .checked_add(1)
+            .ok_or(ItemRefusal::Budget)?;
+        self.serialized_write_bytes = self
+            .serialized_write_bytes
+            .checked_add(usize_u64(
+                id.len()
+                    .checked_add(path.len())
+                    .and_then(|bytes| bytes.checked_add(json_bytes))
+                    .ok_or(ItemRefusal::Budget)?,
+            )?)
+            .ok_or(ItemRefusal::Budget)?;
+        self.workspace_peak_bytes = self.workspace_peak_bytes.max(total_workspace);
+        Ok(total_workspace)
+    }
+
+    fn contains_link(
+        &mut self,
+        id: &str,
+        max_state_bytes: usize,
+    ) -> Result<(bool, usize), ItemRefusal> {
+        self.context.check()?;
+        if self.eof_seen || id.is_empty() {
+            return Err(source_refusal());
+        }
+        let workspace = estimate_string_state(id)?
+            .checked_add(size_of::<bool>() + 256)
+            .ok_or(ItemRefusal::Budget)?;
+        let total_workspace = self.preflight(workspace, max_state_bytes)?;
+        self.charge_scan_row()?;
+        let mut statement = self
+            .db
+            .prepare("SELECT id FROM sf_closure_links WHERE id=?1")
+            .map_err(sql_refusal)?;
+        let mut rows = statement.query([id]).map_err(sql_refusal)?;
+        let found = if let Some(row) = rows.next().map_err(sql_refusal)? {
+            match row.get_ref(0).map_err(sql_refusal)? {
+                rusqlite::types::ValueRef::Text(raw) if raw == id.as_bytes() => true,
+                _ => return Err(source_refusal()),
+            }
+        } else {
+            false
+        };
+        if rows.next().map_err(sql_refusal)?.is_some() {
+            return Err(source_refusal());
+        }
+        drop(rows);
+        drop(statement);
+        self.context.check()?;
+        if found {
+            self.serialized_read_bytes = self
+                .serialized_read_bytes
+                .checked_add(usize_u64(id.len())?)
+                .ok_or(ItemRefusal::Budget)?;
+        }
+        self.workspace_peak_bytes = self.workspace_peak_bytes.max(total_workspace);
+        Ok((found, total_workspace))
+    }
+
+    fn next_link(
+        &mut self,
+        after_id: Option<&str>,
+        max_state_bytes: usize,
+    ) -> Result<(Option<SourceFoundationClosureLink>, usize), ItemRefusal> {
+        self.context.check()?;
+        if self.eof_seen || after_id.is_some_and(str::is_empty) {
+            return Err(source_refusal());
+        }
+        let query_workspace = size_of::<Option<String>>() + 256;
+        let query_total_workspace = self.preflight(query_workspace, max_state_bytes)?;
+        self.workspace_peak_bytes = self.workspace_peak_bytes.max(query_total_workspace);
+        self.charge_scan_row()?;
+        let mut statement = self
+            .db
+            .prepare(
+                "SELECT id,path,value FROM sf_closure_links \
+                 WHERE (?1 IS NULL OR id>?1) ORDER BY id COLLATE BINARY LIMIT 1",
+            )
+            .map_err(sql_refusal)?;
+        let mut rows = statement.query(params![after_id]).map_err(sql_refusal)?;
+        let Some(row) = rows.next().map_err(sql_refusal)? else {
+            drop(rows);
+            drop(statement);
+            self.context.check()?;
+            self.eof_seen = true;
+            return Ok((None, query_total_workspace));
+        };
+        let (id_bytes, path_bytes, raw_value) = {
+            let id = match row.get_ref(0).map_err(sql_refusal)? {
+                rusqlite::types::ValueRef::Text(bytes) if !bytes.is_empty() => bytes,
+                _ => return Err(source_refusal()),
+            };
+            let path = match row.get_ref(1).map_err(sql_refusal)? {
+                rusqlite::types::ValueRef::Text(bytes) if !bytes.is_empty() => bytes,
+                _ => return Err(source_refusal()),
+            };
+            let value = row_blob(row, 2).map_err(sql_refusal)?;
+            if value.is_empty() {
+                return Err(source_refusal());
+            }
+            (id, path, value)
+        };
+        let id_state = estimate_string_state_len(id_bytes.len())?;
+        let path_state = estimate_string_state_len(path_bytes.len())?;
+        let additional_state = id_state
+            .checked_add(path_state)
+            .ok_or(ItemRefusal::Budget)?;
+        let decoded_upper = json_state_upper_bound(raw_value.len())?;
+        let encoded_workspace = raw_value
+            .len()
+            .checked_mul(2)
+            .and_then(|bytes| bytes.checked_add(size_of::<Vec<u8>>() + 1024))
+            .ok_or(ItemRefusal::Budget)?;
+        let workspace = query_workspace
+            .checked_add(additional_state)
+            .and_then(|bytes| bytes.checked_add(decoded_upper))
+            .and_then(|bytes| bytes.checked_add(raw_value.len()))
+            .and_then(|bytes| bytes.checked_add(encoded_workspace))
+            .and_then(|bytes| bytes.checked_add(size_of::<SourceFoundationClosureLink>() + 128))
+            .ok_or(ItemRefusal::Budget)?;
+        let total_workspace = self.preflight(workspace, max_state_bytes)?;
+        let id = std::str::from_utf8(id_bytes)
+            .map_err(|_| source_refusal())?
+            .to_owned();
+        let path = std::str::from_utf8(path_bytes)
+            .map_err(|_| source_refusal())?
+            .to_owned();
+        if id.is_empty()
+            || path.is_empty()
+            || !path.ends_with("/link.json")
+            || after_id.is_some_and(|after| id.as_str() <= after)
+            || raw_value.len() > max_state_bytes
+        {
+            return Err(source_refusal());
+        }
+        let value = value_from_row(self.context, row, 2, max_state_bytes, additional_state)?;
+        if value.get("record_id").and_then(Value::as_str) != Some(id.as_str()) {
+            return Err(source_refusal());
+        }
+        let canonical_len = json_len(&value, raw_value.len())?;
+        if canonical_len != raw_value.len() {
+            return Err(source_refusal());
+        }
+        let encode_limit = max_state_bytes
+            .checked_sub(self.active_records_page_state.get())
+            .and_then(|bytes| bytes.checked_sub(query_workspace))
+            .and_then(|bytes| bytes.checked_sub(additional_state))
+            .and_then(|bytes| bytes.checked_sub(decoded_upper))
+            .and_then(|bytes| bytes.checked_sub(raw_value.len()))
+            .ok_or(ItemRefusal::Budget)?;
+        let canonical = encoded_json(&value, canonical_len, encode_limit)?;
+        if canonical.as_slice() != raw_value {
+            return Err(source_refusal());
+        }
+        let serialized_bytes = id
+            .len()
+            .checked_add(path.len())
+            .and_then(|bytes| bytes.checked_add(raw_value.len()))
+            .ok_or(ItemRefusal::Budget)?;
+        drop(canonical);
+        drop(rows);
+        drop(statement);
+        self.context.check()?;
+        self.drained_rows = self
+            .drained_rows
+            .checked_add(1)
+            .ok_or(ItemRefusal::Budget)?;
+        self.serialized_read_bytes = self
+            .serialized_read_bytes
+            .checked_add(usize_u64(serialized_bytes)?)
+            .ok_or(ItemRefusal::Budget)?;
+        self.workspace_peak_bytes = self.workspace_peak_bytes.max(total_workspace);
+        Ok((
+            Some(SourceFoundationClosureLink { id, path, value }),
+            total_workspace,
+        ))
+    }
+
+    fn finish_links(
+        &mut self,
+        expected_rows: u64,
+        max_state_bytes: usize,
+    ) -> Result<SourceFoundationClosureLinkStoreCost, ItemRefusal> {
+        if self.finished
+            || !self.eof_seen
+            || self.inserted_rows != expected_rows
+            || self.drained_rows != expected_rows
+        {
+            return Err(source_refusal());
+        }
+        let workspace = size_of::<i64>() + 256;
+        let total_workspace = self.preflight(workspace, max_state_bytes)?;
+        self.charge_scan_row()?;
+        let mut statement = self
+            .db
+            .prepare("SELECT count(*) FROM sf_closure_links")
+            .map_err(sql_refusal)?;
+        let mut rows = statement.query([]).map_err(sql_refusal)?;
+        let actual = rows
+            .next()
+            .map_err(sql_refusal)?
+            .map(|row| row.get::<_, i64>(0).map_err(sql_refusal))
+            .transpose()?
+            .ok_or_else(source_refusal)?;
+        if actual < 0
+            || u64::try_from(actual).map_err(|_| source_refusal())? != expected_rows
+            || rows.next().map_err(sql_refusal)?.is_some()
+        {
+            return Err(source_refusal());
+        }
+        drop(rows);
+        drop(statement);
+        self.context.check()?;
+        self.finished = true;
+        self.workspace_peak_bytes = self.workspace_peak_bytes.max(total_workspace);
+        Ok(self.cost())
+    }
+
+    fn verify_finished(&self) -> Result<(), ItemRefusal> {
+        if !self.finished || !self.eof_seen || self.inserted_rows != self.drained_rows {
+            return Err(source_refusal());
+        }
+        self.context.check()
     }
 }
 
@@ -3346,6 +3689,7 @@ struct CandidateDefaultRecords<'report, 'index, 'candidate, 'host, 'cancel, 'bud
     report: &'report SourceFoundationRecordsStreamedReport<'index, CandidateFence>,
     context: ProviderContext<'candidate, 'host, 'cancel>,
     scan_rows: &'budget Cell<u64>,
+    active_page_state: &'budget Cell<usize>,
     lookup_state_limit: usize,
 }
 
@@ -3421,10 +3765,12 @@ impl CandidateDefaultRecords<'_, '_, '_, '_, '_, '_> {
             self.context
                 .add_scan_rows(self.scan_rows, page.rows.len())?;
             self.context.active_state(page.charged_state_bytes)?;
+            self.active_page_state.set(page.charged_state_bytes);
             for (id, record) in &page.rows {
                 self.context.check()?;
                 visit(id, record)?;
             }
+            self.active_page_state.set(0);
             let Some(next) = page.next_after_id else {
                 return self.context.check();
             };
@@ -3902,6 +4248,7 @@ impl<'candidate, 'host> SpoolDefaultStore<'candidate, 'host> {
             &dyn SourceFoundationDefaultRecordsLookup,
             &dyn SourceFoundationDefaultPaths,
             &mut dyn SourceFoundationDefaultEventStore,
+            &mut dyn SourceFoundationClosureLinkStore,
             &mut dyn DiscoverySeenIds,
             &mut dyn DiscoveryRunSummaryStore,
             &mut dyn DiscoveryEventSummaryStore,
@@ -3929,11 +4276,13 @@ impl<'candidate, 'host> SpoolDefaultStore<'candidate, 'host> {
             )?;
             context.check()?;
             let scan_rows = &self.scan_rows;
+            let active_records_page_state = Cell::new(0usize);
             let candidate = self.candidate;
             let records_provider = CandidateDefaultRecords {
                 report: records,
                 context,
                 scan_rows,
+                active_page_state: &active_records_page_state,
                 lookup_state_limit: max_operation_state_bytes,
             };
             let expected_members = self.fence.membership.count.max(1);
@@ -4026,6 +4375,20 @@ impl<'candidate, 'host> SpoolDefaultStore<'candidate, 'host> {
                 workspace_peak_bytes: 0,
                 finished: false,
             };
+            let mut closure_links = CandidateClosureLinks {
+                context,
+                db: &self.db,
+                scan_rows,
+                active_records_page_state: &active_records_page_state,
+                inserted_rows: 0,
+                drained_rows: 0,
+                serialized_write_bytes: 0,
+                serialized_read_bytes: 0,
+                workspace_peak_bytes: 0,
+                scan_row_operations: 0,
+                eof_seen: false,
+                finished: false,
+            };
             let mut biblio = BiblioStoredProvider {
                 events: BiblioEventsProvider {
                     context,
@@ -4055,6 +4418,7 @@ impl<'candidate, 'host> SpoolDefaultStore<'candidate, 'host> {
                 &records_provider,
                 &paths,
                 &mut default_events,
+                &mut closure_links,
                 &mut discovery_seen_ids,
                 &mut discovery_run_summaries,
                 &mut discovery_event_summaries,
@@ -4062,6 +4426,8 @@ impl<'candidate, 'host> SpoolDefaultStore<'candidate, 'host> {
                 &mut discovery_digest_cache,
                 &mut biblio,
             )?;
+            closure_links.verify_finished()?;
+            drop(closure_links);
             discovery_schema_requests.verify_drained()?;
             discovery_digest_cache.verify_finished()?;
             drop(biblio);

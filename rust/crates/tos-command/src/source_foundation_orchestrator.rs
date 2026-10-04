@@ -2088,6 +2088,7 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
                 |records_lookup,
                  paths,
                  default_events,
+                 closure_links,
                  discovery_seen_ids,
                  discovery_run_summaries,
                  discovery_event_summaries,
@@ -2180,7 +2181,7 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
                             },
                             max_event_map_bytes: event_state_cap.min(available_after_biblio),
                         };
-                    let stored_report = tos_validation::source_foundation_default_rules::inspect_source_foundation_default_rules_from_input_stored_with_artifact_evidence_provider_and_seen_ids_and_run_summaries_and_event_summaries_and_schema_requests_and_digests(
+                    let stored_report = tos_validation::source_foundation_default_rules::inspect_source_foundation_default_rules_from_input_stored_with_artifact_evidence_provider_and_seen_ids_and_run_summaries_and_event_summaries_and_schema_requests_and_digests_and_closure_links(
                         &mut rule_source,
                         input,
                         view.coverage,
@@ -2196,6 +2197,7 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
                         discovery_event_summaries,
                         discovery_schema_requests,
                         discovery_digest_cache,
+                        closure_links,
                         view.launch.arguments.require_local_payloads,
                         default_rules_limits,
                         stored_limits,

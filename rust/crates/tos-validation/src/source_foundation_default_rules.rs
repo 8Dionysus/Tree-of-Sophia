@@ -826,6 +826,7 @@ pub fn inspect_source_foundation_default_rules_from_input_stored<
         stored_limits,
         cancelled,
         None,
+        None,
     )
 }
 
@@ -876,6 +877,7 @@ pub fn inspect_source_foundation_default_rules_from_input_stored_with_artifact_e
         stored_limits,
         cancelled,
         None,
+        None,
     )
 }
 
@@ -924,6 +926,7 @@ pub fn inspect_source_foundation_default_rules_from_input_stored_with_artifact_e
         limits,
         stored_limits,
         cancelled,
+        None,
         None,
     )
 }
@@ -974,6 +977,7 @@ pub fn inspect_source_foundation_default_rules_from_input_stored_with_artifact_e
         limits,
         stored_limits,
         cancelled,
+        None,
         None,
     )
 }
@@ -1027,6 +1031,7 @@ pub fn inspect_source_foundation_default_rules_from_input_stored_with_artifact_e
         stored_limits,
         cancelled,
         None,
+        None,
     )
 }
 
@@ -1078,6 +1083,7 @@ pub fn inspect_source_foundation_default_rules_from_input_stored_with_artifact_e
         limits,
         stored_limits,
         cancelled,
+        None,
         None,
     )
 }
@@ -1132,6 +1138,62 @@ pub fn inspect_source_foundation_default_rules_from_input_stored_with_artifact_e
         stored_limits,
         cancelled,
         Some(discovery_digest_cache),
+        None,
+    )
+}
+
+/// Candidate stored composition that also spills the plain current Link
+/// projection into the invocation's bounded CMD scratch table.
+#[allow(clippy::too_many_arguments)]
+pub fn inspect_source_foundation_default_rules_from_input_stored_with_artifact_evidence_provider_and_seen_ids_and_run_summaries_and_event_summaries_and_schema_requests_and_digests_and_closure_links<
+    I: Copy + Eq,
+    S: LayerFamilySource + ?Sized,
+>(
+    source: &mut S,
+    input: &dyn crate::record_biblio_cut::SourceCutInputWithIdentity<I>,
+    coverage: &crate::record_biblio_cut::SourceCutInputCoverage,
+    records: &crate::source_foundation_records::SourceFoundationRecordsStreamedReport<'_, I>,
+    records_lookup: &dyn SourceFoundationDefaultRecordsLookup,
+    paths: &dyn SourceFoundationDefaultPaths,
+    events: &mut dyn SourceFoundationDefaultEventStore,
+    claims: &dyn SourceFoundationDefaultClaims,
+    physical: &SourcePhysicalFacts,
+    evidence_provider: &mut dyn CandidateArtifactEvidenceProvider<I>,
+    discovery_seen_ids: &mut dyn DiscoverySeenIds,
+    discovery_run_summaries: &mut dyn DiscoveryRunSummaryStore,
+    discovery_event_summaries: &mut dyn DiscoveryEventSummaryStore,
+    discovery_schema_requests: &mut dyn DiscoverySchemaRequestStore,
+    discovery_digest_cache: &mut dyn DiscoveryDigestCache,
+    closure_link_store: &mut dyn crate::source_foundation_closure::SourceFoundationClosureLinkStore,
+    require_local_payloads: bool,
+    limits: SourceFoundationDefaultRulesLimits,
+    stored_limits: SourceFoundationDefaultStoredLimits,
+    cancelled: &AtomicBool,
+) -> Result<SourceFoundationDefaultRulesStoredReport<I>, ItemRefusal> {
+    inspect_source_foundation_default_rules_from_input_stored_inner(
+        source,
+        input,
+        coverage,
+        records,
+        records_lookup,
+        paths,
+        events,
+        None,
+        claims,
+        physical,
+        None,
+        None,
+        Some(evidence_provider),
+        Some(discovery_seen_ids),
+        Some(discovery_run_summaries),
+        Some(discovery_event_summaries),
+        Some(discovery_schema_requests),
+        require_local_payloads,
+        limits,
+        stored_limits,
+        cancelled,
+        Some(discovery_digest_cache),
+        Some(closure_link_store),
     )
 }
 
@@ -1164,6 +1226,9 @@ fn inspect_source_foundation_default_rules_from_input_stored_inner<
     stored_limits: SourceFoundationDefaultStoredLimits,
     cancelled: &AtomicBool,
     mut discovery_digest_cache: Option<&mut dyn DiscoveryDigestCache>,
+    mut closure_link_store: Option<
+        &mut dyn crate::source_foundation_closure::SourceFoundationClosureLinkStore,
+    >,
 ) -> Result<SourceFoundationDefaultRulesStoredReport<I>, ItemRefusal> {
     let operation = limits.operation;
     source.checkpoint(operation.deadline)?;
@@ -1580,18 +1645,18 @@ fn inspect_source_foundation_default_rules_from_input_stored_inner<
         used_state,
         direct_owner_issue_count,
     )?;
-    let closure =
-        crate::source_foundation_closure::inspect_source_foundation_closure_with_identity(
-            &mut aggregate_source,
-            input,
-            input.input_identity(),
-            coverage,
-            events.event_lookup(),
-            records_lookup,
-            paths,
-            claims,
-            closure_limits,
-        )?;
+    let closure = crate::source_foundation_closure::inspect_source_foundation_closure_with_identity_and_link_store(
+        &mut aggregate_source,
+        input,
+        input.input_identity(),
+        coverage,
+        events.event_lookup(),
+        records_lookup,
+        paths,
+        claims,
+        closure_link_store.as_deref_mut(),
+        closure_limits,
+    )?;
     direct_owner_issue_count = direct_owner_issue_count
         .checked_add(closure.issues.len())
         .ok_or(ItemRefusal::Budget)?;
