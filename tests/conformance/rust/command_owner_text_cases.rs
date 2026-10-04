@@ -128,7 +128,10 @@ fn native_owner_text_cli_extracts_replays_and_recovers_completed_stage() {
         .unwrap();
     let deadline = Instant::now() + Duration::from_secs(240);
     let cancelled = AtomicBool::new(false);
-    let temporary = tempfile::tempdir().unwrap();
+    let temporary = tempfile::Builder::new()
+        .permissions(fs::Permissions::from_mode(0o700))
+        .tempdir()
+        .unwrap();
     let images = [
         std::env::current_exe().unwrap(),
         PathBuf::from(
@@ -363,7 +366,10 @@ fn native_private_assessment_v4_append_replay_and_revocation_preserve_native_byt
         .unwrap();
     let deadline = Instant::now() + Duration::from_secs(240);
     let cancelled = AtomicBool::new(false);
-    let temporary = tempfile::tempdir().unwrap();
+    let temporary = tempfile::Builder::new()
+        .permissions(fs::Permissions::from_mode(0o700))
+        .tempdir()
+        .unwrap();
     let script = r#"
 import json,sys,tempfile,unittest
 from pathlib import Path
@@ -655,7 +661,10 @@ fn native_layer_journal_case(derived: bool) {
         .unwrap();
     let deadline = Instant::now() + Duration::from_secs(240);
     let cancelled = AtomicBool::new(false);
-    let temporary = tempfile::tempdir().unwrap();
+    let temporary = tempfile::Builder::new()
+        .permissions(fs::Permissions::from_mode(0o700))
+        .tempdir()
+        .unwrap();
     let fixture = native_layer_journal_fixture(&repository, temporary.path(), deadline, derived);
     let owner = PathBuf::from(fixture["owner"].as_str().unwrap());
     let public = PathBuf::from(fixture["public"].as_str().unwrap());
@@ -921,7 +930,10 @@ fn native_owner_ocr_comparison_case(retained_page: bool) {
         .unwrap();
     let deadline = Instant::now() + Duration::from_secs(if retained_page { 480 } else { 240 });
     let cancelled = AtomicBool::new(false);
-    let temporary = tempfile::tempdir().unwrap();
+    let temporary = tempfile::Builder::new()
+        .permissions(fs::Permissions::from_mode(0o700))
+        .tempdir()
+        .unwrap();
     let fixture_module = if retained_page {
         "journal_page_fixture.py"
     } else {
@@ -1162,7 +1174,10 @@ fn native_public_assessment_versions(versions: &[u8]) {
     let deadline = Instant::now() + Duration::from_secs(600);
     let cancelled = AtomicBool::new(false);
     for &version in versions {
-        let temporary = tempfile::tempdir().unwrap();
+        let temporary = tempfile::Builder::new()
+            .permissions(fs::Permissions::from_mode(0o700))
+            .tempdir()
+            .unwrap();
         let script = format!(
             r#"
 import json,runpy,sys
