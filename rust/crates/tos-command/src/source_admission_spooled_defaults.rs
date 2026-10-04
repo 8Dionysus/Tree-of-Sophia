@@ -22,7 +22,7 @@ use tos_validation::{
     item_rules::ItemRefusal,
     record_biblio_cut::{SourceCutInput, SourceCutInputWithIdentity},
     source_foundation_closure::{
-        SourceFoundationClosureEvent, SourceFoundationClosureLink,
+        SourceFoundationClosureClaimRef, SourceFoundationClosureEvent, SourceFoundationClosureLink,
         SourceFoundationClosureLinkStore, SourceFoundationClosureLinkStoreCost,
         SourceFoundationClosureSchemaRequest, SourceFoundationClosureSchemaRequestStore,
         SourceFoundationClosureSchemaRequestStoreCost,
@@ -206,6 +206,13 @@ fn row_text_state(row: &rusqlite::Row<'_>, column: usize) -> rusqlite::Result<us
             .checked_mul(16)
             .and_then(|bytes| bytes.checked_add(2048))
             .ok_or(rusqlite::Error::InvalidQuery),
+        _ => Err(rusqlite::Error::InvalidQuery),
+    }
+}
+
+fn row_text_length(row: &rusqlite::Row<'_>, column: usize) -> rusqlite::Result<usize> {
+    match row.get_ref(column)? {
+        rusqlite::types::ValueRef::Text(raw) => Ok(raw.len()),
         _ => Err(rusqlite::Error::InvalidQuery),
     }
 }
@@ -744,6 +751,22 @@ impl<'candidate, 'host> SpoolDefaultStore<'candidate, 'host> {
              ) WITHOUT ROWID;\
              CREATE INDEX sf_closure_membership_subject_order\
                  ON sf_closure_membership_claims(subject COLLATE BINARY, claim_id COLLATE BINARY);\
+             CREATE TABLE sf_closure_responsibility_claims(\
+                 claim_id TEXT NOT NULL COLLATE BINARY PRIMARY KEY,\
+                 location TEXT NOT NULL COLLATE BINARY,\
+                 subject TEXT NOT NULL COLLATE BINARY,\
+                 predicate TEXT NOT NULL COLLATE BINARY,\
+                 object TEXT NOT NULL COLLATE BINARY,\
+                 event TEXT NOT NULL COLLATE BINARY,\
+                 native INTEGER NOT NULL CHECK(native IN (0,1))\
+             ) WITHOUT ROWID;\
+             CREATE INDEX sf_closure_responsibility_subject_order\
+                 ON sf_closure_responsibility_claims(subject COLLATE BINARY, claim_id COLLATE BINARY);\
+             CREATE TABLE sf_closure_validated_events(\
+                 check_kind TEXT NOT NULL COLLATE BINARY CHECK(check_kind='responsibility'),\
+                 event_id TEXT NOT NULL COLLATE BINARY CHECK(length(event_id)>0),\
+                 PRIMARY KEY(check_kind,event_id)\
+             ) WITHOUT ROWID;\
              CREATE TABLE sf_discovery_seen_ids(\
                  namespace TEXT NOT NULL COLLATE BINARY CHECK(namespace IN ('artifact','composite','composite-representation','event','discovery-event','representation-file','schema-location','payload-observation','artifact-replay-reference','planned-manifest','native-artifact-transaction')),\
                  key TEXT NOT NULL COLLATE BINARY,\
@@ -3000,6 +3023,24 @@ struct CandidateClosureSchemaRequests<'a, 'candidate, 'host, 'cancel, 'budget> {
     max_membership_subject_bytes: usize,
     expected_membership_claim_rows: Option<u64>,
     membership_claim_eof_seen: bool,
+    responsibility_claim_rows: u64,
+    responsibility_claim_drained_rows: u64,
+    responsibility_claim_serialized_read_bytes: u64,
+    responsibility_claim_serialized_write_bytes: u64,
+    responsibility_claim_scan_row_operations: u64,
+    responsibility_claim_workspace_state_bytes: usize,
+    max_responsibility_claim_bytes: [usize; 6],
+    last_responsibility_claim_id: Option<String>,
+    expected_responsibility_claim_rows: Option<u64>,
+    responsibility_claims_sealed: bool,
+    responsibility_claim_eof_seen: bool,
+    responsibility_validated_event_rows: u64,
+    responsibility_validated_event_serialized_read_bytes: u64,
+    responsibility_validated_event_serialized_write_bytes: u64,
+    responsibility_validated_event_scan_row_operations: u64,
+    responsibility_validated_event_workspace_state_bytes: usize,
+    expected_responsibility_validated_event_rows: Option<u64>,
+    responsibility_validated_event_count_verified: bool,
     max_event_id_bytes: usize,
     max_event_path_bytes: usize,
     max_event_json_bytes: usize,
@@ -3116,6 +3157,45 @@ impl CandidateClosureSchemaRequests<'_, '_, '_, '_, '_> {
             .ok_or(ItemRefusal::Budget)
     }
 
+    fn responsibility_claim_workspace(
+        field_bytes: [usize; 6],
+        copies: usize,
+    ) -> Result<usize, ItemRefusal> {
+        field_bytes.iter().try_fold(
+            size_of::<(String, SourceFoundationClosureClaimRef)>() + 1024,
+            |state, bytes| {
+                state
+                    .checked_add(
+                        Self::row_text_state(*bytes)?
+                            .checked_mul(copies)
+                            .ok_or(ItemRefusal::Budget)?,
+                    )
+                    .ok_or(ItemRefusal::Budget)
+            },
+        )
+    }
+
+    fn responsibility_claim_row_state(
+        reference: &SourceFoundationClosureClaimRef,
+    ) -> Result<usize, ItemRefusal> {
+        [
+            reference.location.as_str(),
+            reference.subject.as_str(),
+            reference.predicate.as_str(),
+            reference.object.as_str(),
+            reference.event.as_str(),
+        ]
+        .iter()
+        .try_fold(
+            size_of::<SourceFoundationClosureClaimRef>(),
+            |state, text| {
+                state
+                    .checked_add(estimate_string_state(text)?)
+                    .ok_or(ItemRefusal::Budget)
+            },
+        )
+    }
+
     fn charge_claim_id_scan_rows(&mut self, rows: usize) -> Result<(), ItemRefusal> {
         self.charge_scan_rows(rows)?;
         self.claim_id_scan_row_operations = self
@@ -3129,6 +3209,27 @@ impl CandidateClosureSchemaRequests<'_, '_, '_, '_, '_> {
         self.charge_scan_rows(rows)?;
         self.membership_claim_scan_row_operations = self
             .membership_claim_scan_row_operations
+            .checked_add(usize_u64(rows)?)
+            .ok_or(ItemRefusal::Budget)?;
+        Ok(())
+    }
+
+    fn charge_responsibility_claim_scan_rows(&mut self, rows: usize) -> Result<(), ItemRefusal> {
+        self.charge_scan_rows(rows)?;
+        self.responsibility_claim_scan_row_operations = self
+            .responsibility_claim_scan_row_operations
+            .checked_add(usize_u64(rows)?)
+            .ok_or(ItemRefusal::Budget)?;
+        Ok(())
+    }
+
+    fn charge_responsibility_validated_event_scan_rows(
+        &mut self,
+        rows: usize,
+    ) -> Result<(), ItemRefusal> {
+        self.charge_scan_rows(rows)?;
+        self.responsibility_validated_event_scan_row_operations = self
+            .responsibility_validated_event_scan_row_operations
             .checked_add(usize_u64(rows)?)
             .ok_or(ItemRefusal::Budget)?;
         Ok(())
@@ -3464,6 +3565,100 @@ impl CandidateClosureSchemaRequests<'_, '_, '_, '_, '_> {
         Ok(())
     }
 
+    fn finish_responsibility_claims(
+        &mut self,
+        expected_rows: u64,
+        max_state_bytes: usize,
+    ) -> Result<(), ItemRefusal> {
+        if !self.responsibility_claims_sealed
+            || !self.responsibility_claim_eof_seen
+            || self.expected_responsibility_claim_rows != Some(expected_rows)
+            || self.responsibility_claim_rows != expected_rows
+            || self.responsibility_claim_drained_rows != expected_rows
+            || self.last_responsibility_claim_id.is_some()
+        {
+            return Err(source_refusal());
+        }
+        let workspace = size_of::<i64>() + 256;
+        self.preflight(workspace, max_state_bytes)?;
+        self.responsibility_claim_workspace_state_bytes = self
+            .responsibility_claim_workspace_state_bytes
+            .max(workspace);
+        self.context.check()?;
+        self.charge_responsibility_claim_scan_rows(1)?;
+        let mut statement = self
+            .db
+            .prepare("SELECT count(*) FROM sf_closure_responsibility_claims")
+            .map_err(sql_refusal)?;
+        let mut rows = statement.query([]).map_err(sql_refusal)?;
+        let actual = rows
+            .next()
+            .map_err(sql_refusal)?
+            .map(|row| row.get::<_, i64>(0).map_err(sql_refusal))
+            .transpose()?
+            .ok_or_else(source_refusal)?;
+        if actual < 0
+            || u64::try_from(actual).map_err(|_| source_refusal())? != expected_rows
+            || rows.next().map_err(sql_refusal)?.is_some()
+        {
+            return Err(source_refusal());
+        }
+        drop(rows);
+        drop(statement);
+        self.context.check()?;
+        self.responsibility_claim_serialized_read_bytes = self
+            .responsibility_claim_serialized_read_bytes
+            .checked_add(size_of::<i64>() as u64)
+            .ok_or(ItemRefusal::Budget)?;
+        Ok(())
+    }
+
+    fn finish_responsibility_validated_events(
+        &mut self,
+        expected_rows: u64,
+        max_state_bytes: usize,
+    ) -> Result<(), ItemRefusal> {
+        if self.responsibility_validated_event_count_verified
+            || self.responsibility_validated_event_rows != expected_rows
+        {
+            return Err(source_refusal());
+        }
+        let workspace = size_of::<i64>() + 256;
+        self.preflight(workspace, max_state_bytes)?;
+        self.context.check()?;
+        self.charge_responsibility_validated_event_scan_rows(1)?;
+        let mut statement = self
+            .db
+            .prepare("SELECT count(*) FROM sf_closure_validated_events")
+            .map_err(sql_refusal)?;
+        let mut rows = statement.query([]).map_err(sql_refusal)?;
+        let actual = rows
+            .next()
+            .map_err(sql_refusal)?
+            .map(|row| row.get::<_, i64>(0).map_err(sql_refusal))
+            .transpose()?
+            .ok_or_else(source_refusal)?;
+        if actual < 0
+            || u64::try_from(actual).map_err(|_| source_refusal())? != expected_rows
+            || rows.next().map_err(sql_refusal)?.is_some()
+        {
+            return Err(source_refusal());
+        }
+        drop(rows);
+        drop(statement);
+        self.context.check()?;
+        self.responsibility_validated_event_serialized_read_bytes = self
+            .responsibility_validated_event_serialized_read_bytes
+            .checked_add(size_of::<i64>() as u64)
+            .ok_or(ItemRefusal::Budget)?;
+        self.responsibility_validated_event_workspace_state_bytes = self
+            .responsibility_validated_event_workspace_state_bytes
+            .max(workspace);
+        self.expected_responsibility_validated_event_rows = Some(expected_rows);
+        self.responsibility_validated_event_count_verified = true;
+        Ok(())
+    }
+
     fn valid_event_digest(digest: &str) -> bool {
         Digest256::from_hex(digest)
             .map(|parsed| parsed.to_hex() == digest)
@@ -3506,6 +3701,27 @@ impl CandidateClosureSchemaRequests<'_, '_, '_, '_, '_> {
             membership_claim_scan_row_operations: self.membership_claim_scan_row_operations,
             membership_claim_workspace_state_bytes: self.membership_claim_workspace_state_bytes,
             membership_claim_eof_seen: self.membership_claim_eof_seen,
+            responsibility_claim_rows: self.responsibility_claim_rows,
+            responsibility_claim_drained_rows: self.responsibility_claim_drained_rows,
+            responsibility_claim_serialized_read_bytes: self
+                .responsibility_claim_serialized_read_bytes,
+            responsibility_claim_serialized_write_bytes: self
+                .responsibility_claim_serialized_write_bytes,
+            responsibility_claim_scan_row_operations: self.responsibility_claim_scan_row_operations,
+            responsibility_claim_workspace_state_bytes: self
+                .responsibility_claim_workspace_state_bytes,
+            responsibility_claim_eof_seen: self.responsibility_claim_eof_seen,
+            responsibility_validated_event_rows: self.responsibility_validated_event_rows,
+            responsibility_validated_event_serialized_read_bytes: self
+                .responsibility_validated_event_serialized_read_bytes,
+            responsibility_validated_event_serialized_write_bytes: self
+                .responsibility_validated_event_serialized_write_bytes,
+            responsibility_validated_event_scan_row_operations: self
+                .responsibility_validated_event_scan_row_operations,
+            responsibility_validated_event_workspace_state_bytes: self
+                .responsibility_validated_event_workspace_state_bytes,
+            responsibility_validated_event_count_verified: self
+                .responsibility_validated_event_count_verified,
         }
     }
 
@@ -3525,6 +3741,14 @@ impl CandidateClosureSchemaRequests<'_, '_, '_, '_, '_> {
             || self.expected_membership_claim_rows != Some(self.membership_claim_rows)
             || self.membership_claim_drained_rows != self.membership_claim_rows
             || !self.membership_claim_eof_seen
+            || self.expected_responsibility_claim_rows != Some(self.responsibility_claim_rows)
+            || !self.responsibility_claims_sealed
+            || self.responsibility_claim_drained_rows != self.responsibility_claim_rows
+            || !self.responsibility_claim_eof_seen
+            || self.last_responsibility_claim_id.is_some()
+            || self.expected_responsibility_validated_event_rows
+                != Some(self.responsibility_validated_event_rows)
+            || !self.responsibility_validated_event_count_verified
         {
             return Err(source_refusal());
         }
@@ -3837,6 +4061,624 @@ impl SourceFoundationClosureSchemaRequestStore
             .membership_claim_workspace_state_bytes
             .max(workspace_peak);
         Ok((drained, workspace_peak))
+    }
+
+    fn remember_responsibility_claim(
+        &mut self,
+        id: &str,
+        reference: &SourceFoundationClosureClaimRef,
+        max_state_bytes: usize,
+    ) -> Result<(bool, usize), ItemRefusal> {
+        if self.finished {
+            return Err(source_refusal());
+        }
+        let field_bytes = [
+            id.len(),
+            reference.location.len(),
+            reference.subject.len(),
+            reference.predicate.len(),
+            reference.object.len(),
+            reference.event.len(),
+        ];
+        let workspace = Self::responsibility_claim_workspace(field_bytes, 3)?;
+        self.preflight(workspace, max_state_bytes)?;
+        self.context.check()?;
+        self.charge_responsibility_claim_scan_rows(3)?;
+        let existed = self
+            .db
+            .query_row(
+                "SELECT 1 FROM sf_closure_responsibility_claims WHERE claim_id=?1",
+                [id],
+                |_| Ok(()),
+            )
+            .optional()
+            .map_err(sql_refusal)?
+            .is_some();
+        self.context.check()?;
+        let changed = self
+            .db
+            .execute(
+                "INSERT INTO sf_closure_responsibility_claims(claim_id,location,subject,predicate,object,event,native) \\
+                 VALUES(?1,?2,?3,?4,?5,?6,?7) ON CONFLICT(claim_id) DO UPDATE SET \\
+                 location=excluded.location,subject=excluded.subject,predicate=excluded.predicate, \\
+                 object=excluded.object,event=excluded.event,native=excluded.native",
+                params![
+                    id,
+                    reference.location,
+                    reference.subject,
+                    reference.predicate,
+                    reference.object,
+                    reference.event,
+                    if reference.native { 1_i64 } else { 0_i64 },
+                ],
+            )
+            .map_err(sql_refusal)?;
+        if changed != 1 {
+            return Err(source_refusal());
+        }
+        self.context.check()?;
+        let mut statement = self
+            .db
+            .prepare(
+                "SELECT location,subject,predicate,object,event,native \\
+                 FROM sf_closure_responsibility_claims WHERE claim_id=?1",
+            )
+            .map_err(sql_refusal)?;
+        let mut rows = statement.query([id]).map_err(sql_refusal)?;
+        let stored = rows
+            .next()
+            .map_err(sql_refusal)?
+            .map(|row| {
+                Ok((
+                    bounded_row_text(row, 0, workspace)?,
+                    bounded_row_text(row, 1, workspace)?,
+                    bounded_row_text(row, 2, workspace)?,
+                    bounded_row_text(row, 3, workspace)?,
+                    bounded_row_text(row, 4, workspace)?,
+                    row.get::<_, i64>(5)?,
+                ))
+            })
+            .transpose()
+            .map_err(sql_refusal)?
+            .ok_or_else(source_refusal)?;
+        if rows.next().map_err(sql_refusal)?.is_some()
+            || stored.0 != reference.location
+            || stored.1 != reference.subject
+            || stored.2 != reference.predicate
+            || stored.3 != reference.object
+            || stored.4 != reference.event
+            || stored.5 != if reference.native { 1_i64 } else { 0_i64 }
+        {
+            return Err(source_refusal());
+        }
+        drop(rows);
+        drop(statement);
+        drop(stored);
+        self.context.check()?;
+        let serialized_fields = field_bytes.iter().try_fold(0usize, |bytes, field| {
+            bytes.checked_add(*field).ok_or(ItemRefusal::Budget)
+        })?;
+        self.responsibility_claim_serialized_read_bytes = self
+            .responsibility_claim_serialized_read_bytes
+            .checked_add(usize_u64(
+                serialized_fields
+                    .checked_add(if existed { id.len() } else { 0 })
+                    .and_then(|bytes| bytes.checked_add(size_of::<i64>()))
+                    .ok_or(ItemRefusal::Budget)?,
+            )?)
+            .ok_or(ItemRefusal::Budget)?;
+        self.responsibility_claim_serialized_write_bytes = self
+            .responsibility_claim_serialized_write_bytes
+            .checked_add(usize_u64(
+                serialized_fields
+                    .checked_add(size_of::<i64>())
+                    .ok_or(ItemRefusal::Budget)?,
+            )?)
+            .ok_or(ItemRefusal::Budget)?;
+        if !existed {
+            self.responsibility_claim_rows = self
+                .responsibility_claim_rows
+                .checked_add(1)
+                .ok_or(ItemRefusal::Budget)?;
+        }
+        for (maximum, actual) in self
+            .max_responsibility_claim_bytes
+            .iter_mut()
+            .zip(field_bytes)
+        {
+            *maximum = (*maximum).max(actual);
+        }
+        self.responsibility_claim_workspace_state_bytes = self
+            .responsibility_claim_workspace_state_bytes
+            .max(workspace);
+        Ok((!existed, workspace))
+    }
+
+    fn responsibility_claim_by_id(
+        &mut self,
+        id: &str,
+        max_state_bytes: usize,
+    ) -> Result<(Option<SourceFoundationClosureClaimRef>, usize), ItemRefusal> {
+        if self.finished {
+            return Err(source_refusal());
+        }
+        let mut field_bytes = self.max_responsibility_claim_bytes;
+        field_bytes[0] = id.len();
+        let workspace = Self::responsibility_claim_workspace(field_bytes, 3)?;
+        self.preflight(workspace, max_state_bytes)?;
+        self.context.check()?;
+        self.charge_responsibility_claim_scan_rows(1)?;
+        let mut statement = self
+            .db
+            .prepare(
+                "SELECT claim_id,location,subject,predicate,object,event,native \\
+                 FROM sf_closure_responsibility_claims WHERE claim_id=?1",
+            )
+            .map_err(sql_refusal)?;
+        let mut rows = statement.query([id]).map_err(sql_refusal)?;
+        let stored = rows
+            .next()
+            .map_err(sql_refusal)?
+            .map(|row| {
+                let stored_id = bounded_row_text(row, 0, workspace)?;
+                let reference = SourceFoundationClosureClaimRef {
+                    location: bounded_row_text(row, 1, workspace)?,
+                    subject: bounded_row_text(row, 2, workspace)?,
+                    predicate: bounded_row_text(row, 3, workspace)?,
+                    object: bounded_row_text(row, 4, workspace)?,
+                    event: bounded_row_text(row, 5, workspace)?,
+                    native: match row.get::<_, i64>(6)? {
+                        0 => false,
+                        1 => true,
+                        _ => return Err(rusqlite::Error::InvalidQuery),
+                    },
+                };
+                Ok((stored_id, reference))
+            })
+            .transpose()
+            .map_err(sql_refusal)?;
+        if rows.next().map_err(sql_refusal)?.is_some()
+            || stored
+                .as_ref()
+                .is_some_and(|(stored_id, _)| stored_id != id)
+        {
+            return Err(source_refusal());
+        }
+        drop(rows);
+        drop(statement);
+        self.context.check()?;
+        if let Some((_, reference)) = &stored {
+            self.responsibility_claim_serialized_read_bytes = self
+                .responsibility_claim_serialized_read_bytes
+                .checked_add(usize_u64(
+                    id.len()
+                        .checked_add(reference.location.len())
+                        .and_then(|bytes| bytes.checked_add(reference.subject.len()))
+                        .and_then(|bytes| bytes.checked_add(reference.predicate.len()))
+                        .and_then(|bytes| bytes.checked_add(reference.object.len()))
+                        .and_then(|bytes| bytes.checked_add(reference.event.len()))
+                        .and_then(|bytes| bytes.checked_add(size_of::<i64>()))
+                        .ok_or(ItemRefusal::Budget)?,
+                )?)
+                .ok_or(ItemRefusal::Budget)?;
+        }
+        self.responsibility_claim_workspace_state_bytes = self
+            .responsibility_claim_workspace_state_bytes
+            .max(workspace);
+        Ok((stored.map(|(_, reference)| reference), workspace))
+    }
+
+    fn contains_responsibility_claim(
+        &mut self,
+        id: &str,
+        max_state_bytes: usize,
+    ) -> Result<(bool, usize), ItemRefusal> {
+        if self.finished || self.responsibility_claims_sealed {
+            return Err(source_refusal());
+        }
+        let workspace = Self::claim_id_workspace(id.len(), 2)?;
+        self.preflight(workspace, max_state_bytes)?;
+        self.context.check()?;
+        self.charge_responsibility_claim_scan_rows(1)?;
+        let mut statement = self
+            .db
+            .prepare("SELECT claim_id FROM sf_closure_responsibility_claims WHERE claim_id=?1")
+            .map_err(sql_refusal)?;
+        let mut rows = statement.query([id]).map_err(sql_refusal)?;
+        let found = rows
+            .next()
+            .map_err(sql_refusal)?
+            .map(|row| bounded_row_text(row, 0, workspace))
+            .transpose()
+            .map_err(sql_refusal)?;
+        if rows.next().map_err(sql_refusal)?.is_some()
+            || found.as_deref().is_some_and(|stored| stored != id)
+        {
+            return Err(source_refusal());
+        }
+        drop(rows);
+        drop(statement);
+        self.context.check()?;
+        if found.is_some() {
+            self.responsibility_claim_serialized_read_bytes = self
+                .responsibility_claim_serialized_read_bytes
+                .checked_add(usize_u64(id.len())?)
+                .ok_or(ItemRefusal::Budget)?;
+        }
+        self.responsibility_claim_workspace_state_bytes = self
+            .responsibility_claim_workspace_state_bytes
+            .max(workspace);
+        Ok((found.is_some(), workspace))
+    }
+
+    fn for_each_responsibility_claim_for_subject(
+        &mut self,
+        subject: &str,
+        max_state_bytes: usize,
+        visit: &mut dyn FnMut(
+            &str,
+            &SourceFoundationClosureClaimRef,
+            usize,
+        ) -> Result<(), ItemRefusal>,
+    ) -> Result<(u64, usize), ItemRefusal> {
+        if self.finished
+            || !self.responsibility_claims_sealed
+            || !self.responsibility_claim_eof_seen
+            || self.responsibility_claim_drained_rows != self.responsibility_claim_rows
+        {
+            return Err(source_refusal());
+        }
+        let base_workspace = Self::responsibility_claim_workspace([0; 6], 0)?
+            .checked_add(estimate_string_state(subject)?)
+            .and_then(|state| state.checked_add(size_of::<Option<String>>() + 512))
+            .ok_or(ItemRefusal::Budget)?;
+        self.preflight(base_workspace, max_state_bytes)?;
+        self.context.check()?;
+        let context = self.context;
+        let scan_rows = self.scan_rows;
+        let mut statement = self
+            .db
+            .prepare(
+                "SELECT claim_id,location,subject,predicate,object,event,native \\
+                 FROM sf_closure_responsibility_claims WHERE subject=?1 \\
+                 ORDER BY claim_id COLLATE BINARY",
+            )
+            .map_err(sql_refusal)?;
+        let mut rows = statement.query([subject]).map_err(sql_refusal)?;
+        let mut previous: Option<String> = None;
+        let mut drained = 0u64;
+        let mut read_bytes = 0u64;
+        let mut scan_row_operations = 0u64;
+        let mut workspace_peak = base_workspace;
+        loop {
+            context.check()?;
+            context.add_scan_rows(scan_rows, 1)?;
+            scan_row_operations = scan_row_operations
+                .checked_add(1)
+                .ok_or(ItemRefusal::Budget)?;
+            let Some(row) = rows.next().map_err(sql_refusal)? else {
+                break;
+            };
+            let field_bytes = [
+                row_text_state(row, 0).map_err(sql_refusal)?,
+                row_text_state(row, 1).map_err(sql_refusal)?,
+                row_text_state(row, 2).map_err(sql_refusal)?,
+                row_text_state(row, 3).map_err(sql_refusal)?,
+                row_text_state(row, 4).map_err(sql_refusal)?,
+                row_text_state(row, 5).map_err(sql_refusal)?,
+            ];
+            let field_lengths = [
+                row_text_length(row, 0).map_err(sql_refusal)?,
+                row_text_length(row, 1).map_err(sql_refusal)?,
+                row_text_length(row, 2).map_err(sql_refusal)?,
+                row_text_length(row, 3).map_err(sql_refusal)?,
+                row_text_length(row, 4).map_err(sql_refusal)?,
+                row_text_length(row, 5).map_err(sql_refusal)?,
+            ];
+            let previous_state = previous
+                .as_deref()
+                .map(estimate_string_state)
+                .transpose()?
+                .unwrap_or_default();
+            let workspace = Self::responsibility_claim_workspace(field_lengths, 3)?
+                .checked_add(field_bytes.iter().try_fold(0usize, |state, bytes| {
+                    state.checked_add(*bytes).ok_or(ItemRefusal::Budget)
+                })?)
+                .and_then(|state| state.checked_add(previous_state))
+                .and_then(|state| state.checked_add(estimate_string_state(subject).ok()?))
+                .and_then(|state| state.checked_add(size_of::<Option<String>>() + 512))
+                .ok_or(ItemRefusal::Budget)?;
+            if workspace > max_state_bytes {
+                return Err(ItemRefusal::Budget);
+            }
+            context.row_state(workspace)?;
+            let id = bounded_row_text(row, 0, workspace).map_err(sql_refusal)?;
+            let reference = SourceFoundationClosureClaimRef {
+                location: bounded_row_text(row, 1, workspace).map_err(sql_refusal)?,
+                subject: bounded_row_text(row, 2, workspace).map_err(sql_refusal)?,
+                predicate: bounded_row_text(row, 3, workspace).map_err(sql_refusal)?,
+                object: bounded_row_text(row, 4, workspace).map_err(sql_refusal)?,
+                event: bounded_row_text(row, 5, workspace).map_err(sql_refusal)?,
+                native: match row.get::<_, i64>(6).map_err(sql_refusal)? {
+                    0 => false,
+                    1 => true,
+                    _ => return Err(source_refusal()),
+                },
+            };
+            if reference.subject != subject
+                || previous.as_deref().is_some_and(|last| last >= id.as_str())
+            {
+                return Err(source_refusal());
+            }
+            visit(&id, &reference, workspace)?;
+            drained = drained.checked_add(1).ok_or(ItemRefusal::Budget)?;
+            read_bytes = read_bytes
+                .checked_add(usize_u64(
+                    id.len()
+                        .checked_add(reference.location.len())
+                        .and_then(|bytes| bytes.checked_add(reference.subject.len()))
+                        .and_then(|bytes| bytes.checked_add(reference.predicate.len()))
+                        .and_then(|bytes| bytes.checked_add(reference.object.len()))
+                        .and_then(|bytes| bytes.checked_add(reference.event.len()))
+                        .and_then(|bytes| bytes.checked_add(size_of::<i64>()))
+                        .ok_or(ItemRefusal::Budget)?,
+                )?)
+                .ok_or(ItemRefusal::Budget)?;
+            workspace_peak = workspace_peak.max(workspace);
+            previous = Some(id);
+            context.check()?;
+        }
+        drop(rows);
+        drop(statement);
+        context.check()?;
+        self.responsibility_claim_serialized_read_bytes = self
+            .responsibility_claim_serialized_read_bytes
+            .checked_add(read_bytes)
+            .ok_or(ItemRefusal::Budget)?;
+        self.responsibility_claim_scan_row_operations = self
+            .responsibility_claim_scan_row_operations
+            .checked_add(scan_row_operations)
+            .ok_or(ItemRefusal::Budget)?;
+        self.responsibility_claim_workspace_state_bytes = self
+            .responsibility_claim_workspace_state_bytes
+            .max(workspace_peak);
+        Ok((drained, workspace_peak))
+    }
+
+    fn remember_responsibility_validated_event(
+        &mut self,
+        event_id: &str,
+        max_state_bytes: usize,
+    ) -> Result<(bool, usize), ItemRefusal> {
+        if self.finished
+            || self.responsibility_validated_event_count_verified
+            || event_id.is_empty()
+        {
+            return Err(source_refusal());
+        }
+        let check_kind = "responsibility";
+        let workspace = Self::row_text_state(check_kind.len())?
+            .checked_add(
+                Self::row_text_state(event_id.len())?
+                    .checked_mul(3)
+                    .ok_or(ItemRefusal::Budget)?,
+            )
+            .and_then(|state| state.checked_add(size_of::<(String, String)>() + 512))
+            .ok_or(ItemRefusal::Budget)?;
+        self.preflight(workspace, max_state_bytes)?;
+        self.context.check()?;
+        self.charge_responsibility_validated_event_scan_rows(2)?;
+        let inserted = self
+            .db
+            .execute(
+                "INSERT OR IGNORE INTO sf_closure_validated_events(check_kind,event_id) \\
+                 VALUES(?1,?2)",
+                params![check_kind, event_id],
+            )
+            .map_err(sql_refusal)?;
+        if inserted > 1 {
+            return Err(source_refusal());
+        }
+        let mut statement = self
+            .db
+            .prepare(
+                "SELECT check_kind,event_id FROM sf_closure_validated_events \\
+                 WHERE check_kind=?1 AND event_id=?2",
+            )
+            .map_err(sql_refusal)?;
+        let mut rows = statement
+            .query(params![check_kind, event_id])
+            .map_err(sql_refusal)?;
+        let stored = rows
+            .next()
+            .map_err(sql_refusal)?
+            .map(|row| {
+                Ok((
+                    bounded_row_text(row, 0, workspace)?,
+                    bounded_row_text(row, 1, workspace)?,
+                ))
+            })
+            .transpose()
+            .map_err(sql_refusal)?;
+        if rows.next().map_err(sql_refusal)?.is_some()
+            || stored
+                .as_ref()
+                .map(|(kind, id)| (kind.as_str(), id.as_str()))
+                != Some((check_kind, event_id))
+        {
+            return Err(source_refusal());
+        }
+        drop(rows);
+        drop(statement);
+        self.context.check()?;
+        self.responsibility_validated_event_serialized_read_bytes = self
+            .responsibility_validated_event_serialized_read_bytes
+            .checked_add(usize_u64(
+                check_kind
+                    .len()
+                    .checked_add(event_id.len())
+                    .ok_or(ItemRefusal::Budget)?,
+            )?)
+            .ok_or(ItemRefusal::Budget)?;
+        if inserted == 1 {
+            self.responsibility_validated_event_rows = self
+                .responsibility_validated_event_rows
+                .checked_add(1)
+                .ok_or(ItemRefusal::Budget)?;
+            self.responsibility_validated_event_serialized_write_bytes = self
+                .responsibility_validated_event_serialized_write_bytes
+                .checked_add(usize_u64(
+                    check_kind
+                        .len()
+                        .checked_add(event_id.len())
+                        .ok_or(ItemRefusal::Budget)?,
+                )?)
+                .ok_or(ItemRefusal::Budget)?;
+        }
+        self.responsibility_validated_event_workspace_state_bytes = self
+            .responsibility_validated_event_workspace_state_bytes
+            .max(workspace);
+        Ok((inserted == 1, workspace))
+    }
+
+    fn begin_responsibility_claims(&mut self, expected_rows: u64) -> Result<(), ItemRefusal> {
+        if self.finished
+            || self.responsibility_claims_sealed
+            || self.responsibility_claim_eof_seen
+            || self.responsibility_claim_drained_rows != 0
+            || self.last_responsibility_claim_id.is_some()
+            || self.responsibility_claim_rows != expected_rows
+        {
+            return Err(source_refusal());
+        }
+        self.context.check()?;
+        self.expected_responsibility_claim_rows = Some(expected_rows);
+        self.responsibility_claims_sealed = true;
+        Ok(())
+    }
+
+    fn next_responsibility_claim(
+        &mut self,
+        max_state_bytes: usize,
+    ) -> Result<(Option<SourceFoundationClosureClaimRef>, usize, usize, usize), ItemRefusal> {
+        let Some(expected_rows) = self.expected_responsibility_claim_rows else {
+            return Err(source_refusal());
+        };
+        if self.finished
+            || !self.responsibility_claims_sealed
+            || self.responsibility_claim_eof_seen
+            || self.responsibility_claim_drained_rows > expected_rows
+            || self.responsibility_claim_rows != expected_rows
+        {
+            return Err(source_refusal());
+        }
+        let workspace = if self.responsibility_claim_drained_rows < expected_rows {
+            Self::responsibility_claim_workspace(self.max_responsibility_claim_bytes, 3)?
+        } else {
+            size_of::<(String, SourceFoundationClosureClaimRef)>() + 512
+        };
+        self.preflight(workspace, max_state_bytes)?;
+        self.responsibility_claim_workspace_state_bytes = self
+            .responsibility_claim_workspace_state_bytes
+            .max(workspace);
+        self.context.check()?;
+        self.charge_responsibility_claim_scan_rows(1)?;
+        let sql = if self.last_responsibility_claim_id.is_some() {
+            "SELECT claim_id,location,subject,predicate,object,event,native \\
+             FROM sf_closure_responsibility_claims WHERE claim_id>?1 \\
+             ORDER BY claim_id COLLATE BINARY LIMIT 1"
+        } else {
+            "SELECT claim_id,location,subject,predicate,object,event,native \\
+             FROM sf_closure_responsibility_claims ORDER BY claim_id COLLATE BINARY LIMIT 1"
+        };
+        let mut statement = self.db.prepare(sql).map_err(sql_refusal)?;
+        let mut rows = if let Some(after_id) = self.last_responsibility_claim_id.as_deref() {
+            statement.query([after_id]).map_err(sql_refusal)?
+        } else {
+            statement.query([]).map_err(sql_refusal)?
+        };
+        let stored = rows
+            .next()
+            .map_err(sql_refusal)?
+            .map(|row| {
+                let id = bounded_row_text(row, 0, workspace)?;
+                let reference = SourceFoundationClosureClaimRef {
+                    location: bounded_row_text(row, 1, workspace)?,
+                    subject: bounded_row_text(row, 2, workspace)?,
+                    predicate: bounded_row_text(row, 3, workspace)?,
+                    object: bounded_row_text(row, 4, workspace)?,
+                    event: bounded_row_text(row, 5, workspace)?,
+                    native: match row.get::<_, i64>(6)? {
+                        0 => false,
+                        1 => true,
+                        _ => return Err(rusqlite::Error::InvalidQuery),
+                    },
+                };
+                Ok((id, reference))
+            })
+            .transpose()
+            .map_err(sql_refusal)?;
+        if rows.next().map_err(sql_refusal)?.is_some() {
+            return Err(source_refusal());
+        }
+        drop(rows);
+        drop(statement);
+        self.context.check()?;
+        let Some((id, reference)) = stored else {
+            if self.responsibility_claim_drained_rows != expected_rows {
+                return Err(source_refusal());
+            }
+            self.last_responsibility_claim_id = None;
+            self.responsibility_claim_eof_seen = true;
+            self.responsibility_claim_workspace_state_bytes = self
+                .responsibility_claim_workspace_state_bytes
+                .max(workspace);
+            self.context.active_state(0)?;
+            return Ok((None, workspace, 0, 0));
+        };
+        if self.responsibility_claim_drained_rows >= expected_rows
+            || self
+                .last_responsibility_claim_id
+                .as_deref()
+                .is_some_and(|previous| previous >= id.as_str())
+            || id.len() > self.max_responsibility_claim_bytes[0]
+            || reference.location.len() > self.max_responsibility_claim_bytes[1]
+            || reference.subject.len() > self.max_responsibility_claim_bytes[2]
+            || reference.predicate.len() > self.max_responsibility_claim_bytes[3]
+            || reference.object.len() > self.max_responsibility_claim_bytes[4]
+            || reference.event.len() > self.max_responsibility_claim_bytes[5]
+        {
+            return Err(source_refusal());
+        }
+        let row_state = Self::responsibility_claim_row_state(&reference)?;
+        let cursor_state = estimate_string_state(&id)?;
+        let active_state = row_state
+            .checked_add(cursor_state)
+            .ok_or(ItemRefusal::Budget)?;
+        self.context.active_state(active_state)?;
+        self.responsibility_claim_drained_rows = self
+            .responsibility_claim_drained_rows
+            .checked_add(1)
+            .ok_or(ItemRefusal::Budget)?;
+        self.responsibility_claim_serialized_read_bytes = self
+            .responsibility_claim_serialized_read_bytes
+            .checked_add(usize_u64(
+                id.len()
+                    .checked_add(reference.location.len())
+                    .and_then(|bytes| bytes.checked_add(reference.subject.len()))
+                    .and_then(|bytes| bytes.checked_add(reference.predicate.len()))
+                    .and_then(|bytes| bytes.checked_add(reference.object.len()))
+                    .and_then(|bytes| bytes.checked_add(reference.event.len()))
+                    .and_then(|bytes| bytes.checked_add(size_of::<i64>()))
+                    .ok_or(ItemRefusal::Budget)?,
+            )?)
+            .ok_or(ItemRefusal::Budget)?;
+        self.last_responsibility_claim_id = Some(id);
+        self.responsibility_claim_workspace_state_bytes = self
+            .responsibility_claim_workspace_state_bytes
+            .max(workspace);
+        self.context.check()?;
+        Ok((Some(reference), workspace, row_state, cursor_state))
     }
 
     fn remember_event(
@@ -4452,6 +5294,8 @@ impl SourceFoundationClosureSchemaRequestStore
         expected_event_path_rows: u64,
         expected_claim_id_rows: u64,
         expected_membership_claim_rows: u64,
+        expected_responsibility_claim_rows: u64,
+        expected_responsibility_validated_event_rows: u64,
         direct_issue_count: usize,
         max_state_bytes: usize,
     ) -> Result<SourceFoundationClosureSchemaRequestStoreCost, ItemRefusal> {
@@ -4469,6 +5313,13 @@ impl SourceFoundationClosureSchemaRequestStore
             || self.expected_claim_id_rows.is_some()
             || self.membership_claim_rows != expected_membership_claim_rows
             || self.expected_membership_claim_rows.is_some()
+            || self.responsibility_claim_rows != expected_responsibility_claim_rows
+            || self.expected_responsibility_claim_rows != Some(expected_responsibility_claim_rows)
+            || self.responsibility_claim_drained_rows != expected_responsibility_claim_rows
+            || !self.responsibility_claim_eof_seen
+            || self.responsibility_validated_event_rows
+                != expected_responsibility_validated_event_rows
+            || self.expected_responsibility_validated_event_rows.is_some()
             || (expected_rows > 0) != self.max_document_bytes.is_some()
         {
             return Err(source_refusal());
@@ -4567,12 +5418,20 @@ impl SourceFoundationClosureSchemaRequestStore
             .max(loaded_count_workspace);
         self.finish_claim_ids(expected_claim_id_rows, max_state_bytes)?;
         self.finish_membership_claims(expected_membership_claim_rows, max_state_bytes)?;
+        self.finish_responsibility_claims(expected_responsibility_claim_rows, max_state_bytes)?;
+        self.finish_responsibility_validated_events(
+            expected_responsibility_validated_event_rows,
+            max_state_bytes,
+        )?;
         self.finish_events(expected_event_rows, max_state_bytes)?;
         self.context.check()?;
         self.expected_rows = Some(expected_rows);
         self.expected_loaded_documents = Some(expected_loaded_documents);
         self.expected_claim_id_rows = Some(expected_claim_id_rows);
         self.expected_membership_claim_rows = Some(expected_membership_claim_rows);
+        self.expected_responsibility_claim_rows = Some(expected_responsibility_claim_rows);
+        self.expected_responsibility_validated_event_rows =
+            Some(expected_responsibility_validated_event_rows);
         self.direct_issue_count = Some(direct_issue_count);
         self.finished = true;
         self.workspace_peak_bytes = self.workspace_peak_bytes.max(workspace);
@@ -6316,6 +7175,24 @@ impl<'candidate, 'host> SpoolDefaultStore<'candidate, 'host> {
                 max_membership_subject_bytes: 0,
                 expected_membership_claim_rows: None,
                 membership_claim_eof_seen: false,
+                responsibility_claim_rows: 0,
+                responsibility_claim_drained_rows: 0,
+                responsibility_claim_serialized_read_bytes: 0,
+                responsibility_claim_serialized_write_bytes: 0,
+                responsibility_claim_scan_row_operations: 0,
+                responsibility_claim_workspace_state_bytes: 0,
+                max_responsibility_claim_bytes: [0; 6],
+                last_responsibility_claim_id: None,
+                expected_responsibility_claim_rows: None,
+                responsibility_claims_sealed: false,
+                responsibility_claim_eof_seen: false,
+                responsibility_validated_event_rows: 0,
+                responsibility_validated_event_serialized_read_bytes: 0,
+                responsibility_validated_event_serialized_write_bytes: 0,
+                responsibility_validated_event_scan_row_operations: 0,
+                responsibility_validated_event_workspace_state_bytes: 0,
+                expected_responsibility_validated_event_rows: None,
+                responsibility_validated_event_count_verified: false,
                 max_event_id_bytes: 0,
                 max_event_path_bytes: 0,
                 max_event_json_bytes: 0,

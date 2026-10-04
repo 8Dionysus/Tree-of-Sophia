@@ -151,6 +151,21 @@ pub struct SourceFoundationClosureCost {
     pub candidate_membership_claim_serialized_write_bytes: u64,
     pub candidate_membership_claim_scan_row_operations: u64,
     pub candidate_membership_claim_peak_workspace_state_bytes: usize,
+    /// Candidate Responsibility claim projections kept as plain source rows
+    /// in the invocation-scoped exact-ID store. The finite compatibility path
+    /// keeps its BTreeMap.
+    pub candidate_responsibility_claim_count: u64,
+    pub candidate_responsibility_claim_serialized_read_bytes: u64,
+    pub candidate_responsibility_claim_serialized_write_bytes: u64,
+    pub candidate_responsibility_claim_scan_row_operations: u64,
+    pub candidate_responsibility_claim_peak_workspace_state_bytes: usize,
+    /// Candidate event-input checks already performed for Responsibility
+    /// Claims, keyed by check kind and exact event ID in the same held store.
+    pub candidate_responsibility_validated_event_count: u64,
+    pub candidate_responsibility_validated_event_serialized_read_bytes: u64,
+    pub candidate_responsibility_validated_event_serialized_write_bytes: u64,
+    pub candidate_responsibility_validated_event_scan_row_operations: u64,
+    pub candidate_responsibility_validated_event_peak_workspace_state_bytes: usize,
 }
 
 /// Plain current-record projection used only by the source-foundation Link
@@ -253,6 +268,19 @@ pub struct SourceFoundationClosureSchemaRequestStoreCost {
     pub membership_claim_scan_row_operations: u64,
     pub membership_claim_workspace_state_bytes: usize,
     pub membership_claim_eof_seen: bool,
+    pub responsibility_claim_rows: u64,
+    pub responsibility_claim_drained_rows: u64,
+    pub responsibility_claim_serialized_read_bytes: u64,
+    pub responsibility_claim_serialized_write_bytes: u64,
+    pub responsibility_claim_scan_row_operations: u64,
+    pub responsibility_claim_workspace_state_bytes: usize,
+    pub responsibility_claim_eof_seen: bool,
+    pub responsibility_validated_event_rows: u64,
+    pub responsibility_validated_event_serialized_read_bytes: u64,
+    pub responsibility_validated_event_serialized_write_bytes: u64,
+    pub responsibility_validated_event_scan_row_operations: u64,
+    pub responsibility_validated_event_workspace_state_bytes: usize,
+    pub responsibility_validated_event_count_verified: bool,
 }
 
 /// Portable candidate spool for authentic Closure schema requests,
@@ -300,6 +328,63 @@ pub trait SourceFoundationClosureSchemaRequestStore {
         max_state_bytes: usize,
         visit: &mut dyn FnMut(&str) -> Result<(), ItemRefusal>,
     ) -> Result<(u64, usize), ItemRefusal>;
+
+    /// Upsert one plain Responsibility ClaimRef projection by exact ID. This
+    /// follows the Closure BTreeMap's replacement behavior for repeated keys.
+    fn remember_responsibility_claim(
+        &mut self,
+        id: &str,
+        reference: &SourceFoundationClosureClaimRef,
+        max_state_bytes: usize,
+    ) -> Result<(bool, usize), ItemRefusal>;
+
+    /// Exact-key lookup for boundary references and record backlink joins.
+    fn responsibility_claim_by_id(
+        &mut self,
+        id: &str,
+        max_state_bytes: usize,
+    ) -> Result<(Option<SourceFoundationClosureClaimRef>, usize), ItemRefusal>;
+
+    /// Exact-key existence query for work-boundary references.
+    fn contains_responsibility_claim(
+        &mut self,
+        id: &str,
+        max_state_bytes: usize,
+    ) -> Result<(bool, usize), ItemRefusal>;
+
+    /// Stream one subject's claims in exact binary ID order. The callback
+    /// receives the live provider workspace so callers can charge any retained
+    /// projection before cloning the row.
+    fn for_each_responsibility_claim_for_subject(
+        &mut self,
+        subject: &str,
+        max_state_bytes: usize,
+        visit: &mut dyn FnMut(
+            &str,
+            &SourceFoundationClosureClaimRef,
+            usize,
+        ) -> Result<(), ItemRefusal>,
+    ) -> Result<(u64, usize), ItemRefusal>;
+
+    /// Remember an event whose inputs have already been checked for this
+    /// Responsibility pass. The key includes this check kind so other Closure
+    /// passes can share the held mechanism without sharing validation state.
+    fn remember_responsibility_validated_event(
+        &mut self,
+        event_id: &str,
+        max_state_bytes: usize,
+    ) -> Result<(bool, usize), ItemRefusal>;
+
+    /// Seal the unique Responsibility ClaimRef count before its ordered drain.
+    fn begin_responsibility_claims(&mut self, expected_rows: u64) -> Result<(), ItemRefusal>;
+
+    /// Read the next Responsibility ClaimRef in exact binary ID order. The
+    /// workspace is the provider peak; row state stays live for the caller,
+    /// and cursor state remains provider-owned until the next read or EOF.
+    fn next_responsibility_claim(
+        &mut self,
+        max_state_bytes: usize,
+    ) -> Result<(Option<SourceFoundationClosureClaimRef>, usize, usize, usize), ItemRefusal>;
 
     /// Record a source-derived document digest once. Repeated paths must
     /// carry the same digest; a mismatch means the exact current cut moved.
@@ -384,6 +469,8 @@ pub trait SourceFoundationClosureSchemaRequestStore {
         expected_event_path_rows: u64,
         expected_claim_id_rows: u64,
         expected_membership_claim_rows: u64,
+        expected_responsibility_claim_rows: u64,
+        expected_responsibility_validated_event_rows: u64,
         direct_issue_count: usize,
         max_state_bytes: usize,
     ) -> Result<SourceFoundationClosureSchemaRequestStoreCost, ItemRefusal>;
@@ -434,13 +521,13 @@ struct LoadedRows {
 }
 
 #[derive(Debug, Clone)]
-struct ClaimRef {
-    location: String,
-    subject: String,
-    predicate: String,
-    object: String,
-    event: String,
-    native: bool,
+pub struct SourceFoundationClosureClaimRef {
+    pub location: String,
+    pub subject: String,
+    pub predicate: String,
+    pub object: String,
+    pub event: String,
+    pub native: bool,
 }
 
 /// Cold compatibility entry for the cross-stream closure district. The
@@ -693,6 +780,9 @@ fn run_source_foundation_closure<S: LayerFamilySource + ?Sized>(
     let expected_event_path_rows = rules.cost.candidate_event_path_count;
     let expected_claim_id_rows = rules.cost.candidate_claim_id_count;
     let expected_membership_claim_rows = rules.cost.candidate_membership_claim_count;
+    let expected_responsibility_claim_rows = rules.cost.candidate_responsibility_claim_count;
+    let expected_responsibility_validated_event_rows =
+        rules.cost.candidate_responsibility_validated_event_count;
     let schema_request_finish = if rules.schema_request_store.is_some() {
         let direct_issue_count = rules.issues.len();
         let remaining = rules.remaining_state()?;
@@ -707,6 +797,8 @@ fn run_source_foundation_closure<S: LayerFamilySource + ?Sized>(
                 expected_event_path_rows,
                 expected_claim_id_rows,
                 expected_membership_claim_rows,
+                expected_responsibility_claim_rows,
+                expected_responsibility_validated_event_rows,
                 direct_issue_count,
                 remaining,
             )?;
@@ -726,7 +818,9 @@ fn run_source_foundation_closure<S: LayerFamilySource + ?Sized>(
                         .max(finished.event_workspace_state_bytes)
                         .max(finished.event_path_workspace_state_bytes)
                         .max(finished.claim_id_workspace_state_bytes)
-                        .max(finished.membership_claim_workspace_state_bytes),
+                        .max(finished.membership_claim_workspace_state_bytes)
+                        .max(finished.responsibility_claim_workspace_state_bytes)
+                        .max(finished.responsibility_validated_event_workspace_state_bytes),
                 )
             })
             .ok_or(ItemRefusal::Budget)?;
@@ -738,6 +832,12 @@ fn run_source_foundation_closure<S: LayerFamilySource + ?Sized>(
             || finished.membership_claim_rows != expected_membership_claim_rows
             || finished.membership_claim_drained_rows != expected_membership_claim_rows
             || !finished.membership_claim_eof_seen
+            || finished.responsibility_claim_rows != expected_responsibility_claim_rows
+            || finished.responsibility_claim_drained_rows != expected_responsibility_claim_rows
+            || !finished.responsibility_claim_eof_seen
+            || finished.responsibility_validated_event_rows
+                != expected_responsibility_validated_event_rows
+            || !finished.responsibility_validated_event_count_verified
         {
             return Err(ItemRefusal::Source(
                 "source-foundation Closure schema request store count or state differs".into(),
@@ -796,6 +896,41 @@ fn run_source_foundation_closure<S: LayerFamilySource + ?Sized>(
             .cost
             .candidate_membership_claim_peak_workspace_state_bytes =
             finished.membership_claim_workspace_state_bytes;
+        rules.cost.candidate_responsibility_claim_count = finished.responsibility_claim_rows;
+        rules
+            .cost
+            .candidate_responsibility_claim_serialized_read_bytes =
+            finished.responsibility_claim_serialized_read_bytes;
+        rules
+            .cost
+            .candidate_responsibility_claim_serialized_write_bytes =
+            finished.responsibility_claim_serialized_write_bytes;
+        rules
+            .cost
+            .candidate_responsibility_claim_scan_row_operations =
+            finished.responsibility_claim_scan_row_operations;
+        rules
+            .cost
+            .candidate_responsibility_claim_peak_workspace_state_bytes =
+            finished.responsibility_claim_workspace_state_bytes;
+        rules.cost.candidate_responsibility_validated_event_count =
+            finished.responsibility_validated_event_rows;
+        rules
+            .cost
+            .candidate_responsibility_validated_event_serialized_read_bytes =
+            finished.responsibility_validated_event_serialized_read_bytes;
+        rules
+            .cost
+            .candidate_responsibility_validated_event_serialized_write_bytes =
+            finished.responsibility_validated_event_serialized_write_bytes;
+        rules
+            .cost
+            .candidate_responsibility_validated_event_scan_row_operations =
+            finished.responsibility_validated_event_scan_row_operations;
+        rules
+            .cost
+            .candidate_responsibility_validated_event_peak_workspace_state_bytes =
+            finished.responsibility_validated_event_workspace_state_bytes;
     }
 
     Ok(SourceFoundationClosureReport {
@@ -885,7 +1020,7 @@ fn exact_backref_messages(
     field: &str,
     record_id: &str,
     label: &str,
-    claims: &BTreeMap<String, ClaimRef>,
+    claims: &BTreeMap<String, SourceFoundationClosureClaimRef>,
 ) -> Vec<String> {
     let refs = value_strings(record, field);
     let actual: BTreeSet<String> = refs.iter().cloned().collect();
@@ -934,7 +1069,10 @@ fn exact_backref_messages(
     findings
 }
 
-fn claim_reference_index_state(id: &str, reference: &ClaimRef) -> Result<usize, ItemRefusal> {
+fn claim_reference_index_state(
+    id: &str,
+    reference: &SourceFoundationClosureClaimRef,
+) -> Result<usize, ItemRefusal> {
     id.len()
         .checked_add(claim_reference_payload_state(reference)?)
         .and_then(|n| {
@@ -943,7 +1081,16 @@ fn claim_reference_index_state(id: &str, reference: &ClaimRef) -> Result<usize, 
         .ok_or(ItemRefusal::Budget)
 }
 
-fn claim_reference_payload_state(reference: &ClaimRef) -> Result<usize, ItemRefusal> {
+fn claim_reference_map_entry_state(id: &str) -> Result<usize, ItemRefusal> {
+    id.len()
+        .checked_add(std::mem::size_of::<(String, SourceFoundationClosureClaimRef)>())
+        .and_then(|state| state.checked_add(8 * std::mem::size_of::<usize>()))
+        .ok_or(ItemRefusal::Budget)
+}
+
+fn claim_reference_payload_state(
+    reference: &SourceFoundationClosureClaimRef,
+) -> Result<usize, ItemRefusal> {
     reference
         .location
         .len()
@@ -951,18 +1098,22 @@ fn claim_reference_payload_state(reference: &ClaimRef) -> Result<usize, ItemRefu
         .and_then(|n| n.checked_add(reference.predicate.len()))
         .and_then(|n| n.checked_add(reference.object.len()))
         .and_then(|n| n.checked_add(reference.event.len()))
-        .and_then(|n| n.checked_add(std::mem::size_of::<ClaimRef>()))
+        .and_then(|n| n.checked_add(std::mem::size_of::<SourceFoundationClosureClaimRef>()))
         .ok_or(ItemRefusal::Budget)
 }
 
-fn claim_refs_vec_clone_state(claims: &BTreeMap<String, ClaimRef>) -> Result<usize, ItemRefusal> {
+fn claim_refs_vec_clone_state(
+    claims: &BTreeMap<String, SourceFoundationClosureClaimRef>,
+) -> Result<usize, ItemRefusal> {
     claims.iter().try_fold(
-        std::mem::size_of::<Vec<ClaimRef>>(),
+        std::mem::size_of::<Vec<SourceFoundationClosureClaimRef>>(),
         |state, (id, claim)| {
             state
                 .checked_add(id.len())
                 .and_then(|n| n.checked_add(claim_reference_payload_state(claim).ok()?))
-                .and_then(|n| n.checked_add(std::mem::size_of::<(String, ClaimRef)>()))
+                .and_then(|n| {
+                    n.checked_add(std::mem::size_of::<(String, SourceFoundationClosureClaimRef)>())
+                })
                 .ok_or(ItemRefusal::Budget)
         },
     )
@@ -1007,19 +1158,20 @@ struct ClosureRules<'a, S: LayerFamilySource + ?Sized> {
     event_ids: BTreeSet<String>,
     events: BTreeMap<String, Value>,
     claim_ids: BTreeSet<String>,
+    responsibility_claim_count: u64,
     anchors: BTreeSet<String>,
     boundary_membership_refs: BTreeSet<String>,
     boundary_responsibility_refs: BTreeSet<String>,
-    membership: BTreeMap<String, ClaimRef>,
-    responsibility: BTreeMap<String, ClaimRef>,
-    publication: BTreeMap<String, ClaimRef>,
-    provision: BTreeMap<String, ClaimRef>,
+    membership: BTreeMap<String, SourceFoundationClosureClaimRef>,
+    responsibility: BTreeMap<String, SourceFoundationClosureClaimRef>,
+    publication: BTreeMap<String, SourceFoundationClosureClaimRef>,
+    provision: BTreeMap<String, SourceFoundationClosureClaimRef>,
     provision_values: BTreeMap<String, Value>,
     provision_event_ids: BTreeSet<String>,
-    chronology: BTreeMap<String, ClaimRef>,
-    object_links: BTreeMap<String, ClaimRef>,
-    topology: BTreeMap<String, ClaimRef>,
-    derivation: BTreeMap<String, ClaimRef>,
+    chronology: BTreeMap<String, SourceFoundationClosureClaimRef>,
+    object_links: BTreeMap<String, SourceFoundationClosureClaimRef>,
+    topology: BTreeMap<String, SourceFoundationClosureClaimRef>,
+    derivation: BTreeMap<String, SourceFoundationClosureClaimRef>,
 }
 
 impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
@@ -1061,6 +1213,7 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
             event_ids: BTreeSet::new(),
             events: BTreeMap::new(),
             claim_ids: BTreeSet::new(),
+            responsibility_claim_count: 0,
             anchors: BTreeSet::new(),
             boundary_membership_refs: BTreeSet::new(),
             boundary_responsibility_refs: BTreeSet::new(),
@@ -2217,6 +2370,68 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
         Ok(found)
     }
 
+    fn remember_candidate_responsibility_claim(
+        &mut self,
+        id: &str,
+        reference: &SourceFoundationClosureClaimRef,
+    ) -> Result<(), ItemRefusal> {
+        let remaining = self.remaining_state()?;
+        let (inserted, workspace) = self
+            .schema_request_store
+            .as_deref_mut()
+            .ok_or(ItemRefusal::Budget)?
+            .remember_responsibility_claim(id, reference, remaining)?;
+        self.include_store_workspace(workspace)?;
+        if inserted {
+            self.responsibility_claim_count = self
+                .responsibility_claim_count
+                .checked_add(1)
+                .ok_or(ItemRefusal::Budget)?;
+            self.cost.candidate_responsibility_claim_count = self
+                .cost
+                .candidate_responsibility_claim_count
+                .checked_add(1)
+                .ok_or(ItemRefusal::Budget)?;
+        }
+        Ok(())
+    }
+
+    fn remember_responsibility_validated_event(
+        &mut self,
+        event_id: &str,
+        compatibility_ids: &mut BTreeSet<String>,
+    ) -> Result<bool, ItemRefusal> {
+        if self.schema_request_store.is_some() {
+            let remaining = self.remaining_state()?;
+            let (inserted, workspace) = self
+                .schema_request_store
+                .as_deref_mut()
+                .ok_or(ItemRefusal::Budget)?
+                .remember_responsibility_validated_event(event_id, remaining)?;
+            self.include_store_workspace(workspace)?;
+            if inserted {
+                self.cost.candidate_responsibility_validated_event_count = self
+                    .cost
+                    .candidate_responsibility_validated_event_count
+                    .checked_add(1)
+                    .ok_or(ItemRefusal::Budget)?;
+            }
+            Ok(inserted)
+        } else if compatibility_ids.contains(event_id) {
+            Ok(false)
+        } else {
+            self.reserve_temporary(
+                event_id
+                    .len()
+                    .checked_add(std::mem::size_of::<String>())
+                    .and_then(|bytes| bytes.checked_add(4 * std::mem::size_of::<usize>()))
+                    .ok_or(ItemRefusal::Budget)?,
+            )?;
+            compatibility_ids.insert(event_id.to_owned());
+            Ok(true)
+        }
+    }
+
     fn check_records_map(&mut self) -> Result<(), ItemRefusal> {
         // Records owns schema, reference and duplicate findings. This boundary
         // only verifies caller map shape and supplies Link join rows;
@@ -2706,8 +2921,28 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
         }
         let responsibility_refs = &self.boundary_responsibility_refs;
         let responsibility = &self.responsibility;
+        let responsibility_store = &mut self.schema_request_store;
         for reference in responsibility_refs {
-            if !responsibility.contains_key(reference) {
+            let found = if let Some(store) = responsibility_store.as_deref_mut() {
+                let used = (*retained)
+                    .checked_add(temporary)
+                    .ok_or(ItemRefusal::Budget)?;
+                let remaining = limits
+                    .max_state_bytes
+                    .checked_sub(used)
+                    .ok_or(ItemRefusal::Budget)?;
+                let (found, workspace) =
+                    store.contains_responsibility_claim(reference, remaining)?;
+                let combined = used.checked_add(workspace).ok_or(ItemRefusal::Budget)?;
+                if combined > limits.max_state_bytes {
+                    return Err(ItemRefusal::Budget);
+                }
+                cost.reserved_state_bytes = cost.reserved_state_bytes.max(combined);
+                found
+            } else {
+                responsibility.contains_key(reference)
+            };
+            if !found {
                 push_bounded_issue(
                     issues,
                     cost,
@@ -3609,118 +3844,159 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
 
     fn check_responsibility_claims(&mut self) -> Result<(), ItemRefusal> {
         let temporary_baseline = self.temporary_state_bytes;
-        let clone_state = claim_refs_vec_clone_state(&self.responsibility)?;
-        self.reserve_temporary(clone_state)?;
-        let claims: Vec<ClaimRef> = self.responsibility.values().cloned().collect();
         let mut validated_events = BTreeSet::new();
-        for claim in claims {
-            check(self.limits.deadline, self.source.cancellation())?;
-            let predicate_allowed = matches!(
-                claim.predicate.as_str(),
-                "authored_by"
-                    | "contributed_by"
-                    | "translated_by"
-                    | "edited_by"
-                    | "afterword_by"
-                    | "designed_by"
-            );
-            if !predicate_allowed {
-                self.issue(
-                    &claim.location,
-                    format!("unsupported responsibility predicate: {}", claim.predicate),
-                )?;
+        if self.schema_request_store.is_some() {
+            let expected_rows = self.responsibility_claim_count;
+            self.schema_request_store
+                .as_deref_mut()
+                .ok_or(ItemRefusal::Budget)?
+                .begin_responsibility_claims(expected_rows)?;
+            let mut cursor_state_bytes = 0usize;
+            loop {
+                let remaining = self.remaining_state()?;
+                let (claim, workspace, row_state_bytes, retained_cursor_state_bytes) = self
+                    .schema_request_store
+                    .as_deref_mut()
+                    .ok_or(ItemRefusal::Budget)?
+                    .next_responsibility_claim(remaining)?;
+                self.include_store_workspace(workspace)?;
+                self.release_loaded_rows(cursor_state_bytes)?;
+                let Some(claim) = claim else {
+                    if row_state_bytes != 0 || retained_cursor_state_bytes != 0 {
+                        return Err(ItemRefusal::Budget);
+                    }
+                    break;
+                };
+                let active_state_bytes = row_state_bytes
+                    .checked_add(retained_cursor_state_bytes)
+                    .ok_or(ItemRefusal::Budget)?;
+                if active_state_bytes > remaining {
+                    return Err(ItemRefusal::Budget);
+                }
+                self.reserve_temporary(active_state_bytes)?;
+                cursor_state_bytes = retained_cursor_state_bytes;
+                let result = self.check_responsibility_claim(&claim, &mut validated_events);
+                drop(claim);
+                self.release_temporary_state(row_state_bytes)?;
+                result?;
             }
-            let expected_kind = match claim.predicate.as_str() {
-                "authored_by" | "contributed_by" => Some("work"),
-                "translated_by" => Some("expression"),
-                "edited_by" | "afterword_by" | "designed_by" => Some("edition"),
-                _ => None,
-            };
-            if let Some(expected_kind) = expected_kind {
-                self.expect_ref(&claim.location, Some(&claim.subject), expected_kind)?;
+        } else {
+            let clone_state = claim_refs_vec_clone_state(&self.responsibility)?;
+            self.reserve_temporary(clone_state)?;
+            let claims: Vec<SourceFoundationClosureClaimRef> =
+                self.responsibility.values().cloned().collect();
+            for claim in claims {
+                self.check_responsibility_claim(&claim, &mut validated_events)?;
             }
-            self.expect_ref(&claim.location, Some(&claim.object), "agent")?;
-            if claim.native {
-                continue;
-            }
-            let Some((claim_path, line_text)) = claim.location.rsplit_once(':') else {
-                continue;
-            };
-            let line = line_text.parse::<usize>().unwrap_or_default();
-            let (value, value_state_bytes) = self.loaded_value_at(claim_path, line)?;
-            let Some(value) = value else {
-                continue;
-            };
-            if text(&value, "claim_type") != Some("bibliographic") {
-                self.issue(
-                    &claim.location,
-                    "responsibility claim claim_type must be bibliographic",
-                )?;
-            }
-            if !matches!(
-                text(&value, "assertion_layer"),
-                Some("bibliographic_assertion" | "scholarly_report")
-            ) {
-                self.issue(&claim.location, "responsibility claim assertion_layer must be bibliographic_assertion or scholarly_report")?;
-            }
-            let (event, event_state_bytes) = self.event(&claim.event)?;
-            let Some(event) = event.map(Cow::into_owned) else {
-                self.issue(
-                    &claim.location,
-                    format!("unresolved provenance_event_ref: {}", claim.event),
-                )?;
-                self.release_loaded_rows(event_state_bytes)?;
-                self.release_loaded_rows(value_state_bytes)?;
-                continue;
-            };
-            let Some(digest) = self.digest_for(claim_path)? else {
-                self.issue(
-                    &claim.location,
-                    "responsibility Claim file is absent from the current cut",
-                )?;
-                self.release_loaded_rows(event_state_bytes)?;
-                self.release_loaded_rows(value_state_bytes)?;
-                continue;
-            };
-            let output_role = event
-                .get("outputs")
-                .and_then(Value::as_array)
-                .into_iter()
-                .flatten()
-                .any(|output| {
-                    text(output, "ref") == Some(claim_path)
-                        && text(output, "sha256") == Some(digest.as_str())
-                        && matches!(
-                            text(output, "role"),
-                            Some(
-                                "unreviewed-translation-responsibility-claims"
-                                    | "unreviewed-evidence-bearing-responsibility-claims"
-                            )
-                        )
-                });
-            if !output_role {
-                self.issue(
-                    &claim.location,
-                    "responsibility claim provenance event does not digest-bind the claim file",
-                )?;
-            }
-            if !validated_events.contains(&claim.event) {
-                self.reserve_temporary(
-                    claim.event.len()
-                        + std::mem::size_of::<String>()
-                        + 4 * std::mem::size_of::<usize>(),
-                )?;
-                validated_events.insert(claim.event.clone());
-                self.check_event_input_bindings(
-                    &claim.location,
-                    &event,
-                    "responsibility claim provenance input",
-                )?;
-            }
-            self.release_loaded_rows(event_state_bytes)?;
-            self.release_loaded_rows(value_state_bytes)?;
         }
         self.release_temporary_since(temporary_baseline);
+        Ok(())
+    }
+
+    fn check_responsibility_claim(
+        &mut self,
+        claim: &SourceFoundationClosureClaimRef,
+        validated_events: &mut BTreeSet<String>,
+    ) -> Result<(), ItemRefusal> {
+        check(self.limits.deadline, self.source.cancellation())?;
+        let predicate_allowed = matches!(
+            claim.predicate.as_str(),
+            "authored_by"
+                | "contributed_by"
+                | "translated_by"
+                | "edited_by"
+                | "afterword_by"
+                | "designed_by"
+        );
+        if !predicate_allowed {
+            self.issue(
+                &claim.location,
+                format!("unsupported responsibility predicate: {}", claim.predicate),
+            )?;
+        }
+        let expected_kind = match claim.predicate.as_str() {
+            "authored_by" | "contributed_by" => Some("work"),
+            "translated_by" => Some("expression"),
+            "edited_by" | "afterword_by" | "designed_by" => Some("edition"),
+            _ => None,
+        };
+        if let Some(expected_kind) = expected_kind {
+            self.expect_ref(&claim.location, Some(&claim.subject), expected_kind)?;
+        }
+        self.expect_ref(&claim.location, Some(&claim.object), "agent")?;
+        if claim.native {
+            return Ok(());
+        }
+        let Some((claim_path, line_text)) = claim.location.rsplit_once(':') else {
+            return Ok(());
+        };
+        let line = line_text.parse::<usize>().unwrap_or_default();
+        let (value, value_state_bytes) = self.loaded_value_at(claim_path, line)?;
+        let Some(value) = value else {
+            return Ok(());
+        };
+        if text(&value, "claim_type") != Some("bibliographic") {
+            self.issue(
+                &claim.location,
+                "responsibility claim claim_type must be bibliographic",
+            )?;
+        }
+        if !matches!(
+            text(&value, "assertion_layer"),
+            Some("bibliographic_assertion" | "scholarly_report")
+        ) {
+            self.issue(&claim.location, "responsibility claim assertion_layer must be bibliographic_assertion or scholarly_report")?;
+        }
+        let (event, event_state_bytes) = self.event(&claim.event)?;
+        let Some(event) = event.map(Cow::into_owned) else {
+            self.issue(
+                &claim.location,
+                format!("unresolved provenance_event_ref: {}", claim.event),
+            )?;
+            self.release_loaded_rows(event_state_bytes)?;
+            self.release_loaded_rows(value_state_bytes)?;
+            return Ok(());
+        };
+        let Some(digest) = self.digest_for(claim_path)? else {
+            self.issue(
+                &claim.location,
+                "responsibility Claim file is absent from the current cut",
+            )?;
+            self.release_loaded_rows(event_state_bytes)?;
+            self.release_loaded_rows(value_state_bytes)?;
+            return Ok(());
+        };
+        let output_role = event
+            .get("outputs")
+            .and_then(Value::as_array)
+            .into_iter()
+            .flatten()
+            .any(|output| {
+                text(output, "ref") == Some(claim_path)
+                    && text(output, "sha256") == Some(digest.as_str())
+                    && matches!(
+                        text(output, "role"),
+                        Some(
+                            "unreviewed-translation-responsibility-claims"
+                                | "unreviewed-evidence-bearing-responsibility-claims"
+                        )
+                    )
+            });
+        if !output_role {
+            self.issue(
+                &claim.location,
+                "responsibility claim provenance event does not digest-bind the claim file",
+            )?;
+        }
+        if self.remember_responsibility_validated_event(&claim.event, validated_events)? {
+            self.check_event_input_bindings(
+                &claim.location,
+                &event,
+                "responsibility claim provenance input",
+            )?;
+        }
+        self.release_loaded_rows(event_state_bytes)?;
+        self.release_loaded_rows(value_state_bytes)?;
         Ok(())
     }
 
@@ -3728,15 +4004,16 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
         let temporary_baseline = self.temporary_state_bytes;
         let clone_state = claim_refs_vec_clone_state(&self.publication)?;
         self.reserve_temporary(clone_state)?;
-        let claims: Vec<ClaimRef> = self.publication.values().cloned().collect();
+        let claims: Vec<SourceFoundationClosureClaimRef> =
+            self.publication.values().cloned().collect();
         let mut validated_events = BTreeSet::new();
         for claim in claims {
             check(self.limits.deadline, self.source.cancellation())?;
             if !self.current_record_exists_with_state_budget(&claim.subject)? {
                 continue;
             }
-            let owner_matches = self
-                .owner_record_matches_subject_at_location(&claim.location, &claim.subject)?;
+            let owner_matches =
+                self.owner_record_matches_subject_at_location(&claim.location, &claim.subject)?;
             if claim.native {
                 continue;
             }
@@ -3830,7 +4107,8 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
     }
 
     fn check_provision_activity(&mut self) -> Result<(), ItemRefusal> {
-        let mut clone_state = std::mem::size_of::<Vec<(String, ClaimRef, Value)>>();
+        let mut clone_state =
+            std::mem::size_of::<Vec<(String, SourceFoundationClosureClaimRef, Value)>>();
         for (id, reference) in &self.provision {
             let Some(value) = self.provision_values.get(id) else {
                 continue;
@@ -3841,7 +4119,7 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
                 .and_then(|n| n.checked_add(crate::record_biblio_cut::decoded_state(value).ok()?))
                 .and_then(|n| {
                     n.checked_add(
-                        std::mem::size_of::<(String, ClaimRef, Value)>()
+                        std::mem::size_of::<(String, SourceFoundationClosureClaimRef, Value)>()
                             + 8 * std::mem::size_of::<usize>(),
                     )
                 })
@@ -3849,7 +4127,7 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
         }
         let temporary_baseline = self.temporary_state_bytes;
         self.reserve_temporary(clone_state)?;
-        let claims: Vec<(String, ClaimRef, Value)> = self
+        let claims: Vec<(String, SourceFoundationClosureClaimRef, Value)> = self
             .provision
             .iter()
             .filter_map(|(id, reference)| {
@@ -3884,10 +4162,9 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
                     "provision-activity predicate must be provision_activity",
                 )?;
             }
-            if !self.owner_record_matches_subject_at_location(
-                &reference.location,
-                &reference.subject,
-            )? {
+            if !self
+                .owner_record_matches_subject_at_location(&reference.location, &reference.subject)?
+            {
                 self.issue(
                     &location,
                     "provision-activity subject_ref differs from sibling edition.json",
@@ -4555,7 +4832,7 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
                 .and_then(|n| n.checked_add(links_state))
                 .ok_or(ItemRefusal::Budget)?,
         )?;
-        let claims: Vec<(String, ClaimRef)> = self
+        let claims: Vec<(String, SourceFoundationClosureClaimRef)> = self
             .object_links
             .iter()
             .map(|(id, claim)| (id.clone(), claim.clone()))
@@ -4794,7 +5071,7 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
     fn check_record_backlinks(&mut self) -> Result<(), ItemRefusal> {
         let records = self.records;
         let membership = &self.membership;
-        let membership_store = &mut self.schema_request_store;
+        let closure_store = &mut self.schema_request_store;
         let responsibility = &self.responsibility;
         let publication = &self.publication;
         let provision = &self.provision;
@@ -4843,7 +5120,7 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
                 refs.sort();
                 refs.dedup();
                 let mut mismatched = reference_count != refs.len();
-                if let Some(store) = membership_store.as_deref_mut() {
+                if let Some(store) = closure_store.as_deref_mut() {
                     let remaining = limits.max_state_bytes.checked_sub(used).ok_or(
                         ItemRefusal::BudgetCheck {
                             check: "source-foundation closure membership stream workspace",
@@ -4884,13 +5161,175 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
                     findings.push("unresolved or mismatched membership claims: Collection membership refs do not close over all verified current Claims".to_owned());
                 }
             }
+            let mut candidate_responsibility = BTreeMap::new();
+            let mut candidate_responsibility_state = 0usize;
             if matches!(record.kind.as_str(), "work" | "expression" | "edition") {
+                if let Some(store) = closure_store.as_deref_mut() {
+                    let mut queried_ids = BTreeSet::new();
+                    let mut queried_ids_state = 0usize;
+                    if let Some(references) = record
+                        .value
+                        .get("responsibility_claim_refs")
+                        .and_then(Value::as_array)
+                    {
+                        for claim_id in references.iter().filter_map(Value::as_str) {
+                            if queried_ids.contains(claim_id) {
+                                continue;
+                            }
+                            let query_node_state = std::mem::size_of::<&str>()
+                                .checked_add(8 * std::mem::size_of::<usize>())
+                                .ok_or(ItemRefusal::Budget)?;
+                            let before_query = retained
+                                .checked_add(temporary)
+                                .and_then(|state| state.checked_add(candidate_responsibility_state))
+                                .and_then(|state| state.checked_add(queried_ids_state))
+                                .ok_or(ItemRefusal::Budget)?;
+                            let after_query_set = before_query
+                                .checked_add(query_node_state)
+                                .ok_or(ItemRefusal::Budget)?;
+                            if after_query_set > limits.max_state_bytes {
+                                return Err(ItemRefusal::BudgetCheck {
+                                    check: "source-foundation closure responsibility reference workspace",
+                                    used: Some(after_query_set as u64),
+                                    limit: Some(limits.max_state_bytes as u64),
+                                });
+                            }
+                            queried_ids.insert(claim_id);
+                            queried_ids_state = queried_ids_state
+                                .checked_add(query_node_state)
+                                .ok_or(ItemRefusal::Budget)?;
+                            cost.reserved_state_bytes =
+                                cost.reserved_state_bytes.max(after_query_set);
+                            let used = retained
+                                .checked_add(temporary)
+                                .and_then(|state| state.checked_add(candidate_responsibility_state))
+                                .and_then(|state| state.checked_add(queried_ids_state))
+                                .ok_or(ItemRefusal::Budget)?;
+                            let remaining = limits.max_state_bytes.checked_sub(used).ok_or(
+                                ItemRefusal::BudgetCheck {
+                                    check: "source-foundation closure responsibility point lookup",
+                                    used: Some(used as u64),
+                                    limit: Some(limits.max_state_bytes as u64),
+                                },
+                            )?;
+                            let (candidate, store_workspace) =
+                                store.responsibility_claim_by_id(claim_id, remaining)?;
+                            let with_store = used
+                                .checked_add(store_workspace)
+                                .ok_or(ItemRefusal::Budget)?;
+                            if with_store > limits.max_state_bytes {
+                                return Err(ItemRefusal::Budget);
+                            }
+                            cost.reserved_state_bytes = cost.reserved_state_bytes.max(with_store);
+                            if let Some(reference) = candidate {
+                                let insert_state = claim_reference_map_entry_state(claim_id)?;
+                                let row_state = claim_reference_index_state(claim_id, &reference)?;
+                                let with_map_row = with_store
+                                    .checked_add(insert_state)
+                                    .ok_or(ItemRefusal::Budget)?;
+                                if with_map_row > limits.max_state_bytes {
+                                    return Err(ItemRefusal::BudgetCheck {
+                                        check: "source-foundation closure responsibility point result",
+                                        used: Some(with_map_row as u64),
+                                        limit: Some(limits.max_state_bytes as u64),
+                                    });
+                                }
+                                cost.reserved_state_bytes =
+                                    cost.reserved_state_bytes.max(with_map_row);
+                                candidate_responsibility.insert(claim_id.to_owned(), reference);
+                                candidate_responsibility_state = candidate_responsibility_state
+                                    .checked_add(row_state)
+                                    .ok_or(ItemRefusal::Budget)?;
+                            }
+                        }
+                    }
+                    drop(queried_ids);
+                    let used = retained
+                        .checked_add(temporary)
+                        .and_then(|state| state.checked_add(candidate_responsibility_state))
+                        .ok_or(ItemRefusal::Budget)?;
+                    let remaining = limits.max_state_bytes.checked_sub(used).ok_or(
+                        ItemRefusal::BudgetCheck {
+                            check: "source-foundation closure responsibility subject stream",
+                            used: Some(used as u64),
+                            limit: Some(limits.max_state_bytes as u64),
+                        },
+                    )?;
+                    let (drained, store_workspace) = store
+                        .for_each_responsibility_claim_for_subject(
+                            id,
+                            remaining,
+                            &mut |claim_id, reference, row_workspace| {
+                                let base = retained
+                                    .checked_add(temporary)
+                                    .and_then(|state| {
+                                        state.checked_add(candidate_responsibility_state)
+                                    })
+                                    .ok_or(ItemRefusal::Budget)?;
+                                let provider_live = base
+                                    .checked_add(row_workspace)
+                                    .ok_or(ItemRefusal::Budget)?;
+                                if provider_live > limits.max_state_bytes {
+                                    return Err(ItemRefusal::BudgetCheck {
+                                        check: "source-foundation closure responsibility subject row",
+                                        used: Some(provider_live as u64),
+                                        limit: Some(limits.max_state_bytes as u64),
+                                    });
+                                }
+                                cost.reserved_state_bytes =
+                                    cost.reserved_state_bytes.max(provider_live);
+                                if candidate_responsibility.contains_key(claim_id) {
+                                    return Ok(());
+                                }
+                                let row_state = claim_reference_index_state(claim_id, reference)?;
+                                let with_map_row = provider_live
+                                    .checked_add(row_state)
+                                    .ok_or(ItemRefusal::Budget)?;
+                                if with_map_row > limits.max_state_bytes {
+                                    return Err(ItemRefusal::BudgetCheck {
+                                        check: "source-foundation closure responsibility subject result",
+                                        used: Some(with_map_row as u64),
+                                        limit: Some(limits.max_state_bytes as u64),
+                                    });
+                                }
+                                cost.reserved_state_bytes =
+                                    cost.reserved_state_bytes.max(with_map_row);
+                                candidate_responsibility
+                                    .insert(claim_id.to_owned(), reference.clone());
+                                candidate_responsibility_state = candidate_responsibility_state
+                                    .checked_add(row_state)
+                                    .ok_or(ItemRefusal::Budget)?;
+                                Ok(())
+                            },
+                        )?;
+                    let with_store = used
+                        .checked_add(store_workspace)
+                        .ok_or(ItemRefusal::Budget)?;
+                    if with_store > limits.max_state_bytes {
+                        return Err(ItemRefusal::Budget);
+                    }
+                    cost.reserved_state_bytes = cost.reserved_state_bytes.max(with_store);
+                    let subject_rows = candidate_responsibility
+                        .values()
+                        .filter(|claim| claim.subject == id)
+                        .count();
+                    if usize::try_from(drained).ok() != Some(subject_rows) {
+                        return Err(ItemRefusal::Source(
+                            "source-foundation Closure responsibility subject count differs".into(),
+                        ));
+                    }
+                }
+                let responsibility_for_record = if closure_store.is_some() {
+                    &candidate_responsibility
+                } else {
+                    responsibility
+                };
                 findings.extend(exact_backref_messages(
                     &record.value,
                     "responsibility_claim_refs",
                     id,
                     "responsibility",
-                    responsibility,
+                    responsibility_for_record,
                 ));
                 if is_era_work {
                     let actual: BTreeSet<String> =
@@ -4900,7 +5339,7 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
                     let authored: Vec<String> = actual
                         .iter()
                         .filter(|claim_id| {
-                            responsibility
+                            responsibility_for_record
                                 .get(*claim_id)
                                 .is_some_and(|claim| claim.predicate == "authored_by")
                         })
@@ -4911,7 +5350,7 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
                             "current Nietzsche Work must reference exactly one authored_by claim; found {}",
                             python_string_list(&authored)
                         ));
-                    } else if responsibility
+                    } else if responsibility_for_record
                         .get(&authored[0])
                         .map(|claim| claim.object.as_str())
                         != Some("tos.agent.friedrich-nietzsche")
@@ -4956,7 +5395,9 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
                     issues,
                     cost,
                     retained,
-                    temporary,
+                    temporary
+                        .checked_add(candidate_responsibility_state)
+                        .ok_or(ItemRefusal::Budget)?,
                     limits,
                     cancelled,
                     location,
@@ -5030,7 +5471,9 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
                     .and_then(|bytes| bytes.checked_add(object.len()))
                     .and_then(|bytes| bytes.checked_add(event.len()))
                     .and_then(|bytes| bytes.checked_add(location.len()))
-                    .and_then(|bytes| bytes.checked_add(std::mem::size_of::<ClaimRef>()))
+                    .and_then(|bytes| {
+                        bytes.checked_add(std::mem::size_of::<SourceFoundationClosureClaimRef>())
+                    })
                     .ok_or(ItemRefusal::Budget)?;
                 self.reserve_temporary(candidate_membership_state_bytes)?;
             }
@@ -5038,7 +5481,7 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
             let predicate = predicate.to_owned();
             let object = object.to_owned();
             let event = event.to_owned();
-            let reference = ClaimRef {
+            let reference = SourceFoundationClosureClaimRef {
                 location: location.clone(),
                 subject: subject.clone(),
                 predicate: predicate.clone(),
@@ -5078,8 +5521,12 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
                     self.expect_ref(&location, Some(&subject), expected_subject)?;
                 }
                 self.expect_ref(&location, Some(&object), "agent")?;
-                self.reserve(claim_reference_index_state(&id, &reference)?)?;
-                self.responsibility.insert(id.clone(), reference.clone());
+                if self.schema_request_store.is_some() {
+                    self.remember_candidate_responsibility_claim(&id, &reference)?;
+                } else {
+                    self.reserve(claim_reference_index_state(&id, &reference)?)?;
+                    self.responsibility.insert(id.clone(), reference.clone());
+                }
             }
             if path.ends_with("/publication-claims.jsonl") {
                 self.expect_ref(&location, Some(&subject), "edition")?;
