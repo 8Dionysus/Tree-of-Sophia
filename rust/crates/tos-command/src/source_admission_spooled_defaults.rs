@@ -22,9 +22,10 @@ use tos_validation::{
     item_rules::ItemRefusal,
     record_biblio_cut::{SourceCutInput, SourceCutInputWithIdentity},
     source_foundation_closure::{
-        SourceFoundationClosureLink, SourceFoundationClosureLinkStore,
-        SourceFoundationClosureLinkStoreCost, SourceFoundationClosureSchemaRequest,
-        SourceFoundationClosureSchemaRequestStore, SourceFoundationClosureSchemaRequestStoreCost,
+        SourceFoundationClosureEvent, SourceFoundationClosureLink,
+        SourceFoundationClosureLinkStore, SourceFoundationClosureLinkStoreCost,
+        SourceFoundationClosureSchemaRequest, SourceFoundationClosureSchemaRequestStore,
+        SourceFoundationClosureSchemaRequestStoreCost,
     },
     source_foundation_default_rules::{
         SourceFoundationDefaultClaims, SourceFoundationDefaultEventLookup,
@@ -723,6 +724,13 @@ impl<'candidate, 'host> SpoolDefaultStore<'candidate, 'host> {
              CREATE TABLE sf_closure_loaded_documents(\
                  path TEXT NOT NULL COLLATE BINARY PRIMARY KEY CHECK(length(path)>0),\
                  sha256 TEXT NOT NULL COLLATE BINARY CHECK(length(sha256)=64)\
+             ) WITHOUT ROWID;\
+             CREATE TABLE sf_closure_events(\
+                 event_id TEXT NOT NULL COLLATE BINARY PRIMARY KEY,\
+                 path TEXT NOT NULL COLLATE BINARY CHECK(length(path)>0),\
+                 line BLOB NOT NULL CHECK(length(line)=8),\
+                 document_sha256 TEXT NOT NULL COLLATE BINARY CHECK(length(document_sha256)=64),\
+                 event_json BLOB NOT NULL CHECK(length(event_json)>0)\
              ) WITHOUT ROWID;\
              CREATE TABLE sf_discovery_seen_ids(\
                  namespace TEXT NOT NULL COLLATE BINARY CHECK(namespace IN ('artifact','composite','composite-representation','event','discovery-event','representation-file','schema-location','payload-observation','artifact-replay-reference','planned-manifest','native-artifact-transaction')),\
@@ -2944,14 +2952,24 @@ struct CandidateClosureSchemaRequests<'a, 'candidate, 'host, 'cancel, 'budget> {
     loaded_document_serialized_write_bytes: u64,
     loaded_document_scan_row_operations: u64,
     loaded_document_workspace_state_bytes: usize,
+    event_rows: u64,
+    event_serialized_read_bytes: u64,
+    event_serialized_write_bytes: u64,
+    event_scan_row_operations: u64,
+    event_workspace_state_bytes: usize,
+    max_event_id_bytes: usize,
+    max_event_path_bytes: usize,
+    max_event_json_bytes: usize,
     max_document_bytes: Option<usize>,
     last_before_issue: Option<usize>,
     last_read_before_issue: Option<usize>,
     cursor_ordinal: Option<u64>,
     expected_rows: Option<u64>,
     expected_loaded_documents: Option<u64>,
+    expected_event_rows: Option<u64>,
     direct_issue_count: Option<usize>,
     finished: bool,
+    events_drained: bool,
     drained: bool,
 }
 
@@ -3013,11 +3031,185 @@ impl CandidateClosureSchemaRequests<'_, '_, '_, '_, '_> {
         Ok(())
     }
 
+    fn charge_event_scan_rows(&mut self, rows: usize) -> Result<(), ItemRefusal> {
+        self.charge_scan_rows(rows)?;
+        self.event_scan_row_operations = self
+            .event_scan_row_operations
+            .checked_add(usize_u64(rows)?)
+            .ok_or(ItemRefusal::Budget)?;
+        Ok(())
+    }
+
     fn loaded_document_workspace(path_bytes: usize) -> Result<usize, ItemRefusal> {
         Self::row_text_state(path_bytes)?
             .checked_add(Self::row_text_state(64)?)
             .and_then(|state| state.checked_add(size_of::<(String, String)>() + 512))
             .ok_or(ItemRefusal::Budget)
+    }
+
+    fn event_lookup_workspace(id_bytes: usize) -> Result<usize, ItemRefusal> {
+        Self::row_text_state(id_bytes)?
+            .checked_add(size_of::<bool>() + 512)
+            .ok_or(ItemRefusal::Budget)
+    }
+
+    fn event_insert_workspace(
+        id_bytes: usize,
+        path_bytes: usize,
+        digest_bytes: usize,
+        json_bytes: usize,
+    ) -> Result<usize, ItemRefusal> {
+        let serialization_workspace = json_bytes
+            .checked_mul(2)
+            .and_then(|state| state.checked_add(size_of::<Vec<u8>>() + 1024))
+            .ok_or(ItemRefusal::Budget)?;
+        Self::row_text_state(id_bytes)?
+            .checked_add(Self::row_text_state(path_bytes)?)
+            .and_then(|state| state.checked_add(Self::row_text_state(digest_bytes).ok()?))
+            .and_then(|state| state.checked_add(serialization_workspace))
+            .and_then(|state| state.checked_add(size_of::<(String, String, Value)>() + 512))
+            .ok_or(ItemRefusal::Budget)
+    }
+
+    fn event_read_workspace(
+        id_bytes: usize,
+        path_bytes: usize,
+        digest_bytes: usize,
+        json_bytes: usize,
+    ) -> Result<usize, ItemRefusal> {
+        Self::row_text_state(id_bytes)?
+            .checked_add(Self::row_text_state(path_bytes)?)
+            .and_then(|state| state.checked_add(Self::row_text_state(digest_bytes).ok()?))
+            .and_then(|state| state.checked_add(json_state_upper_bound(json_bytes).ok()?))
+            .and_then(|state| state.checked_add(size_of::<SourceFoundationClosureEvent>() + 512))
+            .ok_or(ItemRefusal::Budget)
+    }
+
+    fn event_drain_workspace(
+        id_bytes: usize,
+        path_bytes: usize,
+        digest_bytes: usize,
+    ) -> Result<usize, ItemRefusal> {
+        Self::row_text_state(id_bytes)?
+            .checked_mul(2)
+            .and_then(|state| state.checked_add(Self::row_text_state(path_bytes).ok()?))
+            .and_then(|state| state.checked_add(Self::row_text_state(digest_bytes).ok()?))
+            .and_then(|state| {
+                state.checked_add(size_of::<(String, String, [u8; 8], String)>() + 512)
+            })
+            .ok_or(ItemRefusal::Budget)
+    }
+
+    fn finish_events(
+        &mut self,
+        expected_event_rows: u64,
+        max_state_bytes: usize,
+    ) -> Result<(), ItemRefusal> {
+        if self.events_drained || self.event_rows != expected_event_rows {
+            return Err(source_refusal());
+        }
+        let mut after: Option<String> = None;
+        let mut drained = 0u64;
+        loop {
+            let workspace = Self::event_drain_workspace(
+                self.max_event_id_bytes.max(1),
+                self.max_event_path_bytes.max(1),
+                64,
+            )?;
+            self.preflight(workspace, max_state_bytes)?;
+            self.event_workspace_state_bytes = self.event_workspace_state_bytes.max(workspace);
+            self.context.check()?;
+            self.charge_event_scan_rows(1)?;
+            let sql = if after.is_some() {
+                "SELECT e.event_id,e.path,e.line,e.document_sha256,d.sha256 \\
+                 FROM sf_closure_events AS e \\
+                 LEFT JOIN sf_closure_loaded_documents AS d ON d.path=e.path \\
+                 WHERE e.event_id>?1 ORDER BY e.event_id COLLATE BINARY LIMIT 1"
+            } else {
+                "SELECT e.event_id,e.path,e.line,e.document_sha256,d.sha256 \\
+                 FROM sf_closure_events AS e \\
+                 LEFT JOIN sf_closure_loaded_documents AS d ON d.path=e.path \\
+                 ORDER BY e.event_id COLLATE BINARY LIMIT 1"
+            };
+            let mut statement = self.db.prepare(sql).map_err(sql_refusal)?;
+            let mut rows = if let Some(after_id) = after.as_deref() {
+                statement.query([after_id]).map_err(sql_refusal)?
+            } else {
+                statement.query([]).map_err(sql_refusal)?
+            };
+            let stored = rows
+                .next()
+                .map_err(sql_refusal)?
+                .map(|row| {
+                    let id = bounded_row_text(row, 0, workspace)?;
+                    let path = bounded_row_text(row, 1, workspace)?;
+                    let line = row_blob(row, 2)?;
+                    let digest = bounded_row_text(row, 3, workspace)?;
+                    let loaded_digest = match row.get_ref(4)? {
+                        rusqlite::types::ValueRef::Text(bytes) => bytes,
+                        _ => return Err(rusqlite::Error::InvalidQuery),
+                    };
+                    if path.is_empty()
+                        || path.len() > 4096
+                        || id.len() > self.max_event_id_bytes
+                        || path.len() > self.max_event_path_bytes
+                        || line.len() != 8
+                        || !Self::valid_event_digest(&digest)
+                        || loaded_digest != digest.as_bytes()
+                        || after
+                            .as_deref()
+                            .is_some_and(|previous| previous >= id.as_str())
+                    {
+                        return Err(rusqlite::Error::InvalidQuery);
+                    }
+                    let line_number =
+                        checked_u64_blob(line).map_err(|_| rusqlite::Error::InvalidQuery)?;
+                    if line_number == 0 {
+                        return Err(rusqlite::Error::InvalidQuery);
+                    }
+                    Ok((id, path, line.len(), digest))
+                })
+                .transpose()
+                .map_err(sql_refusal)?;
+            if rows.next().map_err(sql_refusal)?.is_some() {
+                return Err(source_refusal());
+            }
+            drop(rows);
+            drop(statement);
+            self.context.check()?;
+            let Some((id, path, line_bytes, digest)) = stored else {
+                break;
+            };
+            if drained >= expected_event_rows {
+                return Err(source_refusal());
+            }
+            self.event_serialized_read_bytes = self
+                .event_serialized_read_bytes
+                .checked_add(usize_u64(
+                    id.len()
+                        .checked_add(path.len())
+                        .and_then(|bytes| bytes.checked_add(line_bytes))
+                        .and_then(|bytes| bytes.checked_add(digest.len()))
+                        .and_then(|bytes| bytes.checked_add(digest.len()))
+                        .ok_or(ItemRefusal::Budget)?,
+                )?)
+                .ok_or(ItemRefusal::Budget)?;
+            drained = drained.checked_add(1).ok_or(ItemRefusal::Budget)?;
+            after = Some(id);
+        }
+        if drained != expected_event_rows {
+            return Err(source_refusal());
+        }
+        self.context.check()?;
+        self.expected_event_rows = Some(expected_event_rows);
+        self.events_drained = true;
+        Ok(())
+    }
+
+    fn valid_event_digest(digest: &str) -> bool {
+        Digest256::from_hex(digest)
+            .map(|parsed| parsed.to_hex() == digest)
+            .unwrap_or(false)
     }
 
     fn cost(&self) -> SourceFoundationClosureSchemaRequestStoreCost {
@@ -3032,6 +3224,11 @@ impl CandidateClosureSchemaRequests<'_, '_, '_, '_, '_> {
             loaded_document_serialized_write_bytes: self.loaded_document_serialized_write_bytes,
             loaded_document_scan_row_operations: self.loaded_document_scan_row_operations,
             loaded_document_workspace_state_bytes: self.loaded_document_workspace_state_bytes,
+            event_rows: self.event_rows,
+            event_serialized_read_bytes: self.event_serialized_read_bytes,
+            event_serialized_write_bytes: self.event_serialized_write_bytes,
+            event_scan_row_operations: self.event_scan_row_operations,
+            event_workspace_state_bytes: self.event_workspace_state_bytes,
         }
     }
 
@@ -3041,6 +3238,8 @@ impl CandidateClosureSchemaRequests<'_, '_, '_, '_, '_> {
             || self.expected_rows != Some(self.observation_rows)
             || self.read_rows != self.observation_rows
             || self.expected_loaded_documents != Some(self.loaded_document_rows)
+            || self.expected_event_rows != Some(self.event_rows)
+            || !self.events_drained
         {
             return Err(source_refusal());
         }
@@ -3051,6 +3250,238 @@ impl CandidateClosureSchemaRequests<'_, '_, '_, '_, '_> {
 impl SourceFoundationClosureSchemaRequestStore
     for CandidateClosureSchemaRequests<'_, '_, '_, '_, '_>
 {
+    fn remember_event(
+        &mut self,
+        id: &str,
+        path: &str,
+        line: usize,
+        document_sha256: &str,
+        value: &Value,
+        max_state_bytes: usize,
+    ) -> Result<(bool, usize), ItemRefusal> {
+        if self.finished
+            || path.is_empty()
+            || path.len() > 4096
+            || line == 0
+            || !Self::valid_event_digest(document_sha256)
+            || value.get("event_id").and_then(Value::as_str) != Some(id)
+        {
+            return Err(source_refusal());
+        }
+        let serialization_probe_workspace = size_of::<JsonCounter>() + 512;
+        self.preflight(serialization_probe_workspace, max_state_bytes)?;
+        self.context.check()?;
+        // Reserve one row operation before traversing the decoded event and
+        // before serializing it for the held store.
+        self.charge_event_scan_rows(1)?;
+        let json_bytes = json_len(value, max_state_bytes)?;
+        if json_bytes == 0 {
+            return Err(source_refusal());
+        }
+        let workspace =
+            Self::event_insert_workspace(id.len(), path.len(), document_sha256.len(), json_bytes)?;
+        self.preflight(workspace, max_state_bytes)?;
+        let encoded = encoded_json(value, json_bytes, max_state_bytes)?;
+        let line = usize_u64(line)?.to_be_bytes();
+        self.context.check()?;
+        let inserted = self
+            .db
+            .execute(
+                "INSERT INTO sf_closure_events(event_id,path,line,document_sha256,event_json) \
+                 VALUES(?1,?2,?3,?4,?5) ON CONFLICT(event_id) DO NOTHING",
+                params![
+                    id,
+                    path,
+                    line.as_slice(),
+                    document_sha256,
+                    encoded.as_slice()
+                ],
+            )
+            .map_err(sql_refusal)?;
+        self.context.check()?;
+        if inserted > 1 {
+            return Err(source_refusal());
+        }
+        if inserted == 1 {
+            self.event_rows = self.event_rows.checked_add(1).ok_or(ItemRefusal::Budget)?;
+            self.event_serialized_write_bytes = self
+                .event_serialized_write_bytes
+                .checked_add(usize_u64(
+                    id.len()
+                        .checked_add(path.len())
+                        .and_then(|bytes| bytes.checked_add(line.len()))
+                        .and_then(|bytes| bytes.checked_add(document_sha256.len()))
+                        .and_then(|bytes| bytes.checked_add(encoded.len()))
+                        .ok_or(ItemRefusal::Budget)?,
+                )?)
+                .ok_or(ItemRefusal::Budget)?;
+            self.max_event_id_bytes = self.max_event_id_bytes.max(id.len());
+            self.max_event_path_bytes = self.max_event_path_bytes.max(path.len());
+            self.max_event_json_bytes = self.max_event_json_bytes.max(encoded.len());
+        }
+        self.event_workspace_state_bytes = self.event_workspace_state_bytes.max(workspace);
+        Ok((inserted == 1, workspace))
+    }
+
+    fn contains_event(
+        &mut self,
+        id: &str,
+        max_state_bytes: usize,
+    ) -> Result<(bool, usize), ItemRefusal> {
+        if self.finished {
+            return Err(source_refusal());
+        }
+        let workspace = Self::event_lookup_workspace(id.len())?;
+        self.preflight(workspace, max_state_bytes)?;
+        self.context.check()?;
+        self.charge_event_scan_rows(1)?;
+        let mut statement = self
+            .db
+            .prepare("SELECT 1 FROM sf_closure_events WHERE event_id=?1")
+            .map_err(sql_refusal)?;
+        let mut rows = statement.query([id]).map_err(sql_refusal)?;
+        let found = rows.next().map_err(sql_refusal)?.is_some();
+        if rows.next().map_err(sql_refusal)?.is_some() {
+            return Err(source_refusal());
+        }
+        drop(rows);
+        drop(statement);
+        self.context.check()?;
+        self.event_workspace_state_bytes = self.event_workspace_state_bytes.max(workspace);
+        Ok((found, workspace))
+    }
+
+    fn event_value(
+        &mut self,
+        id: &str,
+        max_state_bytes: usize,
+    ) -> Result<(Option<SourceFoundationClosureEvent>, usize), ItemRefusal> {
+        if self.finished {
+            return Err(source_refusal());
+        }
+        let metadata_workspace = size_of::<(i64, i64, i64)>() + 256;
+        self.preflight(metadata_workspace, max_state_bytes)?;
+        self.context.check()?;
+        self.charge_event_scan_rows(1)?;
+        let mut statement = self
+            .db
+            .prepare(
+                "SELECT length(path),length(document_sha256),length(event_json) \
+             FROM sf_closure_events WHERE event_id=?1",
+            )
+            .map_err(sql_refusal)?;
+        let mut rows = statement.query([id]).map_err(sql_refusal)?;
+        let metadata = rows
+            .next()
+            .map_err(sql_refusal)?
+            .map(|row| {
+                Ok((
+                    row.get::<_, i64>(0)?,
+                    row.get::<_, i64>(1)?,
+                    row.get::<_, i64>(2)?,
+                ))
+            })
+            .transpose()
+            .map_err(sql_refusal)?;
+        if rows.next().map_err(sql_refusal)?.is_some() {
+            return Err(source_refusal());
+        }
+        drop(rows);
+        drop(statement);
+        self.context.check()?;
+        let Some((path_bytes, digest_bytes, json_bytes)) = metadata else {
+            self.event_workspace_state_bytes =
+                self.event_workspace_state_bytes.max(metadata_workspace);
+            return Ok((None, metadata_workspace));
+        };
+        let path_bytes = usize::try_from(path_bytes).map_err(|_| source_refusal())?;
+        let digest_bytes = usize::try_from(digest_bytes).map_err(|_| source_refusal())?;
+        let json_bytes = usize::try_from(json_bytes).map_err(|_| source_refusal())?;
+        if path_bytes == 0
+            || path_bytes > 4096
+            || path_bytes > self.max_event_path_bytes
+            || digest_bytes != 64
+            || json_bytes == 0
+            || json_bytes > self.max_event_json_bytes
+        {
+            return Err(source_refusal());
+        }
+        let workspace = metadata_workspace.max(Self::event_read_workspace(
+            id.len(),
+            path_bytes,
+            digest_bytes,
+            json_bytes,
+        )?);
+        self.preflight(workspace, max_state_bytes)?;
+        self.context.check()?;
+        self.charge_event_scan_rows(1)?;
+        let mut statement = self.db.prepare(
+            "SELECT path,line,document_sha256,event_json FROM sf_closure_events WHERE event_id=?1",
+        ).map_err(sql_refusal)?;
+        let mut rows = statement.query([id]).map_err(sql_refusal)?;
+        let stored = rows
+            .next()
+            .map_err(sql_refusal)?
+            .map(|row| {
+                let path = bounded_row_text(row, 0, workspace)?;
+                let line = row_blob(row, 1)?;
+                let digest = bounded_row_text(row, 2, workspace)?;
+                let raw = row_blob(row, 3)?;
+                if path.len() != path_bytes
+                    || line.len() != 8
+                    || digest.len() != digest_bytes
+                    || raw.len() != json_bytes
+                {
+                    return Err(rusqlite::Error::InvalidQuery);
+                }
+                let line = checked_u64_blob(line).map_err(|_| rusqlite::Error::InvalidQuery)?;
+                let line = usize::try_from(line).map_err(|_| rusqlite::Error::InvalidQuery)?;
+                let value = serde_json::from_slice::<Value>(raw)
+                    .map_err(|_| rusqlite::Error::InvalidQuery)?;
+                Ok((path, line, digest, value, raw.len()))
+            })
+            .transpose()
+            .map_err(sql_refusal)?;
+        if rows.next().map_err(sql_refusal)?.is_some() {
+            return Err(source_refusal());
+        }
+        drop(rows);
+        drop(statement);
+        self.context.check()?;
+        let Some((path, line, document_sha256, value, raw_bytes)) = stored else {
+            return Err(source_refusal());
+        };
+        if line == 0
+            || !Self::valid_event_digest(&document_sha256)
+            || value.get("event_id").and_then(Value::as_str) != Some(id)
+        {
+            return Err(source_refusal());
+        }
+        self.event_serialized_read_bytes = self
+            .event_serialized_read_bytes
+            .checked_add(usize_u64(
+                id.len()
+                    .checked_add(path.len())
+                    .and_then(|bytes| bytes.checked_add(size_of::<u64>()))
+                    .and_then(|bytes| bytes.checked_add(document_sha256.len()))
+                    .and_then(|bytes| bytes.checked_add(raw_bytes))
+                    .and_then(|bytes| bytes.checked_add(3 * size_of::<i64>()))
+                    .ok_or(ItemRefusal::Budget)?,
+            )?)
+            .ok_or(ItemRefusal::Budget)?;
+        self.event_workspace_state_bytes = self.event_workspace_state_bytes.max(workspace);
+        Ok((
+            Some(SourceFoundationClosureEvent {
+                id: id.to_owned(),
+                path,
+                line,
+                document_sha256,
+                value,
+            }),
+            workspace,
+        ))
+    }
+
     fn observe_loaded_document(
         &mut self,
         path: &str,
@@ -3251,6 +3682,7 @@ impl SourceFoundationClosureSchemaRequestStore
         &mut self,
         expected_rows: u64,
         expected_loaded_documents: u64,
+        expected_event_rows: u64,
         direct_issue_count: usize,
         max_state_bytes: usize,
     ) -> Result<SourceFoundationClosureSchemaRequestStoreCost, ItemRefusal> {
@@ -3260,6 +3692,7 @@ impl SourceFoundationClosureSchemaRequestStore
                 .last_before_issue
                 .is_some_and(|ordinal| ordinal > direct_issue_count)
             || self.loaded_document_rows != expected_loaded_documents
+            || self.event_rows != expected_event_rows
             || (expected_rows > 0) != self.max_document_bytes.is_some()
         {
             return Err(source_refusal());
@@ -3356,6 +3789,7 @@ impl SourceFoundationClosureSchemaRequestStore
         self.loaded_document_workspace_state_bytes = self
             .loaded_document_workspace_state_bytes
             .max(loaded_count_workspace);
+        self.finish_events(expected_event_rows, max_state_bytes)?;
         self.context.check()?;
         self.expected_rows = Some(expected_rows);
         self.expected_loaded_documents = Some(expected_loaded_documents);
@@ -4955,17 +5389,11 @@ impl<'candidate, 'host> SpoolDefaultStore<'candidate, 'host> {
                 serialized_read_bytes: 0,
                 scan_row_operations: 0,
                 workspace_peak_bytes: 0,
-                loaded_document_rows: 0,
-                loaded_document_serialized_read_bytes: 0,
-                loaded_document_serialized_write_bytes: 0,
-                loaded_document_scan_row_operations: 0,
-                loaded_document_workspace_state_bytes: 0,
                 max_document_bytes: None,
                 last_before_issue: None,
                 last_read_before_issue: None,
                 cursor_ordinal: None,
                 expected_rows: None,
-                expected_loaded_documents: None,
                 direct_issue_count: None,
                 finished: false,
                 drained: false,
@@ -5012,14 +5440,24 @@ impl<'candidate, 'host> SpoolDefaultStore<'candidate, 'host> {
                 loaded_document_serialized_write_bytes: 0,
                 loaded_document_scan_row_operations: 0,
                 loaded_document_workspace_state_bytes: 0,
+                event_rows: 0,
+                event_serialized_read_bytes: 0,
+                event_serialized_write_bytes: 0,
+                event_scan_row_operations: 0,
+                event_workspace_state_bytes: 0,
+                max_event_id_bytes: 0,
+                max_event_path_bytes: 0,
+                max_event_json_bytes: 0,
                 max_document_bytes: None,
                 last_before_issue: None,
                 last_read_before_issue: None,
                 cursor_ordinal: None,
                 expected_rows: None,
                 expected_loaded_documents: None,
+                expected_event_rows: None,
                 direct_issue_count: None,
                 finished: false,
+                events_drained: false,
                 drained: false,
             };
             let mut biblio = BiblioStoredProvider {

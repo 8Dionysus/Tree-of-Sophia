@@ -122,6 +122,13 @@ pub struct SourceFoundationClosureCost {
     pub candidate_loaded_document_serialized_write_bytes: u64,
     pub candidate_loaded_document_scan_row_operations: u64,
     pub candidate_loaded_document_peak_workspace_state_bytes: usize,
+    /// Candidate Closure event rows retained as plain source-derived JSON
+    /// projections in the invocation-scoped event store.
+    pub candidate_event_count: u64,
+    pub candidate_event_serialized_read_bytes: u64,
+    pub candidate_event_serialized_write_bytes: u64,
+    pub candidate_event_scan_row_operations: u64,
+    pub candidate_event_peak_workspace_state_bytes: usize,
 }
 
 /// Plain current-record projection used only by the source-foundation Link
@@ -130,6 +137,18 @@ pub struct SourceFoundationClosureCost {
 pub struct SourceFoundationClosureLink {
     pub id: String,
     pub path: String,
+    pub value: Value,
+}
+
+/// Source-derived current event row retained by the candidate Closure store.
+/// Its document digest binds the projection to the actual member read during
+/// collection; the candidate source fence remains the authority for currentness.
+#[derive(Debug, Clone, PartialEq)]
+pub struct SourceFoundationClosureEvent {
+    pub id: String,
+    pub path: String,
+    pub line: usize,
+    pub document_sha256: String,
     pub value: Value,
 }
 
@@ -188,12 +207,17 @@ pub struct SourceFoundationClosureSchemaRequestStoreCost {
     pub loaded_document_serialized_write_bytes: u64,
     pub loaded_document_scan_row_operations: u64,
     pub loaded_document_workspace_state_bytes: usize,
+    pub event_rows: u64,
+    pub event_serialized_read_bytes: u64,
+    pub event_serialized_write_bytes: u64,
+    pub event_scan_row_operations: u64,
+    pub event_workspace_state_bytes: usize,
 }
 
-/// Portable candidate spool for authentic Closure schema requests and
-/// source-derived loaded-document digests. Request encounter order and
-/// district-local issue insertion offsets remain explicit; the document
-/// marker carries no cached rows or proof authority.
+/// Portable candidate spool for authentic Closure schema requests,
+/// source-derived loaded-document digests, and current event projections.
+/// Request encounter order, first-event identity, and issue insertion offsets
+/// remain explicit; these rows carry no proof or admission authority.
 pub trait SourceFoundationClosureSchemaRequestStore {
     /// Record a source-derived document digest once. Repeated paths must
     /// carry the same digest; a mismatch means the exact current cut moved.
@@ -213,6 +237,33 @@ pub trait SourceFoundationClosureSchemaRequestStore {
         max_state_bytes: usize,
     ) -> Result<(Option<String>, usize), ItemRefusal>;
 
+    /// Insert the first current event under its exact ID. Duplicate IDs are
+    /// reported as `false` without replacing the first source row.
+    fn remember_event(
+        &mut self,
+        id: &str,
+        path: &str,
+        line: usize,
+        document_sha256: &str,
+        value: &Value,
+        max_state_bytes: usize,
+    ) -> Result<(bool, usize), ItemRefusal>;
+
+    /// Exact-key presence check for a current candidate event.
+    fn contains_event(
+        &mut self,
+        id: &str,
+        max_state_bytes: usize,
+    ) -> Result<(bool, usize), ItemRefusal>;
+
+    /// Point-read one event projection. The caller checks its path and digest
+    /// against the same candidate's loaded-document marker and source fence.
+    fn event_value(
+        &mut self,
+        id: &str,
+        max_state_bytes: usize,
+    ) -> Result<(Option<SourceFoundationClosureEvent>, usize), ItemRefusal>;
+
     fn record_request(
         &mut self,
         request: &SourceFoundationClosureSchemaRequest,
@@ -224,6 +275,7 @@ pub trait SourceFoundationClosureSchemaRequestStore {
         &mut self,
         expected_rows: u64,
         expected_loaded_documents: u64,
+        expected_event_rows: u64,
         direct_issue_count: usize,
         max_state_bytes: usize,
     ) -> Result<SourceFoundationClosureSchemaRequestStoreCost, ItemRefusal>;
@@ -529,6 +581,7 @@ fn run_source_foundation_closure<S: LayerFamilySource + ?Sized>(
 
     let expected_schema_rows = rules.cost.schema_requests;
     let expected_loaded_documents = rules.cost.candidate_loaded_document_count;
+    let expected_event_rows = rules.cost.candidate_event_count;
     let schema_request_finish = if rules.schema_request_store.is_some() {
         let direct_issue_count = rules.issues.len();
         let remaining = rules.remaining_state()?;
@@ -539,6 +592,7 @@ fn run_source_foundation_closure<S: LayerFamilySource + ?Sized>(
             .finish(
                 expected_schema_rows,
                 expected_loaded_documents,
+                expected_event_rows,
                 direct_issue_count,
                 remaining,
             )?;
@@ -554,7 +608,8 @@ fn run_source_foundation_closure<S: LayerFamilySource + ?Sized>(
                 state.checked_add(
                     finished
                         .workspace_state_bytes
-                        .max(finished.loaded_document_workspace_state_bytes),
+                        .max(finished.loaded_document_workspace_state_bytes)
+                        .max(finished.event_workspace_state_bytes),
                 )
             })
             .ok_or(ItemRefusal::Budget)?;
@@ -584,6 +639,12 @@ fn run_source_foundation_closure<S: LayerFamilySource + ?Sized>(
             .cost
             .candidate_loaded_document_peak_workspace_state_bytes =
             finished.loaded_document_workspace_state_bytes;
+        rules.cost.candidate_event_count = finished.event_rows;
+        rules.cost.candidate_event_serialized_read_bytes = finished.event_serialized_read_bytes;
+        rules.cost.candidate_event_serialized_write_bytes = finished.event_serialized_write_bytes;
+        rules.cost.candidate_event_scan_row_operations = finished.event_scan_row_operations;
+        rules.cost.candidate_event_peak_workspace_state_bytes =
+            finished.event_workspace_state_bytes;
     }
 
     Ok(SourceFoundationClosureReport {
@@ -1056,17 +1117,93 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
         Ok(found)
     }
 
-    fn event(&self, id: &str) -> Result<Option<Cow<'_, Value>>, ItemRefusal> {
+    fn event(&mut self, id: &str) -> Result<(Option<Cow<'_, Value>>, usize), ItemRefusal> {
         check(self.limits.deadline, self.source.cancellation())?;
-        if let Some(event) = self.events.get(id) {
-            return Ok(Some(Cow::Borrowed(event)));
+        if self.schema_request_store.is_some() {
+            let remaining = self.remaining_state()?;
+            let (candidate_event, workspace) = self
+                .schema_request_store
+                .as_deref_mut()
+                .ok_or(ItemRefusal::Budget)?
+                .event_value(id, remaining)?;
+            self.include_store_workspace(workspace)?;
+            if let Some(event) = candidate_event {
+                let value_state = crate::record_biblio_cut::decoded_state(&event.value)?;
+                let event_state = value_state
+                    .checked_add(
+                        std::mem::size_of::<SourceFoundationClosureEvent>()
+                            .checked_sub(std::mem::size_of::<Value>())
+                            .ok_or(ItemRefusal::Budget)?,
+                    )
+                    .and_then(|state| state.checked_add(event.id.len()))
+                    .and_then(|state| state.checked_add(event.path.len()))
+                    .and_then(|state| state.checked_add(event.document_sha256.len()))
+                    .ok_or(ItemRefusal::Budget)?;
+                // The point-read workspace ends when the store returns, but
+                // this owned DTO remains live during the path and loaded-digest
+                // lookups below. Keep its decoded value and strings in the
+                // caller's active state so those nested reads reserve against
+                // the real overlap.
+                self.reserve_temporary(event_state)?;
+                let SourceFoundationClosureEvent {
+                    id: event_id,
+                    path: event_path,
+                    line,
+                    document_sha256,
+                    value,
+                } = event;
+                if event_id != id
+                    || event_path.is_empty()
+                    || line == 0
+                    || document_sha256.len() != 64
+                    || text(&value, "event_id") != Some(id)
+                    || !self.path_exists(&event_path)?
+                {
+                    return Err(ItemRefusal::Source(
+                        "source-foundation candidate event projection differs from its exact row"
+                            .into(),
+                    ));
+                }
+                let Some(document_digest) = self.candidate_loaded_digest(&event_path)? else {
+                    return Err(ItemRefusal::Source(
+                        "source-foundation candidate event document is outside the loaded cut"
+                            .into(),
+                    ));
+                };
+                if document_digest != document_sha256 {
+                    return Err(ItemRefusal::Source(
+                        "source-foundation candidate event document digest differs".into(),
+                    ));
+                }
+                drop((event_id, event_path, document_sha256));
+                self.release_loaded_rows(
+                    event_state
+                        .checked_sub(value_state)
+                        .ok_or(ItemRefusal::Budget)?,
+                )?;
+                return Ok((Some(Cow::Owned(value)), value_state));
+            }
+        } else if let Some(event) = self.events.get(id) {
+            return Ok((Some(Cow::Borrowed(event)), 0));
         }
-        self.source_events.event(id)
+        Ok((self.source_events.event(id)?, 0))
     }
 
-    fn event_exists(&self, id: &str) -> Result<bool, ItemRefusal> {
+    fn event_exists(&mut self, id: &str) -> Result<bool, ItemRefusal> {
         check(self.limits.deadline, self.source.cancellation())?;
-        Ok(self.event_ids.contains(id) || self.source_events.event_contains(id)?)
+        let candidate_found = if self.schema_request_store.is_some() {
+            let remaining = self.remaining_state()?;
+            let (found, workspace) = self
+                .schema_request_store
+                .as_deref_mut()
+                .ok_or(ItemRefusal::Budget)?
+                .contains_event(id, remaining)?;
+            self.include_store_workspace(workspace)?;
+            found
+        } else {
+            self.event_ids.contains(id)
+        };
+        Ok(candidate_found || self.source_events.event_contains(id)?)
     }
 
     fn collect_current_paths(
@@ -1876,34 +2013,72 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
                 let Some(id) = text(&event, "event_id").map(str::to_owned) else {
                     continue;
                 };
-                let event_state = crate::record_biblio_cut::decoded_state(&event)?;
-                self.reserve(
-                    id.len()
+                let candidate_store_active = self.schema_request_store.is_some();
+                let candidate_id_workspace = if candidate_store_active {
+                    let workspace = id
+                        .len()
                         .checked_mul(2)
-                        .and_then(|n| n.checked_add(event_state))
-                        .and_then(|n| {
-                            n.checked_add(
-                                2 * std::mem::size_of::<String>()
-                                    + 2 * std::mem::size_of::<usize>()
-                                    + std::mem::size_of::<Value>(),
-                            )
-                        })
-                        .ok_or(ItemRefusal::Budget)?,
-                )?;
+                        .and_then(|bytes| bytes.checked_add(std::mem::size_of::<String>() + 64))
+                        .ok_or(ItemRefusal::Budget)?;
+                    self.reserve_temporary(workspace)?;
+                    workspace
+                } else {
+                    let event_state = crate::record_biblio_cut::decoded_state(&event)?;
+                    self.reserve(
+                        id.len()
+                            .checked_mul(2)
+                            .and_then(|n| n.checked_add(event_state))
+                            .and_then(|n| {
+                                n.checked_add(
+                                    2 * std::mem::size_of::<String>()
+                                        + 2 * std::mem::size_of::<usize>()
+                                        + std::mem::size_of::<Value>(),
+                                )
+                            })
+                            .ok_or(ItemRefusal::Budget)?,
+                    )?;
+                    0
+                };
                 let source_has_id = self.source_events.event_contains(&id)?;
-                if source_has_id || !self.event_ids.insert(id.clone()) {
+                let duplicate = if source_has_id {
+                    true
+                } else if candidate_store_active {
+                    let remaining = self.remaining_state()?;
+                    let (inserted, workspace) = self
+                        .schema_request_store
+                        .as_deref_mut()
+                        .ok_or(ItemRefusal::Budget)?
+                        .remember_event(&id, &path, line, &loaded.digest, &event, remaining)?;
+                    self.include_store_workspace(workspace)?;
+                    if inserted {
+                        self.cost.candidate_event_count = self
+                            .cost
+                            .candidate_event_count
+                            .checked_add(1)
+                            .ok_or(ItemRefusal::Budget)?;
+                    }
+                    !inserted
+                } else {
+                    !self.event_ids.insert(id.clone())
+                };
+                if duplicate {
                     self.issue(
                         format!("{path}:{line}"),
                         format!("duplicate event_id: {id}"),
                     )?;
-                } else {
+                } else if self.schema_request_store.is_none() {
                     self.events.insert(id.clone(), event);
                 }
                 if path.ends_with(PROVISION_EVENT_BASENAME) {
+                    if candidate_store_active {
+                        self.release_loaded_rows(candidate_id_workspace)?;
+                    }
                     self.reserve(
                         id.len() + std::mem::size_of::<String>() + 4 * std::mem::size_of::<usize>(),
                     )?;
                     self.provision_event_ids.insert(id);
+                } else if candidate_store_active {
+                    self.release_loaded_rows(candidate_id_workspace)?;
                 }
             }
             self.release_loaded_rows(loaded_state_bytes)?;
@@ -2985,11 +3160,13 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
             ) {
                 self.issue(&claim.location, "responsibility claim assertion_layer must be bibliographic_assertion or scholarly_report")?;
             }
-            let Some(event) = self.event(&claim.event)?.map(Cow::into_owned) else {
+            let (event, event_state_bytes) = self.event(&claim.event)?;
+            let Some(event) = event.map(Cow::into_owned) else {
                 self.issue(
                     &claim.location,
                     format!("unresolved provenance_event_ref: {}", claim.event),
                 )?;
+                self.release_loaded_rows(event_state_bytes)?;
                 self.release_loaded_rows(value_state_bytes)?;
                 continue;
             };
@@ -2998,6 +3175,7 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
                     &claim.location,
                     "responsibility Claim file is absent from the current cut",
                 )?;
+                self.release_loaded_rows(event_state_bytes)?;
                 self.release_loaded_rows(value_state_bytes)?;
                 continue;
             };
@@ -3036,6 +3214,7 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
                     "responsibility claim provenance input",
                 )?;
             }
+            self.release_loaded_rows(event_state_bytes)?;
             self.release_loaded_rows(value_state_bytes)?;
         }
         self.release_temporary_since(temporary_baseline);
@@ -3113,11 +3292,13 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
                     format!("unresolved publication claim object: {}", claim.object),
                 )?;
             }
-            let Some(event) = self.event(&claim.event)?.map(Cow::into_owned) else {
+            let (event, event_state_bytes) = self.event(&claim.event)?;
+            let Some(event) = event.map(Cow::into_owned) else {
                 self.issue(
                     &location,
                     format!("unresolved provenance_event_ref: {}", claim.event),
                 )?;
+                self.release_loaded_rows(event_state_bytes)?;
                 self.release_loaded_rows(value_state_bytes)?;
                 continue;
             };
@@ -3126,6 +3307,7 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
                     &location,
                     "publication Claim file is absent from the current cut",
                 )?;
+                self.release_loaded_rows(event_state_bytes)?;
                 self.release_loaded_rows(value_state_bytes)?;
                 continue;
             };
@@ -3153,6 +3335,7 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
                     "publication claim provenance input",
                 )?;
             }
+            self.release_loaded_rows(event_state_bytes)?;
             self.release_loaded_rows(value_state_bytes)?;
         }
         self.release_temporary_since(temporary_baseline);
@@ -3330,7 +3513,8 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
                 )?;
             }
 
-            let Some(event) = self.event(&reference.event)?.map(Cow::into_owned) else {
+            let (event, event_state_bytes) = self.event(&reference.event)?;
+            let Some(event) = event.map(Cow::into_owned) else {
                 self.issue(
                     &location,
                     format!(
@@ -3338,6 +3522,7 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
                         reference.event
                     ),
                 )?;
+                self.release_loaded_rows(event_state_bytes)?;
                 continue;
             };
             let claim_path = location
@@ -3349,6 +3534,7 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
                     &location,
                     "provision-activity Claim file is absent from the current cut",
                 )?;
+                self.release_loaded_rows(event_state_bytes)?;
                 continue;
             };
             if !output_binds(
@@ -3399,6 +3585,7 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
                     )?;
                 }
             }
+            self.release_loaded_rows(event_state_bytes)?;
         }
         let unused: Vec<String> = self
             .provision_event_ids
