@@ -483,6 +483,11 @@ impl<'a> Candidate<'a> {
                 "batch validator identity differs from selected native validator",
             ));
         }
+        if batch.is_census_backed() {
+            return Err(invalid(
+                "initial census batch requires the spooled candidate path",
+            ));
+        }
 
         let mut result = Self {
             store,

@@ -3,7 +3,9 @@
 //! This is a bounded proposal producer only. The normal candidate, Native
 //! validator and initial V2 publisher remain the only admission path.
 
-use super::source_admission::{AdmissionBatch, AdmissionLimits, SourceUpdate, active, invalid};
+use super::source_admission::{
+    AdmissionBatch, AdmissionLimits, AdmissionWorkBudget, active, invalid,
+};
 use super::source_admission_segment_v2::NativeV2TreeIo;
 use super::source_admission_source_census::{
     SourceCensusLimits, SourceCensusScan, SourceCensusSummary, SourceCensusWorkKind,
@@ -15,12 +17,13 @@ use super::source_foundation_admission::NativeSourceValidator;
 use rusqlite::params;
 use rustix::fs::{AtFlags, FileType, RawDir};
 use std::{
-    collections::BTreeMap,
+    cell::RefCell,
     fs::File,
     io,
     mem::{MaybeUninit, size_of},
     os::unix::fs::MetadataExt,
     path::{Component, Path},
+    rc::Rc,
     sync::{Arc, atomic::AtomicBool},
     time::Instant,
 };
@@ -160,7 +163,7 @@ impl InitialCutPrepared<'_> {
     }
 
     pub(crate) fn work_units_used(&self) -> u64 {
-        self.fence.work.used
+        self.fence.work.used()
     }
 
     pub(crate) fn proposal_census(&self) -> SourceCensusSummary {
@@ -196,7 +199,7 @@ struct InitialCutFence<'a> {
     proposal: SourceCensusSummary,
     profile: InitialCutProfile,
     _scope: PinnedSqliteAuxScope,
-    db: PinnedSqliteConnection,
+    db: Rc<RefCell<PinnedSqliteConnection>>,
     spool_io: PinnedSqliteIoBudget,
     v2_io: PinnedSqliteIoBudget,
     deadline: Instant,
@@ -204,95 +207,32 @@ struct InitialCutFence<'a> {
     work: InitialCutWork,
 }
 
-#[derive(Clone, Copy)]
-struct InitialCutWork {
-    used: u64,
-    maximum: u64,
-}
-
 // This is a local meter for the initial-cut producer, bounded by a work slice
 // selected by its caller. Native currently exposes no shared mutable work
 // ledger, so this counter does not claim to debit global invocation work.
-impl InitialCutWork {
-    fn new(maximum: u64) -> io::Result<Self> {
-        if maximum == 0 || maximum == u64::MAX {
-            return Err(invalid("initial source cut work bound is not finite"));
-        }
-        Ok(Self { used: 0, maximum })
-    }
-
-    fn charge(&mut self, _kind: SourceCensusWorkKind) -> io::Result<()> {
-        self.charge_many(1)
-    }
-
-    fn charge_many(&mut self, count: u64) -> io::Result<()> {
-        self.used = self
-            .used
-            .checked_add(count)
-            .filter(|used| *used <= self.maximum)
-            .ok_or_else(|| invalid("initial source cut work ceiling exhausted"))?;
-        Ok(())
-    }
-}
+type InitialCutWork = AdmissionWorkBudget;
 
 fn update_rows_state_upper_bound(census: SourceCensusLimits) -> io::Result<usize> {
-    let per_row = update_row_state_per_row(census.max_path_bytes)?;
-    let rows = usize::try_from(census.max_files)
-        .map_err(|_| invalid("initial source update count exceeds address space"))?;
-    rows.checked_mul(per_row)
-        .and_then(|bytes| bytes.checked_add(8192))
+    census
+        .max_path_bytes
+        .checked_mul(24)
+        .and_then(|bytes| bytes.checked_add(16_384))
         .ok_or_else(|| invalid("initial source update-row state overflow"))
-}
-
-fn update_row_state_per_row(max_path_bytes: usize) -> io::Result<usize> {
-    max_path_bytes
-        .checked_mul(3)
-        .and_then(|bytes| {
-            bytes.checked_add(
-                size_of::<String>()
-                    .checked_add(size_of::<SourceUpdate>())?
-                    .checked_add(512)?,
-            )
-        })
-        .ok_or_else(|| invalid("initial source update-row state overflow"))
-}
-
-fn check_next_update_row_state(profile: InitialCutProfile, next_count: u64) -> io::Result<()> {
-    if next_count > profile.census.max_files {
-        return Err(invalid(
-            "initial source census row count exceeds the profile",
-        ));
-    }
-    let per_row = update_row_state_per_row(profile.census.max_path_bytes)?;
-    let required = usize::try_from(next_count)
-        .map_err(|_| invalid("initial source census row count exceeds address space"))?
-        .checked_mul(per_row)
-        .and_then(|bytes| bytes.checked_add(8192))
-        .ok_or_else(|| invalid("initial source update-row state overflow"))?;
-    if required > profile.update_rows_state_bytes {
-        return Err(invalid(
-            "initial source update map exceeds its precharged slice",
-        ));
-    }
-    Ok(())
 }
 
 fn batch_builder_state_upper_bound(census: SourceCensusLimits) -> io::Result<usize> {
-    let per_row = census
+    census
         .max_path_bytes
-        .checked_mul(16)
-        .and_then(|bytes| bytes.checked_add(2048))
-        .ok_or_else(|| invalid("initial canonical batch state overflow"))?;
-    usize::try_from(census.max_files)
-        .map_err(|_| invalid("initial canonical batch row count exceeds address space"))?
-        .checked_mul(per_row)
-        .and_then(|bytes| bytes.checked_add(8192))
+        .checked_mul(24)
+        .and_then(|bytes| bytes.checked_add(32_768))
         .ok_or_else(|| invalid("initial canonical batch state overflow"))
 }
 
 fn retained_fence_state_upper_bound() -> io::Result<usize> {
     size_of::<InitialCutPrepared<'static>>()
-        .checked_add(16_384)
+        .checked_add(AdmissionWorkBudget::retained_allocation_upper_bound_bytes())
+        .and_then(|bytes| bytes.checked_add(4 * size_of::<usize>()))
+        .and_then(|bytes| bytes.checked_add(16_384))
         .ok_or_else(|| invalid("initial source cut retained fence state overflow"))
 }
 
@@ -339,9 +279,9 @@ fn maximum_work_units(census: SourceCensusLimits) -> io::Result<u64> {
     // The census owner charges at most entries + 4*directories + 4*members +
     // 4 row-probe/aggregate/EOF units per pass. The caller separately
     // precharges six control units for its two schema DDLs, savepoint, and
-    // success/refusal cleanup. The second pass is terminal; the one extra
-    // member cursor materializes the canonical update map. The object
-    // GROUP BY also scans every proposal row, charged before that query.
+    // success/refusal cleanup. The canonical feed plus the candidate's
+    // membership and ingestion cursors share this same local work meter. The
+    // object GROUP BY also scans every proposal row, charged before query.
     // Root-name and selector fences have a separate bounded allowance for
     // both preparation and terminal verification.
     let per_scan = census
@@ -367,10 +307,20 @@ fn maximum_work_units(census: SourceCensusLimits) -> io::Result<u64> {
         .ok_or_else(|| invalid("initial source object-read work bound overflow"))?;
     per_scan
         .checked_mul(2)
-        // The ordered row import and batch builder each visit every member.
-        // The terminal namespace check visits/inserts up to one object per
-        // selected digest and performs two ordered cursors plus EOF.
-        .and_then(|units| units.checked_add(census.max_files.checked_mul(7)?))
+        // Canonical row streaming replaces the prior map import/builder work;
+        // candidate membership and ingestion each revisit every update row
+        // through a charged one-row keyset cursor.
+        .and_then(|units| units.checked_add(census.max_files.checked_mul(13)?))
+        // Initial payload ingest reopens each selected file from the held
+        // repository descriptor. A file at maximum selected depth traverses
+        // the `ToS` root prefix, its nested directories, and the leaf.
+        .and_then(|units| {
+            u64::try_from(census.max_depth)
+                .ok()?
+                .checked_add(2)
+                .and_then(|components| census.max_files.checked_mul(components))
+                .and_then(|opens| units.checked_add(opens))
+        })
         // Input rows consumed by the expected-object GROUP BY are charged
         // before SQLite starts that aggregate; output rows are charged below.
         .and_then(|units| units.checked_add(census.max_files))
@@ -380,7 +330,9 @@ fn maximum_work_units(census: SourceCensusLimits) -> io::Result<u64> {
         .ok_or_else(|| invalid("initial source cut work bound overflow"))
 }
 
-fn charge_name_guard(io: &PinnedSqliteIoBudget, name: &str) -> io::Result<()> {
+/// Charge the maintained source-admission upper bound for one descriptor-
+/// relative name-resolution/metadata window.
+pub(crate) fn charge_name_guard(io: &PinnedSqliteIoBudget, name: &str) -> io::Result<()> {
     let bytes = u64::try_from(name.len())
         .map_err(|_| invalid("initial store namespace name exceeds range"))?
         .checked_add(1 + ROOT_METADATA_GUARD_BYTES)
@@ -910,118 +862,6 @@ fn open_root_nofollow(path: &Path) -> io::Result<File> {
     Ok(current)
 }
 
-fn read_update_rows(
-    db: &PinnedSqliteConnection,
-    profile: InitialCutProfile,
-    proposal: SourceCensusSummary,
-    work: &mut InitialCutWork,
-    deadline: Instant,
-    cancel: &AtomicBool,
-) -> io::Result<BTreeMap<String, SourceUpdate>> {
-    let mut updates = BTreeMap::new();
-    let mut count = 0u64;
-    let mut source_bytes = 0u64;
-    work.charge_many(2)?;
-    let mut statement = db
-        .prepare(
-            "SELECT path,sha256,size,mode FROM source_member_census WHERE scan_label=?1 ORDER BY path COLLATE BINARY",
-        )
-        .map_err(|_| invalid("initial source census row query refused"))?;
-    let mut rows = statement
-        .query(params![SourceCensusScan::Proposal.label()])
-        .map_err(|_| invalid("initial source census row cursor refused"))?;
-    loop {
-        active(deadline, cancel)?;
-        let next_count = count
-            .checked_add(1)
-            .ok_or_else(|| invalid("initial source census row count overflow"))?;
-        if count < profile.census.max_files {
-            check_next_update_row_state(profile, next_count)?;
-        }
-        work.charge(SourceCensusWorkKind::SqlRow)?;
-        let Some(row) = rows
-            .next()
-            .map_err(|_| invalid("initial source census row read refused"))?
-        else {
-            break;
-        };
-        if count >= profile.census.max_files {
-            return Err(invalid("initial source census has more rows than selected"));
-        }
-        let path: String = row
-            .get(0)
-            .map_err(|_| invalid("initial source census path decode refused"))?;
-        let digest: Vec<u8> = row
-            .get(1)
-            .map_err(|_| invalid("initial source census digest decode refused"))?;
-        let size: i64 = row
-            .get(2)
-            .map_err(|_| invalid("initial source census size decode refused"))?;
-        let mode: i64 = row
-            .get(3)
-            .map_err(|_| invalid("initial source census mode decode refused"))?;
-        if path.len() > profile.census.max_path_bytes
-            || !tos_source_store::is_authored_source_path_v1(&path)
-        {
-            return Err(invalid(
-                "initial source census path is outside the admitted selection",
-            ));
-        }
-        let relative = RelativePath::parse(&path).map_err(invalid)?;
-        if relative.as_str() != path {
-            return Err(invalid("initial source census path normalization differs"));
-        }
-        if updates
-            .last_key_value()
-            .is_some_and(|(previous, _)| previous.as_bytes() >= path.as_bytes())
-        {
-            return Err(invalid(
-                "initial source census rows are not unique and ordered",
-            ));
-        }
-        let digest: [u8; 32] = digest
-            .try_into()
-            .map_err(|_| invalid("initial source census digest width differs"))?;
-        let size =
-            u64::try_from(size).map_err(|_| invalid("initial source census size is negative"))?;
-        let mode =
-            u32::try_from(mode).map_err(|_| invalid("initial source census mode range differs"))?;
-        if size > profile.census.max_member_bytes
-            || size > profile.admission.max_member_bytes
-            || !matches!(mode, 0o600 | 0o644 | 0o755)
-        {
-            return Err(invalid(
-                "initial source census row exceeds the original limits",
-            ));
-        }
-        count = next_count;
-        source_bytes = source_bytes
-            .checked_add(size)
-            .filter(|bytes| *bytes <= profile.admission.max_source_bytes)
-            .ok_or_else(|| invalid("initial source census bytes exceed the profile"))?;
-        let inserted = updates.insert(
-            relative.into_string(),
-            SourceUpdate {
-                sha256: Digest256::from_bytes(digest),
-                size_bytes: size,
-                mode,
-            },
-        );
-        if inserted.is_some() {
-            return Err(invalid("initial source census contains a duplicate path"));
-        }
-    }
-    if count != proposal.member_count
-        || source_bytes != proposal.source_bytes
-        || usize::try_from(count).ok() != Some(updates.len())
-        || updates.is_empty()
-        || updates.len() > profile.admission.max_members
-    {
-        return Err(invalid("initial source census ordered EOF totals differ"));
-    }
-    Ok(updates)
-}
-
 #[allow(clippy::too_many_arguments)]
 pub(crate) fn prepare_initial_cut<'a>(
     root_name: &'a Path,
@@ -1071,46 +911,51 @@ pub(crate) fn prepare_initial_cut<'a>(
     work.charge_many(32)?;
     let mut scope = PinnedSqliteAuxScope::new(workspace, aux)
         .map_err(|_| invalid("initial source cut held AUX scope refused"))?;
-    let db = scope
-        .open_connection()
-        .map_err(|_| invalid("initial source cut AUX connection refused"))?;
+    let db =
+        Rc::new(RefCell::new(scope.open_connection().map_err(|_| {
+            invalid("initial source cut AUX connection refused")
+        })?));
     work.charge_many(16)?;
-    configure_db(&db, profile.sqlite_cache_bytes)?;
-    create_object_inventory_table(&db, &mut work)?;
     let progress_deadline = deadline;
     let progress_cancel = Arc::clone(&retained_cancel);
-    db.progress_handler(
-        1000,
-        Some(move || active(progress_deadline, &progress_cancel).is_err()),
-    );
+    {
+        let db_guard = db.borrow_mut();
+        configure_db(&db_guard, profile.sqlite_cache_bytes)?;
+        create_object_inventory_table(&db_guard, &mut work)?;
+        db_guard.progress_handler(
+            1000,
+            Some(move || active(progress_deadline, &progress_cancel).is_err()),
+        );
+    }
     work.charge_many(CENSUS_CONTROL_SQL_WORK_UNITS)?;
     let mut callback = |kind| work.charge(kind);
-    let proposal = census_selected_to_scratch(
-        &root,
-        &db,
-        &spool_io,
-        SourceCensusScan::Proposal,
-        profile.census,
-        &mut callback,
-        deadline,
-        cancel,
-    )?;
+    let proposal = {
+        let db_guard = db.borrow_mut();
+        census_selected_to_scratch(
+            &root,
+            &db_guard,
+            &spool_io,
+            SourceCensusScan::Proposal,
+            profile.census,
+            &mut callback,
+            deadline,
+            cancel,
+        )?
+    };
     drop(callback);
-    let updates = read_update_rows(&db, profile, proposal, &mut work, deadline, cancel)?;
-    work.charge_many(
-        u64::try_from(updates.len())
-            .map_err(|_| invalid("initial source batch row count exceeds work range"))?
-            .checked_add(8)
-            .ok_or_else(|| invalid("initial source batch work overflow"))?,
-    )?;
-    let batch = AdmissionBatch::from_verified_rows(
-        None,
+    let batch = AdmissionBatch::from_verified_census_rows(
+        db.clone(),
+        SourceCensusScan::Proposal.label(),
+        proposal.member_count,
+        proposal.source_bytes,
         invocation.identity(),
-        updates,
         root.try_clone()
             .map_err(|_| invalid("initial source root descriptor clone refused"))?,
         profile.admission,
+        profile.census.max_path_bytes,
+        profile.update_rows_state_bytes,
         profile.batch_builder_state_bytes,
+        work.clone(),
         &spool_io,
         deadline,
         cancel,
@@ -1159,16 +1004,19 @@ impl InitialCutFence<'_> {
         }
         self.work.charge_many(CENSUS_CONTROL_SQL_WORK_UNITS)?;
         let mut callback = |kind| self.work.charge(kind);
-        let terminal = census_selected_to_scratch(
-            &self.root,
-            &self.db,
-            &self.spool_io,
-            SourceCensusScan::Terminal,
-            self.profile.census,
-            &mut callback,
-            self.deadline,
-            &self.cancel,
-        )?;
+        let terminal = {
+            let db_guard = self.db.borrow_mut();
+            census_selected_to_scratch(
+                &self.root,
+                &db_guard,
+                &self.spool_io,
+                SourceCensusScan::Terminal,
+                self.profile.census,
+                &mut callback,
+                self.deadline,
+                &self.cancel,
+            )?
+        };
         drop(callback);
         if terminal != self.proposal {
             return Err(invalid(
@@ -1183,17 +1031,20 @@ impl InitialCutFence<'_> {
         {
             return Err(invalid("initial V2 selector appeared before publication"));
         }
-        verify_terminal_store_namespaces(
-            store,
-            &self.db,
-            &self.v2_io,
-            &self.spool_io,
-            self.profile,
-            self.proposal,
-            &mut self.work,
-            self.deadline,
-            &self.cancel,
-        )?;
+        {
+            let db_guard = self.db.borrow_mut();
+            verify_terminal_store_namespaces(
+                store,
+                &db_guard,
+                &self.v2_io,
+                &self.spool_io,
+                self.profile,
+                self.proposal,
+                &mut self.work,
+                self.deadline,
+                &self.cancel,
+            )?;
+        }
         self.work
             .charge_many(root_path_component_count(self.root_name)?.saturating_add(1))?;
         verify_named_root(
