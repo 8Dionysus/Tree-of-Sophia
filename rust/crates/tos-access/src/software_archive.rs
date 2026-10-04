@@ -23,12 +23,13 @@ use zip::{CompressionMethod, DateTime, ZipWriter, write::SimpleFileOptions};
 
 const PROGRAM: &str = "access/src/tos_access/tos-access";
 const COMMAND_SCHEMA: &str = "tos_native_software_command_build_v1";
-const COMMANDS: [&str; 5] = [
+const COMMANDS: [&str; 6] = [
     "tos-native-owner-command",
     "tos-schema-worker",
     "tos-validation-lanes",
     "tos-release-check",
     "tos-software-ci",
+    "tos-ops-mechanics-plan",
 ];
 fn command_member(name: &str) -> String {
     format!("native/bin/{name}")
@@ -414,9 +415,13 @@ fn source(root: &File) -> Result<(String, String)> {
     Ok((head, tree))
 }
 fn proof(p: &JsonValue, source_ref: &str) -> Result<()> {
-    proof_kind(p, source_ref, false)
+    proof_kind(p, source_ref, None)
 }
-fn proof_kind(p: &JsonValue, source_ref: &str, command: bool) -> Result<()> {
+fn proof_kind(p: &JsonValue, source_ref: &str, role: Option<&str>) -> Result<()> {
+    let command = role.is_some();
+    if role.is_some_and(|name| !COMMANDS.contains(&name)) {
+        return Err("unsupported native command proof role".into());
+    }
     let mut keys = vec![
         "schema_version",
         "sha256",
@@ -452,12 +457,20 @@ fn proof_kind(p: &JsonValue, source_ref: &str, command: bool) -> Result<()> {
     {
         return Err("native proof profile/source differs".into());
     }
-    if command
-        && !field(p, "features")?
-            .as_array()
-            .is_some_and(|features| features.is_empty())
-    {
-        return Err("native command role requires its empty effective feature set".into());
+    if let Some(role) = role {
+        let expected: &[&str] = if role == "tos-ops-mechanics-plan" {
+            &["compiler-backed-validators", "default"]
+        } else {
+            &[]
+        };
+        if !field(p, "features")?.as_array().is_some_and(|features| {
+            features.len() == expected.len()
+                && features.iter().zip(expected).all(|(actual, expected)| {
+                    actual.as_str() == Some(*expected)
+                })
+        }) {
+            return Err("native command role effective feature set differs".into());
+        }
     }
     for key in ["sha256", "lock_sha256"] {
         Digest256::from_hex(string(p, key)?).checked()?;
@@ -482,8 +495,8 @@ fn proof_kind(p: &JsonValue, source_ref: &str, command: bool) -> Result<()> {
     }
     Ok(())
 }
-pub(crate) fn command_proof(p: &JsonValue, access: &JsonValue) -> Result<()> {
-    proof_kind(p, string(access, "source_commit")?, true)?;
+pub(crate) fn command_proof(role: &str, p: &JsonValue, access: &JsonValue) -> Result<()> {
+    proof_kind(p, string(access, "source_commit")?, Some(role))?;
     for key in ["source_tree", "lock_sha256", "toolchain", "target"] {
         if field(p, key)? != field(access, key)? {
             return Err("native commands must match the exact access source cohort".into());
@@ -513,7 +526,7 @@ fn command_closure<'a>(
     }
     for role in COMMANDS {
         if let Some(proof) = commands.object_get(role) {
-            command_proof(proof, access)?;
+            command_proof(role, proof, access)?;
         }
     }
     Ok(Some(commands))
@@ -857,7 +870,7 @@ pub fn build_with_commands(
             }
             let mut receipt = open_file(Path::new(string(selected, "receipt")?), 65_536)?;
             let proof = json(&read_small(&mut receipt, 65_536)?, 65_536)?;
-            command_proof(&proof, &p)?;
+            command_proof(role, &proof, &p)?;
             input_metadata = input_metadata
                 .checked_add(
                     encode(&proof, 65_536)?
@@ -1748,4 +1761,41 @@ pub fn run_if_requested(
             1
         }
     })
+}
+
+#[cfg(test)]
+mod role_feature_tests {
+    use super::*;
+
+    fn proof_with_features(features: &str) -> JsonValue {
+        let raw = format!(
+            r#"{{"schema_version":"tos_native_software_command_build_v1","sha256":"{digest}","size_bytes":64,"target":"x86_64-unknown-linux-gnu","source_commit":"{commit}","source_tree":"{commit}","lock_sha256":"{digest}","toolchain":"1.98.1","profile":"release","features":{features}}}"#,
+            digest = "a".repeat(64),
+            commit = "b".repeat(40),
+        );
+        json(raw.as_bytes(), 4096).unwrap()
+    }
+
+    #[test]
+    fn native_role_features_are_exact_and_do_not_widen_other_commands() {
+        let empty = proof_with_features("[]");
+        let phi = proof_with_features(r#"["compiler-backed-validators","default"]"#);
+        assert!(command_proof("tos-ops-mechanics-plan", &phi, &empty).is_ok());
+        assert!(command_proof("tos-ops-mechanics-plan", &empty, &empty).is_err());
+        for role in COMMANDS {
+            if role != "tos-ops-mechanics-plan" {
+                assert!(command_proof(role, &empty, &empty).is_ok());
+                assert!(command_proof(role, &phi, &empty).is_err());
+            }
+        }
+        for features in [
+            r#"["compiler-backed-validators"]"#,
+            r#"["default","compiler-backed-validators"]"#,
+            r#"["compiler-backed-validators","default","wasm"]"#,
+        ] {
+            let wrong = proof_with_features(features);
+            assert!(command_proof("tos-ops-mechanics-plan", &wrong, &empty).is_err());
+        }
+        assert!(command_proof("unknown-role", &empty, &empty).is_err());
+    }
 }

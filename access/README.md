@@ -1568,18 +1568,22 @@ The access-only native software archive has the executable member
 The same archive optionally delivers a selected command subset through
 `software build --native-command-products /absolute/products.json`. This bounded
 JSON object must select a nonempty subset of `tos-native-owner-command`,
-`tos-schema-worker`, `tos-validation-lanes`, `tos-release-check`, and
-`tos-software-ci`; every value
+`tos-schema-worker`, `tos-validation-lanes`, `tos-release-check`,
+`tos-software-ci`, and `tos-ops-mechanics-plan`; every value
 contains only absolute `binary` and `receipt` paths. Each build-owned receipt
 uses `tos_native_software_command_build_v1`, the access receipt identity fields,
-and `features: []`. The three ops products are built with
+and the exact role feature set. The philosophy/planting command
+`tos-ops-mechanics-plan` requires exactly the sorted effective Cargo features
+`["compiler-backed-validators", "default"]`; its ordinary native role uses the
+compiler-backed validators. Every other command requires `features: []`.
+The three CI prerequisite ops products are built with
 `--no-default-features`; command and schema-worker products use their empty
 effective feature set. Every selected role must match the access source commit/tree, lock,
 toolchain and target. Their SHA/size and ELF headers are checked independently.
 The additive `native_commands` manifest closure binds these exact roles at
 `native/bin/NAME`; install creates corresponding relative `PREFIX/bin/NAME`
 links only for the selected roles. A role member without its declared proof is
-rejected. Selecting all five preserves the complete command cohort; selecting
+rejected. Selecting all six delivers the declared command cohort; selecting
 only `tos-schema-worker` delivers the necessary selected-source companion.
 Omitting the selector preserves the access-only archive contract.
 Delivery supplies executables, not invocation files, owner grants or corpus
