@@ -1036,7 +1036,7 @@ pub(crate) fn prepare_record_revision<'a>(
     };
     drop(expected);
     let batch = AdmissionBatch::from_verified_rows(
-        original_base.0,
+        Some(original_base.0),
         validator_sha256,
         updates,
         fs.protected_root_file()

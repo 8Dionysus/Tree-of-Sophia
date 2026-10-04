@@ -164,7 +164,7 @@ impl AdmissionBatch {
     /// Native validator still consume the batch, and the input root remains a
     /// held directory descriptor.
     pub(crate) fn from_verified_rows(
-        base_revision: Digest256,
+        base_revision: Option<Digest256>,
         validator_sha256: Digest256,
         updates: BTreeMap<String, SourceUpdate>,
         input: File,
@@ -242,7 +242,9 @@ impl AdmissionBatch {
             ),
             (
                 "base_revision",
-                crate::source_command::string(&base_revision.to_hex()),
+                base_revision.map_or(crate::source_command::JsonValue::Null, |revision| {
+                    crate::source_command::string(&revision.to_hex())
+                }),
             ),
             (
                 "validator_sha256",
@@ -272,7 +274,7 @@ impl AdmissionBatch {
         active(deadline, cancel)?;
         Ok(Self {
             batch_sha256: hasher.finalize(),
-            base_revision: Some(base_revision),
+            base_revision,
             validator_sha256,
             updates,
             retirements: BTreeMap::new(),
