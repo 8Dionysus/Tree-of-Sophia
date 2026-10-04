@@ -6,6 +6,7 @@ catalogs. Native non-Corpus shapes (for example artifacts) keep their adapters.
 """
 from __future__ import annotations
 
+from collections import OrderedDict
 import hashlib
 import json
 import os
@@ -25,6 +26,75 @@ CONTRACT_REF = 'ToS/contracts/semantic-entity-type-registry.schema.json'
 CORPUS_REF = 'ToS/contracts/corpus-record.schema.json'
 SOURCE_ROOT = Path('ToS/source-witnesses')
 MAX_RECORD_BYTES = 1_048_576
+# Pure successful validation certificates only: schema certification, closed
+# registry grammar and record shape. Fresh reads, selected resource construction,
+# route/identity/visibility checks and errors are never cached. Keys cover every
+# JSON input to the pure check; bounded eviction retains no live objects or roots.
+_VALID_PROFILE_CHECKS = OrderedDict()
+_MAX_VALID_PROFILE_CHECKS = 256
+
+
+def _json_native_shape(value):
+    # JSON encoding alone conflates tuples/lists and coerces object keys.
+    # Such Python values must keep the original validator's type semantics.
+    pending, seen, count = [value], set(), 0
+    while pending:
+        value = pending.pop()
+        count += 1
+        if count > 100_000:
+            return False
+        if type(value) in (dict, list):
+            if id(value) in seen:
+                return False
+            seen.add(id(value))
+            if type(value) is dict:
+                if any(type(key) is not str for key in value):
+                    return False
+                pending.extend(value.values())
+            else:
+                pending.extend(value)
+        elif value is not None and type(value) not in (str, bool, int, float):
+            return False
+    return True
+
+def _pure_profile_check(inputs, check):
+    key = None
+    if _json_native_shape(inputs):
+        try:
+            key = hashlib.sha256(json.dumps(inputs, ensure_ascii=False, sort_keys=True,
+                allow_nan=False, separators=(',', ':')).encode('utf-8')).digest()
+        except (TypeError, ValueError, RecursionError):
+            pass  # Keep the original type/error path for non-canonical values.
+    if key is not None and key in _VALID_PROFILE_CHECKS:
+        _VALID_PROFILE_CHECKS.move_to_end(key)
+        return True
+    valid = check()  # Exceptions and rejected values keep their original path.
+    if valid and key is not None:
+        _VALID_PROFILE_CHECKS[key] = None
+        if len(_VALID_PROFILE_CHECKS) > _MAX_VALID_PROFILE_CHECKS:
+            _VALID_PROFILE_CHECKS.popitem(last=False)
+    return valid
+
+
+def _registry_shape_valid(schema, value):
+    # These registry contracts use only their own JSON-pointer definitions.
+    # A future external reference keeps the original resolver/validation path.
+    if not _json_native_shape(schema):
+        return Draft202012Validator(schema).is_valid(value)
+    pending = [schema]
+    while pending:
+        node = pending.pop()
+        if isinstance(node, dict):
+            if any(key in {'$ref', '$dynamicRef'} and (not isinstance(ref, str) or not ref.startswith('#'))
+                   for key, ref in node.items()):
+                return Draft202012Validator(schema).is_valid(value)
+            pending.extend(node.values())
+        elif isinstance(node, list):
+            pending.extend(node)
+    return _pure_profile_check(['closed-registry-shape', schema, value],
+                              lambda: Draft202012Validator(schema).is_valid(value))
+
+
 MAX_NATIVE_IDENTITY_BYTES = 8_388_608
 # Identity spaces of the understood native v2 adapter, not a universal type
 # registry. A future native contract expanding these spaces needs an adapter
@@ -111,7 +181,8 @@ def _schema_route(root, route, digests, cache, shared_refs=(), *, read_json=None
             if schema.get('$id') not in {'https://tree-of-sophia.local/' + ref,
                                           'https://treeofsophia.local/' + ref}:
                 raise SourceProfileError(f'{ref}: schema identity differs from its declared owner path')
-            Draft202012Validator.check_schema(schema)
+            _pure_profile_check(['draft2020-schema-certification', Draft202012Validator.META_SCHEMA, schema],
+                                lambda: Draft202012Validator.check_schema(schema) is None)
             cache[ref] = schema
         schema = cache[ref]
         if schema['$id'] in resources:
@@ -258,10 +329,9 @@ class SourceRecordProfiles:
         self.input_digests = {}
         self.registry = _read_json(root, REGISTRY_REF, self.input_digests)
         contract = _read_json(root, CONTRACT_REF, self.input_digests)
-        if not Draft202012Validator(contract).is_valid(self.registry):
+        if not _registry_shape_valid(contract, self.registry):
             raise SourceProfileError('entity registry violates its source contract')
         descriptor_contract = contract['$defs']['sourceRecordProfile']
-        validator = Draft202012Validator(descriptor_contract)
         entities = {entry['type_id']: entry for entry in self.registry['types']}
         if len(entities) != len(self.registry['types']):
             raise SourceProfileError('duplicate entity type identity')
@@ -278,7 +348,7 @@ class SourceRecordProfiles:
             profile = entry.get('source_record_profile')
             if profile is None:
                 continue
-            if not validator.is_valid(profile):
+            if not _registry_shape_valid(descriptor_contract, profile):
                 raise SourceProfileError('source-record profile violates its declared contract')
             kind = profile['record_type']
             if 'identity_proposal_adapter' in profile and not identity_proposals.semantic_profile_eligible(entry):
@@ -505,7 +575,10 @@ class SourceRecordProfiles:
             raise SourceProfileError(f'{kind}: invalid source identity or incompatible metadata')
         try:
             key = kind, source['schema_version']
-            if not self.validator(*key).is_valid(source) or not self.metadata_validators[key].is_valid(source):
+            validator = self.validator(*key)
+            if not _pure_profile_check(['record-shape', key[0], key[1],
+                    [[ref, digest] for ref, digest in sorted(self.input_digests.items())], source],
+                    lambda: validator.is_valid(source) and self.metadata_validators[key].is_valid(source)):
                 raise SourceProfileError(f'{kind}: source record violates its exact profile schema or shared metadata contract')
         except Unresolvable as error:
             raise SourceProfileError(f'{kind}: source schema has an undeclared dependency') from error
@@ -548,11 +621,11 @@ class SourceClaimProfiles:
         read = read_json if read_json is not None else lambda ref, digests: _read_json(root, ref, digests)
         self.registry = read(CLAIM_REGISTRY_REF, self.input_digests)
         contract = read(CLAIM_CONTRACT_REF, self.input_digests)
-        if not Draft202012Validator(contract).is_valid(self.registry):
+        if not _registry_shape_valid(contract, self.registry):
             raise SourceProfileError('relation registry violates its source contract')
         entity_registry = read(REGISTRY_REF, self.input_digests)
         entity_contract = read(CONTRACT_REF, self.input_digests)
-        if not Draft202012Validator(entity_contract).is_valid(entity_registry):
+        if not _registry_shape_valid(entity_contract, entity_registry):
             raise SourceProfileError('entity registry violates its source contract')
         self.entities = {entry['type_id']: entry for entry in entity_registry['types']}
         if len(self.entities) != len(entity_registry['types']):

@@ -21,7 +21,7 @@ from jsonschema import ValidationError
 
 
 ROOT = Path(__file__).resolve().parents[3]
-sys.path[:0] = [str(ROOT / 'scripts'), str(ROOT / 'tests'),
+sys.path[:0] = [str(ROOT), str(ROOT / 'scripts'), str(ROOT / 'tests'),
                str(ROOT / 'mechanics/growth-cycle/tests'),
                str(ROOT / 'mechanics/growth-cycle/parts/branch-growth-cycle/scripts')]
 

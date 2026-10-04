@@ -93,7 +93,7 @@ pub(super) fn write_cut_store_with_modes(
     write_cut_store_with_optional_modes(files, root, None, Some(modes))
 }
 
-fn write_cut_store_with_optional_modes(
+pub(super) fn write_cut_store_with_optional_modes(
     files: &BTreeMap<String, Vec<u8>>,
     root: &Path,
     base: Option<SourceRevision>,

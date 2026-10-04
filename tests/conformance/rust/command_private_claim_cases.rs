@@ -35,7 +35,15 @@ fn canonical(value: &Value) -> Vec<u8> {
 }
 
 fn request_digest(value: &Value) -> String {
-    Digest256::of_bytes(&canonical(value)).to_prefixed()
+    Digest256::of_bytes(
+        &tos_foundation::canonical_raw_bytes_v1(
+            &serde_json::to_vec(value).unwrap(),
+            CanonicalProfile::SourceCommandInputV1,
+            JsonLimits::default(),
+        )
+        .unwrap(),
+    )
+    .to_prefixed()
 }
 
 fn assert_same_keys(left: &Value, right: &Value) {

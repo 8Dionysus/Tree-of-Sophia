@@ -157,7 +157,10 @@ fn selected_capture(
                 .bytes()
                 .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
     );
-    let temporary = tempfile::tempdir().unwrap();
+    let temporary = tempfile::Builder::new()
+        .permissions(fs::Permissions::from_mode(0o700))
+        .tempdir()
+        .unwrap();
     let capture = temporary.path().join("software-capture");
     let restored = temporary.path().join("software-restored");
     let tool = temporary.path().join("corpus_archive.py");
@@ -418,7 +421,10 @@ fn native_private_profile_cli_preserves_owner_lifecycle_and_cold_archives() {
         "private Profile F={fixture_bytes} E={native_bytes} C={consumer_bytes} W={worker_bytes} P={python_bytes} native_processes=10 launcher_processes=10 fixture_processes=1 explicit_oracle_calls=2 capture_direct_git=2 capture_python=2 capture_inner_git=4 workers<=10"
     );
     let (capture, components) = selected_capture(&repository, &names, deadline);
-    let temporary = tempfile::tempdir().unwrap();
+    let temporary = tempfile::Builder::new()
+        .permissions(fs::Permissions::from_mode(0o700))
+        .tempdir()
+        .unwrap();
     let selected = fixture(&repository, temporary.path(), deadline);
     let public = PathBuf::from(selected["public"].as_str().unwrap());
     let private = PathBuf::from(selected["private"].as_str().unwrap());

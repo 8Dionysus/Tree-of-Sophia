@@ -507,7 +507,10 @@ fn native_owner_alignment_preserves_versions_competition_and_cold_replay() {
         .unwrap();
     let deadline = Instant::now() + Duration::from_secs(900);
     let cancelled = AtomicBool::new(false);
-    let temporary = tempfile::tempdir().unwrap();
+    let temporary = tempfile::Builder::new()
+        .permissions(fs::Permissions::from_mode(0o700))
+        .tempdir()
+        .unwrap();
     let fixture = alignment_fixture(
         &repository,
         temporary.path(),
@@ -961,7 +964,10 @@ fn native_text_layer_extracts_private_epub_and_cold_replays() {
         .unwrap();
     let deadline = Instant::now() + Duration::from_secs(240);
     let cancelled = AtomicBool::new(false);
-    let temporary = tempfile::tempdir().unwrap();
+    let temporary = tempfile::Builder::new()
+        .permissions(fs::Permissions::from_mode(0o700))
+        .tempdir()
+        .unwrap();
     let fixture = text_fixture(
         &repository,
         temporary.path(),

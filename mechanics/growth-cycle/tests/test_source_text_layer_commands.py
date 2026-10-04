@@ -50,10 +50,13 @@ class NativeLayerCommandTests(unittest.TestCase):
         self.member = b'<?xml version="1.0" encoding="utf-8"?><html xmlns="http://www.w3.org/1999/xhtml"><body><p>Other.</p><p id="chosen">  A\n cafe\xcc\x81 <em>test</em><br/> tail. </p></body></html>'
         self.content = '  A\n cafe\u0301 test\n tail. '.encode()
         self.payload_root = self.base / 'canonical-payload-owner'
-        self.payload_root.mkdir()
+        self.payload_root.mkdir(mode=0o700)
         self.payload = (self.payload_root / Path(self.fixture.item_home).relative_to('ToS/source-witnesses')
                         / 'payload' / 'source.epub')
-        self.payload.parent.mkdir(parents=True)
+        payload_parent = self.payload_root
+        for part in self.payload.relative_to(self.payload_root).parent.parts:
+            payload_parent /= part
+            payload_parent.mkdir(mode=0o700)
         self.original = self.epub(self.member)
         self.payload.write_bytes(self.original)
         self.payload.chmod(0o600)

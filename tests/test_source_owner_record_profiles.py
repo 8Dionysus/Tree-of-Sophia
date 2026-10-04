@@ -137,6 +137,33 @@ class OwnerLocalSourceRecordProfilesTests(unittest.TestCase):
         self.assertFalse(summary['public_content_declared'])
         self.assertFalse(summary['assessment_applied'])
 
+    def test_warmed_shape_rechecks_mutated_values_and_changed_schema(self):
+        reader = SourceRecordProfiles(self.public)
+        source = lexeme()
+        source['visibility'] = 'public_metadata_only'
+        reader.validate('lexeme', source)
+        # JSON serialization gives this tuple the same bytes as the valid list,
+        # but the public schema API requires a real Python array.
+        mutated = copy.deepcopy(source)
+        mutated['external_identifiers'] = tuple(mutated['external_identifiers'])
+        with self.assertRaises(SourceProfileError):
+            reader.validate('lexeme', mutated)
+        mutated = copy.deepcopy(source)
+        mutated['semantic_content'] = []
+        with self.assertRaises(SourceProfileError):
+            reader.validate('lexeme', mutated)
+        reader.validate('lexeme', source)
+        schema_path = self.public / 'ToS/contracts/lexical-description-record.schema.json'
+        original = schema_path.read_bytes()
+        schema = json.loads(original)
+        schema.setdefault('allOf', []).append({'not': {'required': ['record_id']}})
+        schema_path.write_bytes(self.encode(schema))
+        try:
+            with self.assertRaises(SourceProfileError):
+                SourceRecordProfiles(self.public).validate('lexeme', source)
+        finally:
+            schema_path.write_bytes(original)
+
     def test_validate_and_load_never_read_content_even_with_exact_access(self):
         seen = []
 
