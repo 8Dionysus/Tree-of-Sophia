@@ -105,6 +105,13 @@ pub struct SourceFoundationClosureCost {
     pub candidate_link_serialized_read_bytes: u64,
     pub candidate_link_scan_row_operations: u64,
     pub candidate_link_peak_workspace_state_bytes: usize,
+    /// Candidate-local Closure schema requests stored until the existing
+    /// diagnostic worker drains them in encounter order.
+    pub candidate_schema_request_count: u64,
+    pub candidate_schema_request_serialized_write_bytes: u64,
+    pub candidate_schema_request_serialized_read_bytes: u64,
+    pub candidate_schema_request_scan_row_operations: u64,
+    pub candidate_schema_request_peak_workspace_state_bytes: usize,
 }
 
 /// Plain current-record projection used only by the source-foundation Link
@@ -155,6 +162,42 @@ pub trait SourceFoundationClosureLinkStore {
         expected_rows: u64,
         max_state_bytes: usize,
     ) -> Result<SourceFoundationClosureLinkStoreCost, ItemRefusal>;
+
+    fn verify_finished(&self) -> Result<(), ItemRefusal>;
+}
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct SourceFoundationClosureSchemaRequestStoreCost {
+    pub observation_rows: u64,
+    pub serialized_write_bytes: u64,
+    pub serialized_read_bytes: u64,
+    pub workspace_state_bytes: usize,
+    pub scan_row_operations: u64,
+}
+
+/// Portable candidate spool for authentic Closure schema requests. Request
+/// encounter order and district-local issue insertion offsets remain explicit.
+pub trait SourceFoundationClosureSchemaRequestStore {
+    fn record_request(
+        &mut self,
+        request: &SourceFoundationClosureSchemaRequest,
+        max_document_bytes: usize,
+        max_state_bytes: usize,
+    ) -> Result<usize, ItemRefusal>;
+
+    fn finish(
+        &mut self,
+        expected_rows: u64,
+        direct_issue_count: usize,
+        max_state_bytes: usize,
+    ) -> Result<SourceFoundationClosureSchemaRequestStoreCost, ItemRefusal>;
+
+    fn next_request(
+        &mut self,
+        max_state_bytes: usize,
+    ) -> Result<(Option<SourceFoundationClosureSchemaRequest>, usize), ItemRefusal>;
+
+    fn cost(&self) -> SourceFoundationClosureSchemaRequestStoreCost;
 
     fn verify_finished(&self) -> Result<(), ItemRefusal>;
 }
@@ -238,6 +281,7 @@ pub fn inspect_source_foundation_closure<S: LayerFamilySource + ?Sized>(
         &paths,
         &claims,
         None,
+        None,
         limits,
         true,
         true,
@@ -271,6 +315,7 @@ pub fn inspect_source_foundation_closure_with_identity<I: Eq, S: LayerFamilySour
         paths,
         claims,
         None,
+        None,
         limits,
         true,
     )
@@ -302,6 +347,40 @@ pub fn inspect_source_foundation_closure_with_identity_and_link_store<
         paths,
         claims,
         link_store,
+        None,
+        limits,
+        false,
+    )
+}
+
+#[allow(clippy::too_many_arguments)]
+pub fn inspect_source_foundation_closure_with_identity_and_candidate_stores<
+    I: Eq,
+    S: LayerFamilySource + ?Sized,
+>(
+    source: &mut S,
+    input: &dyn SourceCutInputWithIdentity<I>,
+    expected_identity: &I,
+    coverage: &SourceCutInputCoverage,
+    source_events: &dyn SourceFoundationDefaultEventLookup,
+    records: &dyn SourceFoundationDefaultRecordsLookup,
+    paths: &dyn SourceFoundationDefaultPaths,
+    claims: &dyn SourceFoundationDefaultClaims,
+    link_store: Option<&mut dyn SourceFoundationClosureLinkStore>,
+    schema_request_store: Option<&mut dyn SourceFoundationClosureSchemaRequestStore>,
+    limits: ItemLimits,
+) -> Result<SourceFoundationClosureReport, ItemRefusal> {
+    inspect_source_foundation_closure_with_identity_and_link_store_cache(
+        source,
+        input,
+        expected_identity,
+        coverage,
+        source_events,
+        records,
+        paths,
+        claims,
+        link_store,
+        schema_request_store,
         limits,
         false,
     )
@@ -321,6 +400,7 @@ fn inspect_source_foundation_closure_with_identity_and_link_store_cache<
     paths: &dyn SourceFoundationDefaultPaths,
     claims: &dyn SourceFoundationDefaultClaims,
     link_store: Option<&mut dyn SourceFoundationClosureLinkStore>,
+    schema_request_store: Option<&mut dyn SourceFoundationClosureSchemaRequestStore>,
     limits: ItemLimits,
     cache_recorded_checks: bool,
 ) -> Result<SourceFoundationClosureReport, ItemRefusal> {
@@ -341,6 +421,7 @@ fn inspect_source_foundation_closure_with_identity_and_link_store_cache<
         paths,
         claims,
         link_store,
+        schema_request_store,
         limits,
         false,
         cache_recorded_checks,
@@ -364,6 +445,7 @@ fn run_source_foundation_closure<S: LayerFamilySource + ?Sized>(
     paths: &dyn SourceFoundationDefaultPaths,
     claims: &dyn SourceFoundationDefaultClaims,
     link_store: Option<&mut dyn SourceFoundationClosureLinkStore>,
+    schema_request_store: Option<&mut dyn SourceFoundationClosureSchemaRequestStore>,
     limits: ItemLimits,
     cache_digests: bool,
     cache_recorded_checks: bool,
@@ -390,6 +472,7 @@ fn run_source_foundation_closure<S: LayerFamilySource + ?Sized>(
         paths,
         claims,
         link_store,
+        schema_request_store,
         limits,
         cache_digests,
         cache_recorded_checks,
@@ -406,6 +489,42 @@ fn run_source_foundation_closure<S: LayerFamilySource + ?Sized>(
     rules.check_chronology()?;
     rules.check_object_links()?;
     rules.check_record_backlinks()?;
+
+    let expected_schema_rows = rules.cost.schema_requests;
+    let schema_request_finish = if rules.schema_request_store.is_some() {
+        let direct_issue_count = rules.issues.len();
+        let remaining = rules.remaining_state()?;
+        let finished = rules
+            .schema_request_store
+            .as_deref_mut()
+            .ok_or(ItemRefusal::Budget)?
+            .finish(expected_schema_rows, direct_issue_count, remaining)?;
+        Some(finished)
+    } else {
+        None
+    };
+    if let Some(finished) = schema_request_finish {
+        let combined = rules
+            .retained_state_bytes
+            .checked_add(rules.temporary_state_bytes)
+            .and_then(|state| state.checked_add(finished.workspace_state_bytes))
+            .ok_or(ItemRefusal::Budget)?;
+        if combined > rules.limits.max_state_bytes
+            || finished.observation_rows != expected_schema_rows
+        {
+            return Err(ItemRefusal::Source(
+                "source-foundation Closure schema request store count or state differs".into(),
+            ));
+        }
+        rules.cost.reserved_state_bytes = rules.cost.reserved_state_bytes.max(combined);
+        rules.cost.candidate_schema_request_count = finished.observation_rows;
+        rules.cost.candidate_schema_request_serialized_write_bytes =
+            finished.serialized_write_bytes;
+        rules.cost.candidate_schema_request_scan_row_operations = finished.scan_row_operations;
+        rules
+            .cost
+            .candidate_schema_request_peak_workspace_state_bytes = finished.workspace_state_bytes;
+    }
 
     Ok(SourceFoundationClosureReport {
         cost: rules.cost,
@@ -599,6 +718,7 @@ struct ClosureRules<'a, S: LayerFamilySource + ?Sized> {
     source_events: &'a dyn SourceFoundationDefaultEventLookup,
     claims: &'a dyn SourceFoundationDefaultClaims,
     link_store: Option<&'a mut dyn SourceFoundationClosureLinkStore>,
+    schema_request_store: Option<&'a mut dyn SourceFoundationClosureSchemaRequestStore>,
     link_count: u64,
     links: BTreeMap<String, (String, Value)>,
     issues: Vec<(String, String)>,
@@ -638,6 +758,7 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
         paths: &'a dyn SourceFoundationDefaultPaths,
         claims: &'a dyn SourceFoundationDefaultClaims,
         link_store: Option<&'a mut dyn SourceFoundationClosureLinkStore>,
+        schema_request_store: Option<&'a mut dyn SourceFoundationClosureSchemaRequestStore>,
         limits: ItemLimits,
         cache_digests: bool,
         cache_recorded_checks: bool,
@@ -651,6 +772,7 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
             source_events,
             claims,
             link_store,
+            schema_request_store,
             link_count: 0,
             links: BTreeMap::new(),
             issues: Vec::new(),
@@ -1137,6 +1259,54 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
         document: &Value,
     ) -> Result<(), ItemRefusal> {
         check(self.limits.deadline, self.source.cancellation())?;
+        if self.schema_request_store.is_some() {
+            let temporary_baseline = self.temporary_state_bytes;
+            let request_state = estimate_value_storage(document)?
+                .checked_add(estimate_string_storage(location)?)
+                .and_then(|state| state.checked_add(estimate_string_storage(contract).ok()?))
+                .and_then(|state| {
+                    state.checked_add(self.limits.max_member_bytes.checked_add(
+                        std::mem::size_of::<SourceFoundationClosureSchemaRequest>() + 256,
+                    )?)
+                })
+                .ok_or(ItemRefusal::Budget)?;
+            self.reserve_temporary(request_state)?;
+            let request = SourceFoundationClosureSchemaRequest {
+                before_issue: self.issues.len(),
+                location: location.to_owned(),
+                contract: contract.to_owned(),
+                document: document.clone(),
+            };
+            let remaining = self.remaining_state()?;
+            let (workspace, store_cost) = {
+                let store = self
+                    .schema_request_store
+                    .as_deref_mut()
+                    .ok_or(ItemRefusal::Budget)?;
+                let workspace =
+                    store.record_request(&request, self.limits.max_member_bytes, remaining)?;
+                (workspace, store.cost())
+            };
+            self.reserve_temporary(workspace)?;
+            drop(request);
+            self.release_temporary_since(temporary_baseline);
+            self.cost.candidate_schema_request_count = store_cost.observation_rows;
+            self.cost.candidate_schema_request_serialized_write_bytes =
+                store_cost.serialized_write_bytes;
+            self.cost.candidate_schema_request_scan_row_operations = store_cost.scan_row_operations;
+            self.cost
+                .candidate_schema_request_peak_workspace_state_bytes = self
+                .cost
+                .candidate_schema_request_peak_workspace_state_bytes
+                .max(store_cost.workspace_state_bytes)
+                .max(workspace);
+            self.cost.schema_requests = self
+                .cost
+                .schema_requests
+                .checked_add(1)
+                .ok_or(ItemRefusal::Budget)?;
+            return Ok(());
+        }
         let retained = serde_json::to_vec(document)
             .map_err(|_| ItemRefusal::Budget)?
             .len()

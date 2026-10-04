@@ -16,7 +16,9 @@ use tos_validation::executor::{
 use tos_validation::source_cut::{
     CandidateCutSchemaDiagnostic, CandidateCutWorkerSchemaExecutor, CutPreparedSchemaProtocol,
 };
-use tos_validation::source_foundation_closure::SourceFoundationClosureSchemaRequest;
+use tos_validation::source_foundation_closure::{
+    SourceFoundationClosureSchemaRequest, SourceFoundationClosureSchemaRequestStore,
+};
 use tos_validation::source_foundation_default_rules::{
     SourceFoundationDefaultRulesReport, SourceFoundationDefaultRulesStoredReport,
 };
@@ -353,6 +355,7 @@ fn encode_candidate_instance(
 fn candidate_request_count<I>(
     owner: &SourceFoundationDefaultRulesStoredReport<I>,
     discovery_schema_requests: &dyn DiscoverySchemaRequestStore,
+    closure_schema_requests: &dyn SourceFoundationClosureSchemaRequestStore,
 ) -> Result<usize, &'static str> {
     if !lab_aggregate_matches(&owner.labs) {
         return Err("candidate stored lab schema request binding");
@@ -369,6 +372,19 @@ fn candidate_request_count<I>(
     }
     let spooled_count = usize::try_from(reported_spooled_count)
         .map_err(|_| "candidate stored Discovery schema spool count overflow")?;
+    let closure_store_cost = closure_schema_requests.cost();
+    let reported_closure_spooled_count = owner.closure.cost.candidate_schema_request_count;
+    let closure_spooled_count = usize::try_from(reported_closure_spooled_count)
+        .map_err(|_| "candidate stored Closure schema spool count overflow")?;
+    let closure_total_count = usize::try_from(owner.closure.cost.schema_requests)
+        .map_err(|_| "candidate stored Closure schema request count overflow")?;
+    if closure_store_cost.observation_rows != reported_closure_spooled_count
+        || (reported_closure_spooled_count > 0 && !owner.closure.schema_requests.is_empty())
+        || closure_spooled_count.checked_add(owner.closure.schema_requests.len())
+            != Some(closure_total_count)
+    {
+        return Err("candidate stored Closure schema spool binding");
+    }
     let mut count = 0usize;
     for amount in [
         owner.labs.schema_checks.len(),
@@ -376,6 +392,7 @@ fn candidate_request_count<I>(
         owner.discovery.schema_requests.len(),
         spooled_count,
         owner.closure.schema_requests.len(),
+        closure_spooled_count,
     ] {
         count = count
             .checked_add(amount)
@@ -628,6 +645,7 @@ fn check_candidate_rule_request<I: Copy + Eq>(
 pub(crate) fn evaluate_candidate_stored_rules<I: Copy + Eq>(
     mut owner_report: SourceFoundationDefaultRulesStoredReport<I>,
     discovery_schema_requests: &mut dyn DiscoverySchemaRequestStore,
+    closure_schema_requests: &mut dyn SourceFoundationClosureSchemaRequestStore,
     schema_worker: &mut CandidateCutWorkerSchemaExecutor<I>,
     schema_limits: SourceFoundationSchemaLimits,
     deadline: Instant,
@@ -635,7 +653,11 @@ pub(crate) fn evaluate_candidate_stored_rules<I: Copy + Eq>(
     limits: SourceFoundationRuleDiagnosticsLimits,
 ) -> Result<EvaluatedCandidateSourceFoundationRules<I>, CandidateRuleDiagnosticsError<I>> {
     let mut diagnostics = Vec::new();
-    let request_count = match candidate_request_count(&owner_report, discovery_schema_requests) {
+    let request_count = match candidate_request_count(
+        &owner_report,
+        discovery_schema_requests,
+        closure_schema_requests,
+    ) {
         Ok(count) => count,
         Err(reason) => {
             return Err(CandidateRuleDiagnosticsError::Refused {
@@ -930,6 +952,111 @@ pub(crate) fn evaluate_candidate_stored_rules<I: Copy + Eq>(
             .cost
             .candidate_discovery_schema_request_scan_row_operations =
             spool_cost.scan_row_operations;
+        if failed.is_some() {
+            break 'requests;
+        }
+        let expected_closure_requests =
+            usize::try_from(owner_report.closure.cost.candidate_schema_request_count);
+        let expected_closure_requests = match expected_closure_requests {
+            Ok(count) => count,
+            Err(_) => {
+                failed = Some(("candidate Closure schema spool count overflow", false));
+                break 'requests;
+            }
+        };
+        let mut closure_eof = false;
+        loop {
+            if failed.is_some() {
+                break;
+            }
+            let remaining_state = limits
+                .max_state_bytes
+                .checked_sub(result_state)
+                .and_then(|bytes| bytes.checked_sub(vector_state))
+                .and_then(|bytes| {
+                    bytes.checked_sub(size_of::<EvaluatedCandidateSourceFoundationRules<I>>())
+                });
+            let Some(remaining_state) = remaining_state else {
+                failed = Some(("candidate Closure schema spool state limit", false));
+                break;
+            };
+            match closure_schema_requests.next_request(remaining_state) {
+                Ok((Some(request), workspace_state)) => {
+                    run_request!(&request, workspace_state);
+                }
+                Ok((None, workspace_state)) => {
+                    let eof_peak = result_state
+                        .checked_add(workspace_state)
+                        .and_then(|bytes| bytes.checked_add(vector_state))
+                        .and_then(|bytes| {
+                            bytes.checked_add(size_of::<
+                                    EvaluatedCandidateSourceFoundationRules<I>,
+                                >())
+                        });
+                    match eof_peak {
+                        Some(peak) if peak <= limits.max_state_bytes => {
+                            peak_state = peak_state.max(peak);
+                            closure_eof = true;
+                        }
+                        _ => {
+                            failed =
+                                Some(("candidate Closure schema spool EOF state limit", false));
+                        }
+                    }
+                    break;
+                }
+                Err(_) => {
+                    failed = Some(("candidate Closure schema spool read or EOF refused", false));
+                    break;
+                }
+            }
+            if failed.is_some() {
+                break;
+            }
+        }
+        let closure_spool_cost = closure_schema_requests.cost();
+        if closure_spool_cost.observation_rows
+            != owner_report.closure.cost.candidate_schema_request_count
+            || usize::try_from(closure_spool_cost.observation_rows).ok()
+                != Some(expected_closure_requests)
+            || closure_spool_cost.serialized_write_bytes
+                != owner_report
+                    .closure
+                    .cost
+                    .candidate_schema_request_serialized_write_bytes
+            || (failed.is_none()
+                && (!closure_eof
+                    || (closure_spool_cost.serialized_read_bytes == 0
+                        && expected_closure_requests > 0)))
+        {
+            failed = Some((
+                "candidate Closure schema spool count or EOF binding invalid",
+                false,
+            ));
+        }
+        if failed.is_none() && closure_schema_requests.verify_finished().is_err() {
+            failed = Some((
+                "candidate Closure schema spool final drain binding invalid",
+                false,
+            ));
+        }
+        owner_report
+            .closure
+            .cost
+            .candidate_schema_request_serialized_read_bytes =
+            closure_spool_cost.serialized_read_bytes;
+        owner_report
+            .closure
+            .cost
+            .candidate_schema_request_peak_workspace_state_bytes = owner_report
+            .closure
+            .cost
+            .candidate_schema_request_peak_workspace_state_bytes
+            .max(closure_spool_cost.workspace_state_bytes);
+        owner_report
+            .closure
+            .cost
+            .candidate_schema_request_scan_row_operations = closure_spool_cost.scan_row_operations;
         if failed.is_some() {
             break 'requests;
         }

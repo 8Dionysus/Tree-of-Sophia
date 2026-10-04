@@ -827,6 +827,7 @@ pub fn inspect_source_foundation_default_rules_from_input_stored<
         cancelled,
         None,
         None,
+        None,
     )
 }
 
@@ -876,6 +877,7 @@ pub fn inspect_source_foundation_default_rules_from_input_stored_with_artifact_e
         limits,
         stored_limits,
         cancelled,
+        None,
         None,
         None,
     )
@@ -928,6 +930,7 @@ pub fn inspect_source_foundation_default_rules_from_input_stored_with_artifact_e
         cancelled,
         None,
         None,
+        None,
     )
 }
 
@@ -977,6 +980,7 @@ pub fn inspect_source_foundation_default_rules_from_input_stored_with_artifact_e
         limits,
         stored_limits,
         cancelled,
+        None,
         None,
         None,
     )
@@ -1032,6 +1036,7 @@ pub fn inspect_source_foundation_default_rules_from_input_stored_with_artifact_e
         cancelled,
         None,
         None,
+        None,
     )
 }
 
@@ -1083,6 +1088,7 @@ pub fn inspect_source_foundation_default_rules_from_input_stored_with_artifact_e
         limits,
         stored_limits,
         cancelled,
+        None,
         None,
         None,
     )
@@ -1139,6 +1145,7 @@ pub fn inspect_source_foundation_default_rules_from_input_stored_with_artifact_e
         cancelled,
         Some(discovery_digest_cache),
         None,
+        None,
     )
 }
 
@@ -1194,6 +1201,64 @@ pub fn inspect_source_foundation_default_rules_from_input_stored_with_artifact_e
         cancelled,
         Some(discovery_digest_cache),
         Some(closure_link_store),
+        None,
+    )
+}
+
+/// Candidate stored composition that also spools Closure schema documents for
+/// the maintained diagnostic worker to drain one at a time after Discovery.
+#[allow(clippy::too_many_arguments)]
+pub fn inspect_source_foundation_default_rules_from_input_stored_with_artifact_evidence_provider_and_seen_ids_and_run_summaries_and_event_summaries_and_schema_requests_and_digests_and_closure_links_and_closure_schema_requests<
+    I: Copy + Eq,
+    S: LayerFamilySource + ?Sized,
+>(
+    source: &mut S,
+    input: &dyn crate::record_biblio_cut::SourceCutInputWithIdentity<I>,
+    coverage: &crate::record_biblio_cut::SourceCutInputCoverage,
+    records: &crate::source_foundation_records::SourceFoundationRecordsStreamedReport<'_, I>,
+    records_lookup: &dyn SourceFoundationDefaultRecordsLookup,
+    paths: &dyn SourceFoundationDefaultPaths,
+    events: &mut dyn SourceFoundationDefaultEventStore,
+    claims: &dyn SourceFoundationDefaultClaims,
+    physical: &SourcePhysicalFacts,
+    evidence_provider: &mut dyn CandidateArtifactEvidenceProvider<I>,
+    discovery_seen_ids: &mut dyn DiscoverySeenIds,
+    discovery_run_summaries: &mut dyn DiscoveryRunSummaryStore,
+    discovery_event_summaries: &mut dyn DiscoveryEventSummaryStore,
+    discovery_schema_requests: &mut dyn DiscoverySchemaRequestStore,
+    discovery_digest_cache: &mut dyn DiscoveryDigestCache,
+    closure_link_store: &mut dyn crate::source_foundation_closure::SourceFoundationClosureLinkStore,
+    closure_schema_request_store: &mut dyn crate::source_foundation_closure::SourceFoundationClosureSchemaRequestStore,
+    require_local_payloads: bool,
+    limits: SourceFoundationDefaultRulesLimits,
+    stored_limits: SourceFoundationDefaultStoredLimits,
+    cancelled: &AtomicBool,
+) -> Result<SourceFoundationDefaultRulesStoredReport<I>, ItemRefusal> {
+    inspect_source_foundation_default_rules_from_input_stored_inner(
+        source,
+        input,
+        coverage,
+        records,
+        records_lookup,
+        paths,
+        events,
+        None,
+        claims,
+        physical,
+        None,
+        None,
+        Some(evidence_provider),
+        Some(discovery_seen_ids),
+        Some(discovery_run_summaries),
+        Some(discovery_event_summaries),
+        Some(discovery_schema_requests),
+        require_local_payloads,
+        limits,
+        stored_limits,
+        cancelled,
+        Some(discovery_digest_cache),
+        Some(closure_link_store),
+        Some(closure_schema_request_store),
     )
 }
 
@@ -1228,6 +1293,9 @@ fn inspect_source_foundation_default_rules_from_input_stored_inner<
     mut discovery_digest_cache: Option<&mut dyn DiscoveryDigestCache>,
     mut closure_link_store: Option<
         &mut dyn crate::source_foundation_closure::SourceFoundationClosureLinkStore,
+    >,
+    mut closure_schema_request_store: Option<
+        &mut dyn crate::source_foundation_closure::SourceFoundationClosureSchemaRequestStore,
     >,
 ) -> Result<SourceFoundationDefaultRulesStoredReport<I>, ItemRefusal> {
     let operation = limits.operation;
@@ -1645,18 +1713,34 @@ fn inspect_source_foundation_default_rules_from_input_stored_inner<
         used_state,
         direct_owner_issue_count,
     )?;
-    let closure = crate::source_foundation_closure::inspect_source_foundation_closure_with_identity_and_link_store(
-        &mut aggregate_source,
-        input,
-        input.input_identity(),
-        coverage,
-        events.event_lookup(),
-        records_lookup,
-        paths,
-        claims,
-        closure_link_store.as_deref_mut(),
-        closure_limits,
-    )?;
+    let closure = if let Some(schema_request_store) = closure_schema_request_store.as_deref_mut() {
+        crate::source_foundation_closure::inspect_source_foundation_closure_with_identity_and_candidate_stores(
+            &mut aggregate_source,
+            input,
+            input.input_identity(),
+            coverage,
+            events.event_lookup(),
+            records_lookup,
+            paths,
+            claims,
+            closure_link_store.as_deref_mut(),
+            Some(schema_request_store),
+            closure_limits,
+        )?
+    } else {
+        crate::source_foundation_closure::inspect_source_foundation_closure_with_identity_and_link_store(
+            &mut aggregate_source,
+            input,
+            input.input_identity(),
+            coverage,
+            events.event_lookup(),
+            records_lookup,
+            paths,
+            claims,
+            closure_link_store.as_deref_mut(),
+            closure_limits,
+        )?
+    };
     direct_owner_issue_count = direct_owner_issue_count
         .checked_add(closure.issues.len())
         .ok_or(ItemRefusal::Budget)?;
@@ -1683,6 +1767,9 @@ fn inspect_source_foundation_default_rules_from_input_stored_inner<
     let spooled_discovery_schema_request_count =
         usize::try_from(discovery.cost.candidate_discovery_schema_request_count)
             .map_err(|_| ItemRefusal::Budget)?;
+    let spooled_closure_schema_request_count =
+        usize::try_from(closure.cost.candidate_schema_request_count)
+            .map_err(|_| ItemRefusal::Budget)?;
     let queued_schema_document_count = summary
         .schema_document_count
         .checked_add(labs.schema_checks.len())
@@ -1690,6 +1777,7 @@ fn inspect_source_foundation_default_rules_from_input_stored_inner<
         .and_then(|count| count.checked_add(discovery.schema_requests.len()))
         .and_then(|count| count.checked_add(spooled_discovery_schema_request_count))
         .and_then(|count| count.checked_add(closure.schema_requests.len()))
+        .and_then(|count| count.checked_add(spooled_closure_schema_request_count))
         .ok_or(ItemRefusal::Budget)?;
     let later_district_state_bytes = labs
         .cost
