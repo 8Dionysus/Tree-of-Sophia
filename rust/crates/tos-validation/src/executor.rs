@@ -1169,6 +1169,12 @@ pub struct ExchangeFailureContext {
     pub boundary: &'static str,
     pub failure: ExecutorFailure,
     pub natural_termination: Option<ChildTermination>,
+    /// Actual wait4 CPU for a naturally reaped child; never elapsed-wall inference.
+    pub child_cpu_micros: Option<u64>,
+    pub child_pid: i32,
+    /// One-based exchange count on this child; retained sessions share its CPU cap.
+    pub child_exchange_ordinal: u64,
+    pub retained_session: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -6460,6 +6466,10 @@ mod native {
                     boundary,
                     failure: reason,
                     natural_termination,
+                    child_cpu_micros: child.natural_cpu_micros.or(cost.worker_cpu_micros),
+                    child_pid: child.pid,
+                    child_exchange_ordinal: 1,
+                    retained_session: false,
                 }),
                 cost,
             );
@@ -6900,6 +6910,8 @@ mod native {
         output: File,
         status: Option<i32>,
         natural_status: Option<i32>,
+        natural_cpu_micros: Option<u64>,
+        exchanges_started: u64,
         cleanup_grace: Duration,
         cleanup_result: Option<Result<(), ExecutorFailure>>,
     }
@@ -6920,7 +6932,11 @@ mod native {
             // same cleanup grace for forced termination/reaping; this is a
             // best-effort natural observation, not a promised cause capture.
             let observation_deadline = started + self.cleanup_grace / 2;
-            let mut observed = poll_exit(self.pid, &mut self.status);
+            let mut observed = poll_exit_with_usage(self.pid, &mut self.status).map(|cpu| {
+                if let Some(cpu) = cpu {
+                    self.natural_cpu_micros = Some(cpu);
+                }
+            });
             while observe_eof_exit
                 && observed.is_ok()
                 && self.status.is_none()
@@ -6930,7 +6946,11 @@ mod native {
                     Duration::from_millis(1)
                         .min(observation_deadline.saturating_duration_since(Instant::now())),
                 );
-                observed = poll_exit(self.pid, &mut self.status);
+                observed = poll_exit_with_usage(self.pid, &mut self.status).map(|cpu| {
+                    if let Some(cpu) = cpu {
+                        self.natural_cpu_micros = Some(cpu);
+                    }
+                });
             }
             // Only status collected before any parent kill belongs to origin.
             self.natural_status = self.status;
@@ -6998,6 +7018,8 @@ mod native {
             output: output_parent,
             status: None,
             natural_status: None,
+            natural_cpu_micros: None,
+            exchanges_started: 0,
             cleanup_grace: budget.cleanup_grace,
             cleanup_result: None,
         })
@@ -7040,6 +7062,7 @@ mod native {
         cancelled: Option<&AtomicBool>,
         retained: bool,
     ) -> BatchOutcome {
+        child.exchanges_started = child.exchanges_started.saturating_add(1);
         let pid = child.pid;
         let input_parent = &child.input;
         let output_parent = &child.output;
@@ -7082,9 +7105,13 @@ mod native {
                 failure = Some((ExecutorFailure::Timeout, boundary));
                 break;
             }
-            if let Err(reason) = poll_exit(pid, &mut status) {
-                failure = Some((reason, "child-status-poll"));
-                break;
+            match poll_exit_with_usage(pid, &mut status) {
+                Ok(Some(cpu)) => child.natural_cpu_micros = Some(cpu),
+                Ok(None) => {}
+                Err(reason) => {
+                    failure = Some((reason, "child-status-poll"));
+                    break;
+                }
             }
             if !retained && written == prepared.frame.len() {
                 if let Some(fd) = input.take() {
@@ -7335,6 +7362,10 @@ mod native {
                     boundary,
                     failure: reason,
                     natural_termination,
+                    child_cpu_micros: child.natural_cpu_micros,
+                    child_pid: child.pid,
+                    child_exchange_ordinal: child.exchanges_started,
+                    retained_session: retained,
                 });
             }
             return outcome;
