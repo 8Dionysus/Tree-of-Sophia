@@ -720,6 +720,10 @@ impl<'candidate, 'host> SpoolDefaultStore<'candidate, 'host> {
                  contract TEXT NOT NULL COLLATE BINARY CHECK(length(contract)>0),\
                  document BLOB NOT NULL CHECK(length(document)>0)\
              ) WITHOUT ROWID;\
+             CREATE TABLE sf_closure_loaded_documents(\
+                 path TEXT NOT NULL COLLATE BINARY PRIMARY KEY CHECK(length(path)>0),\
+                 sha256 TEXT NOT NULL COLLATE BINARY CHECK(length(sha256)=64)\
+             ) WITHOUT ROWID;\
              CREATE TABLE sf_discovery_seen_ids(\
                  namespace TEXT NOT NULL COLLATE BINARY CHECK(namespace IN ('artifact','composite','composite-representation','event','discovery-event','representation-file','schema-location','payload-observation','artifact-replay-reference','planned-manifest','native-artifact-transaction')),\
                  key TEXT NOT NULL COLLATE BINARY,\
@@ -2935,11 +2939,17 @@ struct CandidateClosureSchemaRequests<'a, 'candidate, 'host, 'cancel, 'budget> {
     serialized_read_bytes: u64,
     scan_row_operations: u64,
     workspace_peak_bytes: usize,
+    loaded_document_rows: u64,
+    loaded_document_serialized_read_bytes: u64,
+    loaded_document_serialized_write_bytes: u64,
+    loaded_document_scan_row_operations: u64,
+    loaded_document_workspace_state_bytes: usize,
     max_document_bytes: Option<usize>,
     last_before_issue: Option<usize>,
     last_read_before_issue: Option<usize>,
     cursor_ordinal: Option<u64>,
     expected_rows: Option<u64>,
+    expected_loaded_documents: Option<u64>,
     direct_issue_count: Option<usize>,
     finished: bool,
     drained: bool,
@@ -2982,11 +2992,32 @@ impl CandidateClosureSchemaRequests<'_, '_, '_, '_, '_> {
 
     fn charge_scan_rows(&mut self, rows: usize) -> Result<(), ItemRefusal> {
         self.context.add_scan_rows(self.scan_rows, rows)?;
+        Ok(())
+    }
+
+    fn charge_schema_scan_rows(&mut self, rows: usize) -> Result<(), ItemRefusal> {
+        self.charge_scan_rows(rows)?;
         self.scan_row_operations = self
             .scan_row_operations
             .checked_add(usize_u64(rows)?)
             .ok_or(ItemRefusal::Budget)?;
         Ok(())
+    }
+
+    fn charge_loaded_document_scan_rows(&mut self, rows: usize) -> Result<(), ItemRefusal> {
+        self.charge_scan_rows(rows)?;
+        self.loaded_document_scan_row_operations = self
+            .loaded_document_scan_row_operations
+            .checked_add(usize_u64(rows)?)
+            .ok_or(ItemRefusal::Budget)?;
+        Ok(())
+    }
+
+    fn loaded_document_workspace(path_bytes: usize) -> Result<usize, ItemRefusal> {
+        Self::row_text_state(path_bytes)?
+            .checked_add(Self::row_text_state(64)?)
+            .and_then(|state| state.checked_add(size_of::<(String, String)>() + 512))
+            .ok_or(ItemRefusal::Budget)
     }
 
     fn cost(&self) -> SourceFoundationClosureSchemaRequestStoreCost {
@@ -2996,6 +3027,11 @@ impl CandidateClosureSchemaRequests<'_, '_, '_, '_, '_> {
             serialized_read_bytes: self.serialized_read_bytes,
             workspace_state_bytes: self.workspace_peak_bytes,
             scan_row_operations: self.scan_row_operations,
+            loaded_document_rows: self.loaded_document_rows,
+            loaded_document_serialized_read_bytes: self.loaded_document_serialized_read_bytes,
+            loaded_document_serialized_write_bytes: self.loaded_document_serialized_write_bytes,
+            loaded_document_scan_row_operations: self.loaded_document_scan_row_operations,
+            loaded_document_workspace_state_bytes: self.loaded_document_workspace_state_bytes,
         }
     }
 
@@ -3004,6 +3040,7 @@ impl CandidateClosureSchemaRequests<'_, '_, '_, '_, '_> {
             || !self.drained
             || self.expected_rows != Some(self.observation_rows)
             || self.read_rows != self.observation_rows
+            || self.expected_loaded_documents != Some(self.loaded_document_rows)
         {
             return Err(source_refusal());
         }
@@ -3014,6 +3051,127 @@ impl CandidateClosureSchemaRequests<'_, '_, '_, '_, '_> {
 impl SourceFoundationClosureSchemaRequestStore
     for CandidateClosureSchemaRequests<'_, '_, '_, '_, '_>
 {
+    fn observe_loaded_document(
+        &mut self,
+        path: &str,
+        digest: &str,
+        max_state_bytes: usize,
+    ) -> Result<(bool, usize), ItemRefusal> {
+        if self.finished
+            || path.is_empty()
+            || path.len() > 4096
+            || digest.len() != 64
+            || !digest.bytes().all(|byte| byte.is_ascii_hexdigit())
+        {
+            return Err(source_refusal());
+        }
+        let workspace = Self::loaded_document_workspace(path.len())?;
+        self.preflight(workspace, max_state_bytes)?;
+        self.context.check()?;
+        self.charge_loaded_document_scan_rows(1)?;
+        let mut statement = self
+            .db
+            .prepare("SELECT sha256 FROM sf_closure_loaded_documents WHERE path=?1")
+            .map_err(sql_refusal)?;
+        let mut rows = statement.query([path]).map_err(sql_refusal)?;
+        let found = rows
+            .next()
+            .map_err(sql_refusal)?
+            .map(|row| bounded_row_text(row, 0, workspace))
+            .transpose()
+            .map_err(sql_refusal)?;
+        if rows.next().map_err(sql_refusal)?.is_some() {
+            return Err(source_refusal());
+        }
+        drop(rows);
+        drop(statement);
+        self.context.check()?;
+        let first = match found {
+            Some(previous) if previous == digest => {
+                self.loaded_document_serialized_read_bytes = self
+                    .loaded_document_serialized_read_bytes
+                    .checked_add(usize_u64(digest.len())?)
+                    .ok_or(ItemRefusal::Budget)?;
+                false
+            }
+            Some(_) => return Err(source_refusal()),
+            None => {
+                self.context.check()?;
+                self.charge_loaded_document_scan_rows(1)?;
+                let inserted = self
+                    .db
+                    .execute(
+                        "INSERT INTO sf_closure_loaded_documents(path,sha256) VALUES(?1,?2)",
+                        params![path, digest],
+                    )
+                    .map_err(sql_refusal)?;
+                self.context.check()?;
+                if inserted != 1 {
+                    return Err(source_refusal());
+                }
+                self.loaded_document_rows = self
+                    .loaded_document_rows
+                    .checked_add(1)
+                    .ok_or(ItemRefusal::Budget)?;
+                self.loaded_document_serialized_write_bytes = self
+                    .loaded_document_serialized_write_bytes
+                    .checked_add(usize_u64(
+                        path.len()
+                            .checked_add(digest.len())
+                            .ok_or(ItemRefusal::Budget)?,
+                    )?)
+                    .ok_or(ItemRefusal::Budget)?;
+                true
+            }
+        };
+        self.loaded_document_workspace_state_bytes =
+            self.loaded_document_workspace_state_bytes.max(workspace);
+        Ok((first, workspace))
+    }
+
+    fn loaded_document_digest(
+        &mut self,
+        path: &str,
+        max_state_bytes: usize,
+    ) -> Result<(Option<String>, usize), ItemRefusal> {
+        if self.finished || path.is_empty() || path.len() > 4096 {
+            return Err(source_refusal());
+        }
+        let workspace = Self::loaded_document_workspace(path.len())?;
+        self.preflight(workspace, max_state_bytes)?;
+        self.context.check()?;
+        self.charge_loaded_document_scan_rows(1)?;
+        let mut statement = self
+            .db
+            .prepare("SELECT sha256 FROM sf_closure_loaded_documents WHERE path=?1")
+            .map_err(sql_refusal)?;
+        let mut rows = statement.query([path]).map_err(sql_refusal)?;
+        let digest = rows
+            .next()
+            .map_err(sql_refusal)?
+            .map(|row| bounded_row_text(row, 0, workspace))
+            .transpose()
+            .map_err(sql_refusal)?;
+        if rows.next().map_err(sql_refusal)?.is_some() {
+            return Err(source_refusal());
+        }
+        drop(rows);
+        drop(statement);
+        if let Some(value) = &digest {
+            if value.len() != 64 || !value.bytes().all(|byte| byte.is_ascii_hexdigit()) {
+                return Err(source_refusal());
+            }
+            self.loaded_document_serialized_read_bytes = self
+                .loaded_document_serialized_read_bytes
+                .checked_add(usize_u64(value.len())?)
+                .ok_or(ItemRefusal::Budget)?;
+        }
+        self.loaded_document_workspace_state_bytes =
+            self.loaded_document_workspace_state_bytes.max(workspace);
+        self.context.check()?;
+        Ok((digest, workspace))
+    }
+
     fn record_request(
         &mut self,
         request: &SourceFoundationClosureSchemaRequest,
@@ -3057,7 +3215,7 @@ impl SourceFoundationClosureSchemaRequestStore
         let ordinal = self.observation_rows.to_be_bytes();
         let before_issue = usize_u64(request.before_issue)?.to_be_bytes();
         self.context.check()?;
-        self.charge_scan_rows(1)?;
+        self.charge_schema_scan_rows(1)?;
         let inserted = self
             .db
             .execute(
@@ -3092,6 +3250,7 @@ impl SourceFoundationClosureSchemaRequestStore
     fn finish(
         &mut self,
         expected_rows: u64,
+        expected_loaded_documents: u64,
         direct_issue_count: usize,
         max_state_bytes: usize,
     ) -> Result<SourceFoundationClosureSchemaRequestStoreCost, ItemRefusal> {
@@ -3100,6 +3259,7 @@ impl SourceFoundationClosureSchemaRequestStore
             || self
                 .last_before_issue
                 .is_some_and(|ordinal| ordinal > direct_issue_count)
+            || self.loaded_document_rows != expected_loaded_documents
             || (expected_rows > 0) != self.max_document_bytes.is_some()
         {
             return Err(source_refusal());
@@ -3110,7 +3270,7 @@ impl SourceFoundationClosureSchemaRequestStore
             .map_err(|_| ItemRefusal::Budget)?
             .checked_add(1)
             .ok_or(ItemRefusal::Budget)?;
-        self.charge_scan_rows(scan_rows)?;
+        self.charge_schema_scan_rows(scan_rows)?;
         let mut statement = self
             .db
             .prepare(
@@ -3161,8 +3321,44 @@ impl SourceFoundationClosureSchemaRequestStore
         }
         drop(rows);
         drop(statement);
+
+        let loaded_count_workspace = size_of::<i64>() + 256;
+        self.preflight(loaded_count_workspace, max_state_bytes)?;
+        let loaded_scan_rows = usize::try_from(expected_loaded_documents)
+            .map_err(|_| ItemRefusal::Budget)?
+            .checked_add(1)
+            .ok_or(ItemRefusal::Budget)?;
+        self.charge_loaded_document_scan_rows(loaded_scan_rows)?;
+        let mut statement = self
+            .db
+            .prepare("SELECT count(*) FROM sf_closure_loaded_documents")
+            .map_err(sql_refusal)?;
+        let mut rows = statement.query([]).map_err(sql_refusal)?;
+        let actual_loaded = rows
+            .next()
+            .map_err(sql_refusal)?
+            .map(|row| row.get::<_, i64>(0).map_err(sql_refusal))
+            .transpose()?
+            .ok_or_else(source_refusal)?;
+        if rows.next().map_err(sql_refusal)?.is_some()
+            || actual_loaded < 0
+            || u64::try_from(actual_loaded).map_err(|_| source_refusal())?
+                != expected_loaded_documents
+        {
+            return Err(source_refusal());
+        }
+        self.loaded_document_serialized_read_bytes = self
+            .loaded_document_serialized_read_bytes
+            .checked_add(size_of::<i64>() as u64)
+            .ok_or(ItemRefusal::Budget)?;
+        drop(rows);
+        drop(statement);
+        self.loaded_document_workspace_state_bytes = self
+            .loaded_document_workspace_state_bytes
+            .max(loaded_count_workspace);
         self.context.check()?;
         self.expected_rows = Some(expected_rows);
+        self.expected_loaded_documents = Some(expected_loaded_documents);
         self.direct_issue_count = Some(direct_issue_count);
         self.finished = true;
         self.workspace_peak_bytes = self.workspace_peak_bytes.max(workspace);
@@ -3179,7 +3375,7 @@ impl SourceFoundationClosureSchemaRequestStore
         let metadata_workspace = size_of::<([u8; 8], i64, i64, i64)>() + 256;
         self.preflight(metadata_workspace, max_state_bytes)?;
         self.context.check()?;
-        self.charge_scan_rows(1)?;
+        self.charge_schema_scan_rows(1)?;
         let sql = if self.cursor_ordinal.is_some() {
             "SELECT ordinal,length(location),length(contract),length(document) FROM sf_closure_schema_requests WHERE ordinal>?1 ORDER BY ordinal LIMIT 1"
         } else {
@@ -3245,7 +3441,7 @@ impl SourceFoundationClosureSchemaRequestStore
         )?);
         self.preflight(workspace, max_state_bytes)?;
         self.context.check()?;
-        self.charge_scan_rows(1)?;
+        self.charge_schema_scan_rows(1)?;
         let mut statement = self.db.prepare(
             "SELECT before_issue,location,contract,document FROM sf_closure_schema_requests WHERE ordinal=?1",
         ).map_err(sql_refusal)?;
@@ -4759,11 +4955,17 @@ impl<'candidate, 'host> SpoolDefaultStore<'candidate, 'host> {
                 serialized_read_bytes: 0,
                 scan_row_operations: 0,
                 workspace_peak_bytes: 0,
+                loaded_document_rows: 0,
+                loaded_document_serialized_read_bytes: 0,
+                loaded_document_serialized_write_bytes: 0,
+                loaded_document_scan_row_operations: 0,
+                loaded_document_workspace_state_bytes: 0,
                 max_document_bytes: None,
                 last_before_issue: None,
                 last_read_before_issue: None,
                 cursor_ordinal: None,
                 expected_rows: None,
+                expected_loaded_documents: None,
                 direct_issue_count: None,
                 finished: false,
                 drained: false,
