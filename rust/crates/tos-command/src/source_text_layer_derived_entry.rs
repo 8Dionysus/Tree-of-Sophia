@@ -958,12 +958,6 @@ fn verify_retained(
             active(deadline, cancelled)?;
             let reference = cmd::text(row, "entity_ref")?;
             if let Some(name) = reference.strip_prefix(&format!("{home}/")) {
-                let extra_owner_input = prepared
-                    .grant
-                    .operation
-                    .starts_with("text-layer.record-owner-")
-                    && matches!(name, "content.txt" | "owner-ocr-receipt.json")
-                    && group == "inputs";
                 let expected_group = match name {
                     "source-create-request.json" => "inputs",
                     "source-create-environment.json" => "byproducts",
@@ -972,18 +966,10 @@ fn verify_retained(
                 let raw = files.get(name).ok_or(SourceCommandError::Conflict(
                     "native derived local entity absent",
                 ))?;
-                if group != expected_group && !extra_owner_input
+                if group != expected_group
                     || !observed.insert((group.to_owned(), name.to_owned()))
                     || cmd::integer(row, "size_bytes")? != raw.len() as u64
                     || cmd::text(row, "sha256")? != Digest256::of_bytes(raw).to_hex()
-                    || extra_owner_input
-                        && (cmd::text(row, "role")?
-                            != if name == "content.txt" {
-                                "authenticated-owner-ocr-result"
-                            } else {
-                                "authenticated-owner-ocr-execution-receipt"
-                            }
-                            || cmd::field(row, "fixity_verified")? != &JsonValue::Bool(true))
                 {
                     return Err(SourceCommandError::Conflict(
                         "native derived local entity differs",
@@ -1025,15 +1011,6 @@ fn verify_retained(
             _ => "outputs",
         };
         expected_local.insert((group.to_owned(), name.clone()));
-    }
-    if prepared
-        .grant
-        .operation
-        .starts_with("text-layer.record-owner-")
-    {
-        for name in ["content.txt", "owner-ocr-receipt.json"] {
-            expected_local.insert(("inputs".to_owned(), name.to_owned()));
-        }
     }
     if observed != expected_local || external != expected_external {
         return Err(SourceCommandError::Conflict(
@@ -1099,12 +1076,18 @@ fn capture_entities(
             .operation
             .starts_with("text-layer.record-owner-")
         {
-            let home = cmd::text(&prepared.grant.config, "source_path")?
-                .rsplit_once('/')
-                .ok_or(SourceCommandError::Invalid("native owner OCR output home"))?
-                .0;
+            let material = cmd::field(&prepared.grant.config, "material")?;
+            let retained_root = crate::source_text_owner::normalized_absolute(cmd::text(
+                material,
+                "receipt_root",
+            )?)?;
+            let retained_ref = |name: &str| {
+                retained_root.join(name).to_str().map(str::to_owned).ok_or(
+                    SourceCommandError::Invalid("native owner OCR retained input UTF-8"),
+                )
+            };
             rows.push((
-                format!("{home}/content.txt"),
+                retained_ref("content.txt")?,
                 Digest256::of_bytes(raw).to_hex(),
                 raw.len() as u64,
                 "authenticated-owner-ocr-result".into(),
@@ -1114,7 +1097,7 @@ fn capture_entities(
                 SourceCommandError::Conflict("native owner OCR copied receipt absent"),
             )?;
             rows.push((
-                format!("{home}/owner-ocr-receipt.json"),
+                retained_ref("receipt.json")?,
                 Digest256::of_bytes(receipt).to_hex(),
                 receipt.len() as u64,
                 "authenticated-owner-ocr-execution-receipt".into(),
