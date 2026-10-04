@@ -1046,6 +1046,7 @@ impl<'host> SpoolCandidate<'host> {
             // only after its temporary backing has closed.
             let custody = match if index.segment_v2_budget().is_some() {
                 v2_custody
+                    .take()
                     .or_else(|| self.store.v2_store_custody())
                     .ok_or_else(|| invalid("V2 store custody absent after publication"))
             } else {

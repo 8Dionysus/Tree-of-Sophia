@@ -379,7 +379,7 @@ fn lock_at_root(
                     created: false,
                 };
                 let mut accounting_attempted = false;
-                let result = (|| {
+                let result: io::Result<File> = (|| {
                     let file = File::from(rustix::fs::openat(
                         root,
                         ".admission.lock",
