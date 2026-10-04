@@ -701,7 +701,7 @@ impl<'candidate, 'host> SpoolDefaultStore<'candidate, 'host> {
                  value BLOB NOT NULL\
              ) WITHOUT ROWID;\
              CREATE TABLE sf_discovery_seen_ids(\
-                 namespace TEXT NOT NULL COLLATE BINARY CHECK(namespace IN ('artifact','composite','composite-representation','event','discovery-event','representation-file','schema-location','payload-observation','artifact-replay-reference','planned-manifest')),\
+                 namespace TEXT NOT NULL COLLATE BINARY CHECK(namespace IN ('artifact','composite','composite-representation','event','discovery-event','representation-file','schema-location','payload-observation','artifact-replay-reference','planned-manifest','native-artifact-transaction')),\
                  key TEXT NOT NULL COLLATE BINARY,\
                  first_path TEXT NOT NULL COLLATE BINARY CHECK(length(first_path)>0),\
                  PRIMARY KEY(namespace,key)\

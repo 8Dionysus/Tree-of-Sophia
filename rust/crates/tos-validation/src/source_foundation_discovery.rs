@@ -104,6 +104,7 @@ pub enum DiscoverySeenIdNamespace {
     PayloadObservation,
     ArtifactReplayReference,
     PlannedManifest,
+    NativeArtifactTransaction,
 }
 
 impl DiscoverySeenIdNamespace {
@@ -119,6 +120,7 @@ impl DiscoverySeenIdNamespace {
             Self::PayloadObservation => "payload-observation",
             Self::ArtifactReplayReference => "artifact-replay-reference",
             Self::PlannedManifest => "planned-manifest",
+            Self::NativeArtifactTransaction => "native-artifact-transaction",
         }
     }
 }
@@ -1285,20 +1287,36 @@ impl<S: LayerFamilySource + ?Sized, I: Copy + Eq> Inspector<'_, '_, S, I> {
         id: &str,
         first_path: &str,
     ) -> Result<bool, ItemRefusal> {
-        let remaining_state_bytes = self.remaining_state_bytes()?;
+        self.candidate_seen_id_remember_first_with_scratch(namespace, id, first_path, 0)
+    }
+
+    fn candidate_seen_id_remember_first_with_scratch(
+        &mut self,
+        namespace: DiscoverySeenIdNamespace,
+        id: &str,
+        first_path: &str,
+        caller_scratch_state_bytes: usize,
+    ) -> Result<bool, ItemRefusal> {
+        let remaining_state_bytes = self
+            .remaining_state_bytes()?
+            .checked_sub(caller_scratch_state_bytes)
+            .ok_or(ItemRefusal::Budget)?;
         let (first, workspace_state_bytes) = self
             .candidate_discovery_seen_ids
             .as_deref_mut()
             .ok_or_else(|| ItemRefusal::Source("candidate Discovery ID store unavailable".into()))?
             .remember_first(namespace, id, first_path, remaining_state_bytes)?;
-        self.check_temporary_state(workspace_state_bytes)?;
+        let combined_workspace_state_bytes = caller_scratch_state_bytes
+            .checked_add(workspace_state_bytes)
+            .ok_or(ItemRefusal::Budget)?;
+        self.check_temporary_state(combined_workspace_state_bytes)?;
         self.candidate_discovery_seen_ids_peak_workspace_state_bytes = self
             .candidate_discovery_seen_ids_peak_workspace_state_bytes
-            .max(workspace_state_bytes);
+            .max(combined_workspace_state_bytes);
         self.candidate_artifact_evidence_peak_state_bytes =
             self.candidate_artifact_evidence_peak_state_bytes.max(
                 self.candidate_current_artifact_evidence_state_bytes
-                    .checked_add(workspace_state_bytes)
+                    .checked_add(combined_workspace_state_bytes)
                     .ok_or(ItemRefusal::Budget)?,
             );
         Ok(first)
@@ -6134,7 +6152,45 @@ fn check_native_artifact_history<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
             valid = false;
             continue;
         };
-        if !transaction_ids.insert(transaction_id) {
+        let first_transaction = if inspector.candidate_discovery_seen_ids.is_some() {
+            // This uniqueness law is local to one Artifact history, unlike
+            // global Discovery event IDs. Length-prefix the path into the
+            // scratch key so another Artifact may legitimately reuse a
+            // transaction ID without sharing this set.
+            let mut path_bytes = artifact_path.len();
+            let mut path_length_digits = 1usize;
+            while path_bytes >= 10 {
+                path_bytes /= 10;
+                path_length_digits = path_length_digits
+                    .checked_add(1)
+                    .ok_or(ItemRefusal::Budget)?;
+            }
+            let scoped_key_bytes = path_length_digits
+                .checked_add(1)
+                .and_then(|bytes| bytes.checked_add(artifact_path.len()))
+                .and_then(|bytes| bytes.checked_add(transaction_id.len()))
+                .ok_or(ItemRefusal::Budget)?;
+            let scoped_key_state_bytes = scoped_key_bytes
+                .checked_add(path_length_digits)
+                .and_then(|bytes| bytes.checked_add(size_of::<String>() + 32))
+                .ok_or(ItemRefusal::Budget)?;
+            inspector.check_temporary_state(scoped_key_state_bytes)?;
+            let path_length_prefix = artifact_path.len().to_string();
+            let mut scoped_key = String::with_capacity(scoped_key_bytes);
+            scoped_key.push_str(&path_length_prefix);
+            scoped_key.push(':');
+            scoped_key.push_str(artifact_path);
+            scoped_key.push_str(transaction_id);
+            inspector.candidate_seen_id_remember_first_with_scratch(
+                DiscoverySeenIdNamespace::NativeArtifactTransaction,
+                &scoped_key,
+                artifact_path,
+                scoped_key_state_bytes,
+            )?
+        } else {
+            transaction_ids.insert(transaction_id)
+        };
+        if !first_transaction {
             inspector.issue(
                 artifact_path,
                 "native-artifact-correction-transaction-duplicate",
