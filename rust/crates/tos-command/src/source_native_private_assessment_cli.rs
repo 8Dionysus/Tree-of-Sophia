@@ -2025,7 +2025,13 @@ fn quality_basis(
         .map(owner_reference)
         .transpose()?
         .unwrap_or(JsonValue::Null);
-    let scope = layer.scope.clone();
+    let representation = cmd::field(cmd::field(&layer_row, "payload")?, "representation")?;
+    let scope = cmd::object(
+        ["content_file_id", "content_sha256", "text_scope"]
+            .iter()
+            .map(|key| Ok((*key, cmd::field(representation, key)?.clone())))
+            .collect::<SourceCommandResult<Vec<_>>>()?,
+    );
     let basis_identity = cmd::object(vec![
         ("layer_id", cmd::field(&layer_ref, "id")?.clone()),
         ("use", cmd::string(use_name)),
