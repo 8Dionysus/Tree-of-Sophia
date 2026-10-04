@@ -2126,3 +2126,21 @@ cleanup is unproven, `CaptureCustodyError.borrowed_custody` transfers the origin
 views, frames and descriptors to the caller's outer holder. The caller must
 retain that custody until its exclusive supervisor proves cleanup; final v2
 capture does not start and no success or adoption is returned.
+
+The selected Owner role exposes the maintained Python-free source-command client:
+
+```sh
+/absolute/prefix/bin/tos-native-owner-command source-commands \
+  --invocation /absolute/protected-native-invocation.json < /absolute/request.json
+```
+
+Its packaged [client contract](contracts/source-commands.v1.json) declares the
+explicit inputs and issuer boundary. The earlier `--invocation ABS` entry remains
+the same dispatcher. Requests use the existing family grammar; `describe` and
+`prepare` retain that family's selected source and authorization checks. No prior
+ToS checkout or Python is required on the consumer machine. The authorizing local
+account supplies the protected owner configuration and invocation, actual corpus
+and software captures, and selected worker bindings separately. Installation and
+a request grant no source, field, rights or publication authority. Host
+`private-stage-run`, when required by a selected receiver, supplies OS/resource
+isolation under its actual admitted profile; it is not this source-policy issuer.

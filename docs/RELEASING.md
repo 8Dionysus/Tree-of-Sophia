@@ -214,6 +214,22 @@ python mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_commands.
   --native-invocation /absolute/protected-native-invocation.json < /absolute/request.json
 ```
 
+The portable installed Rust client is available without this checkout or Python:
+
+```sh
+/absolute/prefix/bin/tos-native-owner-command source-commands \
+  --invocation /absolute/protected-native-invocation.json < /absolute/request.json
+```
+
+The optional Owner software role delivers this entry and the packaged
+`access/contracts/source-commands.v1.json` input/issuer contract. The local
+account that owns the selected source supplies its protected policy files;
+request transport does not manufacture their principal, authority, allowed
+operations or expiry. Existing native family `describe`, `prepare` and mutation
+requests use their unchanged typed grammar and independent current-use checks.
+A Host Rust private-stage issuer is a separate explicit resource boundary when
+needed by the selected receiver, not a source-field authority.
+
 The installed executable also accepts `--invocation ABSOLUTE_FILE` directly.
 Both routes must retain the same selected owner/source/rights/recovery and worker
 custody checks. Installing products does not construct an invocation, authorize a

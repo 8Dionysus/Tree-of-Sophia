@@ -72,13 +72,24 @@ fn main() {
             Err(_) => std::process::exit(2),
         }
     }
+    if std::env::args_os().len() == 3
+        && std::env::args_os()
+            .nth(1)
+            .is_some_and(|arg| arg == "source-commands")
+        && std::env::args_os()
+            .nth(2)
+            .is_some_and(|arg| arg == "--help" || arg == "-h")
+    {
+        println!("usage: tos-native-owner-command source-commands --invocation ABSOLUTE_INVOCATION < REQUEST_JSON\n\nExecute the existing selected native source-owner request. The protected invocation selects the actual owner configuration, corpus/software cuts, executable and workers. Request bytes cannot select or issue authority. No Python or source checkout is needed; the optional Owner role and explicit owner-provided inputs are required. See packaged access/contracts/source-commands.v1.json.");
+        return;
+    }
     if std::env::args_os().len() == 2
         && std::env::args_os()
             .nth(1)
             .is_some_and(|arg| arg == "--help" || arg == "-h")
     {
         println!(
-            "usage: tos-native-owner-command --invocation ABSOLUTE_INVOCATION\n       tos-native-owner-command foundation --help\n       tos-native-owner-command backup|restore --help\n\nSource commands read their request from stdin and require the selected invocation.\nFoundation requires an explicit repository root and protected invocation.\nBackup and restore require explicit owner-selected database, store and tool inputs."
+            "usage: tos-native-owner-command source-commands --invocation ABSOLUTE_INVOCATION\n       tos-native-owner-command --invocation ABSOLUTE_INVOCATION\n       tos-native-owner-command foundation --help\n       tos-native-owner-command backup|restore --help\n\nSource commands read their request from stdin and require the selected invocation.\nFoundation requires an explicit repository root and protected invocation.\nBackup and restore require explicit owner-selected database, store and tool inputs."
         );
         return;
     }
@@ -113,8 +124,16 @@ fn main() {
     }
     let mut args = std::env::args_os();
     let _program = args.next();
+    // A public name for the same maintained owner entry; no second launcher,
+    // request builder, authority selection or reset of the owner's cutoff.
+    let first = args.next();
+    let option = if first.as_ref().is_some_and(|arg| arg == "source-commands") {
+        args.next()
+    } else {
+        first
+    };
     let input = std::io::stdin();
-    let result = match (args.next(), args.next(), args.next()) {
+    let result = match (option, args.next(), args.next()) {
         (Some(option), Some(path), None) if option.to_str() == Some("--invocation") => {
             tos_command::source_native_cli::run(Path::new(&path), input.lock())
         }
