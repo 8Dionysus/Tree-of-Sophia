@@ -408,6 +408,8 @@ fn candidate_request_count<I>(
     if closure_store_cost.observation_rows != reported_closure_spooled_count
         || closure_store_cost.derivation != owner.closure.cost.candidate_derivation_store
         || closure_store_cost.topology != owner.closure.cost.candidate_topology_store
+        || closure_store_cost.object_links != owner.closure.cost.candidate_object_link_store
+        || !closure_store_cost.object_links.count_verified
         || closure_store_cost.anchors != owner.closure.cost.candidate_anchor_store
         || closure_store_cost.loaded_document_rows != reported_loaded_document_count
         || closure_store_cost.loaded_document_serialized_read_bytes
@@ -1439,6 +1441,9 @@ pub(crate) fn evaluate_candidate_stored_rules<I: Copy + Eq>(
             != owner_report.closure.cost.candidate_schema_request_count
             || closure_spool_cost.derivation != owner_report.closure.cost.candidate_derivation_store
             || closure_spool_cost.topology != owner_report.closure.cost.candidate_topology_store
+            || closure_spool_cost.object_links
+                != owner_report.closure.cost.candidate_object_link_store
+            || !closure_spool_cost.object_links.count_verified
             || closure_spool_cost.anchors != owner_report.closure.cost.candidate_anchor_store
             || closure_spool_cost.loaded_rows
                 != owner_report.closure.cost.candidate_loaded_row_store

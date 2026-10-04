@@ -279,6 +279,9 @@ pub struct SourceFoundationClosureCost {
     /// Candidate bibliographic-topology ClaimRef projections held in the
     /// invocation-scoped Closure store.
     pub candidate_topology_store: SourceFoundationClosureTopologyStoreCost,
+    /// Candidate object-Link ClaimRefs held in the invocation-scoped Closure
+    /// store. The finite compatibility path keeps its BTreeMap.
+    pub candidate_object_link_store: SourceFoundationClosureObjectLinkStoreCost,
 }
 
 /// Plain current-record projection used only by the source-foundation Link
@@ -365,6 +368,23 @@ pub struct SourceFoundationClosureTopologyStoreCost {
     pub drained_rows: u64,
     pub subject_stream_rows: u64,
     pub subject_stream_eof_count: u64,
+    pub serialized_read_bytes: u64,
+    pub serialized_write_bytes: u64,
+    pub scan_row_operations: u64,
+    pub peak_workspace_state_bytes: usize,
+    pub eof_seen: bool,
+    pub count_verified: bool,
+}
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct SourceFoundationClosureObjectLinkStoreCost {
+    pub claim_rows: u64,
+    pub drained_rows: u64,
+    pub point_lookup_operations: u64,
+    pub point_lookup_rows: u64,
+    pub target_stream_count: u64,
+    pub target_stream_rows: u64,
+    pub target_stream_eof_count: u64,
     pub serialized_read_bytes: u64,
     pub serialized_write_bytes: u64,
     pub scan_row_operations: u64,
@@ -548,6 +568,7 @@ pub struct SourceFoundationClosureSchemaRequestStoreCost {
     pub anchors: SourceFoundationClosureAnchorStoreCost,
     pub derivation: SourceFoundationClosureDerivationStoreCost,
     pub topology: SourceFoundationClosureTopologyStoreCost,
+    pub object_links: SourceFoundationClosureObjectLinkStoreCost,
 }
 
 /// Actual source-line bytes retained for bounded point and ordered reads.
@@ -1094,6 +1115,7 @@ pub trait SourceFoundationClosureSchemaRequestStore {
         expected_provision_validated_event_rows: u64,
         expected_provision_unused_event_rows: u64,
         expected_topology_claim_rows: u64,
+        expected_object_link_claim_rows: u64,
         direct_issue_count: usize,
         max_state_bytes: usize,
     ) -> Result<SourceFoundationClosureSchemaRequestStoreCost, ItemRefusal>;
@@ -1119,6 +1141,53 @@ pub trait SourceFoundationClosureSchemaRequestStore {
         &mut self,
         subject: &str,
         predicate: &str,
+        max_state_bytes: usize,
+        visit: &mut dyn FnMut(&str, usize) -> Result<(), ItemRefusal>,
+    ) -> Result<(u64, usize), ItemRefusal>;
+
+    /// Upsert one source-derived object-Link ClaimRef using the old map's
+    /// last-write behavior.
+    fn remember_object_link_claim(
+        &mut self,
+        id: &str,
+        reference: &SourceFoundationClosureClaimRef,
+        max_state_bytes: usize,
+    ) -> Result<(bool, usize), ItemRefusal>;
+
+    /// Seal the unique object-Link projection before its ordered drain.
+    fn begin_object_link_claims(&mut self, expected_rows: u64) -> Result<(), ItemRefusal>;
+
+    /// Read the next object-Link ClaimRef in exact binary ID order. The store
+    /// retains and validates its keyset cursor; the caller accounts for the
+    /// returned row and retained cursor until the next read or EOF.
+    fn next_object_link_claim(
+        &mut self,
+        max_state_bytes: usize,
+    ) -> Result<
+        (
+            Option<(String, SourceFoundationClosureClaimRef)>,
+            usize,
+            usize,
+            usize,
+        ),
+        ItemRefusal,
+    >;
+
+    /// Check whether an association exists and whether it targets this Link
+    /// and cites the Link's provenance event.
+    fn object_link_relation(
+        &mut self,
+        id: &str,
+        link_id: &str,
+        event_id: &str,
+        max_state_bytes: usize,
+    ) -> Result<(bool, bool, bool, usize), ItemRefusal>;
+
+    /// Stream object-Link IDs targeting one Link in binary order. The count is
+    /// returned only after the selected index query reaches true EOF.
+    fn for_each_object_link_target(
+        &mut self,
+        link_id: &str,
         max_state_bytes: usize,
         visit: &mut dyn FnMut(&str, usize) -> Result<(), ItemRefusal>,
     ) -> Result<(u64, usize), ItemRefusal>;
@@ -1459,6 +1528,7 @@ fn run_source_foundation_closure<S: LayerFamilySource + ?Sized>(
         rules.cost.candidate_provision_validated_event_count;
     let expected_provision_unused_event_rows = rules.cost.candidate_provision_unused_event_count;
     let expected_topology_claim_rows = rules.cost.candidate_topology_store.claim_rows;
+    let expected_object_link_claim_rows = rules.cost.candidate_object_link_store.claim_rows;
     let schema_request_finish = if rules.schema_request_store.is_some() {
         let direct_issue_count = rules.issues.len();
         let remaining = rules.remaining_state()?;
@@ -1486,6 +1556,7 @@ fn run_source_foundation_closure<S: LayerFamilySource + ?Sized>(
                 expected_provision_validated_event_rows,
                 expected_provision_unused_event_rows,
                 expected_topology_claim_rows,
+                expected_object_link_claim_rows,
                 direct_issue_count,
                 remaining,
             )?;
@@ -1519,6 +1590,7 @@ fn run_source_foundation_closure<S: LayerFamilySource + ?Sized>(
                         .max(finished.provision_used_event_workspace_state_bytes)
                         .max(finished.provision_validated_event_workspace_state_bytes)
                         .max(finished.topology.peak_workspace_state_bytes)
+                        .max(finished.object_links.peak_workspace_state_bytes)
                         .max(finished.derivation.peak_workspace_state_bytes),
                 )
             })
@@ -1572,6 +1644,10 @@ fn run_source_foundation_closure<S: LayerFamilySource + ?Sized>(
             || finished.topology.drained_rows != expected_topology_claim_rows
             || !finished.topology.eof_seen
             || !finished.topology.count_verified
+            || finished.object_links.claim_rows != expected_object_link_claim_rows
+            || finished.object_links.drained_rows != expected_object_link_claim_rows
+            || !finished.object_links.eof_seen
+            || !finished.object_links.count_verified
             || finished.derivation != rules.cost.candidate_derivation_store
             || finished.loaded_rows.inserted_rows != expected_loaded_row_store.inserted_rows
             || finished.loaded_rows.point_lookup_operations
@@ -1586,6 +1662,7 @@ fn run_source_foundation_closure<S: LayerFamilySource + ?Sized>(
             ));
         }
         rules.cost.reserved_state_bytes = rules.cost.reserved_state_bytes.max(combined);
+        rules.cost.candidate_object_link_store = finished.object_links;
         rules.cost.candidate_schema_request_count = finished.observation_rows;
         rules.cost.candidate_schema_request_serialized_write_bytes =
             finished.serialized_write_bytes;
@@ -3913,6 +3990,29 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
             self.cost.candidate_topology_store.claim_rows = self
                 .cost
                 .candidate_topology_store
+                .claim_rows
+                .checked_add(1)
+                .ok_or(ItemRefusal::Budget)?;
+        }
+        Ok(())
+    }
+
+    fn remember_candidate_object_link_claim(
+        &mut self,
+        id: &str,
+        reference: &SourceFoundationClosureClaimRef,
+    ) -> Result<(), ItemRefusal> {
+        let remaining = self.remaining_state()?;
+        let (inserted, workspace) = self
+            .schema_request_store
+            .as_deref_mut()
+            .ok_or(ItemRefusal::Budget)?
+            .remember_object_link_claim(id, reference, remaining)?;
+        self.include_store_workspace(workspace)?;
+        if inserted {
+            self.cost.candidate_object_link_store.claim_rows = self
+                .cost
+                .candidate_object_link_store
                 .claim_rows
                 .checked_add(1)
                 .ok_or(ItemRefusal::Budget)?;
@@ -8110,6 +8210,9 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
     }
 
     fn check_object_links(&mut self) -> Result<(), ItemRefusal> {
+        if self.schema_request_store.is_some() {
+            return self.check_candidate_object_links();
+        }
         let temporary_baseline = self.temporary_state_bytes;
         let claims_state = claim_refs_vec_clone_state(&self.object_links)?;
         let targets_state = self
@@ -8232,7 +8335,7 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
             events.insert(claim_id, claim.event.clone());
         }
         if self.link_store.is_some() {
-            self.check_stored_links(&targets, &events, temporary_baseline)?;
+            self.check_stored_links(Some(&targets), Some(&events), temporary_baseline)?;
         } else {
             let links: Vec<(String, String, Value)> = self
                 .links
@@ -8247,10 +8350,168 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
         Ok(())
     }
 
+    fn check_candidate_object_links(&mut self) -> Result<(), ItemRefusal> {
+        let temporary_baseline = self.temporary_state_bytes;
+        let expected_rows = self.cost.candidate_object_link_store.claim_rows;
+        self.schema_request_store
+            .as_deref_mut()
+            .ok_or(ItemRefusal::Budget)?
+            .begin_object_link_claims(expected_rows)?;
+        loop {
+            check(self.limits.deadline, self.source.cancellation())?;
+            let remaining = self.remaining_state()?;
+            let (claim, workspace, row_state, next_cursor_state) = self
+                .schema_request_store
+                .as_deref_mut()
+                .ok_or(ItemRefusal::Budget)?
+                .next_object_link_claim(remaining)?;
+            self.include_store_workspace(workspace)?;
+            let Some((claim_id, claim)) = claim else {
+                self.temporary_state_bytes = temporary_baseline;
+                self.cost.candidate_object_link_store.eof_seen = true;
+                if self.cost.candidate_object_link_store.drained_rows != expected_rows {
+                    return Err(ItemRefusal::Source(
+                        "source-foundation object-Link claim count differs from its ordered drain"
+                            .into(),
+                    ));
+                }
+                break;
+            };
+            let row_and_cursor = row_state
+                .checked_add(next_cursor_state)
+                .ok_or(ItemRefusal::Budget)?;
+            let next_temporary = temporary_baseline
+                .checked_add(row_and_cursor)
+                .ok_or(ItemRefusal::Budget)?;
+            if self
+                .retained_state_bytes
+                .checked_add(next_temporary)
+                .is_none_or(|used| used > self.limits.max_state_bytes)
+            {
+                return Err(ItemRefusal::Budget);
+            }
+            self.temporary_state_bytes = next_temporary;
+            self.cost.reserved_state_bytes = self
+                .cost
+                .reserved_state_bytes
+                .max(self.retained_state_bytes + next_temporary);
+
+            let location = claim.location.as_str();
+            let (subject, subject_workspace) =
+                self.current_record_with_state_budget(&claim.subject)?;
+            let (subject_exists, subject_is_link, subject_is_valid_native) = {
+                match subject.as_ref() {
+                    None => (false, false, false),
+                    Some(subject) => (
+                        true,
+                        subject.kind == "link",
+                        matches!(
+                            subject.kind.as_str(),
+                            "work" | "expression" | "edition" | "collection" | "item" | "artifact"
+                        ),
+                    ),
+                }
+            };
+            drop(subject);
+            self.release_temporary_state(subject_workspace)?;
+            if !subject_exists && !claim.native {
+                self.issue(
+                    location,
+                    format!(
+                        "unresolved or invalid object-Link subject: {}",
+                        claim.subject
+                    ),
+                )?;
+            } else if subject_is_link {
+                self.issue(
+                    location,
+                    format!(
+                        "unresolved or invalid object-Link subject: {}",
+                        claim.subject
+                    ),
+                )?;
+            } else if claim.native && !subject_is_valid_native {
+                self.issue(
+                    location,
+                    format!(
+                        "unresolved or invalid native object-Link subject: {}",
+                        claim.subject
+                    ),
+                )?;
+            }
+            if !self.link_exists(&claim.object)? {
+                self.issue(
+                    location,
+                    format!("unresolved Link object: {}", claim.object),
+                )?;
+            }
+            if !self.event_exists(&claim.event)? {
+                self.issue(
+                    location,
+                    format!(
+                        "unresolved object-Link provenance_event_ref: {}",
+                        claim.event
+                    ),
+                )?;
+            }
+            drop(claim);
+            drop(claim_id);
+            self.temporary_state_bytes = temporary_baseline
+                .checked_add(next_cursor_state)
+                .ok_or(ItemRefusal::Budget)?;
+            self.cost.candidate_object_link_store.drained_rows = self
+                .cost
+                .candidate_object_link_store
+                .drained_rows
+                .checked_add(1)
+                .ok_or(ItemRefusal::Budget)?;
+        }
+        if self.link_store.is_some() {
+            self.check_stored_links(None, None, temporary_baseline)?;
+        } else {
+            let links_state =
+                self.links
+                    .iter()
+                    .try_fold(0usize, |state, (id, (path, value))| {
+                        state
+                            .checked_add(
+                                id.len()
+                                    .checked_add(path.len())
+                                    .and_then(|bytes| {
+                                        bytes.checked_add(
+                                            crate::record_biblio_cut::decoded_state(value).ok()?,
+                                        )
+                                    })
+                                    .and_then(|bytes| {
+                                        bytes.checked_add(std::mem::size_of::<(
+                                            String,
+                                            String,
+                                            Value,
+                                        )>(
+                                        ))
+                                    })
+                                    .ok_or(ItemRefusal::Budget)?,
+                            )
+                            .ok_or(ItemRefusal::Budget)
+                    })?;
+            self.reserve_temporary(links_state)?;
+            let links: Vec<(String, String, Value)> = self
+                .links
+                .iter()
+                .map(|(id, (path, value))| (id.clone(), path.clone(), value.clone()))
+                .collect();
+            for (link_id, path, link) in links {
+                self.check_link_row_candidate(&link_id, &path, &link)?;
+            }
+        }
+        self.temporary_state_bytes = temporary_baseline;
+        Ok(())
+    }
+
     fn check_stored_links(
         &mut self,
-        targets: &BTreeMap<String, String>,
-        events: &BTreeMap<String, String>,
+        targets: Option<&BTreeMap<String, String>>,
+        events: Option<&BTreeMap<String, String>>,
         temporary_baseline: usize,
     ) -> Result<(), ItemRefusal> {
         let mut store = self.link_store.take().ok_or(ItemRefusal::Budget)?;
@@ -8299,9 +8560,21 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
                     "source-foundation Closure Link rows are not exact and ID ordered".into(),
                 ));
             }
-            let scratch = link_validation_workspace(&link.value, targets)?;
-            self.reserve_temporary(scratch)?;
-            self.check_link_row(&link.id, &link.path, &link.value, targets, events)?;
+            let scratch = match (targets, events) {
+                (Some(targets), Some(_)) => link_validation_workspace(&link.value, targets)?,
+                (None, None) => link_validation_candidate_workspace(&link.value)?,
+                _ => return Err(ItemRefusal::Budget),
+            };
+            match (targets, events) {
+                (Some(targets), Some(events)) => {
+                    self.reserve_temporary(scratch)?;
+                    self.check_link_row(&link.id, &link.path, &link.value, targets, events)?;
+                }
+                (None, None) => {
+                    self.check_link_row_candidate(&link.id, &link.path, &link.value)?;
+                }
+                _ => return Err(ItemRefusal::Budget),
+            }
             let next_cursor_state = estimate_string_storage(&link.id)?;
             self.reserve_temporary(next_cursor_state)?;
             let next_after = link.id.clone();
@@ -8394,6 +8667,171 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
                 ),
             )?;
         }
+        Ok(())
+    }
+
+    fn check_link_row_candidate(
+        &mut self,
+        link_id: &str,
+        path: &str,
+        link: &Value,
+    ) -> Result<(), ItemRefusal> {
+        let scratch = link_validation_candidate_workspace(link)?;
+        self.reserve_temporary(scratch)?;
+        let refs = value_strings(link, "association_claim_refs");
+        let ref_set: BTreeSet<String> = refs.iter().cloned().collect();
+        drop(refs);
+        let event_ref = text(link, "provenance_event_ref").unwrap_or_default();
+        let mut missing = Vec::new();
+        let mut misbound = Vec::new();
+        let mut event_mismatch = Vec::new();
+        let mut association_bytes = 0usize;
+        for id in &ref_set {
+            check(self.limits.deadline, self.source.cancellation())?;
+            association_bytes = association_bytes
+                .checked_add(id.len())
+                .ok_or(ItemRefusal::Budget)?;
+            let remaining = self.remaining_state()?;
+            let (exists, targets_link, matches_event, workspace) = self
+                .schema_request_store
+                .as_deref_mut()
+                .ok_or(ItemRefusal::Budget)?
+                .object_link_relation(id, link_id, event_ref, remaining)?;
+            self.include_store_workspace(workspace)?;
+            if !exists {
+                missing.push(id.clone());
+            } else {
+                if !targets_link {
+                    misbound.push(id.clone());
+                }
+                if !matches_event {
+                    event_mismatch.push(id.clone());
+                }
+            }
+        }
+        if !missing.is_empty() {
+            self.issue_object_link_list(
+                path,
+                "unresolved object-Link claims: ",
+                &missing,
+                association_bytes,
+            )?;
+        }
+        if !misbound.is_empty() {
+            self.issue_object_link_list(
+                path,
+                "object-Link claims target another Link: ",
+                &misbound,
+                association_bytes,
+            )?;
+        }
+        if !event_mismatch.is_empty() {
+            self.issue_object_link_list(
+                path,
+                "object-Link claims cite another provenance event: ",
+                &event_mismatch,
+                association_bytes,
+            )?;
+        }
+        let remaining = self.remaining_state()?;
+        let mut unreferenced = Vec::<String>::new();
+        let mut unreferenced_string_state = 0usize;
+        let mut unreferenced_state = 0usize;
+        let mut target_stream_combined_peak = 0usize;
+        let (streamed, workspace) = self
+            .schema_request_store
+            .as_deref_mut()
+            .ok_or(ItemRefusal::Budget)?
+            .for_each_object_link_target(link_id, remaining, &mut |id, provider_workspace| {
+                if ref_set.contains(id) {
+                    return Ok(());
+                }
+                let next_count = unreferenced
+                    .len()
+                    .checked_add(1)
+                    .ok_or(ItemRefusal::Budget)?;
+                let next_string_state = unreferenced_string_state
+                    .checked_add(estimate_string_storage(id)?)
+                    .ok_or(ItemRefusal::Budget)?;
+                let next_state = next_count
+                    .checked_mul(2)
+                    .ok_or(ItemRefusal::Budget)?
+                    .checked_mul(std::mem::size_of::<String>())
+                    .and_then(|state| state.checked_add(next_string_state))
+                    .ok_or(ItemRefusal::Budget)?;
+                if provider_workspace
+                    .checked_add(next_state)
+                    .is_none_or(|used| used > remaining)
+                {
+                    return Err(ItemRefusal::Budget);
+                }
+                target_stream_combined_peak = target_stream_combined_peak.max(
+                    provider_workspace
+                        .checked_add(next_state)
+                        .ok_or(ItemRefusal::Budget)?,
+                );
+                unreferenced
+                    .try_reserve_exact(1)
+                    .map_err(|_| ItemRefusal::Budget)?;
+                unreferenced.push(id.to_owned());
+                unreferenced_string_state = next_string_state;
+                unreferenced_state = next_state;
+                Ok(())
+            })?;
+        let _ = streamed;
+        self.include_store_workspace(workspace)?;
+        let combined_peak = self
+            .retained_state_bytes
+            .checked_add(self.temporary_state_bytes)
+            .and_then(|state| state.checked_add(target_stream_combined_peak))
+            .ok_or(ItemRefusal::Budget)?;
+        self.cost.reserved_state_bytes = self.cost.reserved_state_bytes.max(combined_peak);
+        if !unreferenced.is_empty() {
+            self.reserve_temporary(unreferenced_state)?;
+            self.issue_object_link_list(
+                path,
+                "object-Link claims are not referenced by Link: ",
+                &unreferenced,
+                unreferenced.iter().try_fold(0usize, |bytes, id| {
+                    bytes.checked_add(id.len()).ok_or(ItemRefusal::Budget)
+                })?,
+            )?;
+            drop(unreferenced);
+            self.release_temporary_state(unreferenced_state)?;
+        }
+        drop(missing);
+        drop(misbound);
+        drop(event_mismatch);
+        drop(ref_set);
+        self.release_temporary_state(scratch)?;
+        Ok(())
+    }
+
+    fn issue_object_link_list(
+        &mut self,
+        path: &str,
+        prefix: &str,
+        ids: &[String],
+        source_bytes: usize,
+    ) -> Result<(), ItemRefusal> {
+        let (render_peak, list_bytes, list_state) =
+            python_string_list_workspace(ids.len(), source_bytes)?;
+        let message_state = bounded_string_capacity_state(
+            prefix
+                .len()
+                .checked_add(list_bytes)
+                .ok_or(ItemRefusal::Budget)?,
+        )?;
+        let format_workspace = render_peak
+            .checked_add(list_state)
+            .and_then(|state| state.checked_add(message_state))
+            .ok_or(ItemRefusal::Budget)?;
+        self.reserve_temporary(format_workspace)?;
+        let rendered = python_string_list(ids);
+        let message = format!("{prefix}{rendered}");
+        drop(rendered);
+        self.issue(path, message)?;
+        self.release_temporary_state(format_workspace)?;
         Ok(())
     }
 
@@ -9169,8 +9607,12 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
                 || claim.get("schema_version").and_then(Value::as_str)
                     == Some("tos_object_link_claim_v2")
             {
-                self.reserve(claim_reference_index_state(&id, &reference)?)?;
-                self.object_links.insert(id.clone(), reference.clone());
+                if self.schema_request_store.is_some() {
+                    self.remember_candidate_object_link_claim(&id, &reference)?;
+                } else {
+                    self.reserve(claim_reference_index_state(&id, &reference)?)?;
+                    self.object_links.insert(id.clone(), reference.clone());
+                }
             }
             if TOPOLOGY_ROUTES.iter().any(|(route, ..)| *route == path)
                 || matches!(
@@ -9996,6 +10438,29 @@ fn link_validation_workspace(
         .checked_mul(5)
         .and_then(|bytes| bytes.checked_add(target_bytes.checked_mul(3)?))
         .and_then(|bytes| bytes.checked_add(512))
+        .ok_or(ItemRefusal::Budget)
+}
+
+fn link_validation_candidate_workspace(value: &Value) -> Result<usize, ItemRefusal> {
+    let mut reference_bytes = std::mem::size_of::<Vec<String>>();
+    if let Some(references) = value
+        .get("association_claim_refs")
+        .and_then(Value::as_array)
+    {
+        for reference in references.iter().filter_map(Value::as_str) {
+            reference_bytes = reference_bytes
+                .checked_add(reference.len())
+                .and_then(|bytes| {
+                    bytes.checked_add(
+                        std::mem::size_of::<String>() + 4 * std::mem::size_of::<usize>() + 96,
+                    )
+                })
+                .ok_or(ItemRefusal::Budget)?;
+        }
+    }
+    reference_bytes
+        .checked_mul(5)
+        .and_then(|bytes| bytes.checked_add(std::mem::size_of::<Vec<String>>() + 512))
         .ok_or(ItemRefusal::Budget)
 }
 

@@ -27,9 +27,9 @@ use tos_validation::{
         SourceFoundationClosureDerivationStoreCost, SourceFoundationClosureEvent,
         SourceFoundationClosureLink, SourceFoundationClosureLinkStore,
         SourceFoundationClosureLinkStoreCost, SourceFoundationClosureLoadedRowStoreCost,
-        SourceFoundationClosureSchemaRequest, SourceFoundationClosureSchemaRequestStore,
-        SourceFoundationClosureSchemaRequestStoreCost, SourceFoundationClosureTopologyStoreCost,
-        source_foundation_closure_json_state_upper_bound,
+        SourceFoundationClosureObjectLinkStoreCost, SourceFoundationClosureSchemaRequest,
+        SourceFoundationClosureSchemaRequestStore, SourceFoundationClosureSchemaRequestStoreCost,
+        SourceFoundationClosureTopologyStoreCost, source_foundation_closure_json_state_upper_bound,
     },
     source_foundation_default_rules::{
         SourceFoundationDefaultClaims, SourceFoundationDefaultEventLookup,
@@ -799,6 +799,17 @@ impl<'candidate, 'host> SpoolDefaultStore<'candidate, 'host> {
              ) WITHOUT ROWID;\
              CREATE INDEX sf_closure_topology_subject_order\
                  ON sf_closure_topology_claims(predicate COLLATE BINARY, subject COLLATE BINARY, claim_id COLLATE BINARY);\
+             CREATE TABLE sf_closure_object_link_claims(\
+                 claim_id TEXT NOT NULL COLLATE BINARY PRIMARY KEY,\
+                 location TEXT NOT NULL COLLATE BINARY,\
+                 subject TEXT NOT NULL COLLATE BINARY,\
+                 predicate TEXT NOT NULL COLLATE BINARY,\
+                 object TEXT NOT NULL COLLATE BINARY,\
+                 event TEXT NOT NULL COLLATE BINARY,\
+                 native INTEGER NOT NULL CHECK(native IN (0,1))\
+             ) WITHOUT ROWID;\
+             CREATE INDEX sf_closure_object_link_target_order\
+                 ON sf_closure_object_link_claims(object COLLATE BINARY, claim_id COLLATE BINARY);\
              CREATE TABLE sf_closure_provision_event_ids(\
                  event_id TEXT NOT NULL COLLATE BINARY PRIMARY KEY\
              ) WITHOUT ROWID;\
@@ -3238,6 +3249,11 @@ struct CandidateClosureSchemaRequests<'a, 'candidate, 'host, 'cancel, 'budget> {
     derivation_keyset_eof: [bool; 5],
     derivation_stack_depth: usize,
     derivation_finished: bool,
+    object_link_cost: SourceFoundationClosureObjectLinkStoreCost,
+    max_object_link_claim_bytes: [usize; 6],
+    expected_object_link_claim_rows: Option<u64>,
+    object_link_claims_sealed: bool,
+    last_object_link_claim_id: Option<String>,
     max_event_id_bytes: usize,
     max_event_path_bytes: usize,
     max_event_json_bytes: usize,
@@ -4602,6 +4618,72 @@ impl CandidateClosureSchemaRequests<'_, '_, '_, '_, '_> {
             .scan_row_operations
             .checked_add(usize_u64(rows)?)
             .ok_or(ItemRefusal::Budget)?;
+        Ok(())
+    }
+
+    fn charge_object_link_scan_rows(&mut self, rows: usize) -> Result<(), ItemRefusal> {
+        self.charge_scan_rows(rows)?;
+        self.object_link_cost.scan_row_operations = self
+            .object_link_cost
+            .scan_row_operations
+            .checked_add(usize_u64(rows)?)
+            .ok_or(ItemRefusal::Budget)?;
+        Ok(())
+    }
+
+    fn finish_object_link_claims_inner(
+        &mut self,
+        expected_rows: u64,
+        max_state_bytes: usize,
+    ) -> Result<(), ItemRefusal> {
+        if self.finished
+            || !self.object_link_claims_sealed
+            || self.expected_object_link_claim_rows != Some(expected_rows)
+            || self.object_link_cost.claim_rows != expected_rows
+            || self.object_link_cost.drained_rows != expected_rows
+            || !self.object_link_cost.eof_seen
+            || self.object_link_cost.target_stream_count
+                != self.object_link_cost.target_stream_eof_count
+        {
+            return Err(source_refusal());
+        }
+        let workspace = size_of::<i64>() + 256;
+        self.preflight(workspace, max_state_bytes)?;
+        let scan_rows = usize::try_from(expected_rows)
+            .map_err(|_| ItemRefusal::Budget)?
+            .checked_add(1)
+            .ok_or(ItemRefusal::Budget)?;
+        self.charge_object_link_scan_rows(scan_rows)?;
+        let mut statement = self
+            .db
+            .prepare("SELECT count(*) FROM sf_closure_object_link_claims")
+            .map_err(sql_refusal)?;
+        let mut rows = statement.query([]).map_err(sql_refusal)?;
+        let actual_rows = rows
+            .next()
+            .map_err(sql_refusal)?
+            .map(|row| row.get::<_, i64>(0).map_err(sql_refusal))
+            .transpose()?
+            .ok_or_else(source_refusal)?;
+        if rows.next().map_err(sql_refusal)?.is_some()
+            || actual_rows < 0
+            || u64::try_from(actual_rows).map_err(|_| source_refusal())? != expected_rows
+        {
+            return Err(source_refusal());
+        }
+        self.object_link_cost.serialized_read_bytes = self
+            .object_link_cost
+            .serialized_read_bytes
+            .checked_add(size_of::<i64>() as u64)
+            .ok_or(ItemRefusal::Budget)?;
+        self.object_link_cost.peak_workspace_state_bytes = self
+            .object_link_cost
+            .peak_workspace_state_bytes
+            .max(workspace);
+        drop(rows);
+        drop(statement);
+        self.context.check()?;
+        self.object_link_cost.count_verified = true;
         Ok(())
     }
 
@@ -6008,6 +6090,7 @@ impl CandidateClosureSchemaRequests<'_, '_, '_, '_, '_> {
             },
             derivation: self.derivation_cost,
             topology: self.topology_cost,
+            object_links: self.object_link_cost,
         }
     }
 
@@ -6088,6 +6171,14 @@ impl CandidateClosureSchemaRequests<'_, '_, '_, '_, '_> {
             || self.topology_cost.drained_rows != self.topology_cost.claim_rows
             || !self.topology_cost.eof_seen
             || !self.topology_cost.count_verified
+            || self.expected_object_link_claim_rows != Some(self.object_link_cost.claim_rows)
+            || !self.object_link_claims_sealed
+            || self.object_link_cost.drained_rows != self.object_link_cost.claim_rows
+            || !self.object_link_cost.eof_seen
+            || !self.object_link_cost.count_verified
+            || self.object_link_cost.target_stream_count
+                != self.object_link_cost.target_stream_eof_count
+            || self.last_object_link_claim_id.is_some()
         {
             return Err(source_refusal());
         }
@@ -8056,6 +8147,459 @@ impl SourceFoundationClosureSchemaRequestStore
         drop(rows);
         drop(statement);
         self.context.check()?;
+        Ok((drained, workspace_peak))
+    }
+
+    fn remember_object_link_claim(
+        &mut self,
+        id: &str,
+        reference: &SourceFoundationClosureClaimRef,
+        max_state_bytes: usize,
+    ) -> Result<(bool, usize), ItemRefusal> {
+        if self.finished || self.object_link_claims_sealed {
+            return Err(source_refusal());
+        }
+        let field_bytes = [
+            id.len(),
+            reference.location.len(),
+            reference.subject.len(),
+            reference.predicate.len(),
+            reference.object.len(),
+            reference.event.len(),
+        ];
+        let workspace = Self::responsibility_claim_workspace(field_bytes, 3)?;
+        self.preflight(workspace, max_state_bytes)?;
+        self.context.check()?;
+        self.charge_object_link_scan_rows(3)?;
+        let existed = self
+            .db
+            .query_row(
+                "SELECT 1 FROM sf_closure_object_link_claims WHERE claim_id=?1",
+                [id],
+                |_| Ok(()),
+            )
+            .optional()
+            .map_err(sql_refusal)?
+            .is_some();
+        self.context.check()?;
+        let changed = self
+            .db
+            .execute(
+                "INSERT INTO sf_closure_object_link_claims(claim_id,location,subject,predicate,object,event,native) VALUES(?1,?2,?3,?4,?5,?6,?7) ON CONFLICT(claim_id) DO UPDATE SET location=excluded.location,subject=excluded.subject,predicate=excluded.predicate,object=excluded.object,event=excluded.event,native=excluded.native",
+                params![
+                    id,
+                    reference.location,
+                    reference.subject,
+                    reference.predicate,
+                    reference.object,
+                    reference.event,
+                    if reference.native { 1_i64 } else { 0_i64 },
+                ],
+            )
+            .map_err(sql_refusal)?;
+        if changed != 1 {
+            return Err(source_refusal());
+        }
+        self.context.check()?;
+        let mut statement = self
+            .db
+            .prepare("SELECT location,subject,predicate,object,event,native FROM sf_closure_object_link_claims WHERE claim_id=?1")
+            .map_err(sql_refusal)?;
+        let mut rows = statement.query([id]).map_err(sql_refusal)?;
+        let stored = rows
+            .next()
+            .map_err(sql_refusal)?
+            .map(|row| {
+                Ok((
+                    bounded_row_text(row, 0, workspace)?,
+                    bounded_row_text(row, 1, workspace)?,
+                    bounded_row_text(row, 2, workspace)?,
+                    bounded_row_text(row, 3, workspace)?,
+                    bounded_row_text(row, 4, workspace)?,
+                    row.get::<_, i64>(5)?,
+                ))
+            })
+            .transpose()
+            .map_err(sql_refusal)?
+            .ok_or_else(source_refusal)?;
+        if rows.next().map_err(sql_refusal)?.is_some()
+            || stored.0 != reference.location
+            || stored.1 != reference.subject
+            || stored.2 != reference.predicate
+            || stored.3 != reference.object
+            || stored.4 != reference.event
+            || stored.5 != if reference.native { 1_i64 } else { 0_i64 }
+        {
+            return Err(source_refusal());
+        }
+        drop(rows);
+        drop(statement);
+        drop(stored);
+        self.context.check()?;
+        let serialized_fields = field_bytes.iter().try_fold(0usize, |bytes, field| {
+            bytes.checked_add(*field).ok_or(ItemRefusal::Budget)
+        })?;
+        let serialized_reference = field_bytes[1..].iter().try_fold(0usize, |bytes, field| {
+            bytes.checked_add(*field).ok_or(ItemRefusal::Budget)
+        })?;
+        self.object_link_cost.serialized_read_bytes = self
+            .object_link_cost
+            .serialized_read_bytes
+            .checked_add(usize_u64(
+                serialized_reference
+                    .checked_add(if existed { size_of::<i64>() } else { 0 })
+                    .and_then(|bytes| bytes.checked_add(size_of::<i64>()))
+                    .ok_or(ItemRefusal::Budget)?,
+            )?)
+            .ok_or(ItemRefusal::Budget)?;
+        self.object_link_cost.serialized_write_bytes = self
+            .object_link_cost
+            .serialized_write_bytes
+            .checked_add(usize_u64(
+                serialized_fields
+                    .checked_add(size_of::<i64>())
+                    .ok_or(ItemRefusal::Budget)?,
+            )?)
+            .ok_or(ItemRefusal::Budget)?;
+        if !existed {
+            self.object_link_cost.claim_rows = self
+                .object_link_cost
+                .claim_rows
+                .checked_add(1)
+                .ok_or(ItemRefusal::Budget)?;
+        }
+        for (maximum, actual) in self.max_object_link_claim_bytes.iter_mut().zip(field_bytes) {
+            *maximum = (*maximum).max(actual);
+        }
+        self.object_link_cost.peak_workspace_state_bytes = self
+            .object_link_cost
+            .peak_workspace_state_bytes
+            .max(workspace);
+        Ok((!existed, workspace))
+    }
+
+    fn begin_object_link_claims(&mut self, expected_rows: u64) -> Result<(), ItemRefusal> {
+        if self.finished
+            || self.object_link_claims_sealed
+            || self.object_link_cost.claim_rows != expected_rows
+        {
+            return Err(source_refusal());
+        }
+        self.expected_object_link_claim_rows = Some(expected_rows);
+        self.object_link_claims_sealed = true;
+        self.context.check()
+    }
+
+    fn next_object_link_claim(
+        &mut self,
+        max_state_bytes: usize,
+    ) -> Result<
+        (
+            Option<(String, SourceFoundationClosureClaimRef)>,
+            usize,
+            usize,
+            usize,
+        ),
+        ItemRefusal,
+    > {
+        if self.finished
+            || !self.object_link_claims_sealed
+            || self.object_link_cost.eof_seen
+            || self.expected_object_link_claim_rows != Some(self.object_link_cost.claim_rows)
+        {
+            return Err(source_refusal());
+        }
+        let row_workspace =
+            Self::responsibility_claim_workspace(self.max_object_link_claim_bytes, 3)?;
+        let previous_bytes = self
+            .last_object_link_claim_id
+            .as_deref()
+            .map(str::len)
+            .unwrap_or_default();
+        let cursor_copy = self
+            .last_object_link_claim_id
+            .as_deref()
+            .map(|id| Self::row_text_state(id.len()))
+            .transpose()?
+            .unwrap_or_default();
+        let cursor_binding_state = self
+            .last_object_link_claim_id
+            .as_deref()
+            .map(|id| Self::row_text_state(id.len()))
+            .transpose()?
+            .unwrap_or_default();
+        let workspace = size_of::<(String, SourceFoundationClosureClaimRef)>()
+            .checked_add(1024)
+            .and_then(|base| base.checked_add(cursor_copy))
+            .and_then(|base| base.checked_add(cursor_binding_state))
+            .ok_or(ItemRefusal::Budget)?;
+        let preflight = workspace
+            .checked_add(row_workspace)
+            .and_then(|state| {
+                state.checked_add(Self::row_text_state(self.max_object_link_claim_bytes[0]).ok()?)
+            })
+            .ok_or(ItemRefusal::Budget)?;
+        self.preflight(preflight, max_state_bytes)?;
+        self.context.check()?;
+        self.charge_object_link_scan_rows(1)?;
+        let after_id = self.last_object_link_claim_id.as_deref();
+        let mut statement = self
+            .db
+            .prepare(if after_id.is_some() {
+                "SELECT claim_id,location,subject,predicate,object,event,native FROM sf_closure_object_link_claims WHERE claim_id COLLATE BINARY > ?1 COLLATE BINARY ORDER BY claim_id COLLATE BINARY LIMIT 1"
+            } else {
+                "SELECT claim_id,location,subject,predicate,object,event,native FROM sf_closure_object_link_claims ORDER BY claim_id COLLATE BINARY LIMIT 1"
+            })
+            .map_err(sql_refusal)?;
+        let mut rows = match after_id {
+            Some(after_id) => statement.query([after_id]),
+            None => statement.query([]),
+        }
+        .map_err(sql_refusal)?;
+        let Some(row) = rows.next().map_err(sql_refusal)? else {
+            drop(rows);
+            drop(statement);
+            if self.object_link_cost.drained_rows != self.object_link_cost.claim_rows {
+                return Err(source_refusal());
+            }
+            self.last_object_link_claim_id = None;
+            self.object_link_cost.eof_seen = true;
+            self.object_link_cost.peak_workspace_state_bytes = self
+                .object_link_cost
+                .peak_workspace_state_bytes
+                .max(workspace);
+            self.context.check()?;
+            return Ok((None, workspace, 0, 0));
+        };
+        if self.object_link_cost.drained_rows >= self.object_link_cost.claim_rows {
+            return Err(source_refusal());
+        }
+        let id = bounded_row_text(row, 0, preflight).map_err(sql_refusal)?;
+        if self
+            .last_object_link_claim_id
+            .as_deref()
+            .is_some_and(|previous| previous >= id.as_str())
+        {
+            return Err(source_refusal());
+        }
+        let reference = SourceFoundationClosureClaimRef {
+            location: bounded_row_text(row, 1, preflight).map_err(sql_refusal)?,
+            subject: bounded_row_text(row, 2, preflight).map_err(sql_refusal)?,
+            predicate: bounded_row_text(row, 3, preflight).map_err(sql_refusal)?,
+            object: bounded_row_text(row, 4, preflight).map_err(sql_refusal)?,
+            event: bounded_row_text(row, 5, preflight).map_err(sql_refusal)?,
+            native: match row.get::<_, i64>(6).map_err(sql_refusal)? {
+                0 => false,
+                1 => true,
+                _ => return Err(source_refusal()),
+            },
+        };
+        drop(rows);
+        drop(statement);
+        self.context.check()?;
+        let row_state = Self::responsibility_claim_row_state(&reference)?
+            .checked_add(estimate_string_state(&id)?)
+            .and_then(|state| {
+                state.checked_add(size_of::<(String, SourceFoundationClosureClaimRef)>())
+            })
+            .ok_or(ItemRefusal::Budget)?;
+        let cursor_state = estimate_string_state(&id)?;
+        self.object_link_cost.serialized_read_bytes = self
+            .object_link_cost
+            .serialized_read_bytes
+            .checked_add(usize_u64(
+                id.len()
+                    .checked_add(reference.location.len())
+                    .and_then(|bytes| bytes.checked_add(reference.subject.len()))
+                    .and_then(|bytes| bytes.checked_add(reference.predicate.len()))
+                    .and_then(|bytes| bytes.checked_add(reference.object.len()))
+                    .and_then(|bytes| bytes.checked_add(reference.event.len()))
+                    .and_then(|bytes| bytes.checked_add(size_of::<i64>()))
+                    .ok_or(ItemRefusal::Budget)?,
+            )?)
+            .ok_or(ItemRefusal::Budget)?;
+        self.object_link_cost.drained_rows = self
+            .object_link_cost
+            .drained_rows
+            .checked_add(1)
+            .ok_or(ItemRefusal::Budget)?;
+        self.last_object_link_claim_id = Some(id.clone());
+        self.object_link_cost.peak_workspace_state_bytes = self
+            .object_link_cost
+            .peak_workspace_state_bytes
+            .max(preflight);
+        self.context.check()?;
+        Ok((Some((id, reference)), workspace, row_state, cursor_state))
+    }
+
+    fn object_link_relation(
+        &mut self,
+        id: &str,
+        link_id: &str,
+        event_id: &str,
+        max_state_bytes: usize,
+    ) -> Result<(bool, bool, bool, usize), ItemRefusal> {
+        if self.finished || !self.object_link_claims_sealed || !self.object_link_cost.eof_seen {
+            return Err(source_refusal());
+        }
+        let mut fields = self.max_object_link_claim_bytes;
+        fields[0] = id.len();
+        let workspace = Self::responsibility_claim_workspace(fields, 2)?
+            .checked_add(estimate_string_state(link_id)?)
+            .and_then(|state| state.checked_add(estimate_string_state(event_id).ok()?))
+            .ok_or(ItemRefusal::Budget)?;
+        self.preflight(workspace, max_state_bytes)?;
+        self.context.check()?;
+        self.charge_object_link_scan_rows(1)?;
+        self.object_link_cost.point_lookup_operations = self
+            .object_link_cost
+            .point_lookup_operations
+            .checked_add(1)
+            .ok_or(ItemRefusal::Budget)?;
+        let mut statement = self
+            .db
+            .prepare(
+                "SELECT claim_id,object,event FROM sf_closure_object_link_claims WHERE claim_id=?1",
+            )
+            .map_err(sql_refusal)?;
+        let mut rows = statement.query([id]).map_err(sql_refusal)?;
+        let stored = rows
+            .next()
+            .map_err(sql_refusal)?
+            .map(|row| {
+                Ok((
+                    bounded_row_text(row, 0, workspace)?,
+                    bounded_row_text(row, 1, workspace)?,
+                    bounded_row_text(row, 2, workspace)?,
+                ))
+            })
+            .transpose()
+            .map_err(sql_refusal)?;
+        if rows.next().map_err(sql_refusal)?.is_some()
+            || stored
+                .as_ref()
+                .is_some_and(|(stored_id, _, _)| stored_id != id)
+        {
+            return Err(source_refusal());
+        }
+        drop(rows);
+        drop(statement);
+        self.context.check()?;
+        let (exists, targets_link, matches_event) = if let Some((stored_id, object, event)) = stored
+        {
+            self.object_link_cost.point_lookup_rows = self
+                .object_link_cost
+                .point_lookup_rows
+                .checked_add(1)
+                .ok_or(ItemRefusal::Budget)?;
+            self.object_link_cost.serialized_read_bytes = self
+                .object_link_cost
+                .serialized_read_bytes
+                .checked_add(usize_u64(
+                    stored_id
+                        .len()
+                        .checked_add(object.len())
+                        .and_then(|bytes| bytes.checked_add(event.len()))
+                        .ok_or(ItemRefusal::Budget)?,
+                )?)
+                .ok_or(ItemRefusal::Budget)?;
+            (true, object == link_id, event == event_id)
+        } else {
+            (false, false, false)
+        };
+        self.object_link_cost.peak_workspace_state_bytes = self
+            .object_link_cost
+            .peak_workspace_state_bytes
+            .max(workspace);
+        Ok((exists, targets_link, matches_event, workspace))
+    }
+
+    fn for_each_object_link_target(
+        &mut self,
+        link_id: &str,
+        max_state_bytes: usize,
+        visit: &mut dyn FnMut(&str, usize) -> Result<(), ItemRefusal>,
+    ) -> Result<(u64, usize), ItemRefusal> {
+        if self.finished || !self.object_link_claims_sealed || !self.object_link_cost.eof_seen {
+            return Err(source_refusal());
+        }
+        let link_state = estimate_string_state(link_id)?;
+        let base_workspace = link_state
+            .checked_mul(2)
+            .and_then(|state| {
+                state.checked_add(size_of::<Option<String>>() + size_of::<String>() + 512)
+            })
+            .ok_or(ItemRefusal::Budget)?;
+        self.preflight(base_workspace, max_state_bytes)?;
+        self.context.check()?;
+        self.object_link_cost.target_stream_count = self
+            .object_link_cost
+            .target_stream_count
+            .checked_add(1)
+            .ok_or(ItemRefusal::Budget)?;
+        let mut statement = self
+            .db
+            .prepare("SELECT claim_id FROM sf_closure_object_link_claims WHERE object COLLATE BINARY=?1 ORDER BY claim_id COLLATE BINARY")
+            .map_err(sql_refusal)?;
+        let mut rows = statement.query([link_id]).map_err(sql_refusal)?;
+        let mut previous: Option<String> = None;
+        let mut drained = 0u64;
+        let mut workspace_peak = base_workspace;
+        loop {
+            self.context.check()?;
+            self.charge_object_link_scan_rows(1)?;
+            let Some(row) = rows.next().map_err(sql_refusal)? else {
+                self.object_link_cost.target_stream_eof_count = self
+                    .object_link_cost
+                    .target_stream_eof_count
+                    .checked_add(1)
+                    .ok_or(ItemRefusal::Budget)?;
+                break;
+            };
+            let id_len = row_text_length(row, 0).map_err(sql_refusal)?;
+            let id_state = Self::row_text_state(id_len)?;
+            let previous_state = previous
+                .as_deref()
+                .map(|id| Self::row_text_state(id.len()))
+                .transpose()?
+                .unwrap_or_default();
+            let workspace = base_workspace
+                .checked_add(id_state.checked_mul(2).ok_or(ItemRefusal::Budget)?)
+                .and_then(|state| state.checked_add(previous_state))
+                .ok_or(ItemRefusal::Budget)?;
+            if workspace > max_state_bytes {
+                return Err(ItemRefusal::Budget);
+            }
+            self.context.row_state(workspace)?;
+            let id = bounded_row_text(row, 0, workspace).map_err(sql_refusal)?;
+            if previous
+                .as_deref()
+                .is_some_and(|prior| prior >= id.as_str())
+            {
+                return Err(source_refusal());
+            }
+            self.object_link_cost.serialized_read_bytes = self
+                .object_link_cost
+                .serialized_read_bytes
+                .checked_add(usize_u64(id.len())?)
+                .ok_or(ItemRefusal::Budget)?;
+            visit(&id, workspace)?;
+            previous = Some(id);
+            drained = drained.checked_add(1).ok_or(ItemRefusal::Budget)?;
+            self.object_link_cost.target_stream_rows = self
+                .object_link_cost
+                .target_stream_rows
+                .checked_add(1)
+                .ok_or(ItemRefusal::Budget)?;
+            workspace_peak = workspace_peak.max(workspace);
+        }
+        drop(rows);
+        drop(statement);
+        self.context.check()?;
+        self.object_link_cost.peak_workspace_state_bytes = self
+            .object_link_cost
+            .peak_workspace_state_bytes
+            .max(workspace_peak);
         Ok((drained, workspace_peak))
     }
 
@@ -10077,6 +10621,7 @@ impl SourceFoundationClosureSchemaRequestStore
         expected_provision_validated_event_rows: u64,
         expected_provision_unused_event_rows: u64,
         expected_topology_claim_rows: u64,
+        expected_object_link_claim_rows: u64,
         direct_issue_count: usize,
         max_state_bytes: usize,
     ) -> Result<SourceFoundationClosureSchemaRequestStoreCost, ItemRefusal> {
@@ -10157,11 +10702,18 @@ impl SourceFoundationClosureSchemaRequestStore
             || !self.provision_unused_event_eof_seen
             || !self.provision_unused_event_count_verified
             || self.topology_cost.claim_rows != expected_topology_claim_rows
+            || self.object_link_cost.claim_rows != expected_object_link_claim_rows
+            || self.expected_object_link_claim_rows != Some(expected_object_link_claim_rows)
+            || !self.object_link_claims_sealed
+            || self.object_link_cost.drained_rows != expected_object_link_claim_rows
+            || !self.object_link_cost.eof_seen
+            || self.last_object_link_claim_id.is_some()
             || (expected_rows > 0) != self.max_document_bytes.is_some()
         {
             return Err(source_refusal());
         }
         self.finish_topology_claims_inner(expected_topology_claim_rows, max_state_bytes)?;
+        self.finish_object_link_claims_inner(expected_object_link_claim_rows, max_state_bytes)?;
         let workspace = size_of::<(i64, [u8; 8], [u8; 8])>() + 256;
         self.preflight(workspace, max_state_bytes)?;
         let scan_rows = usize::try_from(expected_rows)
@@ -12199,6 +12751,11 @@ impl<'candidate, 'host> SpoolDefaultStore<'candidate, 'host> {
                 derivation_keyset_eof: [false; 5],
                 derivation_stack_depth: 0,
                 derivation_finished: false,
+                object_link_cost: SourceFoundationClosureObjectLinkStoreCost::default(),
+                max_object_link_claim_bytes: [0; 6],
+                expected_object_link_claim_rows: None,
+                object_link_claims_sealed: false,
+                last_object_link_claim_id: None,
                 max_event_id_bytes: 0,
                 max_event_path_bytes: 0,
                 max_event_json_bytes: 0,
