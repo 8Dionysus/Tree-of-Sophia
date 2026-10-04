@@ -103,6 +103,7 @@ pub enum DiscoverySeenIdNamespace {
     SchemaLocation,
     PayloadObservation,
     ArtifactReplayReference,
+    PlannedManifest,
 }
 
 impl DiscoverySeenIdNamespace {
@@ -117,6 +118,7 @@ impl DiscoverySeenIdNamespace {
             Self::SchemaLocation => "schema-location",
             Self::PayloadObservation => "payload-observation",
             Self::ArtifactReplayReference => "artifact-replay-reference",
+            Self::PlannedManifest => "planned-manifest",
         }
     }
 }
@@ -9511,12 +9513,15 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
     let mut expected_manifest_refs = BTreeSet::new();
     inspector.for_each_current_path(&mut |inspector, path| {
         if path.starts_with(SOURCE_HOME) && path.ends_with(ITEM_MANIFEST_SUFFIX) {
-            inspector.reserve_state(path.len().checked_add(96).ok_or(ItemRefusal::Budget)?)?;
-            expected_manifest_refs.insert(path.to_owned());
+            if inspector.candidate_discovery_seen_ids.is_none() {
+                inspector.reserve_state(path.len().checked_add(96).ok_or(ItemRefusal::Budget)?)?;
+                expected_manifest_refs.insert(path.to_owned());
+            }
         }
         Ok(())
     })?;
     let mut planned_manifest_refs = BTreeSet::new();
+    let mut planned_manifest_coverage_drift = false;
     inspector.for_each_current_path_matching(
         |path| {
             path.strip_prefix(SERVER_PLANS)
@@ -9530,7 +9535,24 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
         let manifest_evidence = plan.get("manifest").unwrap_or(&Value::Null);
         let manifest_ref = string(manifest_evidence, "ref").unwrap_or("");
         if !manifest_ref.is_empty() {
-            planned_manifest_refs.insert(manifest_ref.to_owned());
+            if inspector.candidate_discovery_seen_ids.is_some() {
+                let is_current_manifest = manifest_ref.starts_with(SOURCE_HOME)
+                    && manifest_ref.ends_with(ITEM_MANIFEST_SUFFIX)
+                    && inspector.has_current_member(manifest_ref)?;
+                if is_current_manifest {
+                    let _ = remember_discovery_id(
+                        inspector,
+                        &mut planned_manifest_refs,
+                        DiscoverySeenIdNamespace::PlannedManifest,
+                        manifest_ref,
+                        path,
+                    )?;
+                } else {
+                    planned_manifest_coverage_drift = true;
+                }
+            } else {
+                planned_manifest_refs.insert(manifest_ref.to_owned());
+            }
             match inspector.referenced_json(
                 manifest_ref,
                 path,
@@ -9658,7 +9680,27 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
         Ok(())
     },
     )?;
-    if planned_manifest_refs != expected_manifest_refs {
+    let candidate_manifest_coverage_drift = if inspector.candidate_discovery_seen_ids.is_some() {
+        let mut drift = planned_manifest_coverage_drift;
+        inspector.for_each_current_path(&mut |inspector, path| {
+            if path.starts_with(SOURCE_HOME) && path.ends_with(ITEM_MANIFEST_SUFFIX) {
+                let is_planned = discovery_id_contains(
+                    inspector,
+                    &planned_manifest_refs,
+                    DiscoverySeenIdNamespace::PlannedManifest,
+                    path,
+                )?;
+                if !is_planned {
+                    drift = true;
+                }
+            }
+            Ok(())
+        })?;
+        drift
+    } else {
+        planned_manifest_refs != expected_manifest_refs
+    };
+    if candidate_manifest_coverage_drift {
         inspector.issue(
             SERVER_PLANS.trim_end_matches('/'),
             "server-plan-manifest-coverage-drift",
