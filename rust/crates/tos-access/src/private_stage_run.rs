@@ -6,7 +6,7 @@ use std::{
     fs::{self, DirBuilder, File, OpenOptions},
     io::{Read, Write},
     os::{
-        fd::{AsRawFd, FromRawFd},
+        fd::{AsFd, AsRawFd, BorrowedFd, FromRawFd},
         unix::{
             ffi::OsStrExt,
             fs::{DirBuilderExt, MetadataExt, OpenOptionsExt},
@@ -292,6 +292,188 @@ fn topology(
     }
     end.check()
 }
+
+#[derive(Clone, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ControlAuth {
+    schema: String,
+    socket_dev: u64,
+    socket_ino: u64,
+    socket_cookie: u64,
+    parent_pid: i32,
+    parent_uid: u32,
+    parent_gid: u32,
+    original_whole_deadline_ns: u64,
+    work_deadline_ns: u64,
+}
+fn socket_option<T: Copy>(fd: i32, name: i32) -> Result<T, String> {
+    let mut value = unsafe { std::mem::zeroed::<T>() };
+    let mut len = std::mem::size_of::<T>() as libc::socklen_t;
+    if unsafe {
+        libc::getsockopt(
+            fd,
+            libc::SOL_SOCKET,
+            name,
+            &mut value as *mut T as *mut libc::c_void,
+            &mut len,
+        )
+    } != 0
+        || len as usize != std::mem::size_of::<T>()
+    {
+        return Err("control socket option unavailable".into());
+    }
+    Ok(value)
+}
+fn socket_identity(fd: i32) -> Result<(u64, u64, u64), String> {
+    if fd < 3 {
+        return Err("control FD must be an explicit inherited descriptor >=3".into());
+    }
+    let mut st = unsafe { std::mem::zeroed::<libc::stat>() };
+    if unsafe { libc::fstat(fd, &mut st) } != 0
+        || st.st_mode & libc::S_IFMT != libc::S_IFSOCK
+        || socket_option::<i32>(fd, libc::SO_DOMAIN)? != libc::AF_UNIX
+        || socket_option::<i32>(fd, libc::SO_TYPE)? != libc::SOCK_SEQPACKET
+    {
+        return Err("connected seqpacket control socket required".into());
+    }
+    for peer in [false, true] {
+        let mut addr = unsafe { std::mem::zeroed::<libc::sockaddr_storage>() };
+        let mut len = std::mem::size_of::<libc::sockaddr_storage>() as libc::socklen_t;
+        let result = unsafe {
+            if peer {
+                libc::getpeername(fd, &mut addr as *mut _ as *mut libc::sockaddr, &mut len)
+            } else {
+                libc::getsockname(fd, &mut addr as *mut _ as *mut libc::sockaddr, &mut len)
+            }
+        };
+        if result != 0 || addr.ss_family as i32 != libc::AF_UNIX {
+            return Err("connected AF_UNIX control channel required".into());
+        }
+    }
+    let cookie = socket_option::<u64>(fd, libc::SO_COOKIE)?;
+    if cookie == 0 {
+        return Err("control socket kernel cookie absent".into());
+    }
+    Ok((st.st_dev, st.st_ino, cookie))
+}
+fn issue_control(fd: i32, end: Cutoff) -> Result<ControlAuth, String> {
+    end.check()?;
+    let (socket_dev, socket_ino, socket_cookie) = socket_identity(fd)?;
+    let peer = socket_option::<libc::ucred>(fd, libc::SO_PEERCRED)?;
+    if peer.pid != unsafe { libc::getppid() }
+        || peer.pid <= 0
+        || peer.uid != unsafe { libc::geteuid() }
+        || peer.gid != unsafe { libc::getegid() }
+    {
+        return Err(
+            "control channel must connect directly to original same-identity SDK parent".into(),
+        );
+    }
+    Ok(ControlAuth {
+        schema: "tos_native_consumer_control_v1".into(),
+        socket_dev,
+        socket_ino,
+        socket_cookie,
+        parent_pid: peer.pid,
+        parent_uid: peer.uid,
+        parent_gid: peer.gid,
+        original_whole_deadline_ns: end.whole,
+        work_deadline_ns: end.work,
+    })
+}
+fn match_control(fd: i32, auth: &ControlAuth, end: Cutoff) -> Result<(), String> {
+    end.check()?;
+    if auth.schema != "tos_native_consumer_control_v1"
+        || auth.parent_pid <= 0
+        || auth.original_whole_deadline_ns != end.whole
+        || auth.work_deadline_ns != end.work
+        || socket_identity(fd)? != (auth.socket_dev, auth.socket_ino, auth.socket_cookie)
+    {
+        return Err("issued control socket identity or original cutoff changed".into());
+    }
+    // Host peer PID/UID can translate in the child namespace. Stable kernel
+    // socket identity is rechecked; the authenticated original credentials are
+    // retained as provenance, never compared to namespace-translated integers.
+    Ok(())
+}
+/// Held control transport; genuine stage/model admission is separately required.
+pub struct IssuedConsumerControl {
+    held: File,
+    auth: ControlAuth,
+}
+impl IssuedConsumerControl {
+    /// Logical retained transport state only; kernel socket charge remains
+    /// inside the real caller cgroup and the FD census is separately admitted.
+    pub fn retained_state_upper_bound(&self) -> Result<usize, String> {
+        self.verify_current()?;
+        std::mem::size_of::<Self>()
+            .checked_add(self.auth.schema.capacity())
+            .ok_or_else(|| "held control state byte census overflow".into())
+    }
+    pub fn as_fd(&self) -> BorrowedFd<'_> {
+        self.held.as_fd()
+    }
+    pub fn verify_current(&self) -> Result<(), String> {
+        match_control(
+            self.held.as_raw_fd(),
+            &self.auth,
+            Cutoff {
+                whole: self.auth.original_whole_deadline_ns,
+                work: self.auth.work_deadline_ns,
+            },
+        )
+    }
+}
+/// Validate issuer metadata and hold only the authenticated transport socket.
+/// No JSON constructor creates a grant; callers must bind genuine stage first.
+pub fn verify_issued_consumer_control(
+    fd: i32,
+    original: u64,
+    work: u64,
+) -> Result<IssuedConsumerControl, String> {
+    let selected =
+        std::env::var("ABYSS_CONSUMER_CONTROL_FD").map_err(|_| "issued control FD absent")?;
+    if selected.parse::<i32>().map_err(|e| e.to_string())? != fd {
+        return Err("native control CLI/env FD mismatch".into());
+    }
+    let raw = std::env::var("ABYSS_CONSUMER_CONTROL_AUTH")
+        .map_err(|_| "issued control metadata absent")?;
+    if raw.len() > 4096 {
+        return Err("control metadata exceeds finite cap".into());
+    }
+    let auth: ControlAuth = serde_json::from_str(&raw).map_err(|e| e.to_string())?;
+    if auth.original_whole_deadline_ns != original
+        || auth.work_deadline_ns != work
+        || work >= original
+    {
+        return Err("control original cutoffs mismatch".into());
+    }
+    let end = Cutoff {
+        whole: original,
+        work,
+    };
+    match_control(fd, &auth, end)?;
+    for (path, id) in [
+        ("/proc/self/uid_map", auth.parent_uid),
+        ("/proc/self/gid_map", auth.parent_gid),
+    ] {
+        let raw = kernel(Path::new(path), 4096, 16, 1024)?;
+        if raw.split_whitespace().collect::<Vec<_>>() != ["0", &id.to_string(), "1"] {
+            return Err("control original identity/user namespace mapping mismatch".into());
+        }
+    }
+    let duplicate = unsafe { libc::fcntl(fd, libc::F_DUPFD_CLOEXEC, 3) };
+    if duplicate < 0 {
+        return Err(error());
+    }
+    let result = IssuedConsumerControl {
+        held: unsafe { File::from_raw_fd(duplicate) },
+        auth,
+    };
+    result.verify_current()?;
+    Ok(result)
+}
+
 #[derive(Clone)]
 struct Options {
     unshare: PathBuf,
@@ -303,6 +485,7 @@ struct Options {
     original: u64,
     shutdown_ms: u64,
     persistent: Option<PathBuf>,
+    control_fd: Option<i32>,
     command: Vec<String>,
 }
 fn limits(o: &Options) -> Result<(), String> {
@@ -419,6 +602,7 @@ impl Leader {
         mut command: Command,
         held_fd: i32,
         persistent_fd: Option<i32>,
+        control_fd: Option<i32>,
     ) -> Result<(Self, Option<String>), String> {
         let mut mask = Mask::block()?;
         let old = mask.old;
@@ -432,7 +616,11 @@ impl Leader {
                 if libc::syscall(libc::SYS_close_range, 3u32, u32::MAX, 4u32) < 0 {
                     return Err(std::io::Error::last_os_error());
                 }
-                for fd in [Some(held_fd), persistent_fd].into_iter().flatten() {
+                for fd in [Some(held_fd), persistent_fd, control_fd]
+                    .into_iter()
+                    .flatten()
+                    .filter(|fd| *fd >= 3)
+                {
                     let flags = libc::fcntl(fd, libc::F_GETFD);
                     if flags < 0 || libc::fcntl(fd, libc::F_SETFD, flags & !libc::FD_CLOEXEC) < 0 {
                         return Err(std::io::Error::last_os_error());
@@ -579,6 +767,7 @@ fn cleanup(leader: &mut Leader, held: &File, end: Cutoff) -> Result<(), String> 
 fn outer(o: &Options) -> Result<i32, String> {
     limits(o)?;
     let end = Cutoff::select(o.original, o.shutdown_ms)?;
+    let control = o.control_fd.map(|fd| issue_control(fd, end)).transpose()?;
     let _signals = SignalGuard::install()?;
     if unsafe { libc::getuid() } == 0 {
         return Err("ordinary unprivileged caller required".into());
@@ -677,6 +866,14 @@ fn outer(o: &Options) -> Result<i32, String> {
             .arg("--persistent-fd")
             .arg(held.as_raw_fd().to_string());
     }
+    if let (Some(fd), Some(auth)) = (o.control_fd, control.as_ref()) {
+        match_control(fd, auth, end)?;
+        command
+            .arg("--consumer-control-fd")
+            .arg(fd.to_string())
+            .arg("--control-auth")
+            .arg(serde_json::to_string(auth).map_err(|e| e.to_string())?);
+    }
     command
         .arg("--root")
         .arg(&root)
@@ -688,6 +885,7 @@ fn outer(o: &Options) -> Result<i32, String> {
         command,
         held.as_raw_fd(),
         persistent.as_ref().map(AsRawFd::as_raw_fd),
+        o.control_fd,
     );
     let (mut leader, restoration_error) = match spawned {
         Ok(leader) => leader,
@@ -877,11 +1075,19 @@ struct Inner {
     parent_net: u64,
     host_uid: u64,
     host_gid: u64,
+    control_auth: Option<ControlAuth>,
 }
 fn inner(o: &Options, i: &Inner) -> Result<i32, String> {
     limits(o)?;
     let end = Cutoff::select(o.original, o.shutdown_ms)?;
     end.check()?;
+    match (o.control_fd, i.control_auth.as_ref()) {
+        (None, None) => (),
+        (Some(fd), Some(auth)) if fd != i.consumer_fd && Some(fd) != i.persistent_fd => {
+            match_control(fd, auth, end)?
+        }
+        _ => return Err("control descriptor/auth handoff mismatch".into()),
+    }
     path_shape(&i.root)?;
     if i.root.parent() != Some(o.scratch.as_path()) || i.consumer_fd < 3 {
         return Err("inner selected backing root or held consumer FD invalid".into());
@@ -1086,7 +1292,27 @@ fn inner(o: &Options, i: &Inner) -> Result<i32, String> {
     if flags < 0 || unsafe { libc::fcntl(fd, libc::F_SETFD, flags & !libc::FD_CLOEXEC) } < 0 {
         return Err(error());
     }
+    if let (Some(control_fd), Some(auth)) = (o.control_fd, i.control_auth.as_ref()) {
+        match_control(control_fd, auth, end)?;
+        let flags = unsafe { libc::fcntl(control_fd, libc::F_GETFD) };
+        if flags < 0
+            || unsafe { libc::fcntl(control_fd, libc::F_SETFD, flags & !libc::FD_CLOEXEC) } < 0
+        {
+            return Err(error());
+        }
+    }
     let mut command = Command::new(&o.command[0]);
+    command
+        .env_remove("ABYSS_CONSUMER_CONTROL_FD")
+        .env_remove("ABYSS_CONSUMER_CONTROL_AUTH");
+    if let (Some(control_fd), Some(auth)) = (o.control_fd, i.control_auth.as_ref()) {
+        command
+            .env("ABYSS_CONSUMER_CONTROL_FD", control_fd.to_string())
+            .env(
+                "ABYSS_CONSUMER_CONTROL_AUTH",
+                serde_json::to_string(auth).map_err(|e| e.to_string())?,
+            );
+    }
     command
         .args(&o.command[1..])
         .env("ABYSS_STAGE_ROOT", &i.root)
@@ -1131,6 +1357,17 @@ fn options(args: &[String]) -> Result<(Options, Option<Inner>), String> {
         return Err("explicit consumer argv separator required".into());
     }
     let command = args[index + 1..].to_vec();
+    let control_fd = values
+        .remove("--consumer-control-fd")
+        .map(|v| v.parse::<i32>().map_err(|e| e.to_string()))
+        .transpose()?;
+    let control_auth = values
+        .remove("--control-auth")
+        .map(|v| serde_json::from_str::<ControlAuth>(v).map_err(|e| e.to_string()))
+        .transpose()?;
+    if !inner_flag && control_auth.is_some() {
+        return Err("control metadata is internal namespace handoff only".into());
+    }
     let persistent = values.remove("--persistent-store").map(PathBuf::from);
     let persistent_fd = values
         .remove("--persistent-fd")
@@ -1157,6 +1394,7 @@ fn options(args: &[String]) -> Result<(Options, Option<Inner>), String> {
         original: n!("--work-deadline-ns"),
         shutdown_ms: n!("--maximum-shutdown-ms"),
         persistent,
+        control_fd,
         command,
     };
     let i = if inner_flag {
@@ -1169,6 +1407,7 @@ fn options(args: &[String]) -> Result<(Options, Option<Inner>), String> {
             parent_net: n!("--parent-net-namespace"),
             host_uid: n!("--host-uid"),
             host_gid: n!("--host-gid"),
+            control_auth,
         })
     } else {
         None
@@ -1240,8 +1479,383 @@ fn native_process_exec(args: &[String]) -> Result<i32, String> {
     Err(Command::new(executable).args(&args[6..]).exec().to_string())
 }
 
+// Entered before SDK/Python threads under one caller-selected delegated scope.
+// Configuration describes actual paths; private-stage-run remains the issuer.
+const SDK_SETUP_BYTES: u64 = 536_870_912;
+const SDK_CONSUMER_BYTES: u64 = 2_684_354_560;
+const SDK_SCOPE_BYTES: u64 = 3_221_225_472;
+fn sdk_write(root: &File, name: &str, value: &str) -> Result<(), String> {
+    member(root, name, true)?
+        .write_all(value.as_bytes())
+        .map_err(|e| e.to_string())
+}
+fn sdk_singleton(root: &File) -> Result<(), String> {
+    let expected = std::process::id().to_string();
+    let actual = contents(root, "cgroup.procs", 4096)?;
+    if actual.split_whitespace().collect::<Vec<_>>() != vec![expected.as_str()] {
+        return Err("scope/setup must contain this bootstrap alone".into());
+    }
+    Ok(())
+}
+fn sdk_no_children(path: &Path, end: Cutoff) -> Result<(), String> {
+    for (n, entry) in fs::read_dir(path).map_err(|e| e.to_string())?.enumerate() {
+        end.cleanup_check()?;
+        if n >= 512 {
+            return Err("scope cgroup entry bound exceeded".into());
+        }
+        let entry = entry.map_err(|e| e.to_string())?;
+        if entry.file_type().map_err(|e| e.to_string())?.is_dir() {
+            return Err("unexpected descendant cgroup; external scope containment required".into());
+        }
+    }
+    Ok(())
+}
+fn sdk_child_limits() -> std::io::Result<()> {
+    for (resource, upper) in [
+        (libc::RLIMIT_AS, SDK_CONSUMER_BYTES),
+        (libc::RLIMIT_FSIZE, 536_870_912),
+    ] {
+        let mut old = unsafe { std::mem::zeroed::<libc::rlimit>() };
+        if unsafe { libc::getrlimit(resource, &mut old) } != 0 {
+            return Err(std::io::Error::last_os_error());
+        }
+        let wanted = upper as libc::rlim_t;
+        if (old.rlim_cur != libc::RLIM_INFINITY && wanted > old.rlim_cur)
+            || (old.rlim_max != libc::RLIM_INFINITY && wanted > old.rlim_max)
+        {
+            return Err(std::io::Error::from_raw_os_error(libc::EPERM));
+        }
+        let selected = libc::rlimit {
+            rlim_cur: wanted,
+            rlim_max: wanted,
+        };
+        if unsafe { libc::setrlimit(resource, &selected) } != 0 {
+            return Err(std::io::Error::last_os_error());
+        }
+        let mut actual = unsafe { std::mem::zeroed::<libc::rlimit>() };
+        if unsafe { libc::getrlimit(resource, &mut actual) } != 0 {
+            return Err(std::io::Error::last_os_error());
+        }
+        if actual.rlim_cur != wanted || actual.rlim_max != wanted {
+            return Err(std::io::Error::from_raw_os_error(libc::EPERM));
+        }
+    }
+    Ok(())
+}
+fn sdk_python_run(args: &[String]) -> Result<i32, String> {
+    if args.len() > ARGC + 16
+        || args.iter().any(|v| v.len() > PATH_BYTES)
+        || args
+            .iter()
+            .try_fold(0usize, |n, v| n.checked_add(v.len() + 1))
+            .filter(|n| *n <= ARGV_BYTES)
+            .is_none()
+    {
+        return Err("SDK CLI transport exceeds finite source limits".into());
+    }
+    let split = args
+        .iter()
+        .position(|a| a == "--")
+        .ok_or("SDK command separator absent")?;
+    if split < 1 || (split - 1) % 2 != 0 {
+        return Err("bounded SDK option pairs required".into());
+    }
+    let mut selected = std::collections::BTreeMap::new();
+    for pair in args[1..split].chunks_exact(2) {
+        if !matches!(
+            pair[0].as_str(),
+            "--scope-name"
+                | "--scratch-parent"
+                | "--unshare-exe"
+                | "--work-deadline-ns"
+                | "--maximum-shutdown-ms"
+                | "--persistent-store"
+        ) || selected
+            .insert(pair[0].as_str(), pair[1].as_str())
+            .is_some()
+        {
+            return Err("unknown or repeated SDK option".into());
+        }
+    }
+    let get = |key: &str| {
+        selected
+            .get(key)
+            .copied()
+            .ok_or_else(|| format!("missing SDK option {key}"))
+    };
+    let original = get("--work-deadline-ns")?
+        .parse::<u64>()
+        .map_err(|e| e.to_string())?;
+    let shutdown = get("--maximum-shutdown-ms")?
+        .parse::<u64>()
+        .map_err(|e| e.to_string())?;
+    if shutdown != 5000
+        || original
+            .checked_sub(clock_ns()?)
+            .is_none_or(|n| n > 50_000_000_000)
+    {
+        return Err("SDK original whole <=50s and explicit 5000ms cleanup profile required".into());
+    }
+    let end = Cutoff::select(original, shutdown)?;
+    let name = get("--scope-name")?;
+    let uuid = name
+        .strip_prefix("tos-sdk-session-")
+        .and_then(|s| s.strip_suffix(".scope"))
+        .ok_or("unique SDK scope name required")?;
+    if uuid.len() != 36
+        || !uuid.bytes().enumerate().all(|(i, b)| {
+            if [8, 13, 18, 23].contains(&i) {
+                b == b'-'
+            } else {
+                b.is_ascii_digit() || (b'a'..=b'f').contains(&b)
+            }
+        })
+    {
+        return Err("canonical lowercase UUID scope required".into());
+    }
+    let common = membership()?;
+    if common.file_name().and_then(OsStr::to_str) != Some(name) {
+        return Err("actual scope name differs".into());
+    }
+    let common_fd = directory(&common)?;
+    let meta = common_fd.metadata().map_err(|e| e.to_string())?;
+    let mut filesystem = unsafe { std::mem::zeroed::<libc::statfs>() };
+    if unsafe { libc::fstatfs(common_fd.as_raw_fd(), &mut filesystem) } != 0 {
+        return Err(error());
+    }
+    if filesystem.f_type != libc::CGROUP2_SUPER_MAGIC {
+        return Err("actual cgroup v2 filesystem required".into());
+    }
+    let uid = unsafe { libc::geteuid() };
+    if uid == 0
+        || meta.uid() != uid
+        || scalar(&common_fd, "memory.max")? != SDK_SCOPE_BYTES
+        || scalar(&common_fd, "memory.swap.max")? != 0
+        || contents(&common_fd, "cgroup.type", 64)?.trim() != "domain"
+        || !contents(&common_fd, "cgroup.subtree_control", 4096)?
+            .trim()
+            .is_empty()
+        || !contents(&common_fd, "cgroup.controllers", 4096)?
+            .split_whitespace()
+            .any(|x| x == "memory")
+    {
+        return Err(
+            "actual owned delegated 3GiB/swap0 empty-controller domain scope required".into(),
+        );
+    }
+    sdk_singleton(&common_fd)?;
+    sdk_no_children(&common, end)?;
+    let mut tasks = fs::read_dir("/proc/self/task").map_err(|e| e.to_string())?;
+    if tasks
+        .next()
+        .transpose()
+        .map_err(|e| e.to_string())?
+        .is_none()
+        || tasks.next().is_some()
+    {
+        return Err("SDK bootstrap must precede all threads".into());
+    }
+    let scratch = PathBuf::from(get("--scratch-parent")?);
+    let scratch_fd = directory(&scratch)?;
+    let scratch_meta = scratch_fd.metadata().map_err(|e| e.to_string())?;
+    if scratch_meta.uid() != uid || scratch_meta.mode() & 0o077 != 0 {
+        return Err("caller-owned private scratch directory required".into());
+    }
+    let unshare = PathBuf::from(get("--unshare-exe")?);
+    path_shape(&unshare)?;
+    if fs::canonicalize(&unshare).map_err(|e| e.to_string())? != unshare || !unshare.is_file() {
+        return Err("actual canonical unshare executable required".into());
+    }
+    let persistent = selected.get("--persistent-store").map(PathBuf::from);
+    if let Some(path) = &persistent {
+        let held = directory(path)?;
+        let m = held.metadata().map_err(|e| e.to_string())?;
+        if m.uid() != uid
+            || m.mode() & 0o077 != 0
+            || path.starts_with(&scratch)
+            || scratch.starts_with(path)
+        {
+            return Err(
+                "private persistent store must be separately admitted and disjoint from scratch"
+                    .into(),
+            );
+        }
+        for fallback in FALLBACKS {
+            let fallback = Path::new(fallback);
+            if path.starts_with(fallback) || fallback.starts_with(path) {
+                return Err("persistent store overlaps fallback".into());
+            }
+        }
+    }
+    let setup = common.join("setup");
+    let consumer = common.join("consumer");
+    let o = Options {
+        unshare,
+        consumer: consumer.clone(),
+        scratch,
+        quota: SDK_SETUP_BYTES,
+        inodes: 65536,
+        ram: SDK_CONSUMER_BYTES,
+        original,
+        shutdown_ms: shutdown,
+        persistent,
+        control_fd: None,
+        command: args[split + 1..].to_vec(),
+    };
+    limits(&o)?;
+    let _signals = SignalGuard::install()?;
+    end.check()?;
+    let mut setup_fd = None;
+    let mut consumer_fd = None;
+    let mut moved = false;
+    let mut memory_added = false;
+    let result = (|| -> Result<i32, String> {
+        end.check()?;
+        identical(&common_fd, &directory(&common)?)?;
+        sdk_singleton(&common_fd)?;
+        fs::create_dir(&setup).map_err(|e| e.to_string())?;
+        setup_fd = Some(directory(&setup)?);
+        fs::create_dir(&consumer).map_err(|e| e.to_string())?;
+        consumer_fd = Some(directory(&consumer)?);
+        let setup_held = setup_fd.as_ref().ok_or("owned setup absent")?;
+        let consumer_held = consumer_fd.as_ref().ok_or("owned consumer absent")?;
+        end.check()?;
+        sdk_write(setup_held, "cgroup.procs", "0\n")?;
+        moved = true;
+        if membership()? != setup {
+            return Err("SDK bootstrap setup placement differs".into());
+        }
+        if !contents(&common_fd, "cgroup.procs", 4096)?
+            .trim()
+            .is_empty()
+        {
+            return Err("scope parent not empty after placement".into());
+        }
+        end.check()?;
+        sdk_write(&common_fd, "cgroup.subtree_control", "+memory\n")?;
+        memory_added = true;
+        for (fd, bytes) in [
+            (setup_held, SDK_SETUP_BYTES),
+            (consumer_held, SDK_CONSUMER_BYTES),
+        ] {
+            end.check()?;
+            sdk_write(fd, "memory.max", &format!("{bytes}\n"))?;
+            sdk_write(fd, "memory.swap.max", "0\n")?;
+        }
+        topology(&setup, &consumer, consumer_held, o.quota, o.ram, end)?;
+        if !contents(consumer_held, "cgroup.procs", 4096)?
+            .trim()
+            .is_empty()
+            || consumer_populated(consumer_held)?
+        {
+            return Err("SDK consumer not empty".into());
+        }
+        drop(member(consumer_held, "cgroup.kill", true)?);
+        let mut config = serde_json::json!({"schema":"tos_sdk_stage_config_v1","setup_cgroup":setup,"consumer_cgroup":consumer,"scratch_parent":o.scratch,"unshare_exe":o.unshare,"original_whole_deadline_ns":original.to_string(),"original_work_deadline_ns":end.work.to_string(),"maximum_shutdown_ms":shutdown,"quota_bytes":o.quota,"inode_limit":o.inodes,"working_ram_bytes":o.ram,"aggregate_ram_bytes":SDK_SCOPE_BYTES,"swap_max_bytes":0});
+        if let Some(path) = &o.persistent {
+            config["persistent_store"] = serde_json::json!(path);
+        }
+        let encoded = serde_json::to_string(&config).map_err(|e| e.to_string())?;
+        if encoded.len() > 65536 {
+            return Err("SDK stage configuration exceeds finite envelope".into());
+        }
+        let mut command = Command::new(&o.command[0]);
+        command
+            .args(&o.command[1..])
+            .env("TOS_SDK_STAGE_CONFIG", encoded)
+            .env_remove("ABYSS_STAGE_TICKET_FD")
+            .env_remove("ABYSS_STAGE_ROOT")
+            .env_remove("ABYSS_CONSUMER_CONTROL_FD")
+            .env_remove("ABYSS_CONSUMER_CONTROL_AUTH");
+        unsafe {
+            command.pre_exec(sdk_child_limits);
+        }
+        end.check()?;
+        // No cgroup handle or stage ticket is inherited by the SDK entry.
+        let (mut leader, restoration) = Leader::spawn(command, -1, None, None)?;
+        let outcome = (|| -> Result<i32, String> {
+            if let Some(e) = restoration {
+                return Err(e);
+            }
+            loop {
+                end.check()?;
+                if let Some(code) = leader.exited()? {
+                    return Ok(code);
+                }
+                thread::sleep(Duration::from_millis(5));
+            }
+        })();
+        let closed = cleanup(&mut leader, consumer_held, end);
+        match (outcome, closed) {
+            (Ok(code), Ok(())) => Ok(code),
+            (a, b) => Err(format!(
+                "SDK result {a:?}; cleanup {b:?}; external scope custody may be required"
+            )),
+        }
+    })();
+    let restored = (|| -> Result<(), String> {
+        end.cleanup_check()?;
+        identical(&common_fd, &directory(&common)?)?;
+        if let Some(fd) = consumer_fd.as_ref() {
+            identical(fd, &directory(&consumer)?)?;
+            if consumer_populated(fd)? {
+                return Err("consumer still populated; external scope containment required".into());
+            }
+            sdk_no_children(&consumer, end)?;
+            fs::remove_dir(&consumer).map_err(|e| e.to_string())?;
+        }
+        if moved {
+            let fd = setup_fd.as_ref().ok_or("setup identity absent")?;
+            identical(fd, &directory(&setup)?)?;
+            sdk_singleton(fd)?;
+            sdk_no_children(&setup, end)?;
+        }
+        if memory_added {
+            sdk_write(&common_fd, "cgroup.subtree_control", "-memory\n")?;
+        }
+        if moved {
+            sdk_write(&common_fd, "cgroup.procs", "0\n")?;
+            if membership()? != common {
+                return Err("scope restore placement differs".into());
+            }
+        }
+        if let Some(fd) = setup_fd.as_ref() {
+            identical(fd, &directory(&setup)?)?;
+            sdk_no_children(&setup, end)?;
+            fs::remove_dir(&setup).map_err(|e| e.to_string())?;
+        }
+        sdk_singleton(&common_fd)?;
+        sdk_no_children(&common, end)?;
+        if !contents(&common_fd, "cgroup.subtree_control", 4096)?
+            .trim()
+            .is_empty()
+        {
+            return Err("scope controller restoration differs".into());
+        }
+        end.cleanup_check()
+    })();
+    if let Err(e) = restored {
+        return Err(format!(
+            "SDK result {result:?}; owned scope restoration {e}; external containment required"
+        ));
+    }
+    if CANCELLED.load(Ordering::Relaxed) {
+        return Err("SDK session cancellation observed".into());
+    }
+    result
+}
+
 /// CLI owns process-global signal handling and a genuine OS stage lifetime.
 pub fn run_if_requested(args: &[String]) -> Option<i32> {
+    if args.first().map(String::as_str) == Some("sdk-python-run") {
+        return Some(match sdk_python_run(args) {
+            Ok(code) => code,
+            Err(e) => {
+                eprintln!("SDK scope bootstrap refused: {e}");
+                125
+            }
+        });
+    }
     if args.first().map(String::as_str) == Some("native-process-exec") {
         return Some(match native_process_exec(args) {
             Ok(code) => code,

@@ -343,6 +343,63 @@ class _Exchange:
         """Backward-compatible one-FD adapter for existing selected providers."""
         return self.receive_descriptors(peer, expected_count=1)
 
+    def poll_control_session(self):
+        """Drain bounded diagnostics without parsing a second output protocol."""
+        self._active()
+        for reader in select.select(self._readers, [], [], 0)[0]:
+            try:
+                chunk = os.read(reader.fileno(), 65536)
+            except BlockingIOError:
+                continue
+            if not chunk:
+                self._readers.remove(reader)
+                continue
+            if reader is self._child.stdout:
+                raise ValueError('native control session produced unexpected stdout')
+            if len(chunk) > 65536 - len(self._diagnostic):
+                raise ValueError('native diagnostic exceeds the byte bound')
+            self._diagnostic.extend(chunk)
+        self._observe()
+
+    def finish_control_session(self):
+        """After close ACK, authenticate real EOF and cleanup terminal by whole cutoff.
+
+        Query work is finished; this observes the original reserved shutdown
+        interval without admitting another query or renewing either clock.
+        """
+        while self._readers or self._terminal is None:
+            if self._cancelled is not None and self._cancelled.is_set():
+                raise NativeCancelled('native control session owner cancelled')
+            if time.monotonic() >= self._deadline:
+                raise TimeoutError('native control session original cleanup cutoff expired')
+            ready = select.select(self._readers, [], [],
+                min(0.05, max(0, self._deadline - time.monotonic())))[0]
+            for reader in ready:
+                try:
+                    chunk = os.read(reader.fileno(), 65536)
+                except BlockingIOError:
+                    continue
+                if not chunk:
+                    self._readers.remove(reader)
+                elif reader is self._child.stdout:
+                    raise ValueError('native control session produced unexpected stdout')
+                else:
+                    if len(chunk) > 65536 - len(self._diagnostic):
+                        raise ValueError('native diagnostic exceeds the byte bound')
+                    self._diagnostic.extend(chunk)
+            self._terminal = self._observe(cleanup=True)
+            if self._terminal is not None and self._terminal_observed_ns is None:
+                self._terminal_observed_ns = time.monotonic_ns()
+            if not self._readers and self._terminal is None:
+                time.sleep(min(0.01, max(0, self._deadline - time.monotonic())))
+        status = (self._terminal.si_status if self._terminal.si_code == os.CLD_EXITED
+                  else -self._terminal.si_status)
+        if status not in self._valid_returncodes:
+            raise ValueError(self._diagnostic.decode('utf-8', 'replace').strip()
+                             or 'native control session terminal refused')
+        self._observe(cleanup=True)
+        return status
+
     def frames(self):
         """Yield bounded JSONL bytes, draining bounded stderr in the same reader."""
         while self._readers:
