@@ -2396,75 +2396,126 @@ impl<S: LayerFamilySource + ?Sized, I: Copy + Eq> Inspector<'_, '_, S, I> {
 
     fn private_route(&mut self) -> Result<(), ItemRefusal> {
         let root = "ToS/source-witnesses/access-requests/private";
-        let route = format!("{root}/README.md");
-        if !self.has_current_member(route.as_str())? {
-            self.issue(
-                &route,
-                "private-route-card-missing",
-                "private correspondence route card is missing",
-            )?;
+        let route = "ToS/source-witnesses/access-requests/private/README.md";
+        if !self.has_current_member(route)? {
+            let detail = "private correspondence route card is missing";
+            let diagnostic_peak = route
+                .len()
+                .checked_add(detail.len())
+                .and_then(|bytes| bytes.checked_add("private-route-card-missing".len()))
+                .and_then(|bytes| bytes.checked_add(96))
+                .ok_or(ItemRefusal::Budget)?;
+            self.check_temporary_state(diagnostic_peak)?;
+            self.issue(route, "private-route-card-missing", detail)?;
         } else {
-            self.metadata_git(&route, &route)?;
-            if let Some(git) = self.git_path_facts(&route) {
+            self.metadata_git(route, route)?;
+            if let Some(git) = self.git_path_facts(route) {
                 if git.ignored == Some(true) {
-                    self.issue(
-                        &route,
-                        "private-route-card-ignored",
-                        "private correspondence route card must remain tracked",
-                    )?;
+                    let detail = "private correspondence route card must remain tracked";
+                    let diagnostic_peak = route
+                        .len()
+                        .checked_add(detail.len())
+                        .and_then(|bytes| bytes.checked_add("private-route-card-ignored".len()))
+                        .and_then(|bytes| bytes.checked_add(96))
+                        .ok_or(ItemRefusal::Budget)?;
+                    self.check_temporary_state(diagnostic_peak)?;
+                    self.issue(route, "private-route-card-ignored", detail)?;
                 }
             }
         }
-        let inventory_cost = match self
-            .physical
-            .and_then(|facts| facts.private_inventories.get(root))
-            .or_else(|| self.physical.and_then(|facts| facts.private_files.as_ref()))
+        let physical = self.physical;
+        let files = match physical
+            .and_then(|facts| facts.private_inventories.get(root).map(Vec::as_slice))
+            .or_else(|| physical.and_then(|facts| facts.private_files.as_deref()))
         {
-            Some(files) => files
-                .iter()
-                .try_fold(0usize, |used, path| used.checked_add(path.len() + 32))
-                .ok_or(ItemRefusal::Budget)?,
+            Some(files) => files,
             None => {
-                self.unsupported(
-                    root,
-                    "physical private-correspondence file inventory is unavailable",
-                )?;
+                let reason = "physical private-correspondence file inventory is unavailable";
+                let diagnostic_peak = root
+                    .len()
+                    .checked_add(reason.len())
+                    .and_then(|bytes| bytes.checked_add(64))
+                    .ok_or(ItemRefusal::Budget)?;
+                self.check_temporary_state(diagnostic_peak)?;
+                self.unsupported(root, reason)?;
                 return Ok(());
             }
         };
-        self.reserve_state(inventory_cost)?;
-        let files = self
-            .physical
-            .and_then(|facts| facts.private_inventories.get(root).cloned())
-            .or_else(|| self.physical.and_then(|facts| facts.private_files.clone()))
-            .ok_or(ItemRefusal::Budget)?;
+        let scratch_peak =
+            files
+                .iter()
+                .try_fold(0usize, |peak, file| -> Result<usize, ItemRefusal> {
+                    self.checkpoint()?;
+                    if file.starts_with("ToS/") || file == "README.md" {
+                        return Ok(peak);
+                    }
+                    let path_bytes = root
+                        .len()
+                        .checked_add(1)
+                        .and_then(|bytes| bytes.checked_add(file.len()))
+                        .ok_or(ItemRefusal::Budget)?;
+                    let scratch_bytes = path_bytes.checked_add(32).ok_or(ItemRefusal::Budget)?;
+                    Ok(peak.max(scratch_bytes))
+                })?;
+        self.reserve_state(scratch_peak)?;
         for file in files {
             self.checkpoint()?;
-            let path = if file.starts_with("ToS/") {
-                file
+            let already_rooted = file.starts_with("ToS/");
+            if if already_rooted {
+                file.as_str() == route
             } else {
-                format!("{root}/{file}")
-            };
-            if path == route {
+                file.as_str() == "README.md"
+            } {
                 continue;
             }
-            match self.git_path_facts(&path) {
+            let owned_path = if already_rooted {
+                None
+            } else {
+                let path_bytes = root
+                    .len()
+                    .checked_add(1)
+                    .and_then(|bytes| bytes.checked_add(file.len()))
+                    .ok_or(ItemRefusal::Budget)?;
+                let mut path = String::with_capacity(path_bytes);
+                path.push_str(root);
+                path.push('/');
+                path.push_str(file);
+                Some(path)
+            };
+            let path = owned_path.as_deref().unwrap_or(file);
+            match self.git_path_facts(path) {
                 Some(facts) if facts.ignored == Some(true) => {}
                 Some(facts) if facts.ignored == Some(false) => {
-                    self.issue(
-                        &path,
-                        "private-file-not-git-ignored",
-                        "private correspondence file is not ignored",
-                    )?;
+                    let detail = "private correspondence file is not ignored";
+                    let diagnostic_peak = path
+                        .len()
+                        .checked_add(detail.len())
+                        .and_then(|bytes| bytes.checked_add("private-file-not-git-ignored".len()))
+                        .and_then(|bytes| bytes.checked_add(96))
+                        .ok_or(ItemRefusal::Budget)?;
+                    self.check_temporary_state(diagnostic_peak)?;
+                    self.issue(path, "private-file-not-git-ignored", detail)?;
                 }
-                Some(_) => self.unsupported(
-                    &path,
-                    "private correspondence Git ignore posture is unobserved",
-                )?,
-                None => self.unsupported(
-                    &path,
-                    "private correspondence file has no exact Git ignore observation",
-                )?,
+                Some(_) => {
+                    let reason = "private correspondence Git ignore posture is unobserved";
+                    let diagnostic_peak = path
+                        .len()
+                        .checked_add(reason.len())
+                        .and_then(|bytes| bytes.checked_add(64))
+                        .ok_or(ItemRefusal::Budget)?;
+                    self.check_temporary_state(diagnostic_peak)?;
+                    self.unsupported(path, reason)?;
+                }
+                None => {
+                    let reason = "private correspondence file has no exact Git ignore observation";
+                    let diagnostic_peak = path
+                        .len()
+                        .checked_add(reason.len())
+                        .and_then(|bytes| bytes.checked_add(64))
+                        .ok_or(ItemRefusal::Budget)?;
+                    self.check_temporary_state(diagnostic_peak)?;
+                    self.unsupported(path, reason)?;
+                }
             }
         }
         Ok(())
