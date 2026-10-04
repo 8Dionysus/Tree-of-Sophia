@@ -20,8 +20,8 @@ use std::{
 use tos_foundation::{Digest256, Digest256Hasher, RelativePath, SourceRevision};
 use tos_source_store::{
     MemberMetadata, PinnedSqliteAuxLimits, PinnedSqliteAuxRequest, PinnedSqliteAuxScope,
-    PinnedSqliteConnection, PinnedSqliteIoBudget, PinnedSqliteSpaceBudget, RetirementMetadata,
-    SourceMembershipV1, StreamedCorpusCutReaderV1,
+    PinnedSqliteConnection, PinnedSqliteIoBudget, PinnedSqliteSpaceBudget, ReadLimits,
+    RetirementMetadata, SourceMembershipV1, StreamedCorpusCutReaderV1,
 };
 
 /// Separate finite workspace selection. These are caller resource limits, not
@@ -331,7 +331,7 @@ fn member(row: (String, Vec<u8>, Vec<u8>, u32)) -> io::Result<MemberMetadata> {
         return Err(invalid("candidate spool source mode"));
     }
     Ok(MemberMetadata {
-        path: RelativePath::new(&path).map_err(invalid)?,
+        path: RelativePath::parse(&path).map_err(invalid)?,
         sha256: Digest256::from_bytes(sha),
         size_bytes: u64::from_be_bytes(size),
         mode,
@@ -470,7 +470,6 @@ impl<'host> SpoolCandidate<'host> {
             || (base.is_some() && base_v2.is_some())
             || selected_base.map(|revision| revision.0) != batch.base_revision
             || (base_v2.is_some() && v2_io.is_none())
-            || (base.is_some() && v2_io.is_some())
             || base_v2
                 .is_some_and(|reader| v2_io.is_none_or(|io| !reader.borrow().shares_io_budget(io)))
             || request.deadline != deadline
@@ -517,7 +516,7 @@ impl<'host> SpoolCandidate<'host> {
         .map_err(sql)?;
         let clock_cancel = cancelled.clone();
         db.progress_handler(1000, Some(move || active(deadline, &clock_cancel).is_err()));
-        db.execute_batch("CREATE TABLE members(path TEXT COLLATE BINARY PRIMARY KEY,sha BLOB NOT NULL CHECK(length(sha)=32),size BLOB NOT NULL CHECK(length(size)=8),mode INTEGER NOT NULL,changed INTEGER NOT NULL,touched INTEGER NOT NULL) WITHOUT ROWID; CREATE INDEX members_changed_path ON members(path COLLATE BINARY) WHERE changed=1; CREATE TABLE retirements(ordinal INTEGER PRIMARY KEY,path TEXT,sha BLOB,event_ref TEXT,event_sha BLOB,event_size BLOB); CREATE INDEX retirements_by_path ON retirements(path COLLATE BINARY,ordinal); CREATE TABLE affected(path TEXT COLLATE BINARY PRIMARY KEY,visited INTEGER NOT NULL) WITHOUT ROWID; CREATE TABLE reverse_dependencies(target TEXT COLLATE BINARY,source TEXT COLLATE BINARY,PRIMARY KEY(target,source)) WITHOUT ROWID; CREATE INDEX reverse_dependencies_by_source ON reverse_dependencies(source COLLATE BINARY,target COLLATE BINARY); CREATE TABLE historical_ids(id TEXT COLLATE BINARY PRIMARY KEY,path TEXT NOT NULL) WITHOUT ROWID; CREATE INDEX historical_ids_by_path ON historical_ids(path COLLATE BINARY,id COLLATE BINARY); CREATE INDEX affected_queue ON affected(visited,path);").map_err(sql)?;
+        db.execute_batch("CREATE TABLE members(path TEXT COLLATE BINARY PRIMARY KEY,sha BLOB NOT NULL CHECK(length(sha)=32),size BLOB NOT NULL CHECK(length(size)=8),mode INTEGER NOT NULL,changed INTEGER NOT NULL,touched INTEGER NOT NULL) WITHOUT ROWID; CREATE INDEX members_changed_path ON members(path COLLATE BINARY) WHERE changed=1; CREATE TABLE retirements(ordinal INTEGER PRIMARY KEY,path TEXT,sha BLOB,event_ref TEXT,event_sha BLOB,event_size BLOB); CREATE INDEX retirements_by_path ON retirements(path COLLATE BINARY,ordinal); CREATE TABLE affected(path TEXT COLLATE BINARY PRIMARY KEY,visited INTEGER NOT NULL) WITHOUT ROWID; CREATE TABLE reverse_dependencies(target TEXT COLLATE BINARY,source TEXT COLLATE BINARY,PRIMARY KEY(target,source)) WITHOUT ROWID; CREATE INDEX reverse_dependencies_by_source ON reverse_dependencies(source COLLATE BINARY,target COLLATE BINARY); CREATE TABLE historical_ids(id TEXT COLLATE BINARY PRIMARY KEY,path TEXT NOT NULL) WITHOUT ROWID; CREATE INDEX historical_ids_by_path ON historical_ids(path COLLATE BINARY,id COLLATE BINARY); CREATE INDEX affected_queue ON affected(visited,path); CREATE TABLE v1_migration_history(revision BLOB PRIMARY KEY CHECK(length(revision)=32),raw BLOB NOT NULL CHECK(length(raw)<=65536)) WITHOUT ROWID;").map_err(sql)?;
         let batch_bytes = batch.bytes_read();
         let mut candidate = Self {
             store,
@@ -874,13 +873,24 @@ impl<'host> SpoolCandidate<'host> {
                 // A selected V2 base publishes only the authenticated COW
                 // successor and its compact record. Do not serialize another
                 // whole V1 snapshot or relabel the compact record as one.
-                let built = match super::source_admission_segment_v2::build_successor_rootset_v2(
-                    self.store,
-                    self,
-                    index,
-                    self.deadline,
-                    &self.cancelled,
-                ) {
+                let build = if self.base_v2.is_some() {
+                    super::source_admission_segment_v2::build_successor_rootset_v2(
+                        self.store,
+                        self,
+                        index,
+                        self.deadline,
+                        &self.cancelled,
+                    )
+                } else {
+                    super::source_admission_segment_v2::build_v1_migration_rootset_v2(
+                        self.store,
+                        self,
+                        index,
+                        self.deadline,
+                        &self.cancelled,
+                    )
+                };
+                let built = match build {
                     Ok(built) => built,
                     Err(error) => {
                         return Err(io::Error::new(
@@ -1228,6 +1238,160 @@ impl<'host> SpoolCandidate<'host> {
     pub(crate) fn base_revision(&self) -> Option<SourceRevision> {
         self.batch.base_revision.map(SourceRevision)
     }
+    pub(crate) fn v1_base_reader(&self) -> io::Result<&StreamedCorpusCutReaderV1> {
+        self.tick()?;
+        let reader = self
+            .base
+            .ok_or_else(|| invalid("V1 migration base reader absent"))?;
+        if !reader.shares_budgeted_request(
+            &self.ledger,
+            &self.space_budget,
+            self.deadline,
+            &self.cancelled,
+        ) {
+            return Err(invalid("V1 migration base reader request differs"));
+        }
+        Ok(reader)
+    }
+    pub(crate) fn v1_manifest_max_bytes(&self) -> io::Result<u64> {
+        self.tick()?;
+        u64::try_from(self.limits.candidate.reader.max_manifest_bytes)
+            .map_err(|_| invalid("V1 manifest read ceiling exceeds range"))
+    }
+    pub(crate) fn migration_member_count_limit(&self) -> io::Result<u64> {
+        self.tick()?;
+        u64::try_from(self.limits.candidate.admission.max_members)
+            .map_err(|_| invalid("migration member-count ceiling exceeds range"))
+    }
+    pub(crate) fn migration_source_byte_limit(&self) -> io::Result<u64> {
+        self.tick()?;
+        Ok(self.limits.candidate.admission.max_source_bytes)
+    }
+    pub(crate) fn migration_member_byte_limit(&self) -> io::Result<u64> {
+        self.tick()?;
+        Ok(self.limits.candidate.admission.max_member_bytes)
+    }
+    pub(crate) fn migration_history_identity_limit(&self) -> io::Result<u64> {
+        self.tick()?;
+        u64::try_from(self.limits.candidate.max_history_identities)
+            .map_err(|_| invalid("migration identity-count ceiling exceeds range"))
+    }
+    pub(crate) fn migration_history_revision_limit(&self) -> io::Result<u64> {
+        self.tick()?;
+        u64::try_from(self.limits.candidate.max_history_revisions)
+            .map_err(|_| invalid("migration revision-count ceiling exceeds range"))
+    }
+    pub(crate) fn migration_pointer_read_limits(&self) -> io::Result<ReadLimits> {
+        self.tick()?;
+        Ok(self.limits.candidate.reader)
+    }
+    pub(crate) fn begin_v1_migration_history(&self) -> io::Result<()> {
+        self.tick()?;
+        if self.base.is_none() || self.base_v2.is_some() || self.v2_io.is_none() {
+            return Err(invalid("V1 migration history scratch lacks a V1 base"));
+        }
+        let result = self
+            .db
+            .execute("DELETE FROM v1_migration_history", [])
+            .map(|_| ())
+            .map_err(sql);
+        self.finish_read(result)
+    }
+    pub(crate) fn stage_v1_migration_history_row(
+        &self,
+        revision: Digest256,
+        raw: &[u8],
+    ) -> io::Result<()> {
+        self.tick()?;
+        let result = (|| {
+            if raw.is_empty()
+                || raw.len()
+                    > super::source_admission_segment_v2::SourceRevisionRootsV2::MAX_ENCODED_BYTES
+            {
+                return Err(invalid("V1 migration history row exceeds wire profile"));
+            }
+            let live = raw
+                .len()
+                .checked_mul(4)
+                .and_then(|n| n.checked_add(4096))
+                .ok_or_else(|| invalid("V1 migration history scratch state overflow"))?;
+            self.check_state(live)?;
+            let logical = u64::try_from(raw.len())
+                .map_err(|_| invalid("V1 migration history row length exceeds range"))?
+                .checked_add(32)
+                .ok_or_else(|| invalid("V1 migration history logical write overflow"))?;
+            self.reserve_logical(0, logical)?;
+            self.db
+                .execute(
+                    "INSERT INTO v1_migration_history(revision,raw) VALUES(?1,?2)",
+                    params![revision.as_bytes().as_slice(), raw],
+                )
+                .map_err(sql)?;
+            Ok(())
+        })();
+        self.finish_read(result)
+    }
+    pub(crate) fn v1_migration_history_after(
+        &self,
+        after: Option<Digest256>,
+        max_owned_state_bytes: usize,
+    ) -> io::Result<Option<(Digest256, Vec<u8>)>> {
+        self.tick()?;
+        let result = (|| {
+            self.check_state(max_owned_state_bytes)?;
+            let decode = |row: &rusqlite::Row<'_>| {
+                let revision = match row.get_ref(0)? {
+                    rusqlite::types::ValueRef::Blob(bytes) if bytes.len() == 32 => {
+                        Digest256::from_bytes(
+                            bytes
+                                .try_into()
+                                .map_err(|_| rusqlite::Error::InvalidQuery)?,
+                        )
+                    }
+                    _ => return Err(rusqlite::Error::InvalidQuery),
+                };
+                let raw_len = match row.get_ref(1)? {
+                    rusqlite::types::ValueRef::Blob(bytes)
+                        if !bytes.is_empty()
+                            && bytes.len() <= super::source_admission_segment_v2::SourceRevisionRootsV2::MAX_ENCODED_BYTES => bytes.len(),
+                    _ => return Err(rusqlite::Error::InvalidQuery),
+                };
+                let state = raw_len
+                    .checked_mul(4)
+                    .and_then(|n| n.checked_add(4096))
+                    .ok_or(rusqlite::Error::InvalidQuery)?;
+                if state > max_owned_state_bytes {
+                    return Err(rusqlite::Error::InvalidQuery);
+                }
+                Ok((revision, row.get::<_, Vec<u8>>(1)?))
+            };
+            let row = match after {
+                Some(after) => self.db.query_row(
+                    "SELECT revision,raw FROM v1_migration_history WHERE revision>?1 ORDER BY revision LIMIT 1",
+                    [after.as_bytes().as_slice()],
+                    decode,
+                ),
+                None => self.db.query_row(
+                    "SELECT revision,raw FROM v1_migration_history ORDER BY revision LIMIT 1",
+                    [],
+                    decode,
+                ),
+            }
+            .optional()
+            .map_err(sql)?;
+            if let Some((_, raw)) = &row {
+                self.reserve_logical(
+                    u64::try_from(raw.len())
+                        .map_err(|_| invalid("V1 migration history logical read overflow"))?
+                        .checked_add(32)
+                        .ok_or_else(|| invalid("V1 migration history logical read overflow"))?,
+                    0,
+                )?;
+            }
+            Ok(row)
+        })();
+        self.finish_read(result)
+    }
     pub(crate) fn v2_base_session(&self) -> io::Result<&RefCell<V2ReadSession>> {
         self.base_v2
             .ok_or_else(|| invalid("V2 base reader absent during successor build"))
@@ -1453,7 +1617,7 @@ impl<'host> SpoolCandidate<'host> {
             }
             .optional()
             .map_err(sql)?;
-            path.map(|path| RelativePath::new(&path).map_err(invalid))
+            path.map(|path| RelativePath::parse(&path).map_err(invalid))
                 .transpose()
         })();
         self.finish_read(result)
@@ -1488,7 +1652,7 @@ impl<'host> SpoolCandidate<'host> {
             }
             .optional()
             .map_err(sql)?;
-            row.map(|path| RelativePath::new(&path).map_err(invalid))
+            row.map(|path| RelativePath::parse(&path).map_err(invalid))
                 .transpose()
         })();
         self.finish_read(result)
@@ -1523,7 +1687,7 @@ impl<'host> SpoolCandidate<'host> {
             }
             .optional()
             .map_err(sql)?;
-            row.map(|path| RelativePath::new(&path).map_err(invalid))
+            row.map(|path| RelativePath::parse(&path).map_err(invalid))
                 .transpose()
         })();
         self.finish_read(result)
@@ -1588,7 +1752,7 @@ impl<'host> SpoolCandidate<'host> {
                                 let text = std::str::from_utf8(bytes)
                                     .map_err(|_| rusqlite::Error::InvalidQuery)?;
                                 Some(
-                                    RelativePath::new(text)
+                                    RelativePath::parse(text)
                                         .map_err(|_| rusqlite::Error::InvalidQuery)?,
                                 )
                             }
@@ -1612,7 +1776,7 @@ impl<'host> SpoolCandidate<'host> {
                                 let text = std::str::from_utf8(bytes)
                                     .map_err(|_| rusqlite::Error::InvalidQuery)?;
                                 Some(
-                                    RelativePath::new(text)
+                                    RelativePath::parse(text)
                                         .map_err(|_| rusqlite::Error::InvalidQuery)?,
                                 )
                             }
@@ -2345,7 +2509,7 @@ impl<'host> SpoolCandidate<'host> {
         // Plan complete membership before the first immutable object ingest.
         for (path, u) in &self.batch.updates {
             self.running()?;
-            let path = RelativePath::new(path).map_err(invalid)?;
+            let path = RelativePath::parse(path).map_err(invalid)?;
             let m = MemberMetadata {
                 path,
                 sha256: u.sha256,
@@ -2385,7 +2549,7 @@ impl<'host> SpoolCandidate<'host> {
             .collect();
         for (path, event_ref, event_sha) in retirements {
             self.running()?;
-            let path = RelativePath::new(&path).map_err(invalid)?;
+            let path = RelativePath::parse(&path).map_err(invalid)?;
             if event_ref == path || self.batch.retirements.contains_key(event_ref.as_str()) {
                 return Err(invalid("retirement event is removed by same batch"));
             }
@@ -2568,13 +2732,13 @@ impl<'host> SpoolCandidate<'host> {
             }
             .optional()
             .map_err(sql)?;
-            path.map(|p| RelativePath::new(&p).map_err(invalid))
+            path.map(|p| RelativePath::parse(&p).map_err(invalid))
                 .transpose()
         })();
         self.finish_read(result)
     }
     fn selected(&self, path: &str) -> io::Result<MemberMetadata> {
-        let path = RelativePath::new(path).map_err(invalid)?;
+        let path = RelativePath::parse(path).map_err(invalid)?;
         self.member(&path)?
             .ok_or_else(|| invalid("read outside candidate membership"))
     }
@@ -2596,7 +2760,7 @@ impl<'host> SpoolCandidate<'host> {
     // Shared actual object read body; outer operations own sticky failure state.
     fn read_current_raw(&self, path: &str, cap: usize) -> io::Result<Vec<u8>> {
         let m = self
-            .raw_member(&RelativePath::new(path).map_err(invalid)?)?
+            .raw_member(&RelativePath::parse(path).map_err(invalid)?)?
             .ok_or_else(|| invalid("read outside candidate membership"))?;
         if m.size_bytes > cap as u64 {
             return Err(invalid("candidate read exceeds bound"));
@@ -2663,7 +2827,7 @@ impl<'host> SpoolCandidate<'host> {
         self.failed.set(true);
         let r = (|| {
             let m = self
-                .raw_member(&RelativePath::new(path).map_err(invalid)?)?
+                .raw_member(&RelativePath::parse(path).map_err(invalid)?)?
                 .ok_or_else(|| invalid("verify outside candidate membership"))?;
             self.reserve_logical(m.size_bytes, 0)?;
             self.store.verify_object_accounted(
@@ -2689,7 +2853,7 @@ impl<'host> SpoolCandidate<'host> {
         self.failed.set(true);
         let r = (|| {
             let m = self
-                .raw_member(&RelativePath::new(path).map_err(invalid)?)?
+                .raw_member(&RelativePath::parse(path).map_err(invalid)?)?
                 .ok_or_else(|| invalid("copy outside candidate membership"))?;
             self.reserve_logical(m.size_bytes, 0)?;
             self.store.copy_object_accounted(
@@ -2754,12 +2918,12 @@ impl<'host> SpoolCandidate<'host> {
             .map_err(sql)?;
         row.map(|(path, sha, event, event_sha, size)| {
             Ok(RetirementMetadata {
-                path: RelativePath::new(&path).map_err(invalid)?,
+                path: RelativePath::parse(&path).map_err(invalid)?,
                 sha256: Digest256::from_bytes(
                     sha.try_into()
                         .map_err(|_| invalid("retired digest width"))?,
                 ),
-                event_ref: RelativePath::new(&event).map_err(invalid)?,
+                event_ref: RelativePath::parse(&event).map_err(invalid)?,
                 event_sha256: Digest256::from_bytes(
                     event_sha
                         .try_into()
@@ -2884,7 +3048,7 @@ impl<'host> SpoolCandidate<'host> {
             }
             .optional()
             .map_err(sql)?;
-            row.map(|(id, path)| Ok((id, RelativePath::new(&path).map_err(invalid)?)))
+            row.map(|(id, path)| Ok((id, RelativePath::parse(&path).map_err(invalid)?)))
                 .transpose()
         })();
         self.finish_read(result)
@@ -3054,7 +3218,7 @@ impl<'host> SpoolCandidate<'host> {
                 .optional()
                 .map_err(sql)?;
                 return source
-                    .map(|source| RelativePath::new(&source).map_err(invalid))
+                    .map(|source| RelativePath::parse(&source).map_err(invalid))
                     .transpose();
             }
             Ok(None)
@@ -3132,7 +3296,7 @@ impl<'host> SpoolCandidate<'host> {
                 .map_err(|_| rusqlite::Error::InvalidQuery)?;
                 let id = std::str::from_utf8(id).map_err(|_| rusqlite::Error::InvalidQuery)?;
                 let path = std::str::from_utf8(path).map_err(|_| rusqlite::Error::InvalidQuery)?;
-                let path = RelativePath::new(path).map_err(|_| rusqlite::Error::InvalidQuery)?;
+                let path = RelativePath::parse(path).map_err(|_| rusqlite::Error::InvalidQuery)?;
                 Ok((id.to_owned(), path))
             };
             let row = match after {
@@ -3169,7 +3333,7 @@ impl<'host> SpoolCandidate<'host> {
                 })
                 .optional()
                 .map_err(sql)?;
-            path.map(|path| RelativePath::new(&path).map_err(invalid))
+            path.map(|path| RelativePath::parse(&path).map_err(invalid))
                 .transpose()
         })();
         self.finish_read(result)
@@ -3247,7 +3411,7 @@ impl<'host> SpoolCandidate<'host> {
             .optional()
             .map_err(sql)?;
             target
-                .map(|target| RelativePath::new(&target).map_err(invalid))
+                .map(|target| RelativePath::parse(&target).map_err(invalid))
                 .transpose()
         })();
         self.finish_read(result)
@@ -3417,7 +3581,7 @@ fn decode_v2_member(key: &[u8], value: &[u8]) -> io::Result<MemberMetadata> {
         return Err(invalid("V2 member source mode differs"));
     }
     Ok(MemberMetadata {
-        path: RelativePath::new(path).map_err(invalid)?,
+        path: RelativePath::parse(path).map_err(invalid)?,
         sha256,
         size_bytes,
         mode,
@@ -3430,7 +3594,7 @@ fn decode_v2_identity(key: &[u8], value: &[u8]) -> io::Result<(String, RelativeP
         return Err(invalid("V2 identity key is empty"));
     }
     let path = std::str::from_utf8(value).map_err(invalid)?;
-    Ok((id.to_owned(), RelativePath::new(path).map_err(invalid)?))
+    Ok((id.to_owned(), RelativePath::parse(path).map_err(invalid)?))
 }
 
 fn decode_v2_dependency(key: &[u8], value: &[u8]) -> io::Result<(RelativePath, RelativePath)> {
@@ -3471,8 +3635,8 @@ fn decode_v2_dependency(key: &[u8], value: &[u8]) -> io::Result<(RelativePath, R
     let source = std::str::from_utf8(source_bytes).map_err(invalid)?;
     let target = std::str::from_utf8(target_bytes).map_err(invalid)?;
     Ok((
-        RelativePath::new(source).map_err(invalid)?,
-        RelativePath::new(target).map_err(invalid)?,
+        RelativePath::parse(source).map_err(invalid)?,
+        RelativePath::parse(target).map_err(invalid)?,
     ))
 }
 
@@ -3535,9 +3699,9 @@ fn decode_v2_retirement(
     Ok((
         ordinal,
         RetirementMetadata {
-            path: RelativePath::new(path).map_err(invalid)?,
+            path: RelativePath::parse(path).map_err(invalid)?,
             sha256,
-            event_ref: RelativePath::new(event_ref).map_err(invalid)?,
+            event_ref: RelativePath::parse(event_ref).map_err(invalid)?,
             event_sha256,
             event_size_bytes,
         },

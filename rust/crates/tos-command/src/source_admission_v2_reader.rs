@@ -325,6 +325,10 @@ impl V2ReadSession {
         self.selection.revision
     }
 
+    pub(crate) fn selected_selection(&self) -> CorpusCurrentSelection {
+        self.selection.clone()
+    }
+
     pub(crate) fn current_roots(&self) -> &SourceRevisionRootsV2 {
         &self.roots.current
     }

@@ -4,9 +4,10 @@
 //! the exact bytes and tree shape presented to it; CMD still owns source-cut
 //! completeness, currentness, rights, and disclosure decisions.
 
+use std::alloc::Layout;
 use std::collections::HashSet;
 use std::ops::Deref;
-use std::sync::atomic::AtomicBool;
+use std::sync::atomic::{AtomicBool, AtomicUsize};
 use std::sync::{Arc, OnceLock};
 use std::time::Instant;
 
@@ -1394,14 +1395,19 @@ impl<'a> PackWriterV2<'a> {
         let Some(limit) = self.state_limit else {
             return Ok(());
         };
-        let active_bytes = self.active.as_ref().map_or(0, |active| {
-            std::mem::size_of::<ActivePackV2>()
-                .saturating_add(active.raw.capacity())
-                .saturating_add(std::mem::size_of::<PackSealStateV2>())
-        });
+        let store_heap_state = self.store.retained_heap_state_bytes()?;
+        let seal_allocation_state = pack_seal_arc_allocation_state_bytes()?;
+        let active_bytes = match self.active.as_ref() {
+            Some(active) => std::mem::size_of::<ActivePackV2>()
+                .checked_add(active.raw.capacity())
+                .and_then(|bytes| bytes.checked_add(seal_allocation_state))
+                .ok_or_else(|| budget("authenticated COW active pack state overflow"))?,
+            None => 0,
+        };
         let total = std::mem::size_of::<Self>()
             .checked_add(std::mem::size_of::<AuthenticatedTreeWorkV1>())
             .and_then(|n| n.checked_add(std::mem::size_of::<SegmentStore>()))
+            .and_then(|n| n.checked_add(store_heap_state))
             .and_then(|n| n.checked_add(limit.additional_live_bytes))
             .and_then(|n| n.checked_add(limit.old_descriptor_bytes))
             .and_then(|n| n.checked_add(self.delta_live_state_bytes))
@@ -1447,12 +1453,18 @@ impl<'a> PackWriterV2<'a> {
             .and_then(|n| n.checked_add(node.min_key.len()))
             .and_then(|n| n.checked_add(node.max_key.len()))
             .and_then(|n| n.checked_add(std::mem::size_of::<TreeNode>()))
-            .and_then(|n| {
-                n.checked_add(child_locators.len().checked_mul(
-                    std::mem::size_of::<TreeLocatorV2>() + std::mem::size_of::<PackSealStateV2>(),
-                )?)
-            })
             .and_then(|n| n.checked_add(64 * 1024))
+            .ok_or_else(|| budget("authenticated COW persist state overflow"))?;
+        let per_child_state = std::mem::size_of::<TreeLocatorV2>()
+            .checked_add(pack_seal_arc_allocation_state_bytes()?)
+            .ok_or_else(|| budget("authenticated COW persist state overflow"))?;
+        let persist_scratch = persist_scratch
+            .checked_add(
+                child_locators
+                    .len()
+                    .checked_mul(per_child_state)
+                    .ok_or_else(|| budget("authenticated COW persist state overflow"))?,
+            )
             .ok_or_else(|| budget("authenticated COW persist state overflow"))?;
         let node_state = tree_node_state_bytes(&node)?
             .checked_add(tree_locator_slice_state_bytes(child_locators)?)
@@ -1709,6 +1721,37 @@ impl SegmentStore {
             limits,
             AUTHENTICATED_PACK_MAX_BYTES,
             io_ledger,
+            None,
+            deadline,
+            cancelled,
+        )
+    }
+
+    /// State-limited bulk build form. `additional_live_state_bytes` covers
+    /// caller-owned state and dynamic heap retained by the row iterator; this
+    /// method accounts its cursor, frame stack, copied keys, child handles,
+    /// node construction and pack writer before allocation or growth.
+    pub fn build_authenticated_tree_v2_with_work_and_io_and_state<I>(
+        &self,
+        kind: &[u8],
+        rows: I,
+        limits: AuthenticatedTreeLimitsV1,
+        io_ledger: Option<Arc<dyn AuthenticatedTreeIoLedgerV1>>,
+        max_working_state_bytes: usize,
+        additional_live_state_bytes: usize,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<(AuthenticatedTreeDescriptorV2, AuthenticatedTreeWorkV1)>
+    where
+        I: IntoIterator<Item = Result<AuthenticatedTreeEntryV1>>,
+    {
+        self.build_authenticated_tree_v2_with_pack_cap(
+            kind,
+            rows,
+            limits,
+            AUTHENTICATED_PACK_MAX_BYTES,
+            io_ledger,
+            Some((max_working_state_bytes, additional_live_state_bytes)),
             deadline,
             cancelled,
         )
@@ -1721,6 +1764,7 @@ impl SegmentStore {
         limits: AuthenticatedTreeLimitsV1,
         pack_cap: usize,
         io_ledger: Option<Arc<dyn AuthenticatedTreeIoLedgerV1>>,
+        state_limit: Option<(usize, usize)>,
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> Result<(AuthenticatedTreeDescriptorV2, AuthenticatedTreeWorkV1)>
@@ -1738,19 +1782,46 @@ impl SegmentStore {
         let mut writer = PackWriterV2::new(
             self, limits, pack_cap, &mut work, io_ledger, deadline, cancelled,
         );
+        if let Some((maximum_bytes, additional_live_bytes)) = state_limit {
+            writer = writer.with_state_limit(CowStateLimitV2 {
+                maximum_bytes,
+                additional_live_bytes,
+                old_descriptor_bytes: 0,
+            });
+            writer.check_cow_state(0)?;
+        }
         let mut cursor = BuildCursor::new(rows.into_iter());
         let mut frames = Vec::new();
+        check_build_state(&mut writer, &frames, &cursor, limits, 0)?;
+        let initial_frame_bytes = std::mem::size_of::<BuildFrameV2>();
+        check_build_state(&mut writer, &frames, &cursor, limits, initial_frame_bytes)?;
         frames
             .try_reserve_exact(1)
             .map_err(|_| budget("packed authenticated builder stack allocation failed"))?;
+        check_build_state(&mut writer, &frames, &cursor, limits, 0)?;
         frames.push(BuildFrameV2::default());
+        check_build_state(&mut writer, &frames, &cursor, limits, 0)?;
         let mut pending_payload_bytes = 0u64;
         loop {
             check(deadline, cancelled)?;
+            check_build_state(&mut writer, &frames, &cursor, limits, limits.max_key_bytes)?;
             let previous_key = cursor.previous.clone();
+            let previous_key_bytes = previous_key.as_ref().map_or(0, Vec::capacity);
+            check_build_state(&mut writer, &frames, &cursor, limits, previous_key_bytes)?;
+            let next_row_upper = limits
+                .max_key_bytes
+                .checked_mul(2)
+                .and_then(|bytes| bytes.checked_add(limits.max_value_bytes))
+                .and_then(|bytes| bytes.checked_add(previous_key_bytes))
+                .ok_or_else(|| budget("packed builder row state overflow"))?;
+            check_build_state(&mut writer, &frames, &cursor, limits, next_row_upper)?;
             let Some(row) = cursor.take(limits, deadline, cancelled)? else {
                 break;
             };
+            let row_state = previous_key_bytes
+                .checked_add(entry_state_bytes(&row)?)
+                .ok_or_else(|| budget("packed builder row state overflow"))?;
+            check_build_state(&mut writer, &frames, &cursor, limits, row_state)?;
             let key_depth = row
                 .key
                 .len()
@@ -1767,11 +1838,16 @@ impl SegmentStore {
                 let frame = frames
                     .pop()
                     .ok_or_else(|| invalid("packed builder stack disappeared"))?;
+                let retained_builder_state = build_frame_stack_state_bytes(&frames)?
+                    .checked_add(build_cursor_state_bytes(&cursor)?)
+                    .and_then(|bytes| bytes.checked_add(row_state))
+                    .ok_or_else(|| budget("packed builder retained state overflow"))?;
                 if let Some(child) = close_build_frame_v2(
                     &mut writer,
                     kind,
                     frame,
                     limits,
+                    retained_builder_state,
                     &mut pending_payload_bytes,
                     deadline,
                     cancelled,
@@ -1785,14 +1861,22 @@ impl SegmentStore {
                         .ok_or_else(|| invalid("packed builder previous key is missing"))?;
                     let edge = nibble_at(old_key, parent_index)
                         .ok_or_else(|| invalid("packed builder parent edge is missing"))?;
+                    let retained_builder_state = build_frame_stack_state_bytes(&frames)?
+                        .checked_add(build_cursor_state_bytes(&cursor)?)
+                        .and_then(|bytes| bytes.checked_add(row_state))
+                        .ok_or_else(|| budget("packed builder retained state overflow"))?;
+                    let parent = frames
+                        .get_mut(parent_index)
+                        .ok_or_else(|| invalid("packed builder parent frame is missing"))?;
                     attach_build_child_v2(
-                        frames
-                            .get_mut(parent_index)
-                            .ok_or_else(|| invalid("packed builder parent frame is missing"))?,
+                        &mut writer,
+                        parent,
                         edge,
                         child,
                         limits,
+                        retained_builder_state,
                     )?;
+                    check_build_state(&mut writer, &frames, &cursor, limits, row_state)?;
                 }
             }
             if frames.len() != common + 1 {
@@ -1821,9 +1905,30 @@ impl SegmentStore {
                 .checked_add(1)
                 .and_then(|length| length.checked_sub(frames.len()))
                 .ok_or_else(|| invalid("packed builder stack length differs"))?;
+            let requested_capacity = frames
+                .len()
+                .checked_add(needed)
+                .ok_or_else(|| budget("packed builder stack capacity overflow"))?;
+            let requested_bytes = requested_capacity
+                .checked_mul(std::mem::size_of::<BuildFrameV2>())
+                .ok_or_else(|| budget("packed builder stack state overflow"))?;
+            let current_bytes = frames
+                .capacity()
+                .checked_mul(std::mem::size_of::<BuildFrameV2>())
+                .ok_or_else(|| budget("packed builder stack state overflow"))?;
+            check_build_state(
+                &mut writer,
+                &frames,
+                &cursor,
+                limits,
+                row_state
+                    .checked_add(requested_bytes.saturating_sub(current_bytes))
+                    .ok_or_else(|| budget("packed builder stack state overflow"))?,
+            )?;
             frames
                 .try_reserve_exact(needed)
                 .map_err(|_| budget("packed builder stack allocation failed"))?;
+            check_build_state(&mut writer, &frames, &cursor, limits, row_state)?;
             for depth in frames.len()..=key_depth {
                 check(deadline, cancelled)?;
                 if nibble_at(&row.key, depth - 1).is_none() {
@@ -1841,6 +1946,7 @@ impl SegmentStore {
                 ));
             }
             terminal.value = Some(row);
+            check_build_state(&mut writer, &frames, &cursor, limits, previous_key_bytes)?;
         }
 
         while frames.len() > 1 {
@@ -1848,11 +1954,15 @@ impl SegmentStore {
             let frame = frames
                 .pop()
                 .ok_or_else(|| invalid("packed builder stack disappeared"))?;
+            let retained_builder_state = build_frame_stack_state_bytes(&frames)?
+                .checked_add(build_cursor_state_bytes(&cursor)?)
+                .ok_or_else(|| budget("packed builder retained state overflow"))?;
             if let Some(child) = close_build_frame_v2(
                 &mut writer,
                 kind,
                 frame,
                 limits,
+                retained_builder_state,
                 &mut pending_payload_bytes,
                 deadline,
                 cancelled,
@@ -1867,24 +1977,35 @@ impl SegmentStore {
                     .ok_or_else(|| invalid("packed builder previous key is missing"))?;
                 let edge = nibble_at(old_key, parent_index)
                     .ok_or_else(|| invalid("packed builder parent edge is missing"))?;
+                let retained_builder_state = build_frame_stack_state_bytes(&frames)?
+                    .checked_add(build_cursor_state_bytes(&cursor)?)
+                    .ok_or_else(|| budget("packed builder retained state overflow"))?;
+                let parent = frames
+                    .get_mut(parent_index)
+                    .ok_or_else(|| invalid("packed builder parent frame is missing"))?;
                 attach_build_child_v2(
-                    frames
-                        .get_mut(parent_index)
-                        .ok_or_else(|| invalid("packed builder parent frame is missing"))?,
+                    &mut writer,
+                    parent,
                     edge,
                     child,
                     limits,
+                    retained_builder_state,
                 )?;
+                check_build_state(&mut writer, &frames, &cursor, limits, 0)?;
             }
         }
         let root_frame = frames
             .pop()
             .ok_or_else(|| invalid("packed builder root frame is missing"))?;
+        let retained_builder_state = build_frame_stack_state_bytes(&frames)?
+            .checked_add(build_cursor_state_bytes(&cursor)?)
+            .ok_or_else(|| budget("packed builder retained state overflow"))?;
         let root = close_build_frame_v2(
             &mut writer,
             kind,
             root_frame,
             limits,
+            retained_builder_state,
             &mut pending_payload_bytes,
             deadline,
             cancelled,
@@ -1893,6 +2014,20 @@ impl SegmentStore {
             return Err(invalid("packed builder left pending terminal payload"));
         }
         let entries = cursor.consumed;
+        let root_state = root
+            .as_ref()
+            .map(tree_handle_state_bytes)
+            .transpose()?
+            .unwrap_or(0);
+        writer.root_live_state_bytes =
+            build_cursor_state_bytes(&cursor)?
+                .checked_add(root_state)
+                .ok_or_else(|| budget("packed builder root state overflow"))?;
+        let descriptor_overhead = std::mem::size_of::<AuthenticatedTreeDescriptorV2>()
+            .checked_add(kind.len())
+            .and_then(|bytes| bytes.checked_add(limits.max_key_bytes.checked_mul(2)?))
+            .ok_or_else(|| budget("packed builder descriptor state overflow"))?;
+        writer.check_cow_state(descriptor_overhead)?;
         writer.finish()?;
         let (semantic_root, physical_root) = match root {
             Some(handle) => {
@@ -2485,17 +2620,49 @@ fn close_build_frame_v2(
     kind: &[u8],
     frame: BuildFrameV2,
     limits: AuthenticatedTreeLimitsV1,
+    retained_builder_state: usize,
     pending_payload_bytes: &mut u64,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> Result<Option<TreeHandleV2>> {
     check(deadline, cancelled)?;
+    let frame_state = build_frame_state_bytes(&frame)?;
+    writer.root_live_state_bytes = retained_builder_state
+        .checked_add(frame_state)
+        .ok_or_else(|| budget("packed builder close state overflow"))?;
+    writer.check_cow_state(0)?;
     if frame.value.is_none() && frame.children.is_empty() {
+        writer.root_live_state_bytes = retained_builder_state;
         return Ok(None);
     }
     if frame.value.is_none() && frame.children.len() == 1 {
-        return Ok(frame.children.into_iter().next().map(|(_, child)| child));
+        let child = frame.children.into_iter().next().map(|(_, child)| child);
+        if let Some(child) = &child {
+            writer.check_cow_state(tree_handle_state_bytes(child)?)?;
+        }
+        return Ok(child);
     }
+    let frame_state = build_frame_state_bytes(&frame)?;
+    writer.root_live_state_bytes = retained_builder_state
+        .checked_add(frame_state)
+        .ok_or_else(|| budget("packed builder close state overflow"))?;
+    let child_count = frame.children.len();
+    let child_array_bytes = child_count
+        .checked_mul(
+            std::mem::size_of::<(u8, AuthenticatedTreeNodeRefV1)>()
+                .checked_add(std::mem::size_of::<TreeLocatorV2>())
+                .ok_or_else(|| budget("packed builder close state overflow"))?,
+        )
+        .ok_or_else(|| budget("packed builder close state overflow"))?;
+    let node_key_copies = limits
+        .max_key_bytes
+        .checked_mul(2)
+        .ok_or_else(|| budget("packed builder close state overflow"))?;
+    writer.check_cow_state(
+        child_array_bytes
+            .checked_add(node_key_copies)
+            .ok_or_else(|| budget("packed builder close state overflow"))?,
+    )?;
     let payload_bytes = frame
         .value
         .as_ref()
@@ -2519,11 +2686,28 @@ fn close_build_frame_v2(
     locators
         .try_reserve_exact(frame.children.len())
         .map_err(|_| budget("packed locator allocation failed"))?;
+    let allocated_arrays = children
+        .capacity()
+        .checked_mul(std::mem::size_of::<(u8, AuthenticatedTreeNodeRefV1)>())
+        .and_then(|bytes| {
+            bytes.checked_add(
+                locators
+                    .capacity()
+                    .checked_mul(std::mem::size_of::<TreeLocatorV2>())?,
+            )
+        })
+        .ok_or_else(|| budget("packed builder close state overflow"))?;
+    writer.check_cow_state(
+        allocated_arrays
+            .checked_add(node_key_copies)
+            .ok_or_else(|| budget("packed builder close state overflow"))?,
+    )?;
     for (edge, child) in frame.children {
         children.push((edge, child.reference));
         locators.push(child.locator);
     }
     let node = make_node(frame.value, children, limits)?;
+    writer.root_live_state_bytes = retained_builder_state;
     let handle = writer.persist(kind, node, &locators)?;
     *pending_payload_bytes = pending_payload_bytes
         .checked_sub(payload_bytes)
@@ -2532,10 +2716,12 @@ fn close_build_frame_v2(
 }
 
 fn attach_build_child_v2(
+    writer: &mut PackWriterV2<'_>,
     parent: &mut BuildFrameV2,
     edge: u8,
     child: TreeHandleV2,
     limits: AuthenticatedTreeLimitsV1,
+    retained_builder_state: usize,
 ) -> Result<()> {
     if parent.children.len() >= limits.max_children {
         return Err(budget("authenticated node child limit exceeded"));
@@ -2547,12 +2733,116 @@ fn attach_build_child_v2(
     {
         return Err(invalid("packed builder child order differs"));
     }
+    let child_state = tree_handle_state_bytes(&child)?;
+    let requested = parent
+        .children
+        .len()
+        .checked_add(1)
+        .ok_or_else(|| budget("packed builder child capacity overflow"))?;
+    let requested_bytes = requested
+        .checked_mul(std::mem::size_of::<(u8, TreeHandleV2)>())
+        .ok_or_else(|| budget("packed builder child state overflow"))?;
+    let current_bytes = parent
+        .children
+        .capacity()
+        .checked_mul(std::mem::size_of::<(u8, TreeHandleV2)>())
+        .ok_or_else(|| budget("packed builder child state overflow"))?;
+    writer.root_live_state_bytes = retained_builder_state;
+    writer.check_cow_state(
+        child_state
+            .checked_add(requested_bytes.saturating_sub(current_bytes))
+            .ok_or_else(|| budget("packed builder child state overflow"))?,
+    )?;
     parent
         .children
-        .try_reserve(1)
+        .try_reserve_exact(1)
         .map_err(|_| budget("packed builder child allocation failed"))?;
+    let allocated_bytes = parent
+        .children
+        .capacity()
+        .checked_mul(std::mem::size_of::<(u8, TreeHandleV2)>())
+        .ok_or_else(|| budget("packed builder child state overflow"))?;
+    writer.check_cow_state(
+        child_state
+            .checked_add(allocated_bytes.saturating_sub(current_bytes))
+            .ok_or_else(|| budget("packed builder child state overflow"))?,
+    )?;
     parent.children.push((edge, child));
     Ok(())
+}
+
+fn entry_state_bytes(entry: &AuthenticatedTreeEntryV1) -> Result<usize> {
+    std::mem::size_of::<AuthenticatedTreeEntryV1>()
+        .checked_add(entry.key.capacity())
+        .and_then(|bytes| bytes.checked_add(entry.value.capacity()))
+        .ok_or_else(|| budget("packed builder entry state overflow"))
+}
+
+fn build_frame_state_bytes(frame: &BuildFrameV2) -> Result<usize> {
+    let mut state = std::mem::size_of::<BuildFrameV2>()
+        .checked_add(
+            frame
+                .children
+                .capacity()
+                .checked_mul(std::mem::size_of::<(u8, TreeHandleV2)>())
+                .ok_or_else(|| budget("packed builder frame state overflow"))?,
+        )
+        .ok_or_else(|| budget("packed builder frame state overflow"))?;
+    if let Some(value) = &frame.value {
+        state = state
+            .checked_add(entry_state_bytes(value)?)
+            .ok_or_else(|| budget("packed builder frame state overflow"))?;
+    }
+    for (_, child) in &frame.children {
+        state = state
+            .checked_add(tree_handle_state_bytes(child)?)
+            .ok_or_else(|| budget("packed builder frame state overflow"))?;
+    }
+    Ok(state)
+}
+
+fn build_frame_stack_state_bytes(frames: &Vec<BuildFrameV2>) -> Result<usize> {
+    let mut state = frames
+        .capacity()
+        .checked_mul(std::mem::size_of::<BuildFrameV2>())
+        .ok_or_else(|| budget("packed builder stack state overflow"))?;
+    for frame in frames {
+        state = state
+            .checked_add(build_frame_state_bytes(frame)?)
+            .ok_or_else(|| budget("packed builder stack state overflow"))?;
+    }
+    Ok(state)
+}
+
+fn build_cursor_state_bytes<I>(cursor: &BuildCursor<I>) -> Result<usize> {
+    let mut state = std::mem::size_of::<BuildCursor<I>>();
+    if let Some(previous) = &cursor.previous {
+        state = state
+            .checked_add(previous.capacity())
+            .ok_or_else(|| budget("packed builder cursor state overflow"))?;
+    }
+    if let Some(pending) = &cursor.pending {
+        state = state
+            .checked_add(entry_state_bytes(pending)?)
+            .ok_or_else(|| budget("packed builder cursor state overflow"))?;
+    }
+    Ok(state)
+}
+
+fn check_build_state<I>(
+    writer: &mut PackWriterV2<'_>,
+    frames: &Vec<BuildFrameV2>,
+    cursor: &BuildCursor<I>,
+    _limits: AuthenticatedTreeLimitsV1,
+    transient_bytes: usize,
+) -> Result<()> {
+    if writer.state_limit.is_none() {
+        return Ok(());
+    }
+    writer.root_live_state_bytes = build_frame_stack_state_bytes(frames)?
+        .checked_add(build_cursor_state_bytes(cursor)?)
+        .ok_or_else(|| budget("packed builder retained state overflow"))?;
+    writer.check_cow_state(transient_bytes)
 }
 
 fn tree_descriptor_state_bytes(descriptor: &AuthenticatedTreeDescriptorV2) -> Result<usize> {
@@ -2579,10 +2869,24 @@ fn tree_descriptor_handle_clone_state_bytes(
     let Some(root) = &descriptor.semantic.root else {
         return Ok(0);
     };
+    let seal_allocation_state = pack_seal_arc_allocation_state_bytes()?;
     std::mem::size_of::<TreeHandleV2>()
         .checked_add(tree_reference_state_bytes(root)?)
-        .and_then(|n| n.checked_add(std::mem::size_of::<PackSealStateV2>()))
+        .and_then(|n| n.checked_add(seal_allocation_state))
         .ok_or_else(|| budget("authenticated COW root handle state overflow"))
+}
+
+/// Upper bound for a separately allocated `Arc<PackSealStateV2>`, including
+/// both atomic strong/weak counters and alignment padding. Tree handles count
+/// the Arc pointer inline; this covers its heap allocation before each new Arc.
+fn pack_seal_arc_allocation_state_bytes() -> Result<usize> {
+    let (first_two_counters, _) = Layout::new::<AtomicUsize>()
+        .extend(Layout::new::<AtomicUsize>())
+        .map_err(|_| budget("authenticated pack seal layout overflow"))?;
+    let (with_payload, _) = first_two_counters
+        .extend(Layout::new::<PackSealStateV2>())
+        .map_err(|_| budget("authenticated pack seal layout overflow"))?;
+    Ok(with_payload.pad_to_align().size())
 }
 
 fn tree_reference_state_bytes(reference: &AuthenticatedTreeNodeRefV1) -> Result<usize> {
@@ -2596,7 +2900,7 @@ fn tree_handle_state_bytes(handle: &TreeHandleV2) -> Result<usize> {
     let locator_state = match &handle.locator {
         TreeLocatorV2::Legacy(_) => std::mem::size_of::<TreeLocatorV2>(),
         TreeLocatorV2::Packed(_) => std::mem::size_of::<TreeLocatorV2>()
-            .checked_add(std::mem::size_of::<PackSealStateV2>())
+            .checked_add(pack_seal_arc_allocation_state_bytes()?)
             .ok_or_else(|| budget("authenticated COW locator state overflow"))?,
     };
     std::mem::size_of::<TreeHandleV2>()
@@ -2637,10 +2941,11 @@ fn tree_locator_slice_state_bytes(locators: &[TreeLocatorV2]) -> Result<usize> {
         .capacity()
         .checked_mul(std::mem::size_of::<TreeLocatorV2>())
         .ok_or_else(|| budget("authenticated COW locator state overflow"))?;
+    let seal_state_bytes = pack_seal_arc_allocation_state_bytes()?;
     for locator in locators {
         if matches!(locator, TreeLocatorV2::Packed(_)) {
             state = state
-                .checked_add(std::mem::size_of::<PackSealStateV2>())
+                .checked_add(seal_state_bytes)
                 .ok_or_else(|| budget("authenticated COW locator state overflow"))?;
         }
     }
@@ -2681,9 +2986,10 @@ fn tree_node_decode_upper_bound(
         TreeLocatorV2::Packed(locator) => locator.frame_len as usize,
         TreeLocatorV2::Legacy(_) => limits.max_node_bytes,
     };
+    let seal_allocation_state = pack_seal_arc_allocation_state_bytes()?;
     let per_child = std::mem::size_of::<PackedChildWireV2>()
         .checked_add(std::mem::size_of::<TreeLocatorV2>())
-        .and_then(|n| n.checked_add(std::mem::size_of::<PackSealStateV2>()))
+        .and_then(|n| n.checked_add(seal_allocation_state))
         .and_then(|n| n.checked_add(std::mem::size_of::<(u8, AuthenticatedTreeNodeRefV1)>()))
         .ok_or_else(|| budget("authenticated COW decode state overflow"))?;
     frame
@@ -2695,7 +3001,7 @@ fn tree_node_decode_upper_bound(
 
 fn tree_node_mutation_upper_bound(limits: AuthenticatedTreeLimitsV1) -> Result<usize> {
     let per_child = std::mem::size_of::<TreeLocatorV2>()
-        .checked_add(std::mem::size_of::<PackSealStateV2>())
+        .checked_add(pack_seal_arc_allocation_state_bytes()?)
         .and_then(|n| n.checked_add(std::mem::size_of::<(u8, AuthenticatedTreeNodeRefV1)>() * 2))
         .ok_or_else(|| budget("authenticated COW mutation state overflow"))?;
     limits
@@ -5356,6 +5662,7 @@ mod tests {
                 rows.clone().into_iter().map(Ok),
                 limits,
                 600,
+                None,
                 None,
                 deadline,
                 &cancelled,

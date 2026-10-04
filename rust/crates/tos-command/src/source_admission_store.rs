@@ -828,6 +828,110 @@ impl AdmissionStore {
         Ok(bytes)
     }
 
+    /// Hash one exact retained V1 snapshot through the held revision namespace.
+    /// This supplies the real artifact binding when a full V1 history is
+    /// migrated into the V2 history tree; it does not synthesize a byte count
+    /// or treat a revision digest as a manifest digest.
+    pub(crate) fn legacy_snapshot_sha256(
+        &self,
+        revision: Digest256,
+        max_bytes: u64,
+        deadline: Instant,
+        cancel: &AtomicBool,
+        io_budget: &tos_source_store::PinnedSqliteIoBudget,
+    ) -> io::Result<Digest256> {
+        active(deadline, cancel)?;
+        if max_bytes == 0 || max_bytes == u64::MAX {
+            return Err(invalid("legacy snapshot read bound is invalid"));
+        }
+        if self
+            .v2_layout_io
+            .borrow()
+            .as_ref()
+            .is_none_or(|original| !original.shares_with(io_budget))
+        {
+            return Err(invalid("legacy snapshot and V2 writer IO ledgers differ"));
+        }
+        let name = revision.to_hex();
+        charge_v2_component_guard(io_budget, &name)?;
+        charge_v2_component_guard(io_budget, "snapshot.json")?;
+        self.verify_layout()?;
+        let directory =
+            tos_fd_open::open_directory_at(&self.revisions, Path::new(&name)).map_err(invalid)?;
+        let mut file = tos_fd_open::open_regular_at(&directory, Path::new("snapshot.json"))
+            .map_err(invalid)?;
+        let stamp = |metadata: &std::fs::Metadata| {
+            (
+                metadata.dev(),
+                metadata.ino(),
+                metadata.len(),
+                metadata.mode(),
+                metadata.uid(),
+                metadata.mtime(),
+                metadata.mtime_nsec(),
+                metadata.ctime(),
+                metadata.ctime_nsec(),
+            )
+        };
+        let before = file.metadata()?;
+        if !before.is_file()
+            || before.len() == 0
+            || before.len() > max_bytes
+            || before.uid() != rustix::process::geteuid().as_raw()
+            || before.mode() & 0o222 != 0
+        {
+            return Err(invalid("legacy snapshot artifact custody differs"));
+        }
+        let mut hasher = Digest256Hasher::new();
+        let mut remaining = before.len();
+        let mut block = [0u8; 65_536];
+        while remaining != 0 {
+            active(deadline, cancel)?;
+            let wanted = remaining.min(block.len() as u64) as usize;
+            let mut filled = 0usize;
+            while filled < wanted {
+                active(deadline, cancel)?;
+                io_budget
+                    .charge_read((wanted - filled) as u64)
+                    .map_err(invalid)?;
+                match file.read(&mut block[filled..wanted]) {
+                    Ok(0) => return Err(invalid("legacy snapshot ended before its held size")),
+                    Ok(read) => {
+                        io_budget
+                            .record_read_returned(read as u64)
+                            .map_err(invalid)?;
+                        hasher.update(&block[filled..filled + read]);
+                        filled += read;
+                    }
+                    Err(error) if error.kind() == io::ErrorKind::Interrupted => continue,
+                    Err(error) => return Err(error),
+                }
+            }
+            remaining -= wanted as u64;
+        }
+        active(deadline, cancel)?;
+        io_budget.charge_read(1).map_err(invalid)?;
+        let mut tail = [0u8; 1];
+        let tail_read = file.read(&mut tail)?;
+        io_budget
+            .record_read_returned(tail_read as u64)
+            .map_err(invalid)?;
+        let digest = hasher.finalize();
+        let after = file.metadata()?;
+        charge_v2_component_guard(io_budget, "snapshot.json")?;
+        let selected = tos_fd_open::open_regular_at(&directory, Path::new("snapshot.json"))
+            .map_err(invalid)?;
+        if tail_read != 0
+            || stamp(&after) != stamp(&before)
+            || stamp(&selected.metadata()?) != stamp(&before)
+        {
+            return Err(invalid("legacy snapshot EOF or metadata stamp differs"));
+        }
+        active(deadline, cancel)?;
+        self.verify_layout()?;
+        Ok(digest)
+    }
+
     /// Verify an exact typed source artifact under the held immutable revision
     /// directory. This is used only when recovering an already accepted
     /// publication from the authenticated V2 history tree; it creates no new
@@ -1107,6 +1211,7 @@ impl AdmissionStore {
         let current = &built.roots.current;
         let revision = current.revision.0;
         let expected_base = built.expected_base.0;
+        let expected_selection = built.expected_selection.clone();
         let artifact = current.source_artifact.clone();
         let record_sha256 = Digest256::of_bytes(&built.source_record);
         let record_len = u64::try_from(built.source_record.len())
@@ -1115,7 +1220,19 @@ impl AdmissionStore {
             SourceRevisionArtifactV2::CompactCommitV2 { sha256, bytes } => (*sha256, *bytes),
             _ => return Err(invalid("V2 successor source record format differs")),
         };
-        if built.roots.current.base_revision != Some(built.expected_base)
+        let expected_pointer_binding = match expected_selection.format {
+            tos_source_store::CorpusPointerFormat::V1 => {
+                expected_selection.rootset_sha256.is_none()
+                    && built.expected_previous_rootset_sha256.is_none()
+            }
+            tos_source_store::CorpusPointerFormat::V2 => {
+                expected_selection.rootset_sha256 == built.expected_previous_rootset_sha256
+                    && expected_selection.rootset_sha256.is_some()
+            }
+        };
+        if expected_selection.revision.0 != expected_base
+            || !expected_pointer_binding
+            || built.roots.current.base_revision != Some(built.expected_base)
             || current.manifest_sha256 != record_sha256
             || artifact_sha256 != record_sha256
             || artifact_bytes != record_len
@@ -1199,13 +1316,9 @@ impl AdmissionStore {
         let pointer_io = Some(io_budget);
         self.verify_layout()?;
         let selected = self.current_selection(limits, deadline, cancel, pointer_io)?;
-        if !selected.is_some_and(|selection| {
-            selection.format == tos_source_store::CorpusPointerFormat::V2
-                && selection.revision.0 == expected_base
-                && selection.rootset_sha256 == Some(built.expected_previous_rootset_sha256)
-        }) {
+        if selected.as_ref() != Some(&expected_selection) {
             return Err(invalid(
-                "V2 successor expected current/rootset compare differs",
+                "V2 successor expected selected-pointer tuple differs",
             ));
         }
         charge_v2_component_guard(io_budget, ".admission.lock")?;
@@ -1406,11 +1519,7 @@ impl AdmissionStore {
         // lock. A competing or stale source operation cannot publish on top of
         // a different base/rootset pair.
         let selected = self.current_selection(limits, deadline, cancel, pointer_io)?;
-        if !selected.is_some_and(|selection| {
-            selection.format == tos_source_store::CorpusPointerFormat::V2
-                && selection.revision.0 == expected_base
-                && selection.rootset_sha256 == Some(built.expected_previous_rootset_sha256)
-        }) {
+        if selected.as_ref() != Some(&expected_selection) {
             return Err(invalid("V2 successor base changed before selector CAS"));
         }
 
@@ -1483,11 +1592,7 @@ impl AdmissionStore {
             ));
         }
         let selected = self.current_selection(limits, deadline, cancel, pointer_io)?;
-        if !selected.is_some_and(|selection| {
-            selection.format == tos_source_store::CorpusPointerFormat::V2
-                && selection.revision.0 == expected_base
-                && selection.rootset_sha256 == Some(built.expected_previous_rootset_sha256)
-        }) {
+        if selected.as_ref() != Some(&expected_selection) {
             return Err(invalid("V2 successor selector compare failed"));
         }
         active(deadline, cancel)?;

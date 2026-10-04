@@ -1089,17 +1089,23 @@ fn run_spooled_inner(
         .v2_allocation_accountant
         .as_ref()
         .map_or(&request.io_budget, |owner| owner.io_budget());
-    let mut probed_v2 = None;
-    if resources.v2_allocation_accountant.is_some()
-        && store
+    // Output selection does not change the format of an authenticated base.
+    // Keep V1 imports on their maintained streamed reader; only a genuine V2
+    // selector can provide a V2 session or an accepted-batch history proof.
+    let selected_format = if resources.v2_allocation_accountant.is_some() {
+        store
             .current_selection(
                 limits.candidate.reader,
                 deadline,
                 &request.cancelled,
                 Some(pointer_io),
             )?
-            .is_some_and(|selection| selection.format == tos_source_store::CorpusPointerFormat::V2)
-    {
+            .map(|selection| selection.format)
+    } else {
+        None
+    };
+    let mut probed_v2 = None;
+    if selected_format == Some(tos_source_store::CorpusPointerFormat::V2) {
         let source_root = resources
             .v2_source_root
             .as_ref()
@@ -1155,9 +1161,10 @@ fn run_spooled_inner(
     )?;
     let base = match (
         batch.base_revision,
-        resources.v2_allocation_accountant.is_some(),
+        resources.v2_allocation_accountant.is_none()
+            || selected_format == Some(tos_source_store::CorpusPointerFormat::V1),
     ) {
-        (Some(revision), false) => {
+        (Some(revision), true) => {
             let main = File::from(rustix::fs::openat(
                 &resources.workspace,
                 ".",
@@ -1186,7 +1193,10 @@ fn run_spooled_inner(
     // Read-only limits are selected by the protected invocation. This borrows
     // authenticated held V2 rows before validation; it grants no publication
     // authority and uses the original shared source IO ledger.
-    let base_v2 = if batch.base_revision.is_some() && resources.v2_allocation_accountant.is_some() {
+    let base_v2 = if batch.base_revision.is_some()
+        && resources.v2_allocation_accountant.is_some()
+        && selected_format == Some(tos_source_store::CorpusPointerFormat::V2)
+    {
         let source_root = resources
             .v2_source_root
             .as_ref()
