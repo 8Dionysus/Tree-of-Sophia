@@ -384,6 +384,11 @@ fn candidate_request_count<I>(
         .closure
         .cost
         .candidate_responsibility_validated_event_count;
+    let reported_publication_claim_count = owner.closure.cost.candidate_publication_claim_count;
+    let reported_publication_validated_event_count = owner
+        .closure
+        .cost
+        .candidate_publication_validated_event_count;
     let reported_boundary_responsibility_ref_count = owner
         .closure
         .cost
@@ -505,6 +510,30 @@ fn candidate_request_count<I>(
                 .closure
                 .cost
                 .candidate_responsibility_claim_peak_workspace_state_bytes
+        || closure_store_cost.publication_claim_rows != reported_publication_claim_count
+        || closure_store_cost.publication_claim_drained_rows != reported_publication_claim_count
+        || !closure_store_cost.publication_claim_eof_seen
+        || !closure_store_cost.publication_claim_count_verified
+        || closure_store_cost.publication_claim_serialized_read_bytes
+            != owner
+                .closure
+                .cost
+                .candidate_publication_claim_serialized_read_bytes
+        || closure_store_cost.publication_claim_serialized_write_bytes
+            != owner
+                .closure
+                .cost
+                .candidate_publication_claim_serialized_write_bytes
+        || closure_store_cost.publication_claim_scan_row_operations
+            != owner
+                .closure
+                .cost
+                .candidate_publication_claim_scan_row_operations
+        || closure_store_cost.publication_claim_workspace_state_bytes
+            != owner
+                .closure
+                .cost
+                .candidate_publication_claim_peak_workspace_state_bytes
         || closure_store_cost.responsibility_validated_event_rows
             != reported_responsibility_validated_event_count
         || !closure_store_cost.responsibility_validated_event_count_verified
@@ -528,6 +557,29 @@ fn candidate_request_count<I>(
                 .closure
                 .cost
                 .candidate_responsibility_validated_event_peak_workspace_state_bytes
+        || closure_store_cost.publication_validated_event_rows
+            != reported_publication_validated_event_count
+        || !closure_store_cost.publication_validated_event_count_verified
+        || closure_store_cost.publication_validated_event_serialized_read_bytes
+            != owner
+                .closure
+                .cost
+                .candidate_publication_validated_event_serialized_read_bytes
+        || closure_store_cost.publication_validated_event_serialized_write_bytes
+            != owner
+                .closure
+                .cost
+                .candidate_publication_validated_event_serialized_write_bytes
+        || closure_store_cost.publication_validated_event_scan_row_operations
+            != owner
+                .closure
+                .cost
+                .candidate_publication_validated_event_scan_row_operations
+        || closure_store_cost.publication_validated_event_workspace_state_bytes
+            != owner
+                .closure
+                .cost
+                .candidate_publication_validated_event_peak_workspace_state_bytes
         || closure_store_cost.boundary_responsibility_ref_rows
             != reported_boundary_responsibility_ref_count
         || closure_store_cost.boundary_responsibility_ref_drained_rows
@@ -1202,6 +1254,12 @@ pub(crate) fn evaluate_candidate_stored_rules<I: Copy + Eq>(
             .closure
             .cost
             .candidate_responsibility_validated_event_count;
+        let expected_publication_claims =
+            owner_report.closure.cost.candidate_publication_claim_count;
+        let expected_publication_validated_events = owner_report
+            .closure
+            .cost
+            .candidate_publication_validated_event_count;
         let expected_boundary_responsibility_refs = owner_report
             .closure
             .cost
@@ -1239,6 +1297,30 @@ pub(crate) fn evaluate_candidate_stored_rules<I: Copy + Eq>(
                     .closure
                     .cost
                     .candidate_responsibility_claim_peak_workspace_state_bytes
+            || closure_spool_cost.publication_claim_rows != expected_publication_claims
+            || closure_spool_cost.publication_claim_drained_rows != expected_publication_claims
+            || !closure_spool_cost.publication_claim_eof_seen
+            || !closure_spool_cost.publication_claim_count_verified
+            || closure_spool_cost.publication_claim_serialized_read_bytes
+                != owner_report
+                    .closure
+                    .cost
+                    .candidate_publication_claim_serialized_read_bytes
+            || closure_spool_cost.publication_claim_serialized_write_bytes
+                != owner_report
+                    .closure
+                    .cost
+                    .candidate_publication_claim_serialized_write_bytes
+            || closure_spool_cost.publication_claim_scan_row_operations
+                != owner_report
+                    .closure
+                    .cost
+                    .candidate_publication_claim_scan_row_operations
+            || closure_spool_cost.publication_claim_workspace_state_bytes
+                != owner_report
+                    .closure
+                    .cost
+                    .candidate_publication_claim_peak_workspace_state_bytes
             || closure_spool_cost.responsibility_validated_event_rows
                 != expected_responsibility_validated_events
             || !closure_spool_cost.responsibility_validated_event_count_verified
@@ -1262,6 +1344,29 @@ pub(crate) fn evaluate_candidate_stored_rules<I: Copy + Eq>(
                     .closure
                     .cost
                     .candidate_responsibility_validated_event_peak_workspace_state_bytes
+            || closure_spool_cost.publication_validated_event_rows
+                != expected_publication_validated_events
+            || !closure_spool_cost.publication_validated_event_count_verified
+            || closure_spool_cost.publication_validated_event_serialized_read_bytes
+                != owner_report
+                    .closure
+                    .cost
+                    .candidate_publication_validated_event_serialized_read_bytes
+            || closure_spool_cost.publication_validated_event_serialized_write_bytes
+                != owner_report
+                    .closure
+                    .cost
+                    .candidate_publication_validated_event_serialized_write_bytes
+            || closure_spool_cost.publication_validated_event_scan_row_operations
+                != owner_report
+                    .closure
+                    .cost
+                    .candidate_publication_validated_event_scan_row_operations
+            || closure_spool_cost.publication_validated_event_workspace_state_bytes
+                != owner_report
+                    .closure
+                    .cost
+                    .candidate_publication_validated_event_peak_workspace_state_bytes
             || closure_spool_cost.boundary_responsibility_ref_rows
                 != expected_boundary_responsibility_refs
             || closure_spool_cost.boundary_responsibility_ref_drained_rows
