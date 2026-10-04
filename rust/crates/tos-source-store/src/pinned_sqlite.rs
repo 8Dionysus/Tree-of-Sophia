@@ -23,6 +23,17 @@ use std::{
     time::Instant,
 };
 
+// This owner already requires Linux through tos-fd-open. Use the same local
+// C-ABI convention as git_capture, without a new crate or pathname allocation.
+// No O_CREAT argument is used: the retained kernel FD is the sole target.
+const LINUX_O_RDONLY: std::ffi::c_int = 0;
+const LINUX_O_RDWR: std::ffi::c_int = 2;
+const LINUX_O_CLOEXEC: std::ffi::c_int = 0x80000;
+unsafe extern "C" {
+    #[link_name = "open"]
+    fn linux_open(path: *const std::ffi::c_char, flags: std::ffi::c_int, ...) -> std::ffi::c_int;
+}
+
 const VFS_NAME: &CStr = c"tos-pinned-fd-v1";
 static VFS: OnceLock<std::result::Result<usize, i32>> = OnceLock::new();
 
@@ -1050,11 +1061,11 @@ unsafe extern "C" fn open_main(
     // std pathname adapter's separate temporary C buffer. No CREATE, and the
     // exact observer/actual inode check below remains the custody authority.
     let access = if readonly {
-        libc::O_RDONLY
+        LINUX_O_RDONLY
     } else {
-        libc::O_RDWR
+        LINUX_O_RDWR
     };
-    let opened = unsafe { libc::open(path.bytes.as_ptr().cast(), access | libc::O_CLOEXEC) };
+    let opened = unsafe { linux_open(path.bytes.as_ptr().cast(), access | LINUX_O_CLOEXEC) };
     if opened < 0 {
         return ffi::SQLITE_CANTOPEN;
     }
