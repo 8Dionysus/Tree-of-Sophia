@@ -699,7 +699,10 @@ fn native_private_claim_cli_preserves_create_forms_revision_and_cold_replay() {
     }
 
     let (capture, components) = selected_capture(&repository, &names, deadline);
-    let temporary = tempfile::tempdir().unwrap();
+    let temporary = tempfile::Builder::new()
+        .permissions(fs::Permissions::from_mode(0o700))
+        .tempdir()
+        .unwrap();
     let selected = fixture(&repository, temporary.path(), deadline);
     let public = PathBuf::from(selected["public"].as_str().unwrap());
     let private = PathBuf::from(selected["private"].as_str().unwrap());

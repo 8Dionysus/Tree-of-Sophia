@@ -735,6 +735,7 @@ fn native_layer_journal_case(derived: bool) {
     let configuration_raw = fs::read(&owner).unwrap();
     let mut supporting_only: Value = serde_json::from_slice(&configuration_raw).unwrap();
     supporting_only["native_text_layers"] = serde_json::json!([]);
+    supporting_only["quality_dependencies"] = serde_json::json!({});
     fs::write(&owner, serde_json::to_vec(&supporting_only).unwrap()).unwrap();
     fs::set_permissions(&owner, fs::Permissions::from_mode(0o600)).unwrap();
     let (denied_status, _, denied_error) = super::command_text_cases::native_owner_cli_observation(
@@ -1053,7 +1054,7 @@ print(json.dumps(f['prepare'](repository,root),separators=(',',':')))
     let prepared = invoke(
         &owner,
         &serde_json::json!({
-        "schema_version":"tos_local_source_command_v1","operation":"prepare-create"}),
+        "operation":"prepare-create"}),
     );
     let record_request = serde_json::json!({
         "schema_version":"tos_local_source_command_v1","operation":if retained_page { "text-layer.record-owner-page-ocr" } else { "text-layer.record-owner-ocr" },
