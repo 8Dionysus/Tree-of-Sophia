@@ -175,14 +175,26 @@ class ValidationLaneTests(unittest.TestCase):
             },
             'test Rust conformance lifecycle families': {
                 'command_collection_cases', 'command_item_cases', 'command_work_cases',
-                'command_edition_cases', 'command_artifact_cases',
+                'command_edition_cases',
                 'command_object_link_cases', 'command_legacy_claim_cases',
             },
-            'test Rust conformance text and private families': {
+            'test Rust conformance text alignment case': {
+                'command_text_cases',
+            },
+            'test Rust conformance derived and public Text families': {
                 'command_text_cases', 'command_public_text_cases',
-                'command_responsibility_cases', 'command_metadata_publication_cases',
-                'command_owner_text_cases', 'command_private_claim_cases',
-                'command_private_profile_cases',
+            },
+            'test Rust conformance Responsibility family': {
+                'command_responsibility_cases',
+            },
+            'test Rust conformance owner assessment family': {
+                'command_owner_text_cases',
+            },
+            'test Rust conformance private Claim family': {
+                'command_private_claim_cases',
+            },
+            'test Rust conformance private Profile and metadata families': {
+                'command_metadata_publication_cases', 'command_private_profile_cases',
             },
         }
         self.assertEqual(
@@ -206,7 +218,8 @@ class ValidationLaneTests(unittest.TestCase):
         self.assertEqual(len(modules), len(set(modules)))
         self.assertEqual(
             set(modules),
-            set().union(*family_labels.values()),
+            set().union(*family_labels.values())
+            | {name.split('::', 1)[0] for name in conformance_names},
         )
 
         def filters(command):
@@ -222,28 +235,75 @@ class ValidationLaneTests(unittest.TestCase):
         self.assertEqual(filters(root_source), [f'{module}::' for module in modules])
         self.assertTrue(all(value.endswith('::') for value in filters(root_source)))
 
-        family_coverage = []
-        for label, expected in family_labels.items():
-            command = by_label[label]
-            self.assertEqual(
-                command[:8],
-                ['cargo', 'test', '--workspace', '--locked', '--test', 'conformance', 'command_', '--'],
-            )
-            module_filters = [value[:-2] for value in filters(command) if value.endswith('::')]
-            self.assertEqual(len(module_filters), len(set(module_filters)))
-            self.assertTrue(set(module_filters).issubset(set(modules)))
-            selected = set(modules) - set(module_filters)
-            self.assertEqual(selected, expected)
-            self.assertTrue(all(value.endswith('::') or value in conformance_names
-                                for value in filters(command)))
-            family_coverage.extend(selected)
-        self.assertEqual(len(family_coverage), len(set(family_coverage)))
-        self.assertEqual(set(family_coverage), set(modules))
-
         module_paths = re.findall(
             r'(?m)^\s*(?:#\[path = "([^"]+)"\]\s*\n)?\s*mod ([a-z0-9_]+);$',
             runner,
         )
+        command_test_names = {}
+        for relative, module in module_paths:
+            if not module.startswith('command_'):
+                continue
+            source_path = ROOT / 'tests/conformance/rust' / (relative or f'{module}.rs')
+            source = source_path.read_text(encoding='utf-8')
+            test_names = re.findall(
+                r'(?m)^\s*#\[test\]\s*\n(?:^\s*#\[[^\n]*\]\s*\n)*^\s*fn\s+([a-zA-Z0-9_]+)\s*\(',
+                source,
+            )
+            self.assertTrue(test_names, f'{source_path.relative_to(ROOT)} has no direct tests')
+            test_ids = [f'{module}::{name}' for name in test_names]
+            self.assertEqual(len(test_ids), len(set(test_ids)))
+            command_test_names[module] = set(test_ids)
+
+        self.assertEqual(set(command_test_names), set(modules))
+        all_command_test_ids = set().union(*command_test_names.values())
+
+        def selected_tests(command):
+            self.assertEqual(
+                command[:6],
+                ['cargo', 'test', '--workspace', '--locked', '--test', 'conformance'],
+            )
+            self.assertEqual(command[7], '--')
+            test_filter = command[6]
+            test_args = command[command.index('--') + 1:]
+            if '--exact' in test_args:
+                selected = {test_id for test_id in all_command_test_ids
+                            if test_id == test_filter}
+            else:
+                selected = {test_id for test_id in all_command_test_ids
+                            if test_filter in test_id}
+            return {
+                test_id for test_id in selected
+                if not any(skip in test_id for skip in filters(command))
+            }
+
+        family_test_coverage = []
+        for label, expected in family_labels.items():
+            command = by_label[label]
+            module_filters = [value[:-2] for value in filters(command) if value.endswith('::')]
+            self.assertEqual(len(module_filters), len(set(module_filters)))
+            self.assertTrue(set(module_filters).issubset(set(modules)))
+            selected = selected_tests(command)
+            selected_modules = {test_id.split('::', 1)[0] for test_id in selected}
+            self.assertEqual(selected_modules, expected)
+            self.assertTrue(all(value.endswith('::') or value in all_command_test_ids
+                                for value in filters(command)))
+            self.assertTrue(selected)
+            family_test_coverage.extend(selected)
+        self.assertEqual(len(family_test_coverage), len(set(family_test_coverage)))
+        claim_family_exact_skips = [
+            value for value in filters(by_label['test Rust conformance Claim publication families'])
+            if not value.endswith('::')
+        ]
+        claim_conformance_names = [
+            name for name in conformance_names if name.startswith('command_claim_cases::')
+        ]
+        self.assertCountEqual(claim_family_exact_skips, claim_conformance_names)
+        self.assertEqual(
+            set(family_test_coverage) | set(conformance_names),
+            all_command_test_ids,
+        )
+        self.assertFalse(set(family_test_coverage) & set(conformance_names))
+
         for relative, module in module_paths:
             if module.startswith('command_'):
                 continue
@@ -312,11 +372,6 @@ class ValidationLaneTests(unittest.TestCase):
         )
         self.assertEqual(len(names + conformance_names), len(set(names + conformance_names)))
 
-        family_exact_skips = [
-            value for label in family_labels for value in filters(by_label[label])
-            if not value.endswith('::')
-        ]
-        self.assertCountEqual(family_exact_skips, conformance_names)
         ordered_test_labels = [
             workspace_label,
             root_source_label,

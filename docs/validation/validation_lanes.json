@@ -504,7 +504,14 @@
         ]
       },
       {
-        "label": "test Rust conformance text and private families",
+        "label": "test Rust conformance text alignment case",
+        "command_timeout_ms": 900000,
+        "command": [
+          "cargo", "test", "--workspace", "--locked", "--test", "conformance", "command_text_cases::native_owner_alignment_preserves_versions_competition_and_cold_replay", "--", "--exact", "--nocapture", "--test-threads=1"
+        ]
+      },
+      {
+        "label": "test Rust conformance derived and public Text families",
         "command_timeout_ms": 900000,
         "command": [
           "cargo", "test", "--workspace", "--locked", "--test", "conformance", "command_", "--",
@@ -515,11 +522,116 @@
           "--skip", "command_collection_cases::",
           "--skip", "command_item_cases::",
           "--skip", "command_work_cases::",
+          "--skip", "command_claim_publication_cases::",
+          "--skip", "command_responsibility_cases::",
           "--skip", "command_edition_cases::",
           "--skip", "command_artifact_cases::",
           "--skip", "command_object_link_cases::",
           "--skip", "command_legacy_claim_cases::",
-          "--skip", "command_claim_publication_cases::"
+          "--skip", "command_metadata_publication_cases::",
+          "--skip", "command_owner_text_cases::",
+          "--skip", "command_private_claim_cases::",
+          "--skip", "command_private_profile_cases::",
+          "--skip", "command_text_cases::native_owner_alignment_preserves_versions_competition_and_cold_replay"
+        ]
+      },
+      {
+        "label": "test Rust conformance Responsibility family",
+        "command_timeout_ms": 900000,
+        "command": [
+          "cargo", "test", "--workspace", "--locked", "--test", "conformance", "command_", "--",
+          "--nocapture", "--test-threads=1",
+          "--skip", "command_form_cases::",
+          "--skip", "command_record_cases::",
+          "--skip", "command_claim_cases::",
+          "--skip", "command_collection_cases::",
+          "--skip", "command_item_cases::",
+          "--skip", "command_work_cases::",
+          "--skip", "command_text_cases::",
+          "--skip", "command_claim_publication_cases::",
+          "--skip", "command_public_text_cases::",
+          "--skip", "command_edition_cases::",
+          "--skip", "command_artifact_cases::",
+          "--skip", "command_object_link_cases::",
+          "--skip", "command_legacy_claim_cases::",
+          "--skip", "command_metadata_publication_cases::",
+          "--skip", "command_owner_text_cases::",
+          "--skip", "command_private_claim_cases::",
+          "--skip", "command_private_profile_cases::"
+        ]
+      },
+      {
+        "label": "test Rust conformance owner assessment family",
+        "command_timeout_ms": 900000,
+        "command": [
+          "cargo", "test", "--workspace", "--locked", "--test", "conformance", "command_", "--",
+          "--nocapture", "--test-threads=1",
+          "--skip", "command_form_cases::",
+          "--skip", "command_record_cases::",
+          "--skip", "command_claim_cases::",
+          "--skip", "command_collection_cases::",
+          "--skip", "command_item_cases::",
+          "--skip", "command_work_cases::",
+          "--skip", "command_text_cases::",
+          "--skip", "command_claim_publication_cases::",
+          "--skip", "command_public_text_cases::",
+          "--skip", "command_responsibility_cases::",
+          "--skip", "command_edition_cases::",
+          "--skip", "command_artifact_cases::",
+          "--skip", "command_object_link_cases::",
+          "--skip", "command_legacy_claim_cases::",
+          "--skip", "command_metadata_publication_cases::",
+          "--skip", "command_private_claim_cases::",
+          "--skip", "command_private_profile_cases::"
+        ]
+      },
+      {
+        "label": "test Rust conformance private Claim family",
+        "command_timeout_ms": 900000,
+        "command": [
+          "cargo", "test", "--workspace", "--locked", "--test", "conformance", "command_", "--",
+          "--nocapture", "--test-threads=1",
+          "--skip", "command_form_cases::",
+          "--skip", "command_record_cases::",
+          "--skip", "command_claim_cases::",
+          "--skip", "command_collection_cases::",
+          "--skip", "command_item_cases::",
+          "--skip", "command_work_cases::",
+          "--skip", "command_text_cases::",
+          "--skip", "command_claim_publication_cases::",
+          "--skip", "command_public_text_cases::",
+          "--skip", "command_responsibility_cases::",
+          "--skip", "command_edition_cases::",
+          "--skip", "command_artifact_cases::",
+          "--skip", "command_object_link_cases::",
+          "--skip", "command_legacy_claim_cases::",
+          "--skip", "command_metadata_publication_cases::",
+          "--skip", "command_owner_text_cases::",
+          "--skip", "command_private_profile_cases::"
+        ]
+      },
+      {
+        "label": "test Rust conformance private Profile and metadata families",
+        "command_timeout_ms": 900000,
+        "command": [
+          "cargo", "test", "--workspace", "--locked", "--test", "conformance", "command_", "--",
+          "--nocapture", "--test-threads=1",
+          "--skip", "command_form_cases::",
+          "--skip", "command_record_cases::",
+          "--skip", "command_claim_cases::",
+          "--skip", "command_collection_cases::",
+          "--skip", "command_item_cases::",
+          "--skip", "command_work_cases::",
+          "--skip", "command_text_cases::",
+          "--skip", "command_claim_publication_cases::",
+          "--skip", "command_public_text_cases::",
+          "--skip", "command_responsibility_cases::",
+          "--skip", "command_edition_cases::",
+          "--skip", "command_artifact_cases::",
+          "--skip", "command_object_link_cases::",
+          "--skip", "command_legacy_claim_cases::",
+          "--skip", "command_owner_text_cases::",
+          "--skip", "command_private_claim_cases::"
         ]
       },
       {
