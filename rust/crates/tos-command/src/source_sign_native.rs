@@ -2726,9 +2726,15 @@ pub(crate) fn resolve_owner_profile_binding<R: SignNativeRead + ?Sized>(
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<(ResolvedSignBinding, Vec<NativeInput>)> {
-    let mut native = selected_native(reader, worker, deadline, cancelled)?;
-    native.route_profile = NativeRoute::OwnerText;
-    native.resolve(binding, NativeReadScope::MetadataOnly)?;
+    let (mut native, _, _, _) = selected_binding_with_route(
+        reader,
+        worker,
+        binding,
+        NativeReadScope::MetadataOnly,
+        NativeRoute::OwnerText,
+        deadline,
+        cancelled,
+    )?;
     native.snapshot()?;
     let metadata_inputs = selected_inputs(&native);
     let (packet, layer, summary) = native.resolve(binding, NativeReadScope::ExactOwnerLocal)?;
@@ -2757,19 +2763,15 @@ pub(crate) fn resolve_owner_metadata_binding<R: SignNativeRead + ?Sized>(
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<ResolvedSignBinding> {
-    reader.verify_current(deadline, cancelled)?;
-    let mut native = Native {
+    let (mut native, packet, layer, summary) = selected_binding_with_route(
         reader,
         worker,
+        binding,
+        NativeReadScope::ExactOwnerLocal,
+        NativeRoute::OwnerText,
         deadline,
         cancelled,
-        cache: BTreeMap::new(),
-        schemas: BTreeMap::new(),
-        remaining_metadata: MAX_METADATA_BYTES,
-        remaining_content: MAX_CONTENT_BYTES,
-        route_profile: NativeRoute::OwnerText,
-    };
-    let (packet, layer, summary) = native.resolve(binding, NativeReadScope::ExactOwnerLocal)?;
+    )?;
     let input_snapshot = native.snapshot()?;
     let inputs = selected_inputs(&native);
     Ok(ResolvedSignBinding {
