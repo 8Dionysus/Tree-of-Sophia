@@ -794,6 +794,7 @@ fn run_selected(
     let subject_is_native = native_index.contains_key(&selected.request.subject_id);
     let subject_is_sourced = source_index.contains_key(&selected.request.subject_id);
     if subject_is_native
+        && selected_layer.is_none()
         && !cmd::array(&config, "native_text_units")?
             .iter()
             .any(|selection| {

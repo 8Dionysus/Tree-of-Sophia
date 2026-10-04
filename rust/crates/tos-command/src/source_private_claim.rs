@@ -3220,7 +3220,7 @@ fn validate_endpoint_closure(
         }
     }
     for key in ["evidence_refs", "counterevidence_refs"] {
-        for reference in cmd::array(claim, key)? {
+        for reference in optional_array(claim, key)? {
             let reference = reference.as_str().ok_or(SourceCommandError::Invalid(
                 "private Claim evidence identity",
             ))?;
