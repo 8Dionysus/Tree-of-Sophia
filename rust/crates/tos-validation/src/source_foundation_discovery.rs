@@ -1718,11 +1718,6 @@ impl<S: LayerFamilySource + ?Sized, I: Copy + Eq> Inspector<'_, '_, S, I> {
         Ok(())
     }
 
-    fn event_info(&mut self, value: &Value, location: &str) -> Result<EventInfo, ItemRefusal> {
-        self.source_refs(value, location)?;
-        Ok(Self::event_info_from_value(value, location))
-    }
-
     fn event_info_from_value(value: &Value, location: &str) -> EventInfo {
         let mut outputs = BTreeMap::new();
         for row in array(value, "outputs") {
@@ -8205,7 +8200,7 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
             path,
             PROVENANCE_SCHEMA,
             &mut |inspector, location, value| {
-                let info = inspector.event_info(value, location)?;
+                inspector.source_refs(value, location)?;
                 let Some(id) = string(value, "event_id") else {
                     inspector.issue(
                         location,
@@ -8243,6 +8238,7 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
                         .checked_add(1)
                         .ok_or(ItemRefusal::Budget)?;
                 } else {
+                    let info = Inspector::<S, I>::event_info_from_value(value, location);
                     boundary_events.insert(id.clone(), info);
                     source_event_insertions.push((id, value.clone()));
                 }
@@ -8386,7 +8382,7 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
         DISCOVERY_EVENTS,
         PROVENANCE_SCHEMA,
         &mut |inspector, location, value| {
-            let info = inspector.event_info(value, location)?;
+            inspector.source_refs(value, location)?;
             let Some(id) = string(value, "event_id") else {
                 inspector.issue(
                     location,
@@ -8437,6 +8433,7 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
                         .ok_or(ItemRefusal::Budget)?;
                 }
             } else {
+                let info = Inspector::<S, I>::event_info_from_value(value, location);
                 if insert_into_owner_map {
                     source_event_insertions.push((id.clone(), value.clone()));
                 }
