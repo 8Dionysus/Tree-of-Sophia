@@ -8181,17 +8181,15 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
         Ok(())
     })?;
 
-    let mut prior_event_cost = 0usize;
     let mut event_ids: BTreeSet<String> = BTreeSet::new();
     if inspector.candidate_discovery_seen_ids.is_none() {
         prior_events.for_each_event(&mut |id, _| {
-            prior_event_cost = prior_event_cost
-                .checked_add(id.len().checked_add(64).ok_or(ItemRefusal::Budget)?)
-                .ok_or(ItemRefusal::Budget)?;
+            // Charge the same finite compatibility projection before its
+            // String and set node are allocated, including repeated rows.
+            inspector.reserve_state(id.len().checked_add(64).ok_or(ItemRefusal::Budget)?)?;
             event_ids.insert(id.to_owned());
             Ok(())
         })?;
-        inspector.reserve_state(prior_event_cost)?;
     }
     let mut source_event_insertions: Vec<(String, Value)> = Vec::new();
     let mut boundary_events: BTreeMap<String, EventInfo> = BTreeMap::new();
