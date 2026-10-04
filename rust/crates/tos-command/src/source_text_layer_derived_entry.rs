@@ -958,12 +958,6 @@ fn verify_retained(
             active(deadline, cancelled)?;
             let reference = cmd::text(row, "entity_ref")?;
             if let Some(name) = reference.strip_prefix(&format!("{home}/")) {
-                let extra_owner_input = prepared
-                    .grant
-                    .operation
-                    .starts_with("text-layer.record-owner-")
-                    && matches!(name, "content.txt" | "owner-ocr-receipt.json")
-                    && group == "inputs";
                 let expected_group = match name {
                     "source-create-request.json" => "inputs",
                     "source-create-environment.json" => "byproducts",
@@ -972,18 +966,10 @@ fn verify_retained(
                 let raw = files.get(name).ok_or(SourceCommandError::Conflict(
                     "native derived local entity absent",
                 ))?;
-                if group != expected_group && !extra_owner_input
+                if group != expected_group
                     || !observed.insert((group.to_owned(), name.to_owned()))
                     || cmd::integer(row, "size_bytes")? != raw.len() as u64
                     || cmd::text(row, "sha256")? != Digest256::of_bytes(raw).to_hex()
-                    || extra_owner_input
-                        && (cmd::text(row, "role")?
-                            != if name == "content.txt" {
-                                "authenticated-owner-ocr-result"
-                            } else {
-                                "authenticated-owner-ocr-execution-receipt"
-                            }
-                            || cmd::field(row, "fixity_verified")? != &JsonValue::Bool(true))
                 {
                     return Err(SourceCommandError::Conflict(
                         "native derived local entity differs",
@@ -1025,15 +1011,6 @@ fn verify_retained(
             _ => "outputs",
         };
         expected_local.insert((group.to_owned(), name.clone()));
-    }
-    if prepared
-        .grant
-        .operation
-        .starts_with("text-layer.record-owner-")
-    {
-        for name in ["content.txt", "owner-ocr-receipt.json"] {
-            expected_local.insert(("inputs".to_owned(), name.to_owned()));
-        }
     }
     if observed != expected_local || external != expected_external {
         return Err(SourceCommandError::Conflict(

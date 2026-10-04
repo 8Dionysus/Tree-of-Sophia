@@ -972,7 +972,7 @@ fn archive_package(
         ("revision", cmd::string(revision)),
         ("files", refs),
     ]);
-    archived.insert("manifest.json".into(), encode(&manifest)?);
+    archived.insert("manifest.json".into(), cmd::published(&manifest)?);
     if archived.len() > MAX_PACKAGE_FILES
         || archived.values().map(Vec::len).sum::<usize>() > 16_777_216
     {
@@ -3640,7 +3640,7 @@ fn creation_files(
             })
             .collect(),
     );
-    files.insert(CONFIG_FILE.to_owned(), encode(&grant.value)?);
+    files.insert(CONFIG_FILE.to_owned(), cmd::published(&grant.value)?);
     let mut views = Vec::new();
     for claim in claims {
         let identity = cmd::text(claim, "claim_id")?;
@@ -3661,7 +3661,7 @@ fn creation_files(
             deadline,
             cancelled,
         )?;
-        files.insert(claim_form_filename(identity), encode(&prepared.payload)?);
+        files.insert(claim_form_filename(identity), cmd::published(&prepared.payload)?);
         views.extend(prepared.views);
     }
     if files.len() > MAX_PACKAGE_FILES
@@ -7231,7 +7231,7 @@ fn append_history(
     }
     receipts.push(receipt.clone());
     cmd::set(&mut history, "receipts", JsonValue::Array(receipts))?;
-    files.insert(HISTORY.to_owned(), encode(&history)?);
+    files.insert(HISTORY.to_owned(), cmd::published(&history)?);
     Ok(())
 }
 
@@ -7393,6 +7393,34 @@ fn create_plan(
         deadline,
         cancelled,
     )?;
+    // The maintained creation writer inserts the stream, configuration, then
+    // claim forms in request order, followed by these three capture byproducts.
+    // Package storage remains sorted; only this published receipt owns that order.
+    let mut file_order = vec![
+        grant.source_path.as_str().rsplit('/').next().ok_or(
+            SourceCommandError::Invalid("Claim stream basename"),
+        )?.to_owned(),
+        CONFIG_FILE.to_owned(),
+    ];
+    for claim in claims {
+        file_order.push(claim_form_filename(cmd::text(claim, "claim_id")?));
+    }
+    file_order.extend([
+        "source-create-request.json".to_owned(),
+        "source-create-environment.json".to_owned(),
+        "source-create-provenance.jsonl".to_owned(),
+    ]);
+    if file_order.len() != files.len()
+        || file_order.iter().collect::<BTreeSet<_>>() != files.keys().collect::<BTreeSet<_>>()
+    {
+        return Err(SourceCommandError::Invalid("private Claim creation receipt file order"));
+    }
+    let unordered_refs = serialized_package_refs(&files);
+    let receipt_files = JsonValue::Object(
+        file_order.iter().map(|name| {
+            Ok((tos_foundation::JsonString::from_utf8(name), cmd::field(&unordered_refs, name)?.clone()))
+        }).collect::<SourceCommandResult<Vec<_>>>()?,
+    );
     let receipt = cmd::object(vec![
         (
             "schema_version",
@@ -7428,10 +7456,10 @@ fn create_plan(
                     .collect::<SourceCommandResult<Vec<_>>>()?,
             ),
         ),
-        ("files", serialized_package_refs(&files)),
+        ("files", receipt_files),
         ("grants_admission", JsonValue::Bool(false)),
     ]);
-    files.insert(RECEIPT_FILE.to_owned(), encode(&receipt)?);
+    files.insert(RECEIPT_FILE.to_owned(), cmd::published(&receipt)?);
     if files.len() > MAX_PACKAGE_FILES
         || files.values().map(Vec::len).sum::<usize>() > MAX_PACKAGE_BYTES
     {
@@ -7565,7 +7593,7 @@ fn prepare_revision(
             &revised,
         )?,
     );
-    output.insert(claim_form_filename(identity), encode(&prepared.payload)?);
+    output.insert(claim_form_filename(identity), cmd::published(&prepared.payload)?);
     let references = prepared.references.clone();
     let views = prepared.views.clone();
     Ok((revised, output, grounded, references, views))
@@ -8388,7 +8416,7 @@ pub(crate) fn prepare(
                 cancelled,
             )?;
             let mut output = package.clone();
-            output.insert(claim_form_filename(identity), encode(&next_forms)?);
+            output.insert(claim_form_filename(identity), cmd::published(&next_forms)?);
             let mut forms = state.forms.clone();
             forms.insert(identity.to_owned(), next_forms);
             let mut next_response = response_state(

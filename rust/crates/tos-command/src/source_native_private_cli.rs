@@ -17,7 +17,7 @@ use tos_validation::source_cut::CutWorkerSchemaExecutor;
 
 // Python's implementation map hashes these bytes from source.ROOT. They are
 // software rules, distinct from owner-context grammar at the same source refs.
-const RULE_SCHEMA_COMPONENTS: &[&str] = &[
+pub(crate) const RULE_SCHEMA_COMPONENTS: &[&str] = &[
     "ToS/contracts/human-form.schema.json",
     "ToS/contracts/human-form-set.schema.json",
     "ToS/contracts/human-form-template.schema.json",
