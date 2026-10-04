@@ -2,6 +2,7 @@
 //! V2 cold closure. The selected rootset and exact auxiliary SQLite scope are
 //! fixed at construction; the segment-store callback alone can complete rows.
 
+use super::source_admission_segment_v2::{SourceRevisionRootsV2, decode_workspace_upper_bound};
 use rusqlite::{OptionalExtension, params, types::ValueRef};
 use std::{
     cell::{Cell, RefCell},
@@ -15,7 +16,8 @@ use std::{
 };
 use tos_foundation::Digest256;
 use tos_segment_store::{
-    AuthenticatedTreePackSetV2, Result as SegmentResult, SegmentError, SegmentErrorCode,
+    AuthenticatedTreeEntryV1, AuthenticatedTreePackSetV2, Result as SegmentResult, SegmentError,
+    SegmentErrorCode,
 };
 use tos_source_store::{
     PinnedSqliteAuxRequest, PinnedSqliteAuxScope, PinnedSqliteConnection, PinnedSqliteIoBudget,
@@ -44,6 +46,17 @@ pub(crate) struct V2ColdHistoryRow {
     pub revision: [u8; DIGEST_BYTES],
     pub base_revision: Option<[u8; DIGEST_BYTES]>,
     pub raw: Vec<u8>,
+}
+
+pub(crate) fn history_row_holder_upper_bound(raw_bytes: usize) -> std::io::Result<usize> {
+    let sql_row = size_of::<V2ColdHistoryRow>()
+        .checked_add(raw_bytes)
+        .ok_or_else(|| invalid("V2 pack spill SQL row state overflow"))?;
+    let authenticated_row = size_of::<AuthenticatedTreeEntryV1>()
+        .checked_add(raw_bytes)
+        .and_then(|bytes| bytes.checked_add(DIGEST_BYTES))
+        .ok_or_else(|| invalid("V2 pack spill authenticated row state overflow"))?;
+    Ok(sql_row.max(authenticated_row))
 }
 
 /// Finite in-memory terms for the SQLite-backed exact digest set.
@@ -152,6 +165,14 @@ fn validate_request(
 
 impl V2SeenPackSpillLimits {
     pub(crate) fn state_charge(self) -> std::io::Result<usize> {
+        let history_decode_workspace = decode_workspace_upper_bound(self.max_history_row_bytes)?;
+        let history_decoded_state = SourceRevisionRootsV2::retained_state_upper_bound_for_value(
+            self.max_history_row_bytes,
+        )?;
+        let history_row_state = history_row_holder_upper_bound(self.max_history_row_bytes)?
+            .checked_add(history_decode_workspace)
+            .and_then(|bytes| bytes.checked_add(history_decoded_state))
+            .ok_or_else(|| invalid("V2 pack spill history row state overflow"))?;
         let cache_kib = self.cache_bytes / 1024;
         if self.max_tree_nodes == 0
             || self.max_tree_nodes == u64::MAX
@@ -174,9 +195,13 @@ impl V2SeenPackSpillLimits {
             // Includes the ordered cursor, returned row, digest passed to the
             // physical verifier, and one conversion/callback scratch copy.
             .and_then(|bytes| bytes.checked_add(4 * DIGEST_BYTES))
-            // One authenticated history row is resident while its compact
-            // tuple is decoded and the corresponding roots are checked.
-            .and_then(|bytes| bytes.checked_add(self.max_history_row_bytes.checked_mul(4)?))
+            // One bounded history row is resident at a time. The row holder
+            // is the larger of the authenticated stream entry and the SQL
+            // cursor's cloned BLOB row; it is accompanied by the full
+            // malformed-input parser/canonical workspace and typed roots
+            // retained while its closure is checked. SQLite's native
+            // row/page-cache residency is separately covered below.
+            .and_then(|bytes| bytes.checked_add(history_row_state))
             .and_then(|bytes| bytes.checked_add(self.sqlite_native_overhead_bytes))
             .ok_or_else(|| invalid("V2 pack spill state charge overflow"))?;
         if self

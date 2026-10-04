@@ -4,11 +4,12 @@
 use super::source_admission::{active, invalid};
 use super::source_admission_segment_v2::{
     CompactCommitV2, MAX_COMPACT_COMMIT_V2_BYTES, SourceRevisionArtifactV2, SourceRevisionRootsV2,
-    SourceRootSetV2,
+    SourceRootSetV2, decode_workspace_upper_bound,
 };
 use super::source_admission_store::AdmissionStore;
 use super::source_admission_v2_seen_pack::{
     V2SeenPackSpill, V2SeenPackSpillLimits, V2SeenPackSpillRequest, V2SeenPackSpillRequests,
+    history_row_holder_upper_bound,
 };
 use rustix::fs::{AtFlags, FileType, Mode, OFlags, RawDir, RenameFlags};
 use std::{
@@ -39,6 +40,30 @@ const BLOCK_BYTES: usize = 65_536;
 const NAME_METADATA_READ_GUARD_BYTES: usize = 4096;
 const MAX_HELD_ROOT_PATH_BYTES: usize = 4096;
 const MAX_HELD_ROOT_PATH_COMPONENTS: usize = 128;
+
+fn rootset_decode_state_upper_bound() -> io::Result<usize> {
+    let workspace = decode_workspace_upper_bound(ROOT_BYTES)?;
+    let one_value = size_of::<SourceRootSetV2>()
+        // A decoded current tuple retains several owned descriptor/key
+        // buffers; use the segment owner’s explicit result envelope. The
+        // history descriptor is another bounded owned value from this row.
+        .checked_add(SourceRevisionRootsV2::retained_state_upper_bound_for_value(
+            ROOT_BYTES,
+        )?)
+        .and_then(|bytes| bytes.checked_add(ROOT_BYTES))
+        .ok_or_else(|| invalid("V2 rootset retained state overflow"))?;
+    ROOT_BYTES
+        .checked_add(workspace)
+        .and_then(|bytes| bytes.checked_add(one_value.checked_mul(2)?))
+        .ok_or_else(|| invalid("V2 rootset decode state overflow"))
+}
+
+fn compact_decode_state_upper_bound() -> io::Result<usize> {
+    let raw = MAX_COMPACT_COMMIT_V2_BYTES;
+    raw.checked_add(decode_workspace_upper_bound(raw)?)
+        .and_then(|bytes| bytes.checked_add(size_of::<CompactCommitV2>().checked_add(raw)?))
+        .ok_or_else(|| invalid("V2 compact commit decode state overflow"))
+}
 
 #[derive(Clone, Copy)]
 pub(crate) struct V2HeldSourceRoot<'a> {
@@ -340,15 +365,37 @@ impl V2ImageLimits {
         let history_resident = if history_spilled {
             0
         } else {
+            let per_revision =
+                SourceRevisionRootsV2::retained_state_upper_bound_for_value(ROOT_BYTES)?;
             self.max_history_roots
-                .checked_mul(ROOT_BYTES.checked_mul(4)?)
+                .checked_mul(per_revision)
+                .and_then(|bytes| bytes.checked_add(size_of::<Vec<SourceRevisionRootsV2>>()))
                 .ok_or_else(|| invalid("V2 image history state overflow"))?
+        };
+        // Both source and restored rootsets remain live during their exact
+        // comparison. The second parse is the peak: one raw rootset, its
+        // caller-reserved workspace, and both retained typed values.
+        let rootset_decode = rootset_decode_state_upper_bound()?;
+        let compact_decode = compact_decode_state_upper_bound()?;
+        // The compatibility history vector is still explicitly precharged
+        // above. It also needs one bounded raw row and decoder workspace while
+        // each typed value is constructed. Cold mode accounts this peak in the
+        // spill bill with the SQLite raw-row clone and typed output.
+        let compatibility_history_decode = if history_spilled {
+            0
+        } else {
+            let raw = SourceRevisionRootsV2::MAX_ENCODED_BYTES;
+            history_row_holder_upper_bound(raw)?
+                .checked_add(decode_workspace_upper_bound(raw)?)
+                .ok_or_else(|| invalid("V2 compatibility history decode overflow"))?
         };
         let retained = path_nodes
             .checked_mul(self.tree.max_node_bytes)
             .and_then(|n| n.checked_mul(64))
             .and_then(|n| n.checked_add(history_resident))
-            .and_then(|n| n.checked_add(MAX_COMPACT_COMMIT_V2_BYTES.checked_mul(4)?))
+            .and_then(|n| n.checked_add(rootset_decode))
+            .and_then(|n| n.checked_add(compact_decode))
+            .and_then(|n| n.checked_add(compatibility_history_decode))
             .and_then(|n| n.checked_add(size_of::<V2ColdHistoryCursorState>()))
             .and_then(|n| n.checked_add(self.max_depth.checked_mul(8192)?))
             .and_then(|n| n.checked_add(self.reader.max_manifest_bytes.checked_mul(64)?))
@@ -469,7 +516,8 @@ fn selected_roots(
         .rootset_sha256
         .ok_or_else(|| invalid("V2 image rootset digest absent"))?;
     let raw = store.read_v2_rootset(selection.revision.0, sha, ROOT_BYTES, deadline, cancel, io)?;
-    let roots = SourceRootSetV2::decode(&raw)?;
+    let workspace = decode_workspace_upper_bound(raw.len())?;
+    let roots = SourceRootSetV2::decode_with_workspace(&raw, workspace)?;
     if roots.current.revision != selection.revision
         || roots.current.base_revision != selection.previous
     {
@@ -595,15 +643,18 @@ fn verify_closure(
         {
             return Err(invalid("V2 image retained history bound exceeded"));
         }
-        let revision = SourceRevisionRootsV2::decode(&row.value)?;
+        let workspace = decode_workspace_upper_bound(row.value.len())?;
+        let revision = SourceRevisionRootsV2::decode_with_workspace(&row.value, workspace)?;
         if row.key.as_slice() != revision.revision.0.as_bytes() {
             return Err(invalid("V2 image history key differs"));
         }
         revision.validate_store_binding(segment.store_id(), segment.domain_digest())?;
         if revision.revision == roots.current.revision {
-            roots.verify_current_history_row(&row.key, &row.value)?;
             if history_cursor.current_seen {
                 return Err(invalid("V2 image repeated current history key"));
+            }
+            if revision != roots.current {
+                return Err(invalid("V2 image current history row differs"));
             }
             history_cursor.current_seen = true;
         }
@@ -674,7 +725,8 @@ fn verify_closure(
             {
                 return Err(invalid("V2 cold history keyset cursor did not advance"));
             }
-            let revision = SourceRevisionRootsV2::decode(&row.raw)?;
+            let workspace = decode_workspace_upper_bound(row.raw.len())?;
+            let revision = SourceRevisionRootsV2::decode_with_workspace(&row.raw, workspace)?;
             if row.revision.as_slice() != revision.revision.0.as_bytes()
                 || row.base_revision != revision.base_revision.map(|base| *base.0.as_bytes())
             {
@@ -860,7 +912,8 @@ fn verify_revision_artifact(
                 deadline,
                 cancel,
             )?;
-            let record = CompactCommitV2::decode(&raw)?;
+            let workspace = decode_workspace_upper_bound(raw.len())?;
+            let record = CompactCommitV2::decode_with_workspace(&raw, workspace)?;
             if !record.matches_roots(revision) {
                 return Err(invalid(
                     "V2 compact commit differs from authenticated history",
