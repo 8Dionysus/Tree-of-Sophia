@@ -270,6 +270,9 @@ pub struct SourceFoundationClosureCost {
     pub candidate_boundary_responsibility_ref_serialized_write_bytes: u64,
     pub candidate_boundary_responsibility_ref_scan_row_operations: u64,
     pub candidate_boundary_responsibility_ref_peak_workspace_state_bytes: usize,
+    /// Unique boundary Membership ClaimRef IDs held in the candidate AUX
+    /// store. The finite compatibility path keeps its original BTreeSet.
+    pub candidate_boundary_membership_refs: SourceFoundationClosureBoundaryMembershipRefStoreCost,
     /// Candidate evidence-anchor IDs held in the invocation-scoped exact-key
     /// store. The finite compatibility path keeps its in-process set.
     pub candidate_anchor_store: SourceFoundationClosureAnchorStoreCost,
@@ -385,6 +388,18 @@ pub struct SourceFoundationClosureObjectLinkStoreCost {
     pub target_stream_count: u64,
     pub target_stream_rows: u64,
     pub target_stream_eof_count: u64,
+    pub serialized_read_bytes: u64,
+    pub serialized_write_bytes: u64,
+    pub scan_row_operations: u64,
+    pub peak_workspace_state_bytes: usize,
+    pub eof_seen: bool,
+    pub count_verified: bool,
+}
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct SourceFoundationClosureBoundaryMembershipRefStoreCost {
+    pub rows: u64,
+    pub drained_rows: u64,
     pub serialized_read_bytes: u64,
     pub serialized_write_bytes: u64,
     pub scan_row_operations: u64,
@@ -565,6 +580,7 @@ pub struct SourceFoundationClosureSchemaRequestStoreCost {
     pub boundary_responsibility_ref_workspace_state_bytes: usize,
     pub boundary_responsibility_ref_eof_seen: bool,
     pub boundary_responsibility_ref_count_verified: bool,
+    pub boundary_membership_refs: SourceFoundationClosureBoundaryMembershipRefStoreCost,
     pub anchors: SourceFoundationClosureAnchorStoreCost,
     pub derivation: SourceFoundationClosureDerivationStoreCost,
     pub topology: SourceFoundationClosureTopologyStoreCost,
@@ -927,6 +943,21 @@ pub trait SourceFoundationClosureSchemaRequestStore {
         max_state_bytes: usize,
     ) -> Result<(Option<String>, usize, usize, usize), ItemRefusal>;
 
+    /// Insert one unique boundary Membership reference. The binary key order
+    /// and duplicate law match the finite BTreeSet projection.
+    fn remember_boundary_membership_ref(
+        &mut self,
+        id: &str,
+        max_state_bytes: usize,
+    ) -> Result<(bool, usize), ItemRefusal>;
+
+    fn begin_boundary_membership_refs(&mut self, expected_rows: u64) -> Result<(), ItemRefusal>;
+
+    fn next_boundary_membership_ref(
+        &mut self,
+        max_state_bytes: usize,
+    ) -> Result<(Option<String>, usize, usize, usize), ItemRefusal>;
+
     /// Insert or test one unique source evidence anchor ID in the held set.
     /// Duplicate observations return false and preserve the set's first key.
     fn remember_anchor_id(
@@ -1108,6 +1139,7 @@ pub trait SourceFoundationClosureSchemaRequestStore {
         expected_responsibility_validated_event_rows: u64,
         expected_publication_validated_event_rows: u64,
         expected_boundary_responsibility_ref_rows: u64,
+        expected_boundary_membership_ref_rows: u64,
         expected_anchor_id_rows: u64,
         expected_provision_claim_rows: u64,
         expected_provision_event_id_rows: u64,
@@ -1520,6 +1552,7 @@ fn run_source_foundation_closure<S: LayerFamilySource + ?Sized>(
         rules.cost.candidate_publication_validated_event_count;
     let expected_boundary_responsibility_ref_rows =
         rules.cost.candidate_boundary_responsibility_ref_count;
+    let expected_boundary_membership_ref_rows = rules.cost.candidate_boundary_membership_refs.rows;
     let expected_anchor_store = rules.cost.candidate_anchor_store;
     let expected_provision_claim_rows = rules.cost.candidate_provision_claim_count;
     let expected_provision_event_id_rows = rules.cost.candidate_provision_event_id_count;
@@ -1549,6 +1582,7 @@ fn run_source_foundation_closure<S: LayerFamilySource + ?Sized>(
                 expected_responsibility_validated_event_rows,
                 expected_publication_validated_event_rows,
                 expected_boundary_responsibility_ref_rows,
+                expected_boundary_membership_ref_rows,
                 expected_anchor_store.id_rows,
                 expected_provision_claim_rows,
                 expected_provision_event_id_rows,
@@ -1583,6 +1617,7 @@ fn run_source_foundation_closure<S: LayerFamilySource + ?Sized>(
                         .max(finished.responsibility_validated_event_workspace_state_bytes)
                         .max(finished.publication_validated_event_workspace_state_bytes)
                         .max(finished.boundary_responsibility_ref_workspace_state_bytes)
+                        .max(finished.boundary_membership_refs.peak_workspace_state_bytes)
                         .max(finished.anchors.peak_workspace_state_bytes)
                         .max(finished.provision_claim_workspace_state_bytes)
                         .max(finished.provision_event_id_workspace_state_bytes)
@@ -1622,6 +1657,11 @@ fn run_source_foundation_closure<S: LayerFamilySource + ?Sized>(
                 != expected_boundary_responsibility_ref_rows
             || !finished.boundary_responsibility_ref_eof_seen
             || !finished.boundary_responsibility_ref_count_verified
+            || finished.boundary_membership_refs.rows != expected_boundary_membership_ref_rows
+            || finished.boundary_membership_refs.drained_rows
+                != expected_boundary_membership_ref_rows
+            || !finished.boundary_membership_refs.eof_seen
+            || !finished.boundary_membership_refs.count_verified
             || finished.anchors != expected_anchor_store
             || finished.provision_claim_rows != expected_provision_claim_rows
             || finished.provision_claim_drained_rows != expected_provision_claim_rows
@@ -1800,6 +1840,7 @@ fn run_source_foundation_closure<S: LayerFamilySource + ?Sized>(
             .cost
             .candidate_boundary_responsibility_ref_peak_workspace_state_bytes =
             finished.boundary_responsibility_ref_workspace_state_bytes;
+        rules.cost.candidate_boundary_membership_refs = finished.boundary_membership_refs;
         rules.cost.candidate_anchor_store = finished.anchors;
         rules.cost.candidate_provision_claim_count = finished.provision_claim_rows;
         rules.cost.candidate_provision_claim_serialized_read_bytes =
@@ -4248,6 +4289,29 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
         Ok(())
     }
 
+    fn remember_boundary_membership_ref(&mut self, reference: &str) -> Result<(), ItemRefusal> {
+        if self.schema_request_store.is_some() {
+            let remaining = self.remaining_state()?;
+            let (inserted, workspace) = self
+                .schema_request_store
+                .as_deref_mut()
+                .ok_or(ItemRefusal::Budget)?
+                .remember_boundary_membership_ref(reference, remaining)?;
+            self.include_store_workspace(workspace)?;
+            if inserted {
+                self.cost.candidate_boundary_membership_refs.rows = self
+                    .cost
+                    .candidate_boundary_membership_refs
+                    .rows
+                    .checked_add(1)
+                    .ok_or(ItemRefusal::Budget)?;
+            }
+        } else {
+            self.boundary_membership_refs.insert(reference.to_owned());
+        }
+        Ok(())
+    }
+
     fn remember_candidate_anchor_id(&mut self, id: &str) -> Result<bool, ItemRefusal> {
         let remaining = self.remaining_state()?;
         let (inserted, workspace) = self
@@ -4823,15 +4887,68 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
                 self.release_loaded_rows(loaded_state_bytes)?;
             }
         }
-        let membership_refs = std::mem::take(&mut self.boundary_membership_refs);
-        for reference in membership_refs {
-            if !self.contains_membership_claim(&reference)? {
-                self.issue(
-                    SOURCE_HOME,
-                    format!(
-                        "work-boundary maps reference missing membership claims: [{reference}]"
-                    ),
-                )?;
+        if self.schema_request_store.is_some() {
+            let expected_rows = self.cost.candidate_boundary_membership_refs.rows;
+            self.schema_request_store
+                .as_deref_mut()
+                .ok_or(ItemRefusal::Budget)?
+                .begin_boundary_membership_refs(expected_rows)?;
+            let mut cursor_state_bytes = 0usize;
+            let mut drained_rows = 0u64;
+            loop {
+                let remaining = self.remaining_state()?;
+                let (reference, workspace, row_state_bytes, retained_cursor_state_bytes) = self
+                    .schema_request_store
+                    .as_deref_mut()
+                    .ok_or(ItemRefusal::Budget)?
+                    .next_boundary_membership_ref(remaining)?;
+                self.include_store_workspace(workspace)?;
+                self.release_temporary_state(cursor_state_bytes)?;
+                let Some(reference) = reference else {
+                    if row_state_bytes != 0
+                        || retained_cursor_state_bytes != 0
+                        || drained_rows != expected_rows
+                    {
+                        return Err(ItemRefusal::Source(
+                            "source-foundation boundary Membership ref count differs from its ordered drain"
+                                .into(),
+                        ));
+                    }
+                    self.cost.candidate_boundary_membership_refs.drained_rows = drained_rows;
+                    self.cost.candidate_boundary_membership_refs.eof_seen = true;
+                    break;
+                };
+                let active_state_bytes = row_state_bytes
+                    .checked_add(retained_cursor_state_bytes)
+                    .ok_or(ItemRefusal::Budget)?;
+                if active_state_bytes > self.remaining_state()? {
+                    return Err(ItemRefusal::Budget);
+                }
+                self.reserve_temporary(active_state_bytes)?;
+                cursor_state_bytes = retained_cursor_state_bytes;
+                if !self.contains_membership_claim(&reference)? {
+                    self.issue(
+                        SOURCE_HOME,
+                        format!(
+                            "work-boundary maps reference missing membership claims: [{reference}]"
+                        ),
+                    )?;
+                }
+                drop(reference);
+                self.release_temporary_state(row_state_bytes)?;
+                drained_rows = drained_rows.checked_add(1).ok_or(ItemRefusal::Budget)?;
+            }
+        } else {
+            let membership_refs = std::mem::take(&mut self.boundary_membership_refs);
+            for reference in membership_refs {
+                if !self.contains_membership_claim(&reference)? {
+                    self.issue(
+                        SOURCE_HOME,
+                        format!(
+                            "work-boundary maps reference missing membership claims: [{reference}]"
+                        ),
+                    )?;
+                }
             }
         }
         if self.schema_request_store.is_some() {
@@ -9941,15 +10058,18 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
                     )?;
                 }
             }
+            let candidate_membership_refs = self.schema_request_store.is_some();
             let mut membership_refs = BTreeSet::new();
             for member in members {
                 if let Some(reference) = text(&member, "membership_claim_ref") {
-                    self.reserve(
-                        reference.len()
-                            + std::mem::size_of::<String>()
-                            + 4 * std::mem::size_of::<usize>(),
-                    )?;
-                    membership_refs.insert(reference.to_owned());
+                    if !candidate_membership_refs {
+                        self.reserve(
+                            reference.len()
+                                + std::mem::size_of::<String>()
+                                + 4 * std::mem::size_of::<usize>(),
+                        )?;
+                        membership_refs.insert(reference.to_owned());
+                    }
                 }
                 if let Some(reference) = text(&member, "responsibility_claim_ref")
                     .or_else(|| text(&member, "translation_responsibility_claim_ref"))
@@ -9957,14 +10077,16 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
                     self.remember_boundary_responsibility_ref(reference, true)?;
                 }
             }
-            for reference in membership_refs {
-                if !self.boundary_membership_refs.contains(&reference) {
-                    self.reserve(
-                        reference.len()
-                            + std::mem::size_of::<String>()
-                            + 4 * std::mem::size_of::<usize>(),
-                    )?;
-                    self.boundary_membership_refs.insert(reference);
+            if !candidate_membership_refs {
+                for reference in membership_refs {
+                    if !self.boundary_membership_refs.contains(&reference) {
+                        self.reserve(
+                            reference.len()
+                                + std::mem::size_of::<String>()
+                                + 4 * std::mem::size_of::<usize>(),
+                        )?;
+                        self.boundary_membership_refs.insert(reference);
+                    }
                 }
             }
             drop(page_by_id);
@@ -10207,7 +10329,7 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
             }
         }
         if let Some(reference) = text(member, "membership_claim_ref") {
-            self.boundary_membership_refs.insert(reference.to_owned());
+            self.remember_boundary_membership_ref(reference)?;
         }
         if let Some(reference) = text(member, "responsibility_claim_ref")
             .or_else(|| text(member, "translation_responsibility_claim_ref"))
