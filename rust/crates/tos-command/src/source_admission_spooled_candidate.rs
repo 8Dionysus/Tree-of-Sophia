@@ -1924,6 +1924,11 @@ impl<'host> SpoolCandidate<'host> {
                 break;
             };
             self.running()?;
+            // Reserve the bounded chain-row operation before copying even the
+            // fixed-width optional base revision out of the decoded history
+            // row. The reader's result allowance and this candidate's row
+            // allowance are distinct caller-owned peaks.
+            self.check_state(4096)?;
             let history_revision = roots.revision;
             let base_revision = roots.base_revision.map(|base| base.0.as_bytes().to_vec());
             let expected_identities = roots.identity_count;
@@ -1934,7 +1939,6 @@ impl<'host> SpoolCandidate<'host> {
             if expected_identities > remaining_identity_bound {
                 return Err(invalid("V2 base history identity count exceeds profile"));
             }
-            self.check_state(4096)?;
             self.db
                 .execute(
                     "INSERT INTO v2_history_chain(revision,base_revision) VALUES(?1,?2)",
