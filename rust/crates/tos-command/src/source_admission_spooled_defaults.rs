@@ -735,6 +735,9 @@ impl<'candidate, 'host> SpoolDefaultStore<'candidate, 'host> {
              CREATE TABLE sf_closure_event_paths(\
                  path TEXT NOT NULL COLLATE BINARY PRIMARY KEY CHECK(length(path)>0)\
              ) WITHOUT ROWID;\
+             CREATE TABLE sf_closure_claim_ids(\
+                 claim_id TEXT NOT NULL COLLATE BINARY PRIMARY KEY\
+             ) WITHOUT ROWID;\
              CREATE TABLE sf_discovery_seen_ids(\
                  namespace TEXT NOT NULL COLLATE BINARY CHECK(namespace IN ('artifact','composite','composite-representation','event','discovery-event','representation-file','schema-location','payload-observation','artifact-replay-reference','planned-manifest','native-artifact-transaction')),\
                  key TEXT NOT NULL COLLATE BINARY,\
@@ -2972,6 +2975,15 @@ struct CandidateClosureSchemaRequests<'a, 'candidate, 'host, 'cancel, 'budget> {
     event_paths_sealed: bool,
     event_paths_eof_seen: bool,
     event_paths_drained: bool,
+    claim_id_rows: u64,
+    claim_id_drained_rows: u64,
+    claim_id_serialized_read_bytes: u64,
+    claim_id_serialized_write_bytes: u64,
+    claim_id_scan_row_operations: u64,
+    claim_id_workspace_state_bytes: usize,
+    max_claim_id_bytes: usize,
+    expected_claim_id_rows: Option<u64>,
+    claim_id_eof_seen: bool,
     max_event_id_bytes: usize,
     max_event_path_bytes: usize,
     max_event_json_bytes: usize,
@@ -3060,6 +3072,22 @@ impl CandidateClosureSchemaRequests<'_, '_, '_, '_, '_> {
             .checked_mul(copies)
             .and_then(|state| state.checked_add(size_of::<(String, String)>() + 512))
             .ok_or(ItemRefusal::Budget)
+    }
+
+    fn claim_id_workspace(id_bytes: usize, copies: usize) -> Result<usize, ItemRefusal> {
+        Self::row_text_state(id_bytes)?
+            .checked_mul(copies)
+            .and_then(|state| state.checked_add(size_of::<(String, String)>() + 512))
+            .ok_or(ItemRefusal::Budget)
+    }
+
+    fn charge_claim_id_scan_rows(&mut self, rows: usize) -> Result<(), ItemRefusal> {
+        self.charge_scan_rows(rows)?;
+        self.claim_id_scan_row_operations = self
+            .claim_id_scan_row_operations
+            .checked_add(usize_u64(rows)?)
+            .ok_or(ItemRefusal::Budget)?;
+        Ok(())
     }
 
     fn charge_event_path_scan_rows(&mut self, rows: usize) -> Result<(), ItemRefusal> {
@@ -3237,6 +3265,76 @@ impl CandidateClosureSchemaRequests<'_, '_, '_, '_, '_> {
         Ok(())
     }
 
+    fn finish_claim_ids(
+        &mut self,
+        expected_rows: u64,
+        max_state_bytes: usize,
+    ) -> Result<(), ItemRefusal> {
+        if self.claim_id_eof_seen
+            || self.claim_id_drained_rows != 0
+            || self.claim_id_rows != expected_rows
+        {
+            return Err(source_refusal());
+        }
+        let workspace = Self::claim_id_workspace(self.max_claim_id_bytes.max(1), 4)?;
+        self.preflight(workspace, max_state_bytes)?;
+        self.claim_id_workspace_state_bytes = self.claim_id_workspace_state_bytes.max(workspace);
+        self.context.check()?;
+        let context = self.context;
+        let scan_rows = self.scan_rows;
+        let max_claim_id_bytes = self.max_claim_id_bytes;
+        let mut statement = self
+            .db
+            .prepare("SELECT claim_id FROM sf_closure_claim_ids ORDER BY claim_id COLLATE BINARY")
+            .map_err(sql_refusal)?;
+        let mut rows = statement.query([]).map_err(sql_refusal)?;
+        let mut previous: Option<String> = None;
+        let mut drained = 0u64;
+        let mut serialized_read_bytes = 0u64;
+        let mut scan_row_operations = 0u64;
+        loop {
+            context.check()?;
+            context.add_scan_rows(scan_rows, 1)?;
+            scan_row_operations = scan_row_operations
+                .checked_add(1)
+                .ok_or(ItemRefusal::Budget)?;
+            let Some(row) = rows.next().map_err(sql_refusal)? else {
+                break;
+            };
+            let id = bounded_row_text(row, 0, workspace).map_err(sql_refusal)?;
+            if id.len() > max_claim_id_bytes
+                || previous.as_deref().is_some_and(|last| last >= id.as_str())
+            {
+                return Err(source_refusal());
+            }
+            drained = drained.checked_add(1).ok_or(ItemRefusal::Budget)?;
+            if drained > expected_rows {
+                return Err(source_refusal());
+            }
+            serialized_read_bytes = serialized_read_bytes
+                .checked_add(usize_u64(id.len())?)
+                .ok_or(ItemRefusal::Budget)?;
+            previous = Some(id);
+        }
+        drop(rows);
+        drop(statement);
+        context.check()?;
+        if drained != expected_rows {
+            return Err(source_refusal());
+        }
+        self.claim_id_drained_rows = drained;
+        self.claim_id_serialized_read_bytes = self
+            .claim_id_serialized_read_bytes
+            .checked_add(serialized_read_bytes)
+            .ok_or(ItemRefusal::Budget)?;
+        self.claim_id_scan_row_operations = self
+            .claim_id_scan_row_operations
+            .checked_add(scan_row_operations)
+            .ok_or(ItemRefusal::Budget)?;
+        self.claim_id_eof_seen = true;
+        Ok(())
+    }
+
     fn valid_event_digest(digest: &str) -> bool {
         Digest256::from_hex(digest)
             .map(|parsed| parsed.to_hex() == digest)
@@ -3265,6 +3363,13 @@ impl CandidateClosureSchemaRequests<'_, '_, '_, '_, '_> {
             event_path_serialized_write_bytes: self.event_path_serialized_write_bytes,
             event_path_scan_row_operations: self.event_path_scan_row_operations,
             event_path_workspace_state_bytes: self.event_path_workspace_state_bytes,
+            claim_id_rows: self.claim_id_rows,
+            claim_id_drained_rows: self.claim_id_drained_rows,
+            claim_id_serialized_read_bytes: self.claim_id_serialized_read_bytes,
+            claim_id_serialized_write_bytes: self.claim_id_serialized_write_bytes,
+            claim_id_scan_row_operations: self.claim_id_scan_row_operations,
+            claim_id_workspace_state_bytes: self.claim_id_workspace_state_bytes,
+            claim_id_eof_seen: self.claim_id_eof_seen,
         }
     }
 
@@ -3278,6 +3383,9 @@ impl CandidateClosureSchemaRequests<'_, '_, '_, '_, '_> {
             || !self.events_drained
             || self.expected_event_path_rows != Some(self.event_path_rows)
             || !self.event_paths_drained
+            || self.expected_claim_id_rows != Some(self.claim_id_rows)
+            || self.claim_id_drained_rows != self.claim_id_rows
+            || !self.claim_id_eof_seen
         {
             return Err(source_refusal());
         }
@@ -3288,6 +3396,106 @@ impl CandidateClosureSchemaRequests<'_, '_, '_, '_, '_> {
 impl SourceFoundationClosureSchemaRequestStore
     for CandidateClosureSchemaRequests<'_, '_, '_, '_, '_>
 {
+    fn remember_claim_id(
+        &mut self,
+        id: &str,
+        max_state_bytes: usize,
+    ) -> Result<(bool, usize), ItemRefusal> {
+        if self.finished {
+            return Err(source_refusal());
+        }
+        let workspace = Self::claim_id_workspace(id.len(), 3)?;
+        self.preflight(workspace, max_state_bytes)?;
+        self.context.check()?;
+        self.charge_claim_id_scan_rows(2)?;
+        let inserted = self
+            .db
+            .execute(
+                "INSERT OR IGNORE INTO sf_closure_claim_ids(claim_id) VALUES(?1)",
+                [id],
+            )
+            .map_err(sql_refusal)?;
+        if inserted > 1 {
+            return Err(source_refusal());
+        }
+        let mut statement = self
+            .db
+            .prepare("SELECT claim_id FROM sf_closure_claim_ids WHERE claim_id=?1")
+            .map_err(sql_refusal)?;
+        let mut rows = statement.query([id]).map_err(sql_refusal)?;
+        let stored = rows
+            .next()
+            .map_err(sql_refusal)?
+            .map(|row| bounded_row_text(row, 0, workspace))
+            .transpose()
+            .map_err(sql_refusal)?;
+        if rows.next().map_err(sql_refusal)?.is_some() || stored.as_deref() != Some(id) {
+            return Err(source_refusal());
+        }
+        drop(rows);
+        drop(statement);
+        self.context.check()?;
+        self.claim_id_serialized_read_bytes = self
+            .claim_id_serialized_read_bytes
+            .checked_add(usize_u64(id.len())?)
+            .ok_or(ItemRefusal::Budget)?;
+        if inserted == 1 {
+            self.claim_id_rows = self
+                .claim_id_rows
+                .checked_add(1)
+                .ok_or(ItemRefusal::Budget)?;
+            self.claim_id_serialized_write_bytes = self
+                .claim_id_serialized_write_bytes
+                .checked_add(usize_u64(id.len())?)
+                .ok_or(ItemRefusal::Budget)?;
+        }
+        self.max_claim_id_bytes = self.max_claim_id_bytes.max(id.len());
+        self.claim_id_workspace_state_bytes = self.claim_id_workspace_state_bytes.max(workspace);
+        self.context.check()?;
+        Ok((inserted == 1, workspace))
+    }
+
+    fn contains_claim_id(
+        &mut self,
+        id: &str,
+        max_state_bytes: usize,
+    ) -> Result<(bool, usize), ItemRefusal> {
+        if self.finished {
+            return Err(source_refusal());
+        }
+        let workspace = Self::claim_id_workspace(id.len(), 2)?;
+        self.preflight(workspace, max_state_bytes)?;
+        self.context.check()?;
+        self.charge_claim_id_scan_rows(1)?;
+        let mut statement = self
+            .db
+            .prepare("SELECT claim_id FROM sf_closure_claim_ids WHERE claim_id=?1")
+            .map_err(sql_refusal)?;
+        let mut rows = statement.query([id]).map_err(sql_refusal)?;
+        let found = rows
+            .next()
+            .map_err(sql_refusal)?
+            .map(|row| bounded_row_text(row, 0, workspace))
+            .transpose()
+            .map_err(sql_refusal)?;
+        if rows.next().map_err(sql_refusal)?.is_some()
+            || found.as_deref().is_some_and(|stored| stored != id)
+        {
+            return Err(source_refusal());
+        }
+        drop(rows);
+        drop(statement);
+        self.context.check()?;
+        if found.is_some() {
+            self.claim_id_serialized_read_bytes = self
+                .claim_id_serialized_read_bytes
+                .checked_add(usize_u64(id.len())?)
+                .ok_or(ItemRefusal::Budget)?;
+        }
+        self.claim_id_workspace_state_bytes = self.claim_id_workspace_state_bytes.max(workspace);
+        Ok((found.is_some(), workspace))
+    }
+
     fn remember_event(
         &mut self,
         id: &str,
@@ -3899,6 +4107,7 @@ impl SourceFoundationClosureSchemaRequestStore
         expected_loaded_documents: u64,
         expected_event_rows: u64,
         expected_event_path_rows: u64,
+        expected_claim_id_rows: u64,
         direct_issue_count: usize,
         max_state_bytes: usize,
     ) -> Result<SourceFoundationClosureSchemaRequestStoreCost, ItemRefusal> {
@@ -3912,6 +4121,8 @@ impl SourceFoundationClosureSchemaRequestStore
             || self.event_path_rows != expected_event_path_rows
             || self.expected_event_path_rows != Some(expected_event_path_rows)
             || !self.event_paths_drained
+            || self.claim_id_rows != expected_claim_id_rows
+            || self.expected_claim_id_rows.is_some()
             || (expected_rows > 0) != self.max_document_bytes.is_some()
         {
             return Err(source_refusal());
@@ -4008,10 +4219,12 @@ impl SourceFoundationClosureSchemaRequestStore
         self.loaded_document_workspace_state_bytes = self
             .loaded_document_workspace_state_bytes
             .max(loaded_count_workspace);
+        self.finish_claim_ids(expected_claim_id_rows, max_state_bytes)?;
         self.finish_events(expected_event_rows, max_state_bytes)?;
         self.context.check()?;
         self.expected_rows = Some(expected_rows);
         self.expected_loaded_documents = Some(expected_loaded_documents);
+        self.expected_claim_id_rows = Some(expected_claim_id_rows);
         self.direct_issue_count = Some(direct_issue_count);
         self.finished = true;
         self.workspace_peak_bytes = self.workspace_peak_bytes.max(workspace);
@@ -5676,6 +5889,15 @@ impl<'candidate, 'host> SpoolDefaultStore<'candidate, 'host> {
                 event_paths_sealed: false,
                 event_paths_eof_seen: false,
                 event_paths_drained: false,
+                claim_id_rows: 0,
+                claim_id_drained_rows: 0,
+                claim_id_serialized_read_bytes: 0,
+                claim_id_serialized_write_bytes: 0,
+                claim_id_scan_row_operations: 0,
+                claim_id_workspace_state_bytes: 0,
+                max_claim_id_bytes: 0,
+                expected_claim_id_rows: None,
+                claim_id_eof_seen: false,
                 max_event_id_bytes: 0,
                 max_event_path_bytes: 0,
                 max_event_json_bytes: 0,

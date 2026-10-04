@@ -376,6 +376,7 @@ fn candidate_request_count<I>(
     let reported_closure_spooled_count = owner.closure.cost.candidate_schema_request_count;
     let reported_loaded_document_count = owner.closure.cost.candidate_loaded_document_count;
     let reported_event_count = owner.closure.cost.candidate_event_count;
+    let reported_claim_id_count = owner.closure.cost.candidate_claim_id_count;
     let closure_spooled_count = usize::try_from(reported_closure_spooled_count)
         .map_err(|_| "candidate stored Closure schema spool count overflow")?;
     let closure_total_count = usize::try_from(owner.closure.cost.schema_requests)
@@ -432,6 +433,20 @@ fn candidate_request_count<I>(
                 .closure
                 .cost
                 .candidate_event_path_peak_workspace_state_bytes
+        || closure_store_cost.claim_id_rows != reported_claim_id_count
+        || closure_store_cost.claim_id_drained_rows != reported_claim_id_count
+        || !closure_store_cost.claim_id_eof_seen
+        || closure_store_cost.claim_id_serialized_read_bytes
+            != owner.closure.cost.candidate_claim_id_serialized_read_bytes
+        || closure_store_cost.claim_id_serialized_write_bytes
+            != owner.closure.cost.candidate_claim_id_serialized_write_bytes
+        || closure_store_cost.claim_id_scan_row_operations
+            != owner.closure.cost.candidate_claim_id_scan_row_operations
+        || closure_store_cost.claim_id_workspace_state_bytes
+            != owner
+                .closure
+                .cost
+                .candidate_claim_id_peak_workspace_state_bytes
         || (reported_closure_spooled_count > 0 && !owner.closure.schema_requests.is_empty())
         || closure_spooled_count.checked_add(owner.closure.schema_requests.len())
             != Some(closure_total_count)

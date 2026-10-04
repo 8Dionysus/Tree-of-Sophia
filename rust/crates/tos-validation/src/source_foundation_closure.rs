@@ -135,6 +135,14 @@ pub struct SourceFoundationClosureCost {
     pub candidate_event_path_serialized_write_bytes: u64,
     pub candidate_event_path_scan_row_operations: u64,
     pub candidate_event_path_peak_workspace_state_bytes: usize,
+    /// Candidate Closure claim IDs held in the invocation-scoped exact-key
+    /// uniqueness store; only the finite compatibility path keeps this set
+    /// in process memory.
+    pub candidate_claim_id_count: u64,
+    pub candidate_claim_id_serialized_read_bytes: u64,
+    pub candidate_claim_id_serialized_write_bytes: u64,
+    pub candidate_claim_id_scan_row_operations: u64,
+    pub candidate_claim_id_peak_workspace_state_bytes: usize,
 }
 
 /// Plain current-record projection used only by the source-foundation Link
@@ -223,6 +231,13 @@ pub struct SourceFoundationClosureSchemaRequestStoreCost {
     pub event_path_serialized_write_bytes: u64,
     pub event_path_scan_row_operations: u64,
     pub event_path_workspace_state_bytes: usize,
+    pub claim_id_rows: u64,
+    pub claim_id_drained_rows: u64,
+    pub claim_id_serialized_read_bytes: u64,
+    pub claim_id_serialized_write_bytes: u64,
+    pub claim_id_scan_row_operations: u64,
+    pub claim_id_workspace_state_bytes: usize,
+    pub claim_id_eof_seen: bool,
 }
 
 /// Portable candidate spool for authentic Closure schema requests,
@@ -230,6 +245,22 @@ pub struct SourceFoundationClosureSchemaRequestStoreCost {
 /// Request encounter order, first-event identity, and issue insertion offsets
 /// remain explicit; these rows carry no proof or admission authority.
 pub trait SourceFoundationClosureSchemaRequestStore {
+    /// Insert a claim ID once while preserving the first unique key. A false
+    /// result means this ID was already encountered in the current claim
+    /// stream.
+    fn remember_claim_id(
+        &mut self,
+        id: &str,
+        max_state_bytes: usize,
+    ) -> Result<(bool, usize), ItemRefusal>;
+
+    /// Exact-key presence query used by later relation checks.
+    fn contains_claim_id(
+        &mut self,
+        id: &str,
+        max_state_bytes: usize,
+    ) -> Result<(bool, usize), ItemRefusal>;
+
     /// Record a source-derived document digest once. Repeated paths must
     /// carry the same digest; a mismatch means the exact current cut moved.
     fn observe_loaded_document(
@@ -311,6 +342,7 @@ pub trait SourceFoundationClosureSchemaRequestStore {
         expected_loaded_documents: u64,
         expected_event_rows: u64,
         expected_event_path_rows: u64,
+        expected_claim_id_rows: u64,
         direct_issue_count: usize,
         max_state_bytes: usize,
     ) -> Result<SourceFoundationClosureSchemaRequestStoreCost, ItemRefusal>;
@@ -618,6 +650,7 @@ fn run_source_foundation_closure<S: LayerFamilySource + ?Sized>(
     let expected_loaded_documents = rules.cost.candidate_loaded_document_count;
     let expected_event_rows = rules.cost.candidate_event_count;
     let expected_event_path_rows = rules.cost.candidate_event_path_count;
+    let expected_claim_id_rows = rules.cost.candidate_claim_id_count;
     let schema_request_finish = if rules.schema_request_store.is_some() {
         let direct_issue_count = rules.issues.len();
         let remaining = rules.remaining_state()?;
@@ -630,6 +663,7 @@ fn run_source_foundation_closure<S: LayerFamilySource + ?Sized>(
                 expected_loaded_documents,
                 expected_event_rows,
                 expected_event_path_rows,
+                expected_claim_id_rows,
                 direct_issue_count,
                 remaining,
             )?;
@@ -647,12 +681,16 @@ fn run_source_foundation_closure<S: LayerFamilySource + ?Sized>(
                         .workspace_state_bytes
                         .max(finished.loaded_document_workspace_state_bytes)
                         .max(finished.event_workspace_state_bytes)
-                        .max(finished.event_path_workspace_state_bytes),
+                        .max(finished.event_path_workspace_state_bytes)
+                        .max(finished.claim_id_workspace_state_bytes),
                 )
             })
             .ok_or(ItemRefusal::Budget)?;
         if combined > rules.limits.max_state_bytes
             || finished.observation_rows != expected_schema_rows
+            || finished.claim_id_rows != expected_claim_id_rows
+            || finished.claim_id_drained_rows != expected_claim_id_rows
+            || !finished.claim_id_eof_seen
         {
             return Err(ItemRefusal::Source(
                 "source-foundation Closure schema request store count or state differs".into(),
@@ -692,6 +730,14 @@ fn run_source_foundation_closure<S: LayerFamilySource + ?Sized>(
             finished.event_path_scan_row_operations;
         rules.cost.candidate_event_path_peak_workspace_state_bytes =
             finished.event_path_workspace_state_bytes;
+        rules.cost.candidate_claim_id_count = finished.claim_id_rows;
+        rules.cost.candidate_claim_id_serialized_read_bytes =
+            finished.claim_id_serialized_read_bytes;
+        rules.cost.candidate_claim_id_serialized_write_bytes =
+            finished.claim_id_serialized_write_bytes;
+        rules.cost.candidate_claim_id_scan_row_operations = finished.claim_id_scan_row_operations;
+        rules.cost.candidate_claim_id_peak_workspace_state_bytes =
+            finished.claim_id_workspace_state_bytes;
     }
 
     Ok(SourceFoundationClosureReport {
@@ -1926,15 +1972,65 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
             .exists(path, self.limits.max_member_bytes, self.limits.deadline)
     }
 
-    fn claim_id(&mut self, location: &str, row: &Value) -> Result<Option<String>, ItemRefusal> {
+    fn claim_id(
+        &mut self,
+        location: &str,
+        row: &Value,
+    ) -> Result<(Option<String>, usize), ItemRefusal> {
         let Some(id) = row.get("claim_id").and_then(Value::as_str) else {
-            return Ok(None);
+            return Ok((None, 0));
         };
-        self.reserve(id.len() + std::mem::size_of::<String>() + 4 * std::mem::size_of::<usize>())?;
-        if !self.claim_ids.insert(id.to_owned()) {
+        let candidate_id_state_bytes = estimate_string_storage(id)?;
+        let duplicate = if self.schema_request_store.is_some() {
+            self.reserve_temporary(candidate_id_state_bytes)?;
+            let remaining = self.remaining_state()?;
+            let (inserted, workspace) = self
+                .schema_request_store
+                .as_deref_mut()
+                .ok_or(ItemRefusal::Budget)?
+                .remember_claim_id(id, remaining)?;
+            self.include_store_workspace(workspace)?;
+            if inserted {
+                self.cost.candidate_claim_id_count = self
+                    .cost
+                    .candidate_claim_id_count
+                    .checked_add(1)
+                    .ok_or(ItemRefusal::Budget)?;
+            }
+            !inserted
+        } else {
+            self.reserve(
+                id.len()
+                    .checked_add(std::mem::size_of::<String>() + 4 * std::mem::size_of::<usize>())
+                    .ok_or(ItemRefusal::Budget)?,
+            )?;
+            !self.claim_ids.insert(id.to_owned())
+        };
+        if duplicate {
             self.issue(location, format!("duplicate claim_id: {id}"))?;
         }
-        Ok(Some(id.to_owned()))
+        Ok((
+            Some(id.to_owned()),
+            if self.schema_request_store.is_some() {
+                candidate_id_state_bytes
+            } else {
+                0
+            },
+        ))
+    }
+
+    fn contains_claim_id(&mut self, id: &str) -> Result<bool, ItemRefusal> {
+        if self.schema_request_store.is_none() {
+            return Ok(self.claim_ids.contains(id));
+        }
+        let remaining = self.remaining_state()?;
+        let (found, workspace) = self
+            .schema_request_store
+            .as_deref_mut()
+            .ok_or(ItemRefusal::Budget)?
+            .contains_claim_id(id, remaining)?;
+        self.include_store_workspace(workspace)?;
+        Ok(found)
     }
 
     fn check_records_map(&mut self) -> Result<(), ItemRefusal> {
@@ -2840,15 +2936,15 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
 
         for (line, claim) in &loaded.rows {
             let location = format!("{claim_path}:{line}");
-            let Some(claim_id) = text(claim, "claim_id").map(str::to_owned) else {
+            let Some(claim_id) = text(claim, "claim_id") else {
                 self.issue(&location, "Expression derivation claim_id is missing")?;
                 continue;
             };
-            if self.claim_ids.contains(&claim_id) && !self.derivation.contains_key(&claim_id) {
+            if self.contains_claim_id(claim_id)? && !self.derivation.contains_key(claim_id) {
                 self.issue(&location, format!("duplicate claim_id: {claim_id}"))?;
             }
-            let subject_ref = text(claim, "subject_ref").unwrap_or_default().to_owned();
-            let object_ref = text(claim, "object").unwrap_or_default().to_owned();
+            let subject_ref = text(claim, "subject_ref").unwrap_or_default();
+            let object_ref = text(claim, "object").unwrap_or_default();
             if text(claim, "claim_type") != Some("relation") {
                 self.issue(
                     &location,
@@ -2861,14 +2957,14 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
             if text(claim, "predicate") != Some("is_derivative_of") {
                 self.issue(&location, "Expression derivation predicate drifted")?;
             }
-            self.expect_ref(&location, Some(&subject_ref), "expression")?;
-            self.expect_ref(&location, Some(&object_ref), "expression")?;
+            self.expect_ref(&location, Some(subject_ref), "expression")?;
+            self.expect_ref(&location, Some(object_ref), "expression")?;
             if subject_ref == object_ref {
                 self.issue(&location, "Expression derivation is irreflexive")?;
             }
             let same_work = {
-                let subject_record = self.current_record(&subject_ref)?;
-                let object_record = self.current_record(&object_ref)?;
+                let subject_record = self.current_record(subject_ref)?;
+                let object_record = self.current_record(object_ref)?;
                 match (subject_record, object_record) {
                     (Some(subject), Some(object)) => {
                         text(&subject.value, "work_ref") == text(&object.value, "work_ref")
@@ -2895,16 +2991,16 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
                     })
                     .ok_or(ItemRefusal::Budget)?,
             )?;
-            if !pairs.insert((subject_ref.clone(), object_ref.clone())) {
+            if !pairs.insert((subject_ref.to_owned(), object_ref.to_owned())) {
                 self.issue(&location, "duplicate Expression-derivation endpoint pair")?;
             }
             edges
-                .entry(subject_ref.clone())
+                .entry(subject_ref.to_owned())
                 .or_default()
-                .insert(object_ref.clone());
-            endpoint_refs.insert(subject_ref.clone());
-            endpoint_refs.insert(object_ref.clone());
-            subjects.insert(claim_id.clone(), subject_ref.clone());
+                .insert(object_ref.to_owned());
+            endpoint_refs.insert(subject_ref.to_owned());
+            endpoint_refs.insert(object_ref.to_owned());
+            subjects.insert(claim_id.to_owned(), subject_ref.to_owned());
 
             if !self.python_equal(
                 claim.get("maker").unwrap_or(&Value::Null),
@@ -4583,122 +4679,127 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
         native: bool,
     ) -> Result<(), ItemRefusal> {
         let location = format!("{path}:{line}");
-        let id = self.claim_id(&location, claim)?;
-        let subject = text(claim, "subject_ref").unwrap_or_default().to_owned();
-        let predicate = text(claim, "predicate").unwrap_or_default().to_owned();
-        let object = text(claim, "object").unwrap_or_default().to_owned();
-        let event = text(claim, "provenance_event_ref")
-            .unwrap_or_default()
-            .to_owned();
+        let (id, claim_id_state_bytes) = self.claim_id(&location, claim)?;
+        let result = (|| {
+            let subject = text(claim, "subject_ref").unwrap_or_default().to_owned();
+            let predicate = text(claim, "predicate").unwrap_or_default().to_owned();
+            let object = text(claim, "object").unwrap_or_default().to_owned();
+            let event = text(claim, "provenance_event_ref")
+                .unwrap_or_default()
+                .to_owned();
 
-        if !event.is_empty() && !self.event_exists(&event)? {
-            self.issue(
-                &location,
-                format!("unresolved provenance_event_ref: {event}"),
-            )?;
-        }
-        for evidence in value_strings(claim, "evidence_refs") {
-            if evidence.starts_with("tos.anchor.") && !self.anchors.contains(&evidence) {
+            if !event.is_empty() && !self.event_exists(&event)? {
                 self.issue(
                     &location,
-                    format!("unresolved source evidence anchor: {evidence}"),
-                )?;
-            } else if evidence.starts_with("ToS/") && !self.current_exists(&evidence)? {
-                self.issue(
-                    &location,
-                    format!("unresolved repository evidence ref: {evidence}"),
+                    format!("unresolved provenance_event_ref: {event}"),
                 )?;
             }
-        }
-        let Some(id) = id else {
-            return Ok(());
-        };
-        self.reserve(
-            subject.len() + predicate.len() + object.len() + event.len() + location.len() + 128,
-        )?;
-        let reference = ClaimRef {
-            location: location.clone(),
-            subject: subject.clone(),
-            predicate: predicate.clone(),
-            object: object.clone(),
-            event: event.clone(),
-            native,
-        };
-
-        if path.ends_with("/membership-claims.jsonl") || predicate == "contains_work" {
-            self.expect_ref(&location, Some(&subject), "collection")?;
-            self.expect_ref(&location, Some(&object), "work")?;
-            self.reserve(claim_reference_index_state(&id, &reference)?)?;
-            self.membership.insert(id.clone(), reference.clone());
-        }
-        if path.ends_with("/responsibility-claims.jsonl")
-            || matches!(
-                predicate.as_str(),
-                "authored_by"
-                    | "contributed_by"
-                    | "translated_by"
-                    | "edited_by"
-                    | "afterword_by"
-                    | "designed_by"
-            )
-        {
-            let expected_subject = match predicate.as_str() {
-                "authored_by" | "contributed_by" => "work",
-                "translated_by" => "expression",
-                "edited_by" | "afterword_by" | "designed_by" => "edition",
-                _ => "",
+            for evidence in value_strings(claim, "evidence_refs") {
+                if evidence.starts_with("tos.anchor.") && !self.anchors.contains(&evidence) {
+                    self.issue(
+                        &location,
+                        format!("unresolved source evidence anchor: {evidence}"),
+                    )?;
+                } else if evidence.starts_with("ToS/") && !self.current_exists(&evidence)? {
+                    self.issue(
+                        &location,
+                        format!("unresolved repository evidence ref: {evidence}"),
+                    )?;
+                }
+            }
+            let Some(id) = id else {
+                return Ok(());
             };
-            if !expected_subject.is_empty() {
-                self.expect_ref(&location, Some(&subject), expected_subject)?;
-            }
-            self.expect_ref(&location, Some(&object), "agent")?;
-            self.reserve(claim_reference_index_state(&id, &reference)?)?;
-            self.responsibility.insert(id.clone(), reference.clone());
-        }
-        if path.ends_with("/publication-claims.jsonl") {
-            self.expect_ref(&location, Some(&subject), "edition")?;
-            self.reserve(claim_reference_index_state(&id, &reference)?)?;
-            self.publication.insert(id.clone(), reference.clone());
-        }
-        if path.ends_with("/provision-activity-claims.jsonl") {
-            self.expect_ref(&location, Some(&subject), "edition")?;
-            self.reserve(crate::record_biblio_cut::decoded_state(claim)?)?;
             self.reserve(
-                id.len()
-                    + std::mem::size_of::<String>()
-                    + std::mem::size_of::<Value>()
-                    + 4 * std::mem::size_of::<usize>(),
+                subject.len() + predicate.len() + object.len() + event.len() + location.len() + 128,
             )?;
-            self.reserve(claim_reference_index_state(&id, &reference)?)?;
-            self.provision_values.insert(id.clone(), claim.clone());
-            self.provision.insert(id.clone(), reference.clone());
-        }
-        if path == CHRONOLOGY_CLAIMS {
-            self.expect_ref(&location, Some(&subject), "work")?;
-            self.reserve(claim_reference_index_state(&id, &reference)?)?;
-            self.chronology.insert(id.clone(), reference.clone());
-        }
-        if path.ends_with("/object-link-claims.jsonl")
-            || claim.get("schema_version").and_then(Value::as_str)
-                == Some("tos_object_link_claim_v2")
-        {
-            self.reserve(claim_reference_index_state(&id, &reference)?)?;
-            self.object_links.insert(id.clone(), reference.clone());
-        }
-        if TOPOLOGY_ROUTES.iter().any(|(route, ..)| *route == path)
-            || matches!(
-                predicate.as_str(),
-                "has_expression" | "embodied_by" | "exemplified_by"
-            )
-        {
-            self.reserve(claim_reference_index_state(&id, &reference)?)?;
-            self.topology.insert(id.clone(), reference.clone());
-        }
-        if path == DERIVATION_CLAIMS || predicate == "is_derivative_of" {
-            self.reserve(claim_reference_index_state(&id, &reference)?)?;
-            self.derivation.insert(id.clone(), reference);
-        }
-        Ok(())
+            let reference = ClaimRef {
+                location: location.clone(),
+                subject: subject.clone(),
+                predicate: predicate.clone(),
+                object: object.clone(),
+                event: event.clone(),
+                native,
+            };
+
+            if path.ends_with("/membership-claims.jsonl") || predicate == "contains_work" {
+                self.expect_ref(&location, Some(&subject), "collection")?;
+                self.expect_ref(&location, Some(&object), "work")?;
+                self.reserve(claim_reference_index_state(&id, &reference)?)?;
+                self.membership.insert(id.clone(), reference.clone());
+            }
+            if path.ends_with("/responsibility-claims.jsonl")
+                || matches!(
+                    predicate.as_str(),
+                    "authored_by"
+                        | "contributed_by"
+                        | "translated_by"
+                        | "edited_by"
+                        | "afterword_by"
+                        | "designed_by"
+                )
+            {
+                let expected_subject = match predicate.as_str() {
+                    "authored_by" | "contributed_by" => "work",
+                    "translated_by" => "expression",
+                    "edited_by" | "afterword_by" | "designed_by" => "edition",
+                    _ => "",
+                };
+                if !expected_subject.is_empty() {
+                    self.expect_ref(&location, Some(&subject), expected_subject)?;
+                }
+                self.expect_ref(&location, Some(&object), "agent")?;
+                self.reserve(claim_reference_index_state(&id, &reference)?)?;
+                self.responsibility.insert(id.clone(), reference.clone());
+            }
+            if path.ends_with("/publication-claims.jsonl") {
+                self.expect_ref(&location, Some(&subject), "edition")?;
+                self.reserve(claim_reference_index_state(&id, &reference)?)?;
+                self.publication.insert(id.clone(), reference.clone());
+            }
+            if path.ends_with("/provision-activity-claims.jsonl") {
+                self.expect_ref(&location, Some(&subject), "edition")?;
+                self.reserve(crate::record_biblio_cut::decoded_state(claim)?)?;
+                self.reserve(
+                    id.len()
+                        + std::mem::size_of::<String>()
+                        + std::mem::size_of::<Value>()
+                        + 4 * std::mem::size_of::<usize>(),
+                )?;
+                self.reserve(claim_reference_index_state(&id, &reference)?)?;
+                self.provision_values.insert(id.clone(), claim.clone());
+                self.provision.insert(id.clone(), reference.clone());
+            }
+            if path == CHRONOLOGY_CLAIMS {
+                self.expect_ref(&location, Some(&subject), "work")?;
+                self.reserve(claim_reference_index_state(&id, &reference)?)?;
+                self.chronology.insert(id.clone(), reference.clone());
+            }
+            if path.ends_with("/object-link-claims.jsonl")
+                || claim.get("schema_version").and_then(Value::as_str)
+                    == Some("tos_object_link_claim_v2")
+            {
+                self.reserve(claim_reference_index_state(&id, &reference)?)?;
+                self.object_links.insert(id.clone(), reference.clone());
+            }
+            if TOPOLOGY_ROUTES.iter().any(|(route, ..)| *route == path)
+                || matches!(
+                    predicate.as_str(),
+                    "has_expression" | "embodied_by" | "exemplified_by"
+                )
+            {
+                self.reserve(claim_reference_index_state(&id, &reference)?)?;
+                self.topology.insert(id.clone(), reference.clone());
+            }
+            if path == DERIVATION_CLAIMS || predicate == "is_derivative_of" {
+                self.reserve(claim_reference_index_state(&id, &reference)?)?;
+                self.derivation.insert(id.clone(), reference);
+            }
+            Ok(())
+        })();
+        let release = self.release_loaded_rows(claim_id_state_bytes);
+        result?;
+        release
     }
 
     fn validate_source_refs(&mut self, location: &str, value: &Value) -> Result<(), ItemRefusal> {
