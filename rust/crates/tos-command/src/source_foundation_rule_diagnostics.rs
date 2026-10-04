@@ -604,7 +604,8 @@ fn check_candidate_rule_request<I: Copy + Eq>(
         ));
     };
     let Some(peak) = returned_state
-        .checked_add(diagnostic_vector_state)
+        .checked_add(request_workspace_state)
+        .and_then(|bytes| bytes.checked_add(diagnostic_vector_state))
         .and_then(|bytes| {
             bytes.checked_add(size_of::<EvaluatedCandidateSourceFoundationRules<I>>())
         })
@@ -634,7 +635,10 @@ fn check_candidate_rule_request<I: Copy + Eq>(
         input_bytes,
         diagnostic_state: returned_state,
         issue_count: next_issues,
-        peak_state: prior_peak_state.max(peak),
+        peak_state: prior_peak_state
+            .max(preallocation_peak)
+            .max(call_peak)
+            .max(peak),
     })
 }
 
