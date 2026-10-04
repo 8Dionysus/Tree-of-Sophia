@@ -55,6 +55,37 @@ const CHRONOLOGY_EVENT: &str =
 const WORK_CHRONOLOGY_SCHEMA: &str = "ToS/contracts/first-publication-chronology.schema.json";
 const PROVISION_EVENT_BASENAME: &str = "provision-activity-provenance.jsonl";
 
+fn estimate_fixed_json_object_storage(
+    fields: &[(&str, Option<&str>)],
+) -> Result<usize, ItemRefusal> {
+    let node_storage = fields
+        .len()
+        .checked_mul(std::mem::size_of::<(String, Value)>() + 96)
+        .and_then(|bytes| {
+            fields
+                .len()
+                .checked_mul(std::mem::size_of::<(&str, Option<&str>)>())
+                .and_then(|descriptors| bytes.checked_add(descriptors))
+        })
+        .ok_or(ItemRefusal::Budget)?;
+    let mut storage = std::mem::size_of::<Value>()
+        .checked_add(node_storage)
+        .ok_or(ItemRefusal::Budget)?;
+    for (key, string_value) in fields {
+        let value_storage = std::mem::size_of::<Value>()
+            .checked_add(match string_value {
+                Some(value) => estimate_string_storage(value)?,
+                None => 32,
+            })
+            .ok_or(ItemRefusal::Budget)?;
+        storage = storage
+            .checked_add(estimate_string_storage(key)?)
+            .and_then(|bytes| bytes.checked_add(value_storage))
+            .ok_or(ItemRefusal::Budget)?;
+    }
+    Ok(storage)
+}
+
 const TOPOLOGY_ROUTES: [(&str, &str, &str, &str, &str, &str); 3] = [
     (
         "ToS/source-witnesses/relations/work-expression/work-expression-claims.jsonl",
@@ -223,6 +254,9 @@ pub struct SourceFoundationClosureCost {
     pub candidate_boundary_responsibility_ref_serialized_write_bytes: u64,
     pub candidate_boundary_responsibility_ref_scan_row_operations: u64,
     pub candidate_boundary_responsibility_ref_peak_workspace_state_bytes: usize,
+    /// Candidate Expression-derivation graph projections and external DFS
+    /// state in the invocation-scoped Closure store.
+    pub candidate_derivation_store: SourceFoundationClosureDerivationStoreCost,
 }
 
 /// Plain current-record projection used only by the source-foundation Link
@@ -254,6 +288,70 @@ pub struct SourceFoundationClosureLinkStoreCost {
     pub serialized_read_bytes: u64,
     pub workspace_state_bytes: usize,
     pub scan_row_operations: u64,
+}
+
+/// Measured source-derived Expression-derivation scratch. These counters bind
+/// the exact rows and ordered EOFs used by the candidate graph kernel; they
+/// are not claims, proofs, or admission authority.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct SourceFoundationClosureDerivationStoreCost {
+    pub derivation_id_rows: u64,
+    pub derivation_subject_rows: u64,
+    pub derivation_pair_rows: u64,
+    pub derivation_endpoint_rows: u64,
+    pub derivation_evidence_path_rows: u64,
+    pub derivation_expected_input_rows: u64,
+    pub derivation_color_rows: u64,
+    pub derivation_root_rows: u64,
+    pub derivation_root_drained_rows: u64,
+    pub derivation_root_eof_seen: bool,
+    pub derivation_id_drained_rows: u64,
+    pub derivation_id_eof_seen: bool,
+    pub derivation_endpoint_drained_rows: u64,
+    pub derivation_endpoint_eof_seen: bool,
+    pub derivation_evidence_path_drained_rows: u64,
+    pub derivation_evidence_path_eof_seen: bool,
+    pub derivation_expected_input_drained_rows: u64,
+    pub derivation_expected_input_eof_seen: bool,
+    pub derivation_adjacency_rows: u64,
+    pub derivation_adjacency_eof_count: u64,
+    pub derivation_subject_stream_rows: u64,
+    pub derivation_subject_stream_eof_count: u64,
+    pub derivation_subject_stream_count_verified: bool,
+    pub derivation_stack_push_rows: u64,
+    pub derivation_stack_pop_rows: u64,
+    pub derivation_stack_peak_rows: u64,
+    pub derivation_duplicate_pair_rows: u64,
+    pub derivation_claim_count_verified: bool,
+    pub derivation_subject_count_verified: bool,
+    pub derivation_pair_count_verified: bool,
+    pub derivation_endpoint_count_verified: bool,
+    pub derivation_evidence_path_count_verified: bool,
+    pub derivation_expected_input_count_verified: bool,
+    pub derivation_color_count_verified: bool,
+    pub derivation_stack_empty: bool,
+    pub derivation_finished: bool,
+    pub serialized_read_bytes: u64,
+    pub serialized_write_bytes: u64,
+    pub scan_row_operations: u64,
+    pub peak_workspace_state_bytes: usize,
+}
+
+/// Exact ordered set owned by the held Closure derivation scratch store.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SourceFoundationClosureDerivationKeySet {
+    ClaimIds,
+    Endpoints,
+    EvidencePaths,
+    ExpectedInputs,
+    Roots,
+}
+
+/// One plain operational frame in the candidate Expression-derivation DFS.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SourceFoundationClosureDerivationFrame {
+    pub node: String,
+    pub leaving: bool,
 }
 
 /// Portable row/point interface for candidate Closure Link joins. Implemented
@@ -398,6 +496,7 @@ pub struct SourceFoundationClosureSchemaRequestStoreCost {
     pub boundary_responsibility_ref_workspace_state_bytes: usize,
     pub boundary_responsibility_ref_eof_seen: bool,
     pub boundary_responsibility_ref_count_verified: bool,
+    pub derivation: SourceFoundationClosureDerivationStoreCost,
 }
 
 /// Portable candidate spool for authentic Closure schema requests,
@@ -595,6 +694,114 @@ pub trait SourceFoundationClosureSchemaRequestStore {
         expected_unused_event_rows: u64,
         max_state_bytes: usize,
     ) -> Result<(), ItemRefusal>;
+
+    /// Store the candidate's source-derived derivation map key. Repeated IDs
+    /// retain the map's last-write projection semantics.
+    fn remember_derivation_id(
+        &mut self,
+        id: &str,
+        max_state_bytes: usize,
+    ) -> Result<(bool, usize), ItemRefusal>;
+
+    fn contains_derivation_id(
+        &mut self,
+        id: &str,
+        max_state_bytes: usize,
+    ) -> Result<(bool, usize), ItemRefusal>;
+
+    fn remember_derivation_subject(
+        &mut self,
+        id: &str,
+        subject: &str,
+        max_state_bytes: usize,
+    ) -> Result<(bool, usize), ItemRefusal>;
+
+    fn remember_derivation_pair(
+        &mut self,
+        subject: &str,
+        object: &str,
+        max_state_bytes: usize,
+    ) -> Result<(bool, usize), ItemRefusal>;
+
+    fn remember_derivation_endpoint(
+        &mut self,
+        endpoint: &str,
+        max_state_bytes: usize,
+    ) -> Result<(bool, usize), ItemRefusal>;
+
+    fn remember_derivation_evidence_path(
+        &mut self,
+        path: &str,
+        max_state_bytes: usize,
+    ) -> Result<(bool, usize), ItemRefusal>;
+
+    fn remember_derivation_expected_input(
+        &mut self,
+        path: &str,
+        max_state_bytes: usize,
+    ) -> Result<(bool, usize), ItemRefusal>;
+
+    fn begin_derivation_keyset(
+        &mut self,
+        set: SourceFoundationClosureDerivationKeySet,
+        expected_rows: u64,
+    ) -> Result<(), ItemRefusal>;
+
+    fn next_derivation_key(
+        &mut self,
+        set: SourceFoundationClosureDerivationKeySet,
+        after: Option<&str>,
+        max_state_bytes: usize,
+    ) -> Result<(Option<String>, usize, usize), ItemRefusal>;
+
+    fn for_each_derivation_subject_claim(
+        &mut self,
+        subject: &str,
+        max_state_bytes: usize,
+        visit: &mut dyn FnMut(&str, usize) -> Result<(), ItemRefusal>,
+    ) -> Result<(u64, usize), ItemRefusal>;
+
+    fn derivation_root_count(
+        &mut self,
+        max_state_bytes: usize,
+    ) -> Result<(u64, usize), ItemRefusal>;
+
+    fn next_derivation_child(
+        &mut self,
+        subject: &str,
+        after_descending: Option<&str>,
+        max_state_bytes: usize,
+    ) -> Result<(Option<String>, usize, usize), ItemRefusal>;
+
+    fn derivation_color(
+        &mut self,
+        node: &str,
+        max_state_bytes: usize,
+    ) -> Result<(Option<u8>, usize), ItemRefusal>;
+
+    fn set_derivation_color(
+        &mut self,
+        node: &str,
+        color: u8,
+        max_state_bytes: usize,
+    ) -> Result<usize, ItemRefusal>;
+
+    fn push_derivation_frame(
+        &mut self,
+        frame: &SourceFoundationClosureDerivationFrame,
+        max_state_bytes: usize,
+    ) -> Result<usize, ItemRefusal>;
+
+    fn pop_derivation_frame(
+        &mut self,
+        max_state_bytes: usize,
+    ) -> Result<(Option<SourceFoundationClosureDerivationFrame>, usize, usize), ItemRefusal>;
+
+    fn finish_derivation(
+        &mut self,
+        expected_subject_streams: u64,
+        max_state_bytes: usize,
+    ) -> Result<SourceFoundationClosureDerivationStoreCost, ItemRefusal>;
 
     /// Remember an event whose inputs have already been checked for this
     /// Responsibility pass. The key includes this check kind so other Closure
@@ -1126,7 +1333,8 @@ fn run_source_foundation_closure<S: LayerFamilySource + ?Sized>(
                         .max(finished.provision_event_id_workspace_state_bytes)
                         .max(finished.provision_unused_event_workspace_state_bytes)
                         .max(finished.provision_used_event_workspace_state_bytes)
-                        .max(finished.provision_validated_event_workspace_state_bytes),
+                        .max(finished.provision_validated_event_workspace_state_bytes)
+                        .max(finished.derivation.peak_workspace_state_bytes),
                 )
             })
             .ok_or(ItemRefusal::Budget)?;
@@ -1174,6 +1382,7 @@ fn run_source_foundation_closure<S: LayerFamilySource + ?Sized>(
             || finished.provision_unused_event_drained_rows != expected_provision_unused_event_rows
             || !finished.provision_unused_event_eof_seen
             || !finished.provision_unused_event_count_verified
+            || finished.derivation != rules.cost.candidate_derivation_store
         {
             return Err(ItemRefusal::Source(
                 "source-foundation Closure schema request store count or state differs".into(),
@@ -4369,7 +4578,1094 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
         Ok(())
     }
 
+    fn remember_candidate_derivation_key(
+        &mut self,
+        set: SourceFoundationClosureDerivationKeySet,
+        key: &str,
+    ) -> Result<bool, ItemRefusal> {
+        let remaining = self.remaining_state()?;
+        let (inserted, workspace) = match set {
+            SourceFoundationClosureDerivationKeySet::ClaimIds => self
+                .schema_request_store
+                .as_deref_mut()
+                .ok_or(ItemRefusal::Budget)?
+                .remember_derivation_id(key, remaining)?,
+            SourceFoundationClosureDerivationKeySet::Endpoints => self
+                .schema_request_store
+                .as_deref_mut()
+                .ok_or(ItemRefusal::Budget)?
+                .remember_derivation_endpoint(key, remaining)?,
+            SourceFoundationClosureDerivationKeySet::EvidencePaths => self
+                .schema_request_store
+                .as_deref_mut()
+                .ok_or(ItemRefusal::Budget)?
+                .remember_derivation_evidence_path(key, remaining)?,
+            SourceFoundationClosureDerivationKeySet::ExpectedInputs => self
+                .schema_request_store
+                .as_deref_mut()
+                .ok_or(ItemRefusal::Budget)?
+                .remember_derivation_expected_input(key, remaining)?,
+            SourceFoundationClosureDerivationKeySet::Roots => return Err(ItemRefusal::Budget),
+        };
+        self.include_store_workspace(workspace)?;
+        if inserted {
+            let count = match set {
+                SourceFoundationClosureDerivationKeySet::ClaimIds => {
+                    &mut self.cost.candidate_derivation_store.derivation_id_rows
+                }
+                SourceFoundationClosureDerivationKeySet::Endpoints => {
+                    &mut self
+                        .cost
+                        .candidate_derivation_store
+                        .derivation_endpoint_rows
+                }
+                SourceFoundationClosureDerivationKeySet::EvidencePaths => {
+                    &mut self
+                        .cost
+                        .candidate_derivation_store
+                        .derivation_evidence_path_rows
+                }
+                SourceFoundationClosureDerivationKeySet::ExpectedInputs => {
+                    &mut self
+                        .cost
+                        .candidate_derivation_store
+                        .derivation_expected_input_rows
+                }
+                SourceFoundationClosureDerivationKeySet::Roots => unreachable!(),
+            };
+            *count = count.checked_add(1).ok_or(ItemRefusal::Budget)?;
+        }
+        Ok(inserted)
+    }
+
+    fn remember_candidate_derivation_subject(
+        &mut self,
+        id: &str,
+        subject: &str,
+    ) -> Result<(), ItemRefusal> {
+        let remaining = self.remaining_state()?;
+        let (inserted, workspace) = self
+            .schema_request_store
+            .as_deref_mut()
+            .ok_or(ItemRefusal::Budget)?
+            .remember_derivation_subject(id, subject, remaining)?;
+        self.include_store_workspace(workspace)?;
+        if inserted {
+            self.cost.candidate_derivation_store.derivation_subject_rows = self
+                .cost
+                .candidate_derivation_store
+                .derivation_subject_rows
+                .checked_add(1)
+                .ok_or(ItemRefusal::Budget)?;
+        }
+        Ok(())
+    }
+
+    fn remember_candidate_derivation_pair(
+        &mut self,
+        subject: &str,
+        object: &str,
+    ) -> Result<bool, ItemRefusal> {
+        let remaining = self.remaining_state()?;
+        let (inserted, workspace) = self
+            .schema_request_store
+            .as_deref_mut()
+            .ok_or(ItemRefusal::Budget)?
+            .remember_derivation_pair(subject, object, remaining)?;
+        self.include_store_workspace(workspace)?;
+        if inserted {
+            self.cost.candidate_derivation_store.derivation_pair_rows = self
+                .cost
+                .candidate_derivation_store
+                .derivation_pair_rows
+                .checked_add(1)
+                .ok_or(ItemRefusal::Budget)?;
+        } else {
+            self.cost
+                .candidate_derivation_store
+                .derivation_duplicate_pair_rows = self
+                .cost
+                .candidate_derivation_store
+                .derivation_duplicate_pair_rows
+                .checked_add(1)
+                .ok_or(ItemRefusal::Budget)?;
+        }
+        Ok(inserted)
+    }
+
+    fn candidate_derivation_color(&mut self, node: &str) -> Result<Option<u8>, ItemRefusal> {
+        let remaining = self.remaining_state()?;
+        let (color, workspace) = self
+            .schema_request_store
+            .as_deref_mut()
+            .ok_or(ItemRefusal::Budget)?
+            .derivation_color(node, remaining)?;
+        self.include_store_workspace(workspace)?;
+        Ok(color)
+    }
+
+    fn set_candidate_derivation_color(&mut self, node: &str, color: u8) -> Result<(), ItemRefusal> {
+        let remaining = self.remaining_state()?;
+        let workspace = self
+            .schema_request_store
+            .as_deref_mut()
+            .ok_or(ItemRefusal::Budget)?
+            .set_derivation_color(node, color, remaining)?;
+        self.include_store_workspace(workspace)
+    }
+
+    fn push_candidate_derivation_frame(
+        &mut self,
+        node: &str,
+        leaving: bool,
+    ) -> Result<(), ItemRefusal> {
+        let frame_state = estimate_string_storage(node)?
+            .checked_add(std::mem::size_of::<SourceFoundationClosureDerivationFrame>())
+            .ok_or(ItemRefusal::Budget)?;
+        let baseline = self.temporary_state_bytes;
+        self.reserve_temporary(frame_state)?;
+        let result = (|| {
+            let frame = SourceFoundationClosureDerivationFrame {
+                node: node.to_owned(),
+                leaving,
+            };
+            let remaining = self.remaining_state()?;
+            let workspace = self
+                .schema_request_store
+                .as_deref_mut()
+                .ok_or(ItemRefusal::Budget)?
+                .push_derivation_frame(&frame, remaining)?;
+            self.include_store_workspace(workspace)
+        })();
+        self.release_temporary_since(baseline);
+        result
+    }
+
+    fn pop_candidate_derivation_frame(
+        &mut self,
+    ) -> Result<Option<SourceFoundationClosureDerivationFrame>, ItemRefusal> {
+        let remaining = self.remaining_state()?;
+        let (frame, workspace, row_state) = self
+            .schema_request_store
+            .as_deref_mut()
+            .ok_or(ItemRefusal::Budget)?
+            .pop_derivation_frame(remaining)?;
+        self.include_store_workspace(workspace)?;
+        if let Some(frame) = frame {
+            self.reserve_temporary(row_state)?;
+            Ok(Some(frame))
+        } else {
+            Ok(None)
+        }
+    }
+
+    fn drain_candidate_derivation_keyset(
+        &mut self,
+        set: SourceFoundationClosureDerivationKeySet,
+        expected_rows: u64,
+    ) -> Result<(), ItemRefusal> {
+        self.schema_request_store
+            .as_deref_mut()
+            .ok_or(ItemRefusal::Budget)?
+            .begin_derivation_keyset(set, expected_rows)?;
+        let mut after: Option<String> = None;
+        let mut after_state = 0usize;
+        loop {
+            let remaining = self.remaining_state()?;
+            let (next, workspace, cursor_state) = self
+                .schema_request_store
+                .as_deref_mut()
+                .ok_or(ItemRefusal::Budget)?
+                .next_derivation_key(set, after.as_deref(), remaining)?;
+            self.include_store_workspace(workspace)?;
+            let Some(next) = next else {
+                if let Some(previous) = after.take() {
+                    drop(previous);
+                    self.release_temporary_state(after_state)?;
+                }
+                break;
+            };
+            self.reserve_temporary(cursor_state)?;
+            if let Some(previous) = after.replace(next) {
+                drop(previous);
+                self.release_temporary_state(after_state)?;
+            }
+            after_state = cursor_state;
+        }
+        Ok(())
+    }
+
+    fn build_candidate_derivation_expected_inputs(&mut self) -> Result<(), ItemRefusal> {
+        let evidence_rows = self
+            .cost
+            .candidate_derivation_store
+            .derivation_evidence_path_rows;
+        self.schema_request_store
+            .as_deref_mut()
+            .ok_or(ItemRefusal::Budget)?
+            .begin_derivation_keyset(
+                SourceFoundationClosureDerivationKeySet::EvidencePaths,
+                evidence_rows,
+            )?;
+        let mut after_evidence: Option<String> = None;
+        let mut after_evidence_state = 0usize;
+        loop {
+            let remaining = self.remaining_state()?;
+            let (evidence, workspace, cursor_state) = self
+                .schema_request_store
+                .as_deref_mut()
+                .ok_or(ItemRefusal::Budget)?
+                .next_derivation_key(
+                    SourceFoundationClosureDerivationKeySet::EvidencePaths,
+                    after_evidence.as_deref(),
+                    remaining,
+                )?;
+            self.include_store_workspace(workspace)?;
+            let Some(evidence) = evidence else {
+                if let Some(previous) = after_evidence.take() {
+                    drop(previous);
+                    self.release_temporary_state(after_evidence_state)?;
+                }
+                break;
+            };
+            self.reserve_temporary(cursor_state)?;
+            if let Some(previous) = after_evidence.replace(evidence) {
+                drop(previous);
+                self.release_temporary_state(after_evidence_state)?;
+            }
+            after_evidence_state = cursor_state;
+            self.remember_candidate_derivation_key(
+                SourceFoundationClosureDerivationKeySet::ExpectedInputs,
+                after_evidence.as_deref().ok_or(ItemRefusal::Budget)?,
+            )?;
+        }
+
+        let endpoint_rows = self
+            .cost
+            .candidate_derivation_store
+            .derivation_endpoint_rows;
+        self.schema_request_store
+            .as_deref_mut()
+            .ok_or(ItemRefusal::Budget)?
+            .begin_derivation_keyset(
+                SourceFoundationClosureDerivationKeySet::Endpoints,
+                endpoint_rows,
+            )?;
+        let mut after_endpoint: Option<String> = None;
+        let mut after_endpoint_state = 0usize;
+        loop {
+            let remaining = self.remaining_state()?;
+            let (endpoint, workspace, cursor_state) = self
+                .schema_request_store
+                .as_deref_mut()
+                .ok_or(ItemRefusal::Budget)?
+                .next_derivation_key(
+                    SourceFoundationClosureDerivationKeySet::Endpoints,
+                    after_endpoint.as_deref(),
+                    remaining,
+                )?;
+            self.include_store_workspace(workspace)?;
+            let Some(endpoint) = endpoint else {
+                if let Some(previous) = after_endpoint.take() {
+                    drop(previous);
+                    self.release_temporary_state(after_endpoint_state)?;
+                }
+                break;
+            };
+            self.reserve_temporary(cursor_state)?;
+            if let Some(previous) = after_endpoint.replace(endpoint) {
+                drop(previous);
+                self.release_temporary_state(after_endpoint_state)?;
+            }
+            after_endpoint_state = cursor_state;
+            let endpoint = after_endpoint.as_deref().ok_or(ItemRefusal::Budget)?;
+            let (record_path, path_workspace) =
+                self.current_record_path_with_state_budget(endpoint)?;
+            if let Some(record_path) = record_path {
+                self.remember_candidate_derivation_key(
+                    SourceFoundationClosureDerivationKeySet::ExpectedInputs,
+                    &record_path,
+                )?;
+                drop(record_path);
+            }
+            self.release_temporary_state(path_workspace)?;
+        }
+        self.remember_candidate_derivation_key(
+            SourceFoundationClosureDerivationKeySet::ExpectedInputs,
+            CLAIM_SCHEMA,
+        )?;
+        self.remember_candidate_derivation_key(
+            SourceFoundationClosureDerivationKeySet::ExpectedInputs,
+            DERIVATION_SCHEMA,
+        )?;
+        Ok(())
+    }
+
+    fn check_candidate_derivation_backlinks(
+        &mut self,
+        temporary_baseline: usize,
+    ) -> Result<u64, ItemRefusal> {
+        let mut store = self
+            .schema_request_store
+            .take()
+            .ok_or(ItemRefusal::Budget)?;
+        let records = self.records;
+        let deadline = self.limits.deadline;
+        let cancelled = self.source.cancellation();
+        let limits = self.limits;
+        let temporary = temporary_baseline;
+        let issues = &mut self.issues;
+        let cost = &mut self.cost;
+        let retained = &mut self.retained_state_bytes;
+        let mut expression_rows = 0u64;
+        let result = records.for_each_current_record(&mut |record_id, record| {
+            check(deadline, cancelled)?;
+            if record.kind != "expression" {
+                return Ok(());
+            }
+            expression_rows = expression_rows.checked_add(1).ok_or(ItemRefusal::Budget)?;
+            let record_workspace = crate::record_biblio_cut::decoded_state(&record.value)?
+                .checked_mul(2)
+                .and_then(|bytes| bytes.checked_add(256))
+                .ok_or(ItemRefusal::Budget)?;
+            let references = record
+                .value
+                .get("derivation_claim_refs")
+                .and_then(Value::as_array)
+                .map(Vec::as_slice)
+                .unwrap_or_default();
+            let reference_count = references
+                .iter()
+                .filter(|reference| reference.as_str().is_some())
+                .count();
+            let tree_state = reference_count
+                .checked_mul(std::mem::size_of::<String>() + 8 * std::mem::size_of::<usize>())
+                .and_then(|bytes| bytes.checked_add(std::mem::size_of::<BTreeSet<String>>()))
+                .ok_or(ItemRefusal::Budget)?;
+            let actual_state = value_strings_workspace(&record.value, "derivation_claim_refs")?
+                .checked_add(tree_state)
+                .ok_or(ItemRefusal::Budget)?;
+            let active_temporary = temporary
+                .checked_add(record_workspace)
+                .and_then(|bytes| bytes.checked_add(actual_state))
+                .ok_or(ItemRefusal::Budget)?;
+            let used = retained
+                .checked_add(active_temporary)
+                .ok_or(ItemRefusal::Budget)?;
+            if used > limits.max_state_bytes {
+                return Err(ItemRefusal::BudgetCheck {
+                    check: "source-foundation closure derivation backlink workspace",
+                    used: Some(used as u64),
+                    limit: Some(limits.max_state_bytes as u64),
+                });
+            }
+            cost.reserved_state_bytes = cost.reserved_state_bytes.max(used);
+            let actual: BTreeSet<String> = value_strings(&record.value, "derivation_claim_refs")
+                .into_iter()
+                .collect();
+            let mut expected_actual = actual.iter();
+            let mut same = true;
+            let max_store_state = limits
+                .max_state_bytes
+                .checked_sub(used)
+                .ok_or(ItemRefusal::Budget)?;
+            let (expected_count, store_workspace) = store.for_each_derivation_subject_claim(
+                record_id,
+                max_store_state,
+                &mut |expected_id, _workspace| {
+                    if expected_actual.next().map(String::as_str) != Some(expected_id) {
+                        same = false;
+                    }
+                    Ok(())
+                },
+            )?;
+            let store_used = used
+                .checked_add(store_workspace)
+                .ok_or(ItemRefusal::Budget)?;
+            if store_used > limits.max_state_bytes {
+                return Err(ItemRefusal::BudgetCheck {
+                    check: "source-foundation closure derivation backlink workspace",
+                    used: Some(store_used as u64),
+                    limit: Some(limits.max_state_bytes as u64),
+                });
+            }
+            cost.reserved_state_bytes = cost.reserved_state_bytes.max(store_used);
+            let matches = same
+                && expected_count
+                    == u64::try_from(actual.len()).map_err(|_| ItemRefusal::Budget)?
+                && expected_actual.next().is_none();
+            if !matches {
+                push_bounded_issue(
+                    issues,
+                    cost,
+                    retained,
+                    active_temporary,
+                    limits,
+                    cancelled,
+                    &record.path,
+                    "derivation_claim_refs do not close over exact outgoing derivation claims"
+                        .to_owned(),
+                )?;
+            }
+            Ok(())
+        });
+        self.schema_request_store = Some(store);
+        result?;
+        Ok(expression_rows)
+    }
+
     fn check_derivation(&mut self) -> Result<(), ItemRefusal> {
+        if self.schema_request_store.is_some() {
+            self.check_derivation_candidate()
+        } else {
+            self.check_derivation_finite()
+        }
+    }
+
+    fn check_derivation_candidate(&mut self) -> Result<(), ItemRefusal> {
+        let claim_path = DERIVATION_CLAIMS;
+        let claim_paths = self.collect_current_paths(
+            |path| path.ends_with("/expression-derivation-claims.jsonl"),
+            "source-foundation closure derivation path index",
+        )?;
+        if claim_paths.len() != 1 || claim_paths.first().map(String::as_str) != Some(claim_path) {
+            self.issue(
+                claim_path,
+                "Expression-derivation claim basename must exist only at its owned route",
+            )?;
+        }
+        let Some(loaded) = self.json_rows(claim_path, CLAIM_SCHEMA, true)? else {
+            let id_rows = self.cost.candidate_derivation_store.derivation_id_rows;
+            self.drain_candidate_derivation_keyset(
+                SourceFoundationClosureDerivationKeySet::ClaimIds,
+                id_rows,
+            )?;
+            self.drain_candidate_derivation_keyset(
+                SourceFoundationClosureDerivationKeySet::Endpoints,
+                0,
+            )?;
+            self.drain_candidate_derivation_keyset(
+                SourceFoundationClosureDerivationKeySet::EvidencePaths,
+                0,
+            )?;
+            self.drain_candidate_derivation_keyset(
+                SourceFoundationClosureDerivationKeySet::ExpectedInputs,
+                0,
+            )?;
+            let remaining = self.remaining_state()?;
+            let (root_rows, workspace) = self
+                .schema_request_store
+                .as_deref_mut()
+                .ok_or(ItemRefusal::Budget)?
+                .derivation_root_count(remaining)?;
+            self.include_store_workspace(workspace)?;
+            self.cost.candidate_derivation_store.derivation_root_rows = root_rows;
+            self.drain_candidate_derivation_keyset(
+                SourceFoundationClosureDerivationKeySet::Roots,
+                root_rows,
+            )?;
+            let remaining = self.remaining_state()?;
+            let finished = self
+                .schema_request_store
+                .as_deref_mut()
+                .ok_or(ItemRefusal::Budget)?
+                .finish_derivation(0, remaining)?;
+            self.include_store_workspace(finished.peak_workspace_state_bytes)?;
+            self.cost.candidate_derivation_store = finished;
+            return Ok(());
+        };
+
+        let loaded_state_bytes = loaded.temporary_state_bytes;
+        let digest_state_bytes = estimate_string_storage(&loaded.digest)?;
+        self.reserve_temporary(digest_state_bytes)?;
+        let claim_digest = loaded.digest.clone();
+        let mut revision_count = 0u64;
+        let mut collated_count = 0u64;
+        let mut reviewed_count = 0u64;
+
+        for (line, claim) in &loaded.rows {
+            let location_state = estimate_string_storage(claim_path)?
+                .checked_add(
+                    2usize
+                        .checked_mul(1 + usize::MAX.ilog10() as usize + 1)
+                        .ok_or(ItemRefusal::Budget)?,
+                )
+                .ok_or(ItemRefusal::Budget)?;
+            self.reserve_temporary(location_state)?;
+            let location = format!("{claim_path}:{line}");
+            let Some(claim_id) = text(claim, "claim_id") else {
+                self.issue(&location, "Expression derivation claim_id is missing")?;
+                drop(location);
+                self.release_temporary_state(location_state)?;
+                continue;
+            };
+            if self.contains_claim_id(claim_id)? {
+                let remaining = self.remaining_state()?;
+                let (in_derivation, workspace) = self
+                    .schema_request_store
+                    .as_deref_mut()
+                    .ok_or(ItemRefusal::Budget)?
+                    .contains_derivation_id(claim_id, remaining)?;
+                self.include_store_workspace(workspace)?;
+                if !in_derivation {
+                    self.issue(&location, format!("duplicate claim_id: {claim_id}"))?;
+                }
+            }
+            let subject_ref = text(claim, "subject_ref").unwrap_or_default();
+            let object_ref = text(claim, "object").unwrap_or_default();
+            if text(claim, "claim_type") != Some("relation") {
+                self.issue(
+                    &location,
+                    "Expression derivation claim_type must be relation",
+                )?;
+            }
+            if text(claim, "assertion_layer") != Some("bibliographic_assertion") {
+                self.issue(&location, "Expression derivation must remain bibliographic")?;
+            }
+            if text(claim, "predicate") != Some("is_derivative_of") {
+                self.issue(&location, "Expression derivation predicate drifted")?;
+            }
+            self.expect_ref(&location, Some(subject_ref), "expression")?;
+            self.expect_ref(&location, Some(object_ref), "expression")?;
+            if subject_ref == object_ref {
+                self.issue(&location, "Expression derivation is irreflexive")?;
+            }
+            let temporary_baseline = self.temporary_state_bytes;
+            let same_work: Result<bool, ItemRefusal> = (|| {
+                let (subject_record, subject_workspace) =
+                    self.current_record_with_state_budget(subject_ref)?;
+                let subject_present = subject_record.is_some();
+                let subject_work_ref_value = subject_record
+                    .as_ref()
+                    .and_then(|subject| text(&subject.value, "work_ref"));
+                let mut subject_scalar_workspace = std::mem::size_of::<Option<String>>()
+                    .checked_add(2 * std::mem::size_of::<usize>())
+                    .and_then(|bytes| bytes.checked_add(std::mem::size_of::<bool>()))
+                    .ok_or(ItemRefusal::Budget)?;
+                if let Some(work_ref) = subject_work_ref_value {
+                    subject_scalar_workspace = subject_scalar_workspace
+                        .checked_add(estimate_string_storage(work_ref)?)
+                        .ok_or(ItemRefusal::Budget)?;
+                }
+                self.reserve_temporary(subject_scalar_workspace)?;
+                let subject_work_ref = subject_work_ref_value.map(str::to_owned);
+                drop(subject_record);
+                self.release_temporary_state(subject_workspace)?;
+
+                let (object_record, object_workspace) =
+                    self.current_record_with_state_budget(object_ref)?;
+                let same_work = if !subject_present || object_record.is_none() {
+                    true
+                } else {
+                    subject_work_ref.as_deref()
+                        == object_record
+                            .as_ref()
+                            .and_then(|object| text(&object.value, "work_ref"))
+                };
+                drop(object_record);
+                self.release_temporary_state(object_workspace)?;
+                drop(subject_work_ref);
+                self.release_temporary_state(subject_scalar_workspace)?;
+                Ok(same_work)
+            })();
+            self.release_temporary_since(temporary_baseline);
+            if !same_work? {
+                self.issue(
+                    &location,
+                    "v1 Expression derivation endpoints must realize the same Work",
+                )?;
+            }
+            if !self.remember_candidate_derivation_pair(subject_ref, object_ref)? {
+                self.issue(&location, "duplicate Expression-derivation endpoint pair")?;
+            }
+            self.remember_candidate_derivation_key(
+                SourceFoundationClosureDerivationKeySet::Endpoints,
+                subject_ref,
+            )?;
+            self.remember_candidate_derivation_key(
+                SourceFoundationClosureDerivationKeySet::Endpoints,
+                object_ref,
+            )?;
+            self.remember_candidate_derivation_subject(claim_id, subject_ref)?;
+
+            let maker_state = estimate_fixed_json_object_storage(&[
+                ("maker_type", Some("model")),
+                ("agent_ref", Some("model:codex")),
+            ])?;
+            self.reserve_temporary(maker_state)?;
+            let expected_maker =
+                serde_json::json!({"maker_type":"model","agent_ref":"model:codex"});
+            let maker_matches =
+                self.python_equal(claim.get("maker").unwrap_or(&Value::Null), &expected_maker);
+            drop(expected_maker);
+            self.release_temporary_state(maker_state)?;
+            if !maker_matches? {
+                self.issue(&location, "Expression derivation maker must be model:codex")?;
+            }
+            if text(claim, "provenance_event_ref") != Some(DERIVATION_EVENT) {
+                self.issue(
+                    &location,
+                    "Expression derivation cites the wrong provenance event",
+                )?;
+            }
+            if text(claim, "epistemic_status") != Some("reported") {
+                self.issue(
+                    &location,
+                    "current Expression derivation claims must remain reported",
+                )?;
+            }
+            if text(claim, "review_status") != Some("unreviewed")
+                || !claim
+                    .get("reviews")
+                    .and_then(Value::as_array)
+                    .is_some_and(Vec::is_empty)
+            {
+                self.issue(
+                    &location,
+                    "Expression derivation claims must remain unreviewed",
+                )?;
+            }
+            if text(claim, "visibility") != Some("public_metadata_only") {
+                self.issue(
+                    &location,
+                    "Expression derivation must remain public metadata only",
+                )?;
+            }
+            let qualifiers = claim.get("qualifiers").unwrap_or(&Value::Null);
+            self.request_schema(
+                &format!("{location}['qualifiers']"),
+                DERIVATION_SCHEMA,
+                qualifiers,
+            )?;
+            if text(qualifiers, "derivation_kind") == Some("revision") {
+                revision_count += 1;
+            }
+            if text(qualifiers, "collation_status") != Some("not_collated") {
+                collated_count += 1;
+            }
+            if text(claim, "review_status") != Some("unreviewed") {
+                reviewed_count += 1;
+            }
+            let evidence_rows = claim
+                .get("evidence_refs")
+                .and_then(Value::as_array)
+                .map(Vec::as_slice)
+                .unwrap_or_default();
+            if !evidence_rows
+                .iter()
+                .filter_map(Value::as_str)
+                .any(|reference| reference.starts_with("tos.anchor."))
+            {
+                self.issue(
+                    &location,
+                    "Expression derivation lacks exact source-anchor return",
+                )?;
+            }
+            for evidence_ref in evidence_rows.iter().filter_map(Value::as_str) {
+                if evidence_ref.starts_with("tos.anchor.") {
+                    if !self.anchors.contains(evidence_ref) {
+                        self.issue(
+                            &location,
+                            format!("unresolved derivation anchor: {evidence_ref}"),
+                        )?;
+                    }
+                } else if evidence_ref.starts_with("ToS/") {
+                    if !self.current_exists(evidence_ref)? {
+                        self.issue(
+                            &location,
+                            format!("unresolved derivation evidence: {evidence_ref}"),
+                        )?;
+                    }
+                    self.remember_candidate_derivation_key(
+                        SourceFoundationClosureDerivationKeySet::EvidencePaths,
+                        evidence_ref,
+                    )?;
+                }
+            }
+            drop(location);
+            self.release_temporary_state(location_state)?;
+        }
+
+        let id_rows = self.cost.candidate_derivation_store.derivation_id_rows;
+        self.drain_candidate_derivation_keyset(
+            SourceFoundationClosureDerivationKeySet::ClaimIds,
+            id_rows,
+        )?;
+        let remaining = self.remaining_state()?;
+        let (root_rows, root_workspace) = self
+            .schema_request_store
+            .as_deref_mut()
+            .ok_or(ItemRefusal::Budget)?
+            .derivation_root_count(remaining)?;
+        self.include_store_workspace(root_workspace)?;
+        self.cost.candidate_derivation_store.derivation_root_rows = root_rows;
+        self.schema_request_store
+            .as_deref_mut()
+            .ok_or(ItemRefusal::Budget)?
+            .begin_derivation_keyset(SourceFoundationClosureDerivationKeySet::Roots, root_rows)?;
+        let mut after_root: Option<String> = None;
+        let mut after_root_state = 0usize;
+        let mut cycle = false;
+        loop {
+            let remaining = self.remaining_state()?;
+            let (root, workspace, cursor_state) = self
+                .schema_request_store
+                .as_deref_mut()
+                .ok_or(ItemRefusal::Budget)?
+                .next_derivation_key(
+                    SourceFoundationClosureDerivationKeySet::Roots,
+                    after_root.as_deref(),
+                    remaining,
+                )?;
+            self.include_store_workspace(workspace)?;
+            let Some(root) = root else {
+                if let Some(previous) = after_root.take() {
+                    drop(previous);
+                    self.release_temporary_state(after_root_state)?;
+                }
+                break;
+            };
+            self.reserve_temporary(cursor_state)?;
+            if let Some(previous) = after_root.replace(root) {
+                drop(previous);
+                self.release_temporary_state(after_root_state)?;
+            }
+            after_root_state = cursor_state;
+            let node = after_root.as_deref().ok_or(ItemRefusal::Budget)?;
+            if self.candidate_derivation_color(node)?.is_some() {
+                continue;
+            }
+            self.push_candidate_derivation_frame(node, false)?;
+            loop {
+                let Some(frame) = self.pop_candidate_derivation_frame()? else {
+                    break;
+                };
+                let frame_state = estimate_string_storage(&frame.node)?
+                    .checked_add(std::mem::size_of::<SourceFoundationClosureDerivationFrame>())
+                    .ok_or(ItemRefusal::Budget)?;
+                let frame_result: Result<(), ItemRefusal> = (|| {
+                    if frame.leaving {
+                        self.set_candidate_derivation_color(&frame.node, 2)?;
+                        return Ok(());
+                    }
+                    match self.candidate_derivation_color(&frame.node)? {
+                        Some(1) => {
+                            cycle = true;
+                            return Ok(());
+                        }
+                        Some(2) => return Ok(()),
+                        None => {}
+                        _ => return Err(ItemRefusal::Budget),
+                    }
+                    self.set_candidate_derivation_color(&frame.node, 1)?;
+                    self.push_candidate_derivation_frame(&frame.node, true)?;
+                    let mut after_child: Option<String> = None;
+                    let mut after_child_state = 0usize;
+                    loop {
+                        let remaining = self.remaining_state()?;
+                        let (child, workspace, cursor_state) = self
+                            .schema_request_store
+                            .as_deref_mut()
+                            .ok_or(ItemRefusal::Budget)?
+                            .next_derivation_child(
+                                &frame.node,
+                                after_child.as_deref(),
+                                remaining,
+                            )?;
+                        self.include_store_workspace(workspace)?;
+                        let Some(child) = child else {
+                            if let Some(previous) = after_child.take() {
+                                drop(previous);
+                                self.release_temporary_state(after_child_state)?;
+                            }
+                            break;
+                        };
+                        self.reserve_temporary(cursor_state)?;
+                        match self.candidate_derivation_color(&child)? {
+                            Some(1) => cycle = true,
+                            Some(2) => {}
+                            None => self.push_candidate_derivation_frame(&child, false)?,
+                            _ => return Err(ItemRefusal::Budget),
+                        }
+                        if let Some(previous) = after_child.replace(child) {
+                            drop(previous);
+                            self.release_temporary_state(after_child_state)?;
+                        }
+                        after_child_state = cursor_state;
+                    }
+                    Ok(())
+                })();
+                drop(frame);
+                self.release_temporary_state(frame_state)?;
+                frame_result?;
+            }
+        }
+        if cycle {
+            self.issue(claim_path, "Expression derivation cycle detected")?;
+        }
+
+        let temporary_baseline = self.temporary_state_bytes;
+        let expected_subject_streams =
+            self.check_candidate_derivation_backlinks(temporary_baseline)?;
+
+        let event_rows = self.json_rows(DERIVATION_PROVENANCE, PROVENANCE_SCHEMA, true)?;
+        if let Some(events) = event_rows {
+            let event_state_bytes = events.temporary_state_bytes;
+            if events.rows.len() != 1 {
+                self.issue(
+                    DERIVATION_PROVENANCE,
+                    "Expression derivation must have exactly one batch provenance event",
+                )?;
+            }
+            self.build_candidate_derivation_expected_inputs()?;
+            if let Some((_, event)) = events.rows.first() {
+                let mut agent_refs = event
+                    .get("agent_refs")
+                    .and_then(Value::as_array)
+                    .into_iter()
+                    .flatten()
+                    .filter_map(Value::as_str);
+                let agent_refs_match =
+                    agent_refs.next() == Some("model:codex") && agent_refs.next().is_none();
+                if text(event, "event_id") != Some(DERIVATION_EVENT)
+                    || text(event, "event_type") != Some("annotation")
+                    || !agent_refs_match
+                    || text(event, "status") != Some("completed_with_warnings")
+                {
+                    self.issue(
+                        DERIVATION_PROVENANCE,
+                        "Expression-derivation provenance posture drifted",
+                    )?;
+                }
+                let method = event.get("method").unwrap_or(&Value::Null);
+                if text(method, "maker_type") != Some("model")
+                    || text(method, "name")
+                        != Some("source-reported-expression-derivation-materialization")
+                    || text(method, "version") != Some("1")
+                {
+                    self.issue(
+                        DERIVATION_PROVENANCE,
+                        "Expression-derivation provenance method identity drifted",
+                    )?;
+                }
+                let output_count = event
+                    .get("outputs")
+                    .and_then(Value::as_array)
+                    .map_or(0, Vec::len);
+                if output_count != 1
+                    || !output_binds(
+                        event,
+                        claim_path,
+                        "unreviewed-source-reported-expression-derivation-claims",
+                        &claim_digest,
+                    )
+                {
+                    self.issue(
+                        DERIVATION_PROVENANCE,
+                        "Expression-derivation provenance output digest drifted",
+                    )?;
+                }
+
+                let inputs = event
+                    .get("inputs")
+                    .and_then(Value::as_array)
+                    .map(Vec::as_slice)
+                    .unwrap_or_default();
+                let input_count = inputs.len();
+                let actual_input_count = inputs
+                    .iter()
+                    .filter(|entry| text(entry, "ref").is_some())
+                    .count();
+                let mut actual_input_state = std::mem::size_of::<BTreeSet<String>>();
+                actual_input_state = actual_input_state
+                    .checked_add(
+                        actual_input_count
+                            .checked_mul(
+                                std::mem::size_of::<String>() + 8 * std::mem::size_of::<usize>(),
+                            )
+                            .ok_or(ItemRefusal::Budget)?,
+                    )
+                    .ok_or(ItemRefusal::Budget)?;
+                for reference in inputs.iter().filter_map(|entry| text(entry, "ref")) {
+                    actual_input_state = actual_input_state
+                        .checked_add(estimate_string_storage(reference)?)
+                        .ok_or(ItemRefusal::Budget)?;
+                }
+                self.reserve_temporary(actual_input_state)?;
+                let actual_inputs: BTreeSet<String> = inputs
+                    .iter()
+                    .filter_map(|entry| text(entry, "ref").map(str::to_owned))
+                    .collect();
+                let expected_input_rows = self
+                    .cost
+                    .candidate_derivation_store
+                    .derivation_expected_input_rows;
+                self.schema_request_store
+                    .as_deref_mut()
+                    .ok_or(ItemRefusal::Budget)?
+                    .begin_derivation_keyset(
+                        SourceFoundationClosureDerivationKeySet::ExpectedInputs,
+                        expected_input_rows,
+                    )?;
+                let mut actual_input_iter = actual_inputs.iter();
+                let mut input_sets_match = true;
+                let mut after_input: Option<String> = None;
+                let mut after_input_state = 0usize;
+                loop {
+                    let remaining = self.remaining_state()?;
+                    let (expected_input, workspace, cursor_state) = self
+                        .schema_request_store
+                        .as_deref_mut()
+                        .ok_or(ItemRefusal::Budget)?
+                        .next_derivation_key(
+                            SourceFoundationClosureDerivationKeySet::ExpectedInputs,
+                            after_input.as_deref(),
+                            remaining,
+                        )?;
+                    self.include_store_workspace(workspace)?;
+                    let Some(expected_input) = expected_input else {
+                        if let Some(previous) = after_input.take() {
+                            drop(previous);
+                            self.release_temporary_state(after_input_state)?;
+                        }
+                        break;
+                    };
+                    self.reserve_temporary(cursor_state)?;
+                    if let Some(previous) = after_input.replace(expected_input) {
+                        drop(previous);
+                        self.release_temporary_state(after_input_state)?;
+                    }
+                    after_input_state = cursor_state;
+                    if actual_input_iter.next().map(String::as_str) != after_input.as_deref() {
+                        input_sets_match = false;
+                    }
+                }
+                let inputs_equal = input_sets_match
+                    && actual_input_iter.next().is_none()
+                    && input_count
+                        == usize::try_from(expected_input_rows).map_err(|_| ItemRefusal::Budget)?;
+                drop(actual_input_iter);
+                drop(actual_inputs);
+                self.release_temporary_state(actual_input_state)?;
+                if !inputs_equal {
+                    self.issue(
+                        DERIVATION_PROVENANCE,
+                        "Expression-derivation provenance inputs differ from exact evidence and endpoints",
+                    )?;
+                }
+                for input in inputs {
+                    let Some(reference) = text(input, "ref") else {
+                        continue;
+                    };
+                    let digest = text(input, "sha256").unwrap_or_default();
+                    if !self.current_exists(reference)?
+                        || !self.recorded_matches(reference, digest)?
+                    {
+                        self.issue(
+                            DERIVATION_PROVENANCE,
+                            format!(
+                                "Expression-derivation provenance input digest drifted: {reference}"
+                            ),
+                        )?;
+                    }
+                }
+                let derivation_cost = self.cost.candidate_derivation_store;
+                let configuration_state = estimate_fixed_json_object_storage(&[
+                    ("expression_identities_materialized", None),
+                    ("derivation_claims_materialized", None),
+                    ("revision_claims_materialized", None),
+                    ("claims_collated", None),
+                    ("claims_reviewed", None),
+                    ("unsupported_1911_to_1907_edge_created", None),
+                    ("unsupported_2007_to_1911_edge_created", None),
+                    ("source_text_admitted", None),
+                    ("human_review_performed", None),
+                    ("equivalence_claims_created", None),
+                    ("semantic_claims_created", None),
+                    ("canon_promotion_performed", None),
+                ])?;
+                self.reserve_temporary(configuration_state)?;
+                let expected_configuration = serde_json::json!({
+                    "expression_identities_materialized": derivation_cost.derivation_endpoint_rows,
+                    "derivation_claims_materialized": derivation_cost.derivation_subject_rows,
+                    "revision_claims_materialized": revision_count,
+                    "claims_collated": collated_count,
+                    "claims_reviewed": reviewed_count,
+                    "unsupported_1911_to_1907_edge_created": false,
+                    "unsupported_2007_to_1911_edge_created": false,
+                    "source_text_admitted": false,
+                    "human_review_performed": false,
+                    "equivalence_claims_created": 0,
+                    "semantic_claims_created": 0,
+                    "canon_promotion_performed": false,
+                });
+                let configuration_matches = self.python_equal(
+                    event
+                        .get("method")
+                        .and_then(|method| method.get("configuration"))
+                        .unwrap_or(&Value::Null),
+                    &expected_configuration,
+                );
+                drop(expected_configuration);
+                self.release_temporary_state(configuration_state)?;
+                if !configuration_matches? {
+                    self.issue(
+                        DERIVATION_PROVENANCE,
+                        "Expression-derivation provenance configuration drifted",
+                    )?;
+                }
+            }
+            if events.rows.first().is_none() {
+                let expected_input_rows = self
+                    .cost
+                    .candidate_derivation_store
+                    .derivation_expected_input_rows;
+                self.drain_candidate_derivation_keyset(
+                    SourceFoundationClosureDerivationKeySet::ExpectedInputs,
+                    expected_input_rows,
+                )?;
+            }
+            self.release_loaded_rows(event_state_bytes)?;
+        } else {
+            let evidence_path_rows = self
+                .cost
+                .candidate_derivation_store
+                .derivation_evidence_path_rows;
+            self.drain_candidate_derivation_keyset(
+                SourceFoundationClosureDerivationKeySet::EvidencePaths,
+                evidence_path_rows,
+            )?;
+            let endpoint_rows = self
+                .cost
+                .candidate_derivation_store
+                .derivation_endpoint_rows;
+            self.drain_candidate_derivation_keyset(
+                SourceFoundationClosureDerivationKeySet::Endpoints,
+                endpoint_rows,
+            )?;
+            let expected_input_rows = self
+                .cost
+                .candidate_derivation_store
+                .derivation_expected_input_rows;
+            self.drain_candidate_derivation_keyset(
+                SourceFoundationClosureDerivationKeySet::ExpectedInputs,
+                expected_input_rows,
+            )?;
+        }
+        self.release_temporary_state(digest_state_bytes)?;
+        self.release_loaded_rows(loaded_state_bytes)?;
+        let remaining = self.remaining_state()?;
+        let finished = self
+            .schema_request_store
+            .as_deref_mut()
+            .ok_or(ItemRefusal::Budget)?
+            .finish_derivation(expected_subject_streams, remaining)?;
+        self.include_store_workspace(finished.peak_workspace_state_bytes)?;
+        self.cost.candidate_derivation_store = finished;
+        Ok(())
+    }
+
+    fn check_derivation_finite(&mut self) -> Result<(), ItemRefusal> {
         let claim_path = DERIVATION_CLAIMS;
         let claim_paths = self.collect_current_paths(
             |path| path.ends_with("/expression-derivation-claims.jsonl"),
@@ -7181,8 +8477,26 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
                 self.topology.insert(id.clone(), reference.clone());
             }
             if path == DERIVATION_CLAIMS || predicate == "is_derivative_of" {
-                self.reserve(claim_reference_index_state(&id, &reference)?)?;
-                self.derivation.insert(id.clone(), reference);
+                if self.schema_request_store.is_some() {
+                    let remaining = self.remaining_state()?;
+                    let (inserted, workspace) = self
+                        .schema_request_store
+                        .as_deref_mut()
+                        .ok_or(ItemRefusal::Budget)?
+                        .remember_derivation_id(&id, remaining)?;
+                    self.include_store_workspace(workspace)?;
+                    if inserted {
+                        self.cost.candidate_derivation_store.derivation_id_rows = self
+                            .cost
+                            .candidate_derivation_store
+                            .derivation_id_rows
+                            .checked_add(1)
+                            .ok_or(ItemRefusal::Budget)?;
+                    }
+                } else {
+                    self.reserve(claim_reference_index_state(&id, &reference)?)?;
+                    self.derivation.insert(id.clone(), reference);
+                }
             }
             Ok(())
         })();

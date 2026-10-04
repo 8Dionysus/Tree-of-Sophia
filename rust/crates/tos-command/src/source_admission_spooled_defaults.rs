@@ -22,7 +22,9 @@ use tos_validation::{
     item_rules::ItemRefusal,
     record_biblio_cut::{SourceCutInput, SourceCutInputWithIdentity},
     source_foundation_closure::{
-        SourceFoundationClosureClaimRef, SourceFoundationClosureEvent, SourceFoundationClosureLink,
+        SourceFoundationClosureClaimRef, SourceFoundationClosureDerivationFrame,
+        SourceFoundationClosureDerivationKeySet, SourceFoundationClosureDerivationStoreCost,
+        SourceFoundationClosureEvent, SourceFoundationClosureLink,
         SourceFoundationClosureLinkStore, SourceFoundationClosureLinkStoreCost,
         SourceFoundationClosureSchemaRequest, SourceFoundationClosureSchemaRequestStore,
         SourceFoundationClosureSchemaRequestStoreCost,
@@ -790,6 +792,38 @@ impl<'candidate, 'host> SpoolDefaultStore<'candidate, 'host> {
              ) WITHOUT ROWID;\
              CREATE TABLE sf_closure_provision_validated_events(\
                  event_id TEXT NOT NULL COLLATE BINARY PRIMARY KEY\
+             ) WITHOUT ROWID;\
+             CREATE TABLE sf_closure_derivation_ids(\
+                 claim_id TEXT NOT NULL COLLATE BINARY PRIMARY KEY\
+             ) WITHOUT ROWID;\
+             CREATE TABLE sf_closure_derivation_subjects(\
+                 claim_id TEXT NOT NULL COLLATE BINARY PRIMARY KEY,\
+                 subject TEXT NOT NULL COLLATE BINARY\
+             ) WITHOUT ROWID;\
+             CREATE INDEX sf_closure_derivation_subject_order\
+                 ON sf_closure_derivation_subjects(subject COLLATE BINARY,claim_id COLLATE BINARY);\
+             CREATE TABLE sf_closure_derivation_pairs(\
+                 subject TEXT NOT NULL COLLATE BINARY,\
+                 object TEXT NOT NULL COLLATE BINARY,\
+                 PRIMARY KEY(subject,object)\
+             ) WITHOUT ROWID;\
+             CREATE TABLE sf_closure_derivation_endpoints(\
+                 endpoint TEXT NOT NULL COLLATE BINARY PRIMARY KEY\
+             ) WITHOUT ROWID;\
+             CREATE TABLE sf_closure_derivation_evidence_paths(\
+                 path TEXT NOT NULL COLLATE BINARY PRIMARY KEY\
+             ) WITHOUT ROWID;\
+             CREATE TABLE sf_closure_derivation_expected_inputs(\
+                 path TEXT NOT NULL COLLATE BINARY PRIMARY KEY\
+             ) WITHOUT ROWID;\
+             CREATE TABLE sf_closure_derivation_colors(\
+                 node TEXT NOT NULL COLLATE BINARY PRIMARY KEY,\
+                 color INTEGER NOT NULL CHECK(color IN (1,2))\
+             ) WITHOUT ROWID;\
+             CREATE TABLE sf_closure_derivation_stack(\
+                 stack_slot BLOB NOT NULL PRIMARY KEY CHECK(length(stack_slot)=8),\
+                 node TEXT NOT NULL COLLATE BINARY,\
+                 leaving INTEGER NOT NULL CHECK(leaving IN (0,1))\
              ) WITHOUT ROWID;\
              CREATE TABLE sf_closure_validated_events(\
                  check_kind TEXT NOT NULL COLLATE BINARY CHECK(check_kind IN ('responsibility','publication')),\
@@ -1633,7 +1667,7 @@ impl SourceFoundationClosureLinkStore for CandidateClosureLinks<'_, '_, '_, '_, 
         let Some(row) = rows.next().map_err(sql_refusal)? else {
             drop(rows);
             drop(statement);
-            self.context.check()?;
+            context.check()?;
             self.eof_seen = true;
             return Ok((None, query_total_workspace));
         };
@@ -3161,6 +3195,12 @@ struct CandidateClosureSchemaRequests<'a, 'candidate, 'host, 'cancel, 'budget> {
     boundary_responsibility_refs_sealed: bool,
     boundary_responsibility_ref_eof_seen: bool,
     boundary_responsibility_ref_count_verified: bool,
+    derivation_cost: SourceFoundationClosureDerivationStoreCost,
+    derivation_keyset_expected: [Option<u64>; 5],
+    derivation_keyset_drained: [u64; 5],
+    derivation_keyset_eof: [bool; 5],
+    derivation_stack_depth: usize,
+    derivation_finished: bool,
     max_event_id_bytes: usize,
     max_event_path_bytes: usize,
     max_event_json_bytes: usize,
@@ -4433,6 +4473,1157 @@ impl CandidateClosureSchemaRequests<'_, '_, '_, '_, '_> {
             .unwrap_or(false)
     }
 
+    fn derivation_table(
+        set: SourceFoundationClosureDerivationKeySet,
+    ) -> (&'static str, &'static str) {
+        match set {
+            SourceFoundationClosureDerivationKeySet::ClaimIds => {
+                ("sf_closure_derivation_ids", "claim_id")
+            }
+            SourceFoundationClosureDerivationKeySet::Endpoints => {
+                ("sf_closure_derivation_endpoints", "endpoint")
+            }
+            SourceFoundationClosureDerivationKeySet::EvidencePaths => {
+                ("sf_closure_derivation_evidence_paths", "path")
+            }
+            SourceFoundationClosureDerivationKeySet::ExpectedInputs => {
+                ("sf_closure_derivation_expected_inputs", "path")
+            }
+            SourceFoundationClosureDerivationKeySet::Roots => {
+                ("sf_closure_derivation_pairs", "subject")
+            }
+        }
+    }
+
+    fn derivation_set_index(set: SourceFoundationClosureDerivationKeySet) -> usize {
+        match set {
+            SourceFoundationClosureDerivationKeySet::ClaimIds => 0,
+            SourceFoundationClosureDerivationKeySet::Endpoints => 1,
+            SourceFoundationClosureDerivationKeySet::EvidencePaths => 2,
+            SourceFoundationClosureDerivationKeySet::ExpectedInputs => 3,
+            SourceFoundationClosureDerivationKeySet::Roots => 4,
+        }
+    }
+
+    fn charge_derivation_scan_rows(&mut self, rows: usize) -> Result<(), ItemRefusal> {
+        self.charge_scan_rows(rows)?;
+        self.derivation_cost.scan_row_operations = self
+            .derivation_cost
+            .scan_row_operations
+            .checked_add(usize_u64(rows)?)
+            .ok_or(ItemRefusal::Budget)?;
+        Ok(())
+    }
+
+    fn derivation_workspace(strings: &[usize], fixed: usize) -> Result<usize, ItemRefusal> {
+        strings.iter().try_fold(fixed, |state, bytes| {
+            state
+                .checked_add(Self::row_text_state(*bytes)?)
+                .ok_or(ItemRefusal::Budget)
+        })
+    }
+
+    fn derivation_preflight(
+        &mut self,
+        workspace: usize,
+        max_state_bytes: usize,
+    ) -> Result<usize, ItemRefusal> {
+        if self.finished || self.derivation_finished {
+            return Err(source_refusal());
+        }
+        self.preflight(workspace, max_state_bytes)?;
+        self.derivation_cost.peak_workspace_state_bytes = self
+            .derivation_cost
+            .peak_workspace_state_bytes
+            .max(workspace);
+        Ok(workspace)
+    }
+
+    fn remember_derivation_set_key(
+        &mut self,
+        set: SourceFoundationClosureDerivationKeySet,
+        key: &str,
+        max_state_bytes: usize,
+    ) -> Result<(bool, usize), ItemRefusal> {
+        if set == SourceFoundationClosureDerivationKeySet::Roots {
+            return Err(source_refusal());
+        }
+        let (table, column) = Self::derivation_table(set);
+        let workspace = Self::derivation_workspace(&[key.len()], 640)?;
+        self.derivation_preflight(workspace, max_state_bytes)?;
+        self.context.check()?;
+        self.charge_derivation_scan_rows(2)?;
+        let changed = self
+            .db
+            .execute(
+                &format!("INSERT OR IGNORE INTO {table}({column}) VALUES(?1)"),
+                [key],
+            )
+            .map_err(sql_refusal)?;
+        if changed > 1 {
+            return Err(source_refusal());
+        }
+        let mut statement = self
+            .db
+            .prepare(&format!("SELECT {column} FROM {table} WHERE {column}=?1"))
+            .map_err(sql_refusal)?;
+        let mut rows = statement.query([key]).map_err(sql_refusal)?;
+        let stored = rows
+            .next()
+            .map_err(sql_refusal)?
+            .map(|row| bounded_row_text(row, 0, workspace))
+            .transpose()
+            .map_err(sql_refusal)?;
+        if rows.next().map_err(sql_refusal)?.is_some() || stored.as_deref() != Some(key) {
+            return Err(source_refusal());
+        }
+        drop(rows);
+        drop(statement);
+        self.context.check()?;
+        self.derivation_cost.serialized_read_bytes = self
+            .derivation_cost
+            .serialized_read_bytes
+            .checked_add(usize_u64(key.len())?)
+            .ok_or(ItemRefusal::Budget)?;
+        if changed == 1 {
+            self.derivation_cost.serialized_write_bytes = self
+                .derivation_cost
+                .serialized_write_bytes
+                .checked_add(usize_u64(key.len())?)
+                .ok_or(ItemRefusal::Budget)?;
+            match set {
+                SourceFoundationClosureDerivationKeySet::ClaimIds => {
+                    self.derivation_cost.derivation_id_rows = self
+                        .derivation_cost
+                        .derivation_id_rows
+                        .checked_add(1)
+                        .ok_or(ItemRefusal::Budget)?;
+                }
+                SourceFoundationClosureDerivationKeySet::Endpoints => {
+                    self.derivation_cost.derivation_endpoint_rows = self
+                        .derivation_cost
+                        .derivation_endpoint_rows
+                        .checked_add(1)
+                        .ok_or(ItemRefusal::Budget)?;
+                }
+                SourceFoundationClosureDerivationKeySet::EvidencePaths => {
+                    self.derivation_cost.derivation_evidence_path_rows = self
+                        .derivation_cost
+                        .derivation_evidence_path_rows
+                        .checked_add(1)
+                        .ok_or(ItemRefusal::Budget)?;
+                }
+                SourceFoundationClosureDerivationKeySet::ExpectedInputs => {
+                    self.derivation_cost.derivation_expected_input_rows = self
+                        .derivation_cost
+                        .derivation_expected_input_rows
+                        .checked_add(1)
+                        .ok_or(ItemRefusal::Budget)?;
+                }
+                SourceFoundationClosureDerivationKeySet::Roots => unreachable!(),
+            }
+        }
+        Ok((changed == 1, workspace))
+    }
+
+    fn remember_derivation_subject_row(
+        &mut self,
+        id: &str,
+        subject: &str,
+        max_state_bytes: usize,
+    ) -> Result<(bool, usize), ItemRefusal> {
+        let workspace = Self::derivation_workspace(&[id.len(), subject.len()], 896)?;
+        self.derivation_preflight(workspace, max_state_bytes)?;
+        self.context.check()?;
+        self.charge_derivation_scan_rows(3)?;
+        let existed = self
+            .db
+            .query_row(
+                "SELECT 1 FROM sf_closure_derivation_subjects WHERE claim_id=?1",
+                [id],
+                |_| Ok(()),
+            )
+            .optional()
+            .map_err(sql_refusal)?
+            .is_some();
+        self.context.check()?;
+        let changed = self
+            .db
+            .execute(
+                "INSERT INTO sf_closure_derivation_subjects(claim_id,subject) VALUES(?1,?2) \
+                 ON CONFLICT(claim_id) DO UPDATE SET subject=excluded.subject",
+                params![id, subject],
+            )
+            .map_err(sql_refusal)?;
+        if changed != 1 {
+            return Err(source_refusal());
+        }
+        self.context.check()?;
+        let mut statement = self
+            .db
+            .prepare(
+                "SELECT claim_id,subject FROM sf_closure_derivation_subjects WHERE claim_id=?1",
+            )
+            .map_err(sql_refusal)?;
+        let mut rows = statement.query([id]).map_err(sql_refusal)?;
+        let stored = rows
+            .next()
+            .map_err(sql_refusal)?
+            .map(|row| {
+                Ok::<_, rusqlite::Error>((
+                    bounded_row_text(row, 0, workspace)?,
+                    bounded_row_text(row, 1, workspace)?,
+                ))
+            })
+            .transpose()
+            .map_err(sql_refusal)?;
+        if rows.next().map_err(sql_refusal)?.is_some()
+            || stored
+                .as_ref()
+                .map(|(stored_id, stored_subject)| (stored_id.as_str(), stored_subject.as_str()))
+                != Some((id, subject))
+        {
+            return Err(source_refusal());
+        }
+        drop(rows);
+        drop(statement);
+        self.context.check()?;
+        self.derivation_cost.serialized_read_bytes = self
+            .derivation_cost
+            .serialized_read_bytes
+            .checked_add(usize_u64(
+                id.len()
+                    .checked_add(subject.len())
+                    .and_then(|bytes| bytes.checked_add(if existed { size_of::<i64>() } else { 0 }))
+                    .ok_or(ItemRefusal::Budget)?,
+            )?)
+            .ok_or(ItemRefusal::Budget)?;
+        self.derivation_cost.serialized_write_bytes = self
+            .derivation_cost
+            .serialized_write_bytes
+            .checked_add(usize_u64(
+                id.len()
+                    .checked_add(subject.len())
+                    .ok_or(ItemRefusal::Budget)?,
+            )?)
+            .ok_or(ItemRefusal::Budget)?;
+        if !existed {
+            self.derivation_cost.derivation_subject_rows = self
+                .derivation_cost
+                .derivation_subject_rows
+                .checked_add(1)
+                .ok_or(ItemRefusal::Budget)?;
+        }
+        Ok((!existed, workspace))
+    }
+
+    fn remember_derivation_pair_row(
+        &mut self,
+        subject: &str,
+        object: &str,
+        max_state_bytes: usize,
+    ) -> Result<(bool, usize), ItemRefusal> {
+        let workspace = Self::derivation_workspace(&[subject.len(), object.len()], 896)?;
+        self.derivation_preflight(workspace, max_state_bytes)?;
+        self.context.check()?;
+        self.charge_derivation_scan_rows(2)?;
+        let changed = self
+            .db
+            .execute(
+                "INSERT OR IGNORE INTO sf_closure_derivation_pairs(subject,object) VALUES(?1,?2)",
+                params![subject, object],
+            )
+            .map_err(sql_refusal)?;
+        if changed > 1 {
+            return Err(source_refusal());
+        }
+        let mut statement = self.db.prepare(
+            "SELECT subject,object FROM sf_closure_derivation_pairs WHERE subject=?1 AND object=?2",
+        ).map_err(sql_refusal)?;
+        let mut rows = statement
+            .query(params![subject, object])
+            .map_err(sql_refusal)?;
+        let stored = rows
+            .next()
+            .map_err(sql_refusal)?
+            .map(|row| {
+                Ok::<_, rusqlite::Error>((
+                    bounded_row_text(row, 0, workspace)?,
+                    bounded_row_text(row, 1, workspace)?,
+                ))
+            })
+            .transpose()
+            .map_err(sql_refusal)?;
+        if rows.next().map_err(sql_refusal)?.is_some()
+            || stored.as_ref().map(|(stored_subject, stored_object)| {
+                (stored_subject.as_str(), stored_object.as_str())
+            }) != Some((subject, object))
+        {
+            return Err(source_refusal());
+        }
+        drop(rows);
+        drop(statement);
+        self.context.check()?;
+        self.derivation_cost.serialized_read_bytes = self
+            .derivation_cost
+            .serialized_read_bytes
+            .checked_add(usize_u64(
+                subject
+                    .len()
+                    .checked_add(object.len())
+                    .ok_or(ItemRefusal::Budget)?,
+            )?)
+            .ok_or(ItemRefusal::Budget)?;
+        if changed == 1 {
+            self.derivation_cost.derivation_pair_rows = self
+                .derivation_cost
+                .derivation_pair_rows
+                .checked_add(1)
+                .ok_or(ItemRefusal::Budget)?;
+            self.derivation_cost.serialized_write_bytes = self
+                .derivation_cost
+                .serialized_write_bytes
+                .checked_add(usize_u64(
+                    subject
+                        .len()
+                        .checked_add(object.len())
+                        .ok_or(ItemRefusal::Budget)?,
+                )?)
+                .ok_or(ItemRefusal::Budget)?;
+        } else {
+            self.derivation_cost.derivation_duplicate_pair_rows = self
+                .derivation_cost
+                .derivation_duplicate_pair_rows
+                .checked_add(1)
+                .ok_or(ItemRefusal::Budget)?;
+        }
+        Ok((changed == 1, workspace))
+    }
+
+    fn contains_derivation_id_row(
+        &mut self,
+        id: &str,
+        max_state_bytes: usize,
+    ) -> Result<(bool, usize), ItemRefusal> {
+        let workspace = Self::derivation_workspace(&[id.len()], 640)?;
+        self.derivation_preflight(workspace, max_state_bytes)?;
+        self.context.check()?;
+        self.charge_derivation_scan_rows(1)?;
+        let mut statement = self
+            .db
+            .prepare("SELECT claim_id FROM sf_closure_derivation_ids WHERE claim_id=?1")
+            .map_err(sql_refusal)?;
+        let mut rows = statement.query([id]).map_err(sql_refusal)?;
+        let stored = rows
+            .next()
+            .map_err(sql_refusal)?
+            .map(|row| bounded_row_text(row, 0, workspace))
+            .transpose()
+            .map_err(sql_refusal)?;
+        if rows.next().map_err(sql_refusal)?.is_some()
+            || stored.as_deref().is_some_and(|stored| stored != id)
+        {
+            return Err(source_refusal());
+        }
+        drop(rows);
+        drop(statement);
+        self.context.check()?;
+        if stored.is_some() {
+            self.derivation_cost.serialized_read_bytes = self
+                .derivation_cost
+                .serialized_read_bytes
+                .checked_add(usize_u64(id.len())?)
+                .ok_or(ItemRefusal::Budget)?;
+        }
+        Ok((stored.is_some(), workspace))
+    }
+
+    fn begin_derivation_keyset_inner(
+        &mut self,
+        set: SourceFoundationClosureDerivationKeySet,
+        expected_rows: u64,
+    ) -> Result<(), ItemRefusal> {
+        let index = Self::derivation_set_index(set);
+        if self.finished
+            || self.derivation_finished
+            || self.derivation_keyset_expected[index].is_some()
+            || self.derivation_keyset_drained[index] != 0
+            || self.derivation_keyset_eof[index]
+        {
+            return Err(source_refusal());
+        }
+        if set == SourceFoundationClosureDerivationKeySet::Roots
+            && self.derivation_cost.derivation_root_rows != expected_rows
+        {
+            return Err(source_refusal());
+        }
+        self.context.check()?;
+        self.derivation_keyset_expected[index] = Some(expected_rows);
+        Ok(())
+    }
+
+    fn next_derivation_key_inner(
+        &mut self,
+        set: SourceFoundationClosureDerivationKeySet,
+        after: Option<&str>,
+        max_state_bytes: usize,
+    ) -> Result<(Option<String>, usize, usize), ItemRefusal> {
+        let index = Self::derivation_set_index(set);
+        let Some(expected) = self.derivation_keyset_expected[index] else {
+            return Err(source_refusal());
+        };
+        if self.finished
+            || self.derivation_finished
+            || self.derivation_keyset_eof[index]
+            || self.derivation_keyset_drained[index] > expected
+            || (self.derivation_keyset_drained[index] == 0 && after.is_some())
+            || (self.derivation_keyset_drained[index] > 0 && after.is_none())
+        {
+            return Err(source_refusal());
+        }
+        let mut query_workspace = size_of::<Option<&str>>() + 384;
+        if let Some(after) = after {
+            query_workspace = query_workspace
+                .checked_add(estimate_string_state(after)?)
+                .ok_or(ItemRefusal::Budget)?;
+        }
+        self.derivation_preflight(query_workspace, max_state_bytes)?;
+        let context = self.context;
+        context.check()?;
+        self.charge_derivation_scan_rows(1)?;
+        let sql = if set == SourceFoundationClosureDerivationKeySet::Roots {
+            if after.is_some() {
+                "SELECT subject FROM sf_closure_derivation_pairs WHERE subject COLLATE BINARY>?1 ORDER BY subject COLLATE BINARY LIMIT 1"
+            } else {
+                "SELECT subject FROM sf_closure_derivation_pairs ORDER BY subject COLLATE BINARY LIMIT 1"
+            }
+        } else {
+            let (table, column) = Self::derivation_table(set);
+            // Both identifiers are selected from the fixed enum above.
+            if table.is_empty() || column.is_empty() {
+                return Err(source_refusal());
+            }
+            if after.is_some() {
+                match set {
+                    SourceFoundationClosureDerivationKeySet::ClaimIds => {
+                        "SELECT claim_id FROM sf_closure_derivation_ids WHERE claim_id COLLATE BINARY>?1 ORDER BY claim_id COLLATE BINARY LIMIT 1"
+                    }
+                    SourceFoundationClosureDerivationKeySet::Endpoints => {
+                        "SELECT endpoint FROM sf_closure_derivation_endpoints WHERE endpoint COLLATE BINARY>?1 ORDER BY endpoint COLLATE BINARY LIMIT 1"
+                    }
+                    SourceFoundationClosureDerivationKeySet::EvidencePaths => {
+                        "SELECT path FROM sf_closure_derivation_evidence_paths WHERE path COLLATE BINARY>?1 ORDER BY path COLLATE BINARY LIMIT 1"
+                    }
+                    SourceFoundationClosureDerivationKeySet::ExpectedInputs => {
+                        "SELECT path FROM sf_closure_derivation_expected_inputs WHERE path COLLATE BINARY>?1 ORDER BY path COLLATE BINARY LIMIT 1"
+                    }
+                    SourceFoundationClosureDerivationKeySet::Roots => unreachable!(),
+                }
+            } else {
+                match set {
+                    SourceFoundationClosureDerivationKeySet::ClaimIds => {
+                        "SELECT claim_id FROM sf_closure_derivation_ids ORDER BY claim_id COLLATE BINARY LIMIT 1"
+                    }
+                    SourceFoundationClosureDerivationKeySet::Endpoints => {
+                        "SELECT endpoint FROM sf_closure_derivation_endpoints ORDER BY endpoint COLLATE BINARY LIMIT 1"
+                    }
+                    SourceFoundationClosureDerivationKeySet::EvidencePaths => {
+                        "SELECT path FROM sf_closure_derivation_evidence_paths ORDER BY path COLLATE BINARY LIMIT 1"
+                    }
+                    SourceFoundationClosureDerivationKeySet::ExpectedInputs => {
+                        "SELECT path FROM sf_closure_derivation_expected_inputs ORDER BY path COLLATE BINARY LIMIT 1"
+                    }
+                    SourceFoundationClosureDerivationKeySet::Roots => unreachable!(),
+                }
+            }
+        };
+        let mut statement = self.db.prepare(sql).map_err(sql_refusal)?;
+        let mut rows = match after {
+            Some(after) => statement.query([after]),
+            None => statement.query([]),
+        }
+        .map_err(sql_refusal)?;
+        let Some(row) = rows.next().map_err(sql_refusal)? else {
+            drop(rows);
+            drop(statement);
+            self.context.check()?;
+            if self.derivation_keyset_drained[index] != expected {
+                return Err(source_refusal());
+            }
+            self.derivation_keyset_eof[index] = true;
+            self.set_derivation_cursor_cost(set, expected, true)?;
+            return Ok((None, query_workspace, 0));
+        };
+        let row_workspace = row_text_state(row, 0).map_err(sql_refusal)?;
+        let workspace = query_workspace
+            .checked_add(row_workspace)
+            .ok_or(ItemRefusal::Budget)?;
+        if workspace > max_state_bytes {
+            return Err(ItemRefusal::Budget);
+        }
+        context.row_state(workspace)?;
+        let key = bounded_row_text(row, 0, workspace).map_err(sql_refusal)?;
+        if after.is_some_and(|previous| key.as_str() <= previous)
+            || self.derivation_keyset_drained[index] >= expected
+        {
+            return Err(source_refusal());
+        }
+        drop(rows);
+        drop(statement);
+        context.check()?;
+        self.derivation_keyset_drained[index] = self.derivation_keyset_drained[index]
+            .checked_add(1)
+            .ok_or(ItemRefusal::Budget)?;
+        self.set_derivation_cursor_cost(set, self.derivation_keyset_drained[index], false)?;
+        self.derivation_cost.serialized_read_bytes = self
+            .derivation_cost
+            .serialized_read_bytes
+            .checked_add(usize_u64(key.len())?)
+            .ok_or(ItemRefusal::Budget)?;
+        self.derivation_cost.peak_workspace_state_bytes = self
+            .derivation_cost
+            .peak_workspace_state_bytes
+            .max(workspace);
+        let cursor_state = estimate_string_state(&key)?;
+        Ok((Some(key), workspace, cursor_state))
+    }
+
+    fn for_each_derivation_subject_claim_inner(
+        &mut self,
+        subject: &str,
+        max_state_bytes: usize,
+        visit: &mut dyn FnMut(&str, usize) -> Result<(), ItemRefusal>,
+    ) -> Result<(u64, usize), ItemRefusal> {
+        if self.finished || self.derivation_finished {
+            return Err(source_refusal());
+        }
+        let query_workspace = Self::derivation_workspace(&[subject.len()], 384)?;
+        self.derivation_preflight(query_workspace, max_state_bytes)?;
+        let context = self.context;
+        let scan_rows = self.scan_rows;
+        context.check()?;
+        let mut statement = self.db.prepare(
+            "SELECT claim_id FROM sf_closure_derivation_subjects WHERE subject=?1 ORDER BY claim_id COLLATE BINARY",
+        ).map_err(sql_refusal)?;
+        let mut rows = statement.query([subject]).map_err(sql_refusal)?;
+        let mut count = 0u64;
+        let mut peak = query_workspace;
+        let mut previous: Option<String> = None;
+        let mut scan_operations = 0u64;
+        let mut read_bytes = 0u64;
+        let mut stream_rows = 0u64;
+        while let Some(row) = rows.next().map_err(sql_refusal)? {
+            let row_workspace = row_text_state(row, 0).map_err(sql_refusal)?;
+            let row_bytes = row_text_length(row, 0).map_err(sql_refusal)?;
+            let workspace = query_workspace
+                .checked_add(row_workspace)
+                .and_then(|bytes| {
+                    previous.as_ref().map_or(Some(bytes), |value| {
+                        bytes.checked_add(estimate_string_state(value).ok()?)
+                    })
+                })
+                .and_then(|bytes| bytes.checked_add(estimate_string_state_len(row_bytes).ok()?))
+                .ok_or(ItemRefusal::Budget)?;
+            if workspace > max_state_bytes {
+                return Err(ItemRefusal::Budget);
+            }
+            context.row_state(workspace)?;
+            context.check()?;
+            context.add_scan_rows(scan_rows, 1)?;
+            scan_operations = scan_operations.checked_add(1).ok_or(ItemRefusal::Budget)?;
+            let claim_id = match row.get_ref(0).map_err(sql_refusal)? {
+                rusqlite::types::ValueRef::Text(raw) => {
+                    std::str::from_utf8(raw).map_err(|_| source_refusal())?
+                }
+                _ => return Err(source_refusal()),
+            };
+            if previous.as_deref().is_some_and(|prior| prior >= claim_id) {
+                return Err(source_refusal());
+            }
+            visit(claim_id, workspace)?;
+            stream_rows = stream_rows.checked_add(1).ok_or(ItemRefusal::Budget)?;
+            read_bytes = read_bytes
+                .checked_add(usize_u64(claim_id.len())?)
+                .ok_or(ItemRefusal::Budget)?;
+            previous = Some(claim_id.to_owned());
+            peak = peak.max(workspace);
+            count = count.checked_add(1).ok_or(ItemRefusal::Budget)?;
+        }
+        context.add_scan_rows(scan_rows, 1)?;
+        scan_operations = scan_operations.checked_add(1).ok_or(ItemRefusal::Budget)?;
+        drop(rows);
+        drop(statement);
+        context.check()?;
+        self.derivation_cost.derivation_subject_stream_eof_count = self
+            .derivation_cost
+            .derivation_subject_stream_eof_count
+            .checked_add(1)
+            .ok_or(ItemRefusal::Budget)?;
+        self.derivation_cost.derivation_subject_stream_rows = self
+            .derivation_cost
+            .derivation_subject_stream_rows
+            .checked_add(stream_rows)
+            .ok_or(ItemRefusal::Budget)?;
+        self.derivation_cost.scan_row_operations = self
+            .derivation_cost
+            .scan_row_operations
+            .checked_add(scan_operations)
+            .ok_or(ItemRefusal::Budget)?;
+        self.derivation_cost.serialized_read_bytes = self
+            .derivation_cost
+            .serialized_read_bytes
+            .checked_add(read_bytes)
+            .ok_or(ItemRefusal::Budget)?;
+        self.derivation_cost.peak_workspace_state_bytes =
+            self.derivation_cost.peak_workspace_state_bytes.max(peak);
+        Ok((count, peak))
+    }
+
+    fn derivation_root_count_inner(
+        &mut self,
+        max_state_bytes: usize,
+    ) -> Result<(u64, usize), ItemRefusal> {
+        if self.finished || self.derivation_finished {
+            return Err(source_refusal());
+        }
+        let workspace = size_of::<i64>() + 320;
+        self.derivation_preflight(workspace, max_state_bytes)?;
+        self.context.check()?;
+        let scan = usize::try_from(self.derivation_cost.derivation_pair_rows)
+            .map_err(|_| ItemRefusal::Budget)?
+            .checked_mul(2)
+            .and_then(|rows| rows.checked_add(1))
+            .ok_or(ItemRefusal::Budget)?;
+        self.charge_derivation_scan_rows(scan)?;
+        let actual: i64 = self
+            .db
+            .query_row(
+                "SELECT count(*) FROM (SELECT subject FROM sf_closure_derivation_pairs GROUP BY subject)",
+                [],
+                |row| row.get(0),
+            )
+            .map_err(sql_refusal)?;
+        if actual < 0 {
+            return Err(source_refusal());
+        }
+        let count = u64::try_from(actual).map_err(|_| source_refusal())?;
+        self.context.check()?;
+        self.derivation_cost.derivation_root_rows = count;
+        self.derivation_cost.serialized_read_bytes = self
+            .derivation_cost
+            .serialized_read_bytes
+            .checked_add(size_of::<i64>() as u64)
+            .ok_or(ItemRefusal::Budget)?;
+        Ok((count, workspace))
+    }
+
+    fn next_derivation_child_inner(
+        &mut self,
+        subject: &str,
+        after_descending: Option<&str>,
+        max_state_bytes: usize,
+    ) -> Result<(Option<String>, usize, usize), ItemRefusal> {
+        if self.finished || self.derivation_finished {
+            return Err(source_refusal());
+        }
+        let mut query_workspace = Self::derivation_workspace(&[subject.len()], 384)?;
+        if let Some(after) = after_descending {
+            query_workspace = query_workspace
+                .checked_add(estimate_string_state(after)?)
+                .ok_or(ItemRefusal::Budget)?;
+        }
+        self.derivation_preflight(query_workspace, max_state_bytes)?;
+        let context = self.context;
+        context.check()?;
+        self.charge_derivation_scan_rows(1)?;
+        let sql = if after_descending.is_some() {
+            "SELECT object FROM sf_closure_derivation_pairs WHERE subject=?1 AND object COLLATE BINARY<?2 ORDER BY object COLLATE BINARY DESC LIMIT 1"
+        } else {
+            "SELECT object FROM sf_closure_derivation_pairs WHERE subject=?1 ORDER BY object COLLATE BINARY DESC LIMIT 1"
+        };
+        let mut statement = self.db.prepare(sql).map_err(sql_refusal)?;
+        let mut rows = match after_descending {
+            Some(after) => statement.query(params![subject, after]),
+            None => statement.query([subject]),
+        }
+        .map_err(sql_refusal)?;
+        let Some(row) = rows.next().map_err(sql_refusal)? else {
+            drop(rows);
+            drop(statement);
+            context.check()?;
+            self.derivation_cost.derivation_adjacency_eof_count = self
+                .derivation_cost
+                .derivation_adjacency_eof_count
+                .checked_add(1)
+                .ok_or(ItemRefusal::Budget)?;
+            return Ok((None, query_workspace, 0));
+        };
+        let row_workspace = row_text_state(row, 0).map_err(sql_refusal)?;
+        let workspace = query_workspace
+            .checked_add(row_workspace)
+            .ok_or(ItemRefusal::Budget)?;
+        if workspace > max_state_bytes {
+            return Err(ItemRefusal::Budget);
+        }
+        context.row_state(workspace)?;
+        let object = bounded_row_text(row, 0, workspace).map_err(sql_refusal)?;
+        if after_descending.is_some_and(|after| object.as_str() >= after) {
+            return Err(source_refusal());
+        }
+        self.derivation_cost.peak_workspace_state_bytes = self
+            .derivation_cost
+            .peak_workspace_state_bytes
+            .max(workspace);
+        drop(rows);
+        drop(statement);
+        context.check()?;
+        self.derivation_cost.derivation_adjacency_rows = self
+            .derivation_cost
+            .derivation_adjacency_rows
+            .checked_add(1)
+            .ok_or(ItemRefusal::Budget)?;
+        self.derivation_cost.serialized_read_bytes = self
+            .derivation_cost
+            .serialized_read_bytes
+            .checked_add(usize_u64(object.len())?)
+            .ok_or(ItemRefusal::Budget)?;
+        let cursor_state = estimate_string_state(&object)?;
+        Ok((Some(object), workspace, cursor_state))
+    }
+
+    fn derivation_color_inner(
+        &mut self,
+        node: &str,
+        max_state_bytes: usize,
+    ) -> Result<(Option<u8>, usize), ItemRefusal> {
+        let workspace = Self::derivation_workspace(&[node.len()], 640)?;
+        self.derivation_preflight(workspace, max_state_bytes)?;
+        self.context.check()?;
+        self.charge_derivation_scan_rows(1)?;
+        let mut statement = self
+            .db
+            .prepare("SELECT node,color FROM sf_closure_derivation_colors WHERE node=?1")
+            .map_err(sql_refusal)?;
+        let mut rows = statement.query([node]).map_err(sql_refusal)?;
+        let stored = rows
+            .next()
+            .map_err(sql_refusal)?
+            .map(|row| {
+                let key = bounded_row_text(row, 0, workspace)?;
+                let color = row.get::<_, i64>(1)?;
+                Ok::<_, rusqlite::Error>((key, color))
+            })
+            .transpose()
+            .map_err(sql_refusal)?;
+        if rows.next().map_err(sql_refusal)?.is_some()
+            || stored
+                .as_ref()
+                .is_some_and(|(key, color)| key != node || !matches!(*color, 1 | 2))
+        {
+            return Err(source_refusal());
+        }
+        drop(rows);
+        drop(statement);
+        self.context.check()?;
+        if stored.is_some() {
+            self.derivation_cost.serialized_read_bytes = self
+                .derivation_cost
+                .serialized_read_bytes
+                .checked_add(usize_u64(
+                    node.len().checked_add(1).ok_or(ItemRefusal::Budget)?,
+                )?)
+                .ok_or(ItemRefusal::Budget)?;
+        }
+        Ok((stored.map(|(_, color)| color as u8), workspace))
+    }
+
+    fn set_derivation_color_inner(
+        &mut self,
+        node: &str,
+        color: u8,
+        max_state_bytes: usize,
+    ) -> Result<usize, ItemRefusal> {
+        if !matches!(color, 1 | 2) {
+            return Err(source_refusal());
+        }
+        let workspace = Self::derivation_workspace(&[node.len()], 768)?;
+        self.derivation_preflight(workspace, max_state_bytes)?;
+        self.context.check()?;
+        self.charge_derivation_scan_rows(2)?;
+        let changed = if color == 1 {
+            self.db
+                .execute(
+                    "INSERT OR IGNORE INTO sf_closure_derivation_colors(node,color) VALUES(?1,1)",
+                    [node],
+                )
+                .map_err(sql_refusal)?
+        } else {
+            self.db
+                .execute(
+                    "UPDATE sf_closure_derivation_colors SET color=2 WHERE node=?1 AND color=1",
+                    [node],
+                )
+                .map_err(sql_refusal)?
+        };
+        if changed != 1 {
+            return Err(source_refusal());
+        }
+        let mut statement = self
+            .db
+            .prepare("SELECT node,color FROM sf_closure_derivation_colors WHERE node=?1")
+            .map_err(sql_refusal)?;
+        let mut rows = statement.query([node]).map_err(sql_refusal)?;
+        let stored = rows
+            .next()
+            .map_err(sql_refusal)?
+            .map(|row| {
+                Ok::<_, rusqlite::Error>((
+                    bounded_row_text(row, 0, workspace)?,
+                    row.get::<_, i64>(1)?,
+                ))
+            })
+            .transpose()
+            .map_err(sql_refusal)?;
+        if rows.next().map_err(sql_refusal)?.is_some()
+            || stored.as_ref().map(|(key, value)| (key.as_str(), *value))
+                != Some((node, i64::from(color)))
+        {
+            return Err(source_refusal());
+        }
+        drop(rows);
+        drop(statement);
+        self.context.check()?;
+        self.derivation_cost.serialized_read_bytes = self
+            .derivation_cost
+            .serialized_read_bytes
+            .checked_add(usize_u64(
+                node.len().checked_add(1).ok_or(ItemRefusal::Budget)?,
+            )?)
+            .ok_or(ItemRefusal::Budget)?;
+        self.derivation_cost.serialized_write_bytes = self
+            .derivation_cost
+            .serialized_write_bytes
+            .checked_add(usize_u64(
+                node.len().checked_add(1).ok_or(ItemRefusal::Budget)?,
+            )?)
+            .ok_or(ItemRefusal::Budget)?;
+        if color == 1 {
+            self.derivation_cost.derivation_color_rows = self
+                .derivation_cost
+                .derivation_color_rows
+                .checked_add(1)
+                .ok_or(ItemRefusal::Budget)?;
+        }
+        Ok(workspace)
+    }
+
+    fn push_derivation_frame_inner(
+        &mut self,
+        frame: &SourceFoundationClosureDerivationFrame,
+        max_state_bytes: usize,
+    ) -> Result<usize, ItemRefusal> {
+        let workspace = Self::derivation_workspace(&[frame.node.len()], 768)?;
+        self.derivation_preflight(workspace, max_state_bytes)?;
+        let slot = usize_u64(self.derivation_stack_depth)?;
+        let slot_bytes = slot.to_be_bytes();
+        self.context.check()?;
+        self.charge_derivation_scan_rows(1)?;
+        let changed = self
+            .db
+            .execute(
+                "INSERT INTO sf_closure_derivation_stack(stack_slot,node,leaving) VALUES(?1,?2,?3)",
+                params![
+                    slot_bytes.as_slice(),
+                    frame.node,
+                    if frame.leaving { 1_i64 } else { 0_i64 }
+                ],
+            )
+            .map_err(sql_refusal)?;
+        if changed != 1 {
+            return Err(source_refusal());
+        }
+        self.context.check()?;
+        self.derivation_stack_depth = self
+            .derivation_stack_depth
+            .checked_add(1)
+            .ok_or(ItemRefusal::Budget)?;
+        self.derivation_cost.derivation_stack_push_rows = self
+            .derivation_cost
+            .derivation_stack_push_rows
+            .checked_add(1)
+            .ok_or(ItemRefusal::Budget)?;
+        self.derivation_cost.derivation_stack_peak_rows = self
+            .derivation_cost
+            .derivation_stack_peak_rows
+            .max(usize_u64(self.derivation_stack_depth)?);
+        self.derivation_cost.serialized_write_bytes = self
+            .derivation_cost
+            .serialized_write_bytes
+            .checked_add(usize_u64(
+                frame.node.len().checked_add(9).ok_or(ItemRefusal::Budget)?,
+            )?)
+            .ok_or(ItemRefusal::Budget)?;
+        Ok(workspace)
+    }
+
+    fn pop_derivation_frame_inner(
+        &mut self,
+        max_state_bytes: usize,
+    ) -> Result<(Option<SourceFoundationClosureDerivationFrame>, usize, usize), ItemRefusal> {
+        let query_workspace = size_of::<SourceFoundationClosureDerivationFrame>() + 384;
+        self.derivation_preflight(query_workspace, max_state_bytes)?;
+        let context = self.context;
+        context.check()?;
+        self.charge_derivation_scan_rows(1)?;
+        let mut statement = self.db.prepare(
+            "SELECT stack_slot,node,leaving FROM sf_closure_derivation_stack ORDER BY stack_slot DESC LIMIT 1",
+        ).map_err(sql_refusal)?;
+        let mut rows = statement.query([]).map_err(sql_refusal)?;
+        let Some(row) = rows.next().map_err(sql_refusal)? else {
+            drop(rows);
+            drop(statement);
+            if self.derivation_stack_depth != 0 {
+                return Err(source_refusal());
+            }
+            context.check()?;
+            return Ok((None, query_workspace, 0));
+        };
+        if self.derivation_stack_depth == 0 {
+            return Err(source_refusal());
+        }
+        let slot = row_blob(row, 0).map_err(sql_refusal)?;
+        if checked_u64_blob(slot)? != usize_u64(self.derivation_stack_depth - 1)? {
+            return Err(source_refusal());
+        }
+        let node_bytes = row_text_length(row, 1).map_err(sql_refusal)?;
+        let row_workspace = row_text_state(row, 1).map_err(sql_refusal)?;
+        let workspace = query_workspace
+            .checked_add(row_workspace)
+            .ok_or(ItemRefusal::Budget)?;
+        if workspace > max_state_bytes {
+            return Err(ItemRefusal::Budget);
+        }
+        context.row_state(workspace)?;
+        let node = bounded_row_text(row, 1, workspace).map_err(sql_refusal)?;
+        let leaving = match row.get_ref(2).map_err(sql_refusal)? {
+            rusqlite::types::ValueRef::Integer(0) => false,
+            rusqlite::types::ValueRef::Integer(1) => true,
+            _ => return Err(source_refusal()),
+        };
+        let slot_bytes = slot.to_vec();
+        drop(rows);
+        drop(statement);
+        context.check()?;
+        self.charge_derivation_scan_rows(1)?;
+        let removed = self
+            .db
+            .execute(
+                "DELETE FROM sf_closure_derivation_stack WHERE stack_slot=?1",
+                [slot_bytes.as_slice()],
+            )
+            .map_err(sql_refusal)?;
+        if removed != 1 {
+            return Err(source_refusal());
+        }
+        self.context.check()?;
+        self.derivation_stack_depth -= 1;
+        self.derivation_cost.derivation_stack_pop_rows = self
+            .derivation_cost
+            .derivation_stack_pop_rows
+            .checked_add(1)
+            .ok_or(ItemRefusal::Budget)?;
+        self.derivation_cost.serialized_read_bytes = self
+            .derivation_cost
+            .serialized_read_bytes
+            .checked_add(usize_u64(
+                node_bytes.checked_add(9).ok_or(ItemRefusal::Budget)?,
+            )?)
+            .ok_or(ItemRefusal::Budget)?;
+        self.derivation_cost.serialized_write_bytes = self
+            .derivation_cost
+            .serialized_write_bytes
+            .checked_add(8)
+            .ok_or(ItemRefusal::Budget)?;
+        self.derivation_cost.peak_workspace_state_bytes = self
+            .derivation_cost
+            .peak_workspace_state_bytes
+            .max(workspace);
+        let returned_state = estimate_string_state(&node)?
+            .checked_add(size_of::<SourceFoundationClosureDerivationFrame>())
+            .ok_or(ItemRefusal::Budget)?;
+        Ok((
+            Some(SourceFoundationClosureDerivationFrame { node, leaving }),
+            workspace,
+            returned_state,
+        ))
+    }
+
+    fn derivation_keyset_drained(
+        &self,
+        set: SourceFoundationClosureDerivationKeySet,
+    ) -> Result<bool, ItemRefusal> {
+        let index = Self::derivation_set_index(set);
+        Ok(self.derivation_keyset_eof[index]
+            && self.derivation_keyset_expected[index]
+                == Some(self.derivation_keyset_drained[index]))
+    }
+
+    fn derivation_count(
+        &mut self,
+        sql: &str,
+        expected: u64,
+        max_state_bytes: usize,
+    ) -> Result<(), ItemRefusal> {
+        let workspace = size_of::<i64>() + 256;
+        self.derivation_preflight(workspace, max_state_bytes)?;
+        self.context.check()?;
+        let scan = usize::try_from(expected)
+            .map_err(|_| ItemRefusal::Budget)?
+            .checked_add(1)
+            .ok_or(ItemRefusal::Budget)?;
+        self.charge_derivation_scan_rows(scan)?;
+        let mut statement = self.db.prepare(sql).map_err(sql_refusal)?;
+        let mut rows = statement.query([]).map_err(sql_refusal)?;
+        let actual = rows
+            .next()
+            .map_err(sql_refusal)?
+            .map(|row| row.get::<_, i64>(0).map_err(sql_refusal))
+            .transpose()?
+            .ok_or_else(source_refusal)?;
+        if actual < 0
+            || u64::try_from(actual).map_err(|_| source_refusal())? != expected
+            || rows.next().map_err(sql_refusal)?.is_some()
+        {
+            return Err(source_refusal());
+        }
+        drop(rows);
+        drop(statement);
+        self.context.check()?;
+        self.derivation_cost.serialized_read_bytes = self
+            .derivation_cost
+            .serialized_read_bytes
+            .checked_add(size_of::<i64>() as u64)
+            .ok_or(ItemRefusal::Budget)?;
+        Ok(())
+    }
+
+    fn set_derivation_cursor_cost(
+        &mut self,
+        set: SourceFoundationClosureDerivationKeySet,
+        drained: u64,
+        eof: bool,
+    ) -> Result<(), ItemRefusal> {
+        match set {
+            SourceFoundationClosureDerivationKeySet::ClaimIds => {
+                self.derivation_cost.derivation_id_drained_rows = drained;
+                self.derivation_cost.derivation_id_eof_seen = eof;
+            }
+            SourceFoundationClosureDerivationKeySet::Endpoints => {
+                self.derivation_cost.derivation_endpoint_drained_rows = drained;
+                self.derivation_cost.derivation_endpoint_eof_seen = eof;
+            }
+            SourceFoundationClosureDerivationKeySet::EvidencePaths => {
+                self.derivation_cost.derivation_evidence_path_drained_rows = drained;
+                self.derivation_cost.derivation_evidence_path_eof_seen = eof;
+            }
+            SourceFoundationClosureDerivationKeySet::ExpectedInputs => {
+                self.derivation_cost.derivation_expected_input_drained_rows = drained;
+                self.derivation_cost.derivation_expected_input_eof_seen = eof;
+            }
+            SourceFoundationClosureDerivationKeySet::Roots => {
+                self.derivation_cost.derivation_root_drained_rows = drained;
+                self.derivation_cost.derivation_root_eof_seen = eof;
+            }
+        }
+        Ok(())
+    }
+
+    fn finish_derivation_inner(
+        &mut self,
+        expected_subject_streams: u64,
+        max_state_bytes: usize,
+    ) -> Result<SourceFoundationClosureDerivationStoreCost, ItemRefusal> {
+        if self.finished || self.derivation_finished {
+            return Err(source_refusal());
+        }
+        for index in 0..self.derivation_keyset_expected.len() {
+            if self.derivation_keyset_expected[index].is_none()
+                || !self.derivation_keyset_eof[index]
+                || self.derivation_keyset_expected[index]
+                    != Some(self.derivation_keyset_drained[index])
+            {
+                return Err(source_refusal());
+            }
+        }
+        if self.derivation_keyset_drained
+            [Self::derivation_set_index(SourceFoundationClosureDerivationKeySet::Roots)]
+            != self.derivation_cost.derivation_root_rows
+            || self.derivation_stack_depth != 0
+            || self.derivation_cost.derivation_stack_push_rows
+                != self.derivation_cost.derivation_stack_pop_rows
+            || self.derivation_cost.derivation_adjacency_rows
+                != self.derivation_cost.derivation_pair_rows
+            || self.derivation_cost.derivation_adjacency_eof_count
+                != self.derivation_cost.derivation_color_rows
+            || self.derivation_cost.derivation_subject_stream_eof_count != expected_subject_streams
+        {
+            return Err(source_refusal());
+        }
+        self.derivation_cost
+            .derivation_subject_stream_count_verified = true;
+        self.derivation_count(
+            "SELECT count(*) FROM sf_closure_derivation_subjects",
+            self.derivation_cost.derivation_subject_rows,
+            max_state_bytes,
+        )?;
+        self.derivation_cost.derivation_subject_count_verified = true;
+        self.derivation_count(
+            "SELECT count(*) FROM sf_closure_derivation_pairs",
+            self.derivation_cost.derivation_pair_rows,
+            max_state_bytes,
+        )?;
+        self.derivation_cost.derivation_pair_count_verified = true;
+        if self.derivation_cost.derivation_color_rows
+            != self.derivation_cost.derivation_endpoint_rows
+        {
+            return Err(source_refusal());
+        }
+        self.derivation_count(
+            "SELECT count(*) FROM sf_closure_derivation_colors",
+            self.derivation_cost.derivation_color_rows,
+            max_state_bytes,
+        )?;
+        self.derivation_cost.derivation_color_count_verified = true;
+        self.derivation_count(
+            "SELECT count(*) FROM sf_closure_derivation_stack",
+            0,
+            max_state_bytes,
+        )?;
+        self.derivation_cost.derivation_stack_empty = true;
+        self.derivation_cost.derivation_claim_count_verified =
+            self.derivation_keyset_drained[0] == self.derivation_cost.derivation_id_rows;
+        self.derivation_cost.derivation_endpoint_count_verified =
+            self.derivation_keyset_drained[1] == self.derivation_cost.derivation_endpoint_rows;
+        self.derivation_cost.derivation_evidence_path_count_verified =
+            self.derivation_keyset_drained[2] == self.derivation_cost.derivation_evidence_path_rows;
+        self.derivation_cost
+            .derivation_expected_input_count_verified = self.derivation_keyset_drained[3]
+            == self.derivation_cost.derivation_expected_input_rows;
+        if !self.derivation_cost.derivation_claim_count_verified
+            || !self.derivation_cost.derivation_endpoint_count_verified
+            || !self.derivation_cost.derivation_evidence_path_count_verified
+            || !self
+                .derivation_cost
+                .derivation_expected_input_count_verified
+        {
+            return Err(source_refusal());
+        }
+        self.derivation_cost.derivation_finished = true;
+        self.derivation_finished = true;
+        self.context.check()?;
+        Ok(self.derivation_cost)
+    }
+
     fn cost(&self) -> SourceFoundationClosureSchemaRequestStoreCost {
         SourceFoundationClosureSchemaRequestStoreCost {
             observation_rows: self.observation_rows,
@@ -4569,6 +5760,7 @@ impl CandidateClosureSchemaRequests<'_, '_, '_, '_, '_> {
             boundary_responsibility_ref_eof_seen: self.boundary_responsibility_ref_eof_seen,
             boundary_responsibility_ref_count_verified: self
                 .boundary_responsibility_ref_count_verified,
+            derivation: self.derivation_cost,
         }
     }
 
@@ -4635,6 +5827,8 @@ impl CandidateClosureSchemaRequests<'_, '_, '_, '_, '_> {
             || !self.boundary_responsibility_ref_eof_seen
             || self.last_boundary_responsibility_ref.is_some()
             || !self.boundary_responsibility_ref_count_verified
+            || !self.derivation_finished
+            || !self.derivation_cost.derivation_finished
         {
             return Err(source_refusal());
         }
@@ -6309,6 +7503,162 @@ impl SourceFoundationClosureSchemaRequestStore
             .publication_claim_workspace_state_bytes
             .max(workspace_peak);
         Ok((drained, workspace_peak))
+    }
+
+    fn remember_derivation_id(
+        &mut self,
+        id: &str,
+        max_state_bytes: usize,
+    ) -> Result<(bool, usize), ItemRefusal> {
+        self.remember_derivation_set_key(
+            SourceFoundationClosureDerivationKeySet::ClaimIds,
+            id,
+            max_state_bytes,
+        )
+    }
+
+    fn contains_derivation_id(
+        &mut self,
+        id: &str,
+        max_state_bytes: usize,
+    ) -> Result<(bool, usize), ItemRefusal> {
+        self.contains_derivation_id_row(id, max_state_bytes)
+    }
+
+    fn remember_derivation_subject(
+        &mut self,
+        id: &str,
+        subject: &str,
+        max_state_bytes: usize,
+    ) -> Result<(bool, usize), ItemRefusal> {
+        self.remember_derivation_subject_row(id, subject, max_state_bytes)
+    }
+
+    fn remember_derivation_pair(
+        &mut self,
+        subject: &str,
+        object: &str,
+        max_state_bytes: usize,
+    ) -> Result<(bool, usize), ItemRefusal> {
+        self.remember_derivation_pair_row(subject, object, max_state_bytes)
+    }
+
+    fn remember_derivation_endpoint(
+        &mut self,
+        endpoint: &str,
+        max_state_bytes: usize,
+    ) -> Result<(bool, usize), ItemRefusal> {
+        self.remember_derivation_set_key(
+            SourceFoundationClosureDerivationKeySet::Endpoints,
+            endpoint,
+            max_state_bytes,
+        )
+    }
+
+    fn remember_derivation_evidence_path(
+        &mut self,
+        path: &str,
+        max_state_bytes: usize,
+    ) -> Result<(bool, usize), ItemRefusal> {
+        self.remember_derivation_set_key(
+            SourceFoundationClosureDerivationKeySet::EvidencePaths,
+            path,
+            max_state_bytes,
+        )
+    }
+
+    fn remember_derivation_expected_input(
+        &mut self,
+        path: &str,
+        max_state_bytes: usize,
+    ) -> Result<(bool, usize), ItemRefusal> {
+        self.remember_derivation_set_key(
+            SourceFoundationClosureDerivationKeySet::ExpectedInputs,
+            path,
+            max_state_bytes,
+        )
+    }
+
+    fn begin_derivation_keyset(
+        &mut self,
+        set: SourceFoundationClosureDerivationKeySet,
+        expected_rows: u64,
+    ) -> Result<(), ItemRefusal> {
+        self.begin_derivation_keyset_inner(set, expected_rows)
+    }
+
+    fn next_derivation_key(
+        &mut self,
+        set: SourceFoundationClosureDerivationKeySet,
+        after: Option<&str>,
+        max_state_bytes: usize,
+    ) -> Result<(Option<String>, usize, usize), ItemRefusal> {
+        self.next_derivation_key_inner(set, after, max_state_bytes)
+    }
+
+    fn for_each_derivation_subject_claim(
+        &mut self,
+        subject: &str,
+        max_state_bytes: usize,
+        visit: &mut dyn FnMut(&str, usize) -> Result<(), ItemRefusal>,
+    ) -> Result<(u64, usize), ItemRefusal> {
+        self.for_each_derivation_subject_claim_inner(subject, max_state_bytes, visit)
+    }
+
+    fn derivation_root_count(
+        &mut self,
+        max_state_bytes: usize,
+    ) -> Result<(u64, usize), ItemRefusal> {
+        self.derivation_root_count_inner(max_state_bytes)
+    }
+
+    fn next_derivation_child(
+        &mut self,
+        subject: &str,
+        after_descending: Option<&str>,
+        max_state_bytes: usize,
+    ) -> Result<(Option<String>, usize, usize), ItemRefusal> {
+        self.next_derivation_child_inner(subject, after_descending, max_state_bytes)
+    }
+
+    fn derivation_color(
+        &mut self,
+        node: &str,
+        max_state_bytes: usize,
+    ) -> Result<(Option<u8>, usize), ItemRefusal> {
+        self.derivation_color_inner(node, max_state_bytes)
+    }
+
+    fn set_derivation_color(
+        &mut self,
+        node: &str,
+        color: u8,
+        max_state_bytes: usize,
+    ) -> Result<usize, ItemRefusal> {
+        self.set_derivation_color_inner(node, color, max_state_bytes)
+    }
+
+    fn push_derivation_frame(
+        &mut self,
+        frame: &SourceFoundationClosureDerivationFrame,
+        max_state_bytes: usize,
+    ) -> Result<usize, ItemRefusal> {
+        self.push_derivation_frame_inner(frame, max_state_bytes)
+    }
+
+    fn pop_derivation_frame(
+        &mut self,
+        max_state_bytes: usize,
+    ) -> Result<(Option<SourceFoundationClosureDerivationFrame>, usize, usize), ItemRefusal> {
+        self.pop_derivation_frame_inner(max_state_bytes)
+    }
+
+    fn finish_derivation(
+        &mut self,
+        expected_subject_streams: u64,
+        max_state_bytes: usize,
+    ) -> Result<SourceFoundationClosureDerivationStoreCost, ItemRefusal> {
+        self.finish_derivation_inner(expected_subject_streams, max_state_bytes)
     }
 
     fn remember_responsibility_validated_event(
@@ -9467,6 +10817,12 @@ impl<'candidate, 'host> SpoolDefaultStore<'candidate, 'host> {
                 boundary_responsibility_refs_sealed: false,
                 boundary_responsibility_ref_eof_seen: false,
                 boundary_responsibility_ref_count_verified: false,
+                derivation_cost: SourceFoundationClosureDerivationStoreCost::default(),
+                derivation_keyset_expected: [None; 5],
+                derivation_keyset_drained: [0; 5],
+                derivation_keyset_eof: [false; 5],
+                derivation_stack_depth: 0,
+                derivation_finished: false,
                 max_event_id_bytes: 0,
                 max_event_path_bytes: 0,
                 max_event_json_bytes: 0,
