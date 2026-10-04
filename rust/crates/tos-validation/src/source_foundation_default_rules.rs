@@ -1444,27 +1444,52 @@ fn inspect_source_foundation_default_rules_from_input_stored_inner<
                 "candidate Discovery summary store requires the lazy evidence provider".into(),
             ));
         }
-        crate::source_foundation_discovery::inspect_candidate_with_artifact_replays_and_records_with_proofs(
-            &mut aggregate_source,
-            input,
-            coverage,
-            paths,
-            events.event_lookup(),
-            records_lookup,
-            records,
-            discovery_limits,
-            physical,
-            native_histories.ok_or_else(|| {
-                ItemRefusal::Source("candidate native Artifact histories are missing".into())
-            })?,
-            artifact_replays.ok_or_else(|| {
-                ItemRefusal::Source("candidate Artifact replay map is missing".into())
-            })?,
-            invalid_artifact_proofs.ok_or_else(|| {
-                ItemRefusal::Source("candidate Artifact schema proof is missing".into())
-            })?,
-            require_local_payloads,
-        )?
+        if let Some(seen_ids) = discovery_seen_ids.as_deref_mut() {
+            crate::source_foundation_discovery::inspect_candidate_with_artifact_replays_and_records_with_proofs_and_seen_ids(
+                &mut aggregate_source,
+                input,
+                coverage,
+                paths,
+                events.event_lookup(),
+                records_lookup,
+                records,
+                discovery_limits,
+                physical,
+                native_histories.ok_or_else(|| {
+                    ItemRefusal::Source("candidate native Artifact histories are missing".into())
+                })?,
+                artifact_replays.ok_or_else(|| {
+                    ItemRefusal::Source("candidate Artifact replay map is missing".into())
+                })?,
+                invalid_artifact_proofs.ok_or_else(|| {
+                    ItemRefusal::Source("candidate Artifact schema proof is missing".into())
+                })?,
+                seen_ids,
+                require_local_payloads,
+            )?
+        } else {
+            crate::source_foundation_discovery::inspect_candidate_with_artifact_replays_and_records_with_proofs(
+                &mut aggregate_source,
+                input,
+                coverage,
+                paths,
+                events.event_lookup(),
+                records_lookup,
+                records,
+                discovery_limits,
+                physical,
+                native_histories.ok_or_else(|| {
+                    ItemRefusal::Source("candidate native Artifact histories are missing".into())
+                })?,
+                artifact_replays.ok_or_else(|| {
+                    ItemRefusal::Source("candidate Artifact replay map is missing".into())
+                })?,
+                invalid_artifact_proofs.ok_or_else(|| {
+                    ItemRefusal::Source("candidate Artifact schema proof is missing".into())
+                })?,
+                require_local_payloads,
+            )?
+        }
     };
     if discovery.input_identity() != input.input_identity()
         || discovery.source_membership() != *records.source_membership()
