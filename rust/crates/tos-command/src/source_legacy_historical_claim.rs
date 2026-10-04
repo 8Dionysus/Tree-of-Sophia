@@ -2028,14 +2028,14 @@ fn validate_history<'a>(
             }
         }
         let prior = before_rows.get(id).ok_or(invalid())?;
-        if subject(prior)? != *previous {
+        if !same(&subject(prior)?, previous)? {
             return Err(SourceCommandError::Conflict(
                 "historical Claim archive subject differs",
             ));
         }
         let fields = cmd::field(request, "fields")?;
         let revised = advance(prior, fields)?;
-        if subject(&revised)? != *cmd::field(receipt, "source")?
+        if !same(&subject(&revised)?, cmd::field(receipt, "source")?)?
             || cmd::text(cmd::field(receipt, "source")?, "id")? != id
             || cmd::integer(previous, "version")?.checked_add(1)
                 != Some(cmd::integer(cmd::field(receipt, "source")?, "version")?)
