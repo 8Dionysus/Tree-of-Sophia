@@ -500,6 +500,7 @@ fn add_work(
         read_bytes: add(a.read_bytes, b.read_bytes)?,
         written_nodes: add(a.written_nodes, b.written_nodes)?,
         written_bytes: add(a.written_bytes, b.written_bytes)?,
+        allocated_bytes: add(a.allocated_bytes, b.allocated_bytes)?,
     })
 }
 

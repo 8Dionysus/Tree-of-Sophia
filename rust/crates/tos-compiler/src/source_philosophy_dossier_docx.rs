@@ -4,6 +4,7 @@ use flate2::read::DeflateDecoder;
 use quick_xml::{
     Reader,
     events::{BytesStart, Event},
+    name::QName,
 };
 use std::{
     collections::{BTreeMap, BTreeSet},
@@ -552,11 +553,12 @@ fn element_namespace<'a>(qname: &[u8], scope: &'a BTreeMap<String, String>) -> O
 }
 
 fn word_element_name(
-    element: &BytesStart<'_>,
+    name: QName<'_>,
     scope: &BTreeMap<String, String>,
 ) -> Result<String, String> {
-    let local = local_name(element.local_name().as_ref())?;
-    if element_namespace(element.name().as_ref(), scope)
+    let local_binding = name.local_name();
+    let local = local_name(local_binding.as_ref())?;
+    if element_namespace(name.as_ref(), scope)
         == Some("http://schemas.openxmlformats.org/wordprocessingml/2006/main")
     {
         Ok(local.to_owned())
@@ -859,7 +861,7 @@ fn parse_document_xml(
             Event::Start(element) => {
                 let mut scope = namespaces.last().cloned().unwrap_or_default();
                 extend_namespace_scope(&element, reader.decoder(), &mut scope)?;
-                let name = word_element_name(&element, &scope)?;
+                let name = word_element_name(element.name(), &scope)?;
                 if name == "t" && paragraph.is_some() {
                     in_text_depth = Some(stack.len() + 1);
                 }
@@ -883,7 +885,7 @@ fn parse_document_xml(
             Event::Empty(element) => {
                 let mut scope = namespaces.last().cloned().unwrap_or_default();
                 extend_namespace_scope(&element, reader.decoder(), &mut scope)?;
-                let name = word_element_name(&element, &scope)?;
+                let name = word_element_name(element.name(), &scope)?;
                 start_word_element(
                     &name,
                     Some(&element),
@@ -936,7 +938,7 @@ fn parse_document_xml(
             }
             Event::End(element) => {
                 let scope = namespaces.last().cloned().unwrap_or_default();
-                let name = word_element_name(&element, &scope)?;
+                let name = word_element_name(element.name(), &scope)?;
                 if name == "t" {
                     in_text_depth = None;
                 }
@@ -1005,7 +1007,8 @@ fn parse_property_xml(
         }
         match reader.read_event().map_err(|error| error.to_string())? {
             Event::Start(element) => {
-                let name = local_name(element.local_name().as_ref())?.to_owned();
+                let local_binding = element.local_name();
+                let name = local_name(local_binding.as_ref())?.to_owned();
                 let depth = stack.len();
                 let mut scope = namespaces.last().cloned().unwrap_or_default();
                 extend_namespace_scope(&element, reader.decoder(), &mut scope)?;
@@ -1037,7 +1040,8 @@ fn parse_property_xml(
                 namespaces.push(scope);
             }
             Event::Empty(element) => {
-                let name = local_name(element.local_name().as_ref())?;
+                let local_binding = element.local_name();
+                let name = local_name(local_binding.as_ref())?;
                 if stack.len() == 1 && custom_generator {
                     if unqualified_attribute(&element, reader.decoder(), b"name")?.as_deref()
                         == Some("generator")
@@ -1098,7 +1102,8 @@ fn parse_property_xml(
                 }
             }
             Event::End(element) => {
-                let name = local_name(element.local_name().as_ref())?;
+                let local_binding = element.local_name();
+                let name = local_name(local_binding.as_ref())?;
                 if selected.is_some()
                     && selected
                         .as_ref()
@@ -1158,7 +1163,8 @@ fn relationship_element(
     decoder: quick_xml::encoding::Decoder,
     scope: &BTreeMap<String, String>,
 ) -> Result<Option<OpcRelationship>, String> {
-    if local_name(element.local_name().as_ref())? != "Relationship"
+    let local_binding = element.local_name();
+    if local_name(local_binding.as_ref())? != "Relationship"
         || element_namespace(element.name().as_ref(), scope) != Some(OPC_RELATIONSHIPS_NS)
     {
         return Ok(None);
@@ -1200,7 +1206,8 @@ fn parse_relationships_xml(
         }
         match reader.read_event().map_err(|error| error.to_string())? {
             Event::Start(element) => {
-                let local = local_name(element.local_name().as_ref())?.to_owned();
+                let local_binding = element.local_name();
+                let local = local_name(local_binding.as_ref())?.to_owned();
                 let mut scope = namespaces.last().cloned().unwrap_or_default();
                 extend_namespace_scope(&element, reader.decoder(), &mut scope)?;
                 if stack.is_empty() {
@@ -1222,7 +1229,8 @@ fn parse_relationships_xml(
                 namespaces.push(scope);
             }
             Event::Empty(element) => {
-                let local = local_name(element.local_name().as_ref())?;
+                let local_binding = element.local_name();
+                let local = local_name(local_binding.as_ref())?;
                 let mut scope = namespaces.last().cloned().unwrap_or_default();
                 extend_namespace_scope(&element, reader.decoder(), &mut scope)?;
                 if stack.is_empty() {
@@ -1242,7 +1250,8 @@ fn parse_relationships_xml(
                 }
             }
             Event::End(element) => {
-                let local = local_name(element.local_name().as_ref())?;
+                let local_binding = element.local_name();
+                let local = local_name(local_binding.as_ref())?;
                 if stack.pop().as_deref() != Some(local) {
                     return Err("OPC relationships element stack mismatch".into());
                 }
@@ -1322,7 +1331,8 @@ fn parse_content_types_xml(
         }
         match reader.read_event().map_err(|error| error.to_string())? {
             Event::Start(element) => {
-                let local = local_name(element.local_name().as_ref())?.to_owned();
+                let local_binding = element.local_name();
+                let local = local_name(local_binding.as_ref())?.to_owned();
                 let mut scope = namespaces.last().cloned().unwrap_or_default();
                 extend_namespace_scope(&element, reader.decoder(), &mut scope)?;
                 if stack.is_empty() {
@@ -1362,7 +1372,8 @@ fn parse_content_types_xml(
                 namespaces.push(scope);
             }
             Event::Empty(element) => {
-                let local = local_name(element.local_name().as_ref())?;
+                let local_binding = element.local_name();
+                let local = local_name(local_binding.as_ref())?;
                 let mut scope = namespaces.last().cloned().unwrap_or_default();
                 extend_namespace_scope(&element, reader.decoder(), &mut scope)?;
                 if stack.is_empty() {
@@ -1400,7 +1411,8 @@ fn parse_content_types_xml(
                 }
             }
             Event::End(element) => {
-                let local = local_name(element.local_name().as_ref())?;
+                let local_binding = element.local_name();
+                let local = local_name(local_binding.as_ref())?;
                 if stack.pop().as_deref() != Some(local) {
                     return Err("OPC content types element stack mismatch".into());
                 }
@@ -2290,8 +2302,7 @@ pub fn validate_identity_and_headers(
             let field_value = row_value(&header, cells, &["Значение", "Идентификация"]);
             if field_name == "ROW_TO_EXPAND" && !field_value.is_empty() {
                 observed_row_value = field_value;
-            }
-            if field_name == "Таблица" && !field_value.is_empty() {
+            } else if field_name == "Таблица" && !field_value.is_empty() {
                 observed_table_value = field_value;
             }
         }
