@@ -316,6 +316,14 @@ impl V2ReadSession {
         )
     }
 
+    pub(crate) fn identity_lookup_result_state_upper_bound(&self) -> io::Result<usize> {
+        usize::try_from(self.limits.tree.max_value_bytes)
+            .map_err(|_| invalid("V2 identity value bound exceeds address space"))?
+            .checked_mul(4)
+            .and_then(|bytes| bytes.checked_add(std::mem::size_of::<RelativePath>() + 1024))
+            .ok_or_else(|| invalid("V2 identity result state overflow"))
+    }
+
     pub(crate) fn shares_io_budget(&self, io: &PinnedSqliteIoBudget) -> bool {
         self.io.shares_with(io)
     }

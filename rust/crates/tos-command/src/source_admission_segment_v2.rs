@@ -1404,14 +1404,13 @@ pub(crate) fn build_initial_rootset_v2(
         )
         .map_err(tree_io_error)?;
     add_tree_work(&mut used, history_read_work, base_limits)?;
-    let current_row = current_row
-        .as_deref()
-        .ok_or_else(|| invalid("V2 current history row is absent"))?;
+    let current_row = current_row.ok_or_else(|| invalid("V2 current history row is absent"))?;
     let decode_workspace = decode_workspace_upper_bound(current_row.len())?;
     if decode_workspace > profile.max_working_state_bytes {
         return Err(invalid("V2 current history decode exceeds state profile"));
     }
-    roots.verify_current_history_row(revision.0.as_bytes(), current_row, decode_workspace)?;
+    roots.verify_current_history_row(revision.0.as_bytes(), &current_row, decode_workspace)?;
+    drop(current_row);
     index.verify_candidate()?;
     let bytes =
         roots.encode_with_state_limit(profile.max_working_state_bytes, writer_live_state)?;
