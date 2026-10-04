@@ -143,6 +143,14 @@ pub struct SourceFoundationClosureCost {
     pub candidate_claim_id_serialized_write_bytes: u64,
     pub candidate_claim_id_scan_row_operations: u64,
     pub candidate_claim_id_peak_workspace_state_bytes: usize,
+    /// Candidate Closure membership IDs and subject join keys held in the
+    /// invocation-scoped exact-key store; the finite compatibility path keeps
+    /// its original in-process map.
+    pub candidate_membership_claim_count: u64,
+    pub candidate_membership_claim_serialized_read_bytes: u64,
+    pub candidate_membership_claim_serialized_write_bytes: u64,
+    pub candidate_membership_claim_scan_row_operations: u64,
+    pub candidate_membership_claim_peak_workspace_state_bytes: usize,
 }
 
 /// Plain current-record projection used only by the source-foundation Link
@@ -238,6 +246,13 @@ pub struct SourceFoundationClosureSchemaRequestStoreCost {
     pub claim_id_scan_row_operations: u64,
     pub claim_id_workspace_state_bytes: usize,
     pub claim_id_eof_seen: bool,
+    pub membership_claim_rows: u64,
+    pub membership_claim_drained_rows: u64,
+    pub membership_claim_serialized_read_bytes: u64,
+    pub membership_claim_serialized_write_bytes: u64,
+    pub membership_claim_scan_row_operations: u64,
+    pub membership_claim_workspace_state_bytes: usize,
+    pub membership_claim_eof_seen: bool,
 }
 
 /// Portable candidate spool for authentic Closure schema requests,
@@ -260,6 +275,31 @@ pub trait SourceFoundationClosureSchemaRequestStore {
         id: &str,
         max_state_bytes: usize,
     ) -> Result<(bool, usize), ItemRefusal>;
+
+    /// Upsert one ID-to-subject projection with BTreeMap replacement
+    /// semantics. The result is true only for the first unique ID.
+    fn remember_membership_claim(
+        &mut self,
+        id: &str,
+        subject: &str,
+        max_state_bytes: usize,
+    ) -> Result<(bool, usize), ItemRefusal>;
+
+    /// Exact-key membership claim lookup used by boundary references.
+    fn contains_membership_claim(
+        &mut self,
+        id: &str,
+        max_state_bytes: usize,
+    ) -> Result<(bool, usize), ItemRefusal>;
+
+    /// Stream membership claim IDs for one subject in binary key order and
+    /// return only after observing the selected query's true EOF.
+    fn for_each_membership_claim_for_subject(
+        &mut self,
+        subject: &str,
+        max_state_bytes: usize,
+        visit: &mut dyn FnMut(&str) -> Result<(), ItemRefusal>,
+    ) -> Result<(u64, usize), ItemRefusal>;
 
     /// Record a source-derived document digest once. Repeated paths must
     /// carry the same digest; a mismatch means the exact current cut moved.
@@ -343,6 +383,7 @@ pub trait SourceFoundationClosureSchemaRequestStore {
         expected_event_rows: u64,
         expected_event_path_rows: u64,
         expected_claim_id_rows: u64,
+        expected_membership_claim_rows: u64,
         direct_issue_count: usize,
         max_state_bytes: usize,
     ) -> Result<SourceFoundationClosureSchemaRequestStoreCost, ItemRefusal>;
@@ -651,6 +692,7 @@ fn run_source_foundation_closure<S: LayerFamilySource + ?Sized>(
     let expected_event_rows = rules.cost.candidate_event_count;
     let expected_event_path_rows = rules.cost.candidate_event_path_count;
     let expected_claim_id_rows = rules.cost.candidate_claim_id_count;
+    let expected_membership_claim_rows = rules.cost.candidate_membership_claim_count;
     let schema_request_finish = if rules.schema_request_store.is_some() {
         let direct_issue_count = rules.issues.len();
         let remaining = rules.remaining_state()?;
@@ -664,6 +706,7 @@ fn run_source_foundation_closure<S: LayerFamilySource + ?Sized>(
                 expected_event_rows,
                 expected_event_path_rows,
                 expected_claim_id_rows,
+                expected_membership_claim_rows,
                 direct_issue_count,
                 remaining,
             )?;
@@ -682,7 +725,8 @@ fn run_source_foundation_closure<S: LayerFamilySource + ?Sized>(
                         .max(finished.loaded_document_workspace_state_bytes)
                         .max(finished.event_workspace_state_bytes)
                         .max(finished.event_path_workspace_state_bytes)
-                        .max(finished.claim_id_workspace_state_bytes),
+                        .max(finished.claim_id_workspace_state_bytes)
+                        .max(finished.membership_claim_workspace_state_bytes),
                 )
             })
             .ok_or(ItemRefusal::Budget)?;
@@ -691,6 +735,9 @@ fn run_source_foundation_closure<S: LayerFamilySource + ?Sized>(
             || finished.claim_id_rows != expected_claim_id_rows
             || finished.claim_id_drained_rows != expected_claim_id_rows
             || !finished.claim_id_eof_seen
+            || finished.membership_claim_rows != expected_membership_claim_rows
+            || finished.membership_claim_drained_rows != expected_membership_claim_rows
+            || !finished.membership_claim_eof_seen
         {
             return Err(ItemRefusal::Source(
                 "source-foundation Closure schema request store count or state differs".into(),
@@ -738,6 +785,17 @@ fn run_source_foundation_closure<S: LayerFamilySource + ?Sized>(
         rules.cost.candidate_claim_id_scan_row_operations = finished.claim_id_scan_row_operations;
         rules.cost.candidate_claim_id_peak_workspace_state_bytes =
             finished.claim_id_workspace_state_bytes;
+        rules.cost.candidate_membership_claim_count = finished.membership_claim_rows;
+        rules.cost.candidate_membership_claim_serialized_read_bytes =
+            finished.membership_claim_serialized_read_bytes;
+        rules.cost.candidate_membership_claim_serialized_write_bytes =
+            finished.membership_claim_serialized_write_bytes;
+        rules.cost.candidate_membership_claim_scan_row_operations =
+            finished.membership_claim_scan_row_operations;
+        rules
+            .cost
+            .candidate_membership_claim_peak_workspace_state_bytes =
+            finished.membership_claim_workspace_state_bytes;
     }
 
     Ok(SourceFoundationClosureReport {
@@ -2033,6 +2091,38 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
         Ok(found)
     }
 
+    fn remember_membership_claim(&mut self, id: &str, subject: &str) -> Result<(), ItemRefusal> {
+        let remaining = self.remaining_state()?;
+        let (inserted, workspace) = self
+            .schema_request_store
+            .as_deref_mut()
+            .ok_or(ItemRefusal::Budget)?
+            .remember_membership_claim(id, subject, remaining)?;
+        self.include_store_workspace(workspace)?;
+        if inserted {
+            self.cost.candidate_membership_claim_count = self
+                .cost
+                .candidate_membership_claim_count
+                .checked_add(1)
+                .ok_or(ItemRefusal::Budget)?;
+        }
+        Ok(())
+    }
+
+    fn contains_membership_claim(&mut self, id: &str) -> Result<bool, ItemRefusal> {
+        if self.schema_request_store.is_none() {
+            return Ok(self.membership.contains_key(id));
+        }
+        let remaining = self.remaining_state()?;
+        let (found, workspace) = self
+            .schema_request_store
+            .as_deref_mut()
+            .ok_or(ItemRefusal::Budget)?
+            .contains_membership_claim(id, remaining)?;
+        self.include_store_workspace(workspace)?;
+        Ok(found)
+    }
+
     fn check_records_map(&mut self) -> Result<(), ItemRefusal> {
         // Records owns schema, reference and duplicate findings. This boundary
         // only verifies caller map shape and supplies Link join rows;
@@ -2509,23 +2599,10 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
                 self.release_loaded_rows(loaded_state_bytes)?;
             }
         }
-        let limits = self.limits;
-        let cancelled = self.source.cancellation();
-        let temporary = self.temporary_state_bytes;
-        let issues = &mut self.issues;
-        let cost = &mut self.cost;
-        let retained = &mut self.retained_state_bytes;
-        let membership_refs = &self.boundary_membership_refs;
-        let membership = &self.membership;
+        let membership_refs = std::mem::take(&mut self.boundary_membership_refs);
         for reference in membership_refs {
-            if !membership.contains_key(reference) {
-                push_bounded_issue(
-                    issues,
-                    cost,
-                    retained,
-                    temporary,
-                    limits,
-                    cancelled,
+            if !self.contains_membership_claim(&reference)? {
+                self.issue(
                     SOURCE_HOME,
                     format!(
                         "work-boundary maps reference missing membership claims: [{reference}]"
@@ -4533,6 +4610,7 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
     fn check_record_backlinks(&mut self) -> Result<(), ItemRefusal> {
         let records = self.records;
         let membership = &self.membership;
+        let membership_store = &mut self.schema_request_store;
         let responsibility = &self.responsibility;
         let publication = &self.publication;
         let provision = &self.provision;
@@ -4576,14 +4654,49 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
             let location = record.path.as_str();
             let mut findings = Vec::<String>::new();
             if record.kind == "collection" {
-                let refs = value_strings(&record.value, "membership_claim_refs");
-                let actual: BTreeSet<String> = refs.iter().cloned().collect();
-                let valid_ids: BTreeSet<String> = membership
-                    .iter()
-                    .filter(|(_, claim)| claim.subject == id)
-                    .map(|(claim_id, _)| claim_id.clone())
-                    .collect();
-                if actual != valid_ids || refs.len() != actual.len() {
+                let mut refs = value_strings(&record.value, "membership_claim_refs");
+                let reference_count = refs.len();
+                refs.sort();
+                refs.dedup();
+                let mut mismatched = reference_count != refs.len();
+                if let Some(store) = membership_store.as_deref_mut() {
+                    let remaining = limits.max_state_bytes.checked_sub(used).ok_or(
+                        ItemRefusal::BudgetCheck {
+                            check: "source-foundation closure membership stream workspace",
+                            used: Some(used as u64),
+                            limit: Some(limits.max_state_bytes as u64),
+                        },
+                    )?;
+                    let mut next_ref = 0usize;
+                    let (drained, store_workspace) =
+                        store.for_each_membership_claim_for_subject(
+                            id,
+                            remaining,
+                            &mut |claim_id| {
+                                if refs.get(next_ref).map(String::as_str) != Some(claim_id) {
+                                    mismatched = true;
+                                }
+                                next_ref = next_ref.checked_add(1).ok_or(ItemRefusal::Budget)?;
+                                Ok(())
+                            },
+                        )?;
+                    let with_store = used
+                        .checked_add(store_workspace)
+                        .ok_or(ItemRefusal::Budget)?;
+                    if with_store > limits.max_state_bytes {
+                        return Err(ItemRefusal::Budget);
+                    }
+                    cost.reserved_state_bytes = cost.reserved_state_bytes.max(with_store);
+                    mismatched |= usize::try_from(drained).ok() != Some(refs.len());
+                } else {
+                    let valid_ids: BTreeSet<&str> = membership
+                        .iter()
+                        .filter(|(_, claim)| claim.subject == id)
+                        .map(|(claim_id, _)| claim_id.as_str())
+                        .collect();
+                    mismatched |= refs.iter().map(String::as_str).ne(valid_ids.iter().copied());
+                }
+                if mismatched {
                     findings.push("unresolved or mismatched membership claims: Collection membership refs do not close over all verified current Claims".to_owned());
                 }
             }
@@ -4680,13 +4793,13 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
     ) -> Result<(), ItemRefusal> {
         let location = format!("{path}:{line}");
         let (id, claim_id_state_bytes) = self.claim_id(&location, claim)?;
+        let mut candidate_claim_fields_state_bytes = 0usize;
+        let mut candidate_membership_state_bytes = 0usize;
         let result = (|| {
-            let subject = text(claim, "subject_ref").unwrap_or_default().to_owned();
-            let predicate = text(claim, "predicate").unwrap_or_default().to_owned();
-            let object = text(claim, "object").unwrap_or_default().to_owned();
-            let event = text(claim, "provenance_event_ref")
-                .unwrap_or_default()
-                .to_owned();
+            let subject = text(claim, "subject_ref").unwrap_or_default();
+            let predicate = text(claim, "predicate").unwrap_or_default();
+            let object = text(claim, "object").unwrap_or_default();
+            let event = text(claim, "provenance_event_ref").unwrap_or_default();
 
             if !event.is_empty() && !self.event_exists(&event)? {
                 self.issue(
@@ -4710,9 +4823,37 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
             let Some(id) = id else {
                 return Ok(());
             };
-            self.reserve(
-                subject.len() + predicate.len() + object.len() + event.len() + location.len() + 128,
-            )?;
+            let claim_fields_state_bytes = subject
+                .len()
+                .checked_add(predicate.len())
+                .and_then(|bytes| bytes.checked_add(object.len()))
+                .and_then(|bytes| bytes.checked_add(event.len()))
+                .and_then(|bytes| bytes.checked_add(location.len()))
+                .and_then(|bytes| bytes.checked_add(128))
+                .ok_or(ItemRefusal::Budget)?;
+            if self.schema_request_store.is_some() {
+                candidate_claim_fields_state_bytes = claim_fields_state_bytes;
+                self.reserve_temporary(candidate_claim_fields_state_bytes)?;
+            } else {
+                self.reserve(claim_fields_state_bytes)?;
+            }
+            let membership_applicable =
+                path.ends_with("/membership-claims.jsonl") || predicate == "contains_work";
+            if membership_applicable && self.schema_request_store.is_some() {
+                candidate_membership_state_bytes = subject
+                    .len()
+                    .checked_add(predicate.len())
+                    .and_then(|bytes| bytes.checked_add(object.len()))
+                    .and_then(|bytes| bytes.checked_add(event.len()))
+                    .and_then(|bytes| bytes.checked_add(location.len()))
+                    .and_then(|bytes| bytes.checked_add(std::mem::size_of::<ClaimRef>()))
+                    .ok_or(ItemRefusal::Budget)?;
+                self.reserve_temporary(candidate_membership_state_bytes)?;
+            }
+            let subject = subject.to_owned();
+            let predicate = predicate.to_owned();
+            let object = object.to_owned();
+            let event = event.to_owned();
             let reference = ClaimRef {
                 location: location.clone(),
                 subject: subject.clone(),
@@ -4722,11 +4863,15 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
                 native,
             };
 
-            if path.ends_with("/membership-claims.jsonl") || predicate == "contains_work" {
+            if membership_applicable {
                 self.expect_ref(&location, Some(&subject), "collection")?;
                 self.expect_ref(&location, Some(&object), "work")?;
-                self.reserve(claim_reference_index_state(&id, &reference)?)?;
-                self.membership.insert(id.clone(), reference.clone());
+                if self.schema_request_store.is_some() {
+                    self.remember_membership_claim(&id, &subject)?;
+                } else {
+                    self.reserve(claim_reference_index_state(&id, &reference)?)?;
+                    self.membership.insert(id.clone(), reference.clone());
+                }
             }
             if path.ends_with("/responsibility-claims.jsonl")
                 || matches!(
@@ -4797,8 +4942,12 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
             }
             Ok(())
         })();
+        let membership_release = self.release_loaded_rows(candidate_membership_state_bytes);
+        let claim_fields_release = self.release_loaded_rows(candidate_claim_fields_state_bytes);
         let release = self.release_loaded_rows(claim_id_state_bytes);
         result?;
+        membership_release?;
+        claim_fields_release?;
         release
     }
 
