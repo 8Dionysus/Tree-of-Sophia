@@ -858,6 +858,7 @@ impl<'host> SpoolCandidate<'host> {
             max_manifest_allocated_bytes,
             streamed,
             None,
+            None,
         )
     }
 
@@ -886,6 +887,43 @@ impl<'host> SpoolCandidate<'host> {
             max_manifest_allocated_bytes,
             streamed,
             Some(before_initial_publish),
+            None,
+        )
+    }
+
+    /// Recheck an authenticated V2 successor's held-source fence under the
+    /// existing publication lock, immediately before the current-selector
+    /// compare-and-swap. All ordinary Native candidate checks still run after
+    /// the callback; refusal retains the exact built artifact and allocation
+    /// custody.
+    pub(crate) fn publish_validated_successor_checked(
+        &self,
+        index: &super::source_admission_spooled_index::IndexView<'_>,
+        manifest_limits: super::source_admission_spooled_manifest::ManifestStreamLimits,
+        max_manifest_allocated_bytes: u64,
+        streamed: super::source_admission_store::StreamedPublicationRead,
+        before_successor_publish: &mut dyn FnMut() -> io::Result<()>,
+    ) -> io::Result<SpooledPublicationReceipt> {
+        if let Err(error) = self.tick() {
+            self.abandon();
+            return Err(error);
+        }
+        if self.batch.base_revision.is_none()
+            || self.base_v2.is_none()
+            || index.segment_v2_budget().is_none()
+        {
+            self.abandon();
+            return Err(invalid(
+                "successor publication fence requires an authenticated V2 base",
+            ));
+        }
+        self.publish_validated_inner(
+            index,
+            manifest_limits,
+            max_manifest_allocated_bytes,
+            streamed,
+            None,
+            Some(before_successor_publish),
         )
     }
 
@@ -896,6 +934,7 @@ impl<'host> SpoolCandidate<'host> {
         max_manifest_allocated_bytes: u64,
         streamed: super::source_admission_store::StreamedPublicationRead,
         mut before_initial_publish: Option<&mut dyn FnMut() -> io::Result<()>>,
+        mut before_successor_publish: Option<&mut dyn FnMut() -> io::Result<()>>,
     ) -> io::Result<SpooledPublicationReceipt> {
         let result = (|| {
             self.tick()?;
@@ -987,6 +1026,33 @@ impl<'host> SpoolCandidate<'host> {
                         ));
                     }
                 };
+                if let Some(check) = before_successor_publish.as_deref_mut() {
+                    let successor_fence_result = (|| {
+                        check()?;
+                        self.tick()?;
+                        index.verify_candidate()?;
+                        self.verify_consumed()?;
+                        if self.fence()? != fence {
+                            return Err(invalid("successor publication candidate fence changed"));
+                        }
+                        Ok(())
+                    })();
+                    if let Err(error) = successor_fence_result {
+                        return Err(io::Error::new(
+                            error.kind(),
+                            SpooledPublicationV2Refusal {
+                                revision,
+                                manifest_sha256: None,
+                                source_artifact: Some(source_artifact.clone()),
+                                rootset_sha256: Some(rootset_sha256),
+                                batch_sha256: fence.batch_sha256,
+                                validator_sha256: fence.validator_sha256,
+                                persistent_store_custody: Some(Arc::clone(&custody)),
+                                cause: error,
+                            },
+                        ));
+                    }
+                }
                 if let Err(error) = self.store.publish_v2_successor(
                     built,
                     self.limits.candidate.reader,

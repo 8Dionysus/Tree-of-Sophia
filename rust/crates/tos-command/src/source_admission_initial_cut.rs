@@ -170,6 +170,26 @@ impl InitialCutPrepared<'_> {
         self.fence.proposal
     }
 
+    /// After exact accepted-publication lookup misses, prove the target is
+    /// still a genuinely empty initial store before candidate ingestion writes
+    /// any objects. Accepted retries skip this check and recover the retained
+    /// publication instead of attempting another initial CAS.
+    pub(crate) fn verify_initial_miss_baseline(
+        &mut self,
+        invocation: &NativeSourceValidator<'_>,
+        store: &AdmissionStore,
+        limits: ReadLimits,
+        accountant: &Arc<NativeV2TreeIo>,
+    ) -> io::Result<()> {
+        if self.batch.is_some() {
+            return Err(invalid(
+                "initial miss baseline follows exact accepted-publication lookup",
+            ));
+        }
+        self.fence
+            .verify_initial_miss_baseline(invocation, store, limits, accountant)
+    }
+
     /// Recheck the complete selected filesystem cut and exact store object
     /// closure after Native validation. The initial publisher must call this
     /// as its in-lock pre-publication fence before it builds or installs V2
@@ -205,6 +225,7 @@ struct InitialCutFence<'a> {
     deadline: Instant,
     cancel: Arc<AtomicBool>,
     work: InitialCutWork,
+    miss_baseline_verified: bool,
 }
 
 // This is a local meter for the initial-cut producer, bounded by a work slice
@@ -867,7 +888,7 @@ pub(crate) fn prepare_initial_cut<'a>(
     root_name: &'a Path,
     invocation: &mut NativeSourceValidator<'_>,
     store: &AdmissionStore,
-    read_limits: ReadLimits,
+    _read_limits: ReadLimits,
     accountant: &Arc<NativeV2TreeIo>,
     profile: InitialCutProfile,
     workspace: File,
@@ -895,18 +916,6 @@ pub(crate) fn prepare_initial_cut<'a>(
     work.charge_many(root_path_component_count(root_name)?.saturating_add(1))?;
     let (root, root_identity, root_stamp) =
         open_selected_root(root_name, &spool_io, deadline, cancel)?;
-    work.charge_many(8)?;
-    let selected = store.current_selection(
-        narrow_current_limits(read_limits, accountant)?,
-        deadline,
-        cancel,
-        Some(&v2_io),
-    )?;
-    if selected.is_some() {
-        return Err(invalid("initial V2 source cut requires an empty selector"));
-    }
-    verify_initial_store_baseline(store, &v2_io, &mut work, deadline, cancel)?;
-
     let retained_cancel = Arc::clone(&aux.cancelled);
     work.charge_many(32)?;
     let mut scope = PinnedSqliteAuxScope::new(workspace, aux)
@@ -978,11 +987,54 @@ pub(crate) fn prepare_initial_cut<'a>(
             deadline,
             cancel: retained_cancel,
             work,
+            miss_baseline_verified: false,
         },
     })
 }
 
 impl InitialCutFence<'_> {
+    fn verify_initial_miss_baseline(
+        &mut self,
+        invocation: &NativeSourceValidator<'_>,
+        store: &AdmissionStore,
+        limits: ReadLimits,
+        accountant: &Arc<NativeV2TreeIo>,
+    ) -> io::Result<()> {
+        active(self.deadline, &self.cancel)?;
+        invocation.verify_spooled_v2_io(
+            &self.spool_io,
+            &self.v2_io,
+            self.deadline,
+            &self.cancel,
+        )?;
+        if !accountant.io_budget().shares_with(&self.v2_io)
+            || !store.has_v2_allocation_accountant(accountant)
+        {
+            return Err(invalid("initial miss baseline original binding changed"));
+        }
+        self.work.charge_many(8)?;
+        if store
+            .current_selection(
+                narrow_current_limits(limits, accountant)?,
+                self.deadline,
+                &self.cancel,
+                Some(&self.v2_io),
+            )?
+            .is_some()
+        {
+            return Err(invalid("initial V2 source cut requires an empty selector"));
+        }
+        verify_initial_store_baseline(
+            store,
+            &self.v2_io,
+            &mut self.work,
+            self.deadline,
+            &self.cancel,
+        )?;
+        self.miss_baseline_verified = true;
+        Ok(())
+    }
+
     fn verify_before_publish(
         &mut self,
         invocation: &NativeSourceValidator<'_>,
@@ -991,6 +1043,11 @@ impl InitialCutFence<'_> {
         accountant: &Arc<NativeV2TreeIo>,
     ) -> io::Result<()> {
         active(self.deadline, &self.cancel)?;
+        if !self.miss_baseline_verified {
+            return Err(invalid(
+                "initial publication requires an empty-baseline miss check",
+            ));
+        }
         invocation.verify_spooled_v2_io(
             &self.spool_io,
             &self.v2_io,
