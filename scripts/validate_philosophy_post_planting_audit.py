@@ -3,12 +3,23 @@
 
 from __future__ import annotations
 
+from philosophy_native_command import main as _native_philosophy_main
+
+
+def main() -> int:
+    return _native_philosophy_main('audit', validate=True)
+
+
+# Executable dispatch must not load retained Python producer dependencies.
+if __name__ == "__main__":
+    raise SystemExit(main())
+
 import json
 
 from philosophy_post_planting_audit_common import AUDIT_JSON_PATH, AUDIT_MD_PATH, build_payload, render_markdown, render_payload
 
 
-def main() -> int:
+def _reference_main() -> int:
     expected = build_payload()
     current = json.loads(AUDIT_JSON_PATH.read_text(encoding="utf-8"))
     if render_payload(current) != render_payload(expected):
@@ -36,7 +47,3 @@ def main() -> int:
 
     print("[ok] validated ToS philosophy post-planting audit")
     return 0
-
-
-if __name__ == "__main__":
-    raise SystemExit(main())

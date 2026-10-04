@@ -3,6 +3,17 @@
 
 from __future__ import annotations
 
+from philosophy_native_command import main as _native_philosophy_main
+
+
+def main() -> int:
+    return _native_philosophy_main('graph', validate=False)
+
+
+# Executable dispatch must not load retained Python producer dependencies.
+if __name__ == "__main__":
+    raise SystemExit(main())
+
 import argparse
 
 from philosophy_graph_projection_common import GRAPH_PROJECTION_PATH, build_payload, render_payload
@@ -18,7 +29,7 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def main() -> int:
+def _reference_main() -> int:
     args = parse_args()
     payload = build_payload()
     rendered = render_payload(payload)
@@ -32,7 +43,3 @@ def main() -> int:
     GRAPH_PROJECTION_PATH.write_text(rendered, encoding="utf-8")
     print("[ok] wrote ToS/derived-exports/philosophy_graph_projection.min.json")
     return 0
-
-
-if __name__ == "__main__":
-    raise SystemExit(main())

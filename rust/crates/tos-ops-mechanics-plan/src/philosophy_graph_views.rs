@@ -74,12 +74,14 @@ fn canonical(raw: &[u8], max: usize) -> io::Result<Vec<u8>> {
     )
     .map_err(io::Error::other)
 }
-struct BoundedWriter {
+struct BoundedWriter<'a> {
     raw: Vec<u8>,
     max: usize,
+    check: &'a mut dyn FnMut() -> io::Result<()>,
 }
-impl Write for BoundedWriter {
+impl Write for BoundedWriter<'_> {
     fn write(&mut self, bytes: &[u8]) -> io::Result<usize> {
+        (self.check)()?;
         if self
             .raw
             .len()
@@ -96,15 +98,32 @@ impl Write for BoundedWriter {
     }
 }
 fn render(value: &Value) -> io::Result<Vec<u8>> {
-    let max = ViewLimits::default().max_output_bytes;
+    render_payload(
+        value,
+        ViewLimits::default().max_output_bytes,
+        &mut || Ok(()),
+    )
+}
+/// Existing sorted compact spelling with a caller's original operation guard.
+/// The returned bytes exclude the maintained final LF.
+pub(crate) fn render_payload(
+    value: &Value,
+    max: usize,
+    check: &mut impl FnMut() -> io::Result<()>,
+) -> io::Result<Vec<u8>> {
+    check()?;
     let mut output = BoundedWriter {
         raw: Vec::new(),
         max,
+        check,
     };
     serde_json::to_writer(&mut output, value).map_err(io::Error::other)?;
     // Both sides use Python sorted compact spelling. The common final LF in
     // render_payload cancels in equality; no new digest/identity is issued.
-    canonical(&output.raw, max)
+    (output.check)()?;
+    let rendered = canonical(&output.raw, max)?;
+    (output.check)()?;
+    Ok(rendered)
 }
 fn schema_check(
     validator: &jsonschema::Validator,
@@ -214,6 +233,13 @@ pub fn run_validation(root: &Path, cancel: &AtomicI32) -> io::Result<()> {
     )?;
     drop(current_bytes);
     drop(expected_bytes);
+    validate_assertions(&current, &mut || source.check())
+}
+/// Shared maintained assertions after schema and canonical rebuild equality.
+pub(crate) fn validate_assertions(
+    current: &Value,
+    check: &mut impl FnMut() -> io::Result<()>,
+) -> io::Result<()> {
     let counts = current
         .get("counts")
         .and_then(Value::as_object)
@@ -272,7 +298,7 @@ pub fn run_validation(root: &Path, cancel: &AtomicI32) -> io::Result<()> {
         .into_iter()
         .flatten()
     {
-        source.check()?;
+        check()?;
         if v.is_object() {
             if let Some(id) = v.get("view_id").and_then(Value::as_str) {
                 views.insert(id, v);
@@ -316,7 +342,7 @@ pub fn run_validation(root: &Path, cancel: &AtomicI32) -> io::Result<()> {
         ),
         "canon-promotion view must collapse by canon/candidate status",
     )?;
-    source.check()
+    check()
 }
 pub fn run(root: &Path, cancel: &AtomicI32) -> io::Result<i32> {
     match run_validation(root, cancel) {

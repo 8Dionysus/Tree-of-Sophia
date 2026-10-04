@@ -1147,12 +1147,21 @@ print(json.dumps(f['finish'](repository,root),separators=(',',':')))
 
 #[test]
 fn native_public_assessment_v1_v2_v3_append_replay_and_revocation_preserve_source() {
+    native_public_assessment_versions(&[1, 2, 3]);
+}
+
+#[test]
+fn native_public_assessment_v3_append_replay_revocation_and_metadata_scope_preserve_source() {
+    native_public_assessment_versions(&[3]);
+}
+
+fn native_public_assessment_versions(versions: &[u8]) {
     let repository = super::validation_cut_cases::repository()
         .canonicalize()
         .unwrap();
     let deadline = Instant::now() + Duration::from_secs(600);
     let cancelled = AtomicBool::new(false);
-    for version in [1u8, 2, 3] {
+    for &version in versions {
         let temporary = tempfile::tempdir().unwrap();
         let script = format!(
             r#"
@@ -1229,7 +1238,9 @@ print(json.dumps(f['prepare'](repository,root,{version}),ensure_ascii=False,sepa
         let invocation_path = temporary.path().join("public-journal-invocation.json");
         fs::write(&invocation_path, serde_json::to_vec(&invocation).unwrap()).unwrap();
         fs::set_permissions(&invocation_path, fs::Permissions::from_mode(0o600)).unwrap();
+        let invocation_count = std::cell::Cell::new(0u32);
         let observe = |request: &Value| {
+            invocation_count.set(invocation_count.get().checked_add(1).unwrap());
             super::command_text_cases::native_owner_cli_observation(
                 &repository,
                 &owner,
@@ -1242,7 +1253,9 @@ print(json.dumps(f['prepare'](repository,root,{version}),ensure_ascii=False,sepa
             let (status, raw, errors) = observe(request);
             assert!(
                 status.success(),
-                "public Journal v{version}: {}",
+                "public Journal v{version} call {} operation {}: {}",
+                invocation_count.get(),
+                request["operation"].as_str().unwrap_or("missing"),
                 String::from_utf8_lossy(&errors)
             );
             serde_json::from_slice(&raw).unwrap()
@@ -1324,6 +1337,10 @@ print(json.dumps(f['prepare'](repository,root,{version}),ensure_ascii=False,sepa
         if version == 3 {
             config["authorities"][0] = original_authority;
             config["native_text_units"][0]["read_scope"] = Value::from("metadata_only");
+            // The genuine metadata-only resolver view has a new subject digest.
+            // Keep request.expected_subject unchanged for the stale downgrade refusal.
+            config["subjects"][fixture["subject_id"].as_str().unwrap()]["record"] =
+                fixture["metadata_subject"].clone();
             fs::write(&owner, serde_json::to_vec(&config).unwrap()).unwrap();
             fs::set_permissions(&owner, fs::Permissions::from_mode(0o600)).unwrap();
             let metadata = invoke(&describe);

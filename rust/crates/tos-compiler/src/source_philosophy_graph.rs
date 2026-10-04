@@ -2,14 +2,33 @@
 use crate::source_philosophy_multilingual::Multilingual;
 use crate::source_philosophy_support::check_run;
 use crate::source_philosophy_support::{
-    array, bytes, digest, fallback, required, sha1_hex, string, string_set, truth,
+    array, bytes_with_check, digest_with_check, fallback, required, sha1_hex, string, string_set,
+    truth,
 };
 use crate::source_philosophy_views::{ATLAS_REF, LENS_CONTRACT, VIEW_CONTRACT};
 use crate::{Error, Result};
 use serde_json::{Value, json};
 use std::collections::{BTreeMap, BTreeSet};
-use std::sync::atomic::AtomicBool;
+use std::sync::OnceLock;
+use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::time::Instant;
+/// Opt-in operator diagnostics only: at most 64 bounded metadata records per worker.
+/// No authored content, source identity, result bytes, or assertion is changed.
+pub fn graph_phase_mark(phase: &'static str, view_id: Option<&str>) {
+    static ENABLED: OnceLock<bool> = OnceLock::new();
+    static START: OnceLock<Instant> = OnceLock::new();
+    static RECORDS: AtomicUsize = AtomicUsize::new(0);
+    if !*ENABLED
+        .get_or_init(|| std::env::var_os("TOS_PHI_GRAPH_PHASE_TRACE").is_some_and(|v| v == "1"))
+        || RECORDS.fetch_add(1, Ordering::Relaxed) >= 64
+    {
+        return;
+    }
+    let elapsed = START.get_or_init(Instant::now).elapsed().as_millis();
+    let view = view_id.filter(|id| id.len() <= 128).unwrap_or("");
+    eprintln!("phi-graph-phase elapsed_ms={elapsed} phase={phase} view={view:?}");
+}
+
 fn predicate_layers(key: &str) -> BTreeSet<String> {
     let layers: &[&str] = match key {
         "belongs_to_genre" => &["conceptual-relation"],
@@ -114,9 +133,12 @@ impl Work<'_> {
         if remaining == 0 {
             return Err(Error::Budget("philosophy graph material"));
         }
+        let deadline = self.deadline;
+        let cancelled = self.cancelled;
+        let mut check = || check_run(deadline, cancelled);
         self.material_bytes = self
             .material_bytes
-            .checked_add(bytes(value, remaining)?.len())
+            .checked_add(bytes_with_check(value, remaining, &mut check)?.len())
             .ok_or(Error::Budget("philosophy graph material"))?;
         Ok(())
     }
@@ -198,16 +220,31 @@ fn node_matches(n: &Value, f: &Value) -> bool {
     false
 }
 fn refs(items: &[&Value], nested: bool) -> BTreeSet<String> {
+    refs_checked(items, nested, &mut || Ok(())).expect("no-op source-ref checkpoint")
+}
+fn refs_checked(
+    items: &[&Value],
+    nested: bool,
+    check: &mut impl FnMut() -> Result<()>,
+) -> Result<BTreeSet<String>> {
     let mut out = BTreeSet::new();
     for item in items {
-        if let Some(s) = item["source_ref"].as_str().filter(|s| !s.is_empty()) {
-            out.insert(s.into());
+        check()?;
+        if let Some(source_ref) = item["source_ref"].as_str().filter(|s| !s.is_empty()) {
+            out.insert(source_ref.to_owned());
         }
         if nested {
-            out.extend(string_set(&item["source_refs"]));
+            if let Some(source_refs) = item["source_refs"].as_array() {
+                for source_ref in source_refs {
+                    check()?;
+                    if let Some(source_ref) = source_ref.as_str().filter(|s| !s.is_empty()) {
+                        out.insert(source_ref.to_owned());
+                    }
+                }
+            }
         }
     }
-    out
+    Ok(out)
 }
 fn projection_node(
     n: &Value,
@@ -384,56 +421,114 @@ fn layer_counts(
     clusters: &[&Value],
     include_views: bool,
 ) -> Result<Vec<Value>> {
+    layer_counts_checked(
+        layers,
+        views,
+        nodes,
+        edges,
+        clusters,
+        include_views,
+        &mut || Ok(()),
+    )
+}
+fn layer_counts_checked(
+    layers: &[Value],
+    views: &[Value],
+    nodes: &[&Value],
+    edges: &[&Value],
+    clusters: &[&Value],
+    include_views: bool,
+    check: &mut impl FnMut() -> Result<()>,
+) -> Result<Vec<Value>> {
     let mut out = Vec::new();
     for layer in layers {
+        check()?;
         let id = required(layer, "layer_id")?;
-        let n = nodes
-            .iter()
-            .copied()
-            .filter(|v| string_set(&v["graph_layers"]).contains(id))
-            .collect::<Vec<_>>();
-        let e = edges
-            .iter()
-            .copied()
-            .filter(|v| string_set(&v["graph_layers"]).contains(id))
-            .collect::<Vec<_>>();
-        let c = clusters
-            .iter()
-            .copied()
-            .filter(|v| string_set(&v["graph_layers"]).contains(id))
-            .collect::<Vec<_>>();
+        let n = filter_layer(nodes, id, check)?;
+        let e = filter_layer(edges, id, check)?;
+        let c = filter_layer(clusters, id, check)?;
         let mut all = n.clone();
         all.extend(e.iter().copied());
         all.extend(c.iter().copied());
-        let mut row = json!({"layer_id":id,"node_count":n.len(),"edge_count":e.len(),"cluster_count":c.len(),"source_ref_count":refs(&all,true).len()});
+        let source_ref_count = refs_checked(&all, true, check)?.len();
+        let mut row = json!({"layer_id":id,"node_count":n.len(),"edge_count":e.len(),"cluster_count":c.len(),"source_ref_count":source_ref_count});
         if include_views {
-            row["view_count"] = json!(
-                views
-                    .iter()
-                    .filter(|v| string_set(&v["graph_layers"]).contains(id))
-                    .count()
-            );
+            let mut view_count = 0;
+            for view in views {
+                check()?;
+                if assertion_string_set(&view["graph_layers"], check)?.contains(id) {
+                    view_count += 1;
+                }
+            }
+            row["view_count"] = json!(view_count);
         }
         out.push(row);
     }
     Ok(out)
 }
-fn stable_items(items: &[&Value], key: &str) -> Result<Vec<Value>> {
-    let mut items = items.to_vec();
-    items.sort_by(|a, b| a[key].as_str().cmp(&b[key].as_str()));
-    Ok(items.iter().map(|v| (*v).clone()).collect())
+fn filter_layer<'a>(
+    items: &[&'a Value],
+    layer_id: &str,
+    check: &mut impl FnMut() -> Result<()>,
+) -> Result<Vec<&'a Value>> {
+    let mut out = Vec::new();
+    for item in items {
+        check()?;
+        if assertion_string_set(&item["graph_layers"], check)?.contains(layer_id) {
+            out.push(*item);
+        }
+    }
+    Ok(out)
 }
-fn fingerprint(
+fn stable_items(items: &[&Value], key: &str) -> Result<Vec<Value>> {
+    stable_items_checked(items, key, &mut || Ok(()))
+}
+fn stable_items_checked(
+    items: &[&Value],
+    key: &str,
+    check: &mut impl FnMut() -> Result<()>,
+) -> Result<Vec<Value>> {
+    let mut sorted = Vec::with_capacity(items.len());
+    for item in items {
+        check()?;
+        sorted.push(*item);
+    }
+    sorted.sort_by(|a, b| a[key].as_str().cmp(&b[key].as_str()));
+    let mut out = Vec::with_capacity(sorted.len());
+    for item in sorted {
+        check()?;
+        out.push(item.clone());
+    }
+    Ok(out)
+}
+fn fingerprint_checked(
     v: &ViewMaterial,
     nodes: &[&Value],
     edges: &[&Value],
     clusters: &[&Value],
     max: usize,
+    check: &mut impl FnMut() -> Result<()>,
 ) -> Result<String> {
-    digest(
-        &json!({"view_id":v.header["view_id"],"node_ids":v.nodes,"edge_ids":v.edges,"cluster_ids":clusters.iter().map(|c|required(c,"cluster_id").map(str::to_owned)).collect::<Result<BTreeSet<_>>>()?,"nodes":stable_items(nodes,"node_id")?,"edges":stable_items(edges,"edge_id")?,"clusters":stable_items(clusters,"cluster_id")?,"graph_layers":v.header["graph_layers"],"source_refs":v.header["source_refs"]}),
-        max,
-    )
+    let mut cluster_ids = BTreeSet::new();
+    for cluster in clusters {
+        check()?;
+        cluster_ids.insert(required(cluster, "cluster_id")?.to_owned());
+    }
+    let material = json!({
+        "view_id":v.header["view_id"],
+        "node_ids":v.nodes,
+        "edge_ids":v.edges,
+        "cluster_ids":cluster_ids,
+        "nodes":stable_items_checked(nodes,"node_id",check)?,
+        "edges":stable_items_checked(edges,"edge_id",check)?,
+        "clusters":stable_items_checked(clusters,"cluster_id",check)?,
+        "graph_layers":v.header["graph_layers"],
+        "source_refs":v.header["source_refs"]
+    });
+    check()?;
+    let result = digest_with_check(&material, max, check)?;
+    check()?;
+    Ok(result)
 }
 fn integer_limit(v: &Value, default: usize, max: usize) -> Result<usize> {
     let value = if truth(v) {
@@ -608,7 +703,14 @@ fn review_material(
                 .then_with(|| a["label"].as_str().cmp(&b["label"].as_str()))
         });
         let summaries=sorted.iter().take(integer_limit(&limits["cluster_summaries"],12,l.max_clusters)?).map(|c|json!({"cluster_id":c["cluster_id"],"cluster_kind":c["cluster_kind"],"label":c["label"],"node_count":c["member_node_ids"].as_array().map_or(0,Vec::len),"edge_count":c["member_edge_ids"].as_array().map_or(0,Vec::len),"source_ref_count":c["source_refs"].as_array().map_or(0,Vec::len)})).collect::<Vec<_>>();
-        let fingerprint = fingerprint(view, &vn, &ve, &vc, l.max_material_bytes)?;
+        let deadline = w.deadline;
+        let cancelled = w.cancelled;
+        graph_phase_mark("producer_fingerprint.begin", Some(id));
+        let fingerprint =
+            fingerprint_checked(view, &vn, &ve, &vc, l.max_material_bytes, &mut || {
+                check_run(deadline, cancelled)
+            })?;
+        graph_phase_mark("producer_fingerprint.end", Some(id));
         let mut changed = changed.clone();
         changed["snapshot_mode"] = json!("current-view-fingerprint");
         changed["current_view_fingerprint"] = json!(fingerprint);
@@ -626,7 +728,14 @@ fn review_material(
         .filter(|e| string_set(&e["view_ids"]).is_empty())
         .collect::<Vec<_>>();
     let material = json!({"node_ids":nodes.iter().map(|n|required(n,"node_id").map(str::to_owned)).collect::<Result<BTreeSet<_>>>()?,"edge_ids":edges.iter().map(|e|required(e,"edge_id").map(str::to_owned)).collect::<Result<BTreeSet<_>>>()?,"cluster_ids":clusters.iter().map(|c|required(c,"cluster_id").map(str::to_owned)).collect::<Result<BTreeSet<_>>>()?,"view_fingerprints":fingerprints,"unlensed_records":{"nodes":stable_items(&nl,"node_id")?,"edges":stable_items(&el,"edge_id")?}});
-    let snapshot = json!({"snapshot_schema_version":"tos_philosophy_graph_projection_snapshot_v1","current_snapshot":{"projection_fingerprint":digest(&material,l.max_material_bytes)?,"count_fingerprint":digest(&json!({"views":views.len(),"nodes":nodes.len(),"edges":edges.len(),"clusters":clusters.len()}),l.max_material_bytes)?,"view_fingerprints":fingerprints},"diff_route":{"mode":"fingerprint-ready","changed_subgraph_available":false,"previous_snapshot_ref":null,"next_route":"compare current_snapshot against a previous reviewed philosophy graph projection snapshot"}});
+    let mut check = || check_run(w.deadline, w.cancelled);
+    let projection_fingerprint = digest_with_check(&material, l.max_material_bytes, &mut check)?;
+    let count_fingerprint = digest_with_check(
+        &json!({"views":views.len(),"nodes":nodes.len(),"edges":edges.len(),"clusters":clusters.len()}),
+        l.max_material_bytes,
+        &mut check,
+    )?;
+    let snapshot = json!({"snapshot_schema_version":"tos_philosophy_graph_projection_snapshot_v1","current_snapshot":{"projection_fingerprint":projection_fingerprint,"count_fingerprint":count_fingerprint,"view_fingerprints":fingerprints},"diff_route":{"mode":"fingerprint-ready","changed_subgraph_available":false,"previous_snapshot_ref":null,"next_route":"compare current_snapshot against a previous reviewed philosophy graph projection snapshot"}});
     Ok((packets, snapshot))
 }
 pub fn build_graph(
@@ -868,7 +977,8 @@ pub fn build_graph(
     }
     let out = json!({"schema_version":"tos_philosophy_graph_projection_v2","schema_ref":GRAPH_SCHEMA,"owner_repo":"Tree-of-Sophia","surface_kind":"derived_philosophy_graph_projection","source_refs":{"atlas_projection_ref":ATLAS_REF,"graph_view_catalog_ref":VIEWS_REF,"source_view_contract_ref":VIEW_CONTRACT,"lens_review_contract_ref":LENS_CONTRACT,"cluster_contract_ref":CLUSTER_CONTRACT,"review_packet_contract_ref":REVIEW_CONTRACT},"content_language_contract":multi.content_language_contract()?,"runtime_projection_boundary":{"runtime_owner":"abyss-stack","runtime_scope":["serve this projection through API, MCP, UI, layout, and cache behavior","materialize this projection into Neo4j as a rebuildable cache","render switchable graph lenses without writing runtime state back into ToS"],"tos_authority_scope":["atlas projection and graph-view catalog remain the source-owned inputs","this projection is generated and reproducible, not canon","source_ref fields route every projected node and edge back to ToS-owned surfaces"]},"validation_refs":["scripts/build_philosophy_graph_projection.py","scripts/validate_philosophy_graph_projection.py","tests/test_philosophy_graph_projection.py"],"counts":{"views":exported.len(),"graph_layers":graph_layers.len(),"nodes":nodes.len(),"edges":edges.len(),"source_refs":refs(&nodes.iter().chain(edges.iter()).collect::<Vec<_>>(),false).len(),"diagnostics":diagnostics.len(),"clusters":clusters.len(),"review_packets":review_packets.len(),"unresolved_review_surfaces":unresolved.len(),"view_node_references":node_refs,"view_edge_references":edge_refs,"unlensed_nodes":nodes.iter().filter(|v|string_set(&v["view_ids"]).is_empty()).count(),"unlensed_edges":edges.iter().filter(|v|string_set(&v["view_ids"]).is_empty()).count()},"visibility_model":{"default_payload_mode":"cluster-first","default_depth":1,"default_limit":integer_limit(&rules["runtime_payload_limit"],200,l.max_nodes+l.max_edges)?,"layer_ids":graph_layers.iter().map(|l|required(l,"layer_id").map(str::to_owned)).collect::<Result<Vec<_>>>()?,"expand_returns":rules.get("expand_returns").cloned().unwrap_or(json!([])),"cluster_contract_ref":CLUSTER_CONTRACT,"review_packet_contract_ref":REVIEW_CONTRACT,"lens_review_contract_ref":LENS_CONTRACT},"snapshot_review":snapshot,"graph_layers":graph_layers,"layer_counts":layer_counts,"views":exported,"nodes":nodes,"edges":edges,"clusters":clusters,"review_packets":review_packets,"unresolved_review_surfaces":unresolved,"diagnostics":diagnostics});
     validate_cross_refs(&out)?;
-    bytes(&out, l.max_material_bytes)?;
+    let mut check = || check_run(deadline, cancelled);
+    bytes_with_check(&out, l.max_material_bytes, &mut check)?;
     Ok(out)
 }
 fn validate_cross_refs(v: &Value) -> Result<()> {
@@ -944,5 +1054,493 @@ fn validate_cross_refs(v: &Value) -> Result<()> {
             return Err(Error::Invalid("philosophy review packet view"));
         }
     }
+    Ok(())
+}
+
+fn assertion_strings(
+    v: &Value,
+    key: &str,
+    check: &mut impl FnMut() -> Result<()>,
+) -> Result<Vec<String>> {
+    let mut out = Vec::new();
+    for item in array(v, key)? {
+        check()?;
+        out.push(
+            item.as_str()
+                .map(str::to_owned)
+                .ok_or(Error::Invalid("philosophy graph validator string array"))?,
+        );
+    }
+    Ok(out)
+}
+
+fn assertion_id_map<'a>(
+    items: &'a [Value],
+    key: &str,
+    check: &mut impl FnMut() -> Result<()>,
+) -> Result<BTreeMap<String, &'a Value>> {
+    let mut out = BTreeMap::new();
+    for item in items {
+        check()?;
+        let id = required(item, key)?.to_owned();
+        out.insert(id, item);
+    }
+    Ok(out)
+}
+
+fn assertion_string_set(
+    value: &Value,
+    check: &mut impl FnMut() -> Result<()>,
+) -> Result<BTreeSet<String>> {
+    let mut out = BTreeSet::new();
+    if let Some(values) = value.as_array() {
+        for value in values {
+            check()?;
+            if let Some(value) = value.as_str().filter(|value| !value.is_empty()) {
+                out.insert(value.to_owned());
+            }
+        }
+    }
+    Ok(out)
+}
+
+fn assertion_map_keys<T>(
+    values: &BTreeMap<String, T>,
+    check: &mut impl FnMut() -> Result<()>,
+) -> Result<BTreeSet<String>> {
+    let mut out = BTreeSet::new();
+    for key in values.keys() {
+        check()?;
+        out.insert(key.clone());
+    }
+    Ok(out)
+}
+
+fn assertion_set_is_subset(
+    values: &BTreeSet<String>,
+    expected: &BTreeSet<String>,
+    check: &mut impl FnMut() -> Result<()>,
+) -> Result<bool> {
+    for value in values {
+        check()?;
+        if !expected.contains(value) {
+            return Ok(false);
+        }
+    }
+    Ok(true)
+}
+
+fn assertion_sets_equal(
+    left: &BTreeSet<String>,
+    right: &BTreeSet<String>,
+    check: &mut impl FnMut() -> Result<()>,
+) -> Result<bool> {
+    if left.len() != right.len() {
+        return Ok(false);
+    }
+    assertion_set_is_subset(left, right, check)
+}
+
+fn assertion_materials<'a>(
+    ids: &[String],
+    by_id: &BTreeMap<String, &'a Value>,
+    error: &'static str,
+    check: &mut impl FnMut() -> Result<()>,
+) -> Result<Vec<&'a Value>> {
+    let mut out = Vec::with_capacity(ids.len());
+    for id in ids {
+        check()?;
+        out.push(by_id.get(id).copied().ok_or(Error::Invalid(error))?);
+    }
+    Ok(out)
+}
+
+fn assertion_clusters_for_view<'a>(
+    clusters: &'a [Value],
+    view_id: &str,
+    check: &mut impl FnMut() -> Result<()>,
+) -> Result<Vec<&'a Value>> {
+    let mut out = Vec::new();
+    for cluster in clusters {
+        check()?;
+        if assertion_string_set(&cluster["view_ids"], check)?.contains(view_id) {
+            out.push(cluster);
+        }
+    }
+    Ok(out)
+}
+
+fn assertion_int(value: &Value) -> Result<i128> {
+    if !truth(value) {
+        return Ok(0);
+    }
+    match value {
+        Value::Bool(value) => Ok(i128::from(u8::from(*value))),
+        Value::Number(number) => {
+            if let Some(value) = number.as_i64() {
+                Ok(i128::from(value))
+            } else if let Some(value) = number.as_u64() {
+                Ok(i128::from(value))
+            } else if let Some(value) = number.as_f64() {
+                if value.is_finite() && value >= i128::MIN as f64 && value <= i128::MAX as f64 {
+                    Ok(value as i128)
+                } else {
+                    Err(Error::Invalid("philosophy graph validator integer"))
+                }
+            } else {
+                Err(Error::Invalid("philosophy graph validator integer"))
+            }
+        }
+        Value::String(value) => value
+            .trim_matches(crate::source_philosophy_support::source_space)
+            .parse::<i128>()
+            .map_err(|_| Error::Invalid("philosophy graph validator integer")),
+        _ => Err(Error::Invalid("philosophy graph validator integer")),
+    }
+}
+
+fn assertion_equal_number(value: &Value, expected: u64) -> bool {
+    value.as_u64() == Some(expected)
+        || value.as_i64() == Some(expected as i64)
+        || value.as_f64() == Some(expected as f64)
+}
+
+/// Runs the maintained graph-projection validator assertions on a parsed
+/// current payload. Schema validation and canonical rebuild parity belong to
+/// the owner adapter; fingerprint and layer-count mechanics stay shared with
+/// the native producer above.
+pub fn validate_graph_assertions(
+    current: &Value,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> Result<()> {
+    let mut check = || check_run(deadline, cancelled);
+    check()?;
+    let counts = current
+        .get("counts")
+        .filter(|value| value.is_object())
+        .ok_or(Error::Invalid("philosophy graph validator counts"))?;
+    if !assertion_equal_number(&counts["views"], 11) {
+        return Err(Error::Invalid("philosophy graph validator view count"));
+    }
+    if !assertion_equal_number(&counts["graph_layers"], 7) {
+        return Err(Error::Invalid("philosophy graph validator layer count"));
+    }
+    for key in [
+        "nodes",
+        "edges",
+        "clusters",
+        "view_node_references",
+        "view_edge_references",
+    ] {
+        check()?;
+        if assertion_int(&counts[key])? == 0 {
+            return Err(Error::Invalid("philosophy graph validator material count"));
+        }
+    }
+    if !assertion_equal_number(&counts["review_packets"], 11) {
+        return Err(Error::Invalid(
+            "philosophy graph validator review packet count",
+        ));
+    }
+    if !assertion_equal_number(&counts["diagnostics"], 0) {
+        return Err(Error::Invalid("philosophy graph validator diagnostics"));
+    }
+
+    if current["runtime_projection_boundary"]["runtime_owner"] != "abyss-stack" {
+        return Err(Error::Invalid("philosophy graph validator runtime owner"));
+    }
+    let visibility = current
+        .get("visibility_model")
+        .filter(|value| value.is_object())
+        .ok_or(Error::Invalid(
+            "philosophy graph validator visibility model",
+        ))?;
+    if visibility["default_payload_mode"] != "cluster-first" {
+        return Err(Error::Invalid("philosophy graph validator payload mode"));
+    }
+    let graph_layers = array(current, "graph_layers")?;
+    let mut graph_layer_ids = BTreeSet::new();
+    for layer in graph_layers {
+        check()?;
+        graph_layer_ids.insert(required(layer, "layer_id")?.to_owned());
+    }
+    if !assertion_sets_equal(
+        &assertion_string_set(&visibility["layer_ids"], &mut check)?,
+        &graph_layer_ids,
+        &mut check,
+    )? {
+        return Err(Error::Invalid(
+            "philosophy graph validator visibility layers",
+        ));
+    }
+
+    let snapshot = current
+        .get("snapshot_review")
+        .filter(|value| value.is_object())
+        .ok_or(Error::Invalid("philosophy graph validator snapshot review"))?;
+    let current_snapshot = snapshot
+        .get("current_snapshot")
+        .filter(|value| value.is_object())
+        .ok_or(Error::Invalid(
+            "philosophy graph validator current snapshot",
+        ))?;
+    if snapshot["snapshot_schema_version"] != "tos_philosophy_graph_projection_snapshot_v1" {
+        return Err(Error::Invalid("philosophy graph validator snapshot schema"));
+    }
+    let projection_fingerprint =
+        current_snapshot["projection_fingerprint"]
+            .as_str()
+            .ok_or(Error::Invalid(
+                "philosophy graph validator projection fingerprint",
+            ))?;
+    if projection_fingerprint.len() != 64 {
+        return Err(Error::Invalid(
+            "philosophy graph validator projection fingerprint",
+        ));
+    }
+    let view_fingerprints = array(current_snapshot, "view_fingerprints")?;
+    if view_fingerprints.len() != 11
+        || !assertion_equal_number(&counts["views"], view_fingerprints.len() as u64)
+    {
+        return Err(Error::Invalid(
+            "philosophy graph validator view fingerprints",
+        ));
+    }
+    if snapshot["diff_route"]["mode"] != "fingerprint-ready" {
+        return Err(Error::Invalid("philosophy graph validator diff route"));
+    }
+
+    let nodes = array(current, "nodes")?;
+    let edges = array(current, "edges")?;
+    let clusters = array(current, "clusters")?;
+    let node_by_id = assertion_id_map(nodes, "node_id", &mut check)?;
+    let edge_by_id = assertion_id_map(edges, "edge_id", &mut check)?;
+    let node_ids = assertion_map_keys(&node_by_id, &mut check)?;
+    let edge_ids = assertion_map_keys(&edge_by_id, &mut check)?;
+    for edge in edges {
+        check()?;
+        if !node_ids.contains(required(edge, "from_id")?)
+            || !node_ids.contains(required(edge, "to_id")?)
+        {
+            return Err(Error::Invalid("philosophy graph validator edge endpoint"));
+        }
+        if !truth(&edge["source_ref"]) {
+            return Err(Error::Invalid("philosophy graph validator edge source ref"));
+        }
+    }
+    for cluster in clusters {
+        check()?;
+        if !truth(&cluster["source_refs"]) {
+            return Err(Error::Invalid(
+                "philosophy graph validator cluster source refs",
+            ));
+        }
+        if !assertion_set_is_subset(
+            &assertion_string_set(&cluster["member_node_ids"], &mut check)?,
+            &node_ids,
+            &mut check,
+        )? || !assertion_set_is_subset(
+            &assertion_string_set(&cluster["member_edge_ids"], &mut check)?,
+            &edge_ids,
+            &mut check,
+        )? {
+            return Err(Error::Invalid("philosophy graph validator cluster members"));
+        }
+    }
+
+    let view_rows = array(current, "views")?;
+    let view_by_id = assertion_id_map(view_rows, "view_id", &mut check)?;
+    let views = assertion_map_keys(&view_by_id, &mut check)?;
+    let chronology = view_by_id
+        .get("chronology")
+        .copied()
+        .ok_or(Error::Invalid("philosophy graph validator chronology view"))?;
+    if chronology["layout_hint"] != "timeline-lanes"
+        || !truth(&chronology["node_ids"])
+        || !truth(&chronology["edge_ids"])
+    {
+        return Err(Error::Invalid("philosophy graph validator chronology view"));
+    }
+    let source_evidence = view_by_id
+        .get("source-evidence")
+        .copied()
+        .ok_or(Error::Invalid(
+            "philosophy graph validator source evidence view",
+        ))?;
+    if !assertion_string_set(&source_evidence["graph_layers"], &mut check)?
+        .contains("evidence-relation")
+    {
+        return Err(Error::Invalid(
+            "philosophy graph validator source evidence layer",
+        ));
+    }
+    for view in view_by_id.values() {
+        check()?;
+        if !truth(&view["source_refs"]) {
+            return Err(Error::Invalid(
+                "philosophy graph validator view source refs",
+            ));
+        }
+        if !truth(&view["review_intent"]) {
+            return Err(Error::Invalid(
+                "philosophy graph validator view review intent",
+            ));
+        }
+        if !assertion_set_is_subset(
+            &assertion_string_set(&view["node_ids"], &mut check)?,
+            &node_ids,
+            &mut check,
+        )? || !assertion_set_is_subset(
+            &assertion_string_set(&view["edge_ids"], &mut check)?,
+            &edge_ids,
+            &mut check,
+        )? {
+            return Err(Error::Invalid("philosophy graph validator view membership"));
+        }
+    }
+
+    let mut fingerprint_by_view = BTreeMap::new();
+    for item in view_fingerprints {
+        check()?;
+        if item.is_object() {
+            if let Some(view_id) = item["view_id"].as_str() {
+                fingerprint_by_view.insert(view_id.to_owned(), item["fingerprint"].clone());
+            }
+        }
+    }
+    let mut expected_fingerprints = BTreeMap::new();
+    let max_fingerprint_bytes = 512 * 1024 * 1024;
+    for (view_id, view) in &view_by_id {
+        check()?;
+        let node_id_list = assertion_strings(view, "node_ids", &mut check)?;
+        let edge_id_list = assertion_strings(view, "edge_ids", &mut check)?;
+        let mut sorted_node_ids = node_id_list.clone();
+        let mut sorted_edge_ids = edge_id_list.clone();
+        sorted_node_ids.sort();
+        sorted_edge_ids.sort();
+        check()?;
+        let view_nodes = assertion_materials(
+            &node_id_list,
+            &node_by_id,
+            "philosophy graph validator view node",
+            &mut check,
+        )?;
+        let view_edges = assertion_materials(
+            &edge_id_list,
+            &edge_by_id,
+            "philosophy graph validator view edge",
+            &mut check,
+        )?;
+        let view_clusters = assertion_clusters_for_view(clusters, view_id, &mut check)?;
+        let view_material = ViewMaterial {
+            header: json!({
+                "view_id": view_id,
+                "graph_layers": view["graph_layers"],
+                "source_refs": view["source_refs"],
+            }),
+            nodes: sorted_node_ids,
+            edges: sorted_edge_ids,
+        };
+        graph_phase_mark("assertion_fingerprint.begin", Some(view_id.as_str()));
+        let expected_fingerprint = fingerprint_checked(
+            &view_material,
+            &view_nodes,
+            &view_edges,
+            &view_clusters,
+            max_fingerprint_bytes,
+            &mut check,
+        )?;
+        graph_phase_mark("assertion_fingerprint.end", Some(view_id.as_str()));
+        if fingerprint_by_view.get(view_id).and_then(Value::as_str)
+            != Some(expected_fingerprint.as_str())
+        {
+            return Err(Error::Invalid(
+                "philosophy graph validator view fingerprint",
+            ));
+        }
+        expected_fingerprints.insert(view_id.clone(), expected_fingerprint);
+    }
+
+    let packet_rows = array(current, "review_packets")?;
+    let packet_by_view = assertion_id_map(packet_rows, "view_id", &mut check)?;
+    if !assertion_sets_equal(
+        &assertion_map_keys(&packet_by_view, &mut check)?,
+        &views,
+        &mut check,
+    )? {
+        return Err(Error::Invalid("philosophy graph validator packet/view set"));
+    }
+    for (view_id, packet) in &packet_by_view {
+        check()?;
+        if packet["changed_subgraph"]["current_view_fingerprint"].as_str()
+            != expected_fingerprints.get(view_id).map(String::as_str)
+        {
+            return Err(Error::Invalid(
+                "philosophy graph validator packet fingerprint",
+            ));
+        }
+        let view = view_by_id
+            .get(view_id)
+            .copied()
+            .ok_or(Error::Invalid("philosophy graph validator packet view"))?;
+        let node_id_list = assertion_strings(view, "node_ids", &mut check)?;
+        let edge_id_list = assertion_strings(view, "edge_ids", &mut check)?;
+        let view_nodes = assertion_materials(
+            &node_id_list,
+            &node_by_id,
+            "philosophy graph validator packet node",
+            &mut check,
+        )?;
+        let view_edges = assertion_materials(
+            &edge_id_list,
+            &edge_by_id,
+            "philosophy graph validator packet edge",
+            &mut check,
+        )?;
+        let view_clusters = assertion_clusters_for_view(clusters, view_id, &mut check)?;
+        let expected_layer_counts = layer_counts_checked(
+            graph_layers,
+            &[],
+            &view_nodes,
+            &view_edges,
+            &view_clusters,
+            false,
+            &mut check,
+        )?;
+        if packet.get("layer_counts") != Some(&json!(expected_layer_counts)) {
+            return Err(Error::Invalid(
+                "philosophy graph validator packet layer counts",
+            ));
+        }
+    }
+
+    let canon_packet = packet_by_view
+        .get("canon-promotion")
+        .copied()
+        .ok_or(Error::Invalid("philosophy graph validator canon packet"))?;
+    if !canon_packet
+        .as_object()
+        .is_some_and(|packet| packet.contains_key("candidate_to_canon_pressure"))
+    {
+        return Err(Error::Invalid("philosophy graph validator canon pressure"));
+    }
+    if fallback(
+        &canon_packet["changed_subgraph"]["current_view_fingerprint"],
+        "",
+    )
+    .len()
+        != 64
+    {
+        return Err(Error::Invalid(
+            "philosophy graph validator current fingerprint",
+        ));
+    }
+    if !truth(&canon_packet["recommended_human_review_route"]) {
+        return Err(Error::Invalid(
+            "philosophy graph validator human review route",
+        ));
+    }
+    check()?;
     Ok(())
 }

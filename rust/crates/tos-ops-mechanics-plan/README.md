@@ -368,3 +368,31 @@ maintained imports never execute it. The controlled `publish_kag_release.py`
 consumer retains its materialize/verify API. This source cutover requires native
 product and controlled publisher acceptance before deployment claims; it does
 not publish a KAG artifact or accept source, rights, canon or runtime authority.
+
+## Maintained philosophy product commands
+
+The public philosophy atlas, graph-view, graph and post-planting audit builder
+and validator scripts forward their ordinary invocation to the installed
+`tos-ops-mechanics-plan --philosophy-product` command. The default native role
+requires `compiler-backed-validators`; builds with `--no-default-features`
+provide the separate CI prerequisite executors. The scripts use the managed
+`tos-ops-mechanics-plan` alias on `PATH`, or an explicit absolute
+`TOS_OPS_MECHANICS_EXECUTOR`. They fail when that selected executable is absent;
+they do not fall back to the retained Python producer bodies. Those bodies
+remain explicit reference functions for their existing oracle consumers.
+
+Native product modes are `build`, `check` and `validate`; the corpus product
+route derives its existing atlas, view and graph companions on the selected
+source view. The original operation clock includes option and worker setup.
+The default is 600 seconds with 256 MiB of physical scratch, with the existing
+Linux subreaper/pidfd custody and finite cleanup grace. Exit 1 is the bounded
+failure contract; a final diagnostic is not promised. SIGINT and SIGTERM exit
+130 and 143 after cleanup. Generated products and successful validation do not
+admit source meaning, rights, review or canon.
+
+Prepared-dossier readiness and explicit planting use the same native role and
+managed command selection; their source, table, disposition and output contract
+is documented in [PLANTING_INTERFACE.md](PLANTING_INTERFACE.md). A supported
+installation of this role requires its own coherent source/profile/product
+proof and managed manifest membership. Installing the access, owner and worker
+roles alone does not install this command.

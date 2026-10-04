@@ -3225,8 +3225,10 @@
       "organ_lane": "projection/generated",
       "owner_surface": "ToS/derived-exports/AGENTS.md",
       "source_truth": [
-        "scripts/philosophy_atlas_projection_common.py",
-        "ToS/contracts/philosophy-atlas-projection.schema.json"
+        "ToS/contracts/philosophy-atlas-projection.schema.json",
+        "rust/crates/tos-compiler/src/source_philosophy_atlas.rs",
+        "rust/crates/tos-ops-mechanics-plan/src/philosophy_products.rs",
+        "scripts/philosophy_native_command.py"
       ],
       "reads": [
         "ToS/philosophy/atlas/**",
@@ -3252,8 +3254,10 @@
       "owner_surface": "ToS/derived-exports/AGENTS.md",
       "source_truth": [
         "ToS/philosophy/graph-workbench/views/view-contracts.json",
-        "scripts/philosophy_graph_views_common.py",
-        "ToS/contracts/philosophy-graph-views.schema.json"
+        "ToS/contracts/philosophy-graph-views.schema.json",
+        "rust/crates/tos-compiler/src/source_philosophy_views.rs",
+        "rust/crates/tos-ops-mechanics-plan/src/philosophy_products.rs",
+        "scripts/philosophy_native_command.py"
       ],
       "reads": [
         "ToS/philosophy/graph-workbench/views/*.graph.md",
@@ -3280,8 +3284,10 @@
         "ToS/derived-exports/philosophy_atlas_projection.min.json",
         "ToS/derived-exports/philosophy_graph_views.min.json",
         "ToS/philosophy/graph-workbench/views/view-contracts.json",
-        "scripts/philosophy_graph_projection_common.py",
-        "ToS/contracts/philosophy-graph-projection.schema.json"
+        "ToS/contracts/philosophy-graph-projection.schema.json",
+        "rust/crates/tos-compiler/src/source_philosophy_graph.rs",
+        "rust/crates/tos-ops-mechanics-plan/src/philosophy_products.rs",
+        "scripts/philosophy_native_command.py"
       ],
       "reads": [
         "ToS/derived-exports/philosophy_atlas_projection.min.json",
@@ -3304,7 +3310,6 @@
       "organ_lane": "projection/generated",
       "owner_surface": "ToS/philosophy/graph-workbench/review-packets/README.md",
       "source_truth": [
-        "scripts/philosophy_post_planting_audit_common.py",
         "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
         "ToS/philosophy/atlas/master-tables/table-ii/rows.jsonl",
         "ToS/philosophy/atlas/master-tables/table-iii/rows.jsonl",
@@ -3327,7 +3332,10 @@
         "ToS/philosophy/graph-workbench/branch-fragments/table-iii-prepared-dossier-branches.json",
         "ToS/derived-exports/philosophy_atlas_projection.min.json",
         "ToS/derived-exports/philosophy_graph_views.min.json",
-        "ToS/derived-exports/philosophy_graph_projection.min.json"
+        "ToS/derived-exports/philosophy_graph_projection.min.json",
+        "rust/crates/tos-compiler/src/source_philosophy_post_planting.rs",
+        "rust/crates/tos-ops-mechanics-plan/src/philosophy_products.rs",
+        "scripts/philosophy_native_command.py"
       ],
       "reads": [
         "ToS/philosophy/atlas/**",
@@ -3366,7 +3374,7 @@
         "ToS/derived-exports/philosophy_graph_projection.min.json"
       ],
       "writes": [],
-      "side_effects": "shared deterministic audit builder helpers only",
+      "side_effects": "retained explicit Python reference oracle; maintained native default is owned by rust/crates/tos-ops-mechanics-plan/src/philosophy_products.rs",
       "validation_lane": "graph_exports",
       "ci_inclusion": "release",
       "test_target": "tests/test_philosophy_post_planting_audit.py",
@@ -3382,7 +3390,8 @@
         "ToS/philosophy/atlas/master-tables/table-ii/rows.jsonl",
         "ToS/philosophy/atlas/master-tables/table-iii/rows.jsonl",
         "ToS/philosophy/atlas/dossiers/prepared-dossier-routes.json",
-        "scripts/plant_table_i_prepared_dossiers.py"
+        "rust/crates/tos-ops-mechanics-plan/src/prepared_dossier_native.rs",
+        "rust/crates/tos-ops-mechanics-plan/PLANTING_INTERFACE.md"
       ],
       "reads": [
         "operator-local DOCX sections declared by prepared-dossier-routes.json when present",
@@ -3392,7 +3401,7 @@
       "writes": [
         "delegates the aggregate write of all supported prepared-dossier packages to scripts/plant_table_i_prepared_dossiers.py only when --plant is used without --table"
       ],
-      "side_effects": "readiness output by default, optionally limited by --table; --plant is explicitly aggregate-only and writes the complete Table I, Table II, and Table III package surfaces through the package implementation",
+      "side_effects": "readiness output by default, optionally limited by --table; --plant is explicitly aggregate-only and writes the complete Table I, Table II, and Table III package surfaces through the package implementation; executable default forwards to installed native prepared-dossier owner; retained Python body is explicit reference-only, with no runtime fallback",
       "validation_lane": "graph_exports",
       "ci_inclusion": "focused-tests",
       "test_target": "tests/test_prepared_dossier_pipeline.py",
@@ -3409,7 +3418,9 @@
         "ToS/philosophy/philosophy.manifest.json",
         "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
         "ToS/philosophy/atlas/master-tables/table-ii/rows.jsonl",
-        "ToS/philosophy/atlas/master-tables/table-iii/rows.jsonl"
+        "ToS/philosophy/atlas/master-tables/table-iii/rows.jsonl",
+        "rust/crates/tos-ops-mechanics-plan/src/prepared_dossier_native.rs",
+        "rust/crates/tos-ops-mechanics-plan/PLANTING_INTERFACE.md"
       ],
       "reads": [
         "operator-local Table I, Table II, and Table III DOCX sections declared by ToS/philosophy/atlas/dossiers/prepared-dossier-routes.json",
@@ -3448,7 +3459,7 @@
         "ToS/philosophy/graph-workbench/language-packets/*.jsonl",
         "ToS/philosophy/philosophy.manifest.json"
       ],
-      "side_effects": "tracked complete Table I, Table II, and Table III intake/coverage, atlas, branch, source-anchor, language-packet, and pre-canon graph source surfaces; aggregate package implementation for scripts/plant_prepared_dossiers.py",
+      "side_effects": "tracked complete Table I, Table II, and Table III intake/coverage, atlas, branch, source-anchor, language-packet, and pre-canon graph source surfaces; aggregate package implementation for scripts/plant_prepared_dossiers.py; executable default forwards to installed native prepared-dossier owner; retained Python body is explicit reference-only, with no runtime fallback",
       "validation_lane": "graph_exports",
       "ci_inclusion": "focused-tests",
       "test_target": "tests/test_philosophy_atlas_projection.py",
@@ -3657,7 +3668,7 @@
         "ToS/philosophy/graph-workbench/views"
       ],
       "writes": [],
-      "side_effects": "library only",
+      "side_effects": "retained explicit Python reference oracle; maintained native default is owned by rust/crates/tos-ops-mechanics-plan/src/philosophy_products.rs",
       "validation_lane": "graph_exports",
       "ci_inclusion": "focused-tests",
       "test_target": "tests/test_philosophy_atlas_projection.py",
@@ -3677,7 +3688,7 @@
         "ToS/philosophy/atlas/multilingual/content-labels.json"
       ],
       "writes": [],
-      "side_effects": "library only",
+      "side_effects": "retained explicit Python reference oracle; maintained native default is owned by rust/crates/tos-ops-mechanics-plan/src/philosophy_products.rs",
       "validation_lane": "graph_exports",
       "ci_inclusion": "focused-tests",
       "test_target": "tests/test_philosophy_atlas_projection.py",
@@ -3699,7 +3710,7 @@
         "ToS/derived-exports/philosophy_atlas_projection.min.json"
       ],
       "writes": [],
-      "side_effects": "library only",
+      "side_effects": "retained explicit Python reference oracle; maintained native default is owned by rust/crates/tos-ops-mechanics-plan/src/philosophy_products.rs",
       "validation_lane": "graph_exports",
       "ci_inclusion": "focused-tests",
       "test_target": "tests/test_philosophy_graph_views.py",
@@ -3724,7 +3735,7 @@
         "ToS/philosophy/atlas/multilingual/content-labels.json"
       ],
       "writes": [],
-      "side_effects": "library only",
+      "side_effects": "retained explicit Python reference oracle; maintained native default is owned by rust/crates/tos-ops-mechanics-plan/src/philosophy_products.rs",
       "validation_lane": "graph_exports",
       "ci_inclusion": "focused-tests",
       "test_target": "tests/test_philosophy_graph_projection.py",
@@ -4038,7 +4049,10 @@
       "owner_surface": "ToS/contracts/philosophy-atlas-projection.schema.json",
       "source_truth": [
         "ToS/derived-exports/philosophy_atlas_projection.min.json",
-        "ToS/contracts/philosophy-atlas-projection.schema.json"
+        "ToS/contracts/philosophy-atlas-projection.schema.json",
+        "rust/crates/tos-compiler/src/source_philosophy_atlas.rs",
+        "rust/crates/tos-ops-mechanics-plan/src/philosophy_products.rs",
+        "scripts/philosophy_native_command.py"
       ],
       "reads": [
         "ToS/derived-exports/philosophy_atlas_projection.min.json"
@@ -4058,7 +4072,10 @@
       "source_truth": [
         "ToS/derived-exports/philosophy_graph_views.min.json",
         "ToS/philosophy/graph-workbench/views/view-contracts.json",
-        "ToS/contracts/philosophy-graph-views.schema.json"
+        "ToS/contracts/philosophy-graph-views.schema.json",
+        "rust/crates/tos-compiler/src/source_philosophy_views.rs",
+        "rust/crates/tos-ops-mechanics-plan/src/philosophy_products.rs",
+        "scripts/philosophy_native_command.py"
       ],
       "reads": [
         "ToS/derived-exports/philosophy_graph_views.min.json"
@@ -4080,7 +4097,10 @@
         "ToS/derived-exports/philosophy_atlas_projection.min.json",
         "ToS/derived-exports/philosophy_graph_views.min.json",
         "ToS/philosophy/graph-workbench/views/view-contracts.json",
-        "ToS/contracts/philosophy-graph-projection.schema.json"
+        "ToS/contracts/philosophy-graph-projection.schema.json",
+        "rust/crates/tos-compiler/src/source_philosophy_graph.rs",
+        "rust/crates/tos-ops-mechanics-plan/src/philosophy_products.rs",
+        "scripts/philosophy_native_command.py"
       ],
       "reads": [
         "ToS/derived-exports/philosophy_graph_projection.min.json"
@@ -4100,7 +4120,9 @@
       "source_truth": [
         "ToS/philosophy/graph-workbench/review-packets/table-i-post-planting-audit.json",
         "ToS/philosophy/graph-workbench/review-packets/table-i-post-planting-audit.md",
-        "scripts/philosophy_post_planting_audit_common.py"
+        "rust/crates/tos-compiler/src/source_philosophy_post_planting.rs",
+        "rust/crates/tos-ops-mechanics-plan/src/philosophy_products.rs",
+        "scripts/philosophy_native_command.py"
       ],
       "reads": [
         "ToS/philosophy/graph-workbench/review-packets/table-i-post-planting-audit.json",
@@ -4719,6 +4741,27 @@
       "validation_lane": "source_witness_foundation",
       "ci_inclusion": "focused-tests",
       "test_target": "tests/test_zarathustra_reading_query_v1.py",
+      "disposition": "keep"
+    },
+    {
+      "path": "scripts/philosophy_native_command.py",
+      "family": "native_command_adapter",
+      "organ_lane": "shared-library",
+      "owner_surface": "ToS/philosophy/AGENTS.md",
+      "source_truth": [
+        "rust/crates/tos-ops-mechanics-plan/src/philosophy_products.rs",
+        "rust/crates/tos-ops-mechanics-plan/src/prepared_dossier_entry.rs"
+      ],
+      "reads": [
+        "selected source root through native fd-backed reader"
+      ],
+      "writes": [
+        "fixed generated philosophy products through selected native output root only for build"
+      ],
+      "side_effects": "executes installed native product command; corpus batch waits for checked native completion; no Python fallback; prepared-dossier compatibility calls exec the same native owner with selected source root",
+      "validation_lane": "graph_exports",
+      "ci_inclusion": "release",
+      "test_target": "tests/test_philosophy_atlas_projection.py",
       "disposition": "keep"
     }
   ]

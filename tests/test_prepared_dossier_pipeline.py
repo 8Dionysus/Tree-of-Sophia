@@ -24,7 +24,7 @@ TABLE_II_RELATIONS_PATH = REPO_ROOT / "ToS/philosophy/graph-workbench/proposed-r
 if str(SCRIPTS) not in sys.path:
     sys.path.insert(0, str(SCRIPTS))
 
-from plant_prepared_dossiers import main as planting_main  # noqa: E402
+from plant_prepared_dossiers import _reference_main as planting_main  # noqa: E402
 from plant_prepared_dossiers import readiness_payload  # noqa: E402
 from plant_prepared_dossiers import table_readiness  # noqa: E402
 from plant_prepared_dossiers import validate_local_docx_contents  # noqa: E402
@@ -424,7 +424,7 @@ class PreparedDossierPipelineTest(unittest.TestCase):
             patch.object(planting_pipeline, "update_atlas") as update_atlas,
         ):
             with self.assertRaisesRegex(SystemExit, "not ready.*table-ii"):
-                planting_pipeline.main()
+                planting_pipeline._reference_main()
 
         write_package.assert_not_called()
         update_atlas.assert_not_called()
@@ -1054,7 +1054,7 @@ class PreparedDossierPipelineTest(unittest.TestCase):
             patch.object(planting_pipeline, "update_atlas") as update_atlas,
         ):
             with self.assertRaisesRegex(RuntimeError, "table-ii malformed"):
-                planting_pipeline.main()
+                planting_pipeline._reference_main()
         write_package.assert_not_called()
         update_atlas.assert_not_called()
 

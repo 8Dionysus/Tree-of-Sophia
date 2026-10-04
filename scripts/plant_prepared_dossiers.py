@@ -3,6 +3,17 @@
 
 from __future__ import annotations
 
+
+def main(argv: list[str] | None = None) -> int:
+    from philosophy_native_command import prepared_main
+    return prepared_main(plant=False, argv=argv)
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
+
+# Explicitly retained reference implementation; executable defaults above use native.
+
 import argparse
 import json
 import re
@@ -272,7 +283,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     return parser.parse_args(argv)
 
 
-def main(argv: list[str] | None = None) -> int:
+def _reference_main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     if args.readiness or not args.plant:
         print(json.dumps(readiness_payload(args.table), ensure_ascii=False, indent=2, sort_keys=True))

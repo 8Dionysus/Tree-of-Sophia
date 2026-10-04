@@ -2,9 +2,9 @@
 use crate::source_philosophy_multilingual::Multilingual;
 use crate::source_philosophy_support::check_run;
 use crate::source_philosophy_support::{
-    array, bytes, digest, fallback, object, required, sha1_hex, string, truth,
+    array, bytes, digest, fallback, object_with_profile, required, sha1_hex, string, truth,
 };
-use crate::{Error, Result};
+use crate::{Error, PhilosophySourceReadProfile, Result};
 use serde_json::{Value, json};
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::atomic::AtomicBool;
@@ -17,6 +17,56 @@ pub const GRAPH_SHAPE: &str = "ToS/philosophy/atlas/dossiers/graph-shape-summary
 pub const ALIASES_SOURCE: &str =
     "ToS/philosophy/graph-workbench/proposed-relations/reviewed-endpoint-aliases.json";
 pub const ATLAS_SCHEMA: &str = "ToS/contracts/philosophy-atlas-projection.schema.json";
+
+/// Maintained standalone assertions, after schema and rebuild equality.
+/// These constrain the derived carrier and do not admit philosophical meaning.
+pub fn validate_assertions(current: &Value) -> Result<()> {
+    let counts = &current["counts"];
+    for (key, expected) in [
+        ("master_tables", 3),
+        ("master_rows", 190),
+        ("dossiers", 190),
+        ("dossier_node_rows", 7193),
+        ("dossier_relation_rows", 8564),
+        ("candidate_nodes", 7193),
+        ("candidate_relations", 8564),
+    ] {
+        if counts[key].as_f64() != Some(expected as f64) {
+            return Err(Error::Source(format!(
+                "philosophy atlas projection must keep counts.{key}={expected}"
+            )));
+        }
+    }
+    if counts["graph_views"].as_f64().unwrap_or(0.0) < 1.0 {
+        return Err(Error::Invalid(
+            "philosophy atlas projection graph view route nodes",
+        ));
+    }
+    if counts["nodes"].as_f64().unwrap_or(0.0) <= counts["master_rows"].as_f64().unwrap_or(0.0) {
+        return Err(Error::Invalid(
+            "philosophy atlas projection structural nodes",
+        ));
+    }
+    if counts["edges"].as_f64().unwrap_or(0.0) <= counts["nodes"].as_f64().unwrap_or(0.0) {
+        return Err(Error::Invalid("philosophy atlas projection graph edges"));
+    }
+    if current["runtime_projection_boundary"]["runtime_owner"].as_str() != Some("abyss-stack") {
+        return Err(Error::Invalid(
+            "philosophy atlas projection runtime ownership",
+        ));
+    }
+    if current["diagnostics"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .any(|item| item.is_object() && item["level"].as_str() == Some("error"))
+    {
+        return Err(Error::Invalid(
+            "philosophy atlas projection error diagnostics",
+        ));
+    }
+    Ok(())
+}
 pub const NODE_SOURCES: [&str; 3] = [
     "ToS/philosophy/graph-workbench/proposed-nodes/table-i-prepared-dossiers.jsonl",
     "ToS/philosophy/graph-workbench/proposed-nodes/table-ii-prepared-dossiers.jsonl",
@@ -63,6 +113,7 @@ struct Snapshot<'a, F> {
     records: usize,
     deadline: Instant,
     cancelled: &'a AtomicBool,
+    input_profile: PhilosophySourceReadProfile,
 }
 impl<F: FnMut(&str) -> Result<Vec<u8>>> Snapshot<'_, F> {
     fn raw(&mut self, path: &str) -> Result<Vec<u8>> {
@@ -105,7 +156,7 @@ impl<F: FnMut(&str) -> Result<Vec<u8>>> Snapshot<'_, F> {
     }
     fn object(&mut self, path: &str) -> Result<(Value, Value)> {
         let raw = self.raw(path)?;
-        let v = object(&raw, self.limits.max_source_file_bytes)?;
+        let v = object_with_profile(&raw, self.limits.max_source_file_bytes, self.input_profile)?;
         let c = self.context(path, &v, "json", None, None)?;
         Ok((v, c))
     }
@@ -144,7 +195,11 @@ impl<F: FnMut(&str) -> Result<Vec<u8>>> Snapshot<'_, F> {
             if self.records > self.limits.max_records {
                 return Err(Error::Budget("philosophy source records"));
             }
-            let row = object(content, self.limits.max_source_file_bytes)?;
+            let row = object_with_profile(
+                content,
+                self.limits.max_source_file_bytes,
+                self.input_profile,
+            )?;
             if let Some(key) = key {
                 if !seen.insert(required(&row, key)?.to_owned()) {
                     return Err(Error::Invalid("philosophy atlas row identity"));
@@ -431,6 +486,32 @@ pub fn build_atlas<F>(
 where
     F: FnMut(&str) -> Result<Vec<u8>>,
 {
+    build_atlas_with_input_profile(
+        read,
+        optional_refs,
+        view_refs,
+        multilingual,
+        l,
+        deadline,
+        cancelled,
+        PhilosophySourceReadProfile::PublishedStrict,
+    )
+}
+/// Same atlas algorithm with an explicit consumer decoding profile. Raw
+/// callback bytes still supply source_file_sha256 before any JSON decoding.
+pub fn build_atlas_with_input_profile<F>(
+    read: &mut F,
+    optional_refs: &BTreeSet<String>,
+    view_refs: &[String],
+    multilingual: &Multilingual,
+    l: AtlasLimits,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+    input_profile: PhilosophySourceReadProfile,
+) -> Result<Value>
+where
+    F: FnMut(&str) -> Result<Vec<u8>>,
+{
     if l.max_source_file_bytes == 0
         || l.max_source_file_bytes > 32 * 1024 * 1024
         || l.max_input_bytes == 0
@@ -453,6 +534,7 @@ where
         records: 0,
         deadline,
         cancelled,
+        input_profile,
     };
     let (atlas, atlas_context) = s.object(ATLAS_SOURCE)?;
     let dossiers = s.rows(DOSSIERS_SOURCE, Some("dossier_id"))?;
@@ -511,7 +593,7 @@ where
             c["record_count"] = json!(count);
         }
     }
-    let shape = object(&s.raw(GRAPH_SHAPE)?, l.max_source_file_bytes)?;
+    let shape = object_with_profile(&s.raw(GRAPH_SHAPE)?, l.max_source_file_bytes, input_profile)?;
     let mut candidate_nodes = Vec::new();
     let mut candidate_relations = Vec::new();
     for (refs, rows) in [
@@ -1146,6 +1228,36 @@ pub(crate) fn validate_authored_context(
 #[cfg(test)]
 mod context_tests {
     use super::*;
+    #[test]
+    fn legacy_decoding_keeps_the_original_file_witness() {
+        let raw = b" {\"value\": 1, \"value\": 2}\n".to_vec();
+        let mut read = |_: &str| Ok(raw.clone());
+        let cancelled = AtomicBool::new(false);
+        let mut snapshot = Snapshot {
+            read: &mut read,
+            limits: AtlasLimits::default(),
+            work: 0,
+            digests: BTreeMap::new(),
+            records: 0,
+            deadline: Instant::now() + std::time::Duration::from_secs(5),
+            cancelled: &cancelled,
+            input_profile: PhilosophySourceReadProfile::LegacyPythonJsonLoads,
+        };
+        let (record, context) = snapshot.object("ToS/philosophy/source.json").unwrap();
+        assert_eq!(record["value"], 2);
+        assert_eq!(
+            context["source_file_sha256"],
+            Digest256::of_bytes(&raw).to_hex()
+        );
+        assert_eq!(
+            context["source_record_sha256"],
+            digest(&record, 4096).unwrap()
+        );
+        assert_ne!(
+            context["source_file_sha256"],
+            context["source_record_sha256"]
+        );
+    }
     #[test]
     fn graph_never_returns_changed_body_or_boolean_locator_as_exact_source() {
         let record = json!({"unknown":{"meaning":"source remains exact"}});

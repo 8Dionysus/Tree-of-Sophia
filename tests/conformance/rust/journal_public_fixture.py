@@ -70,10 +70,23 @@ def prepare(repository, root, version):
     assert sum(path.stat().st_size for path in entries if path.is_file()) <= 33_554_432
     preserved=[{'path':str(path),'sha256':hashlib.sha256(path.read_bytes()).hexdigest()}
         for path in sorted(entries) if path.is_file()]
+    metadata_subject = None
+    if version == 3:
+        from native_text_binding import NativeTextBindingResolver
+        from knowledge_assessment import Record
+        binding = config['native_text_units'][0]
+        metadata = NativeTextBindingResolver(public).assessment_records(
+            binding['binding'], origin_id=binding['origin_id'],
+            verify_content=False, allow_private_content=False)
+        metadata_subject = next(Record.from_payload(**row).ref
+            for row in metadata['records'] if row['id'] == subject_id)
+        assert metadata_subject['id'] == fixture.subject.ref['id']
+        assert metadata_subject['version'] == fixture.subject.ref['version']
+        assert metadata_subject['digest'] != fixture.subject.ref['digest']
     describe={'schema_version':'tos_local_assessment_command_v1','operation':'describe','subject_id':subject_id}
     # The reference reads the same exact public bytes; it creates no journal.
     expected = fixture.run(describe) if version == 3 else fixture.run_local(owner,describe)
     assert not list(Path(config['journal_directory']).iterdir())
     return {'owner':str(owner),'public':str(public),'context':str(context),
         'subject_id':subject_id,'request':request,'expected_describe':expected,
-        'preserved':preserved,'version':version}
+        'preserved':preserved,'version':version,'metadata_subject':metadata_subject}

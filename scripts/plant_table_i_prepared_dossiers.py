@@ -9,6 +9,17 @@ compatibility entrypoint for the first Table I package.
 
 from __future__ import annotations
 
+
+def main(argv: list[str] | None = None) -> int:
+    from philosophy_native_command import prepared_main
+    return prepared_main(plant=True, argv=argv)
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
+
+# Explicitly retained reference implementation; executable defaults above use native.
+
 import hashlib
 import json
 import re
@@ -2419,7 +2430,7 @@ def plant_supported_packages() -> int:
     return 0
 
 
-def main() -> int:
+def _reference_main() -> int:
     from plant_prepared_dossiers import require_aggregate_readiness
 
     require_aggregate_readiness()

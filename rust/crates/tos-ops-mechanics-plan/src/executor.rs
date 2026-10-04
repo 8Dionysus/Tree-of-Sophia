@@ -162,6 +162,33 @@ pub(crate) fn capture_kag_owner(
     capture_ci_git(root, argv, limits, cancel)
 }
 
+/// The philosophy CLI's existing Linux custody, with its original deadline
+/// captured before option/worker setup. Other executor clients keep their law.
+pub(crate) fn run_philosophy_product(
+    argv: Vec<String>,
+    limits: Limits,
+    cancel: &AtomicI32,
+    deadline: std::time::Instant,
+) -> io::Result<i32> {
+    #[cfg(target_os = "linux")]
+    {
+        let plan = selected_plan(
+            &[(String::new(), argv)],
+            "tos_philosophy_product_worker_v1",
+            "philosophy_product",
+        );
+        native::run_product_until(Path::new("/"), &plan, limits, cancel, deadline)
+    }
+    #[cfg(not(target_os = "linux"))]
+    {
+        let _ = (argv, limits, cancel, deadline);
+        Err(io::Error::new(
+            io::ErrorKind::Unsupported,
+            "philosophy CLI requires Linux subreaper/pidfd custody",
+        ))
+    }
+}
+
 fn selected_plan(
     steps: &[(String, Vec<String>)],
     schema_version: &'static str,
@@ -551,6 +578,7 @@ mod native {
     struct Nonblocking {
         fd: i32,
         previous: i32,
+        restored: bool,
     }
     impl Nonblocking {
         fn new(fd: i32) -> io::Result<Self> {
@@ -560,14 +588,25 @@ mod native {
             {
                 return Err(io::Error::last_os_error());
             }
-            Ok(Self { fd, previous })
+            Ok(Self {
+                fd,
+                previous,
+                restored: false,
+            })
+        }
+        fn restore(&mut self) -> io::Result<()> {
+            if !self.restored {
+                if unsafe { libc::fcntl(self.fd, libc::F_SETFL, self.previous) } < 0 {
+                    return Err(io::Error::last_os_error());
+                }
+                self.restored = true;
+            }
+            Ok(())
         }
     }
     impl Drop for Nonblocking {
         fn drop(&mut self) {
-            unsafe {
-                libc::fcntl(self.fd, libc::F_SETFL, self.previous);
-            }
+            let _ = self.restore();
         }
     }
 
@@ -612,7 +651,7 @@ mod native {
         cancel: &AtomicI32,
         style: Style<'_>,
     ) -> io::Result<i32> {
-        run_inner(root, plan, limits, cancel, style, None)
+        run_inner(root, plan, limits, cancel, style, None, None)
     }
 
     pub(super) fn run_captured(
@@ -622,7 +661,33 @@ mod native {
         cancel: &AtomicI32,
         streams: &mut [Vec<u8>; 2],
     ) -> io::Result<i32> {
-        run_inner(root, plan, limits, cancel, Style::Capture, Some(streams))
+        run_inner(
+            root,
+            plan,
+            limits,
+            cancel,
+            Style::Capture,
+            Some(streams),
+            None,
+        )
+    }
+
+    pub(super) fn run_product_until(
+        root: &Path,
+        plan: &Plan,
+        limits: Limits,
+        cancel: &AtomicI32,
+        deadline: Instant,
+    ) -> io::Result<i32> {
+        run_inner(
+            root,
+            plan,
+            limits,
+            cancel,
+            Style::Capture,
+            None,
+            Some(deadline),
+        )
     }
 
     fn run_inner(
@@ -632,7 +697,12 @@ mod native {
         cancel: &AtomicI32,
         style: Style<'_>,
         mut streams: Option<&mut [Vec<u8>; 2]>,
+        original_deadline: Option<Instant>,
     ) -> io::Result<i32> {
+        cancelled(cancel)?;
+        if original_deadline.is_some_and(|deadline| Instant::now() >= deadline) {
+            return Err(error("execution wall deadline before setup"));
+        }
         if limits.command_wall.is_zero()
             || limits.command_wall > Duration::from_secs(3600)
             || limits.lane_wall.is_zero()
@@ -645,7 +715,12 @@ mod native {
             return Err(error("invalid execution limits"));
         }
         if fs::read_dir("/proc/self/task")?.count() != 1
-            || visit_children(Instant::now() + limits.cleanup_grace, |_| {})? != 0
+            || visit_children(
+                original_deadline.map_or(Instant::now() + limits.cleanup_grace, |deadline| {
+                    deadline.min(Instant::now() + limits.cleanup_grace)
+                }),
+                |_| {},
+            )? != 0
         {
             return Err(error(
                 "executor requires a dedicated single-threaded process without existing children",
@@ -670,204 +745,263 @@ mod native {
         let self_identity = pidfd(std::process::id() as i32)?;
         signal(&self_identity, 0)?;
         drop(self_identity);
-        let _stdout_mode = Nonblocking::new(1)?;
-        let _stderr_mode = Nonblocking::new(2)?;
-        let lane_deadline = Instant::now() + limits.lane_wall;
-        let mut products: Option<crate::conformance_products::Products> = None;
-        if let Style::Validation(_, timeouts) = style {
-            if timeouts.len() != plan.commands.len() {
-                return Err(error("validation timeout/command count differs"));
-            }
-        }
-        for (index, command) in plan.commands.iter().enumerate() {
-            let explicit_timeout = match style {
-                Style::Validation(_, timeouts) => timeouts[index],
-                _ => None,
-            };
-            let command_wall = explicit_timeout.unwrap_or(limits.command_wall);
-            let deadline = lane_deadline.min(Instant::now() + command_wall);
-            let progress = match style {
-                Style::Capture => String::new(),
-                Style::Mechanics => format!("[mechanics-local] {}\n", command.argv.join(" ")),
-                Style::Validation(_, _) => {
-                    format!("[run] {}: {}\n", command.home, command.argv.join(" "))
+        let mut stdout_mode = Nonblocking::new(1)?;
+        let mut stderr_mode = match Nonblocking::new(2) {
+            Ok(mode) => mode,
+            Err(error) => {
+                if original_deadline.is_some() {
+                    stdout_mode.restore()?;
                 }
-                Style::Release => {
-                    format!("[run] {}: {}\n", command.home, list2cmdline(&command.argv))
-                }
-            };
-            write(1, progress.as_bytes(), deadline, cancel)?;
-            if let Some(timeout) = explicit_timeout {
-                write(
-                    1,
-                    format!(
-                        "[budget] {}: command_timeout_ms={} lane_wall_cap_ms={}\n",
-                        command.home,
-                        timeout.as_millis(),
-                        limits.lane_wall.as_millis()
-                    )
-                    .as_bytes(),
-                    deadline,
-                    cancel,
-                )?;
+                return Err(error);
             }
-            let preparing = matches!(style, Style::Validation(_, _))
-                && crate::conformance_products::preparation(&command.argv);
-            let overrides = if matches!(style, Style::Validation(_, _))
-                && crate::conformance_products::execution(&command.argv)
-            {
-                products.as_ref().ok_or_else(|| error("workspace conformance requires successful current-lane Cargo artifact preparation"))?.environment(deadline, cancel)?
-            } else {
-                Vec::new()
-            };
-            let mut overrides = overrides;
-            if let Style::Validation(python, _) = style {
-                if crate::conformance_products::execution(&command.argv) {
-                    if python.is_empty() || python.contains('\0') {
-                        return Err(error("explicit maintained Python interpreter required"));
-                    }
-                    overrides.push(("TOS_MAINTAINED_PYTHON".into(), python.into()));
-                }
-            }
-            let mut cargo_stdout = Vec::new();
-            let (mut custody, stdout, stderr) =
-                spawn(root, &command.argv, limits.cleanup_grace, &overrides)?;
-            let _out_mode = Nonblocking::new(stdout.as_raw_fd())?;
-            let _err_mode = Nonblocking::new(stderr.as_raw_fd())?;
-            let mut eof = [false, false];
-            let mut status = None;
-            let mut output_bytes = 0usize;
-            let execution = (|| -> io::Result<()> {
-                loop {
-                    cancelled(cancel)?;
-                    if Instant::now() >= deadline {
-                        return Err(error("execution wall deadline"));
-                    }
-                    if status.is_none() {
-                        status = custody.poll_exit()?;
-                        if status.is_some() {
-                            custody.reaped = true;
-                            // A successful daemonizing tool may still have
-                            // descendants without open output. Own them too.
-                            custody.cleanup()?;
-                        }
-                    }
-                    for (index, (source, sink)) in
-                        [(stdout.as_raw_fd(), 1), (stderr.as_raw_fd(), 2)]
-                            .into_iter()
-                            .enumerate()
-                    {
-                        if eof[index] {
-                            continue;
-                        }
-                        let mut buffer = [0u8; 8192];
-                        let count =
-                            unsafe { libc::read(source, buffer.as_mut_ptr().cast(), buffer.len()) };
-                        if count == 0 {
-                            eof[index] = true;
-                        } else if count > 0 {
-                            output_bytes += count as usize;
-                            if output_bytes > limits.output_bytes {
-                                return Err(error("combined child output byte limit exceeded"));
-                            }
-                            if preparing && index == 0 {
-                                cargo_stdout.extend_from_slice(&buffer[..count as usize]);
-                            }
-                            if let Some(streams) = streams.as_deref_mut() {
-                                streams[index].extend_from_slice(&buffer[..count as usize]);
-                            } else {
-                                write(sink, &buffer[..count as usize], deadline, cancel)?;
-                            }
-                        } else {
-                            let err = io::Error::last_os_error();
-                            if !matches!(
-                                err.kind(),
-                                io::ErrorKind::WouldBlock | io::ErrorKind::Interrupted
-                            ) {
-                                return Err(err);
-                            }
-                        }
-                    }
-                    if status.is_some() && eof.iter().all(|v| *v) {
-                        return Ok(());
-                    }
-                    thread::sleep(Duration::from_millis(2));
-                }
-            })();
-            // Cleanup outcome overrides a normal return: residual custody is
-            // never reported as successful lane completion.
-            custody.cleanup()?;
-            execution?;
-            if status.unwrap().success() && preparing {
-                products = Some(crate::conformance_products::Products::select(
-                    &cargo_stdout,
-                    deadline,
-                    cancel,
-                )?);
-            }
-            if !status.unwrap().success() {
-                let failure = match style {
-                    Style::Capture => String::new(),
-                    Style::Mechanics => format!(
-                        "[error] mechanics-local command failed: {} ({})\n",
-                        command.argv.join(" "),
-                        status.unwrap()
-                    ),
-                    Style::Validation(_, _) => format!(
-                        "[error] {} failed with exit code {}\n",
-                        command.home,
-                        status
-                            .unwrap()
-                            .code()
-                            .unwrap_or(-status.unwrap().signal().unwrap_or(0))
-                    ),
-                    Style::Release => format!(
-                        "[error] {} failed with exit code {}\n",
-                        command.home,
-                        status
-                            .unwrap()
-                            .code()
-                            .unwrap_or(-status.unwrap().signal().unwrap_or(0))
-                    ),
-                };
-                write(
-                    if matches!(style, Style::Release) {
-                        1
-                    } else {
-                        2
-                    },
-                    failure.as_bytes(),
-                    lane_deadline,
-                    cancel,
-                )?;
-                return Ok(match style {
-                    Style::Mechanics => 1,
-                    Style::Validation(_, _) | Style::Release | Style::Capture => {
-                        status.unwrap().code().unwrap_or_else(|| {
-                            // sys.exit(-signal) from the Python compatibility entry
-                            // is observed by its parent as 256-signal on Unix.
-                            256 - status.unwrap().signal().unwrap_or(0)
-                        })
-                    }
+        };
+        let result = (|| -> io::Result<i32> {
+            let lane_deadline = original_deadline
+                .map_or(Instant::now() + limits.lane_wall, |deadline| {
+                    deadline.min(Instant::now() + limits.lane_wall)
                 });
+            cancelled(cancel)?;
+            if Instant::now() >= lane_deadline {
+                return Err(error("execution wall deadline during setup"));
             }
-            if matches!(style, Style::Validation(_, _)) {
-                write(
-                    1,
-                    format!("[ok] {}\n", command.home).as_bytes(),
-                    deadline,
-                    cancel,
-                )?;
+            let mut products: Option<crate::conformance_products::Products> = None;
+            if let Style::Validation(_, timeouts) = style {
+                if timeouts.len() != plan.commands.len() {
+                    return Err(error("validation timeout/command count differs"));
+                }
             }
+            for (index, command) in plan.commands.iter().enumerate() {
+                let explicit_timeout = match style {
+                    Style::Validation(_, timeouts) => timeouts[index],
+                    _ => None,
+                };
+                let command_wall = explicit_timeout.unwrap_or(limits.command_wall);
+                let deadline = lane_deadline.min(Instant::now() + command_wall);
+                let progress = match style {
+                    Style::Capture => String::new(),
+                    Style::Mechanics => format!("[mechanics-local] {}\n", command.argv.join(" ")),
+                    Style::Validation(_, _) => {
+                        format!("[run] {}: {}\n", command.home, command.argv.join(" "))
+                    }
+                    Style::Release => {
+                        format!("[run] {}: {}\n", command.home, list2cmdline(&command.argv))
+                    }
+                };
+                write(1, progress.as_bytes(), deadline, cancel)?;
+                if let Some(timeout) = explicit_timeout {
+                    write(
+                        1,
+                        format!(
+                            "[budget] {}: command_timeout_ms={} lane_wall_cap_ms={}\n",
+                            command.home,
+                            timeout.as_millis(),
+                            limits.lane_wall.as_millis()
+                        )
+                        .as_bytes(),
+                        deadline,
+                        cancel,
+                    )?;
+                }
+                let preparing = matches!(style, Style::Validation(_, _))
+                    && crate::conformance_products::preparation(&command.argv);
+                let overrides = if matches!(style, Style::Validation(_, _))
+                    && crate::conformance_products::execution(&command.argv)
+                {
+                    products.as_ref().ok_or_else(|| error("workspace conformance requires successful current-lane Cargo artifact preparation"))?.environment(deadline, cancel)?
+                } else {
+                    Vec::new()
+                };
+                let mut overrides = overrides;
+                if let Style::Validation(python, _) = style {
+                    if crate::conformance_products::execution(&command.argv) {
+                        if python.is_empty() || python.contains('\0') {
+                            return Err(error("explicit maintained Python interpreter required"));
+                        }
+                        overrides.push(("TOS_MAINTAINED_PYTHON".into(), python.into()));
+                    }
+                }
+                let mut cargo_stdout = Vec::new();
+                let (mut custody, stdout, stderr) =
+                    spawn(root, &command.argv, limits.cleanup_grace, &overrides)?;
+                let _out_mode = Nonblocking::new(stdout.as_raw_fd())?;
+                let _err_mode = Nonblocking::new(stderr.as_raw_fd())?;
+                let mut eof = [false, false];
+                let mut status = None;
+                let mut output_bytes = 0usize;
+                let execution = (|| -> io::Result<()> {
+                    loop {
+                        cancelled(cancel)?;
+                        if Instant::now() >= deadline {
+                            return Err(error("execution wall deadline"));
+                        }
+                        if status.is_none() {
+                            status = custody.poll_exit()?;
+                            if status.is_some() {
+                                custody.reaped = true;
+                                // A successful daemonizing tool may still have
+                                // descendants without open output. Own them too.
+                                custody.cleanup()?;
+                            }
+                        }
+                        for (index, (source, sink)) in
+                            [(stdout.as_raw_fd(), 1), (stderr.as_raw_fd(), 2)]
+                                .into_iter()
+                                .enumerate()
+                        {
+                            if eof[index] {
+                                continue;
+                            }
+                            let mut buffer = [0u8; 8192];
+                            let count = unsafe {
+                                libc::read(source, buffer.as_mut_ptr().cast(), buffer.len())
+                            };
+                            if count == 0 {
+                                eof[index] = true;
+                            } else if count > 0 {
+                                output_bytes += count as usize;
+                                if output_bytes > limits.output_bytes {
+                                    return Err(error("combined child output byte limit exceeded"));
+                                }
+                                if preparing && index == 0 {
+                                    cargo_stdout.extend_from_slice(&buffer[..count as usize]);
+                                }
+                                if let Some(streams) = streams.as_deref_mut() {
+                                    streams[index].extend_from_slice(&buffer[..count as usize]);
+                                } else {
+                                    write(sink, &buffer[..count as usize], deadline, cancel)?;
+                                }
+                            } else {
+                                let err = io::Error::last_os_error();
+                                if !matches!(
+                                    err.kind(),
+                                    io::ErrorKind::WouldBlock | io::ErrorKind::Interrupted
+                                ) {
+                                    return Err(err);
+                                }
+                            }
+                        }
+                        if status.is_some() && eof.iter().all(|v| *v) {
+                            return Ok(());
+                        }
+                        thread::sleep(Duration::from_millis(2));
+                    }
+                })();
+                // Cleanup outcome overrides a normal return: residual custody is
+                // never reported as successful lane completion.
+                custody.cleanup()?;
+                execution?;
+                if status.unwrap().success() && preparing {
+                    products = Some(crate::conformance_products::Products::select(
+                        &cargo_stdout,
+                        deadline,
+                        cancel,
+                    )?);
+                }
+                if !status.unwrap().success() {
+                    let failure = match style {
+                        Style::Capture => String::new(),
+                        Style::Mechanics => format!(
+                            "[error] mechanics-local command failed: {} ({})\n",
+                            command.argv.join(" "),
+                            status.unwrap()
+                        ),
+                        Style::Validation(_, _) => format!(
+                            "[error] {} failed with exit code {}\n",
+                            command.home,
+                            status
+                                .unwrap()
+                                .code()
+                                .unwrap_or(-status.unwrap().signal().unwrap_or(0))
+                        ),
+                        Style::Release => format!(
+                            "[error] {} failed with exit code {}\n",
+                            command.home,
+                            status
+                                .unwrap()
+                                .code()
+                                .unwrap_or(-status.unwrap().signal().unwrap_or(0))
+                        ),
+                    };
+                    write(
+                        if matches!(style, Style::Release) {
+                            1
+                        } else {
+                            2
+                        },
+                        failure.as_bytes(),
+                        lane_deadline,
+                        cancel,
+                    )?;
+                    return Ok(match style {
+                        Style::Mechanics => 1,
+                        Style::Validation(_, _) | Style::Release | Style::Capture => {
+                            status.unwrap().code().unwrap_or_else(|| {
+                                // sys.exit(-signal) from the Python compatibility entry
+                                // is observed by its parent as 256-signal on Unix.
+                                256 - status.unwrap().signal().unwrap_or(0)
+                            })
+                        }
+                    });
+                }
+                if matches!(style, Style::Validation(_, _)) {
+                    write(
+                        1,
+                        format!("[ok] {}\n", command.home).as_bytes(),
+                        deadline,
+                        cancel,
+                    )?;
+                }
+            }
+            if matches!(style, Style::Mechanics) {
+                write(1, format!("[ok] completed mechanics-local unittest, builder, and validator coverage across {} test files\n", plan.test_file_count).as_bytes(), lane_deadline, cancel)?;
+            }
+            Ok(0)
+        })();
+        if original_deadline.is_some() {
+            // Restore both descriptions even if the first restoration fails;
+            // a product refusal must not leave shared stdout/stderr modes set.
+            // Reverse acquisition order is required when `2>&1` aliases
+            // stdout and stderr to the same open-file description.
+            let stderr_result = stderr_mode.restore();
+            let stdout_result = stdout_mode.restore();
+            stdout_result?;
+            stderr_result?;
         }
-        if matches!(style, Style::Mechanics) {
-            write(1, format!("[ok] completed mechanics-local unittest, builder, and validator coverage across {} test files\n", plan.test_file_count).as_bytes(), lane_deadline, cancel)?;
-        }
-        Ok(0)
+        result
     }
     #[cfg(test)]
     mod tests {
         use super::*;
+
+        #[test]
+        fn aliased_output_descriptions_restore_original_flags() {
+            let (_reader, writer) = pipe().unwrap();
+            let fd = unsafe { libc::dup(writer.as_raw_fd()) };
+            assert!(fd >= 0);
+            let alias = unsafe { File::from_raw_fd(fd) };
+            let original = unsafe { libc::fcntl(writer.as_raw_fd(), libc::F_GETFL) };
+            let mut stdout_mode = Nonblocking::new(writer.as_raw_fd()).unwrap();
+            let mut stderr_mode = Nonblocking::new(alias.as_raw_fd()).unwrap();
+            stderr_mode.restore().unwrap();
+            stdout_mode.restore().unwrap();
+            assert_eq!(
+                unsafe { libc::fcntl(alias.as_raw_fd(), libc::F_GETFL) },
+                original
+            );
+        }
+
+        #[test]
+        fn philosophy_original_deadline_refuses_before_worker_setup() {
+            let cancel = AtomicI32::new(0);
+            let error = crate::executor::run_philosophy_product(
+                vec!["must-not-be-selected-or-spawned".into()],
+                Limits::default(),
+                &cancel,
+                Instant::now() - Duration::from_secs(1),
+            )
+            .unwrap_err();
+            assert!(error.to_string().contains("deadline before setup"));
+        }
 
         #[test]
         fn descendant_stream_visits_beyond_old_count_and_byte_caps() {

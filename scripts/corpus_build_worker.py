@@ -27,11 +27,6 @@ from corpus_store import (
 from corpus_source_validation import is_source_member
 
 SOFTWARE_ROOT = Path(__file__).resolve().parents[1]
-OUTPUTS = (
-    ('philosophy_atlas_projection_common', 'ToS/derived-exports/philosophy_atlas_projection.min.json'),
-    ('philosophy_graph_views_common', 'ToS/derived-exports/philosophy_graph_views.min.json'),
-    ('philosophy_graph_projection_common', 'ToS/derived-exports/philosophy_graph_projection.min.json'),
-)
 
 
 def _bind(module_name: str, root: Path):
@@ -96,17 +91,9 @@ def _compile_view(store: CorpusStore, manifest: dict, revision: str, view: Path,
         catalog_outputs = render_outputs(view)
     with stage_timing('build.catalog_write', outputs=len(catalog_outputs)):
         write_outputs(view, catalog_outputs)
-    _bind('philosophy_multilingual_common', view)
-    for name, relative in OUTPUTS:
-        with stage_timing(f'build.projection.{name}'):
-            module = _bind(name, view)
-            path = view / relative
-            path.parent.mkdir(parents=True, exist_ok=True)
-            payload = module.build_payload()
-            if name == 'philosophy_graph_projection_common':
-                _write_projection(view, relative, payload)
-            else:
-                path.write_text(module.render_payload(payload), encoding='utf-8')
+    from philosophy_native_command import build_corpus_products
+    with stage_timing('build.projection.native_philosophy'):
+        build_corpus_products(view)
     from partitioned_projection_common import build_storage
     from source_witness_bibliographic_graph_common import build_payload as build_bibliographic
     with stage_timing('build.bibliographic_graph'):

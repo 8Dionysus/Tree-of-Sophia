@@ -1,11 +1,13 @@
 use std::env;
 use std::io::Write;
 use std::path::PathBuf;
-use std::sync::atomic::{AtomicI32, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicI32, Ordering};
+use std::sync::{Arc, OnceLock};
 use std::time::Duration;
 use tos_ops_mechanics_plan::executor::Limits;
 
 static CANCEL: AtomicI32 = AtomicI32::new(0);
+static PRODUCT_CANCEL: OnceLock<Arc<AtomicBool>> = OnceLock::new();
 
 #[derive(Clone, Copy)]
 enum Action {
@@ -40,6 +42,9 @@ struct SemanticOptions {
 #[cfg(target_os = "linux")]
 extern "C" fn cancelled(signal: i32) {
     CANCEL.store(signal, Ordering::Relaxed);
+    if let Some(flag) = PRODUCT_CANCEL.get() {
+        flag.store(true, Ordering::Relaxed);
+    }
 }
 
 fn arguments() -> Result<(PathBuf, String, Action, Limits, SemanticOptions), String> {
@@ -193,6 +198,148 @@ fn arguments() -> Result<(PathBuf, String, Action, Limits, SemanticOptions), Str
 }
 
 fn main() {
+    let product_started = std::time::Instant::now();
+    let product_entry = env::args().nth(1);
+    if matches!(
+        product_entry.as_deref(),
+        Some(
+            "--philosophy-product"
+                | "--philosophy-product-worker"
+                | "--prepared-dossier"
+                | "--prepared-dossier-worker"
+        )
+    ) {
+        #[cfg(feature = "compiler-backed-validators")]
+        {
+            let flag = Arc::new(AtomicBool::new(false));
+            PRODUCT_CANCEL
+                .set(flag.clone())
+                .expect("product cancellation initialized once");
+            #[cfg(target_os = "linux")]
+            unsafe {
+                let mut handler: libc::sigaction = std::mem::zeroed();
+                handler.sa_sigaction = cancelled as *const () as usize;
+                libc::sigemptyset(&mut handler.sa_mask);
+                for signal in [libc::SIGINT, libc::SIGTERM] {
+                    if libc::sigaction(signal, &handler, std::ptr::null_mut()) != 0 {
+                        eprintln!("[error] {}", std::io::Error::last_os_error());
+                        std::process::exit(1);
+                    }
+                }
+            }
+            let mut args: Vec<String> = env::args().skip(1).collect();
+            let prepared_dossier = matches!(
+                product_entry.as_deref(),
+                Some("--prepared-dossier" | "--prepared-dossier-worker")
+            );
+            if matches!(
+                product_entry.as_deref(),
+                Some("--philosophy-product" | "--prepared-dossier")
+            ) {
+                let result = if prepared_dossier {
+                    {
+                        #[cfg(target_os = "linux")]
+                        {
+                            tos_ops_mechanics_plan::prepared_dossier_entry::run_supervised(
+                                &args,
+                                &CANCEL,
+                                product_started,
+                            )
+                        }
+                        #[cfg(not(target_os = "linux"))]
+                        {
+                            Err(
+                                "prepared dossiers require native Linux selected-directory custody"
+                                    .into(),
+                            )
+                        }
+                    }
+                } else {
+                    tos_ops_mechanics_plan::philosophy_products::run_supervised(
+                        &args,
+                        &CANCEL,
+                        product_started,
+                    )
+                };
+                match result {
+                    Ok(code) => {
+                        if code != 0 {
+                            std::process::exit(code);
+                        }
+                    }
+                    Err(_error) => {
+                        // The custody scope restored stderr. A blocking
+                        // diagnostic here could escape the original deadline.
+                        // Worker diagnostics were already forwarded within it.
+                        let signal = CANCEL.load(Ordering::Relaxed);
+                        std::process::exit(if signal == 0 { 1 } else { 128 + signal });
+                    }
+                }
+                return;
+            }
+            // Internal subprocess of the supervised entry; library and WASM
+            // callers remain cooperative and do not inherit process custody.
+            args[0] = if prepared_dossier {
+                "--prepared-dossier"
+            } else {
+                "--philosophy-product"
+            }
+            .into();
+            let result = if prepared_dossier {
+                {
+                    #[cfg(target_os = "linux")]
+                    {
+                        tos_ops_mechanics_plan::prepared_dossier_entry::run(&args, flag)
+                    }
+                    #[cfg(not(target_os = "linux"))]
+                    {
+                        Err(
+                            "prepared dossiers require native Linux selected-directory custody"
+                                .into(),
+                        )
+                    }
+                }
+            } else {
+                tos_ops_mechanics_plan::philosophy_products::run(&args, flag)
+            };
+            match result {
+                Ok(report) => {
+                    if prepared_dossier {
+                        #[cfg(target_os = "linux")]
+                        let printed =
+                            tos_ops_mechanics_plan::prepared_dossier_entry::report_bytes(&report)
+                                .and_then(|bytes| {
+                                    std::io::stdout()
+                                        .lock()
+                                        .write_all(&bytes)
+                                        .map_err(|error| error.to_string())
+                                });
+                        #[cfg(not(target_os = "linux"))]
+                        let printed: Result<(), String> = Err(
+                            "prepared dossiers require native Linux selected-directory custody"
+                                .into(),
+                        );
+                        if printed.is_err() {
+                            std::process::exit(1);
+                        }
+                    } else {
+                        println!("{report}");
+                    }
+                }
+                Err(error) => {
+                    eprintln!("[error] {error}");
+                    let signal = CANCEL.load(Ordering::Relaxed);
+                    std::process::exit(if signal == 0 { 1 } else { 128 + signal });
+                }
+            }
+            return;
+        }
+        #[cfg(not(feature = "compiler-backed-validators"))]
+        {
+            eprintln!("[error] philosophy products require compiler-backed-validators");
+            std::process::exit(1);
+        }
+    }
     let (root, python, action, limits, semantic) = arguments().unwrap_or_else(|error| {
         let compiler_flag = if cfg!(feature = "compiler-backed-validators") {
             " | --philosophy-graph-views-validate"

@@ -26,6 +26,7 @@ yaml-rust2 = { version = "=0.13.0", default-features = false }
 
 [target.'cfg(target_os = "linux")'.dependencies]
 libc = "0.2"
+tos-fd-open = { path = "../tos-fd-open" }
 
 [[bin]]
 name = "tos-ops-mechanics-plan"

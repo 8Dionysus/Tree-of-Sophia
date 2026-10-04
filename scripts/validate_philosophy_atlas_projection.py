@@ -3,12 +3,23 @@
 
 from __future__ import annotations
 
+from philosophy_native_command import main as _native_philosophy_main
+
+
+def main() -> int:
+    return _native_philosophy_main('atlas', validate=True)
+
+
+# Executable dispatch must not load retained Python producer dependencies.
+if __name__ == "__main__":
+    raise SystemExit(main())
+
 import json
 
 from philosophy_atlas_projection_common import PROJECTION_PATH, build_payload, render_payload, validate_payload_schema
 
 
-def main() -> int:
+def _reference_main() -> int:
     expected_payload = build_payload()
     current_payload = json.loads(PROJECTION_PATH.read_text(encoding="utf-8"))
     validate_payload_schema(current_payload)
@@ -46,7 +57,3 @@ def main() -> int:
 
     print("[ok] validated ToS/derived-exports/philosophy_atlas_projection.min.json")
     return 0
-
-
-if __name__ == "__main__":
-    raise SystemExit(main())

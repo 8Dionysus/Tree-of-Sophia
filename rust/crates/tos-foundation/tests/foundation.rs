@@ -530,3 +530,83 @@ fn unicode16_full_casefold_matches_python_default_and_bounds() {
         );
     }
 }
+
+#[test]
+fn checked_object_writer_preserves_order_duplicates_and_cancellation_at_fast_path_edges() {
+    for (members, key_units, mixed) in [
+        (2usize, 2usize, false),
+        (32, 128, false),
+        (33, 128, false),
+        (32, 129, false),
+        (32, 2, true),
+    ] {
+        let entries: Vec<_> = (0..members)
+            .rev()
+            .map(|index| {
+                let suffix = format!("{index:02}");
+                let units = if mixed && index == members - 1 {
+                    129
+                } else {
+                    key_units
+                };
+                let key = format!("{}{}", "é".repeat(units.saturating_sub(2)), suffix);
+                (JsonString::from_utf8(&key), JsonValue::Bool(index % 2 == 0))
+            })
+            .collect();
+        let value = JsonValue::Object(entries.clone());
+        let expected = canonical_bytes_v1(
+            &value,
+            CanonicalProfile::CorpusSnapshotV1,
+            JsonLimits::default(),
+        )
+        .unwrap();
+        let mut checks = 0;
+        let actual = tos_foundation::canonical_bytes_v1_with_check(
+            &value,
+            CanonicalProfile::CorpusSnapshotV1,
+            JsonLimits::default(),
+            &mut || {
+                checks += 1;
+                Ok(())
+            },
+        )
+        .unwrap();
+        assert_eq!(actual, expected);
+        assert!(checks > 0);
+        let mut duplicated = entries;
+        let last = duplicated.len() - 1;
+        duplicated[last] = duplicated[0].clone();
+        assert_eq!(
+            tos_foundation::canonical_bytes_v1_with_check(
+                &JsonValue::Object(duplicated),
+                CanonicalProfile::CorpusSnapshotV1,
+                JsonLimits::default(),
+                &mut || Ok(()),
+            )
+            .unwrap_err()
+            .code,
+            FoundationErrorCode::DuplicateMember,
+        );
+        let mut checks = 0;
+        let cancelled = tos_foundation::canonical_bytes_v1_with_check(
+            &value,
+            CanonicalProfile::CorpusSnapshotV1,
+            JsonLimits::default(),
+            &mut || {
+                checks += 1;
+                if checks >= 8 {
+                    Err(tos_foundation::FoundationError::new(
+                        FoundationErrorCode::BudgetExceeded,
+                        "test cancellation",
+                    ))
+                } else {
+                    Ok(())
+                }
+            },
+        );
+        assert_eq!(
+            cancelled.unwrap_err().code,
+            FoundationErrorCode::BudgetExceeded
+        );
+    }
+}

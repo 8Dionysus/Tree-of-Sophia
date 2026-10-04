@@ -16,7 +16,22 @@ pub mod kag_release;
 pub mod mechanics_topology;
 #[cfg(feature = "compiler-backed-validators")]
 pub mod philosophy_graph_views;
+#[cfg(feature = "compiler-backed-validators")]
+pub mod philosophy_products;
 pub mod philosophy_topology;
+#[cfg(all(feature = "compiler-backed-validators", target_os = "linux"))]
+pub mod prepared_dossier_docx_adapter;
+#[cfg(all(feature = "compiler-backed-validators", target_os = "linux"))]
+pub mod prepared_dossier_entry;
+#[cfg(all(feature = "compiler-backed-validators", target_os = "linux"))]
+pub mod prepared_dossier_native;
+#[cfg(all(feature = "compiler-backed-validators", target_os = "linux"))]
+pub mod prepared_dossier_native_directory;
+#[cfg(all(feature = "compiler-backed-validators", target_os = "linux"))]
+pub mod prepared_dossier_readiness;
+#[cfg(all(feature = "compiler-backed-validators", target_os = "linux"))]
+pub mod prepared_dossier_render;
+
 pub mod public_mirror;
 pub mod provider_controls;
 pub mod questbook;

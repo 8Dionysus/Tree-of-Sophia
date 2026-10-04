@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::{BTreeMap, HashMap, HashSet};
 
 use crate::digest::Digest256;
 use crate::error::{FoundationError, FoundationErrorCode as Code, Result};
@@ -330,7 +330,7 @@ impl JsonDocument {
 }
 
 pub fn parse_json(raw: &[u8], mode: JsonMode, limits: JsonLimits) -> Result<JsonDocument> {
-    parse_json_inner(raw, mode, limits, None)
+    parse_json_inner(raw, mode, limits, None, None)
 }
 
 /// The legacy Item decoder supplies its remaining logical parser workspace.
@@ -341,7 +341,18 @@ pub fn parse_json_with_state_budget(
     limits: JsonLimits,
     available: usize,
 ) -> Result<JsonDocument> {
-    parse_json_inner(raw, mode, limits, Some((0, available)))
+    parse_json_inner(raw, mode, limits, Some((0, available)), None)
+}
+
+/// Cooperatively check caller cancellation/deadline through the existing parser.
+/// Callback errors are returned unchanged. This does not change the parse profile.
+pub fn parse_json_with_check(
+    raw: &[u8],
+    mode: JsonMode,
+    limits: JsonLimits,
+    check: &mut dyn FnMut() -> Result<()>,
+) -> Result<JsonDocument> {
+    parse_json_inner(raw, mode, limits, None, Some(check))
 }
 
 fn parse_json_inner(
@@ -349,6 +360,7 @@ fn parse_json_inner(
     mode: JsonMode,
     limits: JsonLimits,
     state: Option<(usize, usize)>,
+    check: Option<&mut dyn FnMut() -> Result<()>>,
 ) -> Result<JsonDocument> {
     limits.validate()?;
     if raw.len() > limits.max_bytes {
@@ -357,17 +369,42 @@ fn parse_json_inner(
             "JSON byte budget exceeded",
         ));
     }
-    let source = std::str::from_utf8(raw).map_err(|error| {
-        FoundationError::new(Code::InvalidUtf8, "JSON input is not UTF-8").at(error.valid_up_to())
-    })?;
+    let mut poll = JsonCheck::new(check);
+    poll.now()?;
+    // Preserve pre-grammar UTF-8 rejection and the exact first-invalid offset.
+    // Extending a truncated scalar by at most three bytes avoids unsafe str conversion.
+    let mut at = 0;
+    while at < raw.len() {
+        poll.now()?;
+        let mut end = at.saturating_add(CHECK_BYTES).min(raw.len());
+        let valid = match std::str::from_utf8(&raw[at..end]) {
+            Err(error) if error.error_len().is_none() && end < raw.len() => {
+                let scalar = at + error.valid_up_to();
+                let width = match raw[scalar] {
+                    0xc2..=0xdf => 2,
+                    0xe0..=0xef => 3,
+                    _ => 4,
+                };
+                end = scalar.saturating_add(width).min(raw.len());
+                std::str::from_utf8(&raw[at..end])
+            }
+            result => result,
+        };
+        valid.map_err(|error| {
+            FoundationError::new(Code::InvalidUtf8, "JSON input is not UTF-8")
+                .at(at + error.valid_up_to())
+        })?;
+        at = end;
+    }
     let mut parser = Parser {
-        source,
         raw,
         at: 0,
         visits: 0,
         mode,
         limits,
         state,
+        poll,
+        next_check: 0,
     };
     // Recursive keys and values temporarily coexist with container indexes.
     // Their fixed stack slots are priced once, independently of node count.
@@ -384,10 +421,11 @@ fn parse_json_inner(
             })?,
     )?;
     let root = parser.value(0)?;
-    parser.spaces();
+    parser.spaces()?;
     if parser.at != raw.len() {
         return Err(parser.error(Code::InvalidJson, "trailing JSON input"));
     }
+    parser.poll.now()?;
     let visits = parser.visits;
     Ok(JsonDocument { root, mode, visits })
 }
@@ -396,17 +434,25 @@ pub fn parse_json_profile(raw: &[u8], profile: &str, limits: JsonLimits) -> Resu
     parse_json(raw, JsonMode::from_profile(profile)?, limits)
 }
 
-struct Parser<'a> {
-    source: &'a str,
+struct Parser<'a, 'c> {
     raw: &'a [u8],
     at: usize,
     visits: usize,
     state: Option<(usize, usize)>,
     mode: JsonMode,
     limits: JsonLimits,
+    poll: JsonCheck<'c>,
+    next_check: usize,
 }
 
-impl Parser<'_> {
+impl Parser<'_, '_> {
+    fn check(&mut self) -> Result<()> {
+        if self.at >= self.next_check {
+            self.poll.now()?;
+            self.next_check = self.at.saturating_add(CHECK_BYTES);
+        }
+        Ok(())
+    }
     fn charge(&mut self, amount: usize) -> Result<()> {
         if let Some((used, available)) = &mut self.state {
             *used = used
@@ -450,18 +496,26 @@ impl Parser<'_> {
         Ok(())
     }
     fn finish_string(&mut self, units: Vec<u16>) -> Result<JsonString> {
-        if self.state.is_none() {
+        if self.state.is_none() && self.poll.check.is_none() {
             return Ok(JsonString::from_units(units));
         }
-        let length = char::decode_utf16(units.iter().copied())
-            .try_fold(0usize, |n, c| n.checked_add(c.ok()?.len_utf8()));
+        let mut length = Some(0usize);
+        for (index, c) in char::decode_utf16(units.iter().copied()).enumerate() {
+            if index % 4096 == 0 {
+                self.poll.now()?;
+            }
+            length = length.and_then(|n| n.checked_add(c.ok()?.len_utf8()));
+        }
         let utf8 = if let Some(length) = length {
             self.charge(length)?;
             let mut text = String::new();
             text.try_reserve_exact(length).map_err(|_| {
                 self.error(Code::BudgetExceeded, "JSON parser state budget exceeded")
             })?;
-            for c in char::decode_utf16(units.iter().copied()) {
+            for (index, c) in char::decode_utf16(units.iter().copied()).enumerate() {
+                if index % 4096 == 0 {
+                    self.poll.now()?;
+                }
                 text.push(c.map_err(|_| {
                     self.error(Code::InvalidUnicodeScalar, "decoded string changed")
                 })?);
@@ -475,17 +529,20 @@ impl Parser<'_> {
     fn error(&self, code: Code, detail: &'static str) -> FoundationError {
         FoundationError::new(code, detail).at(self.at)
     }
-    fn spaces(&mut self) {
+    fn spaces(&mut self) -> Result<()> {
         while matches!(self.raw.get(self.at), Some(b' ' | b'\n' | b'\r' | b'\t')) {
             self.at += 1;
+            self.check()?;
         }
+        Ok(())
     }
     fn value(&mut self, depth: usize) -> Result<JsonValue> {
+        self.check()?;
         if depth > self.limits.max_depth || self.visits >= self.limits.max_visits {
             return Err(self.error(Code::BudgetExceeded, "JSON structural budget exceeded"));
         }
         self.visits += 1;
-        self.spaces();
+        self.spaces()?;
         match self.raw.get(self.at) {
             Some(b'"') => Ok(JsonValue::String(self.string()?)),
             Some(b'{') => self.object(depth),
@@ -549,6 +606,7 @@ impl Parser<'_> {
         self.take(b'"')?;
         let mut units = Vec::new();
         loop {
+            self.check()?;
             let byte = *self
                 .raw
                 .get(self.at)
@@ -601,7 +659,15 @@ impl Parser<'_> {
                     return Err(self.error(Code::InvalidJson, "unescaped control in JSON string"));
                 }
                 _ => {
-                    let ch = self.source[self.at..]
+                    let width = match byte {
+                        0..=0x7f => 1,
+                        0xc2..=0xdf => 2,
+                        0xe0..=0xef => 3,
+                        _ => 4,
+                    };
+                    // The bounded preflight already validated this exact scalar.
+                    let ch = std::str::from_utf8(&self.raw[self.at..self.at + width])
+                        .map_err(|_| self.error(Code::InvalidUtf8, "JSON input is not UTF-8"))?
                         .chars()
                         .next()
                         .ok_or_else(|| self.error(Code::InvalidJson, "invalid JSON string"))?;
@@ -615,24 +681,50 @@ impl Parser<'_> {
     }
     fn object(&mut self, depth: usize) -> Result<JsonValue> {
         self.take(b'{')?;
-        self.spaces();
-        let mut entries = Vec::new();
+        self.spaces()?;
+        let mut entries: Vec<(JsonString, JsonValue)> = Vec::new();
         let mut positions: HashMap<Vec<u16>, usize> = HashMap::new();
+        let mut checked_positions: BTreeMap<Digest256, usize> = BTreeMap::new();
+        let mut checked_next: Vec<usize> = Vec::new();
         let mut index_capacity_charge = 0usize;
         if self.raw.get(self.at) == Some(&b'}') {
             self.at += 1;
             return Ok(JsonValue::Object(entries));
         }
         loop {
-            self.spaces();
+            self.spaces()?;
             if self.raw.get(self.at) != Some(&b'"') {
                 return Err(self.error(Code::InvalidJson, "object key must be string"));
             }
             let key = self.string()?;
-            self.spaces();
+            self.spaces()?;
             self.take(b':')?;
             let value = self.value(depth + 1)?;
-            if let Some(&position) = positions.get(&key.units) {
+            let checked_digest = if self.poll.check.is_some() {
+                Some(checked_units_digest(&key.units, &mut self.poll)?)
+            } else {
+                None
+            };
+            let position = if let Some(digest) = checked_digest {
+                let mut position = None;
+                let mut candidate = checked_positions
+                    .get(&digest)
+                    .copied()
+                    .unwrap_or(usize::MAX);
+                while candidate != usize::MAX {
+                    self.poll.work(256)?;
+                    if checked_units_equal(&key.units, &entries[candidate].0.units, &mut self.poll)?
+                    {
+                        position = Some(candidate);
+                        break;
+                    }
+                    candidate = checked_next[candidate];
+                }
+                position
+            } else {
+                positions.get(&key.units).copied()
+            };
+            if let Some(position) = position {
                 if self.mode == JsonMode::PublishedStrict {
                     return Err(self.error(Code::DuplicateMember, "duplicate decoded JSON member"));
                 }
@@ -686,10 +778,17 @@ impl Parser<'_> {
                     )?;
                 }
                 self.reserve(&mut entries, 1)?;
-                positions.insert(key.units.clone(), entries.len());
+                if let Some(digest) = checked_digest {
+                    let previous = checked_positions
+                        .insert(digest, entries.len())
+                        .unwrap_or(usize::MAX);
+                    checked_next.push(previous);
+                } else {
+                    positions.insert(key.units.clone(), entries.len());
+                }
                 entries.push((key, value));
             }
-            self.spaces();
+            self.spaces()?;
             match self.raw.get(self.at) {
                 Some(b',') => {
                     self.at += 1;
@@ -704,7 +803,7 @@ impl Parser<'_> {
     }
     fn array(&mut self, depth: usize) -> Result<JsonValue> {
         self.take(b'[')?;
-        self.spaces();
+        self.spaces()?;
         let mut items = Vec::new();
         if self.raw.get(self.at) == Some(&b']') {
             self.at += 1;
@@ -714,7 +813,7 @@ impl Parser<'_> {
             let value = self.value(depth + 1)?;
             self.reserve(&mut items, 1)?;
             items.push(value);
-            self.spaces();
+            self.spaces()?;
             match self.raw.get(self.at) {
                 Some(b',') => {
                     self.at += 1;
@@ -742,6 +841,7 @@ impl Parser<'_> {
             }
             Some(b'1'..=b'9') => {
                 while matches!(self.raw.get(self.at), Some(b'0'..=b'9')) {
+                    self.check()?;
                     self.at += 1;
                 }
             }
@@ -754,6 +854,7 @@ impl Parser<'_> {
             self.at += 1;
             let fraction_start = self.at;
             while matches!(self.raw.get(self.at), Some(b'0'..=b'9')) {
+                self.check()?;
                 self.at += 1;
             }
             if self.at == fraction_start {
@@ -768,6 +869,7 @@ impl Parser<'_> {
             }
             let exponent_start = self.at;
             while matches!(self.raw.get(self.at), Some(b'0'..=b'9')) {
+                self.check()?;
                 self.at += 1;
             }
             if self.at == exponent_start {
@@ -775,7 +877,15 @@ impl Parser<'_> {
             }
         }
         self.charge(self.at - start)?;
-        let lexeme = self.source[start..self.at].to_owned();
+        let mut lexeme = String::new();
+        for chunk in self.raw[start..self.at].chunks(CHECK_BYTES) {
+            self.poll.now()?;
+            // Number grammar admits only ASCII here.
+            lexeme.push_str(
+                std::str::from_utf8(chunk)
+                    .map_err(|_| self.error(Code::InvalidUtf8, "JSON input is not UTF-8"))?,
+            );
+        }
         if kind == JsonNumberKind::Int && integer_digits > self.limits.max_integer_digits {
             return Err(self.error(Code::BudgetExceeded, "integer digit budget exceeded"));
         }
@@ -858,6 +968,25 @@ pub fn canonical_bytes_v1(
     }
 }
 
+/// The same canonical byte writer with cooperative checks, unchanged profiles.
+pub fn canonical_bytes_v1_with_check(
+    value: &JsonValue,
+    profile: CanonicalProfile,
+    limits: JsonLimits,
+    check: &mut dyn FnMut() -> Result<()>,
+) -> Result<Vec<u8>> {
+    let style = if profile == CanonicalProfile::CorpusSnapshotV1 {
+        WriteStyle::PythonCompactLf
+    } else {
+        WriteStyle::PythonCompact
+    };
+    let mut bytes = Vec::new();
+    let mut output = JsonOutput::bytes(&mut bytes);
+    output.poll = JsonCheck::new(Some(check));
+    write_document_into(value, limits, style, &mut output)?;
+    Ok(bytes)
+}
+
 /// Same canonical visitor with an original remaining-state output reservation.
 /// Counting retains no output. No growing response buffer is permitted after
 /// admission; the resulting allocation's actual capacity is checked as well.
@@ -896,10 +1025,13 @@ pub fn canonical_bytes_v1_with_state_budget_and_visits(
     if scratch_slots > available {
         return Err(state_error());
     }
-    let mut count_sink = JsonOutput::StateCount {
-        count: 0,
-        available,
-        scratch: scratch_slots,
+    let mut count_sink = JsonOutput {
+        poll: JsonCheck::new(None),
+        sink: JsonSink::StateCount {
+            count: 0,
+            available,
+            scratch: scratch_slots,
+        },
     };
     let (count_visits, count_numeric) =
         write_document_into_with_visits(value, limits, style, &mut count_sink, true)?;
@@ -928,10 +1060,13 @@ pub fn canonical_bytes_v1_with_state_budget_and_visits(
         .max_visits
         .checked_sub(used)
         .ok_or_else(state_error)?;
-    let mut output = JsonOutput::StateBytes {
-        bytes: &mut bytes,
-        available,
-        scratch: scratch_slots,
+    let mut output = JsonOutput {
+        poll: JsonCheck::new(None),
+        sink: JsonSink::StateBytes {
+            bytes: &mut bytes,
+            available,
+            scratch: scratch_slots,
+        },
     };
     let (emit_visits, emit_numeric) =
         write_document_into_with_visits(value, limits, style, &mut output, true)?;
@@ -966,7 +1101,7 @@ pub fn canonical_bytes_v1_with_visits(
         value,
         limits,
         style,
-        &mut JsonOutput::Bytes(&mut bytes),
+        &mut JsonOutput::bytes(&mut bytes),
         true,
     )?;
     Ok((bytes, writer_visits, numeric_parse_visits))
@@ -984,7 +1119,7 @@ pub fn canonical_count_v1(
             WriteStyle::PythonCompact
         }
     };
-    let mut output = JsonOutput::Count(0);
+    let mut output = JsonOutput::count();
     write_document_into(value, limits, style, &mut output)?;
     Ok(output.len())
 }
@@ -1000,10 +1135,50 @@ pub fn canonical_feed_digest_v1(
     visits: &mut usize,
     depth: usize,
 ) -> Result<()> {
-    limits.validate()?;
-    let mut output = JsonOutput::Digest {
+    canonical_feed_digest_inner(value, profile, limits, hasher, written, visits, depth, None)
+}
+
+/// The same canonical digest visitor with a cooperative caller check.
+/// On error the external digest sink may contain a partial fragment; discard it.
+pub fn canonical_feed_digest_v1_with_check(
+    value: &JsonValue,
+    profile: CanonicalProfile,
+    limits: JsonLimits,
+    hasher: &mut crate::Digest256Hasher,
+    written: &mut usize,
+    visits: &mut usize,
+    depth: usize,
+    check: &mut dyn FnMut() -> Result<()>,
+) -> Result<()> {
+    canonical_feed_digest_inner(
+        value,
+        profile,
+        limits,
         hasher,
-        bytes: *written,
+        written,
+        visits,
+        depth,
+        Some(check),
+    )
+}
+
+fn canonical_feed_digest_inner(
+    value: &JsonValue,
+    profile: CanonicalProfile,
+    limits: JsonLimits,
+    hasher: &mut crate::Digest256Hasher,
+    written: &mut usize,
+    visits: &mut usize,
+    depth: usize,
+    check: Option<&mut dyn FnMut() -> Result<()>>,
+) -> Result<()> {
+    limits.validate()?;
+    let mut output = JsonOutput {
+        sink: JsonSink::Digest {
+            hasher,
+            bytes: *written,
+        },
+        poll: JsonCheck::new(check),
     };
     let style = if profile == CanonicalProfile::CorpusSnapshotV1 {
         WriteStyle::PythonCompactLf
@@ -1024,6 +1199,7 @@ pub fn canonical_feed_digest_v1(
     if style.newline() {
         emit(&mut output, b"\n", limits)?;
     }
+    output.poll.now()?;
     *written = output.len();
     Ok(())
 }
@@ -1164,8 +1340,35 @@ impl WriteStyle {
     }
 }
 
+const CHECK_BYTES: usize = 65_536;
+const CHECK_SHORT_KEY_UNITS: usize = 128;
+const CHECK_SMALL_OBJECT_KEYS: usize = 32;
+struct JsonCheck<'c> {
+    check: Option<&'c mut dyn FnMut() -> Result<()>>,
+    work: usize,
+}
+impl<'c> JsonCheck<'c> {
+    fn new(check: Option<&'c mut dyn FnMut() -> Result<()>>) -> Self {
+        Self { check, work: 0 }
+    }
+    fn now(&mut self) -> Result<()> {
+        if let Some(check) = self.check.as_mut() {
+            check()?;
+        }
+        self.work = 0;
+        Ok(())
+    }
+    fn work(&mut self, amount: usize) -> Result<()> {
+        self.work = self.work.saturating_add(amount);
+        if self.work >= CHECK_BYTES {
+            self.now()?;
+        }
+        Ok(())
+    }
+}
+
 // Closed sinks share the existing visitor, styles, escaping and budget law.
-enum JsonOutput<'a> {
+enum JsonSink<'a> {
     Bytes(&'a mut Vec<u8>),
     Count(usize),
     StateBytes {
@@ -1183,10 +1386,26 @@ enum JsonOutput<'a> {
         bytes: usize,
     },
 }
-impl JsonOutput<'_> {
+struct JsonOutput<'a, 'c> {
+    sink: JsonSink<'a>,
+    poll: JsonCheck<'c>,
+}
+impl<'a, 'c> JsonOutput<'a, 'c> {
+    fn bytes(bytes: &'a mut Vec<u8>) -> Self {
+        Self {
+            sink: JsonSink::Bytes(bytes),
+            poll: JsonCheck::new(None),
+        }
+    }
+    fn count() -> Self {
+        Self {
+            sink: JsonSink::Count(0),
+            poll: JsonCheck::new(None),
+        }
+    }
     fn state_remaining(&self) -> Option<usize> {
-        match self {
-            Self::StateBytes {
+        match &self.sink {
+            JsonSink::StateBytes {
                 bytes,
                 available,
                 scratch,
@@ -1195,7 +1414,7 @@ impl JsonOutput<'_> {
                     .saturating_sub(bytes.capacity())
                     .saturating_sub(*scratch),
             ),
-            Self::StateCount {
+            JsonSink::StateCount {
                 available, scratch, ..
             } => Some(available.saturating_sub(*scratch)),
             _ => None,
@@ -1206,8 +1425,8 @@ impl JsonOutput<'_> {
             if amount > remaining {
                 return Err(state_error());
             }
-            match self {
-                Self::StateBytes { scratch, .. } | Self::StateCount { scratch, .. } => {
+            match &mut self.sink {
+                JsonSink::StateBytes { scratch, .. } | JsonSink::StateCount { scratch, .. } => {
                     *scratch = scratch.checked_add(amount).ok_or_else(state_error)?
                 }
                 _ => {}
@@ -1216,32 +1435,32 @@ impl JsonOutput<'_> {
         Ok(())
     }
     fn release_scratch(&mut self, amount: usize) {
-        match self {
-            Self::StateBytes { scratch, .. } | Self::StateCount { scratch, .. } => {
+        match &mut self.sink {
+            JsonSink::StateBytes { scratch, .. } | JsonSink::StateCount { scratch, .. } => {
                 *scratch -= amount
             }
             _ => {}
         }
     }
     fn len(&self) -> usize {
-        match self {
-            Self::Bytes(bytes) => bytes.len(),
-            Self::Count(count) | Self::StateCount { count, .. } => *count,
-            Self::StateBytes { bytes, .. } => bytes.len(),
-            Self::Digest { bytes, .. } => *bytes,
+        match &self.sink {
+            JsonSink::Bytes(bytes) => bytes.len(),
+            JsonSink::Count(count) | JsonSink::StateCount { count, .. } => *count,
+            JsonSink::StateBytes { bytes, .. } => bytes.len(),
+            JsonSink::Digest { bytes, .. } => *bytes,
         }
     }
 }
 fn write_document(value: &JsonValue, limits: JsonLimits, style: WriteStyle) -> Result<Vec<u8>> {
     let mut bytes = Vec::new();
-    write_document_into(value, limits, style, &mut JsonOutput::Bytes(&mut bytes))?;
+    write_document_into(value, limits, style, &mut JsonOutput::bytes(&mut bytes))?;
     Ok(bytes)
 }
 fn write_document_into(
     value: &JsonValue,
     limits: JsonLimits,
     style: WriteStyle,
-    output: &mut JsonOutput<'_>,
+    output: &mut JsonOutput<'_, '_>,
 ) -> Result<()> {
     write_document_into_with_visits(value, limits, style, output, false).map(|_| ())
 }
@@ -1249,10 +1468,11 @@ fn write_document_into_with_visits(
     value: &JsonValue,
     limits: JsonLimits,
     style: WriteStyle,
-    output: &mut JsonOutput<'_>,
+    output: &mut JsonOutput<'_, '_>,
     combined_visit_limit: bool,
 ) -> Result<(usize, usize)> {
     limits.validate()?;
+    output.poll.now()?;
     let mut visits = 0;
     let mut numeric_parse_visits = 0;
     write_value(
@@ -1268,9 +1488,10 @@ fn write_document_into_with_visits(
     if style.newline() {
         emit(output, b"\n", limits)?;
     }
+    output.poll.now()?;
     Ok((visits, numeric_parse_visits))
 }
-fn emit(output: &mut JsonOutput<'_>, bytes: &[u8], limits: JsonLimits) -> Result<()> {
+fn emit(output: &mut JsonOutput<'_, '_>, bytes: &[u8], limits: JsonLimits) -> Result<()> {
     let next = output
         .len()
         .checked_add(bytes.len())
@@ -1278,22 +1499,24 @@ fn emit(output: &mut JsonOutput<'_>, bytes: &[u8], limits: JsonLimits) -> Result
         .ok_or_else(|| {
             FoundationError::new(Code::BudgetExceeded, "JSON output byte budget exceeded")
         })?;
-    match output {
-        JsonOutput::Bytes(output) => output.extend_from_slice(bytes),
-        JsonOutput::StateBytes { bytes: output, .. } => {
-            if next > output.capacity() {
-                return Err(state_error());
+    for chunk in bytes.chunks(CHECK_BYTES) {
+        output.poll.work(chunk.len())?;
+        match &mut output.sink {
+            JsonSink::Bytes(output) => output.extend_from_slice(chunk),
+            JsonSink::Count(count) | JsonSink::StateCount { count, .. } => *count = next,
+            JsonSink::StateBytes { bytes: output, .. } => {
+                if next > output.capacity() {
+                    return Err(state_error());
+                }
+                output.extend_from_slice(chunk);
             }
-            output.extend_from_slice(bytes);
-        }
-        JsonOutput::StateCount { count, .. } => *count = next,
-        JsonOutput::Count(count) => *count = next,
-        JsonOutput::Digest {
-            hasher,
-            bytes: count,
-        } => {
-            hasher.update(bytes);
-            *count = next;
+            JsonSink::Digest {
+                hasher,
+                bytes: count,
+            } => {
+                hasher.update(chunk);
+                *count = next;
+            }
         }
     }
     Ok(())
@@ -1391,7 +1614,7 @@ fn python_float_text(value: f64) -> String {
     python_float_into(value, &shortest, &mut result).expect("String formatting");
     result
 }
-fn emit_state_float(value: f64, output: &mut JsonOutput<'_>, limits: JsonLimits) -> Result<()> {
+fn emit_state_float(value: f64, output: &mut JsonOutput<'_, '_>, limits: JsonLimits) -> Result<()> {
     use std::fmt::Write;
     let mut count = FormatCount(0);
     write!(&mut count, "{}", value.abs()).map_err(|_| state_error())?;
@@ -1427,7 +1650,7 @@ fn emit_state_float(value: f64, output: &mut JsonOutput<'_>, limits: JsonLimits)
 
 fn write_value(
     value: &JsonValue,
-    output: &mut JsonOutput<'_>,
+    output: &mut JsonOutput<'_, '_>,
     depth: usize,
     visits: &mut usize,
     numeric_parse_visits: &mut usize,
@@ -1435,6 +1658,7 @@ fn write_value(
     style: WriteStyle,
     combined_visit_limit: bool,
 ) -> Result<()> {
+    output.poll.work(256)?;
     let completed_visits = if combined_visit_limit {
         visits.checked_add(*numeric_parse_visits).ok_or_else(|| {
             FoundationError::new(Code::BudgetExceeded, "JSON visit counter overflow")
@@ -1471,26 +1695,38 @@ fn write_value(
                 }
                 validation_limits.max_visits = remaining;
             }
-            let checked = if let Some(remaining) = output.state_remaining() {
-                parse_json_with_state_budget(
-                    number.lexeme.as_bytes(),
-                    JsonMode::PublishedStrict,
-                    validation_limits,
-                    remaining,
-                )?
-            } else {
-                parse_json(
-                    number.lexeme.as_bytes(),
-                    JsonMode::PublishedStrict,
-                    validation_limits,
-                )?
-            };
+            let state_remaining = output.state_remaining().map(|available| (0, available));
+            let checked = parse_json_inner(
+                number.lexeme.as_bytes(),
+                JsonMode::PublishedStrict,
+                validation_limits,
+                state_remaining,
+                output
+                    .poll
+                    .check
+                    .as_mut()
+                    .map(|check| &mut **check as &mut dyn FnMut() -> Result<()>),
+            )?;
             *numeric_parse_visits = numeric_parse_visits
                 .checked_add(checked.visits())
                 .ok_or_else(|| {
                     FoundationError::new(Code::BudgetExceeded, "JSON visit counter overflow")
                 })?;
-            if checked.root() != value {
+            let same_number = if output.poll.check.is_some() {
+                match checked.root() {
+                    JsonValue::Number(checked_number) if checked_number.kind == number.kind => {
+                        checked_bytes_equal(
+                            checked_number.lexeme.as_bytes(),
+                            number.lexeme.as_bytes(),
+                            &mut output.poll,
+                        )?
+                    }
+                    _ => false,
+                }
+            } else {
+                checked.root() == value
+            };
+            if !same_number {
                 return Err(FoundationError::new(
                     Code::InvalidNumber,
                     "number lexeme and kind disagree",
@@ -1597,27 +1833,90 @@ fn write_value(
                 }
                 state_ordered = Some((ordered, actual));
             } else {
+                // Decide once for the whole object: the fallback collision chain
+                // stores original entry ordinals and must see every entry.
+                let checked_short_object = entries.len() <= CHECK_SMALL_OBJECT_KEYS
+                    && entries
+                        .iter()
+                        .all(|(key, _)| key.units.len() <= CHECK_SHORT_KEY_UNITS);
                 let mut seen = HashSet::new();
-                if entries.iter().any(|(key, _)| !seen.insert(&key.units)) {
-                    return Err(FoundationError::new(
-                        Code::DuplicateMember,
-                        "duplicate decoded JSON member",
-                    ));
+                let mut checked_short_seen: HashSet<&[u16]> = HashSet::new();
+                let mut checked_seen: BTreeMap<Digest256, usize> = BTreeMap::new();
+                let mut checked_next: Vec<usize> = Vec::new();
+                for (ordinal, (key, _)) in entries.iter().enumerate() {
+                    output.poll.now()?;
+                    let duplicate = if output.poll.check.is_some() && checked_short_object {
+                        // Exact equality still resolves hash collisions. Even a fully
+                        // collided table has <=32 keys of <=256 bytes per poll.
+                        let duplicate = !checked_short_seen.insert(key.units.as_slice());
+                        output.poll.now()?;
+                        duplicate
+                    } else if output.poll.check.is_some() {
+                        let digest = checked_units_digest(&key.units, &mut output.poll)?;
+                        let mut candidate =
+                            checked_seen.get(&digest).copied().unwrap_or(usize::MAX);
+                        let mut duplicate = false;
+                        while candidate != usize::MAX {
+                            output.poll.work(256)?;
+                            if checked_units_equal(
+                                &key.units,
+                                &entries[candidate].0.units,
+                                &mut output.poll,
+                            )? {
+                                duplicate = true;
+                                break;
+                            }
+                            candidate = checked_next[candidate];
+                        }
+                        if !duplicate {
+                            let previous =
+                                checked_seen.insert(digest, ordinal).unwrap_or(usize::MAX);
+                            checked_next.push(previous);
+                        }
+                        duplicate
+                    } else {
+                        !seen.insert(&key.units)
+                    };
+                    if duplicate {
+                        return Err(FoundationError::new(
+                            Code::DuplicateMember,
+                            "duplicate decoded JSON member",
+                        ));
+                    }
                 }
             }
             emit(output, b"{", limits)?;
             if style.sort_keys() {
                 let (mut ordered, reserved) = match state_ordered.take() {
                     Some((keys, charge)) => (keys, charge),
-                    None => (entries.iter().enumerate().collect(), 0),
+                    None => {
+                        let mut ordered = Vec::with_capacity(entries.len());
+                        for (ordinal, entry) in entries.iter().enumerate() {
+                            output.poll.work(256)?;
+                            ordered.push((ordinal, entry));
+                        }
+                        (ordered, 0)
+                    }
                 };
-                // Original ordinal preserves stable ordering for distinct
-                // WTF-16 keys whose as_str() is None, without sort scratch.
-                ordered.sort_unstable_by(|(left_index, (left, _)), (right_index, (right, _))| {
-                    left.as_str()
-                        .cmp(&right.as_str())
-                        .then(left_index.cmp(right_index))
-                });
+                if stateful {
+                    // Original ordinal preserves stable ordering for distinct
+                    // WTF-16 keys whose as_str() is None, without sort scratch.
+                    ordered.sort_unstable_by(
+                        |(left_index, (left, _)), (right_index, (right, _))| {
+                            left.as_str()
+                                .cmp(&right.as_str())
+                                .then(left_index.cmp(right_index))
+                        },
+                    );
+                } else {
+                    if output.poll.check.is_some() {
+                        checked_key_sort(&mut ordered, &mut output.poll)?;
+                    } else {
+                        ordered.sort_by(|(_, (left, _)), (_, (right, _))| {
+                            left.as_str().cmp(&right.as_str())
+                        });
+                    }
+                }
                 for (index, (_, (key, item))) in ordered.iter().copied().enumerate() {
                     if index != 0 {
                         emit(output, b",", limits)?;
@@ -1693,7 +1992,7 @@ fn write_value(
     Ok(())
 }
 
-fn emit_indent(output: &mut JsonOutput<'_>, depth: usize, limits: JsonLimits) -> Result<()> {
+fn emit_indent(output: &mut JsonOutput<'_, '_>, depth: usize, limits: JsonLimits) -> Result<()> {
     const SPACES: [u8; 256] = [b' '; 256];
     let count = depth.checked_mul(2).ok_or_else(|| {
         FoundationError::new(Code::BudgetExceeded, "JSON indentation depth exceeded")
@@ -1706,7 +2005,7 @@ fn emit_indent(output: &mut JsonOutput<'_>, depth: usize, limits: JsonLimits) ->
 
 fn write_string(
     value: &JsonString,
-    output: &mut JsonOutput<'_>,
+    output: &mut JsonOutput<'_, '_>,
     strict_utf8: bool,
     limits: JsonLimits,
 ) -> Result<()> {
@@ -1719,6 +2018,7 @@ fn write_string(
     emit(output, b"\"", limits)?;
     let mut units = value.units.iter().copied().peekable();
     while let Some(unit) = units.next() {
+        output.poll.work(4)?;
         let ch = if (0xd800..=0xdbff).contains(&unit)
             && units
                 .peek()
@@ -1752,11 +2052,131 @@ fn write_string(
     Ok(())
 }
 
-fn write_unicode_escape(unit: u16, output: &mut JsonOutput<'_>, limits: JsonLimits) -> Result<()> {
+fn write_unicode_escape(
+    unit: u16,
+    output: &mut JsonOutput<'_, '_>,
+    limits: JsonLimits,
+) -> Result<()> {
     const HEX: &[u8; 16] = b"0123456789abcdef";
     let mut escaped = *b"\\u0000";
     for (index, shift) in [12, 8, 4, 0].into_iter().enumerate() {
         escaped[index + 2] = HEX[((unit >> shift) & 15) as usize];
     }
     emit(output, &escaped, limits)
+}
+
+fn checked_key_sort(
+    entries: &mut [(usize, &(JsonString, JsonValue))],
+    poll: &mut JsonCheck<'_>,
+) -> Result<()> {
+    fn compare(
+        a: &JsonString,
+        b: &JsonString,
+        poll: &mut JsonCheck<'_>,
+    ) -> Result<std::cmp::Ordering> {
+        match (a.as_str(), b.as_str()) {
+            (Some(a), Some(b)) => {
+                for (a, b) in a
+                    .as_bytes()
+                    .chunks(CHECK_BYTES)
+                    .zip(b.as_bytes().chunks(CHECK_BYTES))
+                {
+                    poll.now()?;
+                    let ordering = a.cmp(b);
+                    if ordering != std::cmp::Ordering::Equal {
+                        return Ok(ordering);
+                    }
+                }
+                Ok(a.len().cmp(&b.len()))
+            }
+            (a, b) => {
+                poll.now()?;
+                Ok(a.cmp(&b))
+            }
+        }
+    }
+    fn sift(
+        entries: &mut [(usize, &(JsonString, JsonValue))],
+        mut root: usize,
+        end: usize,
+        poll: &mut JsonCheck<'_>,
+    ) -> Result<()> {
+        loop {
+            poll.work(256)?;
+            let Some(mut child) = root
+                .checked_mul(2)
+                .and_then(|n| n.checked_add(1))
+                .filter(|n| *n < end)
+            else {
+                break;
+            };
+            if child + 1 < end
+                && compare(&entries[child].1.0, &entries[child + 1].1.0, poll)?
+                    .then_with(|| entries[child].0.cmp(&entries[child + 1].0))
+                    .is_lt()
+            {
+                child += 1;
+            }
+            if !compare(&entries[root].1.0, &entries[child].1.0, poll)?
+                .then_with(|| entries[root].0.cmp(&entries[child].0))
+                .is_lt()
+            {
+                break;
+            }
+            entries.swap(root, child);
+            root = child;
+        }
+        Ok(())
+    }
+    for root in (0..entries.len() / 2).rev() {
+        sift(entries, root, entries.len(), poll)?;
+    }
+    for end in (1..entries.len()).rev() {
+        poll.work(256)?;
+        entries.swap(0, end);
+        sift(entries, 0, end, poll)?;
+    }
+    poll.now()
+}
+
+// Auxiliary fixed-size digest keys accelerate only exact decoded-member lookup.
+// Collisions always use the original UTF-16 units; this is not corpus identity.
+fn checked_units_digest(units: &[u16], poll: &mut JsonCheck<'_>) -> Result<Digest256> {
+    let mut digest = crate::Digest256Hasher::new();
+    let mut bytes = [0u8; 8192];
+    for chunk in units.chunks(bytes.len() / 2) {
+        poll.now()?;
+        for (unit, bytes) in chunk.iter().zip(bytes.chunks_exact_mut(2)) {
+            bytes.copy_from_slice(&unit.to_le_bytes());
+        }
+        digest.update(&bytes[..chunk.len() * 2]);
+    }
+    poll.now()?;
+    Ok(digest.finalize())
+}
+
+fn checked_units_equal(a: &[u16], b: &[u16], poll: &mut JsonCheck<'_>) -> Result<bool> {
+    if a.len() != b.len() {
+        return Ok(false);
+    }
+    for (a, b) in a.chunks(CHECK_BYTES / 2).zip(b.chunks(CHECK_BYTES / 2)) {
+        poll.now()?;
+        if a != b {
+            return Ok(false);
+        }
+    }
+    Ok(true)
+}
+
+fn checked_bytes_equal(a: &[u8], b: &[u8], poll: &mut JsonCheck<'_>) -> Result<bool> {
+    if a.len() != b.len() {
+        return Ok(false);
+    }
+    for (a, b) in a.chunks(CHECK_BYTES).zip(b.chunks(CHECK_BYTES)) {
+        poll.now()?;
+        if a != b {
+            return Ok(false);
+        }
+    }
+    Ok(true)
 }
