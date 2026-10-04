@@ -40,7 +40,16 @@ pub struct V2PointReadLimits {
 }
 
 impl V2PointReadLimits {
-    fn validate(self) -> io::Result<Self> {
+    fn validate(mut self) -> io::Result<Self> {
+        // V2 mutable selection is a fixed, shallow pointer record. Do not let
+        // the inherited V1 snapshot profile turn that small read into a large
+        // parser-state reservation. Every value is narrowed to the original
+        // protected limits; this never raises a caller-selected cap.
+        self.pointer.max_manifest_bytes = self.pointer.max_manifest_bytes.min(4 * 1024);
+        self.pointer.json.max_bytes = self.pointer.json.max_bytes.min(4 * 1024);
+        self.pointer.json.max_depth = self.pointer.json.max_depth.min(8);
+        self.pointer.json.max_visits = self.pointer.json.max_visits.min(64);
+        self.pointer.json.max_integer_digits = self.pointer.json.max_integer_digits.min(64);
         self.pointer.validate().map_err(invalid)?;
         self.segment.validate().map_err(invalid)?;
         if self.max_object_bytes == 0
@@ -51,6 +60,8 @@ impl V2PointReadLimits {
             || self.tree.max_nodes == u64::MAX
             || self.tree.max_total_bytes == 0
             || self.tree.max_total_bytes == u64::MAX
+            || self.tree.max_value_bytes == 0
+            || self.tree.max_value_bytes > SourceRevisionRootsV2::MAX_ENCODED_BYTES as u64
         {
             return Err(invalid("V2 point reader finite profile differs"));
         }
@@ -62,6 +73,28 @@ impl V2PointReadLimits {
     }
 
     fn base_state_bytes(self) -> io::Result<usize> {
+        let history_value_bytes = usize::try_from(self.tree.max_value_bytes)
+            .map_err(|_| invalid("V2 history value bound exceeds address space"))?;
+        let rootset_result = SourceRootSetV2::retained_state_upper_bound_for_value(ROOT_BYTES)?;
+        let history_result =
+            SourceRevisionRootsV2::retained_state_upper_bound_for_value(history_value_bytes)?;
+        let history_decode_workspace = decode_workspace_upper_bound(history_value_bytes)?;
+        let rootset_peak = ROOT_BYTES
+            .checked_add(decode_workspace_upper_bound(ROOT_BYTES)?)
+            .and_then(|n| n.checked_add(rootset_result))
+            .ok_or_else(|| invalid("V2 rootset state overflow"))?;
+        // A history read retains the selected rootset while parsing one row,
+        // then keeps one cache copy beside the caller's returned value.
+        let history_peak = rootset_result
+            .checked_add(history_value_bytes)
+            .and_then(|n| n.checked_add(history_decode_workspace))
+            .and_then(|n| n.checked_add(history_result.checked_mul(2)?))
+            .ok_or_else(|| invalid("V2 history state overflow"))?;
+        let selected_record_peak = rootset_peak.max(history_peak);
+        let auxiliary_peak = 8usize
+            .checked_mul(1024 * 1024)
+            .and_then(|n| n.checked_add(BLOCK_BYTES))
+            .ok_or_else(|| invalid("V2 point auxiliary state overflow"))?;
         self.caller_retained_state_bytes
             .checked_add(
                 self.pointer
@@ -71,7 +104,8 @@ impl V2PointReadLimits {
             )
             .and_then(|n| n.checked_add(self.tree.max_node_bytes.checked_mul(64)?))
             .and_then(|n| n.checked_add(self.max_object_bytes.checked_mul(2)?))
-            .and_then(|n| n.checked_add(ROOT_BYTES * 128 + 8 * 1024 * 1024 + BLOCK_BYTES))
+            .and_then(|n| n.checked_add(selected_record_peak))
+            .and_then(|n| n.checked_add(auxiliary_peak))
             .ok_or_else(|| invalid("V2 point state overflow"))
     }
 }
@@ -212,12 +246,7 @@ impl V2ReadSession {
             &cancel,
             &original_io,
         )?;
-        let root_decode_workspace = ROOT_BYTES
-            .checked_mul(128)
-            .ok_or_else(|| invalid("V2 root decode state bound overflow"))?;
-        if decode_workspace_upper_bound(raw.len())? > root_decode_workspace {
-            return Err(invalid("V2 root decode exceeds selected state profile"));
-        }
+        let root_decode_workspace = decode_workspace_upper_bound(raw.len())?;
         let roots = SourceRootSetV2::decode_with_workspace(&raw, root_decode_workspace)?;
         if roots.current.revision != selection.revision
             || roots.current.base_revision != selection.previous
@@ -260,9 +289,10 @@ impl V2ReadSession {
         let row = session
             .lookup(&history, &key)?
             .ok_or_else(|| invalid("V2 point current history row absent"))?;
+        let history_decode_workspace = decode_workspace_upper_bound(row.value.len())?;
         session
             .roots
-            .verify_current_history_row(&key, &row, root_decode_workspace)?;
+            .verify_current_history_row(&key, &row, history_decode_workspace)?;
         session.store.verify_layout()?;
         active(deadline, &session.cancel)?;
         Ok(session)
@@ -325,13 +355,16 @@ impl V2ReadSession {
         else {
             return Ok(None);
         };
-        let workspace = ROOT_BYTES
-            .checked_mul(128)
-            .ok_or_else(|| invalid("V2 history decode state bound overflow"))?;
-        let required = decode_workspace_upper_bound(row.value.len())?;
-        if required > workspace {
-            return Err(invalid("V2 history decode exceeds selected state profile"));
+        let result_state_upper =
+            SourceRevisionRootsV2::retained_state_upper_bound_for_value(row.value.len())?;
+        if result_state_upper > caller_result_state_bytes {
+            return Err(invalid("V2 history root exceeds caller retained state"));
         }
+        let workspace = decode_workspace_upper_bound(row.value.len())?;
+        // Drop the previous one-entry cache before allocating the new parsed
+        // value/cache pair. The session base-state reservation covers the
+        // returned value and its one cache copy simultaneously.
+        self.history_roots_cache = None;
         let roots = SourceRevisionRootsV2::decode_with_workspace(&row.value, workspace)?;
         if row.key.as_slice() != roots.revision.0.as_bytes() {
             return Err(invalid("V2 history key and revision differ"));
@@ -341,10 +374,11 @@ impl V2ReadSession {
             self.roots
                 .verify_current_history_row(&row.key, &row.value, workspace)?;
         } else {
+            let result_state = roots.retained_state_bytes()?;
+            if result_state > caller_result_state_bytes {
+                return Err(invalid("V2 history root exceeds caller retained state"));
+            }
             self.history_roots_cache = Some(roots.clone());
-        }
-        if roots.retained_state_bytes()? > caller_result_state_bytes {
-            return Err(invalid("V2 history root exceeds caller retained state"));
         }
         let raw_bytes = row.value.len();
         Ok(Some((roots, raw_bytes)))
@@ -563,12 +597,10 @@ impl V2ReadSession {
         let Some(raw) = self.lookup(&history, revision.0.as_bytes())? else {
             return Ok(None);
         };
-        let workspace = ROOT_BYTES
-            .checked_mul(128)
-            .ok_or_else(|| invalid("V2 revision decode state bound overflow"))?;
-        if decode_workspace_upper_bound(raw.len())? > workspace {
-            return Err(invalid("V2 revision decode exceeds selected state profile"));
-        }
+        let workspace = decode_workspace_upper_bound(raw.len())?;
+        // Replacing the one-entry cache must not overlap an obsolete cached
+        // revision with both the decoded row and its new cached copy.
+        self.history_roots_cache = None;
         let roots = SourceRevisionRootsV2::decode_with_workspace(&raw, workspace)?;
         if roots.revision != revision {
             return Err(invalid("V2 point history revision differs"));

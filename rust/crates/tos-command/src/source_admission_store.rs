@@ -1156,7 +1156,18 @@ impl AdmissionStore {
                     != expected_base.map(tos_foundation::SourceRevision)
                 || rootset.roots.current.manifest_sha256 != manifest_sha256
                 || rootset.bytes.len() > 65_536
-                || rootset.roots.encode()?.as_slice() != rootset.bytes
+                || rootset
+                    .roots
+                    .encode_with_state_limit(
+                        rootset.tree_io.max_working_state_bytes(),
+                        std::mem::size_of::<
+                            super::source_admission_segment_v2::BuiltInitialRootSetV2,
+                        >()
+                        .checked_add(rootset.bytes.capacity())
+                        .ok_or_else(|| invalid("V2 publication retained state overflow"))?,
+                    )?
+                    .as_slice()
+                    != rootset.bytes
                 || Digest256::of_bytes(&rootset.bytes) != rootset.sha256
                 || rootset.segment_store.custody_domain()
                     != super::source_admission_segment_v2::SOURCE_ADMISSION_V2_DOMAIN

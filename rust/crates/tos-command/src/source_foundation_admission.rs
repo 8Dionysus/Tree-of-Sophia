@@ -41,7 +41,7 @@ use tos_compiler::private_tmpfs_stage::{
 };
 use tos_foundation::{Digest256, JsonLimits};
 use tos_ops_mechanics_plan::route_cards::RouteSources;
-use tos_segment_store::AuthenticatedTreeLimitsV1;
+use tos_segment_store::{AuthenticatedTreeLimitsV1, SegmentLimits};
 use tos_source_store::ReadLimits;
 use tos_source_store::{
     CutReadLimits, PinnedSqliteAuxLimits, PinnedSqliteAuxRequest, PinnedSqliteIoBudget,
@@ -194,6 +194,9 @@ pub(crate) struct PreparedSpooledExecution {
     pub(crate) v2_target_root: Option<PreparedV2ArtifactRoot>,
     pub(crate) v2_allocation_accountant:
         Option<Arc<super::source_admission_segment_v2::NativeV2TreeIo>>,
+    /// Numeric metadata-only reader profile selected before the native
+    /// completion witness. It carries no publication or allocation authority.
+    pub(crate) v2_base_read_limits: Option<super::source_admission_v2_reader::V2PointReadLimits>,
 }
 
 pub(crate) struct PreparedV2StoreRoot {
@@ -1316,6 +1319,7 @@ impl<'c> NativeSourceValidator<'c> {
                         Arc::clone(&allocation_reservation),
                         max_allocated_bytes,
                         allocation_unit_bytes,
+                        segment_v2_state_bytes,
                     )?;
                 let max_node_bytes = 64 * 1024usize;
                 let max_total_bytes = segment_v2_read_cap
@@ -1388,6 +1392,30 @@ impl<'c> NativeSourceValidator<'c> {
             .segment_v2_profile
             .as_ref()
             .map(|profile| Arc::clone(&profile.allocation_accountant));
+        let v2_base_read_limits = match self.segment_v2_profile.as_ref() {
+            Some(profile) => Some(super::source_admission_v2_reader::V2PointReadLimits {
+                pointer: candidate_limits.candidate.reader,
+                segment: SegmentLimits {
+                    max_segment_bytes: profile.max_allocated_bytes,
+                    max_frame_bytes: profile.max_allocated_bytes.min(4 * 1024 * 1024).max(1),
+                    max_frames: u32::try_from(profile.tree_limits.max_nodes.min(u32::MAX as u64))
+                        .map_err(|_| invalid("V2 base segment frame limit exceeds range"))?
+                        .max(1),
+                    max_journal_bytes: profile
+                        .max_working_state_bytes
+                        .min(4 * 1024 * 1024)
+                        .max(128),
+                },
+                tree: profile.tree_limits,
+                // This session authenticates metadata rows for native base
+                // validation; payload reads use the separately selected case
+                // profile after publication.
+                max_object_bytes: 1,
+                max_state_bytes: profile.max_working_state_bytes,
+                caller_retained_state_bytes: 0,
+            }),
+            None => None,
+        };
         let v2_source_root = if v2_allocation_accountant.is_some() {
             let path = self
                 .store_authority
@@ -1484,6 +1512,7 @@ impl<'c> NativeSourceValidator<'c> {
                 v2_source_root,
                 v2_target_root,
                 v2_allocation_accountant,
+                v2_base_read_limits,
             },
         ))
     }
