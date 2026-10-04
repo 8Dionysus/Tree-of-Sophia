@@ -13,7 +13,7 @@ use crate::source_foundation_admission::{
 use serde_json::json;
 use std::fs::File;
 use std::{
-    cell::Cell,
+    cell::{Cell, RefCell},
     ffi::OsString,
     fmt,
     io::{self, Write},
@@ -993,8 +993,11 @@ fn run_spooled_inner(
         &request.cancelled,
         pointer_io,
     )?;
-    let base = match batch.base_revision {
-        Some(revision) => {
+    let base = match (
+        batch.base_revision,
+        resources.v2_allocation_accountant.is_some(),
+    ) {
+        (Some(revision), false) => {
             let main = File::from(rustix::fs::openat(
                 &resources.workspace,
                 ".",
@@ -1018,7 +1021,31 @@ fn run_spooled_inner(
                 .map_err(invalid)?;
             Some(reader)
         }
-        None => None,
+        _ => None,
+    };
+    // Read-only limits are selected by the protected invocation. This borrows
+    // authenticated held V2 rows before validation; it grants no publication
+    // authority and uses the original shared source IO ledger.
+    let base_v2 = if batch.base_revision.is_some() && resources.v2_allocation_accountant.is_some() {
+        let source_root = resources
+            .v2_source_root
+            .as_ref()
+            .ok_or_else(|| invalid("selected V2 original source root absent"))?;
+        let read_limits = resources
+            .v2_base_read_limits
+            .ok_or_else(|| invalid("selected V2 base read limits absent"))?;
+        Some(RefCell::new(
+            crate::source_admission_v2_reader::V2ReadSession::open_at_named_with_io(
+                store_path,
+                &source_root.held,
+                read_limits,
+                pointer_io.clone(),
+                deadline,
+                request.cancelled.clone(),
+            )?,
+        ))
+    } else {
+        None
     };
     let candidate_workspace = resources.workspace.try_clone()?;
     let candidate_request = tos_source_store::PinnedSqliteAuxRequest {
@@ -1028,11 +1055,16 @@ fn run_spooled_inner(
         deadline: request.deadline,
         cancelled: request.cancelled.clone(),
     };
-    let candidate = SpoolCandidate::prepare_selected_batch(
+    let candidate = SpoolCandidate::prepare_selected_batch_with_v2_base(
         &store,
         batch,
         identity,
         base.as_ref(),
+        base_v2.as_ref(),
+        resources
+            .v2_allocation_accountant
+            .as_ref()
+            .map(|owner| owner.io_budget()),
         candidate_workspace,
         candidate_request,
         limits,
@@ -1093,6 +1125,7 @@ fn run_spooled_inner(
     drop(index);
     drop(candidate);
     drop(base);
+    drop(base_v2);
     let case = resources.v2_case.as_ref().map(|selection| {
         run_selected_v2_case(
             selection,
