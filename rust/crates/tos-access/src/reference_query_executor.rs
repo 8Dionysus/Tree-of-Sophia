@@ -67,9 +67,12 @@ impl<'hold, 'view: 'hold, 'capture> SelectedQueryContext<'hold>
             &mut dyn tos_query::ScopedIndexedKnowledgeAuthority<'hold>,
         ) -> Result<T, AccessError>,
     ) -> Result<T, AccessError> {
-        ReferenceMetadataContext::prepare_operation(self, operation, probe, |catalog, inspect, indexed| {
-            consume(catalog, inspect, indexed)
-        })
+        ReferenceMetadataContext::prepare_operation(
+            self,
+            operation,
+            probe,
+            |catalog, inspect, indexed| consume(catalog, inspect, indexed),
+        )
     }
 }
 
@@ -80,6 +83,7 @@ pub struct ReferenceQueryExecutor<'owner, 'model, 'bound, 'view, 'capture, 'evid
     bound: &'owner BoundCmpKnowledge<'bound>,
     context: RefCell<&'owner mut C>,
     checkpoints: RefCell<&'owner mut dyn tos_query::knowledge_exploration::ExplorationCheckpoints>,
+    resource_query_state: std::cell::Cell<Option<usize>>,
     budgets: SelectedKnowledgeBudgets,
     legacy: tos_query::knowledge_legacy_search::LegacySearchBudget,
     indexed: tos_query::IndexedPageBudget,
@@ -102,6 +106,42 @@ where
     /// Call inside the owner callback which supplies `context`, `view`, and any
     /// Evidence view. The socket must finish flushing before those callbacks
     /// return. RefCell guards serialize the existing mutable QRY session.
+    /// State of the actual borrowed owners used by this executor, excluding
+    /// aliases to outer capture/Evidence/corpus/checkpoint holders.
+    pub(crate) fn retained_state_upper_bound(&self) -> Result<usize, AccessError>
+    where
+        C: tos_foundation::OwnedState,
+    {
+        use tos_foundation::{OwnedState, checked_state_add};
+        let map = |_| {
+            AccessError::new(
+                AccessErrorCode::BudgetExceeded,
+                "Reference executor retained state overflow",
+            )
+        };
+        let model = self.model.try_borrow().map_err(|_| {
+            AccessError::new(AccessErrorCode::Unavailable, "Reference model is busy")
+        })?;
+        let context = self.context.try_borrow().map_err(|_| {
+            AccessError::new(AccessErrorCode::Unavailable, "Reference context is busy")
+        })?;
+        let mut bytes = std::mem::size_of::<Self>();
+        for amount in [
+            model.retained_state_upper_bound().map_err(|_| map(()))?,
+            self.bound
+                .retained_state_upper_bound()
+                .map_err(|_| map(()))?,
+            (**context).retained_state_bytes().map_err(|_| map(()))?,
+        ] {
+            bytes = checked_state_add(bytes, amount).map_err(|_| map(()))?;
+        }
+        Ok(bytes)
+    }
+
+    pub(crate) fn reserve_resource_query_state(&self, remaining_state_bytes: usize) {
+        self.resource_query_state.set(Some(remaining_state_bytes));
+    }
+
     pub fn new(
         model: &'owner mut VerifiedKnowledgeModel<'model>,
         bound: &'owner BoundCmpKnowledge<'bound>,
@@ -129,6 +169,7 @@ where
             bound,
             context: RefCell::new(context),
             checkpoints: RefCell::new(checkpoints),
+            resource_query_state: std::cell::Cell::new(None),
             budgets,
             legacy,
             indexed,
@@ -306,7 +347,10 @@ where
                 )?;
                 crate::knowledge::check_abort(&probe)?;
                 let (body, lease) = packet.into_parts();
-                Ok(PreparedPacket { body, fence: Box::new(ReferenceIndexedFence(lease)) })
+                Ok(PreparedPacket {
+                    body,
+                    fence: Box::new(ReferenceIndexedFence(lease)),
+                })
             },
         )
     }
@@ -523,6 +567,25 @@ where
                         "selected corpus read context unavailable",
                     )
                 })?;
+                if matches!(
+                    request,
+                    tos_query::corpus_read::CorpusReadRequest::GraphViews
+                ) {
+                    if let Some(remaining) = self.resource_query_state.get() {
+                        return crate::knowledge::execute_selected_corpus_graph_views_with_state(
+                            &mut model,
+                            self.bound,
+                            inspect,
+                            corpus,
+                            tos_query::corpus_read::CorpusReadBudget {
+                                inspect: self.budgets.inspect,
+                                max_work_steps: self.budgets.inspect.max_read_vm_steps,
+                            },
+                            probe,
+                            remaining,
+                        );
+                    }
+                }
                 return crate::knowledge::execute_selected_corpus(
                     &mut model,
                     self.bound,

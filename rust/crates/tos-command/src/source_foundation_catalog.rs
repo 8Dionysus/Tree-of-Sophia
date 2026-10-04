@@ -1815,7 +1815,9 @@ fn compare_prepared_kernel<'candidate, 'stage, B, D>(
             &mut stage,
             validator,
             &mut profiles,
-            index_rows.as_mut().map(|rows| &mut **rows as &mut dyn FreshIndexRowsWriter),
+            index_rows
+                .as_mut()
+                .map(|rows| &mut **rows as &mut dyn FreshIndexRowsWriter),
         )?;
         let json = JsonLimits::new(limits.catalog.max_output_row_bytes, 96, 1_000_000, 4096)
             .map_err(|_| Error::Budget("catalog manifest JSON limits"))?;
@@ -1824,7 +1826,10 @@ fn compare_prepared_kernel<'candidate, 'stage, B, D>(
             .checked_sub(profiles.retained_state_bytes)
             .ok_or(Error::Budget("catalog shared generated/profile state"))?;
         if let Some((isolated, tree_limits)) = candidate_root {
-            let mut sink = if let Some(rows) = index_rows.as_mut().map(|rows| &mut **rows as &mut dyn FreshIndexRowsWriter) {
+            let mut sink = if let Some(rows) = index_rows
+                .as_mut()
+                .map(|rows| &mut **rows as &mut dyn FreshIndexRowsWriter)
+            {
                 FreshCatalogSink::new_with_index_rows(
                     isolated,
                     tree_limits,
@@ -2076,6 +2081,11 @@ pub(crate) fn compare_candidate<'candidate, 'rows>(
     tree_limits: DisposableCatalogTreeLimits,
     index_rows: Option<&'rows mut dyn FreshIndexRowsWriter>,
     cancelled: &AtomicBool,
+    observe: impl FnOnce(
+        &mut KnowledgeStage<'_>,
+        &ColdSourceCatalogReceipt,
+        SourceCatalogLimits,
+    ) -> Result<()>,
 ) -> Result<FoundationCatalogCandidateOutcome<'candidate>> {
     let mut output = compare_kernel(
         capture,
@@ -2102,7 +2112,7 @@ pub(crate) fn compare_candidate<'candidate, 'rows>(
         Some((isolated, tree_limits)),
         index_rows,
         cancelled,
-        |_, _, _| Ok(()),
+        observe,
     )?;
     if let (FoundationCatalogOutcome::Complete(result), Some(candidate)) =
         (&mut output.outcome, output.candidate.as_mut())
@@ -2265,12 +2275,10 @@ pub(crate) fn compare_spooled_candidate<'candidate>(
         limits.catalog.max_file_bytes,
     )?;
     let sources = RefCell::new(sources);
-    let read_ledger = RefCell::new(
-        tos_compiler::StreamedBibliographicReadLedger::new(
-            max_version_files as u64,
-            max_version_bytes as u64,
-        )?,
-    );
+    let read_ledger = RefCell::new(tos_compiler::StreamedBibliographicReadLedger::new(
+        max_version_files as u64,
+        max_version_bytes as u64,
+    )?);
     let mut render_work = SourceCatalogRenderWorkV1::default();
     let mut output = compare_prepared_kernel(
         stage,

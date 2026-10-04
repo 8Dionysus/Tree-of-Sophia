@@ -1206,6 +1206,11 @@ impl<'hold> tos_query::InspectCurrentAuthority<'hold> for InspectProbe<'_, 'hold
     fn abort_probe(&self) -> Option<Arc<dyn AbortProbe>> {
         Some(Arc::clone(&self.probe))
     }
+    fn disclosure_metadata_state_upper_bound(
+        &self,
+    ) -> std::result::Result<usize, tos_query::SearchV2Error> {
+        self.inner.disclosure_metadata_state_upper_bound()
+    }
     fn policy_binding(&self) -> tos_query::search_v2::CurrentPolicyBinding {
         self.inner.policy_binding()
     }
@@ -1373,6 +1378,33 @@ pub fn execute_selected_corpus<'hold>(
     Ok(from_inspect(packet))
 }
 
+pub(crate) fn execute_selected_corpus_graph_views_with_state<'hold>(
+    model: &mut tos_compiler::VerifiedKnowledgeModel<'_>,
+    bound: &tos_query::BoundCmpKnowledge<'_>,
+    authority: &mut dyn tos_query::InspectCurrentAuthority<'hold>,
+    context: &tos_query::corpus_read::CorpusReadContext,
+    budget: tos_query::corpus_read::CorpusReadBudget,
+    probe: Arc<dyn AbortProbe>,
+    remaining_state_bytes: usize,
+) -> Result<PreparedPacket<'hold>, AccessError> {
+    check_abort(&probe)?;
+    let probe = combined_probe(probe, authority.abort_probe());
+    let mut authority = InspectProbe {
+        inner: authority,
+        probe: Arc::clone(&probe),
+    };
+    let packet = tos_query::corpus_read::execute_selected_corpus_graph_views_with_state(
+        model,
+        bound,
+        &mut authority,
+        context,
+        budget,
+        remaining_state_bytes,
+    )?;
+    check_abort(&probe)?;
+    Ok(from_inspect(packet))
+}
+
 /// Internal site metadata uses the existing Summary scope and current hold.
 pub fn execute_selected_corpus_view_ids<'hold>(
     model: &mut tos_compiler::VerifiedKnowledgeModel<'_>,
@@ -1500,4 +1532,8 @@ pub(crate) fn execute_selected_philosophy_audit<'hold>(
     )?;
     check_abort(&probe)?;
     Ok(from_inspect(packet))
+}
+
+pub(crate) fn combined_probe_state_bytes() -> usize {
+    std::mem::size_of::<CombinedProbe>()
 }

@@ -390,12 +390,37 @@ impl FoundationAdmissionRepresentation {
     }
 }
 
+/// Protected catalogue delivery representation. The default still verifies
+/// authored-root persisted outputs; owned cold output stays private and temporary.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum FoundationCatalogueRepresentation {
+    PersistedRoot,
+    OwnedCold,
+}
+impl FoundationCatalogueRepresentation {
+    fn parse(value: &tos_foundation::JsonValue) -> Result<Self> {
+        if value.object_get("catalogue_representation").is_none() {
+            return Ok(Self::PersistedRoot);
+        }
+        match crate::source_command::text(value, "catalogue_representation")
+            .map_err(|_| Error::Invalid("foundation catalogue representation value"))?
+        {
+            "persisted-root" => Ok(Self::PersistedRoot),
+            "owned-cold" => Ok(Self::OwnedCold),
+            _ => Err(Error::Invalid(
+                "foundation catalogue representation profile",
+            )),
+        }
+    }
+}
+
 pub(crate) struct FoundationInvocation<'cancel> {
     path: PathBuf,
     raw: Vec<u8>,
     raw_sha256: Digest256,
     expected_executable_sha256: Digest256,
     admission_representation: FoundationAdmissionRepresentation,
+    catalogue_representation: FoundationCatalogueRepresentation,
     pub schema_worker: FoundationSchemaWorkerSelection,
     pub artifact_root: Option<PathBuf>,
     pub budgets: FoundationInvocationBudgets,
@@ -407,6 +432,10 @@ pub(crate) struct FoundationInvocation<'cancel> {
 }
 
 impl<'cancel> FoundationInvocation<'cancel> {
+    pub(crate) fn catalogue_representation(&self) -> FoundationCatalogueRepresentation {
+        self.catalogue_representation
+    }
+
     pub(crate) fn admission_representation(&self) -> FoundationAdmissionRepresentation {
         self.admission_representation
     }
@@ -613,7 +642,7 @@ pub(crate) fn read_invocation<'cancel>(
             .iter()
             .any(|(key, _)| key.as_str() == Some("artifact_root"))
     });
-    // At most six static keys; retain strict optional shapes without a heap
+    // At most seven static keys; retain strict optional shapes without a heap
     // allocation or Vec growth before the invocation state is accounted.
     let mut invocation_keys = [
         "schema_version",
@@ -622,6 +651,7 @@ pub(crate) fn read_invocation<'cancel>(
         "budgets",
         "artifact_root",
         "admission_representation",
+        "catalogue_representation",
     ];
     let mut invocation_key_count = 4;
     if artifact_root_selected {
@@ -629,6 +659,10 @@ pub(crate) fn read_invocation<'cancel>(
     }
     if value.object_get("admission_representation").is_some() {
         invocation_keys[invocation_key_count] = "admission_representation";
+        invocation_key_count += 1;
+    }
+    if value.object_get("catalogue_representation").is_some() {
+        invocation_keys[invocation_key_count] = "catalogue_representation";
         invocation_key_count += 1;
     }
     crate::source_command::exact_keys(&value, &invocation_keys[..invocation_key_count])
@@ -639,6 +673,7 @@ pub(crate) fn read_invocation<'cancel>(
         return Err(Error::Invalid("foundation invocation profile"));
     }
     let admission_representation = FoundationAdmissionRepresentation::parse(&value)?;
+    let catalogue_representation = FoundationCatalogueRepresentation::parse(&value)?;
     let expected_executable_sha256 = Digest256::from_prefixed(crate::source_command::text(
         &value,
         "native_executable_sha256",
@@ -729,6 +764,7 @@ pub(crate) fn read_invocation<'cancel>(
         raw_sha256,
         expected_executable_sha256,
         admission_representation,
+        catalogue_representation,
         schema_worker: FoundationSchemaWorkerSelection {
             path: worker_path,
             sha256: worker_sha256,

@@ -396,6 +396,9 @@ pub struct LegacyStore {
     database_path: PathBuf,
     view_attempted: bool,
 }
+#[path = "source_diagnostic_legacy.rs"]
+mod legacy;
+
 impl LegacyStore {
     pub fn open(
         path: &Path,
@@ -583,6 +586,17 @@ impl LegacyStore {
         relations: bool,
         mut observe: impl FnMut(&Value) -> Result<()>,
     ) -> Result<u64> {
+        self.visit_knowledge_where(relations, "1", &[], self.limits.max_json_bytes, 0, observe)
+    }
+    fn visit_knowledge_where(
+        &mut self,
+        relations: bool,
+        predicate: &str,
+        parameters: &[String],
+        max_payload_bytes: usize,
+        extra_work_per_byte: u64,
+        mut observe: impl FnMut(&Value) -> Result<()>,
+    ) -> Result<u64> {
         self.verify_currentness()?;
         let table = if relations {
             "knowledge_relations"
@@ -591,10 +605,14 @@ impl LegacyStore {
         };
         let mut count = 0u64;
         let mut statement = self.db.prepare(&format!(
-            "SELECT CASE WHEN typeof(payload)='text' AND length(CAST(payload AS BLOB))<=?1 THEN payload ELSE NULL END FROM {table} ORDER BY id"
+            "SELECT CASE WHEN typeof(payload)='text' AND length(CAST(payload AS BLOB))<=?1 THEN payload ELSE NULL END FROM {table} WHERE {predicate} ORDER BY id"
         )).map_err(err)?;
+        let parameters = std::iter::once(rusqlite::types::Value::Integer(
+            max_payload_bytes.min(self.limits.max_json_bytes) as i64,
+        ))
+        .chain(parameters.iter().cloned().map(rusqlite::types::Value::Text));
         let mut rows = statement
-            .query([self.limits.max_json_bytes as i64])
+            .query(rusqlite::params_from_iter(parameters))
             .map_err(err)?;
         while let Some(row) = rows.next().map_err(err)? {
             self.verify_currentness()?;
@@ -608,6 +626,13 @@ impl LegacyStore {
             m.bytes = self.bytes;
             m.work = self.work;
             m.charge(raw.len() as u64)?;
+            // Generic reads reserve normalization/navigation work before the
+            // callback. Plain full export retains its existing zero surcharge.
+            m.step(
+                (raw.len() as u64)
+                    .checked_mul(extra_work_per_byte)
+                    .ok_or_else(|| err("legacy query work overflow"))?,
+            )?;
             let value = m.parse(raw.as_bytes())?;
             object(&value)?;
             self.bytes = m.bytes;
@@ -622,11 +647,20 @@ impl LegacyStore {
     }
     /// Preserve Reference corpus_header's ordered graph_views selection.
     pub fn corpus_header_with_graph_views(&mut self) -> Result<Value> {
+        self.corpus_header_with_graph_views_bounded(usize::MAX)
+    }
+    /// Same ordered collector with the caller's original live-state ceiling.
+    pub fn corpus_header_with_graph_views_bounded(
+        &mut self,
+        max_state_bytes: usize,
+    ) -> Result<Value> {
         self.verify_currentness()?;
+        let mut state = 0usize;
+        legacy::retained(&self.corpus_header, &mut state, max_state_bytes)?;
         let mut payload = self.corpus_header.clone();
         let mut views = Vec::new();
         let mut statement = self.db.prepare(
-            "SELECT CASE WHEN typeof(payload)='text' AND length(CAST(payload AS BLOB))<=?1 THEN payload ELSE NULL END FROM raw_records WHERE collection='corpus/graph_views' ORDER BY position"
+            "SELECT length(CAST(payload AS BLOB)), CASE WHEN typeof(payload)='text' AND length(CAST(payload AS BLOB))<=?1 THEN payload ELSE NULL END FROM raw_records WHERE collection='corpus/graph_views' ORDER BY position"
         ).map_err(err)?;
         let mut rows = statement
             .query([self.limits.max_json_bytes as i64])
@@ -638,7 +672,11 @@ impl LegacyStore {
                 .checked_add(1)
                 .filter(|n| *n <= self.limits.max_rows)
                 .ok_or_else(|| err("source diagnostic corpus header row budget"))?;
-            let raw: String = row.get(0).map_err(err)?;
+            let raw_bytes: usize = row.get(0).map_err(err)?;
+            // Admit the cumulative raw/DOM/vector forecast before SQLite
+            // copies the payload or the strict parser allocates its document.
+            legacy::reserve_raw(raw_bytes, &mut state, max_state_bytes)?;
+            let raw: String = row.get(1).map_err(err)?;
             let mut m = meter(self.limits, self.deadline, self.abort.as_ref())?;
             m.bytes = self.bytes;
             m.work = self.work;

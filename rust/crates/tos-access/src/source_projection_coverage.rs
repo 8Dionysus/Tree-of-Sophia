@@ -24,7 +24,6 @@ use tos_query::source_diagnostic::Limits;
 use tos_source_store::MetadataPublicationEpoch;
 
 const SOURCE_HOME: &str = "ToS/source-witnesses";
-const CATALOG_HOME: &str = "ToS/source-witnesses/catalog";
 const PUBLICATION_REF: &str = "ToS/source-witnesses/.metadata-publication.json";
 const INPUT_CAP: u64 = 256 * 1024 * 1024;
 const REQUEST_CAP: usize = 16 * 1024 * 1024;
@@ -501,6 +500,7 @@ fn report_summary<F>(
     kinds: &[String],
     source_revision: &Value,
     catalog_sha256: &str,
+    catalogue_origin: &str,
     candidates: &BTreeMap<String, IdentityObservation>,
     rows: bool,
     deadline: Instant,
@@ -566,6 +566,7 @@ where
             "enumeration_complete":true,
             "source_revision":source_revision,
             "catalog_sha256":catalog_sha256,
+            "catalogue_origin":catalogue_origin,
             "source_files_digest":format!("sha256:{files_digest}"),
             "objects":object_count,
             "claims":claim_count,
@@ -1263,6 +1264,7 @@ fn execute_observe(input: &Value, output: &mut dyn Write) -> Result<(), String> 
 
 struct CatalogCurrentness {
     catalog_sha256: String,
+    catalogue_origin: &'static str,
 }
 
 fn selected_publication(fence: &mut RootFence) -> Result<MetadataPublicationEpoch, String> {
@@ -1414,7 +1416,7 @@ fn load_source_catalog(
                 .checked_mul(2)
                 .ok_or("coverage shared state reservation overflow")?,
         },
-        |stage, receipt, catalogue_limits| {
+        |stage, receipt, catalogue_limits, origin| {
             let mut populate = || -> Result<(), String> {
                 // Bind the actual held contract inventory too, so a later edit
                 // cannot keep identical source rows while changing their rules.
@@ -1444,6 +1446,15 @@ fn load_source_catalog(
                     }
                 }
 
+                // Verify the borrowed tuple before the retained row collector
+                // fills its original state reservation; bounded receipt encodes
+                // do not overlap that collector's peak.
+                let selection =
+                    tos_compiler::source_witness_catalog::cold_source_catalog_output_selection(
+                        receipt,
+                        catalogue_limits,
+                    )
+                    .map_err(|error| format!("coverage sealed output selection: {error}"))?;
                 observe_owned_catalogue(
                     stage,
                     receipt,
@@ -1525,17 +1536,27 @@ fn load_source_catalog(
                     .as_object()
                     .ok_or("coverage genuine catalogue record files")?;
                 let kinds = files.keys().cloned().collect::<Vec<_>>();
+                // The native owner supplies this opaque origin only after
+                // reading the protected invocation and completing its genuine
+                // catalogue renderer/validator. It is not a caller mode flag.
                 let currentness = CatalogCurrentness {
                     catalog_sha256: string(&receipt.manifest, "catalog_sha256")?.to_owned(),
+                    catalogue_origin: origin.as_str(),
                 };
-                for reference in receipt.file_sha256.keys() {
-                    fence.read_required(reference, MAX_OUTPUT_FILE_BYTES, 2)?;
+                match origin.as_str() {
+                    "published_root" => {
+                        for reference in selection.file_sha256().keys() {
+                            fence.read_required(reference, MAX_OUTPUT_FILE_BYTES, 2)?;
+                        }
+                        fence.read_required(selection.manifest_file(), MAX_OUTPUT_FILE_BYTES, 2)?;
+                    }
+                    "cold_generated" => {
+                        // The native owner holds and rechecks the complete
+                        // private output tuple instead. Raw source, contracts,
+                        // RootFence and participating epoch remain held here.
+                    }
+                    _ => return Err("coverage unknown native catalogue origin".into()),
                 }
-                fence.read_required(
-                    &format!("{CATALOG_HOME}/catalog.manifest.json"),
-                    MAX_OUTPUT_FILE_BYTES,
-                    2,
-                )?;
                 complete = Some((kinds, currentness));
                 Ok(())
             };
@@ -1591,6 +1612,7 @@ fn execute_imported_graph(
     source_hashes: &BTreeMap<String, String>,
     kinds: &[String],
     catalog_sha256: &str,
+    catalogue_origin: &str,
     fence: &mut RootFence,
     publication: &MetadataPublicationEpoch,
     deadline: Instant,
@@ -1637,6 +1659,7 @@ fn execute_imported_graph(
         kinds,
         &revision,
         catalog_sha256,
+        catalogue_origin,
         &candidates,
         rows,
         deadline,
@@ -1650,6 +1673,7 @@ fn execute_native_store(
     source_hashes: &BTreeMap<String, String>,
     kinds: &[String],
     catalog_sha256: &str,
+    catalogue_origin: &str,
     root: &Path,
     fence: &mut RootFence,
     publication: &MetadataPublicationEpoch,
@@ -1725,6 +1749,7 @@ fn execute_native_store(
         kinds,
         &revision,
         catalog_sha256,
+        catalogue_origin,
         &candidates,
         rows,
         deadline,
@@ -1769,6 +1794,7 @@ fn execute_root(
             &source_hashes,
             &kinds,
             &currentness.catalog_sha256,
+            currentness.catalogue_origin,
             &mut fence,
             &publication,
             deadline,
@@ -1781,6 +1807,7 @@ fn execute_root(
             &source_hashes,
             &kinds,
             &currentness.catalog_sha256,
+            currentness.catalogue_origin,
             root,
             &mut fence,
             &publication,
@@ -1911,7 +1938,7 @@ pub fn run_if_requested(
     if args.len() == 2 && matches!(args[1].as_str(), "--help" | "-h") {
         let _ = writeln!(
             output,
-            "source-projection-coverage --root ABS --invocation ABS [--graph ABS_JSON|-] [--rows] [--max-input-bytes N --max-rows N --max-state-bytes N --max-seconds N]\nsource-projection-coverage --observe-record --input ABS|-\nA stream without its terminal summary is incomplete. No assessment, admission or source mutation."
+            "source-projection-coverage --root ABS --invocation ABS [--graph ABS_JSON|-] [--rows] [--max-input-bytes N --max-rows N --max-state-bytes N --max-seconds N]\nsource-projection-coverage --observe-record --input ABS|-\nProtected invocation catalogue_representation selects persisted-root (default) or owned-cold. Terminal catalogue_origin is published_root or cold_generated; cold_generated is a complete private native output tuple, not a persisted root publication. A stream without its terminal summary is incomplete. No assessment, admission or source mutation."
         );
         return Some(0);
     }

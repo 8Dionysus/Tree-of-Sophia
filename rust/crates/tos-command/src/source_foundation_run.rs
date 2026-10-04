@@ -269,6 +269,52 @@ pub(crate) fn finalize_candidate_inputs(
     )
 }
 
+/// Finalize the live source and the real temporary generated root together.
+/// No candidate admission witness or original-root persisted claim is made.
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn finalize_owned_cold_inputs(
+    evaluated: EvaluatedFoundationDefault<'_>,
+    catalog: FoundationCatalogOutcome,
+    persisted_catalog: EvaluatedPersistedCatalog,
+    captured: &FoundationCapturedCut,
+    sources: &mut RouteSources,
+    artifact_sources: Option<&mut RouteSources>,
+    physical: &mut FoundationPhysicalSnapshot<'_, '_>,
+    payloads: FoundationPayloadSources<'_>,
+    read_limits: ReadLimits,
+    max_final_authored_member_read_bytes: usize,
+    max_final_source_read_bytes: u64,
+    max_final_state_bytes: usize,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+    fresh_catalog_sources: &mut RouteSources,
+) -> Result<FinalizedFoundationDefaultInputs, FoundationFinalInputError> {
+    if captured.cost().candidate_copy_read_bytes.is_some() {
+        return Err(FoundationFinalInputError::Capture(
+            crate::source_command::SourceCommandError::Denied(
+                "owned-cold finalization requires live authored capture",
+            ),
+        ));
+    }
+    finalize_default_inputs_inner(
+        evaluated,
+        catalog,
+        persisted_catalog,
+        captured,
+        sources,
+        artifact_sources,
+        physical,
+        payloads,
+        read_limits,
+        max_final_authored_member_read_bytes,
+        max_final_source_read_bytes,
+        max_final_state_bytes,
+        deadline,
+        cancelled,
+        Some(fresh_catalog_sources),
+    )
+}
+
 #[allow(clippy::too_many_arguments)]
 fn finalize_default_inputs_inner(
     evaluated: EvaluatedFoundationDefault<'_>,

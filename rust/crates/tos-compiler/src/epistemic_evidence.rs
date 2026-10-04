@@ -50,11 +50,41 @@ pub struct CompletedEvidenceProjection {
     capture: PublicCapture,
     limits: PublicCaptureLimits,
     deadline: Instant,
-    opened: BTreeMap<String, Digest256>,
+    opened: OpenedMembership,
     projection_stamp: FileStamp,
     projection_sha256: Digest256,
     projection_path: std::path::PathBuf,
     raw: Vec<u8>,
+}
+
+// Construction still uses its maintained ordered map. Query delivery consumes
+// that map into one sorted Vec, moving keys/digests without cloning payloads.
+enum OpenedMembership {
+    Build(BTreeMap<String, Digest256>),
+    Delivery(Vec<(String, Digest256)>),
+}
+enum OpenedMembershipIter<'a> {
+    Build(std::collections::btree_map::Iter<'a, String, Digest256>),
+    Delivery(std::slice::Iter<'a, (String, Digest256)>),
+}
+impl<'a> Iterator for OpenedMembershipIter<'a> {
+    type Item = (&'a String, &'a Digest256);
+    fn next(&mut self) -> Option<Self::Item> {
+        match self {
+            Self::Build(iter) => iter.next(),
+            Self::Delivery(iter) => iter.next().map(|(key, value)| (key, value)),
+        }
+    }
+}
+impl<'a> IntoIterator for &'a OpenedMembership {
+    type Item = (&'a String, &'a Digest256);
+    type IntoIter = OpenedMembershipIter<'a>;
+    fn into_iter(self) -> Self::IntoIter {
+        match self {
+            OpenedMembership::Build(map) => OpenedMembershipIter::Build(map.iter()),
+            OpenedMembership::Delivery(values) => OpenedMembershipIter::Delivery(values.iter()),
+        }
+    }
 }
 
 fn file_stamp(metadata: &fs::Metadata) -> Result<FileStamp> {
@@ -125,6 +155,122 @@ fn verify_projection_file(
 }
 
 impl CompletedEvidenceProjection {
+    /// Logical retained builder records plus owned buffers before delivery.
+    /// Builder-map node bookkeeping belongs to the original OS allocation
+    /// guard; the actual record slots and keys are counted here. Query delivery
+    /// additionally reserves the complete prospective Vec before moving records.
+    pub fn query_transition_state_upper_bound(&self) -> Result<usize> {
+        use tos_foundation::{OwnedState, checked_state_add};
+        let membership = match &self.opened {
+            OpenedMembership::Delivery(values) => values
+                .owned_heap_bytes()
+                .map_err(|_| Error::Budget("Evidence membership retained state"))?,
+            OpenedMembership::Build(map) => {
+                let mut bytes = map
+                    .len()
+                    .checked_mul(std::mem::size_of::<(String, Digest256)>())
+                    .ok_or(Error::Budget("Evidence builder record state overflow"))?;
+                for key in map.keys() {
+                    bytes = checked_state_add(bytes, key.capacity())
+                        .map_err(|_| Error::Budget("Evidence builder key state overflow"))?;
+                }
+                bytes
+            }
+        };
+        let mut bytes = std::mem::size_of::<Self>();
+        for amount in [
+            self.root.capacity(),
+            self.projection_path.capacity(),
+            self.source_revision.capacity(),
+            self.raw.capacity(),
+            membership,
+            self.capture
+                .retained_state_upper_bound()?
+                .checked_sub(std::mem::size_of::<PublicCapture>())
+                .ok_or(Error::Budget("Evidence capture inline state"))?,
+        ] {
+            bytes = checked_state_add(bytes, amount)
+                .map_err(|_| Error::Budget("Evidence transition state overflow"))?;
+        }
+        if let Some((path, _, revision)) = &self.main_binding {
+            bytes = checked_state_add(bytes, path.capacity())
+                .and_then(|n| checked_state_add(n, revision.capacity()))
+                .map_err(|_| Error::Budget("Evidence transition main binding state"))?;
+        }
+        Ok(bytes)
+    }
+
+    /// Prospective contiguous membership slots while the original builder map
+    /// is consumed. The caller subtracts this amount from the SAME original
+    /// whole-state allowance before asking this owner to allocate the Vec.
+    pub fn query_delivery_workspace_bytes(&self) -> Result<usize> {
+        let count = match &self.opened {
+            OpenedMembership::Build(map) => map.len(),
+            OpenedMembership::Delivery(_) => return Ok(0),
+        };
+        count
+            .checked_mul(std::mem::size_of::<(String, Digest256)>())
+            .ok_or(Error::Budget(
+                "Evidence query membership workspace overflow",
+            ))
+    }
+
+    pub fn into_reference_query_delivery(mut self, reserved_workspace: usize) -> Result<Self> {
+        let needed = self.query_delivery_workspace_bytes()?;
+        if needed > reserved_workspace {
+            return Err(Error::Budget("Evidence query membership workspace"));
+        }
+        let old = std::mem::replace(&mut self.opened, OpenedMembership::Delivery(Vec::new()));
+        self.opened = match old {
+            OpenedMembership::Delivery(values) => OpenedMembership::Delivery(values),
+            OpenedMembership::Build(map) => {
+                let mut values = Vec::with_capacity(map.len());
+                let actual = values
+                    .capacity()
+                    .checked_mul(std::mem::size_of::<(String, Digest256)>())
+                    .ok_or(Error::Budget("Evidence query membership capacity overflow"))?;
+                if actual > reserved_workspace {
+                    return Err(Error::Budget("Evidence query membership capacity"));
+                }
+                values.extend(map.into_iter());
+                OpenedMembership::Delivery(values)
+            }
+        };
+        Ok(self)
+    }
+
+    /// All privately owned buffers of this checked Evidence holder, including
+    /// its distinct capture. Borrowed evidence views carry no second charge.
+    pub fn retained_query_state_upper_bound(&self) -> Result<usize> {
+        use tos_foundation::{OwnedState, checked_state_add};
+        let OpenedMembership::Delivery(opened) = &self.opened else {
+            return Err(Error::Invalid("Evidence query membership not transitioned"));
+        };
+        let mut bytes = std::mem::size_of::<Self>();
+        for amount in [
+            self.root.capacity(),
+            self.projection_path.capacity(),
+            self.source_revision.capacity(),
+            self.raw.capacity(),
+            opened
+                .owned_heap_bytes()
+                .map_err(|_| Error::Budget("Evidence membership state"))?,
+            self.capture
+                .retained_state_upper_bound()?
+                .checked_sub(std::mem::size_of::<PublicCapture>())
+                .ok_or(Error::Budget("Evidence capture inline state"))?,
+        ] {
+            bytes = checked_state_add(bytes, amount)
+                .map_err(|_| Error::Budget("Evidence retained state overflow"))?;
+        }
+        if let Some((path, _, revision)) = &self.main_binding {
+            bytes = checked_state_add(bytes, path.capacity())
+                .and_then(|n| checked_state_add(n, revision.capacity()))
+                .map_err(|_| Error::Budget("Evidence main binding state"))?;
+        }
+        Ok(bytes)
+    }
+
     pub(crate) fn raw(&self) -> &[u8] {
         &self.raw
     }
@@ -677,7 +823,7 @@ fn completed_from_built(
         capture: built.capture,
         limits,
         deadline,
-        opened: built.opened,
+        opened: OpenedMembership::Build(built.opened),
         projection_stamp,
         projection_sha256,
         projection_path: built.projection_path,

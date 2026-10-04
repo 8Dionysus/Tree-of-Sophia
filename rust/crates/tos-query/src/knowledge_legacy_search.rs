@@ -128,7 +128,7 @@ fn values(item: &JsonValue, fields: &[&str], cap: usize) -> Result<Vec<String>, 
     }
     Ok(result)
 }
-fn rank(
+pub(crate) fn rank(
     item: &JsonValue,
     needle: &str,
     kind: SearchKind,

@@ -669,6 +669,83 @@ pub(crate) fn page(
     })
 }
 
+/// One maintained Selector::All row without a growing page/parameter container.
+/// SQLite statement bookkeeping is outside logical owned buffers, as for the
+/// selected model; the borrowed blob is copied only after state admission.
+pub(crate) fn all_row_with_state_budget(
+    db: &Connection,
+    collection: CorpusOriginalCollection,
+    after: Option<u64>,
+    max_row_bytes: usize,
+    max_page_bytes: u64,
+    available: usize,
+) -> Result<Option<CorpusOriginalRow>> {
+    crate::knowledge_original_rows::page_limits(1, max_row_bytes, max_page_bytes)?;
+    if after.is_some_and(|n| n > i64::MAX as u64) {
+        return Err(Error::Budget("corpus page ordinal"));
+    }
+    let mut statement = db.prepare(
+        "SELECT ordinal,packet_len,CASE WHEN typeof(packet_sha256)='blob' AND length(packet_sha256)=32 THEN packet_sha256 ELSE NULL END,CASE WHEN typeof(packet)='blob' AND packet_len=length(packet) AND length(packet)<=?1 THEN packet ELSE NULL END FROM corpus_original_rows WHERE collection=?2 AND ordinal>?3 ORDER BY ordinal LIMIT 1"
+    )?;
+    let mut scan = statement.query(params![
+        max_row_bytes as i64,
+        collection.as_str(),
+        after.map_or(-1, |n| n as i64)
+    ])?;
+    let Some(row) = scan.next()? else {
+        return Ok(None);
+    };
+    let ordinal: i64 = row.get(0)?;
+    let size: i64 = row.get(1)?;
+    let digest = row
+        .get_ref(2)?
+        .as_blob()
+        .map_err(|_| Error::Invalid("original projection row digest"))?;
+    let borrowed = row
+        .get_ref(3)?
+        .as_blob()
+        .map_err(|_| Error::Budget("original projection row bytes"))?;
+    if ordinal < 0
+        || size < 0
+        || size as usize != borrowed.len()
+        || borrowed.len() as u64 > max_page_bytes
+        || digest != Digest256::of_bytes(borrowed).as_bytes()
+    {
+        return Err(Error::Invalid("original projection row identity"));
+    }
+    // The returned row's 64-byte hex digest and typed owner coexist with raw.
+    let overhead = std::mem::size_of::<CorpusOriginalRow>()
+        .checked_add(64)
+        .ok_or(Error::Budget("corpus original state overflow"))?;
+    let raw_available = available
+        .checked_sub(overhead)
+        .ok_or(Error::Budget("corpus original row state"))?;
+    if borrowed.len() > raw_available {
+        return Err(Error::Budget("corpus original row state"));
+    }
+    let mut raw = Vec::new();
+    raw.try_reserve_exact(borrowed.len())
+        .map_err(|_| Error::Budget("corpus original row allocation"))?;
+    if raw.capacity() > raw_available {
+        return Err(Error::Budget("corpus original row capacity"));
+    }
+    raw.extend_from_slice(borrowed);
+    let raw_sha256 = Digest256::of_bytes(&raw).to_hex();
+    if raw
+        .capacity()
+        .checked_add(raw_sha256.capacity())
+        .and_then(|n| n.checked_add(std::mem::size_of::<CorpusOriginalRow>()))
+        .is_none_or(|n| n > available)
+    {
+        return Err(Error::Budget("corpus original row capacity"));
+    }
+    Ok(Some(CorpusOriginalRow {
+        ordinal: ordinal as u64,
+        raw_sha256,
+        raw,
+    }))
+}
+
 pub(crate) fn view_identities(
     db: &Connection,
     after: Option<u64>,

@@ -1595,6 +1595,59 @@ fn runtime_companion(label: &str) -> Option<&'static [u8]> {
 }
 
 impl PublicCapture {
+    /// Logical owned residency: inline owner, actual container capacities and
+    /// owned path/string buffers. Shared cancellation belongs to the caller;
+    /// borrowed views do not charge this capture again. Allocator bookkeeping
+    /// and RSS remain covered by the original hard resource owner.
+    pub fn retained_state_upper_bound(&self) -> Result<usize> {
+        let mut bytes = std::mem::size_of::<Self>();
+        let mut add = |amount: usize| -> Result<()> {
+            bytes = bytes
+                .checked_add(amount)
+                .ok_or(Error::Budget("capture retained state overflow"))?;
+            Ok(())
+        };
+        add(self.root.capacity())?;
+        add(self.path.capacity())?;
+        add(usize::try_from(self.file_state.2)
+            .map_err(|_| Error::Budget("capture retained database size"))?)?;
+        add(self
+            .prepared_state
+            .capacity()
+            .checked_mul(std::mem::size_of::<(
+                PathBuf,
+                PathBuf,
+                u64,
+                u64,
+                i64,
+                i64,
+                i64,
+                i64,
+            )>())
+            .ok_or(Error::Budget("capture prepared state overflow"))?)?;
+        for (selected, resolved, ..) in &self.prepared_state {
+            add(selected.capacity())?;
+            add(resolved.capacity())?;
+        }
+        add(self
+            .sources
+            .capacity()
+            .checked_mul(std::mem::size_of::<SourceFile>())
+            .ok_or(Error::Budget("capture source state overflow"))?)?;
+        for source in &self.sources {
+            add(source.label.capacity())?;
+            if let SourceOrigin::File(path) = &source.origin {
+                add(path.capacity())?;
+            }
+        }
+        // These two counters are created and owned by this capture. Their Arc
+        // aliases in views/receipts do not introduce another payload allocation.
+        add(std::mem::size_of::<AtomicU64>()
+            .checked_mul(2)
+            .ok_or(Error::Budget("capture counter state overflow"))?)?;
+        Ok(bytes)
+    }
+
     pub fn create(
         root: &Path,
         staging: &Path,

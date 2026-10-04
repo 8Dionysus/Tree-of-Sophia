@@ -2068,6 +2068,59 @@ impl CompletedEvidenceProjectionView<'_> {
 }
 
 impl CompletedNativeSnapshot {
+    /// Consume unused producer diagnostics before a Reference query callback.
+    /// The exact descriptor, receipts, model identity and source bindings remain
+    /// unchanged; Graph/Snapshot/addressed report producers do not take this
+    /// transition and retain their existing diagnostic values.
+    pub fn into_reference_query_delivery(mut self) -> Self {
+        self.semantic_report = serde_json::Value::Null;
+        self.vocabulary.discard_non_query_policy_caches();
+        self
+    }
+
+    /// This owner's logical retained state, including the distinct original
+    /// Stage model. A sealed model lent by with_verified_model is charged by
+    /// that model owner, not charged again here.
+    pub fn retained_query_state_upper_bound(&self) -> Result<usize> {
+        use tos_foundation::{OwnedState, checked_state_add};
+        if !self.semantic_report.is_null() {
+            return Err(Error::Invalid("query delivery diagnostics still retained"));
+        }
+        let mut bytes = std::mem::size_of::<Self>();
+        for amount in [
+            std::mem::size_of::<SnapshotModelMemfdCustody<'_>>(),
+            std::mem::size_of::<File>(),
+        ] {
+            bytes = checked_state_add(bytes, amount)
+                .map_err(|_| Error::Budget("completed query cold custody state"))?;
+        }
+        macro_rules! charge { ($($field:ident),*) => { $(
+            bytes = checked_state_add(bytes, self.$field.owned_heap_bytes()
+                .map_err(|_| Error::Budget("completed query retained state"))?)
+                .map_err(|_| Error::Budget("completed query retained state"))?;
+        )* }; }
+        charge!(
+            path,
+            stage,
+            full,
+            expectation,
+            producer,
+            source_revision,
+            descriptor,
+            entity,
+            relation
+        );
+        bytes = checked_state_add(bytes, self.vocabulary.query_delivery_heap_bytes()?)
+            .map_err(|_| Error::Budget("completed query vocabulary state"))?;
+        bytes = checked_state_add(
+            bytes,
+            usize::try_from(self.stage_model_identity.size)
+                .map_err(|_| Error::Budget("completed query stage size"))?,
+        )
+        .map_err(|_| Error::Budget("completed query stage state"))?;
+        Ok(bytes)
+    }
+
     pub fn artifact_path(&self) -> &Path {
         &self.path
     }

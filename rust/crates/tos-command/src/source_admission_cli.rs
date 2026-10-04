@@ -8,7 +8,7 @@ use crate::source_current_cut::{
     foundation_command::SelectedOutput, foundation_entry::FoundationBootstrapClock,
 };
 use crate::source_foundation_admission::{
-    NativeSourceValidator, PreparedAdmissionExecution, PreparedSpooledExecution,
+    NativeSourceValidator, NativeSpoolRefusal, PreparedAdmissionExecution, PreparedSpooledExecution,
 };
 use serde_json::json;
 use std::fs::File;
@@ -378,6 +378,21 @@ fn run_with_cancel_owner(
                 detail
             )
             .and_then(|_| output.flush());
+        } else if let Some(refusal) = error.get_ref()
+            .and_then(|cause| cause.downcast_ref::<NativeSpoolRefusal>())
+        {
+            // Stream the fixed-size diagnostic through the selected output
+            // ledger; no independent buffer, retry writer or output allowance.
+            let emitted = serde_json::to_writer(&mut output, &refusal.packet())
+                .map_err(io::Error::other)
+                .and_then(|_| writeln!(output))
+                .and_then(|_| output.flush());
+            if emitted.is_err() {
+                let cause = error.into_inner().expect("checked typed spool refusal");
+                let refusal = *cause.downcast::<NativeSpoolRefusal>()
+                    .expect("checked spool owner");
+                return Err(io::Error::other(refusal.with_output_refused()));
+            }
         } else {
             let public_phase = error
                 .get_ref()
@@ -592,7 +607,9 @@ fn run_spooled(
     phase: &Cell<&'static str>,
     stdout: &mut dyn Write,
 ) -> io::Result<i32> {
-    let result = run_spooled_inner(args, validator, &resources, cancelled, store_path, identity);
+    let result = run_spooled_inner(
+        args, validator, &resources, cancelled, store_path, identity, phase,
+    );
     match result {
         Ok((receipt, Some(publication))) => {
             // The publication result is real store state. Preserve its exact
@@ -657,6 +674,8 @@ fn run_spooled(
             Ok(0)
         }
         Err(error) => {
+            let primary_phase = phase.get();
+            let primary_io = resources.request.io_budget.snapshot();
             // Record attempted shared-ledger IO even on parse, identity, base,
             // native-kernel or publication refusal. Cleanup is exact and
             // empty-only; a replaced/nonempty workspace remains untouched.
@@ -723,11 +742,14 @@ fn run_spooled(
                     error,
                 ));
             }
-            match (cleanup, accounting) {
-                (Err(cleanup_error), _) => Err(cleanup_error),
-                (Ok(()), Err(accounting_error)) => Err(accounting_error),
-                (Ok(()), Ok(())) => Err(error),
-            }
+            Err(io::Error::other(NativeSpoolRefusal::retain(
+                error,
+                primary_phase,
+                primary_io,
+                resources.request.io_budget.snapshot(),
+                accounting.is_err(),
+                cleanup.is_err(),
+            )))
         }
     }
 }
@@ -739,6 +761,7 @@ fn run_spooled_inner(
     cancelled: &Arc<AtomicBool>,
     store_path: &std::path::Path,
     identity: Digest256,
+    phase: &Cell<&'static str>,
 ) -> io::Result<(serde_json::Value, Option<SpooledPublicationReceipt>)> {
     let deadline = validator.deadline();
     let limits = resources.candidate_limits;
@@ -749,6 +772,7 @@ fn run_spooled_inner(
 
     // Parse once under the protected shared physical budget and check the
     // selected validator before the store can create any namespace.
+    phase.set("native-v4 batch parsing");
     let batch = AdmissionBatch::read_budgeted(
         args.batch.as_deref().unwrap(),
         args.input.as_deref().unwrap(),
@@ -763,7 +787,9 @@ fn run_spooled_inner(
         ));
     }
 
+    phase.set("native-v4 store creation");
     let store = AdmissionStore::create(store_path, deadline, &request.cancelled)?;
+    phase.set("native-v4 current revision check");
     store.check_current_budgeted(
         batch.base_revision,
         limits.candidate.reader,
@@ -771,6 +797,7 @@ fn run_spooled_inner(
         &request.cancelled,
         &request.io_budget,
     )?;
+    phase.set("native-v4 base cut selection");
     let base = match batch.base_revision {
         Some(revision) => {
             let main = File::from(rustix::fs::openat(
@@ -806,6 +833,7 @@ fn run_spooled_inner(
         deadline: request.deadline,
         cancelled: request.cancelled.clone(),
     };
+    phase.set("native-v4 candidate preparation");
     let candidate = SpoolCandidate::prepare_selected_batch(
         &store,
         batch,
@@ -817,10 +845,14 @@ fn run_spooled_inner(
         deadline,
         request.cancelled.clone(),
     )?;
+    phase.set("native-v4 candidate accounting");
     validator.account_spooled_candidate(&candidate)?;
+    phase.set("native-v4 whole foundation validation");
     let index = validator.validate_spooled(&candidate, resources.index_limits)?;
+    phase.set("native-v4 final store authority");
     validator.verify_store_authority(store_path)?;
 
+    phase.set("native-v4 authored bootstrap publication");
     if let Some(owner) = &args.authored_bootstrap_owner {
         let output_cap = validator.remaining_output_bytes()?;
         let mut fence = || {
@@ -854,6 +886,7 @@ fn run_spooled_inner(
         return Ok((receipt, None));
     }
 
+    phase.set("native-v4 publication cut preparation");
     let cut = candidate.create_streamed_cut_workspace_file()?;
     let streamed = StreamedPublicationRead {
         limits: resources.streamed_cut_limits,
@@ -864,6 +897,7 @@ fn run_spooled_inner(
         max_manifest_allocated_bytes: resources.max_manifest_allocated_bytes,
         cancelled: cut.cancelled,
     };
+    phase.set("native-v4 corpus publication");
     let publication = candidate.publish_validated(
         &index,
         resources.manifest_limits,

@@ -3,6 +3,7 @@
 use crate::knowledge_inspect::{
     InspectVisitMeter, Reader, execute_selected_carrier_packet,
     execute_selected_carrier_packet_with_optional_meter,
+    execute_selected_carrier_packet_with_state,
 };
 use crate::knowledge_lens_spec::{py_string, truthy};
 use crate::search_v2::{SearchV2Error, SearchV2ErrorCode};
@@ -949,6 +950,135 @@ fn bound_original_receipt<'hold, A: InspectCurrentAuthority<'hold> + ?Sized>(
         ));
     }
     Ok(receipt)
+}
+
+/// The complete maintained GraphViews packet under the caller's remaining
+/// original whole workspace. Other selected read routes keep their existing law.
+pub fn execute_selected_corpus_graph_views_with_state<
+    'hold,
+    A: InspectCurrentAuthority<'hold> + ?Sized,
+>(
+    model: &mut VerifiedKnowledgeModel<'_>,
+    bound: &BoundCmpKnowledge<'_>,
+    authority: &mut A,
+    context: &CorpusReadContext,
+    budget: CorpusReadBudget,
+    remaining_state_bytes: usize,
+) -> Result<DisclosableInspect<'hold>, SearchV2Error> {
+    CorpusReadRequest::GraphViews.validate(context, budget)?;
+    execute_selected_carrier_packet_with_state(
+        model,
+        bound,
+        authority,
+        CorpusReadRequest::GraphViews.operation_id(),
+        CORPUS_INTENDED_USE,
+        budget.inspect,
+        remaining_state_bytes,
+        budget.max_work_steps,
+        |read| {
+            let receipt = bound_original_receipt(read, bound)?;
+            let (ordinal, header) = read
+                .corpus_row(&receipt, Collection::Header, &Selector::All, None)?
+                .ok_or_else(|| {
+                    fail(
+                        SearchV2ErrorCode::CorruptSelectedCarrier,
+                        "selected corpus header absent",
+                    )
+                })?;
+            if ordinal != 0 || header.as_object().is_none() {
+                return Err(fail(
+                    SearchV2ErrorCode::CorruptSelectedCarrier,
+                    "selected corpus header invalid",
+                ));
+            }
+            let expected = receipt
+                .collections
+                .iter()
+                .find(|r| r.collection == Collection::GraphViews.as_str())
+                .map(|r| r.rows)
+                .ok_or_else(|| {
+                    fail(
+                        SearchV2ErrorCode::CorruptSelectedCarrier,
+                        "selected corpus graph-view receipt absent",
+                    )
+                })?;
+            if expected > budget.max_work_steps {
+                return Err(budget_error());
+            }
+            let capacity = usize::try_from(expected).map_err(|_| budget_error())?;
+            let slots = capacity
+                .checked_mul(std::mem::size_of::<JsonValue>())
+                .ok_or_else(budget_error)?;
+            read.reserve_state(slots)?;
+            let mut views = Vec::new();
+            views
+                .try_reserve_exact(capacity)
+                .map_err(|_| budget_error())?;
+            let actual_slots = views
+                .capacity()
+                .checked_mul(std::mem::size_of::<JsonValue>())
+                .ok_or_else(budget_error)?;
+            read.reserve_state(actual_slots.checked_sub(slots).ok_or_else(budget_error)?)?;
+            let mut packet = read.parse_state_packet(
+                br#"{"schema":"tos_corpus_mcp_graph_views_v1","graph_views":[]}"#,
+            )?;
+            let mut after = None;
+            let mut count = 0u64;
+            loop {
+                let Some((ordinal, value)) =
+                    read.corpus_row(&receipt, Collection::GraphViews, &Selector::All, after)?
+                else {
+                    break;
+                };
+                if after.is_some_and(|previous| ordinal <= previous) {
+                    return Err(fail(
+                        SearchV2ErrorCode::CorruptSelectedCarrier,
+                        "corpus original page order differs",
+                    ));
+                }
+                count = count
+                    .checked_add(1)
+                    .filter(|n| *n <= expected)
+                    .ok_or_else(budget_error)?;
+                if count > budget.max_work_steps {
+                    return Err(budget_error());
+                }
+                // Same supported view filter as CorpusRead::views; inspect keys
+                // by borrowed UTF-8 rather than allocating a lookup key buffer.
+                let view_id = value
+                    .as_object()
+                    .and_then(|fields| {
+                        fields
+                            .iter()
+                            .find(|(key, _)| key.as_str() == Some("view_id"))
+                    })
+                    .and_then(|(_, v)| v.as_str());
+                if view_id.is_some_and(supported) {
+                    views.push(value);
+                }
+                after = Some(ordinal);
+                read.check_interrupt()?;
+            }
+            if count != expected {
+                return Err(fail(
+                    SearchV2ErrorCode::CorruptSelectedCarrier,
+                    "selected corpus graph-view coverage incomplete",
+                ));
+            }
+            let JsonValue::Object(fields) = &mut packet else {
+                return Err(budget_error());
+            };
+            let (_, target) = fields
+                .iter_mut()
+                .find(|(key, _)| key.as_str() == Some("graph_views"))
+                .ok_or_else(budget_error)?;
+            *target = JsonValue::Array(views);
+            // Header was genuinely consulted and remains charged until this
+            // packet has been completed; no header projection is substituted.
+            drop(header);
+            Ok(packet)
+        },
+    )
 }
 
 /// Site-default identity projection, not the complete Summary packet. Consult

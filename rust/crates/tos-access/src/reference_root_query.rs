@@ -406,6 +406,40 @@ impl<'delivery, 'view: 'delivery, 'capture> InspectCurrentAuthority<'delivery>
     fn abort_probe(&self) -> Option<Arc<dyn tos_query::AbortProbe>> {
         Some(self.abort.clone())
     }
+    fn disclosure_metadata_state_upper_bound(&self) -> std::result::Result<usize, SearchV2Error> {
+        use tos_foundation::OwnedState;
+        let (operation, intended) = self.operation.scope();
+        let mut bytes = self
+            .policy
+            .retained_state_bytes()
+            .map_err(|_| SearchV2Error {
+                code: tos_query::SearchV2ErrorCode::BudgetExceeded,
+                message: "Reference policy state overflow",
+            })?
+            .checked_add(std::mem::size_of::<IndexedDisclosureScope>())
+            .ok_or(SearchV2Error {
+                code: tos_query::SearchV2ErrorCode::BudgetExceeded,
+                message: "Reference disclosure state overflow",
+            })?;
+        for capacity in [
+            operation.len(),
+            intended.len(),
+            tos_query::CATALOG_CARRIER_LAYER.len(),
+            self.owner_receipt.capacity(),
+            self.selection.source_cut.capacity(),
+            self.policy.issuer_ref.capacity(),
+            self.policy.authorization_receipt_id.capacity(),
+            self.policy.scope.capacity(),
+            self.policy.policy_epoch.capacity(),
+            self.policy.withdrawal_generation.capacity(),
+        ] {
+            bytes = bytes.checked_add(capacity).ok_or(SearchV2Error {
+                code: tos_query::SearchV2ErrorCode::BudgetExceeded,
+                message: "Reference disclosure state overflow",
+            })?;
+        }
+        Ok(bytes)
+    }
     fn policy_binding(&self) -> CurrentPolicyBinding {
         self.policy.clone()
     }
@@ -579,10 +613,43 @@ impl<'delivery, 'view: 'delivery, 'capture> tos_query::ScopedIndexedKnowledgeAut
 /// all source/custody/work/deadline/token/resource holds remain original.
 pub struct ReferenceMetadataContext<'view, 'capture> {
     hold: ReferenceRootMetadataHold<'view, 'capture>,
+    scope_peak: std::cell::Cell<usize>,
+    resource_scope_reservation: std::cell::Cell<Option<usize>>,
 }
 impl<'view, 'capture> ReferenceMetadataContext<'view, 'capture> {
     pub(crate) fn uses_capture_view(&self, view: &CompletedCaptureCarriers<'capture>) -> bool {
         std::ptr::eq(self.hold.view, view)
+    }
+
+    /// Forecast before any operation holder/abort allocation. The original
+    /// Core ledger deducts this reservation before calling the query owner.
+    pub(crate) fn reserve_resource_operation_scopes(
+        &self,
+    ) -> std::result::Result<usize, crate::AccessError> {
+        use tos_foundation::OwnedState;
+        let forecast = self
+            .hold
+            .retained_state_bytes()
+            .and_then(|n| {
+                n.checked_mul(3).ok_or_else(|| {
+                    tos_foundation::FoundationError::new(
+                        tos_foundation::FoundationErrorCode::BudgetExceeded,
+                        "Reference scope forecast overflow",
+                    )
+                })
+            })
+            .and_then(|n| {
+                tos_foundation::checked_state_add(n, crate::knowledge::combined_probe_state_bytes())
+            })
+            .map_err(|_| {
+                crate::AccessError::new(
+                    crate::AccessErrorCode::BudgetExceeded,
+                    "Reference scope forecast overflow",
+                )
+            })?;
+        self.resource_scope_reservation.set(Some(forecast));
+        self.scope_peak.set(self.scope_peak.get().max(forecast));
+        Ok(forecast)
     }
 
     // Preparation stays inside the outer factory callback. The HTTP transport
@@ -601,6 +668,27 @@ impl<'view, 'capture> ReferenceMetadataContext<'view, 'capture> {
         self.hold.operation = operation;
         // Existing QRY takes two mutable authority slots. Both borrow the one
         // actual source epoch; only the related Catalog scope is distinct.
+        if let Some(reserved) = self.resource_scope_reservation.get() {
+            use tos_foundation::OwnedState;
+            let forecast = self
+                .hold
+                .retained_state_bytes()
+                .ok()
+                .and_then(|n| n.checked_mul(3))
+                .and_then(|n| n.checked_add(crate::knowledge::combined_probe_state_bytes()))
+                .ok_or_else(|| {
+                    crate::AccessError::new(
+                        crate::AccessErrorCode::BudgetExceeded,
+                        "Reference scope forecast overflow",
+                    )
+                })?;
+            if forecast > reserved {
+                return Err(crate::AccessError::new(
+                    crate::AccessErrorCode::BudgetExceeded,
+                    "Reference original scope reservation exceeded",
+                ));
+            }
+        }
         let abort = crate::knowledge::combined_probe(Arc::clone(&self.hold.abort), Some(probe));
         let scoped = |operation| ReferenceRootMetadataHold {
             view: self.hold.view,
@@ -616,6 +704,50 @@ impl<'view, 'capture> ReferenceMetadataContext<'view, 'capture> {
         let mut catalog = scoped(ReferenceMetadataOperation::Catalog);
         let mut inspect = scoped(operation);
         let mut indexed = scoped(operation);
+        // These are three genuinely distinct String/binding clones. Record
+        // actual capacities while they are live, then retain the observed peak
+        // as a conservative reservation until the callback's final disclosure.
+        use tos_foundation::{OwnedState, checked_state_add};
+        let scope_bytes = checked_state_add(
+            catalog.retained_state_bytes().map_err(|_| {
+                crate::AccessError::new(
+                    crate::AccessErrorCode::BudgetExceeded,
+                    "Reference scope state overflow",
+                )
+            })?,
+            inspect.retained_state_bytes().map_err(|_| {
+                crate::AccessError::new(
+                    crate::AccessErrorCode::BudgetExceeded,
+                    "Reference scope state overflow",
+                )
+            })?,
+        )
+        .and_then(|n| checked_state_add(n, indexed.retained_state_bytes()?))
+        .map_err(|_| {
+            crate::AccessError::new(
+                crate::AccessErrorCode::BudgetExceeded,
+                "Reference scope state overflow",
+            )
+        })?;
+        let scope_bytes = scope_bytes
+            .checked_add(crate::knowledge::combined_probe_state_bytes())
+            .ok_or_else(|| {
+                crate::AccessError::new(
+                    crate::AccessErrorCode::BudgetExceeded,
+                    "Reference scope capacity overflow",
+                )
+            })?;
+        if self
+            .resource_scope_reservation
+            .get()
+            .is_some_and(|reserved| scope_bytes > reserved)
+        {
+            return Err(crate::AccessError::new(
+                crate::AccessErrorCode::BudgetExceeded,
+                "Reference original scope capacity reservation exceeded",
+            ));
+        }
+        self.scope_peak.set(self.scope_peak.get().max(scope_bytes));
         let result = consume(&mut catalog, &mut inspect, &mut indexed);
         self.hold.active()?;
         result
@@ -725,7 +857,11 @@ pub fn with_selected_metadata_context(
                         None
                     },
                 };
-                let mut context = ReferenceMetadataContext { hold };
+                let mut context = ReferenceMetadataContext {
+                    hold,
+                    scope_peak: std::cell::Cell::new(0),
+                    resource_scope_reservation: std::cell::Cell::new(None),
+                };
                 let result = consume(model, &bound, &mut context, view);
                 let final_fence = context.hold.recheck_delivery();
                 final_fence?;
@@ -768,4 +904,36 @@ pub fn with_selected_metadata(
             context.with_operation(operation, |hold| consume(model, bound, hold, view))
         },
     )
+}
+
+impl tos_foundation::OwnedState for ReferenceRootMetadataHold<'_, '_> {
+    fn owned_heap_bytes(&self) -> tos_foundation::Result<usize> {
+        use tos_foundation::{OwnedState, checked_state_add};
+        let mut bytes = 0;
+        for amount in [
+            self.selection.owned_heap_bytes()?,
+            self.owner_receipt.capacity(),
+            self.policy.owned_heap_bytes()?,
+            self.corpus_root.owned_heap_bytes()?,
+            self.philosophy_root.owned_heap_bytes()?,
+            self.navigation_root.owned_heap_bytes()?,
+        ] {
+            bytes = checked_state_add(bytes, amount)?;
+        }
+        Ok(bytes)
+    }
+}
+impl tos_foundation::OwnedState for ReferenceMetadataContext<'_, '_> {
+    fn owned_heap_bytes(&self) -> tos_foundation::Result<usize> {
+        use tos_foundation::OwnedState;
+        // Borrowed capture, cancellation and view aliases are priced once by
+        // their actual outer owners; the single Reference abort payload is ours.
+        tos_foundation::checked_state_add(self.hold.owned_heap_bytes()?, self.scope_peak.get())
+            .and_then(|n| {
+                tos_foundation::checked_state_add(n, std::mem::size_of::<ReferenceAbort>())
+            })
+    }
+}
+pub(crate) fn reference_lease_state_bytes() -> usize {
+    std::mem::size_of::<ReferenceDisclosureLease<'_, '_>>()
 }

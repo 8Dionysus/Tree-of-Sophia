@@ -147,6 +147,7 @@ class NativeAccessCore(NativeCore):
         self._has_prepared_checkpoints = published_exploration_checkpoint_path is not None
         super().__init__(prefix, arguments, inherit_data_selection=False)
         self._core_snapshot_client = None
+        self._legacy_query_store_selected = False
         if core_snapshot_selection is not None or core_snapshot_admission_provider is not None:
             if core_snapshot_selection is None or core_snapshot_admission_provider is None:
                 raise ValueError('native whole-Core selection requires its caller-owned per-call admission provider')
@@ -210,6 +211,46 @@ class NativeAccessCore(NativeCore):
                    core_snapshot_selection=selection,
                    core_snapshot_admission_provider=admission_provider,
                    **independent_routes)
+
+    @classmethod
+    def from_legacy_query_store(cls, native_prefix: str | Path, selection,
+                                admission_provider, **independent_routes):
+        """Select an existing immutable store with five native input bindings.
+
+        No database or source payload is read here. Each call borrows its original
+        admission; the native owner authenticates the selected store and input
+        digests, and retains the store/process/resource fences through delivery.
+        Graph/Snapshot exports use the weak zero-state-FD QueryStore profile.
+        """
+        from .native_core_snapshot import (
+            NativeCoreSnapshotSelection, NativeCoreSnapshotAdmission,
+            NativeCoreQueryStoreLimits, _SOURCE_OPERATION)
+        if not isinstance(selection, NativeCoreSnapshotSelection):
+            raise TypeError('LegacyQueryStore requires NativeCoreSnapshotSelection')
+        if selection.query_store_configured is not True:
+            raise ValueError('LegacyQueryStore requires an explicitly configured existing store')
+        if not callable(admission_provider):
+            raise TypeError('LegacyQueryStore requires its per-call admission provider')
+        separate_source_operations = frozenset(_SOURCE_OPERATION.values()) - {
+            'tos_knowledge_header', 'tos_corpus_header'}
+        def store_admission(operation):
+            if operation in separate_source_operations or operation in {
+                    'tos_knowledge_snapshot_once', 'tos_native_resource_read'}:
+                raise ValueError('LegacyQueryStore does not select a captured SourceRoot operation')
+            admission = admission_provider(operation)
+            if not isinstance(admission, NativeCoreSnapshotAdmission):
+                raise TypeError('LegacyQueryStore admission must be NativeCoreSnapshotAdmission')
+            if not isinstance(admission.query_store_limits, NativeCoreQueryStoreLimits):
+                raise TypeError('LegacyQueryStore requires typed original per-call QueryStore limits')
+            # Neither a deadline nor a quota is synthesized or renewed here.
+            return admission
+        core = cls(native_prefix, tos_root=selection.tos_root,
+                   core_snapshot_selection=selection,
+                   core_snapshot_admission_provider=store_admission,
+                   **independent_routes)
+        core._legacy_query_store_selected = True
+        return core
+
 
     @classmethod
     def discover(cls, tos_root: str | Path | None = None, *,
@@ -299,6 +340,20 @@ class NativeAccessCore(NativeCore):
         if client is None:
             raise RuntimeError('native whole-Core route requires an explicit source selection and caller admission')
         return getattr(client, method)(*args, **kwargs)
+
+    def read_resource(self, uri: str) -> dict[str, Any]:
+        if self._legacy_query_store_selected:
+            raise ValueError('LegacyQueryStore resources require a separately selected captured SourceRoot')
+        if self._core_snapshot_client is None:
+            return super().read_resource(uri)
+        return self._core_snapshot_call('read_resource', uri)
+
+    def render_resource(self, uri: str) -> str:
+        if self._legacy_query_store_selected:
+            raise ValueError('LegacyQueryStore resources require a separately selected captured SourceRoot')
+        if self._core_snapshot_client is None:
+            return super().render_resource(uri)
+        return self._core_snapshot_call('render_resource', uri)
 
     def index_exists(self) -> bool:
         return self._core_snapshot_call('index_exists')

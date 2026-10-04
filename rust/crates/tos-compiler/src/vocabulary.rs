@@ -39,6 +39,8 @@ pub struct QueryVocabulary {
     /// Consumers must use this selected policy instead of engine defaults.
     pub identity_policy: Value,
     pub overview_policy: Value,
+    /// Set only by the completed owner query-delivery transition.
+    pub(crate) query_delivery_caches_retired: bool,
 }
 
 /// Derived selection envelope: all roots and cut evidence are outside the
@@ -104,6 +106,44 @@ fn strings(v: &Value, key: &str, cap: usize) -> Result<Vec<String>> {
 }
 
 impl QueryVocabulary {
+    pub(crate) fn discard_non_query_policy_caches(&mut self) {
+        // QRY binds the exact authored descriptor independently. These two
+        // construction-time validation caches are not its interpretation input.
+        self.identity_policy = Value::Null;
+        self.overview_policy = Value::Null;
+        self.query_delivery_caches_retired = true;
+    }
+
+    pub(crate) fn query_delivery_heap_bytes(&self) -> Result<usize> {
+        use tos_foundation::{OwnedState, checked_state_add};
+        if !self.query_delivery_caches_retired
+            || !self.identity_policy.is_null()
+            || !self.overview_policy.is_null()
+        {
+            return Err(Error::Invalid(
+                "query delivery policy caches still retained",
+            ));
+        }
+        let mut bytes = 0usize;
+        macro_rules! charge { ($($field:ident),*) => { $(
+            bytes = checked_state_add(bytes, self.$field.owned_heap_bytes()
+                .map_err(|_| Error::Budget("query vocabulary retained state"))?)
+                .map_err(|_| Error::Budget("query vocabulary retained state"))?;
+        )* }; }
+        charge!(
+            descriptor_sha256,
+            sources,
+            registered_source_ids,
+            extension_adapter_profile,
+            entity_registry_id,
+            relation_registry_id,
+            semantic_primitive_profile,
+            shared_entity_id_grammars,
+            overview_route_ids
+        );
+        Ok(bytes)
+    }
+
     pub fn registered_source_ids(&self) -> &[String] {
         &self.registered_source_ids
     }
@@ -121,7 +161,14 @@ impl QueryVocabulary {
         for source in &self.sources {
             adapters.insert(source.adapter_profile.as_str());
         }
-        let parsed = Self::parse(authored_bytes, &adapters.into_iter().collect::<Vec<_>>())?;
+        let mut parsed = Self::parse(authored_bytes, &adapters.into_iter().collect::<Vec<_>>())?;
+        if self.query_delivery_caches_retired {
+            // Parse still validates every authored identity/overview policy.
+            // Normalize only the caches deliberately consumed by this owner;
+            // every retained interpretation field and descriptor digest must
+            // continue to equal that independently parsed authored vocabulary.
+            parsed.discard_non_query_policy_caches();
+        }
         if &parsed != self {
             return Err(Error::Invalid(
                 "parsed query vocabulary differs from authored bytes",
@@ -403,6 +450,7 @@ impl QueryVocabulary {
             overview_route_ids,
             identity_policy: identity.clone(),
             overview_policy: overview.clone(),
+            query_delivery_caches_retired: false,
         })
     }
 

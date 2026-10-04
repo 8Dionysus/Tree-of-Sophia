@@ -664,6 +664,33 @@ class NativeCoreSnapshotClient:
                 raise ValueError('native Root query unexpectedly returned retained state')
             return self._object(result, 'Root query packet')
 
+    def _resource(self, uri: str, *, render: bool):
+        if type(uri) is not str:
+            raise TypeError('native Core resource URI must be a string')
+        # Rust owns URI association and rendering inside the held Root callback.
+        with self._operation('tos_native_resource_read') as call:
+            result, reused, successor = self._exchange(
+                'tos_native_call', {'tool': 'tos_native_resource_read',
+                                    'arguments': {'uri': uri, 'render': render}}, call)
+            if reused is not None or successor is not None:
+                if successor is not None:
+                    successor.close()
+                raise ValueError('native Root resource unexpectedly returned retained state')
+            if render:
+                if type(result) is not str:
+                    raise ValueError('native Root rendered resource must be one text carrier')
+            else:
+                self._object(result, 'Root resource packet')
+            if time.monotonic() >= call.work_deadline:
+                raise TimeoutError('native Root resource cutoff expired before disclosure')
+            return result
+
+    def read_resource(self, uri: str) -> dict[str, Any]:
+        return self._resource(uri, render=False)
+
+    def render_resource(self, uri: str) -> str:
+        return self._resource(uri, render=True)
+
     def index_exists(self) -> bool:
         value = self._read('index_exists')
         if type(value) is not bool:

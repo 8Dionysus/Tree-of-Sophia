@@ -144,6 +144,38 @@ pub struct VerifiedKnowledgeModel<'a> {
 }
 
 impl<'a> VerifiedKnowledgeModel<'a> {
+    /// Logical owned metadata, original sealed model and configured cold cache.
+    /// The borrowed custody/source owner is charged by its enclosing callback.
+    pub fn retained_state_upper_bound(&self) -> Result<usize> {
+        use tos_foundation::{OwnedState, checked_state_add};
+        let mut bytes = std::mem::size_of::<Self>();
+        macro_rules! charge { ($($field:ident),*) => { $(
+            bytes = checked_state_add(bytes, self.$field.owned_heap_bytes()
+                .map_err(|_| Error::Budget("verified model retained state"))?)
+                .map_err(|_| Error::Budget("verified model retained state"))?;
+        )* }; }
+        charge!(
+            selection,
+            source_basis,
+            navigation_original,
+            philosophy_original,
+            corpus_original
+        );
+        for size in [
+            self.selection.model_size_bytes,
+            self.sqlite_cache_kib
+                .checked_mul(1024)
+                .ok_or(Error::Budget("verified model cache state overflow"))?,
+        ] {
+            bytes = checked_state_add(
+                bytes,
+                usize::try_from(size).map_err(|_| Error::Budget("verified model state size"))?,
+            )
+            .map_err(|_| Error::Budget("verified model retained state"))?;
+        }
+        Ok(bytes)
+    }
+
     /// Exact bounded original carrier under this same immutable selected lease.
     /// Legacy snapshots explicitly refuse; this is not a current rights grant.
     /// Mechanical retained-component presence, never an authority grant.
@@ -183,6 +215,27 @@ impl<'a> VerifiedKnowledgeModel<'a> {
         )?;
         self.check_pin()?;
         Ok(page)
+    }
+    /// Same authenticated ordered original row, with caller-owned logical state.
+    pub fn corpus_original_all_row_with_state_budget(
+        &self,
+        collection: crate::CorpusOriginalCollection,
+        after: Option<u64>,
+        max_row_bytes: usize,
+        max_page_bytes: u64,
+        available_state_bytes: usize,
+    ) -> Result<Option<crate::CorpusOriginalRow>> {
+        self.corpus_original_receipt()?;
+        let row = crate::knowledge_corpus_original::all_row_with_state_budget(
+            &self.connection,
+            collection,
+            after,
+            max_row_bytes,
+            max_page_bytes,
+            available_state_bytes,
+        )?;
+        self.check_pin()?;
+        Ok(row)
     }
     /// Bounded GraphViews identity projection under the caller's same VM hook
     /// and selected lease. This does not authorize disclosure of original rows.

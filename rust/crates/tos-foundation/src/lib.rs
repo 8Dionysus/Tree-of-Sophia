@@ -21,6 +21,7 @@ pub use identity::{ExactRecordRef, RecordVersion, SourceRevision, StableId};
 pub use json::{
     CanonicalProfile, EncodedJson, JsonDocument, JsonEmissionProfile, JsonLimits, JsonMode,
     JsonNumber, JsonNumberKind, JsonString, JsonValue, canonical_bytes_v1,
+    canonical_bytes_v1_with_state_budget, canonical_bytes_v1_with_state_budget_and_visits,
     canonical_bytes_v1_with_visits, canonical_count_v1, canonical_digest_v1,
     canonical_feed_digest_v1, canonical_raw_bytes_profile, canonical_raw_bytes_v1,
     emit_json_profile, emit_preserved_json, emit_python_compact_json, emit_value_preserved_json,
@@ -67,3 +68,6 @@ mod wasm {
         super::parse_preserve_observation(raw, mode)
     }
 }
+
+mod owned_state;
+pub use owned_state::{OwnedState, checked_state_add};

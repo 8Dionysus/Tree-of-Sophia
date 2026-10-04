@@ -18,7 +18,9 @@ use std::{
 use tos_compiler::VerifiedKnowledgeModel;
 use tos_foundation::{
     CanonicalProfile, Digest256, FoundationError, FoundationErrorCode, JsonDocument, JsonLimits,
-    JsonMode, JsonValue, canonical_bytes_v1, canonical_bytes_v1_with_visits, parse_json,
+    JsonMode, JsonValue, OwnedState, canonical_bytes_v1,
+    canonical_bytes_v1_with_state_budget_and_visits, canonical_bytes_v1_with_visits, parse_json,
+    parse_json_with_state_budget,
 };
 
 pub const NODE_INSPECT_OPERATION: &str = "tos.knowledge.node.inspect";
@@ -153,6 +155,15 @@ pub trait InspectDisclosureLease: Send {
 /// Owned providers may support 'static; a scoped managed provider supports
 /// only its actual held-read lifetime, including final transport delivery.
 pub trait InspectCurrentAuthority<'hold> {
+    /// Forecast owned policy/scope clone metadata from the already-held source,
+    /// before the state-aware carrier path calls either owned-return method.
+    fn disclosure_metadata_state_upper_bound(&self) -> Result<usize, SearchV2Error> {
+        Err(error(
+            SearchV2ErrorCode::Unavailable,
+            "selected disclosure state forecast unavailable",
+        ))
+    }
+
     /// Descriptive managed basis must match the command owner's privately
     /// retained parent under its already-held current read guards. This check
     /// grants no original/carrier access and must remain covered by the same
@@ -289,12 +300,71 @@ impl<'hold> DisclosableInspect<'hold> {
     }
 }
 
+fn scope_owned_state(scope: &IndexedDisclosureScope) -> Result<usize, SearchV2Error> {
+    let IndexedDisclosureScope {
+        operation_id,
+        carrier_layer,
+        intended_use,
+        selected_model_receipt_id,
+        source_cut,
+        through_commit_seq: _,
+        source_membership_root: _,
+        descriptor_sha256: _,
+        selected_index_sha256: _,
+        policy_issuer_ref,
+        policy_receipt_id,
+        policy_scope,
+        policy_epoch,
+        withdrawal_generation,
+    } = scope;
+    [
+        operation_id,
+        carrier_layer,
+        intended_use,
+        selected_model_receipt_id,
+        source_cut,
+        policy_issuer_ref,
+        policy_receipt_id,
+        policy_scope,
+        policy_epoch,
+        withdrawal_generation,
+    ]
+    .into_iter()
+    .try_fold(
+        std::mem::size_of::<IndexedDisclosureScope>(),
+        |bytes, text| bytes.checked_add(text.capacity()).ok_or_else(budget_error),
+    )
+}
+
+/// One caller-owned remaining workspace; reservations are never independent grants.
+struct InspectWorkspace {
+    limit: usize,
+    retained: usize,
+}
+impl InspectWorkspace {
+    fn available(&self) -> Result<usize, SearchV2Error> {
+        self.limit
+            .checked_sub(self.retained)
+            .ok_or_else(budget_error)
+    }
+    fn retain(&mut self, bytes: usize) -> Result<(), SearchV2Error> {
+        self.retained = self
+            .retained
+            .checked_add(bytes)
+            .filter(|n| *n <= self.limit)
+            .ok_or_else(budget_error)?;
+        Ok(())
+    }
+}
+
 pub(crate) struct Reader<'a, 'b, A: ?Sized> {
     model: &'a mut VerifiedKnowledgeModel<'b>,
     authority: &'a mut A,
     budget: InspectBudget,
     decoded: u64,
     rows: u64,
+    state: Option<InspectWorkspace>,
+    work_remaining: Option<u64>,
     consulted: Vec<ObservedInspectCarrier>,
     scope: &'a IndexedDisclosureScope,
     visit_meter: Option<&'a mut InspectVisitMeter>,
@@ -321,6 +391,41 @@ impl<'hold, A: InspectCurrentAuthority<'hold> + ?Sized> Reader<'_, '_, A> {
             Some(meter) => meter.canonical_bytes(value, profile, limits),
             None => canonical_bytes_v1(value, profile, limits),
         }
+    }
+    fn charge_state_work(&mut self, visits: usize) -> Result<(), SearchV2Error> {
+        let remaining = self.work_remaining.as_mut().ok_or_else(budget_error)?;
+        *remaining = remaining
+            .checked_sub(u64::try_from(visits).map_err(|_| budget_error())?)
+            .ok_or_else(budget_error)?;
+        Ok(())
+    }
+    fn state_json_limits(&self) -> Result<JsonLimits, SearchV2Error> {
+        let mut limits = self.budget.json;
+        limits.max_visits = limits.max_visits.min(
+            usize::try_from(self.work_remaining.ok_or_else(budget_error)?)
+                .map_err(|_| budget_error())?,
+        );
+        if limits.max_visits == 0 {
+            return Err(budget_error());
+        }
+        Ok(limits)
+    }
+    pub(crate) fn reserve_state(&mut self, bytes: usize) -> Result<(), SearchV2Error> {
+        self.state.as_mut().ok_or_else(budget_error)?.retain(bytes)
+    }
+    pub(crate) fn parse_state_packet(&mut self, raw: &[u8]) -> Result<JsonValue, SearchV2Error> {
+        let available = self.state.as_ref().ok_or_else(budget_error)?.available()?;
+        let document = parse_json_with_state_budget(
+            raw,
+            JsonMode::PublishedStrict,
+            self.state_json_limits()?,
+            available,
+        )
+        .map_err(|_| budget_error())?;
+        self.charge_state_work(document.visits())?;
+        let value = document.into_root();
+        self.reserve_state(value.retained_storage_bytes().map_err(|_| budget_error())?)?;
+        Ok(value)
     }
     fn original_error(reason: tos_compiler::Error) -> SearchV2Error {
         match reason {
@@ -433,6 +538,19 @@ impl<'hold, A: InspectCurrentAuthority<'hold> + ?Sized> Reader<'_, '_, A> {
                 "selected corpus originals unavailable",
             ));
         }
+        if let Some(state) = self.state.as_mut() {
+            let receipt = self
+                .model
+                .corpus_original_receipt()
+                .map_err(Self::original_error)?;
+            let forecast = receipt.retained_state_bytes().map_err(|_| budget_error())?;
+            state.retain(forecast)?;
+            let copy = receipt.clone();
+            if copy.retained_state_bytes().map_err(|_| budget_error())? > forecast {
+                return Err(budget_error());
+            }
+            return Ok(copy);
+        }
         self.model
             .corpus_original_receipt()
             .map(Clone::clone)
@@ -497,6 +615,80 @@ impl<'hold, A: InspectCurrentAuthority<'hold> + ?Sized> Reader<'_, '_, A> {
         after: Option<u64>,
     ) -> Result<Option<(u64, JsonValue)>, SearchV2Error> {
         self.check_interrupt()?;
+        if self.state.is_some() {
+            if self.rows >= self.budget.max_rows {
+                return Err(budget_error());
+            }
+            if !matches!(selector, tos_compiler::CorpusOriginalSelector::All) {
+                return Err(budget_error());
+            }
+            let available = self.state.as_ref().unwrap().available()?;
+            let overhead = std::mem::size_of::<tos_compiler::CorpusOriginalRow>()
+                .checked_add(64)
+                .ok_or_else(budget_error)?;
+            let cap = available
+                .checked_sub(overhead)
+                .ok_or_else(budget_error)?
+                .min(self.budget.max_payload_bytes)
+                .min(
+                    usize::try_from(self.budget.max_decoded_bytes.saturating_sub(self.decoded))
+                        .map_err(|_| budget_error())?,
+                );
+            if cap == 0 {
+                return Err(budget_error());
+            }
+            let row = self
+                .model
+                .corpus_original_all_row_with_state_budget(
+                    collection, after, cap, cap as u64, available,
+                )
+                .map_err(Self::original_error)?;
+            let Some(row) = row else {
+                return Ok(None);
+            };
+            self.charge_state_work(1)?;
+            self.charge_original(1, row.raw.len() as u64)?;
+            let sha = Digest256::of_bytes(&row.raw);
+            self.authority.authorize_corpus_original_current(
+                receipt,
+                collection,
+                row.ordinal,
+                &row.raw,
+                sha,
+            )?;
+            self.check_interrupt()?;
+            let raw_state = std::mem::size_of::<tos_compiler::CorpusOriginalRow>()
+                .checked_add(row.raw.capacity())
+                .and_then(|n| n.checked_add(row.raw_sha256.capacity()))
+                .ok_or_else(budget_error)?;
+            let parser_available = self
+                .state
+                .as_ref()
+                .unwrap()
+                .available()?
+                .checked_sub(raw_state)
+                .ok_or_else(budget_error)?;
+            let document = parse_json_with_state_budget(
+                &row.raw,
+                JsonMode::PublishedStrict,
+                self.state_json_limits()?,
+                parser_available,
+            )
+            .map_err(|reason| {
+                if reason.code == FoundationErrorCode::BudgetExceeded {
+                    budget_error()
+                } else {
+                    corrupt("selected corpus original JSON invalid")
+                }
+            })?;
+            self.charge_state_work(document.visits())?;
+            let value = document.into_root();
+            self.state
+                .as_mut()
+                .unwrap()
+                .retain(value.retained_storage_bytes().map_err(|_| budget_error())?)?;
+            return Ok(Some((row.ordinal, value)));
+        }
         let bytes = self
             .budget
             .max_decoded_bytes
@@ -1332,6 +1524,38 @@ where
     )
 }
 
+pub(crate) fn execute_selected_carrier_packet_with_state<
+    'hold,
+    A: InspectCurrentAuthority<'hold> + ?Sized,
+    F,
+>(
+    model: &mut VerifiedKnowledgeModel<'_>,
+    bound: &BoundCmpKnowledge<'_>,
+    authority: &mut A,
+    operation: &str,
+    intended_use: &str,
+    budget: InspectBudget,
+    available: usize,
+    max_work_steps: u64,
+    compute: F,
+) -> Result<DisclosableInspect<'hold>, SearchV2Error>
+where
+    F: FnOnce(&mut Reader<'_, '_, A>) -> Result<JsonValue, SearchV2Error>,
+{
+    execute_selected_carrier_packet_observed_with_meter(
+        model,
+        bound,
+        authority,
+        operation,
+        intended_use,
+        budget,
+        None,
+        Some((available, max_work_steps)),
+        compute,
+        |_| Ok(()),
+    )
+}
+
 // E3 alone needs the actual emitted response for staged checkpoint accounting.
 // The observer cannot return/substitute bytes. Failure drops the staged hold
 // before disclosure; successful commit remains outside this common read path.
@@ -1361,6 +1585,7 @@ where
         operation,
         intended_use,
         budget,
+        None,
         None,
         compute,
         observe,
@@ -1421,6 +1646,7 @@ where
         intended_use,
         budget,
         visit_meter,
+        None,
         compute,
         |_| Ok(()),
     )
@@ -1439,6 +1665,7 @@ fn execute_selected_carrier_packet_observed_with_meter<
     intended_use: &str,
     budget: InspectBudget,
     mut visit_meter: Option<&mut InspectVisitMeter>,
+    available_state: Option<(usize, u64)>,
     compute: F,
     observe: O,
 ) -> Result<DisclosableInspect<'hold>, SearchV2Error>
@@ -1462,6 +1689,24 @@ where
         return Err(budget_error());
     }
     bound.check_model(model)?;
+    let mut metadata_forecast = None;
+    let mut state = match available_state {
+        None => None,
+        Some((limit, _)) => {
+            let mut state = InspectWorkspace { limit, retained: 0 };
+            state.retain(
+                std::mem::size_of::<Reader<'_, '_, A>>()
+                    .checked_add(std::mem::size_of::<DisclosableInspect<'hold>>())
+                    .and_then(|n| n.checked_add(std::mem::size_of::<AtomicU64>()))
+                    .and_then(|n| n.checked_add(std::mem::size_of::<JsonValue>()))
+                    .ok_or_else(budget_error)?,
+            )?;
+            let forecast = authority.disclosure_metadata_state_upper_bound()?;
+            state.retain(forecast)?;
+            metadata_forecast = Some(forecast);
+            Some(state)
+        }
+    };
     let policy = authority.policy_binding();
     let abort = authority.abort_probe();
     let check_abort = || match abort.as_ref().and_then(|probe| probe.reason()) {
@@ -1477,6 +1722,16 @@ where
     };
     check_abort()?;
     let scope = authority.disclosure_scope();
+    if let Some(forecast) = metadata_forecast {
+        let actual = policy
+            .retained_state_bytes()
+            .map_err(|_| budget_error())?
+            .checked_add(scope_owned_state(&scope)?)
+            .ok_or_else(budget_error)?;
+        if actual > forecast {
+            return Err(budget_error());
+        }
+    }
     scope.validate_for(bound, &policy, operation, intended_use)?;
     authority.check_selected()?;
     if let Some(proof) = bound.source_basis().managed_source() {
@@ -1505,6 +1760,8 @@ where
             budget,
             decoded: 0,
             rows: 0,
+            state: state.take(),
+            work_remaining: available_state.map(|(_, work)| work),
             consulted: vec![],
             scope: &scope,
             visit_meter: visit_meter.take(),
@@ -1513,8 +1770,16 @@ where
         check_abort()?;
         let mut limits = budget.json;
         limits.max_bytes = limits.max_bytes.min(budget.max_response_bytes);
-        let body = read
-            .canonical_bytes(&value, CanonicalProfile::SourceRecordDigestV1, limits)
+        let body = if read.state.is_some() {
+            let mut state_limits = read.state_json_limits()?;
+            state_limits.max_bytes = limits.max_bytes;
+            let available = read.state.as_ref().unwrap().available()?;
+            let (body, visits) = canonical_bytes_v1_with_state_budget_and_visits(
+                &value,
+                CanonicalProfile::SourceRecordDigestV1,
+                state_limits,
+                available,
+            )
             .map_err(|reason| {
                 if reason.code == FoundationErrorCode::BudgetExceeded {
                     budget_error()
@@ -1522,6 +1787,18 @@ where
                     corrupt("selected knowledge response cannot be emitted")
                 }
             })?;
+            read.charge_state_work(visits)?;
+            body
+        } else {
+            read.canonical_bytes(&value, CanonicalProfile::SourceRecordDigestV1, limits)
+                .map_err(|reason| {
+                    if reason.code == FoundationErrorCode::BudgetExceeded {
+                        budget_error()
+                    } else {
+                        corrupt("selected knowledge response cannot be emitted")
+                    }
+                })?
+        };
         observe(&body)?;
         check_abort()?;
         read.authority.check_selected()?;

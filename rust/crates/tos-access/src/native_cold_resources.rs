@@ -28,6 +28,12 @@ pub struct LinuxCgroupColdOpenResourceHold {
 }
 
 impl LinuxCgroupColdOpenResourceHold {
+    pub(crate) fn retained_state_upper_bound(&self) -> Result<usize> {
+        std::mem::size_of::<Self>()
+            .checked_add(self.membership.capacity())
+            .ok_or(Error::Budget("native cold custody retained state overflow"))
+    }
+
     /// Acquire from the current kernel membership, never a caller path or JSON proof.
     pub fn acquire(
         working_ram_bytes: u64,

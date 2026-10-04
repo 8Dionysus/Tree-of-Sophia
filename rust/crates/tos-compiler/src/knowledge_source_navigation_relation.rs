@@ -1052,6 +1052,7 @@ mod tests {
     }
     fn vocabulary() -> QueryVocabulary {
         QueryVocabulary {
+            query_delivery_caches_retired: false,
             descriptor_sha256: "0".repeat(64),
             descriptor_version: 1,
             sources: vec![RegisteredSource {

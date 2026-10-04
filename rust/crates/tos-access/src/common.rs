@@ -1080,13 +1080,45 @@ pub(crate) fn error_json(error: &AccessError) -> Vec<u8> {
 }
 
 pub(crate) fn validate_packet(raw: &[u8], max_bytes: usize) -> Result<(), AccessError> {
+    validate_packet_in_state(raw, max_bytes, None)
+}
+pub(crate) fn validate_packet_with_state_budget(
+    raw: &[u8],
+    max_bytes: usize,
+    remaining_state: usize,
+) -> Result<(), AccessError> {
+    validate_packet_in_state(raw, max_bytes, Some(remaining_state))
+}
+fn validate_packet_in_state(
+    raw: &[u8],
+    max_bytes: usize,
+    remaining_state: Option<usize>,
+) -> Result<(), AccessError> {
     let limits = JsonLimits {
         max_bytes,
         max_depth: 64,
         max_visits: 300_000,
         max_integer_digits: 4_300,
     };
-    let document = parse_json(raw, JsonMode::PublishedStrict, limits).map_err(|_| {
+    let parsed = if let Some(remaining) = remaining_state {
+        tos_foundation::parse_json_with_state_budget(
+            raw,
+            JsonMode::PublishedStrict,
+            limits,
+            remaining,
+        )
+    } else {
+        parse_json(raw, JsonMode::PublishedStrict, limits)
+    };
+    let document = parsed.map_err(|error| {
+        if remaining_state.is_some()
+            && error.code == tos_foundation::FoundationErrorCode::BudgetExceeded
+        {
+            return AccessError::new(
+                AccessErrorCode::BudgetExceeded,
+                "query packet validation state or JSON budget exceeded",
+            );
+        }
         AccessError::new(
             AccessErrorCode::CorruptSelectedCarrier,
             "query packet is not valid bounded JSON",
@@ -1099,4 +1131,13 @@ pub(crate) fn validate_packet(raw: &[u8], max_bytes: usize) -> Result<(), Access
         ));
     }
     Ok(())
+}
+
+/// Typed allocations added by checked_execute and the one owner lease adapter.
+/// Lease payload state remains with its selected owner; shared Arc targets are
+/// counted by their original owner rather than each pointer alias.
+pub(crate) fn scoped_packet_wrapper_state_bytes() -> usize {
+    std::mem::size_of::<PreparedPacket<'_>>()
+        + std::mem::size_of::<AbortFence<'_>>()
+        + std::mem::size_of::<Box<dyn DisclosureFence>>()
 }

@@ -160,6 +160,9 @@ impl Sources {
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 struct Request {
+    // Owner-produced accounting; never a caller quota or transport field.
+    #[serde(skip)]
+    caller_retained_state_bytes: usize,
     admission: Admission,
     source_paths: Sources,
     arguments: Value,
@@ -224,6 +227,9 @@ impl tos_query::AbortProbe for StoreAbort {
         }
     }
 }
+#[path = "core_legacy_query_executor.rs"]
+mod legacy_query_executor;
+
 fn selected_store_result(
     request: &Request,
     operation: &Operation,
@@ -291,25 +297,37 @@ fn selected_store_result(
         abort,
     )
     .map_err(|_| "Core selected QueryStore authentication refused")?;
+    if let Operation::Serve(listen, max_connections) = operation {
+        return legacy_query_executor::serve_legacy_store(
+            store,
+            &resources,
+            request,
+            listen,
+            *max_connections,
+            deadline,
+            cancelled,
+        );
+    }
     let mut out = BoundedOutput::new(OUTPUT_CAP, deadline);
     out.literal(br#"{"schema_version":"tos_native_core_snapshot_result_v1","ok":true,"result":"#)?;
     match operation {
         Operation::CorpusHeader => out.value(
             &store
-                .corpus_header_with_graph_views()
+                .corpus_header_with_graph_views_bounded(request.admission.whole_max_state_bytes)
                 .map_err(|_| "Core QueryStore corpus header refused")?,
         )?,
         Operation::KnowledgeHeader => out.value(&store.graph_header)?,
-        Operation::QueryCall(tool, arguments)
-            if tool == "tos_knowledge_catalog"
-                && arguments
-                    .as_object()
-                    .is_some_and(|fields| fields.is_empty()) =>
-        {
-            let mut catalog =
-                BoundedOutput::new(request.admission.whole_max_catalog_bytes, deadline);
-            catalog.value(&store.catalog)?;
-            out.literal(&catalog.bytes)?;
+        Operation::QueryCall(tool, arguments) => {
+            out.value(
+                &store
+                    .query_call(tool, arguments, request.admission.whole_max_state_bytes)
+                    .map_err(|_| "Core selected QueryStore generic query refused")?,
+            )?;
+        }
+        Operation::Addressed(_) => {
+            return Err(
+                "addressed update parent has no captured source inputs; run a complete graph build",
+            );
         }
         Operation::Graph | Operation::Snapshot => {
             if matches!(operation, Operation::Snapshot) {
@@ -1004,6 +1022,22 @@ struct BoundedOutput {
     deadline: Instant,
 }
 impl BoundedOutput {
+    fn reserved(cap: usize, deadline: Instant, bytes: usize) -> Result<Self> {
+        active(deadline)?;
+        if bytes > cap {
+            return Err("Core output original state reservation");
+        }
+        let mut out = Self::new(cap, deadline);
+        out.bytes
+            .try_reserve_exact(bytes)
+            .map_err(|_| "Core output state allocation")?;
+        if out.bytes.capacity() > cap {
+            return Err("Core output actual state capacity");
+        }
+        active(deadline)?;
+        Ok(out)
+    }
+
     fn new(cap: usize, deadline: Instant) -> Self {
         Self {
             bytes: Vec::new(),
@@ -1466,7 +1500,7 @@ fn emit_value(value: &Value, deadline: Instant) -> Result<Vec<u8>> {
 
 fn run(
     selection: Selection,
-    request: Request,
+    mut request: Request,
     deadline: Instant,
     cancelled: &Arc<AtomicBool>,
 ) -> Result<()> {
@@ -1477,10 +1511,16 @@ fn run(
     }
     let deadline = deadline.min(request.admission.deadline()?);
     active(deadline)?;
-    let operation = operation(&selection.operation, request.arguments.clone())?;
+    request.caller_retained_state_bytes = request
+        .caller_retained_state_bytes
+        .checked_add(std::mem::size_of::<Selection>())
+        .and_then(|n| n.checked_add(selection.root.capacity()))
+        .and_then(|n| n.checked_add(selection.operation.capacity()))
+        .ok_or("Core selected CLI state overflow")?;
+    let operation = operation(&selection.operation, std::mem::take(&mut request.arguments))?;
     // The former QueryStore has independent five-input binding and selection
-    // semantics. Until that owner is migrated, do not silently replace an
-    // explicitly selected or discovered existing store with a source rebuild.
+    // semantics. Retain its own authenticated SQL dispatcher when explicitly
+    // selected or discovered; source capture remains a separate owner route.
     let uses_query_store = matches!(
         operation,
         Operation::Graph
@@ -1521,7 +1561,10 @@ fn run(
             Operation::CorpusHeader
             | Operation::KnowledgeHeader
             | Operation::Graph
-            | Operation::Snapshot => {
+            | Operation::Snapshot
+            | Operation::Addressed(_)
+            | Operation::QueryCall(_, _)
+            | Operation::Serve(_, _) => {
                 return selected_store_result(
                     &request,
                     &operation,
@@ -1530,21 +1573,46 @@ fn run(
                     cancelled,
                 );
             }
-            Operation::QueryCall(ref tool, ref arguments)
-                if tool == "tos_knowledge_catalog"
-                    && arguments
-                        .as_object()
-                        .is_some_and(|fields| fields.is_empty()) =>
-            {
-                return selected_store_result(&request, &operation, None, deadline, cancelled);
-            }
-            _ => return Err("Core selected legacy QueryStore operation awaits its native owner"),
+            _ => unreachable!(),
         }
     }
     if let Operation::Exists(kind) = operation {
         return disclose_bytes(&existence_result(kind, &request, deadline)?, deadline);
     }
     if let Operation::QueryCall(tool, arguments) = &operation {
+        if tool == "tos_native_resource_read" {
+            let profile = request
+                .http
+                .as_ref()
+                .ok_or("Core resource HTTP admission unavailable")?
+                .profile()?;
+            let fields = arguments
+                .as_object()
+                .filter(|fields| fields.len() == 2)
+                .ok_or("Core resource argument unavailable")?;
+            let uri = fields
+                .get("uri")
+                .and_then(Value::as_str)
+                .ok_or("Core resource URI unavailable")?;
+            let render = fields
+                .get("render")
+                .and_then(Value::as_bool)
+                .ok_or("Core resource render flag unavailable")?;
+            let resource = crate::mcp_resources::request(uri, profile)
+                .map_err(|_| "Core native resource refused")?;
+            // The maintained native parser owns the typed request now. Drop
+            // both original transport DOMs before capture/model custody starts.
+            drop(operation);
+            return serve_selected_root(
+                &selection.root,
+                &request,
+                "",
+                0,
+                deadline,
+                cancelled,
+                Some(SelectedRootCall::Resource(resource, render)),
+            );
+        }
         return serve_selected_root(
             &selection.root,
             &request,
@@ -1552,7 +1620,7 @@ fn run(
             0,
             deadline,
             &cancelled,
-            Some((tool, arguments)),
+            Some(SelectedRootCall::Tool(tool, arguments)),
         );
     }
     if let Operation::Serve(listen, max_connections) = &operation {
@@ -1736,7 +1804,9 @@ fn run(
 /// Installed private CLI entry. Failures are terminal and never invoke the
 /// Reference graph builder, discover another source root, or print on a
 /// restored potentially blocking output stream after a partial disclosure.
-pub fn run_if_requested(args: &[String], input: &mut dyn Read) -> Option<i32> {
+// The maintained native main owns this Vec through the entire call. Accept
+// its actual owner, not a slice which hides the live allocation capacity.
+pub fn run_if_requested(args: &Vec<String>, input: &mut dyn Read) -> Option<i32> {
     match selection(args) {
         Ok(None) => None,
         Err(message) => {
@@ -1747,7 +1817,22 @@ pub fn run_if_requested(args: &[String], input: &mut dyn Read) -> Option<i32> {
             match (|| {
                 let deadline = original_cli_deadline(selection.work_deadline_ns)?;
                 let signal = SignalGuard::install()?;
-                let request = read_request(input, deadline)?;
+                let mut request = read_request(input, deadline)?;
+                let mut argv_state = std::mem::size_of::<Vec<String>>()
+                    .checked_add(std::mem::size_of::<SignalGuard>())
+                    .ok_or("Core CLI signal owner state overflow")?
+                    .checked_add(
+                        args.capacity()
+                            .checked_mul(std::mem::size_of::<String>())
+                            .ok_or("Core CLI argument capacity overflow")?,
+                    )
+                    .ok_or("Core CLI argument state overflow")?;
+                for argument in args {
+                    argv_state = argv_state
+                        .checked_add(argument.capacity())
+                        .ok_or("Core CLI argument state overflow")?;
+                }
+                request.caller_retained_state_bytes = argv_state;
                 run(selection, request, deadline, &signal.token)
             })() {
                 Ok(()) => 0,
@@ -1799,6 +1884,43 @@ fn original_cli_deadline(cutoff_ns: u64) -> Result<Instant> {
         .ok_or("Core original deadline overflow")
 }
 
+enum SelectedRootCall<'a> {
+    Tool(&'a str, &'a Value),
+    Resource(crate::KnowledgeRequest, bool),
+}
+
+impl Request {
+    fn retained_resource_state_upper_bound(&self) -> Result<usize> {
+        use tos_foundation::{OwnedState, checked_state_add};
+        if !self.arguments.is_null() {
+            return Err("Core resource transport arguments still retained");
+        }
+        let mut bytes = std::mem::size_of::<Self>()
+            .checked_add(self.caller_retained_state_bytes)
+            .ok_or("Core resource caller state overflow")?;
+        for amount in [
+            self.source_paths.index_path.capacity(),
+            self.source_paths
+                .philosophy_graph_projection_path
+                .capacity(),
+            self.source_paths.bibliographic_graph_path.capacity(),
+            self.source_paths.entity_type_registry_path.capacity(),
+            self.source_paths.relation_type_registry_path.capacity(),
+            self.source_paths
+                .philosophy_post_planting_audit_path
+                .capacity(),
+            self.source_paths.evidence_projection_path.capacity(),
+            self.query_store
+                .path
+                .owned_heap_bytes()
+                .map_err(|_| "Core request state overflow")?,
+        ] {
+            bytes = checked_state_add(bytes, amount).map_err(|_| "Core request state overflow")?;
+        }
+        Ok(bytes)
+    }
+}
+
 fn serve_selected_root(
     root: &Path,
     request: &Request,
@@ -1806,7 +1928,7 @@ fn serve_selected_root(
     max_connections: u64,
     deadline: Instant,
     cancelled: &Arc<AtomicBool>,
-    query_call: Option<(&str, &Value)>,
+    query_call: Option<SelectedRootCall<'_>>,
 ) -> Result<()> {
     let http = request
         .http
@@ -1818,6 +1940,7 @@ fn serve_selected_root(
     let indexed = http.indexed.native()?;
     let contracts = http.contracts.native()?;
     let mut checkpoints = http.checkpoints()?;
+    let checkpoint_state = checkpoints.clone();
     let limits = tos_compiler::native_snapshot_manifest::portable_native_snapshot_limits(
         request.admission.max_build_seconds,
     )
@@ -1846,7 +1969,8 @@ fn serve_selected_root(
         &isolation,
         limits,
     )
-    .map_err(|_| "Core HTTP full native producer refused")?;
+    .map_err(|_| "Core HTTP full native producer refused")?
+    .into_reference_query_delivery();
     let evidence = tos_compiler::native_snapshot::check_completed_evidence_projection(
         &capture,
         &fresh(isolation.root(), "tos-core-http-evidence")?,
@@ -1854,6 +1978,44 @@ fn serve_selected_root(
         deadline,
     )
     .map_err(|_| "Core HTTP evidence owner refused")?;
+    // This is the original request allowance, not a new per-owner grant.
+    // Before conversion the builder records and the prospective contiguous
+    // membership slots coexist; keys/digests move without payload clones.
+    let resource_call = matches!(query_call, Some(SelectedRootCall::Resource(_, _)));
+    let evidence = if resource_call {
+        let mut held = request.retained_resource_state_upper_bound()?;
+        for amount in [
+            capture
+                .retained_state_upper_bound()
+                .map_err(|_| "Core capture retained state refused")?,
+            completed
+                .retained_query_state_upper_bound()
+                .map_err(|_| "Core completed retained state refused")?,
+            evidence
+                .query_transition_state_upper_bound()
+                .map_err(|_| "Core Evidence transition state refused")?,
+        ] {
+            held = held
+                .checked_add(amount)
+                .ok_or("Core transition retained state overflow")?;
+        }
+        let remaining = request
+            .admission
+            .whole_max_state_bytes
+            .checked_sub(held)
+            .ok_or("Core Evidence original retained state allowance")?;
+        let workspace = evidence
+            .query_delivery_workspace_bytes()
+            .map_err(|_| "Core Evidence workspace refused")?;
+        if workspace > remaining {
+            return Err("Core Evidence original workspace allowance");
+        }
+        evidence
+            .into_reference_query_delivery(workspace)
+            .map_err(|_| "Core Evidence query transition refused")?
+    } else {
+        evidence
+    };
     let resources = crate::native_cold_resources::LinuxCgroupColdOpenResourceHold::acquire(
         request.admission.working_ram_bytes,
         deadline,
@@ -1885,6 +2047,13 @@ fn serve_selected_root(
                 // source paths. The context describes that selected member,
                 // never a spool path or a normalized-row reconstruction.
                 view.verify_current()?;
+                let stateful_graph_views = matches!(&query_call,
+                    Some(SelectedRootCall::Resource(crate::KnowledgeRequest::Corpus(
+                        tos_query::corpus_read::CorpusReadRequest::GraphViews), _)));
+                if stateful_graph_views {
+                    context.reserve_resource_operation_scopes()
+                        .map_err(|_| tos_compiler::Error::Budget("Core original operation scope reservation"))?;
+                }
                 let executor = crate::reference_query_executor::ReferenceQueryExecutor::new(
                     model,
                     bound,
@@ -1899,29 +2068,86 @@ fn serve_selected_root(
                     Some(&corpus),
                 )
                 .map_err(|_| tos_compiler::Error::Invalid("Core HTTP selected executor refused"))?;
-                if let Some((tool, arguments)) = query_call {
+                if let Some(call) = query_call {
                     use crate::ScopedAccessExecutor;
-                    let mut raw = BoundedOutput::new(INPUT_CAP, deadline);
-                    raw.value(arguments).map_err(tos_compiler::Error::Invalid)?;
-                    let arguments_document = parse_json(&raw.bytes, JsonMode::PublishedStrict,
-                        request.admission.json.limits().map_err(tos_compiler::Error::Invalid)?)
-                        .map_err(|_| tos_compiler::Error::Invalid("Core query argument JSON refused"))?;
-                    let arguments = arguments_document.root();
-                    let registered = crate::common::registered_operations()
-                        .map_err(|_| tos_compiler::Error::Invalid("Core native registry unavailable"))?;
-                    let operation = registered.iter().find(|op| op.mcp_tool == tool)
-                        .ok_or(tos_compiler::Error::Invalid("Core native tool unavailable"))?;
-                    let allowed = operation.input_schema.object_get("properties")
-                        .and_then(tos_foundation::JsonValue::as_object);
-                    if arguments.as_object().is_none_or(|fields| fields.iter().any(|(name, _)| {
-                        !allowed.is_some_and(|properties| properties.iter().any(|(key, _)| key == name))
-                    })) {
-                        return Err(tos_compiler::Error::Invalid("Core native tool argument unavailable"));
+                    let (tool, resource_render, resource_request, argument_storage) = match call {
+                        SelectedRootCall::Resource(resource, render) =>
+                            ("tos_native_resource_read", render, Some(resource), None),
+                        SelectedRootCall::Tool(tool, arguments) => {
+                            let mut raw = BoundedOutput::new(INPUT_CAP, deadline);
+                            raw.value(arguments).map_err(tos_compiler::Error::Invalid)?;
+                            let arguments_document = parse_json(&raw.bytes, JsonMode::PublishedStrict,
+                                request.admission.json.limits().map_err(tos_compiler::Error::Invalid)?)
+                                .map_err(|_| tos_compiler::Error::Invalid("Core query argument JSON refused"))?;
+                            (tool, false, None, Some((raw, arguments_document)))
+                        }
+                    };
+                    let empty = tos_foundation::JsonValue::Null;
+                    let arguments = argument_storage.as_ref().map_or(&empty, |(_, doc)| doc.root());
+                    let registered = if resource_request.is_none() {
+                        Some(crate::common::registered_operations()
+                            .map_err(|_| tos_compiler::Error::Invalid("Core native registry unavailable"))?)
+                    } else { None };
+                    let operation = registered.as_ref().and_then(|items|
+                        items.iter().find(|op| op.mcp_tool == tool));
+                    if resource_request.is_none() {
+                        let operation = operation
+                            .ok_or(tos_compiler::Error::Invalid("Core native tool unavailable"))?;
+                        let allowed = operation.input_schema.object_get("properties")
+                            .and_then(tos_foundation::JsonValue::as_object);
+                        if arguments.as_object().is_none_or(|fields| fields.iter().any(|(name, _)| {
+                            !allowed.is_some_and(|properties| properties.iter().any(|(key, _)| key == name))
+                        })) {
+                            return Err(tos_compiler::Error::Invalid("Core native tool argument unavailable"));
+                        }
+                    }
+                    let remaining_after_retained = |packet_capacity: usize| -> tos_compiler::Result<usize> {
+                    // Add every distinct still-live owner before reserving
+                    // the escaped result. Aliased capture/model/vocabulary
+                    // references do not introduce another allocation charge.
+                    let mut held = request.retained_resource_state_upper_bound()
+                        .map_err(tos_compiler::Error::Invalid)?;
+                    for amount in [capture.retained_state_upper_bound()?,
+                        completed.retained_query_state_upper_bound()?,
+                        evidence.retained_query_state_upper_bound()?,
+                        executor.retained_state_upper_bound()
+                            .map_err(|_| tos_compiler::Error::Budget("Core executor retained state"))?,
+                        std::mem::size_of_val(&corpus), corpus.tos_root.capacity(),
+                        corpus.index_path.capacity(),
+                        std::mem::size_of::<crate::exploration_checkpoints::ProcessExplorationCheckpoints>(),
+                        checkpoint_state.retained_empty_state_upper_bound()
+                            .map_err(|_| tos_compiler::Error::Invalid("Core resource checkpoint state changed"))?,
+                        resources.retained_state_upper_bound()?,
+                        crate::common::scoped_packet_wrapper_state_bytes(),
+                        crate::reference_root_query::reference_lease_state_bytes(),
+                        crate::knowledge::combined_probe_state_bytes(),
+                        std::mem::size_of::<CoreQueryProbe>(),
+                        std::mem::size_of::<AtomicBool>(),
+                        tos_compiler::private_tmpfs_stage::PRIVATE_TMPFS_SELECT_COST.retained_bytes,
+                        tos_compiler::private_tmpfs_stage::PRIVATE_TMPFS_VERIFY_COST.workspace_bytes,
+                        std::mem::size_of::<BoundedOutput>(),
+                        std::mem::size_of::<tos_compiler::native_snapshot::CompletedCaptureCarriers<'_>>(),
+                        std::mem::size_of::<tos_compiler::native_snapshot::CompletedEvidenceProjectionView<'_>>(),
+                        packet_capacity, std::mem::size_of::<crate::KnowledgeRequest>()] {
+                        held = held.checked_add(amount)
+                            .ok_or(tos_compiler::Error::Budget("Core whole retained state overflow"))?;
+                    }
+                    let remaining_state = request.admission.whole_max_state_bytes
+                        .checked_sub(held)
+                        .ok_or(tos_compiler::Error::Budget("Core resource whole retained state"))?;
+                        Ok(remaining_state)
+                    };
+                    if stateful_graph_views {
+                        let remaining = remaining_after_retained(0)?;
+                        executor.reserve_resource_query_state(remaining);
                     }
                     let probe: Arc<dyn tos_query::AbortProbe> = Arc::new(CoreQueryProbe {
                         deadline, cancelled: cancelled.clone(),
                     });
                     let mut packet = crate::common::checked_execute(probe, |probe| {
+                        if let Some(request) = resource_request {
+                            return executor.knowledge(request, probe);
+                        }
                         if tool == crate::common::SEARCH_MCP_TOOL {
                             return crate::search::SearchRequest::from_arguments(arguments)
                                 .and_then(|request| request.execute(&executor, probe));
@@ -1930,6 +2156,8 @@ fn serve_selected_root(
                             return crate::Params::from_json(arguments)
                                 .and_then(|request| executor.source_descend(request, probe));
                         }
+                        let operation = operation.ok_or_else(|| crate::AccessError::new(
+                            crate::AccessErrorCode::Unavailable, "selected Root native tool unavailable"))?;
                         let op = crate::KnowledgeOperation::from_id(&operation.operation_id)
                             .ok_or_else(|| crate::AccessError::new(crate::AccessErrorCode::Unavailable,
                                 "selected Root native tool unavailable"))?;
@@ -1948,15 +2176,64 @@ fn serve_selected_root(
                     if packet.body.len() > profile.max_response_bytes {
                         return Err(tos_compiler::Error::Budget("Core query response bytes"));
                     }
-                    crate::common::validate_packet(&packet.body, profile.max_response_bytes)
-                        .map_err(|_| tos_compiler::Error::Invalid("Core query packet invalid"))?;
+                    let resource_remaining_state = if tool == "tos_native_resource_read" {
+                        Some(remaining_after_retained(packet.body.capacity())?)
+                    } else { None };
+                    if let Some(remaining) = resource_remaining_state {
+                        view.charge_work(u64::try_from(packet.body.len())
+                            .map_err(|_| tos_compiler::Error::Budget("Core packet validation work overflow"))?)?;
+                        crate::common::validate_packet_with_state_budget(
+                            &packet.body, profile.max_response_bytes, remaining)
+                            .map_err(|_| tos_compiler::Error::Budget("Core resource packet validation state/JSON"))?;
+                    } else {
+                        crate::common::validate_packet(&packet.body, profile.max_response_bytes)
+                            .map_err(|_| tos_compiler::Error::Invalid("Core query packet invalid"))?;
+                    }
                     packet.fence.recheck().map_err(|_| tos_compiler::Error::Invalid("Core query disclosure fence"))?;
                     view.verify_current()?;
-                    let mut out = BoundedOutput::new(OUTPUT_CAP, deadline);
-                    out.literal(br#"{"schema_version":"tos_native_core_snapshot_result_v1","ok":true,"result":"#)
-                        .map_err(tos_compiler::Error::Invalid)?;
-                    out.literal(&packet.body).map_err(tos_compiler::Error::Invalid)?;
+                    let prefix = br#"{"schema_version":"tos_native_core_snapshot_result_v1","ok":true,"result":"#;
+                    let resource_text = if resource_render {
+                        Some(std::str::from_utf8(&packet.body)
+                            .map_err(|_| tos_compiler::Error::Invalid("Core resource text encoding"))?)
+                    } else { None };
+                    let mut envelope_reservation = None;
+                    let cap = if tool == "tos_native_resource_read" {
+                        // The resource owner already returns its serialized text.
+                        // Do not allocate another decoded tree or pretty Vec.
+                        drop(argument_storage);
+                        drop(registered);
+                        let work = u64::try_from(packet.body.len()).ok()
+                            .and_then(|n| n.checked_mul(2))
+                            .ok_or(tos_compiler::Error::Budget("Core resource encoding work overflow"))?;
+                        view.charge_work(work)?;
+                        let payload_bytes = if let Some(text) = resource_text {
+                            crate::common::json_string_len(text)
+                                .ok_or(tos_compiler::Error::Budget("Core resource encoding size overflow"))?
+                        } else { packet.body.len() };
+                        let envelope_bytes = prefix.len().checked_add(payload_bytes)
+                            .and_then(|n| n.checked_add(2))
+                            .ok_or(tos_compiler::Error::Budget("Core resource envelope size overflow"))?;
+                        let remaining_state = resource_remaining_state
+                            .ok_or(tos_compiler::Error::Invalid("Core resource original state missing"))?;
+                        let cap = profile.max_mcp_frame_bytes.min(remaining_state).min(OUTPUT_CAP);
+                        if envelope_bytes > cap {
+                            return Err(tos_compiler::Error::Budget("Core resource envelope state/frame budget"));
+                        }
+                        envelope_reservation = Some(envelope_bytes);
+                        cap
+                    } else { OUTPUT_CAP };
+                    let mut out = if let Some(bytes) = envelope_reservation {
+                        BoundedOutput::reserved(cap, deadline, bytes).map_err(tos_compiler::Error::Invalid)?
+                    } else { BoundedOutput::new(cap, deadline) };
+                    out.literal(prefix).map_err(tos_compiler::Error::Invalid)?;
+                    if let Some(text) = resource_text {
+                        out.value(&text).map_err(tos_compiler::Error::Invalid)?;
+                    } else {
+                        out.literal(&packet.body).map_err(tos_compiler::Error::Invalid)?;
+                    }
                     out.literal(b"}\n").map_err(tos_compiler::Error::Invalid)?;
+                    packet.fence.recheck().map_err(|_| tos_compiler::Error::Invalid("Core query encoded disclosure fence"))?;
+                    view.verify_current()?;
                     disclose_bytes(&out.bytes, deadline).map_err(tos_compiler::Error::Invalid)?;
                     packet.fence.recheck().map_err(|_| tos_compiler::Error::Invalid("Core query final disclosure fence"))?;
                     return view.verify_current();

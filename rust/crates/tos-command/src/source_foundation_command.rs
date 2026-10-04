@@ -100,6 +100,30 @@ pub struct SourceFoundationCatalogueObservationLimits {
     pub max_state_bytes: usize,
 }
 
+/// Provisional producer origin delivered only by the protected native route.
+/// It is mechanical catalogue custody, never source or admission authority.
+#[derive(Clone, Copy, Debug)]
+pub struct SourceFoundationCatalogueObservationOrigin {
+    representation: super::foundation_entry::FoundationCatalogueRepresentation,
+}
+impl SourceFoundationCatalogueObservationOrigin {
+    pub(crate) fn new(
+        representation: super::foundation_entry::FoundationCatalogueRepresentation,
+    ) -> Self {
+        Self { representation }
+    }
+    pub fn as_str(self) -> &'static str {
+        match self.representation {
+            super::foundation_entry::FoundationCatalogueRepresentation::PersistedRoot => {
+                "published_root"
+            }
+            super::foundation_entry::FoundationCatalogueRepresentation::OwnedCold => {
+                "cold_generated"
+            }
+        }
+    }
+}
+
 /// Observe one genuine rendered/validated catalog in its borrowed cold stage.
 /// Keep results private until Ok(0) AND callback invocation are confirmed.
 /// Terminal source/root/epoch fences run afterward; custody ends on return.
@@ -114,6 +138,7 @@ pub fn run_with_owned_catalogue_observation(
         &mut tos_compiler::knowledge_stage::KnowledgeStage<'_>,
         &tos_compiler::source_witness_catalog::ColdSourceCatalogReceipt,
         tos_compiler::source_witness_catalog::SourceCatalogLimits,
+        SourceFoundationCatalogueObservationOrigin,
     ) -> tos_compiler::Result<()>,
 ) -> Result<i32> {
     let callback_state = std::mem::size_of_val(&observe)
@@ -227,6 +252,15 @@ fn run_selected(
         return Ok(0);
     }
     let mut invocation = read_invocation(&clock, &launch, cancelled)?;
+    if invocation.catalogue_representation()
+        == super::foundation_entry::FoundationCatalogueRepresentation::OwnedCold
+        && observation.is_none()
+    {
+        return Err(Error::Unsupported(
+            "owned-cold catalogue requires owned observation",
+        ));
+    }
+
     if let Some(observation) = &observation {
         // The callback closure is already held during bootstrap. Charge its
         // actual conservative state alongside the existing invocation input;

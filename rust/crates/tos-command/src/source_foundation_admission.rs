@@ -43,7 +43,8 @@ use tos_ops_mechanics_plan::route_cards::RouteSources;
 use tos_source_store::ReadLimits;
 use tos_source_store::{
     CutReadLimits, PinnedSqliteAuxLimits, PinnedSqliteAuxRequest, PinnedSqliteIoBudget,
-    PinnedSqliteSpaceBudget, StreamedCutReadLimitsV1,
+    PinnedSqliteIoFailure, PinnedSqliteIoSnapshot, PinnedSqliteSpaceBudget,
+    StreamedCutReadLimitsV1,
 };
 
 /// Only this typed error carries path-free owner refusal text. Other IO errors
@@ -56,6 +57,135 @@ impl std::fmt::Display for NativeValidationRefusal {
     }
 }
 impl std::error::Error for NativeValidationRefusal {}
+
+/// Pre-publication refusal owns its original cause before terminal accounting.
+/// Only the reviewed validator reason and fixed operation labels reach output.
+#[derive(Debug)]
+pub(crate) struct NativeSpoolRefusal {
+    primary: io::Error,
+    phase: &'static str,
+    primary_io: PinnedSqliteIoSnapshot,
+    terminal_io: PinnedSqliteIoSnapshot,
+    accounting_failed: bool,
+    cleanup_failed: bool,
+    output_failed: bool,
+}
+impl std::fmt::Display for NativeSpoolRefusal {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("native spooled admission refused")
+    }
+}
+impl std::error::Error for NativeSpoolRefusal {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        Some(&self.primary)
+    }
+}
+#[derive(serde::Serialize)]
+pub(crate) struct NativeSpoolRefusalPacket<'a> {
+    schema_version: &'static str,
+    publication_state: &'static str,
+    phase: &'static str,
+    primary_error_kind: &'static str,
+    native_validation_reason: Option<&'a str>,
+    primary_io: NativeSpoolIoPacket,
+    terminal_io: NativeSpoolIoPacket,
+    accounting_failed: bool,
+    cleanup_failed: bool,
+    output_failed: bool,
+}
+#[derive(serde::Serialize)]
+struct NativeSpoolIoPacket {
+    read_attempted_bytes: u64,
+    read_permitted_bytes: u64,
+    read_returned_bytes: u64,
+    write_attempted_bytes: u64,
+    write_permitted_bytes: u64,
+    write_returned_bytes: u64,
+    first_failure: Option<&'static str>,
+}
+impl From<PinnedSqliteIoSnapshot> for NativeSpoolIoPacket {
+    fn from(value: PinnedSqliteIoSnapshot) -> Self {
+        Self {
+            read_attempted_bytes: value.read_attempted_bytes,
+            read_permitted_bytes: value.read_permitted_bytes,
+            read_returned_bytes: value.read_returned_bytes,
+            write_attempted_bytes: value.write_attempted_bytes,
+            write_permitted_bytes: value.write_permitted_bytes,
+            write_returned_bytes: value.write_returned_bytes,
+            first_failure: value.failure.map(|failure| match failure {
+                PinnedSqliteIoFailure::ReadLimit => "read_limit",
+                PinnedSqliteIoFailure::WriteLimit => "write_limit",
+                PinnedSqliteIoFailure::Deadline => "deadline",
+                PinnedSqliteIoFailure::Cancelled => "cancelled",
+                PinnedSqliteIoFailure::FileLimit => "file_limit",
+                PinnedSqliteIoFailure::SpaceLimit => "space_limit",
+                PinnedSqliteIoFailure::Io => "io",
+            }),
+        }
+    }
+}
+impl NativeSpoolRefusal {
+    pub(crate) fn retain(
+        primary: io::Error,
+        phase: &'static str,
+        primary_io: PinnedSqliteIoSnapshot,
+        terminal_io: PinnedSqliteIoSnapshot,
+        accounting_failed: bool,
+        cleanup_failed: bool,
+    ) -> Self {
+        // Keep the first phase/cause/snapshot when the CLI adds terminal checks.
+        if primary.get_ref().is_some_and(|cause| cause.is::<Self>()) {
+            let cause = primary.into_inner().expect("checked typed spool refusal");
+            let mut refusal = *cause.downcast::<Self>().expect("checked spool owner");
+            refusal.terminal_io = terminal_io;
+            refusal.accounting_failed |= accounting_failed;
+            refusal.cleanup_failed |= cleanup_failed;
+            return refusal;
+        }
+        Self {
+            primary,
+            phase,
+            primary_io,
+            terminal_io,
+            accounting_failed,
+            cleanup_failed,
+            output_failed: false,
+        }
+    }
+    pub(crate) fn with_output_refused(mut self) -> Self {
+        self.output_failed = true;
+        self
+    }
+    pub(crate) fn packet(&self) -> NativeSpoolRefusalPacket<'_> {
+        let reason = self
+            .primary
+            .get_ref()
+            .and_then(|cause| cause.downcast_ref::<NativeValidationRefusal>())
+            .map(|reason| reason.0.as_str())
+            .filter(|reason| reason.len() <= 192);
+        NativeSpoolRefusalPacket {
+            schema_version: "tos_native_spooled_admission_refusal_v1",
+            publication_state: "not_committed",
+            phase: self.phase,
+            primary_error_kind: match self.primary.kind() {
+                io::ErrorKind::InvalidData => "invalid_data",
+                io::ErrorKind::InvalidInput => "invalid_input",
+                io::ErrorKind::PermissionDenied => "permission_denied",
+                io::ErrorKind::TimedOut => "timed_out",
+                io::ErrorKind::Interrupted => "interrupted",
+                io::ErrorKind::NotFound => "not_found",
+                io::ErrorKind::AlreadyExists => "already_exists",
+                _ => "other",
+            },
+            native_validation_reason: reason,
+            primary_io: self.primary_io.into(),
+            terminal_io: self.terminal_io.into(),
+            accounting_failed: self.accounting_failed,
+            cleanup_failed: self.cleanup_failed,
+            output_failed: self.output_failed,
+        }
+    }
+}
 
 /// Unforgeable-in-crate completion witness consumed by the spooled index
 /// adapter. Its constructor remains inside this validator module so a caller
@@ -303,6 +433,14 @@ impl<'c> NativeSourceValidator<'c> {
         let invocation =
             foundation_entry::read_invocation(&clock, &launch, cancel).map_err(command)?;
         select_output(invocation.budgets.max_output_bytes, invocation.deadline());
+        if invocation.catalogue_representation()
+            != foundation_entry::FoundationCatalogueRepresentation::PersistedRoot
+        {
+            return Err(invalid(
+                "admission cannot select owned-cold catalogue observation",
+            ));
+        }
+
         if launch.arguments.help || launch.arguments.selected_lab.is_some() {
             return Err(invalid(
                 "admission requires complete default foundation validation",
@@ -1146,10 +1284,22 @@ impl<'c> NativeSourceValidator<'c> {
         candidate: &SpoolCandidate<'_>,
     ) -> io::Result<()> {
         let result = self.account_spooled_candidate_inner(candidate);
-        if result.is_err() && self.prepared.is_some() {
-            self.account_spooled_terminal_io(candidate)?;
+        match result {
+            Err(error) => {
+                let primary_io = candidate.io_snapshot();
+                let accounting_failed =
+                    self.prepared.is_some() && self.account_spooled_terminal_io(candidate).is_err();
+                Err(io::Error::other(NativeSpoolRefusal::retain(
+                    error,
+                    "native-v4 candidate accounting",
+                    primary_io,
+                    candidate.io_snapshot(),
+                    accounting_failed,
+                    false,
+                )))
+            }
+            Ok(()) => Ok(()),
         }
-        result
     }
 
     fn account_spooled_candidate_inner(
@@ -1312,10 +1462,22 @@ impl<'c> NativeSourceValidator<'c> {
         // Early raw/history/metadata refusals can happen before bootstrap owns
         // a phase window. Preserve that attempted suffix under the original
         // ledger as well; never regrant a completed view after an error.
-        if result.is_err() && self.prepared.is_some() {
-            self.account_spooled_terminal_io(candidate)?;
+        match result {
+            Err(error) => {
+                let primary_io = candidate.io_snapshot();
+                let accounting_failed =
+                    self.prepared.is_some() && self.account_spooled_terminal_io(candidate).is_err();
+                Err(io::Error::other(NativeSpoolRefusal::retain(
+                    error,
+                    "native-v4 whole foundation validation",
+                    primary_io,
+                    candidate.io_snapshot(),
+                    accounting_failed,
+                    false,
+                )))
+            }
+            Ok(index) => Ok(index),
         }
-        result
     }
 
     fn validate_spooled_inner<'candidate>(
@@ -1454,14 +1616,21 @@ impl<'c> NativeSourceValidator<'c> {
                     ledger: failed.remaining_budget,
                     sources: failed.sources,
                 });
-                self.account_spooled_terminal_io(candidate)?;
                 let reason =
                     foundation_orchestrator::FoundationOrchestratorError::Bootstrap(failed.error)
                         .public_reason();
-                return Err(io::Error::new(
-                    io::ErrorKind::InvalidData,
-                    NativeValidationRefusal(reason),
-                ));
+                let primary =
+                    io::Error::new(io::ErrorKind::InvalidData, NativeValidationRefusal(reason));
+                let primary_io = candidate.io_snapshot();
+                let accounting_failed = self.account_spooled_terminal_io(candidate).is_err();
+                return Err(io::Error::other(NativeSpoolRefusal::retain(
+                    primary,
+                    "native-v4 candidate foundation bootstrap",
+                    primary_io,
+                    candidate.io_snapshot(),
+                    accounting_failed,
+                    false,
+                )));
             }
         };
         let mut json = JsonLimits::default();
@@ -1539,8 +1708,21 @@ impl<'c> NativeSourceValidator<'c> {
             sources: inputs.sources,
         });
         // Attempted suffixes remain visible even if any final fence failed.
+        let primary_io = candidate.io_snapshot();
         let terminal = self.account_spooled_terminal_io(candidate);
-        let (sink, records) = result?;
+        let (sink, records) = match result {
+            Ok(earned) => earned,
+            Err(error) => {
+                return Err(io::Error::other(NativeSpoolRefusal::retain(
+                    error,
+                    "native-v4 foundation evaluation and final fences",
+                    primary_io,
+                    candidate.io_snapshot(),
+                    terminal.is_err(),
+                    false,
+                )));
+            }
+        };
         terminal?;
         self.account_spooled_candidate(candidate)?;
         let (workspace, space) = self
@@ -1565,8 +1747,21 @@ impl<'c> NativeSourceValidator<'c> {
         let finished = sink.finish(complete);
         // finish authenticates the index membership EOF under the same ledger;
         // its attempted suffix is charged on both success and refusal.
+        let primary_io = candidate.io_snapshot();
         let terminal = self.account_spooled_terminal_io(candidate);
-        let view = finished?;
+        let view = match finished {
+            Ok(view) => view,
+            Err(error) => {
+                return Err(io::Error::other(NativeSpoolRefusal::retain(
+                    error,
+                    "native-v4 validated index membership EOF",
+                    primary_io,
+                    candidate.io_snapshot(),
+                    terminal.is_err(),
+                    false,
+                )));
+            }
+        };
         terminal?;
         // The joined candidate phases already charged runtime history attempts
         // and retained state. Keep the owner totals for later custody checks.

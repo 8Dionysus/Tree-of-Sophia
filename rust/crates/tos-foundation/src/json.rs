@@ -182,6 +182,48 @@ pub enum JsonValue {
 }
 
 impl JsonValue {
+    /// Logical retained storage of this value's owned buffers. The inline root
+    /// slot belongs to its enclosing owner; array/object slots are charged once
+    /// at actual Vec capacity, including spare capacity. Borrowed aliases do not
+    /// create another charge. This is not allocator/RSS accounting.
+    pub fn retained_storage_bytes(&self) -> Result<usize> {
+        fn add(left: usize, right: usize) -> Result<usize> {
+            left.checked_add(right).ok_or_else(|| {
+                FoundationError::new(Code::BudgetExceeded, "JSON retained storage overflow")
+            })
+        }
+        fn slots<T>(capacity: usize) -> Result<usize> {
+            capacity
+                .checked_mul(std::mem::size_of::<T>())
+                .ok_or_else(|| {
+                    FoundationError::new(
+                        Code::BudgetExceeded,
+                        "JSON retained container storage overflow",
+                    )
+                })
+        }
+        match self {
+            Self::Null | Self::Bool(_) => Ok(0),
+            Self::Number(number) => Ok(number.lexeme.capacity()),
+            Self::String(value) => value.retained_storage_bytes(),
+            Self::Array(values) => {
+                let mut bytes = slots::<JsonValue>(values.capacity())?;
+                for value in values {
+                    bytes = add(bytes, value.retained_storage_bytes()?)?;
+                }
+                Ok(bytes)
+            }
+            Self::Object(entries) => {
+                let mut bytes = slots::<(JsonString, JsonValue)>(entries.capacity())?;
+                for (key, value) in entries {
+                    bytes = add(bytes, key.retained_storage_bytes()?)?;
+                    bytes = add(bytes, value.retained_storage_bytes()?)?;
+                }
+                Ok(bytes)
+            }
+        }
+    }
+
     pub fn as_object(&self) -> Option<&[(JsonString, JsonValue)]> {
         match self {
             Self::Object(entries) => Some(entries),
@@ -816,6 +858,96 @@ pub fn canonical_bytes_v1(
     }
 }
 
+/// Same canonical visitor with an original remaining-state output reservation.
+/// Counting retains no output. No growing response buffer is permitted after
+/// admission; the resulting allocation's actual capacity is checked as well.
+pub fn canonical_bytes_v1_with_state_budget(
+    value: &JsonValue,
+    profile: CanonicalProfile,
+    limits: JsonLimits,
+    available: usize,
+) -> Result<Vec<u8>> {
+    canonical_bytes_v1_with_state_budget_and_visits(value, profile, limits, available).map(|v| v.0)
+}
+
+/// Count and emit share the original visit grant as well as state workspace.
+pub fn canonical_bytes_v1_with_state_budget_and_visits(
+    value: &JsonValue,
+    profile: CanonicalProfile,
+    mut limits: JsonLimits,
+    available: usize,
+) -> Result<(Vec<u8>, usize)> {
+    let style = match profile {
+        CanonicalProfile::CorpusSnapshotV1 => WriteStyle::PythonCompactLf,
+        CanonicalProfile::SourceRecordDigestV1 | CanonicalProfile::SourceCommandInputV1 => {
+            WriteStyle::PythonCompact
+        }
+    };
+    let scratch_slots = limits
+        .max_depth
+        .checked_add(1)
+        .and_then(|depth| {
+            depth.checked_mul(std::mem::size_of::<Vec<(usize, &(JsonString, JsonValue))>>())
+        })
+        .and_then(|n| n.checked_add(std::mem::size_of::<String>()))
+        .and_then(|n| n.checked_add(std::mem::size_of::<String>()))
+        .and_then(|n| n.checked_add(std::mem::size_of::<FormatCount>()))
+        .ok_or_else(state_error)?;
+    if scratch_slots > available {
+        return Err(state_error());
+    }
+    let mut count_sink = JsonOutput::StateCount {
+        count: 0,
+        available,
+        scratch: scratch_slots,
+    };
+    let (count_visits, count_numeric) =
+        write_document_into_with_visits(value, limits, style, &mut count_sink, true)?;
+    let used = count_visits
+        .checked_add(count_numeric)
+        .ok_or_else(state_error)?;
+    let count = count_sink.len();
+    if count
+        > available
+            .checked_sub(scratch_slots)
+            .ok_or_else(state_error)?
+    {
+        return Err(state_error());
+    }
+    let mut bytes = Vec::new();
+    bytes.try_reserve_exact(count).map_err(|_| state_error())?;
+    if bytes.capacity()
+        > available
+            .checked_sub(scratch_slots)
+            .ok_or_else(state_error)?
+    {
+        return Err(state_error());
+    }
+    limits.max_bytes = limits.max_bytes.min(count);
+    limits.max_visits = limits
+        .max_visits
+        .checked_sub(used)
+        .ok_or_else(state_error)?;
+    let mut output = JsonOutput::StateBytes {
+        bytes: &mut bytes,
+        available,
+        scratch: scratch_slots,
+    };
+    let (emit_visits, emit_numeric) =
+        write_document_into_with_visits(value, limits, style, &mut output, true)?;
+    if bytes.len() != count {
+        return Err(FoundationError::new(
+            Code::InvalidJson,
+            "canonical count differs",
+        ));
+    }
+    let visits = used
+        .checked_add(emit_visits)
+        .and_then(|n| n.checked_add(emit_numeric))
+        .ok_or_else(state_error)?;
+    Ok((bytes, visits))
+}
+
 /// Emit the exact bytes from `canonical_bytes_v1` and report the value visits
 /// and numeric-lexeme parser visits from that same emission pass.
 pub fn canonical_bytes_v1_with_visits(
@@ -1036,16 +1168,66 @@ impl WriteStyle {
 enum JsonOutput<'a> {
     Bytes(&'a mut Vec<u8>),
     Count(usize),
+    StateBytes {
+        bytes: &'a mut Vec<u8>,
+        available: usize,
+        scratch: usize,
+    },
+    StateCount {
+        count: usize,
+        available: usize,
+        scratch: usize,
+    },
     Digest {
         hasher: &'a mut crate::Digest256Hasher,
         bytes: usize,
     },
 }
 impl JsonOutput<'_> {
+    fn state_remaining(&self) -> Option<usize> {
+        match self {
+            Self::StateBytes {
+                bytes,
+                available,
+                scratch,
+            } => Some(
+                available
+                    .saturating_sub(bytes.capacity())
+                    .saturating_sub(*scratch),
+            ),
+            Self::StateCount {
+                available, scratch, ..
+            } => Some(available.saturating_sub(*scratch)),
+            _ => None,
+        }
+    }
+    fn reserve_scratch(&mut self, amount: usize) -> Result<()> {
+        if let Some(remaining) = self.state_remaining() {
+            if amount > remaining {
+                return Err(state_error());
+            }
+            match self {
+                Self::StateBytes { scratch, .. } | Self::StateCount { scratch, .. } => {
+                    *scratch = scratch.checked_add(amount).ok_or_else(state_error)?
+                }
+                _ => {}
+            }
+        }
+        Ok(())
+    }
+    fn release_scratch(&mut self, amount: usize) {
+        match self {
+            Self::StateBytes { scratch, .. } | Self::StateCount { scratch, .. } => {
+                *scratch -= amount
+            }
+            _ => {}
+        }
+    }
     fn len(&self) -> usize {
         match self {
             Self::Bytes(bytes) => bytes.len(),
-            Self::Count(count) => *count,
+            Self::Count(count) | Self::StateCount { count, .. } => *count,
+            Self::StateBytes { bytes, .. } => bytes.len(),
             Self::Digest { bytes, .. } => *bytes,
         }
     }
@@ -1098,6 +1280,13 @@ fn emit(output: &mut JsonOutput<'_>, bytes: &[u8], limits: JsonLimits) -> Result
         })?;
     match output {
         JsonOutput::Bytes(output) => output.extend_from_slice(bytes),
+        JsonOutput::StateBytes { bytes: output, .. } => {
+            if next > output.capacity() {
+                return Err(state_error());
+            }
+            output.extend_from_slice(bytes);
+        }
+        JsonOutput::StateCount { count, .. } => *count = next,
         JsonOutput::Count(count) => *count = next,
         JsonOutput::Digest {
             hasher,
@@ -1114,72 +1303,126 @@ fn emit(output: &mut JsonOutput<'_>, bytes: &[u8], limits: JsonLimits) -> Result
 /// `json.dumps`. Rust's shortest round-trip decimal supplies the significant
 /// digits; Python's fixed/scientific threshold and exponent spelling are
 /// applied without converting an integer through binary64.
-fn python_float_text(value: f64) -> String {
+fn state_error() -> FoundationError {
+    FoundationError::new(Code::BudgetExceeded, "canonical writer state/visit budget")
+}
+struct FormatCount(usize);
+impl std::fmt::Write for FormatCount {
+    fn write_str(&mut self, text: &str) -> std::fmt::Result {
+        self.0 = self.0.checked_add(text.len()).ok_or(std::fmt::Error)?;
+        Ok(())
+    }
+}
+fn python_float_into(
+    value: f64,
+    shortest: &str,
+    out: &mut impl std::fmt::Write,
+) -> std::fmt::Result {
     if value == 0.0 {
-        return if value.is_sign_negative() {
+        return out.write_str(if value.is_sign_negative() {
             "-0.0"
         } else {
             "0.0"
-        }
-        .to_owned();
+        });
     }
     let negative = value.is_sign_negative();
-    let shortest = value.abs().to_string();
-    let (mantissa, exponent_suffix) = match shortest.find(|ch| ch == 'e' || ch == 'E') {
-        Some(position) => (
-            &shortest[..position],
-            shortest[position + 1..]
+    let (mantissa, suffix) = match shortest.find('e') {
+        Some(at) => (
+            &shortest[..at],
+            shortest[at + 1..]
                 .parse::<i32>()
                 .expect("finite f64 exponent"),
         ),
-        None => (shortest.as_str(), 0),
+        None => (shortest, 0),
     };
     let decimal_position = mantissa.find('.').unwrap_or(mantissa.len()) as i32;
-    let mut digits: String = mantissa.chars().filter(|ch| *ch != '.').collect();
-    let leading = digits.bytes().take_while(|byte| *byte == b'0').count();
-    let exponent = exponent_suffix + decimal_position - 1 - leading as i32;
-    digits.drain(..leading);
-    while digits.len() > 1 && digits.ends_with('0') {
-        digits.pop();
-    }
-    let mut result = String::with_capacity(shortest.len() + 8);
+    let digits = || mantissa.bytes().filter(|c| *c != b'.');
+    let leading = digits().take_while(|c| *c == b'0').count();
+    let total = digits().count();
+    let trailing = digits().rev().take_while(|c| *c == b'0').count();
+    let length = total - leading - trailing;
+    let exponent = suffix + decimal_position - 1 - leading as i32;
+    let write_digits = |out: &mut dyn std::fmt::Write, start: usize, end: usize| {
+        for digit in digits().skip(leading + start).take(end - start) {
+            out.write_char(digit as char)?;
+        }
+        std::fmt::Result::Ok(())
+    };
     if negative {
-        result.push('-');
+        out.write_char('-')?;
     }
     if (-4..16).contains(&exponent) {
         let point = exponent + 1;
         if point <= 0 {
-            result.push_str("0.");
+            out.write_str("0.")?;
             for _ in 0..-point {
-                result.push('0');
+                out.write_char('0')?;
             }
-            result.push_str(&digits);
-        } else if point as usize >= digits.len() {
-            result.push_str(&digits);
-            for _ in 0..(point as usize - digits.len()) {
-                result.push('0');
+            write_digits(out, 0, length)?;
+        } else if point as usize >= length {
+            write_digits(out, 0, length)?;
+            for _ in length..point as usize {
+                out.write_char('0')?;
             }
-            result.push_str(".0");
+            out.write_str(".0")?;
         } else {
-            result.push_str(&digits[..point as usize]);
-            result.push('.');
-            result.push_str(&digits[point as usize..]);
+            write_digits(out, 0, point as usize)?;
+            out.write_char('.')?;
+            write_digits(out, point as usize, length)?;
         }
     } else {
-        result.push(digits.as_bytes()[0] as char);
-        if digits.len() > 1 {
-            result.push('.');
-            result.push_str(&digits[1..]);
+        write_digits(out, 0, 1)?;
+        if length > 1 {
+            out.write_char('.')?;
+            write_digits(out, 1, length)?;
         }
-        result.push('e');
-        result.push(if exponent < 0 { '-' } else { '+' });
-        let magnitude = exponent.unsigned_abs();
-        if magnitude < 10 {
-            result.push('0');
-        }
-        result.push_str(&magnitude.to_string());
+        write!(
+            out,
+            "e{}{:02}",
+            if exponent < 0 { '-' } else { '+' },
+            exponent.unsigned_abs()
+        )?;
     }
+    Ok(())
+}
+fn python_float_text(value: f64) -> String {
+    let shortest = value.abs().to_string();
+    let mut result = String::new();
+    python_float_into(value, &shortest, &mut result).expect("String formatting");
     result
+}
+fn emit_state_float(value: f64, output: &mut JsonOutput<'_>, limits: JsonLimits) -> Result<()> {
+    use std::fmt::Write;
+    let mut count = FormatCount(0);
+    write!(&mut count, "{}", value.abs()).map_err(|_| state_error())?;
+    if count.0 > output.state_remaining().ok_or_else(state_error)? {
+        return Err(state_error());
+    }
+    let mut shortest = String::new();
+    shortest
+        .try_reserve_exact(count.0)
+        .map_err(|_| state_error())?;
+    output.reserve_scratch(shortest.capacity())?;
+    write!(&mut shortest, "{}", value.abs()).map_err(|_| state_error())?;
+    count.0 = 0;
+    python_float_into(value, &shortest, &mut count).map_err(|_| state_error())?;
+    if count.0 > output.state_remaining().ok_or_else(state_error)? {
+        return Err(state_error());
+    }
+    let mut result = String::new();
+    result
+        .try_reserve_exact(count.0)
+        .map_err(|_| state_error())?;
+    output.reserve_scratch(result.capacity())?;
+    python_float_into(value, &shortest, &mut result).map_err(|_| state_error())?;
+    emit(output, result.as_bytes(), limits)?;
+    let result_capacity = result.capacity();
+    let shortest_capacity = shortest.capacity();
+    drop(result);
+    drop(shortest);
+    output.release_scratch(result_capacity);
+    output.release_scratch(shortest_capacity);
+    Ok(())
 }
 
 fn write_value(
@@ -1228,11 +1471,20 @@ fn write_value(
                 }
                 validation_limits.max_visits = remaining;
             }
-            let checked = parse_json(
-                number.lexeme.as_bytes(),
-                JsonMode::PublishedStrict,
-                validation_limits,
-            )?;
+            let checked = if let Some(remaining) = output.state_remaining() {
+                parse_json_with_state_budget(
+                    number.lexeme.as_bytes(),
+                    JsonMode::PublishedStrict,
+                    validation_limits,
+                    remaining,
+                )?
+            } else {
+                parse_json(
+                    number.lexeme.as_bytes(),
+                    JsonMode::PublishedStrict,
+                    validation_limits,
+                )?
+            };
             *numeric_parse_visits = numeric_parse_visits
                 .checked_add(checked.visits())
                 .ok_or_else(|| {
@@ -1244,11 +1496,16 @@ fn write_value(
                     "number lexeme and kind disagree",
                 ));
             }
+            drop(checked);
             if style.python_numbers() && number.kind == JsonNumberKind::Float {
                 let value = number.lexeme.parse::<f64>().map_err(|_| {
                     FoundationError::new(Code::InvalidNumber, "float lexeme is invalid")
                 })?;
-                emit(output, python_float_text(value).as_bytes(), limits)?;
+                if output.state_remaining().is_some() {
+                    emit_state_float(value, output, limits)?;
+                } else {
+                    emit(output, python_float_text(value).as_bytes(), limits)?;
+                }
             } else if style.python_numbers() && number.lexeme == "-0" {
                 emit(output, b"0", limits)?;
             } else {
@@ -1306,18 +1563,62 @@ fn write_value(
                     "JSON output structural budget exceeded",
                 ));
             }
-            let mut seen = HashSet::new();
-            if entries.iter().any(|(key, _)| !seen.insert(&key.units)) {
-                return Err(FoundationError::new(
-                    Code::DuplicateMember,
-                    "duplicate decoded JSON member",
-                ));
+            let stateful = output.state_remaining().is_some();
+            let mut state_ordered = None;
+            if stateful {
+                let bytes = entries
+                    .len()
+                    .checked_mul(std::mem::size_of::<(usize, &(JsonString, JsonValue))>())
+                    .ok_or_else(state_error)?;
+                if bytes > output.state_remaining().ok_or_else(state_error)? {
+                    return Err(state_error());
+                }
+                let mut ordered = Vec::new();
+                ordered
+                    .try_reserve_exact(entries.len())
+                    .map_err(|_| state_error())?;
+                let actual = ordered
+                    .capacity()
+                    .checked_mul(std::mem::size_of::<(usize, &(JsonString, JsonValue))>())
+                    .ok_or_else(state_error)?;
+                output.reserve_scratch(actual)?;
+                ordered.extend(entries.iter().enumerate());
+                ordered.sort_unstable_by(|(_, (left, _)), (_, (right, _))| {
+                    left.units.cmp(&right.units)
+                });
+                if ordered
+                    .windows(2)
+                    .any(|pair| pair[0].1.0.units == pair[1].1.0.units)
+                {
+                    return Err(FoundationError::new(
+                        Code::DuplicateMember,
+                        "duplicate decoded JSON member",
+                    ));
+                }
+                state_ordered = Some((ordered, actual));
+            } else {
+                let mut seen = HashSet::new();
+                if entries.iter().any(|(key, _)| !seen.insert(&key.units)) {
+                    return Err(FoundationError::new(
+                        Code::DuplicateMember,
+                        "duplicate decoded JSON member",
+                    ));
+                }
             }
             emit(output, b"{", limits)?;
             if style.sort_keys() {
-                let mut ordered: Vec<_> = entries.iter().collect();
-                ordered.sort_by(|(left, _), (right, _)| left.as_str().cmp(&right.as_str()));
-                for (index, (key, item)) in ordered.into_iter().enumerate() {
+                let (mut ordered, reserved) = match state_ordered.take() {
+                    Some((keys, charge)) => (keys, charge),
+                    None => (entries.iter().enumerate().collect(), 0),
+                };
+                // Original ordinal preserves stable ordering for distinct
+                // WTF-16 keys whose as_str() is None, without sort scratch.
+                ordered.sort_unstable_by(|(left_index, (left, _)), (right_index, (right, _))| {
+                    left.as_str()
+                        .cmp(&right.as_str())
+                        .then(left_index.cmp(right_index))
+                });
+                for (index, (_, (key, item))) in ordered.iter().copied().enumerate() {
                     if index != 0 {
                         emit(output, b",", limits)?;
                     }
@@ -1334,7 +1635,15 @@ fn write_value(
                         combined_visit_limit,
                     )?;
                 }
+                drop(ordered);
+                if stateful {
+                    output.release_scratch(reserved);
+                }
             } else {
+                if let Some((keys, reserved)) = state_ordered.take() {
+                    drop(keys);
+                    output.release_scratch(reserved);
+                }
                 for (index, (key, item)) in entries.iter().enumerate() {
                     if index != 0 {
                         emit(

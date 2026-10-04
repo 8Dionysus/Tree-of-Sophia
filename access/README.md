@@ -1266,6 +1266,37 @@ every item, value type and source. These optimizations do not skip semantic
 validation or turn the build-time processing cache into a query dependency.
 
 
+## Explicit existing QueryStore SDK selection
+
+`NativeAccessCore.from_legacy_query_store(prefix, selection, admission_provider)`
+selects an explicitly configured existing immutable QueryStore. `selection` is
+`NativeCoreSnapshotSelection` with the maintained seven absolute carrier paths
+and `query_store_configured=True`. The native store owner authenticates five
+bindings: index, philosophy projection, bibliographic graph and both registries.
+Audit and Evidence paths remain separate lower-source selectors; they do not
+become QueryStore bindings or a captured-source authority.
+
+Each provider result must be `NativeCoreSnapshotAdmission` with explicit
+`NativeCoreQueryStoreLimits`, the original finite cutoff, process/state/output
+limits and actual borrowed stage-ticket FD. Opening and querying use native
+`core-snapshot`; the factory neither opens SQLite in Python nor rebuilds missing
+or stale data. Knowledge/corpus headers, fresh Graph/Snapshot and the six native
+store requests are the implemented source routes: `tos_knowledge_catalog`,
+`tos_knowledge_header`, `tos_corpus_header`, `tos_knowledge_node`,
+`tos_knowledge_relation`, and `tos_knowledge_search` in legacy mode. Indexed,
+compressed and navigation/exploration requests still require their missing native
+store routes; their names alone do not establish support. After a weak Graph/Snapshot, SDK addressed updates refuse a stale parent because
+no captured model-state FD exists. Direct native addressed requests independently
+retain the refusal for a parent without captured source inputs.
+
+This factory selects the weaker `tos_query_store_v1` export profile: every
+Graph/Snapshot is fresh, no strong model-state FD or publication epoch is claimed.
+Captured SourceRoot resource/lower-carrier requests require their separately
+selected owner; this factory does not fall back to software-only resources.
+Independent Reading, Word and SourceRead retain their existing selections.
+Installed constructor/query parity and a public default switch remain unproved;
+`ToSAccessCore` continues to select Reference.
+
 ## Explicit SourceRoot SDK adapter
 
 The opt-in `NativeAccessCore.from_source_root` adapter selects native software,

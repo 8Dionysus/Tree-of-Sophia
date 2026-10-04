@@ -67,6 +67,24 @@ fn lock(store: &Arc<Mutex<Store>>) -> Result<std::sync::MutexGuard<'_, Store>, S
     store.lock().map_err(|_| corrupt())
 }
 impl ProcessExplorationCheckpoints {
+    /// The finite resource URI owner has no checkpoint-mutating operation.
+    /// Verify the actual shared store remains empty; count its single mutex
+    /// payload once, even when the executor and this observer share Arc aliases.
+    pub(crate) fn retained_empty_state_upper_bound(&self) -> Result<usize, SearchV2Error> {
+        let store = lock(&self.store)?;
+        if !store.entries.is_empty()
+            || !store.busy.is_empty()
+            || !store.reserved_tokens.is_empty()
+            || store.encoded_bytes != 0
+            || store.reserved_bytes != 0
+        {
+            return Err(corrupt());
+        }
+        std::mem::size_of::<Self>()
+            .checked_add(std::mem::size_of::<Mutex<Store>>())
+            .ok_or_else(budget)
+    }
+
     pub fn limits(&self) -> CheckpointLimits {
         self.limits
     }

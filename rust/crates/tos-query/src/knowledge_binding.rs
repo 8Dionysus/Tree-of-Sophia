@@ -36,6 +36,26 @@ pub struct BoundCmpKnowledge<'a> {
 }
 
 impl BoundCmpKnowledge<'_> {
+    /// Owned binding/descriptor state only. The vocabulary and model are
+    /// borrowed from their original owners and must not be charged twice.
+    pub fn retained_state_upper_bound(&self) -> Result<usize, SearchV2Error> {
+        use tos_foundation::{OwnedState, checked_state_add};
+        let mut bytes = std::mem::size_of::<Self>();
+        macro_rules! charge { ($($field:ident),*) => { $(
+            bytes = checked_state_add(bytes, self.$field.owned_heap_bytes()
+                .map_err(|_| stale("bound knowledge retained state overflow"))?)
+                .map_err(|_| stale("bound knowledge retained state overflow"))?;
+        )* }; }
+        charge!(
+            selection,
+            source_basis,
+            authority_boundary,
+            owner_receipt_id,
+            descriptor
+        );
+        Ok(bytes)
+    }
+
     pub(crate) fn vocabulary(&self) -> &QueryVocabulary {
         self.vocabulary
     }
@@ -375,3 +395,43 @@ fn bind_knowledge<'a>(
         .into_root(),
     })
 }
+
+tos_foundation::impl_owned_state!(crate::search_v2::SearchSelectionBinding {
+    model_abi,
+    vocabulary,
+    semantic_primitive_profile,
+    search_unicode_profile,
+    source_cut,
+    through_commit_seq,
+    source_membership_root,
+    history_root_sha256,
+    entity_registry_id,
+    entity_registry_version,
+    entity_registry_sha256,
+    relation_registry_id,
+    relation_registry_version,
+    relation_registry_sha256,
+    graph_root_sha256,
+    catalog_packet_sha256,
+    catalog_index_root_sha256,
+    source_scope_root_sha256,
+    search_index_root_sha256,
+    index_root_sha256,
+    index_generation,
+    route_map_version,
+    reader_abi,
+    complete
+});
+
+tos_foundation::impl_owned_state!(crate::search_v2::QueryVocabularyBinding {
+    descriptor_sha256,
+    descriptor_version
+});
+
+tos_foundation::impl_owned_state!(crate::search_v2::CurrentPolicyBinding {
+    scope,
+    issuer_ref,
+    authorization_receipt_id,
+    policy_epoch,
+    withdrawal_generation
+});
