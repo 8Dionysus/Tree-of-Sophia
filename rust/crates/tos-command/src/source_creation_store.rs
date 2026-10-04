@@ -1900,6 +1900,70 @@ impl Drop for DisposableCatalogTree<'_> {
 }
 
 impl CreationFilesystem {
+    pub(crate) fn protected_root_file(&self) -> &File {
+        &self.root
+    }
+
+    pub(crate) fn protected_root_path(&self) -> &Path {
+        &self.root_path
+    }
+
+    pub(crate) fn protected_configuration_path(&self) -> &Path {
+        &self.configuration_path
+    }
+
+    pub(crate) fn protected_root_identity(&self) -> (u64, u64) {
+        self.root_identity
+    }
+
+    pub(crate) fn protected_configuration_raw(&self) -> &[u8] {
+        &self.configuration_raw
+    }
+
+    pub(crate) fn protected_uid(&self) -> u32 {
+        self.uid
+    }
+
+    /// Recheck the exact protected owner selection without manufacturing a
+    /// CommandContext. This keeps downstream source consumers on the same held
+    /// root/configuration inode and raw grant selected by the native entry.
+    pub(crate) fn verify_selected_configuration(
+        &self,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<()> {
+        active(deadline, cancelled)?;
+        if rustix::process::geteuid().as_raw() != self.uid
+            || rustix::process::getuid().as_raw() != self.uid
+        {
+            return Err(SourceCommandError::Denied("creation account changed"));
+        }
+        let root = tos_fd_open::open_absolute_directory(&self.root_path)
+            .map_err(|_| SourceCommandError::Conflict("creation root replaced or unsafe"))?;
+        if inode(&owned(&root, self.uid, true)?) != self.root_identity {
+            return Err(SourceCommandError::Conflict(
+                "creation selected root identity changed",
+            ));
+        }
+        protected_configuration_parents(&self.configuration_path, self.uid)?;
+        let mut fd = tos_fd_open::open_absolute_regular(&self.configuration_path, 1_048_576)
+            .map_err(|_| {
+                SourceCommandError::Denied("creation current configuration unavailable")
+            })?;
+        if owned(&fd, self.uid, false)?.mode() & 0o077 != 0 {
+            return Err(SourceCommandError::Denied(
+                "creation current configuration protection changed",
+            ));
+        }
+        let bytes = raw(&mut fd, 1_048_576, deadline, cancelled)?;
+        if bytes != self.configuration_raw {
+            return Err(SourceCommandError::Conflict(
+                "creation delegation changed before publication",
+            ));
+        }
+        Ok(())
+    }
+
     /// Separate-process Item access reuses the existing independently protected
     /// typed grant. This is crate-private and cannot construct other owners.
     pub(crate) fn select_item_owner(
@@ -2548,6 +2612,33 @@ impl CreationFilesystem {
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> SourceCommandResult<(Self, Vec<u8>)> {
+        Self::select_protected_native_owner_inner(configuration_path, None, deadline, cancelled)
+    }
+
+    /// Select the existing protected Native owner only when its configured
+    /// source root is the already selected input root. The comparison happens
+    /// before walking or opening the configured root, so a fresh-source caller
+    /// cannot cause a second, request-independent root traversal.
+    pub(crate) fn select_protected_native_owner_at_root(
+        configuration_path: &Path,
+        expected_root: &Path,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<(Self, Vec<u8>)> {
+        Self::select_protected_native_owner_inner(
+            configuration_path,
+            Some(expected_root),
+            deadline,
+            cancelled,
+        )
+    }
+
+    fn select_protected_native_owner_inner(
+        configuration_path: &Path,
+        expected_root: Option<&Path>,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<(Self, Vec<u8>)> {
         active(deadline, cancelled)?;
         let uid = rustix::process::geteuid().as_raw();
         if rustix::process::getuid().as_raw() != uid {
@@ -2570,6 +2661,14 @@ impl CreationFilesystem {
         }
         let root_path =
             crate::source_text_owner::normalized_absolute(cmd::text(&config, "source_root")?)?;
+        if expected_root.is_some_and(|expected| {
+            crate::source_text_owner::normalized_absolute(&expected.to_string_lossy())
+                .map_or(true, |normalized| normalized != root_path)
+        }) {
+            return Err(SourceCommandError::Denied(
+                "native owner source root differs from selected input root",
+            ));
+        }
         if configuration_path.starts_with(root_path.join("ToS")) {
             return Err(SourceCommandError::Denied(
                 "native owner authority cannot be authored content",
@@ -2668,31 +2767,8 @@ impl CreationFilesystem {
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> SourceCommandResult<()> {
-        active(deadline, cancelled)?;
-        if rustix::process::geteuid().as_raw() != self.uid
-            || rustix::process::getuid().as_raw() != self.uid
-        {
-            return Err(SourceCommandError::Denied("creation account changed"));
-        }
-        let root = tos_fd_open::open_absolute_directory(&self.root_path)
-            .map_err(|_| SourceCommandError::Conflict("creation root replaced or unsafe"))?;
-        if inode(&owned(&root, self.uid, true)?) != self.root_identity {
-            return Err(SourceCommandError::Conflict(
-                "creation selected root identity changed",
-            ));
-        }
-        protected_configuration_parents(&self.configuration_path, self.uid)?;
-        let mut fd = tos_fd_open::open_absolute_regular(&self.configuration_path, 1_048_576)
-            .map_err(|_| {
-                SourceCommandError::Denied("creation current configuration unavailable")
-            })?;
-        if owned(&fd, self.uid, false)?.mode() & 0o077 != 0 {
-            return Err(SourceCommandError::Denied(
-                "creation current configuration protection changed",
-            ));
-        }
-        let bytes = raw(&mut fd, 1_048_576, deadline, cancelled)?;
-        if bytes != self.configuration_raw || bytes != context.configuration_raw {
+        self.verify_selected_configuration(deadline, cancelled)?;
+        if context.configuration_raw != self.configuration_raw {
             return Err(SourceCommandError::Conflict(
                 "creation delegation changed before publication",
             ));

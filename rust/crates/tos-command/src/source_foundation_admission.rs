@@ -236,6 +236,7 @@ pub(crate) struct NativeSourceValidator<'c> {
     segment_v2_profile: Option<NativeSegmentV2Budget>,
     segment_v2_io_accounted: (u64, u64),
     segment_v2_read_upper_accounted: u64,
+    spooled_read_upper_accounted: u64,
 }
 /// The only constructor is the successful complete owner callback below.
 pub(crate) struct ValidatedCandidate(Index);
@@ -489,6 +490,7 @@ impl<'c> NativeSourceValidator<'c> {
             segment_v2_profile: None,
             segment_v2_io_accounted: (0, 0),
             segment_v2_read_upper_accounted: 0,
+            spooled_read_upper_accounted: 0,
         })
     }
 
@@ -1681,6 +1683,34 @@ impl<'c> NativeSourceValidator<'c> {
         self.account_spooled_terminal_budget()
     }
 
+    /// Check the two separately escrowed physical ledgers selected by this
+    /// invocation. Their handle identity is distinct from sharing one budget.
+    pub(crate) fn verify_spooled_v2_io(
+        &self,
+        spool: &PinnedSqliteIoBudget,
+        v2: &PinnedSqliteIoBudget,
+        deadline: Instant,
+        cancel: &AtomicBool,
+    ) -> io::Result<()> {
+        active(self.deadline, self.cancel)?;
+        self.ledger()?;
+        if deadline != self.deadline
+            || !std::ptr::eq(cancel, self.cancel)
+            || !self.spooled_route_selected
+            || self
+                .spooled_profile
+                .as_ref()
+                .is_none_or(|profile| !profile.2.shares_with(spool))
+            || self
+                .segment_v2_profile
+                .as_ref()
+                .is_none_or(|profile| !profile.io.shares_with(v2))
+        {
+            return Err(invalid("spooled/V2 original invocation IO binding differs"));
+        }
+        Ok(())
+    }
+
     /// Reserve caller-held source-operation state on the existing invocation
     /// ledger before an external bounded preparation allocates it. The debit
     /// remains monotonic through candidate validation and publication.
@@ -1734,6 +1764,13 @@ impl<'c> NativeSourceValidator<'c> {
             .read_attempted_bytes
             .checked_sub(self.candidate_io.0)
             .ok_or_else(|| invalid("spooled terminal read accounting regressed"))?;
+        let spool_upper = usage
+            .read_upper_bound_attempted_bytes
+            .checked_sub(self.spooled_read_upper_accounted)
+            .ok_or_else(|| invalid("spooled terminal upper-bound accounting regressed"))?;
+        let candidate_read = candidate_read
+            .checked_sub(spool_upper)
+            .ok_or_else(|| invalid("spooled upper-bound suffix exceeds attempted suffix"))?;
         let _candidate_write_suffix = usage
             .write_attempted_bytes
             .checked_sub(self.candidate_io.1)
@@ -1764,11 +1801,14 @@ impl<'c> NativeSourceValidator<'c> {
         let read = candidate_read
             .checked_add(segment_v2_read)
             .ok_or_else(|| invalid("spooled terminal read suffix overflow"))?;
+        let upper = spool_upper
+            .checked_add(segment_v2_upper)
+            .ok_or_else(|| invalid("spooled/V2 upper-bound suffix overflow"))?;
         let measured_before = self.ledger()?.measured_charged().source_read_bytes;
         let upper_before = self.ledger()?.admitted_charged().source_read_bytes;
         let classified = self
             .ledger_mut()?
-            .record_terminal_source_read_suffix(read, segment_v2_upper);
+            .record_terminal_source_read_suffix(read, upper);
         let measured_after = self.ledger()?.measured_charged().source_read_bytes;
         let upper_after = self.ledger()?.admitted_charged().source_read_bytes;
         let measured_recorded = measured_after.checked_sub(measured_before);
@@ -1776,8 +1816,9 @@ impl<'c> NativeSourceValidator<'c> {
         // Both classifications must be retained before their shared physical
         // attempted prefix advances. Arithmetic overflow in either ledger
         // leaves the old witness intact for a later exact refusal.
-        if measured_recorded == Some(read) && upper_recorded == Some(segment_v2_upper) {
+        if measured_recorded == Some(read) && upper_recorded == Some(upper) {
             self.candidate_io = (usage.read_attempted_bytes, usage.write_attempted_bytes);
+            self.spooled_read_upper_accounted = usage.read_upper_bound_attempted_bytes;
             if let Some(segment) = segment_v2_usage {
                 self.segment_v2_io_accounted =
                     (segment.read_attempted_bytes, segment.write_attempted_bytes);

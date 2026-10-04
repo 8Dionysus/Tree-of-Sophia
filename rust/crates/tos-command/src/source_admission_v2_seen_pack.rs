@@ -818,7 +818,7 @@ unsafe impl AuthenticatedTreePackSetV2 for V2SeenPackSpill {
     }
 }
 
-fn configure_db(db: &PinnedSqliteConnection, cache_bytes: usize) -> std::io::Result<()> {
+pub(crate) fn configure_db(db: &PinnedSqliteConnection, cache_bytes: usize) -> std::io::Result<()> {
     let cache_kib = cache_bytes / 1024;
     if cache_kib == 0 || cache_kib > i32::MAX as usize {
         return Err(invalid("V2 pack spill cache is not representable"));
