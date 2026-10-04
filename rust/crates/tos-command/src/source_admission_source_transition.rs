@@ -28,7 +28,8 @@ use std::{
 };
 use tos_foundation::{Digest256, SourceRevision};
 use tos_source_store::{
-    PinnedSqliteAuxRequest, PinnedSqliteAuxScope, PinnedSqliteConnection, PinnedSqliteIoBudget,
+    CorpusCurrentSelection, PinnedSqliteAuxRequest, PinnedSqliteAuxScope, PinnedSqliteConnection,
+    PinnedSqliteIoBudget,
 };
 
 const CENSUS_CONTROL_SQL_WORK_UNITS: u64 = 6;
@@ -515,6 +516,33 @@ impl SourceTransitionPrepared<'_> {
         self.fence.proposal
     }
 
+    /// Keep the exact current selector captured by the held V2 session pinned
+    /// across the accepted-publication lookup. This can be a later current
+    /// revision than the historical base used to derive the canonical batch.
+    pub(crate) fn verify_lookup_fence(&mut self, base: &mut V2ReadSession) -> io::Result<()> {
+        if self.batch.is_some() {
+            return Err(invalid(
+                "source transition lookup fence follows exact batch derivation",
+            ));
+        }
+        self.fence.verify_lookup_fence(base)
+    }
+
+    /// After exact accepted-publication lookup misses, allow a new candidate
+    /// only when the current selector is still the original base. This never
+    /// promotes a newer current revision into a replacement batch base.
+    pub(crate) fn verify_original_base_after_lookup_miss(
+        &mut self,
+        base: &mut V2ReadSession,
+    ) -> io::Result<()> {
+        if self.batch.is_some() {
+            return Err(invalid(
+                "source transition miss fence follows exact batch derivation",
+            ));
+        }
+        self.fence.verify_original_base_after_lookup_miss(base)
+    }
+
     /// Re-census the complete selected tree and recheck the original V2
     /// current fence after Native validation, while this prepared guard and
     /// its original AUX/IO/work slices remain alive.
@@ -531,6 +559,7 @@ impl SourceTransitionPrepared<'_> {
 struct SourceTransitionFence<'a> {
     root: &'a File,
     original_base: SourceRevision,
+    selected_current: CorpusCurrentSelection,
     proposal: SourceCensusSummary,
     profile: SourceTransitionProfile,
     _scope: PinnedSqliteAuxScope,
@@ -542,9 +571,34 @@ struct SourceTransitionFence<'a> {
 }
 
 impl SourceTransitionFence<'_> {
+    fn verify_lookup_fence(&mut self, base: &mut V2ReadSession) -> io::Result<()> {
+        active(self.deadline, &self.cancel)?;
+        if base.selected_selection() != self.selected_current {
+            return Err(invalid(
+                "source transition selected current differs from its lookup fence",
+            ));
+        }
+        base.verify_current_fence().map_err(invalid)
+    }
+
+    fn verify_original_base_after_lookup_miss(
+        &mut self,
+        base: &mut V2ReadSession,
+    ) -> io::Result<()> {
+        self.verify_lookup_fence(base)?;
+        if self.selected_current.revision != self.original_base {
+            return Err(invalid(
+                "source transition accepted lookup missed for a stale original base",
+            ));
+        }
+        Ok(())
+    }
+
     fn verify_before_publish(&mut self, base: &mut V2ReadSession) -> io::Result<()> {
         active(self.deadline, &self.cancel)?;
-        if base.selected_revision() != self.original_base {
+        if base.selected_selection() != self.selected_current
+            || self.selected_current.revision != self.original_base
+        {
             return Err(invalid(
                 "source transition original V2 base is no longer current",
             ));
@@ -568,11 +622,14 @@ impl SourceTransitionFence<'_> {
 }
 
 #[allow(clippy::too_many_arguments)]
-/// Prepare one proposal from the supplied exact original V2 revision. Before
-/// calling, the owner must debit `profile.max_state_slice_bytes` on the same
-/// Native spooled ledger represented by `aux`; this method verifies that the
-/// spool and V2 IO handles are the invocation's paired selections, but it
-/// does not reserve a second state allowance.
+/// Prepare one proposal from the supplied exact original V2 revision, which
+/// may now be historical while a previously accepted batch is being looked
+/// up. A lookup miss must call `verify_original_base_after_lookup_miss` before
+/// candidate ingestion. Before calling, the owner must debit
+/// `profile.max_state_slice_bytes` on the same Native spooled ledger
+/// represented by `aux`; this method verifies that the spool and V2 IO
+/// handles are the invocation's paired selections, but it does not reserve a
+/// second state allowance.
 pub(crate) fn prepare_source_transition<'a>(
     invocation: &NativeSourceValidator<'_>,
     base: &mut V2ReadSession,
@@ -587,13 +644,11 @@ pub(crate) fn prepare_source_transition<'a>(
 ) -> io::Result<SourceTransitionPrepared<'a>> {
     profile.check_state_partition()?;
     active(deadline, cancel)?;
-    if aux.deadline != deadline
-        || !std::ptr::eq(Arc::as_ptr(&aux.cancelled), cancel)
-        || base.selected_revision() != original_base
-    {
+    if aux.deadline != deadline || !std::ptr::eq(Arc::as_ptr(&aux.cancelled), cancel) {
         return Err(invalid("source transition original caller binding differs"));
     }
     invocation.verify_spooled_v2_io(&aux.io_budget, base.io_budget(), deadline, cancel)?;
+    let selected_current = base.selected_selection();
     let retained_cancel = Arc::clone(&aux.cancelled);
     let spool_io = aux.io_budget.clone();
     let work = AdmissionWorkBudget::new(profile.max_work_units)?;
@@ -674,6 +729,7 @@ pub(crate) fn prepare_source_transition<'a>(
         fence: SourceTransitionFence {
             root,
             original_base,
+            selected_current,
             proposal,
             profile,
             _scope: scope,
