@@ -3,6 +3,7 @@
 //! These roots are derived from a completed native candidate. Their logical
 //! membership and physical tree commitments remain separate from the V1
 //! manifest digest and from NativeAdmissionComplete.
+use std::cell::Cell;
 use std::sync::{
     Arc,
     atomic::{AtomicU64, Ordering},
@@ -14,8 +15,9 @@ use tos_foundation::{
     SourceRevision, canonical_bytes_v1, parse_json_with_state_budget,
 };
 use tos_segment_store::{
-    AuthenticatedTreeDescriptorV2, AuthenticatedTreeEntryV1, AuthenticatedTreeIoLedgerV1,
-    AuthenticatedTreeLimitsV1, AuthenticatedTreeWorkV1, SegmentLimits, SegmentStore,
+    AuthenticatedTreeDeltaV1, AuthenticatedTreeDescriptorV2, AuthenticatedTreeEntryV1,
+    AuthenticatedTreeIoLedgerV1, AuthenticatedTreeLimitsV1, AuthenticatedTreeWorkV1, SegmentLimits,
+    SegmentStore,
 };
 use tos_source_store::SourceMembershipV1;
 
@@ -1133,6 +1135,18 @@ pub(crate) struct BuiltInitialRootSetV2 {
     pub(crate) work: AuthenticatedTreeWorkV1,
 }
 
+pub(crate) struct BuiltSuccessorRootSetV2 {
+    pub(crate) expected_base: SourceRevision,
+    pub(crate) expected_previous_rootset_sha256: Digest256,
+    pub(crate) roots: SourceRootSetV2,
+    pub(crate) bytes: Vec<u8>,
+    pub(crate) sha256: Digest256,
+    pub(crate) source_record: Vec<u8>,
+    pub(crate) tree_io: Arc<NativeV2TreeIo>,
+    pub(crate) segment_store: SegmentStore,
+    pub(crate) work: AuthenticatedTreeWorkV1,
+}
+
 /// The first CMD writer uses the real validated candidate and maintained
 /// native index cursors. It is an initial import only; warm successors must
 /// use COW deltas and retained history roots.
@@ -1423,6 +1437,549 @@ pub(crate) fn build_initial_rootset_v2(
         segment_store: segment,
         work: used,
     })
+}
+
+/// Build one actual authenticated V2 successor from the selected base and the
+/// already completed native candidate. The full V1 membership digest remains
+/// the validator's audited value; physical COW work is limited to changed
+/// member/identity/dependency/retirement rows and the one history append.
+pub(crate) fn build_successor_rootset_v2(
+    store: &super::source_admission_store::AdmissionStore,
+    candidate: &super::source_admission_spooled_candidate::SpoolCandidate<'_>,
+    index: &super::source_admission_spooled_index::IndexView<'_>,
+    deadline: Instant,
+    cancelled: &std::sync::atomic::AtomicBool,
+) -> io::Result<BuiltSuccessorRootSetV2> {
+    use super::source_admission_v2_reader::V2ReadSession;
+
+    if !candidate.matches_invocation(deadline, cancelled) {
+        return Err(invalid("V2 successor invocation clock differs"));
+    }
+    let profile = index
+        .segment_v2_budget()
+        .ok_or_else(|| invalid("V2 successor lacks the native completion profile"))?;
+    index.verify_candidate()?;
+    let candidate_fence = candidate.fence()?;
+    if candidate_fence != index.fence()
+        || candidate_fence.base_revision.is_none()
+        || !store.has_v2_allocation_accountant(&profile.allocation_accountant)
+        || !store.has_v2_segments()?
+    {
+        return Err(invalid(
+            "V2 successor candidate or held store binding differs",
+        ));
+    }
+
+    let selected_base = candidate_fence
+        .base_revision
+        .ok_or_else(|| invalid("V2 successor base revision is absent"))?;
+    let base_ref = candidate.v2_base_session()?;
+    let base = base_ref.borrow();
+    if base.selected_revision() != selected_base
+        || !base.shares_io_budget(&profile.io)
+        || base.current_roots().revision != selected_base
+    {
+        return Err(invalid("V2 successor selected base or IO ledger differs"));
+    }
+    base.verify_current_fence()?;
+    let previous_rootset_sha256 = base.selected_rootset_sha256()?;
+    let selected_roots = base.current_rootset();
+    selected_roots.validate_store_binding(
+        base.segment_store().store_id(),
+        base.segment_store().domain_digest(),
+    )?;
+    if selected_roots.current.revision != selected_base {
+        return Err(invalid("V2 successor base rootset revision differs"));
+    }
+
+    // The old session and the cloned four-root record overlap throughout the
+    // writer. Check the exact retained source slice before cloning descriptors.
+    let base_live_state = base.retained_live_state_bytes()?;
+    let current_clone_state = selected_roots.current.retained_state_bytes()?;
+    let cursor_state = profile
+        .tree_limits
+        .max_key_bytes
+        .checked_mul(8)
+        .and_then(|bytes| bytes.checked_add(profile.tree_limits.max_value_bytes))
+        .and_then(|bytes| bytes.checked_add(16 * 1024))
+        .ok_or_else(|| invalid("V2 successor cursor state overflow"))?;
+    let builder_state = size_of::<BuiltSuccessorRootSetV2>()
+        .checked_add(size_of::<NativeV2TreeIo>())
+        .and_then(|bytes| bytes.checked_add(size_of::<AuthenticatedTreeWorkV1>()))
+        .and_then(|bytes| bytes.checked_add(cursor_state))
+        .ok_or_else(|| invalid("V2 successor builder state overflow"))?;
+    if base_live_state
+        .checked_add(current_clone_state)
+        .and_then(|bytes| bytes.checked_add(builder_state))
+        .is_none_or(|bytes| bytes > profile.max_working_state_bytes)
+    {
+        return Err(invalid("V2 successor base and clone exceed state profile"));
+    }
+
+    let mut current = selected_roots.current.clone();
+    let tree_io = NativeV2TreeIo::from_budget(profile);
+    store.retain_v2_store_custody(tree_io.custody_reservation());
+    let segment = base.segment_store().clone();
+    if segment.custody_domain() != SOURCE_ADMISSION_V2_DOMAIN {
+        return Err(invalid("V2 successor segment domain differs"));
+    }
+    current.validate_store_binding(segment.store_id(), segment.domain_digest())?;
+
+    let mut work = base.accumulated_tree_work();
+    let row_count = Cell::new(0u64);
+    let row_limit = profile.tree_limits.max_rows;
+    let row_allowance = candidate.v2_cursor_state_allowance(profile.max_working_state_bytes)?;
+    let tree_live_state = base_live_state
+        .checked_add(current.retained_state_bytes()?)
+        .and_then(|bytes| bytes.checked_add(builder_state))
+        .ok_or_else(|| invalid("V2 successor live-state overflow"))?;
+
+    let members = {
+        let mut after: Option<RelativePath> = None;
+        let changes = std::iter::from_fn(move || {
+            let path = match candidate.changed_source_after(after.as_ref(), row_allowance) {
+                Ok(Some(path)) => path,
+                Ok(None) => return None,
+                Err(error) => return Some(Err(tree_io_error(error))),
+            };
+            after = Some(path.clone());
+            let member = match candidate.member_bounded(&path, row_allowance) {
+                Ok(member) => member,
+                Err(error) => return Some(Err(tree_io_error(error))),
+            };
+            if member.as_ref().is_some_and(|member| member.path != path) {
+                return Some(Err(tree_error("V2 changed member path differs")));
+            }
+            let value = match member {
+                Some(member) => {
+                    let mut value = Vec::new();
+                    if value.try_reserve_exact(44).is_err() {
+                        return Some(Err(tree_error("V2 member value allocation failed")));
+                    }
+                    value.extend_from_slice(member.sha256.as_bytes());
+                    value.extend_from_slice(&member.size_bytes.to_be_bytes());
+                    value.extend_from_slice(&member.mode.to_le_bytes());
+                    Some(value)
+                }
+                None => None,
+            };
+            let mut key = Vec::new();
+            if key.try_reserve_exact(path.as_str().len()).is_err() {
+                return Some(Err(tree_error("V2 member key allocation failed")));
+            }
+            key.extend_from_slice(path.as_str().as_bytes());
+            counted_delta(&row_count, row_limit, key, value)
+        });
+        apply_successor_delta(
+            &segment,
+            &current.members,
+            changes,
+            profile,
+            &tree_io,
+            &mut work,
+            tree_live_state,
+            deadline,
+            cancelled,
+        )?
+    };
+    current.members = members;
+
+    // Stage identity deltas in two passes so a moved identity cannot be erased
+    // by whichever changed path sorts later. The exact native index supplies
+    // current rows; imported authenticated-base SQL supplies old ownership.
+    candidate.clear_v2_delta_rows()?;
+    let mut changed_after: Option<RelativePath> = None;
+    while let Some(path) = candidate.changed_source_after(changed_after.as_ref(), row_allowance)? {
+        changed_after = Some(path.clone());
+        let mut after_id: Option<String> = None;
+        while let Some(id) =
+            candidate.v2_base_identity_for_path_after(&path, after_id.as_deref(), row_allowance)?
+        {
+            after_id = Some(id.clone());
+            candidate.put_v2_identity_delta(&id, None)?;
+        }
+    }
+    changed_after = None;
+    while let Some(path) = candidate.changed_source_after(changed_after.as_ref(), row_allowance)? {
+        changed_after = Some(path.clone());
+        let mut after_id: Option<String> = None;
+        while let Some(id) = index.identity_for_path_after(&path, after_id.as_deref())? {
+            after_id = Some(id.clone());
+            candidate.put_v2_identity_delta(&id, Some(&path))?;
+        }
+    }
+    let identities = {
+        let mut after: Option<String> = None;
+        let changes = std::iter::from_fn(move || {
+            let (id, path) =
+                match candidate.v2_identity_delta_after(after.as_deref(), row_allowance) {
+                    Ok(Some(row)) => row,
+                    Ok(None) => return None,
+                    Err(error) => return Some(Err(tree_io_error(error))),
+                };
+            after = Some(id.clone());
+            let mut key = Vec::new();
+            if key.try_reserve_exact(id.len()).is_err() {
+                return Some(Err(tree_error("V2 identity key allocation failed")));
+            }
+            key.extend_from_slice(id.as_bytes());
+            let value = match path {
+                Some(path) => {
+                    let mut value = Vec::new();
+                    if value.try_reserve_exact(path.as_str().len()).is_err() {
+                        return Some(Err(tree_error("V2 identity value allocation failed")));
+                    }
+                    value.extend_from_slice(path.as_str().as_bytes());
+                    Some(value)
+                }
+                None => None,
+            };
+            counted_delta(&row_count, row_limit, key, value)
+        });
+        apply_successor_delta(
+            &segment,
+            &current.identities,
+            changes,
+            profile,
+            &tree_io,
+            &mut work,
+            tree_live_state,
+            deadline,
+            cancelled,
+        )?
+    };
+    current.identities = identities;
+
+    // Reverse-adjacency candidate rows are indexed by source/target. Remove
+    // old outgoing edges first, then merge the native current edge rows; SQL
+    // key conflict resolution handles an unchanged edge without global scans.
+    changed_after = None;
+    while let Some(source) =
+        candidate.changed_source_after(changed_after.as_ref(), row_allowance)?
+    {
+        changed_after = Some(source.clone());
+        let mut after_target: Option<RelativePath> = None;
+        while let Some(target) = candidate.base_dependency_after(&source, after_target.as_ref())? {
+            after_target = Some(target.clone());
+            let key = dependency_tree_key(&source, &target, profile.tree_limits.max_key_bytes)?;
+            candidate.put_v2_dependency_delta(&key, None)?;
+        }
+    }
+    changed_after = None;
+    while let Some(source) =
+        candidate.changed_source_after(changed_after.as_ref(), row_allowance)?
+    {
+        changed_after = Some(source.clone());
+        let mut after_target: Option<RelativePath> = None;
+        while let Some(target) = index.dependency_after(&source, after_target.as_ref())? {
+            after_target = Some(target.clone());
+            let key = dependency_tree_key(&source, &target, profile.tree_limits.max_key_bytes)?;
+            let value = length_prefixed_pair(&source, &target)?;
+            candidate.put_v2_dependency_delta(&key, Some(&value))?;
+        }
+    }
+    let dependencies = {
+        let mut after: Option<Vec<u8>> = None;
+        let changes = std::iter::from_fn(move || {
+            let (key, value) =
+                match candidate.v2_dependency_delta_after(after.as_deref(), row_allowance) {
+                    Ok(Some(row)) => row,
+                    Ok(None) => return None,
+                    Err(error) => return Some(Err(tree_io_error(error))),
+                };
+            after = Some(key.clone());
+            counted_delta(&row_count, row_limit, key, value)
+        });
+        apply_successor_delta(
+            &segment,
+            &current.dependencies,
+            changes,
+            profile,
+            &tree_io,
+            &mut work,
+            tree_live_state,
+            deadline,
+            cancelled,
+        )?
+    };
+    current.dependencies = dependencies;
+
+    let new_retirement_count = candidate.new_retirement_count()?;
+    if candidate
+        .retirement_count()
+        .checked_sub(current.retirement_count)
+        != Some(new_retirement_count)
+    {
+        return Err(invalid(
+            "V2 appended retirement range differs from selected base",
+        ));
+    }
+    let retirement_start = current.retirement_count;
+    let retirements = {
+        let mut ordinal = 0u64;
+        let changes = std::iter::from_fn(move || {
+            if ordinal >= new_retirement_count {
+                return None;
+            }
+            let index = ordinal;
+            ordinal += 1;
+            let row = match candidate.new_retirement_at_bounded(index, row_allowance) {
+                Ok(Some(row)) => row,
+                Ok(None) => return Some(Err(tree_error("V2 retirement row ended early"))),
+                Err(error) => return Some(Err(tree_io_error(error))),
+            };
+            let key_ordinal = match retirement_start.checked_add(index) {
+                Some(ordinal) => ordinal,
+                None => return Some(Err(tree_error("V2 retirement ordinal overflow"))),
+            };
+            let entry = match encode_retirement_entry(key_ordinal, row) {
+                Ok(entry) => entry,
+                Err(error) => return Some(Err(error)),
+            };
+            counted_delta(&row_count, row_limit, entry.key, Some(entry.value))
+        });
+        apply_successor_delta(
+            &segment,
+            &current.retirements,
+            changes,
+            profile,
+            &tree_io,
+            &mut work,
+            tree_live_state,
+            deadline,
+            cancelled,
+        )?
+    };
+    current.retirements = retirements;
+
+    let fence = index.fence();
+    let (member_count, source_bytes) = candidate.membership_counts();
+    let retirement_count = current
+        .retirement_count
+        .checked_add(new_retirement_count)
+        .ok_or_else(|| invalid("V2 successor retirement count overflow"))?;
+    if member_count != fence.membership.count
+        || source_bytes != fence.source_bytes
+        || retirement_count != candidate.retirement_count()
+        || current.members.entries != member_count
+    {
+        return Err(invalid("V2 successor logical counts differ from candidate"));
+    }
+    current.revision = selected_base;
+    current.base_revision = Some(selected_base);
+    current.validator_sha256 = fence.validator_sha256;
+    current.manifest_sha256 = Digest256::of_bytes(&[]);
+    current.source_artifact = SourceRevisionArtifactV2::CompactCommitV2 {
+        sha256: current.manifest_sha256,
+        bytes: 1,
+    };
+    current.batch_sha256 = Some(candidate.batch_sha256());
+    current.membership_v1 = fence.membership;
+    current.source_bytes = source_bytes;
+    current.member_count = member_count;
+    current.identity_count = index.identity_count();
+    current.dependency_source_count = index.dependency_source_count();
+    current.dependency_count = index.dependency_count();
+    current.retirement_count = retirement_count;
+
+    let commit_live_state = base_live_state
+        .checked_add(builder_state)
+        .ok_or_else(|| invalid("V2 compact commit live state overflow"))?;
+    let (mut current, commit, source_record) = CompactCommitV2::seal_successor(
+        current,
+        candidate.batch_sha256(),
+        profile.max_working_state_bytes,
+        commit_live_state,
+    )?;
+    drop(commit);
+    current.validate_store_binding(segment.store_id(), segment.domain_digest())?;
+    let source_record_sha256 = Digest256::of_bytes(&source_record);
+    if current.source_artifact.sha256() != source_record_sha256
+        || current.source_artifact.bytes() != Some(source_record.len() as u64)
+    {
+        return Err(invalid("V2 compact source artifact binding differs"));
+    }
+
+    let row_live_state = base_live_state
+        .checked_add(builder_state)
+        .and_then(|bytes| bytes.checked_add(source_record.capacity()))
+        .ok_or_else(|| invalid("V2 current history row live state overflow"))?;
+    let current_row =
+        current.encode_with_state_limit(profile.max_working_state_bytes, row_live_state)?;
+    let expected_history_row_bytes = current_row.len();
+    let expected_history_row_sha256 = Digest256::of_bytes(&current_row);
+    let history_additional_live = row_live_state
+        .checked_add(current.retained_state_bytes()?)
+        .and_then(|bytes| bytes.checked_add(current_row.capacity()))
+        .ok_or_else(|| invalid("V2 history append state overflow"))?;
+    let mut current_row = Some(current_row);
+    let revision = current.revision;
+    let history_changes = std::iter::from_fn(move || {
+        let value = current_row.take()?;
+        counted_delta(
+            &row_count,
+            row_limit,
+            revision.0.as_bytes().to_vec(),
+            Some(value),
+        )
+    });
+    let history = apply_successor_delta(
+        &segment,
+        &selected_roots.history,
+        history_changes,
+        profile,
+        &tree_io,
+        &mut work,
+        history_additional_live,
+        deadline,
+        cancelled,
+    )?;
+    if history.entries
+        != selected_roots
+            .history
+            .entries
+            .checked_add(1)
+            .ok_or_else(|| invalid("V2 history row count overflow"))?
+    {
+        return Err(invalid("V2 successor history append count differs"));
+    }
+    let roots = SourceRootSetV2 { current, history };
+    roots.validate_store_binding(segment.store_id(), segment.domain_digest())?;
+
+    // The change bytes are moved into the COW iterator. A digest/length pair
+    // remains as a finite equality witness for the authenticated history read.
+    let roots_live_state = roots.retained_state_bytes()?;
+    let history_read_node_state = profile
+        .tree_limits
+        .max_node_bytes
+        .checked_mul(64)
+        .and_then(|bytes| {
+            profile
+                .tree_limits
+                .max_value_bytes
+                .checked_mul(4)
+                .and_then(|value| bytes.checked_add(value))
+        })
+        .ok_or_else(|| invalid("V2 history read scratch state overflow"))?;
+    let history_read_extra = base_live_state
+        .checked_add(builder_state)
+        .and_then(|bytes| bytes.checked_add(source_record.capacity()))
+        .and_then(|bytes| bytes.checked_add(roots_live_state))
+        .and_then(|bytes| bytes.checked_add(history_read_node_state))
+        .ok_or_else(|| invalid("V2 history read state overflow"))?;
+    if history_read_extra > profile.max_working_state_bytes {
+        return Err(invalid("V2 history read exceeds source state profile"));
+    }
+    let (history_row, read_work) = segment
+        .lookup_authenticated_tree_v2_with_work_and_io(
+            &roots.history,
+            revision.0.as_bytes(),
+            remaining_tree_limits(profile.tree_limits, work)?,
+            Some(tree_io.clone()),
+            deadline,
+            cancelled,
+        )
+        .map_err(tree_io_error)?;
+    add_tree_work(&mut work, read_work, profile.tree_limits)?;
+    let history_row = history_row.ok_or_else(|| invalid("V2 successor history row is absent"))?;
+    if history_row.len() != expected_history_row_bytes
+        || Digest256::of_bytes(&history_row) != expected_history_row_sha256
+    {
+        return Err(invalid("V2 successor current history row differs"));
+    }
+    drop(history_row);
+    base.verify_current_fence()?;
+    index.verify_candidate()?;
+
+    let rootset_live_state = base_live_state
+        .checked_add(builder_state)
+        .and_then(|bytes| bytes.checked_add(source_record.capacity()))
+        .ok_or_else(|| invalid("V2 rootset encoding state overflow"))?;
+    let bytes =
+        roots.encode_with_state_limit(profile.max_working_state_bytes, rootset_live_state)?;
+    let sha256 = Digest256::of_bytes(&bytes);
+    let result = BuiltSuccessorRootSetV2 {
+        expected_base: selected_base,
+        expected_previous_rootset_sha256: previous_rootset_sha256,
+        roots,
+        bytes,
+        sha256,
+        source_record,
+        tree_io,
+        segment_store: segment,
+        work,
+    };
+    Ok(result)
+}
+
+fn counted_delta(
+    count: &Cell<u64>,
+    maximum: u64,
+    key: Vec<u8>,
+    value: Option<Vec<u8>>,
+) -> Option<tos_segment_store::Result<AuthenticatedTreeDeltaV1>> {
+    let next = match count.get().checked_add(1) {
+        Some(next) if next <= maximum => next,
+        _ => return Some(Err(tree_error("V2 cumulative delta row limit exceeded"))),
+    };
+    count.set(next);
+    Some(Ok(AuthenticatedTreeDeltaV1 { key, value }))
+}
+
+fn apply_successor_delta<I>(
+    segment: &SegmentStore,
+    old: &AuthenticatedTreeDescriptorV2,
+    changes: I,
+    profile: &super::source_foundation_admission::NativeSegmentV2Budget,
+    tree_io: &Arc<NativeV2TreeIo>,
+    work: &mut AuthenticatedTreeWorkV1,
+    additional_live_state_bytes: usize,
+    deadline: Instant,
+    cancelled: &std::sync::atomic::AtomicBool,
+) -> io::Result<AuthenticatedTreeDescriptorV2>
+where
+    I: IntoIterator<Item = tos_segment_store::Result<AuthenticatedTreeDeltaV1>>,
+{
+    if additional_live_state_bytes > profile.max_working_state_bytes {
+        return Err(invalid("V2 COW live state exceeds source profile"));
+    }
+    let io_ledger: Arc<dyn AuthenticatedTreeIoLedgerV1> = tree_io.clone();
+    let (next, cumulative_work) = segment
+        .apply_authenticated_tree_delta_v2_with_work_and_io_and_state_cumulative(
+            old,
+            changes,
+            profile.tree_limits,
+            Some(io_ledger),
+            *work,
+            profile.max_working_state_bytes,
+            additional_live_state_bytes,
+            deadline,
+            cancelled,
+        )
+        .map_err(tree_io_error)?;
+    *work = cumulative_work;
+    Ok(next)
+}
+
+fn dependency_tree_key(
+    source: &RelativePath,
+    target: &RelativePath,
+    maximum: usize,
+) -> io::Result<Vec<u8>> {
+    let length = source
+        .as_str()
+        .len()
+        .checked_add(1)
+        .and_then(|length| length.checked_add(target.as_str().len()))
+        .filter(|length| *length <= maximum)
+        .ok_or_else(|| invalid("V2 dependency key exceeds profile"))?;
+    let mut key = Vec::new();
+    key.try_reserve_exact(length)
+        .map_err(|_| invalid("V2 dependency key allocation failed"))?;
+    key.extend_from_slice(source.as_str().as_bytes());
+    key.push(0);
+    key.extend_from_slice(target.as_str().as_bytes());
+    Ok(key)
 }
 
 fn remaining_tree_limits(

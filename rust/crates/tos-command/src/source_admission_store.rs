@@ -79,6 +79,41 @@ pub(crate) struct StreamedPublicationCommittedRefusal {
     cause: io::Error,
 }
 
+/// A compact V2 successor selector rename succeeded, but a required durability
+/// or post-CAS fence refused afterward. The typed record and selected rootset
+/// remain available for exact forward recovery; neither digest is a V1
+/// manifest identity.
+pub(crate) struct V2SuccessorPublicationCommittedRefusal {
+    pub(crate) revision: tos_foundation::SourceRevision,
+    pub(crate) source_artifact: super::source_admission_segment_v2::SourceRevisionArtifactV2,
+    pub(crate) rootset_sha256: Digest256,
+    pub(crate) custody: Arc<tos_source_store::PinnedSqliteSpaceReservation>,
+    cause: io::Error,
+}
+
+impl std::fmt::Debug for V2SuccessorPublicationCommittedRefusal {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("V2SuccessorPublicationCommittedRefusal")
+            .field("revision", &self.revision.0.to_hex())
+            .field("source_artifact", &self.source_artifact)
+            .field("rootset_sha256", &self.rootset_sha256.to_hex())
+            .field("custody_retained", &true)
+            .finish_non_exhaustive()
+    }
+}
+
+impl std::fmt::Display for V2SuccessorPublicationCommittedRefusal {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("V2 successor committed before a post-rename refusal")
+    }
+}
+
+impl std::error::Error for V2SuccessorPublicationCommittedRefusal {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        Some(&self.cause)
+    }
+}
+
 impl std::fmt::Debug for StreamedPublicationCommittedRefusal {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("StreamedPublicationCommittedRefusal")
@@ -144,6 +179,8 @@ impl Drop for SnapshotStage<'_> {
                 if self.v2_rootset {
                     let _ =
                         rustix::fs::unlinkat(&self.directory, "rootset-v2.json", AtFlags::empty());
+                    let _ =
+                        rustix::fs::unlinkat(&self.directory, "commit-v2.json", AtFlags::empty());
                 }
                 let _ = rustix::fs::unlinkat(self.parent, self.name.as_str(), AtFlags::REMOVEDIR);
             }
@@ -203,7 +240,9 @@ struct Temporary<'a> {
 }
 impl<'a> Temporary<'a> {
     fn create(directory: &'a File) -> io::Result<Self> {
-        let name = random_name()?;
+        Self::create_named(directory, random_name()?)
+    }
+    fn create_named(directory: &'a File, name: String) -> io::Result<Self> {
         let file = File::from(rustix::fs::openat(
             directory,
             name.as_str(),
@@ -472,6 +511,9 @@ pub(crate) struct AdmissionStore {
     v2_layout_io: RefCell<Option<tos_source_store::PinnedSqliteIoBudget>>,
 }
 impl AdmissionStore {
+    pub(crate) fn retained_path_capacity(&self) -> usize {
+        self.path.capacity()
+    }
     pub(crate) fn streamed_manifest_custody(
         &self,
     ) -> io::Result<Arc<tos_source_store::PinnedSqliteSpaceReservation>> {
@@ -756,12 +798,21 @@ impl AdmissionStore {
             }
         }
         active(deadline, cancel)?;
-        io_budget.charge_read(1).map_err(invalid)?;
         let mut tail = [0u8; 1];
-        let tail_read = file.read(&mut tail)?;
-        io_budget
-            .record_read_returned(tail_read as u64)
-            .map_err(invalid)?;
+        let tail_read = loop {
+            active(deadline, cancel)?;
+            io_budget.charge_read(1).map_err(invalid)?;
+            match file.read(&mut tail) {
+                Ok(read) => {
+                    io_budget
+                        .record_read_returned(read as u64)
+                        .map_err(invalid)?;
+                    break read;
+                }
+                Err(error) if error.kind() == io::ErrorKind::Interrupted => continue,
+                Err(error) => return Err(error),
+            }
+        };
         let after = file.metadata()?;
         let selected = tos_fd_open::open_regular_at(&directory, Path::new("rootset-v2.json"))
             .map_err(invalid)?;
@@ -775,6 +826,120 @@ impl AdmissionStore {
         active(deadline, cancel)?;
         self.verify_layout()?;
         Ok(bytes)
+    }
+
+    /// Verify an exact typed source artifact under the held immutable revision
+    /// directory. This is used only when recovering an already accepted
+    /// publication from the authenticated V2 history tree; it creates no new
+    /// publication receipt or persistent allocation custody.
+    pub(crate) fn verify_v2_source_artifact(
+        &self,
+        revision: Digest256,
+        artifact: &super::source_admission_segment_v2::SourceRevisionArtifactV2,
+        max_bytes: u64,
+        deadline: Instant,
+        cancel: &AtomicBool,
+        io_budget: &tos_source_store::PinnedSqliteIoBudget,
+    ) -> io::Result<()> {
+        active(deadline, cancel)?;
+        let layout_io = self
+            .v2_layout_io
+            .borrow()
+            .clone()
+            .ok_or_else(|| invalid("V2 source artifact lacks its original IO ledger"))?;
+        if !layout_io.shares_with(io_budget) || max_bytes == 0 || max_bytes == u64::MAX {
+            return Err(invalid("V2 source artifact read profile differs"));
+        }
+        let size = artifact
+            .bytes()
+            .ok_or_else(|| invalid("legacy V2 source artifact has no typed byte count"))?;
+        if size == 0 || size > max_bytes {
+            return Err(invalid("V2 source artifact exceeds selected read bound"));
+        }
+        if matches!(
+            artifact,
+            super::source_admission_segment_v2::SourceRevisionArtifactV2::CompactCommitV2 { .. }
+        ) && size > super::source_admission_segment_v2::MAX_COMPACT_COMMIT_V2_BYTES as u64
+        {
+            return Err(invalid("compact source artifact exceeds its wire bound"));
+        }
+        let revision_name = revision.to_hex();
+        let filename = artifact.filename();
+        charge_v2_component_guard(io_budget, &revision_name)?;
+        charge_v2_component_guard(io_budget, filename)?;
+        self.verify_layout()?;
+        let directory = tos_fd_open::open_directory_at(&self.revisions, Path::new(&revision_name))
+            .map_err(invalid)?;
+        let mut file =
+            tos_fd_open::open_regular_at(&directory, Path::new(filename)).map_err(invalid)?;
+        let stamp = |metadata: &std::fs::Metadata| {
+            (
+                metadata.dev(),
+                metadata.ino(),
+                metadata.len(),
+                metadata.mode(),
+                metadata.uid(),
+                metadata.mtime(),
+                metadata.mtime_nsec(),
+                metadata.ctime(),
+                metadata.ctime_nsec(),
+            )
+        };
+        let before = file.metadata()?;
+        if !before.is_file()
+            || before.uid() != rustix::process::geteuid().as_raw()
+            || before.mode() & 0o222 != 0
+            || before.len() != size
+        {
+            return Err(invalid("V2 source artifact custody differs"));
+        }
+        let mut hash = Digest256Hasher::new();
+        let mut remaining = size;
+        let mut block = [0u8; 65_536];
+        while remaining != 0 {
+            active(deadline, cancel)?;
+            let count = remaining.min(block.len() as u64) as usize;
+            let mut filled = 0usize;
+            while filled < count {
+                active(deadline, cancel)?;
+                io_budget
+                    .charge_read((count - filled) as u64)
+                    .map_err(invalid)?;
+                match file.read(&mut block[filled..count]) {
+                    Ok(0) => return Err(invalid("V2 source artifact ended before its size")),
+                    Ok(read) => {
+                        io_budget
+                            .record_read_returned(read as u64)
+                            .map_err(invalid)?;
+                        hash.update(&block[filled..filled + read]);
+                        filled += read;
+                    }
+                    Err(error) if error.kind() == io::ErrorKind::Interrupted => continue,
+                    Err(error) => return Err(error),
+                }
+            }
+            remaining -= count as u64;
+        }
+        active(deadline, cancel)?;
+        io_budget.charge_read(1).map_err(invalid)?;
+        let mut tail = [0u8; 1];
+        let tail_read = file.read(&mut tail)?;
+        io_budget
+            .record_read_returned(tail_read as u64)
+            .map_err(invalid)?;
+        let after = file.metadata()?;
+        let selected =
+            tos_fd_open::open_regular_at(&directory, Path::new(filename)).map_err(invalid)?;
+        if tail_read != 0
+            || stamp(&after) != stamp(&before)
+            || stamp(&selected.metadata()?) != stamp(&before)
+            || hash.finalize() != artifact.sha256()
+        {
+            return Err(invalid("V2 source artifact digest, EOF or stamp differs"));
+        }
+        active(deadline, cancel)?;
+        self.verify_layout()?;
+        Ok(())
     }
 
     /// Compare-and-swap only after the native caller has completed the full
@@ -890,6 +1055,505 @@ impl AdmissionStore {
             deadline,
             cancel,
         )
+    }
+
+    /// Publish one compact V2 successor by staging both immutable revision
+    /// records, then replacing the single selector after an exact base and
+    /// rootset compare. Current roots and retained history are selected by the
+    /// same `current.json` pointer, so no independently renamed history pointer
+    /// can become visible.
+    pub(crate) fn publish_v2_successor(
+        &self,
+        built: super::source_admission_segment_v2::BuiltSuccessorRootSetV2,
+        limits: ReadLimits,
+        lock: &AdmissionLock,
+        deadline: Instant,
+        cancel: &AtomicBool,
+    ) -> io::Result<()> {
+        use super::source_admission_segment_v2::{
+            CompactCommitV2, SourceRevisionArtifactV2, decode_workspace_upper_bound,
+        };
+
+        active(deadline, cancel)?;
+        let limits = limits.validate().map_err(invalid)?;
+        let tree_io = Arc::clone(&built.tree_io);
+        let custody = tree_io.custody_reservation();
+        self.retain_v2_store_custody(Arc::clone(&custody));
+        let io_budget = tree_io.io_budget();
+        let charge_read = &|n| {
+            tree_io
+                .charge_read(n)
+                .then_some(())
+                .ok_or_else(|| invalid("V2 successor read allowance refused"))
+        };
+        let record_read = &|n| {
+            tree_io
+                .record_read_returned(n)
+                .then_some(())
+                .ok_or_else(|| invalid("V2 successor read return refused"))
+        };
+        let charge_write = &|n| {
+            tree_io
+                .charge_write(n)
+                .then_some(())
+                .ok_or_else(|| invalid("V2 successor write allowance refused"))
+        };
+        let record_write = &|n| {
+            tree_io
+                .record_write_returned(n)
+                .then_some(())
+                .ok_or_else(|| invalid("V2 successor write return refused"))
+        };
+        let current = &built.roots.current;
+        let revision = current.revision.0;
+        let expected_base = built.expected_base.0;
+        let artifact = current.source_artifact.clone();
+        let record_sha256 = Digest256::of_bytes(&built.source_record);
+        let record_len = u64::try_from(built.source_record.len())
+            .map_err(|_| invalid("V2 compact record length exceeds range"))?;
+        let (artifact_sha256, artifact_bytes) = match &artifact {
+            SourceRevisionArtifactV2::CompactCommitV2 { sha256, bytes } => (*sha256, *bytes),
+            _ => return Err(invalid("V2 successor source record format differs")),
+        };
+        if built.roots.current.base_revision != Some(built.expected_base)
+            || current.manifest_sha256 != record_sha256
+            || artifact_sha256 != record_sha256
+            || artifact_bytes != record_len
+            || built.sha256 != Digest256::of_bytes(&built.bytes)
+            || built.roots.current.revision != tos_foundation::SourceRevision(revision)
+            || built.roots.current.batch_sha256.is_none()
+            || !self.has_v2_allocation_accountant(&tree_io)
+            || !self.has_v2_segments()?
+        {
+            return Err(invalid("V2 successor writer binding differs"));
+        }
+
+        let rootset_additional =
+            std::mem::size_of::<super::source_admission_segment_v2::BuiltSuccessorRootSetV2>()
+                .checked_add(built.bytes.capacity())
+                .and_then(|bytes| bytes.checked_add(built.source_record.capacity()))
+                .ok_or_else(|| invalid("V2 rootset verification state overflow"))?;
+        if built.roots.encode_state_upper_bound(rootset_additional)?
+            > tree_io.max_working_state_bytes()
+        {
+            return Err(invalid(
+                "V2 rootset verification exceeds source state profile",
+            ));
+        }
+
+        let segment_root = self
+            .v2_segments
+            .borrow()
+            .as_ref()
+            .ok_or_else(|| invalid("V2 successor segment namespace is absent"))?
+            .try_clone()?;
+        charge_v2_component_guard(io_budget, "segments-v2")?;
+        if identity(&segment_root)?
+            != built
+                .segment_store
+                .physical_root_identity()
+                .map_err(invalid)?
+            || built.segment_store.custody_domain()
+                != super::source_admission_segment_v2::SOURCE_ADMISSION_V2_DOMAIN
+        {
+            return Err(invalid("V2 successor physical store binding differs"));
+        }
+        built.roots.validate_store_binding(
+            built.segment_store.store_id(),
+            built.segment_store.domain_digest(),
+        )?;
+
+        // Reparse the exact bounded compact bytes while the built roots and
+        // both canonical output buffers are still live. The record is an
+        // immutable source object, not an alias for `snapshot.json`.
+        let compact_workspace = decode_workspace_upper_bound(built.source_record.len())?;
+        let compact_live =
+            std::mem::size_of::<super::source_admission_segment_v2::BuiltSuccessorRootSetV2>()
+                .checked_add(built.roots.retained_state_bytes()?)
+                .and_then(|bytes| bytes.checked_add(built.bytes.capacity()))
+                .and_then(|bytes| bytes.checked_add(built.source_record.capacity()))
+                .and_then(|bytes| bytes.checked_add(compact_workspace))
+                .ok_or_else(|| invalid("V2 compact verification state overflow"))?;
+        if compact_live > tree_io.max_working_state_bytes() {
+            return Err(invalid(
+                "V2 compact verification exceeds source state profile",
+            ));
+        }
+        let compact =
+            CompactCommitV2::decode_with_workspace(&built.source_record, compact_workspace)?;
+        if !compact.matches_roots(&built.roots.current) {
+            return Err(invalid("V2 compact record and rootset differ"));
+        }
+        drop(compact);
+
+        if built
+            .roots
+            .encode_with_state_limit(tree_io.max_working_state_bytes(), rootset_additional)?
+            != built.bytes
+        {
+            return Err(invalid("V2 rootset canonical bytes differ"));
+        }
+
+        // Every selector read uses the original invocation ledger. The caller
+        // holds the same admission lock from this check through the CAS.
+        let pointer_io = Some(io_budget);
+        self.verify_layout()?;
+        let selected = self.current_selection(limits, deadline, cancel, pointer_io)?;
+        if !selected.is_some_and(|selection| {
+            selection.format == tos_source_store::CorpusPointerFormat::V2
+                && selection.revision.0 == expected_base
+                && selection.rootset_sha256 == Some(built.expected_previous_rootset_sha256)
+        }) {
+            return Err(invalid(
+                "V2 successor expected current/rootset compare differs",
+            ));
+        }
+        charge_v2_component_guard(io_budget, ".admission.lock")?;
+        let selected_lock = tos_fd_open::open_regular_at(&self.root, Path::new(".admission.lock"))
+            .map_err(invalid)?;
+        if identity(&selected_lock)? != identity(&lock.0)? {
+            return Err(invalid("V2 successor publication lock was replaced"));
+        }
+
+        let revision_name = revision.to_hex();
+        let stage_name = random_name()?;
+        let record_rootset_bytes = record_len
+            .checked_add(built.bytes.len() as u64)
+            .ok_or_else(|| invalid("V2 successor staged byte count overflow"))?;
+        let file_reservation = tree_io.reserve_file_allocation(record_rootset_bytes)?;
+        let directory_precharge = tree_io
+            .selected_allocation_unit_bytes()
+            .checked_mul(3)
+            .ok_or_else(|| invalid("V2 successor directory precharge overflow"))?;
+        let directory_reservation = tree_io.reserve_file_allocation(directory_precharge)?;
+        let revisions_before = self
+            .revisions
+            .metadata()?
+            .blocks()
+            .checked_mul(512)
+            .ok_or_else(|| invalid("V2 successor revision allocation overflow"))?;
+        let staging_before = self
+            .staging
+            .metadata()?
+            .blocks()
+            .checked_mul(512)
+            .ok_or_else(|| invalid("V2 successor staging allocation overflow"))?;
+        charge_v2_component_guard(io_budget, &stage_name)?;
+        rustix::fs::mkdirat(
+            &self.staging,
+            stage_name.as_str(),
+            Mode::from_raw_mode(0o700),
+        )?;
+        charge_v2_component_guard(io_budget, &stage_name)?;
+        let stage_directory = tos_fd_open::open_directory_at(&self.staging, Path::new(&stage_name))
+            .map_err(invalid)?;
+        let mut stage = SnapshotStage {
+            parent: &self.staging,
+            name: stage_name,
+            directory: stage_directory,
+            published: false,
+            allocation: None,
+            v2_rootset: true,
+        };
+
+        charge_v2_component_guard(io_budget, "commit-v2.json")?;
+        let mut record_file = File::from(rustix::fs::openat(
+            &stage.directory,
+            "commit-v2.json",
+            OFlags::RDWR | OFlags::CREATE | OFlags::EXCL | OFlags::NOFOLLOW | OFlags::CLOEXEC,
+            Mode::from_raw_mode(0o600),
+        )?);
+        write_recorded(
+            &mut record_file,
+            &built.source_record,
+            deadline,
+            cancel,
+            charge_write,
+            record_write,
+        )?;
+        record_file.set_permissions(Permissions::from_mode(0o444))?;
+        record_file.sync_all()?;
+        verify_file_recorded(
+            &mut record_file,
+            record_len,
+            record_sha256,
+            deadline,
+            cancel,
+            charge_read,
+            record_read,
+        )?;
+
+        charge_v2_component_guard(io_budget, "rootset-v2.json")?;
+        let mut rootset_file = File::from(rustix::fs::openat(
+            &stage.directory,
+            "rootset-v2.json",
+            OFlags::RDWR | OFlags::CREATE | OFlags::EXCL | OFlags::NOFOLLOW | OFlags::CLOEXEC,
+            Mode::from_raw_mode(0o600),
+        )?);
+        write_recorded(
+            &mut rootset_file,
+            &built.bytes,
+            deadline,
+            cancel,
+            charge_write,
+            record_write,
+        )?;
+        rootset_file.set_permissions(Permissions::from_mode(0o444))?;
+        rootset_file.sync_all()?;
+        verify_file_recorded(
+            &mut rootset_file,
+            built.bytes.len() as u64,
+            built.sha256,
+            deadline,
+            cancel,
+            charge_read,
+            record_read,
+        )?;
+        stage.directory.sync_all()?;
+        self.verify_layout()?;
+
+        match rustix::fs::renameat_with(
+            &self.staging,
+            stage.name.as_str(),
+            &self.revisions,
+            revision_name.as_str(),
+            RenameFlags::NOREPLACE,
+        ) {
+            Ok(()) => stage.published = true,
+            Err(Errno::EXIST) => {
+                return Err(invalid("V2 successor immutable revision already exists"));
+            }
+            Err(error) => return Err(error.into()),
+        }
+        let revisions_after = self
+            .revisions
+            .metadata()?
+            .blocks()
+            .checked_mul(512)
+            .ok_or_else(|| invalid("V2 successor revision allocation overflow"))?;
+        let staging_after = self
+            .staging
+            .metadata()?
+            .blocks()
+            .checked_mul(512)
+            .ok_or_else(|| invalid("V2 successor staging allocation overflow"))?;
+        charge_v2_component_guard(io_budget, &revision_name)?;
+        let published_directory =
+            tos_fd_open::open_directory_at(&self.revisions, Path::new(&revision_name))
+                .map_err(invalid)?;
+        if identity(&published_directory)? != identity(&stage.directory)? {
+            return Err(invalid("V2 successor revision directory binding differs"));
+        }
+        let verify_immutable_pair = |directory: &File| -> io::Result<u64> {
+            charge_v2_component_guard(io_budget, "commit-v2.json")?;
+            let mut record = tos_fd_open::open_regular_at(directory, Path::new("commit-v2.json"))
+                .map_err(invalid)?;
+            let record_metadata = record.metadata()?;
+            if record_metadata.uid() != rustix::process::geteuid().as_raw()
+                || record_metadata.mode() & 0o222 != 0
+            {
+                return Err(invalid("V2 compact record permissions differ"));
+            }
+            let record_blocks = record_metadata.blocks();
+            verify_file_recorded(
+                &mut record,
+                record_len,
+                record_sha256,
+                deadline,
+                cancel,
+                charge_read,
+                record_read,
+            )?;
+            charge_v2_component_guard(io_budget, "rootset-v2.json")?;
+            let mut rootset = tos_fd_open::open_regular_at(directory, Path::new("rootset-v2.json"))
+                .map_err(invalid)?;
+            let rootset_metadata = rootset.metadata()?;
+            if rootset_metadata.uid() != rustix::process::geteuid().as_raw()
+                || rootset_metadata.mode() & 0o222 != 0
+            {
+                return Err(invalid("V2 rootset permissions differ"));
+            }
+            let allocated = record_blocks
+                .checked_add(rootset_metadata.blocks())
+                .and_then(|blocks| blocks.checked_mul(512))
+                .ok_or_else(|| invalid("V2 successor file allocation overflow"))?;
+            verify_file_recorded(
+                &mut rootset,
+                built.bytes.len() as u64,
+                built.sha256,
+                deadline,
+                cancel,
+                charge_read,
+                record_read,
+            )?;
+            Ok(allocated)
+        };
+        let file_allocated = verify_immutable_pair(&published_directory)?;
+        let directory_allocated = stage
+            .directory
+            .metadata()?
+            .blocks()
+            .checked_mul(512)
+            .and_then(|bytes| bytes.checked_add(revisions_after.saturating_sub(revisions_before)))
+            .and_then(|bytes| bytes.checked_add(staging_after.saturating_sub(staging_before)))
+            .ok_or_else(|| invalid("V2 successor directory allocation overflow"))?;
+        tree_io.reconcile_file_allocation(file_reservation, file_allocated)?;
+        tree_io.reconcile_file_allocation(directory_reservation, directory_allocated)?;
+        self.revisions.sync_all()?;
+        self.staging.sync_all()?;
+
+        // Re-read after immutable installation while still holding the same
+        // lock. A competing or stale source operation cannot publish on top of
+        // a different base/rootset pair.
+        let selected = self.current_selection(limits, deadline, cancel, pointer_io)?;
+        if !selected.is_some_and(|selection| {
+            selection.format == tos_source_store::CorpusPointerFormat::V2
+                && selection.revision.0 == expected_base
+                && selection.rootset_sha256 == Some(built.expected_previous_rootset_sha256)
+        }) {
+            return Err(invalid("V2 successor base changed before selector CAS"));
+        }
+
+        let pointer_live_state =
+            std::mem::size_of::<super::source_admission_segment_v2::BuiltSuccessorRootSetV2>()
+                .checked_add(built.roots.retained_state_bytes()?)
+                .and_then(|bytes| bytes.checked_add(built.bytes.capacity()))
+                .and_then(|bytes| bytes.checked_add(built.source_record.capacity()))
+                .and_then(|bytes| bytes.checked_add(32 * 1024))
+                .ok_or_else(|| invalid("V2 pointer encoding state overflow"))?;
+        if pointer_live_state > tree_io.max_working_state_bytes() {
+            return Err(invalid("V2 pointer encoding exceeds source state profile"));
+        }
+        let pointer_value = serde_json::json!({
+            "schema_version":"tos_corpus_pointer_v2",
+            "current":revision.to_hex(),
+            "previous":Some(expected_base).map(|value| value.to_hex()),
+            "rootset_sha256":built.sha256.to_hex()
+        });
+        let pointer_value_bytes = serde_json::to_vec(&pointer_value).map_err(invalid)?;
+        let parsed = tos_foundation::parse_json(
+            &pointer_value_bytes,
+            tos_foundation::JsonMode::PublishedStrict,
+            limits.json,
+        )
+        .map_err(invalid)?;
+        let pointer = tos_foundation::canonical_bytes_v1(
+            parsed.root(),
+            tos_foundation::CanonicalProfile::CorpusSnapshotV1,
+            limits.json,
+        )
+        .map_err(invalid)?;
+        let pointer_file_reservation = tree_io.reserve_file_allocation(pointer.len() as u64)?;
+        let pointer_directory_reservation =
+            tree_io.reserve_file_allocation(tree_io.selected_allocation_unit_bytes())?;
+        let root_before = self
+            .root
+            .metadata()?
+            .blocks()
+            .checked_mul(512)
+            .ok_or_else(|| invalid("V2 selector directory allocation overflow"))?;
+        let pending_name = random_name()?;
+        charge_v2_component_guard(io_budget, &pending_name)?;
+        let mut pending = Temporary::create_named(&self.root, pending_name)?;
+        write_recorded(
+            &mut pending.file,
+            &pointer,
+            deadline,
+            cancel,
+            charge_write,
+            record_write,
+        )?;
+        pending.file.sync_all()?;
+        verify_file_recorded(
+            &mut pending.file,
+            pointer.len() as u64,
+            Digest256::of_bytes(&pointer),
+            deadline,
+            cancel,
+            charge_read,
+            record_read,
+        )?;
+        self.verify_layout()?;
+        charge_v2_component_guard(io_budget, ".admission.lock")?;
+        let selected_lock = tos_fd_open::open_regular_at(&self.root, Path::new(".admission.lock"))
+            .map_err(invalid)?;
+        if identity(&selected_lock)? != identity(&lock.0)? {
+            return Err(invalid(
+                "V2 successor publication lock was replaced before CAS",
+            ));
+        }
+        let selected = self.current_selection(limits, deadline, cancel, pointer_io)?;
+        if !selected.is_some_and(|selection| {
+            selection.format == tos_source_store::CorpusPointerFormat::V2
+                && selection.revision.0 == expected_base
+                && selection.rootset_sha256 == Some(built.expected_previous_rootset_sha256)
+        }) {
+            return Err(invalid("V2 successor selector compare failed"));
+        }
+        active(deadline, cancel)?;
+        charge_v2_component_guard(io_budget, "current.json")?;
+        rustix::fs::renameat(
+            &self.root,
+            pending.name.as_str(),
+            &self.root,
+            "current.json",
+        )?;
+
+        // Once current.json was renamed, every durability, accounting, layout,
+        // and selector recheck failure is a committed refusal with the exact
+        // compact artifact, rootset and persistent custody attached.
+        let post_rename = (|| {
+            let pointer_allocated = pending
+                .file
+                .metadata()?
+                .blocks()
+                .checked_mul(512)
+                .ok_or_else(|| invalid("V2 selector allocation overflow"))?;
+            let root_after = self
+                .root
+                .metadata()?
+                .blocks()
+                .checked_mul(512)
+                .ok_or_else(|| invalid("V2 selector directory allocation overflow"))?;
+            tree_io.reconcile_file_allocation(pointer_file_reservation, pointer_allocated)?;
+            tree_io.reconcile_file_allocation(
+                pointer_directory_reservation,
+                root_after.saturating_sub(root_before),
+            )?;
+            self.root.sync_all()?;
+            self.verify_layout()?;
+            charge_v2_component_guard(io_budget, &revision_name)?;
+            let post_revision_directory =
+                tos_fd_open::open_directory_at(&self.revisions, Path::new(&revision_name))
+                    .map_err(invalid)?;
+            if identity(&post_revision_directory)? != identity(&published_directory)? {
+                return Err(invalid("V2 successor revision directory changed after CAS"));
+            }
+            verify_immutable_pair(&post_revision_directory)?;
+            let selected = self.current_selection(limits, deadline, cancel, pointer_io)?;
+            if !selected.is_some_and(|selection| {
+                selection.format == tos_source_store::CorpusPointerFormat::V2
+                    && selection.revision.0 == revision
+                    && selection.previous == Some(built.expected_base)
+                    && selection.rootset_sha256 == Some(built.sha256)
+            }) {
+                return Err(invalid("V2 successor pointer changed after CAS"));
+            }
+            active(deadline, cancel)
+        })();
+        if let Err(cause) = post_rename {
+            return Err(io::Error::new(
+                cause.kind(),
+                V2SuccessorPublicationCommittedRefusal {
+                    revision: current.revision,
+                    source_artifact: current.source_artifact.clone(),
+                    rootset_sha256: built.sha256,
+                    custody,
+                    cause,
+                },
+            ));
+        }
+        Ok(())
     }
 
     fn publish_streamed_inner(
@@ -1065,6 +1729,12 @@ impl AdmissionStore {
             .clone()
             .or_else(|| v2_rootset.map(|rootset| rootset.tree_io.io_budget().clone()))
             .or_else(|| streamed.as_ref().map(|r| r.io_budget.clone()));
+        let v2_guard_component = |name: &str| -> io::Result<()> {
+            match v2_rootset {
+                Some(rootset) => charge_v2_component_guard(rootset.tree_io.io_budget(), name),
+                None => Ok(()),
+            }
+        };
         let persistent_charge_read = |n| {
             if let Some(rootset) = v2_rootset {
                 if rootset.tree_io.charge_read(n) {
@@ -1190,6 +1860,7 @@ impl AdmissionStore {
             {
                 return Err(invalid("V2 segment store physical root differs"));
             }
+            v2_guard_component(".admission.lock")?;
             let selected_lock =
                 tos_fd_open::open_regular_at(&self.root, Path::new(".admission.lock"))
                     .map_err(invalid)?;
@@ -1217,20 +1888,43 @@ impl AdmissionStore {
             let file_bytes = manifest_bytes
                 .checked_add(rootset.bytes.len() as u64)
                 .ok_or_else(|| invalid("V2 staged-file allocation bound overflow"))?;
+            let directory_precharge = rootset
+                .tree_io
+                .selected_allocation_unit_bytes()
+                .checked_mul(3)
+                .ok_or_else(|| invalid("V2 stage directory precharge overflow"))?;
             Some((
                 rootset.tree_io.reserve_file_allocation(file_bytes)?,
-                rootset.tree_io.reserve_file_allocation(0)?,
+                rootset
+                    .tree_io
+                    .reserve_file_allocation(directory_precharge)?,
             ))
         } else {
             None
         };
+        let (v2_revisions_before, v2_staging_before) = if v2_rootset.is_some() {
+            (
+                Some(allocated_bytes(
+                    &self.revisions,
+                    "V2 revision-directory allocation overflow",
+                )?),
+                Some(allocated_bytes(
+                    &self.staging,
+                    "V2 staging-directory allocation overflow",
+                )?),
+            )
+        } else {
+            (None, None)
+        };
         let name = revision.to_hex();
         let stage_name = random_name()?;
+        v2_guard_component(&stage_name)?;
         rustix::fs::mkdirat(
             &self.staging,
             stage_name.as_str(),
             Mode::from_raw_mode(0o700),
         )?;
+        v2_guard_component(&stage_name)?;
         let stage_directory = tos_fd_open::open_directory_at(&self.staging, Path::new(&stage_name))
             .map_err(invalid)?;
         let mut stage = SnapshotStage {
@@ -1245,6 +1939,7 @@ impl AdmissionStore {
             },
             v2_rootset: v2_rootset.is_some(),
         };
+        v2_guard_component("snapshot.json")?;
         let mut file = File::from(rustix::fs::openat(
             &stage.directory,
             "snapshot.json",
@@ -1286,6 +1981,7 @@ impl AdmissionStore {
         }
         verify(&mut file, manifest_bytes, manifest_sha256)?;
         if let Some(rootset) = v2_rootset {
+            v2_guard_component("rootset-v2.json")?;
             let mut rootset_file = File::from(rustix::fs::openat(
                 &stage.directory,
                 "rootset-v2.json",
@@ -1310,12 +2006,8 @@ impl AdmissionStore {
         }
         stage.directory.sync_all()?;
         self.verify_layout()?;
-        let revisions_before = self
-            .revisions
-            .metadata()?
-            .blocks()
-            .checked_mul(512)
-            .ok_or_else(|| invalid("V2 revision-directory allocation overflow"))?;
+        v2_guard_component(&stage.name)?;
+        v2_guard_component(&name)?;
         let existed = match rustix::fs::renameat_with(
             &self.staging,
             stage.name.as_str(),
@@ -1336,9 +2028,14 @@ impl AdmissionStore {
         if let (Some(rootset), Some((file_reservation, directory_reservation))) =
             (v2_rootset, v2_stage_reservation)
         {
+            let (revisions_before, staging_before) = v2_revisions_before
+                .zip(v2_staging_before)
+                .ok_or_else(|| invalid("V2 namespace allocation baseline is absent"))?;
+            v2_guard_component("snapshot.json")?;
             let snapshot =
                 tos_fd_open::open_regular_at(&stage.directory, Path::new("snapshot.json"))
                     .map_err(invalid)?;
+            v2_guard_component("rootset-v2.json")?;
             let rootset_file =
                 tos_fd_open::open_regular_at(&stage.directory, Path::new("rootset-v2.json"))
                     .map_err(invalid)?;
@@ -1354,13 +2051,23 @@ impl AdmissionStore {
                 .blocks()
                 .checked_mul(512)
                 .ok_or_else(|| invalid("V2 revision-directory allocation overflow"))?;
+            let staging_after = self
+                .staging
+                .metadata()?
+                .blocks()
+                .checked_mul(512)
+                .ok_or_else(|| invalid("V2 staging-directory allocation overflow"))?;
             let directory_bytes = stage
                 .directory
                 .metadata()?
                 .blocks()
                 .checked_mul(512)
                 .and_then(|bytes| {
-                    bytes.checked_add(revisions_after.saturating_sub(revisions_before))
+                    bytes
+                        .checked_add(revisions_after.saturating_sub(revisions_before))
+                        .and_then(|bytes| {
+                            bytes.checked_add(staging_after.saturating_sub(staging_before))
+                        })
                 })
                 .ok_or_else(|| invalid("V2 revision-directory allocation overflow"))?;
             rootset
@@ -1374,12 +2081,15 @@ impl AdmissionStore {
             self.revisions.sync_all()?;
             self.staging.sync_all()?;
         }
+        v2_guard_component(&name)?;
         let directory =
             tos_fd_open::open_directory_at(&self.revisions, Path::new(&name)).map_err(invalid)?;
+        v2_guard_component("snapshot.json")?;
         let mut installed = tos_fd_open::open_regular_at(&directory, Path::new("snapshot.json"))
             .map_err(invalid)?;
         verify(&mut installed, manifest_bytes, manifest_sha256)?;
         if let Some(rootset) = v2_rootset {
+            v2_guard_component("rootset-v2.json")?;
             let mut installed_rootset =
                 tos_fd_open::open_regular_at(&directory, Path::new("rootset-v2.json"))
                     .map_err(invalid)?;
@@ -1560,11 +2270,14 @@ impl AdmissionStore {
         )
         .map_err(invalid)?;
         let pointer_allocation = if let Some(rootset) = v2_rootset {
+            let directory_precharge = rootset.tree_io.selected_allocation_unit_bytes();
             Some((
                 rootset
                     .tree_io
                     .reserve_file_allocation(pointer.len() as u64)?,
-                rootset.tree_io.reserve_file_allocation(0)?,
+                rootset
+                    .tree_io
+                    .reserve_file_allocation(directory_precharge)?,
             ))
         } else {
             None
@@ -1580,7 +2293,13 @@ impl AdmissionStore {
         } else {
             None
         };
-        let mut pending = Temporary::create(&self.root)?;
+        let mut pending = if v2_rootset.is_some() {
+            let pending_name = random_name()?;
+            v2_guard_component(&pending_name)?;
+            Temporary::create_named(&self.root, pending_name)?
+        } else {
+            Temporary::create(&self.root)?
+        };
         if physical {
             write_recorded(
                 &mut pending.file,
@@ -1601,12 +2320,16 @@ impl AdmissionStore {
             Digest256::of_bytes(&pointer),
         )?;
         self.verify_layout()?;
+        if v2_rootset.is_some() {
+            v2_guard_component(".admission.lock")?;
+        }
         let selected_lock = tos_fd_open::open_regular_at(&self.root, Path::new(".admission.lock"))
             .map_err(invalid)?;
         if identity(&selected_lock)? != identity(&lock.0)? {
             return Err(invalid("corpus admission lock replaced before publication"));
         }
         active(deadline, cancel)?;
+        v2_guard_component("current.json")?;
         rustix::fs::renameat(
             &self.root,
             pending.name.as_str(),

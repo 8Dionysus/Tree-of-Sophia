@@ -261,6 +261,21 @@ impl ByteDurabilityReceipt {
             .map_err(|error| SegmentError::io("cannot stat held segment root", error))?;
         Ok((metadata.dev(), metadata.ino()))
     }
+    /// Upper bound for heap state retained by this held store handle. Clones
+    /// share the same `Arc<Inner>`, so callers count this once per physical
+    /// store session, including the Arc header and the only owned variable
+    /// payload in `Inner` (the custody-domain bytes).
+    pub fn retained_heap_state_bytes(&self) -> Result<usize> {
+        std::mem::size_of::<Inner>()
+            .checked_add(std::mem::size_of::<usize>().saturating_mul(2))
+            .and_then(|bytes| bytes.checked_add(self.inner.domain.capacity()))
+            .ok_or_else(|| {
+                SegmentError::new(
+                    Code::BudgetExceeded,
+                    "held segment store retained heap state overflow",
+                )
+            })
+    }
     pub fn domain_digest(&self) -> Digest256 {
         self.inner.domain_digest
     }

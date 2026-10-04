@@ -1346,8 +1346,18 @@ struct PackWriterV2<'a> {
     work: &'a mut AuthenticatedTreeWorkV1,
     io_ledger: Option<Arc<dyn AuthenticatedTreeIoLedgerV1>>,
     active: Option<ActivePackV2>,
+    state_limit: Option<CowStateLimitV2>,
+    delta_live_state_bytes: usize,
+    root_live_state_bytes: usize,
     deadline: Instant,
     cancelled: &'a AtomicBool,
+}
+
+#[derive(Clone, Copy)]
+struct CowStateLimitV2 {
+    maximum_bytes: usize,
+    additional_live_bytes: usize,
+    old_descriptor_bytes: usize,
 }
 
 impl<'a> PackWriterV2<'a> {
@@ -1367,9 +1377,42 @@ impl<'a> PackWriterV2<'a> {
             work,
             io_ledger,
             active: None,
+            state_limit: None,
+            delta_live_state_bytes: 0,
+            root_live_state_bytes: 0,
             deadline,
             cancelled,
         }
+    }
+
+    fn with_state_limit(mut self, limit: CowStateLimitV2) -> Self {
+        self.state_limit = Some(limit);
+        self
+    }
+
+    fn check_cow_state(&self, transient_bytes: usize) -> Result<()> {
+        let Some(limit) = self.state_limit else {
+            return Ok(());
+        };
+        let active_bytes = self.active.as_ref().map_or(0, |active| {
+            std::mem::size_of::<ActivePackV2>()
+                .saturating_add(active.raw.capacity())
+                .saturating_add(std::mem::size_of::<PackSealStateV2>())
+        });
+        let total = std::mem::size_of::<Self>()
+            .checked_add(std::mem::size_of::<AuthenticatedTreeWorkV1>())
+            .and_then(|n| n.checked_add(std::mem::size_of::<SegmentStore>()))
+            .and_then(|n| n.checked_add(limit.additional_live_bytes))
+            .and_then(|n| n.checked_add(limit.old_descriptor_bytes))
+            .and_then(|n| n.checked_add(self.delta_live_state_bytes))
+            .and_then(|n| n.checked_add(self.root_live_state_bytes))
+            .and_then(|n| n.checked_add(active_bytes))
+            .and_then(|n| n.checked_add(transient_bytes))
+            .ok_or_else(|| budget("authenticated COW state bound overflow"))?;
+        if total > limit.maximum_bytes {
+            return Err(budget("authenticated COW state profile exceeded"));
+        }
+        Ok(())
     }
 
     fn persist(
@@ -1390,6 +1433,35 @@ impl<'a> PackWriterV2<'a> {
                 }
             }
         }
+        let encoded_len = node_encoded_len(kind, &node)?;
+        let candidate_bound = encoded_len
+            .checked_add(45)
+            .and_then(|n| n.checked_add(child_locators.len().checked_mul(93)?))
+            .ok_or_else(|| budget("authenticated COW frame state overflow"))?;
+        let persist_scratch = encoded_len
+            .checked_add(
+                candidate_bound
+                    .checked_mul(2)
+                    .ok_or_else(|| budget("authenticated COW frame state overflow"))?,
+            )
+            .and_then(|n| n.checked_add(node.min_key.len()))
+            .and_then(|n| n.checked_add(node.max_key.len()))
+            .and_then(|n| n.checked_add(std::mem::size_of::<TreeNode>()))
+            .and_then(|n| {
+                n.checked_add(child_locators.len().checked_mul(
+                    std::mem::size_of::<TreeLocatorV2>() + std::mem::size_of::<PackSealStateV2>(),
+                )?)
+            })
+            .and_then(|n| n.checked_add(64 * 1024))
+            .ok_or_else(|| budget("authenticated COW persist state overflow"))?;
+        let node_state = tree_node_state_bytes(&node)?
+            .checked_add(tree_locator_slice_state_bytes(child_locators)?)
+            .ok_or_else(|| budget("authenticated COW node state overflow"))?;
+        self.check_cow_state(
+            node_state
+                .checked_add(persist_scratch)
+                .ok_or_else(|| budget("authenticated COW persist state overflow"))?,
+        )?;
         let canonical = encode_node(
             self.store.store_id(),
             self.store.domain_digest(),
@@ -1422,21 +1494,21 @@ impl<'a> PackWriterV2<'a> {
                 return Err(budget("authenticated node frame exceeds pack limit"));
             }
         }
-        let active = self
+        let (offset, active_len, active_frames) = self
             .active
-            .as_mut()
+            .as_ref()
+            .map(|active| (active.raw.len(), active.raw.len(), active.frame_count))
             .ok_or_else(|| invalid("authenticated pack writer has no active chunk"))?;
-        let offset = u64::try_from(active.raw.len())
+        let offset = u64::try_from(offset)
             .map_err(|_| budget("authenticated pack offset exceeds address space"))?;
         let frame_len = u32::try_from(candidate.len())
             .map_err(|_| budget("authenticated node frame is too long"))?;
         let frame_sha256 = Digest256::of_bytes(&candidate);
         let future_bytes = (candidate.len() as u64)
-            .checked_add(active.raw.len() as u64)
+            .checked_add(active_len as u64)
             .and_then(|bytes| bytes.checked_mul(2))
             .ok_or_else(|| budget("authenticated pack byte reservation overflow"))?;
-        let future_nodes = active
-            .frame_count
+        let future_nodes = active_frames
             .checked_add(1)
             .and_then(|nodes| nodes.checked_mul(2))
             .ok_or_else(|| budget("authenticated pack node reservation overflow"))?;
@@ -1453,10 +1525,31 @@ impl<'a> PackWriterV2<'a> {
         {
             return Err(budget("authenticated pack exceeds operation budget"));
         }
-        active
+        let (current_capacity, requested_capacity) = self
+            .active
+            .as_ref()
+            .map(|active| {
+                let requested = active
+                    .raw
+                    .len()
+                    .checked_add(candidate.len())
+                    .ok_or_else(|| budget("authenticated pack capacity overflow"))?;
+                Ok((active.raw.capacity(), requested))
+            })
+            .ok_or_else(|| invalid("authenticated pack writer has no active chunk"))??;
+        let anticipated_capacity = current_capacity.max(requested_capacity);
+        self.check_cow_state(anticipated_capacity.saturating_sub(current_capacity))?;
+        self.active
+            .as_mut()
+            .ok_or_else(|| invalid("authenticated pack writer has no active chunk"))?
             .raw
-            .try_reserve(candidate.len())
+            .try_reserve_exact(candidate.len())
             .map_err(|_| budget("authenticated pack allocation failed"))?;
+        self.check_cow_state(0)?;
+        let active = self
+            .active
+            .as_mut()
+            .ok_or_else(|| invalid("authenticated pack writer lost its active chunk"))?;
         active.raw.extend_from_slice(&candidate);
         active.frame_count = active
             .frame_count
@@ -1506,6 +1599,7 @@ impl<'a> PackWriterV2<'a> {
 
     fn flush(&mut self) -> Result<()> {
         check(self.deadline, self.cancelled)?;
+        self.check_cow_state(64 * 1024)?;
         let Some(active) = self.active.take() else {
             return Ok(());
         };
@@ -1862,24 +1956,89 @@ impl SegmentStore {
     where
         I: IntoIterator<Item = Result<AuthenticatedTreeDeltaV1>>,
     {
-        self.apply_authenticated_tree_delta_v2_with_pack_cap(
+        self.apply_authenticated_tree_delta_v2_with_pack_cap_and_state(
             old,
             changes,
             limits,
             AUTHENTICATED_PACK_MAX_BYTES,
             io_ledger,
+            AuthenticatedTreeWorkV1::default(),
+            None,
             deadline,
             cancelled,
         )
     }
 
-    fn apply_authenticated_tree_delta_v2_with_pack_cap<I>(
+    /// State-limited COW delta form. `additional_live_state_bytes` is the
+    /// caller's already retained rootset, source cursor, and candidate state;
+    /// this operation adds its own decoded-node, ancestor, delta-row, and pack
+    /// writer peaks before loading, cloning, or growing those structures.
+    pub fn apply_authenticated_tree_delta_v2_with_work_and_io_and_state<I>(
+        &self,
+        old: &AuthenticatedTreeDescriptorV2,
+        changes: I,
+        limits: AuthenticatedTreeLimitsV1,
+        io_ledger: Option<Arc<dyn AuthenticatedTreeIoLedgerV1>>,
+        max_working_state_bytes: usize,
+        additional_live_state_bytes: usize,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<(AuthenticatedTreeDescriptorV2, AuthenticatedTreeWorkV1)>
+    where
+        I: IntoIterator<Item = Result<AuthenticatedTreeDeltaV1>>,
+    {
+        self.apply_authenticated_tree_delta_v2_with_pack_cap_and_state(
+            old,
+            changes,
+            limits,
+            AUTHENTICATED_PACK_MAX_BYTES,
+            io_ledger,
+            AuthenticatedTreeWorkV1::default(),
+            Some((max_working_state_bytes, additional_live_state_bytes)),
+            deadline,
+            cancelled,
+        )
+    }
+
+    /// COW form for a sequence of root-family deltas that keeps the caller's
+    /// already-spent authenticated tree work in the same finite operation cap.
+    pub fn apply_authenticated_tree_delta_v2_with_work_and_io_and_state_cumulative<I>(
+        &self,
+        old: &AuthenticatedTreeDescriptorV2,
+        changes: I,
+        limits: AuthenticatedTreeLimitsV1,
+        io_ledger: Option<Arc<dyn AuthenticatedTreeIoLedgerV1>>,
+        initial_work: AuthenticatedTreeWorkV1,
+        max_working_state_bytes: usize,
+        additional_live_state_bytes: usize,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<(AuthenticatedTreeDescriptorV2, AuthenticatedTreeWorkV1)>
+    where
+        I: IntoIterator<Item = Result<AuthenticatedTreeDeltaV1>>,
+    {
+        self.apply_authenticated_tree_delta_v2_with_pack_cap_and_state(
+            old,
+            changes,
+            limits,
+            AUTHENTICATED_PACK_MAX_BYTES,
+            io_ledger,
+            initial_work,
+            Some((max_working_state_bytes, additional_live_state_bytes)),
+            deadline,
+            cancelled,
+        )
+    }
+
+    fn apply_authenticated_tree_delta_v2_with_pack_cap_and_state<I>(
         &self,
         old: &AuthenticatedTreeDescriptorV2,
         changes: I,
         limits: AuthenticatedTreeLimitsV1,
         pack_cap: usize,
         io_ledger: Option<Arc<dyn AuthenticatedTreeIoLedgerV1>>,
+        initial_work: AuthenticatedTreeWorkV1,
+        state_limit: Option<(usize, usize)>,
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> Result<(AuthenticatedTreeDescriptorV2, AuthenticatedTreeWorkV1)>
@@ -1892,13 +2051,37 @@ impl SegmentStore {
         let limits = limits.validate()?;
         validate_descriptor_for_store(self, &old.semantic, limits)?;
         validate_descriptor_v2_shape(old)?;
+        if initial_work.total_nodes() > limits.max_nodes
+            || initial_work.total_bytes() > limits.max_total_bytes
+        {
+            return Err(budget(
+                "authenticated cumulative tree work is already exceeded",
+            ));
+        }
         check(deadline, cancelled)?;
         let _pin_lock = self.hold_generation_pin()?;
-        let mut work = AuthenticatedTreeWorkV1::default();
+        let mut work = initial_work;
         let mut writer = PackWriterV2::new(
             self, limits, pack_cap, &mut work, io_ledger, deadline, cancelled,
         );
+        if let Some((maximum_bytes, additional_live_bytes)) = state_limit {
+            let old_descriptor_bytes = tree_descriptor_state_bytes(old)?;
+            writer = writer.with_state_limit(CowStateLimitV2 {
+                maximum_bytes,
+                additional_live_bytes,
+                old_descriptor_bytes,
+            });
+            writer.check_cow_state(tree_descriptor_handle_clone_state_bytes(old)?)?;
+        }
         let mut root = descriptor_root_handle(old)?;
+        if writer.state_limit.is_some() {
+            writer.root_live_state_bytes = root
+                .as_ref()
+                .map(tree_handle_state_bytes)
+                .transpose()?
+                .unwrap_or(0);
+            writer.check_cow_state(0)?;
+        }
         let mut previous: Option<Vec<u8>> = None;
         let mut changed_rows = 0u64;
         for change in changes {
@@ -1920,7 +2103,30 @@ impl SegmentStore {
             if changed_rows > limits.max_rows {
                 return Err(budget("authenticated delta row limit exceeded"));
             }
-            previous = Some(change.key.clone());
+            if writer.state_limit.is_some() {
+                let row_state = delta_row_state_bytes(&change)?;
+                let previous_capacity = previous.as_ref().map_or(0, Vec::capacity);
+                let new_previous_capacity = change.key.len();
+                writer.delta_live_state_bytes = row_state
+                    .checked_add(previous_capacity)
+                    .and_then(|n| n.checked_add(new_previous_capacity))
+                    .ok_or_else(|| budget("authenticated delta row state overflow"))?;
+                writer.check_cow_state(0)?;
+            }
+            let mut next_previous = Vec::new();
+            next_previous
+                .try_reserve_exact(change.key.len())
+                .map_err(|_| budget("authenticated delta key allocation failed"))?;
+            next_previous.extend_from_slice(&change.key);
+            let next_previous_capacity = next_previous.capacity();
+            previous = Some(next_previous);
+            if writer.state_limit.is_some() {
+                let row_state = delta_row_state_bytes(&change)?;
+                writer.delta_live_state_bytes = row_state
+                    .checked_add(next_previous_capacity)
+                    .ok_or_else(|| budget("authenticated delta row state overflow"))?;
+                writer.check_cow_state(0)?;
+            }
             root = update_one_v2(
                 self,
                 old,
@@ -1931,8 +2137,31 @@ impl SegmentStore {
                 deadline,
                 cancelled,
             )?;
+            if writer.state_limit.is_some() {
+                writer.root_live_state_bytes = root
+                    .as_ref()
+                    .map(tree_handle_state_bytes)
+                    .transpose()?
+                    .unwrap_or(0);
+                writer.delta_live_state_bytes = previous.as_ref().map_or(0, Vec::capacity);
+                writer.check_cow_state(0)?;
+            }
         }
         writer.finish()?;
+        if writer.state_limit.is_some() {
+            let output_state = std::mem::size_of::<AuthenticatedTreeDescriptorV2>()
+                .checked_add(old.kind.capacity())
+                .and_then(|n| {
+                    n.checked_add(
+                        root.as_ref()
+                            .map(|handle| tree_reference_state_bytes(&handle.reference).ok())
+                            .flatten()?,
+                    )
+                })
+                .and_then(|n| n.checked_add(std::mem::size_of::<AuthenticatedTreeLocatorV2>()))
+                .ok_or_else(|| budget("authenticated COW result state overflow"))?;
+            writer.check_cow_state(output_state)?;
+        }
         let entries = root.as_ref().map_or(0, |handle| handle.reference.entries);
         let semantic_root = root.as_ref().map(|handle| handle.reference.clone());
         let physical_root = match root.as_ref().map(|handle| &handle.locator) {
@@ -1953,6 +2182,33 @@ impl SegmentStore {
             },
             work,
         ))
+    }
+
+    #[cfg(test)]
+    fn apply_authenticated_tree_delta_v2_with_pack_cap<I>(
+        &self,
+        old: &AuthenticatedTreeDescriptorV2,
+        changes: I,
+        limits: AuthenticatedTreeLimitsV1,
+        pack_cap: usize,
+        io_ledger: Option<Arc<dyn AuthenticatedTreeIoLedgerV1>>,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<(AuthenticatedTreeDescriptorV2, AuthenticatedTreeWorkV1)>
+    where
+        I: IntoIterator<Item = Result<AuthenticatedTreeDeltaV1>>,
+    {
+        self.apply_authenticated_tree_delta_v2_with_pack_cap_and_state(
+            old,
+            changes,
+            limits,
+            pack_cap,
+            io_ledger,
+            AuthenticatedTreeWorkV1::default(),
+            None,
+            deadline,
+            cancelled,
+        )
     }
 
     pub fn lookup_authenticated_tree_v2(
@@ -2299,6 +2555,159 @@ fn attach_build_child_v2(
     Ok(())
 }
 
+fn tree_descriptor_state_bytes(descriptor: &AuthenticatedTreeDescriptorV2) -> Result<usize> {
+    let mut state = std::mem::size_of::<AuthenticatedTreeDescriptorV2>()
+        .checked_add(std::mem::size_of::<AuthenticatedTreeDescriptorV1>())
+        .and_then(|n| n.checked_add(descriptor.semantic.kind.capacity()))
+        .ok_or_else(|| budget("authenticated COW descriptor state overflow"))?;
+    if let Some(root) = &descriptor.semantic.root {
+        state = state
+            .checked_add(tree_reference_state_bytes(root)?)
+            .ok_or_else(|| budget("authenticated COW descriptor state overflow"))?;
+    }
+    if descriptor.physical_root.is_some() {
+        state = state
+            .checked_add(std::mem::size_of::<AuthenticatedTreeLocatorV2>())
+            .ok_or_else(|| budget("authenticated COW descriptor state overflow"))?;
+    }
+    Ok(state)
+}
+
+fn tree_descriptor_handle_clone_state_bytes(
+    descriptor: &AuthenticatedTreeDescriptorV2,
+) -> Result<usize> {
+    let Some(root) = &descriptor.semantic.root else {
+        return Ok(0);
+    };
+    std::mem::size_of::<TreeHandleV2>()
+        .checked_add(tree_reference_state_bytes(root)?)
+        .and_then(|n| n.checked_add(std::mem::size_of::<PackSealStateV2>()))
+        .ok_or_else(|| budget("authenticated COW root handle state overflow"))
+}
+
+fn tree_reference_state_bytes(reference: &AuthenticatedTreeNodeRefV1) -> Result<usize> {
+    std::mem::size_of::<AuthenticatedTreeNodeRefV1>()
+        .checked_add(reference.min_key.capacity())
+        .and_then(|n| n.checked_add(reference.max_key.capacity()))
+        .ok_or_else(|| budget("authenticated COW node reference state overflow"))
+}
+
+fn tree_handle_state_bytes(handle: &TreeHandleV2) -> Result<usize> {
+    let locator_state = match &handle.locator {
+        TreeLocatorV2::Legacy(_) => std::mem::size_of::<TreeLocatorV2>(),
+        TreeLocatorV2::Packed(_) => std::mem::size_of::<TreeLocatorV2>()
+            .checked_add(std::mem::size_of::<PackSealStateV2>())
+            .ok_or_else(|| budget("authenticated COW locator state overflow"))?,
+    };
+    std::mem::size_of::<TreeHandleV2>()
+        .checked_add(tree_reference_state_bytes(&handle.reference)?)
+        .and_then(|n| n.checked_add(locator_state))
+        .ok_or_else(|| budget("authenticated COW tree handle state overflow"))
+}
+
+fn tree_node_state_bytes(node: &TreeNode) -> Result<usize> {
+    let mut state = std::mem::size_of::<TreeNode>()
+        .checked_add(node.min_key.capacity())
+        .and_then(|n| n.checked_add(node.max_key.capacity()))
+        .and_then(|n| {
+            n.checked_add(
+                node.children
+                    .capacity()
+                    .checked_mul(std::mem::size_of::<(u8, AuthenticatedTreeNodeRefV1)>())?,
+            )
+        })
+        .ok_or_else(|| budget("authenticated COW node state overflow"))?;
+    if let Some(value) = &node.value {
+        state = state
+            .checked_add(std::mem::size_of::<AuthenticatedTreeEntryV1>())
+            .and_then(|n| n.checked_add(value.key.capacity()))
+            .and_then(|n| n.checked_add(value.value.capacity()))
+            .ok_or_else(|| budget("authenticated COW node value state overflow"))?;
+    }
+    for (_, child) in &node.children {
+        state = state
+            .checked_add(tree_reference_state_bytes(child)?)
+            .ok_or_else(|| budget("authenticated COW child reference state overflow"))?;
+    }
+    Ok(state)
+}
+
+fn tree_locator_slice_state_bytes(locators: &[TreeLocatorV2]) -> Result<usize> {
+    let mut state = locators
+        .capacity()
+        .checked_mul(std::mem::size_of::<TreeLocatorV2>())
+        .ok_or_else(|| budget("authenticated COW locator state overflow"))?;
+    for locator in locators {
+        if matches!(locator, TreeLocatorV2::Packed(_)) {
+            state = state
+                .checked_add(std::mem::size_of::<PackSealStateV2>())
+                .ok_or_else(|| budget("authenticated COW locator state overflow"))?;
+        }
+    }
+    Ok(state)
+}
+
+fn ancestor_stack_state_bytes(ancestors: &[(TreeNode, Vec<TreeLocatorV2>, u8)]) -> Result<usize> {
+    let mut state = ancestors
+        .capacity()
+        .checked_mul(std::mem::size_of::<(TreeNode, Vec<TreeLocatorV2>, u8)>())
+        .ok_or_else(|| budget("authenticated COW ancestor state overflow"))?;
+    for (node, locators, _) in ancestors {
+        state = state
+            .checked_add(tree_node_state_bytes(node)?)
+            .and_then(|n| n.checked_add(tree_locator_slice_state_bytes(locators).ok()?))
+            .ok_or_else(|| budget("authenticated COW ancestor state overflow"))?;
+    }
+    Ok(state)
+}
+
+fn delta_row_state_bytes(change: &AuthenticatedTreeDeltaV1) -> Result<usize> {
+    let mut state = std::mem::size_of::<AuthenticatedTreeDeltaV1>()
+        .checked_add(change.key.capacity())
+        .ok_or_else(|| budget("authenticated COW delta state overflow"))?;
+    if let Some(value) = &change.value {
+        state = state
+            .checked_add(value.capacity())
+            .ok_or_else(|| budget("authenticated COW delta state overflow"))?;
+    }
+    Ok(state)
+}
+
+fn tree_node_decode_upper_bound(
+    handle: &TreeHandleV2,
+    limits: AuthenticatedTreeLimitsV1,
+) -> Result<usize> {
+    let frame = match &handle.locator {
+        TreeLocatorV2::Packed(locator) => locator.frame_len as usize,
+        TreeLocatorV2::Legacy(_) => limits.max_node_bytes,
+    };
+    let per_child = std::mem::size_of::<PackedChildWireV2>()
+        .checked_add(std::mem::size_of::<TreeLocatorV2>())
+        .and_then(|n| n.checked_add(std::mem::size_of::<PackSealStateV2>()))
+        .and_then(|n| n.checked_add(std::mem::size_of::<(u8, AuthenticatedTreeNodeRefV1)>()))
+        .ok_or_else(|| budget("authenticated COW decode state overflow"))?;
+    frame
+        .checked_mul(5)
+        .and_then(|n| n.checked_add(limits.max_children.checked_mul(per_child)?))
+        .and_then(|n| n.checked_add(std::mem::size_of::<LoadedTreeNodeV2>()))
+        .ok_or_else(|| budget("authenticated COW decode state overflow"))
+}
+
+fn tree_node_mutation_upper_bound(limits: AuthenticatedTreeLimitsV1) -> Result<usize> {
+    let per_child = std::mem::size_of::<TreeLocatorV2>()
+        .checked_add(std::mem::size_of::<PackSealStateV2>())
+        .and_then(|n| n.checked_add(std::mem::size_of::<(u8, AuthenticatedTreeNodeRefV1)>() * 2))
+        .ok_or_else(|| budget("authenticated COW mutation state overflow"))?;
+    limits
+        .max_node_bytes
+        .checked_mul(8)
+        .and_then(|n| n.checked_add(limits.max_children.checked_mul(per_child)?))
+        .and_then(|n| n.checked_add(limits.max_key_bytes.checked_mul(4)?))
+        .and_then(|n| n.checked_add(limits.max_value_bytes.min(limits.max_node_bytes)))
+        .and_then(|n| n.checked_add(64 * 1024))
+        .ok_or_else(|| budget("authenticated COW mutation state overflow"))
+}
+
 fn update_one_v2(
     store: &SegmentStore,
     descriptor: &AuthenticatedTreeDescriptorV2,
@@ -2309,6 +2718,14 @@ fn update_one_v2(
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> Result<Option<TreeHandleV2>> {
+    if writer.state_limit.is_some() {
+        let root_state = root
+            .as_ref()
+            .map(tree_handle_state_bytes)
+            .transpose()?
+            .unwrap_or(0);
+        writer.check_cow_state(root_state)?;
+    }
     let Some(mut handle) = root.clone() else {
         return match change.value {
             None => Ok(None),
@@ -2329,6 +2746,19 @@ fn update_one_v2(
     let mut replacement: Option<TreeHandleV2>;
     loop {
         check(deadline, cancelled)?;
+        if writer.state_limit.is_some() {
+            let stack_bytes = ancestor_stack_state_bytes(&ancestors)?;
+            let handle_bytes = tree_handle_state_bytes(&handle)?;
+            let decode_bytes = tree_node_decode_upper_bound(&handle, limits)?;
+            let mutation_bytes = tree_node_mutation_upper_bound(limits)?;
+            writer.check_cow_state(
+                stack_bytes
+                    .checked_add(handle_bytes)
+                    .and_then(|n| n.checked_add(decode_bytes))
+                    .and_then(|n| n.checked_add(mutation_bytes))
+                    .ok_or_else(|| budget("authenticated COW decode state overflow"))?,
+            )?;
+        }
         let active_pack = writer.active.as_ref();
         let work = &mut *writer.work;
         let loaded = load_node_v2(
@@ -2343,6 +2773,20 @@ fn update_one_v2(
             cancelled,
         )?;
         let node = loaded.node;
+        if writer.state_limit.is_some() {
+            let stack_bytes = ancestor_stack_state_bytes(&ancestors)?;
+            let node_bytes = tree_node_state_bytes(&node)?
+                .checked_add(tree_locator_slice_state_bytes(&loaded.child_locators)?)
+                .ok_or_else(|| budget("authenticated COW loaded-node state overflow"))?;
+            let operation_scratch = tree_node_mutation_upper_bound(limits)?;
+            writer.check_cow_state(
+                stack_bytes
+                    .checked_add(tree_handle_state_bytes(&handle)?)
+                    .and_then(|n| n.checked_add(node_bytes))
+                    .and_then(|n| n.checked_add(operation_scratch))
+                    .ok_or_else(|| budget("authenticated COW loaded-node state overflow"))?,
+            )?;
+        }
         let prefix_len = node_prefix_nibbles(&node);
         let shared = common_prefix_nibbles(&change.key, &node.min_key);
         if shared < prefix_len {
@@ -2426,6 +2870,62 @@ fn update_one_v2(
             .iter()
             .position(|(child_edge, _)| *child_edge == edge)
         {
+            if writer.state_limit.is_some() {
+                let next_capacity = if ancestors.len() < ancestors.capacity() {
+                    ancestors.capacity()
+                } else {
+                    ancestors
+                        .len()
+                        .checked_add(1)
+                        .ok_or_else(|| budget("authenticated COW ancestor depth overflow"))?
+                };
+                let growth = next_capacity
+                    .saturating_sub(ancestors.capacity())
+                    .checked_mul(std::mem::size_of::<(TreeNode, Vec<TreeLocatorV2>, u8)>())
+                    .ok_or_else(|| budget("authenticated COW ancestor state overflow"))?;
+                let stored = ancestor_stack_state_bytes(&ancestors)?
+                    .checked_add(tree_node_state_bytes(&node)?)
+                    .and_then(|n| {
+                        n.checked_add(tree_locator_slice_state_bytes(&loaded.child_locators).ok()?)
+                    })
+                    .and_then(|n| n.checked_add(growth))
+                    .and_then(|n| {
+                        n.checked_add(tree_reference_state_bytes(&node.children[index].1).ok()?)
+                    })
+                    .and_then(|n| n.checked_add(std::mem::size_of::<TreeLocatorV2>()))
+                    .ok_or_else(|| budget("authenticated COW ancestor state overflow"))?;
+                writer.check_cow_state(
+                    stored
+                        .checked_add(tree_handle_state_bytes(&handle)?)
+                        .and_then(|n| n.checked_add(tree_node_mutation_upper_bound(limits).ok()?))
+                        .ok_or_else(|| budget("authenticated COW ancestor state overflow"))?,
+                )?;
+                if ancestors.len() == ancestors.capacity() {
+                    ancestors
+                        .try_reserve_exact(1)
+                        .map_err(|_| budget("authenticated COW ancestor allocation failed"))?;
+                    writer.check_cow_state(
+                        ancestor_stack_state_bytes(&ancestors)?
+                            .checked_add(tree_node_state_bytes(&node)?)
+                            .and_then(|n| {
+                                n.checked_add(
+                                    tree_locator_slice_state_bytes(&loaded.child_locators).ok()?,
+                                )
+                            })
+                            .and_then(|n| {
+                                n.checked_add(
+                                    tree_reference_state_bytes(&node.children[index].1).ok()?,
+                                )
+                            })
+                            .and_then(|n| n.checked_add(std::mem::size_of::<TreeLocatorV2>()))
+                            .and_then(|n| n.checked_add(tree_handle_state_bytes(&handle).ok()?))
+                            .and_then(|n| {
+                                n.checked_add(tree_node_mutation_upper_bound(limits).ok()?)
+                            })
+                            .ok_or_else(|| budget("authenticated COW ancestor state overflow"))?,
+                    )?;
+                }
+            }
             let child = node.children[index].1.clone();
             let locator = loaded
                 .child_locators

@@ -314,6 +314,18 @@ fn sqlite_aux_limits(partition: u64, max_live_aux: usize) -> Option<PinnedSqlite
 }
 
 impl<'c> NativeSourceValidator<'c> {
+    /// Borrow the invocation's already-selected V2 physical read/copy bounds
+    /// for a protected observation case, including recovery of an accepted
+    /// result. This is numeric profile access only: it does not mint a
+    /// `NativeAdmissionComplete` witness, grant publication authority, or
+    /// authorize a successor write. Publication still requires the genuine
+    /// completed index issued by the native validation path.
+    pub(crate) fn prepared_v2_read_case_profile(&self) -> io::Result<&NativeSegmentV2Budget> {
+        self.segment_v2_profile
+            .as_ref()
+            .ok_or_else(|| invalid("prepared V2 read/copy profile absent"))
+    }
+
     pub(crate) fn prepare(
         clock: FoundationBootstrapClock,
         args: &[OsString],
