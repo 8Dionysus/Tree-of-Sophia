@@ -1597,7 +1597,7 @@ const SELECTED_TABLES: [(&str, &str); 13] = [
 ];
 
 const SELECTED_COLUMN_SPECS: &[(&str, &[&str])] = &[
-    ("metadata", &["key:TEXT:1", "value:BLOB:0"][..]),
+    ("metadata", &["key:TEXT:1", "value:BLOB:0"]),
     (
         "graph_header",
         &[
@@ -1605,7 +1605,7 @@ const SELECTED_COLUMN_SPECS: &[(&str, &[&str])] = &[
             "packet_len:INTEGER:0",
             "packet_sha256:BLOB:0",
             "packet:BLOB:0",
-        ][..],
+        ],
     ),
     (
         "knowledge_nodes",
@@ -1620,7 +1620,7 @@ const SELECTED_COLUMN_SPECS: &[(&str, &[&str])] = &[
             "payload_len:INTEGER:0",
             "payload_sha256:BLOB:0",
             "payload:BLOB:0",
-        ][..],
+        ],
     ),
     (
         "knowledge_relations",
@@ -1636,7 +1636,7 @@ const SELECTED_COLUMN_SPECS: &[(&str, &[&str])] = &[
             "payload_len:INTEGER:0",
             "payload_sha256:BLOB:0",
             "payload:BLOB:0",
-        ][..],
+        ],
     ),
     (
         "source_scope",
@@ -1648,7 +1648,7 @@ const SELECTED_COLUMN_SPECS: &[(&str, &[&str])] = &[
             "expected_relation_count:INTEGER:0",
             "node_root_sha256:BLOB:0",
             "relation_root_sha256:BLOB:0",
-        ][..],
+        ],
     ),
     (
         "search_documents",
@@ -1665,7 +1665,7 @@ const SELECTED_COLUMN_SPECS: &[(&str, &[&str])] = &[
             "visible_values:TEXT:0",
             "document_chars:INTEGER:0",
             "document_digest:BLOB:0",
-        ][..],
+        ],
     ),
     (
         "search_posting_blocks",
@@ -1677,7 +1677,7 @@ const SELECTED_COLUMN_SPECS: &[(&str, &[&str])] = &[
             "first_position:INTEGER:0",
             "postings:INTEGER:0",
             "deltas:BLOB:0",
-        ][..],
+        ],
     ),
     (
         "search_gram_stats",
@@ -1686,7 +1686,7 @@ const SELECTED_COLUMN_SPECS: &[(&str, &[&str])] = &[
             "n:INTEGER:2",
             "gram:BLOB:3",
             "postings:INTEGER:0",
-        ][..],
+        ],
     ),
     (
         "catalog_index_meta",
@@ -1703,7 +1703,7 @@ const SELECTED_COLUMN_SPECS: &[(&str, &[&str])] = &[
             "packet_len:INTEGER:0",
             "packet_sha256:BLOB:0",
             "packet:BLOB:0",
-        ][..],
+        ],
     ),
     (
         "catalog_facet_fields",
@@ -1713,7 +1713,7 @@ const SELECTED_COLUMN_SPECS: &[(&str, &[&str])] = &[
             "field_id:TEXT:3",
             "value_count:INTEGER:0",
             "total_count:INTEGER:0",
-        ][..],
+        ],
     ),
     (
         "catalog_facets",
@@ -1724,7 +1724,7 @@ const SELECTED_COLUMN_SPECS: &[(&str, &[&str])] = &[
             "ordinal:INTEGER:4",
             "value_json:TEXT:0",
             "item_count:INTEGER:0",
-        ][..],
+        ],
     ),
     (
         "catalog_routes",
@@ -1740,7 +1740,7 @@ const SELECTED_COLUMN_SPECS: &[(&str, &[&str])] = &[
             "packet_len:INTEGER:0",
             "packet_sha256:BLOB:0",
             "packet:BLOB:0",
-        ][..],
+        ],
     ),
     (
         "catalog_source_counts",
@@ -1749,7 +1749,7 @@ const SELECTED_COLUMN_SPECS: &[(&str, &[&str])] = &[
             "source_graph_id:TEXT:2",
             "node_count:INTEGER:0",
             "relation_count:INTEGER:0",
-        ][..],
+        ],
     ),
 ];
 

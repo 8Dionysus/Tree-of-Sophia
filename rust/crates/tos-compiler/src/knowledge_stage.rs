@@ -4151,7 +4151,7 @@ fn verify_fresh_selected(
         if db.retained_rust_state_upper_bound().map_err(owned_stage_sql_error)? > connection_bytes {
             return Err(Error::Budget("fresh connection Rust exceeds original admission"));
         }
-        configure_fresh_readonly_owned(&db, limits.sqlite_cache_kib, budget.creation_state)?;
+        configure_fresh_readonly_owned(&db, u64::from(limits.sqlite_cache_kib), budget.creation_state)?;
     } else {
         db.pragma_update(None, "cache_size", -(limits.sqlite_cache_kib as i64))?;
         db.execute_batch("PRAGMA temp_store=FILE")?;
@@ -4700,8 +4700,8 @@ fn input_root_with_state(db:&Connection,entry:&InputCollectionReceipt,
             if raw.len()>MAX_NAME_BYTES {return Err(Error::Budget("owned stage root id bytes"));}
             state.charge_work(raw.len())?;
         }
-        let id=id_raw.as_str()?;
-        let digest=row.get_ref(1)?.as_blob()?;
+        let id=id_raw.as_str().map_err(|_| Error::Invalid("selected Stage SQL text column"))?;
+        let digest=row.get_ref(1)?.as_blob().map_err(|_| Error::Invalid("selected Stage SQL blob column"))?;
         if digest.len() != 32 {
             return Err(Error::Invalid("stage payload digest size"));
         }
@@ -4746,9 +4746,9 @@ fn output_root_with_state(db:&Connection,table:&str,
             if raw.len()>MAX_NAME_BYTES {return Err(Error::Budget("owned stage root id bytes"));}
             state.charge_work(raw.len())?;
         }
-        let id=id_raw.as_str()?;
+        let id=id_raw.as_str().map_err(|_| Error::Invalid("selected Stage SQL text column"))?;
         let order: i64 = row.get(2)?;
-        let digest=row.get_ref(3)?.as_blob()?;
+        let digest=row.get_ref(3)?.as_blob().map_err(|_| Error::Invalid("selected Stage SQL blob column"))?;
         if digest.len() != 32 || order < 0 || order as u64 != count {
             return Err(Error::Invalid("stage output source order/digest"));
         }

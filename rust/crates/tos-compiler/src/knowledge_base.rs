@@ -1426,7 +1426,7 @@ impl<'a> KnowledgeBaseNormalizer<'a> {
                     .checked_add(title_keys)
                     .and_then(|n| n.checked_add(entry_keys))
                     .ok_or(Error::Budget("owner relation object slots"))?,
-            ),
+            )?,
             "owner relation object slots",
         )?;
         add_owned_bytes(

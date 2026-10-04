@@ -16,7 +16,7 @@ use std::{
     os::unix::fs::MetadataExt,
     path::{Path, PathBuf},
     rc::Rc,
-    sync::{Arc, Mutex, atomic::AtomicU64},
+    sync::{Arc, Mutex, atomic::{AtomicU64, Ordering}},
     time::Instant,
 };
 use tos_foundation::{
@@ -211,7 +211,8 @@ pub struct PublicCapture {
     inode: (u64, u64),
     sources: Vec<SourceFile>,
     partitioned: bool,
-    file_state: (u64, u64, u64, i64, i64, i64, i64),
+    file_state: CaptureFileState,
+    family_seal: Mutex<FamilyPreparationSeal>,
     pub rows: u64,
     work_bytes: Arc<AtomicU64>,
     max_work_bytes: u64,
@@ -223,6 +224,26 @@ pub struct PublicCapture {
     sqlite_heap: Option<Arc<sqlite_budget::DedicatedSessionSqliteHeap>>,
     controlled_identity: Option<Arc<()>>,
     cancelled: Arc<std::sync::atomic::AtomicBool>,
+}
+
+type CaptureFileState = (u64,u64,u64,i64,i64,i64,i64);
+enum FamilyPreparationSeal {
+    Initial,
+    Preparing(std::thread::ThreadId),
+    Prepared(CaptureFileState),
+    Failed,
+}
+struct FamilyPreparationGuard<'a> { capture:&'a PublicCapture, complete:bool }
+impl Drop for FamilyPreparationGuard<'_> {
+    fn drop(&mut self) {
+        if !self.complete {
+            if let Ok(mut seal)=self.capture.family_seal.lock() {*seal=FamilyPreparationSeal::Failed;}
+        }
+    }
+}
+fn capture_file_state(metadata:&fs::Metadata)->Result<CaptureFileState> {
+    if !metadata.file_type().is_file() {return Err(Error::Invalid("public D1 private capture replaced"));}
+    Ok((metadata.dev(),metadata.ino(),metadata.len(),metadata.mtime(),metadata.mtime_nsec(),metadata.ctime(),metadata.ctime_nsec()))
 }
 
 enum SourceOrigin {
@@ -735,7 +756,7 @@ impl<'budget> CreationState<'budget> {
             .ok_or(Error::Budget("runtime persistent capture transfer"))?);
         Ok(())
     }
-    pub(crate) fn hold(&self, bytes: usize) -> Result<CreationStateHold<'_, '_>> {
+    pub(crate) fn hold<'owner>(&'owner self, bytes: usize) -> Result<CreationStateHold<'owner, 'budget>> {
         self.remaining(bytes)?;
         let retained = self.retained.get().checked_add(bytes)
             .ok_or(Error::Budget("runtime carrier creation state overflow"))?;
@@ -3606,6 +3627,7 @@ impl PublicCapture {
                 metadata.ctime(),
                 metadata.ctime_nsec(),
             ),
+            family_seal: Mutex::new(FamilyPreparationSeal::Initial),
             sources,
             partitioned: corpus_partitioned == Some(true)
                 || (prepared_profile && claims_partitioned == Some(true)),
@@ -3855,8 +3877,69 @@ impl PublicCapture {
         })
     }
 
+    fn expected_capture_file_state(&self)->Result<CaptureFileState> {
+        let seal=self.family_seal.lock().map_err(|_|Error::Invalid("public D1 family seal poisoned"))?;
+        match &*seal {
+            FamilyPreparationSeal::Initial=>Ok(self.file_state),
+            FamilyPreparationSeal::Prepared(state)=>Ok(*state),
+            FamilyPreparationSeal::Preparing(_)=>Err(Error::Invalid("public D1 family preparation incomplete")),
+            FamilyPreparationSeal::Failed=>Err(Error::Invalid("public D1 family preparation failed")),
+        }
+    }
+    /// The one sanctioned mutation of this private capture: the maintained
+    /// family-reference preparation. A failed/partial preparation permanently
+    /// poisons the capture; arbitrary writers cannot refresh its stamp.
+    pub(crate) fn prepare_family_rows_once(&self,limits:PublicCaptureLimits)->Result<()> {
+        let deadline=self.active_deadline()?;
+        self.capture_identity()?;
+        self.verify_captured_inputs()?;
+        let held=safe_open::open_regular(&self.path,self.limits.max_staging_bytes)?;
+        let initial=capture_file_state(&held.metadata()?)?;
+        if initial!=self.capture_identity()? {return Err(Error::Invalid("public D1 family initial custody"));}
+        {
+            let mut seal=self.family_seal.lock().map_err(|_|Error::Invalid("public D1 family seal poisoned"))?;
+            if !matches!(*seal,FamilyPreparationSeal::Initial) {
+                return Err(Error::Invalid("public D1 family preparation already attempted"));
+            }
+            *seal=FamilyPreparationSeal::Preparing(std::thread::current().id());
+        }
+        let mut guard=FamilyPreparationGuard{capture:self,complete:false};
+        // The maintained SQL owner closes all statements/connections before
+        // returning. Only this exact operation may establish the successor.
+        crate::d1_public_graph::prepare_family_rows_unsealed(self,limits,&held)?;
+        check_capture_active(Some(self.cancelled.as_ref()),deadline)?;
+        held.sync_all()?;
+        self.verify_captured_inputs()?;
+        let after=capture_file_state(&held.metadata()?)?;
+        let named=capture_file_state(&fs::symlink_metadata(&self.path)?)?;
+        if after!=named || (after.0,after.1)!=self.inode || after.2>limits.max_staging_bytes {
+            return Err(Error::Invalid("public D1 family successor custody"));
+        }
+        check_capture_active(Some(self.cancelled.as_ref()),deadline)?;
+        {
+            let mut seal=self.family_seal.lock().map_err(|_|Error::Invalid("public D1 family seal poisoned"))?;
+            if !matches!(&*seal,FamilyPreparationSeal::Preparing(owner) if *owner==std::thread::current().id()) {
+                return Err(Error::Invalid("public D1 family successor transition"));
+            }
+            *seal=FamilyPreparationSeal::Prepared(after);
+        }
+        // All fallible identity/source/cancel fences precede publishing the
+        // prepared seal. No fallible step can escape with Prepared on Err.
+        guard.complete=true;
+        Ok(())
+    }
+
     pub fn check_custody(&self) -> Result<()> {
         check_capture_active(Some(self.cancelled.as_ref()), self.active_deadline()?)?;
+        {
+            let seal=self.family_seal.lock().map_err(|_|Error::Invalid("public D1 family seal poisoned"))?;
+            match &*seal {
+                FamilyPreparationSeal::Failed=>return Err(Error::Invalid("public D1 family preparation failed")),
+                FamilyPreparationSeal::Preparing(owner) if *owner!=std::thread::current().id()=>
+                    return Err(Error::Invalid("public D1 family preparation in progress")),
+                _=>{},
+            }
+        }
         let metadata = fs::symlink_metadata(&self.path)?;
         if !metadata.file_type().is_file() || (metadata.dev(), metadata.ino()) != self.inode {
             return Err(Error::Invalid("public D1 private capture replaced"));
@@ -3876,7 +3959,7 @@ impl PublicCapture {
             metadata.ctime(),
             metadata.ctime_nsec(),
         );
-        if !metadata.file_type().is_file() || state != self.file_state {
+        if !metadata.file_type().is_file() || state != self.expected_capture_file_state()? {
             return Err(Error::Invalid("public D1 private capture changed"));
         }
         Ok(state)
@@ -3897,6 +3980,34 @@ impl PublicCapture {
                 Arc::clone(&self.vm_used), self.active_deadline()?);
         }
         db.pragma_update(None, "cache_size", -(self.limits.sqlite_cache_kib as i64))?;
+        Ok(db)
+    }
+
+    pub(crate) fn write_family_db(&self,held:&File)->Result<tos_source_store::PinnedSqliteConnection> {
+        let deadline=self.active_deadline()?;
+        self.check_custody()?;
+        {
+            let seal=self.family_seal.lock().map_err(|_|Error::Invalid("public D1 family seal poisoned"))?;
+            if !matches!(&*seal,FamilyPreparationSeal::Preparing(owner) if *owner==std::thread::current().id()) {
+                return Err(Error::Invalid("public D1 family writer outside sanctioned transition"));
+            }
+        }
+        let before=capture_file_state(&held.metadata()?)?;
+        if (before.0,before.1)!=self.inode || before!=capture_file_state(&fs::symlink_metadata(&self.path)?)? {
+            return Err(Error::Invalid("public D1 family writer custody"));
+        }
+        if let Some(heap)=&self.sqlite_heap {heap.verify_current()?;}
+        let shared_window=if self.shared_vm {
+            Some(sqlite_budget::SharedVmWindow::reserve(Arc::clone(&self.vm_used),self.limits.max_sql_vm_steps)?)
+        } else {None};
+        let db=tos_source_store::PinnedSqliteConnection::open_private_capture_for_family_preparation_with_setup(held, |db| {
+            if let Some(window)=shared_window {
+                window.install(db,deadline,Arc::clone(&self.cancelled));
+            } else {
+                sqlite_budget::install_progress_until(db,self.limits.sqlite(),Arc::clone(&self.vm_used),deadline);
+            }
+        }).map_err(|_|Error::Invalid("public D1 pinned family writer"))?;
+        db.pragma_update(None,"cache_size",-(self.limits.sqlite_cache_kib as i64))?;
         Ok(db)
     }
 
@@ -4016,8 +4127,8 @@ impl PublicCapture {
             db.prepare("SELECT path,sha256,size_bytes FROM capture_sources ORDER BY path")?;
         let mut rows = statement.query([])?;
         while let Some(row) = rows.next()? {
-            let path = row.get_ref(0)?.as_str()?;
-            let digest = row.get_ref(1)?.as_blob()?;
+            let path = row.get_ref(0)?.as_str().map_err(|_| Error::Invalid("public D1 SQL text column"))?;
+            let digest = row.get_ref(1)?.as_blob().map_err(|_| Error::Invalid("public D1 SQL blob column"))?;
             if self.sqlite_heap.is_some() && (path.len() > 8194 || digest.len() != 32) {
                 return Err(Error::Budget("controlled captured source metadata"));
             }
@@ -4193,7 +4304,7 @@ impl PublicCapture {
         while let Some(row)=rows.next()? {
             state.active()?;
             if members.len()>=65536 {return Err(Error::Budget("captured runtime member count"));}
-            let path=row.get_ref(0)?.as_str()?;let digest=row.get_ref(1)?.as_blob()?;let bytes:u64=row.get(2)?;
+            let path=row.get_ref(0)?.as_str().map_err(|_| Error::Invalid("public D1 SQL text column"))?;let digest=row.get_ref(1)?.as_blob().map_err(|_| Error::Invalid("public D1 SQL blob column"))?;let bytes:u64=row.get(2)?;
             self.charge_work(path.len() as u64+40)?;
             let relative=Path::new(path).strip_prefix(&self.root).unwrap_or(Path::new(path)).to_str()
                 .ok_or(Error::Invalid("captured runtime member UTF8"))?;
@@ -4334,7 +4445,7 @@ impl PublicCapture {
         let mut stmt = db.prepare("SELECT path FROM capture_sources ORDER BY path")?;
         let mut rows = stmt.query([])?;
         while let Some(row) = rows.next()? {
-            budget.active()?; let path = row.get_ref(0)?.as_str()?;
+            budget.active()?; let path = row.get_ref(0)?.as_str().map_err(|_| Error::Invalid("public D1 SQL text column"))?;
             if paths.len() >= maximum || path.len() > 8194 { return Err(Error::Budget("owned capture source paths")); }
             self.charge_work(path.len() as u64)?;
             paths.push(PathBuf::from(path));
