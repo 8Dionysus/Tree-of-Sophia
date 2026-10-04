@@ -1459,10 +1459,14 @@ impl CandidateClosureLinks<'_, '_, '_, '_, '_> {
     }
 
     fn charge_scan_row(&mut self) -> Result<(), ItemRefusal> {
-        self.context.add_scan_rows(self.scan_rows, 1)?;
+        self.charge_scan_rows(1)
+    }
+
+    fn charge_scan_rows(&mut self, rows: usize) -> Result<(), ItemRefusal> {
+        self.context.add_scan_rows(self.scan_rows, rows)?;
         self.scan_row_operations = self
             .scan_row_operations
-            .checked_add(1)
+            .checked_add(usize_u64(rows)?)
             .ok_or(ItemRefusal::Budget)?;
         Ok(())
     }
@@ -1720,7 +1724,11 @@ impl SourceFoundationClosureLinkStore for CandidateClosureLinks<'_, '_, '_, '_, 
         }
         let workspace = size_of::<i64>() + 256;
         let total_workspace = self.preflight(workspace, max_state_bytes)?;
-        self.charge_scan_row()?;
+        let count_scan_rows = usize::try_from(expected_rows)
+            .map_err(|_| ItemRefusal::Budget)?
+            .checked_add(1)
+            .ok_or(ItemRefusal::Budget)?;
+        self.charge_scan_rows(count_scan_rows)?;
         let mut statement = self
             .db
             .prepare("SELECT count(*) FROM sf_closure_links")
