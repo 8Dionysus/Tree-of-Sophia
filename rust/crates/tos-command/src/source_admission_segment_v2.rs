@@ -3,13 +3,16 @@
 //! These roots are derived from a completed native candidate. Their logical
 //! membership and physical tree commitments remain separate from the V1
 //! manifest digest and from NativeAdmissionComplete.
-use std::io;
 use std::sync::{
     Arc,
     atomic::{AtomicU64, Ordering},
 };
 use std::time::Instant;
-use tos_foundation::{Digest256, RelativePath, SourceRevision};
+use std::{io, mem::size_of};
+use tos_foundation::{
+    CanonicalProfile, Digest256, JsonDocument, JsonLimits, JsonMode, JsonValue, RelativePath,
+    SourceRevision, canonical_bytes_v1, parse_json_with_state_budget,
+};
 use tos_segment_store::{
     AuthenticatedTreeDescriptorV2, AuthenticatedTreeEntryV1, AuthenticatedTreeIoLedgerV1,
     AuthenticatedTreeLimitsV1, AuthenticatedTreeWorkV1, SegmentLimits, SegmentStore,
@@ -60,14 +63,66 @@ fn invalid(message: &'static str) -> io::Error {
     io::Error::new(io::ErrorKind::InvalidData, message)
 }
 
-fn digest(value: &serde_json::Value) -> io::Result<Digest256> {
+/// Conservative transient allowance for decoding one bounded wire row. The
+/// foundation parser enforces its share before each allocation; the remaining
+/// two raw-sized slices cover decoded descriptor bytes and canonical output.
+pub(crate) fn decode_workspace_upper_bound(raw_bytes: usize) -> io::Result<usize> {
+    if raw_bytes == 0 || raw_bytes > ROOTSET_MAX_BYTES.max(MAX_COMPACT_COMMIT_V2_BYTES) {
+        return Err(invalid("source V2 JSON byte profile exceeded"));
+    }
+    raw_bytes
+        .checked_mul(256)
+        .and_then(|bytes| bytes.checked_add(64 * 1024))
+        .ok_or_else(|| invalid("source V2 JSON workspace bound overflow"))
+}
+
+fn parse_bounded_json(
+    raw: &[u8],
+    maximum_bytes: usize,
+    workspace_bytes: usize,
+) -> io::Result<(JsonDocument, JsonLimits)> {
+    if raw.is_empty() || raw.len() > maximum_bytes {
+        return Err(invalid("source V2 JSON byte profile exceeded"));
+    }
+    let required = decode_workspace_upper_bound(raw.len())?;
+    if workspace_bytes < required {
+        return Err(invalid(
+            "source V2 JSON workspace reservation is insufficient",
+        ));
+    }
+    let fixed = raw
+        .len()
+        .checked_mul(16)
+        .and_then(|bytes| bytes.checked_add(16 * 1024))
+        .ok_or_else(|| invalid("source V2 JSON workspace overflow"))?;
+    let parser_workspace = workspace_bytes
+        .checked_sub(fixed)
+        .ok_or_else(|| invalid("source V2 JSON workspace preflight refused"))?;
+    let limits = JsonLimits::new(raw.len(), 16, raw.len(), 4300)
+        .map_err(|_| invalid("source V2 JSON limits are invalid"))?;
+    let document =
+        parse_json_with_state_budget(raw, JsonMode::PublishedStrict, limits, parser_workspace)
+            .map_err(|_| invalid("source V2 JSON parse or workspace bound refused"))?;
+    let canonical = canonical_bytes_v1(
+        document.root(),
+        CanonicalProfile::SourceRecordDigestV1,
+        limits,
+    )
+    .map_err(|_| invalid("source V2 JSON canonical emission refused"))?;
+    if canonical.as_slice() != raw {
+        return Err(invalid("source V2 JSON encoding is not canonical"));
+    }
+    Ok((document, limits))
+}
+
+fn digest(value: &JsonValue) -> io::Result<Digest256> {
     let text = value
         .as_str()
         .ok_or_else(|| invalid("source rootset digest field is not text"))?;
     Digest256::from_hex(text).map_err(|_| invalid("source rootset digest encoding differs"))
 }
 
-fn optional_revision(value: &serde_json::Value) -> io::Result<Option<SourceRevision>> {
+fn optional_revision(value: &JsonValue) -> io::Result<Option<SourceRevision>> {
     if value.is_null() {
         Ok(None)
     } else {
@@ -75,7 +130,7 @@ fn optional_revision(value: &serde_json::Value) -> io::Result<Option<SourceRevis
     }
 }
 
-fn number(value: &serde_json::Value) -> io::Result<u64> {
+fn number(value: &JsonValue) -> io::Result<u64> {
     value
         .as_u64()
         .ok_or_else(|| invalid("source rootset count is not unsigned"))
@@ -86,9 +141,21 @@ fn tree_bytes(tree: &AuthenticatedTreeDescriptorV2) -> io::Result<Vec<u8>> {
         .map_err(|_| invalid("source rootset tree descriptor exceeds profile"))
 }
 
-fn tree(value: &serde_json::Value) -> io::Result<AuthenticatedTreeDescriptorV2> {
-    let bytes: Vec<u8> = serde_json::from_value(value.clone())
-        .map_err(|_| invalid("source rootset tree descriptor is not bytes"))?;
+fn tree(value: &JsonValue) -> io::Result<AuthenticatedTreeDescriptorV2> {
+    let fields = value
+        .as_array()
+        .filter(|fields| fields.len() <= TREE_DESCRIPTOR_MAX_BYTES)
+        .ok_or_else(|| invalid("source rootset tree descriptor is not a bounded byte array"))?;
+    let mut bytes = Vec::new();
+    bytes
+        .try_reserve_exact(fields.len())
+        .map_err(|_| invalid("source rootset tree descriptor allocation failed"))?;
+    for field in fields {
+        bytes.push(
+            u8::try_from(number(field)?)
+                .map_err(|_| invalid("source rootset tree descriptor byte is out of range"))?,
+        );
+    }
     AuthenticatedTreeDescriptorV2::decode(&bytes, TREE_DESCRIPTOR_MAX_BYTES)
         .map_err(|_| invalid("source rootset tree descriptor is invalid"))
 }
@@ -146,7 +213,7 @@ impl SourceRevisionArtifactV2 {
         }
     }
 
-    fn from_typed_wire(value: &serde_json::Value) -> io::Result<Self> {
+    fn from_typed_wire(value: &JsonValue) -> io::Result<Self> {
         let fields = value
             .as_array()
             .filter(|fields| fields.len() == 3)
@@ -198,6 +265,42 @@ pub(crate) struct SourceRevisionRootsV2 {
 impl SourceRevisionRootsV2 {
     pub(crate) const MAX_ENCODED_BYTES: usize = ROOTSET_MAX_BYTES;
 
+    pub(crate) fn retained_state_bytes(&self) -> io::Result<usize> {
+        let tree_state = |tree: &AuthenticatedTreeDescriptorV2| {
+            size_of::<AuthenticatedTreeDescriptorV2>()
+                .checked_add(tree.kind.capacity())
+                .and_then(|bytes| {
+                    tree.root.as_ref().map_or(Some(bytes), |root| {
+                        bytes
+                            .checked_add(size_of::<tos_segment_store::AuthenticatedTreeNodeRefV1>())
+                            .and_then(|n| n.checked_add(root.min_key.capacity()))
+                            .and_then(|n| n.checked_add(root.max_key.capacity()))
+                    })
+                })
+        };
+        [
+            tree_state(&self.members),
+            tree_state(&self.identities),
+            tree_state(&self.dependencies),
+            tree_state(&self.retirements),
+        ]
+        .into_iter()
+        .try_fold(size_of::<Self>(), |total, tree| {
+            total
+                .checked_add(tree.ok_or_else(|| invalid("V2 root state overflow"))?)
+                .ok_or_else(|| invalid("V2 root state overflow"))
+        })
+    }
+
+    pub(crate) fn retained_state_upper_bound_for_value(
+        max_value_bytes: usize,
+    ) -> io::Result<usize> {
+        max_value_bytes
+            .checked_mul(4)
+            .and_then(|bytes| bytes.checked_add(size_of::<Self>() + 4096))
+            .ok_or_else(|| invalid("V2 root result state overflow"))
+    }
+
     pub(crate) fn validate_store_binding(
         &self,
         store_id: [u8; 16],
@@ -244,16 +347,19 @@ impl SourceRevisionRootsV2 {
     }
 
     pub(crate) fn decode(raw: &[u8]) -> io::Result<Self> {
+        let workspace = decode_workspace_upper_bound(raw.len())?;
+        Self::decode_with_workspace(raw, workspace)
+    }
+
+    /// Decode with the caller's already reserved transient state allowance.
+    /// The Foundation parser charges each allocation before it is made, even
+    /// when malformed nested input will later fail the fixed tuple shape.
+    pub(crate) fn decode_with_workspace(raw: &[u8], workspace: usize) -> io::Result<Self> {
         if raw.is_empty() || raw.len() > ROOTSET_MAX_BYTES {
             return Err(invalid("source revision root byte profile exceeded"));
         }
-        let value = serde_json::from_slice(raw)
-            .map_err(|_| invalid("source revision root JSON is invalid"))?;
-        let result = Self::from_wire(&value)?;
-        if result.encode()?.as_slice() != raw {
-            return Err(invalid("source revision root encoding is not canonical"));
-        }
-        Ok(result)
+        let (document, _) = parse_bounded_json(raw, ROOTSET_MAX_BYTES, workspace)?;
+        Self::from_wire(document.root())
     }
 
     fn wire_value(&self) -> io::Result<serde_json::Value> {
@@ -306,7 +412,7 @@ impl SourceRevisionRootsV2 {
         ]))
     }
 
-    fn from_wire(value: &serde_json::Value) -> io::Result<Self> {
+    fn from_wire(value: &JsonValue) -> io::Result<Self> {
         let fields = value
             .as_array()
             .ok_or_else(|| invalid("source revision root tuple shape differs"))?;
@@ -352,9 +458,7 @@ impl SourceRevisionRootsV2 {
             dependencies: tree(&fields[tree_index + 2])?,
             retirements: tree(&fields[tree_index + 3])?,
         };
-        if result.wire_value()? != *value {
-            return Err(invalid("source revision root encoding is not canonical"));
-        }
+        result.validate_store_binding(result.members.store_id, result.members.domain_digest)?;
         Ok(result)
     }
 }
@@ -487,12 +591,17 @@ impl CompactCommitV2 {
     }
 
     pub(crate) fn decode(raw: &[u8]) -> io::Result<Self> {
+        let workspace = decode_workspace_upper_bound(raw.len())?;
+        Self::decode_with_workspace(raw, workspace)
+    }
+
+    pub(crate) fn decode_with_workspace(raw: &[u8], workspace: usize) -> io::Result<Self> {
         if raw.is_empty() || raw.len() > MAX_COMPACT_COMMIT_V2_BYTES {
             return Err(invalid("compact source commit byte profile exceeded"));
         }
-        let value: serde_json::Value = serde_json::from_slice(raw)
-            .map_err(|_| invalid("compact source commit JSON is invalid"))?;
-        let fields = value
+        let (document, _) = parse_bounded_json(raw, MAX_COMPACT_COMMIT_V2_BYTES, workspace)?;
+        let fields = document
+            .root()
             .as_array()
             .filter(|fields| fields.len() == 17)
             .ok_or_else(|| invalid("compact source commit tuple shape differs"))?;
@@ -521,8 +630,8 @@ impl CompactCommitV2 {
             dependencies: tree(&fields[15])?,
             retirements: tree(&fields[16])?,
         };
-        if result.encode()?.as_slice() != raw {
-            return Err(invalid("compact source commit encoding is not canonical"));
+        if result.derived_revision()? != result.revision {
+            return Err(invalid("compact source revision derivation differs"));
         }
         Ok(result)
     }
@@ -581,9 +690,15 @@ impl SourceRootSetV2 {
     /// Apply only to a row returned by the authenticated history reader. This
     /// comparison binds the selected current tuple; it does not prove that a
     /// caller-supplied byte slice occurs in that tree.
-    pub(crate) fn verify_current_history_row(&self, key: &[u8], raw: &[u8]) -> io::Result<()> {
+    pub(crate) fn verify_current_history_row(
+        &self,
+        key: &[u8],
+        raw: &[u8],
+        decode_workspace_bytes: usize,
+    ) -> io::Result<()> {
         if key != self.current.revision.0.as_bytes()
-            || SourceRevisionRootsV2::decode(raw)? != self.current
+            || SourceRevisionRootsV2::decode_with_workspace(raw, decode_workspace_bytes)?
+                != self.current
         {
             return Err(invalid("source history current revision binding differs"));
         }
@@ -609,12 +724,17 @@ impl SourceRootSetV2 {
     }
 
     pub(crate) fn decode(raw: &[u8]) -> io::Result<Self> {
+        let workspace = decode_workspace_upper_bound(raw.len())?;
+        Self::decode_with_workspace(raw, workspace)
+    }
+
+    pub(crate) fn decode_with_workspace(raw: &[u8], workspace: usize) -> io::Result<Self> {
         if raw.is_empty() || raw.len() > ROOTSET_MAX_BYTES {
             return Err(invalid("source rootset byte profile exceeded"));
         }
-        let value: serde_json::Value =
-            serde_json::from_slice(raw).map_err(|_| invalid("source rootset JSON is invalid"))?;
-        let fields = value
+        let (document, _) = parse_bounded_json(raw, ROOTSET_MAX_BYTES, workspace)?;
+        let fields = document
+            .root()
             .as_array()
             .filter(|fields| fields.len() == 3)
             .ok_or_else(|| invalid("source rootset tuple shape differs"))?;
@@ -625,9 +745,10 @@ impl SourceRootSetV2 {
             current: SourceRevisionRootsV2::from_wire(&fields[1])?,
             history: tree(&fields[2])?,
         };
-        if result.encode()?.as_slice() != raw {
-            return Err(invalid("source rootset encoding is not canonical"));
-        }
+        result.validate_store_binding(
+            result.current.members.store_id,
+            result.current.members.domain_digest,
+        )?;
         Ok(result)
     }
 
@@ -1065,12 +1186,14 @@ pub(crate) fn build_initial_rootset_v2(
         )
         .map_err(tree_io_error)?;
     add_tree_work(&mut used, history_read_work, base_limits)?;
-    roots.verify_current_history_row(
-        revision.0.as_bytes(),
-        current_row
-            .as_deref()
-            .ok_or_else(|| invalid("V2 current history row is absent"))?,
-    )?;
+    let current_row = current_row
+        .as_deref()
+        .ok_or_else(|| invalid("V2 current history row is absent"))?;
+    let decode_workspace = decode_workspace_upper_bound(current_row.len())?;
+    if decode_workspace > profile.max_working_state_bytes {
+        return Err(invalid("V2 current history decode exceeds state profile"));
+    }
+    roots.verify_current_history_row(revision.0.as_bytes(), current_row, decode_workspace)?;
     index.verify_candidate()?;
     let bytes = roots.encode()?;
     let simultaneous_rootset_state = bytes

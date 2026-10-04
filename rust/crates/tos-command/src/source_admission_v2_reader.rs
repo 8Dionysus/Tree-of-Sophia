@@ -2,7 +2,9 @@
 //! These observations confer no admission, rights or currentness after the
 //! selected immutable session. Strict legacy V1 readers remain unchanged.
 use super::source_admission::{active, invalid};
-use super::source_admission_segment_v2::{SourceRevisionRootsV2, SourceRootSetV2};
+use super::source_admission_segment_v2::{
+    SourceRevisionRootsV2, SourceRootSetV2, decode_workspace_upper_bound,
+};
 use super::source_admission_store::AdmissionStore;
 use std::{
     fs::File,
@@ -126,6 +128,7 @@ pub struct V2ReadSession {
     store: AdmissionStore,
     segment: SegmentStore,
     roots: SourceRootSetV2,
+    history_roots_cache: Option<SourceRevisionRootsV2>,
     selection: CorpusCurrentSelection,
     limits: V2PointReadLimits,
     io: PinnedSqliteIoBudget,
@@ -209,7 +212,13 @@ impl V2ReadSession {
             &cancel,
             &original_io,
         )?;
-        let roots = SourceRootSetV2::decode(&raw)?;
+        let root_decode_workspace = ROOT_BYTES
+            .checked_mul(128)
+            .ok_or_else(|| invalid("V2 root decode state bound overflow"))?;
+        if decode_workspace_upper_bound(raw.len())? > root_decode_workspace {
+            return Err(invalid("V2 root decode exceeds selected state profile"));
+        }
+        let roots = SourceRootSetV2::decode_with_workspace(&raw, root_decode_workspace)?;
         if roots.current.revision != selection.revision
             || roots.current.base_revision != selection.previous
         {
@@ -234,6 +243,7 @@ impl V2ReadSession {
             store,
             segment,
             roots,
+            history_roots_cache: None,
             selection,
             limits,
             io: original_io,
@@ -250,7 +260,9 @@ impl V2ReadSession {
         let row = session
             .lookup(&history, &key)?
             .ok_or_else(|| invalid("V2 point current history row absent"))?;
-        session.roots.verify_current_history_row(&key, &row)?;
+        session
+            .roots
+            .verify_current_history_row(&key, &row, root_decode_workspace)?;
         session.store.verify_layout()?;
         active(deadline, &session.cancel)?;
         Ok(session)
@@ -258,6 +270,103 @@ impl V2ReadSession {
 
     pub fn selected_revision(&self) -> SourceRevision {
         self.selection.revision
+    }
+
+    pub(crate) fn current_roots(&self) -> &SourceRevisionRootsV2 {
+        &self.roots.current
+    }
+
+    pub(crate) fn retained_history_count(&self) -> u64 {
+        self.roots.history.entries
+    }
+
+    pub(crate) fn history_root_result_state_upper_bound(&self) -> io::Result<usize> {
+        SourceRevisionRootsV2::retained_state_upper_bound_for_value(
+            self.limits.tree.max_value_bytes,
+        )
+    }
+
+    pub(crate) fn shares_io_budget(&self, io: &PinnedSqliteIoBudget) -> bool {
+        self.io.shares_with(io)
+    }
+
+    pub(crate) fn io_budget(&self) -> &PinnedSqliteIoBudget {
+        &self.io
+    }
+
+    pub(crate) fn declared_retained_state_bytes(&self) -> io::Result<(usize, usize)> {
+        self.limits
+            .base_state_bytes()?
+            .checked_add(std::mem::size_of::<Self>())
+            .map(|state| (state, 0))
+            .ok_or_else(|| invalid("V2 point retained state overflow"))
+    }
+
+    pub(crate) fn roots_for_revision(
+        &mut self,
+        revision: SourceRevision,
+    ) -> io::Result<Option<SourceRevisionRootsV2>> {
+        self.revision_roots(revision)
+    }
+
+    pub(crate) fn next_history_roots_after(
+        &mut self,
+        after_revision: Option<&[u8]>,
+        caller_result_state_bytes: usize,
+    ) -> io::Result<Option<(SourceRevisionRootsV2, usize)>> {
+        let selected_revision = self.selection.revision;
+        let Some(row) = self.next_row_after(
+            selected_revision,
+            V2RootKind::History,
+            None,
+            None,
+            after_revision,
+        )?
+        else {
+            return Ok(None);
+        };
+        let workspace = ROOT_BYTES
+            .checked_mul(128)
+            .ok_or_else(|| invalid("V2 history decode state bound overflow"))?;
+        let required = decode_workspace_upper_bound(row.value.len())?;
+        if required > workspace {
+            return Err(invalid("V2 history decode exceeds selected state profile"));
+        }
+        let roots = SourceRevisionRootsV2::decode_with_workspace(&row.value, workspace)?;
+        if row.key.as_slice() != roots.revision.0.as_bytes() {
+            return Err(invalid("V2 history key and revision differ"));
+        }
+        roots.validate_store_binding(self.segment.store_id(), self.segment.domain_digest())?;
+        if roots.revision == self.roots.current.revision {
+            self.roots
+                .verify_current_history_row(&row.key, &row.value, workspace)?;
+        } else {
+            self.history_roots_cache = Some(roots.clone());
+        }
+        if roots.retained_state_bytes()? > caller_result_state_bytes {
+            return Err(invalid("V2 history root exceeds caller retained state"));
+        }
+        let raw_bytes = row.value.len();
+        Ok(Some((roots, raw_bytes)))
+    }
+
+    pub(crate) fn identity_path(
+        &mut self,
+        revision: SourceRevision,
+        id: &str,
+    ) -> io::Result<Option<RelativePath>> {
+        if id.is_empty() || id.len() > self.limits.tree.max_key_bytes {
+            return Err(invalid("V2 base identity key exceeds profile"));
+        }
+        let Some(roots) = self.revision_roots(revision)? else {
+            return Ok(None);
+        };
+        let Some(path) = self.lookup(&roots.identities, id.as_bytes())? else {
+            return Ok(None);
+        };
+        RelativePath::parse(std::str::from_utf8(&path).map_err(invalid)?)
+            .map_err(invalid)
+            .map(Some)
     }
 
     /// Explicit mutable-pointer fence for a caller that requires a current
@@ -443,15 +552,29 @@ impl V2ReadSession {
         if revision == self.roots.current.revision {
             return Ok(Some(self.roots.current.clone()));
         }
+        if let Some(cached) = self
+            .history_roots_cache
+            .as_ref()
+            .filter(|roots| roots.revision == revision)
+        {
+            return Ok(Some(cached.clone()));
+        }
         let history = self.roots.history.clone();
         let Some(raw) = self.lookup(&history, revision.0.as_bytes())? else {
             return Ok(None);
         };
-        let roots = SourceRevisionRootsV2::decode(&raw)?;
+        let workspace = ROOT_BYTES
+            .checked_mul(128)
+            .ok_or_else(|| invalid("V2 revision decode state bound overflow"))?;
+        if decode_workspace_upper_bound(raw.len())? > workspace {
+            return Err(invalid("V2 revision decode exceeds selected state profile"));
+        }
+        let roots = SourceRevisionRootsV2::decode_with_workspace(&raw, workspace)?;
         if roots.revision != revision {
             return Err(invalid("V2 point history revision differs"));
         }
         roots.validate_store_binding(self.segment.store_id(), self.segment.domain_digest())?;
+        self.history_roots_cache = Some(roots.clone());
         Ok(Some(roots))
     }
 
