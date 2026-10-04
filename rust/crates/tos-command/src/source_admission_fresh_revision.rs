@@ -576,7 +576,7 @@ fn inspect_work_facts(
         files: context_files,
     };
     let (config, family) = crate::source_revisions::configuration(&context).map_err(work_error)?;
-    if family != crate::source_revisions::RevisionFamily::NativeSelected
+    if !family.selected()
         || cmd::text(&config, "source_path").map_err(work_error)? != source_path
         || cmd::text(&config, "record_id").map_err(work_error)?
             != cmd::text(auth, "record_id").map_err(work_error)?
@@ -584,7 +584,7 @@ fn inspect_work_facts(
             != cmd::field(auth, "record_type").map_err(work_error)?
     {
         return Err(invalid(
-            "committed Work is outside current Native owner scope",
+            "committed Work is outside current selected owner scope",
         ));
     }
     let configured_root = crate::source_text_owner::normalized_absolute(
