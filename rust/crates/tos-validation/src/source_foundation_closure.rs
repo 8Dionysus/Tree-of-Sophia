@@ -87,6 +87,12 @@ pub struct SourceFoundationClosureCost {
     /// Bytes returned by the exact-cut current and retained read adapter.
     pub current_bytes_read: u64,
     pub recorded_bytes_read: u64,
+    /// Exact retained-history lookup calls, including absent results. This
+    /// separates worker reads from the count of file bodies returned.
+    pub recorded_read_operations: u64,
+    /// Exact retained-history calls that returned a body; absent results do
+    /// not synthesize file or byte counts.
+    pub recorded_files_read: u64,
     pub files_read: u64,
     pub schema_requests: u64,
     pub decoded_rows: u64,
@@ -234,6 +240,7 @@ pub fn inspect_source_foundation_closure<S: LayerFamilySource + ?Sized>(
         None,
         limits,
         true,
+        true,
     )
 }
 
@@ -254,7 +261,7 @@ pub fn inspect_source_foundation_closure_with_identity<I: Eq, S: LayerFamilySour
     claims: &dyn SourceFoundationDefaultClaims,
     limits: ItemLimits,
 ) -> Result<SourceFoundationClosureReport, ItemRefusal> {
-    inspect_source_foundation_closure_with_identity_and_link_store(
+    inspect_source_foundation_closure_with_identity_and_link_store_cache(
         source,
         input,
         expected_identity,
@@ -265,6 +272,7 @@ pub fn inspect_source_foundation_closure_with_identity<I: Eq, S: LayerFamilySour
         claims,
         None,
         limits,
+        true,
     )
 }
 
@@ -283,6 +291,38 @@ pub fn inspect_source_foundation_closure_with_identity_and_link_store<
     claims: &dyn SourceFoundationDefaultClaims,
     link_store: Option<&mut dyn SourceFoundationClosureLinkStore>,
     limits: ItemLimits,
+) -> Result<SourceFoundationClosureReport, ItemRefusal> {
+    inspect_source_foundation_closure_with_identity_and_link_store_cache(
+        source,
+        input,
+        expected_identity,
+        coverage,
+        source_events,
+        records,
+        paths,
+        claims,
+        link_store,
+        limits,
+        false,
+    )
+}
+
+#[allow(clippy::too_many_arguments)]
+fn inspect_source_foundation_closure_with_identity_and_link_store_cache<
+    I: Eq,
+    S: LayerFamilySource + ?Sized,
+>(
+    source: &mut S,
+    input: &dyn SourceCutInputWithIdentity<I>,
+    expected_identity: &I,
+    coverage: &SourceCutInputCoverage,
+    source_events: &dyn SourceFoundationDefaultEventLookup,
+    records: &dyn SourceFoundationDefaultRecordsLookup,
+    paths: &dyn SourceFoundationDefaultPaths,
+    claims: &dyn SourceFoundationDefaultClaims,
+    link_store: Option<&mut dyn SourceFoundationClosureLinkStore>,
+    limits: ItemLimits,
+    cache_recorded_checks: bool,
 ) -> Result<SourceFoundationClosureReport, ItemRefusal> {
     let cancelled = source.cancellation();
     check(limits.deadline, cancelled)?;
@@ -303,6 +343,7 @@ pub fn inspect_source_foundation_closure_with_identity_and_link_store<
         link_store,
         limits,
         false,
+        cache_recorded_checks,
     );
     check(limits.deadline, source.cancellation())?;
     if input.input_identity() != expected_identity {
@@ -325,6 +366,7 @@ fn run_source_foundation_closure<S: LayerFamilySource + ?Sized>(
     link_store: Option<&mut dyn SourceFoundationClosureLinkStore>,
     limits: ItemLimits,
     cache_digests: bool,
+    cache_recorded_checks: bool,
 ) -> Result<SourceFoundationClosureReport, ItemRefusal> {
     let mut has_declared_profile_kind = false;
     records.for_each_profile_kind(&mut |kind| {
@@ -350,6 +392,7 @@ fn run_source_foundation_closure<S: LayerFamilySource + ?Sized>(
         link_store,
         limits,
         cache_digests,
+        cache_recorded_checks,
     )?;
     rules.check_records_map()?;
     rules.collect_events()?;
@@ -565,6 +608,7 @@ struct ClosureRules<'a, S: LayerFamilySource + ?Sized> {
     retained_state_bytes: usize,
     temporary_state_bytes: usize,
     cache_digests: bool,
+    cache_recorded_checks: bool,
     loaded: BTreeMap<String, LoadedRows>,
     digests: BTreeMap<String, String>,
     recorded_checks: BTreeMap<(String, String), bool>,
@@ -596,6 +640,7 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
         link_store: Option<&'a mut dyn SourceFoundationClosureLinkStore>,
         limits: ItemLimits,
         cache_digests: bool,
+        cache_recorded_checks: bool,
     ) -> Result<Self, ItemRefusal> {
         check(limits.deadline, source.cancellation())?;
         Ok(Self {
@@ -615,6 +660,7 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
             retained_state_bytes: 0,
             temporary_state_bytes: 0,
             cache_digests,
+            cache_recorded_checks,
             loaded: BTreeMap::new(),
             digests: BTreeMap::new(),
             recorded_checks: BTreeMap::new(),
@@ -1122,11 +1168,36 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
 
     fn recorded_matches(&mut self, path: &str, digest: &str) -> Result<bool, ItemRefusal> {
         check(self.limits.deadline, self.source.cancellation())?;
-        let key = (path.to_owned(), digest.to_owned());
-        if let Some(matches) = self.recorded_checks.get(&key) {
-            return Ok(*matches);
+        let key = if self.cache_recorded_checks {
+            let key = (path.to_owned(), digest.to_owned());
+            if let Some(matches) = self.recorded_checks.get(&key) {
+                return Ok(*matches);
+            }
+            Some(key)
+        } else {
+            None
+        };
+        let temporary_baseline = self.temporary_state_bytes;
+        if self.cache_recorded_checks {
+            self.reserve(
+                path.len()
+                    .checked_add(digest.len())
+                    .and_then(|bytes| bytes.checked_add(96))
+                    .ok_or(ItemRefusal::Budget)?,
+            )?;
+        } else {
+            self.reserve_temporary(
+                self.limits
+                    .max_member_bytes
+                    .checked_add(std::mem::size_of::<Vec<u8>>() + 64)
+                    .ok_or(ItemRefusal::Budget)?,
+            )?;
         }
-        self.reserve(path.len() + digest.len() + 96)?;
+        self.cost.recorded_read_operations = self
+            .cost
+            .recorded_read_operations
+            .checked_add(1)
+            .ok_or(ItemRefusal::Budget)?;
         let raw = self.source.recorded(
             path,
             digest,
@@ -1149,9 +1220,18 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
                 .files_read
                 .checked_add(1)
                 .ok_or(ItemRefusal::Budget)?;
+            self.cost.recorded_files_read = self
+                .cost
+                .recorded_files_read
+                .checked_add(1)
+                .ok_or(ItemRefusal::Budget)?;
         }
         let matches = raw.is_some_and(|bytes| Digest256::of_bytes(&bytes).to_hex() == digest);
-        self.recorded_checks.insert(key, matches);
+        if let Some(key) = key {
+            self.recorded_checks.insert(key, matches);
+        } else {
+            self.release_temporary_since(temporary_baseline);
+        }
         Ok(matches)
     }
 
