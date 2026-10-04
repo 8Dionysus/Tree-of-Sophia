@@ -5560,6 +5560,51 @@ impl CandidateDefaultRecords<'_, '_, '_, '_, '_, '_> {
         Ok(Some(found.record))
     }
 
+    fn current_record_owned_with_state_budget(
+        &self,
+        id: &str,
+        max_state_bytes: usize,
+    ) -> Result<(Option<BiblioCurrentRecord>, usize), ItemRefusal> {
+        self.context.check()?;
+        let allowance = max_state_bytes
+            .min(self.lookup_state_limit)
+            .min(self.context.operation_state_limit);
+        let lookup_argument_state = estimate_string_state(id)?
+            .checked_add(256)
+            .ok_or(ItemRefusal::Budget)?;
+        if lookup_argument_state >= allowance {
+            return Err(ItemRefusal::Budget);
+        }
+        // The caller supplies its current remainder. Check that whole joint
+        // envelope before the held-index read, then pass only the remainder
+        // after the live query argument into the Records row decoder.
+        self.context.row_state(allowance)?;
+        self.context.add_scan_rows(self.scan_rows, 1)?;
+        let row_allowance = allowance
+            .checked_sub(lookup_argument_state)
+            .ok_or(ItemRefusal::Budget)?;
+        let max_state = std::num::NonZeroUsize::new(row_allowance).ok_or(ItemRefusal::Budget)?;
+        let found = self.report.index().lookup_current_record(
+            id,
+            max_state,
+            self.context.deadline,
+            self.context.cancelled,
+        )?;
+        self.context.check()?;
+        let Some(found) = found else {
+            self.context.active_state(lookup_argument_state)?;
+            return Ok((None, lookup_argument_state));
+        };
+        let charged_state_bytes = lookup_argument_state
+            .checked_add(found.charged_state_bytes)
+            .ok_or(ItemRefusal::Budget)?;
+        if charged_state_bytes > allowance {
+            return Err(ItemRefusal::Budget);
+        }
+        self.context.active_state(charged_state_bytes)?;
+        Ok((Some(found.record), charged_state_bytes))
+    }
+
     fn sorted_current_records(
         &self,
         mut visit: impl FnMut(&str, &BiblioCurrentRecord) -> Result<(), ItemRefusal>,
@@ -5603,8 +5648,15 @@ impl CandidateDefaultRecords<'_, '_, '_, '_, '_, '_> {
         max_state_bytes: usize,
     ) -> Result<(Option<BiblioCurrentRecord>, usize), ItemRefusal> {
         self.context.check()?;
+        // Match the held Records index's `string_fields(&[path])` query
+        // workspace even when the key is absent. That owner charges a 256
+        // byte base plus 64 bytes for this field; the common text estimate
+        // already includes `size_of::<String>() + 32` of that overhead.
+        let query_overhead = 320usize
+            .checked_sub(size_of::<String>() + 32)
+            .ok_or(ItemRefusal::Budget)?;
         let workspace_state = estimate_string_state(path)?
-            .checked_add(256)
+            .checked_add(query_overhead)
             .ok_or(ItemRefusal::Budget)?;
         let max_state = max_state_bytes.min(self.lookup_state_limit);
         if workspace_state > max_state {
@@ -5654,6 +5706,14 @@ impl SourceFoundationDefaultRecordsLookup for CandidateDefaultRecords<'_, '_, '_
     ) -> Result<Option<Cow<'_, BiblioCurrentRecord>>, ItemRefusal> {
         self.current_record_owned(id)
             .map(|record| record.map(Cow::Owned))
+    }
+
+    fn current_record_with_state_budget(
+        &self,
+        id: &str,
+        max_state_bytes: usize,
+    ) -> Result<(Option<BiblioCurrentRecord>, usize), ItemRefusal> {
+        self.current_record_owned_with_state_budget(id, max_state_bytes)
     }
 
     fn record_by_path(

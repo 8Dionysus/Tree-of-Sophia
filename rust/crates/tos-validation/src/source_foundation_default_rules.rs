@@ -108,6 +108,19 @@ pub trait SourceFoundationDefaultRecordsLookup {
         Option<std::borrow::Cow<'_, crate::record_biblio_cut::BiblioCurrentRecord>>,
         ItemRefusal,
     >;
+    /// Read one current Record within the caller's remaining state allowance.
+    /// The returned owned row stays charged until the caller drops it. There
+    /// is no generic fallback because `current_record` may already allocate
+    /// before it returns.
+    fn current_record_with_state_budget(
+        &self,
+        _id: &str,
+        _max_state_bytes: usize,
+    ) -> Result<(Option<crate::record_biblio_cut::BiblioCurrentRecord>, usize), ItemRefusal> {
+        Err(ItemRefusal::Unsupported(
+            "Records current-record lookup lacks a precharged state adapter".into(),
+        ))
+    }
     fn record_by_path(
         &self,
         path: &str,
@@ -365,6 +378,24 @@ impl SourceFoundationDefaultRecordsLookup for BorrowedDefaultRecords<'_> {
         ItemRefusal,
     > {
         Ok(self.current_records.get(id).map(std::borrow::Cow::Borrowed))
+    }
+    fn current_record_with_state_budget(
+        &self,
+        id: &str,
+        max_state_bytes: usize,
+    ) -> Result<(Option<crate::record_biblio_cut::BiblioCurrentRecord>, usize), ItemRefusal> {
+        let Some(record) = self.current_records.get(id) else {
+            return Ok((None, 0));
+        };
+        let state = estimate_biblio_current_record_storage(record)?;
+        if state > max_state_bytes {
+            return Err(ItemRefusal::BudgetCheck {
+                check: "source-foundation current-record owned row state",
+                used: Some(u64::try_from(state).map_err(|_| ItemRefusal::Budget)?),
+                limit: Some(u64::try_from(max_state_bytes).map_err(|_| ItemRefusal::Budget)?),
+            });
+        }
+        Ok((Some(record.clone()), state))
     }
     fn record_by_path(
         &self,
@@ -2630,6 +2661,19 @@ pub(crate) fn estimate_string_storage(text: &str) -> Result<usize, ItemRefusal> 
     text.len()
         .checked_mul(2)
         .and_then(|bytes| bytes.checked_add(size_of::<String>() + 32))
+        .ok_or(ItemRefusal::Budget)
+}
+
+pub(crate) fn estimate_biblio_current_record_storage(
+    record: &crate::record_biblio_cut::BiblioCurrentRecord,
+) -> Result<usize, ItemRefusal> {
+    let path = estimate_string_storage(&record.path)?;
+    let kind = estimate_string_storage(&record.kind)?;
+    let value = estimate_value_storage(&record.value)?;
+    size_of::<crate::record_biblio_cut::BiblioCurrentRecord>()
+        .checked_add(path)
+        .and_then(|state| state.checked_add(kind))
+        .and_then(|state| state.checked_add(value))
         .ok_or(ItemRefusal::Budget)
 }
 

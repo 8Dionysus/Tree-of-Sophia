@@ -1225,12 +1225,102 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
         self.paths.contains_with_checkpoint(path, &mut checkpoint)
     }
 
-    fn current_record(
-        &self,
+    fn current_record_with_state_budget(
+        &mut self,
         id: &str,
-    ) -> Result<Option<Cow<'_, BiblioCurrentRecord>>, ItemRefusal> {
-        check(self.limits.deadline, self.source.cancellation())?;
-        self.records.current_record(id)
+    ) -> Result<(Option<BiblioCurrentRecord>, usize), ItemRefusal> {
+        let remaining = self.remaining_state()?;
+        let (record, workspace) = self
+            .records
+            .current_record_with_state_budget(id, remaining)?;
+        if workspace > remaining {
+            return Err(ItemRefusal::Budget);
+        }
+        self.reserve_temporary(workspace)?;
+        Ok((record, workspace))
+    }
+
+    fn current_record_exists_with_state_budget(&mut self, id: &str) -> Result<bool, ItemRefusal> {
+        let (record, workspace) = self.current_record_with_state_budget(id)?;
+        let exists = record.is_some();
+        drop(record);
+        self.release_temporary_state(workspace)?;
+        Ok(exists)
+    }
+
+    fn current_record_path_with_state_budget(
+        &mut self,
+        id: &str,
+    ) -> Result<(Option<String>, usize), ItemRefusal> {
+        let (record, record_workspace) = self.current_record_with_state_budget(id)?;
+        let Some(record) = record else {
+            self.release_temporary_state(record_workspace)?;
+            return Ok((None, 0));
+        };
+        let path_workspace = estimate_string_storage(&record.path)?
+            .checked_add(std::mem::size_of::<String>() + 4 * std::mem::size_of::<usize>())
+            .ok_or(ItemRefusal::Budget)?;
+        self.reserve_temporary(path_workspace)?;
+        let path = record.path.clone();
+        drop(record);
+        self.release_temporary_state(record_workspace)?;
+        Ok((Some(path), path_workspace))
+    }
+
+    fn owner_record_matches_subject_at_location(
+        &mut self,
+        location: &str,
+        subject: &str,
+    ) -> Result<bool, ItemRefusal> {
+        let owner_path = location
+            .rsplit_once(':')
+            .map(|(path, _)| path)
+            .unwrap_or(location)
+            .rsplit_once('/')
+            .map(|(parent, _)| parent);
+        let Some(parent) = owner_path else {
+            return Ok(false);
+        };
+
+        const EDITION_SUFFIX: &str = "/edition.json";
+        let owner_path_len = parent
+            .len()
+            .checked_add(EDITION_SUFFIX.len())
+            .ok_or(ItemRefusal::Budget)?;
+        let owner_path_state = owner_path_len
+            .checked_mul(2)
+            .and_then(|bytes| bytes.checked_add(std::mem::size_of::<String>() + 32))
+            .ok_or(ItemRefusal::Budget)?;
+        self.reserve_temporary(owner_path_state)?;
+        let mut path = String::with_capacity(owner_path_len);
+        path.push_str(parent);
+        path.push_str(EDITION_SUFFIX);
+
+        let remaining = self.remaining_state()?;
+        let (record, workspace) = self
+            .records
+            .record_by_path_with_state_budget(&path, remaining)?;
+        if workspace > remaining {
+            return Err(ItemRefusal::Budget);
+        }
+        self.reserve_temporary(workspace)?;
+        let matches = record
+            .as_deref()
+            .and_then(|candidate| text(&candidate.value, "record_id"))
+            == Some(subject);
+        drop(record);
+        self.release_temporary_state(workspace)?;
+        drop(path);
+        self.release_temporary_state(owner_path_state)?;
+        Ok(matches)
+    }
+
+    fn release_temporary_state(&mut self, amount: usize) -> Result<(), ItemRefusal> {
+        self.temporary_state_bytes = self
+            .temporary_state_bytes
+            .checked_sub(amount)
+            .ok_or(ItemRefusal::Budget)?;
+        Ok(())
     }
 
     fn remaining_state(&self) -> Result<usize, ItemRefusal> {
@@ -1807,34 +1897,38 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
         let Some(reference) = reference else {
             return Ok(());
         };
-        let lookup = self.current_record(reference)?;
-        let classification = match lookup.as_ref() {
-            None => None,
+        let (lookup, lookup_state) = self.current_record_with_state_budget(reference)?;
+        let classification = (|| match lookup.as_ref() {
+            None => Ok(None),
             Some(record) => {
                 let kind = record.value.get("record_type").unwrap_or(&Value::Null);
                 if text(&record.value, "record_type") == Some(expected_kind) {
-                    Some(Ok(()))
+                    Ok(Some(Ok(())))
                 } else {
                     let length = crate::source_foundation_records::python_value_string_len(kind)?;
-                    Some(Err((
+                    self.reserve_temporary(length)?;
+                    Ok(Some(Err((
                         length,
                         crate::source_foundation_records::python_value_string(kind),
-                    )))
+                    ))))
                 }
             }
-        };
+        })();
         drop(lookup);
+        self.release_temporary_state(lookup_state)?;
+        let classification = classification?;
         match classification {
             None => self.issue(
                 owner,
                 format!("unresolved {expected_kind} reference: {reference}"),
             )?,
             Some(Err((length, displayed))) => {
-                self.reserve(length)?;
                 self.issue(
                     owner,
                     format!("{reference} resolves to {displayed}, expected {expected_kind}"),
                 )?;
+                drop(displayed);
+                self.release_temporary_state(length)?;
             }
             Some(Ok(())) => {}
         }
@@ -2795,20 +2889,45 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
                     crate::source_foundation_records::python_value_string(subject_value);
                 let object_key =
                     crate::source_foundation_records::python_value_string(object_value);
+                let mut expected_evidence_state = std::mem::size_of::<BTreeSet<String>>();
+                self.reserve_temporary(expected_evidence_state)?;
                 let mut expected_evidence = BTreeSet::new();
                 for endpoint in [&subject_key, &object_key] {
-                    if let Some(record) = self.current_record(endpoint)? {
-                        expected_evidence.insert(record.path.clone());
+                    let (record_path, path_workspace) =
+                        self.current_record_path_with_state_budget(endpoint)?;
+                    if let Some(record_path) = record_path {
+                        if expected_evidence.contains(&record_path) {
+                            drop(record_path);
+                            self.release_temporary_state(path_workspace)?;
+                        } else {
+                            expected_evidence_state = expected_evidence_state
+                                .checked_add(path_workspace)
+                                .ok_or(ItemRefusal::Budget)?;
+                            expected_evidence.insert(record_path);
+                        }
                     }
                 }
                 if object_kind == "item" {
-                    let object_record = self.current_record(&object_key)?;
+                    let (object_record, object_workspace) =
+                        self.current_record_with_state_budget(&object_key)?;
                     if let Some(manifest_ref) = object_record
                         .as_ref()
                         .and_then(|record| text(&record.value, "item_manifest_ref"))
+                        && !expected_evidence.contains(manifest_ref)
                     {
+                        let path_state = estimate_string_storage(manifest_ref)?
+                            .checked_add(
+                                std::mem::size_of::<String>() + 4 * std::mem::size_of::<usize>(),
+                            )
+                            .ok_or(ItemRefusal::Budget)?;
+                        self.reserve_temporary(path_state)?;
+                        expected_evidence_state = expected_evidence_state
+                            .checked_add(path_state)
+                            .ok_or(ItemRefusal::Budget)?;
                         expected_evidence.insert(manifest_ref.to_owned());
                     }
+                    drop(object_record);
+                    self.release_temporary_state(object_workspace)?;
                     if let (Some(item_id), Some(edition_id)) = (object_ref, subject_ref) {
                         if self.records.item_edition(item_id)?.as_deref() != Some(edition_id) {
                             self.issue(&location, "edition-item topology differs from the current item manifest embodiment")?;
@@ -2821,7 +2940,7 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
                     self.issue(&location, "bibliographic topology evidence must be the exact linked records and item manifest")?;
                 }
                 if let Some(event) = &event {
-                    for evidence_ref in expected_evidence {
+                    for evidence_ref in &expected_evidence {
                         let matches: Vec<&Value> = event
                             .get("inputs")
                             .and_then(Value::as_array)
@@ -2848,6 +2967,8 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
                         }
                     }
                 }
+                drop(expected_evidence);
+                self.release_temporary_state(expected_evidence_state)?;
                 if !claim_id.is_empty() {
                     if let Some(reference) = self.topology.get(claim_id) {
                         if reference.subject != subject_ref.unwrap_or_default()
@@ -3039,16 +3160,46 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
             if subject_ref == object_ref {
                 self.issue(&location, "Expression derivation is irreflexive")?;
             }
-            let same_work = {
-                let subject_record = self.current_record(subject_ref)?;
-                let object_record = self.current_record(object_ref)?;
-                match (subject_record, object_record) {
-                    (Some(subject), Some(object)) => {
-                        text(&subject.value, "work_ref") == text(&object.value, "work_ref")
-                    }
-                    _ => true,
+            let temporary_baseline = self.temporary_state_bytes;
+            let same_work: Result<bool, ItemRefusal> = (|| {
+                let (subject_record, subject_workspace) =
+                    self.current_record_with_state_budget(subject_ref)?;
+                let subject_present = subject_record.is_some();
+                let subject_work_ref_value = subject_record
+                    .as_ref()
+                    .and_then(|subject| text(&subject.value, "work_ref"));
+                let mut subject_scalar_workspace = std::mem::size_of::<Option<String>>()
+                    .checked_add(2 * std::mem::size_of::<usize>())
+                    .and_then(|bytes| bytes.checked_add(std::mem::size_of::<bool>()))
+                    .ok_or(ItemRefusal::Budget)?;
+                if let Some(work_ref) = subject_work_ref_value {
+                    subject_scalar_workspace = subject_scalar_workspace
+                        .checked_add(estimate_string_storage(work_ref)?)
+                        .ok_or(ItemRefusal::Budget)?;
                 }
-            };
+                self.reserve_temporary(subject_scalar_workspace)?;
+                let subject_work_ref = subject_work_ref_value.map(str::to_owned);
+                drop(subject_record);
+                self.release_temporary_state(subject_workspace)?;
+
+                let (object_record, object_workspace) =
+                    self.current_record_with_state_budget(object_ref)?;
+                let same_work = if !subject_present || object_record.is_none() {
+                    true
+                } else {
+                    subject_work_ref.as_deref()
+                        == object_record
+                            .as_ref()
+                            .and_then(|object| text(&object.value, "work_ref"))
+                };
+                drop(object_record);
+                self.release_temporary_state(object_workspace)?;
+                drop(subject_work_ref);
+                self.release_temporary_state(subject_scalar_workspace)?;
+                Ok(same_work)
+            })();
+            self.release_temporary_since(temporary_baseline);
+            let same_work = same_work?;
             if !same_work {
                 self.issue(
                     &location,
@@ -3368,9 +3519,20 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
                 }
 
                 let mut expected_inputs = evidence_paths;
+                let mut endpoint_path_state = 0usize;
                 for endpoint in &endpoint_refs {
-                    if let Some(record) = self.current_record(endpoint)? {
-                        expected_inputs.insert(record.path.clone());
+                    let (record_path, path_workspace) =
+                        self.current_record_path_with_state_budget(endpoint)?;
+                    if let Some(record_path) = record_path {
+                        if expected_inputs.contains(&record_path) {
+                            drop(record_path);
+                            self.release_temporary_state(path_workspace)?;
+                        } else {
+                            endpoint_path_state = endpoint_path_state
+                                .checked_add(path_workspace)
+                                .ok_or(ItemRefusal::Budget)?;
+                            expected_inputs.insert(record_path);
+                        }
                     }
                 }
                 expected_inputs.insert(CLAIM_SCHEMA.to_owned());
@@ -3410,6 +3572,8 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
                         )?;
                     }
                 }
+                drop(expected_inputs);
+                self.release_temporary_state(endpoint_path_state)?;
                 let expected_configuration = serde_json::json!({
                     "expression_identities_materialized": endpoint_refs.len(),
                     "derivation_claims_materialized": subjects.len(),
@@ -3568,27 +3732,11 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
         let mut validated_events = BTreeSet::new();
         for claim in claims {
             check(self.limits.deadline, self.source.cancellation())?;
-            if self.current_record(&claim.subject)?.is_none() {
+            if !self.current_record_exists_with_state_budget(&claim.subject)? {
                 continue;
             }
-            let owner_path = claim
-                .location
-                .rsplit_once(':')
-                .map(|(path, _)| path)
-                .unwrap_or(&claim.location);
-            let owner_path = owner_path
-                .rsplit_once('/')
-                .map(|(parent, _)| format!("{parent}/edition.json"));
-            let owner_id = {
-                let owner_record = match owner_path.as_deref() {
-                    Some(path) => self.records.record_by_path(path)?,
-                    None => None,
-                };
-                owner_record
-                    .as_ref()
-                    .and_then(|candidate| text(&candidate.value, "record_id"))
-                    .map(str::to_owned)
-            };
+            let owner_matches = self
+                .owner_record_matches_subject_at_location(&claim.location, &claim.subject)?;
             if claim.native {
                 continue;
             }
@@ -3614,14 +3762,14 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
             ) {
                 self.issue(&location, "publication claim assertion_layer must be bibliographic_assertion or scholarly_report")?;
             }
-            if owner_id.as_deref() != Some(claim.subject.as_str()) {
+            if !owner_matches {
                 self.issue(
                     &location,
                     "publication claim subject_ref differs from sibling edition.json",
                 )?;
             }
             if claim.object.starts_with("tos.")
-                && self.current_record(&claim.object)?.is_none()
+                && !self.current_record_exists_with_state_budget(&claim.object)?
                 && !self.link_exists(&claim.object)?
                 && !self.event_exists(&claim.object)?
                 && !self.records.rights_contains(&claim.object)?
@@ -3736,25 +3884,10 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
                     "provision-activity predicate must be provision_activity",
                 )?;
             }
-            let owner_path = reference
-                .location
-                .rsplit_once(':')
-                .map(|(path, _)| path)
-                .unwrap_or(&reference.location);
-            let owner_path = owner_path
-                .rsplit_once('/')
-                .map(|(parent, _)| format!("{parent}/edition.json"));
-            let owner_id = {
-                let owner_record = match owner_path.as_deref() {
-                    Some(path) => self.records.record_by_path(path)?,
-                    None => None,
-                };
-                owner_record
-                    .as_ref()
-                    .and_then(|candidate| text(&candidate.value, "record_id"))
-                    .map(str::to_owned)
-            };
-            if owner_id.as_deref() != Some(reference.subject.as_str()) {
+            if !self.owner_record_matches_subject_at_location(
+                &reference.location,
+                &reference.subject,
+            )? {
                 self.issue(
                     &location,
                     "provision-activity subject_ref differs from sibling edition.json",
@@ -3821,7 +3954,9 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
                     }
                 }
                 if let Some(reference) = text(agent, "normalized_agent_ref") {
-                    match self.current_record(reference)? {
+                    let (record, record_workspace) =
+                        self.current_record_with_state_budget(reference)?;
+                    match record.as_ref() {
                         None => self.issue(
                             &location,
                             format!("unresolved provision agent reference: {reference}"),
@@ -3839,6 +3974,8 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
                         }
                         Some(_) => {}
                     }
+                    drop(record);
+                    self.release_temporary_state(record_workspace)?;
                 }
             }
             if text(activity, "event_posture") == Some("source_statement_only")
@@ -3915,7 +4052,7 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
                         format!("unresolved repository evidence ref: {evidence}"),
                     )?;
                 } else if evidence.starts_with("tos.")
-                    && self.current_record(&evidence)?.is_none()
+                    && !self.current_record_exists_with_state_budget(&evidence)?
                     && !self.link_exists(&evidence)?
                 {
                     self.issue(
@@ -4168,22 +4305,65 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
                     continue;
                 };
                 self.expect_ref(&location, Some(edition_ref), "edition")?;
-                let Some(edition) = self.current_record(edition_ref)? else {
+                let temporary_baseline = self.temporary_state_bytes;
+                let same_work: Result<Option<bool>, ItemRefusal> = (|| {
+                    let Some((edition, edition_workspace)) =
+                        self.current_record_with_state_budget(edition_ref)?
+                    else {
+                        return Ok(None);
+                    };
+                    let expression_values = edition
+                        .value
+                        .get("embodies_expression_refs")
+                        .and_then(Value::as_array);
+                    let mut expression_refs_state = std::mem::size_of::<Vec<String>>();
+                    if let Some(values) = expression_values {
+                        expression_refs_state = expression_refs_state
+                            .checked_add(
+                                values
+                                    .len()
+                                    .checked_mul(std::mem::size_of::<String>())
+                                    .ok_or(ItemRefusal::Budget)?,
+                            )
+                            .ok_or(ItemRefusal::Budget)?;
+                        for expression_ref in values.iter().filter_map(Value::as_str) {
+                            expression_refs_state = expression_refs_state
+                                .checked_add(estimate_string_storage(expression_ref)?)
+                                .ok_or(ItemRefusal::Budget)?;
+                        }
+                    }
+                    self.reserve_temporary(expression_refs_state)?;
+                    let mut expression_refs =
+                        Vec::with_capacity(expression_values.map_or(0, Vec::len));
+                    if let Some(values) = expression_values {
+                        expression_refs
+                            .extend(values.iter().filter_map(Value::as_str).map(str::to_owned));
+                    }
+                    drop(edition);
+                    self.release_temporary_state(edition_workspace)?;
+
+                    let mut same_work = false;
+                    for expression_ref in &expression_refs {
+                        let (expression, expression_workspace) =
+                            self.current_record_with_state_budget(expression_ref)?;
+                        let matches = expression.as_ref().is_some_and(|expression| {
+                            text(&expression.value, "work_ref") == Some(subject.as_str())
+                        });
+                        drop(expression);
+                        self.release_temporary_state(expression_workspace)?;
+                        if matches {
+                            same_work = true;
+                            break;
+                        }
+                    }
+                    drop(expression_refs);
+                    self.release_temporary_state(expression_refs_state)?;
+                    Ok(Some(same_work))
+                })();
+                self.release_temporary_since(temporary_baseline);
+                let Some(same_work) = same_work? else {
                     continue;
                 };
-                let mut same_work = false;
-                for expression_ref in value_strings(&edition.value, "embodies_expression_refs") {
-                    if self
-                        .current_record(&expression_ref)?
-                        .is_some_and(|expression| {
-                            text(&expression.value, "work_ref") == Some(subject.as_str())
-                        })
-                    {
-                        same_work = true;
-                        break;
-                    }
-                }
-                drop(edition);
                 if !same_work {
                     self.issue(
                         &location,
@@ -4385,8 +4565,10 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
         for (claim_id, claim) in claims {
             check(self.limits.deadline, self.source.cancellation())?;
             let location = &claim.location;
+            let (subject, subject_workspace) =
+                self.current_record_with_state_budget(&claim.subject)?;
             let (subject_exists, subject_is_link, subject_is_valid_native) = {
-                match self.current_record(&claim.subject)? {
+                match subject.as_ref() {
                     None => (false, false, false),
                     Some(subject) => (
                         true,
@@ -4398,6 +4580,8 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
                     ),
                 }
             };
+            drop(subject);
+            self.release_temporary_state(subject_workspace)?;
             if !subject_exists && !claim.native {
                 self.issue(
                     location,
@@ -5350,9 +5534,13 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
         if let (Some(work_ref), Some(expression_ref)) =
             (text(member, "work_ref"), text(member, "expression_ref"))
         {
-            let belongs_to_work = self
-                .current_record(expression_ref)?
+            let (expression, expression_workspace) =
+                self.current_record_with_state_budget(expression_ref)?;
+            let belongs_to_work = expression
+                .as_ref()
                 .is_some_and(|record| text(&record.value, "work_ref") == Some(work_ref));
+            drop(expression);
+            self.release_temporary_state(expression_workspace)?;
             if !belongs_to_work {
                 self.issue(
                     location,
