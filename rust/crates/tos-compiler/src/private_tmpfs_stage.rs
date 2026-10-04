@@ -286,6 +286,38 @@ impl PrivateTmpfsStageIsolation {
         &self.ticket.root
     }
 
+    /// Owned inline and heap capacity only. Kernel FD custody remains charged
+    /// by the original OS envelope. Currentness uses the existing quota_usage
+    /// guard and its owner-declared VERIFY cost, separately from this census.
+    pub fn retained_state_upper_bound(&self) -> Result<usize> {
+        let ticket = &self.ticket;
+        let mut bytes = std::mem::size_of::<Self>();
+        let mut add = |capacity: usize| -> Result<()> {
+            bytes = bytes
+                .checked_add(capacity)
+                .ok_or(Error::Budget("stage retained state overflow"))?;
+            Ok(())
+        };
+        add(ticket.schema.capacity())?;
+        add(ticket.root.capacity())?;
+        add(ticket
+            .fallbacks
+            .capacity()
+            .checked_mul(std::mem::size_of::<String>())
+            .ok_or(Error::Budget("stage retained state overflow"))?)?;
+        for fallback in &ticket.fallbacks {
+            add(fallback.capacity())?;
+        }
+        add(ticket.lifetime.capacity())?;
+        add(ticket.capabilities.capacity())?;
+        add(ticket.write_confinement.capacity())?;
+        if let Some(store) = &ticket.persistent_store {
+            add(store.root.capacity())?;
+            add(store.quota_scope.capacity())?;
+        }
+        Ok(bytes)
+    }
+
     /// Optional ONE host-selected pre-existing store. Its writes are OUTSIDE
     /// the tmpfs byte/inode quota and require the caller's separate original
     /// persistent-write IO cap and fresh physical reservation. No root creation.

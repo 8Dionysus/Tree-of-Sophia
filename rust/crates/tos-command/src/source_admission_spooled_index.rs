@@ -445,8 +445,8 @@ impl CandidateIndexInput for SpoolInput<'_> {
     }
 
     fn member_size(&mut self, path: &str) -> io::Result<u64> {
-        let path =
-            RelativePath::parse(path).map_err(|_| invalid("native source member path is invalid"))?;
+        let path = RelativePath::parse(path)
+            .map_err(|_| invalid("native source member path is invalid"))?;
         self.candidate
             .member(&path)?
             .map(|member| member.size_bytes)
@@ -454,8 +454,8 @@ impl CandidateIndexInput for SpoolInput<'_> {
     }
 
     fn member_digest(&mut self, path: &str) -> io::Result<Digest256> {
-        let path =
-            RelativePath::parse(path).map_err(|_| invalid("native source member path is invalid"))?;
+        let path = RelativePath::parse(path)
+            .map_err(|_| invalid("native source member path is invalid"))?;
         self.candidate
             .member(&path)?
             .map(|member| member.sha256)
@@ -1353,6 +1353,23 @@ pub(crate) struct IndexView<'candidate> {
 }
 
 impl IndexView<'_> {
+    /// Declared retained Rust and nominal SQLite-cache state while publication
+    /// consumes the completed index. Opaque SQLite allocator pages and process
+    /// RSS remain under the enclosing native operation's existing external
+    /// memory prerequisite.
+    pub(crate) fn declared_retained_state_bytes(&self) -> io::Result<usize> {
+        std::mem::size_of::<Self>()
+            .checked_add(self.complete.index_profile().cache_bytes)
+            .and_then(|bytes| bytes.checked_add(2 * std::mem::size_of::<usize>()))
+            .ok_or_else(|| invalid("native index retained state overflow"))
+    }
+
+    /// The actual per-row allowance used by this retained SQLite index while
+    /// producing owned identity and dependency rows for the V2 tree writer.
+    pub(crate) fn writer_row_state_limit(&self) -> usize {
+        self.row_limit
+    }
+
     pub(crate) fn publication_epoch(&self) -> &tos_source_store::MetadataPublicationEpoch {
         self.complete.original_epoch()
     }

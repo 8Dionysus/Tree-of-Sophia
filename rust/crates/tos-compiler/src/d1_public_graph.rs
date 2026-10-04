@@ -258,11 +258,20 @@ pub(crate) fn prepare_family_rows(
     capture: &PublicCapture,
     limits: PublicCaptureLimits,
 ) -> Result<()> {
+    capture.prepare_family_rows_once(limits)
+}
+
+/// Internal SQL body; only PublicCapture's sanctioned transition calls it.
+pub(crate) fn prepare_family_rows_unsealed(
+    capture: &PublicCapture,
+    limits: PublicCaptureLimits,
+    held:&std::fs::File,
+) -> Result<()> {
     capture.check_custody()?;
     if limits.max_rows == 0 || limits.max_work_bytes == 0 || limits.max_staging_bytes < 65536 {
         return Err(Error::Budget("public D1 family limits"));
     }
-    let db = capture.write_db()?;
+    let db = capture.write_family_db(held)?;
     let pages = limits.max_staging_bytes / 4096;
     if pages > i64::MAX as u64 {
         return Err(Error::Budget("public D1 family page bound"));

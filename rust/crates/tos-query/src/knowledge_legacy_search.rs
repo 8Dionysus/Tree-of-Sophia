@@ -157,7 +157,19 @@ pub(crate) fn rank(
         },
         cap,
     )?;
-    let value = if id == needle || native == needle || primary.iter().any(|v| v == needle) {
+    let value = rank_lowered(&id, &native, &primary, &visible, needle);
+    Ok((value, id))
+}
+/// One maintained ordering rule for normalized legacy search, independent of
+/// the owning representation and its original allocation/work admission.
+pub(crate) fn rank_lowered(
+    id: &str,
+    native: &str,
+    primary: &[String],
+    visible: &[String],
+    needle: &str,
+) -> u8 {
+    if id == needle || native == needle || primary.iter().any(|v| v == needle) {
         0
     } else if id.starts_with(needle)
         || native.starts_with(needle)
@@ -168,9 +180,9 @@ pub(crate) fn rank(
         2
     } else {
         3
-    };
-    Ok((value, id))
+    }
 }
+
 struct Work {
     candidates: usize,
     bytes: u64,

@@ -20,8 +20,8 @@ use std::{
 use tos_foundation::{Digest256, Digest256Hasher, RelativePath, SourceRevision};
 use tos_source_store::{
     MemberMetadata, PinnedSqliteAuxLimits, PinnedSqliteAuxRequest, PinnedSqliteAuxScope,
-    PinnedSqliteConnection, PinnedSqliteIoBudget, PinnedSqliteSpaceBudget, RetirementMetadata,
-    SourceMembershipV1, StreamedCorpusCutReaderV1,
+    PinnedSqliteConnection, PinnedSqliteIoBudget, PinnedSqliteSpaceBudget, ReadLimits,
+    RetirementMetadata, SourceMembershipV1, StreamedCorpusCutReaderV1,
 };
 
 /// Separate finite workspace selection. These are caller resource limits, not
@@ -470,7 +470,6 @@ impl<'host> SpoolCandidate<'host> {
             || (base.is_some() && base_v2.is_some())
             || selected_base.map(|revision| revision.0) != batch.base_revision
             || (base_v2.is_some() && v2_io.is_none())
-            || (base.is_some() && v2_io.is_some())
             || base_v2
                 .is_some_and(|reader| v2_io.is_none_or(|io| !reader.borrow().shares_io_budget(io)))
             || request.deadline != deadline
@@ -523,7 +522,7 @@ impl<'host> SpoolCandidate<'host> {
         // This transaction keeps the same pager/space/deadline accounting;
         // no prepared candidate is returned until its metered commit succeeds.
         db.execute_batch("BEGIN IMMEDIATE").map_err(sql)?;
-        db.execute_batch("CREATE TABLE members(path TEXT COLLATE BINARY PRIMARY KEY,sha BLOB NOT NULL CHECK(length(sha)=32),size BLOB NOT NULL CHECK(length(size)=8),mode INTEGER NOT NULL,changed INTEGER NOT NULL,touched INTEGER NOT NULL) WITHOUT ROWID; CREATE INDEX members_changed_path ON members(path COLLATE BINARY) WHERE changed=1; CREATE TABLE retirements(ordinal INTEGER PRIMARY KEY,path TEXT,sha BLOB,event_ref TEXT,event_sha BLOB,event_size BLOB); CREATE INDEX retirements_by_path ON retirements(path COLLATE BINARY,ordinal); CREATE TABLE affected(path TEXT COLLATE BINARY PRIMARY KEY,visited INTEGER NOT NULL) WITHOUT ROWID; CREATE TABLE reverse_dependencies(target TEXT COLLATE BINARY,source TEXT COLLATE BINARY,PRIMARY KEY(target,source)) WITHOUT ROWID; CREATE INDEX reverse_dependencies_by_source ON reverse_dependencies(source COLLATE BINARY,target COLLATE BINARY); CREATE TABLE historical_ids(id TEXT COLLATE BINARY PRIMARY KEY,path TEXT NOT NULL) WITHOUT ROWID; CREATE INDEX historical_ids_by_path ON historical_ids(path COLLATE BINARY,id COLLATE BINARY); CREATE INDEX affected_queue ON affected(visited,path);").map_err(sql)?;
+        db.execute_batch("CREATE TABLE members(path TEXT COLLATE BINARY PRIMARY KEY,sha BLOB NOT NULL CHECK(length(sha)=32),size BLOB NOT NULL CHECK(length(size)=8),mode INTEGER NOT NULL,changed INTEGER NOT NULL,touched INTEGER NOT NULL) WITHOUT ROWID; CREATE INDEX members_changed_path ON members(path COLLATE BINARY) WHERE changed=1; CREATE TABLE retirements(ordinal INTEGER PRIMARY KEY,path TEXT,sha BLOB,event_ref TEXT,event_sha BLOB,event_size BLOB); CREATE INDEX retirements_by_path ON retirements(path COLLATE BINARY,ordinal); CREATE TABLE affected(path TEXT COLLATE BINARY PRIMARY KEY,visited INTEGER NOT NULL) WITHOUT ROWID; CREATE TABLE reverse_dependencies(target TEXT COLLATE BINARY,source TEXT COLLATE BINARY,PRIMARY KEY(target,source)) WITHOUT ROWID; CREATE INDEX reverse_dependencies_by_source ON reverse_dependencies(source COLLATE BINARY,target COLLATE BINARY); CREATE TABLE historical_ids(id TEXT COLLATE BINARY PRIMARY KEY,path TEXT NOT NULL) WITHOUT ROWID; CREATE INDEX historical_ids_by_path ON historical_ids(path COLLATE BINARY,id COLLATE BINARY); CREATE INDEX affected_queue ON affected(visited,path); CREATE TABLE v1_migration_history(revision BLOB PRIMARY KEY CHECK(length(revision)=32),raw BLOB NOT NULL CHECK(length(raw)<=65536)) WITHOUT ROWID;").map_err(sql)?;
         let batch_bytes = batch.bytes_read();
         let mut candidate = Self {
             store,
@@ -884,6 +883,147 @@ impl<'host> SpoolCandidate<'host> {
                 return Err(invalid("publication validated index fence differs"));
             }
             self.verify_consumed()?;
+            if index.segment_v2_budget().is_some() && self.batch.base_revision.is_some() {
+                // A selected V2 base publishes only the authenticated COW
+                // successor and its compact record. Do not serialize another
+                // whole V1 snapshot or relabel the compact record as one.
+                let build = if self.base_v2.is_some() {
+                    super::source_admission_segment_v2::build_successor_rootset_v2(
+                        self.store,
+                        self,
+                        index,
+                        self.deadline,
+                        &self.cancelled,
+                    )
+                } else {
+                    super::source_admission_segment_v2::build_v1_migration_rootset_v2(
+                        self.store,
+                        self,
+                        index,
+                        self.deadline,
+                        &self.cancelled,
+                    )
+                };
+                let built = match build {
+                    Ok(built) => built,
+                    Err(error) => {
+                        return Err(io::Error::new(
+                            error.kind(),
+                            SpooledPublicationV2Refusal {
+                                // No successor identity exists until all four
+                                // current roots and the compact record are
+                                // complete. This field names the selected base;
+                                // the absent artifact/rootset makes that clear.
+                                revision: self
+                                    .batch
+                                    .base_revision
+                                    .ok_or_else(|| invalid("V2 successor base is absent"))?,
+                                manifest_sha256: None,
+                                source_artifact: None,
+                                rootset_sha256: None,
+                                batch_sha256: fence.batch_sha256,
+                                validator_sha256: fence.validator_sha256,
+                                persistent_store_custody: self.store.v2_store_custody(),
+                                cause: error,
+                            },
+                        ));
+                    }
+                };
+                let revision = built.roots.current.revision;
+                let source_artifact = built.roots.current.source_artifact.clone();
+                let rootset_sha256 = built.sha256;
+                let custody = built.tree_io.custody_reservation();
+                let lock = match self
+                    .store
+                    .lock_for_v2_publication(self.deadline, &self.cancelled)
+                {
+                    Ok(lock) => lock,
+                    Err(error) => {
+                        return Err(io::Error::new(
+                            error.kind(),
+                            SpooledPublicationV2Refusal {
+                                revision,
+                                manifest_sha256: None,
+                                source_artifact: Some(source_artifact),
+                                rootset_sha256: Some(rootset_sha256),
+                                batch_sha256: fence.batch_sha256,
+                                validator_sha256: fence.validator_sha256,
+                                persistent_store_custody: Some(custody),
+                                cause: error,
+                            },
+                        ));
+                    }
+                };
+                if let Err(error) = self.store.publish_v2_successor(
+                    built,
+                    self.limits.candidate.reader,
+                    &lock,
+                    self.deadline,
+                    &self.cancelled,
+                ) {
+                    let committed = error
+                        .get_ref()
+                        .and_then(|source| {
+                            source.downcast_ref::<
+                                super::source_admission_store::V2SuccessorPublicationCommittedRefusal,
+                            >()
+                        })
+                        .map(|refusal| {
+                            (
+                                refusal.revision,
+                                refusal.source_artifact.clone(),
+                                refusal.rootset_sha256,
+                                Arc::clone(&refusal.custody),
+                            )
+                        });
+                    if let Some((
+                        committed_revision,
+                        committed_artifact,
+                        committed_rootset,
+                        custody,
+                    )) = committed
+                    {
+                        return Err(io::Error::new(
+                            error.kind(),
+                            SpooledPublicationCommittedRefusal {
+                                revision: committed_revision,
+                                manifest_sha256: None,
+                                source_artifact: Some(committed_artifact),
+                                rootset_sha256: Some(committed_rootset),
+                                batch_sha256: fence.batch_sha256,
+                                validator_sha256: fence.validator_sha256,
+                                persistent_manifest_custody: Some(custody),
+                                cause: error,
+                            },
+                        ));
+                    }
+                    return Err(io::Error::new(
+                        error.kind(),
+                        SpooledPublicationV2Refusal {
+                            revision,
+                            manifest_sha256: None,
+                            source_artifact: Some(source_artifact),
+                            rootset_sha256: Some(rootset_sha256),
+                            batch_sha256: fence.batch_sha256,
+                            validator_sha256: fence.validator_sha256,
+                            persistent_store_custody: Some(custody),
+                            cause: error,
+                        },
+                    ));
+                }
+                return Ok(SpooledPublicationReceipt {
+                    revision,
+                    manifest_sha256: None,
+                    source_artifact: Some(source_artifact),
+                    rootset_sha256: Some(rootset_sha256),
+                    manifest_bytes: None,
+                    fence,
+                    identities: index.identity_count(),
+                    dependency_sources: index.dependency_source_count(),
+                    dependencies: index.dependency_count(),
+                    persistent_manifest_custody: custody,
+                });
+            }
             let (_, revision) = super::source_admission_spooled_manifest::serialize(
                 self,
                 index,
@@ -1112,6 +1252,172 @@ impl<'host> SpoolCandidate<'host> {
     }
     pub(crate) fn base_revision(&self) -> Option<SourceRevision> {
         self.batch.base_revision.map(SourceRevision)
+    }
+    pub(crate) fn v1_base_reader(&self) -> io::Result<&StreamedCorpusCutReaderV1> {
+        self.tick()?;
+        let reader = self
+            .base
+            .ok_or_else(|| invalid("V1 migration base reader absent"))?;
+        if !reader.shares_budgeted_request(
+            &self.ledger,
+            &self.space_budget,
+            self.deadline,
+            &self.cancelled,
+        ) {
+            return Err(invalid("V1 migration base reader request differs"));
+        }
+        Ok(reader)
+    }
+    pub(crate) fn v1_manifest_max_bytes(&self) -> io::Result<u64> {
+        self.tick()?;
+        u64::try_from(self.limits.candidate.reader.max_manifest_bytes)
+            .map_err(|_| invalid("V1 manifest read ceiling exceeds range"))
+    }
+    pub(crate) fn migration_member_count_limit(&self) -> io::Result<u64> {
+        self.tick()?;
+        u64::try_from(self.limits.candidate.admission.max_members)
+            .map_err(|_| invalid("migration member-count ceiling exceeds range"))
+    }
+    pub(crate) fn migration_source_byte_limit(&self) -> io::Result<u64> {
+        self.tick()?;
+        Ok(self.limits.candidate.admission.max_source_bytes)
+    }
+    pub(crate) fn migration_member_byte_limit(&self) -> io::Result<u64> {
+        self.tick()?;
+        Ok(self.limits.candidate.admission.max_member_bytes)
+    }
+    pub(crate) fn migration_history_identity_limit(&self) -> io::Result<u64> {
+        self.tick()?;
+        u64::try_from(self.limits.candidate.max_history_identities)
+            .map_err(|_| invalid("migration identity-count ceiling exceeds range"))
+    }
+    pub(crate) fn migration_history_revision_limit(&self) -> io::Result<u64> {
+        self.tick()?;
+        u64::try_from(self.limits.candidate.max_history_revisions)
+            .map_err(|_| invalid("migration revision-count ceiling exceeds range"))
+    }
+    pub(crate) fn migration_pointer_read_limits(&self) -> io::Result<ReadLimits> {
+        self.tick()?;
+        Ok(self.limits.candidate.reader)
+    }
+    pub(crate) fn begin_v1_migration_history(&self) -> io::Result<()> {
+        self.tick()?;
+        if self.base.is_none() || self.base_v2.is_some() || self.v2_io.is_none() {
+            return Err(invalid("V1 migration history scratch lacks a V1 base"));
+        }
+        let result = self
+            .db
+            .execute("DELETE FROM v1_migration_history", [])
+            .map(|_| ())
+            .map_err(sql);
+        self.finish_read(result)
+    }
+    pub(crate) fn stage_v1_migration_history_row(
+        &self,
+        revision: Digest256,
+        raw: &[u8],
+    ) -> io::Result<()> {
+        self.tick()?;
+        let result = (|| {
+            if raw.is_empty()
+                || raw.len()
+                    > super::source_admission_segment_v2::SourceRevisionRootsV2::MAX_ENCODED_BYTES
+            {
+                return Err(invalid("V1 migration history row exceeds wire profile"));
+            }
+            let live = raw
+                .len()
+                .checked_mul(4)
+                .and_then(|n| n.checked_add(4096))
+                .ok_or_else(|| invalid("V1 migration history scratch state overflow"))?;
+            self.check_state(live)?;
+            let logical = u64::try_from(raw.len())
+                .map_err(|_| invalid("V1 migration history row length exceeds range"))?
+                .checked_add(32)
+                .ok_or_else(|| invalid("V1 migration history logical write overflow"))?;
+            self.reserve_logical(0, logical)?;
+            self.db
+                .execute(
+                    "INSERT INTO v1_migration_history(revision,raw) VALUES(?1,?2)",
+                    params![revision.as_bytes().as_slice(), raw],
+                )
+                .map_err(sql)?;
+            Ok(())
+        })();
+        self.finish_read(result)
+    }
+    pub(crate) fn v1_migration_history_after(
+        &self,
+        after: Option<Digest256>,
+        max_owned_state_bytes: usize,
+    ) -> io::Result<Option<(Digest256, Vec<u8>)>> {
+        self.tick()?;
+        let result = (|| {
+            self.check_state(max_owned_state_bytes)?;
+            let decode = |row: &rusqlite::Row<'_>| {
+                let revision = match row.get_ref(0)? {
+                    rusqlite::types::ValueRef::Blob(bytes) if bytes.len() == 32 => {
+                        Digest256::from_bytes(
+                            bytes
+                                .try_into()
+                                .map_err(|_| rusqlite::Error::InvalidQuery)?,
+                        )
+                    }
+                    _ => return Err(rusqlite::Error::InvalidQuery),
+                };
+                let raw_len = match row.get_ref(1)? {
+                    rusqlite::types::ValueRef::Blob(bytes)
+                        if !bytes.is_empty()
+                            && bytes.len() <= super::source_admission_segment_v2::SourceRevisionRootsV2::MAX_ENCODED_BYTES => bytes.len(),
+                    _ => return Err(rusqlite::Error::InvalidQuery),
+                };
+                let state = raw_len
+                    .checked_mul(4)
+                    .and_then(|n| n.checked_add(4096))
+                    .ok_or(rusqlite::Error::InvalidQuery)?;
+                if state > max_owned_state_bytes {
+                    return Err(rusqlite::Error::InvalidQuery);
+                }
+                Ok((revision, row.get::<_, Vec<u8>>(1)?))
+            };
+            let row = match after {
+                Some(after) => self.db.query_row(
+                    "SELECT revision,raw FROM v1_migration_history WHERE revision>?1 ORDER BY revision LIMIT 1",
+                    [after.as_bytes().as_slice()],
+                    decode,
+                ),
+                None => self.db.query_row(
+                    "SELECT revision,raw FROM v1_migration_history ORDER BY revision LIMIT 1",
+                    [],
+                    decode,
+                ),
+            }
+            .optional()
+            .map_err(sql)?;
+            if let Some((_, raw)) = &row {
+                self.reserve_logical(
+                    u64::try_from(raw.len())
+                        .map_err(|_| invalid("V1 migration history logical read overflow"))?
+                        .checked_add(32)
+                        .ok_or_else(|| invalid("V1 migration history logical read overflow"))?,
+                    0,
+                )?;
+            }
+            Ok(row)
+        })();
+        self.finish_read(result)
+    }
+    pub(crate) fn v2_base_session(&self) -> io::Result<&RefCell<V2ReadSession>> {
+        self.base_v2
+            .ok_or_else(|| invalid("V2 base reader absent during successor build"))
+    }
+    pub(crate) fn v2_cursor_state_allowance(&self, maximum: usize) -> io::Result<usize> {
+        self.tick()?;
+        let allowance = self.row_state_ceiling.get().min(maximum);
+        if allowance == 0 {
+            return Err(invalid("V2 candidate cursor state allowance is empty"));
+        }
+        Ok(allowance)
     }
     pub(crate) fn validator_sha256(&self) -> Digest256 {
         self.batch.validator_sha256
@@ -1730,7 +2036,7 @@ impl<'host> SpoolCandidate<'host> {
     fn import_v2_base(&mut self) -> io::Result<()> {
         self.db
             .execute_batch(
-                "CREATE TABLE v2_history_chain(revision BLOB PRIMARY KEY CHECK(length(revision)=32),base_revision BLOB CHECK(base_revision IS NULL OR length(base_revision)=32)) WITHOUT ROWID; CREATE TABLE v2_history_seen(revision BLOB PRIMARY KEY CHECK(length(revision)=32)) WITHOUT ROWID;",
+                "CREATE TABLE v2_history_chain(revision BLOB PRIMARY KEY CHECK(length(revision)=32),base_revision BLOB CHECK(base_revision IS NULL OR length(base_revision)=32)) WITHOUT ROWID; CREATE TABLE v2_history_seen(revision BLOB PRIMARY KEY CHECK(length(revision)=32)) WITHOUT ROWID; CREATE TABLE v2_base_identities(id TEXT COLLATE BINARY PRIMARY KEY,path TEXT NOT NULL) WITHOUT ROWID; CREATE INDEX v2_base_identities_by_path ON v2_base_identities(path COLLATE BINARY,id COLLATE BINARY); CREATE TABLE v2_base_dependencies(key BLOB PRIMARY KEY,value BLOB NOT NULL) WITHOUT ROWID;",
             )
             .map_err(sql)?;
         let base = self
@@ -1911,6 +2217,13 @@ impl<'host> SpoolCandidate<'host> {
                     params![target.as_str(), source.as_str()],
                 )
                 .map_err(sql)?;
+            self.check_state(4096)?;
+            self.db
+                .execute(
+                    "INSERT INTO v2_base_dependencies(key,value) VALUES(?1,?2)",
+                    params![row.key.as_slice(), row.value.as_slice()],
+                )
+                .map_err(sql)?;
             dependency_count = dependency_count
                 .checked_add(1)
                 .filter(|n| *n <= expected_dependency_count)
@@ -1989,6 +2302,15 @@ impl<'host> SpoolCandidate<'host> {
                     return Err(invalid(
                         "V2 current identity points outside current membership",
                     ));
+                }
+                if is_current {
+                    self.check_state(4096)?;
+                    self.db
+                        .execute(
+                            "INSERT INTO v2_base_identities(id,path) VALUES(?1,?2)",
+                            params![id, path.as_str()],
+                        )
+                        .map_err(sql)?;
                 }
                 identity_visits = identity_visits
                     .checked_add(1)
@@ -2662,6 +2984,178 @@ impl<'host> SpoolCandidate<'host> {
                     .checked_add(i)
                     .ok_or_else(|| invalid("retirement ordinal overflow"))?,
             )
+        })();
+        self.finish_read(result)
+    }
+    pub(crate) fn new_retirement_at_bounded(
+        &self,
+        i: u64,
+        allowance: usize,
+    ) -> io::Result<Option<RetirementMetadata>> {
+        let ordinal = self
+            .new_retirement_start
+            .checked_add(i)
+            .ok_or_else(|| invalid("retirement ordinal overflow"))?;
+        self.retirement_at_bounded(ordinal, allowance)
+    }
+    pub(crate) fn new_retirement_count(&self) -> io::Result<u64> {
+        self.retirement_count
+            .checked_sub(self.new_retirement_start)
+            .ok_or_else(|| invalid("candidate retirement range regressed"))
+    }
+    /// Current-base identity rows are copied into this bounded candidate's
+    /// SQLite workspace during authenticated base import. The COW writer can
+    /// merge them with the completed native identity cursor without spending
+    /// the V2 read session's already-consumed tree-node allowance again.
+    pub(crate) fn v2_base_identity_after(
+        &self,
+        after: Option<&str>,
+        allowance: usize,
+    ) -> io::Result<Option<(String, RelativePath)>> {
+        self.tick()?;
+        let result = (|| {
+            let argument = cursor_argument_state(after.map_or(0, str::len))?;
+            self.check_state(allowance)?;
+            let row_allowance = allowance
+                .checked_sub(argument)
+                .ok_or_else(|| invalid("V2 base identity cursor state exceeds profile"))?;
+            let row = match after {
+                Some(after) => self.db.query_row(
+                    "SELECT id,path FROM v2_base_identities WHERE id>?1 ORDER BY id LIMIT 1",
+                    [after],
+                    |row| {
+                        let id = bounded_text(row, row_allowance)?;
+                        let path = match row.get_ref(1)? {
+                            rusqlite::types::ValueRef::Text(bytes)
+                                if bytes
+                                    .len()
+                                    .checked_mul(16)
+                                    .and_then(|n| n.checked_add(2048))
+                                    .is_some_and(|n| n <= row_allowance) =>
+                            {
+                                row.get::<_, String>(1)?
+                            }
+                            _ => return Err(rusqlite::Error::InvalidQuery),
+                        };
+                        Ok((id, path))
+                    },
+                ),
+                None => self.db.query_row(
+                    "SELECT id,path FROM v2_base_identities ORDER BY id LIMIT 1",
+                    [],
+                    |row| {
+                        let id = bounded_text(row, row_allowance)?;
+                        let path = match row.get_ref(1)? {
+                            rusqlite::types::ValueRef::Text(bytes)
+                                if bytes
+                                    .len()
+                                    .checked_mul(16)
+                                    .and_then(|n| n.checked_add(2048))
+                                    .is_some_and(|n| n <= row_allowance) =>
+                            {
+                                row.get::<_, String>(1)?
+                            }
+                            _ => return Err(rusqlite::Error::InvalidQuery),
+                        };
+                        Ok((id, path))
+                    },
+                ),
+            }
+            .optional()
+            .map_err(sql)?;
+            row.map(|(id, path)| Ok((id, RelativePath::parse(&path).map_err(invalid)?)))
+                .transpose()
+        })();
+        self.finish_read(result)
+    }
+    /// Exact reverse lookup into the authenticated selected-base identities.
+    /// The path index keeps a changed-member identity delta proportional to
+    /// the identities attached to changed paths rather than rescanning all IDs.
+    pub(crate) fn v2_base_identity_for_path_after(
+        &self,
+        path: &RelativePath,
+        after_id: Option<&str>,
+        allowance: usize,
+    ) -> io::Result<Option<String>> {
+        self.tick()?;
+        let result = (|| {
+            let argument_bytes = path
+                .as_str()
+                .len()
+                .checked_add(after_id.map_or(0, str::len))
+                .ok_or_else(|| invalid("V2 base identity cursor argument overflow"))?;
+            let argument = cursor_argument_state(argument_bytes)?;
+            self.check_state(allowance)?;
+            let row_allowance = allowance
+                .checked_sub(argument)
+                .ok_or_else(|| invalid("V2 base identity cursor exceeds profile"))?;
+            match after_id {
+                Some(after) => self.db.query_row(
+                    "SELECT id FROM v2_base_identities INDEXED BY v2_base_identities_by_path WHERE path=?1 AND id>?2 ORDER BY path,id LIMIT 1",
+                    params![path.as_str(), after],
+                    |row| bounded_text(row, row_allowance),
+                ),
+                None => self.db.query_row(
+                    "SELECT id FROM v2_base_identities INDEXED BY v2_base_identities_by_path WHERE path=?1 ORDER BY path,id LIMIT 1",
+                    [path.as_str()],
+                    |row| bounded_text(row, row_allowance),
+                ),
+            }
+            .optional()
+            .map_err(sql)
+        })();
+        self.finish_read(result)
+    }
+    /// Authenticated current-base dependency edges saved during import, in
+    /// the exact bytewise key order consumed by V2 dependency COW updates.
+    pub(crate) fn v2_base_dependency_after(
+        &self,
+        after: Option<&[u8]>,
+        allowance: usize,
+    ) -> io::Result<Option<(Vec<u8>, Vec<u8>)>> {
+        self.tick()?;
+        let result = (|| {
+            let argument = cursor_argument_state(after.map_or(0, <[u8]>::len))?;
+            self.check_state(allowance)?;
+            let row_allowance = allowance
+                .checked_sub(argument)
+                .ok_or_else(|| invalid("V2 base dependency cursor state exceeds profile"))?;
+            let mut decode = |row: &rusqlite::Row<'_>| -> rusqlite::Result<(Vec<u8>, Vec<u8>)> {
+                let key = match row.get_ref(0)? {
+                    rusqlite::types::ValueRef::Blob(bytes) if bytes.len() <= row_allowance => {
+                        bytes.to_vec()
+                    }
+                    _ => return Err(rusqlite::Error::InvalidQuery),
+                };
+                let value = match row.get_ref(1)? {
+                    rusqlite::types::ValueRef::Blob(bytes) if bytes.len() <= row_allowance => {
+                        bytes.to_vec()
+                    }
+                    _ => return Err(rusqlite::Error::InvalidQuery),
+                };
+                if key
+                    .len()
+                    .checked_add(value.len())
+                    .is_none_or(|bytes| bytes > row_allowance)
+                {
+                    return Err(rusqlite::Error::InvalidQuery);
+                }
+                Ok((key, value))
+            };
+            match after {
+                Some(after) => self.db.query_row(
+                    "SELECT key,value FROM v2_base_dependencies WHERE key>?1 ORDER BY key LIMIT 1",
+                    [after],
+                    &mut decode,
+                ),
+                None => self.db.query_row(
+                    "SELECT key,value FROM v2_base_dependencies ORDER BY key LIMIT 1",
+                    [],
+                    &mut decode,
+                ),
+            }
+            .optional()
+            .map_err(sql)
         })();
         self.finish_read(result)
     }

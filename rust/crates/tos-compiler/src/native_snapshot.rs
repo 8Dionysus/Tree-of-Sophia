@@ -1861,6 +1861,26 @@ impl CompletedCaptureCarriers<'_> {
         self.capture.header_object(role, prefix, max_bytes)
     }
 
+    pub fn visit_header_fields(
+        &self,
+        role: &str,
+        prefix: &str,
+        max_bytes: usize,
+        sink: impl FnMut(&str, &[u8]) -> Result<()>,
+    ) -> Result<()> {
+        self.capture
+            .visit_header_fields(role, prefix, max_bytes, sink)
+    }
+    pub fn visit_collection_names(
+        &self,
+        role: &str,
+        sink: impl FnMut(&str) -> Result<()>,
+    ) -> Result<()> {
+        self.capture.visit_collection_names(role, sink)
+    }
+    pub fn carrier_reader_workspace(&self) -> Result<usize> {
+        self.capture.carrier_reader_workspace()
+    }
     pub fn captured_collection_kind(&self, role: &str, collection: &str) -> Result<Option<String>> {
         self.capture.captured_collection_kind(role, collection)
     }
@@ -2660,7 +2680,8 @@ fn build_native_snapshot_from_capture_inner(
     if let Some((whole_limits, _, _)) = whole_mode {
         whole_limits.validate()?;
     }
-    let capture_identity = capture.capture_identity()?;
+    // Bind immutable creation custody before the sanctioned family transition.
+    capture.capture_identity()?;
     let source_state_before = capture.core_source_state()?;
     let capture_source_state_before = capture.capture_source_state()?;
     if limits.max_declaration_bytes == 0
@@ -2706,6 +2727,9 @@ fn build_native_snapshot_from_capture_inner(
     let registry = validate_public_current_registries(capture, &entity, &relation)?;
     let vocabulary = QueryVocabulary::parse(&descriptor, NATIVE_KNOWLEDGE_ADAPTER_PROFILES)?;
     prepare_family_rows(capture, limits.capture)?;
+    // All packet/model completion fences bind the sealed prepared database,
+    // while source-state fences retain the original captured source cut.
+    let capture_identity=capture.capture_identity()?;
     let (collections, membership_root, projection_root) =
         captured_input_roots(capture, &vocabulary)?;
     // The chosen original corpus/phi connector selects the existing V5 ABI.

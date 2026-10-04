@@ -313,10 +313,319 @@ impl Reply<'_, '_> {
     }
 }
 
-/// Startup closure sends actual capture association under seq0. Request closure parses the
-/// exact session DTO with the existing bounded foundation parser, selects ONLY admitted
-/// operations, and executes the same borrowed executor. No domain parser lives here.
-/// All fences and query workspace checks remain INSIDE those owner closures.
+/// One original admitted wire lifecycle. An owner may move this borrowed Driver
+/// into its genuine held-context callback after selecting a profile. Buffers,
+/// sequence, byte counters and original cutoff remain this same instance.
+pub(super) struct Driver<'a, 'w> {
+    control: BorrowedFd<'a>,
+    limits: Limits,
+    deadline: Instant,
+    cancelled: &'a AtomicBool,
+    workspace: RefCell<&'w mut dyn Workspace>,
+    raw: [u8; PACKET],
+    request: Vec<u8>,
+    total_sent: u64,
+    total_received: u64,
+    sequence: u64,
+    started: bool,
+    pending: bool,
+    closed: bool,
+    poisoned: bool,
+}
+impl Driver<'_, '_> {
+    fn usable(&self) -> Result<()> {
+        active(self.deadline, self.cancelled)?;
+        if self.closed || self.poisoned {
+            return Err("Core session driver terminal");
+        }
+        Ok(())
+    }
+    /// Starts once. No later profile transition may resend startup or reset meters.
+    pub fn startup(
+        &mut self,
+        mut send: impl FnMut(&mut Reply<'_, '_>) -> Result<()>,
+        mut fence: impl FnMut() -> Result<()>,
+    ) -> Result<()> {
+        let usable = self.usable();
+        self.poisoned = true;
+        usable?;
+        self.poisoned = true;
+        if self.started || self.pending {
+            return Err("Core session driver startup repeated");
+        }
+        let callback_bytes = std::mem::size_of_val(&send)
+            .checked_add(std::mem::size_of_val(&fence))
+            .ok_or("Core session callback workspace overflow")?;
+        self.workspace.borrow_mut().reserve(callback_bytes)?;
+        let result = (|| {
+            fence()?;
+            let mut reply = Reply {
+                fd: self.control.as_raw_fd(),
+                limits: self.limits,
+                deadline: self.deadline,
+                cancelled: self.cancelled,
+                total_sent: &mut self.total_sent,
+                workspace: &self.workspace,
+                expected_kind: STARTUP,
+                expected_sequence: 0,
+                sent: false,
+                completed: false,
+            };
+            send(&mut reply)?;
+            if !reply.completed {
+                return Err("Core session startup absent");
+            }
+            fence()
+        })();
+        self.workspace.borrow_mut().release(callback_bytes);
+        if result.is_ok() {
+            self.started = true;
+            self.poisoned = false;
+        }
+        result
+    }
+    /// Receives one complete frame into the already admitted persistent buffer.
+    /// false means genuine CLOSE+ACK+final fence; it never means process terminal.
+    pub fn receive(&mut self, mut fence: impl FnMut() -> Result<()>) -> Result<bool> {
+        let usable = self.usable();
+        self.poisoned = true;
+        usable?;
+        self.poisoned = true;
+        if !self.started || self.pending {
+            return Err("Core session driver receive state");
+        }
+        let callback_bytes = std::mem::size_of_val(&fence);
+        self.workspace.borrow_mut().reserve(callback_bytes)?;
+        let result = (|| {
+            self.request.clear();
+            let mut total = None;
+            let mut chunks = 0_u64;
+            loop {
+                let n = recv(
+                    self.control.as_raw_fd(),
+                    &mut self.raw,
+                    self.deadline,
+                    self.cancelled,
+                )?;
+                self.workspace.borrow_mut().charge_work(n as u64)?;
+                let h = Header::decode(&self.raw[..n])?;
+                if h.sequence != self.sequence || !matches!(h.kind, REQUEST | CLOSE) {
+                    return Err("Core session request sequence/kind");
+                }
+                if h.kind == CLOSE {
+                    if total.is_some() || h.total != 0 {
+                        return Err("Core session close during frame");
+                    }
+                    fence()?;
+                    let mut reply = Reply {
+                        fd: self.control.as_raw_fd(),
+                        limits: self.limits,
+                        deadline: self.deadline,
+                        cancelled: self.cancelled,
+                        total_sent: &mut self.total_sent,
+                        workspace: &self.workspace,
+                        expected_kind: CLOSE_ACK,
+                        expected_sequence: self.sequence,
+                        sent: false,
+                        completed: false,
+                    };
+                    reply.send(CLOSE_ACK, self.sequence, &[])?;
+                    fence()?;
+                    self.closed = true;
+                    return Ok(false);
+                }
+                if self.sequence > self.limits.max_calls
+                    || h.total > self.limits.max_call_bytes as u64
+                    || h.total == 0
+                {
+                    return Err("Core session call cap");
+                }
+                if total.is_none() {
+                    if h.offset != 0 {
+                        return Err("Core session initial offset");
+                    }
+                    total = Some(h.total);
+                    self.total_received = self
+                        .total_received
+                        .checked_add(h.total)
+                        .filter(|n| *n <= self.limits.max_total_request_bytes)
+                        .ok_or("Core session cumulative request cap")?;
+                }
+                if total != Some(h.total) || h.offset != self.request.len() as u64 {
+                    return Err("Core session discontinuous frame");
+                }
+                chunks = chunks
+                    .checked_add(1)
+                    .filter(|n| *n <= self.limits.max_chunks_per_frame)
+                    .ok_or("Core session request chunks cap")?;
+                self.request.extend_from_slice(&self.raw[HEADER..n]);
+                if self.request.len() as u64 == h.total {
+                    break;
+                }
+            }
+            // respond checks source/currentness immediately before execution;
+            // pending inspection does not repeat that expensive owner fence.
+            self.pending = true;
+            Ok(true)
+        })();
+        self.workspace.borrow_mut().release(callback_bytes);
+        if result.is_ok() {
+            self.poisoned = false;
+        }
+        result
+    }
+    /// Inspect only a pending frame. Native DTO parsing must use the ORIGINAL
+    /// JSON visits/state/work ledger; this borrow grants no model authority.
+    pub fn pending_request(&self) -> Result<(u64, &[u8])> {
+        self.usable()?;
+        if !self.pending {
+            return Err("Core session pending request absent");
+        }
+        Ok((self.sequence, &self.request))
+    }
+    /// Reply inside the actual selected holder callback. Every error poisons
+    /// the driver; no caller can retry a partially disclosed sequence.
+    pub fn respond(
+        &mut self,
+        mut call: impl FnMut(u64, &[u8], &mut Reply<'_, '_>) -> Result<()>,
+        mut fence: impl FnMut() -> Result<()>,
+    ) -> Result<()> {
+        let usable = self.usable();
+        self.poisoned = true;
+        usable?;
+        self.poisoned = true;
+        if !self.pending {
+            return Err("Core session response without request");
+        }
+        let callback_bytes = std::mem::size_of_val(&call)
+            .checked_add(std::mem::size_of_val(&fence))
+            .ok_or("Core session callback workspace overflow")?;
+        self.workspace.borrow_mut().reserve(callback_bytes)?;
+        let result = (|| {
+            fence()?;
+            let mut reply = Reply {
+                fd: self.control.as_raw_fd(),
+                limits: self.limits,
+                deadline: self.deadline,
+                cancelled: self.cancelled,
+                total_sent: &mut self.total_sent,
+                workspace: &self.workspace,
+                expected_kind: REPLY,
+                expected_sequence: self.sequence,
+                sent: false,
+                completed: false,
+            };
+            call(self.sequence, &self.request, &mut reply)?;
+            if !reply.completed {
+                return Err("Core session reply absent");
+            }
+            fence()?;
+            self.sequence = self
+                .sequence
+                .checked_add(1)
+                .ok_or("Core session sequence overflow")?;
+            self.pending = false;
+            Ok(())
+        })();
+        self.workspace.borrow_mut().release(callback_bytes);
+        if result.is_ok() {
+            self.poisoned = false;
+        }
+        result
+    }
+    /// Honest primitive loop for an already selected borrowed owner. A lazy
+    /// transition passes THIS Driver here; no new startup/buffer/meter is made.
+    pub fn serve(
+        &mut self,
+        mut call: impl FnMut(u64, &[u8], &mut Reply<'_, '_>) -> Result<()>,
+        mut fence: impl FnMut() -> Result<()>,
+    ) -> Result<()> {
+        let usable = self.usable();
+        self.poisoned = true;
+        usable?;
+        self.poisoned = true;
+        // Reserve closure storage while it remains alive across all calls.
+        let bytes = std::mem::size_of_val(&call)
+            .checked_add(std::mem::size_of_val(&fence))
+            .ok_or("Core session callback workspace overflow")?;
+        self.workspace.borrow_mut().reserve(bytes)?;
+        self.poisoned = false;
+        let result = (|| {
+            loop {
+                if !self.pending && !self.receive(&mut fence)? {
+                    return Ok(());
+                }
+                self.respond(&mut call, &mut fence)?;
+            }
+        })();
+        self.workspace.borrow_mut().release(bytes);
+        if result.is_err() {
+            self.poisoned = true;
+        }
+        result
+    }
+}
+/// Reserve one Driver and send scratch before constructing any wire buffer.
+/// The consuming closure must retain its genuine model/Stage/control owners.
+pub(super) fn with_driver(
+    control: BorrowedFd<'_>,
+    limits: Limits,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+    workspace: &mut dyn Workspace,
+    consume: impl FnOnce(&mut Driver<'_, '_>) -> Result<()>,
+) -> Result<()> {
+    active(deadline, cancelled)?;
+    let limits = limits.validate()?;
+    let fixed = std::mem::size_of::<Driver>()
+        + PACKET
+        + std::mem::size_of::<Reply>()
+        + std::mem::size_of::<[usize; 32]>()
+        + std::mem::size_of::<libc::msghdr>()
+        + std::mem::size_of::<libc::iovec>()
+        + std::mem::size_of::<libc::pollfd>()
+        + std::mem::size_of::<Header>();
+    let reserve = limits
+        .max_call_bytes
+        .checked_add(fixed)
+        .and_then(|n| n.checked_add(std::mem::size_of_val(&consume)))
+        .ok_or("Core session workspace overflow")?;
+    workspace.reserve(reserve)?;
+    let result = (|| {
+        let mut request = Vec::new();
+        request
+            .try_reserve_exact(limits.max_call_bytes)
+            .map_err(|_| "Core session input allocation")?;
+        if request.capacity() > limits.max_call_bytes {
+            return Err("Core session allocator exceeded reserved capacity");
+        }
+        let mut driver = Driver {
+            control,
+            limits,
+            deadline,
+            cancelled,
+            workspace: RefCell::new(&mut *workspace),
+            raw: [0; PACKET],
+            request,
+            total_sent: 0,
+            total_received: 0,
+            sequence: 1,
+            started: false,
+            pending: false,
+            closed: false,
+            poisoned: false,
+        };
+        consume(&mut driver)?;
+        if !driver.closed || driver.poisoned {
+            return Err("Core session driver returned before acknowledged close");
+        }
+        Ok(())
+    })();
+    workspace.release(reserve);
+    result
+}
+/// Compatibility owner route: exactly one original Driver, same borrowed
+/// executor closures and currentness fences. Existing callers need no change.
 pub(super) fn run(
     control: BorrowedFd<'_>,
     limits: Limits,
@@ -327,132 +636,17 @@ pub(super) fn run(
     mut call: impl FnMut(u64, &[u8], &mut Reply<'_, '_>) -> Result<()>,
     mut final_fence: impl FnMut() -> Result<()>,
 ) -> Result<()> {
-    active(deadline, cancelled)?;
-    let limits = limits.validate()?;
-    let fixed_workspace = std::mem::size_of::<RefCell<&mut dyn Workspace>>()
-        + 2 * PACKET
-        + std::mem::size_of::<Vec<u8>>()
-        + std::mem::size_of::<Reply>()
-        + std::mem::size_of::<[usize; 32]>()
-        + std::mem::size_of::<libc::msghdr>()
-        + std::mem::size_of::<libc::iovec>()
-        + std::mem::size_of::<libc::pollfd>()
-        + std::mem::size_of::<Header>();
-    // These callback values coexist with the wire buffers; charge their actual capture storage.
-    let fixed_workspace = fixed_workspace
-        .checked_add(std::mem::size_of_val(&startup))
-        .and_then(|n| n.checked_add(std::mem::size_of_val(&call)))
+    // The compatibility wrapper owns these full closure values; borrowing them
+    // into Driver methods must not hide their simultaneous captured storage.
+    let callbacks = std::mem::size_of_val(&startup)
+        .checked_add(std::mem::size_of_val(&call))
         .and_then(|n| n.checked_add(std::mem::size_of_val(&final_fence)))
         .ok_or("Core session callback workspace overflow")?;
-    let reserve = limits
-        .max_call_bytes
-        .checked_add(fixed_workspace)
-        .ok_or("Core session workspace overflow")?;
-    workspace.reserve(reserve)?;
-    let workspace = RefCell::new(workspace);
-    let result = (|| {
-        active(deadline, cancelled)?;
-        let mut request = Vec::new();
-        request
-            .try_reserve_exact(limits.max_call_bytes)
-            .map_err(|_| "Core session input allocation")?;
-        // Charge the actual allocator capacity; do not silently exceed the reservation.
-        if request.capacity() > limits.max_call_bytes {
-            return Err("Core session allocator exceeded reserved capacity");
-        }
-        let mut raw = [0_u8; PACKET];
-        let mut total_sent = 0_u64;
-        let mut total_received = 0_u64;
-        let mut reply = Reply {
-            fd: control.as_raw_fd(),
-            limits,
-            deadline,
-            cancelled,
-            total_sent: &mut total_sent,
-            workspace: &workspace,
-            expected_kind: STARTUP,
-            expected_sequence: 0,
-            sent: false,
-            completed: false,
-        };
-        final_fence()?;
-        startup(&mut reply)?;
-        if !reply.completed {
-            return Err("Core session startup absent");
-        }
-        final_fence()?;
-        let mut sequence = 1_u64;
-        loop {
-            request.clear();
-            let mut total = None;
-            let mut chunks = 0_u64;
-            loop {
-                let n = recv(control.as_raw_fd(), &mut raw, deadline, cancelled)?;
-                workspace.borrow_mut().charge_work(n as u64)?;
-                let h = Header::decode(&raw[..n])?;
-                if h.sequence != sequence || !matches!(h.kind, REQUEST | CLOSE) {
-                    return Err("Core session request sequence/kind");
-                }
-                if h.kind == CLOSE {
-                    if total.is_some() || h.total != 0 {
-                        return Err("Core session close during frame");
-                    }
-                    final_fence()?;
-                    // Close belongs to the original session cutoff, not the previous call's narrower cutoff.
-                    reply.deadline = deadline;
-                    reply.expected_kind = CLOSE_ACK;
-                    reply.expected_sequence = sequence;
-                    reply.sent = false;
-                    reply.completed = false;
-                    reply.send(CLOSE_ACK, sequence, &[])?;
-                    final_fence()?;
-                    // Peer/controller owns terminal cleanup. Ack alone never proves process terminal.
-                    return Ok(());
-                }
-                if sequence > limits.max_calls
-                    || h.total > limits.max_call_bytes as u64
-                    || h.total == 0
-                {
-                    return Err("Core session call cap");
-                }
-                if total.is_none() {
-                    if h.offset != 0 {
-                        return Err("Core session initial offset");
-                    }
-                    total = Some(h.total);
-                    total_received = total_received
-                        .checked_add(h.total)
-                        .filter(|n| *n <= limits.max_total_request_bytes)
-                        .ok_or("Core session cumulative request cap")?;
-                }
-                if total != Some(h.total) || h.offset != request.len() as u64 {
-                    return Err("Core session discontinuous frame");
-                }
-                chunks = chunks
-                    .checked_add(1)
-                    .filter(|n| *n <= limits.max_chunks_per_frame)
-                    .ok_or("Core session request chunks cap")?;
-                request.extend_from_slice(&raw[HEADER..n]);
-                if request.len() as u64 == h.total {
-                    break;
-                }
-            }
-            final_fence()?;
-            reply.deadline = deadline;
-            reply.expected_kind = REPLY;
-            reply.expected_sequence = sequence;
-            reply.sent = false;
-            reply.completed = false;
-            call(sequence, &request, &mut reply)?;
-            if !reply.completed {
-                return Err("Core session reply absent");
-            }
-            final_fence()?;
-            sequence = sequence
-                .checked_add(1)
-                .ok_or("Core session sequence overflow")?;
-        }
-    })();
-    workspace.borrow_mut().release(reserve);
+    workspace.reserve(callbacks)?;
+    let result = with_driver(control, limits, deadline, cancelled, workspace, |driver| {
+        driver.startup(&mut startup, &mut final_fence)?;
+        driver.serve(&mut call, &mut final_fence)
+    });
+    workspace.release(callbacks);
     result
 }

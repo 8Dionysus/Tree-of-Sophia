@@ -40,6 +40,40 @@ struct Arguments {
     help: bool,
 }
 
+enum SpooledExecutionOutcome {
+    Bootstrap {
+        receipt: serde_json::Value,
+    },
+    Published {
+        receipt: serde_json::Value,
+        publication: SpooledPublicationReceipt,
+        case: Option<io::Result<crate::source_admission_v2_case::V2CaseOutcome>>,
+    },
+    Recovered {
+        accepted: crate::source_admission_v2_reader::AcceptedV2Publication,
+        case: Option<io::Result<crate::source_admission_v2_case::V2CaseOutcome>>,
+    },
+}
+
+fn recovered_publication_refusal(
+    accepted: &crate::source_admission_v2_reader::AcceptedV2Publication,
+    phase: &'static str,
+    cause: io::Error,
+) -> io::Error {
+    io::Error::other(PublicationCommittedRefusal {
+        phase,
+        revision: accepted.revision.0,
+        manifest_sha256: None,
+        source_artifact: Some(accepted.source_artifact.clone()),
+        rootset_sha256: None,
+        history_proof_rootset_sha256: Some(accepted.history_proof_rootset_sha256),
+        batch_sha256: accepted.batch_sha256,
+        validator_sha256: accepted.validator_sha256,
+        _custody: None,
+        cause,
+    })
+}
+
 /// The accepted pointer may already have advanced when post-publication
 /// custody or empty-workspace cleanup refuses. Retain the exact revision and
 /// source-record allocation through the outer bounded refusal path.
@@ -50,6 +84,7 @@ pub(crate) struct PublicationCommittedRefusal {
     pub(crate) source_artifact:
         Option<crate::source_admission_segment_v2::SourceRevisionArtifactV2>,
     pub(crate) rootset_sha256: Option<Digest256>,
+    pub(crate) history_proof_rootset_sha256: Option<Digest256>,
     pub(crate) batch_sha256: Digest256,
     pub(crate) validator_sha256: Digest256,
     _custody: Option<Arc<tos_source_store::PinnedSqliteSpaceReservation>>,
@@ -64,6 +99,10 @@ impl fmt::Debug for PublicationCommittedRefusal {
             .field("manifest_sha256", &self.manifest_sha256.map(|d| d.to_hex()))
             .field("source_artifact", &self.source_artifact)
             .field("rootset_sha256", &self.rootset_sha256.map(|d| d.to_hex()))
+            .field(
+                "history_proof_rootset_sha256",
+                &self.history_proof_rootset_sha256.map(|d| d.to_hex()),
+            )
             .field("batch_sha256", &self.batch_sha256.to_hex())
             .field("validator_sha256", &self.validator_sha256.to_hex())
             .finish_non_exhaustive()
@@ -119,6 +158,7 @@ fn publication_committed_refusal_parts(
             manifest_sha256,
             source_artifact,
             rootset_sha256,
+            history_proof_rootset_sha256: None,
             batch_sha256,
             validator_sha256,
             _custody: custody,
@@ -401,8 +441,9 @@ fn run_with_cancel_owner(
                 committed.rootset_sha256,
                 &committed.source_artifact,
                 committed.manifest_sha256,
+                committed.history_proof_rootset_sha256,
             ) {
-                (Some(rootset), Some(record), _) => writeln!(
+                (Some(rootset), Some(record), _, _) => writeln!(
                     output,
                     "Native corpus V2 revision {} was committed (rootset {}, record {} {} in {}), but {}; restore by that exact revision digest.",
                     committed.revision.to_hex(),
@@ -412,14 +453,24 @@ fn run_with_cancel_owner(
                     record.filename(),
                     detail
                 ),
-                (Some(rootset), None, _) => writeln!(
+                (Some(rootset), None, _, _) => writeln!(
                     output,
                     "Native corpus V2 revision {} was committed (rootset {}, source record unavailable), but {}; restore by that exact revision digest.",
                     committed.revision.to_hex(),
                     rootset.to_hex(),
                     detail
                 ),
-                (None, _, Some(manifest)) => writeln!(
+                (None, Some(record), _, Some(history_proof)) => writeln!(
+                    output,
+                    "Native corpus V2 revision {} was previously accepted (record {} {} in {}, history proof rootset {}), but {}; restore by that exact revision digest.",
+                    committed.revision.to_hex(),
+                    record.format(),
+                    record.sha256().to_hex(),
+                    record.filename(),
+                    history_proof.to_hex(),
+                    detail
+                ),
+                (None, _, Some(manifest), _) => writeln!(
                     output,
                     "Native corpus revision {} was committed (manifest {}), but {}; restore by that exact revision digest.",
                     committed.revision.to_hex(),
@@ -674,7 +725,74 @@ fn run_spooled(
         args, validator, &resources, cancelled, store_path, identity, phase,
     );
     match result {
-        Ok((mut receipt, Some(publication), case)) => {
+        Ok(SpooledExecutionOutcome::Recovered { accepted, case }) => {
+            // Recover authenticated prior admission without a new completion,
+            // CAS or historical pointer/allocation claim. A selected fresh
+            // read/copy case retains its own actual target allocation custody.
+            let (case_result, target_custody) = match case {
+                None => (Ok(None), None),
+                Some(Err(error)) => (Err(error), None),
+                Some(Ok(outcome)) => (outcome.result.map(Some), Some(outcome.custody)),
+            };
+            let accounting = validator.account_spooled_external_io();
+            let store = validator.verify_store_authority(store_path);
+            drop(resources.workspace);
+            let cleanup =
+                validator.cleanup_spooled_workspace(&resources.workspace_root, cancelled.as_ref());
+            for (result, failed_phase) in [
+                (
+                    cleanup,
+                    "prior accepted publication; workspace cleanup failed",
+                ),
+                (
+                    accounting,
+                    "prior accepted publication; terminal IO accounting failed",
+                ),
+                (
+                    store,
+                    "prior accepted publication; store custody recheck failed",
+                ),
+            ] {
+                if let Err(error) = result {
+                    phase.set(failed_phase);
+                    return Err(recovered_publication_refusal(
+                        &accepted,
+                        failed_phase,
+                        retain_v2_allocation_custody(error, target_custody.clone()),
+                    ));
+                }
+            }
+            let mut receipt = recovered_receipt(&accepted);
+            if let Some(accountant) = &resources.v2_allocation_accountant {
+                receipt["source_new_allocated_bytes"] = json!(accountant.actual_allocated_bytes());
+            }
+            match case_result {
+                Ok(Some(case)) => receipt["v2_case"] = case_receipt(&case),
+                Ok(None) => {}
+                Err(error) => {
+                    phase.set("prior accepted publication; selected V2 read/restore case refused");
+                    return Err(recovered_publication_refusal(
+                        &accepted,
+                        "prior accepted publication; selected V2 read/restore case refused",
+                        retain_v2_allocation_custody(error, target_custody.clone()),
+                    ));
+                }
+            }
+            if let Err(error) = validator.write_receipt(&receipt, stdout) {
+                phase.set("prior accepted publication; bounded receipt output failed");
+                return Err(recovered_publication_refusal(
+                    &accepted,
+                    "prior accepted publication; bounded receipt output failed",
+                    retain_v2_allocation_custody(error, target_custody.clone()),
+                ));
+            }
+            Ok(0)
+        }
+        Ok(SpooledExecutionOutcome::Published {
+            mut receipt,
+            publication,
+            case,
+        }) => {
             // The publication result is real store state. Preserve its exact
             // source-record allocation custody through cleanup and bounded output.
             let (case_result, target_custody) = match case {
@@ -718,17 +836,7 @@ fn run_spooled(
             }
             match case_result {
                 Ok(Some(case)) => {
-                    receipt["v2_case"] = json!({
-                        "observed_revision":case.observed_revision.0.to_hex(),
-                        "observed_path":case.observed_path.as_str(),
-                        "observed_sha256":case.observed_sha256.to_hex(),
-                        "observed_bytes":case.observed_bytes,
-                        "target_allocated_bytes":case.image.allocated_bytes,
-                        "copied_files":case.image.copied_files,
-                        "copied_directories":case.image.copied_directories,
-                        "tree_read_nodes":case.image.tree_read_nodes,
-                        "semantic_admission":false,"rights_change":false
-                    });
+                    receipt["v2_case"] = case_receipt(&case);
                 }
                 Ok(None) => {}
                 Err(error) => {
@@ -751,7 +859,7 @@ fn run_spooled(
             drop(publication);
             Ok(0)
         }
-        Ok((receipt, None, _case)) => {
+        Ok(SpooledExecutionOutcome::Bootstrap { receipt }) => {
             // Authored bootstrap publishes only its real metadata transaction.
             // It does not advance the auxiliary admission-store current pointer.
             let accounting = validator.account_spooled_external_io();
@@ -918,6 +1026,7 @@ fn run_selected_v2_case(
     revision: SourceRevision,
     deadline: std::time::Instant,
     cancelled: &Arc<AtomicBool>,
+    caller_retained_state_bytes: usize,
 ) -> io::Result<crate::source_admission_v2_case::V2CaseOutcome> {
     use crate::source_admission_v2_backup_restore::V2ImageLimits;
     use crate::source_admission_v2_case::{
@@ -946,6 +1055,7 @@ fn run_selected_v2_case(
     let phase_state = selected
         .state_bytes
         .checked_sub(cold_case_phase_overhead_bytes())
+        .and_then(|bytes| bytes.checked_sub(caller_retained_state_bytes))
         .filter(|n| *n > 0 && *n <= profile.max_working_state_bytes)
         .ok_or_else(|| invalid("V2 selected case original state slice differs"))?;
     let mut pointer = resources.candidate_limits.candidate.reader;
@@ -1073,11 +1183,7 @@ fn run_spooled_inner(
     store_path: &std::path::Path,
     identity: Digest256,
     phase: &Cell<&'static str>,
-) -> io::Result<(
-    serde_json::Value,
-    Option<SpooledPublicationReceipt>,
-    Option<io::Result<crate::source_admission_v2_case::V2CaseOutcome>>,
-)> {
+) -> io::Result<SpooledExecutionOutcome> {
     if args.authored_bootstrap_owner.is_some() && resources.v2_allocation_accountant.is_some() {
         return Err(invalid(
             "authored bootstrap does not publish a segment V2 source cut",
@@ -1131,6 +1237,69 @@ fn run_spooled_inner(
         .v2_allocation_accountant
         .as_ref()
         .map_or(&request.io_budget, |owner| owner.io_budget());
+    // Output selection does not change the format of an authenticated base.
+    // Keep V1 imports on their maintained streamed reader; only a genuine V2
+    // selector can provide a V2 session or an accepted-batch history proof.
+    let selected_format = if resources.v2_allocation_accountant.is_some() {
+        store
+            .current_selection(
+                limits.candidate.reader,
+                deadline,
+                &request.cancelled,
+                Some(pointer_io),
+            )?
+            .map(|selection| selection.format)
+    } else {
+        None
+    };
+    let mut probed_v2 = None;
+    if selected_format == Some(tos_source_store::CorpusPointerFormat::V2) {
+        let source_root = resources
+            .v2_source_root
+            .as_ref()
+            .ok_or_else(|| invalid("selected V2 original source root absent"))?;
+        let read_limits = resources
+            .v2_base_read_limits
+            .ok_or_else(|| invalid("selected V2 base read limits absent"))?;
+        let mut reader = crate::source_admission_v2_reader::V2ReadSession::open_at_named_with_io(
+            store_path,
+            &source_root.held,
+            read_limits,
+            pointer_io.clone(),
+            deadline,
+            request.cancelled.clone(),
+        )?;
+        if let Some(accepted) = reader.find_accepted_batch(
+            batch.batch_sha256,
+            batch.base_revision.map(SourceRevision),
+            identity,
+            resources.manifest_limits.max_manifest_bytes,
+        )? {
+            drop(reader);
+            drop(batch);
+            drop(store); // The case reopens only from the original held root.
+            let case = resources.v2_case.as_ref().map(|selection| {
+                validator
+                    .prepared_v2_read_case_profile()
+                    .and_then(|profile| {
+                        run_selected_v2_case(
+                            selection,
+                            profile,
+                            resources,
+                            store_path,
+                            accepted.revision,
+                            deadline,
+                            cancelled,
+                            std::mem::size_of::<
+                                crate::source_admission_v2_reader::AcceptedV2Publication,
+                            >(),
+                        )
+                    })
+            });
+            return Ok(SpooledExecutionOutcome::Recovered { accepted, case });
+        }
+        probed_v2 = Some(RefCell::new(reader));
+    }
     phase.set("native-v4 current revision check");
     store.check_current_budgeted(
         batch.base_revision,
@@ -1142,9 +1311,10 @@ fn run_spooled_inner(
     phase.set("native-v4 base cut selection");
     let base = match (
         batch.base_revision,
-        resources.v2_allocation_accountant.is_some(),
+        resources.v2_allocation_accountant.is_none()
+            || selected_format == Some(tos_source_store::CorpusPointerFormat::V1),
     ) {
-        (Some(revision), false) => {
+        (Some(revision), true) => {
             let main = File::from(rustix::fs::openat(
                 &resources.workspace,
                 ".",
@@ -1173,7 +1343,10 @@ fn run_spooled_inner(
     // Read-only limits are selected by the protected invocation. This borrows
     // authenticated held V2 rows before validation; it grants no publication
     // authority and uses the original shared source IO ledger.
-    let base_v2 = if batch.base_revision.is_some() && resources.v2_allocation_accountant.is_some() {
+    let base_v2 = if batch.base_revision.is_some()
+        && resources.v2_allocation_accountant.is_some()
+        && selected_format == Some(tos_source_store::CorpusPointerFormat::V2)
+    {
         let source_root = resources
             .v2_source_root
             .as_ref()
@@ -1181,16 +1354,19 @@ fn run_spooled_inner(
         let read_limits = resources
             .v2_base_read_limits
             .ok_or_else(|| invalid("selected V2 base read limits absent"))?;
-        Some(RefCell::new(
-            crate::source_admission_v2_reader::V2ReadSession::open_at_named_with_io(
-                store_path,
-                &source_root.held,
-                read_limits,
-                pointer_io.clone(),
-                deadline,
-                request.cancelled.clone(),
-            )?,
-        ))
+        match probed_v2.take() {
+            Some(reader) => Some(reader),
+            None => Some(RefCell::new(
+                crate::source_admission_v2_reader::V2ReadSession::open_at_named_with_io(
+                    store_path,
+                    &source_root.held,
+                    read_limits,
+                    pointer_io.clone(),
+                    deadline,
+                    request.cancelled.clone(),
+                )?,
+            )),
+        }
     } else {
         None
     };
@@ -1258,7 +1434,7 @@ fn run_spooled_inner(
         drop(candidate);
         drop(base);
         drop(base_v2);
-        return Ok((receipt, None, None));
+        return Ok(SpooledExecutionOutcome::Bootstrap { receipt });
     }
 
     phase.set("native-v4 publication cut preparation");
@@ -1309,11 +1485,13 @@ fn run_spooled_inner(
         resources.max_manifest_allocated_bytes,
         streamed,
     )?;
-    let receipt = spooled_receipt(&publication);
+    // Keep receipt JSON out of the cold phase; the fixed publication tuple
+    // remains live and is debited from the same original case state below.
     drop(index);
     drop(candidate);
     drop(base);
     drop(base_v2);
+    drop(store); // Publication custody survives; no duplicate store stays live.
     let case = resources.v2_case.as_ref().map(|selection| {
         run_selected_v2_case(
             selection,
@@ -1325,9 +1503,60 @@ fn run_spooled_inner(
             publication.revision,
             deadline,
             cancelled,
+            std::mem::size_of::<SpooledPublicationReceipt>()
+                .checked_add(std::mem::size_of::<
+                    Option<crate::source_foundation_admission::NativeSegmentV2Budget>,
+                >())
+                .ok_or_else(|| invalid("V2 case retained publication/profile state overflow"))?,
         )
     });
-    Ok((receipt, Some(publication), case))
+    let receipt = spooled_receipt(&publication);
+    Ok(SpooledExecutionOutcome::Published {
+        receipt,
+        publication,
+        case,
+    })
+}
+
+fn case_receipt(case: &crate::source_admission_v2_case::V2CaseReceipt) -> serde_json::Value {
+    json!({
+        "observed_revision":case.observed_revision.0.to_hex(),
+        "observed_path":case.observed_path.as_str(),
+        "observed_sha256":case.observed_sha256.to_hex(),
+        "observed_bytes":case.observed_bytes,
+        "target_allocated_bytes":case.image.allocated_bytes,
+        "copied_files":case.image.copied_files,
+        "copied_directories":case.image.copied_directories,
+        "tree_read_nodes":case.image.tree_read_nodes,
+        "semantic_admission":false,"rights_change":false
+    })
+}
+
+fn recovered_receipt(
+    accepted: &crate::source_admission_v2_reader::AcceptedV2Publication,
+) -> serde_json::Value {
+    let artifact = &accepted.source_artifact;
+    let mut source_record = json!({
+        "format":artifact.format(), "sha256":artifact.sha256().to_hex(),
+        "file":artifact.filename()
+    });
+    if let Some(bytes) = artifact.bytes() {
+        source_record["bytes"] = json!(bytes);
+    }
+    json!({
+        "schema_version":"tos_corpus_admission_receipt_v1",
+        "recovered_accepted_result":true,
+        "batch_sha256":accepted.batch_sha256.to_hex(),
+        "revision":accepted.revision.0.to_hex(),
+        "base_revision":accepted.base_revision.map(|revision| revision.0.to_hex()),
+        "validator_sha256":accepted.validator_sha256.to_hex(),
+        "members":accepted.member_count,
+        "identities":accepted.identity_count,
+        "source_bytes":accepted.source_bytes,
+        "source_record":source_record,
+        "history_proof_rootset_sha256":accepted.history_proof_rootset_sha256.to_hex(),
+        "semantic_admission":false,"rights_change":false
+    })
 }
 
 fn spooled_receipt(publication: &SpooledPublicationReceipt) -> serde_json::Value {

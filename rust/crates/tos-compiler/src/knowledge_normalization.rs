@@ -135,7 +135,28 @@ fn pointer_escape(key: &str) -> String {
 // indices/control bytes; without it, BTreeMap tree nodes are covered by the
 // same conservative envelope. Factors include old/new allocation overlap.
 // This is a logical admitted peak bound, not an allocator/RSS measurement.
-fn serde_input_workspace_upper(
+pub(crate) fn serde_array_slots_upper(n: usize) -> Result<usize> {
+    n.max(4).checked_mul(4 * std::mem::size_of::<Value>())
+        .ok_or(Error::Budget("raw input serde array workspace"))
+}
+// Source-owned pinned container geometry: IndexMap Bucket stores hash/key/
+// value plus hashbrown indices/control. Eight slots include geometric old/new
+// overlap; non-preserve_order uses the existing sixteen-slot BTree envelope.
+// This remains a logical admission estimate, not measured allocator/RSS.
+pub(crate) fn serde_object_slots_upper(n: usize) -> Result<usize> {
+    let entry = std::mem::size_of::<(String, Value)>()
+        + 2 * std::mem::size_of::<usize>() + 1;
+    let factor = if cfg!(all(feature = "preserve-order-workspace",
+        target_pointer_width = "64", target_arch = "x86_64")) { 8 } else { 16 };
+    n.max(4).checked_mul(factor * entry)
+        .ok_or(Error::Budget("raw input serde object workspace"))
+}
+pub(crate) fn serde_text_workspace_upper(units: usize) -> Result<usize> {
+    units.checked_mul(12).and_then(|n| n.checked_add(64))
+        .ok_or(Error::Budget("raw input serde string workspace"))
+}
+
+pub(crate) fn serde_input_workspace_upper(
     root: &tos_foundation::JsonValue,
     raw_bytes: usize,
 ) -> Result<usize> {
@@ -151,8 +172,7 @@ fn serde_input_workspace_upper(
     }
     fn text(total: &mut usize, units: usize) -> Result<()> {
         // <=3 UTF8 bytes per UTF16 unit; geometric string growth and reallocation.
-        add(total, slots(units, 12)?)?;
-        add(total, 64)
+        add(total, serde_text_workspace_upper(units)?)
     }
     fn walk(v: &tos_foundation::JsonValue, depth: usize, total: &mut usize) -> Result<()> {
         use tos_foundation::JsonValue;
@@ -169,7 +189,7 @@ fn serde_input_workspace_upper(
             JsonValue::Array(a) => {
                 add(
                     total,
-                    slots(a.len().max(4), 4 * std::mem::size_of::<Value>())?,
+                    serde_array_slots_upper(a.len())?,
                 )?;
                 for child in a {
                     walk(child, depth + 1, total)?;
@@ -177,27 +197,7 @@ fn serde_input_workspace_upper(
             }
             JsonValue::Object(o) => {
                 add(total, std::mem::size_of::<Map<String, Value>>())?;
-                let entry =
-                    std::mem::size_of::<(String, Value)>() + 2 * std::mem::size_of::<usize>() + 1;
-                // The closed feature forwards serde_json/preserve_order. On this
-                // pinned target serde_json1.0.151 inserts sequentially into
-                // IndexMap2.14.2. inner.rs::reserve_entries reserves EXACTLY
-                // hash capacity; hashbrown0.17.1 raw.rs grows power-of-two
-                // buckets at 7/8 load. Old+new entries/indices allocations
-                // are each <4*max(len,4) slots, including small tables.
-                // 8*(pair+hash+index+control) covers both plus x86_64
-                // 16-byte SIMD/control padding. Keep the original bound for
-                // BTreeMap and targets outside this source-proven envelope.
-                let object_factor = if cfg!(all(
-                    feature = "preserve-order-workspace",
-                    target_pointer_width = "64",
-                    target_arch = "x86_64"
-                )) {
-                    8
-                } else {
-                    16
-                };
-                add(total, slots(o.len().max(4), object_factor * entry)?)?;
+                add(total, serde_object_slots_upper(o.len())?)?;
                 for (key, child) in o {
                     text(total, key.units().len())?;
                     walk(child, depth + 1, total)?;

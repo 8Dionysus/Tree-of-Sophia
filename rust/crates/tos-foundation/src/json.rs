@@ -344,6 +344,17 @@ pub fn parse_json_with_state_budget(
     parse_json_inner(raw, mode, limits, Some((0, available)), None)
 }
 
+/// Same parser with both the original logical state remainder and caller cutoff.
+pub fn parse_json_with_state_budget_and_check(
+    raw: &[u8],
+    mode: JsonMode,
+    limits: JsonLimits,
+    available: usize,
+    check: &mut dyn FnMut() -> Result<()>,
+) -> Result<JsonDocument> {
+    parse_json_inner(raw, mode, limits, Some((0, available)), Some(check))
+}
+
 /// Cooperatively check caller cancellation/deadline through the existing parser.
 /// Callback errors are returned unchanged. This does not change the parse profile.
 pub fn parse_json_with_check(
@@ -951,6 +962,26 @@ pub fn emit_python_compact_json(value: &JsonValue, limits: JsonLimits) -> Result
     write_document(value, limits, WriteStyle::PythonPublishedCompact)
 }
 
+/// Insertion-ordered Python compact bytes under the original owner's state,
+/// cooperative cutoff and aggregate visit/work allowance. `admit` runs before
+/// counting or emission and must reserve both passes even on later failure.
+pub fn emit_python_compact_json_with_state_budget_and_visits_and_check(
+    value: &JsonValue,
+    limits: JsonLimits,
+    available: usize,
+    check: &mut dyn FnMut() -> Result<()>,
+    admit: &mut dyn FnMut(usize, usize) -> Result<()>,
+) -> Result<(Vec<u8>, usize)> {
+    write_with_state_budget_and_visits(
+        value,
+        WriteStyle::PythonPublishedCompact,
+        limits,
+        available,
+        Some(check),
+        Some(admit),
+    )
+}
+
 /// Produce owner-profile bytes using Python's sorted compact JSON spelling.
 /// Only `CorpusSnapshotV1` includes a final line feed.
 pub fn canonical_bytes_v1(
@@ -1003,8 +1034,30 @@ pub fn canonical_bytes_v1_with_state_budget(
 pub fn canonical_bytes_v1_with_state_budget_and_visits(
     value: &JsonValue,
     profile: CanonicalProfile,
-    mut limits: JsonLimits,
+    limits: JsonLimits,
     available: usize,
+) -> Result<(Vec<u8>, usize)> {
+    canonical_state_and_visits(value, profile, limits, available, None)
+}
+
+/// Same canonical state/visit owner with the caller's ORIGINAL cooperative
+/// cutoff/cancellation probe. The caller pre-admits shared work before entry.
+pub fn canonical_bytes_v1_with_state_budget_and_visits_and_check(
+    value: &JsonValue,
+    profile: CanonicalProfile,
+    limits: JsonLimits,
+    available: usize,
+    check: &mut dyn FnMut() -> Result<()>,
+) -> Result<(Vec<u8>, usize)> {
+    canonical_state_and_visits(value, profile, limits, available, Some(check))
+}
+
+fn canonical_state_and_visits(
+    value: &JsonValue,
+    profile: CanonicalProfile,
+    limits: JsonLimits,
+    available: usize,
+    check: Option<&mut dyn FnMut() -> Result<()>>,
 ) -> Result<(Vec<u8>, usize)> {
     let style = match profile {
         CanonicalProfile::CorpusSnapshotV1 => WriteStyle::PythonCompactLf,
@@ -1012,6 +1065,37 @@ pub fn canonical_bytes_v1_with_state_budget_and_visits(
             WriteStyle::PythonCompact
         }
     };
+    write_with_state_budget_and_visits(value, style, limits, available, check, None)
+}
+
+/// Resource text: Python ensure_ascii=False, indent=2, sort_keys=True, no LF.
+/// Reuses the owner visitor, actual state reservation and original count+emit visits.
+/// The owner reserves original declared two-pass work before traversal or sorting.
+pub fn emit_python_pretty_sorted_json_with_state_budget(
+    value: &JsonValue,
+    limits: JsonLimits,
+    available: usize,
+    check: &mut dyn FnMut() -> Result<()>,
+    admit: &mut dyn FnMut(usize, usize) -> Result<()>,
+) -> Result<(Vec<u8>, usize)> {
+    write_with_state_budget_and_visits(
+        value,
+        WriteStyle::PythonPretty2Sorted,
+        limits,
+        available,
+        Some(check),
+        Some(admit),
+    )
+}
+
+fn write_with_state_budget_and_visits(
+    value: &JsonValue,
+    style: WriteStyle,
+    mut limits: JsonLimits,
+    available: usize,
+    mut check: Option<&mut dyn FnMut() -> Result<()>>,
+    mut admit: Option<&mut dyn FnMut(usize, usize) -> Result<()>>,
+) -> Result<(Vec<u8>, usize)> {
     let scratch_slots = limits
         .max_depth
         .checked_add(1)
@@ -1021,31 +1105,50 @@ pub fn canonical_bytes_v1_with_state_budget_and_visits(
         .and_then(|n| n.checked_add(std::mem::size_of::<String>()))
         .and_then(|n| n.checked_add(std::mem::size_of::<String>()))
         .and_then(|n| n.checked_add(std::mem::size_of::<FormatCount>()))
+        .and_then(|n| {
+            n.checked_add(if check.is_some() {
+                2 * std::mem::size_of::<JsonOutput>()
+            } else {
+                0
+            })
+        })
         .ok_or_else(state_error)?;
     if scratch_slots > available {
         return Err(state_error());
     }
-    let mut count_sink = JsonOutput {
-        poll: JsonCheck::new(None),
-        sink: JsonSink::StateCount {
-            count: 0,
-            available,
-            scratch: scratch_slots,
-        },
-    };
-    let (count_visits, count_numeric) =
-        write_document_into_with_visits(value, limits, style, &mut count_sink, true)?;
-    let used = count_visits
-        .checked_add(count_numeric)
-        .ok_or_else(state_error)?;
-    let count = count_sink.len();
-    if count
-        > available
-            .checked_sub(scratch_slots)
-            .ok_or_else(state_error)?
-    {
-        return Err(state_error());
+    // Counting and key sorting consume the authentic owner's work too. Reserve
+    // only its original declared grammar/output ceiling before either pass.
+    if let Some(admit) = admit.as_mut() {
+        admit(limits.max_bytes, limits.max_visits)?;
     }
+    let (count, used) = {
+        let mut count_sink = JsonOutput {
+            poll: JsonCheck::new(
+                check
+                    .as_mut()
+                    .map(|callback| &mut **callback as &mut dyn FnMut() -> Result<()>),
+            ),
+            sink: JsonSink::StateCount {
+                count: 0,
+                available,
+                scratch: scratch_slots,
+            },
+        };
+        let (count_visits, count_numeric) =
+            write_document_into_with_visits(value, limits, style, &mut count_sink, true)?;
+        let used = count_visits
+            .checked_add(count_numeric)
+            .ok_or_else(state_error)?;
+        let count = count_sink.len();
+        if count
+            > available
+                .checked_sub(scratch_slots)
+                .ok_or_else(state_error)?
+        {
+            return Err(state_error());
+        }
+        (count, used)
+    };
     let mut bytes = Vec::new();
     bytes.try_reserve_exact(count).map_err(|_| state_error())?;
     if bytes.capacity()
@@ -1061,7 +1164,7 @@ pub fn canonical_bytes_v1_with_state_budget_and_visits(
         .checked_sub(used)
         .ok_or_else(state_error)?;
     let mut output = JsonOutput {
-        poll: JsonCheck::new(None),
+        poll: JsonCheck::new(check),
         sink: JsonSink::StateBytes {
             bytes: &mut bytes,
             available,
@@ -1316,6 +1419,7 @@ enum WriteStyle {
     PythonCompact,
     PythonCompactLf,
     PythonPretty2Lf,
+    PythonPretty2Sorted,
     PythonPretty2SortedLf,
 }
 
@@ -1323,14 +1427,20 @@ impl WriteStyle {
     fn sort_keys(self) -> bool {
         matches!(
             self,
-            Self::PythonCompact | Self::PythonCompactLf | Self::PythonPretty2SortedLf
+            Self::PythonCompact
+                | Self::PythonCompactLf
+                | Self::PythonPretty2Sorted
+                | Self::PythonPretty2SortedLf
         )
     }
     fn python_numbers(self) -> bool {
         self != Self::PreservedCompact
     }
     fn pretty(self) -> bool {
-        matches!(self, Self::PythonPretty2Lf | Self::PythonPretty2SortedLf)
+        matches!(
+            self,
+            Self::PythonPretty2Lf | Self::PythonPretty2Sorted | Self::PythonPretty2SortedLf
+        )
     }
     fn newline(self) -> bool {
         matches!(
@@ -1819,17 +1929,44 @@ fn write_value(
                     .ok_or_else(state_error)?;
                 output.reserve_scratch(actual)?;
                 ordered.extend(entries.iter().enumerate());
-                ordered.sort_unstable_by(|(_, (left, _)), (_, (right, _))| {
-                    left.units.cmp(&right.units)
-                });
-                if ordered
-                    .windows(2)
-                    .any(|pair| pair[0].1.0.units == pair[1].1.0.units)
-                {
-                    return Err(FoundationError::new(
-                        Code::DuplicateMember,
-                        "duplicate decoded JSON member",
-                    ));
+                let checked_scalar_keys = output.poll.check.is_some();
+                if checked_scalar_keys {
+                    // PublishedStrict can retain escaped lone surrogates. Refuse this
+                    // writer's unsupported scalar keys cooperatively before any sort.
+                    for (key, _) in entries {
+                        output.poll.work(256)?;
+                        if key.as_str().is_none() {
+                            return Err(FoundationError::new(
+                                Code::InvalidUnicodeScalar,
+                                "JSON output key is not a Unicode scalar string",
+                            ));
+                        }
+                    }
+                    output.poll.now()?;
+                    // Same existing no-allocation checked scalar sort; equal UTF-16
+                    // keys remain adjacent after this validated scalar ordering.
+                    checked_key_sort(&mut ordered, &mut output.poll)?;
+                } else {
+                    ordered.sort_unstable_by(|(_, (left, _)), (_, (right, _))| {
+                        left.units.cmp(&right.units)
+                    });
+                }
+                for pair in ordered.windows(2) {
+                    let duplicate = if checked_scalar_keys {
+                        checked_units_equal(
+                            &pair[0].1.0.units,
+                            &pair[1].1.0.units,
+                            &mut output.poll,
+                        )?
+                    } else {
+                        pair[0].1.0.units == pair[1].1.0.units
+                    };
+                    if duplicate {
+                        return Err(FoundationError::new(
+                            Code::DuplicateMember,
+                            "duplicate decoded JSON member",
+                        ));
+                    }
                 }
                 state_ordered = Some((ordered, actual));
             } else {
@@ -1898,7 +2035,7 @@ fn write_value(
                         (ordered, 0)
                     }
                 };
-                if stateful {
+                if stateful && output.poll.check.is_none() {
                     // Original ordinal preserves stable ordering for distinct
                     // WTF-16 keys whose as_str() is None, without sort scratch.
                     ordered.sort_unstable_by(
@@ -1919,10 +2056,31 @@ fn write_value(
                 }
                 for (index, (_, (key, item))) in ordered.iter().copied().enumerate() {
                     if index != 0 {
-                        emit(output, b",", limits)?;
+                        emit(
+                            output,
+                            if style.pretty() {
+                                &b",\n"[..]
+                            } else {
+                                &b","[..]
+                            },
+                            limits,
+                        )?;
+                    } else if style.pretty() {
+                        emit(output, b"\n", limits)?;
+                    }
+                    if style.pretty() {
+                        emit_indent(output, depth + 1, limits)?;
                     }
                     write_string(key, output, true, limits)?;
-                    emit(output, b":", limits)?;
+                    emit(
+                        output,
+                        if style.pretty() {
+                            &b": "[..]
+                        } else {
+                            &b":"[..]
+                        },
+                        limits,
+                    )?;
                     write_value(
                         item,
                         output,

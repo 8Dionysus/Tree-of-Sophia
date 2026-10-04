@@ -43,7 +43,51 @@ impl Startup {
         caller_retained_state_bytes: usize,
         startup_bytes: usize,
     ) -> super::Result<(Request, super::session_transport::Limits, u64)> {
-        if self.schema_version != "tos_native_core_session_startup_v1"
+        self.into_profile_request(
+            original_work_ns,
+            caller_retained_state_bytes,
+            startup_bytes,
+            "tos_native_core_session_startup_v1",
+            true,
+        )
+    }
+    pub fn into_probe_owner_request(
+        self,
+        original_work_ns: u64,
+        caller_retained_state_bytes: usize,
+        startup_bytes: usize,
+    ) -> super::Result<(Request, super::session_transport::Limits, u64)> {
+        self.into_profile_request(
+            original_work_ns,
+            caller_retained_state_bytes,
+            startup_bytes,
+            "tos_native_core_probe_session_startup_v1",
+            false,
+        )
+    }
+    pub fn into_lazy_owner_request(
+        self,
+        original_work_ns: u64,
+        caller_retained_state_bytes: usize,
+        startup_bytes: usize,
+    ) -> super::Result<(Request, super::session_transport::Limits, u64)> {
+        self.into_profile_request(
+            original_work_ns,
+            caller_retained_state_bytes,
+            startup_bytes,
+            "tos_native_core_lazy_session_startup_v1",
+            false,
+        )
+    }
+    fn into_profile_request(
+        self,
+        original_work_ns: u64,
+        caller_retained_state_bytes: usize,
+        startup_bytes: usize,
+        schema: &str,
+        require_root: bool,
+    ) -> super::Result<(Request, super::session_transport::Limits, u64)> {
+        if self.schema_version != schema
             || self.admission.work_deadline_ns != original_work_ns
             || original_work_ns >= self.original_whole_deadline_ns
         {
@@ -83,7 +127,7 @@ impl Startup {
         }
         // First implementation requires captured Root. A selected existing QueryStore
         // retains its independent five-input owner; never silently rebuild it as Root.
-        if self.query_store.configured || self.query_store.path.exists() {
+        if require_root && (self.query_store.configured || self.query_store.path.exists()) {
             return Err("Core session selected QueryStore owner unsupported");
         }
         let session = self.session.validate()?;

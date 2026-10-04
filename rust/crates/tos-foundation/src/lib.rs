@@ -22,11 +22,15 @@ pub use json::{
     CanonicalProfile, EncodedJson, JsonDocument, JsonEmissionProfile, JsonLimits, JsonMode,
     JsonNumber, JsonNumberKind, JsonString, JsonValue, canonical_bytes_v1,
     canonical_bytes_v1_with_check, canonical_bytes_v1_with_state_budget,
-    canonical_bytes_v1_with_state_budget_and_visits, canonical_bytes_v1_with_visits,
+    canonical_bytes_v1_with_state_budget_and_visits,
+    canonical_bytes_v1_with_state_budget_and_visits_and_check, canonical_bytes_v1_with_visits,
     canonical_count_v1, canonical_digest_v1, canonical_feed_digest_v1,
     canonical_feed_digest_v1_with_check, canonical_raw_bytes_profile, canonical_raw_bytes_v1,
-    emit_json_profile, emit_preserved_json, emit_python_compact_json, emit_value_preserved_json,
-    parse_json, parse_json_profile, parse_json_with_check, parse_json_with_state_budget,
+    emit_json_profile, emit_preserved_json, emit_python_compact_json,
+    emit_python_compact_json_with_state_budget_and_visits_and_check,
+    emit_python_pretty_sorted_json_with_state_budget, emit_value_preserved_json, parse_json,
+    parse_json_profile, parse_json_with_check, parse_json_with_state_budget,
+    parse_json_with_state_budget_and_check,
 };
 pub use knowledge_model_abi::{
     KNOWLEDGE_MODEL_ABI_V2_POSTINGS_V1, KNOWLEDGE_MODEL_ABI_V3_POSTINGS_V1,
@@ -37,8 +41,9 @@ pub use logical_ref::LogicalRecordRefV1;
 pub use path::RelativePath;
 pub use unicode::{
     UnicodeProfile, python_casefold_unicode16_v1, python_decimal_unicode16_v1,
-    python_lower_unicode16_v1, python_printable_unicode16_v1, python_strip_unicode16_v1,
-    python_word_unicode16_v1,
+    python_lower_unicode16_v1, python_lower_unicode16_v1_error_state_upper_bound,
+    python_lower_unicode16_v1_with_state_budget_and_check, python_printable_unicode16_v1,
+    python_strip_unicode16_v1, python_strip_unicode16_v1_with_check, python_word_unicode16_v1,
 };
 
 /// Minimal transport-independent observation for a native/WASM executable parity harness.

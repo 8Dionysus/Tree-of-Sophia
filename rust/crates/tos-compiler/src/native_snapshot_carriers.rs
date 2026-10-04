@@ -2,12 +2,12 @@
 //! This reader does not recover originals from normalized knowledge records.
 use crate::native_snapshot::CompletedCaptureCarriers;
 use crate::{Error, Result};
-use std::collections::BTreeSet;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Instant;
 use tos_foundation::{
     CanonicalProfile, JsonLimits, JsonMode, JsonNumber, JsonNumberKind, JsonString, JsonValue,
-    canonical_bytes_v1_with_visits, parse_json,
+    canonical_bytes_v1_with_state_budget_and_visits_and_check, parse_json,
+    parse_json_with_state_budget_and_check,
 };
 
 #[derive(Clone, Copy, Debug)]
@@ -29,6 +29,18 @@ pub struct CapturedCarrierReadBudget {
     pub json: JsonLimits,
 }
 
+/// Same read's cumulative logical admissions. On failure JSON visits retain the
+/// admitted ceiling, because the parser does not expose partial failure visits.
+#[derive(Default, Clone, Copy, Debug)]
+pub struct CapturedCarrierUsage {
+    pub rows: u64,
+    pub input_bytes: u64,
+    pub json_visits: usize,
+}
+pub struct CapturedCarrierDelivery {
+    pub bytes: Vec<u8>,
+    pub usage: CapturedCarrierUsage,
+}
 struct Read<'a> {
     view: &'a CompletedCaptureCarriers<'a>,
     budget: CapturedCarrierReadBudget,
@@ -37,6 +49,10 @@ struct Read<'a> {
     visits: usize,
     deadline: Instant,
     cancelled: &'a AtomicBool,
+    remaining: &'a dyn Fn(usize) -> Result<usize>,
+    usage: &'a mut CapturedCarrierUsage,
+    retained: usize,
+    owner_workspace: usize,
 }
 impl Read<'_> {
     fn checkpoint(&self) -> Result<()> {
@@ -48,45 +64,219 @@ impl Read<'_> {
         }
         Ok(())
     }
-    fn parse(&mut self, raw: &[u8]) -> Result<JsonValue> {
+    fn remaining(&self, extra: usize) -> Result<usize> {
         self.checkpoint()?;
-        self.input_bytes = self
-            .input_bytes
-            .checked_add(raw.len() as u64)
-            .filter(|bytes| *bytes <= self.budget.max_input_bytes)
-            .ok_or(Error::Budget("complete carrier input bytes"))?;
+        let held = self
+            .retained
+            .checked_add(self.owner_workspace)
+            .and_then(|n| n.checked_add(extra))
+            .ok_or(Error::Budget("complete carrier retained state"))?;
+        (self.remaining)(held)
+    }
+    fn reserve<T>(&mut self, values: &mut Vec<T>, additional: usize) -> Result<()> {
+        let count = values
+            .len()
+            .checked_add(additional)
+            .ok_or(Error::Budget("complete carrier container"))?;
+        if count <= values.capacity() {
+            return Ok(());
+        }
+        let old = values
+            .capacity()
+            .checked_mul(std::mem::size_of::<T>())
+            .ok_or(Error::Budget("complete carrier container"))?;
+        let new = count
+            .checked_mul(std::mem::size_of::<T>())
+            .ok_or(Error::Budget("complete carrier container"))?;
+        // Existing storage and replacement overlap until reserve succeeds.
+        let available = self.remaining(new)?;
+        values
+            .try_reserve_exact(count - values.len())
+            .map_err(|_| Error::Budget("complete carrier container"))?;
+        let actual = values
+            .capacity()
+            .checked_mul(std::mem::size_of::<T>())
+            .ok_or(Error::Budget("complete carrier container"))?;
+        if actual
+            > new
+                .checked_add(available)
+                .ok_or(Error::Budget("complete carrier container"))?
+        {
+            return Err(Error::Budget("complete carrier container capacity"));
+        }
+        self.retained = self
+            .retained
+            .checked_add(actual)
+            .and_then(|n| n.checked_sub(old))
+            .ok_or(Error::Budget("complete carrier retained state"))?;
+        Ok(())
+    }
+    fn key(&mut self, name: &str) -> Result<JsonString> {
+        let units = name.encode_utf16().count();
+        let bytes = units
+            .checked_mul(2)
+            .map(|n| n.max(4)) // Vec<u16>::collect minimum nonzero capacity.
+            .and_then(|n| n.checked_mul(std::mem::size_of::<u16>()))
+            .and_then(|n| n.checked_add(name.len()))
+            .ok_or(Error::Budget("complete carrier key"))?;
+        self.remaining(bytes)?;
+        let key = JsonString::from_utf8(name);
+        let actual = key
+            .retained_storage_bytes()
+            .map_err(|_| Error::Budget("complete carrier key"))?;
+        self.remaining(actual)?;
+        self.retained = self
+            .retained
+            .checked_add(actual)
+            .ok_or(Error::Budget("complete carrier retained state"))?;
+        Ok(key)
+    }
+    fn replace(&mut self, object: &mut JsonValue, name: &str, value: JsonValue) -> Result<()> {
+        let JsonValue::Object(fields) = object else {
+            return Err(Error::Invalid("complete carrier original object"));
+        };
+        if let Some((_, old)) = fields
+            .iter_mut()
+            .find(|(key, _)| key.as_str() == Some(name))
+        {
+            // Retain the conservative prior allocation admission until read returns.
+            *old = value;
+        } else {
+            self.reserve(fields, 1)?;
+            let key = self.key(name)?;
+            fields.push((key, value));
+        }
+        Ok(())
+    }
+    fn observe_input(&mut self, raw: &[u8]) -> Result<()> {
+        self.observe_bytes(raw.len() as u64)
+    }
+    fn observe_bytes(&mut self, bytes: u64) -> Result<()> {
+        let observed = self.input_bytes.checked_add(bytes);
+        // This raw row was already authenticated by the held capture visitor.
+        // Keep its observation even when this read rejects the finite cap.
+        self.usage.input_bytes = observed.unwrap_or(u64::MAX);
+        self.input_bytes =
+            observed.ok_or(Error::Budget("complete carrier input bytes overflow"))?;
+        if self.input_bytes > self.budget.max_input_bytes {
+            return Err(Error::Budget("complete carrier input bytes"));
+        }
+        Ok(())
+    }
+    fn parse(&mut self, raw: &[u8]) -> Result<JsonValue> {
+        self.observe_input(raw)?;
+        self.parse_observed(raw)
+    }
+    fn parse_observed(&mut self, raw: &[u8]) -> Result<JsonValue> {
+        self.checkpoint()?;
         let mut limits = self.budget.json;
         limits.max_visits = limits.max_visits.min(self.visits);
-        let parsed = parse_json(raw, JsonMode::PublishedStrict, limits)
-            .map_err(|_| Error::Invalid("complete carrier original JSON"))?;
+        // Ceiling is retained on every failure; successful accounting uses actual visits.
+        let before = self.usage.json_visits;
+        self.usage.json_visits = before
+            .checked_add(limits.max_visits)
+            .ok_or(Error::Budget("complete carrier JSON visits"))?;
+        self.view.charge_work(
+            (raw.len() as u64)
+                .checked_add(limits.max_visits as u64)
+                .ok_or(Error::Budget("complete carrier parse work"))?,
+        )?;
+        let available = self.remaining(raw.len())?;
+        let mut check = || {
+            self.checkpoint().map_err(|_| {
+                tos_foundation::FoundationError::new(
+                    tos_foundation::FoundationErrorCode::BudgetExceeded,
+                    "complete carrier cutoff/cancellation",
+                )
+            })
+        };
+        let parsed = parse_json_with_state_budget_and_check(
+            raw,
+            JsonMode::PublishedStrict,
+            limits,
+            available,
+            &mut check,
+        )
+        .map_err(|_| Error::Invalid("complete carrier original JSON"))?;
+        let used = parsed.visits();
         self.visits = self
             .visits
-            .checked_sub(parsed.visits())
+            .checked_sub(used)
             .ok_or(Error::Budget("complete carrier JSON visits"))?;
-        Ok(parsed.into_root())
+        self.usage.json_visits = before
+            .checked_add(used)
+            .ok_or(Error::Budget("complete carrier JSON visits"))?;
+        let root = parsed.into_root();
+        let actual = root
+            .retained_storage_bytes()
+            .map_err(|_| Error::Budget("complete carrier tree state"))?;
+        self.remaining(
+            raw.len()
+                .checked_add(actual)
+                .ok_or(Error::Budget("complete carrier tree state"))?,
+        )?;
+        self.retained = self
+            .retained
+            .checked_add(actual)
+            .ok_or(Error::Budget("complete carrier retained state"))?;
+        Ok(root)
     }
     fn header(&mut self, role: &str, prefix: &str) -> Result<JsonValue> {
         self.checkpoint()?;
-        let available = self.budget.max_input_bytes.saturating_sub(self.input_bytes);
         let cap = self
             .budget
             .json
             .max_bytes
-            .min(usize::try_from(available).unwrap_or(usize::MAX))
+            .min(
+                usize::try_from(self.budget.max_input_bytes.saturating_sub(self.input_bytes))
+                    .unwrap_or(usize::MAX),
+            )
             .min(2 * 1024 * 1024);
         if cap == 0 {
             return Err(Error::Budget("complete carrier header bytes"));
         }
-        let header = self.view.header_object(role, prefix, cap)?;
-        let raw = serde_json::to_vec(&header)
-            .map_err(|_| Error::Invalid("complete carrier header encoding"))?;
-        if raw.len() > cap {
-            return Err(Error::Budget("complete carrier header bytes"));
-        }
-        self.parse(&raw)
+        self.observe_bytes(2)?; // Original enclosing object braces.
+        let mut fields = Vec::new();
+        let view = self.view;
+        view.visit_header_fields(role, prefix, cap, |name, raw| {
+            // Count the existing serde header key representation without a buffer.
+            let mut count = HeaderKeyCount(0);
+            serde_json::to_writer(&mut count, name)
+                .map_err(|_| Error::Invalid("complete carrier header key encoding"))?;
+            let overhead = count
+                .0
+                .checked_add(1)
+                .and_then(|n| n.checked_add(usize::from(!fields.is_empty())))
+                .ok_or(Error::Budget("complete carrier header bytes"))?;
+            self.observe_bytes(overhead as u64)?;
+            self.observe_input(raw)?;
+            let comparison_work = fields.iter().try_fold(0usize, |n, (key, _)| {
+                n.checked_add(name.len())
+                    .and_then(|n| n.checked_add(JsonString::as_str(key).map_or(0, str::len)))
+                    .ok_or(Error::Budget("complete carrier header comparison work"))
+            })?;
+            self.view.charge_work(comparison_work as u64)?;
+            if fields
+                .iter()
+                .any(|(key, _)| JsonString::as_str(key) == Some(name))
+            {
+                return Err(Error::Invalid("complete carrier duplicate header"));
+            }
+            self.reserve(&mut fields, 1)?;
+            let key = self.key(name)?;
+            let value = self.parse_observed(raw)?;
+            fields.push((key, value));
+            Ok(())
+        })?;
+        Ok(JsonValue::Object(fields))
     }
     fn collection(&mut self, role: &str, name: &str) -> Result<Option<JsonValue>> {
         self.checkpoint()?;
+        self.remaining(64)?;
+        self.retained = self
+            .retained
+            .checked_add(64)
+            .ok_or(Error::Budget("complete carrier kind state"))?;
         let mapping = match self.view.captured_collection_kind(role, name)?.as_deref() {
             None => return Ok(None),
             Some("array") => false,
@@ -96,23 +286,27 @@ impl Read<'_> {
         let mut values = Vec::new();
         let view = self.view;
         let visited = view.visit_rows(role, name, |ordinal, raw| {
+            let observed = self.rows.checked_add(1);
+            self.usage.rows = observed.unwrap_or(u64::MAX);
+            self.rows = observed.ok_or(Error::Budget("complete carrier rows overflow"))?;
+            self.observe_input(raw)?;
             self.checkpoint()?;
             if ordinal != values.len() as u64 {
                 return Err(Error::Invalid("complete carrier original row order"));
             }
-            self.rows = self
-                .rows
-                .checked_add(1)
-                .filter(|rows| *rows <= self.budget.max_rows)
-                .ok_or(Error::Budget("complete carrier rows"))?;
-            values.push(self.parse(raw)?);
+            if self.rows > self.budget.max_rows {
+                return Err(Error::Budget("complete carrier rows"));
+            }
+            self.reserve(&mut values, 1)?;
+            values.push(self.parse_observed(raw)?);
             Ok(())
         })?;
         if visited != values.len() as u64 {
             return Err(Error::Invalid("complete carrier original EOF count"));
         }
         if mapping {
-            let mut fields = Vec::with_capacity(values.len());
+            let mut fields = Vec::new();
+            self.reserve(&mut fields, values.len())?;
             let mut previous: Option<String> = None;
             for mut record in values {
                 let key = take(&mut record, "key")
@@ -127,7 +321,12 @@ impl Read<'_> {
                 if previous.as_deref().is_some_and(|prior| name <= prior) {
                     return Err(Error::Invalid("complete carrier mapping order"));
                 }
+                self.remaining(name.len())?;
                 previous = Some(name.to_owned());
+                self.retained = self
+                    .retained
+                    .checked_add(previous.as_ref().unwrap().capacity())
+                    .ok_or(Error::Budget("complete carrier mapping key"))?;
                 let value = take(&mut record, "value")
                     .ok_or(Error::Invalid("complete carrier mapping value"))?;
                 fields.push((key, value));
@@ -140,7 +339,7 @@ impl Read<'_> {
     fn attach(&mut self, header: &mut JsonValue, role: &str, names: &[&str]) -> Result<()> {
         for name in names {
             if let Some(value) = self.collection(role, name)? {
-                replace(header, name, value)?;
+                self.replace(header, name, value)?;
             }
         }
         Ok(())
@@ -157,9 +356,14 @@ impl Read<'_> {
         }
         let mut header = self.header("corpus", "source_navigation")?;
         for name in ["nodes", "edges", "rights"] {
+            self.remaining(64)?;
+            self.retained = self
+                .retained
+                .checked_add(64)
+                .ok_or(Error::Budget("complete carrier collection name"))?;
             let collection = format!("source_navigation/{name}");
             if let Some(rows) = self.collection("corpus", &collection)? {
-                replace(&mut header, name, rows)?;
+                self.replace(&mut header, name, rows)?;
             }
         }
         Ok(Some(header))
@@ -194,17 +398,19 @@ impl Read<'_> {
                     ],
                 )?;
                 if let Some(navigation) = self.navigation()? {
-                    replace(&mut header, "source_navigation", navigation)?;
+                    self.replace(&mut header, "source_navigation", navigation)?;
                 }
                 Ok(header)
             }
             CapturedCarrierRequest::PhilosophyProjection => {
                 let mut projection = self.header("philosophy", "")?;
-                for name in self.view.captured_collection_names("philosophy")? {
-                    if let Some(value) = self.collection("philosophy", &name)? {
-                        replace(&mut projection, &name, value)?;
+                let view = self.view;
+                view.visit_collection_names("philosophy", |name| {
+                    if let Some(value) = self.collection("philosophy", name)? {
+                        self.replace(&mut projection, name, value)?;
                     }
-                }
+                    Ok(())
+                })?;
                 if !matches!(
                     projection
                         .object_get("schema_version")
@@ -227,6 +433,7 @@ impl Read<'_> {
                 if cap == 0 {
                     return Err(Error::Budget("philosophy audit input bytes"));
                 }
+                self.remaining(cap)?;
                 let raw = self.view.read_philosophy_audit(cap)?;
                 let payload = self.parse(&raw)?;
                 if payload
@@ -284,7 +491,8 @@ impl Read<'_> {
                     .and_then(|properties| properties.object_get("packet_id")),
             )
         });
-        let mut ids = BTreeSet::new();
+        let mut ids = Vec::new();
+        self.reserve(&mut ids, nodes.len())?;
         let mut max_id_bytes = 0usize;
         for node in &nodes {
             self.checkpoint()?;
@@ -296,9 +504,17 @@ impl Read<'_> {
                 ))?;
             self.view.charge_work(id.len() as u64)?;
             max_id_bytes = max_id_bytes.max(id.len());
-            ids.insert(id);
+            ids.push(id);
         }
         let comparisons = usize::BITS - ids.len().max(1).leading_zeros();
+        self.view.charge_work(
+            (ids.len() as u64)
+                .checked_mul(comparisons as u64)
+                .and_then(|n| n.checked_mul(max_id_bytes as u64))
+                .ok_or(Error::Budget("bibliographic navigation sort work"))?,
+        )?;
+        ids.sort_unstable();
+        ids.dedup();
         let mut kept = Vec::new();
         for edge in edges.drain(..) {
             self.checkpoint()?;
@@ -323,35 +539,45 @@ impl Read<'_> {
                 .and_then(|n| n.checked_mul(24))
                 .ok_or(Error::Budget("bibliographic navigation membership work"))?;
             self.view.charge_work(work as u64)?;
-            if ids.contains(from) && ids.contains(to) {
+            if ids.binary_search(&from).is_ok() && ids.binary_search(&to).is_ok() {
+                self.reserve(&mut kept, 1)?;
                 kept.push(edge);
             }
         }
         drop(ids);
         let node_count = nodes.len();
         let edge_count = kept.len();
-        replace(&mut navigation, "nodes", JsonValue::Array(nodes))?;
-        replace(&mut navigation, "edges", JsonValue::Array(kept))?;
+        self.replace(&mut navigation, "nodes", JsonValue::Array(nodes))?;
+        self.replace(&mut navigation, "edges", JsonValue::Array(kept))?;
         let mut counts = take(&mut navigation, "counts").unwrap_or(JsonValue::Object(Vec::new()));
-        replace(&mut counts, "nodes", number(node_count))?;
-        replace(&mut counts, "edges", number(edge_count))?;
-        replace(&mut navigation, "counts", counts)?;
+        self.remaining(40)?;
+        self.retained = self
+            .retained
+            .checked_add(40)
+            .ok_or(Error::Budget("complete carrier counts"))?;
+        self.replace(&mut counts, "nodes", number(node_count))?;
+        self.remaining(40)?;
+        self.retained = self
+            .retained
+            .checked_add(40)
+            .ok_or(Error::Budget("complete carrier counts"))?;
+        self.replace(&mut counts, "edges", number(edge_count))?;
+        self.replace(&mut navigation, "counts", counts)?;
         Ok(navigation)
     }
 }
-fn replace(object: &mut JsonValue, name: &str, value: JsonValue) -> Result<()> {
-    let JsonValue::Object(fields) = object else {
-        return Err(Error::Invalid("complete carrier original object"));
-    };
-    if let Some((_, old)) = fields
-        .iter_mut()
-        .find(|(key, _)| key.as_str() == Some(name))
-    {
-        *old = value;
-    } else {
-        fields.push((JsonString::from_utf8(name), value));
+struct HeaderKeyCount(usize);
+impl std::io::Write for HeaderKeyCount {
+    fn write(&mut self, bytes: &[u8]) -> std::io::Result<usize> {
+        self.0 = self
+            .0
+            .checked_add(bytes.len())
+            .ok_or_else(|| std::io::Error::other("header key count overflow"))?;
+        Ok(bytes.len())
     }
-    Ok(())
+    fn flush(&mut self) -> std::io::Result<()> {
+        Ok(())
+    }
 }
 fn take(object: &mut JsonValue, name: &str) -> Option<JsonValue> {
     let JsonValue::Object(fields) = object else {
@@ -399,12 +625,40 @@ pub fn read_complete_captured_carrier(
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> Result<Vec<u8>> {
+    let mut usage = CapturedCarrierUsage::default();
+    read_complete_captured_carrier_with_state(
+        view,
+        request,
+        budget,
+        deadline,
+        cancelled,
+        &|_| Ok(usize::MAX),
+        &mut usage,
+    )
+    .map(|delivery| delivery.bytes)
+}
+
+/// Connected callers supply the genuine original remainder and retain `usage`
+/// on success AND failure. Any error terminates the session; no admission refund
+/// is available after parser/output failure or a final capture fence refusal.
+pub fn read_complete_captured_carrier_with_state(
+    view: &CompletedCaptureCarriers<'_>,
+    request: CapturedCarrierRequest,
+    budget: CapturedCarrierReadBudget,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+    remaining_after_retained: &dyn Fn(usize) -> Result<usize>,
+    usage: &mut CapturedCarrierUsage,
+) -> Result<CapturedCarrierDelivery> {
     if budget.max_rows == 0
         || budget.max_input_bytes == 0
         || budget.max_output_bytes == 0
         || budget.json.max_visits == 0
     {
         return Err(Error::Budget("complete carrier budget"));
+    }
+    if usage.rows != 0 || usage.input_bytes != 0 || usage.json_visits != 0 {
+        return Err(Error::Invalid("complete carrier nonempty usage report"));
     }
     let mut read = Read {
         view,
@@ -414,20 +668,53 @@ pub fn read_complete_captured_carrier(
         visits: budget.json.max_visits,
         deadline,
         cancelled,
+        remaining: remaining_after_retained,
+        usage,
+        retained: std::mem::size_of::<Read<'_>>(),
+        owner_workspace: view
+            .carrier_reader_workspace()?
+            .checked_mul(2)
+            .ok_or(Error::Budget("complete carrier nested owner workspace"))?,
     };
-    read.checkpoint()?;
+    read.remaining(0)?;
     let value = read.read(request)?;
-    let mut output_limits = budget.json;
-    output_limits.max_bytes = output_limits.max_bytes.min(budget.max_output_bytes);
-    output_limits.max_visits = output_limits.max_visits.min(read.visits);
-    let (raw, _, _) = canonical_bytes_v1_with_visits(
+    let mut limits = budget.json;
+    limits.max_bytes = limits.max_bytes.min(budget.max_output_bytes);
+    limits.max_visits = limits.max_visits.min(read.visits);
+    let before = read.usage.json_visits;
+    read.usage.json_visits = before
+        .checked_add(limits.max_visits)
+        .ok_or(Error::Budget("complete carrier JSON visits"))?;
+    read.view.charge_work(
+        (limits.max_bytes as u64)
+            .checked_mul(2)
+            .and_then(|n| n.checked_add(limits.max_visits as u64))
+            .ok_or(Error::Budget("complete carrier output work"))?,
+    )?;
+    let available = read.remaining(0)?;
+    let mut check = || {
+        read.checkpoint().map_err(|_| {
+            tos_foundation::FoundationError::new(
+                tos_foundation::FoundationErrorCode::BudgetExceeded,
+                "complete carrier output cutoff/cancellation",
+            )
+        })
+    };
+    let (raw, used) = canonical_bytes_v1_with_state_budget_and_visits_and_check(
         &value,
         CanonicalProfile::SourceRecordDigestV1,
-        output_limits,
+        limits,
+        available,
+        &mut check,
     )
-    .map_err(|_| Error::Budget("complete carrier output bytes or visits"))?;
+    .map_err(|_| Error::Budget("complete carrier output bytes/visits/state"))?;
+    read.usage.json_visits = before
+        .checked_add(used)
+        .ok_or(Error::Budget("complete carrier JSON visits"))?;
+    read.remaining(raw.capacity())?;
     read.checkpoint()?;
-    Ok(raw)
+    let usage = *read.usage;
+    Ok(CapturedCarrierDelivery { bytes: raw, usage })
 }
 
 /// Exact finished Evidence Lens projection lent by its actual owner holder.

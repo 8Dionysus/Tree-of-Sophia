@@ -51,7 +51,7 @@ mod publication;
 pub use publication::{MetadataPublicationEpoch, validate_metadata_publication};
 
 mod pinned_sqlite_aux;
-pub use pinned_sqlite::PinnedSqliteConnection;
+pub use pinned_sqlite::{PinnedBoundedStatement, PinnedSqliteConnection};
 pub use pinned_sqlite_aux::{
     PinnedSqliteAuxLimits, PinnedSqliteAuxRequest, PinnedSqliteAuxScope, PinnedSqliteIoBudget,
     PinnedSqliteIoFailure, PinnedSqliteIoSnapshot, PinnedSqliteSpaceBudget,

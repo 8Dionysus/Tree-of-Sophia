@@ -204,6 +204,12 @@ impl LegacyStore {
         args: &Value,
         max_state_bytes: usize,
     ) -> Result<Value> {
+        if self.owned.is_some() {
+            return Err(err(
+                "legacy owned store requires original-budget operation API",
+            ));
+        }
+
         self.verify_currentness()?;
         let fields = args
             .as_object()
@@ -441,5 +447,977 @@ impl LegacyStore {
         Ok(
             json!({"schema":"tos_knowledge_search_v1","source_revision":self.revision,"query":query,"filters":{"sources":sources,"kind_ids":kinds,"predicate_ids":predicates},"page":{"offset":offset,"limit_per_kind":limit},"counts":{"matching_nodes":counts[0],"matching_relations":counts[1],"returned_nodes":nodes.len(),"returned_relations":relations.len()},"nodes":nodes,"relations":relations,"authority_boundary":self.graph_header.get("authority_boundary").cloned().unwrap_or(json!({}))}),
         )
+    }
+}
+
+// Owned v1 search uses the same normalized rows and ranking rule. Every Rust
+// carrier is admitted before allocation; SQLite's copied bound text remains
+// inside the one original dedicated heap. Arguments are borrowed caller-owned
+// input, already admitted by that caller's ingress owner.
+type OwnedHit = ((u8, String, String, String), Value, usize);
+fn search_charge(budget: &OriginalStoreBudget<'_>, amount: usize) -> Result<()> {
+    let amount = u64::try_from(amount).map_err(owned_err)?;
+    atomic_charge(&budget.byte_work, budget.max_byte_work, amount)?;
+    atomic_charge(&budget.store_steps, budget.max_store_steps, amount)
+}
+fn search_text<'s>(
+    statement: &'s tos_source_store::PinnedBoundedStatement<'_>,
+    column: i32,
+    budget: &OriginalStoreBudget<'_>,
+    deadline: Instant,
+    probe: &dyn AbortProbe,
+    held: usize,
+) -> Result<&'s str> {
+    let mut check = |bytes| {
+        budget
+            .check(deadline, probe)
+            .and_then(|_| search_charge(budget, bytes))
+            .map_err(|_| {
+                tos_source_store::StoreError::new(
+                    tos_source_store::StoreErrorCode::BudgetExceeded,
+                    "legacy original text validation work/deadline",
+                )
+            })
+    };
+    // The callback target is distinct from its still-live parameter slots.
+    (budget.remaining_after_retained)(state_add(held, std::mem::size_of_val(&check))?)?;
+    statement
+        .text_with_check(column, &mut check)
+        .map_err(owned_err)
+}
+
+fn search_heap(value: &Value, check: &dyn Fn() -> Result<()>) -> Result<usize> {
+    state_add(
+        std::mem::size_of::<Value>(),
+        serde_clone_storage(value, check)?,
+    )
+}
+fn owned_search_fixed() -> Result<usize> {
+    // Actual operation, scan, ranking, filter and response controllers. The
+    // recursive JSON/conversion/serializer owners remain their existing owner
+    // census, shared with metadata instead of an encoded-byte multiplier.
+    let mut size = state_add(
+        owned_metadata_controller_state_upper_bound()?,
+        state_slots_bytes(34, owned_tree_controller_frame_bytes())?,
+    )?;
+    for extra in [
+        std::mem::size_of::<OwnedBorrowedProbe<'_>>(),
+        std::mem::size_of::<OriginalStoreBudget<'_>>(),
+        std::mem::size_of::<tos_source_store::PinnedBoundedStatement<'_>>(),
+        tos_source_store::PinnedBoundedStatement::text_validation_rust_workspace_upper_bound(),
+        std::mem::size_of::<usize>(),
+        std::mem::size_of::<(
+            &tos_source_store::PinnedBoundedStatement<'_>,
+            i32,
+            &OriginalStoreBudget<'_>,
+            Instant,
+            &dyn AbortProbe,
+        )>(),
+        std::mem::size_of::<[Vec<Value>; 2]>(),
+        std::mem::size_of::<Vec<OwnedHit>>(),
+        std::mem::size_of::<[Vec<String>; 5]>(),
+        std::mem::size_of::<[String; 8]>(),
+        std::mem::size_of::<[(&'static str, Value); 11]>(),
+        std::mem::size_of::<[Value; 12]>(),
+        std::mem::size_of::<[usize; 40]>(),
+        std::mem::size_of::<[&Value; 12]>(),
+        std::mem::size_of::<[&str; 12]>(),
+        std::mem::size_of::<std::str::CharIndices<'_>>(),
+        std::mem::size_of::<std::str::Chars<'_>>(),
+        std::mem::size_of::<[std::slice::Iter<'_, Value>; 5]>(),
+        std::mem::size_of::<[std::slice::Iter<'_, String>; 5]>(),
+        tos_foundation::python_lower_unicode16_v1_error_state_upper_bound(),
+    ] {
+        size = state_add(size, extra)?;
+    }
+    Ok(size)
+}
+fn search_lower_counts(
+    input: &str,
+    cap: usize,
+    input_points: usize,
+    output_points: usize,
+    held: usize,
+    budget: &OriginalStoreBudget<'_>,
+    deadline: Instant,
+    probe: &dyn AbortProbe,
+) -> Result<String> {
+    if input.len() > cap {
+        return Err(owned_err("legacy rank field byte cap"));
+    }
+    budget.check(deadline, probe)?;
+    let available = (budget.remaining_after_retained)(held)?;
+    let mut check = || {
+        budget
+            .check(deadline, probe)
+            .and_then(|_| search_charge(budget, 4))
+            .map_err(|_| {
+                tos_foundation::FoundationError::new(
+                    tos_foundation::FoundationErrorCode::BudgetExceeded,
+                    "legacy original rank work/deadline",
+                )
+            })
+    };
+    tos_foundation::python_lower_unicode16_v1_with_state_budget_and_check(
+        input,
+        input_points,
+        output_points,
+        cap,
+        available,
+        &mut check,
+    )
+    .map_err(owned_err)
+}
+fn search_lower(
+    input: &str,
+    cap: usize,
+    held: usize,
+    budget: &OriginalStoreBudget<'_>,
+    deadline: Instant,
+    probe: &dyn AbortProbe,
+) -> Result<String> {
+    search_lower_counts(input, cap, cap, cap, held, budget, deadline, probe)
+}
+fn search_strings(
+    value: Option<&Value>,
+    defaults: bool,
+    held: &mut usize,
+    budget: &OriginalStoreBudget<'_>,
+    deadline: Instant,
+    probe: &dyn AbortProbe,
+) -> Result<Vec<String>> {
+    let values = match value {
+        None | Some(Value::Null) => &[][..],
+        Some(Value::Array(values)) => values.as_slice(),
+        _ => return Err(owned_err("legacy query string filter must be an array")),
+    };
+    let mut count = 0usize;
+    let mut bytes = 0usize;
+    for value in values {
+        budget.check(deadline, probe)?;
+        search_charge(budget, 1)?;
+        if let Some(value) = value.as_str().filter(|v| !v.is_empty()) {
+            count = state_add(count, 1)?;
+            bytes = state_add(bytes, value.len())?;
+        }
+    }
+    let defaulted = defaults && count == 0;
+    if defaulted {
+        count = SOURCES.len();
+        bytes = SOURCES.iter().map(|s| s.len()).sum();
+    }
+    let allocated = state_add(state_slots::<String>(count)?, bytes)?;
+    (budget.remaining_after_retained)(state_add(*held, allocated)?)?;
+    search_charge(budget, bytes)?;
+    let mut output: Vec<String> = Vec::new();
+    output.try_reserve_exact(count).map_err(owned_err)?;
+    if output.capacity() != count {
+        return Err(owned_err("legacy exact filter capacity"));
+    }
+    // Complete admitted key comparisons and slot movement before copying any
+    // filter String. Exact-capacity sorted insertion needs no hidden sort
+    // recursion or allocator and preserves the maintained sorted-unique set.
+    search_charge(
+        budget,
+        count
+            .checked_mul(count)
+            .and_then(|n| n.checked_mul(bytes.max(std::mem::size_of::<String>())))
+            .ok_or_else(|| owned_err("legacy filter ordering work overflow"))?,
+    )?;
+    let mut add = |value: &str| -> Result<()> {
+        budget.check(deadline, probe)?;
+        let (mut low, mut high) = (0usize, output.len());
+        while low < high {
+            budget.check(deadline, probe)?;
+            let middle = low + (high - low) / 2;
+            match output[middle].as_str().cmp(value) {
+                std::cmp::Ordering::Less => low = middle + 1,
+                std::cmp::Ordering::Greater => high = middle,
+                std::cmp::Ordering::Equal => return Ok(()),
+            }
+        }
+        output.insert(low, exact_string(value)?);
+        Ok(())
+    };
+    (budget.remaining_after_retained)(state_add(
+        state_add(*held, allocated)?,
+        std::mem::size_of_val(&add),
+    )?)?;
+    if defaulted {
+        for value in SOURCES {
+            add(value)?;
+        }
+    } else {
+        for value in values {
+            if let Some(value) = value.as_str().filter(|s| !s.is_empty()) {
+                add(value)?;
+            }
+        }
+    }
+    drop(add);
+    *held = state_add(*held, allocated)?;
+    Ok(output)
+}
+fn search_display_values(
+    value: &Value,
+    fields: &[&str],
+    held: &mut usize,
+    cap: usize,
+    budget: &OriginalStoreBudget<'_>,
+    deadline: Instant,
+    probe: &dyn AbortProbe,
+) -> Result<Vec<String>> {
+    let display = value.get("display").unwrap_or(&Value::Null);
+    let mut count = 0usize;
+    for name in fields {
+        budget.check(deadline, probe)?;
+        search_charge(budget, name.len())?;
+        let field = display.get(*name).unwrap_or(&Value::Null);
+        if field.is_string() {
+            count = state_add(count, 1)?;
+        } else if let Some(entries) = field.as_object() {
+            for value in entries.values() {
+                budget.check(deadline, probe)?;
+                search_charge(budget, 1)?;
+                if value.is_string() {
+                    count = state_add(count, 1)?;
+                }
+            }
+        }
+    }
+    let slots = state_slots::<String>(count)?;
+    (budget.remaining_after_retained)(state_add(*held, slots)?)?;
+    let mut output = Vec::new();
+    output.try_reserve_exact(count).map_err(owned_err)?;
+    if output.capacity() != count {
+        return Err(owned_err("legacy exact rank vector capacity"));
+    }
+    *held = state_add(*held, slots)?;
+    let mut bytes = 0usize;
+    let mut add = |value: &str| -> Result<()> {
+        let lowered = search_lower(value, cap, *held, budget, deadline, probe)?;
+        bytes = state_add(bytes, lowered.len())?;
+        if bytes > cap {
+            return Err(owned_err("legacy rank display byte cap"));
+        }
+        *held = state_add(*held, lowered.capacity())?;
+        output.push(lowered);
+        Ok(())
+    };
+    for name in fields {
+        let field = display.get(*name).unwrap_or(&Value::Null);
+        if let Some(value) = field.as_str() {
+            add(value)?;
+        } else if let Some(entries) = field.as_object() {
+            for value in entries.values() {
+                if let Some(value) = value.as_str() {
+                    add(value)?;
+                }
+            }
+        }
+    }
+    Ok(output)
+}
+fn search_rank(
+    value: &Value,
+    needle: &str,
+    relations: bool,
+    held: usize,
+    cap: usize,
+    budget: &OriginalStoreBudget<'_>,
+    deadline: Instant,
+    probe: &dyn AbortProbe,
+) -> Result<(u8, String)> {
+    let id = search_lower(field(value, "id"), cap, held, budget, deadline, probe)?;
+    if needle.is_empty() {
+        return Ok((3, id));
+    }
+    let mut held = state_add(held, id.capacity())?;
+    let native = search_lower(
+        field(value, "native_id"),
+        cap,
+        held,
+        budget,
+        deadline,
+        probe,
+    )?;
+    held = state_add(held, native.capacity())?;
+    let primary = search_display_values(
+        value,
+        if relations { &["label"] } else { &["title"] },
+        &mut held,
+        cap,
+        budget,
+        deadline,
+        probe,
+    )?;
+    let visible = search_display_values(
+        value,
+        if relations {
+            &["label", "inverse_label", "statement", "explanation"]
+        } else {
+            &["title", "kind_label", "summary"]
+        },
+        &mut held,
+        cap,
+        budget,
+        deadline,
+        probe,
+    )?;
+    // Equality/prefix/substring scans have their own byte work, in addition to
+    // the checked Unicode mapping. String::contains uses no retained heap.
+    let compared = primary
+        .iter()
+        .chain(visible.iter())
+        .try_fold(state_add(id.len(), native.len())?, |sum, v| {
+            state_add(sum, v.len())
+        })?;
+    let comparisons = state_add(
+        compared,
+        needle
+            .len()
+            .checked_mul(primary.len() + visible.len() + 4)
+            .ok_or_else(|| owned_err("legacy rank comparison work overflow"))?,
+    )?;
+    search_charge(
+        budget,
+        comparisons
+            .checked_mul(3)
+            .ok_or_else(|| owned_err("legacy rank comparison work overflow"))?,
+    )?;
+    budget.check(deadline, probe)?;
+    Ok((
+        crate::knowledge_legacy_search::rank_lowered(&id, &native, &primary, &visible, needle),
+        id,
+    ))
+}
+fn search_object<const N: usize>(
+    fields: [(&'static str, Value); N],
+    held: &mut usize,
+    budget: &OriginalStoreBudget<'_>,
+) -> Result<Value> {
+    let keys = fields
+        .iter()
+        .try_fold(0usize, |sum, (key, _)| state_add(sum, key.len()))?;
+    let nodes = serde_map_nodes_upper_bound(N)?;
+    let additional = state_add(keys, nodes)?;
+    (budget.remaining_after_retained)(state_add(*held, additional)?)?;
+    search_charge(
+        budget,
+        keys.checked_mul(N + 1)
+            .ok_or_else(|| owned_err("legacy packet map work overflow"))?,
+    )?;
+    let mut map = Map::new();
+    for (key, value) in fields {
+        map.insert(exact_string(key)?, value);
+    }
+    *held = state_add(*held, additional)?;
+    Ok(Value::Object(map))
+}
+fn search_string_values(
+    values: Vec<String>,
+    held: &mut usize,
+    budget: &OriginalStoreBudget<'_>,
+) -> Result<Vec<Value>> {
+    let slots = state_slots::<Value>(values.len())?;
+    (budget.remaining_after_retained)(state_add(*held, slots)?)?;
+    let mut result = Vec::new();
+    result.try_reserve_exact(values.len()).map_err(owned_err)?;
+    if result.capacity() != values.len() {
+        return Err(owned_err("legacy exact filter value capacity"));
+    }
+    *held = state_add(*held, slots)?;
+    for value in values {
+        result.push(Value::String(value));
+    }
+    Ok(result)
+}
+impl LegacyStore {
+    /// Borrow an already admitted Foundation ingress DTO; no parser/visit grant.
+    /// The caller retains that document through this entire operation, with
+    /// its parser depth <=96 and all ingress tree/raw storage already admitted.
+    pub fn search_packet_from_foundation_with_owned_budget(
+        &mut self,
+        args: &tos_foundation::JsonValue,
+        budget: &OriginalStoreBudget<'_>,
+        usage: &mut StoreUsage,
+        call_deadline: Instant,
+        operation: Arc<dyn AbortProbe>,
+        max_output_bytes: usize,
+    ) -> Result<Vec<u8>> {
+        let result = (|| {
+            self.verify_currentness_with_owned_budget(budget)?;
+            if call_deadline > self.deadline
+                || usage.rows != 0
+                || usage.input_bytes != 0
+                || usage.json_visits != 0
+            {
+                return Err(owned_err("legacy original borrowed search call/usage"));
+            }
+            let probe = OwnedBorrowedProbe {
+                original: self.abort.as_ref(),
+                operation: operation.as_ref(),
+            };
+            let check = || {
+                budget.check(call_deadline, &probe)?;
+                atomic_charge(&budget.byte_work, budget.max_byte_work, 1)?;
+                atomic_charge(&budget.store_steps, budget.max_store_steps, 1)
+            };
+            let fixed = state_add(
+                state_slots_bytes(
+                    100,
+                    state_add(
+                        owned_tree_controller_frame_bytes(),
+                        std::mem::size_of::<&tos_foundation::JsonValue>()
+                            + std::mem::size_of::<std::slice::Iter<'_, tos_foundation::JsonValue>>(
+                            )
+                            + std::mem::size_of::<
+                                std::slice::Iter<
+                                    '_,
+                                    (tos_foundation::JsonString, tos_foundation::JsonValue),
+                                >,
+                            >()
+                            + std::mem::size_of::<usize>()
+                            + std::mem::size_of::<u64>(),
+                    )?,
+                )?,
+                state_add(
+                    std::mem::size_of::<tos_foundation::JsonValue>(),
+                    state_add(
+                        std::mem::size_of::<OriginalStoreBudget<'_>>(),
+                        state_add(
+                            std::mem::size_of::<OwnedBorrowedProbe<'_>>(),
+                            state_add(std::mem::size_of_val(&check), std::mem::size_of::<Value>())?,
+                        )?,
+                    )?,
+                )?,
+            )?;
+            let carried = std::cell::Cell::new(fixed);
+            let remaining = |additional| {
+                (budget.remaining_after_retained)(state_add(additional, carried.get())?)
+            };
+            let fixed = state_add(
+                fixed,
+                state_add(
+                    std::mem::size_of_val(&carried),
+                    std::mem::size_of_val(&remaining),
+                )?,
+            )?;
+            carried.set(fixed);
+            remaining(self.retained_state_upper_bound()?)?;
+            let converted = converted_storage_checked(args, &check)?;
+            let work = conversion_work_checked(args, &check)?;
+            atomic_charge(&budget.byte_work, budget.max_byte_work, work)?;
+            atomic_charge(&budget.store_steps, budget.max_store_steps, work)?;
+            carried.set(state_add(fixed, converted)?);
+            remaining(self.retained_state_upper_bound()?)?;
+            let value = convert_borrowed(args, &check)?;
+            let original = OriginalStoreBudget {
+                original_sqlite_heap: budget.original_sqlite_heap.clone(),
+                remaining_after_retained: &remaining,
+                byte_work: budget.byte_work.clone(),
+                max_byte_work: budget.max_byte_work,
+                sql_vm_steps: budget.sql_vm_steps.clone(),
+                max_sql_vm_steps: budget.max_sql_vm_steps,
+                store_sql_vm_steps: budget.store_sql_vm_steps.clone(),
+                store_steps: budget.store_steps.clone(),
+                max_store_steps: budget.max_store_steps,
+                json_visits: budget.json_visits.clone(),
+                max_json_visits: budget.max_json_visits,
+                max_rows_remaining: budget.max_rows_remaining,
+                max_input_bytes_remaining: budget.max_input_bytes_remaining,
+            };
+            self.search_packet_with_owned_budget(
+                &value,
+                &original,
+                usage,
+                call_deadline,
+                operation.clone(),
+                max_output_bytes,
+            )
+        })();
+        self.work = budget.store_steps.load(Ordering::Relaxed);
+        if result.is_err() {
+            if let Some(owner) = &mut self.owned {
+                owner.poisoned = true;
+            }
+        }
+        result
+    }
+    /// Legacy offset search under the SAME Driver state/work/SQL/JSON owners.
+    /// This does not authorize Node/Relation's navigation construction.
+    pub fn search_packet_with_owned_budget(
+        &mut self,
+        args: &Value,
+        budget: &OriginalStoreBudget<'_>,
+        usage: &mut StoreUsage,
+        call_deadline: Instant,
+        operation: Arc<dyn AbortProbe>,
+        max_output_bytes: usize,
+    ) -> Result<Vec<u8>> {
+        let result = (|| {
+            if max_output_bytes == 0 || max_output_bytes > self.limits.max_json_bytes {
+                return Err(owned_err("legacy search output cap"));
+            }
+            self.verify_currentness_with_owned_budget(budget)?;
+            if call_deadline > self.deadline
+                || usage.rows != 0
+                || usage.input_bytes != 0
+                || usage.json_visits != 0
+            {
+                return Err(owned_err("legacy original search call/usage"));
+            }
+            self.install_owned_progress(budget, call_deadline, Some(operation.clone()), 0)?;
+            let result =
+                self.search_owned_inner(args, budget, usage, call_deadline, operation.as_ref());
+            let result_state = result.as_ref().map_or(0, |(_, state)| *state);
+            let restored = self.install_owned_progress(budget, self.deadline, None, result_state);
+            let (value, state) = result?;
+            restored?;
+            self.packet_from_owned_value_with_controller(
+                value,
+                state,
+                budget,
+                usage,
+                call_deadline,
+                operation.as_ref(),
+                max_output_bytes,
+                state_add(
+                    owned_metadata_controller_state_upper_bound()?,
+                    state_slots_bytes(34, owned_tree_controller_frame_bytes())?,
+                )?,
+            )
+        })();
+        self.work = budget.store_steps.load(Ordering::Relaxed);
+        if result.is_err() {
+            if let Some(owner) = &mut self.owned {
+                owner.poisoned = true;
+            }
+        }
+        result
+    }
+    fn search_owned_inner(
+        &mut self,
+        args: &Value,
+        budget: &OriginalStoreBudget<'_>,
+        usage: &mut StoreUsage,
+        deadline: Instant,
+        operation: &dyn AbortProbe,
+    ) -> Result<(Value, usize)> {
+        let probe = OwnedBorrowedProbe {
+            original: self.abort.as_ref(),
+            operation,
+        };
+        budget.check(deadline, &probe)?;
+        let mut held = state_add(self.retained_state_upper_bound()?, owned_search_fixed()?)?;
+        (budget.remaining_after_retained)(held)?;
+        let fields = args
+            .as_object()
+            .ok_or_else(|| owned_err("legacy search arguments object"))?;
+        const ALLOWED: &[&str] = &[
+            "query",
+            "sources",
+            "kind_ids",
+            "predicate_ids",
+            "offset",
+            "limit",
+            "mode",
+            "cursor",
+        ];
+        for key in fields.keys() {
+            budget.check(deadline, &probe)?;
+            search_charge(
+                budget,
+                key.len()
+                    .checked_mul(ALLOWED.len())
+                    .and_then(|n| n.checked_add(1))
+                    .ok_or_else(|| owned_err("legacy argument work overflow"))?,
+            )?;
+            if !ALLOWED.contains(&key.as_str()) {
+                return Err(owned_err("legacy query unknown argument"));
+            }
+        }
+        if args
+            .get("mode")
+            .is_some_and(|v| v.as_str() != Some("legacy"))
+            || args.get("cursor").is_some_and(|v| !v.is_null())
+        {
+            return Err(owned_err(
+                "selected legacy search requires legacy offset mode",
+            ));
+        }
+        let query = args
+            .get("query")
+            .map(|v| {
+                v.as_str()
+                    .ok_or_else(|| owned_err("legacy search query string"))
+            })
+            .transpose()?
+            .unwrap_or("");
+        search_charge(budget, query.len())?;
+        let query = tos_foundation::python_strip_unicode16_v1_with_check(
+            query,
+            self.limits.max_json_bytes,
+            &mut || {
+                budget
+                    .check(deadline, &probe)
+                    .and_then(|_| search_charge(budget, 1))
+                    .map_err(|_| {
+                        tos_foundation::FoundationError::new(
+                            tos_foundation::FoundationErrorCode::BudgetExceeded,
+                            "legacy original rank work/deadline",
+                        )
+                    })
+            },
+        )
+        .map_err(owned_err)?;
+        budget.check(deadline, &probe)?;
+        let mut query_points = 0usize;
+        for _ in query.chars() {
+            budget.check(deadline, &probe)?;
+            search_charge(budget, 1)?;
+            query_points += 1;
+            if query_points > 256 {
+                return Err(owned_err("legacy search query bound"));
+            }
+        }
+        (budget.remaining_after_retained)(state_add(held, query.len())?)?;
+        let query = exact_string(query)?;
+        held = state_add(held, query.capacity())?;
+        let needle = search_lower_counts(&query, 4096, 256, 1024, held, budget, deadline, &probe)?;
+        held = state_add(held, needle.capacity())?;
+        let sources = search_strings(
+            args.get("sources"),
+            true,
+            &mut held,
+            budget,
+            deadline,
+            &probe,
+        )?;
+        if sources.iter().any(|s| !SOURCES.contains(&s.as_str())) {
+            return Err(owned_err("unsupported knowledge source"));
+        }
+        let kinds = search_strings(
+            args.get("kind_ids"),
+            false,
+            &mut held,
+            budget,
+            deadline,
+            &probe,
+        )?;
+        let predicates = search_strings(
+            args.get("predicate_ids"),
+            false,
+            &mut held,
+            budget,
+            deadline,
+            &probe,
+        )?;
+        if kinds.len() > 100 || predicates.len() > 100 {
+            return Err(owned_err("legacy search filter bound"));
+        }
+        let offset = integer(args, "offset", 0, 100000)?;
+        let limit = integer(args, "limit", 40, 100)?;
+        if limit == 0 {
+            return Err(owned_err("legacy search limit bound"));
+        }
+        let keep = state_add(offset, limit)?;
+        let mut pages: [Vec<Value>; 2] = [Vec::new(), Vec::new()];
+        let mut counts = [0u64; 2];
+        for (kind, relations) in [false, true].into_iter().enumerate() {
+            budget.check(deadline, &probe)?;
+            let slots = state_slots::<OwnedHit>(keep)?;
+            (budget.remaining_after_retained)(state_add(held, slots)?)?;
+            let mut top: Vec<OwnedHit> = Vec::new();
+            top.try_reserve_exact(keep).map_err(owned_err)?;
+            if top.capacity() != keep {
+                return Err(owned_err("legacy exact ranked vector capacity"));
+            }
+            let top_base = state_add(held, slots)?;
+            let mut top_heap = 0usize;
+            let sql = if relations {
+                c"SELECT coalesce(source_graph,''),coalesce(predicate_id,''),coalesce(search_text,''),CASE WHEN typeof(payload)='text' AND length(CAST(payload AS BLOB))<=?1 THEN payload ELSE NULL END FROM knowledge_relations ORDER BY id"
+            } else {
+                c"SELECT coalesce(source_graph,''),coalesce(kind_id,''),coalesce(search_text,''),CASE WHEN typeof(payload)='text' AND length(CAST(payload AS BLOB))<=?1 THEN payload ELSE NULL END FROM knowledge_nodes ORDER BY id"
+            };
+            let mut statement = self.db.prepare_static_bounded(sql).map_err(owned_err)?;
+            statement
+                .bind_i64(1, self.limits.max_json_bytes as i64)
+                .map_err(owned_err)?;
+            while statement.step().map_err(owned_err)? {
+                self.verify_currentness_with_owned_budget(budget)?;
+                budget.check(deadline, &probe)?;
+                usage.rows = usage
+                    .rows
+                    .checked_add(1)
+                    .ok_or_else(|| owned_err("legacy row usage overflow"))?;
+                if usage.rows > budget.max_rows_remaining {
+                    return Err(owned_err("legacy original remaining rows"));
+                }
+                self.rows = self
+                    .rows
+                    .checked_add(1)
+                    .filter(|n| *n <= self.limits.max_rows)
+                    .ok_or_else(|| owned_err("legacy cumulative rows"))?;
+                let filters = if relations { &predicates } else { &kinds };
+                let selected_source = search_text(
+                    &statement,
+                    0,
+                    budget,
+                    deadline,
+                    &probe,
+                    state_add(top_base, top_heap)?,
+                )?;
+                let selected_category = search_text(
+                    &statement,
+                    1,
+                    budget,
+                    deadline,
+                    &probe,
+                    state_add(top_base, top_heap)?,
+                )?;
+                let selected_search = search_text(
+                    &statement,
+                    2,
+                    budget,
+                    deadline,
+                    &probe,
+                    state_add(top_base, top_heap)?,
+                )?;
+                let filter_work =
+                    sources
+                        .iter()
+                        .chain(filters.iter())
+                        .try_fold(0usize, |sum, s| {
+                            state_add(
+                                sum,
+                                state_add(
+                                    s.len(),
+                                    state_add(selected_source.len(), selected_category.len())?,
+                                )?,
+                            )
+                        })?;
+                search_charge(
+                    budget,
+                    state_add(filter_work, state_add(selected_search.len(), needle.len())?)?,
+                )?;
+                if !sources.iter().any(|s| s == selected_source)
+                    || !filters.is_empty() && !filters.iter().any(|s| s == selected_category)
+                    || !needle.is_empty() && !selected_search.contains(&needle)
+                {
+                    continue;
+                }
+                let raw = search_text(
+                    &statement,
+                    3,
+                    budget,
+                    deadline,
+                    &probe,
+                    state_add(top_base, top_heap)?,
+                )?;
+                usage.input_bytes = usage
+                    .input_bytes
+                    .checked_add(raw.len() as u64)
+                    .ok_or_else(|| owned_err("legacy input usage overflow"))?;
+                if usage.input_bytes > budget.max_input_bytes_remaining {
+                    return Err(owned_err("legacy original remaining input"));
+                }
+                self.bytes = self
+                    .bytes
+                    .checked_add(raw.len() as u64)
+                    .filter(|n| *n <= self.limits.max_input_bytes)
+                    .ok_or_else(|| owned_err("legacy cumulative input"))?;
+                let base = state_add(top_base, top_heap)?;
+                let (value, heap) = owned_parse(
+                    raw.as_bytes(),
+                    self.limits,
+                    deadline,
+                    &probe,
+                    budget,
+                    base,
+                    usage,
+                )?;
+                object(&value)?;
+                let source = field(&value, "source_graph");
+                counts[kind] = counts[kind]
+                    .checked_add(1)
+                    .ok_or_else(|| owned_err("legacy search count overflow"))?;
+                let row_state = state_add(std::mem::size_of::<Value>(), heap)?;
+                let rank_base = state_add(base, row_state)?;
+                let (rank, id) = search_rank(
+                    &value,
+                    &needle,
+                    relations,
+                    rank_base,
+                    self.limits.max_json_bytes,
+                    budget,
+                    deadline,
+                    &probe,
+                )?;
+                let key_heap = state_add(
+                    id.capacity(),
+                    state_add(source.len(), field(&value, "id").len())?,
+                )?;
+                (budget.remaining_after_retained)(state_add(rank_base, key_heap)?)?;
+                search_charge(budget, key_heap)?;
+                let key = (
+                    rank,
+                    id,
+                    exact_string(source)?,
+                    exact_string(field(&value, "id"))?,
+                );
+                search_charge(
+                    budget,
+                    top.len()
+                        .checked_mul(state_add(state_add(key_heap, top_heap)?, 1)?)
+                        .ok_or_else(|| owned_err("legacy ranked ordering work overflow"))?,
+                )?;
+                let position = top.partition_point(|(old, _, _)| old <= &key);
+                if position >= keep {
+                    continue;
+                }
+                // Pop before insert; capacity never grows beyond the admitted slots.
+                if top.len() == keep {
+                    top_heap = top_heap
+                        .checked_sub(top.pop().unwrap().2)
+                        .ok_or_else(|| owned_err("legacy ranked retained subtraction"))?;
+                }
+                let cost = state_add(heap, key_heap)?;
+                top_heap = state_add(top_heap, cost)?;
+                top.insert(position, (key, value, cost));
+            }
+            drop(statement);
+            let length = top.len().saturating_sub(offset);
+            let page_slots = state_slots::<Value>(length)?;
+            (budget.remaining_after_retained)(state_add(
+                state_add(top_base, top_heap)?,
+                page_slots,
+            )?)?;
+            let mut page = Vec::new();
+            page.try_reserve_exact(length).map_err(owned_err)?;
+            if page.capacity() != length {
+                return Err(owned_err("legacy exact page capacity"));
+            }
+            for (_, value, _) in top.into_iter().skip(offset) {
+                page.push(value);
+            }
+            search_charge(budget, top_heap)?;
+            let page_heap = page.iter().try_fold(page_slots, |sum, v| {
+                state_add(
+                    sum,
+                    serde_clone_storage(v, &|| budget.check(deadline, &probe))?,
+                )
+            })?;
+            held = state_add(held, page_heap)?;
+            pages[kind] = page;
+        }
+        let empty_authority = Value::Object(Map::new());
+        let authority = self
+            .graph_header
+            .get("authority_boundary")
+            .unwrap_or(&empty_authority);
+        let authority_planning = self
+            .owned
+            .as_ref()
+            .ok_or_else(|| owned_err("legacy owned search owner absent"))?
+            .metadata_storage
+            .checked_mul(2)
+            .ok_or_else(|| owned_err("legacy authority planning work overflow"))?;
+        search_charge(budget, authority_planning)?;
+        let authority_state = search_heap(authority, &|| budget.check(deadline, &probe))?;
+        (budget.remaining_after_retained)(state_add(held, authority_state)?)?;
+        search_charge(
+            budget,
+            serde_clone_work(authority, &|| budget.check(deadline, &probe))? as usize,
+        )?;
+        let authority = clone_serde_owned(authority, &|| budget.check(deadline, &probe))?;
+        held = state_add(held, authority_state)?;
+        (budget.remaining_after_retained)(state_add(
+            held,
+            state_add(self.revision.len(), "tos_knowledge_search_v1".len())?,
+        )?)?;
+        search_charge(
+            budget,
+            state_add(self.revision.len(), "tos_knowledge_search_v1".len())?,
+        )?;
+        budget.check(deadline, &probe)?;
+        // Keep both response strings admitted while the numeric token
+        // reservation is added; the revision copy occurs after that admission.
+        held = state_add(
+            held,
+            state_add(self.revision.len(), "tos_knowledge_search_v1".len())?,
+        )?;
+        // serde_json arbitrary_precision keeps decimal token strings even for
+        // these six bounded unsigned output numbers. u64 max needs 20 bytes.
+        let number_bytes = 6usize
+            .checked_mul(20)
+            .ok_or_else(|| owned_err("legacy output number state overflow"))?;
+        (budget.remaining_after_retained)(state_add(held, number_bytes)?)?;
+        search_charge(budget, number_bytes)?;
+        held = state_add(held, number_bytes)?;
+        let source_revision = exact_string(&self.revision)?;
+        if source_revision.capacity() != self.revision.len() {
+            return Err(owned_err("legacy exact revision capacity"));
+        }
+        let filters = search_object(
+            [
+                (
+                    "sources",
+                    Value::Array(search_string_values(sources, &mut held, budget)?),
+                ),
+                (
+                    "kind_ids",
+                    Value::Array(search_string_values(kinds, &mut held, budget)?),
+                ),
+                (
+                    "predicate_ids",
+                    Value::Array(search_string_values(predicates, &mut held, budget)?),
+                ),
+            ],
+            &mut held,
+            budget,
+        )?;
+        let page = search_object(
+            [
+                ("offset", Value::from(offset)),
+                ("limit_per_kind", Value::from(limit)),
+            ],
+            &mut held,
+            budget,
+        )?;
+        let count = search_object(
+            [
+                ("matching_nodes", Value::from(counts[0])),
+                ("matching_relations", Value::from(counts[1])),
+                ("returned_nodes", Value::from(pages[0].len())),
+                ("returned_relations", Value::from(pages[1].len())),
+            ],
+            &mut held,
+            budget,
+        )?;
+        let [nodes, relations] = pages;
+        let packet = search_object(
+            [
+                (
+                    "schema",
+                    Value::String(exact_string("tos_knowledge_search_v1")?),
+                ),
+                ("source_revision", Value::String(source_revision)),
+                ("query", Value::String(query)),
+                ("filters", filters),
+                ("page", page),
+                ("counts", count),
+                ("nodes", Value::Array(nodes)),
+                ("relations", Value::Array(relations)),
+                ("authority_boundary", authority),
+            ],
+            &mut held,
+            budget,
+        )?;
+        self.verify_currentness_with_owned_budget(budget)?;
+        budget.check(deadline, &probe)?;
+        search_charge(budget, held)?;
+        let packet_state = search_heap(&packet, &|| budget.check(deadline, &probe))?;
+        Ok((packet, packet_state))
     }
 }

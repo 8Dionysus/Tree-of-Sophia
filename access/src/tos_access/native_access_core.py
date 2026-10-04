@@ -197,6 +197,41 @@ class NativeAccessCore(NativeCore):
         self._word_core = NativeCore(prefix, word_arguments, inherit_data_selection=False)
 
     @classmethod
+    def owned_source_session(cls, native_prefix, selection, admission, state, *,
+                             cancelled, maximum_owner_objects, config=None):
+        """Enter the ordinary Linux child-owned SourceRoot session.
+
+        This exact capability scope returns its typed session client. The
+        original receiving-state owner belongs to the maintained SDK setup
+        envelope; it does not issue a Stage grant. Supported methods come from
+        the actual native ready receipt, currently GraphViews query/read and
+        paired native render when explicitly advertised. Other Core methods
+        remain outside this scope, and the public default alias is unchanged.
+        """
+        from .native_core_session_factory import owned_native_source_session
+        return owned_native_source_session(prefix=native_prefix, selection=selection,
+            admission=admission, state=state, cancelled=cancelled, config=config,
+            maximum_owner_objects=maximum_owner_objects)
+
+    @classmethod
+    def owned_discovered_source_session(cls, native_prefix, prepared, admission, state,
+            *, cancelled, carrier_selectors, maximum_owner_objects, tos_root=None,
+            query_store_path=None, config=None, selected_probes=False, lazy_selected=False):
+        """Use ordinary selectors inside the original owned Linux SDK scope.
+
+        Prepare OS discovery before creating state. Existing paths and captured
+        Root/probe callbacks remain native-owned. This returns an owned context,
+        not a default alias replacement or a per-method renewed admission.
+        """
+        from .native_core_session_factory import owned_native_discovered_source_session
+        return owned_native_discovered_source_session(prefix=native_prefix,
+            prepared=prepared, admission=admission, state=state, cancelled=cancelled,
+            carrier_selectors=carrier_selectors,
+            maximum_owner_objects=maximum_owner_objects, tos_root=tos_root,
+            query_store_path=query_store_path, config=config,
+            selected_probes=selected_probes, lazy_selected=lazy_selected)
+
+    @classmethod
     def from_source_root(cls, native_prefix: str | Path, selection,
                          admission_provider, **independent_routes):
         """Bind seven exact paths and a borrowed per-operation owner profile.
@@ -251,6 +286,35 @@ class NativeAccessCore(NativeCore):
         core._legacy_query_store_selected = True
         return core
 
+
+    @classmethod
+    def owned_selected_probe_session(cls, native_prefix, selection, admission, state,
+                                     *, cancelled, maximum_owner_objects, config=None):
+        """Observe four selected paths without a full graph/capture prerequisite.
+
+        The same genuine child issuer and original typed limits own the scope.
+        QueryStore is bypassed exactly for these four metadata observations.
+        The explicit profile uses CPython3.14 Reference is_file semantics; no
+        older-runtime error parity or public default replacement is implied.
+        """
+        from .native_core_session_factory import owned_native_source_session
+        return owned_native_source_session(prefix=native_prefix, selection=selection,
+            admission=admission, state=state, cancelled=cancelled, config=config,
+            maximum_owner_objects=maximum_owner_objects, _selected_probe=True)
+
+    @classmethod
+    def owned_lazy_selected_session(cls, native_prefix, selection, admission, state,
+                                    *, cancelled, maximum_owner_objects, config=None):
+        """Keep one native selected-path/Store/carrier Driver under original owners.
+
+        Exactly the native-declared nine lower methods are available. Source,
+        data and exploration bindings are native-issued receipt fields. This
+        does not replace the public Reference alias or mint admission.
+        """
+        from .native_core_session_factory import owned_native_source_session
+        return owned_native_source_session(prefix=native_prefix, selection=selection,
+            admission=admission, state=state, cancelled=cancelled, config=config,
+            maximum_owner_objects=maximum_owner_objects, _selected_lazy=True)
 
     @classmethod
     def discover(cls, tos_root: str | Path | None = None, *,

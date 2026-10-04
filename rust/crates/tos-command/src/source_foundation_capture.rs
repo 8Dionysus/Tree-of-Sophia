@@ -591,7 +591,7 @@ pub(crate) fn verify_epoch_with_cost(
     sources.verify_root().map_err(source_error)?;
     Ok(bytes)
 }
-fn selected(path: &str, directory: bool) -> bool {
+pub(crate) fn selected(path: &str, directory: bool) -> bool {
     // Source-store eligibility does not admit ignored private bodies. These
     // owner roots keep only their direct authored README in the cut; selected
     // private inputs are observed later under their separate physical custody.

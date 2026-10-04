@@ -107,15 +107,17 @@ _SIGNALS = (signal.SIGINT, signal.SIGTERM, signal.SIGHUP, signal.SIGQUIT)
 
 class _Exchange:
     def __init__(self, arguments, prefix, input_cap, frame_cap, valid_returncodes,
-                 cancelled, deadline, env, pass_fds=()):
+                 cancelled, deadline, env, pass_fds=(), selected_image=None):
         from . import native_dispatch
         self._env = env
+        self._selected_image = selected_image
         self._pass_fds = pass_fds
         self._sender_uid = os.getuid()
         self._sender_gid = os.getgid()
         self._arguments = arguments
         self._prefix = prefix
-        self._dispatch = Path(native_dispatch.__file__).resolve(strict=True)
+        self._dispatch = (Path(native_dispatch.__file__).resolve(strict=True)
+                          if selected_image is None else None)
         self._input_cap = input_cap
         self._frame_cap = frame_cap
         self._valid_returncodes = valid_returncodes
@@ -166,14 +168,35 @@ class _Exchange:
                 'm=importlib.util.module_from_spec(s);s.loader.exec_module(m);'
                 'm.run(Path(sys.argv[2]),json.loads(sys.argv[3]))'
             )
-            self._child = subprocess.Popen(
-                [sys.executable, '-I', '-S', '-B', '-c', program, str(self._dispatch),
-                 str(self._prefix), json.dumps(self._arguments),
-                 json.dumps([int(sig) for sig in previous]), str(os.getpid())],
-                stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE, start_new_session=True, env=self._env,
-                pass_fds=self._pass_fds,
-            )
+            if self._selected_image is None:
+                self._child = subprocess.Popen(
+                    [sys.executable, '-I', '-S', '-B', '-c', program, str(self._dispatch),
+                     str(self._prefix), json.dumps(self._arguments),
+                     json.dumps([int(sig) for sig in previous]), str(os.getpid())],
+                    stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE, start_new_session=True, env=self._env,
+                    pass_fds=self._pass_fds,
+                )
+            else:
+                image_fd, label = self._selected_image
+                if (type(image_fd) is not int or image_fd < 0 or type(label) is not str
+                        or not self._arguments or self._arguments[0] != 'private-stage-run'):
+                    raise ValueError('native SDK direct image must select its owned issuer')
+                # Caller holds verified_image through terminal custody. The
+                # borrowed ELF is never reopened by its mutable installation
+                # path, and this branch spawns no transient Python dispatcher.
+                held = os.fstat(image_fd)
+                mask = ','.join(str(int(sig)) for sig in sorted(previous))
+                argv = [label, 'private-stage-run', '--expected-parent-pid', str(os.getpid()),
+                        '--restore-signal-mask', mask, *self._arguments[1:]]
+                descriptors = _borrowed_fds((*self._pass_fds, image_fd))
+                self._child = subprocess.Popen(argv, executable='/proc/self/fd/' + str(image_fd),
+                    stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                    start_new_session=True, env=self._env, pass_fds=descriptors)
+                after = os.fstat(image_fd)
+                if (held.st_dev, held.st_ino, held.st_size, held.st_mtime_ns, held.st_ctime_ns) != (
+                        after.st_dev, after.st_ino, after.st_size, after.st_mtime_ns, after.st_ctime_ns):
+                    raise ValueError('native SDK borrowed installed image changed during spawn')
             # Acquisition and stream registration finish while cancellation is
             # masked; the outer owner finally already covers this whole phase.
             for stream in (self._child.stdin, self._child.stdout, self._child.stderr):
@@ -592,7 +615,7 @@ def _borrowed_fds(value):
 def owned_exchange(arguments, *, prefix=None, input_cap=16 * 1024 * 1024,
                    frame_cap=4 * 1024 * 1024, valid_returncodes=(0,),
                    cancelled=None, absolute_deadline=None, env=None, pass_fds=(),
-                   operation_seconds=50):
+                   operation_seconds=50, selected_image=None):
     """One synchronous pipe owner, usable from a caller-owned async worker.
 
     Only the channel is exposed; child PID/Popen/reap stay private to this owner.
@@ -608,7 +631,7 @@ def owned_exchange(arguments, *, prefix=None, input_cap=16 * 1024 * 1024,
     if not selected:
         raise ValueError('native operation requires installed Rust software: set TOS_NATIVE_PREFIX or --native-prefix')
     channel = _Exchange(list(arguments), selected, input_cap, frame_cap,
-                        tuple(valid_returncodes), cancelled, deadline, environment, descriptors)
+                        tuple(valid_returncodes), cancelled, deadline, environment, descriptors, selected_image)
     primary = None
     try:
         channel._open()

@@ -49,23 +49,11 @@ from .source_read_owner import SelectedSourceReadService
 from .source_navigation_query import source_descend_query, source_dossier_query
 from .query_store import QueryStore, QueryStoreRequired, DEFAULT_RELATIVE_PATH
 from .projection_store import ProjectionReader, ProjectionStoreError, is_partitioned, load_projection, row_order
-from .locations import data_root, program_path
+from .locations import (data_root, program_path, source_carrier_paths,
+    INDEX_RELATIVE_PATH, PHILOSOPHY_PROJECTION_RELATIVE_PATH, BIBLIOGRAPHIC_GRAPH_RELATIVE_PATH, ENTITY_TYPE_REGISTRY_RELATIVE_PATH, RELATION_TYPE_REGISTRY_RELATIVE_PATH, PHILOSOPHY_AUDIT_RELATIVE_PATH, EVIDENCE_PROJECTION_RELATIVE_PATH)
 from .data_access import DataGuard, DataAccessUnavailable, check_data_path, guard_public_data_methods
 
 
-INDEX_RELATIVE_PATH = Path("ToS/derived-exports/tos_corpus_index.min.json")
-PHILOSOPHY_PROJECTION_RELATIVE_PATH = Path("ToS/derived-exports/philosophy_graph_projection.min.json")
-BIBLIOGRAPHIC_GRAPH_RELATIVE_PATH = Path(
-    "ToS/derived-exports/graph/source-witness-bibliographic-claims.min.json"
-)
-ENTITY_TYPE_REGISTRY_RELATIVE_PATH = Path(
-    "ToS/doctrine/semantic-interchange/entity-types.v1.json"
-)
-RELATION_TYPE_REGISTRY_RELATIVE_PATH = Path(
-    "ToS/doctrine/semantic-interchange/relation-types.v1.json"
-)
-PHILOSOPHY_AUDIT_RELATIVE_PATH = Path("ToS/philosophy/graph-workbench/review-packets/table-i-post-planting-audit.json")
-EVIDENCE_PROJECTION_RELATIVE_PATH = Path("ToS/derived-exports/epistemic_evidence_projection.min.json")
 WORD_ANALYSIS_PROVIDER_RELATIVE_PATH = Path("scripts/prepare_zarathustra_word_analysis_v1.py")
 READING_PROVIDER_RELATIVE_PATH = Path("scripts/query_zarathustra_reading_workbench_v1.py")
 SOURCE_GAP_LEDGER_RELATIVE_PATH = Path("ToS/source-witnesses/access-requests/public-ledger")
@@ -858,6 +846,8 @@ class ReferenceToSAccessCore:
         reading_max_total_file_bytes: int | None = None,
         concept_max_file_bytes: int | None = None,
         concept_max_total_file_bytes: int | None = None,
+        native_admission_provider: Any | None = None,
+        query_store_path: str | Path | None = None,
     ) -> "ReferenceToSAccessCore":
         """Select legacy carrier reads, or explicitly pin the prepared reader.
 
@@ -867,56 +857,47 @@ class ReferenceToSAccessCore:
         """
         if native_prefix is not None and tos_root is None:
             raise ValueError("native Core methods require an explicit tos_root data selection")
+        if native_admission_provider is not None:
+            if native_prefix is None:
+                raise ValueError("native discovery admission requires an explicit native_prefix")
+            if (search_read_model_path is not None or search_read_model_max_bytes is not None
+                    or search_read_model_max_postings != SEARCH_READ_MODEL_MAX_POSTINGS
+                    or search_read_model_max_verify_chars != SEARCH_READ_MODEL_MAX_VERIFY_CHARS
+                    or os.environ.get("TOS_SEARCH_READ_MODEL_PATH")
+                    or os.environ.get("TOS_SEARCH_READ_MODEL_MAX_BYTES")):
+                raise ValueError("native SourceRoot discovery does not select the compressed search read model")
+            if any(value is not None for value in (published_read_model_path,
+                    published_read_model_expected, published_exploration_checkpoint_path)):
+                raise ValueError("native SourceRoot discovery cannot combine a prepared reader or checkpoint")
+            from .native_access_core import NativeAccessCore
+            return NativeAccessCore.discover(tos_root, native_prefix=native_prefix,
+                core_snapshot_admission_provider=native_admission_provider,
+                query_store_path=query_store_path,
+                index_path=index_path,
+                philosophy_graph_projection_path=philosophy_graph_projection_path,
+                bibliographic_graph_path=bibliographic_graph_path,
+                entity_type_registry_path=entity_type_registry_path,
+                relation_type_registry_path=relation_type_registry_path,
+                philosophy_post_planting_audit_path=philosophy_post_planting_audit_path,
+                evidence_projection_path=evidence_projection_path,
+                source_read_service=source_read_service,
+                reading_analysis_root=reading_analysis_root,
+                reading_max_file_bytes=reading_max_file_bytes,
+                reading_max_total_file_bytes=reading_max_total_file_bytes,
+                concept_max_file_bytes=concept_max_file_bytes,
+                concept_max_total_file_bytes=concept_max_total_file_bytes)
+        if query_store_path is not None:
+            raise ValueError("explicit query_store_path requires native discovery admission")
         root = _discover_root(tos_root)
-        index = Path(
-            index_path
-            or os.environ.get("TOS_CORPUS_INDEX_PATH")
-            or root / INDEX_RELATIVE_PATH
-        ).expanduser()
-        if not index.is_absolute():
-            index = root / index
-        philosophy_projection = Path(
-            philosophy_graph_projection_path
-            or os.environ.get("TOS_PHILOSOPHY_GRAPH_PROJECTION_PATH")
-            or root / PHILOSOPHY_PROJECTION_RELATIVE_PATH
-        ).expanduser()
-        if not philosophy_projection.is_absolute():
-            philosophy_projection = root / philosophy_projection
-        bibliographic_graph = Path(
-            bibliographic_graph_path
-            or os.environ.get("TOS_BIBLIOGRAPHIC_GRAPH_PATH")
-            or root / BIBLIOGRAPHIC_GRAPH_RELATIVE_PATH
-        ).expanduser()
-        if not bibliographic_graph.is_absolute():
-            bibliographic_graph = root / bibliographic_graph
-        entity_registry = Path(
-            entity_type_registry_path
-            or os.environ.get("TOS_ENTITY_TYPE_REGISTRY_PATH")
-            or root / ENTITY_TYPE_REGISTRY_RELATIVE_PATH
-        ).expanduser()
-        if not entity_registry.is_absolute():
-            entity_registry = root / entity_registry
-        relation_registry = Path(
-            relation_type_registry_path
-            or os.environ.get("TOS_RELATION_TYPE_REGISTRY_PATH")
-            or root / RELATION_TYPE_REGISTRY_RELATIVE_PATH
-        ).expanduser()
-        if not relation_registry.is_absolute():
-            relation_registry = root / relation_registry
-        philosophy_audit = Path(
-            philosophy_post_planting_audit_path
-            or os.environ.get("TOS_PHILOSOPHY_POST_PLANTING_AUDIT_PATH")
-            or root / PHILOSOPHY_AUDIT_RELATIVE_PATH
-        ).expanduser()
-        if not philosophy_audit.is_absolute():
-            philosophy_audit = root / philosophy_audit
-        evidence_projection = Path(
-            evidence_projection_path
-            or os.environ.get("TOS_EVIDENCE_PROJECTION_PATH")
-            or root / EVIDENCE_PROJECTION_RELATIVE_PATH
-        ).expanduser()
-        if not evidence_projection.is_absolute():
-            evidence_projection = root / evidence_projection
+        carrier_paths = source_carrier_paths(root,
+            index_path=index_path,
+            philosophy_graph_projection_path=philosophy_graph_projection_path,
+            bibliographic_graph_path=bibliographic_graph_path,
+            entity_type_registry_path=entity_type_registry_path,
+            relation_type_registry_path=relation_type_registry_path,
+            philosophy_post_planting_audit_path=philosophy_post_planting_audit_path,
+            evidence_projection_path=evidence_projection_path,
+        )
         search_path = Path(
             search_read_model_path
             or os.environ.get("TOS_SEARCH_READ_MODEL_PATH")
@@ -930,13 +911,13 @@ class ReferenceToSAccessCore:
             configured_budget = int(raw_budget) if raw_budget else SEARCH_READ_MODEL_DEFAULT_MAX_BYTES
         return cls(
             tos_root=root,
-            index_path=index.resolve(),
-            philosophy_graph_projection_path=philosophy_projection.resolve(),
-            bibliographic_graph_path=bibliographic_graph.resolve(),
-            entity_type_registry_path=entity_registry.resolve(),
-            relation_type_registry_path=relation_registry.resolve(),
-            philosophy_post_planting_audit_path=philosophy_audit.resolve(),
-            evidence_projection_path=evidence_projection.resolve(),
+            index_path=carrier_paths['index_path'],
+            philosophy_graph_projection_path=carrier_paths['philosophy_graph_projection_path'],
+            bibliographic_graph_path=carrier_paths['bibliographic_graph_path'],
+            entity_type_registry_path=carrier_paths['entity_type_registry_path'],
+            relation_type_registry_path=carrier_paths['relation_type_registry_path'],
+            philosophy_post_planting_audit_path=carrier_paths['philosophy_post_planting_audit_path'],
+            evidence_projection_path=carrier_paths['evidence_projection_path'],
             search_read_model_path=search_path.resolve(),
             search_read_model_max_bytes=configured_budget,
             search_read_model_max_postings=search_read_model_max_postings,

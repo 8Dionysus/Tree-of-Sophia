@@ -705,6 +705,31 @@ impl SegmentStore {
     pub fn store_id(&self) -> [u8; 16] {
         self.inner.store_id
     }
+    /// Identity of the exact physical root directory held by this instance.
+    /// It distinguishes a same-metadata clone from the selected source store.
+    pub fn physical_root_identity(&self) -> Result<(u64, u64)> {
+        let metadata = self
+            .inner
+            ._root
+            .metadata()
+            .map_err(|error| SegmentError::io("cannot stat held segment root", error))?;
+        Ok((metadata.dev(), metadata.ino()))
+    }
+    /// Upper bound for heap state retained by this held store handle. Clones
+    /// share the same `Arc<Inner>`, so callers count this once per physical
+    /// store session, including the Arc header and the only owned variable
+    /// payload in `Inner` (the custody-domain bytes).
+    pub fn retained_heap_state_bytes(&self) -> Result<usize> {
+        std::mem::size_of::<Inner>()
+            .checked_add(std::mem::size_of::<usize>().saturating_mul(2))
+            .and_then(|bytes| bytes.checked_add(self.inner.domain.capacity()))
+            .ok_or_else(|| {
+                SegmentError::new(
+                    Code::BudgetExceeded,
+                    "held segment store retained heap state overflow",
+                )
+            })
+    }
     pub fn domain_digest(&self) -> Digest256 {
         self.inner.domain_digest
     }

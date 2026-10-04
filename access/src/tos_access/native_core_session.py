@@ -35,13 +35,60 @@ def _unique(pairs):
     return result
 
 
-def _path(value):
-    if type(value) is not str or len(value.encode()) > 4096:
+def _path(value, receiving_state=None):
+    if receiving_state is not None:
+        _path_workspace(value, receiving_state)
+    if isinstance(value, Path):
+        p = value  # genuine already-selected owner, not another Path copy
+        raw = os.fspath(value)
+    elif type(value) is str:
+        raw = value
+        p = Path(value)
+    else:
         raise ValueError('native SDK bounded absolute path required')
-    p = Path(value)
+    if len(raw.encode()) > 4096:
+        raise ValueError('native SDK bounded absolute path required')
     if not p.is_absolute() or any(v in ('..', '.') for v in p.parts):
         raise ValueError('native SDK canonical path required')
     return p
+
+
+def _path_workspace(value, state):
+    g = state.geometry
+    if isinstance(value, Path):
+        parts = getattr(value, '_tail_cached', None)
+        if parts is None:
+            parts = getattr(value, '_parts', None)
+        if type(parts) is not list:
+            raise ValueError('native SDK selected Path parsed-cache ABI unavailable')
+        characters = len(parts) + 2
+        for part in parts:
+            state.visit()
+            characters += len(part)
+        if characters > 4098:
+            raise ValueError('native SDK selected Path original bound differs')
+        # The Path/cache list is borrowed, already counted by the factory.
+        # Formatting can create one cached string; .parts creates a tuple on
+        #3.12+, and UTF8 length validation creates its own byte buffer.
+        forecast = (g.unicode_bytes(characters) if getattr(value, '_str', None) is None else 0)
+        forecast += (g.tuple_base + len(parts) * g.pointer
+                     + g.bytes_base + 4 * characters)
+        state.reserve(forecast)
+        return
+    if type(value) is not str or len(value) > 4096:
+        raise ValueError('native SDK bounded absolute path required')
+    components = 1
+    for character in value:
+        state.visit()
+        if character == '/':
+            components += 1
+    # Real pathlib split/filter old+new tail lists, component Unicode owners,
+    # cached parts tuple and formatted string. Existing input is borrowed.
+    forecast = (Path.__basicsize__ + g.gc_header + g.dict_bytes(8)
+                + 3 * g.list_bytes(components) + g.tuple_base + components * g.pointer
+                + components * g.unicode_base + 4 * (len(value) + components)
+                + g.unicode_bytes(len(value)) + g.bytes_base + 4 * len(value))
+    state.reserve(forecast)
 
 
 @dataclass(frozen=True)
@@ -55,11 +102,24 @@ class NativeSDKStageConfiguration:
     persistent_store: Path | None
 
     @classmethod
-    def from_bootstrap_environment(cls):
+    def from_bootstrap_environment(cls, *, receiving_state=None):
         raw = os.environ.get('TOS_SDK_STAGE_CONFIG')
-        if type(raw) is not str or len(raw.encode()) > 65536:
+        if type(raw) is not str or len(raw) > 65536:
             raise ValueError('maintained native SDK bootstrap configuration absent or oversized')
-        v = json.loads(raw, object_pairs_hook=_unique)
+        if receiving_state is None:
+            v = json.loads(raw, object_pairs_hook=_unique)
+        else:
+            g = receiving_state.geometry
+            receiving_state.reserve(g.bytes_base + 4 * len(raw)
+                                    + memoryview.__basicsize__ + g.gc_header
+                                    + cls.__basicsize__ + g.gc_header + g.dict_bytes(7)
+                                    + 2 * g.list_bytes(2))
+            encoded = raw.encode('utf-8')
+            if len(encoded) > 65536:
+                raise ValueError('native SDK bootstrap configuration byte cap exceeded')
+            v = receiving_state.decode(memoryview(encoded))
+        if receiving_state is None and len(raw.encode()) > 65536:
+            raise ValueError('native SDK bootstrap configuration byte cap exceeded')
         fields = {'schema', 'setup_cgroup', 'consumer_cgroup', 'scratch_parent',
                   'unshare_exe', 'original_whole_deadline_ns', 'original_work_deadline_ns',
                   'maximum_shutdown_ms', 'quota_bytes', 'inode_limit', 'working_ram_bytes',
@@ -84,9 +144,9 @@ class NativeSDKStageConfiguration:
             clocks.append(number)
         if clocks[0] - clocks[1] != 5000000000:
             raise ValueError('native SDK original shutdown reserve differs')
-        return cls(*(_path(v[name]) for name in ('setup_cgroup', 'consumer_cgroup',
+        return cls(*(_path(v[name], receiving_state) for name in ('setup_cgroup', 'consumer_cgroup',
                     'scratch_parent', 'unshare_exe')), *clocks,
-                   _path(v['persistent_store']) if 'persistent_store' in v else None)
+                   _path(v['persistent_store'], receiving_state) if 'persistent_store' in v else None)
 
     def active(self):
         now = time.monotonic_ns()
@@ -224,17 +284,24 @@ class NativeSDKSession:
 
 @contextmanager
 def owned_native_sdk_session(*, prefix, root, startup_bytes, limits, cancelled,
-                             receiver_buffer, frame_buffer, config):
+                             receiver_buffer, frame_buffer, config, receiving_state=None,
+                             session_operation='tos_native_session'):
     """Launch issuer directly from SDK using original clock and child-only ticket.
 
     Encoded startup and buffers are caller-owned original receiving state; no
     Python model/parser/allocation allowance is manufactured by this transport.
     """
+    if type(session_operation) is not str or session_operation not in ('tos_native_session', 'tos_native_probe_session', 'tos_native_lazy_session'):
+        raise ValueError('native SDK session profile operation unavailable')
     if not isinstance(limits, NativeSessionLimits) or not isinstance(cancelled, threading.Event):
         raise TypeError('native SDK original typed transport limits/cancellation required')
-    if type(startup_bytes) is not bytes or len(startup_bytes) > 16 * 1024 * 1024:
+    if type(startup_bytes) is not bytes or len(startup_bytes) > 65536:
         raise ValueError('native SDK original bounded encoded startup required')
-    selected_root = _path(root)
+    selected_root = _path(root, receiving_state)
+    if receiving_state is not None:
+        from .native_core_session_launch_state import reserve_sdk_launch
+        reserve_sdk_launch(receiving_state, config, prefix, selected_root,
+                           session_operation=session_operation)
     with ExitStack() as stack:
         placement = NativeSDKPlacement(config)
         stack.callback(placement.close)
@@ -253,12 +320,18 @@ def owned_native_sdk_session(*, prefix, root, startup_bytes, limits, cancelled,
         # /proc/self/exe names that same issuer image inside its selected child.
         arguments += ['--', '/proc/self/exe', 'native-process-exec',
             '--address-space-bytes', str(_CONSUMER), '--file-size-bytes', str(_SETUP), '--',
-            'core-snapshot', '--root', str(selected_root), '--operation', 'tos_native_session',
+            'core-snapshot', '--root', str(selected_root), '--operation', session_operation,
             '--session-control-fd', str(fd), '--work-deadline-ns', str(config.original_work_deadline_ns)]
+        selected_image = None
+        if receiving_state is not None:
+            selected_image = stack.enter_context(native_dispatch.verified_image(
+                prefix, absolute_deadline=config.original_work_deadline_ns / 1e9,
+                absolute_cleanup_deadline=config.original_whole_deadline_ns / 1e9,
+                receiving_state=receiving_state))
         channel = stack.enter_context(native_io.owned_exchange(arguments, prefix=prefix,
-            input_cap=16 * 1024 * 1024, frame_cap=65536, cancelled=cancelled,
+            input_cap=65536, frame_cap=65536, cancelled=cancelled,
             absolute_deadline=config.original_whole_deadline_ns / 1e9,
-            operation_seconds=50, pass_fds=(fd,)))
+            operation_seconds=50, pass_fds=(fd,), selected_image=selected_image))
         child.close()
         control = NativeSessionControl(parent, deadline=config.original_work_deadline_ns / 1e9,
             cancelled=cancelled, receiver_buffer=receiver_buffer, frame_buffer=frame_buffer,

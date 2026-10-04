@@ -1,7 +1,7 @@
 //! Read-only maintained source diagnostics. No publication or query authority.
 use crate::{
+    philosophy_read::{compute_source_philosophy_view_diagnostic, PhilosophyReadBudget},
     AbortProbe,
-    philosophy_read::{PhilosophyReadBudget, compute_source_philosophy_view_diagnostic},
 };
 use serde_json::{Map, Value};
 use std::{
@@ -11,12 +11,12 @@ use std::{
     os::unix::fs::MetadataExt,
     path::{Path, PathBuf},
     sync::{
-        Arc,
         atomic::{AtomicU64, Ordering},
+        Arc,
     },
     time::Instant,
 };
-use tos_foundation::{Digest256, Digest256Hasher, JsonLimits, JsonMode, parse_json};
+use tos_foundation::{parse_json, Digest256, Digest256Hasher, JsonLimits, JsonMode};
 
 #[derive(Clone, Copy, Debug)]
 pub struct Limits {
@@ -66,28 +66,64 @@ struct Held {
 }
 impl Held {
     fn open(path: &Path, cap: u64) -> Result<Self> {
-        let file = tos_fd_open::open_absolute_regular(path, cap).map_err(err)?;
-        let m = file.metadata().map_err(err)?;
+        Self::open_inner(path, cap, false)
+    }
+    fn open_owned(path: &Path, cap: u64) -> Result<Self> {
+        Self::open_inner(path, cap, true)
+    }
+    fn open_inner(path: &Path, cap: u64, bounded: bool) -> Result<Self> {
+        let file = tos_fd_open::open_absolute_regular(path, cap).map_err(|error| {
+            if bounded {
+                owned_err("legacy exact regular descriptor open failed")
+            } else {
+                err(error)
+            }
+        })?;
+        let m = file.metadata().map_err(|error| {
+            if bounded {
+                owned_err("legacy held metadata failed")
+            } else {
+                err(error)
+            }
+        })?;
         let h = Self {
             path: path.into(),
             file,
             stamp: stamp(&m),
         };
-        h.verify()?;
+        h.verify_inner(bounded)?;
         Ok(h)
     }
     fn verify(&self) -> Result<()> {
-        let m = fs::symlink_metadata(&self.path).map_err(err)?;
+        self.verify_inner(false)
+    }
+    fn verify_owned(&self) -> Result<()> {
+        self.verify_inner(true)
+    }
+    fn verify_inner(&self, bounded: bool) -> Result<()> {
+        let failure = |error| {
+            if bounded {
+                owned_err("legacy held currentness metadata failed")
+            } else {
+                err(error)
+            }
+        };
+        let m = fs::symlink_metadata(&self.path).map_err(failure)?;
         if !m.is_file()
             || m.file_type().is_symlink()
             || stamp(&m) != self.stamp
-            || stamp(&self.file.metadata().map_err(err)?) != self.stamp
+            || stamp(&self.file.metadata().map_err(failure)?) != self.stamp
         {
-            return Err(err("source diagnostic input changed"));
+            return Err(if bounded {
+                owned_err("source diagnostic input changed")
+            } else {
+                err("source diagnostic input changed")
+            });
         }
         Ok(())
     }
 }
+
 struct Meter<'a> {
     limits: Limits,
     deadline: Instant,
@@ -395,6 +431,8 @@ pub struct LegacyStore {
     graph_path: PathBuf,
     database_path: PathBuf,
     view_attempted: bool,
+    // Only the owned route binds these original counters. Old callers keep None.
+    owned: Option<OriginalStoreCounters>,
 }
 #[path = "source_diagnostic_legacy.rs"]
 mod legacy;
@@ -558,6 +596,7 @@ impl LegacyStore {
             graph_path,
             database_path: path.to_owned(),
             view_attempted: false,
+            owned: None,
         })
     }
     pub fn verify_currentness(&self) -> Result<()> {
@@ -597,6 +636,12 @@ impl LegacyStore {
         extra_work_per_byte: u64,
         mut observe: impl FnMut(&Value) -> Result<()>,
     ) -> Result<u64> {
+        if self.owned.is_some() {
+            return Err(err(
+                "legacy owned store requires original-budget operation API",
+            ));
+        }
+
         self.verify_currentness()?;
         let table = if relations {
             "knowledge_relations"
@@ -654,6 +699,12 @@ impl LegacyStore {
         &mut self,
         max_state_bytes: usize,
     ) -> Result<Value> {
+        if self.owned.is_some() {
+            return Err(err(
+                "legacy owned store requires original-budget operation API",
+            ));
+        }
+
         self.verify_currentness()?;
         let mut state = 0usize;
         legacy::retained(&self.corpus_header, &mut state, max_state_bytes)?;
@@ -695,6 +746,12 @@ impl LegacyStore {
         Ok(payload)
     }
     pub fn first_view_packet(&mut self, budget: PhilosophyReadBudget) -> Result<Vec<u8>> {
+        if self.owned.is_some() {
+            return Err(err(
+                "legacy owned store requires original-budget operation API",
+            ));
+        }
+
         self.verify_currentness()?;
         if self.view_attempted {
             return Err(err("source diagnostic first view already attempted"));
@@ -1130,4 +1187,1490 @@ impl std::io::Write for CappedJson<'_> {
     fn flush(&mut self) -> std::io::Result<()> {
         Ok(())
     }
+}
+
+/// Original Driver counters, borrowed remaining-state authority and absolute
+/// ceilings. This is not an admission issuer. The callback remains on the
+/// original holding thread and is supplied anew to each owned operation.
+pub struct OriginalStoreBudget<'a> {
+    /// Already established and admitted ONCE by the dedicated native session.
+    /// Its complete pool remains with the Driver, never a per-store cache grant.
+    pub original_sqlite_heap: Arc<tos_compiler::DedicatedSessionSqliteHeap>,
+    pub remaining_after_retained: &'a dyn Fn(usize) -> Result<usize>,
+    pub byte_work: Arc<AtomicU64>,
+    pub max_byte_work: u64,
+    pub sql_vm_steps: Arc<AtomicU64>,
+    pub max_sql_vm_steps: u64,
+    pub store_sql_vm_steps: Arc<AtomicU64>,
+    pub store_steps: Arc<AtomicU64>,
+    pub max_store_steps: u64,
+    pub json_visits: Arc<std::sync::atomic::AtomicUsize>,
+    pub max_json_visits: usize,
+    pub max_rows_remaining: u64,
+    pub max_input_bytes_remaining: u64,
+}
+
+/// Monotonic attempted usage is retained on success AND failure. A failed
+/// operation is terminal; neither this report nor any Arc is a refund token.
+#[derive(Default, Debug)]
+pub struct StoreUsage {
+    pub input_bytes: u64,
+    pub rows: u64,
+    pub json_visits: usize,
+}
+#[derive(Clone)]
+struct OriginalStoreCounters {
+    original_sqlite_heap: Arc<tos_compiler::DedicatedSessionSqliteHeap>,
+    byte_work: Arc<AtomicU64>,
+    max_byte_work: u64,
+    sql_vm_steps: Arc<AtomicU64>,
+    max_sql_vm_steps: u64,
+    store_sql_vm_steps: Arc<AtomicU64>,
+    store_steps: Arc<AtomicU64>,
+    max_store_steps: u64,
+    json_visits: Arc<std::sync::atomic::AtomicUsize>,
+    max_json_visits: usize,
+    metadata_storage: usize,
+    progress_storage: usize,
+    poisoned: bool,
+}
+fn state_add(a: usize, b: usize) -> Result<usize> {
+    a.checked_add(b)
+        .ok_or_else(|| owned_err("legacy owned state overflow"))
+}
+fn state_slots<T>(n: usize) -> Result<usize> {
+    n.checked_mul(std::mem::size_of::<T>())
+        .ok_or_else(|| owned_err("legacy owned container state overflow"))
+}
+fn atomic_charge(counter: &AtomicU64, cap: u64, amount: u64) -> Result<()> {
+    counter
+        .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |old| {
+            old.checked_add(amount).filter(|value| *value <= cap)
+        })
+        .map(|_| ())
+        .map_err(|_| owned_err("legacy original cumulative allowance"))
+}
+impl OriginalStoreBudget<'_> {
+    fn check(&self, deadline: Instant, abort: &dyn AbortProbe) -> Result<()> {
+        if Instant::now() >= deadline || abort.reason().is_some() {
+            return Err(owned_err("legacy original deadline/abort"));
+        }
+        Ok(())
+    }
+    fn counters(&self, metadata_storage: usize, progress_storage: usize) -> OriginalStoreCounters {
+        OriginalStoreCounters {
+            original_sqlite_heap: self.original_sqlite_heap.clone(),
+            byte_work: self.byte_work.clone(),
+            max_byte_work: self.max_byte_work,
+            sql_vm_steps: self.sql_vm_steps.clone(),
+            max_sql_vm_steps: self.max_sql_vm_steps,
+            store_sql_vm_steps: self.store_sql_vm_steps.clone(),
+            store_steps: self.store_steps.clone(),
+            max_store_steps: self.max_store_steps,
+            json_visits: self.json_visits.clone(),
+            max_json_visits: self.max_json_visits,
+            metadata_storage,
+            progress_storage,
+            poisoned: false,
+        }
+    }
+    fn bind(&self, counters: &OriginalStoreCounters) -> Result<()> {
+        self.original_sqlite_heap
+            .verify_current()
+            .map_err(owned_err)?;
+        if counters.poisoned
+            || !Arc::ptr_eq(&self.original_sqlite_heap, &counters.original_sqlite_heap)
+            || !Arc::ptr_eq(&self.byte_work, &counters.byte_work)
+            || self.max_byte_work != counters.max_byte_work
+            || !Arc::ptr_eq(&self.sql_vm_steps, &counters.sql_vm_steps)
+            || self.max_sql_vm_steps != counters.max_sql_vm_steps
+            || !Arc::ptr_eq(&self.store_sql_vm_steps, &counters.store_sql_vm_steps)
+            || !Arc::ptr_eq(&self.store_steps, &counters.store_steps)
+            || self.max_store_steps != counters.max_store_steps
+            || !Arc::ptr_eq(&self.json_visits, &counters.json_visits)
+            || self.max_json_visits != counters.max_json_visits
+        {
+            return Err(owned_err("legacy original counter association changed"));
+        }
+        Ok(())
+    }
+    fn visits(&self, visits: usize, usage: &mut StoreUsage) -> Result<()> {
+        // Record attempted visits even if the absolute original ceiling refuses.
+        usage.json_visits = usage
+            .json_visits
+            .checked_add(visits)
+            .ok_or_else(|| owned_err("legacy JSON usage overflow"))?;
+        self.json_visits
+            .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |old| {
+                old.checked_add(visits)
+                    .filter(|value| *value <= self.max_json_visits)
+            })
+            .map(|_| ())
+            .map_err(|_| owned_err("legacy original JSON visit allowance"))
+    }
+}
+
+// Rust1.98.1 alloc/collections/btree/node.rs: B=6, eleven key/value
+// slots per leaf, twelve child pointers per internal node. Account unused
+// slots and field/tail padding, independent of Rust field reordering.
+fn serde_map_nodes_upper_bound(entries: usize) -> Result<usize> {
+    if entries == 0 {
+        return Ok(0);
+    }
+    let fields = [
+        (
+            std::mem::size_of::<Option<std::ptr::NonNull<()>>>(),
+            std::mem::align_of::<Option<std::ptr::NonNull<()>>>(),
+        ),
+        (std::mem::size_of::<u16>(), std::mem::align_of::<u16>()),
+        (std::mem::size_of::<u16>(), std::mem::align_of::<u16>()),
+        (
+            std::mem::size_of::<[std::mem::MaybeUninit<String>; 11]>(),
+            std::mem::align_of::<String>(),
+        ),
+        (
+            std::mem::size_of::<[std::mem::MaybeUninit<Value>; 11]>(),
+            std::mem::align_of::<Value>(),
+        ),
+        (
+            std::mem::size_of::<[std::mem::MaybeUninit<std::ptr::NonNull<()>>; 12]>(),
+            std::mem::align_of::<std::ptr::NonNull<()>>(),
+        ),
+    ];
+    let mut node = 0usize;
+    let mut alignment = 1usize;
+    for (bytes, align) in fields {
+        node = state_add(node, state_add(bytes, align - 1)?)?;
+        alignment = alignment.max(align);
+    }
+    node = state_add(node, alignment - 1)?;
+    // Every populated node owns at least one key: existing nodes <= entries.
+    // Insertion can split at most one node per level, height <= entries, plus
+    // one new root. This bounds existing + simultaneous split/root nodes.
+    let nodes = entries
+        .checked_mul(2)
+        .and_then(|n| n.checked_add(1))
+        .ok_or_else(|| owned_err("legacy map node count overflow"))?;
+    state_slots_bytes(nodes, node)
+}
+fn state_slots_bytes(count: usize, bytes: usize) -> Result<usize> {
+    count
+        .checked_mul(bytes)
+        .ok_or_else(|| owned_err("legacy typed storage overflow"))
+}
+// Foundation owns bounded parse storage; each converted/clone map also needs
+// actual Rust node allocation geometry, independently of its string heaps.
+fn converted_storage(value: &tos_foundation::JsonValue) -> Result<usize> {
+    converted_storage_checked(value, &|| Ok(()))
+}
+fn converted_storage_checked(
+    value: &tos_foundation::JsonValue,
+    check: &dyn Fn() -> Result<()>,
+) -> Result<usize> {
+    check()?;
+    use tos_foundation::JsonValue as J;
+    match value {
+        J::Null | J::Bool(_) => Ok(0),
+        J::Number(value) => state_add(value.lexeme.capacity(), state_add(value.lexeme.len(), 1)?),
+        J::String(value) => value
+            .as_str()
+            .map(str::len)
+            .ok_or_else(|| owned_err("legacy JSON lone surrogate")),
+        J::Array(values) => {
+            let mut cost = state_slots::<Value>(values.len())?;
+            for value in values {
+                cost = state_add(cost, converted_storage_checked(value, check)?)?;
+            }
+            Ok(cost)
+        }
+        J::Object(values) => {
+            let mut cost = serde_map_nodes_upper_bound(values.len())?;
+            for (key, value) in values {
+                cost = state_add(
+                    cost,
+                    key.as_str()
+                        .ok_or_else(|| owned_err("legacy JSON lone surrogate"))?
+                        .len(),
+                )?;
+                cost = state_add(cost, converted_storage_checked(value, check)?)?;
+            }
+            Ok(cost)
+        }
+    }
+}
+fn exact_string(value: &str) -> Result<String> {
+    let mut string = String::new();
+    string.try_reserve_exact(value.len()).map_err(owned_err)?;
+    string.push_str(value);
+    // Reject allocator overcapacity before it can become a retained owner.
+    if string.capacity() != value.len() {
+        return Err(owned_err("legacy exact string capacity"));
+    }
+    Ok(string)
+}
+fn convert_owned(
+    value: tos_foundation::JsonValue,
+    check: &dyn Fn() -> Result<()>,
+) -> Result<Value> {
+    convert_borrowed(&value, check)
+}
+fn convert_borrowed(
+    value: &tos_foundation::JsonValue,
+    check: &dyn Fn() -> Result<()>,
+) -> Result<Value> {
+    use tos_foundation::JsonValue as J;
+    check()?;
+    Ok(match value {
+        J::Null => Value::Null,
+        J::Bool(value) => Value::Bool(*value),
+        // lexeme was fully validated by the genuine PublishedStrict parser;
+        // The borrowed and owned DTO routes use the same numeric normalizer;
+        // the exact lexeme copy is admitted beside the original tree.
+        J::Number(value) => Value::Number(normalized_number(exact_string(&value.lexeme)?)?),
+        J::String(value) => Value::String(exact_string(
+            value
+                .as_str()
+                .ok_or_else(|| owned_err("legacy JSON lone surrogate"))?,
+        )?),
+        J::Array(values) => {
+            let mut converted = Vec::new();
+            converted
+                .try_reserve_exact(values.len())
+                .map_err(owned_err)?;
+            if converted.capacity() != values.len() {
+                return Err(owned_err("legacy exact array capacity"));
+            }
+            for value in values {
+                converted.push(convert_borrowed(value, check)?);
+            }
+            Value::Array(converted)
+        }
+        J::Object(values) => {
+            let mut converted = Map::new();
+            for (key, value) in values {
+                check()?;
+                let key = exact_string(
+                    key.as_str()
+                        .ok_or_else(|| owned_err("legacy JSON lone surrogate"))?,
+                )?;
+                let value = convert_borrowed(value, check)?;
+                if converted.insert(key, value).is_some() {
+                    return Err(owned_err("legacy duplicate metadata member"));
+                }
+            }
+            Value::Object(converted)
+        }
+    })
+}
+fn owned_parse(
+    raw: &[u8],
+    limits: Limits,
+    deadline: Instant,
+    abort: &dyn AbortProbe,
+    budget: &OriginalStoreBudget<'_>,
+    retained: usize,
+    usage: &mut StoreUsage,
+) -> Result<(Value, usize)> {
+    budget.check(deadline, abort)?;
+    atomic_charge(&budget.byte_work, budget.max_byte_work, raw.len() as u64)?;
+    atomic_charge(
+        &budget.store_steps,
+        budget.max_store_steps,
+        raw.len() as u64,
+    )?;
+    let remaining_visits = budget
+        .max_json_visits
+        .checked_sub(budget.json_visits.load(Ordering::Relaxed))
+        .ok_or_else(|| owned_err("legacy original JSON visits exhausted"))?;
+    let json_limits =
+        JsonLimits::new(limits.max_json_bytes, 96, remaining_visits, 4300).map_err(owned_err)?;
+    let available = (budget.remaining_after_retained)(retained)?;
+    let mut check = || {
+        budget.check(deadline, abort).map_err(|_| {
+            tos_foundation::FoundationError::new(
+                tos_foundation::FoundationErrorCode::BudgetExceeded,
+                "legacy original deadline/abort",
+            )
+        })
+    };
+    let parsed = tos_foundation::parse_json_with_state_budget_and_check(
+        raw,
+        JsonMode::PublishedStrict,
+        json_limits,
+        available,
+        &mut check,
+    );
+    let document = match parsed {
+        Ok(document) => document,
+        Err(error) => {
+            // Parser failure exposes no partial visits: terminal operation
+            // consumes its remaining original visit allowance conservatively.
+            budget.visits(remaining_visits, usage)?;
+            return Err(owned_err(error));
+        }
+    };
+    budget.visits(document.visits(), usage)?;
+    // Four genuine owner walks: retained-storage census, conversion state
+    // census, conversion work census, and conversion. Reserve their known value visits BEFORE the first walk.
+    let walks = (document.visits() as u64)
+        .checked_mul(4)
+        .ok_or_else(|| owned_err("legacy conversion work overflow"))?;
+    atomic_charge(&budget.byte_work, budget.max_byte_work, walks)?;
+    atomic_charge(&budget.store_steps, budget.max_store_steps, walks)?;
+    let document_state = state_add(
+        std::mem::size_of_val(&document),
+        document
+            .root()
+            .retained_storage_bytes()
+            .map_err(owned_err)?,
+    )?;
+    let converted = converted_storage(document.root())?;
+    let conversion_work = conversion_work(document.root())?;
+    atomic_charge(&budget.byte_work, budget.max_byte_work, conversion_work)?;
+    atomic_charge(&budget.store_steps, budget.max_store_steps, conversion_work)?;
+    (budget.remaining_after_retained)(state_add(
+        state_add(retained, document_state)?,
+        state_add(converted, std::mem::size_of::<Value>())?,
+    )?)?;
+    let value = convert_owned(document.into_root(), &|| budget.check(deadline, abort))?;
+    Ok((value, converted))
+}
+
+impl LegacyStore {
+    /// Open the exact existing five-input cut under the original Driver owners.
+    /// This route does not authorize the old generic-query construction kernels.
+    pub fn open_bounded_with_owned_budget(
+        path: &Path,
+        inputs: &[(String, PathBuf)],
+        limits: Limits,
+        max_database_bytes: u64,
+        owner_deadline: Instant,
+        owner_abort: Arc<dyn AbortProbe>,
+        creation_deadline: Instant,
+        operation: Arc<dyn AbortProbe>,
+        budget: &OriginalStoreBudget<'_>,
+        usage: &mut StoreUsage,
+    ) -> Result<Self> {
+        if usage.input_bytes != 0 || usage.rows != 0 || usage.json_visits != 0 {
+            return Err(owned_err("legacy opening usage must be empty"));
+        }
+        if creation_deadline > owner_deadline {
+            return Err(owned_err("legacy opening cannot renew original deadline"));
+        }
+        let deadline = creation_deadline.min(owner_deadline);
+        let probe = OwnedBorrowedProbe {
+            original: owner_abort.as_ref(),
+            operation: operation.as_ref(),
+        };
+        // Existing limit validation is shared; it allocates no collection.
+        drop(meter(limits, deadline, &probe)?);
+        budget.check(deadline, &probe)?;
+        budget
+            .original_sqlite_heap
+            .verify_current()
+            .map_err(owned_err)?;
+        if max_database_bytes == 0
+            || budget.max_store_steps > limits.max_work_steps
+            || budget.max_store_steps == 0
+            || budget.max_byte_work == 0
+            || budget.max_sql_vm_steps == 0
+            || budget.max_json_visits == 0
+        {
+            return Err(owned_err("legacy original owned limits required"));
+        }
+        let original_rows = limits.max_rows.min(budget.max_rows_remaining);
+        let original_input = limits.max_input_bytes.min(budget.max_input_bytes_remaining);
+        // Exact membership without allocating two BTreeSets.
+        if inputs.len() != INPUTS.len()
+            || INPUTS
+                .iter()
+                .any(|name| inputs.iter().filter(|(key, _)| key == name).count() != 1)
+        {
+            return Err(owned_err("query store requires exact five captured inputs"));
+        }
+        let mut retained = std::mem::size_of::<Self>();
+        // Native SQLite allocations/cache are admitted by the original whole
+        // DedicatedSessionSqliteHeap pool in Driver, not duplicated here.
+        retained = state_add(retained, state_slots::<Held>(INPUTS.len() + 1)?)?;
+        for (_, input) in inputs {
+            retained = state_add(retained, input.as_os_str().len())?;
+        }
+        // Database path custody and the original graph_path are distinct clones.
+        retained = state_add(retained, path.as_os_str().len())?;
+        retained = state_add(retained, path.as_os_str().len())?;
+        retained = state_add(
+            retained,
+            inputs
+                .iter()
+                .find(|(key, _)| key == INPUTS[1])
+                .unwrap()
+                .1
+                .as_os_str()
+                .len(),
+        )?;
+        let mut fixed = state_add(
+            std::mem::size_of::<OriginalStoreBudget<'_>>(),
+            std::mem::size_of::<StoreUsage>(),
+        )?;
+        fixed = state_add(fixed, std::mem::size_of::<OwnedBorrowedProbe<'_>>())?;
+        fixed = state_add(fixed, std::mem::size_of::<Instant>())?;
+        fixed = state_add(fixed, std::mem::size_of::<Arc<dyn AbortProbe>>())?;
+        fixed = state_add(fixed, state_slots::<u8>(65536)?)?;
+        fixed = state_add(fixed, state_slots::<Option<Digest256>>(INPUTS.len())?)?;
+        fixed = state_add(fixed, std::mem::size_of::<Digest256Hasher>())?;
+        fixed = state_add(fixed, owned_metadata_controller_state_upper_bound()?)?;
+        // no_journal temporarily owns one exact selected path plus suffix.
+        fixed = state_add(fixed, state_add(path.as_os_str().len(), "-journal".len())?)?;
+        (budget.remaining_after_retained)(state_add(retained, fixed)?)?;
+        let mut held = Vec::new();
+        held.try_reserve_exact(INPUTS.len() + 1)
+            .map_err(owned_err)?;
+        if held.capacity() != INPUTS.len() + 1 {
+            return Err(owned_err("legacy exact held capacity"));
+        }
+        let mut bindings: [Option<Digest256>; 5] = [None; 5];
+        for (name, input) in inputs {
+            budget.check(deadline, &probe)?;
+            let mut selected =
+                Held::open_owned(input, original_input.saturating_sub(usage.input_bytes))?;
+            usage.input_bytes = usage
+                .input_bytes
+                .checked_add(selected.stamp.2)
+                .filter(|n| *n <= original_input)
+                .ok_or_else(|| owned_err("legacy input allowance"))?;
+            let mut hasher = Digest256Hasher::new();
+            let mut bytes = 0u64;
+            let mut chunk = [0u8; 65536];
+            loop {
+                budget.check(deadline, &probe)?;
+                let requested = usize::try_from(selected.stamp.2.saturating_sub(bytes))
+                    .unwrap_or(usize::MAX)
+                    .min(chunk.len())
+                    .max(1);
+                // Retain attempted admission on short read/failure; EOF itself
+                // is one bounded byte request under the same original ledger.
+                atomic_charge(&budget.byte_work, budget.max_byte_work, requested as u64)?;
+                let read = selected
+                    .file
+                    .read(&mut chunk[..requested])
+                    .map_err(owned_err)?;
+                if read == 0 {
+                    break;
+                }
+                bytes = bytes
+                    .checked_add(read as u64)
+                    .filter(|n| *n <= selected.stamp.2)
+                    .ok_or_else(|| owned_err("legacy input changed during hash"))?;
+                hasher.update(&chunk[..read]);
+            }
+            if bytes != selected.stamp.2 {
+                return Err(owned_err("legacy input shortened during hash"));
+            }
+            selected.verify_owned()?;
+            bindings[INPUTS.iter().position(|key| key == name).unwrap()] = Some(hasher.finalize());
+            held.push(selected);
+        }
+        no_journal_owned(path)?;
+        let selected_database = Held::open_owned(path, max_database_bytes)?;
+        atomic_charge(&budget.sql_vm_steps, budget.max_sql_vm_steps, 1)?;
+        atomic_charge(&budget.store_sql_vm_steps, limits.max_sql_vm_steps, 1)?;
+        let open_remaining = |additional| {
+            let total = state_add(retained, fixed)
+                .and_then(|base| state_add(base, additional))
+                .map_err(|_| {
+                    tos_source_store::StoreError::new(
+                        tos_source_store::StoreErrorCode::DescriptorMismatch,
+                        "legacy pinned state arithmetic",
+                    )
+                })?;
+            (budget.remaining_after_retained)(total).map_err(|_| {
+                tos_source_store::StoreError::new(
+                    tos_source_store::StoreErrorCode::DescriptorMismatch,
+                    "legacy pinned original remaining state",
+                )
+            })
+        };
+        let db = tos_source_store::PinnedSqliteConnection::open_readonly_immutable_with_state(
+            &selected_database.file,
+            &open_remaining,
+        )
+        .map_err(owned_err)?;
+        retained = state_add(
+            retained,
+            db.retained_rust_state_upper_bound().map_err(owned_err)?,
+        )?;
+        let window = OwnedSqlWindow {
+            original: owner_abort.clone(),
+            operation: Some(operation.clone()),
+            deadline,
+            sql: budget.sql_vm_steps.clone(),
+            original_cap: budget.max_sql_vm_steps,
+            store_sql: budget.store_sql_vm_steps.clone(),
+            store_cap: limits.max_sql_vm_steps,
+        };
+        let progress = move || window.next();
+        let progress_storage = std::mem::size_of_val(&progress);
+        (budget.remaining_after_retained)(state_add(
+            state_add(retained, fixed)?,
+            progress_storage,
+        )?)?;
+        db.progress_handler(1, Some(progress));
+        // Fixed SQL and typed pragma argument avoid format! String growth.
+        db.execute_static_bounded(c"PRAGMA query_only=ON;")
+            .map_err(owned_err)?;
+        db.execute_static_bounded(c"PRAGMA temp_store=MEMORY;")
+            .map_err(owned_err)?;
+        db.set_cache_kib_bounded(limits.sqlite_cache_kib)
+            .map_err(owned_err)?;
+        let mut metadata = Map::new();
+        let mut metadata_state = 0usize;
+        {
+            let mut statement = db.prepare_static_bounded(c"SELECT CASE WHEN typeof(key)='text' AND length(CAST(key AS BLOB))<=4096 THEN key ELSE NULL END, CASE WHEN typeof(value)='text' AND length(CAST(value AS BLOB))<=?1 THEN value ELSE NULL END FROM metadata ORDER BY key").map_err(owned_err)?;
+            statement
+                .bind_i64(1, limits.max_json_bytes as i64)
+                .map_err(owned_err)?;
+            while statement.step().map_err(owned_err)? {
+                budget.check(deadline, &probe)?;
+                usage.rows = usage.rows.saturating_add(1);
+                if usage.rows > original_rows {
+                    return Err(owned_err("legacy metadata row allowance"));
+                }
+                // Borrow actual SQLite text, never row.get::<String>() first.
+                let key = statement.text(0).map_err(owned_err)?;
+                let raw = statement.text(1).map_err(owned_err)?;
+                usage.input_bytes = usage.input_bytes.saturating_add(raw.len() as u64);
+                if usage.input_bytes > original_input {
+                    return Err(owned_err("legacy metadata input allowance"));
+                }
+                let node_delta = serde_map_nodes_upper_bound(metadata.len() + 1)?
+                    .checked_sub(serde_map_nodes_upper_bound(metadata.len())?)
+                    .ok_or_else(|| owned_err("legacy metadata node delta"))?;
+                let entry = state_add(node_delta, key.len())?;
+                let before = state_add(
+                    state_add(state_add(retained, fixed)?, progress_storage)?,
+                    state_add(metadata_state, entry)?,
+                )?;
+                (budget.remaining_after_retained)(state_add(before, raw.len())?)?;
+                let (value, value_state) = owned_parse(
+                    raw.as_bytes(),
+                    limits,
+                    deadline,
+                    &probe,
+                    budget,
+                    state_add(before, raw.len())?,
+                    usage,
+                )?;
+                let key = exact_string(key)?;
+                if metadata.insert(key, value).is_some() {
+                    return Err(owned_err("source diagnostic duplicate metadata"));
+                }
+                metadata_state = state_add(metadata_state, state_add(entry, value_state)?)?;
+            }
+        }
+        let string = |name: &str| metadata.get(name).and_then(Value::as_str);
+        if string("schema") != Some("tos_query_store_v1")
+            || string("compiler_version") != Some("tos_offline_knowledge_v2")
+            || metadata.get("complete").and_then(Value::as_bool) != Some(true)
+        {
+            return Err(owned_err(
+                "query store unsupported/incomplete/stale snapshot",
+            ));
+        }
+        let captured_bindings = metadata
+            .get("snapshot_bindings")
+            .and_then(Value::as_object)
+            .ok_or_else(|| owned_err("query store snapshot bindings object"))?;
+        if captured_bindings.len() != INPUTS.len() {
+            return Err(owned_err("query store stale snapshot bindings"));
+        }
+        // Hash formatting uses one fixed 64-byte String at a time, pre-admitted.
+        (budget.remaining_after_retained)(state_add(
+            state_add(state_add(retained, fixed)?, progress_storage)?,
+            state_add(metadata_state, 64)?,
+        )?)?;
+        for (index, name) in INPUTS.iter().enumerate() {
+            if captured_bindings.get(*name).and_then(Value::as_str)
+                != Some(bindings[index].as_ref().unwrap().to_hex().as_str())
+            {
+                return Err(owned_err("query store stale snapshot bindings"));
+            }
+        }
+        // Move the authentic metadata trees; no header/catalog clone at open.
+        let graph_header = metadata
+            .remove("graph_header")
+            .ok_or_else(|| owned_err("missing graph_header"))?;
+        object(&graph_header)?;
+        let catalog = metadata
+            .remove("catalog")
+            .ok_or_else(|| owned_err("missing catalog"))?;
+        object(&catalog)?;
+        let corpus_header = metadata
+            .remove("corpus_header")
+            .ok_or_else(|| owned_err("missing corpus_header"))?;
+        object(&corpus_header)?;
+        let revision = string_revision(&metadata)?;
+        (budget.remaining_after_retained)(state_add(
+            state_add(state_add(retained, fixed)?, progress_storage)?,
+            state_add(metadata_state, revision.len())?,
+        )?)?;
+        let revision = exact_string(revision)?;
+        for item in &held {
+            item.verify_owned()?;
+        }
+        selected_database.verify_owned()?;
+        no_journal_owned(path)?;
+        held.push(selected_database);
+        let graph_path = inputs
+            .iter()
+            .find(|(name, _)| name == INPUTS[1])
+            .unwrap()
+            .1
+            .clone();
+        let counters = budget.counters(
+            state_add(metadata_state, revision.capacity())?,
+            progress_storage,
+        );
+        // Metadata_state conservatively retains the entire original map census,
+        // including removed/dropped members. It is never refunded per call.
+        let mut owner = Self {
+            revision,
+            corpus_header,
+            graph_header,
+            catalog,
+            db,
+            held,
+            limits,
+            deadline: owner_deadline,
+            abort: owner_abort.clone(),
+            bytes: usage.input_bytes,
+            rows: usage.rows,
+            work: budget.store_steps.load(Ordering::Relaxed),
+            vm: budget.store_sql_vm_steps.clone(),
+            graph_path,
+            database_path: path.to_owned(),
+            view_attempted: false,
+            owned: Some(counters),
+        };
+        // The construction window ends here; retain the original owner lifetime.
+        // install_owned_progress admits simultaneous old/new callback storage.
+        owner.install_owned_progress(budget, owner_deadline, None, fixed)?;
+        budget.check(deadline, &probe)?;
+        Ok(owner)
+    }
+    /// Actual distinct buffers plus conservative original metadata census.
+    /// Shared Arc payloads belong to the Driver; only handles live here.
+    pub fn retained_state_upper_bound(&self) -> Result<usize> {
+        let owned = self
+            .owned
+            .as_ref()
+            .ok_or_else(|| owned_err("legacy store has no original owned census"))?;
+        let mut state = state_add(std::mem::size_of::<Self>(), owned.metadata_storage)?;
+        state = state_add(
+            state,
+            self.db
+                .retained_rust_state_upper_bound()
+                .map_err(owned_err)?,
+        )?;
+        state = state_add(state, owned.progress_storage)?;
+        state = state_add(state, state_slots::<Held>(self.held.capacity())?)?;
+        for item in &self.held {
+            state = state_add(state, item.path.capacity())?;
+        }
+        state = state_add(state, self.graph_path.capacity())?;
+        state = state_add(state, self.database_path.capacity())?;
+        Ok(state)
+    }
+    pub fn verify_currentness_with_owned_budget(
+        &self,
+        budget: &OriginalStoreBudget<'_>,
+    ) -> Result<()> {
+        budget.bind(
+            self.owned
+                .as_ref()
+                .ok_or_else(|| owned_err("legacy original counter owner absent"))?,
+        )?;
+        budget.check(self.deadline, self.abort.as_ref())?;
+        let scratch = state_add(self.database_path.as_os_str().len(), "-journal".len())?;
+        let scratch = state_add(scratch, std::mem::size_of::<std::ffi::OsString>())?;
+        (budget.remaining_after_retained)(state_add(self.retained_state_upper_bound()?, scratch)?)?;
+        for item in &self.held {
+            item.verify_owned()?;
+        }
+        no_journal_owned(&self.database_path)
+    }
+}
+fn string_revision(metadata: &Map<String, Value>) -> Result<&str> {
+    metadata
+        .get("exploration_revision")
+        .and_then(Value::as_str)
+        .ok_or_else(|| owned_err("missing exploration_revision"))
+}
+
+// Preserve serde_json 1.0.151 arbitrary_precision decode semantics. Its
+// maintained scan_exponent lowercases E and supplies an explicit positive sign;
+// integral i64/u64 values normalize through the same Number constructors.
+fn normalized_number(lexeme: String) -> Result<serde_json::Number> {
+    if !lexeme
+        .as_bytes()
+        .iter()
+        .any(|b| matches!(b, b'.' | b'e' | b'E'))
+    {
+        if let Ok(value) = lexeme.parse::<u64>() {
+            return Ok(value.into());
+        }
+        if let Ok(value) = lexeme.parse::<i64>() {
+            return Ok(value.into());
+        }
+        return Ok(serde_json::Number::from_string_unchecked(lexeme));
+    }
+    let Some(exponent) = lexeme.find(['e', 'E']) else {
+        return Ok(serde_json::Number::from_string_unchecked(lexeme));
+    };
+    let positive = !matches!(lexeme.as_bytes()[exponent + 1], b'+' | b'-');
+    let length = state_add(lexeme.len(), usize::from(positive))?;
+    let mut normalized = String::new();
+    normalized.try_reserve_exact(length).map_err(owned_err)?;
+    if normalized.capacity() != length {
+        return Err(owned_err("legacy exact number capacity"));
+    }
+    normalized.push_str(&lexeme[..exponent]);
+    normalized.push('e');
+    if positive {
+        normalized.push('+');
+    }
+    normalized.push_str(&lexeme[exponent + 1..]);
+    Ok(serde_json::Number::from_string_unchecked(normalized))
+}
+
+// These typed controllers belong to THIS operation, not the retired opening
+// statement scope. The parser admits depth64; corpus_header adds array/root2.
+// Each recursive owner walk is serial, so reserve one largest walk, not one
+// independent whole-state grant for every parser/clone/serializer layer.
+fn owned_metadata_controller_state_upper_bound() -> Result<usize> {
+    let sql =
+        tos_source_store::PinnedSqliteConnection::bounded_statement_rust_workspace_upper_bound()
+            + std::mem::size_of::<[i64; 1]>()
+            + std::mem::size_of::<&str>()
+            + std::mem::size_of::<Vec<Value>>();
+    let walk = owned_tree_controller_frame_bytes();
+    let sql = state_add(sql, std::mem::size_of::<[(usize, usize); 6]>())?;
+    state_add(sql, state_slots_bytes(66, walk)?)
+}
+
+fn owned_tree_controller_frame_bytes() -> usize {
+    let walk = std::mem::size_of::<Value>()
+        + std::mem::size_of::<Map<String, Value>>()
+        + std::mem::size_of::<Vec<Value>>()
+        + std::mem::size_of::<String>()
+        + std::mem::size_of::<std::collections::btree_map::Iter<'_, String, Value>>()
+        + std::mem::size_of::<std::slice::Iter<'_, Value>>()
+        + std::mem::size_of::<&Value>()
+        + std::mem::size_of::<&dyn Fn() -> Result<()>>();
+    walk
+}
+
+fn serde_clone_storage(value: &Value, check: &dyn Fn() -> Result<()>) -> Result<usize> {
+    check()?;
+    match value {
+        Value::Null | Value::Bool(_) => Ok(0),
+        Value::Number(number) => Ok(number.as_str().len()),
+        Value::String(string) => Ok(string.len()),
+        Value::Array(values) => {
+            let mut state = state_slots::<Value>(values.len())?;
+            for value in values {
+                state = state_add(state, serde_clone_storage(value, check)?)?;
+            }
+            Ok(state)
+        }
+        Value::Object(values) => {
+            let mut state = serde_map_nodes_upper_bound(values.len())?;
+            for (key, value) in values {
+                state = state_add(state, key.len())?;
+                state = state_add(state, serde_clone_storage(value, check)?)?;
+            }
+            Ok(state)
+        }
+    }
+}
+fn clone_serde_owned(value: &Value, check: &dyn Fn() -> Result<()>) -> Result<Value> {
+    check()?;
+    Ok(match value {
+        Value::Null => Value::Null,
+        Value::Bool(value) => Value::Bool(*value),
+        Value::Number(value) => Value::Number(serde_json::Number::from_string_unchecked(
+            exact_string(value.as_str())?,
+        )),
+        Value::String(value) => Value::String(exact_string(value)?),
+        Value::Array(values) => {
+            let mut output = Vec::new();
+            output.try_reserve_exact(values.len()).map_err(owned_err)?;
+            if output.capacity() != values.len() {
+                return Err(owned_err("legacy exact clone capacity"));
+            }
+            for value in values {
+                output.push(clone_serde_owned(value, check)?);
+            }
+            Value::Array(output)
+        }
+        Value::Object(values) => {
+            let mut output = Map::new();
+            for (key, value) in values {
+                output.insert(exact_string(key)?, clone_serde_owned(value, check)?);
+            }
+            Value::Object(output)
+        }
+    })
+}
+impl LegacyStore {
+    /// Maintained metadata operations, including the authentic ordered
+    /// corpus/graph_views rows. The result remains inside this same held cut.
+    fn metadata_result_with_owned_budget(
+        &mut self,
+        tool: &str,
+        budget: &OriginalStoreBudget<'_>,
+        usage: &mut StoreUsage,
+        call_deadline: Instant,
+        operation: Arc<dyn AbortProbe>,
+    ) -> Result<(Value, usize)> {
+        let outcome = (|| {
+            self.verify_currentness_with_owned_budget(budget)?;
+            if call_deadline > self.deadline {
+                return Err(owned_err("legacy call cannot renew original deadline"));
+            }
+            // Both hook targets coexist during replacement, accounted before Box.
+            self.install_owned_progress(budget, call_deadline, Some(operation.clone()), 0)?;
+            let result =
+                self.metadata_owned_inner(tool, budget, usage, call_deadline, operation.as_ref());
+            let result_state = result.as_ref().map_or(0, |(_, state)| *state);
+            let restored = self.install_owned_progress(budget, self.deadline, None, result_state);
+            self.work = budget.store_steps.load(Ordering::Relaxed);
+            if result.is_err() || restored.is_err() {
+                if let Some(owned) = &mut self.owned {
+                    owned.poisoned = true;
+                }
+            }
+            match result {
+                Err(error) => Err(error),
+                Ok((value, state)) => {
+                    restored?;
+                    Ok((value, state))
+                }
+            }
+        })();
+        if outcome.is_err() {
+            if let Some(owned) = &mut self.owned {
+                owned.poisoned = true;
+            }
+        }
+        outcome
+    }
+    fn install_owned_progress(
+        &mut self,
+        budget: &OriginalStoreBudget<'_>,
+        deadline: Instant,
+        operation: Option<Arc<dyn AbortProbe>>,
+        additional: usize,
+    ) -> Result<()> {
+        budget.bind(
+            self.owned
+                .as_ref()
+                .ok_or_else(|| owned_err("legacy original counter owner absent"))?,
+        )?;
+        let window = OwnedSqlWindow {
+            original: self.abort.clone(),
+            operation,
+            deadline,
+            sql: budget.sql_vm_steps.clone(),
+            original_cap: budget.max_sql_vm_steps,
+            store_sql: budget.store_sql_vm_steps.clone(),
+            store_cap: self.limits.max_sql_vm_steps,
+        };
+        let progress = move || window.next();
+        let state = std::mem::size_of_val(&progress);
+        (budget.remaining_after_retained)(state_add(
+            self.retained_state_upper_bound()?,
+            state_add(additional, state)?,
+        )?)?;
+        self.db.progress_handler(1, Some(progress));
+        self.owned.as_mut().unwrap().progress_storage = state;
+        Ok(())
+    }
+    fn metadata_owned_inner(
+        &mut self,
+        tool: &str,
+        budget: &OriginalStoreBudget<'_>,
+        usage: &mut StoreUsage,
+        call_deadline: Instant,
+        operation: &dyn AbortProbe,
+    ) -> Result<(Value, usize)> {
+        self.verify_currentness_with_owned_budget(budget)?;
+        let probe = OwnedBorrowedProbe {
+            original: self.abort.as_ref(),
+            operation,
+        };
+        budget.check(call_deadline, &probe)?;
+        if usage.input_bytes != 0 || usage.rows != 0 || usage.json_visits != 0 {
+            return Err(owned_err("legacy metadata usage must be empty"));
+        }
+        let source = match tool {
+            "tos_knowledge_catalog" => &self.catalog,
+            "tos_knowledge_header" => &self.graph_header,
+            "tos_corpus_header" => &self.corpus_header,
+            _ => return Err(owned_err("legacy metadata operation required")),
+        };
+        let retained = state_add(
+            self.retained_state_upper_bound()?,
+            state_add(
+                std::mem::size_of::<OwnedSqlWindow>(),
+                state_add(
+                    std::mem::size_of::<OwnedBorrowedProbe<'_>>(),
+                    owned_metadata_controller_state_upper_bound()?,
+                )?,
+            )?,
+        )?;
+        (budget.remaining_after_retained)(retained)?;
+        let check = || budget.check(call_deadline, &probe);
+        let census = state_add(
+            self.owned.as_ref().unwrap().metadata_storage,
+            std::mem::size_of::<Value>(),
+        )?;
+        let planning_work = census
+            .checked_mul(2)
+            .ok_or_else(|| owned_err("legacy clone planning overflow"))?;
+        atomic_charge(
+            &budget.byte_work,
+            budget.max_byte_work,
+            planning_work as u64,
+        )?;
+        atomic_charge(
+            &budget.store_steps,
+            budget.max_store_steps,
+            planning_work as u64,
+        )?;
+        let clone_work = serde_clone_work(source, &check)?;
+        atomic_charge(&budget.byte_work, budget.max_byte_work, clone_work)?;
+        atomic_charge(&budget.store_steps, budget.max_store_steps, clone_work)?;
+        let mut output_state = state_add(
+            std::mem::size_of::<Value>(),
+            serde_clone_storage(source, &check)?,
+        )?;
+        (budget.remaining_after_retained)(state_add(retained, output_state)?)?;
+        // Price both actual owner walks before the clone walk. The first census
+        // uses no allocating parser, serializer, String or Vec scratch.
+        atomic_charge(&budget.byte_work, budget.max_byte_work, output_state as u64)?;
+        atomic_charge(
+            &budget.store_steps,
+            budget.max_store_steps,
+            output_state as u64,
+        )?;
+        let mut output = clone_serde_owned(source, &|| budget.check(call_deadline, &probe))?;
+        if tool == "tos_corpus_header" {
+            let mut values = Vec::new();
+            let mut statement = self.db.prepare_static_bounded(c"SELECT CASE WHEN typeof(payload)='text' AND length(CAST(payload AS BLOB))<=?1 THEN payload ELSE NULL END FROM raw_records WHERE collection='corpus/graph_views' ORDER BY position").map_err(owned_err)?;
+            statement
+                .bind_i64(1, self.limits.max_json_bytes as i64)
+                .map_err(owned_err)?;
+            while statement.step().map_err(owned_err)? {
+                self.verify_currentness_with_owned_budget(budget)?;
+                budget.check(call_deadline, &probe)?;
+                usage.rows = usage
+                    .rows
+                    .checked_add(1)
+                    .ok_or_else(|| owned_err("legacy row usage overflow"))?;
+                if usage.rows > budget.max_rows_remaining {
+                    return Err(owned_err("legacy original session remaining rows"));
+                }
+                self.rows = self
+                    .rows
+                    .checked_add(1)
+                    .filter(|n| *n <= self.limits.max_rows)
+                    .ok_or_else(|| owned_err("legacy corpus header cumulative rows"))?;
+                let raw = statement.text(0).map_err(owned_err)?;
+                usage.input_bytes = usage
+                    .input_bytes
+                    .checked_add(raw.len() as u64)
+                    .ok_or_else(|| owned_err("legacy input usage overflow"))?;
+                if usage.input_bytes > budget.max_input_bytes_remaining {
+                    return Err(owned_err("legacy original session remaining input"));
+                }
+                self.bytes = self
+                    .bytes
+                    .checked_add(raw.len() as u64)
+                    .filter(|n| *n <= self.limits.max_input_bytes)
+                    .ok_or_else(|| owned_err("legacy corpus header cumulative input"))?;
+                // Exact vector growth pre-admission includes old and requested
+                // new slots while reallocating; no implicit Vec::push growth.
+                let slots = state_slots::<Value>(values.len() + 1)?;
+                let workspace = state_add(state_add(output_state, raw.len())?, slots)?;
+                (budget.remaining_after_retained)(state_add(retained, workspace)?)?;
+                let (value, heap) = owned_parse(
+                    raw.as_bytes(),
+                    self.limits,
+                    call_deadline,
+                    &probe,
+                    budget,
+                    state_add(retained, workspace)?,
+                    usage,
+                )?;
+                object(&value)?;
+                values.try_reserve_exact(1).map_err(owned_err)?;
+                if values.capacity() != values.len() + 1 {
+                    return Err(owned_err("legacy exact graph_views capacity"));
+                }
+                values.push(value);
+                output_state =
+                    state_add(output_state, state_add(std::mem::size_of::<Value>(), heap)?)?;
+            }
+            let members = output
+                .as_object()
+                .ok_or_else(|| owned_err("legacy corpus header object"))?
+                .len();
+            let node_delta = serde_map_nodes_upper_bound(members + 1)?
+                .checked_sub(serde_map_nodes_upper_bound(members)?)
+                .ok_or_else(|| owned_err("legacy header map node delta"))?;
+            let key_state = state_add(node_delta, "graph_views".len())?;
+            (budget.remaining_after_retained)(state_add(
+                retained,
+                state_add(output_state, key_state)?,
+            )?)?;
+            output_state = state_add(output_state, key_state)?;
+            output
+                .as_object_mut()
+                .ok_or_else(|| owned_err("legacy corpus header object"))?
+                .insert(exact_string("graph_views")?, Value::Array(values));
+        }
+        self.verify_currentness_with_owned_budget(budget)?;
+        Ok((output, output_state))
+    }
+}
+
+fn conversion_work(value: &tos_foundation::JsonValue) -> Result<u64> {
+    conversion_work_checked(value, &|| Ok(()))
+}
+fn conversion_work_checked(
+    value: &tos_foundation::JsonValue,
+    check: &dyn Fn() -> Result<()>,
+) -> Result<u64> {
+    check()?;
+    use tos_foundation::JsonValue as J;
+    let checked = |a: u64, b: u64| {
+        a.checked_add(b)
+            .ok_or_else(|| owned_err("legacy conversion work overflow"))
+    };
+    match value {
+        J::Null | J::Bool(_) => Ok(0),
+        // normalized_number has an any scan, two integral parse attempts OR
+        // exponent find, plus bounded formatting/copy. Five token lengths
+        // bound those actual passes; this is work, not an AST state multiplier.
+        J::Number(value) => (value.lexeme.len() as u64)
+            .checked_add(1)
+            .and_then(|n| n.checked_mul(5))
+            .ok_or_else(|| owned_err("legacy numeric work overflow")),
+        J::String(value) => Ok(value
+            .as_str()
+            .ok_or_else(|| owned_err("legacy JSON lone surrogate"))?
+            .len() as u64),
+        J::Array(values) => values.iter().try_fold(0, |sum, value| {
+            checked(sum, conversion_work_checked(value, check)?)
+        }),
+        J::Object(values) => {
+            let mut work = 0u64;
+            for (key, value) in values {
+                let bytes = key
+                    .as_str()
+                    .ok_or_else(|| owned_err("legacy JSON lone surrogate"))?
+                    .len() as u64;
+                // Even an unbalanced tree compares no more than every existing
+                // key per insertion; no private BTree balancing assumption.
+                let key_work = bytes
+                    .checked_mul(values.len() as u64 + 1)
+                    .ok_or_else(|| owned_err("legacy map comparison work overflow"))?;
+                work = checked(
+                    work,
+                    checked(key_work, conversion_work_checked(value, check)?)?,
+                )?;
+            }
+            Ok(work)
+        }
+    }
+}
+
+struct OwnedBorrowedProbe<'a> {
+    original: &'a dyn AbortProbe,
+    operation: &'a dyn AbortProbe,
+}
+impl AbortProbe for OwnedBorrowedProbe<'_> {
+    fn reason(&self) -> Option<crate::AbortReason> {
+        self.original.reason().or_else(|| self.operation.reason())
+    }
+}
+struct OwnedSqlWindow {
+    original: Arc<dyn AbortProbe>,
+    operation: Option<Arc<dyn AbortProbe>>,
+    deadline: Instant,
+    sql: Arc<AtomicU64>,
+    original_cap: u64,
+    store_sql: Arc<AtomicU64>,
+    store_cap: u64,
+}
+impl OwnedSqlWindow {
+    fn next(&self) -> bool {
+        // A prepaid first instruction is carried across callback replacements.
+        // Both ledgers observe the continuation attempt even if either refuses.
+        let original = self
+            .sql
+            .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |old| {
+                old.checked_add(1).filter(|next| *next <= self.original_cap)
+            });
+        let store = self
+            .store_sql
+            .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |old| {
+                old.checked_add(1).filter(|next| *next <= self.store_cap)
+            });
+        original.is_err()
+            || store.is_err()
+            || Instant::now() >= self.deadline
+            || self.original.reason().is_some()
+            || self
+                .operation
+                .as_ref()
+                .is_some_and(|probe| probe.reason().is_some())
+    }
+}
+
+impl LegacyStore {
+    pub fn metadata_with_owned_budget(
+        &mut self,
+        tool: &str,
+        budget: &OriginalStoreBudget<'_>,
+        usage: &mut StoreUsage,
+        call_deadline: Instant,
+        operation: Arc<dyn AbortProbe>,
+    ) -> Result<Value> {
+        self.metadata_result_with_owned_budget(tool, budget, usage, call_deadline, operation)
+            .map(|(value, _)| value)
+    }
+    /// Encode the complete authentic metadata result under the same owner. The
+    /// caller holds this store and packet through final Reply/send fences.
+    pub fn metadata_packet_with_owned_budget(
+        &mut self,
+        tool: &str,
+        budget: &OriginalStoreBudget<'_>,
+        usage: &mut StoreUsage,
+        call_deadline: Instant,
+        operation: Arc<dyn AbortProbe>,
+        max_output_bytes: usize,
+    ) -> Result<Vec<u8>> {
+        let result = (|| {
+            if max_output_bytes == 0 || max_output_bytes > self.limits.max_json_bytes {
+                return Err(owned_err("legacy metadata original output cap"));
+            }
+            let (value, value_state) = self.metadata_result_with_owned_budget(
+                tool,
+                budget,
+                usage,
+                call_deadline,
+                operation.clone(),
+            )?;
+            self.packet_from_owned_value(
+                value,
+                value_state,
+                budget,
+                usage,
+                call_deadline,
+                operation.as_ref(),
+                max_output_bytes,
+            )
+        })();
+        if result.is_err() {
+            if let Some(owned) = &mut self.owned {
+                owned.poisoned = true;
+            }
+        }
+        result
+    }
+    fn packet_from_owned_value(
+        &self,
+        value: Value,
+        value_state: usize,
+        budget: &OriginalStoreBudget<'_>,
+        usage: &mut StoreUsage,
+        call_deadline: Instant,
+        operation: &dyn AbortProbe,
+        max_output_bytes: usize,
+    ) -> Result<Vec<u8>> {
+        self.packet_from_owned_value_with_controller(
+            value,
+            value_state,
+            budget,
+            usage,
+            call_deadline,
+            operation,
+            max_output_bytes,
+            owned_metadata_controller_state_upper_bound()?,
+        )
+    }
+    fn packet_from_owned_value_with_controller(
+        &self,
+        value: Value,
+        value_state: usize,
+        budget: &OriginalStoreBudget<'_>,
+        usage: &mut StoreUsage,
+        call_deadline: Instant,
+        operation: &dyn AbortProbe,
+        max_output_bytes: usize,
+        controller_state: usize,
+    ) -> Result<Vec<u8>> {
+        let probe = OwnedBorrowedProbe {
+            original: self.abort.as_ref(),
+            operation,
+        };
+        budget.check(call_deadline, &probe)?;
+        let planning_state = state_add(
+            self.retained_state_upper_bound()?,
+            state_add(value_state, controller_state)?,
+        )?;
+        (budget.remaining_after_retained)(planning_state)?;
+        // Planning is one nonallocating typed tree walk, pre-admitted from
+        // its actual retained slots/strings before touching that tree.
+        atomic_charge(&budget.byte_work, budget.max_byte_work, value_state as u64)?;
+        atomic_charge(
+            &budget.store_steps,
+            budget.max_store_steps,
+            value_state as u64,
+        )?;
+        let (encoded_bound, nodes) =
+            encoded_geometry(&value, &|| budget.check(call_deadline, &probe))?;
+        let work = encoded_bound
+            .checked_mul(2)
+            .and_then(|n| n.checked_add(nodes.checked_mul(2)?))
+            .ok_or_else(|| owned_err("legacy metadata output work overflow"))?;
+        atomic_charge(&budget.byte_work, budget.max_byte_work, work as u64)?;
+        atomic_charge(&budget.store_steps, budget.max_store_steps, work as u64)?;
+        budget.visits(
+            nodes
+                .checked_mul(2)
+                .ok_or_else(|| owned_err("legacy output visits overflow"))?,
+            usage,
+        )?;
+        let check = || budget.check(call_deadline, &probe);
+        let fixed = state_add(
+            std::mem::size_of::<OwnedCount<'_>>(),
+            std::mem::size_of::<serde_json::Serializer<OwnedCount<'_>>>(),
+        )?;
+        let fixed = state_add(fixed, std::mem::size_of::<OwnedBytes<'_>>())?;
+        let retained = state_add(
+            self.retained_state_upper_bound()?,
+            state_add(value_state, state_add(fixed, controller_state)?)?,
+        )?;
+        (budget.remaining_after_retained)(retained)?;
+        let mut count = OwnedCount {
+            bytes: 0,
+            cap: max_output_bytes,
+            check: &check,
+        };
+        serde_json::to_writer(&mut count, &value).map_err(owned_err)?;
+        (budget.remaining_after_retained)(state_add(retained, count.bytes)?)?;
+        let mut output = Vec::new();
+        output.try_reserve_exact(count.bytes).map_err(owned_err)?;
+        if output.capacity() != count.bytes {
+            return Err(owned_err("legacy exact output capacity"));
+        }
+        let mut writer = OwnedBytes {
+            bytes: output,
+            cap: count.bytes,
+            check: &check,
+        };
+        serde_json::to_writer(&mut writer, &value).map_err(owned_err)?;
+        if writer.bytes.len() != count.bytes {
+            return Err(owned_err("legacy metadata count/emit mismatch"));
+        }
+        self.verify_currentness_with_owned_budget(budget)?;
+        budget.check(call_deadline, &probe)?;
+        Ok(writer.bytes)
+    }
+}
+fn encoded_geometry(value: &Value, check: &dyn Fn() -> Result<()>) -> Result<(usize, usize)> {
+    check()?;
+    let string = |value: &str| {
+        value
+            .len()
+            .checked_mul(6)
+            .and_then(|n| n.checked_add(2))
+            .ok_or_else(|| owned_err("legacy JSON escaped size overflow"))
+    };
+    match value {
+        Value::Null => Ok((4, 1)),
+        Value::Bool(value) => Ok((if *value { 4 } else { 5 }, 1)),
+        Value::Number(value) => Ok((value.as_str().len(), 1)),
+        Value::String(value) => Ok((string(value)?, 1)),
+        Value::Array(values) => {
+            let mut bytes = state_add(2, values.len().saturating_sub(1))?;
+            let mut visits = 1;
+            for value in values {
+                let (n, v) = encoded_geometry(value, check)?;
+                bytes = state_add(bytes, n)?;
+                visits = state_add(visits, v)?;
+            }
+            Ok((bytes, visits))
+        }
+        Value::Object(values) => {
+            let mut bytes = state_add(2, values.len().saturating_sub(1))?;
+            let mut visits = 1;
+            for (key, value) in values {
+                let (n, v) = encoded_geometry(value, check)?;
+                bytes = state_add(bytes, state_add(state_add(string(key)?, 1)?, n)?)?;
+                visits = state_add(visits, state_add(v, 1)?)?;
+            }
+            Ok((bytes, visits))
+        }
+    }
+}
+struct OwnedCount<'a> {
+    bytes: usize,
+    cap: usize,
+    check: &'a dyn Fn() -> Result<()>,
+}
+impl std::io::Write for OwnedCount<'_> {
+    fn write(&mut self, bytes: &[u8]) -> std::io::Result<usize> {
+        (self.check)().map_err(|_| std::io::Error::from(std::io::ErrorKind::Interrupted))?;
+        self.bytes = self
+            .bytes
+            .checked_add(bytes.len())
+            .filter(|n| *n <= self.cap)
+            .ok_or_else(|| std::io::Error::from(std::io::ErrorKind::InvalidData))?;
+        Ok(bytes.len())
+    }
+    fn flush(&mut self) -> std::io::Result<()> {
+        (self.check)().map_err(|_| std::io::Error::from(std::io::ErrorKind::Interrupted))
+    }
+}
+struct OwnedBytes<'a> {
+    bytes: Vec<u8>,
+    cap: usize,
+    check: &'a dyn Fn() -> Result<()>,
+}
+impl std::io::Write for OwnedBytes<'_> {
+    fn write(&mut self, bytes: &[u8]) -> std::io::Result<usize> {
+        (self.check)().map_err(|_| std::io::Error::from(std::io::ErrorKind::Interrupted))?;
+        let length = self
+            .bytes
+            .len()
+            .checked_add(bytes.len())
+            .filter(|n| *n <= self.cap)
+            .ok_or_else(|| std::io::Error::from(std::io::ErrorKind::InvalidData))?;
+        if length > self.bytes.capacity() {
+            return Err(std::io::Error::from(std::io::ErrorKind::OutOfMemory));
+        }
+        self.bytes.extend_from_slice(bytes);
+        Ok(bytes.len())
+    }
+    fn flush(&mut self) -> std::io::Result<()> {
+        (self.check)().map_err(|_| std::io::Error::from(std::io::ErrorKind::Interrupted))
+    }
+}
+
+fn serde_clone_work(value: &Value, check: &dyn Fn() -> Result<()>) -> Result<u64> {
+    check()?;
+    let add = |a: u64, b: u64| {
+        a.checked_add(b)
+            .ok_or_else(|| owned_err("legacy clone work overflow"))
+    };
+    match value {
+        Value::Null | Value::Bool(_) => Ok(1),
+        Value::Number(number) => add(number.as_str().len() as u64, 1),
+        Value::String(string) => add(string.len() as u64, 1),
+        Value::Array(values) => values
+            .iter()
+            .try_fold(1, |sum, value| add(sum, serde_clone_work(value, check)?)),
+        Value::Object(values) => {
+            let mut work = 1;
+            for (key, value) in values {
+                let comparisons = (key.len() as u64)
+                    .checked_mul(values.len() as u64 + 1)
+                    .ok_or_else(|| owned_err("legacy clone comparison work overflow"))?;
+                work = add(work, add(comparisons, serde_clone_work(value, check)?)?)?;
+            }
+            Ok(work)
+        }
+    }
+}
+
+fn no_journal_owned(path: &Path) -> Result<()> {
+    let capacity = state_add(path.as_os_str().len(), "-journal".len())?;
+    let mut named = std::ffi::OsString::new();
+    named.try_reserve_exact(capacity).map_err(owned_err)?;
+    if named.capacity() != capacity {
+        return Err(owned_err("legacy exact sidecar path capacity"));
+    }
+    for suffix in ["-wal", "-journal", "-shm"] {
+        named.clear();
+        named.push(path.as_os_str());
+        named.push(suffix);
+        match fs::symlink_metadata(Path::new(&named)) {
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+            _ => {
+                return Err(owned_err(
+                    "query store must be an immutable completed snapshot",
+                ));
+            }
+        }
+    }
+    Ok(())
+}
+
+/// Caller admits this finite diagnostic workspace ONCE before opening or
+/// invoking an owned operation, including when the ordinary remainder is zero.
+/// Three distinct owners can coexist: fixed formatter storage, returned text,
+/// and retained cause text in the controlled writer's I/O/serde error chain.
+/// The formatter array is included by its actual type, not counted twice.
+pub fn owned_store_diagnostic_workspace_bytes() -> usize {
+    2 * OWNED_DIAGNOSTIC_BYTES
+        + 2 * std::mem::size_of::<DiagnosticError>()
+        + std::mem::size_of::<std::io::Error>()
+        + std::mem::size_of::<serde_json::Error>()
+        + owned_serde_error_impl_upper_bound()
+        + std::mem::size_of::<OwnedDiagnosticText>()
+}
+// serde_json1.0.151 error.rs: ErrorImpl owns ErrorCode + line/column.
+// ErrorCode's only payloads are Box<str> and io::Error; the remaining variants
+// have no payload. Pointer-sized discriminant and all field/tail padding bound
+// even a layout without niche packing. Owned writers use simple ErrorKind,
+// so no Custom I/O cause Box or dynamically owned diagnostic message appears.
+fn owned_serde_error_impl_upper_bound() -> usize {
+    let payload = std::mem::size_of::<Box<str>>().max(std::mem::size_of::<std::io::Error>());
+    let align = std::mem::align_of::<Box<str>>()
+        .max(std::mem::align_of::<std::io::Error>())
+        .max(std::mem::align_of::<usize>());
+    payload + std::mem::size_of::<usize>() + align - 1
+        + 2 * (std::mem::size_of::<usize>() + std::mem::align_of::<usize>() - 1)
+        + align
+        - 1
+}
+const OWNED_DIAGNOSTIC_BYTES: usize = 1024;
+struct OwnedDiagnosticText {
+    bytes: [u8; OWNED_DIAGNOSTIC_BYTES],
+    length: usize,
+}
+impl std::fmt::Write for OwnedDiagnosticText {
+    fn write_str(&mut self, text: &str) -> std::fmt::Result {
+        let mut length = text.len().min(self.bytes.len() - self.length);
+        while !text.is_char_boundary(length) {
+            length -= 1;
+        }
+        self.bytes[self.length..self.length + length].copy_from_slice(&text.as_bytes()[..length]);
+        self.length += length;
+        Ok(())
+    }
+}
+fn owned_err(value: impl std::fmt::Display) -> DiagnosticError {
+    let mut text = OwnedDiagnosticText {
+        bytes: [0; OWNED_DIAGNOSTIC_BYTES],
+        length: 0,
+    };
+    let _ = std::fmt::write(&mut text, format_args!("{value}"));
+    // Formatter copied only complete UTF-8 prefixes; no second decoder tree.
+    let text = std::str::from_utf8(&text.bytes[..text.length])
+        .unwrap_or("legacy diagnostic UTF-8 refusal");
+    DiagnosticError(text.to_owned())
 }

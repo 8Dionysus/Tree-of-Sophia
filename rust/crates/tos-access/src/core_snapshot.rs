@@ -5,6 +5,10 @@ mod session_transport;
 mod session_startup;
 #[path = "session_owner.rs"]
 mod session_owner;
+#[path = "probe_session.rs"]
+mod probe_session;
+#[path = "lazy_session.rs"]
+mod lazy_session;
 use serde::Deserialize;
 use serde_json::Value;
 use std::sync::{
@@ -236,6 +240,32 @@ impl tos_query::AbortProbe for StoreAbort {
 #[path = "core_legacy_query_executor.rs"]
 mod legacy_query_executor;
 
+fn selected_store_inputs(request: &Request) -> [(String,PathBuf);5] {
+    let s = &request.source_paths;
+    [
+        (
+            "ToS/derived-exports/tos_corpus_index.min.json".into(),
+            s.index_path.clone(),
+        ),
+        (
+            "ToS/derived-exports/philosophy_graph_projection.min.json".into(),
+            s.philosophy_graph_projection_path.clone(),
+        ),
+        (
+            "ToS/derived-exports/graph/source-witness-bibliographic-claims.min.json".into(),
+            s.bibliographic_graph_path.clone(),
+        ),
+        (
+            "ToS/doctrine/semantic-interchange/entity-types.v1.json".into(),
+            s.entity_type_registry_path.clone(),
+        ),
+        (
+            "ToS/doctrine/semantic-interchange/relation-types.v1.json".into(),
+            s.relation_type_registry_path.clone(),
+        ),
+    ]
+}
+
 fn selected_store_result(
     request: &Request,
     operation: &Operation,
@@ -267,29 +297,7 @@ fn selected_store_result(
         cancelled.clone(),
     )
     .map_err(|_| "Core QueryStore actual kernel resources refused")?;
-    let s = &request.source_paths;
-    let inputs = [
-        (
-            "ToS/derived-exports/tos_corpus_index.min.json".into(),
-            s.index_path.clone(),
-        ),
-        (
-            "ToS/derived-exports/philosophy_graph_projection.min.json".into(),
-            s.philosophy_graph_projection_path.clone(),
-        ),
-        (
-            "ToS/derived-exports/graph/source-witness-bibliographic-claims.min.json".into(),
-            s.bibliographic_graph_path.clone(),
-        ),
-        (
-            "ToS/doctrine/semantic-interchange/entity-types.v1.json".into(),
-            s.entity_type_registry_path.clone(),
-        ),
-        (
-            "ToS/doctrine/semantic-interchange/relation-types.v1.json".into(),
-            s.relation_type_registry_path.clone(),
-        ),
-    ];
+    let inputs=selected_store_inputs(request);
     let abort: Arc<dyn tos_query::AbortProbe> = Arc::new(StoreAbort {
         deadline,
         cancelled: cancelled.clone(),
@@ -486,7 +494,7 @@ fn selection(args: &[String]) -> Result<Option<Selection>> {
     {
         return Err("Core descriptor selectors");
     }
-    if (operation.as_deref() == Some("tos_native_session")) != session_control_fd.is_some()
+    if matches!(operation.as_deref(), Some("tos_native_session" | "tos_native_probe_session" | "tos_native_lazy_session")) != session_control_fd.is_some()
         || session_control_fd.is_some_and(|fd| fd < 3)
         || session_control_fd.is_some() && (state_fd.is_some() || reply_fd.is_some()) {
         return Err("Core exact session selector association");
@@ -853,59 +861,121 @@ fn active(deadline: Instant) -> Result<()> {
 // `Path.is_file()` semantics follow a selected symlink; O_PATH holds the exact
 // resolved inode without reading payload or manufacturing source authority.
 fn selected_is_file(path: &Path, deadline: Instant) -> Result<bool> {
+    with_selected_is_file(path, deadline, |exists| Ok(exists))
+}
+
+// One fixed pathname buffer, five retained stat observations plus one syscall
+// return temporary, descriptor owner, two comparison tuples and borrowed locals.
+// No CString/Vec or std metadata pathname conversion allocates outside this bound.
+const SELECTED_PROBE_METADATA_WORKSPACE: usize = 8194
+    + 6 * std::mem::size_of::<libc::stat>()
+    + std::mem::size_of::<std::fs::File>()
+    + 2 * std::mem::size_of::<(u64, u64, u32, i64, i64, i64, i64, i64)>()
+    + std::mem::size_of::<(&Path, &[u8], &std::fs::File, Instant)>()
+    + 4 * std::mem::size_of::<usize>();
+/// Selected metadata property under explicit CPython3.14 semantics. A bounded
+/// stack pathname goes directly to stat/fstat/open, avoiding hidden heap path
+/// conversions. O_PATH and exact inode metadata remain held through disclosure.
+fn with_selected_is_file<T>(
+    path: &Path,
+    deadline: Instant,
+    disclose: impl FnOnce(bool) -> Result<T>,
+) -> Result<T> {
+    with_selected_metadata_property(path, deadline, true, disclose)
+}
+
+// Existing selected-property owner also supports Path.exists() for default
+// Store selection; both variants retain the actual resolved O_PATH through use.
+fn with_selected_metadata_property<T>(
+    path: &Path,
+    deadline: Instant,
+    regular_only: bool,
+    disclose: impl FnOnce(bool) -> Result<T>,
+) -> Result<T> {
     use std::os::{
-        fd::FromRawFd,
-        unix::{ffi::OsStrExt, fs::MetadataExt},
+        fd::{AsRawFd, FromRawFd},
+        unix::ffi::OsStrExt,
     };
     active(deadline)?;
-    let before = match std::fs::metadata(path) {
-        Ok(m) => m,
-        Err(e)
-            if matches!(
-                e.kind(),
-                std::io::ErrorKind::NotFound | std::io::ErrorKind::PermissionDenied
-            ) =>
-        {
-            active(deadline)?;
-            return Ok(false);
-        }
-        Err(_) => return Err("Core selected existence lookup"),
-    };
-    if !before.is_file() {
-        active(deadline)?;
-        return Ok(false);
+    let bytes = path.as_os_str().as_bytes();
+    if bytes.len() > 8193 {
+        return Err("Core selected path bound");
     }
-    let name = std::ffi::CString::new(path.as_os_str().as_bytes())
-        .map_err(|_| "Core selected path NUL")?;
-    let fd = unsafe { libc::open(name.as_ptr(), libc::O_PATH | libc::O_CLOEXEC) };
+    // Python3.14 is_file returns false for an embedded-NUL path too. Never
+    // pass a truncated name to a syscall and accidentally inspect another file.
+    if bytes.contains(&0) {
+        let result = disclose(false)?;
+        active(deadline)?;
+        return Ok(result);
+    }
+    let mut name = [0_u8; 8194];
+    name[..bytes.len()].copy_from_slice(bytes);
+    let named = || -> Option<libc::stat> {
+        let mut metadata: libc::stat = unsafe { std::mem::zeroed() };
+        if unsafe { libc::stat(name.as_ptr().cast(), &mut metadata) } == 0 {
+            Some(metadata)
+        } else {
+            None
+        }
+    };
+    let matches_property = |m: &libc::stat| !regular_only || m.st_mode & libc::S_IFMT == libc::S_IFREG;
+    let before = match named() {
+        Some(m) if matches_property(&m) => m,
+        _ => {
+            active(deadline)?;
+            let result = disclose(false)?;
+            if named().is_some_and(|m| matches_property(&m)) {
+                return Err("Core selected false existence changed during disclosure");
+            }
+            active(deadline)?;
+            return Ok(result);
+        }
+    };
+    let fd = unsafe { libc::open(name.as_ptr().cast(), libc::O_PATH | libc::O_CLOEXEC) };
     if fd < 0 {
         return Err("Core selected existence hold");
     }
     let file = unsafe { std::fs::File::from_raw_fd(fd) };
-    let held = file
-        .metadata()
-        .map_err(|_| "Core selected existence metadata")?;
-    let after = std::fs::metadata(path).map_err(|_| "Core selected existence changed")?;
-    let identity = |m: &std::fs::Metadata| {
+    let held_stat = || -> Result<libc::stat> {
+        let mut metadata: libc::stat = unsafe { std::mem::zeroed() };
+        if unsafe { libc::fstat(file.as_raw_fd(), &mut metadata) } == 0 {
+            Ok(metadata)
+        } else {
+            Err("Core selected held metadata")
+        }
+    };
+    let identity = |m: &libc::stat| {
         (
-            m.dev(),
-            m.ino(),
-            m.mode(),
-            m.size(),
-            m.mtime(),
-            m.mtime_nsec(),
-            m.ctime(),
-            m.ctime_nsec(),
+            m.st_dev,
+            m.st_ino,
+            m.st_mode,
+            m.st_size,
+            m.st_mtime,
+            m.st_mtime_nsec,
+            m.st_ctime,
+            m.st_ctime_nsec,
         )
     };
-    if !held.is_file()
+    let held = held_stat()?;
+    let after = named().ok_or("Core selected existence changed")?;
+    if !matches_property(&held)
         || identity(&before) != identity(&held)
         || identity(&held) != identity(&after)
     {
         return Err("Core selected existence changed");
     }
     active(deadline)?;
-    Ok(true)
+    let result = disclose(true)?;
+    active(deadline)?;
+    let current_held = held_stat()?;
+    let current_named = named().ok_or("Core selected target changed during disclosure")?;
+    if identity(&held) != identity(&current_held)
+        || identity(&current_held) != identity(&current_named)
+    {
+        return Err("Core selected existence changed during disclosure");
+    }
+    active(deadline)?;
+    Ok(result)
 }
 
 fn send_state(
@@ -1880,7 +1950,9 @@ pub fn run_if_requested(args: &Vec<String>, input: &mut dyn Read) -> Option<i32>
                         .checked_add(argument.capacity())
                         .ok_or("Core CLI argument state overflow")?;
                 }
-                if selection.operation == "tos_native_session" {
+                if matches!(selection.operation.as_str(), "tos_native_session" | "tos_native_probe_session" | "tos_native_lazy_session") {
+                    let probe = selection.operation == "tos_native_probe_session";
+                    let lazy = selection.operation == "tos_native_lazy_session";
                     let (raw, startup_visits) = read_input_with_visits(input, deadline, 65536)?;
                     let startup_bytes = raw.len();
                     let startup: session_startup::Startup = serde_json::from_slice(&raw)
@@ -1890,7 +1962,7 @@ pub fn run_if_requested(args: &Vec<String>, input: &mut dyn Read) -> Option<i32>
                         .and_then(|n|n.checked_add(selection.root.capacity()))
                         .and_then(|n|n.checked_add(selection.operation.capacity()))
                         .ok_or("Core session selected owner state overflow")?;
-                    let (mut request, limits, whole) = startup.into_owner_request(selection.work_deadline_ns, argv_state, startup_bytes)?;
+                    let (mut request, limits, whole) = if lazy { startup.into_lazy_owner_request(selection.work_deadline_ns, argv_state, startup_bytes)? } else if probe { startup.into_probe_owner_request(selection.work_deadline_ns, argv_state, startup_bytes)? } else { startup.into_owner_request(selection.work_deadline_ns, argv_state, startup_bytes)? };
                     let deadline = deadline.min(request.admission.deadline()?);
                     let control = crate::private_stage_run::verify_issued_consumer_control(
                         selection.session_control_fd.ok_or("Core session control selector absent")?,
@@ -1900,6 +1972,8 @@ pub fn run_if_requested(args: &Vec<String>, input: &mut dyn Read) -> Option<i32>
                     request.caller_retained_state_bytes = request.caller_retained_state_bytes
                         .checked_add(session.retained_state_upper_bound()?)
                         .ok_or("Core session original caller/control state overflow")?;
+                    if lazy { return lazy_session::run(&selection.root, &session, &request, deadline, &signal.token, startup_bytes); }
+                    if probe { return probe_session::run(&session, &request, deadline, &signal.token, startup_bytes); }
                     return serve_selected_root(&selection.root, &request, "", 0, deadline,
                         &signal.token, None, Some(&session));
                 }
@@ -2007,6 +2081,58 @@ impl SelectedRootCall<'_> {
                 tos_query::corpus_read::CorpusReadRequest::GraphViews), false)
         } else { self }
     }
+}
+
+/// Resource-only formatting over the already genuine packet value; no model or URI owner is recreated.
+fn render_resource_packet(
+    body: &[u8],
+    body_capacity: usize,
+    cap: usize,
+    deadline: Instant,
+    cancelled: &Arc<AtomicBool>,
+    view: &tos_compiler::native_snapshot::CompletedCaptureCarriers<'_>,
+    remaining_after_retained: &impl Fn(usize) -> tos_compiler::Result<usize>,
+) -> tos_compiler::Result<Vec<u8>> {
+    let mut check = || -> tos_foundation::Result<()> {
+        if cancelled.load(Ordering::Relaxed) || Instant::now() >= deadline {
+            return Err(tos_foundation::FoundationError::new(
+                tos_foundation::FoundationErrorCode::BudgetExceeded,
+                "Resource render original cutoff/cancellation"));
+        }
+        Ok(())
+    };
+    let mut admit = |bytes: usize, visits: usize| -> tos_foundation::Result<()> {
+        let work = bytes.checked_mul(2).and_then(|n| visits.checked_mul(2).and_then(|v| n.checked_add(v)))
+            .and_then(|n| u64::try_from(n).ok())
+            .ok_or_else(|| tos_foundation::FoundationError::new(
+                tos_foundation::FoundationErrorCode::BudgetExceeded, "Resource render work overflow"))?;
+        view.charge_work(work).map_err(|_| tos_foundation::FoundationError::new(
+            tos_foundation::FoundationErrorCode::BudgetExceeded, "Resource render original work"))
+    };
+    let fixed = std::mem::size_of::<tos_foundation::JsonDocument>()
+        + std::mem::size_of::<Vec<u8>>() + std::mem::size_of::<JsonLimits>()
+        + std::mem::size_of_val(&check) + std::mem::size_of_val(&admit);
+    let held = body_capacity.checked_add(fixed)
+        .ok_or(tos_compiler::Error::Budget("Resource render fixed state overflow"))?;
+    let available = remaining_after_retained(held)?;
+    let mut limits = crate::common::packet_json_limits(cap);
+    check().map_err(|_| tos_compiler::Error::Budget("Resource render original parse cutoff"))?;
+    view.charge_work(u64::try_from(body.len()).map_err(|_| tos_compiler::Error::Budget("Resource render parse overflow"))?)?;
+    let document = tos_foundation::parse_json_with_state_budget_and_check(body,
+        JsonMode::PublishedStrict, limits, available, &mut check)
+        .map_err(|_| tos_compiler::Error::Budget("Resource render original parser state/JSON"))?;
+    let tree = document.root().retained_storage_bytes()
+        .map_err(|_| tos_compiler::Error::Budget("Resource render retained tree"))?;
+    let available = remaining_after_retained(held.checked_add(tree)
+        .ok_or(tos_compiler::Error::Budget("Resource render tree state overflow"))?)?;
+    limits.max_visits = limits.max_visits.checked_sub(document.visits())
+        .ok_or(tos_compiler::Error::Budget("Resource render original parser/writer visits"))?;
+    let (bytes, _) = tos_foundation::emit_python_pretty_sorted_json_with_state_budget(
+        document.root(), limits, available, &mut check, &mut admit)
+        .map_err(|_| tos_compiler::Error::Budget("Resource render original output/state/work"))?;
+    check().map_err(|_| tos_compiler::Error::Budget("Resource render original final cutoff"))?;
+    drop(document);
+    Ok(bytes)
 }
 
 /// Deliver one query while its authentic executor, view and disclosure lease stay borrowed.
@@ -2119,12 +2245,23 @@ fn deliver_selected_root_call<'hold, E: crate::ScopedAccessExecutor<'hold> + ?Si
     if packet.body.len() > profile.max_response_bytes {
         return Err(tos_compiler::Error::Budget("Core query response bytes"));
     }
+    let rendered = if resource_render {
+        Some(render_resource_packet(&packet.body, packet.body.capacity(),
+            profile.max_response_bytes, deadline, cancelled, view, &remaining_after_retained)?)
+    } else { None };
+    let render_capacity = rendered.as_ref().map_or(0, Vec::capacity);
+    let render_fixed = if resource_render { std::mem::size_of::<Option<Vec<u8>>>() } else { 0 };
+    let simultaneous_packet = packet.body.capacity().checked_add(render_capacity)
+        .and_then(|n| n.checked_add(render_fixed))
+        .ok_or(tos_compiler::Error::Budget("Resource render held body/output state overflow"))?;
     let resource_remaining_state = if tool == "tos_native_resource_read" {
-        Some(remaining_after_retained(packet.body.capacity())?)
+        Some(remaining_after_retained(simultaneous_packet)?)
     } else {
         None
     };
-    if let Some(remaining) = resource_remaining_state {
+    if resource_render {
+        // The bounded renderer already validates the same packet using the existing strict owner parser.
+    } else if let Some(remaining) = resource_remaining_state {
         view.charge_work(
             u64::try_from(packet.body.len())
                 .map_err(|_| tos_compiler::Error::Budget("Core packet validation work overflow"))?,
@@ -2147,7 +2284,7 @@ fn deliver_selected_root_call<'hold, E: crate::ScopedAccessExecutor<'hold> + ?Si
     let prefix = br#"{"schema_version":"tos_native_core_snapshot_result_v1","ok":true,"result":"#;
     let resource_text = if resource_render {
         Some(
-            std::str::from_utf8(&packet.body)
+            std::str::from_utf8(rendered.as_deref().ok_or(tos_compiler::Error::Invalid("Resource render output absent"))?)
                 .map_err(|_| tos_compiler::Error::Invalid("Core resource text encoding"))?,
         )
     } else {
@@ -2155,11 +2292,11 @@ fn deliver_selected_root_call<'hold, E: crate::ScopedAccessExecutor<'hold> + ?Si
     };
     let mut envelope_reservation = None;
     let cap = if tool == "tos_native_resource_read" {
-        // The resource owner already returns its serialized text.
-        // Do not allocate another decoded tree or pretty Vec.
+        // Original packet and actual pretty-output capacity coexist with this escaped envelope;
+        // the decoded tree has already been dropped and all allocations use the original remainder.
         drop(argument_storage);
         drop(registered);
-        let work = u64::try_from(packet.body.len())
+        let work = u64::try_from(resource_text.map_or(packet.body.len(), str::len))
             .ok()
             .and_then(|n| n.checked_mul(2))
             .ok_or(tos_compiler::Error::Budget(

@@ -9,6 +9,7 @@ use super::source_admission_store::AdmissionStore;
 use std::{
     fs::File,
     io::{self, Read},
+    mem::size_of,
     os::unix::fs::MetadataExt,
     path::Path,
     sync::{Arc, atomic::AtomicBool},
@@ -21,6 +22,7 @@ use tos_segment_store::{
 };
 use tos_source_store::{
     CorpusCurrentSelection, CorpusPointerFormat, PinnedSqliteIoBudget, ReadLimits,
+    SourceMembershipV1,
 };
 
 const DOMAIN: &[u8] = b"tos-native-admission-source-v2";
@@ -154,6 +156,27 @@ pub enum V2RootKind {
     Dependencies,
     Retirements,
     History,
+}
+
+/// Read-only evidence that one exact batch/base/validator tuple is already
+/// present in the currently selected authenticated history. The digest names
+/// the current rootset that proved the retained row; it is not represented as
+/// the historical publication's original pointer digest or receipt.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct AcceptedV2Publication {
+    pub(crate) revision: SourceRevision,
+    pub(crate) base_revision: Option<SourceRevision>,
+    pub(crate) batch_sha256: Digest256,
+    pub(crate) validator_sha256: Digest256,
+    pub(crate) membership_v1: SourceMembershipV1,
+    pub(crate) source_bytes: u64,
+    pub(crate) member_count: u64,
+    pub(crate) identity_count: u64,
+    pub(crate) dependency_source_count: u64,
+    pub(crate) dependency_count: u64,
+    pub(crate) retirement_count: u64,
+    pub(crate) source_artifact: super::source_admission_segment_v2::SourceRevisionArtifactV2,
+    pub(crate) history_proof_rootset_sha256: Digest256,
 }
 
 /// One pinned immutable selected cut. Caller-owned IO/deadline/cancellation
@@ -302,12 +325,200 @@ impl V2ReadSession {
         self.selection.revision
     }
 
+    pub(crate) fn selected_selection(&self) -> CorpusCurrentSelection {
+        self.selection.clone()
+    }
+
     pub(crate) fn current_roots(&self) -> &SourceRevisionRootsV2 {
         &self.roots.current
     }
 
+    pub(crate) fn current_rootset(&self) -> &SourceRootSetV2 {
+        &self.roots
+    }
+
+    pub(crate) fn segment_store(&self) -> &SegmentStore {
+        &self.segment
+    }
+
+    pub(crate) fn selected_rootset_sha256(&self) -> io::Result<Digest256> {
+        self.selection
+            .rootset_sha256
+            .ok_or_else(|| invalid("V2 selected rootset digest absent"))
+    }
+
+    pub(crate) fn accumulated_tree_work(&self) -> AuthenticatedTreeWorkV1 {
+        AuthenticatedTreeWorkV1 {
+            read_nodes: self.read_nodes,
+            read_bytes: self.tree_read_bytes,
+            ..AuthenticatedTreeWorkV1::default()
+        }
+    }
+
+    /// Actual retained reader values that remain live when a CMD COW writer
+    /// reuses this selected session. Numeric profile headroom is checked by
+    /// the caller before it clones the old descriptors or starts a delta.
+    fn held_wrapper_state_bytes(&self) -> io::Result<usize> {
+        let segment_state = self.segment.retained_heap_state_bytes().map_err(invalid)?;
+        let tree_io_state = size_of::<TreeIo>()
+            .checked_add(2 * size_of::<usize>())
+            .ok_or_else(|| invalid("V2 reader IO wrapper state overflow"))?;
+        size_of::<Self>()
+            .checked_add(self.store.retained_path_capacity())
+            .and_then(|bytes| bytes.checked_add(segment_state))
+            .and_then(|bytes| bytes.checked_add(tree_io_state))
+            .ok_or_else(|| invalid("V2 reader wrapper state overflow"))
+    }
+
+    pub(crate) fn retained_live_state_bytes(&self) -> io::Result<usize> {
+        let roots_state = self.roots.retained_state_bytes()?;
+        let mut retained = self
+            .held_wrapper_state_bytes()?
+            .checked_add(roots_state)
+            .ok_or_else(|| invalid("V2 reader retained state overflow"))?;
+        if let Some(cached) = &self.history_roots_cache {
+            retained = retained
+                .checked_add(cached.retained_state_bytes()?)
+                .ok_or_else(|| invalid("V2 reader retained state overflow"))?;
+        }
+        if let Some(observation) = &self.observation {
+            let observation_state = size_of::<V2MemberObservation>()
+                .checked_add(observation.path.as_str().len())
+                .and_then(|bytes| bytes.checked_add(observation.bytes.capacity()))
+                .ok_or_else(|| invalid("V2 reader observation state overflow"))?;
+            retained = retained
+                .checked_add(observation_state)
+                .ok_or_else(|| invalid("V2 reader observation state overflow"))?;
+        }
+        Ok(retained)
+    }
+
     pub(crate) fn retained_history_count(&self) -> u64 {
         self.roots.history.entries
+    }
+
+    /// Recover an exact accepted transaction after a caller loses its reply.
+    /// A match is returned only after the selected history reaches EOF, the
+    /// immutable source-record file passes digest/size/EOF/stamp checks, and
+    /// the selected mutable pointer still names this session's rootset.
+    pub(crate) fn find_accepted_batch(
+        &mut self,
+        batch_sha256: Digest256,
+        base_revision: Option<SourceRevision>,
+        validator_sha256: Digest256,
+        max_artifact_bytes: u64,
+    ) -> io::Result<Option<AcceptedV2Publication>> {
+        if self.failed {
+            return Err(invalid("V2 point session already refused"));
+        }
+        let result = (|| {
+            if max_artifact_bytes == 0 || max_artifact_bytes == u64::MAX {
+                return Err(invalid("accepted V2 artifact read bound is invalid"));
+            }
+            let proof_rootset = self
+                .selection
+                .rootset_sha256
+                .ok_or_else(|| invalid("accepted V2 history proof digest is absent"))?;
+            let accepted_state = std::mem::size_of::<AcceptedV2Publication>()
+                .checked_add(std::mem::size_of::<Option<[u8; 32]>>())
+                .and_then(|bytes| bytes.checked_add(1024))
+                .ok_or_else(|| invalid("accepted V2 result state overflow"))?;
+            if self
+                .limits
+                .base_state_bytes()?
+                .checked_add(accepted_state)
+                .is_none_or(|bytes| bytes > self.limits.max_state_bytes)
+            {
+                return Err(invalid(
+                    "accepted V2 lookup exceeds the original reader state slice",
+                ));
+            }
+            let caller_result_state = self
+                .history_root_result_state_upper_bound()?
+                .checked_add(accepted_state)
+                .ok_or_else(|| invalid("accepted V2 caller result state overflow"))?;
+            let mut after: Option<[u8; 32]> = None;
+            let mut accepted: Option<AcceptedV2Publication> = None;
+            let mut ambiguous = false;
+            let mut observed = 0u64;
+            loop {
+                let next = self.next_history_roots_after_with_retained(
+                    after.as_ref().map(|key| key.as_slice()),
+                    caller_result_state,
+                    accepted_state,
+                )?;
+                let Some((roots, _raw_bytes)) = next else {
+                    break;
+                };
+                observed = observed
+                    .checked_add(1)
+                    .filter(|count| *count <= self.roots.history.entries)
+                    .ok_or_else(|| invalid("accepted V2 history row count exceeded"))?;
+                let revision_key = *roots.revision.0.as_bytes();
+                if roots.base_revision == base_revision
+                    && roots.batch_sha256 == Some(batch_sha256)
+                    && roots.validator_sha256 == validator_sha256
+                {
+                    if accepted.is_some() {
+                        ambiguous = true;
+                    } else {
+                        let artifact = roots.source_artifact.clone();
+                        if artifact
+                            .bytes()
+                            .is_none_or(|bytes| bytes == 0 || bytes > max_artifact_bytes)
+                        {
+                            return Err(invalid(
+                                "accepted V2 history artifact exceeds selected read bound",
+                            ));
+                        }
+                        accepted = Some(AcceptedV2Publication {
+                            revision: roots.revision,
+                            base_revision: roots.base_revision,
+                            batch_sha256,
+                            validator_sha256,
+                            membership_v1: roots.membership_v1,
+                            source_bytes: roots.source_bytes,
+                            member_count: roots.member_count,
+                            identity_count: roots.identity_count,
+                            dependency_source_count: roots.dependency_source_count,
+                            dependency_count: roots.dependency_count,
+                            retirement_count: roots.retirement_count,
+                            source_artifact: artifact,
+                            history_proof_rootset_sha256: proof_rootset,
+                        });
+                    }
+                }
+                after = Some(revision_key);
+            }
+            if observed != self.roots.history.entries {
+                return Err(invalid("accepted V2 history EOF count differs"));
+            }
+            // The lookup is deliberately not a prefix hit: only a completed
+            // ordered walk and a stable selected pointer can recover success.
+            self.verify_current_fence()?;
+            if ambiguous {
+                return Err(invalid(
+                    "accepted V2 batch tuple is ambiguous in retained history",
+                ));
+            }
+            if let Some(accepted) = accepted {
+                self.store.verify_v2_source_artifact(
+                    accepted.revision.0,
+                    &accepted.source_artifact,
+                    max_artifact_bytes,
+                    self.deadline,
+                    &self.cancel,
+                    &self.io,
+                )?;
+                self.verify_current_fence()?;
+                return Ok(Some(accepted));
+            }
+            Ok(None)
+        })();
+        if result.is_err() {
+            self.failed = true;
+        }
+        result
     }
 
     pub(crate) fn history_root_result_state_upper_bound(&self) -> io::Result<usize> {
@@ -335,7 +546,7 @@ impl V2ReadSession {
     pub(crate) fn declared_retained_state_bytes(&self) -> io::Result<(usize, usize)> {
         self.limits
             .base_state_bytes()?
-            .checked_add(std::mem::size_of::<Self>())
+            .checked_add(self.held_wrapper_state_bytes()?)
             .map(|state| (state, 0))
             .ok_or_else(|| invalid("V2 point retained state overflow"))
     }
@@ -352,13 +563,23 @@ impl V2ReadSession {
         after_revision: Option<&[u8]>,
         caller_result_state_bytes: usize,
     ) -> io::Result<Option<(SourceRevisionRootsV2, usize)>> {
+        self.next_history_roots_after_with_retained(after_revision, caller_result_state_bytes, 0)
+    }
+
+    fn next_history_roots_after_with_retained(
+        &mut self,
+        after_revision: Option<&[u8]>,
+        caller_result_state_bytes: usize,
+        additional_caller_retained_state_bytes: usize,
+    ) -> io::Result<Option<(SourceRevisionRootsV2, usize)>> {
         let selected_revision = self.selection.revision;
-        let Some(row) = self.next_row_after(
+        let Some(row) = self.next_row_after_with_retained(
             selected_revision,
             V2RootKind::History,
             None,
             None,
             after_revision,
+            additional_caller_retained_state_bytes,
         )?
         else {
             return Ok(None);
@@ -441,6 +662,25 @@ impl V2ReadSession {
         upper_exclusive: Option<&[u8]>,
         after_exclusive: Option<&[u8]>,
     ) -> io::Result<Option<AuthenticatedTreeEntryV1>> {
+        self.next_row_after_with_retained(
+            revision,
+            kind,
+            lower_inclusive,
+            upper_exclusive,
+            after_exclusive,
+            0,
+        )
+    }
+
+    fn next_row_after_with_retained(
+        &mut self,
+        revision: SourceRevision,
+        kind: V2RootKind,
+        lower_inclusive: Option<&[u8]>,
+        upper_exclusive: Option<&[u8]>,
+        after_exclusive: Option<&[u8]>,
+        additional_caller_retained_state_bytes: usize,
+    ) -> io::Result<Option<AuthenticatedTreeEntryV1>> {
         if self.failed {
             return Err(invalid("V2 point session already refused"));
         }
@@ -479,6 +719,7 @@ impl V2ReadSession {
                 .limits
                 .max_state_bytes
                 .checked_sub(self.limits.base_state_bytes()?)
+                .and_then(|bytes| bytes.checked_sub(additional_caller_retained_state_bytes))
                 .filter(|n| *n > 0)
                 .ok_or_else(|| invalid("V2 point range state allowance absent"))?;
             let (row, work) = self

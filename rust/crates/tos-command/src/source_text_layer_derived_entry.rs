@@ -1099,12 +1099,20 @@ fn capture_entities(
             .operation
             .starts_with("text-layer.record-owner-")
         {
-            let home = cmd::text(&prepared.grant.config, "source_path")?
-                .rsplit_once('/')
-                .ok_or(SourceCommandError::Invalid("native owner OCR output home"))?
-                .0;
+            let material = cmd::field(&prepared.grant.config, "material")?;
+            let retained_root = crate::source_text_owner::normalized_absolute(cmd::text(
+                material,
+                "receipt_root",
+            )?)?;
+            let retained_ref = |name: &str| {
+                retained_root
+                    .join(name)
+                    .to_str()
+                    .map(str::to_owned)
+                    .ok_or(SourceCommandError::Invalid("native owner OCR retained input UTF-8"))
+            };
             rows.push((
-                format!("{home}/content.txt"),
+                retained_ref("content.txt")?,
                 Digest256::of_bytes(raw).to_hex(),
                 raw.len() as u64,
                 "authenticated-owner-ocr-result".into(),
@@ -1114,7 +1122,7 @@ fn capture_entities(
                 SourceCommandError::Conflict("native owner OCR copied receipt absent"),
             )?;
             rows.push((
-                format!("{home}/owner-ocr-receipt.json"),
+                retained_ref("receipt.json")?,
                 Digest256::of_bytes(receipt).to_hex(),
                 receipt.len() as u64,
                 "authenticated-owner-ocr-execution-receipt".into(),

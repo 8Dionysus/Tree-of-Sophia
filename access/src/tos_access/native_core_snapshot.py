@@ -116,6 +116,47 @@ class NativeCoreSnapshotSelection:
             raise ValueError('selected QueryStore path exceeds the native selector bound')
 
     @classmethod
+    def discover(cls, tos_root=None, *, query_store_path=None, **carrier_selectors):
+        """Capture existing path-selection law without constructing Reference Core."""
+        from .locations import data_root, source_carrier_paths
+        from .locations import QUERY_STORE_RELATIVE_PATH as DEFAULT_RELATIVE_PATH
+        root = data_root(tos_root)
+        fields = source_carrier_paths(root, **carrier_selectors)
+        ambient = os.environ.get('TOS_QUERY_STORE_PATH')
+        configured = query_store_path is not None or bool(ambient)
+        selected = Path(query_store_path if query_store_path is not None else
+                        ambient if ambient else root / DEFAULT_RELATIVE_PATH).expanduser()
+        if not selected.is_absolute():
+            selected = root / selected
+        return cls(tos_root=root, **fields, query_store_path=selected,
+                   query_store_configured=configured)
+
+    @classmethod
+    def prepare_owned_discovery(cls):
+        """Prepare optional bounded OS bindings before ReceiverState exists."""
+        from .locations import prepare_owned_source_discovery
+        return prepare_owned_source_discovery()
+
+    @classmethod
+    def discover_under_admission(cls, prepared, state, *, tos_root=None,
+                                 query_store_path=None, carrier_selectors,
+                                 maximum_owner_objects, source_root_only=False):
+        """Select existing paths using the original setup state/cutoff.
+
+        Preparation occurs on this same SDK thread before ReceiverState. This
+        freezes explicit/env/root selection; it never reads projection bodies,
+        rebuilds a Store or provides a Stage/publication/release grant.
+        """
+        from .native_core_selection_paths import PreparedSourceDiscovery
+        if cls is not NativeCoreSnapshotSelection:
+            raise TypeError('bounded native discovery requires its actual selection owner')
+        if type(prepared) is not PreparedSourceDiscovery:
+            raise TypeError('bounded native discovery requires its prepared runtime owner')
+        return prepared.discover(cls, tos_root, query_store_path, carrier_selectors,
+            state, maximum_owner_objects=maximum_owner_objects,
+            source_root_only=source_root_only)
+
+    @classmethod
     def from_reference(cls, reference, *, query_store_path: str | Path | None = None):
         """Copy Reference's already selected paths without calling its readers.
 
@@ -123,7 +164,7 @@ class NativeCoreSnapshotSelection:
         this captures only the legacy TOS_QUERY_STORE_PATH or reference default;
         search_read_model_path is never consulted.
         """
-        from .query_store import DEFAULT_RELATIVE_PATH
+        from .locations import QUERY_STORE_RELATIVE_PATH as DEFAULT_RELATIVE_PATH
 
         root = Path(reference.tos_root).expanduser()
         if '..' in root.parts:

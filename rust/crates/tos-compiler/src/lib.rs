@@ -41,6 +41,7 @@ pub use d1_public_build::{
 };
 pub use d1_public_capture::{
     PublicCapture, PublicCaptureInputPaths, PublicCaptureLimits, RuntimeCaptureRole,
+    RuntimeCaptureProfile, RuntimeCaptureOwnedBudget, RuntimeCaptureCreationUsage,
 };
 pub use d1_public_knowledge::project_private_knowledge_row;
 pub use d1_public_lens::project_private_lens_auxiliary_rows;
@@ -170,6 +171,7 @@ pub use source_philosophy_support::PhilosophySourceReadProfile;
 pub mod source_philosophy_views;
 pub mod source_witness_catalog;
 mod sqlite_budget;
+pub use sqlite_budget::{DedicatedSessionSqliteHeap, dedicated_session_heap_bytes};
 mod vocabulary;
 pub use knowledge_base::{BaseNodeOverrides, BaseNormalizationLimits, KnowledgeBaseNormalizer};
 pub use knowledge_catalog_index::{CatalogIndexLimits, CatalogIndexReceipt, materialize_catalog};

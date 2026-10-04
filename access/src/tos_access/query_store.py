@@ -19,7 +19,7 @@ from . import knowledge as k
 from .lens_pagination import paginate_lens
 
 SCHEMA = 'tos_query_store_v1'
-DEFAULT_RELATIVE_PATH = Path('ToS/derived-exports/runtime/knowledge.sqlite3')
+from .locations import QUERY_STORE_RELATIVE_PATH as DEFAULT_RELATIVE_PATH
 # This is an explicit compatibility boundary for the row-model ABI.  A store
 # that has the right tables but was compiled by a different semantic compiler
 # must be rebuilt before it is served.

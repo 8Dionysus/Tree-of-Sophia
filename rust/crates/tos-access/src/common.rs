@@ -1089,17 +1089,22 @@ pub(crate) fn validate_packet_with_state_budget(
 ) -> Result<(), AccessError> {
     validate_packet_in_state(raw, max_bytes, Some(remaining_state))
 }
+/// Existing public packet grammar grant shared with Resource rendering.
+pub(crate) fn packet_json_limits(max_bytes: usize) -> JsonLimits {
+    JsonLimits {
+        max_bytes,
+        max_depth: 64,
+        max_visits: 300_000,
+        max_integer_digits: 4_300,
+    }
+}
+
 fn validate_packet_in_state(
     raw: &[u8],
     max_bytes: usize,
     remaining_state: Option<usize>,
 ) -> Result<(), AccessError> {
-    let limits = JsonLimits {
-        max_bytes,
-        max_depth: 64,
-        max_visits: 300_000,
-        max_integer_digits: 4_300,
-    };
+    let limits = packet_json_limits(max_bytes);
     let parsed = if let Some(remaining) = remaining_state {
         tos_foundation::parse_json_with_state_budget(
             raw,
