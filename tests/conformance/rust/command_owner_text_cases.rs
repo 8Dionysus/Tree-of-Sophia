@@ -1049,7 +1049,24 @@ print(json.dumps(f['prepare'](repository,root),separators=(',',':')))
             request["operation"].as_str().unwrap_or("<absent>"),
             String::from_utf8_lossy(&errors)
         );
-        serde_json::from_slice(&raw).unwrap()
+        let envelope: Value = serde_json::from_slice(&raw).unwrap();
+        if request["schema_version"] == "tos_local_assessment_command_v1" {
+            envelope
+        } else {
+            assert_eq!(envelope["schema_version"], "tos_local_native_source_result_v1");
+            assert_eq!(envelope["authentication"], "local-unix-account");
+            assert_eq!(envelope["grants_admission"], false);
+            let result = envelope["result"].clone();
+            assert!(result.is_object());
+            assert_eq!(result["schema_version"], "tos_local_text_layer_derive_result_v1");
+            assert_eq!(result["content_disclosure"], "withheld");
+            assert_eq!(result["grants_admission"], false);
+            assert!(result["owner_configuration"].is_string());
+            if request["operation"] == "prepare-create" {
+                assert!(result["expected_dependencies"].is_string());
+            }
+            result
+        }
     };
     let prepared = invoke(
         &owner,
