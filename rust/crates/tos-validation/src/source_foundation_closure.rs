@@ -639,7 +639,7 @@ struct LoadedRows {
     temporary_state_bytes: usize,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct SourceFoundationClosureClaimRef {
     pub location: String,
     pub subject: String,
@@ -3156,7 +3156,6 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
             // active member callback.
             let path_source = self.paths;
             let deadline = self.limits.deadline;
-            let cancelled = self.source.cancellation();
             let mut event_path_rows = 0u64;
             for path in [
                 TOPOLOGY_PROVENANCE,
@@ -3166,7 +3165,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
                 self.remember_candidate_event_path(path, &mut event_path_rows)?;
             }
             path_source.for_each_path(&mut |path| {
-                check(deadline, cancelled)?;
+                check(deadline, self.source.cancellation())?;
                 if path.ends_with(PROVISION_EVENT_BASENAME) {
                     self.remember_candidate_event_path(path, &mut event_path_rows)?;
                 }
@@ -3594,7 +3593,13 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
         } else {
             for reference in &self.boundary_responsibility_refs {
                 if !self.responsibility.contains_key(reference) {
-                    self.issue(
+                    push_bounded_issue(
+                        &mut self.issues,
+                        &mut self.cost,
+                        &mut self.retained_state_bytes,
+                        self.temporary_state_bytes,
+                        self.limits,
+                        self.source.cancellation(),
                         SOURCE_HOME,
                         format!(
                             "work-boundary maps reference missing responsibility claims: [{reference}]"
@@ -5269,9 +5274,10 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
                 self.expect_ref(&location, Some(edition_ref), "edition")?;
                 let temporary_baseline = self.temporary_state_bytes;
                 let same_work: Result<Option<bool>, ItemRefusal> = (|| {
-                    let Some((edition, edition_workspace)) =
-                        self.current_record_with_state_budget(edition_ref)?
-                    else {
+                    let (edition, edition_workspace) =
+                        self.current_record_with_state_budget(edition_ref)?;
+                    let Some(edition) = edition else {
+                        self.release_temporary_state(edition_workspace)?;
                         return Ok(None);
                     };
                     let expression_values = edition
@@ -5295,7 +5301,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
                         }
                     }
                     self.reserve_temporary(expression_refs_state)?;
-                    let mut expression_refs =
+                    let mut expression_refs: Vec<String> =
                         Vec::with_capacity(expression_values.map_or(0, Vec::len));
                     if let Some(values) = expression_values {
                         expression_refs
