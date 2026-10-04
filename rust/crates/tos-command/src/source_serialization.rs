@@ -204,6 +204,16 @@ pub(crate) fn selected_components(
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<Vec<Value>> {
+    selected_components_with_rule_schemas(software, components, &[], deadline, cancelled)
+}
+
+fn selected_components_with_rule_schemas(
+    software: &SoftwareCaptureReader,
+    components: &SoftwareComponentSelectionV1,
+    rule_schemas: &[&str],
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<Vec<Value>> {
     if components.capture() != software.selection() || components.members().count() == 0 {
         return Err(SourceCommandError::Conflict(
             "native producer selected capture differs or is empty",
@@ -213,7 +223,10 @@ pub(crate) fn selected_components(
     let mut remaining = 16_777_216u64;
     for member in components.members() {
         active(deadline, cancelled)?;
-        if member.path.as_str().starts_with("ToS/") || member.size_bytes > remaining {
+        if (member.path.as_str().starts_with("ToS/")
+            && !rule_schemas.contains(&member.path.as_str()))
+            || member.size_bytes > remaining
+        {
             return Err(SourceCommandError::Invalid(
                 "native software namespace or total byte budget",
             ));
@@ -647,7 +660,23 @@ fn capture_creation_with_procedure(
     let argv_raw = serde_json::to_vec(&argv)
         .map_err(|_| SourceCommandError::Invalid("native argv capture"))?;
     let argv_digest = Digest256::of_bytes(&cmd::canonical(&cmd::parse(&argv_raw)?)?).to_hex();
-    let mut selected = selected_components(software, components, deadline, cancelled)?;
+    // The two private metadata families already select these four exact
+    // source schemas as implementation rules, independently of context grammar.
+    // All other capture procedures retain the authored-ToS namespace refusal.
+    let rule_schemas = match procedure_name {
+        "owner-local-source-profile-metadata-serialization"
+        | "owner-local-source-claim-serialization" => {
+            crate::source_native_cli::private_owner::RULE_SCHEMA_COMPONENTS
+        }
+        _ => &[],
+    };
+    let mut selected = selected_components_with_rule_schemas(
+        software,
+        components,
+        rule_schemas,
+        deadline,
+        cancelled,
+    )?;
     selected.push(json!({"name":"executing native process","version":env!("CARGO_PKG_VERSION"),"role":"serialization-runner","artifact_ref":"runtime:tos-native-executable","artifact_sha256":runtime,"verification_status":"verified"}));
     let outputs: Vec<_> = files
         .iter()
