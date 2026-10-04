@@ -57,6 +57,7 @@ pub use durable_adapter::source_cohort;
 mod source_assessment_journal;
 pub mod source_forms;
 pub mod source_forms_compiler;
+pub mod source_git_capture_cli;
 mod source_item_deposit;
 pub(crate) mod source_item_inventory;
 pub mod source_operation;
