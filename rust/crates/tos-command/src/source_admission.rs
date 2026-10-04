@@ -158,6 +158,133 @@ fn stamp(metadata: &std::fs::Metadata) -> (u64, u64, u64, i64, i64, i64, i64) {
 }
 
 impl AdmissionBatch {
+    /// Construct the same canonical proposal shape as `read_budgeted` after a
+    /// protected owner has derived its rows from a complete held-root census.
+    /// This does not create an admission witness: the normal candidate and
+    /// Native validator still consume the batch, and the input root remains a
+    /// held directory descriptor.
+    pub(crate) fn from_verified_rows(
+        base_revision: Digest256,
+        validator_sha256: Digest256,
+        updates: BTreeMap<String, SourceUpdate>,
+        input: File,
+        limits: AdmissionLimits,
+        additional_state_bytes: usize,
+        io: &tos_source_store::PinnedSqliteIoBudget,
+        deadline: Instant,
+        cancel: &AtomicBool,
+    ) -> io::Result<Self> {
+        let limits = limits.validate()?;
+        active(deadline, cancel)?;
+        if updates.is_empty() || updates.len() > limits.max_members {
+            return Err(invalid("verified source update count exceeds profile"));
+        }
+        // The caller subtracts its live census, Work inspection, retained base
+        // and update map from the original operation state ledger before
+        // supplying this slice. Bound additional UTF-16 strings, object/array
+        // capacity, transient path parsing and canonical visitor workspace
+        // before any path clone or JSON node allocation. The fixed per-row
+        // term covers four field nodes/keys, digest, numeric lexemes, Vec
+        // growth slack and the visitor's sorted references. No output Vec is
+        // retained: the maintained canonical visitor feeds the digest directly.
+        if additional_state_bytes == 0 || additional_state_bytes == usize::MAX {
+            return Err(invalid(
+                "verified batch requires a finite original state slice",
+            ));
+        }
+        let workspace = updates.keys().try_fold(8192usize, |total, path| {
+            active(deadline, cancel)?;
+            path.len()
+                .checked_mul(16)
+                .and_then(|bytes| bytes.checked_add(2048))
+                .and_then(|bytes| total.checked_add(bytes))
+                .filter(|bytes| *bytes <= additional_state_bytes)
+                .ok_or_else(|| invalid("verified batch original state slice exhausted"))
+        })?;
+        if workspace > additional_state_bytes {
+            return Err(invalid("verified batch original state slice exhausted"));
+        }
+        io.charge_read_upper_bound(4096).map_err(invalid)?;
+        if !input.metadata()?.is_dir() {
+            return Err(invalid("verified batch input must be a held directory"));
+        }
+        let mut declared = 0u64;
+        let rows = updates
+            .iter()
+            .map(|(path, row)| -> io::Result<_> {
+                active(deadline, cancel)?;
+                let parsed = source_path(path)?;
+                if parsed.as_str() != path
+                    || row.size_bytes > limits.max_member_bytes
+                    || !matches!(row.mode, 0o600 | 0o644 | 0o755)
+                {
+                    return Err(invalid("verified source update differs from profile"));
+                }
+                declared = declared
+                    .checked_add(row.size_bytes)
+                    .filter(|bytes| *bytes <= limits.max_source_bytes)
+                    .ok_or_else(|| invalid("verified source aggregate exceeds profile"))?;
+                Ok(crate::source_command::object(vec![
+                    ("path", crate::source_command::string(path)),
+                    (
+                        "sha256",
+                        crate::source_command::string(&row.sha256.to_hex()),
+                    ),
+                    ("size_bytes", crate::source_command::number(row.size_bytes)),
+                    ("mode", crate::source_command::number(u64::from(row.mode))),
+                ]))
+            })
+            .collect::<io::Result<Vec<_>>>()?;
+        let value = crate::source_command::object(vec![
+            (
+                "schema_version",
+                crate::source_command::string("tos_corpus_batch_v1"),
+            ),
+            (
+                "base_revision",
+                crate::source_command::string(&base_revision.to_hex()),
+            ),
+            (
+                "validator_sha256",
+                crate::source_command::string(&validator_sha256.to_hex()),
+            ),
+            ("updates", crate::source_command::JsonValue::Array(rows)),
+            (
+                "retirements",
+                crate::source_command::JsonValue::Array(Vec::new()),
+            ),
+        ]);
+        let mut hasher = tos_foundation::Digest256Hasher::new();
+        let mut written = 0usize;
+        let mut visits = 0usize;
+        let mut json_limits = limits.json;
+        json_limits.max_bytes = limits.max_batch_bytes;
+        tos_foundation::canonical_feed_digest_v1(
+            &value,
+            CanonicalProfile::CorpusSnapshotV1,
+            json_limits,
+            &mut hasher,
+            &mut written,
+            &mut visits,
+            0,
+        )
+        .map_err(invalid)?;
+        active(deadline, cancel)?;
+        Ok(Self {
+            batch_sha256: hasher.finalize(),
+            base_revision: Some(base_revision),
+            validator_sha256,
+            updates,
+            retirements: BTreeMap::new(),
+            input,
+            // The rows were derived from held source bytes, not read from an
+            // external JSON batch. Payload reads are charged when the usual
+            // candidate opens each update.
+            bytes_read: 0,
+            budgeted_io: Some(io.clone()),
+        })
+    }
+
     pub(crate) fn bytes_read(&self) -> u64 {
         self.bytes_read
     }

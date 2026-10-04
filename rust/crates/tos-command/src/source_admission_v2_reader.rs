@@ -747,6 +747,62 @@ impl V2ReadSession {
         result
     }
 
+    /// Seek one exact-revision member under the same cumulative node/IO
+    /// ledger. The caller includes all still-live census and previous-result
+    /// state in `caller_retained_state_bytes`; the newly returned path and
+    /// transient raw row are reserved before the authenticated seek.
+    pub(crate) fn next_member_tuple_after(
+        &mut self,
+        revision: SourceRevision,
+        after_exclusive: Option<&[u8]>,
+        caller_retained_state_bytes: usize,
+    ) -> io::Result<Option<V2MemberTupleObservation>> {
+        if self.failed {
+            return Err(invalid("V2 point session already refused"));
+        }
+        self.observation = None;
+        let result = (|| {
+            let result_state = self
+                .limits
+                .tree
+                .max_key_bytes
+                .checked_mul(2)
+                .and_then(|bytes| bytes.checked_add(size_of::<V2MemberTupleObservation>()))
+                .and_then(|bytes| bytes.checked_add(256))
+                .and_then(|bytes| bytes.checked_add(caller_retained_state_bytes))
+                .ok_or_else(|| invalid("V2 member cursor retained state overflow"))?;
+            if self
+                .limits
+                .base_state_bytes()?
+                .checked_add(result_state)
+                .is_none_or(|bytes| bytes >= self.limits.max_state_bytes)
+            {
+                return Err(invalid("V2 member cursor original state slice exhausted"));
+            }
+            if self.revision_roots(revision)?.is_none() {
+                return Err(invalid("V2 member cursor original revision absent"));
+            }
+            let Some(row) = self.next_row_after_with_retained(
+                revision,
+                V2RootKind::Members,
+                None,
+                None,
+                after_exclusive,
+                result_state,
+            )?
+            else {
+                return Ok(None);
+            };
+            let path = RelativePath::parse(std::str::from_utf8(&row.key).map_err(invalid)?)
+                .map_err(invalid)?;
+            decode_member_tuple(revision, path, &row.value, self.limits.max_object_bytes).map(Some)
+        })();
+        if result.is_err() {
+            self.failed = true;
+        }
+        result
+    }
+
     /// Point-read only the authenticated 44-byte member tuple. This does not
     /// read or verify the referenced payload object.
     pub fn member_tuple(
@@ -974,23 +1030,38 @@ impl V2ReadSession {
         let Some(row) = self.lookup(&roots.members, path.as_str().as_bytes())? else {
             return Ok(None);
         };
-        if row.len() != 44 {
-            return Err(invalid("V2 point member tuple width differs"));
-        }
-        let digest = Digest256::from_bytes(row[..32].try_into().map_err(invalid)?);
-        let size = u64::from_be_bytes(row[32..40].try_into().map_err(invalid)?);
-        let mode = u32::from_le_bytes(row[40..44].try_into().map_err(invalid)?);
-        if mode & !0o777 != 0 || size > self.limits.max_object_bytes as u64 {
-            return Err(invalid("V2 point object or mode exceeds profile"));
-        }
-        Ok(Some(V2MemberTupleObservation {
-            revision: roots.revision,
-            path: path.clone(),
-            sha256: digest,
-            size_bytes: size,
-            source_mode: mode,
-        }))
+        decode_member_tuple(
+            roots.revision,
+            path.clone(),
+            &row,
+            self.limits.max_object_bytes,
+        )
     }
+}
+
+/// One maintained decoder for point and keyset member observations.
+fn decode_member_tuple(
+    revision: SourceRevision,
+    path: RelativePath,
+    row: &[u8],
+    max_object_bytes: usize,
+) -> io::Result<V2MemberTupleObservation> {
+    if row.len() != 44 {
+        return Err(invalid("V2 point member tuple width differs"));
+    }
+    let digest = Digest256::from_bytes(row[..32].try_into().map_err(invalid)?);
+    let size = u64::from_be_bytes(row[32..40].try_into().map_err(invalid)?);
+    let mode = u32::from_le_bytes(row[40..44].try_into().map_err(invalid)?);
+    if mode & !0o777 != 0 || size > max_object_bytes as u64 {
+        return Err(invalid("V2 point object or mode exceeds profile"));
+    }
+    Ok(V2MemberTupleObservation {
+        revision,
+        path,
+        sha256: digest,
+        size_bytes: size,
+        source_mode: mode,
+    })
 }
 
 fn stamp(file: &File) -> io::Result<(u64, u64, u64, u32, u32, i64, i64, i64, i64)> {
