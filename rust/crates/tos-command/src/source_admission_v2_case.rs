@@ -12,6 +12,7 @@ use super::source_admission_v2_seen_pack::V2SeenPackSpillRequests;
 use std::{
     fs::File,
     io,
+    os::unix::fs::MetadataExt,
     path::Path,
     sync::{Arc, atomic::AtomicBool},
     time::Instant,

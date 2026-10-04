@@ -254,6 +254,23 @@ impl Drop for V2NamespacePrecharge {
     }
 }
 
+// Retain the opener's typed refusal and source while exposing genuine OS
+// absence to optional namespace accounting.
+fn open_io_error(error: tos_fd_open::OpenError) -> io::Error {
+    use tos_fd_open::OpenErrorCode;
+    let kind = match error.code {
+        OpenErrorCode::Io => error
+            .source
+            .as_ref()
+            .map_or(io::ErrorKind::Other, io::Error::kind),
+        OpenErrorCode::UnsupportedPlatform => io::ErrorKind::Unsupported,
+        OpenErrorCode::InvalidPath | OpenErrorCode::UnsafePath | OpenErrorCode::BudgetExceeded => {
+            io::ErrorKind::InvalidData
+        }
+    };
+    io::Error::new(kind, error)
+}
+
 fn allocated_bytes(file: &File, reason: &'static str) -> io::Result<u64> {
     file.metadata()?
         .blocks()
@@ -266,14 +283,15 @@ fn partial_v2_namespace_allocation(
     name: &str,
     parent_before: u64,
 ) -> io::Result<Option<u64>> {
-    let root = match tos_fd_open::open_directory_at(parent, Path::new(name)) {
+    let root = match tos_fd_open::open_directory_at(parent, Path::new(name)).map_err(open_io_error)
+    {
         Ok(root) => owned_directory(root)?,
         Err(error) if error.kind() == io::ErrorKind::NotFound => return Ok(None),
         Err(error) => return Err(error),
     };
     let mut allocated = allocated_bytes(&root, "V2 store directory allocation overflow")?;
     for child in ["objects", "revisions", "staging"] {
-        match tos_fd_open::open_directory_at(&root, Path::new(child)) {
+        match tos_fd_open::open_directory_at(&root, Path::new(child)).map_err(open_io_error) {
             Ok(directory) => {
                 let directory = owned_directory(directory)?;
                 allocated = allocated
@@ -305,7 +323,7 @@ fn partial_v2_existing_root_allocation(
         if !was_missing {
             continue;
         }
-        match tos_fd_open::open_directory_at(root, Path::new(name)) {
+        match tos_fd_open::open_directory_at(root, Path::new(name)).map_err(open_io_error) {
             Ok(directory) => {
                 let directory = owned_directory(directory)?;
                 allocated = allocated
@@ -390,16 +408,16 @@ fn lock_at_root(
                     let actual = (|| {
                         let root_bytes = allocated_bytes(root, "V2 lock root allocation overflow")?
                             .saturating_sub(root_before);
-                        let lock_bytes = match tos_fd_open::open_regular_at(
-                            root,
-                            Path::new(".admission.lock"),
-                        ) {
-                            Ok(file) => {
-                                allocated_bytes(&file, "V2 admission lock allocation overflow")?
-                            }
-                            Err(error) if error.kind() == io::ErrorKind::NotFound => 0,
-                            Err(error) => return Err(error),
-                        };
+                        let lock_bytes =
+                            match tos_fd_open::open_regular_at(root, Path::new(".admission.lock"))
+                                .map_err(open_io_error)
+                            {
+                                Ok(file) => {
+                                    allocated_bytes(&file, "V2 admission lock allocation overflow")?
+                                }
+                                Err(error) if error.kind() == io::ErrorKind::NotFound => 0,
+                                Err(error) => return Err(error),
+                            };
                         root_bytes
                             .checked_add(lock_bytes)
                             .ok_or_else(|| invalid("V2 lock allocation overflow"))
@@ -1764,7 +1782,7 @@ impl AdmissionStore {
             .filter(|name| !name.is_empty())
             .ok_or_else(|| invalid("V2 corpus store name absent"))?;
         let parent = tos_fd_open::open_absolute_directory(parent_path).map_err(invalid)?;
-        match tos_fd_open::open_directory_at(&parent, Path::new(name)) {
+        match tos_fd_open::open_directory_at(&parent, Path::new(name)).map_err(open_io_error) {
             Ok(existing) => {
                 drop(existing);
                 let store = Self::open_existing(path, deadline, cancel)?;
@@ -1909,7 +1927,7 @@ impl AdmissionStore {
             .try_into()
             .map_err(|_| invalid("V2 namespace selection width differs"))?;
         let missing_count = missing.iter().filter(|missing| **missing).count();
-        let namespace_reservation = if missing_count == 0 {
+        let mut namespace_reservation = if missing_count == 0 {
             None
         } else {
             let blocks = u64::try_from(missing_count)

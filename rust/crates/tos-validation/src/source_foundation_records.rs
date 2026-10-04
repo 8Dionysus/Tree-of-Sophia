@@ -34,7 +34,7 @@ pub use source_foundation_records_storage::{
     SourceFoundationCandidateArtifactProofPathPage,
     SourceFoundationCurrentRecordPathLookup,
     SourceFoundationCurrentRecordsPage, SourceFoundationFileDescriptorLookup,
-    SourceFoundationGlobalIdFact, SourceFoundationItemEditionLookup,
+    SourceFoundationGlobalIdFact, SourceFoundationGlobalIdFactPage, SourceFoundationItemEditionLookup,
     SourceFoundationItemSelectionLookup, SourceFoundationLinkUriFact, SourceFoundationRecordFact,
     SourceFoundationRecordFactCollection, SourceFoundationRecordFactPage,
     SourceFoundationRecordIdCarrier, SourceFoundationRecordObservation,

@@ -939,7 +939,7 @@ impl<'host> SpoolCandidate<'host> {
                     self.store,
                     self,
                     index,
-                    revision,
+                    SourceRevision(revision),
                     manifest_sha256,
                     manifest_bytes,
                     fence.batch_sha256,
@@ -1317,7 +1317,7 @@ impl<'host> SpoolCandidate<'host> {
             }
             .optional()
             .map_err(sql)?;
-            path.map(|path| RelativePath::new(&path).map_err(invalid))
+            path.map(|path| RelativePath::parse(&path).map_err(invalid))
                 .transpose()
         })();
         self.finish_read(result)
@@ -1352,7 +1352,7 @@ impl<'host> SpoolCandidate<'host> {
             }
             .optional()
             .map_err(sql)?;
-            row.map(|path| RelativePath::new(&path).map_err(invalid))
+            row.map(|path| RelativePath::parse(&path).map_err(invalid))
                 .transpose()
         })();
         self.finish_read(result)
@@ -1387,7 +1387,7 @@ impl<'host> SpoolCandidate<'host> {
             }
             .optional()
             .map_err(sql)?;
-            row.map(|path| RelativePath::new(&path).map_err(invalid))
+            row.map(|path| RelativePath::parse(&path).map_err(invalid))
                 .transpose()
         })();
         self.finish_read(result)
@@ -1441,7 +1441,7 @@ impl<'host> SpoolCandidate<'host> {
                     "SELECT id,path FROM v2_identity_delta WHERE id>?1 ORDER BY id LIMIT 1",
                     [after],
                     |row| {
-                        let id = bounded_text(row, 0, row_allowance)?;
+                        let id = bounded_text(row, row_allowance)?;
                         let path = match row.get_ref(1)? {
                             rusqlite::types::ValueRef::Null => None,
                             rusqlite::types::ValueRef::Text(bytes) => {
@@ -1452,7 +1452,7 @@ impl<'host> SpoolCandidate<'host> {
                                 let text = std::str::from_utf8(bytes)
                                     .map_err(|_| rusqlite::Error::InvalidQuery)?;
                                 Some(
-                                    RelativePath::new(text)
+                                    RelativePath::parse(text)
                                         .map_err(|_| rusqlite::Error::InvalidQuery)?,
                                 )
                             }
@@ -1465,7 +1465,7 @@ impl<'host> SpoolCandidate<'host> {
                     "SELECT id,path FROM v2_identity_delta ORDER BY id LIMIT 1",
                     [],
                     |row| {
-                        let id = bounded_text(row, 0, row_allowance)?;
+                        let id = bounded_text(row, row_allowance)?;
                         let path = match row.get_ref(1)? {
                             rusqlite::types::ValueRef::Null => None,
                             rusqlite::types::ValueRef::Text(bytes) => {
@@ -1476,7 +1476,7 @@ impl<'host> SpoolCandidate<'host> {
                                 let text = std::str::from_utf8(bytes)
                                     .map_err(|_| rusqlite::Error::InvalidQuery)?;
                                 Some(
-                                    RelativePath::new(text)
+                                    RelativePath::parse(text)
                                         .map_err(|_| rusqlite::Error::InvalidQuery)?,
                                 )
                             }
@@ -1923,7 +1923,7 @@ impl<'host> SpoolCandidate<'host> {
             let next = base.borrow_mut().next_history_roots_after(
                 history_after
                     .as_ref()
-                    .map(|revision: &SourceRevision| revision.0.as_bytes()),
+                    .map(|revision: &SourceRevision| &revision.0.as_bytes()[..]),
                 self.row_state_ceiling.get(),
             )?;
             let Some((roots, _raw_bytes)) = next else {
@@ -2730,7 +2730,7 @@ impl<'host> SpoolCandidate<'host> {
                 .optional()
                 .map_err(sql)?;
                 return source
-                    .map(|source| RelativePath::new(&source).map_err(invalid))
+                    .map(|source| RelativePath::parse(&source).map_err(invalid))
                     .transpose();
             }
             Ok(None)
@@ -2923,7 +2923,7 @@ impl<'host> SpoolCandidate<'host> {
             .optional()
             .map_err(sql)?;
             target
-                .map(|target| RelativePath::new(&target).map_err(invalid))
+                .map(|target| RelativePath::parse(&target).map_err(invalid))
                 .transpose()
         })();
         self.finish_read(result)
@@ -3093,7 +3093,7 @@ fn decode_v2_member(key: &[u8], value: &[u8]) -> io::Result<MemberMetadata> {
         return Err(invalid("V2 member source mode differs"));
     }
     Ok(MemberMetadata {
-        path: RelativePath::new(path).map_err(invalid)?,
+        path: RelativePath::parse(path).map_err(invalid)?,
         sha256,
         size_bytes,
         mode,
@@ -3106,7 +3106,7 @@ fn decode_v2_identity(key: &[u8], value: &[u8]) -> io::Result<(String, RelativeP
         return Err(invalid("V2 identity key is empty"));
     }
     let path = std::str::from_utf8(value).map_err(invalid)?;
-    Ok((id.to_owned(), RelativePath::new(path).map_err(invalid)?))
+    Ok((id.to_owned(), RelativePath::parse(path).map_err(invalid)?))
 }
 
 fn decode_v2_dependency(key: &[u8], value: &[u8]) -> io::Result<(RelativePath, RelativePath)> {
@@ -3147,8 +3147,8 @@ fn decode_v2_dependency(key: &[u8], value: &[u8]) -> io::Result<(RelativePath, R
     let source = std::str::from_utf8(source_bytes).map_err(invalid)?;
     let target = std::str::from_utf8(target_bytes).map_err(invalid)?;
     Ok((
-        RelativePath::new(source).map_err(invalid)?,
-        RelativePath::new(target).map_err(invalid)?,
+        RelativePath::parse(source).map_err(invalid)?,
+        RelativePath::parse(target).map_err(invalid)?,
     ))
 }
 
@@ -3211,9 +3211,9 @@ fn decode_v2_retirement(
     Ok((
         ordinal,
         RetirementMetadata {
-            path: RelativePath::new(path).map_err(invalid)?,
+            path: RelativePath::parse(path).map_err(invalid)?,
             sha256,
-            event_ref: RelativePath::new(event_ref).map_err(invalid)?,
+            event_ref: RelativePath::parse(event_ref).map_err(invalid)?,
             event_sha256,
             event_size_bytes,
         },

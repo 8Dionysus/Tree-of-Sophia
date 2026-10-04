@@ -61,7 +61,7 @@ impl V2PointReadLimits {
             || self.tree.max_total_bytes == 0
             || self.tree.max_total_bytes == u64::MAX
             || self.tree.max_value_bytes == 0
-            || self.tree.max_value_bytes > SourceRevisionRootsV2::MAX_ENCODED_BYTES as u64
+            || self.tree.max_value_bytes > SourceRevisionRootsV2::MAX_ENCODED_BYTES
         {
             return Err(invalid("V2 point reader finite profile differs"));
         }
@@ -289,7 +289,7 @@ impl V2ReadSession {
         let row = session
             .lookup(&history, &key)?
             .ok_or_else(|| invalid("V2 point current history row absent"))?;
-        let history_decode_workspace = decode_workspace_upper_bound(row.value.len())?;
+        let history_decode_workspace = decode_workspace_upper_bound(row.len())?;
         session
             .roots
             .verify_current_history_row(&key, &row, history_decode_workspace)?;

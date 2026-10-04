@@ -1985,7 +1985,7 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
                 max_checks,
                 cancelled,
             );
-            let replay = match replay_result {
+            let mut replay = match replay_result {
                 Ok(replay) => replay,
                 Err(error) => {
                     let history_after = view.history.as_deref().map(|history| history.usage());
@@ -2349,7 +2349,7 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
                     );
                     drop(schema_executor);
                     drop(replay);
-                    let schemas = schema_worker.into_inner();
+                    let mut schemas = schema_worker.borrow_mut();
                     let owner_state = stored_report.cost.aggregate_state_reservation_bytes;
                     let diagnostic_state_cap = available_after_biblio
                         .checked_sub(owner_state)
@@ -2369,7 +2369,7 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
                         stored_report,
                         discovery_schema_requests,
                         closure_schema_requests,
-                        schemas,
+                        &mut **schemas,
                         schema_limits,
                         deadline,
                         cancelled,

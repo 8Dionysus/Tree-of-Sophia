@@ -198,7 +198,7 @@ pub(crate) fn open_selected_target(
     validate_named_root_path(target.artifact_path)?;
     validate_named_root_path(target.store_path)?;
     validate_target_relative(target.store_relative)?;
-    if target.store_path.strip_prefix(target.artifact_path)
+    if target.store_path.strip_prefix(target.artifact_path).ok()
         != Some(Path::new(target.store_relative.as_str()))
     {
         return Err(invalid("V2 selected target lexical root binding differs"));
@@ -1256,6 +1256,7 @@ fn copy_directory(
         let name = entry
             .file_name()
             .to_str()
+            .ok()
             .filter(|name| !name.is_empty() && name.len() <= 255)
             .ok_or_else(|| invalid("V2 image child name differs"))?
             .to_owned();
@@ -1436,7 +1437,7 @@ pub(crate) fn transfer_image_with_cold_spill_at(
     auxiliary_space: &PinnedSqliteSpaceBudget,
     requests: V2SeenPackSpillRequests,
     deadline: Instant,
-    cancel: &AtomicBool,
+    cancel: &Arc<AtomicBool>,
 ) -> io::Result<V2ImageOutcome> {
     if auxiliary_space.shares_with(image_space) {
         return Err(invalid(

@@ -976,7 +976,7 @@ impl<'c> NativeSourceValidator<'c> {
             .and_then(|prepared| prepared.invocation.v2_case())
             .map(|case| case.retained_state_bytes())
             .transpose()
-            .map_err(invalid)?
+            .map_err(command)?
             .unwrap_or(0);
         let v2_target_root_state_bytes = if v2_case_state_bytes != 0 {
             let root_path = self

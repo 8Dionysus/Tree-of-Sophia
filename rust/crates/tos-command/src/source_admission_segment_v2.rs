@@ -10,8 +10,8 @@ use std::sync::{
 use std::time::Instant;
 use std::{io, mem::size_of};
 use tos_foundation::{
-    CanonicalProfile, Digest256, JsonDocument, JsonLimits, JsonMode, JsonValue, RelativePath,
-    SourceRevision, canonical_bytes_v1, parse_json_with_state_budget,
+    CanonicalProfile, Digest256, Digest256Hasher, JsonDocument, JsonLimits, JsonMode, JsonValue,
+    RelativePath, SourceRevision, canonical_bytes_v1, parse_json_with_state_budget,
 };
 use tos_segment_store::{
     AuthenticatedTreeDescriptorV2, AuthenticatedTreeEntryV1, AuthenticatedTreeIoLedgerV1,
@@ -1229,7 +1229,7 @@ pub(crate) fn build_initial_rootset_v2(
             deadline,
             cancelled,
         )
-        .map_err(tree_io_error)?;
+        .map_err(segment_io_error)?;
     add_tree_work(&mut used, member_work, base_limits)?;
 
     let identity_rows = {
@@ -1256,7 +1256,7 @@ pub(crate) fn build_initial_rootset_v2(
             deadline,
             cancelled,
         )
-        .map_err(tree_io_error)?;
+        .map_err(segment_io_error)?;
     add_tree_work(&mut used, identity_work, base_limits)?;
 
     let dependency_rows = {
@@ -1308,7 +1308,7 @@ pub(crate) fn build_initial_rootset_v2(
             deadline,
             cancelled,
         )
-        .map_err(tree_io_error)?;
+        .map_err(segment_io_error)?;
     add_tree_work(&mut used, dependency_work, base_limits)?;
 
     let retirement_rows = {
@@ -1337,7 +1337,7 @@ pub(crate) fn build_initial_rootset_v2(
             deadline,
             cancelled,
         )
-        .map_err(tree_io_error)?;
+        .map_err(segment_io_error)?;
     add_tree_work(&mut used, retirement_work, base_limits)?;
 
     let fence = index.fence();
@@ -1389,7 +1389,7 @@ pub(crate) fn build_initial_rootset_v2(
             deadline,
             cancelled,
         )
-        .map_err(tree_io_error)?;
+        .map_err(segment_io_error)?;
     add_tree_work(&mut used, history_work, base_limits)?;
     let roots = SourceRootSetV2 { current, history };
     roots.validate_store_binding(segment.store_id(), segment.domain_digest())?;
@@ -1402,7 +1402,7 @@ pub(crate) fn build_initial_rootset_v2(
             deadline,
             cancelled,
         )
-        .map_err(tree_io_error)?;
+        .map_err(segment_io_error)?;
     add_tree_work(&mut used, history_read_work, base_limits)?;
     let current_row = current_row.ok_or_else(|| invalid("V2 current history row is absent"))?;
     let decode_workspace = decode_workspace_upper_bound(current_row.len())?;
@@ -1550,4 +1550,23 @@ fn tree_error(message: &'static str) -> tos_segment_store::SegmentError {
 
 fn tree_io_error(error: io::Error) -> tos_segment_store::SegmentError {
     tos_segment_store::SegmentError::io("CMD source cursor failed while building V2 roots", error)
+}
+
+// The CMD owner exposes io::Result, retaining the complete segment refusal
+// as its cause rather than converting it into a source-cursor failure.
+fn segment_io_error(error: tos_segment_store::SegmentError) -> io::Error {
+    use tos_segment_store::SegmentErrorCode;
+    let kind = match error.code {
+        SegmentErrorCode::Io => error
+            .source
+            .as_ref()
+            .map_or(io::ErrorKind::Other, io::Error::kind),
+        SegmentErrorCode::UnsupportedPlatform | SegmentErrorCode::UnsupportedOversized => {
+            io::ErrorKind::Unsupported
+        }
+        SegmentErrorCode::Cancelled => io::ErrorKind::Interrupted,
+        SegmentErrorCode::DeadlineExceeded => io::ErrorKind::TimedOut,
+        _ => io::ErrorKind::InvalidData,
+    };
+    io::Error::new(kind, error)
 }

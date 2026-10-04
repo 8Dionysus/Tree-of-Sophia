@@ -1854,7 +1854,7 @@ struct CandidateDiscoveryRunSummaryCodecV1<'a> {
 }
 
 impl<'a> From<&'a DiscoveryRunSummary> for CandidateDiscoveryRunSummaryCodecV1<'a> {
-    fn from(summary: &DiscoveryRunSummary) -> Self {
+    fn from(summary: &'a DiscoveryRunSummary) -> Self {
         Self {
             version: 1,
             target_kind: &summary.target_kind,
@@ -1932,7 +1932,7 @@ impl DiscoveryRunSummaryStore for CandidateDiscoveryRunSummaries<'_, '_, '_, '_,
             return Err(source_refusal());
         }
         self.preflight(Self::path_workspace(path)?, max_state_bytes)?;
-        RelativePath::new(path).map_err(|_| source_refusal())?;
+        RelativePath::parse(path).map_err(|_| source_refusal())?;
         self.context.check()?;
         let codec = CandidateDiscoveryRunSummaryCodecV1::from(summary);
         let encoded_bytes = json_len(&codec, max_state_bytes)?;
@@ -1998,7 +1998,7 @@ impl DiscoveryRunSummaryStore for CandidateDiscoveryRunSummaries<'_, '_, '_, '_,
         }
         let probe_workspace = Self::path_workspace(path)?;
         self.preflight(probe_workspace, max_state_bytes)?;
-        RelativePath::new(path).map_err(|_| source_refusal())?;
+        RelativePath::parse(path).map_err(|_| source_refusal())?;
         self.charge_scan_rows(1)?;
         let mut statement = self
             .db
@@ -2572,7 +2572,7 @@ impl CandidateDiscoverySchemaRequests<'_, '_, '_, '_, '_> {
                 state.checked_add(
                     document_bytes
                         .checked_mul(2)?
-                        .checked_add(size_of::<Vec<u8>>() + size_of::<SchemaRequest>() + 1024)?,
+                        .checked_add(size_of::<Vec<u8>>() + size_of::<DiscoverySchemaRequest>() + 1024)?,
                 )
             })
             .ok_or(ItemRefusal::Budget)
@@ -2648,7 +2648,7 @@ impl DiscoverySchemaRequestStore for CandidateDiscoverySchemaRequests<'_, '_, '_
         let base_workspace = Self::row_text_state(location.len())?
             .checked_add(Self::row_text_state(contract.len())?)
             .and_then(|state| state.checked_add(estimate_value_state(document).ok()?))
-            .and_then(|state| state.checked_add(size_of::<SchemaRequest>() + 512))
+            .and_then(|state| state.checked_add(size_of::<DiscoverySchemaRequest>() + 512))
             .ok_or(ItemRefusal::Budget)?;
         self.preflight(base_workspace, max_state_bytes)?;
         let document_bytes = json_len(document, max_document_bytes)?;
