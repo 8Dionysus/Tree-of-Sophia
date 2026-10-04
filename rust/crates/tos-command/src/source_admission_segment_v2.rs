@@ -2305,6 +2305,7 @@ pub(crate) fn build_v1_migration_rootset_v2(
         .ok_or_else(|| invalid("migration identity family state overflow"))?;
 
     let dependency_source_rows = Cell::new(0u64);
+    let dependency_source_rows_ref = &dependency_source_rows;
     let dependency_rows = {
         use super::source_admission_index::NativeDependencyDirectionV1::Forward;
         let mut after: Option<(RelativePath, RelativePath)> = None;
@@ -2316,7 +2317,8 @@ pub(crate) fn build_v1_migration_rootset_v2(
             ) {
                 Ok(Some((source, target))) => {
                     if prior_source.as_ref() != Some(&source) {
-                        dependency_source_rows.set(dependency_source_rows.get().saturating_add(1));
+                        dependency_source_rows_ref
+                            .set(dependency_source_rows_ref.get().saturating_add(1));
                         prior_source = Some(source.clone());
                     }
                     after = Some((source.clone(), target.clone()));
@@ -2688,6 +2690,7 @@ pub(crate) fn build_successor_rootset_v2(
 
     let mut work = base.accumulated_tree_work();
     let row_count = Cell::new(0u64);
+    let row_count_ref = &row_count;
     let row_limit = profile.tree_limits.max_rows;
     let row_allowance = candidate.v2_cursor_state_allowance(profile.max_working_state_bytes)?;
     let tree_live_state = base_live_state
@@ -2729,7 +2732,7 @@ pub(crate) fn build_successor_rootset_v2(
                 return Some(Err(tree_error("V2 member key allocation failed")));
             }
             key.extend_from_slice(path.as_str().as_bytes());
-            counted_delta(&row_count, row_limit, key, value)
+            counted_delta(row_count_ref, row_limit, key, value)
         });
         apply_successor_delta(
             &segment,
@@ -2795,7 +2798,7 @@ pub(crate) fn build_successor_rootset_v2(
                 }
                 None => None,
             };
-            counted_delta(&row_count, row_limit, key, value)
+            counted_delta(row_count_ref, row_limit, key, value)
         });
         apply_successor_delta(
             &segment,
@@ -2849,7 +2852,7 @@ pub(crate) fn build_successor_rootset_v2(
                     Err(error) => return Some(Err(tree_io_error(error))),
                 };
             after = Some(key.clone());
-            counted_delta(&row_count, row_limit, key, value)
+            counted_delta(row_count_ref, row_limit, key, value)
         });
         apply_successor_delta(
             &segment,
@@ -2897,7 +2900,7 @@ pub(crate) fn build_successor_rootset_v2(
                 Ok(entry) => entry,
                 Err(error) => return Some(Err(error)),
             };
-            counted_delta(&row_count, row_limit, entry.key, Some(entry.value))
+            counted_delta(row_count_ref, row_limit, entry.key, Some(entry.value))
         });
         apply_successor_delta(
             &segment,
@@ -2978,7 +2981,7 @@ pub(crate) fn build_successor_rootset_v2(
     let history_changes = std::iter::from_fn(move || {
         let value = current_row.take()?;
         counted_delta(
-            &row_count,
+            row_count_ref,
             row_limit,
             revision.0.as_bytes().to_vec(),
             Some(value),
