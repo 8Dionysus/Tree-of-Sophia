@@ -293,6 +293,118 @@ fn topology(
     end.check()
 }
 
+// Supported pinned one-context search profile; generic SDK callers do not
+// acquire a multiple-child allowance. G includes four roles plus one Python
+// fork duplicate: 4*64MiB+128MiB=384MiB; Python128MiB+G=original512MiB.
+const SDK_PHASE_N: u64 = 134_217_728;
+const SDK_PHASE_G: u64 = 402_653_184;
+const SDK_PHASE_ROLE: u64 = 67_108_864;
+#[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+struct SdkPhaseAs { setup_as_bytes: u64, guardian_state_bytes: u64 }
+impl SdkPhaseAs {
+    fn verify(self) -> Result<(), String> {
+        if self.setup_as_bytes != SDK_PHASE_N || self.guardian_state_bytes != SDK_PHASE_G
+            || self.setup_as_bytes.checked_add(self.guardian_state_bytes) != Some(SDK_SETUP_BYTES)
+            || SDK_PHASE_ROLE.checked_mul(4).and_then(|n| n.checked_add(self.setup_as_bytes)) != Some(self.guardian_state_bytes)
+        { return Err("unsupported SDK phase AS partition".into()); }
+        Ok(())
+    }
+}
+#[derive(Clone, Copy, Debug, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+struct IssuedSdkPhaseAs { selected: SdkPhaseAs, parent_setup_soft_as_bytes: u64, role_soft_as_bytes: u64 }
+fn phase_decimal(raw: &str) -> Result<u64, String> {
+    if raw.is_empty() || raw.len()>20 || !raw.bytes().all(|b| b.is_ascii_digit()) { return Err("bounded SDK decimal required".into()); }
+    let n=raw.parse::<u64>().map_err(|e| e.to_string())?;
+    if n==0 || n.to_string()!=raw { return Err("canonical positive SDK decimal required".into()); }
+    Ok(n)
+}
+fn phase_pair(n: Option<&str>, g: Option<&str>) -> Result<Option<SdkPhaseAs>, String> {
+    match (n,g) {
+        (None,None)=>Ok(None),
+        (Some(n),Some(g))=>{ let p=SdkPhaseAs { setup_as_bytes:phase_decimal(n)?,guardian_state_bytes:phase_decimal(g)? };p.verify()?;Ok(Some(p)) },
+        _=>Err("both SDK phase AS selectors required".into()),
+    }
+}
+fn actual_as() -> Result<libc::rlimit,String> {
+    let mut v=unsafe { std::mem::zeroed::<libc::rlimit>() };
+    if unsafe { libc::getrlimit(libc::RLIMIT_AS,&mut v) }!=0 { return Err(error()); }
+    Ok(v)
+}
+fn phase_environment(p: SdkPhaseAs,end: Cutoff)->Result<(),String> {
+    for (key,n) in [("TOS_SDK_SETUP_AS_BYTES",p.setup_as_bytes),("TOS_SDK_GUARDIAN_STATE_BYTES",p.guardian_state_bytes),("TOS_SDK_ORIGINAL_WORK_DEADLINE_NS",end.work),("TOS_SDK_ORIGINAL_WHOLE_DEADLINE_NS",end.whole)] {
+        let raw=std::env::var(key).map_err(|_|format!("SDK selector absent: {key}"))?;
+        if phase_decimal(&raw)?!=n { return Err("SDK original selector/cutoff mismatch".into()); }
+    }
+    end.check()
+}
+// Genuine procfs VM ranges: bounded fixed stack, no heap/ELF/RSS inference.
+fn phase_mapped_as(end: Cutoff)->Result<u64,String> {
+    end.check()?;
+    let fd=unsafe { libc::open(c"/proc/self/maps".as_ptr(),libc::O_RDONLY|libc::O_NOFOLLOW|libc::O_NONBLOCK|libc::O_CLOEXEC) };
+    if fd<0 { return Err(error()); }
+    let mut held=unsafe { File::from_raw_fd(fd) };
+    let mut fs=unsafe { std::mem::zeroed::<libc::statfs>() };
+    if unsafe { libc::fstatfs(fd,&mut fs) }!=0 || fs.f_type as u64!=0x9fa0 { return Err("actual procfs maps required".into()); }
+    let mut raw=[0u8;65_537];let mut used=0;
+    loop { end.check()?;let n=held.read(&mut raw[used..]).map_err(|e|e.to_string())?;if n==0 { break; }used+=n;if used>65_536 { return Err("SDK maps64KiB bound".into()); } }
+    let page=unsafe { libc::sysconf(libc::_SC_PAGESIZE) };
+    if page<=0 { return Err("actual page size required".into()); }
+    let text=std::str::from_utf8(&raw[..used]).map_err(|e|e.to_string())?;
+    if text.is_empty() || !text.ends_with('\n') { return Err("complete mapping lines required".into()); }
+    let mut total=0u64;let mut previous=0;let mut rows=0;
+    for line in text.lines() {
+        end.check()?;rows+=1;if rows>4096 || line.len()>8192 { return Err("SDK mapping rows/line bound".into()); }
+        let range=line.split_ascii_whitespace().next().ok_or("mapping range absent")?;
+        let (a,b)=range.split_once('-').ok_or("mapping range shape")?;
+        if [a,b].iter().any(|v|v.is_empty() || v.len()>16 || !v.bytes().all(|c|c.is_ascii_hexdigit())) { return Err("mapping address shape".into()); }
+        let start=u64::from_str_radix(a,16).map_err(|e|e.to_string())?;let stop=u64::from_str_radix(b,16).map_err(|e|e.to_string())?;
+        if start<previous || start>=stop || start%page as u64!=0 || stop%page as u64!=0 { return Err("ordered page-aligned mapping ranges required".into()); }
+        total=total.checked_add(stop-start).ok_or("mapping sum overflow")?;previous=stop;
+    }
+    end.check()?;Ok(total)
+}
+fn guardian_as(ceiling: u64,end: Cutoff)->Result<(),String> {
+    end.check()?;
+    if ceiling==0 || ceiling>SDK_PHASE_ROLE || phase_mapped_as(end)?>ceiling { return Err("SDK actual guardian mappings exceed role ceiling".into()); }
+    let old=actual_as()?;
+    if old.rlim_max!=SDK_CONSUMER_BYTES as libc::rlim_t || old.rlim_cur<ceiling as libc::rlim_t { return Err("SDK guardian hard drift or setup soft increase refused".into()); }
+    let next=libc::rlimit { rlim_cur:ceiling as libc::rlim_t,rlim_max:old.rlim_max };
+    if unsafe { libc::setrlimit(libc::RLIMIT_AS,&next) }!=0 { return Err(error()); }
+    let actual=actual_as()?;
+    if actual.rlim_cur!=next.rlim_cur || actual.rlim_max!=next.rlim_max || phase_mapped_as(end)?>ceiling { return Err("actual guardian AS drift".into()); }
+    end.check()
+}
+fn issued_phase_as(selected: Option<SdkPhaseAs>,end: Cutoff)->Result<Option<IssuedSdkPhaseAs>,String> {
+    selected.map(|p| {
+        p.verify()?;phase_environment(p,end)?;let actual=actual_as()?;
+        if actual.rlim_max!=SDK_CONSUMER_BYTES as libc::rlim_t || actual.rlim_cur==0 || actual.rlim_cur>p.setup_as_bytes as libc::rlim_t { return Err("SDK positive actualS<=issuedN/original hard2.5GiB required".into()); }
+        let s=actual.rlim_cur as u64;Ok(IssuedSdkPhaseAs { selected:p,parent_setup_soft_as_bytes:s,role_soft_as_bytes:s.min(SDK_PHASE_ROLE) })
+    }).transpose()
+}
+fn verify_phase_auth(auth: &ControlAuth)->Result<(),String> {
+    if let Some(p)=auth.sdk_phase_as {
+        p.selected.verify()?;
+        if p.parent_setup_soft_as_bytes==0 || p.parent_setup_soft_as_bytes>p.selected.setup_as_bytes || p.role_soft_as_bytes!=p.parent_setup_soft_as_bytes.min(SDK_PHASE_ROLE) { return Err("issued SDK N/G/S/role mismatch".into()); }
+    }
+    Ok(())
+}
+fn phase_restore_consumer(o: &Options,auth: &ControlAuth,fd: i32,end: Cutoff)->Result<(),String> {
+    if let Some(selected)=o.sdk_phase_as {
+        match_control(fd,auth,end)?;let p=auth.sdk_phase_as.ok_or("issued phase auth absent")?;
+        if p.selected!=selected { return Err("inner phase selector/auth mismatch".into()); }
+        phase_environment(selected,end)?;let old=actual_as()?;
+        if old.rlim_cur!=p.role_soft_as_bytes as libc::rlim_t || old.rlim_max!=SDK_CONSUMER_BYTES as libc::rlim_t { return Err("inherited phase soft/hard differs before consumer restore".into()); }
+        // Only after actual self placement+consumer_limits+connected issued auth.
+        let next=libc::rlimit { rlim_cur:old.rlim_max,rlim_max:old.rlim_max };
+        if unsafe { libc::setrlimit(libc::RLIMIT_AS,&next) }!=0 { return Err(error()); }
+        let actual=actual_as()?;if actual.rlim_cur!=next.rlim_cur || actual.rlim_max!=next.rlim_max { return Err("consumer-only soft restore drift".into()); }
+        match_control(fd,auth,end)?;
+    }
+    Ok(())
+}
+
 #[derive(Clone, serde::Serialize, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 struct ControlAuth {
@@ -305,6 +417,8 @@ struct ControlAuth {
     parent_gid: u32,
     original_whole_deadline_ns: u64,
     work_deadline_ns: u64,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    sdk_phase_as: Option<IssuedSdkPhaseAs>,
 }
 fn socket_option<T: Copy>(fd: i32, name: i32) -> Result<T, String> {
     let mut value = unsafe { std::mem::zeroed::<T>() };
@@ -356,7 +470,7 @@ fn socket_identity(fd: i32) -> Result<(u64, u64, u64), String> {
     }
     Ok((st.st_dev, st.st_ino, cookie))
 }
-fn issue_control(fd: i32, end: Cutoff) -> Result<ControlAuth, String> {
+fn issue_control(fd: i32, end: Cutoff, selected: Option<SdkPhaseAs>) -> Result<ControlAuth, String> {
     end.check()?;
     let (socket_dev, socket_ino, socket_cookie) = socket_identity(fd)?;
     let peer = socket_option::<libc::ucred>(fd, libc::SO_PEERCRED)?;
@@ -379,10 +493,12 @@ fn issue_control(fd: i32, end: Cutoff) -> Result<ControlAuth, String> {
         parent_gid: peer.gid,
         original_whole_deadline_ns: end.whole,
         work_deadline_ns: end.work,
+        sdk_phase_as: issued_phase_as(selected,end)?,
     })
 }
 fn match_control(fd: i32, auth: &ControlAuth, end: Cutoff) -> Result<(), String> {
     end.check()?;
+    verify_phase_auth(auth)?;
     if auth.schema != "tos_native_consumer_control_v1"
         || auth.parent_pid <= 0
         || auth.original_whole_deadline_ns != end.whole
@@ -486,9 +602,11 @@ struct Options {
     shutdown_ms: u64,
     persistent: Option<PathBuf>,
     control_fd: Option<i32>,
+    sdk_phase_as: Option<SdkPhaseAs>,
     command: Vec<String>,
 }
 fn limits(o: &Options) -> Result<(), String> {
+    if let Some(p)=o.sdk_phase_as { p.verify()?;if o.quota!=SDK_SETUP_BYTES || o.ram!=SDK_CONSUMER_BYTES { return Err("SDK phase exact setup/consumer profile required".into()); } }
     if !matches!(std::env::consts::ARCH, "x86_64" | "aarch64") {
         return Err("supported Linux syscall source architectures are x86_64/aarch64".into());
     }
@@ -767,7 +885,9 @@ fn cleanup(leader: &mut Leader, held: &File, end: Cutoff) -> Result<(), String> 
 fn outer(o: &Options) -> Result<i32, String> {
     limits(o)?;
     let end = Cutoff::select(o.original, o.shutdown_ms)?;
-    let control = o.control_fd.map(|fd| issue_control(fd, end)).transpose()?;
+    if o.sdk_phase_as.is_some() && o.control_fd.is_none() { return Err("SDK phase direct parent control required".into()); }
+    let control = o.control_fd.map(|fd| issue_control(fd,end,o.sdk_phase_as)).transpose()?;
+    if let Some(auth)=control.as_ref() { if let Some(p)=auth.sdk_phase_as { guardian_as(p.role_soft_as_bytes,end)?; } }
     let _signals = SignalGuard::install()?;
     if unsafe { libc::getuid() } == 0 {
         return Err("ordinary unprivileged caller required".into());
@@ -874,6 +994,7 @@ fn outer(o: &Options) -> Result<i32, String> {
             .arg("--control-auth")
             .arg(serde_json::to_string(auth).map_err(|e| e.to_string())?);
     }
+    if let Some(p)=o.sdk_phase_as { command.arg("--sdk-setup-as-bytes").arg(p.setup_as_bytes.to_string()).arg("--sdk-guardian-state-bytes").arg(p.guardian_state_bytes.to_string()); }
     command
         .arg("--root")
         .arg(&root)
@@ -1088,6 +1209,12 @@ fn inner(o: &Options, i: &Inner) -> Result<i32, String> {
         }
         _ => return Err("control descriptor/auth handoff mismatch".into()),
     }
+    if i.control_auth.as_ref().and_then(|a|a.sdk_phase_as.map(|p|p.selected))!=o.sdk_phase_as { return Err("inner SDK phase selectors/auth mismatch".into()); }
+    if let Some(auth)=i.control_auth.as_ref() { if let Some(p)=auth.sdk_phase_as {
+        phase_environment(p.selected,end)?;let actual=actual_as()?;
+        if actual.rlim_cur!=p.role_soft_as_bytes as libc::rlim_t || actual.rlim_max!=SDK_CONSUMER_BYTES as libc::rlim_t { return Err("inner inherited phase AS drift".into()); }
+        guardian_as(p.role_soft_as_bytes,end)?;
+    } }
     path_shape(&i.root)?;
     if i.root.parent() != Some(o.scratch.as_path()) || i.consumer_fd < 3 {
         return Err("inner selected backing root or held consumer FD invalid".into());
@@ -1263,6 +1390,7 @@ fn inner(o: &Options, i: &Inner) -> Result<i32, String> {
         return Err("actual consumer membership differs after self placement".into());
     }
     consumer_limits(&held, o.ram)?;
+    if o.sdk_phase_as.is_some() { phase_restore_consumer(o,i.control_auth.as_ref().ok_or("phase auth absent")?,o.control_fd.ok_or("phase FD absent")?,end)?; }
     drop(held);
     unsafe { libc::close(i.consumer_fd) };
     std::env::set_current_dir(&i.root).map_err(|e| e.to_string())?;
@@ -1368,6 +1496,7 @@ fn options(args: &[String]) -> Result<(Options, Option<Inner>), String> {
     if !inner_flag && control_auth.is_some() {
         return Err("control metadata is internal namespace handoff only".into());
     }
+    let sdk_phase_as=phase_pair(values.remove("--sdk-setup-as-bytes"),values.remove("--sdk-guardian-state-bytes"))?;
     let persistent = values.remove("--persistent-store").map(PathBuf::from);
     let persistent_fd = values
         .remove("--persistent-fd")
@@ -1395,6 +1524,7 @@ fn options(args: &[String]) -> Result<(Options, Option<Inner>), String> {
         shutdown_ms: n!("--maximum-shutdown-ms"),
         persistent,
         control_fd,
+        sdk_phase_as,
         command,
     };
     let i = if inner_flag {
@@ -1510,9 +1640,33 @@ fn sdk_no_children(path: &Path, end: Cutoff) -> Result<(), String> {
     }
     Ok(())
 }
-fn sdk_child_limits() -> std::io::Result<()> {
+// Bootstrap may inherit infinity under the existing ordinary entry. Establish
+// ONLY the same original2.5GiB allowance as old sdk_child_limits, never raise
+// a finite inherited boundary; the subsequent guardian clamp stays lower-only.
+fn sdk_bootstrap_original_as(end: Cutoff) -> Result<(), String> {
+    end.check()?;
+    let before=actual_as()?;let wanted=SDK_CONSUMER_BYTES as libc::rlim_t;
+    if (before.rlim_cur!=libc::RLIM_INFINITY && wanted>before.rlim_cur)
+        || (before.rlim_max!=libc::RLIM_INFINITY && wanted>before.rlim_max)
+    { return Err("SDK bootstrap original AS allowance would raise inherited boundary".into()); }
+    let selected=libc::rlimit { rlim_cur:wanted,rlim_max:wanted };
+    if unsafe { libc::setrlimit(libc::RLIMIT_AS,&selected) }!=0 { return Err(error()); }
+    let actual=actual_as()?;
+    if actual.rlim_cur!=wanted || actual.rlim_max!=wanted { return Err("SDK bootstrap original AS allowance drift".into()); }
+    end.check()
+}
+fn sdk_child_limits(phase: Option<SdkPhaseAs>) -> std::io::Result<()> {
+    if let Some(p)=phase {
+        let mut old=unsafe { std::mem::zeroed::<libc::rlimit>() };
+        if unsafe { libc::getrlimit(libc::RLIMIT_AS,&mut old) }!=0 { return Err(std::io::Error::last_os_error()); }
+        if old.rlim_cur!=SDK_PHASE_ROLE as libc::rlim_t || old.rlim_max!=SDK_CONSUMER_BYTES as libc::rlim_t { return Err(std::io::Error::from_raw_os_error(libc::EPERM)); }
+        // Sole fresh Python allowance selected by this genuine bootstrap, before imports.
+        let next=libc::rlimit { rlim_cur:p.setup_as_bytes as libc::rlim_t,rlim_max:old.rlim_max };
+        if unsafe { libc::setrlimit(libc::RLIMIT_AS,&next) }!=0 { return Err(std::io::Error::last_os_error()); }
+    }
+
     for (resource, upper) in [
-        (libc::RLIMIT_AS, SDK_CONSUMER_BYTES),
+        (libc::RLIMIT_AS, phase.map_or(SDK_CONSUMER_BYTES,|p|p.setup_as_bytes)),
         (libc::RLIMIT_FSIZE, 536_870_912),
     ] {
         let mut old = unsafe { std::mem::zeroed::<libc::rlimit>() };
@@ -1525,9 +1679,10 @@ fn sdk_child_limits() -> std::io::Result<()> {
         {
             return Err(std::io::Error::from_raw_os_error(libc::EPERM));
         }
+        let hard=if resource==libc::RLIMIT_AS && phase.is_some() { old.rlim_max } else { wanted };
         let selected = libc::rlimit {
             rlim_cur: wanted,
-            rlim_max: wanted,
+            rlim_max: hard,
         };
         if unsafe { libc::setrlimit(resource, &selected) } != 0 {
             return Err(std::io::Error::last_os_error());
@@ -1536,7 +1691,7 @@ fn sdk_child_limits() -> std::io::Result<()> {
         if unsafe { libc::getrlimit(resource, &mut actual) } != 0 {
             return Err(std::io::Error::last_os_error());
         }
-        if actual.rlim_cur != wanted || actual.rlim_max != wanted {
+        if actual.rlim_cur != wanted || actual.rlim_max != hard {
             return Err(std::io::Error::from_raw_os_error(libc::EPERM));
         }
     }
@@ -1570,6 +1725,8 @@ fn sdk_python_run(args: &[String]) -> Result<i32, String> {
                 | "--work-deadline-ns"
                 | "--maximum-shutdown-ms"
                 | "--persistent-store"
+                | "--sdk-setup-as-bytes"
+                | "--sdk-guardian-state-bytes"
         ) || selected
             .insert(pair[0].as_str(), pair[1].as_str())
             .is_some()
@@ -1577,6 +1734,7 @@ fn sdk_python_run(args: &[String]) -> Result<i32, String> {
             return Err("unknown or repeated SDK option".into());
         }
     }
+    let sdk_phase_as=phase_pair(selected.get("--sdk-setup-as-bytes").copied(),selected.get("--sdk-guardian-state-bytes").copied())?;
     let get = |key: &str| {
         selected
             .get(key)
@@ -1700,6 +1858,7 @@ fn sdk_python_run(args: &[String]) -> Result<i32, String> {
         shutdown_ms: shutdown,
         persistent,
         control_fd: None,
+        sdk_phase_as,
         command: args[split + 1..].to_vec(),
     };
     limits(&o)?;
@@ -1755,10 +1914,12 @@ fn sdk_python_run(args: &[String]) -> Result<i32, String> {
         if let Some(path) = &o.persistent {
             config["persistent_store"] = serde_json::json!(path);
         }
+        if let Some(p)=sdk_phase_as { config["setup_as_bytes"]=serde_json::json!(p.setup_as_bytes);config["guardian_state_bytes"]=serde_json::json!(p.guardian_state_bytes); }
         let encoded = serde_json::to_string(&config).map_err(|e| e.to_string())?;
         if encoded.len() > 65536 {
             return Err("SDK stage configuration exceeds finite envelope".into());
         }
+        if sdk_phase_as.is_some() { sdk_bootstrap_original_as(end)?;guardian_as(SDK_PHASE_ROLE,end)?; }
         let mut command = Command::new(&o.command[0]);
         command
             .args(&o.command[1..])
@@ -1767,8 +1928,9 @@ fn sdk_python_run(args: &[String]) -> Result<i32, String> {
             .env_remove("ABYSS_STAGE_ROOT")
             .env_remove("ABYSS_CONSUMER_CONTROL_FD")
             .env_remove("ABYSS_CONSUMER_CONTROL_AUTH");
+        if let Some(p)=sdk_phase_as { command.env("TOS_SDK_SETUP_AS_BYTES",p.setup_as_bytes.to_string()).env("TOS_SDK_GUARDIAN_STATE_BYTES",p.guardian_state_bytes.to_string()).env("TOS_SDK_ORIGINAL_WORK_DEADLINE_NS",end.work.to_string()).env("TOS_SDK_ORIGINAL_WHOLE_DEADLINE_NS",end.whole.to_string()); }
         unsafe {
-            command.pre_exec(sdk_child_limits);
+            command.pre_exec(move || sdk_child_limits(sdk_phase_as));
         }
         end.check()?;
         // No cgroup handle or stage ticket is inherited by the SDK entry.
