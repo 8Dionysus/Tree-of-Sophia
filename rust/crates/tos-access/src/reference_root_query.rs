@@ -413,12 +413,12 @@ impl<'delivery, 'view: 'delivery, 'capture> InspectCurrentAuthority<'delivery>
             .policy
             .retained_state_bytes()
             .map_err(|_| SearchV2Error {
-                code: tos_query::SearchV2ErrorCode::BudgetExceeded,
+                code: SearchV2ErrorCode::BudgetExceeded,
                 message: "Reference policy state overflow",
             })?
             .checked_add(std::mem::size_of::<IndexedDisclosureScope>())
             .ok_or(SearchV2Error {
-                code: tos_query::SearchV2ErrorCode::BudgetExceeded,
+                code: SearchV2ErrorCode::BudgetExceeded,
                 message: "Reference disclosure state overflow",
             })?;
         for capacity in [
@@ -434,7 +434,7 @@ impl<'delivery, 'view: 'delivery, 'capture> InspectCurrentAuthority<'delivery>
             self.policy.withdrawal_generation.capacity(),
         ] {
             bytes = bytes.checked_add(capacity).ok_or(SearchV2Error {
-                code: tos_query::SearchV2ErrorCode::BudgetExceeded,
+                code: SearchV2ErrorCode::BudgetExceeded,
                 message: "Reference disclosure state overflow",
             })?;
         }

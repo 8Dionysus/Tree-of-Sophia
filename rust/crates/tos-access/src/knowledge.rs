@@ -1208,7 +1208,7 @@ impl<'hold> tos_query::InspectCurrentAuthority<'hold> for InspectProbe<'_, 'hold
     }
     fn disclosure_metadata_state_upper_bound(
         &self,
-    ) -> std::result::Result<usize, tos_query::SearchV2Error> {
+    ) -> std::result::Result<usize, tos_query::search_v2::SearchV2Error> {
         self.inner.disclosure_metadata_state_upper_bound()
     }
     fn policy_binding(&self) -> tos_query::search_v2::CurrentPolicyBinding {

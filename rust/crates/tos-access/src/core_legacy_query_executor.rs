@@ -86,6 +86,9 @@ impl<'a> StoreExecutor<'a> {
     }
 }
 impl<'a> ScopedAccessExecutor<'a> for StoreExecutor<'a> {
+    fn source_descend_available(&self) -> bool {
+        false
+    }
     fn source_descend(
         &self,
         _: crate::Params,
