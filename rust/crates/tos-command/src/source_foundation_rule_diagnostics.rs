@@ -384,6 +384,10 @@ fn candidate_request_count<I>(
         .closure
         .cost
         .candidate_responsibility_validated_event_count;
+    let reported_boundary_responsibility_ref_count = owner
+        .closure
+        .cost
+        .candidate_boundary_responsibility_ref_count;
     let closure_spooled_count = usize::try_from(reported_closure_spooled_count)
         .map_err(|_| "candidate stored Closure schema spool count overflow")?;
     let closure_total_count = usize::try_from(owner.closure.cost.schema_requests)
@@ -524,6 +528,32 @@ fn candidate_request_count<I>(
                 .closure
                 .cost
                 .candidate_responsibility_validated_event_peak_workspace_state_bytes
+        || closure_store_cost.boundary_responsibility_ref_rows
+            != reported_boundary_responsibility_ref_count
+        || closure_store_cost.boundary_responsibility_ref_drained_rows
+            != reported_boundary_responsibility_ref_count
+        || !closure_store_cost.boundary_responsibility_ref_eof_seen
+        || !closure_store_cost.boundary_responsibility_ref_count_verified
+        || closure_store_cost.boundary_responsibility_ref_serialized_read_bytes
+            != owner
+                .closure
+                .cost
+                .candidate_boundary_responsibility_ref_serialized_read_bytes
+        || closure_store_cost.boundary_responsibility_ref_serialized_write_bytes
+            != owner
+                .closure
+                .cost
+                .candidate_boundary_responsibility_ref_serialized_write_bytes
+        || closure_store_cost.boundary_responsibility_ref_scan_row_operations
+            != owner
+                .closure
+                .cost
+                .candidate_boundary_responsibility_ref_scan_row_operations
+        || closure_store_cost.boundary_responsibility_ref_workspace_state_bytes
+            != owner
+                .closure
+                .cost
+                .candidate_boundary_responsibility_ref_peak_workspace_state_bytes
         || (reported_closure_spooled_count > 0 && !owner.closure.schema_requests.is_empty())
         || closure_spooled_count.checked_add(owner.closure.schema_requests.len())
             != Some(closure_total_count)
@@ -1172,6 +1202,10 @@ pub(crate) fn evaluate_candidate_stored_rules<I: Copy + Eq>(
             .closure
             .cost
             .candidate_responsibility_validated_event_count;
+        let expected_boundary_responsibility_refs = owner_report
+            .closure
+            .cost
+            .candidate_boundary_responsibility_ref_count;
         if closure_spool_cost.observation_rows
             != owner_report.closure.cost.candidate_schema_request_count
             || usize::try_from(closure_spool_cost.observation_rows).ok()
@@ -1228,6 +1262,32 @@ pub(crate) fn evaluate_candidate_stored_rules<I: Copy + Eq>(
                     .closure
                     .cost
                     .candidate_responsibility_validated_event_peak_workspace_state_bytes
+            || closure_spool_cost.boundary_responsibility_ref_rows
+                != expected_boundary_responsibility_refs
+            || closure_spool_cost.boundary_responsibility_ref_drained_rows
+                != expected_boundary_responsibility_refs
+            || !closure_spool_cost.boundary_responsibility_ref_eof_seen
+            || !closure_spool_cost.boundary_responsibility_ref_count_verified
+            || closure_spool_cost.boundary_responsibility_ref_serialized_read_bytes
+                != owner_report
+                    .closure
+                    .cost
+                    .candidate_boundary_responsibility_ref_serialized_read_bytes
+            || closure_spool_cost.boundary_responsibility_ref_serialized_write_bytes
+                != owner_report
+                    .closure
+                    .cost
+                    .candidate_boundary_responsibility_ref_serialized_write_bytes
+            || closure_spool_cost.boundary_responsibility_ref_scan_row_operations
+                != owner_report
+                    .closure
+                    .cost
+                    .candidate_boundary_responsibility_ref_scan_row_operations
+            || closure_spool_cost.boundary_responsibility_ref_workspace_state_bytes
+                != owner_report
+                    .closure
+                    .cost
+                    .candidate_boundary_responsibility_ref_peak_workspace_state_bytes
             || (failed.is_none()
                 && (!closure_eof
                     || (closure_spool_cost.serialized_read_bytes == 0

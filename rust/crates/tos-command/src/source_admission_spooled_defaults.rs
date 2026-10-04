@@ -767,6 +767,9 @@ impl<'candidate, 'host> SpoolDefaultStore<'candidate, 'host> {
                  event_id TEXT NOT NULL COLLATE BINARY CHECK(length(event_id)>0),\
                  PRIMARY KEY(check_kind,event_id)\
              ) WITHOUT ROWID;\
+             CREATE TABLE sf_closure_boundary_responsibility_refs(\
+                 id TEXT NOT NULL COLLATE BINARY PRIMARY KEY\
+             ) WITHOUT ROWID;\
              CREATE TABLE sf_discovery_seen_ids(\
                  namespace TEXT NOT NULL COLLATE BINARY CHECK(namespace IN ('artifact','composite','composite-representation','event','discovery-event','representation-file','schema-location','payload-observation','artifact-replay-reference','planned-manifest','native-artifact-transaction')),\
                  key TEXT NOT NULL COLLATE BINARY,\
@@ -3041,6 +3044,18 @@ struct CandidateClosureSchemaRequests<'a, 'candidate, 'host, 'cancel, 'budget> {
     responsibility_validated_event_workspace_state_bytes: usize,
     expected_responsibility_validated_event_rows: Option<u64>,
     responsibility_validated_event_count_verified: bool,
+    boundary_responsibility_ref_rows: u64,
+    boundary_responsibility_ref_drained_rows: u64,
+    boundary_responsibility_ref_serialized_read_bytes: u64,
+    boundary_responsibility_ref_serialized_write_bytes: u64,
+    boundary_responsibility_ref_scan_row_operations: u64,
+    boundary_responsibility_ref_workspace_state_bytes: usize,
+    max_boundary_responsibility_ref_bytes: usize,
+    last_boundary_responsibility_ref: Option<String>,
+    expected_boundary_responsibility_ref_rows: Option<u64>,
+    boundary_responsibility_refs_sealed: bool,
+    boundary_responsibility_ref_eof_seen: bool,
+    boundary_responsibility_ref_count_verified: bool,
     max_event_id_bytes: usize,
     max_event_path_bytes: usize,
     max_event_json_bytes: usize,
@@ -3230,6 +3245,18 @@ impl CandidateClosureSchemaRequests<'_, '_, '_, '_, '_> {
         self.charge_scan_rows(rows)?;
         self.responsibility_validated_event_scan_row_operations = self
             .responsibility_validated_event_scan_row_operations
+            .checked_add(usize_u64(rows)?)
+            .ok_or(ItemRefusal::Budget)?;
+        Ok(())
+    }
+
+    fn charge_boundary_responsibility_ref_scan_rows(
+        &mut self,
+        rows: usize,
+    ) -> Result<(), ItemRefusal> {
+        self.charge_scan_rows(rows)?;
+        self.boundary_responsibility_ref_scan_row_operations = self
+            .boundary_responsibility_ref_scan_row_operations
             .checked_add(usize_u64(rows)?)
             .ok_or(ItemRefusal::Budget)?;
         Ok(())
@@ -3585,7 +3612,11 @@ impl CandidateClosureSchemaRequests<'_, '_, '_, '_, '_> {
             .responsibility_claim_workspace_state_bytes
             .max(workspace);
         self.context.check()?;
-        self.charge_responsibility_claim_scan_rows(1)?;
+        let count_scan_rows = usize::try_from(expected_rows)
+            .map_err(|_| ItemRefusal::Budget)?
+            .checked_add(1)
+            .ok_or(ItemRefusal::Budget)?;
+        self.charge_responsibility_claim_scan_rows(count_scan_rows)?;
         let mut statement = self
             .db
             .prepare("SELECT count(*) FROM sf_closure_responsibility_claims")
@@ -3626,7 +3657,11 @@ impl CandidateClosureSchemaRequests<'_, '_, '_, '_, '_> {
         let workspace = size_of::<i64>() + 256;
         self.preflight(workspace, max_state_bytes)?;
         self.context.check()?;
-        self.charge_responsibility_validated_event_scan_rows(1)?;
+        let count_scan_rows = usize::try_from(expected_rows)
+            .map_err(|_| ItemRefusal::Budget)?
+            .checked_add(1)
+            .ok_or(ItemRefusal::Budget)?;
+        self.charge_responsibility_validated_event_scan_rows(count_scan_rows)?;
         let mut statement = self
             .db
             .prepare("SELECT count(*) FROM sf_closure_validated_events")
@@ -3656,6 +3691,59 @@ impl CandidateClosureSchemaRequests<'_, '_, '_, '_, '_> {
             .max(workspace);
         self.expected_responsibility_validated_event_rows = Some(expected_rows);
         self.responsibility_validated_event_count_verified = true;
+        Ok(())
+    }
+
+    fn finish_boundary_responsibility_refs(
+        &mut self,
+        expected_rows: u64,
+        max_state_bytes: usize,
+    ) -> Result<(), ItemRefusal> {
+        if self.boundary_responsibility_ref_count_verified
+            || self.expected_boundary_responsibility_ref_rows != Some(expected_rows)
+            || self.boundary_responsibility_ref_rows != expected_rows
+            || self.boundary_responsibility_ref_drained_rows != expected_rows
+            || !self.boundary_responsibility_ref_eof_seen
+            || self.last_boundary_responsibility_ref.is_some()
+        {
+            return Err(source_refusal());
+        }
+        let workspace = size_of::<i64>() + 256;
+        self.preflight(workspace, max_state_bytes)?;
+        self.context.check()?;
+        let count_scan_rows = usize::try_from(expected_rows)
+            .map_err(|_| ItemRefusal::Budget)?
+            .checked_add(1)
+            .ok_or(ItemRefusal::Budget)?;
+        self.charge_boundary_responsibility_ref_scan_rows(count_scan_rows)?;
+        let mut statement = self
+            .db
+            .prepare("SELECT count(*) FROM sf_closure_boundary_responsibility_refs")
+            .map_err(sql_refusal)?;
+        let mut rows = statement.query([]).map_err(sql_refusal)?;
+        let actual = rows
+            .next()
+            .map_err(sql_refusal)?
+            .map(|row| row.get::<_, i64>(0).map_err(sql_refusal))
+            .transpose()?
+            .ok_or_else(source_refusal)?;
+        if actual < 0
+            || u64::try_from(actual).map_err(|_| source_refusal())? != expected_rows
+            || rows.next().map_err(sql_refusal)?.is_some()
+        {
+            return Err(source_refusal());
+        }
+        drop(rows);
+        drop(statement);
+        self.context.check()?;
+        self.boundary_responsibility_ref_serialized_read_bytes = self
+            .boundary_responsibility_ref_serialized_read_bytes
+            .checked_add(size_of::<i64>() as u64)
+            .ok_or(ItemRefusal::Budget)?;
+        self.boundary_responsibility_ref_workspace_state_bytes = self
+            .boundary_responsibility_ref_workspace_state_bytes
+            .max(workspace);
+        self.boundary_responsibility_ref_count_verified = true;
         Ok(())
     }
 
@@ -3722,6 +3810,19 @@ impl CandidateClosureSchemaRequests<'_, '_, '_, '_, '_> {
                 .responsibility_validated_event_workspace_state_bytes,
             responsibility_validated_event_count_verified: self
                 .responsibility_validated_event_count_verified,
+            boundary_responsibility_ref_rows: self.boundary_responsibility_ref_rows,
+            boundary_responsibility_ref_drained_rows: self.boundary_responsibility_ref_drained_rows,
+            boundary_responsibility_ref_serialized_read_bytes: self
+                .boundary_responsibility_ref_serialized_read_bytes,
+            boundary_responsibility_ref_serialized_write_bytes: self
+                .boundary_responsibility_ref_serialized_write_bytes,
+            boundary_responsibility_ref_scan_row_operations: self
+                .boundary_responsibility_ref_scan_row_operations,
+            boundary_responsibility_ref_workspace_state_bytes: self
+                .boundary_responsibility_ref_workspace_state_bytes,
+            boundary_responsibility_ref_eof_seen: self.boundary_responsibility_ref_eof_seen,
+            boundary_responsibility_ref_count_verified: self
+                .boundary_responsibility_ref_count_verified,
         }
     }
 
@@ -3749,6 +3850,14 @@ impl CandidateClosureSchemaRequests<'_, '_, '_, '_, '_> {
             || self.expected_responsibility_validated_event_rows
                 != Some(self.responsibility_validated_event_rows)
             || !self.responsibility_validated_event_count_verified
+            || self.expected_boundary_responsibility_ref_rows
+                != Some(self.boundary_responsibility_ref_rows)
+            || !self.boundary_responsibility_refs_sealed
+            || self.boundary_responsibility_ref_drained_rows
+                != self.boundary_responsibility_ref_rows
+            || !self.boundary_responsibility_ref_eof_seen
+            || self.last_boundary_responsibility_ref.is_some()
+            || !self.boundary_responsibility_ref_count_verified
         {
             return Err(source_refusal());
         }
@@ -4541,6 +4650,180 @@ impl SourceFoundationClosureSchemaRequestStore
         Ok((inserted == 1, workspace))
     }
 
+    fn remember_boundary_responsibility_ref(
+        &mut self,
+        id: &str,
+        max_state_bytes: usize,
+    ) -> Result<(bool, usize), ItemRefusal> {
+        if self.finished
+            || self.boundary_responsibility_refs_sealed
+            || self.boundary_responsibility_ref_count_verified
+        {
+            return Err(source_refusal());
+        }
+        let workspace = Self::claim_id_workspace(id.len(), 3)?;
+        self.preflight(workspace, max_state_bytes)?;
+        self.context.check()?;
+        self.charge_boundary_responsibility_ref_scan_rows(2)?;
+        let inserted = self
+            .db
+            .execute(
+                "INSERT OR IGNORE INTO sf_closure_boundary_responsibility_refs(id) VALUES(?1)",
+                [id],
+            )
+            .map_err(sql_refusal)?;
+        if inserted > 1 {
+            return Err(source_refusal());
+        }
+        let mut statement = self
+            .db
+            .prepare("SELECT id FROM sf_closure_boundary_responsibility_refs WHERE id=?1")
+            .map_err(sql_refusal)?;
+        let mut rows = statement.query([id]).map_err(sql_refusal)?;
+        let stored = rows
+            .next()
+            .map_err(sql_refusal)?
+            .map(|row| bounded_row_text(row, 0, workspace))
+            .transpose()
+            .map_err(sql_refusal)?;
+        if rows.next().map_err(sql_refusal)?.is_some() || stored.as_deref() != Some(id) {
+            return Err(source_refusal());
+        }
+        drop(rows);
+        drop(statement);
+        self.context.check()?;
+        self.boundary_responsibility_ref_serialized_read_bytes = self
+            .boundary_responsibility_ref_serialized_read_bytes
+            .checked_add(usize_u64(id.len())?)
+            .ok_or(ItemRefusal::Budget)?;
+        if inserted == 1 {
+            self.boundary_responsibility_ref_rows = self
+                .boundary_responsibility_ref_rows
+                .checked_add(1)
+                .ok_or(ItemRefusal::Budget)?;
+            self.boundary_responsibility_ref_serialized_write_bytes = self
+                .boundary_responsibility_ref_serialized_write_bytes
+                .checked_add(usize_u64(id.len())?)
+                .ok_or(ItemRefusal::Budget)?;
+        }
+        self.max_boundary_responsibility_ref_bytes =
+            self.max_boundary_responsibility_ref_bytes.max(id.len());
+        self.boundary_responsibility_ref_workspace_state_bytes = self
+            .boundary_responsibility_ref_workspace_state_bytes
+            .max(workspace);
+        self.context.check()?;
+        Ok((inserted == 1, workspace))
+    }
+
+    fn begin_boundary_responsibility_refs(
+        &mut self,
+        expected_rows: u64,
+    ) -> Result<(), ItemRefusal> {
+        if self.finished
+            || self.boundary_responsibility_refs_sealed
+            || self.boundary_responsibility_ref_eof_seen
+            || self.boundary_responsibility_ref_drained_rows != 0
+            || self.last_boundary_responsibility_ref.is_some()
+            || self.boundary_responsibility_ref_rows != expected_rows
+        {
+            return Err(source_refusal());
+        }
+        self.context.check()?;
+        self.expected_boundary_responsibility_ref_rows = Some(expected_rows);
+        self.boundary_responsibility_refs_sealed = true;
+        Ok(())
+    }
+
+    fn next_boundary_responsibility_ref(
+        &mut self,
+        max_state_bytes: usize,
+    ) -> Result<(Option<String>, usize, usize, usize), ItemRefusal> {
+        let Some(expected_rows) = self.expected_boundary_responsibility_ref_rows else {
+            return Err(source_refusal());
+        };
+        if self.finished
+            || !self.boundary_responsibility_refs_sealed
+            || self.boundary_responsibility_ref_eof_seen
+            || self.boundary_responsibility_ref_drained_rows > expected_rows
+            || self.boundary_responsibility_ref_rows != expected_rows
+        {
+            return Err(source_refusal());
+        }
+        let workspace = if self.boundary_responsibility_ref_drained_rows < expected_rows {
+            Self::claim_id_workspace(self.max_boundary_responsibility_ref_bytes.max(1), 4)?
+        } else {
+            size_of::<String>() + 512
+        };
+        self.preflight(workspace, max_state_bytes)?;
+        self.boundary_responsibility_ref_workspace_state_bytes = self
+            .boundary_responsibility_ref_workspace_state_bytes
+            .max(workspace);
+        self.context.check()?;
+        self.charge_boundary_responsibility_ref_scan_rows(1)?;
+        let sql = if self.last_boundary_responsibility_ref.is_some() {
+            "SELECT id FROM sf_closure_boundary_responsibility_refs WHERE id>?1 \\
+             ORDER BY id COLLATE BINARY LIMIT 1"
+        } else {
+            "SELECT id FROM sf_closure_boundary_responsibility_refs \\
+             ORDER BY id COLLATE BINARY LIMIT 1"
+        };
+        let mut statement = self.db.prepare(sql).map_err(sql_refusal)?;
+        let mut rows = if let Some(after_id) = self.last_boundary_responsibility_ref.as_deref() {
+            statement.query([after_id]).map_err(sql_refusal)?
+        } else {
+            statement.query([]).map_err(sql_refusal)?
+        };
+        let next = rows
+            .next()
+            .map_err(sql_refusal)?
+            .map(|row| bounded_row_text(row, 0, workspace))
+            .transpose()
+            .map_err(sql_refusal)?;
+        if rows.next().map_err(sql_refusal)?.is_some() {
+            return Err(source_refusal());
+        }
+        drop(rows);
+        drop(statement);
+        self.context.check()?;
+        let Some(id) = next else {
+            if self.boundary_responsibility_ref_drained_rows != expected_rows {
+                return Err(source_refusal());
+            }
+            self.last_boundary_responsibility_ref = None;
+            self.boundary_responsibility_ref_eof_seen = true;
+            return Ok((None, workspace, 0, 0));
+        };
+        let id_bytes = usize_u64(id.len())?;
+        self.boundary_responsibility_ref_serialized_read_bytes = self
+            .boundary_responsibility_ref_serialized_read_bytes
+            .checked_add(id_bytes)
+            .ok_or(ItemRefusal::Budget)?;
+        if id.len() > self.max_boundary_responsibility_ref_bytes
+            || self
+                .last_boundary_responsibility_ref
+                .as_deref()
+                .is_some_and(|previous| previous >= id.as_str())
+        {
+            return Err(source_refusal());
+        }
+        self.boundary_responsibility_ref_drained_rows = self
+            .boundary_responsibility_ref_drained_rows
+            .checked_add(1)
+            .ok_or(ItemRefusal::Budget)?;
+        if self.boundary_responsibility_ref_drained_rows > expected_rows {
+            return Err(source_refusal());
+        }
+        let row_state = Self::row_text_state(id.len())?;
+        let retained_cursor_state = Self::row_text_state(id.len())?;
+        let active_state = row_state
+            .checked_add(retained_cursor_state)
+            .ok_or(ItemRefusal::Budget)?;
+        self.context.active_state(active_state)?;
+        self.last_boundary_responsibility_ref = Some(id.clone());
+        self.context.check()?;
+        Ok((Some(id), workspace, row_state, retained_cursor_state))
+    }
+
     fn begin_responsibility_claims(&mut self, expected_rows: u64) -> Result<(), ItemRefusal> {
         if self.finished
             || self.responsibility_claims_sealed
@@ -5296,6 +5579,7 @@ impl SourceFoundationClosureSchemaRequestStore
         expected_membership_claim_rows: u64,
         expected_responsibility_claim_rows: u64,
         expected_responsibility_validated_event_rows: u64,
+        expected_boundary_responsibility_ref_rows: u64,
         direct_issue_count: usize,
         max_state_bytes: usize,
     ) -> Result<SourceFoundationClosureSchemaRequestStoreCost, ItemRefusal> {
@@ -5320,6 +5604,14 @@ impl SourceFoundationClosureSchemaRequestStore
             || self.responsibility_validated_event_rows
                 != expected_responsibility_validated_event_rows
             || self.expected_responsibility_validated_event_rows.is_some()
+            || self.boundary_responsibility_ref_rows != expected_boundary_responsibility_ref_rows
+            || self.expected_boundary_responsibility_ref_rows
+                != Some(expected_boundary_responsibility_ref_rows)
+            || !self.boundary_responsibility_refs_sealed
+            || self.boundary_responsibility_ref_drained_rows
+                != expected_boundary_responsibility_ref_rows
+            || !self.boundary_responsibility_ref_eof_seen
+            || self.last_boundary_responsibility_ref.is_some()
             || (expected_rows > 0) != self.max_document_bytes.is_some()
         {
             return Err(source_refusal());
@@ -5421,6 +5713,10 @@ impl SourceFoundationClosureSchemaRequestStore
         self.finish_responsibility_claims(expected_responsibility_claim_rows, max_state_bytes)?;
         self.finish_responsibility_validated_events(
             expected_responsibility_validated_event_rows,
+            max_state_bytes,
+        )?;
+        self.finish_boundary_responsibility_refs(
+            expected_boundary_responsibility_ref_rows,
             max_state_bytes,
         )?;
         self.finish_events(expected_event_rows, max_state_bytes)?;
@@ -7193,6 +7489,18 @@ impl<'candidate, 'host> SpoolDefaultStore<'candidate, 'host> {
                 responsibility_validated_event_workspace_state_bytes: 0,
                 expected_responsibility_validated_event_rows: None,
                 responsibility_validated_event_count_verified: false,
+                boundary_responsibility_ref_rows: 0,
+                boundary_responsibility_ref_drained_rows: 0,
+                boundary_responsibility_ref_serialized_read_bytes: 0,
+                boundary_responsibility_ref_serialized_write_bytes: 0,
+                boundary_responsibility_ref_scan_row_operations: 0,
+                boundary_responsibility_ref_workspace_state_bytes: 0,
+                max_boundary_responsibility_ref_bytes: 0,
+                last_boundary_responsibility_ref: None,
+                expected_boundary_responsibility_ref_rows: None,
+                boundary_responsibility_refs_sealed: false,
+                boundary_responsibility_ref_eof_seen: false,
+                boundary_responsibility_ref_count_verified: false,
                 max_event_id_bytes: 0,
                 max_event_path_bytes: 0,
                 max_event_json_bytes: 0,

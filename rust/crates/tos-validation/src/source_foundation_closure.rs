@@ -166,6 +166,13 @@ pub struct SourceFoundationClosureCost {
     pub candidate_responsibility_validated_event_serialized_write_bytes: u64,
     pub candidate_responsibility_validated_event_scan_row_operations: u64,
     pub candidate_responsibility_validated_event_peak_workspace_state_bytes: usize,
+    /// Unique boundary Responsibility ClaimRef IDs held in the candidate AUX
+    /// store. The finite compatibility path keeps the original BTreeSet.
+    pub candidate_boundary_responsibility_ref_count: u64,
+    pub candidate_boundary_responsibility_ref_serialized_read_bytes: u64,
+    pub candidate_boundary_responsibility_ref_serialized_write_bytes: u64,
+    pub candidate_boundary_responsibility_ref_scan_row_operations: u64,
+    pub candidate_boundary_responsibility_ref_peak_workspace_state_bytes: usize,
 }
 
 /// Plain current-record projection used only by the source-foundation Link
@@ -281,6 +288,14 @@ pub struct SourceFoundationClosureSchemaRequestStoreCost {
     pub responsibility_validated_event_scan_row_operations: u64,
     pub responsibility_validated_event_workspace_state_bytes: usize,
     pub responsibility_validated_event_count_verified: bool,
+    pub boundary_responsibility_ref_rows: u64,
+    pub boundary_responsibility_ref_drained_rows: u64,
+    pub boundary_responsibility_ref_serialized_read_bytes: u64,
+    pub boundary_responsibility_ref_serialized_write_bytes: u64,
+    pub boundary_responsibility_ref_scan_row_operations: u64,
+    pub boundary_responsibility_ref_workspace_state_bytes: usize,
+    pub boundary_responsibility_ref_eof_seen: bool,
+    pub boundary_responsibility_ref_count_verified: bool,
 }
 
 /// Portable candidate spool for authentic Closure schema requests,
@@ -374,6 +389,25 @@ pub trait SourceFoundationClosureSchemaRequestStore {
         event_id: &str,
         max_state_bytes: usize,
     ) -> Result<(bool, usize), ItemRefusal>;
+
+    /// Insert one boundary reference into the exact unique-ID set. Duplicate
+    /// references are retained once, matching the finite BTreeSet.
+    fn remember_boundary_responsibility_ref(
+        &mut self,
+        id: &str,
+        max_state_bytes: usize,
+    ) -> Result<(bool, usize), ItemRefusal>;
+
+    /// Seal the exact number of unique boundary references before draining.
+    fn begin_boundary_responsibility_refs(&mut self, expected_rows: u64)
+    -> Result<(), ItemRefusal>;
+
+    /// Return one boundary reference in binary order. The returned row and
+    /// retained cursor state are caller-charged until the next read/EOF.
+    fn next_boundary_responsibility_ref(
+        &mut self,
+        max_state_bytes: usize,
+    ) -> Result<(Option<String>, usize, usize, usize), ItemRefusal>;
 
     /// Seal the unique Responsibility ClaimRef count before its ordered drain.
     fn begin_responsibility_claims(&mut self, expected_rows: u64) -> Result<(), ItemRefusal>;
@@ -471,6 +505,7 @@ pub trait SourceFoundationClosureSchemaRequestStore {
         expected_membership_claim_rows: u64,
         expected_responsibility_claim_rows: u64,
         expected_responsibility_validated_event_rows: u64,
+        expected_boundary_responsibility_ref_rows: u64,
         direct_issue_count: usize,
         max_state_bytes: usize,
     ) -> Result<SourceFoundationClosureSchemaRequestStoreCost, ItemRefusal>;
@@ -783,6 +818,8 @@ fn run_source_foundation_closure<S: LayerFamilySource + ?Sized>(
     let expected_responsibility_claim_rows = rules.cost.candidate_responsibility_claim_count;
     let expected_responsibility_validated_event_rows =
         rules.cost.candidate_responsibility_validated_event_count;
+    let expected_boundary_responsibility_ref_rows =
+        rules.cost.candidate_boundary_responsibility_ref_count;
     let schema_request_finish = if rules.schema_request_store.is_some() {
         let direct_issue_count = rules.issues.len();
         let remaining = rules.remaining_state()?;
@@ -799,6 +836,7 @@ fn run_source_foundation_closure<S: LayerFamilySource + ?Sized>(
                 expected_membership_claim_rows,
                 expected_responsibility_claim_rows,
                 expected_responsibility_validated_event_rows,
+                expected_boundary_responsibility_ref_rows,
                 direct_issue_count,
                 remaining,
             )?;
@@ -820,7 +858,8 @@ fn run_source_foundation_closure<S: LayerFamilySource + ?Sized>(
                         .max(finished.claim_id_workspace_state_bytes)
                         .max(finished.membership_claim_workspace_state_bytes)
                         .max(finished.responsibility_claim_workspace_state_bytes)
-                        .max(finished.responsibility_validated_event_workspace_state_bytes),
+                        .max(finished.responsibility_validated_event_workspace_state_bytes)
+                        .max(finished.boundary_responsibility_ref_workspace_state_bytes),
                 )
             })
             .ok_or(ItemRefusal::Budget)?;
@@ -838,6 +877,12 @@ fn run_source_foundation_closure<S: LayerFamilySource + ?Sized>(
             || finished.responsibility_validated_event_rows
                 != expected_responsibility_validated_event_rows
             || !finished.responsibility_validated_event_count_verified
+            || finished.boundary_responsibility_ref_rows
+                != expected_boundary_responsibility_ref_rows
+            || finished.boundary_responsibility_ref_drained_rows
+                != expected_boundary_responsibility_ref_rows
+            || !finished.boundary_responsibility_ref_eof_seen
+            || !finished.boundary_responsibility_ref_count_verified
         {
             return Err(ItemRefusal::Source(
                 "source-foundation Closure schema request store count or state differs".into(),
@@ -931,6 +976,24 @@ fn run_source_foundation_closure<S: LayerFamilySource + ?Sized>(
             .cost
             .candidate_responsibility_validated_event_peak_workspace_state_bytes =
             finished.responsibility_validated_event_workspace_state_bytes;
+        rules.cost.candidate_boundary_responsibility_ref_count =
+            finished.boundary_responsibility_ref_rows;
+        rules
+            .cost
+            .candidate_boundary_responsibility_ref_serialized_read_bytes =
+            finished.boundary_responsibility_ref_serialized_read_bytes;
+        rules
+            .cost
+            .candidate_boundary_responsibility_ref_serialized_write_bytes =
+            finished.boundary_responsibility_ref_serialized_write_bytes;
+        rules
+            .cost
+            .candidate_boundary_responsibility_ref_scan_row_operations =
+            finished.boundary_responsibility_ref_scan_row_operations;
+        rules
+            .cost
+            .candidate_boundary_responsibility_ref_peak_workspace_state_bytes =
+            finished.boundary_responsibility_ref_workspace_state_bytes;
     }
 
     Ok(SourceFoundationClosureReport {
@@ -2432,6 +2495,43 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
         }
     }
 
+    fn remember_boundary_responsibility_ref(
+        &mut self,
+        reference: &str,
+        reserve_compatibility: bool,
+    ) -> Result<(), ItemRefusal> {
+        if self.schema_request_store.is_some() {
+            let remaining = self.remaining_state()?;
+            let (inserted, workspace) = self
+                .schema_request_store
+                .as_deref_mut()
+                .ok_or(ItemRefusal::Budget)?
+                .remember_boundary_responsibility_ref(reference, remaining)?;
+            self.include_store_workspace(workspace)?;
+            if inserted {
+                self.cost.candidate_boundary_responsibility_ref_count = self
+                    .cost
+                    .candidate_boundary_responsibility_ref_count
+                    .checked_add(1)
+                    .ok_or(ItemRefusal::Budget)?;
+            }
+        } else {
+            if reserve_compatibility {
+                self.reserve(
+                    reference
+                        .len()
+                        .checked_add(
+                            std::mem::size_of::<String>() + 4 * std::mem::size_of::<usize>(),
+                        )
+                        .ok_or(ItemRefusal::Budget)?,
+                )?;
+            }
+            self.boundary_responsibility_refs
+                .insert(reference.to_owned());
+        }
+        Ok(())
+    }
+
     fn check_records_map(&mut self) -> Result<(), ItemRefusal> {
         // Records owns schema, reference and duplicate findings. This boundary
         // only verifies caller map shape and supplies Link join rows;
@@ -2919,42 +3019,64 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
                 )?;
             }
         }
-        let responsibility_refs = &self.boundary_responsibility_refs;
-        let responsibility = &self.responsibility;
-        let responsibility_store = &mut self.schema_request_store;
-        for reference in responsibility_refs {
-            let found = if let Some(store) = responsibility_store.as_deref_mut() {
-                let used = (*retained)
-                    .checked_add(temporary)
+        if self.schema_request_store.is_some() {
+            let expected_rows = self.cost.candidate_boundary_responsibility_ref_count;
+            self.schema_request_store
+                .as_deref_mut()
+                .ok_or(ItemRefusal::Budget)?
+                .begin_boundary_responsibility_refs(expected_rows)?;
+            let mut cursor_state_bytes = 0usize;
+            loop {
+                let remaining = self.remaining_state()?;
+                let (reference, workspace, row_state_bytes, retained_cursor_state_bytes) = self
+                    .schema_request_store
+                    .as_deref_mut()
+                    .ok_or(ItemRefusal::Budget)?
+                    .next_boundary_responsibility_ref(remaining)?;
+                self.include_store_workspace(workspace)?;
+                self.release_temporary_state(cursor_state_bytes)?;
+                let Some(reference) = reference else {
+                    if row_state_bytes != 0 || retained_cursor_state_bytes != 0 {
+                        return Err(ItemRefusal::Budget);
+                    }
+                    break;
+                };
+                let active_state_bytes = row_state_bytes
+                    .checked_add(retained_cursor_state_bytes)
                     .ok_or(ItemRefusal::Budget)?;
-                let remaining = limits
-                    .max_state_bytes
-                    .checked_sub(used)
-                    .ok_or(ItemRefusal::Budget)?;
-                let (found, workspace) =
-                    store.contains_responsibility_claim(reference, remaining)?;
-                let combined = used.checked_add(workspace).ok_or(ItemRefusal::Budget)?;
-                if combined > limits.max_state_bytes {
+                if active_state_bytes > self.remaining_state()? {
                     return Err(ItemRefusal::Budget);
                 }
-                cost.reserved_state_bytes = cost.reserved_state_bytes.max(combined);
-                found
-            } else {
-                responsibility.contains_key(reference)
-            };
-            if !found {
-                push_bounded_issue(
-                    issues,
-                    cost,
-                    retained,
-                    temporary,
-                    limits,
-                    cancelled,
-                    SOURCE_HOME,
-                    format!(
-                        "work-boundary maps reference missing responsibility claims: [{reference}]"
-                    ),
-                )?;
+                self.reserve_temporary(active_state_bytes)?;
+                cursor_state_bytes = retained_cursor_state_bytes;
+                let remaining = self.remaining_state()?;
+                let (found, lookup_workspace) = self
+                    .schema_request_store
+                    .as_deref_mut()
+                    .ok_or(ItemRefusal::Budget)?
+                    .contains_responsibility_claim(&reference, remaining)?;
+                self.include_store_workspace(lookup_workspace)?;
+                if !found {
+                    self.issue(
+                        SOURCE_HOME,
+                        format!(
+                            "work-boundary maps reference missing responsibility claims: [{reference}]"
+                        ),
+                    )?;
+                }
+                self.release_temporary_state(row_state_bytes)?;
+                drop(reference);
+            }
+        } else {
+            for reference in &self.boundary_responsibility_refs {
+                if !self.responsibility.contains_key(reference) {
+                    self.issue(
+                        SOURCE_HOME,
+                        format!(
+                            "work-boundary maps reference missing responsibility claims: [{reference}]"
+                        ),
+                    )?;
+                }
             }
         }
         Ok(())
@@ -5849,13 +5971,7 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
                 if let Some(reference) = text(&member, "responsibility_claim_ref")
                     .or_else(|| text(&member, "translation_responsibility_claim_ref"))
                 {
-                    self.reserve(
-                        reference.len()
-                            + std::mem::size_of::<String>()
-                            + 4 * std::mem::size_of::<usize>(),
-                    )?;
-                    self.boundary_responsibility_refs
-                        .insert(reference.to_owned());
+                    self.remember_boundary_responsibility_ref(reference, true)?;
                 }
             }
             for reference in membership_refs {
@@ -6053,8 +6169,7 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
         if let Some(reference) = text(member, "responsibility_claim_ref")
             .or_else(|| text(member, "translation_responsibility_claim_ref"))
         {
-            self.boundary_responsibility_refs
-                .insert(reference.to_owned());
+            self.remember_boundary_responsibility_ref(reference, false)?;
         }
         Ok(())
     }
