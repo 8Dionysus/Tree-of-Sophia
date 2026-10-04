@@ -1395,25 +1395,7 @@ fn build_whole_selected(
             cancelled.as_ref(),
         )
         .map_err(|error| {
-            // Mechanical category and static owner context only; no carrier payload.
-            match error {
-                tos_compiler::Error::Invalid(context) =>
-                    eprintln!("Core whole snapshot invalid: {:.256}", context),
-                tos_compiler::Error::Budget(context) =>
-                    eprintln!("Core whole snapshot budget: {:.256}", context),
-                tos_compiler::Error::PreparedUnsupported(context) =>
-                    eprintln!("Core whole snapshot prepared unsupported: {:.256}", context),
-                tos_compiler::Error::ManagedSourceUnsupported(context) =>
-                    eprintln!("Core whole snapshot managed source unsupported: {:.256}", context),
-                tos_compiler::Error::Io(error) =>
-                    eprintln!("Core whole snapshot I/O kind: {:?}", error.kind()),
-                tos_compiler::Error::Sql(_) => eprintln!("Core whole snapshot SQLite refused"),
-                tos_compiler::Error::SqlitePhase { phase, .. } =>
-                    eprintln!("Core whole snapshot SQLite phase: {:?}", phase),
-                tos_compiler::Error::SqliteVmBudget { phase, .. } =>
-                    eprintln!("Core whole snapshot SQLite VM budget phase: {:?}", phase),
-                tos_compiler::Error::Source(_) => eprintln!("Core whole snapshot source carrier refused"),
-            }
+            compiler_terminal_diagnostic("Core whole snapshot", &error);
             "Core native whole snapshot refused"
         })?;
     active(deadline)?;
@@ -1992,14 +1974,75 @@ pub fn run_if_requested(args: &Vec<String>, input: &mut dyn Read) -> Option<i32>
 }
 
 // One best-effort bounded diagnostic; never waits on a caller's stderr pipe.
+// Compiler categories and bounded static owner context only. Never format payload,
+// SQL errors, paths, or Source(String); stderr delivery is best-effort/nonblocking.
+fn compiler_terminal_diagnostic(prefix: &'static str, error: &tos_compiler::Error) {
+    use std::fmt::Write;
+    struct Diagnostic {
+        bytes: [u8; 512],
+        len: usize,
+    }
+    impl std::fmt::Write for Diagnostic {
+        fn write_str(&mut self, text: &str) -> std::fmt::Result {
+            if text.len() > self.bytes.len() - self.len {
+                return Err(std::fmt::Error);
+            }
+            self.bytes[self.len..self.len + text.len()].copy_from_slice(text.as_bytes());
+            self.len += text.len();
+            Ok(())
+        }
+    }
+    let mut out = Diagnostic { bytes: [0; 512], len: 0 };
+    let _ = write!(out, "{prefix} ");
+    let context = match error {
+        tos_compiler::Error::Invalid(context) => {
+            let _ = out.write_str("invalid: "); Some(*context)
+        }
+        tos_compiler::Error::Budget(context) => {
+            let _ = out.write_str("budget: "); Some(*context)
+        }
+        tos_compiler::Error::PreparedUnsupported(context) => {
+            let _ = out.write_str("prepared unsupported: "); Some(*context)
+        }
+        tos_compiler::Error::ManagedSourceUnsupported(context) => {
+            let _ = out.write_str("managed source unsupported: "); Some(*context)
+        }
+        tos_compiler::Error::Io(error) => {
+            let _ = write!(out, "I/O kind: {:?}", error.kind()); None
+        }
+        tos_compiler::Error::Sql(_) => {
+            let _ = out.write_str("SQLite refused"); None
+        }
+        tos_compiler::Error::SqlitePhase { phase, .. } => {
+            let _ = write!(out, "SQLite phase: {phase:?}"); None
+        }
+        tos_compiler::Error::SqliteVmBudget { phase, .. } => {
+            let _ = write!(out, "SQLite VM budget phase: {phase:?}"); None
+        }
+        tos_compiler::Error::Source(_) => {
+            let _ = out.write_str("source carrier refused"); None
+        }
+    };
+    if let Some(context) = context {
+        let mut end = context.len().min(256);
+        while !context.is_char_boundary(end) { end -= 1; }
+        let _ = out.write_str(&context[..end]);
+    }
+    let _ = out.write_str("\n");
+    terminal_diagnostic_bytes(&out.bytes[..out.len]);
+}
+
 fn terminal_diagnostic(message: &'static str) {
+    terminal_diagnostic_bytes(&message.as_bytes()[..message.len().min(256)]);
+}
+
+fn terminal_diagnostic_bytes(raw: &[u8]) {
     let previous = unsafe { libc::fcntl(2, libc::F_GETFL) };
     if previous < 0 || unsafe { libc::fcntl(2, libc::F_SETFL, previous | libc::O_NONBLOCK) } < 0 {
         return;
     }
-    let raw = message.as_bytes();
     unsafe {
-        libc::write(2, raw.as_ptr().cast(), raw.len().min(256));
+        libc::write(2, raw.as_ptr().cast(), raw.len().min(512));
         libc::fcntl(2, libc::F_SETFL, previous);
     }
 }
@@ -2620,7 +2663,10 @@ fn serve_selected_root(
             })
         },
     )
-    .map_err(|_| "Core HTTP held callback or delivery refused")
+    .map_err(|error| {
+        compiler_terminal_diagnostic("Core HTTP held callback or delivery", &error);
+        "Core HTTP held callback or delivery refused"
+    })
 }
 
 struct CoreQueryProbe {
