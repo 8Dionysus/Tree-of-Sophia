@@ -270,6 +270,9 @@ pub struct SourceFoundationClosureCost {
     pub candidate_boundary_responsibility_ref_serialized_write_bytes: u64,
     pub candidate_boundary_responsibility_ref_scan_row_operations: u64,
     pub candidate_boundary_responsibility_ref_peak_workspace_state_bytes: usize,
+    /// Candidate evidence-anchor IDs held in the invocation-scoped exact-key
+    /// store. The finite compatibility path keeps its in-process set.
+    pub candidate_anchor_store: SourceFoundationClosureAnchorStoreCost,
     /// Candidate Expression-derivation graph projections and external DFS
     /// state in the invocation-scoped Closure store.
     pub candidate_derivation_store: SourceFoundationClosureDerivationStoreCost,
@@ -362,6 +365,18 @@ pub struct SourceFoundationClosureTopologyStoreCost {
     pub drained_rows: u64,
     pub subject_stream_rows: u64,
     pub subject_stream_eof_count: u64,
+    pub serialized_read_bytes: u64,
+    pub serialized_write_bytes: u64,
+    pub scan_row_operations: u64,
+    pub peak_workspace_state_bytes: usize,
+    pub eof_seen: bool,
+    pub count_verified: bool,
+}
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct SourceFoundationClosureAnchorStoreCost {
+    pub id_rows: u64,
+    pub drained_rows: u64,
     pub serialized_read_bytes: u64,
     pub serialized_write_bytes: u64,
     pub scan_row_operations: u64,
@@ -530,6 +545,7 @@ pub struct SourceFoundationClosureSchemaRequestStoreCost {
     pub boundary_responsibility_ref_workspace_state_bytes: usize,
     pub boundary_responsibility_ref_eof_seen: bool,
     pub boundary_responsibility_ref_count_verified: bool,
+    pub anchors: SourceFoundationClosureAnchorStoreCost,
     pub derivation: SourceFoundationClosureDerivationStoreCost,
     pub topology: SourceFoundationClosureTopologyStoreCost,
 }
@@ -890,6 +906,35 @@ pub trait SourceFoundationClosureSchemaRequestStore {
         max_state_bytes: usize,
     ) -> Result<(Option<String>, usize, usize, usize), ItemRefusal>;
 
+    /// Insert or test one unique source evidence anchor ID in the held set.
+    /// Duplicate observations return false and preserve the set's first key.
+    fn remember_anchor_id(
+        &mut self,
+        id: &str,
+        max_state_bytes: usize,
+    ) -> Result<(bool, usize), ItemRefusal>;
+
+    /// Exact membership lookup after the collected anchor set is sealed.
+    fn contains_anchor_id(
+        &mut self,
+        id: &str,
+        max_state_bytes: usize,
+    ) -> Result<(bool, usize), ItemRefusal>;
+
+    /// Seal and verify a binary-ordered traversal of the unique anchor IDs.
+    fn begin_anchor_ids(&mut self, expected_rows: u64) -> Result<(), ItemRefusal>;
+
+    fn next_anchor_id(
+        &mut self,
+        max_state_bytes: usize,
+    ) -> Result<(Option<String>, usize, usize, usize), ItemRefusal>;
+
+    fn finish_anchor_ids(
+        &mut self,
+        expected_rows: u64,
+        max_state_bytes: usize,
+    ) -> Result<SourceFoundationClosureAnchorStoreCost, ItemRefusal>;
+
     /// Seal the unique Responsibility ClaimRef count before its ordered drain.
     fn begin_responsibility_claims(&mut self, expected_rows: u64) -> Result<(), ItemRefusal>;
 
@@ -1042,6 +1087,7 @@ pub trait SourceFoundationClosureSchemaRequestStore {
         expected_responsibility_validated_event_rows: u64,
         expected_publication_validated_event_rows: u64,
         expected_boundary_responsibility_ref_rows: u64,
+        expected_anchor_id_rows: u64,
         expected_provision_claim_rows: u64,
         expected_provision_event_id_rows: u64,
         expected_provision_used_event_rows: u64,
@@ -1405,6 +1451,7 @@ fn run_source_foundation_closure<S: LayerFamilySource + ?Sized>(
         rules.cost.candidate_publication_validated_event_count;
     let expected_boundary_responsibility_ref_rows =
         rules.cost.candidate_boundary_responsibility_ref_count;
+    let expected_anchor_store = rules.cost.candidate_anchor_store;
     let expected_provision_claim_rows = rules.cost.candidate_provision_claim_count;
     let expected_provision_event_id_rows = rules.cost.candidate_provision_event_id_count;
     let expected_provision_used_event_rows = rules.cost.candidate_provision_used_event_count;
@@ -1432,6 +1479,7 @@ fn run_source_foundation_closure<S: LayerFamilySource + ?Sized>(
                 expected_responsibility_validated_event_rows,
                 expected_publication_validated_event_rows,
                 expected_boundary_responsibility_ref_rows,
+                expected_anchor_store.id_rows,
                 expected_provision_claim_rows,
                 expected_provision_event_id_rows,
                 expected_provision_used_event_rows,
@@ -1464,6 +1512,7 @@ fn run_source_foundation_closure<S: LayerFamilySource + ?Sized>(
                         .max(finished.responsibility_validated_event_workspace_state_bytes)
                         .max(finished.publication_validated_event_workspace_state_bytes)
                         .max(finished.boundary_responsibility_ref_workspace_state_bytes)
+                        .max(finished.anchors.peak_workspace_state_bytes)
                         .max(finished.provision_claim_workspace_state_bytes)
                         .max(finished.provision_event_id_workspace_state_bytes)
                         .max(finished.provision_unused_event_workspace_state_bytes)
@@ -1501,6 +1550,7 @@ fn run_source_foundation_closure<S: LayerFamilySource + ?Sized>(
                 != expected_boundary_responsibility_ref_rows
             || !finished.boundary_responsibility_ref_eof_seen
             || !finished.boundary_responsibility_ref_count_verified
+            || finished.anchors != expected_anchor_store
             || finished.provision_claim_rows != expected_provision_claim_rows
             || finished.provision_claim_drained_rows != expected_provision_claim_rows
             || !finished.provision_claim_eof_seen
@@ -1673,6 +1723,7 @@ fn run_source_foundation_closure<S: LayerFamilySource + ?Sized>(
             .cost
             .candidate_boundary_responsibility_ref_peak_workspace_state_bytes =
             finished.boundary_responsibility_ref_workspace_state_bytes;
+        rules.cost.candidate_anchor_store = finished.anchors;
         rules.cost.candidate_provision_claim_count = finished.provision_claim_rows;
         rules.cost.candidate_provision_claim_serialized_read_bytes =
             finished.provision_claim_serialized_read_bytes;
@@ -4097,6 +4148,115 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
         Ok(())
     }
 
+    fn remember_candidate_anchor_id(&mut self, id: &str) -> Result<bool, ItemRefusal> {
+        let remaining = self.remaining_state()?;
+        let (inserted, workspace) = self
+            .schema_request_store
+            .as_deref_mut()
+            .ok_or(ItemRefusal::Budget)?
+            .remember_anchor_id(id, remaining)?;
+        self.include_store_workspace(workspace)?;
+        if inserted {
+            self.cost.candidate_anchor_store.id_rows = self
+                .cost
+                .candidate_anchor_store
+                .id_rows
+                .checked_add(1)
+                .ok_or(ItemRefusal::Budget)?;
+        }
+        Ok(inserted)
+    }
+
+    fn anchor_id_exists(&mut self, id: &str) -> Result<bool, ItemRefusal> {
+        if self.schema_request_store.is_none() {
+            return Ok(self.anchors.contains(id));
+        }
+        let remaining = self.remaining_state()?;
+        let (found, workspace) = self
+            .schema_request_store
+            .as_deref_mut()
+            .ok_or(ItemRefusal::Budget)?
+            .contains_anchor_id(id, remaining)?;
+        self.include_store_workspace(workspace)?;
+        let cost = &mut self.cost.candidate_anchor_store;
+        cost.scan_row_operations = cost
+            .scan_row_operations
+            .checked_add(1)
+            .ok_or(ItemRefusal::Budget)?;
+        if found {
+            cost.serialized_read_bytes = cost
+                .serialized_read_bytes
+                .checked_add(u64::try_from(id.len()).map_err(|_| ItemRefusal::Budget)?)
+                .ok_or(ItemRefusal::Budget)?;
+        }
+        cost.peak_workspace_state_bytes = cost.peak_workspace_state_bytes.max(workspace);
+        Ok(found)
+    }
+
+    fn finish_candidate_anchor_ids(&mut self) -> Result<(), ItemRefusal> {
+        let expected_rows = self.cost.candidate_anchor_store.id_rows;
+        self.schema_request_store
+            .as_deref_mut()
+            .ok_or(ItemRefusal::Budget)?
+            .begin_anchor_ids(expected_rows)?;
+        let mut cursor_state_bytes = 0usize;
+        let mut drained_rows = 0u64;
+        loop {
+            let remaining = self.remaining_state()?;
+            let (id, workspace, row_state_bytes, retained_cursor_state_bytes) = self
+                .schema_request_store
+                .as_deref_mut()
+                .ok_or(ItemRefusal::Budget)?
+                .next_anchor_id(remaining)?;
+            self.include_store_workspace(workspace)?;
+            self.release_temporary_state(cursor_state_bytes)?;
+            let Some(id) = id else {
+                if row_state_bytes != 0 || retained_cursor_state_bytes != 0 {
+                    return Err(ItemRefusal::Budget);
+                }
+                break;
+            };
+            if drained_rows >= expected_rows {
+                return Err(ItemRefusal::Source(
+                    "source-foundation Closure anchor ID drain exceeded its sealed count".into(),
+                ));
+            }
+            let active_state = row_state_bytes
+                .checked_add(retained_cursor_state_bytes)
+                .ok_or(ItemRefusal::Budget)?;
+            self.reserve_temporary(active_state)?;
+            cursor_state_bytes = retained_cursor_state_bytes;
+            drop(id);
+            self.release_temporary_state(row_state_bytes)?;
+            drained_rows = drained_rows.checked_add(1).ok_or(ItemRefusal::Budget)?;
+        }
+        if drained_rows != expected_rows {
+            return Err(ItemRefusal::Source(
+                "source-foundation Closure anchor ID drain count differs from its insert count"
+                    .into(),
+            ));
+        }
+        let remaining = self.remaining_state()?;
+        let cost = self
+            .schema_request_store
+            .as_deref_mut()
+            .ok_or(ItemRefusal::Budget)?
+            .finish_anchor_ids(expected_rows, remaining)?;
+        self.include_store_workspace(cost.peak_workspace_state_bytes)?;
+        if cost.id_rows != expected_rows
+            || cost.drained_rows != expected_rows
+            || !cost.eof_seen
+            || !cost.count_verified
+        {
+            return Err(ItemRefusal::Source(
+                "source-foundation Closure anchor ID store count differs from its ordered drain"
+                    .into(),
+            ));
+        }
+        self.cost.candidate_anchor_store = cost;
+        Ok(())
+    }
+
     fn check_records_map(&mut self) -> Result<(), ItemRefusal> {
         // Records owns schema, reference and duplicate findings. This boundary
         // only verifies caller map shape and supplies Link join rows;
@@ -5808,7 +5968,7 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
             }
             for evidence_ref in evidence_rows.iter().filter_map(Value::as_str) {
                 if evidence_ref.starts_with("tos.anchor.") {
-                    if !self.anchors.contains(evidence_ref) {
+                    if !self.anchor_id_exists(evidence_ref)? {
                         self.issue(
                             &location,
                             format!("unresolved derivation anchor: {evidence_ref}"),
@@ -6396,7 +6556,7 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
             }
             for evidence_ref in evidence {
                 if evidence_ref.starts_with("tos.anchor.") {
-                    if !self.anchors.contains(&evidence_ref) {
+                    if !self.anchor_id_exists(&evidence_ref)? {
                         self.issue(
                             &location,
                             format!("unresolved derivation anchor: {evidence_ref}"),
@@ -8879,7 +9039,7 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
                 )?;
             }
             for evidence in value_strings(claim, "evidence_refs") {
-                if evidence.starts_with("tos.anchor.") && !self.anchors.contains(&evidence) {
+                if evidence.starts_with("tos.anchor.") && !self.anchor_id_exists(&evidence)? {
                     self.issue(
                         &location,
                         format!("unresolved source evidence anchor: {evidence}"),
@@ -9105,6 +9265,7 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
             };
             let loaded_state_bytes = loaded.temporary_state_bytes;
             let Some((_, boundary_map)) = loaded.rows.first() else {
+                drop(loaded);
                 self.release_loaded_rows(loaded_state_bytes)?;
                 continue;
             };
@@ -9150,6 +9311,32 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
                 self.issue(map_path, "work-boundary provenance event is unresolved")?;
             }
 
+            let candidate_local_indexes = self.schema_request_store.is_some();
+            let local_indexes_baseline = self.temporary_state_bytes;
+            if candidate_local_indexes {
+                let anchor_path_bytes = map_path
+                    .rsplit_once('/')
+                    .map(|(parent, _)| {
+                        parent
+                            .len()
+                            .checked_add("/anchors.jsonl".len())
+                            .ok_or(ItemRefusal::Budget)
+                    })
+                    .transpose()?
+                    .unwrap_or("anchors.jsonl".len());
+                let anchor_path_state = anchor_path_bytes
+                    .checked_mul(2)
+                    .and_then(|bytes| bytes.checked_add(std::mem::size_of::<String>() + 32))
+                    .ok_or(ItemRefusal::Budget)?;
+                self.reserve_temporary(
+                    anchor_path_state
+                        .checked_add(std::mem::size_of::<BTreeSet<String>>())
+                        .and_then(|bytes| {
+                            bytes.checked_add(std::mem::size_of::<BTreeMap<String, u64>>())
+                        })
+                        .ok_or(ItemRefusal::Budget)?,
+                )?;
+            }
             let anchor_path = map_path
                 .rsplit_once('/')
                 .map(|(parent, _)| format!("{parent}/anchors.jsonl"))
@@ -9338,6 +9525,13 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
                     self.boundary_membership_refs.insert(reference);
                 }
             }
+            drop(page_by_id);
+            drop(local_ids);
+            drop(anchor_path);
+            if candidate_local_indexes {
+                self.release_temporary_since(local_indexes_baseline);
+            }
+            drop(loaded);
             self.release_loaded_rows(loaded_state_bytes)?;
         }
 
@@ -9359,20 +9553,26 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
                 let loaded_state_bytes = loaded.temporary_state_bytes;
                 for (line, anchor) in loaded.rows {
                     let location = format!("{anchor_path}:{line}");
-                    let id = text(&anchor, "anchor_id").map(str::to_owned);
-                    if let Some(id) = id {
-                        self.reserve(
-                            2 * (id.len()
-                                + std::mem::size_of::<String>()
-                                + 4 * std::mem::size_of::<usize>()),
-                        )?;
-                        if !evidence_anchor_ids.insert(id.clone()) {
+                    if let Some(id) = text(&anchor, "anchor_id") {
+                        let duplicate = if self.schema_request_store.is_some() {
+                            !self.remember_candidate_anchor_id(id)?
+                        } else {
+                            self.reserve(
+                                2 * (id.len()
+                                    + std::mem::size_of::<String>()
+                                    + 4 * std::mem::size_of::<usize>()),
+                            )?;
+                            !evidence_anchor_ids.insert(id.to_owned())
+                        };
+                        if duplicate {
                             self.issue(
                                 &location,
                                 format!("duplicate source evidence anchor_id: {id}"),
                             )?;
                         }
-                        self.anchors.insert(id);
+                        if self.schema_request_store.is_none() {
+                            self.anchors.insert(id.to_owned());
+                        }
                     }
                     self.expect_ref(&location, text(&anchor, "item_id"), "item")?;
                     if let Some(event_ref) = text(&anchor, "provenance_event_ref") {
@@ -9387,12 +9587,16 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
                 self.release_loaded_rows(loaded_state_bytes)?;
             }
         }
-        for id in evidence_anchor_ids {
-            if !self.anchors.contains(&id) {
-                self.reserve(
-                    id.len() + std::mem::size_of::<String>() + 4 * std::mem::size_of::<usize>(),
-                )?;
-                self.anchors.insert(id);
+        if self.schema_request_store.is_some() {
+            self.finish_candidate_anchor_ids()?;
+        } else {
+            for id in evidence_anchor_ids {
+                if !self.anchors.contains(&id) {
+                    self.reserve(
+                        id.len() + std::mem::size_of::<String>() + 4 * std::mem::size_of::<usize>(),
+                    )?;
+                    self.anchors.insert(id);
+                }
             }
         }
         Ok(())
@@ -9406,31 +9610,74 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
         local_ids: &mut BTreeSet<String>,
         page_by_id: &mut BTreeMap<String, u64>,
     ) -> Result<(), ItemRefusal> {
-        let Some(id) = text(anchor, "anchor_id").map(str::to_owned) else {
+        let Some(id) = text(anchor, "anchor_id") else {
             return Ok(());
         };
-        self.reserve(
-            3 * (id.len() + std::mem::size_of::<String>() + 4 * std::mem::size_of::<usize>()),
-        )?;
-        if !all_ids.insert(id.clone()) {
-            self.issue(location, format!("duplicate boundary anchor_id: {id}"))?;
-        }
-        local_ids.insert(id.clone());
-        let page_selectors: Vec<&Value> = anchor
+        let per_id_state = id
+            .len()
+            .checked_add(std::mem::size_of::<String>() + 4 * std::mem::size_of::<usize>())
+            .ok_or(ItemRefusal::Budget)?;
+        let candidate_local_indexes = self.schema_request_store.is_some();
+        let page_selectors = anchor
             .get("selectors")
             .and_then(Value::as_array)
             .into_iter()
             .flatten()
-            .filter(|selector| text(selector, "type") == Some("page_region"))
-            .collect();
-        if page_selectors.len() == 1 {
-            if let Some(page) = page_selectors[0].get("page").and_then(Value::as_u64) {
-                page_by_id.insert(id, page);
+            .filter(|selector| text(selector, "type") == Some("page_region"));
+        let mut page_selector_count = 0usize;
+        let mut page = None;
+        for selector in page_selectors {
+            page_selector_count = page_selector_count
+                .checked_add(1)
+                .ok_or(ItemRefusal::Budget)?;
+            if page_selector_count == 1 {
+                page = selector.get("page").and_then(Value::as_u64);
             }
+        }
+        let page_is_inserted = page_selector_count == 1 && page.is_some();
+        let local_key_exists = local_ids.contains(id);
+        let page_key_exists = page_by_id.contains_key(id);
+        let page_entry_state = per_id_state
+            .checked_add(std::mem::size_of::<u64>())
+            .ok_or(ItemRefusal::Budget)?;
+        let candidate_precharge = per_id_state
+            .checked_add(page_entry_state)
+            .ok_or(ItemRefusal::Budget)?;
+        if candidate_local_indexes {
+            self.reserve_temporary(candidate_precharge)?;
         } else {
+            self.reserve(per_id_state.checked_mul(3).ok_or(ItemRefusal::Budget)?)?;
+        }
+        let duplicate = if self.schema_request_store.is_some() {
+            !self.remember_candidate_anchor_id(id)?
+        } else {
+            !all_ids.insert(id.to_owned())
+        };
+        if duplicate {
+            self.issue(location, format!("duplicate boundary anchor_id: {id}"))?;
+        }
+        local_ids.insert(id.to_owned());
+        if page_is_inserted {
+            page_by_id.insert(id.to_owned(), page.ok_or(ItemRefusal::Budget)?);
+        }
+        if page_selector_count != 1 {
             self.issue(
                 location,
                 "boundary anchor must have exactly one page selector",
+            )?;
+        }
+        if candidate_local_indexes {
+            let retained_state = if local_key_exists { 0 } else { per_id_state }
+                .checked_add(if page_is_inserted && !page_key_exists {
+                    page_entry_state
+                } else {
+                    0
+                })
+                .ok_or(ItemRefusal::Budget)?;
+            self.release_temporary_state(
+                candidate_precharge
+                    .checked_sub(retained_state)
+                    .ok_or(ItemRefusal::Budget)?,
             )?;
         }
         Ok(())

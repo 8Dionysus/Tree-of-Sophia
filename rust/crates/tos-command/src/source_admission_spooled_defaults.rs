@@ -22,13 +22,14 @@ use tos_validation::{
     item_rules::ItemRefusal,
     record_biblio_cut::{SourceCutInput, SourceCutInputWithIdentity},
     source_foundation_closure::{
-        SourceFoundationClosureClaimRef, SourceFoundationClosureDerivationFrame,
-        SourceFoundationClosureDerivationKeySet, SourceFoundationClosureDerivationStoreCost,
-        SourceFoundationClosureEvent, SourceFoundationClosureLink,
-        SourceFoundationClosureLinkStore, SourceFoundationClosureLinkStoreCost,
-        SourceFoundationClosureLoadedRowStoreCost, SourceFoundationClosureSchemaRequest,
-        SourceFoundationClosureSchemaRequestStore, SourceFoundationClosureSchemaRequestStoreCost,
-        SourceFoundationClosureTopologyStoreCost, source_foundation_closure_json_state_upper_bound,
+        SourceFoundationClosureAnchorStoreCost, SourceFoundationClosureClaimRef,
+        SourceFoundationClosureDerivationFrame, SourceFoundationClosureDerivationKeySet,
+        SourceFoundationClosureDerivationStoreCost, SourceFoundationClosureEvent,
+        SourceFoundationClosureLink, SourceFoundationClosureLinkStore,
+        SourceFoundationClosureLinkStoreCost, SourceFoundationClosureLoadedRowStoreCost,
+        SourceFoundationClosureSchemaRequest, SourceFoundationClosureSchemaRequestStore,
+        SourceFoundationClosureSchemaRequestStoreCost, SourceFoundationClosureTopologyStoreCost,
+        source_foundation_closure_json_state_upper_bound,
     },
     source_foundation_default_rules::{
         SourceFoundationDefaultClaims, SourceFoundationDefaultEventLookup,
@@ -845,6 +846,9 @@ impl<'candidate, 'host> SpoolDefaultStore<'candidate, 'host> {
                  PRIMARY KEY(check_kind,event_id)\
              ) WITHOUT ROWID;\
              CREATE TABLE sf_closure_boundary_responsibility_refs(\
+                 id TEXT NOT NULL COLLATE BINARY PRIMARY KEY\
+             ) WITHOUT ROWID;\
+             CREATE TABLE sf_closure_anchor_ids(\
                  id TEXT NOT NULL COLLATE BINARY PRIMARY KEY\
              ) WITHOUT ROWID;\
              CREATE TABLE sf_discovery_seen_ids(\
@@ -3212,6 +3216,18 @@ struct CandidateClosureSchemaRequests<'a, 'candidate, 'host, 'cancel, 'budget> {
     boundary_responsibility_refs_sealed: bool,
     boundary_responsibility_ref_eof_seen: bool,
     boundary_responsibility_ref_count_verified: bool,
+    anchor_id_rows: u64,
+    anchor_id_drained_rows: u64,
+    anchor_id_serialized_read_bytes: u64,
+    anchor_id_serialized_write_bytes: u64,
+    anchor_id_scan_row_operations: u64,
+    anchor_id_workspace_state_bytes: usize,
+    max_anchor_id_bytes: usize,
+    last_anchor_id: Option<String>,
+    expected_anchor_id_rows: Option<u64>,
+    anchor_ids_sealed: bool,
+    anchor_id_eof_seen: bool,
+    anchor_id_count_verified: bool,
     derivation_cost: SourceFoundationClosureDerivationStoreCost,
     topology_cost: SourceFoundationClosureTopologyStoreCost,
     max_topology_claim_bytes: [usize; 6],
@@ -3901,6 +3917,15 @@ impl CandidateClosureSchemaRequests<'_, '_, '_, '_, '_> {
         self.charge_scan_rows(rows)?;
         self.boundary_responsibility_ref_scan_row_operations = self
             .boundary_responsibility_ref_scan_row_operations
+            .checked_add(usize_u64(rows)?)
+            .ok_or(ItemRefusal::Budget)?;
+        Ok(())
+    }
+
+    fn charge_anchor_id_scan_rows(&mut self, rows: usize) -> Result<(), ItemRefusal> {
+        self.charge_scan_rows(rows)?;
+        self.anchor_id_scan_row_operations = self
+            .anchor_id_scan_row_operations
             .checked_add(usize_u64(rows)?)
             .ok_or(ItemRefusal::Budget)?;
         Ok(())
@@ -5971,6 +5996,16 @@ impl CandidateClosureSchemaRequests<'_, '_, '_, '_, '_> {
             boundary_responsibility_ref_eof_seen: self.boundary_responsibility_ref_eof_seen,
             boundary_responsibility_ref_count_verified: self
                 .boundary_responsibility_ref_count_verified,
+            anchors: SourceFoundationClosureAnchorStoreCost {
+                id_rows: self.anchor_id_rows,
+                drained_rows: self.anchor_id_drained_rows,
+                serialized_read_bytes: self.anchor_id_serialized_read_bytes,
+                serialized_write_bytes: self.anchor_id_serialized_write_bytes,
+                scan_row_operations: self.anchor_id_scan_row_operations,
+                peak_workspace_state_bytes: self.anchor_id_workspace_state_bytes,
+                eof_seen: self.anchor_id_eof_seen,
+                count_verified: self.anchor_id_count_verified,
+            },
             derivation: self.derivation_cost,
             topology: self.topology_cost,
         }
@@ -6040,6 +6075,12 @@ impl CandidateClosureSchemaRequests<'_, '_, '_, '_, '_> {
             || !self.boundary_responsibility_ref_eof_seen
             || self.last_boundary_responsibility_ref.is_some()
             || !self.boundary_responsibility_ref_count_verified
+            || self.expected_anchor_id_rows != Some(self.anchor_id_rows)
+            || !self.anchor_ids_sealed
+            || self.anchor_id_drained_rows != self.anchor_id_rows
+            || !self.anchor_id_eof_seen
+            || self.last_anchor_id.is_some()
+            || !self.anchor_id_count_verified
             || !self.derivation_finished
             || !self.derivation_cost.derivation_finished
             || self.expected_topology_claim_rows != Some(self.topology_cost.claim_rows)
@@ -8533,6 +8574,277 @@ impl SourceFoundationClosureSchemaRequestStore
         Ok((Some(id), workspace, row_state, retained_cursor_state))
     }
 
+    fn remember_anchor_id(
+        &mut self,
+        id: &str,
+        max_state_bytes: usize,
+    ) -> Result<(bool, usize), ItemRefusal> {
+        if self.finished || self.anchor_ids_sealed || self.anchor_id_count_verified {
+            return Err(source_refusal());
+        }
+        let workspace = Self::claim_id_workspace(id.len(), 3)?;
+        self.preflight(workspace, max_state_bytes)?;
+        self.context.check()?;
+        self.charge_anchor_id_scan_rows(2)?;
+        let inserted = self
+            .db
+            .execute(
+                "INSERT OR IGNORE INTO sf_closure_anchor_ids(id) VALUES(?1)",
+                [id],
+            )
+            .map_err(sql_refusal)?;
+        if inserted > 1 {
+            return Err(source_refusal());
+        }
+        let mut statement = self
+            .db
+            .prepare("SELECT id FROM sf_closure_anchor_ids WHERE id=?1")
+            .map_err(sql_refusal)?;
+        let mut rows = statement.query([id]).map_err(sql_refusal)?;
+        let stored = rows
+            .next()
+            .map_err(sql_refusal)?
+            .map(|row| bounded_row_text(row, 0, workspace))
+            .transpose()
+            .map_err(sql_refusal)?;
+        if rows.next().map_err(sql_refusal)?.is_some() || stored.as_deref() != Some(id) {
+            return Err(source_refusal());
+        }
+        drop(rows);
+        drop(statement);
+        self.context.check()?;
+        self.anchor_id_serialized_read_bytes = self
+            .anchor_id_serialized_read_bytes
+            .checked_add(usize_u64(id.len())?)
+            .ok_or(ItemRefusal::Budget)?;
+        if inserted == 1 {
+            self.anchor_id_rows = self
+                .anchor_id_rows
+                .checked_add(1)
+                .ok_or(ItemRefusal::Budget)?;
+            self.anchor_id_serialized_write_bytes = self
+                .anchor_id_serialized_write_bytes
+                .checked_add(usize_u64(id.len())?)
+                .ok_or(ItemRefusal::Budget)?;
+        }
+        self.max_anchor_id_bytes = self.max_anchor_id_bytes.max(id.len());
+        self.anchor_id_workspace_state_bytes = self.anchor_id_workspace_state_bytes.max(workspace);
+        self.context.check()?;
+        Ok((inserted == 1, workspace))
+    }
+
+    fn contains_anchor_id(
+        &mut self,
+        id: &str,
+        max_state_bytes: usize,
+    ) -> Result<(bool, usize), ItemRefusal> {
+        if self.finished
+            || !self.anchor_ids_sealed
+            || !self.anchor_id_eof_seen
+            || !self.anchor_id_count_verified
+        {
+            return Err(source_refusal());
+        }
+        let workspace = Self::claim_id_workspace(id.len().max(1), 3)?;
+        self.preflight(workspace, max_state_bytes)?;
+        self.context.check()?;
+        self.charge_anchor_id_scan_rows(1)?;
+        let mut statement = self
+            .db
+            .prepare("SELECT id FROM sf_closure_anchor_ids WHERE id=?1")
+            .map_err(sql_refusal)?;
+        let mut rows = statement.query([id]).map_err(sql_refusal)?;
+        let stored = rows
+            .next()
+            .map_err(sql_refusal)?
+            .map(|row| bounded_row_text(row, 0, workspace))
+            .transpose()
+            .map_err(sql_refusal)?;
+        if rows.next().map_err(sql_refusal)?.is_some()
+            || stored.as_deref().is_some_and(|stored| stored != id)
+        {
+            return Err(source_refusal());
+        }
+        drop(rows);
+        drop(statement);
+        self.context.check()?;
+        let found = stored.is_some();
+        if found {
+            self.anchor_id_serialized_read_bytes = self
+                .anchor_id_serialized_read_bytes
+                .checked_add(usize_u64(id.len())?)
+                .ok_or(ItemRefusal::Budget)?;
+        }
+        self.anchor_id_workspace_state_bytes = self.anchor_id_workspace_state_bytes.max(workspace);
+        Ok((found, workspace))
+    }
+
+    fn begin_anchor_ids(&mut self, expected_rows: u64) -> Result<(), ItemRefusal> {
+        if self.finished
+            || self.anchor_ids_sealed
+            || self.anchor_id_eof_seen
+            || self.anchor_id_drained_rows != 0
+            || self.last_anchor_id.is_some()
+            || self.anchor_id_rows != expected_rows
+        {
+            return Err(source_refusal());
+        }
+        self.context.check()?;
+        self.expected_anchor_id_rows = Some(expected_rows);
+        self.anchor_ids_sealed = true;
+        Ok(())
+    }
+
+    fn next_anchor_id(
+        &mut self,
+        max_state_bytes: usize,
+    ) -> Result<(Option<String>, usize, usize, usize), ItemRefusal> {
+        let Some(expected_rows) = self.expected_anchor_id_rows else {
+            return Err(source_refusal());
+        };
+        if self.finished
+            || !self.anchor_ids_sealed
+            || self.anchor_id_eof_seen
+            || self.anchor_id_drained_rows > expected_rows
+            || self.anchor_id_rows != expected_rows
+        {
+            return Err(source_refusal());
+        }
+        let workspace = if self.anchor_id_drained_rows < expected_rows {
+            Self::claim_id_workspace(self.max_anchor_id_bytes.max(1), 4)?
+        } else {
+            size_of::<String>() + 512
+        };
+        self.preflight(workspace, max_state_bytes)?;
+        self.anchor_id_workspace_state_bytes = self.anchor_id_workspace_state_bytes.max(workspace);
+        self.context.check()?;
+        self.charge_anchor_id_scan_rows(1)?;
+        let sql = if self.last_anchor_id.is_some() {
+            "SELECT id FROM sf_closure_anchor_ids WHERE id>?1 \
+             ORDER BY id COLLATE BINARY LIMIT 1"
+        } else {
+            "SELECT id FROM sf_closure_anchor_ids \
+             ORDER BY id COLLATE BINARY LIMIT 1"
+        };
+        let mut statement = self.db.prepare(sql).map_err(sql_refusal)?;
+        let mut rows = if let Some(after_id) = self.last_anchor_id.as_deref() {
+            statement.query([after_id]).map_err(sql_refusal)?
+        } else {
+            statement.query([]).map_err(sql_refusal)?
+        };
+        let next = rows
+            .next()
+            .map_err(sql_refusal)?
+            .map(|row| bounded_row_text(row, 0, workspace))
+            .transpose()
+            .map_err(sql_refusal)?;
+        if rows.next().map_err(sql_refusal)?.is_some() {
+            return Err(source_refusal());
+        }
+        drop(rows);
+        drop(statement);
+        self.context.check()?;
+        let Some(id) = next else {
+            if self.anchor_id_drained_rows != expected_rows {
+                return Err(source_refusal());
+            }
+            self.last_anchor_id = None;
+            self.anchor_id_eof_seen = true;
+            return Ok((None, workspace, 0, 0));
+        };
+        self.anchor_id_serialized_read_bytes = self
+            .anchor_id_serialized_read_bytes
+            .checked_add(usize_u64(id.len())?)
+            .ok_or(ItemRefusal::Budget)?;
+        if id.len() > self.max_anchor_id_bytes
+            || self
+                .last_anchor_id
+                .as_deref()
+                .is_some_and(|previous| previous >= id.as_str())
+        {
+            return Err(source_refusal());
+        }
+        self.anchor_id_drained_rows = self
+            .anchor_id_drained_rows
+            .checked_add(1)
+            .ok_or(ItemRefusal::Budget)?;
+        if self.anchor_id_drained_rows > expected_rows {
+            return Err(source_refusal());
+        }
+        let row_state = Self::row_text_state(id.len())?;
+        let retained_cursor_state = Self::row_text_state(id.len())?;
+        self.context.active_state(
+            row_state
+                .checked_add(retained_cursor_state)
+                .ok_or(ItemRefusal::Budget)?,
+        )?;
+        self.last_anchor_id = Some(id.clone());
+        self.context.check()?;
+        Ok((Some(id), workspace, row_state, retained_cursor_state))
+    }
+
+    fn finish_anchor_ids(
+        &mut self,
+        expected_rows: u64,
+        max_state_bytes: usize,
+    ) -> Result<SourceFoundationClosureAnchorStoreCost, ItemRefusal> {
+        if self.finished
+            || !self.anchor_ids_sealed
+            || self.expected_anchor_id_rows != Some(expected_rows)
+            || self.anchor_id_rows != expected_rows
+            || self.anchor_id_drained_rows != expected_rows
+            || !self.anchor_id_eof_seen
+            || self.last_anchor_id.is_some()
+            || self.anchor_id_count_verified
+        {
+            return Err(source_refusal());
+        }
+        let workspace = size_of::<i64>() + 256;
+        self.preflight(workspace, max_state_bytes)?;
+        self.context.check()?;
+        let scan_rows = usize::try_from(expected_rows)
+            .map_err(|_| ItemRefusal::Budget)?
+            .checked_add(1)
+            .ok_or(ItemRefusal::Budget)?;
+        self.charge_anchor_id_scan_rows(scan_rows)?;
+        let mut statement = self
+            .db
+            .prepare("SELECT count(*) FROM sf_closure_anchor_ids")
+            .map_err(sql_refusal)?;
+        let mut rows = statement.query([]).map_err(sql_refusal)?;
+        let actual = rows
+            .next()
+            .map_err(sql_refusal)?
+            .map(|row| row.get::<_, i64>(0).map_err(sql_refusal))
+            .transpose()?
+            .ok_or_else(source_refusal)?;
+        if actual < 0
+            || u64::try_from(actual).map_err(|_| source_refusal())? != expected_rows
+            || rows.next().map_err(sql_refusal)?.is_some()
+        {
+            return Err(source_refusal());
+        }
+        drop(rows);
+        drop(statement);
+        self.context.check()?;
+        self.anchor_id_serialized_read_bytes = self
+            .anchor_id_serialized_read_bytes
+            .checked_add(size_of::<i64>() as u64)
+            .ok_or(ItemRefusal::Budget)?;
+        self.anchor_id_workspace_state_bytes = self.anchor_id_workspace_state_bytes.max(workspace);
+        self.anchor_id_count_verified = true;
+        Ok(SourceFoundationClosureAnchorStoreCost {
+            id_rows: self.anchor_id_rows,
+            drained_rows: self.anchor_id_drained_rows,
+            serialized_read_bytes: self.anchor_id_serialized_read_bytes,
+            serialized_write_bytes: self.anchor_id_serialized_write_bytes,
+            scan_row_operations: self.anchor_id_scan_row_operations,
+            peak_workspace_state_bytes: self.anchor_id_workspace_state_bytes,
+            eof_seen: self.anchor_id_eof_seen,
+            count_verified: self.anchor_id_count_verified,
+        })
+    }
+
     fn begin_responsibility_claims(&mut self, expected_rows: u64) -> Result<(), ItemRefusal> {
         if self.finished
             || self.responsibility_claims_sealed
@@ -9758,6 +10070,7 @@ impl SourceFoundationClosureSchemaRequestStore
         expected_responsibility_validated_event_rows: u64,
         expected_publication_validated_event_rows: u64,
         expected_boundary_responsibility_ref_rows: u64,
+        expected_anchor_id_rows: u64,
         expected_provision_claim_rows: u64,
         expected_provision_event_id_rows: u64,
         expected_provision_used_event_rows: u64,
@@ -9810,6 +10123,13 @@ impl SourceFoundationClosureSchemaRequestStore
                 != expected_boundary_responsibility_ref_rows
             || !self.boundary_responsibility_ref_eof_seen
             || self.last_boundary_responsibility_ref.is_some()
+            || self.anchor_id_rows != expected_anchor_id_rows
+            || self.expected_anchor_id_rows != Some(expected_anchor_id_rows)
+            || !self.anchor_ids_sealed
+            || self.anchor_id_drained_rows != expected_anchor_id_rows
+            || !self.anchor_id_eof_seen
+            || self.last_anchor_id.is_some()
+            || !self.anchor_id_count_verified
             || self.provision_claim_rows != expected_provision_claim_rows
             || self.expected_provision_claim_rows != Some(expected_provision_claim_rows)
             || self.provision_claim_drained_rows != expected_provision_claim_rows
@@ -11857,6 +12177,18 @@ impl<'candidate, 'host> SpoolDefaultStore<'candidate, 'host> {
                 boundary_responsibility_refs_sealed: false,
                 boundary_responsibility_ref_eof_seen: false,
                 boundary_responsibility_ref_count_verified: false,
+                anchor_id_rows: 0,
+                anchor_id_drained_rows: 0,
+                anchor_id_serialized_read_bytes: 0,
+                anchor_id_serialized_write_bytes: 0,
+                anchor_id_scan_row_operations: 0,
+                anchor_id_workspace_state_bytes: 0,
+                max_anchor_id_bytes: 0,
+                last_anchor_id: None,
+                expected_anchor_id_rows: None,
+                anchor_ids_sealed: false,
+                anchor_id_eof_seen: false,
+                anchor_id_count_verified: false,
                 derivation_cost: SourceFoundationClosureDerivationStoreCost::default(),
                 topology_cost: SourceFoundationClosureTopologyStoreCost::default(),
                 max_topology_claim_bytes: [0; 6],
