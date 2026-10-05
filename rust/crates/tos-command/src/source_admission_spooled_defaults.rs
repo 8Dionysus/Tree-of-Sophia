@@ -8475,7 +8475,15 @@ impl<'candidate, 'host> SpoolDefaultStore<'candidate, 'host> {
                 &mut discovery_schema_requests,
                 &mut discovery_digest_cache,
                 &mut biblio,
-            )?;
+            )
+            .map_err(|error| match error {
+                ItemRefusal::Budget => ItemRefusal::BudgetCheck {
+                    check: "candidate default provider callback",
+                    used: None,
+                    limit: None,
+                },
+                other => other,
+            })?;
             closure_links.verify_finished()?;
             drop(closure_links);
             closure_schema_requests.verify_finished()?;
@@ -8498,6 +8506,13 @@ impl<'candidate, 'host> SpoolDefaultStore<'candidate, 'host> {
         if result.is_err() {
             self.candidate.abandon();
         }
-        result
+        result.map_err(|error| match error {
+            ItemRefusal::Budget => ItemRefusal::BudgetCheck {
+                check: "candidate default provider preparation or final fences",
+                used: None,
+                limit: None,
+            },
+            other => other,
+        })
     }
 }

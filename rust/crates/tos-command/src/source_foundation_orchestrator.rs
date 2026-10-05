@@ -662,15 +662,18 @@ fn bounded_usize(value: u64) -> Result<usize, FoundationOrchestratorError> {
 }
 
 fn candidate_callback_refusal(stage: &'static str, error: ItemRefusal) -> io::Error {
-    let error = match error {
+    crate::source_admission_spooled_index::receiver_refusal(candidate_owner_refusal(stage, error))
+}
+
+fn candidate_owner_refusal(stage: &'static str, error: ItemRefusal) -> ItemRefusal {
+    match error {
         ItemRefusal::Budget => ItemRefusal::BudgetCheck {
             check: stage,
             used: None,
             limit: None,
         },
         other => other,
-    };
-    crate::source_admission_spooled_index::receiver_refusal(error)
+    }
 }
 
 fn owner(error: ItemRefusal) -> FoundationOrchestratorError {
@@ -2328,7 +2331,7 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
                         &mut **biblio_schema_worker,
                         biblio_limits,
                         cancelled,
-                    )?;
+                    ).map_err(|error| candidate_owner_refusal("candidate bibliography receiver", error))?;
                     drop(biblio_schema_worker);
                     if biblio_report.input_identity() != &fence
                         || biblio_report.source_membership() != fence.membership
@@ -2386,9 +2389,10 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
                             .and_then(|state| state.checked_add(biblio_state))
                             .ok_or(tos_validation::item_budget_origin!())?,
                         callback_state_bytes,
-                    )?;
+                    ).map_err(|error| candidate_owner_refusal("candidate default source preparation", error))?;
                     if let Some(history) = view.history.as_deref_mut() {
-                        rule_source = rule_source.with_history(history)?;
+                        rule_source = rule_source.with_history(history)
+                            .map_err(|error| candidate_owner_refusal("candidate default history binding", error))?;
                     }
                     let event_state_cap = biblio_operation
                         .state_bytes
@@ -2425,7 +2429,7 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
                         default_rules_limits,
                         stored_limits,
                         cancelled,
-                    )?;
+                    ).map_err(|error| candidate_owner_refusal("candidate default rules receiver", error))?;
                     let replay_cost_after_rules = replay.cost();
                     let evidence_peak_state = replay_cost_after_rules
                         .candidate_artifact_evidence_peak_state_bytes
@@ -2483,7 +2487,8 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
                     {
                         return Err(tos_validation::item_budget_origin!());
                     }
-                    rule_source.recheck_auxiliary()?;
+                    rule_source.recheck_auxiliary()
+                        .map_err(|error| candidate_owner_refusal("candidate default auxiliary recheck", error))?;
                     let reader_cost = rule_source.cost();
                     drop(rule_source);
                     let reader_io_after = view.original_io.snapshot();

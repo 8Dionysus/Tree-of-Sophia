@@ -1372,7 +1372,7 @@ fn inspect_source_foundation_default_rules_from_input_stored_inner<
     }
     input.verify_current_fence(coverage, operation.deadline, cancelled)?;
     if limits.max_event_map_bytes < 2 {
-        return Err(ItemRefusal::Budget);
+        return Err(crate::item_budget_origin!());
     }
     let records_cost = records.cost();
     let records_read_reservation_bytes = records_cost
@@ -1380,7 +1380,7 @@ fn inspect_source_foundation_default_rules_from_input_stored_inner<
         .unwrap_or(records_cost.record_read_limit_bytes)
         .checked_add(records_cost.item_observed_read_bytes)
         .and_then(|bytes| bytes.checked_add(records_cost.item_schema_resource_bytes))
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     let records_state_reservation_upper_bound_bytes = records_cost
         .rolling_accounted_state_upper_bound_bytes
         .unwrap_or(records_cost.operation_state_limit_bytes);
@@ -1406,13 +1406,14 @@ fn inspect_source_foundation_default_rules_from_input_stored_inner<
         summary_limits,
         cancelled,
         &mut scanned,
-    )?;
+    )
+    .map_err(|error| default_owner_refusal("stored default records summary", error))?;
     let mut aggregate_source = AggregateLayerFamilySource {
         inner: source,
         read_allowance: operation
             .max_total_bytes
             .checked_sub(records_read_reservation_bytes)
-            .ok_or(ItemRefusal::Budget)?,
+            .ok_or(crate::item_budget_origin!())?,
         read_bytes: 0,
     };
     let labs =
@@ -1427,7 +1428,8 @@ fn inspect_source_foundation_default_rules_from_input_stored_inner<
             )?,
             paths,
             physical,
-        )?;
+        )
+        .map_err(|error| default_owner_refusal("stored default labs", error))?;
     used_state = add_state(
         used_state,
         labs.cost.retained_state_bytes,
@@ -1436,7 +1438,7 @@ fn inspect_source_foundation_default_rules_from_input_stored_inner<
     let mut direct_owner_issue_count = summary
         .direct_issue_count
         .checked_add(labs.ordered_issues.len())
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     let gold_limits = remaining_limits(
         operation,
         records_read_reservation_bytes,
@@ -1453,10 +1455,11 @@ fn inspect_source_foundation_default_rules_from_input_stored_inner<
             physical,
             require_local_payloads,
             gold_limits,
-        )?;
+        )
+        .map_err(|error| default_owner_refusal("stored default goldsets", error))?;
     direct_owner_issue_count = direct_owner_issue_count
         .checked_add(goldsets.ordered_issues.len())
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     used_state = add_state(
         used_state,
         goldsets.retained_state_bytes,
@@ -1479,7 +1482,7 @@ fn inspect_source_foundation_default_rules_from_input_stored_inner<
         used_state,
         direct_owner_issue_count,
     )?;
-    let discovery = if let Some(provider) = evidence_provider.as_deref_mut() {
+    let discovery = (|| { Ok(if let Some(provider) = evidence_provider.as_deref_mut() {
         if let Some(seen_ids) = discovery_seen_ids.as_deref_mut() {
             if let Some(run_summaries) = discovery_run_summaries.as_deref_mut() {
                 if let Some(event_summaries) = discovery_event_summaries.as_deref_mut() {
@@ -1654,7 +1657,7 @@ fn inspect_source_foundation_default_rules_from_input_stored_inner<
                 require_local_payloads,
             )?
         }
-    };
+    }) })().map_err(|error| default_owner_refusal("stored default discovery", error))?;
     if discovery.input_identity() != input.input_identity()
         || discovery.source_membership() != *records.source_membership()
     {
@@ -1669,7 +1672,7 @@ fn inspect_source_foundation_default_rules_from_input_stored_inner<
     let mut discovery = discovery.into_report();
     direct_owner_issue_count = direct_owner_issue_count
         .checked_add(discovery.issues.len())
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     used_state = add_state(
         used_state,
         discovery.cost.state_bytes,
@@ -1686,7 +1689,7 @@ fn inspect_source_foundation_default_rules_from_input_stored_inner<
             operation
                 .max_state_bytes
                 .checked_sub(used_state_after_discovery.get())
-                .ok_or(ItemRefusal::Budget)
+                .ok_or(crate::item_budget_origin!())
         };
         let mut insert = |id: &str, value: &Value, workspace_state_bytes: usize| {
             let mut row_state = add_state(
@@ -1698,7 +1701,7 @@ fn inspect_source_foundation_default_rules_from_input_stored_inner<
             used_state_after_discovery.set(
                 row_state
                     .checked_sub(workspace_state_bytes)
-                    .ok_or(ItemRefusal::Budget)?,
+                    .ok_or(crate::item_budget_origin!())?,
             );
             Ok(())
         };
@@ -1744,7 +1747,7 @@ fn inspect_source_foundation_default_rules_from_input_stored_inner<
         used_state,
         direct_owner_issue_count,
     )?;
-    let closure = if let Some(schema_request_store) = closure_schema_request_store.take() {
+    let closure = (|| { Ok(if let Some(schema_request_store) = closure_schema_request_store.take() {
         crate::source_foundation_closure::inspect_source_foundation_closure_with_identity_and_candidate_stores(
             &mut aggregate_source,
             input,
@@ -1771,10 +1774,10 @@ fn inspect_source_foundation_default_rules_from_input_stored_inner<
             closure_link_store.take(),
             closure_limits,
         )?
-    };
+    }) })().map_err(|error| default_owner_refusal("stored default closure", error))?;
     direct_owner_issue_count = direct_owner_issue_count
         .checked_add(closure.issues.len())
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     used_state = add_state(
         used_state,
         closure.cost.reserved_state_bytes,
@@ -1794,13 +1797,13 @@ fn inspect_source_foundation_default_rules_from_input_stored_inner<
         .checked_add(later_district_owner_issue_bytes(
             &labs, &goldsets, &discovery, &closure,
         )?)
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     let spooled_discovery_schema_request_count =
         usize::try_from(discovery.cost.candidate_discovery_schema_request_count)
-            .map_err(|_| ItemRefusal::Budget)?;
+            .map_err(|_| crate::item_budget_origin!())?;
     let spooled_closure_schema_request_count =
         usize::try_from(closure.cost.candidate_schema_request_count)
-            .map_err(|_| ItemRefusal::Budget)?;
+            .map_err(|_| crate::item_budget_origin!())?;
     let queued_schema_document_count = summary
         .schema_document_count
         .checked_add(labs.schema_checks.len())
@@ -1809,16 +1812,16 @@ fn inspect_source_foundation_default_rules_from_input_stored_inner<
         .and_then(|count| count.checked_add(spooled_discovery_schema_request_count))
         .and_then(|count| count.checked_add(closure.schema_requests.len()))
         .and_then(|count| count.checked_add(spooled_closure_schema_request_count))
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     let later_district_state_bytes = labs
         .cost
         .retained_state_bytes
         .checked_add(goldsets.retained_state_bytes)
         .and_then(|bytes| bytes.checked_add(discovery.cost.state_bytes))
         .and_then(|bytes| bytes.checked_add(closure.cost.reserved_state_bytes))
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     if direct_owner_issue_count > operation.max_issues {
-        return Err(ItemRefusal::Budget);
+        return Err(crate::item_budget_origin!());
     }
     // Copy only measured scalar costs before moving their owned payload.
     let discovery_seen_ids_peak_workspace_state_bytes = discovery
@@ -2597,17 +2600,29 @@ fn remaining_limits(
     })
 }
 
+fn default_owner_refusal(stage: &'static str, error: ItemRefusal) -> ItemRefusal {
+    match error {
+        ItemRefusal::Budget => ItemRefusal::BudgetCheck {
+            check: stage,
+            used: None,
+            limit: None,
+        },
+        other => other,
+    }
+}
+
 fn add_state(current: usize, additional: usize, limit: usize) -> Result<usize, ItemRefusal> {
-    current
+    let used = current
         .checked_add(additional)
-        .filter(|used| *used <= limit)
-        .ok_or_else(|| {
-            budget_refusal(
-                "source-foundation aggregate retained state",
-                current.saturating_add(additional) as u64,
-                limit as u64,
-            )
-        })
+        .ok_or(crate::item_budget_origin!())?;
+    if used > limit {
+        return Err(ItemRefusal::BudgetCheck {
+            check: "source-foundation aggregate retained state",
+            used: u64::try_from(used).ok(),
+            limit: u64::try_from(limit).ok(),
+        });
+    }
+    Ok(used)
 }
 
 fn owner_issue_bytes(
