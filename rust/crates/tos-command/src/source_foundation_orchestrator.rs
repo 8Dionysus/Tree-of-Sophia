@@ -2580,6 +2580,8 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
                     };
                     let evaluated = super::foundation_rule_diagnostics::evaluate_candidate_stored_rules(
                         stored_report,
+                        records,
+                        page_budget,
                         discovery_schema_requests,
                         closure_schema_requests,
                         &mut **schemas,

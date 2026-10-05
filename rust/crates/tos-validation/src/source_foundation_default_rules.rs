@@ -558,6 +558,8 @@ pub struct SourceFoundationDefaultRulesReport {
 /// reconstructed in this result. Schema request DTOs remain owned by their
 /// existing bounded districts so the caller can run the same diagnostics.
 pub struct SourceFoundationDefaultRulesStoredReport<I> {
+    /// Authenticated Records DTO requests still scheduled for the diagnostics bridge.
+    pub records_schema_document_count: usize,
     pub input_identity: I,
     pub source_membership: tos_source_store::SourceMembershipV1,
     pub labs: SourceFoundationLabsReport,
@@ -1834,6 +1836,7 @@ fn inspect_source_foundation_default_rules_from_input_stored_inner<
         .cost
         .candidate_discovery_run_summary_scan_row_operations;
     Ok(SourceFoundationDefaultRulesStoredReport {
+        records_schema_document_count: summary.schema_document_count,
         input_identity: *input.input_identity(),
         source_membership: *records.source_membership(),
         labs,
