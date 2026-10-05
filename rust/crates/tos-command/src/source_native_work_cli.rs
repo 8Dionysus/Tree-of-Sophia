@@ -211,6 +211,9 @@ pub(super) fn run(
         deadline,
     };
     let mut worker = selected_schema(invocation, selected, deadline, cancelled)?;
+    let mut current_worker = None;
+    let mut original_worker_finished = false;
+    let mut current_worker_finished = false;
     let result = (|| {
         ctx.check_from_selected_captures(selected, software, components, deadline, cancelled)?;
         let profiles = crate::source_claims::work_expression_source_descriptors(
@@ -421,17 +424,30 @@ pub(super) fn run(
                     )?
                 }
             } else if retained.is_some() {
-                owner::replay_isolated_work_expression_from_captures(
+                worker.finish(deadline, cancelled).map_err(|reason| {
+                    SourceCommandError::SchemaExecution {
+                        path: "work.expression.replay".into(),
+                        root: "native Work original selected cut".into(),
+                        reason,
+                    }
+                })?;
+                original_worker_finished = true;
+                current_worker = Some(selected_schema(invocation, current, deadline, cancelled)?);
+                let replay = owner::replay_isolated_work_expression_from_captures(
                     &filesystem,
                     ctx,
                     selected,
                     current,
                     software,
                     components,
-                    &mut worker,
+                    current_worker.as_mut().ok_or(SourceCommandError::Invalid(
+                        "Work replay schema worker absent",
+                    ))?,
                     limits,
                     cancelled,
-                )?
+                );
+                current_worker_finished = replay.is_ok();
+                replay?
             } else {
                 owner::execute_isolated_work_expression_from_captures(
                     &filesystem,
@@ -483,7 +499,14 @@ pub(super) fn run(
         )
     })();
     if result.is_err() {
-        let _ = worker.finish(deadline, cancelled);
+        if !original_worker_finished {
+            let _ = worker.finish(deadline, cancelled);
+        }
+        if !current_worker_finished {
+            if let Some(worker) = current_worker.as_mut() {
+                let _ = worker.finish(deadline, cancelled);
+            }
+        }
     }
     result
 }

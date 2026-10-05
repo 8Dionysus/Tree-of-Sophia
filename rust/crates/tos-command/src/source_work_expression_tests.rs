@@ -8,7 +8,9 @@ use std::os::unix::fs::{MetadataExt, PermissionsExt};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::time::{Duration, Instant};
-use tos_foundation::{JsonLimits, SourceRevision};
+use tos_foundation::{
+    CanonicalProfile, JsonLimits, JsonMode, SourceRevision, canonical_bytes_v1, parse_json,
+};
 use tos_source_store::{CorpusReader, CutReadLimits, ReadLimits, SoftwareCaptureSelectionV1};
 use tos_validation::FormatProfile;
 use tos_validation::executor::{ExactWorkerIdentity, ExecutorBudget};
@@ -111,14 +113,12 @@ fn cut(
         "files":members,"identities":{},"dependencies":{},"retirements":[],
         "validator_sha256":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
     });
-    let mut body = serde_json::to_vec(&manifest).unwrap();
-    body.push(b'\n');
+    let body = canonical_corpus_manifest(&manifest);
     let revision = SourceRevision(Digest256::of_bytes(&body));
     manifest["revision"] = serde_json::Value::String(revision.0.to_hex());
     let home = root.join("revisions").join(revision.0.to_hex());
     fs::create_dir(&home).unwrap();
-    let mut raw = serde_json::to_vec(&manifest).unwrap();
-    raw.push(b'\n');
+    let raw = canonical_corpus_manifest(&manifest);
     fs::write(home.join("snapshot.json"), raw).unwrap();
     let reader = CorpusReader::open_existing(
         root,
@@ -144,6 +144,22 @@ fn cut(
         )
         .unwrap();
     (revision, cut)
+}
+
+fn canonical_corpus_manifest(value: &serde_json::Value) -> Vec<u8> {
+    let serialized = serde_json::to_vec(value).unwrap();
+    let parsed = parse_json(
+        &serialized,
+        JsonMode::PublishedStrict,
+        JsonLimits::default(),
+    )
+    .unwrap();
+    canonical_bytes_v1(
+        parsed.root(),
+        CanonicalProfile::CorpusSnapshotV1,
+        JsonLimits::default(),
+    )
+    .unwrap()
 }
 
 fn software(
