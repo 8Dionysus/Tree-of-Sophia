@@ -822,6 +822,8 @@ fn schema_limits_for_ticket(
     max_checks: usize,
 ) -> Result<SourceFoundationSchemaLimits, FoundationOrchestratorError> {
     let operation = ticket.operation_limits();
+    let max_checks =
+        max_checks.min(tos_validation::source_foundation_schema::MAX_SOURCE_FOUNDATION_CHECKS);
     let instance_cap = bounded_usize(operation.source_read_bytes)?
         .min(bounded_usize(limits.invocation_budgets.max_member_bytes)?)
         .min(tos_validation::executor::BatchBudget::MAX_RAW_BYTES);
@@ -870,7 +872,6 @@ fn cut_worker_shape(
         max_total_raw_bytes: operation
             .source_read_bytes
             .min(operation.worker_wire_bytes)
-            .min(tos_validation::executor::BatchBudget::MAX_RAW_BYTES as u64)
             .max(1),
         aggregate_wire_upper_bound_bytes: operation.worker_wire_bytes,
         max_distinct_selectors: max_checks.max(1).min(1024),
@@ -1151,7 +1152,15 @@ pub(crate) fn build_candidate_native_index(
             }
         };
         index
-            .build(records, limits, json, json_state_bytes, &mut schema_check)
+            .build(
+                records,
+                limits,
+                json,
+                json_state_bytes,
+                &mut schema_check,
+                deadline,
+                cancelled,
+            )
             .map_err(FoundationOrchestratorError::Admission)?
     };
     schemas.finish(deadline, cancelled).map_err(owner)?;
@@ -1543,6 +1552,14 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
     use tos_validation::source_foundation_records::SourceFoundationRecordsPageBudget;
 
     let owner = |error| FoundationOrchestratorError::OwnerAt("candidate entry", error);
+    if (scope == tos_validation::source_foundation_default_rules::SourceFoundationDefaultRuleScope::SelectedRecordClosure)
+        != input.record_selection().is_some()
+    {
+        return Err(owner(tos_validation::item_rules::ItemRefusal::Source(
+            "candidate record selection does not match declared validation scope".into(),
+        )));
+    }
+
     let deadline = view.invocation.deadline();
     let cancelled = view.cancelled;
     let budgets = view.invocation.budgets;
@@ -1746,7 +1763,10 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
     if schema_count == 0 || schema_bytes == 0 || schema_max_bytes == 0 || largest_member == 0 {
         return Err(incomplete("candidate selected schema closure is empty"));
     }
-    let max_checks = max_members.min(65_536).max(1);
+    // Every diagnostic exchange charges at least one actual wire byte. The
+    // selected finite wire envelope bounds execution count independently of
+    // physical member count or the local schema loader's report capacity.
+    let max_checks = bounded_usize(schema_operation.worker_wire_bytes)?.max(1);
     let schema_limits = schema_limits_for_ticket(
         view.execution_limits,
         &schema_ticket,
@@ -2391,6 +2411,55 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
                         .usage()
                         .map_err(|_| tos_validation::item_budget_origin!())?;
                     let reader_io_before = view.original_io.snapshot();
+                    if let Some(selection) = input.record_selection() {
+                        let mut checked_claims = 0usize;
+                        for member in selection.members().filter(|member|
+                            selection.file_slots(&member.source_ref).iter().any(|slot| slot.kind == "claim"))
+                        {
+                            input.with_current_member(&member.source_ref, reader_member_bytes, deadline, cancelled,
+                                &mut |meta, raw| {
+                                    if meta.path != member.source_ref || meta.size_bytes != raw.len() as u64 {
+                                        return Err(ItemRefusal::Source("selected Claim member custody differs".into()));
+                                    }
+                                    let verification_state = selection.file_slots(&member.source_ref).iter()
+                                        .try_fold(0usize, |peak, slot| Ok::<_, ItemRefusal>(peak.max(slot.verification_state_upper_bound()?)))?;
+                                    let held = reader_retained_state.checked_add(raw.len())
+                                        .and_then(|state| state.checked_add(verification_state))
+                                        .ok_or(tos_validation::item_budget_origin!())?;
+                                    let local_state = callback_state_bytes.checked_sub(held)
+                                        .filter(|state| *state != 0).ok_or(tos_validation::item_budget_origin!())?;
+                                    input.require_callback_state(callback_state_bytes, original_operation_state)?;
+                                    let local_limits = ItemLimits {
+                                        max_member_bytes: reader_member_bytes.min(local_state),
+                                        max_total_bytes: after_replay_headroom,
+                                        max_state_bytes: local_state,
+                                        max_issues: biblio_limits.max_issues,
+                                        deadline,
+                                    };
+                                    let verified = selection.verify_file(&member.source_ref, raw, deadline, cancelled)?;
+                                    let mut rows = verified.row_cursor();
+                                    while let Some(row) = rows.next_checked(deadline, cancelled) {
+                                        let (_, bytes, slot) = row?;
+                                        if slot.kind != "claim" { continue; }
+                                        let mut worker = schema_worker.borrow_mut();
+                                        let report = tos_validation::record_rules::validate_source_claim_from_input(
+                                            input, records, bytes, &mut **worker, local_limits, cancelled)?;
+                                        if report.input_identity != fence || report.current_membership != fence.membership
+                                            || report.source_input_sha256 != Digest256::of_bytes(bytes) || !report.is_valid()
+                                        {
+                                            return Err(ItemRefusal::Source("selected Claim owner local forms are invalid or unbound".into()));
+                                        }
+                                        drop(report);
+                                        checked_claims = checked_claims.checked_add(1)
+                                            .ok_or(tos_validation::item_budget_origin!())?;
+                                    }
+                                    Ok(())
+                                })?;
+                        }
+                        if checked_claims != selection.slots().filter(|slot| slot.kind == "claim").count() {
+                            return Err(ItemRefusal::Source("selected Claim local owner coverage did not reach EOF".into()));
+                        }
+                    }
                     let mut schema_executor =
                         CandidateArtifactSchemaExecutor::new(&schema_worker);
                     let mut rule_source = FoundationRuleSource::from_candidate(
@@ -2834,21 +2903,23 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
     let mut observed_catalog_bytes = 0u64;
     input
         .for_each_current_member_meta(deadline, cancelled, &mut |member| {
-            if member.path.starts_with("ToS/source-witnesses/") {
-                observed_catalog_members = observed_catalog_members
-                    .checked_add(1)
-                    .ok_or(ItemRefusal::Budget)?;
-                largest_catalog_member = largest_catalog_member.max(member.size_bytes);
-                observed_catalog_bytes = observed_catalog_bytes
-                    .checked_add(member.size_bytes)
-                    .ok_or(ItemRefusal::Budget)?;
-            }
+            // This is the physical preparation envelope, not the semantic
+            // SourceWitness census. The producer also reads declared grammar,
+            // registries and native source members from this same held input.
+            observed_catalog_members = observed_catalog_members
+                .checked_add(1)
+                .ok_or(tos_validation::item_budget_origin!())?;
+            largest_catalog_member = largest_catalog_member.max(member.size_bytes);
+            observed_catalog_bytes = observed_catalog_bytes
+                .checked_add(member.size_bytes)
+                .ok_or(tos_validation::item_budget_origin!())?;
             Ok(())
         })
         .map_err(owner)?;
     if observed_catalog_members == 0
         || observed_catalog_members > max_members
-        || observed_catalog_bytes > fence.source_bytes
+        || u64::try_from(observed_catalog_members).ok() != Some(view.coverage.member_count())
+        || observed_catalog_bytes != fence.source_bytes
     {
         return fail_window(
             view.execution_limits,

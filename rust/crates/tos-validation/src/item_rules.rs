@@ -3,6 +3,7 @@
 //! enumeration, retained history and current rights remain separate owners.
 
 use std::collections::{BTreeMap, BTreeSet};
+use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
 use std::time::Instant;
 
@@ -144,6 +145,11 @@ pub trait ItemSource {
     /// Borrow the operation's original cancellation flag. Decoders poll this
     /// exact signal; adapters must not synthesize or reset a local token.
     fn cancellation_flag(&self) -> &AtomicBool;
+    fn record_selection(
+        &self,
+    ) -> Option<Arc<crate::source_record_selection::SourceRecordSelection>> {
+        None
+    }
     fn metadata(
         &mut self,
         path: &str,
@@ -179,6 +185,34 @@ pub trait ItemSource {
         _deadline: Instant,
     ) -> Result<Option<tos_foundation::JsonValue>, ItemRefusal> {
         Ok(None)
+    }
+}
+
+enum ItemProvenanceRows<'s, 'a> {
+    Full(std::iter::Enumerate<std::str::Lines<'a>>),
+    Selected(crate::source_record_selection::SelectedRowCursor<'s, 'a>),
+}
+impl<'s, 'a> ItemProvenanceRows<'s, 'a> {
+    fn next_checked(
+        &mut self,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Option<Result<(u64, &'a str), ItemRefusal>> {
+        match self {
+            Self::Full(rows) => rows.next().map(|(i, row)| Ok((i as u64 + 1, row))),
+            Self::Selected(rows) => rows.next_checked(deadline, cancelled).map(|row| {
+                let (line, raw, slot) = row?;
+                if slot.kind != "provenance_event" {
+                    return Err(ItemRefusal::Source(
+                        "Item provenance selected slot kind".into(),
+                    ));
+                }
+                let text = std::str::from_utf8(raw).map_err(|_| {
+                    ItemRefusal::Source("Item provenance selected slot UTF8".into())
+                })?;
+                Ok((line, text))
+            }),
+        }
     }
 }
 
@@ -926,17 +960,39 @@ impl ItemRules {
         let mut inventory_output_local = None;
         if !provenance_path.is_empty() {
             if let Some(raw) = self.raw(source, provenance_path)? {
-                let Ok(text) = std::str::from_utf8(&raw) else {
-                    self.issue(provenance_path, "invalid-jsonl-utf8")?;
-                    return Ok(());
+                let selection = source.record_selection();
+                let verified = if let Some(selection) = &selection {
+                    for slot in selection.file_slots(provenance_path) {
+                        let scratch = slot.verification_state_upper_bound()?;
+                        if scratch > self.available()? {
+                            return Err(crate::item_budget_origin!());
+                        }
+                    }
+                    Some(selection.verify_file(
+                        provenance_path,
+                        &raw,
+                        self.limits.deadline,
+                        source.cancellation_flag(),
+                    )?)
+                } else {
+                    None
                 };
-                // splitlines, like Python, does not turn the terminal LF into
-                // a fictitious blank record. Interior blank lines do reject.
-                for (i, line) in text.lines().enumerate() {
+                let mut rows = if let Some(verified) = &verified {
+                    ItemProvenanceRows::Selected(verified.row_cursor())
+                } else {
+                    let Ok(text) = std::str::from_utf8(&raw) else {
+                        self.issue(provenance_path, "invalid-jsonl-utf8")?;
+                        return Ok(());
+                    };
+                    ItemProvenanceRows::Full(text.lines().enumerate())
+                };
+                while let Some(row) =
+                    rows.next_checked(self.limits.deadline, source.cancellation_flag())
+                {
+                    let (ordinal, line) = row?;
                     let baseline = self.live_bytes;
                     let line_result = (|| -> Result<(), ItemRefusal> {
                         self.check()?;
-                        let ordinal = i + 1;
                         let digits = ordinal.ilog10() as usize + 1;
                         self.admit_live(
                             std::mem::size_of::<String>() + provenance_path.len() + 1 + digits,
@@ -977,7 +1033,13 @@ impl ItemRules {
                         if !source.schema(
                             &location,
                             line.as_bytes(),
-                            EVENT,
+                            if selection.is_some()
+                                && event["schema_version"] == "tos_provenance_event_v2"
+                            {
+                                "ToS/contracts/provenance-event-v2.schema.json"
+                            } else {
+                                EVENT
+                            },
                             self.limits.deadline,
                         )? {
                             self.issue(&location, "schema")?;

@@ -38,6 +38,18 @@ refuse selection. The existing lab-only evaluation mode remains ineligible
 for corpus admission; ordinary foundation commands reject explicit admission
 profiles rather than ignoring them.
 
+The distinct `selected-record-closure` profile requires
+`--record-selection-manifest PATH` with the
+[source record selection grammar](../../contracts/source-record-closure-selection.schema.json).
+It binds stable roots and exact catalog slot addresses to the same candidate
+fence. Whole physical files remain retained with their original bytes and EOF;
+only the verified selected records and required closure receive mechanical
+acceptance. Validator identity and receipts bind the exact selection manifest,
+software grammar, roots and slot bindings. Downstream semantic catalogs must
+consume that selected index without accepting other retained ledger rows.
+Required references, rights and payload custody remain mandatory. The existing
+whole-file selected profile and full-audit default keep their original scope.
+
 ## Query vocabulary for derived readers
 
 [`query-vocabulary.v1.json`](query-vocabulary.v1.json) registers the source

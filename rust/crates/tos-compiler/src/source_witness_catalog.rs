@@ -436,6 +436,7 @@ pub struct SourceCatalogReceipt<B = crate::SourceBinding> {
     manifest_sha256: String,
     row_count: u64,
     summary_sha256: String,
+    record_selection_sha256: Option<Digest256>,
 }
 
 pub type ColdSourceCatalogReceipt =
@@ -757,14 +758,15 @@ fn summary<B: CatalogInputBinding>(
     receipt: &SourceCatalogReceipt<B>,
     l: SourceCatalogLimits,
 ) -> Result<String> {
-    let raw = encode(
-        &json!({"records":receipt.record_count,"claims":receipt.claim_count,
+    let mut value = json!({"records":receipt.record_count,"claims":receipt.claim_count,
         "slots":receipt.source_slot_count,"files":receipt.file_sha256,"rows":receipt.row_count,
         "row_root":receipt.row_root_sha256,"worker":receipt.worker_sha256,
         "binding":receipt.input_binding.value(),"manifest":receipt.manifest_sha256,
-        "inputs":receipt.input_root}),
-        l.max_output_row_bytes,
-    )?;
+        "inputs":receipt.input_root});
+    if let Some(digest) = &receipt.record_selection_sha256 {
+        value["record_selection_sha256"] = Value::String(digest.to_hex());
+    }
+    let raw = encode(&value, l.max_output_row_bytes)?;
     Ok(Digest256::of_bytes(&raw).to_hex())
 }
 
@@ -2133,14 +2135,62 @@ fn source_files(
     c: &Contracts,
     validator: &SourceCatalogValidator<'_>,
     l: SourceCatalogLimits,
+    selection: Option<&tos_validation::source_record_selection::SourceRecordSelection>,
+    verification_workspace: Option<usize>,
 ) -> Result<()> {
     let mut after = None;
     let mut count = 0u64;
+    let mut selected_records = 0usize;
+    let mut selected_slots = 0usize;
     loop {
         let page = stage.scan_input(CATALOG_SOURCE, SOURCE_FILES, after.as_deref(), 1)?;
         for file in page.rows {
+            if selection.is_some_and(|selection| !selection.selects_semantic_member(&file.id)) {
+                continue;
+            }
             let basename = source_ref(&file.id)?;
-            let slot_kind =
+            let verified = selection
+                .map(|selection| {
+                    let scratch = if selection.record(&file.id).is_some() {
+                        tos_validation::source_record_selection::selection_state_upper_bound(
+                            file.payload.len(),
+                        )
+                    } else {
+                        selection
+                            .file_slots(&file.id)
+                            .iter()
+                            .try_fold(0usize, |peak, slot| {
+                                Ok(peak.max(slot.verification_state_upper_bound()?))
+                            })
+                    }
+                    .map_err(|error| {
+                        Error::Source(format!("catalog selected verifier bound: {error:?}"))
+                    })?;
+                    let peak = scratch
+                        .checked_add(file.payload.len())
+                        .ok_or(Error::Budget("catalog selected verifier overlap"))?;
+                    if verification_workspace.is_none_or(|limit| peak > limit) {
+                        return Err(Error::Budget("catalog selected verifier workspace"));
+                    }
+                    selection
+                        .verify_file(
+                            &file.id,
+                            &file.payload,
+                            validator.deadline,
+                            validator.cancelled,
+                        )
+                        .map_err(|error| {
+                            Error::Source(format!("catalog selected file binding: {error:?}"))
+                        })
+                })
+                .transpose()?;
+            let mut cursor = verified.as_ref().map(|file| file.row_cursor());
+            let slot_kind = if let Some(selection) = selection {
+                selection
+                    .file_slots(&file.id)
+                    .first()
+                    .map(|slot| slot.kind.as_str())
+            } else {
                 if LEGACY_CLAIMS.contains(&basename) || basename == "source-claims.jsonl" {
                     Some("claim")
                 } else if basename.ends_with(".jsonl") && basename.contains("provenance") {
@@ -2149,7 +2199,8 @@ fn source_files(
                     Some("anchor")
                 } else {
                     None
-                };
+                }
+            };
             if let Some(kind) = slot_kind {
                 let file_sha = Digest256::of_bytes(&file.payload).to_hex();
                 let mut offset = 0usize;
@@ -2176,6 +2227,31 @@ fn source_files(
                         "cr"
                     };
                     let raw = &file.payload[start..end];
+                    let kind = if let Some(selection) = selection {
+                        if !selection.selected_row(&file.id, line) {
+                            continue;
+                        }
+                        let (selected_line, selected_raw, slot) = cursor
+                            .as_mut()
+                            .ok_or(Error::Invalid("catalog selected row cursor absent"))?
+                            .next_checked(validator.deadline, validator.cancelled)
+                            .ok_or(Error::Invalid("catalog selected row cursor early EOF"))?
+                            .map_err(|error| {
+                                Error::Source(format!("catalog selected slot binding: {error:?}"))
+                            })?;
+                        if selected_line != line
+                            || selected_raw.as_ptr() != raw.as_ptr()
+                            || selected_raw.len() != raw.len()
+                        {
+                            return Err(Error::Invalid("catalog selected physical row alias"));
+                        }
+                        selected_slots = selected_slots
+                            .checked_add(1)
+                            .ok_or(Error::Budget("catalog selected slot count"))?;
+                        slot.kind.as_str()
+                    } else {
+                        kind
+                    };
                     let string = std::str::from_utf8(raw)
                         .map_err(|_| Error::Invalid("catalog JSONL UTF8"))?;
                     // Python splitlines includes these nonphysical separators;
@@ -2236,7 +2312,32 @@ fn source_files(
                         insert(stage, "claims", "claim", id, &addressed, l)?;
                     }
                 }
+                if let Some(cursor) = &mut cursor {
+                    if cursor
+                        .next_checked(validator.deadline, validator.cancelled)
+                        .is_some()
+                    {
+                        return Err(Error::Invalid(
+                            "catalog selected slots missing at physical EOF",
+                        ));
+                    }
+                }
             } else {
+                if let Some(selection) = selection {
+                    selection
+                        .verify_record(
+                            &file.id,
+                            &file.payload,
+                            validator.deadline,
+                            validator.cancelled,
+                        )
+                        .map_err(|error| {
+                            Error::Source(format!("catalog selected record binding: {error:?}"))
+                        })?;
+                    selected_records = selected_records
+                        .checked_add(1)
+                        .ok_or(Error::Budget("catalog selected record count"))?;
+                }
                 count = count
                     .checked_add(1)
                     .filter(|n| *n <= l.max_rows)
@@ -2267,6 +2368,13 @@ fn source_files(
         if after.is_none() {
             break;
         }
+    }
+    if selection.is_some_and(|selection| {
+        selected_records != selection.record_count() || selected_slots != selection.slot_count()
+    }) {
+        return Err(Error::Invalid(
+            "catalog selected semantic source EOF counts",
+        ));
     }
     Ok(())
 }
@@ -2468,6 +2576,32 @@ pub fn prepare_candidate_source_witness_catalog_observed<I: Copy + Eq + 'static>
     }
     result
 }
+pub fn prepare_candidate_source_witness_catalog_observed_with_selection<I: Copy + Eq + 'static>(
+    stage: &mut KnowledgeStage<'_>,
+    validator: &SourceCatalogValidator<'_>,
+    l: SourceCatalogLimits,
+    observer: &mut impl SourceCatalogProfileObserver,
+    selection: Option<&tos_validation::source_record_selection::SourceRecordSelection>,
+    verification_workspace: Option<usize>,
+) -> Result<CandidateSourceCatalogReceipt<I>> {
+    let result = (|| {
+        stage.recheck_candidate_owner::<I>()?;
+        let receipt = prepare_catalog_receipt_observed_with_selection(
+            stage,
+            validator,
+            l,
+            observer,
+            selection,
+            verification_workspace,
+        )?;
+        stage.recheck_candidate_owner::<I>()?;
+        Ok(receipt)
+    })();
+    if result.is_err() {
+        stage.poison();
+    }
+    result
+}
 pub(crate) fn prepare_catalog_receipt<B: CatalogInputBinding>(
     stage: &mut KnowledgeStage<'_>,
     validator: &SourceCatalogValidator<'_>,
@@ -2480,6 +2614,16 @@ pub(crate) fn prepare_catalog_receipt_observed<B: CatalogInputBinding>(
     validator: &SourceCatalogValidator<'_>,
     l: SourceCatalogLimits,
     observer: &mut impl SourceCatalogProfileObserver,
+) -> Result<SourceCatalogReceipt<B>> {
+    prepare_catalog_receipt_observed_with_selection(stage, validator, l, observer, None, None)
+}
+pub(crate) fn prepare_catalog_receipt_observed_with_selection<B: CatalogInputBinding>(
+    stage: &mut KnowledgeStage<'_>,
+    validator: &SourceCatalogValidator<'_>,
+    l: SourceCatalogLimits,
+    observer: &mut impl SourceCatalogProfileObserver,
+    selection: Option<&tos_validation::source_record_selection::SourceRecordSelection>,
+    verification_workspace: Option<usize>,
 ) -> Result<SourceCatalogReceipt<B>> {
     let result = (|| {
         l.validate()?;
@@ -2496,7 +2640,7 @@ pub(crate) fn prepare_catalog_receipt_observed<B: CatalogInputBinding>(
                 CREATE TABLE source_catalog_reserved(id TEXT PRIMARY KEY) WITHOUT ROWID;")?; Ok(())
         })?;
         native_inventory(stage, &c, validator, l, observer)?;
-        source_files(stage, &c, validator, l)?;
+        source_files(stage, &c, validator, l, selection, verification_workspace)?;
         let (manifest, file_sha256, record_count, claim_count) = outputs(stage, &c, l)?;
         let source_slot_count = visit_rows(stage, "slots", None, l, |_, _, _| Ok(()))?;
         let (row_count, row_root_sha256) = row_root(stage, l)?;
@@ -2523,6 +2667,7 @@ pub(crate) fn prepare_catalog_receipt_observed<B: CatalogInputBinding>(
             manifest_sha256,
             row_count,
             summary_sha256: String::new(),
+            record_selection_sha256: selection.map(|selection| selection.digest()),
         };
         receipt.summary_sha256 = summary(&receipt, l)?;
         Ok(receipt)

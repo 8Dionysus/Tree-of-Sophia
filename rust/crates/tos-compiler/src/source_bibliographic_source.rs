@@ -471,6 +471,15 @@ enum PlanningCut<'a> {
     Streamed(&'a tos_source_store::StreamedCorpusCutReaderV1),
 }
 impl PlanningCut<'_> {
+    fn record_selection(
+        &self,
+    ) -> Option<std::sync::Arc<tos_validation::source_record_selection::SourceRecordSelection>>
+    {
+        match self {
+            Self::Candidate(input) => input.record_selection(),
+            _ => None,
+        }
+    }
     fn member(
         &self,
         revision: Option<SourceRevision>,
@@ -774,6 +783,14 @@ impl Planning<'_, '_> {
         // Only actual positive public metadata members join the raw recipe.
         // Payload/corpus bytes and generated catalog carriers remain outside.
         if public_path(path) {
+            if let Some(selection) = self.cut.record_selection() {
+                if !selection.contains_member(path) {
+                    // Optional producer companions do not enlarge the
+                    // declared closure. Required-reference validity remains
+                    // with the already executed Records/Discovery/Closure owners.
+                    return Ok(());
+                }
+            }
             self.select(path, NATIVE_TEXT)?;
             self.select(path, BIBLIOGRAPHIC_FILES)?;
         }
@@ -807,6 +824,11 @@ impl Planning<'_, '_> {
             self.select(path, CONTRACT_FILES)?;
         }
         if path.starts_with("ToS/source-witnesses/") {
+            if let Some(selection) = self.cut.record_selection() {
+                if !selection.selects_semantic_member(path) {
+                    return Ok(());
+                }
+            }
             if basenames.contains(basename)
                 || basename.ends_with(".jsonl")
                     && (basename.contains("provenance") || basename.contains("anchor"))
@@ -827,6 +849,19 @@ impl Planning<'_, '_> {
         Ok(())
     }
     fn packet(&mut self, path: &str, raw: &[u8]) -> Result<()> {
+        let selection = self.cut.record_selection();
+        if let Some(selection) = &selection {
+            if !path.starts_with("ToS/contracts/") && path != ENTITY && path != RELATION {
+                selection
+                    .verify_metadata_member(path, raw)
+                    .map_err(candidate_input_refusal)?;
+                // Held evidence remains available to the renderer, but it is not
+                // an additional semantic root of this explicit selection.
+                if !selection.selects_semantic_member(path) {
+                    return Ok(());
+                }
+            }
+        }
         let member = self
             .entries
             .get(path)?
@@ -855,6 +890,34 @@ impl Planning<'_, '_> {
                 ))?;
             }
         } else if path.ends_with(".jsonl") {
+            if let Some(selection) = &selection {
+                let mut scratch = 0;
+                for slot in selection.file_slots(path) {
+                    scratch = scratch.max(
+                        slot.verification_state_upper_bound()
+                            .map_err(candidate_input_refusal)?,
+                    );
+                }
+                if let Some(limit) = self.workspace_limit {
+                    self.plan_bytes
+                        .checked_add(self.live_raw_bytes)
+                        .and_then(|n| n.checked_add(scratch))
+                        .filter(|n| *n <= limit)
+                        .ok_or(Error::Budget("selected catalog row verification workspace"))?;
+                }
+                let verified = selection
+                    .verify_file(path, raw, self.graph_limits.deadline, self.cancelled)
+                    .map_err(candidate_input_refusal)?;
+                let mut cursor = verified.row_cursor();
+                while let Some(row) =
+                    cursor.next_checked(self.graph_limits.deadline, self.cancelled)
+                {
+                    let (_, row, _) = row.map_err(candidate_input_refusal)?;
+                    let parsed = self.parse_packet(row, cap)?;
+                    self.value(parsed.value(), 0)?;
+                }
+                return Ok(());
+            }
             // Original bytes stay intact. This pass discovers dependencies;
             // the owner producer verifies physical line/slot semantics later.
             let text =
@@ -1892,8 +1955,15 @@ fn prepare_catalog_plan_kernel<B: catalog::CatalogInputBinding>(
                 }
             }
         }
-        let receipt =
-            catalog::prepare_catalog_receipt_observed(target, validator, l.catalog, observer)?;
+        let record_selection = cut.record_selection();
+        let receipt = catalog::prepare_catalog_receipt_observed_with_selection(
+            target,
+            validator,
+            l.catalog,
+            observer,
+            record_selection.as_deref(),
+            plan.temporary_workspace_limit(),
+        )?;
 
         Ok(receipt)
     })();

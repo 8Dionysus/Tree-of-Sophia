@@ -585,6 +585,7 @@ pub(crate) struct CandidateRecordsReportVerified {
     record_issue_count: usize,
     item_issue_count: usize,
     manifest_item_id_count: usize,
+    record_selection: Option<Arc<tos_validation::source_record_selection::SourceRecordSelection>>,
 }
 
 /// Logical retained state for the private callback boundary and its stable
@@ -769,9 +770,20 @@ struct SpoolInput<'a> {
     json: JsonLimits,
     json_state_bytes: usize,
     row_state_limit: usize,
+    record_selection: Option<Arc<tos_validation::source_record_selection::SourceRecordSelection>>,
+    deadline: Instant,
+    cancelled: &'a AtomicBool,
 }
 
 impl CandidateIndexInput for SpoolInput<'_> {
+    fn record_selection(
+        &self,
+    ) -> Option<Arc<tos_validation::source_record_selection::SourceRecordSelection>> {
+        self.record_selection.clone()
+    }
+    fn selection_verification(&self) -> Option<(Instant, &AtomicBool)> {
+        Some((self.deadline, self.cancelled))
+    }
     fn tick(&mut self) -> io::Result<()> {
         self.candidate.tick()
     }
@@ -786,6 +798,13 @@ impl CandidateIndexInput for SpoolInput<'_> {
 
     fn member(&mut self, path: &str) -> io::Result<bool> {
         self.candidate.tick()?;
+        if self
+            .record_selection
+            .as_ref()
+            .is_some_and(|selection| !selection.contains_member(path))
+        {
+            return Ok(false);
+        }
         let Ok(path) = RelativePath::parse(path) else {
             return Ok(false);
         };
@@ -824,7 +843,17 @@ impl CandidateIndexInput for SpoolInput<'_> {
     }
 
     fn read_raw(&mut self, path: &str, cap: usize) -> io::Result<Vec<u8>> {
-        self.candidate.read(path, cap)
+        let raw = self.candidate.read(path, cap)?;
+        if let Some(selection) = &self.record_selection {
+            if !path.starts_with("ToS/contracts/")
+                && !path.starts_with("ToS/doctrine/semantic-interchange/")
+            {
+                selection
+                    .verify_metadata_member(path, &raw)
+                    .map_err(receiver_refusal)?;
+            }
+        }
+        Ok(raw)
     }
 
     fn verify_member(&mut self, path: &str) -> io::Result<()> {
@@ -1062,7 +1091,7 @@ impl<'candidate> IndexSink<'candidate> {
             // This report was constructed directly by the maintained receiver
             // over this exact mutable store loan. No externally supplied
             // report or reconstructed private report constructor enters here.
-            let verified = Self::verify_records_report_bound(
+            let mut verified = Self::verify_records_report_bound(
                 candidate,
                 fence,
                 &sink_identity,
@@ -1071,6 +1100,7 @@ impl<'candidate> IndexSink<'candidate> {
                 deadline,
                 cancelled,
             )?;
+            verified.record_selection = input.record_selection();
             let value = receive(&report, &verified, worker, record_executor, payloads)?;
             candidate.tick()?;
             if candidate.fence()? != fence {
@@ -1094,6 +1124,8 @@ impl<'candidate> IndexSink<'candidate> {
         json: JsonLimits,
         json_state_bytes: usize,
         schemas: &mut SchemaCheck<'_>,
+        deadline: Instant,
+        cancelled: &AtomicBool,
     ) -> io::Result<usize> {
         self.candidate.tick()?;
         if records.fence != self.fence
@@ -1117,6 +1149,9 @@ impl<'candidate> IndexSink<'candidate> {
             json,
             json_state_bytes,
             row_state_limit: self.row_limit,
+            record_selection: records.record_selection.clone(),
+            deadline,
+            cancelled,
         };
         let mut base_identity = |id: &str, max_state_bytes: usize| {
             candidate
@@ -1218,6 +1253,7 @@ impl<'candidate> IndexSink<'candidate> {
             record_issue_count,
             item_issue_count,
             manifest_item_id_count,
+            record_selection: None,
         })
     }
 

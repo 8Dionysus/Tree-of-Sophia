@@ -51,6 +51,26 @@ A selected record's required target or contract remains mandatory even when the
 historical demonstration packet is outside this scope. Full audit retains its
 original batch requirements.
 
+A shared physical ledger can contain records outside the required closure of
+one root. The distinct `selected-record-closure` profile therefore requires
+`--record-selection-manifest PATH`, under the same delegated owner mandate.
+The authored selection grammar reuses source catalog record refs and slot
+bindings: stable root IDs and versions, exact file bytes, physical row number,
+offset, delimiter, raw row digest and canonical payload digest. Candidate
+verification retains the genuine opaque fence; it does not mint a source
+revision or rewrite ledger bytes. Required members and selected row EOF remain
+separate from full physical input membership and EOF.
+
+The raw selection manifest, software selection grammar, selected roots and
+slot binding digest participate in validator identity and receipts. Mechanical
+acceptance covers that verified selected record index and required dependency
+closure. Other rows in a retained physical file receive no semantic acceptance;
+raw transport and historical access do not widen this claim. A downstream
+semantic catalog must preserve the accepted selection binding and build from
+its verified index. A genuinely selected missing reference, rights document,
+payload custody or schema remains a refusal. This profile preserves the
+existing whole-file `selected-source-closure` and default full audit behavior.
+
 Unknown profiles, unsupported scope dialects and missing required selected
 inputs refuse admission.
 
@@ -66,6 +86,8 @@ inputs refuse admission.
   changes selected corpus membership and couples independent corpora to
   unrelated synthetic evidence.
 - Explicit authenticated scope: accepted; retains each route's actual claims.
+- Filter absent or unrelated ledger rows implicitly: rejected; an explicit
+  catalog-addressed record selection must authenticate the narrower claim.
 
 ## Rationale
 
@@ -90,6 +112,8 @@ this decision record is weaker than current contracts and implementation.
 
 - `ToS/doctrine/semantic-interchange/source-validation-profiles.v1.json`
 - `ToS/doctrine/semantic-interchange/README.md`
+- `ToS/contracts/source-record-closure-selection.schema.json`
+- `rust/crates/tos-validation/src/source_record_selection.rs`
 - `rust/crates/tos-validation/src/source_foundation_default_rules.rs`
 - `rust/crates/tos-command/src/source_foundation_cli.rs`
 - `rust/crates/tos-command/src/source_foundation_admission_identity.rs`

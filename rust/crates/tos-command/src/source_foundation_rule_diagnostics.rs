@@ -362,7 +362,7 @@ fn candidate_request_count<I>(
 ) -> Result<usize, &'static str> {
     let scope_bound = match owner.scope {
         tos_validation::source_foundation_default_rules::SourceFoundationDefaultRuleScope::FullAudit => owner.labs.is_some() && owner.goldsets.is_some(),
-        tos_validation::source_foundation_default_rules::SourceFoundationDefaultRuleScope::SelectedSourceClosure => owner.labs.is_none() && owner.goldsets.is_none(),
+        tos_validation::source_foundation_default_rules::SourceFoundationDefaultRuleScope::SelectedSourceClosure | tos_validation::source_foundation_default_rules::SourceFoundationDefaultRuleScope::SelectedRecordClosure => owner.labs.is_none() && owner.goldsets.is_none(),
     };
     if !scope_bound {
         return Err("candidate stored default scope binding");

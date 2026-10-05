@@ -1439,3 +1439,5 @@ pub mod source_foundation_discovery;
 pub mod source_foundation_closure;
 
 pub mod source_foundation_default_rules;
+
+pub mod source_record_selection;

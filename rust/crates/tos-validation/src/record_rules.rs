@@ -2938,6 +2938,18 @@ impl LocalClaimCurrentSource for CandidateLocalClaimSource<'_> {
     ) -> Result<Vec<u8>, crate::item_rules::ItemRefusal> {
         use crate::item_rules::ItemRefusal;
         use tos_source_store::SourcePresenceV1;
+        let selection = self.0.record_selection();
+        if selection
+            .as_ref()
+            .is_some_and(|selection| !selection.contains_member(path))
+            && path != ENTITY_REGISTRY
+            && path != LOCAL_CLAIM_REGISTRY
+            && !(path.starts_with("ToS/contracts/") && path.ends_with(".schema.json"))
+        {
+            return Err(ItemRefusal::Source(
+                "local Claim dependency is outside selected record closure".into(),
+            ));
+        }
         if self.0.path_presence(path, limits.deadline, cancelled)? != Some(SourcePresenceV1::File) {
             return Err(ItemRefusal::Source(format!(
                 "local Claim selected dependency absent from candidate: {path}"
@@ -2961,6 +2973,12 @@ impl LocalClaimCurrentSource for CandidateLocalClaimSource<'_> {
                     return Err(ItemRefusal::Source(
                         "local Claim candidate member size changed".into(),
                     ));
+                }
+                if let Some(selection) = selection
+                    .as_ref()
+                    .filter(|selection| selection.contains_member(path))
+                {
+                    selection.verify_metadata_member(path, bytes)?;
                 }
                 let copy_state = size
                     .checked_add(std::mem::size_of::<Vec<u8>>())

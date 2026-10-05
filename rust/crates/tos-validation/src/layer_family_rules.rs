@@ -15,6 +15,14 @@ use serde_json::{Value, json};
 use tos_foundation::{Digest256, RelativePath};
 
 pub trait LayerFamilySource {
+    /// The same authenticated selected-record manifest, never a filtered
+    /// physical membership or a replacement revision.
+    fn record_selection(
+        &self,
+    ) -> Option<std::sync::Arc<crate::source_record_selection::SourceRecordSelection>> {
+        None
+    }
+
     fn current(
         &mut self,
         path: &str,

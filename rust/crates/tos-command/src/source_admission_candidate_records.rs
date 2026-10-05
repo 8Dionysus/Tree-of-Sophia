@@ -14,6 +14,8 @@ use tos_validation::{
 
 pub(crate) struct CandidateRecordsInput<'a, 'host> {
     candidate: &'a SpoolCandidate<'host>,
+    record_selection:
+        Option<std::sync::Arc<tos_validation::source_record_selection::SourceRecordSelection>>,
     fence: CandidateFence,
     max_member_bytes: usize,
     max_owned_state_bytes: Cell<usize>,
@@ -38,6 +40,16 @@ fn refused() -> ItemRefusal {
     ))
 }
 impl<'a, 'host> CandidateRecordsInput<'a, 'host> {
+    pub(crate) fn with_record_selection(
+        mut self,
+        selection: Option<
+            std::sync::Arc<tos_validation::source_record_selection::SourceRecordSelection>,
+        >,
+    ) -> Self {
+        self.record_selection = selection;
+        self
+    }
+
     pub(crate) fn shares_io_budget(&self, budget: &PinnedSqliteIoBudget) -> bool {
         self.candidate.shares_io_budget(budget)
     }
@@ -108,6 +120,7 @@ impl<'a, 'host> CandidateRecordsInput<'a, 'host> {
         }
         let fence = candidate.fence().map_err(|error| input_refusal(error))?;
         Ok(Self {
+            record_selection: None,
             candidate,
             fence,
             max_member_bytes,
@@ -152,6 +165,12 @@ impl SourceCutInputWithIdentity<CandidateFence> for CandidateRecordsInput<'_, '_
     }
 }
 impl SourceCutInput for CandidateRecordsInput<'_, '_> {
+    fn record_selection(
+        &self,
+    ) -> Option<std::sync::Arc<tos_validation::source_record_selection::SourceRecordSelection>>
+    {
+        self.record_selection.clone()
+    }
     fn for_each_current_member_meta(
         &self,
         deadline: Instant,

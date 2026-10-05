@@ -269,6 +269,17 @@ pub struct CandidateInput<'a> {
 /// storage. The streamed implementation uses only the sealed candidate's
 /// typed metadata and held-object reads; no caller-supplied iterator is used.
 pub(crate) trait CandidateIndexInput {
+    fn record_selection(
+        &self,
+    ) -> Option<std::sync::Arc<tos_validation::source_record_selection::SourceRecordSelection>>
+    {
+        None
+    }
+    fn selection_verification(
+        &self,
+    ) -> Option<(std::time::Instant, &std::sync::atomic::AtomicBool)> {
+        None
+    }
     fn tick(&mut self) -> io::Result<()>;
     fn check_row_state(&self, _bytes: usize) -> io::Result<()> {
         Ok(())
@@ -1101,6 +1112,24 @@ fn reference_path(value: &str) -> Cow<'_, str> {
     }
     Cow::Borrowed(value)
 }
+fn verify_selected_reference(input: &dyn CandidateIndexInput, reference: &str) -> io::Result<()> {
+    if let Some(selection) = input.record_selection() {
+        let reference = reference.split('#').next().unwrap_or(reference);
+        if let Some((file, line)) = reference.rsplit_once(':') {
+            if file.ends_with(".jsonl")
+                && !line
+                    .parse::<u64>()
+                    .ok()
+                    .is_some_and(|line| selection.selected_row(file, line))
+            {
+                return Err(invalid(
+                    "native selected reference row is outside record closure",
+                ));
+            }
+        }
+    }
+    Ok(())
+}
 fn references(
     input: &mut dyn CandidateIndexInput,
     backend: &mut dyn AdmissionIndexBackend,
@@ -1123,6 +1152,7 @@ fn references(
                     edge(input, backend, state, source, &target)?;
                 }
                 if s.starts_with("ToS/") {
+                    verify_selected_reference(input, s)?;
                     let p = reference_path(s);
                     if input.member(p.as_ref())? {
                         edge(input, backend, state, source, p.as_ref())?;
@@ -1138,6 +1168,7 @@ fn references(
                     .unwrap_or(s.units());
                 if let Ok(prefix) = String::from_utf16(prefix) {
                     if prefix.starts_with("ToS/") {
+                        verify_selected_reference(input, &prefix)?;
                         let path = reference_path(&prefix);
                         if input.member(path.as_ref())? {
                             edge(input, backend, state, source, path.as_ref())?;
@@ -1529,10 +1560,17 @@ pub(crate) fn build_index_into(
             "fresh semantic source did not reach authenticated EOF",
         ));
     }
+    let record_selection = input.record_selection();
     let mut schema = None;
     let mut after: Option<String> = None;
     while let Some(path) = input.member_after(after.as_deref())? {
         after = Some(path.clone());
+        if record_selection
+            .as_ref()
+            .is_some_and(|selection| !selection.selects_semantic_member(&path))
+        {
+            continue;
+        }
         if path.starts_with("ToS/source-witnesses/retirements/") && path.ends_with(".json") {
             let raw = input.bytes(&path, MAX_EVENT_BYTES)?;
             let row = strict_object(&raw, event_limits(input))?;
@@ -1563,6 +1601,12 @@ pub(crate) fn build_index_into(
     while let Some(path) = input.member_after(after.as_deref())? {
         after = Some(path.clone());
         input.tick()?;
+        if record_selection
+            .as_ref()
+            .is_some_and(|selection| !selection.selects_semantic_member(&path))
+        {
+            continue;
+        }
         if path.starts_with("ToS/contracts/")
             || path.starts_with("ToS/doctrine/semantic-interchange/")
         {
@@ -1577,6 +1621,48 @@ pub(crate) fn build_index_into(
             }
         } else if path.ends_with(".jsonl") {
             let raw = input.bytes(&path, json.max_bytes)?;
+            if let Some(selection) = &record_selection {
+                let scratch =
+                    selection
+                        .file_slots(&path)
+                        .iter()
+                        .try_fold(0usize, |max, slot| {
+                            slot.verification_state_upper_bound()
+                                .map(|n| max.max(n))
+                                .map_err(crate::source_admission_spooled_index::receiver_refusal)
+                        })?;
+                let peak = raw
+                    .len()
+                    .checked_add(scratch)
+                    .ok_or_else(|| invalid("selected index row verification state overflow"))?;
+                input.check_row_state(peak)?;
+                if peak > json_state_bytes {
+                    return Err(invalid("selected index row verification state cap"));
+                }
+                let (deadline, cancelled) = input
+                    .selection_verification()
+                    .ok_or_else(|| invalid("selected index verification invocation missing"))?;
+                let verified = selection
+                    .verify_file(&path, &raw, deadline, cancelled)
+                    .map_err(crate::source_admission_spooled_index::receiver_refusal)?;
+                let mut cursor = verified.row_cursor();
+                loop {
+                    let (deadline, cancelled) = input
+                        .selection_verification()
+                        .ok_or_else(|| invalid("selected index verification invocation missing"))?;
+                    let Some(row) = cursor.next_checked(deadline, cancelled) else {
+                        break;
+                    };
+                    let (_, line, _) =
+                        row.map_err(crate::source_admission_spooled_index::receiver_refusal)?;
+                    if let Some(row) =
+                        document(line, JsonMode::LegacyPythonObserved, json, json_state_bytes)?
+                    {
+                        references(input, backend, &mut state, &path, &row)?;
+                    }
+                }
+                continue;
+            }
             for line in raw.split(|b| *b == b'\n') {
                 input.tick()?;
                 if line.iter().all(u8::is_ascii_whitespace) {

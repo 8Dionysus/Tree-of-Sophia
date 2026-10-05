@@ -115,7 +115,7 @@ fn read_held_fd(
     Ok(raw)
 }
 
-struct HeldOwnerFile {
+pub(crate) struct HeldOwnerFile {
     path: PathBuf,
     parent_path: PathBuf,
     parent: File,
@@ -128,7 +128,20 @@ struct HeldOwnerFile {
     confidential: bool,
 }
 
-fn select_held_file(
+impl HeldOwnerFile {
+    pub(crate) fn size_bytes(&self) -> usize {
+        self.size
+    }
+    pub(crate) fn retained_state_bytes(&self) -> Option<usize> {
+        use std::os::unix::ffi::OsStrExt;
+        std::mem::size_of::<Self>()
+            .checked_add(self.path.as_os_str().as_bytes().len())?
+            .checked_add(self.parent_path.as_os_str().as_bytes().len())?
+            .checked_add(self.name.len())
+    }
+}
+
+pub(crate) fn select_held_file(
     path: &Path,
     uid: u32,
     confidential: bool,
@@ -181,7 +194,7 @@ fn select_held_file(
     Ok((held, raw))
 }
 
-fn verify_held_file(
+pub(crate) fn verify_held_file(
     held: &HeldOwnerFile,
     uid: u32,
     deadline: Instant,

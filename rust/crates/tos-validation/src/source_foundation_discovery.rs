@@ -966,6 +966,13 @@ impl<S: LayerFamilySource + ?Sized, I: Copy + Eq> Inspector<'_, '_, S, I> {
     }
 
     fn has_current_member(&self, path: &str) -> Result<bool, ItemRefusal> {
+        if self
+            .source
+            .record_selection()
+            .is_some_and(|selection| !selection.contains_member(path))
+        {
+            return Ok(false);
+        }
         self.paths.contains(path)
     }
 
@@ -976,6 +983,13 @@ impl<S: LayerFamilySource + ?Sized, I: Copy + Eq> Inspector<'_, '_, S, I> {
         let paths = self.paths;
         paths.for_each_discovery_path(&mut |path| {
             self.checkpoint()?;
+            if self
+                .source
+                .record_selection()
+                .is_some_and(|selection| !selection.selects_semantic_member(path))
+            {
+                return Ok(());
+            }
             visit(self, path)
         })
     }
@@ -1509,6 +1523,9 @@ impl<S: LayerFamilySource + ?Sized, I: Copy + Eq> Inspector<'_, '_, S, I> {
             ))
         })?;
         self.checkpoint()?;
+        if let Some(selection) = self.source.record_selection() {
+            selection.verify_metadata_member(path, &raw)?;
+        }
         discovery_budget(
             "Discovery current member bytes",
             raw.len(),
@@ -1756,15 +1773,97 @@ impl<S: LayerFamilySource + ?Sized, I: Copy + Eq> Inspector<'_, '_, S, I> {
         Ok(())
     }
 
+    fn declared_provenance_contract<'c>(
+        &mut self,
+        location: &str,
+        value: &Value,
+        contract: &'c str,
+        scope: SourceFoundationDefaultRuleScope,
+    ) -> Result<Option<&'c str>, ItemRefusal> {
+        if !scope.is_scoped() || contract != PROVENANCE_SCHEMA {
+            return Ok(Some(contract));
+        }
+        match string(value, "schema_version") {
+            Some("tos_provenance_event_v1") => Ok(Some(PROVENANCE_SCHEMA)),
+            Some("tos_provenance_event_v2") => Ok(Some(PROVENANCE_V2_SCHEMA)),
+            _ => {
+                self.unsupported(location, "unsupported declared provenance schema version")?;
+                Ok(None)
+            }
+        }
+    }
+
+    fn for_each_selected_jsonl(
+        &mut self,
+        path: &str,
+        contract: &str,
+        raw: &[u8],
+        scope: SourceFoundationDefaultRuleScope,
+        visit: &mut dyn FnMut(&mut Self, &str, Value) -> Result<(), ItemRefusal>,
+    ) -> Result<(), ItemRefusal> {
+        let selection = self
+            .source
+            .record_selection()
+            .ok_or(crate::item_budget_origin!())?;
+        let scratch = selection
+            .slots()
+            .filter(|slot| slot.source.source_ref == path)
+            .try_fold(0usize, |peak, slot| {
+                Ok::<_, ItemRefusal>(peak.max(slot.verification_state_upper_bound()?))
+            })?;
+        self.check_temporary_state(scratch)?;
+        let verified =
+            selection.verify_file(path, raw, self.limits.deadline, self.source.cancellation())?;
+        let mut selected_rows = verified.row_cursor();
+        loop {
+            self.check_temporary_state(scratch)?;
+            let Some(selected) =
+                selected_rows.next_checked(self.limits.deadline, self.source.cancellation())
+            else {
+                break;
+            };
+            let (line, bytes, _) = selected?;
+            let location = format!("{path}:{line}");
+            let value: Value = serde_json::from_slice(bytes).map_err(|_| {
+                ItemRefusal::Source("verified selected Discovery row is invalid JSON".into())
+            })?;
+            self.reserve_state(
+                bytes
+                    .len()
+                    .checked_mul(8)
+                    .ok_or(crate::item_budget_origin!())?,
+            )?;
+            self.check_temporary_state(scratch)?;
+            let Some(declared_contract) =
+                self.declared_provenance_contract(&location, &value, contract, scope)?
+            else {
+                continue;
+            };
+            self.request_schema(&location, declared_contract, &value, bytes.len())?;
+            visit(self, &location, value)?;
+        }
+        Ok(())
+    }
+
     fn for_each_jsonl(
         &mut self,
         path: &str,
         contract: &str,
+        scope: SourceFoundationDefaultRuleScope,
         visit: &mut dyn FnMut(&mut Self, &str, &Value) -> Result<(), ItemRefusal>,
     ) -> Result<(), ItemRefusal> {
         let Some(raw) = self.current_bytes(path)? else {
             return Ok(());
         };
+        if self.source.record_selection().is_some() {
+            return self.for_each_selected_jsonl(
+                path,
+                contract,
+                &raw,
+                scope,
+                &mut |inspector, location, value| visit(inspector, location, &value),
+            );
+        }
         let text = match std::str::from_utf8(&raw) {
             Ok(text) => text,
             Err(_) => {
@@ -1812,7 +1911,12 @@ impl<S: LayerFamilySource + ?Sized, I: Copy + Eq> Inspector<'_, '_, S, I> {
                     .checked_mul(8)
                     .ok_or(crate::item_budget_origin!())?,
             )?;
-            self.request_schema(&location, contract, &value, raw_size)?;
+            let Some(declared_contract) =
+                self.declared_provenance_contract(&location, &value, contract, scope)?
+            else {
+                continue;
+            };
+            self.request_schema(&location, declared_contract, &value, raw_size)?;
             visit(self, &location, &value)?;
         }
         Ok(())
@@ -2241,6 +2345,20 @@ impl<S: LayerFamilySource + ?Sized, I: Copy + Eq> Inspector<'_, '_, S, I> {
             self.issue(path, "missing-current-jsonl", "file is missing")?;
             return Ok(Vec::new());
         };
+        if self.source.record_selection().is_some() {
+            let mut records = Vec::new();
+            self.for_each_selected_jsonl(
+                path,
+                contract,
+                &raw,
+                SourceFoundationDefaultRuleScope::FullAudit,
+                &mut |_, _, value| {
+                    records.push(value);
+                    Ok(())
+                },
+            )?;
+            return Ok(records);
+        }
         let text = match std::str::from_utf8(&raw) {
             Ok(text) => text,
             Err(_) => {
@@ -8360,14 +8478,13 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
     }
 
     for path in [ACCESS_EVENTS, SERVER_EVENTS] {
-        if scope == SourceFoundationDefaultRuleScope::SelectedSourceClosure
-            && !inspector.has_current_member(path)?
-        {
+        if scope.is_scoped() && !inspector.has_current_member(path)? {
             continue;
         }
         inspector.for_each_jsonl(
             path,
             PROVENANCE_SCHEMA,
+            scope,
             &mut |inspector, location, value| {
                 let info = inspector.event_info(value, location)?;
                 let Some(id) = string(value, "event_id") else {
@@ -8561,6 +8678,7 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
         inspector.for_each_jsonl(
             DISCOVERY_EVENTS,
             PROVENANCE_SCHEMA,
+            scope,
             &mut |inspector, location, value| {
                 let info = inspector.event_info(value, location)?;
                 let Some(id) = string(value, "event_id") else {
@@ -9786,7 +9904,7 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
                     )?;
                 } else {
                     planned_manifest_coverage_drift = true;
-                    if scope == SourceFoundationDefaultRuleScope::SelectedSourceClosure {
+                    if scope.is_scoped() {
                         inspector.issue(
                             path,
                             "server-plan-manifest-membership-drift",
@@ -9924,29 +10042,28 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
         Ok(())
     },
     )?;
-    let candidate_manifest_coverage_drift =
-        if scope == SourceFoundationDefaultRuleScope::SelectedSourceClosure {
-            false
-        } else if inspector.candidate_discovery_seen_ids.is_some() {
-            let mut drift = planned_manifest_coverage_drift;
-            inspector.for_each_current_path(&mut |inspector, path| {
-                if path.starts_with(SOURCE_HOME) && path.ends_with(ITEM_MANIFEST_SUFFIX) {
-                    let is_planned = discovery_id_contains(
-                        inspector,
-                        &planned_manifest_refs,
-                        DiscoverySeenIdNamespace::PlannedManifest,
-                        path,
-                    )?;
-                    if !is_planned {
-                        drift = true;
-                    }
+    let candidate_manifest_coverage_drift = if scope.is_scoped() {
+        false
+    } else if inspector.candidate_discovery_seen_ids.is_some() {
+        let mut drift = planned_manifest_coverage_drift;
+        inspector.for_each_current_path(&mut |inspector, path| {
+            if path.starts_with(SOURCE_HOME) && path.ends_with(ITEM_MANIFEST_SUFFIX) {
+                let is_planned = discovery_id_contains(
+                    inspector,
+                    &planned_manifest_refs,
+                    DiscoverySeenIdNamespace::PlannedManifest,
+                    path,
+                )?;
+                if !is_planned {
+                    drift = true;
                 }
-                Ok(())
-            })?;
-            drift
-        } else {
-            planned_manifest_refs != expected_manifest_refs
-        };
+            }
+            Ok(())
+        })?;
+        drift
+    } else {
+        planned_manifest_refs != expected_manifest_refs
+    };
     if scope == SourceFoundationDefaultRuleScope::FullAudit && candidate_manifest_coverage_drift {
         inspector.issue(
             SERVER_PLANS.trim_end_matches('/'),

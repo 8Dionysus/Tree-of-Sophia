@@ -561,6 +561,15 @@ pub struct SourceFoundationDefaultRulesReport {
 pub enum SourceFoundationDefaultRuleScope {
     FullAudit,
     SelectedSourceClosure,
+    /// Authenticated record/slot manifest selects a semantic closure while
+    /// retaining exact full physical members independently.
+    SelectedRecordClosure,
+}
+
+impl SourceFoundationDefaultRuleScope {
+    pub fn is_scoped(self) -> bool {
+        self != Self::FullAudit
+    }
 }
 
 /// Default district findings from one genuine stored Records operation.
@@ -1512,7 +1521,7 @@ fn inspect_source_foundation_default_rules_from_input_stored_inner<
     } else {
         None
     };
-    if scope == SourceFoundationDefaultRuleScope::SelectedSourceClosure
+    if scope.is_scoped()
         && (evidence_provider.is_none()
             || discovery_seen_ids.is_none()
             || discovery_run_summaries.is_none()

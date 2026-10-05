@@ -114,6 +114,13 @@ impl SourceCutPrefixCoverage {
 /// The command adapter keeps raw member bytes borrowed inside each visitor and
 /// retains its own opaque input identity; this interface creates no revision.
 pub trait SourceCutInput {
+    /// A semantic record/slot scope is independent of full physical input EOF.
+    fn record_selection(
+        &self,
+    ) -> Option<std::sync::Arc<crate::source_record_selection::SourceRecordSelection>> {
+        None
+    }
+
     fn for_each_current_member_meta(
         &self,
         deadline: Instant,
@@ -3135,6 +3142,8 @@ pub fn inspect_records_from_input_stored(
         .map_err(|error| stored_record_rule_error(&progress, error))?;
     check_stored_record_progress(&progress)?;
 
+    let record_selection = input.record_selection();
+    let mut selected_record_count = 0usize;
     let mut scan_members = 0u64;
     let mut scan_bytes = 0u64;
     let mut previous_path = String::new();
@@ -3224,6 +3233,28 @@ pub fn inspect_records_from_input_stored(
             if !path.starts_with("ToS/source-witnesses/") || !path.ends_with(".json") {
                 sink.state_bytes = base_state;
                 return Ok(());
+            }
+            if let Some(selection) = record_selection.as_ref() {
+                if selection.record(path).is_none() {
+                    sink.state_bytes = base_state;
+                    return Ok(());
+                }
+                let verification_state =
+                    crate::source_record_selection::selection_state_upper_bound(raw.len())?;
+                let peak = actual_path_peak
+                    .checked_add(verification_state)
+                    .ok_or(crate::item_budget_origin!())?;
+                if peak > limits.max_state_bytes {
+                    return Err(ItemRefusal::BudgetCheck {
+                        check: "Biblio selected record verification state",
+                        used: Some(peak as u64),
+                        limit: Some(limits.max_state_bytes as u64),
+                    });
+                }
+                selection.verify_record(path, raw, limits.deadline, cancelled)?;
+                selected_record_count = selected_record_count
+                    .checked_add(1)
+                    .ok_or(crate::item_budget_origin!())?;
             }
             let basename = path.rsplit('/').next().unwrap_or("");
             let semantic =
@@ -3353,6 +3384,14 @@ pub fn inspect_records_from_input_stored(
     {
         return Err(ItemRefusal::Source(
             "Biblio current member coverage differs from metadata and observed stream".into(),
+        ));
+    }
+    if record_selection
+        .as_ref()
+        .is_some_and(|selection| selection.record_count() != selected_record_count)
+    {
+        return Err(ItemRefusal::Source(
+            "selected Biblio records did not reach exact physical membership EOF".into(),
         ));
     }
     input.verify_current_fence(&coverage, limits.deadline, cancelled)?;
@@ -3493,9 +3532,38 @@ pub fn inspect_records_from_input_stored(
         if !row.target_path.starts_with("ToS/") {
             continue;
         }
-        let relative = RelativePath::parse(&row.target_path)
+        let selected_row = record_selection
+            .as_ref()
+            .and_then(|_| row.target_path.rsplit_once(':'))
+            .and_then(|(path, line)| {
+                line.parse::<u64>()
+                    .ok()
+                    .filter(|line| *line > 0)
+                    .filter(|_| path.ends_with(".jsonl"))
+                    .map(|line| (path, line))
+            });
+        let target_path = selected_row.map_or(row.target_path.as_str(), |(path, _)| path);
+        let relative = RelativePath::parse(target_path)
             .map_err(|_| ItemRefusal::Unsupported("record reference path".into()))?;
-        let presence = input.path_presence(relative.as_str(), limits.deadline, cancelled)?;
+        let selected_target = record_selection.as_ref().is_none_or(|selection| {
+            if let Some((path, line)) = selected_row {
+                selection.selected_row(path, line)
+            } else {
+                selection.contains_member(relative.as_str())
+                    || row.check != PathReferenceCheck::FileIfToS
+                        && selection.members().any(|member| {
+                            member
+                                .source_ref
+                                .strip_prefix(relative.as_str())
+                                .is_some_and(|suffix| suffix.starts_with('/'))
+                        })
+            }
+        });
+        let presence = if selected_target {
+            input.path_presence(relative.as_str(), limits.deadline, cancelled)?
+        } else {
+            None
+        };
         if presence.is_none()
             || (row.check == PathReferenceCheck::FileIfToS
                 && presence != Some(SourcePresenceV1::File))
