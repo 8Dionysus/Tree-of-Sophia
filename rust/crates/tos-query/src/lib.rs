@@ -88,9 +88,11 @@ pub use knowledge_inspect::{
 };
 #[cfg(not(target_arch = "wasm32"))]
 pub use knowledge_packet::{
-    DisclosableIndexedSearch, DisclosableScopedIndexedSearch, INDEXED_SEARCH_INTENDED_USE, INDEXED_SEARCH_OPERATION_ID,
-    IndexedDisclosureLease, IndexedDisclosureScope, IndexedKnowledgeAuthority, IndexedPageBudget,
-    IndexedWireCursorCodec, ScopedIndexedKnowledgeAuthority, execute_indexed_search_page, execute_scoped_indexed_search_page,
+    DisclosableIndexedSearch, DisclosableScopedIndexedSearch, INDEXED_SEARCH_INTENDED_USE,
+    INDEXED_SEARCH_OPERATION_ID, IndexedDisclosureLease, IndexedDisclosureScope,
+    IndexedKnowledgeAuthority, IndexedPageBudget, IndexedWireCursorCodec,
+    ScopedIndexedKnowledgeAuthority, execute_indexed_search_page,
+    execute_scoped_indexed_search_page,
 };
 #[cfg(not(target_arch = "wasm32"))]
 pub use knowledge_temporal::execute_selected_temporal;

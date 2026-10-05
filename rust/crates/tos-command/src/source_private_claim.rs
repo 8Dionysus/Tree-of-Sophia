@@ -6514,15 +6514,15 @@ fn verify_creation_integrity(
     validate_receipt_ref_files(receipt, &initial_files)?;
     let expected_initial_stream_digest = match &state.initial_archive_stream_digest {
         Some(digest) => digest.clone(),
-        None => Digest256::of_bytes(required_package_file(current_files, CLAIM_STREAM)?)
-            .to_prefixed(),
+        None => {
+            Digest256::of_bytes(required_package_file(current_files, CLAIM_STREAM)?).to_prefixed()
+        }
     };
     initial_files.insert(
         RECEIPT_FILE.to_owned(),
         required_package_file(current_files, RECEIPT_FILE)?.to_vec(),
     );
-    if Digest256::of_bytes(required_package_file(&initial_files, CLAIM_STREAM)?)
-        .to_prefixed()
+    if Digest256::of_bytes(required_package_file(&initial_files, CLAIM_STREAM)?).to_prefixed()
         != expected_initial_stream_digest
         || required_package_file(current_files, CONFIG_FILE)?
             != required_package_file(&initial_files, CONFIG_FILE)?

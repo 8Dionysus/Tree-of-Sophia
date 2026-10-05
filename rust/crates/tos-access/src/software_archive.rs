@@ -467,9 +467,10 @@ fn proof_kind(p: &JsonValue, source_ref: &str, role: Option<&str>) -> Result<()>
         };
         if !field(p, "features")?.as_array().is_some_and(|features| {
             features.len() == expected.len()
-                && features.iter().zip(expected).all(|(actual, expected)| {
-                    actual.as_str() == Some(*expected)
-                })
+                && features
+                    .iter()
+                    .zip(expected)
+                    .all(|(actual, expected)| actual.as_str() == Some(*expected))
         }) {
             return Err("native command role effective feature set differs".into());
         }

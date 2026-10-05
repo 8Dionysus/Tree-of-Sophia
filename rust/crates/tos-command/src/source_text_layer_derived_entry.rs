@@ -1082,11 +1082,9 @@ fn capture_entities(
                 "receipt_root",
             )?)?;
             let retained_ref = |name: &str| {
-                retained_root
-                    .join(name)
-                    .to_str()
-                    .map(str::to_owned)
-                    .ok_or(SourceCommandError::Invalid("native owner OCR retained input UTF-8"))
+                retained_root.join(name).to_str().map(str::to_owned).ok_or(
+                    SourceCommandError::Invalid("native owner OCR retained input UTF-8"),
+                )
             };
             rows.push((
                 retained_ref("content.txt")?,

@@ -43,12 +43,16 @@ fn row_json_state_upper_bound(limits: JsonLimits) -> io::Result<usize> {
         .max_bytes
         .checked_mul(16)
         .and_then(|n| {
-            limits.max_visits.min(limits.max_bytes)
+            limits
+                .max_visits
+                .min(limits.max_bytes)
                 .checked_mul(slot)
                 .and_then(|slots| n.checked_add(slots))
         })
         .and_then(|n| {
-            limits.max_depth.checked_add(1)
+            limits
+                .max_depth
+                .checked_add(1)
                 .and_then(|depth| depth.checked_mul(stack_slot))
                 .and_then(|stack| n.checked_add(stack))
         })

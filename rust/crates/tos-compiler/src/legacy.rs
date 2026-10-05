@@ -22,13 +22,18 @@ pub(crate) const STORED_OVERHEAD: usize = 65536;
 /// flate2 1.1.10/miniz_oxide 0.9.1 shipped dependency profile; backend feature
 /// changes require this owner forecast to change with them.
 pub(crate) fn partition_decoder_workspace_upper(kind: &str) -> Result<usize> {
-    if kind == "index" { return Ok(0); }
-    if kind != "data" { return Err(Error::Invalid("part kind")); }
+    if kind == "index" {
+        return Ok(0);
+    }
+    if kind != "data" {
+        return Err(Error::Invalid("part kind"));
+    }
     // Miniz InflateState's Box plus its construction frame; gzip read buffer
     // is exactly 32KiB. Two optional filename/comment Vecs grow to <=65536
     // with old/new reallocation overlap, extra is an exact u16-length Vec.
     let backend = std::mem::size_of::<miniz_oxide::inflate::stream::InflateState>()
-        .checked_mul(2).and_then(|n| n.checked_add(32 * 1024))
+        .checked_mul(2)
+        .and_then(|n| n.checked_add(32 * 1024))
         .and_then(|n| n.checked_add(2 * 3 * 65536 + 65535))
         .and_then(|n| n.checked_add(std::mem::size_of::<GzDecoder<&[u8]>>()))
         .ok_or(Error::Budget("partition decoder workspace"))?;

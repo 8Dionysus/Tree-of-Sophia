@@ -9,19 +9,27 @@ struct Fixture(PathBuf);
 impl Fixture {
     fn new() -> Self {
         let root = std::env::temp_dir().join(format!(
-            "tos-provider-controls-{}-{}", std::process::id(), NEXT.fetch_add(1, Ordering::Relaxed)
+            "tos-provider-controls-{}-{}",
+            std::process::id(),
+            NEXT.fetch_add(1, Ordering::Relaxed)
         ));
         fs::create_dir(&root).unwrap();
         Self(root)
     }
     fn template(&self) -> PathBuf {
         let path = self.0.join("template.json");
-        fs::write(&path, include_bytes!("../../../../kag/provider-template.json")).unwrap();
+        fs::write(
+            &path,
+            include_bytes!("../../../../kag/provider-template.json"),
+        )
+        .unwrap();
         path
     }
 }
 impl Drop for Fixture {
-    fn drop(&mut self) { let _ = fs::remove_dir_all(&self.0); }
+    fn drop(&mut self) {
+        let _ = fs::remove_dir_all(&self.0);
+    }
 }
 #[test]
 fn complete_closure_preserves_template_bytes_and_rejects_mutation_or_reuse() {
@@ -33,7 +41,9 @@ fn complete_closure_preserves_template_bytes_and_rejects_mutation_or_reuse() {
     let before = fs::read(&template).unwrap();
     let entries = provider_controls::materialize(&provider, &template).unwrap();
     assert_eq!(entries.iter().map(|e| e.path).collect::<Vec<_>>(), PATHS);
-    for (path, bytes) in expected { assert_eq!(fs::read(provider.join(path)).unwrap(), bytes); }
+    for (path, bytes) in expected {
+        assert_eq!(fs::read(provider.join(path)).unwrap(), bytes);
+    }
     assert_eq!(fs::read(&template).unwrap(), before);
     let raw = serde_json::to_vec(&entries).unwrap();
     provider_controls::verify_request(&provider, &raw).unwrap();
@@ -53,7 +63,8 @@ fn duplicate_contract_and_nonfinite_or_blank_template_are_refused() {
         fs::write(&template, raw).unwrap();
         assert!(provider_controls::template(&template).is_err());
     }
-    let mut value: serde_json::Value = serde_json::from_slice(include_bytes!("../../../../kag/provider-template.json")).unwrap();
+    let mut value: serde_json::Value =
+        serde_json::from_slice(include_bytes!("../../../../kag/provider-template.json")).unwrap();
     value["files"][PATHS[0]] = serde_json::json!("\u{001c}\u{001f}\n");
     fs::write(&template, serde_json::to_vec(&value).unwrap()).unwrap();
     assert!(provider_controls::template(&template).is_err());

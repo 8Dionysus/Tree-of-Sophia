@@ -2,9 +2,18 @@ use std::path::Path;
 
 fn main() {
     if std::env::args_os().nth(1).is_some_and(|arg| arg == "http") {
-        let args = std::env::args_os().skip(2).take(11).map(|v| v.into_string()).collect::<Result<Vec<_>, _>>();
-        let result = args.map_err(|_| "HTTP arguments must be UTF-8".to_owned()).and_then(|args| tos_command::source_command_http::run(&args));
-        if let Err(reason) = result { eprintln!("native source command HTTP refused: {reason}"); std::process::exit(2); }
+        let args = std::env::args_os()
+            .skip(2)
+            .take(11)
+            .map(|v| v.into_string())
+            .collect::<Result<Vec<_>, _>>();
+        let result = args
+            .map_err(|_| "HTTP arguments must be UTF-8".to_owned())
+            .and_then(|args| tos_command::source_command_http::run(&args));
+        if let Err(reason) = result {
+            eprintln!("native source command HTTP refused: {reason}");
+            std::process::exit(2);
+        }
         return;
     }
     if std::env::args_os().len() == 2

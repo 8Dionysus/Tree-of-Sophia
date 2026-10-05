@@ -26,13 +26,15 @@ pub struct SourceRow {
 /// Actual decoded row owns its admission until the row drops. The source tree
 /// drops before its guard, including error unwinding. Escaping output copies
 /// still need their own admission under the same original owner.
-pub(crate) struct OwnedSourceRow<'s,'budget> {
-    row:SourceRow,
-    _hold:Option<crate::d1_public_capture::CreationStateHold<'s,'budget>>,
+pub(crate) struct OwnedSourceRow<'s, 'budget> {
+    row: SourceRow,
+    _hold: Option<crate::d1_public_capture::CreationStateHold<'s, 'budget>>,
 }
-impl std::ops::Deref for OwnedSourceRow<'_,'_> {
-    type Target=SourceRow;
-    fn deref(&self)->&SourceRow { &self.row }
+impl std::ops::Deref for OwnedSourceRow<'_, '_> {
+    type Target = SourceRow;
+    fn deref(&self) -> &SourceRow {
+        &self.row
+    }
 }
 
 struct CappedWriter {
@@ -148,7 +150,8 @@ fn pointer_escape(key: &str) -> String {
 // same conservative envelope. Factors include old/new allocation overlap.
 // This is a logical admitted peak bound, not an allocator/RSS measurement.
 pub(crate) fn serde_array_slots_upper(n: usize) -> Result<usize> {
-    n.max(4).checked_mul(4 * std::mem::size_of::<Value>())
+    n.max(4)
+        .checked_mul(4 * std::mem::size_of::<Value>())
         .ok_or(Error::Budget("raw input serde array workspace"))
 }
 // Source-owned pinned container geometry: IndexMap Bucket stores hash/key/
@@ -160,21 +163,27 @@ pub(crate) fn serde_array_slots_upper(n: usize) -> Result<usize> {
 /// copies and the exact additional key/string/nested-container geometry.
 /// The same original work/check precedes each forecast source-copy traversal;
 /// this is an accounting bound, not a measured allocator/RSS assertion.
-pub(crate) fn hold_owned_normalized_output<'s,'budget>(
-    state:&'s crate::d1_public_capture::CreationState<'budget>,
-    source_values:&[&Value],full_source_copies:usize,
-    root_object_fields:usize,extra_heap_bytes:usize,
-)->Result<crate::d1_public_capture::CreationStateHold<'s,'budget>> {
+pub(crate) fn hold_owned_normalized_output<'s, 'budget>(
+    state: &'s crate::d1_public_capture::CreationState<'budget>,
+    source_values: &[&Value],
+    full_source_copies: usize,
+    root_object_fields: usize,
+    extra_heap_bytes: usize,
+) -> Result<crate::d1_public_capture::CreationStateHold<'s, 'budget>> {
     state.active()?;
-    let mut total=serde_object_slots_upper(root_object_fields)?
-        .checked_add(root_object_fields.checked_mul(std::mem::size_of::<Value>())
-            .ok_or(Error::Budget("owned normalized root slots"))?)
-        .and_then(|n|n.checked_add(extra_heap_bytes))
+    let mut total = serde_object_slots_upper(root_object_fields)?
+        .checked_add(
+            root_object_fields
+                .checked_mul(std::mem::size_of::<Value>())
+                .ok_or(Error::Budget("owned normalized root slots"))?,
+        )
+        .and_then(|n| n.checked_add(extra_heap_bytes))
         .ok_or(Error::Budget("owned normalized additional state"))?;
     for value in source_values {
         for _ in 0..full_source_copies {
             state.active()?;
-            total=total.checked_add(state.value_clone_state_upper_bound(value)?)
+            total = total
+                .checked_add(state.value_clone_state_upper_bound(value)?)
                 .ok_or(Error::Budget("owned normalized source copies"))?;
         }
     }
@@ -183,21 +192,26 @@ pub(crate) fn hold_owned_normalized_output<'s,'budget>(
 
 /// Admit separately documented copy destinations for each actual input tree.
 /// Each planning traversal consumes the same original work/check ledger.
-pub(crate) fn hold_owned_normalized_output_with_copy_counts<'s,'budget>(
+pub(crate) fn hold_owned_normalized_output_with_copy_counts<'s, 'budget>(
     state: &'s crate::d1_public_capture::CreationState<'budget>,
-    source_values: &[(&Value, usize)], root_object_fields: usize,
+    source_values: &[(&Value, usize)],
+    root_object_fields: usize,
     extra_heap_bytes: usize,
-) -> Result<crate::d1_public_capture::CreationStateHold<'s,'budget>> {
+) -> Result<crate::d1_public_capture::CreationStateHold<'s, 'budget>> {
     state.active()?;
     let mut total = serde_object_slots_upper(root_object_fields)?
-        .checked_add(root_object_fields.checked_mul(std::mem::size_of::<Value>())
-            .ok_or(Error::Budget("owned normalized root slots"))?)
+        .checked_add(
+            root_object_fields
+                .checked_mul(std::mem::size_of::<Value>())
+                .ok_or(Error::Budget("owned normalized root slots"))?,
+        )
         .and_then(|n| n.checked_add(extra_heap_bytes))
         .ok_or(Error::Budget("owned normalized additional state"))?;
     for (value, copies) in source_values {
         for _ in 0..*copies {
             state.active()?;
-            total = total.checked_add(state.value_clone_state_upper_bound(value)?)
+            total = total
+                .checked_add(state.value_clone_state_upper_bound(value)?)
                 .ok_or(Error::Budget("owned normalized source copies"))?;
         }
     }
@@ -205,15 +219,24 @@ pub(crate) fn hold_owned_normalized_output_with_copy_counts<'s,'budget>(
 }
 
 pub(crate) fn serde_object_slots_upper(n: usize) -> Result<usize> {
-    let entry = std::mem::size_of::<(String, Value)>()
-        + 2 * std::mem::size_of::<usize>() + 1;
-    let factor = if cfg!(all(feature = "preserve-order-workspace",
-        target_pointer_width = "64", target_arch = "x86_64")) { 8 } else { 16 };
-    n.max(4).checked_mul(factor * entry)
+    let entry = std::mem::size_of::<(String, Value)>() + 2 * std::mem::size_of::<usize>() + 1;
+    let factor = if cfg!(all(
+        feature = "preserve-order-workspace",
+        target_pointer_width = "64",
+        target_arch = "x86_64"
+    )) {
+        8
+    } else {
+        16
+    };
+    n.max(4)
+        .checked_mul(factor * entry)
         .ok_or(Error::Budget("raw input serde object workspace"))
 }
 pub(crate) fn serde_text_workspace_upper(units: usize) -> Result<usize> {
-    units.checked_mul(12).and_then(|n| n.checked_add(64))
+    units
+        .checked_mul(12)
+        .and_then(|n| n.checked_add(64))
         .ok_or(Error::Budget("raw input serde string workspace"))
 }
 
@@ -248,10 +271,7 @@ pub(crate) fn serde_input_workspace_upper(
                 add(total, 128)?;
             }
             JsonValue::Array(a) => {
-                add(
-                    total,
-                    serde_array_slots_upper(a.len())?,
-                )?;
+                add(total, serde_array_slots_upper(a.len())?)?;
                 for child in a {
                     walk(child, depth + 1, total)?;
                 }
@@ -285,48 +305,87 @@ impl SourceRow {
     /// Maintained normalized row grammar shared by Stage logical delivery.
     /// The caller intersects these limits with original remaining visits/state.
     pub(crate) fn json_limits(max_bytes: usize) -> Result<JsonLimits> {
-        JsonLimits::new(max_bytes, MAX_JSON_DEPTH, MAX_JSON_VISITS, MAX_INTEGER_DIGITS)
-            .map_err(|_| Error::Budget("normalization JSON limits"))
+        JsonLimits::new(
+            max_bytes,
+            MAX_JSON_DEPTH,
+            MAX_JSON_VISITS,
+            MAX_INTEGER_DIGITS,
+        )
+        .map_err(|_| Error::Budget("normalization JSON limits"))
     }
-    pub(crate) fn parse_scoped_with_optional_owned_state<'s,'budget>(raw:&[u8],max_bytes:usize,
-        state:Option<&'s crate::d1_public_capture::CreationState<'budget>>) -> Result<OwnedSourceRow<'s,'budget>> {
+    pub(crate) fn parse_scoped_with_optional_owned_state<'s, 'budget>(
+        raw: &[u8],
+        max_bytes: usize,
+        state: Option<&'s crate::d1_public_capture::CreationState<'budget>>,
+    ) -> Result<OwnedSourceRow<'s, 'budget>> {
         match state {
-            Some(state)=>Self::parse_scoped_with_owned_state(raw,max_bytes,state),
-            None=>Ok(OwnedSourceRow {row:Self::parse(raw,max_bytes)?,_hold:None}),
+            Some(state) => Self::parse_scoped_with_owned_state(raw, max_bytes, state),
+            None => Ok(OwnedSourceRow {
+                row: Self::parse(raw, max_bytes)?,
+                _hold: None,
+            }),
         }
     }
-    pub(crate) fn parse_scoped_with_owned_state<'s,'budget>(raw:&[u8],max_bytes:usize,
-        state:&'s crate::d1_public_capture::CreationState<'budget>) -> Result<OwnedSourceRow<'s,'budget>> {
-        if max_bytes==0 || max_bytes>MAX_SOURCE_ROW_BYTES || raw.len()>max_bytes {
-            return Err(Error::Budget("normalization source row bytes"));
-        }
-        let limits=JsonLimits::new(max_bytes,MAX_JSON_DEPTH,MAX_JSON_VISITS,MAX_INTEGER_DIGITS)
-            .map_err(|_|Error::Budget("normalization JSON limits"))?;
-        let (value,hold)=state.serde_scoped_with_limits(raw,limits)?;
-        if !value.is_object() {return Err(Error::Invalid("normalization source object"));}
-        Ok(OwnedSourceRow {row:Self {value,max_bytes},_hold:Some(hold)})
-    }
-    pub(crate) fn with_owned_state<T>(raw: &[u8], max_bytes: usize,
-        state: &crate::d1_public_capture::CreationState<'_>,
-        operation: impl FnOnce(&Self) -> Result<T>) -> Result<T> {
+    pub(crate) fn parse_scoped_with_owned_state<'s, 'budget>(
+        raw: &[u8],
+        max_bytes: usize,
+        state: &'s crate::d1_public_capture::CreationState<'budget>,
+    ) -> Result<OwnedSourceRow<'s, 'budget>> {
         if max_bytes == 0 || max_bytes > MAX_SOURCE_ROW_BYTES || raw.len() > max_bytes {
             return Err(Error::Budget("normalization source row bytes"));
         }
-        let limits = JsonLimits::new(max_bytes, MAX_JSON_DEPTH, MAX_JSON_VISITS, MAX_INTEGER_DIGITS)
-            .map_err(|_| Error::Budget("normalization JSON limits"))?;
+        let limits = JsonLimits::new(
+            max_bytes,
+            MAX_JSON_DEPTH,
+            MAX_JSON_VISITS,
+            MAX_INTEGER_DIGITS,
+        )
+        .map_err(|_| Error::Budget("normalization JSON limits"))?;
+        let (value, hold) = state.serde_scoped_with_limits(raw, limits)?;
+        if !value.is_object() {
+            return Err(Error::Invalid("normalization source object"));
+        }
+        Ok(OwnedSourceRow {
+            row: Self { value, max_bytes },
+            _hold: Some(hold),
+        })
+    }
+    pub(crate) fn with_owned_state<T>(
+        raw: &[u8],
+        max_bytes: usize,
+        state: &crate::d1_public_capture::CreationState<'_>,
+        operation: impl FnOnce(&Self) -> Result<T>,
+    ) -> Result<T> {
+        if max_bytes == 0 || max_bytes > MAX_SOURCE_ROW_BYTES || raw.len() > max_bytes {
+            return Err(Error::Budget("normalization source row bytes"));
+        }
+        let limits = JsonLimits::new(
+            max_bytes,
+            MAX_JSON_DEPTH,
+            MAX_JSON_VISITS,
+            MAX_INTEGER_DIGITS,
+        )
+        .map_err(|_| Error::Budget("normalization JSON limits"))?;
         state.with_serde_owned_value_with_limits(raw, limits, |value| {
-            if !value.is_object() { return Err(Error::Invalid("normalization source object")); }
+            if !value.is_object() {
+                return Err(Error::Invalid("normalization source object"));
+            }
             let source = Self { value, max_bytes };
             operation(&source)
         })
     }
-    pub(crate) fn parse_with_owned_state(raw: &[u8], max_bytes: usize,
-        state: &crate::d1_public_capture::CreationState<'_>) -> Result<Self> {
+    pub(crate) fn parse_with_owned_state(
+        raw: &[u8],
+        max_bytes: usize,
+        state: &crate::d1_public_capture::CreationState<'_>,
+    ) -> Result<Self> {
         if max_bytes == 0 || max_bytes > MAX_SOURCE_ROW_BYTES || raw.len() > max_bytes {
             return Err(Error::Budget("normalization source row bytes"));
         }
         let value = state.serde_owned(raw, max_bytes)?;
-        if !value.is_object() { return Err(Error::Invalid("normalization source object")); }
+        if !value.is_object() {
+            return Err(Error::Invalid("normalization source object"));
+        }
         Ok(Self { value, max_bytes })
     }
 
@@ -518,21 +577,28 @@ pub fn stamp_content_revision(value: &mut Value, max_bytes: usize) -> Result<()>
     }
 }
 
-
 // Same Python digest grammar as stable_digest_value, with every actual walk,
 // comparison, copy and hash admitted under the original owner before action.
 fn stable_digest_value_owned(
-    value: &Value, hasher: &mut Digest256Hasher,
-    state: &crate::d1_public_capture::CreationState<'_>, depth: usize,
+    value: &Value,
+    hasher: &mut Digest256Hasher,
+    state: &crate::d1_public_capture::CreationState<'_>,
+    depth: usize,
 ) -> Result<()> {
-    fn emit(hasher: &mut Digest256Hasher, bytes: &[u8],
-        state: &crate::d1_public_capture::CreationState<'_>) -> Result<()> {
+    fn emit(
+        hasher: &mut Digest256Hasher,
+        bytes: &[u8],
+        state: &crate::d1_public_capture::CreationState<'_>,
+    ) -> Result<()> {
         state.charge_work(bytes.len())?;
         hasher.update(bytes);
         Ok(())
     }
-    fn length(hasher: &mut Digest256Hasher, mut n: usize,
-        state: &crate::d1_public_capture::CreationState<'_>) -> Result<()> {
+    fn length(
+        hasher: &mut Digest256Hasher,
+        mut n: usize,
+        state: &crate::d1_public_capture::CreationState<'_>,
+    ) -> Result<()> {
         state.charge_work(20 + 20)?;
         let mut bytes = [0u8; 20];
         let mut start = bytes.len();
@@ -540,36 +606,55 @@ fn stable_digest_value_owned(
             start -= 1;
             bytes[start] = b'0' + (n % 10) as u8;
             n /= 10;
-            if n == 0 { break; }
+            if n == 0 {
+                break;
+            }
         }
         emit(hasher, &bytes[start..], state)
     }
-    fn string(hasher: &mut Digest256Hasher, text: &str,
-        state: &crate::d1_public_capture::CreationState<'_>) -> Result<()> {
+    fn string(
+        hasher: &mut Digest256Hasher,
+        text: &str,
+        state: &crate::d1_public_capture::CreationState<'_>,
+    ) -> Result<()> {
         emit(hasher, b"s", state)?;
         length(hasher, text.len(), state)?;
         emit(hasher, b":", state)?;
         emit(hasher, text.as_bytes(), state)
     }
     type Entry<'v> = (&'v String, &'v Value);
-    fn greater(left: &str, right: &str,
-        state: &crate::d1_public_capture::CreationState<'_>) -> Result<bool> {
-        state.charge_work(left.len().checked_add(right.len())
-            .ok_or(Error::Budget("owned digest comparison work"))?)?;
+    fn greater(
+        left: &str,
+        right: &str,
+        state: &crate::d1_public_capture::CreationState<'_>,
+    ) -> Result<bool> {
+        state.charge_work(
+            left.len()
+                .checked_add(right.len())
+                .ok_or(Error::Budget("owned digest comparison work"))?,
+        )?;
         Ok(left > right)
     }
-    fn sift(entries: &mut [Entry<'_>], mut root: usize, end: usize,
-        state: &crate::d1_public_capture::CreationState<'_>) -> Result<()> {
+    fn sift(
+        entries: &mut [Entry<'_>],
+        mut root: usize,
+        end: usize,
+        state: &crate::d1_public_capture::CreationState<'_>,
+    ) -> Result<()> {
         loop {
             state.active()?;
             let Some(mut child) = root.checked_mul(2).and_then(|n| n.checked_add(1)) else {
                 return Err(Error::Budget("owned digest sort index"));
             };
-            if child >= end { return Ok(()); }
+            if child >= end {
+                return Ok(());
+            }
             if child + 1 < end && greater(entries[child + 1].0, entries[child].0, state)? {
                 child += 1;
             }
-            if !greater(entries[child].0, entries[root].0, state)? { return Ok(()); }
+            if !greater(entries[child].0, entries[root].0, state)? {
+                return Ok(());
+            }
             state.charge_work(2 * std::mem::size_of::<Entry<'_>>())?;
             entries.swap(root, child);
             root = child;
@@ -577,11 +662,20 @@ fn stable_digest_value_owned(
     }
     // This frame describes the recursive controller and bounded fixed spelling
     // scratch. Key-vector heap storage has its own simultaneous local hold.
-    type Frame<'v> = (&'v Value, &'v mut Digest256Hasher, usize,
-        Vec<Entry<'v>>, [u8; 20], [u8; 16], Result<()>);
+    type Frame<'v> = (
+        &'v Value,
+        &'v mut Digest256Hasher,
+        usize,
+        Vec<Entry<'v>>,
+        [u8; 20],
+        [u8; 16],
+        Result<()>,
+    );
     let _frame = state.hold(std::mem::size_of::<Frame<'_>>())?;
     state.active()?;
-    if depth > MAX_JSON_DEPTH { return Err(Error::Budget("owned digest depth")); }
+    if depth > MAX_JSON_DEPTH {
+        return Err(Error::Budget("owned digest depth"));
+    }
     state.charge_work(std::mem::size_of::<Value>())?;
     match value {
         Value::Null => emit(hasher, b"n;", state)?,
@@ -590,9 +684,13 @@ fn stable_digest_value_owned(
             // arbitrary_precision's maintained Number::as_f64 parses this
             // exact borrowed spelling, so admit its scan before conversion.
             state.charge_work(number.as_str().len())?;
-            let mut v = number.as_f64().filter(|v| v.is_finite())
+            let mut v = number
+                .as_f64()
+                .filter(|v| v.is_finite())
                 .ok_or(Error::Invalid("non-finite stable digest number"))?;
-            if v == 0.0 { v = 0.0; }
+            if v == 0.0 {
+                v = 0.0;
+            }
             state.charge_work(16 + 16 + 8)?;
             let mut hex = [0u8; 16];
             const DIGITS: &[u8; 16] = b"0123456789abcdef";
@@ -616,11 +714,14 @@ fn stable_digest_value_owned(
             emit(hasher, b"]", state)?;
         }
         Value::Object(items) => {
-            let bytes = items.len().checked_mul(std::mem::size_of::<Entry<'_>>())
+            let bytes = items
+                .len()
+                .checked_mul(std::mem::size_of::<Entry<'_>>())
                 .ok_or(Error::Budget("owned digest key workspace"))?;
             let _keys_hold = state.hold(bytes)?;
             let mut entries = Vec::new();
-            entries.try_reserve_exact(items.len())
+            entries
+                .try_reserve_exact(items.len())
                 .map_err(|_| Error::Budget("owned digest key allocation"))?;
             for (key, value) in items {
                 state.charge_work(std::mem::size_of::<Entry<'_>>())?;
@@ -628,7 +729,7 @@ fn stable_digest_value_owned(
             }
             // Fallible heapsort gives the original owner a checkpoint and
             // honest byte charge before each key comparison and slot swap.
-            for root in (0..entries.len()/2).rev() {
+            for root in (0..entries.len() / 2).rev() {
                 let end = entries.len();
                 sift(&mut entries, root, end, state)?;
             }
@@ -653,14 +754,21 @@ fn stable_digest_value_owned(
 // Price a complete conservative lookup path in the actual Map before
 // remove/insert, including this planning pass and every possible key comparison.
 // This covers both maintained BTreeMap and preserve_order's hashed map choice.
-fn charge_revision_map_lookup(value: &Value,
-    state: &crate::d1_public_capture::CreationState<'_>) -> Result<()> {
-    let fields = value.as_object().ok_or(Error::Invalid("normalization revision object"))?;
+fn charge_revision_map_lookup(
+    value: &Value,
+    state: &crate::d1_public_capture::CreationState<'_>,
+) -> Result<()> {
+    let fields = value
+        .as_object()
+        .ok_or(Error::Invalid("normalization revision object"))?;
     for key in fields.keys() {
-        state.charge_work(key.len().checked_mul(2)
-            .and_then(|n| n.checked_add("content_revision".len()))
-            .and_then(|n| n.checked_add(std::mem::size_of::<(String, Value)>()))
-            .ok_or(Error::Budget("owned revision map comparison work"))?)?;
+        state.charge_work(
+            key.len()
+                .checked_mul(2)
+                .and_then(|n| n.checked_add("content_revision".len()))
+                .and_then(|n| n.checked_add(std::mem::size_of::<(String, Value)>()))
+                .ok_or(Error::Budget("owned revision map comparison work"))?,
+        )?;
     }
     state.charge_work("content_revision".len())
 }
@@ -670,8 +778,10 @@ fn charge_revision_map_lookup(value: &Value,
 /// before their admission, including every error and unwinding path. The
 /// incoming tree's own existing admission must remain held by the caller.
 pub(crate) fn with_content_revision_owned(
-    state: &crate::d1_public_capture::CreationState<'_>, value: Value,
-    max_bytes: usize, consume: impl FnOnce(&Value, &[u8]) -> Result<()>,
+    state: &crate::d1_public_capture::CreationState<'_>,
+    value: Value,
+    max_bytes: usize,
+    consume: impl FnOnce(&Value, &[u8]) -> Result<()>,
 ) -> Result<()> {
     if max_bytes == 0 || max_bytes > MAX_SOURCE_ROW_BYTES {
         return Err(Error::Budget("normalization content revision bytes"));
@@ -680,9 +790,11 @@ pub(crate) fn with_content_revision_owned(
         value: Value,
         _hold: crate::d1_public_capture::CreationStateHold<'s, 'b>,
     }
-    let extra = serde_object_slots_upper(1)?.checked_add(64 + "content_revision".len())
-        .and_then(|n| n.checked_add(std::mem::size_of::<Value>()
-            + std::mem::size_of::<Digest256Hasher>()))
+    let extra = serde_object_slots_upper(1)?
+        .checked_add(64 + "content_revision".len())
+        .and_then(|n| {
+            n.checked_add(std::mem::size_of::<Value>() + std::mem::size_of::<Digest256Hasher>())
+        })
         .ok_or(Error::Budget("owned content revision state"))?;
     let hold = state.hold(extra)?;
     let mut owner = RevisionOwner { value, _hold: hold };
@@ -692,7 +804,10 @@ pub(crate) fn with_content_revision_owned(
         // scalar. Price its actual recursive destruction before Map::remove.
         state.value_clone_state_upper_bound(previous)?;
     }
-    owner.value.as_object_mut().ok_or(Error::Invalid("normalization revision object"))?
+    owner
+        .value
+        .as_object_mut()
+        .ok_or(Error::Invalid("normalization revision object"))?
         .remove("content_revision");
     state.with_json_encoded(&owner.value, max_bytes, |_| Ok(()))?;
     let mut hash = Digest256Hasher::new();
@@ -700,10 +815,14 @@ pub(crate) fn with_content_revision_owned(
     state.charge_work(64 + "content_revision".len())?;
     let digest = hash.finalize().to_hex();
     charge_revision_map_lookup(&owner.value, state)?;
-    owner.value.as_object_mut().expect("checked object")
+    owner
+        .value
+        .as_object_mut()
+        .expect("checked object")
         .insert("content_revision".to_owned(), Value::String(digest));
-    state.with_json_encoded(&owner.value, max_bytes,
-        |bytes| consume(&owner.value, bytes))
+    state.with_json_encoded(&owner.value, max_bytes, |bytes| {
+        consume(&owner.value, bytes)
+    })
 }
 
 #[cfg(test)]

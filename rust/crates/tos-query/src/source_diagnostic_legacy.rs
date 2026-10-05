@@ -83,7 +83,8 @@ pub(super) fn retained(value: &Value, used: &mut usize, cap: usize) -> Result<()
 }
 impl LegacyStore {
     fn source_revision(&self) -> Result<&str> {
-        self.graph_header.get("source_revision")
+        self.graph_header
+            .get("source_revision")
             .and_then(Value::as_str)
             .ok_or_else(|| owned_err("legacy graph source revision absent"))
     }
@@ -194,8 +195,11 @@ impl LegacyStore {
             let doc = parse_json(&raw, JsonMode::PublishedStrict, limits).map_err(err)?;
             envelopes.push(doc.root().clone());
         }
-        let targets =
-            crate::source_read_projection::source_read_targets(&envelopes, self.source_revision()?, limits);
+        let targets = crate::source_read_projection::source_read_targets(
+            &envelopes,
+            self.source_revision()?,
+            limits,
+        );
         let raw = tos_foundation::emit_value_preserved_json(&targets, limits).map_err(err)?;
         Ok((
             refs.into_iter().collect(),

@@ -1,7 +1,7 @@
 //! Read-only maintained source diagnostics. No publication or query authority.
 use crate::{
-    philosophy_read::{compute_source_philosophy_view_diagnostic, PhilosophyReadBudget},
     AbortProbe,
+    philosophy_read::{PhilosophyReadBudget, compute_source_philosophy_view_diagnostic},
 };
 use serde_json::{Map, Value};
 use std::{
@@ -11,12 +11,12 @@ use std::{
     os::unix::fs::MetadataExt,
     path::{Path, PathBuf},
     sync::{
-        atomic::{AtomicU64, Ordering},
         Arc,
+        atomic::{AtomicU64, Ordering},
     },
     time::Instant,
 };
-use tos_foundation::{parse_json, Digest256, Digest256Hasher, JsonLimits, JsonMode};
+use tos_foundation::{Digest256, Digest256Hasher, JsonLimits, JsonMode, parse_json};
 
 #[derive(Clone, Copy, Debug)]
 pub struct Limits {

@@ -4,8 +4,8 @@
 //! retains their unreviewed posture and never makes source text public.
 
 use serde::{
-    ser::{SerializeMap, SerializeSeq},
     Serialize, Serializer,
+    ser::{SerializeMap, SerializeSeq},
 };
 use serde_json::Value;
 use std::{
@@ -314,11 +314,7 @@ fn fail<T>(message: impl Into<String>) -> Result<T> {
     Err(message.into())
 }
 fn require(condition: bool, message: &'static str) -> Result<()> {
-    if condition {
-        Ok(())
-    } else {
-        fail(message)
-    }
+    if condition { Ok(()) } else { fail(message) }
 }
 fn get<'a>(value: &'a Value, name: &str) -> Result<&'a Value> {
     value
@@ -618,7 +614,7 @@ fn xml_name(raw: &[u8]) -> Result<String> {
         .map_err(|error| error.to_string())
 }
 fn xml_heading_index(raw: &[u8]) -> Result<HashMap<String, String>> {
-    use quick_xml::{events::Event, Reader};
+    use quick_xml::{Reader, events::Event};
     let mut reader = Reader::from_reader(raw);
     reader.config_mut().trim_text(false);
     reader.config_mut().check_end_names = true;

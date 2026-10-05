@@ -433,12 +433,8 @@ pub(super) fn run_public_v2_batch(
     }
 
     let source_root = absolute(cmd::text(&hint, "source_root")?)?;
-    let owner = ProtectedAssessmentJournal::select(
-        &configuration_path,
-        &source_root,
-        deadline,
-        cancelled,
-    )?;
+    let owner =
+        ProtectedAssessmentJournal::select(&configuration_path, &source_root, deadline, cancelled)?;
     budget.charge_bytes(owner.configuration_raw().len())?;
     if owner.configuration_raw() != hint_raw.as_slice()
         || OwnerVersion::from_config(owner.configuration())? != OwnerVersion::V2
@@ -541,19 +537,20 @@ pub(super) fn run_public_v2_batch(
         }
         all_by_id.insert(id, row.clone());
     }
-    validate_public_v2_form_selections(
-        &selections,
-        &source_index,
-        &all_by_id,
-        &public_sources,
-    )?;
+    validate_public_v2_form_selections(&selections, &source_index, &all_by_id, &public_sources)?;
 
     let record_rows = record_rows(&config, &[])?;
     let mut first_histories = Vec::with_capacity(selections.len());
     let mut first_replies = Vec::with_capacity(selections.len());
     for selection in &selections {
         active(deadline, cancelled)?;
-        let history = journal.read(&selection.form_id, &context, &mut worker, deadline, cancelled)?;
+        let history = journal.read(
+            &selection.form_id,
+            &context,
+            &mut worker,
+            deadline,
+            cancelled,
+        )?;
         budget.charge_bytes(history.input_bytes()?)?;
         first_replies.push(materialize_public_v2_selection(
             selection,
@@ -582,7 +579,13 @@ pub(super) fn run_public_v2_batch(
     let mut replay_replies = Vec::with_capacity(selections.len());
     for selection in &selections {
         active(deadline, cancelled)?;
-        let history = journal.read(&selection.form_id, &context, &mut worker, deadline, cancelled)?;
+        let history = journal.read(
+            &selection.form_id,
+            &context,
+            &mut worker,
+            deadline,
+            cancelled,
+        )?;
         budget.charge_bytes(history.input_bytes()?)?;
         replay_replies.push(materialize_public_v2_selection(
             selection,
@@ -729,10 +732,8 @@ fn validate_public_v2_form_selections(
     for selection in selections {
         if !source_index.contains_key(&selection.form_id)
             || !source_index.contains_key(&selection.subject_id)
-            || public_sources.record_paths.get(&selection.form_id)
-                != Some(&selection.form_path)
-            || public_sources.form_paths.get(&selection.form_id)
-                != Some(&selection.form_path)
+            || public_sources.record_paths.get(&selection.form_id) != Some(&selection.form_path)
+            || public_sources.form_paths.get(&selection.form_id) != Some(&selection.form_path)
             || public_sources.record_paths.get(&selection.subject_id)
                 != Some(&selection.source_path)
         {
@@ -742,14 +743,17 @@ fn validate_public_v2_form_selections(
         }
         let form = all_by_id
             .get(&selection.form_id)
-            .ok_or(SourceCommandError::Conflict("selected source form is absent"))?;
+            .ok_or(SourceCommandError::Conflict(
+                "selected source form is absent",
+            ))?;
         let subject = all_by_id
             .get(&selection.subject_id)
-            .ok_or(SourceCommandError::Conflict("selected form subject is absent"))?;
+            .ok_or(SourceCommandError::Conflict(
+                "selected form subject is absent",
+            ))?;
         if !cmd::same(&owner_reference(form)?, &selection.form_ref)?
             || !cmd::same(&owner_reference(subject)?, &selection.subject_ref)?
-            || cmd::text(cmd::field(form, "payload")?, "schema_version")?
-                != "tos_human_form_v1"
+            || cmd::text(cmd::field(form, "payload")?, "schema_version")? != "tos_human_form_v1"
             || !cmd::same(
                 cmd::field(cmd::field(form, "payload")?, "subject")?,
                 &selection.subject_ref,
@@ -865,7 +869,10 @@ fn public_v2_owner_snapshot(
             .map(|(key, value)| (JsonString::from_utf8(&key), value))
             .collect(),
     );
-    Ok(format!("sha256:{}", cmd::record_digest(&snapshot)?.to_hex()))
+    Ok(format!(
+        "sha256:{}",
+        cmd::record_digest(&snapshot)?.to_hex()
+    ))
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -899,8 +906,7 @@ fn materialize_public_v2_selection(
         || scope
             .object_get("form_language_context")
             .is_some_and(|value| !value.is_null())
-            && cmd::text(cmd::field(&current, "payload")?, "schema_version")?
-                != "tos_human_form_v1"
+            && cmd::text(cmd::field(&current, "payload")?, "schema_version")? != "tos_human_form_v1"
     {
         return Err(SourceCommandError::Denied(
             "assessed form is outside the public source-form owner scope",
@@ -934,10 +940,14 @@ fn materialize_public_v2_selection(
     let needs_native_read = native_subjects.iter().any(|row| {
         row.object_get("payload").is_some_and(|payload| {
             payload.object_get("native_text_binding").is_some()
-                || payload.object_get("schema_version").and_then(JsonValue::as_str)
+                || payload
+                    .object_get("schema_version")
+                    .and_then(JsonValue::as_str)
                     == Some("tos_occurrence_description_record_v1")
         })
-    }) || cmd::field(&current, "payload")?.object_get("native_text_binding").is_some()
+    }) || cmd::field(&current, "payload")?
+        .object_get("native_text_binding")
+        .is_some()
         || cmd::text(cmd::field(&current, "payload")?, "schema_version")?
             == "tos_occurrence_description_record_v1";
     if needs_native_read {
@@ -1000,10 +1010,7 @@ fn materialize_public_v2_selection(
                 .unwrap_or(JsonValue::Null),
         ),
         ("batch_count", cmd::number(history.batches.len() as u64)),
-        (
-            "current_admission",
-            admission,
-        ),
+        ("current_admission", admission),
         ("materialization", materialization),
     ]);
     Ok(cmd::object(vec![
@@ -3978,36 +3985,34 @@ fn materialize_assessed_form(
     }
     let subject_ref = cmd::field(form_body, "subject")?;
     let subject_id = cmd::text(subject_ref, "id")?;
-    let (form_set_path, form_set, _public_form) =
-        if let Some(path) = private_sources.and_then(|sources| sources.form_paths().get(form_id)) {
-            let form_set = private_sources
-                .and_then(|sources| sources.form_sets().get(path))
-                .ok_or(
-                SourceCommandError::Conflict(
-                    "materialization form set is absent from the current selected source closure",
-                ),
-            )?;
-            (path.clone(), form_set, false)
-        } else if let Some(path) = public_sources.form_paths.get(form_id).cloned() {
-            if public_sources.record_paths.get(form_id) != Some(&path) {
-                return Err(SourceCommandError::Denied(
-                    "materialization public form path is not exact-selected",
-                ));
-            }
-            public_sources.validate_form_set(&path, worker, deadline, cancelled)?;
-            let form_set =
-                public_sources
-                    .form_sets
-                    .get(&path)
-                    .ok_or(SourceCommandError::Conflict(
-                        "materialization public form set is absent from current selected sources",
-                    ))?;
-            (path, form_set, true)
-        } else {
+    let (form_set_path, form_set, _public_form) = if let Some(path) =
+        private_sources.and_then(|sources| sources.form_paths().get(form_id))
+    {
+        let form_set = private_sources
+            .and_then(|sources| sources.form_sets().get(path))
+            .ok_or(SourceCommandError::Conflict(
+                "materialization form set is absent from the current selected source closure",
+            ))?;
+        (path.clone(), form_set, false)
+    } else if let Some(path) = public_sources.form_paths.get(form_id).cloned() {
+        if public_sources.record_paths.get(form_id) != Some(&path) {
             return Err(SourceCommandError::Denied(
-                "materialization form path is not source-selected",
+                "materialization public form path is not exact-selected",
             ));
-        };
+        }
+        public_sources.validate_form_set(&path, worker, deadline, cancelled)?;
+        let form_set = public_sources
+            .form_sets
+            .get(&path)
+            .ok_or(SourceCommandError::Conflict(
+                "materialization public form set is absent from current selected sources",
+            ))?;
+        (path, form_set, true)
+    } else {
+        return Err(SourceCommandError::Denied(
+            "materialization form path is not source-selected",
+        ));
+    };
     let Some(subject) = all_by_id.get(subject_id) else {
         return Ok(materialization_stop(
             &form_ref,
@@ -4256,13 +4261,12 @@ fn materialize_assessed_form(
         }
         let pointer = cmd::text(binding, "pointer")?;
         let subject_payload = cmd::field(subject, "payload")?;
-        let fields = if private_sources.is_none()
-            && subject_payload.object_get("claim_id").is_some()
-        {
-            public_claim_form_fields(subject_payload, worker, deadline, cancelled)?
-        } else {
-            crate::source_forms::metadata_fields(subject_payload)?
-        };
+        let fields =
+            if private_sources.is_none() && subject_payload.object_get("claim_id").is_some() {
+                public_claim_form_fields(subject_payload, worker, deadline, cancelled)?
+            } else {
+                crate::source_forms::metadata_fields(subject_payload)?
+            };
         let role = cmd::text(form_body, "role")?;
         let matches = fields
             .into_iter()
@@ -4570,7 +4574,9 @@ fn public_claim_form_fields(
     let qualifiers = cmd::field(payload, "qualifiers")?;
     let display = qualifiers.object_get("display_fields");
     let understood_display = display.is_some_and(|value| {
-        value.object_get("schema_version").and_then(JsonValue::as_str)
+        value
+            .object_get("schema_version")
+            .and_then(JsonValue::as_str)
             == Some("tos_claim_display_fields_v1")
     });
     if understood_display {
@@ -4608,7 +4614,10 @@ fn public_claim_form_fields(
     let script = cmd::field(qualifiers, "statement_script")?.clone();
     let language_input = cmd::object(vec![(
         "notes",
-        cmd::object(vec![("language", language.clone()), ("script", script.clone())]),
+        cmd::object(vec![
+            ("language", language.clone()),
+            ("script", script.clone()),
+        ]),
     )]);
     let raw = cmd::canonical(&language_input)?;
     match worker.check_reusing_scalar(

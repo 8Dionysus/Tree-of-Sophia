@@ -905,7 +905,11 @@ impl<'a> SourceFoundationRecordsIndex<'a> {
         )?;
         let ordered = page.paths.windows(2).all(|rows| rows[0] < rows[1]);
         if !ordered
-            || after_path.is_some_and(|after| page.paths.first().is_some_and(|path| path.as_str() <= after))
+            || after_path.is_some_and(|after| {
+                page.paths
+                    .first()
+                    .is_some_and(|path| path.as_str() <= after)
+            })
             || page.paths.len() > budget.max_rows.get()
             || page.charged_state_bytes > budget.max_state_bytes.get()
             || page.charged_state_bytes < minimum

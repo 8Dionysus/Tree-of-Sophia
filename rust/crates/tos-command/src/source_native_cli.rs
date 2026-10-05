@@ -173,8 +173,8 @@ pub fn run(invocation_path: &Path, input: impl Read) -> SourceCommandResult<Valu
         == "tos_local_native_metadata_publication_invocation_v1";
     let source_invocation =
         text(&invocation, "schema_version")? == "tos_local_native_source_invocation_v1";
-    let assessment_read_invocation = text(&invocation, "schema_version")?
-        == "tos_local_native_assessment_read_invocation_v1";
+    let assessment_read_invocation =
+        text(&invocation, "schema_version")? == "tos_local_native_assessment_read_invocation_v1";
     let mut keys = vec![
         "schema_version",
         "owner_config",
@@ -190,7 +190,11 @@ pub fn run(invocation_path: &Path, input: impl Read) -> SourceCommandResult<Valu
         "budgets",
     ];
     keys.push(
-        if item_invocation || claim_invocation || collection_invocation || assessment_read_invocation {
+        if item_invocation
+            || claim_invocation
+            || collection_invocation
+            || assessment_read_invocation
+        {
             "original_source_revision"
         } else {
             "owner_context"

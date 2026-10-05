@@ -3027,7 +3027,9 @@ where
 
 const CANDIDATE_REPLAY_FILE_NODE_UPPER: usize = 512;
 
-fn candidate_source_refusal(refusal: tos_validation::item_rules::ItemRefusal) -> SourceCommandError {
+fn candidate_source_refusal(
+    refusal: tos_validation::item_rules::ItemRefusal,
+) -> SourceCommandError {
     use tos_validation::item_rules::ItemRefusal;
     match refusal {
         ItemRefusal::Budget | ItemRefusal::BudgetCheck { .. } => {
@@ -3120,9 +3122,9 @@ fn candidate_current_member_file<I: Copy + Eq>(
                 if next_read > max_total_bytes {
                     return Err(tos_validation::item_rules::ItemRefusal::Budget);
                 }
-                if expected_digest.is_some_and(|digest| {
-                    Digest256::of_bytes(raw).to_prefixed() != digest
-                }) {
+                if expected_digest
+                    .is_some_and(|digest| Digest256::of_bytes(raw).to_prefixed() != digest)
+                {
                     return Err(tos_validation::item_rules::ItemRefusal::Source(
                         "candidate Artifact replay member digest changed".into(),
                     ));
@@ -3201,7 +3203,13 @@ fn candidate_insert_owned_package_file(
     copy.try_reserve_exact(raw.len())
         .map_err(|_| SourceCommandError::Invalid("candidate Artifact replay allocation"))?;
     copy.extend_from_slice(raw);
-    files.insert(file_path, SourceFile { path: relative, raw: copy });
+    files.insert(
+        file_path,
+        SourceFile {
+            path: relative,
+            raw: copy,
+        },
+    );
     *state_bytes = charge;
     Ok(())
 }
@@ -3247,7 +3255,11 @@ fn candidate_replay_source_files<I: Copy + Eq>(
                 "candidate Artifact replay history-read deadline",
             ));
         }
-        if let PredicateRead::ExactPath { path: read_path, digest } = read {
+        if let PredicateRead::ExactPath {
+            path: read_path,
+            digest,
+        } = read
+        {
             candidate_current_member_file(
                 input,
                 input_identity,
@@ -3289,10 +3301,7 @@ fn candidate_replay_source_files<I: Copy + Eq>(
             ));
         }
         let id = transaction.transaction_id();
-        let directory = format!(
-            "ToS/source-witnesses/.metadata-transactions/{}",
-            &id[7..]
-        );
+        let directory = format!("ToS/source-witnesses/.metadata-transactions/{}", &id[7..]);
         let manifest_path = format!("{directory}/manifest.json");
         candidate_current_member_file(
             input,
@@ -3378,7 +3387,10 @@ fn candidate_replay_source_files<I: Copy + Eq>(
 #[allow(clippy::too_many_arguments)]
 pub(crate) fn replay_artifact_corrections_from_candidate<I: Copy + Eq>(
     input: &dyn SourceCutInputWithIdentity<I>,
-    records: &tos_validation::source_foundation_records::SourceFoundationRecordsStreamedReport<'_, I>,
+    records: &tos_validation::source_foundation_records::SourceFoundationRecordsStreamedReport<
+        '_,
+        I,
+    >,
     source_root: &str,
     effective_uid: u64,
     native_history: &CandidateNativeRecordHistoryReadObservation<I>,

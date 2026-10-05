@@ -9375,9 +9375,9 @@ mod retained_history_reader_regression {
         }
 
         let mut context = CommandContext {
-            base_revision: tos_foundation::SourceRevision(
-                tos_foundation::Digest256::of_bytes(b"retained Claim reader fixture"),
-            ),
+            base_revision: tos_foundation::SourceRevision(tos_foundation::Digest256::of_bytes(
+                b"retained Claim reader fixture",
+            )),
             configuration_raw: b"{}".to_vec(),
             request_raw: b"{}".to_vec(),
             recorded_at: "2026-10-04T00:00:00Z".into(),
@@ -9422,10 +9422,8 @@ mod retained_history_reader_regression {
     #[test]
     fn exact_old_claim_survives_later_interleaved_corrections_without_fallback() {
         let context = selected_linguistic_owner();
-        let history = parse(
-            selected(&context, &format!("{OWNER_DIR}/{CLAIM_HISTORY}")).unwrap(),
-        )
-        .unwrap();
+        let history =
+            parse(selected(&context, &format!("{OWNER_DIR}/{CLAIM_HISTORY}")).unwrap()).unwrap();
         let receipts = array(&history, "receipts").unwrap();
         let old_ref = field(&receipts[0], "previous_source").unwrap().clone();
         let current_raw = selected(&context, OWNER_SOURCE).unwrap();
@@ -9450,7 +9448,11 @@ mod retained_history_reader_regression {
             "public_metadata_only"
         );
         assert_eq!(
-            field(field(&resolved.provenance, "catalog").unwrap(), "current_record_ref").unwrap(),
+            field(
+                field(&resolved.provenance, "catalog").unwrap(),
+                "current_record_ref"
+            )
+            .unwrap(),
             &current_ref
         );
         let verified_history = field(&resolved.provenance, "history").unwrap();
@@ -9468,10 +9470,8 @@ mod retained_history_reader_regression {
         assert!(transition.object_get("request").is_none());
 
         let first_archive = text(&receipts[0], "archive_path").unwrap();
-        let manifest = parse(
-            selected(&context, &format!("{first_archive}/manifest.json")).unwrap(),
-        )
-        .unwrap();
+        let manifest =
+            parse(selected(&context, &format!("{first_archive}/manifest.json")).unwrap()).unwrap();
         let blob = text(
             field(field(&manifest, "files").unwrap(), CLAIM_STREAM).unwrap(),
             "blob",
@@ -9510,14 +9510,13 @@ mod retained_history_reader_regression {
         ));
 
         let later_archive = text(&receipts[2], "archive_path").unwrap();
-        let later_manifest = parse(
-            selected(&context, &format!("{later_archive}/manifest.json")).unwrap(),
-        )
-        .unwrap();
+        let later_manifest =
+            parse(selected(&context, &format!("{later_archive}/manifest.json")).unwrap()).unwrap();
         let later_blob = text(
             field(field(&later_manifest, "files").unwrap(), CLAIM_STREAM).unwrap(),
             "blob",
-        ).unwrap();
+        )
+        .unwrap();
         let damaged_path = format!("{later_archive}/{later_blob}");
         let mut damaged = context.clone();
         let member = damaged
@@ -9528,7 +9527,9 @@ mod retained_history_reader_regression {
         member.raw[0] ^= 1;
         assert!(matches!(
             resolve(&damaged, &old_ref),
-            Err(SourceCommandError::Conflict("retained archive blob binding differs"))
+            Err(SourceCommandError::Conflict(
+                "retained archive blob binding differs"
+            ))
         ));
     }
 }

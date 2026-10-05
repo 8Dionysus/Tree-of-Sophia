@@ -552,10 +552,7 @@ fn element_namespace<'a>(qname: &[u8], scope: &'a BTreeMap<String, String>) -> O
     scope.get(prefix).map(String::as_str)
 }
 
-fn word_element_name(
-    name: QName<'_>,
-    scope: &BTreeMap<String, String>,
-) -> Result<String, String> {
+fn word_element_name(name: QName<'_>, scope: &BTreeMap<String, String>) -> Result<String, String> {
     let local_binding = name.local_name();
     let local = local_name(local_binding.as_ref())?;
     if element_namespace(name.as_ref(), scope)

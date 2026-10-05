@@ -942,7 +942,10 @@ impl<'hold, T: AccessExecutor + ?Sized> ScopedAccessExecutor<'hold> for T {
     ) -> Result<PreparedPacket<'hold>, AccessError> {
         AccessExecutor::access_health(self, arg0)
     }
-    fn access_health_report(&self, probe: Arc<dyn AbortProbe>) -> Result<PreparedHealth<'hold>, AccessError> {
+    fn access_health_report(
+        &self,
+        probe: Arc<dyn AbortProbe>,
+    ) -> Result<PreparedHealth<'hold>, AccessError> {
         AccessExecutor::access_health_report(self, probe)
     }
     fn prepared_status_available(&self) -> bool {

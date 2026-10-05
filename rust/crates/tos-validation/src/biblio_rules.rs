@@ -4425,7 +4425,10 @@ fn exact_batch_inputs<T: AsRef<str>>(
     let ceiling = rules.limits.max_state_bytes;
     rules.limits.max_state_bytes = ceiling.checked_sub(scratch).ok_or(ItemRefusal::Budget)?;
     let actual: BTreeSet<_> = rows.iter().filter_map(|r| s(r, "ref")).collect();
-    let result = if !actual.iter().copied().eq(expected.iter().map(AsRef::as_ref))
+    let result = if !actual
+        .iter()
+        .copied()
+        .eq(expected.iter().map(AsRef::as_ref))
         || rows.len() != actual.len()
     {
         rules.issue("bibliography-batch-exact-input-set", location)
@@ -4666,7 +4669,11 @@ fn inspect_batches(
                 if !evidence.clone().any(|v| v.starts_with("tos.anchor.")) {
                     rules.issue("derivation-source-anchor-return", path)?;
                 }
-                inputs.extend(evidence.filter(|v| v.starts_with("ToS/")).map(Cow::Borrowed));
+                inputs.extend(
+                    evidence
+                        .filter(|v| v.starts_with("ToS/"))
+                        .map(Cow::Borrowed),
+                );
             }
             for id in &endpoints {
                 if let Some(record) = records.current_record(id)? {

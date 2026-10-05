@@ -46,9 +46,10 @@ impl Fixture {
                 .unwrap()
                 .success()
         );
-        fixture.write("scripts/tiny_entry_route.source.json", include_bytes!(
-            "../../../../scripts/tiny_entry_route.source.json"
-        ));
+        fixture.write(
+            "scripts/tiny_entry_route.source.json",
+            include_bytes!("../../../../scripts/tiny_entry_route.source.json"),
+        );
         let source = map();
         for family in source["families"].as_array().unwrap() {
             for path in family["currentness_inputs"].as_array().unwrap() {
@@ -508,45 +509,78 @@ fn actual_coordinator_cli_does_not_invent_an_ambient_kag_export_operation() {
 
 #[test]
 fn priced_card_discovery_streams_payload_names_but_refuses_untracked_cards() {
-    use std::{sync::atomic::AtomicI32, time::{Duration, Instant}};
+    use std::{
+        sync::atomic::AtomicI32,
+        time::{Duration, Instant},
+    };
     use tos_ops_mechanics_plan::route_cards::{self, RouteSources};
     let fixture = Fixture::new();
     let mut inventory: Value = serde_json::from_str(include_str!(
         "../../../../docs/validation/agents_route_inventory.json"
-    )).unwrap();
+    ))
+    .unwrap();
     inventory["route_card_discovery"]["route_roots"] = json!(["docs", "mechanics"]);
-    fixture.write(route_cards::INVENTORY, &serde_json::to_vec(&inventory).unwrap());
+    fixture.write(
+        route_cards::INVENTORY,
+        &serde_json::to_vec(&inventory).unwrap(),
+    );
     fixture.track();
-    let sources = || RouteSources::new_until_with_operation_limit(
-        &fixture.root, Instant::now() + Duration::from_secs(30),
-        route_cards::MAX_BUDGETED_ROUTE_OPERATIONS,
-    ).unwrap();
+    let sources = || {
+        RouteSources::new_until_with_operation_limit(
+            &fixture.root,
+            Instant::now() + Duration::from_secs(30),
+            route_cards::MAX_BUDGETED_ROUTE_OPERATIONS,
+        )
+        .unwrap()
+    };
     let before = sources().discover(&inventory).unwrap();
     for index in 0..10_001 {
         fixture.write(&format!("docs/ignored-payload/{index}"), b"");
     }
     assert!(sources().discover(&inventory).is_err());
-    assert_eq!(sources().discover_cards_with_limits(
-        &inventory, route_cards::MAX_SELECTED_PATH_DISCOVERY_ENTRIES,
-    ).unwrap(), before);
+    assert_eq!(
+        sources()
+            .discover_cards_with_limits(
+                &inventory,
+                route_cards::MAX_SELECTED_PATH_DISCOVERY_ENTRIES,
+            )
+            .unwrap(),
+        before
+    );
     let issues = route_cards::run_validation_with_card_discovery_limit(
-        &fixture.root, &mut sources(), &AtomicI32::new(0),
+        &fixture.root,
+        &mut sources(),
+        &AtomicI32::new(0),
         route_cards::MAX_SELECTED_PATH_DISCOVERY_ENTRIES,
-    ).unwrap();
-    assert!(!issues.iter().any(|(_, message)|
-        message.contains("route discovery entry bound exceeded")));
+    )
+    .unwrap();
+    assert!(
+        !issues
+            .iter()
+            .any(|(_, message)| message.contains("route discovery entry bound exceeded"))
+    );
     let generated = route_cards::build_currentness(&fixture.root, &AtomicI32::new(0)).unwrap();
-    let generated_cards: Vec<_> = generated["cards"].as_array().unwrap().iter()
-        .map(|card| card["path"].as_str().unwrap().to_owned()).collect();
+    let generated_cards: Vec<_> = generated["cards"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|card| card["path"].as_str().unwrap().to_owned())
+        .collect();
     assert_eq!(generated_cards, before);
     fixture.write("docs/ignored-payload/AGENTS.md", b"untracked card\n");
     let issues = route_cards::run_validation_with_card_discovery_limit(
-        &fixture.root, &mut sources(), &AtomicI32::new(0),
+        &fixture.root,
+        &mut sources(),
+        &AtomicI32::new(0),
         route_cards::MAX_SELECTED_PATH_DISCOVERY_ENTRIES,
-    ).unwrap();
-    assert!(issues.iter().any(|(path, message)|
-        path == "docs/ignored-payload/AGENTS.md"
-            && message == "discovered AGENTS.md is not tracked"));
+    )
+    .unwrap();
+    assert!(
+        issues
+            .iter()
+            .any(|(path, message)| path == "docs/ignored-payload/AGENTS.md"
+                && message == "discovered AGENTS.md is not tracked")
+    );
 }
 #[test]
 fn tracked_executable_route_card_cannot_disappear() {
@@ -554,7 +588,15 @@ fn tracked_executable_route_card_cannot_disappear() {
     let fixture = Fixture::new();
     let mut sources = RouteSources::new(&fixture.root).unwrap();
     let error = guards::validate_executable_routes(
-        &fixture.root, &mut sources, &["docs/AGENTS.md".into()], &mut Vec::new(),
-    ).unwrap_err();
-    assert!(error.to_string().contains("tracked route card is missing: docs/AGENTS.md"));
+        &fixture.root,
+        &mut sources,
+        &["docs/AGENTS.md".into()],
+        &mut Vec::new(),
+    )
+    .unwrap_err();
+    assert!(
+        error
+            .to_string()
+            .contains("tracked route card is missing: docs/AGENTS.md")
+    );
 }

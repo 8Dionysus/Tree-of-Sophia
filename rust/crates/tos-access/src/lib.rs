@@ -9,6 +9,8 @@ pub mod concept_search;
 #[cfg(not(target_arch = "wasm32"))]
 pub mod coverage;
 pub mod doctor;
+#[cfg(target_os = "linux")]
+pub mod edge_local_verify;
 pub mod edge_offline_capture;
 pub mod edge_sql;
 pub mod exploration_checkpoints;
@@ -22,13 +24,11 @@ pub mod persistent_exploration_checkpoints;
 pub mod prepared_local;
 pub mod prepared_maintenance;
 pub mod prepared_publication;
+#[cfg(target_os = "linux")]
+pub mod private_stage_run;
 pub mod public_d1_build;
 #[cfg(not(target_arch = "wasm32"))]
 pub mod public_packet_compare;
-#[cfg(target_os = "linux")]
-pub mod edge_local_verify;
-#[cfg(target_os = "linux")]
-pub mod private_stage_run;
 pub mod reading;
 pub mod release_state;
 pub mod word_analysis;
@@ -53,8 +53,9 @@ pub mod source_read;
 
 pub use common::{
     AccessError, AccessErrorCode, AccessExecutor, AccessProfile, DisclosureFence,
-    IndexedSearchParams, NoOwner, Params, PreparedHealth, PreparedPacket, QuerySession, RegisteredOperation,
-    SEARCH_OPERATION_ID, ScopedAccessExecutor, checked_execute, descriptor, registered_operations,
+    IndexedSearchParams, NoOwner, Params, PreparedHealth, PreparedPacket, QuerySession,
+    RegisteredOperation, SEARCH_OPERATION_ID, ScopedAccessExecutor, checked_execute, descriptor,
+    registered_operations,
 };
 
 pub mod native_prepare;
@@ -75,11 +76,11 @@ pub mod research_builders_command;
 #[cfg(not(target_arch = "wasm32"))]
 pub mod core_snapshot;
 #[cfg(not(target_arch = "wasm32"))]
-pub mod reference_root_query;
+pub mod native_cold_resources;
 #[cfg(not(target_arch = "wasm32"))]
 pub mod reference_query_executor;
 #[cfg(not(target_arch = "wasm32"))]
-pub mod native_cold_resources;
+pub mod reference_root_query;
 
 #[cfg(not(target_arch = "wasm32"))]
 mod core_http_admission;

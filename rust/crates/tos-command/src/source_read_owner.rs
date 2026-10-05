@@ -448,7 +448,10 @@ impl SelectedSourceReadOwner {
                         Error::Unsupported(_) => "over-budget",
                         _ => "corrupt",
                     });
-                    response["reason"] = json!(if matches!(error, Error::Denied(_) | Error::DeniedWithReason(_)) {
+                    response["reason"] = json!(if matches!(
+                        error,
+                        Error::Denied(_) | Error::DeniedWithReason(_)
+                    ) {
                         if local {
                             "native-unit-local-conditions-not-satisfied"
                         } else {
@@ -796,7 +799,9 @@ fn closed_error(error: &Error) -> (&'static str, &'static str) {
         Error::Conflict("Claim catalog exact ref differs") => {
             ("stale", "exact-version-digest-mismatch")
         }
-        Error::Denied(_) | Error::DeniedWithReason(_) => ("access-restricted", "owner-source-path-restricted"),
+        Error::Denied(_) | Error::DeniedWithReason(_) => {
+            ("access-restricted", "owner-source-path-restricted")
+        }
         Error::Unsupported("owner-source-record-missing") => {
             ("missing", "owner-source-record-missing")
         }

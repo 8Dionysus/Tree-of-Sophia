@@ -439,7 +439,9 @@ fn registry_entries<'a, 'state, 'budget>(
         .checked_add(1)
         .and_then(|n| n.checked_mul(std::mem::size_of::<&str>()))
         .and_then(|n| {
-            source.len().checked_add(1)
+            source
+                .len()
+                .checked_add(1)
                 .and_then(|m| m.checked_mul(std::mem::size_of::<&str>()))
                 .and_then(|m| n.checked_add(m))
         })

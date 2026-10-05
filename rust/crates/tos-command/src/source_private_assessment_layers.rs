@@ -1697,8 +1697,7 @@ fn validate_page_layer_profile(
         cmd::text(material, "expires_at")?,
         &crate::source_serialization::instant()?,
     )?;
-    if cmd::field(material, "content_sha256")? != cmd::field(representation, "content_sha256")?
-    {
+    if cmd::field(material, "content_sha256")? != cmd::field(representation, "content_sha256")? {
         return Err(SourceCommandError::Conflict(
             "private assessment owner OCR grant differs from TextLayer content",
         ));

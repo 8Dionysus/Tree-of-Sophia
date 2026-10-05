@@ -705,7 +705,9 @@ impl ProtectedAssessmentJournal {
         }
         self.verify_current(deadline, cancelled)?;
         if subject_ids.is_empty() || subject_ids.len() > 256 {
-            return Err(SourceCommandError::Invalid("assessment read batch scope count"));
+            return Err(SourceCommandError::Invalid(
+                "assessment read batch scope count",
+            ));
         }
         let configured_subjects = cmd::field(&self.configuration, "subjects")?;
         let mut names = BTreeMap::<String, String>::new();
@@ -738,31 +740,26 @@ impl ProtectedAssessmentJournal {
         let mut subjects = BTreeMap::new();
         for (name, subject) in names {
             active(deadline, cancelled)?;
-            let (directory, identity) = match tos_fd_open::open_directory_at(
-                &self.directory,
-                Path::new(&name),
-            ) {
-                Ok(directory) => {
-                    protected(&directory, self.uid, true)?;
-                    let identity = inode(&directory.metadata().map_err(|_| {
-                        SourceCommandError::Invalid("assessment home identity")
-                    })?);
-                    (Some(directory), Some(identity))
-                }
-                Err(error)
-                    if error
-                        .source
-                        .as_ref()
-                        .is_some_and(|source| source.kind() == std::io::ErrorKind::NotFound) =>
-                {
-                    (None, None)
-                }
-                Err(_) => {
-                    return Err(SourceCommandError::Denied(
-                        "assessment subject home unsafe",
-                    ));
-                }
-            };
+            let (directory, identity) =
+                match tos_fd_open::open_directory_at(&self.directory, Path::new(&name)) {
+                    Ok(directory) => {
+                        protected(&directory, self.uid, true)?;
+                        let identity = inode(&directory.metadata().map_err(|_| {
+                            SourceCommandError::Invalid("assessment home identity")
+                        })?);
+                        (Some(directory), Some(identity))
+                    }
+                    Err(error)
+                        if error.source.as_ref().is_some_and(|source| {
+                            source.kind() == std::io::ErrorKind::NotFound
+                        }) =>
+                    {
+                        (None, None)
+                    }
+                    Err(_) => {
+                        return Err(SourceCommandError::Denied("assessment subject home unsafe"));
+                    }
+                };
             subjects.insert(
                 subject,
                 ReadOnlySubjectHome {
@@ -808,11 +805,7 @@ pub(crate) trait AssessmentJournalReadView {
     fn owner(&self) -> &ProtectedAssessmentJournal;
     fn home(&self, subject: &str) -> SourceCommandResult<AssessmentReadHome<'_>>;
     fn home_named(&self, name: &str) -> SourceCommandResult<AssessmentReadHome<'_>>;
-    fn verify_current(
-        &self,
-        deadline: Instant,
-        cancelled: &AtomicBool,
-    ) -> SourceCommandResult<()>;
+    fn verify_current(&self, deadline: Instant, cancelled: &AtomicBool) -> SourceCommandResult<()>;
 }
 impl AssessmentJournalReadBatch<'_> {
     pub(crate) fn verify_current(
@@ -856,11 +849,9 @@ impl AssessmentJournalReadBatch<'_> {
                     Path::new(&home.name),
                 ) {
                     Err(error)
-                        if error
-                            .source
-                            .as_ref()
-                            .is_some_and(|source| source.kind() == std::io::ErrorKind::NotFound) =>
-                    {}
+                        if error.source.as_ref().is_some_and(|source| {
+                            source.kind() == std::io::ErrorKind::NotFound
+                        }) => {}
                     _ => {
                         return Err(SourceCommandError::Conflict(
                             "assessment absent home appeared",
@@ -921,13 +912,13 @@ impl AssessmentJournalReadView for AssessmentJournalFence<'_> {
     }
 
     fn home_named(&self, name: &str) -> SourceCommandResult<AssessmentReadHome<'_>> {
-        let held = self
-            .held
-            .values()
-            .find(|held| held.name == name)
-            .ok_or(SourceCommandError::Denied(
-                "assessment journal member outside held homes",
-            ))?;
+        let held =
+            self.held
+                .values()
+                .find(|held| held.name == name)
+                .ok_or(SourceCommandError::Denied(
+                    "assessment journal member outside held homes",
+                ))?;
         Ok(AssessmentReadHome {
             name: &held.name,
             directory: Some(&held.directory),
@@ -935,11 +926,7 @@ impl AssessmentJournalReadView for AssessmentJournalFence<'_> {
         })
     }
 
-    fn verify_current(
-        &self,
-        deadline: Instant,
-        cancelled: &AtomicBool,
-    ) -> SourceCommandResult<()> {
+    fn verify_current(&self, deadline: Instant, cancelled: &AtomicBool) -> SourceCommandResult<()> {
         AssessmentJournalFence::verify_current(self, deadline, cancelled)
     }
 }
@@ -949,9 +936,12 @@ impl AssessmentJournalReadView for AssessmentJournalReadBatch<'_> {
     }
 
     fn home(&self, subject: &str) -> SourceCommandResult<AssessmentReadHome<'_>> {
-        let home = self.subjects.get(subject).ok_or(SourceCommandError::Denied(
-            "assessment subject outside read batch scope",
-        ))?;
+        let home = self
+            .subjects
+            .get(subject)
+            .ok_or(SourceCommandError::Denied(
+                "assessment subject outside read batch scope",
+            ))?;
         Ok(AssessmentReadHome {
             name: &home.name,
             directory: home.directory.as_ref(),
@@ -974,11 +964,7 @@ impl AssessmentJournalReadView for AssessmentJournalReadBatch<'_> {
         })
     }
 
-    fn verify_current(
-        &self,
-        deadline: Instant,
-        cancelled: &AtomicBool,
-    ) -> SourceCommandResult<()> {
+    fn verify_current(&self, deadline: Instant, cancelled: &AtomicBool) -> SourceCommandResult<()> {
         AssessmentJournalReadBatch::verify_current(self, deadline, cancelled)
     }
 }
@@ -1073,7 +1059,9 @@ fn verify_head_absent<V: AssessmentJournalReadView>(
             {
                 Ok(())
             }
-            _ => Err(SourceCommandError::Conflict("assessment selected home appeared")),
+            _ => Err(SourceCommandError::Conflict(
+                "assessment selected home appeared",
+            )),
         };
     };
     match tos_fd_open::open_regular_at(directory, Path::new("head")) {
@@ -1530,9 +1518,8 @@ fn read_assessment_history<V: AssessmentJournalReadView>(
             "assessment history home absent",
         ))?;
         let name = format!("{revision}.json");
-        let mut file = tos_fd_open::open_regular_at(directory, Path::new(&name)).map_err(|_| {
-            SourceCommandError::Invalid("assessment immutable batch absent/unsafe")
-        })?;
+        let mut file = tos_fd_open::open_regular_at(directory, Path::new(&name))
+            .map_err(|_| SourceCommandError::Invalid("assessment immutable batch absent/unsafe"))?;
         if owner.private_root.is_some() {
             protected_private(&file, owner.uid, false)?;
         } else {

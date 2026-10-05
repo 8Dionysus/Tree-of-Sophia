@@ -82,74 +82,121 @@ pub(crate) fn configure_prepaid_limits(db: &Connection, limits: Limits) -> Resul
 /// Same maintained settings under the existing serial VM hook and original
 /// state/work owner. Dynamic PRAGMA spelling uses a held fixed stack buffer.
 pub(crate) fn configure_prepaid_limits_with_owned_state(
-    db: &Connection, limits: Limits, state: &crate::d1_public_capture::CreationState<'_>,
+    db: &Connection,
+    limits: Limits,
+    state: &crate::d1_public_capture::CreationState<'_>,
 ) -> Result<()> {
     use std::fmt::Write;
-    struct Sql { bytes: [u8; 96], len: usize }
+    struct Sql {
+        bytes: [u8; 96],
+        len: usize,
+    }
     impl std::fmt::Write for Sql {
         fn write_str(&mut self, value: &str) -> std::fmt::Result {
             let end = self.len.checked_add(value.len()).ok_or(std::fmt::Error)?;
-            if end >= self.bytes.len() { return Err(std::fmt::Error); }
+            if end >= self.bytes.len() {
+                return Err(std::fmt::Error);
+            }
             self.bytes[self.len..end].copy_from_slice(value.as_bytes());
-            self.len = end; Ok(())
+            self.len = end;
+            Ok(())
         }
     }
     fn store_error(error: tos_source_store::StoreError) -> Error {
         if error.code == tos_source_store::StoreErrorCode::BudgetExceeded {
             Error::Budget("owned SQLite settings")
-        } else { Error::Invalid("owned SQLite settings") }
+        } else {
+            Error::Invalid("owned SQLite settings")
+        }
     }
-    fn run(db: &Connection, sql: &std::ffi::CStr,
-        state: &crate::d1_public_capture::CreationState<'_>, integer: bool,
+    fn run(
+        db: &Connection,
+        sql: &std::ffi::CStr,
+        state: &crate::d1_public_capture::CreationState<'_>,
+        integer: bool,
     ) -> Result<Option<i64>> {
         state.active()?;
         state.charge_work(sql.to_bytes().len())?;
-        let _hold = state.hold(tos_source_store::PinnedBoundedStatement::owned_connection_rust_workspace_upper_bound())?;
-        let mut statement = tos_source_store::PinnedBoundedStatement::prepare_on_owned_connection(db, sql)
-            .map_err(store_error)?;
+        let _hold = state.hold(
+            tos_source_store::PinnedBoundedStatement::owned_connection_rust_workspace_upper_bound(),
+        )?;
+        let mut statement =
+            tos_source_store::PinnedBoundedStatement::prepare_on_owned_connection(db, sql)
+                .map_err(store_error)?;
         let mut result = None;
         loop {
             state.active()?;
-            if !statement.step().map_err(store_error)? { break; }
+            if !statement.step().map_err(store_error)? {
+                break;
+            }
             if integer {
-                if result.is_some() { return Err(Error::Invalid("owned SQLite setting rows")); }
+                if result.is_some() {
+                    return Err(Error::Invalid("owned SQLite setting rows"));
+                }
                 result = Some(statement.integer(0).map_err(store_error)?);
             }
         }
         Ok(result)
     }
     let _sql_hold = state.hold(std::mem::size_of::<Sql>())?;
-    for sql in [c"PRAGMA journal_mode=DELETE", c"PRAGMA synchronous=FULL", c"PRAGMA temp_store=FILE"] {
+    for sql in [
+        c"PRAGMA journal_mode=DELETE",
+        c"PRAGMA synchronous=FULL",
+        c"PRAGMA temp_store=FILE",
+    ] {
         run(db, sql, state, false)?;
     }
     // Admit both initialization and bounded spelling-copy passes before build.
     state.charge_work(96 + 95)?;
-    let mut sql = Sql { bytes: [0;96], len: 0 };
-    write!(&mut sql, "PRAGMA cache_size={}", -(limits.sqlite_cache_kib as i64))
-        .map_err(|_| Error::Budget("owned SQLite setting SQL"))?;
-    run(db, std::ffi::CStr::from_bytes_with_nul(&sql.bytes[..sql.len+1])
-        .map_err(|_| Error::Invalid("owned SQLite setting SQL"))?, state, false)?;
+    let mut sql = Sql {
+        bytes: [0; 96],
+        len: 0,
+    };
+    write!(
+        &mut sql,
+        "PRAGMA cache_size={}",
+        -(limits.sqlite_cache_kib as i64)
+    )
+    .map_err(|_| Error::Budget("owned SQLite setting SQL"))?;
+    run(
+        db,
+        std::ffi::CStr::from_bytes_with_nul(&sql.bytes[..sql.len + 1])
+            .map_err(|_| Error::Invalid("owned SQLite setting SQL"))?,
+        state,
+        false,
+    )?;
     let cache = run(db, c"PRAGMA cache_size", state, true)?;
     let temp = run(db, c"PRAGMA temp_store", state, true)?;
     if cache != Some(-(limits.sqlite_cache_kib as i64)) || temp != Some(1) {
         return Err(Error::Invalid("SQLite cache/temp policy not applied"));
     }
     let page_size = run(db, c"PRAGMA page_size", state, true)?
-        .and_then(|n| u64::try_from(n).ok()).filter(|n| *n != 0)
+        .and_then(|n| u64::try_from(n).ok())
+        .filter(|n| *n != 0)
         .ok_or(Error::Invalid("owned SQLite page size"))?;
-    if limits.max_output_bytes < page_size { return Err(Error::Budget("output smaller than SQLite page")); }
+    if limits.max_output_bytes < page_size {
+        return Err(Error::Budget("output smaller than SQLite page"));
+    }
     let page_cap = limits.max_output_bytes / page_size;
     // Clearing and replacement spelling coexist under the same byte-work law.
     state.charge_work(96 + 95)?;
-    sql.len = 0; sql.bytes.fill(0);
+    sql.len = 0;
+    sql.bytes.fill(0);
     write!(&mut sql, "PRAGMA max_page_count={page_cap}")
         .map_err(|_| Error::Budget("owned SQLite setting SQL"))?;
-    run(db, std::ffi::CStr::from_bytes_with_nul(&sql.bytes[..sql.len+1])
-        .map_err(|_| Error::Invalid("owned SQLite setting SQL"))?, state, false)?;
+    run(
+        db,
+        std::ffi::CStr::from_bytes_with_nul(&sql.bytes[..sql.len + 1])
+            .map_err(|_| Error::Invalid("owned SQLite setting SQL"))?,
+        state,
+        false,
+    )?;
     let effective = run(db, c"PRAGMA max_page_count", state, true)?
         .and_then(|n| u64::try_from(n).ok())
         .ok_or(Error::Invalid("owned SQLite page cap"))?;
-    if effective > page_cap { return Err(Error::Invalid("SQLite output page cap not applied")); }
+    if effective > page_cap {
+        return Err(Error::Invalid("SQLite output page cap not applied"));
+    }
     state.active()
 }
 
@@ -187,7 +234,9 @@ pub(crate) struct SharedVmWindow {
 fn reserve_vm_window(used: &AtomicU64, cap: u64, interval: u64) -> Result<()> {
     let mut current = used.load(Ordering::Acquire);
     loop {
-        let next = current.checked_add(interval).filter(|n| *n <= cap)
+        let next = current
+            .checked_add(interval)
+            .filter(|n| *n <= cap)
             .ok_or(Error::Budget("shared SQLite VM window"))?;
         match used.compare_exchange_weak(current, next, Ordering::AcqRel, Ordering::Acquire) {
             Ok(_) => return Ok(()),
@@ -213,13 +262,19 @@ impl SharedVmCallback {
 impl SharedVmWindow {
     /// Call before opening/using the new connection; this does not create one.
     pub(crate) fn reserve(used: Arc<AtomicU64>, cap: u64) -> Result<Self> {
-        if cap == 0 { return Err(Error::Budget("shared SQLite VM ceiling")); }
+        if cap == 0 {
+            return Err(Error::Budget("shared SQLite VM ceiling"));
+        }
         // A new statement can reset SQLite's progress phase. One instruction
         // per window avoids an uncharged short-statement tail; old sampled
         // compatibility APIs retain their existing interval policy.
         let interval = 1;
         reserve_vm_window(&used, cap, interval)?;
-        Ok(Self { used, cap, interval })
+        Ok(Self {
+            used,
+            cap,
+            interval,
+        })
     }
     /// Boxed callback payload plus its fat Box controller and the native
     /// registration/free-controller pointers. Connection and Arc allocations
@@ -231,14 +286,21 @@ impl SharedVmWindow {
             + std::mem::size_of::<Box<dyn FnMut() -> bool + Send>>()
             + 2 * std::mem::size_of::<usize>()
     }
-    pub(crate) fn install(self, db: &Connection, deadline: Instant,
-        cancelled: Arc<std::sync::atomic::AtomicBool>) {
+    pub(crate) fn install(
+        self,
+        db: &Connection,
+        deadline: Instant,
+        cancelled: Arc<std::sync::atomic::AtomicBool>,
+    ) {
         let interval = self.interval;
-        let callback = SharedVmCallback { window: self, deadline, cancelled };
+        let callback = SharedVmCallback {
+            window: self,
+            deadline,
+            cancelled,
+        };
         db.progress_handler(interval as i32, Some(move || callback.interrupted()));
     }
 }
-
 
 // This owner is used ONLY by the dedicated oneDriver native-session child.
 // Its SourceFrame contract places every SQLite user (carrier, Store, Whole,
@@ -275,11 +337,15 @@ impl DedicatedSessionSqliteHeap {
         let active = || {
             if Instant::now() >= deadline || cancelled.load(Ordering::Acquire) {
                 Err(Error::Budget("dedicated SQLite heap cutoff/cancellation"))
-            } else { Ok(()) }
+            } else {
+                Ok(())
+            }
         };
         active()?;
         if !cfg!(target_os = "linux") {
-            return Err(Error::Invalid("dedicated SQLite initializer requires Linux"));
+            return Err(Error::Invalid(
+                "dedicated SQLite initializer requires Linux",
+            ));
         }
         if heap_bytes < 65536 || heap_bytes > i64::MAX as usize {
             return Err(Error::Budget("dedicated SQLite heap bytes"));
@@ -287,12 +353,15 @@ impl DedicatedSessionSqliteHeap {
         let holder_bytes = std::mem::size_of::<Self>()
             .checked_add(2 * std::mem::size_of::<std::sync::atomic::AtomicUsize>())
             .ok_or(Error::Budget("dedicated SQLite heap holder"))?;
-        let reserved_bytes = heap_bytes.checked_add(holder_bytes)
+        let reserved_bytes = heap_bytes
+            .checked_add(holder_bytes)
             .ok_or(Error::Budget("dedicated SQLite heap state"))?;
         // Before the setter's bundled initialization and before Arc allocation.
         remaining_after_retained(reserved_bytes)?;
-        if DEDICATED_HEAP_ESTABLISHED.compare_exchange(false, true,
-            Ordering::AcqRel, Ordering::Acquire).is_err() {
+        if DEDICATED_HEAP_ESTABLISHED
+            .compare_exchange(false, true, Ordering::AcqRel, Ordering::Acquire)
+            .is_err()
+        {
             return Err(Error::Invalid("dedicated SQLite heap already established"));
         }
         // These compile-option/status queries use static metadata and status
@@ -308,14 +377,20 @@ impl DedicatedSessionSqliteHeap {
             // The dedicated child callgraph supplies the separate default
             // allocator/VFS/no-external-pool ownership invariant.
             if rusqlite::ffi::sqlite3_config(rusqlite::ffi::SQLITE_CONFIG_MEMSTATUS, 1i32)
-                != rusqlite::ffi::SQLITE_OK {
-                return Err(Error::Invalid("SQLite initialized before dedicated heap owner"));
+                != rusqlite::ffi::SQLITE_OK
+            {
+                return Err(Error::Invalid(
+                    "SQLite initialized before dedicated heap owner",
+                ));
             }
             if rusqlite::ffi::sqlite3_memory_used() != 0 {
-                return Err(Error::Invalid("SQLite tracked heap before dedicated heap owner"));
+                return Err(Error::Invalid(
+                    "SQLite tracked heap before dedicated heap owner",
+                ));
             }
             if rusqlite::ffi::sqlite3_compileoption_used(c"OMIT_WSD".as_ptr()) != 0
-                || rusqlite::ffi::sqlite3_compileoption_used(c"MEMDEBUG".as_ptr()) != 0 {
+                || rusqlite::ffi::sqlite3_compileoption_used(c"MEMDEBUG".as_ptr()) != 0
+            {
                 return Err(Error::Invalid("unsupported dedicated SQLite initializer"));
             }
             let previous = rusqlite::ffi::sqlite3_hard_heap_limit64(-1);
@@ -323,19 +398,31 @@ impl DedicatedSessionSqliteHeap {
                 return Err(Error::Invalid("dedicated SQLite initialization failed"));
             }
             let requested = heap_bytes as i64;
-            let effective_limit = if previous > 0 { previous.min(requested) } else { requested };
+            let effective_limit = if previous > 0 {
+                previous.min(requested)
+            } else {
+                requested
+            };
             rusqlite::ffi::sqlite3_hard_heap_limit64(effective_limit);
             if rusqlite::ffi::sqlite3_hard_heap_limit64(-1) != effective_limit
-                || rusqlite::ffi::sqlite3_memory_used() > effective_limit {
+                || rusqlite::ffi::sqlite3_memory_used() > effective_limit
+            {
                 return Err(Error::Budget("dedicated SQLite heap enforcement"));
             }
             active()?;
-            Ok(Arc::new(Self { reserved_bytes, effective_limit }))
+            Ok(Arc::new(Self {
+                reserved_bytes,
+                effective_limit,
+            }))
         }
     }
     /// Include this whole pool once in the original session's retained ledger.
-    pub fn reserved_state_bytes(&self) -> usize { self.reserved_bytes }
-    pub fn effective_heap_bytes(&self) -> usize { self.effective_limit as usize }
+    pub fn reserved_state_bytes(&self) -> usize {
+        self.reserved_bytes
+    }
+    pub fn effective_heap_bytes(&self) -> usize {
+        self.effective_limit as usize
+    }
     pub fn verify_current(&self) -> Result<()> {
         let current = unsafe { rusqlite::ffi::sqlite3_hard_heap_limit64(-1) };
         if current <= 0 || current > self.effective_limit {

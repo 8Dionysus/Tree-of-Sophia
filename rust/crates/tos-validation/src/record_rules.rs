@@ -2898,27 +2898,29 @@ impl LocalClaimCurrentSource for CutLocalClaimSource<'_> {
         use crate::item_rules::ItemRefusal;
         let relative = tos_foundation::RelativePath::parse(path)
             .map_err(|_| ItemRefusal::Unsupported("local Claim dependency path".into()))?;
-        let member = self.0.read_member(
-            self.0.current().revision(),
-            &relative,
-            max_bytes as u64,
-            limits.deadline,
-            cancelled,
-        )
-        .map_err(|e| {
-            use tos_source_store::StoreErrorCode;
-            match e.code {
-                StoreErrorCode::BudgetExceeded => ItemRefusal::BudgetCheck {
-                    check: "local Claim selected dependency reader budget",
-                    used: None,
-                    limit: None,
-                },
-                StoreErrorCode::UnsupportedFormat | StoreErrorCode::UnsupportedPlatform => {
-                    ItemRefusal::Unsupported(e.to_string())
+        let member = self
+            .0
+            .read_member(
+                self.0.current().revision(),
+                &relative,
+                max_bytes as u64,
+                limits.deadline,
+                cancelled,
+            )
+            .map_err(|e| {
+                use tos_source_store::StoreErrorCode;
+                match e.code {
+                    StoreErrorCode::BudgetExceeded => ItemRefusal::BudgetCheck {
+                        check: "local Claim selected dependency reader budget",
+                        used: None,
+                        limit: None,
+                    },
+                    StoreErrorCode::UnsupportedFormat | StoreErrorCode::UnsupportedPlatform => {
+                        ItemRefusal::Unsupported(e.to_string())
+                    }
+                    _ => ItemRefusal::Source(e.to_string()),
                 }
-                _ => ItemRefusal::Source(e.to_string()),
-            }
-        })?;
+            })?;
         Ok(member.raw)
     }
 }
@@ -2936,11 +2938,7 @@ impl LocalClaimCurrentSource for CandidateLocalClaimSource<'_> {
     ) -> Result<Vec<u8>, crate::item_rules::ItemRefusal> {
         use crate::item_rules::ItemRefusal;
         use tos_source_store::SourcePresenceV1;
-        if self
-            .0
-            .path_presence(path, limits.deadline, cancelled)?
-            != Some(SourcePresenceV1::File)
-        {
+        if self.0.path_presence(path, limits.deadline, cancelled)? != Some(SourcePresenceV1::File) {
             return Err(ItemRefusal::Source(format!(
                 "local Claim selected dependency absent from candidate: {path}"
             )));

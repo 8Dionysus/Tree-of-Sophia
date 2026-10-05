@@ -1774,8 +1774,14 @@ fn execute_root(
     rows: bool,
     output: &mut dyn Write,
 ) -> Result<(), String> {
-    let (mut fence, publication, entries, source_hashes, kinds, currentness) =
-        load_source_catalog(root, invocation, input_bytes, max_rows, max_state_bytes, deadline)?;
+    let (mut fence, publication, entries, source_hashes, kinds, currentness) = load_source_catalog(
+        root,
+        invocation,
+        input_bytes,
+        max_rows,
+        max_state_bytes,
+        deadline,
+    )?;
     if let Some(graph_path) = graph {
         let remaining = fence.meter.remaining_input();
         if remaining == 0 {
@@ -1866,7 +1872,8 @@ fn execute(args: &[String], output: &mut dyn Write) -> Result<(), String> {
                     .map_err(|_| "invalid source projection input byte budget")?
             }
             "--max-state-bytes" => {
-                max_state_bytes = value.parse::<u64>()
+                max_state_bytes = value
+                    .parse::<u64>()
                     .map_err(|_| "invalid source projection retained state budget")?
             }
             "--max-rows" => {

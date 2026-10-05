@@ -6,11 +6,11 @@ use crate::record_biblio_cut::{
     SourceCutInput, SourceCutInputCoverage, SourceCutInputWithIdentity, SourceCutMemberMeta,
     account, check, current, reserve,
 };
-use crate::source_foundation_records::SourceFoundationRecordsStreamedReport;
 use crate::source_cut::{
     CandidateCutWorkerSchemaExecutor, CutExecutionBinding, CutPreparedSchemaExecutionBinding,
     CutSchemaExecutor, CutSchemaReceiptRange, CutWorkerSchemaExecutor,
 };
+use crate::source_foundation_records::SourceFoundationRecordsStreamedReport;
 use serde_json::{Value, json};
 use std::borrow::Cow;
 use std::collections::{BTreeMap, BTreeSet};
@@ -526,7 +526,9 @@ pub fn verify_native_compound_from_input<I: Copy + Eq>(
         }
     }
     if exact_matches != 1 {
-        return Err(bad("candidate native selected Claim row is not unique/current"));
+        return Err(bad(
+            "candidate native selected Claim row is not unique/current",
+        ));
     }
     let selected_line = selected_line.ok_or_else(|| bad("candidate native selected Claim row"))?;
     let claim = reader.decoded(selected_line)?;
@@ -552,11 +554,7 @@ pub fn verify_native_compound_from_input<I: Copy + Eq>(
         )?;
         let is_current_claim = &decoded == &claim;
         drop(decoded);
-        let current_raw = if is_current_claim {
-            selected_line
-        } else {
-            raw
-        };
+        let current_raw = if is_current_claim { selected_line } else { raw };
         let mut local = crate::record_rules::validate_source_claim_from_input(
             input,
             records,
@@ -679,9 +677,7 @@ impl<I> CandidateNativeCompoundReadObservation<I> {
         &self.observation
     }
 
-    pub fn diagnostics_cost(
-        &self,
-    ) -> crate::record_rules::CandidateLocalClaimDiagnosticsCost {
+    pub fn diagnostics_cost(&self) -> crate::record_rules::CandidateLocalClaimDiagnosticsCost {
         self.diagnostics_cost
     }
 
@@ -1005,9 +1001,7 @@ fn selected_record_history_with_reader<I: Copy>(
     let identity_state = identity
         .len()
         .checked_add(record_path.len())
-        .and_then(|n| {
-            n.checked_add(std::mem::size_of::<NativeRecordHistoryReadObservation<I>>())
-        })
+        .and_then(|n| n.checked_add(std::mem::size_of::<NativeRecordHistoryReadObservation<I>>()))
         .ok_or(ItemRefusal::Budget)?;
     reader.temporary(identity_state)?;
     let history_path_state = history_ref.as_ref().map_or(0, String::len)
@@ -2476,8 +2470,8 @@ impl<'a> NativeCompoundReader<'a> {
     }
     fn current_digest_size(&mut self, path: &str) -> Result<(Digest256, u64), ItemRefusal> {
         if let Some(cut) = self.cut {
-            let relative = RelativePath::parse(path)
-                .map_err(|_| bad("compound current member path"))?;
+            let relative =
+                RelativePath::parse(path).map_err(|_| bad("compound current member path"))?;
             let member = cut
                 .current()
                 .member(&relative)
@@ -2504,8 +2498,8 @@ impl<'a> NativeCompoundReader<'a> {
         directory: &str,
         max_entries: usize,
     ) -> Result<BTreeSet<String>, ItemRefusal> {
-        let parsed = RelativePath::parse(directory)
-            .map_err(|_| bad("compound current directory path"))?;
+        let parsed =
+            RelativePath::parse(directory).map_err(|_| bad("compound current directory path"))?;
         if parsed.as_str() != directory || max_entries == 0 {
             return Err(bad("compound canonical current directory"));
         }
@@ -2574,7 +2568,10 @@ impl<'a> NativeCompoundReader<'a> {
         } else {
             for path in self
                 .paths
-                .range::<str, _>((std::ops::Bound::Included(prefix.as_str()), std::ops::Bound::Unbounded))
+                .range::<str, _>((
+                    std::ops::Bound::Included(prefix.as_str()),
+                    std::ops::Bound::Unbounded,
+                ))
                 .take_while(|path| path.starts_with(&prefix))
             {
                 insert_name(path)?;
@@ -6932,7 +6929,8 @@ fn prepare_native_with_reader<'a>(
     authorize: impl FnOnce(&BTreeMap<String, String>) -> Result<Value, ItemRefusal>,
 ) -> Result<WorkExpressionCore<'a>, ItemRefusal> {
     check(reader.limits.deadline, reader.cancelled)?;
-    if schemas.source_revision() != reader.cut().current().revision() || request_raw.len() > MAX_FILE
+    if schemas.source_revision() != reader.cut().current().revision()
+        || request_raw.len() > MAX_FILE
     {
         return Err(bad(
             "native compound source/schema revision or request size",
@@ -7076,24 +7074,23 @@ fn prepare_native_with_reader<'a>(
     let cut = reader.cut;
     let cut = cut.ok_or_else(|| bad("native preparation requires a corpus cut"))?;
     let local_cancelled = reader.cancelled;
-    let mut validate_local_claim = |claim_raw: &[u8],
-                                    schemas: &mut CutWorkerSchemaExecutor,
-                                    local_limits: ItemLimits| {
-        let mut local = crate::record_rules::validate_source_claim_from_cut(
-            cut,
-            claim_raw,
-            schemas,
-            local_limits,
-            local_cancelled,
-        )?;
-        if !local.issues.is_empty() {
-            return Err(bad("compound Claim local owner profile"));
-        }
-        Ok(LocalClaimValidation {
-            dependency_digests: std::mem::take(&mut local.dependency_digests),
-            dependency_bytes_read: 0,
-        })
-    };
+    let mut validate_local_claim =
+        |claim_raw: &[u8], schemas: &mut CutWorkerSchemaExecutor, local_limits: ItemLimits| {
+            let mut local = crate::record_rules::validate_source_claim_from_cut(
+                cut,
+                claim_raw,
+                schemas,
+                local_limits,
+                local_cancelled,
+            )?;
+            if !local.issues.is_empty() {
+                return Err(bad("compound Claim local owner profile"));
+            }
+            Ok(LocalClaimValidation {
+                dependency_digests: std::mem::take(&mut local.dependency_digests),
+                dependency_bytes_read: 0,
+            })
+        };
     let prepared = reader.prepare_compound_core(
         kind,
         Cow::Owned(authority),
@@ -7550,21 +7547,21 @@ impl NativeCompoundReader<'_> {
         let prechecked_grammar = work_grammar.is_some();
         let (dependency_digests, grammar_digests, dependency_bytes_read) =
             if let Some(grammar) = work_grammar {
-            preparation_grammar_extra(kind)?;
-            if grammar.claim_sha256 != Digest256::of_bytes(&claim_raw)
-                || schemas.cut_execution_binding() != Some(grammar.binding)
-            {
-                return Err(bad("Work prechecked Claim/worker input drift"));
-            }
-            (grammar.dependencies, grammar.digests, 0)
-        } else {
-            let local = validate_local_claim(&claim_raw, schemas, local_limits)?;
-            (
-                local.dependency_digests,
-                BTreeMap::new(),
-                local.dependency_bytes_read,
-            )
-        };
+                preparation_grammar_extra(kind)?;
+                if grammar.claim_sha256 != Digest256::of_bytes(&claim_raw)
+                    || schemas.cut_execution_binding() != Some(grammar.binding)
+                {
+                    return Err(bad("Work prechecked Claim/worker input drift"));
+                }
+                (grammar.dependencies, grammar.digests, 0)
+            } else {
+                let local = validate_local_claim(&claim_raw, schemas, local_limits)?;
+                (
+                    local.dependency_digests,
+                    BTreeMap::new(),
+                    local.dependency_bytes_read,
+                )
+            };
         let dependencies_state = dependency_digests
             .keys()
             .try_fold(0usize, |n, path| {
@@ -9061,9 +9058,7 @@ impl NativeCompoundReader<'_> {
     ) -> Result<ObjectLinkReconstructed, ItemRefusal> {
         let cut = self.cut;
         let cancelled = self.cancelled;
-        let mut validate_local_claim = |raw: &[u8],
-                                        schemas: &mut S,
-                                        limits: ItemLimits| {
+        let mut validate_local_claim = |raw: &[u8], schemas: &mut S, limits: ItemLimits| {
             let mut local = crate::record_rules::validate_source_claim_from_cut(
                 cut.ok_or_else(|| bad("ObjectLink writer requires corpus cut"))?,
                 raw,
@@ -9616,9 +9611,7 @@ impl NativeCompoundReader<'_> {
     {
         let cut = self.cut;
         let cancelled = self.cancelled;
-        let mut validate_local_claim = |raw: &[u8],
-                                        schemas: &mut S,
-                                        limits: ItemLimits| {
+        let mut validate_local_claim = |raw: &[u8], schemas: &mut S, limits: ItemLimits| {
             let mut local = crate::record_rules::validate_source_claim_from_cut(
                 cut.ok_or_else(|| bad("native compound requires corpus cut"))?,
                 raw,
@@ -9786,11 +9779,11 @@ impl NativeCompoundReader<'_> {
             .max_total_bytes
             .checked_sub(self.bytes)
             .ok_or(ItemRefusal::Budget)?;
-        let mut current_local =
-            validate_local_claim(&current_claim_raw, schemas, current_limits)?;
+        let mut current_local = validate_local_claim(&current_claim_raw, schemas, current_limits)?;
         account(
             &mut self.bytes,
-            usize::try_from(current_local.dependency_bytes_read).map_err(|_| ItemRefusal::Budget)?,
+            usize::try_from(current_local.dependency_bytes_read)
+                .map_err(|_| ItemRefusal::Budget)?,
             self.limits.max_total_bytes,
         )?;
         let dependency_digests = std::mem::take(&mut current_local.dependency_digests);
