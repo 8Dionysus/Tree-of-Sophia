@@ -108,6 +108,38 @@ pub const SOURCE_FOUNDATION_CONTRACT_PATHS: &[&str] = &[
     "ToS/contracts/bounded-translation-research-input.schema.json",
     "ToS/contracts/experimental-translation-candidate.schema.json",
     "ToS/contracts/experimental-translation-episode.schema.json",
+    // Active Biblio/Discovery roots and the Claim routes declared by
+    // ToS/doctrine/semantic-interchange/relation-types.v1.json. Local $ref
+    // dependencies remain bound to the complete same-cut resource set.
+    "ToS/contracts/claim-display-fields.schema.json",
+    "ToS/contracts/document-catalogue-claim.schema.json",
+    "ToS/contracts/formation-relation-claim.schema.json",
+    "ToS/contracts/historical-claim.schema.json",
+    "ToS/contracts/historical-context-claim.schema.json",
+    "ToS/contracts/human-form-set.schema.json",
+    "ToS/contracts/knowledge-assessment.schema.json",
+    "ToS/contracts/lexical-comparison-claim.schema.json",
+    "ToS/contracts/linguistic-relation-claim.schema.json",
+    "ToS/contracts/object-link-claim-v2.schema.json",
+    "ToS/contracts/scholarly-composite-claim.schema.json",
+    "ToS/contracts/scoped-member-structure.schema.json",
+    "ToS/contracts/semantic-entity-type-registry.schema.json",
+    "ToS/contracts/semantic-relation-claim.schema.json",
+    "ToS/contracts/semantic-relation-type-registry.schema.json",
+    "ToS/contracts/social-relation-claim.schema.json",
+    "ToS/contracts/source-claim-record.schema.json",
+    "ToS/contracts/source-classification-claim.schema.json",
+    "ToS/contracts/source-identity-transition-claim.schema.json",
+    "ToS/contracts/source-lexical-translatability-claim.schema.json",
+    "ToS/contracts/source-member-structure-claim.schema.json",
+    "ToS/contracts/source-occurrence-motif-claim.schema.json",
+    "ToS/contracts/source-relation-claim.schema.json",
+    "ToS/contracts/source-structured-value.schema.json",
+    "ToS/contracts/source-temporal-claim.schema.json",
+    "ToS/contracts/source-textual-survival-claim.schema.json",
+    "ToS/contracts/subject-identity-transition-claim.schema.json",
+    "ToS/contracts/textual-passage-claim.schema.json",
+    "ToS/contracts/thought-relation-claim.schema.json",
 ];
 
 /// Caller-supplied ceilings for schema selection and one complete source
