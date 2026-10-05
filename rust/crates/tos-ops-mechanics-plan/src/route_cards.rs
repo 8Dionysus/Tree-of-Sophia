@@ -1752,6 +1752,7 @@ impl RouteSources {
         if cards.len() > MAX_ENTRIES {
             return Err(invalid("route card count bound exceeded"));
         }
+        self.verify_root()?;
         self.check()?;
         Ok(cards.into_iter().collect())
     }
