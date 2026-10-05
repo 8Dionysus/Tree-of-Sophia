@@ -382,20 +382,20 @@ fn completion_proof_from(
         },
         _ => return Err(invalid("native completion schema protocol differs")),
     };
-    Ok(Some(NativeAdmissionCompletionProofV1 {
-        validator_sha256: digest(&fields[0])?,
-        membership_v1: membership_v1_from(&fields[1])?,
-        source_bytes: number(&fields[2])?,
-        prepared_schema: CutPreparedSchemaExecutionBinding {
+    NativeAdmissionCompletionProofV1::from_authenticated_root_fields(
+        digest(&fields[0])?,
+        membership_v1_from(&fields[1])?,
+        number(&fields[2])?,
+        CutPreparedSchemaExecutionBinding {
             schema_profile,
             schema_set_sha256: digest(&schema[1])?,
             worker_sha256: digest(&schema[2])?,
             protocol,
         },
-        identity_count: number(&fields[4])?,
-        dependency_source_count: number(&fields[5])?,
-        dependency_count: number(&fields[6])?,
-    }))
+        number(&fields[4])?,
+        number(&fields[5])?,
+        number(&fields[6])?,
+    ).map(Some)
 }
 
 fn tree_bytes(tree: &AuthenticatedTreeDescriptorV2) -> io::Result<Vec<u8>> {
