@@ -2229,7 +2229,7 @@ mod executor_refusal_tests {
             assert_eq!(error.to_string(), expected);
             assert!(error.get_ref().unwrap().is::<ItemExecutorRefusal>());
             assert_eq!(
-                crate::source_foundation_orchestrator::FoundationOrchestratorError::Admission(
+                crate::source_current_cut::foundation_orchestrator::FoundationOrchestratorError::Admission(
                     error
                 )
                 .public_reason(),
