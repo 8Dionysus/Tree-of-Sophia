@@ -373,7 +373,10 @@ impl FoundationOrchestratorError {
                     "candidate Records/Item receiver unsupported" => {
                         "candidate Records/Item receiver unsupported"
                     }
-                    _ => "source-foundation candidate index refused",
+                    _ => crate::source_admission_spooled_index::receiver_source_reason(
+                        &error.to_string(),
+                    )
+                    .unwrap_or("source-foundation candidate index refused"),
                 }
             }
             Self::Incomplete(reason) => reason,

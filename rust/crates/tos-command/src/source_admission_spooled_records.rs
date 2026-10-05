@@ -53,8 +53,17 @@ fn is_candidate_artifact_record_path(path: &str) -> bool {
     path.starts_with(NATIVE_ARTIFACT_RECORD_PREFIX) && path.ends_with(NATIVE_ARTIFACT_RECORD_SUFFIX)
 }
 
-fn refusal(_: impl std::fmt::Display) -> ItemRefusal {
-    ItemRefusal::Source("source-foundation bounded index operation refused".into())
+fn refusal(error: impl std::fmt::Display) -> ItemRefusal {
+    let message = error.to_string();
+    let reason = super::receiver_source_reason(&message).unwrap_or_else(|| {
+        // rusqlite's fixed primary messages contain no SQL text or paths.
+        match message.as_str() {
+            "Query returned no rows" => "native source index SQLite scalar missing",
+            "Invalid query" => "native source index SQLite query shape refused",
+            _ => "source-foundation bounded index operation refused",
+        }
+    });
+    ItemRefusal::Source(reason.into())
 }
 
 fn checked_add(a: usize, b: usize) -> io::Result<usize> {

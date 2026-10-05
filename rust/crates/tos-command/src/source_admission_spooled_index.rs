@@ -35,6 +35,255 @@ fn invalid(message: &'static str) -> io::Error {
     io::Error::new(io::ErrorKind::InvalidData, message)
 }
 
+/// Only fixed owner-authored causes cross the public refusal boundary.
+/// Unknown IO, SQL and source strings may contain paths or input bytes.
+pub(crate) fn receiver_source_reason(reason: &str) -> Option<&'static str> {
+    match reason {
+        "Biblio current-member path is invalid" => Some("Biblio current-member path is invalid"),
+        "Biblio cursor key row does not match collection" => {
+            Some("Biblio cursor key row does not match collection")
+        }
+        "Biblio fact coverage requested for ordered observations" => {
+            Some("Biblio fact coverage requested for ordered observations")
+        }
+        "Biblio metadata contained an invalid relative path" => {
+            Some("Biblio metadata contained an invalid relative path")
+        }
+        "Biblio record codec version invalid" => Some("Biblio record codec version invalid"),
+        "Biblio stream contained an invalid relative path" => {
+            Some("Biblio stream contained an invalid relative path")
+        }
+        "Item decoded instance disappeared" => Some("Item decoded instance disappeared"),
+        "Item manifest decoded instance unavailable" => {
+            Some("Item manifest decoded instance unavailable")
+        }
+        "Item record missing from current input" => Some("Item record missing from current input"),
+        "Item selection codec version invalid" => Some("Item selection codec version invalid"),
+        "RecordObservation expected kind invalid" => {
+            Some("RecordObservation expected kind invalid")
+        }
+        "RecordObservation path check invalid" => Some("RecordObservation path check invalid"),
+        "RecordObservation tag invalid" => Some("RecordObservation tag invalid"),
+        "bibliography cancelled" => Some("bibliography cancelled"),
+        "bound read outside candidate" => Some("bound read outside candidate"),
+        "candidate Records input refused" => Some("candidate Records input refused"),
+        "candidate bound member byte profile" => Some("candidate bound member byte profile"),
+        "candidate bound member owned allowance" => Some("candidate bound member owned allowance"),
+        "candidate bound member raw fixity" => Some("candidate bound member raw fixity"),
+        "candidate bound member retained state overflow" => {
+            Some("candidate bound member retained state overflow")
+        }
+        "candidate logical read bound" => Some("candidate logical read bound"),
+        "candidate schema binding refused" => Some("candidate schema binding refused"),
+        "candidate spool is unusable" => Some("candidate spool is unusable"),
+        "candidate spool per-row state exceeded" => Some("candidate spool per-row state exceeded"),
+        "candidate spool prior I/O failure" => Some("candidate spool prior I/O failure"),
+        "corpus object fixity differs" => Some("corpus object fixity differs"),
+        "corpus object grew" => Some("corpus object grew"),
+        "corpus object size/type differs" => Some("corpus object size/type differs"),
+        "current Record page row disappeared" => Some("current Record page row disappeared"),
+        "current path index target is missing" => Some("current path index target is missing"),
+        "direct record owner index drift" => Some("direct record owner index drift"),
+        "fact page capacity state overflow" => Some("fact page capacity state overflow"),
+        "fact page metadata state overflow" => Some("fact page metadata state overflow"),
+        "invalid current-member path" => Some("invalid current-member path"),
+        "invalid current-member prefix" => Some("invalid current-member prefix"),
+        "invalid finite native JSON" => Some("invalid finite native JSON"),
+        "native source index SQLite column type refused" => {
+            Some("native source index SQLite column type refused")
+        }
+        "native source index SQLite operation refused" => {
+            Some("native source index SQLite operation refused")
+        }
+        "native source index SQLite query shape refused" => {
+            Some("native source index SQLite query shape refused")
+        }
+        "native source index SQLite scalar missing" => {
+            Some("native source index SQLite scalar missing")
+        }
+        "owner issue codec version invalid" => Some("owner issue codec version invalid"),
+        "page capacity state overflow" => Some("page capacity state overflow"),
+        "page metadata state overflow" => Some("page metadata state overflow"),
+        "record ID carrier invalid" => Some("record ID carrier invalid"),
+        "record fact codec version invalid" => Some("record fact codec version invalid"),
+        "record fact collection does not match stored row" => {
+            Some("record fact collection does not match stored row")
+        }
+        "record family cancelled" => Some("record family cancelled"),
+        "record operation cancelled" => Some("record operation cancelled"),
+        "record path-reference check invalid" => Some("record path-reference check invalid"),
+        "record schema cancelled" => Some("record schema cancelled"),
+        "record schema diagnostics cancelled" => Some("record schema diagnostics cancelled"),
+        "record schema image preparation cancelled" => {
+            Some("record schema image preparation cancelled")
+        }
+        "record source EOF missing" => Some("record source EOF missing"),
+        "resident Record kernel has no SourceRevision" => {
+            Some("resident Record kernel has no SourceRevision")
+        }
+        "resident Record kernel requires an anchored cut" => {
+            Some("resident Record kernel requires an anchored cut")
+        }
+        "resident source-foundation report omitted Records output" => {
+            Some("resident source-foundation report omitted Records output")
+        }
+        "retained record EOF missing" => Some("retained record EOF missing"),
+        "schema check auxiliary bytes are unexpected" => {
+            Some("schema check auxiliary bytes are unexpected")
+        }
+        "schema check codec version invalid" => Some("schema check codec version invalid"),
+        "schema check family invalid" => Some("schema check family invalid"),
+        "schema diagnostic cap overflow" => Some("schema diagnostic cap overflow"),
+        "schema diagnostic checkpoint integer invalid" => {
+            Some("schema diagnostic checkpoint integer invalid")
+        }
+        "schema diagnostic codec version invalid" => {
+            Some("schema diagnostic codec version invalid")
+        }
+        "schema diagnostic compatibility text invalid" => {
+            Some("schema diagnostic compatibility text invalid")
+        }
+        "schema diagnostic failure invalid" => Some("schema diagnostic failure invalid"),
+        "schema diagnostic issues invalid" => Some("schema diagnostic issues invalid"),
+        "schema diagnostic path index invalid" => Some("schema diagnostic path index invalid"),
+        "schema diagnostic path invalid" => Some("schema diagnostic path invalid"),
+        "schema diagnostic path property invalid" => {
+            Some("schema diagnostic path property invalid")
+        }
+        "schema diagnostic path segment invalid" => Some("schema diagnostic path segment invalid"),
+        "schema diagnostic path segment kind invalid" => {
+            Some("schema diagnostic path segment kind invalid")
+        }
+        "schema diagnostic reason invalid" => Some("schema diagnostic reason invalid"),
+        "schema diagnostic status invalid" => Some("schema diagnostic status invalid"),
+        "schema diagnostics protocol overflow" => Some("schema diagnostics protocol overflow"),
+        "schema diagnostics report codec version invalid" => {
+            Some("schema diagnostics report codec version invalid")
+        }
+        "schema metadata path is invalid" => Some("schema metadata path is invalid"),
+        "selected Item index drift" => Some("selected Item index drift"),
+        "selected Item schema path is invalid" => Some("selected Item schema path is invalid"),
+        "source input omitted the requested current member" => {
+            Some("source input omitted the requested current member")
+        }
+        "source metadata contained an invalid path" => {
+            Some("source metadata contained an invalid path")
+        }
+        "source record registry absent from captured cut" => {
+            Some("source record registry absent from captured cut")
+        }
+        "source record registry absent from current input" => {
+            Some("source record registry absent from current input")
+        }
+        "source-foundation Item input is unavailable" => {
+            Some("source-foundation Item input is unavailable")
+        }
+        "source-foundation Item record index is unavailable" => {
+            Some("source-foundation Item record index is unavailable")
+        }
+        "source-foundation bounded index operation refused" => {
+            Some("source-foundation bounded index operation refused")
+        }
+        "source-foundation clone state overflow" => Some("source-foundation clone state overflow"),
+        "source-foundation collection cursor invalid" => {
+            Some("source-foundation collection cursor invalid")
+        }
+        "source-foundation collection ordinal exceeds SQLite range" => {
+            Some("source-foundation collection ordinal exceeds SQLite range")
+        }
+        "source-foundation collection ordinal overflow" => {
+            Some("source-foundation collection ordinal overflow")
+        }
+        "source-foundation cursor binding or codec invalid" => {
+            Some("source-foundation cursor binding or codec invalid")
+        }
+        "source-foundation cursor key invalid" => Some("source-foundation cursor key invalid"),
+        "source-foundation cursor key is not UTF-8" => {
+            Some("source-foundation cursor key is not UTF-8")
+        }
+        "source-foundation cursor key too long" => Some("source-foundation cursor key too long"),
+        "source-foundation cursor ordinal invalid" => {
+            Some("source-foundation cursor ordinal invalid")
+        }
+        "source-foundation cursor overflow" => Some("source-foundation cursor overflow"),
+        "source-foundation cursor size overflow" => Some("source-foundation cursor size overflow"),
+        "source-foundation cursor trailing bytes" => {
+            Some("source-foundation cursor trailing bytes")
+        }
+        "source-foundation cursor truncated" => Some("source-foundation cursor truncated"),
+        "source-foundation encoder state overflow" => {
+            Some("source-foundation encoder state overflow")
+        }
+        "source-foundation index operation expired" => {
+            Some("source-foundation index operation expired")
+        }
+        "source-foundation issue family invalid" => Some("source-foundation issue family invalid"),
+        "source-foundation owner issue invalid" => Some("source-foundation owner issue invalid"),
+        "source-foundation row JSON decoding failed" => {
+            Some("source-foundation row JSON decoding failed")
+        }
+        "source-foundation row JSON encoding failed" => {
+            Some("source-foundation row JSON encoding failed")
+        }
+        "source-foundation row state exceeds SQLite range" => {
+            Some("source-foundation row state exceeds SQLite range")
+        }
+        "source-foundation row state overflow" => Some("source-foundation row state overflow"),
+        "source-foundation stored digest invalid" => {
+            Some("source-foundation stored digest invalid")
+        }
+        "source-foundation stored format profile invalid" => {
+            Some("source-foundation stored format profile invalid")
+        }
+        "source-foundation stored row boolean invalid" => {
+            Some("source-foundation stored row boolean invalid")
+        }
+        "source-foundation stored row field missing" => {
+            Some("source-foundation stored row field missing")
+        }
+        "source-foundation stored row integer invalid" => {
+            Some("source-foundation stored row integer invalid")
+        }
+        "source-foundation stored row integer overflow" => {
+            Some("source-foundation stored row integer overflow")
+        }
+        "source-foundation stored row state overflow" => {
+            Some("source-foundation stored row state overflow")
+        }
+        "source-foundation stored row text invalid" => {
+            Some("source-foundation stored row text invalid")
+        }
+        "source-foundation text state overflow" => Some("source-foundation text state overflow"),
+        "source-foundation value state overflow" => Some("source-foundation value state overflow"),
+        "source-foundation wire allocation refused" => {
+            Some("source-foundation wire allocation refused")
+        }
+        "source-foundation wire capacity exceeded" => {
+            Some("source-foundation wire capacity exceeded")
+        }
+        "source-foundation wire length overflow" => Some("source-foundation wire length overflow"),
+        "source-foundation wire state overflow" => Some("source-foundation wire state overflow"),
+        "stored Records row codec version invalid" => {
+            Some("stored Records row codec version invalid")
+        }
+        "stored row auxiliary length invalid" => Some("stored row auxiliary length invalid"),
+        "stored row changed during bounded point read" => {
+            Some("stored row changed during bounded point read")
+        }
+        "stored row exceeds point-read envelope" => Some("stored row exceeds point-read envelope"),
+        "stored row payload length invalid" => Some("stored row payload length invalid"),
+        "stored row state invalid" => Some("stored row state invalid"),
+        "unknown static Item issue code in stored row" => {
+            Some("unknown static Item issue code in stored row")
+        }
+        "unknown static record issue code in stored row" => {
+            Some("unknown static record issue code in stored row")
+        }
+        "unsupported RecordObservation codec" => Some("unsupported RecordObservation codec"),
+        _ => None,
+    }
+}
+
 fn receiver_refusal(error: ItemRefusal) -> io::Error {
     // Keep only the bounded primary owner class; source paths and parser text
     // remain private while the real refusal stage survives the IO boundary.
@@ -42,7 +291,12 @@ fn receiver_refusal(error: ItemRefusal) -> io::Error {
         ItemRefusal::Budget => "candidate Records/Item receiver budget refused",
         ItemRefusal::BudgetCheck { .. } => "candidate Records/Item receiver budget check refused",
         ItemRefusal::Deadline => "candidate Records/Item receiver deadline refused",
-        ItemRefusal::Source(_) => "candidate Records/Item receiver source refused",
+        ItemRefusal::Source(reason) => {
+            return invalid(
+                receiver_source_reason(&reason)
+                    .unwrap_or("candidate Records/Item receiver source refused"),
+            );
+        }
         ItemRefusal::Unsupported(_) => "candidate Records/Item receiver unsupported",
     };
     invalid(reason)
