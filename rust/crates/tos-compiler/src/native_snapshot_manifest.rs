@@ -70,7 +70,7 @@ const EXECUTING_IMAGE_LOGICAL_PATH: &str = "tos-command/current-executable";
 // running image. The held executing ELF hash separately fingerprints the
 // complete built image; this selected set is intentionally incomplete and is
 // not a reproducible-source or full dependency-closure claim.
-const EMBEDDED_PRODUCER_INPUTS: [(&str, &[u8]); 11] = [
+const EMBEDDED_PRODUCER_INPUTS: [(&str, &[u8]); 12] = [
     (
         "rust/crates/tos-compiler/src/d1_public_capture.rs",
         include_bytes!("d1_public_capture.rs"),
@@ -90,6 +90,10 @@ const EMBEDDED_PRODUCER_INPUTS: [(&str, &[u8]); 11] = [
     (
         "rust/crates/tos-compiler/src/knowledge_corpus_source.rs",
         include_bytes!("knowledge_corpus_source.rs"),
+    ),
+    (
+        "rust/crates/tos-compiler/src/native_cold_resources.rs",
+        include_bytes!("native_cold_resources.rs"),
     ),
     (
         "rust/crates/tos-compiler/src/native_snapshot.rs",
@@ -278,6 +282,25 @@ pub struct NativeCompilerFingerprint {
     code_bytes: u64,
 }
 impl NativeCompilerFingerprint {
+    /// Retained typed Rust owners only; the embedded/executing source bytes
+    /// remain read/hash IO and are not represented as resident payloads here.
+    pub fn retained_state_upper_bound(&self) -> Result<usize> {
+        let mut bytes = std::mem::size_of::<Self>() + self.compiler_sha256.capacity()
+            + self.compiler_paths.capacity() * std::mem::size_of::<String>();
+        let string_node = 11 * std::mem::size_of::<(String,String)>() + 16 * std::mem::size_of::<usize>();
+        let size_node = 11 * std::mem::size_of::<(String,u64)>() + 16 * std::mem::size_of::<usize>();
+        bytes = bytes.checked_add(self.input_bindings.len().checked_mul(string_node)
+            .ok_or(Error::Budget("compiler fingerprint tree slots"))?)
+            .and_then(|n| n.checked_add(self.code_sizes.len().checked_mul(size_node)?))
+            .ok_or(Error::Budget("compiler fingerprint retained slots"))?;
+        for path in &self.compiler_paths { bytes = bytes.checked_add(path.capacity())
+            .ok_or(Error::Budget("compiler fingerprint retained strings"))?; }
+        for (path,digest) in &self.input_bindings { bytes = bytes.checked_add(path.capacity())
+            .and_then(|n| n.checked_add(digest.capacity())).ok_or(Error::Budget("compiler fingerprint retained strings"))?; }
+        for path in self.code_sizes.keys() { bytes = bytes.checked_add(path.capacity())
+            .ok_or(Error::Budget("compiler fingerprint retained strings"))?; }
+        Ok(bytes)
+    }
     pub fn compiler_sha256(&self) -> &str {
         &self.compiler_sha256
     }
@@ -422,6 +445,20 @@ pub struct NativeHistoricalCensus {
 }
 
 impl NativeHistoricalCensus {
+    pub fn retained_state_upper_bound(&self) -> Result<usize> {
+        // One complete BTree node per member conservatively covers all
+        // leaf/internal slots and child edges without inventing payload bytes.
+        let node = 11 * std::mem::size_of::<(String,HistoricalMember)>() + 16 * std::mem::size_of::<usize>();
+        let mut bytes = std::mem::size_of::<Self>().checked_add(self.source_root.capacity())
+            .and_then(|n| n.checked_add(self.manifest_path.capacity()))
+            .and_then(|n| n.checked_add(self.manifest_sha256.capacity()))
+            .and_then(|n| n.checked_add(self.members.len().checked_mul(node)?))
+            .ok_or(Error::Budget("historical census retained slots"))?;
+        for (path,member) in &self.members { bytes = bytes.checked_add(path.capacity())
+            .and_then(|n| n.checked_add(member.sha256.capacity()))
+            .ok_or(Error::Budget("historical census retained strings"))?; }
+        Ok(bytes)
+    }
     pub fn source_root(&self) -> &Path {
         &self.source_root
     }

@@ -177,7 +177,8 @@ stdin; it does not require a source checkout or a Python producer:
 
 The request schema is `tos_native_managed_original_produce_request_v1`. It declares
 `tmpfs_quota_bytes`, `tmpfs_inode_limit`, `working_ram_bytes`,
-`persistent_write_cap_bytes`, `max_build_seconds`, `cold_open`, `process_limits`,
+`persistent_write_cap_bytes`, `max_build_seconds`, `max_state_bytes`,
+`max_json_visits`, `cold_open`, `process_limits`,
 `data_directory`, `private_release_directory`, and `evidence_refs`. The latter
 contains exactly one absolute path and SHA-256 for each of `admission`, `built`,
 and `verified`. Held references are evidence inputs, not grants of authority.
@@ -198,10 +199,17 @@ outside its tmpfs, passes `ABYSS_STAGE_TICKET_FD` and `ABYSS_STAGE_ROOT`, and ap
 the whole-process resource envelope before execution. The request must match the
 selected ticket. The staging quota is at least 2,112 MiB; the complete persistent
 candidate is capped at 512 MiB and its manifest at 1 MiB. These are refusal bounds,
-not measured fit. `working_ram_bytes` is ticket metadata. The declared process
-limits are checked during cold verification and do not install limits for the
-earlier capture/build phases. Use the owned supervisor's whole deadline and
-process-tree cleanup in addition to the cooperative build deadline.
+not measured fit. `max_state_bytes` is an explicit Rust/SQLite state allowance,
+separate from model bytes and no greater than the original process address-space
+ceiling; `max_json_visits` bounds aggregate capture, writer and cold JSON visits.
+The same dedicated SQLite heap and held creation state cover the full writer and
+the copied fs-verity cold reader. `cold_open.max_file_bytes` also narrows the
+writer's live main and temporary database ceilings before VACUUM. The held Linux
+cgroup verifies actual RAM and zero-swap limits; ticket metadata alone does not
+provide that custody. The declared process limits are checked during cold
+verification and do not install limits for earlier capture/build phases. Use the
+owned supervisor's whole deadline and process-tree cleanup in addition to the
+cooperative build deadline.
 
 A successful `tos_native_managed_original_produce_result_v1` result identifies
 only a fresh private data candidate, full typed selection and actual fs-verity

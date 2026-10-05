@@ -5,6 +5,7 @@
 use serde::Deserialize;
 use serde_json::{Value, json};
 use std::{
+    cell::Cell,
     collections::{BTreeMap, BTreeSet},
     error::Error as StdError,
     fmt,
@@ -12,14 +13,16 @@ use std::{
     io::{self, Read, Seek, SeekFrom, Write},
     os::unix::fs::{MetadataExt, OpenOptionsExt},
     path::{Component, Path, PathBuf},
-    sync::{Arc, Mutex},
+    sync::{Arc, Mutex, atomic::{AtomicBool, AtomicU64}},
     time::{Duration, Instant},
 };
 use tos_compiler::{
     ColdOpenLimits, ImmutableKnowledgeCustody, KnowledgeSelectedExpectation, LinuxFsVerityCustody,
     NativeFsVerityMeasurement, NativeKnowledgeSelection, NativeProcessLimits, NativeSelectionPaths,
     PublicCapture, native_snapshot, native_snapshot_manifest as manifest,
-    open_selected_knowledge_model_owned, private_tmpfs_stage::PrivateTmpfsStageIsolation,
+    private_tmpfs_stage::PrivateTmpfsStageIsolation,
+    DedicatedSessionSqliteHeap, RuntimeCaptureOwnedBudget, RuntimeCaptureCreationUsage,
+    native_cold_resources::LinuxCgroupColdOpenResourceHold,
 };
 use tos_foundation::{Digest256, Digest256Hasher, JsonLimits, JsonMode, RelativePath, parse_json};
 
@@ -55,6 +58,9 @@ struct Request {
     tmpfs_quota_bytes: u64,
     tmpfs_inode_limit: u64,
     working_ram_bytes: u64,
+    /// Original simultaneous producer Rust/SQLite state, separate from file caps.
+    max_state_bytes: usize,
+    max_json_visits: usize,
     persistent_write_cap_bytes: u64,
     max_build_seconds: u64,
     cold_open: ColdOpenLimits,
@@ -595,6 +601,9 @@ fn validate_request(request: &Request) -> Result<()> {
         || request.tmpfs_quota_bytes < manifest::NATIVE_PRODUCER_MIN_TMPFS_QUOTA_BYTES
         || request.tmpfs_inode_limit < 4096
         || request.working_ram_bytes == 0
+        || request.max_state_bytes < 131072
+        || request.max_json_visits == 0
+        || request.max_state_bytes as u64 > request.process_limits.address_space_bytes
         || request.persistent_write_cap_bytes == 0
         || request.persistent_write_cap_bytes > manifest::NATIVE_PRODUCER_MAX_DATA_BYTES
         || request.max_build_seconds == 0
@@ -892,22 +901,65 @@ fn execute(request: Request) -> Result<Value> {
     let mut evidence_refs = hold_evidence_refs(request.evidence_refs, deadline, uid)?;
     let mut historical = manifest::census_historical_runtime_closure(deadline)?;
     let fingerprint_before = manifest::fingerprint_native_compiler_source(deadline)?;
-    let limits = manifest::portable_native_snapshot_limits(request.max_build_seconds)?;
+    let mut limits = manifest::portable_native_snapshot_limits(request.max_build_seconds)?;
+    // The SAME caller file ceiling bounds the full live writer before VACUUM
+    // and the copied cold reader. This is unrelated to the Rust state allowance.
+    limits.stage.sqlite.max_output_bytes = limits.stage.sqlite.max_output_bytes.min(request.cold_open.max_file_bytes);
+    limits.stage.max_temp_bytes = limits.stage.max_temp_bytes.min(request.cold_open.max_file_bytes);
+    let cancelled = Arc::new(AtomicBool::new(false));
+    let resources = LinuxCgroupColdOpenResourceHold::acquire(request.working_ram_bytes,
+        deadline, Arc::clone(&cancelled))?;
+    let mut caller_bytes = isolation.retained_state_upper_bound()?
+        .checked_add(resources.retained_state_upper_bound()?)
+        .and_then(|n| n.checked_add(historical.retained_state_upper_bound().ok()?))
+        .and_then(|n| n.checked_add(fingerprint_before.retained_state_upper_bound().ok()?))
+        .ok_or(Refusal("native Original retained owner census overflow"))?;
+    caller_bytes = caller_bytes.checked_add(evidence_refs.capacity() * std::mem::size_of::<HeldEvidenceRef>())
+        .ok_or(Refusal("native Original evidence slots overflow"))?;
+    for evidence in &evidence_refs {
+        caller_bytes = caller_bytes.checked_add(evidence.kind.capacity() + evidence.path.capacity() + evidence.sha256.capacity())
+            .ok_or(Refusal("native Original evidence owner census overflow"))?;
+    }
+    caller_bytes = caller_bytes.checked_add(std::mem::size_of::<Request>()
+        + request.data_directory.capacity() + request.private_release_directory.capacity()
+        + persistent_store_path.capacity() + data_root.capacity() + private_release_root.capacity())
+        .ok_or(Refusal("native Original request owner census overflow"))?;
+    let retained = Cell::new(caller_bytes);
+    let remaining = |extra: usize| request.max_state_bytes.checked_sub(retained.get())
+        .and_then(|n| n.checked_sub(extra)).ok_or(tos_compiler::Error::Budget("native Original simultaneous state"));
+    let heap = DedicatedSessionSqliteHeap::establish(
+        tos_compiler::dedicated_session_heap_bytes(request.max_state_bytes)?, &remaining,
+        deadline, cancelled.as_ref())?;
+    retained.set(retained.get().checked_add(heap.reserved_state_bytes())
+        .ok_or(Refusal("native Original SQLite owner census overflow"))?);
+    let work = Arc::new(AtomicU64::new(0));
+    let vm = Arc::new(AtomicU64::new(0));
+    let mut capture_usage = RuntimeCaptureCreationUsage::default();
     let temp_paths = TempStagePaths {
         capture: isolation.root().join("tos-native-original-capture.sqlite3"),
         native: isolation.root().join("tos-native-original-model.sqlite3"),
     };
+    retained.set(retained.get().checked_add(std::mem::size_of::<TempStagePaths>()
+        + temp_paths.capture.capacity() + temp_paths.native.capacity())
+        .ok_or(Refusal("native Original stage paths overflow"))?);
+    remaining(0)?;
     for path in [&temp_paths.capture, &temp_paths.native] {
         if path.exists() || path.is_symlink() {
             return Err(Refusal("native Original private tmpfs candidates must be fresh").into());
         }
     }
-    let capture = PublicCapture::create_runtime(
-        historical.source_root(),
-        &temp_paths.capture,
-        limits.capture,
-        deadline,
-    )?;
+    let capture = PublicCapture::create_runtime_with_owned_budget(
+        historical.source_root(), &temp_paths.capture, limits.capture, deadline,
+        Arc::clone(&cancelled), RuntimeCaptureOwnedBudget {
+            remaining_after_retained: &remaining, original_work: work,
+            original_work_limit: limits.capture.max_work_bytes,
+            creation_work_allowance: limits.capture.max_work_bytes,
+            original_sql_vm: vm, original_sql_vm_limit: limits.capture.max_sql_vm_steps,
+            original_sqlite_heap: Arc::clone(&heap), max_creation_json_visits: request.max_json_visits,
+            creation_deadline: deadline,
+        }, &mut capture_usage)?;
+    retained.set(retained.get().checked_add(capture.retained_state_upper_bound()?)
+        .ok_or(Refusal("native Original capture owner census overflow"))?);
     let captured_members = historical.validate_capture_closure(&capture, deadline)?;
     if historical.member_count() != manifest::NATIVE_PRODUCER_EXPECTED_HISTORICAL_MEMBERS
         || historical.member_bytes() != manifest::NATIVE_PRODUCER_EXPECTED_HISTORICAL_BYTES
@@ -929,13 +981,20 @@ fn execute(request: Request) -> Result<Value> {
     // All original source bytes are selected from this retained capture. The
     // old Python SQLite member was excluded during metadata census and is
     // neither read nor copied.
-    let completed = native_snapshot::build_native_snapshot_from_capture(
-        &capture,
-        &temp_paths.native,
-        manifest::RUNTIME_DATA_DECLARATION,
-        &isolation,
-        limits,
-    )?;
+    drop(captured_members);
+    let remaining_visits = request.max_json_visits.checked_sub(capture_usage.json_visits)
+        .filter(|n| *n > 0).ok_or(Refusal("native Original capture exhausted JSON owner"))?;
+    let mut producer_usage = native_snapshot::NativeSnapshotCreationUsage::default();
+    let mut result = None;
+    let mut completion_error = None;
+    let produced = native_snapshot::with_native_original_snapshot_from_capture_with_owned_budget_and_layout(
+        &capture, &temp_paths.native, manifest::RUNTIME_DATA_DECLARATION, &isolation,
+        limits, deadline, cancelled.as_ref(), native_snapshot::NativeSnapshotOwnedBudget {
+            remaining_after_retained: &remaining, original_sqlite_heap: &heap,
+            max_creation_json_visits: remaining_visits, creation_deadline: deadline,
+        }, &mut producer_usage, tos_compiler::knowledge_stage::KnowledgePayloadLayout::CarrierOnceV1,
+        |completed, loan| {
+            let mut finish = || -> Result<Value> {
     let captured_members = historical.validate_capture_closure(&capture, deadline)?;
     let source_bindings = source_bindings(&completed, &captured_members, deadline)?;
     capture.verify_inputs(limits.capture)?;
@@ -1052,7 +1111,8 @@ fn execute(request: Request) -> Result<Value> {
         return Err(Refusal("candidate data premanifest ceiling").into());
     }
 
-    // This is a real typed cold admission through the compiled Access reader.
+    // This is real controlled cold admission of the copied fs-verity model
+    // under the same state/heap/work/VM owners as the Original writer.
     // The returned metrics describe this invocation only; the resulting
     // receipt conveys mechanics, not rights, canon or source semantic approval.
     let expectation: KnowledgeSelectedExpectation = selection.expectation().clone();
@@ -1064,27 +1124,29 @@ fn execute(request: Request) -> Result<Value> {
         started,
     ));
     let custody: Arc<dyn ImmutableKnowledgeCustody> = custody_observer.clone();
-    let model = open_selected_knowledge_model_owned(
-        &model_path,
-        expectation.clone(),
-        custody,
-        request.cold_open,
-    )?;
-    if !model.corpus_original_available()
-        || !model.philosophy_original_available()
-        || model.source_revision().is_none()
-    {
-        return Err(Refusal("native cold-open Original pair/source witness absent").into());
-    }
-    let cold_digest_read_bytes = model.cold_digest_read_bytes();
-    let cold_validation_charged_bytes = model.cold_validation_charged_bytes();
-    let open_vm_steps = model.open_vm_steps();
-    let cold_source_revision = model.source_revision().unwrap().to_owned();
-    let source_basis = serde_json::to_value(model.source_basis())?;
+    let mut pinned_model = OpenOptions::new().read(true)
+        .custom_flags(libc::O_CLOEXEC | libc::O_NOFOLLOW | libc::O_NONBLOCK).open(&model_path)?;
+    let mut cold_receipt = None;
+    completed.with_controlled_copied_knowledge_model(&loan, &isolation, &mut pinned_model,
+        custody.as_ref(), request.cold_open, request.process_limits, request.working_ram_bytes,
+        &resources, deadline, |model| {
+            if model.corpus_original_receipt().is_none() || model.philosophy_original_receipt().is_none()
+                || model.navigation_original_receipt().is_none() {
+                return Err(tos_compiler::Error::Invalid("native controlled cold Original roots absent"));
+            }
+            model.check_pin()?;
+            let source_basis = serde_json::to_value(model.source_basis())
+                .map_err(|_| tos_compiler::Error::Invalid("native controlled cold source basis encoding"))?;
+            cold_receipt = Some((model.cold_digest_read_bytes(), model.cold_validation_charged_bytes(),
+                model.open_vm_steps(), source_basis));
+            Ok(())
+        })?;
+    drop(pinned_model);
+    let (cold_digest_read_bytes, cold_validation_charged_bytes, open_vm_steps, source_basis) =
+        cold_receipt.ok_or(Refusal("native controlled cold receipt absent"))?;
+    let cold_source_revision = completed.source_revision().to_owned();
     let corpus_original = serde_json::to_value(selection.producer().corpus_original.as_ref())?;
-    let philosophy_original =
-        serde_json::to_value(selection.producer().philosophy_original.as_ref())?;
-    model.check_pin()?;
+    let philosophy_original = serde_json::to_value(selection.producer().philosophy_original.as_ref())?;
     let named_model_after = private_model_path_stamp(&model_path, uid, model_bytes)?;
     let (held_fd_first, held_fd_last, custody_verify_calls) = custody_observer.snapshot()?;
     if custody_verify_calls < 2
@@ -1099,10 +1161,9 @@ fn execute(request: Request) -> Result<Value> {
     if held_fd_last.producer_elapsed_ns > cold_open_end_elapsed_ns {
         return Err(Refusal("cold selected model observation clock ordering differs").into());
     }
-    drop(model);
 
     let manifest_receipt = manifest::write_completed_native_data_manifest(
-        &completed,
+        completed,
         output.root_path(),
         &manifest_input,
         &selection,
@@ -1278,6 +1339,11 @@ fn execute(request: Request) -> Result<Value> {
             json!(manifest::NATIVE_PRODUCER_MIN_TMPFS_QUOTA_BYTES),
         ),
         ("working_ram_bytes", json!(request.working_ram_bytes)),
+        ("producer_max_state_bytes", json!(request.max_state_bytes)),
+        ("producer_max_json_visits", json!(request.max_json_visits)),
+        ("writer_model_max_file_bytes", json!(limits.stage.sqlite.max_output_bytes)),
+        ("writer_temp_max_file_bytes", json!(limits.stage.max_temp_bytes)),
+        ("payload_layout", json!("CarrierOnceV1")),
         (
             "persistent_write_cap_bytes",
             json!(request.persistent_write_cap_bytes),
@@ -1292,7 +1358,7 @@ fn execute(request: Request) -> Result<Value> {
         ("elapsed_seconds", json!(started.elapsed().as_secs())),
         (
             "limit_interpretation",
-            json!("ceilings and refusal bounds; not a measured fit or peak-RAM estimate"),
+            json!("original state/JSON/physical ceilings and refusal bounds; actual completed file size and cold counters are separate evidence, not peak-RAM measurement"),
         ),
     ]);
     let result = json_object([
@@ -1327,6 +1393,16 @@ fn execute(request: Request) -> Result<Value> {
     }
     active(deadline)?;
     Ok(result)
+            };
+            match finish() {
+                Ok(value) => { result = Some(value); Ok(()) }
+                Err(error) => { completion_error = Some(error);
+                    Err(tos_compiler::Error::Invalid("native Original consumer refused")) }
+            }
+        });
+    if let Some(error) = completion_error { return Err(error); }
+    produced?;
+    result.ok_or_else(|| Refusal("native Original completion receipt absent").into())
 }
 
 /// Existing `tos-native-owner-command native-original-produce` route. It reads

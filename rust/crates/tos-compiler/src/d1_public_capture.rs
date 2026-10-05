@@ -3733,7 +3733,7 @@ impl PublicCapture {
         budget: RuntimeCaptureOwnedBudget<'_>,
         usage: &mut RuntimeCaptureCreationUsage,
     ) -> Result<Self> {
-        Self::create_selected_with_owned_budget(root, Some(selected), profile, staging,
+        Self::create_selected_with_owned_budget(root, Some(selected), true, profile, staging,
             limits, deadline, cancelled, budget, usage)
     }
 
@@ -3748,13 +3748,26 @@ impl PublicCapture {
         budget: RuntimeCaptureOwnedBudget<'_>,
         usage: &mut RuntimeCaptureCreationUsage,
     ) -> Result<Self> {
-        Self::create_selected_with_owned_budget(root, None, RuntimeCaptureProfile::Whole,
+        Self::create_selected_with_owned_budget(root, None, false, RuntimeCaptureProfile::Whole,
+            staging, limits, deadline, cancelled, budget, usage)
+    }
+
+    /// Runtime full-root capture under the original dedicated native process.
+    /// This preserves the maintained runtime input profile without requiring
+    /// selected-path aliases or constructing a new resource domain.
+    pub fn create_runtime_with_owned_budget(
+        root: &Path, staging: &Path, limits: PublicCaptureLimits, deadline: Instant,
+        cancelled: Arc<std::sync::atomic::AtomicBool>,
+        budget: RuntimeCaptureOwnedBudget<'_>, usage: &mut RuntimeCaptureCreationUsage,
+    ) -> Result<Self> {
+        Self::create_selected_with_owned_budget(root, None, true, RuntimeCaptureProfile::Whole,
             staging, limits, deadline, cancelled, budget, usage)
     }
 
     fn create_selected_with_owned_budget(
         root: &Path,
         selected: Option<&PublicCaptureInputPaths>,
+        runtime_profile: bool,
         profile: RuntimeCaptureProfile,
         staging: &Path,
         mut limits: PublicCaptureLimits,
@@ -3842,7 +3855,7 @@ impl PublicCapture {
                 creation_deadline,
                 false,
                 false,
-                selected.is_some(),
+                runtime_profile,
                 selected,
                 Some(Arc::clone(&cancelled)),
                 role,

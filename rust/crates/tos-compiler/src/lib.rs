@@ -88,6 +88,7 @@ mod knowledge_original_rows;
 mod knowledge_philosophy_original;
 mod knowledge_posting_codec;
 pub mod native_snapshot;
+pub mod native_cold_resources;
 pub mod native_snapshot_carriers;
 pub mod native_snapshot_manifest;
 pub use knowledge_philosophy_original::{

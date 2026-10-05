@@ -2909,6 +2909,47 @@ impl CompletedNativeSnapshot {
         )
     }
 
+    /// Cold-open the copied immutable managed model while borrowing the same
+    /// Original writer's state. The existing fs-verity custody authenticates
+    /// the copy; the compiler still checks the full digest/schema/root closure.
+    #[allow(clippy::too_many_arguments)]
+    pub fn with_controlled_copied_knowledge_model<'completed, 'owner, 'budget>(
+        &'completed self, loan: &NativeSnapshotOwnedReadLoan<'owner, 'budget>,
+        isolation: &dyn StageIsolation, pinned: &mut File,
+        custody: &dyn crate::ImmutableKnowledgeCustody, cold: crate::ColdOpenLimits,
+        process: crate::NativeProcessLimits, working_ram_bytes: u64,
+        resource_hold: &dyn NativeColdOpenResourceHold, operation_deadline: Instant,
+        consume: impl for<'model> FnOnce(&mut crate::ControlledKnowledgeModel<'model, 'owner, 'budget>) -> Result<()>,
+    ) -> Result<()> where 'owner: 'completed {
+        let capture = loan.capture();
+        if operation_deadline > loan.operation_deadline() || operation_deadline <= Instant::now()
+            || working_ram_bytes == 0 || process.address_space_bytes == 0
+            || process.address_space_bytes > working_ram_bytes
+            || process.file_size_bytes < self.expectation.model_size_bytes
+            || cold.max_file_bytes < self.expectation.model_size_bytes {
+            return Err(Error::Invalid("Original copied cold admission envelope"));
+        }
+        crate::native_knowledge_selection::verify_native_process_limits(process)?;
+        self.check_capture_binding(capture)?;
+        self.verify_stage_model(isolation, operation_deadline, capture.cancellation())?;
+        let verify = || resource_hold.verify_cold_open(cold, process, working_ram_bytes,
+            self.stage_model_identity.size, self.expectation.model_size_bytes, 0, 0,
+            operation_deadline, capture.cancellation());
+        verify()?;
+        capture.with_owned_operation_deadline_and_limits(operation_deadline,
+            Some((cold.max_work_bytes, cold.max_vm_steps)), || {
+                let result = crate::knowledge_payload_read::with_snapshot_owned_knowledge_read_context(
+                    loan, operation_deadline, |context| {
+                        crate::controlled_cold_model::with_controlled_selected_knowledge_model(
+                            pinned, &self.expectation, custody, cold, loan, context, consume)
+                    });
+                verify()?;
+                self.check_capture_binding(capture)?;
+                self.verify_stage_model(isolation, operation_deadline, capture.cancellation())?;
+                result
+            })
+    }
+
     /// Lend the exact finished Evidence Lens output only when its independent
     /// source/output closure is bound to this exact completed graph capture.
     pub fn with_evidence_projection<'a, T>(
@@ -3479,6 +3520,52 @@ impl<'owner, 'budget> NativeSnapshotOwnedReadLoan<'owner, 'budget> {
     }
 }
 
+/// Scoped native Original Stage producer. Full components and Original roots
+/// are identical to the Whole producer; no detached Whole graph export is
+/// constructed. The same held creation state remains alive through the caller's
+/// copied-model cold admission and final metadata receipt.
+#[allow(clippy::too_many_arguments)]
+pub fn with_native_original_snapshot_from_capture_with_owned_budget_and_layout<'budget, F>(
+    capture: &'budget PublicCapture, candidate: &Path, declaration_raw: &[u8],
+    isolation: &dyn StageIsolation, limits: NativeSnapshotLimits,
+    owner_deadline: Instant, cancelled: &AtomicBool,
+    budget: NativeSnapshotOwnedBudget<'budget>, usage: &mut NativeSnapshotCreationUsage,
+    payload_layout: crate::knowledge_stage::KnowledgePayloadLayout, consume: F,
+) -> Result<()>
+where F: for<'scope> FnOnce(&'scope CompletedNativeSnapshot,
+    NativeSnapshotOwnedReadLoan<'scope, 'budget>) -> Result<()>,
+{
+    *usage = NativeSnapshotCreationUsage::default();
+    if owner_deadline != capture.deadline() || !std::ptr::eq(cancelled, capture.cancellation()) {
+        return Err(Error::Invalid("owned Original snapshot admission context changed"));
+    }
+    let state = capture.model_creation_state(budget.remaining_after_retained,
+        budget.original_sqlite_heap, budget.max_creation_json_visits, budget.creation_deadline)?;
+    let operation = || {
+        let build = || build_native_snapshot_from_capture_inner(capture, candidate,
+            declaration_raw, isolation, limits, None, owner_deadline, cancelled,
+            Some(&state), payload_layout);
+        let frame = std::mem::size_of_val(&build).checked_add(std::mem::size_of_val(&consume))
+            .and_then(|n| n.checked_add(std::mem::size_of::<NativeSnapshotOwnedReadLoan<'_, '_>>()))
+            .and_then(|n| n.checked_add(std::mem::size_of::<Result<(CompletedNativeSnapshot,
+                Option<NativeKnowledgeSnapshot>)>>()))
+            .ok_or(Error::Budget("owned Original scoped consumer frame"))?;
+        let _frame = state.hold(frame)?;
+        let (completed, whole) = capture.with_owned_operation_deadline(budget.creation_deadline, build)?;
+        if whole.is_some() { return Err(Error::Invalid("Original produced unrelated Whole export")); }
+        state.active()?;
+        completed.check_capture_binding(capture)?;
+        let result = consume(&completed, NativeSnapshotOwnedReadLoan { capture, state: &state });
+        state.active()?;
+        completed.check_capture_binding(capture)?;
+        result
+    };
+    let _operation = state.hold(std::mem::size_of_val(&operation))?;
+    let result = operation();
+    usage.json_visits = state.json_visits();
+    result
+}
+
 /// Keep creation state and both completed outputs alive for the complete
 /// synchronous reader/consumer operation. The construction guard ends before
 /// the callback, so the reader may acquire its own narrower operation guard
@@ -3755,10 +3842,10 @@ fn build_native_snapshot_from_capture_inner(
         return Err(Error::Invalid("native snapshot admission context changed"));
     }
     if payload_layout == crate::knowledge_stage::KnowledgePayloadLayout::CarrierOnceV1
-        && (state.is_none() || whole_mode.is_none())
+        && state.is_none()
     {
         return Err(Error::Invalid(
-            "carrier layout requires controlled whole owner",
+            "carrier layout requires controlled native owner",
         ));
     }
     let deadline = state

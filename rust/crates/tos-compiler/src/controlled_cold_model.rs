@@ -134,6 +134,8 @@ pub struct ControlledKnowledgeModel<'model, 'state, 'budget> {
     corpus_original: Option<&'model crate::CorpusOriginalReceipt>,
     identity: &'model crate::d1_public_capture::ControlledCaptureIdentity,
     open_vm_steps: u64,
+    cold_digest_read_bytes: u64,
+    cold_validation_charged_bytes: u64,
     context: &'model RuntimeKnowledgeReadContext<'state, 'budget>,
 }
 
@@ -562,6 +564,9 @@ impl ControlledKnowledgeModel<'_, '_, '_> {
     pub fn selection(&self) -> &KnowledgeSelectedExpectation {
         self.selection
     }
+    pub fn cold_digest_read_bytes(&self) -> u64 { self.cold_digest_read_bytes }
+    pub fn cold_validation_charged_bytes(&self) -> u64 { self.cold_validation_charged_bytes }
+    pub fn open_vm_steps(&self) -> u64 { self.open_vm_steps }
     pub fn source_basis(&self) -> &KnowledgeSourceBasis {
         self.source_basis
     }
@@ -1609,6 +1614,7 @@ pub(crate) fn with_controlled_selected_knowledge_model<'state, 'budget>(
             });
         }
     };
+    let validation_work_start = issued_loan.capture().work_bytes();
     let operation: Result<_> = (|| {
         let cold_hook = context.install_operation_sql_controller(&db, limits.max_vm_steps)?;
         // The cold verifier returns these exact typed roots/receipts into the
@@ -1712,6 +1718,9 @@ pub(crate) fn with_controlled_selected_knowledge_model<'state, 'budget>(
             corpus_original: Some(&corpus_original),
             identity: &identity,
             open_vm_steps,
+            cold_digest_read_bytes: size,
+            cold_validation_charged_bytes: issued_loan.capture().work_bytes()
+                .checked_sub(validation_work_start).ok_or(Error::Invalid("controlled cold work counter regressed"))?,
             context,
         };
         let query = consume(&mut model);
