@@ -91,10 +91,10 @@ fn sql_refusal(error: rusqlite::Error) -> ItemRefusal {
     source_reason("default-sql", class)
 }
 
-fn row_refusal(error: ItemRefusal) -> rusqlite::Error {
+fn row_refusal(error: ItemRefusal, column: usize, kind: rusqlite::types::Type) -> rusqlite::Error {
     rusqlite::Error::FromSqlConversionFailure(
-        0,
-        rusqlite::types::Type::Blob,
+        column,
+        kind,
         Box::new(crate::source_admission_spooled_index::receiver_refusal(
             error,
         )),
@@ -270,7 +270,7 @@ fn bounded_row_text_precharged(
     let state = row_text_state(row, column)?;
     context
         .active_state(state)
-        .map_err(|_| rusqlite::Error::InvalidQuery)?;
+        .map_err(|error| row_refusal(error, column, rusqlite::types::Type::Text))?;
     bounded_row_text(row, column, cap)
 }
 
@@ -1229,9 +1229,10 @@ fn query_event_value(
                 row,
                 1,
                 json_limit,
-                estimate_string_state(&id_text).map_err(|_| rusqlite::Error::InvalidQuery)?,
+                estimate_string_state(&id_text)
+                    .map_err(|error| row_refusal(error, 0, rusqlite::types::Type::Text))?,
             )
-            .map_err(|_| rusqlite::Error::InvalidQuery)
+            .map_err(|error| row_refusal(error, 1, rusqlite::types::Type::Blob))
         })
         .optional()
         .map_err(sql_refusal)?;
@@ -1259,9 +1260,9 @@ fn event_for_each(
                 [after.as_deref()],
                 |row| {
                     let id = bounded_row_text_precharged(context, row, 0, context.operation_state_limit)?;
-                    let id_state = estimate_string_state(&id).map_err(|_| rusqlite::Error::InvalidQuery)?;
+                    let id_state = estimate_string_state(&id).map_err(|error| row_refusal(error, 0, rusqlite::types::Type::Text))?;
                     let value = value_from_row(context, row, 1, json_limit, id_state)
-                        .map_err(|_| rusqlite::Error::InvalidQuery)?;
+                        .map_err(|error| row_refusal(error, 1, rusqlite::types::Type::Blob))?;
                     Ok((id, value))
                 },
             ),
@@ -1270,9 +1271,9 @@ fn event_for_each(
                 [after.as_deref()],
                 |row| {
                     let id = bounded_row_text_precharged(context, row, 0, context.operation_state_limit)?;
-                    let id_state = estimate_string_state(&id).map_err(|_| rusqlite::Error::InvalidQuery)?;
+                    let id_state = estimate_string_state(&id).map_err(|error| row_refusal(error, 0, rusqlite::types::Type::Text))?;
                     let value = value_from_row(context, row, 1, json_limit, id_state)
-                        .map_err(|_| rusqlite::Error::InvalidQuery)?;
+                        .map_err(|error| row_refusal(error, 1, rusqlite::types::Type::Blob))?;
                     Ok((id, value))
                 },
             ),
@@ -3512,8 +3513,8 @@ impl CandidateClosureSchemaRequests<'_, '_, '_, '_, '_> {
                     {
                         return Err(rusqlite::Error::InvalidQuery);
                     }
-                    let line_number =
-                        checked_u64_blob(line).map_err(|_| rusqlite::Error::InvalidQuery)?;
+                    let line_number = checked_u64_blob(line)
+                        .map_err(|error| row_refusal(error, 2, rusqlite::types::Type::Blob))?;
                     if line_number == 0 {
                         return Err(rusqlite::Error::InvalidQuery);
                     }
@@ -5984,7 +5985,8 @@ impl SourceFoundationClosureSchemaRequestStore
                 {
                     return Err(rusqlite::Error::InvalidQuery);
                 }
-                let line = checked_u64_blob(line).map_err(|_| rusqlite::Error::InvalidQuery)?;
+                let line = checked_u64_blob(line)
+                    .map_err(|error| row_refusal(error, 1, rusqlite::types::Type::Blob))?;
                 let line = usize::try_from(line).map_err(|_| rusqlite::Error::InvalidQuery)?;
                 let value = serde_json::from_slice::<Value>(raw)
                     .map_err(|_| rusqlite::Error::InvalidQuery)?;
@@ -7295,12 +7297,12 @@ impl ClaimsProvider<'_, '_, '_, '_> {
             (None, false) => self.db.query_row(
                 "SELECT ordinal,path,line,raw_sha256,native,value FROM biblio_claims WHERE (?1 IS NULL OR ordinal>?1) ORDER BY ordinal LIMIT 1",
                 [after.map(u64::to_be_bytes).as_ref().map(|value| value.as_slice())],
-                |row| decode_claim_row(self.context, row, self.max_state_bytes, self.live_state.get()).map_err(row_refusal),
+                |row| decode_claim_row(self.context, row, self.max_state_bytes, self.live_state.get()).map_err(|error| row_refusal(error, 0, rusqlite::types::Type::Blob)),
             ),
             (None, true) => self.db.query_row(
                 "SELECT ordinal,path,line,raw_sha256,native,value FROM biblio_claims WHERE (?1 IS NULL OR ordinal<?1) ORDER BY ordinal DESC LIMIT 1",
                 [after.map(u64::to_be_bytes).as_ref().map(|value| value.as_slice())],
-                |row| decode_claim_row(self.context, row, self.max_state_bytes, self.live_state.get()).map_err(row_refusal),
+                |row| decode_claim_row(self.context, row, self.max_state_bytes, self.live_state.get()).map_err(|error| row_refusal(error, 0, rusqlite::types::Type::Blob)),
             ),
             (Some((path, _)), false) => self.db.query_row(
                 "SELECT ordinal,path,line,raw_sha256,native,value FROM biblio_claims WHERE path=?1 AND line=?2 AND (?3 IS NULL OR ordinal>?3) ORDER BY ordinal LIMIT 1",
@@ -7309,7 +7311,7 @@ impl ClaimsProvider<'_, '_, '_, '_> {
                     line.as_ref().map(|value| value.as_slice()),
                     after.map(u64::to_be_bytes).as_ref().map(|value| value.as_slice()),
                 ],
-                |row| decode_claim_row(self.context, row, self.max_state_bytes, self.live_state.get()).map_err(row_refusal),
+                |row| decode_claim_row(self.context, row, self.max_state_bytes, self.live_state.get()).map_err(|error| row_refusal(error, 0, rusqlite::types::Type::Blob)),
             ),
             (Some((path, _)), true) => self.db.query_row(
                 "SELECT ordinal,path,line,raw_sha256,native,value FROM biblio_claims WHERE path=?1 AND line=?2 AND (?3 IS NULL OR ordinal<?3) ORDER BY ordinal DESC LIMIT 1",
@@ -7318,7 +7320,7 @@ impl ClaimsProvider<'_, '_, '_, '_> {
                     line.as_ref().map(|value| value.as_slice()),
                     after.map(u64::to_be_bytes).as_ref().map(|value| value.as_slice()),
                 ],
-                |row| decode_claim_row(self.context, row, self.max_state_bytes, self.live_state.get()).map_err(row_refusal),
+                |row| decode_claim_row(self.context, row, self.max_state_bytes, self.live_state.get()).map_err(|error| row_refusal(error, 0, rusqlite::types::Type::Blob)),
             ),
         }
         .optional()
@@ -7348,7 +7350,7 @@ impl ClaimsProvider<'_, '_, '_, '_> {
         let found = self.db.query_row(
             "SELECT ordinal,path,line,raw_sha256,native,value FROM biblio_claims WHERE claim_id=?1 ORDER BY ordinal LIMIT 1",
             [id],
-            |row| decode_claim_row(self.context, row, self.max_state_bytes, self.live_state.get()).map_err(row_refusal),
+            |row| decode_claim_row(self.context, row, self.max_state_bytes, self.live_state.get()).map_err(|error| row_refusal(error, 0, rusqlite::types::Type::Blob)),
         ).optional().map_err(sql_refusal)?;
         self.context.check()?;
         Ok(found)
@@ -8061,7 +8063,7 @@ impl tos_validation::biblio_rules::SourceFoundationBiblioManifestSink
                             .ok_or(rusqlite::Error::InvalidQuery)?;
                         self.context
                             .active_state(strings_state)
-                            .map_err(|_| rusqlite::Error::InvalidQuery)?;
+                            .map_err(|error| row_refusal(error, 1, rusqlite::types::Type::Text))?;
                         let id = bounded_row_text(row, 1, self.max_state_bytes)?;
                         let edition = bounded_row_text(row, 2, self.max_state_bytes)?;
                         Ok((slot, id, edition))

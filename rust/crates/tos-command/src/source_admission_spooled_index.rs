@@ -365,7 +365,12 @@ pub(crate) fn receiver_refusal(error: ItemRefusal) -> io::Error {
                 )
             };
         }
-        ItemRefusal::Unsupported(_) => "candidate Records/Item receiver unsupported",
+        ItemRefusal::Unsupported(reason) => {
+            return io::Error::new(
+                io::ErrorKind::InvalidData,
+                bounded_source_cause("receiver-source", "ItemRefusal-Unsupported", &reason),
+            );
+        }
     };
     invalid(reason)
 }

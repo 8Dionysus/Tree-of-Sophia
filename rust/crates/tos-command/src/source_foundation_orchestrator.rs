@@ -19,7 +19,8 @@ use super::foundation_output::{self, SourceFoundationOutputOutcome};
 use super::foundation_payload::FoundationPayloadSources;
 use super::foundation_reader::FoundationRuleReadLimits;
 use super::foundation_rule_diagnostics::{
-    SourceFoundationRuleDiagnosticsError, SourceFoundationRuleDiagnosticsLimits,
+    CandidateRuleDiagnosticsError, SourceFoundationRuleDiagnosticsError,
+    SourceFoundationRuleDiagnosticsLimits,
 };
 use super::foundation_run::{
     self, EvaluatedFoundationDefault, FinalizedFoundationDefaultInputs, FoundationBiblioEvidence,
@@ -104,7 +105,7 @@ impl FoundationOrchestratorError {
             _ => None,
         };
         if let Some((stage, error)) = owner {
-            if matches!(error, ItemRefusal::Source(_))
+            if matches!(error, ItemRefusal::Source(_) | ItemRefusal::Unsupported(_))
                 || matches!(error, ItemRefusal::BudgetCheck { check, .. }
                     if !matches!(*check, "record_issue_sink" | "biblio_sink"))
             {
@@ -2536,10 +2537,10 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
                     )
                     .map_err(|error| {
                         let (site, reason) = match error {
-                            SourceFoundationRuleDiagnosticsError::Refused { reason, .. } =>
+                            CandidateRuleDiagnosticsError::Refused { reason, .. } =>
                                 ("default-refused", reason.to_owned()),
-                            SourceFoundationRuleDiagnosticsError::IncompleteSchema { reason, .. } =>
-                                ("default-incomplete-schema", format!("{reason:?}")),
+                            CandidateRuleDiagnosticsError::Incomplete { reason, .. } =>
+                                ("default-incomplete", reason.to_owned()),
                         };
                         ItemRefusal::Source(
                             crate::source_admission_spooled_index::bounded_source_cause(
