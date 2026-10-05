@@ -3112,6 +3112,17 @@ fn sdk_host_session(args: &[String]) -> Result<i32, String> {
             .copied()
             .ok_or_else(|| format!("missing host selector {k}"))
     };
+    let original = get("--work-deadline-ns")?
+        .parse::<u64>()
+        .map_err(|e| e.to_string())?;
+    let end = Cutoff::select(original, 5000)?;
+    if original
+        .checked_sub(clock_ns()?)
+        .is_none_or(|n| n > 50_000_000_000)
+    {
+        return Err("ordinary operation original whole exceeds50s".into());
+    }
+    end.check()?;
     let root = PathBuf::from(get("--root")?);
     path_shape(&root)?;
     let snapshot_root = selected.get("--snapshot-root").map(|v| PathBuf::from(*v));
@@ -3123,6 +3134,7 @@ fn sdk_host_session(args: &[String]) -> Result<i32, String> {
         identical(held, &directory(parent)?)?;
         directory(&root)?;
     }
+    end.check()?;
     let protected_read_root = snapshot_root.clone().unwrap_or_else(|| root.clone());
     let protected_read_hold = directory(&protected_read_root)?;
     let control = selected
@@ -3158,16 +3170,6 @@ fn sdk_host_session(args: &[String]) -> Result<i32, String> {
     ) {
         return Err("native retained operation unavailable".into());
     }
-    let original = get("--work-deadline-ns")?
-        .parse::<u64>()
-        .map_err(|e| e.to_string())?;
-    let end = Cutoff::select(original, 5000)?;
-    if original
-        .checked_sub(clock_ns()?)
-        .is_none_or(|n| n > 50_000_000_000)
-    {
-        return Err("ordinary operation original whole exceeds50s".into());
-    }
     let _signals = SignalGuard::install()?;
     let uuid = kernel(Path::new("/proc/sys/kernel/random/uuid"), 64, 1, 64)?
         .trim()
@@ -3180,15 +3182,16 @@ fn sdk_host_session(args: &[String]) -> Result<i32, String> {
     // The ordinary request chooses only the selected path. Bind it to the exact
     // logical Root already admitted above and issue physical caps from this
     // native SDK profile.
-    let search_cache = selected
-        .get("--search-cache-path")
-        .copied()
-        .map(|path| SearchCacheSelection {
-            path: PathBuf::from(path),
-            source_root: root.clone(),
-            max_build_bytes: SDK_SETUP_BYTES,
-            max_temp_bytes: SDK_SETUP_BYTES,
-        });
+    let search_cache =
+        selected
+            .get("--search-cache-path")
+            .copied()
+            .map(|path| SearchCacheSelection {
+                path: PathBuf::from(path),
+                source_root: root.clone(),
+                max_build_bytes: SDK_SETUP_BYTES,
+                max_temp_bytes: SDK_SETUP_BYTES,
+            });
     if search_cache.is_some() && control.is_none() {
         return Err("ordinary search cache requires a live session selector".into());
     }

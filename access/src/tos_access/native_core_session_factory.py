@@ -129,7 +129,8 @@ def owned_native_discovered_source_session(*, prefix, prepared, admission, state
 @contextmanager
 def owned_native_ordinary_source_session(*, prefix, selection, transport, state,
         cancelled, config=None, maximum_owner_objects, search_read_model=None,
-        snapshot_root=None, expected_snapshot_guard=None, release_root=None):
+        snapshot_root=None, expected_snapshot_guard=None, release_root=None,
+        expected_reference_release_guard=None):
     """Use the native-owned operation profile with existing caller transport.
 
     Stage/Cold/Query/publication authority never enters this Python constructor.
@@ -169,7 +170,8 @@ def owned_native_ordinary_source_session(*, prefix, selection, transport, state,
                   + serializer_slots * (g.pointer + scalar))
     wire = ordinary_startup_bytes(selection, transport, config, state,
                                   search_read_model=search_read_model, snapshot_root=snapshot_root,
-                                  expected_snapshot_guard=expected_snapshot_guard)
+                                  expected_snapshot_guard=expected_snapshot_guard,
+                                  expected_reference_release_guard=expected_reference_release_guard)
     frame_size = max(transport.max_call_bytes, transport.max_reply_bytes)
     state.reserve(2 * bytearray.__basicsize__ + _PACKET_BYTES + frame_size + 2)
     receiver, frame = bytearray(_PACKET_BYTES), bytearray(frame_size)

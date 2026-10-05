@@ -3903,8 +3903,16 @@ class NativeToSAccessCore(_NativeAccessCore):
         }
         selected_release = release_root if release_root is not None else os.environ.get('TOS_RELEASE_ROOT')
         explicit_source_root = tos_root is not None or bool(os.environ.get('TOS_DATA_ROOT'))
-        selected_root = (None if selected_release is not None and not explicit_source_root
-                         else _discover_root(tos_root))
+        reference_guard = None
+        if selected_release is not None and not explicit_source_root:
+            from .native_access_core import _reference_release_selection
+            try:
+                native_prefix, selected_root, snapshot_root, reference_guard = _reference_release_selection(
+                    native_prefix, selected_release)
+            except (OSError, ValueError, RuntimeError) as error:
+                raise DataAccessUnavailable(str(error)) from error
+        else:
+            selected_root = _discover_root(tos_root)
         if selected_release is not None and selected_root is not None:
             if selected_root.name != 'data':
                 raise DataAccessUnavailable(
@@ -3922,84 +3930,60 @@ class NativeToSAccessCore(_NativeAccessCore):
         if snapshot_root is not None and native_admission_provider is not None:
             raise ValueError('guarded snapshot selection requires the native-owned operation route')
 
-        if selected_release is not None and selected_root is None:
-            if native_admission_provider is not None:
-                raise ValueError('ManagedRelease uses its native owner and cannot be combined with SourceRoot admission')
-            if any(value is not None for value in selectors.values()) or any(
-                    os.environ.get(name) for name in self._CARRIER_ENV):
-                raise ValueError('ManagedRelease source selectors require its native declared-member route')
-            if (query_store_path is not None or os.environ.get('TOS_QUERY_STORE_PATH')
-                    or search_read_model_path is not None or search_read_model_max_bytes is not None
+        if selected_root is None:
+            raise ValueError('native Core requires a selected source root')
+        carrier_paths = source_carrier_paths(selected_root, **selectors)
+        prepared_selected = (published_read_model_path is not None
+                             or published_read_model_expected is not None)
+        if selected_release is not None and (
+                prepared_selected or published_exploration_checkpoint_path is not None):
+            raise ValueError('ReferenceRelease guarded source and prepared/checkpoint readers are separate native routes')
+        if prepared_selected and (query_store_path is not None
+                                  or os.environ.get('TOS_QUERY_STORE_PATH')):
+            raise ValueError('select a prepared reader or a QueryStore')
+        if prepared_selected and self._has_nondefault_carrier_override(selected_root, selectors):
+            raise ValueError('prepared reader does not accept independent Reference carrier overrides')
+        if native_admission_provider is not None:
+            if native_prefix is None:
+                raise ValueError('native discovery admission requires an explicit native_prefix')
+            if (search_read_model_path is not None or search_read_model_max_bytes is not None
                     or search_read_model_max_postings != SEARCH_READ_MODEL_MAX_POSTINGS
                     or search_read_model_max_verify_chars != SEARCH_READ_MODEL_MAX_VERIFY_CHARS
                     or os.environ.get('TOS_SEARCH_READ_MODEL_PATH')
                     or os.environ.get('TOS_SEARCH_READ_MODEL_MAX_BYTES')):
-                raise ValueError('ManagedRelease cache selectors require its native declared-member route')
-            if any(value is not None for value in (
-                    published_read_model_path, published_read_model_expected,
-                    published_exploration_checkpoint_path)):
-                raise ValueError('ManagedRelease and the prepared reader are separate native selection routes')
-            _NativeAccessCore.__init__(
-                self, native_prefix, release_root=selected_release,
-                source_read_service=source_read_service,
-            )
-            carrier_paths = {name: None for name in self._CARRIER_FIELDS}
-            root = None
-            query_path = None
+                raise ValueError('explicit-provider SourceRoot does not select the indexed-search sidecar')
+            if prepared_selected or published_exploration_checkpoint_path is not None:
+                raise ValueError('native SourceRoot discovery cannot combine a prepared reader or checkpoint')
+        from .native_core_snapshot import NativeCoreSnapshotSelection
+        if prepared_selected:
+            selection = None
         else:
-            if selected_root is None:
-                raise ValueError('native Core requires a selected source root')
-            carrier_paths = source_carrier_paths(selected_root, **selectors)
-            prepared_selected = (published_read_model_path is not None
-                                 or published_read_model_expected is not None)
-            if selected_release is not None and (
-                    prepared_selected or published_exploration_checkpoint_path is not None):
-                raise ValueError('ReferenceRelease guarded source and prepared/checkpoint readers are separate native routes')
-            if prepared_selected and (query_store_path is not None
-                                      or os.environ.get('TOS_QUERY_STORE_PATH')):
-                raise ValueError('select a prepared reader or a QueryStore')
-            if prepared_selected and self._has_nondefault_carrier_override(selected_root, selectors):
-                raise ValueError('prepared reader does not accept independent Reference carrier overrides')
-            if native_admission_provider is not None:
-                if native_prefix is None:
-                    raise ValueError('native discovery admission requires an explicit native_prefix')
-                if (search_read_model_path is not None or search_read_model_max_bytes is not None
-                        or search_read_model_max_postings != SEARCH_READ_MODEL_MAX_POSTINGS
-                        or search_read_model_max_verify_chars != SEARCH_READ_MODEL_MAX_VERIFY_CHARS
-                        or os.environ.get('TOS_SEARCH_READ_MODEL_PATH')
-                        or os.environ.get('TOS_SEARCH_READ_MODEL_MAX_BYTES')):
-                    raise ValueError('explicit-provider SourceRoot does not select the indexed-search sidecar')
-                if prepared_selected or published_exploration_checkpoint_path is not None:
-                    raise ValueError('native SourceRoot discovery cannot combine a prepared reader or checkpoint')
-            from .native_core_snapshot import NativeCoreSnapshotSelection
-            if prepared_selected:
-                selection = None
-            else:
-                selection = NativeCoreSnapshotSelection.discover(
-                    selected_root, query_store_path=query_store_path, **selectors)
-            _NativeAccessCore.__init__(
-                self, native_prefix, tos_root=selected_root,
-                published_read_model_path=published_read_model_path,
-                published_read_model_expected=published_read_model_expected,
-                search_read_model_path=search_read_model_path,
-                search_read_model_max_bytes=search_read_model_max_bytes,
-                search_read_model_max_postings=search_read_model_max_postings,
-                search_read_model_max_verify_chars=search_read_model_max_verify_chars,
-                published_exploration_checkpoint_path=published_exploration_checkpoint_path,
-                source_read_service=source_read_service,
-                reading_analysis_root=reading_analysis_root,
-                reading_max_file_bytes=reading_max_file_bytes,
-                reading_max_total_file_bytes=reading_max_total_file_bytes,
-                concept_max_file_bytes=concept_max_file_bytes,
-                concept_max_total_file_bytes=concept_max_total_file_bytes,
-                core_snapshot_selection=selection,
-                core_snapshot_admission_provider=native_admission_provider,
-                core_snapshot_native_owned=(selection is not None and native_admission_provider is None),
-                core_snapshot_snapshot_root=snapshot_root,
-                core_snapshot_release_root=selected_release,
-            )
-            root = self.tos_root
-            query_path = None if selection is None else selection.query_store_path
+            selection = NativeCoreSnapshotSelection.discover(
+                selected_root, query_store_path=query_store_path, **selectors)
+        _NativeAccessCore.__init__(
+            self, native_prefix, tos_root=selected_root,
+            published_read_model_path=published_read_model_path,
+            published_read_model_expected=published_read_model_expected,
+            search_read_model_path=search_read_model_path,
+            search_read_model_max_bytes=search_read_model_max_bytes,
+            search_read_model_max_postings=search_read_model_max_postings,
+            search_read_model_max_verify_chars=search_read_model_max_verify_chars,
+            published_exploration_checkpoint_path=published_exploration_checkpoint_path,
+            source_read_service=source_read_service,
+            reading_analysis_root=reading_analysis_root,
+            reading_max_file_bytes=reading_max_file_bytes,
+            reading_max_total_file_bytes=reading_max_total_file_bytes,
+            concept_max_file_bytes=concept_max_file_bytes,
+            concept_max_total_file_bytes=concept_max_total_file_bytes,
+            core_snapshot_selection=selection,
+            core_snapshot_admission_provider=native_admission_provider,
+            core_snapshot_native_owned=(selection is not None and native_admission_provider is None),
+            core_snapshot_snapshot_root=snapshot_root,
+            core_snapshot_release_root=selected_release,
+            core_snapshot_expected_reference_guard=reference_guard,
+        )
+        root = self.tos_root
+        query_path = None if selection is None else selection.query_store_path
 
         for name, path in carrier_paths.items():
             setattr(self, name, path)

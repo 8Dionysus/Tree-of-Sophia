@@ -324,22 +324,22 @@ impl ReferenceReleaseGuard {
         snapshot_root_path: &Path,
         manifest_raw: &[u8],
     ) -> Result<Self> {
-        let snapshot = parse_json(manifest_raw, JsonMode::PublishedStrict, METADATA_LIMITS)
-            .map_err(|_| unavailable("standalone snapshot manifest invalid for release"))?
-            .into_root();
-        if text(&snapshot, "schema_version")? != "tos_access_data_snapshot_v1" {
-            return Err(unavailable(
-                "standalone snapshot schema does not match Reference release",
-            ));
-        }
-        let data_revision = text(&snapshot, "data_revision")?;
-        let corpus_revision = text(&snapshot, "corpus_revision")?;
-        let compiler = snapshot
-            .object_get("compiler")
-            .ok_or_else(|| unavailable("standalone snapshot compiler absent"))?;
-        let query_schema = text(compiler, "schema")?;
-        let compiler_version = text(compiler, "compiler_version")?;
+        Self::open_selected(release_root_path, Some((snapshot_root_path, manifest_raw)))
+            .map(|(_, guard)| guard)
+    }
 
+    /// Resolve the maintained Reference ReleaseStore while retaining its shared
+    /// lock and exact pointer/pair/binding bytes through the caller's operation.
+    pub(crate) fn resolve_current_snapshot_root(
+        release_root_path: &Path,
+    ) -> Result<(PathBuf, Self)> {
+        Self::open_selected(release_root_path, None)
+    }
+
+    fn open_selected(
+        release_root_path: &Path,
+        selected: Option<(&Path, &[u8])>,
+    ) -> Result<(PathBuf, Self)> {
         let raw_root = release_root_path;
         if raw_root.as_os_str().len() > 8193
             || raw_root
@@ -424,13 +424,38 @@ impl ReferenceReleaseGuard {
         let archive = Path::new(archive_text);
         if !safe_reference_absolute_path(bound_data_text, &bound_data)
             || bound_data.as_os_str().len() > 8193
-            || bound_data != snapshot_root_path
+            || selected.is_some_and(|(path, _)| bound_data != path)
             || !safe_reference_absolute_path(archive_text, archive)
         {
             return Err(unavailable(
                 "Reference release data binding differs from selected snapshot",
             ));
         }
+        let resolved_manifest;
+        let manifest_raw = if let Some((_, raw)) = selected {
+            raw
+        } else {
+            let directory = tos_fd_open::open_absolute_directory(&bound_data)
+                .map_err(|_| unavailable("Reference release snapshot root unavailable"))?;
+            resolved_manifest = canonical_read(&directory, "manifest.json")?.1;
+            &resolved_manifest
+        };
+        let snapshot = parse_json(manifest_raw, JsonMode::PublishedStrict, METADATA_LIMITS)
+            .map_err(|_| unavailable("standalone snapshot manifest invalid for release"))?
+            .into_root();
+        if text(&snapshot, "schema_version")? != "tos_access_data_snapshot_v1" {
+            return Err(unavailable(
+                "standalone snapshot schema does not match Reference release",
+            ));
+        }
+        let data_revision = text(&snapshot, "data_revision")?;
+        let corpus_revision = text(&snapshot, "corpus_revision")?;
+        let compiler = snapshot
+            .object_get("compiler")
+            .ok_or_else(|| unavailable("standalone snapshot compiler absent"))?;
+        let query_schema = text(compiler, "schema")?;
+        let compiler_version = text(compiler, "compiler_version")?;
+
         if pair_data_manifest != Digest256::of_bytes(manifest_raw)
             || text(&pair, "data_revision")? != data_revision
             || text(&pair, "corpus_revision")? != corpus_revision
@@ -470,7 +495,7 @@ impl ReferenceReleaseGuard {
             receipt,
         };
         guard.check()?;
-        Ok(guard)
+        Ok((bound_data, guard))
     }
 
     pub(crate) fn receipt(&self) -> &str {
@@ -532,6 +557,48 @@ impl ReferenceReleaseGuard {
         }
         Ok(())
     }
+}
+
+/// Bounded metadata resolver for the maintained Reference ReleaseStore ABI.
+/// It exposes selectors and a selection receipt, never projection/source bytes.
+pub fn run_reference_root_if_requested(
+    args: &[String],
+    output: &mut dyn std::io::Write,
+    errors: &mut dyn std::io::Write,
+) -> Option<i32> {
+    if args.first().map(String::as_str) != Some("reference-release-root") {
+        return None;
+    }
+    let result = (|| -> std::result::Result<(), String> {
+        if args.len() != 3 || args[1] != "--release-root" || args[2].len() > 8193 {
+            return Err("Reference release resolver requires --release-root ABS".into());
+        }
+        let release_root = Path::new(&args[2]);
+        if !safe_reference_absolute_path(&args[2], release_root) {
+            return Err("Reference release resolver requires exact absolute root".into());
+        }
+        let (snapshot_root, guard) =
+            ReferenceReleaseGuard::resolve_current_snapshot_root(release_root)
+                .map_err(|error| error.to_string())?;
+        guard.check().map_err(|error| error.to_string())?;
+        let packet = serde_json::json!({
+            "schema_version": "tos_reference_release_root_v1",
+            "root": snapshot_root.join("data"),
+            "snapshot_root": snapshot_root,
+            "reference_release_guard": guard.receipt(),
+        });
+        serde_json::to_writer(&mut *output, &packet).map_err(|error| error.to_string())?;
+        output.write_all(b"\n").map_err(|error| error.to_string())?;
+        guard.check().map_err(|error| error.to_string())?;
+        Ok(())
+    })();
+    Some(match result {
+        Ok(()) => 0,
+        Err(error) => {
+            let _ = writeln!(errors, "Reference release resolver refused: {error}");
+            125
+        }
+    })
 }
 
 impl ManagedRelease {

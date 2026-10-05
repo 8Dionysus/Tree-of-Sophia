@@ -469,7 +469,7 @@ pub(crate) fn document(
     document_with_state(row, kind, payload, limits, None)
 }
 
-fn document_with_state<'state, 'budget>(
+pub(crate) fn document_with_state<'state, 'budget>(
     row: &SourceRow,
     kind: &str,
     payload: &[u8],

@@ -189,6 +189,8 @@ struct Request {
     #[serde(skip)]
     expected_snapshot_guard: Option<String>,
     #[serde(skip)]
+    expected_reference_release_guard: Option<String>,
+    #[serde(skip)]
     snapshot_guard: Option<ordinary_snapshot_guard::StandaloneSnapshotGuard>,
     #[serde(skip)]
     snapshot_guard_work: std::cell::Cell<u64>,
@@ -481,6 +483,7 @@ fn selected_store_result(
 
 struct Selection {
     root: PathBuf,
+    snapshot_root: Option<PathBuf>,
     operation: String,
     state_fd: Option<i32>,
     reply_fd: Option<i32>,
@@ -496,6 +499,7 @@ fn selection(args: &[String]) -> Result<Option<Selection>> {
         return Ok(None);
     }
     let mut root = None;
+    let mut snapshot_root = None;
     let mut operation = None;
     let mut state_fd = None;
     let mut reply_fd = None;
@@ -531,6 +535,9 @@ fn selection(args: &[String]) -> Result<Option<Selection>> {
                 );
             }
             "--root" if root.is_none() => root = Some(PathBuf::from(value)),
+            "--snapshot-root" if snapshot_root.is_none() => {
+                snapshot_root = Some(PathBuf::from(value))
+            }
             "--operation" if operation.is_none() => operation = Some(value.clone()),
             "--snapshot-state-fd" if state_fd.is_none() => {
                 state_fd = Some(value.parse::<i32>().map_err(|_| "Core state FD")?)
@@ -581,8 +588,14 @@ fn selection(args: &[String]) -> Result<Option<Selection>> {
     {
         return Err("Core ordinary startup cannot select session mode");
     }
+    if snapshot_root.as_ref().is_some_and(|path| {
+        !path.is_absolute() || path.as_os_str().len() > 8193 || root != path.join("data")
+    }) {
+        return Err("Core snapshot CLI root/member selection mismatch");
+    }
     Ok(Some(Selection {
         root,
+        snapshot_root,
         operation: operation.ok_or("Core operation absent")?,
         state_fd,
         reply_fd,
@@ -2147,6 +2160,14 @@ pub fn run_if_requested(args: &Vec<String>, input: &mut dyn Read) -> Option<i32>
                     let argv_state = argv_state
                         .checked_add(std::mem::size_of::<Selection>())
                         .and_then(|n| n.checked_add(selection.root.capacity()))
+                        .and_then(|n| {
+                            n.checked_add(
+                                selection
+                                    .snapshot_root
+                                    .as_ref()
+                                    .map_or(0, |path| path.capacity()),
+                            )
+                        })
                         .and_then(|n| n.checked_add(selection.operation.capacity()))
                         .ok_or("Core session selected owner state overflow")?;
                     let (mut request, limits, whole) = if ordinary {
@@ -2183,6 +2204,7 @@ pub fn run_if_requested(args: &Vec<String>, input: &mut dyn Read) -> Option<i32>
                             )?
                         }
                     };
+                    request.bind_cli_snapshot_root(selection.snapshot_root.as_deref())?;
                     let deadline = deadline.min(request.admission.deadline()?);
                     let control = crate::private_stage_run::verify_issued_consumer_control(
                         selection
@@ -2250,6 +2272,7 @@ pub fn run_if_requested(args: &Vec<String>, input: &mut dyn Read) -> Option<i32>
                     request.caller_retained_state_bytes = argv_state;
                     request
                 };
+                request.bind_cli_snapshot_root(selection.snapshot_root.as_deref())?;
                 run(selection, request, deadline, &signal.token)
             })() {
                 Ok(()) => 0,
@@ -2386,10 +2409,24 @@ enum SelectedRootCall<'a> {
 }
 
 impl Request {
+    fn bind_cli_snapshot_root(&mut self, selected: Option<&Path>) -> Result<()> {
+        if let Some(path) = selected {
+            if self
+                .snapshot_root
+                .as_deref()
+                .is_some_and(|root| root != path)
+            {
+                return Err("Core snapshot CLI/startup selection mismatch");
+            }
+            self.snapshot_root = Some(path.to_owned());
+        }
+        Ok(())
+    }
+
     fn validate_snapshot_selection(&self, logical_root: &Path) -> Result<bool> {
         match (&self.snapshot_root, &self.expected_snapshot_guard) {
-            (None, None) => Ok(false),
-            (None, Some(_)) => Err("Core snapshot guard receipt has no manifest root"),
+            (None, None) if self.expected_reference_release_guard.is_none() => Ok(false),
+            (None, _) => Err("Core snapshot guard receipt has no manifest root"),
             (Some(snapshot_root), expected) => {
                 let data_root = snapshot_root.join("data");
                 if !snapshot_root.is_absolute()
@@ -2399,7 +2436,13 @@ impl Request {
                 {
                     return Err("Core snapshot logical root/member selection mismatch");
                 }
-                if expected.is_some_and(|receipt| {
+                if [
+                    expected.as_deref(),
+                    self.expected_reference_release_guard.as_deref(),
+                ]
+                .into_iter()
+                .flatten()
+                .any(|receipt| {
                     receipt.len() != 64
                         || !receipt
                             .bytes()
@@ -2474,6 +2517,7 @@ impl Request {
             logical_root,
             &paths,
             self.expected_snapshot_guard.as_deref(),
+            self.expected_reference_release_guard.as_deref(),
             work_limit,
             deadline,
             &mut tracked_work,
@@ -2599,6 +2643,9 @@ impl Request {
                     .map_err(|_| "Core request state overflow")
             })?,
             self.expected_snapshot_guard
+                .as_ref()
+                .map_or(Ok(0), |value| Ok(value.capacity()))?,
+            self.expected_reference_release_guard
                 .as_ref()
                 .map_or(Ok(0), |value| Ok(value.capacity()))?,
             self.snapshot_guard.as_ref().map_or(Ok(0), |guard| {

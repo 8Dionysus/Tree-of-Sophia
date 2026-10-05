@@ -5,12 +5,12 @@
 use crate::{
     Error, Result,
     d1::{D1Cell, D1RowTransition, D1Table},
-    d1_public_capture::{MAX_ROW_BYTES, PublicCapture, compact, json},
+    d1_public_capture::{CreationState, MAX_ROW_BYTES, PublicCapture, compact, json},
     d1_public_lens::{LensCounts, emit_lens_auxiliary},
     d1_public_rows::{encoded, lower_search, portable, preflight_large_fields},
     d1_public_sql::{MAX_ROW_VALUE_BYTES, SqlSink, bounded_decimal, chunks, quote, quote_len},
     knowledge_posting_codec::{MAX_POSTING_DELTA_BYTES, decode_posting_block},
-    knowledge_search::{SearchBuildLimits, SourceRow, document},
+    knowledge_search::{SearchBuildLimits, SourceRow, document, document_with_state},
     knowledge_stage::{KnowledgeStage, WritePhase},
 };
 use rusqlite::{Statement, params};
@@ -41,26 +41,43 @@ pub(crate) fn portabilize_public_stage(
     let root = root
         .to_str()
         .ok_or(Error::Invalid("public D1 root UTF-8"))?;
+    let creation = stage.owned_creation_state();
     for table in ["knowledge_nodes", "knowledge_relations"] {
         let mut after = -1i64;
         loop {
-            let page: Vec<(i64, String, Vec<u8>)> = stage.with_connection(
+            let (page, _page_hold) = stage.with_connection(
                 WritePhase::Normalized,
                 |db| {
                     let mut statement = db.prepare(&format!(
                         "SELECT source_order,id,payload FROM {table} WHERE source_order>?1 ORDER BY source_order LIMIT 8"
                     ))?;
-                    let page = statement
-                        .query_map([after], |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)))?
-                        .collect::<std::result::Result<_, _>>()
-                        .map_err(Error::from)?;
-                    Ok(page)
+                    let mut rows = statement.query([after])?;
+                    let mut bytes = 8 * std::mem::size_of::<(i64, String, Vec<u8>)>();
+                    while let Some(row) = rows.next()? {
+                        let id = row.get_ref(1)?.as_str().map_err(|_| Error::Invalid("public D1 path row id"))?;
+                        let raw = row.get_ref(2)?.as_blob().map_err(|_| Error::Invalid("public D1 path row payload"))?;
+                        if raw.len() > MAX_ROW_BYTES { return Err(Error::Budget("public D1 normalized row bytes")); }
+                        bytes = bytes.checked_add(id.len()).and_then(|n| n.checked_add(raw.len()))
+                            .ok_or(Error::Budget("public D1 path page state"))?;
+                    }
+                    drop(rows);
+                    let hold = creation.map(|owner| owner.hold(bytes)).transpose()?;
+                    let mut page = Vec::with_capacity(8);
+                    let mut rows = statement.query([after])?;
+                    while let Some(row) = rows.next()? {
+                        if page.len() >= 8 { return Err(Error::Invalid("public D1 path page changed")); }
+                        page.push((row.get::<_,i64>(0)?, row.get::<_,String>(1)?, row.get::<_,Vec<u8>>(2)?));
+                    }
+                    Ok((page, hold))
                 },
             )?;
             if page.is_empty() {
                 break;
             }
-            let mut changed = Vec::new();
+            let _changed_hold = creation.map(|owner| owner.hold(8 *
+                (std::mem::size_of::<(String, Vec<u8>)>() + std::mem::size_of::<crate::d1_public_capture::CreationStateHold<'_, '_>>()))).transpose()?;
+            let mut changed = Vec::with_capacity(8);
+            let mut changed_holds = Vec::with_capacity(8);
             let mut page_bytes = 0u64;
             for (position, id, raw) in page {
                 if position <= after || raw.len() > MAX_ROW_BYTES {
@@ -68,16 +85,28 @@ pub(crate) fn portabilize_public_stage(
                 }
                 after = position;
                 capture.charge_work(raw.len() as u64)?;
-                let mut value = json(&raw, MAX_ROW_BYTES)?;
+                let limits = tos_foundation::JsonLimits::new(MAX_ROW_BYTES, 96, 1_000_000, 4096)
+                    .map_err(|_| Error::Budget("public D1 path JSON limits"))?;
+                let (mut value, _value_hold) = match creation {
+                    Some(owner) => { let (value, hold) = owner.serde_scoped_with_limits(&raw, limits)?; (value, Some(hold)) }
+                    None => (json(&raw, MAX_ROW_BYTES)?, None),
+                };
                 portable(&mut value, root);
-                let bytes = compact(&value, MAX_ROW_BYTES)?;
-                capture.charge_work(bytes.len() as u64)?;
-                if bytes != raw {
-                    page_bytes = page_bytes
-                        .checked_add(bytes.len() as u64)
-                        .filter(|total| *total <= 64 * 1024 * 1024)
-                        .ok_or(Error::Budget("public D1 normalized page bytes"))?;
-                    changed.push((id, bytes));
+                let mut keep = |bytes: &[u8]| -> Result<()> {
+                    capture.charge_work(bytes.len() as u64)?;
+                    if bytes != raw {
+                        page_bytes = page_bytes.checked_add(bytes.len() as u64)
+                            .filter(|total| *total <= 64 * 1024 * 1024)
+                            .ok_or(Error::Budget("public D1 normalized page bytes"))?;
+                        let hold = creation.map(|owner| owner.hold(bytes.len() + id.len())).transpose()?;
+                        changed_holds.push(hold);
+                        changed.push((id.clone(), bytes.to_vec()));
+                    }
+                    Ok(())
+                };
+                match creation {
+                    Some(owner) => owner.with_json_encoded(&value, MAX_ROW_BYTES, &mut keep)?,
+                    None => keep(&compact(&value, MAX_ROW_BYTES)?)?,
                 }
             }
             if !changed.is_empty() {
@@ -480,6 +509,7 @@ fn emit_normalized_row(
     row: SourceRow,
     root: &str,
     limits: SearchBuildLimits,
+    creation: Option<&CreationState<'_>>,
 ) -> Result<()> {
     let raw = row
         .payload
@@ -491,17 +521,31 @@ fn emit_normalized_row(
     {
         return Err(Error::Invalid("public D1 knowledge payload digest"));
     }
-    let mut item = crate::d1_public_capture::json(raw, MAX_ROW_BYTES)?;
+    let json_limits = tos_foundation::JsonLimits::new(MAX_ROW_BYTES, 96, 1_000_000, 4096)
+        .map_err(|_| Error::Budget("public D1 knowledge JSON limits"))?;
+    let (mut item, _item_hold) = match creation {
+        Some(owner) => { let (value, hold) = owner.serde_scoped_with_limits(raw, json_limits)?; (value, Some(hold)) }
+        None => (crate::d1_public_capture::json(raw, MAX_ROW_BYTES)?, None),
+    };
     portable(&mut item, root);
     if text(&item, "id") != row.id || text(&item, "source_graph") != row.source_graph {
         return Err(Error::Invalid("public D1 knowledge row identity"));
     }
-    let item_json = encoded(capture, &item)?;
+    let (item_json, _item_json_hold) = match creation {
+        Some(owner) => owner.with_json_encoded(&item, MAX_ROW_BYTES, |raw| {
+            let hold = owner.hold(raw.len())?;
+            let bytes = raw.to_vec();
+            let text = String::from_utf8(bytes).map_err(|_| Error::Invalid("public D1 encoded UTF8"))?;
+            Ok((text, Some(hold)))
+        })?,
+        None => (encoded(capture, &item)?, None),
+    };
     if item_json.as_bytes() != raw {
         return Err(Error::Invalid(
             "public D1 search source was not path adapted",
         ));
     }
+    let _digest_hold = creation.map(|owner| owner.hold(32)).transpose()?;
     let portable_row = SourceRow {
         payload_len: item_json.len() as i64,
         payload_sha256: Digest256::of_bytes(item_json.as_bytes())
@@ -511,27 +555,22 @@ fn emit_normalized_row(
         ..row
     };
     let is_node = kind == "node";
-    let doc = document(
+    let doc = document_with_state(
         &portable_row,
         if is_node { "nodes" } else { "relations" },
         item_json.as_bytes(),
         limits,
+        creation,
     )?;
-    let stored: (String, i64, Vec<u8>, String, String, String, String) = documents.query_row(
-        params![
-            if kind == "node" { "nodes" } else { "relations" },
-            portable_row.position
-        ],
+    let (stored, _stored_hold) = documents.query_row(
+        params![if kind == "node" { "nodes" } else { "relations" }, portable_row.position],
         |r| {
-            Ok((
-                r.get(0)?,
-                r.get(1)?,
-                r.get(2)?,
-                r.get(3)?,
-                r.get(4)?,
-                r.get(5)?,
-                r.get(6)?,
-            ))
+            let hold = sql_row_hold(creation, r,
+                6 * std::mem::size_of::<String>() + std::mem::size_of::<Vec<u8>>())
+                .map_err(|error| rusqlite::Error::ToSqlConversionFailure(Box::new(error)))?;
+            let stored: (String, i64, Vec<u8>, String, String, String, String) = (
+                r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?, r.get(4)?, r.get(5)?, r.get(6)?);
+            Ok((stored, hold))
         },
     )?;
     if stored.0 != portable_row.id
@@ -709,6 +748,7 @@ pub(crate) fn emit_knowledge(
     let root = root
         .to_str()
         .ok_or(Error::Invalid("public D1 root UTF-8"))?;
+    let creation = stage.owned_creation_state();
     for (kind, table) in [
         ("node", "knowledge_nodes"),
         ("relation", "knowledge_relations"),
@@ -724,6 +764,7 @@ pub(crate) fn emit_knowledge(
             let mut rows = statement.query([limits.max_payload_bytes as i64])?;
             let mut expected = 0i64;
             while let Some(row) = rows.next()? {
+                let _row_hold = sql_row_hold(creation, row, std::mem::size_of::<SourceRow>())?;
                 let carrier = SourceRow {position:row.get(0)?,id:row.get(1)?,source_graph:row.get(2)?,
                     native_id:row.get(3)?,term_id:row.get(4)?,payload_len:row.get(5)?,
                     payload_sha256:row.get(6)?,payload:row.get(7)?};
@@ -731,7 +772,7 @@ pub(crate) fn emit_knowledge(
                 let charge = carrier.payload.as_ref().map_or(0,Vec::len) as u64;
                 capture.charge_work(charge)?;
                 emit_normalized_row(capture,sink,&mut documents,lens_counts,max_lens_bytes,
-                    max_lens_memberships,kind,carrier,root,limits)?;
+                    max_lens_memberships,kind,carrier,root,limits,creation)?;
                 expected = expected.checked_add(1).ok_or(Error::Budget("public D1 knowledge rows"))?;
             }
             let target = if table == "knowledge_nodes" {&mut counts.nodes} else {&mut counts.relations};
@@ -748,10 +789,12 @@ fn emit_search(
     sink: &mut SqlSink,
     counts: &mut KnowledgeSqlCounts,
 ) -> Result<()> {
+    let creation = stage.owned_creation_state();
     stage.with_connection(WritePhase::Search, |db| {
         let mut documents = db.prepare("SELECT kind,position,id,source_graph,kind_id,predicate_id,id_lower,native_id_lower,identity_values,visible_values,document_chars,document_digest FROM search_documents ORDER BY kind,position")?;
         let mut rows = documents.query([])?;
         while let Some(row) = rows.next()? {
+            let _row_hold = sql_row_hold(creation, row, std::mem::size_of::<Vec<String>>() + 10 * std::mem::size_of::<String>())?;
             let kind:String=row.get(0)?; let position:i64=row.get(1)?;
             let fields:Vec<String> = (2..10).map(|column|row.get(column)).collect::<std::result::Result<_,_>>()?;
             let chars:i64=row.get(10)?; let digest:Vec<u8>=row.get(11)?;
@@ -768,11 +811,13 @@ fn emit_search(
         let mut posting = db.prepare("SELECT kind,n,gram,first_position,last_position,postings,CASE WHEN length(deltas)<=?1 THEN deltas ELSE NULL END FROM search_posting_blocks ORDER BY kind,n,gram,last_position")?;
         let mut rows = posting.query([MAX_POSTING_DELTA_BYTES as i64])?;
         let mut previous:Option<(String,Vec<u8>,u64)>=None;
+        let mut previous_hold = None;
         let mut posting_batch = sink.insert_batch(
             "knowledge_search_grams_next",
             &["kind", "n", "gram", "position"],
         )?;
         while let Some(row)=rows.next()? {
+            let _row_hold = sql_row_hold(creation, row, std::mem::size_of::<String>() + 2 * std::mem::size_of::<Vec<u8>>() + 256 * std::mem::size_of::<u64>())?;
             let kind:String=row.get(0)?; let n:i64=row.get(1)?; let gram:Vec<u8>=row.get(2)?;
             let first:i64=row.get(3)?; let last:i64=row.get(4)?; let count:i64=row.get(5)?;
             let deltas:Option<Vec<u8>>=row.get(6)?;
@@ -796,9 +841,13 @@ fn emit_search(
                 posting_batch.push(&values)?;
                 counts.postings=counts.postings.checked_add(1).ok_or(Error::Budget("public D1 postings"))?;
             }
+            let next_hold = creation.map(|owner| owner.hold(kind.len() + gram.len()
+                + std::mem::size_of::<(String,Vec<u8>,u64)>())).transpose()?;
             previous=Some((kind,gram,last as u64));
+            previous_hold = next_hold;
         }
         drop(rows); drop(posting);
+        drop(previous); drop(previous_hold);
         posting_batch.finish()?;
         let mut stats=db.prepare("SELECT kind,n,gram,postings FROM search_gram_stats ORDER BY kind,n,gram")?;
         let mut rows=stats.query([])?;
@@ -808,6 +857,7 @@ fn emit_search(
             &["kind", "n", "gram", "postings"],
         )?;
         while let Some(row)=rows.next()? {
+            let _row_hold = sql_row_hold(creation, row, std::mem::size_of::<String>() + std::mem::size_of::<Vec<u8>>())?;
             let kind:String=row.get(0)?; let n:i64=row.get(1)?; let gram:Vec<u8>=row.get(2)?; let postings:i64=row.get(3)?;
             if n!=3 || postings<1 {return Err(Error::Invalid("public D1 gram stats"));}
             let gram=std::str::from_utf8(&gram).map_err(|_|Error::Invalid("public D1 gram UTF-8"))?;
@@ -825,6 +875,24 @@ fn emit_search(
         if sum!=counts.postings {return Err(Error::Invalid("public D1 posting/stat coverage"));}
         Ok(())
     })
+}
+
+fn sql_row_hold<'state, 'budget>(
+    creation: Option<&'state CreationState<'budget>>,
+    row: &rusqlite::Row<'_>, slots: usize,
+) -> Result<Option<crate::d1_public_capture::CreationStateHold<'state, 'budget>>> {
+    let Some(owner) = creation else { return Ok(None); };
+    owner.active()?;
+    let mut bytes = slots;
+    for column in 0..row.as_ref().column_count() {
+        let len = match row.get_ref(column)? {
+            rusqlite::types::ValueRef::Text(raw) | rusqlite::types::ValueRef::Blob(raw) => raw.len(),
+            _ => 0,
+        };
+        bytes = bytes.checked_add(len).ok_or(Error::Budget("public D1 SQL row state"))?;
+    }
+    owner.charge_work(bytes)?;
+    Ok(Some(owner.hold(bytes)?))
 }
 
 #[cfg(test)]

@@ -515,7 +515,7 @@ where A: crate::InspectCurrentAuthority<'hold> + ?Sized {
             + std::mem::size_of::<Result<(), SearchV2Error>>() * 3))
         .ok_or_else(|| error(SearchV2ErrorCode::BudgetExceeded, "controlled header frame state"))?;
     model.with_owned_query_workspace(forecast.checked_add(frame)
-        .ok_or(CompilerError::Budget("controlled header policy workspace"))?, |model| {
+        .ok_or(CompilerError::Budget("controlled header policy workspace")).map_err(compiler_query_error)?, |model| {
         let policy = authority.policy_binding();
         let scope = authority.disclosure_scope();
         let actual = policy.retained_state_bytes().map_err(|_| CompilerError::Budget("controlled header policy state"))?

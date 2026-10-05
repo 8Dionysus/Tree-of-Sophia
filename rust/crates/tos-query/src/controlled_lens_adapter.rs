@@ -127,9 +127,7 @@ pub fn execute_controlled_lens_request_response<'hold, A: InspectCurrentAuthorit
                         caps.max_read_vm_steps.checked_sub(header_scan.vm_steps).ok_or_else(budget)?,
                         caps.json, |raw, value| {
                         authorizing = (|| {
-                            authority.authorize_catalog_current(bound,
-                                bound.selection().catalog_packet_sha256,
-                                bound.selection().catalog_index_root_sha256)?;
+                            authority.authorize_catalog_current(bound.selection().catalog_packet_sha256)?;
                             heap.borrow().charge_work(raw.len()).map_err(compiler_query_error)?;
                             bound.validate_catalog_identity(value, caps.json)?;
                             let bytes = value.retained_storage_bytes().map_err(|_| budget())?;

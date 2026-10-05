@@ -50,6 +50,8 @@ pub(super) struct OrdinaryStartup {
     snapshot_root: Option<std::path::PathBuf>,
     #[serde(default)]
     expected_snapshot_guard: Option<String>,
+    #[serde(default)]
+    expected_reference_release_guard: Option<String>,
     session: super::session_transport::Limits,
     original_whole_deadline_ns: u64,
 }
@@ -64,9 +66,13 @@ pub(super) struct NativeOrdinarySnapshotStartup {
     source_paths: Sources,
     query_store: QueryStoreSelection,
     #[serde(default)]
+    search_read_model: Option<super::SearchReadModelSelection>,
+    #[serde(default)]
     snapshot_root: Option<std::path::PathBuf>,
     #[serde(default)]
     expected_snapshot_guard: Option<String>,
+    #[serde(default)]
+    expected_reference_release_guard: Option<String>,
     original_whole_deadline_ns: u64,
 }
 
@@ -96,7 +102,8 @@ impl NativeOrdinarySnapshotStartup {
             // Explicit or default-existing QueryStore selection bypasses
             // sidecar path/build admission. The native held-path owner repeats
             // selection under the original session fence before execution.
-            let query_store_selected = self.query_store.configured || self.query_store.path.exists();
+            let query_store_selected =
+                self.query_store.configured || self.query_store.path.exists();
             if !query_store_selected {
                 search.validate_cache(&stage)?;
             }
@@ -160,6 +167,7 @@ impl NativeOrdinarySnapshotStartup {
             search_read_model: None,
             snapshot_root: self.snapshot_root,
             expected_snapshot_guard: self.expected_snapshot_guard,
+            expected_reference_release_guard: self.expected_reference_release_guard,
             snapshot_guard: None,
             snapshot_guard_work: std::cell::Cell::new(0),
             snapshot_guard_visits: std::cell::Cell::new(0),
@@ -197,6 +205,7 @@ impl OrdinaryStartup {
         )?;
         let snapshot_root = self.snapshot_root;
         let expected_snapshot_guard = self.expected_snapshot_guard;
+        let expected_reference_release_guard = self.expected_reference_release_guard;
         let startup = Startup {
             schema_version: self.schema_version,
             admission,
@@ -218,6 +227,7 @@ impl OrdinaryStartup {
         request.search_read_model = search_read_model;
         request.snapshot_root = snapshot_root;
         request.expected_snapshot_guard = expected_snapshot_guard;
+        request.expected_reference_release_guard = expected_reference_release_guard;
         Ok((request, limits, deadline))
     }
 }
@@ -469,6 +479,7 @@ impl Startup {
                 search_read_model: None,
                 snapshot_root: None,
                 expected_snapshot_guard: None,
+                expected_reference_release_guard: None,
                 snapshot_guard: None,
                 snapshot_guard_work: std::cell::Cell::new(0),
                 snapshot_guard_visits: std::cell::Cell::new(0),

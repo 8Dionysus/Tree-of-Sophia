@@ -106,22 +106,37 @@ remain retained runtime paths: the public builder/import cutover does not
 replace their owner-selected snapshots or grant selected-D1 admission.
 
 `npm run build:data` invokes installed `tos build-data` (or the explicit
-`TOS_ACCESS_BIN`) and requires a positive
-whole-build `TOS_BUILD_MAX_SECONDS` environment variable. Direct CLI callers
-may override it with `--max-build-seconds N`; the CLI refuses a missing,
-invalid, or overflowing deadline before locking the runtime directory or
-changing completion markers. For example, from this directory, set an
-operation-specific deadline and run `TOS_BUILD_MAX_SECONDS=3600 npm run build:data`.
-The value is a caller decision, not a maintained default or a
-promise that a particular corpus fits. The Rust route always computes the full
-disposable v9 SQL, row baseline, and static outputs. It does not install a
-native-current read model or grant publication authority. Its SQLite page and
-work limits are per component and do not form an aggregate host-disk quota.
-Prepare the native software product through the separate release route before
-running this profile; the maintained build/import entries never invoke Cargo.
-The explicit deadline begins in native `build-data` and
-covers the producer, not Cargo compilation. An invalid CLI deadline refuses
-before output lock, directory creation, or completion-marker changes.
+`TOS_ACCESS_BIN`). The caller supplies positive `TOS_BUILD_MAX_SECONDS`,
+`TOS_BUILD_MAX_STATE_BYTES` (at least 131072), and `TOS_BUILD_MAX_JSON_VISITS`.
+Direct CLI callers may override these with `--max-build-seconds N`,
+`--max-state-bytes N`, and `--max-json-visits N`. Missing, invalid, or
+out-of-range limits refuse before locking the runtime directory or changing
+completion markers. For example, from this directory:
+
+```sh
+TOS_BUILD_MAX_SECONDS=3600 \
+TOS_BUILD_MAX_STATE_BYTES="$caller_state_bytes" \
+TOS_BUILD_MAX_JSON_VISITS="$caller_json_visits" npm run build:data
+```
+
+Set the two caller variables to the finite allowances selected for this
+operation. The values are caller decisions, not maintained defaults or a
+promise that a particular corpus fits. Capture, normalized Stage writers,
+Scope, catalog, Search, and knowledge SQL Stage readers share the original
+state, JSON, work, VM and deadline owners. Half the state allowance establishes
+one process-wide SQLite hard heap limit before the first connection; the
+remaining state admits the held Rust owners. This entry requires a dedicated
+native process. Source/static SQL carriers retain their existing byte caps;
+this profile does not assert universal logical Rust-allocation accounting for
+those carriers or a kernel RAM quota.
+
+The Rust route computes the full disposable v9 SQL, row baseline, and static
+outputs. It does not install a native-current read model or grant publication
+authority. Its SQLite page and work limits are per component and do not form
+an aggregate host-disk quota. Prepare the native software product through the
+separate release route before running this profile; maintained build/import
+entries never invoke Cargo. The deadline begins in native `build-data` and
+covers the producer, not Cargo compilation.
 The generated D1 revision binds the source inputs, actual per-item normalized
 content revisions, capability data, and the explicit read-model schema
 version. API, LensSpec grammar, catalog, documentation, and Worker-only code

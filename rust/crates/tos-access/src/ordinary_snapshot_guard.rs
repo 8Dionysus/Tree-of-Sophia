@@ -479,6 +479,7 @@ impl StandaloneSnapshotGuard {
         logical_root: &Path,
         selected_paths: &[&Path],
         expected_receipt: Option<&str>,
+        expected_reference_release_guard: Option<&str>,
         max_work_bytes: u64,
         deadline: Instant,
         mut charge_work: impl FnMut(u64) -> Result<()>,
@@ -553,6 +554,11 @@ impl StandaloneSnapshotGuard {
             ),
             None => None,
         };
+        if expected_reference_release_guard.is_some_and(|expected| {
+            release.as_ref().map(ReferenceReleaseGuard::receipt) != Some(expected)
+        }) {
+            return Err("Core snapshot Reference release constructor selection changed");
+        }
         charge_visits(visits)?;
         active(deadline, &mut active_check)?;
         if declared.len() > MAX_MEMBERS {

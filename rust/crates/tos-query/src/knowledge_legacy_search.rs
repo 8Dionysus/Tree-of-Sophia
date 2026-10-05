@@ -57,21 +57,18 @@ fn python_integer_text(value: &str) -> Option<i128> {
     let mut magnitude = 0u128;
     let mut saw_digit = false;
     let mut previous_digit = false;
-    let mut feed = |digit: u8| {
+    if let Some(digit) = first_digit {
         saw_digit = true;
         previous_digit = true;
-        magnitude = magnitude
-            .saturating_mul(10)
-            .saturating_add(digit as u128);
-    };
-    if let Some(digit) = first_digit {
-        feed(digit);
+        magnitude = magnitude.saturating_mul(10).saturating_add(digit as u128);
     } else if first != '+' && first != '-' {
         return None;
     }
     for character in chars {
         if let Some(digit) = python_decimal_digit(character) {
-            feed(digit);
+            saw_digit = true;
+            previous_digit = true;
+            magnitude = magnitude.saturating_mul(10).saturating_add(digit as u128);
         } else if character == '_' && previous_digit {
             previous_digit = false;
         } else {
@@ -617,7 +614,7 @@ fn controlled_compiler_error(reason: CompilerError) -> SearchV2Error {
     }
 }
 
-fn controlled_abort<A: InspectCurrentAuthority<'_> + ?Sized>(
+fn controlled_abort<'hold, A: InspectCurrentAuthority<'hold> + ?Sized>(
     authority: &A,
 ) -> Result<(), SearchV2Error> {
     match authority

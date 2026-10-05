@@ -369,7 +369,8 @@ class NativeCoreSnapshotClient:
     def __init__(self, native_prefix: str | Path,
                  selection: NativeCoreSnapshotSelection,
                  admission_provider: Callable[[str], NativeCoreSnapshotAdmission] | None = None,
-                 *, search_read_model=None, snapshot_root=None, release_root=None):
+                 *, search_read_model=None, snapshot_root=None, release_root=None,
+                 expected_reference_release_guard=None):
         self.native_prefix = _absolute_path(native_prefix, 'native_prefix')
         if not isinstance(selection, NativeCoreSnapshotSelection):
             raise TypeError('native Core snapshot requires an explicit carrier selection')
@@ -383,7 +384,13 @@ class NativeCoreSnapshotClient:
             raise ValueError('native guarded selection must retain snapshot root/data')
         if self._release_root is not None and self._snapshot_root is None:
             raise ValueError('ReferenceRelease requires its selected snapshot root')
+        if expected_reference_release_guard is not None and (
+                self._release_root is None or type(expected_reference_release_guard) is not str
+                or len(expected_reference_release_guard) != 64
+                or any(c not in '0123456789abcdef' for c in expected_reference_release_guard)):
+            raise ValueError('native Reference release constructor receipt differs')
         self._expected_snapshot_guard = None
+        self._expected_reference_release_guard = expected_reference_release_guard
         if search_read_model is not None:
             if admission_provider is not None:
                 raise ValueError('native-owned search sidecar selector requires native-owned operation route')
@@ -409,7 +416,8 @@ class NativeCoreSnapshotClient:
                 with owned_native_ordinary_source_session(prefix=self.native_prefix,
                         selection=self.selection, transport=NativeSessionLimits(65536, 16777216, 258, 1, 65536, 16777216),
                         state=call.state, cancelled=call.state._cancelled, maximum_owner_objects=100000,
-                        snapshot_root=self._snapshot_root, release_root=self._release_root) as client:
+                        snapshot_root=self._snapshot_root, release_root=self._release_root,
+                        expected_reference_release_guard=self._expected_reference_release_guard) as client:
                     self._accept_snapshot_guard(client._snapshot_guard)
 
     def _accept_snapshot_guard(self, guard):
@@ -534,6 +542,7 @@ class NativeCoreSnapshotClient:
                     cancelled=call.state._cancelled, maximum_owner_objects=100000,
                     search_read_model=search_read_model, snapshot_root=self._snapshot_root,
                     expected_snapshot_guard=self._expected_snapshot_guard,
+                    expected_reference_release_guard=self._expected_reference_release_guard,
                     release_root=self._release_root) as client:
                 self._accept_snapshot_guard(client._snapshot_guard)
                 tool = arguments['tool'] if operation_id == 'tos_native_call' else operation_id
@@ -575,6 +584,8 @@ class NativeCoreSnapshotClient:
             if self._snapshot_root is not None:
                 request['snapshot_root'] = str(self._snapshot_root)
                 request['expected_snapshot_guard'] = self._expected_snapshot_guard
+            if self._expected_reference_release_guard is not None:
+                request['expected_reference_release_guard'] = self._expected_reference_release_guard
             request['original_whole_deadline_ns'] = int(call.state._deadline * 1000000000) + 5000000000
         new_state = None
         received_state = None

@@ -112,6 +112,34 @@ def _cleanup_binding_on_init_failure(initializer):
     return guarded
 
 
+def _reference_release_selection(native_prefix, release_root):
+    """Resolve only native release metadata; the native guard owns semantics."""
+    from .native_dispatch import selected_native_prefix
+    from .native_io import native_packets
+    prefix = selected_native_prefix(native_prefix)
+    release = _selected_path(release_root, 'release_root')
+    environment = dict(os.environ)
+    environment['TOS_RELEASE_ROOT'] = os.fspath(release)
+    packets = native_packets(
+        ['reference-release-root', '--release-root', os.fspath(release)],
+        prefix=prefix, input_cap=4096, frame_cap=65536, env=environment)
+    try:
+        packet = next(packets, None)
+        if type(packet) is not dict or next(packets, None) is not None:
+            raise ValueError('native release resolver requires one object packet')
+    finally:
+        packets.close()
+    if set(packet) != {'schema_version', 'root', 'snapshot_root', 'reference_release_guard'} or packet['schema_version'] != 'tos_reference_release_root_v1':
+        raise ValueError('native release resolver packet shape differs')
+    root = _selected_path(packet['root'], 'release data root')
+    snapshot = _selected_path(packet['snapshot_root'], 'snapshot root')
+    guard = packet['reference_release_guard']
+    if (root != snapshot / 'data' or type(guard) is not str or len(guard) != 64
+            or any(c not in '0123456789abcdef' for c in guard)):
+        raise ValueError('native release resolver pairing or receipt differs')
+    return prefix, root, snapshot, guard
+
+
 class NativeAccessCore(NativeCore):
     """Imported native facade with independent generic and local source routes.
 
@@ -146,7 +174,8 @@ class NativeAccessCore(NativeCore):
                  core_snapshot_admission_provider: Any | None = None,
                  core_snapshot_native_owned: bool = False,
                  core_snapshot_snapshot_root: str | Path | None = None,
-                 core_snapshot_release_root: str | Path | None = None):
+                 core_snapshot_release_root: str | Path | None = None,
+                 core_snapshot_expected_reference_guard: str | None = None):
         self._lifetime_lock = RLock()
         self._closed = False
         self._ephemeral_state = None
@@ -301,7 +330,8 @@ class NativeAccessCore(NativeCore):
                     prefix, core_snapshot_selection, None,
                     search_read_model=self._search_read_model_options,
                     snapshot_root=core_snapshot_snapshot_root,
-                    release_root=self._core_snapshot_release_root)
+                    release_root=self._core_snapshot_release_root,
+                    expected_reference_release_guard=core_snapshot_expected_reference_guard)
             else:
                 self._core_snapshot_client = NativeCoreSnapshotClient(
                     prefix, core_snapshot_selection, core_snapshot_admission_provider)

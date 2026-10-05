@@ -3706,6 +3706,36 @@ impl PublicCapture {
         selected: &PublicCaptureInputPaths,
         profile: RuntimeCaptureProfile,
         staging: &Path,
+        limits: PublicCaptureLimits,
+        deadline: Instant,
+        cancelled: Arc<std::sync::atomic::AtomicBool>,
+        budget: RuntimeCaptureOwnedBudget<'_>,
+        usage: &mut RuntimeCaptureCreationUsage,
+    ) -> Result<Self> {
+        Self::create_selected_with_owned_budget(root, Some(selected), profile, staging,
+            limits, deadline, cancelled, budget, usage)
+    }
+
+    /// Full public-site capture from the maintained public input route, under
+    /// the original dedicated process heap, state, work and VM owners.
+    pub(crate) fn create_public_with_owned_budget(
+        root: &Path,
+        staging: &Path,
+        limits: PublicCaptureLimits,
+        deadline: Instant,
+        cancelled: Arc<std::sync::atomic::AtomicBool>,
+        budget: RuntimeCaptureOwnedBudget<'_>,
+        usage: &mut RuntimeCaptureCreationUsage,
+    ) -> Result<Self> {
+        Self::create_selected_with_owned_budget(root, None, RuntimeCaptureProfile::Whole,
+            staging, limits, deadline, cancelled, budget, usage)
+    }
+
+    fn create_selected_with_owned_budget(
+        root: &Path,
+        selected: Option<&PublicCaptureInputPaths>,
+        profile: RuntimeCaptureProfile,
+        staging: &Path,
         mut limits: PublicCaptureLimits,
         deadline: Instant,
         cancelled: Arc<std::sync::atomic::AtomicBool>,
@@ -3779,7 +3809,7 @@ impl PublicCapture {
         };
         let result = (|| {
             state.sqlite_heap.verify_current()?;
-            selected.validate()?;
+            if let Some(selected) = selected { selected.validate()?; }
             let role = match profile {
                 RuntimeCaptureProfile::Carrier(role) => Some(role),
                 RuntimeCaptureProfile::Whole => None,
@@ -3791,8 +3821,8 @@ impl PublicCapture {
                 creation_deadline,
                 false,
                 false,
-                true,
-                Some(selected),
+                selected.is_some(),
+                selected,
                 Some(Arc::clone(&cancelled)),
                 role,
                 Some(&state),

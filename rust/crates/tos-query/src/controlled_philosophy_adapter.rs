@@ -50,7 +50,7 @@ pub fn execute_controlled_philosophy_metadata_response_render<'hold,
         .ok_or_else(budget)?;
     let mut result = Ok(());
     model.with_owned_query_workspace(forecast.checked_add(frame)
-        .ok_or(tos_compiler::Error::Budget("philosophy metadata frame"))?, |model| {
+        .ok_or(tos_compiler::Error::Budget("philosophy metadata frame")).map_err(compiler_query_error)?, |model| {
         result = (|| {
             let policy = authority.policy_binding();
             let scope = authority.disclosure_scope();

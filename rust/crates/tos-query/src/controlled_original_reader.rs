@@ -67,7 +67,7 @@ fn read_original_selected<'hold, 'model, 'state, 'budget,
     let vm = caps.max_read_vm_steps.checked_sub(charges.vm).ok_or_else(budget)?;
     let mut output = None;
     let mut failure = None;
-    let consume = |receipt, ordinal, digest, raw: &[u8], value: &JsonValue| {
+    let consume = |receipt: ControlledOriginalReceipt<'_>, ordinal, digest, raw: &[u8], value: &JsonValue| {
             let result = (|| {
                 authority.check_selected()?;
                 match (receipt, collection) {

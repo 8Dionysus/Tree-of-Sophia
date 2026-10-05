@@ -1580,7 +1580,7 @@ impl RelationCursor {
     }
     async fn next(
         &mut self,
-        execution: &mut Execution,
+        execution: &mut Execution<'_>,
         generic: Option<&[KeyedHeader]>,
     ) -> Result<Option<LensHeader>, SearchV2Error> {
         if let Some(headers) = generic {

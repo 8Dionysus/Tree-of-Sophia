@@ -1573,7 +1573,7 @@ fn owned_query_store_json_strings(
     // serde_json escapes each input byte by at most six bytes; this is a
     // pre-allocation ceiling, then we retain the actual String capacity.
     let capacity = values.iter().try_fold(2usize, |sum, value| {
-        sum.checked_add(value.len().checked_mul(6)?)
+        value.len().checked_mul(6).and_then(|bytes| sum.checked_add(bytes))
             .and_then(|n| n.checked_add(3))
             .ok_or_else(|| owned_err("indexed QueryStore filter JSON bound"))
     })?;
@@ -1677,7 +1677,7 @@ impl LegacyStore {
             .ok_or_else(|| owned_err("indexed QueryStore page rows"))?;
         let slots = state_slots::<OwnedQueryStoreRankedRow>(keep)?;
         (budget.remaining_after_retained)(state_add(held, slots)?)?;
-        let mut top = Vec::new();
+        let mut top: Vec<OwnedQueryStoreRankedRow> = Vec::new();
         top.try_reserve_exact(keep).map_err(owned_err)?;
         if top.capacity() != keep {
             return Err(owned_err("indexed QueryStore exact rank vector"));
@@ -1997,14 +1997,16 @@ fn indexed_store_query(
     (budget.remaining_after_retained)(state_add(held, value.len())?)?;
     search_charge(budget, value.len())?;
     let stripped = tos_foundation::python_strip_unicode16_v1(value, 256).map_err(owned_err)?;
-    let stripped_heap = stripped.capacity();
-    (budget.remaining_after_retained)(state_add(held, stripped_heap)?)?;
+    // Strip borrows the request bytes. Admit only the live slice controller;
+    // the lower owner accounts its own allocations and the retained output.
+    let stripped_state = std::mem::size_of_val(&stripped);
+    (budget.remaining_after_retained)(state_add(held, stripped_state)?)?;
     let query = search_lower_counts(
-        &stripped,
+        stripped,
         1024,
         256,
         1024,
-        state_add(held, stripped_heap)?,
+        state_add(held, stripped_state)?,
         budget,
         deadline,
         probe,
@@ -2028,7 +2030,7 @@ fn query_store_filter_digest(
         .chain(kind_ids)
         .chain(predicate_ids)
         .try_fold(512usize, |sum, value| {
-            sum.checked_add(value.len().checked_mul(6)?)
+            value.len().checked_mul(6).and_then(|bytes| sum.checked_add(bytes))
                 .and_then(|n| n.checked_add(3))
                 .ok_or_else(|| owned_err("indexed QueryStore cursor digest bound"))
         })?;
