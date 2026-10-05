@@ -25,6 +25,7 @@ use super::foundation_run::{
     self, EvaluatedFoundationDefault, FinalizedFoundationDefaultInputs, FoundationBiblioEvidence,
     FoundationDefaultReadError, FoundationFinalInputError,
 };
+use crate::source_admission_candidate_schema::binding_retained_state_upper_bound_bytes;
 use crate::source_command::SourceCommandError;
 use crate::source_creation_store::DisposableCatalogTreeLimits;
 use std::cell::RefCell;
@@ -1842,6 +1843,7 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
         .ok_or_else(|| incomplete("candidate dependent callback held-state overflow"))?;
     let callback_header_state = CANDIDATE_RECORDS_REPORT_RETAINED_STATE_UPPER_BOUND_BYTES
         .checked_add(std::mem::size_of::<std::sync::Arc<()>>())
+        .and_then(|state| state.checked_add(binding_retained_state_upper_bound_bytes()))
         .ok_or_else(|| incomplete("candidate callback report-header state overflow"))?;
     let callback_workspace_state = callback_state_bytes
         .checked_sub(callback_held)

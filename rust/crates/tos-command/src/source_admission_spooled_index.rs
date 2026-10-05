@@ -24,7 +24,7 @@ use tos_source_store::{
     SourceMembershipV1,
 };
 use tos_validation::{
-    source_cut::CutPreparedSchemaExecutionBinding,
+    item_rules::ItemRefusal, source_cut::CutPreparedSchemaExecutionBinding,
     source_foundation_records::SourceFoundationRecordsStreamedReport,
 };
 
@@ -33,6 +33,19 @@ mod records_store;
 
 fn invalid(message: &'static str) -> io::Error {
     io::Error::new(io::ErrorKind::InvalidData, message)
+}
+
+fn receiver_refusal(error: ItemRefusal) -> io::Error {
+    // Keep only the bounded primary owner class; source paths and parser text
+    // remain private while the real refusal stage survives the IO boundary.
+    let reason = match error {
+        ItemRefusal::Budget => "candidate Records/Item receiver budget refused",
+        ItemRefusal::BudgetCheck { .. } => "candidate Records/Item receiver budget check refused",
+        ItemRefusal::Deadline => "candidate Records/Item receiver deadline refused",
+        ItemRefusal::Source(_) => "candidate Records/Item receiver source refused",
+        ItemRefusal::Unsupported(_) => "candidate Records/Item receiver unsupported",
+    };
+    invalid(reason)
 }
 
 fn sql(error: rusqlite::Error) -> io::Error {
@@ -668,12 +681,19 @@ impl<'candidate> IndexSink<'candidate> {
                 "candidate dependent callback state omits owned result",
             ));
         }
-        let retained = retained_state_bytes
+        let report_header_state = CANDIDATE_RECORDS_REPORT_RETAINED_STATE_UPPER_BOUND_BYTES
+            .checked_add(std::mem::size_of::<Arc<()>>())
+            .ok_or_else(|| invalid("candidate dependent report header exceeds operation"))?;
+        let schema_held = retained_state_bytes
+            .checked_add(report_header_state)
+            .ok_or_else(|| invalid("candidate dependent held state exceeds operation"))?;
+        let retained = schema_held
             .checked_add(callback_state_bytes)
             .and_then(|bytes| {
-                bytes.checked_add(CANDIDATE_RECORDS_REPORT_RETAINED_STATE_UPPER_BOUND_BYTES)
+                bytes.checked_add(
+                    source_admission_candidate_schema::binding_retained_state_upper_bound_bytes(),
+                )
             })
-            .and_then(|bytes| bytes.checked_add(std::mem::size_of::<Arc<()>>()))
             .filter(|bytes| *bytes <= max_operation_state_bytes)
             .ok_or_else(|| invalid("candidate dependent callback state exceeds operation"))?;
         // This includes the held store, report and dependent callback, so it
@@ -683,7 +703,9 @@ impl<'candidate> IndexSink<'candidate> {
             .is_err()
         {
             input.abandon();
-            return Err(invalid("candidate dependent callback state exceeds operation"));
+            return Err(invalid(
+                "candidate dependent callback state exceeds operation",
+            ));
         }
         // Clone the stable scope handle before lending the store mutably to
         // the kernel. Its allocation has already been admitted above.
@@ -703,10 +725,10 @@ impl<'candidate> IndexSink<'candidate> {
                 fact_budget,
                 page_budget,
                 self,
-                retained,
+                schema_held,
                 max_operation_state_bytes,
             )
-            .map_err(|_| invalid("candidate Records/Item receiver refused"))?;
+            .map_err(receiver_refusal)?;
             // This report was constructed directly by the maintained receiver
             // over this exact mutable store loan. No externally supplied
             // report or reconstructed private report constructor enters here.
