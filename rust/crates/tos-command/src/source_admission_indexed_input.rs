@@ -23,8 +23,8 @@ use std::{
     time::Instant,
 };
 use tos_foundation::{
-    CanonicalProfile, Digest256, Digest256Hasher, JsonLimits, JsonMode, RelativePath,
-    canonical_bytes_v1, parse_json,
+    CanonicalProfile, Digest256, Digest256Hasher, JsonLimits, JsonMode, JsonValue, RelativePath,
+    canonical_bytes_v1, parse_json, parse_json_with_state_budget,
 };
 use tos_segment_store::{
     AuthenticatedTreeDescriptorV2, AuthenticatedTreeEntryV1, AuthenticatedTreeIoLedgerV1,
@@ -67,6 +67,7 @@ pub(crate) struct IndexedInputSelectionV1 {
     segment_limits: SegmentLimits,
     manifest_file: DescriptorFile,
     pub(crate) manifest_sha256: Digest256,
+    pub(crate) composition: Option<IndexedInputCompositionV1>,
     max_descriptor_bytes: usize,
     max_profile_bytes: usize,
     max_dependency_closure_bytes: usize,
@@ -85,7 +86,22 @@ pub(crate) struct IndexedInputSelectionV1 {
     pub(crate) max_frames_per_pack: u32,
 }
 
+/// Exact byte-composition selector. This grants no semantic closure or admission.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) struct IndexedInputCompositionV1 {
+    pub(crate) authored_manifest_sha256: Digest256,
+    pub(crate) generated_declaration_sha256: Digest256,
+    pub(crate) auxiliary_members_sha256: Digest256,
+    pub(crate) generated_record_count: u64,
+    pub(crate) auxiliary_member_count: u64,
+    pub(crate) auxiliary_source_bytes: u64,
+    pub(crate) members_descriptor_sha256: Digest256,
+}
+
 struct ParsedScaleInputManifestV1 {
+    composition: Option<IndexedInputCompositionV1>,
+    seed_sha256: Digest256,
+    template_manifest_sha256: Digest256,
     profile_sha256: Digest256,
     dependency_closure_sha256: Digest256,
     members_descriptor_sha256: Digest256,
@@ -431,6 +447,34 @@ pub(crate) fn open_selection_from_manifest_v1(
     cancelled: &AtomicBool,
     work: &AdmissionWorkBudget,
 ) -> io::Result<IndexedInputSelectionV1> {
+    open_selection_from_manifest_with_composition_v1(
+        named_root,
+        segment_limits,
+        max_manifest_bytes,
+        max_profile_bytes,
+        max_dependency_closure_bytes,
+        io_budget,
+        deadline,
+        cancelled,
+        work,
+        None,
+        0,
+    )
+}
+
+pub(crate) fn open_selection_from_manifest_with_composition_v1(
+    named_root: &Path,
+    segment_limits: SegmentLimits,
+    max_manifest_bytes: usize,
+    max_profile_bytes: usize,
+    max_dependency_closure_bytes: usize,
+    io_budget: &PinnedSqliteIoBudget,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+    work: &AdmissionWorkBudget,
+    expected_composition: Option<IndexedInputCompositionV1>,
+    max_composition_state_bytes: usize,
+) -> io::Result<IndexedInputSelectionV1> {
     if max_manifest_bytes == 0
         || max_manifest_bytes > DESCRIPTOR_MAX_BYTES
         || max_profile_bytes == 0
@@ -440,6 +484,13 @@ pub(crate) fn open_selection_from_manifest_v1(
     {
         return Err(invalid(
             "indexed-input metadata bound exceeds selected profile",
+        ));
+    }
+    if expected_composition.is_some()
+        && (max_composition_state_bytes == 0 || max_composition_state_bytes == usize::MAX)
+    {
+        return Err(invalid(
+            "indexed-input composition state slice is not finite",
         ));
     }
     active(deadline, cancelled)?;
@@ -466,18 +517,46 @@ pub(crate) fn open_selection_from_manifest_v1(
         cancelled,
         &mut debit,
     )?;
-    let manifest = parse_scale_input_manifest_v1(&raw, max_manifest_bytes)?;
-    drop(raw);
-    let profile_file = DescriptorFile::open_stream_hashed(
-        &held_root,
-        PROFILE_LEAF.to_owned(),
-        manifest.profile_sha256,
-        max_profile_bytes,
-        io_budget,
-        deadline,
-        cancelled,
-        &mut debit,
+    let manifest = parse_scale_input_manifest_selected_v1(
+        &raw,
+        max_manifest_bytes,
+        expected_composition,
+        max_composition_state_bytes,
     )?;
+    drop(raw);
+    let profile_file = if manifest.composition.is_some() {
+        let (file, raw, digest) = DescriptorFile::open_hashed(
+            &held_root,
+            PROFILE_LEAF.to_owned(),
+            max_profile_bytes,
+            io_budget,
+            deadline,
+            cancelled,
+            &mut debit,
+        )?;
+        if digest != manifest.profile_sha256 {
+            return Err(invalid("indexed-input composed profile digest differs"));
+        }
+        verify_composition_profile_v1(
+            &raw,
+            max_profile_bytes,
+            &manifest,
+            max_composition_state_bytes,
+        )?;
+        file
+    } else {
+        let profile_file = DescriptorFile::open_stream_hashed(
+            &held_root,
+            PROFILE_LEAF.to_owned(),
+            manifest.profile_sha256,
+            max_profile_bytes,
+            io_budget,
+            deadline,
+            cancelled,
+            &mut debit,
+        )?;
+        profile_file
+    };
     let dependency_closure_file = DescriptorFile::open_stream_hashed(
         &held_root,
         DEPENDENCY_CLOSURE_LEAF.to_owned(),
@@ -549,6 +628,7 @@ pub(crate) fn open_selection_from_manifest_v1(
         segment_limits,
         manifest_file,
         manifest_sha256,
+        composition: manifest.composition,
         max_descriptor_bytes: max_manifest_bytes,
         max_profile_bytes,
         max_dependency_closure_bytes,
@@ -571,6 +651,15 @@ pub(crate) fn open_selection_from_manifest_v1(
 fn parse_scale_input_manifest_v1(
     raw: &[u8],
     max_bytes: usize,
+) -> io::Result<ParsedScaleInputManifestV1> {
+    parse_scale_input_manifest_selected_v1(raw, max_bytes, None, 0)
+}
+
+fn parse_scale_input_manifest_selected_v1(
+    raw: &[u8],
+    max_bytes: usize,
+    expected_composition: Option<IndexedInputCompositionV1>,
+    state_bytes: usize,
 ) -> io::Result<ParsedScaleInputManifestV1> {
     const MANIFEST_KEYS: [&str; 21] = [
         "schema",
@@ -596,31 +685,40 @@ fn parse_scale_input_manifest_v1(
         "authored_route_bridge_coverage",
     ];
     let limits = JsonLimits::new(max_bytes, 8, 64, 20).map_err(invalid)?;
-    let document = parse_json(raw, JsonMode::PublishedStrict, limits).map_err(invalid)?;
-    let canonical = canonical_bytes_v1(
-        document.root(),
-        CanonicalProfile::SourceCommandInputV1,
-        limits,
-    )
-    .map_err(invalid)?;
-    if canonical.as_slice() != raw {
-        return Err(invalid("indexed-input manifest is not canonical JSON"));
-    }
-    let value: serde_json::Value = serde_json::from_slice(raw).map_err(invalid)?;
+    let document = if expected_composition.is_some() {
+        parse_composition_document_v1(raw, limits, state_bytes)?
+    } else {
+        let document = parse_json(raw, JsonMode::PublishedStrict, limits).map_err(invalid)?;
+        if canonical_bytes_v1(
+            document.root(),
+            CanonicalProfile::SourceCommandInputV1,
+            limits,
+        )
+        .map_err(invalid)?
+        .as_slice()
+            != raw
+        {
+            return Err(invalid("indexed-input manifest is not canonical JSON"));
+        }
+        document
+    };
+    let value = document.root();
     let fields = value
         .as_object()
         .ok_or_else(|| invalid("indexed-input manifest root is not an object"))?;
-    if fields.len() != MANIFEST_KEYS.len()
-        || fields
-            .keys()
-            .any(|key| !MANIFEST_KEYS.contains(&key.as_str()))
+    if fields.len() != MANIFEST_KEYS.len() + usize::from(expected_composition.is_some())
+        || fields.iter().any(|(key, _)| {
+            !MANIFEST_KEYS.contains(&key.as_str().unwrap_or(""))
+                && !(expected_composition.is_some()
+                    && key.as_str() == Some("authored_aux_composition"))
+        })
     {
         return Err(invalid("indexed-input manifest field set differs"));
     }
     let string = |key: &str| -> io::Result<&str> {
-        fields
-            .get(key)
-            .and_then(serde_json::Value::as_str)
+        value
+            .object_get(key)
+            .and_then(JsonValue::as_str)
             .ok_or_else(|| invalid("indexed-input manifest string field differs"))
     };
     let parse_digest = |key: &str| -> io::Result<Digest256> {
@@ -643,8 +741,8 @@ fn parse_scale_input_manifest_v1(
         return Err(invalid("indexed-input manifest selection differs"));
     }
     let profile_sha256 = parse_digest("profile_sha256")?;
-    parse_digest("seed_sha256")?;
-    parse_digest("template_manifest_sha256")?;
+    let seed_sha256 = parse_digest("seed_sha256")?;
+    let template_manifest_sha256 = parse_digest("template_manifest_sha256")?;
     let dependency_closure_sha256 = parse_digest("dependency_closure_sha256")?;
     let commit = string("template_source_commit")?;
     if commit != MANIFEST_TEMPLATE_COMMIT
@@ -655,38 +753,38 @@ fn parse_scale_input_manifest_v1(
     {
         return Err(invalid("indexed-input template source commit differs"));
     }
-    let member_count = fields
-        .get("member_count")
-        .and_then(serde_json::Value::as_u64)
+    let member_count = value
+        .object_get("member_count")
+        .and_then(JsonValue::as_u64)
         .ok_or_else(|| invalid("indexed-input manifest member count differs"))?;
-    let source_bytes = fields
-        .get("source_bytes")
-        .and_then(serde_json::Value::as_u64)
+    let source_bytes = value
+        .object_get("source_bytes")
+        .and_then(JsonValue::as_u64)
         .ok_or_else(|| invalid("indexed-input manifest source byte count differs"))?;
-    let unique_object_count = fields
-        .get("unique_object_count")
-        .and_then(serde_json::Value::as_u64)
+    let unique_object_count = value
+        .object_get("unique_object_count")
+        .and_then(JsonValue::as_u64)
         .ok_or_else(|| invalid("indexed-input unique object count differs"))?;
-    let unique_payload_bytes = fields
-        .get("unique_payload_bytes")
-        .and_then(serde_json::Value::as_u64)
+    let unique_payload_bytes = value
+        .object_get("unique_payload_bytes")
+        .and_then(JsonValue::as_u64)
         .ok_or_else(|| invalid("indexed-input unique payload byte count differs"))?;
-    let max_frames_per_pack = fields
-        .get("max_frames_per_pack")
-        .and_then(serde_json::Value::as_u64)
+    let max_frames_per_pack = value
+        .object_get("max_frames_per_pack")
+        .and_then(JsonValue::as_u64)
         .and_then(|value| u32::try_from(value).ok())
         .ok_or_else(|| invalid("indexed-input pack frame count differs"))?;
-    let generated_dependency_edges = fields
-        .get("generated_dependency_edges")
-        .and_then(serde_json::Value::as_u64)
+    let generated_dependency_edges = value
+        .object_get("generated_dependency_edges")
+        .and_then(JsonValue::as_u64)
         .ok_or_else(|| invalid("indexed-input generated dependency edge count differs"))?;
-    let pinned_external_dependency_edges = fields
-        .get("pinned_external_dependency_edges")
-        .and_then(serde_json::Value::as_u64)
+    let pinned_external_dependency_edges = value
+        .object_get("pinned_external_dependency_edges")
+        .and_then(JsonValue::as_u64)
         .ok_or_else(|| invalid("indexed-input pinned dependency edge count differs"))?;
-    let unresolved_dependency_edges = fields
-        .get("unresolved_dependency_edges")
-        .and_then(serde_json::Value::as_u64)
+    let unresolved_dependency_edges = value
+        .object_get("unresolved_dependency_edges")
+        .and_then(JsonValue::as_u64)
         .ok_or_else(|| invalid("indexed-input unresolved dependency edge count differs"))?;
     let authored_route_bridge_coverage = string("authored_route_bridge_coverage")?;
     generated_dependency_edges
@@ -707,7 +805,36 @@ fn parse_scale_input_manifest_v1(
             "indexed-input manifest empty or deduplicated totals differ",
         ));
     }
+    let composition = match expected_composition {
+        Some(expected) => {
+            let actual = parse_composition_v1(
+                value
+                    .object_get("authored_aux_composition")
+                    .ok_or_else(|| invalid("indexed-input explicit composition absent"))?,
+            )?;
+            if actual != expected
+                || actual.generated_record_count == 0
+                || actual.auxiliary_member_count == 0
+                || actual.auxiliary_source_bytes == 0
+                || actual
+                    .generated_record_count
+                    .checked_add(actual.auxiliary_member_count)
+                    != Some(member_count)
+                || actual.auxiliary_source_bytes >= source_bytes
+                || actual.members_descriptor_sha256 != parse_digest("members_descriptor_sha256")?
+            {
+                return Err(invalid(
+                    "indexed-input selected composition aggregate differs",
+                ));
+            }
+            Some(actual)
+        }
+        None => None,
+    };
     Ok(ParsedScaleInputManifestV1 {
+        composition,
+        seed_sha256,
+        template_manifest_sha256,
         profile_sha256,
         dependency_closure_sha256,
         members_descriptor_sha256: parse_digest("members_descriptor_sha256")?,
@@ -718,6 +845,215 @@ fn parse_scale_input_manifest_v1(
         unique_payload_bytes,
         max_frames_per_pack,
     })
+}
+
+fn parse_composition_document_v1(
+    raw: &[u8],
+    limits: JsonLimits,
+    state: usize,
+) -> io::Result<tos_foundation::JsonDocument> {
+    // Reuse the maintained foundation report visitor's workspace partition:
+    // selected raw/output bytes and per-visit object-reference/duplicate-key
+    // workspace remain separate from the parser's allocation meter.
+    let fixed = limits
+        .max_bytes
+        .checked_add(1)
+        .and_then(|bytes| bytes.checked_add(limits.max_bytes))
+        .and_then(|bytes| {
+            limits
+                .max_visits
+                .checked_mul(64)
+                .and_then(|visitor| bytes.checked_add(visitor))
+        })
+        .and_then(|bytes| bytes.checked_add(size_of::<ParsedScaleInputManifestV1>()))
+        .ok_or_else(|| invalid("indexed-input composition workspace overflow"))?;
+    let parser_state = state
+        .checked_sub(fixed)
+        .ok_or_else(|| invalid("indexed-input composition workspace exhausted"))?;
+    let document =
+        parse_json_with_state_budget(raw, JsonMode::PublishedStrict, limits, parser_state)
+            .map_err(invalid)?;
+    if canonical_bytes_v1(
+        document.root(),
+        CanonicalProfile::SourceCommandInputV1,
+        limits,
+    )
+    .map_err(invalid)?
+    .as_slice()
+        != raw
+    {
+        return Err(invalid("indexed-input composition JSON is not canonical"));
+    }
+    Ok(document)
+}
+
+fn composition_digest_v1(value: &JsonValue) -> io::Result<Digest256> {
+    let text = value
+        .as_str()
+        .ok_or_else(|| invalid("indexed-input composition digest type differs"))?;
+    if text.len() != 64
+        || !text
+            .bytes()
+            .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
+    {
+        return Err(invalid("indexed-input composition digest differs"));
+    }
+    Digest256::from_hex(text).map_err(invalid)
+}
+
+fn parse_composition_v1(value: &JsonValue) -> io::Result<IndexedInputCompositionV1> {
+    parse_composition_fields_v1(value, None)
+}
+
+fn parse_composition_fields_v1(
+    value: &JsonValue,
+    profile_descriptor: Option<Digest256>,
+) -> io::Result<IndexedInputCompositionV1> {
+    const KEYS: [&str; 8] = [
+        "coverage",
+        "authored_manifest_sha256",
+        "generated_declaration_sha256",
+        "auxiliary_members_sha256",
+        "generated_record_count",
+        "auxiliary_member_count",
+        "auxiliary_source_bytes",
+        "members_descriptor_sha256",
+    ];
+    let fields = value
+        .as_object()
+        .ok_or_else(|| invalid("indexed-input composition type differs"))?;
+    let keys = &KEYS[..KEYS.len() - usize::from(profile_descriptor.is_some())];
+    if fields.len() != keys.len()
+        || fields
+            .iter()
+            .any(|(k, _)| !keys.contains(&k.as_str().unwrap_or("")))
+        || value.object_get("coverage").and_then(JsonValue::as_str)
+            != Some("authenticated_byte_composition_pending_semantic_admission")
+    {
+        return Err(invalid(
+            "indexed-input composition field set or coverage differs",
+        ));
+    }
+    let field = |key: &str| {
+        value
+            .object_get(key)
+            .ok_or_else(|| invalid("indexed-input composition field absent"))
+    };
+    let digest = |key: &str| composition_digest_v1(field(key)?);
+    let number = |key: &str| {
+        field(key)?
+            .as_u64()
+            .filter(|n| *n > 0 && *n != u64::MAX)
+            .ok_or_else(|| invalid("indexed-input composition finite count differs"))
+    };
+    Ok(IndexedInputCompositionV1 {
+        authored_manifest_sha256: digest("authored_manifest_sha256")?,
+        generated_declaration_sha256: digest("generated_declaration_sha256")?,
+        auxiliary_members_sha256: digest("auxiliary_members_sha256")?,
+        generated_record_count: number("generated_record_count")?,
+        auxiliary_member_count: number("auxiliary_member_count")?,
+        auxiliary_source_bytes: number("auxiliary_source_bytes")?,
+        members_descriptor_sha256: match profile_descriptor {
+            Some(digest) => digest,
+            None => digest("members_descriptor_sha256")?,
+        },
+    })
+}
+
+fn verify_composition_profile_v1(
+    raw: &[u8],
+    max_bytes: usize,
+    manifest: &ParsedScaleInputManifestV1,
+    state_bytes: usize,
+) -> io::Result<()> {
+    let limits = JsonLimits::new(max_bytes, 16, 2048, 128).map_err(invalid)?;
+    let document = parse_composition_document_v1(raw, limits, state_bytes)?;
+    let profile = document.root();
+    let expected = manifest
+        .composition
+        .ok_or_else(|| invalid("indexed-input composition profile unselected"))?;
+    if profile.object_get("schema").and_then(JsonValue::as_str)
+        != Some("tos_native_scale_effective_profile_v2")
+        || profile.object_get("status").and_then(JsonValue::as_str)
+            != Some("working_hypothesis_no_admission")
+        || profile
+            .object_get("target_records")
+            .and_then(JsonValue::as_u64)
+            != Some(expected.generated_record_count)
+    {
+        return Err(invalid(
+            "indexed-input composition semantic record profile differs",
+        ));
+    }
+    let selection = profile
+        .object_get("authored_aux_selection")
+        .ok_or_else(|| invalid("indexed-input profile composition absent"))?;
+    if parse_composition_fields_v1(selection, Some(expected.members_descriptor_sha256))? != expected
+    {
+        return Err(invalid("indexed-input profile composition binding differs"));
+    }
+    let classes = profile
+        .object_get("classes")
+        .and_then(JsonValue::as_array)
+        .ok_or_else(|| invalid("indexed-input composed class declaration absent"))?;
+    let names = ["Artifact", "Claim", "EvidencePacket", "TextUnit", "Work"];
+    if classes.len() != names.len() {
+        return Err(invalid("indexed-input composed class count differs"));
+    }
+    let mut counts = [0u64; 5];
+    let mut total = 0u64;
+    for (index, class) in classes.iter().enumerate() {
+        if class.object_get("class").and_then(JsonValue::as_str) != Some(names[index]) {
+            return Err(invalid("indexed-input composed class ordering differs"));
+        }
+        counts[index] = class
+            .object_get("count")
+            .and_then(JsonValue::as_u64)
+            .ok_or_else(|| invalid("indexed-input composed class count differs"))?;
+        total = total
+            .checked_add(counts[index])
+            .ok_or_else(|| invalid("indexed-input composed class overflow"))?;
+    }
+    if total != expected.generated_record_count {
+        return Err(invalid("indexed-input composed class total differs"));
+    }
+    // Fixed typed preimage, emitted directly to the digest: no second Value
+    // tree or encoded declaration allocation while profile parsing stays live.
+    let mut hash = Digest256Hasher::new();
+    hash.update(b"{\"class_counts\":[");
+    for (index, count) in counts.iter().enumerate() {
+        if index != 0 {
+            hash.update(b",");
+        }
+        feed_composition_number_v1(&mut hash, *count);
+    }
+    hash.update(b"],\"domain\":\"tos_scale_generated_declaration_v1\",\"generated_record_count\":");
+    feed_composition_number_v1(&mut hash, expected.generated_record_count);
+    hash.update(b",\"seed_sha256\":\"");
+    hash.update(manifest.seed_sha256.to_hex().as_bytes());
+    hash.update(b"\",\"template_manifest_sha256\":\"");
+    hash.update(manifest.template_manifest_sha256.to_hex().as_bytes());
+    hash.update(b"\"}");
+    if hash.finalize() != expected.generated_declaration_sha256 {
+        return Err(invalid(
+            "indexed-input generated declaration digest differs",
+        ));
+    }
+    Ok(())
+}
+
+fn feed_composition_number_v1(hash: &mut Digest256Hasher, mut value: u64) {
+    let mut digits = [0u8; u64::MAX.ilog10() as usize + 1];
+    let mut start = digits.len();
+    loop {
+        start -= 1;
+        digits[start] = b'0' + (value % 10) as u8;
+        value /= 10;
+        if value == 0 {
+            break;
+        }
+    }
+    hash.update(&digits[start..]);
 }
 
 /// One authenticated current logical source member. The retained-state charge
@@ -762,6 +1098,7 @@ pub(crate) struct IndexedInputReaderV1 {
     segment: SegmentStore,
     segment_identity: (u64, u64),
     manifest_file: DescriptorFile,
+    pub(crate) composition: Option<IndexedInputCompositionV1>,
     max_profile_bytes: usize,
     max_dependency_closure_bytes: usize,
     profile_file: DescriptorFile,
@@ -894,9 +1231,12 @@ impl IndexedInputReaderV1 {
         if selected_segment_limits.max_segment_bytes != selection.segment_limits.max_segment_bytes
             || selected_segment_limits.max_frame_bytes != selection.segment_limits.max_frame_bytes
             || selected_segment_limits.max_frames != selection.segment_limits.max_frames
-            || selected_segment_limits.max_journal_bytes != selection.segment_limits.max_journal_bytes
+            || selected_segment_limits.max_journal_bytes
+                != selection.segment_limits.max_journal_bytes
         {
-            return Err(invalid("indexed-input segment profile differs from selected store"));
+            return Err(invalid(
+                "indexed-input segment profile differs from selected store",
+            ));
         }
         if objects_descriptor.entries != selection.unique_object_count
             || selection.unique_object_count > limits.packed_objects.max_objects
@@ -1020,6 +1360,7 @@ impl IndexedInputReaderV1 {
             segment: selection.segment,
             segment_identity,
             manifest_file: selection.manifest_file,
+            composition: selection.composition,
             max_profile_bytes: selection.max_profile_bytes,
             max_dependency_closure_bytes: selection.max_dependency_closure_bytes,
             profile_file: selection.profile_file,

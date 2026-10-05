@@ -1385,9 +1385,7 @@ impl WeightedScaleProfileV1 {
             packed_object_frames_per_pack: MAX_PACKED_OBJECT_FRAMES_V2,
             packed_object_pack_count_upper: max_pack_count,
             history_change_rows: checked_scale_u64(history_change_rows)?,
-            history_change_payload_scenario_bytes: checked_scale_u64(
-                history_change_payload_bytes,
-            )?,
+            history_change_payload_scenario_bytes: checked_scale_u64(history_change_payload_bytes)?,
             p50_logical_source_bytes_at_1b: checked_scale_u64(source_p50_1b)?,
             selected_quantile_scenario_logical_source_bytes_at_1b: checked_scale_u64(
                 source_scenario_1b,
@@ -1438,13 +1436,21 @@ mod weighted_scale_profile_tests {
         assert_eq!(default_envelope.temporary_allocated_bytes, 908_447_744);
         assert_eq!(default_envelope.temporary_file_inodes, 27);
         assert_eq!(default_envelope.raw_input_allocated_bytes, 2_371_100_672);
-        assert_eq!(default.forecast_inputs().unwrap().raw_input_directory_count, 100_016);
+        assert_eq!(
+            default.forecast_inputs().unwrap().raw_input_directory_count,
+            100_016
+        );
 
-        let billion =
-            WeightedScaleProfileV1::weighted_for_records(seed, 1_000_000_000).unwrap();
+        let billion = WeightedScaleProfileV1::weighted_for_records(seed, 1_000_000_000).unwrap();
         assert_eq!(
             billion.classes.map(|row| row.count),
-            [50_000_000, 400_000_000, 50_000_000, 150_000_000, 350_000_000]
+            [
+                50_000_000,
+                400_000_000,
+                50_000_000,
+                150_000_000,
+                350_000_000
+            ]
         );
         let default_forecast = default.forecast_inputs().unwrap();
         let billion_forecast = billion.forecast_inputs().unwrap();
@@ -1460,9 +1466,7 @@ mod weighted_scale_profile_tests {
             billion_forecast.selected_quantile_scenario_logical_source_bytes_at_1b,
             billion_forecast.selected_quantile_scenario_logical_source_bytes
         );
-        assert!(billion_forecast
-            .selected_quantile_scenario_logical_source_bytes_at_1b
-            < u64::MAX);
+        assert!(billion_forecast.selected_quantile_scenario_logical_source_bytes_at_1b < u64::MAX);
         let envelope = weighted_scale_producer_envelope_v1(&billion, 4_096).unwrap();
         assert!(envelope.maximum_source_bytes > 1_000_000_000_000);
         assert!(envelope.raw_input_allocated_bytes > envelope.maximum_source_bytes);
@@ -1474,7 +1478,10 @@ mod weighted_scale_profile_tests {
         let seed = Digest256::of_bytes(b"weighted-record-rounding");
         let profile = WeightedScaleProfileV1::weighted_for_records(seed, 101).unwrap();
         assert_eq!(profile.classes.map(|row| row.count), [5, 41, 5, 15, 35]);
-        assert_eq!(profile.classes.iter().map(|row| row.count).sum::<u64>(), 101);
+        assert_eq!(
+            profile.classes.iter().map(|row| row.count).sum::<u64>(),
+            101
+        );
         let small_forecast = profile.forecast_inputs().unwrap();
         let billion_profile =
             WeightedScaleProfileV1::weighted_for_records(seed, 1_000_000_000).unwrap();
@@ -1889,13 +1896,12 @@ impl<'a> WeightedScaleMemberIterV1<'a> {
         }
         .map_err(|_| io_invalid("weighted source record encoding failed"))?;
         source_bytes.push(b'\n');
-        let selected_template_bytes = match selected_quantile_index_v1(
-            ordinal % SCALE_SELECTED_QUANTILE_PERIOD_V1,
-        ) {
-            0 => class_row.p50_bytes,
-            1 => class_row.p95_bytes,
-            _ => class_row.max_bytes,
-        };
+        let selected_template_bytes =
+            match selected_quantile_index_v1(ordinal % SCALE_SELECTED_QUANTILE_PERIOD_V1) {
+                0 => class_row.p50_bytes,
+                1 => class_row.p95_bytes,
+                _ => class_row.max_bytes,
+            };
         let selected_member_upper = selected_template_bytes
             .checked_add(SCALE_IDENTITY_GROWTH_ALLOWANCE_V1)
             .ok_or_else(|| io_invalid("weighted member growth fence overflow"))?;
@@ -2546,8 +2552,7 @@ fn io_invalid(message: &'static str) -> std::io::Error {
 fn selected_quantile_index_v1(bucket: u64) -> usize {
     if bucket < SCALE_SELECTED_QUANTILE_BUCKETS_V1[0] {
         0
-    } else if bucket
-        < SCALE_SELECTED_QUANTILE_BUCKETS_V1[0] + SCALE_SELECTED_QUANTILE_BUCKETS_V1[1]
+    } else if bucket < SCALE_SELECTED_QUANTILE_BUCKETS_V1[0] + SCALE_SELECTED_QUANTILE_BUCKETS_V1[1]
     {
         1
     } else {
@@ -2745,6 +2750,485 @@ fn template_manifest_digest_v1(
     Ok(Digest256::of_bytes(&canonical))
 }
 
+/// Exact finite bytes selected by the authored record/slot selection owner.
+/// This descriptor is not a semantic reference-resolution or rights verdict.
+#[derive(Clone, Debug)]
+pub(crate) struct WeightedScaleAuthoredAuxMemberV1 {
+    pub(crate) path: String,
+    pub(crate) raw_sha256: Digest256,
+    pub(crate) raw_bytes: u64,
+}
+
+/// Producer custody of an independently authenticated authored selection.
+/// The caller retains its record/slot proof; this owner binds exact byte members.
+pub(crate) struct WeightedScaleAuthoredAuxSelectionV1 {
+    authored_manifest_sha256: Digest256,
+    members: Vec<WeightedScaleAuthoredAuxMemberV1>,
+    source_bytes: u64,
+    state_bytes: usize,
+}
+impl WeightedScaleAuthoredAuxSelectionV1 {
+    pub(crate) fn from_owner_selection(
+        authored_manifest_sha256: Digest256,
+        mut members: Vec<WeightedScaleAuthoredAuxMemberV1>,
+        max_members: usize,
+        max_source_bytes: u64,
+        max_owned_state_bytes: usize,
+    ) -> std::io::Result<Self> {
+        if max_members == 0
+            || max_members == usize::MAX
+            || members.is_empty()
+            || members.len() > max_members
+            || max_source_bytes == 0
+            || max_source_bytes == u64::MAX
+            || max_owned_state_bytes == 0
+            || max_owned_state_bytes == usize::MAX
+        {
+            return Err(io_invalid("authored auxiliary selection bounds differ"));
+        }
+        let mut state_bytes = size_of::<Self>()
+            .checked_add(
+                members
+                    .capacity()
+                    .checked_mul(size_of::<WeightedScaleAuthoredAuxMemberV1>())
+                    .ok_or_else(|| io_invalid("authored selection state overflow"))?,
+            )
+            .ok_or_else(|| io_invalid("authored selection state overflow"))?;
+        let mut source_bytes = 0u64;
+        for member in &members {
+            RelativePath::parse(&member.path)
+                .map_err(|_| io_invalid("authored auxiliary source path differs"))?;
+            if !member.path.starts_with("ToS/")
+                || member.raw_bytes == 0
+                || WeightedScaleClassV1::ALL.into_iter().any(|class| {
+                    member.path.starts_with(generated_path_prefix_v1(class))
+                        || generated_path_prefix_v1(class)
+                            .strip_prefix(member.path.as_str())
+                            .is_some_and(|tail| tail.starts_with('/'))
+                })
+            {
+                return Err(io_invalid("authored member overlaps generated namespace"));
+            }
+            state_bytes = state_bytes
+                .checked_add(member.path.capacity())
+                .ok_or_else(|| io_invalid("authored selection state overflow"))?;
+            source_bytes = source_bytes
+                .checked_add(member.raw_bytes)
+                .ok_or_else(|| io_invalid("authored auxiliary bytes overflow"))?;
+        }
+        if state_bytes > max_owned_state_bytes || source_bytes > max_source_bytes {
+            return Err(io_invalid("authored selection exceeds selected limits"));
+        }
+        members.sort_unstable_by(|a, b| a.path.cmp(&b.path));
+        if members.windows(2).any(|w| w[0].path == w[1].path) {
+            return Err(io_invalid("authored auxiliary paths collide"));
+        }
+        for member in &members {
+            for parent in Path::new(&member.path).ancestors().skip(1) {
+                if members
+                    .binary_search_by(|candidate| {
+                        candidate.path.as_str().cmp(parent.to_str().unwrap_or(""))
+                    })
+                    .is_ok()
+                {
+                    return Err(io_invalid(
+                        "authored auxiliary file/directory paths collide",
+                    ));
+                }
+            }
+        }
+        Ok(Self {
+            authored_manifest_sha256,
+            members,
+            source_bytes,
+            state_bytes,
+        })
+    }
+}
+
+#[derive(Clone, Debug)]
+pub(crate) struct WeightedScaleCompositionBindingV1 {
+    pub(crate) authored_manifest_sha256: Digest256,
+    pub(crate) generated_declaration_sha256: Digest256,
+    pub(crate) auxiliary_members_sha256: Digest256,
+    pub(crate) generated_record_count: u64,
+    pub(crate) auxiliary_member_count: u64,
+    pub(crate) auxiliary_source_bytes: u64,
+    pub(crate) members_descriptor_sha256: Digest256,
+}
+
+fn generated_declaration_digest_v1(
+    profile: &WeightedScaleProfileV1,
+    templates: Digest256,
+) -> std::io::Result<Digest256> {
+    // The maintained owner derives every path and ID from these inputs. No
+    // generated IDs or rows are retained in an auxiliary manifest.
+    let counts = profile.classes.map(|row| row.count);
+    let bytes = canonical_value_bytes_v1(&serde_json::json!({
+        "domain": "tos_scale_generated_declaration_v1",
+        "seed_sha256": profile.seed.to_hex(),
+        "template_manifest_sha256": templates.to_hex(),
+        "generated_record_count": profile.target_records,
+        "class_counts": counts,
+    }))?;
+    Ok(Digest256::of_bytes(&bytes))
+}
+
+fn auxiliary_members_digest_v1(selection: &WeightedScaleAuthoredAuxSelectionV1) -> Digest256 {
+    let mut hash = Digest256Hasher::new();
+    hash.update(b"tos-scale-authored-aux-members-v1\0");
+    hash.update(selection.authored_manifest_sha256.as_bytes());
+    for member in &selection.members {
+        hash.update(&(member.path.len() as u64).to_be_bytes());
+        hash.update(member.path.as_bytes());
+        hash.update(member.raw_sha256.as_bytes());
+        hash.update(&member.raw_bytes.to_be_bytes());
+    }
+    hash.finalize()
+}
+
+fn authored_aux_directory_paths_v1(
+    profile: &WeightedScaleProfileV1,
+    selection: &WeightedScaleAuthoredAuxSelectionV1,
+    max_state_bytes: usize,
+    caller_state_bytes: usize,
+) -> std::io::Result<Vec<PathBuf>> {
+    // Reserve finite prefix storage before allocating it. Sorted Vec metadata
+    // uses actual element/path capacities, without a tree-node cost guess.
+    let mut prefix_count = 0usize;
+    let mut prefix_bytes = 0usize;
+    for member in &selection.members {
+        for ancestor in Path::new(&member.path).ancestors().skip(1) {
+            prefix_count = prefix_count
+                .checked_add(1)
+                .ok_or_else(|| io_invalid("authored prefix count overflow"))?;
+            prefix_bytes = prefix_bytes
+                .checked_add(ancestor.as_os_str().len())
+                .ok_or_else(|| io_invalid("authored prefix bytes overflow"))?;
+        }
+    }
+    let selected_peak = prefix_count
+        .checked_mul(size_of::<PathBuf>())
+        .and_then(|bytes| bytes.checked_add(prefix_bytes))
+        .and_then(|bytes| bytes.checked_add(size_of::<Vec<PathBuf>>()))
+        .and_then(|bytes| bytes.checked_add(selection.state_bytes))
+        .and_then(|bytes| bytes.checked_add(caller_state_bytes))
+        .ok_or_else(|| io_invalid("authored prefix state overflow"))?;
+    if selected_peak > max_state_bytes {
+        return Err(io_invalid("authored prefixes exceed selected state"));
+    }
+    let mut additional = Vec::new();
+    additional
+        .try_reserve_exact(prefix_count)
+        .map_err(|_| io_invalid("authored prefix allocation failed"))?;
+    for member in &selection.members {
+        for ancestor in Path::new(&member.path).ancestors().skip(1) {
+            // All shared generated ancestors come directly from the held
+            // class paths. Auxiliary paths cannot enter a generated namespace.
+            let shared = ancestor.as_os_str().is_empty()
+                || profile
+                    .classes
+                    .iter()
+                    .filter(|row| row.count != 0)
+                    .any(|row| {
+                        let path = path_for(row.class, 0);
+                        Path::new(&path)
+                            .parent()
+                            .and_then(Path::parent)
+                            .is_some_and(|parent| parent.ancestors().any(|p| p == ancestor))
+                    });
+            if !shared {
+                additional.push(ancestor.to_path_buf());
+            }
+        }
+    }
+    let actual_state = additional.iter().try_fold(
+        additional
+            .capacity()
+            .checked_mul(size_of::<PathBuf>())
+            .and_then(|bytes| bytes.checked_add(size_of::<Vec<PathBuf>>()))
+            .ok_or_else(|| io_invalid("authored prefix capacity overflow"))?,
+        |bytes, path| {
+            bytes
+                .checked_add(path.capacity())
+                .ok_or_else(|| io_invalid("authored prefix path capacity overflow"))
+        },
+    )?;
+    if actual_state
+        .checked_add(selection.state_bytes)
+        .and_then(|bytes| bytes.checked_add(caller_state_bytes))
+        .is_none_or(|bytes| bytes > max_state_bytes)
+    {
+        return Err(io_invalid(
+            "authored prefix capacity exceeds selected state",
+        ));
+    }
+    additional.sort_unstable();
+    additional.dedup();
+    Ok(additional)
+}
+
+/// One dimensional price for the opt-in producer and its caller's pre-write bill.
+/// Generated semantic records and auxiliary physical resources remain distinct.
+pub(crate) struct WeightedScaleComposedEnvelopeV1 {
+    pub(crate) envelope: WeightedScaleProducerEnvelopeV1,
+    pub(crate) forecast: WeightedScaleForecastInputsV1,
+    pub(crate) member_count: u64,
+    pub(crate) auxiliary_member_count: u64,
+    pub(crate) auxiliary_source_bytes: u64,
+    pub(crate) required_member_key_bytes: usize,
+    pub(crate) maximum_member_bytes: u64,
+    pub(crate) directory_state_bytes: usize,
+}
+
+pub(crate) fn weighted_scale_composed_producer_envelope_v1(
+    profile: &WeightedScaleProfileV1,
+    selection: &WeightedScaleAuthoredAuxSelectionV1,
+    allocation_unit: u64,
+    raw_input_root: &Path,
+    max_working_state_bytes: usize,
+    caller_live_state_bytes: usize,
+) -> std::io::Result<WeightedScaleComposedEnvelopeV1> {
+    weighted_scale_composition_price_v1(
+        profile,
+        Some(selection),
+        allocation_unit,
+        raw_input_root,
+        max_working_state_bytes,
+        caller_live_state_bytes,
+    )
+}
+
+fn weighted_scale_composition_price_v1(
+    profile: &WeightedScaleProfileV1,
+    auxiliary: Option<&WeightedScaleAuthoredAuxSelectionV1>,
+    allocation_unit: u64,
+    raw_input_root: &Path,
+    max_working_state_bytes: usize,
+    caller_live_state_bytes: usize,
+) -> std::io::Result<WeightedScaleComposedEnvelopeV1> {
+    if max_working_state_bytes == 0
+        || max_working_state_bytes == usize::MAX
+        || caller_live_state_bytes >= max_working_state_bytes
+    {
+        return Err(io_invalid("composed price selected state differs"));
+    }
+    let required_member_key_bytes = auxiliary.map_or(max_member_path_bytes_v1(&profile), |s| {
+        s.members
+            .iter()
+            .map(|m| m.path.len())
+            .max()
+            .unwrap_or(0)
+            .max(max_member_path_bytes_v1(&profile))
+    });
+    let auxiliary_count = auxiliary.map_or(0, |s| s.members.len() as u64);
+    let total_members = profile
+        .target_records
+        .checked_add(auxiliary_count)
+        .ok_or_else(|| io_invalid("composed member count overflow"))?;
+    let auxiliary_bytes = auxiliary.map_or(0, |s| s.source_bytes);
+    let mut forecast = profile.forecast_inputs()?;
+    let mut envelope = weighted_scale_producer_envelope_v1(&profile, allocation_unit)?;
+    let extra_directories = match auxiliary {
+        Some(selection) => authored_aux_directory_paths_v1(
+            &profile,
+            selection,
+            max_working_state_bytes,
+            caller_live_state_bytes,
+        )?,
+        None => Vec::new(),
+    };
+    let extra_directory_count = extra_directories.len() as u64;
+    let directory_state = extra_directories.iter().try_fold(
+        extra_directories
+            .capacity()
+            .checked_mul(size_of::<PathBuf>())
+            .and_then(|bytes| bytes.checked_add(size_of::<Vec<PathBuf>>()))
+            .ok_or_else(|| io_invalid("authored directory vector state overflow"))?,
+        |total, path| {
+            // Relative prefix scratch + absolute paths retained by the RAW
+            // writer. Include two vector/path capacities during a growth step.
+            total
+                .checked_add(path.capacity())
+                .and_then(|bytes| bytes.checked_add(size_of::<PathBuf>()))
+                .and_then(|bytes| bytes.checked_add(path.as_os_str().len()))
+                .and_then(|bytes| bytes.checked_add(raw_input_root.as_os_str().len()))
+                .and_then(|bytes| bytes.checked_add(1))
+                .ok_or_else(|| io_invalid("authored directory state overflow"))
+        },
+    )?;
+    forecast.raw_input_file_count = total_members;
+    forecast.raw_input_directory_count = forecast
+        .raw_input_directory_count
+        .checked_add(extra_directory_count)
+        .ok_or_else(|| io_invalid("composed directory count overflow"))?;
+    forecast.raw_input_inode_count = total_members
+        .checked_add(forecast.raw_input_directory_count)
+        .ok_or_else(|| io_invalid("composed inode count overflow"))?;
+    envelope.maximum_source_bytes = envelope
+        .maximum_source_bytes
+        .checked_add(auxiliary_bytes)
+        .ok_or_else(|| io_invalid("composed source byte envelope overflow"))?;
+    let composed_sort_bytes = total_members
+        .checked_mul(SCALE_SORT_ROW_BYTES_V1)
+        .ok_or_else(|| io_invalid("composed sort bytes overflow"))?;
+    envelope.temporary_logical_bytes = envelope
+        .maximum_source_bytes
+        .checked_add(composed_sort_bytes)
+        .ok_or_else(|| io_invalid("composed scratch bytes overflow"))?;
+    let composed_runs = sort_run_count_v1(total_members)?;
+    envelope.temporary_allocated_bytes = scratch_allocation_upper_v1(
+        envelope.maximum_source_bytes,
+        composed_runs,
+        allocation_unit,
+    )?;
+    envelope.temporary_file_inodes = composed_runs
+        .checked_add(2)
+        .ok_or_else(|| io_invalid("composed scratch inode overflow"))?;
+    if let Some(selection) = auxiliary {
+        for member in &selection.members {
+            let allocated = round_up_scale_v1(member.raw_bytes, allocation_unit)?
+                .checked_add(allocation_unit)
+                .ok_or_else(|| io_invalid("composed auxiliary file allocation overflow"))?;
+            envelope.raw_input_allocated_bytes = envelope
+                .raw_input_allocated_bytes
+                .checked_add(allocated)
+                .ok_or_else(|| io_invalid("composed raw allocation overflow"))?;
+        }
+        envelope.raw_input_allocated_bytes = envelope
+            .raw_input_allocated_bytes
+            .checked_add(
+                extra_directory_count
+                    .checked_mul(allocation_unit)
+                    .and_then(|v| v.checked_mul(2))
+                    .ok_or_else(|| io_invalid("composed directory allocation overflow"))?,
+            )
+            .ok_or_else(|| io_invalid("composed raw allocation overflow"))?;
+        forecast.p50_logical_source_bytes = forecast
+            .p50_logical_source_bytes
+            .checked_add(auxiliary_bytes)
+            .ok_or_else(|| io_invalid("composed forecast overflow"))?;
+        forecast.selected_quantile_scenario_logical_source_bytes = forecast
+            .selected_quantile_scenario_logical_source_bytes
+            .checked_add(auxiliary_bytes)
+            .ok_or_else(|| io_invalid("composed forecast overflow"))?;
+        for member in &selection.members {
+            forecast.raw_member_leaf_input_bytes = forecast
+                .raw_member_leaf_input_bytes
+                .checked_add(member.path.len() as u64 + SCALE_MEMBER_VALUE_BYTES_V1 as u64)
+                .ok_or_else(|| io_invalid("composed member tree forecast overflow"))?;
+        }
+        forecast.raw_object_extent_leaf_input_bytes = forecast
+            .raw_object_extent_leaf_input_bytes
+            .checked_add(
+                auxiliary_count
+                    .checked_mul(32 + 76)
+                    .ok_or_else(|| io_invalid("composed object tree forecast overflow"))?,
+            )
+            .ok_or_else(|| io_invalid("composed object tree forecast overflow"))?;
+        forecast.external_sort_logical_bytes = composed_sort_bytes;
+        forecast.temporary_payload_spool_peak_bytes =
+            forecast.selected_quantile_scenario_logical_source_bytes;
+        forecast.temporary_digest_sort_peak_bytes = composed_sort_bytes;
+        forecast.temporary_scratch_peak_bytes = forecast
+            .temporary_payload_spool_peak_bytes
+            .checked_add(composed_sort_bytes)
+            .ok_or_else(|| io_invalid("composed scratch forecast overflow"))?;
+        forecast.temporary_scratch_blocks_4k_assumption = forecast
+            .temporary_scratch_peak_bytes
+            .checked_add(SCALE_ALLOCATION_BLOCK_ASSUMPTION_V1 - 1)
+            .ok_or_else(|| io_invalid("composed scratch blocks overflow"))?
+            / SCALE_ALLOCATION_BLOCK_ASSUMPTION_V1;
+        forecast.current_snapshot_three_copy_p50_bytes = forecast
+            .current_snapshot_three_copy_p50_bytes
+            .checked_add(
+                auxiliary_bytes
+                    .checked_mul(3)
+                    .ok_or_else(|| io_invalid("composed three-copy forecast overflow"))?,
+            )
+            .ok_or_else(|| io_invalid("composed three-copy forecast overflow"))?;
+        forecast.three_pins_with_backup_and_restore_no_dedup_p50_bytes = forecast
+            .three_pins_with_backup_and_restore_no_dedup_p50_bytes
+            .checked_add(
+                auxiliary_bytes
+                    .checked_mul(5)
+                    .ok_or_else(|| io_invalid("composed retained forecast overflow"))?,
+            )
+            .ok_or_else(|| io_invalid("composed retained forecast overflow"))?;
+        forecast.p50_logical_source_bytes_at_1b = forecast
+            .p50_logical_source_bytes_at_1b
+            .checked_add(auxiliary_bytes)
+            .ok_or_else(|| io_invalid("composed billion forecast overflow"))?;
+        forecast.selected_quantile_scenario_logical_source_bytes_at_1b = forecast
+            .selected_quantile_scenario_logical_source_bytes_at_1b
+            .checked_add(auxiliary_bytes)
+            .ok_or_else(|| io_invalid("composed billion forecast overflow"))?;
+        forecast.ten_full_copy_no_dedup_scenario_bytes_at_1b = forecast
+            .ten_full_copy_no_dedup_scenario_bytes_at_1b
+            .checked_add(
+                auxiliary_bytes
+                    .checked_mul(10)
+                    .ok_or_else(|| io_invalid("composed billion copy forecast overflow"))?,
+            )
+            .ok_or_else(|| io_invalid("composed billion copy forecast overflow"))?;
+        forecast.temporary_sort_run_count = composed_runs;
+        forecast.temporary_file_inode_peak = envelope.temporary_file_inodes;
+        forecast.packed_object_pack_count_upper = total_members
+            .checked_add(MAX_PACKED_OBJECT_FRAMES_V2 as u64 - 1)
+            .ok_or_else(|| io_invalid("composed pack forecast overflow"))?
+            / MAX_PACKED_OBJECT_FRAMES_V2 as u64;
+    }
+    drop(extra_directories);
+    let selected_state = u64::try_from(max_working_state_bytes)
+        .map_err(|_| io_invalid("selected Native state ceiling exceeds u64"))?;
+    forecast.selected_native_state_bytes_per_client = Some(selected_state);
+    forecast.read_clients_state_upper_bytes = Some(
+        selected_state
+            .checked_mul(forecast.expected_read_clients as u64)
+            .ok_or_else(|| io_invalid("256-client read state forecast overflow"))?,
+    );
+    forecast.writer_staging_upper_bytes_per_client = Some(envelope.temporary_allocated_bytes);
+    forecast.write_clients_staging_upper_bytes = Some(
+        envelope
+            .temporary_allocated_bytes
+            .checked_mul(forecast.expected_write_clients as u64)
+            .ok_or_else(|| io_invalid("256-client writer staging forecast overflow"))?,
+    );
+    forecast.writer_callback_state_upper_bytes_per_client = Some(selected_state);
+    forecast.write_clients_callback_state_upper_bytes = Some(
+        selected_state
+            .checked_mul(forecast.expected_write_clients as u64)
+            .ok_or_else(|| io_invalid("256-client callback state forecast overflow"))?,
+    );
+    forecast.full_256_peak_established = false;
+
+    let generated_max = profile.classes.iter().try_fold(0u64, |maximum, row| {
+        row.max_bytes
+            .checked_add(SCALE_IDENTITY_GROWTH_ALLOWANCE_V1)
+            .map(|bytes| maximum.max(bytes))
+            .ok_or_else(|| io_invalid("generated maximum member overflow"))
+    })?;
+    let maximum_member_bytes = auxiliary.map_or(generated_max, |selection| {
+        selection
+            .members
+            .iter()
+            .map(|member| member.raw_bytes)
+            .max()
+            .unwrap_or(0)
+            .max(generated_max)
+    });
+    Ok(WeightedScaleComposedEnvelopeV1 {
+        envelope,
+        forecast,
+        member_count: total_members,
+        auxiliary_member_count: auxiliary_count,
+        auxiliary_source_bytes: auxiliary_bytes,
+        required_member_key_bytes,
+        maximum_member_bytes,
+        directory_state_bytes: directory_state,
+    })
+}
+
 /// All resource ceilings are copied from the selected Native invocation. The
 /// producer checks its conservative pre-write scratch envelope against these
 /// values and the supplied shared ledgers before creating the private root.
@@ -2797,10 +3281,15 @@ fn weighted_prewrite_refusal_v1(
             envelope.temporary_allocated_bytes,
             envelope.temporary_file_inodes,
             request.tree_io.selected_allocation_unit_bytes(),
-            profile.target_records,
-            profile.target_records,
-            profile.target_records,
-            profile.classes.iter().map(|row| row.max_bytes).max().unwrap_or(0)
+            forecast.raw_input_file_count,
+            forecast.raw_input_file_count,
+            forecast.raw_input_file_count,
+            profile
+                .classes
+                .iter()
+                .map(|row| row.max_bytes)
+                .max()
+                .unwrap_or(0)
                 .saturating_add(SCALE_IDENTITY_GROWTH_ALLOWANCE_V1),
             required_member_key_bytes,
             request.max_source_bytes,
@@ -2845,6 +3334,7 @@ pub(crate) struct PackedScaleInputReceiptV1 {
     pub(crate) objects_descriptor: AuthenticatedTreeDescriptorV2,
     pub(crate) objects_descriptor_sha256: Digest256,
     pub(crate) member_count: u64,
+    pub(crate) composition: Option<WeightedScaleCompositionBindingV1>,
     pub(crate) source_bytes: u64,
     pub(crate) class_source_bytes: [u64; 5],
     pub(crate) unique_object_count: u64,
@@ -2867,6 +3357,22 @@ pub(crate) fn produce_weighted_scale_input_v1(
     request: WeightedScaleProducerRequestV1<'_>,
     before_manifest: &mut dyn FnMut() -> std::io::Result<()>,
 ) -> std::io::Result<PackedScaleInputReceiptV1> {
+    produce_weighted_scale_input_composed_v1(request, None, before_manifest)
+}
+
+pub(crate) fn produce_weighted_scale_input_with_authored_aux_v1(
+    request: WeightedScaleProducerRequestV1<'_>,
+    selection: &WeightedScaleAuthoredAuxSelectionV1,
+    before_manifest: &mut dyn FnMut() -> std::io::Result<()>,
+) -> std::io::Result<PackedScaleInputReceiptV1> {
+    produce_weighted_scale_input_composed_v1(request, Some(selection), before_manifest)
+}
+
+fn produce_weighted_scale_input_composed_v1(
+    request: WeightedScaleProducerRequestV1<'_>,
+    auxiliary: Option<&WeightedScaleAuthoredAuxSelectionV1>,
+    before_manifest: &mut dyn FnMut() -> std::io::Result<()>,
+) -> std::io::Result<PackedScaleInputReceiptV1> {
     let profile = request.profile.clone();
     profile.validate()?;
     let expected_profile =
@@ -2876,7 +3382,6 @@ pub(crate) fn produce_weighted_scale_input_v1(
             "weighted producer profile differs from maintained seed/size ladder",
         ));
     }
-    let required_member_key_bytes = max_member_path_bytes_v1(&profile);
     if request.output_root.exists()
         || request.raw_input_root.exists()
         || !request.output_root.is_absolute()
@@ -2932,51 +3437,37 @@ pub(crate) fn produce_weighted_scale_input_v1(
         .segment_limits
         .validate()
         .map_err(|_| io_invalid("weighted producer segment limits are invalid"))?;
-    let mut forecast = profile.forecast_inputs()?;
-    let allocation_unit = request.tree_io.selected_allocation_unit_bytes();
-    let envelope = weighted_scale_producer_envelope_v1(&profile, allocation_unit)?;
+    let price = weighted_scale_composition_price_v1(
+        &profile,
+        auxiliary,
+        request.tree_io.selected_allocation_unit_bytes(),
+        request.raw_input_root,
+        request.max_working_state_bytes,
+        request.caller_live_state_bytes,
+    )?;
+    let envelope = price.envelope;
+    let mut forecast = price.forecast;
+    let total_members = price.member_count;
+    let auxiliary_count = price.auxiliary_member_count;
+    let auxiliary_bytes = price.auxiliary_source_bytes;
+    let required_member_key_bytes = price.required_member_key_bytes;
+    let directory_state = price.directory_state_bytes;
     let maximum_source_bytes = envelope.maximum_source_bytes;
-    let run_count = sort_run_count_v1(profile.target_records)?;
+    let run_count = sort_run_count_v1(total_members)?;
     let temporary_logical_upper = envelope.temporary_logical_bytes;
     let temporary_allocated_upper = envelope.temporary_allocated_bytes;
     let inode_upper = envelope.temporary_file_inodes;
     let raw_allocation_upper = envelope.raw_input_allocated_bytes;
     let raw_directory_upper = forecast.raw_input_directory_count;
-    let selected_state = u64::try_from(request.max_working_state_bytes)
-        .map_err(|_| io_invalid("selected Native state ceiling exceeds u64"))?;
-    forecast.selected_native_state_bytes_per_client = Some(selected_state);
-    forecast.read_clients_state_upper_bytes = Some(
-        selected_state
-            .checked_mul(forecast.expected_read_clients as u64)
-            .ok_or_else(|| io_invalid("256-client read state forecast overflow"))?,
-    );
-    forecast.writer_staging_upper_bytes_per_client = Some(envelope.temporary_allocated_bytes);
-    forecast.write_clients_staging_upper_bytes = Some(
-        envelope
-            .temporary_allocated_bytes
-            .checked_mul(forecast.expected_write_clients as u64)
-            .ok_or_else(|| io_invalid("256-client writer staging forecast overflow"))?,
-    );
-    forecast.writer_callback_state_upper_bytes_per_client = Some(selected_state);
-    forecast.write_clients_callback_state_upper_bytes = Some(
-        selected_state
-            .checked_mul(forecast.expected_write_clients as u64)
-            .ok_or_else(|| io_invalid("256-client callback state forecast overflow"))?,
-    );
-    forecast.full_256_peak_established = false;
-    let member_growth_exceeds_cap = profile.classes.iter().any(|row| {
-        row.max_bytes
-            .checked_add(SCALE_IDENTITY_GROWTH_ALLOWANCE_V1)
-            .is_none_or(|upper| {
-                upper > request.max_member_bytes || upper > segment_limits.max_frame_bytes
-            })
-    });
-    let selected_case_exceeds_profile = request.member_tree_limits.max_rows < profile.target_records
-        || request.object_limits.tree_limits.max_rows < profile.target_records
-        || request.object_limits.max_objects < profile.target_records;
-    let member_key_exceeds_cap = required_member_key_bytes > request.member_tree_limits.max_key_bytes;
+    let member_growth_exceeds_cap = price.maximum_member_bytes > request.max_member_bytes
+        || price.maximum_member_bytes > segment_limits.max_frame_bytes;
+    let selected_case_exceeds_profile = request.member_tree_limits.max_rows < total_members
+        || request.object_limits.tree_limits.max_rows < total_members
+        || request.object_limits.max_objects < total_members;
+    let member_key_exceeds_cap =
+        required_member_key_bytes > request.member_tree_limits.max_key_bytes;
     if maximum_source_bytes > request.max_source_bytes
-        || profile.target_records > request.max_raw_input_files
+        || total_members > request.max_raw_input_files
         || raw_directory_upper > request.max_raw_input_directories
         || raw_allocation_upper > request.max_raw_input_allocated_bytes
         || temporary_logical_upper > request.max_temporary_logical_bytes
@@ -3027,13 +3518,42 @@ pub(crate) fn produce_weighted_scale_input_v1(
         request.cancelled,
         &request.work,
     )?;
-    let producer_state = weighted_producer_state_upper_v1(&templates, run_count)?;
-    if producer_state >= request.max_working_state_bytes {
+    let producer_state = weighted_producer_state_upper_v1(&templates, run_count)?
+        .checked_add(auxiliary.map_or(0, |s| s.state_bytes))
+        .and_then(|v| v.checked_add(directory_state.checked_mul(2)?))
+        .and_then(|v| {
+            v.checked_add(
+                usize::try_from(auxiliary.map_or(0, |s| {
+                    s.members.iter().map(|m| m.raw_bytes).max().unwrap_or(0)
+                }))
+                .ok()?,
+            )
+        })
+        .and_then(|v| v.checked_add(size_of::<ComposedScaleMemberIterV1<'_, '_>>()))
+        .ok_or_else(|| io_invalid("composed producer state overflow"))?;
+    if producer_state
+        .checked_add(request.caller_live_state_bytes)
+        .is_none_or(|total| total >= request.max_working_state_bytes)
+    {
         return Err(io_invalid(
             "weighted producer retained state exceeds selected bound",
         ));
     }
-    let profile_bytes = effective_profile_bytes_v1(&profile, base_profile_sha256, &forecast)?;
+    let mut profile_bytes = effective_profile_bytes_v1(&profile, base_profile_sha256, &forecast)?;
+    if let Some(selection) = auxiliary {
+        let mut value: serde_json::Value = serde_json::from_slice(&profile_bytes)
+            .map_err(|_| io_invalid("composed profile decoding failed"))?;
+        value["authored_aux_selection"] = serde_json::json!({
+            "coverage": "authenticated_byte_composition_pending_semantic_admission",
+            "authored_manifest_sha256": selection.authored_manifest_sha256.to_hex(),
+            "generated_declaration_sha256": generated_declaration_digest_v1(&profile, templates.manifest_sha256)?.to_hex(),
+            "auxiliary_members_sha256": auxiliary_members_digest_v1(selection).to_hex(),
+            "generated_record_count": profile.target_records,
+            "auxiliary_member_count": auxiliary_count,
+            "auxiliary_source_bytes": auxiliary_bytes,
+        });
+        profile_bytes = canonical_value_bytes_v1(&value)?;
+    }
     if profile_bytes.len() > SCALE_MAX_PROFILE_BYTES_V1 {
         return Err(io_invalid(
             "effective weighted profile exceeds sidecar bound",
@@ -3074,7 +3594,7 @@ pub(crate) fn produce_weighted_scale_input_v1(
     let mut raw_fixture = match RawScaleFixtureV1::new(
         request.raw_input_root,
         raw_input_reserved,
-        profile.target_records,
+        total_members,
         raw_directory_upper,
         request.max_raw_input_files,
         request.max_raw_input_directories,
@@ -3087,7 +3607,20 @@ pub(crate) fn produce_weighted_scale_input_v1(
         }
     };
     let mut digest_runs = DigestRunWriterV1::new(SCALE_SORT_RUN_ROWS_V1)?;
-    let mut member_cursor = WeightedScaleMemberIterV1::new(&profile, &templates)?;
+    let mut generated_cursor = WeightedScaleMemberIterV1::new(&profile, &templates)?;
+    let mut member_cursor = ComposedScaleMemberIterV1 {
+        generated: &mut generated_cursor,
+        auxiliary,
+        auxiliary_index: 0,
+        auxiliary_bytes: 0,
+        member_count: 0,
+        source_bytes: 0,
+        repository_root: request.repository_root,
+        io: &io_budget,
+        work: &request.work,
+        deadline: request.deadline,
+        cancelled: request.cancelled,
+    };
     let mut member_rows = WeightedMemberTreeRowsV1 {
         cursor: &mut member_cursor,
         raw: &mut raw_fixture,
@@ -3098,7 +3631,7 @@ pub(crate) fn produce_weighted_scale_input_v1(
         work: &request.work,
         deadline: request.deadline,
         cancelled: request.cancelled,
-        expected_members: profile.target_records,
+        expected_members: total_members,
         max_member_bytes: request.max_member_bytes,
         max_source_bytes: request.max_source_bytes,
         max_raw_input_file_bytes: request.max_member_bytes,
@@ -3133,9 +3666,9 @@ pub(crate) fn produce_weighted_scale_input_v1(
         )
         .map_err(|_| io_invalid("weighted member authenticated tree build failed"))?;
     member_rows.ensure_finished()?;
-    if member_rows.cursor.member_count() != profile.target_records
+    if member_rows.cursor.member_count() != total_members
         || member_rows.cursor.source_bytes() > request.max_source_bytes
-        || members_descriptor.entries != profile.target_records
+        || members_descriptor.entries != total_members
     {
         return Err(io_invalid("weighted member tree census differs"));
     }
@@ -3199,7 +3732,7 @@ pub(crate) fn produce_weighted_scale_input_v1(
     )?;
     if !object_cursor.complete()
         || objects_descriptor.entries != object_build_work.object_rows
-        || object_build_work.object_rows > profile.target_records
+        || object_build_work.object_rows > total_members
     {
         return Err(io_invalid("weighted object extent census differs"));
     }
@@ -3264,7 +3797,22 @@ pub(crate) fn produce_weighted_scale_input_v1(
         request.cancelled,
         &request.work,
     )?;
-    let manifest_bytes = scale_input_manifest_bytes_v1(
+    let composition = match auxiliary {
+        Some(selection) => Some(WeightedScaleCompositionBindingV1 {
+            authored_manifest_sha256: selection.authored_manifest_sha256,
+            generated_declaration_sha256: generated_declaration_digest_v1(
+                &profile,
+                templates.manifest_sha256,
+            )?,
+            auxiliary_members_sha256: auxiliary_members_digest_v1(selection),
+            generated_record_count: profile.target_records,
+            auxiliary_member_count: auxiliary_count,
+            auxiliary_source_bytes: auxiliary_bytes,
+            members_descriptor_sha256,
+        }),
+        None => None,
+    };
+    let mut manifest_bytes = scale_input_manifest_bytes_v1(
         profile.seed,
         templates.manifest_sha256,
         member_count,
@@ -3278,6 +3826,21 @@ pub(crate) fn produce_weighted_scale_input_v1(
         dependency_closure_sha256,
         &closure,
     )?;
+    if let Some(binding) = &composition {
+        let mut value: serde_json::Value = serde_json::from_slice(&manifest_bytes)
+            .map_err(|_| io_invalid("composed manifest decoding failed"))?;
+        value["authored_aux_composition"] = serde_json::json!({
+            "coverage": "authenticated_byte_composition_pending_semantic_admission",
+            "authored_manifest_sha256": binding.authored_manifest_sha256.to_hex(),
+            "generated_declaration_sha256": binding.generated_declaration_sha256.to_hex(),
+            "auxiliary_members_sha256": binding.auxiliary_members_sha256.to_hex(),
+            "generated_record_count": binding.generated_record_count,
+            "auxiliary_member_count": binding.auxiliary_member_count,
+            "auxiliary_source_bytes": binding.auxiliary_source_bytes,
+            "members_descriptor_sha256": binding.members_descriptor_sha256.to_hex(),
+        });
+        manifest_bytes = canonical_value_bytes_v1(&value)?;
+    }
     if manifest_bytes.len() > SCALE_MAX_MANIFEST_BYTES_V1 {
         return Err(io_invalid("weighted input manifest exceeds sidecar bound"));
     }
@@ -3327,6 +3890,7 @@ pub(crate) fn produce_weighted_scale_input_v1(
         objects_descriptor: objects_descriptor.clone(),
         objects_descriptor_sha256,
         member_count,
+        composition,
         source_bytes,
         class_source_bytes,
         unique_object_count,
@@ -3348,9 +3912,10 @@ fn weighted_source_upper_bound_v1(profile: &WeightedScaleProfileV1) -> std::io::
     let mut total = 0u128;
     for row in profile.classes {
         let selected_counts = selected_quantile_counts_v1(row.count)?;
-        for (count, template_bytes) in selected_counts
-            .into_iter()
-            .zip([row.p50_bytes, row.p95_bytes, row.max_bytes])
+        for (count, template_bytes) in
+            selected_counts
+                .into_iter()
+                .zip([row.p50_bytes, row.p95_bytes, row.max_bytes])
         {
             let member_upper = template_bytes
                 .checked_add(SCALE_IDENTITY_GROWTH_ALLOWANCE_V1)
@@ -3373,9 +3938,10 @@ fn raw_fixture_allocation_upper_v1(
     let mut files = 0u128;
     for row in &profile.classes {
         let selected_counts = selected_quantile_counts_v1(row.count)?;
-        for (count, template_bytes) in selected_counts
-            .into_iter()
-            .zip([row.p50_bytes, row.p95_bytes, row.max_bytes])
+        for (count, template_bytes) in
+            selected_counts
+                .into_iter()
+                .zip([row.p50_bytes, row.p95_bytes, row.max_bytes])
         {
             let logical_upper = template_bytes
                 .checked_add(SCALE_IDENTITY_GROWTH_ALLOWANCE_V1)
@@ -3465,7 +4031,7 @@ impl RawScaleFixtureV1 {
 
     fn write_member(
         &mut self,
-        member: &WeightedScaleMemberV1,
+        member: &ComposedScaleMemberV1,
         io: &PinnedSqliteIoBudget,
         work: &AdmissionWorkBudget,
         deadline: Instant,
@@ -3482,29 +4048,36 @@ impl RawScaleFixtureV1 {
         let filename = components
             .pop()
             .ok_or_else(|| io_invalid("weighted raw source filename absent"))?;
-        let ordinal = components
-            .pop()
-            .ok_or_else(|| io_invalid("weighted raw source ordinal directory absent"))?;
-        if ordinal.len() != 20 || !ordinal.bytes().all(|byte| byte.is_ascii_digit()) {
-            return Err(io_invalid("weighted raw source ordinal directory differs"));
-        }
-        let class_root_relative = components.join("/");
-        let class_root = self.root_path.join(&class_root_relative);
-        if self.current_class_root.as_ref() != Some(&class_root) {
+        let ordinal_directory = if member.generated {
+            let ordinal = components
+                .pop()
+                .ok_or_else(|| io_invalid("weighted raw source ordinal directory absent"))?;
+            if ordinal.len() != 20 || !ordinal.bytes().all(|byte| byte.is_ascii_digit()) {
+                return Err(io_invalid("weighted raw source ordinal directory differs"));
+            }
+            let class_root_relative = components.join("/");
+            let class_root = self.root_path.join(&class_root_relative);
+            if self.current_class_root.as_ref() != Some(&class_root) {
+                self.ensure_directories(&components, work, deadline, cancelled)?;
+                self.current_class_root = Some(class_root.clone());
+            }
+            let ordinal_directory = class_root.join(ordinal);
+            if self.directory_count >= self.max_directories {
+                return Err(io_invalid("weighted raw source directory cap exhausted"));
+            }
+            let mut builder = DirBuilder::new();
+            builder.mode(0o755);
+            builder.create(&ordinal_directory)?;
+            self.directory_count = self
+                .directory_count
+                .checked_add(1)
+                .ok_or_else(|| io_invalid("weighted raw directory count overflow"))?;
+
+            ordinal_directory
+        } else {
             self.ensure_directories(&components, work, deadline, cancelled)?;
-            self.current_class_root = Some(class_root.clone());
-        }
-        let ordinal_directory = class_root.join(ordinal);
-        if self.directory_count >= self.max_directories {
-            return Err(io_invalid("weighted raw source directory cap exhausted"));
-        }
-        let mut builder = DirBuilder::new();
-        builder.mode(0o755);
-        builder.create(&ordinal_directory)?;
-        self.directory_count = self
-            .directory_count
-            .checked_add(1)
-            .ok_or_else(|| io_invalid("weighted raw directory count overflow"))?;
+            self.root_path.join(components.join("/"))
+        };
 
         if self.file_count >= self.max_files {
             return Err(io_invalid("weighted raw source file cap exhausted"));
@@ -3541,7 +4114,9 @@ impl RawScaleFixtureV1 {
             return Err(io_invalid("weighted raw source file identity differs"));
         }
         self.add_allocated(metadata.blocks().saturating_mul(512))?;
-        self.add_directory_allocation(&ordinal_directory)?;
+        if member.generated {
+            self.add_directory_allocation(&ordinal_directory)?;
+        }
         let parent = OpenOptions::new()
             .read(true)
             .custom_flags(libc::O_CLOEXEC | libc::O_NOFOLLOW | libc::O_DIRECTORY)
@@ -4019,8 +4594,221 @@ impl DigestRunWriterV1 {
     }
 }
 
-struct WeightedMemberTreeRowsV1<'a, 'profile> {
-    cursor: &'a mut WeightedScaleMemberIterV1<'profile>,
+struct ComposedScaleMemberV1 {
+    path: String,
+    digest: Digest256,
+    source_bytes: Vec<u8>,
+    mode: u32,
+    generated: bool,
+}
+struct ComposedScaleMemberIterV1<'a, 'profile> {
+    generated: &'a mut WeightedScaleMemberIterV1<'profile>,
+    auxiliary: Option<&'a WeightedScaleAuthoredAuxSelectionV1>,
+    auxiliary_index: usize,
+    auxiliary_bytes: u64,
+    member_count: u64,
+    source_bytes: u64,
+    repository_root: &'a Path,
+    io: &'a PinnedSqliteIoBudget,
+    work: &'a AdmissionWorkBudget,
+    deadline: Instant,
+    cancelled: &'a AtomicBool,
+}
+impl ComposedScaleMemberIterV1<'_, '_> {
+    fn member_count(&self) -> u64 {
+        self.member_count
+    }
+    fn source_bytes(&self) -> u64 {
+        self.source_bytes
+    }
+    fn class_source_bytes(&self) -> [u64; 5] {
+        self.generated.class_source_bytes()
+    }
+    fn closure(&self) -> &WeightedScaleClosureAccumulatorV1 {
+        self.generated.closure()
+    }
+    fn next_member(&mut self) -> std::io::Result<Option<ComposedScaleMemberV1>> {
+        scale_active(self.deadline, self.cancelled)?;
+        let next_generated = self
+            .generated
+            .profile
+            .classes
+            .iter()
+            .enumerate()
+            .skip(self.generated.class_index)
+            .find(|(index, row)| {
+                let ordinal = if *index == self.generated.class_index {
+                    self.generated.ordinal
+                } else {
+                    0
+                };
+                ordinal < row.count
+            })
+            .map(|(index, row)| {
+                path_for(
+                    row.class,
+                    if index == self.generated.class_index {
+                        self.generated.ordinal
+                    } else {
+                        0
+                    },
+                )
+            });
+        let next_aux = self
+            .auxiliary
+            .and_then(|s| s.members.get(self.auxiliary_index));
+        if next_aux.is_some_and(|aux| next_generated.as_ref().is_some_and(|g| *g == aux.path)) {
+            return Err(io_invalid("composed generated and auxiliary paths collide"));
+        }
+        let member = if next_aux
+            .is_some_and(|aux| next_generated.as_ref().is_none_or(|g| aux.path < *g))
+        {
+            let aux = next_aux.ok_or_else(|| io_invalid("authored auxiliary cursor differs"))?;
+            let bytes = read_authored_aux_member_v1(
+                self.repository_root,
+                aux,
+                self.io,
+                self.work,
+                self.deadline,
+                self.cancelled,
+            )?;
+            self.auxiliary_index += 1;
+            self.auxiliary_bytes = self
+                .auxiliary_bytes
+                .checked_add(aux.raw_bytes)
+                .ok_or_else(|| io_invalid("authored auxiliary observed bytes overflow"))?;
+            ComposedScaleMemberV1 {
+                path: aux.path.clone(),
+                digest: aux.raw_sha256,
+                source_bytes: bytes,
+                mode: 0o644,
+                generated: false,
+            }
+        } else if let Some(generated) = self.generated.next_member()? {
+            ComposedScaleMemberV1 {
+                path: generated.path,
+                digest: generated.digest,
+                source_bytes: generated.source_bytes,
+                mode: generated.mode,
+                generated: true,
+            }
+        } else {
+            if self.generated.member_count() != self.generated.profile.target_records
+                || self.auxiliary.is_some_and(|s| {
+                    self.auxiliary_index != s.members.len()
+                        || self.auxiliary_bytes != s.source_bytes
+                })
+            {
+                return Err(io_invalid("composed cursor EOF differs"));
+            }
+            return Ok(None);
+        };
+        self.member_count = self
+            .member_count
+            .checked_add(1)
+            .ok_or_else(|| io_invalid("composed observed member count overflow"))?;
+        self.source_bytes = self
+            .source_bytes
+            .checked_add(member.source_bytes.len() as u64)
+            .ok_or_else(|| io_invalid("composed observed source bytes overflow"))?;
+        Ok(Some(member))
+    }
+}
+
+fn read_authored_aux_member_v1(
+    root: &Path,
+    member: &WeightedScaleAuthoredAuxMemberV1,
+    io: &PinnedSqliteIoBudget,
+    work: &AdmissionWorkBudget,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> std::io::Result<Vec<u8>> {
+    // Walk held directory descriptors: a source ancestor replacement cannot
+    // turn the selected read into a symlink-following open. Only the current
+    // ancestor and its child are live, independent of selected member count.
+    let relative =
+        RelativePath::parse(&member.path).map_err(|_| io_invalid("auxiliary path differs"))?;
+    let mut directory = OpenOptions::new()
+        .read(true)
+        .custom_flags(libc::O_CLOEXEC | libc::O_NOFOLLOW | libc::O_DIRECTORY)
+        .open(root)?;
+    let mut components = relative.as_str().split('/').peekable();
+    let mut file = loop {
+        scale_active(deadline, cancelled)?;
+        work.charge_many(1)?;
+        let part = components
+            .next()
+            .ok_or_else(|| io_invalid("auxiliary leaf absent"))?;
+        let name = std::ffi::CString::new(part).map_err(|_| io_invalid("auxiliary path NUL"))?;
+        let leaf = components.peek().is_none();
+        let flags = libc::O_RDONLY
+            | libc::O_CLOEXEC
+            | libc::O_NOFOLLOW
+            | if leaf {
+                libc::O_NONBLOCK
+            } else {
+                libc::O_DIRECTORY
+            };
+        let fd = unsafe {
+            libc::openat(
+                std::os::fd::AsRawFd::as_raw_fd(&directory),
+                name.as_ptr(),
+                flags,
+            )
+        };
+        if fd < 0 {
+            return Err(std::io::Error::last_os_error());
+        }
+        let opened = unsafe { <File as std::os::fd::FromRawFd>::from_raw_fd(fd) };
+        if leaf {
+            break opened;
+        }
+        directory = opened;
+    };
+    drop(directory);
+    let meta = file.metadata()?;
+    if !meta.is_file() || meta.len() != member.raw_bytes {
+        return Err(io_invalid("authored auxiliary source descriptor differs"));
+    }
+    let size = usize::try_from(member.raw_bytes)
+        .map_err(|_| io_invalid("auxiliary bytes exceed address space"))?;
+    let mut bytes = Vec::new();
+    bytes
+        .try_reserve_exact(size)
+        .map_err(|_| io_invalid("auxiliary read allocation failed"))?;
+    let mut buffer = [0u8; 64 * 1024];
+    loop {
+        scale_active(deadline, cancelled)?;
+        work.charge_many(1)?;
+        let wanted = size
+            .checked_sub(bytes.len())
+            .and_then(|v| v.checked_add(1))
+            .ok_or_else(|| io_invalid("auxiliary read bound overflow"))?
+            .min(buffer.len());
+        io.charge_read(wanted as u64)
+            .map_err(|_| io_invalid("auxiliary read permit refused"))?;
+        let returned = file.read(&mut buffer[..wanted])?;
+        io.record_read_returned(returned as u64)
+            .map_err(|_| io_invalid("auxiliary read accounting failed"))?;
+        if returned == 0 {
+            break;
+        }
+        if returned > size - bytes.len() {
+            return Err(io_invalid("auxiliary source grew while reading"));
+        }
+        bytes.extend_from_slice(&buffer[..returned]);
+    }
+    if bytes.len() != size
+        || file.metadata()?.len() != member.raw_bytes
+        || Digest256::of_bytes(&bytes) != member.raw_sha256
+    {
+        return Err(io_invalid("authored auxiliary full EOF or SHA differs"));
+    }
+    Ok(bytes)
+}
+
+struct WeightedMemberTreeRowsV1<'a, 'source, 'profile> {
+    cursor: &'a mut ComposedScaleMemberIterV1<'source, 'profile>,
     raw: &'a mut RawScaleFixtureV1,
     spool: &'a mut File,
     digest_runs: &'a mut DigestRunWriterV1,
@@ -4042,7 +4830,7 @@ struct WeightedMemberTreeRowsV1<'a, 'profile> {
     finished: bool,
 }
 
-impl WeightedMemberTreeRowsV1<'_, '_> {
+impl WeightedMemberTreeRowsV1<'_, '_, '_> {
     fn ensure_finished(&self) -> std::io::Result<()> {
         if !self.finished
             || self.cursor.member_count() != self.expected_members
@@ -4137,7 +4925,7 @@ impl WeightedMemberTreeRowsV1<'_, '_> {
     }
 }
 
-impl Iterator for WeightedMemberTreeRowsV1<'_, '_> {
+impl Iterator for WeightedMemberTreeRowsV1<'_, '_, '_> {
     type Item = tos_segment_store::Result<AuthenticatedTreeEntryV1>;
 
     fn next(&mut self) -> Option<Self::Item> {
