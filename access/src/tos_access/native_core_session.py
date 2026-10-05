@@ -487,14 +487,17 @@ def owned_native_sdk_session(*, prefix, root, startup_bytes, limits, cancelled,
         snapshot_root = _path(snapshot_root, receiving_state)
         if selected_root != snapshot_root / 'data':
             raise ValueError('native snapshot root/data selector differs')
-    if receiving_state is not None:
-        from .native_core_session_launch_state import reserve_sdk_launch
-        reserve_sdk_launch(receiving_state, config, prefix, selected_root,
-                           session_operation=session_operation)
     if search_cache_path is not None:
         search_cache_path = _path(search_cache_path, receiving_state)
         if session_operation != 'tos_native_ordinary_session':
             raise ValueError('native cache host selector requires ordinary operation')
+    if receiving_state is not None:
+        from .native_core_session_launch_state import reserve_sdk_launch
+        reserve_sdk_launch(receiving_state, config, prefix, selected_root,
+                           session_operation=session_operation,
+                           protected_root=snapshot_root if snapshot_root is not None else
+                               selected_root if session_operation == 'tos_native_ordinary_session' else None,
+                           search_cache_path=search_cache_path)
     with ExitStack() as stack:
         outside = isinstance(config, NativeSDKHostSessionRequest)
         if outside and session_operation != 'tos_native_ordinary_session':
@@ -599,7 +602,8 @@ def owned_native_snapshot_exchange(prefix, selection, state, operation_id,
     cleanup_deadline = min(config.original_whole_deadline_ns / 1e9, operation_deadline + 5)
     prefix, root = _path(prefix, state), _path(selection.tos_root, state)
     reserve_sdk_launch(state, config, prefix, root, session_operation=operation_id,
-                       input_cap=_INPUT_CAP, frame_cap=_FRAME_CAP)
+                       input_cap=_INPUT_CAP, frame_cap=_FRAME_CAP,
+                       protected_root=snapshot_root if snapshot_root is not None else root)
     if snapshot_root is not None:
         snapshot_root = _path(snapshot_root, state)
         if root != snapshot_root / 'data':

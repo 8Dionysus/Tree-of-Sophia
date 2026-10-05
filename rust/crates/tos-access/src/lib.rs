@@ -14,6 +14,8 @@ pub mod edge_sql;
 pub mod exploration_checkpoints;
 pub mod exploration_contracts;
 mod indexed_cursor;
+#[cfg(not(target_arch = "wasm32"))]
+pub(crate) mod reference_cursor;
 pub mod knowledge;
 pub mod managed_local;
 #[cfg(not(target_arch = "wasm32"))]

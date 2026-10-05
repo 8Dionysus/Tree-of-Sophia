@@ -122,7 +122,7 @@ mod knowledge_seal;
 mod knowledge_search;
 mod knowledge_selected;
 mod controlled_cold_model;
-pub use controlled_cold_model::{ControlledOriginalReceipt, ControlledOriginalCollection, ControlledOriginalRowRead, ControlledSidecarModel, SearchSidecarAdmissionError};
+pub use controlled_cold_model::{ControlledLensKeySelection, ControlledLensKeyRow, ControlledOriginalReceipt, ControlledOriginalCollection, ControlledOriginalRowRead, ControlledSidecarModel, SearchSidecarAdmissionError};
 pub use controlled_cold_model::{ControlledCarrierSelection, ControlledKnowledgeModel, ControlledQueryHeap, ControlledSearchKind, ControlledGramStat, ControlledPostingPage, ControlledSearchCandidate};
 mod knowledge_semantic_join;
 pub mod knowledge_source_claims;

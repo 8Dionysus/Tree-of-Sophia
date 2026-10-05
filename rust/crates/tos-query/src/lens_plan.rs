@@ -20,8 +20,9 @@ use std::{
 use tos_foundation::{CanonicalProfile, JsonValue, canonical_bytes_v1};
 
 /// The native controlled driver borrows this guard from its original State
-/// owner. It admits the complete bounded plan workspace before construction;
-/// the guard and that admission outlive every continuation and final packet.
+/// owner. It admits bounded thin plan frames before construction. Exact row
+/// and reply copies are additionally admitted by that same driver/heap before
+/// resume; all these holds outlive continuations and final packet delivery.
 /// Query VM remains in the controlled reader, never in this pure plan.
 pub(crate) trait OriginalLensBudget {
     fn check(&self) -> Result<(), SearchV2Error>;
@@ -2246,9 +2247,10 @@ impl<'original> LensPlan<'original> {
         )
     }
     /// Controlled native construction. `workspace_bytes` is the driver's
-    /// checked upper bound for this complete bounded plan, including retained
-    /// rows, vocabulary, traversal/sort frames, and final packet allocations.
-    /// This admission is held by the original owner until disclosure finishes.
+    /// checked upper bound for its thin traversal/sort/identity frames. The
+    /// same driver separately admits actual vocabulary, authenticated row,
+    /// reply and packet geometries before their corresponding plan phase.
+    /// All admissions stay with the original owner through disclosure.
     #[cfg(not(target_arch = "wasm32"))]
     pub(crate) fn native_with_original(
         public: JsonValue,

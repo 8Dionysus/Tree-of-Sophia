@@ -79,6 +79,8 @@ pub trait SearchPostingModel {
     ) -> Result<PostingPage, SearchV2Error>;
 }
 
+pub const INDEXED_SEARCH_GRAM_CODEPOINTS_V1: u8 = 3;
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct GramSeed {
     pub gram: Option<String>,
@@ -96,14 +98,14 @@ pub fn choose_rarest_gram<M: SearchGramModel>(
     budget: GramSeekBudget,
 ) -> Result<GramSeed, SearchV2Error> {
     let code_points: Vec<char> = request.query().chars().collect();
-    if code_points.len() < 3 {
+    if code_points.len() < INDEXED_SEARCH_GRAM_CODEPOINTS_V1 as usize {
         return Err(SearchV2Error::new(
             SearchV2ErrorCode::InvalidRequest,
             "indexed search query has no three-code-point gram",
         ));
     }
     let mut grams = Vec::new();
-    for window in code_points.windows(3) {
+    for window in code_points.windows(INDEXED_SEARCH_GRAM_CODEPOINTS_V1 as usize) {
         let gram: String = window.iter().collect();
         if !grams.contains(&gram) {
             grams.push(gram);

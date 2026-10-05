@@ -2988,7 +2988,9 @@ fn host_admission(
     Ok(j)
 }
 fn sdk_host_session(args: &[String]) -> Result<i32, String> {
-    if args.len() > 19
+    // Cache path and snapshot-root are separate selectors; physical cache caps
+    // are issued natively below, never accepted from the ordinary SDK request.
+    if args.len() > 21
         || args.len() < 11
         || args[1] != "--expected-parent-pid"
         || args[3] != "--restore-signal-mask"
@@ -3005,6 +3007,7 @@ fn sdk_host_session(args: &[String]) -> Result<i32, String> {
             pair[0].as_str(),
             "--root"
                 | "--snapshot-root"
+                | "--search-cache-path"
                 | "--consumer-control-fd"
                 | "--work-deadline-ns"
                 | "--snapshot-operation"
@@ -3091,12 +3094,38 @@ fn sdk_host_session(args: &[String]) -> Result<i32, String> {
     }
     let scope = format!("tos-sdk-session-{uuid}.scope");
     let scratch = PathBuf::from(format!("/srv/abyss-machine/tmp/{scope}"));
+    // The ordinary request chooses only the selected path. Bind it to the exact
+    // logical Root already admitted above and issue physical caps from this
+    // native SDK profile.
+    let search_cache = selected
+        .get("--search-cache-path")
+        .copied()
+        .map(|path| SearchCacheSelection {
+            path: PathBuf::from(path),
+            source_root: root.clone(),
+            max_build_bytes: SDK_SETUP_BYTES,
+            max_temp_bytes: SDK_SETUP_BYTES,
+        });
+    if search_cache.is_some() && control.is_none() {
+        return Err("ordinary search cache requires a live session selector".into());
+    }
+    if let Some(cache) = search_cache.as_ref() {
+        path_shape(&cache.path)?;
+        let parent = cache.parent()?;
+        if parent.starts_with(&scratch) || scratch.starts_with(parent) {
+            return Err("ordinary search cache overlaps native scratch".into());
+        }
+    }
     let host = ["/usr/local/bin/abyss-machine", "/usr/bin/abyss-machine"]
         .into_iter()
         .find(|p| Path::new(p).is_file())
         .ok_or("normal Abyss host owner unavailable")?;
     let mut lease: Option<String> = None;
     let mut storage = false;
+    let mut cache_storage = false;
+    let cache_reservation_id = format!("{scope}-search-cache");
+    let mut cache_anchor_hold: Option<File> = None;
+    let mut cache_parent_hold: Option<File> = None;
     let mut created = false;
     let result = (|| {
         end.check()?;
@@ -3231,6 +3260,81 @@ fn sdk_host_session(args: &[String]) -> Result<i32, String> {
             false,
         )?;
         storage = true;
+        if let Some(cache) = search_cache.as_ref() {
+            let requested_bytes = cache
+                .max_build_bytes
+                .checked_add(cache.max_temp_bytes)
+                .ok_or("ordinary search cache storage reservation overflow")?;
+            let parent = cache.parent()?;
+            // Reserve incremental build growth plus TEMP against a held existing
+            // directory before creating a missing final parent. Existing main-file
+            // bytes are neither charged as growth nor capped as a read.
+            let (target, anchor) = match fs::symlink_metadata(parent) {
+                Ok(meta) if meta.is_dir() && !meta.file_type().is_symlink() => {
+                    (parent.to_path_buf(), directory(parent)?)
+                }
+                Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+                    let ancestor = parent
+                        .parent()
+                        .ok_or("ordinary search cache ancestor absent")?;
+                    (ancestor.to_path_buf(), directory(ancestor)?)
+                }
+                Ok(_) => {
+                    return Err("ordinary search cache parent is not a directory".into());
+                }
+                Err(error) => return Err(error.to_string()),
+            };
+            cache_anchor_hold = Some(anchor);
+            let preflight = host_json(
+                host,
+                &vec![
+                    "storage".into(),
+                    "write-preflight".into(),
+                    "--kind".into(),
+                    "tmp".into(),
+                    "--bytes".into(),
+                    requested_bytes.to_string(),
+                    "--target".into(),
+                    target.display().to_string(),
+                    "--json".into(),
+                ],
+                end,
+                false,
+            )?;
+            if preflight["decision"] != "allow"
+                || preflight["strict_write_decision"] != "allow"
+                || preflight["write_permission"] != true
+            {
+                return Err("ordinary search cache storage preflight refused".into());
+            }
+            host_json(
+                host,
+                &vec![
+                    "storage".into(),
+                    "write-reservation".into(),
+                    "acquire".into(),
+                    "--reservation-id".into(),
+                    cache_reservation_id.clone(),
+                    "--kind".into(),
+                    "tmp".into(),
+                    "--bytes".into(),
+                    requested_bytes.to_string(),
+                    "--target".into(),
+                    target.display().to_string(),
+                    "--owner".into(),
+                    "tos-access-sdk".into(),
+                    "--ttl-seconds".into(),
+                    "60".into(),
+                    "--json".into(),
+                ],
+                end,
+                false,
+            )?;
+            cache_storage = true;
+            let held = open_search_cache(cache)?;
+            cache.verify(&held, &scratch)?;
+            cache_parent_hold = Some(held);
+        }
         DirBuilder::new()
             .mode(0o700)
             .create(&scratch)
@@ -3295,15 +3399,48 @@ fn sdk_host_session(args: &[String]) -> Result<i32, String> {
                 argv.extend([key.into(), fd.to_string()]);
             }
         }
+        if let Some(cache) = search_cache.as_ref() {
+            argv.extend([
+                "--search-cache-path".into(),
+                cache.path.display().to_string(),
+                "--search-cache-source-root".into(),
+                cache.source_root.display().to_string(),
+                "--search-cache-max-build-bytes".into(),
+                cache.max_build_bytes.to_string(),
+                "--search-cache-max-temp-bytes".into(),
+                cache.max_temp_bytes.to_string(),
+            ]);
+        }
         sdk_python_run(&argv)
     })();
     let closed = (|| {
-        end.cleanup_check()?;
+        let mut cleanup_error: Option<String> = end.cleanup_check().err();
         if created {
-            fs::remove_dir(&scratch).map_err(|e| format!("owned scratch cleanup: {e}"))?;
+            if let Err(error) = fs::remove_dir(&scratch) {
+                cleanup_error = Some(format!("owned scratch cleanup: {error}"));
+            }
+        }
+        if cache_storage {
+            if let Err(error) = host_json(
+                host,
+                &vec![
+                    "storage".into(),
+                    "write-reservation".into(),
+                    "release".into(),
+                    "--reservation-id".into(),
+                    cache_reservation_id.clone(),
+                    "--json".into(),
+                ],
+                end,
+                true,
+            ) {
+                if cleanup_error.is_none() {
+                    cleanup_error = Some(error);
+                }
+            }
         }
         if storage {
-            host_json(
+            if let Err(error) = host_json(
                 host,
                 &vec![
                     "storage".into(),
@@ -3315,14 +3452,27 @@ fn sdk_host_session(args: &[String]) -> Result<i32, String> {
                 ],
                 end,
                 true,
-            )?;
+            ) {
+                if cleanup_error.is_none() {
+                    cleanup_error = Some(error);
+                }
+            }
         }
+        drop(cache_parent_hold.take());
+        drop(cache_anchor_hold.take());
         if let Some(id) = lease {
-            host_admission(
+            if let Err(error) = host_admission(
                 serde_json::json!({"command":"release","request":{"lease_id":id,"release_token":uuid}}),
                 end,
                 true,
-            )?;
+            ) {
+                if cleanup_error.is_none() {
+                    cleanup_error = Some(error);
+                }
+            }
+        }
+        if let Some(error) = cleanup_error {
+            return Err(error);
         }
         Ok::<(), String>(())
     })();

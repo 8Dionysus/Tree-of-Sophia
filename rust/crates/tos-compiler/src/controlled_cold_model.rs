@@ -1,3 +1,5 @@
+mod ordinary_lens;
+pub use ordinary_lens::{ControlledLensKeySelection, ControlledLensKeyRow};
 mod ordinary_sidecar;
 pub use ordinary_sidecar::{ControlledSidecarModel, SearchSidecarAdmissionError};
 use std::{fs::File, io::Seek};
@@ -158,6 +160,15 @@ impl ControlledQueryHeap<'_, '_, '_> {
         self.context.check()
     }
 
+    /// Parse while lending this same-state hold owner for any derived copies.
+    /// The original parser/tree never escapes; persistent copies require retain.
+    pub fn with_owned_query_json<T>(&mut self, raw: &[u8], limits: JsonLimits,
+        operation: impl FnOnce(&JsonValue, &mut Self) -> Result<T>) -> Result<T> {
+        let context = self.context;
+        context.with_foundation_owned_with_limits(raw, limits,
+            |value| operation(value, self))
+    }
+
     /// Retain a caller-owned allocation until this hold set is dropped.
     pub fn retain(&mut self, bytes: usize) -> Result<()> {
         let total = bytes
@@ -179,6 +190,40 @@ impl ControlledQueryHeap<'_, '_, '_> {
     ) -> Result<T> {
         let _hold = self.state.hold(bytes)?;
         Ok(operation())
+    }
+
+    /// Maintained resource text renderer under the same original state,
+    /// JSON visits, work and interruption controller as selected parsing.
+    /// A returned buffer requires caller persistent admission before use.
+    pub fn emit_python_pretty_owned_json(&self, value: &JsonValue,
+        mut limits: JsonLimits) -> Result<Vec<u8>> {
+        self.context.check()?;
+        limits.max_visits = limits.max_visits.min(self.context.remaining_json_visits()?);
+        if limits.max_visits == 0 { return Err(Error::Budget("resource renderer visits")); }
+        let mut check = || self.context.check().map_err(|_| tos_foundation::FoundationError::new(
+            tos_foundation::FoundationErrorCode::BudgetExceeded, "resource original interruption"));
+        let mut admit = |bytes: usize, visits: usize| {
+            let work = bytes.checked_mul(2).and_then(|n| visits.checked_mul(2)
+                .and_then(|v| n.checked_add(v))).ok_or_else(|| tos_foundation::FoundationError::new(
+                    tos_foundation::FoundationErrorCode::BudgetExceeded, "resource work overflow"))?;
+            self.context.charge_work(work).map_err(|_| tos_foundation::FoundationError::new(
+                tos_foundation::FoundationErrorCode::BudgetExceeded, "resource original work"))
+        };
+        let emitted = tos_foundation::emit_python_pretty_sorted_json_with_state_budget(
+            value, limits, self.context.remaining_after_retained(0)?, &mut check, &mut admit);
+        let (bytes, visits) = match emitted {
+            Ok(result) => result,
+            Err(_) => {
+                // Failed traversal never restores visits already spent. The
+                // writer does not expose partial progress, so consume its
+                // admitted original visit ceiling on failure.
+                self.context.debit_json_visits(limits.max_visits)?;
+                return Err(Error::Budget("resource original renderer state"));
+            }
+        };
+        self.context.debit_json_visits(visits)?;
+        self.context.check()?;
+        Ok(bytes)
     }
 
     /// Canonicalize a retained search item under the same original visit,
@@ -376,6 +421,15 @@ impl ControlledKnowledgeModel<'_, '_, '_> {
         max_vm_steps: u64, json: JsonLimits,
         consume: impl FnOnce(&[u8]) -> Result<()>,
     ) -> Result<()> {
+        self.with_controlled_header_scan(max_payload_bytes, max_decoded_bytes,
+            max_vm_steps, json, consume).map(|_| ())
+    }
+
+    pub fn with_controlled_header_scan(
+        &mut self, max_payload_bytes: usize, max_decoded_bytes: u64,
+        max_vm_steps: u64, json: JsonLimits,
+        consume: impl FnOnce(&[u8]) -> Result<()>,
+    ) -> Result<ControlledLegacySearchScan> {
         self.check_pin()?;
         if max_payload_bytes == 0 || max_payload_bytes > i64::MAX as usize
             || max_decoded_bytes < 40 || max_vm_steps == 0 {
@@ -388,7 +442,7 @@ impl ControlledKnowledgeModel<'_, '_, '_> {
             .and_then(|n| n.checked_add(tos_source_store::PinnedSqliteConnection::bounded_statement_rust_workspace_upper_bound()))
             .ok_or(Error::Budget("controlled header workspace"))?;
         let _hold = self.context.owned_state().hold(forecast)?;
-        let (payload, _) = crate::knowledge_payload_read::with_query_vm_window(
+        let (payload, vm_steps) = crate::knowledge_payload_read::with_query_vm_window(
             self.context, &self.connection, max_vm_steps, || {
                 self.connection.query_row(
                     "SELECT packet_len,CASE WHEN typeof(packet_sha256)='blob' AND length(packet_sha256)=32 THEN packet_sha256 END,CASE WHEN typeof(packet)='blob' AND packet_len BETWEEN 1 AND ?1 AND length(packet)=packet_len THEN packet END FROM graph_header WHERE singleton=1",
@@ -412,7 +466,9 @@ impl ControlledKnowledgeModel<'_, '_, '_> {
             }
             consume(&payload)
         })?;
-        self.check_pin()
+        self.check_pin()?;
+        Ok(ControlledLegacySearchScan { rows: 1,
+            decoded_bytes: payload.len() as u64 + 32, vm_steps })
     }
 
     /// Recheck the exact held file, selected expectation and original state.
@@ -1083,6 +1139,35 @@ impl<'model, 'state, 'budget> ControlledKnowledgeModel<'model, 'state, 'budget> 
             &mut ControlledQueryHeap<'model, 'state, 'budget>,
         ) -> std::result::Result<(), E>,
     ) -> Result<std::result::Result<ControlledLegacySearchScan, E>> {
+        self.visit_controlled_carrier_rows_with_size(kind, sources, selected,
+            max_rows, max_decoded_bytes, max_vm_steps, max_payload_bytes,
+            max_field_bytes, json_limits, heap,
+            |source, position, digest, _, value, charge, heap|
+                consume(source, position, digest, value, charge, heap))
+    }
+
+    pub fn visit_controlled_carrier_rows_with_size<E>(
+        &mut self,
+        kind: ControlledSearchKind,
+        sources: &[String],
+        selected: ControlledCarrierSelection<'_>,
+        max_rows: u64,
+        max_decoded_bytes: u64,
+        max_vm_steps: u64,
+        max_payload_bytes: usize,
+        max_field_bytes: usize,
+        json_limits: JsonLimits,
+        heap: &mut ControlledQueryHeap<'model, 'state, 'budget>,
+        mut consume: impl FnMut(
+            &str,
+            u64,
+            Digest256,
+            usize,
+            &JsonValue,
+            &mut dyn FnMut(usize) -> Result<()>,
+            &mut ControlledQueryHeap<'model, 'state, 'budget>,
+        ) -> std::result::Result<(), E>,
+    ) -> Result<std::result::Result<ControlledLegacySearchScan, E>> {
         self.check_pin()?;
         if self.selection.model_abi != knowledge_stage::KNOWLEDGE_CARRIER_ONCE_MODEL_ABI {
             return Err(Error::Invalid("controlled legacy search requires CarrierOnce ABI"));
@@ -1310,6 +1395,7 @@ impl<'model, 'state, 'budget> ControlledKnowledgeModel<'model, 'state, 'budget> 
                                     &source_graph,
                                     position as u64,
                                     payload_sha256,
+                                    logical.len(),
                                     value,
                                     &mut charge,
                                     heap,

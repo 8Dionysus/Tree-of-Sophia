@@ -12,7 +12,7 @@ import types
 
 
 def reserve_sdk_launch(state, config, prefix, root, *, session_operation='tos_native_session',
-                       input_cap=65536, frame_cap=65536):
+                       input_cap=65536, frame_cap=65536, protected_root=None, search_cache_path=None):
     from . import native_io
     from .native_core_session import (NativeSDKPlacement, NativeSDKHostCustody, NativeSDKHostSessionRequest, NativeSDKSession,
                                       owned_native_sdk_session, owned_native_snapshot_exchange)
@@ -53,7 +53,9 @@ def reserve_sdk_launch(state, config, prefix, root, *, session_operation='tos_na
     # Three simultaneous source/native/Popen argument lists and exact C argv
     # pointer/descriptor arrays coexist before successful exec.
     cache = getattr(config, 'search_cache', None)
-    count = 47 + (8 if cache is not None else 0)
+    # Retained outer/core FD pairs and phase-auth use at most55 base entries.
+    # Added RO/cache selectors are actual additional flag/value pairs.
+    count = 55 + (8 if cache is not None else 0) + (2 if protected_root is not None else 0) + (2 if search_cache_path is not None else 0)
     argument_state = (3 * g.list_bytes(count) + (count + 1) * g.pointer + 16 * 4
                       + g.tuple_base + 6 * g.pointer)
     if cache is not None:
@@ -63,6 +65,7 @@ def reserve_sdk_launch(state, config, prefix, root, *, session_operation='tos_na
     selected_paths = ((prefix, root) if isinstance(config, NativeSDKHostSessionRequest) else
                       (config.unshare_exe, config.consumer_cgroup,
                        config.scratch_parent, config.persistent_store, prefix, root))
+    selected_paths += (protected_root, search_cache_path)
     for selected in selected_paths:
         if selected is None:
             continue

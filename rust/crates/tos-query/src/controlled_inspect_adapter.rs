@@ -24,10 +24,10 @@ fn corrupt() -> SearchV2Error {
     }
 }
 #[derive(Default)]
-struct Charges {
-    rows: u64,
-    decoded: u64,
-    vm: u64,
+pub(crate) struct Charges {
+    pub(crate) rows: u64,
+    pub(crate) decoded: u64,
+    pub(crate) vm: u64,
 }
 
 fn collect<'hold, 'model, 'state, 'budget, A: InspectCurrentAuthority<'hold> + ?Sized>(
@@ -41,6 +41,21 @@ fn collect<'hold, 'model, 'state, 'budget, A: InspectCurrentAuthority<'hold> + ?
     consulted: &mut Vec<ObservedInspectCarrier>,
     heap: &mut ControlledQueryHeap<'model, 'state, 'budget>,
 ) -> Result<Vec<JsonValue>, SearchV2Error> {
+    collect_with_sizes(model, authority, sources, kind, selected, caps,
+        charges, consulted, heap).map(|rows| rows.into_iter().map(|(value, _)| value).collect())
+}
+
+pub(crate) fn collect_with_sizes<'hold, 'model, 'state, 'budget, A: InspectCurrentAuthority<'hold> + ?Sized>(
+    model: &mut ControlledKnowledgeModel<'model, 'state, 'budget>,
+    authority: &mut A,
+    sources: &[String],
+    kind: SearchKind,
+    selected: ControlledCarrierSelection<'_>,
+    caps: InspectBudget,
+    charges: &mut Charges,
+    consulted: &mut Vec<ObservedInspectCarrier>,
+    heap: &mut ControlledQueryHeap<'model, 'state, 'budget>,
+) -> Result<Vec<(JsonValue, usize)>, SearchV2Error> {
     let mut values = Vec::new();
     let rows = caps.max_rows.checked_sub(charges.rows).ok_or_else(budget)?;
     let decoded = caps
@@ -52,7 +67,7 @@ fn collect<'hold, 'model, 'state, 'budget, A: InspectCurrentAuthority<'hold> + ?
         .checked_sub(charges.vm)
         .ok_or_else(budget)?;
     let scan = model
-        .visit_controlled_carrier_rows(
+        .visit_controlled_carrier_rows_with_size(
             match kind {
                 SearchKind::Nodes => ControlledSearchKind::Nodes,
                 SearchKind::Relations => ControlledSearchKind::Relations,
@@ -66,7 +81,7 @@ fn collect<'hold, 'model, 'state, 'budget, A: InspectCurrentAuthority<'hold> + ?
             caps.max_field_bytes,
             caps.json,
             heap,
-            |source_graph, position, payload_sha256, value, charge, heap| {
+            |source_graph, position, payload_sha256, raw_bytes, value, charge, heap| {
                 authority.check_selected()?;
                 let id = value
                     .object_get("id")
@@ -105,7 +120,7 @@ fn collect<'hold, 'model, 'state, 'budget, A: InspectCurrentAuthority<'hold> + ?
                     .and_then(|n| {
                         n.checked_add(
                             std::mem::size_of::<ObservedInspectCarrier>()
-                                + std::mem::size_of::<JsonValue>(),
+                                + std::mem::size_of::<(JsonValue, usize)>(),
                         )
                     })
                     .ok_or_else(budget)?;
@@ -125,7 +140,7 @@ fn collect<'hold, 'model, 'state, 'budget, A: InspectCurrentAuthority<'hold> + ?
                         .ok_or_else(budget)?,
                 )
                 .map_err(compiler_query_error)?;
-                values.push(value.clone());
+                values.push((value.clone(), raw_bytes));
                 Ok::<(), SearchV2Error>(())
             },
         )

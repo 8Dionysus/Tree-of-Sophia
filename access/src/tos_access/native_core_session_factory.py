@@ -177,7 +177,8 @@ def owned_native_ordinary_source_session(*, prefix, selection, transport, state,
             receiver_buffer=receiver, frame_buffer=frame, config=config,
             receiving_state=state, session_operation='tos_native_ordinary_session',
             snapshot_root=snapshot_root,
-            search_cache_path=search_read_model['path'] if search_read_model is not None else None) as (session, startup):
+            search_cache_path=(search_read_model['path'] if search_read_model is not None
+                                and not selection.query_store_configured else None)) as (session, startup):
         constructor = NativeCoreOrdinarySessionResultClient.__new__.__code__
         constructor_slots = (constructor.co_nlocals + len(constructor.co_cellvars)
                              + len(constructor.co_freevars) + constructor.co_stacksize)

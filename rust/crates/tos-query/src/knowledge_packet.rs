@@ -199,11 +199,21 @@ impl<'hold, A: ScopedIndexedKnowledgeAuthority<'hold> + ?Sized> SearchCurrentAut
     }
 }
 
-/// Wire token semantics remain local to the native adapter. Python's unsigned
-/// base64url JSON token with a 15-minute expiry and Worker's epoch-bound token
-/// are not advertised as interoperable or as authorization.
+/// Wire token semantics remain owned by each adapter. The ordinary source
+/// sidecar may use Reference's unsigned public cursor shape; the legacy lazy
+/// adapter keeps its native token. Neither token grants access or authority.
 pub trait IndexedWireCursorCodec {
     fn decode(&mut self, token: &str) -> Result<SearchContinuationState, SearchV2Error>;
+    /// Supply the exact selected trigram after bounded query execution. Native
+    /// Reference-compatible cursors use it to validate and issue V3 children;
+    /// other cursor codecs keep their existing wire contract.
+    fn observe_page_gram(
+        &mut self,
+        _kind: SearchKind,
+        _selected_gram: Option<&str>,
+    ) -> Result<(), SearchV2Error> {
+        Ok(())
+    }
     fn encode(&mut self, state: &SearchContinuationState) -> Result<String, SearchV2Error>;
 }
 
@@ -597,6 +607,14 @@ where
     if !next_state.is_exhausted(SearchKind::Relations) {
         advance_private_kind(&mut next_state, SearchKind::Relations, &relations)?;
     }
+    cursor_codec.observe_page_gram(
+        SearchKind::Nodes,
+        nodes.gram_seed.as_ref().and_then(|seed| seed.gram.as_deref()),
+    )?;
+    cursor_codec.observe_page_gram(
+        SearchKind::Relations,
+        relations.gram_seed.as_ref().and_then(|seed| seed.gram.as_deref()),
+    )?;
     owner.check_selected()?;
     model.check_bound(bound)?;
     let has_more = !next_state.is_exhausted(SearchKind::Nodes)
