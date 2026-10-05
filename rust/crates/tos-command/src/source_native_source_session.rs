@@ -24,9 +24,9 @@ use tos_source_store::{
     SoftwareCaptureReader, SoftwareComponentSelectionV1, SourceCutDependencyWitness,
     SourceCutDirectoryWitness, SourceCutFormat, SourceCutIdentityWitness, SourceCutMemberStream,
     SourceCutMemberTuple, SourceCutMemberWitness, SourceCutMembership, SourceCutMetadataStream,
-    SourceCutRead, SourceCutReadsetV1, SourceCutRevision, SourceCutRevisionStream,
-    SourceCutSelection, SourceMemberV1, SourceMembershipV1, SourcePresenceV1, StoreError,
-    StoreErrorCode, feed_source_membership_v1,
+    SourceCutObjectRefcountWitness, SourceCutRead, SourceCutReadsetV1, SourceCutRevision,
+    SourceCutRevisionStream, SourceCutSelection, SourceMemberV1, SourceMembershipV1,
+    SourcePresenceV1, StoreError, StoreErrorCode, feed_source_membership_v1,
 };
 
 const ROOTSET_BYTES: usize = SourceRevisionRootsV2::MAX_ENCODED_BYTES;
@@ -262,7 +262,7 @@ impl NativeSourceV2Session {
             .map_err(|_| SourceCommandError::Conflict("native V2 source root guard budget"))?;
         let held_root = tos_fd_open::open_absolute_directory(path)
             .map_err(|_| SourceCommandError::Conflict("native V2 source root"))?;
-        let reader = V2ReadSession::open_at_named_with_work(
+        let mut reader = V2ReadSession::open_at_named_with_work(
             path,
             &held_root,
             limits,
@@ -406,6 +406,7 @@ impl<'a> NativeSourceV2RecordFiles<'a> {
             &self.readset.identities,
             &self.readset.directories,
             &self.readset.dependencies,
+            &self.readset.object_refcounts,
         )
         .map_err(|_| SourceCommandError::Invalid("native V2 record readset state"))
     }
@@ -585,6 +586,65 @@ impl<'a> NativeSourceV2RecordFiles<'a> {
         self.ensure_state(transient_bytes, 0)
     }
 
+    /// Retain only a genuine provider observation. Repeated identical reads
+    /// deduplicate; contradictory counts refuse within the same invocation.
+    pub(super) fn object_refcount(
+        &mut self,
+        digest: Digest256,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<Option<u64>> {
+        let count = self
+            .session
+            .object_refcount(
+                self.revision,
+                digest,
+                self.live_state()?,
+                deadline,
+                cancelled,
+            )
+            .map_err(|_| {
+                SourceCommandError::Unsupported(
+                    "native V2 authenticated object refcount unavailable",
+                )
+            })?;
+        if count == Some(0) {
+            return Err(SourceCommandError::Conflict(
+                "native V2 zero object refcount is not absence",
+            ));
+        }
+        let witness = SourceCutObjectRefcountWitness {
+            digest,
+            expected_count: count,
+        };
+        if let Some(prior) = self
+            .readset
+            .object_refcounts
+            .iter()
+            .find(|prior| prior.digest == digest)
+        {
+            if prior != &witness {
+                return Err(SourceCommandError::Conflict(
+                    "native V2 object refcount changed within invocation",
+                ));
+            }
+        } else {
+            self.ensure_state(0, size_of::<SourceCutObjectRefcountWitness>())?;
+            self.readset
+                .object_refcounts
+                .try_reserve_exact(1)
+                .map_err(|_| {
+                    SourceCommandError::Invalid("native V2 object refcount witness allocation")
+                })?;
+            self.readset.object_refcounts.push(witness);
+            self.readset
+                .object_refcounts
+                .sort_by_key(|entry| entry.digest);
+        }
+        self.ensure_state(0, 0)?;
+        Ok(count)
+    }
+
     pub(super) fn verify_readset_current(
         &mut self,
         deadline: Instant,
@@ -597,6 +657,7 @@ impl<'a> NativeSourceV2RecordFiles<'a> {
                 &self.readset.identities,
                 &self.readset.directories,
                 &self.readset.dependencies,
+                &self.readset.object_refcounts,
                 self.readset_caller_state()?,
                 deadline,
                 cancelled,
@@ -1006,7 +1067,7 @@ impl SourceCutRead for NativeSourceV2Session {
         lower.push(b'/');
         let upper = prefix_successor(&lower).ok_or_else(|| {
             cut_refusal(
-                StoreErrorCode::InvalidPath,
+                StoreErrorCode::UnsafePath,
                 "V2 directory prefix range overflow",
             )
         })?;
@@ -1049,7 +1110,7 @@ impl SourceCutRead for NativeSourceV2Session {
             };
             let tail = row
                 .key
-                .strip_prefix(&lower)
+                .strip_prefix(lower.as_slice())
                 .filter(|tail| !tail.is_empty())
                 .ok_or_else(|| {
                     cut_refusal(
@@ -1063,13 +1124,13 @@ impl SourceCutRead for NativeSourceV2Session {
             };
             let name = std::str::from_utf8(name).map_err(|_| {
                 cut_refusal(
-                    StoreErrorCode::InvalidPath,
+                    StoreErrorCode::UnsafePath,
                     "V2 directory child is not UTF-8",
                 )
             })?;
             if name.is_empty() || name == "." || name == ".." {
                 return Err(cut_refusal(
-                    StoreErrorCode::InvalidPath,
+                    StoreErrorCode::UnsafePath,
                     "V2 directory child path is invalid",
                 ));
             }
@@ -1696,7 +1757,7 @@ impl SourceCutRead for NativeSourceV2Session {
                     "V2 retirement event is absent",
                 )
             })?;
-        if raw.len() as u64 > cap || event_raw.len() as u64 > cap {
+        if raw.len() > cap || event_raw.len() > cap {
             return Err(cut_refusal(
                 StoreErrorCode::BudgetExceeded,
                 "V2 retirement object exceeds selected cap",
@@ -1720,7 +1781,7 @@ impl SourceCutRead for NativeSourceV2Session {
     ) -> tos_source_store::Result<Box<dyn SourceCutMetadataStream + 'a>> {
         check_cut_clock(deadline, cancelled)?;
         let roots = self.cut_roots(revision, caller_retained_state_bytes)?;
-        let expected = v2_membership(&roots);
+        let expected = v2_membership(&roots)?;
         drop(roots);
         let max_members = self.profile.max_members;
         let max_total_bytes = self.profile.max_total_bytes;
@@ -1754,7 +1815,7 @@ impl SourceCutRead for NativeSourceV2Session {
     ) -> tos_source_store::Result<Box<dyn SourceCutMemberStream + 'a>> {
         check_cut_clock(deadline, cancelled)?;
         let roots = self.cut_roots(revision, caller_retained_state_bytes)?;
-        let expected = v2_membership(&roots);
+        let expected = v2_membership(&roots)?;
         drop(roots);
         let max_members = self.profile.max_members;
         let max_total_bytes = self.profile.max_total_bytes;
@@ -1781,6 +1842,40 @@ impl SourceCutRead for NativeSourceV2Session {
         }))
     }
 
+    fn object_refcount(
+        &mut self,
+        revision: SourceRevision,
+        digest: Digest256,
+        caller_retained_state_bytes: usize,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> tos_source_store::Result<Option<u64>> {
+        check_cut_clock(deadline, cancelled)?;
+        let roots = self.cut_roots(revision, caller_retained_state_bytes)?;
+        if roots.objects.is_none() {
+            return Err(cut_refusal(
+                StoreErrorCode::UnsupportedFormat,
+                "selected V2 source cut has no object index",
+            ));
+        }
+        drop(roots);
+        ensure_cut_state(self, caller_retained_state_bytes)?;
+        let location = self
+            .reader
+            .object_location_by_digest(revision, digest, caller_retained_state_bytes)
+            .map_err(|error| cut_io_error("V2 object index lookup failed", error))?;
+        check_cut_clock(deadline, cancelled)?;
+        if location.is_some() {
+            // PackedObjectLocationV2 authenticates location and size, but
+            // does not encode reference counts. Presence is not count one.
+            return Err(cut_refusal(
+                StoreErrorCode::UnsupportedFormat,
+                "selected V2 object value has no authenticated refcount",
+            ));
+        }
+        Ok(None)
+    }
+
     fn verify_current_fence(
         &mut self,
         deadline: Instant,
@@ -1800,13 +1895,19 @@ impl SourceCutRead for NativeSourceV2Session {
         identities: &[SourceCutIdentityWitness],
         directories: &[SourceCutDirectoryWitness],
         dependencies: &[SourceCutDependencyWitness],
+        object_refcounts: &[SourceCutObjectRefcountWitness],
         caller_retained_state_bytes: usize,
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> tos_source_store::Result<SourceCutSelection> {
         check_cut_clock(deadline, cancelled)?;
-        let readset_state =
-            source_cut_readset_state_upper_bound(members, identities, directories, dependencies)?;
+        let readset_state = source_cut_readset_state_upper_bound(
+            members,
+            identities,
+            directories,
+            dependencies,
+            object_refcounts,
+        )?;
         let caller_state = caller_retained_state_bytes
             .checked_add(readset_state)
             .ok_or_else(|| {
@@ -1889,6 +1990,7 @@ impl SourceCutRead for NativeSourceV2Session {
                 identities,
                 directories,
                 dependencies,
+                object_refcounts,
                 caller_state.checked_add(prior_state).ok_or_else(|| {
                     cut_refusal(
                         StoreErrorCode::BudgetExceeded,
@@ -1913,6 +2015,7 @@ impl SourceCutRead for NativeSourceV2Session {
                 identities,
                 directories,
                 dependencies,
+                object_refcounts,
                 caller_state,
                 deadline,
                 cancelled,
@@ -1929,6 +2032,7 @@ impl NativeSourceV2Session {
         identities: &[SourceCutIdentityWitness],
         directories: &[SourceCutDirectoryWitness],
         dependencies: &[SourceCutDependencyWitness],
+        object_refcounts: &[SourceCutObjectRefcountWitness],
         caller_retained_state_bytes: usize,
         deadline: Instant,
         cancelled: &AtomicBool,
@@ -2063,6 +2167,23 @@ impl NativeSourceV2Session {
                 ));
             }
         }
+        for witness in object_refcounts {
+            check_cut_clock(deadline, cancelled)?;
+            if witness.expected_count == Some(0)
+                || self.object_refcount(
+                    current,
+                    witness.digest,
+                    caller_retained_state_bytes,
+                    deadline,
+                    cancelled,
+                )? != witness.expected_count
+            {
+                return Err(cut_refusal(
+                    StoreErrorCode::DescriptorMismatch,
+                    "V2 readset object refcount changed",
+                ));
+            }
+        }
         match self
             .reader
             .observe_current_selection()
@@ -2189,7 +2310,7 @@ impl NativeSourceV2Session {
         caller_retained_state_bytes: usize,
     ) -> tos_source_store::Result<SourceCutRevision> {
         let roots = self.cut_roots(revision, caller_retained_state_bytes)?;
-        Ok(v2_cut_revision(&roots))
+        v2_cut_revision(&roots)
     }
 }
 
@@ -2293,7 +2414,7 @@ impl V2RevisionStream<'_> {
                     )
                 })?,
         )?;
-        let locator = v2_cut_revision(&roots);
+        let locator = v2_cut_revision(&roots)?;
         self.seen.push(revision);
         self.next_revision = roots.base_revision;
         check_cut_clock(deadline, cancelled)?;
@@ -2680,8 +2801,8 @@ impl V2MemberStream<'_> {
     }
 }
 
-fn v2_cut_revision(roots: &SourceRevisionRootsV2) -> SourceCutRevision {
-    SourceCutRevision {
+fn v2_cut_revision(roots: &SourceRevisionRootsV2) -> tos_source_store::Result<SourceCutRevision> {
+    Ok(SourceCutRevision {
         format: SourceCutFormat::NativeAdmissionV2,
         revision: roots.revision,
         base_revision: roots.base_revision,
@@ -2692,15 +2813,20 @@ fn v2_cut_revision(roots: &SourceRevisionRootsV2) -> SourceCutRevision {
         dependency_source_count: roots.dependency_source_count,
         dependency_count: roots.dependency_count,
         retirement_count: roots.retirement_count,
-        membership: v2_membership(roots),
-    }
+        membership: v2_membership(roots)?,
+    })
 }
 
-fn v2_membership(roots: &SourceRevisionRootsV2) -> SourceCutMembership {
-    SourceCutMembership::NativeAdmissionV2 {
-        rows: roots.membership_v1,
+fn v2_membership(roots: &SourceRevisionRootsV2) -> tos_source_store::Result<SourceCutMembership> {
+    Ok(SourceCutMembership::NativeAdmissionV2 {
+        rows: roots.membership_v1.ok_or_else(|| {
+            cut_refusal(
+                StoreErrorCode::UnsupportedFormat,
+                "V2 ordered row witness is absent from this selected revision",
+            )
+        })?,
         members_tree_commitment: roots.members.commitment,
-    }
+    })
 }
 
 fn membership_hasher_v1() -> Digest256Hasher {
@@ -2792,7 +2918,7 @@ fn v2_indexed_ids_for_path(
         };
         let suffix = row
             .key
-            .strip_prefix(&lower)
+            .strip_prefix(lower.as_slice())
             .filter(|suffix| !suffix.is_empty())
             .ok_or_else(|| {
                 cut_refusal(
@@ -3096,6 +3222,7 @@ fn source_cut_readset_state_upper_bound(
     identities: &[SourceCutIdentityWitness],
     directories: &[SourceCutDirectoryWitness],
     dependencies: &[SourceCutDependencyWitness],
+    object_refcounts: &[SourceCutObjectRefcountWitness],
 ) -> tos_source_store::Result<usize> {
     let mut state = members
         .len()
@@ -3119,6 +3246,13 @@ fn source_cut_readset_state_upper_bound(
                 dependencies
                     .len()
                     .checked_mul(size_of::<SourceCutDependencyWitness>())?,
+            )
+        })
+        .and_then(|bytes| {
+            bytes.checked_add(
+                object_refcounts
+                    .len()
+                    .checked_mul(size_of::<SourceCutObjectRefcountWitness>())?,
             )
         })
         .ok_or_else(|| {

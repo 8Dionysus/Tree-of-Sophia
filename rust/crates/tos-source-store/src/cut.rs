@@ -190,6 +190,15 @@ pub struct SourceCutDependencyWitness {
     pub expected_targets: Vec<RelativePath>,
 }
 
+/// Observed authenticated object-tree reference count for one exact digest.
+/// Absence is `None`; a present count must be nonzero. This is read evidence,
+/// not object custody, admission, or an authorization to publish a successor.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct SourceCutObjectRefcountWitness {
+    pub digest: Digest256,
+    pub expected_count: Option<u64>,
+}
+
 /// The exact finite source predicates observed by one V2 owner operation.
 /// The caller retains this value for currentness checks and, when a transaction
 /// requires recovery, the owning publisher persists this same logical witness
@@ -201,6 +210,7 @@ pub struct SourceCutReadsetV1 {
     pub identities: Vec<SourceCutIdentityWitness>,
     pub directories: Vec<SourceCutDirectoryWitness>,
     pub dependencies: Vec<SourceCutDependencyWitness>,
+    pub object_refcounts: Vec<SourceCutObjectRefcountWitness>,
 }
 
 impl SourceCutReadsetV1 {
@@ -211,6 +221,7 @@ impl SourceCutReadsetV1 {
             identities: Vec::new(),
             directories: Vec::new(),
             dependencies: Vec::new(),
+            object_refcounts: Vec::new(),
         }
     }
 
@@ -238,6 +249,11 @@ impl SourceCutReadsetV1 {
                 self.dependencies
                     .capacity()
                     .checked_mul(std::mem::size_of::<SourceCutDependencyWitness>())?,
+            )?
+            .checked_add(
+                self.object_refcounts
+                    .capacity()
+                    .checked_mul(std::mem::size_of::<SourceCutObjectRefcountWitness>())?,
             )?;
         for witness in &self.members {
             state = state
@@ -431,6 +447,22 @@ pub trait SourceCutRead {
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> Result<Box<dyn SourceCutMemberStream + 'a>>;
+    /// Observe an actual authenticated object reference-count index. A provider
+    /// lacking that index must refuse rather than infer a count from members.
+    fn object_refcount(
+        &mut self,
+        _revision: SourceRevision,
+        _digest: Digest256,
+        _caller_retained_state_bytes: usize,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<Option<u64>> {
+        check_time(deadline, cancelled)?;
+        Err(StoreError::new(
+            StoreErrorCode::UnsupportedFormat,
+            "selected source cut has no authenticated object refcount lookup",
+        ))
+    }
     fn verify_current_fence(&mut self, deadline: Instant, cancelled: &AtomicBool) -> Result<()>;
     /// Re-select current and prove only this operation's exact positive and
     /// negative physical witnesses. V2 implementations may accept a newer
@@ -443,6 +475,7 @@ pub trait SourceCutRead {
         identities: &[SourceCutIdentityWitness],
         directories: &[SourceCutDirectoryWitness],
         dependencies: &[SourceCutDependencyWitness],
+        object_refcounts: &[SourceCutObjectRefcountWitness],
         caller_retained_state_bytes: usize,
         deadline: Instant,
         cancelled: &AtomicBool,
@@ -1366,10 +1399,18 @@ impl SourceCutRead for CorpusCutReader {
         identities: &[SourceCutIdentityWitness],
         directories: &[SourceCutDirectoryWitness],
         dependencies: &[SourceCutDependencyWitness],
+        object_refcounts: &[SourceCutObjectRefcountWitness],
         caller_retained_state_bytes: usize,
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> Result<SourceCutSelection> {
+        check_time(deadline, cancelled)?;
+        if !object_refcounts.is_empty() {
+            return Err(StoreError::new(
+                StoreErrorCode::UnsupportedFormat,
+                "V1 source cut cannot verify object refcount witnesses",
+            ));
+        }
         self.verify_current_fence(deadline, cancelled)?;
         if self.selection().current_revision != base_revision {
             return Err(StoreError::new(

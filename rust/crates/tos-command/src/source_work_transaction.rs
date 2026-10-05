@@ -5,6 +5,7 @@
 //! protection from an independently mutating same-UID writer.
 
 use super::{CreationFilesystem, active, inode, owned, raw, stamp, walk};
+use crate::source_admission_store::PreparedV2SuccessorLocatorV2;
 use crate::source_command::{self as cmd, SourceCommandError, SourceCommandResult};
 use rustix::fs::{AtFlags, Mode, OFlags, RenameFlags};
 use rustix::io::Errno;
@@ -19,9 +20,9 @@ use std::time::Instant;
 use tos_foundation::{Digest256, JsonString, JsonValue, RelativePath, SourceRevision};
 use tos_source_store::{
     SourceCutDependencyWitness, SourceCutDirectoryWitness, SourceCutIdentityWitness,
-    SourceCutMemberTuple, SourceCutMemberWitness, SourceCutReadsetV1, SourcePresenceV1,
+    SourceCutMemberTuple, SourceCutMemberWitness, SourceCutObjectRefcountWitness,
+    SourceCutReadsetV1, SourcePresenceV1,
 };
-use crate::source_admission_store::PreparedV2SuccessorLocatorV2;
 
 const HOME: &str = "ToS/source-witnesses";
 const CONTROL: &str = ".metadata-publication.json";
@@ -477,9 +478,7 @@ fn readset_presence(value: Option<SourcePresenceV1>) -> JsonValue {
     match value {
         None => JsonValue::Null,
         Some(SourcePresenceV1::File) => cmd::string("file"),
-        Some(SourcePresenceV1::MaterializedDirectory) => {
-            cmd::string("materialized_directory")
-        }
+        Some(SourcePresenceV1::MaterializedDirectory) => cmd::string("materialized_directory"),
     }
 }
 
@@ -518,16 +517,19 @@ fn parse_readset_digest(value: &JsonValue, key: &str) -> SourceCommandResult<Dig
 }
 
 fn parse_source_readset(value: &JsonValue) -> SourceCommandResult<SourceCutReadsetV1> {
-    cmd::exact_keys(
-        value,
-        &[
-            "base_revision",
-            "members",
-            "identities",
-            "directories",
-            "dependencies",
-        ],
-    )?;
+    // Preserve the existing empty-refcount wire and its retained digest.
+    // Nonempty observational witnesses add one exact, explicitly present key.
+    let mut keys = vec![
+        "base_revision",
+        "members",
+        "identities",
+        "directories",
+        "dependencies",
+    ];
+    if value.object_get("object_refcounts").is_some() {
+        keys.push("object_refcounts");
+    }
+    cmd::exact_keys(value, &keys)?;
     let base_revision = SourceRevision(parse_readset_digest(value, "base_revision")?);
     let mut readset = SourceCutReadsetV1::new(base_revision);
     for entry in cmd::array(value, "members")? {
@@ -650,6 +652,27 @@ fn parse_source_readset(value: &JsonValue) -> SourceCommandResult<SourceCutReads
             expected_targets: targets,
         });
     }
+    if value.object_get("object_refcounts").is_some() {
+        let entries = cmd::array(value, "object_refcounts")?;
+        if entries.is_empty() {
+            return Err(SourceCommandError::Invalid(
+                "empty object refcount wire must omit its key",
+            ));
+        }
+        for entry in entries {
+            cmd::exact_keys(entry, &["digest", "expected_count"])?;
+            let expected_count = match cmd::field(entry, "expected_count")? {
+                JsonValue::Null => None,
+                _ => Some(cmd::integer(entry, "expected_count")?),
+            };
+            readset
+                .object_refcounts
+                .push(SourceCutObjectRefcountWitness {
+                    digest: parse_readset_digest(entry, "digest")?,
+                    expected_count,
+                });
+        }
+    }
     validate_source_readset(&readset)?;
     Ok(readset)
 }
@@ -667,7 +690,11 @@ fn validate_source_readset(readset: &SourceCutReadsetV1) -> SourceCommandResult<
             (Some(SourcePresenceV1::File), Some(member))
                 if matches!(member.mode, 0o600 | 0o644 | 0o755) => {}
             (None, None) | (Some(SourcePresenceV1::MaterializedDirectory), None) => {}
-            _ => return Err(SourceCommandError::Invalid("source readset member shape differs")),
+            _ => {
+                return Err(SourceCommandError::Invalid(
+                    "source readset member shape differs",
+                ));
+            }
         }
         if witness.expected_presence != Some(SourcePresenceV1::File)
             && witness.expected_indexed_ids.is_some()
@@ -687,10 +714,30 @@ fn validate_source_readset(readset: &SourceCutReadsetV1) -> SourceCommandResult<
             return Err(SourceCommandError::Invalid("source readset dependency order differs"));
         }
     }
-    if readset.members.windows(2).any(|pair| pair[0].path >= pair[1].path)
-        || readset.identities.windows(2).any(|pair| pair[0].id >= pair[1].id)
-        || readset.directories.windows(2).any(|pair| pair[0].path >= pair[1].path)
-        || readset.dependencies.windows(2).any(|pair| pair[0].path >= pair[1].path)
+    if readset
+        .members
+        .windows(2)
+        .any(|pair| pair[0].path >= pair[1].path)
+        || readset
+            .identities
+            .windows(2)
+            .any(|pair| pair[0].id >= pair[1].id)
+        || readset
+            .directories
+            .windows(2)
+            .any(|pair| pair[0].path >= pair[1].path)
+        || readset
+            .dependencies
+            .windows(2)
+            .any(|pair| pair[0].path >= pair[1].path)
+        || readset
+            .object_refcounts
+            .windows(2)
+            .any(|pair| pair[0].digest >= pair[1].digest)
+        || readset
+            .object_refcounts
+            .iter()
+            .any(|witness| witness.expected_count == Some(0))
         || readset.members.iter().any(|witness| {
             witness.expected_indexed_ids.as_ref().is_some_and(|ids| {
                 ids.iter().any(|id| id.is_empty() || id.as_bytes().contains(&0))
@@ -743,9 +790,10 @@ fn source_readset_value_unchecked(readset: &SourceCutReadsetV1) -> SourceCommand
                     ("mode", cmd::number(u64::from(member.mode))),
                 ])
             });
-            let ids = witness.expected_indexed_ids.as_ref().map(|ids| {
-                JsonValue::Array(ids.iter().map(|id| cmd::string(id)).collect())
-            });
+            let ids = witness
+                .expected_indexed_ids
+                .as_ref()
+                .map(|ids| JsonValue::Array(ids.iter().map(|id| cmd::string(id)).collect()));
             cmd::object(vec![
                 ("path", cmd::string(witness.path.as_str())),
                 ("expected_presence", readset_presence(witness.expected_presence)),
@@ -762,9 +810,10 @@ fn source_readset_value_unchecked(readset: &SourceCutReadsetV1) -> SourceCommand
                 ("id", cmd::string(&witness.id)),
                 (
                     "expected_path",
-                    witness.expected_path.as_ref().map_or(JsonValue::Null, |path| {
-                        cmd::string(path.as_str())
-                    }),
+                    witness
+                        .expected_path
+                        .as_ref()
+                        .map_or(JsonValue::Null, |path| cmd::string(path.as_str())),
                 ),
             ])
         })
@@ -813,7 +862,7 @@ fn source_readset_value_unchecked(readset: &SourceCutReadsetV1) -> SourceCommand
             ])
         })
         .collect();
-    Ok(cmd::object(vec![
+    let mut fields = vec![
         (
             "base_revision",
             cmd::string(&readset.base_revision.0.to_prefixed()),
@@ -822,7 +871,28 @@ fn source_readset_value_unchecked(readset: &SourceCutReadsetV1) -> SourceCommand
         ("identities", JsonValue::Array(identities)),
         ("directories", JsonValue::Array(directories)),
         ("dependencies", JsonValue::Array(dependencies)),
-    ]))
+    ];
+    if !readset.object_refcounts.is_empty() {
+        fields.push((
+            "object_refcounts",
+            JsonValue::Array(
+                readset
+                    .object_refcounts
+                    .iter()
+                    .map(|witness| {
+                        cmd::object(vec![
+                            ("digest", cmd::string(&witness.digest.to_prefixed())),
+                            (
+                                "expected_count",
+                                witness.expected_count.map_or(JsonValue::Null, cmd::number),
+                            ),
+                        ])
+                    })
+                    .collect(),
+            ),
+        ));
+    }
+    Ok(cmd::object(fields))
 }
 
 fn source_successor_value(
@@ -836,7 +906,11 @@ fn source_successor_value(
     let artifact_format = match &locator.source_artifact {
         SourceRevisionArtifactV2::CompactCommitV2 { .. }
         | SourceRevisionArtifactV2::CompactPackedV2 { .. } => locator.source_artifact.format(),
-        _ => return Err(SourceCommandError::Invalid("prepared V2 source artifact format")),
+        _ => {
+            return Err(SourceCommandError::Invalid(
+                "prepared V2 source artifact format",
+            ));
+        }
     };
     let selection = locator.expected_selection;
     Ok(cmd::object(vec![
@@ -853,9 +927,9 @@ fn source_successor_value(
                 ),
                 (
                     "rootset_sha256",
-                    selection.rootset_sha256.map_or(JsonValue::Null, |digest| {
-                        cmd::string(&digest.to_prefixed())
-                    }),
+                    selection
+                        .rootset_sha256
+                        .map_or(JsonValue::Null, |digest| cmd::string(&digest.to_prefixed())),
                 ),
             ]),
         ),
@@ -902,13 +976,24 @@ fn parse_source_successor(
     let selection_revision = SourceRevision(parse_readset_digest(selection_value, "revision")?);
     let selection_previous = match cmd::field(selection_value, "previous")? {
         JsonValue::Null => None,
-        JsonValue::String(_) => Some(SourceRevision(parse_readset_digest(selection_value, "previous")?)),
-        _ => return Err(SourceCommandError::Invalid("prepared source selector previous")),
+        JsonValue::String(_) => Some(SourceRevision(parse_readset_digest(
+            selection_value,
+            "previous",
+        )?)),
+        _ => {
+            return Err(SourceCommandError::Invalid(
+                "prepared source selector previous",
+            ));
+        }
     };
     let selection_rootset = match cmd::field(selection_value, "rootset_sha256")? {
         JsonValue::Null => None,
         JsonValue::String(_) => Some(parse_readset_digest(selection_value, "rootset_sha256")?),
-        _ => return Err(SourceCommandError::Invalid("prepared source selector rootset")),
+        _ => {
+            return Err(SourceCommandError::Invalid(
+                "prepared source selector rootset",
+            ));
+        }
     };
     let artifact_value = cmd::field(value, "source_artifact")?;
     cmd::exact_keys(artifact_value, &["format", "sha256", "bytes"])?;
@@ -923,7 +1008,11 @@ fn parse_source_successor(
             sha256: artifact_sha256,
             bytes: artifact_bytes,
         },
-        _ => return Err(SourceCommandError::Invalid("prepared source artifact format")),
+        _ => {
+            return Err(SourceCommandError::Invalid(
+                "prepared source artifact format",
+            ));
+        }
     };
     let locator = PreparedV2SuccessorLocatorV2 {
         expected_selection: tos_source_store::CorpusCurrentSelection {
@@ -3746,5 +3835,35 @@ impl<'a> Parents<'a> {
                 .map_err(|_| SourceCommandError::Invalid("selected parent recovery fsync"))?;
         }
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod object_refcount_readset_tests {
+    use super::*;
+
+    #[test]
+    fn retained_object_observations_preserve_empty_wire_and_refuse_ambiguous_counts() {
+        let digest = Digest256::of_bytes(b"retained object observation");
+        let mut readset = SourceCutReadsetV1::new(SourceRevision(digest));
+        let old_wire = source_readset_value(&readset).unwrap();
+        assert!(old_wire.object_get("object_refcounts").is_none());
+        assert_eq!(parse_source_readset(&old_wire).unwrap(), readset);
+        let empty_state = readset.retained_state_upper_bound().unwrap();
+        readset.object_refcounts.push(SourceCutObjectRefcountWitness {
+            digest,
+            expected_count: None,
+        });
+        assert!(readset.retained_state_upper_bound().unwrap() > empty_state);
+        let absent_wire = source_readset_value(&readset).unwrap();
+        assert_eq!(parse_source_readset(&absent_wire).unwrap(), readset);
+        readset.object_refcounts[0].expected_count = Some(2);
+        let positive_wire = source_readset_value(&readset).unwrap();
+        assert_eq!(parse_source_readset(&positive_wire).unwrap(), readset);
+        readset.object_refcounts[0].expected_count = Some(0);
+        assert!(source_readset_value(&readset).is_err());
+        readset.object_refcounts[0].expected_count = Some(2);
+        readset.object_refcounts.push(readset.object_refcounts[0]);
+        assert!(source_readset_value(&readset).is_err());
     }
 }
