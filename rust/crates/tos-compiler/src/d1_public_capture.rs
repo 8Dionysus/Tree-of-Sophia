@@ -6579,6 +6579,27 @@ impl PublicCapture {
         &self,
         role: &str,
         collection: &str,
+        sink: impl FnMut(u64, &[u8]) -> Result<()>,
+    ) -> Result<u64> {
+        self.visit_rows_ordered(role, collection, false, sink)
+    }
+
+    /// Exact captured array order for original components whose ordinal is
+    /// part of the receipt. Published/query ordering remains visit_rows().
+    pub(crate) fn visit_original_rows(
+        &self,
+        role: &str,
+        collection: &str,
+        sink: impl FnMut(u64, &[u8]) -> Result<()>,
+    ) -> Result<u64> {
+        self.visit_rows_ordered(role, collection, true, sink)
+    }
+
+    fn visit_rows_ordered(
+        &self,
+        role: &str,
+        collection: &str,
+        original: bool,
         mut sink: impl FnMut(u64, &[u8]) -> Result<()>,
     ) -> Result<u64> {
         self.check_custody()?;
@@ -6589,7 +6610,12 @@ impl PublicCapture {
             return Err(Error::Invalid("public D1 collection outside fixed input"));
         }
         let db = self.read_db()?;
-        let mut statement = db.prepare("SELECT CASE WHEN length(json)<=8388608 THEN json END,sha256 FROM capture_rows WHERE role=?1 AND collection=?2 ORDER BY sort0,sort1,source_key")?;
+        let sql = if original {
+            "SELECT CASE WHEN length(json)<=8388608 THEN json END,sha256 FROM capture_rows WHERE role=?1 AND collection=?2 ORDER BY ord,source_key"
+        } else {
+            "SELECT CASE WHEN length(json)<=8388608 THEN json END,sha256 FROM capture_rows WHERE role=?1 AND collection=?2 ORDER BY sort0,sort1,source_key"
+        };
+        let mut statement = db.prepare(sql)?;
         let mut rows = statement.query(params![role, collection])?;
         let mut count = 0u64;
         while let Some(row) = rows.next()? {

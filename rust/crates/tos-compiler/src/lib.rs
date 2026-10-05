@@ -45,7 +45,7 @@ pub use d1_public_capture::{
 };
 pub use d1_public_knowledge::project_private_knowledge_row;
 pub use d1_public_lens::project_private_lens_auxiliary_rows;
-pub use d1_public_rows::project_private_navigation_row;
+pub use d1_public_rows::{project_private_navigation_row, project_private_philosophy_view_row};
 mod knowledge_base;
 pub mod knowledge_candidates;
 pub mod knowledge_canon_materialize;

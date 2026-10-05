@@ -16,7 +16,7 @@ use std::{
 use tos_foundation::{Digest256, Digest256Hasher};
 
 pub(crate) const MAX_STATEMENT_BYTES: usize = 100_000;
-pub(crate) const MAX_ROW_VALUE_BYTES: usize = 2_000_000;
+pub(crate) const MAX_ROW_VALUE_BYTES: usize = crate::d1::MAX_D1_SQL_ROW_VALUE_BYTES;
 pub(crate) const MAX_INSERT_ROWS: usize = 512;
 pub(crate) const CHUNK_BYTES: usize = 32_000;
 

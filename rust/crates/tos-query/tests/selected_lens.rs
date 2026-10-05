@@ -246,7 +246,9 @@ impl<'hold> InspectCurrentAuthority<'hold> for Authority {
         {
             assert_eq!(self.registry_consulted.len(), 2);
         }
-        if self.scope.operation_id == tos_query::source_dossier::DOSSIER_OPERATION {
+        if self.scope.operation_id == tos_query::source_dossier::DOSSIER_OPERATION
+            || self.scope.operation_id == "tos.source.descend"
+        {
             assert_eq!(
                 self.original_ordinals,
                 (-1..self.original_rights as i64).collect::<Vec<_>>()
@@ -931,6 +933,7 @@ fn normalized_selected_dossiers_match_original_python_packets_and_hold_rights() 
     use tos_compiler::knowledge_full_fixture::build_native_fixture_with_navigation_inputs;
     use tos_query::source_dossier::{
         DOSSIER_INTENDED_USE, DOSSIER_OPERATION, DossierBudget, execute_selected_dossier,
+        execute_selected_source_navigation_descend, selected_source_navigation_descend_available,
     };
     // Existing maintained full navigation fixture. No shortened PR252 nodes
     // are padded to fit the real producer; original strings remain unchanged.
@@ -950,9 +953,11 @@ with tempfile.TemporaryDirectory() as d:
    cases.append({'object_id':n['node_id'],'limit':300,'packet':core.source_dossier(n['node_id'],limit=300)})
  link=next(n for n in nav['nodes'] if n['node_kind']=='link')
  cases.append({'object_id':link['node_id'],'limit':1,'packet':core.source_dossier(link['node_id'],limit=1)})
+ work=next(n for n in nav['nodes'] if n['node_kind']=='work')
+ descends=[{'node_id':n['node_id'],'max_depth':depth,'limit':limit,'packet':core.source_descend(n['node_id'],max_depth=depth,limit=limit)} for n,depth,limit in [(work,2,3),(link,1,1)]]
 raw=lambda v:json.dumps(v,ensure_ascii=False,separators=(',',':'),allow_nan=False)
 header={k:v for k,v in nav.items() if k not in {'nodes','edges','rights'}}
-print(raw({'header':raw(header),'nodes':[raw(v) for v in nav['nodes']],'edges':[raw(v) for v in nav['edges']],'rights':[raw(v) for v in nav['rights']],'cases':cases}))
+print(raw({'header':raw(header),'nodes':[raw(v) for v in nav['nodes']],'edges':[raw(v) for v in nav['edges']],'rights':[raw(v) for v in nav['rights']],'cases':cases,'descends':descends}))
 "#;
     let output = Command::new("python3")
         .arg("-c")
@@ -1026,6 +1031,69 @@ print(raw({'header':raw(header),'nodes':[raw(v) for v in nav['nodes']],'edges':[
         assert_eq!(
             packet.recheck().unwrap_err().code,
             SearchV2ErrorCode::StalePolicy
+        );
+    }
+    assert!(cold.navigation_original_available());
+    assert!(selected_source_navigation_descend_available(&cold, &bound));
+    for case in field(&oracle, "descends").as_array().unwrap() {
+        let request = tos_query::SourceDescendRequest {
+            node_id: field(case, "node_id").as_str().unwrap().to_owned(),
+            max_depth: field(case, "max_depth").as_u64().unwrap() as u8,
+            limit: field(case, "limit").as_u64().unwrap() as usize,
+            at_least_commit_seq: None,
+        };
+        let descent_authority = || {
+            let mut authority = current();
+            authority.scope.operation_id = "tos.source.descend".into();
+            authority.scope.intended_use = "read_only_public_metadata_navigation_v1".into();
+            authority
+        };
+        let mut authority = descent_authority();
+        let mut packet = execute_selected_source_navigation_descend(
+            &mut cold,
+            &bound,
+            &mut authority,
+            &request,
+            caps,
+            512 * 1024 * 1024,
+        )
+        .unwrap();
+        assert_eq!(&*packet, canonical(field(case, "packet")));
+        authority.withdrawn.store(true, Ordering::SeqCst);
+        assert_eq!(
+            packet.recheck().unwrap_err().code,
+            SearchV2ErrorCode::StalePolicy
+        );
+        drop(packet);
+        let mut denied = descent_authority();
+        denied.originals_denied = true;
+        assert_eq!(
+            execute_selected_source_navigation_descend(
+                &mut cold,
+                &bound,
+                &mut denied,
+                &request,
+                caps,
+                512 * 1024 * 1024,
+            )
+            .err()
+            .unwrap()
+            .code,
+            SearchV2ErrorCode::Unavailable
+        );
+        assert_eq!(
+            execute_selected_source_navigation_descend(
+                &mut cold,
+                &bound,
+                &mut descent_authority(),
+                &request,
+                caps,
+                1,
+            )
+            .err()
+            .unwrap()
+            .code,
+            SearchV2ErrorCode::BudgetExceeded
         );
     }
     let case = &field(&oracle, "cases").as_array().unwrap()[0];
@@ -1583,6 +1651,25 @@ json.dump({'left':left,'right':right,'edge':edge,'view':view,'cases':cases},sys.
             canonical(field(field(&oracle, "cases"), name)),
             "{name}"
         );
+        if *name == "view" {
+            let decoded = parse_json(&packet, JsonMode::PublishedStrict, caps.inspect.json)
+                .unwrap()
+                .into_root();
+            let view = field(&decoded, "view");
+            // Nested metadata describes the original complete view; top-level
+            // counts and IDs describe the limit=1 disclosure under held custody.
+            assert_eq!(
+                field(view, "node_count"),
+                field(&decoded, "available_node_count")
+            );
+            assert_eq!(
+                field(view, "edge_count"),
+                field(&decoded, "available_edge_count")
+            );
+            assert_eq!(field(view, "node_ids").as_array().unwrap().len(), 1);
+            assert!(view.object_get("nodes").is_none());
+            assert!(view.object_get("edges").is_none());
+        }
         packet.recheck().unwrap();
     }
     let request = &requests[0].1;

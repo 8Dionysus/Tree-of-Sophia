@@ -125,6 +125,99 @@ fn int(value: usize) -> JsonValue {
 fn entry(name: &str, value: JsonValue) -> (JsonString, JsonValue) {
     (JsonString::from_utf8(name), value)
 }
+/// Compact a validated philosophy view for its public carrier. Counts describe
+/// the full view; a read adapter may append a bounded set of node/edge IDs.
+/// Callers own original-row validation, count selection, input/work limits and
+/// custody. This operation clones only the already bounded metadata fields.
+pub fn project_private_philosophy_view_row(
+    value: &JsonValue,
+    node_count: usize,
+    edge_count: usize,
+) -> JsonValue {
+    let Some(source) = value.as_object() else {
+        return value.clone();
+    };
+    let mut fields = source
+        .iter()
+        .filter(|(key, _)| {
+            !matches!(
+                key.as_str(),
+                Some("node_ids" | "edge_ids" | "nodes" | "edges" | "node_count" | "edge_count")
+            )
+        })
+        .cloned()
+        .collect::<Vec<_>>();
+    fields.push(entry("node_count", int(node_count)));
+    fields.push(entry("edge_count", int(edge_count)));
+    JsonValue::Object(fields)
+}
+
+/// The view header owns reference membership. Repeated references select a
+/// source row once; absent references cannot create rows. Callers own source
+/// order, inline precedence and the original work allowance.
+fn philosophy_view_reference_contains<'a, E>(
+    references: impl IntoIterator<Item = &'a str>,
+    id: &str,
+    mut charge: impl FnMut(usize) -> std::result::Result<(), E>,
+) -> std::result::Result<bool, E> {
+    for reference in references {
+        // Charge even unequal lengths and successful/unsuccessful comparisons.
+        charge(reference.len().saturating_add(id.len()).saturating_add(1))?;
+        if reference == id {
+            return Ok(true);
+        }
+    }
+    Ok(false)
+}
+
+fn view_reference_mask(
+    capture: &PublicCapture,
+    id: &str,
+    references: &str,
+    positions: &BTreeMap<String, u32>,
+    root: &str,
+) -> Result<u64> {
+    let mut result = 0u64;
+    capture.visit_rows("philosophy", "views", |_, raw| {
+        let view = source_value(capture, raw, root)?;
+        if philosophy_view_reference_contains(array_strings(&view, references), id, |bytes| {
+            capture.charge_work(bytes as u64)
+        })? {
+            if let Some(position) = positions.get(default_text(&view, "view_id")) {
+                // positions() already preserves the original signed-mask bound.
+                result |= 1u64 << *position;
+            }
+        }
+        Ok(())
+    })?;
+    Ok(result)
+}
+
+fn resolved_view_count(
+    capture: &PublicCapture,
+    view: &JsonValue,
+    collection: &str,
+    identity: &str,
+    references: &str,
+    root: &str,
+) -> Result<usize> {
+    let mut count = 0usize;
+    capture.visit_rows("philosophy", collection, |_, raw| {
+        let row = source_value(capture, raw, root)?;
+        if philosophy_view_reference_contains(
+            array_strings(view, references),
+            default_text(&row, identity),
+            |bytes| capture.charge_work(bytes as u64),
+        )? {
+            count = count
+                .checked_add(1)
+                .ok_or(Error::Budget("public D1 view count"))?;
+        }
+        Ok(())
+    })?;
+    Ok(count)
+}
+
 fn mask(value: &JsonValue, key: &str, positions: &BTreeMap<String, u32>) -> Result<u64> {
     let mut mask = 0u64;
     for id in array_strings(value, key) {
@@ -225,7 +318,7 @@ pub(crate) fn emit_philosophy(
         let values = vec![
             quoted(capture, item_id)?,
             order.to_string(),
-            mask(&item, "view_ids", &views)?.to_string(),
+            view_reference_mask(capture, item_id, "node_ids", &views, root)?.to_string(),
             mask(&item, "graph_layers", &layers)?.to_string(),
             quoted(capture, &item_json)?,
             quoted(capture, &search)?,
@@ -260,7 +353,7 @@ pub(crate) fn emit_philosophy(
             quoted(capture, default_text(&item, "from_id"))?,
             quoted(capture, default_text(&item, "to_id"))?,
             quoted(capture, default_text(&item, "predicate_id"))?,
-            mask(&item, "view_ids", &views)?.to_string(),
+            view_reference_mask(capture, item_id, "edge_ids", &views, root)?.to_string(),
             mask(&item, "graph_layers", &layers)?.to_string(),
             quoted(capture, &item_json)?,
             quoted(capture, &search)?,
@@ -289,32 +382,26 @@ pub(crate) fn emit_philosophy(
     for collection in ["views", "clusters", "review_packets", "graph_layers"] {
         capture.visit_rows("philosophy", collection, |order, raw| {
             let item = source_value(capture, raw, root)?;
-            let mut auxiliary = item.clone();
+            let mut auxiliary = if collection == "views" {
+                project_private_philosophy_view_row(
+                    &item,
+                    resolved_view_count(capture, &item, "nodes", "node_id", "node_ids", root)?,
+                    resolved_view_count(capture, &item, "edges", "edge_id", "edge_ids", root)?,
+                )
+            } else {
+                item.clone()
+            };
             if let JsonValue::Object(ref mut fields) = auxiliary {
-                let mut node_count = 0usize;
-                let mut edge_count = 0usize;
-                let mut diagnostics = 0usize;
-                if collection == "views" {
-                    node_count = array_strings(&item, "node_ids").count();
-                    edge_count = array_strings(&item, "edge_ids").count();
-                    fields.retain(|(key, _)| {
-                        !matches!(
-                            key.as_str(),
-                            Some("node_ids" | "edge_ids" | "nodes" | "edges")
-                        )
-                    });
-                    fields.push(entry("node_count", int(node_count)));
-                    fields.push(entry("edge_count", int(edge_count)));
-                } else if collection == "clusters" {
-                    node_count = array_strings(&item, "member_node_ids").count();
-                    edge_count = array_strings(&item, "member_edge_ids").count();
+                if collection == "clusters" {
+                    let node_count = array_strings(&item, "member_node_ids").count();
+                    let edge_count = array_strings(&item, "member_edge_ids").count();
                     fields.retain(|(key, _)| {
                         !matches!(key.as_str(), Some("member_node_ids" | "member_edge_ids"))
                     });
                     fields.push(entry("member_node_count", int(node_count)));
                     fields.push(entry("member_edge_count", int(edge_count)));
                 } else if collection == "review_packets" {
-                    diagnostics = item
+                    let diagnostics = item
                         .object_get("unresolved_diagnostics")
                         .and_then(JsonValue::as_array)
                         .map_or(0, |items| items.len());
@@ -1032,4 +1119,118 @@ pub(crate) fn emit_navigation(
         )?;
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::d1_public_capture::{
+        PublicCaptureInputPaths, PublicCaptureLimits, RuntimeCaptureRole,
+    };
+    use std::{
+        fs,
+        sync::{Arc, atomic::AtomicBool},
+        time::{Duration, Instant},
+    };
+
+    #[test]
+    fn emitted_philosophy_masks_and_counts_resolve_view_headers() {
+        // Exercise the actual row emitter and SQL/index sink over a held source
+        // capture. No hand-authored masks or compact counts enter this fixture.
+        let district = tempfile::tempdir().unwrap();
+        let root = district.path();
+        let source = root.join("phi.json");
+        fs::write(&source, serde_json::to_vec(&serde_json::json!({
+            "schema_version":"tos_philosophy_graph_projection_v2",
+            "nodes":[
+                {"node_id":"n:a","view_ids":["atlas"],"graph_layers":[]},
+                {"node_id":"n:b","view_ids":[],"graph_layers":[]},
+                {"node_id":"n:c","view_ids":["atlas"],"graph_layers":[]}
+            ],
+            "edges":[
+                {"edge_id":"e:ab","from_id":"n:a","to_id":"n:b","view_ids":["atlas"],"graph_layers":[]},
+                {"edge_id":"e:bc","from_id":"n:b","to_id":"n:c","view_ids":[],"graph_layers":[]}
+            ],
+            "views":[{"view_id":"atlas","node_ids":["n:b","n:b","missing-node"],
+                "edge_ids":["e:bc","e:bc","missing-edge"]}],
+            "graph_layers":[],"clusters":[],"review_packets":[]
+        })).unwrap()).unwrap();
+        let absent = root.join("absent.json");
+        let selected = PublicCaptureInputPaths {
+            index_path: absent.clone(),
+            philosophy_graph_projection_path: source,
+            bibliographic_graph_path: absent.clone(),
+            entity_type_registry_path: absent.clone(),
+            relation_type_registry_path: absent.clone(),
+            philosophy_post_planting_audit_path: absent.clone(),
+            evidence_projection_path: absent,
+        };
+        let limits = PublicCaptureLimits {
+            max_input_bytes: 1024 * 1024,
+            max_rows: 100,
+            max_staging_bytes: 16 * 1024 * 1024,
+            max_work_bytes: 16 * 1024 * 1024,
+            max_sql_vm_steps: 1_000_000,
+            sqlite_cache_kib: 64,
+        };
+        let capture = PublicCapture::create_runtime_carrier_selected(
+            root,
+            &selected,
+            RuntimeCaptureRole::Philosophy,
+            &root.join("capture.sqlite"),
+            limits,
+            Instant::now() + Duration::from_secs(30),
+            Arc::new(AtomicBool::new(false)),
+        )
+        .unwrap();
+        let pending = root.join("emitted.sql");
+        let mut sink = SqlSink::create(
+            &pending,
+            &root.join("index.sqlite"),
+            1024 * 1024,
+            &capture,
+            limits,
+        )
+        .unwrap();
+        crate::d1_public_schema::begin(&mut sink).unwrap();
+        emit_philosophy(&capture, &mut sink, root, &mut SourceSqlCounts::default()).unwrap();
+        let _retained_index = sink
+            .finish(
+                &root.join("baseline.json"),
+                &"0".repeat(64),
+                &serde_json::json!({}),
+                1024 * 1024,
+            )
+            .unwrap();
+        let db = rusqlite::Connection::open_in_memory().unwrap();
+        db.execute_batch(&fs::read_to_string(pending).unwrap())
+            .unwrap();
+        for (table, selected_id, rejected_id) in [
+            ("philosophy_nodes_next", "n:b", "n:a"),
+            ("philosophy_edges_next", "e:bc", "e:ab"),
+        ] {
+            let mask = |id: &str| {
+                db.query_row(
+                    &format!("SELECT view_mask FROM {table} WHERE id=?1"),
+                    [id],
+                    |row| row.get::<_, i64>(0),
+                )
+                .unwrap()
+            };
+            assert_eq!(mask(selected_id), 1);
+            assert_eq!(mask(rejected_id), 0);
+        }
+        let raw: String = db
+            .query_row(
+                "SELECT json FROM philosophy_aux_next WHERE collection='views' AND id='atlas'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        let view: serde_json::Value = serde_json::from_str(&raw).unwrap();
+        assert_eq!(view["node_count"], 1);
+        assert_eq!(view["edge_count"], 1);
+        assert!(view.get("node_ids").is_none());
+        assert!(view.get("edge_ids").is_none());
+    }
 }

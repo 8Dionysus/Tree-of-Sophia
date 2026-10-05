@@ -570,6 +570,18 @@ def _view_nodes_edges(
     return nodes, edges
 
 
+def _compact_philosophy_view(
+    view: dict[str, Any], node_count: int, edge_count: int
+) -> dict[str, Any]:
+    """Public view metadata counts the full view before an adapter bounds IDs."""
+    compact = dict(view)
+    for key in ("nodes", "edges", "node_ids", "edge_ids"):
+        compact.pop(key, None)
+    compact["node_count"] = node_count
+    compact["edge_count"] = edge_count
+    return compact
+
+
 def _projection_nodes_edges(payload: dict[str, Any]) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     nodes: list[dict[str, Any]] = []
     edges: list[dict[str, Any]] = []
@@ -2709,9 +2721,7 @@ class ReferenceToSAccessCore:
             nodes,
             edges,
         )[:limit]
-        bounded_view = dict(view)
-        bounded_view.pop("nodes", None)
-        bounded_view.pop("edges", None)
+        bounded_view = _compact_philosophy_view(view, len(all_nodes), len(all_edges))
         bounded_view["node_ids"] = [str(node.get("node_id")) for node in nodes if node.get("node_id")]
         bounded_view["edge_ids"] = [str(edge.get("edge_id")) for edge in edges if edge.get("edge_id")]
         return {
@@ -3712,10 +3722,7 @@ class ReferenceToSAccessCore:
                 compact_item = dict(item)
                 if collection_name == "views":
                     view_nodes, view_edges = _view_nodes_edges(payload, item)
-                    for key in ("nodes", "edges", "node_ids", "edge_ids"):
-                        compact_item.pop(key, None)
-                    compact_item["node_count"] = len(view_nodes)
-                    compact_item["edge_count"] = len(view_edges)
+                    compact_item = _compact_philosophy_view(item, len(view_nodes), len(view_edges))
                 elif collection_name == "clusters":
                     member_node_ids = _string_list(compact_item.pop("member_node_ids", []))
                     member_edge_ids = _string_list(compact_item.pop("member_edge_ids", []))

@@ -555,11 +555,20 @@ pub fn retain_navigation_original(
 /// is not an admission receipt; callers must retain the independently expected
 /// result with the prepared original navigation.
 pub fn navigation_original_rights_root(rights: &[&[u8]]) -> String {
+    navigation_original_rights_root_with_check(rights, &mut |_| Ok(()))
+        .expect("unbudgeted navigation rights framing is infallible")
+}
+
+pub(crate) fn navigation_original_rights_root_with_check(
+    rights: &[&[u8]],
+    check: &mut impl FnMut(usize) -> Result<()>,
+) -> Result<String> {
     let mut h = rights_hash();
     for (i, r) in rights.iter().enumerate() {
+        check(r.len())?;
         row_hash(&mut h, i as i64, r);
     }
-    h.finalize().to_hex()
+    Ok(h.finalize().to_hex())
 }
 /// Reuse the component's own framing law for the independent producer
 /// companion. Source admission remains outside this mechanical consistency.

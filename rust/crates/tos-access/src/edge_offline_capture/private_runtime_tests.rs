@@ -85,7 +85,11 @@ fn navigation(changed: bool, payload: bool) -> Value {
     let mut row = json!({"node_id":"person","node_kind":"agent","source_ref":"synthetic/person.json",
         "label":if changed {"Исправлено"} else {"Человек — λόγος '"},"identity_status":"provisional","properties":{"unknown":{"false":false,"zero":0.0}}});
     if payload {
-        row["properties"]["large"] = json!("x".repeat(1_050_000));
+        // Use the existing D1 owner boundary, so this fixture remains chunked
+        // when that boundary changes. No second numeric threshold lives here.
+        let bytes = MAX_D1_SQL_ROW_VALUE_BYTES.checked_add(1).unwrap();
+        assert!(bytes <= fixture_search_limits().max_payload_bytes as usize);
+        row["properties"]["large"] = json!("x".repeat(bytes));
     }
     let nodes = if changed {
         vec![
@@ -835,7 +839,16 @@ fn refused_category(request: &Value, expected: &[&str]) {
     );
 }
 fn budget_refused(request: &Value) {
-    refused_category(request, &["budget", "limit", "prepared delta frame count"]);
+    let error = refused(request);
+    // Native compiler Budget variants retain their Debug case through the
+    // string-only CLI boundary; other owners retain their declared lower-case codes.
+    assert!(
+        error.contains("Budget(")
+            || ["budget", "limit", "prepared delta frame count"]
+                .iter()
+                .any(|code| error.contains(code)),
+        "expected a native budget refusal, received: {error}"
+    );
 }
 
 #[test]
@@ -846,12 +859,16 @@ fn prepared_delta_add_update_delete_order_opaque_replay_reverse_and_auxiliary() 
     let original = serving(&db);
     let initial_epoch = epoch(&db);
     let request = f.request("prepared-delta", "delta");
+    eprintln!("prepared delta phase: capture");
     let receipt = capture(&request).unwrap();
+    eprintln!("prepared delta phase: capture complete");
     assert_eq!(receipt["d1_applied"], false);
     assert_eq!(serving(&db), original);
     let forward = sql(&request, "forward_sql");
     let reverse = sql(&request, "rollback_sql");
+    eprintln!("prepared delta phase: forward SQL");
     db.execute_batch(&forward).unwrap();
+    eprintln!("prepared delta phase: forward SQL complete");
     auxiliary_current(&db);
     assert_projected_successor(&f, &db);
     let published = serving(&db);
@@ -881,17 +898,25 @@ fn prepared_delta_add_update_delete_order_opaque_replay_reverse_and_auxiliary() 
     assert!(raw.contains("-0.0"));
     let ranking:Vec<String>=db.prepare("SELECT id FROM knowledge_search_documents WHERE kind='nodes' ORDER BY id_lower,position").unwrap().query_map([],|r|r.get(0)).unwrap().map(Result::unwrap).collect();
     assert_eq!(ranking, vec!["A", "a", "b", "new"]);
+    eprintln!("prepared delta phase: forward SQL");
     db.execute_batch(&forward).unwrap();
+    eprintln!("prepared delta phase: forward SQL complete");
     assert_eq!(serving(&db), published);
     assert_eq!(epoch(&db), advanced);
+    eprintln!("prepared delta phase: reverse SQL");
     db.execute_batch(&reverse).unwrap();
+    eprintln!("prepared delta phase: reverse SQL complete");
     auxiliary_current(&db);
     assert_eq!(serving(&db), original);
     let reversed = epoch(&db);
     assert!(reversed > advanced);
+    eprintln!("prepared delta phase: reverse SQL");
     db.execute_batch(&reverse).unwrap();
+    eprintln!("prepared delta phase: reverse SQL complete");
     assert_eq!(epoch(&db), reversed);
+    eprintln!("prepared delta phase: forward SQL");
     db.execute_batch(&forward).unwrap();
+    eprintln!("prepared delta phase: forward SQL complete");
     assert_eq!(serving(&db), published);
     auxiliary_current(&db);
     let prepared = Connection::open(&f.prepared).unwrap();
@@ -1258,6 +1283,11 @@ fn navigation_delta_header_digest_inventory_and_budget_guards_refuse() {
         f.advance(true, true);
         let db = Connection::open(&f.d1).unwrap();
         db.execute_batch(mutation).unwrap();
+        assert_eq!(
+            db.changes(),
+            1,
+            "guard mutation did not affect the selected D1 fixture: {mutation}"
+        );
         refused_category(
             &f.request("source-navigation-delta", "guard"),
             &["navigation", "metadata key absent"],

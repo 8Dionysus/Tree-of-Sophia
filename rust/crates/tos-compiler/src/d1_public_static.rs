@@ -1037,11 +1037,14 @@ fn phi_view_packet(
         .into_iter()
         .take(limit)
         .collect::<Vec<_>>();
-    let mut bounded_view = view.clone();
-    if let Some(object) = bounded_view.as_object_mut() {
-        object.remove("nodes");
-        object.remove("edges");
-    }
+    let raw = serde_json::to_vec(view).map_err(|e| Error::Source(e.to_string()))?;
+    capture.charge_work(raw.len() as u64)?;
+    let original = crate::d1_public_capture::json(&raw, MAX_ROW_BYTES)?;
+    let compact = crate::project_private_philosophy_view_row(&original, node_count, edge_count);
+    let raw = crate::d1_public_capture::compact(&compact, MAX_ROW_BYTES)?;
+    capture.charge_work(raw.len() as u64)?;
+    let mut bounded_view: Value =
+        serde_json::from_slice(&raw).map_err(|e| Error::Source(e.to_string()))?;
     bounded_view["node_ids"] = json!(
         nodes
             .iter()

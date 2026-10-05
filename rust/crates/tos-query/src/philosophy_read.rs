@@ -1407,9 +1407,14 @@ fn compute_on_graph<'a>(
                     .into_iter()
                     .take(*limit)
                     .collect::<Vec<_>>();
-            let bounded_view = replace(
+            let compact_view = tos_compiler::project_private_philosophy_view_row(
                 view,
-                &["nodes", "edges"],
+                all_nodes.len(),
+                all_edges.len(),
+            );
+            let bounded_view = replace(
+                &compact_view,
+                &[],
                 vec![
                     (
                         "node_ids",
