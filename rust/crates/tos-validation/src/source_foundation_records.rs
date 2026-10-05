@@ -552,10 +552,10 @@ impl SourceFoundationCurrentInput<'_> {
         check_deadline(deadline, cancelled)?;
         let relative_path_state_bytes = std::mem::size_of::<RelativePath>()
             .checked_add(path.len())
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         let relative_path_peak = prior_state_bytes
             .checked_add(relative_path_state_bytes)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         if relative_path_peak > max_state_bytes {
             return Err(ItemRefusal::BudgetCheck {
                 check: "source-foundation current path parse state",
@@ -577,7 +577,7 @@ impl SourceFoundationCurrentInput<'_> {
                     })?
                     .size_bytes;
                 let expected_len =
-                    usize::try_from(metadata_size).map_err(|_| ItemRefusal::Budget)?;
+                    usize::try_from(metadata_size).map_err(|_| crate::item_budget_origin!())?;
                 if metadata_size > max_bytes as u64 {
                     return Err(ItemRefusal::BudgetCheck {
                         check: "source-foundation current member bytes",
@@ -589,7 +589,7 @@ impl SourceFoundationCurrentInput<'_> {
                     .checked_add(relative_path_state_bytes)
                     .and_then(|bytes| bytes.checked_add(std::mem::size_of::<Vec<u8>>()))
                     .and_then(|bytes| bytes.checked_add(expected_len))
-                    .ok_or(ItemRefusal::Budget)?;
+                    .ok_or(crate::item_budget_origin!())?;
                 if precharged > max_state_bytes {
                     return Err(ItemRefusal::BudgetCheck {
                         check: "source-foundation current member read precharge",
@@ -601,12 +601,12 @@ impl SourceFoundationCurrentInput<'_> {
                     .read_member(*revision, &relative, max_bytes as u64, deadline, cancelled)
                     .map_err(store_error)?;
                 let size_bytes =
-                    u64::try_from(member.raw.len()).map_err(|_| ItemRefusal::Budget)?;
+                    u64::try_from(member.raw.len()).map_err(|_| crate::item_budget_origin!())?;
                 let overlap = prior_state_bytes
                     .checked_add(relative_path_state_bytes)
                     .and_then(|bytes| bytes.checked_add(std::mem::size_of::<Vec<u8>>()))
                     .and_then(|bytes| bytes.checked_add(member.raw.capacity()))
-                    .ok_or(ItemRefusal::Budget)?;
+                    .ok_or(crate::item_budget_origin!())?;
                 if size_bytes != metadata_size
                     || member.raw.len() > max_bytes
                     || overlap > max_state_bytes
@@ -652,7 +652,7 @@ impl SourceFoundationCurrentInput<'_> {
                                     Option<SourceFoundationCurrentMember>,
                                 >())
                             })
-                            .ok_or(ItemRefusal::Budget)?;
+                            .ok_or(crate::item_budget_origin!())?;
                         if overlap > max_state_bytes {
                             return Err(ItemRefusal::BudgetCheck {
                                 check: "source-foundation current member copy state",
@@ -662,7 +662,7 @@ impl SourceFoundationCurrentInput<'_> {
                         }
                         let mut raw = Vec::new();
                         raw.try_reserve_exact(bytes.len())
-                            .map_err(|_| ItemRefusal::Budget)?;
+                            .map_err(|_| crate::item_budget_origin!())?;
                         let actual_overlap = bytes
                             .len()
                             .checked_add(prior_state_bytes)
@@ -674,7 +674,7 @@ impl SourceFoundationCurrentInput<'_> {
                                 >())
                             })
                             .and_then(|used| used.checked_add(raw.capacity()))
-                            .ok_or(ItemRefusal::Budget)?;
+                            .ok_or(crate::item_budget_origin!())?;
                         if actual_overlap > max_state_bytes {
                             return Err(ItemRefusal::BudgetCheck {
                                 check: "source-foundation current member copy capacity",
@@ -836,26 +836,26 @@ impl<'a> DirectIssueBuffer<'a> {
         message: &str,
     ) -> Result<(), ItemRefusal> {
         if self.rows.len() >= self.max_issues {
-            return Err(ItemRefusal::Budget);
+            return Err(crate::item_budget_origin!());
         }
         let retained = std::mem::size_of::<SourceFoundationRecordsIssue>()
             .checked_add(location.len())
             .and_then(|bytes| bytes.checked_add(message.len()))
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         let temporary = location
             .len()
             .checked_add(message.len())
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         self.state_bytes = self
             .state_bytes
             .checked_add(retained)
             .and_then(|used| used.checked_add(temporary))
             .filter(|used| *used <= self.max_state_bytes)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         self.state_bytes = self
             .state_bytes
             .checked_sub(temporary)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         let issue = SourceFoundationRecordsIssue {
             family,
             location: location.to_owned(),
@@ -928,7 +928,7 @@ fn legacy_parse_failure(
         available.max(1),
         limits.max_member_bytes.max(1),
     )
-    .map_err(|_| ItemRefusal::Budget)?;
+    .map_err(|_| crate::item_budget_origin!())?;
     match tos_foundation::parse_json_with_state_budget(
         raw,
         tos_foundation::JsonMode::LegacyPythonObserved,
@@ -1068,7 +1068,7 @@ fn bounded_legacy_observed_inventory(
 ) -> Result<Option<tos_foundation::JsonValue>, ItemRefusal> {
     check(limits, cancelled)?;
     if available == 0 {
-        return Err(ItemRefusal::Budget);
+        return Err(crate::item_budget_origin!());
     }
     let json_limits = tos_foundation::JsonLimits::new(
         limits.max_member_bytes,
@@ -1076,7 +1076,7 @@ fn bounded_legacy_observed_inventory(
         available,
         limits.max_member_bytes.max(1),
     )
-    .map_err(|_| ItemRefusal::Budget)?;
+    .map_err(|_| crate::item_budget_origin!())?;
     match tos_foundation::parse_json_with_state_budget(
         raw,
         tos_foundation::JsonMode::LegacyPythonObserved,
@@ -1221,7 +1221,7 @@ fn retain_direct_schema_check_input(
         .and_then(|bytes| bytes.checked_add(contract.len()))
         .and_then(|bytes| bytes.checked_add(decoded_bytes))
         .and_then(|bytes| bytes.checked_add(raw_bytes))
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     let next_state = state_bytes
         .checked_add(retained)
         .filter(|used| *used <= state_limit)
@@ -1330,11 +1330,11 @@ fn retain_record_schema_position(
 ) -> Result<(), ItemRefusal> {
     let retained = std::mem::size_of::<(String, usize)>()
         .checked_add(path.len())
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     *state_bytes = state_bytes
         .checked_add(retained)
         .filter(|used| *used <= state_limit)
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     positions.push((path.to_owned(), before_issue));
     if let Some(store) = store {
         store.with(|store| store.record_schema_position(path, before_issue))?;
@@ -1367,17 +1367,20 @@ fn current_source_paths_matching(
         RelativePath::parse(path)
             .map_err(|_| ItemRefusal::Source("source metadata contained an invalid path".into()))?;
         let path_payload_bytes = path.len();
-        let next_len = paths.len().checked_add(1).ok_or(ItemRefusal::Budget)?;
+        let next_len = paths
+            .len()
+            .checked_add(1)
+            .ok_or(crate::item_budget_origin!())?;
         let requested_capacity = paths.capacity().max(next_len);
         let requested_slots = requested_capacity
             .checked_mul(std::mem::size_of::<(String, u64)>())
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         let vector_overlap = if requested_capacity > paths.capacity() {
             paths
                 .capacity()
                 .checked_add(requested_capacity)
                 .and_then(|slots| slots.checked_mul(std::mem::size_of::<(String, u64)>()))
-                .ok_or(ItemRefusal::Budget)?
+                .ok_or(crate::item_budget_origin!())?
         } else {
             requested_slots
         };
@@ -1386,7 +1389,7 @@ fn current_source_paths_matching(
             .and_then(|bytes| bytes.checked_add(vector_overlap))
             .and_then(|bytes| bytes.checked_add(path_bytes))
             .and_then(|bytes| bytes.checked_add(path_payload_bytes))
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         if allocation_peak > max_state_bytes {
             return Err(ItemRefusal::BudgetCheck {
                 check: "source-foundation current path index allocation",
@@ -1396,17 +1399,17 @@ fn current_source_paths_matching(
         }
         paths
             .try_reserve_exact(1)
-            .map_err(|_| ItemRefusal::Budget)?;
+            .map_err(|_| crate::item_budget_origin!())?;
         let actual_slots = paths
             .capacity()
             .checked_mul(std::mem::size_of::<(String, u64)>())
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         let actual_peak = base_state_bytes
             .checked_add(std::mem::size_of::<Vec<(String, u64)>>())
             .and_then(|bytes| bytes.checked_add(actual_slots))
             .and_then(|bytes| bytes.checked_add(path_bytes))
             .and_then(|bytes| bytes.checked_add(path_payload_bytes))
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         if actual_peak > max_state_bytes {
             return Err(ItemRefusal::BudgetCheck {
                 check: "source-foundation current path index capacity",
@@ -1417,12 +1420,12 @@ fn current_source_paths_matching(
         let mut owned_path = String::new();
         owned_path
             .try_reserve_exact(path.len())
-            .map_err(|_| ItemRefusal::Budget)?;
+            .map_err(|_| crate::item_budget_origin!())?;
         owned_path.push_str(path);
         paths.push((owned_path, meta.size_bytes));
         path_bytes = path_bytes
             .checked_add(path_payload_bytes)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         Ok(())
     })?;
     paths.sort_by(|left, right| left.0.cmp(&right.0));
@@ -1431,13 +1434,13 @@ fn current_source_paths_matching(
             paths
                 .capacity()
                 .checked_mul(std::mem::size_of::<(String, u64)>())
-                .ok_or(ItemRefusal::Budget)?,
+                .ok_or(crate::item_budget_origin!())?,
         )
         .and_then(|bytes| bytes.checked_add(path_bytes))
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     let peak = base_state_bytes
         .checked_add(retained)
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     if peak > max_state_bytes {
         return Err(ItemRefusal::BudgetCheck {
             check: "source-foundation current path index state",
@@ -1517,7 +1520,7 @@ fn scan_direct_current_records<'a>(
                         std::mem::size_of::<String>() + 3 * std::mem::size_of::<usize>(),
                     )
                 })
-                .ok_or(ItemRefusal::Budget)
+                .ok_or(crate::item_budget_origin!())
         },
     )?;
     let mut state_bytes = crate::record_biblio_cut::decoded_state(&registry_value)?
@@ -1537,9 +1540,9 @@ fn scan_direct_current_records<'a>(
         })
         .and_then(|bytes| bytes.checked_add(std::mem::size_of::<BTreeMap<String, String>>()))
         .and_then(|bytes| bytes.checked_add(std::mem::size_of::<BTreeMap<String, usize>>()))
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     if state_bytes > limits.max_state_bytes {
-        return Err(ItemRefusal::Budget);
+        return Err(crate::item_budget_origin!());
     }
     let registry_bytes = registry.size_bytes;
     drop(registry_value);
@@ -1568,7 +1571,7 @@ fn scan_direct_current_records<'a>(
     let mut selected_bytes = 0u64;
     let mut selected_state_bytes = std::mem::size_of::<Vec<SelectedItemRecord>>()
         .checked_add(std::mem::size_of::<BTreeMap<String, usize>>())
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
 
     for (record_type, basename) in basenames {
         if record_type == "link" {
@@ -1582,7 +1585,7 @@ fn scan_direct_current_records<'a>(
             None,
             state_bytes
                 .checked_add(selected_state_bytes)
-                .ok_or(ItemRefusal::Budget)?,
+                .ok_or(crate::item_budget_origin!())?,
             limits.max_state_bytes,
             limits.deadline,
             cancelled,
@@ -1610,7 +1613,7 @@ fn scan_direct_current_records<'a>(
                 state_bytes
                     .checked_add(selected_state_bytes)
                     .and_then(|bytes| bytes.checked_add(paths_state_bytes))
-                    .ok_or(ItemRefusal::Budget)?,
+                    .ok_or(crate::item_budget_origin!())?,
                 limits.max_state_bytes,
                 limits.deadline,
                 cancelled,
@@ -1625,7 +1628,7 @@ fn scan_direct_current_records<'a>(
                 .checked_sub(state_bytes)
                 .and_then(|remaining| remaining.checked_sub(selected_state_bytes))
                 .and_then(|remaining| remaining.checked_sub(paths_state_bytes))
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
             let value = match bounded_native_value(&member.raw, limits, available, cancelled) {
                 Ok(value) => value,
                 Err(ItemRefusal::Source(reason)) if reason == "invalid finite native JSON" => {
@@ -1640,7 +1643,7 @@ fn scan_direct_current_records<'a>(
                                 .state_bytes
                                 .checked_add(schema_request_state_bytes)
                                 .filter(|used| *used <= issue_state_limit)
-                                .ok_or(ItemRefusal::Budget)?;
+                                .ok_or(crate::item_budget_origin!())?;
                             note_record_kernel_candidate_cause(
                                 &mut candidate_kernel_cause,
                                 SourceFoundationRecordKernelCause::MalformedJson,
@@ -1659,7 +1662,7 @@ fn scan_direct_current_records<'a>(
             let Some(object) = value.as_object() else {
                 let available_schema_state = issue_state_limit
                     .checked_sub(issues.state_bytes)
-                    .ok_or(ItemRefusal::Budget)?;
+                    .ok_or(crate::item_budget_origin!())?;
                 let before_issue = issues.rows.len();
                 retain_direct_schema_check(
                     &mut schema_checks,
@@ -1723,11 +1726,11 @@ fn scan_direct_current_records<'a>(
                                     + 3 * std::mem::size_of::<usize>(),
                             )
                         })
-                        .ok_or(ItemRefusal::Budget)?;
+                        .ok_or(crate::item_budget_origin!())?;
                     state_bytes = state_bytes
                         .checked_add(retained)
                         .filter(|used| *used <= limits.max_state_bytes)
-                        .ok_or(ItemRefusal::Budget)?;
+                        .ok_or(crate::item_budget_origin!())?;
                     let current = BiblioCurrentRecord {
                         path: path.clone(),
                         kind: python_value_string(record_type),
@@ -1743,13 +1746,13 @@ fn scan_direct_current_records<'a>(
                         let previous = &selected_items[index].selection;
                         let old_bytes = crate::record_biblio_cut::decoded_state(&previous.value)?
                             .checked_add(previous.path.len())
-                            .ok_or(ItemRefusal::Budget)?;
+                            .ok_or(crate::item_budget_origin!())?;
                         selected_state_bytes = selected_state_bytes
                             .checked_sub(old_bytes)
                             .and_then(|used| used.checked_add(value_bytes))
                             .and_then(|used| used.checked_add(path.len()))
                             .filter(|used| *used <= limits.max_state_bytes)
-                            .ok_or(ItemRefusal::Budget)?;
+                            .ok_or(crate::item_budget_origin!())?;
                         selected_items[index].selection.path = path.clone();
                         selected_items[index].selection.value = value.clone();
                     } else {
@@ -1764,11 +1767,11 @@ fn scan_direct_current_records<'a>(
                                         + 3 * std::mem::size_of::<usize>(),
                                 )
                             })
-                            .ok_or(ItemRefusal::Budget)?;
+                            .ok_or(crate::item_budget_origin!())?;
                         selected_state_bytes = selected_state_bytes
                             .checked_add(retained)
                             .filter(|used| *used <= limits.max_state_bytes)
-                            .ok_or(ItemRefusal::Budget)?;
+                            .ok_or(crate::item_budget_origin!())?;
                         selected_positions.insert(record_id.to_owned(), selected_items.len());
                         selected_items.push(SelectedItemRecord {
                             selection: SourceFoundationItemRecordSelection {
@@ -1785,19 +1788,19 @@ fn scan_direct_current_records<'a>(
                     issues.item_record_selection(&selected_items[index].selection)?;
                     selected_bytes = selected_bytes
                         .checked_add(member_size)
-                        .ok_or(ItemRefusal::Budget)?;
+                        .ok_or(crate::item_budget_origin!())?;
                 }
             }
             state_bytes = state_bytes
                 .checked_add(path.len())
                 .filter(|used| *used <= limits.max_state_bytes)
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
             if state_bytes
                 .checked_add(selected_state_bytes)
                 .and_then(|used| used.checked_add(paths_state_bytes))
                 .is_none_or(|used| used > limits.max_state_bytes)
             {
-                return Err(ItemRefusal::Budget);
+                return Err(crate::item_budget_origin!());
             }
             drop(value);
         }
@@ -1811,7 +1814,7 @@ fn scan_direct_current_records<'a>(
         Some("/link.json"),
         state_bytes
             .checked_add(selected_state_bytes)
-            .ok_or(ItemRefusal::Budget)?,
+            .ok_or(crate::item_budget_origin!())?,
         limits.max_state_bytes,
         limits.deadline,
         cancelled,
@@ -1832,7 +1835,7 @@ fn scan_direct_current_records<'a>(
             state_bytes
                 .checked_add(selected_state_bytes)
                 .and_then(|bytes| bytes.checked_add(link_paths_state_bytes))
-                .ok_or(ItemRefusal::Budget)?,
+                .ok_or(crate::item_budget_origin!())?,
             limits.max_state_bytes,
             limits.deadline,
             cancelled,
@@ -1847,7 +1850,7 @@ fn scan_direct_current_records<'a>(
             .checked_sub(state_bytes)
             .and_then(|remaining| remaining.checked_sub(selected_state_bytes))
             .and_then(|remaining| remaining.checked_sub(link_paths_state_bytes))
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         let value = match bounded_native_value(&member.raw, limits, available, cancelled) {
             Ok(value) => value,
             Err(ItemRefusal::Source(reason)) if reason == "invalid finite native JSON" => {
@@ -1862,7 +1865,7 @@ fn scan_direct_current_records<'a>(
                             .state_bytes
                             .checked_add(schema_request_state_bytes)
                             .filter(|used| *used <= issue_state_limit)
-                            .ok_or(ItemRefusal::Budget)?;
+                            .ok_or(crate::item_budget_origin!())?;
                         note_record_kernel_candidate_cause(
                             &mut candidate_kernel_cause,
                             SourceFoundationRecordKernelCause::MalformedJson,
@@ -1881,7 +1884,7 @@ fn scan_direct_current_records<'a>(
         let Some(object) = value.as_object() else {
             let available_schema_state = issue_state_limit
                 .checked_sub(issues.state_bytes)
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
             let before_issue = issues.rows.len();
             retain_direct_schema_check(
                 &mut schema_checks,
@@ -1959,11 +1962,11 @@ fn scan_direct_current_records<'a>(
                                 + 3 * std::mem::size_of::<usize>(),
                         )
                     })
-                    .ok_or(ItemRefusal::Budget)?;
+                    .ok_or(crate::item_budget_origin!())?;
                 state_bytes = state_bytes
                     .checked_add(retained)
                     .filter(|used| *used <= limits.max_state_bytes)
-                    .ok_or(ItemRefusal::Budget)?;
+                    .ok_or(crate::item_budget_origin!())?;
                 let current = BiblioCurrentRecord {
                     path: path.clone(),
                     kind: python_value_string(record_type),
@@ -1993,13 +1996,13 @@ fn scan_direct_current_records<'a>(
                         )
                     })
                     .filter(|used| *used <= limits.max_state_bytes)
-                    .ok_or(ItemRefusal::Budget)?;
+                    .ok_or(crate::item_budget_origin!())?;
             }
         }
         state_bytes = state_bytes
             .checked_add(path.len())
             .filter(|used| *used <= limits.max_state_bytes)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
     }
 
     for record_id in &id_order {
@@ -2082,14 +2085,14 @@ fn scan_direct_current_records<'a>(
                         std::mem::size_of::<String>() + 3 * std::mem::size_of::<usize>(),
                     )
                 })
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
         }
     }
     state_bytes = state_bytes
         .checked_add(used_declared_profile_kinds_state_bytes)
         .and_then(|bytes| bytes.checked_add(selected_state_bytes))
         .filter(|used| *used <= limits.max_state_bytes)
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     let mut used_declared_profile_kinds = BTreeSet::<String>::new();
     for kind in &declared_profile_kinds {
         check(limits, cancelled)?;
@@ -2447,7 +2450,7 @@ fn python_legacy_iter_len(value: Option<&tos_foundation::JsonValue>) -> Result<u
             ));
         }
     };
-    u64::try_from(length).map_err(|_| ItemRefusal::Budget)
+    u64::try_from(length).map_err(|_| crate::item_budget_origin!())
 }
 
 fn legacy_python_display(value: &tos_foundation::JsonValue) -> Result<String, ItemRefusal> {
@@ -2681,7 +2684,7 @@ fn append_item_direct_issues(
     let mut owner_index_state_bytes = std::mem::size_of::<BTreeMap<String, String>>()
         .checked_add(std::mem::size_of::<BTreeSet<String>>())
         .and_then(|bytes| bytes.checked_add(std::mem::size_of::<Option<DirectItemManifest>>()))
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     let mut owner_temporary_state_bytes = 0usize;
     let mut owner_peak_state_bytes = 0usize;
     reserve_direct_item_index_state(
@@ -2798,7 +2801,7 @@ fn append_item_direct_issues(
                 .checked_sub(owner_index_state_bytes)
                 .and_then(|bytes| bytes.checked_sub(owner_temporary_state_bytes))
                 .and_then(|bytes| bytes.checked_sub(issues.state_bytes))
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
             let inventory =
                 bounded_legacy_observed_inventory(raw, limits.items, parse_state_limit, cancelled)?
                     .ok_or_else(|| {
@@ -2933,7 +2936,7 @@ fn append_item_direct_issues(
                                 direct_issue_state_limit,
                                 std::mem::size_of::<String>()
                                     .checked_add(edition.len())
-                                    .ok_or(ItemRefusal::Budget)?,
+                                    .ok_or(crate::item_budget_origin!())?,
                             )?;
                             let mut replacement = edition.to_owned();
                             let retained = item_editions.get_mut(item_id).ok_or_else(|| {
@@ -2945,15 +2948,15 @@ fn append_item_direct_issues(
                             let new_len = retained.len();
                             let replacement_state_bytes = std::mem::size_of::<String>()
                                 .checked_add(previous_len)
-                                .ok_or(ItemRefusal::Budget)?;
+                                .ok_or(crate::item_budget_origin!())?;
                             let new_persistent_state_bytes = if new_len > previous_len {
                                 owner_index_state_bytes
                                     .checked_add(new_len - previous_len)
-                                    .ok_or(ItemRefusal::Budget)?
+                                    .ok_or(crate::item_budget_origin!())?
                             } else {
                                 owner_index_state_bytes
                                     .checked_sub(previous_len - new_len)
-                                    .ok_or(ItemRefusal::Budget)?
+                                    .ok_or(crate::item_budget_origin!())?
                             };
                             set_direct_item_live_state(
                                 issues,
@@ -2980,7 +2983,7 @@ fn append_item_direct_issues(
                                 .and_then(|bytes| {
                                     bytes.checked_add(3 * std::mem::size_of::<usize>())
                                 })
-                                .ok_or(ItemRefusal::Budget)?;
+                                .ok_or(crate::item_budget_origin!())?;
                             retain_direct_item_index_state_by(
                                 issues,
                                 &mut owner_index_state_bytes,
@@ -3427,7 +3430,7 @@ fn append_item_direct_issues(
                             .len()
                             .checked_add(std::mem::size_of::<String>())
                             .and_then(|bytes| bytes.checked_add(3 * std::mem::size_of::<usize>()))
-                            .ok_or(ItemRefusal::Budget)?;
+                            .ok_or(crate::item_budget_origin!())?;
                         retain_direct_item_index_state_by(
                             issues,
                             &mut owner_index_state_bytes,
@@ -3567,7 +3570,7 @@ fn append_item_direct_issues(
         };
         let Some(manifest) = value.as_object() else {
             if schema_checks.len() >= limits.items.max_issues {
-                return Err(ItemRefusal::Budget);
+                return Err(crate::item_budget_origin!());
             }
             let before_issue = issues.rows.len();
             retain_direct_schema_check(
@@ -3608,7 +3611,7 @@ fn append_item_direct_issues(
     if record_issue_state > limits.records.max_state_bytes
         || record_issue_count > limits.records.max_issues
     {
-        return Err(ItemRefusal::Budget);
+        return Err(crate::item_budget_origin!());
     }
     let item_issue_state = issues.family_state_bytes(SourceFoundationRecordsIssueFamily::Item);
     let item_issue_count = issues
@@ -3618,11 +3621,11 @@ fn append_item_direct_issues(
         .count();
     if item_issue_state > limits.items.max_state_bytes || item_issue_count > limits.items.max_issues
     {
-        return Err(ItemRefusal::Budget);
+        return Err(crate::item_budget_origin!());
     }
     let direct_inventory_set_scan_steps = inventory_set_scan_steps
         .checked_sub(inventory_set_scan_steps_start)
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     Ok((
         item_editions,
         direct_read_bytes,
@@ -3640,7 +3643,7 @@ fn direct_require_record(
     issue_limit: usize,
 ) -> Result<(), ItemRefusal> {
     if issues.rows.len() >= issue_limit {
-        return Err(ItemRefusal::Budget);
+        return Err(crate::item_budget_origin!());
     }
     let Some(actual) = current_records.get(reference) else {
         return issues.push(
@@ -3692,13 +3695,13 @@ fn reserve_direct_item_index_state(
     let live_state_bytes = persistent_state_bytes
         .checked_add(temporary_state_bytes)
         .filter(|used| *used <= state_limit)
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     *peak_state_bytes = (*peak_state_bytes).max(live_state_bytes);
     let issue_limit = state_limit
         .checked_sub(live_state_bytes)
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     if issues.state_bytes > issue_limit {
-        return Err(ItemRefusal::Budget);
+        return Err(crate::item_budget_origin!());
     }
     issues.max_state_bytes = issue_limit.min(issues.hard_max_state_bytes);
     Ok(())
@@ -3715,7 +3718,7 @@ fn retain_direct_item_index_state_by(
     *persistent_state_bytes = persistent_state_bytes
         .checked_add(additional_bytes)
         .filter(|used| *used <= state_limit)
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     reserve_direct_item_index_state(
         issues,
         persistent_state_bytes,
@@ -3736,15 +3739,15 @@ fn set_direct_item_temporary_state(
     let live_state_bytes = persistent_state_bytes
         .checked_add(new_temporary_state_bytes)
         .filter(|used| *used <= state_limit)
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     if issues.state_bytes > state_limit.saturating_sub(live_state_bytes) {
-        return Err(ItemRefusal::Budget);
+        return Err(crate::item_budget_origin!());
     }
     *temporary_state_bytes = new_temporary_state_bytes;
     *peak_state_bytes = (*peak_state_bytes).max(live_state_bytes);
     issues.max_state_bytes = state_limit
         .checked_sub(live_state_bytes)
-        .ok_or(ItemRefusal::Budget)?
+        .ok_or(crate::item_budget_origin!())?
         .min(issues.hard_max_state_bytes);
     Ok(())
 }
@@ -3761,15 +3764,15 @@ fn set_direct_item_live_state(
     let live_state_bytes = new_persistent_state_bytes
         .checked_add(new_temporary_state_bytes)
         .filter(|used| *used <= state_limit)
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     *persistent_state_bytes = new_persistent_state_bytes;
     *temporary_state_bytes = new_temporary_state_bytes;
     *peak_state_bytes = (*peak_state_bytes).max(live_state_bytes);
     let issue_limit = state_limit
         .checked_sub(live_state_bytes)
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     if issues.state_bytes > issue_limit {
-        return Err(ItemRefusal::Budget);
+        return Err(crate::item_budget_origin!());
     }
     issues.max_state_bytes = issue_limit.min(issues.hard_max_state_bytes);
     Ok(())
@@ -3810,14 +3813,14 @@ fn finish_direct_item_manifest(
     let fixity_path_len = item_directory_source
         .len()
         .checked_add("/fixity.sha256".len())
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     let path_temporary_state_bytes = std::mem::size_of::<String>()
         .checked_add(item_directory_source.len())
         .and_then(|bytes| bytes.checked_add(std::mem::size_of::<String>()))
         .and_then(|bytes| bytes.checked_add(fixity_path_len))
         .and_then(|bytes| bytes.checked_add(std::mem::size_of::<RelativePath>()))
         .and_then(|bytes| bytes.checked_add(fixity_path_len))
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     set_direct_item_temporary_state(
         issues,
         *owner_index_state_bytes,
@@ -3873,7 +3876,7 @@ fn finish_direct_item_manifest(
                 .checked_sub(*owner_index_state_bytes)
                 .and_then(|bytes| bytes.checked_sub(*owner_temporary_state_bytes))
                 .and_then(|bytes| bytes.checked_sub(issues.state_bytes))
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
             let inventory =
                 bounded_legacy_observed_inventory(raw, limits.items, parse_state_limit, cancelled)?
                     .ok_or_else(|| {
@@ -4009,11 +4012,12 @@ fn finish_direct_item_manifest(
             limits.items.max_member_bytes,
             "source-foundation Item fixity reads",
         )?;
-        let raw_size = usize::try_from(metadata_size_bytes).map_err(|_| ItemRefusal::Budget)?;
+        let raw_size =
+            usize::try_from(metadata_size_bytes).map_err(|_| crate::item_budget_origin!())?;
         actual_fixity_state_bytes = std::mem::size_of::<String>()
             .checked_mul(2)
             .and_then(|bytes| bytes.checked_add(raw_size.checked_mul(3)?))
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         set_direct_item_temporary_state(
             issues,
             *owner_index_state_bytes,
@@ -4022,7 +4026,7 @@ fn finish_direct_item_manifest(
             owner_state_limit,
             path_temporary_state_bytes
                 .checked_add(actual_fixity_state_bytes)
-                .ok_or(ItemRefusal::Budget)?,
+                .ok_or(crate::item_budget_origin!())?,
         )?;
         let member = source.read_member(
             &fixity_path,
@@ -4037,7 +4041,7 @@ fn finish_direct_item_manifest(
         let normalized = text.replace("\r\n", "\n").replace('\r', "\n");
         actual_fixity_state_bytes = std::mem::size_of::<String>()
             .checked_add(normalized.len())
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         set_direct_item_temporary_state(
             issues,
             *owner_index_state_bytes,
@@ -4046,7 +4050,7 @@ fn finish_direct_item_manifest(
             owner_state_limit,
             path_temporary_state_bytes
                 .checked_add(actual_fixity_state_bytes)
-                .ok_or(ItemRefusal::Budget)?,
+                .ok_or(crate::item_budget_origin!())?,
         )?;
         Some(normalized)
     } else {
@@ -4062,7 +4066,7 @@ fn finish_direct_item_manifest(
     let expected_fixity_base_state_bytes = path_temporary_state_bytes
         .checked_add(actual_fixity_state_bytes)
         .and_then(|bytes| bytes.checked_add(std::mem::size_of::<String>()))
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     set_direct_item_temporary_state(
         issues,
         *owner_index_state_bytes,
@@ -4084,13 +4088,13 @@ fn finish_direct_item_manifest(
                 .and_then(|bytes| bytes.checked_add(2))
                 .and_then(|bytes| bytes.checked_add(relative_len))
                 .and_then(|bytes| bytes.checked_add(1))
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
             let entry_temporary_state = expected_fixity_base_state_bytes
                 .checked_add(expected_fixity_len)
                 .and_then(|bytes| bytes.checked_add(2 * std::mem::size_of::<String>()))
                 .and_then(|bytes| bytes.checked_add(digest_len))
                 .and_then(|bytes| bytes.checked_add(relative_len))
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
             set_direct_item_temporary_state(
                 issues,
                 *owner_index_state_bytes,
@@ -4102,7 +4106,7 @@ fn finish_direct_item_manifest(
             let digest = python_value_string(digest_value);
             let relative_repr = python_value_string(relative_value);
             write!(expected_fixity, "{digest}  {relative_repr}\n")
-                .map_err(|_| ItemRefusal::Budget)?;
+                .map_err(|_| crate::item_budget_origin!())?;
             drop(digest);
             drop(relative_repr);
             set_direct_item_temporary_state(
@@ -4113,7 +4117,7 @@ fn finish_direct_item_manifest(
                 owner_state_limit,
                 expected_fixity_base_state_bytes
                     .checked_add(expected_fixity.len())
-                    .ok_or(ItemRefusal::Budget)?,
+                    .ok_or(crate::item_budget_origin!())?,
             )?;
             let file_id = entry.get("file_id").unwrap_or(&Value::Null);
             if let Some(file_id) = file_id.as_str() {
@@ -4146,7 +4150,7 @@ fn finish_direct_item_manifest(
                 .and_then(|bytes| bytes.checked_add(item_directory.len()))
                 .and_then(|bytes| bytes.checked_add(relative.len()))
                 .and_then(|bytes| bytes.checked_add(1))
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
             set_direct_item_temporary_state(
                 issues,
                 *owner_index_state_bytes,
@@ -4178,7 +4182,7 @@ fn finish_direct_item_manifest(
                     owner_state_limit,
                     expected_fixity_base_state_bytes
                         .checked_add(expected_fixity.len())
-                        .ok_or(ItemRefusal::Budget)?,
+                        .ok_or(crate::item_budget_origin!())?,
                 )?;
                 continue;
             }
@@ -4236,7 +4240,7 @@ fn finish_direct_item_manifest(
                 owner_state_limit,
                 expected_fixity_base_state_bytes
                     .checked_add(expected_fixity.len())
-                    .ok_or(ItemRefusal::Budget)?,
+                    .ok_or(crate::item_budget_origin!())?,
             )?;
         }
     }
@@ -4280,7 +4284,7 @@ fn finish_direct_item_manifest(
                 owner_state_limit,
                 std::mem::size_of::<String>()
                     .checked_add(missing_message.len())
-                    .ok_or(ItemRefusal::Budget)?,
+                    .ok_or(crate::item_budget_origin!())?,
             )?;
             let mut previous_missing: Option<&str> = None;
             let mut missing_count = 0usize;
@@ -4307,7 +4311,7 @@ fn finish_direct_item_manifest(
                     .and_then(|bytes| bytes.checked_add(separator_len))
                     .and_then(|bytes| bytes.checked_add(repr_len))
                     .and_then(|bytes| bytes.checked_add(1))
-                    .ok_or(ItemRefusal::Budget)?;
+                    .ok_or(crate::item_budget_origin!())?;
                 set_direct_item_temporary_state(
                     issues,
                     *owner_index_state_bytes,
@@ -4320,7 +4324,9 @@ fn finish_direct_item_manifest(
                     missing_message.push_str(", ");
                 }
                 write_python_string_repr(&mut missing_message, file_id);
-                missing_count = missing_count.checked_add(1).ok_or(ItemRefusal::Budget)?;
+                missing_count = missing_count
+                    .checked_add(1)
+                    .ok_or(crate::item_budget_origin!())?;
                 previous_missing = Some(file_id);
             }
             if missing_count > 0 {
@@ -4453,7 +4459,7 @@ fn direct_item_source_state_bytes(
 ) -> Result<usize, ItemRefusal> {
     schema_request_state_bytes
         .checked_add(issues.state_bytes)
-        .ok_or(ItemRefusal::Budget)
+        .ok_or(crate::item_budget_origin!())
 }
 
 fn account_direct_item_read(
@@ -4498,11 +4504,11 @@ pub(crate) fn python_value_string_len(value: &Value) -> Result<usize, ItemRefusa
             let mut length = 2usize;
             for (index, value) in values.iter().enumerate() {
                 if index > 0 {
-                    length = length.checked_add(2).ok_or(ItemRefusal::Budget)?;
+                    length = length.checked_add(2).ok_or(crate::item_budget_origin!())?;
                 }
                 length = length
                     .checked_add(python_value_repr_len(value)?)
-                    .ok_or(ItemRefusal::Budget)?;
+                    .ok_or(crate::item_budget_origin!())?;
             }
             Ok(length)
         }
@@ -4510,7 +4516,7 @@ pub(crate) fn python_value_string_len(value: &Value) -> Result<usize, ItemRefusa
             let mut length = 2usize;
             for (index, (key, value)) in values.iter().enumerate() {
                 if index > 0 {
-                    length = length.checked_add(2).ok_or(ItemRefusal::Budget)?;
+                    length = length.checked_add(2).ok_or(crate::item_budget_origin!())?;
                 }
                 let key_len = python_string_repr_len(key)?;
                 let value_len = python_value_repr_len(value)?;
@@ -4518,7 +4524,7 @@ pub(crate) fn python_value_string_len(value: &Value) -> Result<usize, ItemRefusa
                     .checked_add(key_len)
                     .and_then(|bytes| bytes.checked_add(2))
                     .and_then(|bytes| bytes.checked_add(value_len))
-                    .ok_or(ItemRefusal::Budget)?;
+                    .ok_or(crate::item_budget_origin!())?;
             }
             Ok(length)
         }
@@ -4546,10 +4552,12 @@ fn python_string_repr_len(value: &str) -> Result<usize, ItemRefusal> {
             value if value == quote => 2,
             value if value.is_control() => 2usize
                 .checked_add(format!("{:04x}", value as u32).len())
-                .ok_or(ItemRefusal::Budget)?,
+                .ok_or(crate::item_budget_origin!())?,
             value => value.len_utf8(),
         };
-        length = length.checked_add(additional).ok_or(ItemRefusal::Budget)?;
+        length = length
+            .checked_add(additional)
+            .ok_or(crate::item_budget_origin!())?;
     }
     Ok(length)
 }
@@ -4631,7 +4639,7 @@ fn build_file_membership_index(
     let mut read_bytes = 0u64;
     let mut state_bytes = std::mem::size_of::<SourceFileMembershipIndex>();
     if state_bytes > limits.max_state_bytes {
-        return Err(ItemRefusal::Budget);
+        return Err(crate::item_budget_origin!());
     }
 
     let (manifest_paths, manifest_paths_state_bytes) = current_source_paths_matching(
@@ -4668,7 +4676,7 @@ fn build_file_membership_index(
             limits.max_member_bytes,
             state_bytes
                 .checked_add(manifest_paths_state_bytes)
-                .ok_or(ItemRefusal::Budget)?,
+                .ok_or(crate::item_budget_origin!())?,
             limits.max_state_bytes,
             limits.deadline,
             cancelled,
@@ -4684,7 +4692,7 @@ fn build_file_membership_index(
             .checked_sub(state_bytes)
             .and_then(|remaining| remaining.checked_sub(manifest_paths_state_bytes))
             .and_then(|remaining| remaining.checked_sub(member.raw.len()))
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         let value = match bounded_native_value(&member.raw, limits, available, cancelled) {
             Ok(value) => value,
             Err(ItemRefusal::Source(reason)) if reason == "invalid finite native JSON" => {
@@ -4742,24 +4750,24 @@ fn build_file_membership_index(
                                     + std::mem::size_of::<BTreeMap<String, ()>>(),
                             )
                         })
-                        .ok_or(ItemRefusal::Budget)?;
+                        .ok_or(crate::item_budget_origin!())?;
                 }
                 if !descriptor_existed {
                     let descriptor_bytes = [sha256, byte_size, media_type].into_iter().try_fold(
                         file.len() + std::mem::size_of::<[Value; 3]>(),
                         |used, value| {
                             used.checked_add(crate::record_biblio_cut::decoded_state(value)?)
-                                .ok_or(ItemRefusal::Budget)
+                                .ok_or(crate::item_budget_origin!())
                         },
                     )?;
                     state_bytes = state_bytes
                         .checked_add(descriptor_bytes)
-                        .ok_or(ItemRefusal::Budget)?;
+                        .ok_or(crate::item_budget_origin!())?;
                 }
             }
             if !conflicts.is_empty() {
                 if issues.len() >= limits.max_issues {
-                    return Err(ItemRefusal::Budget);
+                    return Err(crate::item_budget_origin!());
                 }
                 let file_label = file_id.as_str().unwrap_or("None");
                 issues.push(SourceFoundationRecordsIssue {
@@ -4775,7 +4783,7 @@ fn build_file_membership_index(
                 .checked_add(manifest_paths_state_bytes)
                 .is_none_or(|used| used > limits.max_state_bytes)
             {
-                return Err(ItemRefusal::Budget);
+                return Err(crate::item_budget_origin!());
             }
         }
         drop(value);
@@ -4795,7 +4803,7 @@ fn bounded_native_value(
         available.max(1),
         limits.max_member_bytes.max(1),
     )
-    .map_err(|_| ItemRefusal::Budget)?;
+    .map_err(|_| crate::item_budget_origin!())?;
     crate::record_biblio_cut::bounded_legacy_item_decoded_state(
         raw,
         json_limits,
@@ -4950,7 +4958,7 @@ pub fn inspect_source_foundation_records_from_cut_rolling_stored<'a>(
         None,
         Some(&mut *store),
     )?;
-    let record_usage = report.record_usage.ok_or(ItemRefusal::Budget)?;
+    let record_usage = report.record_usage.ok_or(crate::item_budget_origin!())?;
     let items = streamed_item_summary(&report.items);
     Ok(SourceFoundationRecordsStreamedReport::new_completed(
         expected_revision,
@@ -5065,7 +5073,7 @@ pub fn inspect_source_foundation_records_from_input_stored<'a, I: Eq + Clone>(
         .operation
         .max_state_bytes
         .checked_sub(report_header_state_bytes)
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     let mut record_limits = limits.records;
     record_limits.max_state_bytes = record_limits.max_state_bytes.min(record_state_ceiling);
     record_limits.max_total_bytes = record_limits
@@ -5127,7 +5135,7 @@ pub fn inspect_source_foundation_records_from_input_stored<'a, I: Eq + Clone>(
         Some(&mut *store),
     )
     .map_err(|error| source_refusal_origin(error, "records-item-core"))?;
-    let record_usage = core.record_usage.ok_or(ItemRefusal::Budget)?;
+    let record_usage = core.record_usage.ok_or(crate::item_budget_origin!())?;
     let items = streamed_item_summary(&core.items);
     Ok(SourceFoundationRecordsStreamedReport::new_completed(
         input_identity,
@@ -5211,7 +5219,7 @@ fn inspect_source_foundation_records_with_mode(
             .operation
             .max_state_bytes
             .checked_sub(report_header_state_bytes)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         limits.records.max_state_bytes = limits.records.max_state_bytes.min(record_state_ceiling);
         limits.records.max_total_bytes = limits
             .records
@@ -5259,7 +5267,7 @@ fn inspect_source_foundation_records_with_mode(
         source.for_each_member_meta(limits.operation.deadline, cancelled, &mut |member| {
             total = total
                 .checked_add(member.size_bytes)
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
             Ok(())
         })?;
         total
@@ -5289,7 +5297,7 @@ fn inspect_source_foundation_records_with_mode(
         .records
         .max_total_bytes
         .checked_sub(direct_records.read_bytes)
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     let mut record_kernel_limits = limits.records;
     record_kernel_limits.max_total_bytes = record_kernel_read_limit_bytes;
     if rolling {
@@ -5297,24 +5305,24 @@ fn inspect_source_foundation_records_with_mode(
             .checked_add(direct_records.state_bytes)
             .and_then(|used| used.checked_add(direct_records.issues.state_bytes))
             .and_then(|used| used.checked_add(direct_records.schema_request_state_bytes))
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         let kernel_state_remaining = limits
             .operation
             .max_state_bytes
             .checked_sub(direct_pre_kernel_state)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         let kernel_issue_remaining = limits
             .operation
             .max_issues
             .checked_sub(direct_records.issues.rows.len())
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         record_kernel_limits.max_state_bytes = record_kernel_limits
             .max_state_bytes
             .min(kernel_state_remaining);
         record_kernel_limits.max_issues =
             record_kernel_limits.max_issues.min(kernel_issue_remaining);
         if record_kernel_limits.max_state_bytes == 0 || record_kernel_limits.max_issues == 0 {
-            return Err(ItemRefusal::Budget);
+            return Err(crate::item_budget_origin!());
         }
     }
     let (record_kernel_outcome, record_usage) = if let Some(summary) = streamed_record_summary {
@@ -5349,7 +5357,7 @@ fn inspect_source_foundation_records_with_mode(
                     refusal,
                     cause: direct_records
                         .candidate_kernel_cause
-                        .ok_or(ItemRefusal::Budget)?,
+                        .ok_or(crate::item_budget_origin!())?,
                 }
             }
             Err(refusal) => return Err(refusal),
@@ -5368,12 +5376,12 @@ fn inspect_source_foundation_records_with_mode(
     if direct_record_issue_state_bytes > limits.records.max_state_bytes
         || direct_record_issue_count > limits.records.max_issues
     {
-        return Err(ItemRefusal::Budget);
+        return Err(crate::item_budget_origin!());
     }
     let mut schema_request_state_limit_bytes = limits
         .max_schema_request_state_bytes
         .checked_sub(direct_record_issue_state_bytes)
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     let mut schema_checks = direct_records.schema_checks;
     let mut schema_request_state_bytes = direct_records.schema_request_state_bytes;
     if schema_request_state_bytes > schema_request_state_limit_bytes {
@@ -5390,15 +5398,15 @@ fn inspect_source_foundation_records_with_mode(
     let mut rolling_record_observed_read_bytes = None;
     let mut rolling_record_issue_count = None;
     if rolling {
-        let usage = record_usage.as_ref().ok_or(ItemRefusal::Budget)?;
+        let usage = record_usage.as_ref().ok_or(crate::item_budget_origin!())?;
         let record_read_bytes = usage
             .source_bytes_read
             .checked_add(record_owner_read_bytes)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         let record_issue_count = usage
             .observed_issue_count
             .checked_add(direct_record_issue_count)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         if record_issue_count > limits.operation.max_issues {
             return Err(ItemRefusal::BudgetCheck {
                 check: "source-foundation Records observed issue count",
@@ -5411,20 +5419,24 @@ fn inspect_source_foundation_records_with_mode(
             .and_then(|used| used.checked_add(record_owner_state_bytes))
             .and_then(|used| used.checked_add(direct_record_issue_state_bytes))
             .and_then(|used| used.checked_add(schema_request_state_bytes))
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         let remaining_item_state = limits
             .operation
             .max_state_bytes
             .checked_sub(record_accounted_state)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(ItemRefusal::BudgetCheck {
+                check: "source-foundation rolling Records retained state",
+                used: Some(record_accounted_state as u64),
+                limit: Some(limits.operation.max_state_bytes as u64),
+            })?;
         let precharged_item_state = item_index_state_bytes
             .checked_add(direct_record_issue_state_bytes)
             .and_then(|used| used.checked_add(schema_request_state_bytes))
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         limits.items.max_state_bytes = original_limits.items.max_state_bytes.min(
             remaining_item_state
                 .checked_add(precharged_item_state)
-                .ok_or(ItemRefusal::Budget)?,
+                .ok_or(crate::item_budget_origin!())?,
         );
         if limits.items.max_state_bytes < precharged_item_state {
             return Err(ItemRefusal::BudgetCheck {
@@ -5438,11 +5450,11 @@ fn inspect_source_foundation_records_with_mode(
                 .items
                 .max_state_bytes
                 .checked_sub(item_index_state_bytes)
-                .ok_or(ItemRefusal::Budget)?,
+                .ok_or(crate::item_budget_origin!())?,
         );
         let precharged_auxiliary_state = direct_record_issue_state_bytes
             .checked_add(schema_request_state_bytes)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         if precharged_auxiliary_state > limits.max_schema_request_state_bytes {
             return Err(ItemRefusal::BudgetCheck {
                 check: "source-foundation rolling Item auxiliary precharge",
@@ -5453,7 +5465,7 @@ fn inspect_source_foundation_records_with_mode(
         schema_request_state_limit_bytes = limits
             .max_schema_request_state_bytes
             .checked_sub(direct_record_issue_state_bytes)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         if schema_request_state_bytes > schema_request_state_limit_bytes {
             return Err(ItemRefusal::BudgetCheck {
                 check: "source-foundation rolling schema request precharge",
@@ -5465,7 +5477,7 @@ fn inspect_source_foundation_records_with_mode(
             .operation
             .max_total_bytes
             .checked_sub(record_read_bytes)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         limits.items.max_total_bytes = original_limits
             .items
             .max_total_bytes
@@ -5474,7 +5486,7 @@ fn inspect_source_foundation_records_with_mode(
             .operation
             .max_issues
             .checked_sub(record_issue_count)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         limits.items.max_issues = original_limits.items.max_issues.min(remaining_item_issues);
         rolling_record_observed_read_bytes = Some(record_read_bytes);
         rolling_record_issue_count = Some(usage.observed_issue_count);
@@ -5488,18 +5500,20 @@ fn inspect_source_foundation_records_with_mode(
         let size_bytes = source
             .member_size(record, limits.items.deadline, cancelled)?
             .ok_or_else(|| ItemRefusal::Source("Item record missing from current input".into()))?;
-        total.checked_add(size_bytes).ok_or(ItemRefusal::Budget)
+        total
+            .checked_add(size_bytes)
+            .ok_or(crate::item_budget_origin!())
     })?;
     let item_rule_record_read_bytes = item_record_read_bytes;
     let item_scans_read_bytes = selected_items
         .read_bytes
         .checked_add(item_rule_record_read_bytes)
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     let file_membership_read_limit_bytes = limits
         .items
         .max_total_bytes
         .checked_sub(item_scans_read_bytes)
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     let (
         file_memberships,
         membership_issues,
@@ -5546,14 +5560,14 @@ fn inspect_source_foundation_records_with_mode(
     let item_rule_index_state_bytes = item_index_state_bytes
         .checked_add(file_membership_state_bytes)
         .and_then(|bytes| bytes.checked_add(limits.max_schema_request_state_bytes))
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     let item_metadata_read_limit_bytes = limits
         .items
         .max_total_bytes
         .checked_sub(selected_items.read_bytes)
         .and_then(|remaining| remaining.checked_sub(item_record_read_bytes))
         .and_then(|remaining| remaining.checked_sub(file_membership_read_bytes))
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     let mut item_limits = limits.items;
     item_limits.max_total_bytes = item_metadata_read_limit_bytes;
     item_limits.max_state_bytes = item_limits
@@ -5600,13 +5614,13 @@ fn inspect_source_foundation_records_with_mode(
         let read_limit = item_rules.item_record_read_limit(record)?;
         let relative = RelativePath::parse(record)
             .map_err(|_| ItemRefusal::Unsupported("source-foundation Item record path".into()))?;
-        let read_limit = usize::try_from(read_limit).map_err(|_| ItemRefusal::Budget)?;
+        let read_limit = usize::try_from(read_limit).map_err(|_| crate::item_budget_origin!())?;
         let member = source.read_member(
             relative.as_str(),
             read_limit,
             item_rule_index_state_bytes
                 .checked_add(*item_source.schema_request_state_bytes)
-                .ok_or(ItemRefusal::Budget)?,
+                .ok_or(crate::item_budget_origin!())?,
             limits.items.max_state_bytes,
             limits.items.deadline,
             cancelled,
@@ -5628,16 +5642,16 @@ fn inspect_source_foundation_records_with_mode(
     }
     let mut ordered_issues = direct_records.issues;
     if rolling {
-        let kernel_issues = rolling_record_issue_count.ok_or(ItemRefusal::Budget)?;
+        let kernel_issues = rolling_record_issue_count.ok_or(crate::item_budget_origin!())?;
         let item_issues = items.issues.len();
         ordered_issues.max_issues = limits
             .operation
             .max_issues
             .checked_sub(kernel_issues)
             .and_then(|remaining| remaining.checked_sub(item_issues))
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         if ordered_issues.rows.len() > ordered_issues.max_issues {
-            return Err(ItemRefusal::Budget);
+            return Err(crate::item_budget_origin!());
         }
     }
     let mut rights_ids = BTreeSet::<String>::new();
@@ -5668,10 +5682,10 @@ fn inspect_source_foundation_records_with_mode(
             let addition = id
                 .len()
                 .checked_add(std::mem::size_of::<String>() + 3 * std::mem::size_of::<usize>())
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
             let next_state_bytes = rights_identity_state_bytes
                 .checked_add(addition)
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
             schema_request_state_bytes
                 .checked_add(next_state_bytes)
                 .filter(|used| *used <= schema_request_state_limit_bytes)
@@ -5725,10 +5739,10 @@ fn inspect_source_foundation_records_with_mode(
         let addition = std::mem::size_of::<SourceFoundationEventInsertion>()
             .checked_add(id.len())
             .and_then(|bytes| bytes.checked_add(event_decoded_state))
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         let next_event_state = source_event_state_bytes
             .checked_add(addition)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         schema_request_state_bytes
             .checked_add(rights_identity_state_bytes)
             .and_then(|used| used.checked_add(next_event_state))
@@ -5754,20 +5768,20 @@ fn inspect_source_foundation_records_with_mode(
         .checked_add(item_rule_record_read_bytes)
         .and_then(|bytes| bytes.checked_add(file_membership_read_bytes))
         .and_then(|bytes| bytes.checked_add(items.metadata_bytes))
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     let direct_item_read_limit = limits
         .items
         .max_total_bytes
         .checked_sub(item_reads_before_owner)
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     let direct_item_issue_state_limit = limits
         .max_schema_request_state_bytes
         .checked_sub(schema_request_state_bytes)
         .and_then(|remaining| remaining.checked_sub(rights_identity_state_bytes))
         .and_then(|remaining| remaining.checked_sub(source_event_state_bytes))
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     if ordered_issues.state_bytes > direct_item_issue_state_limit {
-        return Err(ItemRefusal::Budget);
+        return Err(crate::item_budget_origin!());
     }
     ordered_issues.max_state_bytes = direct_item_issue_state_limit;
     let (
@@ -5834,9 +5848,9 @@ fn inspect_source_foundation_records_with_mode(
         .and_then(|bytes| bytes.checked_add(file_membership_read_bytes))
         .and_then(|bytes| bytes.checked_add(items.metadata_bytes))
         .and_then(|bytes| bytes.checked_add(direct_item_read_bytes))
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     if item_observed_read_bytes > limits.items.max_total_bytes {
-        return Err(ItemRefusal::Budget);
+        return Err(crate::item_budget_origin!());
     }
     let record_observed_read_bytes = if rolling {
         rolling_record_observed_read_bytes
@@ -5847,7 +5861,7 @@ fn inspect_source_foundation_records_with_mode(
                     .checked_add(schema_cost.records)
                     .and_then(|bytes| bytes.checked_add(record_registry_bytes))
                     .and_then(|bytes| bytes.checked_add(record_owner_read_bytes))
-                    .ok_or(ItemRefusal::Budget)?,
+                    .ok_or(crate::item_budget_origin!())?,
             ),
             Some(SourceFoundationRecordKernelOutcome::Refused { .. }) | None => None,
         }
@@ -5855,13 +5869,13 @@ fn inspect_source_foundation_records_with_mode(
     let operation_read_bound = if rolling {
         record_observed_read_bytes
             .and_then(|bytes| bytes.checked_add(item_observed_read_bytes))
-            .ok_or(ItemRefusal::Budget)?
+            .ok_or(crate::item_budget_origin!())?
     } else {
         limits
             .records
             .max_total_bytes
             .checked_add(item_observed_read_bytes)
-            .ok_or(ItemRefusal::Budget)?
+            .ok_or(crate::item_budget_origin!())?
     };
     if operation_read_bound > limits.operation.max_total_bytes {
         return Err(ItemRefusal::BudgetCheck {
@@ -5873,11 +5887,11 @@ fn inspect_source_foundation_records_with_mode(
 
     let ordered_issue_count = ordered_issues.rows.len();
     let rolling_observed_issue_count = if rolling {
-        let kernel_issues = rolling_record_issue_count.ok_or(ItemRefusal::Budget)?;
+        let kernel_issues = rolling_record_issue_count.ok_or(crate::item_budget_origin!())?;
         let observed = kernel_issues
             .checked_add(items.issues.len())
             .and_then(|count| count.checked_add(ordered_issue_count))
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         if observed > limits.operation.max_issues {
             return Err(ItemRefusal::BudgetCheck {
                 check: "source-foundation rolling combined issue count",
@@ -5890,7 +5904,7 @@ fn inspect_source_foundation_records_with_mode(
         None
     };
     if ordered_issue_count > limits.operation.max_issues {
-        return Err(ItemRefusal::Budget);
+        return Err(crate::item_budget_origin!());
     }
     let combined_family_state_limit_bytes = if rolling {
         limits.operation.max_state_bytes
@@ -5899,20 +5913,20 @@ fn inspect_source_foundation_records_with_mode(
             .records
             .max_state_bytes
             .checked_add(limits.items.max_state_bytes)
-            .ok_or(ItemRefusal::Budget)?
+            .ok_or(crate::item_budget_origin!())?
     };
     if !rolling && combined_family_state_limit_bytes > limits.operation.max_state_bytes {
-        return Err(ItemRefusal::Budget);
+        return Err(crate::item_budget_origin!());
     }
     let rolling_accounted_state_upper_bound_bytes = if rolling {
-        let usage = record_usage.as_ref().ok_or(ItemRefusal::Budget)?;
+        let usage = record_usage.as_ref().ok_or(crate::item_budget_origin!())?;
         let accounted = report_header_state_bytes
             .checked_add(usage.accounted_state_upper_bound_bytes)
             .and_then(|used| used.checked_add(record_owner_state_bytes))
             .and_then(|used| used.checked_add(file_membership_state_bytes))
             .and_then(|used| used.checked_add(items.accounted_state_upper_bound_bytes))
             .and_then(|used| used.checked_add(item_auxiliary_state_bytes))
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         if accounted > limits.operation.max_state_bytes {
             return Err(ItemRefusal::BudgetCheck {
                 check: "source-foundation rolling combined accounted state",
@@ -5941,13 +5955,13 @@ fn inspect_source_foundation_records_with_mode(
         combined_family_read_limit_bytes: if rolling {
             record_observed_read_bytes
                 .and_then(|bytes| bytes.checked_add(limits.items.max_total_bytes))
-                .ok_or(ItemRefusal::Budget)?
+                .ok_or(crate::item_budget_origin!())?
         } else {
             limits
                 .records
                 .max_total_bytes
                 .checked_add(limits.items.max_total_bytes)
-                .ok_or(ItemRefusal::Budget)?
+                .ok_or(crate::item_budget_origin!())?
         },
         operation_read_limit_bytes: limits.operation.max_total_bytes,
         record_observed_read_bytes,
@@ -5986,7 +6000,7 @@ fn inspect_source_foundation_records_with_mode(
                 .records
                 .max_issues
                 .checked_add(limits.items.max_issues)
-                .ok_or(ItemRefusal::Budget)?
+                .ok_or(crate::item_budget_origin!())?
         },
         operation_issue_limit: limits.operation.max_issues,
         rolling_accounted_state_upper_bound_bytes,
@@ -6063,7 +6077,7 @@ fn schema_resource_cost(
         }
         records = records
             .checked_add(member.size_bytes)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         if let Some(digest) = item_schemas.contract_digest(path) {
             if digest != member.sha256 {
                 return Err(ItemRefusal::Source(format!(
@@ -6072,16 +6086,18 @@ fn schema_resource_cost(
             }
             items = items
                 .checked_add(member.size_bytes)
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
             item_resource_count = item_resource_count
                 .checked_add(1)
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
         }
     }
     Ok(SchemaResourceCost {
         records,
         items,
-        aggregate: records.checked_add(items).ok_or(ItemRefusal::Budget)?,
+        aggregate: records
+            .checked_add(items)
+            .ok_or(crate::item_budget_origin!())?,
         item_resource_count,
     })
 }
@@ -6103,7 +6119,7 @@ fn candidate_schema_resource_cost<I: Eq + Clone>(
             .checked_add(previous_metadata_state_bytes)
             .and_then(|bytes| bytes.checked_add(std::mem::size_of::<RelativePath>()))
             .and_then(|bytes| bytes.checked_add(meta.path.len()))
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         if relative_path_peak > limits.max_state_bytes {
             return Err(ItemRefusal::BudgetCheck {
                 check: "candidate schema RelativePath validation state",
@@ -6120,11 +6136,11 @@ fn candidate_schema_resource_cost<I: Eq + Clone>(
         }
         let next_path_state_bytes = std::mem::size_of::<String>()
             .checked_add(meta.path.len())
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         let overlap_state = base_state_bytes
             .checked_add(previous_metadata_state_bytes)
             .and_then(|bytes| bytes.checked_add(next_path_state_bytes))
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         if overlap_state > limits.max_state_bytes {
             return Err(ItemRefusal::BudgetCheck {
                 check: "candidate schema metadata path state",
@@ -6135,20 +6151,20 @@ fn candidate_schema_resource_cost<I: Eq + Clone>(
         if meta.path.starts_with(SCHEMA_HOME) && meta.path.ends_with(SCHEMA_SUFFIX) {
             records = records
                 .checked_add(meta.size_bytes)
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
         }
         let mut next_path = String::new();
         next_path
             .try_reserve_exact(meta.path.len())
-            .map_err(|_| ItemRefusal::Budget)?;
+            .map_err(|_| crate::item_budget_origin!())?;
         next_path.push_str(meta.path);
         let actual_next_path_state_bytes = std::mem::size_of::<String>()
             .checked_add(next_path.capacity())
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         let actual_overlap = base_state_bytes
             .checked_add(previous_metadata_state_bytes)
             .and_then(|bytes| bytes.checked_add(actual_next_path_state_bytes))
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         if actual_overlap > limits.max_state_bytes {
             return Err(ItemRefusal::BudgetCheck {
                 check: "candidate schema metadata path capacity",
@@ -6160,7 +6176,7 @@ fn candidate_schema_resource_cost<I: Eq + Clone>(
         previous_metadata_state_bytes = actual_next_path_state_bytes;
         let live_state = base_state_bytes
             .checked_add(previous_metadata_state_bytes)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         if live_state > limits.max_state_bytes {
             return Err(ItemRefusal::BudgetCheck {
                 check: "candidate schema metadata path retention",
@@ -6183,7 +6199,7 @@ fn candidate_schema_resource_cost<I: Eq + Clone>(
             .and_then(|bytes| bytes.checked_add(previous_resource_state_bytes))
             .and_then(|bytes| bytes.checked_add(std::mem::size_of::<RelativePath>()))
             .and_then(|bytes| bytes.checked_add(resource.path.len()))
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         if relative_path_peak > limits.max_state_bytes {
             return Err(ItemRefusal::BudgetCheck {
                 check: "selected Item schema RelativePath validation state",
@@ -6204,12 +6220,12 @@ fn candidate_schema_resource_cost<I: Eq + Clone>(
         }
         let retained_path_state = std::mem::size_of::<String>()
             .checked_add(resource.path.len())
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         let live_state = base_state_bytes
             .checked_add(previous_metadata_state_bytes)
             .and_then(|bytes| bytes.checked_add(previous_resource_state_bytes))
             .and_then(|bytes| bytes.checked_add(retained_path_state))
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         if live_state > limits.max_state_bytes {
             return Err(ItemRefusal::BudgetCheck {
                 check: "selected Item schema path and metadata state",
@@ -6269,15 +6285,15 @@ fn candidate_schema_resource_cost<I: Eq + Clone>(
         }
         items = items
             .checked_add(resource.size_bytes)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         item_resource_count = item_resource_count
             .checked_add(1)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         let path_overlap = base_state_bytes
             .checked_add(previous_metadata_state_bytes)
             .and_then(|bytes| bytes.checked_add(previous_resource_state_bytes))
             .and_then(|bytes| bytes.checked_add(retained_path_state))
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         if path_overlap > limits.max_state_bytes {
             return Err(ItemRefusal::BudgetCheck {
                 check: "selected Item schema path overlap",
@@ -6288,16 +6304,16 @@ fn candidate_schema_resource_cost<I: Eq + Clone>(
         let mut next_path = String::new();
         next_path
             .try_reserve_exact(resource.path.len())
-            .map_err(|_| ItemRefusal::Budget)?;
+            .map_err(|_| crate::item_budget_origin!())?;
         next_path.push_str(resource.path);
         let next_path_state_bytes = std::mem::size_of::<String>()
             .checked_add(next_path.capacity())
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         let actual_path_overlap = base_state_bytes
             .checked_add(previous_metadata_state_bytes)
             .and_then(|bytes| bytes.checked_add(previous_resource_state_bytes))
             .and_then(|bytes| bytes.checked_add(next_path_state_bytes))
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         if actual_path_overlap > limits.max_state_bytes {
             return Err(ItemRefusal::BudgetCheck {
                 check: "selected Item schema path capacity",
@@ -6314,7 +6330,9 @@ fn candidate_schema_resource_cost<I: Eq + Clone>(
             "candidate Item schema closure omitted a required contract".into(),
         ));
     }
-    let aggregate = records.checked_add(items).ok_or(ItemRefusal::Budget)?;
+    let aggregate = records
+        .checked_add(items)
+        .ok_or(crate::item_budget_origin!())?;
     if aggregate > max_schema_resource_bytes {
         return Err(ItemRefusal::BudgetCheck {
             check: "source-foundation aggregate schema resource bytes",
@@ -6421,14 +6439,14 @@ impl<P: CutPayloadReader> CurrentItemSource<'_, '_, P> {
                             .ok()
                             .and_then(|value| bytes.checked_add(value))
                     })
-                    .ok_or(ItemRefusal::Budget)?;
+                    .ok_or(crate::item_budget_origin!())?;
                 minimum.max(*charged)
             }
             None => 0,
         };
         self.schema_request_state_bytes
             .checked_add(cache)
-            .ok_or(ItemRefusal::Budget)
+            .ok_or(crate::item_budget_origin!())
     }
 
     fn available_parse_state_bytes(
@@ -6438,11 +6456,11 @@ impl<P: CutPayloadReader> CurrentItemSource<'_, '_, P> {
         let schema_available = self
             .schema_request_state_limit_bytes
             .checked_sub(*self.schema_request_state_bytes)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         let item_live = self
             .live_source_state_bytes()?
             .checked_add(retained_input_bytes)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         let item_available =
             self.limits
                 .max_state_bytes
@@ -6462,16 +6480,16 @@ impl<P: CutPayloadReader> CurrentItemSource<'_, '_, P> {
     ) -> Result<(), ItemRefusal> {
         let retained = std::mem::size_of::<String>()
             .checked_add(path.len())
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         let peak_aux = self
             .schema_request_state_bytes
             .checked_add(retained)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         let peak = self
             .live_source_state_bytes()?
             .checked_add(retained)
             .and_then(|bytes| bytes.checked_add(raw_bytes))
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         if peak_aux > self.schema_request_state_limit_bytes || peak > self.limits.max_state_bytes {
             return Err(ItemRefusal::BudgetCheck {
                 check: "source-foundation active Item manifest state",
@@ -6486,13 +6504,13 @@ impl<P: CutPayloadReader> CurrentItemSource<'_, '_, P> {
         let mut active = String::new();
         active
             .try_reserve_exact(path.len())
-            .map_err(|_| ItemRefusal::Budget)?;
+            .map_err(|_| crate::item_budget_origin!())?;
         active.push_str(path);
         let next_aux = self
             .schema_request_state_bytes
             .checked_sub(self.active_manifest_state_bytes)
             .and_then(|bytes| bytes.checked_add(retained))
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         self.active_manifest = Some(active);
         self.active_manifest_state_bytes = retained;
         *self.schema_request_state_bytes = next_aux;
@@ -6533,11 +6551,11 @@ impl<P: CutPayloadReader> CurrentItemSource<'_, '_, P> {
                         .len()
                         .checked_mul(2)
                         .and_then(|both| both.checked_add(std::mem::size_of::<Option<Vec<u8>>>()))
-                        .ok_or(ItemRefusal::Budget)?;
+                        .ok_or(crate::item_budget_origin!())?;
                     let peak = self
                         .live_source_state_bytes()?
                         .checked_add(overlap)
-                        .ok_or(ItemRefusal::Budget)?;
+                        .ok_or(crate::item_budget_origin!())?;
                     if peak > self.limits.max_state_bytes {
                         return Err(ItemRefusal::BudgetCheck {
                             check: "source-foundation Item borrowed and owned member overlap",
@@ -6548,7 +6566,7 @@ impl<P: CutPayloadReader> CurrentItemSource<'_, '_, P> {
                     let mut owned = Vec::new();
                     owned
                         .try_reserve_exact(bytes.len())
-                        .map_err(|_| ItemRefusal::Budget)?;
+                        .map_err(|_| crate::item_budget_origin!())?;
                     owned.extend_from_slice(bytes);
                     raw = Some(owned);
                     Ok(())
@@ -6569,12 +6587,12 @@ impl<P: CutPayloadReader> CurrentItemSource<'_, '_, P> {
                 ))
             })?;
             let member_len =
-                usize::try_from(metadata.size_bytes).map_err(|_| ItemRefusal::Budget)?;
+                usize::try_from(metadata.size_bytes).map_err(|_| crate::item_budget_origin!())?;
             let peak = self
                 .live_source_state_bytes()?
                 .checked_add(member_len)
                 .and_then(|bytes| bytes.checked_add(std::mem::size_of::<Option<Vec<u8>>>()))
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
             if metadata.size_bytes > max_bytes as u64 || peak > self.limits.max_state_bytes {
                 return Err(ItemRefusal::BudgetCheck {
                     check: "source-foundation Item current member precharge",
@@ -6630,7 +6648,7 @@ impl<P: CutPayloadReader> CurrentItemSource<'_, '_, P> {
         let key_state = std::mem::size_of::<(String, BiblioCurrentRecord, usize)>()
             .checked_add(id.len())
             .and_then(|bytes| bytes.checked_add(*self.schema_request_state_bytes))
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         let row_limit =
             self.limits
                 .max_state_bytes
@@ -6640,10 +6658,11 @@ impl<P: CutPayloadReader> CurrentItemSource<'_, '_, P> {
                     used: Some(key_state as u64),
                     limit: Some(self.limits.max_state_bytes as u64),
                 })?;
-        let maximum = std::num::NonZeroUsize::new(row_limit.max(1)).ok_or(ItemRefusal::Budget)?;
+        let maximum =
+            std::num::NonZeroUsize::new(row_limit.max(1)).ok_or(crate::item_budget_origin!())?;
         let mut key = String::new();
         key.try_reserve_exact(id.len())
-            .map_err(|_| ItemRefusal::Budget)?;
+            .map_err(|_| crate::item_budget_origin!())?;
         key.push_str(id);
         let found = store.with(|store| {
             SourceFoundationRecordsIndex::new(&*store).lookup_current_record(
@@ -6673,7 +6692,7 @@ impl<P: CutPayloadReader> CurrentItemSource<'_, '_, P> {
         *self.schema_request_state_bytes = self
             .schema_request_state_bytes
             .checked_sub(self.companion_state_bytes)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         self.companion_state_bytes = 0;
         self.companion_paths = Vec::new();
         Ok(())
@@ -6694,7 +6713,7 @@ impl<P: CutPayloadReader> CurrentItemSource<'_, '_, P> {
                     Some(bytes)
                 }
             })
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         let next = self
             .schema_request_state_bytes
             .checked_add(retained)
@@ -6711,7 +6730,7 @@ impl<P: CutPayloadReader> CurrentItemSource<'_, '_, P> {
             .live_source_state_bytes()?
             .checked_add(additional_live_state_bytes)
             .and_then(|bytes| bytes.checked_add(retained))
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         if live_peak > self.limits.max_state_bytes {
             return Err(ItemRefusal::BudgetCheck {
                 check: "source-foundation Item companion copy overlap",
@@ -6722,11 +6741,11 @@ impl<P: CutPayloadReader> CurrentItemSource<'_, '_, P> {
         let mut owned_path = String::new();
         owned_path
             .try_reserve_exact(path.len())
-            .map_err(|_| ItemRefusal::Budget)?;
+            .map_err(|_| crate::item_budget_origin!())?;
         owned_path.push_str(path);
         self.companion_paths
             .try_reserve_exact(1)
-            .map_err(|_| ItemRefusal::Budget)?;
+            .map_err(|_| crate::item_budget_origin!())?;
         self.companion_paths.push(ItemCompanionSchemaPath {
             path: owned_path,
             contract,
@@ -6735,7 +6754,7 @@ impl<P: CutPayloadReader> CurrentItemSource<'_, '_, P> {
         self.companion_state_bytes = self
             .companion_state_bytes
             .checked_add(retained)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         *self.schema_request_state_bytes = next;
         Ok(())
     }
@@ -6757,7 +6776,7 @@ impl<P: CutPayloadReader> CurrentItemSource<'_, '_, P> {
         owner_issue: SourceFoundationRecordsOwnerIssue,
     ) -> Result<(), ItemRefusal> {
         if self.schema_checks.len() >= self.limits.max_issues {
-            return Err(ItemRefusal::Budget);
+            return Err(crate::item_budget_origin!());
         }
         let before_issue = self.membership_issues.len();
         retain_direct_schema_check(
@@ -6794,7 +6813,7 @@ impl<P: CutPayloadReader> CurrentItemSource<'_, '_, P> {
         item_limits.deadline = item_limits.deadline.min(deadline);
         for (offset, line) in text.lines().enumerate() {
             check(item_limits, self.cancelled)?;
-            let ordinal = offset.checked_add(1).ok_or(ItemRefusal::Budget)?;
+            let ordinal = offset.checked_add(1).ok_or(crate::item_budget_origin!())?;
             let location = format!("{path}:{ordinal}");
             if line.trim().is_empty() {
                 self.schedule_item_root_check(
@@ -6901,7 +6920,7 @@ impl<P: CutPayloadReader> ItemSource for CurrentItemSource<'_, '_, P> {
                     let additional_live_state_bytes = raw
                         .len()
                         .checked_add(decoded_value_bytes)
-                        .ok_or(ItemRefusal::Budget)?;
+                        .ok_or(crate::item_budget_origin!())?;
                     for (field, companion) in [
                         ("resource_inventory_ref", ItemCompanionContract::Inventory),
                         ("rights_ref", ItemCompanionContract::Rights),
@@ -6981,7 +7000,7 @@ impl<P: CutPayloadReader> ItemSource for CurrentItemSource<'_, '_, P> {
         let available = self.available_parse_state_bytes(raw.len())?.min(
             available_state_bytes
                 .checked_sub(raw.len())
-                .ok_or(ItemRefusal::Budget)?,
+                .ok_or(crate::item_budget_origin!())?,
         );
         let observed = bounded_legacy_observed_inventory(raw, limits, available, self.cancelled)?;
         check_deadline(deadline, self.cancelled)?;
@@ -7009,7 +7028,7 @@ impl<P: CutPayloadReader> ItemSource for CurrentItemSource<'_, '_, P> {
             return Ok(true);
         }
         if self.schema_checks.len() >= self.limits.max_issues {
-            return Err(ItemRefusal::Budget);
+            return Err(crate::item_budget_origin!());
         }
         let mut item_limits = self.limits;
         item_limits.deadline = item_limits.deadline.min(deadline);
@@ -7151,7 +7170,7 @@ fn validate_limits(limits: SourceFoundationRecordsLimits) -> Result<(), ItemRefu
             || current.max_issues == 0
             || current.max_issues == usize::MAX
         {
-            return Err(ItemRefusal::Budget);
+            return Err(crate::item_budget_origin!());
         }
         if current.deadline != operation.deadline {
             return Err(ItemRefusal::Unsupported(
@@ -7165,7 +7184,7 @@ fn validate_limits(limits: SourceFoundationRecordsLimits) -> Result<(), ItemRefu
         || limits.max_schema_request_state_bytes == usize::MAX
         || limits.max_schema_request_state_bytes > items.max_state_bytes
     {
-        return Err(ItemRefusal::Budget);
+        return Err(crate::item_budget_origin!());
     }
     if records.max_member_bytes > operation.max_member_bytes
         || items.max_member_bytes > operation.max_member_bytes
@@ -7182,7 +7201,7 @@ fn validate_limits(limits: SourceFoundationRecordsLimits) -> Result<(), ItemRefu
             .checked_add(items.max_issues)
             .is_none_or(|sum| sum > operation.max_issues)
     {
-        return Err(ItemRefusal::Budget);
+        return Err(crate::item_budget_origin!());
     }
     Ok(())
 }
@@ -7201,7 +7220,7 @@ fn validate_rolling_limits(limits: SourceFoundationRecordsLimits) -> Result<(), 
             || current.max_issues == 0
             || current.max_issues == usize::MAX
         {
-            return Err(ItemRefusal::Budget);
+            return Err(crate::item_budget_origin!());
         }
         if current.deadline != operation.deadline {
             return Err(ItemRefusal::Unsupported(
@@ -7217,7 +7236,7 @@ fn validate_rolling_limits(limits: SourceFoundationRecordsLimits) -> Result<(), 
         || records.max_member_bytes > operation.max_member_bytes
         || items.max_member_bytes > operation.max_member_bytes
     {
-        return Err(ItemRefusal::Budget);
+        return Err(crate::item_budget_origin!());
     }
     Ok(())
 }
@@ -7233,7 +7252,7 @@ fn charge_inventory_set_scan_step(
     cancelled: &AtomicBool,
 ) -> Result<(), ItemRefusal> {
     check(limits, cancelled)?;
-    let next = used.checked_add(1).ok_or(ItemRefusal::Budget)?;
+    let next = used.checked_add(1).ok_or(crate::item_budget_origin!())?;
     if next > limit {
         return Err(ItemRefusal::BudgetCheck {
             check: "source-foundation Item inventory set membership scan steps",

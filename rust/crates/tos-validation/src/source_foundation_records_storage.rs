@@ -648,7 +648,7 @@ fn current_record_minimum_state(record: &BiblioCurrentRecord) -> Result<usize, I
                 .ok()
                 .and_then(|value| bytes.checked_add(value))
         })
-        .ok_or(ItemRefusal::Budget)
+        .ok_or(crate::item_budget_origin!())
 }
 
 fn current_record_page_minimum_state(
@@ -659,18 +659,18 @@ fn current_record_page_minimum_state(
             page.rows
                 .len()
                 .checked_mul(std::mem::size_of::<(String, BiblioCurrentRecord)>())
-                .ok_or(ItemRefusal::Budget)?,
+                .ok_or(crate::item_budget_origin!())?,
         )
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     for (id, record) in &page.rows {
         bytes = bytes
             .checked_add(id.len())
             .and_then(|used| used.checked_add(current_record_minimum_state(record).ok()?))
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
     }
     bytes = bytes
         .checked_add(page.next_after_id.as_ref().map_or(0, String::len))
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     Ok(bytes)
 }
 
@@ -708,7 +708,7 @@ impl<'a> SourceFoundationRecordsIndex<'a> {
                             .ok()
                             .and_then(|value| bytes.checked_add(value))
                     })
-                    .ok_or(ItemRefusal::Budget)
+                    .ok_or(crate::item_budget_origin!())
             })
             .transpose()?;
         if found.as_ref().is_some_and(|lookup| {
@@ -900,12 +900,16 @@ impl<'a> SourceFoundationRecordsIndex<'a> {
                 bytes
                     .checked_add(std::mem::size_of::<String>())
                     .and_then(|bytes| bytes.checked_add(path.len()))
-                    .ok_or(ItemRefusal::Budget)
+                    .ok_or(crate::item_budget_origin!())
             },
         )?;
         let ordered = page.paths.windows(2).all(|rows| rows[0] < rows[1]);
         if !ordered
-            || after_path.is_some_and(|after| page.paths.first().is_some_and(|path| path.as_str() <= after))
+            || after_path.is_some_and(|after| {
+                page.paths
+                    .first()
+                    .is_some_and(|path| path.as_str() <= after)
+            })
             || page.paths.len() > budget.max_rows.get()
             || page.charged_state_bytes > budget.max_state_bytes.get()
             || page.charged_state_bytes < minimum
@@ -937,7 +941,7 @@ impl<'a> SourceFoundationRecordsIndex<'a> {
             .map(|lookup| {
                 std::mem::size_of::<SourceFoundationItemEditionLookup>()
                     .checked_add(lookup.embodiment_ref.len())
-                    .ok_or(ItemRefusal::Budget)
+                    .ok_or(crate::item_budget_origin!())
             })
             .transpose()?;
         if found.as_ref().is_some_and(|lookup| {
@@ -1037,7 +1041,7 @@ impl<'a> SourceFoundationRecordsIndex<'a> {
                             .ok()
                             .and_then(|value| bytes.checked_add(value))
                     })
-                    .ok_or(ItemRefusal::Budget)
+                    .ok_or(crate::item_budget_origin!())
             })
             .transpose()?;
         if found.as_ref().is_some_and(|lookup| {
@@ -1073,10 +1077,10 @@ impl<'a> SourceFoundationRecordsIndex<'a> {
                     .try_fold(
                         std::mem::size_of::<SourceFoundationFileDescriptorLookup>()
                             .checked_add(lookup.file_id.len())
-                            .ok_or(ItemRefusal::Budget)?,
+                            .ok_or(crate::item_budget_origin!())?,
                         |used, value| {
                             used.checked_add(crate::record_biblio_cut::decoded_state(value)?)
-                                .ok_or(ItemRefusal::Budget)
+                                .ok_or(crate::item_budget_origin!())
                         },
                     )
             })
@@ -1296,7 +1300,7 @@ fn source_foundation_global_id_fact_page_minimum_state_bytes(
                     .checked_mul(std::mem::size_of::<SourceFoundationGlobalIdFact>())?,
             )
         })
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     for row in &page.rows {
         bytes = bytes
             .checked_add(add_state_fields(&[
@@ -1304,7 +1308,7 @@ fn source_foundation_global_id_fact_page_minimum_state_bytes(
                 row.kind.len(),
                 row.path.len(),
             ])?)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
     }
     Ok(bytes)
 }
@@ -1343,17 +1347,17 @@ fn source_foundation_page_minimum_state_bytes(
         .checked_add(
             rows.len()
                 .checked_mul(std::mem::size_of::<SourceFoundationRecordsStoredFact>())
-                .ok_or(ItemRefusal::Budget)?,
+                .ok_or(crate::item_budget_origin!())?,
         )
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     for row in rows {
         bytes = bytes
             .checked_add(source_foundation_stored_fact_minimum_state_bytes(row)?)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
     }
     bytes = bytes
         .checked_add(cursor.map_or(0, |token| token.as_bytes().len()))
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     Ok(bytes)
 }
 
@@ -1436,9 +1440,9 @@ fn source_foundation_fact_page_minimum_state_bytes(
         .checked_add(
             rows.len()
                 .checked_mul(std::mem::size_of::<SourceFoundationRecordFact>())
-                .ok_or(ItemRefusal::Budget)?,
+                .ok_or(crate::item_budget_origin!())?,
         )
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     for row in rows {
         let payload = match row {
             SourceFoundationRecordFact::Observation(row) => {
@@ -1459,11 +1463,13 @@ fn source_foundation_fact_page_minimum_state_bytes(
                 add_state_fields(&[fact.from_path.len(), fact.target_path.len()])?
             }
         };
-        bytes = bytes.checked_add(payload).ok_or(ItemRefusal::Budget)?;
+        bytes = bytes
+            .checked_add(payload)
+            .ok_or(crate::item_budget_origin!())?;
     }
     bytes = bytes
         .checked_add(cursor.map_or(0, |token| token.as_bytes().len()))
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     Ok(bytes)
 }
 
@@ -1539,12 +1545,13 @@ fn source_foundation_stored_fact_minimum_state_bytes(
             row.diagnostic.accounted_state_bytes
         }
     };
-    size.checked_add(payload).ok_or(ItemRefusal::Budget)
+    size.checked_add(payload)
+        .ok_or(crate::item_budget_origin!())
 }
 
 fn add_state_fields(fields: &[usize]) -> Result<usize, ItemRefusal> {
     fields.iter().try_fold(0usize, |sum, field| {
-        sum.checked_add(*field).ok_or(ItemRefusal::Budget)
+        sum.checked_add(*field).ok_or(crate::item_budget_origin!())
     })
 }
 
@@ -1601,7 +1608,7 @@ fn record_observation_minimum_state_bytes(row: &RecordObservation) -> Result<usi
     };
     std::mem::size_of::<RecordObservation>()
         .checked_add(payload)
-        .ok_or(ItemRefusal::Budget)
+        .ok_or(crate::item_budget_origin!())
 }
 
 /// Compact Item family summary for the streamed form. Row collections remain

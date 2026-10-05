@@ -72,7 +72,7 @@ impl<'a, 'host> CandidateRecordsInput<'a, 'host> {
             .filter(|bytes| *bytes != 0);
         let Some(narrowed_callback) = narrowed_callback else {
             self.candidate.abandon();
-            return Err(ItemRefusal::Budget);
+            return Err(tos_validation::item_budget_origin!());
         };
         self.max_owned_state_bytes.set(narrowed);
         self.callback_retained_state_bytes.set(narrowed_callback);
@@ -87,7 +87,7 @@ impl<'a, 'host> CandidateRecordsInput<'a, 'host> {
             || self.max_owned_state_bytes.get() > max_operation_state_bytes
         {
             self.candidate.abandon();
-            return Err(ItemRefusal::Budget);
+            return Err(tos_validation::item_budget_origin!());
         }
         Ok(())
     }
@@ -104,7 +104,7 @@ impl<'a, 'host> CandidateRecordsInput<'a, 'host> {
                 .and_then(|n| n.checked_add(16384))
                 .is_none_or(|n| n > max_owned_state_bytes)
         {
-            return Err(ItemRefusal::Budget);
+            return Err(tos_validation::item_budget_origin!());
         }
         let fence = candidate.fence().map_err(|error| input_refusal(error))?;
         Ok(Self {
@@ -138,7 +138,7 @@ impl<'a, 'host> CandidateRecordsInput<'a, 'host> {
             .and_then(|n| n.checked_add(8192))
             .is_none_or(|n| n > self.max_owned_state_bytes.get())
         {
-            return Err(ItemRefusal::Budget);
+            return Err(tos_validation::item_budget_origin!());
         }
         RelativePath::parse(path).map_err(|_| refused())
     }
@@ -177,7 +177,7 @@ impl SourceCutInput for CandidateRecordsInput<'_, '_> {
                 .max_owned_state_bytes
                 .get()
                 .checked_sub(self.callback_retained_state_bytes.get())
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(tos_validation::item_budget_origin!())?;
             let mut previous: Option<RelativePath> = None;
             let mut count = 0u64;
             loop {
@@ -199,7 +199,9 @@ impl SourceCutInput for CandidateRecordsInput<'_, '_> {
                     path: row.path.as_str(),
                     size_bytes: row.size_bytes,
                 })?;
-                count = count.checked_add(1).ok_or(ItemRefusal::Budget)?;
+                count = count
+                    .checked_add(1)
+                    .ok_or(tos_validation::item_budget_origin!())?;
                 previous = Some(row.path);
             }
             drop(previous);
@@ -222,7 +224,7 @@ impl SourceCutInput for CandidateRecordsInput<'_, '_> {
         let result = (|| {
             self.check(deadline, cancelled)?;
             if max_bytes == 0 {
-                return Err(ItemRefusal::Budget);
+                return Err(tos_validation::item_budget_origin!());
             }
             // The caller's policy ceiling may exceed the candidate's observed
             // largest member. Read under their intersection: the source fence
@@ -233,7 +235,7 @@ impl SourceCutInput for CandidateRecordsInput<'_, '_> {
                 .max_owned_state_bytes
                 .get()
                 .checked_sub(self.callback_retained_state_bytes.get())
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(tos_validation::item_budget_origin!())?;
             let member = self
                 .candidate
                 .read_member_bound(&path, max_bytes, allowance)
@@ -310,12 +312,12 @@ impl SourceCutInput for CandidateRecordsInput<'_, '_> {
                 .checked_mul(16)
                 .and_then(|n| n.checked_add(self.callback_retained_state_bytes.get()))
                 .and_then(|n| n.checked_add(8192))
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(tos_validation::item_budget_origin!())?;
             let allowance = self
                 .max_owned_state_bytes
                 .get()
                 .checked_sub(overlap)
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(tos_validation::item_budget_origin!())?;
             let size = self
                 .candidate
                 .member_bounded(&relative, allowance)
@@ -343,12 +345,12 @@ impl SourceCutInput for CandidateRecordsInput<'_, '_> {
                 .checked_mul(16)
                 .and_then(|n| n.checked_add(self.callback_retained_state_bytes.get()))
                 .and_then(|n| n.checked_add(8192))
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(tos_validation::item_budget_origin!())?;
             let allowance = self
                 .max_owned_state_bytes
                 .get()
                 .checked_sub(overlap)
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(tos_validation::item_budget_origin!())?;
             let presence = if self
                 .candidate
                 .member_bounded(&relative, allowance)
@@ -364,12 +366,12 @@ impl SourceCutInput for CandidateRecordsInput<'_, '_> {
                         .len()
                         .checked_mul(16)
                         .and_then(|n| n.checked_add(overlap))
-                        .ok_or(ItemRefusal::Budget)?;
+                        .ok_or(tos_validation::item_budget_origin!())?;
                     let row_allowance = self
                         .max_owned_state_bytes
                         .get()
                         .checked_sub(previous)
-                        .ok_or(ItemRefusal::Budget)?;
+                        .ok_or(tos_validation::item_budget_origin!())?;
                     let Some(next) = self
                         .candidate
                         .member_after_bounded(Some(&after), row_allowance)

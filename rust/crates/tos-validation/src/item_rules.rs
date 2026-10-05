@@ -39,6 +39,19 @@ pub enum ItemRefusal {
     Unsupported(String),
 }
 
+/// Preserve the source location of a guard that has no observed counter.
+/// Only its fingerprint crosses the public refusal boundary.
+#[macro_export]
+macro_rules! item_budget_origin {
+    () => {
+        $crate::item_rules::ItemRefusal::BudgetCheck {
+            check: concat!(module_path!(), ":", line!()),
+            used: None,
+            limit: None,
+        }
+    };
+}
+
 /// Custody performs streaming hashing against the pinned selected bytes.
 /// Unavailable bytes preserve the metadata-only route; they do not count as
 /// verified local fixity. A symlink/non-file is unavailable, never a file.
@@ -174,7 +187,7 @@ impl ItemRules {
         let used = self
             .inventory_set_scan_steps
             .checked_add(1)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         if used > self.limits.max_state_bytes {
             return Err(ItemRefusal::BudgetCheck {
                 check: "Item inventory set membership scan steps",
@@ -191,12 +204,12 @@ impl ItemRules {
         let retained = self
             .state_bytes
             .checked_add(bytes)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         if retained
             .checked_add(self.live_bytes)
             .is_none_or(|total| total > self.limits.max_state_bytes)
         {
-            return Err(ItemRefusal::Budget);
+            return Err(crate::item_budget_origin!());
         }
         self.state_bytes = retained;
         Ok(())
@@ -207,18 +220,18 @@ impl ItemRules {
             .max_state_bytes
             .checked_sub(self.state_bytes)
             .and_then(|bytes| bytes.checked_sub(self.live_bytes))
-            .ok_or(ItemRefusal::Budget)
+            .ok_or(crate::item_budget_origin!())
     }
 
     fn admit_live(&mut self, bytes: usize) -> Result<(), ItemRefusal> {
         self.check()?;
         if bytes > self.available()? {
-            return Err(ItemRefusal::Budget);
+            return Err(crate::item_budget_origin!());
         }
         self.live_bytes = self
             .live_bytes
             .checked_add(bytes)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         Ok(())
     }
 
@@ -228,7 +241,7 @@ impl ItemRules {
 
     fn issue(&mut self, path: &str, code: &'static str) -> Result<(), ItemRefusal> {
         if self.issues.len() >= self.limits.max_issues {
-            return Err(ItemRefusal::Budget);
+            return Err(crate::item_budget_origin!());
         }
         self.reserve(path.len() + code.len() + std::mem::size_of::<ItemIssue>())?;
         self.issues.push(ItemIssue {
@@ -248,12 +261,12 @@ impl ItemRules {
         let available = self
             .available()?
             .checked_sub(std::mem::size_of::<Vec<u8>>())
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         let total_remaining = self
             .limits
             .max_total_bytes
             .checked_sub(self.metadata_bytes)
-            .ok_or(ItemRefusal::Budget)?
+            .ok_or(crate::item_budget_origin!())?
             .min(usize::MAX as u64) as usize;
         // The adapter must enforce this cap while reading; the exact returned
         // length is admitted before any decoded representation is built.
@@ -268,14 +281,14 @@ impl ItemRules {
         self.check()?;
         if let Some(raw) = &raw {
             if raw.len() > self.limits.max_member_bytes {
-                return Err(ItemRefusal::Budget);
+                return Err(crate::item_budget_origin!());
             }
             self.admit_live(std::mem::size_of::<Vec<u8>>() + raw.len())?;
             self.metadata_bytes = self
                 .metadata_bytes
                 .checked_add(raw.len() as u64)
                 .filter(|n| *n <= self.limits.max_total_bytes)
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
         } else {
             self.issue(path, "missing-companion")?;
         }
@@ -987,7 +1000,7 @@ impl ItemRules {
                             + 3 * std::mem::size_of::<usize>(),
                         |size, value| {
                             size.checked_add(retained_value_bytes(value)?)
-                                .ok_or(ItemRefusal::Budget)
+                                .ok_or(crate::item_budget_origin!())
                         },
                     )?;
                     self.reserve(bytes)?;
@@ -1027,7 +1040,7 @@ impl ItemRules {
                     self.unavailable_payloads = self
                         .unavailable_payloads
                         .checked_add(1)
-                        .ok_or(ItemRefusal::Budget)?;
+                        .ok_or(crate::item_budget_origin!())?;
                     if self.require_local_payloads {
                         self.issue(&payload_path, "required-payload-unavailable")?;
                     }
@@ -1072,11 +1085,11 @@ impl ItemRules {
         let header = std::mem::size_of::<Vec<u8>>()
             .checked_add(std::mem::size_of::<String>())
             .and_then(|n| n.checked_add(path.len()))
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         Ok(self.limits.max_member_bytes.min(
             self.available()?
                 .checked_sub(header)
-                .ok_or(ItemRefusal::Budget)?,
+                .ok_or(crate::item_budget_origin!())?,
         ))
     }
 
@@ -1101,13 +1114,17 @@ impl ItemRules {
     ) -> Result<(), ItemRefusal> {
         self.check()?;
         if raw.len() > self.limits.max_member_bytes {
-            return Err(ItemRefusal::Budget);
+            return Err(crate::item_budget_origin!());
         }
         let header = std::mem::size_of::<Vec<u8>>()
             .checked_add(std::mem::size_of::<String>())
             .and_then(|n| n.checked_add(path.len()))
-            .ok_or(ItemRefusal::Budget)?;
-        self.admit_live(header.checked_add(raw.len()).ok_or(ItemRefusal::Budget)?)?;
+            .ok_or(crate::item_budget_origin!())?;
+        self.admit_live(
+            header
+                .checked_add(raw.len())
+                .ok_or(crate::item_budget_origin!())?,
+        )?;
         let available = self.available()?;
         let decoded = crate::record_biblio_cut::bounded_legacy_item_decoded_state(
             raw,
@@ -1191,17 +1208,26 @@ pub(crate) fn observed_json_retained_bytes(
         if length == 0 {
             return Ok(0);
         }
-        let capacity = length.checked_mul(2).ok_or(ItemRefusal::Budget)?.max(4);
-        capacity.checked_mul(cell).ok_or(ItemRefusal::Budget)
+        let capacity = length
+            .checked_mul(2)
+            .ok_or(crate::item_budget_origin!())?
+            .max(4);
+        capacity
+            .checked_mul(cell)
+            .ok_or(crate::item_budget_origin!())
     }
     fn string_bytes(value: &tos_foundation::JsonString) -> Result<usize, ItemRefusal> {
         let units = vector_capacity_bytes(value.units().len(), std::mem::size_of::<u16>())?;
         let utf8 = value
             .as_str()
-            .map(|text| text.len().checked_mul(2).ok_or(ItemRefusal::Budget))
+            .map(|text| {
+                text.len()
+                    .checked_mul(2)
+                    .ok_or(crate::item_budget_origin!())
+            })
             .transpose()?
             .unwrap_or_default();
-        units.checked_add(utf8).ok_or(ItemRefusal::Budget)
+        units.checked_add(utf8).ok_or(crate::item_budget_origin!())
     }
     fn visit(value: &tos_foundation::JsonValue) -> Result<usize, ItemRefusal> {
         let mut bytes = std::mem::size_of::<tos_foundation::JsonValue>();
@@ -1214,14 +1240,14 @@ pub(crate) fn observed_json_retained_bytes(
                             .lexeme
                             .len()
                             .checked_mul(2)
-                            .ok_or(ItemRefusal::Budget)?,
+                            .ok_or(crate::item_budget_origin!())?,
                     )
-                    .ok_or(ItemRefusal::Budget)?;
+                    .ok_or(crate::item_budget_origin!())?;
             }
             tos_foundation::JsonValue::String(text) => {
                 bytes = bytes
                     .checked_add(string_bytes(text)?)
-                    .ok_or(ItemRefusal::Budget)?;
+                    .ok_or(crate::item_budget_origin!())?;
             }
             tos_foundation::JsonValue::Array(values) => {
                 bytes = bytes
@@ -1229,11 +1255,11 @@ pub(crate) fn observed_json_retained_bytes(
                         values.len(),
                         std::mem::size_of::<tos_foundation::JsonValue>(),
                     )?)
-                    .ok_or(ItemRefusal::Budget)?;
+                    .ok_or(crate::item_budget_origin!())?;
                 for child in values {
                     bytes = bytes
                         .checked_add(visit(child)?)
-                        .ok_or(ItemRefusal::Budget)?;
+                        .ok_or(crate::item_budget_origin!())?;
                 }
             }
             tos_foundation::JsonValue::Object(entries) => {
@@ -1246,12 +1272,12 @@ pub(crate) fn observed_json_retained_bytes(
                                 tos_foundation::JsonValue,
                             )>(),
                         )?)
-                        .ok_or(ItemRefusal::Budget)?;
+                        .ok_or(crate::item_budget_origin!())?;
                 for (key, child) in entries {
                     bytes = bytes
                         .checked_add(string_bytes(key)?)
                         .and_then(|bytes| bytes.checked_add(visit(child).ok()?))
-                        .ok_or(ItemRefusal::Budget)?;
+                        .ok_or(crate::item_budget_origin!())?;
                 }
             }
         }
@@ -1535,18 +1561,18 @@ fn item_json_limits(
     available: usize,
 ) -> Result<tos_foundation::JsonLimits, ItemRefusal> {
     tos_foundation::JsonLimits::new(max_bytes, 128, available.max(1), max_bytes.max(1))
-        .map_err(|_| ItemRefusal::Budget)
+        .map_err(|_| crate::item_budget_origin!())
 }
 
 fn item_codec_visits(raw_len: usize, available: usize) -> Result<usize, ItemRefusal> {
-    let string_workspace = raw_len.checked_mul(5).ok_or(ItemRefusal::Budget)?;
+    let string_workspace = raw_len.checked_mul(5).ok_or(crate::item_budget_origin!())?;
     let visit_slot = std::mem::size_of::<tos_foundation::JsonValue>()
         + std::mem::size_of::<tos_foundation::JsonString>()
         + std::mem::size_of::<(Vec<u16>, usize)>()
         + std::mem::size_of::<std::collections::HashMap<Vec<u16>, usize>>();
     let remaining = available
         .checked_sub(string_workspace)
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     Ok((remaining / visit_slot).min(available.max(1)))
 }
 
@@ -1585,7 +1611,7 @@ fn retained_value_bytes(value: &Value) -> Result<usize, ItemRefusal> {
         Value::Number(number) => number.as_str().len(),
         Value::Array(values) => values.iter().try_fold(0usize, |size, child| {
             size.checked_add(retained_value_bytes(child)?)
-                .ok_or(ItemRefusal::Budget)
+                .ok_or(crate::item_budget_origin!())
         })?,
         Value::Object(values) => values.iter().try_fold(0usize, |size, (key, child)| {
             let child_size = retained_value_bytes(child)?;
@@ -1593,12 +1619,12 @@ fn retained_value_bytes(value: &Value) -> Result<usize, ItemRefusal> {
                 .checked_add(3 * std::mem::size_of::<usize>())
                 .and_then(|size| size.checked_add(key.len()))
                 .and_then(|size| size.checked_add(child_size))
-                .ok_or(ItemRefusal::Budget)?;
-            size.checked_add(entry).ok_or(ItemRefusal::Budget)
+                .ok_or(crate::item_budget_origin!())?;
+            size.checked_add(entry).ok_or(crate::item_budget_origin!())
         })?,
         _ => 0,
     };
-    cell.checked_add(extra).ok_or(ItemRefusal::Budget)
+    cell.checked_add(extra).ok_or(crate::item_budget_origin!())
 }
 
 fn safe_path(path: &str) -> Result<(), ItemRefusal> {
