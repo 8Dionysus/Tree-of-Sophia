@@ -799,6 +799,13 @@ impl<'budget> CreationState<'budget> {
             .map_err(|_| Error::Budget("owned model canonical limits"))?;
         self.encode_foundation_canonical_with_limits(&document, limits)
     }
+    pub(crate) fn with_foundation_compact_bytes<T>(
+        &self, value: &JsonValue, cap: usize, source_bytes: usize,
+        operation: impl FnOnce(&[u8]) -> Result<T>,
+    ) -> Result<T> {
+        let bytes = compact_with_owned_state(self, value, cap, source_bytes)?;
+        operation(&bytes)
+    }
     pub(crate) fn clone_foundation(&self, value: &JsonValue) -> Result<JsonValue> {
         let upper = value
             .retained_storage_bytes()
@@ -1371,6 +1378,102 @@ impl std::ops::Deref for CreationJson<'_> {
         &self.value
     }
 }
+impl std::ops::DerefMut for CreationJson<'_> {
+    fn deref_mut(&mut self) -> &mut JsonValue { &mut self.value }
+}
+
+pub(crate) fn foundation_scoped<'a>(raw: &[u8], cap: usize,
+    owner: Option<&'a CreationState<'a>>,
+) -> Result<CreationJson<'a>> {
+    match owner {
+        Some(owner) => creation_json(owner, raw, cap),
+        None => Ok(CreationJson { value: json(raw, cap)?, _hold: None }),
+    }
+}
+
+fn compact_with_owned_state<'a>(owner: &'a CreationState<'a>, value: &JsonValue,
+    cap: usize, source_bytes: usize,
+) -> Result<CreationBytes<'a>> {
+        let before = owner.json_visits.get();
+        let allowance = owner
+            .max_json_visits
+            .checked_sub(before)
+            .filter(|value| *value > 0)
+            .ok_or(Error::Budget("runtime carrier compact visits"))?
+            .min(1_000_000)
+            .min(
+                source_bytes
+                    .checked_mul(6)
+                    .and_then(|n| n.checked_add(2))
+                    .ok_or(Error::Budget("runtime carrier compact visit bound"))?,
+            );
+        // Two passes each visit values, keys and numeric-lexeme validation;
+        // every such token originates in the bounded original input bytes.
+        // PythonPublishedCompact cannot expand an original token beyond this
+        // finite bound: quoted UTF-16 units need <=6 bytes, finite binary64
+        // shortest spelling fits 32 bytes, integer digits retain their input
+        // width, and container punctuation is already present in source bytes.
+        let output_cap = source_bytes
+            .checked_mul(32)
+            .and_then(|n| n.checked_add(2))
+            .ok_or(Error::Budget("runtime carrier compact token bound"))?
+            .min(cap);
+        let limits = JsonLimits::new(output_cap, 96, allowance, 4096)
+            .map_err(|_| Error::Budget("runtime carrier compact limits"))?;
+        let available = owner.remaining(0)?;
+        let mut check = || {
+            check_capture_active(Some(owner.cancelled), owner.deadline).map_err(|_| {
+                tos_foundation::FoundationError::new(
+                    tos_foundation::FoundationErrorCode::BudgetExceeded,
+                    "runtime carrier compact cutoff/cancellation",
+                )
+            })
+        };
+        let work = &owner.work;
+        let limit = owner.work_limit;
+        let mut admit = |bytes: usize, visits: usize| {
+            let amount = bytes
+                .checked_mul(2)
+                .and_then(|bytes| bytes.checked_add(visits))
+                .ok_or_else(|| {
+                    tos_foundation::FoundationError::new(
+                        tos_foundation::FoundationErrorCode::BudgetExceeded,
+                        "runtime carrier compact work overflow",
+                    )
+                })?;
+            checked_add(work, amount, limit).map_err(|_| {
+                tos_foundation::FoundationError::new(
+                    tos_foundation::FoundationErrorCode::BudgetExceeded,
+                    "runtime carrier compact original work",
+                )
+            })?;
+            owner
+                .json_visits
+                .set(before.checked_add(visits).ok_or_else(|| {
+                    tos_foundation::FoundationError::new(
+                        tos_foundation::FoundationErrorCode::BudgetExceeded,
+                        "runtime carrier compact visits overflow",
+                    )
+                })?);
+            Ok(())
+        };
+        let (bytes, visits) = emit_python_compact_json_with_state_budget_and_visits_and_check(
+            value, limits, available, &mut check, &mut admit,
+        )
+        .map_err(|_| Error::Budget("runtime carrier compact original budget"))?;
+        owner.json_visits.set(
+            before
+                .checked_add(visits)
+                .ok_or(Error::Budget("runtime carrier compact visits"))?,
+        );
+        let hold = owner.hold(bytes.capacity())?;
+        Ok(CreationBytes {
+            bytes,
+            _hold: Some(hold),
+        })
+
+}
+
 struct CreationBytes<'a> {
     bytes: Vec<u8>,
     _hold: Option<CreationStateHold<'a, 'a>>,
@@ -1543,94 +1646,12 @@ impl<'a> CaptureWriter<'a> {
         }
     }
     fn compact_owned(
-        &mut self,
-        value: &JsonValue,
-        cap: usize,
-        source_bytes: usize,
+        &mut self, value: &JsonValue, cap: usize, source_bytes: usize,
     ) -> Result<CreationBytes<'a>> {
-        let Some(owner) = self.creation else {
-            return Ok(CreationBytes {
-                bytes: compact(value, cap)?,
-                _hold: None,
-            });
-        };
-        let before = owner.json_visits.get();
-        let allowance = owner
-            .max_json_visits
-            .checked_sub(before)
-            .filter(|value| *value > 0)
-            .ok_or(Error::Budget("runtime carrier compact visits"))?
-            .min(1_000_000)
-            .min(
-                source_bytes
-                    .checked_mul(6)
-                    .and_then(|n| n.checked_add(2))
-                    .ok_or(Error::Budget("runtime carrier compact visit bound"))?,
-            );
-        // Two passes each visit values, keys and numeric-lexeme validation;
-        // every such token originates in the bounded original input bytes.
-        // PythonPublishedCompact cannot expand an original token beyond this
-        // finite bound: quoted UTF-16 units need <=6 bytes, finite binary64
-        // shortest spelling fits 32 bytes, integer digits retain their input
-        // width, and container punctuation is already present in source bytes.
-        let output_cap = source_bytes
-            .checked_mul(32)
-            .and_then(|n| n.checked_add(2))
-            .ok_or(Error::Budget("runtime carrier compact token bound"))?
-            .min(cap);
-        let limits = JsonLimits::new(output_cap, 96, allowance, 4096)
-            .map_err(|_| Error::Budget("runtime carrier compact limits"))?;
-        let available = owner.remaining(0)?;
-        let mut check = || {
-            check_capture_active(Some(owner.cancelled), owner.deadline).map_err(|_| {
-                tos_foundation::FoundationError::new(
-                    tos_foundation::FoundationErrorCode::BudgetExceeded,
-                    "runtime carrier compact cutoff/cancellation",
-                )
-            })
-        };
-        let work = self.work;
-        let limit = self.limits.max_work_bytes;
-        let mut admit = |bytes: usize, visits: usize| {
-            let amount = bytes
-                .checked_mul(2)
-                .and_then(|bytes| bytes.checked_add(visits))
-                .ok_or_else(|| {
-                    tos_foundation::FoundationError::new(
-                        tos_foundation::FoundationErrorCode::BudgetExceeded,
-                        "runtime carrier compact work overflow",
-                    )
-                })?;
-            checked_add(work, amount, limit).map_err(|_| {
-                tos_foundation::FoundationError::new(
-                    tos_foundation::FoundationErrorCode::BudgetExceeded,
-                    "runtime carrier compact original work",
-                )
-            })?;
-            owner
-                .json_visits
-                .set(before.checked_add(visits).ok_or_else(|| {
-                    tos_foundation::FoundationError::new(
-                        tos_foundation::FoundationErrorCode::BudgetExceeded,
-                        "runtime carrier compact visits overflow",
-                    )
-                })?);
-            Ok(())
-        };
-        let (bytes, visits) = emit_python_compact_json_with_state_budget_and_visits_and_check(
-            value, limits, available, &mut check, &mut admit,
-        )
-        .map_err(|_| Error::Budget("runtime carrier compact original budget"))?;
-        owner.json_visits.set(
-            before
-                .checked_add(visits)
-                .ok_or(Error::Budget("runtime carrier compact visits"))?,
-        );
-        let hold = owner.hold(bytes.capacity())?;
-        Ok(CreationBytes {
-            bytes,
-            _hold: Some(hold),
-        })
+        match self.creation {
+            Some(owner) => compact_with_owned_state(owner, value, cap, source_bytes),
+            None => Ok(CreationBytes { bytes: compact(value, cap)?, _hold: None }),
+        }
     }
     fn page_step(&mut self, bytes: usize) -> Result<()> {
         check_capture_active(self.cancelled, self.deadline)?;

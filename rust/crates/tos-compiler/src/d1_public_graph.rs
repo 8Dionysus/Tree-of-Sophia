@@ -840,6 +840,30 @@ pub(crate) fn captured_input_roots_owned(
     Ok((collections, membership.finalize().to_hex(), corpus_root))
 }
 
+/// Existing prepare companion budget profile. It cannot construct a controlled
+/// public build or manufacture the dedicated CreationState owner.
+pub(crate) fn exact_prepared_receipt(
+    capture: &PublicCapture,
+    vocabulary: &QueryVocabulary,
+    source_revision: &str,
+) -> Result<ExactInputReceipt> {
+    let (collections, membership, corpus_root) = captured_input_roots(capture, vocabulary)?;
+    Ok(ExactInputReceipt {
+        binding: SourceBinding {
+            owner_profile: "tos-public-projection-snapshot-v1".into(),
+            source_cut: format!("public-projection:{source_revision}"),
+            through_commit_seq: 0,
+            membership_root: membership,
+            index_generation: "public-d1-v9".into(),
+            route_map_version: "public-d1-v9".into(),
+            reader_abi: "public-d1-v9".into(),
+            projection_root_sha256: corpus_root.to_hex(),
+            complete: true,
+        },
+        collections,
+    })
+}
+
 pub(crate) fn exact_receipt_owned(
     capture: &PublicCapture,
     vocabulary: &QueryVocabulary,

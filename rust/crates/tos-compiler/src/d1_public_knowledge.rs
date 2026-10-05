@@ -85,12 +85,7 @@ pub(crate) fn portabilize_public_stage(
                 }
                 after = position;
                 capture.charge_work(raw.len() as u64)?;
-                let limits = tos_foundation::JsonLimits::new(MAX_ROW_BYTES, 96, 1_000_000, 4096)
-                    .map_err(|_| Error::Budget("public D1 path JSON limits"))?;
-                let (mut value, _value_hold) = match creation {
-                    Some(owner) => { let (value, hold) = owner.serde_scoped_with_limits(&raw, limits)?; (value, Some(hold)) }
-                    None => (json(&raw, MAX_ROW_BYTES)?, None),
-                };
+                let mut value = crate::d1_public_capture::foundation_scoped(&raw, MAX_ROW_BYTES, creation)?;
                 portable(&mut value, root);
                 let mut keep = |bytes: &[u8]| -> Result<()> {
                     capture.charge_work(bytes.len() as u64)?;
@@ -105,7 +100,7 @@ pub(crate) fn portabilize_public_stage(
                     Ok(())
                 };
                 match creation {
-                    Some(owner) => owner.with_json_encoded(&value, MAX_ROW_BYTES, &mut keep)?,
+                    Some(owner) => owner.with_foundation_compact_bytes(&value, MAX_ROW_BYTES, raw.len(), &mut keep)?,
                     None => keep(&compact(&value, MAX_ROW_BYTES)?)?,
                 }
             }
@@ -521,18 +516,13 @@ fn emit_normalized_row(
     {
         return Err(Error::Invalid("public D1 knowledge payload digest"));
     }
-    let json_limits = tos_foundation::JsonLimits::new(MAX_ROW_BYTES, 96, 1_000_000, 4096)
-        .map_err(|_| Error::Budget("public D1 knowledge JSON limits"))?;
-    let (mut item, _item_hold) = match creation {
-        Some(owner) => { let (value, hold) = owner.serde_scoped_with_limits(raw, json_limits)?; (value, Some(hold)) }
-        None => (crate::d1_public_capture::json(raw, MAX_ROW_BYTES)?, None),
-    };
+    let mut item = crate::d1_public_capture::foundation_scoped(raw, MAX_ROW_BYTES, creation)?;
     portable(&mut item, root);
     if text(&item, "id") != row.id || text(&item, "source_graph") != row.source_graph {
         return Err(Error::Invalid("public D1 knowledge row identity"));
     }
     let (item_json, _item_json_hold) = match creation {
-        Some(owner) => owner.with_json_encoded(&item, MAX_ROW_BYTES, |raw| {
+        Some(owner) => owner.with_foundation_compact_bytes(&item, MAX_ROW_BYTES, raw.len(), |raw| {
             let hold = owner.hold(raw.len())?;
             let bytes = raw.to_vec();
             let text = String::from_utf8(bytes).map_err(|_| Error::Invalid("public D1 encoded UTF8"))?;

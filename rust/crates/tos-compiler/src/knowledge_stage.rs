@@ -1245,6 +1245,37 @@ impl<'a> KnowledgeStage<'a> {
     /// Disposable public-output staging. Its local inode/lease and SQLite
     /// limits are not a kernel aggregate-spill quota or selected admission.
     /// Only the compiler's full public D1 builder may invoke this entry.
+    /// Existing prepare-only companion under its local byte/page profile;
+    /// explicitly distinct from the dedicated owned full-public producer.
+    pub(crate) fn create_prepared_public_build(
+        candidate: &Path,
+        limits: StageLimits,
+        receipt: ExactInputReceipt,
+        owner: &'a dyn StageOwner,
+        vm_used: Arc<AtomicU64>,
+        work_used: Arc<AtomicU64>,
+        cancelled: Arc<AtomicBool>,
+        max_work_bytes: u64,
+        deadline: Instant,
+    ) -> Result<Self> {
+        Self::create_inner(
+            candidate,
+            limits,
+            StageInputReceipt::Projection(receipt),
+            StageInputOwner::Projection(owner),
+            None,
+            Some(vm_used),
+            Some((
+                PublicWorkLedger::Shared {
+                    used: work_used,
+                    cancelled,
+                },
+                max_work_bytes,
+            )),
+            Some(deadline),
+        )
+    }
+
     pub(crate) fn create_public_build_owned(
         candidate: &Path,
         limits: StageLimits,
