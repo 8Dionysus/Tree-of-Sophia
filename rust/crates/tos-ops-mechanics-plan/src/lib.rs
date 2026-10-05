@@ -422,6 +422,18 @@ mod tests {
     #[test]
     fn whole_growth_cannot_succeed_without_a_native_execution_plan() {
         let root = fixture();
+        let mut generic = Plan {
+            schema_version: "fixture",
+            test_file_count: 0,
+            commands: Vec::new(),
+        };
+        assert!(!growth_coverage::uses_native_route(&root, &generic).unwrap());
+        generic.commands.push(Command {
+            kind: "unittest",
+            home: "mechanics/growth-cycle".into(),
+            argv: vec!["reference".into()],
+        });
+        assert!(growth_coverage::uses_native_route(&root, &generic).unwrap());
         let path = root.join(growth_coverage::CONTRACT);
         fs::create_dir_all(path.parent().unwrap()).unwrap();
         for status in ["incomplete", "accepted"] {

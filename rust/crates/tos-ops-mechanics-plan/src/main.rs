@@ -934,7 +934,9 @@ fn main() {
                         growth_python_oracle: false,
                         native_contracts_only: false,
                     }
-                ) {
+                )
+                    && tos_ops_mechanics_plan::growth_coverage::uses_native_route(&root, &plan)?
+                {
                     Some(tos_ops_mechanics_plan::growth_coverage::whole_steps(
                         &root, &python, &plan,
                     )?)
