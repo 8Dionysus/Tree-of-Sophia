@@ -15,8 +15,8 @@ use tos_foundation::{Digest256, Digest256Hasher};
 pub const MAP_PATH: &str = "docs/validation/documentation_family_map.json";
 pub const CURRENTNESS_PATH: &str = "docs/validation/documentation-family.current.json";
 pub const TRACKED_SOURCE: &str = "git ls-files -z";
-// The 11,794-member atlas requires 153,412 component opens before its route
-// checks. Select the shared finite owner ceiling before IO, preserving the
+// The documentation atlas selects the shared finite owner ceiling before IO,
+// preserving the
 // standalone 30s clock and all byte/path/cache bounds.
 pub const DOCUMENTATION_OPERATIONS: usize = route_cards::MAX_BUDGETED_ROUTE_OPERATIONS;
 pub(crate) fn new_sources(root: &Path) -> io::Result<RouteSources> {

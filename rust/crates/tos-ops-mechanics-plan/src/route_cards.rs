@@ -1960,13 +1960,25 @@ impl Write for BoundedOutput {
         Ok(())
     }
 }
+/// Counts the actual encoded bytes without retaining an output copy. The same
+/// writer contract enforces the existing ceiling, including the terminal newline.
+struct OutputCounter(usize);
+impl Write for OutputCounter {
+    fn write(&mut self, bytes: &[u8]) -> io::Result<usize> {
+        self.0 = self.0.checked_add(bytes.len())
+            .filter(|count| *count <= MAX_OUTPUT)
+            .ok_or_else(|| invalid("route output byte bound exceeded"))?;
+        Ok(bytes.len())
+    }
+    fn flush(&mut self) -> io::Result<()> { Ok(()) }
+}
 /// Python ensure_ascii=False, sort_keys=True, indent=2, including empty containers.
 pub fn render_currentness(value: &Value) -> io::Result<String> {
-    fn emit(w: &mut BoundedOutput, v: &Value, depth: usize) -> io::Result<()> {
+    fn emit<W: Write>(w: &mut W, v: &Value, depth: usize) -> io::Result<()> {
         if depth > 128 {
             return Err(invalid("route output depth exceeded"));
         }
-        let indent = |w: &mut BoundedOutput, n: usize| w.write_all(&vec![b' '; n * 2]);
+        let indent = |w: &mut W, n: usize| w.write_all(&vec![b' '; n * 2]);
         match v {
             Value::Object(m) if !m.is_empty() => {
                 w.write_all(b"{\n")?;
@@ -2007,8 +2019,12 @@ pub fn render_currentness(value: &Value) -> io::Result<String> {
             _ => serde_json::to_writer(w, v).map_err(io::Error::other),
         }
     }
-    let mut preflight = OutputBudget::new();
-    preflight.value(value)?;
+    // Reuse the exact Python-compatible encoder for pre-copy admission. Fixed
+    // worst-case container/key overhead rejected finite atlas records far below
+    // the actual 16 MiB byte ceiling. No limit or serialized ABI changes here.
+    let mut preflight = OutputCounter(0);
+    emit(&mut preflight, value, 0)?;
+    preflight.write_all(b"\n")?;
     let mut out = BoundedOutput(Vec::new());
     emit(&mut out, value, 0)?;
     out.write_all(b"\n")?;
@@ -3359,6 +3375,21 @@ mod foundation_custody_cases {
         assert_eq!(error.kind(), io::ErrorKind::InvalidData);
         assert_eq!(operations.load(Ordering::Relaxed), 0);
         assert_eq!(opens.get(), 0);
+    }
+
+    #[test]
+    fn currentness_preflight_counts_encoded_bytes_with_same_ceiling() {
+        // Small records can exceed the old per-container estimate while their
+        // real JSON remains comfortably within the existing byte contract.
+        let row = json!({"path":"owned/route", "family_id":"source", "bytes":1, "sha256":"bounded"});
+        let value = Value::Array(vec![row; 8_000]);
+        assert!(OutputBudget::new().value(&value).is_err());
+        let rendered = render_currentness(&value).unwrap();
+        assert!(rendered.len() < MAX_OUTPUT);
+        assert_eq!(serde_json::from_str::<Value>(&rendered).unwrap(), value);
+        let oversized = Value::String("a".repeat(MAX_OUTPUT));
+        assert!(render_currentness(&oversized).unwrap_err().to_string()
+            .contains("route output byte bound exceeded"));
     }
 
     #[test]
