@@ -480,7 +480,7 @@ class OwnerLocalAssessmentTests(unittest.TestCase):
     def test_public_command_and_assessed_snapshot_refuse_v4_before_private_io(self):
         fixture = self.fixture(form='freeform')
         request = {'schema_version': COMMAND_VERSION, 'operation': 'describe', 'subject_id': fixture.form.id}
-        snapshot = AssessedFormSnapshot(fixture.owner, [fixture.form.id])
+        snapshot = AssessedFormSnapshot.for_retained_reference_fixture(fixture.owner, [fixture.form.id])
         snapshot._observed[fixture.form.id] = {'request': request, 'reply': {}}
         with patch.object(OwnerLocalSourceContext, 'load', side_effect=AssertionError('private context opened')) as context, \
                 patch.object(NativeTextBindingResolver, 'assessment_records', side_effect=AssertionError('native content opened')) as native, \

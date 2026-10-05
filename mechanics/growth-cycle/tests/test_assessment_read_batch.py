@@ -51,6 +51,14 @@ class AssessmentReadBatchTests(unittest.TestCase):
                 self.append(fx, index)
         return fx
 
+    def test_production_snapshot_requires_native_and_names_the_retained_fixture_route(self):
+        fx = self.fixture()
+        with self.assertRaisesRegex(ValueError, 'native-invocation'):
+            AssessedFormSnapshot(fx.owner, fx.ids)
+        retained = AssessedFormSnapshot.for_retained_reference_fixture(fx.owner, fx.ids)
+        packet = retained.materialize(copy.deepcopy(fx.nodes))[0]['properties']['human_forms'][0]
+        self.assertEqual(packet['state'], 'needs-assessment')
+
     def append(self, fx, index, *, name=None):
         form = fx.forms[index]
         fx.assessor.subject = Record.from_payload(form['form_id'], form['form_version'], form)
@@ -207,7 +215,7 @@ class AssessmentReadBatchTests(unittest.TestCase):
         fx = self.fixture(ready=True)
         original = copy.deepcopy(fx.nodes)
         with patch.object(journal, '_source_records', wraps=journal._source_records) as reads:
-            snapshot = AssessedFormSnapshot(fx.owner, fx.ids)
+            snapshot = AssessedFormSnapshot.for_retained_reference_fixture(fx.owner, fx.ids)
             first = snapshot.materialize(fx.nodes)
             second = snapshot.materialize(fx.nodes)
             self.assertEqual(first, second)
@@ -234,7 +242,7 @@ class AssessmentReadBatchTests(unittest.TestCase):
                     changed.append(copy.deepcopy(node))
                 before = copy.deepcopy(changed)
                 with self.assertRaises((ValueError, journal.JournalConflict)):
-                    AssessedFormSnapshot(fx.owner, fx.ids).materialize(changed)
+                    AssessedFormSnapshot.for_retained_reference_fixture(fx.owner, fx.ids).materialize(changed)
                 self.assertEqual(changed, before)
 
     def test_both_real_build_payload_functions_share_one_ready_source_copy_snapshot(self):
@@ -259,7 +267,7 @@ class AssessmentReadBatchTests(unittest.TestCase):
             before = target.read_bytes()
             with patch.object(journal, '_source_records', wraps=journal._source_records) as reads, \
                  patch.object(journal.AssessmentJournal, '_publish_head', side_effect=AssertionError('builders must not append')):
-                snapshot = AssessedFormSnapshot(fx.owner, fx.ids)
+                snapshot = AssessedFormSnapshot.for_retained_reference_fixture(fx.owner, fx.ids)
                 graph = bibliographic.build_payload(root, assessed_forms=snapshot)
                 with patch.object(corpus, 'REPO_ROOT', root), patch.object(corpus, 'TOS_ROOT', root / 'ToS'), \
                      patch.object(corpus, 'tracked_tos_paths', return_value=paths):
@@ -286,7 +294,7 @@ class AssessmentReadBatchTests(unittest.TestCase):
         for mutation in ('withdraw', 'batch', 'head'):
             with self.subTest(mutation=mutation):
                 fx = self.fixture(ready=True, source_copy=True)
-                snapshot = AssessedFormSnapshot(fx.owner, fx.ids)
+                snapshot = AssessedFormSnapshot.for_retained_reference_fixture(fx.owner, fx.ids)
                 prior = snapshot.materialize(fx.nodes)
                 self.assertEqual(prior[0]['properties']['human_forms'][0]['state'], 'ready')
                 history = journal.AssessmentJournal(Path(fx.config['journal_directory']))
@@ -305,7 +313,7 @@ class AssessmentReadBatchTests(unittest.TestCase):
                         'assessments': [withdrawn]})
                     with self.assertRaises(journal.JournalConflict):
                         snapshot.verify_current()
-                    current = AssessedFormSnapshot(fx.owner, fx.ids).materialize(fx.nodes)
+                    current = AssessedFormSnapshot.for_retained_reference_fixture(fx.owner, fx.ids).materialize(fx.nodes)
                     packet = current[0]['properties']['human_forms'][0]
                     self.assertEqual(packet['state'], 'needs-assessment')
                     self.assertIsNone(packet['display_text'])
@@ -325,7 +333,7 @@ class AssessmentReadBatchTests(unittest.TestCase):
         for mutation in ('grant', 'pending', 'ready-epoch'):
             with self.subTest(mutation=mutation):
                 fx = self.fixture()
-                snapshot = AssessedFormSnapshot(fx.owner, fx.ids)
+                snapshot = AssessedFormSnapshot.for_retained_reference_fixture(fx.owner, fx.ids)
                 rendered = json.dumps(snapshot.materialize(fx.nodes))
                 target = fx.owner.parent / 'candidate.json'
                 original, changed = os.fsync, []

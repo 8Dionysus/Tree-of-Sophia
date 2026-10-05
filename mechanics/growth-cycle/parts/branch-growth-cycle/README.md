@@ -564,10 +564,12 @@ is mandatory; no standard export or other repository source can be overwritten.
 ```bash
 python scripts/build_source_witness_bibliographic_graph.py \
   --assessment-owner-config /absolute/private/assessment-owner.json \
+  --native-invocation /absolute/private/assessment-native-invocation.json \
   --assessed-form-id tos.form.example.research-hover-ru \
   --output /absolute/private/claims-candidate.json
 python scripts/build_tos_corpus_index.py \
   --assessment-owner-config /absolute/private/assessment-owner.json \
+  --native-invocation /absolute/private/assessment-native-invocation.json \
   --assessed-form-id tos.form.example.research-hover-ru \
   --output /absolute/private/corpus-candidate.json
 ```
@@ -581,7 +583,8 @@ export and publication require the corresponding review and owner decision. The 
 source-parity query reader intentionally does not load them as standard exports.
 
 For overlapping metadata forms in coherent in-process assembly, create one
-`source_witness_human_forms.AssessedFormSnapshot(owner_config, form_ids)` and
+`source_witness_human_forms.AssessedFormSnapshot(owner_config, form_ids,
+native_invocation=invocation_path)` and
 pass that same instance as `assessed_forms` to both existing `build_payload`
 functions (`source_witness_bibliographic_graph_common` and
 `tos_corpus_index_common`). Pass both resulting projections to the common
@@ -600,17 +603,22 @@ not present on a builder's own carriers fails closed. This route distinction
 does not relax equality for an assessed form that actually occurs in both
 inputs, and does not authorize reading a local candidate as a public export.
 
-For public owner v2, this same snapshot now uses an invocation-local
-`assessment_journal.PublicSourceReadSession(owner_config, subject_ids)`.
-Its `read_batch(requests)` accepts only ordinary `describe`, `inspect` and
-`materialize-form` requests, at most 256 distinct explicitly selected subjects
-and 1 MiB of request JSON per batch. The complete reply has a 16 MiB bound;
-larger selections must be narrowed, never silently truncated. Preparation
-retains one exact source selection, while every batch fully recollects source,
-configuration, declared identity/Claim dependencies and publication state at
-its boundaries. Both subject journal reads use fresh current-time evaluation,
-and all observed heads are checked again before any result escapes. There is
-no streaming callback, caller-supplied prepared state or cached admission.
+For public owner v2, production snapshots require a protected
+`--native-invocation` and use the installed native assessment reader. Its exact
+`materialize_assessed_forms` request binds at most 256 selected forms, with a
+1 MiB request bound, to their current subject and source/form paths. The owner
+returns the whole bounded reply batch only after replaying every result and
+rechecking the selected source, configuration, grammar, publication and
+journal heads. Owner configuration remains bounded to 8 MiB on this route and
+the complete reply to 16 MiB; larger selections must be narrowed, never
+silently truncated. It has no streaming callback, caller-supplied prepared
+state or cached admission.
+
+`assessment_journal.PublicSourceReadSession` remains the retained Python
+reference reader for fixtures. It is available through the explicitly named
+`AssessedFormSnapshot.for_retained_reference_fixture(owner_config, form_ids)`
+factory in source tests; production callers cannot construct a snapshot
+without the selected native invocation.
 
 Engine, journal, form and field-language validators are freshly built from a
 separately pinned bounded grammar (8 MiB total, 1 MiB per file), including an

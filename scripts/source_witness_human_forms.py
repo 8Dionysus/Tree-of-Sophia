@@ -50,10 +50,25 @@ class AssessedFormSnapshot:
     This captures committed heads, not a live runtime permission or a new
     cross-subject journal transaction. The source owner must keep its inputs
     stable for assembly, as for the underlying source-bound command.
+    Production instances require an installed-native invocation. Source tests
+    use the explicit retained-reference fixture factory below.
     """
 
     def __init__(self, owner_config: Path, form_ids: list[str], *,
                  native_invocation: Path | None = None):
+        if native_invocation is None:
+            raise ValueError('production assessed-form snapshots require --native-invocation')
+        self._initialize(owner_config, form_ids, native_invocation=native_invocation)
+
+    @classmethod
+    def for_retained_reference_fixture(cls, owner_config: Path, form_ids: list[str]):
+        """Select the retained Python implementation explicitly in source fixtures."""
+        instance = cls.__new__(cls)
+        instance._initialize(owner_config, form_ids, native_invocation=None)
+        return instance
+
+    def _initialize(self, owner_config: Path, form_ids: list[str], *,
+                    native_invocation: Path | None):
         if (not isinstance(form_ids, list) or not 1 <= len(form_ids) <= 256
                 or any(not isinstance(value, str) or not re.fullmatch(r'tos\.form\.[a-z0-9]+(?:[.-][a-z0-9]+)*', value)
                        for value in form_ids) or len(set(form_ids)) != len(form_ids)):

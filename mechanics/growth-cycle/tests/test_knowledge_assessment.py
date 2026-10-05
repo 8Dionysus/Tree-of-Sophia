@@ -668,7 +668,7 @@ class AssessmentPolicyTests(unittest.TestCase):
                       'human_forms_source_ref': config['source_records'][1]['path'],
                       'human_forms': materialize_metadata_forms(source.payload, package, access_allowed=True)}}]
         before = copy.deepcopy(nodes)
-        snapshot = AssessedFormSnapshot(path, [self.subject.id])
+        snapshot = AssessedFormSnapshot.for_retained_reference_fixture(path, [self.subject.id])
         pending = snapshot.materialize(nodes)
         self.assertEqual(nodes, before)
         self.assertEqual(pending[0]['properties']['human_forms'][0]['state'], 'needs-assessment', pending)
@@ -681,7 +681,7 @@ class AssessmentPolicyTests(unittest.TestCase):
         from assessment_journal import JournalConflict
         with self.assertRaises(JournalConflict):
             snapshot.verify_current()
-        fresh = AssessedFormSnapshot(path, [self.subject.id])
+        fresh = AssessedFormSnapshot.for_retained_reference_fixture(path, [self.subject.id])
         ready = fresh.materialize(nodes)
         fresh.verify_current()
         packet = ready[0]['properties']['human_forms'][0]
@@ -718,7 +718,7 @@ class AssessmentPolicyTests(unittest.TestCase):
                   'source_sha256': source.ref['digest'].removeprefix('sha256:'),
                   'properties': {'source_record': source.payload,
                     'human_forms_source_ref': config['source_records'][1]['path'], 'human_forms': ordinary}}]
-        pending = AssessedFormSnapshot(path, [self.subject.id]).materialize(nodes)
+        pending = AssessedFormSnapshot.for_retained_reference_fixture(path, [self.subject.id]).materialize(nodes)
         self.assertEqual(pending[0]['properties']['human_forms'][0]['state'], 'needs-assessment', pending)
         described = self.run_local(path, {'schema_version': 'tos_local_assessment_command_v1',
             'operation': 'describe', 'subject_id': self.subject.id})
@@ -727,7 +727,7 @@ class AssessmentPolicyTests(unittest.TestCase):
             'expected_snapshot': described['owner_snapshot'], 'expected_revision': None,
             'command_id': 'synthetic-source-copy-assessment', 'assessments': [self.review(profile='interpretation').assessment]})
         before = form_path.read_bytes()
-        ready = AssessedFormSnapshot(path, [self.subject.id]).materialize(nodes)[0]['properties']['human_forms'][0]
+        ready = AssessedFormSnapshot.for_retained_reference_fixture(path, [self.subject.id]).materialize(nodes)[0]['properties']['human_forms'][0]
         self.assertEqual(ready['derivation'], 'source-copy')
         self.assertEqual(ready['display_text'], source.payload['notes'])
         self.assertIn({'slot': 'owner:subject', 'binding': {'record': source.ref, 'pointer': ''},
@@ -740,7 +740,7 @@ class AssessmentPolicyTests(unittest.TestCase):
         self.assertIsNone(nodes[0]['properties']['human_forms'][0]['admission'])
         config['authorities'][0]['payload']['state'] = 'revoked'
         path.write_text(json.dumps(config))
-        denied = AssessedFormSnapshot(path, [self.subject.id]).materialize(nodes)[0]['properties']['human_forms'][0]
+        denied = AssessedFormSnapshot.for_retained_reference_fixture(path, [self.subject.id]).materialize(nodes)[0]['properties']['human_forms'][0]
         self.assertEqual(denied['state'], 'needs-assessment')
         self.assertIsNone(denied['display_text'])
 
@@ -768,11 +768,11 @@ class AssessmentPolicyTests(unittest.TestCase):
                     changed['properties']['human_forms'] = []
                 before = copy.deepcopy(changed)
                 with self.assertRaises((ValueError, JournalConflict)):
-                    AssessedFormSnapshot(path, [self.subject.id]).materialize([changed])
+                    AssessedFormSnapshot.for_retained_reference_fixture(path, [self.subject.id]).materialize([changed])
                 self.assertEqual(changed, before)
         for ids in ([], [self.subject.id, self.subject.id], ['not-a-form'], 'tos.form.not-a-list'):
             with self.subTest(ids=ids), self.assertRaises(ValueError):
-                AssessedFormSnapshot(path, ids)
+                AssessedFormSnapshot.for_retained_reference_fixture(path, ids)
 
     def test_assessed_graph_snapshot_detects_source_grant_and_expiry_drift(self):
         from source_witness_human_forms import AssessedFormSnapshot, materialize_metadata_forms
@@ -790,7 +790,7 @@ class AssessmentPolicyTests(unittest.TestCase):
             'subject_id': self.subject.id, 'expected_subject': self.subject.ref,
             'expected_snapshot': describe['owner_snapshot'], 'command_id': 'fixture-snapshot-review',
             'expected_revision': None, 'assessments': [self.review(profile='interpretation').assessment]})
-        snapshot = AssessedFormSnapshot(path, [self.subject.id])
+        snapshot = AssessedFormSnapshot.for_retained_reference_fixture(path, [self.subject.id])
         snapshot.materialize([node])
         with patch('assessment_journal.datetime') as clock:
             clock.now.return_value = datetime.fromisoformat('2026-10-02T00:00:00+00:00')
@@ -800,7 +800,7 @@ class AssessmentPolicyTests(unittest.TestCase):
         path.write_text(json.dumps(config))
         with self.assertRaises(JournalConflict):
             snapshot.verify_current()
-        fresh = AssessedFormSnapshot(path, [self.subject.id])
+        fresh = AssessedFormSnapshot.for_retained_reference_fixture(path, [self.subject.id])
         self.assertEqual(fresh.materialize([node])[0]['properties']['human_forms'][0]['state'], 'needs-assessment')
         source_path = Path(config['source_root']) / config['source_records'][0]['path']
         source_path.write_text(json.dumps({**source.payload, 'record_version': source.version + 1}))
@@ -835,7 +835,7 @@ class AssessmentPolicyTests(unittest.TestCase):
                 'expected_snapshot': description['owner_snapshot'], 'command_id': 'fixture-reader-review',
                 'expected_revision': None, 'assessments': [self.review(profile='interpretation').assessment]}
             self.run_local(path, append)
-            snapshot = AssessedFormSnapshot(path, [self.subject.id])
+            snapshot = AssessedFormSnapshot.for_retained_reference_fixture(path, [self.subject.id])
             projected = build_payload(root, assessed_forms=snapshot)
             with patch.object(corpus, 'REPO_ROOT', root), patch.object(corpus, 'TOS_ROOT', root / 'ToS'):
                 navigation = corpus.build_source_navigation([], assessed_forms=snapshot)
@@ -869,7 +869,7 @@ class AssessmentPolicyTests(unittest.TestCase):
             self.assertEqual(build_payload(root), ordinary)
             config['authorities'][0]['payload']['state'] = 'revoked'
             path.write_text(json.dumps(config))
-            refreshed = build_payload(root, assessed_forms=AssessedFormSnapshot(path, [self.subject.id]))
+            refreshed = build_payload(root, assessed_forms=AssessedFormSnapshot.for_retained_reference_fixture(path, [self.subject.id]))
             self.assertNotEqual(refreshed['projection_fingerprint'], projected['projection_fingerprint'])
             node = next(node for node in refreshed['nodes'] if node['properties'].get('identity_ref') == source.id)
             self.assertEqual(node['properties']['human_forms'][0]['state'], 'needs-assessment')
@@ -891,7 +891,14 @@ class AssessmentPolicyTests(unittest.TestCase):
             with self.subTest(args=args), self.assertRaises(ValueError):
                 assessed_build_input(parser.parse_args(args), ROOT, standard)
         target = path.parent / 'candidate.json'
-        snapshot, destination = assessed_build_input(parser.parse_args([*base, '--output', str(target)]), ROOT, standard)
+        invocation = path.parent / 'native-invocation.json'
+        native_snapshot, destination = assessed_build_input(
+            parser.parse_args([*base, '--output', str(target), '--native-invocation', str(invocation)]),
+            ROOT, standard, require_native=True)
+        self.assertEqual(native_snapshot.native_invocation, invocation)
+        with self.assertRaisesRegex(ValueError, 'native-invocation'):
+            assessed_build_input(parser.parse_args([*base, '--output', str(target)]), ROOT, standard)
+        snapshot = AssessedFormSnapshot.for_retained_reference_fixture(path, [self.subject.id])
         nodes = [{'node_id': 'fixture:source', 'source_ref': config['source_records'][0]['path'],
                   'source_sha256': source.ref['digest'].removeprefix('sha256:'),
                   'properties': {'source_record': source.payload,
@@ -929,11 +936,11 @@ class AssessmentPolicyTests(unittest.TestCase):
         packet.update(state='ready', display_text='Untrusted ready flag', admission={'can_use': True},
                       assessment_snapshot={'publication_authorized': True})
         before = copy.deepcopy(nodes)
-        materialized = AssessedFormSnapshot(path, [self.subject.id]).materialize(nodes)
+        materialized = AssessedFormSnapshot.for_retained_reference_fixture(path, [self.subject.id]).materialize(nodes)
         self.assertEqual(materialized[0]['properties']['human_forms'][0]['state'], 'needs-assessment')
         self.assertIsNone(materialized[0]['properties']['human_forms'][0]['display_text'])
         with patch.object(adapter, 'MAX_SET_OUTPUT_BYTES', 100), self.assertRaisesRegex(ValueError, 'output budget'):
-            AssessedFormSnapshot(path, [self.subject.id]).materialize(nodes)
+            AssessedFormSnapshot.for_retained_reference_fixture(path, [self.subject.id]).materialize(nodes)
         self.assertEqual(nodes, before)
 
     def declared_source_bindings(self):

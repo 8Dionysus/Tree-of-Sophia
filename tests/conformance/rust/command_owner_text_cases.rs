@@ -1355,7 +1355,7 @@ def selected_packets(nodes):
 journal_before=files(journal)
 source_before=(Path(manifest['source_root'])/manifest['source_path']).read_bytes()
 form_before=(Path(manifest['source_root'])/manifest['form_path']).read_bytes()
-retained=AssessedFormSnapshot(owner,ids)
+retained=AssessedFormSnapshot.for_retained_reference_fixture(owner,ids)
 expected=retained.materialize(copy.deepcopy(nodes)); retained.verify_current()
 native=AssessedFormSnapshot(owner,ids,native_invocation=invocation)
 actual=native.materialize(copy.deepcopy(nodes)); native.verify_current()
@@ -1444,7 +1444,7 @@ else:
     else:
         raise AssertionError('withdrawn assessment escaped the final currentness guard')
     assert not target.exists() and not list(target.parent.glob('.tos-assessed-*'))
-    fresh_retained=AssessedFormSnapshot(owner,ids)
+    fresh_retained=AssessedFormSnapshot.for_retained_reference_fixture(owner,ids)
     expected=fresh_retained.materialize(copy.deepcopy(nodes)); fresh_retained.verify_current()
     fresh_native=AssessedFormSnapshot(owner,ids,native_invocation=invocation)
     actual=fresh_native.materialize(copy.deepcopy(nodes)); fresh_native.verify_current()
