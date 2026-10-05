@@ -17,7 +17,7 @@ const PRIMARY_QUESTION: &str = "What source-owned tiny export keeps the current 
 const SUMMARY_50: &str =
     "Source-owned tiny export for the current Zarathustra prologue authority route.";
 const SUMMARY_200: &str = "Source-owned tiny export capsule for the current Zarathustra prologue route, keeping the public compatibility entry surface aligned with the canonical tree while preserving the capsule and tiny-entry docs as supporting ToS-owned orientation surfaces.";
-const PROVENANCE_NOTE: &str = "Guide to the current canonical tree node, its public compatibility mirror, and the supporting capsule and tiny-entry slice; it does not replace the authored source node.";
+const PROVENANCE_NOTE: &str = "Guide to the current authored tree node, its public compatibility mirror, and the supporting capsule and tiny-entry slice. Follow the authored node for its full meaning and review history.";
 const NON_IDENTITY_BOUNDARY: &str = "Derived export capsule for downstream KAG consumers; ToS-authored authority remains in Tree-of-Sophia ToS/canon, ToS/source-witnesses, and capsule surfaces.";
 const REFS: &[(&str, &str)] = &[
     (

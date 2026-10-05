@@ -556,7 +556,7 @@
       "writes": [
         "mechanics/agon/parts/threshold-registry/generated/tos_agon_threshold_intake_registry.min.json unless --check is used"
       ],
-      "side_effects": "tracked generated mechanics registry",
+      "side_effects": "Required recipes and executable compatibility use installed native tos-ops-mechanics-plan; importable Python APIs are retained explicit test/comparison references, with no production fallback. Native builder/sync modes retain their declared generated-output writes.",
       "validation_lane": "mechanics_local",
       "ci_inclusion": "release",
       "test_target": "mechanics/agon/parts/threshold-registry/tests/test_tos_agon_threshold_intake_registry.py",
@@ -574,7 +574,7 @@
         "mechanics/agon/parts/threshold-registry/generated/tos_agon_threshold_intake_registry.min.json"
       ],
       "writes": [],
-      "side_effects": "validation output only",
+      "side_effects": "Required recipes and executable compatibility use installed native tos-ops-mechanics-plan; importable Python APIs are retained explicit test/comparison references, with no production fallback. Native builder/sync modes retain their declared generated-output writes.",
       "validation_lane": "mechanics_local",
       "ci_inclusion": "release",
       "test_target": "mechanics/agon/parts/threshold-registry/tests/test_tos_agon_threshold_intake_registry.py",
@@ -3491,7 +3491,7 @@
     },
     {
       "path": "mechanics/boundary-bridge/parts/derived-kag-seam/scripts/generate_kag_export.py",
-      "family": "projection_builder",
+      "family": "helper",
       "organ_lane": "mechanics/part-owned",
       "owner_surface": "mechanics/boundary-bridge/parts/derived-kag-seam/docs/KAG_EXPORT.md",
       "source_truth": [
@@ -3502,14 +3502,11 @@
         "ToS/public-compatibility/source_node.example.json",
         "ToS/zarathustra/prologue-1/TRILINGUAL_ENTRY.md"
       ],
-      "writes": [
-        "ToS/derived-exports/kag_export.json",
-        "ToS/derived-exports/kag_export.min.json"
-      ],
-      "side_effects": "tracked generated public export",
+      "writes": [],
+      "side_effects": "Pure explicit staged-source comparison renderer, imported only by scripts/build_kag_export_legacy_oracle.py; no CLI/main or output writes. Maintained accepted-corpus export uses installed tos-kag-release and native kag_corpus_export.rs/derived_kag::build_payload.",
       "validation_lane": "public_entry",
       "ci_inclusion": "release",
-      "test_target": "mechanics/boundary-bridge/parts/derived-kag-seam/scripts/validate_kag_export.py",
+      "test_target": "tests/test_build_kag_export.py",
       "disposition": "keep"
     },
     {
@@ -3613,7 +3610,7 @@
       "writes": [
         "ToS/public-compatibility/*.example.json when sync is needed"
       ],
-      "side_effects": "tracked compatibility mirrors",
+      "side_effects": "Required recipes and executable compatibility use installed native tos-ops-mechanics-plan; importable Python APIs are retained explicit test/comparison references, with no production fallback. Native builder/sync modes retain their declared generated-output writes.",
       "validation_lane": "canon_contracts",
       "ci_inclusion": "focused-tests",
       "test_target": "mechanics/boundary-bridge/parts/public-mirror-sync/scripts/validate_tree_example_sync.py",
@@ -3756,7 +3753,7 @@
         "ToS/canon/**"
       ],
       "writes": [],
-      "side_effects": "library only",
+      "side_effects": "Required recipes and executable compatibility use installed native tos-ops-mechanics-plan; importable Python APIs are retained explicit test/comparison references, with no production fallback. Native builder/sync modes retain their declared generated-output writes.",
       "validation_lane": "canon_contracts",
       "ci_inclusion": "focused-tests",
       "test_target": "mechanics/boundary-bridge/parts/public-mirror-sync/scripts/validate_tree_example_sync.py",
@@ -3819,26 +3816,6 @@
       "validation_lane": "intake_contracts",
       "ci_inclusion": "release",
       "test_target": "tests/test_intake_pack_validation.py",
-      "disposition": "keep"
-    },
-    {
-      "path": "mechanics/boundary-bridge/parts/derived-kag-seam/scripts/validate_kag_export.py",
-      "family": "projection_validator",
-      "organ_lane": "mechanics/part-owned",
-      "owner_surface": "mechanics/boundary-bridge/parts/derived-kag-seam/docs/KAG_EXPORT.md",
-      "source_truth": [
-        "ToS/derived-exports/kag_export.json",
-        "ToS/derived-exports/kag_export.min.json"
-      ],
-      "reads": [
-        "ToS/derived-exports/kag_export.json",
-        "ToS/derived-exports/kag_export.min.json"
-      ],
-      "writes": [],
-      "side_effects": "validation output only",
-      "validation_lane": "public_entry",
-      "ci_inclusion": "release",
-      "test_target": "mechanics/boundary-bridge/parts/derived-kag-seam/scripts/validate_kag_export.py",
       "disposition": "keep"
     },
     {
@@ -3963,7 +3940,7 @@
         "mechanics/questbook/**"
       ],
       "writes": [],
-      "side_effects": "validation output only",
+      "side_effects": "Required recipes and executable compatibility use installed native tos-ops-mechanics-plan; importable Python APIs are retained explicit test/comparison references, with no production fallback. Native builder/sync modes retain their declared generated-output writes.",
       "validation_lane": "questbook_surface",
       "ci_inclusion": "release",
       "test_target": "mechanics/questbook/tests/test_validate_questbook_surface.py",
@@ -4173,7 +4150,7 @@
         "ToS/public-compatibility/**"
       ],
       "writes": [],
-      "side_effects": "validation output only",
+      "side_effects": "Required recipes and executable compatibility use installed native tos-ops-mechanics-plan; importable Python APIs are retained explicit test/comparison references, with no production fallback. Native builder/sync modes retain their declared generated-output writes.",
       "validation_lane": "canon_contracts",
       "ci_inclusion": "release",
       "test_target": "mechanics/boundary-bridge/parts/public-mirror-sync/scripts/validate_tree_example_sync.py",
@@ -4217,7 +4194,7 @@
         "ToS/canon/registries/**"
       ],
       "writes": [],
-      "side_effects": "validation output only",
+      "side_effects": "Required recipes and executable compatibility use installed native tos-ops-mechanics-plan; importable Python APIs are retained explicit test/comparison references, with no production fallback. Native builder/sync modes retain their declared generated-output writes.",
       "validation_lane": "canon_contracts",
       "ci_inclusion": "release",
       "test_target": "mechanics/relation-weaving/parts/graph-promotion/scripts/validate_tree_relation_pack.py",

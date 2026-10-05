@@ -340,6 +340,17 @@ pub fn command_sequence_with_budgets(
         if parts[0] == "python" {
             parts[0] = python.to_owned();
         }
+        if parts[0] == "tos-ops-mechanics-plan"
+            && let Some(selected) = std::env::var_os("TOS_OPS_MECHANICS_EXECUTOR")
+        {
+            let selected = selected
+                .into_string()
+                .map_err(|_| invalid("non-UTF-8 selected native mechanics executor"))?;
+            if selected.is_empty() {
+                return Err(invalid("empty selected native mechanics executor"));
+            }
+            parts[0] = selected;
+        }
         resolved.push((
             (label.to_owned(), parts),
             command_timeout_ms(sequence_id, step)?,

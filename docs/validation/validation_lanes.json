@@ -620,8 +620,10 @@
       {
         "label": "validate semantic registry transition against explicit baseline",
         "command": [
-          "python",
-          "scripts/validate_semantic_registry_transition.py"
+          "tos-ops-mechanics-plan",
+          "--repo-root",
+          ".",
+          "--semantic-registry-transition"
         ]
       }
     ],
@@ -629,8 +631,10 @@
       {
         "label": "validate ToS source home",
         "command": [
-          "python",
-          "scripts/validate_tos_source_home.py"
+          "tos-ops-mechanics-plan",
+          "--repo-root",
+          ".",
+          "--source-home"
         ]
       },
       {
@@ -742,8 +746,10 @@
       {
         "label": "validate philosophy topology",
         "command": [
-          "python",
-          "scripts/validate_philosophy_topology.py"
+          "tos-ops-mechanics-plan",
+          "--repo-root",
+          ".",
+          "--philosophy-topology"
         ]
       }
     ],
@@ -751,8 +757,10 @@
       {
         "label": "validate mechanics topology",
         "command": [
-          "python",
-          "scripts/validate_mechanics_topology.py"
+          "tos-ops-mechanics-plan",
+          "--repo-root",
+          ".",
+          "--mechanics-topology-validate"
         ]
       }
     ],
@@ -775,8 +783,10 @@
       {
         "label": "validate active naming",
         "command": [
-          "python",
-          "scripts/validate_active_naming.py"
+          "tos-ops-mechanics-plan",
+          "--repo-root",
+          ".",
+          "--active-naming-validate"
         ]
       }
     ],
@@ -914,15 +924,19 @@
       {
         "label": "validate tree relation packs",
         "command": [
-          "python",
-          "mechanics/relation-weaving/parts/graph-promotion/scripts/validate_tree_relation_pack.py"
+          "tos-ops-mechanics-plan",
+          "--repo-root",
+          ".",
+          "--relation-pack-validate"
         ]
       },
       {
         "label": "validate public example sync",
         "command": [
-          "python",
-          "mechanics/boundary-bridge/parts/public-mirror-sync/scripts/validate_tree_example_sync.py"
+          "tos-ops-mechanics-plan",
+          "--repo-root",
+          ".",
+          "--public-mirror-validate"
         ]
       }
     ],
@@ -1009,8 +1023,10 @@
       {
         "label": "validate questbook surface",
         "command": [
-          "python",
-          "mechanics/questbook/scripts/validate_questbook_surface.py"
+          "tos-ops-mechanics-plan",
+          "--repo-root",
+          ".",
+          "--questbook-validate"
         ]
       }
     ],

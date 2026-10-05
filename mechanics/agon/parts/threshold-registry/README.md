@@ -21,3 +21,5 @@
 - `schemas/tos-agon-threshold-intake-registry.schema.json`
 - `examples/tos_agon_threshold_intake_registry.example.json`
 - `generated/tos_agon_threshold_intake_registry.min.json`
+
+The installed native builder is `tos-ops-mechanics-plan --repo-root . --threshold-registry-build` (`--check` checks current output); validation uses `--threshold-registry-validate`. Python modules retain explicit comparison APIs only; executable compatibility selects the installed native command without fallback.

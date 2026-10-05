@@ -38,21 +38,25 @@ supporting ToS surfaces; the public entry remains a compatibility mirror.
 `scripts/build_kag_export.py` is the explicit export builder and verifier:
 
 ```text
-python scripts/build_kag_export.py build --store STORE --revision REVISION --output EXPORT
-python scripts/build_kag_export.py verify EXPORT
+tos-kag-release export-build --store STORE --revision REVISION --output EXPORT
+tos-kag-release export-verify --release EXPORT
 ```
 
-The builder reads the selected CorpusStore revision and calls the pure renderer
+The installed native builder reads the selected CorpusStore revision and calls
+`derived_kag::build_payload` with the staged source root. This renderer has no
+ambient repository or output paths and only returns deterministic payload data.
 `mechanics/boundary-bridge/parts/derived-kag-seam/scripts/generate_kag_export.py`
-with the staged source root. The renderer has no ambient repository or output
-paths and only returns deterministic payload data.
+is retained solely as the explicit comparison renderer used by
+`build_kag_export_legacy_oracle.py`; it has no executable/default recipe.
+The old checkout-writing `--derived-kag-generate` and `--derived-kag-validate`
+flags are compatibility controls, not accepted-corpus export or publication.
 
 `scripts/publish_kag_release.py` owns the local handoff to an explicitly
 selected downstream KAG consumer and its release status:
 
 ```text
-python scripts/publish_kag_release.py build --store STORE --revision REVISION --kag-root KAG_ROOT --release-root RELEASE_ROOT
-python scripts/publish_kag_release.py status --release-root RELEASE_ROOT --expected-revision REVISION
+tos-kag-release build --store STORE --revision REVISION --kag-root KAG_ROOT --release-root RELEASE_ROOT
+tos-kag-release status --release-root RELEASE_ROOT --expected-revision REVISION
 ```
 
 The selected KAG owner supplies the actual consumer and records consumer
