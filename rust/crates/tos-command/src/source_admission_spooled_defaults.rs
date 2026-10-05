@@ -1450,11 +1450,7 @@ impl SourceFoundationDefaultEventStore for DefaultEventsProvider<'_, '_, '_, '_>
         max_state_bytes: usize,
     ) -> Result<(), ItemRefusal> {
         self.context.check()?;
-        if max_state_bytes == 0
-            || max_state_bytes > self.context.operation_state_limit
-            || max_json_bytes < 2
-            || max_json_bytes > self.json_ceiling
-        {
+        if max_state_bytes == 0 || max_json_bytes < 2 || max_json_bytes > self.json_ceiling {
             return Err(tos_validation::item_budget_origin!());
         }
         let json_bytes = json_len(value, max_json_bytes)?;
@@ -1548,10 +1544,7 @@ struct CandidateClosureLinks<'a, 'candidate, 'host, 'cancel, 'budget> {
 
 impl CandidateClosureLinks<'_, '_, '_, '_, '_> {
     fn preflight(&self, workspace: usize, max_state_bytes: usize) -> Result<usize, ItemRefusal> {
-        if self.finished
-            || max_state_bytes == 0
-            || max_state_bytes > self.context.operation_state_limit
-        {
+        if self.finished || max_state_bytes == 0 {
             return Err(source_refusal());
         }
         let total = self
@@ -1884,7 +1877,7 @@ impl CandidateDiscoverySeenIds<'_, '_, '_, '_, '_> {
         first_path: Option<&str>,
         max_state_bytes: usize,
     ) -> Result<usize, ItemRefusal> {
-        if max_state_bytes == 0 || max_state_bytes > self.context.operation_state_limit {
+        if max_state_bytes == 0 {
             return Err(tos_validation::item_budget_origin!());
         }
         let input_bytes = namespace
@@ -2082,10 +2075,7 @@ impl CandidateDiscoveryRunSummaries<'_, '_, '_, '_, '_> {
     }
 
     fn preflight(&self, workspace: usize, max_state_bytes: usize) -> Result<(), ItemRefusal> {
-        if max_state_bytes == 0
-            || max_state_bytes > self.context.operation_state_limit
-            || workspace > max_state_bytes
-        {
+        if max_state_bytes == 0 || workspace > max_state_bytes {
             return Err(tos_validation::item_budget_origin!());
         }
         self.context.row_state(workspace)?;
@@ -2337,12 +2327,19 @@ impl CandidateDiscoveryEventSummaries<'_, '_, '_, '_, '_> {
     }
 
     fn preflight(&self, workspace: usize, max_state_bytes: usize) -> Result<(), ItemRefusal> {
-        if max_state_bytes == 0
-            || max_state_bytes > self.context.operation_state_limit
-            || workspace > max_state_bytes
-        {
+        if max_state_bytes == 0 {
             return Err(tos_validation::item_budget_origin!());
         }
+        if workspace > max_state_bytes {
+            return Err(ItemRefusal::BudgetCheck {
+                check: "candidate Discovery event summary caller workspace",
+                used: u64::try_from(workspace).ok(),
+                limit: u64::try_from(max_state_bytes).ok(),
+            });
+        }
+        // The caller supplies an available ceiling, not an allocation request.
+        // Both caller and provider ceilings constrain the actual workspace.
+
         self.context.row_state(workspace)?;
         self.context.check()
     }
@@ -2764,10 +2761,7 @@ impl CandidateDiscoverySchemaRequests<'_, '_, '_, '_, '_> {
     }
 
     fn preflight(&self, workspace: usize, max_state_bytes: usize) -> Result<(), ItemRefusal> {
-        if max_state_bytes == 0
-            || max_state_bytes > self.context.operation_state_limit
-            || workspace > max_state_bytes
-        {
+        if max_state_bytes == 0 || workspace > max_state_bytes {
             return Err(tos_validation::item_budget_origin!());
         }
         self.context.row_state(workspace)?;
@@ -3255,10 +3249,7 @@ impl CandidateClosureSchemaRequests<'_, '_, '_, '_, '_> {
     }
 
     fn preflight(&self, workspace: usize, max_state_bytes: usize) -> Result<(), ItemRefusal> {
-        if max_state_bytes == 0
-            || max_state_bytes > self.context.operation_state_limit
-            || workspace > max_state_bytes
-        {
+        if max_state_bytes == 0 || workspace > max_state_bytes {
             return Err(tos_validation::item_budget_origin!());
         }
         self.context.row_state(workspace)?;
@@ -6854,11 +6845,7 @@ impl CandidateDiscoveryDigestCache<'_, '_, '_, '_, '_> {
     }
 
     fn preflight(&self, workspace: usize, max_state_bytes: usize) -> Result<(), ItemRefusal> {
-        if self.finished
-            || max_state_bytes == 0
-            || max_state_bytes > self.context.operation_state_limit
-            || workspace > max_state_bytes
-        {
+        if self.finished || max_state_bytes == 0 || workspace > max_state_bytes {
             return Err(source_refusal());
         }
         self.context.row_state(workspace)?;
