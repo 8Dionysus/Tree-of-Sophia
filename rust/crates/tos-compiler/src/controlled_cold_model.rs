@@ -12,6 +12,34 @@ use crate::{
     knowledge_stage::{self, KnowledgePayloadLayout},
 };
 
+/// Compiler-owned selectors over exact normalized carrier rows. These cannot
+/// supply a SQL expression, path, connection, state, or source authority.
+#[derive(Clone, Copy)]
+pub enum ControlledCarrierSelection<'a> {
+    AllSources,
+    Id { identifier: &'a str, limit: usize },
+    NativeId { identifier: &'a str, limit: usize },
+    EntityId { identifier: &'a str, limit: usize },
+    Incident { ids_json: &'a str, limit: usize },
+}
+
+/// Exact Original namespace; collection names come only from owner enums.
+#[derive(Clone, Copy)]
+pub enum ControlledOriginalCollection {
+    Navigation,
+    Philosophy(crate::PhilosophyOriginalCollection),
+    Corpus(crate::CorpusOriginalCollection),
+}
+
+/// The borrowed callback is invoked at most once; no Original payload escapes
+/// its admitted raw/parser holds. VM steps include both metadata and row reads.
+#[derive(Clone, Copy, Debug, Default)]
+pub struct ControlledOriginalRowRead {
+    pub ordinal: Option<i64>,
+    pub decoded_bytes: u64,
+    pub vm_steps: u64,
+}
+
 /// Only the two maintained indexed-v2 table families can enter QRY.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ControlledSearchKind {
@@ -168,6 +196,189 @@ pub struct ControlledLegacySearchScan {
 }
 
 impl ControlledKnowledgeModel<'_, '_, '_> {
+    /// Lend the next exact retained Original row under the existing capture,
+    /// receipt, State, Work and VM owners. The callback must retain any derived
+    /// allocation in the caller's same-state ControlledQueryHeap.
+    pub fn with_controlled_original_row(
+        &mut self,
+        collection: ControlledOriginalCollection,
+        after_ordinal: i64,
+        max_row_bytes: usize,
+        max_decoded_bytes: u64,
+        max_vm_steps: u64,
+        json: JsonLimits,
+        consume: impl FnOnce(i64, Digest256, &[u8], &JsonValue) -> Result<()>,
+    ) -> Result<ControlledOriginalRowRead> {
+        self.check_pin()?;
+        if max_row_bytes == 0 || max_row_bytes > i64::MAX as usize
+            || max_vm_steps == 0 || after_ordinal < -2 {
+            return Err(Error::Budget("controlled Original row admission"));
+        }
+        if self.selection.model_abi != knowledge_stage::KNOWLEDGE_CARRIER_ONCE_MODEL_ABI {
+            return Err(Error::Invalid("controlled Original requires CarrierOnce ABI"));
+        }
+        let (collection_name, metadata_sql, payload_sql) = match collection {
+            ControlledOriginalCollection::Navigation => {
+                if self.navigation_original.is_none() {
+                    return Err(Error::Invalid("controlled navigation Original receipt absent"));
+                }
+                ("", "SELECT ordinal,packet_len FROM navigation_original_rows WHERE ordinal>?1 ORDER BY ordinal LIMIT 1",
+                 "SELECT packet_sha256,packet FROM navigation_original_rows WHERE ordinal=?1 AND ?2='' AND packet_len=?3 AND typeof(packet_sha256)='blob' AND length(packet_sha256)=32 AND typeof(packet)='blob' AND length(packet)=?3")
+            }
+            ControlledOriginalCollection::Philosophy(selected) => {
+                if self.philosophy_original.is_none() || after_ordinal < -1 {
+                    return Err(Error::Invalid("controlled philosophy Original receipt or ordinal"));
+                }
+                (selected.as_str(), "SELECT ordinal,packet_len FROM philosophy_original_rows WHERE ordinal>?1 AND collection=?2 ORDER BY ordinal LIMIT 1",
+                 "SELECT packet_sha256,packet FROM philosophy_original_rows LEFT JOIN knowledge_source_carriers USING(packet_sha256,packet_len) WHERE ordinal=?1 AND collection=?2 AND packet_len=?3 AND typeof(packet_sha256)='blob' AND length(packet_sha256)=32 AND typeof(packet)='blob' AND length(packet)=?3")
+            }
+            ControlledOriginalCollection::Corpus(selected) => {
+                if self.corpus_original.is_none() || after_ordinal < -1 {
+                    return Err(Error::Invalid("controlled corpus Original receipt or ordinal"));
+                }
+                (selected.as_str(), "SELECT ordinal,packet_len FROM corpus_original_rows WHERE ordinal>?1 AND collection=?2 ORDER BY ordinal LIMIT 1",
+                 "SELECT packet_sha256,packet FROM corpus_original_rows LEFT JOIN knowledge_source_carriers USING(packet_sha256,packet_len) WHERE ordinal=?1 AND collection=?2 AND packet_len=?3 AND typeof(packet_sha256)='blob' AND length(packet_sha256)=32 AND typeof(packet)='blob' AND length(packet)=?3")
+            }
+        };
+        let fixed = tos_source_store::PinnedSqliteConnection::bounded_statement_rust_workspace_upper_bound()
+            .checked_add(std::mem::size_of_val(&consume))
+            .and_then(|n| n.checked_add(std::mem::size_of::<(i64, i64, Vec<u8>, Vec<u8>)>()))
+            .ok_or(Error::Budget("controlled Original frame"))?;
+        let _frame = self.context.owned_state().hold(fixed)?;
+        self.charge_query_work(metadata_sql.len().checked_add(payload_sql.len())
+            .ok_or(Error::Budget("controlled Original SQL work"))?)?;
+        let (mut result, vm_steps) = crate::knowledge_payload_read::with_query_vm_window(
+            self.context, &self.connection, max_vm_steps, || {
+                let next = match collection {
+                    ControlledOriginalCollection::Navigation => self.connection.query_row(
+                        metadata_sql, [after_ordinal], |row| Ok((row.get::<_, i64>(0)?, row.get::<_, i64>(1)?))),
+                    _ => self.connection.query_row(metadata_sql, params![after_ordinal, collection_name],
+                        |row| Ok((row.get::<_, i64>(0)?, row.get::<_, i64>(1)?))),
+                }.optional()?;
+                let Some((ordinal, length)) = next else {
+                    return Ok(ControlledOriginalRowRead::default());
+                };
+                let length_usize = usize::try_from(length)
+                    .map_err(|_| Error::Invalid("controlled Original row length"))?;
+                let decoded = u64::try_from(length_usize).ok().and_then(|n| n.checked_add(32))
+                    .ok_or(Error::Budget("controlled Original decoded bytes"))?;
+                if length_usize == 0 || length_usize > max_row_bytes || decoded > max_decoded_bytes {
+                    return Err(Error::Budget("controlled Original row bytes"));
+                }
+                let allocation = length_usize.checked_add(32)
+                    .ok_or(Error::Budget("controlled Original raw state"))?;
+                let _raw_hold = self.context.owned_state().hold(allocation)?;
+                let (digest, raw): (Vec<u8>, Vec<u8>) = self.connection.query_row(
+                    payload_sql, params![ordinal, collection_name, length],
+                    |row| Ok((row.get(0)?, row.get(1)?)))?;
+                self.charge_query_work(raw.len())?;
+                let computed = Digest256::of_bytes(&raw);
+                if raw.len() != length_usize || computed.as_bytes() != digest.as_slice() {
+                    return Err(Error::Invalid("controlled Original row digest"));
+                }
+                self.check_pin()?;
+                self.context.with_foundation_owned_with_limits(&raw, json,
+                    |value| consume(ordinal, computed, &raw, value))?;
+                self.check_pin()?;
+                Ok(ControlledOriginalRowRead { ordinal: Some(ordinal), decoded_bytes: decoded, vm_steps: 0 })
+            })?;
+        result.vm_steps = vm_steps;
+        self.check_pin()?;
+        Ok(result)
+    }
+
+    /// Lend one descriptor-keyed catalog packet with its selected digest and
+    /// parsed identity held inside the original cold state.
+    pub fn with_controlled_catalog(
+        &mut self, max_packet_bytes: usize, max_decoded_bytes: usize,
+        max_vm_steps: u64, json: JsonLimits,
+        consume: impl FnOnce(&[u8], &JsonValue) -> Result<()>,
+    ) -> Result<()> {
+        self.check_pin()?;
+        if max_packet_bytes == 0 || max_packet_bytes > i64::MAX as usize
+            || max_decoded_bytes < 32 || max_vm_steps == 0 {
+            return Err(Error::Budget("controlled catalog admission"));
+        }
+        let cap = max_packet_bytes.min(max_decoded_bytes - 32);
+        let forecast = cap.checked_add(32 + 64)
+            .and_then(|n| n.checked_add(std::mem::size_of_val(&consume)))
+            .and_then(|n| n.checked_add(std::mem::size_of::<(String, Vec<u8>, Vec<u8>, i64)>()))
+            .and_then(|n| n.checked_add(tos_source_store::PinnedSqliteConnection::bounded_statement_rust_workspace_upper_bound()))
+            .ok_or(Error::Budget("controlled catalog workspace"))?;
+        let _hold = self.context.owned_state().hold(forecast)?;
+        self.context.charge_work(64)?;
+        let descriptor = self.selection.vocabulary.descriptor_sha256.to_hex();
+        let (row, _) = crate::knowledge_payload_read::with_query_vm_window(
+            self.context, &self.connection, max_vm_steps, || {
+                self.connection.query_row(
+                    "SELECT packet_len,CASE WHEN typeof(packet_sha256)='blob' AND length(packet_sha256)=32 THEN packet_sha256 END,CASE WHEN typeof(packet)='blob' AND packet_len BETWEEN 1 AND ?2 AND length(packet)=packet_len THEN packet END FROM catalog_index_meta WHERE descriptor_sha256=?1",
+                    params![descriptor, cap as i64], |row| {
+                        Ok((row.get::<_, i64>(0)?, row.get::<_, Option<Vec<u8>>>(1)?,
+                            row.get::<_, Option<Vec<u8>>>(2)?))
+                    }).map_err(Error::from)
+            })?;
+        let (length, digest, payload) = row;
+        let payload = payload.ok_or(Error::Invalid("controlled catalog payload shape"))?;
+        let digest = digest.ok_or(Error::Invalid("controlled catalog digest shape"))?;
+        self.context.charge_work(payload.len())?;
+        let computed = Digest256::of_bytes(&payload);
+        if length <= 0 || payload.len() != length as usize
+            || computed.as_bytes() != digest.as_slice()
+            || computed != self.selection.catalog_packet_sha256 {
+            return Err(Error::Invalid("controlled catalog digest differs"));
+        }
+        self.check_pin()?;
+        self.context.with_foundation_owned_with_limits(&payload, json,
+            |catalog| consume(&payload, catalog))?;
+        self.check_pin()
+    }
+
+    /// Deliver the digest-bound normalized header under the original cold state.
+    /// Unit callback keeps both the decoded payload and parser hold in this owner.
+    pub fn with_controlled_header(
+        &mut self, max_payload_bytes: usize, max_decoded_bytes: u64,
+        max_vm_steps: u64, json: JsonLimits,
+        consume: impl FnOnce(&[u8]) -> Result<()>,
+    ) -> Result<()> {
+        self.check_pin()?;
+        if max_payload_bytes == 0 || max_payload_bytes > i64::MAX as usize
+            || max_decoded_bytes < 40 || max_vm_steps == 0 {
+            return Err(Error::Budget("controlled header admission"));
+        }
+        let cap = max_payload_bytes.min(usize::try_from(max_decoded_bytes - 40)
+            .unwrap_or(usize::MAX));
+        let forecast = cap.checked_add(32)
+            .and_then(|n| n.checked_add(std::mem::size_of_val(&consume)))
+            .and_then(|n| n.checked_add(tos_source_store::PinnedSqliteConnection::bounded_statement_rust_workspace_upper_bound()))
+            .ok_or(Error::Budget("controlled header workspace"))?;
+        let _hold = self.context.owned_state().hold(forecast)?;
+        let (payload, _) = crate::knowledge_payload_read::with_query_vm_window(
+            self.context, &self.connection, max_vm_steps, || {
+                self.connection.query_row(
+                    "SELECT packet_len,CASE WHEN typeof(packet_sha256)='blob' AND length(packet_sha256)=32 THEN packet_sha256 END,CASE WHEN typeof(packet)='blob' AND packet_len BETWEEN 1 AND ?1 AND length(packet)=packet_len THEN packet END FROM graph_header WHERE singleton=1",
+                    [cap as i64], |row| {
+                        Ok((row.get::<_, i64>(0)?, row.get::<_, Option<Vec<u8>>>(1)?,
+                            row.get::<_, Option<Vec<u8>>>(2)?))
+                    }).map_err(Error::from)
+            })?;
+        let (length, digest, payload) = payload;
+        let payload = payload.ok_or(Error::Invalid("controlled header payload shape"))?;
+        let digest = digest.ok_or(Error::Invalid("controlled header digest shape"))?;
+        self.context.charge_work(payload.len())?;
+        if length <= 0 || payload.len() != length as usize
+            || Digest256::of_bytes(&payload).as_bytes() != digest.as_slice() {
+            return Err(Error::Invalid("controlled header digest differs"));
+        }
+        self.check_pin()?;
+        self.context.with_foundation_owned_with_limits(&payload, json, |header| {
+            if header.as_object().is_none() {
+                return Err(Error::Invalid("controlled header object absent"));
+            }
+            consume(&payload)
+        })?;
+        self.check_pin()
+    }
+
     /// Recheck the exact held file, selected expectation and original state.
     /// A pathname or newly opened model is never accepted here.
     pub fn check_pin(&self) -> Result<()> {
@@ -771,12 +982,55 @@ impl<'model, 'state, 'budget> ControlledKnowledgeModel<'model, 'state, 'budget> 
         Ok(bytes)
     }
 
+    pub fn controlled_incident_count(&mut self, ids_json: &str, max_vm_steps: u64)
+        -> Result<(u64, u64)> {
+        self.check_pin()?;
+        self.charge_query_work(ids_json.len())?;
+        let fixed = tos_source_store::PinnedSqliteConnection::bounded_statement_rust_workspace_upper_bound()
+            .checked_add(std::mem::size_of::<(&str, i64, u64)>())
+            .ok_or(Error::Budget("controlled incident count state"))?;
+        let _hold = self.context.owned_state().hold(fixed)?;
+        let (count, vm) = crate::knowledge_payload_read::with_query_vm_window(
+            self.context, &self.connection, max_vm_steps, || {
+                self.connection.query_row("SELECT count(*) FROM knowledge_relations WHERE from_id IN (SELECT value FROM json_each(?1)) OR to_id IN (SELECT value FROM json_each(?1))",
+                    [ids_json], |row| row.get::<_, i64>(0)).map_err(Error::from)
+            })?;
+        self.check_pin()?;
+        Ok((u64::try_from(count).map_err(|_| Error::Invalid("controlled incident count"))?, vm))
+    }
+
     /// Visit exact normalized carrier rows in source/position order. No
     /// indexed search-document representation participates.
     pub fn visit_controlled_legacy_search_rows<E>(
         &mut self,
         kind: ControlledSearchKind,
         sources: &[String],
+        max_rows: u64,
+        max_decoded_bytes: u64,
+        max_vm_steps: u64,
+        max_payload_bytes: usize,
+        max_field_bytes: usize,
+        json_limits: JsonLimits,
+        heap: &mut ControlledQueryHeap<'model, 'state, 'budget>,
+        consume: impl FnMut(
+            &str,
+            u64,
+            Digest256,
+            &JsonValue,
+            &mut dyn FnMut(usize) -> Result<()>,
+            &mut ControlledQueryHeap<'model, 'state, 'budget>,
+        ) -> std::result::Result<(), E>,
+    ) -> Result<std::result::Result<ControlledLegacySearchScan, E>> {
+        self.visit_controlled_carrier_rows(kind, sources, ControlledCarrierSelection::AllSources,
+            max_rows, max_decoded_bytes, max_vm_steps, max_payload_bytes,
+            max_field_bytes, json_limits, heap, consume)
+    }
+
+    pub fn visit_controlled_carrier_rows<E>(
+        &mut self,
+        kind: ControlledSearchKind,
+        sources: &[String],
+        selected: ControlledCarrierSelection<'_>,
         max_rows: u64,
         max_decoded_bytes: u64,
         max_vm_steps: u64,
@@ -831,6 +1085,19 @@ impl<'model, 'state, 'budget> ControlledKnowledgeModel<'model, 'state, 'budget> 
         let encoded_sources =
             self.canonicalize_owned_query_json(&source_filter, source_limits)?;
 
+        let (selector, needle, limit, order) = match selected {
+            ControlledCarrierSelection::AllSources => (0i64, "", i64::MAX, "c.source_graph,c.source_order,c.id"),
+            ControlledCarrierSelection::Id { identifier, limit } => (1, identifier, i64::try_from(limit).map_err(|_| Error::Budget("controlled carrier lookup limit"))?, "c.source_order,c.id"),
+            ControlledCarrierSelection::NativeId { identifier, limit } => (2, identifier, i64::try_from(limit).map_err(|_| Error::Budget("controlled carrier lookup limit"))?, "c.source_order,c.id"),
+            ControlledCarrierSelection::EntityId { identifier, limit } if kind == ControlledSearchKind::Nodes => (3, identifier, i64::try_from(limit).map_err(|_| Error::Budget("controlled carrier lookup limit"))?, "c.source_order,c.id"),
+            ControlledCarrierSelection::Incident { ids_json, limit } if kind == ControlledSearchKind::Relations => (4, ids_json, i64::try_from(limit).map_err(|_| Error::Budget("controlled carrier lookup limit"))?, "c.id"),
+            _ => return Err(Error::Invalid("controlled carrier selector family")),
+        };
+        if limit < 0 || (selector != 0 && needle.is_empty())
+            || (selector != 4 && needle.len() > max_field_bytes)
+            || (selector == 4 && needle.len() > json_limits.max_bytes) {
+            return Err(Error::Budget("controlled carrier selector admission"));
+        }
         let sql = match kind {
             ControlledSearchKind::Nodes => "SELECT
                 CASE WHEN typeof(c.id)='text' AND length(CAST(c.id AS BLOB)) BETWEEN 1 AND ?2 THEN c.id END,
@@ -846,7 +1113,8 @@ impl<'model, 'state, 'budget> ControlledKnowledgeModel<'model, 'state, 'budget> 
                 CASE WHEN typeof(s.packet)='blob' AND s.packet_len>=1 AND s.packet_len<=?3 AND length(s.packet)=s.packet_len THEN s.packet END
                 FROM knowledge_nodes c LEFT JOIN knowledge_source_carriers s ON s.packet_sha256=c.source_packet_sha256
                 WHERE c.source_graph IN (SELECT value FROM json_each(?1))
-                ORDER BY c.source_graph,c.source_order,c.id",
+                AND (?4=0 OR (?4=1 AND c.id=?5) OR (?4=2 AND c.native_id=?5) OR (?4=3 AND c.entity_id=?5))
+                ORDER BY ORDER_KEY LIMIT ?6",
             ControlledSearchKind::Relations => "SELECT
                 CASE WHEN typeof(c.id)='text' AND length(CAST(c.id AS BLOB)) BETWEEN 1 AND ?2 THEN c.id END,
                 CASE WHEN typeof(c.source_graph)='text' AND length(CAST(c.source_graph AS BLOB)) BETWEEN 1 AND ?2 THEN c.source_graph END,
@@ -861,8 +1129,17 @@ impl<'model, 'state, 'budget> ControlledKnowledgeModel<'model, 'state, 'budget> 
                 CASE WHEN typeof(s.packet)='blob' AND s.packet_len>=1 AND s.packet_len<=?3 AND length(s.packet)=s.packet_len THEN s.packet END
                 FROM knowledge_relations c LEFT JOIN knowledge_source_carriers s ON s.packet_sha256=c.source_packet_sha256
                 WHERE c.source_graph IN (SELECT value FROM json_each(?1))
-                ORDER BY c.source_graph,c.source_order,c.id",
+                AND (?4=0 OR (?4=1 AND c.id=?5) OR (?4=2 AND c.native_id=?5) OR (?4=4 AND (c.from_id IN (SELECT value FROM json_each(?5)) OR c.to_id IN (SELECT value FROM json_each(?5)))))
+                ORDER BY ORDER_KEY LIMIT ?6",
         };
+        if limit == 0 { return Ok(Ok(ControlledLegacySearchScan::default())); }
+        let sql_state = sql.len().checked_add(order.len())
+            .and_then(|n| n.checked_add(std::mem::size_of::<String>()))
+            .ok_or(Error::Budget("controlled carrier SQL state"))?;
+        let _sql_hold = self.context.owned_state().hold(sql_state)?;
+        self.charge_query_work(needle.len().checked_add(sql.len())
+            .ok_or(Error::Budget("controlled carrier selector work"))?)?;
+        let sql = sql.replace("ORDER_KEY", order);
         let context = self.context;
         let connection = self.connection;
         let pinned = self.pinned;
@@ -875,11 +1152,11 @@ impl<'model, 'state, 'budget> ControlledKnowledgeModel<'model, 'state, 'budget> 
             connection,
             max_vm_steps,
             || {
-                let mut statement = connection.prepare_cached(sql)?;
+                let mut statement = connection.prepare_cached(&sql)?;
                 let mut rows = statement.query(params![
                     encoded_sources,
                     max_field_bytes as i64,
-                    max_payload_bytes as i64
+                    max_payload_bytes as i64, selector, needle, limit
                 ])?;
                 let mut scan = ControlledLegacySearchScan::default();
                 while let Some(row) = rows.next()? {

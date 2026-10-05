@@ -461,6 +461,7 @@ impl SearchDonor {
             &self.request.binding,
             PreparedReadLimits {
                 max_row_bytes: self.limits.max_metadata_bytes.max(65536),
+                max_metadata_bytes: self.limits.max_metadata_bytes.max(65536),
                 max_response_bytes: self.limits.max_metadata_bytes.max(65536),
                 max_rows: self.request.max_queries.min(usize::MAX as u64) as usize,
                 max_vm_steps: self.request.max_vm_steps,
@@ -1316,6 +1317,7 @@ impl SearchDonor {
             &self.request.binding,
             PreparedReadLimits {
                 max_row_bytes: self.limits.max_metadata_bytes.max(65536),
+                max_metadata_bytes: self.limits.max_metadata_bytes.max(65536),
                 max_response_bytes: self.limits.max_metadata_bytes.max(65536),
                 max_rows: self.request.max_queries.min(usize::MAX as u64) as usize,
                 max_vm_steps: self.request.max_vm_steps,

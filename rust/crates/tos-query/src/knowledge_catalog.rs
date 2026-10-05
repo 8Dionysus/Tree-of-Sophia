@@ -74,7 +74,7 @@ pub struct CatalogDisclosureScope {
 }
 
 impl CatalogDisclosureScope {
-    fn validate(
+    pub(crate) fn validate(
         &self,
         bound: &BoundCmpKnowledge<'_>,
         policy: &CurrentPolicyBinding,

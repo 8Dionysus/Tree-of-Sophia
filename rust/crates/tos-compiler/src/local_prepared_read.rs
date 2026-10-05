@@ -55,6 +55,8 @@ const TOP_KEYS: &[&str] = &[
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct PreparedReadLimits {
     pub max_row_bytes: usize,
+    /// Maximum size of one prepared metadata JSON value.
+    pub max_metadata_bytes: usize,
     pub max_response_bytes: usize,
     pub max_rows: usize,
     pub max_vm_steps: u64,
@@ -65,6 +67,7 @@ impl Default for PreparedReadLimits {
     fn default() -> Self {
         Self {
             max_row_bytes: 1_048_576,
+            max_metadata_bytes: 8_388_608,
             max_response_bytes: 16_777_216,
             max_rows: 4096,
             max_vm_steps: 200_000,
@@ -279,6 +282,7 @@ impl<'a> PreparedReadTransaction<'a> {
         check_schema: bool,
     ) -> Result<Self> {
         if limits.max_row_bytes == 0
+            || limits.max_metadata_bytes == 0
             || limits.max_response_bytes == 0
             || limits.max_rows == 0
             || limits.max_vm_steps == 0
@@ -393,6 +397,7 @@ impl<'a> PreparedReadTransaction<'a> {
     }
 
     fn metadata(&self, key: &str, maximum: usize) -> Result<(Vec<u8>, JsonValue)> {
+        let maximum = maximum.min(self.limits.max_metadata_bytes);
         self.begin_statement()?;
         let mut statement = self
             .db

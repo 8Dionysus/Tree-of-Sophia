@@ -36,6 +36,8 @@ mod knowledge_sqlite;
 mod knowledge_temporal;
 #[cfg(not(target_arch = "wasm32"))]
 mod controlled_query_adapter;
+#[cfg(not(target_arch = "wasm32"))]
+mod controlled_inspect_adapter;
 pub mod lens_plan;
 #[cfg(not(target_arch = "wasm32"))]
 pub mod philosophy_read;
@@ -96,6 +98,8 @@ pub use knowledge_packet::{
 };
 #[cfg(not(target_arch = "wasm32"))]
 pub use controlled_query_adapter::{
+    execute_controlled_catalog_response,
+    execute_controlled_knowledge_header_response,
     execute_scoped_controlled_indexed_search_response,
     execute_scoped_controlled_sidecar_indexed_search_response,
     with_controlled_knowledge_binding, with_controlled_sidecar_knowledge_binding,
@@ -124,3 +128,6 @@ pub use temporal_comparison::{
 
 #[cfg(not(target_arch = "wasm32"))]
 pub mod reading_search;
+
+#[cfg(not(target_arch = "wasm32"))]
+pub use controlled_inspect_adapter::execute_controlled_inspect_response;

@@ -9,7 +9,10 @@ from __future__ import annotations
 from pathlib import Path
 import os
 import stat
+import json
+import hashlib
 import shutil
+from functools import wraps
 import weakref
 import tempfile
 import time
@@ -26,6 +29,16 @@ def _selected_path(value: str | Path, name: str) -> Path:
     if not path.is_absolute() or '..' in path.parts:
         raise ValueError(f'{name} requires an explicit absolute path')
     return path
+
+
+def _native_prefix_from_installed_layout() -> Path:
+    """Infer only the maintained installed layout; never search cwd or data."""
+    from .locations import PACKAGE_ROOT
+    package_root = PACKAGE_ROOT.resolve()
+    suffix = ('software', 'access', 'src', 'tos_access')
+    if package_root.parts[-len(suffix):] != suffix:
+        raise ValueError('native Core requires native_prefix, TOS_NATIVE_PREFIX, or the installed SDK layout')
+    return package_root.parents[3]
 
 
 def _cleanup_owned_state(path: str, identity: tuple[int, int, int]) -> bool:
@@ -56,6 +69,59 @@ class _OwnedState:
             raise RuntimeError('native Core owned state identity changed; preserved for its owner')
 
 
+def _bounded_binding_json(value: dict[str, Any]) -> bytes:
+    if type(value) is not dict:
+        raise TypeError('published read-model expected binding must be an object')
+    encoder = json.JSONEncoder(ensure_ascii=True, allow_nan=False,
+                               separators=(',', ':'), sort_keys=True)
+    chunks = []
+    size = 0
+    for piece in encoder.iterencode(value):
+        if len(piece) > 65536 - size:
+            raise ValueError('published read-model expected binding exceeds 65536 bytes')
+        chunk = piece.encode('ascii')
+        size += len(chunk)
+        chunks.append(chunk)
+    return b''.join(chunks)
+
+
+def _write_private_binding(state: _OwnedState, value: dict[str, Any]) -> Path:
+    path = Path(state.name) / 'published-read-model-binding.json'
+    flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, 'O_CLOEXEC', 0)
+    flags |= getattr(os, 'O_NOFOLLOW', 0)
+    descriptor = os.open(path, flags, 0o600)
+    try:
+        os.fchmod(descriptor, 0o600)
+        identity = os.fstat(descriptor)
+        if (not stat.S_ISREG(identity.st_mode) or stat.S_IMODE(identity.st_mode) != 0o600
+                or identity.st_uid != os.geteuid()):
+            raise ValueError('published binding file ownership or mode differs')
+        payload = _bounded_binding_json(value)
+        offset = 0
+        while offset < len(payload):
+            written = os.write(descriptor, payload[offset:])
+            if written <= 0:
+                raise OSError('published binding write made no progress')
+            offset += written
+    finally:
+        os.close(descriptor)
+    return path
+
+
+def _cleanup_binding_on_init_failure(initializer):
+    @wraps(initializer)
+    def guarded(self, *args, **kwargs):
+        try:
+            return initializer(self, *args, **kwargs)
+        except BaseException:
+            owned = getattr(self, '_owned_binding_state', None)
+            if owned is not None:
+                self._owned_binding_state = None
+                owned.cleanup()
+            raise
+    return guarded
+
+
 class NativeAccessCore(NativeCore):
     """Imported native facade with independent generic and local source routes.
 
@@ -65,11 +131,17 @@ class NativeAccessCore(NativeCore):
     capability. Omitting data selection leaves native software metadata usable.
     """
 
-    def __init__(self, native_prefix: str | Path, *,
+    @_cleanup_binding_on_init_failure
+    def __init__(self, native_prefix: str | Path | None = None, *,
                  tos_root: str | Path | None = None,
                  release_root: str | Path | None = None,
                  published_read_model_path: str | Path | None = None,
                  published_read_model_binding_path: str | Path | None = None,
+                 published_read_model_expected: dict[str, Any] | None = None,
+                 search_read_model_path: str | Path | None = None,
+                 search_read_model_max_bytes: int | None = None,
+                 search_read_model_max_postings: int | None = None,
+                 search_read_model_max_verify_chars: int | None = None,
                  published_exploration_checkpoint_path: str | Path | None = None,
                  source_inputs_path: str | Path | None = None,
                  source_local_text_selection_path: str | Path | None = None,
@@ -81,12 +153,20 @@ class NativeAccessCore(NativeCore):
                  native_state_root: str | Path | None = None,
                  source_read_service: Any | None = None,
                  core_snapshot_selection: Any | None = None,
-                 core_snapshot_admission_provider: Any | None = None):
+                 core_snapshot_admission_provider: Any | None = None,
+                 core_snapshot_native_owned: bool = False):
         self._lifetime_lock = RLock()
         self._closed = False
         self._ephemeral_state = None
+        self._owned_binding_state = None
         self._native_state_root = native_state_root
-        prefix = _selected_path(native_prefix, 'native_prefix')
+        if type(core_snapshot_native_owned) is not bool:
+            raise TypeError('core_snapshot_native_owned must be a boolean')
+        selected_prefix = (native_prefix if native_prefix is not None
+                           else os.environ.get('TOS_NATIVE_PREFIX'))
+        if selected_prefix is None or selected_prefix == '':
+            selected_prefix = _native_prefix_from_installed_layout()
+        prefix = _selected_path(selected_prefix, 'native_prefix')
         self.native_prefix = prefix
         self._source_provider = None
         self._owns_source_provider = False
@@ -113,7 +193,26 @@ class NativeAccessCore(NativeCore):
                 self._owns_source_provider = True
         self.tos_root = None if tos_root is None else _selected_path(tos_root, 'tos_root')
         self.release_root = None if release_root is None else _selected_path(release_root, 'release_root')
-        pair = (published_read_model_path, published_read_model_binding_path)
+        binding_path = published_read_model_binding_path
+        if published_read_model_expected is not None:
+            if binding_path is not None:
+                raise ValueError('select a published binding object or an explicit binding path, not both')
+            if published_read_model_path is None:
+                raise ValueError('published binding object requires an explicit prepared model')
+            root_value = (native_state_root or os.environ.get('TOS_NATIVE_STATE_ROOT')
+                          or tempfile.gettempdir())
+            state_root = _selected_path(root_value, 'native state root')
+            canonical_state_root = state_root.resolve(strict=True)
+            if canonical_state_root != state_root or not state_root.is_dir():
+                raise ValueError('native state root must be an existing non-symlink directory')
+            for protected in (prefix, self.release_root, self.tos_root,
+                              _selected_path(published_read_model_path, 'prepared model')):
+                if protected is not None and state_root.is_relative_to(protected.resolve()):
+                    raise ValueError('native state root must be outside selected software, release, source and model roots')
+            owned_binding = _OwnedState(state_root)
+            self._owned_binding_state = owned_binding
+            binding_path = _write_private_binding(owned_binding, published_read_model_expected)
+        pair = (published_read_model_path, binding_path)
         if (pair[0] is None) != (pair[1] is None):
             raise ValueError('prepared reader requires the model and owner-selected binding paths')
         if self.release_root is not None and pair[0] is not None:
@@ -125,6 +224,8 @@ class NativeAccessCore(NativeCore):
         if source_local_text_selection_path is not None and source_inputs_path is None:
             raise ValueError('local text selection requires exact source inputs')
         arguments: list[str] = []
+        if self.tos_root is not None and self.release_root is None and pair[0] is None:
+            arguments += ['--root', str(self.tos_root)]
         if self.release_root is not None:
             arguments += ['--release-root', str(self.release_root)]
         if pair[0] is not None:
@@ -145,12 +246,46 @@ class NativeAccessCore(NativeCore):
                 if protected is not None and checkpoint.is_relative_to(protected):
                     raise ValueError('exploration checkpoints require a path outside software, release and source roots')
         self._has_prepared_checkpoints = published_exploration_checkpoint_path is not None
+        self._search_read_model_options = None
+        if self.tos_root is not None:
+            from .search_read_model import (SEARCH_READ_MODEL_MAX_POSTINGS,
+                                            SEARCH_READ_MODEL_MAX_VERIFY_CHARS)
+            configured_path = (search_read_model_path or
+                               os.environ.get('TOS_SEARCH_READ_MODEL_PATH'))
+            if configured_path is None:
+                digest = hashlib.sha256(self.tos_root.resolve().as_posix().encode('utf-8')).hexdigest()[:24]
+                configured_path = Path(tempfile.gettempdir()) / 'tos-access-search' / f'{digest}.sqlite'
+            else:
+                configured_path = Path(configured_path).expanduser()
+                if not configured_path.is_absolute():
+                    configured_path = self.tos_root / configured_path
+                configured_path = configured_path.resolve()
+            configured_bytes = search_read_model_max_bytes
+            if configured_bytes is None:
+                raw_bytes = os.environ.get('TOS_SEARCH_READ_MODEL_MAX_BYTES')
+                configured_bytes = int(raw_bytes) if raw_bytes else 512 * 1024 * 1024
+            self._search_read_model_options = {
+                'path': str(configured_path),
+                'max_bytes': configured_bytes,
+                'max_postings': (SEARCH_READ_MODEL_MAX_POSTINGS
+                                 if search_read_model_max_postings is None
+                                 else search_read_model_max_postings),
+                'max_verify_chars': (SEARCH_READ_MODEL_MAX_VERIFY_CHARS
+                                     if search_read_model_max_verify_chars is None
+                                     else search_read_model_max_verify_chars),
+            }
         super().__init__(prefix, arguments, inherit_data_selection=False)
         self._core_snapshot_client = None
-        self._legacy_query_store_selected = False
-        if core_snapshot_selection is not None or core_snapshot_admission_provider is not None:
-            if core_snapshot_selection is None or core_snapshot_admission_provider is None:
-                raise ValueError('native whole-Core selection requires its caller-owned per-call admission provider')
+        if core_snapshot_native_owned and core_snapshot_admission_provider is not None:
+            raise ValueError('native-owned SourceRoot cannot be combined with an external admission provider')
+        self._core_snapshot_native_owned = core_snapshot_native_owned
+        self._legacy_query_store_selected = bool(
+            getattr(core_snapshot_selection, 'query_store_configured', False))
+        if (core_snapshot_selection is not None or core_snapshot_admission_provider is not None
+                or core_snapshot_native_owned):
+            if core_snapshot_selection is None or (
+                    core_snapshot_admission_provider is None and not core_snapshot_native_owned):
+                raise ValueError('native whole-Core selection requires a captured selector and its declared owner route')
             from .native_core_snapshot import NativeCoreSnapshotClient, NativeCoreSnapshotSelection
             if not isinstance(core_snapshot_selection, NativeCoreSnapshotSelection):
                 raise TypeError('native whole-Core selection must be captured by NativeCoreSnapshotSelection')
@@ -158,8 +293,13 @@ class NativeAccessCore(NativeCore):
                 raise ValueError('native whole-Core selection must use the exact selected tos_root')
             if self.release_root is not None or pair[0] is not None:
                 raise ValueError('native whole-Core bridge requires the raw source route, not a release or prepared reader')
-            self._core_snapshot_client = NativeCoreSnapshotClient(
-                prefix, core_snapshot_selection, core_snapshot_admission_provider)
+            if core_snapshot_native_owned:
+                self._core_snapshot_client = NativeCoreSnapshotClient(
+                    prefix, core_snapshot_selection, None,
+                    search_read_model=self._search_read_model_options)
+            else:
+                self._core_snapshot_client = NativeCoreSnapshotClient(
+                    prefix, core_snapshot_selection, core_snapshot_admission_provider)
         selectors = (reading_analysis_root, reading_max_file_bytes, reading_max_total_file_bytes)
         if self.tos_root is None:
             if any(value is not None for value in selectors):
@@ -195,6 +335,16 @@ class NativeAccessCore(NativeCore):
             word_arguments += ['--concept-max-file-bytes', str(concept_file),
                                '--concept-max-total-file-bytes', str(concept_total)]
         self._word_core = NativeCore(prefix, word_arguments, inherit_data_selection=False)
+
+    @classmethod
+    def owned_ordinary_source_session(cls, native_prefix, selection, transport, state, *,
+                                      cancelled, maximum_owner_objects, config=None):
+        # Delegate to the existing native-owned ordinary session factory.
+        from .native_core_session_factory import owned_native_ordinary_source_session
+        return owned_native_ordinary_source_session(prefix=native_prefix,
+            selection=selection, transport=transport, state=state,
+            cancelled=cancelled, config=config,
+            maximum_owner_objects=maximum_owner_objects)
 
     @classmethod
     def owned_source_session(cls, native_prefix, selection, admission, state, *,
@@ -318,11 +468,30 @@ class NativeAccessCore(NativeCore):
 
     @classmethod
     def discover(cls, tos_root: str | Path | None = None, *,
-                 native_prefix: str | Path | None = None, **selection: Any) -> 'NativeAccessCore':
+                 native_prefix: str | Path | None = None,
+                 core_snapshot_native_owned: bool = False,
+                 **selection: Any) -> 'NativeAccessCore':
         """Select explicit native software; never infer it from CWD or data."""
-        if native_prefix is None:
-            raise ValueError('native imported Core requires an explicit native_prefix')
-        return cls(native_prefix, tos_root=tos_root, **selection)
+        return cls(native_prefix, tos_root=tos_root,
+                   core_snapshot_native_owned=core_snapshot_native_owned,
+                   **selection)
+
+    def knowledge_search_indexed(self, query: str = '', *, sources=None, kind_ids=None,
+                                 predicate_ids=None, cursor=None, limit: int = 40) -> dict:
+        if self._core_snapshot_native_owned:
+            return self._packet('tos_knowledge_search_indexed_v2', {
+                'query': query, 'sources': sources, 'kind_ids': kind_ids,
+                'predicate_ids': predicate_ids, 'cursor': cursor, 'limit': limit,
+            }, source_errors=False)
+        # Explicit admission preserves its original request surface. In the
+        # native-owned route, the full selector was captured by the client
+        # above so its QueryStore owner can ignore path/build caps but honor
+        # verify-char limits.
+        explicit_provider_route = (self._core_snapshot_client is not None)
+        search = None if explicit_provider_route else self._search_read_model_options
+        return super().knowledge_search_indexed(query, sources=sources,
+            kind_ids=kind_ids, predicate_ids=predicate_ids, cursor=cursor,
+            limit=limit, search_read_model=search)
 
     def _embedded_source(self, operation, request):
         if self._selected_source_provider:
@@ -394,16 +563,30 @@ class NativeAccessCore(NativeCore):
                                    source_errors=source_errors)
         # The borrowed admission supplies the original per-call cutoff; an
         # outer caller's earlier cutoff must remain an additional restriction.
-        return self._core_snapshot_call('call', tool, request,
-                                        absolute_deadline=absolute_deadline)
+        try:
+            return self._core_snapshot_call('call', tool, request,
+                                            absolute_deadline=absolute_deadline)
+        except Exception as error:
+            from .native_core_session import NativeSessionRefused
+            if not isinstance(error, NativeSessionRefused):
+                raise
+            if source_errors:
+                from .source_read_errors import SourceReadError
+                wrapped = SourceReadError(str(error))
+                wrapped.code = error.code
+                raise wrapped from error
+            from mcp.server.fastmcp.exceptions import ToolError
+            wrapped = ToolError(str(error))
+            wrapped.code = error.code
+            raise wrapped from error
 
     def _core_snapshot_call(self, method, *args, **kwargs):
         with self._lifetime_lock:
             self._ensure_open()
             client = self._core_snapshot_client
-        if client is None:
-            raise RuntimeError('native whole-Core route requires an explicit source selection and caller admission')
-        return getattr(client, method)(*args, **kwargs)
+            if client is None:
+                raise RuntimeError('native whole-Core route requires an explicit source selection and caller admission')
+            return getattr(client, method)(*args, **kwargs)
 
     def read_resource(self, uri: str) -> dict[str, Any]:
         if self._legacy_query_store_selected:
@@ -543,18 +726,23 @@ class NativeAccessCore(NativeCore):
             if self._closed:
                 return
             self._closed = True
-            with self._selected_calls_condition:
-                while self._selected_calls:
-                    self._selected_calls_condition.wait()
-            if self._source_provider is not None and self._owns_source_provider:
-                self._source_provider.close()
-            self._source_provider = None
-            core_snapshot, self._core_snapshot_client = self._core_snapshot_client, None
-            if core_snapshot is not None:
-                core_snapshot.close()
-            owned, self._ephemeral_state = self._ephemeral_state, None
-            if owned is not None:
-                owned.cleanup()
+            binding_state, self._owned_binding_state = self._owned_binding_state, None
+            try:
+                with self._selected_calls_condition:
+                    while self._selected_calls:
+                        self._selected_calls_condition.wait()
+                if self._source_provider is not None and self._owns_source_provider:
+                    self._source_provider.close()
+                self._source_provider = None
+                core_snapshot, self._core_snapshot_client = self._core_snapshot_client, None
+                if core_snapshot is not None:
+                    core_snapshot.close()
+                owned, self._ephemeral_state = self._ephemeral_state, None
+                if owned is not None:
+                    owned.cleanup()
+            finally:
+                if binding_state is not None:
+                    binding_state.cleanup()
 
     def __enter__(self):
         with self._lifetime_lock:

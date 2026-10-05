@@ -108,6 +108,7 @@ fn call(
     state: &Ledger,
     deadline: Instant,
     cancelled: &AtomicBool,
+    ordinary: bool,
 ) -> Result<(
     Option<Operation>,
     Option<tos_foundation::JsonDocument>,
@@ -246,11 +247,11 @@ fn call(
                 return Err("Core Store Search strict generic key");
             }
         }
-        if !matches!(
-            checked_field(arguments, "tool", state, deadline)?
-                .and_then(tos_foundation::JsonValue::as_str),
-            Some("tos_knowledge_search" | "tos_knowledge_search_indexed_v2")
-        ) || checked_field(arguments, "arguments", state, deadline)?
+        let tool = checked_field(arguments, "tool", state, deadline)?
+            .and_then(tos_foundation::JsonValue::as_str);
+        if !(matches!(tool, Some("tos_knowledge_search" | "tos_knowledge_search_indexed_v2"))
+            || ordinary && matches!(tool, Some("tos_knowledge_catalog" | "tos_knowledge_node" | "tos_knowledge_relation")))
+            || checked_field(arguments, "arguments", state, deadline)?
             .and_then(tos_foundation::JsonValue::as_object)
             .is_none()
         {
@@ -277,6 +278,30 @@ fn call(
             original_cli_deadline(work)?.min(deadline),
             retained,
         ));
+    }
+    if id == "tos_source_navigation" && ordinary {
+        let args = checked_field(root, "arguments", state, deadline)?
+            .ok_or("Core navigation arguments absent")?;
+        let fields = args.as_object().ok_or("Core navigation arguments object")?;
+        if fields.len() != 1 {
+            return Err("Core navigation strict boolean DTO");
+        }
+        let bibliographic_only = checked_field(args, "bibliographic_only", state, deadline)?
+            .and_then(tos_foundation::JsonValue::as_bool)
+            .ok_or("Core navigation strict boolean DTO")?;
+        // The borrowed tree has already consumed the original JSON/work budget.
+        // No serde copy or alternate source owner is needed for one boolean.
+        return Ok((Some(Operation::Navigation(bibliographic_only)), None,
+            original_cli_deadline(work)?.min(deadline), 0));
+    }
+    if matches!(id, "tos_knowledge_header" | "tos_evidence_projection") && ordinary {
+        if !checked_field(root, "arguments", state, deadline)?
+            .and_then(tos_foundation::JsonValue::as_object)
+            .is_some_and(|fields| fields.is_empty()) {
+            return Err("Core header strict empty arguments");
+        }
+        return Ok((Some(if id == "tos_knowledge_header" { Operation::KnowledgeHeader } else { Operation::Evidence }), None,
+            original_cli_deadline(work)?.min(deadline), 0));
     }
     if !field(root, "arguments")
         .and_then(tos_foundation::JsonValue::as_object)
@@ -324,6 +349,10 @@ fn carrier(
     use tos_compiler::native_snapshot_carriers::CapturedCarrierRequest as C;
     Some(match operation {
         Operation::CorpusIndex => (C::CorpusIndex, R::Corpus, "carrier_corpus"),
+        Operation::Navigation(bibliographic_only) => (
+            C::SourceNavigation { bibliographic_only: *bibliographic_only },
+            R::Corpus, "carrier_corpus",
+        ),
         Operation::CorpusHeader => (C::CorpusHeader, R::Corpus, "carrier_corpus"),
         Operation::Bibliographic => (
             C::BibliographicGraph,
@@ -988,6 +1017,427 @@ fn serve_whole_indexed_search(
     fence()
 }
 
+fn serve_whole_catalog(
+    root: &Path,
+    request: &Request,
+    isolation: &tos_compiler::private_tmpfs_stage::PrivateTmpfsStageIsolation,
+    session: &session_owner::Session,
+    driver: &mut session_transport::Driver<'_, '_>,
+    carrier: &mut Option<Carrier>,
+    store: &mut Option<lazy_store::Store>,
+    generation: &mut u64,
+    ledger: &Ledger,
+    heap: &Arc<tos_compiler::DedicatedSessionSqliteHeap>,
+    resources: &dyn tos_compiler::native_snapshot::NativeColdOpenResourceHold,
+    owner_deadline: Instant,
+    cutoff: Instant,
+    cancelled: &Arc<AtomicBool>,
+    fence: &dyn Fn() -> Result<()>,
+) -> Result<()> {
+    fence()?;
+    // Drop only previously held selected owners; no work/VM/JSON clock refund.
+    if let Some(old) = carrier.take() {
+        ledger.retained.set(
+            ledger
+                .retained
+                .get()
+                .checked_sub(old.retained)
+                .ok_or("Core Whole prior carrier retained removal")?,
+        );
+        drop(old);
+    }
+    if let Some(old) = store.take() {
+        ledger.retained.set(
+            ledger
+                .retained
+                .get()
+                .checked_sub(old.retained)
+                .ok_or("Core Whole prior Store retained removal")?,
+        );
+        drop(old);
+    }
+    let next = generation
+        .checked_add(1)
+        .ok_or("Core Whole generation overflow")?;
+    let _locals = ledger.reserve(
+        std::mem::size_of::<u64>()
+            + std::mem::size_of::<tos_query::CatalogBudget>()
+            + std::mem::size_of::<(&Path, &Request, &Ledger, Instant, Instant)>(),
+    )?;
+    let http = request
+        .http
+        .as_ref()
+        .ok_or("Core Whole HTTP profile absent")?;
+    let mut budget = http.selected.native()?.catalog;
+    with_whole_selected(
+        root,
+        request,
+        isolation,
+        next,
+        ledger,
+        owner_deadline,
+        cutoff,
+        cancelled,
+        heap,
+        |completed, native, loan| {
+            completed.with_controlled_selected_knowledge_model(&loan, isolation,
+            request.admission.cold, request.admission.process,
+            request.admission.working_ram_bytes, resources, cutoff,
+            |model, vocabulary, descriptor, view| {
+            tos_query::with_controlled_knowledge_binding(model, vocabulary, descriptor,
+                |model, bound| {
+                let revision = bound.require_source_revision()
+                    .map_err(|_| tos_compiler::Error::Invalid("Core Whole query source revision absent"))?;
+                if revision != native.source_revision || view.source_revision() != Some(revision) {
+                    return Err(tos_compiler::Error::Invalid("Core Whole source associations differ"));
+                }
+                let overhead = whole_envelope_len(next, revision).map_err(tos_compiler::Error::Invalid)?;
+                let cap = session.limits.max_reply_bytes.checked_sub(overhead)
+                    .ok_or(tos_compiler::Error::Budget("Core Whole reply envelope cap"))?;
+                budget.max_packet_bytes = budget.max_packet_bytes
+                    .min(cap).min(request.admission.whole_max_graph_bytes);
+                if budget.max_packet_bytes == 0 {
+                    return Err(tos_compiler::Error::Budget("Core Whole response cap"));
+                }
+                crate::reference_root_query::with_controlled_metadata_context(model,
+                    bound, view, cutoff, cancelled,
+                    |bytes| ledger.reserve(bytes).map_err(tos_compiler::Error::Invalid),
+                    |model, context| {
+                    context.with_operation(crate::reference_root_query::ReferenceMetadataOperation::Catalog,
+                        |authority| {
+                        let current = || {
+                            fence()?;
+                            view.verify_current().map_err(|_| "Core Whole transport source fence")?;
+                            active(cutoff)
+                        };
+                        driver.respond(|sequence, _, reply| {
+                            reply.narrow_deadline(cutoff)?;
+                            current()?;
+                            tos_query::execute_controlled_catalog_response(
+                                model, bound, authority, budget,
+                                |body| {
+                                    let map = |_| tos_query::CatalogError {
+                                        code: tos_query::CatalogErrorCode::PolicyBindingUnavailable,
+                                        message: "Core Whole catalog delivery refused",
+                                    };
+                                    current().map_err(map)?;
+                                    send_whole_result(ledger, reply, sequence, next, revision, body).map_err(map)?;
+                                    current().map_err(map)
+                                },
+                            ).map_err(|_| "Core Whole scoped catalog refused")?;
+                            current()
+                        }, current).map_err(tos_compiler::Error::Invalid)
+                    })
+                })
+            })
+        })
+        },
+    )?;
+    *generation = next;
+    fence()
+}
+
+fn state_inspect_key(ledger: &Ledger, cutoff: Instant,
+    key: &tos_foundation::JsonString, kind: tos_query::search_v2::SearchKind) -> Result<()> {
+    ledger.charge_work(key.units().len().checked_mul(2)
+        .ok_or("Core inspect key work")? as u64)?;
+    active(cutoff)?;
+    let valid = if kind == tos_query::search_v2::SearchKind::Nodes {
+        matches!(key.as_str(), Some("node_id" | "relation_limit"))
+    } else { key.as_str() == Some("relation_id") };
+    if !valid { return Err("Core inspect strict argument key"); }
+    Ok(())
+}
+
+fn serve_whole_inspect(
+    root: &Path,
+    request: &Request,
+    isolation: &tos_compiler::private_tmpfs_stage::PrivateTmpfsStageIsolation,
+    session: &session_owner::Session,
+    driver: &mut session_transport::Driver<'_, '_>,
+    carrier: &mut Option<Carrier>,
+    store: &mut Option<lazy_store::Store>,
+    generation: &mut u64,
+    ledger: &Ledger,
+    heap: &Arc<tos_compiler::DedicatedSessionSqliteHeap>,
+    resources: &dyn tos_compiler::native_snapshot::NativeColdOpenResourceHold,
+    owner_deadline: Instant,
+    cutoff: Instant,
+    cancelled: &Arc<AtomicBool>,
+    fence: &dyn Fn() -> Result<()>,
+    tool: &str,
+    arguments: &tos_foundation::JsonValue,
+) -> Result<()> {
+    let kind = if tool == "tos_knowledge_node" { tos_query::search_v2::SearchKind::Nodes }
+        else if tool == "tos_knowledge_relation" { tos_query::search_v2::SearchKind::Relations }
+        else { return Err("Core inspect exact tool"); };
+    let fields = arguments.as_object().ok_or("Core inspect arguments object")?;
+    for (key, _) in fields {
+        state_inspect_key(ledger, cutoff, key, kind)?;
+    }
+    let identifier = checked_field(arguments,
+        if kind == tos_query::search_v2::SearchKind::Nodes { "node_id" } else { "relation_id" },
+        ledger, cutoff)?.and_then(tos_foundation::JsonValue::as_str)
+        .ok_or("Core inspect identifier string")?;
+    let relation_limit = match checked_field(arguments, "relation_limit", ledger, cutoff)? {
+        None => 200,
+        Some(value) => usize::try_from(value.as_u64().filter(|n| *n <= 1000)
+            .ok_or("Core inspect relation_limit integer")?)
+            .map_err(|_| "Core inspect relation_limit size")?,
+    };
+    fence()?;
+    // Drop only previously held selected owners; no work/VM/JSON clock refund.
+    if let Some(old) = carrier.take() {
+        ledger.retained.set(
+            ledger
+                .retained
+                .get()
+                .checked_sub(old.retained)
+                .ok_or("Core Whole prior carrier retained removal")?,
+        );
+        drop(old);
+    }
+    if let Some(old) = store.take() {
+        ledger.retained.set(
+            ledger
+                .retained
+                .get()
+                .checked_sub(old.retained)
+                .ok_or("Core Whole prior Store retained removal")?,
+        );
+        drop(old);
+    }
+    let next = generation
+        .checked_add(1)
+        .ok_or("Core Whole generation overflow")?;
+    let _locals = ledger.reserve(
+        std::mem::size_of::<u64>()
+            + std::mem::size_of::<tos_query::InspectBudget>()
+            + std::mem::size_of::<(&Path, &Request, &Ledger, Instant, Instant)>(),
+    )?;
+    let http = request
+        .http
+        .as_ref()
+        .ok_or("Core Whole HTTP profile absent")?;
+    let mut budget = http.selected.native()?.inspect;
+    with_whole_selected(
+        root,
+        request,
+        isolation,
+        next,
+        ledger,
+        owner_deadline,
+        cutoff,
+        cancelled,
+        heap,
+        |completed, native, loan| {
+            completed.with_controlled_selected_knowledge_model(&loan, isolation,
+            request.admission.cold, request.admission.process,
+            request.admission.working_ram_bytes, resources, cutoff,
+            |model, vocabulary, descriptor, view| {
+            tos_query::with_controlled_knowledge_binding(model, vocabulary, descriptor,
+                |model, bound| {
+                let revision = bound.require_source_revision()
+                    .map_err(|_| tos_compiler::Error::Invalid("Core Whole query source revision absent"))?;
+                if revision != native.source_revision || view.source_revision() != Some(revision) {
+                    return Err(tos_compiler::Error::Invalid("Core Whole source associations differ"));
+                }
+                let overhead = whole_envelope_len(next, revision).map_err(tos_compiler::Error::Invalid)?;
+                let cap = session.limits.max_reply_bytes.checked_sub(overhead)
+                    .ok_or(tos_compiler::Error::Budget("Core Whole reply envelope cap"))?;
+                budget.max_response_bytes = budget.max_response_bytes
+                    .min(cap).min(request.admission.whole_max_graph_bytes);
+                if budget.max_response_bytes == 0 {
+                    return Err(tos_compiler::Error::Budget("Core Whole response cap"));
+                }
+                crate::reference_root_query::with_controlled_metadata_context(model,
+                    bound, view, cutoff, cancelled,
+                    |bytes| ledger.reserve(bytes).map_err(tos_compiler::Error::Invalid),
+                    |model, context| {
+                    context.with_operation(if kind == tos_query::search_v2::SearchKind::Nodes {
+                        crate::reference_root_query::ReferenceMetadataOperation::Node
+                    } else { crate::reference_root_query::ReferenceMetadataOperation::Relation },
+                        |authority| {
+                        let current = || {
+                            fence()?;
+                            view.verify_current().map_err(|_| "Core Whole transport source fence")?;
+                            active(cutoff)
+                        };
+                        driver.respond(|sequence, _, reply| {
+                            reply.narrow_deadline(cutoff)?;
+                            current()?;
+                            tos_query::execute_controlled_inspect_response(
+                                model, bound, authority, kind, identifier, relation_limit, budget,
+                                |body| {
+                                    let map = |_| tos_query::search_v2::SearchV2Error {
+                                        code: tos_query::search_v2::SearchV2ErrorCode::Unavailable,
+                                        message: "Core Whole catalog delivery refused",
+                                    };
+                                    current().map_err(map)?;
+                                    send_whole_result(ledger, reply, sequence, next, revision, body).map_err(map)?;
+                                    current().map_err(map)
+                                },
+                            ).map_err(|_| "Core Whole scoped catalog refused")?;
+                            current()
+                        }, current).map_err(tos_compiler::Error::Invalid)
+                    })
+                })
+            })
+        })
+        },
+    )?;
+    *generation = next;
+    fence()
+}
+
+fn serve_whole_metadata(
+    root: &Path,
+    request: &Request,
+    isolation: &tos_compiler::private_tmpfs_stage::PrivateTmpfsStageIsolation,
+    session: &session_owner::Session,
+    driver: &mut session_transport::Driver<'_, '_>,
+    carrier: &mut Option<Carrier>,
+    store: &mut Option<lazy_store::Store>,
+    generation: &mut u64,
+    ledger: &Ledger,
+    heap: &Arc<tos_compiler::DedicatedSessionSqliteHeap>,
+    resources: &dyn tos_compiler::native_snapshot::NativeColdOpenResourceHold,
+    owner_deadline: Instant,
+    cutoff: Instant,
+    cancelled: &Arc<AtomicBool>,
+    fence: &dyn Fn() -> Result<()>,
+    evidence_projection: bool,
+) -> Result<()> {
+    fence()?;
+    // Drop only previously held selected owners; no work/VM/JSON clock refund.
+    if let Some(old) = carrier.take() {
+        ledger.retained.set(
+            ledger
+                .retained
+                .get()
+                .checked_sub(old.retained)
+                .ok_or("Core Whole prior carrier retained removal")?,
+        );
+        drop(old);
+    }
+    if let Some(old) = store.take() {
+        ledger.retained.set(
+            ledger
+                .retained
+                .get()
+                .checked_sub(old.retained)
+                .ok_or("Core Whole prior Store retained removal")?,
+        );
+        drop(old);
+    }
+    let next = generation
+        .checked_add(1)
+        .ok_or("Core Whole generation overflow")?;
+    let _locals = ledger.reserve(
+        std::mem::size_of::<u64>()
+            + std::mem::size_of::<tos_query::InspectBudget>()
+            + std::mem::size_of::<(&Path, &Request, &Ledger, Instant, Instant)>(),
+    )?;
+    let http = request
+        .http
+        .as_ref()
+        .ok_or("Core Whole HTTP profile absent")?;
+    let mut budget = http.selected.native()?.inspect;
+    with_whole_selected(
+        root,
+        request,
+        isolation,
+        next,
+        ledger,
+        owner_deadline,
+        cutoff,
+        cancelled,
+        heap,
+        |completed, native, loan| {
+            if evidence_projection {
+                let cap = session.limits.max_reply_bytes
+                    .checked_sub(whole_envelope_len(next, &native.source_revision)
+                        .map_err(tos_compiler::Error::Invalid)?)
+                    .ok_or(tos_compiler::Error::Budget("Core Evidence reply envelope"))?
+                    .min(request.admission.whole_max_graph_bytes);
+                let limits = tos_compiler::native_snapshot_manifest::portable_native_snapshot_limits(
+                    request.admission.max_build_seconds)?.capture;
+                let _path = ledger.reserve(isolation.root().as_os_str().len()
+                    .checked_add(256).ok_or("Core Evidence path workspace")?)
+                    .map_err(tos_compiler::Error::Invalid)?;
+                let staging = fresh(isolation.root(), "tos-core-session-evidence")
+                    .map_err(tos_compiler::Error::Invalid)?;
+                let current = || {
+                    fence()?;
+                    active(cutoff)
+                };
+                return loan.with_owned_evidence_delivery(completed, &staging, limits, cap,
+                    request.admission.json.limits().map_err(tos_compiler::Error::Invalid)?, |body| {
+                    driver.respond(|sequence, _, reply| {
+                        reply.narrow_deadline(cutoff)?;
+                        current()?;
+                        send_whole_result(ledger, reply, sequence, next, &native.source_revision, body)?;
+                        current()
+                    }, current).map_err(tos_compiler::Error::Invalid)
+                });
+            }
+            completed.with_controlled_selected_knowledge_model(&loan, isolation,
+            request.admission.cold, request.admission.process,
+            request.admission.working_ram_bytes, resources, cutoff,
+            |model, vocabulary, descriptor, view| {
+            tos_query::with_controlled_knowledge_binding(model, vocabulary, descriptor,
+                |model, bound| {
+                let revision = bound.require_source_revision()
+                    .map_err(|_| tos_compiler::Error::Invalid("Core Whole query source revision absent"))?;
+                if revision != native.source_revision || view.source_revision() != Some(revision) {
+                    return Err(tos_compiler::Error::Invalid("Core Whole source associations differ"));
+                }
+                let overhead = whole_envelope_len(next, revision).map_err(tos_compiler::Error::Invalid)?;
+                let cap = session.limits.max_reply_bytes.checked_sub(overhead)
+                    .ok_or(tos_compiler::Error::Budget("Core Whole reply envelope cap"))?;
+                budget.max_response_bytes = budget.max_response_bytes
+                    .min(cap).min(request.admission.whole_max_graph_bytes);
+                if budget.max_response_bytes == 0 {
+                    return Err(tos_compiler::Error::Budget("Core Whole response cap"));
+                }
+                crate::reference_root_query::with_controlled_metadata_context(model,
+                    bound, view, cutoff, cancelled,
+                    |bytes| ledger.reserve(bytes).map_err(tos_compiler::Error::Invalid),
+                    |model, context| {
+                    context.with_operation(crate::reference_root_query::ReferenceMetadataOperation::KnowledgeHeader,
+                        |authority| {
+                        let current = || {
+                            fence()?;
+                            view.verify_current().map_err(|_| "Core Whole transport source fence")?;
+                            active(cutoff)
+                        };
+                        driver.respond(|sequence, _, reply| {
+                            reply.narrow_deadline(cutoff)?;
+                            current()?;
+                            tos_query::execute_controlled_knowledge_header_response(
+                                model, bound, authority, budget,
+                                |body| {
+                                    let map = |_| tos_query::search_v2::SearchV2Error {
+                                        code: tos_query::search_v2::SearchV2ErrorCode::Unavailable,
+                                        message: "Core Whole header delivery refused",
+                                    };
+                                    current().map_err(map)?;
+                                    send_whole_result(ledger, reply, sequence, next, revision, body).map_err(map)?;
+                                    current().map_err(map)
+                                },
+                            ).map_err(|_| "Core Whole scoped header refused")?;
+                            current()
+                        }, current).map_err(tos_compiler::Error::Invalid)
+                    })
+                })
+            })
+        })
+        },
+    )?;
+    *generation = next;
+    fence()
+}
+
 fn parse_whole_legacy_search_request<'ledger>(
     arguments: &tos_foundation::JsonValue,
     budget: &tos_query::knowledge_legacy_search::LegacySearchBudget,
@@ -1338,6 +1788,7 @@ fn serve_store(
     cancelled: &Arc<AtomicBool>,
     fence: &dyn Fn() -> Result<()>,
     search: Option<&tos_foundation::JsonValue>,
+    metadata_tool: &str,
 ) -> Result<()> {
     if let Some(old) = carrier.take() {
         ledger.retained.set(
@@ -1379,7 +1830,7 @@ fn serve_store(
             store.search(arguments, request, ledger, heap, deadline, cancelled, cap)?
         } else {
             store.metadata(
-                "tos_corpus_header",
+                metadata_tool,
                 request,
                 ledger,
                 heap,
@@ -1583,7 +2034,7 @@ pub(super) fn run(
         const ORDINARY_HEAD: &[u8] = br#"{"schema_version":"tos_native_core_ordinary_session_ready_v1","ok":true,"profile":"tos_core_ordinary_selected_v1""#;
         const COMMON: &[u8] = br#","reference_semantics":"cpython_pathlib_is_file_3_14","source_revision":null,"data_revision":null,"state_reused":false,"selection":{"schema_version":"tos_native_core_selected_profile_v1","generation":0,"profile":"selected_paths","source_revision":null,"data_revision":null,"exploration_revision":null,"state_reused":false},"capabilities":[{"operation":"tos_corpus_index_exists"},{"operation":"tos_philosophy_projection_exists"},{"operation":"tos_evidence_projection_exists"},{"operation":"tos_philosophy_audit_exists"},{"operation":"tos_corpus_index"},{"operation":"tos_bibliographic_graph"},{"operation":"tos_philosophy_projection"},{"operation":"tos_philosophy_audit_payload"},{"operation":"tos_corpus_header"},{"operation":"tos_native_call","tool":"tos_knowledge_search","profiles":["weak_query_store"]},{"operation":"tos_native_call","tool":"tos_knowledge_search_indexed_v2","profiles":["whole_root"]}"#;
         const LAZY_END: &[u8] = b"]}";
-        const ORDINARY_END: &[u8] = br#",{"operation":"tos_native_call","tool":"tos_knowledge_search","profiles":["whole_root"]}]}"#;
+        const ORDINARY_END: &[u8] = br#",{"operation":"tos_native_call","tool":"tos_knowledge_node","profiles":["whole_root"]},{"operation":"tos_native_call","tool":"tos_knowledge_relation","profiles":["whole_root"]},{"operation":"tos_native_call","tool":"tos_knowledge_catalog","profiles":["whole_root","weak_query_store"]},{"operation":"tos_source_navigation"},{"operation":"tos_knowledge_header","profiles":["whole_root","weak_query_store"]},{"operation":"tos_evidence_projection","profiles":["whole_root"]},{"operation":"tos_native_call","tool":"tos_knowledge_search","profiles":["whole_root"]}]}"#;
         let ready = [if ordinary { ORDINARY_HEAD } else { LAZY_HEAD }, COMMON,
                      if ordinary { ORDINARY_END } else { LAZY_END }];
         // Exactly nine connected operations; CorpusHeader selects its authentic
@@ -1636,7 +2087,7 @@ pub(super) fn run(
             )>())?;
             let (operation, search_document, cutoff, document_bytes) = {
                 let (sequence, raw) = driver.pending_request()?;
-                call(raw, sequence, request, &state, deadline, cancelled.as_ref())?
+                call(raw, sequence, request, &state, deadline, cancelled.as_ref(), ordinary)?
             };
             let cutoff = cutoff.min(deadline);
             if let Some(document) = search_document.as_ref() {
@@ -1648,6 +2099,36 @@ pub(super) fn run(
                 let tool = checked_field(outer, "tool", &state, cutoff)?
                     .and_then(tos_foundation::JsonValue::as_str)
                     .ok_or("Core selected Search tool absent")?;
+                if matches!(tool, "tos_knowledge_node" | "tos_knowledge_relation") {
+                    with_selected_store_choice(request, &state, cutoff, |selected_store| {
+                        if selected_store { return Err("Core selected QueryStore inspect owner unavailable"); }
+                        serve_whole_inspect(root, request, &isolation, session, driver,
+                            &mut held, &mut held_store, &mut generation, &state,
+                            &sqlite_heap, &resources, deadline, cutoff, cancelled, &fence,
+                            tool, arguments)
+                    })?;
+                    last_whole = true;
+                    continue;
+                }
+                if tool == "tos_knowledge_catalog" {
+                    if !arguments.as_object().is_some_and(|fields| fields.is_empty()) {
+                        return Err("Core catalog strict empty arguments");
+                    }
+                    let whole = with_selected_store_choice(request, &state, cutoff, |selected_store| {
+                        if selected_store {
+                            serve_store(request, session, driver, &mut held, &mut held_store,
+                                &mut generation, &state, &sqlite_heap, deadline, cutoff,
+                                cancelled, &fence, None, "tos_knowledge_catalog")?;
+                            return Ok(false);
+                        }
+                        serve_whole_catalog(root, request, &isolation, session, driver,
+                            &mut held, &mut held_store, &mut generation, &state,
+                            &sqlite_heap, &resources, deadline, cutoff, cancelled, &fence)?;
+                        Ok(true)
+                    })?;
+                    last_whole = whole;
+                    continue;
+                }
                 if tool == "tos_knowledge_search_indexed_v2" {
                     with_selected_store_choice(request, &state, cutoff, |selected_store| {
                         if selected_store {
@@ -1691,6 +2172,7 @@ pub(super) fn run(
                             cancelled,
                             &fence,
                             Some(arguments),
+                            "tos_corpus_header",
                         )?;
                         return Ok(false);
                     }
@@ -1810,6 +2292,31 @@ pub(super) fn run(
                 )?;
                 continue;
             }
+            if matches!(operation, Operation::Evidence) {
+                // Reference Evidence is an independently selected exact source
+                // carrier; QueryStore selection must not divert this read.
+                serve_whole_metadata(root, request, &isolation, session, driver,
+                    &mut held, &mut held_store, &mut generation, &state,
+                    &sqlite_heap, &resources, deadline, cutoff, cancelled, &fence, true)?;
+                last_whole = true;
+                continue;
+            }
+            if matches!(operation, Operation::KnowledgeHeader) {
+                let whole = with_selected_store_choice(request, &state, cutoff, |selected_store| {
+                    if selected_store {
+                        serve_store(request, session, driver, &mut held, &mut held_store,
+                            &mut generation, &state, &sqlite_heap, deadline, cutoff,
+                            cancelled, &fence, None, "tos_knowledge_header")?;
+                        return Ok(false);
+                    }
+                    serve_whole_metadata(root, request, &isolation, session, driver,
+                        &mut held, &mut held_store, &mut generation, &state,
+                        &sqlite_heap, &resources, deadline, cutoff, cancelled, &fence, false)?;
+                    Ok(true)
+                })?;
+                last_whole = whole;
+                continue;
+            }
             let execute_carrier = |driver: &mut session_transport::Driver<'_, '_>,
                                    held: &mut Option<Carrier>,
                                    held_store: &mut Option<lazy_store::Store>,
@@ -1859,6 +2366,7 @@ pub(super) fn run(
                             cancelled,
                             &fence,
                             None,
+                        "tos_corpus_header",
                         )
                     } else {
                         execute_carrier(driver, &mut held, &mut held_store, &mut generation)

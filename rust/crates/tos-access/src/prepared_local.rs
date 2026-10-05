@@ -31,7 +31,7 @@ use tos_query::{
     },
 };
 
-pub const PREPARED_RESPONSE_BYTES: usize = 4 * 1024 * 1024;
+pub const PREPARED_RESPONSE_BYTES: usize = 16 * 1024 * 1024;
 const REQUEST_BYTES: usize = 65_536;
 enum LocalRequest {
     SourceBinding,

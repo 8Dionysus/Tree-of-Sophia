@@ -3,7 +3,7 @@
 //! This holder authorizes only the selected admitted projection, not source bytes.
 use crate::{AccessError, AccessErrorCode};
 use std::{
-    collections::BTreeMap,
+    collections::{BTreeMap, BTreeSet},
     fs::File,
     io::Read,
     os::unix::fs::MetadataExt,
@@ -136,6 +136,50 @@ pub const RUNTIME_DATA_DECLARATION_PATH: &str = "access/contracts/runtime-data.v
 pub const RUNTIME_DATA_DECLARATION: &[u8] =
     include_bytes!("../../../../access/contracts/runtime-data.v1.json");
 
+/// Root-relative source subjects the existing runtime-data owner exposes to a
+/// query-capable consumer. A path remains a declaration, not a source grant.
+fn declared_query_source_paths() -> Result<BTreeSet<String>> {
+    let document = parse_json(
+        RUNTIME_DATA_DECLARATION,
+        JsonMode::PublishedStrict,
+        METADATA_LIMITS,
+    )
+    .map_err(|_| unavailable("runtime-data declaration invalid"))?;
+    let root = document.root();
+    if text(root, "schema_version")? != "tos_access_runtime_data_allowlist_v1"
+        || text(root, "publication_posture")? != "allowlist-only"
+    {
+        return Err(unavailable("runtime-data declaration profile invalid"));
+    }
+    let mut all_paths = BTreeSet::new();
+    let mut query_paths = BTreeSet::new();
+    for subject in root
+        .object_get("subjects")
+        .and_then(JsonValue::as_array)
+        .ok_or_else(|| unavailable("runtime-data subjects absent"))?
+    {
+        let path = text(subject, "source_path")?;
+        RelativePath::parse(path).map_err(|_| unavailable("runtime-data source path invalid"))?;
+        if !all_paths.insert(path.to_owned()) {
+            return Err(unavailable("runtime-data source path duplicated"));
+        }
+        let roles = subject
+            .object_get("consumer_roles")
+            .and_then(JsonValue::as_array)
+            .ok_or_else(|| unavailable("runtime-data consumer roles absent"))?;
+        if ["query-core", "http-reader", "native-mcp"]
+            .iter()
+            .any(|role| roles.iter().any(|value| value.as_str() == Some(*role)))
+        {
+            query_paths.insert(path.to_owned());
+        }
+    }
+    if query_paths.is_empty() {
+        return Err(unavailable("runtime-data query subjects absent"));
+    }
+    Ok(query_paths)
+}
+
 /// Producer layout for the existing allowlisted public query/http ledger subset.
 /// Paths are derived from the owner declaration; identities/counts are not rules.
 pub fn public_source_gap_paths() -> Result<Vec<String>> {
@@ -243,6 +287,18 @@ pub struct ReleaseLease {
 impl ManagedRelease {
     /// Selection is explicit; no data or authority is discovered through cwd.
     pub fn open(root_path: &Path) -> Result<Arc<Self>> {
+        Self::open_selected_source_root(root_path, None)
+    }
+    /// An explicit logical SourceRoot is accepted only when it is the `data/`
+    /// child of the current pair's manifest directory. The shared release lock
+    /// and normal pair/member checks remain the owner of that binding.
+    pub fn open_selected_source_root(
+        root_path: &Path,
+        selected_source_root: Option<&Path>,
+    ) -> Result<Arc<Self>> {
+        if selected_source_root.is_some_and(|path| !path.is_absolute()) {
+            return Err(unavailable("selected release source root must be absolute"));
+        }
         let root = tos_fd_open::open_absolute_directory(root_path)
             .map_err(|_| unavailable("managed release root unavailable"))?;
         let root_identity = identity(&root)?;
@@ -286,7 +342,16 @@ impl ManagedRelease {
         let archive = Path::new(text(&bindings, "software_archive")?);
         tos_fd_open::open_absolute_regular(archive, u64::MAX)
             .map_err(|_| unavailable("selected software archive unavailable"))?;
-        let (data_path, data) = absolute_directory(text(&bindings, "data_root")?)?;
+        let bound_data_root = text(&bindings, "data_root")?;
+        let expected_source_root = Path::new(bound_data_root).join("data");
+        if selected_source_root.is_some_and(|path| {
+            path.to_str() != expected_source_root.to_str()
+        }) {
+            return Err(unavailable(
+                "explicit source root differs from current release pair",
+            ));
+        }
+        let (data_path, data) = absolute_directory(bound_data_root)?;
         let data_identity = identity(&data)?;
         let (manifest, manifest_raw) = canonical_read(&data, "data/manifest.json")?;
         keys(
@@ -717,6 +782,72 @@ impl ReleaseLease {
         self.member_guards = guards.clone();
         self.recheck()?;
         Ok((context, guards))
+    }
+    /// Admit the exact query-visible members from this already selected
+    /// managed release. The seven-path cap matches the maintained Reference
+    /// selector; results preserve input order. This selects no root and does
+    /// not accept the older standalone Reference snapshot format.
+    pub fn admit_query_source_members(
+        &mut self,
+        source_paths: &[&str],
+        max_bytes: usize,
+    ) -> Result<Vec<PathBuf>> {
+        if source_paths.is_empty() || source_paths.len() > 7 || max_bytes == 0 {
+            return Err(unavailable("query source member admission bounds invalid"));
+        }
+        self.check_hold()?;
+        if self
+            .release
+            .source_bindings
+            .get(RUNTIME_DATA_DECLARATION_PATH)
+            != Some(&Digest256::of_bytes(RUNTIME_DATA_DECLARATION))
+        {
+            return Err(unavailable("runtime-data declaration binding differs"));
+        }
+        let declared = declared_query_source_paths()?;
+        let max_bytes = u64::try_from(max_bytes)
+            .map_err(|_| unavailable("query source byte budget invalid"))?;
+        let mut seen = BTreeSet::new();
+        let mut planned = Vec::with_capacity(source_paths.len());
+        let mut total = 0u64;
+        for source_path in source_paths {
+            RelativePath::parse(source_path)
+                .map_err(|_| unavailable("query source member path invalid"))?;
+            if !declared.contains(*source_path) || !seen.insert((*source_path).to_owned()) {
+                return Err(unavailable(
+                    "query source member is undeclared or duplicated",
+                ));
+            }
+            let member_path = format!("data/{source_path}");
+            let (size, sha) = self.release.member_binding(&member_path)?;
+            if self.release.source_bindings.get(*source_path) != Some(&sha) {
+                return Err(unavailable("query source input binding differs"));
+            }
+            total = total
+                .checked_add(size)
+                .filter(|bytes| *bytes <= max_bytes)
+                .ok_or_else(|| unavailable("query source member byte budget exceeded"))?;
+            planned.push((member_path, size));
+        }
+        let mut paths = Vec::with_capacity(planned.len());
+        let mut guards = Vec::with_capacity(planned.len());
+        for (member_path, size) in planned {
+            let cap = usize::try_from(size)
+                .map_err(|_| unavailable("query source member size invalid"))?;
+            let before = member_identity(&child(&self.release.data, &member_path)?)?;
+            self.release.member_bytes(&member_path, cap)?;
+            if member_identity(&child(&self.release.data, &member_path)?)? != before {
+                return Err(unavailable("query source member changed during admission"));
+            }
+            paths.push(self.release.member_path(&member_path)?);
+            guards.push(ReleaseMemberGuard {
+                path: member_path,
+                identity: before,
+            });
+        }
+        self.member_guards.extend(guards);
+        self.check_hold()?;
+        Ok(paths)
     }
     pub fn retain_member_guards(&mut self, guards: &[ReleaseMemberGuard]) -> Result<()> {
         self.member_guards = guards.to_vec();

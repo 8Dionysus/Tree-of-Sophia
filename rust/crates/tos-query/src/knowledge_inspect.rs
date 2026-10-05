@@ -327,7 +327,7 @@ impl<'hold> DisclosableInspect<'hold> {
     }
 }
 
-fn scope_owned_state(scope: &IndexedDisclosureScope) -> Result<usize, SearchV2Error> {
+pub(crate) fn scope_owned_state(scope: &IndexedDisclosureScope) -> Result<usize, SearchV2Error> {
     let IndexedDisclosureScope {
         operation_id,
         carrier_layer,

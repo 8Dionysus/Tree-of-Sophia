@@ -3433,6 +3433,41 @@ pub struct NativeSnapshotOwnedReadLoan<'owner, 'budget> {
     state: &'owner CreationState<'budget>,
 }
 impl<'owner, 'budget> NativeSnapshotOwnedReadLoan<'owner, 'budget> {
+    /// Checked Evidence delivery borrowing the Whole writer's authentic state.
+    /// Neither the projection nor a state/counter reference escapes this call.
+    pub fn with_owned_evidence_delivery(
+        &self, completed: &CompletedNativeSnapshot, staging: &Path,
+        limits: PublicCaptureLimits, max_output_bytes: usize, json: JsonLimits,
+        consume: impl FnOnce(&[u8]) -> Result<()>,
+    ) -> Result<()> {
+        self.state.active()?;
+        completed.check_capture_binding(self.capture)?;
+        let frame = std::mem::size_of_val(&consume)
+            .checked_add(std::mem::size_of::<crate::epistemic_evidence::CompletedEvidenceProjection>())
+            .ok_or(Error::Budget("owned Evidence delivery frame"))?;
+        let _frame = self.state.hold(frame)?;
+        let evidence = crate::epistemic_evidence::check_completed_owned(
+            self.capture, staging, limits, self.capture.deadline(), self.state)?;
+        evidence.verify_binding(self.capture, completed.source_revision())?;
+        let result = evidence.with_current(|view| {
+            let raw = view.raw();
+            if raw.len() > max_output_bytes {
+                return Err(Error::Budget("owned Evidence output cap"));
+            }
+            // Parse on the same aggregate JSON/heap/work owner and lend the
+            // exact checked carrier bytes; no independently budgeted Vec/tree.
+            self.state.with_foundation_owned_with_limits(raw, json, |value| {
+                if value.object_get("schema_version").and_then(tos_foundation::JsonValue::as_str)
+                    != Some("tos_epistemic_evidence_projection_v1") {
+                    return Err(Error::Invalid("owned Evidence schema"));
+                }
+                consume(raw)
+            })
+        });
+        self.state.active()?;
+        completed.check_capture_binding(self.capture)?;
+        result
+    }
     pub(crate) fn capture(&self) -> &'owner PublicCapture {
         self.capture
     }

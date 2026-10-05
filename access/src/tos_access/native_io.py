@@ -36,12 +36,38 @@ class NativeCustodyError(RuntimeError):
 
 
 
-def _bounded_json(value, cap, deadline, cancelled=None, closing=None):
+def _bounded_json(value, cap, deadline, cancelled=None, closing=None, receiving_state=None):
     """Bound ordinary host JSON before and during encoding, without ToS rules."""
     minimum = 0
     visits = 0
+    upper = 0
+    if receiving_state is not None:
+        import types
+        g = receiving_state.geometry
+        frame = 0
+        codes = [_bounded_json.__code__]
+        codes += [c for c in _bounded_json.__code__.co_consts if isinstance(c, types.CodeType)]
+        codes += [json.JSONEncoder.iterencode.__code__, json.encoder._make_iterencode.__code__]
+        for code in codes:
+            slots = code.co_nlocals + len(code.co_cellvars) + len(code.co_freevars) + code.co_stacksize
+            frame += types.FrameType.__basicsize__ + g.gc_header + slots * (g.pointer + g.unicode_bytes(24))
+        receiving_state.reserve(65 * frame + 8 * g.dict_bytes(64))
     def walk(member, depth):
-        nonlocal minimum, visits
+        nonlocal minimum, visits, upper
+        if receiving_state is not None:
+            receiving_state.visit()
+            if type(member) is str:
+                upper += 2
+            elif type(member) is int:
+                upper += (member.bit_length() * 30103 // 100000) + 4
+            elif type(member) in (dict, list, tuple):
+                upper += 2 + 4 * len(member)
+            else:
+                upper += 64
+            if upper > cap:
+                # This is an allocation upper bound, not a semantic byte
+                # refusal: clamp workspace to the maintained actual wire cap.
+                upper = cap
         visits += 1
         if depth > 64 or visits > 1_000_000:
             raise ValueError('native input JSON depth/visit budget exceeded')
@@ -57,10 +83,13 @@ def _bounded_json(value, cap, deadline, cancelled=None, closing=None):
             minimum += 2
             for index, character in enumerate(member):
                 point = ord(character)
-                minimum += (2 if point in (34, 92, 8, 9, 10, 12, 13) else
+                character_bytes = (2 if point in (34, 92, 8, 9, 10, 12, 13) else
                     6 if point < 32 or 0xD800 <= point <= 0xDFFF else
                     1 if point < 0x80 else 2 if point < 0x800 else
                     3 if point < 0x10000 else 4)
+                minimum += character_bytes
+                if receiving_state is not None:
+                    upper = min(cap, upper + character_bytes)
                 if minimum > cap:
                     raise ValueError('native input JSON byte budget exceeded')
                 if index % 4096 == 0:
@@ -87,9 +116,19 @@ def _bounded_json(value, cap, deadline, cancelled=None, closing=None):
     # A huge individual string must refuse before iterencode allocates its
     # quoted chunk. This conservative lower bound also bounds all such chunks.
     walk(value, 0)
+    if receiving_state is not None:
+        g = receiving_state.geometry
+        # Price actual quoted input geometry up to the existing wire cap.
+        # Encoder chunks, UTF8 copies, bytearray resize and caller write copy
+        # coexist. Keep this debit through terminal/traceback lifetime.
+        receiving_state.reserve(2 * g.unicode_bytes(upper)
+            + 4 * (g.bytes_base + upper)
+            + 2 * bytearray.__basicsize__ + 2 * upper)
     payload = bytearray()
     encoder = json.JSONEncoder(ensure_ascii=False, allow_nan=False, separators=(',', ':'))
     for part in encoder.iterencode(value):
+        if receiving_state is not None:
+            receiving_state.visit()
         if (cancelled is not None and cancelled.is_set()) or (closing is not None and closing.is_set()):
             raise NativeCancelled('native operation cancelled')
         if time.monotonic() >= deadline:
@@ -180,14 +219,14 @@ class _Exchange:
             else:
                 image_fd, label = self._selected_image
                 if (type(image_fd) is not int or image_fd < 0 or type(label) is not str
-                        or not self._arguments or self._arguments[0] != 'private-stage-run'):
+                        or not self._arguments or self._arguments[0] not in ('private-stage-run', 'sdk-host-session')):
                     raise ValueError('native SDK direct image must select its owned issuer')
                 # Caller holds verified_image through terminal custody. The
                 # borrowed ELF is never reopened by its mutable installation
                 # path, and this branch spawns no transient Python dispatcher.
                 held = os.fstat(image_fd)
                 mask = ','.join(str(int(sig)) for sig in sorted(previous))
-                argv = [label, 'private-stage-run', '--expected-parent-pid', str(os.getpid()),
+                argv = [label, self._arguments[0], '--expected-parent-pid', str(os.getpid()),
                         '--restore-signal-mask', mask, *self._arguments[1:]]
                 descriptors = _borrowed_fds((*self._pass_fds, image_fd))
                 self._child = subprocess.Popen(argv, executable='/proc/self/fd/' + str(image_fd),

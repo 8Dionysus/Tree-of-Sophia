@@ -75,13 +75,27 @@ impl ManagedLocalExecutor {
         profile: AccessProfile,
         checkpoint_path: Option<&Path>,
     ) -> Result<Self, AccessError> {
-        if checkpoint_path.is_some_and(|path| !path.is_absolute() || path.starts_with(root)) {
+        Self::open_with_selected_source_root(root, None, profile, checkpoint_path)
+    }
+    /// Select the release and its exact logical SourceRoot in one native
+    /// owner open. A caller cannot splice arbitrary carriers into a managed pair.
+    pub fn open_with_selected_source_root(
+        root: &Path,
+        selected_source_root: Option<&Path>,
+        profile: AccessProfile,
+        checkpoint_path: Option<&Path>,
+    ) -> Result<Self, AccessError> {
+        if checkpoint_path.is_some_and(|path| {
+            !path.is_absolute()
+                || path.starts_with(root)
+                || selected_source_root.is_some_and(|source_root| path.starts_with(source_root))
+        }) {
             return Err(AccessError::new(
                 AccessErrorCode::InvalidRequest,
-                "checkpoint requires an absolute path outside the selected release",
+                "checkpoint requires an absolute path outside the selected release and source root",
             ));
         }
-        let release = ManagedRelease::open(root)?;
+        let release = ManagedRelease::open_selected_source_root(root, selected_source_root)?;
         let mut cold_hold = release.acquire()?;
         let raw = release.selection_bytes()?;
         let bootstrap = tos_foundation::parse_json(
