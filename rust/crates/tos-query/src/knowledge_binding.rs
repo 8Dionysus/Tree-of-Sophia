@@ -235,9 +235,22 @@ impl BoundCmpKnowledge<'_> {
         model
             .check_pin()
             .map_err(|_| stale("selected knowledge pin changed"))?;
-        if digest(&model.selection().model_sha256)? != self.selection.index_root_sha256
-            || model.source_basis() != &self.source_basis
-            || model.search_index_profile() != self.selection.search_unicode_profile
+        self.check_controlled_source_parts(
+            model.selection(),
+            model.source_basis(),
+            model.search_index_profile(),
+        )
+    }
+
+    pub(crate) fn check_controlled_source_parts(
+        &self,
+        selected: &KnowledgeSelectedExpectation,
+        source_basis: &KnowledgeSourceBasis,
+        search_index_profile: &str,
+    ) -> Result<(), SearchV2Error> {
+        if digest(&selected.model_sha256)? != self.selection.index_root_sha256
+            || source_basis != &self.source_basis
+            || search_index_profile != self.selection.search_unicode_profile
         {
             return Err(stale("selected controlled model differs from query binding"));
         }
@@ -338,17 +351,16 @@ fn bind_knowledge<'a>(
 }
 
 pub(crate) fn bind_controlled_knowledge_from_parts<'a>(
-    model: &ControlledKnowledgeModel<'_, '_, '_>,
+    selected: &KnowledgeSelectedExpectation,
+    source_basis: &KnowledgeSourceBasis,
+    search_index_profile: &str,
     vocabulary: &'a QueryVocabulary,
     authored_descriptor: &tos_foundation::JsonValue,
 ) -> Result<BoundCmpKnowledge<'a>, SearchV2Error> {
-    model
-        .check_pin()
-        .map_err(|_| stale("selected controlled knowledge pin changed"))?;
     bind_knowledge_from_parts(
-        model.selection(),
-        model.source_basis(),
-        model.search_index_profile(),
+        selected,
+        source_basis,
+        search_index_profile,
         vocabulary,
         authored_descriptor.clone(),
     )

@@ -115,6 +115,33 @@ impl<'state, 'budget> RuntimeKnowledgeReadContext<'state, 'budget> {
     pub(crate) fn charge_work(&self, bytes: usize) -> Result<()> {
         self.state.charge_work(bytes)
     }
+    /// Canonicalize a selected query value under the same original work,
+    /// retained-state and JSON-visit owners as selected payload parsing.
+    pub(crate) fn canonicalize_foundation_owned_with_limits(
+        &self,
+        value: &tos_foundation::JsonValue,
+        profile: tos_foundation::CanonicalProfile,
+        mut limits: JsonLimits,
+    ) -> Result<Vec<u8>> {
+        use tos_foundation::canonical_bytes_v1_with_state_budget_and_visits;
+        self.check()?;
+        limits.max_visits = limits.max_visits.min(self.remaining_json_visits()?);
+        if limits.max_visits == 0 {
+            return Err(Error::Budget("owned query canonical visits"));
+        }
+        let available = self.remaining_after_retained(0)?;
+        let (bytes, visits) = canonical_bytes_v1_with_state_budget_and_visits(
+            value,
+            profile,
+            limits,
+            available,
+        )
+        .map_err(|_| Error::Budget("owned query canonical state"))?;
+        self.debit_json_visits(visits)?;
+        self.charge_work(bytes.len())?;
+        self.check()?;
+        Ok(bytes)
+    }
     pub(crate) fn remaining_after_retained(&self, additional: usize) -> Result<usize> {
         self.state.remaining(additional)
     }

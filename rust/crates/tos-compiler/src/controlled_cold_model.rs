@@ -1,7 +1,9 @@
+mod ordinary_sidecar;
+pub use ordinary_sidecar::{ControlledSidecarModel, SearchSidecarAdmissionError};
 use std::{fs::File, io::Seek};
 
 use rusqlite::{OptionalExtension, params};
-use tos_foundation::{Digest256, JsonLimits, OwnedState};
+use tos_foundation::{CanonicalProfile, Digest256, JsonLimits, JsonString, JsonValue, OwnedState};
 
 use crate::{
     ColdOpenLimits, Error, ImmutableKnowledgeCustody, KnowledgeSelectedExpectation,
@@ -94,6 +96,75 @@ pub struct ControlledKnowledgeModel<'model, 'state, 'budget> {
     identity: &'model crate::d1_public_capture::ControlledCaptureIdentity,
     open_vm_steps: u64,
     context: &'model RuntimeKnowledgeReadContext<'state, 'budget>,
+}
+
+/// Dynamic, same-original-state holds for query-owned per-row retention.
+/// Each node admits itself and the exact caller-reported heap retained with it.
+struct ControlledQueryHoldNode<'state, 'budget> {
+    _hold: crate::d1_public_capture::CreationStateHold<'state, 'budget>,
+    next: Option<Box<ControlledQueryHoldNode<'state, 'budget>>>,
+}
+
+/// Bounded retained query state. It exposes only exact additional holds; the
+/// original counters, deadline and aggregate ceilings remain private.
+pub struct ControlledQueryHeap<'context, 'state, 'budget> {
+    context: &'context RuntimeKnowledgeReadContext<'state, 'budget>,
+    state: &'state crate::d1_public_capture::CreationState<'budget>,
+    holds: Option<Box<ControlledQueryHoldNode<'state, 'budget>>>,
+}
+impl ControlledQueryHeap<'_, '_, '_> {
+    /// Retain a caller-owned allocation until this hold set is dropped.
+    pub fn retain(&mut self, bytes: usize) -> Result<()> {
+        let total = bytes
+            .checked_add(std::mem::size_of::<ControlledQueryHoldNode<'_, '_>>())
+            .ok_or(Error::Budget("controlled query retained heap"))?;
+        let hold = self.state.hold(total)?;
+        self.holds = Some(Box::new(ControlledQueryHoldNode {
+            _hold: hold,
+            next: self.holds.take(),
+        }));
+        Ok(())
+    }
+
+    /// Admit one short-lived allocation around a synchronous callback.
+    pub fn with_temporary<T>(
+        &self,
+        bytes: usize,
+        operation: impl FnOnce() -> T,
+    ) -> Result<T> {
+        let _hold = self.state.hold(bytes)?;
+        Ok(operation())
+    }
+
+    /// Canonicalize a retained search item under the same original visit,
+    /// work, and state ledgers as carrier parsing and response emission.
+    pub fn canonicalize_owned_query_json(
+        &self,
+        value: &JsonValue,
+        limits: JsonLimits,
+    ) -> Result<Vec<u8>> {
+        self.context.canonicalize_foundation_owned_with_limits(
+            value,
+            CanonicalProfile::SourceRecordDigestV1,
+            limits,
+        )
+    }
+}
+impl Drop for ControlledQueryHeap<'_, '_, '_> {
+    fn drop(&mut self) {
+        // Avoid recursively dropping an arbitrarily long row-hold chain.
+        let mut next = self.holds.take();
+        while let Some(mut node) = next {
+            next = node.next.take();
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Default)]
+pub struct ControlledLegacySearchScan {
+    pub rows: u64,
+    pub decoded_bytes: u64,
+    pub vm_steps: u64,
 }
 
 impl ControlledKnowledgeModel<'_, '_, '_> {
@@ -661,6 +732,300 @@ impl ControlledKnowledgeModel<'_, '_, '_> {
             rows: 1,
             decoded_bytes,
         })
+    }
+}
+
+/// Same-state parser access for bounded selected response components.
+impl<'model, 'state, 'budget> ControlledKnowledgeModel<'model, 'state, 'budget> {
+    pub fn new_owned_query_heap(&self) -> ControlledQueryHeap<'model, 'state, 'budget> {
+        ControlledQueryHeap {
+            context: self.context,
+            state: self.context.owned_state(),
+            holds: None,
+        }
+    }
+
+    pub fn with_owned_query_json<T>(
+        &self,
+        raw: &[u8],
+        limits: JsonLimits,
+        operation: impl FnOnce(&JsonValue) -> Result<T>,
+    ) -> Result<T> {
+        self.check_pin()?;
+        self.context
+            .with_foundation_owned_with_limits(raw, limits, operation)
+    }
+
+    pub fn canonicalize_owned_query_json(
+        &self,
+        value: &JsonValue,
+        limits: JsonLimits,
+    ) -> Result<Vec<u8>> {
+        self.check_pin()?;
+        let bytes = self.context.canonicalize_foundation_owned_with_limits(
+            value,
+            CanonicalProfile::SourceRecordDigestV1,
+            limits,
+        )?;
+        self.check_pin()?;
+        Ok(bytes)
+    }
+
+    /// Visit exact normalized carrier rows in source/position order. No
+    /// indexed search-document representation participates.
+    pub fn visit_controlled_legacy_search_rows<E>(
+        &mut self,
+        kind: ControlledSearchKind,
+        sources: &[String],
+        max_rows: u64,
+        max_decoded_bytes: u64,
+        max_vm_steps: u64,
+        max_payload_bytes: usize,
+        max_field_bytes: usize,
+        json_limits: JsonLimits,
+        heap: &mut ControlledQueryHeap<'model, 'state, 'budget>,
+        mut consume: impl FnMut(
+            &str,
+            u64,
+            Digest256,
+            &JsonValue,
+            &mut dyn FnMut(usize) -> Result<()>,
+            &mut ControlledQueryHeap<'model, 'state, 'budget>,
+        ) -> std::result::Result<(), E>,
+    ) -> Result<std::result::Result<ControlledLegacySearchScan, E>> {
+        self.check_pin()?;
+        if self.selection.model_abi != knowledge_stage::KNOWLEDGE_CARRIER_ONCE_MODEL_ABI {
+            return Err(Error::Invalid("controlled legacy search requires CarrierOnce ABI"));
+        }
+        if max_payload_bytes == 0
+            || max_field_bytes == 0
+            || max_payload_bytes > i64::MAX as usize
+            || max_field_bytes > i64::MAX as usize
+            || max_rows > i64::MAX as u64
+            || max_vm_steps == 0
+            || sources.iter().any(|source| source.is_empty() || source.len() > max_field_bytes)
+            || sources.windows(2).any(|pair| pair[0] >= pair[1])
+        {
+            return Err(Error::Budget("controlled legacy source-scan admission"));
+        }
+        if sources.is_empty() {
+            return Ok(Ok(ControlledLegacySearchScan::default()));
+        }
+        let source_bytes = sources.iter().try_fold(0usize, |sum, source| {
+            sum.checked_add(source.len())
+                .ok_or(Error::Budget("controlled legacy source filter"))
+        })?;
+        self.charge_query_work(source_bytes)?;
+        let source_filter = JsonValue::Array(
+            sources
+                .iter()
+                .map(|source| JsonValue::String(JsonString::from_utf8(source)))
+                .collect(),
+        );
+        let mut source_limits = JsonLimits::default();
+        source_limits.max_bytes = source_bytes
+            .checked_mul(6)
+            .and_then(|n| n.checked_add(sources.len().saturating_mul(2)))
+            .and_then(|n| n.checked_add(2))
+            .ok_or(Error::Budget("controlled legacy source filter"))?;
+        let encoded_sources =
+            self.canonicalize_owned_query_json(&source_filter, source_limits)?;
+
+        let sql = match kind {
+            ControlledSearchKind::Nodes => "SELECT
+                CASE WHEN typeof(c.id)='text' AND length(CAST(c.id AS BLOB)) BETWEEN 1 AND ?2 THEN c.id END,
+                CASE WHEN typeof(c.source_graph)='text' AND length(CAST(c.source_graph AS BLOB)) BETWEEN 1 AND ?2 THEN c.source_graph END,
+                CASE WHEN typeof(c.source_order)='integer' AND c.source_order>=0 THEN c.source_order END,
+                CASE WHEN typeof(c.payload_len)='integer' AND c.payload_len>=0 AND c.payload_len<=?3 THEN c.payload_len END,
+                CASE WHEN typeof(c.payload_sha256)='blob' AND length(c.payload_sha256)=32 THEN c.payload_sha256 END,
+                CASE WHEN typeof(c.payload)='blob' AND length(c.payload)<=?3 THEN c.payload END,
+                CASE WHEN typeof(c.payload_codec)='integer' THEN c.payload_codec END,
+                CASE WHEN typeof(c.source_packet_sha256)='blob' AND length(c.source_packet_sha256)=32 THEN c.source_packet_sha256 END,
+                CASE WHEN typeof(s.packet_len)='integer' AND s.packet_len>=1 AND s.packet_len<=?3 THEN s.packet_len END,
+                CASE WHEN typeof(s.packet_sha256)='blob' AND length(s.packet_sha256)=32 THEN s.packet_sha256 END,
+                CASE WHEN typeof(s.packet)='blob' AND s.packet_len>=1 AND s.packet_len<=?3 AND length(s.packet)=s.packet_len THEN s.packet END
+                FROM knowledge_nodes c LEFT JOIN knowledge_source_carriers s ON s.packet_sha256=c.source_packet_sha256
+                WHERE c.source_graph IN (SELECT value FROM json_each(?1))
+                ORDER BY c.source_graph,c.source_order,c.id",
+            ControlledSearchKind::Relations => "SELECT
+                CASE WHEN typeof(c.id)='text' AND length(CAST(c.id AS BLOB)) BETWEEN 1 AND ?2 THEN c.id END,
+                CASE WHEN typeof(c.source_graph)='text' AND length(CAST(c.source_graph AS BLOB)) BETWEEN 1 AND ?2 THEN c.source_graph END,
+                CASE WHEN typeof(c.source_order)='integer' AND c.source_order>=0 THEN c.source_order END,
+                CASE WHEN typeof(c.payload_len)='integer' AND c.payload_len>=0 AND c.payload_len<=?3 THEN c.payload_len END,
+                CASE WHEN typeof(c.payload_sha256)='blob' AND length(c.payload_sha256)=32 THEN c.payload_sha256 END,
+                CASE WHEN typeof(c.payload)='blob' AND length(c.payload)<=?3 THEN c.payload END,
+                CASE WHEN typeof(c.payload_codec)='integer' THEN c.payload_codec END,
+                CASE WHEN typeof(c.source_packet_sha256)='blob' AND length(c.source_packet_sha256)=32 THEN c.source_packet_sha256 END,
+                CASE WHEN typeof(s.packet_len)='integer' AND s.packet_len>=1 AND s.packet_len<=?3 THEN s.packet_len END,
+                CASE WHEN typeof(s.packet_sha256)='blob' AND length(s.packet_sha256)=32 THEN s.packet_sha256 END,
+                CASE WHEN typeof(s.packet)='blob' AND s.packet_len>=1 AND s.packet_len<=?3 AND length(s.packet)=s.packet_len THEN s.packet END
+                FROM knowledge_relations c LEFT JOIN knowledge_source_carriers s ON s.packet_sha256=c.source_packet_sha256
+                WHERE c.source_graph IN (SELECT value FROM json_each(?1))
+                ORDER BY c.source_graph,c.source_order,c.id",
+        };
+        let context = self.context;
+        let connection = self.connection;
+        let pinned = self.pinned;
+        let selection = self.selection;
+        let custody = self.custody;
+        let layout = KnowledgePayloadLayout::CarrierOnceV1;
+        let mut callback_error = None;
+        let (scan, vm_steps) = crate::knowledge_payload_read::with_query_vm_window(
+            context,
+            connection,
+            max_vm_steps,
+            || {
+                let mut statement = connection.prepare_cached(sql)?;
+                let mut rows = statement.query(params![
+                    encoded_sources,
+                    max_field_bytes as i64,
+                    max_payload_bytes as i64
+                ])?;
+                let mut scan = ControlledLegacySearchScan::default();
+                while let Some(row) = rows.next()? {
+                    context.check()?;
+                    custody.verify(pinned, selection)?;
+                    scan.rows = scan
+                        .rows
+                        .checked_add(1)
+                        .ok_or(Error::Budget("controlled legacy row count"))?;
+                    if scan.rows > max_rows {
+                        return Err(Error::Budget("controlled legacy row count"));
+                    }
+                    let (
+                        Some(id),
+                        Some(source_graph),
+                        Some(position),
+                        Some(logical_len),
+                        Some(payload_sha),
+                        Some(physical),
+                        Some(codec),
+                        source_sha,
+                        source_len,
+                        joined_source_sha,
+                        source_packet,
+                    ) = (
+                        row.get::<_, Option<String>>(0)?,
+                        row.get::<_, Option<String>>(1)?,
+                        row.get::<_, Option<i64>>(2)?,
+                        row.get::<_, Option<i64>>(3)?,
+                        row.get::<_, Option<Vec<u8>>>(4)?,
+                        row.get::<_, Option<Vec<u8>>>(5)?,
+                        row.get::<_, Option<i64>>(6)?,
+                        row.get::<_, Option<Vec<u8>>>(7)?,
+                        row.get::<_, Option<i64>>(8)?,
+                        row.get::<_, Option<Vec<u8>>>(9)?,
+                        row.get::<_, Option<Vec<u8>>>(10)?,
+                    )
+                    else {
+                        return Err(Error::Invalid("controlled legacy carrier row shape"));
+                    };
+                    if position < 0
+                        || logical_len <= 0
+                        || physical.is_empty()
+                        || physical.len() > max_payload_bytes
+                        || (source_sha.is_some() != source_packet.is_some())
+                        || (source_packet.is_some() != joined_source_sha.is_some())
+                        || (source_packet.is_some() != source_len.is_some())
+                        || source_len.is_some_and(|length| {
+                            length < 0
+                                || source_packet
+                                    .as_ref()
+                                    .is_none_or(|packet| packet.len() as i64 != length)
+                        })
+                    {
+                        return Err(Error::Invalid("controlled legacy carrier row shape"));
+                    }
+                    let digest = |raw: &[u8]| -> Result<Digest256> {
+                        let bytes: [u8; 32] = raw
+                            .try_into()
+                            .map_err(|_| Error::Invalid("controlled legacy digest width"))?;
+                        Ok(Digest256::from_bytes(bytes))
+                    };
+                    let payload_sha256 = digest(&payload_sha)?;
+                    let source_packet_sha256 = source_sha.as_deref().map(digest).transpose()?;
+                    let joined_digest = joined_source_sha.as_deref().map(digest).transpose()?;
+                    if source_packet_sha256 != joined_digest {
+                        return Err(Error::Invalid("controlled legacy source packet join"));
+                    }
+                    let logical_len = usize::try_from(logical_len)
+                        .map_err(|_| Error::Budget("controlled legacy logical length"))?;
+                    scan.decoded_bytes = scan
+                        .decoded_bytes
+                        .checked_add(logical_len as u64)
+                        .ok_or(Error::Budget("controlled legacy decoded bytes"))?;
+                    if scan.decoded_bytes > max_decoded_bytes {
+                        return Err(Error::Budget("controlled legacy decoded bytes"));
+                    }
+                    let mut limits = json_limits;
+                    limits.max_bytes = limits.max_bytes.min(max_payload_bytes);
+                    let _decoded = crate::knowledge_payload_read::with_logical_payload_for_verified_layout(
+                        context,
+                        layout,
+                        &SelectedPayloadRow {
+                            payload_codec: u8::try_from(codec)
+                                .map_err(|_| Error::Invalid("controlled legacy payload codec"))?,
+                            physical: &physical,
+                            logical_len,
+                            logical_sha256: payload_sha256,
+                            source_packet_sha256,
+                            source_packet: source_packet.as_deref(),
+                        },
+                        JsonLimits::default(),
+                        JsonLimits::default(),
+                        max_payload_bytes,
+                        |logical, context| {
+                            if logical.len() != logical_len {
+                                return Err(Error::Invalid("controlled legacy logical length"));
+                            }
+                            context.charge_work(logical.len())?;
+                            context.with_foundation_owned_with_limits(logical, limits, |value| {
+                                if value.as_object().is_none()
+                                    || value.object_get("id").and_then(JsonValue::as_str)
+                                        != Some(id.as_str())
+                                    || value.object_get("source_graph").and_then(JsonValue::as_str)
+                                        != Some(source_graph.as_str())
+                                {
+                                    return Err(Error::Invalid("controlled legacy carrier mirrors"));
+                                }
+                                let mut charge = |bytes: usize| {
+                                    context.check()?;
+                                    context.charge_work(bytes)?;
+                                    context.check()
+                                };
+                                match consume(
+                                    &source_graph,
+                                    position as u64,
+                                    payload_sha256,
+                                    value,
+                                    &mut charge,
+                                    heap,
+                                ) {
+                                    Ok(()) => Ok(()),
+                                    Err(reason) => {
+                                        callback_error = Some(reason);
+                                        Ok(())
+                                    }
+                                }
+                            })
+                        },
+                    )?;
+                    if callback_error.is_some() {
+                        break;
+                    }
+                }
+                Ok(scan)
+            },
+        )?;
+        self.check_pin()?;
+        let scan = ControlledLegacySearchScan {
+            vm_steps,
+            ..scan
+        };
+        if let Some(error) = callback_error {
+            return Ok(Err(error));
+        }
+        Ok(Ok(scan))
     }
 }
 

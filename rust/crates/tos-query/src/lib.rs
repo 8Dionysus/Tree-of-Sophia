@@ -96,7 +96,9 @@ pub use knowledge_packet::{
 };
 #[cfg(not(target_arch = "wasm32"))]
 pub use controlled_query_adapter::{
-    execute_scoped_controlled_indexed_search_response, with_controlled_knowledge_binding,
+    execute_scoped_controlled_indexed_search_response,
+    execute_scoped_controlled_sidecar_indexed_search_response,
+    with_controlled_knowledge_binding, with_controlled_sidecar_knowledge_binding,
 };
 #[cfg(not(target_arch = "wasm32"))]
 pub use knowledge_temporal::execute_selected_temporal;

@@ -301,106 +301,243 @@ const SDK_PHASE_G: u64 = 402_653_184;
 const SDK_PHASE_ROLE: u64 = 67_108_864;
 #[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
-struct SdkPhaseAs { setup_as_bytes: u64, guardian_state_bytes: u64 }
+struct SdkPhaseAs {
+    setup_as_bytes: u64,
+    guardian_state_bytes: u64,
+}
 impl SdkPhaseAs {
     fn verify(self) -> Result<(), String> {
-        if self.setup_as_bytes != SDK_PHASE_N || self.guardian_state_bytes != SDK_PHASE_G
+        if self.setup_as_bytes != SDK_PHASE_N
+            || self.guardian_state_bytes != SDK_PHASE_G
             || self.setup_as_bytes.checked_add(self.guardian_state_bytes) != Some(SDK_SETUP_BYTES)
-            || SDK_PHASE_ROLE.checked_mul(4).and_then(|n| n.checked_add(self.setup_as_bytes)) != Some(self.guardian_state_bytes)
-        { return Err("unsupported SDK phase AS partition".into()); }
+            || SDK_PHASE_ROLE
+                .checked_mul(4)
+                .and_then(|n| n.checked_add(self.setup_as_bytes))
+                != Some(self.guardian_state_bytes)
+        {
+            return Err("unsupported SDK phase AS partition".into());
+        }
         Ok(())
     }
 }
 #[derive(Clone, Copy, Debug, serde::Serialize, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
-struct IssuedSdkPhaseAs { selected: SdkPhaseAs, parent_setup_soft_as_bytes: u64, role_soft_as_bytes: u64 }
+struct IssuedSdkPhaseAs {
+    selected: SdkPhaseAs,
+    parent_setup_soft_as_bytes: u64,
+    role_soft_as_bytes: u64,
+}
 fn phase_decimal(raw: &str) -> Result<u64, String> {
-    if raw.is_empty() || raw.len()>20 || !raw.bytes().all(|b| b.is_ascii_digit()) { return Err("bounded SDK decimal required".into()); }
-    let n=raw.parse::<u64>().map_err(|e| e.to_string())?;
-    if n==0 || n.to_string()!=raw { return Err("canonical positive SDK decimal required".into()); }
+    if raw.is_empty() || raw.len() > 20 || !raw.bytes().all(|b| b.is_ascii_digit()) {
+        return Err("bounded SDK decimal required".into());
+    }
+    let n = raw.parse::<u64>().map_err(|e| e.to_string())?;
+    if n == 0 || n.to_string() != raw {
+        return Err("canonical positive SDK decimal required".into());
+    }
     Ok(n)
 }
 fn phase_pair(n: Option<&str>, g: Option<&str>) -> Result<Option<SdkPhaseAs>, String> {
-    match (n,g) {
-        (None,None)=>Ok(None),
-        (Some(n),Some(g))=>{ let p=SdkPhaseAs { setup_as_bytes:phase_decimal(n)?,guardian_state_bytes:phase_decimal(g)? };p.verify()?;Ok(Some(p)) },
-        _=>Err("both SDK phase AS selectors required".into()),
+    match (n, g) {
+        (None, None) => Ok(None),
+        (Some(n), Some(g)) => {
+            let p = SdkPhaseAs {
+                setup_as_bytes: phase_decimal(n)?,
+                guardian_state_bytes: phase_decimal(g)?,
+            };
+            p.verify()?;
+            Ok(Some(p))
+        }
+        _ => Err("both SDK phase AS selectors required".into()),
     }
 }
-fn actual_as() -> Result<libc::rlimit,String> {
-    let mut v=unsafe { std::mem::zeroed::<libc::rlimit>() };
-    if unsafe { libc::getrlimit(libc::RLIMIT_AS,&mut v) }!=0 { return Err(error()); }
+fn actual_as() -> Result<libc::rlimit, String> {
+    let mut v = unsafe { std::mem::zeroed::<libc::rlimit>() };
+    if unsafe { libc::getrlimit(libc::RLIMIT_AS, &mut v) } != 0 {
+        return Err(error());
+    }
     Ok(v)
 }
-fn phase_environment(p: SdkPhaseAs,end: Cutoff)->Result<(),String> {
-    for (key,n) in [("TOS_SDK_SETUP_AS_BYTES",p.setup_as_bytes),("TOS_SDK_GUARDIAN_STATE_BYTES",p.guardian_state_bytes),("TOS_SDK_ORIGINAL_WORK_DEADLINE_NS",end.work),("TOS_SDK_ORIGINAL_WHOLE_DEADLINE_NS",end.whole)] {
-        let raw=std::env::var(key).map_err(|_|format!("SDK selector absent: {key}"))?;
-        if phase_decimal(&raw)?!=n { return Err("SDK original selector/cutoff mismatch".into()); }
+fn phase_environment(p: SdkPhaseAs, end: Cutoff) -> Result<(), String> {
+    for (key, n) in [
+        ("TOS_SDK_SETUP_AS_BYTES", p.setup_as_bytes),
+        ("TOS_SDK_GUARDIAN_STATE_BYTES", p.guardian_state_bytes),
+        ("TOS_SDK_ORIGINAL_WORK_DEADLINE_NS", end.work),
+        ("TOS_SDK_ORIGINAL_WHOLE_DEADLINE_NS", end.whole),
+    ] {
+        let raw = std::env::var(key).map_err(|_| format!("SDK selector absent: {key}"))?;
+        if phase_decimal(&raw)? != n {
+            return Err("SDK original selector/cutoff mismatch".into());
+        }
     }
     end.check()
 }
 // Genuine procfs VM ranges: bounded fixed stack, no heap/ELF/RSS inference.
-fn phase_mapped_as(end: Cutoff)->Result<u64,String> {
+fn phase_mapped_as(end: Cutoff) -> Result<u64, String> {
     end.check()?;
-    let fd=unsafe { libc::open(c"/proc/self/maps".as_ptr(),libc::O_RDONLY|libc::O_NOFOLLOW|libc::O_NONBLOCK|libc::O_CLOEXEC) };
-    if fd<0 { return Err(error()); }
-    let mut held=unsafe { File::from_raw_fd(fd) };
-    let mut fs=unsafe { std::mem::zeroed::<libc::statfs>() };
-    if unsafe { libc::fstatfs(fd,&mut fs) }!=0 || fs.f_type as u64!=0x9fa0 { return Err("actual procfs maps required".into()); }
-    let mut raw=[0u8;65_537];let mut used=0;
-    loop { end.check()?;let n=held.read(&mut raw[used..]).map_err(|e|e.to_string())?;if n==0 { break; }used+=n;if used>65_536 { return Err("SDK maps64KiB bound".into()); } }
-    let page=unsafe { libc::sysconf(libc::_SC_PAGESIZE) };
-    if page<=0 { return Err("actual page size required".into()); }
-    let text=std::str::from_utf8(&raw[..used]).map_err(|e|e.to_string())?;
-    if text.is_empty() || !text.ends_with('\n') { return Err("complete mapping lines required".into()); }
-    let mut total=0u64;let mut previous=0;let mut rows=0;
-    for line in text.lines() {
-        end.check()?;rows+=1;if rows>4096 || line.len()>8192 { return Err("SDK mapping rows/line bound".into()); }
-        let range=line.split_ascii_whitespace().next().ok_or("mapping range absent")?;
-        let (a,b)=range.split_once('-').ok_or("mapping range shape")?;
-        if [a,b].iter().any(|v|v.is_empty() || v.len()>16 || !v.bytes().all(|c|c.is_ascii_hexdigit())) { return Err("mapping address shape".into()); }
-        let start=u64::from_str_radix(a,16).map_err(|e|e.to_string())?;let stop=u64::from_str_radix(b,16).map_err(|e|e.to_string())?;
-        if start<previous || start>=stop || start%page as u64!=0 || stop%page as u64!=0 { return Err("ordered page-aligned mapping ranges required".into()); }
-        total=total.checked_add(stop-start).ok_or("mapping sum overflow")?;previous=stop;
+    let fd = unsafe {
+        libc::open(
+            c"/proc/self/maps".as_ptr(),
+            libc::O_RDONLY | libc::O_NOFOLLOW | libc::O_NONBLOCK | libc::O_CLOEXEC,
+        )
+    };
+    if fd < 0 {
+        return Err(error());
     }
-    end.check()?;Ok(total)
-}
-fn guardian_as(ceiling: u64,end: Cutoff)->Result<(),String> {
+    let mut held = unsafe { File::from_raw_fd(fd) };
+    let mut fs = unsafe { std::mem::zeroed::<libc::statfs>() };
+    if unsafe { libc::fstatfs(fd, &mut fs) } != 0 || fs.f_type as u64 != 0x9fa0 {
+        return Err("actual procfs maps required".into());
+    }
+    let mut raw = [0u8; 65_537];
+    let mut used = 0;
+    loop {
+        end.check()?;
+        let n = held.read(&mut raw[used..]).map_err(|e| e.to_string())?;
+        if n == 0 {
+            break;
+        }
+        used += n;
+        if used > 65_536 {
+            return Err("SDK maps64KiB bound".into());
+        }
+    }
+    let page = unsafe { libc::sysconf(libc::_SC_PAGESIZE) };
+    if page <= 0 {
+        return Err("actual page size required".into());
+    }
+    let text = std::str::from_utf8(&raw[..used]).map_err(|e| e.to_string())?;
+    if text.is_empty() || !text.ends_with('\n') {
+        return Err("complete mapping lines required".into());
+    }
+    let mut total = 0u64;
+    let mut previous = 0;
+    let mut rows = 0;
+    for line in text.lines() {
+        end.check()?;
+        rows += 1;
+        if rows > 4096 || line.len() > 8192 {
+            return Err("SDK mapping rows/line bound".into());
+        }
+        let range = line
+            .split_ascii_whitespace()
+            .next()
+            .ok_or("mapping range absent")?;
+        let (a, b) = range.split_once('-').ok_or("mapping range shape")?;
+        if [a, b]
+            .iter()
+            .any(|v| v.is_empty() || v.len() > 16 || !v.bytes().all(|c| c.is_ascii_hexdigit()))
+        {
+            return Err("mapping address shape".into());
+        }
+        let start = u64::from_str_radix(a, 16).map_err(|e| e.to_string())?;
+        let stop = u64::from_str_radix(b, 16).map_err(|e| e.to_string())?;
+        if start < previous || start >= stop || start % page as u64 != 0 || stop % page as u64 != 0
+        {
+            return Err("ordered page-aligned mapping ranges required".into());
+        }
+        total = total
+            .checked_add(stop - start)
+            .ok_or("mapping sum overflow")?;
+        previous = stop;
+    }
     end.check()?;
-    if ceiling==0 || ceiling>SDK_PHASE_ROLE || phase_mapped_as(end)?>ceiling { return Err("SDK actual guardian mappings exceed role ceiling".into()); }
-    let old=actual_as()?;
-    if old.rlim_max!=SDK_CONSUMER_BYTES as libc::rlim_t || old.rlim_cur<ceiling as libc::rlim_t { return Err("SDK guardian hard drift or setup soft increase refused".into()); }
-    let next=libc::rlimit { rlim_cur:ceiling as libc::rlim_t,rlim_max:old.rlim_max };
-    if unsafe { libc::setrlimit(libc::RLIMIT_AS,&next) }!=0 { return Err(error()); }
-    let actual=actual_as()?;
-    if actual.rlim_cur!=next.rlim_cur || actual.rlim_max!=next.rlim_max || phase_mapped_as(end)?>ceiling { return Err("actual guardian AS drift".into()); }
+    Ok(total)
+}
+fn guardian_as(ceiling: u64, end: Cutoff) -> Result<(), String> {
+    end.check()?;
+    if ceiling == 0 || ceiling > SDK_PHASE_ROLE || phase_mapped_as(end)? > ceiling {
+        return Err("SDK actual guardian mappings exceed role ceiling".into());
+    }
+    let old = actual_as()?;
+    if old.rlim_max != SDK_CONSUMER_BYTES as libc::rlim_t || old.rlim_cur < ceiling as libc::rlim_t
+    {
+        return Err("SDK guardian hard drift or setup soft increase refused".into());
+    }
+    let next = libc::rlimit {
+        rlim_cur: ceiling as libc::rlim_t,
+        rlim_max: old.rlim_max,
+    };
+    if unsafe { libc::setrlimit(libc::RLIMIT_AS, &next) } != 0 {
+        return Err(error());
+    }
+    let actual = actual_as()?;
+    if actual.rlim_cur != next.rlim_cur
+        || actual.rlim_max != next.rlim_max
+        || phase_mapped_as(end)? > ceiling
+    {
+        return Err("actual guardian AS drift".into());
+    }
     end.check()
 }
-fn issued_phase_as(selected: Option<SdkPhaseAs>,end: Cutoff)->Result<Option<IssuedSdkPhaseAs>,String> {
-    selected.map(|p| {
-        p.verify()?;phase_environment(p,end)?;let actual=actual_as()?;
-        if actual.rlim_max!=SDK_CONSUMER_BYTES as libc::rlim_t || actual.rlim_cur==0 || actual.rlim_cur>p.setup_as_bytes as libc::rlim_t { return Err("SDK positive actualS<=issuedN/original hard2.5GiB required".into()); }
-        let s=actual.rlim_cur as u64;Ok(IssuedSdkPhaseAs { selected:p,parent_setup_soft_as_bytes:s,role_soft_as_bytes:s.min(SDK_PHASE_ROLE) })
-    }).transpose()
+fn issued_phase_as(
+    selected: Option<SdkPhaseAs>,
+    end: Cutoff,
+) -> Result<Option<IssuedSdkPhaseAs>, String> {
+    selected
+        .map(|p| {
+            p.verify()?;
+            phase_environment(p, end)?;
+            let actual = actual_as()?;
+            if actual.rlim_max != SDK_CONSUMER_BYTES as libc::rlim_t
+                || actual.rlim_cur == 0
+                || actual.rlim_cur > p.setup_as_bytes as libc::rlim_t
+            {
+                return Err("SDK positive actualS<=issuedN/original hard2.5GiB required".into());
+            }
+            let s = actual.rlim_cur as u64;
+            Ok(IssuedSdkPhaseAs {
+                selected: p,
+                parent_setup_soft_as_bytes: s,
+                role_soft_as_bytes: s.min(SDK_PHASE_ROLE),
+            })
+        })
+        .transpose()
 }
-fn verify_phase_auth(auth: &ControlAuth)->Result<(),String> {
-    if let Some(p)=auth.sdk_phase_as {
+fn verify_phase_auth(auth: &ControlAuth) -> Result<(), String> {
+    if let Some(p) = auth.sdk_phase_as {
         p.selected.verify()?;
-        if p.parent_setup_soft_as_bytes==0 || p.parent_setup_soft_as_bytes>p.selected.setup_as_bytes || p.role_soft_as_bytes!=p.parent_setup_soft_as_bytes.min(SDK_PHASE_ROLE) { return Err("issued SDK N/G/S/role mismatch".into()); }
+        if p.parent_setup_soft_as_bytes == 0
+            || p.parent_setup_soft_as_bytes > p.selected.setup_as_bytes
+            || p.role_soft_as_bytes != p.parent_setup_soft_as_bytes.min(SDK_PHASE_ROLE)
+        {
+            return Err("issued SDK N/G/S/role mismatch".into());
+        }
     }
     Ok(())
 }
-fn phase_restore_consumer(o: &Options,auth: &ControlAuth,fd: i32,end: Cutoff)->Result<(),String> {
-    if let Some(selected)=o.sdk_phase_as {
-        match_control(fd,auth,end)?;let p=auth.sdk_phase_as.ok_or("issued phase auth absent")?;
-        if p.selected!=selected { return Err("inner phase selector/auth mismatch".into()); }
-        phase_environment(selected,end)?;let old=actual_as()?;
-        if old.rlim_cur!=p.role_soft_as_bytes as libc::rlim_t || old.rlim_max!=SDK_CONSUMER_BYTES as libc::rlim_t { return Err("inherited phase soft/hard differs before consumer restore".into()); }
+fn phase_restore_consumer(
+    o: &Options,
+    auth: &ControlAuth,
+    fd: i32,
+    end: Cutoff,
+) -> Result<(), String> {
+    if let Some(selected) = o.sdk_phase_as {
+        match_control(fd, auth, end)?;
+        let p = auth.sdk_phase_as.ok_or("issued phase auth absent")?;
+        if p.selected != selected {
+            return Err("inner phase selector/auth mismatch".into());
+        }
+        phase_environment(selected, end)?;
+        let old = actual_as()?;
+        if old.rlim_cur != p.role_soft_as_bytes as libc::rlim_t
+            || old.rlim_max != SDK_CONSUMER_BYTES as libc::rlim_t
+        {
+            return Err("inherited phase soft/hard differs before consumer restore".into());
+        }
         // Only after actual self placement+consumer_limits+connected issued auth.
-        let next=libc::rlimit { rlim_cur:old.rlim_max,rlim_max:old.rlim_max };
-        if unsafe { libc::setrlimit(libc::RLIMIT_AS,&next) }!=0 { return Err(error()); }
-        let actual=actual_as()?;if actual.rlim_cur!=next.rlim_cur || actual.rlim_max!=next.rlim_max { return Err("consumer-only soft restore drift".into()); }
-        match_control(fd,auth,end)?;
+        let next = libc::rlimit {
+            rlim_cur: old.rlim_max,
+            rlim_max: old.rlim_max,
+        };
+        if unsafe { libc::setrlimit(libc::RLIMIT_AS, &next) } != 0 {
+            return Err(error());
+        }
+        let actual = actual_as()?;
+        if actual.rlim_cur != next.rlim_cur || actual.rlim_max != next.rlim_max {
+            return Err("consumer-only soft restore drift".into());
+        }
+        match_control(fd, auth, end)?;
     }
     Ok(())
 }
@@ -470,7 +607,11 @@ fn socket_identity(fd: i32) -> Result<(u64, u64, u64), String> {
     }
     Ok((st.st_dev, st.st_ino, cookie))
 }
-fn issue_control(fd: i32, end: Cutoff, selected: Option<SdkPhaseAs>) -> Result<ControlAuth, String> {
+fn issue_control(
+    fd: i32,
+    end: Cutoff,
+    selected: Option<SdkPhaseAs>,
+) -> Result<ControlAuth, String> {
     end.check()?;
     let (socket_dev, socket_ino, socket_cookie) = socket_identity(fd)?;
     let peer = socket_option::<libc::ucred>(fd, libc::SO_PEERCRED)?;
@@ -493,7 +634,7 @@ fn issue_control(fd: i32, end: Cutoff, selected: Option<SdkPhaseAs>) -> Result<C
         parent_gid: peer.gid,
         original_whole_deadline_ns: end.whole,
         work_deadline_ns: end.work,
-        sdk_phase_as: issued_phase_as(selected,end)?,
+        sdk_phase_as: issued_phase_as(selected, end)?,
     })
 }
 fn match_control(fd: i32, auth: &ControlAuth, end: Cutoff) -> Result<(), String> {
@@ -591,6 +732,110 @@ pub fn verify_issued_consumer_control(
 }
 
 #[derive(Clone)]
+struct SearchCacheSelection {
+    path: PathBuf,
+    source_root: PathBuf,
+    max_build_bytes: u64,
+    max_temp_bytes: u64,
+}
+impl SearchCacheSelection {
+    fn parent(&self) -> Result<&Path, String> {
+        self.path
+            .parent()
+            .filter(|p| *p != Path::new("/"))
+            .ok_or("search cache parent absent/root".into())
+    }
+    fn verify(&self, held: &File, stage: &Path) -> Result<std::fs::Metadata, String> {
+        path_shape(&self.path)?;
+        path_shape(&self.source_root)?;
+        let parent = self.parent()?;
+        path_shape(parent)?;
+        if self.max_build_bytes < 4096
+            || self.max_temp_bytes < self.max_build_bytes
+            || self
+                .max_build_bytes
+                .checked_add(self.max_temp_bytes)
+                .is_none()
+            || parent.starts_with(stage)
+            || stage.starts_with(parent)
+            || FALLBACKS
+                .iter()
+                .any(|p| Path::new(p) == parent || Path::new(p).starts_with(parent))
+        {
+            return Err("search cache caps/source/scratch/fallback root overlap".into());
+        }
+        let named = directory(parent)?;
+        identical(held, &named)?;
+        let info = held.metadata().map_err(|e| e.to_string())?;
+        // Existing Python default mkdir may be0755. Group/other writes are forbidden.
+        if info.uid() != unsafe { libc::getuid() } || info.mode() & 0o022 != 0 {
+            return Err("search cache parent owner/write mode".into());
+        }
+        match fs::symlink_metadata(&self.path) {
+            Ok(info) => {
+                if !info.is_file()
+                    || info.file_type().is_symlink()
+                    || info.uid() != unsafe { libc::getuid() }
+                    || info.mode() & 0o022 != 0
+                {
+                    return Err("search cache existing leaf owner/type/mode".into());
+                }
+            }
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => (),
+            Err(e) => return Err(e.to_string()),
+        }
+        Ok(info)
+    }
+}
+fn select_search_cache(
+    values: &mut std::collections::BTreeMap<&str, &str>,
+) -> Result<Option<SearchCacheSelection>, String> {
+    let path = values.remove("--search-cache-path");
+    let root = values.remove("--search-cache-source-root");
+    let build = values.remove("--search-cache-max-build-bytes");
+    let temp = values.remove("--search-cache-max-temp-bytes");
+    match (path, root, build, temp) {
+        (None, None, None, None) => Ok(None),
+        (Some(path), Some(root), Some(build), Some(temp)) => Ok(Some(SearchCacheSelection {
+            path: PathBuf::from(path),
+            source_root: PathBuf::from(root),
+            max_build_bytes: build.parse::<u64>().map_err(|e| e.to_string())?,
+            max_temp_bytes: temp.parse::<u64>().map_err(|e| e.to_string())?,
+        })),
+        _ => Err("search cache selector requires exact four paired values".into()),
+    }
+}
+fn open_search_cache(selected: &SearchCacheSelection) -> Result<File, String> {
+    path_shape(&selected.path)?;
+    path_shape(&selected.source_root)?;
+    let parent = selected.parent()?;
+    path_shape(parent)?;
+    drop(directory(&selected.source_root)?);
+    if selected.max_build_bytes < 4096
+        || selected.max_temp_bytes < selected.max_build_bytes
+        || selected
+            .max_build_bytes
+            .checked_add(selected.max_temp_bytes)
+            .is_none()
+        || FALLBACKS
+            .iter()
+            .any(|p| Path::new(p) == parent || Path::new(p).starts_with(parent))
+    {
+        return Err("search cache precreation source/root/caps refusal".into());
+    }
+    if !parent.exists() {
+        // Only the final selected directory can be created; no ancestor recursion.
+        let ancestor = parent.parent().ok_or("search cache ancestor absent")?;
+        drop(directory(ancestor)?);
+        match DirBuilder::new().mode(0o700).create(parent) {
+            Ok(()) => (),
+            Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => (),
+            Err(e) => return Err(e.to_string()),
+        }
+    }
+    directory(parent)
+}
+#[derive(Clone)]
 struct Options {
     unshare: PathBuf,
     consumer: PathBuf,
@@ -601,13 +846,53 @@ struct Options {
     original: u64,
     shutdown_ms: u64,
     persistent: Option<PathBuf>,
+    search_cache: Option<SearchCacheSelection>,
     control_fd: Option<i32>,
+    retained_fds: [Option<i32>; 2],
     sdk_phase_as: Option<SdkPhaseAs>,
     direct_custody: Option<(libc::pid_t, libc::sigset_t)>,
     command: Vec<String>,
 }
+fn retained_fd_roles(fds: [Option<i32>; 2]) -> Result<(), String> {
+    if let Some(fd) = fds[0] {
+        if fd < 3 {
+            return Err("state reply FD outside owned range".into());
+        }
+        socket_identity(fd)?;
+    }
+    if let Some(fd) = fds[1] {
+        if fd < 3 || fds[0].is_none() || fds[0] == Some(fd) {
+            return Err("retained state FD role differs".into());
+        }
+        let mut st = unsafe { std::mem::zeroed::<libc::stat>() };
+        let seals = unsafe { libc::fcntl(fd, libc::F_GET_SEALS) };
+        let required =
+            libc::F_SEAL_SEAL | libc::F_SEAL_SHRINK | libc::F_SEAL_GROW | libc::F_SEAL_WRITE;
+        if unsafe { libc::fstat(fd, &mut st) } != 0
+            || st.st_mode & libc::S_IFMT != libc::S_IFREG
+            || st.st_size <= 0
+            || st.st_size as u64 > SDK_SETUP_BYTES
+            || seals < 0
+            || seals & required != required
+        {
+            return Err("native prior state requires bounded sealed regular FD".into());
+        }
+    }
+    Ok(())
+}
 fn limits(o: &Options) -> Result<(), String> {
-    if let Some(p)=o.sdk_phase_as { p.verify()?;if o.quota!=SDK_SETUP_BYTES || o.ram!=SDK_CONSUMER_BYTES { return Err("SDK phase exact setup/consumer profile required".into()); } }
+    if o.search_cache.is_some() && o.persistent.is_some() {
+        return Err(
+            "search cache and persistent-store capabilities must be selected separately".into(),
+        );
+    }
+    retained_fd_roles(o.retained_fds)?;
+    if let Some(p) = o.sdk_phase_as {
+        p.verify()?;
+        if o.quota != SDK_SETUP_BYTES || o.ram != SDK_CONSUMER_BYTES {
+            return Err("SDK phase exact setup/consumer profile required".into());
+        }
+    }
     if !matches!(std::env::consts::ARCH, "x86_64" | "aarch64") {
         return Err("supported Linux syscall source architectures are x86_64/aarch64".into());
     }
@@ -646,7 +931,7 @@ struct SignalGuard {
 }
 impl SignalGuard {
     fn install() -> Result<Self, String> {
-        CANCELLED.store(false, Ordering::Relaxed);
+        // CLI dispatch is one-shot; nested guards must retain cancellation.
         let mut guard = Self {
             previous: unsafe { std::mem::zeroed() },
             installed: 0,
@@ -721,7 +1006,9 @@ impl Leader {
         mut command: Command,
         held_fd: i32,
         persistent_fd: Option<i32>,
+        search_cache_fd: Option<i32>,
         control_fd: Option<i32>,
+        retained_fds: [Option<i32>; 2],
     ) -> Result<(Self, Option<String>), String> {
         let mut mask = Mask::block()?;
         let old = mask.old;
@@ -735,8 +1022,9 @@ impl Leader {
                 if libc::syscall(libc::SYS_close_range, 3u32, u32::MAX, 4u32) < 0 {
                     return Err(std::io::Error::last_os_error());
                 }
-                for fd in [Some(held_fd), persistent_fd, control_fd]
+                for fd in [Some(held_fd), persistent_fd, search_cache_fd, control_fd]
                     .into_iter()
+                    .chain(retained_fds)
                     .flatten()
                     .filter(|fd| *fd >= 3)
                 {
@@ -897,7 +1185,15 @@ fn apply_direct_custody(parent: libc::pid_t, mask: &libc::sigset_t) -> Result<()
         return Err("direct stage original parent ended during death binding".into());
     }
     let mut death_signal: libc::c_int = 0;
-    if unsafe { libc::prctl(libc::PR_GET_PDEATHSIG, &mut death_signal as *mut libc::c_int, 0, 0, 0) } != 0
+    if unsafe {
+        libc::prctl(
+            libc::PR_GET_PDEATHSIG,
+            &mut death_signal as *mut libc::c_int,
+            0,
+            0,
+            0,
+        )
+    } != 0
         || death_signal != libc::SIGKILL
     {
         return Err("direct stage parent-death binding differs".into());
@@ -907,14 +1203,14 @@ fn apply_direct_custody(parent: libc::pid_t, mask: &libc::sigset_t) -> Result<()
         return Err(std::io::Error::from_raw_os_error(result).to_string());
     }
     let mut actual: libc::sigset_t = unsafe { std::mem::zeroed() };
-    let result = unsafe {
-        libc::pthread_sigmask(libc::SIG_SETMASK, std::ptr::null(), &mut actual)
-    };
+    let result = unsafe { libc::pthread_sigmask(libc::SIG_SETMASK, std::ptr::null(), &mut actual) };
     if result != 0 {
         return Err(std::io::Error::from_raw_os_error(result).to_string());
     }
     for signal in 1..=64 {
-        if unsafe { libc::sigismember(mask, signal) } != unsafe { libc::sigismember(&actual, signal) } {
+        if unsafe { libc::sigismember(mask, signal) }
+            != unsafe { libc::sigismember(&actual, signal) }
+        {
             return Err("direct stage original signal mask differs".into());
         }
     }
@@ -930,9 +1226,18 @@ fn outer(o: &Options) -> Result<i32, String> {
     }
     limits(o)?;
     let end = Cutoff::select(o.original, o.shutdown_ms)?;
-    if o.sdk_phase_as.is_some() && o.control_fd.is_none() { return Err("SDK phase direct parent control required".into()); }
-    let control = o.control_fd.map(|fd| issue_control(fd,end,o.sdk_phase_as)).transpose()?;
-    if let Some(auth)=control.as_ref() { if let Some(p)=auth.sdk_phase_as { guardian_as(p.role_soft_as_bytes,end)?; } }
+    if o.sdk_phase_as.is_some() && o.control_fd.is_none() {
+        return Err("SDK phase direct parent control required".into());
+    }
+    let control = o
+        .control_fd
+        .map(|fd| issue_control(fd, end, o.sdk_phase_as))
+        .transpose()?;
+    if let Some(auth) = control.as_ref() {
+        if let Some(p) = auth.sdk_phase_as {
+            guardian_as(p.role_soft_as_bytes, end)?;
+        }
+    }
     let _signals = SignalGuard::install()?;
     if unsafe { libc::getuid() } == 0 {
         return Err("ordinary unprivileged caller required".into());
@@ -951,6 +1256,13 @@ fn outer(o: &Options) -> Result<i32, String> {
         .as_ref()
         .map(|path| directory(path))
         .transpose()?;
+    if let Some(cache) = &o.search_cache {
+        let parent = cache.parent()?;
+        if parent.starts_with(&o.scratch) || o.scratch.starts_with(parent) {
+            return Err("search cache precreation scratch overlap".into());
+        }
+    }
+    let search_cache = o.search_cache.as_ref().map(open_search_cache).transpose()?;
     let setup = membership()?;
     topology(&setup, &o.consumer, &held, o.quota, o.ram, end)?;
     if !contents(&held, "cgroup.procs", 4096)?.trim().is_empty() || consumer_populated(&held)? {
@@ -981,6 +1293,9 @@ fn outer(o: &Options) -> Result<i32, String> {
             held,
             &root,
         )?;
+    }
+    if let (Some(selected), Some(held)) = (&o.search_cache, &search_cache) {
+        selected.verify(held, &root)?;
     }
     DirBuilder::new()
         .mode(0o700)
@@ -1031,6 +1346,19 @@ fn outer(o: &Options) -> Result<i32, String> {
             .arg("--persistent-fd")
             .arg(held.as_raw_fd().to_string());
     }
+    if let (Some(selected), Some(held)) = (&o.search_cache, &search_cache) {
+        command
+            .arg("--search-cache-path")
+            .arg(&selected.path)
+            .arg("--search-cache-source-root")
+            .arg(&selected.source_root)
+            .arg("--search-cache-max-build-bytes")
+            .arg(selected.max_build_bytes.to_string())
+            .arg("--search-cache-max-temp-bytes")
+            .arg(selected.max_temp_bytes.to_string())
+            .arg("--search-cache-fd")
+            .arg(held.as_raw_fd().to_string());
+    }
     if let (Some(fd), Some(auth)) = (o.control_fd, control.as_ref()) {
         match_control(fd, auth, end)?;
         command
@@ -1039,7 +1367,21 @@ fn outer(o: &Options) -> Result<i32, String> {
             .arg("--control-auth")
             .arg(serde_json::to_string(auth).map_err(|e| e.to_string())?);
     }
-    if let Some(p)=o.sdk_phase_as { command.arg("--sdk-setup-as-bytes").arg(p.setup_as_bytes.to_string()).arg("--sdk-guardian-state-bytes").arg(p.guardian_state_bytes.to_string()); }
+    for (key, fd) in ["--state-reply-fd", "--snapshot-state-fd"]
+        .into_iter()
+        .zip(o.retained_fds)
+    {
+        if let Some(fd) = fd {
+            command.arg(key).arg(fd.to_string());
+        }
+    }
+    if let Some(p) = o.sdk_phase_as {
+        command
+            .arg("--sdk-setup-as-bytes")
+            .arg(p.setup_as_bytes.to_string())
+            .arg("--sdk-guardian-state-bytes")
+            .arg(p.guardian_state_bytes.to_string());
+    }
     command
         .arg("--root")
         .arg(&root)
@@ -1051,7 +1393,9 @@ fn outer(o: &Options) -> Result<i32, String> {
         command,
         held.as_raw_fd(),
         persistent.as_ref().map(AsRawFd::as_raw_fd),
+        search_cache.as_ref().map(AsRawFd::as_raw_fd),
         o.control_fd,
+        o.retained_fds,
     );
     let (mut leader, restoration_error) = match spawned {
         Ok(leader) => leader,
@@ -1141,7 +1485,12 @@ struct PathRule {
     allowed: u64,
     parent: i32,
 }
-fn confine(root: &Path, fallbacks: &[String], persistent: Option<&File>) -> Result<(), String> {
+fn confine(
+    root: &Path,
+    fallbacks: &[String],
+    persistent: Option<&File>,
+    search_cache: Option<&File>,
+) -> Result<(), String> {
     if !matches!(std::env::consts::ARCH, "x86_64" | "aarch64") {
         return Err("Landlock syscall architecture unsupported".into());
     }
@@ -1167,7 +1516,7 @@ fn confine(root: &Path, fallbacks: &[String], persistent: Option<&File>) -> Resu
             return Err(error());
         }
     }
-    if let Some(held) = persistent {
+    for held in persistent.into_iter().chain(search_cache) {
         let rule = PathRule {
             allowed: handled,
             parent: held.as_raw_fd(),
@@ -1237,6 +1586,7 @@ struct Inner {
     setup: PathBuf,
     consumer_fd: i32,
     persistent_fd: Option<i32>,
+    search_cache_fd: Option<i32>,
     parent_mnt: u64,
     parent_net: u64,
     host_uid: u64,
@@ -1249,17 +1599,34 @@ fn inner(o: &Options, i: &Inner) -> Result<i32, String> {
     end.check()?;
     match (o.control_fd, i.control_auth.as_ref()) {
         (None, None) => (),
-        (Some(fd), Some(auth)) if fd != i.consumer_fd && Some(fd) != i.persistent_fd => {
+        (Some(fd), Some(auth))
+            if fd != i.consumer_fd
+                && Some(fd) != i.persistent_fd
+                && Some(fd) != i.search_cache_fd =>
+        {
             match_control(fd, auth, end)?
         }
         _ => return Err("control descriptor/auth handoff mismatch".into()),
     }
-    if i.control_auth.as_ref().and_then(|a|a.sdk_phase_as.map(|p|p.selected))!=o.sdk_phase_as { return Err("inner SDK phase selectors/auth mismatch".into()); }
-    if let Some(auth)=i.control_auth.as_ref() { if let Some(p)=auth.sdk_phase_as {
-        phase_environment(p.selected,end)?;let actual=actual_as()?;
-        if actual.rlim_cur!=p.role_soft_as_bytes as libc::rlim_t || actual.rlim_max!=SDK_CONSUMER_BYTES as libc::rlim_t { return Err("inner inherited phase AS drift".into()); }
-        guardian_as(p.role_soft_as_bytes,end)?;
-    } }
+    if i.control_auth
+        .as_ref()
+        .and_then(|a| a.sdk_phase_as.map(|p| p.selected))
+        != o.sdk_phase_as
+    {
+        return Err("inner SDK phase selectors/auth mismatch".into());
+    }
+    if let Some(auth) = i.control_auth.as_ref() {
+        if let Some(p) = auth.sdk_phase_as {
+            phase_environment(p.selected, end)?;
+            let actual = actual_as()?;
+            if actual.rlim_cur != p.role_soft_as_bytes as libc::rlim_t
+                || actual.rlim_max != SDK_CONSUMER_BYTES as libc::rlim_t
+            {
+                return Err("inner inherited phase AS drift".into());
+            }
+            guardian_as(p.role_soft_as_bytes, end)?;
+        }
+    }
     path_shape(&i.root)?;
     if i.root.parent() != Some(o.scratch.as_path()) || i.consumer_fd < 3 {
         return Err("inner selected backing root or held consumer FD invalid".into());
@@ -1298,6 +1665,19 @@ fn inner(o: &Options, i: &Inner) -> Result<i32, String> {
                 "selected persistent store and actual held descriptor must correspond".into(),
             );
         }
+    };
+    let search_cache = match (&o.search_cache, i.search_cache_fd) {
+        (None, None) => None,
+        (Some(selected), Some(raw)) if raw >= 3 => {
+            let duplicate = unsafe { libc::fcntl(raw, libc::F_DUPFD_CLOEXEC, 3) };
+            if duplicate < 0 {
+                return Err(error());
+            }
+            let held = unsafe { File::from_raw_fd(duplicate) };
+            selected.verify(&held, &i.root)?;
+            Some(held)
+        }
+        _ => return Err("search cache descriptor/selector mismatch".into()),
     };
     let duplicate = unsafe { libc::fcntl(i.consumer_fd, libc::F_DUPFD_CLOEXEC, 3) };
     if duplicate < 0 {
@@ -1363,6 +1743,32 @@ fn inner(o: &Options, i: &Inner) -> Result<i32, String> {
         }
         fallbacks.push(name.into());
     }
+    // Fallback /tmp now points to private tmpfs. Restore only the explicitly
+    // issued cache directory, via its held host FD, under the same public path.
+    if let (Some(selected), Some(held)) = (&o.search_cache, &search_cache) {
+        let parent = selected.parent()?;
+        if let Some(fallback) = FALLBACKS
+            .iter()
+            .map(Path::new)
+            .find(|p| parent.starts_with(p))
+        {
+            let relative = parent.strip_prefix(fallback).map_err(|e| e.to_string())?;
+            let mut cursor = fallback.to_path_buf();
+            for component in relative.components() {
+                cursor.push(component);
+                match DirBuilder::new().mode(0o700).create(&cursor) {
+                    Ok(()) => (),
+                    Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => {
+                        drop(directory(&cursor)?);
+                    }
+                    Err(e) => return Err(e.to_string()),
+                }
+            }
+            let source = PathBuf::from(format!("/proc/self/fd/{}", held.as_raw_fd()));
+            mount(Some(source.as_os_str()), parent, None, libc::MS_BIND, None)?;
+        }
+        selected.verify(held, &i.root)?;
+    }
     let root = directory(&i.root)?;
     let meta = root.metadata().map_err(|e| e.to_string())?;
     let mut stats = unsafe { std::mem::zeroed::<libc::statvfs>() };
@@ -1396,13 +1802,23 @@ fn inner(o: &Options, i: &Inner) -> Result<i32, String> {
         ticket["schema"] = serde_json::json!("abyss_machine_private_tmpfs_stage_v2");
         ticket["persistent_store"] = serde_json::json!({"root":path,"root_device":info.dev(),"root_inode":info.ino(),"quota_scope":"outside-private-tmpfs"});
     }
+    if let (Some(selected), Some(held)) = (&o.search_cache, &search_cache) {
+        let info = selected.verify(held, &i.root)?;
+        if info.dev() == meta.dev() {
+            return Err("search cache must be outside private tmpfs device".into());
+        }
+        ticket["schema"] = serde_json::json!("abyss_machine_private_tmpfs_stage_v3");
+        ticket["search_cache"] = serde_json::json!({"path":selected.path,"source_root":selected.source_root,"parent_device":info.dev(),"parent_inode":info.ino(),"parent_fd":held.as_raw_fd(),"max_build_bytes":selected.max_build_bytes,"max_temp_bytes":selected.max_temp_bytes,"quota_scope":"outside-private-tmpfs-original-io"});
+    }
     let bytes = serde_json::to_vec(&ticket).map_err(|e| e.to_string())?;
     if bytes.len() > 8192 {
         return Err("private stage ticket bound8192 exceeded".into());
     }
     let fd = unsafe {
         libc::memfd_create(
-            if persistent.is_some() {
+            if search_cache.is_some() {
+                c"abyss_machine_private_tmpfs_stage_v3".as_ptr()
+            } else if persistent.is_some() {
                 c"abyss_machine_private_tmpfs_stage_v2".as_ptr()
             } else {
                 c"abyss_machine_private_tmpfs_stage_v1".as_ptr()
@@ -1435,11 +1851,30 @@ fn inner(o: &Options, i: &Inner) -> Result<i32, String> {
         return Err("actual consumer membership differs after self placement".into());
     }
     consumer_limits(&held, o.ram)?;
-    if o.sdk_phase_as.is_some() { phase_restore_consumer(o,i.control_auth.as_ref().ok_or("phase auth absent")?,o.control_fd.ok_or("phase FD absent")?,end)?; }
+    if o.sdk_phase_as.is_some() {
+        phase_restore_consumer(
+            o,
+            i.control_auth.as_ref().ok_or("phase auth absent")?,
+            o.control_fd.ok_or("phase FD absent")?,
+            end,
+        )?;
+    }
     drop(held);
     unsafe { libc::close(i.consumer_fd) };
     std::env::set_current_dir(&i.root).map_err(|e| e.to_string())?;
-    confine(&i.root, &fallbacks, persistent.as_ref())?;
+    confine(
+        &i.root,
+        &fallbacks,
+        persistent.as_ref(),
+        search_cache.as_ref(),
+    )?;
+    if let (Some(selected), Some(held)) = (&o.search_cache, &search_cache) {
+        selected.verify(held, &i.root)?;
+    }
+    // Exact issuer-held cache FD survives exec; compiler duplicates this FD from sealed ticket.
+    if let Some(raw) = i.search_cache_fd {
+        unsafe { libc::close(raw) };
+    }
     if let Some(held) = persistent.as_ref() {
         verify_persistent(
             o.persistent.as_ref().ok_or("persistent selection absent")?,
@@ -1465,6 +1900,13 @@ fn inner(o: &Options, i: &Inner) -> Result<i32, String> {
     if flags < 0 || unsafe { libc::fcntl(fd, libc::F_SETFD, flags & !libc::FD_CLOEXEC) } < 0 {
         return Err(error());
     }
+    if let Some(held) = search_cache.as_ref() {
+        let raw = held.as_raw_fd();
+        let flags = unsafe { libc::fcntl(raw, libc::F_GETFD) };
+        if flags < 0 || unsafe { libc::fcntl(raw, libc::F_SETFD, flags & !libc::FD_CLOEXEC) } < 0 {
+            return Err(error());
+        }
+    }
     if let (Some(control_fd), Some(auth)) = (o.control_fd, i.control_auth.as_ref()) {
         match_control(control_fd, auth, end)?;
         let flags = unsafe { libc::fcntl(control_fd, libc::F_GETFD) };
@@ -1474,10 +1916,24 @@ fn inner(o: &Options, i: &Inner) -> Result<i32, String> {
             return Err(error());
         }
     }
+    retained_fd_roles(o.retained_fds)?;
+    for fd in o.retained_fds.into_iter().flatten() {
+        let flags = unsafe { libc::fcntl(fd, libc::F_GETFD) };
+        if flags < 0 || unsafe { libc::fcntl(fd, libc::F_SETFD, flags & !libc::FD_CLOEXEC) } < 0 {
+            return Err(error());
+        }
+    }
     let mut command = Command::new(&o.command[0]);
     command
         .env_remove("ABYSS_CONSUMER_CONTROL_FD")
         .env_remove("ABYSS_CONSUMER_CONTROL_AUTH");
+    if let Some(held) = search_cache.as_ref() {
+        let raw = held.as_raw_fd();
+        let flags = unsafe { libc::fcntl(raw, libc::F_GETFD) };
+        if flags < 0 || unsafe { libc::fcntl(raw, libc::F_SETFD, flags & !libc::FD_CLOEXEC) } < 0 {
+            return Err(error());
+        }
+    }
     if let (Some(control_fd), Some(auth)) = (o.control_fd, i.control_auth.as_ref()) {
         command
             .env("ABYSS_CONSUMER_CONTROL_FD", control_fd.to_string())
@@ -1494,6 +1950,50 @@ fn inner(o: &Options, i: &Inner) -> Result<i32, String> {
         .env("SQLITE_TMPDIR", &temporary);
     Err(command.exec().to_string())
 }
+fn selected_direct_custody(
+    parent: Option<&str>,
+    original_mask: Option<&str>,
+    inner_flag: bool,
+) -> Result<Option<(libc::pid_t, libc::sigset_t)>, String> {
+    Ok(match (parent, original_mask) {
+        (None, None) => None,
+        (Some(parent), Some(csv)) if !inner_flag => {
+            let parent = parent
+                .parse::<libc::pid_t>()
+                .map_err(|_| "direct stage parent PID")?;
+            if parent <= 0 || csv.len() > 64 * 3 {
+                return Err("direct stage parent/mask outside original finite bound".into());
+            }
+            let mut mask: libc::sigset_t = unsafe { std::mem::zeroed() };
+            if unsafe { libc::sigemptyset(&mut mask) } != 0 {
+                return Err(std::io::Error::last_os_error().to_string());
+            }
+            if !csv.is_empty() {
+                let mut count = 0;
+                for field in csv.split(',') {
+                    count += 1;
+                    let signal = field
+                        .parse::<libc::c_int>()
+                        .map_err(|_| "direct stage original signal")?;
+                    if count > 64
+                        || !(1..=64).contains(&signal)
+                        || signal == libc::SIGKILL
+                        || signal == libc::SIGSTOP
+                        || unsafe { libc::sigismember(&mask, signal) } != 0
+                    {
+                        return Err("direct stage original signal mask malformed".into());
+                    }
+                    if unsafe { libc::sigaddset(&mut mask, signal) } != 0 {
+                        return Err(std::io::Error::last_os_error().to_string());
+                    }
+                }
+            }
+            Some((parent, mask))
+        }
+        _ => return Err("direct stage parent and mask require an outer paired selection".into()),
+    })
+}
+
 fn options(args: &[String]) -> Result<(Options, Option<Inner>), String> {
     if args.len() > ARGC + 40
         || args.iter().any(|s| s.len() > PATH_BYTES)
@@ -1534,6 +2034,15 @@ fn options(args: &[String]) -> Result<(Options, Option<Inner>), String> {
         .remove("--consumer-control-fd")
         .map(|v| v.parse::<i32>().map_err(|e| e.to_string()))
         .transpose()?;
+    let retained_fds = [
+        values.remove("--state-reply-fd"),
+        values.remove("--snapshot-state-fd"),
+    ]
+    .map(|v| {
+        v.map(|v| v.parse::<i32>().map_err(|e| e.to_string()))
+            .transpose()
+    });
+    let retained_fds = [retained_fds[0].clone()?, retained_fds[1].clone()?];
     let control_auth = values
         .remove("--control-auth")
         .map(|v| serde_json::from_str::<ControlAuth>(v).map_err(|e| e.to_string()))
@@ -1541,40 +2050,21 @@ fn options(args: &[String]) -> Result<(Options, Option<Inner>), String> {
     if !inner_flag && control_auth.is_some() {
         return Err("control metadata is internal namespace handoff only".into());
     }
-    let sdk_phase_as=phase_pair(values.remove("--sdk-setup-as-bytes"),values.remove("--sdk-guardian-state-bytes"))?;
+    let sdk_phase_as = phase_pair(
+        values.remove("--sdk-setup-as-bytes"),
+        values.remove("--sdk-guardian-state-bytes"),
+    )?;
     let parent = values.remove("--expected-parent-pid");
     let original_mask = values.remove("--restore-signal-mask");
-    let direct_custody = match (parent, original_mask) {
-        (None, None) => None,
-        (Some(parent), Some(csv)) if !inner_flag => {
-            let parent = parent.parse::<libc::pid_t>().map_err(|_| "direct stage parent PID")?;
-            if parent <= 0 || csv.len() > 64 * 3 {
-                return Err("direct stage parent/mask outside original finite bound".into());
-            }
-            let mut mask: libc::sigset_t = unsafe { std::mem::zeroed() };
-            if unsafe { libc::sigemptyset(&mut mask) } != 0 {
-                return Err(std::io::Error::last_os_error().to_string());
-            }
-            if !csv.is_empty() {
-                let mut count = 0;
-                for field in csv.split(',') {
-                    count += 1;
-                    let signal = field.parse::<libc::c_int>().map_err(|_| "direct stage original signal")?;
-                    if count > 64 || !(1..=64).contains(&signal)
-                        || signal == libc::SIGKILL || signal == libc::SIGSTOP
-                        || unsafe { libc::sigismember(&mask, signal) } != 0
-                    {
-                        return Err("direct stage original signal mask malformed".into());
-                    }
-                    if unsafe { libc::sigaddset(&mut mask, signal) } != 0 {
-                        return Err(std::io::Error::last_os_error().to_string());
-                    }
-                }
-            }
-            Some((parent, mask))
-        }
-        _ => return Err("direct stage parent and mask require an outer paired selection".into()),
-    };
+    let direct_custody = selected_direct_custody(parent, original_mask, inner_flag)?;
+    let search_cache = select_search_cache(&mut values)?;
+    let search_cache_fd = values
+        .remove("--search-cache-fd")
+        .map(|v| v.parse::<i32>().map_err(|e| e.to_string()))
+        .transpose()?;
+    if !inner_flag && search_cache_fd.is_some() {
+        return Err("search cache FD is issuer inner handoff only".into());
+    }
     let persistent = values.remove("--persistent-store").map(PathBuf::from);
     let persistent_fd = values
         .remove("--persistent-fd")
@@ -1601,7 +2091,9 @@ fn options(args: &[String]) -> Result<(Options, Option<Inner>), String> {
         original: n!("--work-deadline-ns"),
         shutdown_ms: n!("--maximum-shutdown-ms"),
         persistent,
+        search_cache,
         control_fd,
+        retained_fds,
         sdk_phase_as,
         direct_custody,
         command,
@@ -1612,6 +2104,7 @@ fn options(args: &[String]) -> Result<(Options, Option<Inner>), String> {
             setup: PathBuf::from(get("--setup-cgroup")?),
             consumer_fd: i32::try_from(n!("--consumer-fd")).map_err(|e| e.to_string())?,
             persistent_fd,
+            search_cache_fd,
             parent_mnt: n!("--parent-mount-namespace"),
             parent_net: n!("--parent-net-namespace"),
             host_uid: n!("--host-uid"),
@@ -1724,28 +2217,52 @@ fn sdk_no_children(path: &Path, end: Cutoff) -> Result<(), String> {
 // a finite inherited boundary; the subsequent guardian clamp stays lower-only.
 fn sdk_bootstrap_original_as(end: Cutoff) -> Result<(), String> {
     end.check()?;
-    let before=actual_as()?;let wanted=SDK_CONSUMER_BYTES as libc::rlim_t;
-    if (before.rlim_cur!=libc::RLIM_INFINITY && wanted>before.rlim_cur)
-        || (before.rlim_max!=libc::RLIM_INFINITY && wanted>before.rlim_max)
-    { return Err("SDK bootstrap original AS allowance would raise inherited boundary".into()); }
-    let selected=libc::rlimit { rlim_cur:wanted,rlim_max:wanted };
-    if unsafe { libc::setrlimit(libc::RLIMIT_AS,&selected) }!=0 { return Err(error()); }
-    let actual=actual_as()?;
-    if actual.rlim_cur!=wanted || actual.rlim_max!=wanted { return Err("SDK bootstrap original AS allowance drift".into()); }
+    let before = actual_as()?;
+    let wanted = SDK_CONSUMER_BYTES as libc::rlim_t;
+    if (before.rlim_cur != libc::RLIM_INFINITY && wanted > before.rlim_cur)
+        || (before.rlim_max != libc::RLIM_INFINITY && wanted > before.rlim_max)
+    {
+        return Err("SDK bootstrap original AS allowance would raise inherited boundary".into());
+    }
+    let selected = libc::rlimit {
+        rlim_cur: wanted,
+        rlim_max: wanted,
+    };
+    if unsafe { libc::setrlimit(libc::RLIMIT_AS, &selected) } != 0 {
+        return Err(error());
+    }
+    let actual = actual_as()?;
+    if actual.rlim_cur != wanted || actual.rlim_max != wanted {
+        return Err("SDK bootstrap original AS allowance drift".into());
+    }
     end.check()
 }
 fn sdk_child_limits(phase: Option<SdkPhaseAs>) -> std::io::Result<()> {
-    if let Some(p)=phase {
-        let mut old=unsafe { std::mem::zeroed::<libc::rlimit>() };
-        if unsafe { libc::getrlimit(libc::RLIMIT_AS,&mut old) }!=0 { return Err(std::io::Error::last_os_error()); }
-        if old.rlim_cur!=SDK_PHASE_ROLE as libc::rlim_t || old.rlim_max!=SDK_CONSUMER_BYTES as libc::rlim_t { return Err(std::io::Error::from_raw_os_error(libc::EPERM)); }
+    if let Some(p) = phase {
+        let mut old = unsafe { std::mem::zeroed::<libc::rlimit>() };
+        if unsafe { libc::getrlimit(libc::RLIMIT_AS, &mut old) } != 0 {
+            return Err(std::io::Error::last_os_error());
+        }
+        if old.rlim_cur != SDK_PHASE_ROLE as libc::rlim_t
+            || old.rlim_max != SDK_CONSUMER_BYTES as libc::rlim_t
+        {
+            return Err(std::io::Error::from_raw_os_error(libc::EPERM));
+        }
         // Sole fresh Python allowance selected by this genuine bootstrap, before imports.
-        let next=libc::rlimit { rlim_cur:p.setup_as_bytes as libc::rlim_t,rlim_max:old.rlim_max };
-        if unsafe { libc::setrlimit(libc::RLIMIT_AS,&next) }!=0 { return Err(std::io::Error::last_os_error()); }
+        let next = libc::rlimit {
+            rlim_cur: p.setup_as_bytes as libc::rlim_t,
+            rlim_max: old.rlim_max,
+        };
+        if unsafe { libc::setrlimit(libc::RLIMIT_AS, &next) } != 0 {
+            return Err(std::io::Error::last_os_error());
+        }
     }
 
     for (resource, upper) in [
-        (libc::RLIMIT_AS, phase.map_or(SDK_CONSUMER_BYTES,|p|p.setup_as_bytes)),
+        (
+            libc::RLIMIT_AS,
+            phase.map_or(SDK_CONSUMER_BYTES, |p| p.setup_as_bytes),
+        ),
         (libc::RLIMIT_FSIZE, 536_870_912),
     ] {
         let mut old = unsafe { std::mem::zeroed::<libc::rlimit>() };
@@ -1758,7 +2275,11 @@ fn sdk_child_limits(phase: Option<SdkPhaseAs>) -> std::io::Result<()> {
         {
             return Err(std::io::Error::from_raw_os_error(libc::EPERM));
         }
-        let hard=if resource==libc::RLIMIT_AS && phase.is_some() { old.rlim_max } else { wanted };
+        let hard = if resource == libc::RLIMIT_AS && phase.is_some() {
+            old.rlim_max
+        } else {
+            wanted
+        };
         let selected = libc::rlimit {
             rlim_cur: wanted,
             rlim_max: hard,
@@ -1804,8 +2325,16 @@ fn sdk_python_run(args: &[String]) -> Result<i32, String> {
                 | "--work-deadline-ns"
                 | "--maximum-shutdown-ms"
                 | "--persistent-store"
+                | "--search-cache-path"
+                | "--search-cache-source-root"
+                | "--search-cache-max-build-bytes"
+                | "--search-cache-max-temp-bytes"
                 | "--sdk-setup-as-bytes"
                 | "--sdk-guardian-state-bytes"
+                | "--ordinary-session-control-fd"
+                | "--sdk-native-consumer"
+                | "--state-reply-fd"
+                | "--snapshot-state-fd"
         ) || selected
             .insert(pair[0].as_str(), pair[1].as_str())
             .is_some()
@@ -1813,7 +2342,10 @@ fn sdk_python_run(args: &[String]) -> Result<i32, String> {
             return Err("unknown or repeated SDK option".into());
         }
     }
-    let sdk_phase_as=phase_pair(selected.get("--sdk-setup-as-bytes").copied(),selected.get("--sdk-guardian-state-bytes").copied())?;
+    let sdk_phase_as = phase_pair(
+        selected.get("--sdk-setup-as-bytes").copied(),
+        selected.get("--sdk-guardian-state-bytes").copied(),
+    )?;
     let get = |key: &str| {
         selected
             .get(key)
@@ -1903,6 +2435,20 @@ fn sdk_python_run(args: &[String]) -> Result<i32, String> {
     if fs::canonicalize(&unshare).map_err(|e| e.to_string())? != unshare || !unshare.is_file() {
         return Err("actual canonical unshare executable required".into());
     }
+    let mut cache_values = selected
+        .iter()
+        .filter(|(k, _)| k.starts_with("--search-cache-"))
+        .map(|(k, v)| (*k, *v))
+        .collect::<std::collections::BTreeMap<_, _>>();
+    let search_cache = select_search_cache(&mut cache_values)?;
+    if let Some(cache) = &search_cache {
+        let parent = cache.parent()?;
+        if parent.starts_with(&scratch) || scratch.starts_with(parent) {
+            return Err("search cache precreation scratch overlap".into());
+        }
+        let held = open_search_cache(cache)?;
+        cache.verify(&held, &scratch)?;
+    }
     let persistent = selected.get("--persistent-store").map(PathBuf::from);
     if let Some(path) = &persistent {
         let held = directory(path)?;
@@ -1936,7 +2482,23 @@ fn sdk_python_run(args: &[String]) -> Result<i32, String> {
         original,
         shutdown_ms: shutdown,
         persistent,
-        control_fd: None,
+        search_cache,
+        control_fd: selected
+            .get("--ordinary-session-control-fd")
+            .map(|v| v.parse::<i32>().map_err(|e| e.to_string()))
+            .transpose()?,
+        retained_fds: [
+            selected.get("--state-reply-fd"),
+            selected.get("--snapshot-state-fd"),
+        ]
+        .map(|v| {
+            v.map(|v| v.parse::<i32>().map_err(|e| e.to_string()))
+                .transpose()
+        })
+        .into_iter()
+        .collect::<Result<Vec<_>, _>>()?
+        .try_into()
+        .map_err(|_| "two retained FD roles")?,
         sdk_phase_as,
         direct_custody: None,
         command: args[split + 1..].to_vec(),
@@ -1990,16 +2552,28 @@ fn sdk_python_run(args: &[String]) -> Result<i32, String> {
             return Err("SDK consumer not empty".into());
         }
         drop(member(consumer_held, "cgroup.kill", true)?);
+        if o.control_fd.is_some() || selected.get("--sdk-native-consumer") == Some(&"true") {
+            return outer(&o);
+        }
         let mut config = serde_json::json!({"schema":"tos_sdk_stage_config_v1","setup_cgroup":setup,"consumer_cgroup":consumer,"scratch_parent":o.scratch,"unshare_exe":o.unshare,"original_whole_deadline_ns":original.to_string(),"original_work_deadline_ns":end.work.to_string(),"maximum_shutdown_ms":shutdown,"quota_bytes":o.quota,"inode_limit":o.inodes,"working_ram_bytes":o.ram,"aggregate_ram_bytes":SDK_SCOPE_BYTES,"swap_max_bytes":0});
         if let Some(path) = &o.persistent {
             config["persistent_store"] = serde_json::json!(path);
         }
-        if let Some(p)=sdk_phase_as { config["setup_as_bytes"]=serde_json::json!(p.setup_as_bytes);config["guardian_state_bytes"]=serde_json::json!(p.guardian_state_bytes); }
+        if let Some(cache) = &o.search_cache {
+            config["search_cache"] = serde_json::json!({"path":cache.path,"source_root":cache.source_root,"max_build_bytes":cache.max_build_bytes,"max_temp_bytes":cache.max_temp_bytes});
+        }
+        if let Some(p) = sdk_phase_as {
+            config["setup_as_bytes"] = serde_json::json!(p.setup_as_bytes);
+            config["guardian_state_bytes"] = serde_json::json!(p.guardian_state_bytes);
+        }
         let encoded = serde_json::to_string(&config).map_err(|e| e.to_string())?;
         if encoded.len() > 65536 {
             return Err("SDK stage configuration exceeds finite envelope".into());
         }
-        if sdk_phase_as.is_some() { sdk_bootstrap_original_as(end)?;guardian_as(SDK_PHASE_ROLE,end)?; }
+        if sdk_phase_as.is_some() {
+            sdk_bootstrap_original_as(end)?;
+            guardian_as(SDK_PHASE_ROLE, end)?;
+        }
         let mut command = Command::new(&o.command[0]);
         command
             .args(&o.command[1..])
@@ -2008,13 +2582,22 @@ fn sdk_python_run(args: &[String]) -> Result<i32, String> {
             .env_remove("ABYSS_STAGE_ROOT")
             .env_remove("ABYSS_CONSUMER_CONTROL_FD")
             .env_remove("ABYSS_CONSUMER_CONTROL_AUTH");
-        if let Some(p)=sdk_phase_as { command.env("TOS_SDK_SETUP_AS_BYTES",p.setup_as_bytes.to_string()).env("TOS_SDK_GUARDIAN_STATE_BYTES",p.guardian_state_bytes.to_string()).env("TOS_SDK_ORIGINAL_WORK_DEADLINE_NS",end.work.to_string()).env("TOS_SDK_ORIGINAL_WHOLE_DEADLINE_NS",end.whole.to_string()); }
+        if let Some(p) = sdk_phase_as {
+            command
+                .env("TOS_SDK_SETUP_AS_BYTES", p.setup_as_bytes.to_string())
+                .env(
+                    "TOS_SDK_GUARDIAN_STATE_BYTES",
+                    p.guardian_state_bytes.to_string(),
+                )
+                .env("TOS_SDK_ORIGINAL_WORK_DEADLINE_NS", end.work.to_string())
+                .env("TOS_SDK_ORIGINAL_WHOLE_DEADLINE_NS", end.whole.to_string());
+        }
         unsafe {
             command.pre_exec(move || sdk_child_limits(sdk_phase_as));
         }
         end.check()?;
         // No cgroup handle or stage ticket is inherited by the SDK entry.
-        let (mut leader, restoration) = Leader::spawn(command, -1, None, None)?;
+        let (mut leader, restoration) = Leader::spawn(command, -1, None, None, None, [None, None])?;
         let outcome = (|| -> Result<i32, String> {
             if let Some(e) = restoration {
                 return Err(e);
@@ -2087,8 +2670,515 @@ fn sdk_python_run(args: &[String]) -> Result<i32, String> {
     result
 }
 
+// Normal optional Abyss host admission for one ordinary SDK operation.
+// This request is not a Stage grant: the host and systemd issue real leases.
+fn host_command(
+    exe: &str,
+    args: &[String],
+    end: Cutoff,
+    cleanup_only: bool,
+) -> Result<Vec<u8>, String> {
+    use std::process::Stdio;
+    let mut c = Command::new(exe);
+    c.args(args)
+        .stdin(Stdio::null())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped());
+    let (mut leader, restore) = Leader::spawn(c, -1, None, None, None, [None, None])?;
+    let result = (|| {
+        if let Some(e) = restore {
+            return Err(e);
+        }
+        let mut out = leader.child.stdout.take().ok_or("host stdout absent")?;
+        let mut err = leader.child.stderr.take().ok_or("host stderr absent")?;
+        for fd in [out.as_raw_fd(), err.as_raw_fd()] {
+            let f = unsafe { libc::fcntl(fd, libc::F_GETFL) };
+            if f < 0 || unsafe { libc::fcntl(fd, libc::F_SETFL, f | libc::O_NONBLOCK) } < 0 {
+                return Err(error());
+            }
+        }
+        let mut bytes = Vec::new();
+        let mut errors = 0usize;
+        let mut output_eof = false;
+        let mut error_eof = false;
+        loop {
+            if cleanup_only {
+                end.cleanup_check()?
+            } else {
+                end.check()?
+            }
+            let mut buffer = [0u8; 4096];
+            for (stream, eof, save) in [
+                (&mut out as &mut dyn Read, &mut output_eof, true),
+                (&mut err as &mut dyn Read, &mut error_eof, false),
+            ] {
+                if *eof {
+                    continue;
+                }
+                match stream.read(&mut buffer) {
+                    Ok(0) => *eof = true,
+                    Ok(n) => {
+                        if save {
+                            if bytes.len() + n > 65536 {
+                                return Err("host response bound".into());
+                            }
+                            bytes.extend_from_slice(&buffer[..n])
+                        } else {
+                            errors += n;
+                            if errors > 65536 {
+                                return Err("host error response bound".into());
+                            }
+                        }
+                    }
+                    Err(e) if e.kind() == std::io::ErrorKind::WouldBlock => {}
+                    Err(e) if e.kind() == std::io::ErrorKind::Interrupted => {}
+                    Err(e) => return Err(e.to_string()),
+                }
+            }
+            if let Some(code) = leader.exited()? {
+                if output_eof && error_eof {
+                    if code != 0 {
+                        return Err(format!("host command refused ({code})"));
+                    }
+                    return Ok(bytes);
+                }
+            }
+            thread::sleep(Duration::from_millis(2));
+        }
+    })();
+    let closed = (|| {
+        if leader.live_group(end)? {
+            leader.signal()?;
+        }
+        while leader.live_group(end)? {
+            end.cleanup_check()?;
+            thread::sleep(Duration::from_millis(2));
+        }
+        leader.child.wait().map_err(|e| e.to_string())?;
+        leader.reaped = true;
+        Ok::<(), String>(())
+    })();
+    match (result, closed) {
+        (Ok(b), Ok(())) => Ok(b),
+        (Err(a), Ok(())) => Err(a),
+        (Ok(_), Err(b)) => Err(format!("host child cleanup: {b}")),
+        (Err(a), Err(b)) => Err(format!("host request {a}; child cleanup {b}")),
+    }
+}
+fn host_json(
+    exe: &str,
+    args: &[String],
+    end: Cutoff,
+    cleanup_only: bool,
+) -> Result<serde_json::Value, String> {
+    let j: serde_json::Value = serde_json::from_slice(&host_command(exe, args, end, cleanup_only)?)
+        .map_err(|e| e.to_string())?;
+    if j["ok"] != true {
+        return Err(format!("normal host owner refused: {}", j["decision"]));
+    }
+    Ok(j)
+}
+fn host_admission(
+    payload: serde_json::Value,
+    end: Cutoff,
+    cleanup_only: bool,
+) -> Result<serde_json::Value, String> {
+    use std::net::Shutdown;
+    use std::os::unix::net::UnixStream;
+    let path = PathBuf::from(format!(
+        "/run/user/{}/abyss-machine/resource/admission.sock",
+        unsafe { libc::geteuid() }
+    ));
+    let meta =
+        fs::symlink_metadata(&path).map_err(|_| "normal host runtime admission unavailable")?;
+    if meta.uid() != unsafe { libc::geteuid() } || meta.mode() & 0o077 != 0 {
+        return Err("host admission socket owner differs".into());
+    }
+    let mut s = UnixStream::connect(&path).map_err(|e| e.to_string())?;
+    let mut credentials = unsafe { std::mem::zeroed::<libc::ucred>() };
+    let mut size = std::mem::size_of::<libc::ucred>() as libc::socklen_t;
+    if unsafe {
+        libc::getsockopt(
+            s.as_raw_fd(),
+            libc::SOL_SOCKET,
+            libc::SO_PEERCRED,
+            &mut credentials as *mut _ as *mut _,
+            &mut size,
+        )
+    } != 0
+        || credentials.uid != unsafe { libc::geteuid() }
+    {
+        return Err("host admission peer differs".into());
+    }
+    let remaining = (if cleanup_only { end.whole } else { end.work })
+        .checked_sub(clock_ns()?)
+        .ok_or("original host cutoff")?;
+    s.set_read_timeout(Some(Duration::from_nanos(remaining)))
+        .map_err(|e| e.to_string())?;
+    s.set_write_timeout(Some(Duration::from_nanos(remaining)))
+        .map_err(|e| e.to_string())?;
+    let mut encoded = serde_json::to_vec(&payload).map_err(|e| e.to_string())?;
+    if encoded.len() > 65535 {
+        return Err("host request bound".into());
+    }
+    encoded.push(b'\n');
+    s.write_all(&encoded).map_err(|e| e.to_string())?;
+    s.shutdown(Shutdown::Write).map_err(|e| e.to_string())?;
+    let mut response = Vec::new();
+    s.take(65537)
+        .read_to_end(&mut response)
+        .map_err(|e| e.to_string())?;
+    end.cleanup_check()?;
+    if response.len() > 65536 {
+        return Err("host admission response bound".into());
+    }
+    let j: serde_json::Value = serde_json::from_slice(&response).map_err(|e| e.to_string())?;
+    if j["ok"] != true {
+        return Err(format!("normal host admission refused: {}", j["decision"]));
+    }
+    Ok(j)
+}
+fn sdk_host_session(args: &[String]) -> Result<i32, String> {
+    if args.len() > 17
+        || args.len() < 11
+        || args[1] != "--expected-parent-pid"
+        || args[3] != "--restore-signal-mask"
+        || args.iter().any(|v| v.len() > PATH_BYTES)
+    {
+        return Err("normal SDK original parent custody required".into());
+    }
+    let custody = selected_direct_custody(Some(&args[2]), Some(&args[4]), false)?
+        .ok_or("direct native custody absent")?;
+    apply_direct_custody(custody.0, &custody.1)?;
+    let mut selected = std::collections::BTreeMap::new();
+    for pair in args[5..].chunks_exact(2) {
+        if !matches!(
+            pair[0].as_str(),
+            "--root"
+                | "--consumer-control-fd"
+                | "--work-deadline-ns"
+                | "--snapshot-operation"
+                | "--state-reply-fd"
+                | "--snapshot-state-fd"
+        ) || selected
+            .insert(pair[0].as_str(), pair[1].as_str())
+            .is_some()
+        {
+            return Err("unknown or repeated host session selector".into());
+        }
+    }
+    if (args.len() - 5) % 2 != 0 {
+        return Err("host selector pairs required".into());
+    }
+    let get = |k: &str| {
+        selected
+            .get(k)
+            .copied()
+            .ok_or_else(|| format!("missing host selector {k}"))
+    };
+    let root = PathBuf::from(get("--root")?);
+    path_shape(&root)?;
+    let control = selected
+        .get("--consumer-control-fd")
+        .map(|v| v.parse::<i32>().map_err(|e| e.to_string()))
+        .transpose()?;
+    if control.is_some_and(|fd| fd < 3) {
+        return Err("original session control FD required".into());
+    }
+    let retained_fds = [
+        selected.get("--state-reply-fd"),
+        selected.get("--snapshot-state-fd"),
+    ]
+    .map(|v| {
+        v.map(|v| v.parse::<i32>().map_err(|e| e.to_string()))
+            .transpose()
+    });
+    let retained_fds = [retained_fds[0].clone()?, retained_fds[1].clone()?];
+    retained_fd_roles(retained_fds)?;
+    let operation = selected.get("--snapshot-operation").copied();
+    if control.is_some() {
+        if operation.is_some() || retained_fds.iter().any(Option::is_some) {
+            return Err("session and retained roles are distinct".into());
+        }
+    } else if !matches!(
+        operation,
+        Some(
+            "tos_knowledge_graph"
+                | "tos_knowledge_snapshot"
+                | "tos_knowledge_graph_addressed"
+                | "tos_knowledge_snapshot_once"
+        )
+    ) {
+        return Err("native retained operation unavailable".into());
+    }
+    let original = get("--work-deadline-ns")?
+        .parse::<u64>()
+        .map_err(|e| e.to_string())?;
+    let end = Cutoff::select(original, 5000)?;
+    if original
+        .checked_sub(clock_ns()?)
+        .is_none_or(|n| n > 50_000_000_000)
+    {
+        return Err("ordinary operation original whole exceeds50s".into());
+    }
+    let _signals = SignalGuard::install()?;
+    let uuid = kernel(Path::new("/proc/sys/kernel/random/uuid"), 64, 1, 64)?
+        .trim()
+        .to_string();
+    if uuid.len() != 36 {
+        return Err("host UUID unavailable".into());
+    }
+    let scope = format!("tos-sdk-session-{uuid}.scope");
+    let scratch = PathBuf::from(format!("/srv/abyss-machine/tmp/{scope}"));
+    let host = ["/usr/local/bin/abyss-machine", "/usr/bin/abyss-machine"]
+        .into_iter()
+        .find(|p| Path::new(p).is_file())
+        .ok_or("normal Abyss host owner unavailable")?;
+    let mut lease: Option<String> = None;
+    let mut storage = false;
+    let mut created = false;
+    let result = (|| {
+        end.check()?;
+        // Systemd owns creation/delegation. Only this fresh native child moves.
+        let remaining = end
+            .work
+            .checked_sub(
+                clock_ns()?
+                    .checked_add(1_000_000_000)
+                    .ok_or("scope clock overflow")?,
+            )
+            .ok_or("original scope startup reserve")?
+            / 1000;
+        let busargs = vec![
+            "--user".into(),
+            "--timeout=1s".into(),
+            "call".into(),
+            "org.freedesktop.systemd1".into(),
+            "/org/freedesktop/systemd1".into(),
+            "org.freedesktop.systemd1.Manager".into(),
+            "StartTransientUnit".into(),
+            "ssa(sv)a(sa(sv))".into(),
+            scope.clone(),
+            "fail".into(),
+            "9".into(),
+            "PIDs".into(),
+            "au".into(),
+            "1".into(),
+            std::process::id().to_string(),
+            "Delegate".into(),
+            "b".into(),
+            "true".into(),
+            "MemoryMax".into(),
+            "t".into(),
+            SDK_SCOPE_BYTES.to_string(),
+            "MemorySwapMax".into(),
+            "t".into(),
+            "0".into(),
+            "RuntimeMaxUSec".into(),
+            "t".into(),
+            remaining.to_string(),
+            "RuntimeRandomizedExtraUSec".into(),
+            "t".into(),
+            "0".into(),
+            "TimeoutStopUSec".into(),
+            "t".into(),
+            "5000000".into(),
+            "KillMode".into(),
+            "s".into(),
+            "control-group".into(),
+            "SendSIGKILL".into(),
+            "b".into(),
+            "true".into(),
+            "0".into(),
+        ];
+        host_command("/usr/bin/busctl", &busargs, end, false)?;
+        let common = loop {
+            end.check()?;
+            let candidate = membership()?;
+            if candidate.file_name().and_then(OsStr::to_str) == Some(scope.as_str()) {
+                break candidate;
+            }
+            thread::sleep(Duration::from_millis(5));
+        };
+        let cgroup = common
+            .strip_prefix("/sys/fs/cgroup")
+            .map_err(|e| e.to_string())?
+            .to_str()
+            .ok_or("cgroup text")?;
+        let grant = host_admission(
+            serde_json::json!({"command":"reserve","request":{"operation":"workload_start","owner":"tos-access-sdk","workload_id":scope,"request_id":uuid,"release_token":uuid,"activity":"foreground","class":"medium","kind":"generic","memory_demand_mib":3840,"estimate_source":"native_ordinary_sdk_scope_profile","estimate_confidence":"bounded","owner_pid":std::process::id(),"owner_cgroup":cgroup,"recoverability":"preserve"}}),
+            end,
+            false,
+        )?;
+        if grant["lease"]["owner_pid"] != std::process::id()
+            || grant["lease"]["owner_cgroup"] != cgroup
+            || grant["lease"]["owner"] != "tos-access-sdk"
+            || grant["lease"]["workload_id"] != scope
+        {
+            return Err("host issued lease binding differs".into());
+        }
+        lease = Some(
+            grant["lease"]["id"]
+                .as_str()
+                .ok_or("host lease identity absent")?
+                .to_string(),
+        );
+        end.check()?;
+        let preflight = host_json(
+            host,
+            &vec![
+                "storage".into(),
+                "write-preflight".into(),
+                "--kind".into(),
+                "tmp".into(),
+                "--bytes".into(),
+                "65536".into(),
+                "--target".into(),
+                scratch.display().to_string(),
+                "--json".into(),
+            ],
+            end,
+            false,
+        )?;
+        if preflight["decision"] != "allow"
+            || preflight["strict_write_decision"] != "allow"
+            || preflight["write_permission"] != true
+        {
+            return Err("normal storage preflight refused".into());
+        }
+        host_json(
+            host,
+            &vec![
+                "storage".into(),
+                "write-reservation".into(),
+                "acquire".into(),
+                "--reservation-id".into(),
+                scope.clone(),
+                "--kind".into(),
+                "tmp".into(),
+                "--bytes".into(),
+                "65536".into(),
+                "--target".into(),
+                scratch.display().to_string(),
+                "--owner".into(),
+                "tos-access-sdk".into(),
+                "--ttl-seconds".into(),
+                "60".into(),
+                "--json".into(),
+            ],
+            end,
+            false,
+        )?;
+        storage = true;
+        DirBuilder::new()
+            .mode(0o700)
+            .create(&scratch)
+            .map_err(|e| e.to_string())?;
+        created = true;
+        let mut argv = vec![
+            "sdk-python-run".into(),
+            "--scope-name".into(),
+            scope.clone(),
+            "--scratch-parent".into(),
+            scratch.display().to_string(),
+            "--unshare-exe".into(),
+            "/usr/bin/unshare".into(),
+            "--work-deadline-ns".into(),
+            original.to_string(),
+            "--maximum-shutdown-ms".into(),
+            "5000".into(),
+            "--sdk-native-consumer".into(),
+            "true".into(),
+        ];
+        if let Some(fd) = control {
+            argv.extend(["--ordinary-session-control-fd".into(), fd.to_string()]);
+        }
+        for (key, fd) in ["--state-reply-fd", "--snapshot-state-fd"]
+            .into_iter()
+            .zip(retained_fds)
+        {
+            if let Some(fd) = fd {
+                argv.extend([key.into(), fd.to_string()]);
+            }
+        }
+        argv.extend([
+            "--".into(),
+            "/proc/self/exe".into(),
+            "native-process-exec".into(),
+            "--address-space-bytes".into(),
+            SDK_CONSUMER_BYTES.to_string(),
+            "--file-size-bytes".into(),
+            SDK_SETUP_BYTES.to_string(),
+            "--".into(),
+            "core-snapshot".into(),
+            "--root".into(),
+            root.display().to_string(),
+            "--operation".into(),
+            operation.unwrap_or("tos_native_ordinary_session").into(),
+            "--work-deadline-ns".into(),
+            end.work.to_string(),
+        ]);
+        if let Some(fd) = control {
+            argv.extend(["--session-control-fd".into(), fd.to_string()]);
+        } else {
+            argv.push("--native-ordinary-startup".into());
+        }
+        for (key, fd) in ["--state-reply-fd", "--snapshot-state-fd"]
+            .into_iter()
+            .zip(retained_fds)
+        {
+            if let Some(fd) = fd {
+                argv.extend([key.into(), fd.to_string()]);
+            }
+        }
+        sdk_python_run(&argv)
+    })();
+    let closed = (|| {
+        end.cleanup_check()?;
+        if created {
+            fs::remove_dir(&scratch).map_err(|e| format!("owned scratch cleanup: {e}"))?;
+        }
+        if storage {
+            host_json(
+                host,
+                &vec![
+                    "storage".into(),
+                    "write-reservation".into(),
+                    "release".into(),
+                    "--reservation-id".into(),
+                    scope.clone(),
+                    "--json".into(),
+                ],
+                end,
+                true,
+            )?;
+        }
+        if let Some(id) = lease {
+            host_admission(
+                serde_json::json!({"command":"release","request":{"lease_id":id,"release_token":uuid}}),
+                end,
+                true,
+            )?;
+        }
+        Ok::<(), String>(())
+    })();
+    match (result, closed) {
+        (Ok(code), Ok(())) => Ok(code),
+        (a, b) => Err(format!("ordinary host session {a:?}; cleanup {b:?}")),
+    }
+}
+
 /// CLI owns process-global signal handling and a genuine OS stage lifetime.
 pub fn run_if_requested(args: &[String]) -> Option<i32> {
+    if args.first().map(String::as_str) == Some("sdk-host-session") {
+        return Some(match sdk_host_session(args) {
+            Ok(code) => code,
+            Err(e) => {
+                eprintln!("ordinary SDK host session refused: {e}");
+                125
+            }
+        });
+    }
     if args.first().map(String::as_str) == Some("sdk-python-run") {
         return Some(match sdk_python_run(args) {
             Ok(code) => code,

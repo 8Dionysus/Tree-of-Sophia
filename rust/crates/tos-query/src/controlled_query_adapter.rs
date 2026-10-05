@@ -6,7 +6,9 @@
 //! escape.
 
 use tos_compiler::{
-    ControlledKnowledgeModel, ControlledSearchKind, Error as CompilerError, QueryVocabulary,
+    ControlledGramStat, ControlledKnowledgeModel, ControlledPostingPage, ControlledSearchCandidate,
+    ControlledSearchKind, ControlledSidecarModel, Error as CompilerError,
+    KnowledgeSelectedExpectation, KnowledgeSourceBasis, QueryVocabulary,
 };
 use tos_foundation::{JsonValue, OwnedState};
 
@@ -70,7 +72,146 @@ fn controlled_kind(kind: SearchKind) -> ControlledSearchKind {
     }
 }
 
-impl SearchGramModel for ControlledKnowledgeModel<'_, '_, '_> {
+/// Query-owned narrow reader seam for the two compiler-issued controlled
+/// carriers. The compiler remains independent of QRY and never receives a
+/// query trait or ranking policy from this crate.
+trait ControlledSearchSource {
+    fn source_check_pin(&self) -> tos_compiler::Result<()>;
+    fn source_charge_query_work(&self, bytes: usize) -> tos_compiler::Result<()>;
+    fn source_check_open_vm_admission(&self, maximum: u64) -> tos_compiler::Result<()>;
+    fn selected_expectation(&self) -> &KnowledgeSelectedExpectation;
+    fn source_basis(&self) -> &KnowledgeSourceBasis;
+    fn search_index_profile(&self) -> &str;
+    fn source_gram_stat(
+        &mut self,
+        kind: ControlledSearchKind,
+        gram: &str,
+        vm: u64,
+        rows: u64,
+        decoded: u64,
+    ) -> tos_compiler::Result<ControlledGramStat>;
+    fn source_seek_postings(
+        &mut self,
+        kind: ControlledSearchKind,
+        gram: &str,
+        after: Option<u64>,
+        rows: usize,
+        vm: u64,
+        decoded: u64,
+    ) -> tos_compiler::Result<ControlledPostingPage>;
+    fn source_exact_candidate(
+        &mut self,
+        kind: ControlledSearchKind,
+        position: u64,
+        budget: CandidateReadBudget,
+    ) -> tos_compiler::Result<ControlledSearchCandidate>;
+    fn with_query_workspace(
+        &mut self,
+        bytes: usize,
+        operation: impl FnOnce(&mut Self) -> tos_compiler::Result<()>,
+    ) -> tos_compiler::Result<()>;
+    fn with_binding_workspace(
+        &mut self,
+        vocabulary: &QueryVocabulary,
+        descriptor: &[u8],
+        operation: impl for<'value> FnOnce(
+            &mut Self,
+            &'value JsonValue,
+        ) -> tos_compiler::Result<()>,
+    ) -> tos_compiler::Result<()>;
+}
+
+macro_rules! impl_controlled_search_source {
+    ($model:ident<$($lifetime:lifetime),+>) => {
+        impl<$($lifetime),+> ControlledSearchSource for $model<$($lifetime),+> {
+            fn source_check_pin(&self) -> tos_compiler::Result<()> {
+                self.check_pin()
+            }
+            fn source_charge_query_work(&self, bytes: usize) -> tos_compiler::Result<()> {
+                self.charge_query_work(bytes)
+            }
+            fn source_check_open_vm_admission(&self, maximum: u64) -> tos_compiler::Result<()> {
+                self.check_query_open_vm_admission(maximum)
+            }
+            fn selected_expectation(&self) -> &KnowledgeSelectedExpectation {
+                self.selection()
+            }
+            fn source_basis(&self) -> &KnowledgeSourceBasis {
+                self.source_basis()
+            }
+            fn search_index_profile(&self) -> &str {
+                self.search_index_profile()
+            }
+            fn source_gram_stat(
+                &mut self,
+                kind: ControlledSearchKind,
+                gram: &str,
+                vm: u64,
+                rows: u64,
+                decoded: u64,
+            ) -> tos_compiler::Result<ControlledGramStat> {
+                self.gram_stat(kind, gram, vm, rows, decoded)
+            }
+            fn source_seek_postings(
+                &mut self,
+                kind: ControlledSearchKind,
+                gram: &str,
+                after: Option<u64>,
+                rows: usize,
+                vm: u64,
+                decoded: u64,
+            ) -> tos_compiler::Result<ControlledPostingPage> {
+                self.seek_postings(kind, gram, after, rows, vm, decoded)
+            }
+            fn source_exact_candidate(
+                &mut self,
+                kind: ControlledSearchKind,
+                position: u64,
+                budget: CandidateReadBudget,
+            ) -> tos_compiler::Result<ControlledSearchCandidate> {
+                self.exact_candidate(
+                    kind,
+                    position,
+                    budget.max_vm_steps,
+                    budget.max_decoded_bytes,
+                    budget.max_payload_bytes,
+                    budget.max_field_bytes,
+                    budget.max_document_chars,
+                )
+            }
+            fn with_query_workspace(
+                &mut self,
+                bytes: usize,
+                operation: impl FnOnce(&mut Self) -> tos_compiler::Result<()>,
+            ) -> tos_compiler::Result<()> {
+                self.with_owned_query_workspace(bytes, operation)
+            }
+            fn with_binding_workspace(
+                &mut self,
+                vocabulary: &QueryVocabulary,
+                descriptor: &[u8],
+                operation: impl for<'value> FnOnce(
+                    &mut Self,
+                    &'value JsonValue,
+                ) -> tos_compiler::Result<()>,
+            ) -> tos_compiler::Result<()> {
+                self.with_owned_binding_workspace(vocabulary, descriptor, operation)
+            }
+        }
+    };
+}
+
+impl_controlled_search_source!(ControlledKnowledgeModel<'model, 'state, 'budget>);
+impl_controlled_search_source!(ControlledSidecarModel<'borrow, 'model, 'state, 'budget>);
+
+/// Thin QRY-owned adapter lets the maintained kernel use either authentic
+/// compiler reader without duplicating posting admission, candidate ranking,
+/// page assembly, cursor, response, or disclosure semantics.
+struct ControlledSearchAdapter<'source, M> {
+    source: &'source mut M,
+}
+
+impl<M: ControlledSearchSource> SearchGramModel for ControlledSearchAdapter<'_, M> {
     fn gram_stat(
         &mut self,
         kind: SearchKind,
@@ -79,15 +220,16 @@ impl SearchGramModel for ControlledKnowledgeModel<'_, '_, '_> {
         max_rows: u64,
         max_decoded_bytes: u64,
     ) -> Result<GramStat, SearchV2Error> {
-        let stat = ControlledKnowledgeModel::gram_stat(
-            self,
-            controlled_kind(kind),
-            gram,
-            max_vm_steps,
-            max_rows,
-            max_decoded_bytes,
-        )
-        .map_err(compiler_query_error)?;
+        let stat = self
+            .source
+            .source_gram_stat(
+                controlled_kind(kind),
+                gram,
+                max_vm_steps,
+                max_rows,
+                max_decoded_bytes,
+            )
+            .map_err(compiler_query_error)?;
         Ok(GramStat {
             postings: stat.postings,
             charged: GramSeekCharge {
@@ -100,7 +242,7 @@ impl SearchGramModel for ControlledKnowledgeModel<'_, '_, '_> {
     }
 }
 
-impl SearchPostingModel for ControlledKnowledgeModel<'_, '_, '_> {
+impl<M: ControlledSearchSource> SearchPostingModel for ControlledSearchAdapter<'_, M> {
     fn seek_postings(
         &mut self,
         kind: SearchKind,
@@ -110,16 +252,17 @@ impl SearchPostingModel for ControlledKnowledgeModel<'_, '_, '_> {
         max_vm_steps: u64,
         max_decoded_bytes: u64,
     ) -> Result<PostingPage, SearchV2Error> {
-        let page = ControlledKnowledgeModel::seek_postings(
-            self,
-            controlled_kind(kind),
-            gram,
-            after,
-            max_rows,
-            max_vm_steps,
-            max_decoded_bytes,
-        )
-        .map_err(compiler_query_error)?;
+        let page = self
+            .source
+            .source_seek_postings(
+                controlled_kind(kind),
+                gram,
+                after,
+                max_rows,
+                max_vm_steps,
+                max_decoded_bytes,
+            )
+            .map_err(compiler_query_error)?;
         Ok(PostingPage {
             positions: page.positions,
             exhausted: page.exhausted,
@@ -133,24 +276,17 @@ impl SearchPostingModel for ControlledKnowledgeModel<'_, '_, '_> {
     }
 }
 
-impl SearchCandidateModel for ControlledKnowledgeModel<'_, '_, '_> {
+impl<M: ControlledSearchSource> SearchCandidateModel for ControlledSearchAdapter<'_, M> {
     fn exact_candidate(
         &mut self,
         kind: SearchKind,
         position: u64,
         budget: CandidateReadBudget,
     ) -> Result<(SelectedSearchCandidate, CandidateReadCharge), SearchV2Error> {
-        let candidate = ControlledKnowledgeModel::exact_candidate(
-            self,
-            controlled_kind(kind),
-            position,
-            budget.max_vm_steps,
-            budget.max_decoded_bytes,
-            budget.max_payload_bytes,
-            budget.max_field_bytes,
-            budget.max_document_chars,
-        )
-        .map_err(compiler_query_error)?;
+        let candidate = self
+            .source
+            .source_exact_candidate(controlled_kind(kind), position, budget)
+            .map_err(compiler_query_error)?;
         let charge = CandidateReadCharge {
             vm_steps: candidate.vm_steps,
             rows: candidate.rows,
@@ -178,15 +314,61 @@ impl SearchCandidateModel for ControlledKnowledgeModel<'_, '_, '_> {
     }
 }
 
-impl IndexedSearchModel for ControlledKnowledgeModel<'_, '_, '_> {
+impl<M: ControlledSearchSource> IndexedSearchModel for ControlledSearchAdapter<'_, M> {
     fn check_bound(&self, bound: &BoundCmpKnowledge<'_>) -> Result<(), SearchV2Error> {
-        bound.check_controlled_model(self)
+        self.source
+            .source_check_pin()
+            .map_err(|_| error(SearchV2ErrorCode::StaleSelection, "selected controlled knowledge pin changed"))?;
+        bound.check_controlled_source_parts(
+            self.source.selected_expectation(),
+            self.source.source_basis(),
+            self.source.search_index_profile(),
+        )
     }
 
     fn check_open_vm_budget(&self, maximum: u64) -> Result<(), SearchV2Error> {
-        ControlledKnowledgeModel::check_query_open_vm_admission(self, maximum)
+        self.source
+            .source_check_open_vm_admission(maximum)
             .map_err(compiler_query_error)
     }
+}
+
+fn with_controlled_binding<M: ControlledSearchSource>(
+    model: &mut M,
+    vocabulary: &QueryVocabulary,
+    authored_descriptor: &[u8],
+    consume: impl FnOnce(&mut M, &BoundCmpKnowledge<'_>) -> tos_compiler::Result<()>,
+) -> tos_compiler::Result<()> {
+    let mut callback_result = None;
+    let workspace_result = model.with_binding_workspace(
+        vocabulary,
+        authored_descriptor,
+        |model, descriptor| {
+            callback_result = Some((|| {
+                model.source_check_pin()?;
+                let bound = bind_controlled_knowledge_from_parts(
+                    model.selected_expectation(),
+                    model.source_basis(),
+                    model.search_index_profile(),
+                    vocabulary,
+                    descriptor,
+                )
+                .map_err(|_| CompilerError::Invalid("controlled semantic binding refused"))?;
+                let result = consume(model, &bound);
+                let pin_result = model.source_check_pin();
+                result?;
+                pin_result?;
+                Ok(())
+            })());
+            Ok(())
+        },
+    );
+    let pin_result = model.source_check_pin();
+    workspace_result?;
+    pin_result?;
+    callback_result.unwrap_or(Err(CompilerError::Invalid(
+        "controlled binding callback did not run",
+    )))
 }
 
 /// Bind once within a compiler-derived reservation. Both the descriptor parse
@@ -201,11 +383,21 @@ pub fn with_controlled_knowledge_binding(
         &BoundCmpKnowledge<'_>,
     ) -> tos_compiler::Result<()>,
 ) -> tos_compiler::Result<()> {
-    model.with_owned_binding_workspace(vocabulary, authored_descriptor, |model, descriptor| {
-        let bound = bind_controlled_knowledge_from_parts(model, vocabulary, descriptor)
-            .map_err(|_| CompilerError::Invalid("controlled semantic binding refused"))?;
-        consume(model, &bound)
-    })
+    with_controlled_binding(model, vocabulary, authored_descriptor, consume)
+}
+
+/// Sidecar-backed counterpart to the source-only binding seam. It retains the
+/// same compiler-owned descriptor/state hold and cache/source fences.
+pub fn with_controlled_sidecar_knowledge_binding(
+    model: &mut ControlledSidecarModel<'_, '_, '_, '_>,
+    vocabulary: &QueryVocabulary,
+    authored_descriptor: &[u8],
+    consume: impl FnOnce(
+        &mut ControlledSidecarModel<'_, '_, '_, '_>,
+        &BoundCmpKnowledge<'_>,
+    ) -> tos_compiler::Result<()>,
+) -> tos_compiler::Result<()> {
+    with_controlled_binding(model, vocabulary, authored_descriptor, consume)
 }
 
 fn request_strings(
@@ -414,16 +606,72 @@ where
     C: IndexedWireCursorCodec,
     A: ScopedIndexedKnowledgeAuthority<'hold> + ?Sized,
 {
+    execute_controlled_indexed_search_response(
+        model,
+        bound,
+        authority,
+        request_value,
+        supplied_cursor,
+        budget,
+        cursor_factory,
+        deliver,
+    )
+}
+
+/// Execute the same maintained indexed-v2 kernel over the borrowed cache
+/// reader. Ranking, candidate verification, response and disclosure semantics
+/// remain shared with the source-only controlled model path.
+pub fn execute_scoped_controlled_sidecar_indexed_search_response<'hold, C, A>(
+    model: &mut ControlledSidecarModel<'_, '_, '_, '_>,
+    bound: &BoundCmpKnowledge<'_>,
+    authority: &'hold mut A,
+    request_value: &JsonValue,
+    supplied_cursor: Option<&str>,
+    budget: crate::IndexedPageBudget,
+    cursor_factory: impl FnOnce(SearchContinuationState, &str) -> Result<C, SearchV2Error>,
+    deliver: impl FnOnce(&[u8]) -> Result<(), SearchV2Error>,
+) -> Result<(), SearchV2Error>
+where
+    C: IndexedWireCursorCodec,
+    A: ScopedIndexedKnowledgeAuthority<'hold> + ?Sized,
+{
+    execute_controlled_indexed_search_response(
+        model,
+        bound,
+        authority,
+        request_value,
+        supplied_cursor,
+        budget,
+        cursor_factory,
+        deliver,
+    )
+}
+
+fn execute_controlled_indexed_search_response<'hold, M, C, A>(
+    model: &mut M,
+    bound: &BoundCmpKnowledge<'_>,
+    authority: &'hold mut A,
+    request_value: &JsonValue,
+    supplied_cursor: Option<&str>,
+    budget: crate::IndexedPageBudget,
+    cursor_factory: impl FnOnce(SearchContinuationState, &str) -> Result<C, SearchV2Error>,
+    deliver: impl FnOnce(&[u8]) -> Result<(), SearchV2Error>,
+) -> Result<(), SearchV2Error>
+where
+    M: ControlledSearchSource,
+    C: IndexedWireCursorCodec,
+    A: ScopedIndexedKnowledgeAuthority<'hold> + ?Sized,
+{
     let forecast = query_workspace_upper_bound(request_value, bound, budget)?;
     let request_heap = request_value.owned_heap_bytes().map_err(|_| {
         error(SearchV2ErrorCode::BudgetExceeded, "indexed request work geometry unavailable")
     })?;
-    model.check_pin().map_err(compiler_query_error)?;
+    model.source_check_pin().map_err(compiler_query_error)?;
     let mut query_result = None;
     model
-        .with_owned_query_workspace(forecast, |model| {
+        .with_query_workspace(forecast, |model| {
             query_result = Some((|| {
-                model.charge_query_work(request_heap).map_err(compiler_query_error)?;
+                model.source_charge_query_work(request_heap).map_err(compiler_query_error)?;
                 let (request, cursor_in) = parse_request(
                     request_value,
                     supplied_cursor,
@@ -438,8 +686,9 @@ where
                     bound,
                 )?;
                 let mut codec = cursor_factory(initial, bound.owner_receipt_id())?;
+                let mut adapter = ControlledSearchAdapter { source: model };
                 let mut packet = execute_scoped_indexed_search_page_normalized(
-                    model,
+                    &mut adapter,
                     bound,
                     authority,
                     &mut codec,
@@ -448,6 +697,7 @@ where
                     cursor_in,
                     budget,
                 )?;
+                drop(adapter);
                 packet.recheck()?;
                 let work = usize::try_from(packet.work_bytes()).map_err(|_| {
                     error(
@@ -455,7 +705,7 @@ where
                         "controlled QRY work exceeds address space",
                     )
                 })?;
-                model.charge_query_work(work).map_err(compiler_query_error)?;
+                model.source_charge_query_work(work).map_err(compiler_query_error)?;
                 let (body, mut lease) = packet.into_parts();
                 lease.recheck()?;
                 deliver(&body)?;

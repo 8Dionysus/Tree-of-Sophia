@@ -1,4 +1,6 @@
 //! Private native Core transport. Every limit and selected source is supplied by the caller.
+#[path="ordinary_search_cache.rs"]
+mod ordinary_search_cache;
 #[path = "session_transport.rs"]
 mod session_transport;
 #[path = "session_startup.rs"]
@@ -74,7 +76,7 @@ struct Admission {
 impl Admission {
     fn deadline(&self) -> Result<Instant> {
         if !self.operation_seconds.is_finite()
-            || self.operation_seconds <= 5.0
+            || self.operation_seconds <= 0.0
             || self.max_build_seconds == 0
             || self.tmpfs_quota_bytes == 0
             || self.inode_limit == 0
@@ -436,6 +438,7 @@ struct Selection {
     reply_fd: Option<i32>,
     session_control_fd: Option<i32>,
     work_deadline_ns: u64,
+    native_ordinary_startup: bool,
 }
 fn selection(args: &[String]) -> Result<Option<Selection>> {
     let claimed = args.first().is_some_and(|a| a == "core-snapshot")
@@ -450,6 +453,7 @@ fn selection(args: &[String]) -> Result<Option<Selection>> {
     let mut reply_fd = None;
     let mut session_control_fd = None;
     let mut work_deadline_ns = None;
+    let mut native_ordinary_startup = false;
     let mut command = false;
     let mut i = 0;
     while i < args.len() {
@@ -458,6 +462,14 @@ fn selection(args: &[String]) -> Result<Option<Selection>> {
                 return Err("duplicate Core command");
             }
             command = true;
+            i += 1;
+            continue;
+        }
+        if args[i] == "--native-ordinary-startup" {
+            if native_ordinary_startup {
+                return Err("duplicate Core ordinary startup selector");
+            }
+            native_ordinary_startup = true;
             i += 1;
             continue;
         }
@@ -494,10 +506,16 @@ fn selection(args: &[String]) -> Result<Option<Selection>> {
     {
         return Err("Core descriptor selectors");
     }
-    if matches!(operation.as_deref(), Some("tos_native_session" | "tos_native_probe_session" | "tos_native_lazy_session")) != session_control_fd.is_some()
+    if matches!(operation.as_deref(), Some("tos_native_session" | "tos_native_probe_session" | "tos_native_lazy_session" | "tos_native_ordinary_session")) != session_control_fd.is_some()
         || session_control_fd.is_some_and(|fd| fd < 3)
         || session_control_fd.is_some() && (state_fd.is_some() || reply_fd.is_some()) {
         return Err("Core exact session selector association");
+    }
+    if native_ordinary_startup
+        && (session_control_fd.is_some()
+            || matches!(operation.as_deref(), Some("tos_native_session" | "tos_native_probe_session" | "tos_native_lazy_session")))
+    {
+        return Err("Core ordinary startup cannot select session mode");
     }
     Ok(Some(Selection {
         root,
@@ -508,6 +526,7 @@ fn selection(args: &[String]) -> Result<Option<Selection>> {
         work_deadline_ns: work_deadline_ns
             .filter(|n| *n > 0)
             .ok_or("Core original deadline selector required")?,
+        native_ordinary_startup,
     }))
 }
 fn read_input_with_visits(input: &mut dyn Read, deadline: Instant, cap: usize) -> Result<(Vec<u8>,usize)> {
@@ -1932,19 +1951,29 @@ pub fn run_if_requested(args: &Vec<String>, input: &mut dyn Read) -> Option<i32>
                         .checked_add(argument.capacity())
                         .ok_or("Core CLI argument state overflow")?;
                 }
-                if matches!(selection.operation.as_str(), "tos_native_session" | "tos_native_probe_session" | "tos_native_lazy_session") {
+                if matches!(selection.operation.as_str(), "tos_native_session" | "tos_native_probe_session" | "tos_native_lazy_session" | "tos_native_ordinary_session") {
                     let probe = selection.operation == "tos_native_probe_session";
-                    let lazy = selection.operation == "tos_native_lazy_session";
+                    let ordinary = selection.operation == "tos_native_ordinary_session";
+                    let lazy = ordinary || selection.operation == "tos_native_lazy_session";
                     let (raw, startup_visits) = read_input_with_visits(input, deadline, 65536)?;
                     let startup_bytes = raw.len();
-                    let startup: session_startup::Startup = serde_json::from_slice(&raw)
-                        .map_err(|_| "Core session startup DTO")?;
-                    drop(raw);
                     let argv_state = argv_state.checked_add(std::mem::size_of::<Selection>())
                         .and_then(|n|n.checked_add(selection.root.capacity()))
                         .and_then(|n|n.checked_add(selection.operation.capacity()))
                         .ok_or("Core session selected owner state overflow")?;
-                    let (mut request, limits, whole) = if lazy { startup.into_lazy_owner_request(selection.work_deadline_ns, argv_state, startup_bytes)? } else if probe { startup.into_probe_owner_request(selection.work_deadline_ns, argv_state, startup_bytes)? } else { startup.into_owner_request(selection.work_deadline_ns, argv_state, startup_bytes)? };
+                    let (mut request, limits, whole) = if ordinary {
+                        let startup: session_startup::OrdinaryStartup = serde_json::from_slice(&raw)
+                            .map_err(|_| "Core ordinary session startup DTO")?;
+                        drop(raw);
+                        startup.into_owner_request(selection.work_deadline_ns, argv_state, startup_bytes)?
+                    } else {
+                        let startup: session_startup::Startup = serde_json::from_slice(&raw)
+                            .map_err(|_| "Core session startup DTO")?;
+                        drop(raw);
+                        if lazy { startup.into_lazy_owner_request(selection.work_deadline_ns, argv_state, startup_bytes)? }
+                        else if probe { startup.into_probe_owner_request(selection.work_deadline_ns, argv_state, startup_bytes)? }
+                        else { startup.into_owner_request(selection.work_deadline_ns, argv_state, startup_bytes)? }
+                    };
                     let deadline = deadline.min(request.admission.deadline()?);
                     let control = crate::private_stage_run::verify_issued_consumer_control(
                         selection.session_control_fd.ok_or("Core session control selector absent")?,
@@ -1954,13 +1983,29 @@ pub fn run_if_requested(args: &Vec<String>, input: &mut dyn Read) -> Option<i32>
                     request.caller_retained_state_bytes = request.caller_retained_state_bytes
                         .checked_add(session.retained_state_upper_bound()?)
                         .ok_or("Core session original caller/control state overflow")?;
-                    if lazy { return lazy_session::run(&selection.root, &session, &request, deadline, &signal.token, startup_bytes); }
+                    if lazy { return lazy_session::run(&selection.root, &session, &request, deadline, &signal.token, startup_bytes, ordinary); }
                     if probe { return probe_session::run(&session, &request, deadline, &signal.token, startup_bytes); }
                     return serve_selected_root(&selection.root, &request, "", 0, deadline,
                         &signal.token, None, Some(&session));
                 }
-                let mut request = read_request(input, deadline)?;
-                request.caller_retained_state_bytes = argv_state;
+                let mut request = if selection.native_ordinary_startup {
+                    let raw = read_input(input, deadline, INPUT_CAP)?;
+                    let startup_bytes = raw.len();
+                    let startup: session_startup::NativeOrdinarySnapshotStartup =
+                        serde_json::from_slice(&raw)
+                            .map_err(|_| "Core ordinary snapshot startup DTO")?;
+                    drop(raw);
+                    startup.into_owner_request(
+                        &selection.operation,
+                        selection.work_deadline_ns,
+                        argv_state,
+                        startup_bytes,
+                    )?
+                } else {
+                    let mut request = read_request(input, deadline)?;
+                    request.caller_retained_state_bytes = argv_state;
+                    request
+                };
                 run(selection, request, deadline, &signal.token)
             })() {
                 Ok(()) => 0,

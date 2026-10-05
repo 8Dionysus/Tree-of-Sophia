@@ -988,6 +988,342 @@ fn serve_whole_indexed_search(
     fence()
 }
 
+fn parse_whole_legacy_search_request<'ledger>(
+    arguments: &tos_foundation::JsonValue,
+    budget: &tos_query::knowledge_legacy_search::LegacySearchBudget,
+    ledger: &'ledger Ledger,
+    cutoff: Instant,
+    cancelled: &AtomicBool,
+) -> Result<(
+    tos_query::knowledge_legacy_search::LegacySearchRequest,
+    native_ledger::Reservation<'ledger>,
+)> {
+    let _frame = ledger.reserve(
+        std::mem::size_of::<(
+            &tos_foundation::JsonValue,
+            &tos_query::knowledge_legacy_search::LegacySearchBudget,
+            &Ledger,
+            Instant,
+            &AtomicBool,
+            [Option<&tos_foundation::JsonValue>; 3],
+            Option<&[tos_foundation::JsonValue]>,
+            Result<(
+                tos_query::knowledge_legacy_search::LegacySearchRequest,
+                native_ledger::Reservation<'ledger>,
+            )>,
+            crate::search::SearchRequest,
+            u64,
+            u64,
+            usize,
+        )>()
+        .checked_add(std::mem::size_of::<std::slice::Iter<'_, tos_foundation::JsonValue>>())
+        .and_then(|n| n.checked_add(6 * std::mem::size_of::<usize>()))
+        .ok_or("Core SourceRoot legacy Search parser frame")?,
+    )?;
+    let mode = checked_field(arguments, "mode", ledger, cutoff)?;
+    if mode.is_some_and(|value| value.as_str() != Some("legacy")) {
+        return Err("Core SourceRoot legacy Search mode refused");
+    }
+    let query = checked_field(arguments, "query", ledger, cutoff)?;
+    let query_bytes = match query {
+        None => 0,
+        Some(value) => value
+            .as_str()
+            .ok_or("Core SourceRoot legacy Search query type")?
+            .len(),
+    };
+    if query_bytes > budget.inspect.max_field_bytes {
+        return Err("Core SourceRoot legacy Search query cap");
+    }
+    let census_frame = std::mem::size_of::<(
+        &tos_foundation::JsonValue,
+        usize,
+        usize,
+        Instant,
+        &AtomicBool,
+    )>() + 3 * std::mem::size_of::<usize>()
+        + std::mem::size_of::<Result<usize>>()
+        + std::mem::size_of::<std::slice::Iter<'_, tos_foundation::JsonValue>>()
+        + std::mem::size_of::<
+            std::slice::Iter<'_, (tos_foundation::JsonString, tos_foundation::JsonValue)>,
+        >()
+        + std::mem::size_of::<(&tos_foundation::JsonString, &tos_foundation::JsonValue)>();
+    let tree_bytes = {
+        let _census = ledger.reserve(
+            census_frame
+                .checked_mul(97)
+                .ok_or("Core SourceRoot legacy Search census frame")?,
+        )?;
+        checked_document_storage(arguments, 0, 96, cutoff, cancelled)?
+    };
+    let mut input_bytes = u64::try_from(query_bytes)
+        .map_err(|_| "Core SourceRoot legacy Search input size")?;
+    let mut input_values = 0u64;
+    let mut owned_text_bytes = query_bytes;
+    for field in ["sources", "kind_ids", "predicate_ids"] {
+        let Some(value) = checked_field(arguments, field, ledger, cutoff)? else {
+            continue;
+        };
+        if value.is_null() {
+            continue;
+        }
+        let values = value
+            .as_array()
+            .ok_or("Core SourceRoot legacy Search filter type")?;
+        for value in values {
+            active(cutoff)?;
+            let text = value
+                .as_str()
+                .ok_or("Core SourceRoot legacy Search filter value")?;
+            let length = u64::try_from(text.len())
+                .map_err(|_| "Core SourceRoot legacy Search filter size")?;
+            input_values = input_values
+                .checked_add(1)
+                .ok_or("Core SourceRoot legacy Search filter count")?;
+            input_bytes = input_bytes
+                .checked_add(length)
+                .ok_or("Core SourceRoot legacy Search input size")?;
+            owned_text_bytes = owned_text_bytes
+                .checked_add(text.len())
+                .ok_or("Core SourceRoot legacy Search retained text")?;
+            if input_values > budget.inspect.max_rows
+                || input_bytes > budget.inspect.max_decoded_bytes
+                || text.len() > budget.inspect.max_field_bytes
+            {
+                return Err("Core SourceRoot legacy Search input cap");
+            }
+        }
+    }
+    let owned_slots = usize::try_from(input_values)
+        .map_err(|_| "Core SourceRoot legacy Search slot count")?
+        .checked_mul(std::mem::size_of::<String>())
+        .ok_or("Core SourceRoot legacy Search slot bytes")?;
+    let retained = tree_bytes
+        .checked_add(std::mem::size_of::<crate::search::SearchRequest>())
+        .and_then(|n| n.checked_add(owned_text_bytes))
+        .and_then(|n| n.checked_add(owned_slots))
+        .and_then(|n| n.checked_add(512))
+        .ok_or("Core SourceRoot legacy Search retained forecast")?;
+    ledger.charge_work(
+        u64::try_from(tree_bytes)
+            .ok()
+            .and_then(|n| n.checked_add(u64::try_from(owned_text_bytes).ok()?))
+            .ok_or("Core SourceRoot legacy Search copy work")?,
+    )?;
+    active(cutoff)?;
+    let hold = ledger.reserve(retained)?;
+    let parsed = crate::search::SearchRequest::from_arguments(arguments)
+        .map_err(|_| "Core SourceRoot legacy Search arguments refused")?;
+    let request = match parsed {
+        crate::search::SearchRequest::Legacy(request) => request,
+        _ => return Err("Core SourceRoot only admits legacy Search arguments"),
+    };
+    Ok((request, hold))
+}
+
+/// Execute the maintained offset/limit legacy contract against the Whole
+/// SourceRoot owner. The body and observed-carrier lease stay inside Reply.
+fn serve_whole_legacy_search(
+    root: &Path,
+    request: &Request,
+    isolation: &tos_compiler::private_tmpfs_stage::PrivateTmpfsStageIsolation,
+    session: &session_owner::Session,
+    driver: &mut session_transport::Driver<'_, '_>,
+    carrier: &mut Option<Carrier>,
+    store: &mut Option<lazy_store::Store>,
+    generation: &mut u64,
+    ledger: &Ledger,
+    heap: &Arc<tos_compiler::DedicatedSessionSqliteHeap>,
+    resources: &dyn tos_compiler::native_snapshot::NativeColdOpenResourceHold,
+    owner_deadline: Instant,
+    cutoff: Instant,
+    cancelled: &Arc<AtomicBool>,
+    fence: &dyn Fn() -> Result<()>,
+    arguments: &tos_foundation::JsonValue,
+) -> Result<()> {
+    fence()?;
+    // The prior owner is released without refunding any original counter.
+    if let Some(old) = carrier.take() {
+        ledger.retained.set(
+            ledger
+                .retained
+                .get()
+                .checked_sub(old.retained)
+                .ok_or("Core Whole prior carrier retained removal")?,
+        );
+        drop(old);
+    }
+    if let Some(old) = store.take() {
+        ledger.retained.set(
+            ledger
+                .retained
+                .get()
+                .checked_sub(old.retained)
+                .ok_or("Core Whole prior Store retained removal")?,
+        );
+        drop(old);
+    }
+    let next = generation
+        .checked_add(1)
+        .ok_or("Core Whole generation overflow")?;
+    let _locals = ledger.reserve(
+        std::mem::size_of::<tos_query::knowledge_legacy_search::LegacySearchBudget>()
+            + std::mem::size_of::<(&Path, &Request, &Ledger, Instant, Instant)>(),
+    )?;
+    let http = request
+        .http
+        .as_ref()
+        .ok_or("Core Whole HTTP profile absent")?;
+    let initial_budget = http.legacy.native()?;
+    with_whole_selected(
+        root,
+        request,
+        isolation,
+        next,
+        ledger,
+        owner_deadline,
+        cutoff,
+        cancelled,
+        heap,
+        |completed, native, loan| {
+            completed.with_controlled_selected_knowledge_model(
+                &loan,
+                isolation,
+                request.admission.cold,
+                request.admission.process,
+                request.admission.working_ram_bytes,
+                resources,
+                cutoff,
+                |model, vocabulary, descriptor, view| {
+                    tos_query::with_controlled_knowledge_binding(
+                        model,
+                        vocabulary,
+                        descriptor,
+                        |model, bound| {
+                            let revision = bound.require_source_revision().map_err(|_| {
+                                tos_compiler::Error::Invalid(
+                                    "Core Whole legacy source revision absent",
+                                )
+                            })?;
+                            if revision != native.source_revision
+                                || view.source_revision() != Some(revision)
+                            {
+                                return Err(tos_compiler::Error::Invalid(
+                                    "Core Whole legacy source associations differ",
+                                ));
+                            }
+                            let mut budget = initial_budget;
+                            let overhead = whole_envelope_len(next, revision)
+                                .map_err(tos_compiler::Error::Invalid)?;
+                            let cap = session
+                                .limits
+                                .max_reply_bytes
+                                .checked_sub(overhead)
+                                .ok_or(tos_compiler::Error::Budget(
+                                    "Core Whole legacy reply envelope cap",
+                                ))?;
+                            budget.inspect.max_response_bytes = budget
+                                .inspect
+                                .max_response_bytes
+                                .min(cap)
+                                .min(request.admission.whole_max_graph_bytes);
+                            if budget.inspect.max_response_bytes == 0 {
+                                return Err(tos_compiler::Error::Budget(
+                                    "Core Whole legacy response cap",
+                                ));
+                            }
+                            let (legacy_request, _legacy_request_state) =
+                                parse_whole_legacy_search_request(
+                                    arguments,
+                                    &budget,
+                                    ledger,
+                                    cutoff,
+                                    cancelled.as_ref(),
+                                )
+                                .map_err(tos_compiler::Error::Invalid)?;
+                            crate::reference_root_query::with_controlled_metadata_context(
+                                model,
+                                bound,
+                                view,
+                                cutoff,
+                                cancelled,
+                                |bytes| {
+                                    ledger
+                                        .reserve(bytes)
+                                        .map_err(tos_compiler::Error::Invalid)
+                                },
+                                |model, context| {
+                                    context.with_operation(
+                                        crate::reference_root_query::ReferenceMetadataOperation::LegacySearch,
+                                        |authority| {
+                                            let current = || {
+                                                fence()?;
+                                                view.verify_current().map_err(|_| {
+                                                    "Core Whole legacy source fence"
+                                                })?;
+                                                active(cutoff)
+                                            };
+                                            driver
+                                                .respond(
+                                                    |sequence, _, reply| {
+                                                        reply.narrow_deadline(cutoff)?;
+                                                        current()?;
+                                                        let packet =
+                                                            tos_query::knowledge_legacy_search::execute_controlled_legacy_search(
+                                                                model,
+                                                                bound,
+                                                                authority,
+                                                                &legacy_request,
+                                                                budget,
+                                                            )
+                                                            .map_err(|_| {
+                                                                "Core Whole legacy Search refused"
+                                                            })?;
+                                                        let (body, mut disclosure) =
+                                                            packet.into_parts();
+                                                        let _body = ledger.reserve(
+                                                            body.capacity()
+                                                                .checked_add(std::mem::size_of::<Vec<u8>>())
+                                                                .ok_or("Core Whole legacy body state")?,
+                                                        )?;
+                                                        if body.len()
+                                                            > budget.inspect.max_response_bytes
+                                                        {
+                                                            return Err(
+                                                                "Core Whole legacy response cap",
+                                                            );
+                                                        }
+                                                        current()?;
+                                                        send_whole_result(
+                                                            ledger,
+                                                            reply,
+                                                            sequence,
+                                                            next,
+                                                            revision,
+                                                            &body,
+                                                        )?;
+                                                        disclosure
+                                                            .recheck()
+                                                            .map_err(|_| "Core Whole legacy disclosure fence")?;
+                                                        current()
+                                                    },
+                                                    current,
+                                                )
+                                                .map_err(tos_compiler::Error::Invalid)
+                                        },
+                                    )
+                                },
+                            )
+                        },
+                    )
+                },
+            )
+        },
+    )?;
+    *generation = next;
+    fence()
+}
+
 fn serve_store(
     request: &Request,
     session: &session_owner::Session,
@@ -1078,6 +1414,7 @@ pub(super) fn run(
     deadline: Instant,
     cancelled: &Arc<AtomicBool>,
     startup_bytes: usize,
+    ordinary: bool,
 ) -> Result<()> {
     if request.admission.cold.max_work_bytes == 0 {
         return Err("Core probe original work allowance absent");
@@ -1240,10 +1577,18 @@ pub(super) fn run(
         active(deadline)
     };
     let consume = |driver: &mut session_transport::Driver<'_, '_>| {
-        const READY:&[u8]=br#"{"schema_version":"tos_native_core_lazy_session_ready_v1","ok":true,"profile":"tos_core_lazy_selected_v1","reference_semantics":"cpython_pathlib_is_file_3_14","source_revision":null,"data_revision":null,"state_reused":false,"selection":{"schema_version":"tos_native_core_selected_profile_v1","generation":0,"profile":"selected_paths","source_revision":null,"data_revision":null,"exploration_revision":null,"state_reused":false},"capabilities":[{"operation":"tos_corpus_index_exists"},{"operation":"tos_philosophy_projection_exists"},{"operation":"tos_evidence_projection_exists"},{"operation":"tos_philosophy_audit_exists"},{"operation":"tos_corpus_index"},{"operation":"tos_bibliographic_graph"},{"operation":"tos_philosophy_projection"},{"operation":"tos_philosophy_audit_payload"},{"operation":"tos_corpus_header"},{"operation":"tos_native_call","tool":"tos_knowledge_search","profiles":["weak_query_store"]},{"operation":"tos_native_call","tool":"tos_knowledge_search_indexed_v2","profiles":["whole_root"]}]}"#;
+        // Shared connected capabilities retain the exact old lazy ABI. The
+        // ordinary add-on belongs to the joined genuine legacy SourceRoot route.
+        const LAZY_HEAD: &[u8] = br#"{"schema_version":"tos_native_core_lazy_session_ready_v1","ok":true,"profile":"tos_core_lazy_selected_v1""#;
+        const ORDINARY_HEAD: &[u8] = br#"{"schema_version":"tos_native_core_ordinary_session_ready_v1","ok":true,"profile":"tos_core_ordinary_selected_v1""#;
+        const COMMON: &[u8] = br#","reference_semantics":"cpython_pathlib_is_file_3_14","source_revision":null,"data_revision":null,"state_reused":false,"selection":{"schema_version":"tos_native_core_selected_profile_v1","generation":0,"profile":"selected_paths","source_revision":null,"data_revision":null,"exploration_revision":null,"state_reused":false},"capabilities":[{"operation":"tos_corpus_index_exists"},{"operation":"tos_philosophy_projection_exists"},{"operation":"tos_evidence_projection_exists"},{"operation":"tos_philosophy_audit_exists"},{"operation":"tos_corpus_index"},{"operation":"tos_bibliographic_graph"},{"operation":"tos_philosophy_projection"},{"operation":"tos_philosophy_audit_payload"},{"operation":"tos_corpus_header"},{"operation":"tos_native_call","tool":"tos_knowledge_search","profiles":["weak_query_store"]},{"operation":"tos_native_call","tool":"tos_knowledge_search_indexed_v2","profiles":["whole_root"]}"#;
+        const LAZY_END: &[u8] = b"]}";
+        const ORDINARY_END: &[u8] = br#",{"operation":"tos_native_call","tool":"tos_knowledge_search","profiles":["whole_root"]}]}"#;
+        let ready = [if ordinary { ORDINARY_HEAD } else { LAZY_HEAD }, COMMON,
+                     if ordinary { ORDINARY_END } else { LAZY_END }];
         // Exactly nine connected operations; CorpusHeader selects its authentic
         // configured/default Store owner before any Corpus carrier construction.
-        if READY.len()
+        if ready.iter().map(|segment| segment.len()).sum::<usize>()
             > request
                 .http
                 .as_ref()
@@ -1253,7 +1598,7 @@ pub(super) fn run(
             return Err("Core lazy startup receipt cap");
         }
         driver.startup(
-            |reply| reply.send(session_transport::STARTUP, 0, &[READY]),
+            |reply| reply.send(session_transport::STARTUP, 0, &ready),
             &fence,
         )?;
         let mut held: Option<Carrier> = None;
@@ -1304,7 +1649,55 @@ pub(super) fn run(
                     .and_then(tos_foundation::JsonValue::as_str)
                     .ok_or("Core selected Search tool absent")?;
                 if tool == "tos_knowledge_search_indexed_v2" {
-                    serve_whole_indexed_search(
+                    with_selected_store_choice(request, &state, cutoff, |selected_store| {
+                        if selected_store {
+                            return Err("Core selected QueryStore indexed owner unavailable");
+                        }
+                        serve_whole_indexed_search(
+                            root,
+                            request,
+                            &isolation,
+                            session,
+                            driver,
+                            &mut held,
+                            &mut held_store,
+                            &mut generation,
+                            &state,
+                            &sqlite_heap,
+                            &resources,
+                            deadline,
+                            cutoff,
+                            cancelled,
+                            &fence,
+                            arguments,
+                        )
+                    })?;
+                    last_whole = true;
+                    continue;
+                }
+                let whole_source_root = with_selected_store_choice(request, &state, cutoff, |selected_store| {
+                    if selected_store {
+                        serve_store(
+                            request,
+                            session,
+                            driver,
+                            &mut held,
+                            &mut held_store,
+                            &mut generation,
+                            &state,
+                            &sqlite_heap,
+                            deadline,
+                            cutoff,
+                            cancelled,
+                            &fence,
+                            Some(arguments),
+                        )?;
+                        return Ok(false);
+                    }
+                    if !ordinary {
+                        return Err("Core SourceRoot legacy Search outside ordinary profile");
+                    }
+                    serve_whole_legacy_search(
                         root,
                         request,
                         &isolation,
@@ -1322,32 +1715,9 @@ pub(super) fn run(
                         &fence,
                         arguments,
                     )?;
-                    last_whole = true;
-                    continue;
-                }
-                with_selected_store_choice(request, &state, cutoff, |selected_store| {
-                    if !selected_store {
-                        // The maintained offset/limit legacy contract is not
-                        // reinterpreted as cursor/per-kind indexedV2 output.
-                        return Err("Core SourceRoot legacy Search owner not yet available");
-                    }
-                    serve_store(
-                        request,
-                        session,
-                        driver,
-                        &mut held,
-                        &mut held_store,
-                        &mut generation,
-                        &state,
-                        &sqlite_heap,
-                        deadline,
-                        cutoff,
-                        cancelled,
-                        &fence,
-                        Some(arguments),
-                    )
+                    Ok(true)
                 })?;
-                last_whole = false;
+                last_whole = whole_source_root;
                 continue;
             }
             let operation = operation.ok_or("Core lazy selected operation absent")?;
