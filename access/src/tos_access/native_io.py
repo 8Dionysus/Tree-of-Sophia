@@ -666,9 +666,8 @@ def owned_exchange(arguments, *, prefix=None, input_cap=16 * 1024 * 1024,
     _contract(arguments, input_cap, frame_cap, valid_returncodes)
     environment = _environment(env)
     descriptors = _borrowed_fds(pass_fds)
-    selected = prefix or os.environ.get('TOS_NATIVE_PREFIX')
-    if not selected:
-        raise ValueError('native operation requires installed Rust software: set TOS_NATIVE_PREFIX or --native-prefix')
+    from .native_dispatch import selected_native_prefix
+    selected = selected_native_prefix(prefix)
     channel = _Exchange(list(arguments), selected, input_cap, frame_cap,
                         tuple(valid_returncodes), cancelled, deadline, environment, descriptors, selected_image)
     primary = None
@@ -699,9 +698,8 @@ def native_packets(arguments, value=None, *, prefix=None, input_cap=16 * 1024 * 
     _contract(arguments, input_cap, frame_cap, valid_returncodes)
     environment = _environment(env)
     descriptors = _borrowed_fds(pass_fds)
-    selected = prefix or os.environ.get('TOS_NATIVE_PREFIX')
-    if not selected:
-        raise ValueError('native operation requires installed Rust software: set TOS_NATIVE_PREFIX or --native-prefix')
+    from .native_dispatch import selected_native_prefix
+    selected = selected_native_prefix(prefix)
     payload = None if value is None else _bounded_json(value, input_cap, deadline - 5, cancelled)
     failures = []
     writer = None

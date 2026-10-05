@@ -31,29 +31,6 @@ def _selected_path(value: str | Path, name: str) -> Path:
     return path
 
 
-def _native_prefix_from_installed_layout() -> Path:
-    """Select installed software layout or standard PATH code, never data."""
-    from .locations import PACKAGE_ROOT
-    package_root = PACKAGE_ROOT.resolve()
-    suffix = ('software', 'access', 'src', 'tos_access')
-    if package_root.parts[-len(suffix):] == suffix:
-        return package_root.parents[3]
-    # An independently installed Python SDK may select the standard software
-    # entrypoint on PATH. This selects code only; verified_image still holds
-    # and verifies its manifest, build proof and exact ELF before each call.
-    entry = shutil.which('tos')
-    if entry is not None:
-        candidate = Path(entry)
-        if not candidate.is_absolute():
-            raise ValueError('PATH native software selection requires an absolute entrypoint')
-        image = candidate.resolve(strict=True)
-        image_suffix = ('software', 'access', 'src', 'tos_access', 'tos-access')
-        if image.parts[-len(image_suffix):] == image_suffix:
-            return image.parents[4]
-        raise ValueError('PATH tos is not the standard installed native Access entrypoint')
-    raise ValueError('native Core requires native_prefix, TOS_NATIVE_PREFIX, the installed SDK layout, or standard tos on PATH')
-
-
 def _cleanup_owned_state(path: str, identity: tuple[int, int, int]) -> bool:
     try:
         info = Path(path).lstat()
@@ -177,10 +154,8 @@ class NativeAccessCore(NativeCore):
         self._native_state_root = native_state_root
         if type(core_snapshot_native_owned) is not bool:
             raise TypeError('core_snapshot_native_owned must be a boolean')
-        selected_prefix = (native_prefix if native_prefix is not None
-                           else os.environ.get('TOS_NATIVE_PREFIX'))
-        if selected_prefix is None or selected_prefix == '':
-            selected_prefix = _native_prefix_from_installed_layout()
+        from .native_dispatch import selected_native_prefix
+        selected_prefix = selected_native_prefix(native_prefix)
         prefix = _selected_path(selected_prefix, 'native_prefix')
         self.native_prefix = prefix
         self._source_provider = None
