@@ -2401,6 +2401,7 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
                         cancelled,
                         reader_limits,
                         reader_retained_state,
+                        callback_state_bytes,
                         original_operation_state,
                     ).map_err(|error| candidate_owner_refusal("candidate default source preparation", error))?;
                     if let Some(history) = view.history.as_deref_mut() {
