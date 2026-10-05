@@ -2642,10 +2642,30 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
                             .unwrap_or(label);
                         // 11 predicate bits and two 64-bit hex counters fit the
                         // existing 40-byte source-cause site bound exactly.
-                        let site = format!("pr-{failed_mask:x}-{observed:x}-{expected:x}");
+                        let mut site = format!("pr-{failed_mask:x}-{observed:x}-{expected:x}");
+                        let mut cause = issue;
+                        if let Some(diagnostic) = evaluated.diagnostics.iter()
+                            .find(|diagnostic| !diagnostic.result().is_valid())
+                        {
+                            let result = diagnostic.result();
+                            let contract = Digest256::of_bytes(result.contract().as_bytes()).to_hex();
+                            let reason = result.report().issues.first()
+                                .map_or(0, |issue| issue.reason as u16);
+                            let diagnostic_site = format!(
+                                "{site}-s{:x}-r{reason:x}-c{}",
+                                result.status() as u8, &contract[..12],
+                            );
+                            // The full source-path digest remains the cause, while
+                            // this bounded navigation prefix names the selected
+                            // contract and its owned structured reason code.
+                            if diagnostic_site.len() <= 40 {
+                                site = diagnostic_site;
+                                cause = result.path();
+                            }
+                        }
                         return Err(ItemRefusal::Source(
                             crate::source_admission_spooled_index::bounded_source_cause(
-                                "receiver-source", &site, issue,
+                                "receiver-source", &site, cause,
                             ),
                         ));
                     }

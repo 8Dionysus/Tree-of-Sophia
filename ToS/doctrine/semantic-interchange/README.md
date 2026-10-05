@@ -21,6 +21,14 @@ files present in selected membership. Their bytes still participate in
 applicable Records and reference checks; this is never a whole-audit certificate.
 
 Scope comes from the declaration, never from whether a directory exists.
+The selected scope does not require the historical whole-tree private/handoff,
+server-plan coverage, topology, derivation or chronology demonstration batches.
+Discovery traverses authenticated selected family members and provenance streams;
+Closure validates their declared Claims, endpoints, backlinks and dependencies.
+A selected record's required target or contract remains mandatory even when the
+historical demonstration packet is outside this scope. Full audit retains its
+original batch requirements.
+
 Required selected references and their exact dependencies must resolve;
 missing inputs, unsupported contracts and incomplete owner checks refuse
 admission. This profile does not accept source meaning, rights, canon or

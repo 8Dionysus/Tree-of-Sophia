@@ -43,6 +43,14 @@ present in selected membership: ordinary Records/reference checks may cover
 those bytes, but their district audit is not claimed. The report binds its scope. Exact catalog bytes
 and selected profile ID participate in validator identity and receipts. Existing admission consumers require the exact selected
 validator hash, so a scoped result cannot satisfy a whole-audit validator pin.
+The selected scope does not require the historical whole-tree private/handoff,
+server-plan coverage, topology, derivation or chronology demonstration batches.
+Discovery traverses authenticated selected family members and provenance streams;
+Closure validates their declared Claims, endpoints, backlinks and dependencies.
+A selected record's required target or contract remains mandatory even when the
+historical demonstration packet is outside this scope. Full audit retains its
+original batch requirements.
+
 Unknown profiles, unsupported scope dialects and missing required selected
 inputs refuse admission.
 

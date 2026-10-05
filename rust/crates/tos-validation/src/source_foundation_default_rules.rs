@@ -1512,6 +1512,19 @@ fn inspect_source_foundation_default_rules_from_input_stored_inner<
     } else {
         None
     };
+    if scope == SourceFoundationDefaultRuleScope::SelectedSourceClosure
+        && (evidence_provider.is_none()
+            || discovery_seen_ids.is_none()
+            || discovery_run_summaries.is_none()
+            || discovery_event_summaries.is_none()
+            || discovery_schema_requests.is_none()
+            || discovery_digest_cache.is_none()
+            || closure_schema_request_store.is_none())
+    {
+        return Err(ItemRefusal::Source(
+            "selected source closure requires its authenticated district providers".into(),
+        ));
+    }
     let discovery_limits = remaining_limits(
         operation,
         records_read_reservation_bytes,
@@ -1545,6 +1558,7 @@ fn inspect_source_foundation_default_rules_from_input_stored_inner<
                                     .max_event_map_bytes
                                     .min(discovery_limits.max_member_bytes),
                                 require_local_payloads,
+                                scope,
                             )?
                         } else {
                             crate::source_foundation_discovery::inspect_candidate_with_artifact_evidence_provider_and_seen_ids_and_run_summaries_and_event_summaries_and_schema_requests(
@@ -1785,7 +1799,7 @@ fn inspect_source_foundation_default_rules_from_input_stored_inner<
         direct_owner_issue_count,
     )?;
     let closure = (|| { Ok(if let Some(schema_request_store) = closure_schema_request_store.take() {
-        crate::source_foundation_closure::inspect_source_foundation_closure_with_identity_and_candidate_stores(
+        crate::source_foundation_closure::inspect_source_foundation_closure_with_identity_and_candidate_stores_with_scope(
             &mut aggregate_source,
             input,
             input.input_identity(),
@@ -1797,6 +1811,7 @@ fn inspect_source_foundation_default_rules_from_input_stored_inner<
             closure_link_store.take(),
             Some(schema_request_store),
             closure_limits,
+            scope,
         )?
     } else {
         crate::source_foundation_closure::inspect_source_foundation_closure_with_identity_and_link_store(

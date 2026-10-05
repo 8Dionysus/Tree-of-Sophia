@@ -17,7 +17,7 @@ use crate::record_biblio_cut::{
 };
 use crate::source_foundation_default_rules::{
     SourceFoundationDefaultEventLookup, SourceFoundationDefaultPaths,
-    SourceFoundationDefaultRecordsLookup,
+    SourceFoundationDefaultRecordsLookup, SourceFoundationDefaultRuleScope,
 };
 use crate::source_foundation_records::{
     SourceFoundationArtifactRecordPathSummary, SourceFoundationRecordsCollection,
@@ -7581,6 +7581,7 @@ fn inspect_internal<S: LayerFamilySource + ?Sized>(
         None,
         None,
         None,
+        SourceFoundationDefaultRuleScope::FullAudit,
     )
     .map(|output| output.report)
 }
@@ -7766,6 +7767,7 @@ fn inspect_candidate_with_artifact_replays_and_records_with_proofs_impl<
         None,
         None,
         None,
+        SourceFoundationDefaultRuleScope::FullAudit,
     )?;
     input.verify_current_fence(coverage, limits.deadline, source.cancellation())?;
     Ok(SourceFoundationCandidateDiscoveryReport {
@@ -7815,6 +7817,7 @@ pub fn inspect_candidate_with_artifact_evidence_provider<
         None,
         None,
         require_local_payloads,
+        SourceFoundationDefaultRuleScope::FullAudit,
     )
 }
 
@@ -7856,6 +7859,7 @@ pub fn inspect_candidate_with_artifact_evidence_provider_and_seen_ids<
         None,
         None,
         require_local_payloads,
+        SourceFoundationDefaultRuleScope::FullAudit,
     )
 }
 
@@ -7900,6 +7904,7 @@ pub fn inspect_candidate_with_artifact_evidence_provider_and_seen_ids_and_run_su
         None,
         None,
         require_local_payloads,
+        SourceFoundationDefaultRuleScope::FullAudit,
     )
 }
 
@@ -7944,6 +7949,7 @@ pub fn inspect_candidate_with_artifact_evidence_provider_and_seen_ids_and_run_su
         None,
         None,
         require_local_payloads,
+        SourceFoundationDefaultRuleScope::FullAudit,
     )
 }
 
@@ -7990,6 +7996,7 @@ pub fn inspect_candidate_with_artifact_evidence_provider_and_seen_ids_and_run_su
         Some(discovery_schema_requests),
         None,
         require_local_payloads,
+        SourceFoundationDefaultRuleScope::FullAudit,
     )
 }
 
@@ -8018,6 +8025,7 @@ pub fn inspect_candidate_with_artifact_evidence_provider_and_seen_ids_and_run_su
     discovery_digest_cache: &mut dyn DiscoveryDigestCache,
     max_event_json_bytes: usize,
     require_local_payloads: bool,
+    scope: SourceFoundationDefaultRuleScope,
 ) -> Result<SourceFoundationCandidateDiscoveryReport<I>, ItemRefusal> {
     inspect_candidate_with_artifact_evidence_provider_impl(
         source,
@@ -8037,6 +8045,7 @@ pub fn inspect_candidate_with_artifact_evidence_provider_and_seen_ids_and_run_su
         Some(discovery_schema_requests),
         Some(discovery_digest_cache),
         require_local_payloads,
+        scope,
     )
 }
 
@@ -8062,6 +8071,7 @@ fn inspect_candidate_with_artifact_evidence_provider_impl<
     discovery_schema_requests: Option<&mut dyn DiscoverySchemaRequestStore>,
     discovery_digest_cache: Option<&mut dyn DiscoveryDigestCache>,
     require_local_payloads: bool,
+    scope: SourceFoundationDefaultRuleScope,
 ) -> Result<SourceFoundationCandidateDiscoveryReport<I>, ItemRefusal> {
     source.checkpoint(limits.deadline)?;
     let input_identity = *input.input_identity();
@@ -8103,6 +8113,7 @@ fn inspect_candidate_with_artifact_evidence_provider_impl<
         candidate_discovery_event_json_limit,
         discovery_schema_requests,
         discovery_digest_cache,
+        scope,
     )?;
     input.verify_current_fence(coverage, limits.deadline, source.cancellation())?;
     Ok(SourceFoundationCandidateDiscoveryReport {
@@ -8207,6 +8218,7 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
     candidate_discovery_event_json_limit: Option<usize>,
     mut candidate_discovery_schema_requests: Option<&mut dyn DiscoverySchemaRequestStore>,
     mut candidate_discovery_digest_cache: Option<&mut dyn DiscoveryDigestCache>,
+    scope: SourceFoundationDefaultRuleScope,
 ) -> Result<DiscoveryKernelOutput, ItemRefusal> {
     if candidate_discovery_event_summaries.is_some()
         && (candidate_input.is_none()
@@ -8343,9 +8355,16 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
 
     // The maintained Python route validates this earlier private/handoff and
     // target-map district before its later discovery and artifact pass.
-    inspect_companion_district(&mut inspector)?;
+    if scope == SourceFoundationDefaultRuleScope::FullAudit {
+        inspect_companion_district(&mut inspector)?;
+    }
 
     for path in [ACCESS_EVENTS, SERVER_EVENTS] {
+        if scope == SourceFoundationDefaultRuleScope::SelectedSourceClosure
+            && !inspector.has_current_member(path)?
+        {
+            continue;
+        }
         inspector.for_each_jsonl(
             path,
             PROVENANCE_SCHEMA,
@@ -8536,69 +8555,73 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
 
     let mut discovery_events: BTreeMap<String, EventInfo> = BTreeMap::new();
     let mut discovery_event_ids = BTreeSet::new();
-    inspector.for_each_jsonl(
-        DISCOVERY_EVENTS,
-        PROVENANCE_SCHEMA,
-        &mut |inspector, location, value| {
-            let info = inspector.event_info(value, location)?;
-            let Some(id) = string(value, "event_id") else {
-                inspector.issue(
-                    location,
-                    "missing-event-id",
-                    "discovery provenance event has no event_id",
-                )?;
-                return Ok(());
-            };
-            let id = id.to_owned();
-            let first_discovery_event = remember_discovery_id(
-                inspector,
-                &mut discovery_event_ids,
-                DiscoverySeenIdNamespace::DiscoveryEvent,
-                &id,
-                location,
-            )?;
-            if !first_discovery_event {
-                inspector.issue(location, "duplicate-discovery-event-id", id.as_str())?;
-            }
-            let first_event = remember_discovery_id(
-                inspector,
-                &mut event_ids,
-                DiscoverySeenIdNamespace::Event,
-                &id,
-                location,
-            )?;
-            let duplicate_prior = inspector.candidate_discovery_seen_ids.is_some()
-                && first_event
-                && prior_event_contains(inspector, prior_events, &id)?;
-            let insert_into_owner_map = first_event && !duplicate_prior;
-            if !insert_into_owner_map {
-                inspector.issue(location, "duplicate-event-id", id.as_str())?;
-            }
-            if inspector.candidate_discovery_event_summaries.is_some() {
-                inspector.record_candidate_event_summary(
-                    DiscoveryEventSummaryNamespace::Discovery,
+    if scope == SourceFoundationDefaultRuleScope::FullAudit
+        || inspector.has_current_member(DISCOVERY_EVENTS)?
+    {
+        inspector.for_each_jsonl(
+            DISCOVERY_EVENTS,
+            PROVENANCE_SCHEMA,
+            &mut |inspector, location, value| {
+                let info = inspector.event_info(value, location)?;
+                let Some(id) = string(value, "event_id") else {
+                    inspector.issue(
+                        location,
+                        "missing-event-id",
+                        "discovery provenance event has no event_id",
+                    )?;
+                    return Ok(());
+                };
+                let id = id.to_owned();
+                let first_discovery_event = remember_discovery_id(
+                    inspector,
+                    &mut discovery_event_ids,
+                    DiscoverySeenIdNamespace::DiscoveryEvent,
                     &id,
                     location,
-                    value,
-                    insert_into_owner_map,
                 )?;
-                discovery_event_observation_rows = discovery_event_observation_rows
-                    .checked_add(1)
-                    .ok_or(crate::item_budget_origin!())?;
-                if insert_into_owner_map {
-                    discovery_event_owner_insertion_rows = discovery_event_owner_insertion_rows
+                if !first_discovery_event {
+                    inspector.issue(location, "duplicate-discovery-event-id", id.as_str())?;
+                }
+                let first_event = remember_discovery_id(
+                    inspector,
+                    &mut event_ids,
+                    DiscoverySeenIdNamespace::Event,
+                    &id,
+                    location,
+                )?;
+                let duplicate_prior = inspector.candidate_discovery_seen_ids.is_some()
+                    && first_event
+                    && prior_event_contains(inspector, prior_events, &id)?;
+                let insert_into_owner_map = first_event && !duplicate_prior;
+                if !insert_into_owner_map {
+                    inspector.issue(location, "duplicate-event-id", id.as_str())?;
+                }
+                if inspector.candidate_discovery_event_summaries.is_some() {
+                    inspector.record_candidate_event_summary(
+                        DiscoveryEventSummaryNamespace::Discovery,
+                        &id,
+                        location,
+                        value,
+                        insert_into_owner_map,
+                    )?;
+                    discovery_event_observation_rows = discovery_event_observation_rows
                         .checked_add(1)
                         .ok_or(crate::item_budget_origin!())?;
+                    if insert_into_owner_map {
+                        discovery_event_owner_insertion_rows = discovery_event_owner_insertion_rows
+                            .checked_add(1)
+                            .ok_or(crate::item_budget_origin!())?;
+                    }
+                } else {
+                    if insert_into_owner_map {
+                        source_event_insertions.push((id.clone(), value.clone()));
+                    }
+                    discovery_events.insert(id, info);
                 }
-            } else {
-                if insert_into_owner_map {
-                    source_event_insertions.push((id.clone(), value.clone()));
-                }
-                discovery_events.insert(id, info);
-            }
-            Ok(())
-        },
-    )?;
+                Ok(())
+            },
+        )?;
+    }
 
     let mut artifact_ids = BTreeSet::new();
     inspector.for_each_current_path(&mut |inspector, path| {
@@ -9716,7 +9739,9 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
             Ok(())
         },
     )?;
-    inspector.private_route()?;
+    if scope == SourceFoundationDefaultRuleScope::FullAudit {
+        inspector.private_route()?;
+    }
 
     let mut expected_manifest_refs = BTreeSet::new();
     inspector.for_each_current_path(&mut |inspector, path| {
@@ -9761,6 +9786,13 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
                     )?;
                 } else {
                     planned_manifest_coverage_drift = true;
+                    if scope == SourceFoundationDefaultRuleScope::SelectedSourceClosure {
+                        inspector.issue(
+                            path,
+                            "server-plan-manifest-membership-drift",
+                            "declared server plan manifest is not a current typed Item manifest",
+                        )?;
+                    }
                 }
             } else {
                 planned_manifest_refs.insert(manifest_ref.to_owned());
@@ -9892,27 +9924,30 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
         Ok(())
     },
     )?;
-    let candidate_manifest_coverage_drift = if inspector.candidate_discovery_seen_ids.is_some() {
-        let mut drift = planned_manifest_coverage_drift;
-        inspector.for_each_current_path(&mut |inspector, path| {
-            if path.starts_with(SOURCE_HOME) && path.ends_with(ITEM_MANIFEST_SUFFIX) {
-                let is_planned = discovery_id_contains(
-                    inspector,
-                    &planned_manifest_refs,
-                    DiscoverySeenIdNamespace::PlannedManifest,
-                    path,
-                )?;
-                if !is_planned {
-                    drift = true;
+    let candidate_manifest_coverage_drift =
+        if scope == SourceFoundationDefaultRuleScope::SelectedSourceClosure {
+            false
+        } else if inspector.candidate_discovery_seen_ids.is_some() {
+            let mut drift = planned_manifest_coverage_drift;
+            inspector.for_each_current_path(&mut |inspector, path| {
+                if path.starts_with(SOURCE_HOME) && path.ends_with(ITEM_MANIFEST_SUFFIX) {
+                    let is_planned = discovery_id_contains(
+                        inspector,
+                        &planned_manifest_refs,
+                        DiscoverySeenIdNamespace::PlannedManifest,
+                        path,
+                    )?;
+                    if !is_planned {
+                        drift = true;
+                    }
                 }
-            }
-            Ok(())
-        })?;
-        drift
-    } else {
-        planned_manifest_refs != expected_manifest_refs
-    };
-    if candidate_manifest_coverage_drift {
+                Ok(())
+            })?;
+            drift
+        } else {
+            planned_manifest_refs != expected_manifest_refs
+        };
+    if scope == SourceFoundationDefaultRuleScope::FullAudit && candidate_manifest_coverage_drift {
         inspector.issue(
             SERVER_PLANS.trim_end_matches('/'),
             "server-plan-manifest-coverage-drift",
