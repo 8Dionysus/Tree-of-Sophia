@@ -1023,7 +1023,7 @@ impl<S: LayerFamilySource + ?Sized, I: Copy + Eq> Inspector<'_, '_, S, I> {
             .and_then(|remaining| {
                 remaining.checked_sub(self.candidate_current_discovery_run_summary_state_bytes)
             })
-            .ok_or(ItemRefusal::Budget)
+            .ok_or(crate::item_budget_origin!())
     }
 
     fn set_current_discovery_run_summary_state(&mut self, bytes: usize) -> Result<(), ItemRefusal> {
@@ -1040,7 +1040,7 @@ impl<S: LayerFamilySource + ?Sized, I: Copy + Eq> Inspector<'_, '_, S, I> {
             self.candidate_artifact_evidence_peak_state_bytes.max(
                 self.candidate_current_artifact_evidence_state_bytes
                     .checked_add(bytes)
-                    .ok_or(ItemRefusal::Budget)?,
+                    .ok_or(crate::item_budget_origin!())?,
             );
         Ok(())
     }
@@ -1065,7 +1065,7 @@ impl<S: LayerFamilySource + ?Sized, I: Copy + Eq> Inspector<'_, '_, S, I> {
         let (summary, workspace_state_bytes) = self
             .candidate_discovery_run_summaries
             .as_deref_mut()
-            .ok_or(ItemRefusal::Budget)?
+            .ok_or(crate::item_budget_origin!())?
             .lookup_summary(path, remaining_state)?;
         self.check_temporary_state(workspace_state_bytes)?;
         self.set_current_discovery_run_summary_state(workspace_state_bytes)?;
@@ -1149,11 +1149,11 @@ impl<S: LayerFamilySource + ?Sized, I: Copy + Eq> Inspector<'_, '_, S, I> {
         self.native_history_referenced_bytes = self
             .native_history_referenced_bytes
             .checked_add(observation.bytes_read())
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         self.native_history_referenced_state_bytes = self
             .native_history_referenced_state_bytes
             .checked_add(observation.returned_state_bytes())
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         Ok(())
     }
 
@@ -1176,14 +1176,22 @@ impl<S: LayerFamilySource + ?Sized, I: Copy + Eq> Inspector<'_, '_, S, I> {
             {
                 false
             } else {
-                self.reserve_state(path.len().checked_add(64).ok_or(ItemRefusal::Budget)?)?;
+                self.reserve_state(
+                    path.len()
+                        .checked_add(64)
+                        .ok_or(crate::item_budget_origin!())?,
+                )?;
                 self.artifact_replay_referenced_paths
                     .as_mut()
-                    .ok_or(ItemRefusal::Budget)?
+                    .ok_or(crate::item_budget_origin!())?
                     .insert(path.to_owned())
             }
         } else {
-            self.check_temporary_state(path.len().checked_add(64).ok_or(ItemRefusal::Budget)?)?;
+            self.check_temporary_state(
+                path.len()
+                    .checked_add(64)
+                    .ok_or(crate::item_budget_origin!())?,
+            )?;
             true
         };
         if !first_reference {
@@ -1192,11 +1200,11 @@ impl<S: LayerFamilySource + ?Sized, I: Copy + Eq> Inspector<'_, '_, S, I> {
         self.artifact_replay_referenced_publication_state_bytes = self
             .artifact_replay_referenced_publication_state_bytes
             .checked_add(evidence.publication_state_bytes())
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         self.artifact_replay_referenced_state_bytes = self
             .artifact_replay_referenced_state_bytes
             .checked_add(evidence.returned_state_bytes())
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         Ok(())
     }
 
@@ -1232,7 +1240,7 @@ impl<S: LayerFamilySource + ?Sized, I: Copy + Eq> Inspector<'_, '_, S, I> {
         let raw = serde_json::to_vec(value)
             .map_err(|_| ItemRefusal::Unsupported("Artifact correction receipt encoding".into()))?;
         if raw.len() > self.limits.max_member_bytes {
-            return Err(ItemRefusal::Budget);
+            return Err(crate::item_budget_origin!());
         }
         let limits = JsonLimits::new(
             self.limits.max_member_bytes.min(8_388_608),
@@ -1240,12 +1248,16 @@ impl<S: LayerFamilySource + ?Sized, I: Copy + Eq> Inspector<'_, '_, S, I> {
             300_000,
             4_300,
         )
-        .map_err(|_| ItemRefusal::Budget)?;
-        self.reserve_state(raw.len().checked_mul(8).ok_or(ItemRefusal::Budget)?)?;
+        .map_err(|_| crate::item_budget_origin!())?;
+        self.reserve_state(
+            raw.len()
+                .checked_mul(8)
+                .ok_or(crate::item_budget_origin!())?,
+        )?;
         let ordered = parse_json(&raw, JsonMode::PublishedStrict, limits)
             .map_err(|error| {
                 if error.code == tos_foundation::FoundationErrorCode::BudgetExceeded {
-                    ItemRefusal::Budget
+                    crate::item_budget_origin!()
                 } else {
                     ItemRefusal::Unsupported(
                         "Artifact correction receipt is not strict published JSON".into(),
@@ -1257,13 +1269,18 @@ impl<S: LayerFamilySource + ?Sized, I: Copy + Eq> Inspector<'_, '_, S, I> {
             canonical_bytes_v1(&ordered, CanonicalProfile::SourceCommandInputV1, limits).map_err(
                 |error| {
                     if error.code == tos_foundation::FoundationErrorCode::BudgetExceeded {
-                        ItemRefusal::Budget
+                        crate::item_budget_origin!()
                     } else {
                         ItemRefusal::Unsupported("Artifact correction receipt digest".into())
                     }
                 },
             )?;
-        self.reserve_state(canonical.len().checked_add(96).ok_or(ItemRefusal::Budget)?)?;
+        self.reserve_state(
+            canonical
+                .len()
+                .checked_add(96)
+                .ok_or(crate::item_budget_origin!())?,
+        )?;
         Ok(Digest256::of_bytes(&canonical).to_prefixed())
     }
 
@@ -1285,7 +1302,7 @@ impl<S: LayerFamilySource + ?Sized, I: Copy + Eq> Inspector<'_, '_, S, I> {
             self.candidate_artifact_evidence_peak_state_bytes.max(
                 self.candidate_current_artifact_evidence_state_bytes
                     .checked_add(workspace_state_bytes)
-                    .ok_or(ItemRefusal::Budget)?,
+                    .ok_or(crate::item_budget_origin!())?,
             );
         Ok(value)
     }
@@ -1303,12 +1320,12 @@ impl<S: LayerFamilySource + ?Sized, I: Copy + Eq> Inspector<'_, '_, S, I> {
         self.candidate_discovery_digest_observation_rows = self
             .candidate_discovery_digest_observation_rows
             .checked_add(1)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         if first {
             self.candidate_discovery_digest_unique_paths = self
                 .candidate_discovery_digest_unique_paths
                 .checked_add(1)
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
         }
         self.candidate_discovery_digest_peak_workspace_state_bytes = self
             .candidate_discovery_digest_peak_workspace_state_bytes
@@ -1317,7 +1334,7 @@ impl<S: LayerFamilySource + ?Sized, I: Copy + Eq> Inspector<'_, '_, S, I> {
             self.candidate_artifact_evidence_peak_state_bytes.max(
                 self.candidate_current_artifact_evidence_state_bytes
                     .checked_add(workspace_state_bytes)
-                    .ok_or(ItemRefusal::Budget)?,
+                    .ok_or(crate::item_budget_origin!())?,
             );
         Ok(first)
     }
@@ -1341,7 +1358,7 @@ impl<S: LayerFamilySource + ?Sized, I: Copy + Eq> Inspector<'_, '_, S, I> {
         let remaining_state_bytes = self
             .remaining_state_bytes()?
             .checked_sub(caller_scratch_state_bytes)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         let (first, workspace_state_bytes) = self
             .candidate_discovery_seen_ids
             .as_deref_mut()
@@ -1349,7 +1366,7 @@ impl<S: LayerFamilySource + ?Sized, I: Copy + Eq> Inspector<'_, '_, S, I> {
             .remember_first(namespace, id, first_path, remaining_state_bytes)?;
         let combined_workspace_state_bytes = caller_scratch_state_bytes
             .checked_add(workspace_state_bytes)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         self.check_temporary_state(combined_workspace_state_bytes)?;
         self.candidate_discovery_seen_ids_peak_workspace_state_bytes = self
             .candidate_discovery_seen_ids_peak_workspace_state_bytes
@@ -1358,7 +1375,7 @@ impl<S: LayerFamilySource + ?Sized, I: Copy + Eq> Inspector<'_, '_, S, I> {
             self.candidate_artifact_evidence_peak_state_bytes.max(
                 self.candidate_current_artifact_evidence_state_bytes
                     .checked_add(combined_workspace_state_bytes)
-                    .ok_or(ItemRefusal::Budget)?,
+                    .ok_or(crate::item_budget_origin!())?,
             );
         Ok(first)
     }
@@ -1382,7 +1399,7 @@ impl<S: LayerFamilySource + ?Sized, I: Copy + Eq> Inspector<'_, '_, S, I> {
             self.candidate_artifact_evidence_peak_state_bytes.max(
                 self.candidate_current_artifact_evidence_state_bytes
                     .checked_add(workspace_state_bytes)
-                    .ok_or(ItemRefusal::Budget)?,
+                    .ok_or(crate::item_budget_origin!())?,
             );
         Ok(found)
     }
@@ -1564,12 +1581,12 @@ impl<S: LayerFamilySource + ?Sized, I: Copy + Eq> Inspector<'_, '_, S, I> {
         }
         let request_count = if self.candidate_discovery_schema_requests.is_some() {
             usize::try_from(self.candidate_discovery_schema_request_count)
-                .map_err(|_| ItemRefusal::Budget)?
+                .map_err(|_| crate::item_budget_origin!())?
         } else {
             self.schema_requests.len()
         };
         if request_count >= self.limits.max_issues {
-            return Err(ItemRefusal::Budget);
+            return Err(crate::item_budget_origin!());
         }
         if self.candidate_discovery_schema_requests.is_some() {
             let remaining_state_bytes = self.remaining_state_bytes()?;
@@ -1597,17 +1614,21 @@ impl<S: LayerFamilySource + ?Sized, I: Copy + Eq> Inspector<'_, '_, S, I> {
                 self.candidate_artifact_evidence_peak_state_bytes.max(
                     self.candidate_current_artifact_evidence_state_bytes
                         .checked_add(workspace_state_bytes)
-                        .ok_or(ItemRefusal::Budget)?,
+                        .ok_or(crate::item_budget_origin!())?,
                 );
             self.candidate_discovery_schema_request_count = self
                 .candidate_discovery_schema_request_count
                 .checked_add(1)
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
         } else {
             // The scheduled decoded document is the one bounded aggregate
             // copy retained for schema diagnostics; no second boolean path
             // runs alongside it.
-            self.reserve_state(raw_size.checked_mul(8).ok_or(ItemRefusal::Budget)?)?;
+            self.reserve_state(
+                raw_size
+                    .checked_mul(8)
+                    .ok_or(crate::item_budget_origin!())?,
+            )?;
             self.schema_requests.push(SchemaRequest {
                 before_issue: self.issues.len(),
                 location: location.to_owned(),
@@ -1618,7 +1639,7 @@ impl<S: LayerFamilySource + ?Sized, I: Copy + Eq> Inspector<'_, '_, S, I> {
         self.document_copies = self
             .document_copies
             .checked_add(1)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         Ok(())
     }
 
@@ -1786,7 +1807,11 @@ impl<S: LayerFamilySource + ?Sized, I: Copy + Eq> Inspector<'_, '_, S, I> {
                 continue;
             }
             let raw_size = line.len();
-            self.reserve_state(raw_size.checked_mul(8).ok_or(ItemRefusal::Budget)?)?;
+            self.reserve_state(
+                raw_size
+                    .checked_mul(8)
+                    .ok_or(crate::item_budget_origin!())?,
+            )?;
             self.request_schema(&location, contract, &value, raw_size)?;
             visit(self, &location, &value)?;
         }
@@ -2080,8 +2105,12 @@ impl<S: LayerFamilySource + ?Sized, I: Copy + Eq> Inspector<'_, '_, S, I> {
             300_000,
             4_300,
         )
-        .map_err(|_| ItemRefusal::Budget)?;
-        self.reserve_state(raw.len().checked_mul(8).ok_or(ItemRefusal::Budget)?)?;
+        .map_err(|_| crate::item_budget_origin!())?;
+        self.reserve_state(
+            raw.len()
+                .checked_mul(8)
+                .ok_or(crate::item_budget_origin!())?,
+        )?;
         let ordered = match parse_json(&raw, JsonMode::PublishedStrict, limits) {
             Ok(document) => document.into_root(),
             Err(_) => {
@@ -2254,7 +2283,11 @@ impl<S: LayerFamilySource + ?Sized, I: Copy + Eq> Inspector<'_, '_, S, I> {
                 )?;
                 continue;
             }
-            self.reserve_state(line.len().checked_mul(8).ok_or(ItemRefusal::Budget)?)?;
+            self.reserve_state(
+                line.len()
+                    .checked_mul(8)
+                    .ok_or(crate::item_budget_origin!())?,
+            )?;
             self.request_schema(&location, contract, &value, line.len())?;
             records.push(value);
         }
@@ -2360,7 +2393,7 @@ impl<S: LayerFamilySource + ?Sized, I: Copy + Eq> Inspector<'_, '_, S, I> {
                 .checked_add(facts.sha256.as_ref().map_or(0, String::len))
                 .and_then(|used| used.checked_add(facts.sha1.as_ref().map_or(0, String::len)))
                 .and_then(|used| used.checked_add(128))
-                .ok_or(ItemRefusal::Budget)?,
+                .ok_or(crate::item_budget_origin!())?,
         )?;
         let first_observation = if self.candidate_discovery_seen_ids.is_some() {
             self.candidate_seen_id_remember_first(
@@ -2371,7 +2404,11 @@ impl<S: LayerFamilySource + ?Sized, I: Copy + Eq> Inspector<'_, '_, S, I> {
         } else if self.payload_observation_paths.contains(path) {
             false
         } else {
-            self.reserve_state(path.len().checked_add(32).ok_or(ItemRefusal::Budget)?)?;
+            self.reserve_state(
+                path.len()
+                    .checked_add(32)
+                    .ok_or(crate::item_budget_origin!())?,
+            )?;
             self.payload_observation_paths.insert(path.to_owned())
         };
         if first_observation {
@@ -2380,7 +2417,7 @@ impl<S: LayerFamilySource + ?Sized, I: Copy + Eq> Inspector<'_, '_, S, I> {
                     .payload_bytes
                     .checked_add(size)
                     .filter(|used| used <= &self.limits.max_total_bytes)
-                    .ok_or(ItemRefusal::Budget)?;
+                    .ok_or(crate::item_budget_origin!())?;
             }
         }
         Ok(Some(facts))
@@ -2503,7 +2540,7 @@ impl<S: LayerFamilySource + ?Sized, I: Copy + Eq> Inspector<'_, '_, S, I> {
             Some(files) => files
                 .iter()
                 .try_fold(0usize, |used, path| used.checked_add(path.len() + 32))
-                .ok_or(ItemRefusal::Budget)?,
+                .ok_or(crate::item_budget_origin!())?,
             None => {
                 self.unsupported(
                     root,
@@ -2517,7 +2554,7 @@ impl<S: LayerFamilySource + ?Sized, I: Copy + Eq> Inspector<'_, '_, S, I> {
             .physical
             .and_then(|facts| facts.private_inventories.get(root).cloned())
             .or_else(|| self.physical.and_then(|facts| facts.private_files.clone()))
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         for file in files {
             self.checkpoint()?;
             let path = if file.starts_with("ToS/") {
@@ -4193,10 +4230,10 @@ struct NativeArtifactFormReplay {
 
 fn ordered_value_as_serde(value: &JsonValue, max_bytes: usize) -> Result<Value, ItemRefusal> {
     let limits = JsonLimits::new(max_bytes.min(8_388_608), 64, 300_000, 4_300)
-        .map_err(|_| ItemRefusal::Budget)?;
+        .map_err(|_| crate::item_budget_origin!())?;
     let raw = emit_value_preserved_json(value, limits).map_err(|error| {
         if error.code == tos_foundation::FoundationErrorCode::BudgetExceeded {
-            ItemRefusal::Budget
+            crate::item_budget_origin!()
         } else {
             ItemRefusal::Unsupported("native Artifact ordered JSON conversion".into())
         }
@@ -4209,12 +4246,12 @@ fn serde_value_as_ordered(value: &Value, max_bytes: usize) -> Result<JsonValue, 
     let raw = serde_json::to_vec(value)
         .map_err(|_| ItemRefusal::Unsupported("native Artifact ordered JSON conversion".into()))?;
     let limits = JsonLimits::new(max_bytes.min(8_388_608), 64, 300_000, 4_300)
-        .map_err(|_| ItemRefusal::Budget)?;
+        .map_err(|_| crate::item_budget_origin!())?;
     parse_json(&raw, JsonMode::PublishedStrict, limits)
         .map(|document| document.into_root())
         .map_err(|error| {
             if error.code == tos_foundation::FoundationErrorCode::BudgetExceeded {
-                ItemRefusal::Budget
+                crate::item_budget_origin!()
             } else {
                 ItemRefusal::Unsupported("native Artifact ordered JSON conversion".into())
             }
@@ -4265,7 +4302,7 @@ fn replay_native_artifact_initial_forms<S: LayerFamilySource + ?Sized, I: Copy +
         selections
             .len()
             .checked_mul(std::mem::size_of::<JsonValue>() * 2 + 96)
-            .ok_or(ItemRefusal::Budget)?,
+            .ok_or(crate::item_budget_origin!())?,
     )?;
     for selection in selections {
         let (Some(form_id), Some(field_id)) = (
@@ -4395,7 +4432,7 @@ fn replay_native_artifact_initial_forms<S: LayerFamilySource + ?Sized, I: Copy +
         300_000,
         4_300,
     )
-    .map_err(|_| ItemRefusal::Budget)?;
+    .map_err(|_| crate::item_budget_origin!())?;
     let encoded = emit_json_profile(
         &expected_set,
         JsonEmissionProfile::SourceFormSetPublishedV1,
@@ -4403,7 +4440,7 @@ fn replay_native_artifact_initial_forms<S: LayerFamilySource + ?Sized, I: Copy +
     )
     .map_err(|error| {
         if error.code == tos_foundation::FoundationErrorCode::BudgetExceeded {
-            ItemRefusal::Budget
+            crate::item_budget_origin!()
         } else {
             ItemRefusal::Unsupported("native Artifact initial form-set emission".into())
         }
@@ -4413,7 +4450,7 @@ fn replay_native_artifact_initial_forms<S: LayerFamilySource + ?Sized, I: Copy +
             .bytes
             .len()
             .checked_add(std::mem::size_of::<NativeArtifactFormReplay>())
-            .ok_or(ItemRefusal::Budget)?,
+            .ok_or(crate::item_budget_origin!())?,
     )?;
     let initial_source = ordered_value_as_serde(&subject, inspector.limits.max_member_bytes)?;
     let retained_form_sha256 = Digest256::of_bytes(&encoded.bytes).to_hex();
@@ -4912,7 +4949,8 @@ impl<I: Copy + Eq> CandidateArtifactInvalidSchemaProofs<'_, '_, I> {
                 path,
                 &member_sha256.to_hex(),
                 member_size_bytes,
-                std::num::NonZeroUsize::new(self.max_state_bytes).ok_or(ItemRefusal::Budget)?,
+                std::num::NonZeroUsize::new(self.max_state_bytes)
+                    .ok_or(crate::item_budget_origin!())?,
                 deadline,
                 cancelled,
             )
@@ -4969,7 +5007,7 @@ impl<I: Copy + Eq> CandidateArtifactInvalidSchemaProofs<'_, '_, I> {
                     .len()
                     .checked_mul(32)
                     .and_then(|bytes| bytes.checked_add(8_192))
-                    .ok_or(ItemRefusal::Budget)?;
+                    .ok_or(crate::item_budget_origin!())?;
                 if self
                     .cost
                     .retained_state_bytes
@@ -4977,7 +5015,7 @@ impl<I: Copy + Eq> CandidateArtifactInvalidSchemaProofs<'_, '_, I> {
                     .and_then(|used| used.checked_add(lookup_state))
                     .is_none_or(|used| used > self.max_state_bytes)
                 {
-                    return Err(ItemRefusal::Budget);
+                    return Err(crate::item_budget_origin!());
                 }
                 if input.path_presence(path, deadline, cancelled)? != Some(SourcePresenceV1::File) {
                     return Err(ItemRefusal::Source(
@@ -5077,12 +5115,12 @@ impl<'report, 'store, I: Copy + Eq> CandidateArtifactInvalidSchemaProofs<'report
                     .len()
                     .checked_mul(32)
                     .and_then(|bytes| bytes.checked_add(8_192))
-                    .ok_or(ItemRefusal::Budget)?;
+                    .ok_or(crate::item_budget_origin!())?;
                 if page_state_bytes
                     .checked_add(lookup_state)
                     .is_none_or(|used| used > max_state_bytes)
                 {
-                    return Err(ItemRefusal::Budget);
+                    return Err(crate::item_budget_origin!());
                 }
                 if input.path_presence(&record.path, deadline, cancelled)?
                     != Some(SourcePresenceV1::File)
@@ -5094,7 +5132,7 @@ impl<'report, 'store, I: Copy + Eq> CandidateArtifactInvalidSchemaProofs<'report
                 let _ = record_id;
                 candidate_record_count = candidate_record_count
                     .checked_add(1)
-                    .ok_or(ItemRefusal::Budget)?;
+                    .ok_or(crate::item_budget_origin!())?;
                 Ok(())
             },
         )?;
@@ -5102,18 +5140,18 @@ impl<'report, 'store, I: Copy + Eq> CandidateArtifactInvalidSchemaProofs<'report
             .checked_add(
                 rows_scanned
                     .checked_sub(current_rows_before)
-                    .ok_or(ItemRefusal::Budget)?,
+                    .ok_or(crate::item_budget_origin!())?,
             )
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
 
         let retained_state_bytes = std::mem::size_of::<Self>()
             .checked_add(512)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         if retained_state_bytes
             .checked_add(page_budget.max_state_bytes.get())
             .is_none_or(|used| used > max_state_bytes)
         {
-            return Err(ItemRefusal::Budget);
+            return Err(crate::item_budget_origin!());
         }
 
         records
@@ -5155,17 +5193,18 @@ impl<'report, 'store, I: Copy + Eq> CandidateArtifactInvalidSchemaProofs<'report
                     .checked_add(candidate_artifact_record_fingerprint_bytes(
                         record_id, record,
                     )?)
-                    .ok_or(ItemRefusal::Budget)?;
+                    .ok_or(crate::item_budget_origin!())?;
                 if retained_state_bytes
                     .checked_add(page_state_bytes)
                     .is_none_or(|used| used > max_state_bytes)
                 {
-                    return Err(ItemRefusal::Budget);
+                    return Err(crate::item_budget_origin!());
                 }
                 let _ = record_id;
                 records.index().retain_candidate_artifact_schema_record(
                     &record.path,
-                    std::num::NonZeroUsize::new(max_state_bytes).ok_or(ItemRefusal::Budget)?,
+                    std::num::NonZeroUsize::new(max_state_bytes)
+                        .ok_or(crate::item_budget_origin!())?,
                     deadline,
                     cancelled,
                 )?;
@@ -5176,9 +5215,9 @@ impl<'report, 'store, I: Copy + Eq> CandidateArtifactInvalidSchemaProofs<'report
             .checked_add(
                 rows_scanned
                     .checked_sub(current_rows_before)
-                    .ok_or(ItemRefusal::Budget)?,
+                    .ok_or(crate::item_budget_origin!())?,
             )
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
 
         let mut target_diagnostic_count = 0usize;
         let mut diagnostic_validation_work_upper_bound = 0usize;
@@ -5205,31 +5244,31 @@ impl<'report, 'store, I: Copy + Eq> CandidateArtifactInvalidSchemaProofs<'report
                 };
                 schema_diagnostic_rows_scanned = schema_diagnostic_rows_scanned
                     .checked_add(1)
-                    .ok_or(ItemRefusal::Budget)?;
+                    .ok_or(crate::item_budget_origin!())?;
                 let diagnostic = &row.diagnostic;
                 if !diagnostic_targets_artifact_schema(diagnostic) {
                     return Ok(());
                 }
                 target_diagnostic_count = target_diagnostic_count
                     .checked_add(1)
-                    .ok_or(ItemRefusal::Budget)?;
+                    .ok_or(crate::item_budget_origin!())?;
                 diagnostic_validation_work_upper_bound = diagnostic_validation_work_upper_bound
                     .checked_add(diagnostic_issue_validation_work_upper_bound(diagnostic)?)
                     .filter(|work| *work <= max_diagnostic_validation_work)
-                    .ok_or(ItemRefusal::Budget)?;
+                    .ok_or(crate::item_budget_origin!())?;
                 hash_input_bytes_upper_bound = hash_input_bytes_upper_bound
                     .checked_add(diagnostic_fingerprint_input_upper_bound(diagnostic)?)
-                    .ok_or(ItemRefusal::Budget)?;
+                    .ok_or(crate::item_budget_origin!())?;
                 if page_state_bytes
                     .checked_add(retained_state_bytes)
                     .is_none_or(|used| used > max_state_bytes)
                 {
-                    return Err(ItemRefusal::Budget);
+                    return Err(crate::item_budget_origin!());
                 }
                 update_diagnostic_fingerprint(&mut diagnostic_hasher, diagnostic)?;
                 let member_sha256 = diagnostic.unit.raw_sha256;
                 let member_size_bytes = u64::try_from(diagnostic.input_instance_bytes)
-                    .map_err(|_| ItemRefusal::Budget)?;
+                    .map_err(|_| crate::item_budget_origin!())?;
                 let exact_schema_set = diagnostic.verdict.format_profile
                     == schema_identity.profile()
                     && diagnostic.verdict.schema_set_digest == schema_identity.schema_set_digest()
@@ -5245,9 +5284,9 @@ impl<'report, 'store, I: Copy + Eq> CandidateArtifactInvalidSchemaProofs<'report
                     .checked_add(retained_state_bytes)
                     .and_then(|bytes| bytes.checked_add(diagnostic.path.len().saturating_mul(2)))
                     .and_then(|bytes| bytes.checked_add(8_192))
-                    .ok_or(ItemRefusal::Budget)?;
+                    .ok_or(crate::item_budget_origin!())?;
                 if diagnostic_state > max_state_bytes {
-                    return Err(ItemRefusal::Budget);
+                    return Err(crate::item_budget_origin!());
                 }
                 records
                     .index()
@@ -5259,7 +5298,8 @@ impl<'report, 'store, I: Copy + Eq> CandidateArtifactInvalidSchemaProofs<'report
                         &diagnostic.unit.report.report_sha256.to_hex(),
                         exact_schema_set,
                         complete_invalid,
-                        std::num::NonZeroUsize::new(max_state_bytes).ok_or(ItemRefusal::Budget)?,
+                        std::num::NonZeroUsize::new(max_state_bytes)
+                            .ok_or(crate::item_budget_origin!())?,
                         deadline,
                         cancelled,
                     )?;
@@ -5277,7 +5317,7 @@ impl<'report, 'store, I: Copy + Eq> CandidateArtifactInvalidSchemaProofs<'report
         }
         hash_input_bytes_upper_bound = hash_input_bytes_upper_bound
             .checked_add(512)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         let cost = CandidateArtifactInvalidSchemaProofCost {
             retained_state_bytes,
             current_record_rows_scanned,
@@ -5328,7 +5368,7 @@ where
         *rows_scanned = (*rows_scanned)
             .checked_add(page.rows.len())
             .filter(|rows| *rows <= max_scan_rows)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         for (index, row) in page.rows.iter().enumerate() {
             if index % 128 == 0 {
                 if cancelled.load(Ordering::Relaxed) {
@@ -5463,7 +5503,7 @@ impl<'cut> CurrentArtifactInvalidSchemaProofs<'cut> {
             }
             candidate_record_count = candidate_record_count
                 .checked_add(1)
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
             max_candidate_path_bytes = max_candidate_path_bytes.max(record.path.len());
         }
 
@@ -5473,7 +5513,7 @@ impl<'cut> CurrentArtifactInvalidSchemaProofs<'cut> {
         let entry_state = std::mem::size_of::<CurrentArtifactSchemaDiagnosticProof>()
             .checked_add(std::mem::size_of::<&str>())
             .and_then(|bytes| bytes.checked_add(128))
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         let retained_state_bytes = candidate_record_count
             .checked_mul(entry_state)
             .and_then(|bytes| {
@@ -5485,9 +5525,9 @@ impl<'cut> CurrentArtifactInvalidSchemaProofs<'cut> {
                     .and_then(|scratch| scratch.checked_add(64))
                     .and_then(|scratch| bytes.checked_add(scratch))
             })
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         if retained_state_bytes > max_state_bytes {
-            return Err(ItemRefusal::Budget);
+            return Err(crate::item_budget_origin!());
         }
 
         let mut entries = BTreeMap::new();
@@ -5504,7 +5544,7 @@ impl<'cut> CurrentArtifactInvalidSchemaProofs<'cut> {
             }
             preparation_scan_work_upper_bound = preparation_scan_work_upper_bound
                 .checked_add(1)
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
             if !is_current_v2_artifact_record(record) {
                 continue;
             }
@@ -5531,10 +5571,10 @@ impl<'cut> CurrentArtifactInvalidSchemaProofs<'cut> {
                     bytes.checked_add(string(&record.value, "$schema").unwrap_or("").len())
                 })
                 .and_then(|bytes| bytes.checked_add(256))
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
             hash_input_bytes_upper_bound = hash_input_bytes_upper_bound
                 .checked_add(candidate_hash_bytes)
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
             update_candidate_fingerprint(&mut candidate_hasher, record_id, record, member)?;
             let entry = entries.entry(member.path.as_str()).or_insert(
                 CurrentArtifactSchemaDiagnosticProof {
@@ -5551,7 +5591,7 @@ impl<'cut> CurrentArtifactInvalidSchemaProofs<'cut> {
             entry.record_count = entry
                 .record_count
                 .checked_add(1)
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
             if entry.member_sha256 != member.sha256 || entry.member_size_bytes != member.size_bytes
             {
                 return Err(ItemRefusal::Source(
@@ -5575,7 +5615,7 @@ impl<'cut> CurrentArtifactInvalidSchemaProofs<'cut> {
             }
             preparation_scan_work_upper_bound = preparation_scan_work_upper_bound
                 .checked_add(1)
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
             if !diagnostic_targets_artifact_schema(diagnostic) {
                 continue;
             }
@@ -5586,19 +5626,19 @@ impl<'cut> CurrentArtifactInvalidSchemaProofs<'cut> {
             let issue_work = diagnostic_issue_validation_work_upper_bound(diagnostic)?;
             target_schema_validation_work = target_schema_validation_work
                 .checked_add(issue_work)
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
             preparation_scan_work_upper_bound = preparation_scan_work_upper_bound
                 .checked_add(issue_work)
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
             let diagnostic_hash_bytes = diagnostic_fingerprint_input_upper_bound(diagnostic)?;
             hash_input_bytes_upper_bound = hash_input_bytes_upper_bound
                 .checked_add(diagnostic_hash_bytes)
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
             check_active()?;
             proof.target_diagnostic_count = proof
                 .target_diagnostic_count
                 .checked_add(1)
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
             let invalid = complete_invalid_artifact_schema_diagnostic(
                 diagnostic,
                 diagnostic.path.as_str(),
@@ -5614,22 +5654,22 @@ impl<'cut> CurrentArtifactInvalidSchemaProofs<'cut> {
             update_diagnostic_fingerprint(&mut diagnostic_hasher, diagnostic)?;
             target_diagnostic_count = target_diagnostic_count
                 .checked_add(1)
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
         }
         let validation_scan_work_upper_bound = report
             .records
             .len()
             .checked_add(report.schema_diagnostics.len())
             .and_then(|rows| rows.checked_add(target_schema_validation_work))
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         // The preparation pass above scans all Records rows twice.
         preparation_scan_work_upper_bound = preparation_scan_work_upper_bound
             .checked_add(report.records.len())
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         hash_input_bytes_upper_bound = hash_input_bytes_upper_bound
             .checked_mul(2)
             .and_then(|bytes| bytes.checked_add(512))
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         Ok(Self {
             source_revision,
             current_membership,
@@ -5724,7 +5764,9 @@ impl<'cut> CurrentArtifactInvalidSchemaProofs<'cut> {
                 ));
             }
             update_candidate_fingerprint(&mut candidate_hasher, record_id, record, member)?;
-            candidate_count = candidate_count.checked_add(1).ok_or(ItemRefusal::Budget)?;
+            candidate_count = candidate_count
+                .checked_add(1)
+                .ok_or(crate::item_budget_origin!())?;
         }
         if candidate_count != self.candidate_record_count
             || candidate_hasher.finalize() != self.candidate_records_sha256
@@ -5776,7 +5818,7 @@ impl<'cut> CurrentArtifactInvalidSchemaProofs<'cut> {
             update_diagnostic_fingerprint(&mut diagnostic_hasher, diagnostic)?;
             target_diagnostic_count = target_diagnostic_count
                 .checked_add(1)
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
         }
         if target_diagnostic_count != self.target_diagnostic_count
             || diagnostic_hasher.finalize() != self.target_diagnostics_sha256
@@ -5837,7 +5879,7 @@ fn diagnostic_issue_validation_work_upper_bound(
     let report = &diagnostic.unit.report;
     let issue_rows = report.issues.len();
     let path_bytes =
-        usize::try_from(report.caps.max_path_bytes).map_err(|_| ItemRefusal::Budget)?;
+        usize::try_from(report.caps.max_path_bytes).map_err(|_| crate::item_budget_origin!())?;
     let path_segments = usize::from(report.caps.max_path_segments);
     // `is_well_formed` checks adjacent ordering, scans issue shape and both
     // paths, serializes every issue once for the size check, and serializes it
@@ -5855,7 +5897,7 @@ fn diagnostic_issue_validation_work_upper_bound(
                 .checked_mul(path_segments.checked_mul(8)?)
                 .and_then(|segments| work.checked_add(segments))
         })
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     // Adjacent-order comparisons can inspect both neighboring serialized
     // issues before the later per-issue path and report-size guards run.
     bounded_path_work
@@ -5863,9 +5905,9 @@ fn diagnostic_issue_validation_work_upper_bound(
             diagnostic
                 .response_bytes
                 .checked_mul(2)
-                .ok_or(ItemRefusal::Budget)?,
+                .ok_or(crate::item_budget_origin!())?,
         )
-        .ok_or(ItemRefusal::Budget)
+        .ok_or(crate::item_budget_origin!())
 }
 
 fn diagnostic_fingerprint_input_upper_bound(
@@ -5883,10 +5925,12 @@ fn diagnostic_fingerprint_input_upper_bound(
     ]
     .into_iter()
     .try_fold(0usize, |total, bytes| total.checked_add(bytes))
-    .ok_or(ItemRefusal::Budget)?;
+    .ok_or(crate::item_budget_origin!())?;
     // Fixed digests, counters, booleans, hash-text length prefixes, and the
     // fixed transcript labels are all covered by this fixed allowance.
-    text_bytes.checked_add(2_048).ok_or(ItemRefusal::Budget)
+    text_bytes
+        .checked_add(2_048)
+        .ok_or(crate::item_budget_origin!())
 }
 
 fn complete_invalid_artifact_schema_diagnostic(
@@ -5927,7 +5971,7 @@ fn complete_invalid_artifact_schema_diagnostic(
 }
 
 fn hash_text(hasher: &mut Digest256Hasher, value: &str) -> Result<(), ItemRefusal> {
-    let length = u64::try_from(value.len()).map_err(|_| ItemRefusal::Budget)?;
+    let length = u64::try_from(value.len()).map_err(|_| crate::item_budget_origin!())?;
     hasher.update(&length.to_be_bytes());
     hasher.update(value.as_bytes());
     Ok(())
@@ -5944,7 +5988,7 @@ fn hash_u64(hasher: &mut Digest256Hasher, value: u64) {
 fn hash_usize(hasher: &mut Digest256Hasher, value: usize) -> Result<(), ItemRefusal> {
     hash_u64(
         hasher,
-        u64::try_from(value).map_err(|_| ItemRefusal::Budget)?,
+        u64::try_from(value).map_err(|_| crate::item_budget_origin!())?,
     );
     Ok(())
 }
@@ -6017,7 +6061,7 @@ fn candidate_artifact_record_fingerprint_bytes(
         bytes
             .checked_add(field)
             .and_then(|sum| sum.checked_add(8))
-            .ok_or(ItemRefusal::Budget)
+            .ok_or(crate::item_budget_origin!())
     })
 }
 
@@ -6238,17 +6282,17 @@ fn check_native_artifact_history<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
                 path_bytes /= 10;
                 path_length_digits = path_length_digits
                     .checked_add(1)
-                    .ok_or(ItemRefusal::Budget)?;
+                    .ok_or(crate::item_budget_origin!())?;
             }
             let scoped_key_bytes = path_length_digits
                 .checked_add(1)
                 .and_then(|bytes| bytes.checked_add(artifact_path.len()))
                 .and_then(|bytes| bytes.checked_add(transaction_id.len()))
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
             let scoped_key_state_bytes = scoped_key_bytes
                 .checked_add(path_length_digits)
                 .and_then(|bytes| bytes.checked_add(size_of::<String>() + 32))
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
             inspector.check_temporary_state(scoped_key_state_bytes)?;
             let path_length_prefix = artifact_path.len().to_string();
             let mut scoped_key = String::with_capacity(scoped_key_bytes);
@@ -8080,7 +8124,11 @@ fn remember_discovery_id<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
         if fallback.contains(id) {
             return Ok(false);
         }
-        inspector.reserve_state(id.len().checked_add(64).ok_or(ItemRefusal::Budget)?)?;
+        inspector.reserve_state(
+            id.len()
+                .checked_add(64)
+                .ok_or(crate::item_budget_origin!())?,
+        )?;
         return Ok(fallback.insert(id.to_owned()));
     }
     inspector.candidate_seen_id_remember_first(namespace, id, first_path)
@@ -8118,12 +8166,15 @@ fn prior_event_contains<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
     prior_events: &dyn SourceFoundationDefaultEventLookup,
     id: &str,
 ) -> Result<bool, ItemRefusal> {
-    let workspace_state_bytes = id.len().checked_add(256).ok_or(ItemRefusal::Budget)?;
+    let workspace_state_bytes = id
+        .len()
+        .checked_add(256)
+        .ok_or(crate::item_budget_origin!())?;
     inspector.check_temporary_state(workspace_state_bytes)?;
     let combined = inspector
         .candidate_current_artifact_evidence_state_bytes
         .checked_add(workspace_state_bytes)
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     inspector.candidate_discovery_seen_ids_peak_workspace_state_bytes = inspector
         .candidate_discovery_seen_ids_peak_workspace_state_bytes
         .max(workspace_state_bytes);
@@ -8256,7 +8307,10 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
                 "exact current membership contains a duplicate path",
             )?;
         }
-        let next_state = path.len().checked_add(24).ok_or(ItemRefusal::Budget)?;
+        let next_state = path
+            .len()
+            .checked_add(24)
+            .ok_or(crate::item_budget_origin!())?;
         if next_state > previous_path_state {
             inspector.reserve_state(next_state - previous_path_state)?;
             previous_path_state = next_state;
@@ -8271,8 +8325,12 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
     if inspector.candidate_discovery_seen_ids.is_none() {
         prior_events.for_each_event(&mut |id, _| {
             prior_event_cost = prior_event_cost
-                .checked_add(id.len().checked_add(64).ok_or(ItemRefusal::Budget)?)
-                .ok_or(ItemRefusal::Budget)?;
+                .checked_add(
+                    id.len()
+                        .checked_add(64)
+                        .ok_or(crate::item_budget_origin!())?,
+                )
+                .ok_or(crate::item_budget_origin!())?;
             event_ids.insert(id.to_owned());
             Ok(())
         })?;
@@ -8325,10 +8383,10 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
                     )?;
                     discovery_event_observation_rows = discovery_event_observation_rows
                         .checked_add(1)
-                        .ok_or(ItemRefusal::Budget)?;
+                        .ok_or(crate::item_budget_origin!())?;
                     discovery_event_owner_insertion_rows = discovery_event_owner_insertion_rows
                         .checked_add(1)
-                        .ok_or(ItemRefusal::Budget)?;
+                        .ok_or(crate::item_budget_origin!())?;
                 } else {
                     boundary_events.insert(id.clone(), info);
                     source_event_insertions.push((id, value.clone()));
@@ -8370,15 +8428,24 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
                     inspector.checkpoint()?;
                 }
                 known_refs_state = known_refs_state
-                    .checked_add(reference.len().checked_mul(2).ok_or(ItemRefusal::Budget)?)
+                    .checked_add(
+                        reference
+                            .len()
+                            .checked_mul(2)
+                            .ok_or(crate::item_budget_origin!())?,
+                    )
                     .and_then(|bytes| bytes.checked_add(size_of::<String>() + 256))
-                    .ok_or(ItemRefusal::Budget)?;
+                    .ok_or(crate::item_budget_origin!())?;
             }
             summary_workspace_state_bytes = size_of::<DiscoveryInfo>()
-                .checked_add(target_kind_len.checked_mul(2).ok_or(ItemRefusal::Budget)?)
+                .checked_add(
+                    target_kind_len
+                        .checked_mul(2)
+                        .ok_or(crate::item_budget_origin!())?,
+                )
                 .and_then(|bytes| bytes.checked_add(size_of::<String>() + 64))
                 .and_then(|bytes| bytes.checked_add(known_refs_state))
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
             inspector.set_current_discovery_run_summary_state(summary_workspace_state_bytes)?;
         }
         let target_kind = value
@@ -8423,11 +8490,11 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
                     .and_then(|used| {
                         used.checked_add(size_of::<(String, String, String, u64)>() + 256)
                     })
-                    .ok_or(ItemRefusal::Budget)?;
+                    .ok_or(crate::item_budget_origin!())?;
                 if inspector.candidate_discovery_run_summaries.is_some() {
                     summary_workspace_state_bytes = summary_workspace_state_bytes
                         .checked_add(tuple_state)
-                        .ok_or(ItemRefusal::Budget)?;
+                        .ok_or(crate::item_budget_origin!())?;
                     inspector
                         .set_current_discovery_run_summary_state(summary_workspace_state_bytes)?;
                 } else {
@@ -8451,15 +8518,15 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
             let workspace_state_bytes = inspector
                 .candidate_discovery_run_summaries
                 .as_deref_mut()
-                .ok_or(ItemRefusal::Budget)?
+                .ok_or(crate::item_budget_origin!())?
                 .insert_summary(path, &summary, remaining_state_bytes)?;
             let combined_summary_workspace = summary_workspace_state_bytes
                 .checked_add(workspace_state_bytes)
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
             inspector.set_current_discovery_run_summary_state(combined_summary_workspace)?;
             discovery_summary_observations = discovery_summary_observations
                 .checked_add(1)
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
             inspector.set_current_discovery_run_summary_state(0)?;
         } else {
             discoveries.insert(path.to_owned(), summary);
@@ -8517,11 +8584,11 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
                 )?;
                 discovery_event_observation_rows = discovery_event_observation_rows
                     .checked_add(1)
-                    .ok_or(ItemRefusal::Budget)?;
+                    .ok_or(crate::item_budget_origin!())?;
                 if insert_into_owner_map {
                     discovery_event_owner_insertion_rows = discovery_event_owner_insertion_rows
                         .checked_add(1)
-                        .ok_or(ItemRefusal::Budget)?;
+                        .ok_or(crate::item_budget_origin!())?;
                 }
             } else {
                 if insert_into_owner_map {
@@ -8590,7 +8657,7 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
                     inspector
                         .candidate_current_artifact_evidence_state_bytes
                         .checked_add(charged_state_bytes)
-                        .ok_or(ItemRefusal::Budget)?,
+                        .ok_or(crate::item_budget_origin!())?,
                 );
             let is_exact_record = record.as_ref().is_some_and(|record| {
                 record.path == path && python_json_equal(&record.value, &value)
@@ -8729,19 +8796,19 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
                 let consumed_source = inspector
                     .read_bytes
                     .checked_add(inspector.candidate_provider_source_bytes)
-                    .ok_or(ItemRefusal::Budget)?;
+                    .ok_or(crate::item_budget_origin!())?;
                 let remaining_source = inspector
                     .limits
                     .max_total_bytes
                     .checked_sub(consumed_source)
-                    .ok_or(ItemRefusal::Budget)?;
+                    .ok_or(crate::item_budget_origin!())?;
                 let remaining_state = inspector.remaining_state_bytes()?;
                 Some(provider.evidence_for_artifact(
                     path,
                     indexed_artifact_record,
                     &value,
                     Digest256::of_bytes(&raw),
-                    u64::try_from(raw.len()).map_err(|_| ItemRefusal::Budget)?,
+                    u64::try_from(raw.len()).map_err(|_| crate::item_budget_origin!())?,
                     remaining_source,
                     remaining_state,
                     inspector.limits.deadline,
@@ -8761,7 +8828,7 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
                 indexed_artifact_record
                     .map_or(0, |summary| summary.charged_state_bytes)
                     .checked_add(evidence.peak_state_bytes())
-                    .ok_or(ItemRefusal::Budget)?,
+                    .ok_or(crate::item_budget_origin!())?,
             )?;
             inspector.candidate_provider_source_bytes = inspector
                 .candidate_provider_source_bytes
@@ -8772,11 +8839,11 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
                         .checked_add(*provider_used)
                         .is_some_and(|total| total <= inspector.limits.max_total_bytes)
                 })
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
             inspector.candidate_direct_source_bytes = inspector
                 .candidate_direct_source_bytes
                 .checked_add(evidence.direct_source_read_bytes())
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
         }
         let (native_history, artifact_replay) = match candidate_evidence_response
             .as_ref()
@@ -8803,7 +8870,7 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
             &mut *inspector,
             path,
             &value,
-            u64::try_from(raw.len()).map_err(|_| ItemRefusal::Budget)?,
+            u64::try_from(raw.len()).map_err(|_| crate::item_budget_origin!())?,
             &discoveries,
             artifact_binding,
             native_history,
@@ -8939,7 +9006,7 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
                         inspector
                             .candidate_current_artifact_evidence_state_bytes
                             .checked_add(charged_state_bytes)
-                            .ok_or(ItemRefusal::Budget)?,
+                            .ok_or(crate::item_budget_origin!())?,
                     );
                 let exact_match = record.as_ref().and_then(|record| {
                     (record.path == artifact_ref)
@@ -9655,7 +9722,11 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
     inspector.for_each_current_path(&mut |inspector, path| {
         if path.starts_with(SOURCE_HOME) && path.ends_with(ITEM_MANIFEST_SUFFIX) {
             if inspector.candidate_discovery_seen_ids.is_none() {
-                inspector.reserve_state(path.len().checked_add(96).ok_or(ItemRefusal::Budget)?)?;
+                inspector.reserve_state(
+                    path.len()
+                        .checked_add(96)
+                        .ok_or(crate::item_budget_origin!())?,
+                )?;
                 expected_manifest_refs.insert(path.to_owned());
             }
         }
@@ -9855,7 +9926,7 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
         let cost = inspector
             .candidate_discovery_event_summaries
             .as_deref_mut()
-            .ok_or(ItemRefusal::Budget)?
+            .ok_or(crate::item_budget_origin!())?
             .finish(
                 discovery_event_observation_rows,
                 discovery_event_owner_insertion_rows,
@@ -9873,7 +9944,7 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
         let cost = inspector
             .candidate_discovery_run_summaries
             .as_deref_mut()
-            .ok_or(ItemRefusal::Budget)?
+            .ok_or(crate::item_budget_origin!())?
             .finish(discovery_summary_observations, remaining_state_bytes)?;
         inspector.set_current_discovery_run_summary_state(cost.workspace_state_bytes)?;
         inspector.set_current_discovery_run_summary_state(0)?;
@@ -9888,7 +9959,7 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
         let cost = inspector
             .candidate_discovery_schema_requests
             .as_deref_mut()
-            .ok_or(ItemRefusal::Budget)?
+            .ok_or(crate::item_budget_origin!())?
             .finish(expected_rows, direct_issue_count, remaining_state_bytes)?;
         inspector.check_temporary_state(cost.workspace_state_bytes)?;
         inspector.candidate_discovery_schema_request_peak_workspace_state_bytes = inspector
@@ -9899,7 +9970,7 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
                 inspector
                     .candidate_current_artifact_evidence_state_bytes
                     .checked_add(cost.workspace_state_bytes)
-                    .ok_or(ItemRefusal::Budget)?,
+                    .ok_or(crate::item_budget_origin!())?,
             );
         Some(cost)
     } else {
@@ -9912,7 +9983,7 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
         let cost = inspector
             .candidate_discovery_digest_cache
             .as_deref_mut()
-            .ok_or(ItemRefusal::Budget)?
+            .ok_or(crate::item_budget_origin!())?
             .finish(observation_rows, unique_paths, remaining_state_bytes)?;
         inspector.check_temporary_state(cost.workspace_state_bytes)?;
         inspector.candidate_discovery_digest_peak_workspace_state_bytes = inspector
@@ -9923,7 +9994,7 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
                 inspector
                     .candidate_current_artifact_evidence_state_bytes
                     .checked_add(cost.workspace_state_bytes)
-                    .ok_or(ItemRefusal::Budget)?,
+                    .ok_or(crate::item_budget_origin!())?,
             );
         Some(cost)
     } else {
