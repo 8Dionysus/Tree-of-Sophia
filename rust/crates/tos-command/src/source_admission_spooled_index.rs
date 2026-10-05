@@ -321,7 +321,20 @@ pub(crate) fn is_bounded_source_cause(reason: &str) -> bool {
                     .bytes()
                     .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
         })
-        && parts.next().is_none()
+        && if site == Some("budget-check") {
+            let counter = |value: Option<&str>| {
+                value.is_some_and(|value| {
+                    value == "unknown"
+                        || (!value.is_empty()
+                            && value.len() <= 20
+                            && value.bytes().all(|byte| byte.is_ascii_digit())
+                            && value.parse::<u64>().is_ok())
+                })
+            };
+            counter(parts.next()) && counter(parts.next()) && parts.next().is_none()
+        } else {
+            parts.next().is_none()
+        }
 }
 
 fn receiver_refusal(error: ItemRefusal) -> io::Error {
@@ -329,7 +342,16 @@ fn receiver_refusal(error: ItemRefusal) -> io::Error {
     // remain private while the real refusal stage survives the IO boundary.
     let reason = match error {
         ItemRefusal::Budget => "candidate Records/Item receiver budget refused",
-        ItemRefusal::BudgetCheck { .. } => "candidate Records/Item receiver budget check refused",
+        ItemRefusal::BudgetCheck { check, used, limit } => {
+            let fingerprint = bounded_source_cause("receiver-source", "budget-check", check);
+            let counter = |value: Option<u64>| {
+                value.map_or_else(|| "unknown".to_owned(), |value| value.to_string())
+            };
+            return io::Error::new(
+                io::ErrorKind::InvalidData,
+                format!("{fingerprint}:{}:{}", counter(used), counter(limit)),
+            );
+        }
         ItemRefusal::Deadline => "candidate Records/Item receiver deadline refused",
         ItemRefusal::Source(reason) => {
             return if let Some(fixed) = receiver_source_reason(&reason) {
