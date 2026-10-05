@@ -1348,9 +1348,19 @@ unsafe extern "C" fn reserved_lock(file: *mut ffi::sqlite3_file, output: *mut i3
 }
 unsafe extern "C" fn file_control(
     _: *mut ffi::sqlite3_file,
-    _: i32,
-    _: *mut std::ffi::c_void,
+    operation: i32,
+    argument: *mut std::ffi::c_void,
 ) -> i32 {
+    if operation == ffi::SQLITE_FCNTL_MMAP_SIZE {
+        if argument.is_null() {
+            return ffi::SQLITE_IOERR;
+        }
+        // This FD VFS exposes no xFetch/xUnfetch. Explicitly report its zero
+        // mmap capability so SQLite policy readback yields the owned scalar.
+        // Ignore requested nonzero sizes; mapping is never enabled here.
+        unsafe { *argument.cast::<i64>() = 0 };
+        return ffi::SQLITE_OK;
+    }
     ffi::SQLITE_NOTFOUND
 }
 unsafe extern "C" fn sector_size(_: *mut ffi::sqlite3_file) -> i32 {
