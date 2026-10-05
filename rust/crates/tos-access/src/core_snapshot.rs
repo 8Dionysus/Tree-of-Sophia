@@ -2022,6 +2022,9 @@ fn compiler_terminal_diagnostic(prefix: &'static str, error: &tos_compiler::Erro
         tos_compiler::Error::Source(_) => {
             let _ = out.write_str("source carrier refused"); None
         }
+        tos_compiler::Error::ControlledColdClose { .. } => {
+            let _ = out.write_str("controlled cold operation/SQLite close refused"); None
+        }
     };
     if let Some(context) = context {
         let mut end = context.len().min(256);
