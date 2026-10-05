@@ -18,7 +18,7 @@
     "disposition"
   ],
   "notes": [
-    "This inventory describes every active non-pyc file under */scripts/* and every Python entrypoint named by a validation lane.",
+    "This inventory describes selected script surfaces for navigation; tracked executable files and their consumers establish program membership under TOS-D-0062.",
     "It is not command authority.",
     "Command sequences live in docs/validation/validation_lanes.json."
   ],
@@ -448,23 +448,22 @@
       "disposition": "keep"
     },
     {
-      "path": "access/packaging/build_standalone_bundle.py",
-      "family": "standalone_bundle_builder",
+      "path": "access/packaging/build_software_bundle.py",
+      "family": "software_bundle_builder",
       "organ_lane": "release",
       "owner_surface": "access/AGENTS.md",
       "source_truth": [
-        "access/contracts/runtime-data.v1.json",
         "access/contracts/runtime-manifest.v1.json",
         "access/profiles/standalone.v1.json",
-        "access/pyproject.toml"
+        "rust/crates/tos-access/src/software_archive.rs"
       ],
       "reads": [
-        "the standalone package, prebuilt web assets, and allowlisted ToS derived exports"
+        "exact software source, browser assets and independently verified native product/proof handoffs; no selected corpus"
       ],
       "writes": [
-        "one deterministic standalone zip and adjacent manifest at the explicitly requested output path"
+        "one explicitly requested deterministic software-only archive and adjacent manifest"
       ],
-      "side_effects": "writes only the requested candidate archive and sidecar; no publication, signing, registry admission, or source mutation",
+      "side_effects": "writes only the selected candidate archive and sidecar; no corpus selection, installation, publication, signing or registry admission",
       "validation_lane": "standalone_access",
       "ci_inclusion": "release",
       "test_target": "access/tests/test_access_contract.py",

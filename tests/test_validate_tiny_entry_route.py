@@ -22,6 +22,10 @@ def write_text(path: Path, content: str) -> None:
 
 class ValidateTinyEntryRouteTestCase(unittest.TestCase):
     def write_valid_surface(self, repo_root: Path) -> None:
+        write_text(repo_root / validate_tiny_entry_route.DOCUMENTATION_POLICY_PATH,
+                   (REPO_ROOT / validate_tiny_entry_route.DOCUMENTATION_POLICY_PATH).read_text())
+        write_text(repo_root / validate_tiny_entry_route.KAG_EXPORT_DOC_PATH,
+                   (REPO_ROOT / validate_tiny_entry_route.KAG_EXPORT_DOC_PATH).read_text())
         for relative_path in (
             Path("README.md"),
             Path("CHARTER.md"),
@@ -113,7 +117,7 @@ class ValidateTinyEntryRouteTestCase(unittest.TestCase):
             any("route surface should not carry command text" in message for _, message in issues)
         )
 
-    def test_review_checklist_missing_validator_phrase_fails(self) -> None:
+    def test_review_checklist_missing_command_authority_fails(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             repo_root = Path(tmpdir) / "Tree-of-Sophia"
             self.write_valid_surface(repo_root)
@@ -129,16 +133,31 @@ class ValidateTinyEntryRouteTestCase(unittest.TestCase):
             write_text(
                 checklist_path,
                 checklist_path.read_text(encoding="utf-8").replace(
-                    "python scripts/validate_tiny_entry_route.py",
-                    "python scripts/validate_current_route.py",
+                    "docs/validation/validation_lanes.json",
+                    "docs/validation/other_lanes.json",
                 ),
             )
 
             issues = validate_tiny_entry_route.run_validation(repo_root)
 
         self.assertTrue(
-            any("scripts/validate_tiny_entry_route.py" in message for _, message in issues)
+            any("docs/validation/validation_lanes.json" in message for _, message in issues)
         )
+
+    def test_caller_policy_edit_is_reloaded_and_escape_refused(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir) / "Tree-of-Sophia"
+            self.write_valid_surface(root)
+            path = root / validate_tiny_entry_route.DOCUMENTATION_POLICY_PATH
+            policy = json.loads(path.read_text())
+            policy["documentation_requirements"]["README.md"]["required_tokens"].append("new-owner-route-token")
+            write_text(path, json.dumps(policy))
+            self.assertTrue(any("new-owner-route-token" in message
+                                for _, message in validate_tiny_entry_route.run_validation(root)))
+            policy["documentation_requirements"]["../outside.md"] = policy["documentation_requirements"]["README.md"]
+            write_text(path, json.dumps(policy))
+            with self.assertRaisesRegex(ValueError, "policy path"):
+                validate_tiny_entry_route.run_validation(root)
 
 
 if __name__ == "__main__":

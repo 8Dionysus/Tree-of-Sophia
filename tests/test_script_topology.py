@@ -58,6 +58,36 @@ def import_path_for(path: str) -> str:
 
 
 class ScriptTopologyTests(unittest.TestCase):
+    def test_live_tracked_command_does_not_require_manual_navigation_row(self) -> None:
+        spec = importlib.util.spec_from_file_location(
+            "mechanics_reference", REPO_ROOT / "scripts/validate_mechanics_topology.py")
+        reference = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(reference)
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            for name, text in {
+                "docs/validation/script_inventory.json": '{"script_surfaces":[]}',
+                "mechanics/example/README.md": 'Use `scripts/live.py`.',
+                "scripts/live.py": 'print("source-owned command")',
+            }.items():
+                path = root / name
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text(text)
+            subprocess.run(["git", "init", "--quiet", str(root)], check=True)
+            subprocess.run(["git", "-C", str(root), "add", "."], check=True)
+            issues = []
+            reference.validate_documentation_references(root, issues)
+            self.assertEqual(issues, [])
+            (root / "scripts/untracked.py").write_text("not an authored command")
+            (root / "mechanics/example/README.md").write_text('Use `scripts/untracked.py`.')
+            reference.validate_documentation_references(root, issues)
+            self.assertTrue(any("absent from tracked script namespace" in message
+                                for _, message in issues))
+            (root / "mechanics/example/README.md").write_text('Use `scripts/live.py`.')
+            (root / "scripts/live.py").unlink()
+            reference.validate_documentation_references(root, issues)
+            self.assertTrue(any("stale executable reference" in message for _, message in issues))
+
     def test_script_topology_doc_names_inventory_and_boundaries(self) -> None:
         text = script_inventory.SCRIPT_TOPOLOGY_PATH.read_text(encoding="utf-8")
         for required in (
@@ -72,7 +102,7 @@ class ScriptTopologyTests(unittest.TestCase):
             with self.subTest(required=required):
                 self.assertIn(required, text)
 
-    def test_inventory_covers_every_active_script_surface(self) -> None:
+    def test_inventory_is_unique_navigation_for_known_script_surfaces(self) -> None:
         inventory = script_inventory.load_inventory()
         entries = script_inventory.inventory_entries()
         paths = [entry["path"] for entry in entries]
@@ -80,7 +110,7 @@ class ScriptTopologyTests(unittest.TestCase):
         self.assertEqual("docs/validation/SCRIPT_TOPOLOGY.md", inventory["owner_surface"])
         self.assertEqual("docs/validation/validation_lanes.json", inventory["command_authority"])
         self.assertEqual(len(paths), len(set(paths)))
-        self.assertEqual(script_inventory.discovered_script_surfaces(), set(paths))
+        self.assertLessEqual(set(paths), script_inventory.discovered_script_surfaces())
 
     def test_inventory_entries_are_complete_and_owner_routed(self) -> None:
         lanes = script_inventory.load_validation_lanes()

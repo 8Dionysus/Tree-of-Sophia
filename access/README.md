@@ -1134,7 +1134,7 @@ runs in a fresh interpreter and checks the inputs and compiler against the
 staged package before publication. ZIP and wheel writers stream runtime files;
 installation validation separates wheel building from installation to release
 the disposable build copy before creating the installed snapshot. See
-[partitioned projection storage](../ToS/derived-exports/PARTITIONED_PROJECTIONS.md)
+[partitioned projection storage](contracts/projection-store.v1.md)
 and the [runtime data allowlist](contracts/runtime-data.v1.json).
 
 The legacy offline normalization path schedules a resumable dependency DAG:

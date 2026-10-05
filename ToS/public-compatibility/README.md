@@ -37,4 +37,4 @@ Use:
 - `../zarathustra/public-entry/TINY_ENTRY_ROUTE.md`
 - `../zarathustra/prologue-1/TRILINGUAL_ENTRY.md`
 - `python mechanics/boundary-bridge/parts/public-mirror-sync/scripts/validate_tree_example_sync.py`
-- `python mechanics/boundary-bridge/parts/derived-kag-seam/scripts/validate_kag_export.py`
+- `tos-ops-mechanics-plan --kag-source-export-verify --kag-export EXPORT`

@@ -237,7 +237,15 @@ def validate_route_map(
 
 
 def validate_documentation_references(repo_root: Path, issues: list[Issue]) -> None:
-    inventory_paths = load_inventory_paths(repo_root, issues)
+    try:
+        from build_documentation_family_currentness import tracked_paths
+    except ModuleNotFoundError:
+        from scripts.build_documentation_family_currentness import tracked_paths
+    # TOS-D-0062: descriptive inventory rows do not define program membership.
+    load_inventory_paths(repo_root, issues)
+    tracked = {path.as_posix() for path in tracked_paths(repo_root)}
+    inventory_paths = {name for name in tracked
+                       if "scripts" in Path(name).parts and Path(name).suffix in {".py", ".sh"}}
     test_inventory_paths = None
     for path in current_mechanics_markdown(repo_root):
         relative = path.relative_to(repo_root).as_posix()
@@ -275,12 +283,12 @@ def validate_documentation_references(repo_root: Path, issues: list[Issue]) -> N
             if is_test and test_inventory_paths is None:
                 test_inventory_paths = load_inventory_paths(repo_root, issues,
                     inventory_path=TEST_INVENTORY_PATH, key='tests', kind='test')
-            owning_inventory = test_inventory_paths if is_test else inventory_paths
-            if resolved_relative not in (owning_inventory or set()):
+            owning_inventory = tracked if is_test else inventory_paths
+            if resolved_relative not in owning_inventory or not resolved.is_file():
                 issues.append(
                     (
                         relative,
-                        f"executable reference is absent from {'test' if is_test else 'script'} inventory: {resolved_relative}",
+                        f"executable reference is absent from tracked {'test' if is_test else 'script'} namespace: {resolved_relative}",
                     )
                 )
 

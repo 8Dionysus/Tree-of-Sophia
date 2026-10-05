@@ -28,31 +28,7 @@ const EXPECTED_AUTHORITY_SURFACE: &str = "ToS/public-compatibility/source_node.e
 const EXPECTED_BOUNDED_HOP: &str = "ToS/public-compatibility/concept_node.example.json";
 const EXPECTED_FALLBACK: &str = "ToS/doctrine/KNOWLEDGE_MODEL.md";
 const LEGACY_HOP_FIELD: &str = "lineage_or_context_hop";
-const README_ROUTE_REFS: [&str; 5] = [
-    "ToS/zarathustra/public-entry/TINY_ENTRY_ROUTE.md",
-    "ToS/zarathustra/prologue-1/TRILINGUAL_ENTRY.md",
-    "ToS/derived-exports/README.md",
-    "mechanics/boundary-bridge/parts/derived-kag-seam/docs/KAG_EXPORT.md",
-    "VALIDATION.md",
-];
-const README_BANNED_COMMANDS: [&str; 2] = ["python scripts/", "python -m unittest"];
-const ROUTE_DOC_REQUIRED_TOKENS: [&str; 9] = [
-    "## Source-first re-entry",
-    "README.md",
-    "ToS/public-compatibility/tos_tiny_entry_route.example.json",
-    "ToS/public-compatibility/source_node.example.json",
-    "aoa-sdk",
-    "routing control plane",
-    "aoa-routing",
-    "compatibility namespace",
-    "scripts/validate_tiny_entry_route.py",
-];
-const REVIEW_CHECKLIST_REQUIRED_TOKENS: [&str; 1] = ["scripts/validate_tiny_entry_route.py"];
-const KAG_EXPORT_TOOLING_REQUIRED_TOKENS: [&str; 3] = [
-    "scripts/build_kag_export.py",
-    "python scripts/build_kag_export.py verify",
-    "scripts/publish_kag_release.py",
-];
+pub const DOCUMENTATION_POLICY: &str = "scripts/tiny_entry_route.source.json";
 const BOUNDARY_REQUIRED_TOKENS: [&str; 5] = [
     "ToS-authored authority",
     "aoa-kag",
@@ -207,6 +183,53 @@ fn fixed_surface(
     }
     Ok(result)
 }
+fn policy_strings(value: &Value, allow_empty: bool) -> io::Result<Vec<&str>> {
+    let array = value.as_array().ok_or_else(|| io::Error::other("tiny-entry policy token list"))?;
+    if array.len() > 64 || (!allow_empty && array.is_empty()) {
+        return Err(io::Error::other("tiny-entry policy token count bound"));
+    }
+    array.iter().map(|value| {
+        let token = value.as_str().ok_or_else(|| io::Error::other("tiny-entry policy token type"))?;
+        if token.len() > 4096 || normalize(token)?.is_empty() {
+            return Err(io::Error::other("tiny-entry policy token bound"));
+        }
+        Ok(token)
+    }).collect()
+}
+fn documentation_policy(s: &mut RouteSources) -> io::Result<Value> {
+    if s.metadata(DOCUMENTATION_POLICY)?.is_some_and(|m| m.len() > 65536) {
+        return Err(io::Error::other("tiny-entry documentation policy byte bound"));
+    }
+    let text = s.text(DOCUMENTATION_POLICY)?
+        .ok_or_else(|| io::Error::other("missing tiny-entry documentation policy"))?;
+    if text.len() > 65536 {
+        return Err(io::Error::other("tiny-entry documentation policy byte bound"));
+    }
+    parse_json(text.as_bytes(), JsonMode::PublishedStrict, JsonLimits::default())
+        .map_err(|e| io::Error::other(format!("tiny-entry policy JSON: {e:?}")))?;
+    let value: Value = serde_json::from_str(&text).map_err(io::Error::other)?;
+    let object = value.as_object().ok_or_else(|| io::Error::other("tiny-entry policy object"))?;
+    if object.len() != 2 || value["schema_version"] != "tos_tiny_entry_documentation_policy_v1" {
+        return Err(io::Error::other("tiny-entry documentation policy schema"));
+    }
+    let rows = value["documentation_requirements"].as_object()
+        .ok_or_else(|| io::Error::other("tiny-entry documentation requirements"))?;
+    if rows.is_empty() || rows.len() > 64 {
+        return Err(io::Error::other("tiny-entry documentation surface bound"));
+    }
+    for (path, row) in rows {
+        if path.len() > 4096 || Path::new(path).components().count() > 128
+            || !Path::new(path).components().all(|part| matches!(part, std::path::Component::Normal(_))) {
+            return Err(io::Error::other("tiny-entry documentation policy path"));
+        }
+        if row.as_object().is_none_or(|row| row.len() != 2) {
+            return Err(io::Error::other("tiny-entry documentation token fields"));
+        }
+        policy_strings(&row["required_tokens"], false)?;
+        policy_strings(&row["forbidden_tokens"], true)?;
+    }
+    Ok(value)
+}
 fn tokens(
     s: &mut RouteSources,
     path: &str,
@@ -241,6 +264,7 @@ pub fn validate(_root: &Path, s: &mut RouteSources, cancel: &AtomicI32) -> io::R
         bytes: 0,
     };
     tick(s, cancel)?;
+    let policy = documentation_policy(s)?;
     for path in REQUIRED_FILES {
         tick(s, cancel)?;
         if !s.is_file(path)? {
@@ -325,47 +349,15 @@ pub fn validate(_root: &Path, s: &mut RouteSources, cancel: &AtomicI32) -> io::R
             )?;
         }
     }
-    tokens(
-        s,
-        README_PATH,
-        &README_ROUTE_REFS,
-        false,
-        &mut issues,
-        cancel,
-    )?;
-    tokens(
-        s,
-        README_PATH,
-        &README_BANNED_COMMANDS,
-        true,
-        &mut issues,
-        cancel,
-    )?;
-    tokens(
-        s,
-        ROUTE_DOC_PATH,
-        &ROUTE_DOC_REQUIRED_TOKENS,
-        false,
-        &mut issues,
-        cancel,
-    )?;
-    tokens(
-        s,
-        REVIEW_CHECKLIST_PATH,
-        &REVIEW_CHECKLIST_REQUIRED_TOKENS,
-        false,
-        &mut issues,
-        cancel,
-    )?;
-    tokens(
-        s,
-        KAG_EXPORT_DOC_PATH,
-        &KAG_EXPORT_TOOLING_REQUIRED_TOKENS,
-        false,
-        &mut issues,
-        cancel,
-    )?;
-    tick(s, cancel)?;
+    for (path, row) in policy["documentation_requirements"].as_object()
+        .ok_or_else(|| io::Error::other("tiny-entry documentation policy changed"))? {
+        if !s.is_file(path)? {
+            issues.push(path, "missing required documentation surface")?;
+            continue;
+        }
+        tokens(s, path, &policy_strings(&row["required_tokens"], false)?, false, &mut issues, cancel)?;
+        tokens(s, path, &policy_strings(&row["forbidden_tokens"], true)?, true, &mut issues, cancel)?;
+    }
     Ok(issues.rows)
 }
 #[cfg(test)]
@@ -389,16 +381,13 @@ mod tests {
         for path in REQUIRED_FILES {
             write(path, "owned fixture route");
         }
-        write(README_PATH, &README_ROUTE_REFS.join("\n"));
-        write(ROUTE_DOC_PATH, &ROUTE_DOC_REQUIRED_TOKENS.join("\n"));
-        write(
-            REVIEW_CHECKLIST_PATH,
-            &REVIEW_CHECKLIST_REQUIRED_TOKENS.join("\n"),
-        );
-        write(
-            KAG_EXPORT_DOC_PATH,
-            &KAG_EXPORT_TOOLING_REQUIRED_TOKENS.join("\n"),
-        );
+        let policy_text = include_str!("../../../../scripts/tiny_entry_route.source.json");
+        write(DOCUMENTATION_POLICY, policy_text);
+        let policy: Value = serde_json::from_str(policy_text).unwrap();
+        for (path, row) in policy["documentation_requirements"].as_object().unwrap() {
+            write(path, &policy_strings(&row["required_tokens"], false).unwrap().join("\n"));
+        }
+        let readme_refs = policy_strings(&policy["documentation_requirements"][README_PATH]["required_tokens"], false).unwrap();
         write(SOURCE_NODE_PATH, r#"{"node_id":"fixture-node"}"#);
         let mut route = serde_json::json!({"route_id":EXPECTED_ROUTE_ID,"root_surface":EXPECTED_ROOT_SURFACE,"node_kind":EXPECTED_NODE_KIND,"node_id":"fixture-node","capsule_surface":EXPECTED_CAPSULE_SURFACE,"authority_surface":EXPECTED_AUTHORITY_SURFACE,"bounded_hop":EXPECTED_BOUNDED_HOP,"fallback":EXPECTED_FALLBACK,"non_identity_boundary":BOUNDARY_REQUIRED_TOKENS.join(" ")});
         write(ROUTE_PATH, &route.to_string());
@@ -416,7 +405,7 @@ mod tests {
             README_PATH,
             &format!(
                 "{}\npython scripts/validate_tiny_entry_route.py",
-                README_ROUTE_REFS.join("\n")
+                readme_refs.join("\n")
             ),
         );
         let rows = validate(&root, &mut RouteSources::new(&root).unwrap(), &cancel).unwrap();

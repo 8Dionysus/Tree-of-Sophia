@@ -33,36 +33,53 @@ EXPECTED_BOUNDED_HOP = CONCEPT_NODE_PATH.as_posix()
 EXPECTED_FALLBACK = KNOWLEDGE_MODEL_PATH.as_posix()
 LEGACY_HOP_FIELD = "lineage_or_context_hop"
 
-README_ROUTE_REFS = (
-    ROUTE_DOC_PATH.as_posix(),
-    CAPSULE_PATH.as_posix(),
-    "ToS/derived-exports/root_entry_map.min.json",
-    "mechanics/boundary-bridge/parts/derived-kag-seam/docs/KAG_EXPORT.md",
-    "VALIDATION.md",
-)
-README_BANNED_COMMANDS = (
-    "python scripts/",
-    "python -m unittest",
-)
-ROUTE_DOC_REQUIRED_TOKENS = (
-    "## Source-first re-entry",
-    "README.md",
-    "ToS/public-compatibility/tos_tiny_entry_route.example.json",
-    "ToS/public-compatibility/source_node.example.json",
-    "aoa-sdk",
-    "routing control plane",
-    "aoa-routing",
-    "compatibility namespace",
-    "scripts/validate_tiny_entry_route.py",
-)
-REVIEW_CHECKLIST_REQUIRED_TOKENS = (
-    "scripts/validate_tiny_entry_route.py",
-)
-KAG_EXPORT_TOOLING_REQUIRED_TOKENS = (
-    "scripts/build_kag_export.py",
-    "python scripts/build_kag_export.py verify",
-    "scripts/publish_kag_release.py",
-)
+DOCUMENTATION_POLICY_PATH = Path("scripts/tiny_entry_route.source.json")
+
+
+def load_documentation_policy(repo_root: Path) -> dict[str, object]:
+    def unique(pairs):
+        value = {}
+        for key, item in pairs:
+            if key in value:
+                raise ValueError("duplicate tiny-entry policy key")
+            value[key] = item
+        return value
+    with (repo_root / DOCUMENTATION_POLICY_PATH).open("rb") as stream:
+        raw = stream.read(65537)
+    if len(raw) > 65536:
+        raise ValueError("tiny-entry documentation policy byte bound")
+    policy = json.loads(raw, object_pairs_hook=unique)
+    if (set(policy) != {"schema_version", "documentation_requirements"}
+            or policy["schema_version"] != "tos_tiny_entry_documentation_policy_v1"):
+        raise ValueError("tiny-entry documentation policy schema")
+    rows = policy["documentation_requirements"]
+    if not isinstance(rows, dict) or not 0 < len(rows) <= 64:
+        raise ValueError("tiny-entry documentation surface bound")
+    for name, row in rows.items():
+        path = Path(name)
+        if (path.is_absolute() or not path.parts or ".." in path.parts
+                or len(path.parts) > 128 or len(name.encode("utf-8")) > 4096):
+            raise ValueError("tiny-entry documentation policy path")
+        if not isinstance(row, dict) or set(row) != {"required_tokens", "forbidden_tokens"}:
+            raise ValueError("tiny-entry documentation token fields")
+        for key, tokens in row.items():
+            if (not isinstance(tokens, list) or len(tokens) > 64
+                    or (key == "required_tokens" and not tokens)):
+                raise ValueError("tiny-entry policy token count bound")
+            if any(not isinstance(token, str) or not token.strip()
+                   or len(token.encode("utf-8")) > 4096 for token in tokens):
+                raise ValueError("tiny-entry policy token bound")
+    return rows
+
+
+# Compatibility API names derive from the single authored policy. Validation
+# reloads the caller's policy so source changes do not hide in an import cache.
+_documentation_policy = load_documentation_policy(REPO_ROOT)
+README_ROUTE_REFS = tuple(_documentation_policy[README_PATH.as_posix()]["required_tokens"])
+README_BANNED_COMMANDS = tuple(_documentation_policy[README_PATH.as_posix()]["forbidden_tokens"])
+ROUTE_DOC_REQUIRED_TOKENS = tuple(_documentation_policy[ROUTE_DOC_PATH.as_posix()]["required_tokens"])
+REVIEW_CHECKLIST_REQUIRED_TOKENS = tuple(_documentation_policy[REVIEW_CHECKLIST_PATH.as_posix()]["required_tokens"])
+KAG_EXPORT_TOOLING_REQUIRED_TOKENS = tuple(_documentation_policy[KAG_EXPORT_DOC_PATH.as_posix()]["required_tokens"])
 BOUNDARY_REQUIRED_TOKENS = (
     "ToS-authored authority",
     "aoa-kag",
@@ -264,36 +281,15 @@ def run_validation(repo_root: Path | None = None) -> list[Issue]:
                 if normalize(token) not in normalized_boundary:
                     issues.append((ROUTE_PATH.as_posix(), f"non_identity_boundary must contain '{token}'"))
 
-    require_tokens(
-        relative_path=README_PATH,
-        repo_root=repo_root,
-        required_tokens=README_ROUTE_REFS,
-        issues=issues,
-    )
-    reject_phrases(
-        relative_path=README_PATH,
-        repo_root=repo_root,
-        banned_phrases=README_BANNED_COMMANDS,
-        issues=issues,
-    )
-    require_tokens(
-        relative_path=ROUTE_DOC_PATH,
-        repo_root=repo_root,
-        required_tokens=ROUTE_DOC_REQUIRED_TOKENS,
-        issues=issues,
-    )
-    require_tokens(
-        relative_path=REVIEW_CHECKLIST_PATH,
-        repo_root=repo_root,
-        required_tokens=REVIEW_CHECKLIST_REQUIRED_TOKENS,
-        issues=issues,
-    )
-    require_tokens(
-        relative_path=KAG_EXPORT_DOC_PATH,
-        repo_root=repo_root,
-        required_tokens=KAG_EXPORT_TOOLING_REQUIRED_TOKENS,
-        issues=issues,
-    )
+    for name, row in load_documentation_policy(repo_root).items():
+        path = Path(name)
+        if not (repo_root / path).is_file():
+            issues.append((name, "missing required documentation surface"))
+            continue
+        require_tokens(relative_path=path, repo_root=repo_root,
+                       required_tokens=tuple(row["required_tokens"]), issues=issues)
+        reject_phrases(relative_path=path, repo_root=repo_root,
+                       banned_phrases=tuple(row["forbidden_tokens"]), issues=issues)
 
     return issues
 

@@ -46,6 +46,9 @@ impl Fixture {
                 .unwrap()
                 .success()
         );
+        fixture.write("scripts/tiny_entry_route.source.json", include_bytes!(
+            "../../../../scripts/tiny_entry_route.source.json"
+        ));
         let source = map();
         for family in source["families"].as_array().unwrap() {
             for path in family["currentness_inputs"].as_array().unwrap() {

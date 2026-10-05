@@ -162,7 +162,7 @@ Use:
 - `../../mechanics/boundary-bridge/parts/derived-kag-seam/docs/KAG_EXPORT.md`
 - `../zarathustra/public-entry/TINY_ENTRY_ROUTE.md`
 - `../public-compatibility/source_node.example.json`
-- `python mechanics/boundary-bridge/parts/derived-kag-seam/scripts/validate_kag_export.py`
+- `tos-ops-mechanics-plan --kag-source-export-verify --kag-export EXPORT`
 - `python scripts/build_root_entry_map.py --check`
 - `python scripts/validate_root_entry_map.py`
 - `python scripts/build_tos_corpus_index.py --check`

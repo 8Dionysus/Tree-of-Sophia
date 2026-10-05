@@ -6,8 +6,8 @@ interpretations, contexts, and intellectual lineages into an authored,
 reviewable tree. Systems reproduce this tree as graphs, search indexes, and
 public routes.
 
-Source-backed branches cite their source. Scaffold branches remain explicit
-about their provisional role until that evidence exists. Nodes and relations
+Source-backed branches cite evidence. Scaffolds retain their provisional role
+until evidence exists. Nodes and relations
 record provenance, exact source routes, interpretation history, and review
 status. ToS traces how ideas
 descend, diverge, inherit, and return across languages, traditions, places,
@@ -47,8 +47,7 @@ or prove that a new installable package was built.
 
 ## How ToS works
 
-ToS uses inspectable source-to-review paths. For bibliographic works, the
-primary identity path is:
+For bibliographic works, the primary source-to-review path is:
 
 `work -> expression -> edition -> item -> immutable file -> passage or region -> observation -> claim or interpretation -> review -> scoped admission, canon or explicit deferral -> derived view`
 

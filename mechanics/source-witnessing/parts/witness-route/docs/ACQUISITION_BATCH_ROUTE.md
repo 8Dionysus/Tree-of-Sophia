@@ -168,7 +168,7 @@ implementation is retained only as
 module establish historical reference behavior, not native product
 acceptance.
 
-The historical `scripts/prepare_registry_sources.py` September 8 producer is
+The historical September 8 registry-preparation producer is
 retired from the runtime scripts surface in this source cutover. Its complete
 implementation and repository-relative historical inputs remain in
 `tests/oracles/acquisition/prepare_registry_sources.py`; the registry fixture
