@@ -24,7 +24,7 @@ use crate::source_witness_foundation::SourceFileMembershipIndex;
 use serde_json::Value;
 use std::borrow::Cow;
 use std::collections::{BTreeMap, BTreeSet};
-use std::sync::atomic::Ordering;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Instant;
 use tos_foundation::{CanonicalProfile, Digest256, JsonLimits, RelativePath, canonical_bytes_v1};
 use tos_source_store::CorpusCutReader;
