@@ -376,7 +376,7 @@ fn query_workspace_upper_bound(
         IndexedSearchV2Request,
         crate::search_v2::NormalizedIndexedSearchV2Request,
         SearchContinuationState,
-        Result<()>,
+        Option<Result<(), SearchV2Error>>,
     )>();
     // Typed request, normalized filters, continuation and codec binding retain
     // separate String/vector owners from the already-held Foundation input.
