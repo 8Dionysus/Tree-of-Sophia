@@ -268,10 +268,11 @@ pub(crate) fn run(
     let fence = tx::WorkCorpusFence::hold(fs, deadline, cancelled)?;
     let pending = tx::read_pending(fs, deadline, cancelled)?;
     if let Some(pending) = &pending {
+        let selected_member_count = revision::names(cmd::text(&config, "source_path")?)?.len();
         if !matches!(operation, "record.revise" | "record.recover")
             || pending.plan.item_path_profile.is_some()
             || !pending.plan.new_directories.is_empty()
-            || pending.plan.files.len() != 3
+            || pending.plan.files.len() != selected_member_count
         {
             return Err(SourceCommandError::Denied(
                 "revision exact pending owner plan",
@@ -285,9 +286,22 @@ pub(crate) fn run(
                 "revision pending semantic cut is not original",
             ));
         }
-        let original_request = cmd::field(&pending.plan.authorization, "request")?;
+        let authorized_request = cmd::field(&pending.plan.authorization, "request")?;
+        let retained_after = pending
+            .plan
+            .files
+            .iter()
+            .filter_map(|file| {
+                file.after.as_ref().map(|raw| SourceFile {
+                    path: file.path.clone(),
+                    raw: raw.clone(),
+                })
+            })
+            .collect::<Vec<_>>();
+        let original_request =
+            revision::retained_successor_request(&retained_after, &config, authorized_request)?;
         let mut original_ctx = ctx.clone();
-        original_ctx.request_raw = cmd::published(original_request)?;
+        original_ctx.request_raw = cmd::published(&original_request)?;
         original_ctx.recorded_at = retained_time(pending, &config)?;
         let before = package(&original_ctx, &config)?;
         let names = revision::names(cmd::text(&config, "source_path")?)?;
@@ -315,8 +329,8 @@ pub(crate) fn run(
         let observed =
             current_observation(fs, &original_ctx, pending, &archive, deadline, cancelled)?;
         let mut command_observation = observed.clone();
-        command_observation.request_raw = ctx.request_raw.clone();
         if family.selected() {
+            command_observation.request_raw = ctx.request_raw.clone();
             command_observation.recorded_at = ctx.recorded_at.clone();
         }
         let ids = [pending.plan.transaction_id.as_str()];
@@ -345,7 +359,7 @@ pub(crate) fn run(
             ));
         }
         if !family.selected() {
-            if !cmd::same(&request, original_request)? {
+            if !cmd::same(&request, &original_request)? {
                 return Err(SourceCommandError::Conflict(
                     "legacy revision pending requires exact original request",
                 ));
@@ -570,9 +584,10 @@ pub(crate) fn run(
             }
             let transaction = revision::transaction_id(&request)?;
             let (_, retained, _, _) = tx::inspect_committed(fs, &transaction, deadline, cancelled)?;
+            let selected_member_count = revision::names(cmd::text(&config, "source_path")?)?.len();
             if retained.item_path_profile.is_some()
                 || !retained.new_directories.is_empty()
-                || retained.files.len() != 3
+                || retained.files.len() != selected_member_count
             {
                 return Err(SourceCommandError::Denied(
                     "revision replay retained closure",

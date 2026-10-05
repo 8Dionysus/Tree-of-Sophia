@@ -2148,7 +2148,7 @@ fn retained_package(
             ));
         }
     }
-    if !result.contains_key(base) || require_all && result.len() != 3 {
+    if !result.contains_key(base) || require_all && result.len() != names.len() {
         return Err(SourceCommandError::Invalid(
             "retained selected before/after cardinality",
         ));
@@ -2161,6 +2161,35 @@ fn retained_package(
         ));
     }
     Ok(result)
+}
+
+/// Return the request presentation retained in the successor history after
+/// authenticating its canonical identity against the transaction authorization.
+/// Authorizations are canonical JSON; published history preserves member order.
+pub(crate) fn retained_successor_request(
+    files: &[SourceFile],
+    config: &JsonValue,
+    authorized_request: &JsonValue,
+) -> SourceCommandResult<JsonValue> {
+    let output = retained_package(files, config, true)?;
+    let (_, base) = split(cmd::text(config, "source_path")?)?;
+    let record = cmd::parse(output.get(base).ok_or(SourceCommandError::Conflict(
+        "retained successor record missing",
+    ))?)?;
+    let retained_history = history(&output, &record)?;
+    let receipt =
+        cmd::array(&retained_history, "receipts")?
+            .last()
+            .ok_or(SourceCommandError::Conflict(
+                "retained successor receipt missing",
+            ))?;
+    let request = cmd::field(receipt, "request")?;
+    if !cmd::same(authorized_request, request)? {
+        return Err(SourceCommandError::Conflict(
+            "retained receipt request differs from transaction authorization",
+        ));
+    }
+    Ok(request.clone())
 }
 
 fn artifact_history_evidence_config(
@@ -2398,6 +2427,9 @@ fn reconstruct_transaction(
             "retained successor must append exactly one receipt",
         ));
     }
+    // The durable authorization stores canonical JSON, while published history
+    // keeps original member order; replay the authenticated retained request.
+    let retained_request = retained_successor_request(&transaction.after, config, original)?;
     if !cmd::same(cmd::field(original, "expected_source")?, &before.subject)?
         || cmd::text(original, "expected_revision")? != revision(&before.files)?
         || (mode == TransactionReconstructionMode::CurrentOwner
@@ -2417,13 +2449,18 @@ fn reconstruct_transaction(
         config,
         family,
         &before,
-        original,
+        &retained_request,
         cmd::text(receipt, "recorded_at")?,
         scope_operation,
     )?;
-    if output != after.files || !cmd::same(receipt, &reconstructed)? {
+    if output != after.files {
         return Err(SourceCommandError::Conflict(
-            "retained bytes do not reconstruct exact delegated successor",
+            "retained bytes do not reconstruct delegated successor package",
+        ));
+    }
+    if !cmd::same(receipt, &reconstructed)? {
+        return Err(SourceCommandError::Conflict(
+            "retained bytes do not reconstruct delegated successor receipt",
         ));
     }
     // In Artifact evidence mode the caller's same-cut native history read has

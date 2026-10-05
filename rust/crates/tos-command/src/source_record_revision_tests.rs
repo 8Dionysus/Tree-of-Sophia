@@ -83,9 +83,12 @@ fn authored(root: &Path) -> BTreeMap<String, Vec<u8>> {
             }
             let raw = fs::read(entry.path()).unwrap();
             total = total.checked_add(raw.len()).unwrap();
-            assert!(raw.len() <= 8_388_608 && total <= 33_554_432);
+            assert!(
+                raw.len() <= cmd::SELECTED_SOURCE_MAX_MEMBER_BYTES
+                    && total <= cmd::SELECTED_SOURCE_MAX_BYTES
+            );
             assert!(files.insert(path, raw).is_none());
-            assert!(files.len() <= 4096);
+            assert!(files.len() <= cmd::SELECTED_SOURCE_MAX_FILES);
         }
     }
     files
@@ -124,7 +127,7 @@ fn cut(
         ReadLimits {
             max_manifest_bytes: 4_194_304,
             max_manifest_entries: 2048,
-            max_selected_object_bytes: 8_388_608,
+            max_selected_object_bytes: cmd::SELECTED_SOURCE_MAX_MEMBER_BYTES as u64,
             json: JsonLimits::default(),
         },
     )
@@ -135,8 +138,8 @@ fn cut(
             CutReadLimits {
                 max_revisions: 4,
                 max_members: 2048,
-                max_total_bytes: 33_554_432,
-                max_member_bytes: 8_388_608,
+                max_total_bytes: cmd::SELECTED_SOURCE_MAX_BYTES as u64,
+                max_member_bytes: cmd::SELECTED_SOURCE_MAX_MEMBER_BYTES as u64,
             },
             deadline,
             cancelled,
@@ -344,6 +347,44 @@ fn current_side(root: &Path, reference: &str) -> Side {
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => None,
         Err(error) => panic!("selected Work member read: {error}"),
     }
+}
+
+fn retained_tree_snapshot(root: &Path) -> BTreeMap<String, (bool, Side)> {
+    assert!(root.symlink_metadata().unwrap().is_dir());
+    let mut pending = vec![root.to_path_buf()];
+    let mut members = BTreeMap::new();
+    let mut total_bytes = 0usize;
+    members.insert(String::new(), (true, None));
+    while let Some(directory) = pending.pop() {
+        for entry in fs::read_dir(directory).unwrap() {
+            let entry = entry.unwrap();
+            let kind = entry.file_type().unwrap();
+            assert!(!kind.is_symlink());
+            let path = entry.path();
+            let relative = path
+                .strip_prefix(root)
+                .unwrap()
+                .to_str()
+                .unwrap()
+                .to_owned();
+            let content = if kind.is_dir() {
+                pending.push(path);
+                None
+            } else {
+                assert!(kind.is_file());
+                let raw = fs::read(path).unwrap();
+                total_bytes = total_bytes.checked_add(raw.len()).unwrap();
+                assert!(
+                    raw.len() <= cmd::SELECTED_SOURCE_MAX_MEMBER_BYTES
+                        && total_bytes <= cmd::SELECTED_SOURCE_MAX_BYTES
+                );
+                side(Some(&raw))
+            };
+            assert!(members.insert(relative, (kind.is_dir(), content)).is_none());
+            assert!(members.len() <= cmd::SELECTED_SOURCE_MAX_FILES);
+        }
+    }
+    members
 }
 
 fn mixed_selected(root: &Path, selected: &[SelectedWitness]) -> bool {
@@ -827,12 +868,13 @@ fn native_record_revisions_cover_fixed_handlers_process_cold_and_exact_recovery(
                 let path = isolated.path().join(reference);
                 assert!(
                     path.symlink_metadata().unwrap().is_file()
-                        && fs::metadata(&path).unwrap().len() <= 8_388_608
+                        && fs::metadata(&path).unwrap().len()
+                            <= cmd::SELECTED_SOURCE_MAX_MEMBER_BYTES as u64
                 );
                 (reference.to_owned(), fs::read(path).unwrap())
             })
             .collect();
-        assert!(untouched.values().map(Vec::len).sum::<usize>() <= 33_554_432);
+        assert!(untouched.values().map(Vec::len).sum::<usize>() <= cmd::SELECTED_SOURCE_MAX_BYTES);
         scratch_budget_with_shared(temporary.path(), shared_software_scratch.path(), deadline);
         let initial = authored(isolated.path());
         let mut files = initial.clone();
@@ -846,7 +888,10 @@ fn native_record_revisions_cover_fixed_handlers_process_cold_and_exact_recovery(
             fs::write(destination, &raw).unwrap();
             assert!(files.insert((*reference).into(), raw).is_none());
         }
-        assert!(files.len() <= 2048 && files.values().map(Vec::len).sum::<usize>() <= 33_554_432);
+        assert!(
+            files.len() <= 2048
+                && files.values().map(Vec::len).sum::<usize>() <= cmd::SELECTED_SOURCE_MAX_BYTES
+        );
         let store = temporary.path().join("cut");
         let (original_revision, original) = cut(&initial, &store, deadline, &cancelled);
         let selection = software.selection();
@@ -859,7 +904,7 @@ fn native_record_revisions_cover_fixed_handlers_process_cold_and_exact_recovery(
             "software_selection":{"source_git_commit":selection.source_git_commit,"source_git_tree":selection.source_git_tree,"capture_manifest_sha256":selection.capture_manifest_sha256.to_prefixed()},
             "software_components":components.members().map(|m|m.path.as_str()).collect::<Vec<_>>(),
             "schema_worker":{"absolute_path":worker_path,"sha256":image_guards[2].0.to_prefixed()},
-            "budgets":{"max_revisions":4,"max_members":2048,"max_total_bytes":33554432,"max_member_bytes":8388608,
+            "budgets":{"max_revisions":4,"max_members":2048,"max_total_bytes":cmd::SELECTED_SOURCE_MAX_BYTES,"max_member_bytes":cmd::SELECTED_SOURCE_MAX_MEMBER_BYTES,
                 "max_schema_receipts":128,"max_schema_receipt_bytes":262144,"worker_cpu_seconds":3,"worker_address_space_bytes":1073741824}});
         freeze_invocation(&invocation_path, &invocation);
         scratch_budget_with_shared(temporary.path(), shared_software_scratch.path(), deadline);
@@ -933,9 +978,37 @@ fn native_record_revisions_cover_fixed_handlers_process_cold_and_exact_recovery(
             let retained_pending = tx::read_pending(&filesystem, deadline, &cancelled)
                 .unwrap()
                 .unwrap();
+            if scenario == 7 {
+                let authorized_request =
+                    cmd::field(&retained_pending.plan.authorization, "request").unwrap();
+                let history_file = retained_pending
+                    .plan
+                    .files
+                    .iter()
+                    .find(|file| {
+                        file.path
+                            .as_str()
+                            .ends_with("/source-revision-history.json")
+                    })
+                    .unwrap();
+                let history = cmd::parse(history_file.after.as_deref().unwrap()).unwrap();
+                let receipts = cmd::array(&history, "receipts").unwrap();
+                let retained_request = cmd::field(receipts.last().unwrap(), "request").unwrap();
+                assert!(cmd::same(authorized_request, retained_request).unwrap());
+                assert_ne!(
+                    cmd::published(authorized_request).unwrap(),
+                    cmd::published(retained_request).unwrap(),
+                    "scenario 7 must recover a retained request with its original field order",
+                );
+            }
             let transaction = retained_pending.plan.transaction_id.clone();
             scratch_budget_with_shared(temporary.path(), shared_software_scratch.path(), deadline);
             let control = fs::read(isolated.path().join(CONTROL)).unwrap();
+            let retained_transactions = retained_tree_snapshot(
+                &isolated
+                    .path()
+                    .join("ToS/source-witnesses/.metadata-transactions"),
+            );
             let mut unrelated = initial.clone();
             unrelated
                 .get_mut(fixture["source_path"].as_str().unwrap())
@@ -1016,6 +1089,15 @@ fn native_record_revisions_cover_fixed_handlers_process_cold_and_exact_recovery(
                     refusal_sides
                 );
                 assert_eq!(fs::read(isolated.path().join(CONTROL)).unwrap(), control);
+                assert_eq!(
+                    retained_tree_snapshot(
+                        &isolated
+                            .path()
+                            .join("ToS/source-witnesses/.metadata-transactions"),
+                    ),
+                    retained_transactions,
+                    "negative recovery {negative} changed retained transaction bytes",
+                );
                 if let Some((path, raw)) = restore {
                     fs::write(path, raw).unwrap();
                 }
