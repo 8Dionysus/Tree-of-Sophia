@@ -73,13 +73,17 @@ pub(crate) fn public_io_reason(error: &std::io::Error) -> String {
     {
         return reason.summary();
     }
+    let message = error.to_string();
+    if crate::source_admission_spooled_index::is_bounded_source_cause(&message) {
+        return message;
+    }
     format!(
         "IO {:?}: {}",
         error.kind(),
         crate::source_admission_spooled_index::bounded_source_cause(
             "receiver-source",
             "command-io",
-            &error.to_string(),
+            &message,
         )
     )
 }
@@ -105,6 +109,11 @@ pub(crate) fn public_compiler_reason(error: &tos_compiler::Error) -> String {
             "compiler budget exceeded: SQLite VM steps in {phase:?} (used {used_steps}, max {max_steps})"
         ),
         Error::Io(error) => public_io_reason(error),
+        Error::Source(reason)
+            if crate::source_admission_spooled_index::is_bounded_source_cause(reason) =>
+        {
+            reason.clone()
+        }
         Error::Sql(_) | Error::SqlitePhase { .. } | Error::Source(_) => {
             crate::source_admission_spooled_index::bounded_source_cause(
                 "receiver-source",

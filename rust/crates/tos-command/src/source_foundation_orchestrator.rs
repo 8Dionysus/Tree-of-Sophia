@@ -2136,14 +2136,53 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
         original_operation_state,
         records_callback_state,
         |records, verified, schemas, record_executor, payload_reader| {
-            if verified.fence() != fence
-                || verified.record_issue_count() != 0
-                || verified.item_issue_count() != 0
-                || records.input_identity() != &fence
-                || records.source_membership() != &fence.membership
-                || records.cost().selected_current_member_bytes != fence.source_bytes
-            {
-                return Err(io::Error::other("candidate Records report is not clean and bound"));
+            let predicates = [
+                verified.fence() != fence,
+                verified.record_issue_count() != 0,
+                verified.item_issue_count() != 0,
+                records.input_identity() != &fence,
+                records.source_membership() != &fence.membership,
+                records.cost().selected_current_member_bytes != fence.source_bytes,
+            ];
+            let mask = predicates.into_iter().enumerate().fold(0u8, |mask, (bit, failed)| {
+                mask | if failed { 1u8 << bit } else { 0 }
+            });
+            if mask != 0 {
+                let mut site = format!("ri-{mask:x}-{:x}-{:x}",
+                    verified.record_issue_count(), verified.item_issue_count());
+                let mut reason = crate::source_admission_spooled_index::bounded_source_cause(
+                    "receiver-source", &site, "candidate Records report is not clean and bound");
+                if verified.record_issue_count() != 0 || verified.item_issue_count() != 0 {
+                    use tos_validation::source_foundation_records::{
+                        SourceFoundationRecordsCollection, SourceFoundationRecordsStoredFact,
+                    };
+                    let collection = if verified.record_issue_count() != 0 {
+                        SourceFoundationRecordsCollection::OrderedIssues
+                    } else {
+                        SourceFoundationRecordsCollection::ItemIssues
+                    };
+                    let page = records.index().page(collection, None,
+                        SourceFoundationRecordsPageBudget {
+                            max_rows: NonZeroUsize::MIN,
+                            ..page_budget
+                        }, deadline, cancelled)
+                        .map_err(crate::source_admission_spooled_index::receiver_refusal)?;
+                    let first = page.rows.first().and_then(|row| match row {
+                        SourceFoundationRecordsStoredFact::OrderedIssue(issue) =>
+                            Some((issue.location.as_str(), issue.message.as_str())),
+                        SourceFoundationRecordsStoredFact::ItemIssue(issue) =>
+                            Some((issue.path.as_str(), issue.code)),
+                        _ => None,
+                    });
+                    if let Some((location, message)) = first {
+                        let digest = Digest256::of_bytes(location.as_bytes()).to_hex();
+                        let issue_site = format!("{site}-p{}", &digest[..12]);
+                        if issue_site.len() <= 40 { site = issue_site; }
+                        reason = crate::source_admission_spooled_index::bounded_source_cause(
+                            "receiver-source", &site, message);
+                    }
+                }
+                return Err(io::Error::other(reason));
             }
             let after_records = view.original_io.snapshot();
             let read_used = after_records
