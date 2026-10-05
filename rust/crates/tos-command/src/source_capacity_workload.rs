@@ -1432,6 +1432,8 @@ mod weighted_scale_profile_tests {
         let seed = Digest256::of_bytes(b"weighted-record-ladder");
         let default = WeightedScaleProfileV1::weighted_for_records(seed, 100_000).unwrap();
         assert_eq!(default, WeightedScaleProfileV1::fixed_100k(seed));
+        assert_eq!(max_member_path_bytes_v1(&default), 114);
+        assert!(max_member_path_bytes_v1(&default) > path_for(WeightedScaleClassV1::Work, 0).len());
         let default_envelope = weighted_scale_producer_envelope_v1(&default, 4_096).unwrap();
         assert_eq!(default_envelope.maximum_source_bytes, 903_528_300);
         assert_eq!(default_envelope.temporary_logical_bytes, 908_328_300);
@@ -1933,6 +1935,15 @@ impl<'a> WeightedScaleMemberIterV1<'a> {
             mode: 0o644,
         }))
     }
+}
+
+fn max_member_path_bytes_v1(profile: &WeightedScaleProfileV1) -> usize {
+    profile
+        .classes
+        .iter()
+        .map(|row| path_for(row.class, row.count.saturating_sub(1)).len())
+        .max()
+        .unwrap_or(0)
 }
 
 fn path_for(class: WeightedScaleClassV1, ordinal: u64) -> String {
@@ -2749,11 +2760,12 @@ fn weighted_prewrite_refusal_v1(
     envelope: &WeightedScaleProducerEnvelopeV1,
     request: &WeightedScaleProducerRequestV1<'_>,
     segment_frame_cap: u64,
+    required_member_key_bytes: usize,
 ) -> std::io::Error {
     std::io::Error::new(
         std::io::ErrorKind::InvalidInput,
         format!(
-            "weighted producer prewrite refusal: target_records={} source_upper_bytes={} raw_files={} raw_directories={} raw_allocated_upper_bytes={} scratch_logical_upper_bytes={} scratch_allocated_upper_bytes={} scratch_inode_upper={} allocation_unit_bytes={} member_tree_rows={} object_tree_rows={} object_count={} member_frame_upper_bytes={}\nselected_caps: source_bytes={} raw_files={} raw_directories={} raw_allocated_bytes={} scratch_logical_bytes={} scratch_allocated_bytes={} scratch_inodes={} member_tree_rows={} object_tree_rows={} object_count={} member_frame_bytes={}\nprofile_price: p50_logical_source_bytes={} selected_quantile_logical_source_bytes={} external_sort_logical_bytes={} history_change_payload_scenario_bytes={}",
+            "weighted producer prewrite refusal: target_records={} source_upper_bytes={} raw_files={} raw_directories={} raw_allocated_upper_bytes={} scratch_logical_upper_bytes={} scratch_allocated_upper_bytes={} scratch_inode_upper={} allocation_unit_bytes={} member_tree_rows={} object_tree_rows={} object_count={} member_frame_upper_bytes={} requested_member_path_bytes={}\nselected_caps: source_bytes={} raw_files={} raw_directories={} raw_allocated_bytes={} scratch_logical_bytes={} scratch_allocated_bytes={} scratch_inodes={} member_tree_rows={} object_tree_rows={} object_count={} member_frame_bytes={} member_key_bytes={}\nprofile_price: p50_logical_source_bytes={} selected_quantile_logical_source_bytes={} external_sort_logical_bytes={} history_change_payload_scenario_bytes={}",
             profile.target_records,
             envelope.maximum_source_bytes,
             forecast.raw_input_file_count,
@@ -2768,6 +2780,7 @@ fn weighted_prewrite_refusal_v1(
             profile.target_records,
             profile.classes.iter().map(|row| row.max_bytes).max().unwrap_or(0)
                 .saturating_add(SCALE_IDENTITY_GROWTH_ALLOWANCE_V1),
+            required_member_key_bytes,
             request.max_source_bytes,
             request.max_raw_input_files,
             request.max_raw_input_directories,
@@ -2779,6 +2792,7 @@ fn weighted_prewrite_refusal_v1(
             request.object_limits.tree_limits.max_rows,
             request.object_limits.max_objects,
             request.max_member_bytes.min(segment_frame_cap),
+            request.member_tree_limits.max_key_bytes,
             forecast.p50_logical_source_bytes,
             forecast.selected_quantile_scenario_logical_source_bytes,
             forecast.external_sort_logical_bytes,
@@ -2840,6 +2854,7 @@ pub(crate) fn produce_weighted_scale_input_v1(
             "weighted producer profile differs from maintained seed/size ladder",
         ));
     }
+    let required_member_key_bytes = max_member_path_bytes_v1(&profile);
     if request.output_root.exists()
         || request.raw_input_root.exists()
         || !request.output_root.is_absolute()
@@ -2876,7 +2891,6 @@ pub(crate) fn produce_weighted_scale_input_v1(
         || request.max_working_state_bytes == usize::MAX
         || request.caller_live_state_bytes >= request.max_working_state_bytes
         || request.tree_io.max_working_state_bytes() != request.max_working_state_bytes
-        || request.member_tree_limits.max_key_bytes < path_for(WeightedScaleClassV1::Work, 0).len()
         || request.member_tree_limits.max_value_bytes < SCALE_MEMBER_VALUE_BYTES_V1
         || request.member_tree_limits.max_total_bytes == 0
         || request.member_tree_limits.max_total_bytes == u64::MAX
@@ -2938,6 +2952,7 @@ pub(crate) fn produce_weighted_scale_input_v1(
     let selected_case_exceeds_profile = request.member_tree_limits.max_rows < profile.target_records
         || request.object_limits.tree_limits.max_rows < profile.target_records
         || request.object_limits.max_objects < profile.target_records;
+    let member_key_exceeds_cap = required_member_key_bytes > request.member_tree_limits.max_key_bytes;
     if maximum_source_bytes > request.max_source_bytes
         || profile.target_records > request.max_raw_input_files
         || raw_directory_upper > request.max_raw_input_directories
@@ -2946,6 +2961,7 @@ pub(crate) fn produce_weighted_scale_input_v1(
         || temporary_allocated_upper > request.max_temporary_allocated_bytes
         || inode_upper > request.max_temporary_inodes
         || selected_case_exceeds_profile
+        || member_key_exceeds_cap
         || member_growth_exceeds_cap
         || request.object_limits.max_pack_frames == 0
         || request.object_limits.max_pack_frames == u32::MAX
@@ -2956,6 +2972,7 @@ pub(crate) fn produce_weighted_scale_input_v1(
             &envelope,
             &request,
             segment_limits.max_frame_bytes,
+            required_member_key_bytes,
         ));
     }
     scale_active(request.deadline, request.cancelled)?;
