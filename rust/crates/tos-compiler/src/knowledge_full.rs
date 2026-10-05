@@ -4,7 +4,7 @@
 
 use crate::{
     Error, KnowledgeRegistry, QueryVocabulary, Result,
-    catalog::{CatalogLimits, CatalogReceipt, compile_catalog},
+    catalog::{CatalogLimits, CatalogReceipt, compile_catalog_with_state},
     knowledge_catalog_index::{CatalogIndexLimits, CatalogIndexReceipt, materialize_catalog},
     knowledge_scope::{ScopeLimits, ScopeReceipt, write_source_scope},
     knowledge_seal::{KnowledgeSealReceipt, SealLimits, seal_knowledge_model},
@@ -32,12 +32,24 @@ pub struct FullKnowledgeReceipt {
     pub seal: KnowledgeSealReceipt,
 }
 
-fn registry_value(raw: &[u8], expected_sha256: &str, cap: usize) -> Result<Value> {
+fn registry_value(
+    raw: &[u8],
+    expected_sha256: &str,
+    cap: usize,
+    state: Option<&crate::d1_public_capture::CreationState<'_>>,
+) -> Result<Value> {
     if cap == 0 || cap > 4 * 1024 * 1024 || raw.is_empty() || raw.len() > cap {
         return Err(Error::Budget("full knowledge registry bytes"));
     }
+    let _digest_hold = state.map(|owner| owner.hold(64)).transpose()?;
+    if let Some(state) = state {
+        state.charge_work(raw.len())?;
+    }
     if Digest256::of_bytes(raw).to_hex() != expected_sha256 {
         return Err(Error::Invalid("full knowledge registry byte root"));
+    }
+    if let Some(state) = state {
+        return state.serde_owned(raw, cap);
     }
     let limits = JsonLimits::new(cap, 96, 1_000_000, 4096)
         .map_err(|_| Error::Budget("full knowledge registry JSON limits"))?;
@@ -95,23 +107,32 @@ fn compile_inner(
     descriptor_bytes: &[u8],
     limits: FullKnowledgeLimits,
 ) -> Result<FullKnowledgeReceipt> {
-    vocabulary.verify_authored_bytes(descriptor_bytes)?;
+    if let Some(creation) = stage.owned_creation_state() {
+        vocabulary.verify_authored_bytes_with_owned_state(descriptor_bytes, creation)?;
+    } else {
+        vocabulary.verify_authored_bytes(descriptor_bytes)?;
+    }
     let entity = registry_value(
         entity_registry_bytes,
         &registry.entity_sha256,
         limits.max_registry_bytes,
+        stage.owned_creation_state(),
     )?;
     let relation = registry_value(
         relation_registry_bytes,
         &registry.relation_sha256,
         limits.max_registry_bytes,
+        stage.owned_creation_state(),
     )?;
     // All native normalization, readable joins and original capture precede
     // this full-component transition. These components use final core rows.
     stage.close_inputs_for_full_components()?;
     let source_scope = write_source_scope(stage, vocabulary, limits.scope)?;
+    // This borrow points at the original invocation state, not a phase-local
+    // copy. Capture it before taking the mutable SQLite connection.
+    let creation = stage.owned_creation_state();
     let packet: CatalogReceipt = stage.with_connection(WritePhase::Catalog, |db| {
-        compile_catalog(
+        compile_catalog_with_state(
             db,
             graph_header,
             &entity,
@@ -120,6 +141,7 @@ fn compile_inner(
             vocabulary,
             descriptor_bytes,
             limits.catalog,
+            creation,
         )
     })?;
     let catalog = materialize_catalog(stage, &packet, vocabulary, limits.catalog_index)?;

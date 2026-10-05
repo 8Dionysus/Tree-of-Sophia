@@ -1152,7 +1152,12 @@ fn validate_manifest_input(
     if input.corpus_revision != HISTORICAL_CORPUS_REVISION {
         return Err(Error::Invalid("historical corpus revision changed"));
     }
-    if input.model_abi != crate::KNOWLEDGE_CORPUS_MODEL_ABI || input.model_abi.len() > 256 {
+    if !matches!(
+        input.model_abi,
+        crate::KNOWLEDGE_CORPUS_MODEL_ABI
+            | crate::knowledge_stage::KNOWLEDGE_CARRIER_ONCE_MODEL_ABI
+    ) || input.model_abi.len() > 256
+    {
         return Err(Error::Invalid("native manifest model ABI"));
     }
     validate_map(

@@ -1703,12 +1703,52 @@ struct Retained {
     plan: FrozenPlan,
     raw_plan: WorkPlan,
 }
+/// Narrow read profile for the native record-revision admission bridge. The
+/// legacy transaction observers keep their original wider profile; this
+/// adapter binds only the maintained three-file record-revision plan before
+/// any retained side blobs are expanded.
+#[derive(Clone, Copy)]
+pub(crate) struct RecordRevisionInspectionLimits {
+    pub(crate) max_manifest_bytes: usize,
+    pub(crate) max_files: usize,
+    pub(crate) max_side_bytes: usize,
+    pub(crate) max_total_side_bytes: usize,
+    pub(crate) max_total_blob_bytes: usize,
+}
+
 fn load_retained(
     fs: &CreationFilesystem,
     id: &str,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<Option<Retained>> {
+    load_retained_with_limits(fs, id, None, deadline, cancelled)
+}
+
+fn load_retained_with_limits(
+    fs: &CreationFilesystem,
+    id: &str,
+    limits: Option<RecordRevisionInspectionLimits>,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<Option<Retained>> {
+    if let Some(limits) = limits {
+        if limits.max_manifest_bytes == 0
+            || limits.max_manifest_bytes > MAX_MANIFEST
+            || limits.max_files == 0
+            || limits.max_files > 3
+            || limits.max_side_bytes == 0
+            || limits.max_side_bytes > MAX_SIDE
+            || limits.max_total_side_bytes == 0
+            || limits.max_total_side_bytes > MAX_SIDE
+            || limits.max_total_blob_bytes == 0
+            || limits.max_total_blob_bytes > 2 * MAX_SIDE
+        {
+            return Err(SourceCommandError::Invalid(
+                "record revision retained inspection profile",
+            ));
+        }
+    }
     let Some(journal) = journal_dir(fs, id, false)? else {
         return Ok(None);
     };
@@ -1716,7 +1756,7 @@ fn load_retained(
         &journal,
         "manifest.json",
         fs.uid,
-        MAX_MANIFEST,
+        limits.map_or(MAX_MANIFEST, |selected| selected.max_manifest_bytes),
         deadline,
         cancelled,
     )?
@@ -1788,7 +1828,8 @@ fn load_retained(
     // for every file binding. Preflight both complete sides before any raw
     // retained blob is cloned into the expanded plan.
     let entries = cmd::array(summary, "files")?;
-    if entries.is_empty() || entries.len() > MAX_FILES {
+    let max_files = limits.map_or(MAX_FILES, |selected| selected.max_files);
+    if entries.is_empty() || entries.len() > max_files {
         return Err(SourceCommandError::Invalid(
             "retained selected file count budget",
         ));
@@ -1821,7 +1862,9 @@ fn load_retained(
             side_totals[index] = side_totals[index]
                 .checked_add(count)
                 .ok_or(SourceCommandError::Invalid("retained side size overflow"))?;
-            if count > MAX_SIDE || side_totals[index] > MAX_SIDE {
+            let max_side = limits.map_or(MAX_SIDE, |selected| selected.max_side_bytes);
+            let max_total_side = limits.map_or(MAX_SIDE, |selected| selected.max_total_side_bytes);
+            if count > max_side || side_totals[index] > max_total_side {
                 return Err(SourceCommandError::Invalid(
                     "retained selected side byte budget",
                 ));
@@ -1842,7 +1885,7 @@ fn load_retained(
         let sha = cmd::text(value, "sha256")?;
         let count = usize::try_from(cmd::integer(value, "bytes")?)
             .map_err(|_| SourceCommandError::Invalid("retained side size range"))?;
-        if !hash(sha) || count > MAX_SIDE {
+        if !hash(sha) || count > limits.map_or(MAX_SIDE, |selected| selected.max_side_bytes) {
             return Err(SourceCommandError::Conflict(
                 "retained selected side binding",
             ));
@@ -1856,7 +1899,7 @@ fn load_retained(
         *total = total
             .checked_add(count)
             .ok_or(SourceCommandError::Invalid("retained blob overflow"))?;
-        if *total > 2 * MAX_SIDE {
+        if *total > limits.map_or(2 * MAX_SIDE, |selected| selected.max_total_blob_bytes) {
             return Err(SourceCommandError::Invalid("retained blob total budget"));
         }
         let (bytes, mode) = read_at_mode(
@@ -2098,6 +2141,19 @@ pub(crate) fn inspect_committed(
     inspect_terminal(fs, id, "committed", deadline, cancelled)
 }
 
+/// Inspect one committed selected-metadata revision under its smaller exact
+/// file/side profile. This is still the Work owner’s journal/fixity verifier;
+/// the caller supplies a narrower resource envelope, never an authority token.
+pub(crate) fn inspect_committed_record_revision(
+    fs: &CreationFilesystem,
+    id: &str,
+    limits: RecordRevisionInspectionLimits,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<(String, WorkPlan, JsonValue, JsonValue)> {
+    inspect_terminal_with_limits(fs, id, "committed", Some(limits), deadline, cancelled)
+}
+
 pub(crate) fn inspect_rolled_back(
     fs: &CreationFilesystem,
     id: &str,
@@ -2114,8 +2170,19 @@ fn inspect_terminal(
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<(String, WorkPlan, JsonValue, JsonValue)> {
+    inspect_terminal_with_limits(fs, id, outcome, None, deadline, cancelled)
+}
+
+fn inspect_terminal_with_limits(
+    fs: &CreationFilesystem,
+    id: &str,
+    outcome: &str,
+    limits: Option<RecordRevisionInspectionLimits>,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<(String, WorkPlan, JsonValue, JsonValue)> {
     let head = read_state(fs, deadline, cancelled)?;
-    let retained = load_retained(fs, id, deadline, cancelled)?.ok_or(
+    let retained = load_retained_with_limits(fs, id, limits, deadline, cancelled)?.ok_or(
         SourceCommandError::Conflict("prior Work transaction absent"),
     )?;
     let journal = journal_dir(fs, id, false)?

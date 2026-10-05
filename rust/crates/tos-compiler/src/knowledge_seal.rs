@@ -342,7 +342,21 @@ fn seal_inner(
     } else {
         None
     };
-    let model_abi = if managed_source_root_sha256.is_some() {
+    let model_abi = if stage.payload_layout()
+        == crate::knowledge_stage::KnowledgePayloadLayout::CarrierOnceV1
+    {
+        if stage.owned_creation_state().is_none()
+            || managed_source_root_sha256.is_some()
+            || navigation.is_none()
+            || philosophy.is_none()
+            || corpus.is_none()
+        {
+            return Err(Error::Invalid(
+                "carrier model requires owned full Original closure",
+            ));
+        }
+        crate::knowledge_stage::KNOWLEDGE_CARRIER_ONCE_MODEL_ABI
+    } else if managed_source_root_sha256.is_some() {
         crate::KNOWLEDGE_MANAGED_MODEL_ABI
     } else if corpus.is_some() {
         crate::KNOWLEDGE_CORPUS_MODEL_ABI

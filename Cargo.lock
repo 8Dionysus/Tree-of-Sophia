@@ -1696,8 +1696,12 @@ dependencies = [
 name = "tos-reader"
 version = "0.1.0"
 dependencies = [
+ "rustix",
  "tempfile",
+ "tos-command",
+ "tos-fd-open",
  "tos-foundation",
+ "tos-segment-store",
  "tos-source-store",
 ]
 

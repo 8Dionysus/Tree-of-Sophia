@@ -21,6 +21,10 @@ const V2_LAYOUT_ROOT_GUARD_BYTES: u64 = 65_537;
 const V2_LAYOUT_COMPONENT_METADATA_BYTES: u64 = 4_096;
 const V2_LAYOUT_PATH_BYTES: usize = 4_096;
 const V2_LAYOUT_PATH_COMPONENTS: usize = 128;
+const ADMISSION_IO_BLOCK_BYTES: usize = 65_536;
+// `ingest_accounted` retains its copy block while final fixity verification
+// calls `verify_file_recorded`, which owns a second block.
+pub(crate) const INGEST_ACCOUNTED_SCRATCH_BYTES: usize = 2 * ADMISSION_IO_BLOCK_BYTES;
 
 fn v2_component_guard_bytes(name: &str) -> io::Result<u64> {
     u64::try_from(name.len())
@@ -3245,7 +3249,7 @@ impl AdmissionStore {
         source.seek(SeekFrom::Start(0))?;
         let mut copied = 0u64;
         let mut hash = Digest256Hasher::new();
-        let mut chunk = [0; 65536];
+        let mut chunk = [0; ADMISSION_IO_BLOCK_BYTES];
         loop {
             active(deadline, cancel)?;
             charge_read(chunk.len() as u64)?;
@@ -3585,7 +3589,7 @@ fn stream_verified_recorded(
     file.seek(SeekFrom::Start(0))?;
     let mut count = 0u64;
     let mut hash = Digest256Hasher::new();
-    let mut bytes = [0; 65536];
+    let mut bytes = [0; ADMISSION_IO_BLOCK_BYTES];
     loop {
         active(deadline, cancel)?;
         charge_read(bytes.len() as u64)?;

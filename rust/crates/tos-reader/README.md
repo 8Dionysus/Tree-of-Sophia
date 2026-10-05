@@ -1,11 +1,23 @@
 # Exact native reader
 
-`tos-reader` is a trusted-local read-only adapter over `tos-source-store`. It
-requires an exact retained corpus revision and source ID. The caller supplies
-all finite read and JSON limits and an absolute private staging directory.
-The selected object is checked against the snapshot and staged before any
-bytes reach stdout. A failure returns no selected bytes unless stdout itself
-fails after successful verification.
+`tos-reader` is a trusted-local read-only adapter. It keeps V1 as the default
+and accepts `--format v2` as an explicit selection for native AdmissionStore
+V2. Both formats require an exact retained revision and source ID; neither
+format grants public access or corpus admission.
+
+The V1 path remains the `tos-source-store::CorpusReader` snapshot reader. V2
+uses the maintained CMD `V2ReadSession`, which authenticates the selected
+current pointer and retained history, resolves the identity at the requested
+revision, and verifies the object before it is staged. V2 also requires finite
+caller-supplied pointer, segment, tree, object, cumulative I/O, state, and
+deadline limits. Its staging directory must be absolute, normalized, owned by
+the current user, and private; the stage file is created relative to a held
+directory descriptor. Verified bytes remain staged until the current-pointer
+fence succeeds.
+
+The caller supplies all finite V1 read and JSON limits and a private staging
+directory. In either format, a failure returns no selected bytes unless stdout
+itself fails after verification.
 
 Install with `cargo install --locked --path rust/crates/tos-reader --root
 INSTALL_ROOT` and run `INSTALL_ROOT/bin/tos-reader --help` for the required
@@ -15,9 +27,10 @@ fixture revisions after an isolated install.
 The reader requires Linux 5.6 or newer with `openat2`. It anchors traversal to
 opened directory descriptors and refuses symlink traversal. Non-Linux builds
 fail, and an older Linux kernel returns an unsupported-platform error; there
-is no weaker path-open fallback. `tos-reader --capabilities` prints the
-versioned platform and store-format contract. The isolated install check
-exercises the actual host's `openat2` path with both retained fixture revisions.
+is no weaker path-open fallback. `tos-reader --capabilities` reports V1 as the
+default and lists the explicit V2 format. The isolated install check exercises
+the V1 fixture revisions; it does not claim installed V2 or native-runtime
+verification.
 
 This raw local reader has no rights, consent, publication or current-use
 policy adapter. Its input store must be a trusted local snapshot. Do not

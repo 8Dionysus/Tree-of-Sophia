@@ -269,6 +269,57 @@ impl JsonValue {
         matches!(self, Self::Null)
     }
 
+    /// Feed a top-level array field to the maintained canonical digest visitor
+    /// without materializing its items in the `JsonValue` tree. `self` must
+    /// contain the named field as an empty array placeholder. The feed callback
+    /// supplies one already-bounded item at a time through the provided writer;
+    /// that writer applies the same escaping, ordering, structural visit, and
+    /// output-byte rules as `canonical_feed_digest_v1`.
+    pub fn canonical_feed_digest_v1_with_streamed_array<F>(
+        &self,
+        profile: CanonicalProfile,
+        limits: JsonLimits,
+        array_field: &str,
+        feed: F,
+        hasher: &mut crate::Digest256Hasher,
+        written: &mut usize,
+        visits: &mut usize,
+        depth: usize,
+    ) -> Result<()>
+    where
+        F: FnMut(&mut dyn FnMut(&JsonValue) -> Result<()>) -> Result<()>,
+    {
+        limits.validate()?;
+        let style = if profile == CanonicalProfile::CorpusSnapshotV1 {
+            WriteStyle::PythonCompactLf
+        } else {
+            WriteStyle::PythonCompact
+        };
+        let mut output = JsonOutput {
+            sink: JsonSink::Digest {
+                hasher,
+                bytes: *written,
+            },
+            poll: JsonCheck::new(None),
+        };
+        write_root_with_streamed_array(
+            self,
+            array_field,
+            feed,
+            &mut output,
+            depth,
+            visits,
+            limits,
+            style,
+        )?;
+        if style.newline() {
+            emit(&mut output, b"\n", limits)?;
+        }
+        output.poll.now()?;
+        *written = output.len();
+        Ok(())
+    }
+
     /// Make a new top-level object without exactly one named member.
     pub fn without_top_field(&self, name: &str) -> Result<Self> {
         let entries = self
@@ -2148,6 +2199,181 @@ fn write_value(
         }
     }
     Ok(())
+}
+
+fn write_root_with_streamed_array<F>(
+    value: &JsonValue,
+    array_field: &str,
+    mut feed: F,
+    output: &mut JsonOutput<'_, '_>,
+    depth: usize,
+    visits: &mut usize,
+    limits: JsonLimits,
+    style: WriteStyle,
+) -> Result<()>
+where
+    F: FnMut(&mut dyn FnMut(&JsonValue) -> Result<()>) -> Result<()>,
+{
+    let mut numeric_parse_visits = 0;
+    if depth > limits.max_depth || *visits >= limits.max_visits {
+        return Err(FoundationError::new(
+            Code::BudgetExceeded,
+            "JSON output structural budget exceeded",
+        ));
+    }
+    *visits += 1;
+    let JsonValue::Object(entries) = value else {
+        return Err(FoundationError::new(
+            Code::InvalidJson,
+            "streamed canonical root must be an object",
+        ));
+    };
+    if entries.len() > limits.max_visits.saturating_sub(*visits) {
+        return Err(FoundationError::new(
+            Code::BudgetExceeded,
+            "JSON output structural budget exceeded",
+        ));
+    }
+    let mut seen = HashSet::new();
+    if entries.iter().any(|(key, _)| !seen.insert(&key.units)) {
+        return Err(FoundationError::new(
+            Code::DuplicateMember,
+            "duplicate decoded JSON member",
+        ));
+    }
+    let mut field_count = 0usize;
+    for (key, item) in entries {
+        if key.as_str() == Some(array_field) {
+            field_count += 1;
+            if !matches!(item, JsonValue::Array(items) if items.is_empty()) {
+                return Err(FoundationError::new(
+                    Code::InvalidJson,
+                    "streamed canonical field requires an empty array placeholder",
+                ));
+            }
+        }
+    }
+    if field_count != 1 {
+        return Err(FoundationError::new(
+            Code::InvalidJson,
+            "streamed canonical array field is missing or duplicated",
+        ));
+    }
+
+    emit(output, b"{", limits)?;
+    let mut ordered: Vec<_> = entries.iter().collect();
+    if style.sort_keys() {
+        ordered.sort_by(|(left, _), (right, _)| left.as_str().cmp(&right.as_str()));
+    }
+    for (index, (key, item)) in ordered.into_iter().enumerate() {
+        if index != 0 {
+            emit(
+                output,
+                if style.pretty() {
+                    &b",\n"[..]
+                } else {
+                    &b","[..]
+                },
+                limits,
+            )?;
+        } else if style.pretty() {
+            emit(output, b"\n", limits)?;
+        }
+        if style.pretty() {
+            emit_indent(output, depth + 1, limits)?;
+        }
+        write_string(key, output, true, limits)?;
+        emit(
+            output,
+            if style.pretty() {
+                &b": "[..]
+            } else {
+                &b":"[..]
+            },
+            limits,
+        )?;
+        if key.as_str() == Some(array_field) {
+            write_streamed_array(&mut feed, output, depth + 1, visits, limits, style)?;
+        } else {
+            write_value(
+                item,
+                output,
+                depth + 1,
+                visits,
+                &mut numeric_parse_visits,
+                limits,
+                style,
+                false,
+            )?;
+        }
+    }
+    if style.pretty() && !entries.is_empty() {
+        emit(output, b"\n", limits)?;
+        emit_indent(output, depth, limits)?;
+    }
+    emit(output, b"}", limits)
+}
+
+fn write_streamed_array<F>(
+    feed: &mut F,
+    output: &mut JsonOutput<'_, '_>,
+    depth: usize,
+    visits: &mut usize,
+    limits: JsonLimits,
+    style: WriteStyle,
+) -> Result<()>
+where
+    F: FnMut(&mut dyn FnMut(&JsonValue) -> Result<()>) -> Result<()>,
+{
+    let mut numeric_parse_visits = 0;
+    if depth > limits.max_depth || *visits >= limits.max_visits {
+        return Err(FoundationError::new(
+            Code::BudgetExceeded,
+            "JSON output structural budget exceeded",
+        ));
+    }
+    *visits += 1;
+    emit(output, b"[", limits)?;
+    let mut item_count = 0usize;
+    let mut write_item = |item: &JsonValue| -> Result<()> {
+        if item_count != 0 {
+            emit(
+                output,
+                if style.pretty() {
+                    &b",\n"[..]
+                } else {
+                    &b","[..]
+                },
+                limits,
+            )?;
+        } else if style.pretty() {
+            emit(output, b"\n", limits)?;
+        }
+        if style.pretty() {
+            emit_indent(output, depth + 1, limits)?;
+        }
+        write_value(
+            item,
+            output,
+            depth + 1,
+            visits,
+            &mut numeric_parse_visits,
+            limits,
+            style,
+            false,
+        )?;
+        item_count = item_count
+            .checked_add(1)
+            .ok_or_else(|| FoundationError::new(Code::BudgetExceeded, "JSON array is too large"))?;
+        Ok(())
+    };
+    feed(&mut write_item)?;
+    drop(write_item);
+    if style.pretty() && item_count != 0 {
+        emit(output, b"\n", limits)?;
+        emit_indent(output, depth, limits)?;
+    }
+    emit(output, b"]", limits)
 }
 
 fn emit_indent(output: &mut JsonOutput<'_, '_>, depth: usize, limits: JsonLimits) -> Result<()> {

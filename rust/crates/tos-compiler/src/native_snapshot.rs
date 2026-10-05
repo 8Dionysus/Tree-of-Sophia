@@ -4,14 +4,18 @@ use crate::{
     Error, ExpectedSourceScope, FullKnowledgeLimits, KnowledgeSelectedExpectation,
     NATIVE_KNOWLEDGE_ADAPTER_PROFILES, NativeFamilyInputs, NativeProducerLimits, QueryVocabulary,
     Result, SourceBinding,
-    d1_public_capture::{PublicCapture, PublicCaptureLimits},
+    d1_public_capture::{CreationState, PublicCapture, PublicCaptureLimits},
     d1_public_graph::{
-        PublicRepositoryRoot, PublicStageOwner, captured_input_roots, ingest_family_rows,
-        prepare_family_rows,
+        PublicRepositoryRoot, PublicStageOwner, captured_input_roots, captured_input_roots_owned,
+        ingest_family_rows, ingest_family_rows_owned, prepare_family_rows,
+        prepare_family_rows_owned,
     },
     d1_public_header::build_native_snapshot_header,
-    d1_public_lens_specs::saved_lenses,
-    d1_public_semantics::{validate_native_snapshot_semantics, validate_public_current_registries},
+    d1_public_lens_specs::{saved_lenses, saved_lenses_owned},
+    d1_public_semantics::{
+        validate_native_snapshot_semantics, validate_public_current_registries,
+        validate_public_current_registries_owned,
+    },
     knowledge_source_navigation_prepare::NavigationHeaderClaim,
     knowledge_stage::{ExactInputReceipt, KnowledgeStage, StageIsolation, StageLimits, WritePhase},
 };
@@ -154,6 +158,116 @@ pub struct NativeKnowledgeSnapshot {
     /// Present only for a retained graph/snapshot publication. One-shot
     /// snapshots leave this empty so they cannot become an addressed parent.
     pub state: Option<ProducerIssuedCoreSnapshotState>,
+}
+
+impl NativeKnowledgeSnapshot {
+    /// Logical source-owner census of the actual retained whole output. This
+    /// does not create a second graph/model or attest allocator/RSS fit.
+    pub fn retained_state_upper_bound(&self) -> Result<usize> {
+        use tos_foundation::OwnedState;
+        fn add(total: &mut usize, amount: usize) -> Result<()> {
+            *total = total
+                .checked_add(amount)
+                .ok_or(Error::Budget("whole snapshot retained state"))?;
+            Ok(())
+        }
+        fn value_heap(value: &serde_json::Value, depth: usize) -> Result<usize> {
+            if depth > 96 {
+                return Err(Error::Budget("whole snapshot retained depth"));
+            }
+            let mut bytes = 0usize;
+            match value {
+                serde_json::Value::Null | serde_json::Value::Bool(_) => {}
+                serde_json::Value::Number(number) => {
+                    bytes = crate::knowledge_normalization::serde_text_workspace_upper(
+                        number.as_str().len(),
+                    )?;
+                }
+                serde_json::Value::String(text) => bytes = text.capacity(),
+                serde_json::Value::Array(rows) => {
+                    bytes = rows
+                        .capacity()
+                        .checked_mul(std::mem::size_of::<serde_json::Value>())
+                        .ok_or(Error::Budget("whole snapshot retained array"))?;
+                    for row in rows {
+                        add(&mut bytes, value_heap(row, depth + 1)?)?;
+                    }
+                }
+                serde_json::Value::Object(fields) => {
+                    // Same pinned container geometry as original decode owner.
+                    bytes = crate::knowledge_normalization::serde_object_slots_upper(fields.len())?;
+                    for (key, item) in fields {
+                        add(&mut bytes, key.capacity())?;
+                        add(&mut bytes, value_heap(item, depth + 1)?)?;
+                    }
+                }
+            }
+            Ok(bytes)
+        }
+        let mut bytes = std::mem::size_of::<Self>();
+        add(&mut bytes, value_heap(&self.graph, 0)?)?;
+        add(&mut bytes, value_heap(&self.catalog, 0)?)?;
+        if let Some(inputs) = &self.catalog_inputs {
+            for value in [
+                &inputs.header,
+                &inputs.entity_registry,
+                &inputs.relation_registry,
+            ] {
+                add(
+                    &mut bytes,
+                    value
+                        .owned_heap_bytes()
+                        .map_err(|_| Error::Budget("whole catalog inputs state"))?,
+                )?;
+            }
+            add(
+                &mut bytes,
+                inputs
+                    .lenses
+                    .owned_heap_bytes()
+                    .map_err(|_| Error::Budget("whole catalog lenses state"))?,
+            )?;
+        }
+        for text in [
+            &self.source_revision,
+            &self.graph_root_sha256,
+            &self.catalog_sha256,
+        ] {
+            add(&mut bytes, text.capacity())?;
+        }
+        add(
+            &mut bytes,
+            self.source_state
+                .capacity()
+                .checked_mul(std::mem::size_of::<(String, i64, u64, u64, i64)>())
+                .ok_or(Error::Budget("whole source state slots"))?,
+        )?;
+        for (path, _, _, _, _) in &self.source_state {
+            add(&mut bytes, path.capacity())?;
+        }
+        add(
+            &mut bytes,
+            self.source_inputs
+                .capacity()
+                .checked_mul(std::mem::size_of::<(String, String, u64)>())
+                .ok_or(Error::Budget("whole source inputs slots"))?,
+        )?;
+        for (path, digest, _) in &self.source_inputs {
+            add(&mut bytes, path.capacity())?;
+            add(&mut bytes, digest.capacity())?;
+        }
+        if let Some(state) = &self.state {
+            add(&mut bytes, state.receipt_sha256.capacity())?;
+            add(&mut bytes, state.source_revision.capacity())?;
+            // The sealed memfd payload is distinct from the resident graph.
+            add(
+                &mut bytes,
+                usize::try_from(state.size_bytes)
+                    .map_err(|_| Error::Budget("whole sealed state size"))?,
+            )?;
+        }
+        Ok(bytes)
+    }
 }
 
 /// The native producer's sealed, opaque source-baseline descriptor. There is
@@ -1161,6 +1275,303 @@ fn read_state_file(
     Ok(raw)
 }
 
+fn source_value_digest_owned(
+    value: &serde_json::Value,
+    json: JsonLimits,
+    state: &CreationState<'_>,
+) -> Result<String> {
+    state.with_json_encoded(value, json.max_bytes, |raw| {
+        let document = state.json(raw, json.max_bytes)?;
+        state.with_foundation_canonical_bytes(&document, json, |canonical| {
+            state.charge_work(canonical.len())?;
+            state.retain(64)?;
+            Ok(Digest256::of_bytes(canonical).to_hex())
+        })
+    })
+}
+fn source_values_from_capture_owned(
+    capture: &PublicCapture,
+    source_revision: &str,
+    max_bytes: usize,
+    json: JsonLimits,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+    state: &CreationState<'_>,
+) -> Result<(
+    std::collections::BTreeMap<String, serde_json::Value>,
+    std::collections::BTreeMap<String, String>,
+)> {
+    let input_node =
+        11 * std::mem::size_of::<(String, serde_json::Value)>() + 16 * std::mem::size_of::<usize>();
+    let hash_node =
+        11 * std::mem::size_of::<(String, String)>() + 16 * std::mem::size_of::<usize>();
+    let mut inputs = std::collections::BTreeMap::new();
+    let mut hashes = std::collections::BTreeMap::new();
+    let mut total = 0usize;
+    let view = CompletedCaptureCarriers {
+        capture,
+        source_revision: Some(source_revision),
+    };
+    for (name, request) in [
+        (
+            "corpus",
+            crate::native_snapshot_carriers::CapturedCarrierRequest::CorpusIndex,
+        ),
+        (
+            "bibliographic_claims",
+            crate::native_snapshot_carriers::CapturedCarrierRequest::BibliographicGraph,
+        ),
+    ] {
+        let mut json = json;
+        json.max_visits = json.max_visits.min(state.remaining_json_visits()?);
+        let budget = crate::native_snapshot_carriers::CapturedCarrierReadBudget {
+            max_rows: capture.rows.max(1),
+            max_input_bytes: max_bytes as u64,
+            max_output_bytes: max_bytes,
+            json,
+        };
+        let mut usage = crate::native_snapshot_carriers::CapturedCarrierUsage::default();
+        let result = crate::native_snapshot_carriers::read_complete_captured_carrier_with_state(
+            &view,
+            request,
+            budget,
+            deadline,
+            cancelled,
+            &|bytes| state.remaining(bytes),
+            &mut usage,
+        );
+        state.debit_json_visits(usage.json_visits)?;
+        let delivery = result?;
+        let raw = delivery.bytes;
+        let hold = state.hold(raw.capacity())?;
+        total = total
+            .checked_add(raw.len())
+            .filter(|n| *n <= max_bytes)
+            .ok_or(Error::Budget("native snapshot state input bytes"))?;
+        let value = state.serde_owned_with_limits(&raw, json)?;
+        state.retain(input_node + hash_node + 2 * name.len())?;
+        hashes.insert(
+            name.to_owned(),
+            source_value_digest_owned(&value, json, state)?,
+        );
+        inputs.insert(name.to_owned(), value);
+        drop(raw);
+        drop(hold);
+    }
+    let mut philosophy = capture.header_object_owned("philosophy", "", max_bytes, state)?;
+    state.with_json_encoded(&philosophy, max_bytes, |raw| {
+        total = total
+            .checked_add(raw.len())
+            .filter(|n| *n <= max_bytes)
+            .ok_or(Error::Budget("native snapshot state input bytes"))?;
+        Ok(())
+    })?;
+    for collection in [
+        "nodes",
+        "edges",
+        "clusters",
+        "views",
+        "review_packets",
+        "graph_layers",
+    ] {
+        match capture
+            .captured_collection_kind("philosophy", collection)?
+            .as_deref()
+        {
+            None => continue,
+            Some("array") => {}
+            _ => return Err(Error::Invalid("native snapshot philosophy collection kind")),
+        }
+        let count = capture.captured_row_count_owned("philosophy", collection, state)?;
+        if count > capture.rows.max(1) {
+            return Err(Error::Budget("native snapshot philosophy source rows"));
+        }
+        let capacity = usize::try_from(count)
+            .map_err(|_| Error::Budget("native snapshot philosophy row capacity"))?;
+        state.retain(
+            capacity
+                .checked_mul(std::mem::size_of::<serde_json::Value>())
+                .ok_or(Error::Budget("native snapshot philosophy row state"))?,
+        )?;
+        let mut rows = Vec::with_capacity(capacity);
+        let actual = capture.visit_rows("philosophy", collection, |ordinal, raw| {
+            state.active()?;
+            if ordinal != rows.len() as u64 || rows.len() >= capacity {
+                return Err(Error::Budget("native snapshot philosophy source rows"));
+            }
+            total = total
+                .checked_add(raw.len())
+                .filter(|n| *n <= max_bytes)
+                .ok_or(Error::Budget("native snapshot state input bytes"))?;
+            rows.push(state.serde_owned_with_limits(raw, json)?);
+            Ok(())
+        })?;
+        if actual != count {
+            return Err(Error::Invalid("native snapshot philosophy source EOF"));
+        }
+        state.retain(
+            crate::knowledge_normalization::serde_object_slots_upper(1)? + collection.len(),
+        )?;
+        if philosophy
+            .as_object_mut()
+            .ok_or(Error::Invalid("native snapshot philosophy header object"))?
+            .insert(collection.to_owned(), serde_json::Value::Array(rows))
+            .is_some()
+        {
+            return Err(Error::Invalid(
+                "native snapshot philosophy collection collision",
+            ));
+        }
+    }
+    state.retain(input_node + hash_node + 2 * "philosophy".len())?;
+    hashes.insert(
+        "philosophy".to_owned(),
+        source_value_digest_owned(&philosophy, json, state)?,
+    );
+    inputs.insert("philosophy".to_owned(), philosophy);
+    for (name, path) in CORE_SOURCE_REFS.iter().skip(3) {
+        let raw = input_with_owned_state(capture, path, Some(state))?;
+        total = total
+            .checked_add(raw.len())
+            .filter(|n| *n <= max_bytes)
+            .ok_or(Error::Budget("native snapshot state input bytes"))?;
+        let value = state.serde_owned_with_limits(&raw, json)?;
+        if !value.is_object() {
+            return Err(Error::Invalid("native snapshot state registry object"));
+        }
+        state.retain(input_node + hash_node + 2 * name.len())?;
+        hashes.insert(
+            (*name).to_owned(),
+            source_value_digest_owned(&value, json, state)?,
+        );
+        inputs.insert((*name).to_owned(), value);
+    }
+    if inputs.len() != CORE_SOURCE_REFS.len() || hashes.len() != CORE_SOURCE_REFS.len() {
+        return Err(Error::Invalid("native snapshot state source closure"));
+    }
+    state.active()?;
+    Ok((inputs, hashes))
+}
+fn issue_state_fd_owned(
+    capture: &PublicCapture,
+    source_revision: &str,
+    graph: &serde_json::Value,
+    catalog: &serde_json::Value,
+    graph_root_sha256: &str,
+    catalog_sha256: &str,
+    max_bytes: usize,
+    json: JsonLimits,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+    state: &CreationState<'_>,
+) -> Result<ProducerIssuedCoreSnapshotState> {
+    if !valid_sha256(source_revision)
+        || !valid_sha256(graph_root_sha256)
+        || !valid_sha256(catalog_sha256)
+        || !capture.root().is_absolute()
+    {
+        return Err(Error::Invalid("native snapshot state producer binding"));
+    }
+    let _fixed = state.hold(
+        std::mem::size_of::<ProducerIssuedCoreSnapshotState>()
+            + 3 * std::mem::size_of::<libc::stat>()
+            + 64,
+    )?;
+    let (source_inputs, input_sha256) = source_values_from_capture_owned(
+        capture,
+        source_revision,
+        max_bytes,
+        json,
+        deadline,
+        cancelled,
+        state,
+    )?;
+    let root = capture
+        .root()
+        .to_str()
+        .ok_or(Error::Invalid("native snapshot state root UTF8"))?;
+    let identity = capture.capture_identity()?;
+    let source_state = capture.core_source_state_owned(state)?;
+    let capture_state = capture.capture_source_state_owned(state)?;
+    let unsigned = state_packet_view(
+        root,
+        &identity,
+        &source_state,
+        &capture_state,
+        source_revision,
+        graph_root_sha256,
+        catalog_sha256,
+        graph,
+        catalog,
+        &source_inputs,
+        &input_sha256,
+        "",
+    );
+    state.charge_work(max_bytes)?;
+    state.retain(64)?;
+    let (receipt_sha256, _) = state_receipt_digest(&unsigned, max_bytes, deadline, cancelled)?;
+    let mut file = memfd_file("tos-native-core-snapshot-state-v1")?;
+    let packet = state_packet_view(
+        root,
+        &identity,
+        &source_state,
+        &capture_state,
+        source_revision,
+        graph_root_sha256,
+        catalog_sha256,
+        graph,
+        catalog,
+        &source_inputs,
+        &input_sha256,
+        &receipt_sha256,
+    );
+    let final_bytes = state.with_json_encoded(&packet, max_bytes, |raw| {
+        state.retain(raw.len())?;
+        state.charge_work(raw.len())?;
+        let mut written = 0usize;
+        while written < raw.len() {
+            state.active()?;
+            let end = (written + 65536).min(raw.len());
+            let count = file
+                .write(&raw[written..end])
+                .map_err(|_| Error::Invalid("native snapshot state output IO"))?;
+            if count == 0 {
+                return Err(Error::Invalid("native snapshot state output short write"));
+            }
+            written += count;
+        }
+        Ok(written)
+    })?;
+    if final_bytes == 0 {
+        return Err(Error::Budget("native snapshot state bytes"));
+    }
+    file.sync_all()
+        .map_err(|_| Error::Invalid("native snapshot state sync"))?;
+    if unsafe {
+        libc::fcntl(
+            file.as_raw_fd(),
+            libc::F_ADD_SEALS,
+            CORE_STATE_REQUIRED_SEALS,
+        )
+    } != 0
+    {
+        return Err(Error::Invalid("native snapshot state seal"));
+    }
+    let (checked, size) = validate_state_fd(file.as_fd(), max_bytes)?;
+    drop(checked);
+    if size != final_bytes as u64 {
+        return Err(Error::Invalid("native snapshot state descriptor size"));
+    }
+    state.retain(source_revision.len())?;
+    state.active()?;
+    Ok(ProducerIssuedCoreSnapshotState {
+        file,
+        size_bytes: size,
+        receipt_sha256,
+        source_revision: source_revision.to_owned(),
+    })
+}
+
 fn issue_state_fd(
     capture: &PublicCapture,
     source_revision: &str,
@@ -1533,6 +1944,73 @@ impl Write for BoundedSnapshotWriter {
     }
 }
 
+fn strict_snapshot_value_owned(
+    raw: &[u8],
+    max_bytes: usize,
+    mut json: JsonLimits,
+    remaining_visits: &mut usize,
+    cancelled: &AtomicBool,
+    deadline: Instant,
+    state: Option<&crate::d1_public_capture::CreationState<'_>>,
+) -> Result<serde_json::Value> {
+    let Some(state) = state else {
+        return strict_snapshot_value(raw, max_bytes, json, remaining_visits, cancelled, deadline);
+    };
+    check_snapshot_active(cancelled, deadline)?;
+    if raw.is_empty() || raw.len() > max_bytes || raw.len() > json.max_bytes {
+        return Err(Error::Budget("native whole snapshot JSON bytes"));
+    }
+    json.max_bytes = json.max_bytes.min(max_bytes);
+    json.max_visits = json.max_visits.min(*remaining_visits);
+    let before = state.json_visits();
+    let result = state.serde_owned_with_limits(raw, json);
+    let used = state
+        .json_visits()
+        .checked_sub(before)
+        .ok_or(Error::Budget("owned snapshot JSON usage changed"))?;
+    *remaining_visits = remaining_visits.saturating_sub(used);
+    let value = result?;
+    check_snapshot_active(cancelled, deadline)?;
+    Ok(value)
+}
+
+fn foundation_snapshot_value_owned(
+    raw: &[u8],
+    max_bytes: usize,
+    mut json: JsonLimits,
+    remaining_visits: &mut usize,
+    cancelled: &AtomicBool,
+    deadline: Instant,
+    state: Option<&crate::d1_public_capture::CreationState<'_>>,
+) -> Result<JsonValue> {
+    let Some(state) = state else {
+        return foundation_snapshot_value(
+            raw,
+            max_bytes,
+            json,
+            remaining_visits,
+            cancelled,
+            deadline,
+        );
+    };
+    check_snapshot_active(cancelled, deadline)?;
+    if raw.is_empty() || raw.len() > max_bytes || raw.len() > json.max_bytes {
+        return Err(Error::Budget("native catalog input JSON bytes"));
+    }
+    json.max_bytes = json.max_bytes.min(max_bytes);
+    json.max_visits = json.max_visits.min(*remaining_visits);
+    let before = state.json_visits();
+    let result = state.foundation_owned_with_limits(raw, json);
+    let used = state
+        .json_visits()
+        .checked_sub(before)
+        .ok_or(Error::Budget("owned catalog input JSON usage changed"))?;
+    *remaining_visits = remaining_visits.saturating_sub(used);
+    let value = result?;
+    check_snapshot_active(cancelled, deadline)?;
+    Ok(value)
+}
+
 fn staged_rows(
     db: &rusqlite::Connection,
     capture: &PublicCapture,
@@ -1544,9 +2022,13 @@ fn staged_rows(
     remaining_visits: &mut usize,
     deadline: Instant,
     cancelled: &AtomicBool,
+    state: Option<&crate::d1_public_capture::CreationState<'_>>,
 ) -> Result<Vec<serde_json::Value>> {
     if !matches!(table, "knowledge_nodes" | "knowledge_relations") {
         return Err(Error::Invalid("native whole snapshot row table"));
+    }
+    if let Some(state) = state {
+        state.retain(512 + std::mem::size_of::<rusqlite::Statement<'_>>())?;
     }
     let sql = format!(
         "SELECT id,source_graph,payload_len,payload_sha256,
@@ -1560,6 +2042,38 @@ fn staged_rows(
     let mut bytes = 0usize;
     while let Some(row) = rows.next()? {
         check_snapshot_active(cancelled, deadline)?;
+        if let Some(state) = state {
+            use rusqlite::types::ValueRef;
+            let id = match row.get_ref(0)? {
+                ValueRef::Text(value) => value,
+                _ => return Err(Error::Invalid("owned snapshot row id")),
+            };
+            let graph = match row.get_ref(1)? {
+                ValueRef::Text(value) => value,
+                _ => return Err(Error::Invalid("owned snapshot row graph")),
+            };
+            let raw = match row.get_ref(4)? {
+                ValueRef::Blob(value) => value,
+                _ => return Err(Error::Budget("native whole snapshot row bytes")),
+            };
+            let digest_len = match row.get_ref(3)? {
+                ValueRef::Blob(value) => value.len(),
+                _ => return Err(Error::Invalid("owned snapshot row digest")),
+            };
+            if digest_len != 32 {
+                return Err(Error::Invalid("native whole snapshot row receipt"));
+            }
+            if id.len() > 4096 || graph.len() > 4096 || raw.len() > max_row_bytes {
+                return Err(Error::Budget("owned snapshot row field bytes"));
+            }
+            state.retain(
+                id.len()
+                    .checked_add(graph.len())
+                    .and_then(|n| n.checked_add(raw.len()))
+                    .and_then(|n| n.checked_add(32 + 4 * std::mem::size_of::<serde_json::Value>()))
+                    .ok_or(Error::Budget("owned snapshot row copy state"))?,
+            )?;
+        }
         let id: String = row.get(0)?;
         let source_graph: String = row.get(1)?;
         let declared: i64 = row.get(2)?;
@@ -1576,13 +2090,14 @@ fn staged_rows(
         {
             return Err(Error::Invalid("native whole snapshot row receipt"));
         }
-        let value = strict_snapshot_value(
+        let value = strict_snapshot_value_owned(
             &raw,
             max_row_bytes,
             json,
             remaining_visits,
             cancelled,
             deadline,
+            state,
         )?;
         if value.get("id").and_then(serde_json::Value::as_str) != Some(id.as_str())
             || value
@@ -1592,8 +2107,11 @@ fn staged_rows(
         {
             return Err(Error::Invalid("native whole snapshot row identity"));
         }
-        let encoded = serde_json::to_vec(&value)
-            .map_err(|_| Error::Invalid("native whole snapshot row encoding"))?;
+        let encoded = match state {
+            Some(state) => state.encode_json(&value, max_row_bytes)?,
+            None => serde_json::to_vec(&value)
+                .map_err(|_| Error::Invalid("native whole snapshot row encoding"))?,
+        };
         bytes = bytes
             .checked_add(encoded.len())
             .filter(|next| *next <= max_total_bytes)
@@ -1621,26 +2139,33 @@ fn whole_snapshot_in_stage(
     Option<crate::prepared_catalog_semantics::CatalogInputs>,
 )> {
     limits.validate()?;
+    let state = stage.owned_creation_state();
     if header.as_object().is_none()
         || header.get("nodes").is_some()
         || header.get("relations").is_some()
     {
         return Err(Error::Invalid("native whole snapshot header"));
     }
-    let header_bytes = serde_json::to_vec(header)
-        .map_err(|_| Error::Invalid("native whole snapshot header encoding"))?;
+    let header_bytes = match state {
+        Some(state) => {
+            state.encode_json(header, limits.max_graph_bytes.min(limits.json.max_bytes))?
+        }
+        None => serde_json::to_vec(header)
+            .map_err(|_| Error::Invalid("native whole snapshot header encoding"))?,
+    };
     if header_bytes.len() > limits.max_graph_bytes.min(limits.json.max_bytes) {
         return Err(Error::Budget("native whole snapshot header bytes"));
     }
     let graph_rows = limits.max_rows;
     let mut remaining_visits = limits.json.max_visits;
-    let graph_header = strict_snapshot_value(
+    let graph_header = strict_snapshot_value_owned(
         &header_bytes,
         limits.max_graph_bytes,
         limits.json,
         &mut remaining_visits,
         cancelled,
         deadline,
+        state,
     )?;
     let (nodes, relations, catalog_raw) = stage.with_connection(WritePhase::Finalize, |db| {
         check_snapshot_active(cancelled, deadline)?;
@@ -1656,7 +2181,22 @@ fn whole_snapshot_in_stage(
         {
             return Err(Error::Budget("native whole snapshot row count"));
         }
-        let catalog_packet = db.query_row(
+        let catalog_packet = if let Some(state) = state {
+            const SQL: &str = "SELECT packet_len,packet_sha256,CASE WHEN packet_len BETWEEN 1 AND ?2 AND length(packet)=packet_len THEN packet END FROM catalog_index_meta WHERE descriptor_sha256=?1";
+            state.retain(SQL.len() + 1 + std::mem::size_of::<rusqlite::Statement<'_>>())?;
+            let mut statement = db.prepare(SQL)?;
+            let mut rows = statement.query(rusqlite::params![full.catalog.descriptor_sha256, limits.max_catalog_bytes as i64])?;
+            let row = rows.next()?.ok_or(Error::Invalid("native whole snapshot catalog receipt"))?;
+            use rusqlite::types::ValueRef;
+            let declared: i64 = row.get(0)?;
+            let digest = match row.get_ref(1)? { ValueRef::Blob(value) if value.len() == 32 => value,
+                _ => return Err(Error::Invalid("native whole snapshot catalog digest")) };
+            let raw = match row.get_ref(2)? { ValueRef::Blob(value) if value.len() <= limits.max_catalog_bytes => value,
+                _ => return Err(Error::Budget("native whole snapshot catalog bytes")) };
+            state.retain(raw.len().checked_add(32 + 64).ok_or(Error::Budget("owned catalog packet copy"))?)?;
+            (declared, digest.to_owned(), Some(raw.to_owned()))
+        } else {
+            db.query_row(
             "SELECT packet_len,packet_sha256,
                     CASE WHEN packet_len BETWEEN 1 AND ?2 AND length(packet)=packet_len
                          THEN packet END
@@ -1672,7 +2212,8 @@ fn whole_snapshot_in_stage(
                     row.get::<_, Option<Vec<u8>>>(2)?,
                 ))
             },
-        )?;
+        )?
+        };
         let (declared, expected, raw) = catalog_packet;
         let raw = raw.ok_or(Error::Budget("native whole snapshot catalog bytes"))?;
         capture.charge_work(raw.len() as u64)?;
@@ -1696,10 +2237,13 @@ fn whole_snapshot_in_stage(
             &mut remaining_visits,
             deadline,
             cancelled,
+            state,
         )?;
         let node_bytes = nodes.iter().try_fold(0usize, |sum, node| {
-            let raw = serde_json::to_vec(node)
-                .map_err(|_| Error::Invalid("native whole snapshot node encoding"))?;
+            let raw = match state {
+                Some(state) => state.encode_json(node, limits.max_row_bytes)?,
+                None => serde_json::to_vec(node).map_err(|_| Error::Invalid("native whole snapshot node encoding"))?,
+            };
             sum.checked_add(raw.len())
                 .filter(|bytes| *bytes <= limits.max_graph_bytes.saturating_sub(header_bytes.len()))
                 .ok_or(Error::Budget("native whole snapshot graph bytes"))
@@ -1717,10 +2261,25 @@ fn whole_snapshot_in_stage(
             &mut remaining_visits,
             deadline,
             cancelled,
+            state,
         )?;
         Ok((nodes, relations, raw))
     })?;
     let mut graph = graph_header;
+    if let Some(state) = state {
+        let fields = graph
+            .as_object()
+            .ok_or(Error::Invalid("native whole snapshot header object"))?
+            .len();
+        state.retain(
+            crate::knowledge_normalization::serde_object_slots_upper(
+                fields
+                    .checked_add(2)
+                    .ok_or(Error::Budget("owned snapshot graph fields"))?,
+            )? + "nodes".len()
+                + "relations".len(),
+        )?;
+    }
     let graph_object = graph
         .as_object_mut()
         .ok_or(Error::Invalid("native whole snapshot header object"))?;
@@ -1733,17 +2292,21 @@ fn whole_snapshot_in_stage(
     {
         return Err(Error::Invalid("native whole snapshot row header collision"));
     }
-    let catalog = strict_snapshot_value(
+    let catalog = strict_snapshot_value_owned(
         &catalog_raw,
         limits.max_catalog_bytes,
         limits.json,
         &mut remaining_visits,
         cancelled,
         deadline,
+        state,
     )?;
     let catalog_inputs = if include_catalog_inputs {
-        let header_input = serde_json::to_vec(header)
-            .map_err(|_| Error::Invalid("native catalog header encoding"))?;
+        let header_input = match state {
+            Some(state) => state.encode_json(header, limits.max_catalog_inputs_bytes)?,
+            None => serde_json::to_vec(header)
+                .map_err(|_| Error::Invalid("native catalog header encoding"))?,
+        };
         let mut input_bytes = header_input
             .len()
             .checked_add(entity_raw.len())
@@ -1752,45 +2315,60 @@ fn whole_snapshot_in_stage(
         if input_bytes > limits.max_catalog_inputs_bytes {
             return Err(Error::Budget("native catalog input bytes"));
         }
-        let header = foundation_snapshot_value(
+        let header = foundation_snapshot_value_owned(
             &header_input,
             limits.max_catalog_inputs_bytes,
             limits.json,
             &mut remaining_visits,
             cancelled,
             deadline,
+            state,
         )?;
-        let entity_registry = foundation_snapshot_value(
+        let entity_registry = foundation_snapshot_value_owned(
             entity_raw,
             limits.max_catalog_inputs_bytes,
             limits.json,
             &mut remaining_visits,
             cancelled,
             deadline,
+            state,
         )?;
-        let relation_registry = foundation_snapshot_value(
+        let relation_registry = foundation_snapshot_value_owned(
             relation_raw,
             limits.max_catalog_inputs_bytes,
             limits.json,
             &mut remaining_visits,
             cancelled,
             deadline,
+            state,
         )?;
+        if let Some(state) = state {
+            state.retain(
+                lenses
+                    .len()
+                    .checked_mul(std::mem::size_of::<JsonValue>())
+                    .ok_or(Error::Budget("owned catalog input lens slots"))?,
+            )?;
+        }
         let mut input_lenses = Vec::with_capacity(lenses.len());
         for lens in lenses {
-            let raw = serde_json::to_vec(lens)
-                .map_err(|_| Error::Invalid("native catalog lens encoding"))?;
+            let raw = match state {
+                Some(state) => state.encode_json(lens, limits.max_catalog_inputs_bytes)?,
+                None => serde_json::to_vec(lens)
+                    .map_err(|_| Error::Invalid("native catalog lens encoding"))?,
+            };
             input_bytes = input_bytes
                 .checked_add(raw.len())
                 .filter(|bytes| *bytes <= limits.max_catalog_inputs_bytes)
                 .ok_or(Error::Budget("native catalog input bytes"))?;
-            input_lenses.push(foundation_snapshot_value(
+            input_lenses.push(foundation_snapshot_value_owned(
                 &raw,
                 limits.max_catalog_inputs_bytes,
                 limits.json,
                 &mut remaining_visits,
                 cancelled,
                 deadline,
+                state,
             )?);
         }
         let inputs = crate::prepared_catalog_semantics::CatalogInputs {
@@ -1802,7 +2380,7 @@ fn whole_snapshot_in_stage(
                 crate::prepared_catalog_semantics::SourceOrderProfile::OwnerSequence,
         };
         inputs.validate()?;
-        let _ = inputs.binding()?;
+        let _ = inputs.binding_with_owned_state(state)?;
         Some(inputs)
     } else {
         None
@@ -2526,6 +3104,21 @@ fn input(capture: &PublicCapture, path: &str) -> Result<Vec<u8>> {
         .ok_or(Error::Invalid("native snapshot required captured input"))
 }
 
+fn input_with_owned_state(
+    capture: &PublicCapture,
+    path: &str,
+    state: Option<&CreationState<'_>>,
+) -> Result<Vec<u8>> {
+    if let Some(state) = state {
+        let bytes = capture.retained_input_length(path)?;
+        if bytes > 4 * 1024 * 1024 {
+            return Err(Error::Budget("native snapshot required input bytes"));
+        }
+        state.retain(bytes)?;
+    }
+    input(capture, path)
+}
+
 /// Reuse the actual maintained capture and full component pipeline. The host
 /// retains its kernel-backed StageIsolation for the capture, stage and spill
 /// lifetime; caller retains the exact declaration bytes through disclosure.
@@ -2549,6 +3142,8 @@ pub fn build_native_snapshot_from_capture(
         None,
         deadline,
         cancelled,
+        None,
+        crate::knowledge_stage::KnowledgePayloadLayout::InlineV1,
     )
     .map(|(completed, _)| completed)
 }
@@ -2580,10 +3175,257 @@ pub fn build_native_knowledge_snapshot_from_capture(
         Some((whole_limits, include_catalog_inputs, retain_state)),
         deadline,
         cancelled,
+        None,
+        crate::knowledge_stage::KnowledgePayloadLayout::InlineV1,
     )?;
     whole
         .map(|snapshot| (completed, snapshot))
         .ok_or(Error::Invalid("native whole snapshot output absent"))
+}
+
+/// Original dedicated-session counters and heap remain owned by the capture.
+/// The callback supplies its actual simultaneous retained state; this is no
+/// new model/cold grant. Usage is observable on both success and refusal.
+pub struct NativeSnapshotOwnedBudget<'a> {
+    pub remaining_after_retained: &'a dyn Fn(usize) -> Result<usize>,
+    pub original_sqlite_heap: &'a std::sync::Arc<crate::sqlite_budget::DedicatedSessionSqliteHeap>,
+    pub max_creation_json_visits: usize,
+    pub creation_deadline: Instant,
+}
+#[derive(Default, Clone, Copy, Debug)]
+pub struct NativeSnapshotCreationUsage {
+    pub json_visits: usize,
+}
+
+pub fn build_native_knowledge_snapshot_from_capture_with_owned_budget(
+    capture: &PublicCapture,
+    candidate: &Path,
+    declaration_raw: &[u8],
+    isolation: &dyn StageIsolation,
+    limits: NativeSnapshotLimits,
+    whole_limits: NativeWholeSnapshotLimits,
+    include_catalog_inputs: bool,
+    retain_state: bool,
+    owner_deadline: Instant,
+    cancelled: &AtomicBool,
+    budget: NativeSnapshotOwnedBudget<'_>,
+    usage: &mut NativeSnapshotCreationUsage,
+) -> Result<(CompletedNativeSnapshot, NativeKnowledgeSnapshot)> {
+    build_native_knowledge_snapshot_from_capture_with_owned_budget_and_layout(
+        capture,
+        candidate,
+        declaration_raw,
+        isolation,
+        limits,
+        whole_limits,
+        include_catalog_inputs,
+        retain_state,
+        owner_deadline,
+        cancelled,
+        budget,
+        usage,
+        crate::knowledge_stage::KnowledgePayloadLayout::InlineV1,
+    )
+}
+
+/// Physical layout is explicit owner policy for this SAME controlled full
+/// producer. It does not admit source, renew any counter, or bypass a reader.
+pub fn build_native_knowledge_snapshot_from_capture_with_owned_budget_and_layout(
+    capture: &PublicCapture,
+    candidate: &Path,
+    declaration_raw: &[u8],
+    isolation: &dyn StageIsolation,
+    limits: NativeSnapshotLimits,
+    whole_limits: NativeWholeSnapshotLimits,
+    include_catalog_inputs: bool,
+    retain_state: bool,
+    owner_deadline: Instant,
+    cancelled: &AtomicBool,
+    budget: NativeSnapshotOwnedBudget<'_>,
+    usage: &mut NativeSnapshotCreationUsage,
+    payload_layout: crate::knowledge_stage::KnowledgePayloadLayout,
+) -> Result<(CompletedNativeSnapshot, NativeKnowledgeSnapshot)> {
+    *usage = NativeSnapshotCreationUsage::default();
+    if owner_deadline != capture.deadline() || !std::ptr::eq(cancelled, capture.cancellation()) {
+        return Err(Error::Invalid(
+            "owned native snapshot admission context changed",
+        ));
+    }
+    let state = capture.model_creation_state(
+        budget.remaining_after_retained,
+        budget.original_sqlite_heap,
+        budget.max_creation_json_visits,
+        budget.creation_deadline,
+    )?;
+    let result = capture.with_owned_operation_deadline(budget.creation_deadline, || {
+        build_native_snapshot_from_capture_inner(
+            capture,
+            candidate,
+            declaration_raw,
+            isolation,
+            limits,
+            Some((whole_limits, include_catalog_inputs, retain_state)),
+            owner_deadline,
+            cancelled,
+            Some(&state),
+            payload_layout,
+        )
+    });
+    usage.json_visits = state.json_visits();
+    let (completed, snapshot) = result?;
+    snapshot
+        .map(|snapshot| (completed, snapshot))
+        .ok_or(Error::Invalid("native whole snapshot output absent"))
+}
+
+/// A synchronous borrow of the already admitted builder state. Only this
+/// owner can issue it; downstream code cannot manufacture a capture or reset
+/// the original work, VM, heap, JSON or operation lifetime.
+pub struct NativeSnapshotOwnedReadLoan<'owner, 'budget> {
+    capture: &'owner PublicCapture,
+    state: &'owner CreationState<'budget>,
+}
+impl<'owner, 'budget> NativeSnapshotOwnedReadLoan<'owner, 'budget> {
+    pub(crate) fn capture(&self) -> &'owner PublicCapture {
+        self.capture
+    }
+    pub(crate) fn owned_state(&self) -> &'owner CreationState<'budget> {
+        self.state
+    }
+    pub(crate) fn operation_deadline(&self) -> Instant {
+        self.state.operation_deadline()
+    }
+}
+
+/// Keep creation state and both completed outputs alive for the complete
+/// synchronous reader/consumer operation. The construction guard ends before
+/// the callback, so the reader may acquire its own narrower operation guard
+/// without nesting the capture mutex. The loan retains the original cutoff.
+#[allow(clippy::too_many_arguments)]
+pub fn with_native_knowledge_snapshot_from_capture_with_owned_budget_and_layout<'budget, F>(
+    capture: &'budget PublicCapture,
+    candidate: &Path,
+    declaration_raw: &[u8],
+    isolation: &dyn StageIsolation,
+    limits: NativeSnapshotLimits,
+    whole_limits: NativeWholeSnapshotLimits,
+    include_catalog_inputs: bool,
+    retain_state: bool,
+    owner_deadline: Instant,
+    cancelled: &AtomicBool,
+    budget: NativeSnapshotOwnedBudget<'budget>,
+    usage: &mut NativeSnapshotCreationUsage,
+    payload_layout: crate::knowledge_stage::KnowledgePayloadLayout,
+    consume: F,
+) -> Result<()>
+where
+    F: for<'scope> FnOnce(
+        &'scope CompletedNativeSnapshot,
+        &'scope NativeKnowledgeSnapshot,
+        NativeSnapshotOwnedReadLoan<'scope, 'budget>,
+    ) -> Result<()>,
+{
+    *usage = NativeSnapshotCreationUsage::default();
+    if owner_deadline != capture.deadline() || !std::ptr::eq(cancelled, capture.cancellation()) {
+        return Err(Error::Invalid(
+            "owned native snapshot admission context changed",
+        ));
+    }
+    let state = capture.model_creation_state(
+        budget.remaining_after_retained,
+        budget.original_sqlite_heap,
+        budget.max_creation_json_visits,
+        budget.creation_deadline,
+    )?;
+    let operation = || {
+        let build = || {
+            build_native_snapshot_from_capture_inner(
+                capture,
+                candidate,
+                declaration_raw,
+                isolation,
+                limits,
+                Some((whole_limits, include_catalog_inputs, retain_state)),
+                owner_deadline,
+                cancelled,
+                Some(&state),
+                payload_layout,
+            )
+        };
+        let frame_bytes = std::mem::size_of_val(&build)
+            .checked_add(std::mem::size_of_val(&consume))
+            .and_then(|n| n.checked_add(std::mem::size_of::<NativeSnapshotOwnedReadLoan<'_, '_>>()))
+            .and_then(|n| {
+                n.checked_add(std::mem::size_of::<
+                    Result<(CompletedNativeSnapshot, Option<NativeKnowledgeSnapshot>)>,
+                >())
+            })
+            .and_then(|n| n.checked_add(3 * std::mem::size_of::<Result<()>>()))
+            .ok_or(Error::Budget("owned native scoped consumer frame"))?;
+        let _frame_hold = state.hold(frame_bytes)?;
+        // Result and its owned outputs are declared after the frame hold;
+        // they drop first on callback success, refusal or unwind.
+        let (completed, snapshot) =
+            capture.with_owned_operation_deadline(budget.creation_deadline, build)?;
+        let snapshot = snapshot.ok_or(Error::Invalid("native whole snapshot output absent"))?;
+        state.active()?;
+        completed.check_capture_binding(capture)?;
+        let result = consume(
+            &completed,
+            &snapshot,
+            NativeSnapshotOwnedReadLoan {
+                capture,
+                state: &state,
+            },
+        );
+        let active = state.active();
+        let current = completed.check_capture_binding(capture);
+        match (active, current) {
+            (Err(error), _) => Err(error),
+            (_, Err(error)) => Err(error),
+            (Ok(()), Ok(())) => result,
+        }
+    };
+    let operation_bytes = std::mem::size_of_val(&operation)
+        .checked_add(std::mem::size_of::<Result<()>>())
+        .ok_or(Error::Budget("owned native scoped operation target"))?;
+    let _operation_hold = state.hold(operation_bytes)?;
+    let outcome = operation();
+    // A nested reader must debit its actual visits into this live state on
+    // either Result outcome. The original Driver settles this aggregate once.
+    usage.json_visits = state.json_visits();
+    outcome
+}
+
+pub fn check_completed_evidence_projection_with_owned_budget(
+    capture: &PublicCapture,
+    staging: &Path,
+    limits: PublicCaptureLimits,
+    owner_deadline: Instant,
+    budget: NativeSnapshotOwnedBudget<'_>,
+    usage: &mut NativeSnapshotCreationUsage,
+) -> Result<crate::epistemic_evidence::CompletedEvidenceProjection> {
+    *usage = NativeSnapshotCreationUsage::default();
+    if owner_deadline != capture.deadline() {
+        return Err(Error::Invalid("owned Evidence admission lifetime changed"));
+    }
+    let state = capture.model_creation_state(
+        budget.remaining_after_retained,
+        budget.original_sqlite_heap,
+        budget.max_creation_json_visits,
+        budget.creation_deadline,
+    )?;
+    let result = capture.with_owned_operation_deadline(budget.creation_deadline, || {
+        crate::epistemic_evidence::check_completed_owned(
+            capture,
+            staging,
+            limits,
+            owner_deadline,
+            &state,
+        )
+    });
+    usage.json_visits = state.json_visits();
+    result
 }
 
 /// Apply one exact owner-supplied record replacement to a producer-issued
@@ -2672,18 +3514,33 @@ fn build_native_snapshot_from_capture_inner(
     whole_mode: Option<(NativeWholeSnapshotLimits, bool, bool)>,
     deadline: Instant,
     cancelled: &AtomicBool,
+    state: Option<&CreationState<'_>>,
+    payload_layout: crate::knowledge_stage::KnowledgePayloadLayout,
 ) -> Result<(CompletedNativeSnapshot, Option<NativeKnowledgeSnapshot>)> {
     if deadline != capture.deadline() || !std::ptr::eq(cancelled, capture.cancellation()) {
         return Err(Error::Invalid("native snapshot admission context changed"));
     }
+    if payload_layout == crate::knowledge_stage::KnowledgePayloadLayout::CarrierOnceV1
+        && (state.is_none() || whole_mode.is_none())
+    {
+        return Err(Error::Invalid(
+            "carrier layout requires controlled whole owner",
+        ));
+    }
+    let deadline = state.map_or(deadline, |state| state.operation_deadline());
     check_snapshot_active(cancelled, deadline)?;
     if let Some((whole_limits, _, _)) = whole_mode {
         whole_limits.validate()?;
     }
-    // Bind immutable creation custody before the sanctioned family transition.
     capture.capture_identity()?;
-    let source_state_before = capture.core_source_state()?;
-    let capture_source_state_before = capture.capture_source_state()?;
+    let source_state_before = match state {
+        Some(state) => capture.core_source_state_owned(state)?,
+        None => capture.core_source_state()?,
+    };
+    let capture_source_state_before = match state {
+        Some(state) => capture.capture_source_state_owned(state)?,
+        None => capture.capture_source_state()?,
+    };
     if limits.max_declaration_bytes == 0
         || limits.max_declaration_bytes > 1024 * 1024
         || declaration_raw.is_empty()
@@ -2692,16 +3549,28 @@ fn build_native_snapshot_from_capture_inner(
     {
         return Err(Error::Budget("native snapshot declaration/transfer limits"));
     }
-    let declaration = parse_json(
-        declaration_raw,
-        JsonMode::PublishedStrict,
-        JsonLimits::new(limits.max_declaration_bytes, 64, 65536, 4096)
-            .map_err(|_| Error::Budget("native snapshot declaration JSON"))?,
-    )
-    .map_err(|e| Error::Source(e.to_string()))?;
+    let declaration_limits = JsonLimits::new(limits.max_declaration_bytes, 64, 65536, 4096)
+        .map_err(|_| Error::Budget("native snapshot declaration JSON"))?;
+    let declaration_owned;
+    let declaration_legacy;
+    let declaration_root = match state {
+        Some(state) => {
+            declaration_owned =
+                state.foundation_owned_with_limits(declaration_raw, declaration_limits)?;
+            &declaration_owned
+        }
+        None => {
+            declaration_legacy = parse_json(
+                declaration_raw,
+                JsonMode::PublishedStrict,
+                declaration_limits,
+            )
+            .map_err(|e| Error::Source(e.to_string()))?;
+            declaration_legacy.root()
+        }
+    };
     check_snapshot_active(cancelled, deadline)?;
-    if declaration
-        .root()
+    if declaration_root
         .object_get("schema_version")
         .and_then(|v| v.as_str())
         != Some("tos_access_runtime_data_allowlist_v1")
@@ -2710,31 +3579,72 @@ fn build_native_snapshot_from_capture_inner(
     }
     capture.check_custody()?;
     let declaration_sha256 = Digest256::of_bytes(declaration_raw);
+    if let Some(state) = state {
+        state.retain(64)?;
+    }
     let source_revision = capture.core_source_revision()?;
     check_snapshot_active(cancelled, deadline)?;
-    let entity = input(
+    let entity = input_with_owned_state(
         capture,
         "ToS/doctrine/semantic-interchange/entity-types.v1.json",
+        state,
     )?;
-    let relation = input(
+    let relation = input_with_owned_state(
         capture,
         "ToS/doctrine/semantic-interchange/relation-types.v1.json",
+        state,
     )?;
-    let descriptor = input(
+    let descriptor = input_with_owned_state(
         capture,
         "ToS/doctrine/semantic-interchange/query-vocabulary.v1.json",
+        state,
     )?;
-    let registry = validate_public_current_registries(capture, &entity, &relation)?;
-    let vocabulary = QueryVocabulary::parse(&descriptor, NATIVE_KNOWLEDGE_ADAPTER_PROFILES)?;
-    prepare_family_rows(capture, limits.capture)?;
-    // All packet/model completion fences bind the sealed prepared database,
-    // while source-state fences retain the original captured source cut.
-    let capture_identity=capture.capture_identity()?;
-    let (collections, membership_root, projection_root) =
-        captured_input_roots(capture, &vocabulary)?;
+    let registry = match state {
+        Some(state) => {
+            validate_public_current_registries_owned(capture, &entity, &relation, state)?
+        }
+        None => validate_public_current_registries(capture, &entity, &relation)?,
+    };
+    let vocabulary = match state {
+        Some(state) => QueryVocabulary::parse_with_owned_state(
+            &descriptor,
+            NATIVE_KNOWLEDGE_ADAPTER_PROFILES,
+            state,
+        )?,
+        None => QueryVocabulary::parse(&descriptor, NATIVE_KNOWLEDGE_ADAPTER_PROFILES)?,
+    };
+    match state {
+        Some(state) => prepare_family_rows_owned(capture, limits.capture, state)?,
+        None => prepare_family_rows(capture, limits.capture)?,
+    };
+    let capture_identity = capture.capture_identity()?;
+    let (collections, membership_root, projection_root) = match state {
+        Some(state) => captured_input_roots_owned(capture, &vocabulary, state)?,
+        None => captured_input_roots(capture, &vocabulary)?,
+    };
     // The chosen original corpus/phi connector selects the existing V5 ABI.
     // Original receipts remain distinct from normalized projections.
-    let abi = crate::KNOWLEDGE_CORPUS_MODEL_ABI;
+    let abi = match payload_layout {
+        crate::knowledge_stage::KnowledgePayloadLayout::InlineV1 => {
+            crate::KNOWLEDGE_CORPUS_MODEL_ABI
+        }
+        crate::knowledge_stage::KnowledgePayloadLayout::CarrierOnceV1 => {
+            crate::knowledge_stage::KNOWLEDGE_CARRIER_ONCE_MODEL_ABI
+        }
+    };
+    if let Some(state) = state {
+        state.retain(
+            "tos-native-projection-snapshot-v1".len()
+                + "native-projection:".len()
+                + source_revision.len()
+                + abi.len()
+                + 1
+                + 64
+                + "tos-access-runtime-data-v1".len()
+                + abi.len()
+                + 64,
+        )?;
+    }
     let binding = SourceBinding {
         owner_profile: "tos-native-projection-snapshot-v1".into(),
         source_cut: format!("native-projection:{source_revision}"),
@@ -2747,17 +3657,69 @@ fn build_native_snapshot_from_capture_inner(
         complete: true,
     };
     check_snapshot_active(cancelled, deadline)?;
-    let originals = crate::native_snapshot_originals::prepare(
-        capture,
-        &binding,
-        &vocabulary,
-        limits.originals,
-        deadline,
-        cancelled,
-    )?;
+    let originals = match state {
+        Some(state) => crate::native_snapshot_originals::prepare_owned(
+            capture,
+            &binding,
+            &vocabulary,
+            limits.originals,
+            deadline,
+            cancelled,
+            state,
+        )?,
+        None => crate::native_snapshot_originals::prepare(
+            capture,
+            &binding,
+            &vocabulary,
+            limits.originals,
+            deadline,
+            cancelled,
+        )?,
+    };
     check_snapshot_active(cancelled, deadline)?;
-    if originals.expected_model_abi() != abi {
+    if originals.expected_model_abi_with_layout(payload_layout) != abi {
         return Err(Error::Invalid("native snapshot original component ABI"));
+    }
+    if let Some(state) = state {
+        let binding_bytes = [
+            &binding.owner_profile,
+            &binding.source_cut,
+            &binding.membership_root,
+            &binding.index_generation,
+            &binding.route_map_version,
+            &binding.reader_abi,
+            &binding.projection_root_sha256,
+        ]
+        .into_iter()
+        .try_fold(0usize, |n, s| {
+            n.checked_add(s.len())
+                .ok_or(Error::Budget("owned snapshot receipt binding"))
+        })?;
+        let collections_bytes = collections.iter().try_fold(0usize, |total, c| {
+            [
+                &c.source_graph,
+                &c.collection,
+                &c.input_role,
+                &c.adapter_profile,
+                &c.expected_root_sha256,
+            ]
+            .into_iter()
+            .try_fold(total, |n, s| {
+                n.checked_add(s.len())
+                    .ok_or(Error::Budget("owned snapshot receipt collections"))
+            })
+        })?;
+        state.retain(
+            binding_bytes
+                .checked_mul(2)
+                .and_then(|n| n.checked_add(collections_bytes))
+                .and_then(|n| {
+                    n.checked_add(collections.len().checked_mul(std::mem::size_of::<
+                        crate::knowledge_stage::InputCollectionReceipt,
+                    >())?)
+                })
+                .ok_or(Error::Budget("owned snapshot receipt clone state"))?,
+        )?;
     }
     let receipt = ExactInputReceipt {
         binding: binding.clone(),
@@ -2767,31 +3729,81 @@ fn build_native_snapshot_from_capture_inner(
         capture,
         receipt: receipt.clone(),
     };
-    let mut stage = KnowledgeStage::create_captured_native_snapshot(
-        candidate,
-        limits.stage,
-        receipt,
-        &owner,
-        isolation,
-        capture.vm_counter(),
-        capture.work_counter(),
-        capture.cancellation_handle(),
-        capture.max_work_bytes(),
-        capture.deadline(),
-    )?;
+    let remaining = |bytes| {
+        state
+            .ok_or(Error::Invalid("owned Stage context absent"))?
+            .remaining(bytes)
+    };
+    let mut stage = match state {
+        Some(state) => KnowledgeStage::create_captured_native_snapshot_owned(
+            candidate,
+            limits.stage,
+            receipt,
+            &owner,
+            isolation,
+            capture.vm_counter(),
+            capture.work_counter(),
+            capture.cancellation_handle(),
+            capture.max_work_bytes(),
+            deadline,
+            &remaining,
+            state.heap(),
+            state.sql_vm_limit(),
+            state,
+        )?,
+        None => KnowledgeStage::create_captured_native_snapshot(
+            candidate,
+            limits.stage,
+            receipt,
+            &owner,
+            isolation,
+            capture.vm_counter(),
+            capture.work_counter(),
+            capture.cancellation_handle(),
+            capture.max_work_bytes(),
+            capture.deadline(),
+        )?,
+    };
+    if payload_layout == crate::knowledge_stage::KnowledgePayloadLayout::CarrierOnceV1 {
+        // The Stage owner checks its genuine native profile, original held
+        // CreationState and pristine no-row boundary before schema activation.
+        stage.enable_carrier_once_layout()?;
+        if stage.payload_layout() != payload_layout {
+            return Err(Error::Invalid("native payload layout activation changed"));
+        }
+    }
     check_snapshot_active(cancelled, deadline)?;
-    ingest_family_rows(&mut stage, capture, limits.max_transfer_work_bytes)?;
+    match state {
+        Some(state) => {
+            ingest_family_rows_owned(&mut stage, capture, limits.max_transfer_work_bytes, state)?;
+        }
+        None => {
+            ingest_family_rows(&mut stage, capture, limits.max_transfer_work_bytes)?;
+        }
+    }
     check_snapshot_active(cancelled, deadline)?;
-    let nav_raw =
-        serde_json::to_vec(&capture.header_object("corpus", "source_navigation", 1024 * 1024)?)
-            .map_err(|e| Error::Source(e.to_string()))?;
+    let nav_raw = match state {
+        Some(state) => state.encode_json(
+            &capture.header_object_owned("corpus", "source_navigation", 1024 * 1024, state)?,
+            1024 * 1024,
+        )?,
+        None => serde_json::to_vec(&capture.header_object(
+            "corpus",
+            "source_navigation",
+            1024 * 1024,
+        )?)
+        .map_err(|e| Error::Source(e.to_string()))?,
+    };
     let nav = NavigationHeaderClaim {
         expected_sha256: Digest256::of_bytes(&nav_raw).to_hex(),
         raw_json: nav_raw,
     };
     let repository =
         PublicRepositoryRoot::captured_native_projection(capture, &stage, &source_revision)?;
-    let borrowed_originals = originals.borrowed();
+    let borrowed_originals = match state {
+        Some(state) => originals.borrowed_owned(state)?,
+        None => originals.borrowed(),
+    };
     let mut families = borrowed_originals.family_inputs(limits.native);
     families.repository_root = Some(repository.input());
     let producer = crate::materialize_native_sources_with_inputs(
@@ -2822,7 +3834,10 @@ fn build_native_snapshot_from_capture_inner(
         &semantics,
     )?;
     check_snapshot_active(cancelled, deadline)?;
-    let lenses = saved_lenses(capture)?;
+    let lenses = match state {
+        Some(state) => saved_lenses_owned(capture, state)?,
+        None => saved_lenses(capture)?,
+    };
     let full = crate::compile_full_knowledge_components(
         &mut stage,
         &header,
@@ -2839,10 +3854,34 @@ fn build_native_snapshot_from_capture_inner(
         return Err(Error::Invalid("native snapshot actual component ABI"));
     }
     let source_scopes = stage.with_connection(WritePhase::Finalize, |db| {
-        let mut statement = db.prepare("SELECT source_graph,input_role,adapter_profile,expected_node_count,expected_relation_count,lower(hex(node_root_sha256)),lower(hex(relation_root_sha256)) FROM source_scope ORDER BY source_graph")?;
-        let result = statement.query_map([], |r| Ok(ExpectedSourceScope { source_graph:r.get(0)?, input_role:r.get(1)?, adapter_profile:r.get(2)?, node_count:r.get(3)?, relation_count:r.get(4)?, node_root_sha256:r.get(5)?, relation_root_sha256:r.get(6)? }))?
-            .collect::<std::result::Result<Vec<_>,_>>()?;
-        Ok(result)
+        if let Some(state)=state {
+            let _stmt_hold=state.hold(tos_source_store::PinnedSqliteConnection::bounded_statement_rust_workspace_upper_bound())?;
+            let count:u64=db.query_row("SELECT count(*) FROM source_scope",[],|r|r.get(0))?;
+            let capacity=usize::try_from(count).map_err(|_|Error::Budget("owned source scopes capacity"))?;
+            state.retain(capacity.checked_mul(std::mem::size_of::<ExpectedSourceScope>())
+                .ok_or(Error::Budget("owned source scopes slots"))?)?;
+            let mut result=Vec::with_capacity(capacity);
+            let mut statement=db.prepare("SELECT source_graph,input_role,adapter_profile,expected_node_count,expected_relation_count,lower(hex(node_root_sha256)),lower(hex(relation_root_sha256)) FROM source_scope ORDER BY source_graph")?;
+            let mut rows=statement.query([])?;
+            while let Some(row)=rows.next()? {
+                state.active()?;
+                if result.len()>=capacity {return Err(Error::Invalid("owned source scopes changed"));}
+                let source=row.get_ref(0)?.as_str().map_err(|_| Error::Invalid("owned model SQL text type"))?;let role=row.get_ref(1)?.as_str().map_err(|_| Error::Invalid("owned model SQL text type"))?;let adapter=row.get_ref(2)?.as_str().map_err(|_| Error::Invalid("owned model SQL text type"))?;
+                let node_root=row.get_ref(5)?.as_str().map_err(|_| Error::Invalid("owned model SQL text type"))?;let relation_root=row.get_ref(6)?.as_str().map_err(|_| Error::Invalid("owned model SQL text type"))?;
+                let bytes=source.len().checked_add(role.len()).and_then(|n|n.checked_add(adapter.len()))
+                    .and_then(|n|n.checked_add(node_root.len())).and_then(|n|n.checked_add(relation_root.len()))
+                    .ok_or(Error::Budget("owned source scopes strings"))?;
+                state.retain(bytes)?;state.charge_work(bytes)?;
+                result.push(ExpectedSourceScope {source_graph:source.to_owned(),input_role:role.to_owned(),adapter_profile:adapter.to_owned(),
+                    node_count:row.get(3)?,relation_count:row.get(4)?,node_root_sha256:node_root.to_owned(),relation_root_sha256:relation_root.to_owned()});
+            }
+            Ok(result)
+        } else {
+            let mut statement=db.prepare("SELECT source_graph,input_role,adapter_profile,expected_node_count,expected_relation_count,lower(hex(node_root_sha256)),lower(hex(relation_root_sha256)) FROM source_scope ORDER BY source_graph")?;
+            let result = statement.query_map([], |r| Ok(ExpectedSourceScope { source_graph:r.get(0)?, input_role:r.get(1)?, adapter_profile:r.get(2)?, node_count:r.get(3)?, relation_count:r.get(4)?, node_root_sha256:r.get(5)?, relation_root_sha256:r.get(6)? }))?
+                .collect::<std::result::Result<Vec<_>,_>>()?;
+            Ok(result)
+        }
     })?;
     let whole_parts = if let Some((whole_limits, include_catalog_inputs, _)) = whole_mode {
         Some(whole_snapshot_in_stage(
@@ -2871,14 +3910,84 @@ fn build_native_snapshot_from_capture_inner(
         return Err(Error::Invalid("native snapshot completed model receipt"));
     }
     capture.verify_inputs(limits.capture)?;
-    let expectation = KnowledgeSelectedExpectation {
-        model_sha256: output.sqlite_sha256.clone(),
-        model_size_bytes: output.sqlite_size_bytes,
-        owner_receipt_id: format!(
+    if let Some(state) = state {
+        let mut copied = std::mem::size_of::<KnowledgeSelectedExpectation>();
+        for text in [
+            &output.sqlite_sha256,
+            &full.seal.model_abi,
+            &vocabulary.descriptor_sha256,
+            &vocabulary.semantic_primitive_profile,
+            &output.source_cut,
+            &output.membership_root,
+            &registry.entity_registry_id,
+            &registry.entity_sha256,
+            &registry.relation_registry_id,
+            &registry.relation_sha256,
+            &full.seal.graph_root_sha256,
+            &full.catalog.catalog_packet_sha256,
+            &full.catalog.catalog_index_root_sha256,
+            &full.source_scope.source_scope_root_sha256,
+            &full.search.search_index_root_sha256,
+        ] {
+            copied = copied
+                .checked_add(text.len())
+                .ok_or(Error::Budget("owned snapshot expectation strings"))?;
+        }
+        for text in [
+            &full.seal.navigation_original_root_sha256,
+            &full.seal.philosophy_original_root_sha256,
+            &full.seal.corpus_original_root_sha256,
+        ]
+        .into_iter()
+        .flatten()
+        {
+            copied = copied
+                .checked_add(text.len())
+                .ok_or(Error::Budget("owned snapshot original roots"))?;
+        }
+        // Two bounded decimal version conversions retain their possible Vec
+        // minimum/growth overlap; the owner receipt uses exact reserved bytes.
+        state.retain(
+            copied
+                .checked_add(128)
+                .ok_or(Error::Budget("owned snapshot version strings"))?,
+        )?;
+    }
+    let owner_receipt_id = if let Some(state) = state {
+        let _digest = state.hold(64)?;
+        let bytes = "native-snapshot:".len() + source_revision.len() + 1 + 64;
+        state.retain(bytes)?;
+        state.charge_work(bytes)?;
+        let mut text = String::with_capacity(bytes);
+        text.push_str("native-snapshot:");
+        text.push_str(&source_revision);
+        text.push(':');
+        text.push_str(&declaration_sha256.to_hex());
+        text
+    } else {
+        format!(
             "native-snapshot:{}:{}",
             source_revision,
             declaration_sha256.to_hex()
-        ),
+        )
+    };
+    let authority_boundary = if let Some(state) = state {
+        String::from_utf8(state.encode_canonical(
+            &header["authority_boundary"],
+            limits.full.seal.max_header_bytes,
+        )?)
+        .map_err(|_| Error::Invalid("owned snapshot authority JSON UTF8"))?
+    } else {
+        String::from_utf8(crate::knowledge_seal::canonical(
+            &header["authority_boundary"],
+            limits.full.seal.max_header_bytes,
+        )?)
+        .map_err(|_| Error::Invalid("snapshot authority JSON UTF8"))?
+    };
+    let expectation = KnowledgeSelectedExpectation {
+        model_sha256: output.sqlite_sha256.clone(),
+        model_size_bytes: output.sqlite_size_bytes,
+        owner_receipt_id,
         model_abi: full.seal.model_abi.clone(),
         managed_source_root_sha256: None,
         descriptor_sha256: vocabulary.descriptor_sha256.clone(),
@@ -2906,11 +4015,7 @@ fn build_native_snapshot_from_capture_inner(
         index_generation: binding.index_generation,
         route_map_version: binding.route_map_version,
         reader_abi: binding.reader_abi,
-        authority_boundary: String::from_utf8(crate::knowledge_seal::canonical(
-            &header["authority_boundary"],
-            limits.full.seal.max_header_bytes,
-        )?)
-        .map_err(|_| Error::Invalid("knowledge authority UTF-8"))?,
+        authority_boundary,
         source_scopes,
         complete: true,
     };
@@ -2934,39 +4039,79 @@ fn build_native_snapshot_from_capture_inner(
     let whole = if let Some((graph, catalog, catalog_inputs)) = whole_parts {
         let retain_state = whole_mode.is_some_and(|(_, _, retain_state)| retain_state);
         let source_state = source_state_before;
-        let source_inputs = capture
-            .retained_input_members()?
-            .into_iter()
-            .map(|(path, digest, bytes)| (path, digest.to_hex(), bytes))
-            .collect();
-        let state = if retain_state {
-            Some(issue_state_fd(
-                capture,
-                &completed.source_revision,
-                &graph,
-                &catalog,
-                &completed.full.seal.graph_root_sha256,
-                &completed.full.catalog.catalog_packet_sha256,
-                whole_mode
-                    .map(|(limits, _, _)| limits.max_state_bytes)
-                    .ok_or(Error::Invalid("native snapshot state limit absent"))?,
-                whole_mode
-                    .map(|(limits, _, _)| limits.json)
-                    .ok_or(Error::Invalid("native snapshot state JSON limit absent"))?,
-                deadline,
-                cancelled,
-            )?)
+        let members = match state {
+            Some(state) => capture.retained_input_members_owned(state)?,
+            None => capture.retained_input_members()?,
+        };
+        if let Some(state) = state {
+            state.retain(
+                members
+                    .len()
+                    .checked_mul(64 + std::mem::size_of::<(String, String, u64)>())
+                    .ok_or(Error::Budget("owned snapshot input tuple"))?,
+            )?;
+        }
+        let mut source_inputs = Vec::with_capacity(members.len());
+        for (path, digest, bytes) in members {
+            source_inputs.push((path, digest.to_hex(), bytes));
+        }
+        let issued_state = if retain_state {
+            Some(if let Some(state) = state {
+                issue_state_fd_owned(
+                    capture,
+                    &completed.source_revision,
+                    &graph,
+                    &catalog,
+                    &completed.full.seal.graph_root_sha256,
+                    &completed.full.catalog.catalog_packet_sha256,
+                    whole_mode
+                        .map(|(limits, _, _)| limits.max_state_bytes)
+                        .ok_or(Error::Invalid("native snapshot state limit absent"))?,
+                    whole_mode
+                        .map(|(limits, _, _)| limits.json)
+                        .ok_or(Error::Invalid("native snapshot state JSON limit absent"))?,
+                    deadline,
+                    cancelled,
+                    state,
+                )?
+            } else {
+                issue_state_fd(
+                    capture,
+                    &completed.source_revision,
+                    &graph,
+                    &catalog,
+                    &completed.full.seal.graph_root_sha256,
+                    &completed.full.catalog.catalog_packet_sha256,
+                    whole_mode
+                        .map(|(limits, _, _)| limits.max_state_bytes)
+                        .ok_or(Error::Invalid("native snapshot state limit absent"))?,
+                    whole_mode
+                        .map(|(limits, _, _)| limits.json)
+                        .ok_or(Error::Invalid("native snapshot state JSON limit absent"))?,
+                    deadline,
+                    cancelled,
+                )?
+            })
         } else {
             None
         };
         capture.verify_inputs(limits.capture)?;
         if capture.capture_identity()? != capture_identity
-            || capture.core_source_state()? != source_state
-            || capture.capture_source_state()? != capture_source_state_before
+            || match state {
+                Some(state) => capture.core_source_state_owned(state)?,
+                None => capture.core_source_state()?,
+            } != source_state
+            || match state {
+                Some(state) => capture.capture_source_state_owned(state)?,
+                None => capture.capture_source_state()?,
+            } != capture_source_state_before
         {
             return Err(Error::Invalid(
                 "native snapshot capture changed before whole return",
             ));
+        }
+        if let Some(state) = state {
+            state.retain(3 * 64 + std::mem::size_of::<NativeKnowledgeSnapshot>())?;
         }
         Some(NativeKnowledgeSnapshot {
             graph,
@@ -2977,13 +4122,19 @@ fn build_native_snapshot_from_capture_inner(
             source_inputs,
             graph_root_sha256: completed.full.seal.graph_root_sha256.clone(),
             catalog_sha256: completed.full.catalog.catalog_packet_sha256.clone(),
-            state,
+            state: issued_state,
         })
     } else {
         capture.verify_inputs(limits.capture)?;
         if capture.capture_identity()? != capture_identity
-            || capture.core_source_state()? != source_state_before
-            || capture.capture_source_state()? != capture_source_state_before
+            || match state {
+                Some(state) => capture.core_source_state_owned(state)?,
+                None => capture.core_source_state()?,
+            } != source_state_before
+            || match state {
+                Some(state) => capture.capture_source_state_owned(state)?,
+                None => capture.capture_source_state()?,
+            } != capture_source_state_before
         {
             return Err(Error::Invalid(
                 "native snapshot capture changed before return",

@@ -2,7 +2,7 @@
 //! Only requested identities are retained while selected graph collections stream.
 use crate::{
     Error, PublicCaptureLimits, Result,
-    d1_public_capture::{PublicCapture, compact, json, source_digest},
+    d1_public_capture::{CreationState, PublicCapture, compact, json, source_digest},
     safe_open,
 };
 use serde_json::{Value, json as value};
@@ -151,6 +151,39 @@ fn verify_projection_file(
         return Err(Error::Invalid("Evidence Lens checked projection schema"));
     }
     guard(deadline)?;
+    Ok((raw, before, digest))
+}
+
+fn verify_projection_file_owned(
+    capture: &PublicCapture,
+    path: &Path,
+    deadline: Instant,
+    state: &CreationState<'_>,
+) -> Result<(Vec<u8>, FileStamp, Digest256)> {
+    state.active()?;
+    capture.check_custody()?;
+    let before = file_stamp(&fs::symlink_metadata(path)?)?;
+    if before.2 == 0 || before.2 > CAP as u64 {
+        return Err(Error::Budget(
+            "Evidence Lens checked projection bytes or identity",
+        ));
+    }
+    let raw = read_owned_path(path, deadline, state)?;
+    state.charge_work(raw.len())?;
+    let digest = Digest256::of_bytes(&raw);
+    let limits = JsonLimits::new(CAP, 96, 1_000_000, 4096)
+        .map_err(|_| Error::Budget("Evidence projection JSON"))?;
+    state.with_serde_owned_with_limits(&raw, limits, |payload| {
+        if payload["schema_version"] != "tos_epistemic_evidence_projection_v1" {
+            return Err(Error::Invalid("Evidence Lens checked projection schema"));
+        }
+        Ok(())
+    })?;
+    if before != file_stamp(&fs::symlink_metadata(path)?)? {
+        return Err(Error::Invalid("Evidence projection changed while checking"));
+    }
+    capture.check_custody()?;
+    state.active()?;
     Ok((raw, before, digest))
 }
 
@@ -397,6 +430,137 @@ fn read(root: &Path, reference: &str, deadline: Instant) -> Result<Vec<u8>> {
     guard(deadline)?;
     Ok(raw)
 }
+/// Controlled read keeps the exact frozen envelope: no growing read-to-end
+/// allocation and no read past the initial payload other than one EOF probe.
+fn read_owned(
+    root: &Path,
+    reference: &str,
+    deadline: Instant,
+    state: &CreationState<'_>,
+) -> Result<Vec<u8>> {
+    state.active()?;
+    guard(deadline)?;
+    let path_bytes = root
+        .as_os_str()
+        .len()
+        .checked_add(reference.len())
+        .and_then(|n| n.checked_add(2))
+        .ok_or(Error::Budget("Evidence owned path geometry"))?;
+    // Path join and safe-open native pathname coexist with this owner.
+    let _path_hold = state.hold(
+        path_bytes
+            .checked_mul(4)
+            .and_then(|n| {
+                n.checked_add(
+                    std::mem::size_of::<std::path::PathBuf>()
+                        + std::mem::size_of::<fs::File>()
+                        + 2 * std::mem::size_of::<fs::Metadata>(),
+                )
+            })
+            .ok_or(Error::Budget("Evidence owned path workspace"))?,
+    )?;
+    state.charge_work(path_bytes)?;
+    let path = reference_path(root, reference)?;
+    read_owned_path(&path, deadline, state)
+}
+fn read_owned_path(path: &Path, deadline: Instant, state: &CreationState<'_>) -> Result<Vec<u8>> {
+    state.active()?;
+    guard(deadline)?;
+    let _path_hold = state.hold(
+        path.as_os_str()
+            .len()
+            .checked_mul(3)
+            .and_then(|n| {
+                n.checked_add(
+                    std::mem::size_of::<fs::File>() + 3 * std::mem::size_of::<fs::Metadata>(),
+                )
+            })
+            .ok_or(Error::Budget("Evidence owned selected path workspace"))?,
+    )?;
+    let mut file = safe_open::open_regular(path, CAP as u64)?;
+    let before = file_stamp(&file.metadata()?)?;
+    let count = usize::try_from(before.2).map_err(|_| Error::Budget("Evidence owned read size"))?;
+    if count > CAP {
+        return Err(Error::Budget("Evidence owned read cap"));
+    }
+    state.retain(count)?;
+    state.charge_work(
+        count
+            .checked_add(1)
+            .ok_or(Error::Budget("Evidence owned read work"))?,
+    )?;
+    let mut raw = Vec::with_capacity(count);
+    // Exact capacity is initialized before the read; every chunk checks the
+    // same original cutoff/cancel state. EOF probes cannot grow the Vec.
+    raw.resize(count, 0);
+    let mut at = 0;
+    while at < count {
+        state.active()?;
+        guard(deadline)?;
+        let end = at.checked_add(65536).unwrap_or(count).min(count);
+        let n = file.read(&mut raw[at..end])?;
+        if n == 0 {
+            return Err(Error::Invalid("Evidence source shrank during read"));
+        }
+        at += n;
+    }
+    state.active()?;
+    let mut eof = [0u8; 1];
+    if file.read(&mut eof)? != 0
+        || before != file_stamp(&file.metadata()?)?
+        || before != file_stamp(&fs::symlink_metadata(path)?)?
+    {
+        return Err(Error::Invalid("Evidence source changed during read"));
+    }
+    guard(deadline)?;
+    state.active()?;
+    Ok(raw)
+}
+
+/// Same CorpusSnapshotV1 spelling as the maintained renderer, with original
+/// state/work/visits and cooperative checks through both writer passes.
+fn rendered_owned(v: &Value, deadline: Instant, state: &CreationState<'_>) -> Result<Vec<u8>> {
+    guard(deadline)?;
+    state.with_json_encoded(v, CAP, |raw| {
+        let document = state.json(raw, CAP)?;
+        let visits = state.remaining_json_visits()?;
+        let limits = JsonLimits::new(CAP, 96, visits.min(1_000_000), 4096)
+            .map_err(|_| Error::Budget("Evidence owned JSON output"))?;
+        state.charge_work(
+            limits
+                .max_bytes
+                .checked_mul(2)
+                .and_then(|n| n.checked_add(limits.max_visits))
+                .ok_or(Error::Budget("Evidence owned canonical work"))?,
+        )?;
+        let available = state.remaining(0)?;
+        let mut check = || {
+            state.active().and_then(|_| guard(deadline)).map_err(|_| {
+                tos_foundation::FoundationError::new(
+                    tos_foundation::FoundationErrorCode::BudgetExceeded,
+                    "Evidence owned canonical cutoff",
+                )
+            })
+        };
+        let result = tos_foundation::canonical_bytes_v1_with_state_budget_and_visits_and_check(
+            &document,
+            CanonicalProfile::CorpusSnapshotV1,
+            limits,
+            available,
+            &mut check,
+        );
+        let used = result
+            .as_ref()
+            .map(|(_, used)| *used)
+            .unwrap_or(limits.max_visits);
+        state.debit_json_visits(used)?;
+        let (encoded, _) = result.map_err(|_| Error::Budget("Evidence owned canonical output"))?;
+        state.retain(encoded.capacity())?;
+        state.active()?;
+        Ok(encoded)
+    })
+}
+
 /// Routes contribute only byte identity; never retain or parse their body.
 fn route_digest(
     root: &Path,
@@ -472,8 +636,252 @@ pub fn validate_payload(root: &Path, payload: &Value, deadline: Instant) -> Resu
     guard(deadline)
 }
 
+struct EvidenceSchemaControl<'a, 'budget>(&'a CreationState<'budget>);
+impl tos_validation::SchemaProbeControl for EvidenceSchemaControl<'_, '_> {
+    fn remaining(
+        &self,
+        prospective: usize,
+    ) -> std::result::Result<usize, tos_validation::SchemaProbeError> {
+        self.0
+            .remaining(prospective)
+            .map_err(|_| tos_validation::SchemaProbeError::BudgetExceeded)
+    }
+    fn check(&self) -> std::result::Result<(), tos_validation::SchemaProbeError> {
+        self.0
+            .active()
+            .map_err(|_| tos_validation::SchemaProbeError::BudgetExceeded)
+    }
+    fn charge_work(&self, bytes: u64) -> std::result::Result<(), tos_validation::SchemaProbeError> {
+        usize::try_from(bytes)
+            .map_err(|_| tos_validation::SchemaProbeError::BudgetExceeded)
+            .and_then(|n| {
+                self.0
+                    .charge_work(n)
+                    .map_err(|_| tos_validation::SchemaProbeError::BudgetExceeded)
+            })
+    }
+    fn remaining_json_visits(
+        &self,
+    ) -> std::result::Result<usize, tos_validation::SchemaProbeError> {
+        self.0
+            .remaining_json_visits()
+            .map_err(|_| tos_validation::SchemaProbeError::BudgetExceeded)
+    }
+    fn debit_json_visits(
+        &self,
+        used: usize,
+    ) -> std::result::Result<(), tos_validation::SchemaProbeError> {
+        self.0
+            .debit_json_visits(used)
+            .map_err(|_| tos_validation::SchemaProbeError::BudgetExceeded)
+    }
+}
+
+fn validate_payload_owned(
+    root: &Path,
+    payload: &Value,
+    deadline: Instant,
+    state: &CreationState<'_>,
+) -> Result<()> {
+    state.active()?;
+    let raw = read_owned(root, SCHEMA_REF, deadline, state)?;
+    let limits = JsonLimits::new(CAP, 96, state.remaining_json_visits()?.min(1_000_000), 4096)
+        .map_err(|_| Error::Budget("Evidence controlled schema limits"))?;
+    let (schema, schema_hold) = state.serde_scoped_with_limits(&raw, limits)?;
+    let uri = string(&schema["$id"])?;
+    state.charge_work(uri.len())?;
+    let uri_hold = state.hold(
+        uri.len()
+            .checked_mul(2)
+            .and_then(|n| n.checked_add(2 * std::mem::size_of::<String>()))
+            .ok_or(Error::Budget("Evidence controlled schema URI state"))?,
+    )?;
+    let uri = uri.to_owned();
+    // Construction and validation stay in the genuine Validation owner. Its
+    // supported-schema check refuses anything outside its explicit grammar;
+    // no digest match or check-before/after stand-in issues this proof.
+    let control = EvidenceSchemaControl(state);
+    let backend = SchemaBackendProbe::new_controlled(
+        SchemaResource {
+            uri: uri.clone(),
+            raw,
+        },
+        FormatProfile::LegacyPythonObserved20260923,
+        limits,
+        &control,
+    )
+    .map_err(|error| match error {
+        tos_validation::SchemaProbeError::BudgetExceeded => {
+            Error::Budget("Evidence controlled schema construction")
+        }
+        tos_validation::SchemaProbeError::UnsupportedControlledSchema => {
+            Error::PreparedUnsupported("Evidence controlled schema keyword/shape")
+        }
+        _ => Error::Invalid("Evidence controlled schema construction"),
+    })?;
+    let backend_hold = state.hold(
+        backend
+            .retained_state_upper_bound()
+            .map_err(|_| Error::Budget("Evidence controlled schema retained state"))?,
+    )?;
+    let rendered = rendered_owned(payload, deadline, state)?;
+    if !backend
+        .is_valid_raw(&uri, &rendered, limits, &control)
+        .map_err(|error| match error {
+            tos_validation::SchemaProbeError::BudgetExceeded => {
+                Error::Budget("Evidence controlled schema evaluation")
+            }
+            tos_validation::SchemaProbeError::UnsupportedControlledSchema => {
+                Error::PreparedUnsupported("Evidence controlled schema keyword/shape")
+            }
+            _ => Error::Invalid("Evidence controlled schema evaluation"),
+        })?
+    {
+        return Err(Error::Invalid("Evidence Lens schema violation"));
+    }
+    drop(rendered);
+    drop(backend);
+    drop(backend_hold);
+    drop(schema);
+    drop(schema_hold);
+    drop(uri);
+    drop(uri_hold);
+    let scenes = array(payload, "scenes")?;
+    let mut selected = 0usize;
+    for scene in scenes {
+        state.active()?;
+        selected = selected
+            .checked_add(array(scene, "selection_ids")?.len())
+            .ok_or(Error::Budget("Evidence controlled selection count"))?;
+    }
+    let node = 11 * std::mem::size_of::<&str>() + 16 * std::mem::size_of::<usize>();
+    let _ids_hold = state.hold(
+        selected
+            .checked_mul(node)
+            .ok_or(Error::Budget("Evidence controlled selection state"))?,
+    )?;
+    let mut ids = BTreeSet::new();
+    for scene in scenes {
+        state.active()?;
+        if scene["posture"] == "contested-pre-canon" && scene["conclusion"]["can_conclude"] == true
+        {
+            return Err(Error::Invalid(
+                "contested pre-canon scenes cannot be conclusive",
+            ));
+        }
+        if scene["conclusion"]["claim_evidence_closed"] == true {
+            return Err(Error::Invalid(
+                "v1 Evidence Lens scenes must not assert claim/evidence closure",
+            ));
+        }
+        for id in array(scene, "selection_ids")? {
+            let id = string(id)?;
+            state.charge_work(id.len())?;
+            if !ids.insert(id) {
+                return Err(Error::Invalid("selection IDs must bind to one scene only"));
+            }
+        }
+    }
+    state.active()
+}
+
 /// Captures selected collections to caller-owned fresh staging, then rechecks all
 /// opened inputs before returning bytes. Never writes a source or public output.
+fn evidence_string_owned(value: &Value, state: &CreationState<'_>) -> Result<String> {
+    let literal = match value {
+        Value::Null => Some("None"),
+        Value::Bool(true) => Some("True"),
+        Value::Bool(false) => Some("False"),
+        Value::String(text) => Some(text.as_str()),
+        _ => None,
+    };
+    if let Some(text) = literal {
+        evidence_retain_strings(state, &[text], std::mem::size_of::<String>())?;
+        return Ok(text.to_owned());
+    }
+    if let Value::Number(number) = value {
+        let document = state.json(number.as_str().as_bytes(), 4096)?;
+        let limits = JsonLimits::new(
+            4096,
+            96,
+            state.remaining_json_visits()?.min(1_000_000),
+            4096,
+        )
+        .map_err(|_| Error::Budget("Evidence anchor number limits"))?;
+        return state.with_foundation_canonical_bytes(&document, limits, |raw| {
+            state.retain(raw.len())?;
+            state.charge_work(raw.len())?;
+            String::from_utf8(raw.to_vec())
+                .map_err(|_| Error::Invalid("Evidence anchor numeric UTF8"))
+        });
+    }
+    // Existing non-scalar spelling is serde's compact insertion order.
+    String::from_utf8(state.encode_json(value, CAP)?)
+        .map_err(|_| Error::Invalid("Evidence anchor UTF8"))
+}
+fn route_digest_dispatch(
+    root: &Path,
+    reference: &str,
+    capture: &PublicCapture,
+    limits: PublicCaptureLimits,
+    deadline: Instant,
+    state: Option<&CreationState<'_>>,
+) -> Result<Digest256> {
+    let _hold = if let Some(state) = state {
+        let path = root
+            .as_os_str()
+            .len()
+            .checked_add(reference.len())
+            .and_then(|n| n.checked_add(2))
+            .ok_or(Error::Budget("Evidence route path"))?;
+        state.charge_work(path)?;
+        Some(
+            state.hold(
+                path.checked_mul(4)
+                    .and_then(|n| {
+                        n.checked_add(
+                            65536
+                                + std::mem::size_of::<fs::File>()
+                                + std::mem::size_of::<std::path::PathBuf>(),
+                        )
+                    })
+                    .ok_or(Error::Budget("Evidence route workspace"))?,
+            )?,
+        )
+    } else {
+        None
+    };
+    route_digest(root, reference, capture, limits, deadline)
+}
+fn evidence_retain_strings(
+    state: &CreationState<'_>,
+    strings: &[&str],
+    containers: usize,
+) -> Result<()> {
+    let mut bytes = containers;
+    for text in strings {
+        state.charge_work(text.len())?;
+        bytes = bytes
+            .checked_add(text.len())
+            .ok_or(Error::Budget("Evidence retained string geometry"))?;
+    }
+    state.retain(bytes)
+}
+fn csv_records_dispatch<F: FnMut(Vec<String>) -> Result<()>>(
+    raw: &[u8],
+    limits: crate::knowledge_canon_source::CanonSourceLimits,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+    state: Option<&CreationState<'_>>,
+    emit: F,
+) -> Result<()> {
+    match state {
+        Some(state) => crate::knowledge_canon_source::csv_records_with_owned_state(
+            raw, limits, deadline, cancelled, state, emit,
+        ),
+        None => crate::knowledge_canon_source::csv_records(raw, limits, deadline, cancelled, emit),
+    }
+}
 fn build_checked(
     root: &Path,
     staging: &Path,
@@ -482,12 +890,32 @@ fn build_checked(
     selected: Option<&crate::d1_public_capture::PublicCaptureInputPaths>,
     cancelled: std::sync::Arc<AtomicBool>,
 ) -> Result<BuiltEvidence> {
+    build_checked_with_state(
+        root, staging, limits, deadline, deadline, selected, cancelled, None,
+    )
+}
+fn build_checked_with_state(
+    root: &Path,
+    staging: &Path,
+    limits: PublicCaptureLimits,
+    deadline: Instant,
+    owner_deadline: Instant,
+    selected: Option<&crate::d1_public_capture::PublicCaptureInputPaths>,
+    cancelled: Arc<AtomicBool>,
+    state: Option<&CreationState<'_>>,
+) -> Result<BuiltEvidence> {
     guard(deadline)?;
     if cancelled.load(std::sync::atomic::Ordering::Acquire) {
         return Err(Error::Budget("Evidence Lens cancelled"));
     }
-    let source_raw = read(root, SOURCE_REF, deadline)?;
-    let source = decode(&source_raw)?;
+    let source_raw = match state {
+        Some(state) => read_owned(root, SOURCE_REF, deadline, state)?,
+        None => read(root, SOURCE_REF, deadline)?,
+    };
+    let source = match state {
+        Some(state) => state.serde_owned(&source_raw, CAP)?,
+        None => decode(&source_raw)?,
+    };
     guard(deadline)?;
     let scenes = array(&source, "scenes")?;
     let mut requested: BTreeMap<(String, String), BTreeSet<String>> = BTreeMap::new();
@@ -499,11 +927,28 @@ fn build_checked(
             if !selection.is_object() {
                 return Err(Error::Invalid("Evidence Lens selections must be objects"));
             }
+            if let Some(state) = state {
+                let mode = string(&selection["mode"])?;
+                let view = string(&selection["view_id"])?;
+                evidence_retain_strings(
+                    state,
+                    &[mode, view],
+                    11 * std::mem::size_of::<((String, String), BTreeSet<String>)>()
+                        + 16 * std::mem::size_of::<usize>(),
+                )?;
+            }
             let key = (
                 string(&selection["mode"])?.to_owned(),
                 string(&selection["view_id"])?.to_owned(),
             );
             for id in array(selection, "item_ids")? {
+                if let Some(state) = state {
+                    evidence_retain_strings(
+                        state,
+                        &[&key.0, &key.1, string(id)?],
+                        11 * std::mem::size_of::<String>() + 16 * std::mem::size_of::<usize>(),
+                    )?;
+                }
                 requested
                     .entry(key.clone())
                     .or_default()
@@ -513,6 +958,14 @@ fn build_checked(
         }
     }
     let capture = match selected {
+        Some(paths) if state.is_some() => PublicCapture::create_evidence_selected_with_owned_state(
+            root,
+            paths,
+            staging,
+            limits,
+            owner_deadline,
+            state.unwrap(),
+        )?,
         Some(paths) => PublicCapture::create_evidence_selected(
             root,
             paths,
@@ -521,6 +974,11 @@ fn build_checked(
             deadline,
             Arc::clone(&cancelled),
         )?,
+        None if state.is_some() => {
+            return Err(Error::Invalid(
+                "owned Evidence requires actual selected paths",
+            ));
+        }
         None => PublicCapture::create_evidence(root, staging, limits, deadline)?,
     };
     let mut found: BTreeMap<(String, String), BTreeSet<String>> = BTreeMap::new();
@@ -528,9 +986,23 @@ fn build_checked(
         if cancelled.load(std::sync::atomic::Ordering::Acquire) {
             return Err(Error::Budget("Evidence Lens cancelled"));
         }
-        let view = decode(raw)?;
+        let (view, _view_hold) = match state {
+            Some(state) => {
+                let limits = JsonLimits::new(CAP, 96, 1_000_000, 4096)
+                    .map_err(|_| Error::Budget("Evidence row JSON limits"))?;
+                let (v, h) = state.serde_scoped_with_limits(raw, limits)?;
+                (v, Some(h))
+            }
+            None => (decode(raw)?, None),
+        };
         let Some(id) = view["view_id"].as_str() else {
             return Ok(());
+        };
+        let _key_hold = if let Some(state) = state {
+            state.charge_work(id.len() + 10)?;
+            Some(state.hold(id.len() + 10 + 2 * std::mem::size_of::<String>())?)
+        } else {
+            None
         };
         let key = ("philosophy".into(), id.to_owned());
         let Some(wanted) = requested.get(&key) else {
@@ -542,6 +1014,14 @@ fn build_checked(
             for item in array(&view, field)? {
                 if let Some(id) = item.as_str() {
                     if wanted.contains(id) {
+                        if let Some(state) = state {
+                            evidence_retain_strings(
+                                state,
+                                &[id],
+                                11 * std::mem::size_of::<String>()
+                                    + 16 * std::mem::size_of::<usize>(),
+                            )?;
+                        }
                         matched.insert(id.to_owned());
                     }
                 }
@@ -557,14 +1037,38 @@ fn build_checked(
                 let id = identity.as_str();
                 if let Some(id) = id {
                     if wanted.contains(id) {
+                        if let Some(state) = state {
+                            evidence_retain_strings(
+                                state,
+                                &[id],
+                                11 * std::mem::size_of::<String>()
+                                    + 16 * std::mem::size_of::<usize>(),
+                            )?;
+                        }
                         matched.insert(id.to_owned());
                     }
                 }
             }
         }
+        if let Some(state) = state {
+            evidence_retain_strings(
+                state,
+                &[&key.0, &key.1],
+                11 * std::mem::size_of::<((String, String), BTreeSet<String>)>()
+                    + 16 * std::mem::size_of::<usize>(),
+            )?;
+        }
         found.insert(key, matched);
         Ok(())
     })?;
+    if let Some(state) = state {
+        evidence_retain_strings(
+            state,
+            &["corpus", "route-graph", "corpus", "route-graph"],
+            11 * std::mem::size_of::<((String, String), BTreeSet<String>)>()
+                + 16 * std::mem::size_of::<usize>(),
+        )?;
+    }
     let corpus_key = ("corpus".into(), "route-graph".into());
     found.insert(corpus_key.clone(), BTreeSet::new());
     for collection in ["nodes", "relation_edges"] {
@@ -572,7 +1076,15 @@ fn build_checked(
             if cancelled.load(std::sync::atomic::Ordering::Acquire) {
                 return Err(Error::Budget("Evidence Lens cancelled"));
             }
-            let row = decode(raw)?;
+            let (row, _row_hold) = match state {
+                Some(state) => {
+                    let limits = JsonLimits::new(CAP, 96, 1_000_000, 4096)
+                        .map_err(|_| Error::Budget("Evidence row JSON limits"))?;
+                    let (v, h) = state.serde_scoped_with_limits(raw, limits)?;
+                    (v, Some(h))
+                }
+                None => (decode(raw)?, None),
+            };
             if collection == "relation_edges" && row["owner_branch"] != "ToS/canon" {
                 return Ok(());
             }
@@ -583,6 +1095,13 @@ fn build_checked(
             };
             if let (Some(id), Some(wanted)) = (row[field].as_str(), requested.get(&corpus_key)) {
                 if wanted.contains(id) {
+                    if let Some(state) = state {
+                        evidence_retain_strings(
+                            state,
+                            &[id],
+                            11 * std::mem::size_of::<String>() + 16 * std::mem::size_of::<usize>(),
+                        )?;
+                    }
                     found.get_mut(&corpus_key).unwrap().insert(id.to_owned());
                 }
             }
@@ -590,9 +1109,15 @@ fn build_checked(
         })?;
     }
     for (key, wanted) in &requested {
-        let ids = found
-            .get(key)
-            .ok_or_else(|| err(format!("unknown Evidence Lens view: {}/{}", key.0, key.1)))?;
+        let ids = found.get(key).ok_or_else(|| match state {
+            Some(_) => Error::Invalid("unknown Evidence Lens view"),
+            None => err(format!("unknown Evidence Lens view: {}/{}", key.0, key.1)),
+        })?;
+        if state.is_some() && wanted.difference(ids).next().is_some() {
+            return Err(Error::Invalid(
+                "Evidence Lens selection IDs absent from requested view",
+            ));
+        }
         let missing: Vec<_> = wanted.difference(ids).collect();
         if !missing.is_empty() {
             return Err(err(format!(
@@ -600,7 +1125,10 @@ fn build_checked(
             )));
         }
     }
-    let canon_raw = read(root, CANON_REF, deadline)?;
+    let canon_raw = match state {
+        Some(state) => read_owned(root, CANON_REF, deadline, state)?,
+        None => read(root, CANON_REF, deadline)?,
+    };
     let mut header = Vec::new();
     let mut anchors = BTreeMap::new();
     let l = crate::knowledge_canon_source::CanonSourceLimits {
@@ -619,63 +1147,199 @@ fn build_checked(
         max_page_bytes: 1,
         max_work_bytes: limits.max_work_bytes,
     };
-    crate::knowledge_canon_source::csv_records(
+    csv_records_dispatch(
         &canon_raw,
         l,
         deadline,
         cancelled.as_ref(),
+        state,
         |cells| {
             if cells.is_empty() {
                 return Ok(());
             }
             if header.is_empty() {
+                if let Some(state) = state {
+                    let bytes = cells.iter().try_fold(
+                        cells.capacity() * std::mem::size_of::<String>(),
+                        |n, v| {
+                            n.checked_add(v.capacity())
+                                .ok_or(Error::Budget("Evidence CSV header retained state"))
+                        },
+                    )?;
+                    state.retain(bytes)?;
+                }
                 header = cells;
                 return Ok(());
+            }
+            if let Some(state) = state {
+                state.retain(cells.iter().try_fold(0usize, |n, c| {
+                    n.checked_add(c.capacity() - c.len())
+                        .ok_or(Error::Budget("Evidence moved CSV cell capacity"))
+                })?)?;
+                for (key, cell) in header.iter().zip(&cells) {
+                    evidence_retain_strings(
+                        state,
+                        &[key, cell],
+                        11 * std::mem::size_of::<(String, String)>()
+                            + 16 * std::mem::size_of::<usize>(),
+                    )?;
+                }
             }
             let row: BTreeMap<_, _> = header.iter().cloned().zip(cells).collect();
             let id = row
                 .get("edge_id")
                 .ok_or(Error::Invalid("canonical CSV edge_id header"))?;
+            if let Some(state) = state {
+                evidence_retain_strings(
+                    state,
+                    &[id],
+                    11 * std::mem::size_of::<(String, BTreeMap<String, String>)>()
+                        + 16 * std::mem::size_of::<usize>(),
+                )?;
+            }
             anchors.insert(id.clone(), row);
             Ok(())
         },
     )?;
+    if let Some(state) = state {
+        evidence_retain_strings(
+            state,
+            &[SOURCE_REF, CANON_REF, SCHEMA_REF],
+            3 * (11 * std::mem::size_of::<(String, Digest256)>()
+                + 16 * std::mem::size_of::<usize>()),
+        )?;
+    }
     let mut opened = BTreeMap::from([
         (SOURCE_REF.to_owned(), Digest256::of_bytes(&source_raw)),
         (CANON_REF.to_owned(), Digest256::of_bytes(&canon_raw)),
         (
             SCHEMA_REF.to_owned(),
-            Digest256::of_bytes(&read(root, SCHEMA_REF, deadline)?),
+            Digest256::of_bytes(&match state {
+                Some(state) => read_owned(root, SCHEMA_REF, deadline, state)?,
+                None => read(root, SCHEMA_REF, deadline)?,
+            }),
         ),
     ]);
     capture.charge_work((source_raw.len() + canon_raw.len()) as u64)?;
-    let mut output = Vec::new();
+    if let Some(state) = state {
+        state.retain(
+            scenes
+                .len()
+                .checked_mul(std::mem::size_of::<Value>())
+                .ok_or(Error::Budget("Evidence scene slots"))?,
+        )?;
+    }
+    let mut output = if state.is_some() {
+        Vec::with_capacity(scenes.len())
+    } else {
+        Vec::new()
+    };
     for raw_scene in scenes {
         if cancelled.load(std::sync::atomic::Ordering::Acquire) {
             return Err(Error::Budget("Evidence Lens cancelled"));
         }
-        let mut scene = raw_scene.as_object().unwrap().clone();
+        let mut scene = if let Some(state) = state {
+            match state.clone_value(raw_scene)? {
+                Value::Object(map) => map,
+                _ => return Err(Error::Invalid("Evidence Lens scenes must be objects")),
+            }
+        } else {
+            raw_scene.as_object().unwrap().clone()
+        };
+        if let Some(state) = state {
+            state.retain(
+                crate::knowledge_normalization::serde_object_slots_upper(scene.len() + 4)?
+                    + "selection_idssource_anchorsroutessource_refs".len(),
+            )?;
+        }
         scene.remove("anchor_edge_ids");
-        let mut selection_ids = Vec::new();
+        let selections = array(raw_scene, "selections")?;
+        let selection_count = selections.iter().try_fold(0usize, |n, v| {
+            n.checked_add(array(v, "item_ids")?.len())
+                .ok_or(Error::Budget("Evidence selection slots"))
+        })?;
+        if let Some(state) = state {
+            state.retain(
+                selection_count
+                    .checked_mul(std::mem::size_of::<Value>())
+                    .ok_or(Error::Budget("Evidence selection vector"))?,
+            )?;
+        }
+        let mut selection_ids = if state.is_some() {
+            Vec::with_capacity(selection_count)
+        } else {
+            Vec::new()
+        };
         let mut seen = BTreeSet::new();
         for selection in array(raw_scene, "selections")? {
             for id in array(selection, "item_ids")? {
+                if let Some(state) = state {
+                    evidence_retain_strings(
+                        state,
+                        &[string(id)?],
+                        11 * std::mem::size_of::<String>() + 16 * std::mem::size_of::<usize>(),
+                    )?;
+                }
                 if seen.insert(string(id)?.to_owned()) {
-                    selection_ids.push(id.clone());
+                    selection_ids.push(match state {
+                        Some(state) => state.clone_value(id)?,
+                        None => id.clone(),
+                    });
                 }
             }
         }
-        let mut routes = Vec::new();
+        let raw_routes = array(raw_scene, "routes")?;
+        if let Some(state) = state {
+            state.retain(
+                raw_routes
+                    .len()
+                    .checked_mul(std::mem::size_of::<Value>())
+                    .ok_or(Error::Budget("Evidence route slots"))?,
+            )?;
+            evidence_retain_strings(
+                state,
+                &[SOURCE_REF],
+                11 * std::mem::size_of::<String>() + 16 * std::mem::size_of::<usize>(),
+            )?;
+        }
+        let mut routes = if state.is_some() {
+            Vec::with_capacity(raw_routes.len())
+        } else {
+            Vec::new()
+        };
         let mut refs = BTreeSet::from([SOURCE_REF.to_owned()]);
         for raw_route in array(raw_scene, "routes")? {
-            let mut route = raw_route
-                .as_object()
-                .ok_or(Error::Invalid("Evidence Lens routes must be objects"))?
-                .clone();
+            let mut route = if let Some(state) = state {
+                match state.clone_value(raw_route)? {
+                    Value::Object(map) => map,
+                    _ => return Err(Error::Invalid("Evidence Lens routes must be objects")),
+                }
+            } else {
+                raw_route
+                    .as_object()
+                    .ok_or(Error::Invalid("Evidence Lens routes must be objects"))?
+                    .clone()
+            };
+            if let Some(state) = state {
+                state.retain(
+                    crate::knowledge_normalization::serde_object_slots_upper(route.len() + 2)?
+                        + "existssha256".len()
+                        + 64,
+                )?;
+            }
             let reference = string(&raw_route["ref"])?;
-            let digest = route_digest(root, reference, &capture, limits, deadline)?;
+            let digest = route_digest_dispatch(root, reference, &capture, limits, deadline, state)?;
             route.insert("exists".into(), Value::Bool(true));
             route.insert("sha256".into(), Value::String(digest.to_hex()));
+            if let Some(state) = state {
+                evidence_retain_strings(
+                    state,
+                    &[reference, reference],
+                    11 * std::mem::size_of::<(String, Digest256)>()
+                        + 11 * std::mem::size_of::<String>()
+                        + 32 * std::mem::size_of::<usize>(),
+                )?;
+            }
             if let Some(old) = opened.insert(reference.to_owned(), digest) {
                 if old != digest {
                     return Err(Error::Invalid("Evidence Lens source changed during build"));
@@ -684,12 +1348,65 @@ fn build_checked(
             refs.insert(reference.to_owned());
             routes.push(Value::Object(route));
         }
-        let mut source_anchors = Vec::new();
+        let anchor_ids = array(raw_scene, "anchor_edge_ids")?;
+        if let Some(state) = state {
+            state.retain(
+                anchor_ids
+                    .len()
+                    .checked_mul(std::mem::size_of::<Value>())
+                    .ok_or(Error::Budget("Evidence anchor slots"))?,
+            )?;
+        }
+        let mut source_anchors = if state.is_some() {
+            Vec::with_capacity(anchor_ids.len())
+        } else {
+            Vec::new()
+        };
         for id in array(raw_scene, "anchor_edge_ids")? {
-            let edge = crate::source_philosophy_support::string(id);
-            let row = anchors
-                .get(&edge)
-                .ok_or_else(|| err(format!("unknown canonical anchor edge: {edge}")))?;
+            let edge = match state {
+                Some(state) => evidence_string_owned(id, state)?,
+                None => crate::source_philosophy_support::string(id),
+            };
+            let row = anchors.get(&edge).ok_or_else(|| match state {
+                Some(_) => Error::Invalid("unknown canonical anchor edge"),
+                None => err(format!("unknown canonical anchor edge: {edge}")),
+            })?;
+            if let Some(state) = state {
+                let segment_raw = row
+                    .get("anchor_segment_ids")
+                    .map(String::as_str)
+                    .unwrap_or("");
+                state.charge_work(segment_raw.len())?;
+                let count = segment_raw.split('|').filter(|v| !v.is_empty()).count();
+                let pointer_capacity = if count == 0 {
+                    0
+                } else {
+                    count
+                        .checked_next_power_of_two()
+                        .unwrap_or(usize::MAX)
+                        .max(4)
+                };
+                state.retain(
+                    pointer_capacity
+                        .checked_mul(std::mem::size_of::<&str>())
+                        .and_then(|n| n.checked_add(count * std::mem::size_of::<Value>()))
+                        .and_then(|n| {
+                            n.checked_add(
+                                crate::knowledge_normalization::serde_object_slots_upper(4).ok()?,
+                            )
+                        })
+                        .and_then(|n| {
+                            n.checked_add(
+                                "edge_idanchor_segment_idswitness_scoperelation_ref".len()
+                                    + edge.len()
+                                    + segment_raw.len()
+                                    + CANON_REF.len()
+                                    + row.get("witness_scope").map(|v| v.len()).unwrap_or(0),
+                            )
+                        })
+                        .ok_or(Error::Budget("Evidence segment geometry"))?,
+                )?;
+            }
             let segments: Vec<_> = row
                 .get("anchor_segment_ids")
                 .map(String::as_str)
@@ -707,16 +1424,44 @@ fn build_checked(
         scene.insert("selection_ids".into(), Value::Array(selection_ids));
         scene.insert("source_anchors".into(), Value::Array(source_anchors));
         scene.insert("routes".into(), Value::Array(routes));
+        if let Some(state) = state {
+            state.retain(
+                refs.len()
+                    .checked_mul(std::mem::size_of::<Value>())
+                    .ok_or(Error::Budget("Evidence source ref slots"))?,
+            )?;
+            for reference in &refs {
+                evidence_retain_strings(state, &[reference], 0)?;
+            }
+        }
         scene.insert("source_refs".into(), value!(refs));
         output.push(Value::Object(scene));
     }
-    let payload = value!({"schema_version":"tos_epistemic_evidence_projection_v1","owner_repo":"Tree-of-Sophia","surface_kind":"derived_public_evidence_navigation","source_definition_ref":SOURCE_REF,"source_definition_sha256":opened[SOURCE_REF].to_hex(),"scenes":output,"authority_boundary":{"is_source":false,"is_canon":false,"is_semantic_truth":false,"is_rights_clearance":false,"note":"This projection joins explicit owner routes for inspection. The referenced source, review, canon, and rights surfaces retain authority."}});
-    validate_payload(root, &payload, deadline)?;
+    if let Some(state) = state {
+        state.retain(crate::knowledge_normalization::serde_object_slots_upper(7)?
+        +crate::knowledge_normalization::serde_object_slots_upper(5)?
+        +"schema_versionowner_reposurface_kindsource_definition_refsource_definition_sha256scenesauthority_boundary".len()
+        +"tos_epistemic_evidence_projection_v1Tree-of-Sophiaderived_public_evidence_navigation".len()+SOURCE_REF.len()+128
+        +"is_sourceis_canonis_semantic_truthis_rights_clearancenote".len()
+        +"This projection joins explicit owner routes for inspection. The referenced source, review, canon, and rights surfaces retain authority.".len())?;
+    }
+    let mut payload = value!({"schema_version":"tos_epistemic_evidence_projection_v1","owner_repo":"Tree-of-Sophia","surface_kind":"derived_public_evidence_navigation","source_definition_ref":SOURCE_REF,"source_definition_sha256":opened[SOURCE_REF].to_hex(),"authority_boundary":{"is_source":false,"is_canon":false,"is_semantic_truth":false,"is_rights_clearance":false,"note":"This projection joins explicit owner routes for inspection. The referenced source, review, canon, and rights surfaces retain authority."}});
+    payload
+        .as_object_mut()
+        .unwrap()
+        .insert("scenes".into(), Value::Array(output));
+    match state {
+        Some(state) => validate_payload_owned(root, &payload, deadline, state)?,
+        None => validate_payload(root, &payload, deadline)?,
+    };
     capture.verify_inputs(limits)?;
-    let raw = rendered(&payload, deadline)?;
+    let raw = match state {
+        Some(state) => rendered_owned(&payload, deadline, state)?,
+        None => rendered(&payload, deadline)?,
+    };
     capture.verify_inputs(limits)?;
     for (reference, digest) in &opened {
-        if route_digest(root, reference, &capture, limits, deadline)? != *digest {
+        if route_digest_dispatch(root, reference, &capture, limits, deadline, state)? != *digest {
             return Err(Error::Invalid("Evidence Lens source changed during build"));
         }
     }
@@ -724,9 +1469,18 @@ fn build_checked(
     if cancelled.load(std::sync::atomic::Ordering::Acquire) {
         return Err(Error::Budget("Evidence Lens cancelled"));
     }
-    let projection_path = selected
-        .map(|paths| paths.evidence_projection_path.clone())
-        .unwrap_or(reference_path(root, PROJECTION_REF)?);
+    let projection_path = match selected {
+        Some(paths) => {
+            if let Some(state) = state {
+                state.retain(
+                    paths.evidence_projection_path.as_os_str().len()
+                        + std::mem::size_of::<std::path::PathBuf>(),
+                )?;
+            }
+            paths.evidence_projection_path.clone()
+        }
+        None => reference_path(root, PROJECTION_REF)?,
+    };
     Ok(BuiltEvidence {
         raw,
         capture,
@@ -879,6 +1633,116 @@ pub(crate) fn check_completed(
             "main source capture changed during Evidence Lens check",
         ));
     }
+    Ok(holder)
+}
+
+/// Same complete Evidence owner, borrowing the already-held Whole ledger.
+/// A construction cutoff does not shorten the completed holder's lifetime.
+pub(crate) fn check_completed_owned(
+    main_capture: &PublicCapture,
+    staging: &Path,
+    limits: PublicCaptureLimits,
+    owner_deadline: Instant,
+    state: &CreationState<'_>,
+) -> Result<CompletedEvidenceProjection> {
+    if owner_deadline != main_capture.deadline() {
+        return Err(Error::Invalid("Evidence owner lifetime changed"));
+    }
+    let deadline = state.operation_deadline();
+    if main_capture.max_work_bytes() > limits.max_work_bytes
+        || state.sql_vm_limit() > limits.max_sql_vm_steps
+    {
+        return Err(Error::Budget("Evidence original phase intersection"));
+    }
+    let mut limits = limits;
+    limits.max_work_bytes = main_capture.max_work_bytes();
+    limits.max_sql_vm_steps = state.sql_vm_limit();
+    state.active()?;
+    main_capture.verify_captured_inputs()?;
+    state.retain(
+        main_capture.root().as_os_str().len() + std::mem::size_of::<std::path::PathBuf>(),
+    )?;
+    let main_root = main_capture.root().to_owned();
+    let main_capture_identity = main_capture.capture_identity()?;
+    state.retain(2 * 64 + 2 * std::mem::size_of::<String>())?;
+    let source_revision = main_capture.core_source_revision()?;
+    let members = main_capture.retained_input_members_owned(state)?;
+    state.retain(
+        members
+            .len()
+            .checked_mul(
+                11 * std::mem::size_of::<(String, (Digest256, u64))>()
+                    + 16 * std::mem::size_of::<usize>(),
+            )
+            .ok_or(Error::Budget("Evidence main membership nodes"))?,
+    )?;
+    let mut main_members = BTreeMap::new();
+    for (path, digest, bytes) in members {
+        state.charge_work(path.len() + 40)?;
+        main_members.insert(path, (digest, bytes));
+    }
+    let selected = main_capture.runtime_input_paths_owned(state)?;
+    let built = build_checked_with_state(
+        &main_root,
+        staging,
+        limits,
+        deadline,
+        owner_deadline,
+        Some(&selected),
+        main_capture.cancellation_handle(),
+        Some(state),
+    )?;
+    for (path, digest, bytes) in built.capture.retained_input_members_owned(state)? {
+        state.charge_work(path.len() + 40)?;
+        if main_members.get(&path) != Some(&(digest, bytes)) {
+            return Err(Error::Invalid(
+                "Evidence Lens source differs from completed graph capture",
+            ));
+        }
+    }
+    let (raw, projection_stamp, projection_sha256) =
+        verify_projection_file_owned(&built.capture, &built.projection_path, deadline, state)?;
+    if raw != built.raw {
+        return Err(Error::Invalid(
+            "Evidence Lens checked projection is out of date",
+        ));
+    }
+    built.capture.verify_inputs(limits)?;
+    for (reference, digest) in &built.opened {
+        if route_digest_dispatch(
+            &main_root,
+            reference,
+            &built.capture,
+            limits,
+            deadline,
+            Some(state),
+        )? != *digest
+        {
+            return Err(Error::Invalid("Evidence Lens checked input changed"));
+        }
+    }
+    state
+        .retain(main_root.as_os_str().len() + std::mem::size_of::<CompletedEvidenceProjection>())?;
+    let holder = CompletedEvidenceProjection {
+        root: main_root.clone(),
+        main_binding: Some((main_root, main_capture_identity, source_revision.clone())),
+        source_revision,
+        capture: built.capture,
+        limits,
+        deadline: owner_deadline,
+        opened: OpenedMembership::Build(built.opened),
+        projection_stamp,
+        projection_sha256,
+        projection_path: built.projection_path,
+        raw,
+    };
+    main_capture.verify_captured_inputs()?;
+    if main_capture.capture_identity()? != main_capture_identity {
+        return Err(Error::Invalid(
+            "main source capture changed during Evidence Lens check",
+        ));
+    }
+    state.active()?;
     Ok(holder)
 }
 

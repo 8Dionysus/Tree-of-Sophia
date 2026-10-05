@@ -12,7 +12,13 @@ use std::{
     collections::{BTreeMap, BTreeSet},
     fs,
     io::{Read, Seek, SeekFrom, Write},
-    os::{fd::AsRawFd, unix::{ffi::OsStrExt, fs::{MetadataExt, OpenOptionsExt, PermissionsExt}}},
+    os::{
+        fd::AsRawFd,
+        unix::{
+            ffi::OsStrExt,
+            fs::{MetadataExt, OpenOptionsExt, PermissionsExt},
+        },
+    },
     path::{Path, PathBuf},
     rc::Rc,
     sync::{
@@ -550,7 +556,7 @@ ALTER TABLE knowledge_relations ADD COLUMN source_packet_sha256 BLOB CHECK((payl
 "#;
 
 pub const KNOWLEDGE_CARRIER_ONCE_MODEL_ABI: &str =
-    "tos_knowledge_read_model_v5_postings_v1_carrier_once_v1";
+    tos_foundation::KNOWLEDGE_MODEL_ABI_V5_POSTINGS_V1_CARRIER_ONCE_V1;
 
 /// An exact byte reference issued by the retaining Stage; not source authority.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -713,8 +719,9 @@ struct WritePageCharge {
 }
 
 impl<'a> KnowledgeStage<'a> {
-    pub(crate) fn owned_creation_state(&self)
-        -> Option<&'a crate::d1_public_capture::CreationState<'a>> {
+    pub(crate) fn owned_creation_state(
+        &self,
+    ) -> Option<&'a crate::d1_public_capture::CreationState<'a>> {
         self.controlled.as_ref().map(|budget| budget.creation_state)
     }
 
@@ -856,19 +863,27 @@ impl<'a> KnowledgeStage<'a> {
         self.registrations.contains_key(source_graph)
     }
 
-    fn registered_with_owned_state(&self, source_graph: &str, collection: &str,
+    fn registered_with_owned_state(
+        &self,
+        source_graph: &str,
+        collection: &str,
         state: &crate::d1_public_capture::CreationState<'_>,
     ) -> Result<bool> {
         let equal = |left: &str, right: &str| -> Result<bool> {
             state.active()?;
-            state.charge_work(left.len().checked_add(right.len())
-                .ok_or(Error::Budget("owned input registration comparison work"))?)?;
+            state.charge_work(
+                left.len()
+                    .checked_add(right.len())
+                    .ok_or(Error::Budget("owned input registration comparison work"))?,
+            )?;
             Ok(left == right)
         };
         state.active()?;
         if matches!(&self.receipt, StageInputReceipt::Candidate(_)) {
             for entry in self.receipt.collections() {
-                if equal(&entry.source_graph, source_graph)? && equal(&entry.collection, collection)? {
+                if equal(&entry.source_graph, source_graph)?
+                    && equal(&entry.collection, collection)?
+                {
                     return Ok(true);
                 }
             }
@@ -876,7 +891,9 @@ impl<'a> KnowledgeStage<'a> {
             for (graph, collections) in &self.registrations {
                 if equal(graph, source_graph)? {
                     for entry in collections {
-                        if equal(entry, collection)? { return Ok(true); }
+                        if equal(entry, collection)? {
+                            return Ok(true);
+                        }
                     }
                     return Ok(false);
                 }
@@ -1176,28 +1193,53 @@ impl<'a> KnowledgeStage<'a> {
     }
 
     pub(crate) fn create_captured_native_snapshot_owned(
-        candidate: &Path, limits: StageLimits, receipt: ExactInputReceipt,
-        owner: &'a dyn StageOwner, isolation: &'a dyn StageIsolation,
-        vm_used: Arc<AtomicU64>, work_used: Arc<AtomicU64>, cancelled: Arc<AtomicBool>,
-        max_work_bytes: u64, deadline: Instant,
+        candidate: &Path,
+        limits: StageLimits,
+        receipt: ExactInputReceipt,
+        owner: &'a dyn StageOwner,
+        isolation: &'a dyn StageIsolation,
+        vm_used: Arc<AtomicU64>,
+        work_used: Arc<AtomicU64>,
+        cancelled: Arc<AtomicBool>,
+        max_work_bytes: u64,
+        deadline: Instant,
         remaining_after_retained: &'a dyn Fn(usize) -> Result<usize>,
-        heap: &'a Arc<sqlite_budget::DedicatedSessionSqliteHeap>, original_sql_limit: u64,
+        heap: &'a Arc<sqlite_budget::DedicatedSessionSqliteHeap>,
+        original_sql_limit: u64,
         creation_state: &'a crate::d1_public_capture::CreationState<'a>,
     ) -> Result<Self> {
         if receipt.binding.owner_profile != "tos-native-projection-snapshot-v1"
-            || original_sql_limit == 0 {
+            || original_sql_limit == 0
+        {
             return Err(Error::Invalid("owned native snapshot stage profile/VM"));
         }
-        let budget = NativeStageOwnedBudget { remaining_after_retained, heap, creation_state,
+        let budget = NativeStageOwnedBudget {
+            remaining_after_retained,
+            heap,
+            creation_state,
             cancelled: Arc::clone(&cancelled),
             // Conservative original phase/session intersection; this absolute
             // shared ceiling does not restart when the Stage begins.
             original_sql_limit: original_sql_limit.min(limits.sqlite.max_sql_vm_steps),
-            retained_rust_bytes: 0 };
-        Self::create_inner_owned(candidate, limits, StageInputReceipt::Projection(receipt),
-            StageInputOwner::Projection(owner), Some(isolation), Some(vm_used),
-            Some((PublicWorkLedger::Shared { used: work_used, cancelled }, max_work_bytes)),
-            Some(deadline), Some(budget))
+            retained_rust_bytes: 0,
+        };
+        Self::create_inner_owned(
+            candidate,
+            limits,
+            StageInputReceipt::Projection(receipt),
+            StageInputOwner::Projection(owner),
+            Some(isolation),
+            Some(vm_used),
+            Some((
+                PublicWorkLedger::Shared {
+                    used: work_used,
+                    cancelled,
+                },
+                max_work_bytes,
+            )),
+            Some(deadline),
+            Some(budget),
+        )
     }
 
     /// Disposable public-output staging. Its local inode/lease and SQLite
@@ -1242,8 +1284,17 @@ impl<'a> KnowledgeStage<'a> {
         public_work: Option<(PublicWorkLedger, u64)>,
         public_deadline: Option<Instant>,
     ) -> Result<Self> {
-        Self::create_inner_owned(candidate, limits, receipt, owner, isolation,
-            shared_vm_used, public_work, public_deadline, None)
+        Self::create_inner_owned(
+            candidate,
+            limits,
+            receipt,
+            owner,
+            isolation,
+            shared_vm_used,
+            public_work,
+            public_deadline,
+            None,
+        )
     }
 
     fn create_inner_owned(
@@ -1268,25 +1319,38 @@ impl<'a> KnowledgeStage<'a> {
             }
             let mut strings = 0usize;
             for entry in receipt.collections() {
-                if entry.source_graph.len() > MAX_NAME_BYTES || entry.collection.len() > MAX_NAME_BYTES {
+                if entry.source_graph.len() > MAX_NAME_BYTES
+                    || entry.collection.len() > MAX_NAME_BYTES
+                {
                     return Err(Error::Budget("owned native stage registration field"));
                 }
-                strings = strings.checked_add(entry.source_graph.len())
+                strings = strings
+                    .checked_add(entry.source_graph.len())
                     .and_then(|n| n.checked_add(entry.collection.len()))
                     .ok_or(Error::Budget("owned native stage registration strings"))?;
             }
             // BTree nodes hold 11 key/value slots and 12 child edges. Using one
             // entire node per entry also covers leaf/internal/minimum occupancy.
-            let map_node = 11 * std::mem::size_of::<(String, BTreeSet<String>)>() + 16 * std::mem::size_of::<usize>();
+            let map_node = 11 * std::mem::size_of::<(String, BTreeSet<String>)>()
+                + 16 * std::mem::size_of::<usize>();
             let set_node = 11 * std::mem::size_of::<String>() + 16 * std::mem::size_of::<usize>();
-            let seen_node = 11 * std::mem::size_of::<(&String, &String)>() + 16 * std::mem::size_of::<usize>();
-            let registrations = receipt.collections().len().checked_mul(map_node + set_node + seen_node)
+            let seen_node =
+                11 * std::mem::size_of::<(&String, &String)>() + 16 * std::mem::size_of::<usize>();
+            let registrations = receipt
+                .collections()
+                .len()
+                .checked_mul(map_node + set_node + seen_node)
                 .and_then(|n| n.checked_add(strings));
             budget.retained_rust_bytes = registrations
                 .and_then(|n| n.checked_add(16 * (path_bytes + 64)))
-                .and_then(|n| n.checked_add(std::mem::size_of::<Self>() + 2 * std::mem::size_of::<Connection>()
-                     + 6 * std::mem::size_of::<usize>()
-                    + sqlite_budget::SharedVmWindow::callback_state_upper_bound()))
+                .and_then(|n| {
+                    n.checked_add(
+                        std::mem::size_of::<Self>()
+                            + 2 * std::mem::size_of::<Connection>()
+                            + 6 * std::mem::size_of::<usize>()
+                            + sqlite_budget::SharedVmWindow::callback_state_upper_bound(),
+                    )
+                })
                 .ok_or(Error::Budget("owned native stage Rust forecast"))?;
             budget.creation_state.retain(budget.retained_rust_bytes)?;
             budget.admit(0)?;
@@ -1403,22 +1467,47 @@ impl<'a> KnowledgeStage<'a> {
         let window = if let Some(budget) = &stage.controlled {
             budget.admit(0)?;
             Some(sqlite_budget::SharedVmWindow::reserve(
-                Arc::clone(shared_vm_used.as_ref().ok_or(Error::Invalid("owned stage VM counter absent"))?),
-                budget.original_sql_limit)?)
-        } else { None };
+                Arc::clone(
+                    shared_vm_used
+                        .as_ref()
+                        .ok_or(Error::Invalid("owned stage VM counter absent"))?,
+                ),
+                budget.original_sql_limit,
+            )?)
+        } else {
+            None
+        };
         let db = Connection::open(candidate)?;
         if let Some(window) = window {
-            window.install(&db, public_deadline.ok_or(Error::Invalid("owned stage deadline absent"))?,
-                Arc::clone(&stage.controlled.as_ref().expect("owned stage budget").cancelled));
+            window.install(
+                &db,
+                public_deadline.ok_or(Error::Invalid("owned stage deadline absent"))?,
+                Arc::clone(
+                    &stage
+                        .controlled
+                        .as_ref()
+                        .expect("owned stage budget")
+                        .cancelled,
+                ),
+            );
         }
         stage.db = Some(db);
         stage.vm_used = Some(if let Some(used) = shared_vm_used {
             if stage.controlled.is_some() {
-                sqlite_budget::configure_prepaid_limits_with_owned_state(stage.db(), limits.sqlite,
-                    stage.owned_creation_state().ok_or(Error::Invalid("owned stage state absent"))?)?;
+                sqlite_budget::configure_prepaid_limits_with_owned_state(
+                    stage.db(),
+                    limits.sqlite,
+                    stage
+                        .owned_creation_state()
+                        .ok_or(Error::Invalid("owned stage state absent"))?,
+                )?;
             } else {
-                sqlite_budget::configure_with_counter_until(stage.db(), limits.sqlite,
-                    Arc::clone(&used), public_deadline.ok_or(Error::Invalid("public D1 deadline absent"))?)?;
+                sqlite_budget::configure_with_counter_until(
+                    stage.db(),
+                    limits.sqlite,
+                    Arc::clone(&used),
+                    public_deadline.ok_or(Error::Invalid("public D1 deadline absent"))?,
+                )?;
             }
             used
         } else {
@@ -1431,7 +1520,9 @@ impl<'a> KnowledgeStage<'a> {
             if stage_integer_owned(stage.db(), c"PRAGMA temp.auto_vacuum", state)? != 2 {
                 return Err(Error::Invalid("stage TEMP reclamation mode"));
             }
-        } else { configure_stage_temp_reclamation(stage.db())?; }
+        } else {
+            configure_stage_temp_reclamation(stage.db())?;
+        }
         // Native full output drops authenticated raw inputs before selection.
         // Generic stages retain their established main-table representation.
         let disposable_native_inputs = matches!(&stage.receipt,
@@ -1441,32 +1532,44 @@ impl<'a> KnowledgeStage<'a> {
             if let Some(state) = stage.owned_creation_state() {
                 configure_stage_temp_cap_owned(stage.db(), limits.max_temp_bytes, state)?;
             } else {
-            let page_size: u64 = stage
-                .db()
-                .query_row("PRAGMA temp.page_size", [], |row| row.get(0))?;
-            if page_size == 0 {
-                return Err(Error::Invalid("stage TEMP page size"));
+                let page_size: u64 = stage
+                    .db()
+                    .query_row("PRAGMA temp.page_size", [], |row| row.get(0))?;
+                if page_size == 0 {
+                    return Err(Error::Invalid("stage TEMP page size"));
+                }
+                let pages = limits.max_temp_bytes / page_size;
+                if pages == 0 || pages > i64::MAX as u64 {
+                    return Err(Error::Budget("stage TEMP page cap"));
+                }
+                let applied: i64 = stage.db().query_row(
+                    &format!("PRAGMA temp.max_page_count={pages}"),
+                    [],
+                    |row| row.get(0),
+                )?;
+                if applied <= 0 || applied as u64 > pages {
+                    return Err(Error::Invalid("stage TEMP page cap unavailable"));
+                }
             }
-            let pages = limits.max_temp_bytes / page_size;
-            if pages == 0 || pages > i64::MAX as u64 {
-                return Err(Error::Budget("stage TEMP page cap"));
-            }
-            let applied: i64 = stage.db().query_row(
-                &format!("PRAGMA temp.max_page_count={pages}"),
-                [],
-                |row| row.get(0),
-            )?;
-            if applied <= 0 || applied as u64 > pages {
-                return Err(Error::Invalid("stage TEMP page cap unavailable"));
-            }
-        }
         }
         stage.check(WritePhase::Schema)?;
         if let Some(state) = stage.owned_creation_state() {
-            stage_batch_owned(stage.db(), if disposable_native_inputs { NATIVE_SCHEMA_C } else { SCHEMA_C }, state)?;
+            stage_batch_owned(
+                stage.db(),
+                if disposable_native_inputs {
+                    NATIVE_SCHEMA_C
+                } else {
+                    SCHEMA_C
+                },
+                state,
+            )?;
         } else if disposable_native_inputs {
             stage.charge_public_work(SCHEMA.len() as u64 + 5)?;
-            let schema=SCHEMA.replacen("CREATE TABLE raw_records","CREATE TEMP TABLE raw_records",1);
+            let schema = SCHEMA.replacen(
+                "CREATE TABLE raw_records",
+                "CREATE TEMP TABLE raw_records",
+                1,
+            );
             stage.db().execute_batch(&schema)?;
         } else {
             stage.db().execute_batch(SCHEMA)?;
@@ -1481,8 +1584,12 @@ impl<'a> KnowledgeStage<'a> {
         if let Some(state) = self.owned_creation_state() {
             stage_batch_owned(self.db(), sql, state)
         } else {
-            let text = sql.to_str().map_err(|_| Error::Invalid("stage static SQL UTF8"))?;
-            self.db().execute_batch(text).map_err(|error| Error::SqlitePhase { phase, error })
+            let text = sql
+                .to_str()
+                .map_err(|_| Error::Invalid("stage static SQL UTF8"))?;
+            self.db()
+                .execute_batch(text)
+                .map_err(|error| Error::SqlitePhase { phase, error })
         }
     }
 
@@ -1490,7 +1597,9 @@ impl<'a> KnowledgeStage<'a> {
         self.db.as_ref().expect("stage database open")
     }
     fn check(&self, phase: WritePhase) -> Result<()> {
-        if let Some(budget) = &self.controlled { budget.admit(0)?; }
+        if let Some(budget) = &self.controlled {
+            budget.admit(0)?;
+        }
         if self
             .public_deadline
             .is_some_and(|limit| Instant::now() >= limit)
@@ -1513,26 +1622,48 @@ impl<'a> KnowledgeStage<'a> {
         )
     }
     fn check_isolation_with_owned_state(
-        state:Option<&crate::d1_public_capture::CreationState<'_>>,
-        isolation:Option<&dyn StageIsolation>,candidate:&Path,inode:(u64,u64),
-        lease_path:&Path,lease_inode:(u64,u64),limits:StageLimits,phase:WritePhase,
-    )->Result<()> {
-        let _hold=if let Some(state)=state {
-            let candidate_bytes=candidate.as_os_str().as_bytes().len();
-            let lease_bytes=lease_path.as_os_str().as_bytes().len();
+        state: Option<&crate::d1_public_capture::CreationState<'_>>,
+        isolation: Option<&dyn StageIsolation>,
+        candidate: &Path,
+        inode: (u64, u64),
+        lease_path: &Path,
+        lease_inode: (u64, u64),
+        limits: StageLimits,
+        phase: WritePhase,
+    ) -> Result<()> {
+        let _hold = if let Some(state) = state {
+            let candidate_bytes = candidate.as_os_str().as_bytes().len();
+            let lease_bytes = lease_path.as_os_str().as_bytes().len();
             // Calls are sequential, so a single maximum pathname scratch is
             // reused; both returned metadata records coexist until comparison.
-            let scratch=candidate_bytes.max(lease_bytes).checked_add(1)
-                .and_then(|n|n.checked_add(2*std::mem::size_of::<fs::Metadata>()))
+            let scratch = candidate_bytes
+                .max(lease_bytes)
+                .checked_add(1)
+                .and_then(|n| n.checked_add(2 * std::mem::size_of::<fs::Metadata>()))
                 .ok_or(Error::Budget("owned stage isolation path workspace"))?;
-            let hold=state.hold(scratch)?;
-            state.charge_work(candidate_bytes.checked_add(lease_bytes)
-                .ok_or(Error::Budget("owned stage isolation path work"))?)?;
+            let hold = state.hold(scratch)?;
+            state.charge_work(
+                candidate_bytes
+                    .checked_add(lease_bytes)
+                    .ok_or(Error::Budget("owned stage isolation path work"))?,
+            )?;
             state.active()?;
             Some(hold)
-        } else {None};
-        Self::check_isolation(isolation,candidate,inode,lease_path,lease_inode,limits,phase)?;
-        if let Some(state)=state {state.active()?;}
+        } else {
+            None
+        };
+        Self::check_isolation(
+            isolation,
+            candidate,
+            inode,
+            lease_path,
+            lease_inode,
+            limits,
+            phase,
+        )?;
+        if let Some(state) = state {
+            state.active()?;
+        }
         Ok(())
     }
     fn check_isolation(
@@ -1610,19 +1741,25 @@ impl<'a> KnowledgeStage<'a> {
         f: impl FnOnce(&mut Connection, &dyn Fn() -> Result<()>) -> Result<T>,
     ) -> Result<T> {
         let isolation = self.isolation;
-        let state=self.owned_creation_state();
+        let state = self.owned_creation_state();
         // Guard is declared before the copied paths, including early errors.
-        let _path_hold=if let Some(state)=state {
-            let bytes=self.candidate.as_os_str().as_bytes().len()
+        let _path_hold = if let Some(state) = state {
+            let bytes = self
+                .candidate
+                .as_os_str()
+                .as_bytes()
+                .len()
                 .checked_add(self.lease_path.as_os_str().as_bytes().len())
-                .and_then(|n|n.checked_add(2*std::mem::size_of::<PathBuf>()))
+                .and_then(|n| n.checked_add(2 * std::mem::size_of::<PathBuf>()))
                 .ok_or(Error::Budget("owned stage check callback paths"))?;
-            let hold=state.hold(bytes)?;
+            let hold = state.hold(bytes)?;
             state.charge_work(self.candidate.as_os_str().as_bytes().len())?;
             state.charge_work(self.lease_path.as_os_str().as_bytes().len())?;
             state.active()?;
             Some(hold)
-        } else {None};
+        } else {
+            None
+        };
         let candidate = self.candidate.clone();
         let inode = self.inode;
         let lease_path = self.lease_path.clone();
@@ -1812,7 +1949,8 @@ impl<'a> KnowledgeStage<'a> {
         self.check(WritePhase::Sort)?;
         let mut input_rows = 0u64;
         for entry in self.receipt.collections() {
-            let (count, root) = input_root_with_state(self.db(), entry,self.owned_creation_state())?;
+            let (count, root) =
+                input_root_with_state(self.db(), entry, self.owned_creation_state())?;
             self.check(WritePhase::Sort)?;
             if count != entry.expected_count || root != entry.expected_root_sha256 {
                 return Err(Error::Invalid("input collection count/root mismatch"));
@@ -1849,10 +1987,11 @@ impl<'a> KnowledgeStage<'a> {
     }
 
     pub(crate) fn core_roots(&mut self) -> Result<CoreRoots> {
-        let creation=self.owned_creation_state();
+        let creation = self.owned_creation_state();
         self.with_connection(WritePhase::Sort, |db| {
-            let (nodes, node_sha256) = output_root_with_state(db, "knowledge_nodes",creation)?;
-            let (relations, relation_sha256) = output_root_with_state(db, "knowledge_relations",creation)?;
+            let (nodes, node_sha256) = output_root_with_state(db, "knowledge_nodes", creation)?;
+            let (relations, relation_sha256) =
+                output_root_with_state(db, "knowledge_relations", creation)?;
             Ok(CoreRoots {
                 nodes,
                 relations,
@@ -2086,10 +2225,19 @@ impl<'a> KnowledgeStage<'a> {
         self.check(WritePhase::Input)?;
         let digest = Digest256::of_bytes(row.payload);
         if let Some(state) = self.owned_creation_state() {
-            stage_insert_owned(self.db(), c"INSERT INTO raw_records VALUES (?1,?2,?3,?4,?5,?6)",
-                &[StageSqlBinding::Text(row.source_graph), StageSqlBinding::Text(row.collection),
-                  StageSqlBinding::Text(row.id), StageSqlBinding::Integer(row.payload.len() as i64),
-                  StageSqlBinding::Blob(digest.as_bytes()), StageSqlBinding::Blob(row.payload)], state)?;
+            stage_insert_owned(
+                self.db(),
+                c"INSERT INTO raw_records VALUES (?1,?2,?3,?4,?5,?6)",
+                &[
+                    StageSqlBinding::Text(row.source_graph),
+                    StageSqlBinding::Text(row.collection),
+                    StageSqlBinding::Text(row.id),
+                    StageSqlBinding::Integer(row.payload.len() as i64),
+                    StageSqlBinding::Blob(digest.as_bytes()),
+                    StageSqlBinding::Blob(row.payload),
+                ],
+                state,
+            )?;
             return self.check(WritePhase::Input);
         }
         self.db().execute(
@@ -3028,33 +3176,51 @@ impl<'a> KnowledgeStage<'a> {
 
     /// Indexed exact ID seek. One row is transferred only after its actual
     /// length predicate passes; returned bytes and digest are verified.
-    pub(crate) fn raw_matches_bytes(&self, source_graph: &str, collection: &str,
-        id: &str, expected: &[u8]) -> Result<bool> {
+    pub(crate) fn raw_matches_bytes(
+        &self,
+        source_graph: &str,
+        collection: &str,
+        id: &str,
+        expected: &[u8],
+    ) -> Result<bool> {
         let Some(state) = self.owned_creation_state() else {
-            return Ok(self.raw_by_id(source_graph, collection, id)?
+            return Ok(self
+                .raw_by_id(source_graph, collection, id)?
                 .is_some_and(|row| row.payload.as_slice() == expected));
         };
         self.require_open_inputs()?;
-        if !self.registered(source_graph, collection) { return Err(Error::Invalid("unregistered input collection")); }
+        if !self.registered(source_graph, collection) {
+            return Err(Error::Invalid("unregistered input collection"));
+        }
         valid_id(id)?;
         const SQL: &std::ffi::CStr = c"SELECT payload_len,payload,payload_sha256 FROM raw_records WHERE source_graph=?1 AND collection=?2 AND id=?3";
         state.charge_work(SQL.to_bytes().len())?;
-        let _hold = state.hold(tos_source_store::PinnedBoundedStatement::owned_connection_rust_workspace_upper_bound())?;
-        let mut statement = tos_source_store::PinnedBoundedStatement::prepare_on_owned_connection(self.db(), SQL)
-            .map_err(owned_stage_sql_error)?;
-        for (slot, text) in [(1,source_graph),(2,collection),(3,id)] {
+        let _hold = state.hold(
+            tos_source_store::PinnedBoundedStatement::owned_connection_rust_workspace_upper_bound(),
+        )?;
+        let mut statement =
+            tos_source_store::PinnedBoundedStatement::prepare_on_owned_connection(self.db(), SQL)
+                .map_err(owned_stage_sql_error)?;
+        for (slot, text) in [(1, source_graph), (2, collection), (3, id)] {
             state.charge_work(text.len())?;
-            statement.bind_text(slot,text).map_err(owned_stage_sql_error)?;
+            statement
+                .bind_text(slot, text)
+                .map_err(owned_stage_sql_error)?;
         }
         state.active()?;
-        if !statement.step().map_err(owned_stage_sql_error)? { return Ok(false); }
-        let declared = statement.unsigned_integer(0).map_err(owned_stage_sql_error)?;
+        if !statement.step().map_err(owned_stage_sql_error)? {
+            return Ok(false);
+        }
+        let declared = statement
+            .unsigned_integer(0)
+            .map_err(owned_stage_sql_error)?;
         let payload = match statement.value_ref(1).map_err(owned_stage_sql_error)? {
             rusqlite::types::ValueRef::Blob(raw) => raw,
             _ => return Err(Error::Invalid("stage raw comparison payload type")),
         };
-        let digest: [u8;32] = match statement.value_ref(2).map_err(owned_stage_sql_error)? {
-            rusqlite::types::ValueRef::Blob(raw) => raw.try_into()
+        let digest: [u8; 32] = match statement.value_ref(2).map_err(owned_stage_sql_error)? {
+            rusqlite::types::ValueRef::Blob(raw) => raw
+                .try_into()
                 .map_err(|_| Error::Invalid("stage raw comparison digest"))?,
             _ => return Err(Error::Invalid("stage raw comparison digest type")),
         };
@@ -3062,7 +3228,12 @@ impl<'a> KnowledgeStage<'a> {
             return Err(Error::Invalid("stage raw comparison input length"));
         }
         self.charge_raw_observation_read(payload.len() as u64)?;
-        state.charge_work(payload.len().checked_mul(2).ok_or(Error::Budget("stage raw comparison work"))?)?;
+        state.charge_work(
+            payload
+                .len()
+                .checked_mul(2)
+                .ok_or(Error::Budget("stage raw comparison work"))?,
+        )?;
         if tos_foundation::Digest256::of_bytes(payload).as_bytes() != &digest {
             return Err(Error::Invalid("stage raw comparison digest differs"));
         }
@@ -3082,21 +3253,35 @@ impl<'a> KnowledgeStage<'a> {
         }
         valid_id(id)?;
         if self.raw_read_budget.is_some() {
-            let length=if let Some(state)=self.owned_creation_state() {
+            let length = if let Some(state) = self.owned_creation_state() {
                 const SQL:&std::ffi::CStr=c"SELECT payload_len,length(payload) FROM raw_records WHERE source_graph=?1 AND collection=?2 AND id=?3";
                 state.charge_work(SQL.to_bytes().len())?;
                 let _hold=state.hold(tos_source_store::PinnedBoundedStatement::owned_connection_rust_workspace_upper_bound())?;
-                let mut statement=tos_source_store::PinnedBoundedStatement::prepare_on_owned_connection(self.db(),SQL)
+                let mut statement =
+                    tos_source_store::PinnedBoundedStatement::prepare_on_owned_connection(
+                        self.db(),
+                        SQL,
+                    )
                     .map_err(owned_stage_sql_error)?;
-                for (slot,text) in [(1,source_graph),(2,collection),(3,id)] {
+                for (slot, text) in [(1, source_graph), (2, collection), (3, id)] {
                     state.charge_work(text.len())?;
-                    statement.bind_text(slot,text).map_err(owned_stage_sql_error)?;
+                    statement
+                        .bind_text(slot, text)
+                        .map_err(owned_stage_sql_error)?;
                 }
                 state.active()?;
                 if statement.step().map_err(owned_stage_sql_error)? {
-                    Some((statement.unsigned_integer(0).map_err(owned_stage_sql_error)?,
-                        statement.unsigned_integer(1).map_err(owned_stage_sql_error)?))
-                } else {None}
+                    Some((
+                        statement
+                            .unsigned_integer(0)
+                            .map_err(owned_stage_sql_error)?,
+                        statement
+                            .unsigned_integer(1)
+                            .map_err(owned_stage_sql_error)?,
+                    ))
+                } else {
+                    None
+                }
             } else {
                 self.db().query_row(
                     "SELECT payload_len,length(payload) FROM raw_records WHERE source_graph=?1 AND collection=?2 AND id=?3",
@@ -3115,17 +3300,30 @@ impl<'a> KnowledgeStage<'a> {
             const SQL: &std::ffi::CStr = c"SELECT id,source_graph,NULL,payload,payload_sha256 FROM raw_records WHERE source_graph=?1 AND collection=?2 AND id=?3 AND length(payload)<=?4 AND payload_len=length(payload)";
             state.charge_work(SQL.to_bytes().len())?;
             let _hold=state.hold(tos_source_store::PinnedBoundedStatement::owned_connection_rust_workspace_upper_bound())?;
-            let mut statement=tos_source_store::PinnedBoundedStatement::prepare_on_owned_connection(self.db(),SQL)
+            let mut statement =
+                tos_source_store::PinnedBoundedStatement::prepare_on_owned_connection(
+                    self.db(),
+                    SQL,
+                )
                 .map_err(owned_stage_sql_error)?;
-            for (slot,text) in [(1,source_graph),(2,collection),(3,id)] {
+            for (slot, text) in [(1, source_graph), (2, collection), (3, id)] {
                 state.charge_work(text.len())?;
-                statement.bind_text(slot,text).map_err(owned_stage_sql_error)?;
+                statement
+                    .bind_text(slot, text)
+                    .map_err(owned_stage_sql_error)?;
             }
-            statement.bind_i64(4,self.raw_input_max_bytes as i64).map_err(owned_stage_sql_error)?;
+            statement
+                .bind_i64(4, self.raw_input_max_bytes as i64)
+                .map_err(owned_stage_sql_error)?;
             state.active()?;
-            let value=if statement.step().map_err(owned_stage_sql_error)? {
-                Some(verify_seek_row(read_seek_row_bounded(&statement,state,self.raw_input_max_bytes)?,self.raw_input_max_bytes)?)
-            } else {None};
+            let value = if statement.step().map_err(owned_stage_sql_error)? {
+                Some(verify_seek_row(
+                    read_seek_row_bounded(&statement, state, self.raw_input_max_bytes)?,
+                    self.raw_input_max_bytes,
+                )?)
+            } else {
+                None
+            };
             state.active()?;
             return Ok(value);
         }
@@ -3152,25 +3350,36 @@ impl<'a> KnowledgeStage<'a> {
     /// statement is closed before the mutable Stage callback starts; input
     /// rows and their holds stay live through the callback and then drop.
     pub(crate) fn with_scan_input_owned<T>(
-        &mut self, source_graph: &str, collection: &str, after_id: Option<&str>,
-        max_rows: usize, consume: impl FnOnce(&mut Self, &ScanPage) -> Result<T>,
+        &mut self,
+        source_graph: &str,
+        collection: &str,
+        after_id: Option<&str>,
+        max_rows: usize,
+        consume: impl FnOnce(&mut Self, &ScanPage) -> Result<T>,
     ) -> Result<T> {
         let Some(state) = self.owned_creation_state() else {
             let page = self.scan_input(source_graph, collection, after_id, max_rows)?;
             return consume(self, &page);
         };
         let result = (|| {
-            let page = self.scoped_input_page(source_graph,collection,after_id,max_rows,state)?;
+            let page =
+                self.scoped_input_page(source_graph, collection, after_id, max_rows, state)?;
             let result = consume(self, &page.page);
             drop(page);
-            result.and_then(|value| {state.active()?; Ok(value)})
+            result.and_then(|value| {
+                state.active()?;
+                Ok(value)
+            })
         })();
         self.poisoned |= result.is_err();
         result
     }
 
     pub(crate) fn with_raw_by_id_owned<T>(
-        &mut self, source_graph: &str, collection: &str, id: &str,
+        &mut self,
+        source_graph: &str,
+        collection: &str,
+        id: &str,
         consume: impl FnOnce(&mut Self, Option<&SeekRow>) -> Result<T>,
     ) -> Result<T> {
         let Some(state) = self.owned_creation_state() else {
@@ -3180,65 +3389,117 @@ impl<'a> KnowledgeStage<'a> {
         let result = (|| {
             state.charge_work(id.len())?;
             valid_id(id)?;
-            let page = self.scoped_input_page_selected(source_graph, collection,
-                None, 1, Some(id), state)?;
+            let page = self.scoped_input_page_selected(
+                source_graph,
+                collection,
+                None,
+                1,
+                Some(id),
+                state,
+            )?;
             let result = consume(self, page.page.rows.first());
             drop(page);
-            result.and_then(|value| { state.active()?; Ok(value) })
+            result.and_then(|value| {
+                state.active()?;
+                Ok(value)
+            })
         })();
         self.poisoned |= result.is_err();
         result
     }
 
-    fn scoped_input_page(&self, source_graph: &str, collection: &str,
-        after_id: Option<&str>, max_rows: usize,
+    fn scoped_input_page(
+        &self,
+        source_graph: &str,
+        collection: &str,
+        after_id: Option<&str>,
+        max_rows: usize,
         state: &'a crate::d1_public_capture::CreationState<'a>,
     ) -> Result<OwnedInputPage<'a>> {
-        self.scoped_input_page_selected(source_graph, collection, after_id,
-            max_rows, None, state)
+        self.scoped_input_page_selected(source_graph, collection, after_id, max_rows, None, state)
     }
 
-    fn scoped_input_page_selected(&self, source_graph: &str, collection: &str,
-        after_id: Option<&str>, max_rows: usize, exact_id: Option<&str>,
+    fn scoped_input_page_selected(
+        &self,
+        source_graph: &str,
+        collection: &str,
+        after_id: Option<&str>,
+        max_rows: usize,
+        exact_id: Option<&str>,
         state: &'a crate::d1_public_capture::CreationState<'a>,
     ) -> Result<OwnedInputPage<'a>> {
         self.require_open_inputs()?;
-        if !self.registered_with_owned_state(source_graph, collection, state)? {return Err(Error::Invalid("unregistered input collection"));}
-        if let Some(id)=after_id {state.charge_work(id.len())?; valid_id(id)?;}
-        if max_rows==0 || max_rows>self.limits.max_seek_rows {return Err(Error::Budget("stage seek rows"));}
+        if !self.registered_with_owned_state(source_graph, collection, state)? {
+            return Err(Error::Invalid("unregistered input collection"));
+        }
+        if let Some(id) = after_id {
+            state.charge_work(id.len())?;
+            valid_id(id)?;
+        }
+        if max_rows == 0 || max_rows > self.limits.max_seek_rows {
+            return Err(Error::Budget("stage seek rows"));
+        }
         if self.raw_read_budget.is_some() {
             if let Some(id) = exact_id {
                 const LENGTH_SQL: &std::ffi::CStr = c"SELECT payload_len,length(payload) FROM raw_records WHERE source_graph=?1 AND collection=?2 AND id=?3";
                 state.charge_work(LENGTH_SQL.to_bytes().len())?;
                 let _hold = state.hold(tos_source_store::PinnedBoundedStatement::owned_connection_rust_workspace_upper_bound())?;
-                let mut statement = tos_source_store::PinnedBoundedStatement::prepare_on_owned_connection(self.db(), LENGTH_SQL)
+                let mut statement =
+                    tos_source_store::PinnedBoundedStatement::prepare_on_owned_connection(
+                        self.db(),
+                        LENGTH_SQL,
+                    )
                     .map_err(owned_stage_sql_error)?;
-                for (slot, text) in [(1,source_graph),(2,collection),(3,id)] {
+                for (slot, text) in [(1, source_graph), (2, collection), (3, id)] {
                     state.charge_work(text.len())?;
-                    statement.bind_text(slot,text).map_err(owned_stage_sql_error)?;
+                    statement
+                        .bind_text(slot, text)
+                        .map_err(owned_stage_sql_error)?;
                 }
                 state.active()?;
                 if statement.step().map_err(owned_stage_sql_error)? {
-                    let declared = statement.unsigned_integer(0).map_err(owned_stage_sql_error)?;
-                    let actual = statement.unsigned_integer(1).map_err(owned_stage_sql_error)?;
+                    let declared = statement
+                        .unsigned_integer(0)
+                        .map_err(owned_stage_sql_error)?;
+                    let actual = statement
+                        .unsigned_integer(1)
+                        .map_err(owned_stage_sql_error)?;
                     if declared != actual || actual > self.raw_input_max_bytes as u64 {
                         return Err(Error::Invalid("stage raw observation input length"));
                     }
                 }
             }
         }
-        let lookahead=i64::try_from(max_rows.checked_add(1).ok_or(Error::Budget("stage seek rows"))?)
-            .map_err(|_|Error::Budget("stage seek rows"))?;
-        let containers=max_rows.checked_mul(std::mem::size_of::<SeekRow>()+
-                std::mem::size_of::<crate::d1_public_capture::CreationStateHold<'a,'a>>())
-            .and_then(|n|n.checked_add(MAX_NAME_BYTES))
-            .and_then(|n|n.checked_add(std::mem::size_of::<OwnedInputPage<'a>>()+
-                std::mem::size_of::<SeekRow>()+std::mem::size_of::<Digest256Hasher>()))
+        let lookahead = i64::try_from(
+            max_rows
+                .checked_add(1)
+                .ok_or(Error::Budget("stage seek rows"))?,
+        )
+        .map_err(|_| Error::Budget("stage seek rows"))?;
+        let containers = max_rows
+            .checked_mul(
+                std::mem::size_of::<SeekRow>()
+                    + std::mem::size_of::<crate::d1_public_capture::CreationStateHold<'a, 'a>>(),
+            )
+            .and_then(|n| n.checked_add(MAX_NAME_BYTES))
+            .and_then(|n| {
+                n.checked_add(
+                    std::mem::size_of::<OwnedInputPage<'a>>()
+                        + std::mem::size_of::<SeekRow>()
+                        + std::mem::size_of::<Digest256Hasher>(),
+                )
+            })
             .ok_or(Error::Budget("owned input page containers"))?;
-        let container_hold=state.hold(containers)?;
-        let mut page=OwnedInputPage{page:ScanPage{rows:Vec::with_capacity(max_rows),next_id:None},
-            row_holds:Vec::with_capacity(max_rows),container_hold};
-        let sql=if exact_id.is_some() {
+        let container_hold = state.hold(containers)?;
+        let mut page = OwnedInputPage {
+            page: ScanPage {
+                rows: Vec::with_capacity(max_rows),
+                next_id: None,
+            },
+            row_holds: Vec::with_capacity(max_rows),
+            container_hold,
+        };
+        let sql = if exact_id.is_some() {
             c"SELECT id,source_graph,NULL,payload,payload_sha256 FROM raw_records WHERE source_graph=?1 AND collection=?2 AND id=?3 AND length(payload)<=?4 AND payload_len=length(payload) ORDER BY id LIMIT ?5"
         } else if after_id.is_some() {
             c"SELECT id,source_graph,NULL,payload,payload_sha256 FROM raw_records WHERE source_graph=?1 AND collection=?2 AND id>?3 AND length(payload)<=?4 AND payload_len=length(payload) ORDER BY id LIMIT ?5"
@@ -3246,67 +3507,122 @@ impl<'a> KnowledgeStage<'a> {
             c"SELECT id,source_graph,NULL,payload,payload_sha256 FROM raw_records WHERE source_graph=?1 AND collection=?2 AND length(payload)<=?3 AND payload_len=length(payload) ORDER BY id LIMIT ?4"
         };
         state.charge_work(sql.to_bytes().len())?;
-        let _statement_hold=state.hold(tos_source_store::PinnedBoundedStatement::owned_connection_rust_workspace_upper_bound())?;
-        let mut statement=tos_source_store::PinnedBoundedStatement::prepare_on_owned_connection(self.db(),sql)
-            .map_err(owned_stage_sql_error)?;
-        for (slot,text) in [(1,source_graph),(2,collection)] {
+        let _statement_hold = state.hold(
+            tos_source_store::PinnedBoundedStatement::owned_connection_rust_workspace_upper_bound(),
+        )?;
+        let mut statement =
+            tos_source_store::PinnedBoundedStatement::prepare_on_owned_connection(self.db(), sql)
+                .map_err(owned_stage_sql_error)?;
+        for (slot, text) in [(1, source_graph), (2, collection)] {
             state.charge_work(text.len())?;
-            statement.bind_text(slot,text).map_err(owned_stage_sql_error)?;
+            statement
+                .bind_text(slot, text)
+                .map_err(owned_stage_sql_error)?;
         }
-        let cap_slot=if let Some(id)=exact_id.or(after_id) {
+        let cap_slot = if let Some(id) = exact_id.or(after_id) {
             state.charge_work(id.len())?;
-            statement.bind_text(3,id).map_err(owned_stage_sql_error)?;4
-        } else {3};
-        statement.bind_i64(cap_slot,self.raw_input_max_bytes as i64).map_err(owned_stage_sql_error)?;
-        statement.bind_i64(cap_slot+1,lookahead).map_err(owned_stage_sql_error)?;
-        let mut bytes=0u64;let mut has_more=false;
+            statement.bind_text(3, id).map_err(owned_stage_sql_error)?;
+            4
+        } else {
+            3
+        };
+        statement
+            .bind_i64(cap_slot, self.raw_input_max_bytes as i64)
+            .map_err(owned_stage_sql_error)?;
+        statement
+            .bind_i64(cap_slot + 1, lookahead)
+            .map_err(owned_stage_sql_error)?;
+        let mut bytes = 0u64;
+        let mut has_more = false;
         loop {
             state.active()?;
-            if !statement.step().map_err(owned_stage_sql_error)? {break;}
-            if page.page.rows.len()==max_rows {has_more=true;break;}
+            if !statement.step().map_err(owned_stage_sql_error)? {
+                break;
+            }
+            if page.page.rows.len() == max_rows {
+                has_more = true;
+                break;
+            }
             use rusqlite::types::ValueRef;
-            let id_raw=match statement.value_ref(0).map_err(owned_stage_sql_error)? {
-                ValueRef::Text(raw)=>raw,_=>return Err(Error::Invalid("stage seek id")),
+            let id_raw = match statement.value_ref(0).map_err(owned_stage_sql_error)? {
+                ValueRef::Text(raw) => raw,
+                _ => return Err(Error::Invalid("stage seek id")),
             };
-            let graph_raw=match statement.value_ref(1).map_err(owned_stage_sql_error)? {
-                ValueRef::Text(raw)=>raw,_=>return Err(Error::Invalid("stage seek graph")),
+            let graph_raw = match statement.value_ref(1).map_err(owned_stage_sql_error)? {
+                ValueRef::Text(raw) => raw,
+                _ => return Err(Error::Invalid("stage seek graph")),
             };
-            if id_raw.len()>MAX_NAME_BYTES || graph_raw.len()>MAX_NAME_BYTES {return Err(Error::Budget("owned stage seek text bytes"));}
-            state.charge_work(id_raw.len().checked_mul(2).and_then(|n|n.checked_add(graph_raw.len()))
-                .ok_or(Error::Budget("owned input page text work"))?)?;
-            let id=std::str::from_utf8(id_raw).map_err(|_|Error::Invalid("stage seek id UTF8"))?;
-            let graph=std::str::from_utf8(graph_raw).map_err(|_|Error::Invalid("stage seek graph UTF8"))?;
+            if id_raw.len() > MAX_NAME_BYTES || graph_raw.len() > MAX_NAME_BYTES {
+                return Err(Error::Budget("owned stage seek text bytes"));
+            }
+            state.charge_work(
+                id_raw
+                    .len()
+                    .checked_mul(2)
+                    .and_then(|n| n.checked_add(graph_raw.len()))
+                    .ok_or(Error::Budget("owned input page text work"))?,
+            )?;
+            let id =
+                std::str::from_utf8(id_raw).map_err(|_| Error::Invalid("stage seek id UTF8"))?;
+            let graph = std::str::from_utf8(graph_raw)
+                .map_err(|_| Error::Invalid("stage seek graph UTF8"))?;
             valid_id(id)?;
-            let payload=match statement.value_ref(3).map_err(owned_stage_sql_error)? {
-                ValueRef::Blob(raw)=>raw,_=>return Err(Error::Invalid("stage seek payload")),
+            let payload = match statement.value_ref(3).map_err(owned_stage_sql_error)? {
+                ValueRef::Blob(raw) => raw,
+                _ => return Err(Error::Invalid("stage seek payload")),
             };
-            if payload.len()>self.raw_input_max_bytes {return Err(Error::Budget("stage seek row bytes"));}
-            let digest:[u8;32]=match statement.value_ref(4).map_err(owned_stage_sql_error)? {
-                ValueRef::Blob(raw)=>raw.try_into().map_err(|_|Error::Invalid("stage seek digest bytes"))?,
-                _=>return Err(Error::Invalid("stage seek digest")),
+            if payload.len() > self.raw_input_max_bytes {
+                return Err(Error::Budget("stage seek row bytes"));
+            }
+            let digest: [u8; 32] = match statement.value_ref(4).map_err(owned_stage_sql_error)? {
+                ValueRef::Blob(raw) => raw
+                    .try_into()
+                    .map_err(|_| Error::Invalid("stage seek digest bytes"))?,
+                _ => return Err(Error::Invalid("stage seek digest")),
             };
             self.charge_raw_observation_read(payload.len() as u64)?;
             state.charge_work(payload.len())?;
-            let mut hash=Digest256Hasher::new();
-            for chunk in payload.chunks(65536) {state.active()?;hash.update(chunk);}
-            if hash.finalize().as_bytes()!=&digest {return Err(Error::Invalid("stage seek payload digest"));}
-            let next=bytes.checked_add(payload.len() as u64).ok_or(Error::Budget("stage seek bytes"))?;
-            if exact_id.is_none() && next>self.limits.max_seek_bytes {
-                if page.page.rows.is_empty() {return Err(Error::Budget("stage seek bytes"));}
-                has_more=true;break;
+            let mut hash = Digest256Hasher::new();
+            for chunk in payload.chunks(65536) {
+                state.active()?;
+                hash.update(chunk);
             }
-            let row_bytes=id.len().checked_add(graph.len()).and_then(|n|n.checked_add(payload.len()))
-                .and_then(|n|n.checked_add(64)).ok_or(Error::Budget("owned input page row state"))?;
-            let row_hold=state.hold(row_bytes)?;
+            if hash.finalize().as_bytes() != &digest {
+                return Err(Error::Invalid("stage seek payload digest"));
+            }
+            let next = bytes
+                .checked_add(payload.len() as u64)
+                .ok_or(Error::Budget("stage seek bytes"))?;
+            if exact_id.is_none() && next > self.limits.max_seek_bytes {
+                if page.page.rows.is_empty() {
+                    return Err(Error::Budget("stage seek bytes"));
+                }
+                has_more = true;
+                break;
+            }
+            let row_bytes = id
+                .len()
+                .checked_add(graph.len())
+                .and_then(|n| n.checked_add(payload.len()))
+                .and_then(|n| n.checked_add(64))
+                .ok_or(Error::Budget("owned input page row state"))?;
+            let row_hold = state.hold(row_bytes)?;
             state.charge_work(row_bytes)?;
-            let row=SeekRow{id:id.to_owned(),source_graph:graph.to_owned(),source_order:None,
-                payload:payload.to_owned(),payload_sha256:Digest256::from_bytes(digest).to_hex()};
-            page.page.rows.push(row);page.row_holds.push(row_hold);bytes=next;
+            let row = SeekRow {
+                id: id.to_owned(),
+                source_graph: graph.to_owned(),
+                source_order: None,
+                payload: payload.to_owned(),
+                payload_sha256: Digest256::from_bytes(digest).to_hex(),
+            };
+            page.page.rows.push(row);
+            page.row_holds.push(row_hold);
+            bytes = next;
         }
         if has_more {
-            if let Some(row)=page.page.rows.last() {
+            if let Some(row) = page.page.rows.last() {
                 state.charge_work(row.id.len())?;
-                page.page.next_id=Some(row.id.clone());
+                page.page.next_id = Some(row.id.clone());
             }
         }
         state.active()?;
@@ -3377,7 +3693,14 @@ impl<'a> KnowledgeStage<'a> {
                 };
                 self.charge_raw_observation_read(bytes)?;
             }
-            let item = verify_seek_row(read_seek_row_with_state(row, self.owned_creation_state(), self.raw_input_max_bytes)?, self.raw_input_max_bytes)?;
+            let item = verify_seek_row(
+                read_seek_row_with_state(
+                    row,
+                    self.owned_creation_state(),
+                    self.raw_input_max_bytes,
+                )?,
+                self.raw_input_max_bytes,
+            )?;
             let next_bytes = bytes
                 .checked_add(item.payload.len() as u64)
                 .ok_or(Error::Budget("stage seek bytes"))?;
@@ -3470,7 +3793,14 @@ impl<'a> KnowledgeStage<'a> {
         let mut count = 0usize;
         let mut bytes = 0u64;
         while let Some(row) = rows.next()? {
-            let item = verify_seek_row(read_seek_row_with_state(row, self.owned_creation_state(), self.limits.sqlite.max_row_bytes)?, self.limits.sqlite.max_row_bytes)?;
+            let item = verify_seek_row(
+                read_seek_row_with_state(
+                    row,
+                    self.owned_creation_state(),
+                    self.limits.sqlite.max_row_bytes,
+                )?,
+                self.limits.sqlite.max_row_bytes,
+            )?;
             bytes = bytes
                 .checked_add(item.payload.len() as u64)
                 .ok_or(Error::Budget("stage seek bytes"))?;
@@ -3485,24 +3815,49 @@ impl<'a> KnowledgeStage<'a> {
 
     pub fn finish(mut self) -> Result<StageReceipt> {
         self.exact_receipt()?;
-        if let Some(state)=self.owned_creation_state() {
+        if let Some(state) = self.owned_creation_state() {
             // SQLite statement locals. Digest stack is scoped at its actual
             // kernel invocation; names remain held by the Stage owner.
             state.retain(tos_source_store::PinnedSqliteConnection::bounded_statement_rust_workspace_upper_bound())?;
         }
-        if let Some(state)=self.owned_creation_state() {
-            let binding=&self.exact_receipt()?.binding;
-            let mut bytes=std::mem::size_of::<StageReceipt>()+64;
-            for string in [&binding.owner_profile,&binding.source_cut,&binding.membership_root,
-                &binding.index_generation,&binding.route_map_version,&binding.reader_abi,&binding.projection_root_sha256,
-                &binding.source_cut,&binding.membership_root] {
-                bytes=bytes.checked_add(string.len()).ok_or(Error::Budget("owned Stage output binding"))?;
+        if let Some(state) = self.owned_creation_state() {
+            let binding = &self.exact_receipt()?.binding;
+            let mut bytes = std::mem::size_of::<StageReceipt>() + 64;
+            for string in [
+                &binding.owner_profile,
+                &binding.source_cut,
+                &binding.membership_root,
+                &binding.index_generation,
+                &binding.route_map_version,
+                &binding.reader_abi,
+                &binding.projection_root_sha256,
+                &binding.source_cut,
+                &binding.membership_root,
+            ] {
+                bytes = bytes
+                    .checked_add(string.len())
+                    .ok_or(Error::Budget("owned Stage output binding"))?;
             }
-            bytes=bytes.checked_add(self.receipt.collections().len().checked_mul(std::mem::size_of::<InputCollectionReceipt>())
-                .ok_or(Error::Budget("owned Stage output collections"))?).ok_or(Error::Budget("owned Stage output slots"))?;
+            bytes = bytes
+                .checked_add(
+                    self.receipt
+                        .collections()
+                        .len()
+                        .checked_mul(std::mem::size_of::<InputCollectionReceipt>())
+                        .ok_or(Error::Budget("owned Stage output collections"))?,
+                )
+                .ok_or(Error::Budget("owned Stage output slots"))?;
             for entry in self.receipt.collections() {
-                for string in [&entry.source_graph,&entry.collection,&entry.input_role,&entry.adapter_profile,&entry.expected_root_sha256] {
-                    bytes=bytes.checked_add(string.len()).ok_or(Error::Budget("owned Stage output strings"))?;
+                for string in [
+                    &entry.source_graph,
+                    &entry.collection,
+                    &entry.input_role,
+                    &entry.adapter_profile,
+                    &entry.expected_root_sha256,
+                ] {
+                    bytes = bytes
+                        .checked_add(string.len())
+                        .ok_or(Error::Budget("owned Stage output strings"))?;
                 }
             }
             state.retain(bytes)?;
@@ -3521,9 +3876,14 @@ impl<'a> KnowledgeStage<'a> {
             }
             None => self.verified_input_rows()?,
         };
-        let (node_rows, node_root) = output_root_with_state(self.db(), "knowledge_nodes",self.owned_creation_state())?;
+        let (node_rows, node_root) =
+            output_root_with_state(self.db(), "knowledge_nodes", self.owned_creation_state())?;
         self.check(WritePhase::Sort)?;
-        let (relation_rows, relation_root) = output_root_with_state(self.db(), "knowledge_relations",self.owned_creation_state())?;
+        let (relation_rows, relation_root) = output_root_with_state(
+            self.db(),
+            "knowledge_relations",
+            self.owned_creation_state(),
+        )?;
         self.check(WritePhase::Sort)?;
         const DANGLING_SQL: &std::ffi::CStr = c"SELECT 1 FROM knowledge_relations r
              WHERE NOT EXISTS (SELECT 1 FROM knowledge_nodes n WHERE n.id=r.from_id)
@@ -3532,16 +3892,27 @@ impl<'a> KnowledgeStage<'a> {
         let dangling = if let Some(state) = self.owned_creation_state() {
             state.charge_work(DANGLING_SQL.to_bytes().len())?;
             let _hold = state.hold(tos_source_store::PinnedBoundedStatement::owned_connection_rust_workspace_upper_bound())?;
-            let mut statement = tos_source_store::PinnedBoundedStatement::prepare_on_owned_connection(self.db(), DANGLING_SQL)
+            let mut statement =
+                tos_source_store::PinnedBoundedStatement::prepare_on_owned_connection(
+                    self.db(),
+                    DANGLING_SQL,
+                )
                 .map_err(owned_stage_sql_error)?;
             state.active()?;
             let found = statement.step().map_err(owned_stage_sql_error)?;
             state.active()?;
             found
         } else {
-            self.db().query_row(DANGLING_SQL.to_str()
-                .map_err(|_| Error::Invalid("stage static SQL UTF8"))?, [], |row| row.get::<_,i64>(0))
-                .optional()?.is_some()
+            self.db()
+                .query_row(
+                    DANGLING_SQL
+                        .to_str()
+                        .map_err(|_| Error::Invalid("stage static SQL UTF8"))?,
+                    [],
+                    |row| row.get::<_, i64>(0),
+                )
+                .optional()?
+                .is_some()
         };
         if dangling {
             return Err(Error::Invalid("stage relation endpoint absent"));
@@ -3553,13 +3924,19 @@ impl<'a> KnowledgeStage<'a> {
             crate::knowledge_philosophy_original::verify_stage(&mut self, None)?;
             crate::knowledge_corpus_original::verify_stage(&mut self, None)?;
             self.check(WritePhase::Finalize)?;
-            preflight_selected_vacuum_with_state(self.db(), &self.candidate, self.inode, self.limits, self.owned_creation_state())?;
+            preflight_selected_vacuum_with_state(
+                self.db(),
+                &self.candidate,
+                self.inode,
+                self.limits,
+                self.owned_creation_state(),
+            )?;
             // Owner input is removed from the private stage only after exact
             // root checks. VACUUM INTO then creates a different SQLite inode
             // containing the allowlisted logical tables; the private stage
             // inode is never the selected artifact.
             if self.closed_input_rows.is_none() {
-                if let Some(state)=self.owned_creation_state() {
+                if let Some(state) = self.owned_creation_state() {
                     stage_batch_owned(self.db(),c"PRAGMA secure_delete=ON; PRAGMA temp.secure_delete=ON; DROP TABLE raw_records",state)?;
                 } else {
                     self.db().execute_batch("PRAGMA secure_delete=ON; PRAGMA temp.secure_delete=ON; DROP TABLE raw_records")?;
@@ -3567,7 +3944,9 @@ impl<'a> KnowledgeStage<'a> {
             }
             if self.payload_layout == KnowledgePayloadLayout::CarrierOnceV1 {
                 crate::knowledge_selected::verify_schema_with_layout(
-                    self.db(), self.payload_layout, self.owned_creation_state(),
+                    self.db(),
+                    self.payload_layout,
+                    self.owned_creation_state(),
                 )?;
             } else {
                 selected_table_closure_with_owned_state(self.db(), self.owned_creation_state())?;
@@ -3581,10 +3960,15 @@ impl<'a> KnowledgeStage<'a> {
                 .to_str()
                 .ok_or(Error::Invalid("stage fresh selected path encoding"))?;
             self.fresh_selected = Some(fresh.clone());
-            if let Some(state)=self.owned_creation_state() {
+            if let Some(state) = self.owned_creation_state() {
                 // Same installed progress hook and shared SQLite pool; only
                 // this statement's Rust workspace and bound path copy are new.
-                stage_insert_owned(self.db(), c"VACUUM INTO ?1", &[StageSqlBinding::Text(fresh_utf8)], state)?;
+                stage_insert_owned(
+                    self.db(),
+                    c"VACUUM INTO ?1",
+                    &[StageSqlBinding::Text(fresh_utf8)],
+                    state,
+                )?;
             } else {
                 self.db().execute("VACUUM INTO ?1", [fresh_utf8])?;
             }
@@ -3596,19 +3980,23 @@ impl<'a> KnowledgeStage<'a> {
                 &pinned,
                 self.limits.sqlite,
                 Arc::clone(self.vm_used.as_ref().expect("stage VM counter")),
-                self.controlled.as_ref(), self.public_deadline, self.payload_layout,
+                self.controlled.as_ref(),
+                self.public_deadline,
+                self.payload_layout,
             )?;
             selected_file = Some(pinned);
         }
         self.check(WritePhase::Finalize)?;
-        let integrity_ok=if let Some(state)=self.owned_creation_state() {
+        let integrity_ok = if let Some(state) = self.owned_creation_state() {
             stage_integrity_first_row_owned(self.db(), state)?
         } else {
-            self.db().query_row("PRAGMA integrity_check",[],|row| {
+            self.db().query_row("PRAGMA integrity_check", [], |row| {
                 Ok(row.get_ref(0)?.as_str()? == "ok")
             })?
         };
-        if !integrity_ok {return Err(Error::Invalid("stage SQLite integrity"));}
+        if !integrity_ok {
+            return Err(Error::Invalid("stage SQLite integrity"));
+        }
         self.check(WritePhase::Finalize)?;
         self.owner.recheck_sealed_cut(&self.receipt)?;
         let db = self.db.take().expect("stage database open");
@@ -3617,16 +4005,21 @@ impl<'a> KnowledgeStage<'a> {
         let (sqlite_sha256, sqlite_size_bytes) = if let Some(pinned) = selected_file.as_ref() {
             let mut digest_file = pinned.try_clone()?;
             digest_file.rewind()?;
-            if let Some(state)=self.owned_creation_state() {
-                stage_stream_digest_owned(&mut digest_file,self.limits.sqlite.max_output_bytes,state)?
+            if let Some(state) = self.owned_creation_state() {
+                stage_stream_digest_owned(
+                    &mut digest_file,
+                    self.limits.sqlite.max_output_bytes,
+                    state,
+                )?
             } else {
                 stream_digest(&mut digest_file)?
             }
         } else {
             // Preserve the old owned nonselected stack admission while that
             // fallback's source/work/IO owner seam remains explicitly open.
-            let _fallback_hold=match self.owned_creation_state() {
-                Some(state)=>Some(state.hold(65536)?),None=>None,
+            let _fallback_hold = match self.owned_creation_state() {
+                Some(state) => Some(state.hold(65536)?),
+                None => None,
             };
             file_digest(output_path)?
         };
@@ -3706,31 +4099,48 @@ pub(crate) fn configure_stage_temp_reclamation(db: &Connection) -> Result<()> {
 /// rollback, fallback paths and output files; this arithmetic is an early
 /// refusal, not a filesystem quota implementation.
 fn preflight_selected_vacuum_with_state(
-    db:&Connection, candidate:&Path, inode:(u64,u64), limits:StageLimits,
-    state:Option<&crate::d1_public_capture::CreationState<'_>>,
-)->Result<()> {
-    let Some(state)=state else {return preflight_selected_vacuum(db,candidate,inode,limits);};
-    let page_count=stage_integer_owned(db,c"PRAGMA page_count",state)?;
-    let page_size=stage_integer_owned(db,c"PRAGMA page_size",state)?;
-    let page_count=u64::try_from(page_count).map_err(|_| Error::Invalid("selected page count"))?;
-    let page_size=u64::try_from(page_size).map_err(|_| Error::Invalid("selected page size"))?;
-    if page_count==0 || page_size==0 {return Err(Error::Invalid("selected SQLite page geometry"));}
-    let database_bytes=page_count.checked_mul(page_size).ok_or(Error::Budget("selected SQLite page bytes"))?;
-    let rebuild_reserve=database_bytes.checked_mul(2).ok_or(Error::Budget("selected VACUUM rebuild reserve"))?;
+    db: &Connection,
+    candidate: &Path,
+    inode: (u64, u64),
+    limits: StageLimits,
+    state: Option<&crate::d1_public_capture::CreationState<'_>>,
+) -> Result<()> {
+    let Some(state) = state else {
+        return preflight_selected_vacuum(db, candidate, inode, limits);
+    };
+    let page_count = stage_integer_owned(db, c"PRAGMA page_count", state)?;
+    let page_size = stage_integer_owned(db, c"PRAGMA page_size", state)?;
+    let page_count =
+        u64::try_from(page_count).map_err(|_| Error::Invalid("selected page count"))?;
+    let page_size = u64::try_from(page_size).map_err(|_| Error::Invalid("selected page size"))?;
+    if page_count == 0 || page_size == 0 {
+        return Err(Error::Invalid("selected SQLite page geometry"));
+    }
+    let database_bytes = page_count
+        .checked_mul(page_size)
+        .ok_or(Error::Budget("selected SQLite page bytes"))?;
+    let rebuild_reserve = database_bytes
+        .checked_mul(2)
+        .ok_or(Error::Budget("selected VACUUM rebuild reserve"))?;
     // std's pathname syscall conversion is admitted before the filesystem
     // call. This does not replace the actual isolation/storage owner.
-    let path_bytes=candidate.as_os_str().as_bytes().len();
-    let scratch=path_bytes.checked_add(1).and_then(|n|n.checked_add(std::mem::size_of::<fs::Metadata>()))
+    let path_bytes = candidate.as_os_str().as_bytes().len();
+    let scratch = path_bytes
+        .checked_add(1)
+        .and_then(|n| n.checked_add(std::mem::size_of::<fs::Metadata>()))
         .ok_or(Error::Budget("selected VACUUM metadata workspace"))?;
-    let _path_hold=state.hold(scratch)?;
+    let _path_hold = state.hold(scratch)?;
     state.charge_work(path_bytes)?;
     state.active()?;
-    let metadata=fs::symlink_metadata(candidate)?;
+    let metadata = fs::symlink_metadata(candidate)?;
     state.active()?;
-    if !metadata.file_type().is_file() || (metadata.dev(),metadata.ino())!=inode || metadata.len()!=database_bytes {
+    if !metadata.file_type().is_file()
+        || (metadata.dev(), metadata.ino()) != inode
+        || metadata.len() != database_bytes
+    {
         return Err(Error::Invalid("selected SQLite file/page mismatch"));
     }
-    if database_bytes>limits.sqlite.max_output_bytes || rebuild_reserve>limits.max_temp_bytes {
+    if database_bytes > limits.sqlite.max_output_bytes || rebuild_reserve > limits.max_temp_bytes {
         return Err(Error::Budget("selected VACUUM output/temp reserve"));
     }
     state.active()
@@ -3924,15 +4334,25 @@ pub(crate) fn selected_table_closure(db: &Connection) -> Result<()> {
     selected_table_closure_with_owned_state(db, None)
 }
 
-fn selected_table_closure_with_owned_state(db:&Connection,state:Option<&crate::d1_public_capture::CreationState<'_>>)->Result<()> {
+fn selected_table_closure_with_owned_state(
+    db: &Connection,
+    state: Option<&crate::d1_public_capture::CreationState<'_>>,
+) -> Result<()> {
     selected_table_closure_with_layout_and_state(db, KnowledgePayloadLayout::InlineV1, state)
 }
 
-pub(crate) fn selected_table_closure_with_layout(db:&Connection,layout:KnowledgePayloadLayout)->Result<()> {
+pub(crate) fn selected_table_closure_with_layout(
+    db: &Connection,
+    layout: KnowledgePayloadLayout,
+) -> Result<()> {
     selected_table_closure_with_layout_and_state(db, layout, None)
 }
 
-fn selected_table_closure_with_layout_and_state(db:&Connection,layout:KnowledgePayloadLayout,state:Option<&crate::d1_public_capture::CreationState<'_>>)->Result<()> {
+fn selected_table_closure_with_layout_and_state(
+    db: &Connection,
+    layout: KnowledgePayloadLayout,
+    state: Option<&crate::d1_public_capture::CreationState<'_>>,
+) -> Result<()> {
     const TABLES: &[&str] = &[
         "metadata",
         "graph_header",
@@ -3948,12 +4368,17 @@ fn selected_table_closure_with_layout_and_state(db:&Connection,layout:KnowledgeP
         "catalog_routes",
         "catalog_source_counts",
     ];
-    let node=11*std::mem::size_of::<String>()+16*std::mem::size_of::<usize>();
-    let key_count=TABLES.len()+7+SELECTED_EXPLICIT_INDEXES.len()+crate::knowledge_corpus_original::INDEXES.len();
+    let node = 11 * std::mem::size_of::<String>() + 16 * std::mem::size_of::<usize>();
+    let key_count = TABLES.len()
+        + 7
+        + SELECTED_EXPLICIT_INDEXES.len()
+        + crate::knowledge_corpus_original::INDEXES.len();
     let _closure_state=state.map(|state|state.hold(key_count.checked_mul(node+128)
         .and_then(|n|n.checked_add(1152+4*tos_source_store::PinnedSqliteConnection::bounded_statement_rust_workspace_upper_bound()))
         .ok_or(Error::Budget("owned selected closure state"))?)).transpose()?;
-    if let Some(state)=state {state.active()?;}
+    if let Some(state) = state {
+        state.active()?;
+    }
     let philosophy_original = crate::knowledge_philosophy_original::present(db)?;
     let corpus_original = crate::knowledge_corpus_original::present(db)?;
     let philosophy_tables = [
@@ -3973,11 +4398,20 @@ fn selected_table_closure_with_layout_and_state(db:&Connection,layout:KnowledgeP
     let mut rows = statement.query([])?;
     let mut seen = std::collections::BTreeSet::new();
     while let Some(row) = rows.next()? {
-        if let Some(state)=state {
-            let raw=match row.get_ref(0)? {rusqlite::types::ValueRef::Text(raw)=>raw,_=>return Err(Error::Budget("selected knowledge table name bytes"))};
-            if raw.len()>128 {return Err(Error::Budget("selected knowledge table name bytes"));}
-            state.charge_work(raw.len().checked_mul(2).and_then(|n|n.checked_add(key_count*128))
-                .ok_or(Error::Budget("owned selected table comparison work"))?)?;
+        if let Some(state) = state {
+            let raw = match row.get_ref(0)? {
+                rusqlite::types::ValueRef::Text(raw) => raw,
+                _ => return Err(Error::Budget("selected knowledge table name bytes")),
+            };
+            if raw.len() > 128 {
+                return Err(Error::Budget("selected knowledge table name bytes"));
+            }
+            state.charge_work(
+                raw.len()
+                    .checked_mul(2)
+                    .and_then(|n| n.checked_add(key_count * 128))
+                    .ok_or(Error::Budget("owned selected table comparison work"))?,
+            )?;
         }
         let name: Option<String> = row.get(0)?;
         let Some(name) = name else {
@@ -4020,16 +4454,33 @@ fn selected_table_closure_with_layout_and_state(db:&Connection,layout:KnowledgeP
     let mut rows = statement.query([])?;
     let mut indexes = BTreeSet::new();
     while let Some(row) = rows.next()? {
-        if let Some(state)=state {
-            let name=match row.get_ref(0)? {rusqlite::types::ValueRef::Text(raw)=>raw,_=>return Err(Error::Budget("selected knowledge schema text bytes"))};
-            let sql=match row.get_ref(1)? {rusqlite::types::ValueRef::Text(raw)=>raw,_=>return Err(Error::Budget("selected knowledge schema text bytes"))};
-            if name.len()>128 || sql.len()>1024 {return Err(Error::Budget("selected knowledge schema text bytes"));}
-            let compare_bytes=SELECTED_EXPLICIT_INDEXES.iter().chain(crate::knowledge_corpus_original::INDEXES.iter())
-                .try_fold(0usize,|sum,(name,sql)|sum.checked_add(name.len()).and_then(|n|n.checked_add(sql.len())))
+        if let Some(state) = state {
+            let name = match row.get_ref(0)? {
+                rusqlite::types::ValueRef::Text(raw) => raw,
+                _ => return Err(Error::Budget("selected knowledge schema text bytes")),
+            };
+            let sql = match row.get_ref(1)? {
+                rusqlite::types::ValueRef::Text(raw) => raw,
+                _ => return Err(Error::Budget("selected knowledge schema text bytes")),
+            };
+            if name.len() > 128 || sql.len() > 1024 {
+                return Err(Error::Budget("selected knowledge schema text bytes"));
+            }
+            let compare_bytes = SELECTED_EXPLICIT_INDEXES
+                .iter()
+                .chain(crate::knowledge_corpus_original::INDEXES.iter())
+                .try_fold(0usize, |sum, (name, sql)| {
+                    sum.checked_add(name.len())
+                        .and_then(|n| n.checked_add(sql.len()))
+                })
                 .ok_or(Error::Budget("owned selected index comparisons"))?;
-            state.charge_work(name.len().checked_add(sql.len()).and_then(|n|n.checked_mul(2))
-                .and_then(|n|n.checked_add(compare_bytes+key_count*128))
-                .ok_or(Error::Budget("owned selected index work"))?)?;
+            state.charge_work(
+                name.len()
+                    .checked_add(sql.len())
+                    .and_then(|n| n.checked_mul(2))
+                    .and_then(|n| n.checked_add(compare_bytes + key_count * 128))
+                    .ok_or(Error::Budget("owned selected index work"))?,
+            )?;
         }
         let name: Option<String> = row.get(0)?;
         let sql: Option<String> = row.get(1)?;
@@ -4085,12 +4536,17 @@ fn verify_fresh_selected(
     // std filesystem pathname conversion may own a NUL spelling, separately
     // from the already-retained input Path and the sidecar path owners below.
     let path_bytes = path.as_os_str().as_encoded_bytes().len();
-    let _fresh_path_hold = controlled.map(|budget| {
-        budget.creation_state.charge_work(path_bytes)?;
-        budget.creation_state.hold(path_bytes.checked_add(1)
-            .and_then(|n| n.checked_add(std::mem::size_of::<fs::Metadata>() * 2))
-            .ok_or(Error::Budget("fresh filesystem path state"))?)
-    }).transpose()?;
+    let _fresh_path_hold = controlled
+        .map(|budget| {
+            budget.creation_state.charge_work(path_bytes)?;
+            budget.creation_state.hold(
+                path_bytes
+                    .checked_add(1)
+                    .and_then(|n| n.checked_add(std::mem::size_of::<fs::Metadata>() * 2))
+                    .ok_or(Error::Budget("fresh filesystem path state"))?,
+            )
+        })
+        .transpose()?;
     let metadata = fs::symlink_metadata(path)?;
     let opened = pinned.metadata()?;
     if !metadata.file_type().is_file()
@@ -4103,62 +4559,96 @@ fn verify_fresh_selected(
         verify_fresh_sidecars_owned(path, budget.creation_state)?;
     } else if sqlite_sidecar_paths(path)
         .iter()
-        .any(|sidecar| sidecar.exists() || sidecar.is_symlink()) {
+        .any(|sidecar| sidecar.exists() || sidecar.is_symlink())
+    {
         return Err(Error::Invalid("fresh selected SQLite sidecar"));
     }
     // The original main hook remains live while this fresh verification hook
     // is installed. Hold its distinct Box before reserve/open/install and keep
     // it until this connection drops; never borrow a fresh SQLite grant.
-    let _fresh_callback_hold = controlled.map(|budget| {
-        budget.creation_state.hold(sqlite_budget::SharedVmWindow::callback_state_upper_bound())
-    }).transpose()?;
+    let _fresh_callback_hold = controlled
+        .map(|budget| {
+            budget
+                .creation_state
+                .hold(sqlite_budget::SharedVmWindow::callback_state_upper_bound())
+        })
+        .transpose()?;
     // Distinct retained connection Rust must remain admitted while every
     // verifier/settings statement is live. The once-process VFS and native
     // SQLite heap pool are still retained by the original session owner.
-    let connection_bytes = tos_source_store::PinnedSqliteConnection::immutable_retained_rust_state_upper_bound();
-    let _fresh_connection_hold = controlled.map(|budget| {
-        budget.creation_state.hold(connection_bytes)
-    }).transpose()?;
+    let connection_bytes =
+        tos_source_store::PinnedSqliteConnection::immutable_retained_rust_state_upper_bound();
+    let _fresh_connection_hold = controlled
+        .map(|budget| budget.creation_state.hold(connection_bytes))
+        .transpose()?;
     // Caller has already retained the once-process SourceStore Rust VFS owner.
     // This open retains its distinct File/connection owner under the same model
     // remainder; the native SQLite allocator remains in the one shared heap.
-    let window = controlled.map(|budget| {
-        budget.admit(0)?;
-        sqlite_budget::SharedVmWindow::reserve(Arc::clone(&used), budget.original_sql_limit)
-    }).transpose()?;
+    let window = controlled
+        .map(|budget| {
+            budget.admit(0)?;
+            sqlite_budget::SharedVmWindow::reserve(Arc::clone(&used), budget.original_sql_limit)
+        })
+        .transpose()?;
     let db = if let Some(budget) = controlled {
         let remaining = |extra: usize| {
             // SourceStore's sole opening preflight includes this exact retained
             // connection alias. It is already held above; only its opening
             // workspace is prospective here, never the process pool/VFS/hook.
-            let extra = extra.checked_sub(connection_bytes).ok_or_else(||
-                tos_source_store::StoreError::new(tos_source_store::StoreErrorCode::BudgetExceeded,
-                    "owned fresh connection census alias"))?;
-            budget.admit(extra).map_err(|_| tos_source_store::StoreError::new(
-                tos_source_store::StoreErrorCode::BudgetExceeded, "owned stage state refusal"))
+            let extra = extra.checked_sub(connection_bytes).ok_or_else(|| {
+                tos_source_store::StoreError::new(
+                    tos_source_store::StoreErrorCode::BudgetExceeded,
+                    "owned fresh connection census alias",
+                )
+            })?;
+            budget.admit(extra).map_err(|_| {
+                tos_source_store::StoreError::new(
+                    tos_source_store::StoreErrorCode::BudgetExceeded,
+                    "owned stage state refusal",
+                )
+            })
         };
-        tos_source_store::PinnedSqliteConnection::open_readonly_immutable_with_state(pinned, &remaining)
-            .map_err(owned_stage_sql_error)?
+        tos_source_store::PinnedSqliteConnection::open_readonly_immutable_with_state(
+            pinned, &remaining,
+        )
+        .map_err(owned_stage_sql_error)?
     } else {
         tos_source_store::PinnedSqliteConnection::open_readonly_immutable(pinned)
             .map_err(|error| Error::Source(error.to_string()))?
     };
     if let Some(window) = window {
-        window.install(&db, deadline.ok_or(Error::Invalid("owned selected stage deadline"))?,
-            Arc::clone(&controlled.expect("owned stage budget").cancelled));
-    } else { sqlite_budget::install_progress(&db, limits, used); }
+        window.install(
+            &db,
+            deadline.ok_or(Error::Invalid("owned selected stage deadline"))?,
+            Arc::clone(&controlled.expect("owned stage budget").cancelled),
+        );
+    } else {
+        sqlite_budget::install_progress(&db, limits, used);
+    }
     if let Some(budget) = controlled {
-        if db.retained_rust_state_upper_bound().map_err(owned_stage_sql_error)? > connection_bytes {
-            return Err(Error::Budget("fresh connection Rust exceeds original admission"));
+        if db
+            .retained_rust_state_upper_bound()
+            .map_err(owned_stage_sql_error)?
+            > connection_bytes
+        {
+            return Err(Error::Budget(
+                "fresh connection Rust exceeds original admission",
+            ));
         }
-        configure_fresh_readonly_owned(&db, u64::from(limits.sqlite_cache_kib), budget.creation_state)?;
+        configure_fresh_readonly_owned(
+            &db,
+            u64::from(limits.sqlite_cache_kib),
+            budget.creation_state,
+        )?;
     } else {
         db.pragma_update(None, "cache_size", -(limits.sqlite_cache_kib as i64))?;
         db.execute_batch("PRAGMA temp_store=FILE")?;
     }
     if layout == KnowledgePayloadLayout::CarrierOnceV1 {
         crate::knowledge_selected::verify_schema_with_layout(
-            &db, layout, controlled.map(|budget| budget.creation_state),
+            &db,
+            layout,
+            controlled.map(|budget| budget.creation_state),
         )?;
     } else {
         crate::knowledge_selected::verify_schema(&db)?;
@@ -4396,38 +4886,58 @@ fn root_item(hash: &mut Digest256Hasher, id: &str, digest: &[u8]) {
     hash.update(id.as_bytes());
     hash.update(digest);
 }
-fn owned_stage_sql_error(error:tos_source_store::StoreError)->Error {
-    if error.code==tos_source_store::StoreErrorCode::BudgetExceeded {
+fn owned_stage_sql_error(error: tos_source_store::StoreError) -> Error {
+    if error.code == tos_source_store::StoreErrorCode::BudgetExceeded {
         Error::Budget("owned stage bounded SQL budget")
-    } else {Error::Invalid("owned stage bounded SQL refusal")}
+    } else {
+        Error::Invalid("owned stage bounded SQL refusal")
+    }
 }
 
 // Fixed SQL spelling workspace is admitted before initialization/formatting.
 // The installed prepaid hook and process pool remain the original Stage owners.
-fn configure_stage_temp_cap_owned(db: &Connection, max_temp_bytes: u64,
-    state: &crate::d1_public_capture::CreationState<'_>) -> Result<()> {
-    struct Sql { bytes: [u8; 96], len: usize }
+fn configure_stage_temp_cap_owned(
+    db: &Connection,
+    max_temp_bytes: u64,
+    state: &crate::d1_public_capture::CreationState<'_>,
+) -> Result<()> {
+    struct Sql {
+        bytes: [u8; 96],
+        len: usize,
+    }
     impl std::fmt::Write for Sql {
         fn write_str(&mut self, value: &str) -> std::fmt::Result {
             let end = self.len.checked_add(value.len()).ok_or(std::fmt::Error)?;
-            if end >= self.bytes.len() { return Err(std::fmt::Error); }
+            if end >= self.bytes.len() {
+                return Err(std::fmt::Error);
+            }
             self.bytes[self.len..end].copy_from_slice(value.as_bytes());
             self.len = end;
             Ok(())
         }
     }
     use std::fmt::Write;
-    let _frame_hold = state.hold(std::mem::size_of::<Sql>()
-        + 3 * std::mem::size_of::<u64>() + 2 * std::mem::size_of::<Result<i64>>())?;
+    let _frame_hold = state.hold(
+        std::mem::size_of::<Sql>()
+            + 3 * std::mem::size_of::<u64>()
+            + 2 * std::mem::size_of::<Result<i64>>(),
+    )?;
     let page_size = u64::try_from(stage_integer_owned(db, c"PRAGMA temp.page_size", state)?)
-        .ok().filter(|n| *n != 0).ok_or(Error::Invalid("owned Stage TEMP page size"))?;
+        .ok()
+        .filter(|n| *n != 0)
+        .ok_or(Error::Invalid("owned Stage TEMP page size"))?;
     let pages = max_temp_bytes / page_size;
-    if pages == 0 || pages > i64::MAX as u64 { return Err(Error::Budget("owned Stage TEMP page cap")); }
+    if pages == 0 || pages > i64::MAX as u64 {
+        return Err(Error::Budget("owned Stage TEMP page cap"));
+    }
     state.charge_work(96 + 95)?;
-    let mut sql = Sql { bytes: [0; 96], len: 0 };
+    let mut sql = Sql {
+        bytes: [0; 96],
+        len: 0,
+    };
     write!(&mut sql, "PRAGMA temp.max_page_count={pages}")
         .map_err(|_| Error::Budget("owned Stage TEMP SQL spelling"))?;
-    let sql = std::ffi::CStr::from_bytes_with_nul(&sql.bytes[..sql.len+1])
+    let sql = std::ffi::CStr::from_bytes_with_nul(&sql.bytes[..sql.len + 1])
         .map_err(|_| Error::Invalid("owned Stage TEMP SQL spelling"))?;
     let applied = stage_integer_owned(db, sql, state)?;
     if applied <= 0 || applied as u64 > pages {
@@ -4436,156 +4946,233 @@ fn configure_stage_temp_cap_owned(db: &Connection, max_temp_bytes: u64,
     state.active()
 }
 
-fn verify_fresh_sidecars_owned(path:&Path,
-    state:&crate::d1_public_capture::CreationState<'_>)->Result<()> {
-    let base=path.as_os_str();
-    let cap=base.as_encoded_bytes().len().checked_add(8)
+fn verify_fresh_sidecars_owned(
+    path: &Path,
+    state: &crate::d1_public_capture::CreationState<'_>,
+) -> Result<()> {
+    let base = path.as_os_str();
+    let cap = base
+        .as_encoded_bytes()
+        .len()
+        .checked_add(8)
         .ok_or(Error::Budget("fresh sidecar path bytes"))?;
-    let bytes=cap.checked_mul(3).and_then(|n|n.checked_add(cap+1))
-        .and_then(|n|n.checked_add(std::mem::size_of::<[PathBuf;3]>()
-            + std::mem::size_of::<fs::Metadata>()))
+    let bytes = cap
+        .checked_mul(3)
+        .and_then(|n| n.checked_add(cap + 1))
+        .and_then(|n| {
+            n.checked_add(std::mem::size_of::<[PathBuf; 3]>() + std::mem::size_of::<fs::Metadata>())
+        })
         .ok_or(Error::Budget("fresh sidecar state"))?;
-    let _hold=state.hold(bytes)?;
+    let _hold = state.hold(bytes)?;
     // Exact pre-reserved spelling prevents OsString append growth/reallocation
     // while the previous three path buffers are simultaneously live.
-    let make=|suffix:&str|->Result<PathBuf>{
-        state.charge_work(base.as_encoded_bytes().len().checked_add(suffix.len())
-            .ok_or(Error::Budget("fresh sidecar copy work"))?)?;
-        let mut name=std::ffi::OsString::with_capacity(cap);
-        name.push(base);name.push(suffix);Ok(PathBuf::from(name))
+    let make = |suffix: &str| -> Result<PathBuf> {
+        state.charge_work(
+            base.as_encoded_bytes()
+                .len()
+                .checked_add(suffix.len())
+                .ok_or(Error::Budget("fresh sidecar copy work"))?,
+        )?;
+        let mut name = std::ffi::OsString::with_capacity(cap);
+        name.push(base);
+        name.push(suffix);
+        Ok(PathBuf::from(name))
     };
-    let sidecars=[make("-journal")?,make("-wal")?,make("-shm")?];
+    let sidecars = [make("-journal")?, make("-wal")?, make("-shm")?];
     for sidecar in &sidecars {
         state.charge_work(sidecar.as_os_str().as_encoded_bytes().len())?;
         match fs::symlink_metadata(sidecar) {
-            Ok(_)=>return Err(Error::Invalid("fresh selected SQLite sidecar")),
-            Err(error) if error.kind()==std::io::ErrorKind::NotFound=>(),
-            Err(error)=>return Err(Error::Io(error)),
+            Ok(_) => return Err(Error::Invalid("fresh selected SQLite sidecar")),
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => (),
+            Err(error) => return Err(Error::Io(error)),
         }
     }
     state.active()
 }
 
-fn configure_fresh_readonly_owned(db: &Connection, cache_kib: u64,
-    state: &crate::d1_public_capture::CreationState<'_>) -> Result<()> {
-    struct Sql { bytes: [u8;96], len:usize }
+fn configure_fresh_readonly_owned(
+    db: &Connection,
+    cache_kib: u64,
+    state: &crate::d1_public_capture::CreationState<'_>,
+) -> Result<()> {
+    struct Sql {
+        bytes: [u8; 96],
+        len: usize,
+    }
     impl std::fmt::Write for Sql {
-        fn write_str(&mut self, text:&str)->std::fmt::Result {
-            let end=self.len.checked_add(text.len()).ok_or(std::fmt::Error)?;
-            if end>=self.bytes.len(){return Err(std::fmt::Error);}
-            self.bytes[self.len..end].copy_from_slice(text.as_bytes());self.len=end;Ok(())
+        fn write_str(&mut self, text: &str) -> std::fmt::Result {
+            let end = self.len.checked_add(text.len()).ok_or(std::fmt::Error)?;
+            if end >= self.bytes.len() {
+                return Err(std::fmt::Error);
+            }
+            self.bytes[self.len..end].copy_from_slice(text.as_bytes());
+            self.len = end;
+            Ok(())
         }
     }
     use std::fmt::Write;
-    let _sql_hold=state.hold(std::mem::size_of::<Sql>()+2*std::mem::size_of::<i64>())?;
-    let cache=i64::try_from(cache_kib).map_err(|_|Error::Budget("fresh cache integer"))?;
-    state.charge_work(96+95)?;
-    let mut sql=Sql{bytes:[0;96],len:0};
-    write!(&mut sql,"PRAGMA cache_size={}",-cache).map_err(|_|Error::Budget("fresh cache SQL"))?;
-    let text=std::ffi::CStr::from_bytes_with_nul(&sql.bytes[..sql.len+1])
-        .map_err(|_|Error::Invalid("fresh cache SQL"))?;
+    let _sql_hold = state.hold(std::mem::size_of::<Sql>() + 2 * std::mem::size_of::<i64>())?;
+    let cache = i64::try_from(cache_kib).map_err(|_| Error::Budget("fresh cache integer"))?;
+    state.charge_work(96 + 95)?;
+    let mut sql = Sql {
+        bytes: [0; 96],
+        len: 0,
+    };
+    write!(&mut sql, "PRAGMA cache_size={}", -cache)
+        .map_err(|_| Error::Budget("fresh cache SQL"))?;
+    let text = std::ffi::CStr::from_bytes_with_nul(&sql.bytes[..sql.len + 1])
+        .map_err(|_| Error::Invalid("fresh cache SQL"))?;
     // Assignment PRAGMA does not return a row, so use the same bounded batch
     // kernel after its explicit spelling and workspace have been admitted.
     state.charge_work(text.to_bytes().len())?;
-    let _statement_hold=state.hold(tos_source_store::PinnedBoundedStatement::owned_connection_rust_workspace_upper_bound())?;
-    let mut statement=tos_source_store::PinnedBoundedStatement::prepare_on_owned_connection(db,text)
-        .map_err(owned_stage_sql_error)?;
+    let _statement_hold = state.hold(
+        tos_source_store::PinnedBoundedStatement::owned_connection_rust_workspace_upper_bound(),
+    )?;
+    let mut statement =
+        tos_source_store::PinnedBoundedStatement::prepare_on_owned_connection(db, text)
+            .map_err(owned_stage_sql_error)?;
     state.active()?;
-    if statement.step().map_err(owned_stage_sql_error)? {return Err(Error::Invalid("fresh cache unexpected row"));}
+    if statement.step().map_err(owned_stage_sql_error)? {
+        return Err(Error::Invalid("fresh cache unexpected row"));
+    }
     drop(statement);
-    stage_batch_owned(db,c"PRAGMA temp_store=FILE",state)?;
-    if stage_integer_owned(db,c"PRAGMA cache_size",state)? != -cache
-        || stage_integer_owned(db,c"PRAGMA temp_store",state)? != 1 {
+    stage_batch_owned(db, c"PRAGMA temp_store=FILE", state)?;
+    if stage_integer_owned(db, c"PRAGMA cache_size", state)? != -cache
+        || stage_integer_owned(db, c"PRAGMA temp_store", state)? != 1
+    {
         return Err(Error::Invalid("fresh cache/temp setting differs"));
     }
     state.active()
 }
 
-fn verify_fresh_integrity_owned(db:&Connection,
-    state:&crate::d1_public_capture::CreationState<'_>)->Result<()> {
+fn verify_fresh_integrity_owned(
+    db: &Connection,
+    state: &crate::d1_public_capture::CreationState<'_>,
+) -> Result<()> {
     state.charge_work(c"PRAGMA integrity_check".to_bytes().len())?;
-    let _hold=state.hold(tos_source_store::PinnedBoundedStatement::owned_connection_rust_workspace_upper_bound())?;
-    let mut statement=tos_source_store::PinnedBoundedStatement::prepare_on_owned_connection(db,c"PRAGMA integrity_check")
-        .map_err(owned_stage_sql_error)?;
+    let _hold = state.hold(
+        tos_source_store::PinnedBoundedStatement::owned_connection_rust_workspace_upper_bound(),
+    )?;
+    let mut statement = tos_source_store::PinnedBoundedStatement::prepare_on_owned_connection(
+        db,
+        c"PRAGMA integrity_check",
+    )
+    .map_err(owned_stage_sql_error)?;
     state.active()?;
-    if !statement.step().map_err(owned_stage_sql_error)? {return Err(Error::Invalid("fresh integrity absent"));}
-    let text=match statement.value_ref(0).map_err(owned_stage_sql_error)? {
-        rusqlite::types::ValueRef::Text(raw)=>raw,
-        _=>return Err(Error::Invalid("fresh integrity type")),
+    if !statement.step().map_err(owned_stage_sql_error)? {
+        return Err(Error::Invalid("fresh integrity absent"));
+    }
+    let text = match statement.value_ref(0).map_err(owned_stage_sql_error)? {
+        rusqlite::types::ValueRef::Text(raw) => raw,
+        _ => return Err(Error::Invalid("fresh integrity type")),
     };
     // Any other SQLite diagnostic row is rejected while still borrowed. It
     // never becomes an unpriced String or UTF8 scan in the Rust owner.
-    if text.len()!=2 {return Err(Error::Invalid("fresh integrity differs"));}
+    if text.len() != 2 {
+        return Err(Error::Invalid("fresh integrity differs"));
+    }
     state.charge_work(2)?;
-    if text!=b"ok" {return Err(Error::Invalid("fresh integrity differs"));}
+    if text != b"ok" {
+        return Err(Error::Invalid("fresh integrity differs"));
+    }
     state.active()?;
-    if statement.step().map_err(owned_stage_sql_error)? {return Err(Error::Invalid("fresh integrity extra row"));}
+    if statement.step().map_err(owned_stage_sql_error)? {
+        return Err(Error::Invalid("fresh integrity extra row"));
+    }
     drop(statement);
-    if stage_integer_owned(db,c"PRAGMA freelist_count",state)? != 0 {
+    if stage_integer_owned(db, c"PRAGMA freelist_count", state)? != 0 {
         return Err(Error::Invalid("fresh selected SQLite integrity/pages"));
     }
     state.active()
 }
 
-fn stage_stream_digest_owned(file:&mut fs::File,max_bytes:u64,
-    state:&crate::d1_public_capture::CreationState<'_>)->Result<(String,u64)> {
+fn stage_stream_digest_owned(
+    file: &mut fs::File,
+    max_bytes: u64,
+    state: &crate::d1_public_capture::CreationState<'_>,
+) -> Result<(String, u64)> {
     // The receipt forecast already retains the one resulting 64-byte hex
     // string. The actual kernel buffer and callback controller live only here.
-    let _hold=state.hold(65536+std::mem::size_of::<Digest256Hasher>()
-        +std::mem::size_of::<(bool,u64)>()+std::mem::size_of::<Result<(String,u64)>>())?;
-    state.charge_work(65536+64)?; // buffer initialization and final hex spelling
+    let _hold = state.hold(
+        65536
+            + std::mem::size_of::<Digest256Hasher>()
+            + std::mem::size_of::<(bool, u64)>()
+            + std::mem::size_of::<Result<(String, u64)>>(),
+    )?;
+    state.charge_work(65536 + 64)?; // buffer initialization and final hex spelling
     state.active()?;
-    let mut before_read=true;
-    let mut observed=0u64;
-    let callback=|bytes:usize| {
+    let mut before_read = true;
+    let mut observed = 0u64;
+    let callback = |bytes: usize| {
         state.active()?;
         if before_read {
             // Prepaid request ceiling: a short/failed read does not renew or
             // refund this original byte-work reservation. It is not labeled
             // exact observed IO usage. The maintained kernel requests 64 KiB.
             state.charge_work(65536)?;
-            before_read=false;
+            before_read = false;
         } else {
-            before_read=true;
-            observed=observed.checked_add(bytes as u64)
-                .filter(|n|*n<=max_bytes).ok_or(Error::Budget("owned stage digest bytes"))?;
+            before_read = true;
+            observed = observed
+                .checked_add(bytes as u64)
+                .filter(|n| *n <= max_bytes)
+                .ok_or(Error::Budget("owned stage digest bytes"))?;
             state.charge_work(bytes)?; // actual hash traversal, before update
         }
         state.active()
     };
     // This is the actual closure target moved into the maintained kernel;
     // its captured owner references/cap are distinct from captured scalars.
-    let _callback_hold=state.hold(std::mem::size_of_val(&callback))?;
-    crate::stream_digest_with_check(file,callback)
+    let _callback_hold = state.hold(std::mem::size_of_val(&callback))?;
+    crate::stream_digest_with_check(file, callback)
 }
 
-fn stage_integrity_first_row_owned(db:&Connection,
-    state:&crate::d1_public_capture::CreationState<'_>)->Result<bool> {
+fn stage_integrity_first_row_owned(
+    db: &Connection,
+    state: &crate::d1_public_capture::CreationState<'_>,
+) -> Result<bool> {
     state.charge_work(c"PRAGMA integrity_check".to_bytes().len())?;
-    let _hold=state.hold(tos_source_store::PinnedBoundedStatement::owned_connection_rust_workspace_upper_bound())?;
-    let mut statement=tos_source_store::PinnedBoundedStatement::prepare_on_owned_connection(db,c"PRAGMA integrity_check")
-        .map_err(owned_stage_sql_error)?;
+    let _hold = state.hold(
+        tos_source_store::PinnedBoundedStatement::owned_connection_rust_workspace_upper_bound(),
+    )?;
+    let mut statement = tos_source_store::PinnedBoundedStatement::prepare_on_owned_connection(
+        db,
+        c"PRAGMA integrity_check",
+    )
+    .map_err(owned_stage_sql_error)?;
     state.active()?;
-    if !statement.step().map_err(owned_stage_sql_error)? {return Err(Error::Invalid("stage integrity absent"));}
-    let text=match statement.value_ref(0).map_err(owned_stage_sql_error)? {
-        rusqlite::types::ValueRef::Text(raw)=>raw,
-        _=>return Err(Error::Invalid("stage integrity type")),
+    if !statement.step().map_err(owned_stage_sql_error)? {
+        return Err(Error::Invalid("stage integrity absent"));
+    }
+    let text = match statement.value_ref(0).map_err(owned_stage_sql_error)? {
+        rusqlite::types::ValueRef::Text(raw) => raw,
+        _ => return Err(Error::Invalid("stage integrity type")),
     };
     // Preserve the maintained first-row predicate without materializing any
     // diagnostic text or scanning unbounded UTF8 on a refusal path.
-    let valid=if text.len()==2 {state.charge_work(2)?;text==b"ok"} else {false};
+    let valid = if text.len() == 2 {
+        state.charge_work(2)?;
+        text == b"ok"
+    } else {
+        false
+    };
     state.active()?;
     Ok(valid)
 }
 
-fn stage_integer_owned(db: &Connection, sql: &std::ffi::CStr,
+fn stage_integer_owned(
+    db: &Connection,
+    sql: &std::ffi::CStr,
     state: &crate::d1_public_capture::CreationState<'_>,
 ) -> Result<i64> {
     state.active()?;
     state.charge_work(sql.to_bytes().len())?;
-    let _hold = state.hold(tos_source_store::PinnedBoundedStatement::owned_connection_rust_workspace_upper_bound())?;
-    let mut statement = tos_source_store::PinnedBoundedStatement::prepare_on_owned_connection(db, sql)
-        .map_err(owned_stage_sql_error)?;
+    let _hold = state.hold(
+        tos_source_store::PinnedBoundedStatement::owned_connection_rust_workspace_upper_bound(),
+    )?;
+    let mut statement =
+        tos_source_store::PinnedBoundedStatement::prepare_on_owned_connection(db, sql)
+            .map_err(owned_stage_sql_error)?;
     state.active()?;
     if !statement.step().map_err(owned_stage_sql_error)? {
         return Err(Error::Invalid("owned stage scalar row absent"));
@@ -4599,90 +5186,162 @@ fn stage_integer_owned(db: &Connection, sql: &std::ffi::CStr,
     Ok(value)
 }
 
-fn stage_batch_owned(db: &Connection, sql: &'static std::ffi::CStr,
-    state: &crate::d1_public_capture::CreationState<'_>) -> Result<()> {
+fn stage_batch_owned(
+    db: &Connection,
+    sql: &'static std::ffi::CStr,
+    state: &crate::d1_public_capture::CreationState<'_>,
+) -> Result<()> {
     state.charge_work(sql.to_bytes().len())?;
-    let _hold = state.hold(tos_source_store::PinnedBoundedStatement::owned_connection_rust_workspace_upper_bound())?;
-    let check = || state.active().map_err(|_| tos_source_store::StoreError::new(
-        tos_source_store::StoreErrorCode::BudgetExceeded, "owned stage SQL active refusal"));
-    tos_source_store::PinnedBoundedStatement::execute_static_batch_on_owned_connection(db, sql, &check)
-        .map_err(owned_stage_sql_error)
+    let _hold = state.hold(
+        tos_source_store::PinnedBoundedStatement::owned_connection_rust_workspace_upper_bound(),
+    )?;
+    let check = || {
+        state.active().map_err(|_| {
+            tos_source_store::StoreError::new(
+                tos_source_store::StoreErrorCode::BudgetExceeded,
+                "owned stage SQL active refusal",
+            )
+        })
+    };
+    tos_source_store::PinnedBoundedStatement::execute_static_batch_on_owned_connection(
+        db, sql, &check,
+    )
+    .map_err(owned_stage_sql_error)
 }
 
 // These are borrowed values on the existing fixed row frame, not a heap or
 // a new SQL/domain representation. SQLite copies remain in the shared heap pool.
-enum StageSqlBinding<'a> { Text(&'a str), OptionalText(Option<&'a str>), Integer(i64), Blob(&'a [u8]) }
-fn stage_insert_owned(db: &Connection, sql: &std::ffi::CStr, values: &[StageSqlBinding<'_>],
-    state: &crate::d1_public_capture::CreationState<'_>) -> Result<()> {
+enum StageSqlBinding<'a> {
+    Text(&'a str),
+    OptionalText(Option<&'a str>),
+    Integer(i64),
+    Blob(&'a [u8]),
+}
+fn stage_insert_owned(
+    db: &Connection,
+    sql: &std::ffi::CStr,
+    values: &[StageSqlBinding<'_>],
+    state: &crate::d1_public_capture::CreationState<'_>,
+) -> Result<()> {
     state.charge_work(sql.to_bytes().len())?;
-    let _statement_hold = state.hold(tos_source_store::PinnedBoundedStatement::owned_connection_rust_workspace_upper_bound())?;
-    let mut statement = tos_source_store::PinnedBoundedStatement::prepare_on_owned_connection(db, sql)
-        .map_err(owned_stage_sql_error)?;
+    let _statement_hold = state.hold(
+        tos_source_store::PinnedBoundedStatement::owned_connection_rust_workspace_upper_bound(),
+    )?;
+    let mut statement =
+        tos_source_store::PinnedBoundedStatement::prepare_on_owned_connection(db, sql)
+            .map_err(owned_stage_sql_error)?;
     for (slot, value) in values.iter().enumerate() {
         state.active()?;
-        let index = i32::try_from(slot+1).map_err(|_| Error::Budget("owned stage SQL binding count"))?;
+        let index =
+            i32::try_from(slot + 1).map_err(|_| Error::Budget("owned stage SQL binding count"))?;
         match value {
             StageSqlBinding::Text(text) | StageSqlBinding::OptionalText(Some(text)) => {
                 state.charge_work(text.len())?;
-                statement.bind_text(index, text).map_err(owned_stage_sql_error)?;
+                statement
+                    .bind_text(index, text)
+                    .map_err(owned_stage_sql_error)?;
             }
-            StageSqlBinding::OptionalText(None) => statement.bind_null(index).map_err(owned_stage_sql_error)?,
-            StageSqlBinding::Integer(value) => statement.bind_i64(index, *value).map_err(owned_stage_sql_error)?,
+            StageSqlBinding::OptionalText(None) => {
+                statement.bind_null(index).map_err(owned_stage_sql_error)?
+            }
+            StageSqlBinding::Integer(value) => statement
+                .bind_i64(index, *value)
+                .map_err(owned_stage_sql_error)?,
             StageSqlBinding::Blob(bytes) => {
                 state.charge_work(bytes.len())?;
-                statement.bind_blob(index, bytes).map_err(owned_stage_sql_error)?;
+                statement
+                    .bind_blob(index, bytes)
+                    .map_err(owned_stage_sql_error)?;
             }
         }
     }
     state.active()?;
     if statement.step().map_err(owned_stage_sql_error)? {
-        return Err(Error::Invalid("owned stage insert unexpectedly returned row"));
+        return Err(Error::Invalid(
+            "owned stage insert unexpectedly returned row",
+        ));
     }
     state.active()
 }
 
-fn stage_root_owned(db:&Connection,sql:&std::ffi::CStr,entry:Option<&InputCollectionReceipt>,
-    output:bool,state:&crate::d1_public_capture::CreationState<'_>)->Result<(u64,String)> {
+fn stage_root_owned(
+    db: &Connection,
+    sql: &std::ffi::CStr,
+    entry: Option<&InputCollectionReceipt>,
+    output: bool,
+    state: &crate::d1_public_capture::CreationState<'_>,
+) -> Result<(u64, String)> {
     state.charge_work(sql.to_bytes().len())?;
-    let _statement_hold=state.hold(tos_source_store::PinnedBoundedStatement::owned_connection_rust_workspace_upper_bound())?;
-    let mut statement=tos_source_store::PinnedBoundedStatement::prepare_on_owned_connection(db,sql)
-        .map_err(owned_stage_sql_error)?;
-    if let Some(entry)=entry {
-        statement.bind_text(1,&entry.source_graph).map_err(owned_stage_sql_error)?;
-        statement.bind_text(2,&entry.collection).map_err(owned_stage_sql_error)?;
+    let _statement_hold = state.hold(
+        tos_source_store::PinnedBoundedStatement::owned_connection_rust_workspace_upper_bound(),
+    )?;
+    let mut statement =
+        tos_source_store::PinnedBoundedStatement::prepare_on_owned_connection(db, sql)
+            .map_err(owned_stage_sql_error)?;
+    if let Some(entry) = entry {
+        statement
+            .bind_text(1, &entry.source_graph)
+            .map_err(owned_stage_sql_error)?;
+        statement
+            .bind_text(2, &entry.collection)
+            .map_err(owned_stage_sql_error)?;
     }
-    let mut hash=Digest256Hasher::new();let mut count=0u64;
+    let mut hash = Digest256Hasher::new();
+    let mut count = 0u64;
     loop {
         state.active()?;
-        if !statement.step().map_err(owned_stage_sql_error)? {break;}
-        let raw_id=match statement.value_ref(0).map_err(owned_stage_sql_error)? {
-            rusqlite::types::ValueRef::Text(raw)=>raw,_=>return Err(Error::Invalid("owned stage root id type")),
-        };
-        if raw_id.len()>MAX_NAME_BYTES {return Err(Error::Budget("owned stage root id bytes"));}
-        state.charge_work(raw_id.len())?;
-        let id=std::str::from_utf8(raw_id).map_err(|_|Error::Invalid("owned stage root id UTF8"))?;
-        let digest=match statement.value_ref(if output {3}else{1}).map_err(owned_stage_sql_error)? {
-            rusqlite::types::ValueRef::Blob(raw)=>raw,_=>return Err(Error::Invalid("owned stage root digest type")),
-        };
-        if digest.len()!=32 {return Err(Error::Invalid("stage payload digest size"));}
-        if output {
-            let order=statement.integer(2).map_err(owned_stage_sql_error)?;
-            if order<0 || order as u64!=count {return Err(Error::Invalid("stage output source order/digest"));}
+        if !statement.step().map_err(owned_stage_sql_error)? {
+            break;
         }
-        state.charge_work(id.len().checked_add(digest.len()).ok_or(Error::Budget("owned stage root hash work"))?)?;
-        root_item(&mut hash,id,digest);
-        count=count.checked_add(1).ok_or(Error::Budget("stage root rows"))?;
+        let raw_id = match statement.value_ref(0).map_err(owned_stage_sql_error)? {
+            rusqlite::types::ValueRef::Text(raw) => raw,
+            _ => return Err(Error::Invalid("owned stage root id type")),
+        };
+        if raw_id.len() > MAX_NAME_BYTES {
+            return Err(Error::Budget("owned stage root id bytes"));
+        }
+        state.charge_work(raw_id.len())?;
+        let id =
+            std::str::from_utf8(raw_id).map_err(|_| Error::Invalid("owned stage root id UTF8"))?;
+        let digest = match statement
+            .value_ref(if output { 3 } else { 1 })
+            .map_err(owned_stage_sql_error)?
+        {
+            rusqlite::types::ValueRef::Blob(raw) => raw,
+            _ => return Err(Error::Invalid("owned stage root digest type")),
+        };
+        if digest.len() != 32 {
+            return Err(Error::Invalid("stage payload digest size"));
+        }
+        if output {
+            let order = statement.integer(2).map_err(owned_stage_sql_error)?;
+            if order < 0 || order as u64 != count {
+                return Err(Error::Invalid("stage output source order/digest"));
+            }
+        }
+        state.charge_work(
+            id.len()
+                .checked_add(digest.len())
+                .ok_or(Error::Budget("owned stage root hash work"))?,
+        )?;
+        root_item(&mut hash, id, digest);
+        count = count
+            .checked_add(1)
+            .ok_or(Error::Budget("stage root rows"))?;
     }
     state.retain(64)?;
-    Ok((count,hash.finalize().to_hex()))
+    Ok((count, hash.finalize().to_hex()))
 }
 
-fn input_root(db:&Connection,entry:&InputCollectionReceipt)->Result<(u64,String)> {
-    input_root_with_state(db,entry,None)
+fn input_root(db: &Connection, entry: &InputCollectionReceipt) -> Result<(u64, String)> {
+    input_root_with_state(db, entry, None)
 }
-fn input_root_with_state(db:&Connection,entry:&InputCollectionReceipt,
-    state:Option<&crate::d1_public_capture::CreationState<'_>>) -> Result<(u64,String)> {
-    if let Some(state)=state {
+fn input_root_with_state(
+    db: &Connection,
+    entry: &InputCollectionReceipt,
+    state: Option<&crate::d1_public_capture::CreationState<'_>>,
+) -> Result<(u64, String)> {
+    if let Some(state) = state {
         return stage_root_owned(db,c"SELECT id,payload_sha256 FROM raw_records WHERE source_graph=?1 AND collection=?2 ORDER BY id",Some(entry),false,state);
     }
     let _stmt_hold=state.map(|s|s.hold(tos_source_store::PinnedSqliteConnection::bounded_statement_rust_workspace_upper_bound())).transpose()?;
@@ -4694,36 +5353,57 @@ fn input_root_with_state(db:&Connection,entry:&InputCollectionReceipt,
     let mut hash = Digest256Hasher::new();
     let mut count = 0u64;
     while let Some(row) = rows.next()? {
-        let id_raw=row.get_ref(0)?;
-        if let Some(state)=state {
-            let raw=match id_raw {rusqlite::types::ValueRef::Text(raw)=>raw,_=>return Err(Error::Invalid("owned stage root id type"))};
-            if raw.len()>MAX_NAME_BYTES {return Err(Error::Budget("owned stage root id bytes"));}
+        let id_raw = row.get_ref(0)?;
+        if let Some(state) = state {
+            let raw = match id_raw {
+                rusqlite::types::ValueRef::Text(raw) => raw,
+                _ => return Err(Error::Invalid("owned stage root id type")),
+            };
+            if raw.len() > MAX_NAME_BYTES {
+                return Err(Error::Budget("owned stage root id bytes"));
+            }
             state.charge_work(raw.len())?;
         }
-        let id=id_raw.as_str().map_err(|_| Error::Invalid("selected Stage SQL text column"))?;
-        let digest=row.get_ref(1)?.as_blob().map_err(|_| Error::Invalid("selected Stage SQL blob column"))?;
+        let id = id_raw
+            .as_str()
+            .map_err(|_| Error::Invalid("selected Stage SQL text column"))?;
+        let digest = row
+            .get_ref(1)?
+            .as_blob()
+            .map_err(|_| Error::Invalid("selected Stage SQL blob column"))?;
         if digest.len() != 32 {
             return Err(Error::Invalid("stage payload digest size"));
         }
-        if let Some(state)=state {state.charge_work(id.len().checked_add(digest.len()).ok_or(Error::Budget("owned Stage input hash work"))?)?;}
-        root_item(&mut hash,id,digest);
+        if let Some(state) = state {
+            state.charge_work(
+                id.len()
+                    .checked_add(digest.len())
+                    .ok_or(Error::Budget("owned Stage input hash work"))?,
+            )?;
+        }
+        root_item(&mut hash, id, digest);
         count = count.checked_add(1).ok_or(Error::Budget("input rows"))?;
     }
-    if let Some(state)=state {state.retain(64)?;}
+    if let Some(state) = state {
+        state.retain(64)?;
+    }
     Ok((count, hash.finalize().to_hex()))
 }
-fn output_root(db:&Connection,table:&str)->Result<(u64,String)> {
-    output_root_with_state(db,table,None)
+fn output_root(db: &Connection, table: &str) -> Result<(u64, String)> {
+    output_root_with_state(db, table, None)
 }
-fn output_root_with_state(db:&Connection,table:&str,
-    state:Option<&crate::d1_public_capture::CreationState<'_>>) -> Result<(u64,String)> {
-    if let Some(state)=state {
+fn output_root_with_state(
+    db: &Connection,
+    table: &str,
+    state: Option<&crate::d1_public_capture::CreationState<'_>>,
+) -> Result<(u64, String)> {
+    if let Some(state) = state {
         let sql=match table {
             "knowledge_nodes"=>c"SELECT id,source_graph,source_order,payload_sha256 FROM knowledge_nodes ORDER BY source_graph,id",
             "knowledge_relations"=>c"SELECT id,source_graph,source_order,payload_sha256 FROM knowledge_relations ORDER BY source_graph,id",
             _=>return Err(Error::Invalid("unknown stage output table")),
         };
-        return stage_root_owned(db,sql,None,true,state);
+        return stage_root_owned(db, sql, None, true, state);
     }
     let _stmt_hold=state.map(|s|s.hold(tos_source_store::PinnedSqliteConnection::bounded_statement_rust_workspace_upper_bound())).transpose()?;
     let sql = match table {
@@ -4740,89 +5420,185 @@ fn output_root_with_state(db:&Connection,table:&str,
     let mut hash = Digest256Hasher::new();
     let mut count = 0u64;
     while let Some(row) = rows.next()? {
-        let id_raw=row.get_ref(0)?;
-        if let Some(state)=state {
-            let raw=match id_raw {rusqlite::types::ValueRef::Text(raw)=>raw,_=>return Err(Error::Invalid("owned stage root id type"))};
-            if raw.len()>MAX_NAME_BYTES {return Err(Error::Budget("owned stage root id bytes"));}
+        let id_raw = row.get_ref(0)?;
+        if let Some(state) = state {
+            let raw = match id_raw {
+                rusqlite::types::ValueRef::Text(raw) => raw,
+                _ => return Err(Error::Invalid("owned stage root id type")),
+            };
+            if raw.len() > MAX_NAME_BYTES {
+                return Err(Error::Budget("owned stage root id bytes"));
+            }
             state.charge_work(raw.len())?;
         }
-        let id=id_raw.as_str().map_err(|_| Error::Invalid("selected Stage SQL text column"))?;
+        let id = id_raw
+            .as_str()
+            .map_err(|_| Error::Invalid("selected Stage SQL text column"))?;
         let order: i64 = row.get(2)?;
-        let digest=row.get_ref(3)?.as_blob().map_err(|_| Error::Invalid("selected Stage SQL blob column"))?;
+        let digest = row
+            .get_ref(3)?
+            .as_blob()
+            .map_err(|_| Error::Invalid("selected Stage SQL blob column"))?;
         if digest.len() != 32 || order < 0 || order as u64 != count {
             return Err(Error::Invalid("stage output source order/digest"));
         }
-        if let Some(state)=state { state.charge_work(id.len().checked_add(digest.len())
-            .ok_or(Error::Budget("owned Stage output hash work"))?)?; }
+        if let Some(state) = state {
+            state.charge_work(
+                id.len()
+                    .checked_add(digest.len())
+                    .ok_or(Error::Budget("owned Stage output hash work"))?,
+            )?;
+        }
         root_item(&mut hash, id, digest);
         count = count
             .checked_add(1)
             .ok_or(Error::Budget("stage output rows"))?;
     }
-    if let Some(state)=state {state.retain(64)?;}
+    if let Some(state) = state {
+        state.retain(64)?;
+    }
     Ok((count, hash.finalize().to_hex()))
 }
-fn read_seek_row_bounded(statement: &tos_source_store::PinnedBoundedStatement<'_>,
-    state: &crate::d1_public_capture::CreationState<'_>, cap: usize) -> Result<SeekRow> {
+fn read_seek_row_bounded(
+    statement: &tos_source_store::PinnedBoundedStatement<'_>,
+    state: &crate::d1_public_capture::CreationState<'_>,
+    cap: usize,
+) -> Result<SeekRow> {
     use rusqlite::types::ValueRef;
-    let text=|index| match statement.value_ref(index).map_err(owned_stage_sql_error)? {
-        ValueRef::Text(raw)=>Ok(raw),_=>Err(Error::Invalid("stage bounded seek text type")),
+    let text = |index| match statement.value_ref(index).map_err(owned_stage_sql_error)? {
+        ValueRef::Text(raw) => Ok(raw),
+        _ => Err(Error::Invalid("stage bounded seek text type")),
     };
-    let id_raw=text(0)?;let graph_raw=text(1)?;
-    if id_raw.len()>MAX_NAME_BYTES || graph_raw.len()>MAX_NAME_BYTES {return Err(Error::Budget("owned stage seek text bytes"));}
-    state.charge_work(id_raw.len().checked_mul(2).and_then(|n|n.checked_add(graph_raw.len()))
-        .ok_or(Error::Budget("owned stage seek text traversal"))?)?;
-    let id=std::str::from_utf8(id_raw).map_err(|_|Error::Invalid("stage seek id UTF8"))?;
-    let graph=std::str::from_utf8(graph_raw).map_err(|_|Error::Invalid("stage seek graph UTF8"))?;
+    let id_raw = text(0)?;
+    let graph_raw = text(1)?;
+    if id_raw.len() > MAX_NAME_BYTES || graph_raw.len() > MAX_NAME_BYTES {
+        return Err(Error::Budget("owned stage seek text bytes"));
+    }
+    state.charge_work(
+        id_raw
+            .len()
+            .checked_mul(2)
+            .and_then(|n| n.checked_add(graph_raw.len()))
+            .ok_or(Error::Budget("owned stage seek text traversal"))?,
+    )?;
+    let id = std::str::from_utf8(id_raw).map_err(|_| Error::Invalid("stage seek id UTF8"))?;
+    let graph =
+        std::str::from_utf8(graph_raw).map_err(|_| Error::Invalid("stage seek graph UTF8"))?;
     valid_id(id)?;
-    let order=match statement.value_ref(2).map_err(owned_stage_sql_error)? {
-        ValueRef::Null=>None,ValueRef::Integer(order)=>Some(order),
-        _=>return Err(Error::Invalid("stage bounded seek order type")),
+    let order = match statement.value_ref(2).map_err(owned_stage_sql_error)? {
+        ValueRef::Null => None,
+        ValueRef::Integer(order) => Some(order),
+        _ => return Err(Error::Invalid("stage bounded seek order type")),
     };
-    let payload=match statement.value_ref(3).map_err(owned_stage_sql_error)? {
-        ValueRef::Blob(raw)=>raw,_=>return Err(Error::Invalid("stage seek payload")),
+    let payload = match statement.value_ref(3).map_err(owned_stage_sql_error)? {
+        ValueRef::Blob(raw) => raw,
+        _ => return Err(Error::Invalid("stage seek payload")),
     };
-    if payload.len()>cap {return Err(Error::Budget("stage seek row bytes"));}
-    let digest:[u8;32]=match statement.value_ref(4).map_err(owned_stage_sql_error)? {
-        ValueRef::Blob(raw)=>raw.try_into().map_err(|_|Error::Invalid("stage seek digest bytes"))?,
-        _=>return Err(Error::Invalid("stage seek digest")),
+    if payload.len() > cap {
+        return Err(Error::Budget("stage seek row bytes"));
+    }
+    let digest: [u8; 32] = match statement.value_ref(4).map_err(owned_stage_sql_error)? {
+        ValueRef::Blob(raw) => raw
+            .try_into()
+            .map_err(|_| Error::Invalid("stage seek digest bytes"))?,
+        _ => return Err(Error::Invalid("stage seek digest")),
     };
-    state.retain(std::mem::size_of::<SeekRow>().checked_add(id.len())
-        .and_then(|n|n.checked_add(graph.len())).and_then(|n|n.checked_add(payload.len()))
-        .and_then(|n|n.checked_add(128)).ok_or(Error::Budget("owned stage seek state"))?)?;
+    state.retain(
+        std::mem::size_of::<SeekRow>()
+            .checked_add(id.len())
+            .and_then(|n| n.checked_add(graph.len()))
+            .and_then(|n| n.checked_add(payload.len()))
+            .and_then(|n| n.checked_add(128))
+            .ok_or(Error::Budget("owned stage seek state"))?,
+    )?;
     // Payload copy and the unchanged subsequent digest verification both walk
     // these bytes; admit both before the first copy, including terminal errors.
-    state.charge_work(payload.len().checked_mul(2).and_then(|n|n.checked_add(id.len()))
-        .and_then(|n|n.checked_add(graph.len())).ok_or(Error::Budget("owned stage seek work"))?)?;
-    Ok(SeekRow{id:id.to_owned(),source_graph:graph.to_owned(),source_order:order,
-        payload:payload.to_owned(),payload_sha256:Digest256::from_bytes(digest).to_hex()})
+    state.charge_work(
+        payload
+            .len()
+            .checked_mul(2)
+            .and_then(|n| n.checked_add(id.len()))
+            .and_then(|n| n.checked_add(graph.len()))
+            .ok_or(Error::Budget("owned stage seek work"))?,
+    )?;
+    Ok(SeekRow {
+        id: id.to_owned(),
+        source_graph: graph.to_owned(),
+        source_order: order,
+        payload: payload.to_owned(),
+        payload_sha256: Digest256::from_bytes(digest).to_hex(),
+    })
 }
 
-fn read_seek_row_with_state(row: &rusqlite::Row<'_>,
-    state: Option<&crate::d1_public_capture::CreationState<'_>>, cap: usize) -> Result<SeekRow> {
-    let Some(state) = state else { return Ok(read_seek_row(row)?); };
+fn read_seek_row_with_state(
+    row: &rusqlite::Row<'_>,
+    state: Option<&crate::d1_public_capture::CreationState<'_>>,
+    cap: usize,
+) -> Result<SeekRow> {
+    let Some(state) = state else {
+        return Ok(read_seek_row(row)?);
+    };
     use rusqlite::types::ValueRef;
-    let id_raw=match row.get_ref(0)? {ValueRef::Text(raw)=>raw,_=>return Err(Error::Invalid("stage seek id"))};
-    let graph_raw=match row.get_ref(1)? {ValueRef::Text(raw)=>raw,_=>return Err(Error::Invalid("stage seek graph"))};
-    if id_raw.len()>MAX_NAME_BYTES || graph_raw.len()>MAX_NAME_BYTES {return Err(Error::Budget("owned stage seek text bytes"));}
-    state.charge_work(id_raw.len().checked_mul(2).and_then(|n|n.checked_add(graph_raw.len()))
-        .ok_or(Error::Budget("owned stage seek text traversal"))?)?;
-    let id=std::str::from_utf8(id_raw).map_err(|_|Error::Invalid("stage seek id UTF8"))?;
-    let graph=std::str::from_utf8(graph_raw).map_err(|_|Error::Invalid("stage seek graph UTF8"))?;
+    let id_raw = match row.get_ref(0)? {
+        ValueRef::Text(raw) => raw,
+        _ => return Err(Error::Invalid("stage seek id")),
+    };
+    let graph_raw = match row.get_ref(1)? {
+        ValueRef::Text(raw) => raw,
+        _ => return Err(Error::Invalid("stage seek graph")),
+    };
+    if id_raw.len() > MAX_NAME_BYTES || graph_raw.len() > MAX_NAME_BYTES {
+        return Err(Error::Budget("owned stage seek text bytes"));
+    }
+    state.charge_work(
+        id_raw
+            .len()
+            .checked_mul(2)
+            .and_then(|n| n.checked_add(graph_raw.len()))
+            .ok_or(Error::Budget("owned stage seek text traversal"))?,
+    )?;
+    let id = std::str::from_utf8(id_raw).map_err(|_| Error::Invalid("stage seek id UTF8"))?;
+    let graph =
+        std::str::from_utf8(graph_raw).map_err(|_| Error::Invalid("stage seek graph UTF8"))?;
     valid_id(id)?;
-    if graph.len() > 4096 { return Err(Error::Budget("stage seek graph bytes")); }
-    let payload = match row.get_ref(3)? { ValueRef::Blob(value) => value,
-        _ => return Err(Error::Invalid("stage seek payload")) };
-    if payload.len() > cap { return Err(Error::Budget("stage seek row bytes")); }
-    let digest: [u8;32] = match row.get_ref(4)? { ValueRef::Blob(value) => value.try_into()
-        .map_err(|_| Error::Invalid("stage seek digest bytes"))?, _ => return Err(Error::Invalid("stage seek digest")) };
-    state.retain(std::mem::size_of::<SeekRow>().checked_add(id.len())
-        .and_then(|n| n.checked_add(graph.len())).and_then(|n| n.checked_add(payload.len()))
-        .and_then(|n| n.checked_add(128)).ok_or(Error::Budget("owned stage seek state"))?)?;
-    state.charge_work(payload.len().checked_add(id.len()).and_then(|n| n.checked_add(graph.len()))
-        .ok_or(Error::Budget("owned stage seek work"))?)?;
-    Ok(SeekRow { id: id.to_owned(), source_graph: graph.to_owned(), source_order: row.get(2)?,
-        payload: payload.to_owned(), payload_sha256: Digest256::from_bytes(digest).to_hex() })
+    if graph.len() > 4096 {
+        return Err(Error::Budget("stage seek graph bytes"));
+    }
+    let payload = match row.get_ref(3)? {
+        ValueRef::Blob(value) => value,
+        _ => return Err(Error::Invalid("stage seek payload")),
+    };
+    if payload.len() > cap {
+        return Err(Error::Budget("stage seek row bytes"));
+    }
+    let digest: [u8; 32] = match row.get_ref(4)? {
+        ValueRef::Blob(value) => value
+            .try_into()
+            .map_err(|_| Error::Invalid("stage seek digest bytes"))?,
+        _ => return Err(Error::Invalid("stage seek digest")),
+    };
+    state.retain(
+        std::mem::size_of::<SeekRow>()
+            .checked_add(id.len())
+            .and_then(|n| n.checked_add(graph.len()))
+            .and_then(|n| n.checked_add(payload.len()))
+            .and_then(|n| n.checked_add(128))
+            .ok_or(Error::Budget("owned stage seek state"))?,
+    )?;
+    state.charge_work(
+        payload
+            .len()
+            .checked_add(id.len())
+            .and_then(|n| n.checked_add(graph.len()))
+            .ok_or(Error::Budget("owned stage seek work"))?,
+    )?;
+    Ok(SeekRow {
+        id: id.to_owned(),
+        source_graph: graph.to_owned(),
+        source_order: row.get(2)?,
+        payload: payload.to_owned(),
+        payload_sha256: Digest256::from_bytes(digest).to_hex(),
+    })
 }
 fn read_seek_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<SeekRow> {
     let digest: Vec<u8> = row.get(4)?;
@@ -4873,7 +5649,8 @@ CREATE INDEX knowledge_relations_predicate ON knowledge_relations(predicate_id,s
 "#) }; }
 const SCHEMA: &str = stage_schema_literal!("");
 const SCHEMA_C: &std::ffi::CStr = match std::ffi::CStr::from_bytes_with_nul(
-    concat!(stage_schema_literal!(""), "\0").as_bytes()) {
+    concat!(stage_schema_literal!(""), "\0").as_bytes(),
+) {
     Ok(value) => value,
     Err(_) => panic!("stage static schema contains interior NUL"),
 };
@@ -4881,7 +5658,8 @@ const SCHEMA_C: &std::ffi::CStr = match std::ffi::CStr::from_bytes_with_nul(
 // Same authored table/index schema; only disposable Native input location differs.
 const NATIVE_SCHEMA: &str = stage_schema_literal!("TEMP ");
 const NATIVE_SCHEMA_C: &std::ffi::CStr = match std::ffi::CStr::from_bytes_with_nul(
-    concat!(stage_schema_literal!("TEMP "), "\0").as_bytes()) {
+    concat!(stage_schema_literal!("TEMP "), "\0").as_bytes(),
+) {
     Ok(value) => value,
     Err(_) => panic!("native stage static schema contains interior NUL"),
 };

@@ -29,6 +29,31 @@ impl OriginalPlans {
     pub(crate) fn expected_model_abi(&self) -> &'static str {
         crate::KNOWLEDGE_CORPUS_MODEL_ABI
     }
+    pub(crate) fn expected_model_abi_with_layout(
+        &self,
+        layout: crate::knowledge_stage::KnowledgePayloadLayout,
+    ) -> &'static str {
+        // Both actual Corpus and Philosophy plans are retained in this owner;
+        // the physical branch does not alter their logical receipt law.
+        match layout {
+            crate::knowledge_stage::KnowledgePayloadLayout::InlineV1 => self.expected_model_abi(),
+            crate::knowledge_stage::KnowledgePayloadLayout::CarrierOnceV1 => {
+                crate::knowledge_stage::KNOWLEDGE_CARRIER_ONCE_MODEL_ABI
+            }
+        }
+    }
+
+    pub(crate) fn borrowed_owned(
+        &self,
+        state: &crate::d1_public_capture::CreationState<'_>,
+    ) -> Result<BorrowedOriginalPlans<'_>> {
+        state.retain(
+            (self.nodes.len() + self.edges.len())
+                .checked_mul(std::mem::size_of::<&[u8]>())
+                .ok_or(Error::Budget("owned philosophy borrowed pointer slots"))?,
+        )?;
+        Ok(self.borrowed())
+    }
     pub(crate) fn borrowed(&self) -> BorrowedOriginalPlans<'_> {
         BorrowedOriginalPlans {
             plans: self,
@@ -70,14 +95,61 @@ pub(crate) fn prepare(
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> Result<OriginalPlans> {
+    prepare_inner(
+        capture, binding, vocabulary, limits, deadline, cancelled, None,
+    )
+}
+
+pub(crate) fn prepare_owned<'a>(
+    capture: &'a PublicCapture,
+    binding: &SourceBinding,
+    vocabulary: &QueryVocabulary,
+    limits: CorpusOriginalSourceLimits,
+    deadline: Instant,
+    cancelled: &'a AtomicBool,
+    state: &'a crate::d1_public_capture::CreationState<'a>,
+) -> Result<OriginalPlans> {
+    prepare_inner(
+        capture,
+        binding,
+        vocabulary,
+        limits,
+        deadline,
+        cancelled,
+        Some(state),
+    )
+}
+
+fn prepare_inner<'a>(
+    capture: &'a PublicCapture,
+    binding: &SourceBinding,
+    vocabulary: &QueryVocabulary,
+    limits: CorpusOriginalSourceLimits,
+    deadline: Instant,
+    cancelled: &'a AtomicBool,
+    state: Option<&'a crate::d1_public_capture::CreationState<'a>>,
+) -> Result<OriginalPlans> {
     check(deadline, cancelled)?;
     limits.originals.validate()?;
+    if let Some(state) = state {
+        state.retain(128 + std::mem::size_of::<OriginalPlans>())?;
+    }
     let path = RelativePath::parse("ToS/derived-exports/tos_corpus_index.min.json")
         .map_err(|_| Error::Invalid("snapshot corpus path"))?;
-    let corpus = crate::knowledge_corpus_source::prepare_runtime_corpus_original(
-        capture, &path, binding, vocabulary, limits, deadline, cancelled,
-    )?;
-    let mut header = capture.header_object("philosophy", "", limits.originals.max_row_bytes)?;
+    let corpus = match state {
+        Some(state) => crate::knowledge_corpus_source::prepare_runtime_corpus_original_owned(
+            capture, &path, binding, vocabulary, limits, deadline, cancelled, state,
+        )?,
+        None => crate::knowledge_corpus_source::prepare_runtime_corpus_original(
+            capture, &path, binding, vocabulary, limits, deadline, cancelled,
+        )?,
+    };
+    let mut header = match state {
+        Some(state) => {
+            capture.header_object_owned("philosophy", "", limits.originals.max_row_bytes, state)?
+        }
+        None => capture.header_object("philosophy", "", limits.originals.max_row_bytes)?,
+    };
     let mut count = 1u64;
     let mut total = 0u64;
     let mut nodes = Vec::new();
@@ -96,6 +168,13 @@ pub(crate) fn prepare(
             if raw.len() > limits.originals.max_row_bytes {
                 return Err(Error::Budget("snapshot philosophy original row"));
             }
+            if let Some(state) = state {
+                state.retain(
+                    raw.len()
+                        .checked_add(4 * std::mem::size_of::<Vec<u8>>())
+                        .ok_or(Error::Budget("owned philosophy raw/row slots"))?,
+                )?;
+            }
             output.push(raw.to_vec());
             Ok(())
         })?;
@@ -103,6 +182,9 @@ pub(crate) fn prepare(
     // Views and clusters are original header material for the maintained raw
     // philosophy reader, not normalized node/edge families.
     for collection in ["views", "clusters", "review_packets", "graph_layers"] {
+        if let Some(state) = state {
+            state.retain(7)?;
+        }
         match capture
             .captured_collection_kind("philosophy", collection)?
             .as_deref()
@@ -128,30 +210,69 @@ pub(crate) fn prepare(
                 .checked_add(raw.len())
                 .filter(|n| *n <= limits.originals.max_row_bytes)
                 .ok_or(Error::Budget("snapshot philosophy header collection"))?;
-            rows.push(
+            let value = if let Some(state) = state {
+                state.retain(4 * std::mem::size_of::<serde_json::Value>())?;
+                state.serde_owned(raw, limits.originals.max_row_bytes)?
+            } else {
                 serde_json::from_slice::<serde_json::Value>(raw)
-                    .map_err(|_| Error::Invalid("snapshot philosophy header row"))?,
-            );
+                    .map_err(|_| Error::Invalid("snapshot philosophy header row"))?
+            };
+            rows.push(value);
             Ok(())
         })?;
+        if let Some(state) = state {
+            let count = header
+                .as_object()
+                .ok_or(Error::Invalid("snapshot philosophy header"))?
+                .len();
+            state.retain(
+                crate::knowledge_normalization::serde_object_slots_upper(count + 1)?
+                    + collection.len(),
+            )?;
+        }
         header
             .as_object_mut()
             .ok_or(Error::Invalid("snapshot philosophy header"))?
             .insert(collection.into(), serde_json::Value::Array(rows));
     }
-    let header = crate::knowledge_corpus_source::encode(&header, limits.originals.max_row_bytes)?;
+    let header = match state {
+        Some(state) => state.encode_canonical(&header, limits.originals.max_row_bytes)?,
+        None => crate::knowledge_corpus_source::encode(&header, limits.originals.max_row_bytes)?,
+    };
     total
         .checked_add(header.len() as u64)
         .filter(|n| *n <= limits.originals.max_total_bytes)
         .ok_or(Error::Budget("snapshot philosophy original total"))?;
-    let nodes_root = philosophy_original_rows_root(
-        PhilosophyOriginalCollection::Nodes,
-        &nodes.iter().map(Vec::as_slice).collect::<Vec<_>>(),
-    );
-    let edges_root = philosophy_original_rows_root(
-        PhilosophyOriginalCollection::Edges,
-        &edges.iter().map(Vec::as_slice).collect::<Vec<_>>(),
-    );
+    if let Some(state) = state {
+        state.retain(
+            (nodes.len() + edges.len())
+                .checked_mul(std::mem::size_of::<&[u8]>())
+                .and_then(|n| n.checked_add(3 * 64))
+                .ok_or(Error::Budget("owned philosophy root pointer/string state"))?,
+        )?;
+    }
+    let nodes_borrowed = nodes.iter().map(Vec::as_slice).collect::<Vec<_>>();
+    let edges_borrowed = edges.iter().map(Vec::as_slice).collect::<Vec<_>>();
+    let (nodes_root, edges_root) = if let Some(state) = state {
+        let mut check = |bytes| state.charge_work(bytes);
+        (
+            crate::knowledge_philosophy_original::philosophy_original_rows_root_with_check(
+                PhilosophyOriginalCollection::Nodes,
+                &nodes_borrowed,
+                &mut check,
+            )?,
+            crate::knowledge_philosophy_original::philosophy_original_rows_root_with_check(
+                PhilosophyOriginalCollection::Edges,
+                &edges_borrowed,
+                &mut check,
+            )?,
+        )
+    } else {
+        (
+            philosophy_original_rows_root(PhilosophyOriginalCollection::Nodes, &nodes_borrowed),
+            philosophy_original_rows_root(PhilosophyOriginalCollection::Edges, &edges_borrowed),
+        )
+    };
     let header_sha = Digest256::of_bytes(&header).to_hex();
     check(deadline, cancelled)?;
     capture.check_custody()?;

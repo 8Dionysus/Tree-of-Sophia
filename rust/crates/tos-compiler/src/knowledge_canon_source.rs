@@ -379,6 +379,35 @@ where
     )
 }
 
+/// Same authored CSV grammar, with its parser workspace held before Vec/String
+/// growth. Any row retained beyond emit needs separate caller ownership.
+pub(crate) fn csv_records_with_owned_state<F>(
+    raw: &[u8],
+    l: CanonSourceLimits,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+    state: &crate::d1_public_capture::CreationState<'_>,
+    mut emit: F,
+) -> Result<()>
+where
+    F: FnMut(Vec<String>) -> Result<()>,
+{
+    csv_records_with_spans_owned(
+        raw,
+        CsvReadLimits {
+            max_fields: l.max_csv_fields,
+            max_record_bytes: l.max_csv_record_bytes,
+        },
+        deadline,
+        cancelled,
+        Some(state),
+        |row, _, _| {
+            emit(row)?;
+            Ok(true)
+        },
+    )
+}
+
 /// Exact retained CSV row, parsed by the authored corpus parser. Byte offsets
 /// preserve CR/LF and quoted records; no catalog membership or rights are granted.
 pub fn read_exact_authored_csv_row(
@@ -470,6 +499,42 @@ fn csv_records_with_spans<F>(
 where
     F: FnMut(Vec<String>, usize, usize) -> Result<bool>,
 {
+    csv_records_with_spans_owned(raw, l, deadline, cancelled, None, emit)
+}
+fn csv_records_with_spans_owned<F>(
+    raw: &[u8],
+    l: CsvReadLimits,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+    state: Option<&crate::d1_public_capture::CreationState<'_>>,
+    mut emit: F,
+) -> Result<()>
+where
+    F: FnMut(Vec<String>, usize, usize) -> Result<bool>,
+{
+    let _workspace = if let Some(state) = state {
+        // Pinned Vec growth overlaps old/new buffers. Cells are moved into
+        // Strings without a new allocation; all cell payloads sum to at most
+        // the original record-byte cap, with minimum capacity eight per cell.
+        let cells = l.max_fields.max(4);
+        let upper = l
+            .max_record_bytes
+            .checked_mul(4)
+            .and_then(|n| n.checked_add(cells.checked_mul(8)?))
+            .and_then(|n| n.checked_add(cells.checked_mul(4 * std::mem::size_of::<String>())?))
+            .and_then(|n| {
+                n.checked_add(std::mem::size_of::<Vec<u8>>() + std::mem::size_of::<Vec<String>>())
+            })
+            .ok_or(Error::Budget("owned canon CSV workspace"))?;
+        state.charge_work(
+            raw.len()
+                .checked_mul(3)
+                .ok_or(Error::Budget("owned canon CSV work"))?,
+        )?;
+        Some(state.hold(upper)?)
+    } else {
+        None
+    };
     let text = std::str::from_utf8(raw).map_err(|_| Error::Invalid("canon relation CSV UTF-8"))?;
     let bytes = text.as_bytes();
     let mut i = 0;
@@ -482,6 +547,9 @@ where
     let mut record_bytes = 0usize;
     while i < bytes.len() {
         check(deadline, cancelled)?;
+        if let Some(state) = state {
+            state.active()?;
+        }
         let b = bytes[i];
         i += 1;
         record_bytes = record_bytes

@@ -10,6 +10,7 @@
 
 use crate::{
     Error, Result,
+    d1_public_capture::{CreationState, CreationStateHold},
     knowledge_posting_codec::{
         MAX_POSTING_DELTA_BYTES, MAX_POSTINGS_PER_BLOCK, decode_posting_block, encode_posting_block,
     },
@@ -92,7 +93,7 @@ pub(crate) struct SourceRow {
     pub(crate) payload: Option<Vec<u8>>,
 }
 
-pub(crate) struct Document {
+pub(crate) struct Document<'state, 'budget> {
     pub(crate) id_lower: String,
     pub(crate) native_id_lower: String,
     pub(crate) identity_values: String,
@@ -101,12 +102,15 @@ pub(crate) struct Document {
     pub(crate) chars: usize,
     pub(crate) digest: Digest256,
     pub(crate) serialization_bytes: usize,
+    _holds: Vec<CreationStateHold<'state, 'budget>>,
 }
 
-struct PreparedDocument {
+struct PreparedDocument<'state, 'budget> {
     row: SourceRow,
-    doc: Document,
+    doc: Document<'state, 'budget>,
     offsets: Vec<usize>,
+    _row_hold: Option<CreationStateHold<'state, 'budget>>,
+    _offset_hold: Option<CreationStateHold<'state, 'budget>>,
 }
 
 fn charge(work: &mut u64, amount: usize, limits: SearchBuildLimits) -> Result<()> {
@@ -156,6 +160,7 @@ fn build_inner(
     limits: SearchBuildLimits,
 ) -> Result<SearchIndexReceipt> {
     limits.validate()?;
+    let creation = stage.owned_creation_state();
     stage.with_connection(WritePhase::Search, |db| initialize_search_storage(db))?;
     let mut receipt = SearchIndexReceipt {
         profile: SEARCH_PROFILE,
@@ -173,13 +178,33 @@ fn build_inner(
     ] {
         let mut after = -1i64;
         let before_kind_postings = receipt.postings;
+        let _page_hold = if let Some(creation) = creation {
+            let bytes = limits
+                .gram_batch_rows
+                .checked_mul(std::mem::size_of::<PreparedDocument<'_, '_>>())
+                .ok_or(Error::Budget("search page allocation"))?;
+            Some(creation.hold(bytes)?)
+        } else {
+            None
+        };
         let mut page = Vec::new();
+        page.try_reserve_exact(limits.gram_batch_rows)
+            .map_err(|_| Error::Budget("search page allocation"))?;
         let mut page_text_bytes = 0usize;
         let mut run_count = 0i64;
         loop {
             if page.len() == limits.gram_batch_rows {
                 stage.with_connection_checks(WritePhase::Search, |db, check| {
-                    write_document_page(db, check, &page, kind, run_count, limits, &mut receipt)
+                    write_document_page(
+                        db,
+                        check,
+                        &page,
+                        kind,
+                        run_count,
+                        limits,
+                        &mut receipt,
+                        creation,
+                    )
                 })?;
                 run_count = run_count
                     .checked_add(1)
@@ -188,9 +213,9 @@ fn build_inner(
                 page_text_bytes = 0;
             }
             let row = stage.with_connection(WritePhase::Search, |db| {
-                fetch_next(db, table, after, limits.max_payload_bytes)
+                fetch_next(db, table, after, limits.max_payload_bytes, creation)
             })?;
-            let Some(mut row) = row else {
+            let Some((mut row, row_hold, payload_hold)) = row else {
                 break;
             };
             if row.position
@@ -212,7 +237,7 @@ fn build_inner(
                 return Err(Error::Invalid("search source payload digest/length"));
             }
             charge(&mut receipt.work_bytes, payload.len(), limits)?;
-            let doc = document(&row, kind, payload, limits)?;
+            let doc = document_with_state(&row, kind, payload, limits, creation)?;
             charge(&mut receipt.work_bytes, doc.serialization_bytes, limits)?;
             charge(&mut receipt.work_bytes, doc.text.len(), limits)?;
             charge(
@@ -223,7 +248,19 @@ fn build_inner(
                     + doc.native_id_lower.len(),
                 limits,
             )?;
+            if let Some(creation) = creation {
+                let output_bytes = doc
+                    .serialization_bytes
+                    .checked_add(doc.text.len())
+                    .and_then(|n| n.checked_add(doc.identity_values.len()))
+                    .and_then(|n| n.checked_add(doc.visible_values.len()))
+                    .and_then(|n| n.checked_add(doc.id_lower.len()))
+                    .and_then(|n| n.checked_add(doc.native_id_lower.len()))
+                    .ok_or(Error::Budget("search document output work"))?;
+                creation.charge_work(output_bytes)?;
+            }
             row.payload = None;
+            drop(payload_hold);
             if !page.is_empty()
                 && page_text_bytes
                     .checked_add(doc.text.len())
@@ -231,7 +268,16 @@ fn build_inner(
                     > limits.max_document_bytes
             {
                 stage.with_connection_checks(WritePhase::Search, |db, check| {
-                    write_document_page(db, check, &page, kind, run_count, limits, &mut receipt)
+                    write_document_page(
+                        db,
+                        check,
+                        &page,
+                        kind,
+                        run_count,
+                        limits,
+                        &mut receipt,
+                        creation,
+                    )
                 })?;
                 run_count = run_count
                     .checked_add(1)
@@ -239,17 +285,33 @@ fn build_inner(
                 page.clear();
                 page_text_bytes = 0;
             }
-            let offsets = stage.with_connection_checks(WritePhase::Search, |_, check| {
-                prepare_gram_offsets(&doc, limits, &mut receipt.work_bytes, check)
-            })?;
+            let (offsets, offset_hold) =
+                stage.with_connection_checks(WritePhase::Search, |_, check| {
+                    prepare_gram_offsets(&doc, limits, &mut receipt.work_bytes, check, creation)
+                })?;
             page_text_bytes = page_text_bytes
                 .checked_add(doc.text.len())
                 .ok_or(Error::Budget("search document page bytes"))?;
-            page.push(PreparedDocument { row, doc, offsets });
+            page.push(PreparedDocument {
+                row,
+                doc,
+                offsets,
+                _row_hold: row_hold,
+                _offset_hold: offset_hold,
+            });
         }
         if !page.is_empty() {
             stage.with_connection_checks(WritePhase::Search, |db, check| {
-                write_document_page(db, check, &page, kind, run_count, limits, &mut receipt)
+                write_document_page(
+                    db,
+                    check,
+                    &page,
+                    kind,
+                    run_count,
+                    limits,
+                    &mut receipt,
+                    creation,
+                )
             })?;
             run_count = run_count
                 .checked_add(1)
@@ -282,6 +344,7 @@ fn build_inner(
                 run_count,
                 receipt.postings - before_kind_postings,
                 &mut receipt.work_bytes,
+                creation,
             )
         })?;
         stage.with_connection(WritePhase::Search, |db| {
@@ -298,7 +361,7 @@ fn build_inner(
         Ok(())
     })?;
     let (postings, distinct, root) = stage.with_connection(WritePhase::Search, |db| {
-        verify_and_root(db, &mut receipt, limits)
+        verify_and_root(db, &mut receipt, limits, creation)
     })?;
     if postings != receipt.postings {
         return Err(Error::Invalid("search posting coverage"));
@@ -308,30 +371,93 @@ fn build_inner(
     Ok(receipt)
 }
 
-fn fetch_next(db: &Connection, table: &str, after: i64, cap: usize) -> Result<Option<SourceRow>> {
+fn fetch_next<'state, 'budget>(
+    db: &Connection,
+    table: &str,
+    after: i64,
+    cap: usize,
+    creation: Option<&'state CreationState<'budget>>,
+) -> Result<
+    Option<(
+        SourceRow,
+        Option<CreationStateHold<'state, 'budget>>,
+        Option<CreationStateHold<'state, 'budget>>,
+    )>,
+> {
+    let (row_hold, payload_hold) = if let Some(creation) = creation {
+        let lengths_sql = match table {
+            "knowledge_nodes" => {
+                "SELECT payload_len,coalesce(length(CAST(payload AS BLOB)),0),length(CAST(id AS BLOB)),length(CAST(source_graph AS BLOB)),coalesce(length(CAST(native_id AS BLOB)),0),length(CAST(kind_id AS BLOB)),length(payload_sha256) FROM knowledge_nodes WHERE source_order>?1 ORDER BY source_order LIMIT 1"
+            }
+            "knowledge_relations" => {
+                "SELECT payload_len,coalesce(length(CAST(payload AS BLOB)),0),length(CAST(id AS BLOB)),length(CAST(source_graph AS BLOB)),coalesce(length(CAST(native_id AS BLOB)),0),length(CAST(predicate_id AS BLOB)),length(payload_sha256) FROM knowledge_relations WHERE source_order>?1 ORDER BY source_order LIMIT 1"
+            }
+            _ => return Err(Error::Invalid("search normalized table")),
+        };
+        let lengths: Option<(i64, i64, i64, i64, i64, i64, i64)> = db
+            .query_row(lengths_sql, [after], |row| {
+                Ok((
+                    row.get(0)?,
+                    row.get(1)?,
+                    row.get(2)?,
+                    row.get(3)?,
+                    row.get(4)?,
+                    row.get(5)?,
+                    row.get(6)?,
+                ))
+            })
+            .optional()?;
+        let Some((payload_len, payload_actual, id, source, native, term, digest)) = lengths else {
+            return Ok(None);
+        };
+        if payload_len < 0 || payload_actual < 0 || payload_actual as u64 > cap as u64 {
+            return Err(Error::Budget("search payload bytes"));
+        }
+        let payload_bytes = usize::try_from(payload_actual)
+            .map_err(|_| Error::Budget("search payload allocation"))?;
+        let metadata_bytes = [id, source, native, term, digest]
+            .into_iter()
+            .try_fold(std::mem::size_of::<SourceRow>() + 64usize, |sum, value| {
+                usize::try_from(value).ok().and_then(|n| sum.checked_add(n))
+            })
+            .ok_or(Error::Budget("search row allocation"))?;
+        creation.charge_work(
+            metadata_bytes
+                .checked_add(payload_bytes)
+                .ok_or(Error::Budget("search row work"))?,
+        )?;
+        (
+            Some(creation.hold(metadata_bytes)?),
+            Some(creation.hold(payload_bytes)?),
+        )
+    } else {
+        (None, None)
+    };
     let sql = match table {
         "knowledge_nodes" => {
-            "SELECT source_order,id,source_graph,native_id,kind_id,payload_len,payload_sha256,CASE WHEN payload_len<=?2 AND length(payload)<=?2 THEN payload ELSE NULL END FROM knowledge_nodes WHERE source_order>?1 ORDER BY source_order LIMIT 1"
+            "SELECT source_order,id,source_graph,native_id,kind_id,payload_len,payload_sha256,CASE WHEN payload_len<=?2 AND length(CAST(payload AS BLOB))<=?2 THEN payload ELSE NULL END FROM knowledge_nodes WHERE source_order>?1 ORDER BY source_order LIMIT 1"
         }
         "knowledge_relations" => {
-            "SELECT source_order,id,source_graph,native_id,predicate_id,payload_len,payload_sha256,CASE WHEN payload_len<=?2 AND length(payload)<=?2 THEN payload ELSE NULL END FROM knowledge_relations WHERE source_order>?1 ORDER BY source_order LIMIT 1"
+            "SELECT source_order,id,source_graph,native_id,predicate_id,payload_len,payload_sha256,CASE WHEN payload_len<=?2 AND length(CAST(payload AS BLOB))<=?2 THEN payload ELSE NULL END FROM knowledge_relations WHERE source_order>?1 ORDER BY source_order LIMIT 1"
         }
         _ => return Err(Error::Invalid("search normalized table")),
     };
-    db.query_row(sql, params![after, cap as i64], |row| {
-        Ok(SourceRow {
-            position: row.get(0)?,
-            id: row.get(1)?,
-            source_graph: row.get(2)?,
-            native_id: row.get(3)?,
-            term_id: row.get(4)?,
-            payload_len: row.get(5)?,
-            payload_sha256: row.get(6)?,
-            payload: row.get(7)?,
+    let row = db
+        .query_row(sql, params![after, cap as i64], |row| {
+            Ok(SourceRow {
+                position: row.get(0)?,
+                id: row.get(1)?,
+                source_graph: row.get(2)?,
+                native_id: row.get(3)?,
+                term_id: row.get(4)?,
+                payload_len: row.get(5)?,
+                payload_sha256: row.get(6)?,
+                payload: row.get(7)?,
+            })
         })
-    })
-    .optional()
-    .map_err(Error::from)
+        .optional()
+        .map_err(Error::from)?;
+    Ok(row.map(|row| (row, row_hold, payload_hold)))
 }
 
 pub(crate) fn document(
@@ -339,12 +465,40 @@ pub(crate) fn document(
     kind: &str,
     payload: &[u8],
     limits: SearchBuildLimits,
-) -> Result<Document> {
+) -> Result<Document<'static, 'static>> {
+    document_with_state(row, kind, payload, limits, None)
+}
+
+fn document_with_state<'state, 'budget>(
+    row: &SourceRow,
+    kind: &str,
+    payload: &[u8],
+    limits: SearchBuildLimits,
+    creation: Option<&'state CreationState<'budget>>,
+) -> Result<Document<'state, 'budget>> {
     let json_limits = JsonLimits::new(limits.max_payload_bytes, 96, 1_000_000, 4096)
         .map_err(|_| Error::Budget("search JSON parse limits"))?;
+    if let Some(creation) = creation {
+        return creation.with_foundation_owned_with_limits(payload, json_limits, |root| {
+            document_from_root(row, kind, payload, limits, root, Some(creation))
+        });
+    }
     let parsed = parse_json(payload, JsonMode::PublishedStrict, json_limits)
         .map_err(|e| Error::Source(e.to_string()))?;
-    let root = parsed.root();
+    document_from_root(row, kind, payload, limits, parsed.root(), None)
+}
+
+fn document_from_root<'state, 'budget>(
+    row: &SourceRow,
+    kind: &str,
+    payload: &[u8],
+    limits: SearchBuildLimits,
+    root: &JsonValue,
+    creation: Option<&'state CreationState<'budget>>,
+) -> Result<Document<'state, 'budget>> {
+    if let Some(creation) = creation {
+        creation.charge_work(payload.len())?;
+    }
     if root.as_object().is_none() {
         return Err(Error::Invalid("search carrier object"));
     }
@@ -364,31 +518,72 @@ pub(crate) fn document(
     {
         return Err(Error::Invalid("search carrier/normalized identity"));
     }
-    let compact = canonical_bytes_v1(
-        root,
-        CanonicalProfile::SourceRecordDigestV1,
-        JsonLimits::new(limits.max_document_bytes, 96, 1_000_000, 4096)
-            .map_err(|_| Error::Budget("search JSON output limits"))?,
-    )
-    .map_err(|e| Error::Source(e.to_string()))?;
-    let spaced = default_spaced_json(&compact, limits.max_document_bytes)?;
-    let serialization_bytes = compact
-        .len()
+    let output_limits = JsonLimits::new(limits.max_document_bytes, 96, 1_000_000, 4096)
+        .map_err(|_| Error::Budget("search JSON output limits"))?;
+    let build = |compact: &[u8]| -> Result<Document<'state, 'budget>> {
+        if let Some(owner) = creation {
+            owner.charge_work(compact.len())?;
+        }
+        let spaced_len = default_spaced_json_len(compact, limits.max_document_bytes)?;
+        let _spaced_hold = creation.map(|owner| owner.hold(spaced_len)).transpose()?;
+        if let Some(owner) = creation {
+            owner.charge_work(spaced_len)?;
+        }
+        let spaced = default_spaced_json(compact, limits.max_document_bytes)?;
+        build_document(row, kind, root, limits, compact.len(), spaced, creation)
+    };
+    if let Some(creation) = creation {
+        creation.with_foundation_canonical_bytes(root, output_limits, build)
+    } else {
+        let compact =
+            canonical_bytes_v1(root, CanonicalProfile::SourceRecordDigestV1, output_limits)
+                .map_err(|e| Error::Source(e.to_string()))?;
+        build(&compact)
+    }
+}
+
+fn build_document<'state, 'budget>(
+    row: &SourceRow,
+    kind: &str,
+    root: &JsonValue,
+    limits: SearchBuildLimits,
+    compact_len: usize,
+    spaced: Vec<u8>,
+    creation: Option<&'state CreationState<'budget>>,
+) -> Result<Document<'state, 'budget>> {
+    let serialization_bytes = compact_len
         .checked_add(spaced.len())
         .ok_or(Error::Budget("search serialization bytes"))?;
+    if let Some(creation) = creation {
+        creation.charge_work(spaced.len())?;
+    }
     let raw = std::str::from_utf8(&spaced).map_err(|_| Error::Invalid("search JSON UTF-8"))?;
-    let text = lower(raw, limits.max_document_chars, limits.max_document_bytes)?;
+    let (text, text_hold) = lower_owned(
+        raw,
+        limits.max_document_chars,
+        limits.max_document_bytes,
+        creation,
+    )?;
+    if let Some(creation) = creation {
+        let scan_work = text
+            .len()
+            .checked_mul(2)
+            .ok_or(Error::Budget("search document text work"))?;
+        creation.charge_work(scan_work)?;
+    }
     let chars = text.chars().count();
     let digest = Digest256::of_bytes(text.as_bytes());
-    let id_lower = lower(
+    let (id_lower, id_hold) = lower_owned(
         &row.id,
         limits.max_payload_bytes,
         limits.max_rank_field_bytes,
+        creation,
     )?;
-    let native_id_lower = lower(
+    let (native_id_lower, native_hold) = lower_owned(
         row.native_id.as_deref().unwrap_or(""),
         limits.max_payload_bytes,
         limits.max_rank_field_bytes,
+        creation,
     )?;
     let display = root.object_get("display");
     let primary = if kind == "nodes" {
@@ -401,8 +596,26 @@ pub(crate) fn document(
     } else {
         &["label", "inverse_label", "statement", "explanation"][..]
     };
-    let identity_values = rank_values(display, primary, limits)?;
-    let visible_values = rank_values(display, visible, limits)?;
+    let (identity_values, identity_hold) = rank_values(display, primary, limits, creation)?;
+    let (visible_values, visible_hold) = rank_values(display, visible, limits, creation)?;
+    let holds_capacity = 6usize;
+    let holds_bytes = holds_capacity
+        .checked_mul(std::mem::size_of::<CreationStateHold<'state, 'budget>>())
+        .ok_or(Error::Budget("search document holds"))?;
+    let holds_container = creation.map(|owner| owner.hold(holds_bytes)).transpose()?;
+    let mut holds = Vec::new();
+    holds
+        .try_reserve_exact(holds_capacity)
+        .map_err(|_| Error::Budget("search document holds"))?;
+    if let Some(hold) = holds_container {
+        holds.push(hold);
+    }
+    for hold in [text_hold, id_hold, native_hold, identity_hold, visible_hold]
+        .into_iter()
+        .flatten()
+    {
+        holds.push(hold);
+    }
     Ok(Document {
         id_lower,
         native_id_lower,
@@ -412,6 +625,7 @@ pub(crate) fn document(
         chars,
         digest,
         serialization_bytes,
+        _holds: holds,
     })
 }
 
@@ -420,49 +634,224 @@ fn lower(input: &str, max_input: usize, max_output: usize) -> Result<String> {
         .map_err(|e| Error::Source(e.to_string()))
 }
 
-fn rank_values(
+fn lower_owned<'state, 'budget>(
+    input: &str,
+    max_input: usize,
+    max_output: usize,
+    creation: Option<&'state CreationState<'budget>>,
+) -> Result<(String, Option<CreationStateHold<'state, 'budget>>)> {
+    let Some(creation) = creation else {
+        return Ok((lower(input, max_input, max_output)?, None));
+    };
+    let error_floor = tos_foundation::python_lower_unicode16_v1_error_state_upper_bound();
+    let floor_hold = creation.hold(error_floor)?;
+    let result = {
+        let mut check = || {
+            creation.charge_work(1).map_err(|_| {
+                tos_foundation::FoundationError::new(
+                    tos_foundation::FoundationErrorCode::BudgetExceeded,
+                    "search lowercase cutoff",
+                )
+            })
+        };
+        let _check_hold = creation.hold(std::mem::size_of_val(&check))?;
+        let available = creation.remaining(0)?;
+        tos_foundation::python_lower_unicode16_v1_with_state_budget_and_check(
+            input, max_input, max_output, max_output, available, &mut check,
+        )
+    };
+    let value = result.map_err(|_| Error::Budget("search lowercase"))?;
+    let output_hold = creation.hold(value.capacity())?;
+    drop(floor_hold);
+    Ok((value, Some(output_hold)))
+}
+
+fn rank_values<'state, 'budget>(
     display: Option<&JsonValue>,
     fields: &[&str],
     limits: SearchBuildLimits,
-) -> Result<String> {
+    creation: Option<&'state CreationState<'budget>>,
+) -> Result<(String, Option<CreationStateHold<'state, 'budget>>)> {
+    let outer_entries = display
+        .and_then(JsonValue::as_object)
+        .map_or(0, |entries| entries.len());
+    let outer_scan_bytes = fields.iter().try_fold(0usize, |bytes, field| {
+        bytes
+            .checked_add(field.len())
+            .and_then(|sum| {
+                sum.checked_add(
+                    outer_entries.checked_mul(std::mem::size_of::<(JsonString, JsonValue)>())?,
+                )
+            })
+            .ok_or(Error::Budget("search rank lookup work"))
+    })?;
+    if let Some(owner) = creation {
+        owner.charge_work(outer_scan_bytes)?;
+    }
+    let mut slots = 0usize;
+    for field in fields {
+        let Some(value) = display.and_then(|display| display.object_get(field)) else {
+            continue;
+        };
+        if value.as_str().is_some() {
+            slots = slots
+                .checked_add(1)
+                .ok_or(Error::Budget("search rank array"))?;
+        } else if let Some(entries) = value.as_object() {
+            let scan_bytes = entries
+                .len()
+                .checked_mul(std::mem::size_of::<(JsonString, JsonValue)>())
+                .ok_or(Error::Budget("search rank lookup work"))?;
+            if let Some(owner) = creation {
+                owner.charge_work(scan_bytes)?;
+            }
+            let strings = entries
+                .iter()
+                .filter(|(_, candidate)| candidate.as_str().is_some())
+                .count();
+            slots = slots
+                .checked_add(strings)
+                .ok_or(Error::Budget("search rank array"))?;
+        }
+    }
+    let slot_bytes = slots
+        .checked_mul(std::mem::size_of::<JsonValue>())
+        .ok_or(Error::Budget("search rank array"))?;
+    let _slots_hold = creation.map(|owner| owner.hold(slot_bytes)).transpose()?;
     let mut values = Vec::new();
+    values
+        .try_reserve_exact(slots)
+        .map_err(|_| Error::Budget("search rank array"))?;
+    let hold_slots = slots
+        .checked_mul(2)
+        .ok_or(Error::Budget("search rank holds"))?;
+    let holds_bytes = hold_slots
+        .checked_mul(std::mem::size_of::<CreationStateHold<'state, 'budget>>())
+        .ok_or(Error::Budget("search rank holds"))?;
+    let _holds_storage = creation.map(|owner| owner.hold(holds_bytes)).transpose()?;
+    let mut value_holds = Vec::new();
+    if creation.is_some() {
+        value_holds
+            .try_reserve_exact(hold_slots)
+            .map_err(|_| Error::Budget("search rank holds"))?;
+    }
+    if let Some(owner) = creation {
+        owner.charge_work(outer_scan_bytes)?;
+    }
     for field in fields {
         let Some(value) = display.and_then(|d| d.object_get(field)) else {
             continue;
         };
         if let Some(text) = value.as_str() {
-            values.push(JsonValue::String(JsonString::from_utf8(&lower(
+            let (lowered, hold) = lower_owned(
                 text,
                 limits.max_payload_bytes,
                 limits.max_rank_field_bytes,
-            )?)));
+                creation,
+            )?;
+            if let Some(hold) = hold {
+                value_holds.push(hold);
+            }
+            let json_hold = if let Some(owner) = creation {
+                owner.charge_work(lowered.len())?;
+                let units = lowered.encode_utf16().count();
+                let bytes = units
+                    .checked_mul(4)
+                    .and_then(|n| n.checked_add(lowered.len()))
+                    .ok_or(Error::Budget("search rank string"))?;
+                Some(owner.hold(bytes)?)
+            } else {
+                None
+            };
+            if let Some(hold) = json_hold {
+                value_holds.push(hold);
+            }
+            if let Some(owner) = creation {
+                let constructor_work = lowered
+                    .len()
+                    .checked_mul(2)
+                    .ok_or(Error::Budget("search rank constructor work"))?;
+                owner.charge_work(constructor_work)?;
+            }
+            values.push(JsonValue::String(JsonString::from_utf8(&lowered)));
         } else if let Some(entries) = value.as_object() {
+            let scan_bytes = entries
+                .len()
+                .checked_mul(std::mem::size_of::<(JsonString, JsonValue)>())
+                .ok_or(Error::Budget("search rank lookup work"))?;
+            if let Some(owner) = creation {
+                owner.charge_work(scan_bytes)?;
+            }
             for (_, candidate) in entries {
                 if let Some(text) = candidate.as_str() {
-                    values.push(JsonValue::String(JsonString::from_utf8(&lower(
+                    let (lowered, hold) = lower_owned(
                         text,
                         limits.max_payload_bytes,
                         limits.max_rank_field_bytes,
-                    )?)));
+                        creation,
+                    )?;
+                    if let Some(hold) = hold {
+                        value_holds.push(hold);
+                    }
+                    let json_hold = if let Some(owner) = creation {
+                        owner.charge_work(lowered.len())?;
+                        let units = lowered.encode_utf16().count();
+                        let bytes = units
+                            .checked_mul(4)
+                            .and_then(|n| n.checked_add(lowered.len()))
+                            .ok_or(Error::Budget("search rank string"))?;
+                        Some(owner.hold(bytes)?)
+                    } else {
+                        None
+                    };
+                    if let Some(hold) = json_hold {
+                        value_holds.push(hold);
+                    }
+                    if let Some(owner) = creation {
+                        let constructor_work = lowered
+                            .len()
+                            .checked_mul(2)
+                            .ok_or(Error::Budget("search rank constructor work"))?;
+                        owner.charge_work(constructor_work)?;
+                    }
+                    values.push(JsonValue::String(JsonString::from_utf8(&lowered)));
                 }
             }
         }
     }
-    let bytes = canonical_bytes_v1(
-        &JsonValue::Array(values),
-        CanonicalProfile::SourceRecordDigestV1,
-        JsonLimits::new(limits.max_rank_field_bytes, 96, 1_000_000, 4096)
-            .map_err(|_| Error::Budget("search rank JSON limit"))?,
-    )
-    .map_err(|e| Error::Source(e.to_string()))?;
-    String::from_utf8(bytes).map_err(|_| Error::Invalid("search rank JSON UTF-8"))
+    let array = JsonValue::Array(values);
+    let json_limits = JsonLimits::new(limits.max_rank_field_bytes, 96, 1_000_000, 4096)
+        .map_err(|_| Error::Budget("search rank JSON limit"))?;
+    if let Some(creation) = creation {
+        creation.with_foundation_canonical_bytes(&array, json_limits, |bytes| {
+            let copy_and_check = bytes
+                .len()
+                .checked_mul(2)
+                .ok_or(Error::Budget("search rank JSON work"))?;
+            creation.charge_work(copy_and_check)?;
+            let output_hold = creation.hold(bytes.len())?;
+            let value = String::from_utf8(bytes.to_vec())
+                .map_err(|_| Error::Invalid("search rank JSON UTF-8"))?;
+            Ok((value, Some(output_hold)))
+        })
+    } else {
+        let bytes = canonical_bytes_v1(&array, CanonicalProfile::SourceRecordDigestV1, json_limits)
+            .map_err(|e| Error::Source(e.to_string()))?;
+        Ok((
+            String::from_utf8(bytes).map_err(|_| Error::Invalid("search rank JSON UTF-8"))?,
+            None,
+        ))
+    }
 }
 
 /// FND emits the exact Python sorted compact JSON. Python's search ABI uses
 /// the same writer with default `, ` and `: ` separators. String literals are
 /// already escaped, so only separators outside quoted text gain one space.
 fn default_spaced_json(compact: &[u8], cap: usize) -> Result<Vec<u8>> {
-    let mut out = Vec::with_capacity(compact.len().min(cap));
+    let expected = default_spaced_json_len(compact, cap)?;
+    let mut out = Vec::new();
+    out.try_reserve_exact(expected)
+        .map_err(|_| Error::Budget("search document bytes"))?;
     let mut quoted = false;
     let mut escaped = false;
     for &byte in compact {
@@ -493,20 +882,54 @@ fn default_spaced_json(compact: &[u8], cap: usize) -> Result<Vec<u8>> {
     Ok(out)
 }
 
-fn prepare_gram_offsets(
-    doc: &Document,
+fn default_spaced_json_len(compact: &[u8], cap: usize) -> Result<usize> {
+    let mut len = 0usize;
+    let mut quoted = false;
+    let mut escaped = false;
+    for &byte in compact {
+        len = len
+            .checked_add(1)
+            .filter(|value| *value <= cap)
+            .ok_or(Error::Budget("search document bytes"))?;
+        if quoted {
+            if escaped {
+                escaped = false;
+            } else if byte == b'\\' {
+                escaped = true;
+            } else if byte == b'"' {
+                quoted = false;
+            }
+        } else if byte == b'"' {
+            quoted = true;
+        } else if byte == b',' || byte == b':' {
+            len = len
+                .checked_add(1)
+                .filter(|value| *value <= cap)
+                .ok_or(Error::Budget("search document bytes"))?;
+        }
+    }
+    if quoted {
+        return Err(Error::Invalid("search JSON string close"));
+    }
+    Ok(len)
+}
+
+fn prepare_gram_offsets<'state, 'budget>(
+    doc: &Document<'_, '_>,
     limits: SearchBuildLimits,
     work_bytes: &mut u64,
     check: &dyn Fn() -> Result<()>,
-) -> Result<Vec<usize>> {
+    creation: Option<&'state CreationState<'budget>>,
+) -> Result<(Vec<usize>, Option<CreationStateHold<'state, 'budget>>)> {
     check()?;
     if doc.chars > limits.max_document_chars || doc.text.len() > limits.max_document_bytes {
         return Err(Error::Budget("search document bytes/chars"));
     }
     let gram_count = doc.chars.saturating_sub(2);
-    gram_count
+    let bytes = gram_count
         .checked_mul(std::mem::size_of::<usize>())
         .ok_or(Error::Budget("search gram offsets"))?;
+    let hold = creation.map(|creation| creation.hold(bytes)).transpose()?;
     let mut offsets = Vec::new();
     offsets
         .try_reserve_exact(gram_count)
@@ -523,6 +946,9 @@ fn prepare_gram_offsets(
                     .next()
                     .expect("gram third character")
                     .len_utf8();
+            if let Some(creation) = creation {
+                creation.charge_work(end - first)?;
+            }
             charge(work_bytes, end - first, limits)?;
             offsets.push(first);
             first = second;
@@ -533,26 +959,57 @@ fn prepare_gram_offsets(
         return Err(Error::Invalid("search gram character count"));
     }
     check()?;
+    let sort_levels = usize::BITS as usize - gram_count.max(1).leading_zeros() as usize;
+    let sort_work = gram_count
+        .checked_mul(sort_levels)
+        .and_then(|comparisons| comparisons.checked_mul(12))
+        .ok_or(Error::Budget("search gram sort work"))?;
+    if let Some(creation) = creation {
+        creation.charge_work(sort_work)?;
+    }
     offsets.sort_unstable_by(|a, b| gram_slice(&doc.text, *a).cmp(gram_slice(&doc.text, *b)));
+    if let Some(creation) = creation {
+        creation.charge_work(gram_count)?;
+    }
     offsets.dedup_by(|a, b| gram_slice(&doc.text, *a) == gram_slice(&doc.text, *b));
     check()?;
-    Ok(offsets)
+    Ok((offsets, hold))
 }
 
 fn write_document_page(
     db: &mut Connection,
     check: &dyn Fn() -> Result<()>,
-    page: &[PreparedDocument],
+    page: &[PreparedDocument<'_, '_>],
     kind: &str,
     run_id: i64,
     limits: SearchBuildLimits,
     receipt: &mut SearchIndexReceipt,
+    creation: Option<&CreationState<'_>>,
 ) -> Result<()> {
     limits.validate()?;
     check()?;
     if page.is_empty() || page.len() > limits.gram_batch_rows {
         return Err(Error::Budget("search document page rows"));
     }
+    let page_heads = page
+        .len()
+        .checked_mul(
+            std::mem::size_of::<usize>()
+                .checked_add(std::mem::size_of::<Reverse<PageHead<'_>>>())
+                .ok_or(Error::Budget("search page heads"))?,
+        )
+        .ok_or(Error::Budget("search page heads"))?;
+    let writer_bytes = MAX_POSTINGS_PER_BLOCK
+        .checked_mul(std::mem::size_of::<u64>())
+        .and_then(|bytes| bytes.checked_add(std::mem::size_of::<TempRunWriter>()))
+        .ok_or(Error::Budget("search run writer allocation"))?;
+    let write_bytes = page_heads
+        .checked_add(writer_bytes)
+        .ok_or(Error::Budget("search page allocation"))?;
+    if let Some(creation) = creation {
+        creation.charge_work(write_bytes)?;
+    }
+    let _write_hold = creation.map(|owner| owner.hold(write_bytes)).transpose()?;
     let transaction = db.transaction()?;
     let mut page_postings = 0u64;
     let mut page_chars = 0u64;
@@ -560,6 +1017,20 @@ fn write_document_page(
         check()?;
         let row = &prepared.row;
         let doc = &prepared.doc;
+        if let Some(creation) = creation {
+            let row_bytes = row
+                .id
+                .len()
+                .checked_add(row.source_graph.len())
+                .and_then(|n| n.checked_add(row.term_id.len()))
+                .and_then(|n| n.checked_add(doc.id_lower.len()))
+                .and_then(|n| n.checked_add(doc.native_id_lower.len()))
+                .and_then(|n| n.checked_add(doc.identity_values.len()))
+                .and_then(|n| n.checked_add(doc.visible_values.len()))
+                .and_then(|n| n.checked_add(32 + 64))
+                .ok_or(Error::Budget("search document row work"))?;
+            creation.charge_work(row_bytes)?;
+        }
         transaction.execute(
             "INSERT INTO search_documents(kind,position,id,source_graph,kind_id,predicate_id,id_lower,native_id_lower,identity_values,visible_values,document_chars,document_digest) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12)",
             params![kind,row.position,row.id,row.source_graph,
@@ -577,9 +1048,11 @@ fn write_document_page(
         .try_reserve_exact(page.len())
         .map_err(|_| Error::Budget("search page heads"))?;
     indices.resize(page.len(), 0usize);
-    let mut heap = BinaryHeap::new();
-    heap.try_reserve(page.len())
+    let mut heap_storage = Vec::new();
+    heap_storage
+        .try_reserve_exact(page.len())
         .map_err(|_| Error::Budget("search page heads"))?;
+    let mut heap: BinaryHeap<Reverse<PageHead<'_>>> = BinaryHeap::from(heap_storage);
     for (reader, prepared) in page.iter().enumerate() {
         if let Some(&offset) = prepared.offsets.first() {
             heap.push(Reverse(PageHead {
@@ -595,6 +1068,9 @@ fn write_document_page(
             check()?;
         }
         charge(&mut receipt.work_bytes, 8, limits)?;
+        if let Some(creation) = creation {
+            creation.charge_work(8)?;
+        }
         writer.push_gram(
             &transaction,
             head.gram,
@@ -602,6 +1078,7 @@ fn write_document_page(
             limits,
             &mut receipt.work_bytes,
             check,
+            creation,
         )?;
         page_postings = page_postings
             .checked_add(1)
@@ -621,7 +1098,13 @@ fn write_document_page(
             }));
         }
     }
-    writer.finish(&transaction, limits, &mut receipt.work_bytes, check)?;
+    writer.finish(
+        &transaction,
+        limits,
+        &mut receipt.work_bytes,
+        check,
+        creation,
+    )?;
     let next_postings = receipt
         .postings
         .checked_add(page_postings)
@@ -748,12 +1231,20 @@ impl TempRunWriter {
         limits: SearchBuildLimits,
         work: &mut u64,
         check: &dyn Fn() -> Result<()>,
+        creation: Option<&CreationState<'_>>,
     ) -> Result<()> {
+        let input_work = gram
+            .len()
+            .checked_add(std::mem::size_of::<RunPosting>())
+            .ok_or(Error::Budget("search run gram work"))?;
+        if let Some(creation) = creation {
+            creation.charge_work(input_work)?;
+        }
         if position < 0 {
             return Err(Error::Invalid("search run posting"));
         }
         if self.gram.is_some_and(|prior| prior.gram() != gram) {
-            self.flush(db, limits, work, check)?;
+            self.flush(db, limits, work, check, creation)?;
         }
         if self.gram.is_none_or(|prior| prior.gram() != gram) {
             self.gram = Some(RunPosting::new(gram, position)?);
@@ -765,23 +1256,24 @@ impl TempRunWriter {
         }
         self.pending.push(position as u64);
         if self.pending.len() == MAX_POSTINGS_PER_BLOCK {
-            self.flush(db, limits, work, check)?;
+            self.flush(db, limits, work, check, creation)?;
         }
         Ok(())
     }
     fn push_block(
         &mut self,
         db: &Connection,
-        block: &RunBlock,
+        block: &RunBlock<'_, '_>,
         limits: SearchBuildLimits,
         work: &mut u64,
         check: &dyn Fn() -> Result<()>,
+        creation: Option<&CreationState<'_>>,
     ) -> Result<()> {
         if self
             .gram
             .is_some_and(|prior| prior.gram() != block.first_key().gram())
         {
-            self.flush(db, limits, work, check)?;
+            self.flush(db, limits, work, check, creation)?;
         }
         self.gram = Some(block.first_key());
         let mut remaining = block.positions.as_slice();
@@ -798,7 +1290,7 @@ impl TempRunWriter {
             remaining = &remaining[take..];
             check()?;
             if self.pending.len() == MAX_POSTINGS_PER_BLOCK {
-                self.flush(db, limits, work, check)?;
+                self.flush(db, limits, work, check, creation)?;
             }
         }
         Ok(())
@@ -809,6 +1301,7 @@ impl TempRunWriter {
         limits: SearchBuildLimits,
         work: &mut u64,
         check: &dyn Fn() -> Result<()>,
+        creation: Option<&CreationState<'_>>,
     ) -> Result<()> {
         if self.pending.is_empty() {
             return Ok(());
@@ -823,6 +1316,7 @@ impl TempRunWriter {
             &self.pending,
             limits,
             work,
+            creation,
         )?;
         self.chunk_no = self
             .chunk_no
@@ -838,8 +1332,9 @@ impl TempRunWriter {
         limits: SearchBuildLimits,
         work: &mut u64,
         check: &dyn Fn() -> Result<()>,
+        creation: Option<&CreationState<'_>>,
     ) -> Result<()> {
-        self.flush(db, limits, work, check)
+        self.flush(db, limits, work, check, creation)
     }
 }
 
@@ -851,9 +1346,32 @@ fn insert_run_block(
     positions: &[u64],
     limits: SearchBuildLimits,
     work: &mut u64,
+    creation: Option<&CreationState<'_>>,
 ) -> Result<()> {
+    let scan_bytes = positions
+        .len()
+        .checked_mul(std::mem::size_of::<u64>())
+        .ok_or(Error::Budget("search run block work"))?;
+    if let Some(creation) = creation {
+        creation.charge_work(scan_bytes)?;
+    }
+    let (delta_capacity, delta_bytes) = posting_delta_lengths(positions)?;
+    let encoded_work = gram
+        .len()
+        .checked_add(24)
+        .and_then(|n| n.checked_add(delta_bytes))
+        .ok_or(Error::Budget("search run block work"))?;
+    charge(work, encoded_work, limits)?;
+    if let Some(creation) = creation {
+        creation.charge_work(encoded_work)?;
+    }
+    let encoded_bytes = delta_capacity
+        .checked_add(std::mem::size_of::<Vec<u8>>())
+        .ok_or(Error::Budget("search run delta allocation"))?;
+    let _encoded_hold = creation
+        .map(|owner| owner.hold(encoded_bytes))
+        .transpose()?;
     let (first, last, count, deltas) = encode_posting_block(positions)?;
-    charge(work, gram.len() + 24 + deltas.len(), limits)?;
     let changed = db.execute(
         "INSERT INTO search_run_chunks(run_id,chunk_no,gram,first_position,last_position,postings,deltas) VALUES (?1,?2,?3,?4,?5,?6,?7)",
         params![run_id, i64::try_from(chunk_no).map_err(|_| Error::Budget("search run chunk number"))?,
@@ -865,12 +1383,47 @@ fn insert_run_block(
     Ok(())
 }
 
-struct RunBlock {
+fn posting_delta_lengths(positions: &[u64]) -> Result<(usize, usize)> {
+    if positions.is_empty() || positions.len() > MAX_POSTINGS_PER_BLOCK {
+        return Err(Error::Invalid("search posting block count"));
+    }
+    if positions[0] > i64::MAX as u64 {
+        return Err(Error::Invalid("search posting position"));
+    }
+    let capacity = positions
+        .len()
+        .saturating_sub(1)
+        .checked_mul(9)
+        .ok_or(Error::Budget("search posting delta capacity"))?;
+    let mut bytes = 0usize;
+    let mut previous = positions[0];
+    for &position in &positions[1..] {
+        if position <= previous || position > i64::MAX as u64 {
+            return Err(Error::Invalid("search posting order"));
+        }
+        let mut delta = position - previous;
+        let mut width = 1usize;
+        while delta >= 0x80 {
+            delta >>= 7;
+            width = width
+                .checked_add(1)
+                .ok_or(Error::Budget("search posting delta bytes"))?;
+        }
+        bytes = bytes
+            .checked_add(width)
+            .ok_or(Error::Budget("search posting delta bytes"))?;
+        previous = position;
+    }
+    Ok((capacity, bytes))
+}
+
+struct RunBlock<'state, 'budget> {
     gram: [u8; 12],
     len: u8,
     positions: Vec<u64>,
+    _positions_hold: Option<CreationStateHold<'state, 'budget>>,
 }
-impl RunBlock {
+impl RunBlock<'_, '_> {
     fn first_key(&self) -> RunPosting {
         RunPosting {
             gram: self.gram,
@@ -900,12 +1453,42 @@ impl RunReader {
             previous: None,
         }
     }
-    fn next_block(
+    fn next_block<'state, 'budget>(
         &mut self,
         db: &Connection,
         limits: SearchBuildLimits,
         work: &mut u64,
-    ) -> Result<Option<RunBlock>> {
+        creation: Option<&'state CreationState<'budget>>,
+    ) -> Result<Option<RunBlock<'state, 'budget>>> {
+        let lengths: Option<(i64, i64)> = db
+            .query_row(
+                "SELECT length(gram),length(deltas) FROM search_run_chunks WHERE run_id=?1 AND chunk_no=?2",
+                params![self.run_id, self.next_chunk],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .optional()?;
+        let Some((gram_len, delta_len)) = lengths else {
+            return Ok(None);
+        };
+        if !(3..=12).contains(&gram_len)
+            || delta_len < 0
+            || delta_len as usize > MAX_POSTING_DELTA_BYTES
+        {
+            return Err(Error::Invalid("search run block lengths"));
+        }
+        let gram_len = gram_len as usize;
+        let delta_len = delta_len as usize;
+        let row_bytes = gram_len
+            .checked_add(delta_len)
+            .and_then(|bytes| {
+                bytes.checked_add(std::mem::size_of::<(Vec<u8>, i64, i64, i64, Vec<u8>)>() + 32)
+            })
+            .ok_or(Error::Budget("search run row allocation"))?;
+        charge(work, row_bytes, limits)?;
+        if let Some(creation) = creation {
+            creation.charge_work(row_bytes)?;
+        }
+        let _row_hold = creation.map(|owner| owner.hold(row_bytes)).transpose()?;
         let row: Option<(Option<Vec<u8>>, i64, i64, i64, Option<Vec<u8>>)> = db.query_row(
             "SELECT CASE WHEN typeof(gram)='blob' AND length(gram) BETWEEN 3 AND 12 THEN gram ELSE NULL END,first_position,last_position,postings,CASE WHEN typeof(deltas)='blob' AND length(deltas)<=?3 THEN deltas ELSE NULL END FROM search_run_chunks WHERE run_id=?1 AND chunk_no=?2",
             params![self.run_id, self.next_chunk, MAX_POSTING_DELTA_BYTES as i64],
@@ -920,13 +1503,22 @@ impl RunReader {
             return Err(Error::Invalid("search run block shape"));
         }
         let shape = RunPosting::new(&gram, first)?;
-        charge(work, gram.len() + 24 + deltas.len(), limits)?;
+        let positions_bytes = (count as usize)
+            .checked_mul(std::mem::size_of::<u64>())
+            .ok_or(Error::Budget("search run positions"))?;
+        charge(work, positions_bytes, limits)?;
+        if let Some(creation) = creation {
+            creation.charge_work(positions_bytes)?;
+        }
+        let positions_hold = creation
+            .map(|owner| owner.hold(positions_bytes))
+            .transpose()?;
         let positions = decode_posting_block(first as u64, last as u64, count as u16, &deltas)?;
-        charge(work, positions.len() * 8, limits)?;
         let block = RunBlock {
             gram: shape.gram,
             len: shape.len,
             positions,
+            _positions_hold: positions_hold,
         };
         if self
             .previous
@@ -961,19 +1553,32 @@ impl PartialOrd for RunHead {
     }
 }
 
-fn merge_group(
+fn merge_group<'state, 'budget>(
     db: &mut Connection,
     check: &dyn Fn() -> Result<()>,
     first_run: i64,
     run_count: usize,
     limits: SearchBuildLimits,
     work: &mut u64,
-    mut emit: impl FnMut(&mut Connection, &RunBlock, &mut u64) -> Result<()>,
+    creation: Option<&'state CreationState<'budget>>,
+    mut emit: impl FnMut(&mut Connection, &RunBlock<'state, 'budget>, &mut u64) -> Result<()>,
 ) -> Result<u64> {
     // Prepared pages cover consecutive source_order ranges. A run block's
     // positions are therefore wholly before or after another page's block
     // for the same gram; merging block heads is equivalent to merging every
     // logical posting, and the strict global check below refuses any breach.
+    let merge_bytes = run_count
+        .checked_mul(
+            std::mem::size_of::<RunReader>()
+                .checked_add(std::mem::size_of::<Option<RunBlock<'state, 'budget>>>())
+                .and_then(|bytes| bytes.checked_add(std::mem::size_of::<Reverse<RunHead>>()))
+                .ok_or(Error::Budget("search merge allocation"))?,
+        )
+        .ok_or(Error::Budget("search merge allocation"))?;
+    if let Some(creation) = creation {
+        creation.charge_work(merge_bytes)?;
+    }
+    let _merge_hold = creation.map(|owner| owner.hold(merge_bytes)).transpose()?;
     let mut readers = Vec::new();
     readers
         .try_reserve_exact(run_count)
@@ -982,16 +1587,21 @@ fn merge_group(
     current
         .try_reserve_exact(run_count)
         .map_err(|_| Error::Budget("search merge blocks"))?;
-    let mut heap = BinaryHeap::new();
-    heap.try_reserve(run_count)
+    let mut heap_storage = Vec::new();
+    heap_storage
+        .try_reserve_exact(run_count)
         .map_err(|_| Error::Budget("search merge heads"))?;
+    let mut heap: BinaryHeap<Reverse<RunHead>> = BinaryHeap::from(heap_storage);
     for index in 0..run_count {
         let id = first_run
             .checked_add(i64::try_from(index).map_err(|_| Error::Budget("search run id"))?)
             .ok_or(Error::Budget("search run id"))?;
         let mut reader = RunReader::new(id);
-        let block = reader.next_block(db, limits, work)?;
+        let block = reader.next_block(db, limits, work, creation)?;
         if let Some(block) = &block {
+            if let Some(creation) = creation {
+                creation.charge_work(std::mem::size_of::<RunHead>())?;
+            }
             heap.push(Reverse(RunHead {
                 posting: block.first_key(),
                 reader: index,
@@ -1002,21 +1612,47 @@ fn merge_group(
     }
     let mut previous = None;
     let mut count = 0u64;
-    while let Some(Reverse(head)) = heap.pop() {
+    while !heap.is_empty() {
         check()?;
+        let levels = usize::BITS as usize - heap.len().max(1).leading_zeros() as usize;
+        if let Some(creation) = creation {
+            creation.charge_work(
+                levels
+                    .checked_mul(std::mem::size_of::<RunHead>())
+                    .ok_or(Error::Budget("search merge work"))?,
+            )?;
+        }
+        let Some(Reverse(head)) = heap.pop() else {
+            break;
+        };
         let block = current[head.reader].take().expect("heap run block");
         if previous.is_some_and(|prior| block.first_key() <= prior) {
             return Err(Error::Invalid("search merged posting order"));
         }
-        charge(work, block.positions.len() * 8, limits)?;
+        let posting_work = block
+            .positions
+            .len()
+            .checked_mul(std::mem::size_of::<u64>())
+            .ok_or(Error::Budget("search merge work"))?;
+        charge(work, posting_work, limits)?;
+        if let Some(creation) = creation {
+            creation.charge_work(posting_work)?;
+        }
         emit(db, &block, work)?;
         count = count
             .checked_add(block.positions.len() as u64)
             .filter(|value| *value <= limits.max_postings)
             .ok_or(Error::Budget("search postings"))?;
         previous = Some(block.last_key());
-        current[head.reader] = readers[head.reader].next_block(db, limits, work)?;
+        current[head.reader] = readers[head.reader].next_block(db, limits, work, creation)?;
         if let Some(block) = &current[head.reader] {
+            if let Some(creation) = creation {
+                creation.charge_work(
+                    levels
+                        .checked_mul(std::mem::size_of::<RunHead>())
+                        .ok_or(Error::Budget("search merge work"))?,
+                )?;
+            }
             heap.push(Reverse(RunHead {
                 posting: block.first_key(),
                 reader: head.reader,
@@ -1064,9 +1700,10 @@ impl FinalWriter {
         db: &mut Connection,
         check: &dyn Fn() -> Result<()>,
         kind: &str,
-        block: &RunBlock,
+        block: &RunBlock<'_, '_>,
         limits: SearchBuildLimits,
         work: &mut u64,
+        creation: Option<&CreationState<'_>>,
     ) -> Result<()> {
         if self
             .gram
@@ -1078,7 +1715,7 @@ impl FinalWriter {
         let mut remaining = block.positions.as_slice();
         while !remaining.is_empty() {
             if self.positions.len() == MAX_GRAM_BATCH_ROWS {
-                self.flush(db, check, kind, limits, work)?;
+                self.flush(db, check, kind, limits, work, creation)?;
             }
             let take = (MAX_POSTINGS_PER_BLOCK - (self.positions.len() - self.complete_until))
                 .min(MAX_GRAM_BATCH_ROWS - self.positions.len())
@@ -1113,6 +1750,7 @@ impl FinalWriter {
         kind: &str,
         limits: SearchBuildLimits,
         work: &mut u64,
+        creation: Option<&CreationState<'_>>,
     ) -> Result<()> {
         if self.blocks.is_empty() {
             return Ok(());
@@ -1128,6 +1766,7 @@ impl FinalWriter {
                     &block.gram[..usize::from(block.len)],
                     &self.positions[block.start..block.end],
                     check,
+                    creation,
                 )?)
                 .ok_or(Error::Budget("search ordered postings"))?;
         }
@@ -1151,9 +1790,10 @@ impl FinalWriter {
         kind: &str,
         limits: SearchBuildLimits,
         work: &mut u64,
+        creation: Option<&CreationState<'_>>,
     ) -> Result<u64> {
         self.complete();
-        self.flush(db, check, kind, limits, work)?;
+        self.flush(db, check, kind, limits, work, creation)?;
         Ok(self.written)
     }
 }
@@ -1167,6 +1807,7 @@ fn merge_ordered_kind(
     run_count: i64,
     expected: u64,
     work: &mut u64,
+    creation: Option<&CreationState<'_>>,
 ) -> Result<()> {
     if first_run < 0 || run_count < 0 {
         return Err(Error::Invalid("search run generation"));
@@ -1186,6 +1827,14 @@ fn merge_ordered_kind(
             let output_id = output_start
                 .checked_add(offset / fan_in)
                 .ok_or(Error::Budget("search run id"))?;
+            let writer_bytes = MAX_POSTINGS_PER_BLOCK
+                .checked_mul(std::mem::size_of::<u64>())
+                .and_then(|bytes| bytes.checked_add(std::mem::size_of::<TempRunWriter>()))
+                .ok_or(Error::Budget("search run writer allocation"))?;
+            if let Some(creation) = creation {
+                creation.charge_work(writer_bytes)?;
+            }
+            let _writer_hold = creation.map(|owner| owner.hold(writer_bytes)).transpose()?;
             let mut writer = TempRunWriter::new(output_id);
             let group_start = start
                 .checked_add(offset)
@@ -1197,9 +1846,10 @@ fn merge_ordered_kind(
                 size as usize,
                 limits,
                 work,
-                |db, block, work| writer.push_block(db, block, limits, work, check),
+                creation,
+                |db, block, work| writer.push_block(db, block, limits, work, check, creation),
             )?;
-            writer.finish(db, limits, work, check)?;
+            writer.finish(db, limits, work, check, creation)?;
             let group_end = group_start
                 .checked_add(size)
                 .ok_or(Error::Budget("search run id"))?;
@@ -1213,6 +1863,20 @@ fn merge_ordered_kind(
         start = output_start;
         count = count / fan_in + i64::from(count % fan_in != 0);
     }
+    let final_writer_bytes = MAX_GRAM_BATCH_ROWS
+        .checked_mul(
+            std::mem::size_of::<u64>()
+                .checked_add(std::mem::size_of::<FinalBlock>())
+                .ok_or(Error::Budget("search final writer allocation"))?,
+        )
+        .and_then(|bytes| bytes.checked_add(std::mem::size_of::<FinalWriter>()))
+        .ok_or(Error::Budget("search final writer allocation"))?;
+    if let Some(creation) = creation {
+        creation.charge_work(final_writer_bytes)?;
+    }
+    let _final_writer_hold = creation
+        .map(|owner| owner.hold(final_writer_bytes))
+        .transpose()?;
     let mut writer = FinalWriter::new()?;
     let copied = merge_group(
         db,
@@ -1221,9 +1885,10 @@ fn merge_ordered_kind(
         count as usize,
         limits,
         work,
-        |db, block, work| writer.push_block(db, check, kind, block, limits, work),
+        creation,
+        |db, block, work| writer.push_block(db, check, kind, block, limits, work, creation),
     )?;
-    let written = writer.finish(db, check, kind, limits, work)?;
+    let written = writer.finish(db, check, kind, limits, work, creation)?;
     if copied != expected || written != expected {
         return Err(Error::Invalid("search ordered posting total"));
     }
@@ -1269,8 +1934,31 @@ fn write_posting_block(
     gram: &[u8],
     positions: &[u64],
     check: &dyn Fn() -> Result<()>,
+    creation: Option<&CreationState<'_>>,
 ) -> Result<u64> {
     check()?;
+    let scan_bytes = positions
+        .len()
+        .checked_mul(std::mem::size_of::<u64>())
+        .ok_or(Error::Budget("search posting block work"))?;
+    if let Some(creation) = creation {
+        creation.charge_work(scan_bytes)?;
+    }
+    let (delta_capacity, delta_bytes) = posting_delta_lengths(positions)?;
+    let encoded_work = gram
+        .len()
+        .checked_add(24)
+        .and_then(|n| n.checked_add(delta_bytes))
+        .ok_or(Error::Budget("search posting block work"))?;
+    if let Some(creation) = creation {
+        creation.charge_work(encoded_work)?;
+    }
+    let encoded_bytes = delta_capacity
+        .checked_add(std::mem::size_of::<Vec<u8>>())
+        .ok_or(Error::Budget("search posting delta allocation"))?;
+    let _encoded_hold = creation
+        .map(|owner| owner.hold(encoded_bytes))
+        .transpose()?;
     let (first, last, count, deltas) = encode_posting_block(positions)?;
     let inserted = transaction.execute(
         "INSERT INTO search_posting_blocks(kind,n,gram,last_position,first_position,postings,deltas) VALUES (?1,3,?2,?3,?4,?5,?6)",
@@ -1292,12 +1980,14 @@ fn verify_and_root(
     db: &Connection,
     expected: &mut SearchIndexReceipt,
     limits: SearchBuildLimits,
+    creation: Option<&CreationState<'_>>,
 ) -> Result<(u64, u64, String)> {
     let mut hash = Digest256Hasher::new();
     hash_field(&mut hash, b"tos-knowledge-search-posting-blocks-v1");
     let mut counts = [0u64; 3];
     let mut document_positions = [0u64; 2];
     let mut logical_postings = 0u64;
+    let mut previous_block_hold = None;
     let mut previous_block: Option<(String, Vec<u8>, u64, u16)> = None;
     for (table_index, sql) in [
         "SELECT kind,position,id,source_graph,kind_id,predicate_id,id_lower,native_id_lower,identity_values,visible_values,document_chars,document_digest FROM search_documents ORDER BY kind,position",
@@ -1310,6 +2000,23 @@ fn verify_and_root(
         while let Some(row) = rows.next()? {
             counts[table_index] = counts[table_index]
                 .checked_add(1).ok_or(Error::Budget("search root rows"))?;
+            let columns = row.as_ref().column_count();
+            let row_bytes = (0..columns).try_fold(
+                std::mem::size_of::<(String, Vec<u8>, u64, u16)>() + 32,
+                |sum, column| {
+                    let len = match row.get_ref(column)? {
+                        rusqlite::types::ValueRef::Text(bytes)
+                        | rusqlite::types::ValueRef::Blob(bytes) => bytes.len(),
+                        rusqlite::types::ValueRef::Integer(_) => 8,
+                        _ => return Err(Error::Invalid("search root SQL value")),
+                    };
+                    sum.checked_add(len).ok_or(Error::Budget("search root row bytes"))
+                },
+            )?;
+            let _row_hold = creation.map(|owner| owner.hold(row_bytes)).transpose()?;
+            if let Some(creation) = creation {
+                creation.charge_work(row_bytes)?;
+            }
             let kind: String = row.get(0)?;
             let kind_index = match kind.as_str() {
                 "nodes" => 0,
@@ -1343,10 +2050,24 @@ fn verify_and_root(
                     if first < 0 || last < 0 || count <= 0 || count > MAX_POSTINGS_PER_BLOCK as i64 {
                         return Err(Error::Invalid("search root block shape"));
                     }
+                    let positions_bytes = (count as usize)
+                        .checked_mul(std::mem::size_of::<u64>())
+                        .ok_or(Error::Budget("search root postings allocation"))?;
+                    charge(
+                        &mut expected.work_bytes,
+                        deltas
+                            .len()
+                            .checked_add(positions_bytes)
+                            .and_then(|bytes| bytes.checked_add(gram.len() + 24))
+                            .ok_or(Error::Budget("search root postings work"))?,
+                        limits,
+                    )?;
+                    let _positions_hold = creation.map(|owner| owner.hold(positions_bytes)).transpose()?;
+                    if let Some(creation) = creation {
+                        creation.charge_work(deltas.len().checked_add(positions_bytes)
+                            .ok_or(Error::Budget("search root postings work"))?)?;
+                    }
                     let positions = decode_posting_block(first as u64, last as u64, count as u16, &deltas)?;
-                    charge(&mut expected.work_bytes, deltas.len(), limits)?;
-                    charge(&mut expected.work_bytes, positions.len() * 8, limits)?;
-                    charge(&mut expected.work_bytes, gram.len() + 24, limits)?;
                     if positions.iter().any(|position| *position >= document_positions[kind_index]) {
                         return Err(Error::Invalid("search root orphan posting"));
                     }
@@ -1357,7 +2078,13 @@ fn verify_and_root(
                             }
                         }
                     }
+                    let next_hold = creation
+                        .map(|owner| owner.hold(kind.len().checked_add(gram.len())
+                            .and_then(|n| n.checked_add(std::mem::size_of::<(String, Vec<u8>, u64, u16)>()))
+                            .ok_or(Error::Budget("search root previous block"))?))
+                        .transpose()?;
                     previous_block = Some((kind.clone(), gram, last as u64, count as u16));
+                    previous_block_hold = next_hold;
                     logical_postings = logical_postings
                         .checked_add(count as u64)
                         .ok_or(Error::Budget("search root postings"))?;
@@ -1385,15 +2112,35 @@ fn verify_and_root(
     {
         return Err(Error::Invalid("search root table coverage"));
     }
-    let mut grouped = db.prepare("SELECT kind,n,gram,SUM(postings) FROM search_posting_blocks GROUP BY kind,n,gram ORDER BY kind,n,gram")?;
+    let mut grouped = db.prepare("SELECT kind,n,gram,SUM(postings),length(CAST(kind AS BLOB)),CASE WHEN typeof(gram)='blob' THEN length(gram) ELSE -1 END FROM search_posting_blocks GROUP BY kind,n,gram ORDER BY kind,n,gram")?;
     let mut actual = grouped.query([])?;
-    let mut stats =
-        db.prepare("SELECT kind,n,gram,postings FROM search_gram_stats ORDER BY kind,n,gram")?;
+    let mut stats = db.prepare("SELECT kind,n,gram,postings,length(CAST(kind AS BLOB)),CASE WHEN typeof(gram)='blob' THEN length(gram) ELSE -1 END FROM search_gram_stats ORDER BY kind,n,gram")?;
     let mut declared = stats.query([])?;
     while let Some(row) = declared.next()? {
         let group = actual
             .next()?
             .ok_or(Error::Invalid("search gram stats extra"))?;
+        let (left_kind_len, left_gram_len): (i64, i64) = (row.get(4)?, row.get(5)?);
+        let (right_kind_len, right_gram_len): (i64, i64) = (group.get(4)?, group.get(5)?);
+        if [left_kind_len, left_gram_len, right_kind_len, right_gram_len]
+            .into_iter()
+            .any(|len| len < 0)
+        {
+            return Err(Error::Invalid("search gram stats row lengths"));
+        }
+        let pair_bytes = usize::try_from(left_kind_len)
+            .ok()
+            .and_then(|bytes| bytes.checked_add(usize::try_from(left_gram_len).ok()?))
+            .and_then(|bytes| bytes.checked_add(usize::try_from(right_kind_len).ok()?))
+            .and_then(|bytes| bytes.checked_add(usize::try_from(right_gram_len).ok()?))
+            .and_then(|bytes| {
+                bytes.checked_add(2 * (std::mem::size_of::<(String, i64, Vec<u8>, i64)>() + 32))
+            })
+            .ok_or(Error::Budget("search gram stats row bytes"))?;
+        let _pair_hold = creation.map(|owner| owner.hold(pair_bytes)).transpose()?;
+        if let Some(creation) = creation {
+            creation.charge_work(pair_bytes)?;
+        }
         let left: (String, i64, Vec<u8>, i64) =
             (row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?);
         let right: (String, i64, Vec<u8>, i64) =
@@ -1404,6 +2151,10 @@ fn verify_and_root(
     }
     if actual.next()?.is_some() {
         return Err(Error::Invalid("search gram stats absent"));
+    }
+    if let Some(creation) = creation {
+        creation.retain(64)?;
+        creation.charge_work(64)?;
     }
     Ok((logical_postings, counts[2], hash.finalize().to_hex()))
 }
@@ -1581,11 +2332,21 @@ mod tests {
                     .count()
                     > limits().gram_batch_rows
             );
-            let offsets =
-                prepare_gram_offsets(&doc, limits(), &mut receipt.work_bytes, &|| Ok(())).unwrap();
+            let (offsets, _offset_hold) =
+                prepare_gram_offsets(&doc, limits(), &mut receipt.work_bytes, &|| Ok(()), None)
+                    .unwrap();
             assert_eq!(offsets.len(), expected.len());
             row.payload = None;
-            (PreparedDocument { row, doc, offsets }, expected)
+            (
+                PreparedDocument {
+                    row,
+                    doc,
+                    offsets,
+                    _row_hold: None,
+                    _offset_hold,
+                },
+                expected,
+            )
         };
         let (first, expected_first) = prepare(7, "n7", &mut receipt);
         let (second, expected_second) = prepare(8, "n8", &mut receipt);
@@ -1603,6 +2364,7 @@ mod tests {
             7,
             writer_limits,
             &mut receipt,
+            None,
         )
         .unwrap();
         let expected_total = (expected_first.len() + expected_second.len()) as u64;
@@ -1654,7 +2416,8 @@ mod tests {
                 "nodes",
                 9,
                 tight,
-                &mut receipt
+                &mut receipt,
+                None,
             ),
             Err(Error::Budget("search postings"))
         ));
@@ -1675,6 +2438,7 @@ mod tests {
                 9,
                 limits(),
                 &mut receipt,
+                None,
             )
             .is_err()
         );
@@ -1699,6 +2463,7 @@ mod tests {
                 11,
                 limits(),
                 &mut receipt,
+                None,
             ),
             Err(Error::Invalid("fixture late guard"))
         ));
@@ -1733,6 +2498,7 @@ mod tests {
             12,
             limits(),
             &mut receipt,
+            None,
         )
         .unwrap();
         db.execute_batch(

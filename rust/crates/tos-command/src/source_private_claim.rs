@@ -3661,7 +3661,10 @@ fn creation_files(
             deadline,
             cancelled,
         )?;
-        files.insert(claim_form_filename(identity), cmd::published(&prepared.payload)?);
+        files.insert(
+            claim_form_filename(identity),
+            cmd::published(&prepared.payload)?,
+        );
         views.extend(prepared.views);
     }
     if files.len() > MAX_PACKAGE_FILES
@@ -6418,7 +6421,10 @@ fn verify_creation_integrity(
         || !cmd::field(&request, "expected_source")?.is_null()
         || !cmd::field(&request, "expected_revision")?.is_null()
         || cmd::field(receipt, "dependencies")? != cmd::field(&request, "expected_dependencies")?
-        || cmd::field(receipt, "source_bindings")? != cmd::field(&request, "expected_inputs")?
+        || !same_json(
+            cmd::field(receipt, "source_bindings")?,
+            cmd::field(&request, "expected_inputs")?,
+        )?
     {
         return Err(SourceCommandError::Conflict(
             "private Claim creation receipt differs from its exact retained request",
@@ -6788,7 +6794,10 @@ fn package_state(
             || cmd::field(receipt, "owner_configuration")?
                 != cmd::field(request, "expected_configuration")?
             || cmd::field(receipt, "dependencies")? != cmd::field(request, "expected_dependencies")?
-            || cmd::field(receipt, "source_bindings")? != cmd::field(request, "expected_inputs")?
+            || !same_json(
+                cmd::field(receipt, "source_bindings")?,
+                cmd::field(request, "expected_inputs")?,
+            )?
             || cmd::field(receipt, "reason")? != cmd::field(request, "reason")?
             || cmd::field(receipt, "grants_admission")? != &JsonValue::Bool(false)
         {
@@ -7397,9 +7406,13 @@ fn create_plan(
     // claim forms in request order, followed by these three capture byproducts.
     // Package storage remains sorted; only this published receipt owns that order.
     let mut file_order = vec![
-        grant.source_path.as_str().rsplit('/').next().ok_or(
-            SourceCommandError::Invalid("Claim stream basename"),
-        )?.to_owned(),
+        grant
+            .source_path
+            .as_str()
+            .rsplit('/')
+            .next()
+            .ok_or(SourceCommandError::Invalid("Claim stream basename"))?
+            .to_owned(),
         CONFIG_FILE.to_owned(),
     ];
     for claim in claims {
@@ -7413,13 +7426,21 @@ fn create_plan(
     if file_order.len() != files.len()
         || file_order.iter().collect::<BTreeSet<_>>() != files.keys().collect::<BTreeSet<_>>()
     {
-        return Err(SourceCommandError::Invalid("private Claim creation receipt file order"));
+        return Err(SourceCommandError::Invalid(
+            "private Claim creation receipt file order",
+        ));
     }
     let unordered_refs = serialized_package_refs(&files);
     let receipt_files = JsonValue::Object(
-        file_order.iter().map(|name| {
-            Ok((tos_foundation::JsonString::from_utf8(name), cmd::field(&unordered_refs, name)?.clone()))
-        }).collect::<SourceCommandResult<Vec<_>>>()?,
+        file_order
+            .iter()
+            .map(|name| {
+                Ok((
+                    tos_foundation::JsonString::from_utf8(name),
+                    cmd::field(&unordered_refs, name)?.clone(),
+                ))
+            })
+            .collect::<SourceCommandResult<Vec<_>>>()?,
     );
     let receipt = cmd::object(vec![
         (
@@ -7593,7 +7614,10 @@ fn prepare_revision(
             &revised,
         )?,
     );
-    output.insert(claim_form_filename(identity), cmd::published(&prepared.payload)?);
+    output.insert(
+        claim_form_filename(identity),
+        cmd::published(&prepared.payload)?,
+    );
     let references = prepared.references.clone();
     let views = prepared.views.clone();
     Ok((revised, output, grounded, references, views))
@@ -7954,8 +7978,10 @@ pub(crate) fn prepare(
                 || cmd::text(&request, "expected_configuration")? != grant.digest
                 || cmd::field(receipt, "dependencies")?
                     != cmd::field(&request, "expected_dependencies")?
-                || cmd::field(receipt, "source_bindings")?
-                    != cmd::field(&request, "expected_inputs")?
+                || !same_json(
+                    cmd::field(receipt, "source_bindings")?,
+                    cmd::field(&request, "expected_inputs")?,
+                )?
                 || !cmd::field(&request, "expected_source")?.is_null()
                 || !cmd::field(&request, "expected_revision")?.is_null()
             {

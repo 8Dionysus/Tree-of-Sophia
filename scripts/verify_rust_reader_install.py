@@ -30,6 +30,10 @@ def main() -> None:
         required_platform = {
             "schema_version": "tos_reader_capabilities_v1",
             "store_format": "tos_corpus_snapshot_v1",
+            "supported_store_formats": [
+                "tos_corpus_snapshot_v1", "tos_native_admission_v2"
+            ],
+            "default_format": "v1",
             "platform": "linux",
             "minimum_kernel": "5.6",
             "required_open_api": "openat2",

@@ -366,6 +366,7 @@ pub(crate) struct NativeSourceValidator<'c> {
     segment_v2_profile: Option<NativeSegmentV2Budget>,
     segment_v2_io_accounted: (u64, u64),
     segment_v2_read_upper_accounted: u64,
+    spooled_read_upper_accounted: u64,
 }
 /// The only constructor is the successful complete owner callback below.
 pub(crate) struct ValidatedCandidate(Index);
@@ -627,6 +628,7 @@ impl<'c> NativeSourceValidator<'c> {
             segment_v2_profile: None,
             segment_v2_io_accounted: (0, 0),
             segment_v2_read_upper_accounted: 0,
+            spooled_read_upper_accounted: 0,
         })
     }
 
@@ -1835,6 +1837,61 @@ impl<'c> NativeSourceValidator<'c> {
         self.account_spooled_terminal_budget()
     }
 
+    /// Check the two separately escrowed physical ledgers selected by this
+    /// invocation. Their handle identity is distinct from sharing one budget.
+    pub(crate) fn verify_spooled_v2_io(
+        &self,
+        spool: &PinnedSqliteIoBudget,
+        v2: &PinnedSqliteIoBudget,
+        deadline: Instant,
+        cancel: &AtomicBool,
+    ) -> io::Result<()> {
+        active(self.deadline, self.cancel)?;
+        self.ledger()?;
+        if deadline != self.deadline
+            || !std::ptr::eq(cancel, self.cancel)
+            || !self.spooled_route_selected
+            || self
+                .spooled_profile
+                .as_ref()
+                .is_none_or(|profile| !profile.2.shares_with(spool))
+            || self
+                .segment_v2_profile
+                .as_ref()
+                .is_none_or(|profile| !profile.io.shares_with(v2))
+        {
+            return Err(invalid("spooled/V2 original invocation IO binding differs"));
+        }
+        Ok(())
+    }
+
+    /// Reserve caller-held source-operation state on the existing invocation
+    /// ledger before an external bounded preparation allocates it. The debit
+    /// remains monotonic through candidate validation and publication.
+    pub(crate) fn reserve_spooled_external_state(
+        &mut self,
+        bytes: usize,
+        io: &PinnedSqliteIoBudget,
+    ) -> io::Result<()> {
+        active(self.deadline, self.cancel)?;
+        if bytes == 0
+            || bytes == usize::MAX
+            || !self.spooled_route_selected
+            || self
+                .spooled_profile
+                .as_ref()
+                .is_none_or(|profile| !profile.2.shares_with(io))
+        {
+            return Err(invalid("spooled external state original owner differs"));
+        }
+        debit(
+            self.ledger_mut()?,
+            "admission-spooled-external-state",
+            0,
+            bytes,
+        )
+    }
+
     /// Account the same original physical ledger when a spooled operation
     /// refuses before a candidate exists or after publication has retired it.
     /// This carries no new IO authority; it only records the attempted suffix.
@@ -1861,6 +1918,13 @@ impl<'c> NativeSourceValidator<'c> {
             .read_attempted_bytes
             .checked_sub(self.candidate_io.0)
             .ok_or_else(|| invalid("spooled terminal read accounting regressed"))?;
+        let spool_upper = usage
+            .read_upper_bound_attempted_bytes
+            .checked_sub(self.spooled_read_upper_accounted)
+            .ok_or_else(|| invalid("spooled terminal upper-bound accounting regressed"))?;
+        let candidate_read = candidate_read
+            .checked_sub(spool_upper)
+            .ok_or_else(|| invalid("spooled upper-bound suffix exceeds attempted suffix"))?;
         let _candidate_write_suffix = usage
             .write_attempted_bytes
             .checked_sub(self.candidate_io.1)
@@ -1891,11 +1955,14 @@ impl<'c> NativeSourceValidator<'c> {
         let read = candidate_read
             .checked_add(segment_v2_read)
             .ok_or_else(|| invalid("spooled terminal read suffix overflow"))?;
+        let upper = spool_upper
+            .checked_add(segment_v2_upper)
+            .ok_or_else(|| invalid("spooled/V2 upper-bound suffix overflow"))?;
         let measured_before = self.ledger()?.measured_charged().source_read_bytes;
         let upper_before = self.ledger()?.admitted_charged().source_read_bytes;
         let classified = self
             .ledger_mut()?
-            .record_terminal_source_read_suffix(read, segment_v2_upper);
+            .record_terminal_source_read_suffix(read, upper);
         let measured_after = self.ledger()?.measured_charged().source_read_bytes;
         let upper_after = self.ledger()?.admitted_charged().source_read_bytes;
         let measured_recorded = measured_after.checked_sub(measured_before);
@@ -1903,8 +1970,9 @@ impl<'c> NativeSourceValidator<'c> {
         // Both classifications must be retained before their shared physical
         // attempted prefix advances. Arithmetic overflow in either ledger
         // leaves the old witness intact for a later exact refusal.
-        if measured_recorded == Some(read) && upper_recorded == Some(segment_v2_upper) {
+        if measured_recorded == Some(read) && upper_recorded == Some(upper) {
             self.candidate_io = (usage.read_attempted_bytes, usage.write_attempted_bytes);
+            self.spooled_read_upper_accounted = usage.read_upper_bound_attempted_bytes;
             if let Some(segment) = segment_v2_usage {
                 self.segment_v2_io_accounted =
                     (segment.read_attempted_bytes, segment.write_attempted_bytes);
@@ -2036,10 +2104,11 @@ impl<'c> NativeSourceValidator<'c> {
         self.account_spooled_candidate(candidate)?;
         let remaining = self.ledger()?.remaining().map_err(command)?;
         let operation_state = remaining.state_bytes;
-        // The input's simultaneous raw callback allowance has its own selected
-        // row ceiling; the whole worker/default/catalog operation retains the
-        // actual invocation remainder independently.
-        let input_state = operation_state.min(selected_index.max_row_state_bytes);
+        // The original operation remainder bounds the simultaneous callback
+        // plus raw-member overlap. The spool's selected row ceiling continues
+        // to bound local raw/SQL workspace separately; a schema constructor is
+        // not a SQL row allocation.
+        let input_state = operation_state;
         let raw_state = observed_max
             .checked_mul(4)
             .and_then(|n| n.checked_add(16384))

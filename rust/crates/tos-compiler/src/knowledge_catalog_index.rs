@@ -2,7 +2,11 @@
 //! These rows are a private read model, not source admission or publication.
 
 use crate::knowledge_stage::{KnowledgeStage, WritePhase};
-use crate::{Error, QueryVocabulary, Result, catalog::CatalogReceipt};
+use crate::{
+    Error, QueryVocabulary, Result,
+    catalog::{CatalogReceipt, python_casefold_with_state},
+    d1_public_capture::{CreationState, CreationStateHold},
+};
 use rusqlite::{Connection, OptionalExtension, params};
 use serde_json::Value;
 use std::io::{self, Write};
@@ -79,21 +83,32 @@ impl Write for CappedWriter {
     }
 }
 
-struct Work {
+struct Work<'state, 'budget> {
     limits: CatalogIndexLimits,
     rows: u64,
     bytes: u64,
+    creation: Option<&'state CreationState<'budget>>,
 }
 
-struct DecodeBudget {
+struct DecodeBudget<'state, 'budget> {
     used: u64,
     max: u64,
+    creation: Option<&'state CreationState<'budget>>,
 }
-impl DecodeBudget {
-    fn new(max: u64) -> Self {
-        Self { used: 0, max }
+impl<'state, 'budget> DecodeBudget<'state, 'budget> {
+    fn new(max: u64, creation: Option<&'state CreationState<'budget>>) -> Self {
+        Self {
+            used: 0,
+            max,
+            creation,
+        }
     }
     fn charge(&mut self, bytes: u64) -> Result<()> {
+        if let Some(creation) = self.creation {
+            creation.charge_work(
+                usize::try_from(bytes).map_err(|_| Error::Budget("catalog index original work"))?,
+            )?;
+        }
         self.used = self
             .used
             .checked_add(bytes)
@@ -112,13 +127,19 @@ impl DecodeBudget {
         }
         self.charge(total)
     }
+    fn hold(&self, bytes: usize) -> Result<Option<CreationStateHold<'state, 'budget>>> {
+        self.creation
+            .map(|creation| creation.hold(bytes))
+            .transpose()
+    }
 }
-impl Work {
-    fn new(limits: CatalogIndexLimits) -> Self {
+impl<'state, 'budget> Work<'state, 'budget> {
+    fn new(limits: CatalogIndexLimits, creation: Option<&'state CreationState<'budget>>) -> Self {
         Self {
             limits,
             rows: 0,
             bytes: 0,
+            creation,
         }
     }
     fn charge(&mut self, parts: &[&[u8]]) -> Result<()> {
@@ -145,6 +166,11 @@ impl Work {
         if self.bytes > self.limits.max_index_bytes {
             return Err(Error::Budget("catalog index bytes"));
         }
+        if let Some(creation) = self.creation {
+            creation.charge_work(
+                usize::try_from(n).map_err(|_| Error::Budget("catalog index original work"))?,
+            )?;
+        }
         Ok(())
     }
     fn charge_packet(&mut self, packet: &[u8]) -> Result<()> {
@@ -155,8 +181,58 @@ impl Work {
         if self.bytes > self.limits.max_index_bytes {
             return Err(Error::Budget("catalog index bytes"));
         }
+        if let Some(creation) = self.creation {
+            creation.charge_work(packet.len())?;
+        }
         Ok(())
     }
+}
+
+struct EncodedPacket<'state, 'budget> {
+    bytes: Vec<u8>,
+    _hold: Option<CreationStateHold<'state, 'budget>>,
+}
+impl std::ops::Deref for EncodedPacket<'_, '_> {
+    type Target = [u8];
+    fn deref(&self) -> &Self::Target {
+        &self.bytes
+    }
+}
+
+fn encode_packet<'state, 'budget, T: serde::Serialize + ?Sized>(
+    value: &T,
+    max: usize,
+    creation: Option<&'state CreationState<'budget>>,
+) -> Result<EncodedPacket<'state, 'budget>> {
+    if let Some(creation) = creation {
+        return creation.with_json_encoded(value, max, |encoded| {
+            let copy_and_check = encoded
+                .len()
+                .checked_mul(2)
+                .ok_or(Error::Budget("catalog index packet work"))?;
+            creation.charge_work(copy_and_check)?;
+            let hold = creation.hold(encoded.len())?;
+            let mut bytes = Vec::new();
+            bytes
+                .try_reserve_exact(encoded.len())
+                .map_err(|_| Error::Budget("catalog index packet allocation"))?;
+            bytes.extend_from_slice(encoded);
+            Ok(EncodedPacket {
+                bytes,
+                _hold: Some(hold),
+            })
+        });
+    }
+    let mut writer = CappedWriter {
+        bytes: Vec::new(),
+        max,
+    };
+    serde_json::to_writer(&mut writer, value)
+        .map_err(|_| Error::Budget("catalog index packet bytes"))?;
+    Ok(EncodedPacket {
+        bytes: writer.bytes,
+        _hold: None,
+    })
 }
 
 fn object<'a>(value: &'a Value, key: &str) -> Result<&'a serde_json::Map<String, Value>> {
@@ -187,14 +263,38 @@ fn number(value: &Value, key: &str) -> Result<u64> {
 fn signed(n: u64) -> Result<i64> {
     i64::try_from(n).map_err(|_| Error::Budget("catalog index signed count"))
 }
-fn scalar_json(value: &str, max_bytes: usize) -> Result<String> {
+fn scalar_json<'state, 'budget>(
+    value: &str,
+    max_bytes: usize,
+    creation: Option<&'state CreationState<'budget>>,
+) -> Result<(String, Option<CreationStateHold<'state, 'budget>>)> {
+    if let Some(creation) = creation {
+        return creation.with_json_encoded(value, max_bytes, |bytes| {
+            let copy_and_check = bytes
+                .len()
+                .checked_mul(2)
+                .ok_or(Error::Budget("catalog facet scalar work"))?;
+            creation.charge_work(copy_and_check)?;
+            let hold = creation.hold(bytes.len())?;
+            let mut owned = Vec::new();
+            owned
+                .try_reserve_exact(bytes.len())
+                .map_err(|_| Error::Budget("catalog facet scalar allocation"))?;
+            owned.extend_from_slice(bytes);
+            let value = String::from_utf8(owned)
+                .map_err(|_| Error::Invalid("catalog facet scalar UTF-8"))?;
+            Ok((value, Some(hold)))
+        });
+    }
     let mut writer = CappedWriter {
         bytes: Vec::new(),
         max: max_bytes,
     };
     serde_json::to_writer(&mut writer, value)
         .map_err(|_| Error::Budget("catalog facet scalar bytes"))?;
-    String::from_utf8(writer.bytes).map_err(|_| Error::Invalid("catalog facet scalar UTF-8"))
+    let value = String::from_utf8(writer.bytes)
+        .map_err(|_| Error::Invalid("catalog facet scalar UTF-8"))?;
+    Ok((value, None))
 }
 fn hash_text(hash: &mut Digest256Hasher, value: &str) {
     hash.update(&(value.len() as u64).to_be_bytes());
@@ -244,24 +344,29 @@ pub fn materialize_catalog(
     vocabulary: &QueryVocabulary,
     limits: CatalogIndexLimits,
 ) -> Result<CatalogIndexReceipt> {
+    let creation = stage.owned_creation_state();
     let result = (|| {
         limits.validate()?;
-        let mut writer = CappedWriter {
-            bytes: Vec::new(),
-            max: limits.max_packet_bytes,
-        };
-        serde_json::to_writer(&mut writer, &receipt.catalog)
-            .map_err(|_| Error::Budget("catalog index packet bytes"))?;
-        let packet = writer.bytes;
+        let packet = encode_packet(&receipt.catalog, limits.max_packet_bytes, creation)?;
         let packet_sha = Digest256::of_bytes(&packet);
-        if packet_sha.to_hex() != receipt.sha256 {
+        let receipt_sha = Digest256::from_hex(&receipt.sha256)
+            .map_err(|_| Error::Invalid("catalog index receipt digest"))?;
+        if packet_sha != receipt_sha {
             return Err(Error::Invalid("catalog index receipt digest"));
         }
         Digest256::from_hex(&vocabulary.descriptor_sha256)
             .map_err(|_| Error::Invalid("catalog index descriptor digest"))?;
         stage.with_connection(WritePhase::Catalog, |db| {
             db.execute_batch("SAVEPOINT cmp_catalog_index")?;
-            let value = materialize_inner(db, receipt, vocabulary, limits, &packet, &packet_sha);
+            let value = materialize_inner(
+                db,
+                receipt,
+                vocabulary,
+                limits,
+                &packet,
+                &packet_sha,
+                creation,
+            );
             if value.is_ok() {
                 db.execute_batch("RELEASE cmp_catalog_index")?;
             } else {
@@ -283,10 +388,11 @@ fn materialize_inner(
     limits: CatalogIndexLimits,
     packet: &[u8],
     packet_sha: &Digest256,
+    creation: Option<&CreationState<'_>>,
 ) -> Result<CatalogIndexReceipt> {
     db.execute_batch(TABLES)?;
-    let mut work = Work::new(limits);
-    let mut decoded = DecodeBudget::new(limits.max_decoded_bytes);
+    let mut work = Work::new(limits, creation);
+    let mut decoded = DecodeBudget::new(limits.max_decoded_bytes, creation);
     work.charge_packet(packet)?;
     let desc = &vocabulary.descriptor_sha256;
     if ![
@@ -340,20 +446,38 @@ fn materialize_inner(
                 .ok_or(Error::Invalid("catalog facet array"))?;
             let mut total = 0u64;
             let mut previous_fold: Option<String> = None;
+            let mut previous_fold_hold = None;
             for (ordinal, row) in values.iter().enumerate() {
                 let value = string(row, "value")?;
                 if value.is_empty() {
                     return Err(Error::Invalid("empty catalog facet value"));
                 }
-                let folded = tos_foundation::python_casefold_unicode16_v1(
-                    value,
-                    limits.max_row_bytes,
-                    usize::try_from(decoded.max.saturating_sub(decoded.used))
-                        .map_err(|_| Error::Budget("catalog casefold addressable bytes"))?,
-                    usize::try_from(decoded.max.saturating_sub(decoded.used))
-                        .map_err(|_| Error::Budget("catalog casefold addressable bytes"))?,
-                )
-                .map_err(|_| Error::Budget("catalog facet casefold bytes"))?;
+                let local_remaining = usize::try_from(decoded.max.saturating_sub(decoded.used))
+                    .map_err(|_| Error::Budget("catalog casefold addressable bytes"))?;
+                let original_remaining = creation
+                    .map(|owner| owner.remaining(0))
+                    .transpose()?
+                    .unwrap_or(usize::MAX);
+                let output_cap = value
+                    .len()
+                    .checked_mul(3)
+                    .ok_or(Error::Budget("catalog casefold addressable bytes"))?
+                    .min(limits.max_row_bytes)
+                    .min(local_remaining)
+                    .min(original_remaining);
+                let (folded, fold_hold) = if let Some(owner) = creation {
+                    let (folded, hold) = python_casefold_with_state(value, owner, output_cap)?;
+                    (folded, Some(hold))
+                } else {
+                    let folded = tos_foundation::python_casefold_unicode16_v1(
+                        value,
+                        limits.max_row_bytes,
+                        output_cap,
+                        output_cap,
+                    )
+                    .map_err(|_| Error::Budget("catalog facet casefold bytes"))?;
+                    (folded, None)
+                };
                 if previous_fold
                     .as_ref()
                     .is_some_and(|previous| previous > &folded)
@@ -361,8 +485,12 @@ fn materialize_inner(
                     return Err(Error::Invalid("catalog facet casefold order"));
                 }
                 decoded.charge(folded.len() as u64)?;
+                drop(previous_fold.take());
+                drop(previous_fold_hold.take());
                 previous_fold = Some(folded);
-                let value_json = scalar_json(value, limits.max_row_bytes)?;
+                previous_fold_hold = fold_hold;
+                let (value_json, _value_json_hold) =
+                    scalar_json(value, limits.max_row_bytes, creation)?;
                 let count = number(row, "count")?;
                 if count == 0 {
                     return Err(Error::Invalid("zero catalog facet value"));
@@ -431,13 +559,7 @@ fn materialize_inner(
         if id != expected_id {
             return Err(Error::Invalid("catalog route order"));
         }
-        let mut writer = CappedWriter {
-            bytes: Vec::new(),
-            max: limits.max_row_bytes,
-        };
-        serde_json::to_writer(&mut writer, route)
-            .map_err(|_| Error::Budget("catalog route packet bytes"))?;
-        let route_packet = writer.bytes;
+        let route_packet = encode_packet(route, limits.max_row_bytes, creation)?;
         let route_sha = Digest256::of_bytes(&route_packet);
         let node_count = number(route, "node_count")?;
         let confirming = number(route, "confirming_relation_count")?;
@@ -460,7 +582,7 @@ fn materialize_inner(
             id.as_bytes(),
             availability.as_bytes(),
             readiness.as_bytes(),
-            &route_packet,
+            &route_packet.bytes,
         ])?;
         db.execute(
             "INSERT INTO catalog_routes VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11)",
@@ -475,7 +597,7 @@ fn materialize_inner(
                 readiness,
                 signed(route_packet.len() as u64)?,
                 route_sha.as_bytes().as_slice(),
-                route_packet
+                route_packet.bytes.as_slice()
             ],
         )?;
         verify_route_packet(db, desc, id, limits.max_row_bytes, &route_sha, &mut decoded)?;
@@ -509,7 +631,7 @@ fn materialize_inner(
             return Err(Error::Invalid("catalog source scope count mismatch"));
         }
         for (domain, count) in [("node", nodes), ("relation", relations)] {
-            let value_json = scalar_json(id, limits.max_row_bytes)?;
+            let (value_json, _value_json_hold) = scalar_json(id, limits.max_row_bytes, creation)?;
             let facet: Option<u64> = db.query_row(
                 "SELECT item_count FROM catalog_facets WHERE descriptor_sha256=?1 AND domain=?2 AND field_id='source_graph' AND value_json=?3",
                 params![desc,domain,value_json],|r|r.get(0)).optional()?;
@@ -566,9 +688,18 @@ fn materialize_inner(
         ],
     )?;
     // A consumer must make the same pre-BLOB length check before transfer.
-    let returned = read_packet(db, desc, limits.max_packet_bytes, &mut decoded)?;
-    if returned != packet {
+    let returned = read_packet_owned(db, desc, limits.max_packet_bytes, &mut decoded)?;
+    if returned.bytes != packet {
         return Err(Error::Invalid("catalog index packet readback"));
+    }
+    if let Some(creation) = creation {
+        let output_bytes = std::mem::size_of::<CatalogIndexReceipt>()
+            .checked_add(desc.len())
+            .and_then(|n| n.checked_add(receipt.sha256.len()))
+            .and_then(|n| n.checked_add(index_root.len()))
+            .ok_or(Error::Budget("catalog index receipt allocation"))?;
+        creation.retain(output_bytes)?;
+        creation.charge_work(output_bytes)?;
     }
     Ok(CatalogIndexReceipt {
         descriptor_sha256: desc.clone(),
@@ -582,23 +713,24 @@ fn materialize_inner(
     })
 }
 
-fn read_packet(
+fn read_packet_owned<'state, 'budget>(
     db: &Connection,
     descriptor: &str,
     max_bytes: usize,
-    decoded: &mut DecodeBudget,
-) -> Result<Vec<u8>> {
+    decoded: &mut DecodeBudget<'state, 'budget>,
+) -> Result<EncodedPacket<'state, 'budget>> {
     let (actual,declared,digest_len): (i64,i64,i64) = db.query_row(
         "SELECT length(packet),packet_len,length(packet_sha256) FROM catalog_index_meta WHERE descriptor_sha256=?1",
         [descriptor],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?)))?;
     if actual < 0 || declared != actual || actual as u64 > max_bytes as u64 || digest_len != 32 {
         return Err(Error::Budget("catalog indexed packet length"));
     }
-    decoded.charge(
-        (actual as u64)
-            .checked_add(32)
-            .ok_or(Error::Budget("catalog index decoded bytes"))?,
-    )?;
+    let owned = usize::try_from(actual)
+        .ok()
+        .and_then(|n| n.checked_add(32))
+        .ok_or(Error::Budget("catalog index decoded bytes"))?;
+    decoded.charge(owned as u64)?;
+    let hold = decoded.hold(owned)?;
     let digest: Vec<u8> = db.query_row(
         "SELECT packet_sha256 FROM catalog_index_meta WHERE descriptor_sha256=?1",
         [descriptor],
@@ -614,7 +746,16 @@ fn read_packet(
     {
         return Err(Error::Invalid("catalog indexed packet digest"));
     }
-    Ok(bytes)
+    Ok(EncodedPacket { bytes, _hold: hold })
+}
+
+fn read_packet(
+    db: &Connection,
+    descriptor: &str,
+    max_bytes: usize,
+    decoded: &mut DecodeBudget<'_, '_>,
+) -> Result<Vec<u8>> {
+    Ok(read_packet_owned(db, descriptor, max_bytes, decoded)?.bytes)
 }
 
 fn verify_route_packet(
@@ -623,7 +764,7 @@ fn verify_route_packet(
     route_id: &str,
     max_bytes: usize,
     expected: &Digest256,
-    decoded: &mut DecodeBudget,
+    decoded: &mut DecodeBudget<'_, '_>,
 ) -> Result<()> {
     let (actual, declared, digest_len): (i64, i64, i64) = db.query_row(
         "SELECT length(packet),packet_len,length(packet_sha256) FROM catalog_routes
@@ -634,11 +775,12 @@ fn verify_route_packet(
     if actual < 0 || declared != actual || actual as u64 > max_bytes as u64 || digest_len != 32 {
         return Err(Error::Budget("catalog indexed route length"));
     }
-    decoded.charge(
-        (actual as u64)
-            .checked_add(32)
-            .ok_or(Error::Budget("catalog index decoded bytes"))?,
-    )?;
+    let owned = usize::try_from(actual)
+        .ok()
+        .and_then(|n| n.checked_add(32))
+        .ok_or(Error::Budget("catalog index decoded bytes"))?;
+    decoded.charge(owned as u64)?;
+    let _hold = decoded.hold(owned)?;
     let (digest, bytes): (Vec<u8>, Vec<u8>) = db.query_row(
         "SELECT packet_sha256,packet FROM catalog_routes
          WHERE descriptor_sha256=?1 AND route_id=?2",
@@ -663,7 +805,7 @@ fn index_root(
     routes: u64,
     sources: u64,
     packet_sha: &Digest256,
-    decoded: &mut DecodeBudget,
+    decoded: &mut DecodeBudget<'_, '_>,
 ) -> Result<String> {
     let mut hash = Digest256Hasher::new();
     hash_text(&mut hash, SCHEMA);
@@ -683,14 +825,25 @@ fn index_root(
     }
     let mut seen = [0u64; 4];
     let mut stmt = db.prepare(
-        "SELECT domain,field_id,value_count,total_count FROM catalog_facet_fields
+        "SELECT domain,field_id,value_count,total_count,length(CAST(domain AS BLOB)),length(CAST(field_id AS BLOB)) FROM catalog_facet_fields
         WHERE descriptor_sha256=?1 ORDER BY domain,field_id",
     )?;
     let mut rows = stmt.query([desc])?;
     while let Some(row) = rows.next()? {
+        let domain_len: i64 = row.get(4)?;
+        let field_len: i64 = row.get(5)?;
+        if domain_len < 0 || field_len < 0 {
+            return Err(Error::Invalid("catalog index root row length"));
+        }
+        let owned = usize::try_from(domain_len)
+            .ok()
+            .and_then(|n| n.checked_add(usize::try_from(field_len).ok()?))
+            .and_then(|n| n.checked_add(std::mem::size_of::<(String, String, u64, u64)>() + 32))
+            .ok_or(Error::Budget("catalog index decoded bytes"))?;
+        let _hold = decoded.hold(owned)?;
+        decoded.charge(owned as u64)?;
         let domain: String = row.get(0)?;
         let field: String = row.get(1)?;
-        decoded.charge_text(&[&domain, &field], 16)?;
         hash.update(b"F");
         hash_text(&mut hash, &domain);
         hash_text(&mut hash, &field);
@@ -700,15 +853,29 @@ fn index_root(
         seen[0] += 1;
     }
     let mut stmt = db.prepare(
-        "SELECT domain,field_id,ordinal,value_json,item_count FROM catalog_facets
+        "SELECT domain,field_id,ordinal,value_json,item_count,length(CAST(domain AS BLOB)),length(CAST(field_id AS BLOB)),length(CAST(value_json AS BLOB)) FROM catalog_facets
         WHERE descriptor_sha256=?1 ORDER BY domain,field_id,ordinal",
     )?;
     let mut rows = stmt.query([desc])?;
     while let Some(row) = rows.next()? {
+        let domain_len: i64 = row.get(5)?;
+        let field_len: i64 = row.get(6)?;
+        let value_len: i64 = row.get(7)?;
+        if domain_len < 0 || field_len < 0 || value_len < 0 {
+            return Err(Error::Invalid("catalog index root row length"));
+        }
+        let owned = [domain_len, field_len, value_len]
+            .into_iter()
+            .try_fold(
+                std::mem::size_of::<(String, String, String, u64, u64)>() + 64,
+                |sum, len| sum.checked_add(usize::try_from(len).ok()?),
+            )
+            .ok_or(Error::Budget("catalog index decoded bytes"))?;
+        let _hold = decoded.hold(owned)?;
+        decoded.charge(owned as u64)?;
         let domain: String = row.get(0)?;
         let field: String = row.get(1)?;
         let value_json: String = row.get(3)?;
-        decoded.charge_text(&[&domain, &field, &value_json], 16)?;
         hash.update(b"V");
         hash_text(&mut hash, &domain);
         hash_text(&mut hash, &field);
@@ -720,18 +887,48 @@ fn index_root(
     let mut stmt = db.prepare(
         "SELECT route_id,ordinal,node_count,confirming_relation_count,
         semantic_confirming_relation_count,availability,role_readiness,packet_len,
-        length(packet_sha256),packet_sha256
+        length(packet_sha256),packet_sha256,length(CAST(route_id AS BLOB)),length(CAST(availability AS BLOB)),length(CAST(role_readiness AS BLOB))
         FROM catalog_routes WHERE descriptor_sha256=?1 ORDER BY ordinal",
     )?;
     let mut rows = stmt.query([desc])?;
     while let Some(row) = rows.next()? {
+        let route_len: i64 = row.get(10)?;
+        let availability_len: i64 = row.get(11)?;
+        let readiness_len: i64 = row.get(12)?;
+        if route_len < 0 || availability_len < 0 || readiness_len < 0 {
+            return Err(Error::Invalid("catalog route row length"));
+        }
+        let owned = [
+            route_len,
+            availability_len,
+            readiness_len,
+            row.get::<_, i64>(8)?,
+        ]
+        .into_iter()
+        .try_fold(
+            std::mem::size_of::<(
+                String,
+                u64,
+                u64,
+                u64,
+                u64,
+                String,
+                String,
+                u64,
+                i64,
+                Vec<u8>,
+            )>() + 64,
+            |sum, len| sum.checked_add(usize::try_from(len).ok()?),
+        )
+        .ok_or(Error::Budget("catalog index decoded bytes"))?;
+        let _hold = decoded.hold(owned)?;
+        decoded.charge(owned as u64)?;
         let route_id: String = row.get(0)?;
         let availability: String = row.get(5)?;
         let readiness: String = row.get(6)?;
         if row.get::<_, i64>(8)? != 32 {
             return Err(Error::Invalid("catalog route digest length"));
         }
-        decoded.charge_text(&[&route_id, &availability, &readiness], 64)?;
         hash.update(b"R");
         hash_text(&mut hash, &route_id);
         for index in 1..5 {
@@ -748,13 +945,22 @@ fn index_root(
         seen[2] += 1;
     }
     let mut stmt = db.prepare(
-        "SELECT source_graph_id,node_count,relation_count FROM catalog_source_counts
+        "SELECT source_graph_id,node_count,relation_count,length(CAST(source_graph_id AS BLOB)) FROM catalog_source_counts
         WHERE descriptor_sha256=?1 ORDER BY source_graph_id",
     )?;
     let mut rows = stmt.query([desc])?;
     while let Some(row) = rows.next()? {
+        let source_len: i64 = row.get(3)?;
+        if source_len < 0 {
+            return Err(Error::Invalid("catalog source row length"));
+        }
+        let owned = usize::try_from(source_len)
+            .ok()
+            .and_then(|n| n.checked_add(std::mem::size_of::<(String, u64, u64)>() + 32))
+            .ok_or(Error::Budget("catalog index decoded bytes"))?;
+        let _hold = decoded.hold(owned)?;
+        decoded.charge(owned as u64)?;
         let source: String = row.get(0)?;
-        decoded.charge_text(&[&source], 16)?;
         hash.update(b"S");
         hash_text(&mut hash, &source);
         hash_number(&mut hash, row.get::<_, u64>(1)?);
@@ -763,6 +969,10 @@ fn index_root(
     }
     if seen != [fields, values, routes, sources] {
         return Err(Error::Invalid("catalog index row count/root"));
+    }
+    decoded.charge(64)?;
+    if let Some(creation) = decoded.creation {
+        creation.retain(64)?;
     }
     Ok(hash.finalize().to_hex())
 }
@@ -859,6 +1069,7 @@ mod tests {
                 CatalogIndexLimits::default(),
                 &packet,
                 &digest,
+                None,
             )
             .unwrap();
             assert_eq!(index.source_count, vocab.sources.len() as u64);
@@ -897,7 +1108,7 @@ mod tests {
                     &db,
                     &vocab.descriptor_sha256,
                     packet.len(),
-                    &mut DecodeBudget::new(u64::MAX)
+                    &mut DecodeBudget::new(u64::MAX, None)
                 )
                 .unwrap(),
                 packet
@@ -918,6 +1129,7 @@ mod tests {
             CatalogIndexLimits::default(),
             &packet,
             &digest,
+            None,
         )
         .unwrap_err();
         assert!(error.to_string().contains("scope count mismatch"));
@@ -931,6 +1143,7 @@ mod tests {
             CatalogIndexLimits::default(),
             &packet,
             &digest,
+            None,
         )
         .unwrap();
         db.execute("UPDATE catalog_index_meta SET packet=zeroblob(200000)", [])
@@ -939,7 +1152,7 @@ mod tests {
             &db,
             &vocab.descriptor_sha256,
             packet.len(),
-            &mut DecodeBudget::new(u64::MAX),
+            &mut DecodeBudget::new(u64::MAX, None),
         )
         .unwrap_err();
         assert!(error.to_string().contains("packet length"));
@@ -953,8 +1166,8 @@ mod tests {
             max_decoded_bytes: 1,
             ..CatalogIndexLimits::default()
         };
-        let error =
-            materialize_inner(&mut db, &receipt, &vocab, limits, &packet, &digest).unwrap_err();
+        let error = materialize_inner(&mut db, &receipt, &vocab, limits, &packet, &digest, None)
+            .unwrap_err();
         assert!(error.to_string().contains("catalog facet casefold bytes"));
     }
 
@@ -972,6 +1185,7 @@ mod tests {
             CatalogIndexLimits::default(),
             &packet,
             &digest,
+            None,
         )
         .unwrap();
         let stored:String=db.query_row("SELECT value_json FROM catalog_facets WHERE domain='node' AND field_id='kind_id' AND ordinal=0",[],|r|r.get(0)).unwrap();
@@ -992,6 +1206,7 @@ mod tests {
             CatalogIndexLimits::default(),
             &packet,
             &digest,
+            None,
         )
         .unwrap_err();
         assert!(error.to_string().contains("packet schema"));
@@ -1026,6 +1241,7 @@ mod tests {
             CatalogIndexLimits::default(),
             &packet,
             &digest,
+            None,
         )
         .unwrap();
         let count: u64 = db

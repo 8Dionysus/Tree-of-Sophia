@@ -16,13 +16,16 @@ use std::{
     os::unix::fs::MetadataExt,
     path::{Path, PathBuf},
     rc::Rc,
-    sync::{Arc, Mutex, atomic::{AtomicU64, Ordering}},
+    sync::{
+        Arc, Mutex,
+        atomic::{AtomicU64, Ordering},
+    },
     time::Instant,
 };
 use tos_foundation::{
     Digest256, Digest256Hasher, JsonLimits, JsonMode, JsonValue, emit_python_compact_json,
-    parse_json, parse_json_with_state_budget_and_check,
-    emit_python_compact_json_with_state_budget_and_visits_and_check,
+    emit_python_compact_json_with_state_budget_and_visits_and_check, parse_json,
+    parse_json_with_state_budget_and_check,
 };
 
 const CORPUS: &str = "corpus";
@@ -196,9 +199,13 @@ impl PublicCaptureLimits {
 /// capture without the full build's final input recheck and output completion.
 /// Opaque per-capture identity. Session budget Arcs are deliberately not this
 /// identity: different captures may share that same original ledger.
-pub(crate) struct ControlledCaptureIdentity { token: Arc<()> }
+pub(crate) struct ControlledCaptureIdentity {
+    token: Arc<()>,
+}
 impl ControlledCaptureIdentity {
-    pub(crate) fn same(&self,other:&Self)->bool { Arc::ptr_eq(&self.token,&other.token) }
+    pub(crate) fn same(&self, other: &Self) -> bool {
+        Arc::ptr_eq(&self.token, &other.token)
+    }
 }
 
 pub struct PublicCapture {
@@ -226,24 +233,39 @@ pub struct PublicCapture {
     cancelled: Arc<std::sync::atomic::AtomicBool>,
 }
 
-type CaptureFileState = (u64,u64,u64,i64,i64,i64,i64);
+type CaptureFileState = (u64, u64, u64, i64, i64, i64, i64);
 enum FamilyPreparationSeal {
     Initial,
     Preparing(std::thread::ThreadId),
     Prepared(CaptureFileState),
     Failed,
 }
-struct FamilyPreparationGuard<'a> { capture:&'a PublicCapture, complete:bool }
+struct FamilyPreparationGuard<'a> {
+    capture: &'a PublicCapture,
+    complete: bool,
+}
 impl Drop for FamilyPreparationGuard<'_> {
     fn drop(&mut self) {
         if !self.complete {
-            if let Ok(mut seal)=self.capture.family_seal.lock() {*seal=FamilyPreparationSeal::Failed;}
+            if let Ok(mut seal) = self.capture.family_seal.lock() {
+                *seal = FamilyPreparationSeal::Failed;
+            }
         }
     }
 }
-fn capture_file_state(metadata:&fs::Metadata)->Result<CaptureFileState> {
-    if !metadata.file_type().is_file() {return Err(Error::Invalid("public D1 private capture replaced"));}
-    Ok((metadata.dev(),metadata.ino(),metadata.len(),metadata.mtime(),metadata.mtime_nsec(),metadata.ctime(),metadata.ctime_nsec()))
+fn capture_file_state(metadata: &fs::Metadata) -> Result<CaptureFileState> {
+    if !metadata.file_type().is_file() {
+        return Err(Error::Invalid("public D1 private capture replaced"));
+    }
+    Ok((
+        metadata.dev(),
+        metadata.ino(),
+        metadata.len(),
+        metadata.mtime(),
+        metadata.mtime_nsec(),
+        metadata.ctime(),
+        metadata.ctime_nsec(),
+    ))
 }
 
 enum SourceOrigin {
@@ -314,12 +336,16 @@ fn profile_open(path: &Path, cap: u64, prepared: bool) -> Result<File> {
 fn checked_add(work: &AtomicU64, bytes: usize, limit: u64) -> Result<()> {
     let mut current = work.load(std::sync::atomic::Ordering::Acquire);
     loop {
-        let next = current.checked_add(bytes as u64)
+        let next = current
+            .checked_add(bytes as u64)
             .filter(|value| *value <= limit)
             .ok_or(Error::Budget("public D1 capture work"))?;
-        match work.compare_exchange_weak(current, next,
+        match work.compare_exchange_weak(
+            current,
+            next,
             std::sync::atomic::Ordering::AcqRel,
-            std::sync::atomic::Ordering::Acquire) {
+            std::sync::atomic::Ordering::Acquire,
+        ) {
             Ok(_) => return Ok(()),
             Err(value) => current = value,
         }
@@ -410,50 +436,88 @@ impl<'budget> CreationState<'budget> {
         budget: &'a crate::knowledge_payload_read::RuntimeKnowledgeOwnedBudget<'a>,
     ) -> Result<CreationState<'a>> {
         if budget.operation_deadline > budget.owner_deadline || budget.remaining_json_visits == 0 {
-            return Err(Error::Invalid("runtime payload original lifetime/JSON context"));
+            return Err(Error::Invalid(
+                "runtime payload original lifetime/JSON context",
+            ));
         }
         check_capture_active(Some(budget.cancelled.as_ref()), budget.operation_deadline)?;
-        if budget.original_work.load(std::sync::atomic::Ordering::Acquire) > budget.original_work_limit
-            || budget.original_sql_vm.load(std::sync::atomic::Ordering::Acquire) > budget.original_sql_vm_limit {
+        if budget
+            .original_work
+            .load(std::sync::atomic::Ordering::Acquire)
+            > budget.original_work_limit
+            || budget
+                .original_sql_vm
+                .load(std::sync::atomic::Ordering::Acquire)
+                > budget.original_sql_vm_limit
+        {
             return Err(Error::Budget("runtime payload original counter exhausted"));
         }
         // Same maintained depth-96 parser frame admission as the model factory.
         // Existing connections and process heap remain held in the caller's
         // remaining callback; this owner adds only its parser/control frame.
-        let frame = (std::mem::size_of::<serde_json::Value>() + std::mem::size_of::<JsonValue>() + 512)
-            .checked_mul(97).and_then(|n| n.checked_add(std::mem::size_of::<CreationState<'_>>()))
-            .ok_or(Error::Budget("runtime payload parser frame state"))?;
+        let frame =
+            (std::mem::size_of::<serde_json::Value>() + std::mem::size_of::<JsonValue>() + 512)
+                .checked_mul(97)
+                .and_then(|n| n.checked_add(std::mem::size_of::<CreationState<'_>>()))
+                .ok_or(Error::Budget("runtime payload parser frame state"))?;
         (budget.remaining_after_retained)(frame)?;
         budget.original_sqlite_heap.verify_current()?;
         Ok(CreationState {
             remaining_after_retained: budget.remaining_after_retained,
-            retained: Cell::new(frame), persistent: Cell::new(0),
-            json_visits: Cell::new(0), max_json_visits: budget.remaining_json_visits,
-            sql_vm: Arc::clone(budget.original_sql_vm), sql_vm_limit: budget.original_sql_vm_limit,
+            retained: Cell::new(frame),
+            persistent: Cell::new(0),
+            json_visits: Cell::new(0),
+            max_json_visits: budget.remaining_json_visits,
+            sql_vm: Arc::clone(budget.original_sql_vm),
+            sql_vm_limit: budget.original_sql_vm_limit,
             sqlite_heap: Arc::clone(budget.original_sqlite_heap),
-            work: Arc::clone(budget.original_work), work_limit: budget.original_work_limit,
-            deadline: budget.operation_deadline, cancelled: budget.cancelled.as_ref(),
+            work: Arc::clone(budget.original_work),
+            work_limit: budget.original_work_limit,
+            deadline: budget.operation_deadline,
+            cancelled: budget.cancelled.as_ref(),
             cancelled_handle: Arc::clone(budget.cancelled),
         })
     }
-    pub(crate) fn remaining_json_visits(&self)->Result<usize> {
+    pub(crate) fn remaining_json_visits(&self) -> Result<usize> {
         self.active()?;
-        self.max_json_visits.checked_sub(self.json_visits.get()).filter(|n|*n>0)
+        self.max_json_visits
+            .checked_sub(self.json_visits.get())
+            .filter(|n| *n > 0)
             .ok_or(Error::Budget("owned original remaining JSON visits"))
     }
-    pub(crate) fn debit_json_visits(&self,used:usize)->Result<()> {
-        let next=self.json_visits.get().checked_add(used).ok_or(Error::Budget("owned original JSON usage overflow"))?;
+    pub(crate) fn debit_json_visits(&self, used: usize) -> Result<()> {
+        let next = self
+            .json_visits
+            .get()
+            .checked_add(used)
+            .ok_or(Error::Budget("owned original JSON usage overflow"))?;
         self.json_visits.set(next);
-        if next>self.max_json_visits {return Err(Error::Budget("owned original JSON usage"));}
+        if next > self.max_json_visits {
+            return Err(Error::Budget("owned original JSON usage"));
+        }
         self.active()
     }
-    pub(crate) fn json_visits(&self) -> usize { self.json_visits.get() }
-    pub(crate) fn active(&self) -> Result<()> { self.remaining(0).map(|_| ()) }
-    pub(crate) fn sql_vm_counter(&self) -> Arc<AtomicU64> { Arc::clone(&self.sql_vm) }
-    pub(crate) fn operation_deadline(&self) -> Instant { self.deadline }
-    pub(crate) fn cancellation_handle(&self) -> Arc<std::sync::atomic::AtomicBool> { Arc::clone(&self.cancelled_handle) }
-    pub(crate) fn sql_vm_limit(&self) -> u64 { self.sql_vm_limit }
-    pub(crate) fn heap(&self) -> &Arc<sqlite_budget::DedicatedSessionSqliteHeap> { &self.sqlite_heap }
+    pub(crate) fn json_visits(&self) -> usize {
+        self.json_visits.get()
+    }
+    pub(crate) fn active(&self) -> Result<()> {
+        self.remaining(0).map(|_| ())
+    }
+    pub(crate) fn sql_vm_counter(&self) -> Arc<AtomicU64> {
+        Arc::clone(&self.sql_vm)
+    }
+    pub(crate) fn operation_deadline(&self) -> Instant {
+        self.deadline
+    }
+    pub(crate) fn cancellation_handle(&self) -> Arc<std::sync::atomic::AtomicBool> {
+        Arc::clone(&self.cancelled_handle)
+    }
+    pub(crate) fn sql_vm_limit(&self) -> u64 {
+        self.sql_vm_limit
+    }
+    pub(crate) fn heap(&self) -> &Arc<sqlite_budget::DedicatedSessionSqliteHeap> {
+        &self.sqlite_heap
+    }
     pub(crate) fn json<'a>(&'a self, raw: &[u8], cap: usize) -> Result<CreationJson<'a>> {
         creation_json(self, raw, cap)
     }
@@ -465,43 +529,77 @@ impl<'budget> CreationState<'budget> {
             .map_err(|_| Error::Budget("owned model serde limits"))?;
         self.serde_owned_with_limits(raw, limits)
     }
-    pub(crate) fn with_foundation_owned_with_limits<T>(&self,raw:&[u8],limits:JsonLimits,
-        operation:impl FnOnce(&JsonValue)->Result<T>)->Result<T> {
-        let document=creation_json_with_limits(self,raw,limits)?;
-        let result=operation(&document);
+    pub(crate) fn with_foundation_owned_with_limits<T>(
+        &self,
+        raw: &[u8],
+        limits: JsonLimits,
+        operation: impl FnOnce(&JsonValue) -> Result<T>,
+    ) -> Result<T> {
+        let document = creation_json_with_limits(self, raw, limits)?;
+        let result = operation(&document);
         drop(document);
         result
     }
-    pub(crate) fn foundation_owned_with_limits(&self, raw: &[u8], limits: JsonLimits) -> Result<JsonValue> {
+    pub(crate) fn foundation_owned_with_limits(
+        &self,
+        raw: &[u8],
+        limits: JsonLimits,
+    ) -> Result<JsonValue> {
         creation_json_with_limits(self, raw, limits)?.into_retained_root()
     }
-    pub(crate) fn serde_owned_with_limits(&self, raw: &[u8], limits: JsonLimits) -> Result<serde_json::Value> {
+    pub(crate) fn serde_owned_with_limits(
+        &self,
+        raw: &[u8],
+        limits: JsonLimits,
+    ) -> Result<serde_json::Value> {
         let document = creation_json_with_limits(self, raw, limits)?;
         // Admit the maintained typed geometry traversal before it executes;
         // checked serde reads charge their own later byte pass separately.
-        self.charge_work(raw.len().checked_mul(2).ok_or(Error::Budget("owned serde geometry work"))?)?;
-        let upper = crate::knowledge_normalization::serde_input_workspace_upper(&document, raw.len())?;
+        self.charge_work(
+            raw.len()
+                .checked_mul(2)
+                .ok_or(Error::Budget("owned serde geometry work"))?,
+        )?;
+        let upper =
+            crate::knowledge_normalization::serde_input_workspace_upper(&document, raw.len())?;
         drop(document);
         self.retain(upper)?;
         self.decode_serde_raw(raw)
     }
-    pub(crate) fn serde_scoped_with_limits<'s>(&'s self, raw:&[u8], limits:JsonLimits)
-        -> Result<(serde_json::Value,CreationStateHold<'s,'budget>)> {
-        let document=creation_json_with_limits(self,raw,limits)?;
-        self.charge_work(raw.len().checked_mul(2).ok_or(Error::Budget("owned serde geometry work"))?)?;
-        let upper=crate::knowledge_normalization::serde_input_workspace_upper(&document,raw.len())?;
+    pub(crate) fn serde_scoped_with_limits<'s>(
+        &'s self,
+        raw: &[u8],
+        limits: JsonLimits,
+    ) -> Result<(serde_json::Value, CreationStateHold<'s, 'budget>)> {
+        let document = creation_json_with_limits(self, raw, limits)?;
+        self.charge_work(
+            raw.len()
+                .checked_mul(2)
+                .ok_or(Error::Budget("owned serde geometry work"))?,
+        )?;
+        let upper =
+            crate::knowledge_normalization::serde_input_workspace_upper(&document, raw.len())?;
         drop(document);
-        let hold=self.hold(upper)?;
-        let value=self.decode_serde_raw(raw)?;
-        Ok((value,hold))
+        let hold = self.hold(upper)?;
+        let value = self.decode_serde_raw(raw)?;
+        Ok((value, hold))
     }
-    pub(crate) fn with_serde_owned_with_limits<T>(&self, raw: &[u8], limits: JsonLimits,
-        operation: impl FnOnce(&serde_json::Value) -> Result<T>) -> Result<T> {
+    pub(crate) fn with_serde_owned_with_limits<T>(
+        &self,
+        raw: &[u8],
+        limits: JsonLimits,
+        operation: impl FnOnce(&serde_json::Value) -> Result<T>,
+    ) -> Result<T> {
         let document = creation_json_with_limits(self, raw, limits)?;
         // Admit the maintained typed geometry traversal before it executes;
         // checked serde reads charge their own later byte pass separately.
-        self.charge_work(raw.len().checked_mul(2).ok_or(Error::Budget("owned serde geometry work"))?)?;
-        let upper = crate::knowledge_normalization::serde_input_workspace_upper(&document, raw.len())?;
+        self.charge_work(
+            raw.len()
+                .checked_mul(2)
+                .ok_or(Error::Budget("owned serde geometry work"))?,
+        )?;
+        let upper =
+            crate::knowledge_normalization::serde_input_workspace_upper(&document, raw.len())?;
         drop(document);
         let hold = self.hold(upper)?;
         let value = self.decode_serde_raw(raw)?;
@@ -512,13 +610,22 @@ impl<'budget> CreationState<'budget> {
         drop(hold);
         result
     }
-    pub(crate) fn with_serde_owned_value_with_limits<T>(&self, raw: &[u8], limits: JsonLimits,
-        operation: impl FnOnce(serde_json::Value) -> Result<T>) -> Result<T> {
+    pub(crate) fn with_serde_owned_value_with_limits<T>(
+        &self,
+        raw: &[u8],
+        limits: JsonLimits,
+        operation: impl FnOnce(serde_json::Value) -> Result<T>,
+    ) -> Result<T> {
         let document = creation_json_with_limits(self, raw, limits)?;
         // Admit the maintained typed geometry traversal before it executes;
         // checked serde reads charge their own later byte pass separately.
-        self.charge_work(raw.len().checked_mul(2).ok_or(Error::Budget("owned serde geometry work"))?)?;
-        let upper = crate::knowledge_normalization::serde_input_workspace_upper(&document, raw.len())?;
+        self.charge_work(
+            raw.len()
+                .checked_mul(2)
+                .ok_or(Error::Budget("owned serde geometry work"))?,
+        )?;
+        let upper =
+            crate::knowledge_normalization::serde_input_workspace_upper(&document, raw.len())?;
         drop(document);
         let hold = self.hold(upper)?;
         let value = self.decode_serde_raw(raw)?;
@@ -532,11 +639,15 @@ impl<'budget> CreationState<'budget> {
         // The original raw input is borrowed. Every byte supplied to serde is
         // byte-work/cutoff checked; no independent parser clock/counter.
         struct CheckedRead<'a, 'budget> {
-            raw: &'a [u8], at: usize, owner: &'a CreationState<'budget>,
+            raw: &'a [u8],
+            at: usize,
+            owner: &'a CreationState<'budget>,
         }
         impl Read for CheckedRead<'_, '_> {
             fn read(&mut self, output: &mut [u8]) -> io::Result<usize> {
-                self.owner.remaining(0).map_err(|_| io::Error::other("owned model decode cutoff"))?;
+                self.owner
+                    .remaining(0)
+                    .map_err(|_| io::Error::other("owned model decode cutoff"))?;
                 let count = output.len().min(self.raw.len() - self.at);
                 checked_add(&self.owner.work, count, self.owner.work_limit)
                     .map_err(|_| io::Error::other("owned model decode byte work"))?;
@@ -545,11 +656,20 @@ impl<'budget> CreationState<'budget> {
                 Ok(count)
             }
         }
-        let input = CheckedRead { raw, at: 0, owner: self };
+        let input = CheckedRead {
+            raw,
+            at: 0,
+            owner: self,
+        };
         let mut decoder = serde_json::Deserializer::from_reader(input);
-        let value = CheckedValueSeed { creation_read: None }.deserialize(&mut decoder)
-            .map_err(|_| Error::Invalid("owned model strict serde decode"))?;
-        decoder.end().map_err(|_| Error::Invalid("owned model serde trailing input"))?;
+        let value = CheckedValueSeed {
+            creation_read: None,
+        }
+        .deserialize(&mut decoder)
+        .map_err(|_| Error::Invalid("owned model strict serde decode"))?;
+        decoder
+            .end()
+            .map_err(|_| Error::Invalid("owned model serde trailing input"))?;
         self.remaining(0)?;
         Ok(value)
     }
@@ -557,49 +677,102 @@ impl<'budget> CreationState<'budget> {
         self.remaining(0)?;
         checked_add(&self.work, bytes, self.work_limit)
     }
-    pub(crate) fn encode_json<T: serde::Serialize + ?Sized>(&self, value: &T, cap: usize) -> Result<Vec<u8>> {
+    pub(crate) fn encode_json<T: serde::Serialize + ?Sized>(
+        &self,
+        value: &T,
+        cap: usize,
+    ) -> Result<Vec<u8>> {
         let raw = self.json_encoded_result(value, cap)?;
         self.retain(raw.capacity())?;
         Ok(raw)
     }
-    pub(crate) fn with_json_encoded<T: serde::Serialize + ?Sized, O>(&self, value: &T,
-        cap: usize, operation: impl FnOnce(&[u8]) -> Result<O>) -> Result<O> {
+    pub(crate) fn with_json_encoded<T: serde::Serialize + ?Sized, O>(
+        &self,
+        value: &T,
+        cap: usize,
+        operation: impl FnOnce(&[u8]) -> Result<O>,
+    ) -> Result<O> {
         let raw = self.json_encoded_result(value, cap)?;
         let hold = self.hold(raw.capacity())?;
         let result = operation(&raw);
-        drop(raw); drop(hold); result
+        drop(raw);
+        drop(hold);
+        result
     }
-    fn json_encoded_result<T: serde::Serialize + ?Sized>(&self, value: &T, cap: usize) -> Result<Vec<u8>> {
-        struct Count<'a, 'budget> { owner: &'a CreationState<'budget>, len: usize, cap: usize }
+    fn json_encoded_result<T: serde::Serialize + ?Sized>(
+        &self,
+        value: &T,
+        cap: usize,
+    ) -> Result<Vec<u8>> {
+        struct Count<'a, 'budget> {
+            owner: &'a CreationState<'budget>,
+            len: usize,
+            cap: usize,
+        }
         impl Write for Count<'_, '_> {
             fn write(&mut self, raw: &[u8]) -> io::Result<usize> {
-                self.owner.charge_work(raw.len()).map_err(|_| io::Error::other("owned model count work"))?;
-                self.len = self.len.checked_add(raw.len()).filter(|n| *n <= self.cap)
+                self.owner
+                    .charge_work(raw.len())
+                    .map_err(|_| io::Error::other("owned model count work"))?;
+                self.len = self
+                    .len
+                    .checked_add(raw.len())
+                    .filter(|n| *n <= self.cap)
                     .ok_or_else(|| io::Error::other("owned model encode bytes"))?;
                 Ok(raw.len())
             }
-            fn flush(&mut self) -> io::Result<()> { Ok(()) }
+            fn flush(&mut self) -> io::Result<()> {
+                Ok(())
+            }
         }
-        let mut count = Count { owner: self, len: 0, cap };
-        serde_json::to_writer(&mut count, value).map_err(|_| Error::Budget("owned model encode count"))?;
+        let mut count = Count {
+            owner: self,
+            len: 0,
+            cap,
+        };
+        serde_json::to_writer(&mut count, value)
+            .map_err(|_| Error::Budget("owned model encode count"))?;
         let hold = self.hold(count.len)?;
-        struct Emit<'a, 'budget> { owner: &'a CreationState<'budget>, raw: Vec<u8>, cap: usize }
+        struct Emit<'a, 'budget> {
+            owner: &'a CreationState<'budget>,
+            raw: Vec<u8>,
+            cap: usize,
+        }
         impl Write for Emit<'_, '_> {
             fn write(&mut self, raw: &[u8]) -> io::Result<usize> {
-                self.owner.charge_work(raw.len()).map_err(|_| io::Error::other("owned model emit work"))?;
-                self.raw.len().checked_add(raw.len()).filter(|n| *n <= self.cap)
+                self.owner
+                    .charge_work(raw.len())
+                    .map_err(|_| io::Error::other("owned model emit work"))?;
+                self.raw
+                    .len()
+                    .checked_add(raw.len())
+                    .filter(|n| *n <= self.cap)
                     .ok_or_else(|| io::Error::other("owned model changed encoded size"))?;
-                self.raw.extend_from_slice(raw); Ok(raw.len())
+                self.raw.extend_from_slice(raw);
+                Ok(raw.len())
             }
-            fn flush(&mut self) -> io::Result<()> { Ok(()) }
+            fn flush(&mut self) -> io::Result<()> {
+                Ok(())
+            }
         }
-        let mut writer = Emit { owner: self, raw: Vec::with_capacity(count.len), cap: count.len };
-        serde_json::to_writer(&mut writer, value).map_err(|_| Error::Budget("owned model encode emit"))?;
-        if writer.raw.len() != count.len { return Err(Error::Invalid("owned model encode count changed")); }
+        let mut writer = Emit {
+            owner: self,
+            raw: Vec::with_capacity(count.len),
+            cap: count.len,
+        };
+        serde_json::to_writer(&mut writer, value)
+            .map_err(|_| Error::Budget("owned model encode emit"))?;
+        if writer.raw.len() != count.len {
+            return Err(Error::Invalid("owned model encode count changed"));
+        }
         drop(hold);
         Ok(writer.raw)
     }
-    pub(crate) fn encode_canonical<T: serde::Serialize + ?Sized>(&self, value: &T, cap: usize) -> Result<Vec<u8>> {
+    pub(crate) fn encode_canonical<T: serde::Serialize + ?Sized>(
+        &self,
+        value: &T,
+        cap: usize,
+    ) -> Result<Vec<u8>> {
         let raw = self.encode_json(value, cap)?;
         let document = self.json(&raw, cap)?;
         let limits = JsonLimits::new(cap, 96, 1_000_000, 4096)
@@ -607,20 +780,28 @@ impl<'budget> CreationState<'budget> {
         self.encode_foundation_canonical_with_limits(&document, limits)
     }
     pub(crate) fn clone_foundation(&self, value: &JsonValue) -> Result<JsonValue> {
-        let upper = value.retained_storage_bytes()
+        let upper = value
+            .retained_storage_bytes()
             .map_err(|_| Error::Budget("owned Foundation clone state"))?;
         self.retain(upper)?;
         self.charge_work(upper)?;
         Ok(value.clone())
     }
-    pub(crate) fn encode_foundation_canonical_with_limits(&self, value: &JsonValue,
-        limits: JsonLimits) -> Result<Vec<u8>> {
+    pub(crate) fn encode_foundation_canonical_with_limits(
+        &self,
+        value: &JsonValue,
+        limits: JsonLimits,
+    ) -> Result<Vec<u8>> {
         let encoded = self.foundation_canonical_result(value, limits)?;
         self.retain(encoded.capacity())?;
         Ok(encoded)
     }
-    pub(crate) fn with_foundation_canonical_bytes<T>(&self, value: &JsonValue,
-        limits: JsonLimits, operation: impl FnOnce(&[u8]) -> Result<T>) -> Result<T> {
+    pub(crate) fn with_foundation_canonical_bytes<T>(
+        &self,
+        value: &JsonValue,
+        limits: JsonLimits,
+        operation: impl FnOnce(&[u8]) -> Result<T>,
+    ) -> Result<T> {
         let encoded = self.foundation_canonical_result(value, limits)?;
         let hold = self.hold(encoded.capacity())?;
         let result = operation(&encoded);
@@ -628,92 +809,170 @@ impl<'budget> CreationState<'budget> {
         drop(hold);
         result
     }
-    fn foundation_canonical_result(&self, value: &JsonValue,
-        mut limits: JsonLimits) -> Result<Vec<u8>> {
+    fn foundation_canonical_result(
+        &self,
+        value: &JsonValue,
+        mut limits: JsonLimits,
+    ) -> Result<Vec<u8>> {
         let before = self.json_visits.get();
-        limits.max_visits = limits.max_visits.min(self.max_json_visits.checked_sub(before)
-            .filter(|n| *n > 0).ok_or(Error::Budget("owned model canonical JSON visits"))?);
+        limits.max_visits = limits.max_visits.min(
+            self.max_json_visits
+                .checked_sub(before)
+                .filter(|n| *n > 0)
+                .ok_or(Error::Budget("owned model canonical JSON visits"))?,
+        );
         limits.max_depth = limits.max_depth.min(96);
         limits.max_integer_digits = limits.max_integer_digits.min(4096);
-        self.charge_work(limits.max_bytes.checked_mul(2).and_then(|n| n.checked_add(limits.max_visits))
-            .ok_or(Error::Budget("owned model canonical work"))?)?;
+        self.charge_work(
+            limits
+                .max_bytes
+                .checked_mul(2)
+                .and_then(|n| n.checked_add(limits.max_visits))
+                .ok_or(Error::Budget("owned model canonical work"))?,
+        )?;
         let available = self.remaining(0)?;
-        self.json_visits.set(before.checked_add(limits.max_visits).ok_or(Error::Budget("owned model canonical visits"))?);
-        let mut check = || self.remaining(0).map(|_| ()).map_err(|_| tos_foundation::FoundationError::new(
-            tos_foundation::FoundationErrorCode::BudgetExceeded, "owned model canonical cutoff"));
-        let (encoded, used) = tos_foundation::canonical_bytes_v1_with_state_budget_and_visits_and_check(
-            value, tos_foundation::CanonicalProfile::SourceRecordDigestV1, limits, available, &mut check)
+        self.json_visits.set(
+            before
+                .checked_add(limits.max_visits)
+                .ok_or(Error::Budget("owned model canonical visits"))?,
+        );
+        let mut check = || {
+            self.remaining(0).map(|_| ()).map_err(|_| {
+                tos_foundation::FoundationError::new(
+                    tos_foundation::FoundationErrorCode::BudgetExceeded,
+                    "owned model canonical cutoff",
+                )
+            })
+        };
+        let (encoded, used) =
+            tos_foundation::canonical_bytes_v1_with_state_budget_and_visits_and_check(
+                value,
+                tos_foundation::CanonicalProfile::SourceRecordDigestV1,
+                limits,
+                available,
+                &mut check,
+            )
             .map_err(|_| Error::Budget("owned model canonical admission"))?;
-        self.json_visits.set(before.checked_add(used).ok_or(Error::Budget("owned model canonical visits"))?);
+        self.json_visits.set(
+            before
+                .checked_add(used)
+                .ok_or(Error::Budget("owned model canonical visits"))?,
+        );
         Ok(encoded)
     }
     pub(crate) fn value_clone_state_upper_bound(&self, value: &serde_json::Value) -> Result<usize> {
-        fn count(state: &CreationState<'_>, value: &serde_json::Value, depth: usize) -> Result<usize> {
-            if depth > 96 { return Err(Error::Budget("owned model clone depth")); }
+        fn count(
+            state: &CreationState<'_>,
+            value: &serde_json::Value,
+            depth: usize,
+        ) -> Result<usize> {
+            if depth > 96 {
+                return Err(Error::Budget("owned model clone depth"));
+            }
             state.charge_work(std::mem::size_of::<serde_json::Value>())?;
             let mut bytes = match value {
                 serde_json::Value::Null | serde_json::Value::Bool(_) => 0,
                 serde_json::Value::Number(v) => v.as_str().len(),
                 serde_json::Value::String(v) => v.len(),
-                serde_json::Value::Array(values) => values.len().checked_mul(std::mem::size_of::<serde_json::Value>())
+                serde_json::Value::Array(values) => values
+                    .len()
+                    .checked_mul(std::mem::size_of::<serde_json::Value>())
                     .ok_or(Error::Budget("owned model clone array"))?,
-                serde_json::Value::Object(fields) => crate::knowledge_normalization::serde_object_slots_upper(fields.len())?,
+                serde_json::Value::Object(fields) => {
+                    crate::knowledge_normalization::serde_object_slots_upper(fields.len())?
+                }
             };
             match value {
-                serde_json::Value::Array(values) => for item in values {
-                    bytes = bytes.checked_add(count(state, item, depth + 1)?)
-                        .ok_or(Error::Budget("owned model clone geometry"))?;
-                },
-                serde_json::Value::Object(fields) => for (key, item) in fields {
-                    state.charge_work(key.len())?;
-                    let child = count(state, item, depth + 1)?;
-                    bytes = bytes.checked_add(key.len()).and_then(|n| n.checked_add(child))
-                        .ok_or(Error::Budget("owned model clone geometry"))?;
-                },
+                serde_json::Value::Array(values) => {
+                    for item in values {
+                        bytes = bytes
+                            .checked_add(count(state, item, depth + 1)?)
+                            .ok_or(Error::Budget("owned model clone geometry"))?;
+                    }
+                }
+                serde_json::Value::Object(fields) => {
+                    for (key, item) in fields {
+                        state.charge_work(key.len())?;
+                        let child = count(state, item, depth + 1)?;
+                        bytes = bytes
+                            .checked_add(key.len())
+                            .and_then(|n| n.checked_add(child))
+                            .ok_or(Error::Budget("owned model clone geometry"))?;
+                    }
+                }
                 serde_json::Value::String(v) => state.charge_work(v.len())?,
                 serde_json::Value::Number(v) => state.charge_work(v.as_str().len())?,
-                _ => {},
+                _ => {}
             }
             Ok(bytes)
         }
         count(self, value, 0)
     }
-    fn clone_value_mode(&self, value: &serde_json::Value, persistent: bool) -> Result<serde_json::Value> {
+    fn clone_value_mode(
+        &self,
+        value: &serde_json::Value,
+        persistent: bool,
+    ) -> Result<serde_json::Value> {
         fn admit(state: &CreationState<'_>, persistent: bool, bytes: usize) -> Result<()> {
-            if persistent { state.retain(bytes) } else { state.remaining(0).map(|_| ()) }
+            if persistent {
+                state.retain(bytes)
+            } else {
+                state.remaining(0).map(|_| ())
+            }
         }
-        fn copy(state: &CreationState<'_>, value: &serde_json::Value, depth: usize, persistent: bool)
-            -> Result<serde_json::Value> {
-            if depth > 96 { return Err(Error::Budget("owned model clone depth")); }
+        fn copy(
+            state: &CreationState<'_>,
+            value: &serde_json::Value,
+            depth: usize,
+            persistent: bool,
+        ) -> Result<serde_json::Value> {
+            if depth > 96 {
+                return Err(Error::Budget("owned model clone depth"));
+            }
             state.charge_work(std::mem::size_of::<serde_json::Value>())?;
             Ok(match value {
                 serde_json::Value::Null => serde_json::Value::Null,
                 serde_json::Value::Bool(v) => serde_json::Value::Bool(*v),
                 serde_json::Value::Number(v) => {
-                    admit(state, persistent, v.as_str().len())?; state.charge_work(v.as_str().len())?;
+                    admit(state, persistent, v.as_str().len())?;
+                    state.charge_work(v.as_str().len())?;
                     serde_json::Value::Number(v.clone())
-                },
+                }
                 serde_json::Value::String(v) => {
-                    admit(state, persistent, v.len())?; state.charge_work(v.len())?;
+                    admit(state, persistent, v.len())?;
+                    state.charge_work(v.len())?;
                     serde_json::Value::String(v.clone())
-                },
+                }
                 serde_json::Value::Array(values) => {
                     // Exact-reserved clone vector; old input remains accounted.
-                    admit(state, persistent, values.len().checked_mul(std::mem::size_of::<serde_json::Value>())
-                        .ok_or(Error::Budget("owned model clone array"))?)?;
+                    admit(
+                        state,
+                        persistent,
+                        values
+                            .len()
+                            .checked_mul(std::mem::size_of::<serde_json::Value>())
+                            .ok_or(Error::Budget("owned model clone array"))?,
+                    )?;
                     let mut output = Vec::with_capacity(values.len());
-                    for item in values { output.push(copy(state, item, depth + 1, persistent)?); }
+                    for item in values {
+                        output.push(copy(state, item, depth + 1, persistent)?);
+                    }
                     serde_json::Value::Array(output)
-                },
+                }
                 serde_json::Value::Object(fields) => {
-                    admit(state, persistent, crate::knowledge_normalization::serde_object_slots_upper(fields.len())?)?;
+                    admit(
+                        state,
+                        persistent,
+                        crate::knowledge_normalization::serde_object_slots_upper(fields.len())?,
+                    )?;
                     let mut output = serde_json::Map::new();
                     for (key, item) in fields {
-                        admit(state, persistent, key.len())?; state.charge_work(key.len())?;
+                        admit(state, persistent, key.len())?;
+                        state.charge_work(key.len())?;
                         output.insert(key.clone(), copy(state, item, depth + 1, persistent)?);
                     }
                     serde_json::Value::Object(output)
-                },
+                }
             })
         }
         let output = copy(self, value, 0, persistent)?;
@@ -723,8 +982,11 @@ impl<'budget> CreationState<'budget> {
     pub(crate) fn clone_value(&self, value: &serde_json::Value) -> Result<serde_json::Value> {
         self.clone_value_mode(value, true)
     }
-    pub(crate) fn with_clone_value<T>(&self, value: &serde_json::Value,
-        operation: impl FnOnce(serde_json::Value) -> Result<T>) -> Result<T> {
+    pub(crate) fn with_clone_value<T>(
+        &self,
+        value: &serde_json::Value,
+        operation: impl FnOnce(serde_json::Value) -> Result<T>,
+    ) -> Result<T> {
         // The source value stays owned by the caller. Reserve the recursive
         // destination geometry before any String/Number/container copy.
         let bytes = self.value_clone_state_upper_bound(value)?;
@@ -736,32 +998,56 @@ impl<'budget> CreationState<'budget> {
     }
     pub(crate) fn remaining(&self, prospective: usize) -> Result<usize> {
         check_capture_active(Some(self.cancelled), self.deadline)?;
-        let total = self.retained.get().checked_add(prospective)
+        let total = self
+            .retained
+            .get()
+            .checked_add(prospective)
             .ok_or(Error::Budget("runtime carrier creation state overflow"))?;
         (self.remaining_after_retained)(total)
     }
     pub(crate) fn retain(&self, bytes: usize) -> Result<()> {
         self.remaining(bytes)?;
-        self.retained.set(self.retained.get().checked_add(bytes)
-            .ok_or(Error::Budget("runtime persistent creation state"))?);
-        self.persistent.set(self.persistent.get().checked_add(bytes)
-            .ok_or(Error::Budget("runtime persistent creation state"))?);
+        self.retained.set(
+            self.retained
+                .get()
+                .checked_add(bytes)
+                .ok_or(Error::Budget("runtime persistent creation state"))?,
+        );
+        self.persistent.set(
+            self.persistent
+                .get()
+                .checked_add(bytes)
+                .ok_or(Error::Budget("runtime persistent creation state"))?,
+        );
         Ok(())
     }
     fn transfer_persistent_to_capture(&self) -> Result<()> {
         // Only after the maintained constructor returned its actual capture:
         // ownership is then counted by retained_state_upper_bound, not twice.
         let bytes = self.persistent.replace(0);
-        self.retained.set(self.retained.get().checked_sub(bytes)
-            .ok_or(Error::Budget("runtime persistent capture transfer"))?);
+        self.retained.set(
+            self.retained
+                .get()
+                .checked_sub(bytes)
+                .ok_or(Error::Budget("runtime persistent capture transfer"))?,
+        );
         Ok(())
     }
-    pub(crate) fn hold<'owner>(&'owner self, bytes: usize) -> Result<CreationStateHold<'owner, 'budget>> {
+    pub(crate) fn hold<'owner>(
+        &'owner self,
+        bytes: usize,
+    ) -> Result<CreationStateHold<'owner, 'budget>> {
         self.remaining(bytes)?;
-        let retained = self.retained.get().checked_add(bytes)
+        let retained = self
+            .retained
+            .get()
+            .checked_add(bytes)
             .ok_or(Error::Budget("runtime carrier creation state overflow"))?;
         self.retained.set(retained);
-        Ok(CreationStateHold { owner: self, admitted: bytes })
+        Ok(CreationStateHold {
+            owner: self,
+            admitted: bytes,
+        })
     }
 }
 // Controlled Linux route: explicit fixed getdents buffer, bounded names and
@@ -772,36 +1058,72 @@ fn controlled_ledger_workspace_upper() -> usize {
 fn controlled_fence_workspace_upper(whole: bool) -> usize {
     // Existing source_digest stack, SQL row/statement Rust locals, bounded
     // pathname conversions. SQLite connection/cache live in the shared pool.
-    65536 + 4 * 8194 + 2 * std::mem::size_of::<Connection>()
+    65536
+        + 4 * 8194
+        + 2 * std::mem::size_of::<Connection>()
         + std::mem::size_of::<sqlite_budget::SharedVmWindow>()
-        + 2 * std::mem::size_of::<(Arc<AtomicU64>, Arc<std::sync::atomic::AtomicBool>, Instant, u64)>()
-        + if whole { controlled_ledger_workspace_upper() } else { 0 }
+        + 2 * std::mem::size_of::<(
+            Arc<AtomicU64>,
+            Arc<std::sync::atomic::AtomicBool>,
+            Instant,
+            u64,
+        )>()
+        + if whole {
+            controlled_ledger_workspace_upper()
+        } else {
+            0
+        }
 }
 #[cfg(target_os = "linux")]
-fn controlled_ledger_names(path: &Path, mut observe: impl FnMut(usize) -> Result<()>)
-    -> Result<Vec<std::ffi::OsString>> {
-    use std::os::{fd::AsRawFd, unix::{ffi::OsStringExt, fs::OpenOptionsExt}};
+fn controlled_ledger_names(
+    path: &Path,
+    mut observe: impl FnMut(usize) -> Result<()>,
+) -> Result<Vec<std::ffi::OsString>> {
+    use std::os::{
+        fd::AsRawFd,
+        unix::{ffi::OsStringExt, fs::OpenOptionsExt},
+    };
     observe(0)?;
-    let file = fs::OpenOptions::new().read(true)
-        .custom_flags(libc::O_DIRECTORY | libc::O_NOFOLLOW | libc::O_CLOEXEC).open(path)?;
+    let file = fs::OpenOptions::new()
+        .read(true)
+        .custom_flags(libc::O_DIRECTORY | libc::O_NOFOLLOW | libc::O_CLOEXEC)
+        .open(path)?;
     let mut names = Vec::with_capacity(4096);
     let mut buffer = [0u8; 32768];
     loop {
         observe(0)?;
-        let count = unsafe { libc::syscall(libc::SYS_getdents64, file.as_raw_fd(),
-            buffer.as_mut_ptr(), buffer.len()) };
-        if count < 0 { return Err(io::Error::last_os_error().into()); }
-        if count == 0 { break; }
+        let count = unsafe {
+            libc::syscall(
+                libc::SYS_getdents64,
+                file.as_raw_fd(),
+                buffer.as_mut_ptr(),
+                buffer.len(),
+            )
+        };
+        if count < 0 {
+            return Err(io::Error::last_os_error().into());
+        }
+        if count == 0 {
+            break;
+        }
         let count = usize::try_from(count).map_err(|_| Error::Invalid("ledger dirent count"))?;
-        if count > buffer.len() { return Err(Error::Invalid("ledger dirent buffer")); }
+        if count > buffer.len() {
+            return Err(Error::Invalid("ledger dirent buffer"));
+        }
         let mut at = 0usize;
         while at < count {
             observe(0)?;
-            if count - at < 20 { return Err(Error::Invalid("ledger dirent header")); }
-            let len = u16::from_ne_bytes([buffer[at+16], buffer[at+17]]) as usize;
-            if len < 20 || len > count-at { return Err(Error::Invalid("ledger dirent length")); }
-            let bytes = &buffer[at+19..at+len];
-            let end = bytes.iter().position(|b| *b == 0)
+            if count - at < 20 {
+                return Err(Error::Invalid("ledger dirent header"));
+            }
+            let len = u16::from_ne_bytes([buffer[at + 16], buffer[at + 17]]) as usize;
+            if len < 20 || len > count - at {
+                return Err(Error::Invalid("ledger dirent length"));
+            }
+            let bytes = &buffer[at + 19..at + len];
+            let end = bytes
+                .iter()
+                .position(|b| *b == 0)
                 .ok_or(Error::Invalid("ledger dirent termination"))?;
             let name = &bytes[..end];
             if name != b"." && name != b".." {
@@ -821,36 +1143,58 @@ fn controlled_ledger_names(path: &Path, mut observe: impl FnMut(usize) -> Result
 }
 
 #[cfg(not(target_os = "linux"))]
-fn controlled_ledger_names(_path: &Path, _observe: impl FnMut(usize) -> Result<()>)
-    -> Result<Vec<std::ffi::OsString>> {
+fn controlled_ledger_names(
+    _path: &Path,
+    _observe: impl FnMut(usize) -> Result<()>,
+) -> Result<Vec<std::ffi::OsString>> {
     Err(Error::Invalid("controlled native session requires Linux"))
 }
 
 // Same maintained path choice, admitted before PathBuf/String ownership.
-fn creation_source_path(root: &Path, selected: Option<&Path>, relative: &str,
-    creation: Option<&CreationState<'_>>) -> Result<PathBuf> {
+fn creation_source_path(
+    root: &Path,
+    selected: Option<&Path>,
+    relative: &str,
+    creation: Option<&CreationState<'_>>,
+) -> Result<PathBuf> {
     if let Some(state) = creation {
         let bytes = match selected {
             Some(path) => path.as_os_str().as_encoded_bytes().len(),
-            None => root.as_os_str().as_encoded_bytes().len().checked_add(relative.len())
-                .and_then(|n| n.checked_add(1)).ok_or(Error::Budget("runtime source path width"))?,
+            None => root
+                .as_os_str()
+                .as_encoded_bytes()
+                .len()
+                .checked_add(relative.len())
+                .and_then(|n| n.checked_add(1))
+                .ok_or(Error::Budget("runtime source path width"))?,
         };
         // Joined path Vec growth/reallocation and safe_open temporary pathname,
         // plus the independently retained source label. Kept until capture
         // transfer; no release of a source that remains authenticated/live.
-        state.retain(bytes.max(8).checked_mul(4)
-            .and_then(|n| n.checked_add(relative.len()))
-            .ok_or(Error::Budget("runtime source path state"))?)?;
+        state.retain(
+            bytes
+                .max(8)
+                .checked_mul(4)
+                .and_then(|n| n.checked_add(relative.len()))
+                .ok_or(Error::Budget("runtime source path state"))?,
+        )?;
     }
-    Ok(selected.map(Path::to_owned).unwrap_or_else(|| root.join(relative)))
+    Ok(selected
+        .map(Path::to_owned)
+        .unwrap_or_else(|| root.join(relative)))
 }
 
 impl Drop for CreationStateHold<'_, '_> {
     fn drop(&mut self) {
         // Every hold belongs to this one serial constructor. Keep the ledger
         // saturated on an internal mismatch instead of granting extra room.
-        self.owner.retained.set(self.owner.retained.get().checked_sub(self.admitted)
-            .unwrap_or(usize::MAX));
+        self.owner.retained.set(
+            self.owner
+                .retained
+                .get()
+                .checked_sub(self.admitted)
+                .unwrap_or(usize::MAX),
+        );
     }
 }
 
@@ -868,8 +1212,12 @@ struct CreationReadState<'a, 'budget> {
 }
 impl CreationReadState<'_, '_> {
     fn buffer_capacity(bytes: usize) -> Result<usize> {
-        if bytes == 0 { return Ok(0); }
-        bytes.max(8).checked_next_power_of_two()
+        if bytes == 0 {
+            return Ok(0);
+        }
+        bytes
+            .max(8)
+            .checked_next_power_of_two()
             .ok_or(Error::Budget("runtime carrier serde buffer capacity"))
     }
     fn replace_admission(&self, bytes: usize) -> Result<()> {
@@ -877,11 +1225,19 @@ impl CreationReadState<'_, '_> {
         if bytes > old {
             let extra = bytes - old;
             self.owner.remaining(extra)?;
-            let total = self.owner.retained.get().checked_add(extra)
+            let total = self
+                .owner
+                .retained
+                .get()
+                .checked_add(extra)
                 .ok_or(Error::Budget("runtime carrier serde state overflow"))?;
             self.owner.retained.set(total);
         } else {
-            let total = self.owner.retained.get().checked_sub(old - bytes)
+            let total = self
+                .owner
+                .retained
+                .get()
+                .checked_sub(old - bytes)
                 .ok_or(Error::Budget("runtime carrier serde state mismatch"))?;
             self.owner.retained.set(total);
         }
@@ -890,10 +1246,19 @@ impl CreationReadState<'_, '_> {
     }
     fn admit_tree(&self, bytes: usize) -> Result<()> {
         self.owner.remaining(bytes)?;
-        self.owner.retained.set(self.owner.retained.get().checked_add(bytes)
-            .ok_or(Error::Budget("runtime carrier typed tree state"))?);
-        self.tree_admitted.set(self.tree_admitted.get().checked_add(bytes)
-            .ok_or(Error::Budget("runtime carrier typed tree state"))?);
+        self.owner.retained.set(
+            self.owner
+                .retained
+                .get()
+                .checked_add(bytes)
+                .ok_or(Error::Budget("runtime carrier typed tree state"))?,
+        );
+        self.tree_admitted.set(
+            self.tree_admitted
+                .get()
+                .checked_add(bytes)
+                .ok_or(Error::Budget("runtime carrier typed tree state"))?,
+        );
         Ok(())
     }
     fn begin_value(&self) {
@@ -906,24 +1271,33 @@ impl CreationReadState<'_, '_> {
         // The already-reserved creation allowance is one serial work domain.
         // Include requested bytes even on EOF/refusal, before serde executes.
         checked_add(&self.owner.work, requested, self.owner.work_limit)?;
-        let next = self.stream_read.get().checked_add(requested)
+        let next = self
+            .stream_read
+            .get()
+            .checked_add(requested)
             .ok_or(Error::Budget("runtime carrier serde bytes overflow"))?;
         // IoRead can reuse one previously peeked byte without another Read.
-        let capacity = Self::buffer_capacity(next.checked_add(1)
-            .ok_or(Error::Budget("runtime carrier serde lookahead"))?)?;
+        let capacity = Self::buffer_capacity(
+            next.checked_add(1)
+                .ok_or(Error::Budget("runtime carrier serde lookahead"))?,
+        )?;
         let scratch = self.scratch_capacity.get().max(capacity);
         // Named owners: persistent de::scratch, IoRead::raw_buffer growth
         // including old/new storage overlap, and String::into_boxed_str output.
         // CheckedValueSeed uses the latter envelope for its two key/string
         // copies; typed tree/container slots are admitted separately by seeds.
-        let raw_storage = capacity.checked_mul(3)
+        let raw_storage = capacity
+            .checked_mul(3)
             .ok_or(Error::Budget("runtime carrier serde raw state"))?;
         // Additional named UTF8 owners across this source: retained header
         // strings, root seen keys, ordinal keys, and current key/collection
         // copies. Each originates from at most the delivered source prefix.
-        let key_storage = capacity.checked_mul(5)
+        let key_storage = capacity
+            .checked_mul(5)
             .ok_or(Error::Budget("runtime carrier serde key state"))?;
-        let admitted = scratch.checked_add(raw_storage).and_then(|n| n.checked_add(key_storage))
+        let admitted = scratch
+            .checked_add(raw_storage)
+            .and_then(|n| n.checked_add(key_storage))
             // serde arbitrary_precision's private number map key is synthetic.
             .and_then(|n| n.checked_add(128))
             .ok_or(Error::Budget("runtime carrier serde total state"))?;
@@ -932,12 +1306,16 @@ impl CreationReadState<'_, '_> {
         self.stream_read.set(next);
         Ok(())
     }
-
 }
 impl Drop for CreationReadState<'_, '_> {
     fn drop(&mut self) {
-        self.owner.retained.set(self.owner.retained.get()
-            .checked_sub(self.admitted.get().saturating_add(self.tree_admitted.get())).unwrap_or(usize::MAX));
+        self.owner.retained.set(
+            self.owner
+                .retained
+                .get()
+                .checked_sub(self.admitted.get().saturating_add(self.tree_admitted.get()))
+                .unwrap_or(usize::MAX),
+        );
     }
 }
 
@@ -950,8 +1328,13 @@ impl CreationJson<'_> {
         let Self { value, _hold } = self;
         let hold = _hold.ok_or(Error::Invalid("owned Foundation document hold absent"))?;
         hold.owner.remaining(0)?;
-        hold.owner.persistent.set(hold.owner.persistent.get().checked_add(hold.admitted)
-            .ok_or(Error::Budget("owned Foundation hold transfer"))?);
+        hold.owner.persistent.set(
+            hold.owner
+                .persistent
+                .get()
+                .checked_add(hold.admitted)
+                .ok_or(Error::Budget("owned Foundation hold transfer"))?,
+        );
         // The same already admitted storage remains live. Only its lifetime
         // changes from temporary guard to the producer phase; no double grant.
         std::mem::forget(hold);
@@ -960,7 +1343,9 @@ impl CreationJson<'_> {
 }
 impl std::ops::Deref for CreationJson<'_> {
     type Target = JsonValue;
-    fn deref(&self) -> &JsonValue { &self.value }
+    fn deref(&self) -> &JsonValue {
+        &self.value
+    }
 }
 struct CreationBytes<'a> {
     bytes: Vec<u8>,
@@ -968,7 +1353,9 @@ struct CreationBytes<'a> {
 }
 impl std::ops::Deref for CreationBytes<'_> {
     type Target = [u8];
-    fn deref(&self) -> &[u8] { &self.bytes }
+    fn deref(&self) -> &[u8] {
+        &self.bytes
+    }
 }
 
 struct CaptureWriter<'a> {
@@ -1023,8 +1410,9 @@ impl<R: Read> Read for CaptureReader<'_, R> {
         }
         let available = output.len().min(left);
         if let Some(state) = &self.creation_read {
-            state.before_read(available).map_err(|error|
-                io::Error::other(error.to_string()))?;
+            state
+                .before_read(available)
+                .map_err(|error| io::Error::other(error.to_string()))?;
         }
         let n = self.inner.read(&mut output[..available])?;
         self.remaining.set(left - n);
@@ -1033,103 +1421,192 @@ impl<R: Read> Read for CaptureReader<'_, R> {
 }
 
 fn json_field<'a>(value: &'a JsonValue, name: &str) -> Option<&'a JsonValue> {
-    value.as_object()?.iter().find(|(key, _)| key.as_str() == Some(name)).map(|(_, value)| value)
+    value
+        .as_object()?
+        .iter()
+        .find(|(key, _)| key.as_str() == Some(name))
+        .map(|(_, value)| value)
 }
 
-fn creation_json<'a>(owner: &'a CreationState<'a>, raw: &[u8], cap: usize)
-    -> Result<CreationJson<'a>> {
-    creation_json_with_limits(owner, raw, JsonLimits::new(cap, 96, 1_000_000, 4096)
-        .map_err(|_| Error::Budget("runtime carrier creation JSON limits"))?)
+fn creation_json<'a>(
+    owner: &'a CreationState<'a>,
+    raw: &[u8],
+    cap: usize,
+) -> Result<CreationJson<'a>> {
+    creation_json_with_limits(
+        owner,
+        raw,
+        JsonLimits::new(cap, 96, 1_000_000, 4096)
+            .map_err(|_| Error::Budget("runtime carrier creation JSON limits"))?,
+    )
 }
-fn creation_json_with_limits<'a>(owner: &'a CreationState<'a>, raw: &[u8], requested: JsonLimits)
-    -> Result<CreationJson<'a>> {
-        let before = owner.json_visits.get();
-        let allowance = owner.max_json_visits.checked_sub(before)
-            .filter(|value| *value > 0)
-            .ok_or(Error::Budget("runtime carrier creation JSON visits"))?.min(1_000_000).min(requested.max_visits).min(raw.len().saturating_add(1));
-        let limits = JsonLimits::new(requested.max_bytes.min(raw.len().max(1)),
-            requested.max_depth.min(96), allowance, requested.max_integer_digits.min(4096))
-            .map_err(|_| Error::Budget("runtime carrier creation JSON limits"))?;
-        // Admit declared parser work before execution; failure retains both the
-        // visit ceiling and work admission. This is a declared byte+visit law.
-        checked_add(&owner.work, raw.len().checked_add(allowance)
+fn creation_json_with_limits<'a>(
+    owner: &'a CreationState<'a>,
+    raw: &[u8],
+    requested: JsonLimits,
+) -> Result<CreationJson<'a>> {
+    let before = owner.json_visits.get();
+    let allowance = owner
+        .max_json_visits
+        .checked_sub(before)
+        .filter(|value| *value > 0)
+        .ok_or(Error::Budget("runtime carrier creation JSON visits"))?
+        .min(1_000_000)
+        .min(requested.max_visits)
+        .min(raw.len().saturating_add(1));
+    let limits = JsonLimits::new(
+        requested.max_bytes.min(raw.len().max(1)),
+        requested.max_depth.min(96),
+        allowance,
+        requested.max_integer_digits.min(4096),
+    )
+    .map_err(|_| Error::Budget("runtime carrier creation JSON limits"))?;
+    // Admit declared parser work before execution; failure retains both the
+    // visit ceiling and work admission. This is a declared byte+visit law.
+    checked_add(
+        &owner.work,
+        raw.len()
+            .checked_add(allowance)
             .ok_or(Error::Budget("runtime carrier creation parse work"))?,
-            owner.work_limit)?;
-        let available = owner.remaining(0)?;
-        owner.json_visits.set(before.checked_add(allowance)
-            .ok_or(Error::Budget("runtime carrier creation JSON visits"))?);
-        let mut check = || check_capture_active(Some(owner.cancelled), owner.deadline)
-            .map_err(|_| tos_foundation::FoundationError::new(
+        owner.work_limit,
+    )?;
+    let available = owner.remaining(0)?;
+    owner.json_visits.set(
+        before
+            .checked_add(allowance)
+            .ok_or(Error::Budget("runtime carrier creation JSON visits"))?,
+    );
+    let mut check = || {
+        check_capture_active(Some(owner.cancelled), owner.deadline).map_err(|_| {
+            tos_foundation::FoundationError::new(
                 tos_foundation::FoundationErrorCode::BudgetExceeded,
-                "runtime carrier creation cutoff/cancellation"));
-        let parsed = parse_json_with_state_budget_and_check(
-            raw, JsonMode::PublishedStrict, limits, available, &mut check,
-        ).map_err(|_| Error::Invalid("runtime carrier creation JSON"))?;
-        owner.json_visits.set(before.checked_add(parsed.visits())
-            .ok_or(Error::Budget("runtime carrier creation JSON visits"))?);
-        let value = parsed.into_root();
-        let bytes = value.retained_storage_bytes()
-            .map_err(|_| Error::Budget("runtime carrier creation JSON state"))?;
-        let hold = owner.hold(bytes)?;
-        Ok(CreationJson { value, _hold: Some(hold) })
+                "runtime carrier creation cutoff/cancellation",
+            )
+        })
+    };
+    let parsed = parse_json_with_state_budget_and_check(
+        raw,
+        JsonMode::PublishedStrict,
+        limits,
+        available,
+        &mut check,
+    )
+    .map_err(|_| Error::Invalid("runtime carrier creation JSON"))?;
+    owner.json_visits.set(
+        before
+            .checked_add(parsed.visits())
+            .ok_or(Error::Budget("runtime carrier creation JSON visits"))?,
+    );
+    let value = parsed.into_root();
+    let bytes = value
+        .retained_storage_bytes()
+        .map_err(|_| Error::Budget("runtime carrier creation JSON state"))?;
+    let hold = owner.hold(bytes)?;
+    Ok(CreationJson {
+        value,
+        _hold: Some(hold),
+    })
 }
 
 impl<'a> CaptureWriter<'a> {
     fn json_owned(&mut self, raw: &[u8], cap: usize) -> Result<CreationJson<'a>> {
         match self.creation {
             Some(owner) => creation_json(owner, raw, cap),
-            None => Ok(CreationJson { value: json(raw, cap)?, _hold: None }),
+            None => Ok(CreationJson {
+                value: json(raw, cap)?,
+                _hold: None,
+            }),
         }
     }
-    fn compact_owned(&mut self, value: &JsonValue, cap: usize, source_bytes: usize)
-        -> Result<CreationBytes<'a>> {
+    fn compact_owned(
+        &mut self,
+        value: &JsonValue,
+        cap: usize,
+        source_bytes: usize,
+    ) -> Result<CreationBytes<'a>> {
         let Some(owner) = self.creation else {
-            return Ok(CreationBytes { bytes: compact(value, cap)?, _hold: None });
+            return Ok(CreationBytes {
+                bytes: compact(value, cap)?,
+                _hold: None,
+            });
         };
         let before = owner.json_visits.get();
-        let allowance = owner.max_json_visits.checked_sub(before)
+        let allowance = owner
+            .max_json_visits
+            .checked_sub(before)
             .filter(|value| *value > 0)
-            .ok_or(Error::Budget("runtime carrier compact visits"))?.min(1_000_000).min(source_bytes.checked_mul(6)
-                .and_then(|n| n.checked_add(2))
-                .ok_or(Error::Budget("runtime carrier compact visit bound"))?);
+            .ok_or(Error::Budget("runtime carrier compact visits"))?
+            .min(1_000_000)
+            .min(
+                source_bytes
+                    .checked_mul(6)
+                    .and_then(|n| n.checked_add(2))
+                    .ok_or(Error::Budget("runtime carrier compact visit bound"))?,
+            );
         // Two passes each visit values, keys and numeric-lexeme validation;
         // every such token originates in the bounded original input bytes.
         // PythonPublishedCompact cannot expand an original token beyond this
         // finite bound: quoted UTF-16 units need <=6 bytes, finite binary64
         // shortest spelling fits 32 bytes, integer digits retain their input
         // width, and container punctuation is already present in source bytes.
-        let output_cap = source_bytes.checked_mul(32).and_then(|n| n.checked_add(2))
-            .ok_or(Error::Budget("runtime carrier compact token bound"))?.min(cap);
+        let output_cap = source_bytes
+            .checked_mul(32)
+            .and_then(|n| n.checked_add(2))
+            .ok_or(Error::Budget("runtime carrier compact token bound"))?
+            .min(cap);
         let limits = JsonLimits::new(output_cap, 96, allowance, 4096)
             .map_err(|_| Error::Budget("runtime carrier compact limits"))?;
         let available = owner.remaining(0)?;
-        let mut check = || check_capture_active(Some(owner.cancelled), owner.deadline)
-            .map_err(|_| tos_foundation::FoundationError::new(
-                tos_foundation::FoundationErrorCode::BudgetExceeded,
-                "runtime carrier compact cutoff/cancellation"));
+        let mut check = || {
+            check_capture_active(Some(owner.cancelled), owner.deadline).map_err(|_| {
+                tos_foundation::FoundationError::new(
+                    tos_foundation::FoundationErrorCode::BudgetExceeded,
+                    "runtime carrier compact cutoff/cancellation",
+                )
+            })
+        };
         let work = self.work;
         let limit = self.limits.max_work_bytes;
         let mut admit = |bytes: usize, visits: usize| {
-            let amount = bytes.checked_mul(2).and_then(|bytes| bytes.checked_add(visits))
-                .ok_or_else(|| tos_foundation::FoundationError::new(
-                    tos_foundation::FoundationErrorCode::BudgetExceeded,
-                    "runtime carrier compact work overflow"))?;
-            checked_add(work, amount, limit).map_err(|_| tos_foundation::FoundationError::new(
-                tos_foundation::FoundationErrorCode::BudgetExceeded,
-                "runtime carrier compact original work"))?;
-            owner.json_visits.set(before.checked_add(visits).ok_or_else(||
+            let amount = bytes
+                .checked_mul(2)
+                .and_then(|bytes| bytes.checked_add(visits))
+                .ok_or_else(|| {
+                    tos_foundation::FoundationError::new(
+                        tos_foundation::FoundationErrorCode::BudgetExceeded,
+                        "runtime carrier compact work overflow",
+                    )
+                })?;
+            checked_add(work, amount, limit).map_err(|_| {
                 tos_foundation::FoundationError::new(
                     tos_foundation::FoundationErrorCode::BudgetExceeded,
-                    "runtime carrier compact visits overflow"))?);
+                    "runtime carrier compact original work",
+                )
+            })?;
+            owner
+                .json_visits
+                .set(before.checked_add(visits).ok_or_else(|| {
+                    tos_foundation::FoundationError::new(
+                        tos_foundation::FoundationErrorCode::BudgetExceeded,
+                        "runtime carrier compact visits overflow",
+                    )
+                })?);
             Ok(())
         };
         let (bytes, visits) = emit_python_compact_json_with_state_budget_and_visits_and_check(
             value, limits, available, &mut check, &mut admit,
-        ).map_err(|_| Error::Budget("runtime carrier compact original budget"))?;
-        owner.json_visits.set(before.checked_add(visits)
-            .ok_or(Error::Budget("runtime carrier compact visits"))?);
+        )
+        .map_err(|_| Error::Budget("runtime carrier compact original budget"))?;
+        owner.json_visits.set(
+            before
+                .checked_add(visits)
+                .ok_or(Error::Budget("runtime carrier compact visits"))?,
+        );
         let hold = owner.hold(bytes.capacity())?;
-        Ok(CreationBytes { bytes, _hold: Some(hold) })
+        Ok(CreationBytes {
+            bytes,
+            _hold: Some(hold),
+        })
     }
     fn page_step(&mut self, bytes: usize) -> Result<()> {
         check_capture_active(self.cancelled, self.deadline)?;
@@ -1190,13 +1667,19 @@ impl<'a> CaptureWriter<'a> {
         if !allow_non_object && value.as_object().is_none() {
             return Err(Error::Invalid("public D1 row object"));
         }
-        let ordinal = self.ordinals.iter().find(|(name, _)| name == collection)
-            .map(|(_, value)| *value).unwrap_or(0);
+        let ordinal = self
+            .ordinals
+            .iter()
+            .find(|(name, _)| name == collection)
+            .map(|(_, value)| *value)
+            .unwrap_or(0);
         if source_key.is_some_and(|key| key.is_empty() || key.len() > 4096) || order.len() > 2 {
             return Err(Error::Budget("public D1 capture row key/order"));
         }
-        let _key_hold = self.creation.map(|state| state.hold(
-            source_key.map(str::len).unwrap_or(20))) .transpose()?;
+        let _key_hold = self
+            .creation
+            .map(|state| state.hold(source_key.map(str::len).unwrap_or(20)))
+            .transpose()?;
         let source_key = source_key
             .map(str::to_owned)
             .unwrap_or_else(|| format!("{:020}", ordinal));
@@ -1211,22 +1694,36 @@ impl<'a> CaptureWriter<'a> {
         if changed != 1 {
             return Err(Error::Invalid("public D1 capture insertion"));
         }
-        let next = ordinal.checked_add(1)
+        let next = ordinal
+            .checked_add(1)
             .ok_or(Error::Budget("public D1 ordinal"))?;
-        if let Some((_, value)) = self.ordinals.iter_mut().find(|(name, _)| name == collection) {
+        if let Some((_, value)) = self
+            .ordinals
+            .iter_mut()
+            .find(|(name, _)| name == collection)
+        {
             *value = next;
         } else {
             if self.creation.is_some() {
                 // Vec geometric old/new slots, UTF8 copies were admitted
                 // before the serde reader delivered their source characters.
-                let upper = std::mem::size_of::<(String, u64)>().checked_mul(
-                    self.ordinals.len().checked_add(1).and_then(|n| n.max(4).checked_mul(4))
-                        .ok_or(Error::Budget("runtime ordinal slots"))?)
+                let upper = std::mem::size_of::<(String, u64)>()
+                    .checked_mul(
+                        self.ordinals
+                            .len()
+                            .checked_add(1)
+                            .and_then(|n| n.max(4).checked_mul(4))
+                            .ok_or(Error::Budget("runtime ordinal slots"))?,
+                    )
                     .ok_or(Error::Budget("runtime ordinal slots"))?;
-                let delta = upper.checked_sub(self.ordinal_slots_admitted)
+                let delta = upper
+                    .checked_sub(self.ordinal_slots_admitted)
                     .ok_or(Error::Budget("runtime ordinal state"))?;
-                if let Some(state) = &self.creation_read { state.admit_tree(delta)?; }
-                else if let Some(state) = self.creation { state.retain(delta + collection.len())?; }
+                if let Some(state) = &self.creation_read {
+                    state.admit_tree(delta)?;
+                } else if let Some(state) = self.creation {
+                    state.retain(delta + collection.len())?;
+                }
                 self.ordinal_slots_admitted = upper;
             }
             self.ordinals.push((collection.to_owned(), next));
@@ -1294,7 +1791,9 @@ impl<'de> DeserializeSeed<'de> for RowsSeed<'_, '_> {
                     .collection(&self.collection, "array")
                     .map_err(A::Error::custom)?;
                 loop {
-                    if let Some(state) = &self.writer.creation_read { state.begin_value(); }
+                    if let Some(state) = &self.writer.creation_read {
+                        state.begin_value();
+                    }
                     self.writer.read_budget.set(MAX_ROW_BYTES + 65536);
                     let Some(raw) = seq.next_element::<Box<RawValue>>()? else {
                         break;
@@ -1325,16 +1824,26 @@ struct PhilosophyMemberSeed<'a, 'b> {
     collection: String,
 }
 
-struct HeaderCount<'a> { bytes: usize, owner: &'a CreationState<'a> }
+struct HeaderCount<'a> {
+    bytes: usize,
+    owner: &'a CreationState<'a>,
+}
 impl Write for HeaderCount<'_> {
     fn write(&mut self, input: &[u8]) -> io::Result<usize> {
-        self.owner.remaining(0).map_err(|_| io::Error::other("runtime header cutoff/cancellation"))?;
-        let next = self.bytes.checked_add(input.len()).filter(|n| *n <= MAX_HEADER_BYTES)
+        self.owner
+            .remaining(0)
+            .map_err(|_| io::Error::other("runtime header cutoff/cancellation"))?;
+        let next = self
+            .bytes
+            .checked_add(input.len())
+            .filter(|n| *n <= MAX_HEADER_BYTES)
             .ok_or_else(|| io::Error::other("runtime header encoded bound"))?;
         self.bytes = next;
         Ok(input.len())
     }
-    fn flush(&mut self) -> io::Result<()> { Ok(()) }
+    fn flush(&mut self) -> io::Result<()> {
+        Ok(())
+    }
 }
 
 // The pinned arbitrary_precision deserializer delivers decimal/large-integer
@@ -1345,23 +1854,31 @@ struct CheckedNumberLexemeSeed<'a> {
 }
 impl<'de> DeserializeSeed<'de> for CheckedNumberLexemeSeed<'_> {
     type Value = serde_json::Number;
-    fn deserialize<D: serde::Deserializer<'de>>(self, deserializer: D)
-        -> std::result::Result<Self::Value, D::Error> {
-        struct NumberVisitor<'a> { state: Option<Rc<CreationReadState<'a, 'a>>> }
+    fn deserialize<D: serde::Deserializer<'de>>(
+        self,
+        deserializer: D,
+    ) -> std::result::Result<Self::Value, D::Error> {
+        struct NumberVisitor<'a> {
+            state: Option<Rc<CreationReadState<'a, 'a>>>,
+        }
         impl<'de> Visitor<'de> for NumberVisitor<'_> {
             type Value = serde_json::Number;
             fn expecting(&self, f: &mut fmt::Formatter) -> fmt::Result {
                 f.write_str("string containing a number")
             }
-            fn visit_str<E: serde::de::Error>(self, value: &str)
-                -> std::result::Result<Self::Value, E> {
+            fn visit_str<E: serde::de::Error>(
+                self,
+                value: &str,
+            ) -> std::result::Result<Self::Value, E> {
                 if let Some(state) = &self.state {
                     state.admit_tree(value.len()).map_err(E::custom)?;
                 }
                 value.parse::<serde_json::Number>().map_err(E::custom)
             }
         }
-        deserializer.deserialize_str(NumberVisitor { state: self.creation_read })
+        deserializer.deserialize_str(NumberVisitor {
+            state: self.creation_read,
+        })
     }
 }
 
@@ -1376,7 +1893,9 @@ impl<'de> DeserializeSeed<'de> for CheckedValueSeed<'_> {
         self,
         deserializer: D,
     ) -> std::result::Result<Self::Value, D::Error> {
-        struct CheckedValueVisitor<'a> { creation_read: Option<Rc<CreationReadState<'a, 'a>>> }
+        struct CheckedValueVisitor<'a> {
+            creation_read: Option<Rc<CreationReadState<'a, 'a>>>,
+        }
 
         impl<'de> Visitor<'de> for CheckedValueVisitor<'_> {
             type Value = serde_json::Value;
@@ -1460,16 +1979,28 @@ impl<'de> DeserializeSeed<'de> for CheckedValueSeed<'_> {
                 let mut admitted = 0usize;
                 loop {
                     if let Some(state) = &self.creation_read {
-                        let upper = crate::knowledge_normalization::serde_array_slots_upper(values.len().checked_add(1)
-                            .ok_or_else(|| A::Error::custom("typed array slots overflow"))?)
+                        let upper = crate::knowledge_normalization::serde_array_slots_upper(
+                            values
+                                .len()
+                                .checked_add(1)
+                                .ok_or_else(|| A::Error::custom("typed array slots overflow"))?,
+                        )
+                        .map_err(A::Error::custom)?;
+                        state
+                            .admit_tree(
+                                upper.checked_sub(admitted).ok_or_else(|| {
+                                    A::Error::custom("typed array state mismatch")
+                                })?,
+                            )
                             .map_err(A::Error::custom)?;
-                        state.admit_tree(upper.checked_sub(admitted)
-                            .ok_or_else(|| A::Error::custom("typed array state mismatch"))?).map_err(A::Error::custom)?;
                         admitted = upper;
                     }
                     let Some(value) = seq.next_element_seed(CheckedValueSeed {
                         creation_read: self.creation_read.as_ref().map(Rc::clone),
-                    })? else { break };
+                    })?
+                    else {
+                        break;
+                    };
                     values.push(value);
                 }
                 Ok(serde_json::Value::Array(values))
@@ -1485,22 +2016,37 @@ impl<'de> DeserializeSeed<'de> for CheckedValueSeed<'_> {
                 // before insertion avoids an additional duplicate-key set.
                 while let Some(name) = map.next_key::<String>()? {
                     if let Some(state) = &self.creation_read {
-                        state.admit_tree(name.capacity()).map_err(A::Error::custom)?;
+                        state
+                            .admit_tree(name.capacity())
+                            .map_err(A::Error::custom)?;
                     }
                     if fields.is_empty() && name == "$serde_json::private::Number" {
-                        return map.next_value_seed(CheckedNumberLexemeSeed {
-                            creation_read: self.creation_read.as_ref().map(Rc::clone),
-                        }).map(serde_json::Value::Number);
+                        return map
+                            .next_value_seed(CheckedNumberLexemeSeed {
+                                creation_read: self.creation_read.as_ref().map(Rc::clone),
+                            })
+                            .map(serde_json::Value::Number);
                     }
                     if fields.contains_key(&name) {
-                        return Err(A::Error::custom("duplicate philosophy projection object key"));
+                        return Err(A::Error::custom(
+                            "duplicate philosophy projection object key",
+                        ));
                     }
                     if let Some(state) = &self.creation_read {
-                        let upper = crate::knowledge_normalization::serde_object_slots_upper(fields.len().checked_add(1)
-                            .ok_or_else(|| A::Error::custom("typed object slots overflow"))?)
+                        let upper = crate::knowledge_normalization::serde_object_slots_upper(
+                            fields
+                                .len()
+                                .checked_add(1)
+                                .ok_or_else(|| A::Error::custom("typed object slots overflow"))?,
+                        )
+                        .map_err(A::Error::custom)?;
+                        state
+                            .admit_tree(
+                                upper.checked_sub(admitted).ok_or_else(|| {
+                                    A::Error::custom("typed object state mismatch")
+                                })?,
+                            )
                             .map_err(A::Error::custom)?;
-                        state.admit_tree(upper.checked_sub(admitted)
-                            .ok_or_else(|| A::Error::custom("typed object state mismatch"))?).map_err(A::Error::custom)?;
                         admitted = upper;
                     }
                     let value = map.next_value_seed(CheckedValueSeed {
@@ -1512,7 +2058,9 @@ impl<'de> DeserializeSeed<'de> for CheckedValueSeed<'_> {
             }
         }
 
-        deserializer.deserialize_any(CheckedValueVisitor { creation_read: self.creation_read })
+        deserializer.deserialize_any(CheckedValueVisitor {
+            creation_read: self.creation_read,
+        })
     }
 }
 
@@ -1536,9 +2084,14 @@ impl<'de> DeserializeSeed<'de> for PhilosophyMemberSeed<'_, '_> {
                 if let Some(owner) = self.writer.creation {
                     // Count the unchanged serde representation without a
                     // growing byte buffer. Admit both passes on original work.
-                    checked_add(self.writer.work, MAX_HEADER_BYTES.checked_mul(2)
-                        .ok_or_else(|| E::custom("runtime header work overflow"))?,
-                        self.writer.limits.max_work_bytes).map_err(E::custom)?;
+                    checked_add(
+                        self.writer.work,
+                        MAX_HEADER_BYTES
+                            .checked_mul(2)
+                            .ok_or_else(|| E::custom("runtime header work overflow"))?,
+                        self.writer.limits.max_work_bytes,
+                    )
+                    .map_err(E::custom)?;
                     owner.remaining(0).map_err(E::custom)?;
                     let mut counter = HeaderCount { bytes: 0, owner };
                     serde_json::to_writer(&mut counter, &value).map_err(E::custom)?;
@@ -1546,12 +2099,18 @@ impl<'de> DeserializeSeed<'de> for PhilosophyMemberSeed<'_, '_> {
                     let _raw_hold = owner.hold(counter.bytes).map_err(E::custom)?;
                     let mut raw = Vec::with_capacity(counter.bytes);
                     serde_json::to_writer(&mut raw, &value).map_err(E::custom)?;
-                    if raw.len() != counter.bytes { return Err(E::custom("runtime header count changed")); }
+                    if raw.len() != counter.bytes {
+                        return Err(E::custom("runtime header count changed"));
+                    }
                     owner.remaining(0).map_err(E::custom)?;
-                    self.writer.header(&self.collection, &raw).map_err(E::custom)
+                    self.writer
+                        .header(&self.collection, &raw)
+                        .map_err(E::custom)
                 } else {
                     let raw = serde_json::to_vec(&value).map_err(E::custom)?;
-                    self.writer.header(&self.collection, &raw).map_err(E::custom)
+                    self.writer
+                        .header(&self.collection, &raw)
+                        .map_err(E::custom)
                 }
             }
         }
@@ -1568,7 +2127,9 @@ impl<'de> DeserializeSeed<'de> for PhilosophyMemberSeed<'_, '_> {
                     .collection(&self.collection, "array")
                     .map_err(A::Error::custom)?;
                 loop {
-                    if let Some(state) = &self.writer.creation_read { state.begin_value(); }
+                    if let Some(state) = &self.writer.creation_read {
+                        state.begin_value();
+                    }
                     self.writer.read_budget.set(MAX_ROW_BYTES + 65536);
                     let Some(raw) = seq.next_element::<Box<RawValue>>()? else {
                         break;
@@ -1581,8 +2142,10 @@ impl<'de> DeserializeSeed<'de> for PhilosophyMemberSeed<'_, '_> {
             }
 
             fn visit_map<A: MapAccess<'de>>(mut self, map: A) -> std::result::Result<(), A::Error> {
-                let value = CheckedValueSeed { creation_read: self.writer.creation_read.as_ref().map(Rc::clone) }
-                    .deserialize(serde::de::value::MapAccessDeserializer::new(map))?;
+                let value = CheckedValueSeed {
+                    creation_read: self.writer.creation_read.as_ref().map(Rc::clone),
+                }
+                .deserialize(serde::de::value::MapAccessDeserializer::new(map))?;
                 self.header(value)
             }
 
@@ -1678,7 +2241,9 @@ impl<'de> DeserializeSeed<'de> for ObjectSeed<'_, '_> {
                 let mut seen: Vec<String> = Vec::new();
                 let mut seen_slots = 0usize;
                 loop {
-                    if let Some(state) = &self.writer.creation_read { state.begin_value(); }
+                    if let Some(state) = &self.writer.creation_read {
+                        state.begin_value();
+                    }
                     self.writer.read_budget.set(MAX_HEADER_BYTES + 65536);
                     let Some(key) = map.next_key::<String>()? else {
                         break;
@@ -1693,24 +2258,43 @@ impl<'de> DeserializeSeed<'de> for ObjectSeed<'_, '_> {
                     )
                     .map_err(A::Error::custom)?;
                     if self.writer.creation_read.is_some() {
-                        checked_add(self.writer.work, key.len().checked_mul(seen.len())
-                            .ok_or_else(|| A::Error::custom("member comparison work"))?,
-                            self.writer.limits.max_work_bytes).map_err(A::Error::custom)?;
+                        checked_add(
+                            self.writer.work,
+                            key.len()
+                                .checked_mul(seen.len())
+                                .ok_or_else(|| A::Error::custom("member comparison work"))?,
+                            self.writer.limits.max_work_bytes,
+                        )
+                        .map_err(A::Error::custom)?;
                     }
                     if seen.iter().any(|previous| previous == &key) {
                         return Err(A::Error::custom("duplicate public projection member"));
                     }
                     if let Some(state) = &self.writer.creation_read {
-                        let upper = seen.len().checked_add(1).and_then(|n| n.max(4).checked_mul(4))
+                        let upper = seen
+                            .len()
+                            .checked_add(1)
+                            .and_then(|n| n.max(4).checked_mul(4))
                             .and_then(|n| n.checked_mul(std::mem::size_of::<String>()))
                             .ok_or_else(|| A::Error::custom("member key slots"))?;
-                        state.admit_tree(upper.checked_sub(seen_slots)
-                            .ok_or_else(|| A::Error::custom("member key state"))?).map_err(A::Error::custom)?;
+                        state
+                            .admit_tree(
+                                upper
+                                    .checked_sub(seen_slots)
+                                    .ok_or_else(|| A::Error::custom("member key state"))?,
+                            )
+                            .map_err(A::Error::custom)?;
                         seen_slots = upper;
                     }
                     if let Some(state) = &self.writer.creation_read {
-                        state.admit_tree(key.len().checked_mul(3).and_then(|n| n.checked_add(self.prefix.len() + 1))
-                            .ok_or_else(|| A::Error::custom("member retained key bytes"))?).map_err(A::Error::custom)?;
+                        state
+                            .admit_tree(
+                                key.len()
+                                    .checked_mul(3)
+                                    .and_then(|n| n.checked_add(self.prefix.len() + 1))
+                                    .ok_or_else(|| A::Error::custom("member retained key bytes"))?,
+                            )
+                            .map_err(A::Error::custom)?;
                     }
                     seen.push(key.clone());
                     let collection = if self.prefix.is_empty() {
@@ -1718,7 +2302,9 @@ impl<'de> DeserializeSeed<'de> for ObjectSeed<'_, '_> {
                     } else {
                         format!("{}/{}", self.prefix, key)
                     };
-                    if let Some(state) = &self.writer.creation_read { state.begin_value(); }
+                    if let Some(state) = &self.writer.creation_read {
+                        state.begin_value();
+                    }
                     if self.writer.role.starts_with("evidence-")
                         && !selected_rows(self.writer.role, &collection)
                         && collection != "schema_version"
@@ -1794,17 +2380,28 @@ struct CreationSerde<'a> {
 }
 impl std::ops::Deref for CreationSerde<'_> {
     type Target = serde_json::Value;
-    fn deref(&self) -> &serde_json::Value { &self.value }
+    fn deref(&self) -> &serde_json::Value {
+        &self.value
+    }
 }
-fn strict_value_owned<'a>(raw: &[u8], cap: usize,
-    creation: Option<&'a CreationState<'a>>) -> Result<CreationSerde<'a>> {
+fn strict_value_owned<'a>(
+    raw: &[u8],
+    cap: usize,
+    creation: Option<&'a CreationState<'a>>,
+) -> Result<CreationSerde<'a>> {
     let Some(owner) = creation else {
-        return Ok(CreationSerde { value: strict_value(raw, cap)?, _hold: None });
+        return Ok(CreationSerde {
+            value: strict_value(raw, cap)?,
+            _hold: None,
+        });
     };
     let document = creation_json(owner, raw, cap)?;
     // Same maintained geometry owner used by raw normalization. Charge the
     // geometry walk and unchanged serde decode before either executes.
-    let work = raw.len().checked_add(1).and_then(|n| n.checked_mul(2))
+    let work = raw
+        .len()
+        .checked_add(1)
+        .and_then(|n| n.checked_mul(2))
         .ok_or(Error::Budget("runtime carrier serde work"))?;
     checked_add(&owner.work, work, owner.work_limit)?;
     let upper = crate::knowledge_normalization::serde_input_workspace_upper(&document, raw.len())?;
@@ -1812,7 +2409,10 @@ fn strict_value_owned<'a>(raw: &[u8], cap: usize,
     let hold = owner.hold(upper)?;
     let value = serde_json::from_slice(raw).map_err(|e| Error::Source(e.to_string()))?;
     check_capture_active(Some(owner.cancelled), owner.deadline)?;
-    Ok(CreationSerde { value, _hold: Some(hold) })
+    Ok(CreationSerde {
+        value,
+        _hold: Some(hold),
+    })
 }
 
 fn strict_value(raw: &[u8], cap: usize) -> Result<serde_json::Value> {
@@ -1956,37 +2556,62 @@ fn partition_record_key(value: &JsonValue, fields: &[String]) -> Result<String> 
 
 // Forecast only the key/order policy outputs and transient expected-policy
 // serde values. The descriptor/root tree is borrowed, never cloned here.
-fn partition_policy_state_upper(role: &str, collection: &str,
-    spec: &serde_json::Value, dynamic: bool) -> Result<usize> {
+fn partition_policy_state_upper(
+    role: &str,
+    collection: &str,
+    spec: &serde_json::Value,
+    dynamic: bool,
+) -> Result<usize> {
     let mut fields = 0usize;
     let mut bytes = 0usize;
     let mut add = |field: &str| -> Result<()> {
-        fields = fields.checked_add(1).ok_or(Error::Budget("partition policy slots"))?;
-        bytes = bytes.checked_add(field.len()).ok_or(Error::Budget("partition policy strings"))?;
+        fields = fields
+            .checked_add(1)
+            .ok_or(Error::Budget("partition policy slots"))?;
+        bytes = bytes
+            .checked_add(field.len())
+            .ok_or(Error::Budget("partition policy strings"))?;
         Ok(())
     };
     if dynamic {
         for name in ["key_field", "order_fields"] {
             match spec.get(name) {
                 Some(serde_json::Value::String(value)) => add(value)?,
-                Some(serde_json::Value::Array(values)) => for value in values {
-                    add(value.as_str().ok_or(Error::Invalid("partition policy field"))?)?;
-                },
+                Some(serde_json::Value::Array(values)) => {
+                    for value in values {
+                        add(value
+                            .as_str()
+                            .ok_or(Error::Invalid("partition policy field"))?)?;
+                    }
+                }
                 _ => (),
             }
         }
     } else {
-        let (keys, order, _) = policy(role, collection)
-            .ok_or(Error::Invalid("public projection collection outside owner policy"))?;
-        for field in keys.iter().chain(order.iter()) { add(field)?; }
+        let (keys, order, _) = policy(role, collection).ok_or(Error::Invalid(
+            "public projection collection outside owner policy",
+        ))?;
+        for field in keys.iter().chain(order.iter()) {
+            add(field)?;
+        }
     }
     // key/order/effective-order vectors plus expected serde arrays. Each
     // independently geometric owner admits its minimum nonzero capacity.
-    let slots = fields.max(4).checked_mul(4)
-        .and_then(|n| n.checked_mul(3 * std::mem::size_of::<String>()
-            + 2 * std::mem::size_of::<serde_json::Value>()))
+    let slots = fields
+        .max(4)
+        .checked_mul(4)
+        .and_then(|n| {
+            n.checked_mul(
+                3 * std::mem::size_of::<String>() + 2 * std::mem::size_of::<serde_json::Value>(),
+            )
+        })
         .ok_or(Error::Budget("partition policy containers"))?;
-    slots.checked_add(bytes.checked_mul(5).ok_or(Error::Budget("partition policy clones"))?)
+    slots
+        .checked_add(
+            bytes
+                .checked_mul(5)
+                .ok_or(Error::Budget("partition policy clones"))?,
+        )
         .ok_or(Error::Budget("partition policy state"))
 }
 
@@ -2174,16 +2799,33 @@ fn capture_part(
     } else {
         ".jsonl.gz"
     };
-    let _namespace_hold = writer.creation.map(|state| {
-        let relative = stem.len().checked_add(6 + 2 + 1 + 64 + suffix.len())
-            .ok_or(Error::Budget("runtime part namespace width"))?;
-        let path = root_path.as_os_str().as_encoded_bytes().len().checked_add(relative)
-            .ok_or(Error::Budget("runtime part path width"))?;
-        state.hold(path.max(8).checked_mul(4)
-            .and_then(|n| relative.max(8).checked_mul(4)
-                .and_then(|bytes| n.checked_add(bytes)).and_then(|n| n.checked_add(2 * 64 + 64)))
-            .ok_or(Error::Budget("runtime part namespace state"))?)
-    }).transpose()?;
+    let _namespace_hold = writer
+        .creation
+        .map(|state| {
+            let relative = stem
+                .len()
+                .checked_add(6 + 2 + 1 + 64 + suffix.len())
+                .ok_or(Error::Budget("runtime part namespace width"))?;
+            let path = root_path
+                .as_os_str()
+                .as_encoded_bytes()
+                .len()
+                .checked_add(relative)
+                .ok_or(Error::Budget("runtime part path width"))?;
+            state.hold(
+                path.max(8)
+                    .checked_mul(4)
+                    .and_then(|n| {
+                        relative
+                            .max(8)
+                            .checked_mul(4)
+                            .and_then(|bytes| n.checked_add(bytes))
+                            .and_then(|n| n.checked_add(2 * 64 + 64))
+                    })
+                    .ok_or(Error::Budget("runtime part namespace state"))?,
+            )
+        })
+        .transpose()?;
     let relative = format!("{stem}.parts/{}/{}{}", &stored_sha[..2], stored_sha, suffix);
     if field(descriptor, "path")? != relative {
         return Err(Error::Invalid("public projection part namespace"));
@@ -2202,15 +2844,25 @@ fn capture_part(
     if actual_len != stored_len as u64 || actual_sha.to_hex() != stored_sha {
         return Err(Error::Invalid("public projection part changed"));
     }
-    let _part_bytes_hold = writer.creation.map(|state| {
-        // Frozen stored bytes, output Vec geometric/sentinel overlap and
-        // the existing decoder owner's pinned native backend workspace.
-        let decoded_peak = decoded_len.checked_add(1).and_then(|n| n.max(32).checked_mul(3))
-            .ok_or(Error::Budget("runtime decoded part state"))?;
-        state.hold(stored_len.checked_add(decoded_peak)
-            .and_then(|n| n.checked_add(crate::legacy::partition_decoder_workspace_upper(kind).ok()?))
-            .ok_or(Error::Budget("runtime part byte state"))?)
-    }).transpose()?;
+    let _part_bytes_hold = writer
+        .creation
+        .map(|state| {
+            // Frozen stored bytes, output Vec geometric/sentinel overlap and
+            // the existing decoder owner's pinned native backend workspace.
+            let decoded_peak = decoded_len
+                .checked_add(1)
+                .and_then(|n| n.max(32).checked_mul(3))
+                .ok_or(Error::Budget("runtime decoded part state"))?;
+            state.hold(
+                stored_len
+                    .checked_add(decoded_peak)
+                    .and_then(|n| {
+                        n.checked_add(crate::legacy::partition_decoder_workspace_upper(kind).ok()?)
+                    })
+                    .ok_or(Error::Budget("runtime part byte state"))?,
+            )
+        })
+        .transpose()?;
     let mut stored = vec![0u8; stored_len];
     file.read_exact(&mut stored)?;
     let mut eof = [0u8; 1];
@@ -2321,31 +2973,47 @@ fn capture_part(
         {
             return Err(Error::Invalid("public projection row order/placement"));
         }
-        let value = json_field(&record, "value")
-            .ok_or(Error::Invalid("public projection row value"))?;
-        let _order_hold = writer.creation.map(|state| {
-            let mut string_upper = 0usize;
-            for field in order_fields {
-                let width = match json_field(value, field) {
-                    Some(JsonValue::String(text)) => text.as_str()
-                        .ok_or(Error::Invalid("public projection order string"))?.len(),
-                    Some(JsonValue::Number(number)) => number.lexeme.len(),
-                    _ => 5,
-                };
-                // Existing formatting emits <=source width+24, including
-                // integer width prefix; geometric old/new String storage.
-                string_upper = string_upper.checked_add(width.checked_add(24)
-                    .and_then(|n| n.max(8).checked_mul(4))
-                    .ok_or(Error::Budget("runtime order string state"))?)
-                    .ok_or(Error::Budget("runtime order state"))?;
-            }
-            let slots = order_fields.len().max(1).checked_mul(4 * std::mem::size_of::<String>())
-                .and_then(|n| n.checked_add(key_fields.len() * std::mem::size_of::<&str>()))
-                .ok_or(Error::Budget("runtime order vector state"))?;
-            state.hold(string_upper.checked_mul(3).and_then(|n| n.checked_add(slots))
-                .and_then(|n| n.checked_add(2 * 4096 + 64))
-                .ok_or(Error::Budget("runtime order simultaneous state"))?)
-        }).transpose()?;
+        let value =
+            json_field(&record, "value").ok_or(Error::Invalid("public projection row value"))?;
+        let _order_hold = writer
+            .creation
+            .map(|state| {
+                let mut string_upper = 0usize;
+                for field in order_fields {
+                    let width = match json_field(value, field) {
+                        Some(JsonValue::String(text)) => text
+                            .as_str()
+                            .ok_or(Error::Invalid("public projection order string"))?
+                            .len(),
+                        Some(JsonValue::Number(number)) => number.lexeme.len(),
+                        _ => 5,
+                    };
+                    // Existing formatting emits <=source width+24, including
+                    // integer width prefix; geometric old/new String storage.
+                    string_upper = string_upper
+                        .checked_add(
+                            width
+                                .checked_add(24)
+                                .and_then(|n| n.max(8).checked_mul(4))
+                                .ok_or(Error::Budget("runtime order string state"))?,
+                        )
+                        .ok_or(Error::Budget("runtime order state"))?;
+                }
+                let slots = order_fields
+                    .len()
+                    .max(1)
+                    .checked_mul(4 * std::mem::size_of::<String>())
+                    .and_then(|n| n.checked_add(key_fields.len() * std::mem::size_of::<&str>()))
+                    .ok_or(Error::Budget("runtime order vector state"))?;
+                state.hold(
+                    string_upper
+                        .checked_mul(3)
+                        .and_then(|n| n.checked_add(slots))
+                        .and_then(|n| n.checked_add(2 * 4096 + 64))
+                        .ok_or(Error::Budget("runtime order simultaneous state"))?,
+                )
+            })
+            .transpose()?;
         previous = Some(key.to_owned());
         let normalized: &JsonValue = if mapping {
             &record
@@ -2372,7 +3040,10 @@ fn capture_part(
             partition_order(
                 value,
                 order_fields,
-                writer.limits.max_work_bytes.saturating_sub(writer.work.load(std::sync::atomic::Ordering::Acquire)),
+                writer
+                    .limits
+                    .max_work_bytes
+                    .saturating_sub(writer.work.load(std::sync::atomic::Ordering::Acquire)),
             )?
         };
         let order = if writer.dynamic_philosophy {
@@ -2382,8 +3053,10 @@ fn capture_part(
                 vec![
                     encode_order_tuple(
                         &order,
-                        usize::try_from(writer.limits.max_work_bytes.saturating_sub(writer.work.load(std::sync::atomic::Ordering::Acquire)))
-                            .unwrap_or(usize::MAX),
+                        usize::try_from(writer.limits.max_work_bytes.saturating_sub(
+                            writer.work.load(std::sync::atomic::Ordering::Acquire),
+                        ))
+                        .unwrap_or(usize::MAX),
                     )?,
                     Digest256::of_bytes(key.as_bytes()).to_hex(),
                 ]
@@ -2524,9 +3197,17 @@ fn capture_partitioned(root_path: &Path, raw: &[u8], writer: &mut CaptureWriter<
         if writer.role.starts_with("evidence-") && !selected_rows(writer.role, name) {
             continue;
         }
-        let _policy_hold = writer.creation.map(|state| {
-            state.hold(partition_policy_state_upper(writer.role, name, spec, writer.dynamic_philosophy)?)
-        }).transpose()?;
+        let _policy_hold = writer
+            .creation
+            .map(|state| {
+                state.hold(partition_policy_state_upper(
+                    writer.role,
+                    name,
+                    spec,
+                    writer.dynamic_philosophy,
+                )?)
+            })
+            .transpose()?;
         let (key_fields, order_fields, mapping) =
             partition_collection_policy(writer.role, name, spec, writer.dynamic_philosophy)?;
         let header_collision: Option<i64> = writer
@@ -2626,11 +3307,15 @@ impl PublicCapture {
         let mut bytes = std::mem::size_of::<Self>();
         if self.controlled_identity.is_some() {
             // Arc<()> has two atomic count words and no payload allocation.
-            bytes=bytes.checked_add(2*std::mem::size_of::<usize>())
+            bytes = bytes
+                .checked_add(2 * std::mem::size_of::<usize>())
                 .ok_or(Error::Budget("controlled capture identity residency"))?;
         }
         if self.sqlite_heap.is_some() {
-            bytes = bytes.checked_add(controlled_fence_workspace_upper(self.runtime_capture_role.is_none()))
+            bytes = bytes
+                .checked_add(controlled_fence_workspace_upper(
+                    self.runtime_capture_role.is_none(),
+                ))
                 .ok_or(Error::Budget("controlled capture fence state"))?;
         }
         let mut add = |amount: usize| -> Result<()> {
@@ -2750,25 +3435,44 @@ impl PublicCapture {
     /// Existing Evidence-only selected profile under the parent's actual
     /// owned construction state. No fresh work/VM/JSON allowance is minted.
     pub(crate) fn create_evidence_selected_with_owned_state(
-        root:&Path, selected:&PublicCaptureInputPaths, staging:&Path,
-        mut limits:PublicCaptureLimits, owner_deadline:Instant,
-        state:&CreationState<'_>,
+        root: &Path,
+        selected: &PublicCaptureInputPaths,
+        staging: &Path,
+        mut limits: PublicCaptureLimits,
+        owner_deadline: Instant,
+        state: &CreationState<'_>,
     ) -> Result<Self> {
-        if state.operation_deadline()>owner_deadline {
-            return Err(Error::Invalid("owned Evidence cutoff exceeds owner deadline"));
+        if state.operation_deadline() > owner_deadline {
+            return Err(Error::Invalid(
+                "owned Evidence cutoff exceeds owner deadline",
+            ));
         }
-        state.active()?; selected.validate()?; state.heap().verify_current()?;
-        if state.work_limit>limits.max_work_bytes || state.sql_vm_limit>limits.max_sql_vm_steps {
+        state.active()?;
+        selected.validate()?;
+        state.heap().verify_current()?;
+        if state.work_limit > limits.max_work_bytes || state.sql_vm_limit > limits.max_sql_vm_steps
+        {
             return Err(Error::Budget("owned Evidence original phase intersection"));
         }
-        limits.max_work_bytes=state.work_limit;
-        limits.max_sql_vm_steps=state.sql_vm_limit;
-        let mut capture=Self::create_profile_owned(root,staging,limits,state.operation_deadline(),
-            false,true,false,Some(selected),Some(state.cancellation_handle()),None,Some(state))?;
+        limits.max_work_bytes = state.work_limit;
+        limits.max_sql_vm_steps = state.sql_vm_limit;
+        let mut capture = Self::create_profile_owned(
+            root,
+            staging,
+            limits,
+            state.operation_deadline(),
+            false,
+            true,
+            false,
+            Some(selected),
+            Some(state.cancellation_handle()),
+            None,
+            Some(state),
+        )?;
         state.active()?;
         // Constructor SQL connection has dropped. Later openings use the
         // original owner lifetime while operations narrow independently.
-        capture.deadline=owner_deadline;
+        capture.deadline = owner_deadline;
         Ok(capture)
     }
 
@@ -2954,7 +3658,9 @@ impl PublicCapture {
         let mut capture = Self::create_runtime_carrier_selected(
             root, selected, role, staging, limits, deadline, cancelled,
         )?;
-        let actual = capture.work_bytes.load(std::sync::atomic::Ordering::Acquire);
+        let actual = capture
+            .work_bytes
+            .load(std::sync::atomic::Ordering::Acquire);
         // The maintained constructor's own work guard proves actual <= allowance.
         // Keep the reservation on any inconsistency rather than lowering usage.
         let unused = creation_work_allowance
@@ -2986,7 +3692,9 @@ impl PublicCapture {
             return Err(Error::Invalid("runtime creation usage must start empty"));
         }
         if budget.creation_deadline > deadline {
-            return Err(Error::Invalid("runtime creation cutoff exceeds owner deadline"));
+            return Err(Error::Invalid(
+                "runtime creation cutoff exceeds owner deadline",
+            ));
         }
         let creation_deadline = budget.creation_deadline;
         check_capture_active(Some(cancelled.as_ref()), creation_deadline)?;
@@ -3000,35 +3708,48 @@ impl PublicCapture {
         }
         // A serial creator reserves one allowance before hashing/SQL/parsing.
         // Refusal retains it; only successful creation settles unused work.
-        checked_add(&budget.original_work,
+        checked_add(
+            &budget.original_work,
             usize::try_from(budget.creation_work_allowance)
                 .map_err(|_| Error::Budget("runtime creation work width"))?,
-            budget.original_work_limit)?;
+            budget.original_work_limit,
+        )?;
         limits.max_work_bytes = budget.creation_work_allowance;
         // Named fixed owners before allocating the local work Arc or the
         // stream's BufReader/Rc workspace. The recursive serde envelope is the
         // existing normalization owner's same depth-96 admission geometry.
         let frame = std::mem::size_of::<serde_json::Value>()
-            .checked_add(std::mem::size_of::<JsonValue>()).and_then(|n| n.checked_add(512))
-            .and_then(|n| n.checked_mul(97)).ok_or(Error::Budget("runtime creation frame state"))?;
-        let fixed = 65536usize.checked_mul(2)
+            .checked_add(std::mem::size_of::<JsonValue>())
+            .and_then(|n| n.checked_add(512))
+            .and_then(|n| n.checked_mul(97))
+            .ok_or(Error::Budget("runtime creation frame state"))?;
+        let fixed = 65536usize
+            .checked_mul(2)
             .and_then(|n| n.checked_add(frame))
             .and_then(|n| n.checked_add(std::mem::size_of::<CreationState<'_>>()))
             .and_then(|n| n.checked_add(std::mem::size_of::<CaptureWriter<'_>>()))
-            .and_then(|n| n.checked_add(std::mem::size_of::<CreationReadState<'_, '_>>()
-                + 6 * std::mem::size_of::<usize>() + std::mem::size_of::<AtomicU64>()))
+            .and_then(|n| {
+                n.checked_add(
+                    std::mem::size_of::<CreationReadState<'_, '_>>()
+                        + 6 * std::mem::size_of::<usize>()
+                        + std::mem::size_of::<AtomicU64>(),
+                )
+            })
             .ok_or(Error::Budget("runtime creation fixed state"))?;
         (budget.remaining_after_retained)(fixed)?;
         let state = CreationState {
             remaining_after_retained: budget.remaining_after_retained,
-            retained: Cell::new(fixed), persistent: Cell::new(0), json_visits: Cell::new(0),
+            retained: Cell::new(fixed),
+            persistent: Cell::new(0),
+            json_visits: Cell::new(0),
             max_json_visits: budget.max_creation_json_visits,
             sql_vm: Arc::clone(&budget.original_sql_vm),
             sql_vm_limit: budget.original_sql_vm_limit,
             sqlite_heap: Arc::clone(&budget.original_sqlite_heap),
             work: Arc::new(AtomicU64::new(0)),
             work_limit: budget.creation_work_allowance,
-            deadline: creation_deadline, cancelled: cancelled.as_ref(),
+            deadline: creation_deadline,
+            cancelled: cancelled.as_ref(),
             cancelled_handle: Arc::clone(&cancelled),
         };
         let result = (|| {
@@ -3039,17 +3760,34 @@ impl PublicCapture {
                 RuntimeCaptureProfile::Whole => None,
             };
             let capture = Self::create_profile_owned(
-                root, staging, limits, creation_deadline, false, false, true,
-                Some(selected), Some(Arc::clone(&cancelled)), role, Some(&state),
+                root,
+                staging,
+                limits,
+                creation_deadline,
+                false,
+                false,
+                true,
+                Some(selected),
+                Some(Arc::clone(&cancelled)),
+                role,
+                Some(&state),
             )?;
             if let Some(role) = role {
                 let label = match role {
                     RuntimeCaptureRole::Corpus => "ToS/derived-exports/tos_corpus_index.min.json",
-                    RuntimeCaptureRole::Philosophy => "ToS/derived-exports/philosophy_graph_projection.min.json",
-                    RuntimeCaptureRole::Bibliographic => "ToS/derived-exports/graph/source-witness-bibliographic-claims.min.json",
+                    RuntimeCaptureRole::Philosophy => {
+                        "ToS/derived-exports/philosophy_graph_projection.min.json"
+                    }
+                    RuntimeCaptureRole::Bibliographic => {
+                        "ToS/derived-exports/graph/source-witness-bibliographic-claims.min.json"
+                    }
                     RuntimeCaptureRole::PhilosophyAudit => PHILOSOPHY_AUDIT_RELATIVE,
                 };
-                if !capture.sources.iter().any(|source| source.label == label && source.digest.is_some()) {
+                if !capture
+                    .sources
+                    .iter()
+                    .any(|source| source.label == label && source.digest.is_some())
+                {
                     return Err(Error::Invalid("runtime carrier selected input absent"));
                 }
             }
@@ -3067,13 +3805,17 @@ impl PublicCapture {
         usage.json_visits = state.json_visits.get();
         let mut capture = result?;
         let actual = state.work.load(std::sync::atomic::Ordering::Acquire);
-        let unused = budget.creation_work_allowance.checked_sub(actual)
+        let unused = budget
+            .creation_work_allowance
+            .checked_sub(actual)
             .ok_or(Error::Budget("runtime creation work settlement"))?;
         // Final call-cutoff guard precedes settlement and lifetime promotion.
         // create_profile_owned dropped its construction connection; future
         // connections install shared SQL progress against self.deadline.
         check_capture_active(Some(cancelled.as_ref()), creation_deadline)?;
-        budget.original_work.fetch_sub(unused, std::sync::atomic::Ordering::AcqRel);
+        budget
+            .original_work
+            .fetch_sub(unused, std::sync::atomic::Ordering::AcqRel);
         capture.deadline = deadline;
         capture.work_bytes = budget.original_work;
         capture.max_work_bytes = budget.original_work_limit;
@@ -3083,7 +3825,10 @@ impl PublicCapture {
 
     pub(crate) fn retained_input_length(&self, label: &str) -> Result<usize> {
         self.check_custody()?;
-        let source = self.sources.iter().find(|source| source.label == label && source.digest.is_some())
+        let source = self
+            .sources
+            .iter()
+            .find(|source| source.label == label && source.digest.is_some())
             .ok_or(Error::Invalid("owned model retained input absent"))?;
         usize::try_from(source.len).map_err(|_| Error::Budget("owned model retained input width"))
     }
@@ -3092,12 +3837,19 @@ impl PublicCapture {
     /// The capture must already belong to the dedicated controlled session;
     /// work and SQL are the original live counters, never fresh phase ledgers.
     pub(crate) fn model_creation_state<'a>(
-        &'a self, remaining_after_retained: &'a dyn Fn(usize) -> Result<usize>,
+        &'a self,
+        remaining_after_retained: &'a dyn Fn(usize) -> Result<usize>,
         heap: &Arc<sqlite_budget::DedicatedSessionSqliteHeap>,
-        max_json_visits: usize, creation_deadline: Instant,
+        max_json_visits: usize,
+        creation_deadline: Instant,
     ) -> Result<CreationState<'a>> {
-        self.model_creation_state_with_phase(remaining_after_retained, heap,
-            max_json_visits, creation_deadline, None)
+        self.model_creation_state_with_phase(
+            remaining_after_retained,
+            heap,
+            max_json_visits,
+            creation_deadline,
+            None,
+        )
     }
 
     /// Immutable owner ceiling for restoring the same shared SQL hook after
@@ -3110,19 +3862,29 @@ impl PublicCapture {
     /// its absolute phase intersections once, before frame admission or owner
     /// Arc copies. The capture/session ceilings and counters never change.
     pub(crate) fn model_creation_state_for_operation<'a>(
-        &'a self, remaining_after_retained: &'a dyn Fn(usize) -> Result<usize>,
+        &'a self,
+        remaining_after_retained: &'a dyn Fn(usize) -> Result<usize>,
         heap: &Arc<sqlite_budget::DedicatedSessionSqliteHeap>,
-        max_json_visits: usize, creation_deadline: Instant,
-        phase_work_bytes: u64, phase_sql_vm_steps: u64,
+        max_json_visits: usize,
+        creation_deadline: Instant,
+        phase_work_bytes: u64,
+        phase_sql_vm_steps: u64,
     ) -> Result<CreationState<'a>> {
-        self.model_creation_state_with_phase(remaining_after_retained, heap,
-            max_json_visits, creation_deadline, Some((phase_work_bytes, phase_sql_vm_steps)))
+        self.model_creation_state_with_phase(
+            remaining_after_retained,
+            heap,
+            max_json_visits,
+            creation_deadline,
+            Some((phase_work_bytes, phase_sql_vm_steps)),
+        )
     }
 
     fn model_creation_state_with_phase<'a>(
-        &'a self, remaining_after_retained: &'a dyn Fn(usize) -> Result<usize>,
+        &'a self,
+        remaining_after_retained: &'a dyn Fn(usize) -> Result<usize>,
         heap: &Arc<sqlite_budget::DedicatedSessionSqliteHeap>,
-        max_json_visits: usize, creation_deadline: Instant,
+        max_json_visits: usize,
+        creation_deadline: Instant,
         phase: Option<(u64, u64)>,
     ) -> Result<CreationState<'a>> {
         if !self.shared_vm || creation_deadline > self.deadline || max_json_visits == 0 {
@@ -3137,13 +3899,23 @@ impl PublicCapture {
             if work_used > self.max_work_bytes || vm_used > self.limits.max_sql_vm_steps {
                 return Err(Error::Budget("owned model original counter exhausted"));
             }
-            let work_phase = work_used.checked_add(work_bytes)
+            let work_phase = work_used
+                .checked_add(work_bytes)
                 .ok_or(Error::Budget("owned model phase work overflow"))?;
-            let vm_phase = vm_used.checked_add(vm_steps)
+            let vm_phase = vm_used
+                .checked_add(vm_steps)
                 .ok_or(Error::Budget("owned model phase VM overflow"))?;
-            (self.max_work_bytes.min(work_phase), self.limits.max_sql_vm_steps.min(vm_phase))
-        } else { (self.max_work_bytes, self.limits.max_sql_vm_steps) };
-        let actual = self.sqlite_heap.as_ref().ok_or(Error::Invalid("owned model heap absent"))?;
+            (
+                self.max_work_bytes.min(work_phase),
+                self.limits.max_sql_vm_steps.min(vm_phase),
+            )
+        } else {
+            (self.max_work_bytes, self.limits.max_sql_vm_steps)
+        };
+        let actual = self
+            .sqlite_heap
+            .as_ref()
+            .ok_or(Error::Invalid("owned model heap absent"))?;
         if !Arc::ptr_eq(actual, heap) {
             return Err(Error::Invalid("owned model original heap identity"));
         }
@@ -3157,11 +3929,18 @@ impl PublicCapture {
             .ok_or(Error::Budget("owned model parser frame state"))?;
         remaining_after_retained(frame)?;
         Ok(CreationState {
-            remaining_after_retained, retained: Cell::new(frame), persistent: Cell::new(0),
-            json_visits: Cell::new(0), max_json_visits, sql_vm: Arc::clone(&self.vm_used),
-            sql_vm_limit, sqlite_heap: Arc::clone(actual),
-            work: Arc::clone(&self.work_bytes), work_limit,
-            deadline: creation_deadline, cancelled: self.cancelled.as_ref(),
+            remaining_after_retained,
+            retained: Cell::new(frame),
+            persistent: Cell::new(0),
+            json_visits: Cell::new(0),
+            max_json_visits,
+            sql_vm: Arc::clone(&self.vm_used),
+            sql_vm_limit,
+            sqlite_heap: Arc::clone(actual),
+            work: Arc::clone(&self.work_bytes),
+            work_limit,
+            deadline: creation_deadline,
+            cancelled: self.cancelled.as_ref(),
             cancelled_handle: Arc::clone(&self.cancelled),
         })
     }
@@ -3179,8 +3958,17 @@ impl PublicCapture {
         runtime_capture_role: Option<RuntimeCaptureRole>,
     ) -> Result<Self> {
         Self::create_profile_owned(
-            root, staging, limits, deadline, prepared_profile, evidence_profile,
-            runtime_profile, selected_paths, cancelled, runtime_capture_role, None,
+            root,
+            staging,
+            limits,
+            deadline,
+            prepared_profile,
+            evidence_profile,
+            runtime_profile,
+            selected_paths,
+            cancelled,
+            runtime_capture_role,
+            None,
         )
     }
 
@@ -3210,16 +3998,24 @@ impl PublicCapture {
         if let Some(state) = creation {
             // Before path syscalls, rusqlite path CString and failure cleanup
             // suffix copies, not only before the final returned owner clones.
-            state.retain(root.as_os_str().as_encoded_bytes().len()
-                .checked_add(staging.as_os_str().as_encoded_bytes().len())
-                .and_then(|n| n.max(8).checked_mul(4))
-                .ok_or(Error::Budget("runtime capture root/path state"))?)?;
-            state.retain(controlled_fence_workspace_upper(runtime_capture_role.is_none()))?;
-            state.retain(2*std::mem::size_of::<usize>()+std::mem::size_of::<Option<Arc<()>>>())?;
+            state.retain(
+                root.as_os_str()
+                    .as_encoded_bytes()
+                    .len()
+                    .checked_add(staging.as_os_str().as_encoded_bytes().len())
+                    .and_then(|n| n.max(8).checked_mul(4))
+                    .ok_or(Error::Budget("runtime capture root/path state"))?,
+            )?;
+            state.retain(controlled_fence_workspace_upper(
+                runtime_capture_role.is_none(),
+            ))?;
+            state.retain(
+                2 * std::mem::size_of::<usize>() + std::mem::size_of::<Option<Arc<()>>>(),
+            )?;
         }
         // Allocate once after authentic creation state admission. None legacy
         // captures do not gain an issuer token or a detached controlled route.
-        let controlled_identity=creation.map(|_|Arc::new(()));
+        let controlled_identity = creation.map(|_| Arc::new(()));
         if staging.exists() || staging.is_symlink() {
             return Err(Error::Invalid("public D1 capture staging must be fresh"));
         }
@@ -3228,16 +4024,30 @@ impl PublicCapture {
             complete: false,
         };
         // Reserve the original shared VM quantum before opening the connection.
-        if let Some(state) = creation { state.sqlite_heap.verify_current()?; }
-        let shared_window = creation.map(|state| sqlite_budget::SharedVmWindow::reserve(
-            Arc::clone(&state.sql_vm), state.sql_vm_limit)).transpose()?;
-        let vm_used = creation.map(|state| Arc::clone(&state.sql_vm))
+        if let Some(state) = creation {
+            state.sqlite_heap.verify_current()?;
+        }
+        let shared_window = creation
+            .map(|state| {
+                sqlite_budget::SharedVmWindow::reserve(
+                    Arc::clone(&state.sql_vm),
+                    state.sql_vm_limit,
+                )
+            })
+            .transpose()?;
+        let vm_used = creation
+            .map(|state| Arc::clone(&state.sql_vm))
             .unwrap_or_else(|| Arc::new(AtomicU64::new(0)));
         let mut db = Connection::open(staging)?;
         if let Some(window) = shared_window {
             window.install(&db, deadline, Arc::clone(&cancelled));
         } else {
-            sqlite_budget::install_progress_until(&db, limits.sqlite(), Arc::clone(&vm_used), deadline);
+            sqlite_budget::install_progress_until(
+                &db,
+                limits.sqlite(),
+                Arc::clone(&vm_used),
+                deadline,
+            );
         }
         db.execute_batch("PRAGMA page_size=4096; PRAGMA journal_mode=DELETE; PRAGMA synchronous=FULL; PRAGMA temp_store=FILE;")?;
         let pages = limits.max_staging_bytes / 4096;
@@ -3257,14 +4067,24 @@ impl PublicCapture {
         }
         db.execute_batch("CREATE TABLE capture_rows(role TEXT NOT NULL,collection TEXT NOT NULL,source_key TEXT NOT NULL,ord INTEGER NOT NULL,sort0 TEXT NOT NULL,sort1 TEXT NOT NULL,json BLOB NOT NULL,sha256 BLOB NOT NULL,PRIMARY KEY(role,collection,source_key)) WITHOUT ROWID; CREATE INDEX capture_rows_order ON capture_rows(role,collection,sort0,sort1,source_key); CREATE TABLE capture_collections(role TEXT NOT NULL,collection TEXT NOT NULL,kind TEXT NOT NULL,PRIMARY KEY(role,collection)) WITHOUT ROWID; CREATE TABLE capture_headers(role TEXT NOT NULL,path TEXT NOT NULL,json BLOB NOT NULL,PRIMARY KEY(role,path)) WITHOUT ROWID; CREATE TABLE capture_sources(path TEXT PRIMARY KEY,sha256 BLOB NOT NULL,size_bytes INTEGER NOT NULL) WITHOUT ROWID;")?;
         let mut rows = 0u64;
-        let work_bytes = creation.map(|state| Arc::clone(&state.work))
+        let work_bytes = creation
+            .map(|state| Arc::clone(&state.work))
             .unwrap_or_else(|| Arc::new(AtomicU64::new(0)));
         if let Some(state) = creation {
             // Three main roles, one audit, eighteen contracts, two optional
             // companions plus the maintained bounded4096 public-ledger
             // entries. Geometric source-vector old/new slots, no payload copy.
-            state.retain(std::mem::size_of::<SourceFile>().checked_mul(4 * if runtime_capture_role.is_some() { 1 } else { 4120 })
-                .ok_or(Error::Budget("runtime source slot state"))?)?;
+            state.retain(
+                std::mem::size_of::<SourceFile>()
+                    .checked_mul(
+                        4 * if runtime_capture_role.is_some() {
+                            1
+                        } else {
+                            4120
+                        },
+                    )
+                    .ok_or(Error::Budget("runtime source slot state"))?,
+            )?;
         }
         let mut sources = Vec::new();
         let mut corpus_partitioned = None;
@@ -3302,8 +4122,12 @@ impl PublicCapture {
             } else {
                 role
             };
-            let path = creation_source_path(root,
-                selected_paths.and_then(|selected| selected.core_path(relative)), relative, creation)?;
+            let path = creation_source_path(
+                root,
+                selected_paths.and_then(|selected| selected.core_path(relative)),
+                relative,
+                creation,
+            )?;
             let mut file = profile_open(&path, limits.max_input_bytes, prepared_profile)?;
             let (digest, len) = source_digest(&mut file, limits.max_input_bytes, |n| {
                 check_capture_active(cancelled_ref, deadline)?;
@@ -3311,10 +4135,15 @@ impl PublicCapture {
             })?;
             check_capture_active(cancelled_ref, deadline)?;
             db.execute_batch("BEGIN IMMEDIATE")?;
-            let creation_read = creation.map(|owner| Rc::new(CreationReadState {
-                owner, stream_read: Cell::new(0), scratch_capacity: Cell::new(0),
-                admitted: Cell::new(0), tree_admitted: Cell::new(0),
-            }));
+            let creation_read = creation.map(|owner| {
+                Rc::new(CreationReadState {
+                    owner,
+                    stream_read: Cell::new(0),
+                    scratch_capacity: Cell::new(0),
+                    admitted: Cell::new(0),
+                    tree_admitted: Cell::new(0),
+                })
+            });
             let mut writer = CaptureWriter {
                 creation,
                 creation_read,
@@ -3438,7 +4267,8 @@ impl PublicCapture {
             let selected = selected_paths
                 .and_then(|selected| selected.optional_path(PHILOSOPHY_AUDIT_RELATIVE))
                 .ok_or(Error::Invalid("selected philosophy audit path absent"))?;
-            let path = creation_source_path(root, Some(selected), PHILOSOPHY_AUDIT_RELATIVE, creation)?;
+            let path =
+                creation_source_path(root, Some(selected), PHILOSOPHY_AUDIT_RELATIVE, creation)?;
             let mut file = profile_open(&path, limits.max_input_bytes, prepared_profile)?;
             let (digest, len) = source_digest(&mut file, limits.max_input_bytes, |n| {
                 check_capture_active(cancelled_ref, deadline)?;
@@ -3497,7 +4327,9 @@ impl PublicCapture {
                         return Err(Error::Budget("runtime compiled companion bytes"));
                     }
                     checked_add(&work_bytes, raw.len(), limits.max_work_bytes)?;
-                    if let Some(state) = creation { state.retain(relative.len())?; }
+                    if let Some(state) = creation {
+                        state.retain(relative.len())?;
+                    }
                     sources.push(SourceFile {
                         label: relative.to_owned(),
                         origin: SourceOrigin::Compiled(raw),
@@ -3507,8 +4339,12 @@ impl PublicCapture {
                     continue;
                 }
             }
-            let path = creation_source_path(root,
-                selected_paths.and_then(|selected| selected.core_path(relative)), relative, creation)?;
+            let path = creation_source_path(
+                root,
+                selected_paths.and_then(|selected| selected.core_path(relative)),
+                relative,
+                creation,
+            )?;
             let mut file = profile_open(&path, limits.max_input_bytes, prepared_profile)?;
             let (digest, len) = source_digest(&mut file, limits.max_input_bytes, |n| {
                 check_capture_active(cancelled_ref, deadline)?;
@@ -3527,8 +4363,12 @@ impl PublicCapture {
                 "ToS/derived-exports/epistemic_evidence_projection.min.json",
                 "ToS/philosophy/graph-workbench/review-packets/table-i-post-planting-audit.json",
             ] {
-                let path = creation_source_path(root,
-                    selected_paths.and_then(|selected| selected.optional_path(relative)), relative, creation)?;
+                let path = creation_source_path(
+                    root,
+                    selected_paths.and_then(|selected| selected.optional_path(relative)),
+                    relative,
+                    creation,
+                )?;
                 if path.exists() || path.is_symlink() {
                     let mut file = profile_open(&path, limits.max_input_bytes, prepared_profile)?;
                     let (digest, len) = source_digest(&mut file, limits.max_input_bytes, |n| {
@@ -3562,20 +4402,26 @@ impl PublicCapture {
                         check_capture_active(cancelled_ref, deadline)?;
                         checked_add(&work_bytes, bytes, limits.max_work_bytes)
                     })?
-                } else { Vec::new() };
-                if creation.is_none() { for entry in std::fs::read_dir(&ledger)? {
-                    if names.len() == 4096 {
-                        return Err(Error::Budget("public D1 ledger membership"));
+                } else {
+                    Vec::new()
+                };
+                if creation.is_none() {
+                    for entry in std::fs::read_dir(&ledger)? {
+                        if names.len() == 4096 {
+                            return Err(Error::Budget("public D1 ledger membership"));
+                        }
+                        let name = entry?.file_name();
+                        checked_add(
+                            &work_bytes,
+                            name.as_encoded_bytes().len(),
+                            limits.max_work_bytes,
+                        )?;
+                        names.push(name);
                     }
-                    let name = entry?.file_name();
-                    checked_add(
-                        &work_bytes,
-                        name.as_encoded_bytes().len(),
-                        limits.max_work_bytes,
-                    )?;
-                    names.push(name);
-                } }
-                if creation.is_none() { names.sort(); }
+                }
+                if creation.is_none() {
+                    names.sort();
+                }
                 for name in names {
                     let name = name
                         .to_str()
@@ -3584,7 +4430,9 @@ impl PublicCapture {
                         continue;
                     }
                     let path = creation_source_path(&ledger, None, name, creation)?;
-                    if let Some(state) = creation { state.retain(ledger_relative.len() + name.len() + 1)?; }
+                    if let Some(state) = creation {
+                        state.retain(ledger_relative.len() + name.len() + 1)?;
+                    }
                     let mut file = safe_open::open_regular(&path, 256_000)?;
                     let (digest, len) = source_digest(&mut file, 256_000, |n| {
                         check_capture_active(cancelled_ref, deadline)?;
@@ -3647,40 +4495,64 @@ impl PublicCapture {
 
     /// Issued only from the actual controlled capture and its authentic state.
     /// The recipient holds this token while its verified model remains live.
-    pub(crate) fn controlled_identity(&self,state:&CreationState<'_>)->Result<ControlledCaptureIdentity> {
+    pub(crate) fn controlled_identity(
+        &self,
+        state: &CreationState<'_>,
+    ) -> Result<ControlledCaptureIdentity> {
         state.active()?;
-        let heap=self.sqlite_heap.as_ref().ok_or(Error::Invalid("capture controlled owner absent"))?;
-        if !Arc::ptr_eq(heap,&state.sqlite_heap) || !Arc::ptr_eq(&self.work_bytes,&state.work)
-            || !Arc::ptr_eq(&self.vm_used,&state.sql_vm) || !Arc::ptr_eq(&self.cancelled,&state.cancelled_handle) {
+        let heap = self
+            .sqlite_heap
+            .as_ref()
+            .ok_or(Error::Invalid("capture controlled owner absent"))?;
+        if !Arc::ptr_eq(heap, &state.sqlite_heap)
+            || !Arc::ptr_eq(&self.work_bytes, &state.work)
+            || !Arc::ptr_eq(&self.vm_used, &state.sql_vm)
+            || !Arc::ptr_eq(&self.cancelled, &state.cancelled_handle)
+        {
             return Err(Error::Invalid("capture controlled state owner differs"));
         }
-        let token=self.controlled_identity.as_ref().ok_or(Error::Invalid("capture controlled identity absent"))?;
-        let _result_hold=state.hold(std::mem::size_of::<Result<ControlledCaptureIdentity>>())?;
+        let token = self
+            .controlled_identity
+            .as_ref()
+            .ok_or(Error::Invalid("capture controlled identity absent"))?;
+        let _result_hold = state.hold(std::mem::size_of::<Result<ControlledCaptureIdentity>>())?;
         state.retain(std::mem::size_of::<ControlledCaptureIdentity>())?;
         state.charge_work(std::mem::size_of::<ControlledCaptureIdentity>())?;
-        Ok(ControlledCaptureIdentity{token:Arc::clone(token)})
+        Ok(ControlledCaptureIdentity {
+            token: Arc::clone(token),
+        })
     }
     /// Borrowed comparison does not issue another token or accumulate a fresh
     /// retention on every query. Original source/currentness disclosure fences
     /// remain the caller's genuine capture-owner operations.
-    pub(crate) fn matches_controlled_identity(&self,identity:&ControlledCaptureIdentity)->Result<bool> {
-        check_capture_active(Some(self.cancelled.as_ref()),self.active_deadline()?)?;
-        let token=self.controlled_identity.as_ref().ok_or(Error::Invalid("capture controlled identity absent"))?;
-        Ok(Arc::ptr_eq(token,&identity.token))
+    pub(crate) fn matches_controlled_identity(
+        &self,
+        identity: &ControlledCaptureIdentity,
+    ) -> Result<bool> {
+        check_capture_active(Some(self.cancelled.as_ref()), self.active_deadline()?)?;
+        let token = self
+            .controlled_identity
+            .as_ref()
+            .ok_or(Error::Invalid("capture controlled identity absent"))?;
+        Ok(Arc::ptr_eq(token, &identity.token))
     }
 
     /// Narrow one serial controlled operation without replacing the retained
     /// capture lifetime or any original counter. SQL connections opened inside
     /// the operation must be dropped before its callback returns.
     pub(crate) fn with_owned_operation_deadline<T>(
-        &self, deadline: Instant, operation: impl FnOnce() -> Result<T>,
+        &self,
+        deadline: Instant,
+        operation: impl FnOnce() -> Result<T>,
     ) -> Result<T> {
         if !self.shared_vm || deadline > self.deadline {
             return Err(Error::Invalid("controlled capture operation deadline"));
         }
         check_capture_active(Some(self.cancelled.as_ref()), deadline)?;
         {
-            let mut active = self.operation_deadline.lock()
+            let mut active = self
+                .operation_deadline
+                .lock()
                 .map_err(|_| Error::Invalid("capture operation deadline poisoned"))?;
             if active.is_some() {
                 return Err(Error::Invalid("overlapping controlled capture operation"));
@@ -3705,7 +4577,9 @@ impl PublicCapture {
     }
 
     fn active_deadline(&self) -> Result<Instant> {
-        let active = self.operation_deadline.lock()
+        let active = self
+            .operation_deadline
+            .lock()
             .map_err(|_| Error::Invalid("capture operation deadline poisoned"))?;
         Ok(active.map_or(self.deadline, |deadline| deadline.min(self.deadline)))
     }
@@ -3808,31 +4682,73 @@ impl PublicCapture {
         Arc::clone(&self.cancelled)
     }
 
-    pub(crate) fn runtime_input_paths_owned(&self,state:&CreationState<'_>)->Result<PublicCaptureInputPaths> {
-        let mut paths:[Option<&PathBuf>;7]=[None;7];
-        let mut bytes=std::mem::size_of::<PublicCaptureInputPaths>();
-        for (index,label) in ["ToS/derived-exports/tos_corpus_index.min.json","ToS/derived-exports/philosophy_graph_projection.min.json","ToS/derived-exports/graph/source-witness-bibliographic-claims.min.json","ToS/doctrine/semantic-interchange/entity-types.v1.json","ToS/doctrine/semantic-interchange/relation-types.v1.json","ToS/philosophy/graph-workbench/review-packets/table-i-post-planting-audit.json","ToS/derived-exports/epistemic_evidence_projection.min.json"].iter().enumerate() {
+    pub(crate) fn runtime_input_paths_owned(
+        &self,
+        state: &CreationState<'_>,
+    ) -> Result<PublicCaptureInputPaths> {
+        let mut paths: [Option<&PathBuf>; 7] = [None; 7];
+        let mut bytes = std::mem::size_of::<PublicCaptureInputPaths>();
+        for (index, label) in [
+            "ToS/derived-exports/tos_corpus_index.min.json",
+            "ToS/derived-exports/philosophy_graph_projection.min.json",
+            "ToS/derived-exports/graph/source-witness-bibliographic-claims.min.json",
+            "ToS/doctrine/semantic-interchange/entity-types.v1.json",
+            "ToS/doctrine/semantic-interchange/relation-types.v1.json",
+            "ToS/philosophy/graph-workbench/review-packets/table-i-post-planting-audit.json",
+            "ToS/derived-exports/epistemic_evidence_projection.min.json",
+        ]
+        .iter()
+        .enumerate()
+        {
             for source in &self.sources {
                 state.active()?;
-                state.charge_work(source.label.len().checked_add(label.len()).ok_or(Error::Budget("owned runtime label comparison"))?)?;
-                if source.label!=*label {continue;}
-                let SourceOrigin::File(path)=&source.origin else{return Err(Error::Invalid("runtime selected input path absent"));};
+                state.charge_work(
+                    source
+                        .label
+                        .len()
+                        .checked_add(label.len())
+                        .ok_or(Error::Budget("owned runtime label comparison"))?,
+                )?;
+                if source.label != *label {
+                    continue;
+                }
+                let SourceOrigin::File(path) = &source.origin else {
+                    return Err(Error::Invalid("runtime selected input path absent"));
+                };
                 state.charge_work(path.as_os_str().len())?;
-                bytes=bytes.checked_add(path.as_os_str().len()).ok_or(Error::Budget("owned runtime selected paths"))?;
-                paths[index]=Some(path);
+                bytes = bytes
+                    .checked_add(path.as_os_str().len())
+                    .ok_or(Error::Budget("owned runtime selected paths"))?;
+                paths[index] = Some(path);
                 break;
             }
-            if paths[index].is_none() {return Err(Error::Invalid("runtime selected input path absent"));}
+            if paths[index].is_none() {
+                return Err(Error::Invalid("runtime selected input path absent"));
+            }
         }
         state.retain(bytes)?;
         Ok(PublicCaptureInputPaths {
-            index_path: paths[0].ok_or(Error::Invalid("runtime selected input path absent"))?.clone(),
-            philosophy_graph_projection_path: paths[1].ok_or(Error::Invalid("runtime selected input path absent"))?.clone(),
-            bibliographic_graph_path: paths[2].ok_or(Error::Invalid("runtime selected input path absent"))?.clone(),
-            entity_type_registry_path: paths[3].ok_or(Error::Invalid("runtime selected input path absent"))?.clone(),
-            relation_type_registry_path: paths[4].ok_or(Error::Invalid("runtime selected input path absent"))?.clone(),
-            philosophy_post_planting_audit_path: paths[5].ok_or(Error::Invalid("runtime selected input path absent"))?.clone(),
-            evidence_projection_path: paths[6].ok_or(Error::Invalid("runtime selected input path absent"))?.clone(),
+            index_path: paths[0]
+                .ok_or(Error::Invalid("runtime selected input path absent"))?
+                .clone(),
+            philosophy_graph_projection_path: paths[1]
+                .ok_or(Error::Invalid("runtime selected input path absent"))?
+                .clone(),
+            bibliographic_graph_path: paths[2]
+                .ok_or(Error::Invalid("runtime selected input path absent"))?
+                .clone(),
+            entity_type_registry_path: paths[3]
+                .ok_or(Error::Invalid("runtime selected input path absent"))?
+                .clone(),
+            relation_type_registry_path: paths[4]
+                .ok_or(Error::Invalid("runtime selected input path absent"))?
+                .clone(),
+            philosophy_post_planting_audit_path: paths[5]
+                .ok_or(Error::Invalid("runtime selected input path absent"))?
+                .clone(),
+            evidence_projection_path: paths[6]
+                .ok_or(Error::Invalid("runtime selected input path absent"))?
+                .clone(),
         })
     }
 
@@ -3877,67 +4793,128 @@ impl PublicCapture {
         })
     }
 
-    fn expected_capture_file_state(&self)->Result<CaptureFileState> {
-        let seal=self.family_seal.lock().map_err(|_|Error::Invalid("public D1 family seal poisoned"))?;
+    fn expected_capture_file_state(&self) -> Result<CaptureFileState> {
+        let seal = self
+            .family_seal
+            .lock()
+            .map_err(|_| Error::Invalid("public D1 family seal poisoned"))?;
         match &*seal {
-            FamilyPreparationSeal::Initial=>Ok(self.file_state),
-            FamilyPreparationSeal::Prepared(state)=>Ok(*state),
-            FamilyPreparationSeal::Preparing(_)=>Err(Error::Invalid("public D1 family preparation incomplete")),
-            FamilyPreparationSeal::Failed=>Err(Error::Invalid("public D1 family preparation failed")),
+            FamilyPreparationSeal::Initial => Ok(self.file_state),
+            FamilyPreparationSeal::Prepared(state) => Ok(*state),
+            FamilyPreparationSeal::Preparing(_) => {
+                Err(Error::Invalid("public D1 family preparation incomplete"))
+            }
+            FamilyPreparationSeal::Failed => {
+                Err(Error::Invalid("public D1 family preparation failed"))
+            }
         }
     }
     /// The one sanctioned mutation of this private capture: the maintained
     /// family-reference preparation. A failed/partial preparation permanently
     /// poisons the capture; arbitrary writers cannot refresh its stamp.
-    pub(crate) fn prepare_family_rows_once(&self,limits:PublicCaptureLimits)->Result<()> {
-        let deadline=self.active_deadline()?;
+    pub(crate) fn prepare_family_rows_once(&self, limits: PublicCaptureLimits) -> Result<()> {
+        self.prepare_family_rows_once_with_owned_state(limits, None)
+    }
+
+    pub(crate) fn prepare_family_rows_once_with_owned_state(
+        &self,
+        limits: PublicCaptureLimits,
+        state: Option<&CreationState<'_>>,
+    ) -> Result<()> {
+        let _held_workspace = match state {
+            Some(state) => Some(
+                state.hold(
+                    self.path
+                        .as_os_str()
+                        .len()
+                        .checked_mul(4)
+                        .and_then(|n| {
+                            n.checked_add(
+                                std::mem::size_of::<File>()
+                                    + 4 * std::mem::size_of::<fs::Metadata>(),
+                            )
+                        })
+                        .ok_or(Error::Budget("owned family held path workspace"))?,
+                )?,
+            ),
+            None => None,
+        };
+        let deadline = self.active_deadline()?;
         self.capture_identity()?;
         self.verify_captured_inputs()?;
-        let held=safe_open::open_regular(&self.path,self.limits.max_staging_bytes)?;
-        let initial=capture_file_state(&held.metadata()?)?;
-        if initial!=self.capture_identity()? {return Err(Error::Invalid("public D1 family initial custody"));}
-        {
-            let mut seal=self.family_seal.lock().map_err(|_|Error::Invalid("public D1 family seal poisoned"))?;
-            if !matches!(*seal,FamilyPreparationSeal::Initial) {
-                return Err(Error::Invalid("public D1 family preparation already attempted"));
-            }
-            *seal=FamilyPreparationSeal::Preparing(std::thread::current().id());
+        let held = safe_open::open_regular(&self.path, self.limits.max_staging_bytes)?;
+        let initial = capture_file_state(&held.metadata()?)?;
+        if initial != self.capture_identity()? {
+            return Err(Error::Invalid("public D1 family initial custody"));
         }
-        let mut guard=FamilyPreparationGuard{capture:self,complete:false};
+        {
+            let mut seal = self
+                .family_seal
+                .lock()
+                .map_err(|_| Error::Invalid("public D1 family seal poisoned"))?;
+            if !matches!(*seal, FamilyPreparationSeal::Initial) {
+                return Err(Error::Invalid(
+                    "public D1 family preparation already attempted",
+                ));
+            }
+            *seal = FamilyPreparationSeal::Preparing(std::thread::current().id());
+        }
+        let mut guard = FamilyPreparationGuard {
+            capture: self,
+            complete: false,
+        };
         // The maintained SQL owner closes all statements/connections before
         // returning. Only this exact operation may establish the successor.
-        crate::d1_public_graph::prepare_family_rows_unsealed(self,limits,&held)?;
-        check_capture_active(Some(self.cancelled.as_ref()),deadline)?;
+        match state {
+            Some(state) => crate::d1_public_graph::prepare_family_rows_owned_unsealed(
+                self, limits, &held, state,
+            )?,
+            None => crate::d1_public_graph::prepare_family_rows_unsealed(self, limits, &held)?,
+        };
+        check_capture_active(Some(self.cancelled.as_ref()), deadline)?;
         held.sync_all()?;
         self.verify_captured_inputs()?;
-        let after=capture_file_state(&held.metadata()?)?;
-        let named=capture_file_state(&fs::symlink_metadata(&self.path)?)?;
-        if after!=named || (after.0,after.1)!=self.inode || after.2>limits.max_staging_bytes {
+        let after = capture_file_state(&held.metadata()?)?;
+        let named = capture_file_state(&fs::symlink_metadata(&self.path)?)?;
+        if after != named || (after.0, after.1) != self.inode || after.2 > limits.max_staging_bytes
+        {
             return Err(Error::Invalid("public D1 family successor custody"));
         }
-        check_capture_active(Some(self.cancelled.as_ref()),deadline)?;
+        check_capture_active(Some(self.cancelled.as_ref()), deadline)?;
         {
-            let mut seal=self.family_seal.lock().map_err(|_|Error::Invalid("public D1 family seal poisoned"))?;
-            if !matches!(&*seal,FamilyPreparationSeal::Preparing(owner) if *owner==std::thread::current().id()) {
+            let mut seal = self
+                .family_seal
+                .lock()
+                .map_err(|_| Error::Invalid("public D1 family seal poisoned"))?;
+            if !matches!(&*seal,FamilyPreparationSeal::Preparing(owner) if *owner==std::thread::current().id())
+            {
                 return Err(Error::Invalid("public D1 family successor transition"));
             }
-            *seal=FamilyPreparationSeal::Prepared(after);
+            *seal = FamilyPreparationSeal::Prepared(after);
         }
         // All fallible identity/source/cancel fences precede publishing the
         // prepared seal. No fallible step can escape with Prepared on Err.
-        guard.complete=true;
+        guard.complete = true;
         Ok(())
     }
 
     pub fn check_custody(&self) -> Result<()> {
         check_capture_active(Some(self.cancelled.as_ref()), self.active_deadline()?)?;
         {
-            let seal=self.family_seal.lock().map_err(|_|Error::Invalid("public D1 family seal poisoned"))?;
+            let seal = self
+                .family_seal
+                .lock()
+                .map_err(|_| Error::Invalid("public D1 family seal poisoned"))?;
             match &*seal {
-                FamilyPreparationSeal::Failed=>return Err(Error::Invalid("public D1 family preparation failed")),
-                FamilyPreparationSeal::Preparing(owner) if *owner!=std::thread::current().id()=>
-                    return Err(Error::Invalid("public D1 family preparation in progress")),
-                _=>{},
+                FamilyPreparationSeal::Failed => {
+                    return Err(Error::Invalid("public D1 family preparation failed"));
+                }
+                FamilyPreparationSeal::Preparing(owner)
+                    if *owner != std::thread::current().id() =>
+                {
+                    return Err(Error::Invalid("public D1 family preparation in progress"));
+                }
+                _ => {}
             }
         }
         let metadata = fs::symlink_metadata(&self.path)?;
@@ -3967,39 +4944,67 @@ impl PublicCapture {
 
     pub(crate) fn read_db(&self) -> Result<Connection> {
         self.check_custody()?;
-        if let Some(heap) = &self.sqlite_heap { heap.verify_current()?; }
+        if let Some(heap) = &self.sqlite_heap {
+            heap.verify_current()?;
+        }
         let shared_window = if self.shared_vm {
-            Some(sqlite_budget::SharedVmWindow::reserve(Arc::clone(&self.vm_used),
-                self.limits.max_sql_vm_steps)?)
-        } else { None };
+            Some(sqlite_budget::SharedVmWindow::reserve(
+                Arc::clone(&self.vm_used),
+                self.limits.max_sql_vm_steps,
+            )?)
+        } else {
+            None
+        };
         let db = Connection::open_with_flags(&self.path, OpenFlags::SQLITE_OPEN_READ_ONLY)?;
         if let Some(window) = shared_window {
             window.install(&db, self.active_deadline()?, Arc::clone(&self.cancelled));
         } else {
-            sqlite_budget::install_progress_until(&db, self.limits.sqlite(),
-                Arc::clone(&self.vm_used), self.active_deadline()?);
+            sqlite_budget::install_progress_until(
+                &db,
+                self.limits.sqlite(),
+                Arc::clone(&self.vm_used),
+                self.active_deadline()?,
+            );
         }
         db.pragma_update(None, "cache_size", -(self.limits.sqlite_cache_kib as i64))?;
         Ok(db)
     }
 
-    pub(crate) fn write_family_db(&self,held:&File)->Result<tos_source_store::PinnedSqliteConnection> {
-        let deadline=self.active_deadline()?;
+    pub(crate) fn write_family_db(
+        &self,
+        held: &File,
+    ) -> Result<tos_source_store::PinnedSqliteConnection> {
+        let deadline = self.active_deadline()?;
         self.check_custody()?;
         {
-            let seal=self.family_seal.lock().map_err(|_|Error::Invalid("public D1 family seal poisoned"))?;
-            if !matches!(&*seal,FamilyPreparationSeal::Preparing(owner) if *owner==std::thread::current().id()) {
-                return Err(Error::Invalid("public D1 family writer outside sanctioned transition"));
+            let seal = self
+                .family_seal
+                .lock()
+                .map_err(|_| Error::Invalid("public D1 family seal poisoned"))?;
+            if !matches!(&*seal,FamilyPreparationSeal::Preparing(owner) if *owner==std::thread::current().id())
+            {
+                return Err(Error::Invalid(
+                    "public D1 family writer outside sanctioned transition",
+                ));
             }
         }
-        let before=capture_file_state(&held.metadata()?)?;
-        if (before.0,before.1)!=self.inode || before!=capture_file_state(&fs::symlink_metadata(&self.path)?)? {
+        let before = capture_file_state(&held.metadata()?)?;
+        if (before.0, before.1) != self.inode
+            || before != capture_file_state(&fs::symlink_metadata(&self.path)?)?
+        {
             return Err(Error::Invalid("public D1 family writer custody"));
         }
-        if let Some(heap)=&self.sqlite_heap {heap.verify_current()?;}
-        let shared_window=if self.shared_vm {
-            Some(sqlite_budget::SharedVmWindow::reserve(Arc::clone(&self.vm_used),self.limits.max_sql_vm_steps)?)
-        } else {None};
+        if let Some(heap) = &self.sqlite_heap {
+            heap.verify_current()?;
+        }
+        let shared_window = if self.shared_vm {
+            Some(sqlite_budget::SharedVmWindow::reserve(
+                Arc::clone(&self.vm_used),
+                self.limits.max_sql_vm_steps,
+            )?)
+        } else {
+            None
+        };
         let db=tos_source_store::PinnedSqliteConnection::open_private_capture_for_family_preparation_with_setup(held, |db| {
             if let Some(window)=shared_window {
                 window.install(db,deadline,Arc::clone(&self.cancelled));
@@ -4007,23 +5012,33 @@ impl PublicCapture {
                 sqlite_budget::install_progress_until(db,self.limits.sqlite(),Arc::clone(&self.vm_used),deadline);
             }
         }).map_err(|_|Error::Invalid("public D1 pinned family writer"))?;
-        db.pragma_update(None,"cache_size",-(self.limits.sqlite_cache_kib as i64))?;
+        db.pragma_update(None, "cache_size", -(self.limits.sqlite_cache_kib as i64))?;
         Ok(db)
     }
 
     pub(crate) fn write_db(&self) -> Result<Connection> {
         self.check_custody()?;
-        if let Some(heap) = &self.sqlite_heap { heap.verify_current()?; }
+        if let Some(heap) = &self.sqlite_heap {
+            heap.verify_current()?;
+        }
         let shared_window = if self.shared_vm {
-            Some(sqlite_budget::SharedVmWindow::reserve(Arc::clone(&self.vm_used),
-                self.limits.max_sql_vm_steps)?)
-        } else { None };
+            Some(sqlite_budget::SharedVmWindow::reserve(
+                Arc::clone(&self.vm_used),
+                self.limits.max_sql_vm_steps,
+            )?)
+        } else {
+            None
+        };
         let db = Connection::open(&self.path)?;
         if let Some(window) = shared_window {
             window.install(&db, self.active_deadline()?, Arc::clone(&self.cancelled));
         } else {
-            sqlite_budget::install_progress_until(&db, self.limits.sqlite(),
-                Arc::clone(&self.vm_used), self.active_deadline()?);
+            sqlite_budget::install_progress_until(
+                &db,
+                self.limits.sqlite(),
+                Arc::clone(&self.vm_used),
+                self.active_deadline()?,
+            );
         }
         db.pragma_update(None, "cache_size", -(self.limits.sqlite_cache_kib as i64))?;
         db.execute_batch(
@@ -4068,58 +5083,82 @@ impl PublicCapture {
                 .join("ToS/source-witnesses/access-requests/public-ledger");
             if self.sqlite_heap.is_some() {
                 let names = if ledger.exists() {
-                    if ledger.is_symlink() || !ledger.is_dir() { return Err(Error::Invalid("public D1 ledger changed")); }
+                    if ledger.is_symlink() || !ledger.is_dir() {
+                        return Err(Error::Invalid("public D1 ledger changed"));
+                    }
                     controlled_ledger_names(&ledger, |bytes| self.charge_work(bytes as u64))?
-                } else { Vec::new() };
+                } else {
+                    Vec::new()
+                };
                 let mut found = 0usize;
                 for name in &names {
-                    let name = name.to_str().ok_or(Error::Invalid("public D1 ledger filename"))?;
-                    if !name.ends_with(".access-request.json") { continue; }
-                    if !self.sources.iter().any(|source| source.label.strip_prefix(
-                        "ToS/source-witnesses/access-requests/public-ledger/") == Some(name)) {
+                    let name = name
+                        .to_str()
+                        .ok_or(Error::Invalid("public D1 ledger filename"))?;
+                    if !name.ends_with(".access-request.json") {
+                        continue;
+                    }
+                    if !self.sources.iter().any(|source| {
+                        source
+                            .label
+                            .strip_prefix("ToS/source-witnesses/access-requests/public-ledger/")
+                            == Some(name)
+                    }) {
                         return Err(Error::Invalid("public D1 ledger membership changed"));
                     }
                     found += 1;
                 }
-                if found != self.sources.iter().filter(|source| source.label.starts_with(
-                    "ToS/source-witnesses/access-requests/public-ledger/")).count() {
+                if found
+                    != self
+                        .sources
+                        .iter()
+                        .filter(|source| {
+                            source
+                                .label
+                                .starts_with("ToS/source-witnesses/access-requests/public-ledger/")
+                        })
+                        .count()
+                {
                     return Err(Error::Invalid("public D1 ledger membership changed"));
                 }
             } else {
-            let mut current = BTreeSet::new();
-            if ledger.exists() {
-                if ledger.is_symlink() || !ledger.is_dir() {
-                    return Err(Error::Invalid("public D1 ledger changed"));
-                }
-                for entry in std::fs::read_dir(&ledger)? {
-                    check_capture_active(Some(self.cancelled.as_ref()), self.active_deadline()?)?;
-                    if current.len() >= 4096 {
-                        return Err(Error::Budget("public D1 ledger membership"));
+                let mut current = BTreeSet::new();
+                if ledger.exists() {
+                    if ledger.is_symlink() || !ledger.is_dir() {
+                        return Err(Error::Invalid("public D1 ledger changed"));
                     }
-                    let entry = entry?;
-                    let name = entry.file_name();
-                    self.charge_work(name.as_encoded_bytes().len() as u64)?;
-                    let name = name
-                        .to_str()
-                        .ok_or(Error::Invalid("public D1 ledger filename"))?;
-                    if name.ends_with(".access-request.json") {
-                        current.insert(name.to_owned());
+                    for entry in std::fs::read_dir(&ledger)? {
+                        check_capture_active(
+                            Some(self.cancelled.as_ref()),
+                            self.active_deadline()?,
+                        )?;
+                        if current.len() >= 4096 {
+                            return Err(Error::Budget("public D1 ledger membership"));
+                        }
+                        let entry = entry?;
+                        let name = entry.file_name();
+                        self.charge_work(name.as_encoded_bytes().len() as u64)?;
+                        let name = name
+                            .to_str()
+                            .ok_or(Error::Invalid("public D1 ledger filename"))?;
+                        if name.ends_with(".access-request.json") {
+                            current.insert(name.to_owned());
+                        }
                     }
                 }
-            }
-            let captured = self
-                .sources
-                .iter()
-                .filter_map(|source| {
-                    source
-                        .label
-                        .strip_prefix("ToS/source-witnesses/access-requests/public-ledger/")
-                })
-                .map(str::to_owned)
-                .collect::<BTreeSet<_>>();
-            if current != captured {
-                return Err(Error::Invalid("public D1 ledger membership changed"));
-            }
+                let captured = self
+                    .sources
+                    .iter()
+                    .filter_map(|source| {
+                        source
+                            .label
+                            .strip_prefix("ToS/source-witnesses/access-requests/public-ledger/")
+                    })
+                    .map(str::to_owned)
+                    .collect::<BTreeSet<_>>();
+                if current != captured {
+                    return Err(Error::Invalid("public D1 ledger membership changed"));
+                }
             }
         }
         let db = self.read_db()?;
@@ -4127,8 +5166,14 @@ impl PublicCapture {
             db.prepare("SELECT path,sha256,size_bytes FROM capture_sources ORDER BY path")?;
         let mut rows = statement.query([])?;
         while let Some(row) = rows.next()? {
-            let path = row.get_ref(0)?.as_str().map_err(|_| Error::Invalid("public D1 SQL text column"))?;
-            let digest = row.get_ref(1)?.as_blob().map_err(|_| Error::Invalid("public D1 SQL blob column"))?;
+            let path = row
+                .get_ref(0)?
+                .as_str()
+                .map_err(|_| Error::Invalid("public D1 SQL text column"))?;
+            let digest = row
+                .get_ref(1)?
+                .as_blob()
+                .map_err(|_| Error::Invalid("public D1 SQL blob column"))?;
             if self.sqlite_heap.is_some() && (path.len() > 8194 || digest.len() != 32) {
                 return Err(Error::Budget("controlled captured source metadata"));
             }
@@ -4203,33 +5248,55 @@ impl PublicCapture {
         let mut total = 0u64;
         for source in &self.sources {
             if source.digest.is_some() {
-                total = total.checked_add(source.len).filter(|n| *n <= cap)
+                total = total
+                    .checked_add(source.len)
+                    .filter(|n| *n <= cap)
                     .ok_or(Error::Budget("runtime capture aggregate source bytes"))?;
             }
         }
         let db = self.read_db()?;
-        let mut statement = db.prepare("SELECT path,sha256,size_bytes FROM capture_sources ORDER BY path")?;
+        let mut statement =
+            db.prepare("SELECT path,sha256,size_bytes FROM capture_sources ORDER BY path")?;
         let mut rows = statement.query([])?;
         let mut count = 0usize;
         while let Some(row) = rows.next()? {
-            count = count.checked_add(1).filter(|n| *n <= 65536)
+            count = count
+                .checked_add(1)
+                .filter(|n| *n <= 65536)
                 .ok_or(Error::Budget("captured runtime member count"))?;
             let path_ref = row.get_ref(0)?;
-            let path = path_ref.as_str().map_err(|_| Error::Invalid("captured runtime member UTF8"))?;
+            let path = path_ref
+                .as_str()
+                .map_err(|_| Error::Invalid("captured runtime member UTF8"))?;
             let digest_ref = row.get_ref(1)?;
-            let digest = digest_ref.as_blob().map_err(|_| Error::Invalid("captured runtime member digest"))?;
-            if digest.len() != 32 { return Err(Error::Invalid("captured runtime member digest")); }
+            let digest = digest_ref
+                .as_blob()
+                .map_err(|_| Error::Invalid("captured runtime member digest"))?;
+            if digest.len() != 32 {
+                return Err(Error::Invalid("captured runtime member digest"));
+            }
             let len: u64 = row.get(2)?;
             self.charge_work(path.len() as u64 + 40)?;
             let member_path = Path::new(path);
-            let relative = member_path.strip_prefix(&self.root).unwrap_or(member_path)
-                .to_str().ok_or(Error::Invalid("captured runtime member UTF8"))?;
-            if let Some(source) = self.sources.iter().find(|source| source.label == relative && source.digest.is_some()) {
-                if source.len != len || source.digest.as_ref().map(|d| d.as_bytes().as_slice()) != Some(digest) {
+            let relative = member_path
+                .strip_prefix(&self.root)
+                .unwrap_or(member_path)
+                .to_str()
+                .ok_or(Error::Invalid("captured runtime member UTF8"))?;
+            if let Some(source) = self
+                .sources
+                .iter()
+                .find(|source| source.label == relative && source.digest.is_some())
+            {
+                if source.len != len
+                    || source.digest.as_ref().map(|d| d.as_bytes().as_slice()) != Some(digest)
+                {
                     return Err(Error::Invalid("captured runtime duplicate member differs"));
                 }
             } else {
-                total = total.checked_add(len).filter(|n| *n <= cap)
+                total = total
+                    .checked_add(len)
+                    .filter(|n| *n <= cap)
                     .ok_or(Error::Budget("runtime capture aggregate source bytes"))?;
             }
         }
@@ -4282,45 +5349,83 @@ impl PublicCapture {
             .collect())
     }
 
-    pub(crate) fn retained_input_members_owned(&self,state:&CreationState<'_>)
-        -> Result<Vec<(String,Digest256,u64)>> {
+    pub(crate) fn retained_input_members_owned(
+        &self,
+        state: &CreationState<'_>,
+    ) -> Result<Vec<(String, Digest256, u64)>> {
         self.check_custody()?;
-        let mut members=BTreeMap::<String,(Digest256,u64)>::new();
-        let node=11*std::mem::size_of::<(String,(Digest256,u64))>()+16*std::mem::size_of::<usize>();
+        let mut members = BTreeMap::<String, (Digest256, u64)>::new();
+        let node = 11 * std::mem::size_of::<(String, (Digest256, u64))>()
+            + 16 * std::mem::size_of::<usize>();
         for source in &self.sources {
-            if let Some(digest)=source.digest {
+            if let Some(digest) = source.digest {
                 if let Some(existing) = members.get_mut(&source.label) {
                     *existing = (digest, source.len);
                 } else {
-                    state.retain(node.checked_add(source.label.len()).ok_or(Error::Budget("owned retained member state"))?)?;
+                    state.retain(
+                        node.checked_add(source.label.len())
+                            .ok_or(Error::Budget("owned retained member state"))?,
+                    )?;
                     members.insert(source.label.clone(), (digest, source.len));
                 }
             }
         }
-        let _stmt_hold=state.hold(tos_source_store::PinnedSqliteConnection::bounded_statement_rust_workspace_upper_bound())?;
-        let db=self.read_db()?;
-        let mut stmt=db.prepare("SELECT path,sha256,size_bytes FROM capture_sources ORDER BY path")?;
-        let mut rows=stmt.query([])?;
-        while let Some(row)=rows.next()? {
+        let _stmt_hold = state.hold(
+            tos_source_store::PinnedSqliteConnection::bounded_statement_rust_workspace_upper_bound(
+            ),
+        )?;
+        let db = self.read_db()?;
+        let mut stmt =
+            db.prepare("SELECT path,sha256,size_bytes FROM capture_sources ORDER BY path")?;
+        let mut rows = stmt.query([])?;
+        while let Some(row) = rows.next()? {
             state.active()?;
-            if members.len()>=65536 {return Err(Error::Budget("captured runtime member count"));}
-            let path=row.get_ref(0)?.as_str().map_err(|_| Error::Invalid("public D1 SQL text column"))?;let digest=row.get_ref(1)?.as_blob().map_err(|_| Error::Invalid("public D1 SQL blob column"))?;let bytes:u64=row.get(2)?;
-            self.charge_work(path.len() as u64+40)?;
-            let relative=Path::new(path).strip_prefix(&self.root).unwrap_or(Path::new(path)).to_str()
+            if members.len() >= 65536 {
+                return Err(Error::Budget("captured runtime member count"));
+            }
+            let path = row
+                .get_ref(0)?
+                .as_str()
+                .map_err(|_| Error::Invalid("public D1 SQL text column"))?;
+            let digest = row
+                .get_ref(1)?
+                .as_blob()
+                .map_err(|_| Error::Invalid("public D1 SQL blob column"))?;
+            let bytes: u64 = row.get(2)?;
+            self.charge_work(path.len() as u64 + 40)?;
+            let relative = Path::new(path)
+                .strip_prefix(&self.root)
+                .unwrap_or(Path::new(path))
+                .to_str()
                 .ok_or(Error::Invalid("captured runtime member UTF8"))?;
-            let raw:[u8;32]=digest.try_into().map_err(|_|Error::Invalid("captured runtime member digest"))?;
-            let digest=Digest256::from_bytes(raw);
-            if let Some(previous)=members.get(relative) {
-                if *previous!=(digest,bytes) {return Err(Error::Invalid("captured runtime duplicate member differs"));}
+            let raw: [u8; 32] = digest
+                .try_into()
+                .map_err(|_| Error::Invalid("captured runtime member digest"))?;
+            let digest = Digest256::from_bytes(raw);
+            if let Some(previous) = members.get(relative) {
+                if *previous != (digest, bytes) {
+                    return Err(Error::Invalid("captured runtime duplicate member differs"));
+                }
             } else {
-                state.retain(node.checked_add(relative.len()).ok_or(Error::Budget("owned retained member state"))?)?;
-                members.insert(relative.to_owned(),(digest,bytes));
+                state.retain(
+                    node.checked_add(relative.len())
+                        .ok_or(Error::Budget("owned retained member state"))?,
+                )?;
+                members.insert(relative.to_owned(), (digest, bytes));
             }
         }
-        state.retain(members.len().checked_mul(std::mem::size_of::<(String,Digest256,u64)>())
-            .ok_or(Error::Budget("owned retained member output slots"))?)?;
-        let mut output=Vec::with_capacity(members.len());
-        output.extend(members.into_iter().map(|(path,(digest,bytes))|(path,digest,bytes)));
+        state.retain(
+            members
+                .len()
+                .checked_mul(std::mem::size_of::<(String, Digest256, u64)>())
+                .ok_or(Error::Budget("owned retained member output slots"))?,
+        )?;
+        let mut output = Vec::with_capacity(members.len());
+        output.extend(
+            members
+                .into_iter()
+                .map(|(path, (digest, bytes))| (path, digest, bytes)),
+        );
         Ok(output)
     }
 
@@ -4335,18 +5440,26 @@ impl PublicCapture {
     /// Capture the exact five-file physical source-state tuple used by the
     /// public Core graph API. The digest fence is checked on both sides of
     /// stat collection so this tuple cannot describe a different input cut.
-    pub(crate) fn core_source_state_owned(&self, state: &CreationState<'_>)
-        -> Result<Vec<(String, i64, u64, u64, i64)>> {
+    pub(crate) fn core_source_state_owned(
+        &self,
+        state: &CreationState<'_>,
+    ) -> Result<Vec<(String, i64, u64, u64, i64)>> {
         if self.runtime_capture_role.is_some() {
-            return Err(Error::Invalid("whole Core source state requires all five inputs"));
+            return Err(Error::Invalid(
+                "whole Core source state requires all five inputs",
+            ));
         }
         type StateRow = (String, i64, u64, u64, i64);
-        let returned = 5usize.checked_mul(std::mem::size_of::<StateRow>() + 8194)
+        let returned = 5usize
+            .checked_mul(std::mem::size_of::<StateRow>() + 8194)
             .ok_or(Error::Budget("owned Core source-state result"))?;
         state.retain(returned)?;
-        let _workspace = state.hold(returned.checked_add(3 * 8194)
-            .and_then(|n| n.checked_add(controlled_fence_workspace_upper(true)))
-            .ok_or(Error::Budget("owned Core source-state workspace"))?)?;
+        let _workspace = state.hold(
+            returned
+                .checked_add(3 * 8194)
+                .and_then(|n| n.checked_add(controlled_fence_workspace_upper(true)))
+                .ok_or(Error::Budget("owned Core source-state workspace"))?,
+        )?;
         self.core_source_state()
     }
 
@@ -4415,62 +5528,124 @@ impl PublicCapture {
     /// public `source_state` tuple. The returned order is canonical absolute
     /// path order; a source edit may change metadata while preserving this
     /// path set, but adding/removing a captured member changes the vector.
-    pub(crate) fn capture_source_state_owned(&self, budget: &CreationState<'_>)
-        -> Result<Vec<(String,i64,u64,u64,i64)>> {
+    pub(crate) fn capture_source_state_owned(
+        &self,
+        budget: &CreationState<'_>,
+    ) -> Result<Vec<(String, i64, u64, u64, i64)>> {
         self.verify_inputs(self.limits)?;
         let db = self.read_db()?;
-        let (row_count,path_bytes):(u64,u64)=db.query_row("SELECT count(*),coalesce(sum(length(CAST(path AS BLOB))),0) FROM capture_sources",[],|r|Ok((r.get(0)?,r.get(1)?)))?;
-        let source_bytes=self.sources.iter().try_fold(0usize,|total,source| {
-            if source.digest.is_some() && let SourceOrigin::File(path)=&source.origin {
-                total.checked_add(path.as_os_str().len()).ok_or(Error::Budget("owned source path bytes"))
-            } else {Ok(total)}
+        let (row_count, path_bytes): (u64, u64) = db.query_row(
+            "SELECT count(*),coalesce(sum(length(CAST(path AS BLOB))),0) FROM capture_sources",
+            [],
+            |r| Ok((r.get(0)?, r.get(1)?)),
+        )?;
+        let source_bytes = self.sources.iter().try_fold(0usize, |total, source| {
+            if source.digest.is_some()
+                && let SourceOrigin::File(path) = &source.origin
+            {
+                total
+                    .checked_add(path.as_os_str().len())
+                    .ok_or(Error::Budget("owned source path bytes"))
+            } else {
+                Ok(total)
+            }
         })?;
-        let path_bytes=usize::try_from(path_bytes).ok().and_then(|n|n.checked_add(source_bytes))
+        let path_bytes = usize::try_from(path_bytes)
+            .ok()
+            .and_then(|n| n.checked_add(source_bytes))
             .ok_or(Error::Budget("owned source-state path bytes"))?;
-        let maximum = usize::try_from(row_count).ok().and_then(|n| n.checked_add(self.sources.len()))
+        let maximum = usize::try_from(row_count)
+            .ok()
+            .and_then(|n| n.checked_add(self.sources.len()))
             .ok_or(Error::Budget("owned capture source-state rows"))?;
-        type StateRow = (String,i64,u64,u64,i64);
-        budget.retain(maximum.checked_mul(std::mem::size_of::<StateRow>())
-            .ok_or(Error::Budget("owned capture source-state result"))?)?;
-        let _paths_hold = budget.hold(maximum.checked_mul(2*std::mem::size_of::<PathBuf>())
-            .and_then(|n|n.checked_add(path_bytes)).and_then(|n| n.checked_add(controlled_fence_workspace_upper(true)))
-            .ok_or(Error::Budget("owned capture source-state workspace"))?)?;
+        type StateRow = (String, i64, u64, u64, i64);
+        budget.retain(
+            maximum
+                .checked_mul(std::mem::size_of::<StateRow>())
+                .ok_or(Error::Budget("owned capture source-state result"))?,
+        )?;
+        let _paths_hold = budget.hold(
+            maximum
+                .checked_mul(2 * std::mem::size_of::<PathBuf>())
+                .and_then(|n| n.checked_add(path_bytes))
+                .and_then(|n| n.checked_add(controlled_fence_workspace_upper(true)))
+                .ok_or(Error::Budget("owned capture source-state workspace"))?,
+        )?;
         let mut paths = Vec::with_capacity(maximum);
         for source in &self.sources {
-            if source.digest.is_some() && let SourceOrigin::File(path) = &source.origin {
-                if path.as_os_str().len() > 8194 { return Err(Error::Budget("owned capture source path")); }
+            if source.digest.is_some()
+                && let SourceOrigin::File(path) = &source.origin
+            {
+                if path.as_os_str().len() > 8194 {
+                    return Err(Error::Budget("owned capture source path"));
+                }
                 paths.push(path.clone());
             }
         }
         let mut stmt = db.prepare("SELECT path FROM capture_sources ORDER BY path")?;
         let mut rows = stmt.query([])?;
         while let Some(row) = rows.next()? {
-            budget.active()?; let path = row.get_ref(0)?.as_str().map_err(|_| Error::Invalid("public D1 SQL text column"))?;
-            if paths.len() >= maximum || path.len() > 8194 { return Err(Error::Budget("owned capture source paths")); }
+            budget.active()?;
+            let path = row
+                .get_ref(0)?
+                .as_str()
+                .map_err(|_| Error::Invalid("public D1 SQL text column"))?;
+            if paths.len() >= maximum || path.len() > 8194 {
+                return Err(Error::Budget("owned capture source paths"));
+            }
             self.charge_work(path.len() as u64)?;
             paths.push(PathBuf::from(path));
         }
-        drop(rows); drop(stmt); drop(db);
-        budget.charge_work(paths.len().checked_mul(std::mem::size_of::<PathBuf>())
-            .ok_or(Error::Budget("owned source-state sort work"))?)?;
-        paths.sort(); paths.dedup();
+        drop(rows);
+        drop(stmt);
+        drop(db);
+        budget.charge_work(
+            paths
+                .len()
+                .checked_mul(std::mem::size_of::<PathBuf>())
+                .ok_or(Error::Budget("owned source-state sort work"))?,
+        )?;
+        paths.sort();
+        paths.dedup();
         let mut output = Vec::with_capacity(maximum);
         for path in paths {
             budget.active()?;
-            let resolved = fs::canonicalize(&path)?; let metadata = fs::metadata(&path)?;
-            let name = resolved.to_str().ok_or(Error::Invalid("public D1 capture source path UTF8"))?;
-            if name.len() > 8194 { return Err(Error::Budget("owned resolved source path")); }
-            let mtime = metadata.mtime().checked_mul(1_000_000_000).and_then(|n|n.checked_add(metadata.mtime_nsec()))
+            let resolved = fs::canonicalize(&path)?;
+            let metadata = fs::metadata(&path)?;
+            let name = resolved
+                .to_str()
+                .ok_or(Error::Invalid("public D1 capture source path UTF8"))?;
+            if name.len() > 8194 {
+                return Err(Error::Budget("owned resolved source path"));
+            }
+            let mtime = metadata
+                .mtime()
+                .checked_mul(1_000_000_000)
+                .and_then(|n| n.checked_add(metadata.mtime_nsec()))
                 .ok_or(Error::Budget("public D1 capture source mtime"))?;
-            let ctime = metadata.ctime().checked_mul(1_000_000_000).and_then(|n|n.checked_add(metadata.ctime_nsec()))
+            let ctime = metadata
+                .ctime()
+                .checked_mul(1_000_000_000)
+                .and_then(|n| n.checked_add(metadata.ctime_nsec()))
                 .ok_or(Error::Budget("public D1 capture source ctime"))?;
             budget.retain(name.len())?;
-            output.push((name.to_owned(),mtime,metadata.len(),metadata.ino(),ctime));
+            output.push((
+                name.to_owned(),
+                mtime,
+                metadata.len(),
+                metadata.ino(),
+                ctime,
+            ));
         }
-        budget.charge_work(output.len().checked_mul(std::mem::size_of::<StateRow>())
-            .ok_or(Error::Budget("owned source-state final sort work"))?)?;
-        output.sort_by(|a,b|a.0.cmp(&b.0));
-        self.verify_inputs(self.limits)?; Ok(output)
+        budget.charge_work(
+            output
+                .len()
+                .checked_mul(std::mem::size_of::<StateRow>())
+                .ok_or(Error::Budget("owned source-state final sort work"))?,
+        )?;
+        output.sort_by(|a, b| a.0.cmp(&b.0));
+        self.verify_inputs(self.limits)?;
+        Ok(output)
     }
 
     pub fn capture_source_state(&self) -> Result<Vec<(String, i64, u64, u64, i64)>> {
@@ -5147,14 +6322,21 @@ impl PublicCapture {
     }
 
     pub(crate) fn header_object_owned(
-        &self, role: &str, prefix: &str, cap: usize, state: &CreationState<'_>,
+        &self,
+        role: &str,
+        prefix: &str,
+        cap: usize,
+        state: &CreationState<'_>,
     ) -> Result<serde_json::Value> {
         let mut fields = serde_json::Map::new();
         let mut slots = 0usize;
         self.visit_header_fields(role, prefix, cap, |name, raw| {
             let next = crate::knowledge_normalization::serde_object_slots_upper(fields.len() + 1)?;
-            state.retain(next.checked_sub(slots).and_then(|n| n.checked_add(name.len()))
-                .ok_or(Error::Budget("owned model header map state"))?)?;
+            state.retain(
+                next.checked_sub(slots)
+                    .and_then(|n| n.checked_add(name.len()))
+                    .ok_or(Error::Budget("owned model header map state"))?,
+            )?;
             slots = next;
             let value = state.serde_owned(raw, cap)?;
             if fields.insert(name.to_owned(), value).is_some() {
@@ -5237,11 +6419,15 @@ impl PublicCapture {
     }
     /// Original configured SQLite cache plus one bounded row and control workspace.
     pub(crate) fn carrier_reader_workspace(&self) -> Result<usize> {
-        (if self.sqlite_heap.is_some() { 0 } else { self.limits.sqlite_cache_kib as usize })
-            .checked_mul(1024)
-            .and_then(|n| n.checked_add(MAX_ROW_BYTES))
-            .and_then(|n| n.checked_add(65536))
-            .ok_or(Error::Budget("public D1 carrier workspace"))
+        (if self.sqlite_heap.is_some() {
+            0
+        } else {
+            self.limits.sqlite_cache_kib as usize
+        })
+        .checked_mul(1024)
+        .and_then(|n| n.checked_add(MAX_ROW_BYTES))
+        .and_then(|n| n.checked_add(65536))
+        .ok_or(Error::Budget("public D1 carrier workspace"))
     }
     /// Borrow names from the held capture cursor instead of retaining a second inventory.
     pub(crate) fn visit_collection_names(
@@ -5351,12 +6537,24 @@ impl PublicCapture {
     /// Physical part order is a hash traversal. This cursor restores the
     /// owner's declared logical order from the private disk index; each row is
     /// checked against the digest recorded at capture before it is exposed.
-    pub(crate) fn captured_row_count_owned(&self,role:&str,collection:&str,state:&CreationState<'_>)->Result<u64> {
-        let _hold=state.hold(tos_source_store::PinnedSqliteConnection::bounded_statement_rust_workspace_upper_bound())?;
-        let db=self.read_db()?;
-        let count:i64=db.query_row("SELECT count(*) FROM capture_rows WHERE role=?1 AND collection=?2",rusqlite::params![role,collection],|r|r.get(0))?;
+    pub(crate) fn captured_row_count_owned(
+        &self,
+        role: &str,
+        collection: &str,
+        state: &CreationState<'_>,
+    ) -> Result<u64> {
+        let _hold = state.hold(
+            tos_source_store::PinnedSqliteConnection::bounded_statement_rust_workspace_upper_bound(
+            ),
+        )?;
+        let db = self.read_db()?;
+        let count: i64 = db.query_row(
+            "SELECT count(*) FROM capture_rows WHERE role=?1 AND collection=?2",
+            rusqlite::params![role, collection],
+            |r| r.get(0),
+        )?;
         state.active()?;
-        u64::try_from(count).map_err(|_|Error::Invalid("captured owned row count"))
+        u64::try_from(count).map_err(|_| Error::Invalid("captured owned row count"))
     }
     pub fn visit_rows(
         &self,

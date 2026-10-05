@@ -80,7 +80,9 @@ fn main() {
             .nth(2)
             .is_some_and(|arg| arg == "--help" || arg == "-h")
     {
-        println!("usage: tos-native-owner-command source-commands --invocation ABSOLUTE_INVOCATION < REQUEST_JSON\n\nExecute the existing selected native source-owner request. The protected invocation selects the actual owner configuration, corpus/software cuts, executable and workers. Request bytes cannot select or issue authority. No Python or source checkout is needed; the optional Owner role and explicit owner-provided inputs are required. See packaged access/contracts/source-commands.v1.json.");
+        println!(
+            "usage: tos-native-owner-command source-commands --invocation ABSOLUTE_INVOCATION < REQUEST_JSON\n\nExecute the existing selected native source-owner request. The protected invocation selects the actual owner configuration, corpus/software cuts, executable and workers. Request bytes cannot select or issue authority. No Python or source checkout is needed; the optional Owner role and explicit owner-provided inputs are required. See packaged access/contracts/source-commands.v1.json."
+        );
         return;
     }
     if std::env::args_os().len() == 2
@@ -89,7 +91,7 @@ fn main() {
             .is_some_and(|arg| arg == "--help" || arg == "-h")
     {
         println!(
-            "usage: tos-native-owner-command source-commands --invocation ABSOLUTE_INVOCATION\n       tos-native-owner-command --invocation ABSOLUTE_INVOCATION\n       tos-native-owner-command foundation --help\n       tos-native-owner-command backup|restore --help\n\nSource commands read their request from stdin and require the selected invocation.\nFoundation requires an explicit repository root and protected invocation.\nBackup and restore require explicit owner-selected database, store and tool inputs."
+            "usage: tos-native-owner-command source-commands --invocation ABSOLUTE_INVOCATION\n       tos-native-owner-command --invocation ABSOLUTE_INVOCATION\n       tos-native-owner-command foundation --help\n       tos-native-owner-command backup|restore --help\n       tos-native-owner-command source-capture --help\n\nSource commands read their request from stdin and require the selected invocation.\nFoundation requires an explicit repository root and protected invocation.\nBackup and restore require explicit owner-selected database, store and tool inputs."
         );
         return;
     }
@@ -117,6 +119,38 @@ fn main() {
             Ok(value) => println!("{value}"),
             Err(reason) => {
                 eprintln!("native recovery refused: {reason}");
+                std::process::exit(2);
+            }
+        }
+        return;
+    }
+    if std::env::args_os()
+        .nth(1)
+        .is_some_and(|a| a == "source-capture")
+    {
+        if std::env::args_os().len() == 3
+            && std::env::args_os()
+                .nth(2)
+                .is_some_and(|a| a == "--help" || a == "-h")
+        {
+            print!("{}", tos_command::source_git_capture_cli::HELP);
+            return;
+        }
+        let result =
+            tos_command::source_git_capture_cli::run_os_args(std::env::args_os().skip(2).take(257));
+        match result {
+            Ok(value) => {
+                // Only fixed byte-transport fields, digests and scalar counters.
+                // Full capture metadata/payload and private paths are not output.
+                let encoded = value.to_string();
+                if encoded.len() > 2048 {
+                    eprintln!("native source capture refused: output bound");
+                    std::process::exit(2);
+                }
+                println!("{encoded}");
+            }
+            Err(reason) => {
+                eprintln!("native source capture refused: {reason}");
                 std::process::exit(2);
             }
         }
@@ -161,7 +195,8 @@ fn main() {
                     tos_command::source_command::SourceCommandError::Conflict(_) =>
                         "JournalConflict",
                     tos_command::source_command::SourceCommandError::Denied(_)
-                    | tos_command::source_command::SourceCommandError::DeniedWithReason(_) => "PermissionError",
+                    | tos_command::source_command::SourceCommandError::DeniedWithReason(_) =>
+                        "PermissionError",
                     _ => "Unsupported",
                 }
             );

@@ -815,17 +815,32 @@ pub fn materialize_native_sources_with_inputs(
         } else {
             None
         };
-        let base_normalizer = KnowledgeBaseNormalizer::new(
-            registry,
-            entity_bytes,
-            relation_bytes,
-            vocabulary,
-            descriptor_bytes,
-            BaseNormalizationLimits {
-                max_registry_bytes: additional.canon.max_registry_bytes,
-                max_output_bytes: limits.finalize.max_row_bytes,
-            },
-        )?;
+        let base_normalizer = if let Some(state) = stage.owned_creation_state() {
+            KnowledgeBaseNormalizer::new_with_owned_state(
+                registry,
+                entity_bytes,
+                relation_bytes,
+                vocabulary,
+                descriptor_bytes,
+                BaseNormalizationLimits {
+                    max_registry_bytes: additional.canon.max_registry_bytes,
+                    max_output_bytes: limits.finalize.max_row_bytes,
+                },
+                state,
+            )?
+        } else {
+            KnowledgeBaseNormalizer::new(
+                registry,
+                entity_bytes,
+                relation_bytes,
+                vocabulary,
+                descriptor_bytes,
+                BaseNormalizationLimits {
+                    max_registry_bytes: additional.canon.max_registry_bytes,
+                    max_output_bytes: limits.finalize.max_row_bytes,
+                },
+            )?
+        };
         let repository = if selected("repository-topology-v1")? {
             let root = additional
                 .repository_root
@@ -1005,20 +1020,31 @@ pub fn materialize_native_sources_with_inputs(
             0
         };
         let repository_relations = if let Some(prepared) = &repository {
-            materialize_repository_relations(
-                stage,
-                prepared,
-                &base_normalizer,
-                &navigation.source_cut,
-                &titles.title_root_sha256,
-                additional.topology,
-                |stage, from, to| {
-                    Ok((
-                        endpoint_title(stage, &titles, from, limits.titles.max_title_bytes)?,
-                        endpoint_title(stage, &titles, to, limits.titles.max_title_bytes)?,
-                    ))
-                },
-            )?
+            if stage.owned_creation_state().is_some() {
+                crate::knowledge_repository::materialize_repository_relations_with_titles_owned(
+                    stage,
+                    prepared,
+                    &base_normalizer,
+                    &titles,
+                    limits.titles.max_title_bytes,
+                    additional.topology,
+                )?
+            } else {
+                materialize_repository_relations(
+                    stage,
+                    prepared,
+                    &base_normalizer,
+                    &navigation.source_cut,
+                    &titles.title_root_sha256,
+                    additional.topology,
+                    |stage, from, to| {
+                        Ok((
+                            endpoint_title(stage, &titles, from, limits.titles.max_title_bytes)?,
+                            endpoint_title(stage, &titles, to, limits.titles.max_title_bytes)?,
+                        ))
+                    },
+                )?
+            }
         } else {
             0
         };

@@ -532,6 +532,16 @@ pub(crate) fn validate(
                 checked_digest(nav)?;
             }
         }
+        (
+            crate::knowledge_stage::KNOWLEDGE_CARRIER_ONCE_MODEL_ABI,
+            Some(nav),
+            Some(phi),
+            Some(corpus),
+        ) => {
+            checked_digest(nav)?;
+            checked_digest(phi)?;
+            checked_digest(corpus)?;
+        }
         (crate::KNOWLEDGE_CORPUS_MODEL_ABI, nav, phi, Some(corpus)) => {
             checked_digest(corpus)?;
             if let Some(r) = nav {

@@ -40,8 +40,8 @@ pub use d1_public_build::{
     PublicD1Build, PublicD1BuildLimits, build_public_d1, portable_public_d1_limits,
 };
 pub use d1_public_capture::{
-    PublicCapture, PublicCaptureInputPaths, PublicCaptureLimits, RuntimeCaptureRole,
-    RuntimeCaptureProfile, RuntimeCaptureOwnedBudget, RuntimeCaptureCreationUsage,
+    PublicCapture, PublicCaptureInputPaths, PublicCaptureLimits, RuntimeCaptureCreationUsage,
+    RuntimeCaptureOwnedBudget, RuntimeCaptureProfile, RuntimeCaptureRole,
 };
 pub use d1_public_knowledge::project_private_knowledge_row;
 pub use d1_public_lens::project_private_lens_auxiliary_rows;
@@ -108,6 +108,8 @@ pub use knowledge_navigation_original::{
 mod knowledge_navigation_materialize;
 pub mod knowledge_normalization;
 mod knowledge_ordered;
+mod knowledge_payload_codec;
+pub mod knowledge_payload_read;
 pub mod knowledge_philosophy_display;
 mod knowledge_philosophy_materialize;
 mod knowledge_philosophy_prepare;
@@ -118,8 +120,6 @@ pub mod knowledge_repository_source;
 mod knowledge_scope;
 mod knowledge_seal;
 mod knowledge_search;
-mod knowledge_payload_codec;
-pub mod knowledge_payload_read;
 mod knowledge_selected;
 mod knowledge_semantic_join;
 pub mod knowledge_source_claims;
@@ -912,3 +912,10 @@ mod research_reading_formulas;
 pub mod research_reading_workbench;
 
 mod retained_state;
+
+// Explicit layout is admitted only by the original owned whole producer.
+pub use native_snapshot::{
+    NativeSnapshotCreationUsage, NativeSnapshotOwnedBudget, NativeSnapshotOwnedReadLoan,
+    build_native_knowledge_snapshot_from_capture_with_owned_budget_and_layout,
+    with_native_knowledge_snapshot_from_capture_with_owned_budget_and_layout,
+};

@@ -5,7 +5,7 @@
 
 use crate::{
     Error, QueryVocabulary, Result, SourceBinding,
-    d1_public_capture::{PublicCapture, PublicCaptureLimits},
+    d1_public_capture::{CreationState, CreationStateHold, PublicCapture, PublicCaptureLimits},
     knowledge_repository::RepositoryRootInput,
     knowledge_stage::{
         ExactInputReceipt, InputCollectionReceipt, InputRow, KnowledgeStage, StageOwner,
@@ -204,6 +204,74 @@ fn row_id(value: &Value, collection: &str, ordinal: u64) -> Result<String> {
     Ok(id)
 }
 
+fn row_id_owned(value: &Value, collection: &str, ordinal: u64) -> Result<String> {
+    use std::fmt::Write;
+    let id = if collection == "relation_edges" {
+        if value
+            .get("pack_id")
+            .is_some_and(|v| !v.is_null() && !v.is_string())
+        {
+            return Err(Error::Invalid("public D1 relation pack ID type"));
+        }
+        let edge = value
+            .get("edge_id")
+            .and_then(Value::as_str)
+            .map(str::trim)
+            .filter(|v| !v.is_empty())
+            .or_else(|| {
+                value
+                    .get("id")
+                    .and_then(Value::as_str)
+                    .map(str::trim)
+                    .filter(|v| !v.is_empty())
+            })
+            .ok_or(Error::Invalid("public D1 relation edge ID"))?;
+        let pack = value
+            .get("pack_id")
+            .and_then(Value::as_str)
+            .map(str::trim)
+            .filter(|v| !v.is_empty());
+        let bytes = edge
+            .len()
+            .checked_add(pack.map_or(0, |v| v.len() + 1))
+            .filter(|n| *n <= 4096)
+            .ok_or(Error::Invalid("public D1 family row ID"))?;
+        let mut output = String::with_capacity(bytes);
+        if let Some(pack) = pack {
+            output.push_str(pack);
+            output.push(':');
+        }
+        output.push_str(edge);
+        output
+    } else if let Some(id) = value
+        .get(id_field(collection))
+        .and_then(Value::as_str)
+        .or_else(|| {
+            if matches!(collection, "branches" | "resources" | "manifests") {
+                value.get("path").and_then(Value::as_str)
+            } else {
+                None
+            }
+        })
+    {
+        if id.len() > 4096 {
+            return Err(Error::Invalid("public D1 family row ID"));
+        }
+        id.to_owned()
+    } else if matches!(collection, "branches" | "resources" | "manifests") {
+        let mut output = String::with_capacity(collection.len() + 21);
+        write!(&mut output, "{collection}:{ordinal}")
+            .map_err(|_| Error::Invalid("public D1 family row ID"))?;
+        output
+    } else {
+        return Err(Error::Invalid("public D1 family authored row ID"));
+    };
+    if id.is_empty() || id.len() > 4096 || id.contains('\0') {
+        return Err(Error::Invalid("public D1 family row ID"));
+    }
+    Ok(id)
+}
+
 fn family_filter(value: &Value, source: &str, collection: &str) -> bool {
     match (source, collection) {
         ("canon", "nodes") => true,
@@ -265,7 +333,7 @@ pub(crate) fn prepare_family_rows(
 pub(crate) fn prepare_family_rows_unsealed(
     capture: &PublicCapture,
     limits: PublicCaptureLimits,
-    held:&std::fs::File,
+    held: &std::fs::File,
 ) -> Result<()> {
     capture.check_custody()?;
     if limits.max_rows == 0 || limits.max_work_bytes == 0 || limits.max_staging_bytes < 65536 {
@@ -380,6 +448,225 @@ pub(crate) fn prepare_family_rows_unsealed(
     Ok(())
 }
 
+/// Same maintained family selection, with each SQL payload borrowed and each
+/// page owner admitted before copying. Guards expire only after its rows and
+/// durable batch have dropped; the retained seek key has a separate lifetime.
+pub(crate) fn prepare_family_rows_owned(
+    capture: &PublicCapture,
+    limits: PublicCaptureLimits,
+    state: &CreationState<'_>,
+) -> Result<()> {
+    capture.prepare_family_rows_once_with_owned_state(limits, Some(state))
+}
+
+pub(crate) fn prepare_family_rows_owned_unsealed(
+    capture: &PublicCapture,
+    limits: PublicCaptureLimits,
+    held: &std::fs::File,
+    state: &CreationState<'_>,
+) -> Result<()> {
+    capture.check_custody()?;
+    if limits.max_rows == 0 || limits.max_work_bytes == 0 || limits.max_staging_bytes < 65536 {
+        return Err(Error::Budget("public D1 family limits"));
+    }
+    let _db_frame = state.hold(tos_source_store::PinnedSqliteConnection::immutable_retained_rust_state_upper_bound()
+        + tos_source_store::PinnedSqliteConnection::immutable_open_rust_workspace_upper_bound()
+        + tos_source_store::PinnedSqliteConnection::bounded_statement_rust_workspace_upper_bound()
+        + std::mem::size_of::<rusqlite::Statement<'_>>() + std::mem::size_of::<rusqlite::Rows<'_>>()
+        + 4 * std::mem::size_of::<rusqlite::types::ValueRef<'_>>())?;
+    let db = capture.write_family_db(held)?;
+    let pages = limits.max_staging_bytes / 4096;
+    if pages > i64::MAX as u64 {
+        return Err(Error::Budget("public D1 family page bound"));
+    }
+    let pragma_hold = state.hold(128)?;
+    let main_pages: i64 =
+        db.query_row(&format!("PRAGMA max_page_count={pages}"), [], |r| r.get(0))?;
+    let temp_pages: i64 =
+        db.query_row(&format!("PRAGMA temp.max_page_count={pages}"), [], |r| {
+            r.get(0)
+        })?;
+    drop(pragma_hold);
+    if main_pages != pages as i64 || temp_pages != pages as i64 {
+        return Err(Error::Budget("public D1 family page admission"));
+    }
+    db.execute_batch("CREATE TABLE public_family_rows(source_graph TEXT NOT NULL,collection TEXT NOT NULL,id TEXT NOT NULL,input_role TEXT,input_collection TEXT,source_key TEXT,synthetic BLOB,synthetic_sha256 BLOB,PRIMARY KEY(source_graph,collection,id)) WITHOUT ROWID; CREATE INDEX public_family_input ON public_family_rows(input_role,input_collection,source_key); CREATE TABLE public_pack_paths(pack_id TEXT PRIMARY KEY,path TEXT NOT NULL) WITHOUT ROWID;")?;
+    let mut total = 0u64;
+    let mut work = 0u64;
+    for (source, collection, role, input_collection) in FAMILY_PROFILE {
+        let mut ordinal = 0u64;
+        let mut after_hold = None;
+        let mut after: Option<(String, String, String)> = None;
+        loop {
+            let slots = 128
+                * (std::mem::size_of::<(String, String, u64)>()
+                    + std::mem::size_of::<(String, String)>())
+                + 256 * std::mem::size_of::<CreationStateHold<'_, '_>>();
+            let _page_slots = state.hold(slots)?;
+            let mut page_holds = Vec::with_capacity(256);
+            let mut page = Vec::with_capacity(128);
+            let mut pack_page = Vec::with_capacity(128);
+            let mut seen = 0usize;
+            {
+                let mut stmt = db.prepare("SELECT sort0,sort1,source_key,json FROM capture_rows WHERE role=?1 AND collection=?2 AND (?3 IS NULL OR (sort0,sort1,source_key)>(?3,?4,?5)) ORDER BY sort0,sort1,source_key LIMIT 128")?;
+                let mut rows = stmt.query(params![
+                    role,
+                    input_collection,
+                    after.as_ref().map(|v| v.0.as_str()),
+                    after.as_ref().map(|v| v.1.as_str()),
+                    after.as_ref().map(|v| v.2.as_str())
+                ])?;
+                while let Some(row) = rows.next()? {
+                    state.active()?;
+                    let sort0 = row.get_ref(0)?.as_str()?;
+                    let sort1 = row.get_ref(1)?.as_str()?;
+                    let key = row.get_ref(2)?.as_str()?;
+                    let raw = row.get_ref(3)?.as_blob()?;
+                    work = work
+                        .checked_add(raw.len() as u64)
+                        .filter(|n| *n <= limits.max_work_bytes)
+                        .ok_or(Error::Budget("public D1 family work"))?;
+                    capture.charge_work(raw.len() as u64)?;
+                    let json_limits =
+                        tos_foundation::JsonLimits::new(raw.len().max(1), 96, 1_000_000, 4096)
+                            .map_err(|_| Error::Budget("public D1 family JSON limits"))?;
+                    state.with_serde_owned_with_limits(raw, json_limits, |value| {
+                        if *source == "canon" && *collection == "relation_packs" {
+                            if let (Some(id), Some(path)) = (
+                                value.get("pack_id").and_then(Value::as_str),
+                                value.get("path").and_then(Value::as_str),
+                            ) && !id.trim().is_empty()
+                                && !path.trim().is_empty()
+                            {
+                                let bytes = id
+                                    .len()
+                                    .checked_add(path.len())
+                                    .ok_or(Error::Budget("public D1 pack page state"))?;
+                                page_holds.push(state.hold(bytes)?);
+                                pack_page.push((id.to_owned(), path.to_owned()));
+                            }
+                        }
+                        if family_filter(value, source, collection) {
+                            // row_id's validated output is <=4096; reject an
+                            // oversized borrowed candidate before its copy.
+                            let candidate = if *collection == "relation_edges" {
+                                let edge = value
+                                    .get("edge_id")
+                                    .and_then(Value::as_str)
+                                    .map(str::trim)
+                                    .filter(|s| !s.is_empty())
+                                    .or_else(|| {
+                                        value
+                                            .get("id")
+                                            .and_then(Value::as_str)
+                                            .map(str::trim)
+                                            .filter(|s| !s.is_empty())
+                                    });
+                                edge.map(|edge| {
+                                    edge.len().saturating_add(
+                                        value
+                                            .get("pack_id")
+                                            .and_then(Value::as_str)
+                                            .map(str::trim)
+                                            .filter(|s| !s.is_empty())
+                                            .map_or(0, |s| s.len().saturating_add(1)),
+                                    )
+                                })
+                            } else {
+                                value
+                                    .get(id_field(collection))
+                                    .and_then(Value::as_str)
+                                    .or_else(|| {
+                                        if matches!(
+                                            *collection,
+                                            "branches" | "resources" | "manifests"
+                                        ) {
+                                            value.get("path").and_then(Value::as_str)
+                                        } else {
+                                            None
+                                        }
+                                    })
+                                    .map(str::len)
+                            };
+                            if candidate.is_some_and(|n| n > 4096) {
+                                return Err(Error::Invalid("public D1 family row ID"));
+                            }
+                            let bytes = key
+                                .len()
+                                .checked_add(candidate.unwrap_or(collection.len() + 21))
+                                .ok_or(Error::Budget("public D1 row page state"))?;
+                            page_holds.push(state.hold(bytes)?);
+                            page.push((
+                                key.to_owned(),
+                                row_id_owned(value, collection, ordinal)?,
+                                ordinal,
+                            ));
+                        }
+                        Ok(())
+                    })?;
+                    let next_bytes = sort0
+                        .len()
+                        .checked_add(sort1.len())
+                        .and_then(|n| n.checked_add(key.len()))
+                        .ok_or(Error::Budget("public D1 family seek state"))?;
+                    let next_hold = state.hold(next_bytes)?;
+                    after = Some((sort0.to_owned(), sort1.to_owned(), key.to_owned()));
+                    after_hold = Some(next_hold);
+                    ordinal = ordinal
+                        .checked_add(1)
+                        .ok_or(Error::Budget("public D1 family ordinal"))?;
+                    seen += 1;
+                }
+            }
+            if seen == 0 {
+                break;
+            }
+            db.execute_batch("BEGIN IMMEDIATE")?;
+            for (id, path) in pack_page {
+                capture.charge_work((id.len() + path.len()) as u64)?;
+                db.execute(
+                    "INSERT INTO public_pack_paths(pack_id,path) VALUES (?1,?2)",
+                    params![id, path],
+                )?;
+            }
+            for (key, id, position) in page {
+                add_ref(&db, source, collection, &id, role, input_collection, &key)?;
+                total = total
+                    .checked_add(1)
+                    .filter(|n| *n <= limits.max_rows)
+                    .ok_or(Error::Budget("public D1 family rows"))?;
+                if *source == "repository" {
+                    let _material_hold = state.hold(
+                        2048usize
+                            .checked_add(id.len())
+                            .and_then(|n| n.checked_add(collection.len()))
+                            .ok_or(Error::Budget("public D1 order record state"))?,
+                    )?;
+                    let material = json!({"collection":collection,"id":id,"ordinal":position});
+                    let order_id = format!("{collection}:{position:020}");
+                    state.with_json_encoded(&material, 8192, |encoded| {
+                        work = work
+                            .checked_add(encoded.len() as u64)
+                            .filter(|n| *n <= limits.max_work_bytes)
+                            .ok_or(Error::Budget("public D1 family work"))?;
+                        capture.charge_work(encoded.len() as u64)?;
+                        add_synthetic(&db, "repository", "source_order", &order_id, encoded)
+                    })?;
+                    total = total
+                        .checked_add(1)
+                        .filter(|n| *n <= limits.max_rows)
+                        .ok_or(Error::Budget("public D1 family rows"))?;
+                }
+            }
+            db.execute_batch("COMMIT")?;
+            drop(page_holds);
+        }
+        drop(after);
+        drop(after_hold);
+    }
+    Ok(())
+}
+
 fn root_item(hash: &mut Digest256Hasher, id: &str, digest: &[u8]) {
     hash.update(&(id.len() as u64).to_be_bytes());
     hash.update(id.as_bytes());
@@ -446,6 +733,107 @@ pub(crate) fn captured_input_roots(
     }
     let membership = membership.finalize().to_hex();
     Ok((collections, membership, corpus_root))
+}
+
+pub(crate) fn captured_input_roots_owned(
+    capture: &PublicCapture,
+    vocabulary: &QueryVocabulary,
+    state: &CreationState<'_>,
+) -> Result<(Vec<InputCollectionReceipt>, String, Digest256)> {
+    capture.check_custody()?;
+    let count = vocabulary
+        .sources
+        .len()
+        .checked_mul(FAMILY_PROFILE.len() + 1)
+        .ok_or(Error::Budget("public D1 receipt collection capacity"))?;
+    state.retain(
+        count
+            .checked_mul(std::mem::size_of::<InputCollectionReceipt>())
+            .ok_or(Error::Budget("public D1 receipt collection state"))?,
+    )?;
+    let mut collections = Vec::with_capacity(count);
+    let _db_frame = state.hold(
+        tos_source_store::PinnedSqliteConnection::bounded_statement_rust_workspace_upper_bound()
+            + std::mem::size_of::<rusqlite::Statement<'_>>()
+            + std::mem::size_of::<rusqlite::Rows<'_>>()
+            + 4 * std::mem::size_of::<rusqlite::types::ValueRef<'_>>(),
+    )?;
+    let db = capture.read_db()?;
+    for source in &vocabulary.sources {
+        let names_cap = FAMILY_PROFILE.len() + 1;
+        let _names_hold =
+            state.hold(names_cap * (std::mem::size_of::<&str>() + std::mem::size_of::<usize>()))?;
+        let mut names: Vec<&str> = Vec::with_capacity(names_cap);
+        for (graph, collection, _, _) in FAMILY_PROFILE {
+            if *graph == source.source_graph_id.as_str() {
+                names.push(collection);
+            }
+        }
+        if source.adapter_profile == "declared-identity-and-source-ref-joins-v1" {
+            names.push("join_scope");
+        }
+        state.charge_work(names.len())?;
+        names.sort();
+        names.dedup();
+        if names.is_empty() {
+            return Err(Error::Invalid("public D1 unsupported source adapter"));
+        }
+        for name in names {
+            let mut hash = Digest256Hasher::new();
+            let mut count = 0u64;
+            let mut stmt = db.prepare("SELECT f.id,coalesce(f.synthetic_sha256,c.sha256) FROM public_family_rows f LEFT JOIN capture_rows c ON c.role=f.input_role AND c.collection=f.input_collection AND c.source_key=f.source_key WHERE f.source_graph=?1 AND f.collection=?2 ORDER BY f.id")?;
+            let mut rows = stmt.query(params![source.source_graph_id, name])?;
+            while let Some(row) = rows.next()? {
+                state.active()?;
+                let id = row.get_ref(0)?.as_str()?;
+                let sha = row.get_ref(1)?.as_blob()?;
+                if sha.len() != 32 {
+                    return Err(Error::Invalid("public D1 family digest"));
+                }
+                capture.charge_work((id.len() + sha.len()) as u64)?;
+                root_item(&mut hash, id, sha);
+                count = count
+                    .checked_add(1)
+                    .ok_or(Error::Budget("public D1 receipt rows"))?;
+            }
+            let bytes = source
+                .source_graph_id
+                .len()
+                .checked_add(name.len())
+                .and_then(|n| n.checked_add(source.input_role.len()))
+                .and_then(|n| n.checked_add(source.adapter_profile.len()))
+                .and_then(|n| n.checked_add(64))
+                .ok_or(Error::Budget("public D1 receipt strings"))?;
+            state.retain(bytes)?;
+            collections.push(InputCollectionReceipt {
+                source_graph: source.source_graph_id.clone(),
+                collection: name.to_owned(),
+                input_role: source.input_role.clone(),
+                adapter_profile: source.adapter_profile.clone(),
+                expected_count: count,
+                expected_root_sha256: hash.finalize().to_hex(),
+            });
+        }
+    }
+    let corpus_root = capture.source_digest("ToS/derived-exports/tos_corpus_index.min.json")?;
+    let mut membership = Digest256Hasher::new();
+    for collection in &collections {
+        state.active()?;
+        capture.charge_work(
+            (collection.source_graph.len()
+                + collection.collection.len()
+                + collection.expected_root_sha256.len()
+                + 3) as u64,
+        )?;
+        membership.update(collection.source_graph.as_bytes());
+        membership.update(b"\0");
+        membership.update(collection.collection.as_bytes());
+        membership.update(b"\0");
+        membership.update(collection.expected_root_sha256.as_bytes());
+        membership.update(b"\0");
+    }
+    state.retain(64)?;
+    Ok((collections, membership.finalize().to_hex(), corpus_root))
 }
 
 pub(crate) fn exact_receipt(
@@ -584,6 +972,54 @@ pub(crate) fn ingest_family_rows(
             .ok_or(Error::Budget("public D1 stage transfer rows"))?;
     }
     flush(stage, &mut batch)?;
+    Ok(count)
+}
+
+/// Serial borrowed transfer; input rows remain in the held capture cursor,
+/// and the existing Stage validates/hashes each original row before insert.
+pub(crate) fn ingest_family_rows_owned(
+    stage: &mut KnowledgeStage<'_>,
+    capture: &PublicCapture,
+    max_work_bytes: u64,
+    state: &CreationState<'_>,
+) -> Result<u64> {
+    capture.check_custody()?;
+    let _db_frame = state.hold(
+        tos_source_store::PinnedSqliteConnection::bounded_statement_rust_workspace_upper_bound()
+            + std::mem::size_of::<rusqlite::Statement<'_>>()
+            + std::mem::size_of::<rusqlite::Rows<'_>>()
+            + 4 * std::mem::size_of::<rusqlite::types::ValueRef<'_>>(),
+    )?;
+    let db = capture.read_db()?;
+    let mut stmt = db.prepare("SELECT f.source_graph,f.collection,f.id,coalesce(f.synthetic,c.json) FROM public_family_rows f LEFT JOIN capture_rows c ON c.role=f.input_role AND c.collection=f.input_collection AND c.source_key=f.source_key ORDER BY f.source_graph,f.collection,f.id")?;
+    let mut rows = stmt.query([])?;
+    let mut count = 0u64;
+    let mut work = 0u64;
+    while let Some(row) = rows.next()? {
+        state.active()?;
+        let source = row.get_ref(0)?.as_str()?;
+        let collection = row.get_ref(1)?.as_str()?;
+        let id = row.get_ref(2)?.as_str()?;
+        let payload = row.get_ref(3)?.as_blob()?;
+        let bytes = id
+            .len()
+            .checked_add(payload.len())
+            .ok_or(Error::Budget("public D1 stage transfer work"))? as u64;
+        work = work
+            .checked_add(bytes)
+            .filter(|n| *n <= max_work_bytes)
+            .ok_or(Error::Budget("public D1 stage transfer work"))?;
+        capture.charge_work(bytes)?;
+        stage.ingest_input(InputRow {
+            source_graph: source,
+            collection,
+            id,
+            payload,
+        })?;
+        count = count
+            .checked_add(1)
+            .ok_or(Error::Budget("public D1 stage transfer rows"))?;
+    }
     Ok(count)
 }
 

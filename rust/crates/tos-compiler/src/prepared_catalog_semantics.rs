@@ -47,7 +47,43 @@ impl CatalogInputs {
         Ok(())
     }
     pub fn binding(&self) -> Result<String> {
+        self.binding_with_owned_state(None)
+    }
+    pub(crate) fn binding_with_owned_state(
+        &self,
+        state: Option<&crate::d1_public_capture::CreationState<'_>>,
+    ) -> Result<String> {
         self.validate()?;
+        if let Some(state) = state {
+            let literal_bytes = [PROJECTOR_VERSION, self.source_order_profile.as_str()]
+                .iter()
+                .try_fold(0usize, |n, text| {
+                    n.checked_add(
+                        text.encode_utf16().count().max(4) * 2 * std::mem::size_of::<u16>(),
+                    )
+                    .and_then(|n| n.checked_add(text.len()))
+                    .ok_or(Error::Budget("owned catalog binding literals"))
+                })?;
+            state.retain(
+                self.lenses
+                    .len()
+                    .checked_mul(std::mem::size_of::<JsonValue>())
+                    .and_then(|n| n.checked_add(6 * std::mem::size_of::<JsonValue>()))
+                    .and_then(|n| n.checked_add(literal_bytes))
+                    .ok_or(Error::Budget("owned catalog binding containers"))?,
+            )?;
+            for value in std::iter::once(&self.entity_registry)
+                .chain(std::iter::once(&self.relation_registry))
+                .chain(self.lenses.iter())
+                .chain(self.header.object_get("normalization_binding").into_iter())
+            {
+                let upper = value
+                    .retained_storage_bytes()
+                    .map_err(|_| Error::Budget("owned catalog binding clones"))?;
+                state.retain(upper)?;
+                state.charge_work(upper)?;
+            }
+        }
         let binding = JsonValue::Array(vec![
             JsonValue::String(JsonString::from_utf8(PROJECTOR_VERSION)),
             JsonValue::String(JsonString::from_utf8(self.source_order_profile.as_str())),
@@ -59,7 +95,16 @@ impl CatalogInputs {
                 .cloned()
                 .unwrap_or(JsonValue::Null),
         ]);
-        catalog_owner_digest(&binding, 16 * 1024 * 1024)
+        if let Some(state) = state {
+            let limits = JsonLimits::new(16 * 1024 * 1024, 96, 1_000_000, 4096)
+                .map_err(|_| Error::Budget("owned catalog binding limits"))?;
+            let encoded = state.encode_foundation_canonical_with_limits(&binding, limits)?;
+            state.retain(64)?;
+            state.charge_work(encoded.len())?;
+            Ok(Digest256::of_bytes(&encoded).to_hex())
+        } else {
+            catalog_owner_digest(&binding, 16 * 1024 * 1024)
+        }
     }
     pub fn header_digest(&self) -> Result<String> {
         catalog_owner_digest(&self.header, 16 * 1024 * 1024)

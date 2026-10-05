@@ -65,8 +65,10 @@ impl SpoolLimits {
         candidate.bounded_batch_limits()
     }
     fn retained_batch_state(self, batch: &AdmissionBatch) -> io::Result<usize> {
+        let stream_state = batch.retained_update_source_state_upper_bound_bytes();
         let mut retained = size_of::<SpoolCandidate<'_>>()
             .checked_add(self.sqlite_cache_bytes)
+            .and_then(|bytes| bytes.checked_add(stream_state))
             .ok_or_else(|| invalid("candidate spool baseline overflow"))?;
         for (path, _) in &batch.updates {
             retained = retained
@@ -443,9 +445,9 @@ impl<'host> SpoolCandidate<'host> {
             cancelled,
         )
     }
-    /// The batch is still the existing bounded canonical batch. A later paged
-    /// batch producer must retain that native parser/identity/held-input law;
-    /// this method does not reinterpret arbitrary supplied member iterators.
+    /// Canonical JSON batches retain their existing map-backed representation;
+    /// the protected initial-cut producer instead carries a private AUX-backed
+    /// update source. Neither route accepts caller-authored member iterators.
     fn prepare(
         store: &'host AdmissionStore,
         batch: AdmissionBatch,
@@ -864,8 +866,92 @@ impl<'host> SpoolCandidate<'host> {
         max_manifest_allocated_bytes: u64,
         streamed: super::source_admission_store::StreamedPublicationRead,
     ) -> io::Result<SpooledPublicationReceipt> {
-        self.tick()?;
+        self.publish_validated_inner(
+            index,
+            manifest_limits,
+            max_manifest_allocated_bytes,
+            streamed,
+            None,
+            None,
+        )
+    }
+
+    /// Recheck the initial source proposal under the existing publication
+    /// lock, before any V2 rootset build or current-selector CAS. The callback
+    /// carries no admission authority; all ordinary Native fences still run.
+    pub(crate) fn publish_validated_initial_checked(
+        &self,
+        index: &super::source_admission_spooled_index::IndexView<'_>,
+        manifest_limits: super::source_admission_spooled_manifest::ManifestStreamLimits,
+        max_manifest_allocated_bytes: u64,
+        streamed: super::source_admission_store::StreamedPublicationRead,
+        before_initial_publish: &mut dyn FnMut() -> io::Result<()>,
+    ) -> io::Result<SpooledPublicationReceipt> {
+        if let Err(error) = self.tick() {
+            self.abandon();
+            return Err(error);
+        }
+        if self.batch.base_revision.is_some() || index.segment_v2_budget().is_none() {
+            self.abandon();
+            return Err(invalid("initial publication fence requires a new V2 cut"));
+        }
+        self.publish_validated_inner(
+            index,
+            manifest_limits,
+            max_manifest_allocated_bytes,
+            streamed,
+            Some(before_initial_publish),
+            None,
+        )
+    }
+
+    /// Recheck an authenticated V2 successor's held-source fence under the
+    /// existing publication lock, immediately before the current-selector
+    /// compare-and-swap. All ordinary Native candidate checks still run after
+    /// the callback; refusal retains the exact built artifact and allocation
+    /// custody.
+    pub(crate) fn publish_validated_successor_checked(
+        &self,
+        index: &super::source_admission_spooled_index::IndexView<'_>,
+        manifest_limits: super::source_admission_spooled_manifest::ManifestStreamLimits,
+        max_manifest_allocated_bytes: u64,
+        streamed: super::source_admission_store::StreamedPublicationRead,
+        before_successor_publish: &mut dyn FnMut() -> io::Result<()>,
+    ) -> io::Result<SpooledPublicationReceipt> {
+        if let Err(error) = self.tick() {
+            self.abandon();
+            return Err(error);
+        }
+        if self.batch.base_revision.is_none()
+            || self.base_v2.is_none()
+            || index.segment_v2_budget().is_none()
+        {
+            self.abandon();
+            return Err(invalid(
+                "successor publication fence requires an authenticated V2 base",
+            ));
+        }
+        self.publish_validated_inner(
+            index,
+            manifest_limits,
+            max_manifest_allocated_bytes,
+            streamed,
+            None,
+            Some(before_successor_publish),
+        )
+    }
+
+    fn publish_validated_inner(
+        &self,
+        index: &super::source_admission_spooled_index::IndexView<'_>,
+        manifest_limits: super::source_admission_spooled_manifest::ManifestStreamLimits,
+        max_manifest_allocated_bytes: u64,
+        streamed: super::source_admission_store::StreamedPublicationRead,
+        mut before_initial_publish: Option<&mut dyn FnMut() -> io::Result<()>>,
+        mut before_successor_publish: Option<&mut dyn FnMut() -> io::Result<()>>,
+    ) -> io::Result<SpooledPublicationReceipt> {
         let result = (|| {
+            self.tick()?;
             if !self.ledger.shares_with(&streamed.io_budget)
                 || !self.space_budget.shares_with(&streamed.space_budget)
                 || !Arc::ptr_eq(&self.cancelled, &streamed.cancelled)
@@ -955,6 +1041,33 @@ impl<'host> SpoolCandidate<'host> {
                         ));
                     }
                 };
+                if let Some(check) = before_successor_publish.as_deref_mut() {
+                    let successor_fence_result = (|| {
+                        check()?;
+                        self.tick()?;
+                        index.verify_candidate()?;
+                        self.verify_consumed()?;
+                        if self.fence()? != fence {
+                            return Err(invalid("successor publication candidate fence changed"));
+                        }
+                        Ok(())
+                    })();
+                    if let Err(error) = successor_fence_result {
+                        return Err(io::Error::new(
+                            error.kind(),
+                            SpooledPublicationV2Refusal {
+                                revision,
+                                manifest_sha256: None,
+                                source_artifact: Some(source_artifact.clone()),
+                                rootset_sha256: Some(rootset_sha256),
+                                batch_sha256: fence.batch_sha256,
+                                validator_sha256: fence.validator_sha256,
+                                persistent_store_custody: Some(Arc::clone(&custody)),
+                                cause: error,
+                            },
+                        ));
+                    }
+                }
                 if let Err(error) = self.store.publish_v2_successor(
                     built,
                     self.limits.candidate.reader,
@@ -1067,9 +1180,38 @@ impl<'host> SpoolCandidate<'host> {
                         bytes: manifest_bytes,
                     },
                 );
+                let initial_refusal = |error: io::Error| {
+                    io::Error::new(
+                        error.kind(),
+                        SpooledPublicationV2Refusal {
+                            revision: SourceRevision(revision),
+                            manifest_sha256: Some(manifest_sha256),
+                            source_artifact: source_artifact.clone(),
+                            rootset_sha256: None,
+                            batch_sha256: fence.batch_sha256,
+                            validator_sha256: fence.validator_sha256,
+                            persistent_store_custody: self.store.v2_store_custody(),
+                            cause: error,
+                        },
+                    )
+                };
                 let lock = self
                     .store
-                    .lock_for_v2_publication(self.deadline, &self.cancelled)?;
+                    .lock_for_v2_publication(self.deadline, &self.cancelled)
+                    .map_err(&initial_refusal)?;
+                if let Some(check) = before_initial_publish.as_deref_mut() {
+                    let initial_fence_result = (|| {
+                        check()?;
+                        self.tick()?;
+                        index.verify_candidate()?;
+                        self.verify_consumed()?;
+                        if self.fence()? != fence {
+                            return Err(invalid("initial publication candidate fence changed"));
+                        }
+                        Ok(())
+                    })();
+                    initial_fence_result.map_err(&initial_refusal)?;
+                }
                 if self
                     .store
                     .current_selection(
@@ -1077,12 +1219,13 @@ impl<'host> SpoolCandidate<'host> {
                         self.deadline,
                         &self.cancelled,
                         Some(&profile.io),
-                    )?
+                    )
+                    .map_err(&initial_refusal)?
                     .is_some()
                 {
-                    return Err(invalid(
+                    return Err(initial_refusal(invalid(
                         "V2 initial writer requires no selected corpus revision",
-                    ));
+                    )));
                 }
                 let built = match super::source_admission_segment_v2::build_initial_rootset_v2(
                     self.store,
@@ -1242,7 +1385,7 @@ impl<'host> SpoolCandidate<'host> {
     pub(crate) fn verify_creation_base(&self) -> io::Result<CandidateFence> {
         self.tick()?;
         if self.batch.base_revision.is_none()
-            || !self.batch.updates.is_empty()
+            || self.batch.has_updates()
             || !self.batch.retirements.is_empty()
         {
             return Err(invalid(
@@ -1897,7 +2040,10 @@ impl<'host> SpoolCandidate<'host> {
     ) -> io::Result<SourceMembershipV1> {
         self.tick()?;
         let result = (|| {
-            if max_member_bytes == 0 || max_owned_state_bytes > self.row_state_ceiling.get() {
+            let local_state_bytes = max_owned_state_bytes
+                .checked_sub(callback_retained_state_bytes)
+                .ok_or_else(|| invalid("candidate full member callback state"))?;
+            if max_member_bytes == 0 || local_state_bytes > self.row_state_ceiling.get() {
                 return Err(invalid("candidate full member visitor profile"));
             }
             let baseline = max_member_bytes
@@ -1905,7 +2051,9 @@ impl<'host> SpoolCandidate<'host> {
                 .and_then(|n| n.checked_add(callback_retained_state_bytes))
                 .and_then(|n| n.checked_add(16384))
                 .ok_or_else(|| invalid("candidate full member visitor state"))?;
-            self.check_state(max_owned_state_bytes)?;
+            // The callback is admitted by its owner against the inclusive
+            // operation bound. Only local raw/metadata state is a spool row.
+            self.check_state(local_state_bytes)?;
             let before = self.fence()?;
             let mut hash = Digest256Hasher::new();
             hash.update(b"tos-val-full-membership-v1\0");
@@ -1939,7 +2087,10 @@ impl<'host> SpoolCandidate<'host> {
                     .and_then(|n| n.checked_add(metadata.path.as_str().len().checked_mul(32)?))
                     .filter(|n| *n <= max_owned_state_bytes)
                     .ok_or_else(|| invalid("candidate full member raw/metadata overlap"))?;
-                self.check_state(peak)?;
+                self.check_state(
+                    peak.checked_sub(callback_retained_state_bytes)
+                        .ok_or_else(|| invalid("candidate full member local state"))?,
+                )?;
                 let raw = self.read_current_raw(metadata.path.as_str(), max_member_bytes)?;
                 if raw.len() as u64 != metadata.size_bytes
                     || Digest256::of_bytes(&raw) != metadata.sha256
@@ -2523,31 +2674,69 @@ impl<'host> SpoolCandidate<'host> {
         }
         self.new_retirement_start = self.retirement_count;
         // Plan complete membership before the first immutable object ingest.
-        for (path, u) in &self.batch.updates {
-            self.running()?;
-            let path = RelativePath::parse(path).map_err(invalid)?;
-            let m = MemberMetadata {
-                path,
-                sha256: u.sha256,
-                size_bytes: u.size_bytes,
-                mode: u.mode,
-            };
-            let old = self.raw_member(&m.path)?;
-            let changed = old.as_ref().is_none_or(|old| {
-                old.sha256 != m.sha256 || old.size_bytes != m.size_bytes || old.mode != m.mode
-            });
-            self.put(&m, changed)?;
-            if changed {
-                self.db
-                    .execute(
-                        "INSERT OR IGNORE INTO affected VALUES(?1,0)",
-                        [m.path.as_str()],
-                    )
-                    .map_err(sql)?;
+        if let Some(mut cursor) = self.batch.update_cursor() {
+            loop {
+                self.running()?;
+                let Some(row) =
+                    cursor.next(self.row_state_ceiling.get(), self.deadline, &self.cancelled)?
+                else {
+                    break;
+                };
+                self.check_state(row.workspace_state_bytes)?;
+                let path = RelativePath::parse(&row.path).map_err(invalid)?;
+                let metadata = MemberMetadata {
+                    path,
+                    sha256: row.update.sha256,
+                    size_bytes: row.update.size_bytes,
+                    mode: row.update.mode,
+                };
+                let old = self.raw_member(&metadata.path)?;
+                let changed = old.as_ref().is_none_or(|old| {
+                    old.sha256 != metadata.sha256
+                        || old.size_bytes != metadata.size_bytes
+                        || old.mode != metadata.mode
+                });
+                self.put(&metadata, changed)?;
+                if changed {
+                    self.db
+                        .execute(
+                            "INSERT OR IGNORE INTO affected VALUES(?1,0)",
+                            [metadata.path.as_str()],
+                        )
+                        .map_err(sql)?;
+                }
+                drop(row);
+            }
+        } else {
+            for (path, update) in &self.batch.updates {
+                self.running()?;
+                let path = RelativePath::parse(path).map_err(invalid)?;
+                let metadata = MemberMetadata {
+                    path,
+                    sha256: update.sha256,
+                    size_bytes: update.size_bytes,
+                    mode: update.mode,
+                };
+                let old = self.raw_member(&metadata.path)?;
+                let changed = old.as_ref().is_none_or(|old| {
+                    old.sha256 != metadata.sha256
+                        || old.size_bytes != metadata.size_bytes
+                        || old.mode != metadata.mode
+                });
+                self.put(&metadata, changed)?;
+                if changed {
+                    self.db
+                        .execute(
+                            "INSERT OR IGNORE INTO affected VALUES(?1,0)",
+                            [metadata.path.as_str()],
+                        )
+                        .map_err(sql)?;
+                }
             }
         }
-        // Only this pre-existing bounded batch is resident; base/manifest/history
-        // cardinality is never copied into a Vec. Charge its row clones first.
+        // Retirement metadata remains the existing bounded batch projection;
+        // charge its row clones before allocation. Initial update rows are
+        // streamed separately from their held AUX table.
         let clone_state = self
             .batch
             .retirements
@@ -2644,25 +2833,20 @@ impl<'host> SpoolCandidate<'host> {
         }
         // Reserve the COMPLETE immutable-object work before the first ingest.
         // Pager work continues to debit this same ledger independently.
-        let mut object_reads = 0u64;
-        let mut object_writes = 0u64;
-        for u in self.batch.updates.values() {
-            object_reads = object_reads
-                .checked_add(
-                    u.size_bytes
-                        .checked_mul(3)
-                        .ok_or_else(|| invalid("candidate read charge overflow"))?,
-                )
-                .ok_or_else(|| invalid("candidate read charge overflow"))?;
-            object_writes = object_writes
-                .checked_add(u.size_bytes)
-                .ok_or_else(|| invalid("candidate write charge overflow"))?;
-        }
+        let update_bytes = self.batch.update_source_bytes()?;
+        let mut object_reads = update_bytes
+            .checked_mul(3)
+            .ok_or_else(|| invalid("candidate read charge overflow"))?;
+        let mut object_writes = update_bytes;
         for i in self.new_retirement_start..self.retirement_count {
+            self.running()?;
             let r = self
                 .retirement_at_raw(i)?
                 .ok_or_else(|| invalid("new retirement absent"))?;
-            let size = match self.batch.updates.get(r.path.as_str()) {
+            let size = match self
+                .batch
+                .update(r.path.as_str(), self.row_state_ceiling.get())?
+            {
                 Some(update) if update.sha256 == r.sha256 => update.size_bytes,
                 _ => self.store.object_size(
                     r.sha256,
@@ -2677,21 +2861,53 @@ impl<'host> SpoolCandidate<'host> {
                 .ok_or_else(|| invalid("retirement read charge overflow"))?;
         }
         self.reserve_logical(object_reads, object_writes)?;
-        for (path, u) in &self.batch.updates {
-            let mut input = self
-                .batch
-                .open_update(path, self.deadline, &self.cancelled)?;
-            self.store.ingest_accounted(
-                &mut input,
-                u.size_bytes,
-                u.sha256,
-                self.deadline,
-                &self.cancelled,
-                &|n| self.debit_read(n),
-                &|n| self.debit_write(n),
-                &|n| self.ledger.record_read_returned(n).map_err(invalid),
-                &|n| self.ledger.record_write_returned(n).map_err(invalid),
-            )?;
+        if let Some(mut cursor) = self.batch.update_cursor() {
+            loop {
+                self.running()?;
+                let Some(row) =
+                    cursor.next(self.row_state_ceiling.get(), self.deadline, &self.cancelled)?
+                else {
+                    break;
+                };
+                let ingest_state = row
+                    .workspace_state_bytes
+                    .checked_add(crate::source_admission_store::INGEST_ACCOUNTED_SCRATCH_BYTES)
+                    .ok_or_else(|| invalid("initial update ingest state overflow"))?;
+                self.check_state(ingest_state)?;
+                let mut input =
+                    self.batch
+                        .open_verified_update(&row, self.deadline, &self.cancelled)?;
+                self.store.ingest_accounted(
+                    &mut input,
+                    row.update.size_bytes,
+                    row.update.sha256,
+                    self.deadline,
+                    &self.cancelled,
+                    &|n| self.debit_read(n),
+                    &|n| self.debit_write(n),
+                    &|n| self.ledger.record_read_returned(n).map_err(invalid),
+                    &|n| self.ledger.record_write_returned(n).map_err(invalid),
+                )?;
+                drop(input);
+                drop(row);
+            }
+        } else {
+            for (path, update) in &self.batch.updates {
+                let mut input = self
+                    .batch
+                    .open_update(path, self.deadline, &self.cancelled)?;
+                self.store.ingest_accounted(
+                    &mut input,
+                    update.size_bytes,
+                    update.sha256,
+                    self.deadline,
+                    &self.cancelled,
+                    &|n| self.debit_read(n),
+                    &|n| self.debit_write(n),
+                    &|n| self.ledger.record_read_returned(n).map_err(invalid),
+                    &|n| self.ledger.record_write_returned(n).map_err(invalid),
+                )?;
+            }
         }
         self.store.sync_objects(self.deadline, &self.cancelled)?;
         for i in self.new_retirement_start..self.retirement_count {
