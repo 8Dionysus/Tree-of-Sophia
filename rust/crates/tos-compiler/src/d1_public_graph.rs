@@ -518,10 +518,10 @@ pub(crate) fn prepare_family_rows_owned_unsealed(
                 ])?;
                 while let Some(row) = rows.next()? {
                     state.active()?;
-                    let sort0 = row.get_ref(0)?.as_str()?;
-                    let sort1 = row.get_ref(1)?.as_str()?;
-                    let key = row.get_ref(2)?.as_str()?;
-                    let raw = row.get_ref(3)?.as_blob()?;
+                    let sort0 = row.get_ref(0)?.as_str().map_err(|_| Error::Invalid("public D1 SQL text"))?;
+                    let sort1 = row.get_ref(1)?.as_str().map_err(|_| Error::Invalid("public D1 SQL text"))?;
+                    let key = row.get_ref(2)?.as_str().map_err(|_| Error::Invalid("public D1 SQL text"))?;
+                    let raw = row.get_ref(3)?.as_blob().map_err(|_| Error::Invalid("public D1 SQL blob"))?;
                     work = work
                         .checked_add(raw.len() as u64)
                         .filter(|n| *n <= limits.max_work_bytes)
@@ -785,8 +785,8 @@ pub(crate) fn captured_input_roots_owned(
             let mut rows = stmt.query(params![source.source_graph_id, name])?;
             while let Some(row) = rows.next()? {
                 state.active()?;
-                let id = row.get_ref(0)?.as_str()?;
-                let sha = row.get_ref(1)?.as_blob()?;
+                let id = row.get_ref(0)?.as_str().map_err(|_| Error::Invalid("public D1 SQL text"))?;
+                let sha = row.get_ref(1)?.as_blob().map_err(|_| Error::Invalid("public D1 SQL blob"))?;
                 if sha.len() != 32 {
                     return Err(Error::Invalid("public D1 family digest"));
                 }
@@ -997,10 +997,10 @@ pub(crate) fn ingest_family_rows_owned(
     let mut work = 0u64;
     while let Some(row) = rows.next()? {
         state.active()?;
-        let source = row.get_ref(0)?.as_str()?;
-        let collection = row.get_ref(1)?.as_str()?;
-        let id = row.get_ref(2)?.as_str()?;
-        let payload = row.get_ref(3)?.as_blob()?;
+        let source = row.get_ref(0)?.as_str().map_err(|_| Error::Invalid("public D1 SQL text"))?;
+        let collection = row.get_ref(1)?.as_str().map_err(|_| Error::Invalid("public D1 SQL text"))?;
+        let id = row.get_ref(2)?.as_str().map_err(|_| Error::Invalid("public D1 SQL text"))?;
+        let payload = row.get_ref(3)?.as_blob().map_err(|_| Error::Invalid("public D1 SQL blob"))?;
         let bytes = id
             .len()
             .checked_add(payload.len())

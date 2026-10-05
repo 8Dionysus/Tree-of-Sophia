@@ -295,8 +295,8 @@ fn build_owned_header(
             let mut rows=stmt.query([])?;
             while let Some(row)=rows.next()? {
                 state.active()?;
-                let source=row.get_ref(0)?.as_str()?; let length:i64=row.get(1)?;
-                let sha=row.get_ref(2)?.as_blob()?;
+                let source=row.get_ref(0)?.as_str().map_err(|_| Error::Invalid("public D1 SQL text"))?; let length:i64=row.get(1)?;
+                let sha=row.get_ref(2)?.as_blob().map_err(|_| Error::Invalid("public D1 SQL blob"))?;
                 let raw=row.get_ref(3)?.as_blob().map_err(|_|Error::Budget("public D1 header row bytes"))?;
                 if length<0 || length as usize !=raw.len() || raw.len()>8_000_000 || sha.len()!=32 {
                     return Err(Error::Invalid("public D1 header row digest"));

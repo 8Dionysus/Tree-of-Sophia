@@ -525,8 +525,8 @@ impl KnowledgeRegistry {
         state.with_serde_owned_value_with_limits(entity_bytes, limits, |entity| {
             state.with_serde_owned_value_with_limits(relation_bytes, limits, |relation| {
                 let registry = Self::parse_values_owned(
-                    entity,
-                    relation,
+                    &entity,
+                    &relation,
                     entity_sha256,
                     relation_sha256,
                     state,

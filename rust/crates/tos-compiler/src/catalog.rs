@@ -436,14 +436,13 @@ fn registry_entries<'a, 'state, 'budget>(
             .ok_or(Error::Budget("catalog registry parents"))?;
     }
     let walk_bytes = parent_edges
-        .checked_add(1)?
-        .checked_mul(std::mem::size_of::<&str>())?
-        .checked_add(
-            source
-                .len()
-                .checked_add(1)?
-                .checked_mul(std::mem::size_of::<&str>())?,
-        )
+        .checked_add(1)
+        .and_then(|n| n.checked_mul(std::mem::size_of::<&str>()))
+        .and_then(|n| {
+            source.len().checked_add(1)
+                .and_then(|m| m.checked_mul(std::mem::size_of::<&str>()))
+                .and_then(|m| n.checked_add(m))
+        })
         .ok_or(Error::Budget("catalog registry walk"))?;
     let slots = source
         .len()
@@ -2277,7 +2276,6 @@ fn group_catalog(
         }
         out.push(Value::Object(object));
         drop(types);
-        drop(statuses);
     }
     drop(groups);
     Ok(Value::Array(out))
