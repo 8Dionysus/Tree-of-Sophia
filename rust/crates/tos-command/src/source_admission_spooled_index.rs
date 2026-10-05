@@ -676,9 +676,14 @@ impl<'candidate> IndexSink<'candidate> {
             .and_then(|bytes| bytes.checked_add(std::mem::size_of::<Arc<()>>()))
             .filter(|bytes| *bytes <= max_operation_state_bytes)
             .ok_or_else(|| invalid("candidate dependent callback state exceeds operation"))?;
-        if let Err(error) = candidate.check_state(retained) {
+        // This includes the held store, report and dependent callback, so it
+        // belongs to the existing whole callback grant, not a single SQL row.
+        if input
+            .require_callback_state(retained, max_operation_state_bytes)
+            .is_err()
+        {
             input.abandon();
-            return Err(error);
+            return Err(invalid("candidate dependent callback state exceeds operation"));
         }
         // Clone the stable scope handle before lending the store mutably to
         // the kernel. Its allocation has already been admitted above.
