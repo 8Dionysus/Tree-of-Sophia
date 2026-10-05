@@ -414,6 +414,57 @@ pub(crate) fn header_basis(header: &serde_json::Value) -> Result<KnowledgeSource
     Ok(basis)
 }
 
+/// Materialize the native-cut header basis under the same original owned
+/// state as its Foundation JSON tree. The caller keeps the SQL/parser owners
+/// live while this typed basis is used; managed-source headers have a separate
+/// admission route and are not accepted here.
+pub(crate) fn with_native_cut_header_basis_owned<T>(
+    header: &tos_foundation::JsonValue,
+    state: &crate::d1_public_capture::CreationState<'_>,
+    consume: impl FnOnce(&KnowledgeSourceBasis) -> Result<T>,
+) -> Result<T> {
+    let fixed = std::mem::size_of::<(
+        &tos_foundation::JsonValue,
+        &crate::d1_public_capture::CreationState<'_>,
+        KnowledgeSourceBasis,
+        String,
+        Result<T>,
+        Option<&[(tos_foundation::JsonString, tos_foundation::JsonValue)]>,
+        std::slice::Iter<'_, (tos_foundation::JsonString, tos_foundation::JsonValue)>,
+    )>()
+    .checked_add(std::mem::size_of_val(&consume))
+    .ok_or(Error::Budget("native cut header basis frame"))?;
+    let _fixed = state.hold(fixed)?;
+    state.active()?;
+    let fields = header
+        .as_object()
+        .ok_or(Error::Invalid("knowledge graph source schema"))?;
+    let schema = fields
+        .iter()
+        .find(|(key, _)| key.as_str() == Some("schema"))
+        .and_then(|(_, value)| value.as_str())
+        .ok_or(Error::Invalid("knowledge graph source schema"))?;
+    state.charge_work(schema.len())?;
+    if schema != "tos_knowledge_graph_v1" {
+        return Err(Error::Invalid("knowledge graph source schema"));
+    }
+    let source_revision = fields
+        .iter()
+        .find(|(key, _)| key.as_str() == Some("source_revision"))
+        .and_then(|(_, value)| value.as_str())
+        .ok_or(Error::Invalid("knowledge graph cut revision"))?;
+    state.charge_work(source_revision.len())?;
+    let _revision_hold = state.hold(source_revision.len())?;
+    let basis = KnowledgeSourceBasis::V1Cut {
+        source_revision: source_revision.to_owned(),
+    };
+    basis.validate()?;
+    state.active()?;
+    let result = consume(&basis);
+    state.active()?;
+    result
+}
+
 impl sealed::Proof for ManagedSourceProofV1 {}
 impl ManagedProducerProof for ManagedSourceProofV1 {
     fn validate(&self) -> Result<()> {

@@ -2071,7 +2071,7 @@ const SELECTED_TABLES: [(&str, &str); 13] = [
 ];
 
 const SELECTED_COLUMN_SPECS: &[(&str, &[&str])] = &[
-    ("metadata", &["key:TEXT:1", "value:BLOB:0"][..]),
+    ("metadata", &["key:TEXT:1", "value:BLOB:0"]),
     (
         "graph_header",
         &[
@@ -2079,7 +2079,7 @@ const SELECTED_COLUMN_SPECS: &[(&str, &[&str])] = &[
             "packet_len:INTEGER:0",
             "packet_sha256:BLOB:0",
             "packet:BLOB:0",
-        ][..],
+        ],
     ),
     (
         "knowledge_nodes",
@@ -2094,7 +2094,7 @@ const SELECTED_COLUMN_SPECS: &[(&str, &[&str])] = &[
             "payload_len:INTEGER:0",
             "payload_sha256:BLOB:0",
             "payload:BLOB:0",
-        ][..],
+        ],
     ),
     (
         "knowledge_relations",
@@ -2110,7 +2110,7 @@ const SELECTED_COLUMN_SPECS: &[(&str, &[&str])] = &[
             "payload_len:INTEGER:0",
             "payload_sha256:BLOB:0",
             "payload:BLOB:0",
-        ][..],
+        ],
     ),
     (
         "source_scope",
@@ -2122,7 +2122,7 @@ const SELECTED_COLUMN_SPECS: &[(&str, &[&str])] = &[
             "expected_relation_count:INTEGER:0",
             "node_root_sha256:BLOB:0",
             "relation_root_sha256:BLOB:0",
-        ][..],
+        ],
     ),
     (
         "search_documents",
@@ -2139,7 +2139,7 @@ const SELECTED_COLUMN_SPECS: &[(&str, &[&str])] = &[
             "visible_values:TEXT:0",
             "document_chars:INTEGER:0",
             "document_digest:BLOB:0",
-        ][..],
+        ],
     ),
     (
         "search_posting_blocks",
@@ -2151,7 +2151,7 @@ const SELECTED_COLUMN_SPECS: &[(&str, &[&str])] = &[
             "first_position:INTEGER:0",
             "postings:INTEGER:0",
             "deltas:BLOB:0",
-        ][..],
+        ],
     ),
     (
         "search_gram_stats",
@@ -2160,7 +2160,7 @@ const SELECTED_COLUMN_SPECS: &[(&str, &[&str])] = &[
             "n:INTEGER:2",
             "gram:BLOB:3",
             "postings:INTEGER:0",
-        ][..],
+        ],
     ),
     (
         "catalog_index_meta",
@@ -2177,7 +2177,7 @@ const SELECTED_COLUMN_SPECS: &[(&str, &[&str])] = &[
             "packet_len:INTEGER:0",
             "packet_sha256:BLOB:0",
             "packet:BLOB:0",
-        ][..],
+        ],
     ),
     (
         "catalog_facet_fields",
@@ -2187,7 +2187,7 @@ const SELECTED_COLUMN_SPECS: &[(&str, &[&str])] = &[
             "field_id:TEXT:3",
             "value_count:INTEGER:0",
             "total_count:INTEGER:0",
-        ][..],
+        ],
     ),
     (
         "catalog_facets",
@@ -2198,7 +2198,7 @@ const SELECTED_COLUMN_SPECS: &[(&str, &[&str])] = &[
             "ordinal:INTEGER:4",
             "value_json:TEXT:0",
             "item_count:INTEGER:0",
-        ][..],
+        ],
     ),
     (
         "catalog_routes",
@@ -2214,7 +2214,7 @@ const SELECTED_COLUMN_SPECS: &[(&str, &[&str])] = &[
             "packet_len:INTEGER:0",
             "packet_sha256:BLOB:0",
             "packet:BLOB:0",
-        ][..],
+        ],
     ),
     (
         "catalog_source_counts",
@@ -2223,7 +2223,7 @@ const SELECTED_COLUMN_SPECS: &[(&str, &[&str])] = &[
             "source_graph_id:TEXT:2",
             "node_count:INTEGER:0",
             "relation_count:INTEGER:0",
-        ][..],
+        ],
     ),
 ];
 
@@ -3006,17 +3006,37 @@ fn owned_scope_hash_text(state:&crate::d1_public_capture::CreationState<'_>,hash
     for chunk in text.as_bytes().chunks(4096) {state.active()?;hash.update(chunk);}
     state.active()
 }
-fn owned_scope_sql_text<'a>(statement:&'a tos_source_store::PinnedBoundedStatement<'_>,column:usize,cap:usize,state:&crate::d1_public_capture::CreationState<'_>)->Result<&'a str> {
-    let _frame=state.hold(std::mem::size_of::<(
-        &tos_source_store::PinnedBoundedStatement<'_>,usize,usize,
-        &crate::d1_public_capture::CreationState<'_>,&[u8],Result<&str>,
-        crate::d1_public_capture::CreationStateHold<'_,'_>,
+fn owned_scope_sql_text<'a>(
+    statement: &'a tos_source_store::PinnedBoundedStatement<'_>,
+    column: usize,
+    cap: usize,
+    state: &crate::d1_public_capture::CreationState<'_>,
+) -> Result<&'a str> {
+    let _frame = state.hold(std::mem::size_of::<(
+        &tos_source_store::PinnedBoundedStatement<'_>,
+        usize,
+        usize,
+        i32,
+        &crate::d1_public_capture::CreationState<'_>,
+        &[u8],
+        Result<&str>,
+        crate::d1_public_capture::CreationStateHold<'_, '_>,
     )>())?;
-    let rusqlite::types::ValueRef::Text(bytes)=statement.value_ref(column).map_err(owned_schema_sql_error)? else {return Err(Error::Invalid("scope text type"));};
-    if bytes.len()>cap {return Err(Error::Budget("scope text bytes"));}
-    state.charge_work(bytes.len())?;state.active()?;
-    std::str::from_utf8(bytes).map_err(|_|Error::Invalid("scope text UTF8"))
+    let column = i32::try_from(column).map_err(|_| Error::Budget("scope SQL column index"))?;
+    let rusqlite::types::ValueRef::Text(bytes) = statement
+        .value_ref(column)
+        .map_err(owned_schema_sql_error)?
+    else {
+        return Err(Error::Invalid("scope text type"));
+    };
+    if bytes.len() > cap {
+        return Err(Error::Budget("scope text bytes"));
+    }
+    state.charge_work(bytes.len())?;
+    state.active()?;
+    std::str::from_utf8(bytes).map_err(|_| Error::Invalid("scope text UTF8"))
 }
+
 /// Same core/scope receipt law as the established cold verifier, using owned
 /// state before the accumulator vector and each borrowed SQL scan. Layout is
 /// supplied only by the authentic expected model ABI caller.
@@ -4238,7 +4258,8 @@ pub(crate) fn verify_catalog_with_owned_context(
         crate::d1_public_capture::CreationStateHold<'_, '_>,
         crate::d1_public_capture::CreationStateHold<'_, '_>,
     )> = None;
-    let mut previous_fold = None;
+    let mut previous_fold: Option<(String, crate::d1_public_capture::CreationStateHold<'_, '_>)> =
+        None;
     let mut ordinal_for_field = 0u64;
     with_owned_schema_statement(
         db,

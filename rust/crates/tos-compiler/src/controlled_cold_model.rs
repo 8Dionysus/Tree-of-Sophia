@@ -1,7 +1,4 @@
-use std::{
-    fs::File,
-    time::Instant,
-};
+use std::{fs::File, io::Seek};
 
 use rusqlite::{OptionalExtension, params};
 use tos_foundation::{Digest256, JsonLimits, OwnedState};
@@ -213,12 +210,18 @@ impl ControlledKnowledgeModel<'_, '_, '_> {
         vocabulary: &QueryVocabulary,
         descriptor: &[u8],
     ) -> Result<usize> {
-        use tos_foundation::{OwnedState, checked_state_add};
+        use tos_foundation::OwnedState;
         if descriptor.is_empty() || descriptor.len() > 4 * 1024 * 1024 {
             return Err(Error::Budget("controlled query descriptor size"));
         }
-        let selected = self.selection.owned_heap_bytes()?;
-        let basis = self.source_basis.owned_heap_bytes()?;
+        let selected = self
+            .selection
+            .owned_heap_bytes()
+            .map_err(|_| Error::Budget("controlled selected retained state"))?;
+        let basis = self
+            .source_basis
+            .owned_heap_bytes()
+            .map_err(|_| Error::Budget("controlled source-basis retained state"))?;
         let vocab = vocabulary.query_delivery_heap_bytes()?;
         let descriptor_bytes = descriptor
             .len()
@@ -263,7 +266,7 @@ impl ControlledKnowledgeModel<'_, '_, '_> {
             u64,
             u64,
             Option<i64>,
-            Result<Option<i64>>,
+            Result<Option<Option<i64>>>,
             Result<ControlledGramStat>,
         )>()
         .checked_add(tos_source_store::PinnedSqliteConnection::bounded_statement_rust_workspace_upper_bound())
@@ -289,7 +292,8 @@ impl ControlledKnowledgeModel<'_, '_, '_> {
                     .map_err(Error::from)
             },
         )?;
-        let selected = selected?;
+
+        let selected = selected.flatten();
         if selected.is_some_and(|postings| postings < 0) || max_rows < 1 {
             return Err(Error::Invalid("controlled gram-stat row shape"));
         }
@@ -405,7 +409,7 @@ impl ControlledKnowledgeModel<'_, '_, '_> {
                     Ok((positions, exhausted, decoded_bytes))
                 },
             )?;
-        let (positions, exhausted, decoded_bytes) = page?;
+        let (positions, exhausted, decoded_bytes) = page;
         self.check_pin()?;
         let rows = positions.len() as u64;
         Ok(ControlledPostingPage { positions, exhausted, vm_steps, rows, decoded_bytes })
@@ -569,7 +573,7 @@ impl ControlledKnowledgeModel<'_, '_, '_> {
                 Ok(row)
             },
         )?;
-        let row = row_result?;
+        let row = row_result;
         let (
             Some(id), Some(source_graph), Some(kind_id), Some(predicate_id),
             Some(id_lower), Some(native_id_lower), Some(identity_values), Some(visible_values),
@@ -673,7 +677,14 @@ pub(crate) fn with_controlled_selected_knowledge_model<'state, 'budget>(
     consume: impl FnOnce(&mut ControlledKnowledgeModel<'_, 'state, 'budget>) -> Result<()>,
 ) -> Result<()> {
     let state = context.owned_state();
-    let remaining = |additional: usize| context.remaining_after_retained(additional);
+    let remaining = |additional: usize| {
+        context.remaining_after_retained(additional).map_err(|_| {
+            tos_source_store::StoreError::new(
+                tos_source_store::StoreErrorCode::BudgetExceeded,
+                "controlled cold connection state",
+            )
+        })
+    };
     let fixed = std::mem::size_of::<(
         &mut File,
         &KnowledgeSelectedExpectation,
@@ -758,11 +769,20 @@ pub(crate) fn with_controlled_selected_knowledge_model<'state, 'budget>(
         .checked_add(RuntimeKnowledgeReadContext::sql_callback_retained_state_bytes())
         .ok_or(Error::Budget("controlled cold connection state"))?;
     let connection_hold = state.hold(retained)?;
-    let db = tos_source_store::PinnedSqliteConnection::open_readonly_immutable_with_state(
+    let db = match tos_source_store::PinnedSqliteConnection::open_readonly_immutable_with_state(
         pinned, &remaining,
-    )
-    .map_err(|_| Error::Invalid("controlled cold selected SQLite open"))?;
-    let operation = (|| {
+    ) {
+        Ok(db) => db,
+        Err(error) => {
+            context.check()?;
+            return Err(if error.code == tos_source_store::StoreErrorCode::BudgetExceeded {
+                Error::Budget("controlled cold selected SQLite open")
+            } else {
+                Error::Invalid("controlled cold selected SQLite open")
+            });
+        }
+    };
+    let operation: Result<_> = (|| {
         let cold_hook = context.install_operation_sql_controller(&db, limits.max_vm_steps)?;
         // The cold verifier returns these exact typed roots/receipts into the
         // model callback. Reserve their maximum bounded owners before the
@@ -825,14 +845,14 @@ pub(crate) fn with_controlled_selected_knowledge_model<'state, 'budget>(
         // Return from the verifier only after its statement/parser owners have
         // dropped; the transition then ends the ColdOpenLimits delta without
         // changing the shared counters or operation cutoff.
-        (
+        Ok((
             cold_hook,
             verified,
             open_vm_steps,
             escaping_basis,
             navigation_receipt,
             escaping_outputs,
-        )
+        ))
     })();
     let operation = match operation {
         Err(error) => Err(error),
