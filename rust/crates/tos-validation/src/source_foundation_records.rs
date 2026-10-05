@@ -5512,6 +5512,37 @@ fn inspect_source_foundation_records_with_mode(
         cancelled,
         store.clone(),
     )?;
+    if rolling {
+        // The auxiliary ceiling is an exclusive reservation, not retained
+        // usage. Split the remaining simultaneous workspace after both real
+        // indexes are known, leaving a positive ItemRules share.
+        let available_workspace = limits
+            .items
+            .max_state_bytes
+            .checked_sub(item_index_state_bytes)
+            .and_then(|bytes| bytes.checked_sub(file_membership_state_bytes))
+            .ok_or(ItemRefusal::BudgetCheck {
+                check: "source-foundation rolling Item indexes workspace",
+                used: item_index_state_bytes
+                    .checked_add(file_membership_state_bytes)
+                    .map(|bytes| bytes as u64),
+                limit: Some(limits.items.max_state_bytes as u64),
+            })?;
+        limits.max_schema_request_state_bytes = limits
+            .max_schema_request_state_bytes
+            .min(available_workspace / 2);
+        let auxiliary_precharge =
+            direct_record_issue_state_bytes.checked_add(schema_request_state_bytes);
+        schema_request_state_limit_bytes = limits
+            .max_schema_request_state_bytes
+            .checked_sub(direct_record_issue_state_bytes)
+            .filter(|limit| schema_request_state_bytes <= *limit)
+            .ok_or(ItemRefusal::BudgetCheck {
+                check: "source-foundation rolling Item auxiliary workspace",
+                used: auxiliary_precharge.map(|bytes| bytes as u64),
+                limit: Some(limits.max_schema_request_state_bytes as u64),
+            })?;
+    }
     let item_rule_index_state_bytes = item_index_state_bytes
         .checked_add(file_membership_state_bytes)
         .and_then(|bytes| bytes.checked_add(limits.max_schema_request_state_bytes))
@@ -5528,7 +5559,11 @@ fn inspect_source_foundation_records_with_mode(
     item_limits.max_state_bytes = item_limits
         .max_state_bytes
         .checked_sub(item_rule_index_state_bytes)
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(ItemRefusal::BudgetCheck {
+            check: "source-foundation ItemRules simultaneous workspace",
+            used: Some(item_rule_index_state_bytes as u64),
+            limit: Some(limits.items.max_state_bytes as u64),
+        })?;
     let mut item_rules = ItemRules::new(item_limits, require_local_payloads);
     let candidate_store = streamed_record_summary.is_some();
     let mut item_source = CurrentItemSource {
