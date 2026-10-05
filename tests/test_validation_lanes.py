@@ -201,7 +201,8 @@ class ValidationLaneTests(unittest.TestCase):
             timeout_steps,
             [(workspace_label, 900000),
              ('test Rust conformance root and source families', 900000),
-             *[(label, 900000) for label in family_labels]],
+             *[(label, 900000) for label in family_labels],
+             ('test isolated process-cold source revision fixture', 1020000)],
         )
         self.assertEqual(
             workspace[:8],
@@ -551,10 +552,12 @@ class ValidationLaneTests(unittest.TestCase):
         with mock.patch.dict(validation_lanes.os.environ,
                              {'TOS_VALIDATION_LANES_EXECUTOR': executable}), \
              mock.patch.object(validation_lanes.os, 'execv') as execv:
-            self.assertIsNone(validation_lanes.native_main(['--run', 'rust_workspace']))
+            self.assertIsNone(validation_lanes.native_main([
+                '--run', 'rust_workspace', '--lane-timeout-ms', '5400000',
+            ]))
             execv.assert_called_once_with(executable, [
                 executable, '--repo-root', str(ROOT), '--python', sys.executable,
-                '--run', 'rust_workspace',
+                '--run', 'rust_workspace', '--lane-timeout-ms', '5400000',
             ])
 
 

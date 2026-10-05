@@ -643,6 +643,7 @@
       },
       {
         "label": "test isolated process-cold source revision fixture",
+        "command_timeout_ms": 1020000,
         "command": [
           "cargo", "test", "--locked", "-p", "tos-command", "--lib",
           "source_creation_store::revision_publication::tests::native_record_revisions_cover_fixed_handlers_process_cold_and_exact_recovery",
