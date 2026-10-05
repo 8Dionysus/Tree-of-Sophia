@@ -33,7 +33,8 @@ pub(crate) const MAX_LOCATION_BYTES: usize = 4096;
 const MAX_CONTRACTS: usize = SchemaBackendProbe::MAX_RESOURCES;
 const MAX_SCHEMA_RESOURCE_BYTES: usize = SchemaBackendProbe::MAX_RESOURCE_BYTES;
 const MAX_SCHEMA_TOTAL_BYTES: usize = SchemaBackendProbe::MAX_TOTAL_BYTES;
-const MAX_SOURCE_FOUNDATION_CHECKS: usize = 65_536;
+/// Finite retained schema-report capacity; streamed execution has its own budget.
+pub const MAX_SOURCE_FOUNDATION_CHECKS: usize = 65_536;
 const MAX_SOURCE_FOUNDATION_CHUNKS: usize = 1_024;
 const MAX_SOURCE_FOUNDATION_INSTANCE_BYTES: usize = 128 * 1024 * 1024;
 const MAX_SOURCE_FOUNDATION_CPU_SECONDS: u64 = 3_600;

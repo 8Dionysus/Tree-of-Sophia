@@ -668,7 +668,6 @@ fn cut_worker_shape(
         max_total_raw_bytes: operation
             .source_read_bytes
             .min(operation.worker_wire_bytes)
-            .min(tos_validation::executor::BatchBudget::MAX_RAW_BYTES as u64)
             .max(1),
         aggregate_wire_upper_bound_bytes: operation.worker_wire_bytes,
         max_distinct_selectors: max_checks.max(1).min(1024),
@@ -1529,14 +1528,19 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
     if schema_count == 0 || schema_bytes == 0 || schema_max_bytes == 0 || largest_member == 0 {
         return Err(incomplete("candidate selected schema closure is empty"));
     }
-    let max_checks = max_members.min(65_536).max(1);
+    // Resource preparation retains a finite report. Whole streamed execution
+    // instead follows the selected member bound and original operation ledgers.
+    let max_checks = max_members.max(1);
+    let schema_loader_checks = max_checks.min(
+        tos_validation::source_foundation_schema::MAX_SOURCE_FOUNDATION_CHECKS,
+    );
     let schema_limits = schema_limits_for_ticket(
         view.execution_limits,
         &schema_ticket,
         schema_count,
         schema_max_bytes,
         schema_bytes,
-        max_checks,
+        schema_loader_checks,
     )?;
     let first_worker_shape = cut_worker_shape(schema_operation, max_checks);
     let first_worker_stream = view
