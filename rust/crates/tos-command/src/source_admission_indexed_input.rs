@@ -68,6 +68,7 @@ pub(crate) struct IndexedInputSelectionV1 {
     manifest_file: DescriptorFile,
     pub(crate) manifest_sha256: Digest256,
     pub(crate) composition: Option<IndexedInputCompositionV1>,
+    generated_declaration: Option<SelectedGeneratedDeclarationV1>,
     max_descriptor_bytes: usize,
     max_profile_bytes: usize,
     max_dependency_closure_bytes: usize,
@@ -84,6 +85,46 @@ pub(crate) struct IndexedInputSelectionV1 {
     pub(crate) unique_object_count: u64,
     pub(crate) unique_payload_bytes: u64,
     pub(crate) max_frames_per_pack: u32,
+}
+
+/// Generated declaration issued only from the held manifest/profile reader.
+/// This is byte provenance, not a semantic reference-resolution verdict.
+#[derive(Clone, Copy, Debug)]
+pub(crate) struct SelectedGeneratedDeclarationV1 {
+    seed_sha256: Digest256,
+    template_manifest_sha256: Digest256,
+    profile_sha256: Digest256,
+    generated_declaration_sha256: Digest256,
+    generated_record_count: u64,
+    class_counts: [u64; 5],
+    composition: IndexedInputCompositionV1,
+    // Private issuer field prevents a caller-created declaration from replacing
+    // the one authenticated by this input reader.
+    manifest_sha256: Digest256,
+}
+
+impl SelectedGeneratedDeclarationV1 {
+    pub(crate) fn seed_sha256(&self) -> Digest256 {
+        self.seed_sha256
+    }
+    pub(crate) fn template_manifest_sha256(&self) -> Digest256 {
+        self.template_manifest_sha256
+    }
+    pub(crate) fn profile_sha256(&self) -> Digest256 {
+        self.profile_sha256
+    }
+    pub(crate) fn generated_declaration_sha256(&self) -> Digest256 {
+        self.generated_declaration_sha256
+    }
+    pub(crate) fn generated_record_count(&self) -> u64 {
+        self.generated_record_count
+    }
+    pub(crate) fn class_counts(&self) -> [u64; 5] {
+        self.class_counts
+    }
+    pub(crate) fn composition(&self) -> IndexedInputCompositionV1 {
+        self.composition
+    }
 }
 
 /// Exact byte-composition selector. This grants no semantic closure or admission.
@@ -524,7 +565,8 @@ pub(crate) fn open_selection_from_manifest_with_composition_v1(
         max_composition_state_bytes,
     )?;
     drop(raw);
-    let profile_file = if manifest.composition.is_some() {
+    let mut generated_declaration = None;
+    let profile_file = if let Some(composition) = manifest.composition {
         let (file, raw, digest) = DescriptorFile::open_hashed(
             &held_root,
             PROFILE_LEAF.to_owned(),
@@ -537,12 +579,22 @@ pub(crate) fn open_selection_from_manifest_with_composition_v1(
         if digest != manifest.profile_sha256 {
             return Err(invalid("indexed-input composed profile digest differs"));
         }
-        verify_composition_profile_v1(
+        let class_counts = verify_composition_profile_v1(
             &raw,
             max_profile_bytes,
             &manifest,
             max_composition_state_bytes,
         )?;
+        generated_declaration = Some(SelectedGeneratedDeclarationV1 {
+            seed_sha256: manifest.seed_sha256,
+            template_manifest_sha256: manifest.template_manifest_sha256,
+            profile_sha256: manifest.profile_sha256,
+            generated_declaration_sha256: composition.generated_declaration_sha256,
+            generated_record_count: composition.generated_record_count,
+            class_counts,
+            composition,
+            manifest_sha256,
+        });
         file
     } else {
         let profile_file = DescriptorFile::open_stream_hashed(
@@ -629,6 +681,7 @@ pub(crate) fn open_selection_from_manifest_with_composition_v1(
         manifest_file,
         manifest_sha256,
         composition: manifest.composition,
+        generated_declaration,
         max_descriptor_bytes: max_manifest_bytes,
         max_profile_bytes,
         max_dependency_closure_bytes,
@@ -866,6 +919,7 @@ fn parse_composition_document_v1(
                 .and_then(|visitor| bytes.checked_add(visitor))
         })
         .and_then(|bytes| bytes.checked_add(size_of::<ParsedScaleInputManifestV1>()))
+        .and_then(|bytes| bytes.checked_add(size_of::<Option<SelectedGeneratedDeclarationV1>>()))
         .ok_or_else(|| invalid("indexed-input composition workspace overflow"))?;
     let parser_state = state
         .checked_sub(fixed)
@@ -965,7 +1019,7 @@ fn verify_composition_profile_v1(
     max_bytes: usize,
     manifest: &ParsedScaleInputManifestV1,
     state_bytes: usize,
-) -> io::Result<()> {
+) -> io::Result<[u64; 5]> {
     let limits = JsonLimits::new(max_bytes, 16, 2048, 128).map_err(invalid)?;
     let document = parse_composition_document_v1(raw, limits, state_bytes)?;
     let profile = document.root();
@@ -1039,7 +1093,7 @@ fn verify_composition_profile_v1(
             "indexed-input generated declaration digest differs",
         ));
     }
-    Ok(())
+    Ok(counts)
 }
 
 fn feed_composition_number_v1(hash: &mut Digest256Hasher, mut value: u64) {
@@ -1099,6 +1153,7 @@ pub(crate) struct IndexedInputReaderV1 {
     segment_identity: (u64, u64),
     manifest_file: DescriptorFile,
     pub(crate) composition: Option<IndexedInputCompositionV1>,
+    generated_declaration: Option<SelectedGeneratedDeclarationV1>,
     max_profile_bytes: usize,
     max_dependency_closure_bytes: usize,
     profile_file: DescriptorFile,
@@ -1132,6 +1187,24 @@ pub(crate) struct IndexedInputReaderV1 {
 }
 
 impl IndexedInputReaderV1 {
+    /// Return the declaration authenticated with this reader's held manifest
+    /// and profile; callers cannot synthesize this issued value.
+    pub(crate) fn selected_generated_declaration_v1(
+        &self,
+    ) -> io::Result<Option<&SelectedGeneratedDeclarationV1>> {
+        if let Some(declaration) = &self.generated_declaration {
+            if declaration.manifest_sha256 != self.manifest_file.expected_sha256
+                || declaration.profile_sha256 != self.profile_file.expected_sha256
+                || Some(declaration.composition) != self.composition
+            {
+                return Err(invalid(
+                    "indexed-input issued generated declaration binding differs",
+                ));
+            }
+        }
+        Ok(self.generated_declaration.as_ref())
+    }
+
     pub(crate) fn open(
         mut selection: IndexedInputSelectionV1,
         limits: IndexedInputLimitsV1,
@@ -1361,6 +1434,7 @@ impl IndexedInputReaderV1 {
             segment_identity,
             manifest_file: selection.manifest_file,
             composition: selection.composition,
+            generated_declaration: selection.generated_declaration,
             max_profile_bytes: selection.max_profile_bytes,
             max_dependency_closure_bytes: selection.max_dependency_closure_bytes,
             profile_file: selection.profile_file,

@@ -366,6 +366,9 @@ pub(crate) struct NativeSourceValidator<'c> {
     // the whole borrowed validator after the resource DTO moves to its caller.
     spooled_profile: Option<(SpoolIndexLimits, SpoolIndexLimits, PinnedSqliteIoBudget)>,
     spooled_workspace: Option<(File, PinnedSqliteSpaceBudget)>,
+    // Declared after the retained workspace FD; the root also holds this Arc.
+    _spooled_persistent_root_allocation:
+        Option<Arc<tos_source_store::PinnedSqliteSpaceReservation>>,
     segment_v2_profile: Option<NativeSegmentV2Budget>,
     segment_v2_io_accounted: (u64, u64),
     segment_v2_read_upper_accounted: u64,
@@ -628,6 +631,7 @@ impl<'c> NativeSourceValidator<'c> {
             execution_resources_taken: false,
             spooled_profile: None,
             spooled_workspace: None,
+            _spooled_persistent_root_allocation: None,
             segment_v2_profile: None,
             segment_v2_io_accounted: (0, 0),
             segment_v2_read_upper_accounted: 0,
@@ -1051,7 +1055,10 @@ impl<'c> NativeSourceValidator<'c> {
             })
             .flatten();
         if let Some(case) = v2_case.as_ref() {
-            if case.source_store_bytes.checked_add(case.target_store_bytes)
+            if case
+                .source_store_bytes
+                .checked_add(case.target_store_bytes)
+                .and_then(|bytes| bytes.checked_add(case.sqlite_store_bytes))
                 != segment_v2_total_store_bytes
                 || Some(case.source_store_bytes) != segment_v2_store_bytes
                 || case.state_bytes > remaining.state_bytes
@@ -1205,7 +1212,27 @@ impl<'c> NativeSourceValidator<'c> {
                 "selected spooled profile exceeds remaining invocation resources",
             ));
         }
-        let sqlite_space = declared_profile - ROOT_METADATA_BOUND;
+        // Opt-in provider placement is an explicit slice of the ORIGINAL
+        // persistent envelope. Absence leaves the historical TMPFS route intact.
+        let persistent_sqlite_bytes = v2_case.as_ref().map_or(0, |case| case.sqlite_store_bytes);
+        let persistent_root_bound = if persistent_sqlite_bytes != 0 {
+            v2_case
+                .as_ref()
+                .ok_or_else(|| invalid("persistent SQLite case absent"))?
+                .allocation_unit_bytes
+                .checked_mul(2)
+                .ok_or_else(|| invalid("persistent SQLite root metadata overflow"))?
+        } else {
+            0
+        };
+        let sqlite_space = if persistent_sqlite_bytes != 0 {
+            persistent_sqlite_bytes
+                .checked_sub(persistent_root_bound)
+                .filter(|bytes| *bytes != 0)
+                .ok_or_else(|| invalid("persistent SQLite slice leaves no provider space"))?
+        } else {
+            declared_profile - ROOT_METADATA_BOUND
+        };
         let candidate_partition = sqlite_space / 4;
         let index_partition = sqlite_space / 4;
         let reader_partition = sqlite_space / 4;
@@ -1261,6 +1288,28 @@ impl<'c> NativeSourceValidator<'c> {
                 "selected defaults scope exceeds remaining invocation resources",
             ));
         };
+
+        // The existing creation plan has three auxiliary families plus one
+        // strict-reader main and one manifest main. Their simultaneous ceilings
+        // must fit ONLY the SQL slice, even though the ledger also owns the
+        // distinct source and target reservations.
+        let family_upper = |limits: PinnedSqliteAuxLimits| {
+            limits
+                .main_allocated_bytes
+                .checked_add(limits.temp_db_allocated_bytes)
+                .and_then(|n| n.checked_add(limits.main_journal_allocated_bytes))
+                .and_then(|n| n.checked_add(limits.temp_journal_allocated_bytes))
+                .and_then(|n| n.checked_add(limits.other_aux_aggregate_allocated_bytes))
+        };
+        let sqlite_consumer_upper = family_upper(candidate_sqlite)
+            .and_then(|n| n.checked_add(family_upper(index_sqlite)?))
+            .and_then(|n| n.checked_add(family_upper(defaults_sqlite)?))
+            .and_then(|n| n.checked_add(reader_partition))
+            .and_then(|n| n.checked_add(manifest_partition))
+            .ok_or_else(|| invalid("spooled consumer allocation overflow"))?;
+        if sqlite_consumer_upper > sqlite_space {
+            return Err(invalid("spooled consumers exceed selected SQL slice"));
+        }
 
         let root_len = self
             .store_authority
@@ -1398,10 +1447,74 @@ impl<'c> NativeSourceValidator<'c> {
             .store_authority
             .as_ref()
             .ok_or_else(|| invalid("private stage authority disappeared"))?;
-        let isolated = IsolatedCreationRoot::create(authority.root(), self.deadline, &cancelled)
-            .map_err(command)?;
         let aggregate_write =
             PinnedSqliteIoBudget::new(original_io_read_cap, write_remaining).map_err(invalid)?;
+        let io_budget = PinnedSqliteIoBudget::new_with_shared_write_authority(
+            original_io_read_cap,
+            candidate_limits.max_write_bytes,
+            aggregate_write.clone(),
+        )
+        .map_err(invalid)?;
+        io_budget
+            .restrict_remaining_io(
+                candidate_limits.max_read_bytes,
+                candidate_limits.max_write_bytes,
+            )
+            .map_err(invalid)?;
+        let persistent_parent = if persistent_sqlite_bytes != 0 {
+            let parent = authority
+                .persistent_store()
+                .ok_or_else(|| invalid("persistent SQLite original store absent"))?;
+            let held = authority
+                .persistent_store_custody(parent)
+                .map_err(invalid)?
+                .try_clone()?;
+            let before = held
+                .metadata()?
+                .blocks()
+                .checked_mul(512)
+                .ok_or_else(|| invalid("persistent SQLite parent allocation overflow"))?;
+            Some((held, before))
+        } else {
+            None
+        };
+        let persistent_root_allocation = if persistent_sqlite_bytes != 0 {
+            let (space, _) = segment_v2_allocation
+                .as_ref()
+                .ok_or_else(|| invalid("persistent SQLite original allocation absent"))?;
+            Some(Arc::new(
+                space.reserve(persistent_root_bound).map_err(invalid)?,
+            ))
+        } else {
+            None
+        };
+        let isolated = if persistent_sqlite_bytes != 0 {
+            let parent = authority
+                .persistent_store()
+                .ok_or_else(|| invalid("persistent SQLite original store absent"))?;
+            let held = authority
+                .persistent_store_custody(parent)
+                .map_err(invalid)?;
+            // This is a bounded metadata-work permit, not returned payload.
+            io_budget
+                .charge_write(persistent_root_bound)
+                .map_err(invalid)?;
+            IsolatedCreationRoot::create_with_held_parent(
+                parent,
+                held,
+                Arc::clone(
+                    persistent_root_allocation
+                        .as_ref()
+                        .ok_or_else(|| invalid("persistent SQLite root custody absent"))?,
+                ),
+                self.deadline,
+                &cancelled,
+            )
+            .map_err(command)?
+        } else {
+            IsolatedCreationRoot::create(authority.root(), self.deadline, &cancelled)
+                .map_err(command)?
+        };
         let workspace_result =
             (|| -> io::Result<(File, PinnedSqliteIoBudget, PinnedSqliteSpaceBudget, File)> {
                 let workspace = isolated
@@ -1424,16 +1537,17 @@ impl<'c> NativeSourceValidator<'c> {
                     });
                 self.charge_store_guard(PRIVATE_TMPFS_VERIFY_COST.read_bytes, 0)?;
                 let after_usage = after_usage_result?;
-                if after_usage.used_bytes < usage.used_bytes
-                    || after_usage
-                        .used_bytes
-                        .checked_sub(usage.used_bytes)
-                        .is_none_or(|n| n > ROOT_METADATA_BOUND)
-                    || after_usage.used_inodes < usage.used_inodes
-                    || after_usage
-                        .used_inodes
-                        .checked_sub(usage.used_inodes)
-                        .is_none_or(|n| n == 0 || n > root_inode_bound)
+                if persistent_sqlite_bytes == 0
+                    && (after_usage.used_bytes < usage.used_bytes
+                        || after_usage
+                            .used_bytes
+                            .checked_sub(usage.used_bytes)
+                            .is_none_or(|n| n > ROOT_METADATA_BOUND)
+                        || after_usage.used_inodes < usage.used_inodes
+                        || after_usage
+                            .used_inodes
+                            .checked_sub(usage.used_inodes)
+                            .is_none_or(|n| n == 0 || n > root_inode_bound))
                 {
                     // Only fixed labels and numeric quota observations cross
                     // the public refusal boundary; paths and raw IO stay sealed.
@@ -1473,21 +1587,46 @@ impl<'c> NativeSourceValidator<'c> {
                 }
                 active(self.deadline, self.cancel)?;
 
-                let io_budget = PinnedSqliteIoBudget::new_with_shared_write_authority(
-                    original_io_read_cap,
-                    candidate_limits.max_write_bytes,
-                    aggregate_write.clone(),
-                )
-                .map_err(invalid)?;
-                io_budget
-                    .restrict_remaining_io(
-                        candidate_limits.max_read_bytes,
-                        candidate_limits.max_write_bytes,
-                    )
-                    .map_err(invalid)?;
-                let space_budget = PinnedSqliteSpaceBudget::new(sqlite_space).map_err(invalid)?;
+                let space_budget = if persistent_sqlite_bytes != 0 {
+                    let (space, _) = segment_v2_allocation.as_ref().ok_or_else(|| {
+                        invalid("persistent SQLite original allocation disappeared")
+                    })?;
+                    let allocation = persistent_root_allocation
+                        .as_ref()
+                        .ok_or_else(|| invalid("persistent SQLite root custody disappeared"))?;
+                    let metadata = workspace.metadata()?;
+                    let (held_parent, before) = persistent_parent
+                        .as_ref()
+                        .ok_or_else(|| invalid("persistent SQLite parent custody disappeared"))?;
+                    let after = held_parent
+                        .metadata()?
+                        .blocks()
+                        .checked_mul(512)
+                        .ok_or_else(|| invalid("persistent SQLite parent allocation overflow"))?;
+                    let parent_delta = after
+                        .checked_sub(*before)
+                        .ok_or_else(|| invalid("persistent SQLite parent allocation regressed"))?;
+                    let actual = metadata
+                        .blocks()
+                        .checked_mul(512)
+                        .and_then(|bytes| bytes.checked_add(parent_delta))
+                        .ok_or_else(|| invalid("persistent SQLite root allocation overflow"))?;
+                    allocation
+                        .update_actual_allocated(actual)
+                        .map_err(invalid)?;
+                    // Per-family limits partition only sqlite_space; the source
+                    // reservation already consumes its distinct original slice.
+                    space.clone()
+                } else {
+                    PinnedSqliteSpaceBudget::new(sqlite_space).map_err(invalid)?
+                };
                 let retained_workspace = workspace.try_clone()?;
-                Ok((workspace, io_budget, space_budget, retained_workspace))
+                Ok((
+                    workspace,
+                    io_budget.clone(),
+                    space_budget,
+                    retained_workspace,
+                ))
             })();
         let (workspace, io_budget, space_budget, retained_workspace) = match workspace_result {
             Ok(prepared) => prepared,
@@ -1585,6 +1724,7 @@ impl<'c> NativeSourceValidator<'c> {
             cache_bytes,
             max_row_state_bytes: row_state,
         };
+        self._spooled_persistent_root_allocation = persistent_root_allocation;
         self.spooled_workspace = Some((retained_workspace, request.space_budget.clone()));
         self.spooled_profile = Some((index_limits, defaults_limits, request.io_budget.clone()));
         self.spooled_write_cap = Some(write_remaining);

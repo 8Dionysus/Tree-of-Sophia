@@ -5,12 +5,14 @@
 //! measurement only; `corpus-admit` still reopens and validates both roots.
 
 use crate::source_admission::AdmissionWorkBudget;
-use crate::source_command::{SourceCommandError, public_io_reason};
 use crate::source_admission_packed_objects::{MAX_PACKED_OBJECT_FRAMES_V2, PackedObjectLimitsV2};
 use crate::source_capacity_workload::{
-    PackedScaleInputReceiptV1, WeightedScaleProducerRequestV1, WeightedScaleProfileV1,
-    produce_weighted_scale_input_v1, weighted_scale_producer_envelope_v1,
+    PackedScaleInputReceiptV1, WeightedScaleAuthoredAuxMemberV1,
+    WeightedScaleAuthoredAuxSelectionV1, WeightedScaleProducerRequestV1, WeightedScaleProfileV1,
+    produce_weighted_scale_input_v1, produce_weighted_scale_input_with_authored_aux_v1,
+    weighted_scale_composed_producer_envelope_v1, weighted_scale_producer_envelope_v1,
 };
+use crate::source_command::{SourceCommandError, public_io_reason};
 use crate::source_current_cut::{
     foundation_command::SelectedOutput, foundation_entry::FoundationBootstrapClock,
 };
@@ -28,10 +30,13 @@ use std::sync::{
 use std::time::Instant;
 use tos_foundation::Digest256;
 
-pub const HELP: &str = "usage: tos-native-owner-command capacity-fixture --store PATH --seed-sha256 LOWERHEX64 --work-units N [--target-records N] -- --repo-root ABS --invocation ABS [native validator selections]\n\nCreate deterministic private raw and packed scale-input roots for the declared weighted record count (default 100000) under the protected artifact root. The five-class 5/40/5/15/35 distribution is priced against the exact selected Native limits before writing. Then run corpus-admit with the printed --input-root and --indexed-input-root. This fixture does not grant source, review, rights, canon, or admission authority.\n";
+pub const HELP: &str = "usage: tos-native-owner-command capacity-fixture --store PATH --seed-sha256 LOWERHEX64 --work-units N [--target-records N] [--record-selection-manifest ABS] -- --repo-root ABS --invocation ABS [native validator selections]\n\nCreate deterministic private raw and packed scale-input roots for the declared weighted record count (default 100000) under the protected artifact root. The five-class 5/40/5/15/35 distribution is priced against the exact selected Native limits before writing. Then run corpus-admit with the printed --input-root and --indexed-input-root. This fixture does not grant source, review, rights, canon, or admission authority.\n";
 
 fn invalid(reason: &'static str) -> io::Error {
-    io::Error::new(io::ErrorKind::InvalidData, SourceCommandError::Invalid(reason))
+    io::Error::new(
+        io::ErrorKind::InvalidData,
+        SourceCommandError::Invalid(reason),
+    )
 }
 
 struct Arguments {
@@ -40,6 +45,7 @@ struct Arguments {
     work_units: u64,
     target_records: u64,
     repository_root: PathBuf,
+    record_selection_manifest: Option<PathBuf>,
     validator: Vec<OsString>,
 }
 
@@ -80,6 +86,7 @@ fn parse(args: &[OsString]) -> io::Result<Option<Arguments>> {
     let mut seed = None;
     let mut work_units = None;
     let mut target_records = None;
+    let mut record_selection_manifest = None;
     let mut validator = None;
     let mut at = 0;
     while at < args.len() {
@@ -114,8 +121,10 @@ fn parse(args: &[OsString]) -> io::Result<Option<Arguments>> {
                 if text.len() != 64 || text.bytes().any(|byte| byte.is_ascii_uppercase()) {
                     return Err(invalid("capacity fixture seed must be lowercase SHA-256"));
                 }
-                seed = Some(Digest256::from_hex(text)
-                    .map_err(|_| invalid("capacity fixture seed digest refused"))?);
+                seed = Some(
+                    Digest256::from_hex(text)
+                        .map_err(|_| invalid("capacity fixture seed digest refused"))?,
+                );
             }
             "--work-units" if work_units.is_none() => {
                 let text = value
@@ -128,6 +137,12 @@ fn parse(args: &[OsString]) -> io::Result<Option<Arguments>> {
                     return Err(invalid("capacity fixture work units must be finite"));
                 }
                 work_units = Some(units);
+            }
+            "--record-selection-manifest" if record_selection_manifest.is_none() => {
+                record_selection_manifest = Some(parse_path(
+                    value,
+                    "capacity fixture record selection manifest",
+                )?);
             }
             "--target-records" if target_records.is_none() => {
                 let text = value
@@ -183,6 +198,7 @@ fn parse(args: &[OsString]) -> io::Result<Option<Arguments>> {
         seed: seed.ok_or_else(|| invalid("capacity fixture seed absent"))?,
         work_units: work_units.ok_or_else(|| invalid("capacity fixture work units absent"))?,
         target_records: target_records.unwrap_or(100_000),
+        record_selection_manifest,
         repository_root: repository_root
             .ok_or_else(|| invalid("capacity fixture repository root absent"))?,
         validator,
@@ -222,8 +238,12 @@ pub fn run_shared_cancel(
             deadline: output_deadline.get(),
             cancelled,
         };
-        let _ = writeln!(output, "Native capacity fixture refused: {}", public_io_reason(error))
-            .and_then(|_| output.flush());
+        let _ = writeln!(
+            output,
+            "Native capacity fixture refused: {}",
+            public_io_reason(error)
+        )
+        .and_then(|_| output.flush());
     }
     result
 }
@@ -310,12 +330,11 @@ fn run_selected(
     let profile = WeightedScaleProfileV1::weighted_for_records(args.seed, args.target_records)?;
     let target_records = profile.target_records;
     let class_counts = profile.classes.map(|row| row.count);
-    let forecast = profile.forecast_inputs()?;
-    let envelope =
-        weighted_scale_producer_envelope_v1(&profile, tree_io.selected_allocation_unit_bytes())?;
+
     let total_store_bytes = case
         .source_store_bytes
         .checked_add(case.target_store_bytes)
+        .and_then(|bytes| bytes.checked_add(case.sqlite_store_bytes))
         .ok_or_else(|| invalid("capacity fixture selected store sum overflow"))?;
     let seed_text = args.seed.to_hex();
     let count_label = if profile.target_records == 100_000 {
@@ -341,13 +360,20 @@ fn run_selected(
         }
     }
     let work = AdmissionWorkBudget::new(args.work_units)?;
-    let caller_live_state_bytes = size_of::<Arguments>()
+    let mut caller_live_state_bytes = size_of::<Arguments>()
         .checked_add(size_of_val(&validator))
         .and_then(|bytes| bytes.checked_add(size_of_val(&resources)))
         .and_then(|bytes| bytes.checked_add(size_of_val(&v2_profile)))
         .and_then(|bytes| bytes.checked_add(size_of_val(&candidate)))
         .and_then(|bytes| bytes.checked_add(args.store.as_os_str().len()))
         .and_then(|bytes| bytes.checked_add(args.repository_root.as_os_str().len()))
+        .and_then(|bytes| {
+            bytes.checked_add(
+                args.record_selection_manifest
+                    .as_ref()
+                    .map_or(0, |path| path.as_os_str().len()),
+            )
+        })
         .and_then(|bytes| {
             args.validator
                 .iter()
@@ -360,57 +386,119 @@ fn run_selected(
             "capacity fixture caller state exceeds selected V2 state",
         ));
     }
+    let validator_deadline = validator.deadline();
+    let io_before = v2_profile.io.snapshot();
+    let started = Instant::now();
+    let authored = if let Some(path) = args.record_selection_manifest.as_deref() {
+        Some(select_authored_aux_v1(
+            path,
+            &mut validator,
+            &v2_profile.io,
+            case.object_bytes,
+            case.files
+                .checked_sub(target_records)
+                .ok_or_else(|| invalid("capacity fixture auxiliary file cap absent"))?,
+            candidate.max_read_bytes,
+            v2_profile.max_working_state_bytes,
+            caller_live_state_bytes,
+            validator_deadline,
+            cancelled.as_ref(),
+        )?)
+    } else {
+        None
+    };
+    if let Some(selection) = &authored {
+        caller_live_state_bytes = caller_live_state_bytes
+            .checked_add(selection.retained_state_bytes)
+            .ok_or_else(|| invalid("capacity fixture authored caller state overflow"))?;
+    }
+    let (forecast, envelope) = if let Some(selection) = &authored {
+        let price = weighted_scale_composed_producer_envelope_v1(
+            &profile,
+            &selection.auxiliary,
+            tree_io.selected_allocation_unit_bytes(),
+            &raw_root,
+            v2_profile.max_working_state_bytes,
+            caller_live_state_bytes,
+        )?;
+        (price.forecast, price.envelope)
+    } else {
+        (
+            profile.forecast_inputs()?,
+            weighted_scale_producer_envelope_v1(
+                &profile,
+                tree_io.selected_allocation_unit_bytes(),
+            )?,
+        )
+    };
     let member_bytes = u64::try_from(case.object_bytes)
         .map_err(|_| invalid("capacity fixture member cap exceeds u64"))?;
     let max_source_bytes = case.tree_bytes.min(candidate.max_read_bytes);
-    let io_before = v2_profile.io.snapshot();
-    let started = Instant::now();
     let producer_deadline = validator.deadline();
     let mut finalize = || {
+        if let Some(selection) = &authored {
+            crate::source_text_owner::verify_held_file_with_io(
+                &selection.held,
+                unsafe { libc::geteuid() },
+                producer_deadline,
+                cancelled.as_ref(),
+                &v2_profile.io,
+            )
+            .map_err(|_| invalid("capacity fixture authored manifest custody changed"))?;
+        }
         validator.verify_store_authority(&args.store)?;
         validator.finalize_without_evaluation()
     };
-    let generated = produce_weighted_scale_input_v1(
-        WeightedScaleProducerRequestV1 {
-            repository_root: &args.repository_root,
-            raw_input_root: &raw_root,
-            output_root: &packed_root,
-            profile,
+    let producer_request = WeightedScaleProducerRequestV1 {
+        repository_root: &args.repository_root,
+        raw_input_root: &raw_root,
+        output_root: &packed_root,
+        profile,
+        segment_limits: resources
+            .v2_base_read_limits
+            .as_ref()
+            .ok_or_else(|| invalid("capacity fixture segment limits absent"))?
+            .segment,
+        member_tree_limits: v2_profile.tree_limits,
+        object_limits: PackedObjectLimitsV2 {
             segment_limits: resources
                 .v2_base_read_limits
                 .as_ref()
                 .ok_or_else(|| invalid("capacity fixture segment limits absent"))?
                 .segment,
-            member_tree_limits: v2_profile.tree_limits,
-            object_limits: PackedObjectLimitsV2 {
-                segment_limits: resources.v2_base_read_limits.as_ref()
-                    .ok_or_else(|| invalid("capacity fixture segment limits absent"))?.segment,
-                tree_limits: v2_profile.tree_limits,
-                max_working_state_bytes: v2_profile.max_working_state_bytes,
-                caller_live_state_bytes,
-                max_work_units: args.work_units,
-                max_objects: case.tree_rows,
-                max_delta_rows: case.tree_rows,
-                max_pack_frames: MAX_PACKED_OBJECT_FRAMES_V2,
-            },
-            max_member_bytes: member_bytes,
-            max_source_bytes,
-            max_raw_input_files: case.files,
-            max_raw_input_directories: case.directories,
-            max_raw_input_allocated_bytes: case.source_store_bytes,
-            max_temporary_logical_bytes: case.target_store_bytes,
-            max_temporary_allocated_bytes: case.target_store_bytes,
-            max_temporary_inodes: case.files,
+            tree_limits: v2_profile.tree_limits,
             max_working_state_bytes: v2_profile.max_working_state_bytes,
             caller_live_state_bytes,
-            deadline: producer_deadline,
-            cancelled: cancelled.as_ref(),
-            work: work.clone(),
-            space: v2_profile.allocation_space.clone(),
-            tree_io: Arc::clone(&tree_io),
+            max_work_units: args.work_units,
+            max_objects: case.tree_rows,
+            max_delta_rows: case.tree_rows,
+            max_pack_frames: MAX_PACKED_OBJECT_FRAMES_V2,
         },
-        &mut finalize,
-    );
+        max_member_bytes: member_bytes,
+        max_source_bytes,
+        max_raw_input_files: case.files,
+        max_raw_input_directories: case.directories,
+        max_raw_input_allocated_bytes: case.source_store_bytes,
+        max_temporary_logical_bytes: case.target_store_bytes,
+        max_temporary_allocated_bytes: case.target_store_bytes,
+        max_temporary_inodes: case.files,
+        max_working_state_bytes: v2_profile.max_working_state_bytes,
+        caller_live_state_bytes,
+        deadline: producer_deadline,
+        cancelled: cancelled.as_ref(),
+        work: work.clone(),
+        space: v2_profile.allocation_space.clone(),
+        tree_io: Arc::clone(&tree_io),
+    };
+    let generated = if let Some(selection) = &authored {
+        produce_weighted_scale_input_with_authored_aux_v1(
+            producer_request,
+            &selection.auxiliary,
+            &mut finalize,
+        )
+    } else {
+        produce_weighted_scale_input_v1(producer_request, &mut finalize)
+    };
     drop(finalize);
     drop(resources.workspace);
     let verify_store = validator.verify_store_authority(&args.store);
@@ -433,7 +521,7 @@ fn run_selected(
     }
     let io_after = v2_profile.io.snapshot();
     let space = v2_profile.allocation_space.snapshot();
-    let selected_profile = serde_json::json!({
+    let mut selected_profile = serde_json::json!({
         "target_records": target_records,
         "class_counts": class_counts,
         "source_store_bytes": case.source_store_bytes,
@@ -482,6 +570,24 @@ fn run_selected(
             "physical_fit_established": forecast.physical_fit_established
         }
     });
+    if case.sqlite_store_bytes != 0 {
+        selected_profile["consumer_sqlite_store_bytes_selected"] =
+            serde_json::json!(case.sqlite_store_bytes);
+        selected_profile["producer_storage_bytes_selected"] = serde_json::json!(
+            case.source_store_bytes
+                .checked_add(case.target_store_bytes)
+                .ok_or_else(|| invalid("capacity fixture producer selected store sum overflow"))?
+        );
+    }
+    if let Some(composition) = &receipt.composition {
+        selected_profile["generated_record_count"] =
+            serde_json::json!(composition.generated_record_count);
+        selected_profile["auxiliary_member_count"] =
+            serde_json::json!(composition.auxiliary_member_count);
+        selected_profile["auxiliary_source_bytes"] =
+            serde_json::json!(composition.auxiliary_source_bytes);
+        selected_profile["physical_member_count"] = serde_json::json!(receipt.member_count);
+    }
     write_receipt(
         &mut validator,
         &mut output,
@@ -511,6 +617,167 @@ fn run_selected(
     Ok(0)
 }
 
+struct AuthoredAuxCustodyV1 {
+    held: crate::source_text_owner::HeldOwnerFile,
+    // Retain the exact finite record/slot selection beside its held manifest.
+    // The producer copies selected physical bytes; semantic admission is later.
+    _selection: tos_validation::source_record_selection::SourceRecordSelection,
+    auxiliary: WeightedScaleAuthoredAuxSelectionV1,
+    retained_state_bytes: usize,
+}
+
+#[allow(clippy::too_many_arguments)]
+fn select_authored_aux_v1(
+    path: &Path,
+    validator: &mut NativeSourceValidator<'_>,
+    io: &tos_source_store::PinnedSqliteIoBudget,
+    max_member_bytes: usize,
+    max_auxiliary_members: u64,
+    max_read_bytes: u64,
+    max_working_state_bytes: usize,
+    caller_live_state_bytes: usize,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> io::Result<AuthoredAuxCustodyV1> {
+    use tos_validation::source_record_selection::{
+        SelectionLimits, SourceRecordSelection, selection_state_upper_bound,
+    };
+    if max_auxiliary_members == 0 || max_auxiliary_members == u64::MAX {
+        return Err(invalid("capacity fixture auxiliary member cap absent"));
+    }
+    let custody_state = path
+        .as_os_str()
+        .len()
+        .checked_mul(3)
+        .and_then(|bytes| bytes.checked_add(size_of::<crate::source_text_owner::HeldOwnerFile>()))
+        .and_then(|bytes| bytes.checked_add(size_of::<AuthoredAuxCustodyV1>()))
+        .ok_or_else(|| invalid("capacity fixture authored custody state overflow"))?;
+    let model_state = max_working_state_bytes
+        .checked_sub(caller_live_state_bytes)
+        .and_then(|bytes| bytes.checked_sub(custody_state))
+        .ok_or_else(|| invalid("capacity fixture authored state slice absent"))?;
+    let mut low = 0usize;
+    // Selection and final custody each read the held/named file: four bounded
+    // EOF reads, each with the owner reader's one-byte overflow check.
+    let read_cap = max_read_bytes
+        .checked_div(4)
+        .and_then(|bytes| bytes.checked_sub(1))
+        .ok_or_else(|| invalid("capacity fixture authored read envelope absent"))?;
+    let mut high = max_member_bytes.min(usize::try_from(read_cap).unwrap_or(usize::MAX));
+    while low < high {
+        let middle = low + (high - low).div_ceil(2);
+        if selection_state_upper_bound(middle).is_ok_and(|bytes| bytes < model_state) {
+            low = middle;
+        } else {
+            high = middle - 1;
+        }
+    }
+    if low == 0 {
+        return Err(invalid("capacity fixture authored manifest bound absent"));
+    }
+    let reserve = selection_state_upper_bound(low)
+        .map_err(|_| invalid("capacity fixture authored model state refused"))?
+        .checked_add(custody_state)
+        .ok_or_else(|| invalid("capacity fixture authored state overflow"))?;
+    validator.reserve_spooled_external_state(reserve, io)?;
+    let (held, raw) = crate::source_text_owner::select_held_file_with_io(
+        path,
+        unsafe { libc::geteuid() },
+        false,
+        low,
+        deadline,
+        cancelled,
+        io,
+    )
+    .map_err(|_| invalid("capacity fixture authored manifest custody refused"))?;
+    let model_upper = selection_state_upper_bound(raw.len())
+        .map_err(|_| invalid("capacity fixture authored model state refused"))?;
+    let verify_state = model_state
+        .checked_sub(model_upper)
+        .filter(|bytes| *bytes > 0)
+        .ok_or_else(|| invalid("capacity fixture authored verification state absent"))?;
+    let selection = SourceRecordSelection::parse(
+        &raw,
+        SelectionLimits {
+            max_manifest_bytes: low,
+            max_records: raw.len(),
+            max_slots: raw.len(),
+            max_roots: raw.len(),
+            max_owned_state_bytes: model_state,
+            max_row_bytes: max_member_bytes,
+            max_verify_state_bytes: verify_state,
+        },
+    )
+    .map_err(|_| invalid("capacity fixture authored record selection refused"))?;
+    if selection.member_count() as u64 > max_auxiliary_members {
+        return Err(invalid(
+            "capacity fixture auxiliary selection exceeds raw file cap",
+        ));
+    }
+    let authored_manifest_sha256 = selection.digest();
+    if authored_manifest_sha256 != Digest256::of_bytes(&raw) {
+        return Err(invalid("capacity fixture authored manifest digest differs"));
+    }
+    let retained_state_bytes = selection
+        .charged_state_bytes()
+        .checked_add(
+            held.retained_state_bytes()
+                .ok_or_else(|| invalid("capacity fixture authored held state overflow"))?,
+        )
+        .and_then(|bytes| bytes.checked_add(size_of::<AuthoredAuxCustodyV1>()))
+        .ok_or_else(|| invalid("capacity fixture authored retained state overflow"))?;
+    drop(raw);
+    let available_aux_state = max_working_state_bytes
+        .checked_sub(caller_live_state_bytes)
+        .and_then(|bytes| bytes.checked_sub(retained_state_bytes))
+        .filter(|bytes| *bytes > 0)
+        .ok_or_else(|| invalid("capacity fixture authored descriptor state absent"))?;
+    let descriptor_state = selection.members().try_fold(
+        selection
+            .member_count()
+            .checked_mul(size_of::<WeightedScaleAuthoredAuxMemberV1>())
+            .ok_or_else(|| invalid("capacity fixture authored descriptor state overflow"))?,
+        |bytes, member| {
+            bytes
+                .checked_add(member.source_ref.len())
+                .ok_or_else(|| invalid("capacity fixture authored path state overflow"))
+        },
+    )?;
+    if descriptor_state
+        .checked_add(size_of::<WeightedScaleAuthoredAuxSelectionV1>())
+        .is_none_or(|bytes| bytes > available_aux_state)
+    {
+        return Err(invalid(
+            "capacity fixture authored descriptors exceed selected state",
+        ));
+    }
+    let mut members = Vec::new();
+    members
+        .try_reserve_exact(selection.member_count())
+        .map_err(|_| invalid("capacity fixture authored descriptor allocation refused"))?;
+    for member in selection.members() {
+        members.push(WeightedScaleAuthoredAuxMemberV1 {
+            path: member.source_ref.clone(),
+            raw_sha256: Digest256::from_hex(&member.raw_sha256)
+                .map_err(|_| invalid("capacity fixture authored member digest differs"))?,
+            raw_bytes: member.raw_bytes,
+        });
+    }
+    let auxiliary = WeightedScaleAuthoredAuxSelectionV1::from_owner_selection(
+        authored_manifest_sha256,
+        members,
+        selection.member_count(),
+        max_read_bytes,
+        available_aux_state,
+    )?;
+    Ok(AuthoredAuxCustodyV1 {
+        held,
+        _selection: selection,
+        auxiliary,
+        retained_state_bytes,
+    })
+}
+
 #[allow(clippy::too_many_arguments)]
 fn write_receipt(
     validator: &mut NativeSourceValidator<'_>,
@@ -531,20 +798,68 @@ fn write_receipt(
     protected_operation_elapsed_ms: u64,
 ) -> io::Result<()> {
     let forecast = &receipt.forecast;
-    let measured_source_at_1b =
-        project_measured_bytes(receipt.source_bytes, receipt.member_count, 1_000_000_000)?;
-    let measured_unique_at_1b = project_measured_bytes(
-        receipt.unique_payload_bytes,
-        receipt.member_count,
-        1_000_000_000,
-    )?;
-    let measured_source_ten_copies_at_1b =
-        project_measured_bytes(receipt.source_bytes, receipt.member_count, 10_000_000_000)?;
-    let measured_unique_ten_copies_at_1b = project_measured_bytes(
-        receipt.unique_payload_bytes,
-        receipt.member_count,
-        10_000_000_000,
-    )?;
+    let generated_source_bytes =
+        receipt
+            .class_source_bytes
+            .iter()
+            .try_fold(0u64, |total, bytes| {
+                total
+                    .checked_add(*bytes)
+                    .ok_or_else(|| invalid("capacity fixture generated source total overflow"))
+            })?;
+    let (
+        measured_source_at_1b,
+        measured_source_ten_copies_at_1b,
+        measured_unique_at_1b,
+        measured_unique_ten_copies_at_1b,
+    ) = if let Some(composition) = &receipt.composition {
+        if generated_source_bytes.checked_add(composition.auxiliary_source_bytes)
+            != Some(receipt.source_bytes)
+            || composition
+                .generated_record_count
+                .checked_add(composition.auxiliary_member_count)
+                != Some(receipt.member_count)
+        {
+            return Err(invalid("capacity fixture composed receipt totals differ"));
+        }
+        let one = project_measured_bytes(
+            generated_source_bytes,
+            composition.generated_record_count,
+            1_000_000_000,
+        )?
+        .checked_add(composition.auxiliary_source_bytes)
+        .ok_or_else(|| invalid("capacity fixture composed projection overflow"))?;
+        let ten = project_measured_bytes(
+            generated_source_bytes,
+            composition.generated_record_count,
+            10_000_000_000,
+        )?
+        .checked_add(
+            composition
+                .auxiliary_source_bytes
+                .checked_mul(10)
+                .ok_or_else(|| invalid("capacity fixture composed projection overflow"))?,
+        )
+        .ok_or_else(|| invalid("capacity fixture composed projection overflow"))?;
+        // Shared deduplication has no measured generated/auxiliary split.
+        // A unique 1B projection cannot be derived from aggregate objects.
+        (one, ten, None, None)
+    } else {
+        (
+            project_measured_bytes(receipt.source_bytes, receipt.member_count, 1_000_000_000)?,
+            project_measured_bytes(receipt.source_bytes, receipt.member_count, 10_000_000_000)?,
+            Some(project_measured_bytes(
+                receipt.unique_payload_bytes,
+                receipt.member_count,
+                1_000_000_000,
+            )?),
+            Some(project_measured_bytes(
+                receipt.unique_payload_bytes,
+                receipt.member_count,
+                10_000_000_000,
+            )?),
+        )
+    };
     let forecast_report = serde_json::json!({
         "target_records": forecast.target_records,
         "p50_logical_source_bytes_at_profile_size": forecast.p50_logical_source_bytes,
@@ -624,6 +939,19 @@ fn write_receipt(
             "capacity fixture identity receipt must be an object",
         ));
     };
+    if let Some(composition) = &receipt.composition {
+        report_fields.insert("authored_aux_composition".into(), serde_json::json!({
+            "coverage": "authenticated_byte_composition_pending_semantic_admission",
+            "authored_manifest_sha256": composition.authored_manifest_sha256.to_hex(),
+            "generated_declaration_sha256": composition.generated_declaration_sha256.to_hex(),
+            "auxiliary_members_sha256": composition.auxiliary_members_sha256.to_hex(),
+            "generated_record_count": composition.generated_record_count,
+            "auxiliary_member_count": composition.auxiliary_member_count,
+            "auxiliary_source_bytes": composition.auxiliary_source_bytes,
+            "members_descriptor_sha256": composition.members_descriptor_sha256.to_hex(),
+            "unique_payload_1b_projection": "unavailable_without_generated_auxiliary_dedup_split"
+        }));
+    }
     let serde_json::Value::Object(measurement_fields) = serde_json::json!({
         "unique_object_count": receipt.unique_object_count,
         "unique_payload_bytes": receipt.unique_payload_bytes,

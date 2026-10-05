@@ -1639,7 +1639,7 @@ impl WeightedScaleTemplateSetV1 {
         Self::load_inner(repository_root, None)
     }
 
-    fn load_accounted(
+    pub(crate) fn load_accounted(
         repository_root: &Path,
         io: &PinnedSqliteIoBudget,
         deadline: Instant,
@@ -1868,15 +1868,7 @@ impl<'a> WeightedScaleMemberIterV1<'a> {
         let class_row = self.profile.classes[self.class_index];
         let ordinal = self.ordinal;
         let template = self.templates.select(class_row.class, ordinal);
-        let mut value: serde_json::Value = serde_json::from_slice(&template.bytes)
-            .map_err(|_| io_invalid("pinned scale template JSON is invalid"))?;
-        rewrite_fixture_record_v1(
-            &mut value,
-            class_row.class,
-            ordinal,
-            self.profile.seed,
-            self.profile.classes[4].count,
-        )?;
+        let value = fixture_record_value_v1(self.profile, template, class_row.class, ordinal)?;
         audit_fixture_references_v1(
             &value,
             template,
@@ -1941,6 +1933,566 @@ impl<'a> WeightedScaleMemberIterV1<'a> {
             template_sha256: template.template_sha256,
             mode: 0o644,
         }))
+    }
+}
+
+fn fixture_record_value_v1(
+    profile: &WeightedScaleProfileV1,
+    template: &WeightedScaleTemplateV1,
+    class: WeightedScaleClassV1,
+    ordinal: u64,
+) -> std::io::Result<serde_json::Value> {
+    let mut value = serde_json::from_slice(&template.bytes)
+        .map_err(|_| io_invalid("pinned scale template JSON is invalid"))?;
+    rewrite_fixture_record_v1(
+        &mut value,
+        class,
+        ordinal,
+        profile.seed,
+        profile.classes[4].count,
+    )?;
+    Ok(value)
+}
+
+/// Exact workload-owned generated member identity. Canonical record/slot
+/// bindings and semantic acceptance remain with their existing owner.
+pub(crate) struct WeightedScaleGeneratedMemberV1 {
+    class: WeightedScaleClassV1,
+    ordinal: u64,
+    identity: String,
+    template_sha256: Digest256,
+    raw_sha256: Digest256,
+    raw_bytes: u64,
+}
+
+impl WeightedScaleGeneratedMemberV1 {
+    pub(crate) fn class(&self) -> WeightedScaleClassV1 {
+        self.class
+    }
+    pub(crate) fn ordinal(&self) -> u64 {
+        self.ordinal
+    }
+    pub(crate) fn identity(&self) -> &str {
+        &self.identity
+    }
+    pub(crate) fn template_sha256(&self) -> Digest256 {
+        self.template_sha256
+    }
+    pub(crate) fn raw_sha256(&self) -> Digest256 {
+        self.raw_sha256
+    }
+    pub(crate) fn raw_bytes(&self) -> u64 {
+        self.raw_bytes
+    }
+}
+
+/// Generated-ALL is issued from the authenticated input reader declaration,
+/// never a prefix wildcard or a manifest containing every generated ID.
+pub(crate) struct WeightedScaleGeneratedAllV1 {
+    profile: WeightedScaleProfileV1,
+    templates: WeightedScaleTemplateSetV1,
+    auxiliary: Arc<WeightedScaleAuthoredAuxSelectionV1>,
+    fence: super::source_admission_spooled_candidate::CandidateFence,
+    selection_sha256: Digest256,
+    retained_state_bytes: usize,
+    max_owned_state_bytes: usize,
+    work: AdmissionWorkBudget,
+}
+
+impl WeightedScaleGeneratedAllV1 {
+    pub(crate) fn from_selected_declaration(
+        declaration: &super::source_admission_indexed_input::SelectedGeneratedDeclarationV1,
+        mut templates: WeightedScaleTemplateSetV1,
+        auxiliary: Arc<WeightedScaleAuthoredAuxSelectionV1>,
+        fence: super::source_admission_spooled_candidate::CandidateFence,
+        max_owned_state_bytes: usize,
+        caller_live_state_bytes: usize,
+        work: AdmissionWorkBudget,
+    ) -> std::io::Result<Self> {
+        // The set's payload arrays are owner-private; recompute retained byte
+        // observations rather than trusting mutable public summary counters.
+        let mut template_bytes = 0u64;
+        let mut reference_bytes = 0u64;
+        for rows in &templates.templates {
+            for template in rows {
+                template_bytes = template_bytes
+                    .checked_add(template.bytes.len() as u64)
+                    .ok_or_else(|| io_invalid("generated template state overflow"))?;
+                for edge in &template.external_reference_edges {
+                    reference_bytes = reference_bytes
+                        .checked_add(edge.pointer.len() as u64)
+                        .and_then(|bytes| bytes.checked_add(edge.reference.len() as u64))
+                        .ok_or_else(|| io_invalid("generated template reference state overflow"))?;
+                }
+            }
+        }
+        templates.resident_template_bytes = template_bytes;
+        templates.resident_reference_state_bytes = reference_bytes;
+        let profile = WeightedScaleProfileV1::weighted_for_records(
+            declaration.seed_sha256(),
+            declaration.generated_record_count(),
+        )?;
+        let composition = declaration.composition();
+        let total = profile
+            .target_records
+            .checked_add(auxiliary.members.len() as u64)
+            .ok_or_else(|| io_invalid("generated selection member count overflow"))?;
+        if profile.classes.map(|row| row.count) != declaration.class_counts()
+            || templates.manifest_sha256 != declaration.template_manifest_sha256()
+            || template_manifest_digest_v1(&templates.templates)? != templates.manifest_sha256
+            || generated_declaration_digest_v1(&profile, templates.manifest_sha256)?
+                != declaration.generated_declaration_sha256()
+            || composition.generated_declaration_sha256
+                != declaration.generated_declaration_sha256()
+            || composition.generated_record_count != profile.target_records
+            || composition.authored_manifest_sha256 != auxiliary.authored_manifest_sha256
+            || composition.auxiliary_members_sha256 != auxiliary_members_digest_v1(&auxiliary)
+            || composition.auxiliary_member_count != auxiliary.members.len() as u64
+            || composition.auxiliary_source_bytes != auxiliary.source_bytes
+            || fence.membership.count != total
+            || fence.source_bytes < auxiliary.source_bytes
+            || max_owned_state_bytes == 0
+            || max_owned_state_bytes == usize::MAX
+        {
+            return Err(io_invalid(
+                "generated selection differs from issued declaration",
+            ));
+        }
+        let maximum_path = auxiliary
+            .members
+            .iter()
+            .map(|member| member.path.len())
+            .max()
+            .unwrap_or(0)
+            .max(max_member_path_bytes_v1(&profile));
+        let retained_state_bytes = weighted_producer_state_upper_v1(&templates, 0)?
+            .checked_add(auxiliary.state_bytes)
+            .and_then(|bytes| bytes.checked_add(size_of::<Self>()))
+            .and_then(|bytes| bytes.checked_add(size_of::<WeightedScaleGeneratedTraversalV1>()))
+            .and_then(|bytes| bytes.checked_add(maximum_path.checked_mul(2)?))
+            .ok_or_else(|| io_invalid("generated selection retained state overflow"))?;
+        if retained_state_bytes
+            .checked_add(caller_live_state_bytes)
+            .is_none_or(|bytes| bytes >= max_owned_state_bytes)
+        {
+            return Err(io_invalid("generated selection exceeds selected state"));
+        }
+        let mut hash = Digest256Hasher::new();
+        hash.update(b"tos-scale-generated-all-selection-v1\0");
+        hash.update(declaration.profile_sha256().as_bytes());
+        hash.update(declaration.template_manifest_sha256().as_bytes());
+        hash.update(declaration.generated_declaration_sha256().as_bytes());
+        hash.update(composition.authored_manifest_sha256.as_bytes());
+        hash.update(composition.auxiliary_members_sha256.as_bytes());
+        hash.update(composition.members_descriptor_sha256.as_bytes());
+        hash.update(fence.batch_sha256.as_bytes());
+        hash.update(fence.validator_sha256.as_bytes());
+        hash.update(fence.membership.digest.as_bytes());
+        hash.update(&fence.membership.count.to_be_bytes());
+        hash.update(&fence.source_bytes.to_be_bytes());
+        hash.update(&fence.retirement_count.to_be_bytes());
+        hash.update(fence.retirement_digest.as_bytes());
+        if let Some(revision) = fence.base_revision {
+            hash.update(&[1]);
+            hash.update(revision.0.as_bytes());
+        } else {
+            hash.update(&[0]);
+        }
+        Ok(Self {
+            profile,
+            templates,
+            auxiliary,
+            fence,
+            selection_sha256: hash.finalize(),
+            retained_state_bytes,
+            max_owned_state_bytes,
+            work,
+        })
+    }
+
+    pub(crate) fn selection_sha256(&self) -> Digest256 {
+        self.selection_sha256
+    }
+    pub(crate) fn declared_generated_count(&self) -> u64 {
+        self.profile.target_records
+    }
+    pub(crate) fn retained_state_bytes(&self) -> usize {
+        self.retained_state_bytes
+    }
+
+    fn generated_position(
+        &self,
+        path: &str,
+    ) -> std::io::Result<Option<(WeightedScaleClassV1, u64)>> {
+        for row in &self.profile.classes {
+            let Some(tail) = path.strip_prefix(generated_path_prefix_v1(row.class)) else {
+                continue;
+            };
+            let Some((digits, suffix)) = tail.split_once('/') else {
+                return Err(io_invalid("generated member path shape differs"));
+            };
+            if digits.len() != 20
+                || !digits.bytes().all(|byte| byte.is_ascii_digit())
+                || suffix != row.class.suffix()
+            {
+                return Err(io_invalid("generated member path shape differs"));
+            }
+            let ordinal = digits
+                .parse::<u64>()
+                .map_err(|_| io_invalid("generated ordinal overflow"))?;
+            if ordinal >= row.count || path_for(row.class, ordinal) != path {
+                return Err(io_invalid("generated ordinal exceeds declared class"));
+            }
+            return Ok(Some((row.class, ordinal)));
+        }
+        Ok(None)
+    }
+
+    /// Scope selection is exact class/ordinal/path geometry; raw verification
+    /// remains mandatory before any selected record is returned to a consumer.
+    pub(crate) fn selects_record(&self, path: &str) -> std::io::Result<bool> {
+        Ok(self.generated_position(path)?.is_some())
+    }
+
+    pub(crate) fn selects_claim_row(&self, path: &str, line: u64) -> std::io::Result<bool> {
+        Ok(line == 1
+            && self
+                .generated_position(path)?
+                .is_some_and(|(class, _)| class == WeightedScaleClassV1::Claim))
+    }
+
+    pub(crate) fn verify_record(
+        &self,
+        path: &str,
+        raw: &[u8],
+        actual_fence: super::source_admission_spooled_candidate::CandidateFence,
+        caller_live_state_bytes: usize,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> std::io::Result<WeightedScaleGeneratedMemberV1> {
+        scale_active(deadline, cancelled)?;
+        self.work.charge_many(1)?;
+        if actual_fence != self.fence {
+            return Err(io_invalid("generated selection CandidateFence differs"));
+        }
+        let (class, ordinal) = self
+            .generated_position(path)?
+            .ok_or_else(|| io_invalid("record outside declared generated selection"))?;
+        let row = self.profile.classes[class as usize];
+        let selected_bytes =
+            match selected_quantile_index_v1(ordinal % SCALE_SELECTED_QUANTILE_PERIOD_V1) {
+                0 => row.p50_bytes,
+                1 => row.p95_bytes,
+                _ => row.max_bytes,
+            }
+            .checked_add(SCALE_IDENTITY_GROWTH_ALLOWANCE_V1)
+            .ok_or_else(|| io_invalid("generated verification byte bound overflow"))?;
+        if raw.is_empty()
+            || raw.len() > SCALE_MAX_TEMPLATE_BYTES_V1
+            || raw.len() as u64 > selected_bytes
+            || self
+                .retained_state_bytes
+                .checked_add(raw.len())
+                .and_then(|bytes| bytes.checked_add(caller_live_state_bytes))
+                .is_none_or(|bytes| bytes > self.max_owned_state_bytes)
+        {
+            return Err(io_invalid(
+                "generated verification exceeds selected state or member profile",
+            ));
+        }
+        let template = self.templates.select(class, ordinal);
+        let value = fixture_record_value_v1(&self.profile, template, class, ordinal)?;
+        let mut compare = GeneratedCompareWriterV1 {
+            raw,
+            offset: 0,
+            deadline,
+            cancelled,
+        };
+        if class == WeightedScaleClassV1::Claim {
+            serde_json::to_writer(&mut compare, &value)
+        } else {
+            serde_json::to_writer_pretty(&mut compare, &value)
+        }
+        .map_err(|_| io_invalid("generated member differs from maintained renderer"))?;
+        compare.write_all(b"\n")?;
+        if compare.offset != raw.len() {
+            return Err(io_invalid("generated member renderer EOF differs"));
+        }
+        scale_active(deadline, cancelled)?;
+        Ok(WeightedScaleGeneratedMemberV1 {
+            class,
+            ordinal,
+            identity: scale_identity(self.profile.seed, class, ordinal),
+            template_sha256: template.template_sha256,
+            raw_sha256: Digest256::of_bytes(raw),
+            raw_bytes: raw.len() as u64,
+        })
+    }
+
+    pub(crate) fn begin_traversal(&self) -> WeightedScaleGeneratedTraversalV1 {
+        let mut hash = Digest256Hasher::new();
+        hash.update(b"tos-scale-generated-all-observed-members-v1\0");
+        hash.update(self.selection_sha256.as_bytes());
+        WeightedScaleGeneratedTraversalV1 {
+            selection_sha256: self.selection_sha256,
+            class_ordinals: [0; 5],
+            auxiliary_index: 0,
+            generated_bytes: 0,
+            auxiliary_bytes: 0,
+            observed_members: 0,
+            previous_path: String::new(),
+            hash,
+            failed: false,
+        }
+    }
+
+    /// Observe the complete real physical traversal, including only exact
+    /// authenticated finite auxiliary members. There is no unnamed skip branch.
+    pub(crate) fn observe_member(
+        &self,
+        traversal: &mut WeightedScaleGeneratedTraversalV1,
+        path: &str,
+        raw: &[u8],
+        actual_fence: super::source_admission_spooled_candidate::CandidateFence,
+        caller_live_state_bytes: usize,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> std::io::Result<Option<WeightedScaleGeneratedMemberV1>> {
+        if traversal.failed {
+            return Err(io_invalid("generated traversal already refused"));
+        }
+        let result = self.observe_inner(
+            traversal,
+            path,
+            raw,
+            actual_fence,
+            caller_live_state_bytes,
+            deadline,
+            cancelled,
+        );
+        if result.is_err() {
+            traversal.failed = true;
+        }
+        result
+    }
+
+    fn observe_inner(
+        &self,
+        traversal: &mut WeightedScaleGeneratedTraversalV1,
+        path: &str,
+        raw: &[u8],
+        actual_fence: super::source_admission_spooled_candidate::CandidateFence,
+        caller_live_state_bytes: usize,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> std::io::Result<Option<WeightedScaleGeneratedMemberV1>> {
+        scale_active(deadline, cancelled)?;
+        if traversal.selection_sha256 != self.selection_sha256
+            || actual_fence != self.fence
+            || self
+                .retained_state_bytes
+                .checked_add(raw.len())
+                .and_then(|bytes| bytes.checked_add(caller_live_state_bytes))
+                .is_none_or(|bytes| bytes > self.max_owned_state_bytes)
+            || (!traversal.previous_path.is_empty() && path <= traversal.previous_path.as_str())
+        {
+            return Err(io_invalid(
+                "generated traversal identity or physical path order differs",
+            ));
+        }
+        let (binding, class_tag, ordinal, digest, size) = if let Some((class, ordinal)) =
+            self.generated_position(path)?
+        {
+            if ordinal != traversal.class_ordinals[class as usize] {
+                return Err(io_invalid(
+                    "generated traversal class ordinal gap or duplicate",
+                ));
+            }
+            let binding = self.verify_record(
+                path,
+                raw,
+                actual_fence,
+                caller_live_state_bytes,
+                deadline,
+                cancelled,
+            )?;
+            traversal.class_ordinals[class as usize] = ordinal
+                .checked_add(1)
+                .ok_or_else(|| io_invalid("generated observed ordinal overflow"))?;
+            traversal.generated_bytes = traversal
+                .generated_bytes
+                .checked_add(binding.raw_bytes)
+                .ok_or_else(|| io_invalid("generated observed bytes overflow"))?;
+            let digest = binding.raw_sha256;
+            let size = binding.raw_bytes;
+            (Some(binding), class as u8, ordinal, digest, size)
+        } else {
+            self.work.charge_many(1)?;
+            let aux = self
+                .auxiliary
+                .members
+                .get(traversal.auxiliary_index)
+                .ok_or_else(|| io_invalid("physical member outside finite auxiliary selection"))?;
+            if aux.path != path
+                || aux.raw_bytes != raw.len() as u64
+                || aux.raw_sha256 != Digest256::of_bytes(raw)
+            {
+                return Err(io_invalid(
+                    "physical member differs from finite auxiliary proof",
+                ));
+            }
+            traversal.auxiliary_index += 1;
+            traversal.auxiliary_bytes = traversal
+                .auxiliary_bytes
+                .checked_add(aux.raw_bytes)
+                .ok_or_else(|| io_invalid("auxiliary observed bytes overflow"))?;
+            (
+                None,
+                WeightedScaleClassV1::ALL.len() as u8,
+                traversal.auxiliary_index as u64 - 1,
+                aux.raw_sha256,
+                aux.raw_bytes,
+            )
+        };
+        traversal
+            .hash
+            .update(&traversal.observed_members.to_be_bytes());
+        traversal.hash.update(&[class_tag]);
+        traversal.hash.update(&ordinal.to_be_bytes());
+        traversal.hash.update(&(path.len() as u64).to_be_bytes());
+        traversal.hash.update(path.as_bytes());
+        traversal.hash.update(digest.as_bytes());
+        traversal.hash.update(&size.to_be_bytes());
+        traversal.observed_members = traversal
+            .observed_members
+            .checked_add(1)
+            .ok_or_else(|| io_invalid("generated total observed count overflow"))?;
+        traversal.previous_path.clear();
+        traversal.previous_path.push_str(path);
+        Ok(binding)
+    }
+
+    /// Called only after the actual input traversal returned EOF. Its digest
+    /// proves workload/dependency byte coverage, never semantic acceptance.
+    pub(crate) fn finish_traversal(
+        &self,
+        mut traversal: WeightedScaleGeneratedTraversalV1,
+        actual_fence: super::source_admission_spooled_candidate::CandidateFence,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> std::io::Result<WeightedScaleGeneratedEofV1> {
+        scale_active(deadline, cancelled)?;
+        self.work.charge_many(1)?;
+        if traversal.failed
+            || traversal.selection_sha256 != self.selection_sha256
+            || actual_fence != self.fence
+            || traversal.class_ordinals != self.profile.classes.map(|row| row.count)
+            || traversal.auxiliary_index != self.auxiliary.members.len()
+            || traversal.auxiliary_bytes != self.auxiliary.source_bytes
+            || traversal.observed_members != self.fence.membership.count
+            || traversal
+                .generated_bytes
+                .checked_add(traversal.auxiliary_bytes)
+                != Some(self.fence.source_bytes)
+        {
+            return Err(io_invalid(
+                "generated or finite auxiliary actual EOF census differs",
+            ));
+        }
+        traversal.hash.update(b"complete-physical-eof\0");
+        for count in traversal.class_ordinals {
+            traversal.hash.update(&count.to_be_bytes());
+        }
+        traversal
+            .hash
+            .update(&traversal.generated_bytes.to_be_bytes());
+        traversal
+            .hash
+            .update(&traversal.auxiliary_bytes.to_be_bytes());
+        traversal
+            .hash
+            .update(&traversal.observed_members.to_be_bytes());
+        Ok(WeightedScaleGeneratedEofV1 {
+            selection_sha256: self.selection_sha256,
+            generated_count: self.profile.target_records,
+            generated_bytes: traversal.generated_bytes,
+            auxiliary_count: traversal.auxiliary_index as u64,
+            auxiliary_bytes: traversal.auxiliary_bytes,
+            observed_members: traversal.observed_members,
+            ordered_sha256: traversal.hash.finalize(),
+        })
+    }
+}
+
+struct GeneratedCompareWriterV1<'a> {
+    raw: &'a [u8],
+    offset: usize,
+    deadline: Instant,
+    cancelled: &'a AtomicBool,
+}
+impl IoWrite for GeneratedCompareWriterV1<'_> {
+    fn write(&mut self, bytes: &[u8]) -> std::io::Result<usize> {
+        scale_active(self.deadline, self.cancelled)?;
+        let end = self
+            .offset
+            .checked_add(bytes.len())
+            .filter(|end| *end <= self.raw.len())
+            .ok_or_else(|| io_invalid("generated renderer exceeds actual raw EOF"))?;
+        if self.raw[self.offset..end] != *bytes {
+            return Err(io_invalid(
+                "generated raw bytes differ from maintained renderer",
+            ));
+        }
+        self.offset = end;
+        Ok(bytes.len())
+    }
+    fn flush(&mut self) -> std::io::Result<()> {
+        Ok(())
+    }
+}
+
+pub(crate) struct WeightedScaleGeneratedTraversalV1 {
+    selection_sha256: Digest256,
+    class_ordinals: [u64; 5],
+    auxiliary_index: usize,
+    generated_bytes: u64,
+    auxiliary_bytes: u64,
+    observed_members: u64,
+    previous_path: String,
+    hash: Digest256Hasher,
+    failed: bool,
+}
+/// Private fields prevent a caller-provided scalar from standing for real EOF.
+pub(crate) struct WeightedScaleGeneratedEofV1 {
+    selection_sha256: Digest256,
+    generated_count: u64,
+    generated_bytes: u64,
+    auxiliary_count: u64,
+    auxiliary_bytes: u64,
+    observed_members: u64,
+    ordered_sha256: Digest256,
+}
+impl WeightedScaleGeneratedEofV1 {
+    pub(crate) fn selection_sha256(&self) -> Digest256 {
+        self.selection_sha256
+    }
+    pub(crate) fn generated_count(&self) -> u64 {
+        self.generated_count
+    }
+    pub(crate) fn generated_bytes(&self) -> u64 {
+        self.generated_bytes
+    }
+    pub(crate) fn auxiliary_count(&self) -> u64 {
+        self.auxiliary_count
+    }
+    pub(crate) fn auxiliary_bytes(&self) -> u64 {
+        self.auxiliary_bytes
+    }
+    pub(crate) fn observed_members(&self) -> u64 {
+        self.observed_members
+    }
+    pub(crate) fn ordered_sha256(&self) -> Digest256 {
+        self.ordered_sha256
     }
 }
 
