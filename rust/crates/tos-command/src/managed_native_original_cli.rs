@@ -13,21 +13,24 @@ use std::{
     io::{self, Read, Seek, SeekFrom, Write},
     os::unix::fs::{MetadataExt, OpenOptionsExt},
     path::{Component, Path, PathBuf},
-    sync::{Arc, Mutex, atomic::{AtomicBool, AtomicU64}},
+    sync::{
+        Arc, Mutex,
+        atomic::{AtomicBool, AtomicU64},
+    },
     time::{Duration, Instant},
 };
 use tos_compiler::{
-    ColdOpenLimits, ImmutableKnowledgeCustody, KnowledgeSelectedExpectation, LinuxFsVerityCustody,
-    NativeFsVerityMeasurement, NativeKnowledgeSelection, NativeProcessLimits, NativeSelectionPaths,
-    PublicCapture, native_snapshot, native_snapshot_manifest as manifest,
-    private_tmpfs_stage::PrivateTmpfsStageIsolation,
-    DedicatedSessionSqliteHeap, RuntimeCaptureOwnedBudget, RuntimeCaptureCreationUsage,
-    native_cold_resources::LinuxCgroupColdOpenResourceHold,
+    ColdOpenLimits, DedicatedSessionSqliteHeap, ImmutableKnowledgeCustody,
+    KnowledgeSelectedExpectation, LinuxFsVerityCustody, NativeFsVerityMeasurement,
+    NativeKnowledgeSelection, NativeProcessLimits, NativeSelectionPaths, PublicCapture,
+    RuntimeCaptureCreationUsage, RuntimeCaptureOwnedBudget,
+    native_cold_resources::LinuxCgroupColdOpenResourceHold, native_snapshot,
+    native_snapshot_manifest as manifest, private_tmpfs_stage::PrivateTmpfsStageIsolation,
 };
 use tos_foundation::{Digest256, Digest256Hasher, JsonLimits, JsonMode, RelativePath, parse_json};
 
-const REQUEST_SCHEMA: &str = "tos_native_managed_original_produce_request_v1";
-const RESULT_SCHEMA: &str = "tos_native_managed_original_produce_result_v1";
+const REQUEST_SCHEMA: &str = "tos_native_managed_original_produce_request_v2";
+const RESULT_SCHEMA: &str = "tos_native_managed_original_produce_result_v2";
 const COLD_SCHEMA: &str = "tos_native_managed_original_cold_witness_v1";
 const MAX_REQUEST_BYTES: usize = 64 * 1024;
 const MAX_RESULT_BYTES: usize = 4 * 1024 * 1024;
@@ -68,6 +71,7 @@ struct Request {
     data_directory: String,
     private_release_directory: String,
     evidence_refs: Vec<EvidenceRefInput>,
+    selected_snapshot: manifest::NativeSelectedSnapshotProfile,
 }
 
 #[derive(Deserialize)]
@@ -614,6 +618,7 @@ fn validate_request(request: &Request) -> Result<()> {
     {
         return Err(Refusal("native Original producer request envelope invalid").into());
     }
+    request.selected_snapshot.validate()?;
     let cold = request.cold_open;
     let process = request.process_limits;
     if cold.max_file_bytes == 0
@@ -736,19 +741,18 @@ fn data_member_paths(members: &[manifest::NativeCapturedMember]) -> Vec<String> 
 fn source_bindings(
     completed: &native_snapshot::CompletedNativeSnapshot,
     captured_members: &[manifest::NativeCapturedMember],
+    selected: &manifest::NativeSelectedSnapshotCensus,
+    profile: &manifest::NativeSelectedSnapshotProfile,
     deadline: Instant,
 ) -> Result<BTreeMap<String, String>> {
-    let mut result = manifest::HISTORICAL_SOURCE_BINDINGS
-        .into_iter()
-        .map(|(path, digest)| (path.to_owned(), digest.to_owned()))
-        .collect::<BTreeMap<_, _>>();
+    let mut result = selected.source_bindings().clone();
     result.insert(
         manifest::RUNTIME_DATA_DECLARATION_PATH.to_owned(),
         Digest256::of_bytes(manifest::RUNTIME_DATA_DECLARATION).to_hex(),
     );
     result.insert(
         manifest::EVIDENCE_SCENES_PATH.to_owned(),
-        manifest::EVIDENCE_SCENES_SHA256.to_owned(),
+        profile.evidence_scenes_sha256.clone(),
     );
     let corpus = completed
         .producer()
@@ -798,7 +802,7 @@ fn source_bindings(
         // still checked here against the held capture closure, and the
         // receiving reader rechecks every declared member against its held
         // DataGuard. Per-part TOP bindings would exceed this reader's 1 MiB
-        // manifest ceiling for the 1,475-member historical traversal.
+        // manifest ceiling for a large selected traversal.
     }
     if result.len() > manifest::NATIVE_PRODUCER_MAX_MEMBERS {
         return Err(Refusal("native source binding map member ceiling").into());
@@ -899,39 +903,77 @@ fn execute(request: Request) -> Result<Value> {
     }
 
     let mut evidence_refs = hold_evidence_refs(request.evidence_refs, deadline, uid)?;
-    let mut historical = manifest::census_historical_runtime_closure(deadline)?;
+    let mut historical =
+        manifest::census_selected_runtime_closure(&request.selected_snapshot, deadline)?;
     let fingerprint_before = manifest::fingerprint_native_compiler_source(deadline)?;
     let mut limits = manifest::portable_native_snapshot_limits(request.max_build_seconds)?;
     // The SAME caller file ceiling bounds the full live writer before VACUUM
     // and the copied cold reader. This is unrelated to the Rust state allowance.
-    limits.stage.sqlite.max_output_bytes = limits.stage.sqlite.max_output_bytes.min(request.cold_open.max_file_bytes);
-    limits.stage.max_temp_bytes = limits.stage.max_temp_bytes.min(request.cold_open.max_file_bytes);
+    limits.stage.sqlite.max_output_bytes = limits
+        .stage
+        .sqlite
+        .max_output_bytes
+        .min(request.cold_open.max_file_bytes);
+    limits.stage.max_temp_bytes = limits
+        .stage
+        .max_temp_bytes
+        .min(request.cold_open.max_file_bytes);
     let cancelled = Arc::new(AtomicBool::new(false));
-    let resources = LinuxCgroupColdOpenResourceHold::acquire_original_stage(request.working_ram_bytes,
-        request.tmpfs_quota_bytes, deadline, Arc::clone(&cancelled))?;
-    let mut caller_bytes = isolation.retained_state_upper_bound()?
+    let resources = LinuxCgroupColdOpenResourceHold::acquire_original_stage(
+        request.working_ram_bytes,
+        request.tmpfs_quota_bytes,
+        deadline,
+        Arc::clone(&cancelled),
+    )?;
+    let mut caller_bytes = isolation
+        .retained_state_upper_bound()?
         .checked_add(resources.retained_state_upper_bound()?)
         .and_then(|n| n.checked_add(historical.retained_state_upper_bound().ok()?))
         .and_then(|n| n.checked_add(fingerprint_before.retained_state_upper_bound().ok()?))
         .ok_or(Refusal("native Original retained owner census overflow"))?;
-    caller_bytes = caller_bytes.checked_add(evidence_refs.capacity() * std::mem::size_of::<HeldEvidenceRef>())
+    caller_bytes = caller_bytes
+        .checked_add(evidence_refs.capacity() * std::mem::size_of::<HeldEvidenceRef>())
         .ok_or(Refusal("native Original evidence slots overflow"))?;
     for evidence in &evidence_refs {
-        caller_bytes = caller_bytes.checked_add(evidence.kind.capacity() + evidence.path.capacity() + evidence.sha256.capacity())
+        caller_bytes = caller_bytes
+            .checked_add(
+                evidence.kind.capacity() + evidence.path.capacity() + evidence.sha256.capacity(),
+            )
             .ok_or(Refusal("native Original evidence owner census overflow"))?;
     }
-    caller_bytes = caller_bytes.checked_add(std::mem::size_of::<Request>()
-        + request.data_directory.capacity() + request.private_release_directory.capacity()
-        + persistent_store_path.capacity() + data_root.capacity() + private_release_root.capacity())
+    caller_bytes = caller_bytes
+        .checked_add(
+            std::mem::size_of::<Request>()
+                + request.selected_snapshot.retained_state_upper_bound()?
+                + request.data_directory.capacity()
+                + request.private_release_directory.capacity()
+                + persistent_store_path.capacity()
+                + data_root.capacity()
+                + private_release_root.capacity(),
+        )
         .ok_or(Refusal("native Original request owner census overflow"))?;
     let retained = Cell::new(caller_bytes);
-    let remaining = |extra: usize| request.max_state_bytes.checked_sub(retained.get())
-        .and_then(|n| n.checked_sub(extra)).ok_or(tos_compiler::Error::Budget("native Original simultaneous state"));
+    let remaining = |extra: usize| {
+        request
+            .max_state_bytes
+            .checked_sub(retained.get())
+            .and_then(|n| n.checked_sub(extra))
+            .ok_or(tos_compiler::Error::Budget(
+                "native Original simultaneous state",
+            ))
+    };
     let heap = DedicatedSessionSqliteHeap::establish(
-        tos_compiler::dedicated_session_heap_bytes(request.max_state_bytes)?, &remaining,
-        deadline, cancelled.as_ref())?;
-    retained.set(retained.get().checked_add(heap.reserved_state_bytes())
-        .ok_or(Refusal("native Original SQLite owner census overflow"))?);
+        tos_compiler::dedicated_session_heap_bytes(request.max_state_bytes)?,
+        &remaining,
+        deadline,
+        cancelled.as_ref(),
+    )?;
+    retained.set(
+        retained
+            .get()
+            .checked_add(heap.reserved_state_bytes())
+            .ok_or(Refusal("native Original SQLite owner census overflow"))?,
+    );
     let work = Arc::new(AtomicU64::new(0));
     let vm = Arc::new(AtomicU64::new(0));
     let mut capture_usage = RuntimeCaptureCreationUsage::default();
@@ -939,9 +981,16 @@ fn execute(request: Request) -> Result<Value> {
         capture: isolation.root().join("tos-native-original-capture.sqlite3"),
         native: isolation.root().join("tos-native-original-model.sqlite3"),
     };
-    retained.set(retained.get().checked_add(std::mem::size_of::<TempStagePaths>()
-        + temp_paths.capture.capacity() + temp_paths.native.capacity())
-        .ok_or(Refusal("native Original stage paths overflow"))?);
+    retained.set(
+        retained
+            .get()
+            .checked_add(
+                std::mem::size_of::<TempStagePaths>()
+                    + temp_paths.capture.capacity()
+                    + temp_paths.native.capacity(),
+            )
+            .ok_or(Refusal("native Original stage paths overflow"))?,
+    );
     remaining(0)?;
     for path in [&temp_paths.capture, &temp_paths.native] {
         if path.exists() || path.is_symlink() {
@@ -949,459 +998,597 @@ fn execute(request: Request) -> Result<Value> {
         }
     }
     let capture = PublicCapture::create_runtime_with_owned_budget(
-        historical.source_root(), &temp_paths.capture, limits.capture, deadline,
-        Arc::clone(&cancelled), RuntimeCaptureOwnedBudget {
-            remaining_after_retained: &remaining, original_work: work,
+        historical.source_root(),
+        &temp_paths.capture,
+        limits.capture,
+        deadline,
+        Arc::clone(&cancelled),
+        RuntimeCaptureOwnedBudget {
+            remaining_after_retained: &remaining,
+            original_work: work,
             original_work_limit: limits.capture.max_work_bytes,
             creation_work_allowance: limits.capture.max_work_bytes,
-            original_sql_vm: vm, original_sql_vm_limit: limits.capture.max_sql_vm_steps,
-            original_sqlite_heap: Arc::clone(&heap), max_creation_json_visits: request.max_json_visits,
+            original_sql_vm: vm,
+            original_sql_vm_limit: limits.capture.max_sql_vm_steps,
+            original_sqlite_heap: Arc::clone(&heap),
+            max_creation_json_visits: request.max_json_visits,
             creation_deadline: deadline,
-        }, &mut capture_usage)?;
-    retained.set(retained.get().checked_add(capture.retained_state_upper_bound()?)
-        .ok_or(Refusal("native Original capture owner census overflow"))?);
+        },
+        &mut capture_usage,
+    )?;
+    retained.set(
+        retained
+            .get()
+            .checked_add(capture.retained_state_upper_bound()?)
+            .ok_or(Refusal("native Original capture owner census overflow"))?,
+    );
     let captured_members = historical.validate_capture_closure(&capture, deadline)?;
-    if historical.member_count() != manifest::NATIVE_PRODUCER_EXPECTED_HISTORICAL_MEMBERS
-        || historical.member_bytes() != manifest::NATIVE_PRODUCER_EXPECTED_HISTORICAL_BYTES
-        || captured_members.len() < historical.member_count()
+    if captured_members.len() < historical.member_count()
         || captured_members.len() > manifest::NATIVE_PRODUCER_MAX_MEMBERS
     {
         return Err(Refusal("native source closure census identity differs").into());
     }
     capture.verify_inputs(limits.capture)?;
     historical.recheck_manifest(deadline)?;
-    if Digest256::of_bytes(manifest::RUNTIME_DATA_DECLARATION).to_hex()
-        != "c6781c6f05f73a7c59d71692da90d307e96496112899ef98e0e01ae3b01aa0e9"
-    {
-        return Err(
-            Refusal("embedded current runtime declaration differs from installed source").into(),
-        );
-    }
 
     // All original source bytes are selected from this retained capture. The
     // old Python SQLite member was excluded during metadata census and is
     // neither read nor copied.
     drop(captured_members);
-    let remaining_visits = request.max_json_visits.checked_sub(capture_usage.json_visits)
-        .filter(|n| *n > 0).ok_or(Refusal("native Original capture exhausted JSON owner"))?;
+    let remaining_visits = request
+        .max_json_visits
+        .checked_sub(capture_usage.json_visits)
+        .filter(|n| *n > 0)
+        .ok_or(Refusal("native Original capture exhausted JSON owner"))?;
     let mut producer_usage = native_snapshot::NativeSnapshotCreationUsage::default();
     let mut result = None;
     let mut completion_error = None;
-    let produced = native_snapshot::with_native_original_snapshot_from_capture_with_owned_budget_and_layout(
-        &capture, &temp_paths.native, manifest::RUNTIME_DATA_DECLARATION, &isolation,
-        limits, deadline, cancelled.as_ref(), native_snapshot::NativeSnapshotOwnedBudget {
-            remaining_after_retained: &remaining, original_sqlite_heap: &heap,
-            max_creation_json_visits: remaining_visits, creation_deadline: deadline,
-        }, &mut producer_usage, tos_compiler::knowledge_stage::KnowledgePayloadLayout::CarrierOnceV1,
-        |completed, loan| {
-            let mut finish = || -> Result<Value> {
-    let captured_members = historical.validate_capture_closure(&capture, deadline)?;
-    let source_bindings = source_bindings(&completed, &captured_members, deadline)?;
-    capture.verify_inputs(limits.capture)?;
-    historical.recheck_manifest(deadline)?;
-    let fingerprint_after_build = manifest::fingerprint_native_compiler_source(deadline)?;
-    manifest::require_stable_native_compiler_source(&fingerprint_before, &fingerprint_after_build)?;
+    let produced =
+        native_snapshot::with_native_original_snapshot_from_capture_with_owned_budget_and_layout(
+            &capture,
+            &temp_paths.native,
+            manifest::RUNTIME_DATA_DECLARATION,
+            &isolation,
+            limits,
+            deadline,
+            cancelled.as_ref(),
+            native_snapshot::NativeSnapshotOwnedBudget {
+                remaining_after_retained: &remaining,
+                original_sqlite_heap: &heap,
+                max_creation_json_visits: remaining_visits,
+                creation_deadline: deadline,
+            },
+            &mut producer_usage,
+            tos_compiler::knowledge_stage::KnowledgePayloadLayout::CarrierOnceV1,
+            |completed, loan| {
+                let mut finish = || -> Result<Value> {
+                    let captured_members =
+                        historical.validate_capture_closure(&capture, deadline)?;
+                    let source_bindings = source_bindings(
+                        &completed,
+                        &captured_members,
+                        &historical,
+                        &request.selected_snapshot,
+                        deadline,
+                    )?;
+                    capture.verify_inputs(limits.capture)?;
+                    historical.recheck_manifest(deadline)?;
+                    let fingerprint_after_build =
+                        manifest::fingerprint_native_compiler_source(deadline)?;
+                    manifest::require_stable_native_compiler_source(
+                        &fingerprint_before,
+                        &fingerprint_after_build,
+                    )?;
 
-    let model_bytes = completed.stage().sqlite_size_bytes;
-    if model_bytes == 0 || model_bytes > manifest::NATIVE_PRODUCER_MAX_MODEL_BYTES {
-        return Err(Refusal("completed native model exceeds selected ceiling").into());
-    }
-    let source_bytes = captured_members
-        .iter()
-        .try_fold(0u64, |sum, member| sum.checked_add(member.size_bytes))
-        .ok_or(Refusal("native source closure byte arithmetic"))?;
-    if source_bytes > manifest::NATIVE_PRODUCER_MAX_SOURCE_CLOSURE_BYTES {
-        return Err(Refusal("native source closure byte ceiling").into());
-    }
-    let member_paths = data_member_paths(&captured_members);
-    let manifest_input = manifest::NativeDataSnapshotManifestInput {
-        corpus_revision: manifest::HISTORICAL_CORPUS_REVISION,
-        model_abi: &completed.expectation().model_abi,
-        compiler: &fingerprint_before,
-        source_bindings: &source_bindings,
-        member_paths: &member_paths,
-        native_selection: manifest::NATIVE_SELECTION_PATH,
-    };
-    let data_cap = request
-        .persistent_write_cap_bytes
-        .min(manifest::NATIVE_PRODUCER_MAX_DATA_BYTES);
-    let manifest_limits = manifest::NativeDataManifestLimits {
-        max_manifest_bytes: MAX_SELECTION_BYTES,
-        max_members: manifest::NATIVE_PRODUCER_MAX_MEMBERS,
-        max_member_bytes: data_cap,
-        max_total_data_bytes: data_cap,
-        deadline,
-    };
-    let manifest_metadata_upper =
-        manifest::preflight_native_data_manifest(&manifest_input, manifest_limits)? as u64;
-    let persistent_candidate_upper = source_bytes
-        .checked_add(model_bytes)
-        .and_then(|sum| sum.checked_add(MAX_SELECTION_BYTES as u64))
-        .and_then(|sum| sum.checked_add(manifest_metadata_upper))
-        .filter(|sum| *sum <= data_cap)
-        .ok_or(Refusal(
-            "512 MiB persistent candidate ceiling refuses before model copy",
-        ))?;
-    if persistent_candidate_upper > request.persistent_write_cap_bytes {
-        return Err(Refusal("persistent write reservation is below candidate upper bound").into());
-    }
-    active(deadline)?;
-    isolation.verify_persistent_store(&persistent_store_path)?;
-    let mut output = create_output_tree(
-        &persistent_store_path,
-        &store,
-        &request.data_directory,
-        uid,
-        data_cap,
-    )?;
-    for member in &captured_members {
-        active(deadline)?;
-        let raw = capture.read_retained_input(
-            &member.source_path,
-            manifest::NATIVE_PRODUCER_MEMBER_READ_CAP_BYTES,
-        )?;
-        if raw.len() as u64 != member.size_bytes
-            || Digest256::of_bytes(&raw).to_hex() != member.sha256
-        {
-            return Err(Refusal("captured member changed before private copy").into());
-        }
-        output.write_member(&format!("data/{}", member.source_path), &raw, deadline)?;
-    }
-    output.copy_model_once(
-        completed.artifact_path(),
-        &completed.stage().sqlite_sha256,
-        model_bytes,
-        deadline,
-    )?;
+                    let model_bytes = completed.stage().sqlite_size_bytes;
+                    if model_bytes == 0 || model_bytes > manifest::NATIVE_PRODUCER_MAX_MODEL_BYTES {
+                        return Err(
+                            Refusal("completed native model exceeds selected ceiling").into()
+                        );
+                    }
+                    let source_bytes = captured_members
+                        .iter()
+                        .try_fold(0u64, |sum, member| sum.checked_add(member.size_bytes))
+                        .ok_or(Refusal("native source closure byte arithmetic"))?;
+                    if source_bytes > manifest::NATIVE_PRODUCER_MAX_SOURCE_CLOSURE_BYTES {
+                        return Err(Refusal("native source closure byte ceiling").into());
+                    }
+                    let member_paths = data_member_paths(&captured_members);
+                    let manifest_input = manifest::NativeDataSnapshotManifestInput {
+                        corpus_revision: &request.selected_snapshot.corpus_revision,
+                        selected_profile: &request.selected_snapshot,
+                        selected_census: &historical,
+                        model_abi: &completed.expectation().model_abi,
+                        compiler: &fingerprint_before,
+                        source_bindings: &source_bindings,
+                        member_paths: &member_paths,
+                        native_selection: manifest::NATIVE_SELECTION_PATH,
+                    };
+                    let data_cap = request
+                        .persistent_write_cap_bytes
+                        .min(manifest::NATIVE_PRODUCER_MAX_DATA_BYTES);
+                    let manifest_limits = manifest::NativeDataManifestLimits {
+                        max_manifest_bytes: MAX_SELECTION_BYTES,
+                        max_members: manifest::NATIVE_PRODUCER_MAX_MEMBERS,
+                        max_member_bytes: data_cap,
+                        max_total_data_bytes: data_cap,
+                        deadline,
+                    };
+                    let manifest_metadata_upper =
+                        manifest::preflight_native_data_manifest(&manifest_input, manifest_limits)?
+                            as u64;
+                    let persistent_candidate_upper = source_bytes
+                        .checked_add(model_bytes)
+                        .and_then(|sum| sum.checked_add(MAX_SELECTION_BYTES as u64))
+                        .and_then(|sum| sum.checked_add(manifest_metadata_upper))
+                        .filter(|sum| *sum <= data_cap)
+                        .ok_or(Refusal(
+                            "512 MiB persistent candidate ceiling refuses before model copy",
+                        ))?;
+                    if persistent_candidate_upper > request.persistent_write_cap_bytes {
+                        return Err(Refusal(
+                            "persistent write reservation is below candidate upper bound",
+                        )
+                        .into());
+                    }
+                    active(deadline)?;
+                    isolation.verify_persistent_store(&persistent_store_path)?;
+                    let mut output = create_output_tree(
+                        &persistent_store_path,
+                        &store,
+                        &request.data_directory,
+                        uid,
+                        data_cap,
+                    )?;
+                    for member in &captured_members {
+                        active(deadline)?;
+                        let raw = capture.read_retained_input(
+                            &member.source_path,
+                            manifest::NATIVE_PRODUCER_MEMBER_READ_CAP_BYTES,
+                        )?;
+                        if raw.len() as u64 != member.size_bytes
+                            || Digest256::of_bytes(&raw).to_hex() != member.sha256
+                        {
+                            return Err(
+                                Refusal("captured member changed before private copy").into()
+                            );
+                        }
+                        output.write_member(
+                            &format!("data/{}", member.source_path),
+                            &raw,
+                            deadline,
+                        )?;
+                    }
+                    output.copy_model_once(
+                        completed.artifact_path(),
+                        &completed.stage().sqlite_sha256,
+                        model_bytes,
+                        deadline,
+                    )?;
 
-    let selection_paths = NativeSelectionPaths {
-        model: manifest::NATIVE_MODEL_PATH.to_owned(),
-        descriptor: "data/ToS/doctrine/semantic-interchange/query-vocabulary.v1.json".into(),
-        entity_registry: "data/ToS/doctrine/semantic-interchange/entity-types.v1.json".into(),
-        relation_registry: "data/ToS/doctrine/semantic-interchange/relation-types.v1.json".into(),
-    };
-    let model_path = output.root_path().join(&selection_paths.model);
-    let selection = completed.selection_for_copied_model(
-        &model_path,
-        selection_paths,
-        request.cold_open,
-        request.process_limits,
-        MAX_SELECTION_BYTES,
-    )?;
-    if selection.producer().corpus_original.is_none()
-        || selection.producer().philosophy_original.is_none()
-        || selection.producer().managed_source.is_some()
-        || selection.producer().managed_source_v2.is_some()
-    {
-        return Err(
-            Refusal("completed native selection does not carry the exact Original pair").into(),
+                    let selection_paths = NativeSelectionPaths {
+                        model: manifest::NATIVE_MODEL_PATH.to_owned(),
+                        descriptor:
+                            "data/ToS/doctrine/semantic-interchange/query-vocabulary.v1.json".into(),
+                        entity_registry:
+                            "data/ToS/doctrine/semantic-interchange/entity-types.v1.json".into(),
+                        relation_registry:
+                            "data/ToS/doctrine/semantic-interchange/relation-types.v1.json".into(),
+                    };
+                    let model_path = output.root_path().join(&selection_paths.model);
+                    let selection = completed.selection_for_copied_model(
+                        &model_path,
+                        selection_paths,
+                        request.cold_open,
+                        request.process_limits,
+                        MAX_SELECTION_BYTES,
+                    )?;
+                    if selection.producer().corpus_original.is_none()
+                        || selection.producer().philosophy_original.is_none()
+                        || selection.producer().managed_source.is_some()
+                        || selection.producer().managed_source_v2.is_some()
+                    {
+                        return Err(Refusal(
+                            "completed native selection does not carry the exact Original pair",
+                        )
+                        .into());
+                    }
+                    let selection_raw = selection.encode(MAX_SELECTION_BYTES)?;
+                    let selection_digest = Digest256::of_bytes(&selection_raw).to_hex();
+                    let selection_value: Value = serde_json::from_slice(&selection_raw)?;
+                    output.write_member(
+                        manifest::NATIVE_SELECTION_PATH,
+                        &selection_raw,
+                        deadline,
+                    )?;
+                    let estimated_output = output
+                        .written_bytes
+                        .checked_add(manifest_metadata_upper)
+                        .filter(|sum| *sum <= data_cap)
+                        .ok_or(Refusal("candidate data plus manifest metadata ceiling"))?;
+                    let output_file_list_bytes = output.written_bytes;
+                    if output_file_list_bytes > data_cap
+                        || estimated_output > request.persistent_write_cap_bytes
+                    {
+                        return Err(Refusal("candidate data premanifest ceiling").into());
+                    }
+
+                    // This is real controlled cold admission of the copied fs-verity model
+                    // under the same state/heap/work/VM owners as the Original writer.
+                    // The returned metrics describe this invocation only; the resulting
+                    // receipt conveys mechanics, not rights, canon or source semantic approval.
+                    let expectation: KnowledgeSelectedExpectation = selection.expectation().clone();
+                    let fs_verity: NativeFsVerityMeasurement = selection.fs_verity().clone();
+                    let named_model_before =
+                        private_model_path_stamp(&model_path, uid, model_bytes)?;
+                    let cold_open_start_elapsed_ns = elapsed_ns(started);
+                    let custody_observer = Arc::new(ObservingNativeCustody::new(
+                        LinuxFsVerityCustody::new(fs_verity.clone(), request.process_limits)?,
+                        started,
+                    ));
+                    let custody: Arc<dyn ImmutableKnowledgeCustody> = custody_observer.clone();
+                    let mut pinned_model = OpenOptions::new()
+                        .read(true)
+                        .custom_flags(libc::O_CLOEXEC | libc::O_NOFOLLOW | libc::O_NONBLOCK)
+                        .open(&model_path)?;
+                    let mut cold_receipt = None;
+                    completed.with_controlled_copied_knowledge_model(
+                        &loan,
+                        &isolation,
+                        &mut pinned_model,
+                        custody.as_ref(),
+                        request.cold_open,
+                        request.process_limits,
+                        request.working_ram_bytes,
+                        &resources,
+                        deadline,
+                        |model| {
+                            if model.corpus_original_receipt().is_none()
+                                || model.philosophy_original_receipt().is_none()
+                                || model.navigation_original_receipt().is_none()
+                            {
+                                return Err(tos_compiler::Error::Invalid(
+                                    "native controlled cold Original roots absent",
+                                ));
+                            }
+                            model.check_pin()?;
+                            let source_basis =
+                                serde_json::to_value(model.source_basis()).map_err(|_| {
+                                    tos_compiler::Error::Invalid(
+                                        "native controlled cold source basis encoding",
+                                    )
+                                })?;
+                            cold_receipt = Some((
+                                model.cold_digest_read_bytes(),
+                                model.cold_validation_charged_bytes(),
+                                model.open_vm_steps(),
+                                source_basis,
+                            ));
+                            Ok(())
+                        },
+                    )?;
+                    drop(pinned_model);
+                    let (
+                        cold_digest_read_bytes,
+                        cold_validation_charged_bytes,
+                        open_vm_steps,
+                        source_basis,
+                    ) = cold_receipt.ok_or(Refusal("native controlled cold receipt absent"))?;
+                    let cold_source_revision = completed.source_revision().to_owned();
+                    let corpus_original =
+                        serde_json::to_value(selection.producer().corpus_original.as_ref())?;
+                    let philosophy_original =
+                        serde_json::to_value(selection.producer().philosophy_original.as_ref())?;
+                    let named_model_after =
+                        private_model_path_stamp(&model_path, uid, model_bytes)?;
+                    let (held_fd_first, held_fd_last, custody_verify_calls) =
+                        custody_observer.snapshot()?;
+                    if custody_verify_calls < 2
+                        || named_model_before != held_fd_first.stamp
+                        || held_fd_first.stamp != held_fd_last.stamp
+                        || held_fd_last.stamp != named_model_after
+                        || held_fd_first.producer_elapsed_ns < cold_open_start_elapsed_ns
+                    {
+                        return Err(Refusal(
+                            "cold selected model held/name custody interval differs",
+                        )
+                        .into());
+                    }
+                    let cold_open_end_elapsed_ns = elapsed_ns(started);
+                    if held_fd_last.producer_elapsed_ns > cold_open_end_elapsed_ns {
+                        return Err(Refusal(
+                            "cold selected model observation clock ordering differs",
+                        )
+                        .into());
+                    }
+
+                    let manifest_receipt = manifest::write_completed_native_data_manifest(
+                        completed,
+                        output.root_path(),
+                        &manifest_input,
+                        &selection,
+                        manifest_limits,
+                    )?;
+                    let total_output_bytes = output
+                        .written_bytes
+                        .checked_add(manifest_receipt.manifest_bytes)
+                        .ok_or(Refusal("native candidate total output arithmetic"))?;
+                    if total_output_bytes > data_cap
+                        || total_output_bytes > request.persistent_write_cap_bytes
+                    {
+                        return Err(
+                            Refusal("candidate manifest exceeds persistent-write ceiling").into(),
+                        );
+                    }
+                    output.root.sync_all()?;
+                    output.store.sync_all()?;
+                    isolation.verify_persistent_store(&persistent_store_path)?;
+                    match rustix::fs::statat(
+                        &store,
+                        request.private_release_directory.as_str(),
+                        rustix::fs::AtFlags::SYMLINK_NOFOLLOW,
+                    ) {
+                        Err(rustix::io::Errno::NOENT) => (),
+                        Ok(_) => {
+                            return Err(Refusal(
+                                "private release destination was created during production",
+                            )
+                            .into());
+                        }
+                        Err(error) => return Err(io::Error::from(error).into()),
+                    }
+                    output.verify_root()?;
+                    capture.verify_inputs(limits.capture)?;
+                    historical.recheck_manifest(deadline)?;
+                    let fingerprint_after_cold =
+                        manifest::fingerprint_native_compiler_source(deadline)?;
+                    manifest::require_stable_native_compiler_source(
+                        &fingerprint_before,
+                        &fingerprint_after_cold,
+                    )?;
+                    for evidence in &mut evidence_refs {
+                        evidence.recheck(deadline)?;
+                    }
+                    active(deadline)?;
+
+                    let evidence_outputs = evidence_refs
+                        .iter()
+                        .map(HeldEvidenceRef::output)
+                        .collect::<Vec<_>>();
+                    let source_cut = completed.expectation().source_cut.clone();
+                    let authority = json_object([
+                        ("source_admission", json!(false)),
+                        ("rights_admission", json!(false)),
+                        ("canon_acceptance", json!(false)),
+                        ("semantic_acceptance", json!(false)),
+                        ("publication", json!(false)),
+                    ]);
+                    let data_manifest = json_object([
+                        ("path", json!(output.root_path().join("data/manifest.json"))),
+                        ("sha256", json!(manifest_receipt.manifest_sha256)),
+                        ("data_revision", json!(manifest_receipt.data_revision)),
+                        ("bytes", json!(manifest_receipt.manifest_bytes)),
+                        ("member_count", json!(manifest_receipt.member_count)),
+                        ("member_bytes", json!(manifest_receipt.member_bytes)),
+                        (
+                            "native_selection_path",
+                            json!(manifest::NATIVE_SELECTION_PATH),
+                        ),
+                        ("native_selection_sha256", json!(selection_digest)),
+                    ]);
+                    let excluded_source = &request.selected_snapshot.excluded_compiled_model;
+                    let selected_source = json_object([
+                        (
+                            "profile_schema_version",
+                            json!(request.selected_snapshot.schema_version),
+                        ),
+                        (
+                            "source_manifest_path",
+                            json!(request.selected_snapshot.manifest_path),
+                        ),
+                        (
+                            "source_data_revision",
+                            json!(request.selected_snapshot.data_revision),
+                        ),
+                        (
+                            "runtime_data_root",
+                            json!(request.selected_snapshot.runtime_data_root),
+                        ),
+                        (
+                            "source_manifest_sha256",
+                            json!(historical.manifest_sha256()),
+                        ),
+                        (
+                            "corpus_revision",
+                            json!(request.selected_snapshot.corpus_revision),
+                        ),
+                        (
+                            "source_members_excluding_old_compiled_sqlite",
+                            json!(historical.member_count()),
+                        ),
+                        (
+                            "source_bytes_excluding_old_compiled_sqlite",
+                            json!(historical.member_bytes()),
+                        ),
+                        ("excluded_old_compiled_sqlite", json!(excluded_source.path)),
+                        (
+                            "excluded_old_compiled_sqlite_sha256",
+                            json!(excluded_source.sha256),
+                        ),
+                        (
+                            "excluded_old_compiled_sqlite_bytes",
+                            json!(excluded_source.size_bytes),
+                        ),
+                        ("capture_member_count", json!(captured_members.len())),
+                        ("capture_member_bytes", json!(source_bytes)),
+                        (
+                            "native_projection_source_revision",
+                            json!(completed.source_revision()),
+                        ),
+                        ("native_projection_source_cut", json!(source_cut)),
+                    ]);
+                    let evidence_lens_scene = json_object([
+                        ("path", json!(manifest::EVIDENCE_SCENES_PATH)),
+                        (
+                            "sha256",
+                            json!(request.selected_snapshot.evidence_scenes_sha256),
+                        ),
+                        (
+                            "custody",
+                            json!("embedded configuration input in this exact executing image"),
+                        ),
+                        ("copied_as_runtime_member", json!(false)),
+                    ]);
+                    let held_model_fd_first = json_object([
+                        ("stamp", stamp_json(held_fd_first.stamp)),
+                        (
+                            "producer_elapsed_ns",
+                            json!(held_fd_first.producer_elapsed_ns),
+                        ),
+                    ]);
+                    let held_model_fd_last = json_object([
+                        ("stamp", stamp_json(held_fd_last.stamp)),
+                        (
+                            "producer_elapsed_ns",
+                            json!(held_fd_last.producer_elapsed_ns),
+                        ),
+                    ]);
+                    let clock = json_object([
+                        (
+                            "basis",
+                            json!(
+                                "monotonic elapsed nanoseconds relative to producer entry Instant"
+                            ),
+                        ),
+                        (
+                            "cold_open_start_elapsed_ns",
+                            json!(cold_open_start_elapsed_ns),
+                        ),
+                        ("cold_open_end_elapsed_ns", json!(cold_open_end_elapsed_ns)),
+                    ]);
+                    let cold_witness = json_object([
+                        ("schema_version", json!(COLD_SCHEMA)),
+                        ("actual_cold_open_completed", json!(true)),
+                        (
+                            "native_selection_schema",
+                            json!("tos_access_native_knowledge_selection_v3"),
+                        ),
+                        ("native_fs_verity_measurement", json!(fs_verity)),
+                        ("expectation", json!(expectation)),
+                        ("source_basis", source_basis),
+                        ("cold_source_revision", json!(cold_source_revision)),
+                        ("cold_digest_read_bytes", json!(cold_digest_read_bytes)),
+                        (
+                            "cold_validation_charged_bytes",
+                            json!(cold_validation_charged_bytes),
+                        ),
+                        ("cold_open_vm_steps", json!(open_vm_steps)),
+                        ("corpus_original_available", json!(true)),
+                        ("philosophy_original_available", json!(true)),
+                        ("corpus_original_receipt", corpus_original),
+                        ("philosophy_original_receipt", philosophy_original),
+                        ("process_limits", json!(request.process_limits)),
+                        ("cold_open_limits", json!(request.cold_open)),
+                        ("model_path", json!(model_path)),
+                        ("named_model_before", stamp_json(named_model_before)),
+                        ("held_model_fd_first", held_model_fd_first),
+                        ("held_model_fd_last", held_model_fd_last),
+                        ("named_model_after", stamp_json(named_model_after)),
+                        ("custody_verify_calls", json!(custody_verify_calls)),
+                        ("clock", clock),
+                        ("named_and_held_stamps_agree", json!(true)),
+                    ]);
+                    let resource_envelope = json_object([
+                        ("tmpfs_quota_bytes", json!(request.tmpfs_quota_bytes)),
+                        (
+                            "minimum_composed_tmpfs_quota_bytes",
+                            json!(manifest::NATIVE_PRODUCER_MIN_TMPFS_QUOTA_BYTES),
+                        ),
+                        ("working_ram_bytes", json!(request.working_ram_bytes)),
+                        (
+                            "original_kernel_memory_max_bytes",
+                            json!(resources.original_kernel_memory_max()),
+                        ),
+                        ("producer_max_state_bytes", json!(request.max_state_bytes)),
+                        ("producer_max_json_visits", json!(request.max_json_visits)),
+                        (
+                            "writer_model_max_file_bytes",
+                            json!(limits.stage.sqlite.max_output_bytes),
+                        ),
+                        (
+                            "writer_temp_max_file_bytes",
+                            json!(limits.stage.max_temp_bytes),
+                        ),
+                        ("payload_layout", json!("CarrierOnceV1")),
+                        (
+                            "persistent_write_cap_bytes",
+                            json!(request.persistent_write_cap_bytes),
+                        ),
+                        ("candidate_data_cap_bytes", json!(data_cap)),
+                        (
+                            "conservative_data_upper_bound_bytes",
+                            json!(persistent_candidate_upper),
+                        ),
+                        ("pre_manifest_output_bytes", json!(output.written_bytes)),
+                        ("whole_deadline_seconds", json!(request.max_build_seconds)),
+                        ("elapsed_seconds", json!(started.elapsed().as_secs())),
+                        (
+                            "limit_interpretation",
+                            json!(
+                                "original state/JSON/physical ceilings and refusal bounds; actual completed file size and cold counters are separate evidence, not peak-RAM measurement"
+                            ),
+                        ),
+                    ]);
+                    let result = json_object([
+                        ("schema_version", json!(RESULT_SCHEMA)),
+                        (
+                            "outcome",
+                            json!("private-native-data-candidate-ready-for-external-pair-verifier"),
+                        ),
+                        ("current_release_promoted", json!(false)),
+                        ("installed_access_mcp_accepted", json!(false)),
+                        ("authority", authority),
+                        ("data_root", json!(output.root_path())),
+                        ("private_release_root", json!(private_release_root)),
+                        ("private_release_root_created", json!(false)),
+                        ("persistent_store", json!(persistent_store_path)),
+                        ("data_manifest", data_manifest),
+                        ("selected_source", selected_source),
+                        ("source_bindings", json!(source_bindings)),
+                        (
+                            "embedded_producer_fingerprint",
+                            compiler_json(&fingerprint_before),
+                        ),
+                        ("evidence_lens_scene", evidence_lens_scene),
+                        ("external_evidence_refs", json!(evidence_outputs)),
+                        ("producer_selection", selection_value),
+                        ("cold_witness", cold_witness),
+                        ("resource_envelope", resource_envelope),
+                    ]);
+                    let raw_result = serde_json::to_vec(&result)?;
+                    if raw_result.len() > MAX_RESULT_BYTES {
+                        return Err(Refusal("native Original result byte ceiling").into());
+                    }
+                    active(deadline)?;
+                    Ok(result)
+                };
+                match finish() {
+                    Ok(value) => {
+                        result = Some(value);
+                        Ok(())
+                    }
+                    Err(error) => {
+                        completion_error = Some(error);
+                        Err(tos_compiler::Error::Invalid(
+                            "native Original consumer refused",
+                        ))
+                    }
+                }
+            },
         );
+    if let Some(error) = completion_error {
+        return Err(error);
     }
-    let selection_raw = selection.encode(MAX_SELECTION_BYTES)?;
-    let selection_digest = Digest256::of_bytes(&selection_raw).to_hex();
-    let selection_value: Value = serde_json::from_slice(&selection_raw)?;
-    output.write_member(manifest::NATIVE_SELECTION_PATH, &selection_raw, deadline)?;
-    let estimated_output = output
-        .written_bytes
-        .checked_add(manifest_metadata_upper)
-        .filter(|sum| *sum <= data_cap)
-        .ok_or(Refusal("candidate data plus manifest metadata ceiling"))?;
-    let output_file_list_bytes = output.written_bytes;
-    if output_file_list_bytes > data_cap || estimated_output > request.persistent_write_cap_bytes {
-        return Err(Refusal("candidate data premanifest ceiling").into());
-    }
-
-    // This is real controlled cold admission of the copied fs-verity model
-    // under the same state/heap/work/VM owners as the Original writer.
-    // The returned metrics describe this invocation only; the resulting
-    // receipt conveys mechanics, not rights, canon or source semantic approval.
-    let expectation: KnowledgeSelectedExpectation = selection.expectation().clone();
-    let fs_verity: NativeFsVerityMeasurement = selection.fs_verity().clone();
-    let named_model_before = private_model_path_stamp(&model_path, uid, model_bytes)?;
-    let cold_open_start_elapsed_ns = elapsed_ns(started);
-    let custody_observer = Arc::new(ObservingNativeCustody::new(
-        LinuxFsVerityCustody::new(fs_verity.clone(), request.process_limits)?,
-        started,
-    ));
-    let custody: Arc<dyn ImmutableKnowledgeCustody> = custody_observer.clone();
-    let mut pinned_model = OpenOptions::new().read(true)
-        .custom_flags(libc::O_CLOEXEC | libc::O_NOFOLLOW | libc::O_NONBLOCK).open(&model_path)?;
-    let mut cold_receipt = None;
-    completed.with_controlled_copied_knowledge_model(&loan, &isolation, &mut pinned_model,
-        custody.as_ref(), request.cold_open, request.process_limits, request.working_ram_bytes,
-        &resources, deadline, |model| {
-            if model.corpus_original_receipt().is_none() || model.philosophy_original_receipt().is_none()
-                || model.navigation_original_receipt().is_none() {
-                return Err(tos_compiler::Error::Invalid("native controlled cold Original roots absent"));
-            }
-            model.check_pin()?;
-            let source_basis = serde_json::to_value(model.source_basis())
-                .map_err(|_| tos_compiler::Error::Invalid("native controlled cold source basis encoding"))?;
-            cold_receipt = Some((model.cold_digest_read_bytes(), model.cold_validation_charged_bytes(),
-                model.open_vm_steps(), source_basis));
-            Ok(())
-        })?;
-    drop(pinned_model);
-    let (cold_digest_read_bytes, cold_validation_charged_bytes, open_vm_steps, source_basis) =
-        cold_receipt.ok_or(Refusal("native controlled cold receipt absent"))?;
-    let cold_source_revision = completed.source_revision().to_owned();
-    let corpus_original = serde_json::to_value(selection.producer().corpus_original.as_ref())?;
-    let philosophy_original = serde_json::to_value(selection.producer().philosophy_original.as_ref())?;
-    let named_model_after = private_model_path_stamp(&model_path, uid, model_bytes)?;
-    let (held_fd_first, held_fd_last, custody_verify_calls) = custody_observer.snapshot()?;
-    if custody_verify_calls < 2
-        || named_model_before != held_fd_first.stamp
-        || held_fd_first.stamp != held_fd_last.stamp
-        || held_fd_last.stamp != named_model_after
-        || held_fd_first.producer_elapsed_ns < cold_open_start_elapsed_ns
-    {
-        return Err(Refusal("cold selected model held/name custody interval differs").into());
-    }
-    let cold_open_end_elapsed_ns = elapsed_ns(started);
-    if held_fd_last.producer_elapsed_ns > cold_open_end_elapsed_ns {
-        return Err(Refusal("cold selected model observation clock ordering differs").into());
-    }
-
-    let manifest_receipt = manifest::write_completed_native_data_manifest(
-        completed,
-        output.root_path(),
-        &manifest_input,
-        &selection,
-        manifest_limits,
-    )?;
-    let total_output_bytes = output
-        .written_bytes
-        .checked_add(manifest_receipt.manifest_bytes)
-        .ok_or(Refusal("native candidate total output arithmetic"))?;
-    if total_output_bytes > data_cap || total_output_bytes > request.persistent_write_cap_bytes {
-        return Err(Refusal("candidate manifest exceeds persistent-write ceiling").into());
-    }
-    output.root.sync_all()?;
-    output.store.sync_all()?;
-    isolation.verify_persistent_store(&persistent_store_path)?;
-    match rustix::fs::statat(
-        &store,
-        request.private_release_directory.as_str(),
-        rustix::fs::AtFlags::SYMLINK_NOFOLLOW,
-    ) {
-        Err(rustix::io::Errno::NOENT) => (),
-        Ok(_) => {
-            return Err(
-                Refusal("private release destination was created during production").into(),
-            );
-        }
-        Err(error) => return Err(io::Error::from(error).into()),
-    }
-    output.verify_root()?;
-    capture.verify_inputs(limits.capture)?;
-    historical.recheck_manifest(deadline)?;
-    let fingerprint_after_cold = manifest::fingerprint_native_compiler_source(deadline)?;
-    manifest::require_stable_native_compiler_source(&fingerprint_before, &fingerprint_after_cold)?;
-    for evidence in &mut evidence_refs {
-        evidence.recheck(deadline)?;
-    }
-    active(deadline)?;
-
-    let evidence_outputs = evidence_refs
-        .iter()
-        .map(HeldEvidenceRef::output)
-        .collect::<Vec<_>>();
-    let source_cut = completed.expectation().source_cut.clone();
-    let authority = json_object([
-        ("source_admission", json!(false)),
-        ("rights_admission", json!(false)),
-        ("canon_acceptance", json!(false)),
-        ("semantic_acceptance", json!(false)),
-        ("publication", json!(false)),
-    ]);
-    let data_manifest = json_object([
-        ("path", json!(output.root_path().join("data/manifest.json"))),
-        ("sha256", json!(manifest_receipt.manifest_sha256)),
-        ("data_revision", json!(manifest_receipt.data_revision)),
-        ("bytes", json!(manifest_receipt.manifest_bytes)),
-        ("member_count", json!(manifest_receipt.member_count)),
-        ("member_bytes", json!(manifest_receipt.member_bytes)),
-        (
-            "native_selection_path",
-            json!(manifest::NATIVE_SELECTION_PATH),
-        ),
-        ("native_selection_sha256", json!(selection_digest)),
-    ]);
-    let excluded_source = manifest::historical_excluded_source_member();
-    let historical_source = json_object([
-        (
-            "runtime_data_root",
-            json!(manifest::HISTORICAL_RUNTIME_DATA_ROOT),
-        ),
-        (
-            "source_manifest_sha256",
-            json!(historical.manifest_sha256()),
-        ),
-        (
-            "corpus_revision",
-            json!(manifest::HISTORICAL_CORPUS_REVISION),
-        ),
-        (
-            "source_members_excluding_old_compiled_sqlite",
-            json!(historical.member_count()),
-        ),
-        (
-            "source_bytes_excluding_old_compiled_sqlite",
-            json!(historical.member_bytes()),
-        ),
-        ("excluded_old_compiled_sqlite", json!(excluded_source.path)),
-        (
-            "excluded_old_compiled_sqlite_sha256",
-            json!(excluded_source.sha256),
-        ),
-        (
-            "excluded_old_compiled_sqlite_bytes",
-            json!(excluded_source.size_bytes),
-        ),
-        ("capture_member_count", json!(captured_members.len())),
-        ("capture_member_bytes", json!(source_bytes)),
-        (
-            "native_projection_source_revision",
-            json!(completed.source_revision()),
-        ),
-        ("native_projection_source_cut", json!(source_cut)),
-    ]);
-    let evidence_lens_scene = json_object([
-        ("path", json!(manifest::EVIDENCE_SCENES_PATH)),
-        ("sha256", json!(manifest::EVIDENCE_SCENES_SHA256)),
-        (
-            "custody",
-            json!("embedded configuration input in this exact executing image"),
-        ),
-        ("copied_as_runtime_member", json!(false)),
-    ]);
-    let held_model_fd_first = json_object([
-        ("stamp", stamp_json(held_fd_first.stamp)),
-        (
-            "producer_elapsed_ns",
-            json!(held_fd_first.producer_elapsed_ns),
-        ),
-    ]);
-    let held_model_fd_last = json_object([
-        ("stamp", stamp_json(held_fd_last.stamp)),
-        (
-            "producer_elapsed_ns",
-            json!(held_fd_last.producer_elapsed_ns),
-        ),
-    ]);
-    let clock = json_object([
-        (
-            "basis",
-            json!("monotonic elapsed nanoseconds relative to producer entry Instant"),
-        ),
-        (
-            "cold_open_start_elapsed_ns",
-            json!(cold_open_start_elapsed_ns),
-        ),
-        ("cold_open_end_elapsed_ns", json!(cold_open_end_elapsed_ns)),
-    ]);
-    let cold_witness = json_object([
-        ("schema_version", json!(COLD_SCHEMA)),
-        ("actual_cold_open_completed", json!(true)),
-        (
-            "native_selection_schema",
-            json!("tos_access_native_knowledge_selection_v3"),
-        ),
-        ("native_fs_verity_measurement", json!(fs_verity)),
-        ("expectation", json!(expectation)),
-        ("source_basis", source_basis),
-        ("cold_source_revision", json!(cold_source_revision)),
-        ("cold_digest_read_bytes", json!(cold_digest_read_bytes)),
-        (
-            "cold_validation_charged_bytes",
-            json!(cold_validation_charged_bytes),
-        ),
-        ("cold_open_vm_steps", json!(open_vm_steps)),
-        ("corpus_original_available", json!(true)),
-        ("philosophy_original_available", json!(true)),
-        ("corpus_original_receipt", corpus_original),
-        ("philosophy_original_receipt", philosophy_original),
-        ("process_limits", json!(request.process_limits)),
-        ("cold_open_limits", json!(request.cold_open)),
-        ("model_path", json!(model_path)),
-        ("named_model_before", stamp_json(named_model_before)),
-        ("held_model_fd_first", held_model_fd_first),
-        ("held_model_fd_last", held_model_fd_last),
-        ("named_model_after", stamp_json(named_model_after)),
-        ("custody_verify_calls", json!(custody_verify_calls)),
-        ("clock", clock),
-        ("named_and_held_stamps_agree", json!(true)),
-    ]);
-    let resource_envelope = json_object([
-        ("tmpfs_quota_bytes", json!(request.tmpfs_quota_bytes)),
-        (
-            "minimum_composed_tmpfs_quota_bytes",
-            json!(manifest::NATIVE_PRODUCER_MIN_TMPFS_QUOTA_BYTES),
-        ),
-        ("working_ram_bytes", json!(request.working_ram_bytes)),
-        ("original_kernel_memory_max_bytes", json!(resources.original_kernel_memory_max())),
-        ("producer_max_state_bytes", json!(request.max_state_bytes)),
-        ("producer_max_json_visits", json!(request.max_json_visits)),
-        ("writer_model_max_file_bytes", json!(limits.stage.sqlite.max_output_bytes)),
-        ("writer_temp_max_file_bytes", json!(limits.stage.max_temp_bytes)),
-        ("payload_layout", json!("CarrierOnceV1")),
-        (
-            "persistent_write_cap_bytes",
-            json!(request.persistent_write_cap_bytes),
-        ),
-        ("candidate_data_cap_bytes", json!(data_cap)),
-        (
-            "conservative_data_upper_bound_bytes",
-            json!(persistent_candidate_upper),
-        ),
-        ("pre_manifest_output_bytes", json!(output.written_bytes)),
-        ("whole_deadline_seconds", json!(request.max_build_seconds)),
-        ("elapsed_seconds", json!(started.elapsed().as_secs())),
-        (
-            "limit_interpretation",
-            json!("original state/JSON/physical ceilings and refusal bounds; actual completed file size and cold counters are separate evidence, not peak-RAM measurement"),
-        ),
-    ]);
-    let result = json_object([
-        ("schema_version", json!(RESULT_SCHEMA)),
-        (
-            "outcome",
-            json!("private-native-data-candidate-ready-for-external-pair-verifier"),
-        ),
-        ("current_release_promoted", json!(false)),
-        ("installed_access_mcp_accepted", json!(false)),
-        ("authority", authority),
-        ("data_root", json!(output.root_path())),
-        ("private_release_root", json!(private_release_root)),
-        ("private_release_root_created", json!(false)),
-        ("persistent_store", json!(persistent_store_path)),
-        ("data_manifest", data_manifest),
-        ("historical_source", historical_source),
-        ("source_bindings", json!(source_bindings)),
-        (
-            "embedded_producer_fingerprint",
-            compiler_json(&fingerprint_before),
-        ),
-        ("evidence_lens_scene", evidence_lens_scene),
-        ("external_evidence_refs", json!(evidence_outputs)),
-        ("producer_selection", selection_value),
-        ("cold_witness", cold_witness),
-        ("resource_envelope", resource_envelope),
-    ]);
-    let raw_result = serde_json::to_vec(&result)?;
-    if raw_result.len() > MAX_RESULT_BYTES {
-        return Err(Refusal("native Original result byte ceiling").into());
-    }
-    active(deadline)?;
-    Ok(result)
-            };
-            match finish() {
-                Ok(value) => { result = Some(value); Ok(()) }
-                Err(error) => { completion_error = Some(error);
-                    Err(tos_compiler::Error::Invalid("native Original consumer refused")) }
-            }
-        });
-    if let Some(error) = completion_error { return Err(error); }
     produced?;
     result.ok_or_else(|| Refusal("native Original completion receipt absent").into())
 }

@@ -121,16 +121,40 @@ fn check_capture_active(
 }
 
 impl PublicCaptureInputPaths {
+    /// Maintained runtime source selector; no filesystem discovery.
+    pub fn runtime(root: &Path) -> Self {
+        Self {
+            index_path: root.join("ToS/derived-exports/tos_corpus_index.min.json"),
+            philosophy_graph_projection_path: root
+                .join("ToS/derived-exports/philosophy_graph_projection.min.json"),
+            bibliographic_graph_path: root
+                .join("ToS/derived-exports/graph/source-witness-bibliographic-claims.min.json"),
+            entity_type_registry_path: root
+                .join("ToS/doctrine/semantic-interchange/entity-types.v1.json"),
+            relation_type_registry_path: root
+                .join("ToS/doctrine/semantic-interchange/relation-types.v1.json"),
+            philosophy_post_planting_audit_path: root.join(
+                "ToS/philosophy/graph-workbench/review-packets/table-i-post-planting-audit.json",
+            ),
+            evidence_projection_path: root
+                .join("ToS/derived-exports/epistemic_evidence_projection.min.json"),
+        }
+    }
+
+    pub(crate) fn selected_paths(&self) -> [(&Path, bool); 7] {
+        [
+            (&self.index_path, true),
+            (&self.philosophy_graph_projection_path, true),
+            (&self.bibliographic_graph_path, true),
+            (&self.entity_type_registry_path, true),
+            (&self.relation_type_registry_path, true),
+            (&self.philosophy_post_planting_audit_path, false),
+            (&self.evidence_projection_path, false),
+        ]
+    }
+
     fn validate(&self) -> Result<()> {
-        for path in [
-            &self.index_path,
-            &self.philosophy_graph_projection_path,
-            &self.bibliographic_graph_path,
-            &self.entity_type_registry_path,
-            &self.relation_type_registry_path,
-            &self.philosophy_post_planting_audit_path,
-            &self.evidence_projection_path,
-        ] {
+        for (path, _) in self.selected_paths() {
             if !path.is_absolute() || path.to_str().is_none() {
                 return Err(Error::Invalid("selected public D1 input path"));
             }
@@ -901,7 +925,10 @@ impl<'budget> CreationState<'budget> {
         self.encode_foundation_canonical_with_limits(&document, limits)
     }
     pub(crate) fn with_foundation_compact_bytes<T>(
-        &self, value: &JsonValue, cap: usize, source_bytes: usize,
+        &self,
+        value: &JsonValue,
+        cap: usize,
+        source_bytes: usize,
         operation: impl FnOnce(&[u8]) -> Result<T>,
     ) -> Result<T> {
         let bytes = compact_with_owned_state(self, value, cap, source_bytes)?;
@@ -1480,98 +1507,105 @@ impl std::ops::Deref for CreationJson<'_> {
     }
 }
 impl std::ops::DerefMut for CreationJson<'_> {
-    fn deref_mut(&mut self) -> &mut JsonValue { &mut self.value }
+    fn deref_mut(&mut self) -> &mut JsonValue {
+        &mut self.value
+    }
 }
 
-pub(crate) fn foundation_scoped<'a>(raw: &[u8], cap: usize,
+pub(crate) fn foundation_scoped<'a>(
+    raw: &[u8],
+    cap: usize,
     owner: Option<&'a CreationState<'a>>,
 ) -> Result<CreationJson<'a>> {
     match owner {
         Some(owner) => creation_json(owner, raw, cap),
-        None => Ok(CreationJson { value: json(raw, cap)?, _hold: None }),
+        None => Ok(CreationJson {
+            value: json(raw, cap)?,
+            _hold: None,
+        }),
     }
 }
 
-fn compact_with_owned_state<'a>(owner: &'a CreationState<'a>, value: &JsonValue,
-    cap: usize, source_bytes: usize,
+fn compact_with_owned_state<'a>(
+    owner: &'a CreationState<'a>,
+    value: &JsonValue,
+    cap: usize,
+    source_bytes: usize,
 ) -> Result<CreationBytes<'a>> {
-        let before = owner.json_visits.get();
-        let allowance = owner
-            .max_json_visits
-            .checked_sub(before)
-            .filter(|value| *value > 0)
-            .ok_or(Error::Budget("runtime carrier compact visits"))?
-            .min(1_000_000)
-            .min(
-                source_bytes
-                    .checked_mul(6)
-                    .and_then(|n| n.checked_add(2))
-                    .ok_or(Error::Budget("runtime carrier compact visit bound"))?,
-            );
-        // Two passes each visit values, keys and numeric-lexeme validation;
-        // every such token originates in the bounded original input bytes.
-        // PythonPublishedCompact cannot expand an original token beyond this
-        // finite bound: quoted UTF-16 units need <=6 bytes, finite binary64
-        // shortest spelling fits 32 bytes, integer digits retain their input
-        // width, and container punctuation is already present in source bytes.
-        let output_cap = source_bytes
-            .checked_mul(32)
-            .and_then(|n| n.checked_add(2))
-            .ok_or(Error::Budget("runtime carrier compact token bound"))?
-            .min(cap);
-        let limits = JsonLimits::new(output_cap, 96, allowance, 4096)
-            .map_err(|_| Error::Budget("runtime carrier compact limits"))?;
-        let available = owner.remaining(0)?;
-        let mut check = || {
-            check_capture_active(Some(owner.cancelled), owner.deadline).map_err(|_| {
-                tos_foundation::FoundationError::new(
-                    tos_foundation::FoundationErrorCode::BudgetExceeded,
-                    "runtime carrier compact cutoff/cancellation",
-                )
-            })
-        };
-        let work = &owner.work;
-        let limit = owner.work_limit;
-        let mut admit = |bytes: usize, visits: usize| {
-            let amount = bytes
-                .checked_add(visits)
-                .ok_or_else(|| {
-                    tos_foundation::FoundationError::new(
-                        tos_foundation::FoundationErrorCode::BudgetExceeded,
-                        "runtime carrier compact work overflow",
-                    )
-                })?;
-            checked_add(work, amount, limit).map_err(|_| {
-                tos_foundation::FoundationError::new(
-                    tos_foundation::FoundationErrorCode::BudgetExceeded,
-                    "runtime carrier compact original work",
-                )
-            })?;
-            owner
-                .json_visits
-                .set(owner.json_visits.get().checked_add(visits).ok_or_else(|| {
-                    tos_foundation::FoundationError::new(
-                        tos_foundation::FoundationErrorCode::BudgetExceeded,
-                        "runtime carrier compact visits overflow",
-                    )
-                })?);
-            Ok(())
-        };
-        let (bytes, visits) = emit_python_compact_json_with_state_budget_and_visits_and_check(
-            value, limits, available, &mut check, &mut admit,
-        )
-        .map_err(foundation_json_error)?;
-        owner.json_visits.set(
-            before
-                .checked_add(visits)
-                .ok_or(Error::Budget("runtime carrier compact visits"))?,
+    let before = owner.json_visits.get();
+    let allowance = owner
+        .max_json_visits
+        .checked_sub(before)
+        .filter(|value| *value > 0)
+        .ok_or(Error::Budget("runtime carrier compact visits"))?
+        .min(1_000_000)
+        .min(
+            source_bytes
+                .checked_mul(6)
+                .and_then(|n| n.checked_add(2))
+                .ok_or(Error::Budget("runtime carrier compact visit bound"))?,
         );
-        let hold = owner.hold(bytes.capacity())?;
-        Ok(CreationBytes {
-            bytes,
-            _hold: Some(hold),
+    // Two passes each visit values, keys and numeric-lexeme validation;
+    // every such token originates in the bounded original input bytes.
+    // PythonPublishedCompact cannot expand an original token beyond this
+    // finite bound: quoted UTF-16 units need <=6 bytes, finite binary64
+    // shortest spelling fits 32 bytes, integer digits retain their input
+    // width, and container punctuation is already present in source bytes.
+    let output_cap = source_bytes
+        .checked_mul(32)
+        .and_then(|n| n.checked_add(2))
+        .ok_or(Error::Budget("runtime carrier compact token bound"))?
+        .min(cap);
+    let limits = JsonLimits::new(output_cap, 96, allowance, 4096)
+        .map_err(|_| Error::Budget("runtime carrier compact limits"))?;
+    let available = owner.remaining(0)?;
+    let mut check = || {
+        check_capture_active(Some(owner.cancelled), owner.deadline).map_err(|_| {
+            tos_foundation::FoundationError::new(
+                tos_foundation::FoundationErrorCode::BudgetExceeded,
+                "runtime carrier compact cutoff/cancellation",
+            )
         })
-
+    };
+    let work = &owner.work;
+    let limit = owner.work_limit;
+    let mut admit = |bytes: usize, visits: usize| {
+        let amount = bytes.checked_add(visits).ok_or_else(|| {
+            tos_foundation::FoundationError::new(
+                tos_foundation::FoundationErrorCode::BudgetExceeded,
+                "runtime carrier compact work overflow",
+            )
+        })?;
+        checked_add(work, amount, limit).map_err(|_| {
+            tos_foundation::FoundationError::new(
+                tos_foundation::FoundationErrorCode::BudgetExceeded,
+                "runtime carrier compact original work",
+            )
+        })?;
+        owner
+            .json_visits
+            .set(owner.json_visits.get().checked_add(visits).ok_or_else(|| {
+                tos_foundation::FoundationError::new(
+                    tos_foundation::FoundationErrorCode::BudgetExceeded,
+                    "runtime carrier compact visits overflow",
+                )
+            })?);
+        Ok(())
+    };
+    let (bytes, visits) = emit_python_compact_json_with_state_budget_and_visits_and_check(
+        value, limits, available, &mut check, &mut admit,
+    )
+    .map_err(foundation_json_error)?;
+    owner.json_visits.set(
+        before
+            .checked_add(visits)
+            .ok_or(Error::Budget("runtime carrier compact visits"))?,
+    );
+    let hold = owner.hold(bytes.capacity())?;
+    Ok(CreationBytes {
+        bytes,
+        _hold: Some(hold),
+    })
 }
 
 struct CreationBytes<'a> {
@@ -1725,7 +1759,9 @@ fn creation_json_with_limits<'a>(
             .ok_or(Error::Budget("runtime carrier creation JSON visits"))?,
     );
     let value = parsed.into_root();
-    let bytes = value.retained_storage_bytes().map_err(foundation_json_error)?;
+    let bytes = value
+        .retained_storage_bytes()
+        .map_err(foundation_json_error)?;
     let hold = owner.hold(bytes)?;
     Ok(CreationJson {
         value,
@@ -1744,11 +1780,17 @@ impl<'a> CaptureWriter<'a> {
         }
     }
     fn compact_owned(
-        &mut self, value: &JsonValue, cap: usize, source_bytes: usize,
+        &mut self,
+        value: &JsonValue,
+        cap: usize,
+        source_bytes: usize,
     ) -> Result<CreationBytes<'a>> {
         match self.creation {
             Some(owner) => compact_with_owned_state(owner, value, cap, source_bytes),
-            None => Ok(CreationBytes { bytes: compact(value, cap)?, _hold: None }),
+            None => Ok(CreationBytes {
+                bytes: compact(value, cap)?,
+                _hold: None,
+            }),
         }
     }
     fn page_step(&mut self, bytes: usize) -> Result<()> {
@@ -3387,58 +3429,81 @@ fn capture_partitioned(root_path: &Path, raw: &[u8], writer: &mut CaptureWriter<
     Ok(())
 }
 
-fn runtime_companion(label: &str) -> Option<&'static [u8]> {
-    match label {
-        "ToS/doctrine/semantic-interchange/query-vocabulary.v1.json" => Some(include_bytes!(
-            "../../../../ToS/doctrine/semantic-interchange/query-vocabulary.v1.json"
-        )),
-        "access/contracts/knowledge-api.v1.json" => Some(include_bytes!(
-            "../../../../access/contracts/knowledge-api.v1.json"
-        )),
-        "access/contracts/knowledge-graph.v1.schema.json" => Some(include_bytes!(
-            "../../../../access/contracts/knowledge-graph.v1.schema.json"
-        )),
-        "access/contracts/knowledge-search-indexed.v2.schema.json" => Some(include_bytes!(
-            "../../../../access/contracts/knowledge-search-indexed.v2.schema.json"
-        )),
-        "access/contracts/readable-context.v1.schema.json" => Some(include_bytes!(
-            "../../../../access/contracts/readable-context.v1.schema.json"
-        )),
-        "access/contracts/lens-spec.v1.schema.json" => Some(include_bytes!(
-            "../../../../access/contracts/lens-spec.v1.schema.json"
-        )),
-        "access/contracts/lens-result.v1.schema.json" => Some(include_bytes!(
-            "../../../../access/contracts/lens-result.v1.schema.json"
-        )),
-        "access/contracts/temporal-comparison-request.v1.schema.json" => Some(include_bytes!(
-            "../../../../access/contracts/temporal-comparison-request.v1.schema.json"
-        )),
-        "access/contracts/temporal-comparison-result.v1.schema.json" => Some(include_bytes!(
-            "../../../../access/contracts/temporal-comparison-result.v1.schema.json"
-        )),
-        "access/contracts/source-read.v1.schema.json" => Some(include_bytes!(
-            "../../../../access/contracts/source-read.v1.schema.json"
-        )),
-        "access/contracts/exploration-request.v1.schema.json" => Some(include_bytes!(
-            "../../../../access/contracts/exploration-request.v1.schema.json"
-        )),
-        "access/contracts/exploration-result.v1.schema.json" => Some(include_bytes!(
-            "../../../../access/contracts/exploration-result.v1.schema.json"
-        )),
-        "access/contracts/exploration-request.v2.schema.json" => Some(include_bytes!(
-            "../../../../access/contracts/exploration-request.v2.schema.json"
-        )),
-        "access/contracts/exploration-result.v2.schema.json" => Some(include_bytes!(
-            "../../../../access/contracts/exploration-result.v2.schema.json"
-        )),
-        "ToS/contracts/semantic-entity-type-registry.schema.json" => Some(include_bytes!(
-            "../../../../ToS/contracts/semantic-entity-type-registry.schema.json"
-        )),
-        "ToS/contracts/semantic-relation-type-registry.schema.json" => Some(include_bytes!(
-            "../../../../ToS/contracts/semantic-relation-type-registry.schema.json"
-        )),
-        _ => None,
-    }
+/// Compiled runtime companions owned by capture; census uses this same selection.
+pub(crate) fn runtime_companions() -> impl Iterator<Item = (&'static str, &'static [u8])> {
+    const INPUTS: &[(&str, &[u8])] = &[
+        (
+            "ToS/doctrine/semantic-interchange/query-vocabulary.v1.json",
+            include_bytes!(
+                "../../../../ToS/doctrine/semantic-interchange/query-vocabulary.v1.json"
+            ),
+        ),
+        (
+            "access/contracts/knowledge-api.v1.json",
+            include_bytes!("../../../../access/contracts/knowledge-api.v1.json"),
+        ),
+        (
+            "access/contracts/knowledge-graph.v1.schema.json",
+            include_bytes!("../../../../access/contracts/knowledge-graph.v1.schema.json"),
+        ),
+        (
+            "access/contracts/knowledge-search-indexed.v2.schema.json",
+            include_bytes!("../../../../access/contracts/knowledge-search-indexed.v2.schema.json"),
+        ),
+        (
+            "access/contracts/readable-context.v1.schema.json",
+            include_bytes!("../../../../access/contracts/readable-context.v1.schema.json"),
+        ),
+        (
+            "access/contracts/lens-spec.v1.schema.json",
+            include_bytes!("../../../../access/contracts/lens-spec.v1.schema.json"),
+        ),
+        (
+            "access/contracts/lens-result.v1.schema.json",
+            include_bytes!("../../../../access/contracts/lens-result.v1.schema.json"),
+        ),
+        (
+            "access/contracts/temporal-comparison-request.v1.schema.json",
+            include_bytes!(
+                "../../../../access/contracts/temporal-comparison-request.v1.schema.json"
+            ),
+        ),
+        (
+            "access/contracts/temporal-comparison-result.v1.schema.json",
+            include_bytes!(
+                "../../../../access/contracts/temporal-comparison-result.v1.schema.json"
+            ),
+        ),
+        (
+            "access/contracts/source-read.v1.schema.json",
+            include_bytes!("../../../../access/contracts/source-read.v1.schema.json"),
+        ),
+        (
+            "access/contracts/exploration-request.v1.schema.json",
+            include_bytes!("../../../../access/contracts/exploration-request.v1.schema.json"),
+        ),
+        (
+            "access/contracts/exploration-result.v1.schema.json",
+            include_bytes!("../../../../access/contracts/exploration-result.v1.schema.json"),
+        ),
+        (
+            "access/contracts/exploration-request.v2.schema.json",
+            include_bytes!("../../../../access/contracts/exploration-request.v2.schema.json"),
+        ),
+        (
+            "access/contracts/exploration-result.v2.schema.json",
+            include_bytes!("../../../../access/contracts/exploration-result.v2.schema.json"),
+        ),
+        (
+            "ToS/contracts/semantic-entity-type-registry.schema.json",
+            include_bytes!("../../../../ToS/contracts/semantic-entity-type-registry.schema.json"),
+        ),
+        (
+            "ToS/contracts/semantic-relation-type-registry.schema.json",
+            include_bytes!("../../../../ToS/contracts/semantic-relation-type-registry.schema.json"),
+        ),
+    ];
+    INPUTS.iter().copied()
 }
 
 impl PublicCapture {
@@ -3630,23 +3695,7 @@ impl PublicCapture {
         let cancelled = Arc::new(std::sync::atomic::AtomicBool::new(false));
         Self::create_runtime_selected(
             root,
-            &PublicCaptureInputPaths {
-                index_path: root.join("ToS/derived-exports/tos_corpus_index.min.json"),
-                philosophy_graph_projection_path:
-                    root.join("ToS/derived-exports/philosophy_graph_projection.min.json"),
-                bibliographic_graph_path: root.join(
-                    "ToS/derived-exports/graph/source-witness-bibliographic-claims.min.json",
-                ),
-                entity_type_registry_path: root
-                    .join("ToS/doctrine/semantic-interchange/entity-types.v1.json"),
-                relation_type_registry_path: root
-                    .join("ToS/doctrine/semantic-interchange/relation-types.v1.json"),
-                philosophy_post_planting_audit_path: root.join(
-                    "ToS/philosophy/graph-workbench/review-packets/table-i-post-planting-audit.json",
-                ),
-                evidence_projection_path:
-                    root.join("ToS/derived-exports/epistemic_evidence_projection.min.json"),
-            },
+            &PublicCaptureInputPaths::runtime(root),
             staging,
             limits,
             deadline,
@@ -3831,8 +3880,18 @@ impl PublicCapture {
         budget: RuntimeCaptureOwnedBudget<'_>,
         usage: &mut RuntimeCaptureCreationUsage,
     ) -> Result<Self> {
-        Self::create_selected_with_owned_budget(root, Some(selected), true, profile, staging,
-            limits, deadline, cancelled, budget, usage)
+        Self::create_selected_with_owned_budget(
+            root,
+            Some(selected),
+            true,
+            profile,
+            staging,
+            limits,
+            deadline,
+            cancelled,
+            budget,
+            usage,
+        )
     }
 
     /// Full public-site capture from the maintained public input route, under
@@ -3846,20 +3905,44 @@ impl PublicCapture {
         budget: RuntimeCaptureOwnedBudget<'_>,
         usage: &mut RuntimeCaptureCreationUsage,
     ) -> Result<Self> {
-        Self::create_selected_with_owned_budget(root, None, false, RuntimeCaptureProfile::Whole,
-            staging, limits, deadline, cancelled, budget, usage)
+        Self::create_selected_with_owned_budget(
+            root,
+            None,
+            false,
+            RuntimeCaptureProfile::Whole,
+            staging,
+            limits,
+            deadline,
+            cancelled,
+            budget,
+            usage,
+        )
     }
 
     /// Runtime full-root capture under the original dedicated native process.
     /// This preserves the maintained runtime input profile without requiring
     /// selected-path aliases or constructing a new resource domain.
     pub fn create_runtime_with_owned_budget(
-        root: &Path, staging: &Path, limits: PublicCaptureLimits, deadline: Instant,
+        root: &Path,
+        staging: &Path,
+        limits: PublicCaptureLimits,
+        deadline: Instant,
         cancelled: Arc<std::sync::atomic::AtomicBool>,
-        budget: RuntimeCaptureOwnedBudget<'_>, usage: &mut RuntimeCaptureCreationUsage,
+        budget: RuntimeCaptureOwnedBudget<'_>,
+        usage: &mut RuntimeCaptureCreationUsage,
     ) -> Result<Self> {
-        Self::create_selected_with_owned_budget(root, None, true, RuntimeCaptureProfile::Whole,
-            staging, limits, deadline, cancelled, budget, usage)
+        Self::create_selected_with_owned_budget(
+            root,
+            None,
+            true,
+            RuntimeCaptureProfile::Whole,
+            staging,
+            limits,
+            deadline,
+            cancelled,
+            budget,
+            usage,
+        )
     }
 
     fn create_selected_with_owned_budget(
@@ -3941,7 +4024,9 @@ impl PublicCapture {
         };
         let result = (|| {
             state.sqlite_heap.verify_current()?;
-            if let Some(selected) = selected { selected.validate()?; }
+            if let Some(selected) = selected {
+                selected.validate()?;
+            }
             let role = match profile {
                 RuntimeCaptureProfile::Carrier(role) => Some(role),
                 RuntimeCaptureProfile::Whole => None,
@@ -4496,23 +4581,10 @@ impl PublicCapture {
         for relative in [
             "ToS/doctrine/semantic-interchange/entity-types.v1.json",
             "ToS/doctrine/semantic-interchange/relation-types.v1.json",
-            "ToS/doctrine/semantic-interchange/query-vocabulary.v1.json",
-            "access/contracts/knowledge-api.v1.json",
-            "access/contracts/knowledge-graph.v1.schema.json",
-            "access/contracts/knowledge-search-indexed.v2.schema.json",
-            "access/contracts/readable-context.v1.schema.json",
-            "access/contracts/lens-spec.v1.schema.json",
-            "access/contracts/lens-result.v1.schema.json",
-            "access/contracts/temporal-comparison-request.v1.schema.json",
-            "access/contracts/temporal-comparison-result.v1.schema.json",
-            "access/contracts/source-read.v1.schema.json",
-            "access/contracts/exploration-request.v1.schema.json",
-            "access/contracts/exploration-result.v1.schema.json",
-            "access/contracts/exploration-request.v2.schema.json",
-            "access/contracts/exploration-result.v2.schema.json",
-            "ToS/contracts/semantic-entity-type-registry.schema.json",
-            "ToS/contracts/semantic-relation-type-registry.schema.json",
-        ] {
+        ]
+        .into_iter()
+        .chain(runtime_companions().map(|(path, _)| path))
+        {
             if evidence_profile || runtime_capture_role.is_some() {
                 continue;
             }
@@ -4526,7 +4598,7 @@ impl PublicCapture {
                 continue;
             }
             if runtime_profile {
-                if let Some(raw) = runtime_companion(relative) {
+                if let Some((_, raw)) = runtime_companions().find(|(path, _)| *path == relative) {
                     if raw.len() as u64 > limits.max_input_bytes {
                         return Err(Error::Budget("runtime compiled companion bytes"));
                     }
