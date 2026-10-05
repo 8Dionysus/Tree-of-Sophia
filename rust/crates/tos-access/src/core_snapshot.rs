@@ -2452,7 +2452,10 @@ fn serve_selected_root(
         &isolation,
         limits,
     )
-    .map_err(|_| "Core HTTP full native producer refused")?
+    .map_err(|error| {
+        compiler_terminal_diagnostic("Core HTTP native producer", &error);
+        "Core HTTP full native producer refused"
+    })?
     .into_reference_query_delivery();
     let evidence = tos_compiler::native_snapshot::check_completed_evidence_projection(
         &capture,
