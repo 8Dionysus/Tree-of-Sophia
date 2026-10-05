@@ -43,7 +43,8 @@ mod controlled_lens_budget;
 #[cfg(not(target_arch = "wasm32"))]
 mod controlled_lens_adapter;
 #[cfg(not(target_arch = "wasm32"))]
-pub use controlled_lens_adapter::execute_controlled_lens_response;
+pub use controlled_lens_adapter::{execute_controlled_lens_response,
+    execute_controlled_lens_request_response, ControlledLensRequest};
 #[cfg(not(target_arch = "wasm32"))]
 mod controlled_original_reader;
 #[cfg(not(target_arch = "wasm32"))]

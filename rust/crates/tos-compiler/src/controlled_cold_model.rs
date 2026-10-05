@@ -375,6 +375,15 @@ impl ControlledKnowledgeModel<'_, '_, '_> {
         max_vm_steps: u64, json: JsonLimits,
         consume: impl FnOnce(&[u8], &JsonValue) -> Result<()>,
     ) -> Result<()> {
+        self.with_controlled_catalog_scan(max_packet_bytes, max_decoded_bytes,
+            max_vm_steps, json, consume).map(|_| ())
+    }
+
+    pub fn with_controlled_catalog_scan(
+        &mut self, max_packet_bytes: usize, max_decoded_bytes: usize,
+        max_vm_steps: u64, json: JsonLimits,
+        consume: impl FnOnce(&[u8], &JsonValue) -> Result<()>,
+    ) -> Result<ControlledLegacySearchScan> {
         self.check_pin()?;
         if max_packet_bytes == 0 || max_packet_bytes > i64::MAX as usize
             || max_decoded_bytes < 32 || max_vm_steps == 0 {
@@ -389,7 +398,7 @@ impl ControlledKnowledgeModel<'_, '_, '_> {
         let _hold = self.context.owned_state().hold(forecast)?;
         self.context.charge_work(64)?;
         let descriptor = self.selection.vocabulary.descriptor_sha256.to_hex();
-        let (row, _) = crate::knowledge_payload_read::with_query_vm_window(
+        let (row, vm_steps) = crate::knowledge_payload_read::with_query_vm_window(
             self.context, &self.connection, max_vm_steps, || {
                 self.connection.query_row(
                     "SELECT packet_len,CASE WHEN typeof(packet_sha256)='blob' AND length(packet_sha256)=32 THEN packet_sha256 END,CASE WHEN typeof(packet)='blob' AND packet_len BETWEEN 1 AND ?2 AND length(packet)=packet_len THEN packet END FROM catalog_index_meta WHERE descriptor_sha256=?1",
@@ -411,7 +420,9 @@ impl ControlledKnowledgeModel<'_, '_, '_> {
         self.check_pin()?;
         self.context.with_foundation_owned_with_limits(&payload, json,
             |catalog| consume(&payload, catalog))?;
-        self.check_pin()
+        self.check_pin()?;
+        Ok(ControlledLegacySearchScan { rows: 1, decoded_bytes: (payload.len() as u64)
+            .checked_add(32).ok_or(Error::Budget("controlled catalog decoded count"))?, vm_steps })
     }
 
     /// Deliver the digest-bound normalized header under the original cold state.

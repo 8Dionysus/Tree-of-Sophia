@@ -26,11 +26,40 @@ pub fn execute_controlled_lens_response<'hold, A: InspectCurrentAuthority<'hold>
     authority: &mut A, spec: &JsonValue, limits: LensBudget,
     deliver: impl FnOnce(&[u8]) -> Result<(), SearchV2Error>,
 ) -> Result<(), SearchV2Error> {
+    execute_controlled_lens_request_response(model, bound, authority,
+        ControlledLensRequest::Compile(spec), limits, deliver)
+}
+
+#[derive(Clone, Copy)]
+pub enum ControlledLensRequest<'a> {
+    Compile(&'a JsonValue),
+    Focus(&'a crate::knowledge_focus::KnowledgeFocusRequest),
+    Stored(&'a str),
+}
+
+pub fn execute_controlled_lens_request_response<'hold, A: InspectCurrentAuthority<'hold> + ?Sized>(
+    model: &mut ControlledKnowledgeModel<'_, '_, '_>, bound: &BoundCmpKnowledge<'_>,
+    authority: &mut A, request: ControlledLensRequest<'_>, limits: LensBudget,
+    deliver: impl FnOnce(&[u8]) -> Result<(), SearchV2Error>,
+) -> Result<(), SearchV2Error> {
     let caps = limits.inspect;
     bound.check_controlled_model(model)?;
     model.check_query_open_vm_admission(caps.max_open_vm_steps).map_err(compiler_query_error)?;
     let metadata = authority.disclosure_metadata_state_upper_bound()?;
-    let input = spec.retained_storage_bytes().map_err(|_| budget())?;
+    let (operation, intended, input) = match request {
+        ControlledLensRequest::Compile(spec) => (LENS_OPERATION, LENS_INTENDED_USE,
+            spec.retained_storage_bytes().map_err(|_| budget())?),
+        ControlledLensRequest::Focus(focus) => (crate::knowledge_lens::FOCUS_OPERATION,
+            crate::knowledge_lens::FOCUS_INTENDED_USE,
+            focus.retained_state_bytes().map_err(|_| budget())?),
+        ControlledLensRequest::Stored(identifier) => {
+            if identifier.is_empty() || identifier.chars().count() > 4096 {
+                return Err(crate::knowledge_lens_spec::invalid("stored lens identifier is required and bounded"));
+            }
+            (crate::knowledge_lens::STORED_LENS_OPERATION,
+                crate::knowledge_lens::STORED_LENS_INTENDED_USE, identifier.len())
+        }
+    };
     let frame = metadata.checked_add(input.checked_mul(3).ok_or_else(budget)?)
         .and_then(|n| n.checked_add(std::mem::size_of::<LensPlan<'_>>()
             + std::mem::size_of::<Charges>() + std::mem::size_of_val(&deliver)))
@@ -40,7 +69,7 @@ pub fn execute_controlled_lens_response<'hold, A: InspectCurrentAuthority<'hold>
         result = (|| {
             let policy = authority.policy_binding();
             let scope = authority.disclosure_scope();
-            scope.validate_for(bound, &policy, LENS_OPERATION, LENS_INTENDED_USE)?;
+            scope.validate_for(bound, &policy, operation, intended)?;
             let actual = policy.retained_state_bytes().map_err(|_| budget())?
                 .checked_add(crate::knowledge_inspect::scope_owned_state(&scope)?).ok_or_else(budget)?;
             if actual > metadata { return Err(budget()); }
@@ -69,7 +98,59 @@ pub fn execute_controlled_lens_response<'hold, A: InspectCurrentAuthority<'hold>
             heap.borrow_mut().retain(regex_state).map_err(compiler_query_error)?;
             heap.borrow().charge_work(regex_state).map_err(compiler_query_error)?;
             let vocabulary = LensVocabulary::from_selected(bound, &header)?;
-            let public = normalize_lens_spec(spec, &vocabulary)?;
+            let mut catalog_scan = None;
+            let spec = match request {
+                ControlledLensRequest::Compile(spec) => spec.clone(),
+                ControlledLensRequest::Focus(focus) => {
+                    // The fixed Focus constructor has fewer than 80 values/keys.
+                    // Admit their frames, fixed literals, selected-source strings,
+                    // and four uses of the identifier before its owned spec exists.
+                    let sources = vocabulary.sources.iter().try_fold(0usize,
+                        |n, s| n.checked_add(s.len()).ok_or_else(budget))?;
+                    let generated = input.checked_mul(4)
+                        .and_then(|n| n.checked_add(sources))
+                        .and_then(|n| n.checked_add(1024))
+                        .and_then(|n| n.checked_mul(1 + 2 * std::mem::size_of::<u16>()))
+                        .and_then(|n| n.checked_add(80 * (std::mem::size_of::<JsonValue>()
+                            + std::mem::size_of::<JsonString>())))
+                        .ok_or_else(budget)?;
+                    heap.borrow_mut().retain(generated).map_err(compiler_query_error)?;
+                    heap.borrow().charge_work(generated).map_err(compiler_query_error)?;
+                    crate::knowledge_focus::focus_lens_spec(focus, &vocabulary)?
+                }
+                ControlledLensRequest::Stored(identifier) => {
+                    let mut catalog = None;
+                    let mut authorizing = Ok(());
+                    let scan = model.with_controlled_catalog_scan(caps.max_payload_bytes,
+                        usize::try_from(caps.max_decoded_bytes.checked_sub(header_scan.decoded_bytes)
+                            .ok_or_else(budget)?).map_err(|_| budget())?,
+                        caps.max_read_vm_steps.checked_sub(header_scan.vm_steps).ok_or_else(budget)?,
+                        caps.json, |raw, value| {
+                        authorizing = (|| {
+                            authority.authorize_catalog_current(bound,
+                                bound.selection().catalog_packet_sha256,
+                                bound.selection().catalog_index_root_sha256)?;
+                            heap.borrow().charge_work(raw.len()).map_err(compiler_query_error)?;
+                            bound.validate_catalog_identity(value, caps.json)?;
+                            let bytes = value.retained_storage_bytes().map_err(|_| budget())?;
+                            heap.borrow_mut().retain(bytes).map_err(compiler_query_error)?;
+                            heap.borrow().charge_work(raw.len()).map_err(compiler_query_error)?;
+                            catalog = Some(value.clone());
+                            Ok(())
+                        })();
+                        Ok(())
+                    }).map_err(compiler_query_error)?;
+                    authorizing?;
+                    catalog_scan = Some(scan);
+                    let catalog = catalog.ok_or_else(corrupt)?;
+                    heap.borrow_mut().retain(catalog.retained_storage_bytes().map_err(|_| budget())?)
+                        .map_err(compiler_query_error)?;
+                    crate::knowledge_lens_spec::stored_lens_spec(&catalog, identifier)?
+                }
+            };
+            heap.borrow_mut().retain(spec.retained_storage_bytes().map_err(|_| budget())?
+                .checked_mul(3).ok_or_else(budget)?).map_err(compiler_query_error)?;
+            let public = normalize_lens_spec(&spec, &vocabulary)?;
             let public_state = public.retained_storage_bytes().map_err(|_| budget())?;
             heap.borrow_mut().retain(public_state.checked_mul(3).ok_or_else(budget)?)
                 .map_err(compiler_query_error)?;
@@ -98,6 +179,11 @@ pub fn execute_controlled_lens_response<'hold, A: InspectCurrentAuthority<'hold>
             let source_json = std::str::from_utf8(&source_json).map_err(|_| corrupt())?;
             let mut charges = Charges { rows: header_scan.rows.checked_add(3).ok_or_else(budget)?,
                 decoded: header_scan.decoded_bytes.checked_add(24).ok_or_else(budget)?, vm: header_scan.vm_steps };
+            if let Some(scan) = catalog_scan {
+                charges.rows = charges.rows.checked_add(scan.rows).ok_or_else(budget)?;
+                charges.decoded = charges.decoded.checked_add(scan.decoded_bytes).ok_or_else(budget)?;
+                charges.vm = charges.vm.checked_add(scan.vm_steps).ok_or_else(budget)?;
+            }
             if charges.rows > caps.max_rows || charges.decoded > caps.max_decoded_bytes { return Err(budget()); }
             let (nodes, vm) = model.controlled_lens_scope_count(ControlledSearchKind::Nodes,
                 source_json, caps.max_read_vm_steps.checked_sub(charges.vm).ok_or_else(budget)?).map_err(compiler_query_error)?;

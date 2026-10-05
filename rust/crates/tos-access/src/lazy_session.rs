@@ -250,7 +250,7 @@ fn call(
         let tool = checked_field(arguments, "tool", state, deadline)?
             .and_then(tos_foundation::JsonValue::as_str);
         if !(matches!(tool, Some("tos_knowledge_search" | "tos_knowledge_search_indexed_v2"))
-            || ordinary && matches!(tool, Some("tos_knowledge_catalog" | "tos_knowledge_node" | "tos_knowledge_relation" | "tos_philosophy_graph_status" | "tos_native_resource_read" | "tos_knowledge_lens_compile")))
+            || ordinary && matches!(tool, Some("tos_knowledge_catalog" | "tos_knowledge_node" | "tos_knowledge_relation" | "tos_philosophy_graph_status" | "tos_native_resource_read" | "tos_knowledge_lens_compile" | "tos_knowledge_focus" | "tos_knowledge_lens_open")))
             || checked_field(arguments, "arguments", state, deadline)?
             .and_then(tos_foundation::JsonValue::as_object)
             .is_none()
@@ -1591,17 +1591,46 @@ fn serve_whole_lens(
     cancelled: &Arc<AtomicBool>,
     fence: &dyn Fn() -> Result<()>,
     arguments: &tos_foundation::JsonValue,
+    tool: &str,
 ) -> Result<()> {
-    let fields = arguments.as_object().filter(|fields| fields.len() == 1)
-        .ok_or("Core Lens strict spec arguments")?;
-    for (key, _) in fields {
-        ledger.charge_work(key.units().len().checked_mul(2)
-            .ok_or("Core Lens key work")? as u64)?;
-        active(cutoff)?;
-        if key.as_str() != Some("spec") { return Err("Core Lens unknown argument"); }
-    }
-    let spec = checked_field(arguments, "spec", ledger, cutoff)?
-        .filter(|value| value.as_object().is_some()).ok_or("Core Lens spec object")?;
+    let geometry = arguments.retained_storage_bytes()
+        .map_err(|_| "Core Lens arguments state")?;
+    let _argument_hold = ledger.reserve(geometry.checked_mul(3)
+        .ok_or("Core Lens arguments forecast")?)?;
+    ledger.charge_work(geometry as u64)?;
+    active(cutoff)?;
+    let owned_focus;
+    let (selected, operation) = match tool {
+        "tos_knowledge_lens_compile" => {
+            let fields = arguments.as_object().filter(|fields| fields.len() == 1)
+                .ok_or("Core Lens strict spec arguments")?;
+            if fields[0].0.as_str() != Some("spec") { return Err("Core Lens unknown argument"); }
+            let spec = checked_field(arguments, "spec", ledger, cutoff)?
+                .filter(|v| v.as_object().is_some()).ok_or("Core Lens spec object")?;
+            (tos_query::ControlledLensRequest::Compile(spec),
+                crate::reference_root_query::ReferenceMetadataOperation::Lens)
+        }
+        "tos_knowledge_focus" => {
+            owned_focus = match crate::knowledge::KnowledgeRequest::from_arguments(
+                crate::knowledge::KnowledgeOperation::Focus, arguments)
+                .map_err(|_| "Core Focus arguments")? {
+                crate::knowledge::KnowledgeRequest::Focus(focus) => focus,
+                _ => return Err("Core Focus typed request differs"),
+            };
+            (tos_query::ControlledLensRequest::Focus(&owned_focus),
+                crate::reference_root_query::ReferenceMetadataOperation::Focus)
+        }
+        "tos_knowledge_lens_open" => {
+            let fields = arguments.as_object().filter(|fields| fields.len() == 1)
+                .ok_or("Core Stored Lens strict arguments")?;
+            if fields[0].0.as_str() != Some("lens_id") { return Err("Core Stored Lens unknown argument"); }
+            let id = checked_field(arguments, "lens_id", ledger, cutoff)?
+                .and_then(tos_foundation::JsonValue::as_str).ok_or("Core Stored Lens id")?;
+            (tos_query::ControlledLensRequest::Stored(id),
+                crate::reference_root_query::ReferenceMetadataOperation::StoredLens)
+        }
+        _ => return Err("Core Lens tool unavailable"),
+    };
     fence()?;
     // Drop only previously held selected owners; no work/VM/JSON clock refund.
     if let Some(old) = carrier.take() {
@@ -1671,7 +1700,7 @@ fn serve_whole_lens(
                     bound, view, cutoff, cancelled,
                     |bytes| ledger.reserve(bytes).map_err(tos_compiler::Error::Invalid),
                     |model, context| {
-                    context.with_operation(crate::reference_root_query::ReferenceMetadataOperation::Lens,
+                    context.with_operation(operation,
                         |authority| {
                         let current = || {
                             fence()?;
@@ -1681,8 +1710,8 @@ fn serve_whole_lens(
                         driver.respond(|sequence, _, reply| {
                             reply.narrow_deadline(cutoff)?;
                             current()?;
-                            tos_query::execute_controlled_lens_response(
-                                model, bound, authority, spec, budget,
+                            tos_query::execute_controlled_lens_request_response(
+                                model, bound, authority, selected, budget,
                                 |body| {
                                     let map = |_| tos_query::search_v2::SearchV2Error {
                                         code: tos_query::search_v2::SearchV2ErrorCode::Unavailable,
@@ -2496,7 +2525,7 @@ pub(super) fn run(
         const ORDINARY_HEAD: &[u8] = br#"{"schema_version":"tos_native_core_ordinary_session_ready_v1","ok":true,"profile":"tos_core_ordinary_selected_v1""#;
         const COMMON: &[u8] = br#","reference_semantics":"cpython_pathlib_is_file_3_14","source_revision":null,"data_revision":null,"state_reused":false,"selection":{"schema_version":"tos_native_core_selected_profile_v1","generation":0,"profile":"selected_paths","source_revision":null,"data_revision":null,"exploration_revision":null,"state_reused":false},"capabilities":[{"operation":"tos_corpus_index_exists"},{"operation":"tos_philosophy_projection_exists"},{"operation":"tos_evidence_projection_exists"},{"operation":"tos_philosophy_audit_exists"},{"operation":"tos_corpus_index"},{"operation":"tos_bibliographic_graph"},{"operation":"tos_philosophy_projection"},{"operation":"tos_philosophy_audit_payload"},{"operation":"tos_corpus_header"},{"operation":"tos_native_call","tool":"tos_knowledge_search","profiles":["weak_query_store"]},{"operation":"tos_native_call","tool":"tos_knowledge_search_indexed_v2","profiles":["whole_root"]}"#;
         const LAZY_END: &[u8] = b"]}";
-        const ORDINARY_END: &[u8] = br#",{"operation":"tos_native_call","tool":"tos_knowledge_lens_compile","profiles":["whole_root"]},{"operation":"tos_native_call","tool":"tos_philosophy_graph_status","profiles":["whole_root"]},{"operation":"tos_native_call","tool":"tos_native_resource_read","profiles":["whole_root"],"resources":["tos-philosophy://status"]},{"operation":"tos_native_call","tool":"tos_knowledge_node","profiles":["whole_root"]},{"operation":"tos_native_call","tool":"tos_knowledge_relation","profiles":["whole_root"]},{"operation":"tos_native_call","tool":"tos_knowledge_catalog","profiles":["whole_root","weak_query_store"]},{"operation":"tos_source_navigation"},{"operation":"tos_knowledge_header","profiles":["whole_root","weak_query_store"]},{"operation":"tos_evidence_projection","profiles":["whole_root"]},{"operation":"tos_native_call","tool":"tos_knowledge_search","profiles":["whole_root"]}]}"#;
+        const ORDINARY_END: &[u8] = br#",{"operation":"tos_native_call","tool":"tos_knowledge_lens_compile","profiles":["whole_root"]},{"operation":"tos_native_call","tool":"tos_knowledge_focus","profiles":["whole_root"]},{"operation":"tos_native_call","tool":"tos_knowledge_lens_open","profiles":["whole_root"]},{"operation":"tos_native_call","tool":"tos_philosophy_graph_status","profiles":["whole_root"]},{"operation":"tos_native_call","tool":"tos_native_resource_read","profiles":["whole_root"],"resources":["tos-philosophy://status"]},{"operation":"tos_native_call","tool":"tos_knowledge_node","profiles":["whole_root"]},{"operation":"tos_native_call","tool":"tos_knowledge_relation","profiles":["whole_root"]},{"operation":"tos_native_call","tool":"tos_knowledge_catalog","profiles":["whole_root","weak_query_store"]},{"operation":"tos_source_navigation"},{"operation":"tos_knowledge_header","profiles":["whole_root","weak_query_store"]},{"operation":"tos_evidence_projection","profiles":["whole_root"]},{"operation":"tos_native_call","tool":"tos_knowledge_search","profiles":["whole_root"]}]}"#;
         let ready = [if ordinary { ORDINARY_HEAD } else { LAZY_HEAD }, COMMON,
                      if ordinary { ORDINARY_END } else { LAZY_END }];
         // Exactly nine connected operations; CorpusHeader selects its authentic
@@ -2561,12 +2590,12 @@ pub(super) fn run(
                 let tool = checked_field(outer, "tool", &state, cutoff)?
                     .and_then(tos_foundation::JsonValue::as_str)
                     .ok_or("Core selected Search tool absent")?;
-                if tool == "tos_knowledge_lens_compile" {
+                if matches!(tool, "tos_knowledge_lens_compile" | "tos_knowledge_focus" | "tos_knowledge_lens_open") {
                     with_selected_store_choice(request, &state, cutoff, |selected_store| {
                         if selected_store { return Err("Core selected QueryStore Lens owner unavailable"); }
                         serve_whole_lens(root, request, &isolation, session, driver,
                             &mut held, &mut held_store, &mut generation, &state,
-                            &sqlite_heap, &resources, deadline, cutoff, cancelled, &fence, arguments)
+                            &sqlite_heap, &resources, deadline, cutoff, cancelled, &fence, arguments, tool)
                     })?;
                     last_whole = true;
                     continue;
