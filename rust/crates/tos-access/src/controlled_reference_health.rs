@@ -117,8 +117,8 @@ pub(crate) fn execute_controlled_reference_health<'model, 'state, 'budget, 'view
                     heap.retain(bytes.checked_mul(4).ok_or(tos_compiler::Error::Budget("health child state"))?)?;
                     heap.charge_work(bytes)?; output = Some(value.clone()); Ok(())
                 });
-                if result.is_err() { parse_failure = Some(failed()); return Err(tos_query::search_v2::SearchV2Error::new(
-                    tos_query::search_v2::SearchV2ErrorCode::BudgetExceeded, "health child Original parser refused")); }
+                if result.is_err() { parse_failure = Some(failed()); return Err(tos_query::search_v2::SearchV2Error {
+                    code: tos_query::search_v2::SearchV2ErrorCode::BudgetExceeded, message: "health child Original parser refused" }); }
                 Ok(())
             };
             let result = match child {

@@ -2644,10 +2644,10 @@ impl Request {
             })?,
             self.expected_snapshot_guard
                 .as_ref()
-                .map_or(Ok(0), |value| Ok(value.capacity()))?,
+                .map_or(0, |value| value.capacity()),
             self.expected_reference_release_guard
                 .as_ref()
-                .map_or(Ok(0), |value| Ok(value.capacity()))?,
+                .map_or(0, |value| value.capacity()),
             self.snapshot_guard.as_ref().map_or(Ok(0), |guard| {
                 guard
                     .retained_state_upper_bound()

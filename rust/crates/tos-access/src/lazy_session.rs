@@ -966,13 +966,13 @@ fn serve_whole_indexed_search(
     };
 
     macro_rules! deliver_bound_search {
-        ($model:ident, $bound:ident, $execute:path, $cursor_factory:expr) => {{
-            let revision = $bound.require_source_revision()
+        ($model:ident, $bound:ident, $native:ident, $view:ident, $revision:ident, $execute:path, $cursor_factory:expr) => {{
+            let $revision = $bound.require_source_revision()
                 .map_err(|_| tos_compiler::Error::Invalid("Core Whole query source revision absent"))?;
-            if revision != native.source_revision || view.source_revision() != Some(revision) {
+            if $revision != $native.source_revision || $view.source_revision() != Some($revision) {
                 return Err(tos_compiler::Error::Invalid("Core Whole source associations differ"));
             }
-            let overhead = whole_envelope_len(next, revision).map_err(tos_compiler::Error::Invalid)?;
+            let overhead = whole_envelope_len(next, $revision).map_err(tos_compiler::Error::Invalid)?;
             let cap = session.limits.max_reply_bytes.checked_sub(overhead)
                 .ok_or(tos_compiler::Error::Budget("Core Whole reply envelope cap"))?;
             budget.max_response_bytes = budget.max_response_bytes
@@ -981,14 +981,14 @@ fn serve_whole_indexed_search(
                 return Err(tos_compiler::Error::Budget("Core Whole response cap"));
             }
             crate::reference_root_query::with_controlled_metadata_context($model,
-                $bound, view, cutoff, cancelled,
+                $bound, $view, cutoff, cancelled,
                 |bytes| ledger.reserve(bytes).map_err(tos_compiler::Error::Invalid),
                 |model, context| {
                 context.with_operation(crate::reference_root_query::ReferenceMetadataOperation::IndexedSearch,
                     |authority| {
                     let current = || {
                         fence()?;
-                        view.verify_current().map_err(|_| "Core Whole transport source fence")?;
+                        $view.verify_current().map_err(|_| "Core Whole transport source fence")?;
                         active(cutoff)
                     };
                     driver.respond(|sequence, _, reply| {
@@ -1003,7 +1003,7 @@ fn serve_whole_indexed_search(
                                     message: "Core Whole transport delivery refused",
                                 };
                                 current().map_err(map)?;
-                                send_whole_result(ledger, reply, sequence, next, revision, body).map_err(map)?;
+                                send_whole_result(ledger, reply, sequence, next, $revision, body).map_err(map)?;
                                 current().map_err(map)
                             },
                         ).map_err(|_| "Core Whole scoped Search refused")?;
@@ -1132,7 +1132,7 @@ fn serve_whole_indexed_search(
                                     &current,
                                     &check_slot,
                                     |sidecar| deliver_bound_search!(
-                                        sidecar, bound,
+                                        sidecar, bound, native, view, revision,
                                         tos_query::execute_scoped_controlled_sidecar_indexed_search_response,
                                         |initial, _receipt| crate::reference_cursor::NativeReferenceIndexedCursorCodec::new(
                                             initial,
@@ -1143,7 +1143,7 @@ fn serve_whole_indexed_search(
                                 )
                             } else {
                                 deliver_bound_search!(
-                                    model, bound,
+                                    model, bound, native, view, revision,
                                     tos_query::execute_scoped_controlled_indexed_search_response,
                                     |initial, receipt| Ok(crate::indexed_cursor::NativeIndexedCursorCodec::new(initial, receipt))
                                 )
@@ -1610,7 +1610,7 @@ fn serve_whole_philosophy_status(
                         driver.respond(|sequence, _, reply| {
                             reply.narrow_deadline(cutoff)?;
                             current()?;
-                            let delivery = |body| {
+                            let delivery = |body: &[u8]| {
                                     let map = |_| tos_query::search_v2::SearchV2Error {
                                         code: tos_query::search_v2::SearchV2ErrorCode::Unavailable,
                                         message: "Core Whole philosophy status delivery refused",
@@ -1778,7 +1778,7 @@ fn serve_whole_philosophy_domain(
                         driver.respond(|sequence, _, reply| {
                             reply.narrow_deadline(cutoff)?;
                             current()?;
-                            let delivery = |body| {
+                            let delivery = |body: &[u8]| {
                                     let map = |_| tos_query::search_v2::SearchV2Error {
                                         code: tos_query::search_v2::SearchV2ErrorCode::Unavailable,
                                         message: "Core Whole philosophy status delivery refused",
@@ -1911,7 +1911,7 @@ fn serve_whole_health(
                     driver.respond(|sequence, _, reply| {
                         reply.narrow_deadline(cutoff)?; current()?;
                         crate::controlled_reference_health::execute_controlled_reference_health(
-                            model, bound, context, &corpus_context, budget, probe,
+                            model, bound, context, &corpus_context, budget, probe.clone(),
                             |body| {
                                 current().map_err(tos_compiler::Error::Invalid)?;
                                 send_whole_result(ledger, reply, sequence, next, revision, body)
@@ -2162,7 +2162,7 @@ fn serve_whole_metadata(
                 let limits = tos_compiler::native_snapshot_manifest::portable_native_snapshot_limits(
                     request.admission.max_build_seconds)?.capture;
                 let _path = ledger.reserve(isolation.root().as_os_str().len()
-                    .checked_add(256).ok_or("Core Evidence path workspace")?)
+                    .checked_add(256).ok_or(tos_compiler::Error::Budget("Core Evidence path workspace"))?)
                     .map_err(tos_compiler::Error::Invalid)?;
                 let staging = fresh(isolation.root(), "tos-core-session-evidence")
                     .map_err(tos_compiler::Error::Invalid)?;

@@ -360,7 +360,6 @@ impl Startup {
             startup_bytes,
             "tos_native_core_session_startup_v1",
             true,
-            false,
         )
     }
     pub fn into_probe_owner_request(
@@ -375,7 +374,6 @@ impl Startup {
             startup_bytes,
             "tos_native_core_probe_session_startup_v1",
             false,
-            false,
         )
     }
     pub fn into_lazy_owner_request(
@@ -389,7 +387,6 @@ impl Startup {
             caller_retained_state_bytes,
             startup_bytes,
             "tos_native_core_lazy_session_startup_v1",
-            false,
             false,
         )
     }

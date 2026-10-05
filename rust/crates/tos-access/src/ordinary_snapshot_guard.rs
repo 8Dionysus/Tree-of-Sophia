@@ -598,10 +598,10 @@ impl StandaloneSnapshotGuard {
                 data_path.join(relative)
             };
             let dir = child_directory(data, relative)?;
-            let identity = directory_identity(&dir)?;
+            let dir_identity = directory_identity(&dir)?;
             let change_identity = directory_change_identity(&dir)?;
             let key = relative.to_owned();
-            directories.insert(key, identity);
+            directories.insert(key, dir_identity);
             let entries =
                 fs::read_dir(&directory).map_err(|_| "Core snapshot data tree unavailable")?;
             for entry in entries {
