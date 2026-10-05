@@ -6663,11 +6663,12 @@ fn package_state(
                 "private Claim form subject differs",
             ));
         }
-        for form in optional_array(&payload, "forms")?
+        let selected_form_ids = optional_array(&payload, "forms")?
             .iter()
             .chain(optional_array(&payload, "prior_forms")?)
-        {
-            let id = cmd::text(form, "form_id")?;
+            .map(|form| cmd::text(form, "form_id"))
+            .collect::<SourceCommandResult<BTreeSet<_>>>()?;
+        for id in selected_form_ids {
             if !exact_list(&grant.value, "allowed_form_ids", 32)?.contains(&id)
                 || !form_ids.insert(id.to_owned())
             {
