@@ -234,6 +234,13 @@ impl FoundationOrchestratorError {
             Self::Command(_) => "source-foundation invocation refused",
             Self::Owner(_) | Self::OwnerAt(_, _) => "source-foundation owner phase refused",
             Self::Default(stage, error) => match (stage, error) {
+                (stage, FoundationDefaultReadError::Owner(error @ ItemRefusal::Executor(_))) => {
+                    Self::Default(
+                        *stage,
+                        FoundationDefaultReadError::Owner(error.clone().compatibility_category()),
+                    )
+                    .static_public_reason()
+                }
                 (
                     FoundationDefaultStage::CapturedCurrentPaths,
                     FoundationDefaultReadError::Owner(ItemRefusal::Budget),
