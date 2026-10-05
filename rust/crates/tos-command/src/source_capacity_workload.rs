@@ -3427,16 +3427,69 @@ fn generated_declaration_digest_v1(
 }
 
 fn auxiliary_members_digest_v1(selection: &WeightedScaleAuthoredAuxSelectionV1) -> Digest256 {
-    let mut hash = Digest256Hasher::new();
-    hash.update(b"tos-scale-authored-aux-members-v1\0");
-    hash.update(selection.authored_manifest_sha256.as_bytes());
+    let mut hash = auxiliary_members_hasher_v1(selection.authored_manifest_sha256);
     for member in &selection.members {
-        hash.update(&(member.path.len() as u64).to_be_bytes());
-        hash.update(member.path.as_bytes());
-        hash.update(member.raw_sha256.as_bytes());
-        hash.update(&member.raw_bytes.to_be_bytes());
+        feed_auxiliary_member_v1(&mut hash, &member.path, member.raw_sha256, member.raw_bytes);
     }
     hash.finalize()
+}
+
+fn auxiliary_members_hasher_v1(manifest: Digest256) -> Digest256Hasher {
+    let mut hash = Digest256Hasher::new();
+    hash.update(b"tos-scale-authored-aux-members-v1\0");
+    hash.update(manifest.as_bytes());
+    hash
+}
+
+fn feed_auxiliary_member_v1(
+    hash: &mut Digest256Hasher,
+    path: &str,
+    raw_sha256: Digest256,
+    raw_bytes: u64,
+) {
+    hash.update(&(path.len() as u64).to_be_bytes());
+    hash.update(path.as_bytes());
+    hash.update(raw_sha256.as_bytes());
+    hash.update(&raw_bytes.to_be_bytes());
+}
+
+/// Bind the one already parsed finite authored selection to byte composition.
+/// This does not authenticate generated members or semantic admission.
+pub(crate) fn verify_composition_against_source_record_selection_v1(
+    composition: &super::source_admission_indexed_input::IndexedInputCompositionV1,
+    selection: &tos_validation::source_record_selection::SourceRecordSelection,
+    before_member: &mut impl FnMut() -> std::io::Result<()>,
+) -> std::io::Result<()> {
+    if selection.digest() != composition.authored_manifest_sha256 {
+        return Err(io_invalid("composed authored selection identity differs"));
+    }
+    let mut hash = auxiliary_members_hasher_v1(selection.digest());
+    let mut count = 0u64;
+    let mut source_bytes = 0u64;
+    let mut previous = None;
+    for member in selection.members() {
+        before_member()?;
+        if previous.is_some_and(|path: &str| path >= member.source_ref.as_str()) {
+            return Err(io_invalid("composed authored members order differs"));
+        }
+        previous = Some(member.source_ref.as_str());
+        count = count
+            .checked_add(1)
+            .ok_or_else(|| io_invalid("authored member count overflow"))?;
+        source_bytes = source_bytes
+            .checked_add(member.raw_bytes)
+            .ok_or_else(|| io_invalid("authored member source bytes overflow"))?;
+        let digest = Digest256::from_hex(&member.raw_sha256)
+            .map_err(|_| io_invalid("authored member raw digest differs"))?;
+        feed_auxiliary_member_v1(&mut hash, &member.source_ref, digest, member.raw_bytes);
+    }
+    if count != composition.auxiliary_member_count
+        || source_bytes != composition.auxiliary_source_bytes
+        || hash.finalize() != composition.auxiliary_members_sha256
+    {
+        return Err(io_invalid("composed authored members binding differs"));
+    }
+    Ok(())
 }
 
 fn authored_aux_directory_paths_v1(

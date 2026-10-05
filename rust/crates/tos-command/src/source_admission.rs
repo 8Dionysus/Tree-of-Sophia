@@ -123,7 +123,7 @@ pub(crate) struct AdmissionWorkBudget {
 
 struct AdmissionWorkState {
     used: Cell<u64>,
-    maximum: u64,
+    maximum: Cell<u64>,
 }
 
 impl AdmissionWorkBudget {
@@ -134,7 +134,7 @@ impl AdmissionWorkBudget {
         Ok(Self {
             inner: Rc::new(AdmissionWorkState {
                 used: Cell::new(0),
-                maximum,
+                maximum: Cell::new(maximum),
             }),
         })
     }
@@ -149,7 +149,7 @@ impl AdmissionWorkBudget {
             .used
             .get()
             .checked_add(count)
-            .filter(|used| *used <= self.inner.maximum)
+            .filter(|used| *used <= self.inner.maximum.get())
             .ok_or_else(|| invalid("selected source work ceiling exhausted"))?;
         self.inner.used.set(used);
         Ok(())
@@ -162,12 +162,27 @@ impl AdmissionWorkBudget {
     pub(crate) fn remaining(&self) -> io::Result<u64> {
         self.inner
             .maximum
+            .get()
             .checked_sub(self.inner.used.get())
             .ok_or_else(|| invalid("selected source work meter regressed"))
     }
 
     pub(crate) fn maximum(&self) -> u64 {
-        self.inner.maximum
+        self.inner.maximum.get()
+    }
+
+    /// Narrow the original shared operation ceiling after identity preparation.
+    /// Already charged preparation remains charged on every retained clone.
+    pub(crate) fn lower_maximum(&self, maximum: u64) -> io::Result<()> {
+        if maximum == 0
+            || maximum == u64::MAX
+            || maximum > self.inner.maximum.get()
+            || maximum < self.inner.used.get()
+        {
+            return Err(invalid("selected source work ceiling cannot be narrowed"));
+        }
+        self.inner.maximum.set(maximum);
+        Ok(())
     }
 
     pub(crate) fn retained_allocation_upper_bound_bytes() -> usize {
@@ -994,7 +1009,11 @@ impl AdmissionBatch {
     pub(crate) fn admission_work_budget(&self) -> io::Result<AdmissionWorkBudget> {
         self.selected_work_budget
             .clone()
-            .or_else(|| self.initial_updates.as_ref().map(|updates| updates.work.clone()))
+            .or_else(|| {
+                self.initial_updates
+                    .as_ref()
+                    .map(|updates| updates.work.clone())
+            })
             .ok_or_else(|| invalid("admission batch has no selected shared work meter"))
     }
 

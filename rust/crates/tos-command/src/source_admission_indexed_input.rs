@@ -104,6 +104,9 @@ pub(crate) struct SelectedGeneratedDeclarationV1 {
 }
 
 impl SelectedGeneratedDeclarationV1 {
+    pub(crate) fn manifest_sha256(&self) -> Digest256 {
+        self.manifest_sha256
+    }
     pub(crate) fn seed_sha256(&self) -> Digest256 {
         self.seed_sha256
     }
@@ -516,23 +519,310 @@ pub(crate) fn open_selection_from_manifest_with_composition_v1(
     expected_composition: Option<IndexedInputCompositionV1>,
     max_composition_state_bytes: usize,
 ) -> io::Result<IndexedInputSelectionV1> {
-    if max_manifest_bytes == 0
-        || max_manifest_bytes > DESCRIPTOR_MAX_BYTES
-        || max_profile_bytes == 0
-        || max_profile_bytes > PROFILE_SIDECAR_MAX_BYTES_V1
-        || max_dependency_closure_bytes == 0
+    if max_dependency_closure_bytes == 0
         || max_dependency_closure_bytes > DEPENDENCY_CLOSURE_MAX_BYTES_V1
     {
         return Err(invalid(
             "indexed-input metadata bound exceeds selected profile",
         ));
     }
-    if expected_composition.is_some()
+    let declaration = open_held_indexed_declaration_v1(
+        named_root,
+        max_manifest_bytes,
+        max_profile_bytes,
+        io_budget,
+        deadline,
+        cancelled,
+        work,
+        expected_composition.map_or(
+            CompositionSelectionV1::Unselected,
+            CompositionSelectionV1::Exact,
+        ),
+        max_composition_state_bytes,
+    )?;
+    open_selection_from_held_declaration_inner_v1(
+        declaration,
+        segment_limits,
+        max_dependency_closure_bytes,
+        io_budget,
+        deadline,
+        cancelled,
+        false,
+    )
+}
+
+#[derive(Clone, Copy)]
+enum CompositionSelectionV1 {
+    Unselected,
+    Exact(IndexedInputCompositionV1),
+    FiniteManifest(Digest256),
+}
+
+/// Protected metadata issuer held before candidate construction. It authenticates
+/// declaration bytes only; tree rows, payloads and final EOF are checked later.
+pub(crate) struct HeldIndexedInputDeclarationV1 {
+    named_root: PathBuf,
+    held_root: File,
+    root_stamp: (u64, u64, u32, i64, i64, i64, i64),
+    manifest_file: DescriptorFile,
+    manifest_sha256: Digest256,
+    manifest: ParsedScaleInputManifestV1,
+    generated_declaration: Option<SelectedGeneratedDeclarationV1>,
+    profile_file: DescriptorFile,
+    max_manifest_bytes: usize,
+    max_profile_bytes: usize,
+    io_budget: PinnedSqliteIoBudget,
+    work: AdmissionWorkBudget,
+    deadline: Instant,
+    cancel_identity: usize,
+}
+
+impl HeldIndexedInputDeclarationV1 {
+    pub(crate) fn selected_generated_declaration_v1(
+        &self,
+    ) -> io::Result<&SelectedGeneratedDeclarationV1> {
+        let declaration = self.generated_declaration.as_ref().ok_or_else(|| {
+            invalid("indexed-input generated declaration was not explicitly selected")
+        })?;
+        if declaration.manifest_sha256 != self.manifest_file.expected_sha256
+            || declaration.profile_sha256 != self.profile_file.expected_sha256
+        {
+            return Err(invalid("indexed-input held declaration issuer differs"));
+        }
+        Ok(declaration)
+    }
+
+    pub(crate) fn manifest_stamp_v1(&self) -> (u64, u64, u32, u64, i64, i64, i64, i64) {
+        let stamp = self.manifest_file.stamp;
+        (
+            stamp.device,
+            stamp.inode,
+            stamp.mode,
+            stamp.length,
+            stamp.mtime,
+            stamp.mtime_nsec,
+            stamp.ctime,
+            stamp.ctime_nsec,
+        )
+    }
+
+    pub(crate) fn profile_stamp_v1(&self) -> (u64, u64, u32, u64, i64, i64, i64, i64) {
+        let stamp = self.profile_file.stamp;
+        (
+            stamp.device,
+            stamp.inode,
+            stamp.mode,
+            stamp.length,
+            stamp.mtime,
+            stamp.mtime_nsec,
+            stamp.ctime,
+            stamp.ctime_nsec,
+        )
+    }
+
+    pub(crate) fn root_stamp_v1(&self) -> (u64, u64, u32, i64, i64, i64, i64) {
+        self.root_stamp
+    }
+
+    pub(crate) fn named_root_v1(&self) -> &Path {
+        &self.named_root
+    }
+
+    pub(crate) fn io_snapshot_v1(&self) -> tos_source_store::PinnedSqliteIoSnapshot {
+        self.io_budget.snapshot()
+    }
+
+    pub(crate) fn work_budget_v1(&self) -> AdmissionWorkBudget {
+        self.work.clone()
+    }
+
+    pub(crate) fn retained_state_bytes_v1(&self) -> io::Result<usize> {
+        size_of::<Self>()
+            .checked_add(self.named_root.capacity())
+            .and_then(|bytes| bytes.checked_add(self.manifest_file.leaf.capacity()))
+            .and_then(|bytes| bytes.checked_add(self.profile_file.leaf.capacity()))
+            .ok_or_else(|| invalid("indexed-input held declaration state overflow"))
+    }
+
+    fn verify_original_owner_v1(
+        &self,
+        io_budget: &PinnedSqliteIoBudget,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> io::Result<()> {
+        if !self.io_budget.shares_with(io_budget)
+            || self.deadline != deadline
+            || self.cancel_identity != cancelled as *const AtomicBool as usize
+        {
+            return Err(invalid(
+                "indexed-input held declaration original owner differs",
+            ));
+        }
+        active(deadline, cancelled)
+    }
+
+    pub(crate) fn verify_v1(
+        &self,
+        io_budget: &PinnedSqliteIoBudget,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> io::Result<()> {
+        self.verify_original_owner_v1(io_budget, deadline, cancelled)?;
+        let mut debit = || self.work.charge(()).is_ok();
+        verify_named_directory(
+            &self.named_root,
+            &self.held_root,
+            io_budget,
+            deadline,
+            cancelled,
+            &mut debit,
+        )?;
+        self.verify_root_stamp_v1(io_budget, deadline, cancelled)?;
+        self.manifest_file.verify_stream_hashed(
+            &self.held_root,
+            self.max_manifest_bytes,
+            io_budget,
+            deadline,
+            cancelled,
+            &mut debit,
+        )?;
+        self.profile_file.verify_stream_hashed(
+            &self.held_root,
+            self.max_profile_bytes,
+            io_budget,
+            deadline,
+            cancelled,
+            &mut debit,
+        )?;
+        verify_named_directory(
+            &self.named_root,
+            &self.held_root,
+            io_budget,
+            deadline,
+            cancelled,
+            &mut debit,
+        )?;
+        self.verify_root_stamp_v1(io_budget, deadline, cancelled)
+    }
+
+    fn verify_root_stamp_v1(
+        &self,
+        io_budget: &PinnedSqliteIoBudget,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> io::Result<()> {
+        active(deadline, cancelled)?;
+        self.work.charge(())?;
+        charge_root_guard(io_budget)?;
+        if directory_stamp(&self.held_root.metadata()?) != self.root_stamp {
+            return Err(invalid("indexed-input held declaration root stamp differs"));
+        }
+        active(deadline, cancelled)
+    }
+}
+
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn open_indexed_input_declaration_v1(
+    named_root: &Path,
+    max_manifest_bytes: usize,
+    max_profile_bytes: usize,
+    io_budget: &PinnedSqliteIoBudget,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+    work: &AdmissionWorkBudget,
+    finite_selection: &tos_validation::source_record_selection::SourceRecordSelection,
+    max_composition_state_bytes: usize,
+) -> io::Result<HeldIndexedInputDeclarationV1> {
+    let declaration = open_held_indexed_declaration_v1(
+        named_root,
+        max_manifest_bytes,
+        max_profile_bytes,
+        io_budget,
+        deadline,
+        cancelled,
+        work,
+        CompositionSelectionV1::FiniteManifest(finite_selection.digest()),
+        max_composition_state_bytes,
+    )?;
+    let mut before_member = || {
+        active(deadline, cancelled)?;
+        work.charge(())
+    };
+    crate::source_capacity_workload::verify_composition_against_source_record_selection_v1(
+        &declaration
+            .selected_generated_declaration_v1()?
+            .composition(),
+        finite_selection,
+        &mut before_member,
+    )?;
+    if declaration.retained_state_bytes_v1()? > max_composition_state_bytes {
+        return Err(invalid(
+            "indexed-input held declaration exceeds selected state",
+        ));
+    }
+    Ok(declaration)
+}
+
+pub(crate) fn open_selection_from_held_declaration_v1(
+    declaration: HeldIndexedInputDeclarationV1,
+    segment_limits: SegmentLimits,
+    max_dependency_closure_bytes: usize,
+    io_budget: &PinnedSqliteIoBudget,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> io::Result<IndexedInputSelectionV1> {
+    open_selection_from_held_declaration_inner_v1(
+        declaration,
+        segment_limits,
+        max_dependency_closure_bytes,
+        io_budget,
+        deadline,
+        cancelled,
+        true,
+    )
+}
+
+fn open_held_indexed_declaration_v1(
+    named_root: &Path,
+    max_manifest_bytes: usize,
+    max_profile_bytes: usize,
+    io_budget: &PinnedSqliteIoBudget,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+    work: &AdmissionWorkBudget,
+    selection: CompositionSelectionV1,
+    max_composition_state_bytes: usize,
+) -> io::Result<HeldIndexedInputDeclarationV1> {
+    if max_manifest_bytes == 0
+        || max_manifest_bytes > DESCRIPTOR_MAX_BYTES
+        || max_profile_bytes == 0
+        || max_profile_bytes > PROFILE_SIDECAR_MAX_BYTES_V1
+    {
+        return Err(invalid(
+            "indexed-input metadata bound exceeds selected profile",
+        ));
+    }
+    if !matches!(selection, CompositionSelectionV1::Unselected)
         && (max_composition_state_bytes == 0 || max_composition_state_bytes == usize::MAX)
     {
         return Err(invalid(
             "indexed-input composition state slice is not finite",
         ));
+    }
+    if !matches!(selection, CompositionSelectionV1::Unselected) {
+        let raw_and_holder = max_manifest_bytes
+            .max(max_profile_bytes)
+            .checked_add(1)
+            .and_then(|bytes| bytes.checked_add(size_of::<HeldIndexedInputDeclarationV1>()))
+            .and_then(|bytes| bytes.checked_add(named_root.as_os_str().len()))
+            .and_then(|bytes| bytes.checked_add(MANIFEST_LEAF.len()))
+            .and_then(|bytes| bytes.checked_add(PROFILE_LEAF.len()))
+            .ok_or_else(|| invalid("indexed-input early declaration state overflow"))?;
+        if raw_and_holder > max_composition_state_bytes {
+            return Err(invalid(
+                "indexed-input early declaration raw/holder state exceeds selection",
+            ));
+        }
     }
     active(deadline, cancelled)?;
     let root_walk_count = absolute_path_component_count(named_root)?;
@@ -558,10 +848,10 @@ pub(crate) fn open_selection_from_manifest_with_composition_v1(
         cancelled,
         &mut debit,
     )?;
-    let manifest = parse_scale_input_manifest_selected_v1(
+    let manifest = parse_scale_input_manifest_selected_inner_v1(
         &raw,
         max_manifest_bytes,
-        expected_composition,
+        selection,
         max_composition_state_bytes,
     )?;
     drop(raw);
@@ -609,6 +899,68 @@ pub(crate) fn open_selection_from_manifest_with_composition_v1(
         )?;
         profile_file
     };
+    // Only the early reusable holder needs this retained directory stamp.
+    // Direct legacy opening never replays the declaration custody.
+    let root_stamp = if matches!(selection, CompositionSelectionV1::FiniteManifest(_)) {
+        active(deadline, cancelled)?;
+        work.charge(())?;
+        charge_root_guard(io_budget)?;
+        directory_stamp(&held_root.metadata()?)
+    } else {
+        (0, 0, 0, 0, 0, 0, 0)
+    };
+    Ok(HeldIndexedInputDeclarationV1 {
+        named_root: named_root.to_path_buf(),
+        held_root,
+        root_stamp,
+        manifest_file,
+        manifest_sha256,
+        manifest,
+        generated_declaration,
+        profile_file,
+        max_manifest_bytes,
+        max_profile_bytes,
+        io_budget: io_budget.clone(),
+        work: work.clone(),
+        deadline,
+        cancel_identity: cancelled as *const AtomicBool as usize,
+    })
+}
+
+fn open_selection_from_held_declaration_inner_v1(
+    declaration: HeldIndexedInputDeclarationV1,
+    segment_limits: SegmentLimits,
+    max_dependency_closure_bytes: usize,
+    io_budget: &PinnedSqliteIoBudget,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+    reverify: bool,
+) -> io::Result<IndexedInputSelectionV1> {
+    declaration.verify_original_owner_v1(io_budget, deadline, cancelled)?;
+    if reverify {
+        declaration.verify_v1(io_budget, deadline, cancelled)?;
+    }
+    if max_dependency_closure_bytes == 0
+        || max_dependency_closure_bytes > DEPENDENCY_CLOSURE_MAX_BYTES_V1
+    {
+        return Err(invalid(
+            "indexed-input dependency closure bound exceeds selected profile",
+        ));
+    }
+    let HeldIndexedInputDeclarationV1 {
+        named_root,
+        held_root,
+        manifest_file,
+        manifest_sha256,
+        manifest,
+        generated_declaration,
+        profile_file,
+        max_manifest_bytes,
+        max_profile_bytes,
+        work,
+        ..
+    } = declaration;
+    let mut debit = || work.charge(()).is_ok();
     let dependency_closure_file = DescriptorFile::open_stream_hashed(
         &held_root,
         DEPENDENCY_CLOSURE_LEAF.to_owned(),
@@ -670,10 +1022,15 @@ pub(crate) fn open_selection_from_manifest_with_composition_v1(
         &mut debit,
     )?;
     verify_named_directory(
-        named_root, &held_root, io_budget, deadline, cancelled, &mut debit,
+        &named_root,
+        &held_root,
+        io_budget,
+        deadline,
+        cancelled,
+        &mut debit,
     )?;
     Ok(IndexedInputSelectionV1 {
-        named_root: named_root.to_path_buf(),
+        named_root,
         held_root,
         held_segment_root,
         segment,
@@ -714,6 +1071,23 @@ fn parse_scale_input_manifest_selected_v1(
     expected_composition: Option<IndexedInputCompositionV1>,
     state_bytes: usize,
 ) -> io::Result<ParsedScaleInputManifestV1> {
+    parse_scale_input_manifest_selected_inner_v1(
+        raw,
+        max_bytes,
+        expected_composition.map_or(
+            CompositionSelectionV1::Unselected,
+            CompositionSelectionV1::Exact,
+        ),
+        state_bytes,
+    )
+}
+
+fn parse_scale_input_manifest_selected_inner_v1(
+    raw: &[u8],
+    max_bytes: usize,
+    selection: CompositionSelectionV1,
+    state_bytes: usize,
+) -> io::Result<ParsedScaleInputManifestV1> {
     const MANIFEST_KEYS: [&str; 21] = [
         "schema",
         "source_status",
@@ -738,7 +1112,7 @@ fn parse_scale_input_manifest_selected_v1(
         "authored_route_bridge_coverage",
     ];
     let limits = JsonLimits::new(max_bytes, 8, 64, 20).map_err(invalid)?;
-    let document = if expected_composition.is_some() {
+    let document = if !matches!(selection, CompositionSelectionV1::Unselected) {
         parse_composition_document_v1(raw, limits, state_bytes)?
     } else {
         let document = parse_json(raw, JsonMode::PublishedStrict, limits).map_err(invalid)?;
@@ -759,10 +1133,12 @@ fn parse_scale_input_manifest_selected_v1(
     let fields = value
         .as_object()
         .ok_or_else(|| invalid("indexed-input manifest root is not an object"))?;
-    if fields.len() != MANIFEST_KEYS.len() + usize::from(expected_composition.is_some())
+    if fields.len()
+        != MANIFEST_KEYS.len()
+            + usize::from(!matches!(selection, CompositionSelectionV1::Unselected))
         || fields.iter().any(|(key, _)| {
             !MANIFEST_KEYS.contains(&key.as_str().unwrap_or(""))
-                && !(expected_composition.is_some()
+                && !(!matches!(selection, CompositionSelectionV1::Unselected)
                     && key.as_str() == Some("authored_aux_composition"))
         })
     {
@@ -858,31 +1234,37 @@ fn parse_scale_input_manifest_selected_v1(
             "indexed-input manifest empty or deduplicated totals differ",
         ));
     }
-    let composition = match expected_composition {
-        Some(expected) => {
-            let actual = parse_composition_v1(
-                value
-                    .object_get("authored_aux_composition")
-                    .ok_or_else(|| invalid("indexed-input explicit composition absent"))?,
-            )?;
-            if actual != expected
-                || actual.generated_record_count == 0
-                || actual.auxiliary_member_count == 0
-                || actual.auxiliary_source_bytes == 0
-                || actual
-                    .generated_record_count
-                    .checked_add(actual.auxiliary_member_count)
-                    != Some(member_count)
-                || actual.auxiliary_source_bytes >= source_bytes
-                || actual.members_descriptor_sha256 != parse_digest("members_descriptor_sha256")?
-            {
-                return Err(invalid(
-                    "indexed-input selected composition aggregate differs",
-                ));
+    let composition = if matches!(selection, CompositionSelectionV1::Unselected) {
+        None
+    } else {
+        let actual = parse_composition_v1(
+            value
+                .object_get("authored_aux_composition")
+                .ok_or_else(|| invalid("indexed-input explicit composition absent"))?,
+        )?;
+        let selected_matches = match selection {
+            CompositionSelectionV1::Exact(expected) => actual == expected,
+            CompositionSelectionV1::FiniteManifest(expected) => {
+                actual.authored_manifest_sha256 == expected
             }
-            Some(actual)
+            CompositionSelectionV1::Unselected => false,
+        };
+        if !selected_matches
+            || actual.generated_record_count == 0
+            || actual.auxiliary_member_count == 0
+            || actual.auxiliary_source_bytes == 0
+            || actual
+                .generated_record_count
+                .checked_add(actual.auxiliary_member_count)
+                != Some(member_count)
+            || actual.auxiliary_source_bytes >= source_bytes
+            || actual.members_descriptor_sha256 != parse_digest("members_descriptor_sha256")?
+        {
+            return Err(invalid(
+                "indexed-input selected composition aggregate differs",
+            ));
         }
-        None => None,
+        Some(actual)
     };
     Ok(ParsedScaleInputManifestV1 {
         composition,
@@ -920,6 +1302,7 @@ fn parse_composition_document_v1(
         })
         .and_then(|bytes| bytes.checked_add(size_of::<ParsedScaleInputManifestV1>()))
         .and_then(|bytes| bytes.checked_add(size_of::<Option<SelectedGeneratedDeclarationV1>>()))
+        .and_then(|bytes| bytes.checked_add(size_of::<HeldIndexedInputDeclarationV1>()))
         .ok_or_else(|| invalid("indexed-input composition workspace overflow"))?;
     let parser_state = state
         .checked_sub(fixed)
