@@ -447,6 +447,99 @@ mod tests {
     }
 
     #[test]
+    fn native_growth_partition_keeps_isolated_assertions_once_and_refuses_empty_success() {
+        let root = fixture();
+        touch(&root, growth_coverage::CONTRACT);
+        fs::write(root.join(growth_coverage::CONTRACT), serde_json::to_vec(&serde_json::json!({
+            "schema_version":"tos_growth_native_coverage_v1", "whole_route_status":"incomplete",
+            "maintained_route":"native-pipeline", "bounded_native_route":"bounded",
+            "reference_route":"reference", "assessment_route":"owner",
+            "native_test_routes":[{"cargo_manifest":"native/Cargo.toml", "target_kind":"lib", "module_routes":[["owner"]]}]
+        })).unwrap()).unwrap();
+        touch(&root, "native/src/lib.rs");
+        fs::write(
+            root.join("native/Cargo.toml"),
+            "[package]\nname = \"fixture\"\n[lib]\nname = \"fixture\"\npath = \"src/lib.rs\"\n",
+        )
+        .unwrap();
+        fs::write(root.join("native/src/lib.rs"), "mod owner;\n").unwrap();
+        fs::write(
+            root.join("native/src/owner.rs"),
+            "#[test]\nfn retained() {}\n#[test]\nfn current() {}\n",
+        )
+        .unwrap();
+        let steps = vec![
+            (
+                (
+                    "remainder".into(),
+                    vec![
+                        "cargo".into(),
+                        "test".into(),
+                        "--workspace".into(),
+                        "--".into(),
+                        growth_native_plan::EXCLUSIONS.into(),
+                    ],
+                ),
+                None,
+            ),
+            (
+                (
+                    "native".into(),
+                    vec![growth_native_plan::CLASS_SEQUENCE.into()],
+                ),
+                Some(900_000),
+            ),
+            (
+                (
+                    "isolated".into(),
+                    vec![
+                        "cargo".into(),
+                        "test".into(),
+                        "--lib".into(),
+                        "owner::retained".into(),
+                        "--".into(),
+                        "--exact".into(),
+                    ],
+                ),
+                None,
+            ),
+        ];
+        let expanded = growth_native_plan::expand_steps(&root, &steps).unwrap();
+        assert!(
+            expanded[0]
+                .0
+                .1
+                .ends_with(&["--skip".into(), "owner::".into()])
+        );
+        let native = &expanded[1].0.1;
+        assert_eq!(native[0], growth_native_plan::NATIVE_CLASS);
+        assert!(native.ends_with(&["--skip".into(), "owner::retained".into()]));
+        assert_eq!(expanded[2], steps[2]);
+        assert!(
+            growth_native_plan::verify_result(
+                native,
+                b"test result: ok. 1 passed; 0 failed; 0 ignored;"
+            )
+            .is_ok()
+        );
+        assert!(
+            growth_native_plan::verify_result(
+                native,
+                b"test result: ok. 0 passed; 0 failed; 0 ignored;"
+            )
+            .is_err()
+        );
+        assert!(
+            growth_native_plan::verify_result(
+                native,
+                b"test result: ok. 2 passed; 0 failed; 0 ignored;"
+            )
+            .is_err()
+        );
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
     fn discovers_package_and_part_homes_in_oracle_order() {
         let root = fixture();
         touch(&root, "mechanics/example/tests/test_contract.py");

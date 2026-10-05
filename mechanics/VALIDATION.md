@@ -54,3 +54,11 @@ For a read-only source-owned native Growth class plan, use
 `python scripts/run_mechanics_local_tests.py --growth-native-plan`. It resolves
 actual Cargo/Rust declarations and marks ignored assertions; it neither executes
 those classes nor establishes whole Growth equivalence.
+
+The `rust_workspace` command authority uses `@tos-native-growth-classes` and
+`@tos-native-growth-exclusions` as native executor markers. They expand through
+the source-owned Growth class plan; grouped classes use current-lane prepared
+Cargo test images directly, and exact isolated steps retain their existing route.
+The generic workspace/Conformance remainder excludes those same owned classes,
+so source changes cannot silently omit a new class or run the old isolated case
+twice. These markers are not shell programs or interpreter fallbacks.

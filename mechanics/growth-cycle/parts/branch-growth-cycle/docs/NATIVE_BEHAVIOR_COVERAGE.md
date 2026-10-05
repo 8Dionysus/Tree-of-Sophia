@@ -127,3 +127,33 @@ matrix remains the reference-to-owner navigation: review genuine predicate gaps
 within those classes instead of reproducing one test per Python method. Native
 source pipelines, selected fixture/oracle dependencies and semantic assessment
 retain their distinct owners.
+
+## Maintained native assertion pipeline
+
+`rust_workspace` now has one native Growth class marker rather than repeated
+command-class lists and complementary hand-maintained skip lists. The native
+validation executor expands that marker from the same source-derived plan. It
+uses the actual test images selected from the successful current-lane Cargo
+`--no-run --message-format=json` output. Conformance identity continues through
+the existing product selector; the command library test image is separately
+selected by actual Cargo package/target/profile metadata and hashed. A missing,
+ambiguous or changed product refuses before dispatch. Class execution starts the
+prepared test image directly under the existing pidfd/subreaper deadline and
+cleanup owner, with no Cargo child in that class phase.
+
+Generic workspace and Conformance remainder commands receive exclusions from
+those same declared classes. The existing exact isolated source/Work/Artifact/
+Claim/Collection steps retain their own source-owned selections and are excluded
+from grouped class execution. A class fully owned by an isolated step adds no
+second invocation. Other packages, other Conformance modules, segment and WASM
+routes remain in the original lane. Native class results must report the actual
+declared active/ignored scope; zero-test success or a mismatched prepared image
+cannot pass. Ignored retained OCR inputs keep the source's explicit external
+input posture, and their separate received executions keep their own scope.
+
+This replaces the maintained lane's duplicate selection mechanism. Actual native
+source-pipeline execution, matching installed default use, method predicate
+coverage and semantic/source-language judgment remain separate evidence. The
+ordinary installed mechanics default remains incomplete until its native test
+product/consumer selection is completed; source-only class discovery cannot
+turn that default into a success.

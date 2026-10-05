@@ -3578,6 +3578,8 @@
       "organ_lane": "mechanics/package",
       "owner_surface": "mechanics/AGENTS.md",
       "source_truth": [
+        "mechanics/growth-cycle/parts/branch-growth-cycle/docs/native-behavior-coverage.json",
+        "rust/crates/tos-ops-mechanics-plan/src/growth_native_plan.rs",
         "mechanics/*/tests/test*.py",
         "mechanics/*/parts/*/tests/test*.py",
         "mechanics/*/scripts/build_*.py",
@@ -3586,6 +3588,11 @@
         "mechanics/*/parts/*/scripts/validate_*.py"
       ],
       "reads": [
+        "mechanics/growth-cycle/parts/branch-growth-cycle/docs/native-behavior-coverage.json",
+        "rust/crates/tos-command/Cargo.toml",
+        "rust/crates/tos-command/src/*.rs",
+        "tests/conformance/rust/Cargo.toml",
+        "tests/conformance/rust/*.rs",
         "mechanics/*/tests/test*.py",
         "mechanics/*/parts/*/tests/test*.py",
         "mechanics/*/scripts/*.py",

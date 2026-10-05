@@ -61,9 +61,10 @@ pub fn run_validation_sequence(
 ) -> io::Result<i32> {
     // Only validation selections carry source-owned per-step budgets. Other
     // executor clients and serialized mechanics plans retain their old shape.
-    let mut commands = Vec::with_capacity(steps.len());
-    let mut timeouts = Vec::with_capacity(steps.len());
-    for (command, timeout_ms) in steps {
+    let expanded = crate::growth_native_plan::expand_steps(root, steps)?;
+    let mut commands = Vec::with_capacity(expanded.len());
+    let mut timeouts = Vec::with_capacity(expanded.len());
+    for (command, timeout_ms) in &expanded {
         if timeout_ms.is_some_and(|value| value == 0 || value > 3_600_000) {
             return Err(io::Error::new(
                 io::ErrorKind::InvalidInput,
@@ -884,8 +885,23 @@ mod native {
                 }
                 let preparing = matches!(style, Style::Validation(_, _))
                     && crate::conformance_products::preparation(&command.argv);
+                let growth_class = matches!(style, Style::Validation(_, _))
+                    && command
+                        .argv
+                        .first()
+                        .is_some_and(|arg| arg == crate::growth_native_plan::NATIVE_CLASS);
+                let argv = if growth_class {
+                    products
+                        .as_ref()
+                        .ok_or_else(|| {
+                            error("native Growth requires current-lane Cargo product preparation")
+                        })?
+                        .growth_command(&command.argv, deadline, cancel)?
+                } else {
+                    command.argv.clone()
+                };
                 let overrides = if matches!(style, Style::Validation(_, _))
-                    && crate::conformance_products::execution(&command.argv)
+                    && (crate::conformance_products::execution(&command.argv) || growth_class)
                 {
                     products.as_ref().ok_or_else(|| error("workspace conformance requires successful current-lane Cargo artifact preparation"))?.environment(deadline, cancel)?
                 } else {
@@ -893,7 +909,7 @@ mod native {
                 };
                 let mut overrides = overrides;
                 if let Style::Validation(python, _) = style {
-                    if crate::conformance_products::execution(&command.argv) {
+                    if crate::conformance_products::execution(&command.argv) || growth_class {
                         if python.is_empty() || python.contains('\0') {
                             return Err(error("explicit maintained Python interpreter required"));
                         }
@@ -902,7 +918,7 @@ mod native {
                 }
                 let mut cargo_stdout = Vec::new();
                 let (mut custody, stdout, stderr) =
-                    spawn(root, &command.argv, limits.cleanup_grace, &overrides)?;
+                    spawn(root, &argv, limits.cleanup_grace, &overrides)?;
                 let _out_mode = Nonblocking::new(stdout.as_raw_fd())?;
                 let _err_mode = Nonblocking::new(stderr.as_raw_fd())?;
                 let mut eof = [false, false];
@@ -942,7 +958,7 @@ mod native {
                                 if output_bytes > limits.output_bytes {
                                     return Err(error("combined child output byte limit exceeded"));
                                 }
-                                if preparing && index == 0 {
+                                if (preparing || growth_class) && index == 0 {
                                     cargo_stdout.extend_from_slice(&buffer[..count as usize]);
                                 }
                                 if let Some(streams) = streams.as_deref_mut() {
@@ -970,6 +986,9 @@ mod native {
                 // never reported as successful lane completion.
                 custody.cleanup()?;
                 execution?;
+                if status.unwrap().success() && growth_class {
+                    crate::growth_native_plan::verify_result(&command.argv, &cargo_stdout)?;
+                }
                 if status.unwrap().success() && preparing {
                     products = Some(crate::conformance_products::Products::select(
                         &cargo_stdout,

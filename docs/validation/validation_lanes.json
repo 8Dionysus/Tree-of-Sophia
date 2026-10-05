@@ -377,233 +377,259 @@
     "rust_workspace": [
       {
         "label": "check Rust formatting",
-        "command": ["cargo", "fmt", "--all", "--check"]
+        "command": [
+          "cargo",
+          "fmt",
+          "--all",
+          "--check"
+        ]
       },
       {
         "label": "build exact native schema worker for source-cut fixtures",
-        "command": ["cargo", "build", "--locked", "-p", "tos-validation", "--bin", "tos-schema-worker"]
+        "command": [
+          "cargo",
+          "build",
+          "--locked",
+          "-p",
+          "tos-validation",
+          "--bin",
+          "tos-schema-worker"
+        ]
       },
       {
         "label": "build exact native owner CLI for process-cold fixtures",
-        "command": ["cargo", "build", "--locked", "-p", "tos-command", "--bin", "tos-native-owner-command"]
+        "command": [
+          "cargo",
+          "build",
+          "--locked",
+          "-p",
+          "tos-command",
+          "--bin",
+          "tos-native-owner-command"
+        ]
       },
       {
         "label": "build exact native prepared consumer for conformance fixtures",
-        "command": ["cargo", "build", "--locked", "-p", "tos-access", "--bin", "tos-access"]
+        "command": [
+          "cargo",
+          "build",
+          "--locked",
+          "-p",
+          "tos-access",
+          "--bin",
+          "tos-access"
+        ]
       },
       {
         "label": "compile exact Rust conformance test image",
-        "command": ["cargo", "test", "--no-run", "--workspace", "--locked", "--message-format=json"]
+        "command": [
+          "cargo",
+          "test",
+          "--no-run",
+          "--workspace",
+          "--locked",
+          "--message-format=json"
+        ]
       },
       {
         "label": "test Rust workspace remainder excluding conformance and isolated process-cold fixtures",
         "command_timeout_ms": 900000,
         "command": [
-          "cargo", "test", "--workspace", "--locked", "--no-fail-fast", "--exclude", "tos-conformance", "--",
+          "cargo",
+          "test",
+          "--workspace",
+          "--locked",
+          "--no-fail-fast",
+          "--exclude",
+          "tos-conformance",
+          "--",
           "--nocapture",
-          "--skip", "source_creation_store::revision_publication::tests::native_record_revisions_cover_fixed_handlers_process_cold_and_exact_recovery",
-          "--skip", "source_creation_store::work_expression::tests::native_work37_cli_creates_process_cold_replays_and_recovers_exact_pending",
-          "--skip", "source_creation_store::work_expression::tests::real_pending_refuses_changed_dependency_then_resumes_or_rolls_back"
+          "@tos-native-growth-exclusions"
         ]
       },
       {
         "label": "test Rust conformance root and source families",
         "command_timeout_ms": 900000,
         "command": [
-          "cargo", "test", "--workspace", "--locked", "--test", "conformance", "--",
+          "cargo",
+          "test",
+          "--workspace",
+          "--locked",
+          "--test",
+          "conformance",
+          "--",
           "--nocapture",
-          "--skip", "command_form_cases::",
-          "--skip", "command_record_cases::",
-          "--skip", "command_claim_cases::",
-          "--skip", "command_collection_cases::",
-          "--skip", "command_item_cases::",
-          "--skip", "command_work_cases::",
-          "--skip", "command_text_cases::",
-          "--skip", "command_claim_publication_cases::",
-          "--skip", "command_public_text_cases::",
-          "--skip", "command_responsibility_cases::",
-          "--skip", "command_edition_cases::",
-          "--skip", "command_artifact_cases::",
-          "--skip", "command_object_link_cases::",
-          "--skip", "command_legacy_claim_cases::",
-          "--skip", "command_metadata_publication_cases::",
-          "--skip", "command_owner_text_cases::",
-          "--skip", "command_private_claim_cases::",
-          "--skip", "command_private_profile_cases::"
+          "@tos-native-growth-exclusions"
         ]
       },
       {
-        "label": "test Rust conformance Form and Record families",
+        "label": "test source-owned native Growth assertion classes",
         "command_timeout_ms": 900000,
         "command": [
-          "cargo", "test", "--workspace", "--locked", "--test", "conformance", "command_", "--",
-          "--nocapture",
-          "--skip", "command_claim_cases::",
-          "--skip", "command_collection_cases::",
-          "--skip", "command_item_cases::",
-          "--skip", "command_work_cases::",
-          "--skip", "command_text_cases::",
-          "--skip", "command_claim_publication_cases::",
-          "--skip", "command_public_text_cases::",
-          "--skip", "command_responsibility_cases::",
-          "--skip", "command_edition_cases::",
-          "--skip", "command_artifact_cases::",
-          "--skip", "command_object_link_cases::",
-          "--skip", "command_legacy_claim_cases::",
-          "--skip", "command_metadata_publication_cases::",
-          "--skip", "command_owner_text_cases::",
-          "--skip", "command_private_claim_cases::",
-          "--skip", "command_private_profile_cases::"
-        ]
-      },
-      {
-        "label": "test Rust conformance Claim publication families",
-        "command_timeout_ms": 900000,
-        "command": [
-          "cargo", "test", "--workspace", "--locked", "--test", "conformance", "command_", "--",
-          "--nocapture",
-          "--skip", "command_form_cases::",
-          "--skip", "command_record_cases::",
-          "--skip", "command_collection_cases::",
-          "--skip", "command_item_cases::",
-          "--skip", "command_work_cases::",
-          "--skip", "command_text_cases::",
-          "--skip", "command_public_text_cases::",
-          "--skip", "command_responsibility_cases::",
-          "--skip", "command_edition_cases::",
-          "--skip", "command_artifact_cases::",
-          "--skip", "command_object_link_cases::",
-          "--skip", "command_legacy_claim_cases::",
-          "--skip", "command_metadata_publication_cases::",
-          "--skip", "command_owner_text_cases::",
-          "--skip", "command_private_claim_cases::",
-          "--skip", "command_private_profile_cases::",
-          "--skip", "command_claim_cases::claim_successor_retains_bytes_replays_current_scope_and_refuses_unissued_admission",
-          "--skip", "command_claim_cases::initial_claim_creation_publishes_five_native_files_and_cold_replays",
-          "--skip", "command_claim_cases::initial_collection_order_binds_retained_version_and_cold_replays"
-        ]
-      },
-      {
-        "label": "test Rust conformance lifecycle families",
-        "command_timeout_ms": 900000,
-        "command": [
-          "cargo", "test", "--workspace", "--locked", "--test", "conformance", "command_", "--",
-          "--nocapture",
-          "--skip", "command_form_cases::",
-          "--skip", "command_record_cases::",
-          "--skip", "command_claim_cases::",
-          "--skip", "command_text_cases::",
-          "--skip", "command_claim_publication_cases::",
-          "--skip", "command_public_text_cases::",
-          "--skip", "command_responsibility_cases::",
-          "--skip", "command_metadata_publication_cases::",
-          "--skip", "command_owner_text_cases::",
-          "--skip", "command_private_claim_cases::",
-          "--skip", "command_private_profile_cases::",
-          "--skip", "command_artifact_cases::native_artifact_cli_describes_prepares_creates_and_cold_replays_exact_bytes"
-        ]
-      },
-      {
-        "label": "test Rust conformance text and private families",
-        "command_timeout_ms": 900000,
-        "command": [
-          "cargo", "test", "--workspace", "--locked", "--test", "conformance", "command_", "--",
-          "--nocapture", "--test-threads=1",
-          "--skip", "command_form_cases::",
-          "--skip", "command_record_cases::",
-          "--skip", "command_claim_cases::",
-          "--skip", "command_collection_cases::",
-          "--skip", "command_item_cases::",
-          "--skip", "command_work_cases::",
-          "--skip", "command_edition_cases::",
-          "--skip", "command_artifact_cases::",
-          "--skip", "command_object_link_cases::",
-          "--skip", "command_legacy_claim_cases::",
-          "--skip", "command_claim_publication_cases::"
+          "@tos-native-growth-classes"
         ]
       },
       {
         "label": "test Rust segment conformance target",
         "command": [
-          "cargo", "test", "--workspace", "--locked", "--test", "segment-conformance", "--",
+          "cargo",
+          "test",
+          "--workspace",
+          "--locked",
+          "--test",
+          "segment-conformance",
+          "--",
           "--nocapture"
         ]
       },
       {
         "label": "test isolated process-cold source revision fixture",
         "command": [
-          "cargo", "test", "--locked", "-p", "tos-command", "--lib",
+          "cargo",
+          "test",
+          "--locked",
+          "-p",
+          "tos-command",
+          "--lib",
           "source_creation_store::revision_publication::tests::native_record_revisions_cover_fixed_handlers_process_cold_and_exact_recovery",
-          "--", "--exact"
+          "--",
+          "--exact"
         ]
       },
       {
         "label": "test isolated process-cold Work37 fixture",
         "command": [
-          "cargo", "test", "--locked", "-p", "tos-command", "--lib",
+          "cargo",
+          "test",
+          "--locked",
+          "-p",
+          "tos-command",
+          "--lib",
           "source_creation_store::work_expression::tests::native_work37_cli_creates_process_cold_replays_and_recovers_exact_pending",
-          "--", "--exact"
+          "--",
+          "--exact"
         ]
       },
       {
         "label": "test isolated process-cold Work recovery fixture",
         "command": [
-          "cargo", "test", "--locked", "-p", "tos-command", "--lib",
+          "cargo",
+          "test",
+          "--locked",
+          "-p",
+          "tos-command",
+          "--lib",
           "source_creation_store::work_expression::tests::real_pending_refuses_changed_dependency_then_resumes_or_rolls_back",
-          "--", "--exact"
+          "--",
+          "--exact"
         ]
       },
       {
         "label": "test isolated conformance Artifact fixture",
         "command": [
-          "cargo", "test", "--workspace", "--locked", "--test", "conformance",
+          "cargo",
+          "test",
+          "--workspace",
+          "--locked",
+          "--test",
+          "conformance",
           "command_artifact_cases::native_artifact_cli_describes_prepares_creates_and_cold_replays_exact_bytes",
-          "--", "--exact", "--nocapture"
+          "--",
+          "--exact",
+          "--nocapture"
         ]
       },
       {
         "label": "test isolated conformance Claim successor fixture",
         "command": [
-          "cargo", "test", "--workspace", "--locked", "--test", "conformance",
+          "cargo",
+          "test",
+          "--workspace",
+          "--locked",
+          "--test",
+          "conformance",
           "command_claim_cases::claim_successor_retains_bytes_replays_current_scope_and_refuses_unissued_admission",
-          "--", "--exact", "--nocapture"
+          "--",
+          "--exact",
+          "--nocapture"
         ]
       },
       {
         "label": "test isolated conformance initial Claim fixture",
         "command": [
-          "cargo", "test", "--workspace", "--locked", "--test", "conformance",
+          "cargo",
+          "test",
+          "--workspace",
+          "--locked",
+          "--test",
+          "conformance",
           "command_claim_cases::initial_claim_creation_publishes_five_native_files_and_cold_replays",
-          "--", "--exact", "--nocapture"
+          "--",
+          "--exact",
+          "--nocapture"
         ]
       },
       {
         "label": "test isolated conformance Collection order fixture",
         "command": [
-          "cargo", "test", "--workspace", "--locked", "--test", "conformance",
+          "cargo",
+          "test",
+          "--workspace",
+          "--locked",
+          "--test",
+          "conformance",
           "command_claim_cases::initial_collection_order_binds_retained_version_and_cold_replays",
-          "--", "--exact", "--nocapture"
+          "--",
+          "--exact",
+          "--nocapture"
         ]
       },
       {
         "label": "check WASM foundation target",
-        "command": ["cargo", "check", "--locked", "-p", "tos-foundation", "--target", "wasm32-unknown-unknown", "--features", "wasm"]
+        "command": [
+          "cargo",
+          "check",
+          "--locked",
+          "-p",
+          "tos-foundation",
+          "--target",
+          "wasm32-unknown-unknown",
+          "--features",
+          "wasm"
+        ]
       },
       {
         "label": "check WASM validation backend target",
-        "command": ["cargo", "check", "--locked", "-p", "tos-validation", "--target", "wasm32-unknown-unknown"]
+        "command": [
+          "cargo",
+          "check",
+          "--locked",
+          "-p",
+          "tos-validation",
+          "--target",
+          "wasm32-unknown-unknown"
+        ]
       },
       {
         "label": "install native exact reader outside checkout",
-        "command": ["python", "scripts/verify_rust_reader_install.py"]
+        "command": [
+          "python",
+          "scripts/verify_rust_reader_install.py"
+        ]
       },
       {
         "label": "install native mechanics executor and verify process custody",
-        "command": ["python", "scripts/verify_rust_mechanics_install.py"]
+        "command": [
+          "python",
+          "scripts/verify_rust_mechanics_install.py"
+        ]
       },
       {
         "label": "verify generated WEB.1 binding in Node WebAssembly host",
-        "command": ["python", "scripts/verify_rust_web_host.py"]
+        "command": [
+          "python",
+          "scripts/verify_rust_web_host.py"
+        ]
       }
     ],
     "validation_authority": [

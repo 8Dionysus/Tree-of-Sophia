@@ -10,6 +10,9 @@ use tos_foundation::{Digest256, RelativePath};
 
 const MAX_SOURCE_BYTES: u64 = 1_048_576;
 const MAX_CLASSES: usize = 256;
+pub(crate) const NATIVE_CLASS: &str = "@tos-native-growth-class";
+pub(crate) const CLASS_SEQUENCE: &str = "@tos-native-growth-classes";
+pub(crate) const EXCLUSIONS: &str = "@tos-native-growth-exclusions";
 
 #[derive(Deserialize)]
 pub(crate) struct TestRoute {
@@ -27,25 +30,25 @@ pub(crate) struct TestRoute {
 pub struct NativePlan {
     schema_version: &'static str,
     posture: &'static str,
-    classes: Vec<NativeClass>,
+    pub(crate) classes: Vec<NativeClass>,
 }
 
 #[derive(Serialize)]
-struct NativeClass {
-    package: String,
+pub(crate) struct NativeClass {
+    pub(crate) package: String,
     cargo_manifest: String,
-    target_kind: String,
-    target_name: String,
+    pub(crate) target_kind: String,
+    pub(crate) target_name: String,
     source: String,
     source_sha256: String,
-    class_filter: String,
-    assertions: Vec<Assertion>,
+    pub(crate) class_filter: String,
+    pub(crate) assertions: Vec<Assertion>,
 }
 
 #[derive(Serialize)]
-struct Assertion {
-    function: String,
-    ignored: bool,
+pub(crate) struct Assertion {
+    pub(crate) function: String,
+    pub(crate) ignored: bool,
 }
 
 fn invalid(message: &str) -> io::Error {
@@ -228,6 +231,24 @@ pub fn discover(root: &Path) -> io::Result<NativePlan> {
                 return Err(invalid("native class contains no declared assertions"));
             }
             let class_filter = format!("{}::", modules.join("::"));
+            if seen.iter().any(
+                |(seen_package, seen_kind, seen_target, seen_filter): &(
+                    String,
+                    String,
+                    String,
+                    String,
+                )| {
+                    seen_package == &package
+                        && seen_kind == &route.target_kind
+                        && seen_target == &target_name
+                        && (class_filter.starts_with(seen_filter)
+                            || seen_filter.starts_with(&class_filter))
+                },
+            ) {
+                return Err(invalid(
+                    "overlapping native Growth classes would execute assertions twice",
+                ));
+            }
             if !seen.insert((
                 package.clone(),
                 route.target_kind.clone(),
@@ -256,4 +277,165 @@ pub fn discover(root: &Path) -> io::Result<NativePlan> {
         posture: "source_owned_assertion_plan_not_execution_or_equivalence",
         classes,
     })
+}
+
+/// Expand only explicit source-lane markers. Existing exact process-isolated
+/// selections retain their own route and are excluded from grouped classes.
+pub(crate) fn expand_steps(
+    root: &Path,
+    steps: &[crate::validation_lanes::BudgetedCommandStep],
+) -> io::Result<Vec<crate::validation_lanes::BudgetedCommandStep>> {
+    if !steps.iter().any(|((_, argv), _)| {
+        argv.iter()
+            .any(|arg| arg == CLASS_SEQUENCE || arg == EXCLUSIONS)
+    }) {
+        return Ok(steps.to_vec());
+    }
+    if steps
+        .iter()
+        .filter(|((_, argv), _)| argv.first().is_some_and(|arg| arg == CLASS_SEQUENCE))
+        .count()
+        != 1
+    {
+        return Err(invalid(
+            "native Growth partition requires exactly one class sequence",
+        ));
+    }
+    let native = discover(root)?;
+    let isolated: Vec<(String, Option<String>)> = steps
+        .iter()
+        .filter_map(|((_, argv), _)| {
+            if !argv.iter().any(|arg| arg == "--exact") {
+                return None;
+            }
+            let end = argv
+                .iter()
+                .position(|arg| arg == "--")
+                .unwrap_or(argv.len());
+            let name = argv[..end].iter().find(|arg| arg.contains("::"))?.clone();
+            let target = argv
+                .iter()
+                .position(|arg| arg == "--test")
+                .and_then(|index| argv.get(index + 1))
+                .cloned();
+            Some((name, target))
+        })
+        .collect();
+    let mut expanded = Vec::new();
+    for ((label, original), timeout) in steps {
+        if original.first().is_some_and(|arg| arg == CLASS_SEQUENCE) {
+            if original.len() != 1 {
+                return Err(invalid("native class marker takes no arbitrary arguments"));
+            }
+            for class in &native.classes {
+                let isolated: Vec<_> = isolated
+                    .iter()
+                    .filter(|(name, target)| {
+                        name.starts_with(&class.class_filter)
+                            && target
+                                .as_ref()
+                                .map_or(class.target_kind == "lib", |target| {
+                                    class.target_kind == "test" && target == &class.target_name
+                                })
+                    })
+                    .map(|(name, _)| name)
+                    .collect();
+                let covered = |assertion: &Assertion| {
+                    isolated
+                        .iter()
+                        .any(|name| name.ends_with(&format!("::{}", assertion.function)))
+                };
+                let active = class
+                    .assertions
+                    .iter()
+                    .filter(|a| !a.ignored && !covered(a))
+                    .count();
+                let ignored = class
+                    .assertions
+                    .iter()
+                    .filter(|a| a.ignored && !covered(a))
+                    .count();
+                if active == 0 {
+                    continue;
+                }
+                let mut command = vec![
+                    NATIVE_CLASS.into(),
+                    class.package.clone(),
+                    class.target_kind.clone(),
+                    class.target_name.clone(),
+                    class.class_filter.clone(),
+                    active.to_string(),
+                    ignored.to_string(),
+                ];
+                for name in isolated {
+                    command.extend(["--skip".into(), name.clone()]);
+                }
+                expanded.push((
+                    (
+                        format!("{label}: {} {}", class.package, class.class_filter),
+                        command,
+                    ),
+                    *timeout,
+                ));
+            }
+        } else if original.iter().any(|arg| arg == EXCLUSIONS) {
+            let target = original
+                .iter()
+                .position(|arg| arg == "--test")
+                .and_then(|index| original.get(index + 1));
+            let mut command: Vec<_> = original
+                .iter()
+                .filter(|arg| *arg != EXCLUSIONS)
+                .cloned()
+                .collect();
+            for class in &native.classes {
+                if target.map_or(class.target_kind == "lib", |target| {
+                    class.target_kind == "test" && target == &class.target_name
+                }) {
+                    command.extend(["--skip".into(), class.class_filter.clone()]);
+                }
+            }
+            for (name, isolated_target) in &isolated {
+                if isolated_target.as_ref() == target
+                    && !native.classes.iter().any(|class| {
+                        name.starts_with(&class.class_filter)
+                            && target.map_or(class.target_kind == "lib", |target| {
+                                class.target_kind == "test" && target == &class.target_name
+                            })
+                    })
+                {
+                    command.extend(["--skip".into(), name.clone()]);
+                }
+            }
+            expanded.push(((label.clone(), command), *timeout));
+        } else {
+            expanded.push(((label.clone(), original.clone()), *timeout));
+        }
+    }
+    Ok(expanded)
+}
+
+pub(crate) fn verify_result(command: &[String], stdout: &[u8]) -> io::Result<()> {
+    let active = command
+        .get(5)
+        .and_then(|value| value.parse::<usize>().ok())
+        .filter(|value| *value != 0)
+        .ok_or_else(|| invalid("native class has no active declared assertions"))?;
+    let ignored = command
+        .get(6)
+        .and_then(|value| value.parse::<usize>().ok())
+        .ok_or_else(|| invalid("native class ignored assertion count missing"))?;
+    let result = Regex::new(r"test result: ok\. ([0-9]+) passed; 0 failed; ([0-9]+) ignored;")
+        .map_err(io::Error::other)?;
+    let stdout = std::str::from_utf8(stdout).map_err(io::Error::other)?;
+    let results: Vec<_> = result.captures_iter(stdout).collect();
+    if results.len() != 1
+        || results[0][1].parse::<usize>().ok() != Some(active)
+        || results[0][2].parse::<usize>().ok() != Some(ignored)
+    {
+        return Err(invalid(
+            "native class did not execute its declared active assertions or changed ignored scope",
+        ));
+    }
+    Ok(())
 }

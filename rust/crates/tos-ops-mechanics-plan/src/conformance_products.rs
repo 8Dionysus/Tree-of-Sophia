@@ -98,11 +98,13 @@ pub(crate) struct Products {
     executable_sha: String,
     access: PathBuf,
     access_sha: String,
+    command_tests: Option<(String, PathBuf, String)>,
 }
 impl Products {
     pub(crate) fn select(stdout: &[u8], deadline: Instant, cancel: &AtomicI32) -> io::Result<Self> {
         let target = target()?;
         let mut executable = None;
+        let mut command_tests = None;
         for line in stdout.split(|b| *b == b'\n').filter(|l| !l.is_empty()) {
             check(deadline, cancel)?;
             let value: serde_json::Value = serde_json::from_slice(line)
@@ -116,6 +118,35 @@ impl Products {
                     .rsplit('#')
                     .next()
                     .is_some_and(|p| p.starts_with("tos-conformance@"));
+            let command_package = package.starts_with("tos-command ")
+                || package
+                    .rsplit('#')
+                    .next()
+                    .is_some_and(|p| p.starts_with("tos-command@"))
+                || package
+                    .split('#')
+                    .next()
+                    .is_some_and(|p| p.ends_with("/tos-command"));
+            if command_package
+                && value["profile"]["test"] == true
+                && value["target"]["kind"]
+                    .as_array()
+                    .is_some_and(|k| k.iter().any(|k| k == "lib"))
+            {
+                if let Some(path) = value["executable"].as_str() {
+                    let name = value["target"]["name"]
+                        .as_str()
+                        .ok_or_else(|| invalid("command library target has no name"))?;
+                    if command_tests
+                        .replace((name.to_owned(), PathBuf::from(path)))
+                        .is_some()
+                    {
+                        return Err(invalid(
+                            "ambiguous current-lane command library test executable",
+                        ));
+                    }
+                }
+            }
             if package_matches
                 && value["target"]["name"] == "conformance"
                 && value["target"]["kind"]
@@ -135,14 +166,80 @@ impl Products {
         let access = target.join("debug/tos-access");
         let executable_sha = image(&executable, &target, deadline, cancel)?;
         let access_sha = image(&access, &target, deadline, cancel)?;
+        let command_tests = command_tests
+            .map(|(name, path)| {
+                let digest = image(&path, &target, deadline, cancel)?;
+                Ok::<_, io::Error>((name, path, digest))
+            })
+            .transpose()?;
         Ok(Self {
             target,
             executable,
             executable_sha,
             access,
             access_sha,
+            command_tests,
         })
     }
+    pub(crate) fn growth_command(
+        &self,
+        command: &[String],
+        deadline: Instant,
+        cancel: &AtomicI32,
+    ) -> io::Result<Vec<String>> {
+        if command.len() < 7 || command[0] != crate::growth_native_plan::NATIVE_CLASS {
+            return Err(invalid(
+                "invalid source-owned native Growth class invocation",
+            ));
+        }
+        let (executable, expected_digest) = match (
+            command[1].as_str(),
+            command[2].as_str(),
+            command[3].as_str(),
+        ) {
+            ("tos-conformance", "test", "conformance") => (&self.executable, &self.executable_sha),
+            ("tos-command", "lib", name) => {
+                let (selected_name, executable, digest) =
+                    self.command_tests.as_ref().ok_or_else(|| {
+                        invalid("current Cargo stream lacks command library test image")
+                    })?;
+                if name != selected_name {
+                    return Err(invalid(
+                        "native class differs from current Cargo library target",
+                    ));
+                }
+                (executable, digest)
+            }
+            _ => {
+                return Err(invalid(
+                    "native class has no current-lane prepared test product",
+                ));
+            }
+        };
+        // The existing environment selector rechecks Conformance and Access
+        // immediately before spawn; only the additional library image needs
+        // its own hash here. Avoid reading Conformance twice per class.
+        if target()? != self.target
+            || (executable != &self.executable
+                && image(executable, &self.target, deadline, cancel)? != *expected_digest)
+        {
+            return Err(invalid(
+                "native Growth test product changed after preparation",
+            ));
+        }
+        let executable = executable
+            .to_str()
+            .ok_or_else(|| invalid("non-UTF8 native class executable"))?;
+        let mut argv = vec![
+            executable.into(),
+            command[4].clone(),
+            "--nocapture".into(),
+            "--test-threads=1".into(),
+        ];
+        argv.extend_from_slice(&command[7..]);
+        Ok(argv)
+    }
+
     pub(crate) fn environment(
         &self,
         deadline: Instant,
