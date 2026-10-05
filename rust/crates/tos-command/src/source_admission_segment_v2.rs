@@ -3595,6 +3595,7 @@ pub(crate) fn build_v1_migration_rootset_v2(
         .ok_or_else(|| invalid("migration reverse identity family state overflow"))?;
 
     let dependency_source_rows = Cell::new(0u64);
+    let dependency_source_rows = &dependency_source_rows;
     let dependency_rows = {
         use super::source_admission_index::NativeDependencyDirectionV1::Forward;
         let mut after: Option<(RelativePath, RelativePath)> = None;
@@ -4024,6 +4025,7 @@ pub(crate) fn build_successor_rootset_v2(
 
     let mut work = base.accumulated_tree_work();
     let row_count = Cell::new(0u64);
+    let row_count = &row_count;
     let row_limit = profile.tree_limits.max_rows;
     let row_allowance = candidate.v2_cursor_state_allowance(profile.max_working_state_bytes)?;
     let tree_live_state = base_live_state

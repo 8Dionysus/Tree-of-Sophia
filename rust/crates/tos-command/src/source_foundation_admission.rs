@@ -1588,6 +1588,11 @@ impl<'c> NativeSourceValidator<'c> {
                 io_upper,
                 PRIVATE_TMPFS_SELECT_COST.retained_bytes,
             )?;
+            let path = self
+                .store_authority
+                .as_ref()
+                .and_then(PrivateTmpfsStageIsolation::persistent_store)
+                .ok_or_else(|| invalid("V2 selected persistent store disappeared"))?;
             let held = self
                 .store_authority
                 .as_ref()
