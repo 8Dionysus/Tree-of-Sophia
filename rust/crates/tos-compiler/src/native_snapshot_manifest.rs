@@ -116,7 +116,7 @@ pub const NATIVE_PRODUCER_MAX_SOURCE_CLOSURE_BYTES: u64 = MAX_CAPTURE_CLOSURE_BY
 pub const NATIVE_PRODUCER_MAX_MEMBERS: usize = MAX_DATA_MEMBERS;
 /// Explicit independently expected source selection. Evidence refs remain opaque;
 /// this profile selects data, never installed code or an ambient checkout.
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Eq, PartialEq, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct NativeSelectedSnapshotProfile {
     pub schema_version: String,
@@ -130,7 +130,7 @@ pub struct NativeSelectedSnapshotProfile {
     pub excluded_compiled_model: SelectedExcludedSourceMember,
 }
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Eq, PartialEq, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct SelectedExcludedSourceMember {
     pub path: String,
@@ -467,6 +467,7 @@ struct HistoricalManifestMember {
 /// payload paths are censused before capture/build; the compiler later checks
 /// the retained PublicCapture closure against these rows before copying.
 pub struct NativeSelectedSnapshotCensus {
+    profile: NativeSelectedSnapshotProfile,
     source_root: PathBuf,
     manifest_path: PathBuf,
     manifest_file: File,
@@ -484,7 +485,8 @@ impl NativeSelectedSnapshotCensus {
         let node = 11 * std::mem::size_of::<(String, HistoricalMember)>()
             + 16 * std::mem::size_of::<usize>();
         let mut bytes = std::mem::size_of::<Self>()
-            .checked_add(self.source_root.capacity())
+            .checked_add(self.profile.retained_state_upper_bound()?)
+            .and_then(|n| n.checked_add(self.source_root.capacity()))
             .and_then(|n| n.checked_add(self.manifest_path.capacity()))
             .and_then(|n| n.checked_add(self.manifest_sha256.capacity()))
             .and_then(|n| n.checked_add(self.members.len().checked_mul(node)?))
@@ -849,6 +851,7 @@ pub fn census_selected_runtime_closure(
     }
     active(deadline)?;
     Ok(NativeSelectedSnapshotCensus {
+        profile: profile.clone(),
         source_root,
         manifest_path,
         manifest_file,
@@ -1251,7 +1254,8 @@ fn validate_manifest_input(
     limits.validate()?;
     sha_text(input.corpus_revision, "native corpus revision invalid")?;
     input.selected_profile.validate()?;
-    if input.selected_census.manifest_sha256 != input.selected_profile.manifest_sha256
+    if &input.selected_census.profile != input.selected_profile
+        || input.selected_census.manifest_sha256 != input.selected_profile.manifest_sha256
         || input.selected_census.source_root != Path::new(&input.selected_profile.runtime_data_root)
         || input.selected_census.manifest_path != Path::new(&input.selected_profile.manifest_path)
     {
