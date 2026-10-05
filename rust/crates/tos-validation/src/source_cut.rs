@@ -29,8 +29,8 @@ use crate::item_rules::{
 use crate::provenance_rules::{ProvenanceReport, ProvenanceRules, ProvenanceSource};
 use crate::record_rules::RecordFamily;
 use crate::source_foundation_schema::{
-    CandidateSourceFoundationSchemaSet, SOURCE_FOUNDATION_CONTRACT_PATHS, SelectedSchemaResource,
-    schema_resource_set_digest, source_foundation_schema_resource_uri,
+    CandidateSourceFoundationSchemaSet, SelectedSchemaResource, schema_resource_set_digest,
+    source_foundation_schema_resource_uri,
 };
 use crate::{FormatProfile, SchemaBackendProbe, SchemaResource, published_value};
 
@@ -922,7 +922,7 @@ impl<I: Copy + Eq> CandidateCutWorkerSchemaExecutor<I> {
             }
         }
         if worker_contracts.len() != schema_set.resources.len()
-            || schema_set.contracts.len() != SOURCE_FOUNDATION_CONTRACT_PATHS.len()
+            || worker_contracts != schema_set.contracts
         {
             return Err(ItemRefusal::Source(
                 "candidate schema root selection is incomplete".into(),
