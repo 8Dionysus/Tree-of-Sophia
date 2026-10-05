@@ -13,7 +13,7 @@ use std::{
     sync::atomic::{AtomicBool, Ordering},
     time::Instant,
 };
-use tos_foundation::Digest256;
+use tos_foundation::{Digest256, RelativePath};
 use tos_validation::{
     FormatProfile,
     executor::{
@@ -565,18 +565,75 @@ fn observation_from_value(value: &Value) -> io::Result<RecordObservation> {
     })
 }
 
-fn biblio_record_value(record: &BiblioCurrentRecord) -> Value {
-    json!({"v":STORE_CODEC_VERSION,"path":record.path,"kind":record.kind,"value":record.value})
+// CurrentRecords retain an authenticated candidate locator, not a second copy
+// of every document. The original decoded value remains the consumer contract.
+const CURRENT_RECORD_LOCATOR_CODEC_VERSION: u64 = 1;
+
+fn current_record_read_state(path: &str, size: usize) -> io::Result<usize> {
+    size.checked_mul(4)
+        .and_then(|n| n.checked_add(path.len().checked_mul(16)?))
+        .and_then(|n| n.checked_add(8192))
+        .ok_or_else(|| invalid("current Record bound read state overflow"))
 }
 
-fn biblio_record_from_value(value: &Value) -> io::Result<BiblioCurrentRecord> {
-    if uint(value, "v")? != STORE_CODEC_VERSION {
-        return Err(invalid("Biblio record codec version invalid"));
+fn biblio_record_from_locator(
+    sink: &IndexSink<'_>,
+    locator: &Value,
+    max_state: usize,
+) -> io::Result<BiblioCurrentRecord> {
+    if uint(locator, "v")? != CURRENT_RECORD_LOCATOR_CODEC_VERSION {
+        return Err(invalid("current Record locator codec version invalid"));
+    }
+    sink.candidate.tick()?;
+    if sink.candidate.fence()? != sink.fence {
+        return Err(invalid("current Record candidate fence changed"));
+    }
+    let path = text(locator, "path")?;
+    let relative =
+        RelativePath::parse(path).map_err(|_| invalid("current Record locator path invalid"))?;
+    let size = usize::try_from(uint(locator, "size_bytes")?)
+        .map_err(|_| invalid("current Record locator size overflow"))?;
+    let expected_digest = digest(locator, "sha256")?;
+    let decoded_state = usize::try_from(uint(locator, "decoded_state_bytes")?)
+        .map_err(|_| invalid("current Record decoded state overflow"))?;
+    let read_state = current_record_read_state(path, size)?;
+    let retained = checked_add(
+        string_fields(&[path, text(locator, "kind")?])?,
+        decoded_state,
+    )?;
+    let peak = checked_add(checked_add(retained, read_state)?, value_state(locator)?)?;
+    if peak > max_state {
+        return Err(invalid(
+            "current Record locator exceeds selected state envelope",
+        ));
+    }
+    sink.candidate.check_state(peak)?;
+    let read = sink
+        .candidate
+        .read_member_bound(&relative, size, read_state)?;
+    if read.metadata().sha256 != expected_digest
+        || read.metadata().size_bytes != size as u64
+        || read.metadata().path != relative
+    {
+        return Err(invalid(
+            "current Record locator differs from candidate member",
+        ));
+    }
+    let value = decode_value(read.raw(), checked_add(decoded_state, size)?)?;
+    if value_state(&value)? != decoded_state {
+        return Err(invalid(
+            "current Record decoded state differs from retained bound",
+        ));
+    }
+    drop(read);
+    sink.candidate.tick()?;
+    if sink.candidate.fence()? != sink.fence {
+        return Err(invalid("current Record candidate fence changed"));
     }
     Ok(BiblioCurrentRecord {
-        path: owned_text(value, "path")?,
-        kind: owned_text(value, "kind")?,
-        value: field(value, "value")?.clone(),
+        path: path.to_owned(),
+        kind: owned_text(locator, "kind")?,
+        value,
     })
 }
 
@@ -1049,6 +1106,8 @@ impl IndexSink<'_> {
 }
 
 fn stored_fact_from_value(
+    sink: &IndexSink<'_>,
+    max_state: usize,
     collection: SourceFoundationRecordsCollection,
     value: &Value,
     aux: &[u8],
@@ -1060,7 +1119,7 @@ fn stored_fact_from_value(
         SourceFoundationRecordsCollection::CurrentRecords => {
             SourceFoundationRecordsStoredFact::CurrentRecord {
                 record_id: owned_text(value, "record_id")?,
-                record: biblio_record_from_value(field(value, "record")?)?,
+                record: biblio_record_from_locator(sink, field(value, "record")?, max_state)?,
             }
         }
         SourceFoundationRecordsCollection::UsedDeclaredProfileKinds => {
@@ -1758,7 +1817,8 @@ fn report_page(
             cancelled,
         )?;
         let value = decode_value(&payload, budget.max_state_bytes.get()).map_err(refusal)?;
-        let fact = stored_fact_from_value(collection, &value, &aux).map_err(refusal)?;
+        let fact = stored_fact_from_value(sink, row.state_bytes, collection, &value, &aux)
+            .map_err(refusal)?;
         output.push(fact);
     }
     let next_cursor = if more {
@@ -2180,7 +2240,8 @@ fn decode_current_record_checked(
         ));
     }
     let record =
-        biblio_record_from_value(field(&value, "record").map_err(refusal)?).map_err(refusal)?;
+        biblio_record_from_locator(sink, field(&value, "record").map_err(refusal)?, meta.2)
+            .map_err(refusal)?;
     check_operation(sink, deadline, cancelled)?;
     Ok(Some((record, meta.2, decode_state_bytes)))
 }
@@ -2530,8 +2591,34 @@ impl SourceFoundationRecordsStore for IndexSink<'_> {
             )
             .map_err(refusal)?;
         self.candidate.tick().map_err(refusal)?;
-        let value =
-            json!({"v":STORE_CODEC_VERSION,"record_id":id,"record":biblio_record_value(record)});
+        if self.candidate.fence().map_err(refusal)? != self.fence {
+            return Err(ItemRefusal::Source(
+                "current Record candidate fence changed".into(),
+            ));
+        }
+        let path = RelativePath::parse(&record.path)
+            .map_err(|_| ItemRefusal::Source("current Record locator path invalid".into()))?;
+        let metadata = self
+            .candidate
+            .member(&path)
+            .map_err(refusal)?
+            .ok_or_else(|| {
+                ItemRefusal::Source("current Record outside candidate membership".into())
+            })?;
+        let size = usize::try_from(metadata.size_bytes).map_err(|_| ItemRefusal::Budget)?;
+        let read_state = current_record_read_state(&record.path, size).map_err(refusal)?;
+        // Keep the full value/read workspace in state_bytes so every page and
+        // lookup precharges it before reading or decoding the lazy document.
+        let input = checked_add(input, read_state).map_err(refusal)?;
+        let locator = json!({
+            "v":CURRENT_RECORD_LOCATOR_CODEC_VERSION,
+            "path":record.path,
+            "kind":record.kind,
+            "sha256":metadata.sha256.to_hex(),
+            "size_bytes":metadata.size_bytes,
+            "decoded_state_bytes":value_state(&record.value).map_err(refusal)?,
+        });
+        let value = json!({"v":STORE_CODEC_VERSION,"record_id":id,"record":locator});
         self.append_stored_row(
             SourceFoundationRecordsCollection::CurrentRecords,
             id,

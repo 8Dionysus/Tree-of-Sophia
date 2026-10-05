@@ -13,7 +13,7 @@ use crate::{
         self, AdmissionIndexBackend, BaseIdentityPath, CandidateIndexInput, FreshIndexRowsWriter,
         IndexLimits, NativeSemanticStep, SchemaCheck,
     },
-    source_admission_spooled_candidate::{CandidateFence, SpoolCandidate},
+    source_admission_spooled_candidate::{CandidateFence, CandidateMemberRead, SpoolCandidate},
     source_foundation_admission::NativeAdmissionComplete,
 };
 use rusqlite::{OptionalExtension, params};
@@ -24,8 +24,7 @@ use tos_source_store::{
     SourceMembershipV1,
 };
 use tos_validation::{
-    item_rules::ItemRefusal,
-    source_cut::CutPreparedSchemaExecutionBinding,
+    item_rules::ItemRefusal, source_cut::CutPreparedSchemaExecutionBinding,
     source_foundation_records::SourceFoundationRecordsStreamedReport,
 };
 
@@ -772,6 +771,12 @@ trait CandidateFenceSource {
         &self,
         after: Option<&RelativePath>,
     ) -> io::Result<Option<tos_source_store::MemberMetadata>>;
+    fn read_member_bound(
+        &self,
+        path: &RelativePath,
+        cap: usize,
+        max_owned_state_bytes: usize,
+    ) -> io::Result<CandidateMemberRead>;
     fn read(&self, path: &str, cap: usize) -> io::Result<Vec<u8>>;
     fn verify(&self, path: &str) -> io::Result<()>;
     fn base_identity_path_bounded(
@@ -824,6 +829,15 @@ impl CandidateFenceSource for SpoolCandidate<'_> {
         after: Option<&RelativePath>,
     ) -> io::Result<Option<tos_source_store::MemberMetadata>> {
         SpoolCandidate::member_after(self, after)
+    }
+
+    fn read_member_bound(
+        &self,
+        path: &RelativePath,
+        cap: usize,
+        max_owned_state_bytes: usize,
+    ) -> io::Result<CandidateMemberRead> {
+        SpoolCandidate::read_member_bound(self, path, cap, max_owned_state_bytes)
     }
 
     fn read(&self, path: &str, cap: usize) -> io::Result<Vec<u8>> {
