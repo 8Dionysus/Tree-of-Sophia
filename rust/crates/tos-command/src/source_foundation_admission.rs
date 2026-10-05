@@ -7,6 +7,7 @@ use crate::source_admission_spooled_candidate::{SpoolCandidate, SpoolLimits};
 use crate::source_admission_spooled_index::{CandidateRecordsReportVerified, SpoolIndexLimits};
 use crate::source_admission_spooled_manifest::ManifestStreamLimits;
 use crate::source_creation_store::IsolatedCreationRoot;
+use crate::source_current_cut::foundation_cli::ValidationProfile;
 use crate::source_current_cut::{
     foundation_bootstrap::{FoundationBootstrapInputs, verify_invocation_with_budget},
     foundation_entry::{
@@ -22,7 +23,6 @@ use crate::source_foundation_admission_history::{
     HistoryEvidence, HistoryLimits, HistorySelection,
 };
 use crate::source_foundation_admission_identity::{GrammarIdentity, IdentityLimits};
-use crate::source_foundation_cli::ValidationProfile;
 use serde_json::Value;
 use std::{
     ffi::OsString,

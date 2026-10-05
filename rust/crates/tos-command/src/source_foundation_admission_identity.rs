@@ -6,7 +6,9 @@
 //! Binding its rows here does not verify or supply those historical bytes.
 use super::source_admission::{active, invalid};
 use super::source_admission_candidate::Candidate;
-use crate::source_foundation_cli::{VALIDATION_PROFILE_DECLARATION, ValidationProfile};
+use crate::source_current_cut::foundation_cli::{
+    VALIDATION_PROFILE_DECLARATION, ValidationProfile,
+};
 use serde_json::{Value, json};
 use std::{
     cell::Cell,
@@ -586,7 +588,7 @@ mod tests {
             limits,
             deadline,
             &cancel,
-            crate::source_foundation_cli::select_validation_profile(None).unwrap(),
+            crate::source_current_cut::foundation_cli::select_validation_profile(None).unwrap(),
         )
         .unwrap();
         assert_eq!(
@@ -670,7 +672,7 @@ mod tests {
             limits,
             deadline,
             &cancel,
-            crate::source_foundation_cli::select_validation_profile(Some(
+            crate::source_current_cut::foundation_cli::select_validation_profile(Some(
                 "selected-source-closure",
             ))
             .unwrap(),
@@ -687,7 +689,7 @@ mod tests {
             limits,
             deadline,
             &cancel,
-            crate::source_foundation_cli::select_validation_profile(None).unwrap(),
+            crate::source_current_cut::foundation_cli::select_validation_profile(None).unwrap(),
         )
         .unwrap();
         assert_ne!(identity.digest(), other.digest());
@@ -726,7 +728,7 @@ mod tests {
                 },
                 deadline,
                 &cancel,
-                crate::source_foundation_cli::select_validation_profile(None).unwrap()
+                crate::source_current_cut::foundation_cli::select_validation_profile(None).unwrap()
             )
             .is_err()
         );
@@ -743,7 +745,7 @@ mod tests {
                 limits,
                 deadline,
                 &cancel,
-                crate::source_foundation_cli::select_validation_profile(None).unwrap()
+                crate::source_current_cut::foundation_cli::select_validation_profile(None).unwrap()
             )
             .is_err()
         );
