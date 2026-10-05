@@ -2088,17 +2088,19 @@ fn scale_export_response<'hold>(
 #[cfg(all(test, not(target_arch = "wasm32")))]
 mod scoped_socket_tests {
     use super::*;
-    use std::cell::Cell;
 
-    struct BorrowedExecutor<'a>(&'a Cell<usize>);
-    struct BorrowedFence<'a>(&'a Cell<usize>);
+    struct BorrowedExecutor<'a>(&'a AtomicUsize);
+    struct BorrowedFence<'a>(&'a AtomicUsize);
     impl DisclosureFence for BorrowedFence<'_> {
         fn recheck(&mut self) -> Result<(), AccessError> {
-            self.0.set(self.0.get() + 1);
+            self.0.fetch_add(1, Ordering::Relaxed);
             Ok(())
         }
     }
     impl<'a> crate::common::ScopedAccessExecutor<'a> for BorrowedExecutor<'a> {
+        fn source_descend_available(&self) -> bool {
+            false
+        }
         fn source_descend(
             &self,
             _: Params,
@@ -2131,7 +2133,7 @@ mod scoped_socket_tests {
         }
         let listener = TcpListener::bind("127.0.0.1:0").unwrap();
         let address = listener.local_addr().unwrap();
-        let checks = Cell::new(0);
+        let checks = AtomicUsize::new(0);
         let executor = BorrowedExecutor(&checks);
         std::thread::scope(|scope| {
             let client = scope.spawn(move || {
@@ -2161,14 +2163,14 @@ mod scoped_socket_tests {
             assert!(started.elapsed() < Duration::from_secs(1));
             client.join().unwrap();
         });
-        assert_eq!(checks.get(), 0);
+        assert_eq!(checks.load(Ordering::Relaxed), 0);
     }
 
     #[test]
     fn borrowed_socket_retains_owner_fence_through_flush() {
         let listener = TcpListener::bind("127.0.0.1:0").unwrap();
         let address = listener.local_addr().unwrap();
-        let checks = Cell::new(0);
+        let checks = AtomicUsize::new(0);
         let executor = BorrowedExecutor(&checks);
         std::thread::scope(|scope| {
             let client = scope.spawn(move || {
@@ -2190,6 +2192,6 @@ mod scoped_socket_tests {
             assert!(response.starts_with("HTTP/1.1 200 OK\r\n"));
             assert!(response.ends_with("\r\n\r\n{}"));
         });
-        assert_eq!(checks.get(), 2);
+        assert_eq!(checks.load(Ordering::Relaxed), 2);
     }
 }
