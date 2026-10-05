@@ -317,16 +317,20 @@ fn native_artifact_cli_describes_prepares_creates_and_cold_replays_exact_bytes()
         event["authority_boundary"]["validator_role"],
         "mechanics_and_closure_only_not_truth"
     );
-    assert!(event["method"]["software_components"]
-        .as_array()
-        .unwrap()
-        .iter()
-        .any(|v| v["artifact_ref"] == "runtime:tos-native-executable"));
-    assert!(event["method"]["software_components"]
-        .as_array()
-        .unwrap()
-        .iter()
-        .all(|v| v["artifact_ref"] != "runtime:python-executable"));
+    assert!(
+        event["method"]["software_components"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|v| v["artifact_ref"] == "runtime:tos-native-executable")
+    );
+    assert!(
+        event["method"]["software_components"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .all(|v| v["artifact_ref"] != "runtime:python-executable")
+    );
     let mut current_files = authored_text_files(isolated.path());
     current_files.remove("ToS/source-witnesses/.historical-create.writer.lock");
     physical_fixture_budget(&current_files);
