@@ -38,6 +38,14 @@ mod knowledge_temporal;
 mod controlled_query_adapter;
 #[cfg(not(target_arch = "wasm32"))]
 mod controlled_inspect_adapter;
+#[cfg(not(target_arch = "wasm32"))]
+mod controlled_lens_budget;
+#[cfg(not(target_arch = "wasm32"))]
+mod controlled_original_reader;
+#[cfg(not(target_arch = "wasm32"))]
+mod controlled_philosophy_adapter;
+#[cfg(not(target_arch = "wasm32"))]
+pub use controlled_philosophy_adapter::execute_controlled_philosophy_status_response;
 pub mod lens_plan;
 #[cfg(not(target_arch = "wasm32"))]
 pub mod philosophy_read;
@@ -104,6 +112,8 @@ pub use controlled_query_adapter::{
     execute_scoped_controlled_sidecar_indexed_search_response,
     with_controlled_knowledge_binding, with_controlled_sidecar_knowledge_binding,
 };
+#[cfg(not(target_arch = "wasm32"))]
+pub(crate) use controlled_query_adapter::indexed_limit_from_foundation;
 #[cfg(not(target_arch = "wasm32"))]
 pub use knowledge_temporal::execute_selected_temporal;
 pub use search_document::{

@@ -44,6 +44,8 @@ pub(super) struct OrdinaryStartup {
     schema_version: String,
     source_paths: Sources,
     query_store: QueryStoreSelection,
+    #[serde(default)]
+    search_read_model: Option<super::SearchReadModelSelection>,
     session: super::session_transport::Limits,
     original_whole_deadline_ns: u64,
 }
@@ -81,6 +83,13 @@ impl NativeOrdinarySnapshotStartup {
         let stage = tos_compiler::private_tmpfs_stage::PrivateTmpfsStageIsolation::
             select_issued_from_environment()
             .map_err(|_| "Core ordinary snapshot actual stage ticket refused")?;
+        if let Some(search) = self.search_read_model.as_ref() {
+            search.validate_verify_chars()?;
+            // An explicit QueryStore selection bypasses sidecar path/build admission.
+            if !self.query_store.configured {
+                search.validate_cache(&stage)?;
+            }
+        }
         let (tmpfs_quota_bytes, inode_limit, working_ram_bytes) = stage.resource_limits();
         drop(stage);
         let process = actual_process_limits()?;
@@ -139,6 +148,7 @@ impl NativeOrdinarySnapshotStartup {
             arguments: self.arguments,
             query_store: self.query_store,
             query_store_limits: Some(QueryStoreLimits::native_ordinary()),
+            search_read_model: None,
             http,
         })
     }
@@ -179,13 +189,16 @@ impl OrdinaryStartup {
             session: self.session,
             original_whole_deadline_ns: self.original_whole_deadline_ns,
         };
-        startup.into_profile_request(
+        let search_read_model = self.search_read_model;
+        let (mut request, limits, deadline) = startup.into_profile_request(
             original_work_ns,
             caller_retained_state_bytes,
             startup_bytes,
             "tos_native_core_ordinary_session_startup_v1",
             false,
-        )
+        )?;
+        request.search_read_model = search_read_model;
+        Ok((request, limits, deadline))
     }
 }
 
@@ -434,6 +447,7 @@ impl Startup {
                 arguments: serde_json::Value::Null,
                 query_store: self.query_store,
                 query_store_limits: self.query_store_limits,
+                search_read_model: None,
                 http: Some(self.http),
             },
             session,

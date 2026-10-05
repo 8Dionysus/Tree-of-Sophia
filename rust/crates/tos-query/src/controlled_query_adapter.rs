@@ -10,7 +10,7 @@ use tos_compiler::{
     ControlledSearchKind, ControlledSidecarModel, Error as CompilerError,
     KnowledgeSelectedExpectation, KnowledgeSourceBasis, QueryVocabulary,
 };
-use tos_foundation::{JsonValue, OwnedState};
+use tos_foundation::{JsonNumberKind, JsonValue, OwnedState};
 
 use crate::{
     knowledge_binding::{BoundCmpKnowledge, bind_controlled_knowledge_from_parts},
@@ -38,6 +38,93 @@ const MAX_CONTROLLED_FILTER_CODE_POINTS: usize = 256;
 
 fn error(code: SearchV2ErrorCode, message: &'static str) -> SearchV2Error {
     SearchV2Error { code, message }
+}
+
+const INDEXED_LIMIT_DEFAULT: usize = 40;
+const INDEXED_LIMIT_MIN: usize = 1;
+const INDEXED_LIMIT_MAX: usize = 100;
+
+/// Match Reference's bounded indexed-search limit conversion without
+/// delegating request parsing to Python. Invalid/missing values use the public
+/// default; accepted values are truncated as Python int() does, then clamped.
+pub(crate) fn indexed_limit_from_foundation(value: Option<&JsonValue>) -> usize {
+    let parsed = match value {
+        None | Some(JsonValue::Null) => return INDEXED_LIMIT_DEFAULT,
+        Some(JsonValue::Bool(value)) => Some(if *value { 1 } else { 0 }),
+        Some(JsonValue::Number(number)) => match number.kind {
+            JsonNumberKind::Int => decimal_limit(&number.lexeme),
+            JsonNumberKind::Float => number
+                .as_python_float()
+                .filter(|value| value.is_finite())
+                .map(|value| {
+                    if value <= INDEXED_LIMIT_MIN as f64 {
+                        INDEXED_LIMIT_MIN
+                    } else if value >= INDEXED_LIMIT_MAX as f64 {
+                        INDEXED_LIMIT_MAX
+                    } else {
+                        value.trunc() as usize
+                    }
+                }),
+        },
+        Some(JsonValue::String(value)) => value.as_str().and_then(decimal_limit),
+        Some(JsonValue::Array(_) | JsonValue::Object(_)) => None,
+    };
+    parsed
+        .unwrap_or(INDEXED_LIMIT_DEFAULT)
+        .clamp(INDEXED_LIMIT_MIN, INDEXED_LIMIT_MAX)
+}
+
+fn decimal_limit(raw: &str) -> Option<usize> {
+    fn python_space(ch: char) -> bool {
+        matches!(
+            ch,
+            '\u{0009}'..='\u{000d}'
+                | '\u{001c}'..='\u{0020}'
+                | '\u{0085}'
+                | '\u{00a0}'
+                | '\u{1680}'
+                | '\u{2000}'..='\u{200a}'
+                | '\u{2028}'
+                | '\u{2029}'
+                | '\u{202f}'
+                | '\u{205f}'
+                | '\u{3000}'
+        )
+    }
+
+    let text = raw.trim_matches(python_space);
+    let (negative, digits) = match text.strip_prefix('-') {
+        Some(digits) => (true, digits),
+        None => (false, text.strip_prefix('+').unwrap_or(text)),
+    };
+    let mut magnitude = 0usize;
+    let mut saw_digit = false;
+    let mut previous_digit = false;
+    let mut chars = digits.chars().peekable();
+    while let Some(ch) = chars.next() {
+        match ch {
+            '0'..='9' => {
+                magnitude = magnitude
+                    .saturating_mul(10)
+                    .saturating_add((ch as u8 - b'0') as usize)
+                    .min(INDEXED_LIMIT_MAX + 1);
+                saw_digit = true;
+                previous_digit = true;
+            }
+            '_' if previous_digit && matches!(chars.peek().copied(), Some('0'..='9')) => {
+                previous_digit = false;
+            }
+            _ => return None,
+        }
+    }
+    if !saw_digit || !previous_digit {
+        return None;
+    }
+    Some(if negative {
+        INDEXED_LIMIT_MIN
+    } else {
+        magnitude.clamp(INDEXED_LIMIT_MIN, INDEXED_LIMIT_MAX)
+    })
 }
 
 pub(crate) fn compiler_query_error(reason: CompilerError) -> SearchV2Error {
@@ -526,6 +613,7 @@ where A: crate::CatalogCurrentAuthority<'hold> + crate::InspectCurrentAuthority<
 fn request_strings(
     value: Option<&JsonValue>,
     total_bytes: &mut usize,
+    allow_empty: bool,
 ) -> Result<Vec<String>, SearchV2Error> {
     let Some(value) = value else { return Ok(Vec::new()) };
     if value.is_null() {
@@ -542,7 +630,9 @@ fn request_strings(
         let Some(text) = value.as_str() else {
             return Err(error(SearchV2ErrorCode::InvalidRequest, "indexed filter entry must be a string"));
         };
-        if text.is_empty() || text.chars().count() > MAX_CONTROLLED_FILTER_CODE_POINTS {
+        if (!allow_empty && text.is_empty())
+            || text.chars().count() > MAX_CONTROLLED_FILTER_CODE_POINTS
+        {
             return Err(error(SearchV2ErrorCode::InvalidRequest, "indexed filter value is empty or overlong"));
         }
         *total_bytes = total_bytes.checked_add(text.len()).ok_or_else(|| {
@@ -590,18 +680,13 @@ fn parse_request<'a>(
         })?.to_owned(),
     };
     let mut field_bytes = query.len();
-    let sources = request_strings(value.object_get("sources"), &mut field_bytes)?;
-    let kind_ids = request_strings(value.object_get("kind_ids"), &mut field_bytes)?;
-    let predicate_ids = request_strings(value.object_get("predicate_ids"), &mut field_bytes)?;
+    let sources = request_strings(value.object_get("sources"), &mut field_bytes, false)?;
+    let kind_ids = request_strings(value.object_get("kind_ids"), &mut field_bytes, true)?;
+    let predicate_ids = request_strings(value.object_get("predicate_ids"), &mut field_bytes, true)?;
     if field_bytes > MAX_CONTROLLED_FIELDS_BYTES {
         return Err(error(SearchV2ErrorCode::BudgetExceeded, "indexed request fields exceed cap"));
     }
-    let limit = match value.object_get("limit") {
-        None => 40,
-        Some(raw) => usize::try_from(raw.as_u64().ok_or_else(|| {
-            error(SearchV2ErrorCode::InvalidRequest, "indexed limit must be an unsigned integer")
-        })?).map_err(|_| error(SearchV2ErrorCode::InvalidRequest, "indexed limit exceeds range"))?,
-    };
+    let limit = indexed_limit_from_foundation(value.object_get("limit"));
     let cursor = match value.object_get("cursor") {
         None | Some(JsonValue::Null) => None,
         Some(raw) => {

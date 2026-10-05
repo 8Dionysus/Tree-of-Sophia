@@ -180,6 +180,8 @@ struct Request {
     arguments: Value,
     query_store: QueryStoreSelection,
     query_store_limits: Option<QueryStoreLimits>,
+    #[serde(default)]
+    search_read_model: Option<SearchReadModelSelection>,
     http: Option<crate::core_http_admission::HttpAdmission>,
 }
 
@@ -188,6 +190,34 @@ struct Request {
 struct QueryStoreSelection {
     path: PathBuf,
     configured: bool,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(super) struct SearchReadModelSelection {
+    pub path: PathBuf,
+    pub max_bytes: u64,
+    pub max_postings: u64,
+    pub max_verify_chars: u64,
+}
+impl SearchReadModelSelection {
+    pub(super) fn validate_verify_chars(&self) -> Result<()> {
+        if self.max_verify_chars == 0 {
+            return Err("Core indexed verification character cap must be positive");
+        }
+        Ok(())
+    }
+    pub(super) fn validate_cache(
+        &self,
+        stage: &tos_compiler::private_tmpfs_stage::PrivateTmpfsStageIsolation,
+    ) -> Result<()> {
+        if !self.path.is_absolute() || self.path.as_os_str().len() > 8193 {
+            return Err("Core ordinary search sidecar selector path bounds");
+        }
+        stage.search_cache_limits(&self.path)
+            .map_err(|_| "Core ordinary search sidecar ticket path absent")?;
+        Ok(())
+    }
 }
 
 #[derive(Deserialize)]
@@ -2151,6 +2181,10 @@ impl Request {
                 .path
                 .owned_heap_bytes()
                 .map_err(|_| "Core request state overflow")?,
+            self.search_read_model.as_ref().map_or(Ok(0), |selection| {
+                selection.path.owned_heap_bytes()
+                    .map_err(|_| "Core request state overflow")
+            })?,
         ] {
             bytes = checked_state_add(bytes, amount).map_err(|_| "Core request state overflow")?;
         }

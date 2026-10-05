@@ -439,6 +439,13 @@ impl PrivateTmpfsStageIsolation {
         self.verify_kernel()?;
         self.search_cache_custody.as_ref().ok_or(Error::Invalid("search cache custody absent"))
     }
+    /// Return physical build/temp ceilings only for the exact issued cache path.
+    /// Public read-model build caps are applied only if this operation rebuilds.
+    pub fn search_cache_limits(&self,requested:&Path)->Result<(u64,u64)> {
+        let cache=self.ticket.search_cache.as_ref().ok_or(Error::Invalid("stage has no search cache capability"))?;
+        if requested!=cache.path {return Err(Error::Invalid("search cache path differs from issued capability"));}
+        Ok((cache.max_build_bytes,cache.max_temp_bytes))
+    }
     pub fn search_cache_path(&self)->Option<&Path> {self.ticket.search_cache.as_ref().map(|c|c.path.as_path())}
     pub fn search_cache_source_root(&self)->Option<&Path> {self.ticket.search_cache.as_ref().map(|c|c.source_root.as_path())}
     fn verify_search_cache_identity(&self)->Result<()> {

@@ -31,6 +31,15 @@ pub enum ControlledOriginalCollection {
     Corpus(crate::CorpusOriginalCollection),
 }
 
+/// Actual receipts borrowed from the authenticated cold owner. A consumer
+/// authorizes the exact row against this receipt before any disclosure.
+#[derive(Clone, Copy)]
+pub enum ControlledOriginalReceipt<'a> {
+    Navigation(&'a crate::NavigationOriginalReceipt),
+    Philosophy(&'a crate::PhilosophyOriginalReceipt),
+    Corpus(&'a crate::CorpusOriginalReceipt),
+}
+
 /// The borrowed callback is invoked at most once; no Original payload escapes
 /// its admitted raw/parser holds. VM steps include both metadata and row reads.
 #[derive(Clone, Copy, Debug, Default)]
@@ -141,6 +150,14 @@ pub struct ControlledQueryHeap<'context, 'state, 'budget> {
     holds: Option<Box<ControlledQueryHoldNode<'state, 'budget>>>,
 }
 impl ControlledQueryHeap<'_, '_, '_> {
+    /// The same original context remains live while a borrowed pure plan runs.
+    pub fn check(&self) -> Result<()> { self.context.check() }
+    pub fn charge_work(&self, units: usize) -> Result<()> {
+        self.context.check()?;
+        self.context.charge_work(units)?;
+        self.context.check()
+    }
+
     /// Retain a caller-owned allocation until this hold set is dropped.
     pub fn retain(&mut self, bytes: usize) -> Result<()> {
         let total = bytes
@@ -200,6 +217,17 @@ impl ControlledKnowledgeModel<'_, '_, '_> {
     /// receipt, State, Work and VM owners. The callback must retain any derived
     /// allocation in the caller's same-state ControlledQueryHeap.
     pub fn with_controlled_original_row(
+        &mut self, collection: ControlledOriginalCollection, after_ordinal: i64,
+        max_row_bytes: usize, max_decoded_bytes: u64, max_vm_steps: u64,
+        json: JsonLimits,
+        consume: impl FnOnce(i64, Digest256, &[u8], &JsonValue) -> Result<()>,
+    ) -> Result<ControlledOriginalRowRead> {
+        self.with_controlled_original_row_receipt(collection, after_ordinal,
+            max_row_bytes, max_decoded_bytes, max_vm_steps, json,
+            |_, ordinal, digest, raw, value| consume(ordinal, digest, raw, value))
+    }
+
+    pub fn with_controlled_original_row_receipt(
         &mut self,
         collection: ControlledOriginalCollection,
         after_ordinal: i64,
@@ -207,7 +235,7 @@ impl ControlledKnowledgeModel<'_, '_, '_> {
         max_decoded_bytes: u64,
         max_vm_steps: u64,
         json: JsonLimits,
-        consume: impl FnOnce(i64, Digest256, &[u8], &JsonValue) -> Result<()>,
+        consume: impl FnOnce(ControlledOriginalReceipt<'_>, i64, Digest256, &[u8], &JsonValue) -> Result<()>,
     ) -> Result<ControlledOriginalRowRead> {
         self.check_pin()?;
         if max_row_bytes == 0 || max_row_bytes > i64::MAX as usize
@@ -217,6 +245,14 @@ impl ControlledKnowledgeModel<'_, '_, '_> {
         if self.selection.model_abi != knowledge_stage::KNOWLEDGE_CARRIER_ONCE_MODEL_ABI {
             return Err(Error::Invalid("controlled Original requires CarrierOnce ABI"));
         }
+        let receipt = match collection {
+            ControlledOriginalCollection::Navigation => ControlledOriginalReceipt::Navigation(
+                self.navigation_original.ok_or(Error::Invalid("navigation Original receipt absent"))?),
+            ControlledOriginalCollection::Philosophy(_) => ControlledOriginalReceipt::Philosophy(
+                self.philosophy_original.ok_or(Error::Invalid("philosophy Original receipt absent"))?),
+            ControlledOriginalCollection::Corpus(_) => ControlledOriginalReceipt::Corpus(
+                self.corpus_original.ok_or(Error::Invalid("corpus Original receipt absent"))?),
+        };
         let (collection_name, metadata_sql, payload_sql) = match collection {
             ControlledOriginalCollection::Navigation => {
                 if self.navigation_original.is_none() {
@@ -278,7 +314,7 @@ impl ControlledKnowledgeModel<'_, '_, '_> {
                 }
                 self.check_pin()?;
                 self.context.with_foundation_owned_with_limits(&raw, json,
-                    |value| consume(ordinal, computed, &raw, value))?;
+                    |value| consume(receipt, ordinal, computed, &raw, value))?;
                 self.check_pin()?;
                 Ok(ControlledOriginalRowRead { ordinal: Some(ordinal), decoded_bytes: decoded, vm_steps: 0 })
             })?;

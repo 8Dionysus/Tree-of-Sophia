@@ -28,7 +28,6 @@ pub(crate) struct OrdinarySearchCacheSelection<'a> {
     pub graph_schema: &'a str,
     pub max_bytes: u64,
     pub max_postings: u64,
-    pub max_temp_bytes: u64,
 }
 #[derive(Clone, Copy, Eq, PartialEq)]
 struct FileState {
@@ -173,6 +172,10 @@ pub(crate) fn with_ordinary_search_cache(
     source.verify_search_cache_operation(deadline, cancelled)?;
     original(io, deadline, cancelled)?;
     check_source()?;
+    let (issued_build_bytes, issued_temp_bytes) = isolation
+        .search_cache_limits(selected.path)
+        .map_err(|_| Error::Invalid("ordinary search cache ticket profile absent"))?;
+    let build_bytes = selected.max_bytes.min(issued_build_bytes);
     let leaf = selected
         .path
         .file_name()
@@ -202,8 +205,8 @@ pub(crate) fn with_ordinary_search_cache(
             .map_err(store)?;
         let parent = isolation.search_cache_custody(
             selected.path,
-            selected.max_bytes,
-            selected.max_temp_bytes,
+            issued_build_bytes,
+            issued_temp_bytes,
         )?;
         source
             .charge_query_work(leaf.as_bytes().len() + std::mem::size_of::<std::fs::Metadata>())?;
@@ -221,8 +224,8 @@ pub(crate) fn with_ordinary_search_cache(
             .map_err(store)?;
             isolation.search_cache_custody(
                 selected.path,
-                selected.max_bytes,
-                selected.max_temp_bytes,
+                issued_build_bytes,
+                issued_temp_bytes,
             )?;
             Ok(())
         };
@@ -308,8 +311,8 @@ pub(crate) fn with_ordinary_search_cache(
             &fresh,
             io.clone(),
             space.clone(),
-            selected.max_bytes,
-            selected.max_temp_bytes,
+            build_bytes,
+            issued_temp_bytes,
             deadline,
             cancelled.clone(),
         )
@@ -327,7 +330,7 @@ pub(crate) fn with_ordinary_search_cache(
         let built = source.build_search_sidecar(
             &db,
             selected.graph_schema,
-            selected.max_bytes,
+            build_bytes,
             selected.max_postings,
             &fresh_guard,
         );

@@ -1566,6 +1566,12 @@ fn compute_on_graph<'a>(
     }
 }
 
+/// Same maintained header-only Status projection used by the selected reader.
+/// The controlled adapter admits its actual source geometry before cloning.
+pub(crate) fn controlled_status(header: &JsonValue) -> JsonValue {
+    public::status(header)
+}
+
 fn bound_original_receipt<'hold, A: InspectCurrentAuthority<'hold> + ?Sized>(
     read: &mut Reader<'_, '_, A>,
     bound: &BoundCmpKnowledge<'_>,

@@ -83,6 +83,14 @@ struct IoState {
 pub struct PinnedSqliteIoBudget(Arc<IoState>);
 
 impl PinnedSqliteIoBudget {
+    /// Upper bound for this owner's one shared Arc allocation, including its
+    /// state and Arc reference counters. The caller accounts for its own handle.
+    pub fn shared_state_upper_bound() -> usize {
+        std::mem::size_of::<IoState>()
+            + 2 * std::mem::size_of::<AtomicUsize>()
+            + std::mem::align_of::<IoState>()
+    }
+
     /// Identity of the existing ledger, never numeric-limit equivalence.
     pub fn shares_with(&self, other: &Self) -> bool {
         Arc::ptr_eq(&self.0, &other.0)
@@ -371,6 +379,14 @@ struct SpaceLedger {
 pub struct PinnedSqliteSpaceBudget(Arc<SpaceLedger>);
 
 impl PinnedSqliteSpaceBudget {
+    /// Upper bound for this owner's one shared Arc allocation, including its
+    /// state and Arc reference counters. The caller accounts for its own handle.
+    pub fn shared_state_upper_bound() -> usize {
+        std::mem::size_of::<SpaceLedger>()
+            + 2 * std::mem::size_of::<AtomicUsize>()
+            + std::mem::align_of::<SpaceLedger>()
+    }
+
     /// Identity of the existing ledger; this creates no reservation or grant.
     pub fn shares_with(&self, other: &Self) -> bool {
         Arc::ptr_eq(&self.0, &other.0)

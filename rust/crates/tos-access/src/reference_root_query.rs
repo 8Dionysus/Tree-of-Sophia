@@ -871,23 +871,58 @@ pub fn with_selected_metadata_context(
     )
 }
 
-/// Same ReferenceRoot authority owner over the already admitted controlled
-/// model/view. The original Ledger issues the reservation before any holder
-/// clone; model, vocabulary and query workspace remain borrowed aliases.
-pub(crate) fn with_controlled_metadata_context<'view, 'capture, 'model, 'state, 'budget, H>(
-    model: &mut tos_compiler::ControlledKnowledgeModel<'model, 'state, 'budget>,
+/// The same metadata authority can borrow either compiler-owned controlled
+/// reader. The sidecar reader delegates receipts and currentness to its source.
+trait ControlledReferenceModel {
+    fn check_reference_pin(&self) -> tos_compiler::Result<()>;
+    fn corpus_original_root(&self) -> Option<&str>;
+    fn philosophy_original_root(&self) -> Option<&str>;
+    fn navigation_original_root(&self) -> Option<&str>;
+}
+impl ControlledReferenceModel for tos_compiler::ControlledKnowledgeModel<'_, '_, '_> {
+    fn check_reference_pin(&self) -> tos_compiler::Result<()> { self.check_pin() }
+    fn corpus_original_root(&self) -> Option<&str> {
+        self.corpus_original_receipt().map(|r| r.component_root_sha256.as_str())
+    }
+    fn philosophy_original_root(&self) -> Option<&str> {
+        self.philosophy_original_receipt().map(|r| r.component_root_sha256.as_str())
+    }
+    fn navigation_original_root(&self) -> Option<&str> {
+        self.navigation_original_receipt().map(|r| r.component_root_sha256.as_str())
+    }
+}
+impl ControlledReferenceModel for tos_compiler::ControlledSidecarModel<'_, '_, '_, '_> {
+    fn check_reference_pin(&self) -> tos_compiler::Result<()> { self.check_pin() }
+    fn corpus_original_root(&self) -> Option<&str> {
+        self.corpus_original_receipt().map(|r| r.component_root_sha256.as_str())
+    }
+    fn philosophy_original_root(&self) -> Option<&str> {
+        self.philosophy_original_receipt().map(|r| r.component_root_sha256.as_str())
+    }
+    fn navigation_original_root(&self) -> Option<&str> {
+        self.navigation_original_receipt().map(|r| r.component_root_sha256.as_str())
+    }
+}
+
+/// Same ReferenceRoot authority owner over either already admitted controlled
+/// model/view. Holder reservation, model and query workspace remain same-owner.
+pub(crate) fn with_controlled_metadata_context<'view, 'capture, M, H>(
+    model: &mut M,
     bound: &BoundCmpKnowledge<'_>,
     view: &'view CompletedCaptureCarriers<'capture>,
     deadline: Instant,
     cancelled: &Arc<AtomicBool>,
     reserve_original: impl FnOnce(usize) -> Result<H>,
     consume: impl FnOnce(
-        &mut tos_compiler::ControlledKnowledgeModel<'model, 'state, 'budget>,
+        &mut M,
         &mut ReferenceMetadataContext<'view, 'capture>,
     ) -> Result<()>,
-) -> Result<()> {
+) -> Result<()>
+where
+    M: ControlledReferenceModel,
+{
     use tos_foundation::OwnedState;
-    model.check_pin()?;
+    model.check_reference_pin()?;
     view.verify_current()?;
     let revision = bound
         .require_source_revision()
@@ -897,24 +932,12 @@ pub(crate) fn with_controlled_metadata_context<'view, 'capture, 'model, 'state, 
     }
     // This full carrier authority is issued only after all three original
     // receipts have passed the controlled cold owner, never from wire roots.
-    let corpus_root = &model
-        .corpus_original_receipt()
-        .ok_or(Error::Invalid(
-            "controlled Reference corpus original absent",
-        ))?
-        .component_root_sha256;
-    let philosophy_root = &model
-        .philosophy_original_receipt()
-        .ok_or(Error::Invalid(
-            "controlled Reference philosophy original absent",
-        ))?
-        .component_root_sha256;
-    let navigation_root = &model
-        .navigation_original_receipt()
-        .ok_or(Error::Invalid(
-            "controlled Reference navigation original absent",
-        ))?
-        .component_root_sha256;
+    let corpus_root = model.corpus_original_root()
+        .ok_or(Error::Invalid("controlled Reference corpus original absent"))?;
+    let philosophy_root = model.philosophy_original_root()
+        .ok_or(Error::Invalid("controlled Reference philosophy original absent"))?;
+    let navigation_root = model.navigation_original_root()
+        .ok_or(Error::Invalid("controlled Reference navigation original absent"))?;
     let strings = [
         "reference_root_local_metadata_v1",
         "tos-access/reference-root",
@@ -923,9 +946,9 @@ pub(crate) fn with_controlled_metadata_context<'view, 'capture, 'model, 'state, 
         bound.owner_receipt_id(),
         revision,
         "not-a-publication-registry",
-        corpus_root.as_str(),
-        philosophy_root.as_str(),
-        navigation_root.as_str(),
+        corpus_root,
+        philosophy_root,
+        navigation_root,
     ]
     .into_iter()
     .try_fold(0usize, |sum, value| {
@@ -979,9 +1002,9 @@ pub(crate) fn with_controlled_metadata_context<'view, 'capture, 'model, 'state, 
             deadline,
             cancelled: Arc::clone(cancelled),
         }),
-        corpus_root: Some(corpus_root.clone()),
-        philosophy_root: Some(philosophy_root.clone()),
-        navigation_root: Some(navigation_root.clone()),
+        corpus_root: Some(corpus_root.to_owned()),
+        philosophy_root: Some(philosophy_root.to_owned()),
+        navigation_root: Some(navigation_root.to_owned()),
     };
     let mut context = ReferenceMetadataContext {
         hold,
@@ -990,7 +1013,7 @@ pub(crate) fn with_controlled_metadata_context<'view, 'capture, 'model, 'state, 
     };
     let result = consume(model, &mut context);
     context.hold.recheck_delivery()?;
-    model.check_pin()?;
+    model.check_reference_pin()?;
     view.verify_current()?;
     result
 }

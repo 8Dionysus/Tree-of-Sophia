@@ -250,7 +250,7 @@ fn call(
         let tool = checked_field(arguments, "tool", state, deadline)?
             .and_then(tos_foundation::JsonValue::as_str);
         if !(matches!(tool, Some("tos_knowledge_search" | "tos_knowledge_search_indexed_v2"))
-            || ordinary && matches!(tool, Some("tos_knowledge_catalog" | "tos_knowledge_node" | "tos_knowledge_relation")))
+            || ordinary && matches!(tool, Some("tos_knowledge_catalog" | "tos_knowledge_node" | "tos_knowledge_relation" | "tos_philosophy_graph_status")))
             || checked_field(arguments, "arguments", state, deadline)?
             .and_then(tos_foundation::JsonValue::as_object)
             .is_none()
@@ -903,6 +903,8 @@ fn serve_whole_indexed_search(
     ledger: &Ledger,
     heap: &Arc<tos_compiler::DedicatedSessionSqliteHeap>,
     resources: &dyn tos_compiler::native_snapshot::NativeColdOpenResourceHold,
+    cache_io: Option<&tos_source_store::PinnedSqliteIoBudget>,
+    cache_space: Option<&tos_source_store::PinnedSqliteSpaceBudget>,
     owner_deadline: Instant,
     cutoff: Instant,
     cancelled: &Arc<AtomicBool>,
@@ -944,10 +946,68 @@ fn serve_whole_indexed_search(
         .as_ref()
         .ok_or("Core Whole HTTP profile absent")?;
     let mut budget = http.indexed.native()?;
+    if let Some(search) = request.search_read_model.as_ref() {
+        search.validate_verify_chars()?;
+        // Reference supplies a per-kind character ceiling in these same units.
+        budget.nodes.max_verified_chars = budget.nodes.max_verified_chars
+            .min(search.max_verify_chars);
+        budget.relations.max_verified_chars = budget.relations.max_verified_chars
+            .min(search.max_verify_chars);
+    }
     let cursor = match checked_field(arguments, "cursor", ledger, cutoff)? {
         None | Some(tos_foundation::JsonValue::Null) => None,
         Some(value) => Some(value.as_str().ok_or("Core Whole cursor type")?),
     };
+
+    macro_rules! deliver_bound_search {
+        ($model:ident, $bound:ident, $execute:path) => {{
+            let revision = $bound.require_source_revision()
+                .map_err(|_| tos_compiler::Error::Invalid("Core Whole query source revision absent"))?;
+            if revision != native.source_revision || view.source_revision() != Some(revision) {
+                return Err(tos_compiler::Error::Invalid("Core Whole source associations differ"));
+            }
+            let overhead = whole_envelope_len(next, revision).map_err(tos_compiler::Error::Invalid)?;
+            let cap = session.limits.max_reply_bytes.checked_sub(overhead)
+                .ok_or(tos_compiler::Error::Budget("Core Whole reply envelope cap"))?;
+            budget.max_response_bytes = budget.max_response_bytes
+                .min(cap).min(request.admission.whole_max_graph_bytes);
+            if budget.max_response_bytes == 0 {
+                return Err(tos_compiler::Error::Budget("Core Whole response cap"));
+            }
+            crate::reference_root_query::with_controlled_metadata_context($model,
+                $bound, view, cutoff, cancelled,
+                |bytes| ledger.reserve(bytes).map_err(tos_compiler::Error::Invalid),
+                |model, context| {
+                context.with_operation(crate::reference_root_query::ReferenceMetadataOperation::IndexedSearch,
+                    |authority| {
+                    let current = || {
+                        fence()?;
+                        view.verify_current().map_err(|_| "Core Whole transport source fence")?;
+                        active(cutoff)
+                    };
+                    driver.respond(|sequence, _, reply| {
+                        reply.narrow_deadline(cutoff)?;
+                        current()?;
+                        $execute(
+                            model, $bound, authority, arguments, cursor, budget,
+                            |initial, receipt| Ok(crate::indexed_cursor::NativeIndexedCursorCodec::new(initial, receipt)),
+                            |body| {
+                                let map = |_| tos_query::search_v2::SearchV2Error {
+                                    code: tos_query::search_v2::SearchV2ErrorCode::Unavailable,
+                                    message: "Core Whole transport delivery refused",
+                                };
+                                current().map_err(map)?;
+                                send_whole_result(ledger, reply, sequence, next, revision, body).map_err(map)?;
+                                current().map_err(map)
+                            },
+                        ).map_err(|_| "Core Whole scoped Search refused")?;
+                        current()
+                    }, current).map_err(tos_compiler::Error::Invalid)
+                })
+            })
+        }};
+    }
+
     with_whole_selected(
         root,
         request,
@@ -960,57 +1020,124 @@ fn serve_whole_indexed_search(
         heap,
         |completed, native, loan| {
             completed.with_controlled_selected_knowledge_model(&loan, isolation,
-            request.admission.cold, request.admission.process,
-            request.admission.working_ram_bytes, resources, cutoff,
-            |model, vocabulary, descriptor, view| {
-            tos_query::with_controlled_knowledge_binding(model, vocabulary, descriptor,
-                |model, bound| {
-                let revision = bound.require_source_revision()
-                    .map_err(|_| tos_compiler::Error::Invalid("Core Whole query source revision absent"))?;
-                if revision != native.source_revision || view.source_revision() != Some(revision) {
-                    return Err(tos_compiler::Error::Invalid("Core Whole source associations differ"));
-                }
-                let overhead = whole_envelope_len(next, revision).map_err(tos_compiler::Error::Invalid)?;
-                let cap = session.limits.max_reply_bytes.checked_sub(overhead)
-                    .ok_or(tos_compiler::Error::Budget("Core Whole reply envelope cap"))?;
-                budget.max_response_bytes = budget.max_response_bytes
-                    .min(cap).min(request.admission.whole_max_graph_bytes);
-                if budget.max_response_bytes == 0 {
-                    return Err(tos_compiler::Error::Budget("Core Whole response cap"));
-                }
-                crate::reference_root_query::with_controlled_metadata_context(model,
-                    bound, view, cutoff, cancelled,
-                    |bytes| ledger.reserve(bytes).map_err(tos_compiler::Error::Invalid),
-                    |model, context| {
-                    context.with_operation(crate::reference_root_query::ReferenceMetadataOperation::IndexedSearch,
-                        |authority| {
-                        let current = || {
-                            fence()?;
-                            view.verify_current().map_err(|_| "Core Whole transport source fence")?;
-                            active(cutoff)
-                        };
-                        driver.respond(|sequence, _, reply| {
-                            reply.narrow_deadline(cutoff)?;
-                            current()?;
-                            tos_query::execute_scoped_controlled_indexed_search_response(
-                                model, bound, authority, arguments, cursor, budget,
-                                |initial, receipt| Ok(crate::indexed_cursor::NativeIndexedCursorCodec::new(initial, receipt)),
-                                |body| {
-                                    let map = |_| tos_query::search_v2::SearchV2Error {
-                                        code: tos_query::search_v2::SearchV2ErrorCode::Unavailable,
-                                        message: "Core Whole transport delivery refused",
-                                    };
-                                    current().map_err(map)?;
-                                    send_whole_result(ledger, reply, sequence, next, revision, body).map_err(map)?;
-                                    current().map_err(map)
-                                },
-                            ).map_err(|_| "Core Whole scoped Search refused")?;
-                            current()
-                        }, current).map_err(tos_compiler::Error::Invalid)
-                    })
+                request.admission.cold, request.admission.process,
+                request.admission.working_ram_bytes, resources, cutoff,
+                |model, vocabulary, descriptor, view| {
+                    tos_query::with_controlled_knowledge_binding(model, vocabulary, descriptor,
+                        |model, bound| {
+                            if let Some(selection) = request.search_read_model.as_ref()
+                                .filter(|_| !request.query_store.configured)
+                            {
+                                if isolation.search_cache_source_root() != Some(root)
+                                    || isolation.search_cache_path() != Some(selection.path.as_path())
+                                {
+                                    return Err(tos_compiler::Error::Invalid(
+                                        "Core ordinary sidecar ticket source/path association",
+                                    ));
+                                }
+                                isolation.search_cache_limits(&selection.path)
+                                    .map_err(|_| tos_compiler::Error::Invalid(
+                                        "Core ordinary sidecar ticket profile absent",
+                                    ))?;
+                                let io = cache_io.ok_or(tos_compiler::Error::Invalid(
+                                    "Core ordinary sidecar I/O owner absent",
+                                ))?;
+                                let space = cache_space.ok_or(tos_compiler::Error::Invalid(
+                                    "Core ordinary sidecar space owner absent",
+                                ))?;
+                                let graph_schema = if bound.source_basis().managed_source().is_some()
+                                    || bound.source_basis().managed_source_v2().is_some()
+                                {
+                                    tos_compiler::managed_source::MANAGED_GRAPH_SCHEMA
+                                } else {
+                                    "tos_knowledge_graph_v1"
+                                };
+                                let current = || -> tos_compiler::Result<()> {
+                                    fence().map_err(|_| tos_compiler::Error::Invalid(
+                                        "Core ordinary sidecar currentness fence",
+                                    ))?;
+                                    view.verify_current()?;
+                                    active(cutoff).map_err(|_| tos_compiler::Error::Budget(
+                                        "Core ordinary sidecar cutoff",
+                                    ))
+                                };
+                                let check_slot = |name: &std::ffi::OsStr,
+                                                  file: Option<&std::fs::File>|
+                                 -> tos_compiler::Result<()> {
+                                    current()?;
+                                    let parent = selection.path.parent().ok_or(
+                                        tos_compiler::Error::Invalid(
+                                            "Core ordinary sidecar parent absent",
+                                        ),
+                                    )?;
+                                    let sources = [
+                                        &request.source_paths.index_path,
+                                        &request.source_paths.philosophy_graph_projection_path,
+                                        &request.source_paths.bibliographic_graph_path,
+                                        &request.source_paths.entity_type_registry_path,
+                                        &request.source_paths.relation_type_registry_path,
+                                        &request.source_paths.philosophy_post_planting_audit_path,
+                                        &request.source_paths.evidence_projection_path,
+                                    ];
+                                    for source in sources {
+                                        if source.parent() == Some(parent)
+                                            && source.file_name() == Some(name)
+                                        {
+                                            return Err(tos_compiler::Error::Invalid(
+                                                "Core ordinary sidecar leaf aliases a source path",
+                                            ));
+                                        }
+                                    }
+                                    if let Some(file) = file {
+                                        use std::os::unix::fs::MetadataExt;
+                                        let held = file.metadata().map_err(tos_compiler::Error::Io)?;
+                                        for source in sources {
+                                            ledger.charge_work(std::mem::size_of::<std::fs::Metadata>() as u64)
+                                                .map_err(|_| tos_compiler::Error::Budget(
+                                                    "Core ordinary sidecar source-alias census",
+                                                ))?;
+                                            match std::fs::metadata(source) {
+                                                Ok(named) if (named.dev(), named.ino()) == (held.dev(), held.ino()) => {
+                                                    return Err(tos_compiler::Error::Invalid(
+                                                        "Core ordinary sidecar inode aliases a source",
+                                                    ));
+                                                }
+                                                Ok(_) => {}
+                                                Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+                                                Err(error) => return Err(tos_compiler::Error::Io(error)),
+                                            }
+                                        }
+                                    }
+                                    current()
+                                };
+                                super::ordinary_search_cache::with_ordinary_search_cache(
+                                    model,
+                                    isolation,
+                                    super::ordinary_search_cache::OrdinarySearchCacheSelection {
+                                        path: &selection.path,
+                                        graph_schema,
+                                        max_bytes: selection.max_bytes,
+                                        max_postings: selection.max_postings,
+                                    },
+                                    io,
+                                    space,
+                                    cutoff,
+                                    cancelled,
+                                    &current,
+                                    &check_slot,
+                                    |sidecar| deliver_bound_search!(
+                                        sidecar, bound,
+                                        tos_query::execute_scoped_controlled_sidecar_indexed_search_response
+                                    ),
+                                )
+                            } else {
+                                deliver_bound_search!(
+                                    model, bound,
+                                    tos_query::execute_scoped_controlled_indexed_search_response
+                                )
+                            }
+                        })
                 })
-            })
-        })
         },
     )?;
     *generation = next;
@@ -1272,6 +1399,131 @@ fn serve_whole_inspect(
                                     let map = |_| tos_query::search_v2::SearchV2Error {
                                         code: tos_query::search_v2::SearchV2ErrorCode::Unavailable,
                                         message: "Core Whole catalog delivery refused",
+                                    };
+                                    current().map_err(map)?;
+                                    send_whole_result(ledger, reply, sequence, next, revision, body).map_err(map)?;
+                                    current().map_err(map)
+                                },
+                            ).map_err(|_| "Core Whole scoped catalog refused")?;
+                            current()
+                        }, current).map_err(tos_compiler::Error::Invalid)
+                    })
+                })
+            })
+        })
+        },
+    )?;
+    *generation = next;
+    fence()
+}
+
+fn serve_whole_philosophy_status(
+    root: &Path,
+    request: &Request,
+    isolation: &tos_compiler::private_tmpfs_stage::PrivateTmpfsStageIsolation,
+    session: &session_owner::Session,
+    driver: &mut session_transport::Driver<'_, '_>,
+    carrier: &mut Option<Carrier>,
+    store: &mut Option<lazy_store::Store>,
+    generation: &mut u64,
+    ledger: &Ledger,
+    heap: &Arc<tos_compiler::DedicatedSessionSqliteHeap>,
+    resources: &dyn tos_compiler::native_snapshot::NativeColdOpenResourceHold,
+    owner_deadline: Instant,
+    cutoff: Instant,
+    cancelled: &Arc<AtomicBool>,
+    fence: &dyn Fn() -> Result<()>,
+    arguments: &tos_foundation::JsonValue,
+) -> Result<()> {
+    if !arguments.as_object().is_some_and(|fields| fields.is_empty()) {
+        return Err("Core philosophy status strict empty arguments");
+    }
+    fence()?;
+    // Drop only previously held selected owners; no work/VM/JSON clock refund.
+    if let Some(old) = carrier.take() {
+        ledger.retained.set(
+            ledger
+                .retained
+                .get()
+                .checked_sub(old.retained)
+                .ok_or("Core Whole prior carrier retained removal")?,
+        );
+        drop(old);
+    }
+    if let Some(old) = store.take() {
+        ledger.retained.set(
+            ledger
+                .retained
+                .get()
+                .checked_sub(old.retained)
+                .ok_or("Core Whole prior Store retained removal")?,
+        );
+        drop(old);
+    }
+    let next = generation
+        .checked_add(1)
+        .ok_or("Core Whole generation overflow")?;
+    let _locals = ledger.reserve(
+        std::mem::size_of::<u64>()
+            + std::mem::size_of::<tos_query::InspectBudget>()
+            + std::mem::size_of::<(&Path, &Request, &Ledger, Instant, Instant)>(),
+    )?;
+    let http = request
+        .http
+        .as_ref()
+        .ok_or("Core Whole HTTP profile absent")?;
+    let mut budget = http.selected.native()?.inspect;
+    with_whole_selected(
+        root,
+        request,
+        isolation,
+        next,
+        ledger,
+        owner_deadline,
+        cutoff,
+        cancelled,
+        heap,
+        |completed, native, loan| {
+            completed.with_controlled_selected_knowledge_model(&loan, isolation,
+            request.admission.cold, request.admission.process,
+            request.admission.working_ram_bytes, resources, cutoff,
+            |model, vocabulary, descriptor, view| {
+            tos_query::with_controlled_knowledge_binding(model, vocabulary, descriptor,
+                |model, bound| {
+                let revision = bound.require_source_revision()
+                    .map_err(|_| tos_compiler::Error::Invalid("Core Whole query source revision absent"))?;
+                if revision != native.source_revision || view.source_revision() != Some(revision) {
+                    return Err(tos_compiler::Error::Invalid("Core Whole source associations differ"));
+                }
+                let overhead = whole_envelope_len(next, revision).map_err(tos_compiler::Error::Invalid)?;
+                let cap = session.limits.max_reply_bytes.checked_sub(overhead)
+                    .ok_or(tos_compiler::Error::Budget("Core Whole reply envelope cap"))?;
+                budget.max_response_bytes = budget.max_response_bytes
+                    .min(cap).min(request.admission.whole_max_graph_bytes);
+                if budget.max_response_bytes == 0 {
+                    return Err(tos_compiler::Error::Budget("Core Whole response cap"));
+                }
+                crate::reference_root_query::with_controlled_metadata_context(model,
+                    bound, view, cutoff, cancelled,
+                    |bytes| ledger.reserve(bytes).map_err(tos_compiler::Error::Invalid),
+                    |model, context| {
+                    context.with_operation(crate::reference_root_query::ReferenceMetadataOperation::for_philosophy(
+                        &tos_query::philosophy_read::PhilosophyReadRequest::Status),
+                        |authority| {
+                        let current = || {
+                            fence()?;
+                            view.verify_current().map_err(|_| "Core Whole transport source fence")?;
+                            active(cutoff)
+                        };
+                        driver.respond(|sequence, _, reply| {
+                            reply.narrow_deadline(cutoff)?;
+                            current()?;
+                            tos_query::execute_controlled_philosophy_status_response(
+                                model, bound, authority, budget,
+                                |body| {
+                                    let map = |_| tos_query::search_v2::SearchV2Error {
+                                        code: tos_query::search_v2::SearchV2ErrorCode::Unavailable,
+                                        message: "Core Whole philosophy status delivery refused",
                                     };
                                     current().map_err(map)?;
                                     send_whole_result(ledger, reply, sequence, next, revision, body).map_err(map)?;
@@ -1945,6 +2197,53 @@ pub(super) fn run(
             .ok_or("Core probe Stage retained state overflow")?,
     );
     state.remaining(0)?;
+    // One original session IO/space owner is reused by every ordinary sidecar
+    // operation. The build file cap never becomes a read limit; a healthy cache
+    // may be larger than the current build cap.
+    let cache_enabled = request.search_read_model.is_some() && !request.query_store.configured;
+    let cache_owner_state_bytes = std::mem::size_of::<Option<native_ledger::Reservation<'_>>>()
+        .checked_add(std::mem::size_of::<bool>())
+        .and_then(|n| n.checked_add(std::mem::size_of::<u64>()))
+        .and_then(|n| n.checked_add(std::mem::size_of::<(
+            tos_source_store::PinnedSqliteIoBudget,
+            tos_source_store::PinnedSqliteSpaceBudget,
+        )>()))
+        .and_then(|n| n.checked_add(std::mem::size_of::<(
+            Option<tos_source_store::PinnedSqliteIoBudget>,
+            Option<tos_source_store::PinnedSqliteSpaceBudget>,
+        )>()))
+        .and_then(|n| n.checked_add(
+            tos_source_store::PinnedSqliteIoBudget::shared_state_upper_bound(),
+        ))
+        .and_then(|n| n.checked_add(
+            tos_source_store::PinnedSqliteSpaceBudget::shared_state_upper_bound(),
+        ))
+        .ok_or("Core ordinary sidecar owner state overflow")?;
+    let _cache_owner_state = if cache_enabled {
+        Some(state.reserve(cache_owner_state_bytes)?)
+    } else {
+        None
+    };
+    let (cache_io, cache_space) = if cache_enabled {
+        let selection = request.search_read_model.as_ref()
+            .ok_or("Core ordinary sidecar selection absent")?;
+        if isolation.search_cache_source_root() != Some(root)
+            || isolation.search_cache_path() != Some(selection.path.as_path())
+        {
+            return Err("Core ordinary sidecar ticket source/path association");
+        }
+        let (_, issued_temp) = isolation.search_cache_limits(&selection.path)
+            .map_err(|_| "Core ordinary sidecar ticket profile absent")?;
+        let io = tos_source_store::PinnedSqliteIoBudget::new(
+            request.admission.cold.max_work_bytes,
+            request.admission.cold.max_work_bytes,
+        ).map_err(|_| "Core ordinary sidecar original I/O budget")?;
+        let space = tos_source_store::PinnedSqliteSpaceBudget::new(issued_temp)
+            .map_err(|_| "Core ordinary sidecar issued space budget")?;
+        (Some(io), Some(space))
+    } else {
+        (None, None)
+    };
     request
         .admission
         .process
@@ -2034,7 +2333,7 @@ pub(super) fn run(
         const ORDINARY_HEAD: &[u8] = br#"{"schema_version":"tos_native_core_ordinary_session_ready_v1","ok":true,"profile":"tos_core_ordinary_selected_v1""#;
         const COMMON: &[u8] = br#","reference_semantics":"cpython_pathlib_is_file_3_14","source_revision":null,"data_revision":null,"state_reused":false,"selection":{"schema_version":"tos_native_core_selected_profile_v1","generation":0,"profile":"selected_paths","source_revision":null,"data_revision":null,"exploration_revision":null,"state_reused":false},"capabilities":[{"operation":"tos_corpus_index_exists"},{"operation":"tos_philosophy_projection_exists"},{"operation":"tos_evidence_projection_exists"},{"operation":"tos_philosophy_audit_exists"},{"operation":"tos_corpus_index"},{"operation":"tos_bibliographic_graph"},{"operation":"tos_philosophy_projection"},{"operation":"tos_philosophy_audit_payload"},{"operation":"tos_corpus_header"},{"operation":"tos_native_call","tool":"tos_knowledge_search","profiles":["weak_query_store"]},{"operation":"tos_native_call","tool":"tos_knowledge_search_indexed_v2","profiles":["whole_root"]}"#;
         const LAZY_END: &[u8] = b"]}";
-        const ORDINARY_END: &[u8] = br#",{"operation":"tos_native_call","tool":"tos_knowledge_node","profiles":["whole_root"]},{"operation":"tos_native_call","tool":"tos_knowledge_relation","profiles":["whole_root"]},{"operation":"tos_native_call","tool":"tos_knowledge_catalog","profiles":["whole_root","weak_query_store"]},{"operation":"tos_source_navigation"},{"operation":"tos_knowledge_header","profiles":["whole_root","weak_query_store"]},{"operation":"tos_evidence_projection","profiles":["whole_root"]},{"operation":"tos_native_call","tool":"tos_knowledge_search","profiles":["whole_root"]}]}"#;
+        const ORDINARY_END: &[u8] = br#",{"operation":"tos_native_call","tool":"tos_philosophy_graph_status","profiles":["whole_root"]},{"operation":"tos_native_call","tool":"tos_knowledge_node","profiles":["whole_root"]},{"operation":"tos_native_call","tool":"tos_knowledge_relation","profiles":["whole_root"]},{"operation":"tos_native_call","tool":"tos_knowledge_catalog","profiles":["whole_root","weak_query_store"]},{"operation":"tos_source_navigation"},{"operation":"tos_knowledge_header","profiles":["whole_root","weak_query_store"]},{"operation":"tos_evidence_projection","profiles":["whole_root"]},{"operation":"tos_native_call","tool":"tos_knowledge_search","profiles":["whole_root"]}]}"#;
         let ready = [if ordinary { ORDINARY_HEAD } else { LAZY_HEAD }, COMMON,
                      if ordinary { ORDINARY_END } else { LAZY_END }];
         // Exactly nine connected operations; CorpusHeader selects its authentic
@@ -2099,6 +2398,16 @@ pub(super) fn run(
                 let tool = checked_field(outer, "tool", &state, cutoff)?
                     .and_then(tos_foundation::JsonValue::as_str)
                     .ok_or("Core selected Search tool absent")?;
+                if tool == "tos_philosophy_graph_status" {
+                    with_selected_store_choice(request, &state, cutoff, |selected_store| {
+                        if selected_store { return Err("Core selected QueryStore philosophy owner unavailable"); }
+                        serve_whole_philosophy_status(root, request, &isolation, session, driver,
+                            &mut held, &mut held_store, &mut generation, &state,
+                            &sqlite_heap, &resources, deadline, cutoff, cancelled, &fence, arguments)
+                    })?;
+                    last_whole = true;
+                    continue;
+                }
                 if matches!(tool, "tos_knowledge_node" | "tos_knowledge_relation") {
                     with_selected_store_choice(request, &state, cutoff, |selected_store| {
                         if selected_store { return Err("Core selected QueryStore inspect owner unavailable"); }
@@ -2146,6 +2455,8 @@ pub(super) fn run(
                             &state,
                             &sqlite_heap,
                             &resources,
+                            cache_io.as_ref(),
+                            cache_space.as_ref(),
                             deadline,
                             cutoff,
                             cancelled,

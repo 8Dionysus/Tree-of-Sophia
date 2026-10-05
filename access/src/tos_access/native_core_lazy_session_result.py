@@ -424,7 +424,47 @@ class NativeCoreOrdinarySessionResultClient(NativeCoreLazySessionResultClient):
         if not self._has_capability('tos_native_call', operation):
             raise ValueError('native ordinary tool capability unavailable')
         if operation in ('tos_knowledge_search', 'tos_knowledge_search_indexed_v2'):
-            return super().call(operation, arguments, absolute_deadline=absolute_deadline)
+            state = self._state
+            previous_generation = self._selection['generation']
+            wrapper_bytes = state.geometry.dict_bytes(2)
+            reserved = False
+            try:
+                # Admit the ordinary transport wrapper before creating it. The
+                # caller's raw Search DTO remains the same object all the way to
+                # the native JSON owner; Python adds no Search coercion layer.
+                state.reserve(wrapper_bytes)
+                reserved = True
+                request_arguments = {'tool': operation, 'arguments': arguments}
+                result = self._request(
+                    'tos_native_call', request_arguments,
+                    absolute_deadline=absolute_deadline)
+                if operation == 'tos_knowledge_search_indexed_v2':
+                    self._validate_indexed_result(result, previous_generation)
+                else:
+                    profile = self._selection['profile']
+                    if (type(result) is not dict
+                            or result.get('schema') != 'tos_knowledge_search_v1'):
+                        raise ValueError('native legacy Search result owner differs')
+                    if profile == 'whole_root':
+                        if (not self._supports_whole_legacy_search
+                                or self._selection['generation'] != previous_generation + 1
+                                or result.get('source_revision') != self._source_revision):
+                            raise ValueError('native legacy Whole Search result owner differs')
+                    elif profile == 'weak_query_store':
+                        # Native QueryStore binds this source revision to its
+                        # held Store header; legacy V1 requires only the string
+                        # field here, unlike indexed V2's canonical digest.
+                        if type(result.get('source_revision')) is not str:
+                            raise ValueError('native legacy Store source revision differs')
+                    else:
+                        raise ValueError('native legacy Search result profile differs')
+                return result
+            except BaseException:
+                self._failed = True
+                raise
+            finally:
+                if reserved:
+                    state.release(wrapper_bytes)
         return self._request('tos_native_call', {'tool': operation, 'arguments': arguments},
                              absolute_deadline=absolute_deadline)
 
