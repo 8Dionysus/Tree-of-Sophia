@@ -35,8 +35,23 @@ fn invalid(message: &'static str) -> io::Error {
     io::Error::new(io::ErrorKind::InvalidData, message)
 }
 
-fn sql(_: rusqlite::Error) -> io::Error {
-    invalid("native source index storage refused")
+fn sql(error: rusqlite::Error) -> io::Error {
+    // Report only SQLite's stable primary class, never SQL text or source paths.
+    let reason = match error {
+        rusqlite::Error::SqliteFailure(code, _) => match code.extended_code & 255 {
+            5 | 6 => "native source index SQLite busy",
+            7 => "native source index SQLite out of memory",
+            8 => "native source index SQLite read only",
+            10 => "native source index SQLite I/O refused",
+            11 => "native source index SQLite corrupt",
+            13 => "native source index SQLite full",
+            14 => "native source index SQLite open refused",
+            17 => "native source index SQLite schema changed",
+            _ => "native source index SQLite operation refused",
+        },
+        _ => "native source index storage refused",
+    };
+    invalid(reason)
 }
 
 fn bounded_text(row: &rusqlite::Row<'_>, column: usize, cap: usize) -> rusqlite::Result<String> {

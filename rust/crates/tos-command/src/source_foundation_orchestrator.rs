@@ -300,7 +300,53 @@ impl FoundationOrchestratorError {
             Self::Replay(_) => "source-foundation artifact replay refused",
             Self::Catalog(_) => "source-foundation catalog comparison refused",
             Self::Persisted(_) => "source-foundation persisted catalog refused",
-            Self::Admission(_) => "source-foundation candidate index refused",
+            Self::Admission(error) => {
+                // Return only known owner-authored static diagnostics. Unknown
+                // errors may contain private paths or payloads and remain opaque.
+                match error.to_string().as_str() {
+                    "candidate spool per-row state exceeded" => {
+                        "candidate spool per-row state exceeded"
+                    }
+                    "native source index profile is invalid" => {
+                        "native source index profile is invalid"
+                    }
+                    "native source index shared-budget SQLite open refused" => {
+                        "native source index shared-budget SQLite open refused"
+                    }
+                    "native source index SQLite ceiling is too small" => {
+                        "native source index SQLite ceiling is too small"
+                    }
+                    "native source index SQLite policy changed" => {
+                        "native source index SQLite policy changed"
+                    }
+                    "native source index row state exceeds profile" => {
+                        "native source index row state exceeds profile"
+                    }
+                    "native source index SQLite busy" => "native source index SQLite busy",
+                    "native source index SQLite out of memory" => {
+                        "native source index SQLite out of memory"
+                    }
+                    "native source index SQLite read only" => {
+                        "native source index SQLite read only"
+                    }
+                    "native source index SQLite I/O refused" => {
+                        "native source index SQLite I/O refused"
+                    }
+                    "native source index SQLite corrupt" => "native source index SQLite corrupt",
+                    "native source index SQLite full" => "native source index SQLite full",
+                    "native source index SQLite open refused" => {
+                        "native source index SQLite open refused"
+                    }
+                    "native source index SQLite schema changed" => {
+                        "native source index SQLite schema changed"
+                    }
+                    "native source index SQLite operation refused" => {
+                        "native source index SQLite operation refused"
+                    }
+                    "native source index storage refused" => "native source index storage refused",
+                    _ => "source-foundation candidate index refused",
+                }
+            }
             Self::Incomplete(reason) => reason,
         }
     }
