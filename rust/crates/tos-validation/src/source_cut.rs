@@ -289,8 +289,11 @@ pub(crate) fn collect_schema_receipt_range<S: CutSchemaReceiptRange>(
     Ok(receipts)
 }
 
-/// Caller-owned aggregate ceilings for the opt-in source-cut diagnostics-v2
-/// path. The legacy scalar and batch receipts remain a separate protocol.
+/// Caller-owned ceilings for the opt-in source-cut diagnostics-v2 path.
+/// Issues and report bytes accumulate; state bounds resident executor results
+/// plus the current exchange peak. Returned results transfer retained-state
+/// custody to their caller, which must admit its own output/page allocations.
+/// The legacy scalar and batch receipts remain a separate protocol.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct CutSchemaDiagnosticsLimits {
     pub max_total_issues: usize,
@@ -456,6 +459,8 @@ impl SchemaDiagnosticResult {
     pub fn retained_state_bytes(&self) -> usize {
         self.retained_state_bytes
     }
+    /// Retained result state transferred to the receiving owner. Historical
+    /// exchange buffers and the executor's retained vector are excluded.
     pub fn accounted_state_bytes(&self) -> usize {
         self.accounted_state_bytes
     }
@@ -1102,6 +1107,7 @@ impl<I: Copy + Eq> CandidateCutWorkerSchemaExecutor<I> {
             .inner
             .check_diagnostics_v2_result(path, raw, contract, deadline, cancelled)?;
         self.account_candidate_envelope_state(&mut result)?;
+        self.inner.release_diagnostic_state(&result)?;
         Ok(self.envelope(result))
     }
 
@@ -1125,6 +1131,7 @@ impl<I: Copy + Eq> CandidateCutWorkerSchemaExecutor<I> {
             path, raw, schema_raw, deadline, cancelled,
         )?;
         self.account_candidate_envelope_state(&mut result)?;
+        self.inner.release_diagnostic_state(&result)?;
         Ok(self.envelope(result))
     }
 
@@ -1160,8 +1167,7 @@ impl<I: Copy + Eq> CandidateCutWorkerSchemaExecutor<I> {
         let envelope_bytes = std::mem::size_of::<CandidateCutSchemaDiagnostic<I>>();
         let result_header_bytes = std::mem::size_of::<SchemaDiagnosticResult>();
         let extra = envelope_bytes
-            .checked_mul(2)
-            .and_then(|bytes| bytes.checked_sub(result_header_bytes))
+            .checked_sub(result_header_bytes)
             .ok_or(ItemRefusal::Budget)?;
         let limits = self
             .inner
@@ -1172,13 +1178,16 @@ impl<I: Copy + Eq> CandidateCutWorkerSchemaExecutor<I> {
             .diagnostic_state_bytes_used
             .checked_add(extra)
             .ok_or(ItemRefusal::Budget)?;
-        if used > limits.max_total_state_bytes {
+        let transfer_peak = used
+            .checked_add(envelope_bytes)
+            .ok_or(ItemRefusal::Budget)?;
+        if transfer_peak > limits.max_total_state_bytes {
             self.inner.prepared.poison(ExecutorFailure::InputBudget);
             self.inner.pending_diagnostics.clear();
             self.inner.pending_diagnostics.shrink_to_fit();
             return Err(ItemRefusal::BudgetCheck {
                 check: "candidate schema diagnostics typed envelope state",
-                used: u64::try_from(used).ok(),
+                used: u64::try_from(transfer_peak).ok(),
                 limit: u64::try_from(limits.max_total_state_bytes).ok(),
             });
         }
@@ -1187,6 +1196,10 @@ impl<I: Copy + Eq> CandidateCutWorkerSchemaExecutor<I> {
             .checked_add(extra)
             .ok_or(ItemRefusal::Budget)?;
         result.accounted_state_bytes = accounted_state_bytes;
+        result.retained_state_bytes = result
+            .retained_state_bytes
+            .checked_add(extra)
+            .ok_or(ItemRefusal::Budget)?;
         self.inner.diagnostic_state_bytes_used = used;
         Ok(())
     }
@@ -2200,6 +2213,7 @@ impl CutWorkerSchemaExecutor {
         let result = self.check_diagnostics_v2_for_schema_raw_result(
             path, raw, schema_raw, deadline, cancelled,
         )?;
+        self.release_diagnostic_state(&result)?;
         Ok(CutSchemaDiagnostic {
             source_revision,
             result,
@@ -2242,6 +2256,7 @@ impl CutWorkerSchemaExecutor {
             )
         })?;
         let result = self.check_diagnostics_v2_result(path, raw, contract, deadline, cancelled)?;
+        self.release_diagnostic_state(&result)?;
         Ok(CutSchemaDiagnostic {
             source_revision,
             result,
@@ -2307,7 +2322,9 @@ impl CutWorkerSchemaExecutor {
             self.diagnostics_v2_cost_unknown = true;
             self.prepared.poison(ExecutorFailure::Protocol);
         }
-        result.map(|result| CutSchemaDiagnostic {
+        let result = result?;
+        self.release_diagnostic_state(&result)?;
+        Ok(CutSchemaDiagnostic {
             source_revision,
             result,
         })
@@ -2321,9 +2338,11 @@ impl CutWorkerSchemaExecutor {
             .pending_diagnostics
             .iter()
             .position(SchemaDiagnosticResult::is_invalid)?;
+        let result = self.pending_diagnostics.remove(index);
+        self.release_diagnostic_state(&result).ok()?;
         Some(CutSchemaDiagnostic {
             source_revision,
-            result: self.pending_diagnostics.remove(index),
+            result,
         })
     }
 
@@ -2334,7 +2353,9 @@ impl CutWorkerSchemaExecutor {
             .pending_diagnostics
             .iter()
             .position(SchemaDiagnosticResult::is_invalid)?;
-        Some(self.pending_diagnostics.remove(index))
+        let result = self.pending_diagnostics.remove(index);
+        self.release_diagnostic_state(&result).ok()?;
+        Some(result)
     }
 
     /// Retrieve a fully authenticated non-verdict terminal retained only by
@@ -2348,9 +2369,11 @@ impl CutWorkerSchemaExecutor {
             .pending_diagnostics
             .iter()
             .position(|diagnostic| !diagnostic.is_valid() && !diagnostic.is_invalid())?;
+        let result = self.pending_diagnostics.remove(index);
+        self.release_diagnostic_state(&result).ok()?;
         Some(CutSchemaDiagnostic {
             source_revision,
-            result: self.pending_diagnostics.remove(index),
+            result,
         })
     }
 
@@ -2363,8 +2386,15 @@ impl CutWorkerSchemaExecutor {
         cancelled: &AtomicBool,
     ) -> Result<SchemaDiagnosticResult, ItemRefusal> {
         let diagnostic = if self.diagnostics_v2_legacy_selected_limits.is_some() {
-            self.check_diagnostics_v2_legacy_selected(path, raw, contract, deadline, cancelled)?
-                .result
+            self.check_diagnostics_v2_inner_with_selected_limits(
+                path,
+                raw,
+                contract,
+                deadline,
+                cancelled,
+                self.diagnostics_v2_legacy_selected_limits,
+                false,
+            )?
         } else {
             self.check_diagnostics_v2_result(path, raw, contract, deadline, cancelled)?
         };
@@ -2417,8 +2447,7 @@ impl CutWorkerSchemaExecutor {
         &mut self,
         diagnostic: SchemaDiagnosticResult,
     ) -> Result<(), ItemRefusal> {
-        let mut diagnostic = diagnostic;
-        self.precharge_pending_diagnostic(&mut diagnostic)?;
+        self.precharge_pending_diagnostic()?;
         if self.pending_diagnostics.len() >= self.pending_diagnostics.capacity() {
             self.prepared.poison(ExecutorFailure::Protocol);
             return Err(ItemRefusal::Unsupported(
@@ -2429,10 +2458,28 @@ impl CutWorkerSchemaExecutor {
         Ok(())
     }
 
-    fn precharge_pending_diagnostic(
+    /// Remove the retained result charge when this owner drops it or transfers
+    /// it to a caller that accounts its own returned/report state. Closure and
+    /// retained vector capacity remain charged independently.
+    fn release_diagnostic_state(
         &mut self,
-        diagnostic: &mut SchemaDiagnosticResult,
+        diagnostic: &SchemaDiagnosticResult,
     ) -> Result<(), ItemRefusal> {
+        let Some(remaining) = self
+            .diagnostic_state_bytes_used
+            .checked_sub(diagnostic.accounted_state_bytes)
+        else {
+            self.prepared.poison(ExecutorFailure::Protocol);
+            self.diagnostics_v2_cost_unknown = true;
+            return Err(ItemRefusal::Unsupported(
+                "schema diagnostic retained state ownership differs".into(),
+            ));
+        };
+        self.diagnostic_state_bytes_used = remaining;
+        Ok(())
+    }
+
+    fn precharge_pending_diagnostic(&mut self) -> Result<(), ItemRefusal> {
         let limits = self
             .diagnostics_v2
             .ok_or_else(|| ItemRefusal::Unsupported("schema diagnostics v2 not selected".into()))?;
@@ -2502,10 +2549,6 @@ impl CutWorkerSchemaExecutor {
                 limit: u64::try_from(limits.max_total_state_bytes).ok(),
             });
         };
-        diagnostic.accounted_state_bytes = diagnostic
-            .accounted_state_bytes
-            .checked_add(new_capacity_bytes)
-            .ok_or(ItemRefusal::Budget)?;
         self.diagnostic_state_bytes_used = next_state_bytes;
         Ok(())
     }
@@ -2797,25 +2840,28 @@ impl CutWorkerSchemaExecutor {
             .capacity()
             .checked_add(cost.input_instance_buffer_bytes)
             .ok_or(ItemRefusal::Budget)?;
-        let accounted_state_bytes = closure_charge
+        // State is residency, while report/wire/CPU remain cumulative work.
+        // Temporary exchange buffers overlap the retained closure and results
+        // only during this exchange; they must not survive in the state ledger.
+        let accounted_state_bytes = retained_state_bytes;
+        let next_state_bytes = self
+            .diagnostic_state_bytes_used
+            .checked_add(closure_charge)
+            .and_then(|bytes| bytes.checked_add(accounted_state_bytes))
+            .ok_or(ItemRefusal::Budget)?;
+        let exchange_peak = next_state_bytes
             .checked_add(input_buffer_bytes)
             .and_then(|bytes| bytes.checked_add(cost.request_buffer_bytes))
             .and_then(|bytes| bytes.checked_add(cost.response_buffer_bytes))
             .and_then(|bytes| bytes.checked_add(input_metadata_bytes))
-            .and_then(|bytes| bytes.checked_add(retained_state_bytes))
             .ok_or(ItemRefusal::Budget)?;
-        let next_state_bytes = self
-            .diagnostic_state_bytes_used
-            .checked_add(accounted_state_bytes)
+        let _ = Some(exchange_peak)
             .filter(|bytes| *bytes <= limits.max_total_state_bytes)
             .ok_or_else(|| {
                 self.prepared.poison(ExecutorFailure::InputBudget);
                 ItemRefusal::BudgetCheck {
                     check: "cut schema diagnostics state bytes",
-                    used: self
-                        .diagnostic_state_bytes_used
-                        .checked_add(accounted_state_bytes)
-                        .and_then(|n| u64::try_from(n).ok()),
+                    used: u64::try_from(exchange_peak).ok(),
                     limit: u64::try_from(limits.max_total_state_bytes).ok(),
                 }
             })?;
@@ -3366,6 +3412,7 @@ impl CutSchemaExecutor for CutWorkerSchemaExecutor {
                         self.retain_pending_diagnostic(diagnostic)?;
                         Ok(false)
                     } else if diagnostic.is_valid() {
+                        self.release_diagnostic_state(&diagnostic)?;
                         Ok(true)
                     } else {
                         self.diagnostics_v2_cost_unknown = true;
