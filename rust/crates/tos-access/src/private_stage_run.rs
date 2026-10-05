@@ -2414,7 +2414,7 @@ fn native_process_exec(args: &[String]) -> Result<i32, String> {
 // Configuration describes actual paths; private-stage-run remains the issuer.
 const SDK_SETUP_BYTES: u64 = 536_870_912;
 const SDK_CONSUMER_BYTES: u64 = 2_684_354_560;
-const SDK_SCOPE_BYTES: u64 = 3_221_225_472;
+const SDK_SCOPE_BYTES: u64 = SDK_SETUP_BYTES + SDK_CONSUMER_BYTES;
 fn sdk_write(root: &File, name: &str, value: &str) -> Result<(), String> {
     member(root, name, true)?
         .write_all(value.as_bytes())
@@ -3343,8 +3343,14 @@ fn sdk_host_session(args: &[String]) -> Result<i32, String> {
             .map_err(|e| e.to_string())?
             .to_str()
             .ok_or("cgroup text")?;
+        // Conditional startup bill for cgroup-charged RAM under this native
+        // scope's configured MemoryMax and swap-zero envelope. This is a full
+        // ceiling forecast, not a measured peak or total host-overhead estimate.
+        // External caller buffers remain outside the migrated child scope and
+        // already enter the broker's current host facts; do not add them here.
+        let scope_ceiling_mib = SDK_SCOPE_BYTES.div_ceil(1024 * 1024);
         let grant = host_admission(
-            serde_json::json!({"command":"reserve","request":{"operation":"workload_start","owner":"tos-access-sdk","workload_id":scope,"request_id":uuid,"release_token":uuid,"activity":"foreground","class":"medium","kind":"generic","memory_demand_mib":3840,"estimate_source":"native_ordinary_sdk_scope_profile","estimate_confidence":"bounded","owner_pid":std::process::id(),"owner_cgroup":cgroup,"recoverability":"preserve"}}),
+            serde_json::json!({"command":"reserve","request":{"operation":"workload_start","owner":"tos-access-sdk","workload_id":scope,"request_id":uuid,"release_token":uuid,"activity":"foreground","class":"medium","kind":"generic","memory_demand_mib":scope_ceiling_mib,"estimate_source":"native_sdk_configured_cgroup_ceiling","estimate_confidence":"conditional","owner_pid":std::process::id(),"owner_cgroup":cgroup,"recoverability":"preserve"}}),
             end,
             false,
         )?;
