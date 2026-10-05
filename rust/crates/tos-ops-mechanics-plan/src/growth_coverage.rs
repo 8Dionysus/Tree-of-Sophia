@@ -9,16 +9,18 @@ pub(crate) const CONTRACT: &str =
 const MAX_CONTRACT_BYTES: u64 = 1_048_576;
 
 #[derive(Deserialize)]
-struct Coverage {
+pub(crate) struct Coverage {
     schema_version: String,
     whole_route_status: String,
     maintained_route: String,
     bounded_native_route: String,
     reference_route: String,
     assessment_route: String,
+    #[serde(default)]
+    pub(crate) native_test_routes: Vec<crate::growth_native_plan::TestRoute>,
 }
 
-fn load(root: &Path) -> io::Result<Coverage> {
+pub(crate) fn load(root: &Path) -> io::Result<Coverage> {
     let path = root.join(CONTRACT);
     if !fs::symlink_metadata(&path)?.is_file() {
         return Err(io::Error::other(

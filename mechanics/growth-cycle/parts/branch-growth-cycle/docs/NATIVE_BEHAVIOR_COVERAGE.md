@@ -97,3 +97,33 @@ protocol bounds and requires canonical spelling before selecting a handler. Its
 existing regression module covers canonical create/revision versions and these
 refused aliases. This is one repaired dispatch predicate; it does not establish
 whole discovery, Claim or Growth equivalence. Execution remains to be verified.
+
+## Native class planning
+
+`python scripts/run_mechanics_local_tests.py --growth-native-plan` describes the
+existing native assertion pipeline without building or executing it. The installed
+Ops producer reads `native_test_routes` from this owner's contract, then reads the
+actual Cargo target declarations and Rust module declarations. Conformance command
+classes follow the runner's declared command modules; their number and method
+membership are not copied into another maintained list. Additional selected
+library routes resolve through real module declarations and explicit `#[path]`
+attributes, including the selected Record publication/recovery class.
+
+The plan contains package/target kind/name, actual source path/SHA, native class
+filter and declared assertions. Ignored OCR cases remain explicitly marked and
+need their retained producer inputs; a normal class run must not count them as
+executed. This plan provides selectors for the existing conformance product and
+library-test product routes. OPS retains product preparation and execution; there
+is no Cargo child, interpreter fallback, installed product search or execution in
+this source-plan command. The current default whole-route refusal remains until
+the maintained execution plan covers the actual behavior classes. A successfully
+described class is not an executed or accepted assertion.
+
+The first useful existing classes are the Claim retained historical reader and
+exact protocol dispatch, command HTTP framing/trickle custody, and selected Record
+publication/cold replay/recovery. Public/private assessment, quality withdrawal
+and assessed batch classes follow in the existing Conformance runner. The method
+matrix remains the reference-to-owner navigation: review genuine predicate gaps
+within those classes instead of reproducing one test per Python method. Native
+source pipelines, selected fixture/oracle dependencies and semantic assessment
+retain their distinct owners.

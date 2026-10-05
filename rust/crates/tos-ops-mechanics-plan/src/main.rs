@@ -12,6 +12,7 @@ static PRODUCT_CANCEL: OnceLock<Arc<AtomicBool>> = OnceLock::new();
 #[derive(Clone)]
 enum Action {
     Plan,
+    GrowthNativePlan,
     Execute {
         native_contracts_only: bool,
         growth_python_oracle: bool,
@@ -90,6 +91,7 @@ fn arguments() -> Result<(PathBuf, String, Action, Limits, SemanticOptions), Str
     let mut execute = false;
     let mut native_contracts_only = false;
     let mut growth_python_oracle = false;
+    let mut growth_native_plan = false;
     let mut local_contracts = None;
     let mut threshold_build = false;
     let mut threshold_validate = false;
@@ -129,6 +131,7 @@ fn arguments() -> Result<(PathBuf, String, Action, Limits, SemanticOptions), Str
             "--execute" => execute = true,
             "--native-contracts-only" => native_contracts_only = true,
             "--growth-python-oracle" => growth_python_oracle = true,
+            "--growth-native-plan" => growth_native_plan = true,
             "--local-contracts" => {
                 local_contracts = Some(args.next().ok_or("missing native assertion home")?)
             }
@@ -213,6 +216,7 @@ fn arguments() -> Result<(PathBuf, String, Action, Limits, SemanticOptions), Str
     }
     if usize::from(local_contracts.is_some())
         + usize::from(execute)
+        + usize::from(growth_native_plan)
         + usize::from(threshold_build)
         + usize::from(threshold_validate)
         + usize::from(relation_pack_validate)
@@ -276,6 +280,8 @@ fn arguments() -> Result<(PathBuf, String, Action, Limits, SemanticOptions), Str
     }
     let action = if let Some(home) = local_contracts {
         Action::LocalContracts { home }
+    } else if growth_native_plan {
+        Action::GrowthNativePlan
     } else if execute {
         Action::Execute {
             native_contracts_only,
@@ -499,7 +505,7 @@ fn main() {
         let compiler_flag = if cfg!(feature = "compiler-backed-validators") {
             " | --philosophy-graph-views-validate"
         } else { "" };
-        eprintln!("{error}\nusage: tos-ops-mechanics-plan --repo-root PATH [--python COMMAND] [--execute [--growth-python-oracle | --native-contracts-only] | --local-contracts HOME | --threshold-registry-build [--check] | --threshold-registry-validate | --relation-pack-validate | --questbook-validate | --public-mirror-validate | --public-mirror-sync | --derived-kag-validate | --derived-kag-generate | --mechanics-topology-validate | --active-naming-validate | --agent-surface-build [--check] | --agent-surface-validate [--fetch-budget-bases] | --agents-route-currentness-build [--check] [--output PATH] | --nested-agents-validate | --documentation-family-build [--check] [--output PATH] | --documentation-cross-corpus-validate | --decision-records-validate | --decision-index-build [--check] | --root-entry-map-build [--check] [--kag-export PATH] | --root-entry-map-validate [--kag-export PATH] | --kag-source-export-build --store PATH --revision SHA256 --output PATH | --kag-source-export-verify --kag-export PATH | --source-home | --philosophy-topology{compiler_flag} | --semantic-registry-transition [--baseline-commit REF] [--allow-initial-introduction] [--json]] [--command-timeout-ms N] [--lane-timeout-ms N] [--cleanup-grace-ms N] [--max-output-bytes N]");
+        eprintln!("{error}\nusage: tos-ops-mechanics-plan --repo-root PATH [--python COMMAND] [--execute [--growth-python-oracle | --native-contracts-only] | --growth-native-plan | --local-contracts HOME | --threshold-registry-build [--check] | --threshold-registry-validate | --relation-pack-validate | --questbook-validate | --public-mirror-validate | --public-mirror-sync | --derived-kag-validate | --derived-kag-generate | --mechanics-topology-validate | --active-naming-validate | --agent-surface-build [--check] | --agent-surface-validate [--fetch-budget-bases] | --agents-route-currentness-build [--check] [--output PATH] | --nested-agents-validate | --documentation-family-build [--check] [--output PATH] | --documentation-cross-corpus-validate | --decision-records-validate | --decision-index-build [--check] | --root-entry-map-build [--check] [--kag-export PATH] | --root-entry-map-validate [--kag-export PATH] | --kag-source-export-build --store PATH --revision SHA256 --output PATH | --kag-source-export-verify --kag-export PATH | --source-home | --philosophy-topology{compiler_flag} | --semantic-registry-transition [--baseline-commit REF] [--allow-initial-introduction] [--json]] [--command-timeout-ms N] [--lane-timeout-ms N] [--cleanup-grace-ms N] [--max-output-bytes N]");
         std::process::exit(2);
     });
     if matches!(
@@ -912,6 +918,14 @@ fn main() {
                 }
             })
         }
+        Action::GrowthNativePlan => tos_ops_mechanics_plan::growth_native_plan::discover(&root)
+            .and_then(|plan| {
+                println!(
+                    "{}",
+                    serde_json::to_string(&plan).map_err(std::io::Error::other)?
+                );
+                Ok(0)
+            }),
         Action::Plan | Action::Execute { .. } => tos_ops_mechanics_plan::discover(&root, &python)
             .and_then(|mut plan| {
                 if matches!(
@@ -976,6 +990,7 @@ fn main() {
                 Action::Execute { .. } => "execution",
                 Action::LocalContracts { .. } => "native local contracts",
                 Action::Plan => "plan",
+                Action::GrowthNativePlan => "Growth native source plan",
                 Action::ThresholdBuild { .. } | Action::ThresholdValidate => "threshold registry",
                 Action::RelationPackValidate => "relation pack",
                 Action::QuestbookValidate => "questbook",

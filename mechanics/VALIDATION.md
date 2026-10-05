@@ -49,3 +49,8 @@ limits. It refuses an incomplete three-home selection and has no Cargo or
 Python test fallback. The Rust route proves native implementation and selected
 conformance behavior only; the retained Python oracle remains a separate
 comparison surface until its per-assertion removal conditions are reviewed.
+
+For a read-only source-owned native Growth class plan, use
+`python scripts/run_mechanics_local_tests.py --growth-native-plan`. It resolves
+actual Cargo/Rust declarations and marks ignored assertions; it neither executes
+those classes nor establishes whole Growth equivalence.

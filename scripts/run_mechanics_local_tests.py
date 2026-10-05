@@ -22,9 +22,11 @@ def main() -> int:
         help="run only retained native Agon/Experience/Questbook assertions")
     parser.add_argument("--growth-python-oracle", action="store_true",
         help="include the retained Growth Cycle Python reference cohort explicitly")
+    parser.add_argument("--growth-native-plan", action="store_true",
+        help="describe source-owned native Growth assertion classes without executing them")
     args = parser.parse_args()
-    if args.native_contracts_only and args.growth_python_oracle:
-        parser.error("--native-contracts-only excludes --growth-python-oracle")
+    if sum((args.native_contracts_only, args.growth_python_oracle, args.growth_native_plan)) > 1:
+        parser.error("select one bounded native, reference, or source-plan mode")
     selected = os.environ.get("TOS_OPS_MECHANICS_EXECUTOR")
     executable = selected or shutil.which("tos-ops-mechanics-plan")
     if not executable:
@@ -37,7 +39,8 @@ def main() -> int:
         # Replace this compatibility process: cancellation goes directly to
         # the native supervisor, with no second process owner or fallback.
         argv = [
-            executable, "--execute", "--repo-root", str(REPO_ROOT),
+            executable, "--growth-native-plan" if args.growth_native_plan else "--execute",
+            "--repo-root", str(REPO_ROOT),
             "--python", sys.executable,
             "--command-timeout-ms", "300000",
             "--lane-timeout-ms", "3600000",

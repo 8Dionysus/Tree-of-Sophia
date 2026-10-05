@@ -14,6 +14,7 @@ pub mod documentation_cross_corpus;
 pub mod documentation_family;
 pub mod executor;
 pub mod growth_coverage;
+pub mod growth_native_plan;
 #[cfg(target_os = "linux")]
 pub mod kag_corpus_export;
 #[cfg(target_os = "linux")]

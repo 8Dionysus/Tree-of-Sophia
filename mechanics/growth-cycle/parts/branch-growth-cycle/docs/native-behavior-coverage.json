@@ -9,5 +9,31 @@
     "root": "mechanics/growth-cycle/tests",
     "pattern": "test*.py"
   },
-  "completion_rule": "Review actual assertions and maintained entry/installed consumer evidence; module presence and corpus counts do not establish equivalence."
+  "completion_rule": "Review actual assertions and maintained entry/installed consumer evidence; module presence and corpus counts do not establish equivalence.",
+  "native_test_routes": [
+    {
+      "cargo_manifest": "rust/crates/tos-command/Cargo.toml",
+      "target_kind": "lib",
+      "module_routes": [
+        [
+          "source_claims"
+        ],
+        [
+          "source_command_http"
+        ],
+        [
+          "source_creation_store",
+          "revision_publication",
+          "tests"
+        ]
+      ]
+    },
+    {
+      "cargo_manifest": "tests/conformance/rust/Cargo.toml",
+      "target_kind": "test",
+      "target_name": "conformance",
+      "module_prefix": "command_"
+    }
+  ],
+  "native_plan_route": "--growth-native-plan"
 }
