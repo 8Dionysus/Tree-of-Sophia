@@ -20,7 +20,7 @@ use tos_validation::{
         SourceFoundationBiblioStoredSink,
     },
     item_rules::ItemRefusal,
-    record_biblio_cut::{SourceCutInput, SourceCutInputWithIdentity},
+    record_biblio_cut::{BiblioCurrentRecord, SourceCutInput, SourceCutInputWithIdentity},
     source_foundation_closure::{
         SourceFoundationClosureAnchorStoreCost,
         SourceFoundationClosureBoundaryMembershipRefStoreCost, SourceFoundationClosureClaimRef,
@@ -28,7 +28,8 @@ use tos_validation::{
         SourceFoundationClosureDerivationStoreCost, SourceFoundationClosureEvent,
         SourceFoundationClosureLink, SourceFoundationClosureLinkStore,
         SourceFoundationClosureLinkStoreCost, SourceFoundationClosureLoadedRowStoreCost,
-        SourceFoundationClosureObjectLinkStoreCost, SourceFoundationClosureSchemaRequest,
+        SourceFoundationClosureObjectLinkStoreCost, SourceFoundationClosurePublicationClaim,
+        SourceFoundationClosureProvisionClaim, SourceFoundationClosureSchemaRequest,
         SourceFoundationClosureSchemaRequestStore, SourceFoundationClosureSchemaRequestStoreCost,
         SourceFoundationClosureTopologyStoreCost, source_foundation_closure_json_state_upper_bound,
     },
@@ -1700,7 +1701,7 @@ impl SourceFoundationClosureLinkStore for CandidateClosureLinks<'_, '_, '_, '_, 
         let Some(row) = rows.next().map_err(sql_refusal)? else {
             drop(rows);
             drop(statement);
-            context.check()?;
+            self.context.check()?;
             self.eof_seen = true;
             return Ok((None, query_total_workspace));
         };
@@ -2726,7 +2727,7 @@ impl CandidateDiscoverySchemaRequests<'_, '_, '_, '_, '_> {
                 state.checked_add(
                     document_bytes
                         .checked_mul(2)?
-                        .checked_add(size_of::<Vec<u8>>() + size_of::<SchemaRequest>() + 1024)?,
+                        .checked_add(size_of::<Vec<u8>>() + size_of::<DiscoverySchemaRequest>() + 1024)?,
                 )
             })
             .ok_or(ItemRefusal::Budget)
@@ -2802,7 +2803,7 @@ impl DiscoverySchemaRequestStore for CandidateDiscoverySchemaRequests<'_, '_, '_
         let base_workspace = Self::row_text_state(location.len())?
             .checked_add(Self::row_text_state(contract.len())?)
             .and_then(|state| state.checked_add(estimate_value_state(document).ok()?))
-            .and_then(|state| state.checked_add(size_of::<SchemaRequest>() + 512))
+            .and_then(|state| state.checked_add(size_of::<DiscoverySchemaRequest>() + 512))
             .ok_or(ItemRefusal::Budget)?;
         self.preflight(base_workspace, max_state_bytes)?;
         let document_bytes = json_len(document, max_document_bytes)?;

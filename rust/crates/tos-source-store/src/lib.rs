@@ -16,7 +16,7 @@ mod software;
 mod streamed_cut;
 
 pub use cut::{
-    CorpusCutReader, CutReadLimits, RetiredSourceMemberV1, SourceCutFormat,
+    CorpusCutReader, CutReadLimits, RetiredSourceMemberV1, SourceCutDependencyWitness, SourceCutDirectoryWitness, SourceCutFormat,
     SourceCutIdentityWitness, SourceCutMemberStream, SourceCutMemberTuple, SourceCutMemberWitness,
     SourceCutMembership, SourceCutMetadataStream, SourceCutRead, SourceCutReadsetV1,
     SourceCutRevision, SourceCutRevisionStream, SourceCutSelection, SourceMemberStreamV1,

@@ -11,7 +11,7 @@ use std::sync::{
 use std::time::Instant;
 use std::{io, mem::size_of};
 use tos_foundation::{
-    CanonicalProfile, Digest256, JsonDocument, JsonLimits, JsonMode, JsonValue, RelativePath,
+    CanonicalProfile, Digest256, Digest256Hasher, JsonDocument, JsonLimits, JsonMode, JsonValue, RelativePath,
     SourceRevision, canonical_bytes_v1, parse_json_with_state_budget,
 };
 use tos_segment_store::{
@@ -27,7 +27,7 @@ use tos_validation::{
     FormatProfile,
     source_cut::{CutPreparedSchemaExecutionBinding, CutPreparedSchemaProtocol},
 };
-use super::source_admission::AdmissionWorkBudget;
+use super::source_admission::{active, AdmissionWorkBudget};
 use super::source_admission_spooled_index::NativeAdmissionCompletionProofV1;
 use super::source_admission_packed_objects::{
     MAX_PACKED_OBJECT_FRAMES_V2, PackedObjectLimitsV2, PackedObjectWriterV2,
@@ -2687,7 +2687,10 @@ fn build_legacy_revision_roots_v2(
                         Some(bytes) => bytes,
                         None => return Some(Err(tree_error("legacy source-byte bound exceeded"))),
                     };
-                    feed(&mut membership_hash_ref.borrow_mut(), &member);
+                    crate::source_admission_spooled_index::feed_membership(
+                        &mut membership_hash_ref.borrow_mut(),
+                        &member.path, member.size_bytes, member.sha256,
+                    );
                     observed_members_ref.set(next_count);
                     observed_source_bytes_ref.set(next_bytes);
                     after = Some(member.path.clone());

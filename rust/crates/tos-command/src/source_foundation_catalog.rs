@@ -2246,7 +2246,7 @@ pub(crate) fn compare_spooled_candidate<'candidate>(
     )?;
     let sources = RefCell::new(sources);
     let read_ledger = RefCell::new(
-        tos_compiler::source_bibliographic_versions::StreamedBibliographicReadLedger::new(
+        tos_compiler::StreamedBibliographicReadLedger::new(
             max_version_files as u64,
             max_version_bytes as u64,
         )?,

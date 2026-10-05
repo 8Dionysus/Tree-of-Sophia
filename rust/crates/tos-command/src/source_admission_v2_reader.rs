@@ -22,7 +22,7 @@ use std::{
 use tos_foundation::{Digest256, Digest256Hasher, RelativePath, SourceRevision};
 use tos_segment_store::{
     AuthenticatedTreeDescriptorV2, AuthenticatedTreeEntryV1, AuthenticatedTreeIoLedgerV1,
-    AuthenticatedTreeLimitsV1, SegmentLimits, SegmentStore,
+    AuthenticatedTreeLimitsV1, AuthenticatedTreeWorkV1, SegmentLimits, SegmentStore,
 };
 use tos_source_store::{
     CorpusCurrentSelection, CorpusPointerFormat, PinnedSqliteIoBudget, ReadLimits,

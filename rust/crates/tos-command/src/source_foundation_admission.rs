@@ -45,7 +45,8 @@ use tos_segment_store::{AuthenticatedTreeLimitsV1, SegmentLimits};
 use tos_source_store::ReadLimits;
 use tos_source_store::{
     CutReadLimits, PinnedSqliteAuxLimits, PinnedSqliteAuxRequest, PinnedSqliteIoBudget,
-    PinnedSqliteSpaceBudget, StreamedCutReadLimitsV1,
+    PinnedSqliteIoFailure, PinnedSqliteIoSnapshot, PinnedSqliteSpaceBudget,
+    StreamedCutReadLimitsV1,
 };
 
 /// Only this typed error carries path-free owner refusal text. Other IO errors
@@ -58,6 +59,135 @@ impl std::fmt::Display for NativeValidationRefusal {
     }
 }
 impl std::error::Error for NativeValidationRefusal {}
+
+/// Pre-publication refusal owns its original cause before terminal accounting.
+/// Only the reviewed validator reason and fixed operation labels reach output.
+#[derive(Debug)]
+pub(crate) struct NativeSpoolRefusal {
+    primary: io::Error,
+    phase: &'static str,
+    primary_io: PinnedSqliteIoSnapshot,
+    terminal_io: PinnedSqliteIoSnapshot,
+    accounting_failed: bool,
+    cleanup_failed: bool,
+    output_failed: bool,
+}
+impl std::fmt::Display for NativeSpoolRefusal {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("native spooled admission refused")
+    }
+}
+impl std::error::Error for NativeSpoolRefusal {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        Some(&self.primary)
+    }
+}
+#[derive(serde::Serialize)]
+pub(crate) struct NativeSpoolRefusalPacket<'a> {
+    schema_version: &'static str,
+    publication_state: &'static str,
+    phase: &'static str,
+    primary_error_kind: &'static str,
+    native_validation_reason: Option<&'a str>,
+    primary_io: NativeSpoolIoPacket,
+    terminal_io: NativeSpoolIoPacket,
+    accounting_failed: bool,
+    cleanup_failed: bool,
+    output_failed: bool,
+}
+#[derive(serde::Serialize)]
+struct NativeSpoolIoPacket {
+    read_attempted_bytes: u64,
+    read_permitted_bytes: u64,
+    read_returned_bytes: u64,
+    write_attempted_bytes: u64,
+    write_permitted_bytes: u64,
+    write_returned_bytes: u64,
+    first_failure: Option<&'static str>,
+}
+impl From<PinnedSqliteIoSnapshot> for NativeSpoolIoPacket {
+    fn from(value: PinnedSqliteIoSnapshot) -> Self {
+        Self {
+            read_attempted_bytes: value.read_attempted_bytes,
+            read_permitted_bytes: value.read_permitted_bytes,
+            read_returned_bytes: value.read_returned_bytes,
+            write_attempted_bytes: value.write_attempted_bytes,
+            write_permitted_bytes: value.write_permitted_bytes,
+            write_returned_bytes: value.write_returned_bytes,
+            first_failure: value.failure.map(|failure| match failure {
+                PinnedSqliteIoFailure::ReadLimit => "read_limit",
+                PinnedSqliteIoFailure::WriteLimit => "write_limit",
+                PinnedSqliteIoFailure::Deadline => "deadline",
+                PinnedSqliteIoFailure::Cancelled => "cancelled",
+                PinnedSqliteIoFailure::FileLimit => "file_limit",
+                PinnedSqliteIoFailure::SpaceLimit => "space_limit",
+                PinnedSqliteIoFailure::Io => "io",
+            }),
+        }
+    }
+}
+impl NativeSpoolRefusal {
+    pub(crate) fn retain(
+        primary: io::Error,
+        phase: &'static str,
+        primary_io: PinnedSqliteIoSnapshot,
+        terminal_io: PinnedSqliteIoSnapshot,
+        accounting_failed: bool,
+        cleanup_failed: bool,
+    ) -> Self {
+        // Keep the first phase/cause/snapshot when the CLI adds terminal checks.
+        if primary.get_ref().is_some_and(|cause| cause.is::<Self>()) {
+            let cause = primary.into_inner().expect("checked typed spool refusal");
+            let mut refusal = *cause.downcast::<Self>().expect("checked spool owner");
+            refusal.terminal_io = terminal_io;
+            refusal.accounting_failed |= accounting_failed;
+            refusal.cleanup_failed |= cleanup_failed;
+            return refusal;
+        }
+        Self {
+            primary,
+            phase,
+            primary_io,
+            terminal_io,
+            accounting_failed,
+            cleanup_failed,
+            output_failed: false,
+        }
+    }
+    pub(crate) fn with_output_refused(mut self) -> Self {
+        self.output_failed = true;
+        self
+    }
+    pub(crate) fn packet(&self) -> NativeSpoolRefusalPacket<'_> {
+        let reason = self
+            .primary
+            .get_ref()
+            .and_then(|cause| cause.downcast_ref::<NativeValidationRefusal>())
+            .map(|reason| reason.0.as_str())
+            .filter(|reason| reason.len() <= 192);
+        NativeSpoolRefusalPacket {
+            schema_version: "tos_native_spooled_admission_refusal_v1",
+            publication_state: "not_committed",
+            phase: self.phase,
+            primary_error_kind: match self.primary.kind() {
+                io::ErrorKind::InvalidData => "invalid_data",
+                io::ErrorKind::InvalidInput => "invalid_input",
+                io::ErrorKind::PermissionDenied => "permission_denied",
+                io::ErrorKind::TimedOut => "timed_out",
+                io::ErrorKind::Interrupted => "interrupted",
+                io::ErrorKind::NotFound => "not_found",
+                io::ErrorKind::AlreadyExists => "already_exists",
+                _ => "other",
+            },
+            native_validation_reason: reason,
+            primary_io: self.primary_io.into(),
+            terminal_io: self.terminal_io.into(),
+            accounting_failed: self.accounting_failed,
+            cleanup_failed: self.cleanup_failed,
+            output_failed: self.output_failed,
+        }
+    }
+}
 
 /// Unforgeable-in-crate completion witness consumed by the spooled index
 /// adapter. Its constructor remains inside this validator module so a caller

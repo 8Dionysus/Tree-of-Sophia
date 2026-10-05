@@ -187,7 +187,7 @@ fn set_and_verify_connection_policy(
     Ok(())
 }
 
-fn feed_membership(hash: &mut Digest256Hasher, path: &RelativePath, size: u64, sha: Digest256) {
+pub(crate) fn feed_membership(hash: &mut Digest256Hasher, path: &RelativePath, size: u64, sha: Digest256) {
     hash.update(&(path.as_str().len() as u64).to_be_bytes());
     hash.update(path.as_str().as_bytes());
     hash.update(&size.to_be_bytes());

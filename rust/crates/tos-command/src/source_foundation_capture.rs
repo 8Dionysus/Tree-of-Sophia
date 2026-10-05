@@ -12,6 +12,7 @@ use crate::source_command::{
 };
 use crate::source_creation_store::{IsolatedCreationRoot, MAX_BYTES, MAX_FILES, active};
 use serde_json::Value as CandidateValue;
+use crate::source_admission_spooled_index::feed_membership;
 use std::cell::{Cell, RefCell};
 use std::collections::BTreeMap;
 use std::io::{self, Write};

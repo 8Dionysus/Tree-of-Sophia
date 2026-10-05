@@ -1,4 +1,5 @@
 //! Fixed native caller for the seven maintained record-revision owner schemas.
+use super::source_session::{NativeSourceV2RecordFiles, NativeSourceV2Session};
 use super::{absolute, capped, digest, exact, text};
 use crate::source_command::{self as cmd, SourceCommandError, SourceCommandResult};
 use crate::source_creation_store::{self as owner, CreationFilesystem};
@@ -15,7 +16,6 @@ use tos_source_store::{
 use tos_validation::executor::{ExactWorkerIdentity, ExecutorBudget};
 use tos_validation::source_cut::{CutSchemaExecutor, CutWorkerLimits, CutWorkerSchemaExecutor};
 use tos_validation::{FormatProfile, SchemaResource};
-use super::source_session::{NativeSourceV2RecordFiles, NativeSourceV2Session};
 
 struct V1RecordFiles<'a> {
     cut: &'a CorpusCutReader,
@@ -377,7 +377,7 @@ fn bounded_context_files(
     );
     let forms_path = format!("{parent}/{forms_name}");
     if transport.has_file(&forms_path, deadline, cancelled)? {
-        reserve_transport_read(transport, &files, &forms_path, deadline, cancelled)?;
+        reserve_transport_read_from(transport, 0, &files, &forms_path, deadline, cancelled)?;
         files.insert(
             forms_path.clone(),
             transport.read(&forms_path, 8_388_608, deadline, cancelled)?,
@@ -839,8 +839,7 @@ pub(super) fn run_v2(
         cancelled,
     )?;
     let configuration = cmd::parse(&configuration_raw)?;
-    if cmd::text(&configuration, "schema_version")?
-        != "tos_local_native_metadata_revision_owner_v1"
+    if cmd::text(&configuration, "schema_version")? != "tos_local_native_metadata_revision_owner_v1"
     {
         return Err(SourceCommandError::Denied(
             "V2 source revision exact protected family",

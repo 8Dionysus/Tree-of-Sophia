@@ -21,7 +21,7 @@ use tos_source_store::{
     SourceCutDependencyWitness, SourceCutDirectoryWitness, SourceCutIdentityWitness,
     SourceCutMemberTuple, SourceCutMemberWitness, SourceCutReadsetV1, SourcePresenceV1,
 };
-use super::source_admission_store::PreparedV2SuccessorLocatorV2;
+use crate::source_admission_store::PreparedV2SuccessorLocatorV2;
 
 const HOME: &str = "ToS/source-witnesses";
 const CONTROL: &str = ".metadata-publication.json";
@@ -708,7 +708,7 @@ fn validate_source_successor(
     readset: &SourceCutReadsetV1,
     locator: &PreparedV2SuccessorLocatorV2,
 ) -> SourceCommandResult<()> {
-    use super::source_admission_segment_v2::SourceRevisionArtifactV2;
+    use crate::source_admission_segment_v2::SourceRevisionArtifactV2;
     let selection = locator.expected_selection;
     let compact_artifact = matches!(
         &locator.source_artifact,
@@ -826,7 +826,7 @@ fn source_readset_value_unchecked(readset: &SourceCutReadsetV1) -> SourceCommand
 fn source_successor_value(
     locator: &PreparedV2SuccessorLocatorV2,
 ) -> SourceCommandResult<JsonValue> {
-    use super::source_admission_segment_v2::SourceRevisionArtifactV2;
+    use crate::source_admission_segment_v2::SourceRevisionArtifactV2;
     let artifact_bytes = locator
         .source_artifact
         .bytes()
@@ -879,7 +879,7 @@ fn source_successor_value(
 fn parse_source_successor(
     value: &JsonValue,
 ) -> SourceCommandResult<PreparedV2SuccessorLocatorV2> {
-    use super::source_admission_segment_v2::SourceRevisionArtifactV2;
+    use crate::source_admission_segment_v2::SourceRevisionArtifactV2;
     cmd::exact_keys(
         value,
         &[
