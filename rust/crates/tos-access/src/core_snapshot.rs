@@ -1501,7 +1501,10 @@ fn read_selected_evidence(
         deadline,
         cancelled.clone(),
     )
-    .map_err(|_| "Core selected evidence owner check refused")?;
+    .map_err(|error| {
+        compiler_terminal_diagnostic("Core selected evidence owner check", &error);
+        "Core selected evidence owner check refused"
+    })?;
     let budget = tos_compiler::native_snapshot_carriers::CapturedCarrierReadBudget {
         max_rows: request.admission.whole_max_rows,
         max_input_bytes: limits.capture.max_input_bytes,
@@ -2463,7 +2466,10 @@ fn serve_selected_root(
         limits.capture,
         deadline,
     )
-    .map_err(|_| "Core HTTP evidence owner refused")?;
+    .map_err(|error| {
+        compiler_terminal_diagnostic("Core HTTP evidence owner", &error);
+        "Core HTTP evidence owner refused"
+    })?;
     // This is the original request allowance, not a new per-owner grant.
     // Before conversion the builder records and the prospective contiguous
     // membership slots coexist; keys/digests move without payload clones.

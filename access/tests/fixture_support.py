@@ -5,6 +5,8 @@ from contextlib import contextmanager
 import json
 from pathlib import Path
 import shutil
+import subprocess
+import sys
 import tempfile
 
 
@@ -74,6 +76,65 @@ def write_corpus_topology_fixture(root: Path) -> None:
         {"edge_id": "canon-edge", "owner_branch": "ToS/canon", "pack_id": "canon/fixture", "from_id": "a", "to_id": "b"},
     ]
     index_path.write_text(json.dumps(index), encoding="utf-8")
+
+
+def write_evidence_fixture(root: Path) -> None:
+    """Write bounded authored inputs and derive Evidence via the explicit oracle.
+
+    The shared fixture has no canonical anchors or evidence closure. Both the
+    Python adapter and native compiler can inspect the same complete source
+    definition, schema and route bytes without a production corpus.
+    """
+    source_ref = "ToS/philosophy/graph-workbench/views/evidence-lens-scenes.v1.json"
+    candidate_ref = "ToS/philosophy/graph-workbench/proposed-nodes/fixture.json"
+    canon_ref = (
+        "ToS/canon/relations/friedrich-nietzsche/thus-spoke-zarathustra/"
+        "prologue-1/edges.csv"
+    )
+    schema_ref = "ToS/contracts/epistemic-evidence-projection.schema.json"
+    source = {
+        "schema_version": "tos_evidence_lens_scene_bindings_v1",
+        "surface_role": "fixture-only navigation bindings; no canon or rights authority",
+        "scenes": [{
+            "scene_id": "fixture-scene",
+            "selections": [{"mode": "philosophy", "view_id": "chronology", "item_ids": ["a"]}],
+            "posture": "contested-pre-canon",
+            "finding": "Fixture evidence route remains open.",
+            "finding_ru": "Маршрут Evidence в тестовом fixture остаётся открытым.",
+            "conclusion": {
+                "can_conclude": False,
+                "canon_membership": False,
+                "claim_evidence_closed": False,
+                "allowed": ["the selection is present in the projection"],
+                "not_allowed": ["semantic truth", "rights clearance"],
+            },
+            "anchor_edge_ids": [],
+            "routes": [{"route_kind": "candidate", "ref": candidate_ref, "status": "fixture-only"}],
+            "gaps": ["review"],
+            "gaps_ru": ["review"],
+        }],
+    }
+    for relative, text in (
+        (source_ref, json.dumps(source, ensure_ascii=False) + "\n"),
+        (candidate_ref, json.dumps({
+            "node_id": "a", "label": "Alpha", "canon_status": "pre-canon", "fixture_only": True,
+        }) + "\n"),
+        (canon_ref, "edge_id,anchor_segment_ids,witness_scope\n"),
+    ):
+        target = root / relative
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(text, encoding="utf-8")
+    schema_target = root / schema_ref
+    schema_target.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copyfile(REPO_ROOT / schema_ref, schema_target)
+    (root / "ToS/derived-exports").mkdir(parents=True, exist_ok=True)
+    # The maintained builder exposes an explicit reference mode. A subprocess
+    # isolates its source-root binding from other fixture callers and imports.
+    subprocess.run(
+        [sys.executable, str(REPO_ROOT / "scripts/build_epistemic_evidence_projection.py"),
+         "--legacy-oracle", "--source-root", str(root.resolve())],
+        check=True, stdout=subprocess.DEVNULL,
+    )
 
 
 def write_fixture(root: Path) -> None:
@@ -267,52 +328,7 @@ def write_fixture(root: Path) -> None:
         ),
         encoding="utf-8",
     )
-    (derived / "epistemic_evidence_projection.min.json").write_text(
-        json.dumps(
-            {
-                "schema_version": "tos_epistemic_evidence_projection_v1",
-                "owner_repo": "Tree-of-Sophia",
-                "surface_kind": "derived_public_evidence_navigation",
-                "scenes": [
-                    {
-                        "scene_id": "fixture-scene",
-                        "selections": [
-                            {"mode": "philosophy", "view_id": "chronology", "item_ids": ["a"]}
-                        ],
-                        "selection_ids": ["a"],
-                        "posture": "contested-pre-canon",
-                        "finding": "Fixture evidence route remains open.",
-                        "conclusion": {
-                            "can_conclude": False,
-                            "canon_membership": False,
-                            "claim_evidence_closed": False,
-                            "allowed": ["the selection is present in the projection"],
-                            "not_allowed": ["semantic truth"],
-                        },
-                        "source_anchors": [],
-                        "routes": [
-                            {
-                                "route_kind": "candidate",
-                                "ref": "ToS/canon/a.json",
-                                "status": "fixture",
-                                "exists": True,
-                            }
-                        ],
-                        "gaps": ["review"],
-                        "source_refs": ["ToS/canon/a.json"],
-                    }
-                ],
-                "authority_boundary": {
-                    "is_source": False,
-                    "is_canon": False,
-                    "is_semantic_truth": False,
-                    "is_rights_clearance": False,
-                    "note": "Fixture authority remains with the referenced source.",
-                },
-            }
-        ),
-        encoding="utf-8",
-    )
+    write_evidence_fixture(root)
     (audit / "table-i-post-planting-audit.json").write_text(
         json.dumps({"schema_version": "tos_philosophy_post_planting_audit_v1"}),
         encoding="utf-8",
@@ -339,7 +355,7 @@ def write_fixture(root: Path) -> None:
         )
     tos_contracts = root / "ToS/contracts"
     semantic_interchange = root / "ToS/doctrine/semantic-interchange"
-    tos_contracts.mkdir(parents=True)
+    tos_contracts.mkdir(parents=True, exist_ok=True)
     semantic_interchange.mkdir(parents=True)
     for name in (
         "semantic-entity-type-registry.schema.json",

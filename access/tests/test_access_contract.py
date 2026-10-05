@@ -23,6 +23,8 @@ from collections import Counter
 
 from jsonschema import Draft202012Validator
 
+from fixture_support import write_evidence_fixture
+
 ACCESS_ROOT = Path(__file__).resolve().parents[1]
 REPO_ROOT = ACCESS_ROOT.parent
 sys.path.insert(0, (ACCESS_ROOT / "src").as_posix())
@@ -388,52 +390,7 @@ def write_fixture(root: Path) -> None:
     (derived / "philosophy_graph_projection.min.json").write_text(json.dumps(graph), encoding="utf-8")
     (graph_derived / "source-witness-bibliographic-claims.min.json").write_text(
         json.dumps(bibliographic), encoding="utf-8")
-    (derived / "epistemic_evidence_projection.min.json").write_text(
-        json.dumps(
-            {
-                "schema_version": "tos_epistemic_evidence_projection_v1",
-                "owner_repo": "Tree-of-Sophia",
-                "surface_kind": "derived_public_evidence_navigation",
-                "scenes": [
-                    {
-                        "scene_id": "fixture-scene",
-                        "selections": [
-                            {"mode": "philosophy", "view_id": "chronology", "item_ids": ["a"]}
-                        ],
-                        "selection_ids": ["a"],
-                        "posture": "contested-pre-canon",
-                        "finding": "Fixture evidence route remains open.",
-                        "conclusion": {
-                            "can_conclude": False,
-                            "canon_membership": False,
-                            "claim_evidence_closed": False,
-                            "allowed": ["the selection is present in the projection"],
-                            "not_allowed": ["semantic truth"],
-                        },
-                        "source_anchors": [],
-                        "routes": [
-                            {
-                                "route_kind": "candidate",
-                                "ref": "ToS/canon/a.json",
-                                "status": "fixture",
-                                "exists": True,
-                            }
-                        ],
-                        "gaps": ["review"],
-                        "source_refs": ["ToS/canon/a.json"],
-                    }
-                ],
-                "authority_boundary": {
-                    "is_source": False,
-                    "is_canon": False,
-                    "is_semantic_truth": False,
-                    "is_rights_clearance": False,
-                    "note": "Fixture authority remains with the referenced source.",
-                },
-            }
-        ),
-        encoding="utf-8",
-    )
+    write_evidence_fixture(root)
     (audit / "table-i-post-planting-audit.json").write_text(
         json.dumps({"schema_version": "tos_philosophy_post_planting_audit_v1"}),
         encoding="utf-8",
@@ -467,7 +424,7 @@ def write_fixture(root: Path) -> None:
         )
     tos_contracts = root / "ToS/contracts"
     semantic_interchange = root / "ToS/doctrine/semantic-interchange"
-    tos_contracts.mkdir(parents=True)
+    tos_contracts.mkdir(parents=True, exist_ok=True)
     semantic_interchange.mkdir(parents=True)
     for name in (
         "semantic-entity-type-registry.schema.json",
