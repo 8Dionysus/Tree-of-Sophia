@@ -202,9 +202,13 @@ impl SourceCutInput for CandidateRecordsInput<'_, '_> {
     ) -> Result<(), ItemRefusal> {
         let result = (|| {
             self.check(deadline, cancelled)?;
-            if max_bytes == 0 || max_bytes > self.max_member_bytes {
+            if max_bytes == 0 {
                 return Err(ItemRefusal::Budget);
             }
+            // The caller's policy ceiling may exceed the candidate's observed
+            // largest member. Read under their intersection: the source fence
+            // and raw-state reserve were established for the observed ceiling.
+            let max_bytes = max_bytes.min(self.max_member_bytes);
             let path = self.path(path)?;
             let allowance = self
                 .max_owned_state_bytes
