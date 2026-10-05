@@ -892,6 +892,21 @@ impl DiscoveryCurrentPaths for BorrowedDiscoveryPaths<'_> {
     }
 }
 
+fn discovery_budget<T: Copy + Ord + TryInto<u64>>(
+    check: &'static str,
+    used: T,
+    limit: T,
+) -> Result<T, ItemRefusal> {
+    if used > limit {
+        return Err(ItemRefusal::BudgetCheck {
+            check,
+            used: used.try_into().ok(),
+            limit: limit.try_into().ok(),
+        });
+    }
+    Ok(used)
+}
+
 struct Inspector<'s, 'p, S: LayerFamilySource + ?Sized, I: Copy + Eq = ()> {
     source: &'s mut S,
     paths: &'p dyn DiscoveryCurrentPaths,
@@ -979,17 +994,22 @@ impl<S: LayerFamilySource + ?Sized, I: Copy + Eq> Inspector<'_, '_, S, I> {
     }
 
     fn reserve_state(&mut self, bytes: usize) -> Result<(), ItemRefusal> {
-        self.state_bytes = self
+        let retained = self
             .state_bytes
             .checked_add(bytes)
-            .filter(|used| {
-                used.checked_add(self.candidate_current_artifact_evidence_state_bytes)
-                    .and_then(|total| {
-                        total.checked_add(self.candidate_current_discovery_run_summary_state_bytes)
-                    })
-                    .is_some_and(|total| total <= self.limits.max_state_bytes)
+            .ok_or(crate::item_budget_origin!())?;
+        let total = retained
+            .checked_add(self.candidate_current_artifact_evidence_state_bytes)
+            .and_then(|used| {
+                used.checked_add(self.candidate_current_discovery_run_summary_state_bytes)
             })
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
+        discovery_budget(
+            "Discovery retained and active provider state",
+            total,
+            self.limits.max_state_bytes,
+        )?;
+        self.state_bytes = retained;
         Ok(())
     }
 
@@ -1072,9 +1092,17 @@ impl<S: LayerFamilySource + ?Sized, I: Copy + Eq> Inspector<'_, '_, S, I> {
         code: &'static str,
         detail: impl Into<String>,
     ) -> Result<(), ItemRefusal> {
-        if self.issues.len() + self.unsupported.len() >= self.limits.max_issues {
-            return Err(ItemRefusal::Budget);
-        }
+        let next = self
+            .issues
+            .len()
+            .checked_add(self.unsupported.len())
+            .and_then(|count| count.checked_add(1))
+            .ok_or(crate::item_budget_origin!())?;
+        discovery_budget(
+            "Discovery issue and unsupported count",
+            next,
+            self.limits.max_issues,
+        )?;
         let location = location.into();
         let detail = detail.into();
         self.reserve_state(location.len() + detail.len() + code.len() + 96)?;
@@ -1091,9 +1119,17 @@ impl<S: LayerFamilySource + ?Sized, I: Copy + Eq> Inspector<'_, '_, S, I> {
         location: impl Into<String>,
         reason: &'static str,
     ) -> Result<(), ItemRefusal> {
-        if self.issues.len() + self.unsupported.len() >= self.limits.max_issues {
-            return Err(ItemRefusal::Budget);
-        }
+        let next = self
+            .issues
+            .len()
+            .checked_add(self.unsupported.len())
+            .and_then(|count| count.checked_add(1))
+            .ok_or(crate::item_budget_origin!())?;
+        discovery_budget(
+            "Discovery issue and unsupported count",
+            next,
+            self.limits.max_issues,
+        )?;
         let location = location.into();
         self.reserve_state(location.len() + reason.len() + 64)?;
         if !self
@@ -1176,15 +1212,20 @@ impl<S: LayerFamilySource + ?Sized, I: Copy + Eq> Inspector<'_, '_, S, I> {
     }
 
     fn check_temporary_state(&self, bytes: usize) -> Result<(), ItemRefusal> {
-        self.state_bytes
+        let total = self
+            .state_bytes
             .checked_add(bytes)
             .and_then(|used| used.checked_add(self.candidate_current_artifact_evidence_state_bytes))
             .and_then(|used| {
                 used.checked_add(self.candidate_current_discovery_run_summary_state_bytes)
             })
-            .filter(|used| *used <= self.limits.max_state_bytes)
-            .map(|_| ())
-            .ok_or(ItemRefusal::Budget)
+            .ok_or(crate::item_budget_origin!())?;
+        discovery_budget(
+            "Discovery simultaneous temporary state",
+            total,
+            self.limits.max_state_bytes,
+        )?;
+        Ok(())
     }
 
     fn canonical_record_sha256(&mut self, value: &Value) -> Result<String, ItemRefusal> {
@@ -1362,7 +1403,7 @@ impl<S: LayerFamilySource + ?Sized, I: Copy + Eq> Inspector<'_, '_, S, I> {
             // this kernel below; a post-read check cannot bound that read.
             let remaining_read_bytes = max_total_bytes
                 .checked_sub(self.read_bytes)
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
             let remaining_copy_bytes = max_state_bytes
                 .checked_sub(self.state_bytes)
                 .and_then(|remaining| {
@@ -1371,7 +1412,7 @@ impl<S: LayerFamilySource + ?Sized, I: Copy + Eq> Inspector<'_, '_, S, I> {
                 .and_then(|remaining| {
                     remaining.checked_sub(self.candidate_current_discovery_run_summary_state_bytes)
                 })
-                .ok_or(ItemRefusal::Budget)?
+                .ok_or(crate::item_budget_origin!())?
                 / 8;
             let max_request_bytes = max_member_bytes
                 .min(usize::try_from(remaining_read_bytes).unwrap_or(usize::MAX))
@@ -1381,42 +1422,65 @@ impl<S: LayerFamilySource + ?Sized, I: Copy + Eq> Inspector<'_, '_, S, I> {
             let read_bytes = &mut self.read_bytes;
             let candidate_direct_source_bytes = &mut self.candidate_direct_source_bytes;
             let state_bytes = &mut self.state_bytes;
-            input.with_current_member(
-                path,
-                max_request_bytes,
-                deadline,
-                cancellation,
-                &mut |meta, bytes| {
-                    let byte_count = u64::try_from(bytes.len()).map_err(|_| ItemRefusal::Budget)?;
-                    if meta.path != path || current.is_some() || meta.size_bytes != byte_count {
-                        return Err(ItemRefusal::Source(
+            input
+                .with_current_member(
+                    path,
+                    max_request_bytes,
+                    deadline,
+                    cancellation,
+                    &mut |meta, bytes| {
+                        let byte_count =
+                            u64::try_from(bytes.len()).map_err(|_| crate::item_budget_origin!())?;
+                        if meta.path != path || current.is_some() || meta.size_bytes != byte_count {
+                            return Err(ItemRefusal::Source(
                             "candidate Discovery current member metadata differs from its bytes"
                                 .into(),
                         ));
-                    }
-                    if bytes.len() > max_request_bytes {
-                        return Err(ItemRefusal::Budget);
-                    }
-                    let next_read_bytes = read_bytes
-                        .checked_add(byte_count)
-                        .filter(|used| *used <= max_total_bytes)
-                        .ok_or(ItemRefusal::Budget)?;
-                    let next_candidate_source_bytes = candidate_direct_source_bytes
-                        .checked_add(byte_count)
-                        .ok_or(ItemRefusal::Budget)?;
-                    let copy_state_bytes = bytes.len().checked_mul(8).ok_or(ItemRefusal::Budget)?;
-                    let next_state_bytes = state_bytes
-                        .checked_add(copy_state_bytes)
-                        .filter(|used| *used <= max_state_bytes)
-                        .ok_or(ItemRefusal::Budget)?;
-                    *read_bytes = next_read_bytes;
-                    *candidate_direct_source_bytes = next_candidate_source_bytes;
-                    *state_bytes = next_state_bytes;
-                    candidate_cost_precharged = true;
-                    current = Some(bytes.to_vec());
-                    Ok(())
-                },
-            )?;
+                        }
+                        discovery_budget(
+                            "Discovery candidate current member bytes",
+                            bytes.len(),
+                            max_request_bytes,
+                        )?;
+                        let next_read_bytes = read_bytes
+                            .checked_add(byte_count)
+                            .ok_or(crate::item_budget_origin!())?;
+                        discovery_budget(
+                            "Discovery current source read bytes",
+                            next_read_bytes,
+                            max_total_bytes,
+                        )?;
+                        let next_candidate_source_bytes = candidate_direct_source_bytes
+                            .checked_add(byte_count)
+                            .ok_or(crate::item_budget_origin!())?;
+                        let copy_state_bytes = bytes
+                            .len()
+                            .checked_mul(8)
+                            .ok_or(crate::item_budget_origin!())?;
+                        let next_state_bytes = state_bytes
+                            .checked_add(copy_state_bytes)
+                            .ok_or(crate::item_budget_origin!())?;
+                        discovery_budget(
+                            "Discovery current member cumulative copy state",
+                            next_state_bytes,
+                            max_state_bytes,
+                        )?;
+                        *read_bytes = next_read_bytes;
+                        *candidate_direct_source_bytes = next_candidate_source_bytes;
+                        *state_bytes = next_state_bytes;
+                        candidate_cost_precharged = true;
+                        current = Some(bytes.to_vec());
+                        Ok(())
+                    },
+                )
+                .map_err(|error| match error {
+                    ItemRefusal::Budget => ItemRefusal::BudgetCheck {
+                        check: "Discovery candidate current member input envelope",
+                        used: None,
+                        limit: None,
+                    },
+                    other => other,
+                })?;
             current
         } else {
             self.source
@@ -1428,17 +1492,28 @@ impl<S: LayerFamilySource + ?Sized, I: Copy + Eq> Inspector<'_, '_, S, I> {
             ))
         })?;
         self.checkpoint()?;
-        if raw.len() > self.limits.max_member_bytes {
-            return Err(ItemRefusal::Budget);
-        }
+        discovery_budget(
+            "Discovery current member bytes",
+            raw.len(),
+            self.limits.max_member_bytes,
+        )?;
         if !candidate_cost_precharged {
-            let raw_bytes = u64::try_from(raw.len()).map_err(|_| ItemRefusal::Budget)?;
-            self.read_bytes = self
+            let raw_bytes = u64::try_from(raw.len()).map_err(|_| crate::item_budget_origin!())?;
+            let next_read_bytes = self
                 .read_bytes
                 .checked_add(raw_bytes)
-                .filter(|used| *used <= self.limits.max_total_bytes)
-                .ok_or(ItemRefusal::Budget)?;
-            self.reserve_state(raw.len().checked_mul(8).ok_or(ItemRefusal::Budget)?)?;
+                .ok_or(crate::item_budget_origin!())?;
+            discovery_budget(
+                "Discovery current source read bytes",
+                next_read_bytes,
+                self.limits.max_total_bytes,
+            )?;
+            self.read_bytes = next_read_bytes;
+            self.reserve_state(
+                raw.len()
+                    .checked_mul(8)
+                    .ok_or(crate::item_budget_origin!())?,
+            )?;
         }
         let candidate_digest_cache = self.candidate_discovery_digest_cache.is_some();
         let new_resident_digest = !candidate_digest_cache && !self.digests.contains_key(path);
@@ -1450,7 +1525,7 @@ impl<S: LayerFamilySource + ?Sized, I: Copy + Eq> Inspector<'_, '_, S, I> {
                 .checked_mul(2)
                 .and_then(|bytes| bytes.checked_add(64 * 2))
                 .and_then(|bytes| bytes.checked_add(size_of::<(String, String)>() + 96))
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
             self.reserve_state(digest_state)?;
         }
         if candidate_digest_cache || new_resident_digest {
