@@ -7,6 +7,29 @@ registry 45 state their definitions through each subject’s properties, purpose
 and relations. Source-specific uncertainty and substantive negation remain
 part of the authored meaning.
 
+## Source validation profiles
+
+[`source-validation-profiles.v1.json`](source-validation-profiles.v1.json)
+declares the software-owned mechanical validation scope selected by native
+admission with `--validation-profile ID`. Omission selects `full-audit`, which
+continues to require the whole repository's laboratory and Goldset districts.
+The explicit `selected-source-closure` profile validates the authenticated
+selected source membership through Records, bibliography, rights, review,
+references, dependency closure, Discovery and Closure. It does not claim that
+whole-repository laboratories or Goldsets were executed, including any such
+files present in selected membership. Their bytes still participate in
+applicable Records and reference checks; this is never a whole-audit certificate.
+
+Scope comes from the declaration, never from whether a directory exists.
+Required selected references and their exact dependencies must resolve;
+missing inputs, unsupported contracts and incomplete owner checks refuse
+admission. This profile does not accept source meaning, rights, canon or
+publication. The software catalog's exact bytes and selected profile ID bind
+the validator identity and admission receipt. Unknown IDs or scope dialects
+refuse selection. The existing lab-only evaluation mode remains ineligible
+for corpus admission; ordinary foundation commands reject explicit admission
+profiles rather than ignoring them.
+
 ## Query vocabulary for derived readers
 
 [`query-vocabulary.v1.json`](query-vocabulary.v1.json) registers the source

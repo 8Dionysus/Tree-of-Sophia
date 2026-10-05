@@ -145,6 +145,11 @@ fn run_selected(
     output_deadline: &Cell<Instant>,
 ) -> Result<i32> {
     let launch = parse_launch_arguments(args)?;
+    if launch.arguments.validation_profile_explicit {
+        return Err(Error::Unsupported(
+            "validation-profile selection requires native admission",
+        ));
+    }
     if launch.arguments.help {
         let mut output = SelectedOutput {
             writer: stdout,

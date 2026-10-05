@@ -7,6 +7,7 @@ use crate::source_admission_spooled_candidate::{SpoolCandidate, SpoolLimits};
 use crate::source_admission_spooled_index::{CandidateRecordsReportVerified, SpoolIndexLimits};
 use crate::source_admission_spooled_manifest::ManifestStreamLimits;
 use crate::source_creation_store::IsolatedCreationRoot;
+use crate::source_current_cut::foundation_cli::ValidationProfile;
 use crate::source_current_cut::{
     foundation_bootstrap::{FoundationBootstrapInputs, verify_invocation_with_budget},
     foundation_entry::{
@@ -346,6 +347,7 @@ pub(crate) struct NativeSourceValidator<'c> {
     prepared: Option<Prepared<'c>>,
     evaluated: Option<FoundationBootstrapInputs<'c>>,
     grammar: GrammarIdentity,
+    validation_profile: ValidationProfile,
     history: Option<HistoryEvidence>,
     history_usage: (u64, usize),
     identity: Digest256,
@@ -521,6 +523,11 @@ impl<'c> NativeSourceValidator<'c> {
             max_discovery_entries: count(invocation.budgets.max_current_members)?,
             max_state_bytes: remaining.state_bytes,
         };
+        let validation_profile = launch.arguments.validation_profile;
+        if validation_profile.scope == tos_validation::source_foundation_default_rules::SourceFoundationDefaultRuleScope::SelectedSourceClosure
+            && !matches!(invocation.admission_representation(), foundation_entry::FoundationAdmissionRepresentation::NativeV4 | foundation_entry::FoundationAdmissionRepresentation::NativeV4SegmentV2) {
+            return Err(invalid("selected-source validation requires native-v4 admission"));
+        }
         let grammar = GrammarIdentity::select(
             &mut sources,
             invocation.executable_sha256(),
@@ -528,6 +535,7 @@ impl<'c> NativeSourceValidator<'c> {
             limits,
             deadline,
             cancel,
+            validation_profile,
         )?;
         debit(
             &mut ledger,
@@ -603,6 +611,7 @@ impl<'c> NativeSourceValidator<'c> {
             }),
             evaluated: None,
             grammar,
+            validation_profile,
             history,
             history_usage,
             identity,
@@ -1333,11 +1342,10 @@ impl<'c> NativeSourceValidator<'c> {
             ));
         }
         let max_manifest_allocated_bytes = manifest_partition;
-        let manifest_bytes = candidate_limits
-            .reader
-            .max_manifest_bytes
-            .min(usize::try_from(max_manifest_allocated_bytes)
-                .map_err(|_| invalid("spooled manifest allocation bound exceeds address space"))?);
+        let manifest_bytes = candidate_limits.reader.max_manifest_bytes.min(
+            usize::try_from(max_manifest_allocated_bytes)
+                .map_err(|_| invalid("spooled manifest allocation bound exceeds address space"))?,
+        );
         if manifest_bytes == 0 {
             return Err(invalid(
                 "selected spooled profile exceeds remaining invocation resources",
@@ -1392,11 +1400,8 @@ impl<'c> NativeSourceValidator<'c> {
             .ok_or_else(|| invalid("private stage authority disappeared"))?;
         let isolated = IsolatedCreationRoot::create(authority.root(), self.deadline, &cancelled)
             .map_err(command)?;
-        let aggregate_write = PinnedSqliteIoBudget::new(
-            original_io_read_cap,
-            write_remaining,
-        )
-        .map_err(invalid)?;
+        let aggregate_write =
+            PinnedSqliteIoBudget::new(original_io_read_cap, write_remaining).map_err(invalid)?;
         let workspace_result =
             (|| -> io::Result<(File, PinnedSqliteIoBudget, PinnedSqliteSpaceBudget, File)> {
                 let workspace = isolated
@@ -1903,8 +1908,11 @@ impl<'c> NativeSourceValidator<'c> {
     pub(crate) fn spooled_invocation_io_snapshot(
         &self,
     ) -> io::Result<tos_source_store::PinnedSqliteIoSnapshot> {
-        let spool = &self.spooled_profile.as_ref()
-            .ok_or_else(|| invalid("spooled original budget absent"))?.2;
+        let spool = &self
+            .spooled_profile
+            .as_ref()
+            .ok_or_else(|| invalid("spooled original budget absent"))?
+            .2;
         let mut usage = spool.snapshot();
         let writes = spool.shared_write_snapshot();
         if let Some(v2) = self.segment_v2_profile.as_ref() {
@@ -1912,16 +1920,20 @@ impl<'c> NativeSourceValidator<'c> {
                 return Err(invalid("spooled/V2 original write authority differs"));
             }
             let segment = v2.io.snapshot();
-            usage.read_attempted_bytes = usage.read_attempted_bytes
+            usage.read_attempted_bytes = usage
+                .read_attempted_bytes
                 .checked_add(segment.read_attempted_bytes)
                 .ok_or_else(|| invalid("invocation read snapshot overflow"))?;
-            usage.read_permitted_bytes = usage.read_permitted_bytes
+            usage.read_permitted_bytes = usage
+                .read_permitted_bytes
                 .checked_add(segment.read_permitted_bytes)
                 .ok_or_else(|| invalid("invocation read snapshot overflow"))?;
-            usage.read_returned_bytes = usage.read_returned_bytes
+            usage.read_returned_bytes = usage
+                .read_returned_bytes
                 .checked_add(segment.read_returned_bytes)
                 .ok_or_else(|| invalid("invocation read snapshot overflow"))?;
-            usage.read_upper_bound_attempted_bytes = usage.read_upper_bound_attempted_bytes
+            usage.read_upper_bound_attempted_bytes = usage
+                .read_upper_bound_attempted_bytes
                 .checked_add(segment.read_upper_bound_attempted_bytes)
                 .ok_or_else(|| invalid("invocation read snapshot overflow"))?;
             usage.failure = usage.failure.or(segment.failure);
@@ -1983,7 +1995,8 @@ impl<'c> NativeSourceValidator<'c> {
             .2;
         let usage = original.snapshot();
         let aggregate_write = original.shared_write_snapshot();
-        let selected_write_cap = self.spooled_write_cap
+        let selected_write_cap = self
+            .spooled_write_cap
             .ok_or_else(|| invalid("spooled selected write authority absent"))?;
         let candidate_read = usage
             .read_attempted_bytes
@@ -2059,15 +2072,18 @@ impl<'c> NativeSourceValidator<'c> {
             || aggregate_write.write_permitted_bytes > aggregate_write.write_attempted_bytes
             || aggregate_write.write_returned_bytes > aggregate_write.write_permitted_bytes
             || aggregate_write.failure.is_some()
-            || usage.write_attempted_bytes.checked_add(
-                segment_v2_usage.map_or(0, |segment| segment.write_attempted_bytes)
-            ) != Some(aggregate_write.write_attempted_bytes)
-            || usage.write_permitted_bytes.checked_add(
-                segment_v2_usage.map_or(0, |segment| segment.write_permitted_bytes)
-            ) != Some(aggregate_write.write_permitted_bytes)
-            || usage.write_returned_bytes.checked_add(
-                segment_v2_usage.map_or(0, |segment| segment.write_returned_bytes)
-            ) != Some(aggregate_write.write_returned_bytes)
+            || usage
+                .write_attempted_bytes
+                .checked_add(segment_v2_usage.map_or(0, |segment| segment.write_attempted_bytes))
+                != Some(aggregate_write.write_attempted_bytes)
+            || usage
+                .write_permitted_bytes
+                .checked_add(segment_v2_usage.map_or(0, |segment| segment.write_permitted_bytes))
+                != Some(aggregate_write.write_permitted_bytes)
+            || usage
+                .write_returned_bytes
+                .checked_add(segment_v2_usage.map_or(0, |segment| segment.write_returned_bytes))
+                != Some(aggregate_write.write_returned_bytes)
             || usage.failure.is_some()
         {
             return Err(invalid("spooled terminal physical IO accounting refused"));
@@ -2254,6 +2270,7 @@ impl<'c> NativeSourceValidator<'c> {
             max_edges,
             max_state_bytes: operation_state,
         };
+        let validation_scope = self.validation_profile.scope;
         let history = self
             .history
             .as_mut()
@@ -2276,6 +2293,7 @@ impl<'c> NativeSourceValidator<'c> {
                         json_state,
                         callback_state,
                         base_state,
+                        validation_scope,
                     )
                 },
             )
@@ -2546,6 +2564,34 @@ impl<'c> NativeSourceValidator<'c> {
         writer: &mut dyn Write,
     ) -> io::Result<()> {
         active(self.deadline, self.cancel)?;
+        let object = value
+            .as_object()
+            .ok_or_else(|| invalid("admission receipt must be an object"))?;
+        if object.contains_key("validation_profile_id")
+            || object.contains_key("validation_profile_declaration_sha256")
+            || object.contains_key("validation_input_scope")
+        {
+            return Err(invalid(
+                "admission receipt cannot override validator profile",
+            ));
+        }
+        #[derive(serde::Serialize)]
+        struct ProfileReceipt<'a> {
+            #[serde(flatten)]
+            receipt: &'a Value,
+            validation_profile_id: &'a str,
+            validation_input_scope: &'a str,
+            validation_profile_declaration_sha256: String,
+        }
+        let value = ProfileReceipt {
+            receipt: value,
+            validation_profile_id: self.validation_profile.id,
+            validation_input_scope: self.validation_profile.input_scope,
+            validation_profile_declaration_sha256: self
+                .validation_profile
+                .declaration_sha256
+                .to_hex(),
+        };
         let ticket = self
             .ledger_mut()?
             .begin_window("admission-receipt", FoundationPhaseReservation::default())
@@ -2559,7 +2605,7 @@ impl<'c> NativeSourceValidator<'c> {
             deadline: self.deadline,
             cancel: self.cancel,
         };
-        serde_json::to_writer(&mut count, value).map_err(invalid)?;
+        serde_json::to_writer(&mut count, &value).map_err(invalid)?;
         count.write_all(b"\n")?;
         let mut output = ReceiptWriter {
             inner: Some(writer),
@@ -2568,7 +2614,7 @@ impl<'c> NativeSourceValidator<'c> {
             deadline: self.deadline,
             cancel: self.cancel,
         };
-        serde_json::to_writer(&mut output, value).map_err(invalid)?;
+        serde_json::to_writer(&mut output, &value).map_err(invalid)?;
         output.write_all(b"\n")?;
         output.flush()?;
         let bytes = output.count;

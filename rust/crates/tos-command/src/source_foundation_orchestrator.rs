@@ -1387,6 +1387,7 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
     json_state_bytes: usize,
     callback_state_bytes: usize,
     base_declared_state_bytes: usize,
+    scope: tos_validation::source_foundation_default_rules::SourceFoundationDefaultRuleScope,
 ) -> Result<
     (
         crate::source_admission_spooled_index::IndexSink<'candidate>,
@@ -1606,7 +1607,13 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
     }
     // Resource preparation retains a finite report. Whole streamed execution
     // instead follows the selected member bound and original operation ledgers.
-    let max_checks = max_members.max(1);
+    // Every completed framed exchange costs at least one wire byte. This
+    // original selected finite ceiling admits cardinality without a member
+    // multiplicity guess; actual wire/raw/CPU ledgers remain independently held.
+    let max_checks = usize::try_from(schema_operation.worker_wire_bytes)
+        .ok()
+        .filter(|n| *n > 0 && *n < usize::MAX)
+        .ok_or_else(|| incomplete("candidate diagnostic whole-operation count range"))?;
     let schema_loader_checks =
         max_checks.min(tos_validation::source_foundation_schema::MAX_SOURCE_FOUNDATION_CHECKS);
     let schema_limits = schema_limits_for_ticket(
@@ -1617,7 +1624,9 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
         schema_bytes,
         schema_loader_checks,
     )?;
-    let first_worker_shape = cut_worker_shape(schema_operation, max_checks);
+    let mut first_worker_shape = cut_worker_shape(schema_operation, max_checks);
+    // Scalar DiagnosticsV2 executes one framed exchange per check.
+    first_worker_shape.max_chunks = first_worker_shape.max_total_units;
     let first_worker_stream = view
         .execution_limits
         .cut_worker_stream_budget(schema_operation, first_worker_shape)
@@ -1811,7 +1820,12 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
         .execution_limits
         .rolling_records_limits(records_profile, records_schema_request_state)
         .map_err(FoundationOrchestratorError::Command)?;
-    let records_shape = cut_worker_shape(records_profile, max_checks);
+    let records_max_checks = usize::try_from(records_profile.worker_wire_bytes)
+        .ok()
+        .filter(|n| *n > 0 && *n < usize::MAX)
+        .ok_or_else(|| incomplete("candidate Records diagnostic count range"))?;
+    let mut records_shape = cut_worker_shape(records_profile, records_max_checks);
+    records_shape.max_chunks = records_shape.max_total_units;
     let records_stream = view
         .execution_limits
         .cut_worker_stream_budget(records_profile, records_shape)
@@ -1825,7 +1839,7 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
         &worker_image,
         record_executor_budget,
         FormatProfile::LegacyPythonObserved20260923,
-        max_checks,
+        records_max_checks,
         deadline,
         cancelled,
     )
@@ -1837,7 +1851,7 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
     };
     let record_diagnostic_limits = BiblioSchemaDiagnosticsLimits::from_operation_ceilings(
         record_diagnostic_ceilings,
-        max_checks,
+        records_max_checks,
         records_stream,
     )
     .map_err(owner)?;
@@ -2297,7 +2311,8 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
                         default_rules_limits,
                         stored_limits,
                         cancelled,
-                    )?;
+                        scope,
+                    ).map_err(|error| candidate_owner_refusal("candidate default rules receiver", error))?;
                     let replay_cost_after_rules = replay.cost();
                     let evidence_peak_state = replay_cost_after_rules
                         .candidate_artifact_evidence_peak_state_bytes
@@ -2433,10 +2448,17 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
                     };
                     let evaluated = super::foundation_rule_diagnostics::evaluate_candidate_stored_rules(
                         stored_report,
+                        records,
+                        page_budget,
                         discovery_schema_requests,
                         closure_schema_requests,
                         &mut **schemas,
                         schema_limits,
+                        super::foundation_rule_diagnostics::CandidateRuleDiagnosticOperationLimits {
+                            max_checks,
+                            max_total_instance_bytes: usize::try_from(first_worker_stream.max_total_raw_bytes)
+                                .map_err(|_| ItemRefusal::Budget)?,
+                        },
                         deadline,
                         cancelled,
                         rule_diag_limits,
@@ -2445,30 +2467,67 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
                         "candidate stored default diagnostics are incomplete".into(),
                     ))?;
                     let owner_report = &evaluated.owner_report;
-                    let clean = owner_report.cost.direct_owner_issue_count == 0
-                        && owner_report.labs.unimplemented.is_empty()
-                        && owner_report
-                            .labs
-                            .results
-                            .iter()
-                            .all(|lab| lab.unimplemented.is_empty())
-                        && owner_report.goldsets.coverage_gaps.is_empty()
-                        && owner_report.discovery.unsupported.is_empty()
-                        && owner_report.closure.unsupported.is_empty()
-                        && owner_report.cost.queued_schema_document_count
-                            == evaluated.cost.schema_check_count
-                        && evaluated.cost.diagnostic_issue_count == 0
-                        && evaluated.diagnostics.iter().all(|diagnostic| {
-                            diagnostic.input_identity() == &fence
-                                && diagnostic.prepared_execution_binding()
-                                    == schemas.prepared_execution_binding()
-                                && diagnostic.result().is_valid()
-                        });
-                    if !clean {
+                    if owner_report.scope != scope {
+                        return Err(ItemRefusal::Source("candidate default profile binding differs".into()));
+                    }
+
+                    // Preserve every failed owned predicate, without printing private
+                    // source paths, issue prose, or worker payloads. The first failed
+                    // predicate carries exact observed/expected scalar counts.
+                    let predicates = [
+                        ("default direct owner issues", owner_report.cost.direct_owner_issue_count, 0),
+                        ("default aggregate Labs coverage", owner_report.labs.as_ref().map_or(0, |labs| labs.unimplemented.len()), 0),
+                        ("default per-lab coverage", owner_report.labs.as_ref().map_or(0, |labs| labs.results.iter().filter(|lab| !lab.unimplemented.is_empty()).count()), 0),
+                        ("default Goldset coverage", owner_report.goldsets.as_ref().map_or(0, |goldsets| goldsets.coverage_gaps.len()), 0),
+                        ("default Discovery coverage", owner_report.discovery.unsupported.len(), 0),
+                        ("default Closure coverage", owner_report.closure.unsupported.len(), 0),
+                        ("default queued execution count", evaluated.cost.schema_check_count, owner_report.cost.queued_schema_document_count),
+                        ("default resolved schema issues", evaluated.semantic_failure_count().ok_or(ItemRefusal::Budget)?, 0),
+                        ("default diagnostic live binding", usize::from(!evaluated.diagnostics_bound_to(&**schemas, scope)), 0),
+                    ];
+                    let mut failed_mask = 0u16;
+                    let mut primary = None;
+                    for (index, (label, observed, expected)) in predicates.into_iter().enumerate() {
+                        if observed != expected {
+                            failed_mask |= 1u16 << index;
+                            primary.get_or_insert((label, observed, expected));
+                        }
+                    }
+                    if let Some((label, observed, expected)) = primary {
+                        let issue = owner_report.labs.as_ref().and_then(|labs| labs.ordered_issues.first()).map(|(_, text)| text.as_str())
+                            .or_else(|| owner_report.goldsets.as_ref().and_then(|goldsets| goldsets.ordered_issues.first()).map(|(_, text)| text.as_str()))
+                            .or_else(|| owner_report.discovery.issues.first().map(|issue| issue.detail.as_str()))
+                            .or_else(|| owner_report.closure.issues.first().map(|(_, text)| text.as_str()))
+                            .unwrap_or(label);
+                        // 11 predicate bits and two 64-bit hex counters fit the
+                        // existing 40-byte source-cause site bound exactly.
+                        let mut site = format!("pr-{failed_mask:x}-{observed:x}-{expected:x}");
+                        let mut cause = issue;
+                        if let Some(diagnostic) = evaluated.first_invalid()
+                        {
+                            let result = diagnostic.result();
+                            let contract = Digest256::of_bytes(result.contract().as_bytes()).to_hex();
+                            let reason = result.report().issues.first()
+                                .map_or(0, |issue| issue.reason as u16);
+                            let diagnostic_site = format!(
+                                "{site}-s{:x}-r{reason:x}-c{}",
+                                result.status() as u8, &contract[..12],
+                            );
+                            // The full source-path digest remains the cause, while
+                            // this bounded navigation prefix names the selected
+                            // contract and its owned structured reason code.
+                            if diagnostic_site.len() <= 40 {
+                                site = diagnostic_site;
+                                cause = result.path();
+                            }
+                        }
                         return Err(ItemRefusal::Source(
-                            "candidate default owner predicates are incomplete or invalid".into(),
+                            crate::source_admission_spooled_index::bounded_source_cause(
+                                "receiver-source", &site, cause,
+                            ),
                         ));
                     }
+                    let _ordered_rule_observations = evaluated.ordered_observation_sha256();
                     let after_defaults = view.original_io.snapshot();
                     let candidate_read = after_defaults
                         .read_attempted_bytes
@@ -2935,21 +2994,26 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
         FoundationPhaseReservation::default(),
     )?;
     let native_operation = native_ticket.operation_limits();
+    let native_max_checks = usize::try_from(native_operation.worker_wire_bytes)
+        .ok()
+        .filter(|n| *n > 0 && *n < usize::MAX)
+        .ok_or_else(|| incomplete("candidate native diagnostic count range"))?;
     let native_schema_limits = schema_limits_for_ticket(
         view.execution_limits,
         &native_ticket,
         schema_count,
         schema_max_bytes,
         schema_bytes,
-        max_checks,
+        schema_loader_checks,
     )?;
-    let native_shape = cut_worker_shape(native_operation, max_checks);
+    let mut native_shape = cut_worker_shape(native_operation, native_max_checks);
+    native_shape.max_chunks = native_shape.max_total_units;
     let native_stream = view
         .execution_limits
         .cut_worker_stream_budget(native_operation, native_shape)
         .map_err(FoundationOrchestratorError::Command)?;
     let native_worker_limits = CutWorkerLimits {
-        max_receipts: max_checks,
+        max_receipts: native_max_checks,
         max_receipt_bytes: native_operation.state_bytes.min(1024 * 1024).max(1),
     };
     let native_diagnostics = CutSchemaDiagnosticsLimits {
