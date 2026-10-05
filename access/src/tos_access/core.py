@@ -3902,20 +3902,29 @@ class NativeToSAccessCore(_NativeAccessCore):
             'evidence_projection_path': evidence_projection_path,
         }
         selected_release = release_root if release_root is not None else os.environ.get('TOS_RELEASE_ROOT')
-        selected_root = None if selected_release and tos_root is None and not os.environ.get('TOS_DATA_ROOT') else _discover_root(tos_root)
-        snapshot_root = (selected_root.parent if selected_root is not None
-                         and selected_root.name == 'data'
-                         and os.path.lexists(selected_root.parent / 'manifest.json') else None)
+        explicit_source_root = tos_root is not None or bool(os.environ.get('TOS_DATA_ROOT'))
+        selected_root = (None if selected_release is not None and not explicit_source_root
+                         else _discover_root(tos_root))
+        if selected_release is not None and selected_root is not None:
+            if selected_root.name != 'data':
+                raise DataAccessUnavailable(
+                    'ReferenceRelease pairing requires an explicitly selected snapshot data root'
+                )
+            # This is path pairing only. The native ReferenceRelease guard opens
+            # and validates both manifests and their member/revocation bindings.
+            snapshot_root = selected_root.parent
+        else:
+            snapshot_root = (selected_root.parent if selected_root is not None
+                             and selected_root.name == 'data'
+                             and os.path.lexists(selected_root.parent / 'manifest.json') else None)
+        if selected_release is not None and selected_root is not None and native_admission_provider is not None:
+            raise ValueError('ReferenceRelease requires the native-owned ordinary operation route')
         if snapshot_root is not None and native_admission_provider is not None:
             raise ValueError('guarded snapshot selection requires the native-owned operation route')
 
-        if selected_release is not None:
+        if selected_release is not None and selected_root is None:
             if native_admission_provider is not None:
                 raise ValueError('ManagedRelease uses its native owner and cannot be combined with SourceRoot admission')
-            if selected_root is not None:
-                raise DataAccessUnavailable(
-                    'an explicit data-root override with TOS_RELEASE_ROOT requires native release-pair binding'
-                )
             if any(value is not None for value in selectors.values()) or any(
                     os.environ.get(name) for name in self._CARRIER_ENV):
                 raise ValueError('ManagedRelease source selectors require its native declared-member route')
@@ -3943,6 +3952,9 @@ class NativeToSAccessCore(_NativeAccessCore):
             carrier_paths = source_carrier_paths(selected_root, **selectors)
             prepared_selected = (published_read_model_path is not None
                                  or published_read_model_expected is not None)
+            if selected_release is not None and (
+                    prepared_selected or published_exploration_checkpoint_path is not None):
+                raise ValueError('ReferenceRelease guarded source and prepared/checkpoint readers are separate native routes')
             if prepared_selected and (query_store_path is not None
                                       or os.environ.get('TOS_QUERY_STORE_PATH')):
                 raise ValueError('select a prepared reader or a QueryStore')
@@ -3984,6 +3996,7 @@ class NativeToSAccessCore(_NativeAccessCore):
                 core_snapshot_admission_provider=native_admission_provider,
                 core_snapshot_native_owned=(selection is not None and native_admission_provider is None),
                 core_snapshot_snapshot_root=snapshot_root,
+                core_snapshot_release_root=selected_release,
             )
             root = self.tos_root
             query_path = None if selection is None else selection.query_store_path

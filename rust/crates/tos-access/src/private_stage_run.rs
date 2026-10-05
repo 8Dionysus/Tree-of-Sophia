@@ -854,6 +854,17 @@ struct Options {
     direct_custody: Option<(libc::pid_t, libc::sigset_t)>,
     command: Vec<String>,
 }
+fn selected_release_ro() -> Result<Option<PathBuf>, String> {
+    let Some(raw) = std::env::var_os("TOS_RELEASE_ROOT") else {
+        return Ok(None);
+    };
+    let path = PathBuf::from(raw);
+    if !path.is_absolute() || path != fs::canonicalize(&path).map_err(|e| e.to_string())? {
+        return Err("Reference release root must be an exact absolute directory".into());
+    }
+    drop(directory(&path)?);
+    Ok(Some(path))
+}
 fn verify_protected_ro(_o: &Options, path: &Path, held: &File) -> Result<(), String> {
     identical(held, &directory(path)?)?;
     // A selected source may live below /tmp and contain its separately issued cache.
@@ -1090,6 +1101,7 @@ impl Leader {
         persistent_fd: Option<i32>,
         search_cache_fd: Option<i32>,
         protected_ro_fd: Option<i32>,
+        release_ro_fd: Option<i32>,
         control_fd: Option<i32>,
         retained_fds: [Option<i32>; 2],
     ) -> Result<(Self, Option<String>), String> {
@@ -1110,6 +1122,7 @@ impl Leader {
                     persistent_fd,
                     search_cache_fd,
                     protected_ro_fd,
+                    release_ro_fd,
                     control_fd,
                 ]
                 .into_iter()
@@ -1356,6 +1369,11 @@ fn outer(o: &Options) -> Result<i32, String> {
     if let (Some(path), Some(held)) = (&o.protected_ro, &protected_ro) {
         verify_protected_ro(o, path, held)?;
     }
+    let release_ro_path = selected_release_ro()?;
+    let release_ro = release_ro_path.as_ref().map(|p| directory(p)).transpose()?;
+    if let (Some(path), Some(held)) = (&release_ro_path, &release_ro) {
+        verify_protected_ro(o, path, held)?;
+    }
     let setup = membership()?;
     topology(&setup, &o.consumer, &held, o.quota, o.ram, end)?;
     if !contents(&held, "cgroup.procs", 4096)?.trim().is_empty() || consumer_populated(&held)? {
@@ -1459,6 +1477,11 @@ fn outer(o: &Options) -> Result<i32, String> {
             .arg("--protected-ro-fd")
             .arg(held.as_raw_fd().to_string());
     }
+    if let Some(held) = &release_ro {
+        command
+            .arg("--release-ro-fd")
+            .arg(held.as_raw_fd().to_string());
+    }
     if let (Some(fd), Some(auth)) = (o.control_fd, control.as_ref()) {
         match_control(fd, auth, end)?;
         command
@@ -1495,6 +1518,7 @@ fn outer(o: &Options) -> Result<i32, String> {
         persistent.as_ref().map(AsRawFd::as_raw_fd),
         search_cache.as_ref().map(AsRawFd::as_raw_fd),
         protected_ro.as_ref().map(AsRawFd::as_raw_fd),
+        release_ro.as_ref().map(AsRawFd::as_raw_fd),
         o.control_fd,
         o.retained_fds,
     );
@@ -1689,6 +1713,7 @@ struct Inner {
     persistent_fd: Option<i32>,
     search_cache_fd: Option<i32>,
     protected_ro_fd: Option<i32>,
+    release_ro_fd: Option<i32>,
     parent_mnt: u64,
     parent_net: u64,
     host_uid: u64,
@@ -1705,7 +1730,8 @@ fn inner(o: &Options, i: &Inner) -> Result<i32, String> {
             if fd != i.consumer_fd
                 && Some(fd) != i.persistent_fd
                 && Some(fd) != i.search_cache_fd
-                && Some(fd) != i.protected_ro_fd =>
+                && Some(fd) != i.protected_ro_fd
+                && Some(fd) != i.release_ro_fd =>
         {
             match_control(fd, auth, end)?
         }
@@ -1801,6 +1827,37 @@ fn inner(o: &Options, i: &Inner) -> Result<i32, String> {
         }
         _ => return Err("protected read root FD role differs".into()),
     };
+    let release_ro_path = selected_release_ro()?;
+    let release_ro = match (&release_ro_path, i.release_ro_fd) {
+        (None, None) => None,
+        (Some(path), Some(raw)) if raw >= 3 => {
+            if path.starts_with(&i.root)
+                || i.root.starts_with(path)
+                || [
+                    Some(i.consumer_fd),
+                    i.persistent_fd,
+                    i.search_cache_fd,
+                    i.protected_ro_fd,
+                    o.control_fd,
+                ]
+                .into_iter()
+                .chain(o.retained_fds)
+                .any(|fd| fd == Some(raw))
+            {
+                return Err("Reference release read role overlaps stage or another FD".into());
+            }
+            let duplicate = unsafe { libc::fcntl(raw, libc::F_DUPFD_CLOEXEC, 3) };
+            if duplicate < 0 {
+                return Err(error());
+            }
+            let held = unsafe { File::from_raw_fd(duplicate) };
+            // Below fallback paths the public name still denotes the original host
+            // view here; the held FD survives its replacement by private tmpfs.
+            verify_protected_ro(o, path, &held)?;
+            Some(held)
+        }
+        _ => return Err("Reference release read FD role differs".into()),
+    };
     let duplicate = unsafe { libc::fcntl(i.consumer_fd, libc::F_DUPFD_CLOEXEC, 3) };
     if duplicate < 0 {
         return Err(error());
@@ -1870,6 +1927,9 @@ fn inner(o: &Options, i: &Inner) -> Result<i32, String> {
     if let (Some(path), Some(held)) = (&o.protected_ro, &protected_ro) {
         mount_protected_ro(o, path, held)?;
     }
+    if let (Some(path), Some(held)) = (&release_ro_path, &release_ro) {
+        mount_protected_ro(o, path, held)?;
+    }
     if let (Some(selected), Some(held)) = (&o.search_cache, &search_cache) {
         let parent = selected.parent()?;
         if let Some(fallback) = FALLBACKS
@@ -1890,8 +1950,16 @@ fn inner(o: &Options, i: &Inner) -> Result<i32, String> {
                 }
             }
         }
-        if FALLBACKS.iter().map(Path::new).any(|path| parent.starts_with(path))
-            || o.protected_ro.as_ref().is_some_and(|path| parent.starts_with(path))
+        if FALLBACKS
+            .iter()
+            .map(Path::new)
+            .any(|path| parent.starts_with(path))
+            || o.protected_ro
+                .as_ref()
+                .is_some_and(|path| parent.starts_with(path))
+            || release_ro_path
+                .as_ref()
+                .is_some_and(|path| parent.starts_with(path))
         {
             let source = PathBuf::from(format!("/proc/self/fd/{}", held.as_raw_fd()));
             mount(Some(source.as_os_str()), parent, None, libc::MS_BIND, None)?;
@@ -2025,6 +2093,13 @@ fn inner(o: &Options, i: &Inner) -> Result<i32, String> {
     if let Some(fd) = i.protected_ro_fd {
         unsafe { libc::close(fd) };
     }
+    if let (Some(path), Some(held)) = (&release_ro_path, &release_ro) {
+        verify_protected_ro(o, path, held)?;
+    }
+    drop(release_ro);
+    if let Some(fd) = i.release_ro_fd {
+        unsafe { libc::close(fd) };
+    }
     drop_caps()?;
     end.check()?;
     // All other inherited descriptors become CLOEXEC; only genuine sealed ticket
@@ -2131,7 +2206,7 @@ fn selected_direct_custody(
 }
 
 fn options(args: &[String]) -> Result<(Options, Option<Inner>), String> {
-    if args.len() > ARGC + 40
+    if args.len() > ARGC + 42
         || args.iter().any(|s| s.len() > PATH_BYTES)
         || args
             .iter()
@@ -2209,6 +2284,13 @@ fn options(args: &[String]) -> Result<(Options, Option<Inner>), String> {
     if !inner_flag && protected_ro_fd.is_some() {
         return Err("protected read FD is issuer namespace handoff only".into());
     }
+    let release_ro_fd = values
+        .remove("--release-ro-fd")
+        .map(|value| value.parse::<i32>().map_err(|e| e.to_string()))
+        .transpose()?;
+    if !inner_flag && release_ro_fd.is_some() {
+        return Err("Reference release FD is issuer namespace handoff only".into());
+    }
     let persistent = values.remove("--persistent-store").map(PathBuf::from);
     let persistent_fd = values
         .remove("--persistent-fd")
@@ -2251,6 +2333,7 @@ fn options(args: &[String]) -> Result<(Options, Option<Inner>), String> {
             persistent_fd,
             search_cache_fd,
             protected_ro_fd,
+            release_ro_fd,
             parent_mnt: n!("--parent-mount-namespace"),
             parent_net: n!("--parent-net-namespace"),
             host_uid: n!("--host-uid"),
@@ -2746,7 +2829,7 @@ fn sdk_python_run(args: &[String]) -> Result<i32, String> {
         end.check()?;
         // No cgroup handle or stage ticket is inherited by the SDK entry.
         let (mut leader, restoration) =
-            Leader::spawn(command, -1, None, None, None, None, [None, None])?;
+            Leader::spawn(command, -1, None, None, None, None, None, [None, None])?;
         let outcome = (|| -> Result<i32, String> {
             if let Some(e) = restoration {
                 return Err(e);
@@ -2833,7 +2916,7 @@ fn host_command(
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());
-    let (mut leader, restore) = Leader::spawn(c, -1, None, None, None, None, [None, None])?;
+    let (mut leader, restore) = Leader::spawn(c, -1, None, None, None, None, None, [None, None])?;
     let result = (|| {
         if let Some(e) = restore {
             return Err(e);
@@ -3357,7 +3440,10 @@ fn sdk_host_session(args: &[String]) -> Result<i32, String> {
         ];
         identical(&protected_read_hold, &directory(&protected_read_root)?)?;
         directory(&root)?;
-        argv.extend(["--protected-ro".into(), protected_read_root.display().to_string()]);
+        argv.extend([
+            "--protected-ro".into(),
+            protected_read_root.display().to_string(),
+        ]);
         if let Some(fd) = control {
             argv.extend(["--ordinary-session-control-fd".into(), fd.to_string()]);
         }

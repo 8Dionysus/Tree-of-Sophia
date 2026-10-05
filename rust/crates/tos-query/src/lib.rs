@@ -118,7 +118,7 @@ pub use controlled_query_adapter::{
     with_controlled_knowledge_binding, with_controlled_sidecar_knowledge_binding,
 };
 #[cfg(not(target_arch = "wasm32"))]
-pub(crate) use controlled_query_adapter::indexed_limit_from_foundation;
+pub use controlled_query_adapter::indexed_limit_from_foundation;
 #[cfg(not(target_arch = "wasm32"))]
 pub use knowledge_temporal::execute_selected_temporal;
 pub use search_document::{

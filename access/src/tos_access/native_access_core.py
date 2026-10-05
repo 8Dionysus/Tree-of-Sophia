@@ -32,13 +32,26 @@ def _selected_path(value: str | Path, name: str) -> Path:
 
 
 def _native_prefix_from_installed_layout() -> Path:
-    """Infer only the maintained installed layout; never search cwd or data."""
+    """Select installed software layout or standard PATH code, never data."""
     from .locations import PACKAGE_ROOT
     package_root = PACKAGE_ROOT.resolve()
     suffix = ('software', 'access', 'src', 'tos_access')
-    if package_root.parts[-len(suffix):] != suffix:
-        raise ValueError('native Core requires native_prefix, TOS_NATIVE_PREFIX, or the installed SDK layout')
-    return package_root.parents[3]
+    if package_root.parts[-len(suffix):] == suffix:
+        return package_root.parents[3]
+    # An independently installed Python SDK may select the standard software
+    # entrypoint on PATH. This selects code only; verified_image still holds
+    # and verifies its manifest, build proof and exact ELF before each call.
+    entry = shutil.which('tos')
+    if entry is not None:
+        candidate = Path(entry)
+        if not candidate.is_absolute():
+            raise ValueError('PATH native software selection requires an absolute entrypoint')
+        image = candidate.resolve(strict=True)
+        image_suffix = ('software', 'access', 'src', 'tos_access', 'tos-access')
+        if image.parts[-len(image_suffix):] == image_suffix:
+            return image.parents[4]
+        raise ValueError('PATH tos is not the standard installed native Access entrypoint')
+    raise ValueError('native Core requires native_prefix, TOS_NATIVE_PREFIX, the installed SDK layout, or standard tos on PATH')
 
 
 def _cleanup_owned_state(path: str, identity: tuple[int, int, int]) -> bool:
@@ -155,7 +168,8 @@ class NativeAccessCore(NativeCore):
                  core_snapshot_selection: Any | None = None,
                  core_snapshot_admission_provider: Any | None = None,
                  core_snapshot_native_owned: bool = False,
-                 core_snapshot_snapshot_root: str | Path | None = None):
+                 core_snapshot_snapshot_root: str | Path | None = None,
+                 core_snapshot_release_root: str | Path | None = None):
         self._lifetime_lock = RLock()
         self._closed = False
         self._ephemeral_state = None
@@ -194,6 +208,11 @@ class NativeAccessCore(NativeCore):
                 self._owns_source_provider = True
         self.tos_root = None if tos_root is None else _selected_path(tos_root, 'tos_root')
         self.release_root = None if release_root is None else _selected_path(release_root, 'release_root')
+        self._core_snapshot_release_root = (
+            None if core_snapshot_release_root is None
+            else _selected_path(core_snapshot_release_root, 'core_snapshot_release_root'))
+        if self.release_root is not None and self._core_snapshot_release_root is not None:
+            raise ValueError('generic and ReferenceRelease selectors are separate native routes')
         binding_path = published_read_model_binding_path
         if published_read_model_expected is not None:
             if binding_path is not None:
@@ -206,7 +225,7 @@ class NativeAccessCore(NativeCore):
             canonical_state_root = state_root.resolve(strict=True)
             if canonical_state_root != state_root or not state_root.is_dir():
                 raise ValueError('native state root must be an existing non-symlink directory')
-            for protected in (prefix, self.release_root, self.tos_root,
+            for protected in (prefix, self.release_root, self._core_snapshot_release_root, self.tos_root,
                               _selected_path(published_read_model_path, 'prepared model')):
                 if protected is not None and state_root.is_relative_to(protected.resolve()):
                     raise ValueError('native state root must be outside selected software, release, source and model roots')
@@ -218,6 +237,8 @@ class NativeAccessCore(NativeCore):
             raise ValueError('prepared reader requires the model and owner-selected binding paths')
         if self.release_root is not None and pair[0] is not None:
             raise ValueError('select one generic release or prepared reader')
+        if self._core_snapshot_release_root is not None and pair[0] is not None:
+            raise ValueError('ReferenceRelease guarded source and the prepared reader are separate native routes')
         if published_exploration_checkpoint_path is not None and pair[0] is None and self.release_root is None:
             raise ValueError('exploration checkpoints require an explicitly selected prepared reader or release')
         if source_inputs_path is not None and (pair[0] is None or self.tos_root is None):
@@ -243,7 +264,7 @@ class NativeAccessCore(NativeCore):
                 arguments += [flag, str(_selected_path(value, flag))]
         if published_exploration_checkpoint_path is not None:
             checkpoint = _selected_path(published_exploration_checkpoint_path, 'exploration checkpoints')
-            for protected in (prefix, self.release_root, self.tos_root):
+            for protected in (prefix, self.release_root, self._core_snapshot_release_root, self.tos_root):
                 if protected is not None and checkpoint.is_relative_to(protected):
                     raise ValueError('exploration checkpoints require a path outside software, release and source roots')
         self._has_prepared_checkpoints = published_exploration_checkpoint_path is not None
@@ -283,7 +304,7 @@ class NativeAccessCore(NativeCore):
         self._legacy_query_store_selected = bool(
             getattr(core_snapshot_selection, 'query_store_configured', False))
         if (core_snapshot_selection is not None or core_snapshot_admission_provider is not None
-                or core_snapshot_native_owned):
+                or core_snapshot_native_owned or self._core_snapshot_release_root is not None):
             if core_snapshot_selection is None or (
                     core_snapshot_admission_provider is None and not core_snapshot_native_owned):
                 raise ValueError('native whole-Core selection requires a captured selector and its declared owner route')
@@ -292,12 +313,20 @@ class NativeAccessCore(NativeCore):
                 raise TypeError('native whole-Core selection must be captured by NativeCoreSnapshotSelection')
             if self.tos_root is None or core_snapshot_selection.tos_root != self.tos_root:
                 raise ValueError('native whole-Core selection must use the exact selected tos_root')
-            if self.release_root is not None or pair[0] is not None:
-                raise ValueError('native whole-Core bridge requires the raw source route, not a release or prepared reader')
+            if pair[0] is not None:
+                raise ValueError('native whole-Core bridge requires the raw source route, not a prepared reader')
+            if self.release_root is not None:
+                raise ValueError('generic ManagedRelease and SourceRoot are separate native routes')
+            if self._core_snapshot_release_root is not None and (
+                    not core_snapshot_native_owned or core_snapshot_snapshot_root is None
+                    or core_snapshot_admission_provider is not None):
+                raise ValueError('ReferenceRelease requires the native-owned paired snapshot route')
             if core_snapshot_native_owned:
                 self._core_snapshot_client = NativeCoreSnapshotClient(
                     prefix, core_snapshot_selection, None,
-                    search_read_model=self._search_read_model_options, snapshot_root=core_snapshot_snapshot_root)
+                    search_read_model=self._search_read_model_options,
+                    snapshot_root=core_snapshot_snapshot_root,
+                    release_root=self._core_snapshot_release_root)
             else:
                 self._core_snapshot_client = NativeCoreSnapshotClient(
                     prefix, core_snapshot_selection, core_snapshot_admission_provider)

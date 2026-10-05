@@ -407,13 +407,12 @@ class NativeCoreOrdinarySessionResultClient(NativeCoreLazySessionResultClient):
             raise ValueError('native indexed Store result owner differs')
         # Weak Store selection keeps its exploration association and no Whole
         # source cut. Native binds this packet/cursor to the held Store header.
-        cut = result.get('source_revision')
-        if type(cut) is not str or len(cut) != 64:
+        # Weak Store headers have no canonical-cut invariant. Native binds
+        # this value to the authentic held header, including legacy null cuts.
+        # Whole SourceRoot retains the separate strict64hex selection law.
+        if ('source_revision' not in result
+                or result['source_revision'] is not None and type(result['source_revision']) is not str):
             raise ValueError('native indexed Store source revision differs')
-        for character in cut:
-            self._state.visit()
-            if character not in '0123456789abcdef':
-                raise ValueError('native indexed Store source revision is not canonical')
 
     def _has_capability(self, operation, tool=None, profile=None):
         for cap in self._capabilities:

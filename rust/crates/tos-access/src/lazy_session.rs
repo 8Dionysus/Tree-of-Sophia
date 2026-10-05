@@ -2300,7 +2300,11 @@ fn serve_store(
                 .ok_or("Core Store original result envelope cap")?,
         );
         let body = if let Some(arguments) = search {
-            store.search(arguments, request, ledger, heap, deadline, cancelled, cap)?
+            if metadata_tool == "tos_knowledge_search_indexed_v2" {
+                store.indexed_search(arguments, request, ledger, heap, deadline, cancelled, cap)?
+            } else {
+                store.search(arguments, request, ledger, heap, deadline, cancelled, cap)?
+            }
         } else {
             store.metadata(
                 metadata_tool,
@@ -2457,7 +2461,17 @@ pub(super) fn run(
     // One original session IO/space owner is reused by every ordinary sidecar
     // operation. The build file cap never becomes a read limit; a healthy cache
     // may be larger than the current build cap.
-    let cache_enabled = request.search_read_model.is_some() && !request.query_store.configured;
+    let selected_store_at_startup = if ordinary && !startup_guard_refused {
+        with_selected_store_choice(request, &state, deadline, |selected| Ok(selected))?
+    } else {
+        false
+    };
+    // A selected QueryStore owns indexed execution directly. Its sidecar
+    // selector is retained only for max_verify_chars; no cache path/build ticket
+    // or cache IO/space grant is consulted for that route.
+    let cache_enabled = ordinary
+        && request.search_read_model.is_some()
+        && !selected_store_at_startup;
     let cache_owner_state_bytes = std::mem::size_of::<Option<native_ledger::Reservation<'_>>>()
         .checked_add(std::mem::size_of::<bool>())
         .and_then(|n| n.checked_add(std::mem::size_of::<u64>()))
@@ -2615,14 +2629,43 @@ pub(super) fn run(
             }
             return Ok(());
         }
+        let mut held: Option<Carrier> = None;
+        let mut held_store: Option<lazy_store::Store> = None;
+        let mut generation = 0u64;
+        let mut store_indexed_ready = false;
+        if ordinary && selected_store_at_startup {
+            match lazy_store::open(request, &state, &sqlite_heap, deadline, deadline, cancelled) {
+                Ok(store) => {
+                    state.retained.set(
+                        state.retained.get().checked_add(store.retained)
+                            .ok_or("Core Store startup retained overflow")?,
+                    );
+                    state.remaining(0)?;
+                    store_indexed_ready = store.supports_indexed_fts5();
+                    held_store = Some(store);
+                    generation = 1;
+                }
+                Err(_) => {
+                    // Admission/cancellation still fails under its original
+                    // cutoff; an unavailable selected Store never falls back.
+                    active(deadline)?;
+                    state.remaining(0)?;
+                }
+            }
+        }
         // Shared connected capabilities retain the exact old lazy ABI. The
-        // ordinary add-on belongs to the joined genuine legacy SourceRoot route.
+        // indexed profile is added only for an admitted selected backend.
         const LAZY_HEAD: &[u8] = br#"{"schema_version":"tos_native_core_lazy_session_ready_v1","ok":true,"profile":"tos_core_lazy_selected_v1""#;
         const ORDINARY_HEAD: &[u8] = br#"{"schema_version":"tos_native_core_ordinary_session_ready_v1","ok":true,"profile":"tos_core_ordinary_selected_v1""#;
-        const COMMON: &[u8] = br#","reference_semantics":"cpython_pathlib_is_file_3_14","source_revision":null,"data_revision":null,"state_reused":false,"selection":{"schema_version":"tos_native_core_selected_profile_v1","generation":0,"profile":"selected_paths","source_revision":null,"data_revision":null,"exploration_revision":null,"state_reused":false},"capabilities":[{"operation":"tos_corpus_index_exists"},{"operation":"tos_philosophy_projection_exists"},{"operation":"tos_evidence_projection_exists"},{"operation":"tos_philosophy_audit_exists"},{"operation":"tos_corpus_index"},{"operation":"tos_bibliographic_graph"},{"operation":"tos_philosophy_projection"},{"operation":"tos_philosophy_audit_payload"},{"operation":"tos_corpus_header"},{"operation":"tos_native_call","tool":"tos_knowledge_search","profiles":["weak_query_store"]},{"operation":"tos_native_call","tool":"tos_knowledge_search_indexed_v2","profiles":["whole_root"]}"#;
+        const COMMON: &[u8] = br#","reference_semantics":"cpython_pathlib_is_file_3_14","source_revision":null,"data_revision":null,"state_reused":false,"selection":{"schema_version":"tos_native_core_selected_profile_v1","generation":0,"profile":"selected_paths","source_revision":null,"data_revision":null,"exploration_revision":null,"state_reused":false},"capabilities":[{"operation":"tos_corpus_index_exists"},{"operation":"tos_philosophy_projection_exists"},{"operation":"tos_evidence_projection_exists"},{"operation":"tos_philosophy_audit_exists"},{"operation":"tos_corpus_index"},{"operation":"tos_bibliographic_graph"},{"operation":"tos_philosophy_projection"},{"operation":"tos_philosophy_audit_payload"},{"operation":"tos_corpus_header"},{"operation":"tos_native_call","tool":"tos_knowledge_search","profiles":["weak_query_store"]}"#;
+        const WHOLE_INDEXED_CAP: &[u8] = br#",{"operation":"tos_native_call","tool":"tos_knowledge_search_indexed_v2","profiles":["whole_root"]}"#;
+        const STORE_INDEXED_CAP: &[u8] = br#",{"operation":"tos_native_call","tool":"tos_knowledge_search_indexed_v2","profiles":["weak_query_store"]}"#;
         const LAZY_END: &[u8] = b"]}";
         const ORDINARY_END: &[u8] = br#",{"operation":"tos_native_call","tool":"tos_knowledge_lens_compile","profiles":["whole_root"]},{"operation":"tos_native_call","tool":"tos_knowledge_focus","profiles":["whole_root"]},{"operation":"tos_native_call","tool":"tos_knowledge_lens_open","profiles":["whole_root"]},{"operation":"tos_native_call","tool":"tos_philosophy_graph_status","profiles":["whole_root"]},{"operation":"tos_native_call","tool":"tos_corpus_status","profiles":["whole_root"]},{"operation":"tos_native_call","tool":"tos_corpus_summary","profiles":["whole_root"]},{"operation":"tos_native_call","tool":"tos_corpus_graph_views","profiles":["whole_root"]},{"operation":"tos_native_call","tool":"tos_native_resource_read","profiles":["whole_root"],"resources":["tos-philosophy://status","tos-corpus://status","tos-corpus://summary","tos-corpus://graph-views"]},{"operation":"tos_native_call","tool":"tos_knowledge_node","profiles":["whole_root"]},{"operation":"tos_native_call","tool":"tos_knowledge_relation","profiles":["whole_root"]},{"operation":"tos_native_call","tool":"tos_knowledge_catalog","profiles":["whole_root","weak_query_store"]},{"operation":"tos_source_navigation"},{"operation":"tos_knowledge_header","profiles":["whole_root","weak_query_store"]},{"operation":"tos_evidence_projection","profiles":["whole_root"]},{"operation":"tos_native_call","tool":"tos_knowledge_search","profiles":["whole_root"]}]}"#;
+        let whole_indexed_cap = if ordinary && selected_store_at_startup { &[] } else { WHOLE_INDEXED_CAP };
+        let store_indexed_cap = if ordinary && store_indexed_ready { STORE_INDEXED_CAP } else { &[] };
         let ready = [if ordinary { ORDINARY_HEAD } else { LAZY_HEAD }, COMMON,
+                     whole_indexed_cap, store_indexed_cap,
                      if ordinary { ORDINARY_END } else { LAZY_END }];
         // Exactly nine connected operations; CorpusHeader selects its authentic
         // configured/default Store owner before any Corpus carrier construction.
@@ -2644,6 +2687,8 @@ pub(super) fn run(
                 receipt.as_bytes(),
                 QUOTE,
                 COMMON,
+                whole_indexed_cap,
+                store_indexed_cap,
                 ORDINARY_END,
             ];
             let ready_bytes = guarded_ready.iter().map(|segment| segment.len()).sum::<usize>();
@@ -2667,9 +2712,6 @@ pub(super) fn run(
                 &fence_without_snapshot,
             )?;
         }
-        let mut held: Option<Carrier> = None;
-        let mut held_store: Option<lazy_store::Store> = None;
-        let mut generation = 0u64;
         let _whole_flag = state.reserve(
             std::mem::size_of::<bool>() + std::mem::size_of::<native_ledger::Reservation<'_>>(),
         )?;
@@ -2765,9 +2807,34 @@ pub(super) fn run(
                     continue;
                 }
                 if tool == "tos_knowledge_search_indexed_v2" {
-                    with_selected_store_choice(request, &state, cutoff, |selected_store| {
+                    let whole = with_selected_store_choice(request, &state, cutoff, |selected_store| {
+                        if ordinary && selected_store != selected_store_at_startup {
+                            return Err("Core indexed selected Store changed after READY");
+                        }
                         if selected_store {
-                            return Err("Core selected QueryStore indexed owner unavailable");
+                            if !ordinary {
+                                return Err("Core lazy selected QueryStore indexed owner unavailable");
+                            }
+                            if !store_indexed_ready {
+                                return Err("Core selected QueryStore indexed FTS5 admission absent");
+                            }
+                            serve_store(
+                                request,
+                                session,
+                                driver,
+                                &mut held,
+                                &mut held_store,
+                                &mut generation,
+                                &state,
+                                &sqlite_heap,
+                                deadline,
+                                cutoff,
+                                cancelled,
+                                &fence,
+                                Some(arguments),
+                                "tos_knowledge_search_indexed_v2",
+                            )?;
+                            return Ok(false);
                         }
                         serve_whole_indexed_search(
                             root,
@@ -2788,9 +2855,10 @@ pub(super) fn run(
                             cancelled,
                             &fence,
                             arguments,
-                        )
+                        )?;
+                        Ok(true)
                     })?;
-                    last_whole = true;
+                    last_whole = whole;
                     continue;
                 }
                 let whole_source_root = with_selected_store_choice(request, &state, cutoff, |selected_store| {

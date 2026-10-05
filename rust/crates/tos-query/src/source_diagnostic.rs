@@ -439,7 +439,8 @@ pub struct LegacyStore {
 #[path = "source_diagnostic_legacy.rs"]
 mod legacy;
 pub use legacy::{
-    QueryStoreIndexedContinuation, QueryStoreIndexedPage, QueryStoreIndexedSearchRequest,
+    query_store_indexed_default_sources, QueryStoreIndexedContinuation,
+    QueryStoreIndexedPage, QueryStoreIndexedSearchRequest,
 };
 
 impl LegacyStore {

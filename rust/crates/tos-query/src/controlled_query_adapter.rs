@@ -47,7 +47,7 @@ const INDEXED_LIMIT_MAX: usize = 100;
 /// Match Reference's bounded indexed-search limit conversion without
 /// delegating request parsing to Python. Invalid/missing values use the public
 /// default; accepted values are truncated as Python int() does, then clamped.
-pub(crate) fn indexed_limit_from_foundation(value: Option<&JsonValue>) -> usize {
+pub fn indexed_limit_from_foundation(value: Option<&JsonValue>) -> usize {
     let parsed = match value {
         None | Some(JsonValue::Null) => return INDEXED_LIMIT_DEFAULT,
         Some(JsonValue::Bool(value)) => Some(if *value { 1 } else { 0 }),

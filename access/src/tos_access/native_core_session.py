@@ -464,10 +464,19 @@ class NativeSDKSession:
         self._closed = True
 
 
+def _release_environment(release_root):
+    if release_root is None:
+        return None
+    environment = dict(os.environ)
+    environment['TOS_RELEASE_ROOT'] = os.fspath(release_root)
+    return environment
+
+
 @contextmanager
 def owned_native_sdk_session(*, prefix, root, startup_bytes, limits, cancelled,
                              receiver_buffer, frame_buffer, config, receiving_state=None,
-                             session_operation='tos_native_session', snapshot_root=None, search_cache_path=None):
+                             session_operation='tos_native_session', snapshot_root=None,
+                             search_cache_path=None, release_root=None):
     """Launch issuer directly from SDK using original clock and child-only ticket.
 
     Encoded startup and buffers are caller-owned original receiving state; no
@@ -487,6 +496,10 @@ def owned_native_sdk_session(*, prefix, root, startup_bytes, limits, cancelled,
         snapshot_root = _path(snapshot_root, receiving_state)
         if selected_root != snapshot_root / 'data':
             raise ValueError('native snapshot root/data selector differs')
+    if release_root is not None:
+        release_root = _path(release_root, receiving_state)
+        if (session_operation != 'tos_native_ordinary_session' or snapshot_root is None):
+            raise ValueError('ReferenceRelease requires an ordinary guarded snapshot session')
     if search_cache_path is not None:
         search_cache_path = _path(search_cache_path, receiving_state)
         if session_operation != 'tos_native_ordinary_session':
@@ -551,7 +564,8 @@ def owned_native_sdk_session(*, prefix, root, startup_bytes, limits, cancelled,
         channel = stack.enter_context(native_io.owned_exchange(arguments, prefix=prefix,
             input_cap=65536, frame_cap=65536, cancelled=cancelled,
             absolute_deadline=config.original_whole_deadline_ns / 1e9,
-            operation_seconds=50, pass_fds=(fd,), selected_image=selected_image))
+            operation_seconds=50, env=_release_environment(release_root),
+            pass_fds=(fd,), selected_image=selected_image))
         if outside:
             placement.channel = channel
         child.close()
@@ -568,7 +582,8 @@ def owned_native_sdk_session(*, prefix, root, startup_bytes, limits, cancelled,
 @contextmanager
 def owned_native_snapshot_exchange(prefix, selection, state, operation_id,
                                    prior_fd=None, reply_fd=None, config=None,
-                                   *, absolute_work_deadline=None, snapshot_root=None):
+                                   *, absolute_work_deadline=None, snapshot_root=None,
+                                   release_root=None):
     """Keep authentic placement and original call custody through stdio terminal."""
     from .native_core_session_receiver import ReceiverState
     from .native_core_snapshot import NativeCoreSnapshotSelection, _INPUT_CAP, _FRAME_CAP
@@ -608,6 +623,10 @@ def owned_native_snapshot_exchange(prefix, selection, state, operation_id,
         snapshot_root = _path(snapshot_root, state)
         if root != snapshot_root / 'data':
             raise ValueError('native retained snapshot root/data selector differs')
+    if release_root is not None:
+        release_root = _path(release_root, state)
+        if snapshot_root is None:
+            raise ValueError('ReferenceRelease requires its selected snapshot root')
     outside = isinstance(config, NativeSDKHostSessionRequest)
     with ExitStack() as stack:
         placement = NativeSDKHostCustody(config, state._cancelled) if outside else NativeSDKPlacement(config)
@@ -654,7 +673,8 @@ def owned_native_snapshot_exchange(prefix, selection, state, operation_id,
         channel = stack.enter_context(native_io.owned_exchange(arguments, prefix=prefix,
             input_cap=_INPUT_CAP, frame_cap=_FRAME_CAP, cancelled=state._cancelled,
             absolute_deadline=cleanup_deadline,
-            operation_seconds=50, pass_fds=tuple(dict.fromkeys(fd for fd in (reply_fd, prior_fd, stage_control_fd) if fd is not None)),
+            operation_seconds=50, env=_release_environment(release_root),
+            pass_fds=tuple(dict.fromkeys(fd for fd in (reply_fd, prior_fd, stage_control_fd) if fd is not None)),
             selected_image=image))
         if outside:
             placement.channel = channel

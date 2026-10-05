@@ -93,8 +93,11 @@ impl NativeOrdinarySnapshotStartup {
             .map_err(|_| "Core ordinary snapshot actual stage ticket refused")?;
         if let Some(search) = self.search_read_model.as_ref() {
             search.validate_verify_chars()?;
-            // An explicit QueryStore selection bypasses sidecar path/build admission.
-            if !self.query_store.configured {
+            // Explicit or default-existing QueryStore selection bypasses
+            // sidecar path/build admission. The native held-path owner repeats
+            // selection under the original session fence before execution.
+            let query_store_selected = self.query_store.configured || self.query_store.path.exists();
+            if !query_store_selected {
                 search.validate_cache(&stage)?;
             }
         }

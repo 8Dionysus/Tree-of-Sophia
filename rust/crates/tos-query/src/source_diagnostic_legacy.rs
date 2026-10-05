@@ -16,6 +16,10 @@ const SOURCES: &[&str] = &[
     "semantic-interchange",
     "repository",
 ];
+/// Source registration defaults for the native ordinary QueryStore adapter.
+pub fn query_store_indexed_default_sources() -> &'static [&'static str] {
+    SOURCES
+}
 fn field<'a>(value: &'a Value, key: &str) -> &'a str {
     value.get(key).and_then(Value::as_str).unwrap_or("")
 }
@@ -126,6 +130,14 @@ impl LegacyStore {
         self.graph_header.get("source_revision")
             .and_then(Value::as_str)
             .ok_or_else(|| owned_err("legacy graph source revision absent"))
+    }
+
+    pub fn indexed_graph_source_revision(&self) -> Result<Option<&str>> {
+        match self.graph_header.get("source_revision") {
+            Some(Value::Null) => Ok(None),
+            Some(Value::String(value)) => Ok(Some(value)),
+            _ => Err(owned_err("legacy graph source revision absent or invalid")),
+        }
     }
 
     /// HTTP operation probe is combined with the original owner deadline and
@@ -1887,7 +1899,7 @@ pub struct QueryStoreIndexedKindPage {
 /// and graph-header source revision; it does not claim a CMP selection/cut.
 pub struct QueryStoreIndexedPage {
     pub store_revision: String,
-    pub source_revision: String,
+    pub source_revision: Option<String>,
     pub normalized_query: String,
     pub filters: QueryStoreIndexedFilters,
     pub nodes: QueryStoreIndexedKindPage,
@@ -1991,7 +2003,7 @@ fn indexed_store_query(
         &stripped,
         1024,
         256,
-        256,
+        1024,
         state_add(held, stripped_heap)?,
         budget,
         deadline,
@@ -2048,7 +2060,7 @@ fn query_store_cursor_decode(
     token: &str,
     kind: &str,
     store_revision: &str,
-    source_revision: &str,
+    source_revision: Option<&str>,
     query: &str,
     filters_digest: &str,
     held: usize,
@@ -2094,9 +2106,12 @@ fn query_store_cursor_decode(
     {
         return Err(owned_err("indexed QueryStore cursor schema/backend"));
     }
-    if field(&value, "store_revision") != store_revision
-        || field(&value, "source_revision") != source_revision
-    {
+    let source_revision_matches = match (value.get("source_revision"), source_revision) {
+        (Some(Value::Null), None) => true,
+        (Some(Value::String(actual)), Some(expected)) => actual.as_str() == expected,
+        _ => false,
+    };
+    if field(&value, "store_revision") != store_revision || !source_revision_matches {
         return Err(owned_err("indexed QueryStore cursor snapshot changed"));
     }
     if field(&value, "query") != query || field(&value, "filters_digest") != filters_digest {
@@ -2145,7 +2160,7 @@ fn query_store_cursor_json_string_size(value: &str) -> Result<usize> {
 fn query_store_cursor_raw_bound(
     kind: &str,
     store_revision: &str,
-    source_revision: &str,
+    source_revision: Option<&str>,
     query: &str,
     filters_digest: &str,
     after: &(u8, String, u64),
@@ -2168,7 +2183,7 @@ fn query_store_cursor_raw_bound(
         ("kind", query_store_cursor_json_string_size(kind)?),
         ("query", query_store_cursor_json_string_size(query)?),
         ("schema", query_store_cursor_json_string_size(QUERY_STORE_INDEXED_CURSOR_SCHEMA)?),
-        ("source_revision", query_store_cursor_json_string_size(source_revision)?),
+        ("source_revision", source_revision.map_or(Ok(4), query_store_cursor_json_string_size)?),
         ("store_revision", query_store_cursor_json_string_size(store_revision)?),
     ];
     let mut size = 2usize; // object braces
@@ -2187,7 +2202,7 @@ fn query_store_cursor_raw_bound(
 fn query_store_cursor_encode(
     kind: &str,
     store_revision: &str,
-    source_revision: &str,
+    source_revision: Option<&str>,
     query: &str,
     filters_digest: &str,
     after: &(u8, String, u64),
@@ -2217,7 +2232,7 @@ fn query_store_cursor_encode(
     value.insert("backend", Value::from(QUERY_STORE_INDEXED_CURSOR_BACKEND));
     value.insert("kind", Value::from(kind));
     value.insert("store_revision", Value::from(store_revision));
-    value.insert("source_revision", Value::from(source_revision));
+    value.insert("source_revision", source_revision.map_or(Value::Null, Value::from));
     value.insert("query", Value::from(query));
     value.insert("filters_digest", Value::from(filters_digest));
     value.insert("after", Value::Array(vec![Value::from(after.0), Value::from(after.1.as_str()), Value::from(after.2)]));
@@ -2242,7 +2257,7 @@ fn finish_query_store_kind_page(
     page: OwnedQueryStorePage,
     kind: &str,
     store_revision: &str,
-    source_revision: &str,
+    source_revision: Option<&str>,
     query: &str,
     filters_digest: &str,
     held: usize,
@@ -2423,24 +2438,24 @@ impl LegacyStore {
                     &normalized_query, held, budget, call_deadline, &probe,
                 )?;
                 held = state_add(held, fts_heap)?;
-                let source_revision_value = self.source_revision()?;
+                let source_revision_value = self.indexed_graph_source_revision()?;
                 let store_revision_value = self.revision.as_str();
-                if source_revision_value.is_empty() || store_revision_value.is_empty() {
+                if store_revision_value.is_empty() {
                     return Err(owned_err("indexed QueryStore source revision absent"));
                 }
                 let revisions_heap = state_add(
-                    state_add(source_revision_value.len(), store_revision_value.len())?,
-                    std::mem::size_of::<String>() * 2,
+                    state_add(source_revision_value.map_or(0, str::len), store_revision_value.len())?,
+                    std::mem::size_of::<Option<String>>() + std::mem::size_of::<String>(),
                 )?;
                 (budget.remaining_after_retained)(state_add(held, revisions_heap)?)?;
                 held = state_add(held, revisions_heap)?;
-                let source_revision = exact_string(source_revision_value)?;
+                let source_revision = source_revision_value.map(exact_string).transpose()?;
                 let store_revision = exact_string(store_revision_value)?;
                 let nodes_after = if continuation.nodes_exhausted {
                     None
                 } else if let Some(token) = continuation.nodes {
                     Some(query_store_cursor_decode(
-                        token, "nodes", &store_revision, &source_revision,
+                        token, "nodes", &store_revision, source_revision.as_deref(),
                         &normalized_query, &filter_digest, held, budget, call_deadline, &probe,
                     )?)
                 } else {
@@ -2456,7 +2471,7 @@ impl LegacyStore {
                     None
                 } else if let Some(token) = continuation.relations {
                     Some(query_store_cursor_decode(
-                        token, "relations", &store_revision, &source_revision,
+                        token, "relations", &store_revision, source_revision.as_deref(),
                         &normalized_query, &filter_digest, held, budget, call_deadline, &probe,
                     )?)
                 } else {
@@ -2481,7 +2496,7 @@ impl LegacyStore {
                     )?
                 };
                 let node_data = finish_query_store_kind_page(
-                    nodes, "nodes", &store_revision, &source_revision, &normalized_query,
+                    nodes, "nodes", &store_revision, source_revision.as_deref(), &normalized_query,
                     &filter_digest, held, budget, call_deadline, &probe,
                 )?;
                 held = state_add(held, node_data.retained_bytes)?;
@@ -2498,7 +2513,7 @@ impl LegacyStore {
                     )?
                 };
                 let relation_data = finish_query_store_kind_page(
-                    relations, "relations", &store_revision, &source_revision, &normalized_query,
+                    relations, "relations", &store_revision, source_revision.as_deref(), &normalized_query,
                     &filter_digest, held, budget, call_deadline, &probe,
                 )?;
                 held = state_add(held, relation_data.retained_bytes)?;
@@ -2513,7 +2528,7 @@ impl LegacyStore {
                     )?,
                 )?;
                 let metadata_heap = state_add(
-                    state_add(source_revision.len(), store_revision.len())?,
+                    state_add(source_revision.as_ref().map_or(0, String::len), store_revision.len())?,
                     state_add(
                         normalized_query.capacity(),
                         state_add(

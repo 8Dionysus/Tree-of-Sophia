@@ -129,7 +129,7 @@ def owned_native_discovered_source_session(*, prefix, prepared, admission, state
 @contextmanager
 def owned_native_ordinary_source_session(*, prefix, selection, transport, state,
         cancelled, config=None, maximum_owner_objects, search_read_model=None,
-        snapshot_root=None, expected_snapshot_guard=None):
+        snapshot_root=None, expected_snapshot_guard=None, release_root=None):
     """Use the native-owned operation profile with existing caller transport.
 
     Stage/Cold/Query/publication authority never enters this Python constructor.
@@ -147,7 +147,8 @@ def owned_native_ordinary_source_session(*, prefix, selection, transport, state,
                  int.__basicsize__ + 3 * g.int_digit)
     state.reserve(types.FrameType.__basicsize__ + g.gc_header + slots * (g.pointer + scalar)
                   + types.GeneratorType.__basicsize__ + g.gc_header + slots * g.pointer)
-    retained_owner_state(state, (prefix, selection, transport, cancelled, config, search_read_model, snapshot_root, expected_snapshot_guard),
+    retained_owner_state(state, (prefix, selection, transport, cancelled, config, search_read_model,
+                                  snapshot_root, expected_snapshot_guard, release_root),
                          maximum_objects=maximum_owner_objects)
     prefix = _path(prefix, state)
     if config is None:
@@ -176,7 +177,7 @@ def owned_native_ordinary_source_session(*, prefix, selection, transport, state,
             startup_bytes=wire, limits=transport, cancelled=cancelled,
             receiver_buffer=receiver, frame_buffer=frame, config=config,
             receiving_state=state, session_operation='tos_native_ordinary_session',
-            snapshot_root=snapshot_root,
+            snapshot_root=snapshot_root, release_root=release_root,
             search_cache_path=(search_read_model['path'] if search_read_model is not None
                                 and not selection.query_store_configured else None)) as (session, startup):
         constructor = NativeCoreOrdinarySessionResultClient.__new__.__code__

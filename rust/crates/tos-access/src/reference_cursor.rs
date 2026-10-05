@@ -116,7 +116,7 @@ pub(crate) fn encode_reference_cursor_payload(value: &Value, cap: usize) -> Resu
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) struct ReferenceCursorBinding {
-    source_revision: String,
+    source_revision: Option<String>,
     query: String,
     sources: Vec<String>,
     kind_ids: Vec<String>,
@@ -127,11 +127,26 @@ impl ReferenceCursorBinding {
     pub(crate) fn new(
         source_revision: impl Into<String>,
         query: impl Into<String>,
+        sources: Vec<String>,
+        kind_ids: Vec<String>,
+        predicate_ids: Vec<String>,
+    ) -> Result<Self, SearchV2Error> {
+        let source_revision = source_revision.into();
+        if source_revision.is_empty() {
+            return Err(invalid("indexed cursor binding exceeds Reference bounds"));
+        }
+        Self::new_for_query_store(Some(source_revision), query, sources, kind_ids, predicate_ids)
+    }
+
+    /// Weak QueryStore binds the authentic graph-header value, including null.
+    /// WholeRoot keeps using `new`, which requires its canonical string cut.
+    pub(crate) fn new_for_query_store(
+        source_revision: Option<String>,
+        query: impl Into<String>,
         mut sources: Vec<String>,
         mut kind_ids: Vec<String>,
         mut predicate_ids: Vec<String>,
     ) -> Result<Self, SearchV2Error> {
-        let source_revision = source_revision.into();
         let query = query.into();
         for values in [&mut sources, &mut kind_ids, &mut predicate_ids] {
             values.sort();
@@ -143,7 +158,7 @@ impl ReferenceCursorBinding {
         let filter_count = sources.len().checked_add(kind_ids.len())
             .and_then(|count| count.checked_add(predicate_ids.len()))
             .ok_or_else(|| invalid("indexed cursor filter count overflow"))?;
-        if source_revision.is_empty() || query.chars().count() > 256 || filter_count > 100 {
+        if query.chars().count() > 256 || filter_count > 100 {
             return Err(invalid("indexed cursor binding exceeds Reference bounds"));
         }
         Ok(Self { source_revision, query, sources, kind_ids, predicate_ids })
@@ -162,6 +177,7 @@ impl ReferenceCursorBinding {
             .map_err(|_| invalid("indexed cursor filters cannot be encoded"))?;
         Ok(Digest256::of_bytes(&raw).to_hex())
     }
+
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -239,7 +255,12 @@ pub(crate) fn decode_reference_indexed_cursor(
     if !exact_keys(object, KEYS) || object["schema"].as_str() != Some(OUTER_SCHEMA) {
         return Err(invalid("indexed cursor envelope is invalid"));
     }
-    if object["source_revision"].as_str() != Some(binding.source_revision.as_str()) {
+    let source_revision_matches = match (&object["source_revision"], &binding.source_revision) {
+        (Value::Null, None) => true,
+        (Value::String(actual), Some(expected)) => actual == expected,
+        _ => false,
+    };
+    if !source_revision_matches {
         return Err(stale_source());
     }
     let (sources, kind_ids, predicate_ids) = parse_filters(&object["filters"])?;
@@ -326,7 +347,8 @@ fn parse_read_model_child(
     if !exact_keys(object, KEYS) || object["schema"].as_str() != Some(CHILD_SCHEMA) {
         return Err(invalid("indexed search child cursor is invalid"));
     }
-    if object["source_revision"].as_str() != Some(binding.source_revision.as_str()) {
+    let source_revision = binding.source_revision.as_deref().ok_or_else(stale_source)?;
+    if object["source_revision"].as_str() != Some(source_revision) {
         return Err(stale_source());
     }
     if object["kind"].as_str() != Some(kind_name(kind))
@@ -369,7 +391,7 @@ fn encode_read_model_child(
     }
     let value = json!({
         "schema": CHILD_SCHEMA,
-        "source_revision": binding.source_revision,
+        "source_revision": binding.source_revision.as_deref().ok_or_else(stale_source)?,
         "kind": kind_name(kind),
         "query": binding.query,
         "n": tos_query::search_index::INDEXED_SEARCH_GRAM_CODEPOINTS_V1,

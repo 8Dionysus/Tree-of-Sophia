@@ -369,7 +369,7 @@ class NativeCoreSnapshotClient:
     def __init__(self, native_prefix: str | Path,
                  selection: NativeCoreSnapshotSelection,
                  admission_provider: Callable[[str], NativeCoreSnapshotAdmission] | None = None,
-                 *, search_read_model=None, snapshot_root=None):
+                 *, search_read_model=None, snapshot_root=None, release_root=None):
         self.native_prefix = _absolute_path(native_prefix, 'native_prefix')
         if not isinstance(selection, NativeCoreSnapshotSelection):
             raise TypeError('native Core snapshot requires an explicit carrier selection')
@@ -377,9 +377,12 @@ class NativeCoreSnapshotClient:
             raise TypeError('native Core snapshot requires a caller-owned admission provider')
         self.selection = selection
         self._snapshot_root = None if snapshot_root is None else _absolute_path(snapshot_root, 'snapshot_root')
+        self._release_root = None if release_root is None else _absolute_path(release_root, 'release_root')
         if self._snapshot_root is not None and (admission_provider is not None
                 or selection.tos_root != self._snapshot_root / 'data'):
             raise ValueError('native guarded selection must retain snapshot root/data')
+        if self._release_root is not None and self._snapshot_root is None:
+            raise ValueError('ReferenceRelease requires its selected snapshot root')
         self._expected_snapshot_guard = None
         if search_read_model is not None:
             if admission_provider is not None:
@@ -406,7 +409,7 @@ class NativeCoreSnapshotClient:
                 with owned_native_ordinary_source_session(prefix=self.native_prefix,
                         selection=self.selection, transport=NativeSessionLimits(65536, 16777216, 258, 1, 65536, 16777216),
                         state=call.state, cancelled=call.state._cancelled, maximum_owner_objects=100000,
-                        snapshot_root=self._snapshot_root) as client:
+                        snapshot_root=self._snapshot_root, release_root=self._release_root) as client:
                     self._accept_snapshot_guard(client._snapshot_guard)
 
     def _accept_snapshot_guard(self, guard):
@@ -456,7 +459,8 @@ class NativeCoreSnapshotClient:
                 if self._closed:
                     raise RuntimeError('native Core snapshot client is closed')
                 retained_owner_state(state, (self.native_prefix, self.selection,
-                    self._published_graph, self._published_catalog, self._state_file, self._search_read_model, self._snapshot_root, self._expected_snapshot_guard),
+                    self._published_graph, self._published_catalog, self._state_file, self._search_read_model,
+                    self._snapshot_root, self._release_root, self._expected_snapshot_guard),
                     maximum_objects=100000)
                 yield _CallClock(None, work + 5.0, math.floor(work * 1000000000), state)
             except Exception as error:
@@ -529,7 +533,8 @@ class NativeCoreSnapshotClient:
                     selection=self.selection, transport=transport, state=call.state,
                     cancelled=call.state._cancelled, maximum_owner_objects=100000,
                     search_read_model=search_read_model, snapshot_root=self._snapshot_root,
-                    expected_snapshot_guard=self._expected_snapshot_guard) as client:
+                    expected_snapshot_guard=self._expected_snapshot_guard,
+                    release_root=self._release_root) as client:
                 self._accept_snapshot_guard(client._snapshot_guard)
                 tool = arguments['tool'] if operation_id == 'tos_native_call' else operation_id
                 values = arguments['arguments'] if operation_id == 'tos_native_call' else arguments
@@ -595,7 +600,8 @@ class NativeCoreSnapshotClient:
                     selection=self.selection, state=call.state, operation_id=operation_id,
                     prior_fd=prior_state.fileno() if prior_state is not None else None,
                     reply_fd=sender.fileno() if sender is not None else None,
-                    absolute_work_deadline=call.work_deadline, snapshot_root=self._snapshot_root)
+                    absolute_work_deadline=call.work_deadline, snapshot_root=self._snapshot_root,
+                    release_root=self._release_root)
             else:
                 exchange = owned_exchange(argv, prefix=self.native_prefix,
                     input_cap=_INPUT_CAP, frame_cap=_FRAME_CAP,
