@@ -868,7 +868,8 @@ pub(crate) fn with_controlled_selected_knowledge_model<'state, 'budget>(
                 issued_loan.capture().finish_owned_operation_phase_limits()?;
                 let query_hook = context.install_operation_sql_controller(&db, state.sql_vm_limit())?;
                 let (source_basis, navigation_original, philosophy_original, corpus_original) = verified;
-                if source_basis.owned_heap_bytes()? > escaping_basis
+                if source_basis.owned_heap_bytes()
+                    .map_err(|_| Error::Budget("controlled source-basis retained state"))? > escaping_basis
                     || navigation_original_retained_bytes(&navigation_original)? > navigation_receipt
                 {
                     return Err(Error::Budget("controlled cold receipt retained bytes"));
