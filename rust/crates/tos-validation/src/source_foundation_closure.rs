@@ -10480,6 +10480,7 @@ fn assessment_refusal(error: crate::assessment::AssessmentRefusal) -> ItemRefusa
             ItemRefusal::BudgetCheck { check, used, limit }
         }
         AssessmentRefusal::Schema(ItemRefusal::Deadline) => ItemRefusal::Deadline,
+        AssessmentRefusal::Schema(error @ ItemRefusal::Executor(_)) => error,
         AssessmentRefusal::Schema(ItemRefusal::Source(_)) => {
             ItemRefusal::Source("source-foundation equality source check failed".into())
         }

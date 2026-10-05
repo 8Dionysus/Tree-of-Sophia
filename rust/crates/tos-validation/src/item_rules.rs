@@ -34,9 +34,79 @@ pub enum ItemRefusal {
         used: Option<u64>,
         limit: Option<u64>,
     },
+    Executor(Box<ItemExecutorRefusal>),
     Deadline,
     Source(String),
     Unsupported(String),
+}
+
+impl ItemRefusal {
+    /// Preserve the established coarse category at APIs that do not expose
+    /// executor evidence. Foundation's typed receiver does not use this view.
+    pub fn compatibility_category(self) -> Self {
+        match self {
+            Self::Executor(evidence) => match evidence.reason {
+                crate::executor::ExecutorFailure::Timeout => Self::Deadline,
+                crate::executor::ExecutorFailure::Cancelled => {
+                    Self::Source("schema execution cancelled".into())
+                }
+                crate::executor::ExecutorFailure::InputBudget
+                | crate::executor::ExecutorFailure::CpuLimit => Self::Budget,
+                _ => Self::Unsupported(evidence.summary()),
+            },
+            other => other,
+        }
+    }
+}
+
+/// Bounded mechanical failure evidence; contains no instance, parser text or path.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ItemExecutorRefusal {
+    pub stage: &'static str,
+    pub reason: crate::executor::ExecutorFailure,
+    pub exchange: Option<crate::executor::ExchangeFailureContext>,
+    /// Exact committed prefix before the failed attempt, never attempted work.
+    pub quota: Option<crate::executor::SharedSchemaWorkerQuotaUsage>,
+}
+impl ItemExecutorRefusal {
+    pub fn summary(&self) -> String {
+        // Stage and boundary are authored static guard names. Fingerprint them
+        // so even future owner labels cannot disclose source paths.
+        let stage = Digest256::of_bytes(self.stage.as_bytes()).to_hex();
+        let boundary = self
+            .exchange
+            .map(|context| Digest256::of_bytes(context.boundary.as_bytes()).to_hex());
+        format!(
+            "executor stage={stage} reason={:?} boundary={boundary:?} exchange_reason={:?} natural_termination={:?} committed_quota_prefix={:?}",
+            self.reason,
+            self.exchange.map(|context| context.failure),
+            self.exchange
+                .and_then(|context| context.natural_termination),
+            self.quota
+        )
+    }
+}
+
+impl std::fmt::Display for ItemExecutorRefusal {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter.write_str(&self.summary())
+    }
+}
+impl std::error::Error for ItemExecutorRefusal {}
+
+pub(crate) fn executor_refusal(
+    stage: &'static str,
+    reason: crate::executor::ExecutorFailure,
+    exchange: Option<crate::executor::ExchangeFailureContext>,
+    quota: Option<&crate::executor::SharedSchemaWorkerQuota>,
+) -> ItemRefusal {
+    let observed = quota.and_then(|quota| quota.refusal_evidence());
+    ItemRefusal::Executor(Box::new(ItemExecutorRefusal {
+        stage,
+        reason,
+        exchange: exchange.or_else(|| observed.and_then(|(context, _)| context)),
+        quota: observed.map(|(_, usage)| usage),
+    }))
 }
 
 /// Preserve the source location of a guard that has no observed counter.

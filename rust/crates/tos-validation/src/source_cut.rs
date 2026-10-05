@@ -769,8 +769,19 @@ impl SchemaResourcePreparationStats {
                 self.count,
             )
             .ok_or(ItemRefusal::Budget)?;
+        let diagnostic_index = self
+            .count
+            .checked_mul(self.count)
+            .and_then(|slots| slots.checked_mul(std::mem::size_of::<usize>()))
+            .and_then(|bytes| {
+                bytes.checked_add(self.count.checked_mul(
+                std::mem::size_of::<(String, std::ops::Range<usize>, Digest256, Vec<usize>)>()
+                    .checked_add(crate::source_foundation_schema::MAX_LOCATION_BYTES)?)?)
+            })
+            .ok_or_else(|| crate::item_budget_origin!())?;
         self.serde_workspace
             .checked_add(foundation_workspace)
+            .and_then(|bytes| bytes.checked_add(diagnostic_index))
             .and_then(|bytes| bytes.checked_add(closure_buffers))
             .and_then(|bytes| bytes.checked_add(selected_resource_metadata))
             .ok_or(ItemRefusal::Budget)
@@ -840,7 +851,7 @@ pub struct CutWorkerSchemaExecutor {
     diagnostics_v2_controller_state_cap: Option<usize>,
     diagnostics_v2_legacy_raw_instance_limit: usize,
     diagnostics_v2_legacy_selected_limits: Option<LegacySelectedDiagnosticsLimits>,
-    diagnostics_v2_shared_quota_attached: bool,
+    diagnostics_v2_shared_quota_attached: Option<SharedSchemaWorkerQuota>,
     diagnostics_v2_cost: Option<CutSchemaDiagnosticsCumulativeCost>,
     diagnostics_v2_cost_unknown: bool,
     diagnostic_executions: usize,
@@ -1671,12 +1682,8 @@ impl CutWorkerSchemaExecutor {
                 &worker, &resources, profile, budget, deadline, cancelled,
             ),
         };
-        let mut prepared = prepared_result.map_err(|reason| match reason {
-            ExecutorFailure::Timeout => ItemRefusal::Deadline,
-            ExecutorFailure::Cancelled => {
-                ItemRefusal::Source("schema preparation cancelled".into())
-            }
-            other => ItemRefusal::Unsupported(format!("schema worker preparation: {other:?}")),
+        let mut prepared = prepared_result.map_err(|reason| {
+            crate::item_rules::executor_refusal("schema preparation", reason, None, None)
         })?;
         check(deadline, cancelled)?;
         prepared.set_operation_origin(operation_origin);
@@ -1705,7 +1712,7 @@ impl CutWorkerSchemaExecutor {
             diagnostics_v2_controller_state_cap: None,
             diagnostics_v2_legacy_raw_instance_limit: SchemaBackendProbe::MAX_INSTANCE_BYTES,
             diagnostics_v2_legacy_selected_limits: None,
-            diagnostics_v2_shared_quota_attached: false,
+            diagnostics_v2_shared_quota_attached: None,
             diagnostics_v2_cost: None,
             diagnostics_v2_cost_unknown: false,
             diagnostic_executions: 0,
@@ -1765,9 +1772,9 @@ impl CutWorkerSchemaExecutor {
             ));
         }
         self.prepared
-            .set_shared_schema_worker_quota(quota)
+            .set_shared_schema_worker_quota(quota.clone())
             .map_err(operation_failure)?;
-        self.diagnostics_v2_shared_quota_attached = true;
+        self.diagnostics_v2_shared_quota_attached = Some(quota);
         Ok(())
     }
 
@@ -1855,7 +1862,7 @@ impl CutWorkerSchemaExecutor {
             || self.diagnostics_v2_legacy_raw_instance_limit
                 != SchemaBackendProbe::MAX_INSTANCE_BYTES
             || self.diagnostics_v2_controller_state_cap.is_some()
-            || self.diagnostics_v2_shared_quota_attached
+            || self.diagnostics_v2_shared_quota_attached.is_some()
             || self.protocol_started
             || self.diagnostic_executions != 0
             || self.scalar_check_count != 0
@@ -2623,7 +2630,7 @@ impl CutWorkerSchemaExecutor {
             })?;
         self.admit_diagnostics_v2_controller_state(raw.len(), path.len(), contract)?;
         let input_mode = if selected_limits.is_some() {
-            let selected = selected_limits.ok_or(ItemRefusal::Budget)?;
+            let selected = selected_limits.ok_or_else(|| crate::item_budget_origin!())?;
             if raw.len() > selected.max_instance_bytes {
                 return Err(ItemRefusal::Budget);
             }
@@ -2678,7 +2685,12 @@ impl CutWorkerSchemaExecutor {
         }
         .map_err(|_| {
             self.prepared.poison(ExecutorFailure::CoverageMismatch);
-            ItemRefusal::Budget
+            crate::item_rules::executor_refusal(
+                "cut diagnostics coverage expectation",
+                ExecutorFailure::CoverageMismatch,
+                None,
+                self.diagnostics_v2_shared_quota_attached.as_ref(),
+            )
         })?;
         let expected_unit_sha = if let Some(selected) = selected_limits {
             selected_legacy_diagnostics_batch_unit_digest(&expected_unit, selected)
@@ -2687,7 +2699,12 @@ impl CutWorkerSchemaExecutor {
         }
         .map_err(|_| {
             self.prepared.poison(ExecutorFailure::CoverageMismatch);
-            ItemRefusal::Budget
+            crate::item_rules::executor_refusal(
+                "cut diagnostics coverage expectation",
+                ExecutorFailure::CoverageMismatch,
+                None,
+                self.diagnostics_v2_shared_quota_attached.as_ref(),
+            )
         })?;
         let decoded_sha256 = Digest256::of_bytes(&expected_unit.raw_instance);
         let source_raw_sha256 = Digest256::of_bytes(raw);
@@ -2698,13 +2715,17 @@ impl CutWorkerSchemaExecutor {
                 .ok_or(ItemRefusal::Deadline)?,
         );
         self.protocol_started = true;
+        let execution_digest = self
+            .prepared
+            .diagnostic_schema_set_digest(&expected_unit.root_uri)
+            .map_err(operation_failure)?;
         let execution = if input_mode == DiagnosticsUnitInputMode::LegacyPythonObservedSelected {
             self.prepared.evaluate_with_selected_legacy_diagnostics(
                 "source-cut-schema-unit",
                 path,
                 &expected_unit.root_uri,
                 &expected_unit.raw_instance,
-                selected_limits.ok_or(ItemRefusal::Budget)?,
+                selected_limits.ok_or_else(|| crate::item_budget_origin!())?,
                 self.resource_preparation_state_upper_bound,
                 budget,
                 deadline,
@@ -2731,14 +2752,25 @@ impl CutWorkerSchemaExecutor {
                 cancelled,
             )
         };
-        let (outcome, cost) = execution
-            .map_err(|reason| diagnostics_refusal(reason, self.prepared.exchange_failure()))?;
+        let (outcome, cost) = execution.map_err(|reason| {
+            crate::item_rules::executor_refusal(
+                "cut schema diagnostics",
+                reason,
+                self.prepared.exchange_failure(),
+                self.diagnostics_v2_shared_quota_attached.as_ref(),
+            )
+        })?;
         let (mut units, checkpoint) = match outcome {
             SchemaDiagnosticsOutcome::Complete { units, checkpoint } => (units, checkpoint),
             SchemaDiagnosticsOutcome::Incomplete {
                 reason, exchange, ..
             } => {
-                return Err(diagnostics_refusal(reason, exchange));
+                return Err(crate::item_rules::executor_refusal(
+                    "cut schema diagnostics",
+                    reason,
+                    exchange,
+                    self.diagnostics_v2_shared_quota_attached.as_ref(),
+                ));
             }
         };
         let unit = units.pop().ok_or_else(|| {
@@ -2751,7 +2783,7 @@ impl CutWorkerSchemaExecutor {
             || checkpoint.completed_count != 1
             || checkpoint.worker_sha256 != self.worker.sha256
             || checkpoint.profile != self.profile
-            || checkpoint.schema_set_sha256 != self.schema_set_digest
+            || checkpoint.schema_set_sha256 != execution_digest
             || checkpoint.ordered_manifest_sha256 != expected.ordered_manifest_sha256
             || checkpoint.caps_sha256 != caps_sha256
             || checkpoint.request_sha256 != report.request_sha256
@@ -2764,7 +2796,7 @@ impl CutWorkerSchemaExecutor {
             || report.worker_sha256 != self.worker.sha256
             || report.request_sha256 != checkpoint.request_sha256
             || report.unit_sha256 != unit.unit_sha256
-            || report.schema_set_sha256 != self.schema_set_digest
+            || report.schema_set_sha256 != execution_digest
             || report.caps_sha256() != caps_sha256
             || !report.is_well_formed()
             || cost.worker_cpu_micros.is_none()
@@ -4290,18 +4322,6 @@ fn cut_diagnostic_state_bytes(
     Some(total)
 }
 
-fn diagnostics_refusal(
-    reason: ExecutorFailure,
-    _exchange: Option<crate::executor::ExchangeFailureContext>,
-) -> ItemRefusal {
-    match reason {
-        ExecutorFailure::Timeout => ItemRefusal::Deadline,
-        ExecutorFailure::Cancelled => ItemRefusal::Source("schema diagnostics cancelled".into()),
-        ExecutorFailure::InputBudget | ExecutorFailure::CpuLimit => ItemRefusal::Budget,
-        _ => ItemRefusal::Unsupported("schema diagnostics worker failed".into()),
-    }
-}
-
 fn diagnostic_status_refusal(report: &schema_diagnostics::Report) -> ItemRefusal {
     let status = match report.status {
         schema_diagnostics::Status::Valid => "valid",
@@ -4348,13 +4368,7 @@ fn operation_failure_with_context(
     reason: ExecutorFailure,
     exchange: Option<crate::executor::ExchangeFailureContext>,
 ) -> ItemRefusal {
-    match reason {
-        ExecutorFailure::Timeout => ItemRefusal::Deadline,
-        ExecutorFailure::Cancelled => ItemRefusal::Source("schema operation cancelled".into()),
-        other => ItemRefusal::Unsupported(format!(
-            "schema operation refused: {other:?}; original exchange: {exchange:?}"
-        )),
-    }
+    crate::item_rules::executor_refusal("schema operation", reason, exchange, None)
 }
 
 #[cfg(test)]

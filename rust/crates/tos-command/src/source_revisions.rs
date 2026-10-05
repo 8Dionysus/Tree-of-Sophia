@@ -3091,7 +3091,7 @@ fn candidate_source_refusal(
     refusal: tos_validation::item_rules::ItemRefusal,
 ) -> SourceCommandError {
     use tos_validation::item_rules::ItemRefusal;
-    match refusal {
+    match refusal.compatibility_category() {
         ItemRefusal::Budget | ItemRefusal::BudgetCheck { .. } => {
             SourceCommandError::Invalid("candidate Artifact replay source budget")
         }
@@ -3101,7 +3101,7 @@ fn candidate_source_refusal(
         ItemRefusal::Source(_) => {
             SourceCommandError::Conflict("candidate Artifact replay source changed")
         }
-        ItemRefusal::Unsupported(_) => {
+        ItemRefusal::Unsupported(_) | ItemRefusal::Executor(_) => {
             SourceCommandError::Unsupported("candidate Artifact replay source unavailable")
         }
     }

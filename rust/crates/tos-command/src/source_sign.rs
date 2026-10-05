@@ -45,7 +45,7 @@ pub(crate) fn finish_worker(
 ) -> Result<()> {
     worker
         .finish(deadline, cancelled)
-        .map_err(|error| match error {
+        .map_err(|error| match error.compatibility_category() {
             tos_validation::item_rules::ItemRefusal::Deadline => {
                 Error::Denied("Sign schema operation expired")
             }
@@ -56,7 +56,8 @@ pub(crate) fn finish_worker(
             tos_validation::item_rules::ItemRefusal::Source(_) => {
                 Error::Invalid("Sign schema operation failed")
             }
-            tos_validation::item_rules::ItemRefusal::Unsupported(_) => {
+            tos_validation::item_rules::ItemRefusal::Unsupported(_)
+            | tos_validation::item_rules::ItemRefusal::Executor(_) => {
                 Error::Unsupported("Sign schema operation incomplete")
             }
         })
@@ -2090,27 +2091,39 @@ fn current_promotion(
         observed_now: crate::source_serialization::instant()?,
     };
     let report = evaluate_current_assessment(&input, assessment_worker, limits, cancelled)
-        .map_err(|error| match error {
-            AssessmentRefusal::InvalidInput(_) => {
-                Error::Invalid("Sign native current assessment input")
-            }
-            AssessmentRefusal::Budget => Error::Invalid("Sign native current assessment budget"),
-            AssessmentRefusal::Cancelled | AssessmentRefusal::Deadline => {
-                Error::Denied("Sign native current assessment cancelled or expired")
-            }
-            AssessmentRefusal::Schema(tos_validation::item_rules::ItemRefusal::Source(_)) => {
-                Error::Invalid("Sign native current assessment schema")
-            }
-            AssessmentRefusal::Schema(tos_validation::item_rules::ItemRefusal::Budget)
-            | AssessmentRefusal::Schema(tos_validation::item_rules::ItemRefusal::BudgetCheck {
-                ..
-            }) => Error::Invalid("Sign native current assessment schema budget"),
-            AssessmentRefusal::Schema(tos_validation::item_rules::ItemRefusal::Deadline) => {
-                Error::Denied("Sign native current assessment schema expired")
-            }
-            AssessmentRefusal::Schema(tos_validation::item_rules::ItemRefusal::Unsupported(_))
-            | AssessmentRefusal::Unsupported(_) => {
-                Error::Unsupported("Sign native current assessment evaluation")
+        .map_err(|error| {
+            match match error {
+                AssessmentRefusal::Schema(error) => {
+                    AssessmentRefusal::Schema(error.compatibility_category())
+                }
+                other => other,
+            } {
+                AssessmentRefusal::InvalidInput(_) => {
+                    Error::Invalid("Sign native current assessment input")
+                }
+                AssessmentRefusal::Budget => {
+                    Error::Invalid("Sign native current assessment budget")
+                }
+                AssessmentRefusal::Cancelled | AssessmentRefusal::Deadline => {
+                    Error::Denied("Sign native current assessment cancelled or expired")
+                }
+                AssessmentRefusal::Schema(tos_validation::item_rules::ItemRefusal::Source(_)) => {
+                    Error::Invalid("Sign native current assessment schema")
+                }
+                AssessmentRefusal::Schema(tos_validation::item_rules::ItemRefusal::Budget)
+                | AssessmentRefusal::Schema(
+                    tos_validation::item_rules::ItemRefusal::BudgetCheck { .. },
+                ) => Error::Invalid("Sign native current assessment schema budget"),
+                AssessmentRefusal::Schema(tos_validation::item_rules::ItemRefusal::Deadline) => {
+                    Error::Denied("Sign native current assessment schema expired")
+                }
+                AssessmentRefusal::Schema(
+                    tos_validation::item_rules::ItemRefusal::Unsupported(_)
+                    | tos_validation::item_rules::ItemRefusal::Executor(_),
+                )
+                | AssessmentRefusal::Unsupported(_) => {
+                    Error::Unsupported("Sign native current assessment evaluation")
+                }
             }
         })?;
     let admission = decoded(report.current_admission())?;

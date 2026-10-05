@@ -84,6 +84,78 @@ impl From<FoundationBootstrapError> for FoundationOrchestratorError {
 impl FoundationOrchestratorError {
     pub(crate) fn public_reason(&self) -> String {
         if let Self::Default(
+            _,
+            FoundationDefaultReadError::Owner(ItemRefusal::Executor(evidence)),
+        ) = self
+        {
+            return evidence.summary();
+        }
+        if let Self::Admission(error) = self {
+            if let Some(evidence) = error.get_ref().and_then(|error| {
+                error.downcast_ref::<tos_validation::item_rules::ItemExecutorRefusal>()
+            }) {
+                return evidence.summary();
+            }
+            let source_cause = error.to_string();
+            if crate::source_admission_spooled_index::is_bounded_source_cause(&source_cause) {
+                return source_cause;
+            }
+            if self.static_public_reason() == "source-foundation candidate index refused" {
+                return crate::source_admission_spooled_index::bounded_source_cause(
+                    "receiver-source",
+                    "candidate-index-admission",
+                    &source_cause,
+                );
+            }
+        }
+        let owner = match self {
+            Self::Owner(error) => Some(("owner", error)),
+            Self::OwnerAt(stage, error) => Some((*stage, error)),
+            _ => None,
+        };
+        if let Some((stage, error)) = owner {
+            if matches!(
+                error,
+                ItemRefusal::Source(_) | ItemRefusal::Unsupported(_) | ItemRefusal::Executor(_)
+            ) || matches!(error, ItemRefusal::BudgetCheck { check, .. }
+                    if !matches!(*check, "record_issue_sink" | "biblio_sink"))
+            {
+                return crate::source_admission_spooled_index::receiver_refusal(error.clone())
+                    .to_string();
+            }
+            let kind = match error {
+                ItemRefusal::Budget => "budget",
+                ItemRefusal::BudgetCheck { .. } => "budget check",
+                ItemRefusal::Deadline => "deadline",
+                ItemRefusal::Source(_) => "source",
+                ItemRefusal::Unsupported(_) => "unsupported",
+                ItemRefusal::Executor(_) => "executor",
+            };
+            use std::fmt::Write as _;
+            let mut reason = String::with_capacity(MAX_PUBLIC_BUDGET_REASON_BYTES);
+            let formatted: std::fmt::Result = (|| {
+                write!(reason, "source-foundation {stage}: owner {kind}")?;
+                if let ItemRefusal::BudgetCheck { check, used, limit } = error
+                    && matches!(*check, "record_issue_sink" | "biblio_sink")
+                {
+                    write!(reason, " {check} used=")?;
+                    match used {
+                        Some(value) => write!(reason, "{value}")?,
+                        None => reason.push_str("unknown"),
+                    }
+                    reason.push_str(" limit=");
+                    match limit {
+                        Some(value) => write!(reason, "{value}")?,
+                        None => reason.push_str("unknown"),
+                    }
+                }
+                Ok(())
+            })();
+            if formatted.is_ok() && reason.len() <= MAX_PUBLIC_BUDGET_REASON_BYTES {
+                return reason;
+            }
+        }
+        if let Self::Default(
             stage,
             FoundationDefaultReadError::Owner(ItemRefusal::BudgetCheck { check, used, limit }),
         ) = self
@@ -1531,9 +1603,8 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
     // Resource preparation retains a finite report. Whole streamed execution
     // instead follows the selected member bound and original operation ledgers.
     let max_checks = max_members.max(1);
-    let schema_loader_checks = max_checks.min(
-        tos_validation::source_foundation_schema::MAX_SOURCE_FOUNDATION_CHECKS,
-    );
+    let schema_loader_checks =
+        max_checks.min(tos_validation::source_foundation_schema::MAX_SOURCE_FOUNDATION_CHECKS);
     let schema_limits = schema_limits_for_ticket(
         view.execution_limits,
         &schema_ticket,
@@ -2619,13 +2690,17 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
             max_claim_bytes,
             catalog_limits
                 .max_rows
-                .min(u64::try_from(catalog_operation.output_bytes)
-                    .map_err(|_| incomplete("catalog output byte ceiling exceeds u64"))?)
+                .min(
+                    u64::try_from(catalog_operation.output_bytes)
+                        .map_err(|_| incomplete("catalog output byte ceiling exceeds u64"))?,
+                )
                 .max(1),
             catalog_operation
                 .tmpfs_bytes
-                .min(u64::try_from(catalog_operation.output_bytes)
-                    .map_err(|_| incomplete("catalog output byte ceiling exceeds u64"))?)
+                .min(
+                    u64::try_from(catalog_operation.output_bytes)
+                        .map_err(|_| incomplete("catalog output byte ceiling exceeds u64"))?,
+                )
                 .max(1),
         )
         .map_err(FoundationOrchestratorError::Command)?;
@@ -2663,8 +2738,10 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
     let max_generated_bytes = usize::try_from(
         catalog_operation
             .tmpfs_bytes
-            .min(u64::try_from(catalog_operation.output_bytes)
-                    .map_err(|_| incomplete("catalog output byte ceiling exceeds u64"))?)
+            .min(
+                u64::try_from(catalog_operation.output_bytes)
+                    .map_err(|_| incomplete("catalog output byte ceiling exceeds u64"))?,
+            )
             .min((usize::MAX - 1) as u64),
     )
     .map_err(|_| incomplete("candidate generated catalog byte cap range"))?;
