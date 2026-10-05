@@ -2342,6 +2342,12 @@ fn compiler_terminal_diagnostic(prefix: &'static str, error: &tos_compiler::Erro
             let _ = write!(out, "SQLite VM budget phase: {phase:?}");
             None
         }
+        tos_compiler::Error::FoundationJson { code, message, .. } => {
+            // The compiler forwards only its fixed Foundation JSON diagnostic
+            // allowlist here; do not expose a byte offset or raw source data.
+            let _ = write!(out, "Foundation JSON {}: ", code.as_str());
+            Some(*message)
+        }
         tos_compiler::Error::Source(_) => {
             let _ = out.write_str("source carrier refused");
             None
