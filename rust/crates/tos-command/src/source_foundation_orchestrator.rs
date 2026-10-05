@@ -810,11 +810,10 @@ fn cut_worker_shape(
     let units = units.min(operation.worker_wire_bytes).min(u64::MAX - 1);
     FoundationCutWorkerShape {
         batch,
-        max_chunks: units
-            .saturating_add(batch.max_units as u64 - 1)
-            .checked_div(batch.max_units as u64)
-            .unwrap_or(1)
-            .max(1),
+        // Record and cut diagnostics submit one unit per physical frame.
+        // The batch capacity is an upper bound, not guaranteed occupancy.
+        // Keep the finite unit envelope while admitting its scalar transport.
+        max_chunks: units.max(1),
         max_total_units: units.max(1),
         max_total_raw_bytes: operation
             .source_read_bytes
