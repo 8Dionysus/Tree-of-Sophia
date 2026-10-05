@@ -1224,6 +1224,18 @@ impl<'c> NativeSourceValidator<'c> {
                 "selected spooled profile exceeds remaining invocation resources",
             ));
         }
+        // Keep the already-selected consumer ceilings. The filesystem's
+        // measured root quota cost must fit beside all five retained main
+        // handles and all three auxiliary families in this same profile.
+        let retained_consumer_inodes = u64::try_from(max_live_aux)
+            .ok()
+            .and_then(|aux| aux.checked_mul(3))
+            .and_then(|aux| aux.checked_add(5))
+            .ok_or_else(|| invalid("spooled inode consumer reservation overflow"))?;
+        let root_inode_bound = inode_profile
+            .checked_sub(retained_consumer_inodes)
+            .filter(|bound| *bound != 0)
+            .ok_or_else(|| invalid("spooled inode profile leaves no root allowance"))?;
         let Some(candidate_sqlite) = sqlite_aux_limits(candidate_partition, max_live_aux) else {
             return Err(invalid(
                 "selected spooled profile exceeds remaining invocation resources",
@@ -1416,7 +1428,7 @@ impl<'c> NativeSourceValidator<'c> {
                     || after_usage
                         .used_inodes
                         .checked_sub(usage.used_inodes)
-                        .is_none_or(|n| n > 1)
+                        .is_none_or(|n| n == 0 || n > root_inode_bound)
                 {
                     // Only fixed labels and numeric quota observations cross
                     // the public refusal boundary; paths and raw IO stay sealed.
@@ -1426,15 +1438,19 @@ impl<'c> NativeSourceValidator<'c> {
                             "private spooled workspace creation exceeded its precharge: \
                              before_used_bytes={} before_used_inodes={} \
                              after_used_bytes={} after_used_inodes={} \
-                             root_metadata_bound_bytes={} root_inode_bound=1 \
+                             root_metadata_bound_bytes={} root_inode_bound={} \
+                             inode_profile={} retained_consumer_inodes={} \
                              selected_tmpfs_quota_bytes={} selected_tmpfs_inode_limit={} \
                              bytes_decreased={} inodes_decreased={} \
-                             bytes_excess={} inodes_excess={}",
+                             bytes_excess={} root_inode_delta_invalid={}",
                             usage.used_bytes,
                             usage.used_inodes,
                             after_usage.used_bytes,
                             after_usage.used_inodes,
                             ROOT_METADATA_BOUND,
+                            root_inode_bound,
+                            inode_profile,
+                            retained_consumer_inodes,
                             caps.tmpfs_quota_bytes,
                             caps.tmpfs_inode_limit,
                             after_usage.used_bytes < usage.used_bytes,
@@ -1446,7 +1462,7 @@ impl<'c> NativeSourceValidator<'c> {
                             after_usage
                                 .used_inodes
                                 .checked_sub(usage.used_inodes)
-                                .is_some_and(|n| n > 1),
+                                .is_some_and(|n| n == 0 || n > root_inode_bound),
                         )),
                     ));
                 }
