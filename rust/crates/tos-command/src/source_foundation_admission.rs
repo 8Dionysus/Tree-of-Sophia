@@ -1418,8 +1418,36 @@ impl<'c> NativeSourceValidator<'c> {
                         .checked_sub(usage.used_inodes)
                         .is_none_or(|n| n > 1)
                 {
-                    return Err(invalid(
-                        "private spooled workspace creation exceeded its precharge",
+                    // Only fixed labels and numeric quota observations cross
+                    // the public refusal boundary; paths and raw IO stay sealed.
+                    return Err(io::Error::new(
+                        io::ErrorKind::InvalidData,
+                        crate::source_command::SourceCommandError::DeniedWithReason(format!(
+                            "private spooled workspace creation exceeded its precharge: \
+                             before_used_bytes={} before_used_inodes={} \
+                             after_used_bytes={} after_used_inodes={} \
+                             root_metadata_bound_bytes={} root_inode_bound=1 \
+                             selected_tmpfs_quota_bytes={} selected_tmpfs_inode_limit={} \
+                             bytes_decreased={} inodes_decreased={} \
+                             bytes_excess={} inodes_excess={}",
+                            usage.used_bytes,
+                            usage.used_inodes,
+                            after_usage.used_bytes,
+                            after_usage.used_inodes,
+                            ROOT_METADATA_BOUND,
+                            caps.tmpfs_quota_bytes,
+                            caps.tmpfs_inode_limit,
+                            after_usage.used_bytes < usage.used_bytes,
+                            after_usage.used_inodes < usage.used_inodes,
+                            after_usage
+                                .used_bytes
+                                .checked_sub(usage.used_bytes)
+                                .is_some_and(|n| n > ROOT_METADATA_BOUND),
+                            after_usage
+                                .used_inodes
+                                .checked_sub(usage.used_inodes)
+                                .is_some_and(|n| n > 1),
+                        )),
                     ));
                 }
                 active(self.deadline, self.cancel)?;
