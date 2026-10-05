@@ -2350,19 +2350,35 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
                         .state_bytes
                         .checked_sub(biblio_state)
                         .ok_or(tos_validation::item_budget_origin!())?;
-                    let mut reader_limits = FoundationRuleReadLimits {
-                        max_member_bytes: max_member_bytes.min(after_replay_headroom as usize).max(1),
-                        max_read_bytes: after_replay_headroom,
-                        max_auxiliary_paths: max_members
-                            .min(available_after_biblio / std::mem::size_of::<(String, Option<(Digest256, u64)>)>().max(1))
-                            .max(1),
-                        max_auxiliary_state_bytes: available_after_biblio,
-                        deadline,
-                    };
-                    reader_limits.max_member_bytes = reader_limits
-                        .max_member_bytes
+                    let reader_member_bytes = max_member_bytes
+                        .min(after_replay_headroom as usize)
+                        .max(1)
                         .min(usize::try_from(biblio_limits.max_member_bytes)
                             .map_err(|_| tos_validation::item_budget_origin!())?);
+                    // The same callback retains the Records header while the
+                    // rule reader owns its header, copied member and auxiliary
+                    // map. Project those simultaneous allocations from the one
+                    // remaining state reservation before assigning the map cap.
+                    let reader_retained_state = callback_held
+                        .checked_add(callback_header_state)
+                        .and_then(|state| state.checked_add(replay_state))
+                        .and_then(|state| state.checked_add(biblio_state))
+                        .ok_or(tos_validation::item_budget_origin!())?;
+                    let reader_auxiliary_state_bytes = available_after_biblio
+                        .checked_sub(std::mem::size_of::<FoundationRuleSource<'_, '_>>())
+                        .and_then(|state| state.checked_sub(reader_member_bytes))
+                        .filter(|state| *state != 0)
+                        .ok_or(tos_validation::item_budget_origin!())?;
+                    let reader_limits = FoundationRuleReadLimits {
+                        max_member_bytes: reader_member_bytes,
+                        max_read_bytes: after_replay_headroom,
+                        max_auxiliary_paths: max_members
+                            .min(reader_auxiliary_state_bytes
+                                / std::mem::size_of::<(String, Option<(Digest256, u64)>)>().max(1))
+                            .max(1),
+                        max_auxiliary_state_bytes: reader_auxiliary_state_bytes,
+                        deadline,
+                    };
                     let history_usage_before_rules =
                         view.history.as_deref().map(|history| history.usage());
                     let history_shared_before_rules = view
@@ -2384,11 +2400,8 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
                         payload_reader,
                         cancelled,
                         reader_limits,
-                        callback_held
-                            .checked_add(replay_state)
-                            .and_then(|state| state.checked_add(biblio_state))
-                            .ok_or(tos_validation::item_budget_origin!())?,
-                        callback_state_bytes,
+                        reader_retained_state,
+                        original_operation_state,
                     ).map_err(|error| candidate_owner_refusal("candidate default source preparation", error))?;
                     if let Some(history) = view.history.as_deref_mut() {
                         rule_source = rule_source.with_history(history)

@@ -330,8 +330,14 @@ impl<'a, 'cancel> FoundationRuleSource<'a, 'cancel> {
             .checked_add(std::mem::size_of::<Self>())
             .and_then(|bytes| bytes.checked_add(limits.max_auxiliary_state_bytes))
             .and_then(|bytes| bytes.checked_add(limits.max_member_bytes))
-            .filter(|bytes| *bytes <= max_operation_state_bytes)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
+        if callback_state > max_operation_state_bytes {
+            return Err(ItemRefusal::BudgetCheck {
+                check: "candidate rule reader simultaneous callback state",
+                used: u64::try_from(callback_state).ok(),
+                limit: u64::try_from(max_operation_state_bytes).ok(),
+            });
+        }
         input.require_callback_state(callback_state, max_operation_state_bytes)?;
         let mut source = Self::new_inner(
             FoundationRuleInput::Candidate(input),
@@ -358,7 +364,7 @@ impl<'a, 'cancel> FoundationRuleSource<'a, 'cancel> {
             || limits.max_auxiliary_paths == 0
             || limits.max_auxiliary_state_bytes == 0
         {
-            return Err(ItemRefusal::Budget);
+            return Err(tos_validation::item_budget_origin!());
         }
         let selected = Self {
             input,
