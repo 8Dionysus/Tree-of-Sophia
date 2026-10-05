@@ -427,13 +427,13 @@ fn parse_json_inner(
     parse_json_inner_with_admission(raw, mode, limits, state, check, None)
 }
 
-fn parse_json_inner_with_admission(
+fn parse_json_inner_with_admission<'callback>(
     raw: &[u8],
     mode: JsonMode,
     limits: JsonLimits,
     state: Option<(usize, usize)>,
-    check: Option<&mut dyn FnMut() -> Result<()>>,
-    admit: Option<&mut dyn FnMut(usize, usize) -> Result<()>>,
+    check: Option<&'callback mut dyn FnMut() -> Result<()>>,
+    admit: Option<&'callback mut dyn FnMut(usize, usize) -> Result<()>>,
 ) -> Result<JsonDocument> {
     limits.validate()?;
     if raw.len() > limits.max_bytes {
@@ -1244,7 +1244,9 @@ fn write_with_state_budget_and_visits(
         .ok_or_else(state_error)?;
     let mut output = JsonOutput {
         poll: JsonCheck::with_admission(
-            check,
+            check
+                .as_mut()
+                .map(|callback| &mut **callback as &mut dyn FnMut() -> Result<()>),
             if incremental_admission {
                 admit
                     .as_mut()
