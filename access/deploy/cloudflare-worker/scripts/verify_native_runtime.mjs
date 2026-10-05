@@ -331,13 +331,35 @@ export async function verifyNativeWorker(request, wholeDeadline) {
       if (!running()) throw new Error('native server exited before readiness');
       try {
         const response = await fetch(nativeBase + '/health', {redirect: 'error', signal: AbortSignal.timeout(Math.max(1, readyDeadline - Date.now()))});
-        if (response.status !== 200 || !response.body) throw new Error('native accepted readiness request failed');
-        const reader = response.body.getReader(); let chunks = [], size = 0;
-        try {for (;;) {remaining(readyDeadline); const {done,value} = await reader.read(); if (done) break; size += value.byteLength;
-          assert.ok(size <= request.maximum_response_bytes, 'native readiness packet exceeds bound'); chunks.push(value);}}
-        finally {await reader.cancel();}
-        const health = JSON.parse(new TextDecoder('utf-8', {fatal: true}).decode(Buffer.concat(chunks,size)));
-        assert.equal(health.ok, true); break; // Exactly ONE accepted readiness request.
+        let chunks = [], size = 0, bodyComplete = false;
+        try {
+          if (!response.body) throw new Error('native accepted readiness request failed');
+          const reader = response.body.getReader();
+          try {for (;;) {remaining(readyDeadline); const {done,value} = await reader.read(); if (done) {bodyComplete = true; break;}
+            assert.ok(size + value.byteLength <= request.maximum_response_bytes, 'native readiness packet exceeds bound');
+            size += value.byteLength; chunks.push(value);}}
+          finally {await reader.cancel();}
+          if (response.status !== 200) throw new Error('native accepted readiness request failed');
+          const health = JSON.parse(new TextDecoder('utf-8', {fatal: true}).decode(Buffer.concat(chunks,size)));
+          assert.equal(health.ok, true); break; // Exactly ONE accepted readiness request.
+        } catch (error) {
+          // Retain this accepted response before cleanup, within the SAME native
+          // log allowance. No extra request or readiness retry is introduced.
+          const body = Buffer.concat(chunks,size);
+          const diagnostic = {schema: 'tos_native_readiness_failure_v1', status: response.status,
+            body_bytes: size, body_complete: bodyComplete, body_sha256: sha256(body),
+            body_encoding: 'base64', body_base64: '', body_truncated: false};
+          const available = startup.maximum_log_bytes - stdoutBytes - stderrBytes;
+          const overhead = Buffer.byteLength(JSON.stringify(diagnostic) + '\n');
+          assert.ok(available >= overhead, 'native readiness diagnostic exceeds remaining log bound');
+          const retained = Math.min(size, Math.floor((available - overhead) / 4) * 3);
+          diagnostic.body_base64 = body.subarray(0,retained).toString('base64');
+          diagnostic.body_truncated = retained < size;
+          const encoded = Buffer.from(JSON.stringify(diagnostic) + '\n');
+          assert.ok(encoded.length <= available, 'native readiness diagnostic exceeds remaining log bound');
+          observe(encoded, 'stderr'); await logWrites;
+          throw error;
+        }
       } catch (error) {
         // Only refused TCP before the listener can retry. Accepted timeout,
         // non-200, malformed packet or any other transport error is a refusal.
