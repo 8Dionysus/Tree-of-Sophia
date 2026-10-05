@@ -13,9 +13,16 @@ use std::{
     time::{Duration, Instant},
 };
 use tos_foundation::{
-    CanonicalProfile, Digest256, JsonLimits, JsonMode, JsonValue, canonical_bytes_v1, parse_json,
+    CanonicalProfile, Digest256, JsonLimits, JsonMode, JsonValue, OwnedState, canonical_bytes_v1,
+    parse_json_with_state_budget,
 };
 
+pub(super) trait Charges {
+    fn io(&mut self, bytes: usize) -> std::result::Result<(), String>;
+    fn state(&mut self, bytes: usize) -> std::result::Result<(), String>;
+    fn available_state(&self) -> usize;
+    fn verify_inputs(&mut self) -> Result<()>;
+}
 type Result<T> = std::result::Result<T, String>;
 #[derive(Debug)]
 pub(super) struct Publication {
@@ -339,7 +346,13 @@ fn stamp(file: &File) -> Result<Stamp> {
         ctime_nsec: m.ctime_nsec(),
     })
 }
-fn read_optional(dir: &File, leaf: &str, cap: usize, deadline: Instant) -> Result<Option<Vec<u8>>> {
+fn read_optional(
+    dir: &File,
+    leaf: &str,
+    cap: usize,
+    deadline: Instant,
+    charges: &mut dyn Charges,
+) -> Result<Option<Vec<u8>>> {
     active(deadline)?;
     if !exists(dir, OsStr::new(leaf))? {
         return Ok(None);
@@ -351,12 +364,20 @@ fn read_optional(dir: &File, leaf: &str, cap: usize, deadline: Instant) -> Resul
     if before.size > cap as u64 {
         return Err("release metadata byte budget exceeded".into());
     }
+    charges.state(before.size as usize)?;
     let mut raw = Vec::with_capacity(before.size as usize);
     let mut block = [0u8; 8192];
     loop {
         active(deadline)?;
+        let allowance = block.len().min(
+            before
+                .size
+                .saturating_sub(raw.len() as u64)
+                .saturating_add(1) as usize,
+        );
+        charges.io(allowance)?;
         let count = file
-            .read(&mut block)
+            .read(&mut block[..allowance])
             .map_err(|_| "release metadata read failed")?;
         if count == 0 {
             break;
@@ -374,20 +395,38 @@ fn read_optional(dir: &File, leaf: &str, cap: usize, deadline: Instant) -> Resul
     active(deadline)?;
     Ok(Some(raw))
 }
-fn canonical(raw: &[u8], limits: JsonLimits) -> Result<JsonValue> {
-    let value = parse_json(raw, JsonMode::PublishedStrict, limits)
-        .map_err(|_| "release metadata JSON invalid")?
-        .into_root();
-    if canonical_bytes_v1(&value, CanonicalProfile::CorpusSnapshotV1, limits)
-        .map_err(|_| "release metadata canonicalization failed")?
-        != raw
-    {
+fn canonical(raw: &[u8], limits: JsonLimits, charges: &mut dyn Charges) -> Result<JsonValue> {
+    let value = parse_json_with_state_budget(
+        raw,
+        JsonMode::PublishedStrict,
+        limits,
+        charges.available_state(),
+    )
+    .map_err(|_| "release metadata JSON invalid")?
+    .into_root();
+    charges.state(value.retained_state_bytes().map_err(|e| e.to_string())?)?;
+    let canonical = canonical_bytes_v1(
+        &value,
+        CanonicalProfile::CorpusSnapshotV1,
+        JsonLimits {
+            max_bytes: limits.max_bytes.min(charges.available_state()),
+            ..limits
+        },
+    )
+    .map_err(|_| "release metadata canonicalization failed")?;
+    charges.state(canonical.len())?;
+    if canonical != raw {
         return Err("release metadata is not canonical".into());
     }
     Ok(value)
 }
-fn bindings(raw: &[u8], limits: JsonLimits, deadline: Instant) -> Result<JsonValue> {
-    let value = canonical(raw, limits)?;
+fn bindings(
+    raw: &[u8],
+    limits: JsonLimits,
+    deadline: Instant,
+    charges: &mut dyn Charges,
+) -> Result<JsonValue> {
+    let value = canonical(raw, limits, charges)?;
     state::validate_release_bindings(&value).map_err(|error| error.to_string())?;
     for field in ["data_root", "software_archive"] {
         binding_path(
@@ -401,25 +440,38 @@ fn pointer(
     store: &Store,
     limits: JsonLimits,
     deadline: Instant,
+    charges: &mut dyn Charges,
 ) -> Result<Option<(String, Option<String>)>> {
-    read_optional(&store.root.file, "current.json", limits.max_bytes, deadline)?
-        .map(|raw| {
-            let value = canonical(&raw, limits)?;
-            state::validate_release_pointer(&value).map_err(|error| error.to_string())
-        })
-        .transpose()
+    read_optional(
+        &store.root.file,
+        "current.json",
+        limits.max_bytes,
+        deadline,
+        charges,
+    )?
+    .map(|raw| {
+        let value = canonical(&raw, limits, charges)?;
+        state::validate_release_pointer(&value).map_err(|error| error.to_string())
+    })
+    .transpose()
 }
-fn stored_pair(store: &Store, id: &str, limits: JsonLimits, deadline: Instant) -> Result<()> {
+fn stored_pair(
+    store: &Store,
+    id: &str,
+    limits: JsonLimits,
+    deadline: Instant,
+    charges: &mut dyn Charges,
+) -> Result<()> {
     let leaf = format!("{id}.json");
-    let raw = read_optional(&store.pairs, &leaf, limits.max_bytes, deadline)?
+    let raw = read_optional(&store.pairs, &leaf, limits.max_bytes, deadline, charges)?
         .ok_or("current immutable pair absent")?;
-    let value = canonical(&raw, limits)?;
+    let value = canonical(&raw, limits, charges)?;
     if state::validate_release_pair(&value, &raw).map_err(|error| error.to_string())? != id {
         return Err("current pair filename digest differs".into());
     }
-    let raw = read_optional(&store.bindings, &leaf, limits.max_bytes, deadline)?
+    let raw = read_optional(&store.bindings, &leaf, limits.max_bytes, deadline, charges)?
         .ok_or("current immutable bindings absent")?;
-    bindings(&raw, limits, deadline)?;
+    bindings(&raw, limits, deadline, charges)?;
     Ok(())
 }
 struct Temporary<'a> {
@@ -452,7 +504,12 @@ impl Drop for Temporary<'_> {
         }
     }
 }
-fn temporary<'a>(dir: &'a File, raw: &[u8], deadline: Instant) -> Result<Temporary<'a>> {
+fn temporary<'a>(
+    dir: &'a File,
+    raw: &[u8],
+    deadline: Instant,
+    charges: &mut dyn Charges,
+) -> Result<Temporary<'a>> {
     for _ in 0..8 {
         active(deadline)?;
         let mut nonce = [0u8; 16];
@@ -489,6 +546,7 @@ fn temporary<'a>(dir: &'a File, raw: &[u8], deadline: Instant) -> Result<Tempora
         regular(&temp.file)?;
         for block in raw.chunks(8192) {
             active(deadline)?;
+            charges.io(block.len())?;
             temp.file
                 .write_all(block)
                 .map_err(|_| "release temporary write failed")?;
@@ -505,8 +563,9 @@ fn immutable(
     raw: &[u8],
     limits: JsonLimits,
     deadline: Instant,
+    charges: &mut dyn Charges,
 ) -> Result<()> {
-    if let Some(existing) = read_optional(dir, leaf, limits.max_bytes, deadline)? {
+    if let Some(existing) = read_optional(dir, leaf, limits.max_bytes, deadline, charges)? {
         if existing != raw {
             return Err("existing immutable release record differs".into());
         }
@@ -516,44 +575,81 @@ fn immutable(
         sync(&held, deadline)?;
         return sync(dir, deadline);
     }
-    let mut temp = temporary(dir, raw, deadline)?;
+    let mut temp = temporary(dir, raw, deadline, charges)?;
     active(deadline)?;
     temp.check()?;
     let src = name(OsStr::new(&temp.leaf))?;
     let dst = name(OsStr::new(leaf))?;
     if unsafe {
-        libc::linkat(
+        libc::renameat2(
             dir.as_raw_fd(),
             src.as_ptr(),
             dir.as_raw_fd(),
             dst.as_ptr(),
-            0,
+            libc::RENAME_NOREPLACE,
         )
     } != 0
     {
         if std::io::Error::last_os_error().raw_os_error() != Some(libc::EEXIST) {
-            return Err(failure("immutable release hardlink failed"));
+            return Err(failure(
+                "immutable atomic no-clobber rename unsupported or failed",
+            ));
         }
+    } else {
+        // Atomic no-clobber name transfer keeps nlink=1 even across SIGKILL.
+        // Unsupported filesystems fail closed; there is no hardlink fallback.
+        temp.linked = true;
     }
-    // Remove only our held temporary name before enforcing final nlink=1.
-    temp.remove()?;
-    temp.linked = true;
-    let existing = read_optional(dir, leaf, limits.max_bytes, deadline)?
+    let existing = read_optional(dir, leaf, limits.max_bytes, deadline, charges)?
         .ok_or("immutable publication name absent")?;
     if existing != raw {
         return Err("immutable release publication collision".into());
     }
+    let held = tos_fd_open::open_regular_at(dir, Path::new(leaf))
+        .map_err(|_| "immutable published file unavailable for sync")?;
+    regular(&held)?;
+    let named = tos_fd_open::open_regular_at(dir, Path::new(leaf))
+        .map_err(|_| "immutable published name unavailable for sync")?;
+    if inode(&held)? != inode(&named)? {
+        return Err("immutable published sync identity changed".into());
+    }
+    sync(&held, deadline)?;
     sync(dir, deadline)
 }
-fn pointer_raw(pair_id: &str, previous: Option<&str>, limits: JsonLimits) -> Result<Vec<u8>> {
+fn pointer_raw(
+    pair_id: &str,
+    previous: Option<&str>,
+    limits: JsonLimits,
+    charges: &mut dyn Charges,
+) -> Result<Vec<u8>> {
     let encoded=serde_json::to_vec(&serde_json::json!({"schema_version":"tos_access_release_pointer_v1","current":pair_id,"previous":previous}))
         .map_err(|_| "release pointer encoding failed")?;
-    let value = parse_json(&encoded, JsonMode::PublishedStrict, limits)
-        .map_err(|_| "release pointer JSON invalid")?
-        .into_root();
+    let value = parse_json_with_state_budget(
+        &encoded,
+        JsonMode::PublishedStrict,
+        limits,
+        charges.available_state(),
+    )
+    .map_err(|_| "release pointer JSON invalid")?
+    .into_root();
     state::validate_release_pointer(&value).map_err(|error| error.to_string())?;
-    canonical_bytes_v1(&value, CanonicalProfile::CorpusSnapshotV1, limits)
-        .map_err(|_| "release pointer canonicalization failed".into())
+    charges.state(
+        encoded
+            .len()
+            .checked_add(value.retained_state_bytes().map_err(|e| e.to_string())?)
+            .ok_or("pointer state overflow")?,
+    )?;
+    let raw = canonical_bytes_v1(
+        &value,
+        CanonicalProfile::CorpusSnapshotV1,
+        JsonLimits {
+            max_bytes: limits.max_bytes.min(charges.available_state()),
+            ..limits
+        },
+    )
+    .map_err(|_| "release pointer canonicalization failed")?;
+    charges.state(raw.len())?;
+    Ok(raw)
 }
 /// The parent has already authenticated the genuine native/software/cold pair.
 /// An Err precedes pointer commit. Once rename succeeds, failure stays in the
@@ -565,6 +661,7 @@ pub(super) fn publish_verified_pair(
     expected_current: Option<&str>,
     deadline: Instant,
     max_metadata_bytes: usize,
+    charges: &mut dyn Charges,
 ) -> Result<Publication> {
     active(deadline)?;
     if max_metadata_bytes == 0 || max_metadata_bytes > state::METADATA_LIMITS.max_bytes {
@@ -574,26 +671,37 @@ pub(super) fn publish_verified_pair(
         max_bytes: max_metadata_bytes,
         ..state::METADATA_LIMITS
     };
-    let pair = canonical(pair_raw, limits)?;
+    let pair = canonical(pair_raw, limits, charges)?;
     let pair_id =
         state::validate_release_pair(&pair, pair_raw).map_err(|error| error.to_string())?;
-    bindings(bindings_raw, limits, deadline)?;
+    bindings(bindings_raw, limits, deadline, charges)?;
     if let Some(expected) = expected_current {
         Digest256::from_hex(expected).map_err(|_| "expected_current digest invalid")?;
     }
+    charges.state(
+        std::mem::size_of::<Store>()
+            + root.as_os_str().len()
+            + root
+                .parent()
+                .ok_or("release parent absent")?
+                .as_os_str()
+                .len()
+            + root.file_name().ok_or("release leaf absent")?.len(),
+    )?;
     let store = Store::acquire(root, deadline)?;
-    let original = pointer(&store, limits, deadline)?;
+    charges.verify_inputs()?;
+    let original = pointer(&store, limits, deadline, charges)?;
     let current = original.as_ref().map(|p| p.0.as_str());
     if current != expected_current {
         return Err("expected_current does not match current release".into());
     }
     if let Some(current) = current {
-        stored_pair(&store, current, limits, deadline)?;
+        stored_pair(&store, current, limits, deadline, charges)?;
     }
     let leaf = format!("{pair_id}.json");
     // Detect both collisions before creating either immutable record.
     for (dir, raw) in [(&store.pairs, pair_raw), (&store.bindings, bindings_raw)] {
-        if let Some(existing) = read_optional(dir, &leaf, limits.max_bytes, deadline)? {
+        if let Some(existing) = read_optional(dir, &leaf, limits.max_bytes, deadline, charges)? {
             if existing != raw {
                 return Err("existing immutable release pair/bindings differs".into());
             }
@@ -601,6 +709,7 @@ pub(super) fn publish_verified_pair(
     }
     store.available(&pair, deadline)?;
     if current == Some(pair_id.as_str()) {
+        charges.verify_inputs()?;
         let previous = original.as_ref().and_then(|p| p.1.clone());
         let durability = (|| {
             store.check(deadline)?;
@@ -611,7 +720,7 @@ pub(super) fn publish_verified_pair(
             sync(&store.root.file, deadline)?;
             store.check(deadline)?;
             store.available(&pair, deadline)?;
-            if pointer(&store, limits, deadline)? != original {
+            if pointer(&store, limits, deadline, charges)? != original {
                 return Err("already-current pointer changed during durability check".into());
             }
             Ok(())
@@ -626,27 +735,37 @@ pub(super) fn publish_verified_pair(
                 .map(|message: String| message.chars().take(512).collect()),
         });
     }
-    immutable(&store.pairs, &leaf, pair_raw, limits, deadline)?;
-    immutable(&store.bindings, &leaf, bindings_raw, limits, deadline)?;
+    immutable(&store.pairs, &leaf, pair_raw, limits, deadline, charges)?;
+    immutable(
+        &store.bindings,
+        &leaf,
+        bindings_raw,
+        limits,
+        deadline,
+        charges,
+    )?;
     store.check(deadline)?;
-    if pointer(&store, limits, deadline)? != original {
+    if pointer(&store, limits, deadline, charges)? != original {
         return Err("expected_current changed before promotion".into());
     }
     store.available(&pair, deadline)?;
     let previous = current.map(str::to_owned);
-    let raw = pointer_raw(&pair_id, previous.as_deref(), limits)?;
-    let mut temp = temporary(&store.root.file, &raw, deadline)?;
+    let raw = pointer_raw(&pair_id, previous.as_deref(), limits, charges)?;
+    let mut temp = temporary(&store.root.file, &raw, deadline, charges)?;
     store.check(deadline)?;
     temp.check()?;
-    if pointer(&store, limits, deadline)? != original {
+    if pointer(&store, limits, deadline, charges)? != original {
         return Err("expected_current changed before atomic publication".into());
     }
     for (dir, expected) in [(&store.pairs, pair_raw), (&store.bindings, bindings_raw)] {
-        if read_optional(dir, &leaf, limits.max_bytes, deadline)?.as_deref() != Some(expected) {
+        if read_optional(dir, &leaf, limits.max_bytes, deadline, charges)?.as_deref()
+            != Some(expected)
+        {
             return Err("immutable pair changed before pointer commit".into());
         }
     }
     store.available(&pair, deadline)?;
+    charges.verify_inputs()?;
     active(deadline)?;
     let source = name(OsStr::new(&temp.leaf))?;
     let destination = name(OsStr::new("current.json"))?;
@@ -671,8 +790,14 @@ pub(super) fn publish_verified_pair(
         if inode(&named)? != inode(&temp.file)? {
             return Err("committed pointer inode differs from held publication".into());
         }
-        let actual = read_optional(&store.root.file, "current.json", limits.max_bytes, deadline)?
-            .ok_or("committed pointer absent")?;
+        let actual = read_optional(
+            &store.root.file,
+            "current.json",
+            limits.max_bytes,
+            deadline,
+            charges,
+        )?
+        .ok_or("committed pointer absent")?;
         if actual != raw {
             return Err("committed pointer custody/readback differs".into());
         }
@@ -692,6 +817,35 @@ pub(super) fn publish_verified_pair(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use tos_foundation::parse_json;
+    struct TestCharges {
+        io: usize,
+        state: usize,
+    }
+    impl Charges for TestCharges {
+        fn io(&mut self, n: usize) -> Result<()> {
+            self.io = self
+                .io
+                .checked_add(n)
+                .filter(|x| *x <= 64 * 1024 * 1024)
+                .ok_or("test IO allowance")?;
+            Ok(())
+        }
+        fn state(&mut self, n: usize) -> Result<()> {
+            self.state = self
+                .state
+                .checked_add(n)
+                .filter(|x| *x <= 64 * 1024 * 1024)
+                .ok_or("test state allowance")?;
+            Ok(())
+        }
+        fn available_state(&self) -> usize {
+            64 * 1024 * 1024 - self.state
+        }
+        fn verify_inputs(&mut self) -> Result<()> {
+            Ok(())
+        }
+    }
     use std::os::unix::fs::{DirBuilderExt, PermissionsExt};
 
     struct Fixture(PathBuf);
@@ -761,6 +915,7 @@ mod tests {
             expected,
             Instant::now() + Duration::from_secs(30),
             state::METADATA_LIMITS.max_bytes,
+            &mut TestCharges { io: 0, state: 0 },
         )
     }
     fn write_private(path: &Path, bytes: &[u8]) {
@@ -774,6 +929,14 @@ mod tests {
         let a = pair("a");
         let bindings = binding("a");
         let first = publish(&root, &a, &bindings, None).unwrap();
+        for kind in ["pairs", "bindings"] {
+            assert_eq!(
+                std::fs::metadata(root.join(kind).join(format!("{}.json", first.pair_id)))
+                    .unwrap()
+                    .nlink(),
+                1
+            );
+        }
         assert!(first.committed && first.durable && first.failure.is_none());
         assert_eq!(first.previous, None);
         let pointer_before = std::fs::read(root.join("current.json")).unwrap();
@@ -840,7 +1003,12 @@ mod tests {
         let root = fixture.root();
         let first = publish(&root, &pair("a"), &binding("a"), None).unwrap();
         let raw = pair("b");
-        let value = canonical(&raw, state::METADATA_LIMITS).unwrap();
+        let value = canonical(
+            &raw,
+            state::METADATA_LIMITS,
+            &mut TestCharges { io: 0, state: 0 },
+        )
+        .unwrap();
         let id = state::validate_release_pair(&value, &raw).unwrap();
         let pointer = std::fs::read(root.join("current.json")).unwrap();
         for (kind, field) in [
@@ -860,5 +1028,72 @@ mod tests {
             assert!(!root.join("pairs").join(format!("{id}.json")).exists());
             std::fs::remove_file(path).unwrap();
         }
+    }
+    #[test]
+    fn publication_io_refusal_never_commits_pointer() {
+        let fixture = Fixture::new();
+        let root = fixture.root();
+        let a = pair("a");
+        let b = binding("a");
+        struct Refuse;
+        impl Charges for Refuse {
+            fn io(&mut self, _: usize) -> Result<()> {
+                Err("original IO exhausted".into())
+            }
+            fn state(&mut self, _: usize) -> Result<()> {
+                Ok(())
+            }
+            fn available_state(&self) -> usize {
+                64 * 1024 * 1024
+            }
+            fn verify_inputs(&mut self) -> Result<()> {
+                Ok(())
+            }
+        }
+        let result = publish_verified_pair(
+            &root,
+            &a,
+            &b,
+            None,
+            Instant::now() + Duration::from_secs(30),
+            state::METADATA_LIMITS.max_bytes,
+            &mut Refuse,
+        );
+        assert!(result.is_err());
+        assert!(!root.join("current.json").exists());
+    }
+    #[test]
+    fn expired_verified_input_guard_cannot_advance_current() {
+        let fixture = Fixture::new();
+        let root = fixture.root();
+        let a = pair("a");
+        let b = binding("a");
+        struct Drift(TestCharges);
+        impl Charges for Drift {
+            fn io(&mut self, n: usize) -> Result<()> {
+                self.0.io(n)
+            }
+            fn state(&mut self, n: usize) -> Result<()> {
+                self.0.state(n)
+            }
+            fn available_state(&self) -> usize {
+                self.0.available_state()
+            }
+            fn verify_inputs(&mut self) -> Result<()> {
+                Err("verified candidate identity changed".into())
+            }
+        }
+        let result = publish_verified_pair(
+            &root,
+            &a,
+            &b,
+            None,
+            Instant::now() + Duration::from_secs(30),
+            state::METADATA_LIMITS.max_bytes,
+            &mut Drift(TestCharges { io: 0, state: 0 }),
+        );
+        assert!(result.is_err());
+        assert!(!root.join("current.json").exists());
+        assert_eq!(std::fs::read_dir(root.join("pairs")).unwrap().count(), 0);
     }
 }
