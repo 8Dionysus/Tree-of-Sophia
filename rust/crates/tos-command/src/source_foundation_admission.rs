@@ -134,6 +134,7 @@ impl NativeAdmissionComplete {
 #[derive(Clone)]
 pub(crate) struct NativeSegmentV2Budget {
     pub(crate) max_allocated_bytes: u64,
+    pub(crate) max_frame_bytes: u64,
     pub(crate) allocation_space: PinnedSqliteSpaceBudget,
     pub(crate) allocation_reservation: Arc<tos_source_store::PinnedSqliteSpaceReservation>,
     pub(crate) allocation_unit_bytes: u64,
@@ -1354,8 +1355,12 @@ impl<'c> NativeSourceValidator<'c> {
                 if max_rows == 0 || max_nodes == 0 {
                     return Err(invalid("V2 finite row/node work profile is empty"));
                 }
+                let max_frame_bytes = max_allocated_bytes
+                    .min(candidate_limits.candidate.admission.max_member_bytes)
+                    .max(1);
                 Some(NativeSegmentV2Budget {
                     max_allocated_bytes,
+                    max_frame_bytes,
                     allocation_space,
                     allocation_reservation,
                     allocation_unit_bytes,
@@ -1411,7 +1416,7 @@ impl<'c> NativeSourceValidator<'c> {
                 pointer: candidate_limits.candidate.reader,
                 segment: SegmentLimits {
                     max_segment_bytes: profile.max_allocated_bytes,
-                    max_frame_bytes: profile.max_allocated_bytes.min(4 * 1024 * 1024).max(1),
+                    max_frame_bytes: profile.max_frame_bytes,
                     max_frames: u32::try_from(profile.tree_limits.max_nodes.min(u32::MAX as u64))
                         .map_err(|_| invalid("V2 base segment frame limit exceeds range"))?
                         .max(1),

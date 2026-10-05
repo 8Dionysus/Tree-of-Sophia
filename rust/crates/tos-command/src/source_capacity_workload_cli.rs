@@ -538,6 +538,53 @@ fn write_receipt(
         receipt.member_count,
         10_000_000_000,
     )?;
+    let forecast_report = serde_json::json!({
+        "target_records": forecast.target_records,
+        "p50_logical_source_bytes_at_profile_size": forecast.p50_logical_source_bytes,
+        "selected_quantile_logical_source_bytes_at_profile_size": forecast
+            .selected_quantile_scenario_logical_source_bytes,
+        "p50_logical_source_bytes_at_1b": forecast.p50_logical_source_bytes_at_1b,
+        "selected_quantile_logical_source_bytes_at_1b": forecast
+            .selected_quantile_scenario_logical_source_bytes_at_1b,
+        "measured_profile_scaled_logical_source_bytes_at_1b": measured_source_at_1b,
+        "measured_profile_scaled_unique_payload_bytes_at_1b": measured_unique_at_1b,
+        "ten_full_copies_without_dedup_bytes_at_1b": forecast
+            .ten_full_copy_no_dedup_scenario_bytes_at_1b,
+        "ten_full_copies_without_dedup_from_measured_profile_bytes_at_1b": measured_source_ten_copies_at_1b,
+        "ten_full_copies_with_measured_unique_payload_bytes_at_1b": measured_unique_ten_copies_at_1b,
+        "history_change_rows": forecast.history_change_rows,
+        "history_change_payload_scenario_bytes": forecast
+            .history_change_payload_scenario_bytes,
+        "revisions": forecast.revisions,
+        "changed_rows_per_revision": forecast.changed_rows_per_revision,
+        "policy_churn_rows_per_revision": forecast.policy_churn_rows_per_revision,
+        "retained_pinned_revisions": forecast.retained_pinned_revisions,
+        "normal_out_degree": forecast.normal_out_degree,
+        "hot_hub_out_degree": forecast.hot_hub_out_degree,
+        "expected_read_clients": forecast.expected_read_clients,
+        "expected_write_clients": forecast.expected_write_clients,
+        "concurrent_clients": forecast.concurrent_clients,
+        "read_percent": forecast.read_percent,
+        "write_percent": forecast.write_percent,
+        "current_snapshot_three_copy_p50_bytes_at_profile_size": forecast
+            .current_snapshot_three_copy_p50_bytes,
+        "three_pins_backup_restore_no_dedup_p50_bytes_at_profile_size": forecast
+            .three_pins_with_backup_and_restore_no_dedup_p50_bytes,
+        "selected_native_state_bytes_per_client": forecast.selected_native_state_bytes_per_client,
+        "read_clients_state_upper_bytes": forecast.read_clients_state_upper_bytes,
+        "write_clients_staging_upper_bytes": forecast.write_clients_staging_upper_bytes,
+        "writer_callback_state_upper_bytes_per_client": forecast.writer_callback_state_upper_bytes_per_client,
+        "write_clients_callback_state_upper_bytes": forecast.write_clients_callback_state_upper_bytes,
+        "measured_unique_payload_ratio_at_profile_size": if receipt.source_bytes == 0 {
+            None
+        } else {
+            Some(receipt.unique_payload_bytes as f64 / receipt.source_bytes as f64)
+        },
+        "full_256_peak_established": forecast.full_256_peak_established,
+        "physical_fit_established": false,
+        "authored_route_bridge_records": forecast.authored_route_bridge_records,
+        "authored_route_bridge_coverage": forecast.authored_route_bridge_coverage
+    });
     let report = serde_json::json!({
         "schema": "tos_native_weighted_capacity_fixture_receipt_v2",
         "source_status": "synthetic_private_fixture",
@@ -616,53 +663,7 @@ fn write_receipt(
         "work_units_selected": work_selected,
         "producer_elapsed_ms": producer_elapsed_ms,
         "protected_operation_elapsed_ms": protected_operation_elapsed_ms,
-        "forecast": {
-            "target_records": forecast.target_records,
-            "p50_logical_source_bytes_at_profile_size": forecast.p50_logical_source_bytes,
-            "selected_quantile_logical_source_bytes_at_profile_size": forecast
-                .selected_quantile_scenario_logical_source_bytes,
-            "p50_logical_source_bytes_at_1b": forecast.p50_logical_source_bytes_at_1b,
-            "selected_quantile_logical_source_bytes_at_1b": forecast
-                .selected_quantile_scenario_logical_source_bytes_at_1b,
-            "measured_profile_scaled_logical_source_bytes_at_1b": measured_source_at_1b,
-            "measured_profile_scaled_unique_payload_bytes_at_1b": measured_unique_at_1b,
-            "ten_full_copies_without_dedup_bytes_at_1b": forecast
-                .ten_full_copy_no_dedup_scenario_bytes_at_1b,
-            "ten_full_copies_without_dedup_from_measured_profile_bytes_at_1b": measured_source_ten_copies_at_1b,
-            "ten_full_copies_with_measured_unique_payload_bytes_at_1b": measured_unique_ten_copies_at_1b,
-            "history_change_rows": forecast.history_change_rows,
-            "history_change_payload_scenario_bytes": forecast
-                .history_change_payload_scenario_bytes,
-            "revisions": forecast.revisions,
-            "changed_rows_per_revision": forecast.changed_rows_per_revision,
-            "policy_churn_rows_per_revision": forecast.policy_churn_rows_per_revision,
-            "retained_pinned_revisions": forecast.retained_pinned_revisions,
-            "normal_out_degree": forecast.normal_out_degree,
-            "hot_hub_out_degree": forecast.hot_hub_out_degree,
-            "expected_read_clients": forecast.expected_read_clients,
-            "expected_write_clients": forecast.expected_write_clients,
-            "concurrent_clients": forecast.concurrent_clients,
-            "read_percent": forecast.read_percent,
-            "write_percent": forecast.write_percent,
-            "current_snapshot_three_copy_p50_bytes_at_profile_size": forecast
-                .current_snapshot_three_copy_p50_bytes,
-            "three_pins_backup_restore_no_dedup_p50_bytes_at_profile_size": forecast
-                .three_pins_with_backup_and_restore_no_dedup_p50_bytes,
-            "selected_native_state_bytes_per_client": forecast.selected_native_state_bytes_per_client,
-            "read_clients_state_upper_bytes": forecast.read_clients_state_upper_bytes,
-            "write_clients_staging_upper_bytes": forecast.write_clients_staging_upper_bytes,
-            "writer_callback_state_upper_bytes_per_client": forecast.writer_callback_state_upper_bytes_per_client,
-            "write_clients_callback_state_upper_bytes": forecast.write_clients_callback_state_upper_bytes,
-            "measured_unique_payload_ratio_at_profile_size": if receipt.source_bytes == 0 {
-                None
-            } else {
-                Some(receipt.unique_payload_bytes as f64 / receipt.source_bytes as f64)
-            },
-            "full_256_peak_established": forecast.full_256_peak_established,
-            "physical_fit_established": false,
-            "authored_route_bridge_records": forecast.authored_route_bridge_records,
-            "authored_route_bridge_coverage": forecast.authored_route_bridge_coverage
-        }
+        "forecast": forecast_report
     });
     validator.write_receipt(&report, output)
 }

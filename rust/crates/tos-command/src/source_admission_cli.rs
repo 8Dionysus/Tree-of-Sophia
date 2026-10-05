@@ -1257,7 +1257,7 @@ fn run_selected_v2_case(
     point_tree.max_total_bytes = selected.point_tree_bytes;
     let segment = tos_segment_store::SegmentLimits {
         max_segment_bytes: profile.max_allocated_bytes,
-        max_frame_bytes: profile.max_allocated_bytes.min(4 * 1024 * 1024).max(1),
+        max_frame_bytes: profile.max_frame_bytes.min(selected.object_bytes as u64).max(1),
         max_frames: u32::try_from(profile.tree_limits.max_nodes.min(u32::MAX as u64))
             .map_err(|_| invalid("V2 case segment frame range"))?
             .max(1),

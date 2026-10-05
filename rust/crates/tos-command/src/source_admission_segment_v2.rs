@@ -2217,7 +2217,7 @@ pub(crate) fn build_initial_rootset_v2(
     }
     let segment_limits = SegmentLimits {
         max_segment_bytes: segment_bytes,
-        max_frame_bytes: segment_bytes.min(4 * 1024 * 1024).max(1),
+        max_frame_bytes: profile.max_frame_bytes,
         max_frames: u32::try_from(profile.tree_limits.max_nodes.min(u32::MAX as u64))
             .map_err(|_| invalid("V2 segment frame limit exceeds range"))?
             .max(1),
@@ -3425,7 +3425,7 @@ pub(crate) fn build_v1_migration_rootset_v2(
     }
     let segment_limits = SegmentLimits {
         max_segment_bytes: segment_bytes,
-        max_frame_bytes: segment_bytes.min(4 * 1024 * 1024).max(1),
+        max_frame_bytes: profile.max_frame_bytes,
         max_frames: u32::try_from(profile.tree_limits.max_nodes.min(u32::MAX as u64))
             .map_err(|_| invalid("V1 migration segment frame limit exceeds range"))?
             .max(1),
