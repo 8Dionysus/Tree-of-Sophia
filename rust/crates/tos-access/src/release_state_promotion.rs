@@ -977,6 +977,11 @@ fn execute(raw: &[u8], original_ns: u64, deadline: Instant) -> Result<fs::Public
     if model_state > cold_state as usize {
         budget.state(model_state - cold_state as usize)?;
     }
+    // Existing private R3 writer admits the Corpus+Philosophy Original profile.
+    // A missing Phi component remains unsupported, even when corpus verifies.
+    model
+        .philosophy_original_receipt()
+        .map_err(|e| e.to_string())?;
     let corpus = model.corpus_original_receipt().map_err(|e| e.to_string())?;
     state::corpus_source_plan(
         state::CorpusMetadata {
