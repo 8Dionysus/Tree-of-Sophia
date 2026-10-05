@@ -313,6 +313,11 @@ pub enum Error {
     ManagedSourceUnsupported(&'static str),
     Source(String),
     Budget(&'static str),
+    FoundationJson {
+        code: tos_foundation::FoundationErrorCode,
+        message: &'static str,
+        byte_offset: Option<usize>,
+    },
     SqliteVmBudget {
         phase: knowledge_stage::WritePhase,
         used_steps: u64,
@@ -339,6 +344,11 @@ pub enum ColdOperationFailure {
     ManagedSourceUnsupported(&'static str),
     Source(String),
     Budget(&'static str),
+    FoundationJson {
+        code: tos_foundation::FoundationErrorCode,
+        message: &'static str,
+        byte_offset: Option<usize>,
+    },
     SqliteVmBudget {
         phase: knowledge_stage::WritePhase,
         used_steps: u64,
@@ -361,6 +371,11 @@ impl fmt::Display for ColdOperationFailure {
             }
             Self::Source(message) => write!(f, "source carrier: {message}"),
             Self::Budget(message) => write!(f, "compiler budget exceeded: {message}"),
+            Self::FoundationJson {
+                code,
+                message,
+                byte_offset,
+            } => write_foundation_json_failure(f, *code, message, *byte_offset),
             Self::SqliteVmBudget { phase, used_steps, max_steps } => write!(
                 f,
                 "compiler budget exceeded: SQLite VM steps in {phase:?} (used {used_steps}, max {max_steps})"
@@ -383,6 +398,15 @@ impl From<Error> for ColdOperationFailure {
             Error::ManagedSourceUnsupported(message) => Self::ManagedSourceUnsupported(message),
             Error::Source(message) => Self::Source(message),
             Error::Budget(message) => Self::Budget(message),
+            Error::FoundationJson {
+                code,
+                message,
+                byte_offset,
+            } => Self::FoundationJson {
+                code,
+                message,
+                byte_offset,
+            },
             Error::SqliteVmBudget { phase, used_steps, max_steps } => {
                 Self::SqliteVmBudget { phase, used_steps, max_steps }
             }
@@ -405,6 +429,11 @@ impl fmt::Display for Error {
             }
             Self::Source(s) => write!(f, "source carrier: {s}"),
             Self::Budget(s) => write!(f, "compiler budget exceeded: {s}"),
+            Self::FoundationJson {
+                code,
+                message,
+                byte_offset,
+            } => write_foundation_json_failure(f, *code, message, *byte_offset),
             Self::SqliteVmBudget {
                 phase,
                 used_steps,
@@ -424,6 +453,19 @@ impl fmt::Display for Error {
     }
 }
 impl std::error::Error for Error {}
+
+fn write_foundation_json_failure(
+    f: &mut fmt::Formatter<'_>,
+    code: tos_foundation::FoundationErrorCode,
+    message: &str,
+    byte_offset: Option<usize>,
+) -> fmt::Result {
+    match byte_offset {
+        Some(offset) => write!(f, "Foundation JSON {} at byte {offset}: {message}", code.as_str()),
+        None => write!(f, "Foundation JSON {}: {message}", code.as_str()),
+    }
+}
+
 impl From<std::io::Error> for Error {
     fn from(e: std::io::Error) -> Self {
         Self::Io(e)

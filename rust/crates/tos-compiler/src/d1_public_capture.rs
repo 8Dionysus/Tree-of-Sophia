@@ -364,7 +364,7 @@ pub(crate) fn json(raw: &[u8], cap: usize) -> Result<JsonValue> {
     let limits = JsonLimits::new(cap, 96, 1_000_000, 4096)
         .map_err(|_| Error::Budget("public D1 JSON limits"))?;
     Ok(parse_json(raw, JsonMode::PublishedStrict, limits)
-        .map_err(|e| Error::Source(e.to_string()))?
+        .map_err(foundation_json_error)?
         .into_root())
 }
 
@@ -374,7 +374,108 @@ pub(crate) fn compact(value: &JsonValue, cap: usize) -> Result<Vec<u8>> {
         JsonLimits::new(cap, 96, 1_000_000, 4096)
             .map_err(|_| Error::Budget("public D1 JSON output"))?,
     )
-    .map_err(|e| Error::Source(e.to_string()))
+    .map_err(foundation_json_error)
+}
+
+const FOUNDATION_JSON_DIAGNOSTICS: &[&str] = &[
+    "runtime carrier compact cutoff/cancellation",
+    "runtime carrier compact work overflow",
+    "runtime carrier compact original work",
+    "runtime carrier compact visits overflow",
+    "runtime carrier creation cutoff/cancellation",
+    "JSON limits must be positive",
+    "JSON parser state budget exceeded",
+    "JSON structural budget exceeded",
+    "expected JSON value",
+    "expected array comma or close",
+    "expected object comma or close",
+    "invalid JSON literal",
+    "unexpected JSON token",
+    "unterminated JSON string",
+    "incomplete JSON escape",
+    "short Unicode escape",
+    "invalid Unicode escape",
+    "invalid JSON escape",
+    "unescaped control in JSON string",
+    "invalid JSON string",
+    "object key must be string",
+    "duplicate decoded JSON member",
+    "leading zero",
+    "missing integer digits",
+    "missing fraction digits",
+    "missing exponent digits",
+    "integer digit budget exceeded",
+    "nonfinite or unrepresentable float",
+    "trailing JSON input",
+    "JSON input is not UTF-8",
+    "JSON byte budget exceeded",
+    "JSON output byte budget exceeded",
+    "JSON output structural budget exceeded",
+    "JSON visit counter overflow",
+    "JSON writer budget exceeded",
+    "JSON array is too large",
+    "canonical writer state/visit budget",
+    "JSON output key is not a Unicode scalar string",
+    "canonical UTF-8 cannot encode a lone surrogate",
+    "number lexeme and kind disagree",
+    "float lexeme is invalid",
+    "JSON retained storage overflow",
+    "JSON retained container storage overflow",
+    "JSON string retained storage overflow",
+];
+
+fn foundation_json_error(error: tos_foundation::FoundationError) -> Error {
+    // Foundation JSON diagnostics on these parse/write paths are fixed
+    // mechanical messages. Keep only known strings so a future Foundation
+    // detail cannot carry source text, provider text, or a path across the
+    // compiler error boundary. The code and optional numeric byte offset stay
+    // typed and bounded even for an unknown detail.
+    let message = FOUNDATION_JSON_DIAGNOSTICS
+        .iter()
+        .copied()
+        .find(|known| *known == error.detail)
+        .unwrap_or("unclassified Foundation JSON error");
+    Error::FoundationJson {
+        code: error.code,
+        message,
+        byte_offset: error.byte_offset,
+    }
+}
+
+#[cfg(test)]
+mod foundation_json_error_tests {
+    use super::*;
+
+    #[test]
+    fn preserves_known_cause_and_redacts_unknown_detail_through_cold_bridge() {
+        let known = foundation_json_error(
+            tos_foundation::FoundationError::new(
+                tos_foundation::FoundationErrorCode::BudgetExceeded,
+                "JSON output byte budget exceeded",
+            )
+            .at(17),
+        );
+        assert_eq!(
+            known.to_string(),
+            "Foundation JSON budget_exceeded at byte 17: JSON output byte budget exceeded"
+        );
+        assert_eq!(
+            crate::ColdOperationFailure::from(known).to_string(),
+            "Foundation JSON budget_exceeded at byte 17: JSON output byte budget exceeded"
+        );
+
+        let unknown = foundation_json_error(tos_foundation::FoundationError::new(
+            tos_foundation::FoundationErrorCode::BudgetExceeded,
+            "private provider text /srv/private/source.json",
+        ));
+        let rendered = unknown.to_string();
+        assert_eq!(
+            rendered,
+            "Foundation JSON budget_exceeded: unclassified Foundation JSON error"
+        );
+        assert!(!rendered.contains("private provider text"));
+        assert!(!rendered.contains("/srv/private/source.json"));
+    }
 }
 
 fn selected_rows(role: &str, collection: &str) -> bool {
@@ -1460,7 +1561,7 @@ fn compact_with_owned_state<'a>(owner: &'a CreationState<'a>, value: &JsonValue,
         let (bytes, visits) = emit_python_compact_json_with_state_budget_and_visits_and_check(
             value, limits, available, &mut check, &mut admit,
         )
-        .map_err(|_| Error::Budget("runtime carrier compact original budget"))?;
+        .map_err(foundation_json_error)?;
         owner.json_visits.set(
             before
                 .checked_add(visits)
@@ -1618,16 +1719,14 @@ fn creation_json_with_limits<'a>(
         available,
         &mut check,
     )
-    .map_err(|_| Error::Invalid("runtime carrier creation JSON"))?;
+    .map_err(foundation_json_error)?;
     owner.json_visits.set(
         before
             .checked_add(parsed.visits())
             .ok_or(Error::Budget("runtime carrier creation JSON visits"))?,
     );
     let value = parsed.into_root();
-    let bytes = value
-        .retained_storage_bytes()
-        .map_err(|_| Error::Budget("runtime carrier creation JSON state"))?;
+    let bytes = value.retained_storage_bytes().map_err(foundation_json_error)?;
     let hold = owner.hold(bytes)?;
     Ok(CreationJson {
         value,
