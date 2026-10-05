@@ -25,6 +25,7 @@ use super::foundation_run::{
     self, EvaluatedFoundationDefault, FinalizedFoundationDefaultInputs, FoundationBiblioEvidence,
     FoundationDefaultReadError, FoundationFinalInputError,
 };
+use crate::source_admission_candidate_schema::binding_retained_state_upper_bound_bytes;
 use crate::source_command::SourceCommandError;
 use crate::source_creation_store::DisposableCatalogTreeLimits;
 use std::cell::RefCell;
@@ -84,6 +85,12 @@ impl From<FoundationBootstrapError> for FoundationOrchestratorError {
 
 impl FoundationOrchestratorError {
     pub(crate) fn public_reason(&self) -> String {
+        if let Self::Admission(error) = self {
+            let source_cause = error.to_string();
+            if crate::source_admission_spooled_index::is_bounded_source_cause(&source_cause) {
+                return source_cause;
+            }
+        }
         let owner = match self {
             Self::Owner(error) => Some(("owner", error)),
             Self::OwnerAt(stage, error) => Some((*stage, error)),
@@ -300,7 +307,84 @@ impl FoundationOrchestratorError {
             Self::Replay(_) => "source-foundation artifact replay refused",
             Self::Catalog(_) => "source-foundation catalog comparison refused",
             Self::Persisted(_) => "source-foundation persisted catalog refused",
-            Self::Admission(_) => "source-foundation candidate index refused",
+            Self::Admission(error) => {
+                // Return only known owner-authored static diagnostics. Unknown
+                // errors may contain private paths or payloads and remain opaque.
+                match error.to_string().as_str() {
+                    "native source index SQLite scalar missing" => {
+                        "native source index SQLite scalar missing"
+                    }
+                    "native source index SQLite column type refused" => {
+                        "native source index SQLite column type refused"
+                    }
+                    "native source index SQLite query shape refused" => {
+                        "native source index SQLite query shape refused"
+                    }
+                    "candidate spool is unusable" => "candidate spool is unusable",
+                    "native source candidate membership did not reach its fenced EOF" => {
+                        "native source candidate membership did not reach its fenced EOF"
+                    }
+                    "candidate spool per-row state exceeded" => {
+                        "candidate spool per-row state exceeded"
+                    }
+                    "native source index profile is invalid" => {
+                        "native source index profile is invalid"
+                    }
+                    "native source index shared-budget SQLite open refused" => {
+                        "native source index shared-budget SQLite open refused"
+                    }
+                    "native source index SQLite ceiling is too small" => {
+                        "native source index SQLite ceiling is too small"
+                    }
+                    "native source index SQLite policy changed" => {
+                        "native source index SQLite policy changed"
+                    }
+                    "native source index row state exceeds profile" => {
+                        "native source index row state exceeds profile"
+                    }
+                    "native source index SQLite busy" => "native source index SQLite busy",
+                    "native source index SQLite out of memory" => {
+                        "native source index SQLite out of memory"
+                    }
+                    "native source index SQLite read only" => {
+                        "native source index SQLite read only"
+                    }
+                    "native source index SQLite I/O refused" => {
+                        "native source index SQLite I/O refused"
+                    }
+                    "native source index SQLite corrupt" => "native source index SQLite corrupt",
+                    "native source index SQLite full" => "native source index SQLite full",
+                    "native source index SQLite open refused" => {
+                        "native source index SQLite open refused"
+                    }
+                    "native source index SQLite schema changed" => {
+                        "native source index SQLite schema changed"
+                    }
+                    "native source index SQLite operation refused" => {
+                        "native source index SQLite operation refused"
+                    }
+                    "native source index storage refused" => "native source index storage refused",
+                    "candidate Records/Item receiver budget refused" => {
+                        "candidate Records/Item receiver budget refused"
+                    }
+                    "candidate Records/Item receiver budget check refused" => {
+                        "candidate Records/Item receiver budget check refused"
+                    }
+                    "candidate Records/Item receiver deadline refused" => {
+                        "candidate Records/Item receiver deadline refused"
+                    }
+                    "candidate Records/Item receiver source refused" => {
+                        "candidate Records/Item receiver source refused"
+                    }
+                    "candidate Records/Item receiver unsupported" => {
+                        "candidate Records/Item receiver unsupported"
+                    }
+                    _ => crate::source_admission_spooled_index::receiver_source_reason(
+                        &error.to_string(),
+                    )
+                    .unwrap_or("source-foundation candidate index refused"),
+                }
+            }
             Self::Incomplete(reason) => reason,
         }
     }
@@ -1783,6 +1867,7 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
         .ok_or_else(|| incomplete("candidate dependent callback held-state overflow"))?;
     let callback_header_state = CANDIDATE_RECORDS_REPORT_RETAINED_STATE_UPPER_BOUND_BYTES
         .checked_add(std::mem::size_of::<std::sync::Arc<()>>())
+        .and_then(|state| state.checked_add(binding_retained_state_upper_bound_bytes()))
         .ok_or_else(|| incomplete("candidate callback report-header state overflow"))?;
     let callback_workspace_state = callback_state_bytes
         .checked_sub(callback_held)

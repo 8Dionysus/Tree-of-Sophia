@@ -33,7 +33,7 @@ use std::os::unix::ffi::OsStrExt;
 use std::sync::atomic::{AtomicBool, AtomicI32, AtomicUsize, Ordering};
 use std::time::Instant;
 use tos_compiler::private_tmpfs_stage::PrivateTmpfsStageIsolation;
-use tos_ops_mechanics_plan::route_cards::RouteSources;
+use tos_ops_mechanics_plan::route_cards::{MAX_BUDGETED_ROUTE_OPERATIONS, RouteSources};
 use tos_source_store::{CutReadLimits, ReadLimits};
 use tos_validation::item_rules::ItemRefusal;
 
@@ -54,6 +54,8 @@ pub(crate) struct FoundationBootstrapConfig {
     pub capture_member_bytes_per_pass: usize,
     /// Caller-reserved peak capture state, including source-cut metadata.
     pub capture_state_upper_bound_bytes: usize,
+    /// Live full-source path discovery workspace reserved before capture.
+    pub capture_discovery_workspace_upper_bound_bytes: usize,
     /// Caller-reserved private-stage write ceiling for capture files.
     pub capture_tmpfs_write_upper_bound_bytes: u64,
     pub selection_limits: FoundationSelectionLimits,
@@ -402,8 +404,16 @@ impl<'cancel> FoundationBootstrapInputs<'cancel> {
                 // admission identity owner; no new route allowance is created.
                 sources
             }
-            None => RouteSources::new_until(&selected_roots.repo_root, deadline)
-                .map_err(FoundationBootstrapError::RouteRoot)?,
+            // The complete authored source route performs three bounded
+            // membership walks and repeated descriptor-fenced member reads.
+            // Keep the generic 100k route default for other callers; this
+            // owner uses the explicit finite ceiling and reports actual usage.
+            None => RouteSources::new_until_with_operation_limit(
+                &selected_roots.repo_root,
+                deadline,
+                MAX_BUDGETED_ROUTE_OPERATIONS,
+            )
+            .map_err(FoundationBootstrapError::RouteRoot)?,
         };
         let mut payload_sources =
             RouteSources::new_until_related(&payload_root, deadline, &sources)

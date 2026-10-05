@@ -11,7 +11,7 @@ use crate::source_admission_spooled_index::feed_membership;
 use crate::source_command::{
     self as cmd, SourceCommandError as Error, SourceCommandResult as Result,
 };
-use crate::source_creation_store::{IsolatedCreationRoot, MAX_BYTES, MAX_FILES, active};
+use crate::source_creation_store::{IsolatedCreationRoot, MAX_BYTES, active};
 use serde_json::Value as CandidateValue;
 use std::cell::{Cell, RefCell};
 use std::collections::BTreeMap;
@@ -26,13 +26,18 @@ use tos_foundation::{
 use tos_ops_mechanics_plan::route_cards::RouteSources;
 use tos_source_store::{
     CorpusCutReader, CorpusReader, CutReadLimits, MemberMetadata, MetadataPublicationEpoch,
-    ReadLimits, SourceMembershipV1, StreamedCorpusCutReaderV1,
-    has_authored_source_descendants_v1, is_authored_source_path_v1,
+    ReadLimits, SourceMembershipV1, StreamedCorpusCutReaderV1, has_authored_source_descendants_v1,
+    is_authored_source_path_v1,
 };
 
 const CONTROL: &str = "ToS/source-witnesses/.metadata-publication.json";
 const CONTROL_READ_RESERVATION: usize = 8192;
 const MAX_CAPTURE_RELATIVE_PATH_BYTES: usize = 4096;
+// The current whole ToS source root has 57,968 visited entries and a 268-byte
+// longest visited path. These finite ceilings preserve that complete tree
+// with margin while generic RouteSources callers retain their 10k default.
+pub(crate) const MAX_CAPTURE_DISCOVERY_ENTRIES: usize = 131_072;
+pub(crate) const MAX_CAPTURE_DISCOVERY_PATH_BYTES: usize = 1024;
 
 pub(crate) struct FoundationCapturedCut {
     cut: FoundationCutBacking,
@@ -62,6 +67,9 @@ pub struct FoundationCaptureCost {
     /// Equal-digest members share one object, so this is a write upper bound.
     pub object_write_upper_bound_bytes: usize,
     pub manifest_write_bytes: usize,
+    /// Finite upper bound for the live path census plus the retained selected
+    /// file-vector slots. Candidate-backed capture performs no live census.
+    pub discovery_workspace_upper_bound_bytes: usize,
 }
 
 /// Explicit independent capture and aggregate recheck allowances. The caller
@@ -169,7 +177,8 @@ impl AuthoredDiagnosticCatalogueComparison<'_, '_> {
                     self.capture.sources.try_borrow_mut().map_err(|_| {
                         Error::Conflict("authored diagnostic source already borrowed")
                     })?;
-                observation.recheck(&mut sources, self.capture.deadline, self.capture.cancelled)
+                observation
+                    .recheck(&mut sources, self.capture.deadline, self.capture.cancelled)
                     .map_err(catalogue_error)
             })();
         if result.is_err() {
@@ -313,10 +322,13 @@ impl<'source> AuthoredDiagnosticCapture<'source> {
                         Ok(()) => Ok(()),
                         Err(error) => {
                             render_error = Some(error);
-                            Err(tos_compiler::Error::Invalid("authored catalogue render refused"))
+                            Err(tos_compiler::Error::Invalid(
+                                "authored catalogue render refused",
+                            ))
                         }
                     },
-                ).map_err(|error| render_error.unwrap_or_else(|| catalogue_error(error)))?;
+                )
+                .map_err(|error| render_error.unwrap_or_else(|| catalogue_error(error)))?;
             Ok(AuthoredDiagnosticCatalogueComparison {
                 capture: self,
                 observation: RefCell::new(observation),
@@ -788,25 +800,24 @@ fn private_capture_suffix(path: &str) -> Option<&str> {
 }
 fn paths(
     sources: &mut RouteSources,
+    max_members: usize,
     deadline: Instant,
     cancel: &AtomicBool,
 ) -> Result<Vec<String>> {
     active(deadline, cancel)?;
-    let mut files = Vec::new();
-    for path in sources
-        .selected_paths("ToS", &selected)
-        .map_err(source_error)?
-    {
-        active(deadline, cancel)?;
-        if sources.is_file(&path).map_err(source_error)? {
-            if files.len() >= MAX_FILES {
-                return Err(Error::Unsupported("foundation current member count"));
-            }
-            files.push(path);
-        } else if !sources.is_dir(&path).map_err(source_error)? {
-            return Err(Error::Denied("foundation authored input is not regular"));
-        }
+    if max_members == 0 || max_members == usize::MAX {
+        return Err(Error::Invalid("foundation current member limit"));
     }
+    let files = sources
+        .selected_files_with_limits(
+            "ToS",
+            &selected,
+            MAX_CAPTURE_DISCOVERY_ENTRIES,
+            MAX_CAPTURE_DISCOVERY_PATH_BYTES,
+            max_members,
+        )
+        .map_err(source_error)?;
+    active(deadline, cancel)?;
     Ok(files)
 }
 fn membership(metadata: &BTreeMap<String, MemberMetadata>) -> SourceMembershipV1 {
@@ -875,10 +886,7 @@ impl FoundationCapturedCut {
             .map(|(path, member)| (path.as_str(), member))
     }
 
-    pub(crate) fn member(
-        &self,
-        path: &RelativePath,
-    ) -> io::Result<Option<MemberMetadata>> {
+    pub(crate) fn member(&self, path: &RelativePath) -> io::Result<Option<MemberMetadata>> {
         match &self.cut {
             FoundationCutBacking::Resident(_) => Ok(self
                 .metadata
@@ -895,15 +903,18 @@ impl FoundationCapturedCut {
         after: Option<&RelativePath>,
     ) -> io::Result<Option<MemberMetadata>> {
         match &self.cut {
-            FoundationCutBacking::Resident(_) => Ok(self.metadata.as_ref().and_then(|metadata| {
-                match after {
+            FoundationCutBacking::Resident(_) => {
+                Ok(self.metadata.as_ref().and_then(|metadata| match after {
                     Some(after) => metadata
-                        .range::<str, _>((std::ops::Bound::Excluded(after.as_str()), std::ops::Bound::Unbounded))
+                        .range::<str, _>((
+                            std::ops::Bound::Excluded(after.as_str()),
+                            std::ops::Bound::Unbounded,
+                        ))
                         .next()
                         .map(|(_, member)| member.clone()),
                     None => metadata.values().next().cloned(),
-                }
-            })),
+                }))
+            }
             FoundationCutBacking::Streamed(cut) => cut
                 .member_after(self.revision(), after)
                 .map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "captured member cursor")),
@@ -942,14 +953,14 @@ impl FoundationCapturedCut {
     ) -> io::Result<()> {
         match &self.cut {
             FoundationCutBacking::Resident(_) => {
-                let metadata = self
-                    .metadata
-                    .as_ref()
-                    .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidData, "capture metadata absent"))?;
+                let metadata = self.metadata.as_ref().ok_or_else(|| {
+                    io::Error::new(io::ErrorKind::InvalidData, "capture metadata absent")
+                })?;
                 if membership(metadata) != self.membership
-                    || metadata.values().try_fold(0u64, |total, member| {
-                        total.checked_add(member.size_bytes)
-                    }) != Some(self.source_bytes)
+                    || metadata
+                        .values()
+                        .try_fold(0u64, |total, member| total.checked_add(member.size_bytes))
+                        != Some(self.source_bytes)
                 {
                     return Err(io::Error::new(
                         io::ErrorKind::InvalidData,
@@ -958,7 +969,10 @@ impl FoundationCapturedCut {
                 }
                 for member in metadata.values() {
                     active(deadline, cancel).map_err(|_| {
-                        io::Error::new(io::ErrorKind::Interrupted, "captured member walk interrupted")
+                        io::Error::new(
+                            io::ErrorKind::Interrupted,
+                            "captured member walk interrupted",
+                        )
                     })?;
                     visit(member)?;
                 }
@@ -971,25 +985,40 @@ impl FoundationCapturedCut {
                 let mut observed_bytes = 0u64;
                 loop {
                     active(deadline, cancel).map_err(|_| {
-                        io::Error::new(io::ErrorKind::Interrupted, "captured member walk interrupted")
+                        io::Error::new(
+                            io::ErrorKind::Interrupted,
+                            "captured member walk interrupted",
+                        )
                     })?;
                     let next = self.member_after(after.as_ref());
                     active(deadline, cancel).map_err(|_| {
-                        io::Error::new(io::ErrorKind::Interrupted, "captured member cursor interrupted")
+                        io::Error::new(
+                            io::ErrorKind::Interrupted,
+                            "captured member cursor interrupted",
+                        )
                     })?;
                     let Some(member) = next? else { break };
-                    count = count
-                        .checked_add(1)
-                        .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidData, "member count overflow"))?;
-                    observed_bytes = observed_bytes
-                        .checked_add(member.size_bytes)
-                        .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidData, "member byte count overflow"))?;
+                    count = count.checked_add(1).ok_or_else(|| {
+                        io::Error::new(io::ErrorKind::InvalidData, "member count overflow")
+                    })?;
+                    observed_bytes =
+                        observed_bytes
+                            .checked_add(member.size_bytes)
+                            .ok_or_else(|| {
+                                io::Error::new(
+                                    io::ErrorKind::InvalidData,
+                                    "member byte count overflow",
+                                )
+                            })?;
                     feed_membership(&mut hash, &member.path, member.size_bytes, member.sha256);
                     visit(&member)?;
                     after = Some(member.path);
                 }
                 active(deadline, cancel).map_err(|_| {
-                    io::Error::new(io::ErrorKind::Interrupted, "captured member EOF interrupted")
+                    io::Error::new(
+                        io::ErrorKind::Interrupted,
+                        "captured member EOF interrupted",
+                    )
                 })?;
                 if count != self.membership.count
                     || (SourceMembershipV1 {
@@ -1103,15 +1132,14 @@ impl FoundationCapturedCut {
             }
             FoundationCutBacking::Streamed(_) => self
                 .for_each_member(deadline, cancel, |metadata| {
-                    let raw = self
-                        .read_member(
-                            &metadata.path,
-                            usize::try_from(metadata.size_bytes).map_err(|_| {
-                                io::Error::new(io::ErrorKind::InvalidData, "member size range")
-                            })?,
-                            deadline,
-                            cancel,
-                        )?;
+                    let raw = self.read_member(
+                        &metadata.path,
+                        usize::try_from(metadata.size_bytes).map_err(|_| {
+                            io::Error::new(io::ErrorKind::InvalidData, "member size range")
+                        })?,
+                        deadline,
+                        cancel,
+                    )?;
                     member_bytes = member_bytes
                         .checked_add(raw.len())
                         .filter(|bytes| *bytes <= member_allowance)
@@ -1153,11 +1181,10 @@ impl FoundationCapturedCut {
         deadline: Instant,
         cancel: &AtomicBool,
     ) -> Result<(usize, usize)> {
-        let metadata = self
-            .metadata
-            .as_ref()
-            .ok_or(Error::Invalid("foundation live capture metadata unavailable"))?;
-        let current = paths(sources, deadline, cancel)?;
+        let metadata = self.metadata.as_ref().ok_or(Error::Invalid(
+            "foundation live capture metadata unavailable",
+        ))?;
+        let current = paths(sources, limits.max_manifest_entries, deadline, cancel)?;
         if !current
             .iter()
             .map(String::as_str)
@@ -1173,7 +1200,7 @@ impl FoundationCapturedCut {
                     &path,
                     limits.max_selected_object_bytes.min(MAX_BYTES as u64) as usize,
                     &mut read_bytes,
-                    max_source_read_bytes.min(MAX_BYTES),
+                    max_source_read_bytes,
                 )
                 .map_err(source_error)?;
             let original = &metadata[&path];
@@ -1628,6 +1655,7 @@ pub(crate) fn capture_candidate(
             candidate_copy_read_bytes: Some(candidate_copy_read_bytes),
             object_write_upper_bound_bytes,
             manifest_write_bytes,
+            discovery_workspace_upper_bound_bytes: 0,
         },
     })
 }
@@ -1650,13 +1678,33 @@ pub(crate) fn capture_bounded_with_write_cap(
     read_limits
         .validate()
         .map_err(|_| Error::Invalid("foundation source read limits"))?;
-    let max_member_pass_bytes = max_source_read_bytes / 3;
+    let max_member_pass_bytes = (max_source_read_bytes / 3).min(
+        usize::try_from(cut_limits.max_total_bytes)
+            .map_err(|_| Error::Unsupported("foundation capture pass limit range"))?,
+    );
     if max_member_pass_bytes == 0 || max_capture_write_bytes == 0 {
         return Err(Error::Unsupported("foundation capture read/write budget"));
     }
+    let discovery_workspace_upper_bound_bytes =
+        RouteSources::selected_paths_workspace_upper_bound_bytes_with_limits(
+            MAX_CAPTURE_DISCOVERY_ENTRIES,
+            MAX_CAPTURE_DISCOVERY_PATH_BYTES,
+        )
+        .map_err(source_error)?
+        .checked_add(
+            read_limits
+                .max_manifest_entries
+                .checked_mul(size_of::<String>())
+                .ok_or(Error::Unsupported(
+                    "foundation selected path vector state overflow",
+                ))?,
+        )
+        .ok_or(Error::Unsupported(
+            "foundation discovery workspace overflow",
+        ))?;
     let epoch = MetadataPublicationEpoch::select(state(sources)?)
         .map_err(|_| Error::Conflict("foundation publication selection refused"))?;
-    let selected_paths = paths(sources, deadline, cancel)?;
+    let selected_paths = paths(sources, read_limits.max_manifest_entries, deadline, cancel)?;
     if selected_paths.len() > read_limits.max_manifest_entries || selected_paths.is_empty() {
         return Err(Error::Unsupported(
             "foundation capture member/manifest bound",
@@ -1676,7 +1724,7 @@ pub(crate) fn capture_bounded_with_write_cap(
                 &path,
                 read_limits.max_selected_object_bytes.min(MAX_BYTES as u64) as usize,
                 &mut read_bytes,
-                MAX_BYTES.min(max_member_pass_bytes),
+                max_member_pass_bytes,
             )
             .map_err(source_error)?;
         if read_bytes > max_capture_write_bytes {
@@ -1763,6 +1811,7 @@ pub(crate) fn capture_bounded_with_write_cap(
             candidate_copy_read_bytes: None,
             object_write_upper_bound_bytes: read_bytes,
             manifest_write_bytes: encoded.1.len(),
+            discovery_workspace_upper_bound_bytes,
         },
     };
     let remaining = all_member_pass_bytes

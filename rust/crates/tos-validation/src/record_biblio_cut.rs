@@ -121,6 +121,45 @@ pub trait SourceCutInput {
         visit: &mut dyn FnMut(SourceCutMemberMeta<'_>) -> Result<(), ItemRefusal>,
     ) -> Result<(), ItemRefusal>;
 
+    /// Look up one member's size under the same currentness fence. The
+    /// default retains full-walk semantics; indexed inputs may override it
+    /// with a bounded exact lookup without claiming whole-source coverage.
+    fn current_member_size(
+        &self,
+        path: &str,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<Option<u64>, ItemRefusal> {
+        if cancelled.load(Ordering::Relaxed) {
+            return Err(ItemRefusal::Source(
+                "current-member point lookup cancelled".into(),
+            ));
+        }
+        if Instant::now() >= deadline {
+            return Err(ItemRefusal::Deadline);
+        }
+        let relative = RelativePath::parse(path)
+            .map_err(|_| ItemRefusal::Source("invalid current-member path".into()))?;
+        let mut found = None;
+        self.for_each_current_member_meta(deadline, cancelled, &mut |meta| {
+            if meta.path == relative.as_str() && found.replace(meta.size_bytes).is_some() {
+                return Err(ItemRefusal::Source(
+                    "source input repeated a current member path".into(),
+                ));
+            }
+            Ok(())
+        })?;
+        if cancelled.load(Ordering::Relaxed) {
+            return Err(ItemRefusal::Source(
+                "current-member point lookup cancelled".into(),
+            ));
+        }
+        if Instant::now() >= deadline {
+            return Err(ItemRefusal::Deadline);
+        }
+        Ok(found)
+    }
+
     /// Visit every strict descendant of one canonical relative directory and
     /// return private range coverage only after the range reaches EOF. The
     /// default is an honest full metadata walk; indexed adapters should
@@ -4196,6 +4235,18 @@ pub(crate) fn current(
     account(used, member.raw.len(), limits.max_total_bytes)?;
     Ok(member.raw)
 }
+pub(crate) fn source_store_cause(error: &tos_source_store::StoreError) -> String {
+    // StoreError.detail is owner-authored &'static str; its optional raw IO
+    // source may contain paths, so only the typed code and detail digest travel.
+    let code = match &error.source {
+        Some(source) => format!("{:?}-{:?}", error.code, source.kind()),
+        None => format!("{:?}", error.code),
+    };
+    format!(
+        "source-cause:source-store:{code}:{}",
+        tos_foundation::Digest256::of_bytes(error.detail.as_bytes()).to_hex()
+    )
+}
 pub(crate) fn store_error(error: tos_source_store::StoreError) -> ItemRefusal {
     use tos_source_store::StoreErrorCode;
     match error.code {
@@ -4203,7 +4254,7 @@ pub(crate) fn store_error(error: tos_source_store::StoreError) -> ItemRefusal {
         StoreErrorCode::UnsupportedFormat | StoreErrorCode::UnsupportedPlatform => {
             ItemRefusal::Unsupported(error.to_string())
         }
-        _ => ItemRefusal::Source(error.to_string()),
+        _ => ItemRefusal::Source(source_store_cause(&error)),
     }
 }
 

@@ -186,19 +186,28 @@ CREATE INDEX IF NOT EXISTS knowledge_canon_proposal_packs ON knowledge_canon_pro
 
 pub(crate) fn verify_public_projection_stage(stage: &KnowledgeStage<'_>) -> Result<()> {
     let binding = &stage.exact_receipt()?.binding;
-    if !stage.public_build()
-        || binding.owner_profile != "tos-public-projection-snapshot-v1"
-        || !binding
+    let public_projection = stage.public_build()
+        && binding.owner_profile == "tos-public-projection-snapshot-v1"
+        && binding
             .source_cut
             .strip_prefix("public-projection:")
             .is_some_and(|revision| !revision.is_empty())
-        || binding.through_commit_seq != 0
-        || binding.index_generation != "public-d1-v9"
-        || binding.route_map_version != "public-d1-v9"
-        || binding.reader_abi != "public-d1-v9"
-        || !binding.complete
-    {
-        return Err(Error::Invalid("canon prepared public projection binding"));
+        && binding.through_commit_seq == 0
+        && binding.index_generation == "public-d1-v9"
+        && binding.route_map_version == "public-d1-v9"
+        && binding.reader_abi == "public-d1-v9"
+        && binding.complete;
+    let native_projection = !stage.public_build()
+        && binding.owner_profile == "tos-native-projection-snapshot-v1"
+        && binding
+            .source_cut
+            .strip_prefix("native-projection:")
+            .is_some_and(|revision| !revision.is_empty())
+        && binding.through_commit_seq == 0
+        && binding.route_map_version == "tos-access-runtime-data-v1"
+        && binding.complete;
+    if !public_projection && !native_projection {
+        return Err(Error::Invalid("canon prepared projection binding"));
     }
     Ok(())
 }

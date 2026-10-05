@@ -5,14 +5,16 @@
 //! has charged invocation custody and the selected roots.
 
 use super::foundation_bootstrap::FoundationBootstrapConfig;
-use super::foundation_capture::FoundationCapturedCut;
+use super::foundation_capture::{
+    FoundationCapturedCut, MAX_CAPTURE_DISCOVERY_ENTRIES, MAX_CAPTURE_DISCOVERY_PATH_BYTES,
+};
 use super::foundation_entry::{FoundationInvocation, FoundationSelectedRoots};
 use super::foundation_execution_limits::{FoundationExecutionLimits, FoundationRemainingBudget};
 use super::foundation_payload::PhysicalPayloadLimits;
 use super::foundation_physical::PhysicalSourceLimits;
 use super::foundation_selection::{FoundationPhysicalSelection, FoundationSelectionLimits};
 use crate::source_command::{SourceCommandError as Error, SourceCommandResult as Result};
-use crate::source_creation_store::{MAX_BYTES, MAX_FILES};
+use crate::source_creation_store::MAX_BYTES;
 use std::mem::size_of;
 use std::os::unix::ffi::OsStrExt;
 use std::sync::atomic::AtomicUsize;
@@ -27,6 +29,7 @@ const PUBLICATION_CONTROL_READ_CAP_BYTES: u64 = 8_192;
 const CAPTURE_CONTROL_READS: u64 = 2;
 const CAPTURE_MEMBER_READ_PASSES: u64 = 3;
 const CAPTURE_TMPFS_FIXED_INODES: u64 = 8;
+const MAX_FOUNDATION_CAPTURE_SOURCE_BYTES_PER_PASS: u64 = 512 * 1024 * 1024;
 // Keep this aligned with the protected launch parser's selected-path cap.
 const MAX_RELATIVE_PATH_BYTES: usize = 4_096;
 const MIN_CAPTURE_MANIFEST_ENVELOPE_BYTES: usize = 512;
@@ -98,14 +101,14 @@ fn from_invocation_profile(
             "foundation source budget cannot reserve capture controls",
         ))?
         / CAPTURE_MEMBER_READ_PASSES;
-    // The capture helper independently bounds the aggregate authored-object
-    // pass and the generated manifest. Its cumulative write cap checks the
-    // actual object bytes plus the actual encoded manifest before installation,
-    // so do not divide tmpfs between two independent maxima here.
+    // Keep a finite per-pass source aggregate separate from both the shared
+    // whole-operation read ledger and the per-file object cap. Live source
+    // capture uses all three charged passes; candidate capture has its own
+    // caller-grounded copy bound.
     // `max_member_bytes` is per authored file, not an aggregate or manifest cap.
     let mut capture_member_cap = member_read_budget.min(tmpfs_cap);
     if !candidate_profile {
-        capture_member_cap = capture_member_cap.min(MAX_BYTES as u64);
+        capture_member_cap = capture_member_cap.min(MAX_FOUNDATION_CAPTURE_SOURCE_BYTES_PER_PASS);
     }
     let capture_member_bytes_per_pass =
         usize::try_from(capture_member_cap.min((usize::MAX - 1) as u64))
@@ -115,13 +118,15 @@ fn from_invocation_profile(
             "foundation source budget cannot admit a capture member",
         ));
     }
-    let object_bytes_per_file = member_cap.min(capture_member_bytes_per_pass as u64);
+    let object_bytes_per_file = member_cap
+        .min(capture_member_bytes_per_pass as u64)
+        .min(MAX_BYTES as u64);
 
     // Capture creates at most one source-store revision. Its member count is
     // bounded by the explicit current-member cap, fixed directory/file inode
     // overhead, the generated-manifest parser's real visit ceiling, and the
-    // state envelope below. The ordinary source route keeps its creation
-    // helper's additional per-call file ceiling.
+    // state envelope below. The generic creation store's unrelated per-call
+    // file ceiling does not describe this whole-source cut.
     let inode_members = budgets
         .tmpfs_inode_limit
         .checked_sub(CAPTURE_TMPFS_FIXED_INODES)
@@ -133,10 +138,7 @@ fn from_invocation_profile(
             "foundation tmpfs inode budget cannot admit a capture member",
         ));
     }
-    let mut initial_entry_cap = budgets.max_current_members.min(inode_members);
-    if !candidate_profile {
-        initial_entry_cap = initial_entry_cap.min(MAX_FILES as u64);
-    }
+    let initial_entry_cap = budgets.max_current_members.min(inode_members);
     let initial_entry_cap = usize::try_from(initial_entry_cap.min((usize::MAX - 1) as u64))
         .map_err(|_| Error::Unsupported("foundation current-member limit range"))?;
     if initial_entry_cap == 0 {
@@ -174,10 +176,39 @@ fn from_invocation_profile(
             "foundation state budget cannot reserve startup, roots, and selection",
         ))?;
 
+    let capture_path_vector_state = if candidate_profile {
+        0
+    } else {
+        initial_entry_cap
+            .checked_mul(size_of::<String>())
+            .ok_or(Error::Unsupported(
+                "foundation selected path vector overflow",
+            ))?
+    };
+    let capture_discovery_workspace_upper_bound_bytes = if candidate_profile {
+        0
+    } else {
+        RouteSources::selected_paths_workspace_upper_bound_bytes_with_limits(
+            MAX_CAPTURE_DISCOVERY_ENTRIES,
+            MAX_CAPTURE_DISCOVERY_PATH_BYTES,
+        )
+        .map_err(|_| Error::Unsupported("foundation discovery workspace limit"))?
+        .checked_add(capture_path_vector_state)
+        .ok_or(Error::Unsupported(
+            "foundation discovery workspace overflow",
+        ))?
+    };
+    if capture_discovery_workspace_upper_bound_bytes > capture_state_budget {
+        return Err(Error::Unsupported(
+            "foundation discovery workspace exceeds invocation state",
+        ));
+    }
+
     let control_state = control_parse_state()?;
     let capture_fixed_state = size_of::<FoundationCapturedCut>()
         .checked_add(size_of::<CorpusReader>())
         .and_then(|bytes| bytes.checked_add(control_state))
+        .and_then(|bytes| bytes.checked_add(capture_path_vector_state))
         .and_then(|bytes| bytes.checked_add(PRIVATE_TMPFS_SELECT_COST.retained_bytes))
         .ok_or(Error::Unsupported(
             "foundation capture fixed state overflow",
@@ -214,7 +245,9 @@ fn from_invocation_profile(
         },
     };
     let capture_tmpfs_write_upper_bound_bytes = tmpfs_cap;
-    let capture_state_upper_bound_bytes = manifest_shape.state_bytes;
+    let capture_state_upper_bound_bytes = manifest_shape
+        .state_bytes
+        .max(capture_discovery_workspace_upper_bound_bytes);
     if capture_state_upper_bound_bytes > capture_state_budget {
         return Err(Error::Unsupported(
             "foundation state budget cannot reserve capture metadata",
@@ -342,6 +375,7 @@ fn from_invocation_profile(
         cut_limits,
         capture_member_bytes_per_pass,
         capture_state_upper_bound_bytes,
+        capture_discovery_workspace_upper_bound_bytes,
         capture_tmpfs_write_upper_bound_bytes,
         selection_limits,
         physical_limits,
@@ -364,6 +398,17 @@ pub(crate) fn narrow_capture_config(
     let fixed = size_of::<FoundationCapturedCut>()
         .checked_add(size_of::<CorpusReader>())
         .and_then(|bytes| bytes.checked_add(control_parse_state().ok()?))
+        .and_then(|bytes| {
+            let path_state = if config.capture_discovery_workspace_upper_bound_bytes == 0 {
+                0
+            } else {
+                config
+                    .read_limits
+                    .max_manifest_entries
+                    .checked_mul(size_of::<String>())?
+            };
+            bytes.checked_add(path_state)
+        })
         .and_then(|bytes| bytes.checked_add(PRIVATE_TMPFS_SELECT_COST.retained_bytes))
         .ok_or(Error::Unsupported("capture narrowed fixed state overflow"))?;
     let shape = choose_manifest_shape(
@@ -381,7 +426,14 @@ pub(crate) fn narrow_capture_config(
         2 * (size_of::<JsonValue>() + size_of::<JsonString>()),
         state_cap,
     )?;
-    config.capture_state_upper_bound_bytes = shape.state_bytes;
+    config.capture_state_upper_bound_bytes = shape
+        .state_bytes
+        .max(config.capture_discovery_workspace_upper_bound_bytes);
+    if config.capture_state_upper_bound_bytes > state_cap {
+        return Err(Error::Unsupported(
+            "capture narrowed state cannot reserve source discovery",
+        ));
+    }
     config.capture_tmpfs_write_upper_bound_bytes = tmpfs_cap;
     config.read_limits.max_manifest_bytes = shape.manifest_bytes;
     config.read_limits.max_manifest_entries = shape.entries;
@@ -573,9 +625,18 @@ pub(crate) fn observed_capture_state_upper_bound(
         .ok_or(Error::Unsupported(
             "capture observed retained state overflow",
         ))?;
-    let peak_upper_bound_bytes = retained_upper_bound_bytes
-        .checked_add(capture_object_workspace(largest_member)?.max(manifest_workspace))
+    let selected_path_slots = entries
+        .checked_mul(size_of::<String>())
+        .ok_or(Error::Unsupported("capture selected path vector overflow"))?;
+    let concurrent_capture_workspace = capture_object_workspace(largest_member)?
+        .max(manifest_workspace)
+        .checked_add(selected_path_slots)
+        .ok_or(Error::Unsupported("capture path vector peak overflow"))?;
+    let capture_phase_peak = retained_upper_bound_bytes
+        .checked_add(concurrent_capture_workspace)
         .ok_or(Error::Unsupported("capture observed peak state overflow"))?;
+    let peak_upper_bound_bytes =
+        capture_phase_peak.max(captured.cost().discovery_workspace_upper_bound_bytes);
     Ok(ObservedCaptureState {
         retained_upper_bound_bytes,
         peak_upper_bound_bytes,

@@ -21,6 +21,16 @@ use tos_validation::{
 
 type CandidateDiagnostic = CandidateCutSchemaDiagnostic<CandidateFence>;
 
+const SELECTOR_RETAINED_UPPER_BOUND_BYTES: usize = 16384;
+
+/// State retained by the borrowed binding in addition to the caller's held
+/// schema, resource metadata, and report header. The caller reserves this
+/// before selecting the dependent callback workspace.
+pub(crate) fn binding_retained_state_upper_bound_bytes() -> usize {
+    size_of::<CandidateSchemaBinding<'static, 'static, 'static>>()
+        + SELECTOR_RETAINED_UPPER_BOUND_BYTES
+}
+
 /// Invoke the maintained Records+Item receiver over the actual candidate input
 /// and prepared candidate schema worker. This district report is not whole native
 /// admission or a CMD creation-inventory completion. The caller owns the real
@@ -99,12 +109,19 @@ pub(crate) struct CandidateSchemaBinding<'a, 'input, 'host> {
     max_state_bytes: usize,
     failed: Cell<bool>,
 }
+#[track_caller]
 fn refused() -> ItemRefusal {
-    ItemRefusal::Source("candidate schema binding refused".into())
+    let site = std::panic::Location::caller().line();
+    ItemRefusal::Source(crate::source_admission_spooled_index::bounded_source_cause(
+        "candidate-schema",
+        &site.to_string(),
+        "candidate schema binding refused",
+    ))
 }
 impl<'a, 'input, 'host> CandidateSchemaBinding<'a, 'input, 'host> {
-    /// `retained_state_bytes` includes the caller's actual schema/worker/input
-    /// state. The selector's retained resource metadata is added separately.
+    /// `retained_state_bytes` includes the caller's held schema/worker/input,
+    /// resource metadata, and report header, but excludes callback workspace.
+    /// The binding's own retained state is added exactly once.
     /// This constructor performs no parsing, cloning or worker preparation.
     pub(crate) fn new(
         input: &'a CandidateRecordsInput<'input, 'host>,
@@ -145,12 +162,7 @@ impl<'a, 'input, 'host> CandidateSchemaBinding<'a, 'input, 'host> {
             return Err(refused());
         }
         let baseline_state_bytes = retained_state_bytes
-            .checked_add(
-                worker
-                    .source_resource_metadata_state_bytes()
-                    .ok_or(ItemRefusal::Budget)?,
-            )
-            .and_then(|n| n.checked_add(size_of::<Self>() + 16384))
+            .checked_add(binding_retained_state_upper_bound_bytes())
             .filter(|n| *n <= max_state_bytes)
             .ok_or(ItemRefusal::Budget)?;
         let mut previous: Option<&str> = None;

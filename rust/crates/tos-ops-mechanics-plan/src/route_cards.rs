@@ -24,6 +24,12 @@ const MAX_FILE: usize = 8 * 1024 * 1024;
 const MAX_INPUT: usize = 64 * 1024 * 1024;
 const MAX_OUTPUT: usize = 16 * 1024 * 1024;
 const MAX_ENTRIES: usize = 10_000;
+/// Absolute ceiling for callers that have priced a larger whole-source pass.
+/// Ordinary route APIs still receive `MAX_OPERATIONS`.
+pub const MAX_BUDGETED_ROUTE_OPERATIONS: usize = 1_000_000;
+/// Upper finite ceiling available only to callers that budget a wider tree.
+/// The ordinary route-card APIs retain the smaller historical ceiling.
+pub const MAX_SELECTED_PATH_DISCOVERY_ENTRIES: usize = 131_072;
 const MAX_RELATIVE_PATH_BYTES: usize = 4096;
 const MAX_RELATIVE_COMPONENTS: usize = 128;
 const MAX_OPERATIONS: usize = 100_000;
@@ -164,6 +170,7 @@ pub struct RouteSources {
     root_path: PathBuf,
     deadline: Instant,
     operations: Arc<AtomicUsize>,
+    operation_limit: usize,
     root_component_opens: Cell<usize>,
     entries: usize,
     bytes_read: usize,
@@ -189,7 +196,29 @@ impl RouteSources {
     /// Join a concrete caller's whole operation clock without resetting it at
     /// capture or at a later read. Existing route callers retain their 30s clock.
     pub fn new_until(root: &Path, deadline: Instant) -> io::Result<Self> {
-        Self::with_operations(root, deadline, Arc::new(AtomicUsize::new(0)))
+        Self::with_operations(
+            root,
+            deadline,
+            Arc::new(AtomicUsize::new(0)),
+            MAX_OPERATIONS,
+        )
+    }
+    /// Create a held source root with a caller-priced finite operation ceiling.
+    /// This does not extend the clock, source-byte limits, or custody scope.
+    pub fn new_until_with_operation_limit(
+        root: &Path,
+        deadline: Instant,
+        operation_limit: usize,
+    ) -> io::Result<Self> {
+        if operation_limit == 0 || operation_limit > MAX_BUDGETED_ROUTE_OPERATIONS {
+            return Err(invalid("route operation limit outside finite ceiling"));
+        }
+        Self::with_operations(
+            root,
+            deadline,
+            Arc::new(AtomicUsize::new(0)),
+            operation_limit,
+        )
     }
     /// Authenticate another explicitly selected root under the same operation
     /// allowance. This shares only the lookup counter, never root custody,
@@ -199,14 +228,23 @@ impl RouteSources {
         if deadline > primary.deadline {
             return Err(invalid("related route root extends operation deadline"));
         }
-        Self::with_operations(root, deadline, Arc::clone(&primary.operations))
+        Self::with_operations(
+            root,
+            deadline,
+            Arc::clone(&primary.operations),
+            primary.operation_limit,
+        )
     }
     fn with_operations(
         root: &Path,
         deadline: Instant,
         operations: Arc<AtomicUsize>,
+        operation_limit: usize,
     ) -> io::Result<Self> {
-        if operations.load(Ordering::Relaxed) >= MAX_OPERATIONS {
+        if operation_limit == 0
+            || operation_limit > MAX_BUDGETED_ROUTE_OPERATIONS
+            || operations.load(Ordering::Relaxed) >= operation_limit
+        {
             return Err(invalid("route lookup operation bound exceeded"));
         }
         if Instant::now() >= deadline
@@ -219,13 +257,20 @@ impl RouteSources {
             return Err(invalid("repository root must be absolute without symlinks"));
         }
         let root_component_opens = Cell::new(0);
-        let root_dir = open_root(root, deadline, &operations, &root_component_opens)?;
+        let root_dir = open_root(
+            root,
+            deadline,
+            &operations,
+            &root_component_opens,
+            operation_limit,
+        )?;
         Ok(Self {
             root_dir,
             root_custody: Arc::new(()),
             root_path: root.to_owned(),
             deadline,
             operations,
+            operation_limit,
             root_component_opens,
             entries: 0,
             bytes_read: 0,
@@ -241,6 +286,9 @@ impl RouteSources {
     /// Shared total across this root and all explicitly related roots.
     pub fn operation_count(&self) -> usize {
         self.operations.load(Ordering::Relaxed)
+    }
+    pub fn operation_limit(&self) -> usize {
+        self.operation_limit
     }
     pub fn deadline(&self) -> Instant {
         self.deadline
@@ -284,6 +332,7 @@ impl RouteSources {
             self.deadline,
             &self.operations,
             &self.root_component_opens,
+            self.operation_limit,
         )?
         .metadata()?;
         if (retained.dev(), retained.ino()) != (current.dev(), current.ino()) {
@@ -308,8 +357,43 @@ impl RouteSources {
             .filter(|c| matches!(c, Component::Normal(_)))
             .count()
             .max(1);
-        charge_operations(&self.operations, count)?;
+        charge_operations(&self.operations, count, self.operation_limit)?;
         Ok(())
+    }
+    #[cfg(target_os = "linux")]
+    fn open_child_directory(&mut self, parent: &File, name: &str) -> io::Result<File> {
+        use std::os::fd::{AsRawFd, FromRawFd};
+        self.check()?;
+        if name.is_empty() || name.contains('/') || name.contains('\0') {
+            return Err(invalid("route child directory name is invalid"));
+        }
+        charge_operations(&self.operations, 1, self.operation_limit)?;
+        let name = std::ffi::CString::new(name.as_bytes())
+            .map_err(|_| invalid("route child directory name is invalid"))?;
+        let fd = unsafe {
+            libc::openat(
+                parent.as_raw_fd(),
+                name.as_ptr(),
+                libc::O_RDONLY
+                    | libc::O_DIRECTORY
+                    | libc::O_NOFOLLOW
+                    | libc::O_CLOEXEC
+                    | libc::O_NONBLOCK,
+            )
+        };
+        if fd < 0 {
+            return Err(io::Error::last_os_error());
+        }
+        let child = unsafe { File::from_raw_fd(fd) };
+        self.check()?;
+        Ok(child)
+    }
+    #[cfg(not(target_os = "linux"))]
+    fn open_child_directory(&mut self, _parent: &File, _name: &str) -> io::Result<File> {
+        Err(io::Error::new(
+            io::ErrorKind::Unsupported,
+            "route discovery requires Linux descriptor custody",
+        ))
     }
     // Each component is opened relative to a retained parent descriptor. The
     // final nofollow/nonblock open prevents FIFO waits and symlink races.
@@ -1236,6 +1320,7 @@ impl RouteSources {
             self.deadline,
             &self.operations,
             &self.root_component_opens,
+            self.operation_limit,
         )?;
         let retained = self.root_dir.metadata()?;
         let current = root.metadata()?;
@@ -1281,6 +1366,7 @@ impl RouteSources {
             self.deadline,
             &self.operations,
             &self.root_component_opens,
+            self.operation_limit,
         )?
         .metadata()?;
         if (retained.dev(), retained.ino()) != (root.dev(), root.ino()) {
@@ -1304,13 +1390,18 @@ impl RouteSources {
         serde_json::from_str(&source.text)
             .map_err(|e| invalid(format!("route inventory is unreadable or malformed: {e}")))
     }
+    #[allow(clippy::too_many_arguments)]
     fn walk(
         &mut self,
         rel: &str,
         paths: &mut BTreeSet<String>,
         all_descendants: bool,
+        files_only: bool,
+        max_selected_files: usize,
         selected: &dyn Fn(&str, bool) -> bool,
         include_links: bool,
+        max_entries: usize,
+        max_relative_path_bytes: usize,
     ) -> io::Result<()> {
         let Some(dir) = self.open(rel)? else {
             return Ok(());
@@ -1318,6 +1409,38 @@ impl RouteSources {
         if !dir.metadata()?.is_dir() {
             return Ok(());
         }
+        let mut local_entries = 0usize;
+        self.walk_held(
+            &dir,
+            rel,
+            paths,
+            &mut local_entries,
+            all_descendants,
+            files_only,
+            max_selected_files,
+            true,
+            selected,
+            include_links,
+            max_entries,
+            max_relative_path_bytes,
+        )
+    }
+    #[allow(clippy::too_many_arguments)]
+    fn walk_held(
+        &mut self,
+        dir: &File,
+        rel: &str,
+        paths: &mut BTreeSet<String>,
+        local_entries: &mut usize,
+        all_descendants: bool,
+        files_only: bool,
+        max_selected_files: usize,
+        cumulative_entry_limit: bool,
+        selected: &dyn Fn(&str, bool) -> bool,
+        include_links: bool,
+        max_entries: usize,
+        max_relative_path_bytes: usize,
+    ) -> io::Result<()> {
         // /proc/self/fd resolves our retained directory, not an authored pathname.
         #[cfg(target_os = "linux")]
         let path = {
@@ -1332,17 +1455,28 @@ impl RouteSources {
         let mut children = Vec::new();
         for entry in fs::read_dir(path)? {
             self.check()?;
-            self.entries += 1;
-            if self.entries > MAX_ENTRIES {
+            self.entries = self
+                .entries
+                .checked_add(1)
+                .ok_or_else(|| invalid("route discovery entry count overflow"))?;
+            *local_entries = (*local_entries)
+                .checked_add(1)
+                .ok_or_else(|| invalid("route discovery local entry count overflow"))?;
+            if (cumulative_entry_limit && self.entries > max_entries)
+                || (!cumulative_entry_limit && *local_entries > max_entries)
+            {
                 return Err(invalid("route discovery entry bound exceeded"));
             }
             let entry = entry?;
             let kind = entry.file_type()?;
-            let name = entry
+            let component = entry
                 .file_name()
                 .into_string()
                 .map_err(|_| invalid("non-UTF-8 route path"))?;
-            let name = format!("{rel}/{name}");
+            let name = format!("{rel}/{component}");
+            if name.len() > max_relative_path_bytes {
+                return Err(invalid("route discovery path byte bound exceeded"));
+            }
             validate_relative(&name)?;
             if !selected(&name, kind.is_dir()) {
                 continue;
@@ -1350,15 +1484,34 @@ impl RouteSources {
             if kind.is_symlink() && !include_links {
                 return Err(invalid("route discovery refuses symlinks"));
             }
-            children.push((name, kind.is_dir(), kind.is_file()));
+            children.push((component, name, kind.is_dir(), kind.is_file()));
         }
-        children.sort_by(|a, b| a.0.cmp(&b.0));
-        for (name, directory, file) in children {
-            if all_descendants {
+        children.sort_by(|a, b| a.1.cmp(&b.1));
+        for (component, name, directory, file) in children {
+            if all_descendants && (!files_only || file) {
+                if files_only && paths.len() >= max_selected_files {
+                    return Err(invalid("selected route file count bound exceeded"));
+                }
                 paths.insert(name.clone());
             }
             if directory {
-                self.walk(&name, paths, all_descendants, selected, include_links)?;
+                let child = self.open_child_directory(dir, &component)?;
+                self.walk_held(
+                    &child,
+                    &name,
+                    paths,
+                    local_entries,
+                    all_descendants,
+                    files_only,
+                    max_selected_files,
+                    cumulative_entry_limit,
+                    selected,
+                    include_links,
+                    max_entries,
+                    max_relative_path_bytes,
+                )?;
+            } else if files_only && !file {
+                return Err(invalid("selected route entry is not a regular file"));
             } else if !all_descendants
                 && file
                 && Path::new(&name)
@@ -1375,7 +1528,17 @@ impl RouteSources {
     /// route-card discovery; the supplied directory itself is excluded.
     pub fn paths(&mut self, relative: &str) -> io::Result<Vec<String>> {
         let mut paths = BTreeSet::new();
-        self.walk(relative, &mut paths, true, &|_, _| true, false)?;
+        self.walk(
+            relative,
+            &mut paths,
+            true,
+            false,
+            usize::MAX,
+            &|_, _| true,
+            false,
+            MAX_ENTRIES,
+            MAX_RELATIVE_PATH_BYTES,
+        )?;
         Ok(paths.into_iter().collect())
     }
     /// Conservative source-state reservation for selected_paths(), including
@@ -1384,18 +1547,39 @@ impl RouteSources {
     /// Linux walk charges each entry before allocating its name. It retains
     /// child vectors and cloned tree keys before consuming keys into a Vec.
     pub fn selected_paths_workspace_upper_bound_bytes() -> io::Result<usize> {
+        Self::selected_paths_workspace_upper_bound_bytes_with_limits(
+            MAX_ENTRIES,
+            MAX_RELATIVE_PATH_BYTES,
+        )
+    }
+    /// Conservative traversal workspace for an explicit finite discovery
+    /// ceiling. Wider callers must retain this reservation in their own
+    /// operation profile; it is not an estimate of observed allocation.
+    pub fn selected_paths_workspace_upper_bound_bytes_with_limits(
+        max_entries: usize,
+        max_relative_path_bytes: usize,
+    ) -> io::Result<usize> {
+        if max_entries == 0
+            || max_entries > MAX_SELECTED_PATH_DISCOVERY_ENTRIES
+            || max_relative_path_bytes == 0
+            || max_relative_path_bytes > MAX_RELATIVE_PATH_BYTES
+        {
+            return Err(invalid(
+                "selected route traversal limit outside finite ceiling",
+            ));
+        }
         let word = std::mem::size_of::<usize>();
         let string = std::mem::size_of::<String>();
-        let child = std::mem::size_of::<(String, bool, bool)>();
+        let child = std::mem::size_of::<(String, String, bool, bool)>();
         // Retained names already passed the actual full relative path bound.
         // One format buffer plus one cloned tree key; Vec capacity reserves
         // twice live entries. Tree/iterator bookkeeping uses 64 words/name.
-        let entry = MAX_RELATIVE_PATH_BYTES
+        let entry = max_relative_path_bytes
             .checked_mul(3)
             .and_then(|n| n.checked_add(child.checked_mul(2)?))
             .and_then(|n| n.checked_add(string.checked_mul(4)?))
             .and_then(|n| n.checked_add(word.checked_mul(64)?));
-        let frames = MAX_RELATIVE_PATH_BYTES
+        let frames = max_relative_path_bytes
             .checked_mul(2)
             .and_then(|n| n.checked_add(word.checked_mul(64)?))
             .and_then(|n| n.checked_mul(MAX_RELATIVE_COMPONENTS));
@@ -1403,14 +1587,14 @@ impl RouteSources {
         // every entry. Linux getdents64 d_reclen is u16; d_name fits that record.
         // Reserve its name buffer and formatting alongside the existing prefix.
         let failed_entry = (u16::MAX as usize).checked_mul(2).and_then(|n| {
-            let formatted = MAX_RELATIVE_PATH_BYTES
+            let formatted = max_relative_path_bytes
                 .checked_add(u16::MAX as usize)?
                 .checked_add(1)?
                 .checked_mul(2)?;
             n.checked_add(formatted)
         });
         entry
-            .and_then(|n| n.checked_mul(MAX_ENTRIES))
+            .and_then(|n| n.checked_mul(max_entries))
             .and_then(|n| n.checked_add(frames?))
             .and_then(|n| n.checked_add(failed_entry?))
             .and_then(|n| n.checked_add(8192))
@@ -1423,11 +1607,88 @@ impl RouteSources {
         relative: &str,
         selected: &dyn Fn(&str, bool) -> bool,
     ) -> io::Result<Vec<String>> {
+        self.selected_paths_with_limits(relative, selected, MAX_ENTRIES, MAX_RELATIVE_PATH_BYTES)
+    }
+    /// Caller-owned wider discovery for a separately budgeted whole-source
+    /// operation. This does not change the ordinary selected-path ceiling.
+    pub fn selected_paths_with_limits(
+        &mut self,
+        relative: &str,
+        selected: &dyn Fn(&str, bool) -> bool,
+        max_entries: usize,
+        max_relative_path_bytes: usize,
+    ) -> io::Result<Vec<String>> {
+        if max_entries == 0
+            || max_entries > MAX_SELECTED_PATH_DISCOVERY_ENTRIES
+            || max_relative_path_bytes == 0
+            || max_relative_path_bytes > MAX_RELATIVE_PATH_BYTES
+        {
+            return Err(invalid(
+                "selected route traversal limit outside finite ceiling",
+            ));
+        }
         if !selected(relative, true) {
             return Err(invalid("selected discovery root is outside caller scope"));
         }
         let mut paths = BTreeSet::new();
-        self.walk(relative, &mut paths, true, selected, false)?;
+        self.walk(
+            relative,
+            &mut paths,
+            true,
+            false,
+            usize::MAX,
+            selected,
+            false,
+            max_entries,
+            max_relative_path_bytes,
+        )?;
+        Ok(paths.into_iter().collect())
+    }
+    /// Sorted selected regular files under a held root. The bounded walk
+    /// retains only file paths, opens child directories relative to held parent
+    /// descriptors, and refuses selected special files and symlinks.
+    pub fn selected_files_with_limits(
+        &mut self,
+        relative: &str,
+        selected: &dyn Fn(&str, bool) -> bool,
+        max_entries: usize,
+        max_relative_path_bytes: usize,
+        max_selected_files: usize,
+    ) -> io::Result<Vec<String>> {
+        if max_entries == 0
+            || max_entries > MAX_SELECTED_PATH_DISCOVERY_ENTRIES
+            || max_relative_path_bytes == 0
+            || max_relative_path_bytes > MAX_RELATIVE_PATH_BYTES
+            || max_selected_files == 0
+        {
+            return Err(invalid(
+                "selected file discovery limit outside finite ceiling",
+            ));
+        }
+        if !selected(relative, true) {
+            return Err(invalid("selected discovery root is outside caller scope"));
+        }
+        let mut paths = BTreeSet::new();
+        let Some(dir) = self.open(relative)? else {
+            return Ok(Vec::new());
+        };
+        if dir.metadata()?.is_dir() {
+            let mut local_entries = 0usize;
+            self.walk_held(
+                &dir,
+                relative,
+                &mut paths,
+                &mut local_entries,
+                true,
+                true,
+                max_selected_files,
+                false,
+                selected,
+                false,
+                max_entries,
+                max_relative_path_bytes,
+            )?;
+        }
         Ok(paths.into_iter().collect())
     }
     /// Explicit physical inventory. Symlink names are included without
@@ -1445,7 +1706,17 @@ impl RouteSources {
         }
         self.verify_root()?;
         let mut paths = BTreeSet::new();
-        self.walk(relative, &mut paths, true, selected, true)?;
+        self.walk(
+            relative,
+            &mut paths,
+            true,
+            false,
+            usize::MAX,
+            selected,
+            true,
+            MAX_ENTRIES,
+            MAX_RELATIVE_PATH_BYTES,
+        )?;
         self.verify_root()?;
         Ok(paths.into_iter().collect())
     }
@@ -1458,7 +1729,17 @@ impl RouteSources {
             }
         }
         for root in strings(&discovery["route_roots"])? {
-            self.walk(&root, &mut cards, false, &|_, _| true, false)?;
+            self.walk(
+                &root,
+                &mut cards,
+                false,
+                false,
+                usize::MAX,
+                &|_, _| true,
+                false,
+                MAX_ENTRIES,
+                MAX_RELATIVE_PATH_BYTES,
+            )?;
         }
         Ok(cards.into_iter().collect())
     }
@@ -2673,11 +2954,15 @@ pub fn read_output(path: &Path) -> io::Result<Option<String>> {
     let text = String::from_utf8(raw).map_err(io::Error::other)?;
     Ok(Some(text.replace("\r\n", "\n").replace('\r', "\n")))
 }
-fn charge_operations(operations: &AtomicUsize, count: usize) -> io::Result<()> {
+fn charge_operations(
+    operations: &AtomicUsize,
+    count: usize,
+    operation_limit: usize,
+) -> io::Result<()> {
     operations
         .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |used| {
             used.checked_add(count)
-                .filter(|total| *total <= MAX_OPERATIONS)
+                .filter(|total| *total <= operation_limit)
         })
         .map(|_| ())
         .map_err(|_| invalid("route lookup operation bound exceeded"))
@@ -2688,6 +2973,7 @@ fn open_root(
     deadline: Instant,
     operations: &AtomicUsize,
     component_opens: &Cell<usize>,
+    operation_limit: usize,
 ) -> io::Result<File> {
     use std::os::fd::{AsRawFd, FromRawFd};
     use std::os::unix::ffi::OsStrExt;
@@ -2696,12 +2982,12 @@ fn open_root(
     }
     // The absolute anchor is an actual open too: exhaust/deadline refusal
     // precedes it rather than allowing an uncharged extra descriptor.
-    charge_operations(operations, 1)?;
+    charge_operations(operations, 1, operation_limit)?;
     component_opens.set(
         component_opens
             .get()
             .checked_add(1)
-            .filter(|n| *n <= MAX_OPERATIONS)
+            .filter(|n| *n <= operation_limit)
             .ok_or_else(|| invalid("route root component operation bound exceeded"))?,
     );
     let mut dir = File::open("/")?;
@@ -2710,11 +2996,11 @@ fn open_root(
             if Instant::now() >= deadline {
                 return Err(invalid("route operation deadline exceeded"));
             }
-            charge_operations(operations, 1)?;
+            charge_operations(operations, 1, operation_limit)?;
             let count = component_opens
                 .get()
                 .checked_add(1)
-                .filter(|n| *n <= MAX_OPERATIONS)
+                .filter(|n| *n <= operation_limit)
                 .ok_or_else(|| invalid("route root component operation bound exceeded"))?;
             component_opens.set(count);
             let name =
@@ -2740,6 +3026,7 @@ fn open_root(
     _deadline: Instant,
     _operations: &AtomicUsize,
     _component_opens: &Cell<usize>,
+    _operation_limit: usize,
 ) -> io::Result<File> {
     Err(io::Error::new(
         io::ErrorKind::Unsupported,
@@ -2964,6 +3251,67 @@ mod foundation_custody_cases {
     }
 
     #[test]
+    fn budgeted_root_limit_is_finite_and_related_roots_inherit_it() {
+        let deadline = Instant::now() + Duration::from_secs(1);
+        let primary =
+            RouteSources::new_until_with_operation_limit(Path::new("/"), deadline, 200_000)
+                .expect("explicit bounded route operation profile");
+        let related = RouteSources::new_until_related(Path::new("/"), deadline, &primary)
+            .expect("related root shares the selected finite profile");
+        assert_eq!(primary.operation_limit(), 200_000);
+        assert_eq!(related.operation_limit(), 200_000);
+        assert!(
+            RouteSources::new_until_with_operation_limit(
+                Path::new("/"),
+                deadline,
+                MAX_BUDGETED_ROUTE_OPERATIONS + 1,
+            )
+            .is_err()
+        );
+    }
+
+    #[test]
+    fn selected_file_walk_keeps_only_regular_files_and_applies_both_limits() {
+        struct Root(PathBuf);
+        impl Drop for Root {
+            fn drop(&mut self) {
+                let _ = fs::remove_dir_all(&self.0);
+            }
+        }
+        let nonce = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .expect("clock")
+            .as_nanos();
+        let root = Root(
+            std::env::temp_dir().join(format!("tos-selected-files-{}-{nonce}", std::process::id())),
+        );
+        fs::create_dir(&root.0).expect("exclusive test root");
+        fs::create_dir(root.0.join("ToS")).expect("source root");
+        fs::create_dir(root.0.join("ToS/nested")).expect("nested source root");
+        fs::write(root.0.join("ToS/a.md"), b"a").expect("first source");
+        fs::write(root.0.join("ToS/nested/b.md"), b"b").expect("second source");
+        let absolute = fs::canonicalize(&root.0).expect("absolute test root");
+        let deadline = Instant::now() + Duration::from_secs(1);
+        let mut sources = RouteSources::new_until_with_operation_limit(&absolute, deadline, 64)
+            .expect("held test root");
+        let selected = |path: &str, _: bool| path == "ToS" || path.starts_with("ToS/");
+        let paths = sources
+            .selected_files_with_limits("ToS", &selected, 8, 64, 2)
+            .expect("bounded selected file walk");
+        assert_eq!(paths, ["ToS/a.md", "ToS/nested/b.md"]);
+        assert!(
+            sources
+                .selected_files_with_limits("ToS", &selected, 8, 64, 1)
+                .is_err()
+        );
+        assert!(
+            sources
+                .selected_files_with_limits("ToS", &selected, 8, 8, 2)
+                .is_err()
+        );
+    }
+
+    #[test]
     fn exhausted_root_budget_refuses_before_anchor_or_component_open() {
         let operations = AtomicUsize::new(MAX_OPERATIONS);
         let opens = Cell::new(0);
@@ -2972,6 +3320,7 @@ mod foundation_custody_cases {
             Instant::now() + Duration::from_secs(1),
             &operations,
             &opens,
+            MAX_OPERATIONS,
         )
         .err()
         .expect("exhausted root walk must refuse");
@@ -2985,6 +3334,7 @@ mod foundation_custody_cases {
             Instant::now() + Duration::from_secs(1),
             &operations,
             &opens,
+            MAX_OPERATIONS,
         )
         .err()
         .expect("component exhaustion must precede absent target open");
@@ -3002,6 +3352,7 @@ mod foundation_custody_cases {
             Instant::now(),
             &operations,
             &opens,
+            MAX_OPERATIONS,
         )
         .err()
         .expect("expired root walk must refuse");

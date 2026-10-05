@@ -3806,6 +3806,10 @@ fn build_native_snapshot_from_capture_inner(
     };
     let mut families = borrowed_originals.family_inputs(limits.native);
     families.repository_root = Some(repository.input());
+    // This stage consumes captured projections, while Original plans retain the
+    // exact carriers without making them authored source or canon.
+    families.prepared_philosophy_projection = true;
+    families.prepared_canon_projection = true;
     let producer = crate::materialize_native_sources_with_inputs(
         &mut stage,
         &registry,

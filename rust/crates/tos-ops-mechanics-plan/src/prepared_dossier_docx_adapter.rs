@@ -22,6 +22,25 @@ impl PreparedDossierContentValidator for NativePreparedDossierContentValidator {
         blocked: Option<&Value>,
         work_tick: &mut dyn FnMut(u64) -> Result<(), String>,
     ) -> Result<(), Vec<DocxContentIssue>> {
+        self.validate_and_retain(
+            table_id, dossier_id, raw_docx, master_row, route, blocked, work_tick,
+        )
+        .map(|_| ())
+    }
+
+    fn validate_and_retain(
+        &self,
+        table_id: &str,
+        dossier_id: &str,
+        raw_docx: &[u8],
+        master_row: &Value,
+        route: Option<&Value>,
+        blocked: Option<&Value>,
+        work_tick: &mut dyn FnMut(u64) -> Result<(), String>,
+    ) -> Result<
+        Option<tos_compiler::source_philosophy_dossier_docx::DocxDocument>,
+        Vec<DocxContentIssue>,
+    > {
         let docx = parse_docx(raw_docx, work_tick).map_err(|message| {
             vec![DocxContentIssue {
                 code: "docx_parse_error".to_owned(),
@@ -32,7 +51,7 @@ impl PreparedDossierContentValidator for NativePreparedDossierContentValidator {
         validate_identity_and_headers(
             &docx, table_id, dossier_id, master_row, route, blocked, work_tick,
         )
-        .map(|_validation| ())
+        .map(|_validation| Some(docx))
         .map_err(|issues| {
             issues
                 .into_iter()

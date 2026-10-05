@@ -607,7 +607,17 @@ pub(crate) fn prepare_philosophy_projection(
     vocabulary: &QueryVocabulary,
     limits: PhilosophyPrepareLimits,
 ) -> Result<PhilosophyPrepareReceipt> {
-    if !stage.public_build() {
+    let binding = &stage.exact_receipt()?.binding;
+    let native_projection = !stage.public_build()
+        && binding.owner_profile == "tos-native-projection-snapshot-v1"
+        && binding
+            .source_cut
+            .strip_prefix("native-projection:")
+            .is_some_and(|revision| !revision.is_empty())
+        && binding.through_commit_seq == 0
+        && binding.route_map_version == "tos-access-runtime-data-v1"
+        && binding.complete;
+    if !stage.public_build() && !native_projection {
         return Err(Error::Invalid("prepare projection computational stage"));
     }
     let result = prepare_inner(stage, vocabulary, limits, true);

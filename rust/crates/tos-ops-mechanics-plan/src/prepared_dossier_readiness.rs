@@ -70,6 +70,28 @@ pub trait PreparedDossierContentValidator {
         blocked: Option<&Value>,
         work_tick: &mut dyn FnMut(u64) -> Result<(), String>,
     ) -> Result<(), Vec<DocxContentIssue>>;
+
+    /// Native aggregate planting retains the document parsed by validation.
+    /// Non-native readiness validators keep their existing contract; the
+    /// native planting adapter must supply a retained document explicitly.
+    fn validate_and_retain(
+        &self,
+        table_id: &str,
+        dossier_id: &str,
+        raw_docx: &[u8],
+        master_row: &Value,
+        route: Option<&Value>,
+        blocked: Option<&Value>,
+        work_tick: &mut dyn FnMut(u64) -> Result<(), String>,
+    ) -> Result<
+        Option<tos_compiler::source_philosophy_dossier_docx::DocxDocument>,
+        Vec<DocxContentIssue>,
+    > {
+        self.validate(
+            table_id, dossier_id, raw_docx, master_row, route, blocked, work_tick,
+        )?;
+        Ok(None)
+    }
 }
 
 /// Execution operations stay separate because ResearchExecution's read budget
@@ -210,6 +232,9 @@ pub struct PreparedDossierArtifactSnapshot {
     pub section: String,
     pub filename: String,
     pub raw_docx: Vec<u8>,
+    /// Parsed from these same retained archive bytes during native readiness.
+    /// Extraction rechecks archive SHA/size and borrows this exact document.
+    pub parsed_docx: Option<tos_compiler::source_philosophy_dossier_docx::DocxDocument>,
     pub master_row: Value,
     pub route: Option<Value>,
     pub blocked: Option<Value>,
@@ -755,21 +780,35 @@ fn table_readiness(
                     Err(error)
                 }
             };
-            let validation = validator.validate(
-                table_id,
-                dossier_id,
-                &raw,
-                master_row,
-                package.routes.get(dossier_id),
-                blocked.get(dossier_id),
-                &mut work_tick,
-            );
+            let validation = if retain_render_inputs {
+                validator.validate_and_retain(
+                    table_id,
+                    dossier_id,
+                    &raw,
+                    master_row,
+                    package.routes.get(dossier_id),
+                    blocked.get(dossier_id),
+                    &mut work_tick,
+                )
+            } else {
+                validator
+                    .validate(
+                        table_id,
+                        dossier_id,
+                        &raw,
+                        master_row,
+                        package.routes.get(dossier_id),
+                        blocked.get(dossier_id),
+                        &mut work_tick,
+                    )
+                    .map(|()| None)
+            };
             drop(work_tick);
             if let Some(error) = work_tick_refused {
                 return Err(format!("prepared dossier work tick refused: {error}"));
             }
-            match validation {
-                Ok(()) => {}
+            let parsed_docx = match validation {
+                Ok(document) => document,
                 Err(issues) => {
                     for issue in issues.into_iter().filter(|issue| issue.blocking) {
                         docx_validation_errors.push(json!({
@@ -779,8 +818,9 @@ fn table_readiness(
                             "message": issue.message,
                         }));
                     }
+                    None
                 }
-            }
+            };
             if retain_render_inputs {
                 artifacts.push(PreparedDossierArtifactSnapshot {
                     table_id: table_id.to_owned(),
@@ -788,6 +828,7 @@ fn table_readiness(
                     section: section.clone(),
                     filename,
                     raw_docx: raw,
+                    parsed_docx,
                     master_row: (*master_row).clone(),
                     route: package.routes.get(dossier_id).cloned(),
                     blocked: blocked.get(dossier_id).cloned(),

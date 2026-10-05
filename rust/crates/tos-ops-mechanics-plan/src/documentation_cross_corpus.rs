@@ -1801,7 +1801,7 @@ pub fn run_validation_with_export(
     export: Option<&Path>,
     cancel: &AtomicI32,
 ) -> io::Result<Vec<Issue>> {
-    let mut s = RouteSources::new(root)?;
+    let mut s = family::new_sources(root)?;
     let verified = export
         .map(|path| crate::kag_corpus_export::verify_with_sources(path, &s, cancel))
         .transpose()?;

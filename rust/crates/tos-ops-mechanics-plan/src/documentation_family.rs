@@ -9,12 +9,23 @@ use std::{
     io,
     path::{Component, Path, PathBuf},
     sync::atomic::{AtomicI32, Ordering},
-    time::Duration,
+    time::{Duration, Instant},
 };
 use tos_foundation::{Digest256, Digest256Hasher};
 pub const MAP_PATH: &str = "docs/validation/documentation_family_map.json";
 pub const CURRENTNESS_PATH: &str = "docs/validation/documentation-family.current.json";
 pub const TRACKED_SOURCE: &str = "git ls-files -z";
+// The 11,794-member atlas requires 153,412 component opens before its route
+// checks. Select the shared finite owner ceiling before IO, preserving the
+// standalone 30s clock and all byte/path/cache bounds.
+pub const DOCUMENTATION_OPERATIONS: usize = route_cards::MAX_BUDGETED_ROUTE_OPERATIONS;
+pub(crate) fn new_sources(root: &Path) -> io::Result<RouteSources> {
+    RouteSources::new_until_with_operation_limit(
+        root,
+        Instant::now() + Duration::from_secs(30),
+        DOCUMENTATION_OPERATIONS,
+    )
+}
 fn invalid(m: impl Into<String>) -> io::Error {
     io::Error::new(io::ErrorKind::InvalidData, m.into())
 }
@@ -211,7 +222,7 @@ struct Count {
     kinds: BTreeMap<String, u64>,
 }
 pub fn build_currentness(root: &Path, cancel: &AtomicI32) -> io::Result<Value> {
-    build_currentness_with_sources(root, &mut RouteSources::new(root)?, cancel)
+    build_currentness_with_sources(root, &mut new_sources(root)?, cancel)
 }
 pub fn build_currentness_with_sources(
     root: &Path,

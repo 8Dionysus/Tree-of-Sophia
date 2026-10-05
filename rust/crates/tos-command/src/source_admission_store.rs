@@ -3592,8 +3592,15 @@ fn stream_verified_recorded(
     let mut bytes = [0; ADMISSION_IO_BLOCK_BYTES];
     loop {
         active(deadline, cancel)?;
-        charge_read(bytes.len() as u64)?;
-        let n = file.read(&mut bytes)?;
+        // Charge the bytes actually requested. The authenticated size bounds
+        // data reads; a one-byte probe still detects growth past that size.
+        let request = if count < size {
+            (size - count).min(bytes.len() as u64) as usize
+        } else {
+            1
+        };
+        charge_read(request as u64)?;
+        let n = file.read(&mut bytes[..request])?;
         record_read(n as u64)?;
         if n == 0 {
             break;

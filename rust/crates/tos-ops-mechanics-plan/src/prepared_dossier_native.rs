@@ -10,9 +10,9 @@
 use crate::prepared_dossier_docx_adapter::NativePreparedDossierContentValidator;
 use crate::prepared_dossier_native_directory::visit_selected_directory;
 use crate::prepared_dossier_readiness::{
-    self as readiness, PreparedDossierDirectoryEntry, PreparedDossierDirectoryStatus,
-    PreparedDossierEntryKind, PreparedDossierReadinessExecution, PreparedSourceProfile,
-    ReadinessAssessment, ReadinessInputs,
+    self as readiness, PreparedDossierArtifactSnapshot, PreparedDossierDirectoryEntry,
+    PreparedDossierDirectoryStatus, PreparedDossierEntryKind, PreparedDossierReadinessExecution,
+    PreparedSourceProfile, ReadinessAssessment, ReadinessInputs,
 };
 use crate::prepared_dossier_render::{
     self, ObsoleteBranchIntent, PlantingDirectoryPreimage, PlantingOutputLeafState,
@@ -28,7 +28,7 @@ use std::os::unix::ffi::OsStrExt;
 use std::os::unix::fs::MetadataExt;
 use std::path::{Component, Path, PathBuf};
 use tos_compiler::research_execution::ResearchExecution;
-use tos_compiler::source_philosophy_dossier_docx::parse_docx;
+use tos_compiler::source_philosophy_dossier_docx::DocxDocument;
 use tos_compiler::source_philosophy_dossier_extract::{PreparedDossier, extract_dossier};
 use tos_compiler::source_philosophy_multilingual::Multilingual;
 use tos_foundation::{Digest256, JsonLimits, JsonMode, parse_json};
@@ -1324,6 +1324,27 @@ fn build_render_inputs(
     Ok((inputs, multilingual, target_source_refs))
 }
 
+/// Borrow the exact readiness-parsed document, never inflate the archive again.
+/// The retained document's identity binds it to the immutable readiness bytes;
+/// the caller charges this verification under the original work ledger.
+fn retained_document(artifact: &PreparedDossierArtifactSnapshot) -> Result<&DocxDocument, String> {
+    let document = artifact.parsed_docx.as_ref().ok_or_else(|| {
+        format!(
+            "{}: native readiness parsed document missing",
+            artifact.filename
+        )
+    })?;
+    if document.size_bytes != artifact.raw_docx.len() as u64
+        || document.sha256 != Digest256::of_bytes(&artifact.raw_docx).to_hex()
+    {
+        return Err(format!(
+            "{}: retained DOCX document/archive identity differs",
+            artifact.filename
+        ));
+    }
+    Ok(document)
+}
+
 fn extract_all(
     assessment: &ReadinessAssessment,
     supported: &[String],
@@ -1338,15 +1359,15 @@ fn extract_all(
             .ok_or_else(|| format!("readiness package snapshot missing: {table_id}"))?;
         for artifact in &package.artifacts {
             source.check()?;
+            source.tick(artifact.raw_docx.len() as u64)?;
+            let document = retained_document(artifact)?;
             let mut work = |units| source.tick(units);
-            let document = parse_docx(&artifact.raw_docx, &mut work)
-                .map_err(|error| format!("{}: {error}", artifact.filename))?;
             let filename = Path::new(&artifact.filename)
                 .file_name()
                 .and_then(OsStr::to_str)
                 .ok_or_else(|| format!("DOCX filename is not UTF-8: {}", artifact.filename))?;
             let extracted = extract_dossier(
-                &document,
+                document,
                 &artifact.table_id,
                 &artifact.dossier_id,
                 filename,
@@ -2206,4 +2227,46 @@ pub fn run_native(
         "is_canon_admission":false,
         "sequential_publication":"guarded per-file source-order writes; no cross-file atomicity"
     }))
+}
+
+#[cfg(test)]
+mod retained_document_tests {
+    use super::*;
+
+    #[test]
+    fn reuses_the_validated_document_and_rejects_changed_archive_bytes() {
+        let raw = b"retained archive".to_vec();
+        let document = DocxDocument {
+            size_bytes: raw.len() as u64,
+            sha256: Digest256::of_bytes(&raw).to_hex(),
+            ..DocxDocument::default()
+        };
+        let mut artifact = PreparedDossierArtifactSnapshot {
+            table_id: "table-i".into(),
+            dossier_id: "A01".into(),
+            section: "1.1".into(),
+            filename: "A01.docx".into(),
+            raw_docx: raw,
+            parsed_docx: Some(document),
+            master_row: Value::Null,
+            route: None,
+            blocked: None,
+        };
+        assert!(std::ptr::eq(
+            retained_document(&artifact).unwrap(),
+            artifact.parsed_docx.as_ref().unwrap()
+        ));
+        artifact.raw_docx[0] ^= 1;
+        assert!(
+            retained_document(&artifact)
+                .unwrap_err()
+                .contains("identity differs")
+        );
+        artifact.parsed_docx = None;
+        assert!(
+            retained_document(&artifact)
+                .unwrap_err()
+                .contains("parsed document missing")
+        );
+    }
 }
