@@ -253,8 +253,8 @@ pub fn run(invocation_path: &Path, input: impl Read) -> SourceCommandResult<Valu
         },
     )?;
     let request_schema = request
-        .get("schema_version")
-        .and_then(Value::as_str)
+        .object_get("schema_version")
+        .and_then(|value| value.as_str())
         .unwrap_or("");
     let assessed_forms_request = request_schema
         == "tos_local_assessed_forms_materialization_request_v1"

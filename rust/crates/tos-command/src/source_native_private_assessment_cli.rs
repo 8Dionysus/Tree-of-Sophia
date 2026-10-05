@@ -770,7 +770,7 @@ fn validate_public_v2_form_selections(
         let bindings = cmd::field(body, "bindings")?
             .as_object()
             .ok_or(SourceCommandError::Invalid("assessed-form bindings"))?;
-        if bindings.values().any(|binding| {
+        if bindings.iter().any(|(_, binding)| {
             binding
                 .object_get("record")
                 .and_then(|record| record.object_get("id"))
@@ -883,7 +883,7 @@ fn materialize_public_v2_selection(
     budget: &mut OperationBudget,
     cancelled: &AtomicBool,
     deadline: Instant,
-) -> SourceCommandResult<Value> {
+) -> SourceCommandResult<JsonValue> {
     let parsed = ParsedRequest {
         operation: "materialize-form".to_owned(),
         subject_id: selection.form_id.clone(),
