@@ -90,6 +90,13 @@ impl FoundationOrchestratorError {
             if crate::source_admission_spooled_index::is_bounded_source_cause(&source_cause) {
                 return source_cause;
             }
+            if self.static_public_reason() == "source-foundation candidate index refused" {
+                return crate::source_admission_spooled_index::bounded_source_cause(
+                    "receiver-source",
+                    "candidate-index-admission",
+                    &source_cause,
+                );
+            }
         }
         let owner = match self {
             Self::Owner(error) => Some(("owner", error)),
@@ -97,6 +104,13 @@ impl FoundationOrchestratorError {
             _ => None,
         };
         if let Some((stage, error)) = owner {
+            if matches!(error, ItemRefusal::Source(_))
+                || matches!(error, ItemRefusal::BudgetCheck { check, .. }
+                    if !matches!(*check, "record_issue_sink" | "biblio_sink"))
+            {
+                return crate::source_admission_spooled_index::receiver_refusal(error.clone())
+                    .to_string();
+            }
             let kind = match error {
                 ItemRefusal::Budget => "budget",
                 ItemRefusal::BudgetCheck { .. } => "budget check",
@@ -2152,7 +2166,13 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
                     {
                         callback_external_reads.set(external);
                     }
-                    return Err(io::Error::other("candidate Artifact history/replay refused"));
+                    return Err(io::Error::other(
+                        crate::source_admission_spooled_index::bounded_source_cause(
+                            "receiver-source",
+                            "artifact-replay",
+                            &format!("{:?}:{:?}", error.stage, error.class),
+                        ),
+                    ));
                 }
             };
             let replay_cost = replay.cost();
@@ -2238,7 +2258,7 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
                     deadline,
                     cancelled,
                 )
-                .map_err(|_| io::Error::other("candidate stored Records events refused"))?;
+                .map_err(crate::source_admission_spooled_index::receiver_refusal)?;
             let biblio_query_rows = tos_validation::biblio_rules::biblio_query_row_operation_budget(
                 usize::try_from(biblio_limits.max_total_bytes)
                     .map_err(|_| io::Error::other("candidate Biblio query cap range"))?,
@@ -2291,7 +2311,7 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
                     let available_after_biblio = biblio_operation
                         .state_bytes
                         .checked_sub(biblio_state)
-                        .ok_or(ItemRefusal::Budget)?;
+                        .ok_or(tos_validation::item_budget_origin!())?;
                     let mut reader_limits = FoundationRuleReadLimits {
                         max_member_bytes: max_member_bytes.min(after_replay_headroom as usize).max(1),
                         max_read_bytes: after_replay_headroom,
@@ -2304,7 +2324,7 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
                     reader_limits.max_member_bytes = reader_limits
                         .max_member_bytes
                         .min(usize::try_from(biblio_limits.max_member_bytes)
-                            .map_err(|_| ItemRefusal::Budget)?);
+                            .map_err(|_| tos_validation::item_budget_origin!())?);
                     let history_usage_before_rules =
                         view.history.as_deref().map(|history| history.usage());
                     let history_shared_before_rules = view
@@ -2314,7 +2334,7 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
                         .map(|history| history.shared_runtime_read_bytes_returned());
                     let worker_usage_before_rules = worker_quota
                         .usage()
-                        .map_err(|_| ItemRefusal::Budget)?;
+                        .map_err(|_| tos_validation::item_budget_origin!())?;
                     let reader_io_before = view.original_io.snapshot();
                     let mut schema_executor =
                         CandidateArtifactSchemaExecutor::new(&schema_worker);
@@ -2329,7 +2349,7 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
                         callback_held
                             .checked_add(replay_state)
                             .and_then(|state| state.checked_add(biblio_state))
-                            .ok_or(ItemRefusal::Budget)?,
+                            .ok_or(tos_validation::item_budget_origin!())?,
                         callback_state_bytes,
                     )?;
                     if let Some(history) = view.history.as_deref_mut() {
@@ -2402,23 +2422,23 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
                     replay_state = replay_cost_after_rules
                         .retained_state_upper_bound_bytes()
                         .and_then(|state| state.checked_add(evidence_peak_state))
-                        .ok_or(ItemRefusal::Budget)?;
+                        .ok_or(tos_validation::item_budget_origin!())?;
                     let replay_had_skips = replay.has_skips();
                     let worker_usage_after_discovery = worker_quota
                         .usage()
-                        .map_err(|_| ItemRefusal::Budget)?;
+                        .map_err(|_| tos_validation::item_budget_origin!())?;
                     let replay_worker_cpu = worker_usage_after_discovery
                         .worker_cpu_micros
                         .checked_sub(worker_usage_before_rules.worker_cpu_micros)
-                        .ok_or(ItemRefusal::Budget)?;
+                        .ok_or(tos_validation::item_budget_origin!())?;
                     let replay_worker_wire = worker_usage_after_discovery
                         .worker_wire_bytes
                         .checked_sub(worker_usage_before_rules.worker_wire_bytes)
-                        .ok_or(ItemRefusal::Budget)?;
+                        .ok_or(tos_validation::item_budget_origin!())?;
                     let replay_worker_units = worker_usage_after_discovery
                         .worker_units
                         .checked_sub(worker_usage_before_rules.worker_units)
-                        .ok_or(ItemRefusal::Budget)?;
+                        .ok_or(tos_validation::item_budget_origin!())?;
                     if replay_cost_after_rules.candidate_replay_worker_cpu_micros
                         > replay_worker_cpu
                         || replay_cost_after_rules.candidate_replay_worker_wire_bytes
@@ -2426,7 +2446,7 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
                         || replay_cost_after_rules.candidate_replay_worker_units
                             > replay_worker_units
                     {
-                        return Err(ItemRefusal::Budget);
+                        return Err(tos_validation::item_budget_origin!());
                     }
                     rule_source.recheck_auxiliary()?;
                     let reader_cost = rule_source.cost();
@@ -2439,7 +2459,7 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
                         history_usage_after_rules,
                     ) {
                         (Some((before, _)), Some((after, _))) => {
-                            after.checked_sub(before).ok_or(ItemRefusal::Budget)?
+                            after.checked_sub(before).ok_or(tos_validation::item_budget_origin!())?
                         }
                         _ => 0,
                     };
@@ -2453,26 +2473,26 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
                         (Some(before), Some(after)) => after
                             .checked_sub(before)
                             .filter(|bytes| *bytes <= history_rule_read)
-                            .ok_or(ItemRefusal::Budget)?,
+                            .ok_or(tos_validation::item_budget_origin!())?,
                         (None, None) => 0,
-                        _ => return Err(ItemRefusal::Budget),
+                        _ => return Err(tos_validation::item_budget_origin!()),
                     };
                     let reader_shared_attempts = reader_io_after
                         .read_attempted_bytes
                         .checked_sub(reader_io_before.read_attempted_bytes)
-                        .ok_or(ItemRefusal::Budget)?;
+                        .ok_or(tos_validation::item_budget_origin!())?;
                     let reader_external_reads = reader_cost
                         .bytes_read
                         .checked_sub(reader_cost.shared_read_bytes_returned)
-                        .ok_or(ItemRefusal::Budget)?;
+                        .ok_or(tos_validation::item_budget_origin!())?;
                     if history_rule_read
                         > reader_cost
                             .bytes_read
                             .checked_add(replay_cost_after_rules.native_history_source_read_bytes)
-                            .ok_or(ItemRefusal::Budget)?
+                            .ok_or(tos_validation::item_budget_origin!())?
                         || reader_cost.shared_read_bytes_returned > reader_shared_attempts
                     {
-                        return Err(ItemRefusal::Budget);
+                        return Err(tos_validation::item_budget_origin!());
                     }
                     let provider_shared_history = history_shared_rule_read
                         .saturating_sub(reader_cost.shared_read_bytes_returned);
@@ -2480,11 +2500,11 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
                         .native_history_source_read_bytes
                         .checked_add(replay_cost_after_rules.readonly.read_bytes)
                         .and_then(|reads| reads.checked_sub(provider_shared_history))
-                        .ok_or(ItemRefusal::Budget)?;
+                        .ok_or(tos_validation::item_budget_origin!())?;
                     callback_external_reads.set(
                         replay_external_reads_after_rules
                             .checked_add(reader_external_reads)
-                            .ok_or(ItemRefusal::Budget)?,
+                            .ok_or(tos_validation::item_budget_origin!())?,
                     );
                     drop(schema_executor);
                     drop(replay);
@@ -2493,7 +2513,7 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
                     let diagnostic_state_cap = available_after_biblio
                         .checked_sub(owner_state)
                         .and_then(|state| state.checked_sub(reader_cost.auxiliary_state_bytes))
-                        .ok_or(ItemRefusal::Budget)?;
+                        .ok_or(tos_validation::item_budget_origin!())?;
                     if replay_had_skips {
                         return Err(ItemRefusal::Source(
                             "candidate Artifact evidence is incomplete".into(),
@@ -2514,9 +2534,19 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
                         cancelled,
                         rule_diag_limits,
                     )
-                    .map_err(|_| ItemRefusal::Source(
-                        "candidate stored default diagnostics are incomplete".into(),
-                    ))?;
+                    .map_err(|error| {
+                        let (site, reason) = match error {
+                            SourceFoundationRuleDiagnosticsError::Refused { reason, .. } =>
+                                ("default-refused", reason.to_owned()),
+                            SourceFoundationRuleDiagnosticsError::IncompleteSchema { reason, .. } =>
+                                ("default-incomplete-schema", format!("{reason:?}")),
+                        };
+                        ItemRefusal::Source(
+                            crate::source_admission_spooled_index::bounded_source_cause(
+                                "receiver-source", site, &reason,
+                            ),
+                        )
+                    })?;
                     let owner_report = &evaluated.owner_report;
                     let clean = owner_report.cost.direct_owner_issue_count == 0
                         && owner_report.labs.unimplemented.is_empty()
@@ -2546,12 +2576,16 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
                     let candidate_read = after_defaults
                         .read_attempted_bytes
                         .checked_sub(io_before_records.read_attempted_bytes)
-                        .ok_or(ItemRefusal::Budget)?;
+                        .ok_or(tos_validation::item_budget_origin!())?;
                     let total_candidate_and_external = candidate_read
                         .checked_add(callback_external_reads.get())
-                        .ok_or(ItemRefusal::Budget)?;
+                        .ok_or(tos_validation::item_budget_origin!())?;
                     if total_candidate_and_external > records_ticket.remaining().source_read_bytes {
-                        return Err(ItemRefusal::Budget);
+                        return Err(ItemRefusal::BudgetCheck {
+                            check: "candidate dependent source read attempts and external returns",
+                            used: Some(total_candidate_and_external),
+                            limit: Some(records_ticket.remaining().source_read_bytes),
+                        });
                     }
                     let callback_evidence_state = replay_state
                         .checked_add(biblio_state)
@@ -2560,16 +2594,20 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
                         .and_then(|state| {
                             state.checked_add(evaluated.cost.peak_additional_state_upper_bound_bytes)
                         })
-                        .ok_or(ItemRefusal::Budget)?;
+                        .ok_or(tos_validation::item_budget_origin!())?;
                     if callback_evidence_state > callback_workspace_state {
-                        return Err(ItemRefusal::Budget);
+                        return Err(ItemRefusal::BudgetCheck {
+                            check: "candidate dependent evidence state upper bound",
+                            used: u64::try_from(callback_evidence_state).ok(),
+                            limit: u64::try_from(callback_workspace_state).ok(),
+                        });
                     }
                     let _ = biblio_query_rows;
                     Ok((callback_evidence_state, callback_external_reads.get()))
                 },
             );
             let dependent_evidence = providers_result
-                .map_err(|_| io::Error::other("candidate Biblio/default stored providers refused"))?;
+                .map_err(crate::source_admission_spooled_index::receiver_refusal)?;
             let final_callback_io = view.original_io.snapshot();
             if final_callback_io.read_attempted_bytes
                 .checked_sub(io_before_records.read_attempted_bytes)

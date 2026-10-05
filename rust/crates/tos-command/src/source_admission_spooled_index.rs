@@ -337,7 +337,7 @@ pub(crate) fn is_bounded_source_cause(reason: &str) -> bool {
         }
 }
 
-fn receiver_refusal(error: ItemRefusal) -> io::Error {
+pub(crate) fn receiver_refusal(error: ItemRefusal) -> io::Error {
     // Keep only the bounded primary owner class; source paths and parser text
     // remain private while the real refusal stage survives the IO boundary.
     let reason = match error {

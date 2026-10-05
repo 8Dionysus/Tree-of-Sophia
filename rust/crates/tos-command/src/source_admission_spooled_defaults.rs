@@ -49,16 +49,60 @@ use tos_validation::{
 const EVENT_CODEC_VERSION: i64 = 1;
 const CLAIM_CODEC_VERSION: i64 = 1;
 
+#[track_caller]
 fn source_refusal() -> ItemRefusal {
-    ItemRefusal::Source("candidate default store refused".into())
+    // Own invariant failures retain their source site without exporting paths.
+    let site = std::panic::Location::caller().line().to_string();
+    ItemRefusal::Source(crate::source_admission_spooled_index::bounded_source_cause(
+        "receiver-source",
+        &site,
+        "candidate default store refused",
+    ))
 }
 
-fn sql_refusal(_: rusqlite::Error) -> ItemRefusal {
-    source_refusal()
+fn source_reason(site: &str, reason: String) -> ItemRefusal {
+    ItemRefusal::Source(
+        if crate::source_admission_spooled_index::is_bounded_source_cause(&reason) {
+            reason
+        } else {
+            crate::source_admission_spooled_index::bounded_source_cause(
+                "receiver-source",
+                site,
+                &reason,
+            )
+        },
+    )
 }
 
-fn invalid(_: io::Error) -> ItemRefusal {
-    source_refusal()
+fn sql_refusal(error: rusqlite::Error) -> ItemRefusal {
+    // A row decoder can carry the existing sanitized Item refusal through
+    // rusqlite's callback ABI. Other SQL errors expose only their primary class.
+    if let rusqlite::Error::FromSqlConversionFailure(_, _, cause) = &error {
+        if let Some(cause) = cause.downcast_ref::<io::Error>() {
+            return source_reason("default-row", cause.to_string());
+        }
+    }
+    let class = match &error {
+        rusqlite::Error::SqliteFailure(code, _) => {
+            format!("sqlite-primary:{}", code.extended_code & 255)
+        }
+        _ => format!("sqlite-variant:{:?}", std::mem::discriminant(&error)),
+    };
+    source_reason("default-sql", class)
+}
+
+fn row_refusal(error: ItemRefusal) -> rusqlite::Error {
+    rusqlite::Error::FromSqlConversionFailure(
+        0,
+        rusqlite::types::Type::Blob,
+        Box::new(crate::source_admission_spooled_index::receiver_refusal(
+            error,
+        )),
+    )
+}
+
+fn invalid(error: io::Error) -> ItemRefusal {
+    source_reason("default-io", error.to_string())
 }
 
 fn storage_error(message: &'static str) -> io::Error {
@@ -276,7 +320,11 @@ impl ProviderContext<'_, '_, '_> {
 
     fn row_state(&self, bytes: usize) -> Result<(), ItemRefusal> {
         if bytes > self.row_state_limit || bytes > self.operation_state_limit {
-            return Err(ItemRefusal::Budget);
+            return Err(ItemRefusal::BudgetCheck {
+                check: "candidate default row state",
+                used: u64::try_from(bytes).ok(),
+                limit: u64::try_from(self.row_state_limit.min(self.operation_state_limit)).ok(),
+            });
         }
         self.candidate.check_state(bytes).map_err(invalid)
     }
@@ -286,14 +334,24 @@ impl ProviderContext<'_, '_, '_> {
             .get()
             .checked_add(usize_u64(rows)?)
             .filter(|next| self.max_scan_rows != 0 && *next <= self.max_scan_rows)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(ItemRefusal::BudgetCheck {
+                check: "candidate default scan rows",
+                used: u64::try_from(rows)
+                    .ok()
+                    .and_then(|rows| scanned.get().checked_add(rows)),
+                limit: Some(self.max_scan_rows),
+            })?;
         scanned.set(next);
         Ok(())
     }
 
     fn active_state(&self, bytes: usize) -> Result<(), ItemRefusal> {
         if bytes > self.operation_state_limit {
-            return Err(ItemRefusal::Budget);
+            return Err(ItemRefusal::BudgetCheck {
+                check: "candidate default active state",
+                used: u64::try_from(bytes).ok(),
+                limit: u64::try_from(self.operation_state_limit).ok(),
+            });
         }
         self.candidate.check_state(bytes).map_err(invalid)
     }
@@ -580,7 +638,11 @@ impl BiblioQueryBudget {
             .get()
             .checked_add(1)
             .filter(|next| *next <= limit)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(ItemRefusal::BudgetCheck {
+                check: "candidate Biblio query rows",
+                used: self.used.get().checked_add(1),
+                limit: Some(limit),
+            })?;
         self.used.set(next);
         Ok(())
     }
@@ -7233,12 +7295,12 @@ impl ClaimsProvider<'_, '_, '_, '_> {
             (None, false) => self.db.query_row(
                 "SELECT ordinal,path,line,raw_sha256,native,value FROM biblio_claims WHERE (?1 IS NULL OR ordinal>?1) ORDER BY ordinal LIMIT 1",
                 [after.map(u64::to_be_bytes).as_ref().map(|value| value.as_slice())],
-                |row| decode_claim_row(self.context, row, self.max_state_bytes, self.live_state.get()).map_err(|_| rusqlite::Error::InvalidQuery),
+                |row| decode_claim_row(self.context, row, self.max_state_bytes, self.live_state.get()).map_err(row_refusal),
             ),
             (None, true) => self.db.query_row(
                 "SELECT ordinal,path,line,raw_sha256,native,value FROM biblio_claims WHERE (?1 IS NULL OR ordinal<?1) ORDER BY ordinal DESC LIMIT 1",
                 [after.map(u64::to_be_bytes).as_ref().map(|value| value.as_slice())],
-                |row| decode_claim_row(self.context, row, self.max_state_bytes, self.live_state.get()).map_err(|_| rusqlite::Error::InvalidQuery),
+                |row| decode_claim_row(self.context, row, self.max_state_bytes, self.live_state.get()).map_err(row_refusal),
             ),
             (Some((path, _)), false) => self.db.query_row(
                 "SELECT ordinal,path,line,raw_sha256,native,value FROM biblio_claims WHERE path=?1 AND line=?2 AND (?3 IS NULL OR ordinal>?3) ORDER BY ordinal LIMIT 1",
@@ -7247,7 +7309,7 @@ impl ClaimsProvider<'_, '_, '_, '_> {
                     line.as_ref().map(|value| value.as_slice()),
                     after.map(u64::to_be_bytes).as_ref().map(|value| value.as_slice()),
                 ],
-                |row| decode_claim_row(self.context, row, self.max_state_bytes, self.live_state.get()).map_err(|_| rusqlite::Error::InvalidQuery),
+                |row| decode_claim_row(self.context, row, self.max_state_bytes, self.live_state.get()).map_err(row_refusal),
             ),
             (Some((path, _)), true) => self.db.query_row(
                 "SELECT ordinal,path,line,raw_sha256,native,value FROM biblio_claims WHERE path=?1 AND line=?2 AND (?3 IS NULL OR ordinal<?3) ORDER BY ordinal DESC LIMIT 1",
@@ -7256,7 +7318,7 @@ impl ClaimsProvider<'_, '_, '_, '_> {
                     line.as_ref().map(|value| value.as_slice()),
                     after.map(u64::to_be_bytes).as_ref().map(|value| value.as_slice()),
                 ],
-                |row| decode_claim_row(self.context, row, self.max_state_bytes, self.live_state.get()).map_err(|_| rusqlite::Error::InvalidQuery),
+                |row| decode_claim_row(self.context, row, self.max_state_bytes, self.live_state.get()).map_err(row_refusal),
             ),
         }
         .optional()
@@ -7286,7 +7348,7 @@ impl ClaimsProvider<'_, '_, '_, '_> {
         let found = self.db.query_row(
             "SELECT ordinal,path,line,raw_sha256,native,value FROM biblio_claims WHERE claim_id=?1 ORDER BY ordinal LIMIT 1",
             [id],
-            |row| decode_claim_row(self.context, row, self.max_state_bytes, self.live_state.get()).map_err(|_| rusqlite::Error::InvalidQuery),
+            |row| decode_claim_row(self.context, row, self.max_state_bytes, self.live_state.get()).map_err(row_refusal),
         ).optional().map_err(sql_refusal)?;
         self.context.check()?;
         Ok(found)
