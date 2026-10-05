@@ -401,7 +401,7 @@ where
                     self.bound.owner_receipt_id(),
                 );
                 let packet = tos_query::execute_scoped_indexed_search_page(
-                    &mut model,
+                    &mut **model,
                     self.bound,
                     authority,
                     &mut codec,
