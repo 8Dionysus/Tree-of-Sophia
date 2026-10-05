@@ -2807,17 +2807,17 @@ impl CandidateLocalClaimDiagnosticsCost {
     ) -> Result<(), crate::item_rules::ItemRefusal> {
         use crate::item_rules::ItemRefusal;
         let add_u64 = |left: u64, right: usize| {
-            left.checked_add(u64::try_from(right).map_err(|_| ItemRefusal::Budget)?)
-                .ok_or(ItemRefusal::Budget)
+            left.checked_add(u64::try_from(right).map_err(|_| crate::item_budget_origin!())?)
+                .ok_or(crate::item_budget_origin!())
         };
         self.completed_exchanges = self
             .completed_exchanges
             .checked_add(1)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         self.issue_count = self
             .issue_count
             .checked_add(diagnostic.report().issues.len() as u64)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         self.schema_resource_bytes = add_u64(
             self.schema_resource_bytes,
             diagnostic.schema_resource_bytes(),
@@ -2825,39 +2825,39 @@ impl CandidateLocalClaimDiagnosticsCost {
         self.schema_resource_buffer_bytes = self
             .schema_resource_buffer_bytes
             .checked_add(diagnostic.schema_resource_buffer_bytes())
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         self.input_instance_bytes =
             add_u64(self.input_instance_bytes, diagnostic.input_instance_bytes())?;
         self.input_instance_buffer_bytes = self
             .input_instance_buffer_bytes
             .checked_add(diagnostic.input_instance_buffer_bytes())
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         self.input_metadata_bytes = self
             .input_metadata_bytes
             .checked_add(diagnostic.input_metadata_bytes())
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         self.request_bytes = add_u64(self.request_bytes, diagnostic.request_bytes())?;
         self.request_buffer_bytes = self
             .request_buffer_bytes
             .checked_add(diagnostic.request_buffer_bytes())
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         self.response_bytes = add_u64(self.response_bytes, diagnostic.response_bytes())?;
         self.response_buffer_bytes = self
             .response_buffer_bytes
             .checked_add(diagnostic.response_buffer_bytes())
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         self.worker_cpu_micros = self
             .worker_cpu_micros
             .checked_add(diagnostic.worker_cpu_micros())
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         self.retained_state_bytes = self
             .retained_state_bytes
             .checked_add(diagnostic.retained_state_bytes())
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         self.accounted_state_bytes = self
             .accounted_state_bytes
             .checked_add(diagnostic.accounted_state_bytes())
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         Ok(())
     }
 }
@@ -2898,27 +2898,29 @@ impl LocalClaimCurrentSource for CutLocalClaimSource<'_> {
         use crate::item_rules::ItemRefusal;
         let relative = tos_foundation::RelativePath::parse(path)
             .map_err(|_| ItemRefusal::Unsupported("local Claim dependency path".into()))?;
-        let member = self.0.read_member(
-            self.0.current().revision(),
-            &relative,
-            max_bytes as u64,
-            limits.deadline,
-            cancelled,
-        )
-        .map_err(|e| {
-            use tos_source_store::StoreErrorCode;
-            match e.code {
-                StoreErrorCode::BudgetExceeded => ItemRefusal::BudgetCheck {
-                    check: "local Claim selected dependency reader budget",
-                    used: None,
-                    limit: None,
-                },
-                StoreErrorCode::UnsupportedFormat | StoreErrorCode::UnsupportedPlatform => {
-                    ItemRefusal::Unsupported(e.to_string())
+        let member = self
+            .0
+            .read_member(
+                self.0.current().revision(),
+                &relative,
+                max_bytes as u64,
+                limits.deadline,
+                cancelled,
+            )
+            .map_err(|e| {
+                use tos_source_store::StoreErrorCode;
+                match e.code {
+                    StoreErrorCode::BudgetExceeded => ItemRefusal::BudgetCheck {
+                        check: "local Claim selected dependency reader budget",
+                        used: None,
+                        limit: None,
+                    },
+                    StoreErrorCode::UnsupportedFormat | StoreErrorCode::UnsupportedPlatform => {
+                        ItemRefusal::Unsupported(e.to_string())
+                    }
+                    _ => ItemRefusal::Source(e.to_string()),
                 }
-                _ => ItemRefusal::Source(e.to_string()),
-            }
-        })?;
+            })?;
         Ok(member.raw)
     }
 }
@@ -2936,11 +2938,7 @@ impl LocalClaimCurrentSource for CandidateLocalClaimSource<'_> {
     ) -> Result<Vec<u8>, crate::item_rules::ItemRefusal> {
         use crate::item_rules::ItemRefusal;
         use tos_source_store::SourcePresenceV1;
-        if self
-            .0
-            .path_presence(path, limits.deadline, cancelled)?
-            != Some(SourcePresenceV1::File)
-        {
+        if self.0.path_presence(path, limits.deadline, cancelled)? != Some(SourcePresenceV1::File) {
             return Err(ItemRefusal::Source(format!(
                 "local Claim selected dependency absent from candidate: {path}"
             )));
@@ -2957,7 +2955,8 @@ impl LocalClaimCurrentSource for CandidateLocalClaimSource<'_> {
                         "local Claim candidate member path changed".into(),
                     ));
                 }
-                let size = usize::try_from(meta.size_bytes).map_err(|_| ItemRefusal::Budget)?;
+                let size =
+                    usize::try_from(meta.size_bytes).map_err(|_| crate::item_budget_origin!())?;
                 if size > max_bytes || size != bytes.len() {
                     return Err(ItemRefusal::Source(
                         "local Claim candidate member size changed".into(),
@@ -2965,7 +2964,7 @@ impl LocalClaimCurrentSource for CandidateLocalClaimSource<'_> {
                 }
                 let copy_state = size
                     .checked_add(std::mem::size_of::<Vec<u8>>())
-                    .ok_or(ItemRefusal::Budget)?;
+                    .ok_or(crate::item_budget_origin!())?;
                 if copy_state > remaining_state_bytes {
                     return Err(ItemRefusal::BudgetCheck {
                         check: "local Claim candidate member copy",
@@ -3102,7 +3101,7 @@ fn local_route_state(
                 )
             },
         )
-        .ok_or(crate::item_rules::ItemRefusal::Budget)
+        .ok_or(crate::item_budget_origin!())
 }
 
 /// Execute the source owner's complete local Claim forms route against the
@@ -3170,20 +3169,20 @@ pub fn validate_source_claim_from_input<I: Copy + Eq>(
         limits
             .max_state_bytes
             .checked_sub(claim_state)
-            .ok_or(ItemRefusal::Budget)?,
+            .ok_or(crate::item_budget_origin!())?,
     )?;
     let decoded = serde_json::to_vec(&claim)
         .map_err(|_| ItemRefusal::Unsupported("local Claim decoded serialization".into()))?;
     let logical_state = claim_state
         .checked_add(std::mem::size_of::<CandidateSourceClaimLocalReport<I>>())
         .and_then(|n| n.checked_add(std::mem::size_of::<LocalClaimInputs>()))
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     local_claim_state_check(
         logical_state,
         decoded
             .len()
             .checked_add(std::mem::size_of::<Vec<u8>>())
-            .ok_or(ItemRefusal::Budget)?,
+            .ok_or(crate::item_budget_origin!())?,
         limits,
     )?;
     let mut report = LocalClaimReportState {
@@ -3232,7 +3231,7 @@ pub fn validate_source_claim_from_input<I: Copy + Eq>(
         dependency_order: report.dependency_order,
         dependency_bytes_read: bytes
             .checked_sub(selected_claim_raw.len() as u64)
-            .ok_or(ItemRefusal::Budget)?,
+            .ok_or(crate::item_budget_origin!())?,
         issues: report.issues,
         diagnostics_cost,
         logical_state: report.logical_state,
@@ -3288,14 +3287,14 @@ pub fn validate_source_claim_from_cut<S: CutSchemaExecutor + CutSchemaReceiptRan
         limits
             .max_state_bytes
             .checked_sub(claim_state)
-            .ok_or(ItemRefusal::Budget)?,
+            .ok_or(crate::item_budget_origin!())?,
     )?;
     let decoded = serde_json::to_vec(&claim)
         .map_err(|_| ItemRefusal::Unsupported("local Claim decoded serialization".into()))?;
     let logical_state = claim_state
         .checked_add(std::mem::size_of::<SourceClaimLocalReport>())
         .and_then(|n| n.checked_add(std::mem::size_of::<LocalClaimInputs>()))
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     local_claim_state_check(
         logical_state,
         decoded.len() + std::mem::size_of::<Vec<u8>>(),
@@ -3340,7 +3339,7 @@ pub fn validate_source_claim_from_cut<S: CutSchemaExecutor + CutSchemaReceiptRan
         limits
             .max_state_bytes
             .checked_sub(report.logical_state)
-            .ok_or(ItemRefusal::Budget)?,
+            .ok_or(crate::item_budget_origin!())?,
         limits.deadline,
         cancelled,
     )?;
@@ -3353,12 +3352,12 @@ pub fn validate_source_claim_from_cut<S: CutSchemaExecutor + CutSchemaReceiptRan
                     + r.contract.len(),
             )
         })
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     local_claim_state_check(report.logical_state, receipt_state, limits)?;
     report.logical_state = report
         .logical_state
         .checked_add(receipt_state)
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     Ok(SourceClaimLocalReport {
         source_revision: revision,
         source_input_sha256: report.source_input_sha256,
@@ -3930,19 +3929,19 @@ fn local_claim_issue(
     }
     let amount = std::mem::size_of::<crate::relation_rules::RelationIssue>()
         .checked_add(location.len())
-        .ok_or(crate::item_rules::ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     local_claim_state_check(
         report.logical_state,
         report
             .workspace
             .checked_add(amount)
-            .ok_or(crate::item_rules::ItemRefusal::Budget)?,
+            .ok_or(crate::item_budget_origin!())?,
         limits,
     )?;
     report.logical_state = report
         .logical_state
         .checked_add(amount)
-        .ok_or(crate::item_rules::ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     report.issues.push(crate::relation_rules::RelationIssue {
         code,
         location: location.to_owned(),
@@ -3976,7 +3975,7 @@ fn local_claim_input(
         .max_state_bytes
         .checked_sub(report.logical_state)
         .and_then(|n| n.checked_sub(extra))
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     let raw = source.read_member(
         path,
         limits.max_member_bytes.min(MAX_RECORD_BYTES),
@@ -3995,7 +3994,9 @@ fn local_claim_input(
             })?;
     local_claim_state_check(
         report.logical_state,
-        extra.checked_add(raw.len()).ok_or(ItemRefusal::Budget)?,
+        extra
+            .checked_add(raw.len())
+            .ok_or(crate::item_budget_origin!())?,
         limits,
     )?;
     let available = limits
@@ -4003,7 +4004,7 @@ fn local_claim_input(
         .checked_sub(report.logical_state)
         .and_then(|n| n.checked_sub(extra))
         .and_then(|n| n.checked_sub(raw.len()))
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     let (value, value_state) = crate::record_biblio_cut::bounded_decoded_state(
         &raw,
         tos_foundation::JsonLimits::default(),
@@ -4032,16 +4033,18 @@ fn local_claim_input(
             )
         })
         .and_then(|n| n.checked_add(path.len().checked_mul(3)?))
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     local_claim_state_check(
         report.logical_state,
-        extra.checked_add(added).ok_or(ItemRefusal::Budget)?,
+        extra
+            .checked_add(added)
+            .ok_or(crate::item_budget_origin!())?,
         limits,
     )?;
     report.logical_state = report
         .logical_state
         .checked_add(added)
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     report
         .dependency_digests
         .insert(path.into(), Digest256::of_bytes(&raw));
@@ -4216,16 +4219,16 @@ fn local_constructor_state(
     let mut parents = 0usize;
     let mut nodes = 0usize;
     for entry in entities["types"].as_array().into_iter().flatten() {
-        nodes = nodes.checked_add(1).ok_or(ItemRefusal::Budget)?;
+        nodes = nodes.checked_add(1).ok_or(crate::item_budget_origin!())?;
         let p = entry["parent_type_ids"].as_array().map_or(0, Vec::len);
         let m = entry["source_mappings"].as_array().map_or(0, Vec::len);
-        parents = parents.checked_add(p).ok_or(ItemRefusal::Budget)?;
+        parents = parents.checked_add(p).ok_or(crate::item_budget_origin!())?;
         // Entity table, its two borrowed Vecs, and the kind-owner index.
         state = state
             .checked_add(std::mem::size_of::<(&str, Entity<'_>)>())
             .and_then(|n| n.checked_add(p.checked_mul(std::mem::size_of::<&str>())?))
             .and_then(|n| n.checked_add(m.checked_mul(2 * std::mem::size_of::<(&str, &str)>())?))
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
     }
     // One ancestry walk at a time: active/done node sets and entering/leaving
     // stack frames. Each graph edge can enqueue one parent frame.
@@ -4233,7 +4236,7 @@ fn local_constructor_state(
         .checked_add(
             nodes
                 .checked_mul(2 * std::mem::size_of::<&str>())
-                .ok_or(ItemRefusal::Budget)?,
+                .ok_or(crate::item_budget_origin!())?,
         )
         .and_then(|n| {
             n.checked_add(
@@ -4242,7 +4245,7 @@ fn local_constructor_state(
                     .checked_mul(std::mem::size_of::<(&str, bool)>())?,
             )
         })
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     let mut views = 0usize;
     for entry in relations["relations"].as_array().into_iter().flatten() {
         let mappings = entry["source_mappings"].as_array().map_or(0, Vec::len);
@@ -4251,7 +4254,7 @@ fn local_constructor_state(
             .and_then(|n| {
                 n.checked_add(mappings.checked_mul(std::mem::size_of::<(&str, usize)>())?)
             })
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         let count = [
             &entry["domain_type_ids"],
             &entry["range_type_ids"],
@@ -4262,16 +4265,16 @@ fn local_constructor_state(
         .try_fold(mappings, |sum, value| {
             sum.checked_add(value.as_array().map_or(0, Vec::len))
         })
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
         views = views.max(count);
     }
     state
         .checked_add(
             views
                 .checked_mul(std::mem::size_of::<&Value>())
-                .ok_or(ItemRefusal::Budget)?,
+                .ok_or(crate::item_budget_origin!())?,
         )
-        .ok_or(ItemRefusal::Budget)
+        .ok_or(crate::item_budget_origin!())
 }
 
 fn compile_local_claim_routes(
@@ -4546,16 +4549,16 @@ fn compile_local_claim_routes(
                 .checked_add(predicate.len())
                 .and_then(|n| n.checked_add(version.len()))
                 .ok_or(LocalClaimCompileError::Refusal(
-                    crate::item_rules::ItemRefusal::Budget,
+                    crate::item_budget_origin!(),
                 ))?;
             let next_route_bytes = route_bytes.checked_add(size);
             route_bytes = next_route_bytes.ok_or(LocalClaimCompileError::Refusal(
-                crate::item_rules::ItemRefusal::Budget,
+                crate::item_budget_origin!(),
             ))?;
             local_claim_state_check(
                 base_state,
                 constructor_state.checked_add(route_bytes).ok_or(
-                    LocalClaimCompileError::Refusal(crate::item_rules::ItemRefusal::Budget),
+                    LocalClaimCompileError::Refusal(crate::item_budget_origin!()),
                 )?,
                 limits,
             )
@@ -4594,7 +4597,7 @@ pub fn work_expression_source_descriptors(
     let mut state = 0usize;
     let mut decode = |raw: &[u8]| {
         if raw.len() > limits.max_member_bytes {
-            return Err(ItemRefusal::Budget);
+            return Err(crate::item_budget_origin!());
         }
         let (value, used) = crate::record_biblio_cut::bounded_decoded_state(
             raw,
@@ -4602,20 +4605,22 @@ pub fn work_expression_source_descriptors(
             limits
                 .max_state_bytes
                 .checked_sub(state)
-                .ok_or(ItemRefusal::Budget)?,
+                .ok_or(crate::item_budget_origin!())?,
             limits.deadline,
             cancelled,
         )?;
-        state = state.checked_add(used).ok_or(ItemRefusal::Budget)?;
+        state = state
+            .checked_add(used)
+            .ok_or(crate::item_budget_origin!())?;
         Ok(value)
     };
     let total = entities_raw
         .len()
         .checked_add(relations_raw.len())
         .and_then(|n| n.checked_add(corpus_raw.len()))
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     if total as u64 > limits.max_total_bytes {
-        return Err(ItemRefusal::Budget);
+        return Err(crate::item_budget_origin!());
     }
     let entities = decode(entities_raw)?;
     let relations = decode(relations_raw)?;
@@ -4629,7 +4634,7 @@ pub fn work_expression_source_descriptors(
         })?;
     state = state
         .checked_add(local_route_state(&routes)?)
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     local_claim_state_check(state, 0, limits)?;
     let route = routes
         .get(&(
@@ -4683,7 +4688,7 @@ pub fn work_expression_source_descriptors(
         limits
             .max_state_bytes
             .checked_sub(state)
-            .ok_or(ItemRefusal::Budget)?,
+            .ok_or(crate::item_budget_origin!())?,
     )?;
     local_claim_checkpoint(limits, cancelled)?;
     Ok(result)
@@ -4781,19 +4786,19 @@ fn validate_source_claim_local_core(
     for path in report.dependency_digests.keys() {
         retained = retained
             .checked_add(std::mem::size_of::<(String, Digest256)>() + path.len())
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
     }
     for path in &report.dependency_order {
         retained = retained
             .checked_add(std::mem::size_of::<String>() + path.len())
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
     }
     for issue in &report.issues {
         retained = retained
             .checked_add(
                 std::mem::size_of::<crate::relation_rules::RelationIssue>() + issue.location.len(),
             )
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
     }
     report.logical_state = retained;
     Ok(())
@@ -4818,7 +4823,7 @@ fn local_claim_resources(
         .try_fold(std::mem::size_of::<Vec<String>>(), |n, path| {
             n.checked_add(std::mem::size_of::<String>() + path.len())
         })
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     let mut uri_state = std::mem::size_of_val(&uris);
     for path in paths {
         if !is_contract_path(path) {
@@ -4830,7 +4835,7 @@ fn local_claim_resources(
         let extra = route_state
             .checked_add(path_state)
             .and_then(|n| n.checked_add(uri_state))
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         local_claim_input(
             source, path, claim, extra, limits, cancelled, bytes, inputs, report,
         )?;
@@ -4851,13 +4856,13 @@ fn local_claim_resources(
         }
         uri_state = uri_state
             .checked_add(std::mem::size_of::<String>() + uri.len())
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         local_claim_state_check(
             report.logical_state,
             route_state
                 .checked_add(path_state)
                 .and_then(|n| n.checked_add(uri_state))
-                .ok_or(ItemRefusal::Budget)?,
+                .ok_or(crate::item_budget_origin!())?,
             limits,
         )?;
         if !uris.insert(uri) {
@@ -4989,19 +4994,19 @@ fn validate_local_claim_shape(
         .try_fold(std::mem::size_of_val(&paths), |n, path| {
             n.checked_add(std::mem::size_of::<String>() + path.len())
         })
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     let unique_state = unique
         .iter()
         .try_fold(std::mem::size_of_val(&unique), |n, path| {
             n.checked_add(std::mem::size_of::<String>() + path.len())
         })
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     local_claim_state_check(
         report.logical_state,
         route_state
             .checked_add(paths_state)
             .and_then(|n| n.checked_add(unique_state))
-            .ok_or(ItemRefusal::Budget)?,
+            .ok_or(crate::item_budget_origin!())?,
         limits,
     )?;
     drop(unique);
@@ -5043,13 +5048,13 @@ fn validate_local_claim_shape(
             .max_state_bytes
             .checked_sub(report.logical_state)
             .and_then(|n| n.checked_sub(route_state))
-            .ok_or(ItemRefusal::Budget)?,
+            .ok_or(crate::item_budget_origin!())?,
     )?;
     let object_raw = serde_json::to_vec(&claim["object"])
         .map_err(|_| ItemRefusal::Unsupported("local Claim object serialization".into()))?;
     report.workspace = route_state
         .checked_add(std::mem::size_of::<Vec<u8>>() + object_raw.len())
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     local_claim_state_check(report.logical_state, report.workspace, limits)?;
     if local_is_temporal(reader) {
         let root = if reader == "document-catalogue-temporal-v1" {
@@ -5105,18 +5110,18 @@ fn validate_local_claim_shape(
             .try_fold(std::mem::size_of_val(&display_paths), |n, path| {
                 n.checked_add(std::mem::size_of::<String>() + path.len())
             })
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         report.workspace = report
             .workspace
             .checked_add(display_path_state)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         crate::record_biblio_cut::decoded_wire_size(
             qualifiers,
             limits
                 .max_state_bytes
                 .checked_sub(report.logical_state)
                 .and_then(|n| n.checked_sub(report.workspace))
-                .ok_or(ItemRefusal::Budget)?,
+                .ok_or(crate::item_budget_origin!())?,
         )?;
         let qualifier_raw = serde_json::to_vec(qualifiers)
             .map_err(|_| ItemRefusal::Unsupported("local Claim qualifiers serialization".into()))?;
@@ -5124,7 +5129,7 @@ fn validate_local_claim_shape(
             .checked_add(std::mem::size_of::<Vec<u8>>() + object_raw.len())
             .and_then(|n| n.checked_add(display_path_state))
             .and_then(|n| n.checked_add(std::mem::size_of::<Vec<u8>>() + qualifier_raw.len()))
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         local_claim_state_check(report.logical_state, report.workspace, limits)?;
         if !worker.check_reusing_scalar(
             "selected Claim/qualifiers",
@@ -5138,7 +5143,7 @@ fn validate_local_claim_shape(
     }
     report.workspace = route_state
         .checked_add(std::mem::size_of::<Vec<u8>>() + object_raw.len())
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     if let Some(role) = local_document_role(predicate) {
         let attribution = &qualifiers["catalogue_attribution"];
         if local_string(attribution, "field_role") != Some(role)
@@ -5160,7 +5165,9 @@ fn validate_local_claim_shape(
         let right = value["successors"].as_array().map_or(0, Vec::len);
         let members = value["members"].as_array().map_or(0, Vec::len);
         let edges = value["mapping"].as_array().map_or(0, Vec::len);
-        let participants = left.checked_add(right).ok_or(ItemRefusal::Budget)?;
+        let participants = left
+            .checked_add(right)
+            .ok_or(crate::item_budget_origin!())?;
         let scratch = participants
             .checked_mul(std::mem::size_of::<&str>())
             .and_then(|n| n.checked_add(participants.checked_mul(std::mem::size_of::<&str>())?))
@@ -5172,13 +5179,13 @@ fn validate_local_claim_shape(
                         .checked_mul(std::mem::size_of::<(&str, &str)>())?,
                 )
             })
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         local_claim_state_check(
             report.logical_state,
             report
                 .workspace
                 .checked_add(scratch)
-                .ok_or(ItemRefusal::Budget)?,
+                .ok_or(crate::item_budget_origin!())?,
             limits,
         )?;
         if let Err(code) = local_proposal_participants(claim) {
@@ -5190,13 +5197,13 @@ fn validate_local_claim_shape(
         let scratch = members
             .map_or(0, Vec::len)
             .checked_mul(std::mem::size_of::<&str>() + std::mem::size_of::<&str>())
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         local_claim_state_check(
             report.logical_state,
             report
                 .workspace
                 .checked_add(scratch)
-                .ok_or(ItemRefusal::Budget)?,
+                .ok_or(crate::item_budget_origin!())?,
             limits,
         )?;
         let valid = members.is_some_and(|members| {
@@ -5233,7 +5240,7 @@ fn validate_local_claim_shape(
                 .max_state_bytes
                 .checked_sub(report.logical_state)
                 .and_then(|n| n.checked_sub(report.workspace))
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
             if let Err(code) = local_scoped_member_structure(claim, scoped_limits, cancelled)? {
                 local_claim_issue(report, limits, code, predicate)?;
             }
@@ -5241,7 +5248,7 @@ fn validate_local_claim_shape(
     }
     report.workspace = route_state
         .checked_add(std::mem::size_of::<Vec<u8>>() + object_raw.len())
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     local_claim_state_check(report.logical_state, report.workspace, limits)?;
     Ok(())
 }
@@ -5399,7 +5406,7 @@ fn local_scoped_member_structure(
         .checked_mul(member_slots)
         .and_then(|n| n.checked_add(edges_count.checked_mul(std::mem::size_of::<&str>())?))
         .and_then(|n| n.checked_add(versions.checked_mul(std::mem::size_of::<&str>())?))
-        .ok_or(crate::item_rules::ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     if scratch > limits.max_state_bytes {
         return Err(crate::item_rules::ItemRefusal::BudgetCheck {
             check: "local Claim scoped member logical indexes",
@@ -5416,7 +5423,7 @@ fn local_scoped_member_structure(
         .map(Vec::as_slice)
         .unwrap_or(&[]);
     if members.len() > 128 || edges.len() > 8128 {
-        return Err(crate::item_rules::ItemRefusal::Budget);
+        return Err(crate::item_budget_origin!());
     }
     let mode = local_string(&object["ordering"], "mode");
     if mode == Some("unordered") && !edges.is_empty() {
