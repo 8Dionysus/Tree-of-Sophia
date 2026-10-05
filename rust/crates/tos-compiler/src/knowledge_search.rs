@@ -2379,6 +2379,7 @@ mod tests {
             1,
             expected_total,
             &mut receipt.work_bytes,
+            None,
         )
         .unwrap();
         let expected_order = expected_first
@@ -2517,6 +2518,7 @@ mod tests {
                 1,
                 expected_late.len() as u64,
                 &mut receipt.work_bytes,
+                None,
             )
             .is_err()
         );
@@ -2549,6 +2551,7 @@ mod tests {
             1,
             expected_late.len() as u64,
             &mut receipt.work_bytes,
+            None,
         )
         .unwrap();
         // The real ordered-copy writer must close a full block before the
@@ -2571,6 +2574,7 @@ mod tests {
                     &block,
                     limits(),
                     &mut receipt.work_bytes,
+                    None,
                 )
                 .unwrap();
             }
@@ -2584,6 +2588,7 @@ mod tests {
             3,
             257,
             &mut receipt.work_bytes,
+            None,
         )
         .unwrap();
         let blocks = db

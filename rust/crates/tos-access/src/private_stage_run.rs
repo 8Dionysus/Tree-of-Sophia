@@ -878,7 +878,13 @@ fn verify_protected_ro(_o: &Options, path: &Path, held: &File) -> Result<(), Str
     }
     Ok(())
 }
-fn mount_protected_ro(o: &Options, path: &Path, held: &File) -> Result<(), String> {
+fn mount_protected_ro(
+    o: &Options,
+    path: &Path,
+    held: &File,
+    bind_site: &'static str,
+    protect_site: &'static str,
+) -> Result<(), String> {
     // Fallback masking may have hidden the original name; the issuer-held FD
     // remains the source. Recreate only the bounded target below that fallback.
     if let Some(fallback) = FALLBACKS
@@ -903,6 +909,7 @@ fn mount_protected_ro(o: &Options, path: &Path, held: &File) -> Result<(), Strin
     }
     let source = PathBuf::from(format!("/proc/self/fd/{}", held.as_raw_fd()));
     mount(
+        bind_site,
         Some(source.as_os_str()),
         path,
         None,
@@ -935,7 +942,7 @@ fn mount_protected_ro(o: &Options, path: &Path, held: &File) -> Result<(), Strin
         )
     } != 0
     {
-        return Err(error()); // unsupported recursive protection fails closed
+        return Err(syscall_failure(protect_site)); // unsupported recursive protection fails closed
     }
     let mut filesystem = unsafe { std::mem::zeroed::<libc::statvfs>() };
     if unsafe { libc::fstatvfs(mounted.as_raw_fd(), &mut filesystem) } != 0
@@ -1552,7 +1559,12 @@ fn outer(o: &Options) -> Result<i32, String> {
     end.cleanup_check()?;
     result
 }
+fn syscall_failure(site: &'static str) -> String {
+    let errno = std::io::Error::last_os_error().raw_os_error().unwrap_or(0);
+    format!("namespace-inner site={site} errno={errno}")
+}
 fn mount(
+    site: &'static str,
     source: Option<&OsStr>,
     target: &Path,
     kind: Option<&OsStr>,
@@ -1574,7 +1586,7 @@ fn mount(
         )
     } != 0
     {
-        return Err(error());
+        return Err(syscall_failure(site));
     }
     Ok(())
 }
@@ -1873,6 +1885,7 @@ fn inner(o: &Options, i: &Inner) -> Result<i32, String> {
     }
     end.check()?;
     mount(
+        "mount.root-propagation-private",
         None,
         Path::new("/"),
         None,
@@ -1881,6 +1894,7 @@ fn inner(o: &Options, i: &Inner) -> Result<i32, String> {
     )?;
     let data = format!("size={},nr_inodes={},mode=700", o.quota, o.inodes);
     mount(
+        "mount.private-tmpfs-root",
         Some(OsStr::new(SCHEMA)),
         &i.root,
         Some(OsStr::new("tmpfs")),
@@ -1897,7 +1911,8 @@ fn inner(o: &Options, i: &Inner) -> Result<i32, String> {
     let temporary = i.root.join("tmp");
     let temp = fs::metadata(&temporary).map_err(|e| e.to_string())?;
     let mut fallbacks: Vec<String> = Vec::new();
-    for name in FALLBACKS {
+    for (index, name) in FALLBACKS.iter().enumerate() {
+        let name = *name;
         end.check()?;
         let path = Path::new(name);
         let info = match fs::symlink_metadata(path) {
@@ -1914,7 +1929,20 @@ fn inner(o: &Options, i: &Inner) -> Result<i32, String> {
             if !info.is_dir() {
                 return Err("SQLite fallback is not a directory".into());
             }
-            mount(Some(temporary.as_os_str()), path, None, libc::MS_BIND, None)?;
+            let site = match index {
+                0 => "mount.fallback-bind-0",
+                1 => "mount.fallback-bind-1",
+                2 => "mount.fallback-bind-2",
+                _ => "mount.fallback-bind-other",
+            };
+            mount(
+                site,
+                Some(temporary.as_os_str()),
+                path,
+                None,
+                libc::MS_BIND,
+                None,
+            )?;
         }
         let info = fs::metadata(path).map_err(|e| e.to_string())?;
         if info.dev() != temp.dev() || info.ino() != temp.ino() {
@@ -1925,10 +1953,22 @@ fn inner(o: &Options, i: &Inner) -> Result<i32, String> {
     // Fallback /tmp now points to private tmpfs. Restore only the explicitly
     // issued cache directory, via its held host FD, under the same public path.
     if let (Some(path), Some(held)) = (&o.protected_ro, &protected_ro) {
-        mount_protected_ro(o, path, held)?;
+        mount_protected_ro(
+            o,
+            path,
+            held,
+            "mount.protected-read-root-bind",
+            "mount.protected-read-root-setattr",
+        )?;
     }
     if let (Some(path), Some(held)) = (&release_ro_path, &release_ro) {
-        mount_protected_ro(o, path, held)?;
+        mount_protected_ro(
+            o,
+            path,
+            held,
+            "mount.release-root-bind",
+            "mount.release-root-setattr",
+        )?;
     }
     if let (Some(selected), Some(held)) = (&o.search_cache, &search_cache) {
         let parent = selected.parent()?;
@@ -1962,7 +2002,14 @@ fn inner(o: &Options, i: &Inner) -> Result<i32, String> {
                 .is_some_and(|path| parent.starts_with(path))
         {
             let source = PathBuf::from(format!("/proc/self/fd/{}", held.as_raw_fd()));
-            mount(Some(source.as_os_str()), parent, None, libc::MS_BIND, None)?;
+            mount(
+                "mount.search-cache-bind",
+                Some(source.as_os_str()),
+                parent,
+                None,
+                libc::MS_BIND,
+                None,
+            )?;
         }
         selected.verify(held, &i.root)?;
     }
