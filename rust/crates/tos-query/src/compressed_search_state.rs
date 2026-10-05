@@ -523,7 +523,7 @@ pub(crate) fn hex(value: &JsonValue) -> Result<&str> {
     Digest256::from_hex(s).map_err(|_| cursor_error("invalid cursor digest"))?;
     Ok(s)
 }
-fn base64_encode(raw: &[u8]) -> String {
+pub(crate) fn base64_encode(raw: &[u8]) -> String {
     const ABC: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
     let mut out = String::with_capacity((raw.len() * 4 + 2) / 3);
     for c in raw.chunks(3) {
@@ -541,7 +541,7 @@ fn base64_encode(raw: &[u8]) -> String {
     }
     out
 }
-fn base64_decode(raw: &str) -> Result<Vec<u8>> {
+pub(crate) fn base64_decode(raw: &str) -> Result<Vec<u8>> {
     if raw.len() % 4 == 1 {
         return Err(cursor_error("invalid cursor encoding"));
     }

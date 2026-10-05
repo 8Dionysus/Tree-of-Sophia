@@ -1,6 +1,9 @@
 //! Generic reads of the weaker authenticated query_store_v1 carrier.
 //! No prepared model, source capture, publication epoch or authority is created.
 use super::*;
+use crate::knowledge_legacy_search::{
+    LegacySearchIntegerInput, normalize_legacy_search_integer,
+};
 use serde_json::json;
 use std::collections::BTreeSet;
 
@@ -81,6 +84,43 @@ pub(super) fn retained(value: &Value, used: &mut usize, cap: usize) -> Result<()
     serde_json::to_writer(&mut count, value).map_err(err)?;
     reserve_raw(count.bytes, used, cap)
 }
+fn search_integer(
+    value: Option<&Value>,
+    default: usize,
+    minimum: usize,
+    maximum: usize,
+    budget: Option<&OriginalStoreBudget<'_>>,
+) -> Result<usize> {
+    let charge = |bytes| match budget {
+        Some(budget) => search_charge(budget, bytes),
+        None => Ok(()),
+    };
+    let normalize = |input| {
+        normalize_legacy_search_integer(input, default, minimum, maximum)
+            .map_err(|_| owned_err("legacy Search numeric argument"))
+    };
+    match value {
+        None => normalize(LegacySearchIntegerInput::Missing),
+        Some(Value::Null) => normalize(LegacySearchIntegerInput::Null),
+        Some(Value::Bool(_)) => normalize(LegacySearchIntegerInput::Boolean),
+        Some(Value::Number(number)) if number.is_i64() || number.is_u64() => {
+            let text = number.to_string();
+            charge(text.len())?;
+            normalize(LegacySearchIntegerInput::Integer(&text))
+        }
+        Some(Value::Number(number)) => normalize(LegacySearchIntegerInput::Float(
+            number.as_f64().unwrap_or(f64::NAN),
+        )),
+        Some(Value::String(text)) => {
+            charge(text.len())?;
+            normalize(LegacySearchIntegerInput::String(text))
+        }
+        Some(_) => normalize(LegacySearchIntegerInput::Other),
+    }
+}
+
+
+
 impl LegacyStore {
     fn source_revision(&self) -> Result<&str> {
         self.graph_header.get("source_revision")
@@ -364,8 +404,8 @@ impl LegacyStore {
         if kinds.len() > 100 || predicates.len() > 100 {
             return Err(err("legacy search filter bound"));
         }
-        let offset = integer(args, "offset", 0, 100000)?;
-        let limit = integer(args, "limit", 40, 100)?;
+        let offset = search_integer(args.get("offset"), 0, 0, 100_000, None)?;
+        let limit = search_integer(args.get("limit"), 40, 1, 100, None)?;
         if limit == 0 {
             return Err(err("legacy search limit bound"));
         }
@@ -1122,8 +1162,8 @@ impl LegacyStore {
         if kinds.len() > 100 || predicates.len() > 100 {
             return Err(owned_err("legacy search filter bound"));
         }
-        let offset = integer(args, "offset", 0, 100000)?;
-        let limit = integer(args, "limit", 40, 100)?;
+        let offset = search_integer(args.get("offset"), 0, 0, 100_000, Some(budget))?;
+        let limit = search_integer(args.get("limit"), 40, 1, 100, Some(budget))?;
         if limit == 0 {
             return Err(owned_err("legacy search limit bound"));
         }
@@ -1427,5 +1467,1104 @@ impl LegacyStore {
         search_charge(budget, held)?;
         let packet_state = search_heap(&packet, &|| budget.check(deadline, &probe))?;
         Ok((packet, packet_state))
+    }
+}
+// Proposed additive QRY owner fragment for source_diagnostic_legacy.rs.
+// It uses the held LegacyStore connection and the existing owned budget/currentness
+// helpers. The caller supplies an already normalized request/filter sets and the
+// selected Reference max_verify_chars value. This intentionally contains no
+// WholeRoot/CMP source-cut or disclosure-policy authority.
+
+const QUERY_STORE_INDEXED_MAX_CANDIDATES: u64 = 50_000;
+
+#[derive(Debug)]
+struct OwnedQueryStoreRankedRow {
+    order: (u8, String, u64),
+    payload: Value,
+    payload_retained: usize,
+    retained: usize,
+}
+
+#[derive(Debug)]
+struct OwnedQueryStorePage {
+    rows: Vec<OwnedQueryStoreRankedRow>,
+    candidate_rows: u64,
+    verified_chars: u64,
+    has_more: bool,
+    next_after: Option<(u8, String, u64)>,
+    sql_pages: u64,
+    retained: usize,
+}
+
+// QueryStore's compiler emits a complete contentless FTS5 trigram table. Keep
+// all AND terms in the MATCH expression; exact substring matching follows in
+// SQL, just as QueryStore.ranked_page does. Repeated grams are harmless and
+// avoid a second deduplication allocation.
+fn owned_query_store_fts_expression(
+    needle: &str,
+    held: usize,
+    budget: &OriginalStoreBudget<'_>,
+    deadline: Instant,
+    probe: &dyn AbortProbe,
+) -> Result<(String, usize)> {
+    let count = needle.chars().count();
+    if count < 3 || needle.contains('\0') {
+        return Err(owned_err("indexed QueryStore requires a non-NUL three-character query"));
+    }
+    let terms = count - 2;
+    let capacity = terms
+        .checked_mul(14)
+        .and_then(|n| n.checked_add(terms.saturating_sub(1).checked_mul(5)?))
+        .ok_or_else(|| owned_err("indexed QueryStore FTS expression bound"))?;
+    let offsets_bytes = state_slots::<(usize, char)>(count)?;
+    (budget.remaining_after_retained)(state_add(
+        held,
+        state_add(capacity, offsets_bytes)?,
+    )?)?;
+    search_charge(budget, count)?;
+    let mut offsets = Vec::new();
+    offsets.try_reserve_exact(count).map_err(owned_err)?;
+    if offsets.capacity() != count {
+        return Err(owned_err("indexed QueryStore exact FTS offsets"));
+    }
+    offsets.extend(needle.char_indices());
+    let mut expression = String::new();
+    expression.try_reserve_exact(capacity).map_err(owned_err)?;
+    if expression.capacity() != capacity {
+        return Err(owned_err("indexed QueryStore exact FTS expression"));
+    }
+    for index in 0..terms {
+        budget.check(deadline, probe)?;
+        if index != 0 {
+            expression.push_str(" AND ");
+        }
+        expression.push('"');
+        for (_, character) in &offsets[index..index + 3] {
+            budget.check(deadline, probe)?;
+            if *character == '"' {
+                expression.push_str("\"\"");
+            } else {
+                expression.push(*character);
+            }
+        }
+        expression.push('"');
+    }
+    let retained = state_add(expression.capacity(), offsets_bytes)?;
+    Ok((expression, retained))
+}
+
+fn owned_query_store_json_strings(
+    values: &[String],
+    held: usize,
+    budget: &OriginalStoreBudget<'_>,
+) -> Result<(String, usize)> {
+    // serde_json escapes each input byte by at most six bytes; this is a
+    // pre-allocation ceiling, then we retain the actual String capacity.
+    let capacity = values.iter().try_fold(2usize, |sum, value| {
+        sum.checked_add(value.len().checked_mul(6)?)
+            .and_then(|n| n.checked_add(3))
+            .ok_or_else(|| owned_err("indexed QueryStore filter JSON bound"))
+    })?;
+    (budget.remaining_after_retained)(state_add(held, capacity)?)?;
+    search_charge(budget, capacity)?;
+    let mut encoded = Vec::new();
+    encoded.try_reserve_exact(capacity).map_err(owned_err)?;
+    if encoded.capacity() != capacity {
+        return Err(owned_err("indexed QueryStore exact filter JSON capacity"));
+    }
+    serde_json::to_writer(&mut encoded, values).map_err(owned_err)?;
+    if encoded.len() > capacity {
+        return Err(owned_err("indexed QueryStore filter JSON exceeds admission"));
+    }
+    let encoded = String::from_utf8(encoded).map_err(owned_err)?;
+    let retained = encoded.capacity();
+    Ok((encoded, retained))
+}
+
+impl LegacyStore {
+    /// One genuine QueryStore indexed kind page. Candidate caps are applied
+    /// after source/kind filters and to the complete all-grams FTS candidate
+    /// set, before exact substring verification. max_verify_chars is per-kind,
+    /// matching the two independent Reference ranked_page calls.
+    fn ranked_query_store_kind_page_owned(
+        &mut self,
+        relations: bool,
+        sources_json: &str,
+        filters_json: &str,
+        fts_expression: &str,
+        needle: &str,
+        after: Option<&(u8, String, u64)>,
+        page_size: usize,
+        max_verify_chars: u64,
+        budget: &OriginalStoreBudget<'_>,
+        usage: &mut StoreUsage,
+        deadline: Instant,
+        probe: &dyn AbortProbe,
+        held: usize,
+    ) -> Result<OwnedQueryStorePage> {
+        if page_size == 0
+            || page_size > 100
+            || max_verify_chars == 0
+            || !self.search_indexed_fts5
+        {
+            return Err(owned_err("selected QueryStore has no admitted indexed page"));
+        }
+        self.verify_currentness_with_owned_budget(budget)?;
+
+        let (preflight_sql, page_sql) = if relations {
+            (
+                c"SELECT count(*),coalesce(sum(n),0),count(n) FROM (SELECT CASE WHEN typeof(search_text)='text' THEN length(search_text) END AS n FROM knowledge_relations WHERE source_graph IN (SELECT value FROM json_each(?1)) AND (?2='[]' OR predicate_id IN (SELECT value FROM json_each(?2))) AND rowid IN (SELECT rowid FROM knowledge_relations_trigram WHERE knowledge_relations_trigram MATCH ?3) LIMIT ?4)",
+                c"SELECT rowid-1,CASE WHEN typeof(id)='text' AND length(CAST(id AS BLOB))<=?5 THEN id END,CASE WHEN typeof(source_graph)='text' AND length(CAST(source_graph AS BLOB))<=?5 THEN source_graph END,CASE WHEN typeof(predicate_id)='text' AND length(CAST(predicate_id AS BLOB))<=?5 THEN predicate_id END,CASE WHEN typeof(payload)='text' AND length(CAST(payload AS BLOB))<=?5 THEN payload END FROM knowledge_relations WHERE source_graph IN (SELECT value FROM json_each(?1)) AND (?2='[]' OR predicate_id IN (SELECT value FROM json_each(?2))) AND rowid IN (SELECT rowid FROM knowledge_relations_trigram WHERE knowledge_relations_trigram MATCH ?3) AND instr(search_text,?4)>0 ORDER BY rowid",
+            )
+        } else {
+            (
+                c"SELECT count(*),coalesce(sum(n),0),count(n) FROM (SELECT CASE WHEN typeof(search_text)='text' THEN length(search_text) END AS n FROM knowledge_nodes WHERE source_graph IN (SELECT value FROM json_each(?1)) AND (?2='[]' OR kind_id IN (SELECT value FROM json_each(?2))) AND rowid IN (SELECT rowid FROM knowledge_nodes_trigram WHERE knowledge_nodes_trigram MATCH ?3) LIMIT ?4)",
+                c"SELECT rowid-1,CASE WHEN typeof(id)='text' AND length(CAST(id AS BLOB))<=?5 THEN id END,CASE WHEN typeof(source_graph)='text' AND length(CAST(source_graph AS BLOB))<=?5 THEN source_graph END,CASE WHEN typeof(kind_id)='text' AND length(CAST(kind_id AS BLOB))<=?5 THEN kind_id END,CASE WHEN typeof(payload)='text' AND length(CAST(payload AS BLOB))<=?5 THEN payload END FROM knowledge_nodes WHERE source_graph IN (SELECT value FROM json_each(?1)) AND (?2='[]' OR kind_id IN (SELECT value FROM json_each(?2))) AND rowid IN (SELECT rowid FROM knowledge_nodes_trigram WHERE knowledge_nodes_trigram MATCH ?3) AND instr(search_text,?4)>0 ORDER BY rowid",
+            )
+        };
+
+        // Reference QueryStore.ranked_page uses LIMIT max_candidates+1 for
+        // preflight. Aggregate transfer remains one SQL row; original SQLite
+        // VM/work counters stay installed by the caller on this same connection.
+        let mut preflight = self.db.prepare_static_bounded(preflight_sql).map_err(owned_err)?;
+        preflight.bind_text(1, sources_json).map_err(owned_err)?;
+        preflight.bind_text(2, filters_json).map_err(owned_err)?;
+        preflight.bind_text(3, fts_expression).map_err(owned_err)?;
+        preflight
+            .bind_i64(4, (QUERY_STORE_INDEXED_MAX_CANDIDATES + 1) as i64)
+            .map_err(owned_err)?;
+        if !preflight.step().map_err(owned_err)? {
+            return Err(owned_err("indexed QueryStore preflight row absent"));
+        }
+        let candidate_rows = preflight.unsigned_integer(0).map_err(owned_err)?;
+        let verified_chars = preflight.unsigned_integer(1).map_err(owned_err)?;
+        let valid_text_rows = preflight.unsigned_integer(2).map_err(owned_err)?;
+        if preflight.step().map_err(owned_err)? {
+            return Err(owned_err("indexed QueryStore preflight returned extra rows"));
+        }
+        drop(preflight);
+        if candidate_rows > QUERY_STORE_INDEXED_MAX_CANDIDATES
+            || valid_text_rows != candidate_rows
+            || verified_chars > max_verify_chars
+        {
+            return Err(owned_err("indexed QueryStore candidate/verification budget exceeded"));
+        }
+        usage.rows = usage
+            .rows
+            .checked_add(candidate_rows)
+            .filter(|rows| *rows <= budget.max_rows_remaining)
+            .ok_or_else(|| owned_err("indexed QueryStore original remaining rows"))?;
+        self.rows = self
+            .rows
+            .checked_add(candidate_rows)
+            .filter(|rows| *rows <= self.limits.max_rows)
+            .ok_or_else(|| owned_err("indexed QueryStore cumulative rows"))?;
+
+        let keep = page_size
+            .checked_add(1)
+            .ok_or_else(|| owned_err("indexed QueryStore page rows"))?;
+        let slots = state_slots::<OwnedQueryStoreRankedRow>(keep)?;
+        (budget.remaining_after_retained)(state_add(held, slots)?)?;
+        let mut top = Vec::new();
+        top.try_reserve_exact(keep).map_err(owned_err)?;
+        if top.capacity() != keep {
+            return Err(owned_err("indexed QueryStore exact rank vector"));
+        }
+        let mut top_heap = 0usize;
+        let mut statement = self.db.prepare_static_bounded(page_sql).map_err(owned_err)?;
+        statement.bind_text(1, sources_json).map_err(owned_err)?;
+        statement.bind_text(2, filters_json).map_err(owned_err)?;
+        statement.bind_text(3, fts_expression).map_err(owned_err)?;
+        statement.bind_text(4, needle).map_err(owned_err)?;
+        statement
+            .bind_i64(5, self.limits.max_json_bytes as i64)
+            .map_err(owned_err)?;
+        while statement.step().map_err(owned_err)? {
+            self.verify_currentness_with_owned_budget(budget)?;
+            budget.check(deadline, probe)?;
+            let position = statement.unsigned_integer(0).map_err(owned_err)?;
+            let selected_id = search_text(
+                &statement,
+                1,
+                budget,
+                deadline,
+                probe,
+                state_add(held, state_add(slots, top_heap)?)?,
+            )?;
+            let selected_source = search_text(
+                &statement,
+                2,
+                budget,
+                deadline,
+                probe,
+                state_add(held, state_add(slots, top_heap)?)?,
+            )?;
+            let selected_category = search_text(
+                &statement,
+                3,
+                budget,
+                deadline,
+                probe,
+                state_add(held, state_add(slots, top_heap)?)?,
+            )?;
+            let raw = search_text(
+                &statement,
+                4,
+                budget,
+                deadline,
+                probe,
+                state_add(held, state_add(slots, top_heap)?)?,
+            )?;
+            usage.input_bytes = usage
+                .input_bytes
+                .checked_add(raw.len() as u64)
+                .filter(|bytes| *bytes <= budget.max_input_bytes_remaining)
+                .ok_or_else(|| owned_err("indexed QueryStore original input bytes"))?;
+            self.bytes = self
+                .bytes
+                .checked_add(raw.len() as u64)
+                .filter(|bytes| *bytes <= self.limits.max_input_bytes)
+                .ok_or_else(|| owned_err("indexed QueryStore cumulative input bytes"))?;
+            let base = state_add(held, state_add(slots, top_heap)?)?;
+            let (value, heap) = owned_parse(
+                raw.as_bytes(),
+                self.limits,
+                deadline,
+                probe,
+                budget,
+                base,
+                usage,
+            )?;
+            object(&value)?;
+            if field(&value, "id") != selected_id
+                || field(&value, "source_graph") != selected_source
+                || field(
+                    &value,
+                    if relations { "predicate_id" } else { "kind_id" },
+                ) != selected_category
+            {
+                return Err(owned_err("indexed QueryStore row/payload identity differs"));
+            }
+            let (rank, lower_id) = search_rank(
+                &value,
+                needle,
+                relations,
+                state_add(base, heap)?,
+                self.limits.max_json_bytes,
+                budget,
+                deadline,
+                probe,
+            )?;
+            let key_heap = state_add(lower_id.capacity(), std::mem::size_of::<(u8, String, u64)>())?;
+            (budget.remaining_after_retained)(state_add(
+                state_add(base, state_add(heap, key_heap)?)?,
+                std::mem::size_of_val(&lower_id),
+            )?)?;
+            let key = (rank, lower_id, position);
+            if after.is_some_and(|previous| {
+                (key.0, key.1.as_str(), key.2)
+                    <= (previous.0, previous.1.as_str(), previous.2)
+            }) {
+                continue;
+            }
+            search_charge(
+                budget,
+                top.len()
+                    .checked_mul(state_add(key_heap, top_heap)?)
+                    .ok_or_else(|| owned_err("indexed QueryStore rank order work"))?,
+            )?;
+            let insertion = top.partition_point(|old| old.order <= key);
+            if insertion >= keep {
+                continue;
+            }
+            if top.len() == keep {
+                top_heap = top_heap
+                    .checked_sub(top.pop().unwrap().retained)
+                    .ok_or_else(|| owned_err("indexed QueryStore rank state subtraction"))?;
+            }
+            let retained = state_add(heap, key_heap)?;
+            top_heap = state_add(top_heap, retained)?;
+            top.insert(
+                insertion,
+                OwnedQueryStoreRankedRow {
+                    order: key,
+                    payload: value,
+                    payload_retained: heap,
+                    retained,
+                },
+            );
+        }
+        drop(statement);
+        let has_more = top.len() > page_size;
+        let selected = top.len().min(page_size);
+        let (next_after, next_after_retained) = if has_more {
+            let key = &top[selected - 1].order;
+            let requested = state_add(
+                std::mem::size_of::<(u8, String, u64)>(),
+                key.1.len(),
+            )?;
+            (budget.remaining_after_retained)(state_add(
+                state_add(held, slots)?,
+                state_add(top_heap, requested)?,
+            )?)?;
+            let lower_id = exact_string(&key.1)?;
+            let retained = state_add(
+                std::mem::size_of::<(u8, String, u64)>(),
+                lower_id.capacity(),
+            )?;
+            (budget.remaining_after_retained)(state_add(
+                state_add(held, slots)?,
+                state_add(top_heap, retained)?,
+            )?)?;
+            (Some((key.0, lower_id, key.2)), retained)
+        } else {
+            (None, 0)
+        };
+        let result_slots = state_slots::<OwnedQueryStoreRankedRow>(selected)?;
+        (budget.remaining_after_retained)(state_add(
+            state_add(held, slots)?,
+            state_add(state_add(top_heap, result_slots)?, next_after_retained)?,
+        )?)?;
+        let mut rows = Vec::new();
+        rows.try_reserve_exact(selected).map_err(owned_err)?;
+        if rows.capacity() != selected {
+            return Err(owned_err("indexed QueryStore exact selected rows"));
+        }
+        for row in top.drain(..selected) {
+            rows.push(row);
+        }
+        Ok(OwnedQueryStorePage {
+            rows,
+            candidate_rows,
+            verified_chars,
+            has_more,
+            next_after,
+            sql_pages: 2,
+            retained: state_add(state_add(top_heap, result_slots)?, next_after_retained)?,
+        })
+    }
+}
+
+
+/// Normalized input for the ordinary Reference-compatible QueryStore route.
+/// The caller owns Foundation parsing and supplies the ordinary public filter
+/// arrays; this QRY owner revalidates and canonicalizes them before SQL.
+pub struct QueryStoreIndexedSearchRequest<'a> {
+    pub query: &'a str,
+    pub sources: &'a [String],
+    pub kind_ids: &'a [String],
+    pub predicate_ids: &'a [String],
+    pub limit_per_kind: usize,
+}
+
+/// Child cursor values decoded from the Reference outer envelope. The child
+/// strings still bind the exact selected Store and graph-header cut here.
+pub struct QueryStoreIndexedContinuation<'a> {
+    pub cursor_present: bool,
+    pub nodes: Option<&'a str>,
+    pub relations: Option<&'a str>,
+    pub nodes_exhausted: bool,
+    pub relations_exhausted: bool,
+}
+
+pub struct QueryStoreIndexedFilters {
+    pub sources: Vec<String>,
+    pub kind_ids: Vec<String>,
+    pub predicate_ids: Vec<String>,
+}
+
+pub struct QueryStoreIndexedKindPage {
+    pub rows: Vec<Value>,
+    pub candidate_rows: u64,
+    pub verified_chars: u64,
+    pub has_more: bool,
+    pub next_cursor: Option<String>,
+    pub sql_pages: u64,
+    pub retained_bytes: usize,
+}
+
+/// Actual weak-store data only. This carries the authenticated Store revision
+/// and graph-header source revision; it does not claim a CMP selection/cut.
+pub struct QueryStoreIndexedPage {
+    pub store_revision: String,
+    pub source_revision: String,
+    pub normalized_query: String,
+    pub filters: QueryStoreIndexedFilters,
+    pub nodes: QueryStoreIndexedKindPage,
+    pub relations: QueryStoreIndexedKindPage,
+    pub has_more: bool,
+    pub retained_bytes: usize,
+}
+
+const QUERY_STORE_INDEXED_CURSOR_SCHEMA: &str = "tos_knowledge_search_cursor_v1";
+const QUERY_STORE_INDEXED_CURSOR_BACKEND: &str = "compiled-fts5-v1";
+const QUERY_STORE_INDEXED_CURSOR_MAX_BYTES: usize = 2048;
+const QUERY_STORE_INDEXED_CURSOR_TTL_SECONDS: u64 = 900;
+const QUERY_STORE_INDEXED_FILTER_FIELD_BYTES: usize = 6 * 1024;
+
+fn indexed_store_filter(
+    values: &[String],
+    allow_empty: bool,
+    total_values: &mut usize,
+    field_bytes: &mut usize,
+    held: usize,
+    budget: &OriginalStoreBudget<'_>,
+    deadline: Instant,
+    probe: &dyn AbortProbe,
+) -> Result<(Vec<String>, usize)> {
+    *total_values = total_values
+        .checked_add(values.len())
+        .filter(|count| *count <= 100)
+        .ok_or_else(|| owned_err("indexed QueryStore filter count"))?;
+    let slots = state_slots::<String>(values.len())?;
+    let mut bytes = 0usize;
+    for value in values {
+        budget.check(deadline, probe)?;
+        search_charge(budget, value.len().checked_add(1).ok_or_else(|| owned_err("indexed QueryStore filter work"))?)?;
+        if (!allow_empty && value.is_empty()) || value.chars().count() > 256 {
+            return Err(owned_err("indexed QueryStore filter value bound"));
+        }
+        bytes = state_add(bytes, value.len())?;
+    }
+    *field_bytes = state_add(*field_bytes, bytes)?;
+    if *field_bytes > QUERY_STORE_INDEXED_FILTER_FIELD_BYTES {
+        return Err(owned_err("indexed QueryStore filter byte bound"));
+    }
+    let allocation = state_add(slots, bytes)?;
+    (budget.remaining_after_retained)(state_add(held, allocation)?)?;
+    let mut levels = 0usize;
+    let mut width = 1usize;
+    while width < values.len() {
+        width = width
+            .checked_mul(2)
+            .ok_or_else(|| owned_err("indexed QueryStore filter ordering work"))?;
+        levels = levels
+            .checked_add(1)
+            .ok_or_else(|| owned_err("indexed QueryStore filter ordering work"))?;
+    }
+    let comparisons = values
+        .len()
+        .checked_mul(levels)
+        .and_then(|n| n.checked_mul(bytes.max(1)))
+        .ok_or_else(|| owned_err("indexed QueryStore filter ordering work"))?;
+    search_charge(budget, comparisons)?;
+    let mut output = Vec::new();
+    output.try_reserve_exact(values.len()).map_err(owned_err)?;
+    if output.capacity() != values.len() {
+        return Err(owned_err("indexed QueryStore exact filter capacity"));
+    }
+    for value in values {
+        budget.check(deadline, probe)?;
+        output.push(exact_string(value)?);
+    }
+    output.sort_unstable();
+    output.dedup();
+    let output_bytes = output
+        .iter()
+        .try_fold(0usize, |sum, value| state_add(sum, value.capacity()))?;
+    Ok((output, state_add(slots, output_bytes)?))
+}
+
+fn indexed_store_query(
+    value: &str,
+    held: usize,
+    budget: &OriginalStoreBudget<'_>,
+    deadline: Instant,
+    probe: &dyn AbortProbe,
+) -> Result<(String, usize)> {
+    let mut code_points = 0usize;
+    for _ in value.chars() {
+        budget.check(deadline, probe)?;
+        search_charge(budget, 1)?;
+        code_points += 1;
+        if code_points > 256 {
+            return Err(owned_err("indexed QueryStore query length"));
+        }
+    }
+    search_charge(budget, value.len())?;
+    (budget.remaining_after_retained)(state_add(held, value.len())?)?;
+    search_charge(budget, value.len())?;
+    let stripped = tos_foundation::python_strip_unicode16_v1(value, 256).map_err(owned_err)?;
+    let stripped_heap = stripped.capacity();
+    (budget.remaining_after_retained)(state_add(held, stripped_heap)?)?;
+    let query = search_lower_counts(
+        &stripped,
+        1024,
+        256,
+        256,
+        state_add(held, stripped_heap)?,
+        budget,
+        deadline,
+        probe,
+    )?;
+    if query.chars().count() < 3 || query.contains('\0') {
+        return Err(owned_err("indexed QueryStore requires a non-NUL three-character query"));
+    }
+    let retained = query.capacity();
+    Ok((query, retained))
+}
+
+fn query_store_filter_digest(
+    sources: &[String],
+    kind_ids: &[String],
+    predicate_ids: &[String],
+    held: usize,
+    budget: &OriginalStoreBudget<'_>,
+) -> Result<String> {
+    let bytes = sources
+        .iter()
+        .chain(kind_ids)
+        .chain(predicate_ids)
+        .try_fold(512usize, |sum, value| {
+            sum.checked_add(value.len().checked_mul(6)?)
+                .and_then(|n| n.checked_add(3))
+                .ok_or_else(|| owned_err("indexed QueryStore cursor digest bound"))
+        })?;
+    // serde_json's Vec writer may retain up to twice its final length while
+    // growing. Admit that temporary capacity as well as the small map nodes.
+    let allocation = state_add(bytes.checked_mul(2).ok_or_else(|| owned_err("indexed QueryStore cursor digest allocation"))?, 512)?;
+    (budget.remaining_after_retained)(state_add(held, allocation)?)?;
+    search_charge(budget, bytes)?;
+    let mut value = std::collections::BTreeMap::new();
+    value.insert("sources", sources);
+    value.insert("kind_ids", kind_ids);
+    value.insert("predicate_ids", predicate_ids);
+    let raw = serde_json::to_vec(&value).map_err(owned_err)?;
+    if raw.len() > bytes {
+        return Err(owned_err("indexed QueryStore cursor digest exceeds admission"));
+    }
+    let digest = tos_foundation::Digest256::of_bytes(&raw).to_hex();
+    Ok(digest)
+}
+
+fn query_store_cursor_now() -> Result<u64> {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|duration| duration.as_secs())
+        .map_err(|_| owned_err("indexed QueryStore cursor clock"))
+}
+
+fn query_store_cursor_decode(
+    token: &str,
+    kind: &str,
+    store_revision: &str,
+    source_revision: &str,
+    query: &str,
+    filters_digest: &str,
+    held: usize,
+    budget: &OriginalStoreBudget<'_>,
+    deadline: Instant,
+    probe: &dyn AbortProbe,
+) -> Result<(u8, String, u64)> {
+    if token.is_empty() || token.len() > QUERY_STORE_INDEXED_CURSOR_MAX_BYTES {
+        return Err(owned_err("indexed QueryStore cursor length"));
+    }
+    budget.check(deadline, probe)?;
+    search_charge(budget, token.len())?;
+    // The decoded Value tree, its owned strings, and the base64 buffer coexist
+    // until the bound is checked. The raw token is capped at 2 KiB, but its
+    // map nodes and allocator slack need their own admission.
+    let reservation = QUERY_STORE_INDEXED_CURSOR_MAX_BYTES.checked_mul(4)
+        .ok_or_else(|| owned_err("indexed QueryStore cursor decode admission"))?;
+    (budget.remaining_after_retained)(state_add(held, reservation)?)?;
+    search_charge(budget, reservation)?;
+    // The maintained Python URL-safe decoder accepts ordinary '=' padding;
+    // emit unpadded tokens but accept that same spelling on input.
+    let padding = token.bytes().rev().take_while(|byte| *byte == b'=').count();
+    if padding > 2 || token[..token.len() - padding].contains('=') {
+        return Err(owned_err("indexed QueryStore cursor padding"));
+    }
+    let unpadded = &token[..token.len() - padding];
+    if padding != 0 && (token.len() % 4 != 0 || unpadded.len() % 4 == 0) {
+        return Err(owned_err("indexed QueryStore cursor padding"));
+    }
+    let raw = crate::compressed_search_state::base64_decode(unpadded).map_err(owned_err)?;
+    if raw.len() > QUERY_STORE_INDEXED_CURSOR_MAX_BYTES {
+        return Err(owned_err("indexed QueryStore cursor decoded length"));
+    }
+    let value: Value = serde_json::from_slice(&raw).map_err(owned_err)?;
+    let fields = value.as_object().ok_or_else(|| owned_err("indexed QueryStore cursor object"))?;
+    const KEYS: &[&str] = &["schema", "backend", "kind", "store_revision", "source_revision", "query", "filters_digest", "after", "expires_at"];
+    if fields.len() != KEYS.len() || fields.keys().any(|key| !KEYS.contains(&key.as_str())) {
+        return Err(owned_err("indexed QueryStore cursor members"));
+    }
+    if field(&value, "schema") != QUERY_STORE_INDEXED_CURSOR_SCHEMA
+        || field(&value, "backend") != QUERY_STORE_INDEXED_CURSOR_BACKEND
+        || field(&value, "kind") != kind
+    {
+        return Err(owned_err("indexed QueryStore cursor schema/backend"));
+    }
+    if field(&value, "store_revision") != store_revision
+        || field(&value, "source_revision") != source_revision
+    {
+        return Err(owned_err("indexed QueryStore cursor snapshot changed"));
+    }
+    if field(&value, "query") != query || field(&value, "filters_digest") != filters_digest {
+        return Err(owned_err("indexed QueryStore cursor query or filters changed"));
+    }
+    let expires = value.get("expires_at").and_then(Value::as_u64)
+        .ok_or_else(|| owned_err("indexed QueryStore cursor expiry"))?;
+    if expires < query_store_cursor_now()? {
+        return Err(owned_err("indexed QueryStore cursor expired"));
+    }
+    let after = value.get("after").and_then(Value::as_array)
+        .filter(|after| after.len() == 3)
+        .ok_or_else(|| owned_err("indexed QueryStore cursor position"))?;
+    let rank = after[0].as_u64().filter(|rank| *rank <= 3)
+        .ok_or_else(|| owned_err("indexed QueryStore cursor rank"))? as u8;
+    let id = after[1].as_str().ok_or_else(|| owned_err("indexed QueryStore cursor id"))?;
+    let position = after[2].as_u64().filter(|position| *position <= i64::MAX as u64)
+        .ok_or_else(|| owned_err("indexed QueryStore cursor row position"))?;
+    let decode_held = state_add(held, reservation)?;
+    let normalized_id = search_lower_counts(id, 8192, 2048, 8192, decode_held, budget, deadline, probe)?;
+    if normalized_id != id {
+        return Err(owned_err("indexed QueryStore cursor id is not lowercase"));
+    }
+    let copy_state = state_add(
+        state_add(normalized_id.capacity(), id.len())?,
+        std::mem::size_of::<(u8, String, u64)>(),
+    )?;
+    (budget.remaining_after_retained)(state_add(decode_held, copy_state)?)?;
+    let id = exact_string(id)?;
+    Ok((rank, id, position))
+}
+
+fn query_store_cursor_json_string_size(value: &str) -> Result<usize> {
+    let mut size = 2usize; // surrounding quotes
+    for character in value.chars() {
+        let bytes = match character {
+            '"' | '\\' | '\u{0008}' | '\u{000c}' | '\n' | '\r' | '\t' => 2,
+            '\u{0000}'..='\u{001f}' => 6,
+            _ => character.len_utf8(),
+        };
+        size = state_add(size, bytes)?;
+    }
+    Ok(size)
+}
+
+fn query_store_cursor_raw_bound(
+    kind: &str,
+    store_revision: &str,
+    source_revision: &str,
+    query: &str,
+    filters_digest: &str,
+    after: &(u8, String, u64),
+    expires: u64,
+) -> Result<usize> {
+    // Exact compact-json size in sorted-key order, including JSON escaping.
+    // Checking this before cloning any binding strings prevents an oversized
+    // graph header or row id from creating an unbounded cursor allocation.
+    let pairs = [
+        ("after", state_add(
+            5, // [, rank, two commas, and ]
+            state_add(
+                query_store_cursor_json_string_size(&after.1)?,
+                after.2.to_string().len(),
+            )?,
+        )?),
+        ("backend", query_store_cursor_json_string_size(QUERY_STORE_INDEXED_CURSOR_BACKEND)?),
+        ("expires_at", expires.to_string().len()),
+        ("filters_digest", query_store_cursor_json_string_size(filters_digest)?),
+        ("kind", query_store_cursor_json_string_size(kind)?),
+        ("query", query_store_cursor_json_string_size(query)?),
+        ("schema", query_store_cursor_json_string_size(QUERY_STORE_INDEXED_CURSOR_SCHEMA)?),
+        ("source_revision", query_store_cursor_json_string_size(source_revision)?),
+        ("store_revision", query_store_cursor_json_string_size(store_revision)?),
+    ];
+    let mut size = 2usize; // object braces
+    for (index, (key, value)) in pairs.iter().enumerate() {
+        if index != 0 {
+            size = state_add(size, 1)?;
+        }
+        size = state_add(
+            size,
+            state_add(query_store_cursor_json_string_size(key)?, state_add(1, *value)?)?,
+        )?;
+    }
+    Ok(size)
+}
+
+fn query_store_cursor_encode(
+    kind: &str,
+    store_revision: &str,
+    source_revision: &str,
+    query: &str,
+    filters_digest: &str,
+    after: &(u8, String, u64),
+    held: usize,
+    budget: &OriginalStoreBudget<'_>,
+    deadline: Instant,
+    probe: &dyn AbortProbe,
+) -> Result<String> {
+    budget.check(deadline, probe)?;
+    let expires = query_store_cursor_now()?
+        .checked_add(QUERY_STORE_INDEXED_CURSOR_TTL_SECONDS)
+        .ok_or_else(|| owned_err("indexed QueryStore cursor expiry overflow"))?;
+    let raw_bound = query_store_cursor_raw_bound(
+        kind, store_revision, source_revision, query, filters_digest, after, expires,
+    )?;
+    // 1,536 raw bytes encode to the 2 KiB Python token limit without padding.
+    const MAX_CURSOR_RAW_BYTES: usize = QUERY_STORE_INDEXED_CURSOR_MAX_BYTES * 3 / 4;
+    if raw_bound > MAX_CURSOR_RAW_BYTES {
+        return Err(owned_err("indexed QueryStore cursor exceeds Reference bound"));
+    }
+    let reservation = QUERY_STORE_INDEXED_CURSOR_MAX_BYTES.checked_mul(4)
+        .ok_or_else(|| owned_err("indexed QueryStore cursor allocation bound"))?;
+    (budget.remaining_after_retained)(state_add(held, reservation)?)?;
+    search_charge(budget, reservation)?;
+    let mut value = std::collections::BTreeMap::new();
+    value.insert("schema", Value::from(QUERY_STORE_INDEXED_CURSOR_SCHEMA));
+    value.insert("backend", Value::from(QUERY_STORE_INDEXED_CURSOR_BACKEND));
+    value.insert("kind", Value::from(kind));
+    value.insert("store_revision", Value::from(store_revision));
+    value.insert("source_revision", Value::from(source_revision));
+    value.insert("query", Value::from(query));
+    value.insert("filters_digest", Value::from(filters_digest));
+    value.insert("after", Value::Array(vec![Value::from(after.0), Value::from(after.1.as_str()), Value::from(after.2)]));
+    value.insert("expires_at", Value::from(expires));
+    let mut raw = Vec::new();
+    raw.try_reserve_exact(raw_bound).map_err(owned_err)?;
+    if raw.capacity() != raw_bound {
+        return Err(owned_err("indexed QueryStore exact cursor capacity"));
+    }
+    serde_json::to_writer(&mut raw, &value).map_err(owned_err)?;
+    if raw.len() > raw_bound || raw.len() > MAX_CURSOR_RAW_BYTES {
+        return Err(owned_err("indexed QueryStore cursor exceeds Reference bound"));
+    }
+    let token = crate::compressed_search_state::base64_encode(&raw);
+    if token.len() > QUERY_STORE_INDEXED_CURSOR_MAX_BYTES {
+        return Err(owned_err("indexed QueryStore cursor exceeds Reference bound"));
+    }
+    Ok(token)
+}
+
+fn finish_query_store_kind_page(
+    page: OwnedQueryStorePage,
+    kind: &str,
+    store_revision: &str,
+    source_revision: &str,
+    query: &str,
+    filters_digest: &str,
+    held: usize,
+    budget: &OriginalStoreBudget<'_>,
+    deadline: Instant,
+    probe: &dyn AbortProbe,
+) -> Result<QueryStoreIndexedKindPage> {
+    let next_cursor = if page.has_more {
+        let after = page.next_after.as_ref().ok_or_else(|| owned_err("indexed QueryStore continuation absent"))?;
+        Some(query_store_cursor_encode(
+            kind, store_revision, source_revision, query, filters_digest, after,
+            state_add(held, page.retained)?, budget, deadline, probe,
+        )?)
+    } else {
+        None
+    };
+    let row_slots = state_slots::<Value>(page.rows.len())?;
+    let cursor_heap = next_cursor.as_ref().map_or(0, String::capacity);
+    (budget.remaining_after_retained)(state_add(
+        state_add(held, page.retained)?,
+        state_add(row_slots, cursor_heap)?,
+    )?)?;
+    let payload_heap = page.rows.iter().try_fold(0usize, |sum, row| {
+        state_add(sum, row.payload_retained)
+    })?;
+    let retained = state_add(state_add(row_slots, payload_heap)?, cursor_heap)?;
+    let mut rows = Vec::new();
+    rows.try_reserve_exact(page.rows.len()).map_err(owned_err)?;
+    if rows.capacity() != page.rows.len() {
+        return Err(owned_err("indexed QueryStore exact response rows"));
+    }
+    for row in page.rows {
+        rows.push(row.payload);
+    }
+    Ok(QueryStoreIndexedKindPage {
+        rows,
+        candidate_rows: page.candidate_rows,
+        verified_chars: page.verified_chars,
+        has_more: page.has_more,
+        next_cursor,
+        sql_pages: page.sql_pages,
+        retained_bytes: retained,
+    })
+}
+
+impl LegacyStore {
+    /// Execute both globally ranked QueryStore kind pages on this exact held
+    /// authenticated Store and original counter/deadline owner.
+    pub fn indexed_query_store_page_with_owned_budget(
+        &mut self,
+        request: &QueryStoreIndexedSearchRequest<'_>,
+        continuation: &QueryStoreIndexedContinuation<'_>,
+        max_verify_chars: u64,
+        budget: &OriginalStoreBudget<'_>,
+        usage: &mut StoreUsage,
+        call_deadline: Instant,
+        operation: Arc<dyn AbortProbe>,
+    ) -> Result<QueryStoreIndexedPage> {
+        let result = (|| {
+            self.verify_currentness_with_owned_budget(budget)?;
+            if !self.supports_indexed_fts5() {
+                return Err(owned_err("selected QueryStore has no admitted indexed FTS5 page"));
+            }
+            if max_verify_chars == 0
+                || !(1..=100).contains(&request.limit_per_kind)
+                || call_deadline > self.deadline
+                || usage.rows != 0
+                || usage.input_bytes != 0
+                || usage.json_visits != 0
+            {
+                return Err(owned_err("indexed QueryStore owner/request unavailable"));
+            }
+            if continuation.cursor_present {
+                if continuation.nodes_exhausted == continuation.nodes.is_some()
+                    || continuation.relations_exhausted == continuation.relations.is_some()
+                {
+                    return Err(owned_err("indexed Reference child cursor state"));
+                }
+            } else if continuation.nodes.is_some()
+                || continuation.relations.is_some()
+                || continuation.nodes_exhausted
+                || continuation.relations_exhausted
+            {
+                return Err(owned_err("indexed first-page cursor state"));
+            }
+            self.install_owned_progress(budget, call_deadline, Some(operation.clone()), 0)?;
+            let original_abort = self.abort.clone();
+            let probe = OwnedBorrowedProbe {
+                original: original_abort.as_ref(),
+                operation: operation.as_ref(),
+            };
+            let mut result = (|| {
+                let mut field_bytes = request.query.len();
+                if field_bytes > QUERY_STORE_INDEXED_FILTER_FIELD_BYTES {
+                    return Err(owned_err("indexed QueryStore query byte bound"));
+                }
+                let mut query_points = 0usize;
+                for _ in request.query.chars() {
+                    budget.check(call_deadline, &probe)?;
+                    search_charge(budget, 1)?;
+                    query_points += 1;
+                    if query_points > 256 {
+                        return Err(owned_err("indexed QueryStore query codepoint bound"));
+                    }
+                }
+                let fixed = state_add(
+                    self.retained_state_upper_bound()?,
+                    state_add(
+                        std::mem::size_of::<QueryStoreIndexedSearchRequest<'_>>(),
+                        state_add(
+                            std::mem::size_of::<QueryStoreIndexedContinuation<'_>>(),
+                            std::mem::size_of::<OwnedBorrowedProbe<'_>>(),
+                        )?,
+                    )?,
+                )?;
+                (budget.remaining_after_retained)(fixed)?;
+                let mut held = fixed;
+                let (normalized_query, query_heap) = indexed_store_query(
+                    request.query, held, budget, call_deadline, &probe,
+                )?;
+                held = state_add(held, query_heap)?;
+                let mut total_values = 0usize;
+                let (sources, sources_heap) = if request.sources.is_empty() {
+                    let default_slots = state_slots::<String>(SOURCES.len())?;
+                    let default_bytes = SOURCES.iter().try_fold(0usize, |sum, value| {
+                        state_add(sum, value.len())
+                    })?;
+                    (budget.remaining_after_retained)(state_add(
+                        held,
+                        state_add(default_slots, default_bytes)?,
+                    )?)?;
+                    search_charge(budget, state_add(default_slots, default_bytes)?)?;
+                    let mut defaults = Vec::new();
+                    defaults.try_reserve_exact(SOURCES.len()).map_err(owned_err)?;
+                    if defaults.capacity() != SOURCES.len() {
+                        return Err(owned_err("indexed QueryStore exact default sources"));
+                    }
+                    for source in SOURCES {
+                        defaults.push(exact_string(source)?);
+                    }
+                    let default_heap = state_add(
+                        state_slots::<String>(defaults.capacity())?,
+                        defaults.iter().try_fold(0usize, |sum, value| state_add(sum, value.capacity()))?,
+                    )?;
+                    let (sources, output_heap) = indexed_store_filter(&defaults, false, &mut total_values, &mut field_bytes,
+                        state_add(held, default_heap)?, budget, call_deadline, &probe)?;
+                    (sources, output_heap)
+                } else {
+                    indexed_store_filter(request.sources, false, &mut total_values, &mut field_bytes,
+                        held, budget, call_deadline, &probe)?
+                };
+                if sources.iter().any(|source| !SOURCES.contains(&source.as_str())) {
+                    return Err(owned_err("unsupported indexed QueryStore source"));
+                }
+                held = state_add(held, sources_heap)?;
+                let (kind_ids, kinds_heap) = indexed_store_filter(
+                    request.kind_ids, true, &mut total_values, &mut field_bytes,
+                    held, budget, call_deadline, &probe,
+                )?;
+                held = state_add(held, kinds_heap)?;
+                let (predicate_ids, predicates_heap) = indexed_store_filter(
+                    request.predicate_ids, true, &mut total_values, &mut field_bytes,
+                    held, budget, call_deadline, &probe,
+                )?;
+                held = state_add(held, predicates_heap)?;
+                let (source_json, source_json_heap) = owned_query_store_json_strings(&sources, held, budget)?;
+                held = state_add(held, source_json_heap)?;
+                let (kind_json, kind_json_heap) = owned_query_store_json_strings(&kind_ids, held, budget)?;
+                held = state_add(held, kind_json_heap)?;
+                let (predicate_json, predicate_json_heap) = owned_query_store_json_strings(&predicate_ids, held, budget)?;
+                held = state_add(held, predicate_json_heap)?;
+                let filter_digest = query_store_filter_digest(
+                    &sources, &kind_ids, &predicate_ids, held, budget,
+                )?;
+                let digest_heap = filter_digest.capacity();
+                held = state_add(held, digest_heap)?;
+                let (fts_expression, fts_heap) = owned_query_store_fts_expression(
+                    &normalized_query, held, budget, call_deadline, &probe,
+                )?;
+                held = state_add(held, fts_heap)?;
+                let source_revision_value = self.source_revision()?;
+                let store_revision_value = self.revision.as_str();
+                if source_revision_value.is_empty() || store_revision_value.is_empty() {
+                    return Err(owned_err("indexed QueryStore source revision absent"));
+                }
+                let revisions_heap = state_add(
+                    state_add(source_revision_value.len(), store_revision_value.len())?,
+                    std::mem::size_of::<String>() * 2,
+                )?;
+                (budget.remaining_after_retained)(state_add(held, revisions_heap)?)?;
+                held = state_add(held, revisions_heap)?;
+                let source_revision = exact_string(source_revision_value)?;
+                let store_revision = exact_string(store_revision_value)?;
+                let nodes_after = if continuation.nodes_exhausted {
+                    None
+                } else if let Some(token) = continuation.nodes {
+                    Some(query_store_cursor_decode(
+                        token, "nodes", &store_revision, &source_revision,
+                        &normalized_query, &filter_digest, held, budget, call_deadline, &probe,
+                    )?)
+                } else {
+                    None
+                };
+                if let Some(after) = &nodes_after {
+                    held = state_add(
+                        held,
+                        state_add(std::mem::size_of_val(after), after.1.capacity())?,
+                    )?;
+                }
+                let relations_after = if continuation.relations_exhausted {
+                    None
+                } else if let Some(token) = continuation.relations {
+                    Some(query_store_cursor_decode(
+                        token, "relations", &store_revision, &source_revision,
+                        &normalized_query, &filter_digest, held, budget, call_deadline, &probe,
+                    )?)
+                } else {
+                    None
+                };
+                if let Some(after) = &relations_after {
+                    held = state_add(
+                        held,
+                        state_add(std::mem::size_of_val(after), after.1.capacity())?,
+                    )?;
+                }
+                let nodes = if continuation.nodes_exhausted {
+                    OwnedQueryStorePage {
+                        rows: Vec::new(), candidate_rows: 0, verified_chars: 0,
+                        has_more: false, next_after: None, sql_pages: 0, retained: 0,
+                    }
+                } else {
+                    self.ranked_query_store_kind_page_owned(
+                        false, &source_json, &kind_json, &fts_expression, &normalized_query,
+                        nodes_after.as_ref(), request.limit_per_kind, max_verify_chars,
+                        budget, usage, call_deadline, &probe, held,
+                    )?
+                };
+                let node_data = finish_query_store_kind_page(
+                    nodes, "nodes", &store_revision, &source_revision, &normalized_query,
+                    &filter_digest, held, budget, call_deadline, &probe,
+                )?;
+                held = state_add(held, node_data.retained_bytes)?;
+                let relations = if continuation.relations_exhausted {
+                    OwnedQueryStorePage {
+                        rows: Vec::new(), candidate_rows: 0, verified_chars: 0,
+                        has_more: false, next_after: None, sql_pages: 0, retained: 0,
+                    }
+                } else {
+                    self.ranked_query_store_kind_page_owned(
+                        true, &source_json, &predicate_json, &fts_expression, &normalized_query,
+                        relations_after.as_ref(), request.limit_per_kind, max_verify_chars,
+                        budget, usage, call_deadline, &probe, held,
+                    )?
+                };
+                let relation_data = finish_query_store_kind_page(
+                    relations, "relations", &store_revision, &source_revision, &normalized_query,
+                    &filter_digest, held, budget, call_deadline, &probe,
+                )?;
+                held = state_add(held, relation_data.retained_bytes)?;
+                let page_fixed = state_add(
+                    std::mem::size_of::<QueryStoreIndexedPage>(),
+                    state_add(
+                        std::mem::size_of::<QueryStoreIndexedFilters>(),
+                        state_add(
+                            std::mem::size_of::<QueryStoreIndexedKindPage>() * 2,
+                            std::mem::size_of::<String>() * 3,
+                        )?,
+                    )?,
+                )?;
+                let metadata_heap = state_add(
+                    state_add(source_revision.len(), store_revision.len())?,
+                    state_add(
+                        normalized_query.capacity(),
+                        state_add(
+                            state_slots::<String>(sources.capacity())?,
+                            state_add(
+                                sources.iter().try_fold(0usize, |sum, value| state_add(sum, value.capacity()))?,
+                                state_add(
+                                    state_slots::<String>(kind_ids.capacity())?,
+                                    state_add(
+                                        kind_ids.iter().try_fold(0usize, |sum, value| state_add(sum, value.capacity()))?,
+                                        state_add(
+                                            state_slots::<String>(predicate_ids.capacity())?,
+                                            predicate_ids.iter().try_fold(0usize, |sum, value| state_add(sum, value.capacity()))?,
+                                        )?,
+                                    )?,
+                                )?,
+                            )?,
+                        )?,
+                    )?,
+                )?;
+                let page_retained = state_add(
+                    state_add(page_fixed, metadata_heap)?,
+                    state_add(node_data.retained_bytes, relation_data.retained_bytes)?,
+                )?;
+                (budget.remaining_after_retained)(page_retained)?;
+                Ok(QueryStoreIndexedPage {
+                    store_revision,
+                    source_revision,
+                    normalized_query,
+                    filters: QueryStoreIndexedFilters { sources, kind_ids, predicate_ids },
+                    has_more: node_data.has_more || relation_data.has_more,
+                    nodes: node_data,
+                    relations: relation_data,
+                    retained_bytes: page_retained,
+                })
+            })();
+            let result_state = result.as_ref().map_or(0, |page| page.retained_bytes);
+            let restored = self.install_owned_progress(budget, self.deadline, None, result_state);
+            let page = result?;
+            restored?;
+            budget.check(call_deadline, &probe)?;
+            self.verify_currentness_with_owned_budget(budget)?;
+            budget.check(call_deadline, &probe)?;
+            Ok(page)
+        })();
+        self.work = budget.store_steps.load(Ordering::Relaxed);
+        if result.is_err() {
+            if let Some(owner) = &mut self.owned {
+                owner.poisoned = true;
+            }
+        }
+        result
     }
 }

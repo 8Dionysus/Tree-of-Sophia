@@ -3,7 +3,37 @@ use crate::{AccessError, AccessErrorCode, IndexedSearchParams, PreparedPacket};
 use std::sync::Arc;
 use tos_foundation::JsonValue;
 use tos_query::AbortProbe;
-use tos_query::knowledge_legacy_search::LegacySearchRequest;
+use tos_query::knowledge_legacy_search::{
+    LegacySearchIntegerInput, LegacySearchRequest, normalize_legacy_search_integer,
+};
+
+fn legacy_number(
+    value: Option<&JsonValue>,
+    default: usize,
+    minimum: usize,
+    maximum: usize,
+) -> Result<usize, AccessError> {
+    let input = match value {
+        None => LegacySearchIntegerInput::Missing,
+        Some(JsonValue::Null) => LegacySearchIntegerInput::Null,
+        Some(JsonValue::Bool(_)) => LegacySearchIntegerInput::Boolean,
+        Some(JsonValue::Number(number)) if number.kind == tos_foundation::JsonNumberKind::Int => {
+            LegacySearchIntegerInput::Integer(&number.lexeme)
+        }
+        Some(JsonValue::Number(number)) => LegacySearchIntegerInput::Float(
+            number.as_python_float().unwrap_or(f64::NAN),
+        ),
+        Some(JsonValue::String(value)) => LegacySearchIntegerInput::String(
+            value.as_str().unwrap_or(""),
+        ),
+        Some(_) => LegacySearchIntegerInput::Other,
+    };
+    normalize_legacy_search_integer(input, default, minimum, maximum).map_err(|_| {
+        AccessError::new(AccessErrorCode::InvalidRequest, "invalid search arguments")
+    })
+}
+
+
 
 pub enum SearchRequest {
     Legacy(LegacySearchRequest),
@@ -60,8 +90,8 @@ impl SearchRequest {
                 .and_then(|n| usize::try_from(n).ok())
                 .ok_or_else(invalid),
         };
-        let offset = number("offset", 0)?;
         if mode == "compressed" {
+            let offset = number("offset", 0)?;
             if offset != 0 {
                 return Err(AccessError::new(
                     AccessErrorCode::InvalidRequest,
@@ -81,6 +111,7 @@ impl SearchRequest {
                 .map(Self::Compressed)
                 .map_err(|_| invalid());
         }
+        let offset = legacy_number(clean.object_get("offset"), 0, 0, 100_000)?;
         let strings = |key| -> Result<Option<Vec<String>>, AccessError> {
             clean
                 .object_get(key)
@@ -105,7 +136,7 @@ impl SearchRequest {
             kind_ids: strings("kind_ids")?.unwrap_or_default(),
             predicate_ids: strings("predicate_ids")?.unwrap_or_default(),
             offset,
-            limit: number("limit", 40)?,
+            limit: legacy_number(clean.object_get("limit"), 40, 1, 100)?,
         }))
     }
     pub fn execute<'hold, E: crate::common::ScopedAccessExecutor<'hold> + ?Sized>(

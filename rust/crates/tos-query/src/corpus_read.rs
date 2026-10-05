@@ -182,6 +182,52 @@ fn source_refs(rows: &[JsonValue]) -> Vec<JsonValue> {
     refs.into_iter().map(|s| text(&s)).collect()
 }
 
+pub(crate) fn controlled_status(header: &JsonValue, context: &CorpusReadContext,
+    views: &[JsonValue]) -> JsonValue {
+        object(vec![
+            ("schema", text("tos_corpus_mcp_status_v1")),
+            ("index_exists", JsonValue::Bool(true)),
+            ("tos_root", text(&context.tos_root)),
+            ("index_path", text(&context.index_path)),
+            ("owner_repo", field(header, "owner_repo").clone()),
+            ("surface_kind", field(header, "surface_kind").clone()),
+            ("counts", default(header, "counts", object(vec![]))),
+            (
+                "graph_views",
+                array(views.iter().map(|v| field(v, "view_id").clone()).collect()),
+            ),
+            (
+                "authority_order",
+                default(header, "authority_order", array(vec![])),
+            ),
+            (
+                "runtime_projection_boundary",
+                default(header, "runtime_projection_boundary", object(vec![])),
+            ),
+        ])
+}
+
+/// The three metadata packets reuse the maintained field projection. Callers
+/// supply only Original rows authorized by their retained native owner.
+pub(crate) fn controlled_metadata(header: &JsonValue, context: &CorpusReadContext,
+    views: Vec<JsonValue>, branches: Vec<JsonValue>, request: &CorpusReadRequest)
+    -> Result<JsonValue, SearchV2Error> {
+    match request {
+        CorpusReadRequest::Status => Ok(controlled_status(header, context, &views)),
+        CorpusReadRequest::GraphViews => Ok(object(vec![
+            ("schema", text("tos_corpus_mcp_graph_views_v1")), ("graph_views", array(views))])),
+        CorpusReadRequest::Summary => Ok(object(vec![
+            ("schema", text("tos_corpus_mcp_summary_v1")),
+            ("status", controlled_status(header, context, &views)),
+            ("counts", default(header, "counts", object(vec![]))),
+            ("branches", array(branches)), ("graph_views", array(views)),
+            ("runtime_projection_boundary", default(header, "runtime_projection_boundary", object(vec![]))),
+            ("authority_order", default(header, "authority_order", array(vec![]))),
+        ])),
+        _ => Err(fail(SearchV2ErrorCode::InvalidRequest, "controlled corpus metadata operation unavailable")),
+    }
+}
+
 struct CorpusRead<'a, 'b, 'c, A: ?Sized> {
     read: &'a mut Reader<'b, 'c, A>,
     receipt: CorpusOriginalReceipt,
@@ -274,27 +320,7 @@ impl<'hold, A: InspectCurrentAuthority<'hold> + ?Sized> CorpusRead<'_, '_, '_, A
             .collect())
     }
     fn status(&self, views: &[JsonValue]) -> JsonValue {
-        object(vec![
-            ("schema", text("tos_corpus_mcp_status_v1")),
-            ("index_exists", JsonValue::Bool(true)),
-            ("tos_root", text(&self.context.tos_root)),
-            ("index_path", text(&self.context.index_path)),
-            ("owner_repo", field(&self.header, "owner_repo").clone()),
-            ("surface_kind", field(&self.header, "surface_kind").clone()),
-            ("counts", default(&self.header, "counts", object(vec![]))),
-            (
-                "graph_views",
-                array(views.iter().map(|v| field(v, "view_id").clone()).collect()),
-            ),
-            (
-                "authority_order",
-                default(&self.header, "authority_order", array(vec![])),
-            ),
-            (
-                "runtime_projection_boundary",
-                default(&self.header, "runtime_projection_boundary", object(vec![])),
-            ),
-        ])
+        controlled_status(&self.header, self.context, views)
     }
     fn search(
         &mut self,
@@ -642,35 +668,12 @@ impl<'hold, A: InspectCurrentAuthority<'hold> + ?Sized> CorpusRead<'_, '_, '_, A
     }
     fn packet(&mut self, request: &CorpusReadRequest) -> Result<JsonValue, SearchV2Error> {
         match request {
-            CorpusReadRequest::Status => {
+            CorpusReadRequest::Status | CorpusReadRequest::GraphViews | CorpusReadRequest::Summary => {
                 let views = self.views()?;
-                Ok(self.status(&views))
-            }
-            CorpusReadRequest::GraphViews => {
-                let views = self.views()?;
-                Ok(object(vec![
-                    ("schema", text("tos_corpus_mcp_graph_views_v1")),
-                    ("graph_views", array(views)),
-                ]))
-            }
-            CorpusReadRequest::Summary => {
-                let views = self.views()?;
-                let branches = self.rows(Collection::Branches, Selector::All, None)?;
-                Ok(object(vec![
-                    ("schema", text("tos_corpus_mcp_summary_v1")),
-                    ("status", self.status(&views)),
-                    ("counts", default(&self.header, "counts", object(vec![]))),
-                    ("branches", array(branches)),
-                    ("graph_views", array(views)),
-                    (
-                        "runtime_projection_boundary",
-                        default(&self.header, "runtime_projection_boundary", object(vec![])),
-                    ),
-                    (
-                        "authority_order",
-                        default(&self.header, "authority_order", array(vec![])),
-                    ),
-                ]))
+                let branches = if matches!(request, CorpusReadRequest::Summary) {
+                    self.rows(Collection::Branches, Selector::All, None)?
+                } else { Vec::new() };
+                controlled_metadata(&self.header, self.context, views, branches, request)
             }
             CorpusReadRequest::Search {
                 query,

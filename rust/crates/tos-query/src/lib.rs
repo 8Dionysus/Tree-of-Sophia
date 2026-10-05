@@ -146,3 +146,8 @@ pub mod reading_search;
 
 #[cfg(not(target_arch = "wasm32"))]
 pub use controlled_inspect_adapter::execute_controlled_inspect_response;
+
+#[cfg(not(target_arch = "wasm32"))]
+mod controlled_corpus_adapter;
+#[cfg(not(target_arch = "wasm32"))]
+pub use controlled_corpus_adapter::execute_controlled_corpus_metadata_response;

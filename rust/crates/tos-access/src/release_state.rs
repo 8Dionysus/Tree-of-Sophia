@@ -110,6 +110,22 @@ fn absolute_directory(value: &str) -> Result<(PathBuf, File)> {
         .map_err(|_| unavailable("release selected directory invalid"))?;
     Ok((path, file))
 }
+fn safe_reference_absolute_path(value: &str, path: &Path) -> bool {
+    value.starts_with('/')
+        && !value.contains('\\')
+        && !value.bytes().any(|byte| byte < 0x20 || byte == 0x7f)
+        && (value == "/"
+            || value.strip_prefix('/').is_some_and(|tail| {
+                tail.split('/')
+                    .all(|part| !part.is_empty() && part != "." && part != "..")
+            }))
+        && path.components().all(|part| {
+            matches!(
+                part,
+                std::path::Component::RootDir | std::path::Component::Normal(_)
+            )
+        })
+}
 fn input_bindings(value: &JsonValue) -> Result<()> {
     let fields = value
         .as_object()
@@ -284,6 +300,240 @@ pub struct ReleaseLease {
     _lock: File,
     member_guards: Vec<ReleaseMemberGuard>,
 }
+
+/// Native retained reader for the maintained Python `ReleaseStore` format.
+/// This is intentionally separate from `ManagedRelease`, whose data manifest
+/// has a different schema and whose selection has a different owner.
+pub(crate) struct ReferenceReleaseGuard {
+    root_path: PathBuf,
+    root: File,
+    root_identity: (u64, u64),
+    lock: Option<File>,
+    lock_identity: Option<(u64, u64)>,
+    pair_id: String,
+    pointer_raw: Vec<u8>,
+    pair_raw: Vec<u8>,
+    bindings_raw: Vec<u8>,
+    revoked_digests: [String; 3],
+    receipt: String,
+}
+
+impl ReferenceReleaseGuard {
+    pub(crate) fn open_for_standalone_snapshot(
+        release_root_path: &Path,
+        snapshot_root_path: &Path,
+        manifest_raw: &[u8],
+    ) -> Result<Self> {
+        let snapshot = parse_json(manifest_raw, JsonMode::PublishedStrict, METADATA_LIMITS)
+            .map_err(|_| unavailable("standalone snapshot manifest invalid for release"))?
+            .into_root();
+        if text(&snapshot, "schema_version")? != "tos_access_data_snapshot_v1" {
+            return Err(unavailable(
+                "standalone snapshot schema does not match Reference release",
+            ));
+        }
+        let data_revision = text(&snapshot, "data_revision")?;
+        let corpus_revision = text(&snapshot, "corpus_revision")?;
+        let compiler = snapshot
+            .object_get("compiler")
+            .ok_or_else(|| unavailable("standalone snapshot compiler absent"))?;
+        let query_schema = text(compiler, "schema")?;
+        let compiler_version = text(compiler, "compiler_version")?;
+
+        let raw_root = release_root_path;
+        if raw_root.as_os_str().len() > 8193
+            || raw_root
+                .components()
+                .any(|part| matches!(part, std::path::Component::ParentDir))
+        {
+            return Err(unavailable("Reference release root path invalid"));
+        }
+        let root_path = if raw_root.is_absolute() {
+            raw_root.to_owned()
+        } else {
+            std::env::current_dir()
+                .map_err(|_| unavailable("Reference release current directory unavailable"))?
+                .join(raw_root)
+        };
+        if root_path.as_os_str().len() > 8193
+            || root_path.components().any(|part| {
+                !matches!(
+                    part,
+                    std::path::Component::RootDir | std::path::Component::Normal(_)
+                )
+            })
+        {
+            return Err(unavailable("Reference release root path invalid"));
+        }
+        let root = tos_fd_open::open_absolute_directory(&root_path)
+            .map_err(|_| unavailable("Reference release root unavailable"))?;
+        let root_identity = identity(&root)?;
+        let lock = match tos_fd_open::open_regular_at(&root, Path::new(".release.lock")) {
+            Ok(lock) => {
+                lock.try_lock_shared()
+                    .map_err(|_| unavailable("Reference release shared lock unavailable"))?;
+                Some(lock)
+            }
+            Err(error)
+                if error
+                    .source
+                    .as_ref()
+                    .is_some_and(|source| source.kind() == std::io::ErrorKind::NotFound) =>
+            {
+                None
+            }
+            Err(_) => return Err(unavailable("Reference release lock state unsafe")),
+        };
+        let lock_identity = lock.as_ref().map(identity).transpose()?;
+
+        let (pointer, pointer_raw) = canonical_read(&root, "current.json")?;
+        keys(&pointer, &["schema_version", "current", "previous"])?;
+        if text(&pointer, "schema_version")? != "tos_access_release_pointer_v1" {
+            return Err(unavailable("Reference release pointer schema invalid"));
+        }
+        let pair_id = digest(&pointer, "current")?.to_hex();
+        match pointer.object_get("previous") {
+            Some(JsonValue::Null) => {}
+            Some(JsonValue::String(_)) if digest(&pointer, "previous")?.to_hex() != pair_id => {}
+            _ => return Err(unavailable("Reference release previous pointer invalid")),
+        }
+        let (pair, pair_raw) = canonical_read(&root, &format!("pairs/{pair_id}.json"))?;
+        keys(
+            &pair,
+            &[
+                "schema_version",
+                "software_sha256",
+                "data_revision",
+                "data_manifest_sha256",
+                "corpus_revision",
+                "query_schema",
+                "compiler_version",
+            ],
+        )?;
+        if text(&pair, "schema_version")? != "tos_access_release_pair_v1"
+            || Digest256::of_bytes(&pair_raw).to_hex() != pair_id
+        {
+            return Err(unavailable("Reference release pair identity invalid"));
+        }
+        let pair_data_manifest = digest(&pair, "data_manifest_sha256")?;
+        let (bindings, bindings_raw) = canonical_read(&root, &format!("bindings/{pair_id}.json"))?;
+        keys(&bindings, &["data_root", "software_archive"])?;
+        let bound_data_text = text(&bindings, "data_root")?;
+        let archive_text = text(&bindings, "software_archive")?;
+        let bound_data = PathBuf::from(bound_data_text);
+        let archive = Path::new(archive_text);
+        if !safe_reference_absolute_path(bound_data_text, &bound_data)
+            || bound_data.as_os_str().len() > 8193
+            || bound_data != snapshot_root_path
+            || !safe_reference_absolute_path(archive_text, archive)
+        {
+            return Err(unavailable(
+                "Reference release data binding differs from selected snapshot",
+            ));
+        }
+        if pair_data_manifest != Digest256::of_bytes(manifest_raw)
+            || text(&pair, "data_revision")? != data_revision
+            || text(&pair, "corpus_revision")? != corpus_revision
+            || text(&pair, "query_schema")? != query_schema
+            || text(&pair, "compiler_version")? != compiler_version
+        {
+            return Err(unavailable(
+                "Reference release pair differs from standalone snapshot",
+            ));
+        }
+        let revoked_digests = [
+            digest(&pair, "data_revision")?.to_hex(),
+            digest(&pair, "corpus_revision")?.to_hex(),
+            digest(&pair, "software_sha256")?.to_hex(),
+        ];
+        let receipt = Digest256::of_bytes(
+            format!(
+                "tos-reference-release-guard-v1\0{}\0{}\0{}",
+                root_path.display(),
+                pair_id,
+                Digest256::of_bytes(manifest_raw).to_hex()
+            )
+            .as_bytes(),
+        )
+        .to_hex();
+        let guard = Self {
+            root_path,
+            root,
+            root_identity,
+            lock,
+            lock_identity,
+            pair_id: pair_id.clone(),
+            pointer_raw,
+            pair_raw,
+            bindings_raw,
+            revoked_digests,
+            receipt,
+        };
+        guard.check()?;
+        Ok(guard)
+    }
+
+    pub(crate) fn receipt(&self) -> &str {
+        &self.receipt
+    }
+
+    pub(crate) fn retained_state_upper_bound(&self) -> usize {
+        std::mem::size_of::<Self>()
+            .saturating_add(self.root_path.as_os_str().len())
+            .saturating_add(self.pair_id.capacity())
+            .saturating_add(self.pointer_raw.capacity())
+            .saturating_add(self.pair_raw.capacity())
+            .saturating_add(self.bindings_raw.capacity())
+            .saturating_add(
+                self.revoked_digests
+                    .iter()
+                    .map(String::capacity)
+                    .sum::<usize>(),
+            )
+            .saturating_add(self.receipt.capacity())
+    }
+
+    pub(crate) fn check(&self) -> Result<()> {
+        let root = tos_fd_open::open_absolute_directory(&self.root_path)
+            .map_err(|_| unavailable("Reference release root changed"))?;
+        if identity(&root)? != self.root_identity
+            || self.lock.as_ref().map(identity).transpose()? != self.lock_identity
+        {
+            return Err(unavailable("Reference release holder identity changed"));
+        }
+        if canonical_read(&self.root, "current.json")?.1 != self.pointer_raw
+            || canonical_read(&self.root, &format!("pairs/{}.json", self.pair_id))?.1
+                != self.pair_raw
+            || canonical_read(&self.root, &format!("bindings/{}.json", self.pair_id))?.1
+                != self.bindings_raw
+        {
+            return Err(unavailable("Reference release selection changed"));
+        }
+        for (kind, value) in [
+            ("data", self.revoked_digests[0].as_str()),
+            ("corpus", self.revoked_digests[1].as_str()),
+            ("software", self.revoked_digests[2].as_str()),
+        ] {
+            let directory = tos_fd_open::open_directory_at(&self.root, Path::new("revocations"))
+                .and_then(|dir| tos_fd_open::open_directory_at(&dir, Path::new(kind)))
+                .map_err(|_| unavailable("Reference release revocation state unavailable"))?;
+            match tos_fd_open::open_regular_at(&directory, Path::new(&format!("{value}.json"))) {
+                Err(error)
+                    if error
+                        .source
+                        .as_ref()
+                        .is_some_and(|source| source.kind() == std::io::ErrorKind::NotFound) => {}
+                _ => {
+                    return Err(unavailable(
+                        "Reference release is revoked or revocation state unsafe",
+                    ));
+                }
+            }
+        }
+        Ok(())
+    }
+}
+
 impl ManagedRelease {
     /// Selection is explicit; no data or authority is discovered through cwd.
     pub fn open(root_path: &Path) -> Result<Arc<Self>> {
@@ -344,9 +594,7 @@ impl ManagedRelease {
             .map_err(|_| unavailable("selected software archive unavailable"))?;
         let bound_data_root = text(&bindings, "data_root")?;
         let expected_source_root = Path::new(bound_data_root).join("data");
-        if selected_source_root.is_some_and(|path| {
-            path.to_str() != expected_source_root.to_str()
-        }) {
+        if selected_source_root.is_some_and(|path| path.to_str() != expected_source_root.to_str()) {
             return Err(unavailable(
                 "explicit source root differs from current release pair",
             ));

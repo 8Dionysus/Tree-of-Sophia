@@ -25,6 +25,100 @@ pub const SEARCH_CAPABILITIES_OPERATION: &str = "tos.knowledge.search.capabiliti
 pub const SEARCH_CAPABILITIES_INTENDED_USE: &str =
     "read_only_public_knowledge_search_capabilities_v1";
 
+
+/// Input classes adapted from Foundation or serde JSON by the owning transport.
+/// Legacy Search deliberately rejects bool while preserving Python-like integer
+/// conversion for integer strings and finite floats.
+#[derive(Clone, Copy, Debug)]
+pub enum LegacySearchIntegerInput<'a> {
+    Missing,
+    Null,
+    Boolean,
+    Integer(&'a str),
+    Float(f64),
+    String(&'a str),
+    Other,
+}
+
+fn python_decimal_digit(value: char) -> Option<u8> {
+    tos_foundation::python_decimal_value_unicode16_v1(value)
+}
+
+fn python_integer_text(value: &str) -> Option<i128> {
+    let points = value.chars().count();
+    let value = tos_foundation::python_strip_unicode16_v1(value, points).ok()?;
+    let mut chars = value.chars();
+    let first = chars.next()?;
+    let (negative, first_digit) = match first {
+        '-' => (true, None),
+        '+' => (false, None),
+        value => (false, python_decimal_digit(value)),
+    };
+    let mut magnitude = 0u128;
+    let mut saw_digit = false;
+    let mut previous_digit = false;
+    let mut feed = |digit: u8| {
+        saw_digit = true;
+        previous_digit = true;
+        magnitude = magnitude
+            .saturating_mul(10)
+            .saturating_add(digit as u128);
+    };
+    if let Some(digit) = first_digit {
+        feed(digit);
+    } else if first != '+' && first != '-' {
+        return None;
+    }
+    for character in chars {
+        if let Some(digit) = python_decimal_digit(character) {
+            feed(digit);
+        } else if character == '_' && previous_digit {
+            previous_digit = false;
+        } else {
+            return None;
+        }
+    }
+    if !saw_digit || !previous_digit {
+        return None;
+    }
+    if negative {
+        Some(if magnitude >= (i128::MAX as u128) + 1 {
+            i128::MIN
+        } else {
+            -(magnitude as i128)
+        })
+    } else {
+        Some(magnitude.min(i128::MAX as u128) as i128)
+    }
+}
+
+pub fn normalize_legacy_search_integer(
+    value: LegacySearchIntegerInput<'_>,
+    default: usize,
+    minimum: usize,
+    maximum: usize,
+) -> Result<usize, SearchV2Error> {
+    let parsed = match value {
+        LegacySearchIntegerInput::Missing | LegacySearchIntegerInput::Null => return Ok(default),
+        LegacySearchIntegerInput::Boolean | LegacySearchIntegerInput::Other => return Err(invalid()),
+        LegacySearchIntegerInput::Integer(value) | LegacySearchIntegerInput::String(value) => {
+            python_integer_text(value).ok_or_else(invalid)?
+        }
+        LegacySearchIntegerInput::Float(value) if value.is_finite() => {
+            let value = value.trunc();
+            if value < minimum as f64 || value > maximum as f64 {
+                return Err(invalid());
+            }
+            value as i128
+        }
+        LegacySearchIntegerInput::Float(_) => return Err(invalid()),
+    };
+    if parsed < minimum as i128 || parsed > maximum as i128 {
+        return Err(invalid());
+    }
+    usize::try_from(parsed).map_err(|_| invalid())
+}
+
 #[derive(Clone, Debug)]
 pub struct LegacySearchRequest {
     pub query: String,

@@ -46,6 +46,10 @@ pub(super) struct OrdinaryStartup {
     query_store: QueryStoreSelection,
     #[serde(default)]
     search_read_model: Option<super::SearchReadModelSelection>,
+    #[serde(default)]
+    snapshot_root: Option<std::path::PathBuf>,
+    #[serde(default)]
+    expected_snapshot_guard: Option<String>,
     session: super::session_transport::Limits,
     original_whole_deadline_ns: u64,
 }
@@ -59,6 +63,10 @@ pub(super) struct NativeOrdinarySnapshotStartup {
     arguments: Value,
     source_paths: Sources,
     query_store: QueryStoreSelection,
+    #[serde(default)]
+    snapshot_root: Option<std::path::PathBuf>,
+    #[serde(default)]
+    expected_snapshot_guard: Option<String>,
     original_whole_deadline_ns: u64,
 }
 
@@ -128,9 +136,7 @@ impl NativeOrdinarySnapshotStartup {
         admission.deadline()?;
         super::bind_ticket(&admission)?;
         self.source_paths.validate()?;
-        if !self.query_store.path.is_absolute()
-            || self.query_store.path.as_os_str().len() > 8193
-        {
+        if !self.query_store.path.is_absolute() || self.query_store.path.as_os_str().len() > 8193 {
             return Err("Core ordinary snapshot QueryStore selector");
         }
         let http = if matches!(operation, "tos_native_call" | "tos_native_serve") {
@@ -149,6 +155,13 @@ impl NativeOrdinarySnapshotStartup {
             query_store: self.query_store,
             query_store_limits: Some(QueryStoreLimits::native_ordinary()),
             search_read_model: None,
+            snapshot_root: self.snapshot_root,
+            expected_snapshot_guard: self.expected_snapshot_guard,
+            snapshot_guard: None,
+            snapshot_guard_work: std::cell::Cell::new(0),
+            snapshot_guard_visits: std::cell::Cell::new(0),
+            snapshot_guard_unavailable: std::cell::Cell::new(false),
+            snapshot_guard_disclosed: std::cell::Cell::new(false),
             http,
         })
     }
@@ -179,6 +192,8 @@ impl OrdinaryStartup {
             working_ram_bytes,
             process,
         )?;
+        let snapshot_root = self.snapshot_root;
+        let expected_snapshot_guard = self.expected_snapshot_guard;
         let startup = Startup {
             schema_version: self.schema_version,
             admission,
@@ -198,6 +213,8 @@ impl OrdinaryStartup {
             false,
         )?;
         request.search_read_model = search_read_model;
+        request.snapshot_root = snapshot_root;
+        request.expected_snapshot_guard = expected_snapshot_guard;
         Ok((request, limits, deadline))
     }
 }
@@ -218,12 +235,11 @@ impl AdmissionLimits {
         let max_build_seconds = remaining.div_ceil(1_000_000_000);
         // Retained state must leave half of the tighter live RAM/AS envelope
         // for framework, SQLite, and transient decoding allocations.
-        let whole_max_state_bytes = usize::try_from(
-            working_ram_bytes.min(process.address_space_bytes) / 2,
-        )
-        .ok()
-        .filter(|bytes| *bytes > 0)
-        .ok_or("Core ordinary retained-state envelope too small")?;
+        let whole_max_state_bytes =
+            usize::try_from(working_ram_bytes.min(process.address_space_bytes) / 2)
+                .ok()
+                .filter(|bytes| *bytes > 0)
+                .ok_or("Core ordinary retained-state envelope too small")?;
         // Cold source copy, VACUUM output, and SQLite TEMP can coexist in the
         // issued stage; cap one model file to one third of quota and RLIMIT_FSIZE.
         let max_file_bytes = process.file_size_bytes.min(tmpfs_quota_bytes / 3);
@@ -448,6 +464,13 @@ impl Startup {
                 query_store: self.query_store,
                 query_store_limits: self.query_store_limits,
                 search_read_model: None,
+                snapshot_root: None,
+                expected_snapshot_guard: None,
+                snapshot_guard: None,
+                snapshot_guard_work: std::cell::Cell::new(0),
+                snapshot_guard_visits: std::cell::Cell::new(0),
+                snapshot_guard_unavailable: std::cell::Cell::new(false),
+                snapshot_guard_disclosed: std::cell::Cell::new(false),
                 http: Some(self.http),
             },
             session,

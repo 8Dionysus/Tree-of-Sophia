@@ -1,16 +1,18 @@
 //! Private native Core transport. Every limit and selected source is supplied by the caller.
-#[path="ordinary_search_cache.rs"]
-mod ordinary_search_cache;
-#[path = "session_transport.rs"]
-mod session_transport;
-#[path = "session_startup.rs"]
-mod session_startup;
-#[path = "session_owner.rs"]
-mod session_owner;
-#[path = "probe_session.rs"]
-mod probe_session;
 #[path = "lazy_session.rs"]
 mod lazy_session;
+#[path = "ordinary_search_cache.rs"]
+mod ordinary_search_cache;
+#[path = "ordinary_snapshot_guard.rs"]
+mod ordinary_snapshot_guard;
+#[path = "probe_session.rs"]
+mod probe_session;
+#[path = "session_owner.rs"]
+mod session_owner;
+#[path = "session_startup.rs"]
+mod session_startup;
+#[path = "session_transport.rs"]
+mod session_transport;
 use serde::Deserialize;
 use serde_json::Value;
 use std::sync::{
@@ -182,6 +184,20 @@ struct Request {
     query_store_limits: Option<QueryStoreLimits>,
     #[serde(default)]
     search_read_model: Option<SearchReadModelSelection>,
+    #[serde(skip)]
+    snapshot_root: Option<PathBuf>,
+    #[serde(skip)]
+    expected_snapshot_guard: Option<String>,
+    #[serde(skip)]
+    snapshot_guard: Option<ordinary_snapshot_guard::StandaloneSnapshotGuard>,
+    #[serde(skip)]
+    snapshot_guard_work: std::cell::Cell<u64>,
+    #[serde(skip)]
+    snapshot_guard_visits: std::cell::Cell<usize>,
+    #[serde(skip)]
+    snapshot_guard_unavailable: std::cell::Cell<bool>,
+    #[serde(skip)]
+    snapshot_guard_disclosed: std::cell::Cell<bool>,
     http: Option<crate::core_http_admission::HttpAdmission>,
 }
 
@@ -214,7 +230,8 @@ impl SearchReadModelSelection {
         if !self.path.is_absolute() || self.path.as_os_str().len() > 8193 {
             return Err("Core ordinary search sidecar selector path bounds");
         }
-        stage.search_cache_limits(&self.path)
+        stage
+            .search_cache_limits(&self.path)
             .map_err(|_| "Core ordinary search sidecar ticket path absent")?;
         Ok(())
     }
@@ -272,7 +289,7 @@ impl tos_query::AbortProbe for StoreAbort {
 #[path = "core_legacy_query_executor.rs"]
 mod legacy_query_executor;
 
-fn selected_store_inputs(request: &Request) -> [(String,PathBuf);5] {
+fn selected_store_inputs(request: &Request) -> [(String, PathBuf); 5] {
     let s = &request.source_paths;
     [
         (
@@ -329,7 +346,7 @@ fn selected_store_result(
         cancelled.clone(),
     )
     .map_err(|_| "Core QueryStore actual kernel resources refused")?;
-    let inputs=selected_store_inputs(request);
+    let inputs = selected_store_inputs(request);
     let abort: Arc<dyn tos_query::AbortProbe> = Arc::new(StoreAbort {
         deadline,
         cancelled: cancelled.clone(),
@@ -442,11 +459,12 @@ fn selected_store_result(
         .process
         .verify_current()
         .map_err(|_| "Core QueryStore final process refused")?;
+    request.check_snapshot_guard(deadline)?;
     if matches!(operation, Operation::Graph | Operation::Snapshot) {
         send_state_marker(reply_fd.ok_or("Core QueryStore reply descriptor absent")?, None,
             br#"{"role":"tos-native-query-store-snapshot-v1","schema_version":"tos_query_store_v1"}"#, deadline)?;
     }
-    disclose_bytes(&bytes, deadline)?;
+    disclose_request_bytes(&bytes, request, deadline)?;
     store
         .verify_currentness()
         .map_err(|_| "Core QueryStore post-disclosure currentness refused")?;
@@ -518,7 +536,11 @@ fn selection(args: &[String]) -> Result<Option<Selection>> {
                 state_fd = Some(value.parse::<i32>().map_err(|_| "Core state FD")?)
             }
             "--session-control-fd" if session_control_fd.is_none() => {
-                session_control_fd = Some(value.parse::<i32>().map_err(|_| "Core session FD selector")?);
+                session_control_fd = Some(
+                    value
+                        .parse::<i32>()
+                        .map_err(|_| "Core session FD selector")?,
+                );
             }
             "--state-reply-fd" if reply_fd.is_none() => {
                 reply_fd = Some(value.parse::<i32>().map_err(|_| "Core reply FD")?)
@@ -536,14 +558,26 @@ fn selection(args: &[String]) -> Result<Option<Selection>> {
     {
         return Err("Core descriptor selectors");
     }
-    if matches!(operation.as_deref(), Some("tos_native_session" | "tos_native_probe_session" | "tos_native_lazy_session" | "tos_native_ordinary_session")) != session_control_fd.is_some()
+    if matches!(
+        operation.as_deref(),
+        Some(
+            "tos_native_session"
+                | "tos_native_probe_session"
+                | "tos_native_lazy_session"
+                | "tos_native_ordinary_session"
+        )
+    ) != session_control_fd.is_some()
         || session_control_fd.is_some_and(|fd| fd < 3)
-        || session_control_fd.is_some() && (state_fd.is_some() || reply_fd.is_some()) {
+        || session_control_fd.is_some() && (state_fd.is_some() || reply_fd.is_some())
+    {
         return Err("Core exact session selector association");
     }
     if native_ordinary_startup
         && (session_control_fd.is_some()
-            || matches!(operation.as_deref(), Some("tos_native_session" | "tos_native_probe_session" | "tos_native_lazy_session")))
+            || matches!(
+                operation.as_deref(),
+                Some("tos_native_session" | "tos_native_probe_session" | "tos_native_lazy_session")
+            ))
     {
         return Err("Core ordinary startup cannot select session mode");
     }
@@ -559,7 +593,11 @@ fn selection(args: &[String]) -> Result<Option<Selection>> {
         native_ordinary_startup,
     }))
 }
-fn read_input_with_visits(input: &mut dyn Read, deadline: Instant, cap: usize) -> Result<(Vec<u8>,usize)> {
+fn read_input_with_visits(
+    input: &mut dyn Read,
+    deadline: Instant,
+    cap: usize,
+) -> Result<(Vec<u8>, usize)> {
     active(deadline)?;
     let previous = unsafe { libc::fcntl(0, libc::F_GETFL) };
     if previous < 0 || unsafe { libc::fcntl(0, libc::F_SETFL, previous | libc::O_NONBLOCK) } < 0 {
@@ -610,10 +648,10 @@ fn read_input_with_visits(input: &mut dyn Read, deadline: Instant, cap: usize) -
     let visits = parsed.visits();
     drop(parsed);
     active(deadline)?;
-    Ok((raw,visits))
+    Ok((raw, visits))
 }
 fn read_input(input: &mut dyn Read, deadline: Instant, cap: usize) -> Result<Vec<u8>> {
-    read_input_with_visits(input,deadline,cap).map(|(raw,_)|raw)
+    read_input_with_visits(input, deadline, cap).map(|(raw, _)| raw)
 }
 fn read_request(input: &mut dyn Read, deadline: Instant) -> Result<Request> {
     let raw = read_input(input, deadline, INPUT_CAP)?;
@@ -967,7 +1005,8 @@ fn with_selected_metadata_property<T>(
             None
         }
     };
-    let matches_property = |m: &libc::stat| !regular_only || m.st_mode & libc::S_IFMT == libc::S_IFREG;
+    let matches_property =
+        |m: &libc::stat| !regular_only || m.st_mode & libc::S_IFMT == libc::S_IFREG;
     let before = match named() {
         Some(m) if matches_property(&m) => m,
         _ => {
@@ -1477,29 +1516,81 @@ fn existence_result(kind: ExistsKind, request: &Request, deadline: Instant) -> R
 // the inherited open-file description and its exact previous flags are restored
 // before returning. Errors are terminal; callers must not subsequently print
 // an unbounded diagnostic on the restored blocking stream.
-fn disclose_bytes(mut bytes: &[u8], deadline: Instant) -> Result<()> {
+fn disclose_bytes(bytes: &[u8], deadline: Instant) -> Result<()> {
+    disclose_parts(&[bytes], deadline)
+}
+
+fn disclose_guarded_bytes(bytes: &[u8], deadline: Instant, receipt: Option<&str>) -> Result<()> {
+    let Some(receipt) = receipt else {
+        return disclose_bytes(bytes, deadline);
+    };
+    if receipt.len() != 64
+        || !receipt
+            .bytes()
+            .all(|byte| byte.is_ascii_hexdigit() && !byte.is_ascii_uppercase())
+    {
+        return Err("Core snapshot guard receipt encoding");
+    }
+    const PREFIX: &[u8] = br#"{"schema_version":"tos_native_core_snapshot_result_v1","ok":true"#;
+    const FIELD: &[u8] = b",\"snapshot_guard\":\"";
+    const QUOTE: &[u8] = b"\"";
+    if !bytes.starts_with(PREFIX) || bytes.len() <= PREFIX.len() {
+        return Err("Core snapshot guarded result envelope");
+    }
+    disclose_parts(
+        &[
+            PREFIX,
+            FIELD,
+            receipt.as_bytes(),
+            QUOTE,
+            &bytes[PREFIX.len()..],
+        ],
+        deadline,
+    )
+}
+
+fn disclose_request_bytes(bytes: &[u8], request: &Request, deadline: Instant) -> Result<()> {
+    request.check_snapshot_guard(deadline)?;
+    if request.snapshot_root.is_some() {
+        request.snapshot_guard_disclosed.set(true);
+    }
+    disclose_guarded_bytes(bytes, deadline, request.snapshot_guard_receipt())?;
+    request.check_snapshot_guard(deadline)
+}
+
+fn disclose_snapshot_refusal(deadline: Instant) -> Result<()> {
+    disclose_bytes(
+        b"{\"schema_version\":\"tos_native_core_snapshot_result_v1\",\"ok\":false,\"error\":\"Selected data snapshot is unavailable\",\"code\":\"DataAccessUnavailable\"}\n",
+        deadline,
+    )
+}
+
+fn disclose_parts(parts: &[&[u8]], deadline: Instant) -> Result<()> {
     active(deadline)?;
     let previous = unsafe { libc::fcntl(1, libc::F_GETFL) };
     if previous < 0 || unsafe { libc::fcntl(1, libc::F_SETFL, previous | libc::O_NONBLOCK) } < 0 {
         return Err("Core output descriptor mode refused");
     }
     let delivery = (|| {
-        while !bytes.is_empty() {
-            active(deadline)?;
-            let count = unsafe { libc::write(1, bytes.as_ptr().cast(), bytes.len()) };
-            if count > 0 {
-                bytes = &bytes[count as usize..];
-            } else if count == 0 {
-                return Err("Core output made no progress");
-            } else {
-                let error = std::io::Error::last_os_error();
-                if !matches!(
-                    error.kind(),
-                    std::io::ErrorKind::Interrupted | std::io::ErrorKind::WouldBlock
-                ) {
-                    return Err("Core output delivery refused");
+        for part in parts {
+            let mut bytes = *part;
+            while !bytes.is_empty() {
+                active(deadline)?;
+                let count = unsafe { libc::write(1, bytes.as_ptr().cast(), bytes.len()) };
+                if count > 0 {
+                    bytes = &bytes[count as usize..];
+                } else if count == 0 {
+                    return Err("Core output made no progress");
+                } else {
+                    let error = std::io::Error::last_os_error();
+                    if !matches!(
+                        error.kind(),
+                        std::io::ErrorKind::Interrupted | std::io::ErrorKind::WouldBlock
+                    ) {
+                        return Err("Core output delivery refused");
+                    }
+                    std::thread::sleep(Duration::from_millis(1));
                 }
-                std::thread::sleep(Duration::from_millis(1));
             }
         }
         active(deadline)
@@ -1645,9 +1736,9 @@ fn emit_value(value: &Value, deadline: Instant) -> Result<Vec<u8>> {
     Ok(out.bytes)
 }
 
-fn run(
+fn run_inner(
     selection: Selection,
-    mut request: Request,
+    request: &mut Request,
     deadline: Instant,
     cancelled: &Arc<AtomicBool>,
 ) -> Result<()> {
@@ -1665,6 +1756,39 @@ fn run(
         .and_then(|n| n.checked_add(selection.operation.capacity()))
         .ok_or("Core selected CLI state overflow")?;
     let operation = operation(&selection.operation, std::mem::take(&mut request.arguments))?;
+    let guarded_snapshot = match request.validate_snapshot_selection(&selection.root) {
+        Ok(selected) => selected,
+        Err(_) => {
+            request.snapshot_guard_unavailable.set(true);
+            return Err("DataAccessUnavailable");
+        }
+    };
+    if guarded_snapshot {
+        let baseline = request.retained_resource_state_upper_bound()?;
+        if baseline
+            .checked_add(ordinary_snapshot_guard::MAX_RETAINED_STATE_BYTES)
+            .is_none_or(|required| required > request.admission.whole_max_state_bytes)
+        {
+            return Err("Core snapshot guard retained-state admission");
+        }
+        let process = request.admission.process;
+        request.open_snapshot_guard_with(
+            &selection.root,
+            deadline,
+            |_| Ok(()),
+            |_| Ok(()),
+            || {
+                active(deadline)?;
+                process
+                    .verify_current()
+                    .map_err(|_| "Core snapshot guard current process")
+            },
+        )?;
+        if request.retained_resource_state_upper_bound()? > request.admission.whole_max_state_bytes
+        {
+            return Err("Core snapshot guard retained-state admission");
+        }
+    }
     // The former QueryStore has independent five-input binding and selection
     // semantics. Retain its own authenticated SQL dispatcher when explicitly
     // selected or discovered; source capture remains a separate owner route.
@@ -1724,7 +1848,8 @@ fn run(
         }
     }
     if let Operation::Exists(kind) = operation {
-        return disclose_bytes(&existence_result(kind, &request, deadline)?, deadline);
+        let bytes = existence_result(kind, &request, deadline)?;
+        return disclose_request_bytes(&bytes, &request, deadline);
     }
     if let Operation::QueryCall(tool, arguments) = &operation {
         if tool == "tos_native_resource_read" {
@@ -1813,7 +1938,8 @@ fn run(
             .capture
             .with_captured_carriers(|view| {
                 view.verify_current()?;
-                disclose_bytes(&held.bytes, deadline).map_err(tos_compiler::Error::Invalid)
+                disclose_request_bytes(&held.bytes, &request, deadline)
+                    .map_err(tos_compiler::Error::Invalid)
             })
             .map_err(|_| "Core carrier disclosure currentness refused");
     }
@@ -1822,7 +1948,8 @@ fn run(
         return held
             .evidence
             .with_current(|_| {
-                disclose_bytes(&held.bytes, deadline).map_err(tos_compiler::Error::Invalid)
+                disclose_request_bytes(&held.bytes, &request, deadline)
+                    .map_err(tos_compiler::Error::Invalid)
             })
             .map_err(|_| "Core evidence disclosure currentness refused");
     }
@@ -1891,6 +2018,9 @@ fn run(
         let bytes = out.bytes;
         return completed
             .with_capture_carriers(&capture, |_| {
+                request
+                    .check_snapshot_guard(deadline)
+                    .map_err(tos_compiler::Error::Invalid)?;
                 send_state(
                     selection
                         .reply_fd
@@ -1899,7 +2029,8 @@ fn run(
                     deadline,
                 )
                 .map_err(tos_compiler::Error::Invalid)?;
-                disclose_bytes(&bytes, deadline).map_err(tos_compiler::Error::Invalid)
+                disclose_request_bytes(&bytes, &request, deadline)
+                    .map_err(tos_compiler::Error::Invalid)
             })
             .map_err(|_| "Core addressed disclosure currentness refused");
     }
@@ -1938,10 +2069,13 @@ fn run(
     // The exact completed capture stays held through both descriptor disclosure
     // and final stdout write. The receiver commits only after child EOF/join.
     let deliver = || -> tos_compiler::Result<()> {
+        request
+            .check_snapshot_guard(deadline)
+            .map_err(tos_compiler::Error::Invalid)?;
         if let Some(fd) = selection.reply_fd {
             send_state(fd, state, deadline).map_err(tos_compiler::Error::Invalid)?;
         }
-        disclose_bytes(&bytes, deadline).map_err(tos_compiler::Error::Invalid)
+        disclose_request_bytes(&bytes, &request, deadline).map_err(tos_compiler::Error::Invalid)
     };
     if let Some(completed) = held.completed.as_ref() {
         completed.with_capture_carriers(&held.capture, |_| deliver())
@@ -1949,6 +2083,23 @@ fn run(
         held.capture.with_captured_carriers(|_| deliver())
     }
     .map_err(|_| "Core whole disclosure currentness refused")
+}
+
+fn run(
+    selection: Selection,
+    mut request: Request,
+    deadline: Instant,
+    cancelled: &Arc<AtomicBool>,
+) -> Result<()> {
+    let guarded = request.snapshot_root.is_some();
+    let result = run_inner(selection, &mut request, deadline, cancelled);
+    if guarded
+        && matches!(result, Err("DataAccessUnavailable"))
+        && !request.snapshot_guard_disclosed.get()
+    {
+        return disclose_snapshot_refusal(deadline);
+    }
+    result
 }
 
 /// Installed private CLI entry. Failures are terminal and never invoke the
@@ -1981,42 +2132,105 @@ pub fn run_if_requested(args: &Vec<String>, input: &mut dyn Read) -> Option<i32>
                         .checked_add(argument.capacity())
                         .ok_or("Core CLI argument state overflow")?;
                 }
-                if matches!(selection.operation.as_str(), "tos_native_session" | "tos_native_probe_session" | "tos_native_lazy_session" | "tos_native_ordinary_session") {
+                if matches!(
+                    selection.operation.as_str(),
+                    "tos_native_session"
+                        | "tos_native_probe_session"
+                        | "tos_native_lazy_session"
+                        | "tos_native_ordinary_session"
+                ) {
                     let probe = selection.operation == "tos_native_probe_session";
                     let ordinary = selection.operation == "tos_native_ordinary_session";
                     let lazy = ordinary || selection.operation == "tos_native_lazy_session";
                     let (raw, startup_visits) = read_input_with_visits(input, deadline, 65536)?;
                     let startup_bytes = raw.len();
-                    let argv_state = argv_state.checked_add(std::mem::size_of::<Selection>())
-                        .and_then(|n|n.checked_add(selection.root.capacity()))
-                        .and_then(|n|n.checked_add(selection.operation.capacity()))
+                    let argv_state = argv_state
+                        .checked_add(std::mem::size_of::<Selection>())
+                        .and_then(|n| n.checked_add(selection.root.capacity()))
+                        .and_then(|n| n.checked_add(selection.operation.capacity()))
                         .ok_or("Core session selected owner state overflow")?;
                     let (mut request, limits, whole) = if ordinary {
-                        let startup: session_startup::OrdinaryStartup = serde_json::from_slice(&raw)
-                            .map_err(|_| "Core ordinary session startup DTO")?;
+                        let startup: session_startup::OrdinaryStartup =
+                            serde_json::from_slice(&raw)
+                                .map_err(|_| "Core ordinary session startup DTO")?;
                         drop(raw);
-                        startup.into_owner_request(selection.work_deadline_ns, argv_state, startup_bytes)?
+                        startup.into_owner_request(
+                            selection.work_deadline_ns,
+                            argv_state,
+                            startup_bytes,
+                        )?
                     } else {
-                        let startup: session_startup::Startup = serde_json::from_slice(&raw)
-                            .map_err(|_| "Core session startup DTO")?;
+                        let startup: session_startup::Startup =
+                            serde_json::from_slice(&raw).map_err(|_| "Core session startup DTO")?;
                         drop(raw);
-                        if lazy { startup.into_lazy_owner_request(selection.work_deadline_ns, argv_state, startup_bytes)? }
-                        else if probe { startup.into_probe_owner_request(selection.work_deadline_ns, argv_state, startup_bytes)? }
-                        else { startup.into_owner_request(selection.work_deadline_ns, argv_state, startup_bytes)? }
+                        if lazy {
+                            startup.into_lazy_owner_request(
+                                selection.work_deadline_ns,
+                                argv_state,
+                                startup_bytes,
+                            )?
+                        } else if probe {
+                            startup.into_probe_owner_request(
+                                selection.work_deadline_ns,
+                                argv_state,
+                                startup_bytes,
+                            )?
+                        } else {
+                            startup.into_owner_request(
+                                selection.work_deadline_ns,
+                                argv_state,
+                                startup_bytes,
+                            )?
+                        }
                     };
                     let deadline = deadline.min(request.admission.deadline()?);
                     let control = crate::private_stage_run::verify_issued_consumer_control(
-                        selection.session_control_fd.ok_or("Core session control selector absent")?,
-                        whole, selection.work_deadline_ns,
-                    ).map_err(|_|"Core actual issued session control refused")?;
-                    let session = session_owner::Session {control, limits, startup_visits};
-                    request.caller_retained_state_bytes = request.caller_retained_state_bytes
+                        selection
+                            .session_control_fd
+                            .ok_or("Core session control selector absent")?,
+                        whole,
+                        selection.work_deadline_ns,
+                    )
+                    .map_err(|_| "Core actual issued session control refused")?;
+                    let session = session_owner::Session {
+                        control,
+                        limits,
+                        startup_visits,
+                    };
+                    request.caller_retained_state_bytes = request
+                        .caller_retained_state_bytes
                         .checked_add(session.retained_state_upper_bound()?)
                         .ok_or("Core session original caller/control state overflow")?;
-                    if lazy { return lazy_session::run(&selection.root, &session, &request, deadline, &signal.token, startup_bytes, ordinary); }
-                    if probe { return probe_session::run(&session, &request, deadline, &signal.token, startup_bytes); }
-                    return serve_selected_root(&selection.root, &request, "", 0, deadline,
-                        &signal.token, None, Some(&session));
+                    if lazy {
+                        return lazy_session::run(
+                            &selection.root,
+                            &session,
+                            &mut request,
+                            deadline,
+                            &signal.token,
+                            startup_bytes,
+                            ordinary,
+                        );
+                    }
+                    if probe {
+                        return probe_session::run(
+                            &session,
+                            &request,
+                            deadline,
+                            &signal.token,
+                            startup_bytes,
+                        );
+                    }
+                    return serve_selected_root(
+                        &selection.root,
+                        &request,
+                        "",
+                        0,
+                        deadline,
+                        &signal.token,
+                        None,
+                        Some(&session),
+                    );
                 }
                 let mut request = if selection.native_ordinary_startup {
                     let raw = read_input(input, deadline, INPUT_CAP)?;
@@ -2067,43 +2281,58 @@ fn compiler_terminal_diagnostic(prefix: &'static str, error: &tos_compiler::Erro
             Ok(())
         }
     }
-    let mut out = Diagnostic { bytes: [0; 512], len: 0 };
+    let mut out = Diagnostic {
+        bytes: [0; 512],
+        len: 0,
+    };
     let _ = write!(out, "{prefix} ");
     let context = match error {
         tos_compiler::Error::Invalid(context) => {
-            let _ = out.write_str("invalid: "); Some(*context)
+            let _ = out.write_str("invalid: ");
+            Some(*context)
         }
         tos_compiler::Error::Budget(context) => {
-            let _ = out.write_str("budget: "); Some(*context)
+            let _ = out.write_str("budget: ");
+            Some(*context)
         }
         tos_compiler::Error::PreparedUnsupported(context) => {
-            let _ = out.write_str("prepared unsupported: "); Some(*context)
+            let _ = out.write_str("prepared unsupported: ");
+            Some(*context)
         }
         tos_compiler::Error::ManagedSourceUnsupported(context) => {
-            let _ = out.write_str("managed source unsupported: "); Some(*context)
+            let _ = out.write_str("managed source unsupported: ");
+            Some(*context)
         }
         tos_compiler::Error::Io(error) => {
-            let _ = write!(out, "I/O kind: {:?}", error.kind()); None
+            let _ = write!(out, "I/O kind: {:?}", error.kind());
+            None
         }
         tos_compiler::Error::Sql(_) => {
-            let _ = out.write_str("SQLite refused"); None
+            let _ = out.write_str("SQLite refused");
+            None
         }
         tos_compiler::Error::SqlitePhase { phase, .. } => {
-            let _ = write!(out, "SQLite phase: {phase:?}"); None
+            let _ = write!(out, "SQLite phase: {phase:?}");
+            None
         }
         tos_compiler::Error::SqliteVmBudget { phase, .. } => {
-            let _ = write!(out, "SQLite VM budget phase: {phase:?}"); None
+            let _ = write!(out, "SQLite VM budget phase: {phase:?}");
+            None
         }
         tos_compiler::Error::Source(_) => {
-            let _ = out.write_str("source carrier refused"); None
+            let _ = out.write_str("source carrier refused");
+            None
         }
         tos_compiler::Error::ControlledColdClose { .. } => {
-            let _ = out.write_str("controlled cold operation/SQLite close refused"); None
+            let _ = out.write_str("controlled cold operation/SQLite close refused");
+            None
         }
     };
     if let Some(context) = context {
         let mut end = context.len().min(256);
-        while !context.is_char_boundary(end) { end -= 1; }
+        while !context.is_char_boundary(end) {
+            end -= 1;
+        }
         let _ = out.write_str(&context[..end]);
     }
     let _ = out.write_str("\n");
@@ -2157,6 +2386,184 @@ enum SelectedRootCall<'a> {
 }
 
 impl Request {
+    fn validate_snapshot_selection(&self, logical_root: &Path) -> Result<bool> {
+        match (&self.snapshot_root, &self.expected_snapshot_guard) {
+            (None, None) => Ok(false),
+            (None, Some(_)) => Err("Core snapshot guard receipt has no manifest root"),
+            (Some(snapshot_root), expected) => {
+                let data_root = snapshot_root.join("data");
+                if !snapshot_root.is_absolute()
+                    || snapshot_root.as_os_str().len() > 8193
+                    || logical_root != data_root
+                    || self.source_paths.validate().is_err()
+                {
+                    return Err("Core snapshot logical root/member selection mismatch");
+                }
+                if expected.is_some_and(|receipt| {
+                    receipt.len() != 64
+                        || !receipt
+                            .bytes()
+                            .all(|byte| byte.is_ascii_hexdigit() && !byte.is_ascii_uppercase())
+                }) {
+                    return Err("Core snapshot expected guard receipt invalid");
+                }
+                Ok(true)
+            }
+        }
+    }
+
+    fn selected_snapshot_paths(&self) -> [&Path; 7] {
+        [
+            &self.source_paths.index_path,
+            &self.source_paths.philosophy_graph_projection_path,
+            &self.source_paths.bibliographic_graph_path,
+            &self.source_paths.entity_type_registry_path,
+            &self.source_paths.relation_type_registry_path,
+            &self.source_paths.philosophy_post_planting_audit_path,
+            &self.source_paths.evidence_projection_path,
+        ]
+    }
+
+    fn open_snapshot_guard_with(
+        &mut self,
+        logical_root: &Path,
+        deadline: Instant,
+        mut charge_work: impl FnMut(u64) -> Result<()>,
+        mut charge_visits: impl FnMut(usize) -> Result<()>,
+        mut active_check: impl FnMut() -> Result<()>,
+    ) -> Result<usize> {
+        let selected = match self.validate_snapshot_selection(logical_root) {
+            Ok(selected) => selected,
+            Err(_) => {
+                self.snapshot_guard_unavailable.set(true);
+                return Err("DataAccessUnavailable");
+            }
+        };
+        if !selected {
+            return Ok(0);
+        }
+        let root = self
+            .snapshot_root
+            .as_deref()
+            .ok_or("Core snapshot manifest root absent")?;
+        let paths = self.selected_snapshot_paths();
+        let work_used = &self.snapshot_guard_work;
+        let visit_used = &self.snapshot_guard_visits;
+        let work_limit = self.admission.cold.max_work_bytes;
+        let visit_limit = self.admission.json.max_visits;
+        let mut tracked_work = |amount: u64| {
+            let next = work_used
+                .get()
+                .checked_add(amount)
+                .filter(|used| *used <= work_limit)
+                .ok_or("Core snapshot guard original work budget")?;
+            work_used.set(next);
+            charge_work(amount)
+        };
+        let mut tracked_visits = |amount: usize| {
+            let next = visit_used
+                .get()
+                .checked_add(amount)
+                .filter(|used| *used <= visit_limit)
+                .ok_or("Core snapshot guard original JSON visits")?;
+            visit_used.set(next);
+            charge_visits(amount)
+        };
+        let opened = ordinary_snapshot_guard::StandaloneSnapshotGuard::open(
+            root,
+            logical_root,
+            &paths,
+            self.expected_snapshot_guard.as_deref(),
+            work_limit,
+            deadline,
+            &mut tracked_work,
+            &mut tracked_visits,
+            &mut active_check,
+        );
+        let guard = match opened {
+            Ok(guard) => guard,
+            Err(_) => {
+                self.snapshot_guard_unavailable.set(true);
+                return Err("DataAccessUnavailable");
+            }
+        };
+        let retained = guard.retained_state_upper_bound()?;
+        drop(tracked_work);
+        drop(tracked_visits);
+        self.snapshot_guard = Some(guard);
+        Ok(retained)
+    }
+
+    fn check_snapshot_guard_with(
+        &self,
+        deadline: Instant,
+        mut charge_work: impl FnMut(u64) -> Result<()>,
+        mut charge_visits: impl FnMut(usize) -> Result<()>,
+        mut active_check: impl FnMut() -> Result<()>,
+    ) -> Result<()> {
+        let Some(guard) = self.snapshot_guard.as_ref() else {
+            return if self.snapshot_root.is_some() || self.snapshot_guard_unavailable.get() {
+                Err("DataAccessUnavailable")
+            } else {
+                Ok(())
+            };
+        };
+        let paths = self.selected_snapshot_paths();
+        let work_used = &self.snapshot_guard_work;
+        let visit_used = &self.snapshot_guard_visits;
+        let work_limit = self.admission.cold.max_work_bytes;
+        let visit_limit = self.admission.json.max_visits;
+        let mut tracked_work = |amount: u64| {
+            let next = work_used
+                .get()
+                .checked_add(amount)
+                .filter(|used| *used <= work_limit)
+                .ok_or("Core snapshot guard original work budget")?;
+            work_used.set(next);
+            charge_work(amount)
+        };
+        let mut tracked_visits = |amount: usize| {
+            let next = visit_used
+                .get()
+                .checked_add(amount)
+                .filter(|used| *used <= visit_limit)
+                .ok_or("Core snapshot guard original JSON visits")?;
+            visit_used.set(next);
+            charge_visits(amount)
+        };
+        let result = guard.check(
+            &paths,
+            deadline,
+            &mut tracked_work,
+            &mut tracked_visits,
+            &mut active_check,
+        );
+        if result.is_err() {
+            self.snapshot_guard_unavailable.set(true);
+            return Err("DataAccessUnavailable");
+        }
+        result
+    }
+
+    fn snapshot_guard_receipt(&self) -> Option<&str> {
+        self.snapshot_guard.as_ref().map(|guard| guard.receipt())
+    }
+
+    fn check_snapshot_guard(&self, deadline: Instant) -> Result<()> {
+        self.check_snapshot_guard_with(
+            deadline,
+            |_| Ok(()),
+            |_| Ok(()),
+            || {
+                active(deadline)?;
+                self.admission
+                    .process
+                    .verify_current()
+                    .map_err(|_| "Core snapshot guard current process")
+            },
+        )
+    }
+
     fn retained_resource_state_upper_bound(&self) -> Result<usize> {
         use tos_foundation::{OwnedState, checked_state_add};
         if !self.arguments.is_null() {
@@ -2182,7 +2589,21 @@ impl Request {
                 .owned_heap_bytes()
                 .map_err(|_| "Core request state overflow")?,
             self.search_read_model.as_ref().map_or(Ok(0), |selection| {
-                selection.path.owned_heap_bytes()
+                selection
+                    .path
+                    .owned_heap_bytes()
+                    .map_err(|_| "Core request state overflow")
+            })?,
+            self.snapshot_root.as_ref().map_or(Ok(0), |path| {
+                path.owned_heap_bytes()
+                    .map_err(|_| "Core request state overflow")
+            })?,
+            self.expected_snapshot_guard
+                .as_ref()
+                .map_or(Ok(0), |value| Ok(value.capacity()))?,
+            self.snapshot_guard.as_ref().map_or(Ok(0), |guard| {
+                guard
+                    .retained_state_upper_bound()
                     .map_err(|_| "Core request state overflow")
             })?,
         ] {
@@ -2194,17 +2615,30 @@ impl Request {
 
 impl SelectedRootCall<'_> {
     fn is_graph_views(&self) -> bool {
-        matches!(self, Self::Resource(crate::KnowledgeRequest::Corpus(
-            tos_query::corpus_read::CorpusReadRequest::GraphViews), _))
-            || matches!(self, Self::Tool("tos_corpus_graph_views", arguments)
+        matches!(
+            self,
+            Self::Resource(
+                crate::KnowledgeRequest::Corpus(
+                    tos_query::corpus_read::CorpusReadRequest::GraphViews
+                ),
+                _
+            )
+        ) || matches!(self, Self::Tool("tos_corpus_graph_views", arguments)
                 if arguments.as_object().is_some_and(|fields| fields.is_empty()))
     }
     fn into_graph_views_request(self) -> Self {
         if matches!(&self, Self::Tool("tos_corpus_graph_views", arguments)
-            if arguments.as_object().is_some_and(|fields| fields.is_empty())) {
-            Self::Resource(crate::KnowledgeRequest::Corpus(
-                tos_query::corpus_read::CorpusReadRequest::GraphViews), false)
-        } else { self }
+            if arguments.as_object().is_some_and(|fields| fields.is_empty()))
+        {
+            Self::Resource(
+                crate::KnowledgeRequest::Corpus(
+                    tos_query::corpus_read::CorpusReadRequest::GraphViews,
+                ),
+                false,
+            )
+        } else {
+            self
+        }
     }
 }
 
@@ -2222,39 +2656,76 @@ fn render_resource_packet(
         if cancelled.load(Ordering::Relaxed) || Instant::now() >= deadline {
             return Err(tos_foundation::FoundationError::new(
                 tos_foundation::FoundationErrorCode::BudgetExceeded,
-                "Resource render original cutoff/cancellation"));
+                "Resource render original cutoff/cancellation",
+            ));
         }
         Ok(())
     };
     let mut admit = |bytes: usize, visits: usize| -> tos_foundation::Result<()> {
-        let work = bytes.checked_mul(2).and_then(|n| visits.checked_mul(2).and_then(|v| n.checked_add(v)))
+        let work = bytes
+            .checked_mul(2)
+            .and_then(|n| visits.checked_mul(2).and_then(|v| n.checked_add(v)))
             .and_then(|n| u64::try_from(n).ok())
-            .ok_or_else(|| tos_foundation::FoundationError::new(
-                tos_foundation::FoundationErrorCode::BudgetExceeded, "Resource render work overflow"))?;
-        view.charge_work(work).map_err(|_| tos_foundation::FoundationError::new(
-            tos_foundation::FoundationErrorCode::BudgetExceeded, "Resource render original work"))
+            .ok_or_else(|| {
+                tos_foundation::FoundationError::new(
+                    tos_foundation::FoundationErrorCode::BudgetExceeded,
+                    "Resource render work overflow",
+                )
+            })?;
+        view.charge_work(work).map_err(|_| {
+            tos_foundation::FoundationError::new(
+                tos_foundation::FoundationErrorCode::BudgetExceeded,
+                "Resource render original work",
+            )
+        })
     };
     let fixed = std::mem::size_of::<tos_foundation::JsonDocument>()
-        + std::mem::size_of::<Vec<u8>>() + std::mem::size_of::<JsonLimits>()
-        + std::mem::size_of_val(&check) + std::mem::size_of_val(&admit);
-    let held = body_capacity.checked_add(fixed)
-        .ok_or(tos_compiler::Error::Budget("Resource render fixed state overflow"))?;
+        + std::mem::size_of::<Vec<u8>>()
+        + std::mem::size_of::<JsonLimits>()
+        + std::mem::size_of_val(&check)
+        + std::mem::size_of_val(&admit);
+    let held = body_capacity
+        .checked_add(fixed)
+        .ok_or(tos_compiler::Error::Budget(
+            "Resource render fixed state overflow",
+        ))?;
     let available = remaining_after_retained(held)?;
     let mut limits = crate::common::packet_json_limits(cap);
     check().map_err(|_| tos_compiler::Error::Budget("Resource render original parse cutoff"))?;
-    view.charge_work(u64::try_from(body.len()).map_err(|_| tos_compiler::Error::Budget("Resource render parse overflow"))?)?;
-    let document = tos_foundation::parse_json_with_state_budget_and_check(body,
-        JsonMode::PublishedStrict, limits, available, &mut check)
-        .map_err(|_| tos_compiler::Error::Budget("Resource render original parser state/JSON"))?;
-    let tree = document.root().retained_storage_bytes()
+    view.charge_work(
+        u64::try_from(body.len())
+            .map_err(|_| tos_compiler::Error::Budget("Resource render parse overflow"))?,
+    )?;
+    let document = tos_foundation::parse_json_with_state_budget_and_check(
+        body,
+        JsonMode::PublishedStrict,
+        limits,
+        available,
+        &mut check,
+    )
+    .map_err(|_| tos_compiler::Error::Budget("Resource render original parser state/JSON"))?;
+    let tree = document
+        .root()
+        .retained_storage_bytes()
         .map_err(|_| tos_compiler::Error::Budget("Resource render retained tree"))?;
-    let available = remaining_after_retained(held.checked_add(tree)
-        .ok_or(tos_compiler::Error::Budget("Resource render tree state overflow"))?)?;
-    limits.max_visits = limits.max_visits.checked_sub(document.visits())
-        .ok_or(tos_compiler::Error::Budget("Resource render original parser/writer visits"))?;
+    let available = remaining_after_retained(held.checked_add(tree).ok_or(
+        tos_compiler::Error::Budget("Resource render tree state overflow"),
+    )?)?;
+    limits.max_visits =
+        limits
+            .max_visits
+            .checked_sub(document.visits())
+            .ok_or(tos_compiler::Error::Budget(
+                "Resource render original parser/writer visits",
+            ))?;
     let (bytes, _) = tos_foundation::emit_python_pretty_sorted_json_with_state_budget(
-        document.root(), limits, available, &mut check, &mut admit)
-        .map_err(|_| tos_compiler::Error::Budget("Resource render original output/state/work"))?;
+        document.root(),
+        limits,
+        available,
+        &mut check,
+        &mut admit,
+    )
+    .map_err(|_| tos_compiler::Error::Budget("Resource render original output/state/work"))?;
     check().map_err(|_| tos_compiler::Error::Budget("Resource render original final cutoff"))?;
     drop(document);
     Ok(bytes)
@@ -2276,7 +2747,9 @@ fn deliver_selected_root_call<'hold, E: crate::ScopedAccessExecutor<'hold> + ?Si
     send: impl FnOnce(&[u8]) -> tos_compiler::Result<()>,
 ) -> tos_compiler::Result<()> {
     let stateful_graph_views = call.is_graph_views();
-    let (tool, resource_render, resource_request, argument_storage) = match call.into_graph_views_request() {
+    let (tool, resource_render, resource_request, argument_storage) = match call
+        .into_graph_views_request()
+    {
         SelectedRootCall::Resource(resource, render) => {
             ("tos_native_resource_read", render, Some(resource), None)
         }
@@ -2371,14 +2844,32 @@ fn deliver_selected_root_call<'hold, E: crate::ScopedAccessExecutor<'hold> + ?Si
         return Err(tos_compiler::Error::Budget("Core query response bytes"));
     }
     let rendered = if resource_render {
-        Some(render_resource_packet(&packet.body, packet.body.capacity(),
-            profile.max_response_bytes, deadline, cancelled, view, &remaining_after_retained)?)
-    } else { None };
+        Some(render_resource_packet(
+            &packet.body,
+            packet.body.capacity(),
+            profile.max_response_bytes,
+            deadline,
+            cancelled,
+            view,
+            &remaining_after_retained,
+        )?)
+    } else {
+        None
+    };
     let render_capacity = rendered.as_ref().map_or(0, Vec::capacity);
-    let render_fixed = if resource_render { std::mem::size_of::<Option<Vec<u8>>>() } else { 0 };
-    let simultaneous_packet = packet.body.capacity().checked_add(render_capacity)
+    let render_fixed = if resource_render {
+        std::mem::size_of::<Option<Vec<u8>>>()
+    } else {
+        0
+    };
+    let simultaneous_packet = packet
+        .body
+        .capacity()
+        .checked_add(render_capacity)
         .and_then(|n| n.checked_add(render_fixed))
-        .ok_or(tos_compiler::Error::Budget("Resource render held body/output state overflow"))?;
+        .ok_or(tos_compiler::Error::Budget(
+            "Resource render held body/output state overflow",
+        ))?;
     let resource_remaining_state = if tool == "tos_native_resource_read" {
         Some(remaining_after_retained(simultaneous_packet)?)
     } else {
@@ -2409,8 +2900,10 @@ fn deliver_selected_root_call<'hold, E: crate::ScopedAccessExecutor<'hold> + ?Si
     let prefix = br#"{"schema_version":"tos_native_core_snapshot_result_v1","ok":true,"result":"#;
     let resource_text = if resource_render {
         Some(
-            std::str::from_utf8(rendered.as_deref().ok_or(tos_compiler::Error::Invalid("Resource render output absent"))?)
-                .map_err(|_| tos_compiler::Error::Invalid("Core resource text encoding"))?,
+            std::str::from_utf8(rendered.as_deref().ok_or(tos_compiler::Error::Invalid(
+                "Resource render output absent",
+            ))?)
+            .map_err(|_| tos_compiler::Error::Invalid("Core resource text encoding"))?,
         )
     } else {
         None
@@ -2549,7 +3042,8 @@ fn serve_selected_root(
     // This is the original request allowance, not a new per-owner grant.
     // Before conversion the builder records and the prospective contiguous
     // membership slots coexist; keys/digests move without payload clones.
-    let resource_call = session.is_some() || matches!(query_call, Some(SelectedRootCall::Resource(_, _)));
+    let resource_call =
+        session.is_some() || matches!(query_call, Some(SelectedRootCall::Resource(_, _)));
     let evidence = if resource_call {
         let mut held = request.retained_resource_state_upper_bound()?;
         for amount in [
@@ -2686,7 +3180,7 @@ fn serve_selected_root(
                         profile, deadline, cancelled, view,
                         remaining_after_retained,
                         |remaining| { executor.reserve_resource_query_state(remaining); Ok(()) },
-                        |bytes| disclose_bytes(bytes, deadline).map_err(tos_compiler::Error::Invalid),
+                        |bytes| disclose_request_bytes(bytes, request, deadline).map_err(tos_compiler::Error::Invalid),
                     );
                     }
                 }
@@ -2721,8 +3215,12 @@ fn serve_selected_root(
                 startup.value(&receipt).map_err(tos_compiler::Error::Invalid)?;
                 startup.literal(b"\n").map_err(tos_compiler::Error::Invalid)?;
                 view.verify_current()?;
+                request.check_snapshot_guard(deadline)
+                    .map_err(tos_compiler::Error::Invalid)?;
                 disclose_bytes(&startup.bytes, deadline).map_err(tos_compiler::Error::Invalid)?;
                 view.verify_current()?;
+                request.check_snapshot_guard(deadline)
+                    .map_err(tos_compiler::Error::Invalid)?;
                 let finished = AtomicBool::new(false);
                 let mut accepted = 0_u64;
                 crate::http::serve_selected_connections(
