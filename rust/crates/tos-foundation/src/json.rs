@@ -424,6 +424,17 @@ fn parse_json_inner(
     state: Option<(usize, usize)>,
     check: Option<&mut dyn FnMut() -> Result<()>>,
 ) -> Result<JsonDocument> {
+    parse_json_inner_with_admission(raw, mode, limits, state, check, None)
+}
+
+fn parse_json_inner_with_admission(
+    raw: &[u8],
+    mode: JsonMode,
+    limits: JsonLimits,
+    state: Option<(usize, usize)>,
+    check: Option<&mut dyn FnMut() -> Result<()>>,
+    admit: Option<&mut dyn FnMut(usize, usize) -> Result<()>>,
+) -> Result<JsonDocument> {
     limits.validate()?;
     if raw.len() > limits.max_bytes {
         return Err(FoundationError::new(
@@ -431,7 +442,7 @@ fn parse_json_inner(
             "JSON byte budget exceeded",
         ));
     }
-    let mut poll = JsonCheck::new(check);
+    let mut poll = JsonCheck::with_admission(check, admit);
     poll.now()?;
     // Preserve pre-grammar UTF-8 rejection and the exact first-invalid offset.
     // Extending a truncated scalar by at most three bytes avoids unsafe str conversion.
@@ -439,6 +450,7 @@ fn parse_json_inner(
     while at < raw.len() {
         poll.now()?;
         let mut end = at.saturating_add(CHECK_BYTES).min(raw.len());
+        poll.admit_work(end - at, 0)?;
         let valid = match std::str::from_utf8(&raw[at..end]) {
             Err(error) if error.error_len().is_none() && end < raw.len() => {
                 let scalar = at + error.valid_up_to();
@@ -448,6 +460,7 @@ fn parse_json_inner(
                     _ => 4,
                 };
                 end = scalar.saturating_add(width).min(raw.len());
+                poll.admit_work(end - at, 0)?;
                 std::str::from_utf8(&raw[at..end])
             }
             result => result,
@@ -603,6 +616,7 @@ impl Parser<'_, '_> {
         if depth > self.limits.max_depth || self.visits >= self.limits.max_visits {
             return Err(self.error(Code::BudgetExceeded, "JSON structural budget exceeded"));
         }
+        self.poll.admit_work(0, 1)?;
         self.visits += 1;
         self.spaces()?;
         match self.raw.get(self.at) {
@@ -1015,7 +1029,9 @@ pub fn emit_python_compact_json(value: &JsonValue, limits: JsonLimits) -> Result
 
 /// Insertion-ordered Python compact bytes under the original owner's state,
 /// cooperative cutoff and aggregate visit/work allowance. `admit` runs before
-/// counting or emission and must reserve both passes even on later failure.
+/// each output-sink byte chunk and node visit in both passes. Numeric
+/// validation additionally admits its input-byte windows before inspection.
+/// Successfully admitted prefixes stay charged even on later failure.
 pub fn emit_python_compact_json_with_state_budget_and_visits_and_check(
     value: &JsonValue,
     limits: JsonLimits,
@@ -1030,6 +1046,7 @@ pub fn emit_python_compact_json_with_state_budget_and_visits_and_check(
         available,
         Some(check),
         Some(admit),
+        true,
     )
 }
 
@@ -1116,7 +1133,7 @@ fn canonical_state_and_visits(
             WriteStyle::PythonCompact
         }
     };
-    write_with_state_budget_and_visits(value, style, limits, available, check, None)
+    write_with_state_budget_and_visits(value, style, limits, available, check, None, false)
 }
 
 /// Resource text: Python ensure_ascii=False, indent=2, sort_keys=True, no LF.
@@ -1136,6 +1153,7 @@ pub fn emit_python_pretty_sorted_json_with_state_budget(
         available,
         Some(check),
         Some(admit),
+        false,
     )
 }
 
@@ -1146,6 +1164,7 @@ fn write_with_state_budget_and_visits(
     available: usize,
     mut check: Option<&mut dyn FnMut() -> Result<()>>,
     mut admit: Option<&mut dyn FnMut(usize, usize) -> Result<()>>,
+    incremental_admission: bool,
 ) -> Result<(Vec<u8>, usize)> {
     let scratch_slots = limits
         .max_depth
@@ -1167,17 +1186,26 @@ fn write_with_state_budget_and_visits(
     if scratch_slots > available {
         return Err(state_error());
     }
-    // Counting and key sorting consume the authentic owner's work too. Reserve
-    // only its original declared grammar/output ceiling before either pass.
-    if let Some(admit) = admit.as_mut() {
-        admit(limits.max_bytes, limits.max_visits)?;
+    // Preserve the original pretty-render reserve contract. Compact rendering
+    // admits each bounded byte/visit prefix before work in both passes.
+    if !incremental_admission {
+        if let Some(admit) = admit.as_mut() {
+            admit(limits.max_bytes, limits.max_visits)?;
+        }
     }
     let (count, used) = {
         let mut count_sink = JsonOutput {
-            poll: JsonCheck::new(
+            poll: JsonCheck::with_admission(
                 check
                     .as_mut()
                     .map(|callback| &mut **callback as &mut dyn FnMut() -> Result<()>),
+                if incremental_admission {
+                    admit.as_mut().map(|callback| {
+                        &mut **callback as &mut dyn FnMut(usize, usize) -> Result<()>
+                    })
+                } else {
+                    None
+                },
             ),
             sink: JsonSink::StateCount {
                 count: 0,
@@ -1215,7 +1243,16 @@ fn write_with_state_budget_and_visits(
         .checked_sub(used)
         .ok_or_else(state_error)?;
     let mut output = JsonOutput {
-        poll: JsonCheck::new(check),
+        poll: JsonCheck::with_admission(
+            check,
+            if incremental_admission {
+                admit
+                    .as_mut()
+                    .map(|callback| &mut **callback as &mut dyn FnMut(usize, usize) -> Result<()>)
+            } else {
+                None
+            },
+        ),
         sink: JsonSink::StateBytes {
             bytes: &mut bytes,
             available,
@@ -1506,11 +1543,28 @@ const CHECK_SHORT_KEY_UNITS: usize = 128;
 const CHECK_SMALL_OBJECT_KEYS: usize = 32;
 struct JsonCheck<'c> {
     check: Option<&'c mut dyn FnMut() -> Result<()>>,
+    admit: Option<&'c mut dyn FnMut(usize, usize) -> Result<()>>,
     work: usize,
 }
 impl<'c> JsonCheck<'c> {
     fn new(check: Option<&'c mut dyn FnMut() -> Result<()>>) -> Self {
-        Self { check, work: 0 }
+        Self::with_admission(check, None)
+    }
+    fn with_admission(
+        check: Option<&'c mut dyn FnMut() -> Result<()>>,
+        admit: Option<&'c mut dyn FnMut(usize, usize) -> Result<()>>,
+    ) -> Self {
+        Self {
+            check,
+            admit,
+            work: 0,
+        }
+    }
+    fn admit_work(&mut self, bytes: usize, visits: usize) -> Result<()> {
+        if let Some(admit) = self.admit.as_mut() {
+            admit(bytes, visits)?;
+        }
+        Ok(())
     }
     fn now(&mut self) -> Result<()> {
         if let Some(check) = self.check.as_mut() {
@@ -1662,6 +1716,7 @@ fn emit(output: &mut JsonOutput<'_, '_>, bytes: &[u8], limits: JsonLimits) -> Re
         })?;
     for chunk in bytes.chunks(CHECK_BYTES) {
         output.poll.work(chunk.len())?;
+        output.poll.admit_work(chunk.len(), 0)?;
         match &mut output.sink {
             JsonSink::Bytes(output) => output.extend_from_slice(chunk),
             JsonSink::Count(count) | JsonSink::StateCount { count, .. } => *count = next,
@@ -1833,6 +1888,7 @@ fn write_value(
             "JSON output structural budget exceeded",
         ));
     }
+    output.poll.admit_work(0, 1)?;
     *visits += 1;
     match value {
         JsonValue::Null => emit(output, b"null", limits)?,
@@ -1857,7 +1913,7 @@ fn write_value(
                 validation_limits.max_visits = remaining;
             }
             let state_remaining = output.state_remaining().map(|available| (0, available));
-            let checked = parse_json_inner(
+            let checked = parse_json_inner_with_admission(
                 number.lexeme.as_bytes(),
                 JsonMode::PublishedStrict,
                 validation_limits,
@@ -1867,6 +1923,11 @@ fn write_value(
                     .check
                     .as_mut()
                     .map(|check| &mut **check as &mut dyn FnMut() -> Result<()>),
+                output
+                    .poll
+                    .admit
+                    .as_mut()
+                    .map(|admit| &mut **admit as &mut dyn FnMut(usize, usize) -> Result<()>),
             )?;
             *numeric_parse_visits = numeric_parse_visits
                 .checked_add(checked.visits())

@@ -1534,8 +1534,7 @@ fn compact_with_owned_state<'a>(owner: &'a CreationState<'a>, value: &JsonValue,
         let limit = owner.work_limit;
         let mut admit = |bytes: usize, visits: usize| {
             let amount = bytes
-                .checked_mul(2)
-                .and_then(|bytes| bytes.checked_add(visits))
+                .checked_add(visits)
                 .ok_or_else(|| {
                     tos_foundation::FoundationError::new(
                         tos_foundation::FoundationErrorCode::BudgetExceeded,
@@ -1550,7 +1549,7 @@ fn compact_with_owned_state<'a>(owner: &'a CreationState<'a>, value: &JsonValue,
             })?;
             owner
                 .json_visits
-                .set(before.checked_add(visits).ok_or_else(|| {
+                .set(owner.json_visits.get().checked_add(visits).ok_or_else(|| {
                     tos_foundation::FoundationError::new(
                         tos_foundation::FoundationErrorCode::BudgetExceeded,
                         "runtime carrier compact visits overflow",
