@@ -14,16 +14,20 @@ branch and graph expansion routes through the graph-promotion path.
 
 ## Validation
 
-Use `rust_workspace` for the maintained native Growth behavior: it tests the
-Rust source owner, native command and HTTP handlers, and the existing source
-conformance families under their exact Cargo product route. Use
-`mechanics_local` for the remaining package-local mechanics checks. The
-Python Growth tests remain comparison evidence and unresolved assertion obligations
-under `parts/branch-growth-cycle/docs/NATIVE_BEHAVIOR_COVERAGE.md`, available via
-`python scripts/run_mechanics_local_tests.py --growth-python-oracle`; they are
-not evidence of whole native equivalence. Plain mechanics execution refuses
-the incomplete whole Growth scope before launching children; the explicitly
-bounded native mechanics cohort remains available.
+Select `rust_workspace` for maintained native Growth behavior and
+`mechanics_local` for the combined native pipeline and remaining package-local
+mechanics checks. The [mechanics validation route](../VALIDATION.md) owns usage;
+[the lane manifest](../../docs/validation/validation_lanes.json) owns ordered
+commands. The source-owned native pipeline prepares its actual Cargo products
+before dispatching the declared assertion classes.
+
+Retained Python Growth tests are comparison evidence and assertion inventory.
+Their native behavior and API fate are recorded in
+[the owner coverage matrix](parts/branch-growth-cycle/docs/NATIVE_BEHAVIOR_COVERAGE.md).
+The validation route exposes explicit reference comparison and the bounded
+native mechanics cohort. A successful native pipeline proves only its declared
+mechanical predicates; semantic assessment, rights and canon retain their
+actual owners.
 
 Use `philosophy_topology` when the change concerns source-home structure or
 philosophy branch admission.
