@@ -1143,9 +1143,9 @@ pub struct WeightedScaleClassCountV1 {
     pub max_bytes: u64,
 }
 
-/// Fixed 100K ladder point for the measured-workload hypothesis. The 5% class
-/// is an unreviewed TextUnit packet fixture; authored-route bridge coverage is
-/// deliberately excluded until its owner defines a fixture-safe contract.
+/// A declared weighted ladder point for the measured-workload hypothesis. The
+/// 5% class is an unreviewed TextUnit packet fixture; authored-route bridge
+/// coverage remains excluded until its owner defines a fixture-safe contract.
 /// Forecast inputs are not an OPS reservation or physical-fit result.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WeightedScaleProfileV1 {
@@ -1199,9 +1199,57 @@ impl WeightedScaleProfileV1 {
         }
     }
 
+    /// Scale the maintained five-class distribution to an explicitly declared
+    /// finite record count. Largest-remainder rounding is deterministic and
+    /// preserves the exact 5/40/5/15/35 mix whenever the count is divisible by
+    /// 100. Native's selected file, tree, byte, inode, work, and state budgets
+    /// remain the admission boundary for materialization.
+    pub fn weighted_for_records(seed: Digest256, target_records: u64) -> std::io::Result<Self> {
+        if target_records < 20 {
+            return Err(io_invalid(
+                "weighted profile requires at least one record in each class",
+            ));
+        }
+        let mut profile = Self::fixed_100k(seed);
+        let weights = profile.classes.map(|row| row.count / 1_000);
+        let mut counts = [0u64; 5];
+        let mut remainders = [0u128; 5];
+        let mut assigned = 0u128;
+        for (index, weight) in weights.into_iter().enumerate() {
+            let weighted = (target_records as u128)
+                .checked_mul(weight as u128)
+                .ok_or_else(|| io_invalid("weighted profile class count overflow"))?;
+            counts[index] = u64::try_from(weighted / 100)
+                .map_err(|_| io_invalid("weighted profile class count exceeds u64"))?;
+            remainders[index] = weighted % 100;
+            assigned = assigned
+                .checked_add(counts[index] as u128)
+                .ok_or_else(|| io_invalid("weighted profile class sum overflow"))?;
+        }
+        let remaining = (target_records as u128)
+            .checked_sub(assigned)
+            .ok_or_else(|| io_invalid("weighted profile class rounding underflow"))?;
+        if remaining > counts.len() as u128 {
+            return Err(io_invalid("weighted profile class rounding differs"));
+        }
+        let mut order = [0usize, 1, 2, 3, 4];
+        order.sort_by_key(|index| (Reverse(remainders[*index]), *index));
+        for index in order.iter().take(remaining as usize) {
+            counts[*index] = counts[*index]
+                .checked_add(1)
+                .ok_or_else(|| io_invalid("weighted profile class count overflow"))?;
+        }
+        profile.target_records = target_records;
+        for (row, count) in profile.classes.iter_mut().zip(counts) {
+            row.count = count;
+        }
+        profile.validate()?;
+        Ok(profile)
+    }
+
     pub fn validate(&self) -> std::io::Result<()> {
-        if self.target_records == 0
-            || self.target_records > 1_000_000
+        if self.target_records < 20
+            || self.target_records.checked_add(19).is_none()
             || self
                 .classes
                 .iter()
@@ -1279,12 +1327,23 @@ impl WeightedScaleProfileV1 {
         let history_change_payload_bytes = history_change_rows
             .checked_mul(mean_template_bytes)
             .ok_or_else(|| io_invalid("history payload forecast overflow"))?;
-        let source_p50_1b = p50
-            .checked_mul(10_000)
-            .ok_or_else(|| io_invalid("1B p50 source forecast overflow"))?;
-        let source_scenario_1b = scenario
-            .checked_mul(10_000)
-            .ok_or_else(|| io_invalid("1B source forecast overflow"))?;
+        let profile_1b = Self::weighted_for_records(self.seed, 1_000_000_000)?;
+        let mut source_p50_1b = 0u128;
+        let mut source_scenario_1b = 0u128;
+        for row in &profile_1b.classes {
+            let count = row.count as u128;
+            let [p50_count, p95_count, max_count] = selected_quantile_counts_v1(row.count)?;
+            source_p50_1b = source_p50_1b
+                .checked_add(count * row.p50_bytes as u128)
+                .ok_or_else(|| io_invalid("1B p50 source forecast overflow"))?;
+            source_scenario_1b = source_scenario_1b
+                .checked_add(
+                    (p50_count as u128) * row.p50_bytes as u128
+                        + (p95_count as u128) * row.p95_bytes as u128
+                        + (max_count as u128) * row.max_bytes as u128,
+                )
+                .ok_or_else(|| io_invalid("1B source forecast overflow"))?;
+        }
         let external_sort_bytes = self
             .target_records
             .checked_mul(SCALE_SORT_ROW_BYTES_V1)
@@ -1307,37 +1366,39 @@ impl WeightedScaleProfileV1 {
             .ok_or_else(|| io_invalid("packed object count forecast overflow"))?
             / MAX_PACKED_OBJECT_FRAMES_V2 as u64;
         Ok(WeightedScaleForecastInputsV1 {
-            target_records_100k: self.target_records,
-            raw_input_file_count_100k: self.target_records,
-            raw_input_directory_count_100k: raw_input_directories,
-            raw_input_inode_count_100k: raw_input_inodes,
-            source_text_unit_packet_records_100k: source_text_unit_packet_records,
-            authored_route_bridge_records_100k: 0,
+            target_records: self.target_records,
+            raw_input_file_count: self.target_records,
+            raw_input_directory_count: raw_input_directories,
+            raw_input_inode_count: raw_input_inodes,
+            source_text_unit_packet_records: source_text_unit_packet_records,
+            authored_route_bridge_records: 0,
             authored_route_bridge_coverage: SCALE_AUTHORED_BRIDGE_COVERAGE_V1,
-            p50_logical_source_bytes_100k: checked_scale_u64(p50)?,
-            selected_quantile_scenario_logical_source_bytes_100k: checked_scale_u64(scenario)?,
-            raw_member_leaf_input_bytes_100k: checked_scale_u64(member_leaf_bytes)?,
-            raw_object_extent_leaf_input_bytes_100k: checked_scale_u64(object_leaf_bytes)?,
-            external_sort_logical_bytes_100k: external_sort_bytes,
-            temporary_payload_spool_peak_bytes_100k: checked_scale_u64(scenario)?,
-            temporary_digest_sort_peak_bytes_100k: external_sort_bytes,
-            temporary_scratch_peak_bytes_100k: checked_scale_u64(scratch_peak)?,
-            temporary_scratch_blocks_4k_assumption_100k: checked_scale_u64(scratch_blocks_4k)?,
-            temporary_sort_run_count_100k: sort_run_count,
-            temporary_file_inode_peak_100k: sort_run_count + 2,
+            p50_logical_source_bytes: checked_scale_u64(p50)?,
+            selected_quantile_scenario_logical_source_bytes: checked_scale_u64(scenario)?,
+            raw_member_leaf_input_bytes: checked_scale_u64(member_leaf_bytes)?,
+            raw_object_extent_leaf_input_bytes: checked_scale_u64(object_leaf_bytes)?,
+            external_sort_logical_bytes: external_sort_bytes,
+            temporary_payload_spool_peak_bytes: checked_scale_u64(scenario)?,
+            temporary_digest_sort_peak_bytes: external_sort_bytes,
+            temporary_scratch_peak_bytes: checked_scale_u64(scratch_peak)?,
+            temporary_scratch_blocks_4k_assumption: checked_scale_u64(scratch_blocks_4k)?,
+            temporary_sort_run_count: sort_run_count,
+            temporary_file_inode_peak: sort_run_count + 2,
             packed_object_frames_per_pack: MAX_PACKED_OBJECT_FRAMES_V2,
-            packed_object_pack_count_upper_100k: max_pack_count,
-            history_change_rows_100k: checked_scale_u64(history_change_rows)?,
-            history_change_payload_scenario_bytes_100k: checked_scale_u64(
+            packed_object_pack_count_upper: max_pack_count,
+            history_change_rows: checked_scale_u64(history_change_rows)?,
+            history_change_payload_scenario_bytes: checked_scale_u64(
                 history_change_payload_bytes,
             )?,
-            p50_logical_source_bytes_1b: checked_scale_u64(source_p50_1b)?,
-            selected_quantile_scenario_logical_source_bytes_1b: checked_scale_u64(
+            p50_logical_source_bytes_at_1b: checked_scale_u64(source_p50_1b)?,
+            selected_quantile_scenario_logical_source_bytes_at_1b: checked_scale_u64(
                 source_scenario_1b,
             )?,
-            current_snapshot_three_copy_p50_bytes_100k: checked_scale_u64(p50 * 3)?,
-            three_pins_with_backup_and_restore_no_dedup_p50_bytes_100k: checked_scale_u64(p50 * 5)?,
-            ten_full_copy_no_dedup_scenario_bytes_1b: checked_scale_u64(source_scenario_1b * 10)?,
+            current_snapshot_three_copy_p50_bytes: checked_scale_u64(p50 * 3)?,
+            three_pins_with_backup_and_restore_no_dedup_p50_bytes: checked_scale_u64(p50 * 5)?,
+            ten_full_copy_no_dedup_scenario_bytes_at_1b: checked_scale_u64(
+                source_scenario_1b * 10,
+            )?,
             revisions: history.revisions,
             changed_rows_per_revision: history.changed_rows_per_revision,
             policy_churn_rows_per_revision: history.policy_churn_rows_per_revision,
@@ -1362,6 +1423,73 @@ impl WeightedScaleProfileV1 {
     }
 }
 
+#[cfg(test)]
+mod weighted_scale_profile_tests {
+    use super::*;
+
+    #[test]
+    fn weighted_record_ladder_preserves_100k_and_prices_billion_without_a_fake_cap() {
+        let seed = Digest256::of_bytes(b"weighted-record-ladder");
+        let default = WeightedScaleProfileV1::weighted_for_records(seed, 100_000).unwrap();
+        assert_eq!(default, WeightedScaleProfileV1::fixed_100k(seed));
+        let default_envelope = weighted_scale_producer_envelope_v1(&default, 4_096).unwrap();
+        assert_eq!(default_envelope.maximum_source_bytes, 903_528_300);
+        assert_eq!(default_envelope.temporary_logical_bytes, 908_328_300);
+        assert_eq!(default_envelope.temporary_allocated_bytes, 908_447_744);
+        assert_eq!(default_envelope.temporary_file_inodes, 27);
+        assert_eq!(default_envelope.raw_input_allocated_bytes, 2_371_125_248);
+
+        let billion =
+            WeightedScaleProfileV1::weighted_for_records(seed, 1_000_000_000).unwrap();
+        assert_eq!(
+            billion.classes.map(|row| row.count),
+            [50_000_000, 400_000_000, 50_000_000, 150_000_000, 350_000_000]
+        );
+        let default_forecast = default.forecast_inputs().unwrap();
+        let billion_forecast = billion.forecast_inputs().unwrap();
+        assert_eq!(billion_forecast.target_records, 1_000_000_000);
+        assert_eq!(
+            billion_forecast.selected_quantile_scenario_logical_source_bytes,
+            default_forecast
+                .selected_quantile_scenario_logical_source_bytes
+                .checked_mul(10_000)
+                .unwrap()
+        );
+        assert_eq!(
+            billion_forecast.selected_quantile_scenario_logical_source_bytes_at_1b,
+            billion_forecast.selected_quantile_scenario_logical_source_bytes
+        );
+        assert!(billion_forecast
+            .selected_quantile_scenario_logical_source_bytes_at_1b
+            < u64::MAX);
+        let envelope = weighted_scale_producer_envelope_v1(&billion, 4_096).unwrap();
+        assert!(envelope.maximum_source_bytes > 1_000_000_000_000);
+        assert!(envelope.raw_input_allocated_bytes > envelope.maximum_source_bytes);
+        assert!(!billion_forecast.physical_fit_established);
+    }
+
+    #[test]
+    fn weighted_record_ladder_rounds_deterministically_and_rejects_structural_overflow() {
+        let seed = Digest256::of_bytes(b"weighted-record-rounding");
+        let profile = WeightedScaleProfileV1::weighted_for_records(seed, 101).unwrap();
+        assert_eq!(profile.classes.map(|row| row.count), [5, 41, 5, 15, 35]);
+        assert_eq!(profile.classes.iter().map(|row| row.count).sum::<u64>(), 101);
+        let small_forecast = profile.forecast_inputs().unwrap();
+        let billion_profile =
+            WeightedScaleProfileV1::weighted_for_records(seed, 1_000_000_000).unwrap();
+        let billion_forecast = billion_profile.forecast_inputs().unwrap();
+        assert_eq!(
+            small_forecast.selected_quantile_scenario_logical_source_bytes_at_1b,
+            billion_forecast.selected_quantile_scenario_logical_source_bytes
+        );
+        assert!(
+            small_forecast.selected_quantile_scenario_logical_source_bytes_at_1b
+                > small_forecast.selected_quantile_scenario_logical_source_bytes
+        );
+        assert!(WeightedScaleProfileV1::weighted_for_records(seed, u64::MAX).is_err());
+    }
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct WeightedScaleHistoryPlanV1 {
     pub revisions: u32,
@@ -1374,43 +1502,43 @@ pub struct WeightedScaleHistoryPlanV1 {
 /// must measure payload sharing; it cannot claim compression or CAS savings.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WeightedScaleForecastInputsV1 {
-    pub target_records_100k: u64,
+    pub target_records: u64,
     /// Raw filesystem input for the real source census: one member file per
     /// record plus the root and the shared/per-record directory hierarchy.
-    pub raw_input_file_count_100k: u64,
-    pub raw_input_directory_count_100k: u64,
-    pub raw_input_inode_count_100k: u64,
+    pub raw_input_file_count: u64,
+    pub raw_input_directory_count: u64,
+    pub raw_input_inode_count: u64,
     /// The 5% EvidencePacket class plus the 15% TextUnit class. Both use the
     /// schema-supported unreviewed TextUnit packet contract.
-    pub source_text_unit_packet_records_100k: u64,
+    pub source_text_unit_packet_records: u64,
     /// Authored-route bridge fixtures are intentionally not generated under
     /// a schema that hardcodes canon/review/match assertions.
-    pub authored_route_bridge_records_100k: u64,
+    pub authored_route_bridge_records: u64,
     pub authored_route_bridge_coverage: &'static str,
-    pub p50_logical_source_bytes_100k: u64,
-    pub selected_quantile_scenario_logical_source_bytes_100k: u64,
-    pub raw_member_leaf_input_bytes_100k: u64,
-    pub raw_object_extent_leaf_input_bytes_100k: u64,
+    pub p50_logical_source_bytes: u64,
+    pub selected_quantile_scenario_logical_source_bytes: u64,
+    pub raw_member_leaf_input_bytes: u64,
+    pub raw_object_extent_leaf_input_bytes: u64,
     /// Upper-bound scratch geometry: spool all logical member bytes before
     /// payload deduplication, then retain sorted digest runs while packing.
-    pub temporary_payload_spool_peak_bytes_100k: u64,
-    pub temporary_digest_sort_peak_bytes_100k: u64,
-    pub temporary_scratch_peak_bytes_100k: u64,
+    pub temporary_payload_spool_peak_bytes: u64,
+    pub temporary_digest_sort_peak_bytes: u64,
+    pub temporary_scratch_peak_bytes: u64,
     /// A clearly labeled 4 KiB allocation-unit estimate, not measured blocks.
-    pub temporary_scratch_blocks_4k_assumption_100k: u64,
-    pub temporary_sort_run_count_100k: u64,
+    pub temporary_scratch_blocks_4k_assumption: u64,
+    pub temporary_sort_run_count: u64,
     /// One payload spool, one sort directory, and one inode per sorted run.
-    pub temporary_file_inode_peak_100k: u64,
+    pub temporary_file_inode_peak: u64,
     pub packed_object_frames_per_pack: u32,
-    pub packed_object_pack_count_upper_100k: u64,
-    pub external_sort_logical_bytes_100k: u64,
-    pub history_change_rows_100k: u64,
-    pub history_change_payload_scenario_bytes_100k: u64,
-    pub p50_logical_source_bytes_1b: u64,
-    pub selected_quantile_scenario_logical_source_bytes_1b: u64,
-    pub current_snapshot_three_copy_p50_bytes_100k: u64,
-    pub three_pins_with_backup_and_restore_no_dedup_p50_bytes_100k: u64,
-    pub ten_full_copy_no_dedup_scenario_bytes_1b: u64,
+    pub packed_object_pack_count_upper: u64,
+    pub external_sort_logical_bytes: u64,
+    pub history_change_rows: u64,
+    pub history_change_payload_scenario_bytes: u64,
+    pub p50_logical_source_bytes_at_1b: u64,
+    pub selected_quantile_scenario_logical_source_bytes_at_1b: u64,
+    pub current_snapshot_three_copy_p50_bytes: u64,
+    pub three_pins_with_backup_and_restore_no_dedup_p50_bytes: u64,
+    pub ten_full_copy_no_dedup_scenario_bytes_at_1b: u64,
     pub revisions: u32,
     pub changed_rows_per_revision: u64,
     pub policy_churn_rows_per_revision: u64,
@@ -2615,6 +2743,50 @@ pub(crate) struct WeightedScaleProducerRequestV1<'a> {
     pub(crate) tree_io: Arc<NativeV2TreeIo>,
 }
 
+fn weighted_prewrite_refusal_v1(
+    profile: &WeightedScaleProfileV1,
+    forecast: &WeightedScaleForecastInputsV1,
+    envelope: &WeightedScaleProducerEnvelopeV1,
+    request: &WeightedScaleProducerRequestV1<'_>,
+    segment_frame_cap: u64,
+) -> std::io::Error {
+    std::io::Error::new(
+        std::io::ErrorKind::InvalidInput,
+        format!(
+            "weighted producer prewrite refusal: target_records={} source_upper_bytes={} raw_files={} raw_directories={} raw_allocated_upper_bytes={} scratch_logical_upper_bytes={} scratch_allocated_upper_bytes={} scratch_inode_upper={} allocation_unit_bytes={} member_tree_rows={} object_tree_rows={} object_count={} member_frame_upper_bytes={}\nselected_caps: source_bytes={} raw_files={} raw_directories={} raw_allocated_bytes={} scratch_logical_bytes={} scratch_allocated_bytes={} scratch_inodes={} member_tree_rows={} object_tree_rows={} object_count={} member_frame_bytes={}\nprofile_price: p50_logical_source_bytes={} selected_quantile_logical_source_bytes={} external_sort_logical_bytes={} history_change_payload_scenario_bytes={}",
+            profile.target_records,
+            envelope.maximum_source_bytes,
+            forecast.raw_input_file_count,
+            forecast.raw_input_directory_count,
+            envelope.raw_input_allocated_bytes,
+            envelope.temporary_logical_bytes,
+            envelope.temporary_allocated_bytes,
+            envelope.temporary_file_inodes,
+            request.tree_io.selected_allocation_unit_bytes(),
+            profile.target_records,
+            profile.target_records,
+            profile.target_records,
+            profile.classes.iter().map(|row| row.max_bytes).max().unwrap_or(0)
+                .saturating_add(SCALE_IDENTITY_GROWTH_ALLOWANCE_V1),
+            request.max_source_bytes,
+            request.max_raw_input_files,
+            request.max_raw_input_directories,
+            request.max_raw_input_allocated_bytes,
+            request.max_temporary_logical_bytes,
+            request.max_temporary_allocated_bytes,
+            request.max_temporary_inodes,
+            request.member_tree_limits.max_rows,
+            request.object_limits.tree_limits.max_rows,
+            request.object_limits.max_objects,
+            request.max_member_bytes.min(segment_frame_cap),
+            forecast.p50_logical_source_bytes,
+            forecast.selected_quantile_scenario_logical_source_bytes,
+            forecast.external_sort_logical_bytes,
+            forecast.history_change_payload_scenario_bytes,
+        ),
+    )
+}
+
 /// A completed private packed input. The descriptors and byte hashes are
 /// mechanically derived from this held store. The receipt grants no source,
 /// review, rights, canon, or admission authority.
@@ -2653,7 +2825,7 @@ pub(crate) struct PackedScaleInputReceiptV1 {
     pub(crate) forecast: WeightedScaleForecastInputsV1,
 }
 
-/// Materialize one bounded 100K input under the selected Native resource
+/// Materialize one declared bounded input under the selected Native resource
 /// envelope. The manifest is written last; failures leave no selectable input.
 pub(crate) fn produce_weighted_scale_input_v1(
     request: WeightedScaleProducerRequestV1<'_>,
@@ -2661,9 +2833,11 @@ pub(crate) fn produce_weighted_scale_input_v1(
 ) -> std::io::Result<PackedScaleInputReceiptV1> {
     let profile = request.profile.clone();
     profile.validate()?;
-    if profile != WeightedScaleProfileV1::fixed_100k(profile.seed) {
+    let expected_profile =
+        WeightedScaleProfileV1::weighted_for_records(profile.seed, profile.target_records)?;
+    if profile != expected_profile {
         return Err(io_invalid(
-            "weighted producer profile is not the frozen 100K mix",
+            "weighted producer profile differs from maintained seed/size ladder",
         ));
     }
     if request.output_root.exists()
@@ -2702,13 +2876,10 @@ pub(crate) fn produce_weighted_scale_input_v1(
         || request.max_working_state_bytes == usize::MAX
         || request.caller_live_state_bytes >= request.max_working_state_bytes
         || request.tree_io.max_working_state_bytes() != request.max_working_state_bytes
-        || request.member_tree_limits.max_rows < profile.target_records
         || request.member_tree_limits.max_key_bytes < path_for(WeightedScaleClassV1::Work, 0).len()
         || request.member_tree_limits.max_value_bytes < SCALE_MEMBER_VALUE_BYTES_V1
         || request.member_tree_limits.max_total_bytes == 0
         || request.member_tree_limits.max_total_bytes == u64::MAX
-        || request.object_limits.tree_limits.max_rows < profile.target_records
-        || request.object_limits.max_objects < profile.target_records
         || request.object_limits.max_working_state_bytes != request.max_working_state_bytes
     {
         return Err(io_invalid("weighted producer limits or destination differ"));
@@ -2734,7 +2905,7 @@ pub(crate) fn produce_weighted_scale_input_v1(
     let temporary_allocated_upper = envelope.temporary_allocated_bytes;
     let inode_upper = envelope.temporary_file_inodes;
     let raw_allocation_upper = envelope.raw_input_allocated_bytes;
-    let raw_directory_upper = forecast.raw_input_directory_count_100k;
+    let raw_directory_upper = forecast.raw_input_directory_count;
     let selected_state = u64::try_from(request.max_working_state_bytes)
         .map_err(|_| io_invalid("selected Native state ceiling exceeds u64"))?;
     forecast.selected_native_state_bytes_per_client = Some(selected_state);
@@ -2757,6 +2928,16 @@ pub(crate) fn produce_weighted_scale_input_v1(
             .ok_or_else(|| io_invalid("256-client callback state forecast overflow"))?,
     );
     forecast.full_256_peak_established = false;
+    let member_growth_exceeds_cap = profile.classes.iter().any(|row| {
+        row.max_bytes
+            .checked_add(SCALE_IDENTITY_GROWTH_ALLOWANCE_V1)
+            .is_none_or(|upper| {
+                upper > request.max_member_bytes || upper > segment_limits.max_frame_bytes
+            })
+    });
+    let selected_case_exceeds_profile = request.member_tree_limits.max_rows < profile.target_records
+        || request.object_limits.tree_limits.max_rows < profile.target_records
+        || request.object_limits.max_objects < profile.target_records;
     if maximum_source_bytes > request.max_source_bytes
         || profile.target_records > request.max_raw_input_files
         || raw_directory_upper > request.max_raw_input_directories
@@ -2764,11 +2945,17 @@ pub(crate) fn produce_weighted_scale_input_v1(
         || temporary_logical_upper > request.max_temporary_logical_bytes
         || temporary_allocated_upper > request.max_temporary_allocated_bytes
         || inode_upper > request.max_temporary_inodes
+        || selected_case_exceeds_profile
+        || member_growth_exceeds_cap
         || request.object_limits.max_pack_frames == 0
         || request.object_limits.max_pack_frames == u32::MAX
     {
-        return Err(io_invalid(
-            "weighted producer exceeds the selected pre-write envelope",
+        return Err(weighted_prewrite_refusal_v1(
+            &profile,
+            &forecast,
+            &envelope,
+            &request,
+            segment_limits.max_frame_bytes,
         ));
     }
     scale_active(request.deadline, request.cancelled)?;
@@ -2830,17 +3017,6 @@ pub(crate) fn produce_weighted_scale_input_v1(
         request.cancelled,
     )
     .map_err(|_| io_invalid("weighted producer segment initialization failed"))?;
-    if profile.classes.iter().any(|row| {
-        row.max_bytes
-            .checked_add(SCALE_IDENTITY_GROWTH_ALLOWANCE_V1)
-            .is_none_or(|upper| {
-                upper > request.max_member_bytes || upper > segment_limits.max_frame_bytes
-            })
-    }) {
-        return Err(io_invalid(
-            "weighted source member exceeds selected frame cap",
-        ));
-    }
 
     let scratch_path = request.output_root.join(".scale-source-spool-v1");
     let mut scratch = ScaleScratchLeaseV1::new(
@@ -3540,14 +3716,14 @@ fn effective_profile_bytes_v1(
         })
         .collect::<Vec<_>>();
     canonical_value_bytes_v1(&serde_json::json!({
-        "schema": "tos_native_scale_effective_profile_v1",
+        "schema": "tos_native_scale_effective_profile_v2",
         "status": "working_hypothesis_no_admission",
         "template_source_commit": SCALE_TEMPLATE_SOURCE_COMMIT_V1,
         "base_profile_ref": SCALE_BASE_PROFILE_REF_V1,
         "base_profile_sha256": base_profile_sha256.to_hex(),
         "target_records": profile.target_records,
         "scenario": {
-            "name": "weighted_100k_selected_quantiles",
+            "name": "weighted_profile_90_9_1_selected_quantiles",
             "p50_percent": 90,
             "p95_percent": 9,
             "max_percent": 1,
@@ -3562,7 +3738,7 @@ fn effective_profile_bytes_v1(
         "authored_route_bridge_coverage": SCALE_AUTHORED_BRIDGE_COVERAGE_V1,
         "authentic_bridge_form_ref": SCALE_AUTHENTIC_BRIDGE_FORM_REF_V1,
         "authentic_bridge_replay_route": SCALE_AUTHENTIC_BRIDGE_REPLAY_ROUTE_V1,
-        "authentic_bridge_replay_scope": "one real pinned source specimen, separate from the 100K synthetic cohort",
+        "authentic_bridge_replay_scope": "one real pinned source specimen, separate from the declared synthetic cohort",
         "history": {
             "revisions": forecast.revisions,
             "changed_rows_per_revision": forecast.changed_rows_per_revision,
@@ -3586,10 +3762,10 @@ fn effective_profile_bytes_v1(
             "full_256_peak_established": forecast.full_256_peak_established,
         },
         "logical_source_forecast": {
-            "p50_bytes_100k": forecast.p50_logical_source_bytes_100k,
-            "selected_quantile_bytes_100k": forecast.selected_quantile_scenario_logical_source_bytes_100k,
-            "p50_bytes_1b": forecast.p50_logical_source_bytes_1b,
-            "selected_quantile_bytes_1b": forecast.selected_quantile_scenario_logical_source_bytes_1b,
+            "p50_bytes_at_profile_size": forecast.p50_logical_source_bytes,
+            "selected_quantile_bytes_at_profile_size": forecast.selected_quantile_scenario_logical_source_bytes,
+            "p50_bytes_at_1b": forecast.p50_logical_source_bytes_at_1b,
+            "selected_quantile_bytes_at_1b": forecast.selected_quantile_scenario_logical_source_bytes_at_1b,
             "unique_payload_ratio": null,
             "physical_fit_established": false,
         },
@@ -3628,7 +3804,7 @@ fn dependency_closure_bytes_v1(
         "authored_route_bridge_coverage": SCALE_AUTHORED_BRIDGE_COVERAGE_V1,
         "authentic_bridge_form_ref": SCALE_AUTHENTIC_BRIDGE_FORM_REF_V1,
         "authentic_bridge_replay_route": SCALE_AUTHENTIC_BRIDGE_REPLAY_ROUTE_V1,
-        "authentic_bridge_replay_scope": "one real pinned source specimen, separate from the 100K synthetic cohort",
+        "authentic_bridge_replay_scope": "one real pinned source specimen, separate from the declared synthetic cohort",
         "external_dependencies": external_dependencies,
     }))
 }

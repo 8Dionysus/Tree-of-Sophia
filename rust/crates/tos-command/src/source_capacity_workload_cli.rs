@@ -1,4 +1,4 @@
-//! Maintained two-root 100K capacity-fixture producer entry.
+//! Maintained two-root weighted capacity-fixture producer entry.
 //!
 //! The producer emits a raw census root and a packed indexed root from one
 //! typed cursor under the selected Native invocation. Its receipt is
@@ -8,7 +8,7 @@ use crate::source_admission::{AdmissionWorkBudget, invalid};
 use crate::source_admission_packed_objects::{MAX_PACKED_OBJECT_FRAMES_V2, PackedObjectLimitsV2};
 use crate::source_capacity_workload::{
     PackedScaleInputReceiptV1, WeightedScaleProducerRequestV1, WeightedScaleProfileV1,
-    produce_weighted_scale_input_v1,
+    produce_weighted_scale_input_v1, weighted_scale_producer_envelope_v1,
 };
 use crate::source_current_cut::{
     foundation_command::SelectedOutput, foundation_entry::FoundationBootstrapClock,
@@ -27,12 +27,13 @@ use std::sync::{
 use std::time::Instant;
 use tos_foundation::Digest256;
 
-pub const HELP: &str = "usage: tos-native-owner-command capacity-fixture --store PATH --seed-sha256 LOWERHEX64 --work-units N -- --repo-root ABS --invocation ABS [native validator selections]\n\nCreate the deterministic private 100K raw and packed scale-input roots under the protected artifact root. Then run corpus-admit with the printed --input-root and --indexed-input-root. This fixture does not grant source, review, rights, canon, or admission authority.\n";
+pub const HELP: &str = "usage: tos-native-owner-command capacity-fixture --store PATH --seed-sha256 LOWERHEX64 --work-units N [--target-records N] -- --repo-root ABS --invocation ABS [native validator selections]\n\nCreate deterministic private raw and packed scale-input roots for the declared weighted record count (default 100000) under the protected artifact root. The five-class 5/40/5/15/35 distribution is priced against the exact selected Native limits before writing. Then run corpus-admit with the printed --input-root and --indexed-input-root. This fixture does not grant source, review, rights, canon, or admission authority.\n";
 
 struct Arguments {
     store: PathBuf,
     seed: Digest256,
     work_units: u64,
+    target_records: u64,
     repository_root: PathBuf,
     validator: Vec<OsString>,
 }
@@ -73,6 +74,7 @@ fn parse(args: &[OsString]) -> io::Result<Option<Arguments>> {
     let mut store = None;
     let mut seed = None;
     let mut work_units = None;
+    let mut target_records = None;
     let mut validator = None;
     let mut at = 0;
     while at < args.len() {
@@ -121,6 +123,20 @@ fn parse(args: &[OsString]) -> io::Result<Option<Arguments>> {
                 }
                 work_units = Some(units);
             }
+            "--target-records" if target_records.is_none() => {
+                let text = value
+                    .to_str()
+                    .ok_or_else(|| invalid("capacity fixture target-record encoding"))?;
+                let records = text
+                    .parse::<u64>()
+                    .map_err(|_| invalid("capacity fixture target-record value"))?;
+                if records < 20 || records == u64::MAX {
+                    return Err(invalid(
+                        "capacity fixture target records must be finite and represent all five classes",
+                    ));
+                }
+                target_records = Some(records);
+            }
             _ => return Err(invalid("capacity fixture option set")),
         }
     }
@@ -160,6 +176,7 @@ fn parse(args: &[OsString]) -> io::Result<Option<Arguments>> {
         store: store.ok_or_else(|| invalid("capacity fixture store absent"))?,
         seed: seed.ok_or_else(|| invalid("capacity fixture seed absent"))?,
         work_units: work_units.ok_or_else(|| invalid("capacity fixture work units absent"))?,
+        target_records: target_records.unwrap_or(100_000),
         repository_root: repository_root
             .ok_or_else(|| invalid("capacity fixture repository root absent"))?,
         validator,
@@ -272,21 +289,35 @@ fn run_selected(
         .as_ref()
         .cloned()
         .ok_or_else(|| invalid("capacity fixture V2 IO ledger absent"))?;
-    if case.files < 100_000
-        || case.directories < 100_019
-        || case.tree_rows < 100_000
-        || case.object_bytes == 0
+    if case.object_bytes == 0
         || case.source_store_bytes == 0
         || case.target_store_bytes == 0
         || case.state_bytes != v2_profile.max_working_state_bytes
     {
         return Err(invalid(
-            "selected Native V2 case is below the finite 100K fixture envelope",
+            "selected Native V2 case has no finite capacity-fixture limits",
         ));
     }
+    let profile = WeightedScaleProfileV1::weighted_for_records(args.seed, args.target_records)?;
+    let target_records = profile.target_records;
+    let class_counts = profile.classes.map(|row| row.count);
+    let forecast = profile.forecast_inputs()?;
+    let envelope = weighted_scale_producer_envelope_v1(
+        &profile,
+        tree_io.selected_allocation_unit_bytes(),
+    )?;
+    let total_store_bytes = case
+        .source_store_bytes
+        .checked_add(case.target_store_bytes)
+        .ok_or_else(|| invalid("capacity fixture selected store sum overflow"))?;
     let seed_text = args.seed.to_hex();
-    let raw_root = artifact.path.join(format!("scale-raw-100k-{seed_text}"));
-    let packed_root = artifact.path.join(format!("scale-packed-100k-{seed_text}"));
+    let count_label = if profile.target_records == 100_000 {
+        "100k".to_owned()
+    } else {
+        profile.target_records.to_string()
+    };
+    let raw_root = artifact.path.join(format!("scale-raw-{count_label}-{seed_text}"));
+    let packed_root = artifact.path.join(format!("scale-packed-{count_label}-{seed_text}"));
     for root in [&raw_root, &packed_root] {
         if root.starts_with(&case.target)
             || case.target.starts_with(root)
@@ -333,7 +364,7 @@ fn run_selected(
             repository_root: &args.repository_root,
             raw_input_root: &raw_root,
             output_root: &packed_root,
-            profile: WeightedScaleProfileV1::fixed_100k(args.seed),
+            profile,
             segment_limits: resources
                 .v2_base_read_limits
                 .as_ref()
@@ -390,9 +421,18 @@ fn run_selected(
     let io_after = v2_profile.io.snapshot();
     let space = v2_profile.allocation_space.snapshot();
     let selected_profile = serde_json::json!({
+        "target_records": target_records,
+        "class_counts": class_counts,
         "source_store_bytes": case.source_store_bytes,
         "target_store_bytes": case.target_store_bytes,
-        "total_store_bytes": case.source_store_bytes.saturating_add(case.target_store_bytes),
+        "total_store_bytes": total_store_bytes,
+        "producer_prewrite_price": {
+            "source_upper_bytes": envelope.maximum_source_bytes,
+            "raw_allocated_upper_bytes": envelope.raw_input_allocated_bytes,
+            "scratch_logical_upper_bytes": envelope.temporary_logical_bytes,
+            "scratch_allocated_upper_bytes": envelope.temporary_allocated_bytes,
+            "scratch_file_inode_upper": envelope.temporary_file_inodes
+        },
         "tree_bytes": case.tree_bytes,
         "point_tree_bytes": case.point_tree_bytes,
         "tree_nodes": case.tree_nodes,
@@ -406,7 +446,28 @@ fn run_selected(
         "max_frames_per_pack": MAX_PACKED_OBJECT_FRAMES_V2,
         "work_units": args.work_units,
         "max_total_read_bytes_remaining": candidate.max_read_bytes,
-        "max_total_write_bytes_remaining": candidate.max_write_bytes
+        "max_total_write_bytes_remaining": candidate.max_write_bytes,
+        "profile_forecast": {
+            "target_records": forecast.target_records,
+            "raw_input_file_count": forecast.raw_input_file_count,
+            "raw_input_directory_count": forecast.raw_input_directory_count,
+            "raw_input_inode_count": forecast.raw_input_inode_count,
+            "p50_logical_source_bytes_at_profile_size": forecast.p50_logical_source_bytes,
+            "selected_quantile_logical_source_bytes_at_profile_size": forecast
+                .selected_quantile_scenario_logical_source_bytes,
+            "selected_quantile_logical_source_bytes_at_1b": forecast
+                .selected_quantile_scenario_logical_source_bytes_at_1b,
+            "external_sort_logical_bytes": forecast.external_sort_logical_bytes,
+            "temporary_payload_spool_peak_bytes": forecast.temporary_payload_spool_peak_bytes,
+            "temporary_digest_sort_peak_bytes": forecast.temporary_digest_sort_peak_bytes,
+            "temporary_scratch_peak_bytes": forecast.temporary_scratch_peak_bytes,
+            "temporary_scratch_blocks_4k_assumption": forecast.temporary_scratch_blocks_4k_assumption,
+            "temporary_file_inode_peak": forecast.temporary_file_inode_peak,
+            "history_change_rows": forecast.history_change_rows,
+            "history_change_payload_scenario_bytes": forecast
+                .history_change_payload_scenario_bytes,
+            "physical_fit_established": forecast.physical_fit_established
+        }
     });
     write_receipt(
         &mut validator,
@@ -457,8 +518,28 @@ fn write_receipt(
     protected_operation_elapsed_ms: u64,
 ) -> io::Result<()> {
     let forecast = &receipt.forecast;
+    let measured_source_at_1b = project_measured_bytes(
+        receipt.source_bytes,
+        receipt.member_count,
+        1_000_000_000,
+    )?;
+    let measured_unique_at_1b = project_measured_bytes(
+        receipt.unique_payload_bytes,
+        receipt.member_count,
+        1_000_000_000,
+    )?;
+    let measured_source_ten_copies_at_1b = project_measured_bytes(
+        receipt.source_bytes,
+        receipt.member_count,
+        10_000_000_000,
+    )?;
+    let measured_unique_ten_copies_at_1b = project_measured_bytes(
+        receipt.unique_payload_bytes,
+        receipt.member_count,
+        10_000_000_000,
+    )?;
     let report = serde_json::json!({
-        "schema": "tos_native_weighted_capacity_fixture_receipt_v1",
+        "schema": "tos_native_weighted_capacity_fixture_receipt_v2",
         "source_status": "synthetic_private_fixture",
         "semantic_admission": false,
         "rights_change": false,
@@ -536,16 +617,22 @@ fn write_receipt(
         "producer_elapsed_ms": producer_elapsed_ms,
         "protected_operation_elapsed_ms": protected_operation_elapsed_ms,
         "forecast": {
-            "p50_logical_source_bytes_100k": forecast.p50_logical_source_bytes_100k,
-            "selected_quantile_logical_source_bytes_100k": forecast.selected_quantile_scenario_logical_source_bytes_100k,
-            "selected_quantile_logical_source_bytes_1b": forecast.selected_quantile_scenario_logical_source_bytes_1b,
-            "measured_100k_scaled_logical_source_bytes_1b": receipt.source_bytes.checked_mul(10_000),
-            "measured_100k_scaled_unique_payload_bytes_1b": receipt.unique_payload_bytes.checked_mul(10_000),
-            "ten_full_copies_without_dedup_bytes_1b": forecast.ten_full_copy_no_dedup_scenario_bytes_1b,
-            "ten_full_copies_without_dedup_from_measured_100k_bytes_1b": receipt.source_bytes.checked_mul(100_000),
-            "ten_full_copies_with_measured_unique_payload_bytes_1b": receipt.unique_payload_bytes.checked_mul(100_000),
-            "history_change_rows_100k": forecast.history_change_rows_100k,
-            "history_change_payload_scenario_bytes_100k": forecast.history_change_payload_scenario_bytes_100k,
+            "target_records": forecast.target_records,
+            "p50_logical_source_bytes_at_profile_size": forecast.p50_logical_source_bytes,
+            "selected_quantile_logical_source_bytes_at_profile_size": forecast
+                .selected_quantile_scenario_logical_source_bytes,
+            "p50_logical_source_bytes_at_1b": forecast.p50_logical_source_bytes_at_1b,
+            "selected_quantile_logical_source_bytes_at_1b": forecast
+                .selected_quantile_scenario_logical_source_bytes_at_1b,
+            "measured_profile_scaled_logical_source_bytes_at_1b": measured_source_at_1b,
+            "measured_profile_scaled_unique_payload_bytes_at_1b": measured_unique_at_1b,
+            "ten_full_copies_without_dedup_bytes_at_1b": forecast
+                .ten_full_copy_no_dedup_scenario_bytes_at_1b,
+            "ten_full_copies_without_dedup_from_measured_profile_bytes_at_1b": measured_source_ten_copies_at_1b,
+            "ten_full_copies_with_measured_unique_payload_bytes_at_1b": measured_unique_ten_copies_at_1b,
+            "history_change_rows": forecast.history_change_rows,
+            "history_change_payload_scenario_bytes": forecast
+                .history_change_payload_scenario_bytes,
             "revisions": forecast.revisions,
             "changed_rows_per_revision": forecast.changed_rows_per_revision,
             "policy_churn_rows_per_revision": forecast.policy_churn_rows_per_revision,
@@ -557,18 +644,45 @@ fn write_receipt(
             "concurrent_clients": forecast.concurrent_clients,
             "read_percent": forecast.read_percent,
             "write_percent": forecast.write_percent,
-            "three_pins_backup_restore_no_dedup_p50_bytes_100k": forecast.three_pins_with_backup_and_restore_no_dedup_p50_bytes_100k,
+            "current_snapshot_three_copy_p50_bytes_at_profile_size": forecast
+                .current_snapshot_three_copy_p50_bytes,
+            "three_pins_backup_restore_no_dedup_p50_bytes_at_profile_size": forecast
+                .three_pins_with_backup_and_restore_no_dedup_p50_bytes,
             "selected_native_state_bytes_per_client": forecast.selected_native_state_bytes_per_client,
             "read_clients_state_upper_bytes": forecast.read_clients_state_upper_bytes,
             "write_clients_staging_upper_bytes": forecast.write_clients_staging_upper_bytes,
             "writer_callback_state_upper_bytes_per_client": forecast.writer_callback_state_upper_bytes_per_client,
             "write_clients_callback_state_upper_bytes": forecast.write_clients_callback_state_upper_bytes,
-            "measured_unique_payload_ratio_100k": if receipt.source_bytes == 0 { None } else { Some(receipt.unique_payload_bytes as f64 / receipt.source_bytes as f64) },
+            "measured_unique_payload_ratio_at_profile_size": if receipt.source_bytes == 0 {
+                None
+            } else {
+                Some(receipt.unique_payload_bytes as f64 / receipt.source_bytes as f64)
+            },
             "full_256_peak_established": forecast.full_256_peak_established,
             "physical_fit_established": false,
-            "authored_route_bridge_records_100k": forecast.authored_route_bridge_records_100k,
+            "authored_route_bridge_records": forecast.authored_route_bridge_records,
             "authored_route_bridge_coverage": forecast.authored_route_bridge_coverage
         }
     });
     validator.write_receipt(&report, output)
+}
+
+fn project_measured_bytes(bytes: u64, source_records: u64, target_records: u64) -> io::Result<u64> {
+    if source_records == 0 {
+        return Err(invalid(
+            "capacity fixture measured projection source is empty",
+        ));
+    }
+    let denominator = source_records as u128;
+    let numerator = (bytes as u128)
+        .checked_mul(target_records as u128)
+        .ok_or_else(|| invalid("capacity fixture measured projection overflows u128"))?;
+    let rounded = numerator
+        .checked_add(denominator - 1)
+        .ok_or_else(|| invalid("capacity fixture measured projection rounding overflows"))?
+        / denominator;
+    u64::try_from(rounded)
+        .map_err(|_| {
+            invalid("capacity fixture measured projection exceeds u64")
+        })
 }

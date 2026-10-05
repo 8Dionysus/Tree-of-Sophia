@@ -760,7 +760,7 @@ impl AuthenticatedTreeRowStreamV2 {
                         self.io_ledger.as_deref(),
                         deadline,
                         cancelled,
-                        shared_work.as_deref_mut(),
+                        shared_work,
                     )?;
                     if let Some(digest) = loaded.physical_pack_digest {
                         self.pack_capture.observe(digest)?;
@@ -822,7 +822,7 @@ impl AuthenticatedTreeRowStreamV2 {
                     self.io_ledger.as_deref(),
                     deadline,
                     cancelled,
-                    shared_work.as_deref_mut(),
+                    shared_work,
                 )?;
                 if let Some(digest) = loaded.physical_pack_digest {
                     self.pack_capture.observe(digest)?;
@@ -1371,7 +1371,7 @@ struct ActivePackV2 {
     frame_count: u64,
 }
 
-struct PackWriterV2<'a> {
+struct PackWriterV2<'a, 'shared> {
     store: &'a SegmentStore,
     limits: AuthenticatedTreeLimitsV1,
     pack_cap: usize,
@@ -1383,7 +1383,7 @@ struct PackWriterV2<'a> {
     root_live_state_bytes: usize,
     deadline: Instant,
     cancelled: &'a AtomicBool,
-    shared_work: Option<&'a mut dyn FnMut() -> bool>,
+    shared_work: Option<&'shared mut dyn FnMut() -> bool>,
 }
 
 #[derive(Clone, Copy)]
@@ -1393,7 +1393,7 @@ struct CowStateLimitV2 {
     old_descriptor_bytes: usize,
 }
 
-impl<'a> PackWriterV2<'a> {
+impl<'a, 'shared> PackWriterV2<'a, 'shared> {
     fn new(
         store: &'a SegmentStore,
         limits: AuthenticatedTreeLimitsV1,
@@ -1402,7 +1402,7 @@ impl<'a> PackWriterV2<'a> {
         io_ledger: Option<Arc<dyn AuthenticatedTreeIoLedgerV1>>,
         deadline: Instant,
         cancelled: &'a AtomicBool,
-        shared_work: Option<&'a mut dyn FnMut() -> bool>,
+        shared_work: Option<&'shared mut dyn FnMut() -> bool>,
     ) -> Self {
         Self {
             store,
@@ -1421,12 +1421,10 @@ impl<'a> PackWriterV2<'a> {
     }
 
     fn debit_shared_work(&mut self) -> Result<()> {
-        if self
-            .shared_work
-            .as_deref_mut()
-            .is_some_and(|charge| !charge())
-        {
-            return Err(budget("authenticated tree shared work refused"));
+        if let Some(charge) = self.shared_work.as_mut() {
+            if !(**charge)() {
+                return Err(budget("authenticated tree shared work refused"));
+            }
         }
         Ok(())
     }
@@ -1471,6 +1469,7 @@ impl<'a> PackWriterV2<'a> {
         kind: &[u8],
         node: TreeNode,
         child_locators: &[TreeLocatorV2],
+        child_locator_capacity: usize,
     ) -> Result<TreeHandleV2> {
         check(self.deadline, self.cancelled)?;
         self.debit_shared_work()?;
@@ -1513,7 +1512,10 @@ impl<'a> PackWriterV2<'a> {
             )
             .ok_or_else(|| budget("authenticated COW persist state overflow"))?;
         let node_state = tree_node_state_bytes(&node)?
-            .checked_add(tree_locator_slice_state_bytes(child_locators)?)
+            .checked_add(tree_locator_slice_state_bytes(
+                child_locators,
+                child_locator_capacity,
+            )?)
             .ok_or_else(|| budget("authenticated COW node state overflow"))?;
         self.check_cow_state(
             node_state
@@ -2558,7 +2560,7 @@ impl SegmentStore {
                 io_ledger.as_deref(),
                 deadline,
                 cancelled,
-                shared_work.as_deref_mut(),
+                &mut shared_work,
             )?;
             let node = loaded.node;
             let prefix_len = node_prefix_nibbles(&node);
@@ -2837,7 +2839,7 @@ fn work_from_install(install: ImmutableBlobInstallV1) -> AuthenticatedTreeWorkV1
 }
 
 fn close_build_frame_v2(
-    writer: &mut PackWriterV2<'_>,
+    writer: &mut PackWriterV2<'_, '_>,
     kind: &[u8],
     frame: BuildFrameV2,
     limits: AuthenticatedTreeLimitsV1,
@@ -2929,7 +2931,7 @@ fn close_build_frame_v2(
     }
     let node = make_node(frame.value, children, limits)?;
     writer.root_live_state_bytes = retained_builder_state;
-    let handle = writer.persist(kind, node, &locators)?;
+    let handle = writer.persist(kind, node, &locators, locators.capacity())?;
     *pending_payload_bytes = pending_payload_bytes
         .checked_sub(payload_bytes)
         .ok_or_else(|| invalid("packed pending payload accounting differs"))?;
@@ -2937,7 +2939,7 @@ fn close_build_frame_v2(
 }
 
 fn attach_build_child_v2(
-    writer: &mut PackWriterV2<'_>,
+    writer: &mut PackWriterV2<'_, '_>,
     parent: &mut BuildFrameV2,
     edge: u8,
     child: TreeHandleV2,
@@ -3051,7 +3053,7 @@ fn build_cursor_state_bytes<I>(cursor: &BuildCursor<I>) -> Result<usize> {
 }
 
 fn check_build_state<I>(
-    writer: &mut PackWriterV2<'_>,
+    writer: &mut PackWriterV2<'_, '_>,
     frames: &Vec<BuildFrameV2>,
     cursor: &BuildCursor<I>,
     _limits: AuthenticatedTreeLimitsV1,
@@ -3157,9 +3159,14 @@ fn tree_node_state_bytes(node: &TreeNode) -> Result<usize> {
     Ok(state)
 }
 
-fn tree_locator_slice_state_bytes(locators: &[TreeLocatorV2]) -> Result<usize> {
-    let mut state = locators
-        .capacity()
+fn tree_locator_slice_state_bytes(
+    locators: &[TreeLocatorV2],
+    capacity: usize,
+) -> Result<usize> {
+    if capacity < locators.len() {
+        return Err(invalid("authenticated COW locator capacity is below length"));
+    }
+    let mut state = capacity
         .checked_mul(std::mem::size_of::<TreeLocatorV2>())
         .ok_or_else(|| budget("authenticated COW locator state overflow"))?;
     let seal_state_bytes = pack_seal_arc_allocation_state_bytes()?;
@@ -3173,7 +3180,9 @@ fn tree_locator_slice_state_bytes(locators: &[TreeLocatorV2]) -> Result<usize> {
     Ok(state)
 }
 
-fn ancestor_stack_state_bytes(ancestors: &[(TreeNode, Vec<TreeLocatorV2>, u8)]) -> Result<usize> {
+fn ancestor_stack_state_bytes(
+    ancestors: &Vec<(TreeNode, Vec<TreeLocatorV2>, u8)>,
+) -> Result<usize> {
     let mut state = ancestors
         .capacity()
         .checked_mul(std::mem::size_of::<(TreeNode, Vec<TreeLocatorV2>, u8)>())
@@ -3181,7 +3190,9 @@ fn ancestor_stack_state_bytes(ancestors: &[(TreeNode, Vec<TreeLocatorV2>, u8)]) 
     for (node, locators, _) in ancestors {
         state = state
             .checked_add(tree_node_state_bytes(node)?)
-            .and_then(|n| n.checked_add(tree_locator_slice_state_bytes(locators).ok()?))
+            .and_then(|n| {
+                n.checked_add(tree_locator_slice_state_bytes(locators, locators.capacity()).ok()?)
+            })
             .ok_or_else(|| budget("authenticated COW ancestor state overflow"))?;
     }
     Ok(state)
@@ -3241,7 +3252,7 @@ fn update_one_v2(
     root: Option<TreeHandleV2>,
     change: AuthenticatedTreeDeltaV1,
     limits: AuthenticatedTreeLimitsV1,
-    writer: &mut PackWriterV2<'_>,
+    writer: &mut PackWriterV2<'_, '_>,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> Result<Option<TreeHandleV2>> {
@@ -3265,7 +3276,7 @@ fn update_one_v2(
                     Vec::new(),
                     limits,
                 )?;
-                writer.persist(&descriptor.kind, node, &[]).map(Some)
+                writer.persist(&descriptor.kind, node, &[], 0).map(Some)
             }
         };
     };
@@ -3298,13 +3309,16 @@ fn update_one_v2(
             writer.io_ledger.as_deref(),
             deadline,
             cancelled,
-            writer.shared_work.as_deref_mut(),
+            &mut writer.shared_work,
         )?;
         let node = loaded.node;
         if writer.state_limit.is_some() {
             let stack_bytes = ancestor_stack_state_bytes(&ancestors)?;
             let node_bytes = tree_node_state_bytes(&node)?
-                .checked_add(tree_locator_slice_state_bytes(&loaded.child_locators)?)
+                .checked_add(tree_locator_slice_state_bytes(
+                    &loaded.child_locators,
+                    loaded.child_locators.capacity(),
+                )?)
                 .ok_or_else(|| budget("authenticated COW loaded-node state overflow"))?;
             let operation_scratch = tree_node_mutation_upper_bound(limits)?;
             writer.check_cow_state(
@@ -3332,8 +3346,12 @@ fn update_one_v2(
                     vec![(old_edge, handle.reference.clone())],
                     limits,
                 )?;
-                replacement =
-                    Some(writer.persist(&descriptor.kind, parent, &[handle.locator.clone()])?);
+                replacement = Some(writer.persist(
+                    &descriptor.kind,
+                    parent,
+                    &[handle.locator.clone()],
+                    1,
+                )?);
             } else {
                 let new_edge = nibble_at(&change.key, shared)
                     .ok_or_else(|| invalid("packed split lacks new edge"))?;
@@ -3348,7 +3366,7 @@ fn update_one_v2(
                     Vec::new(),
                     limits,
                 )?;
-                let leaf_handle = writer.persist(&descriptor.kind, leaf, &[])?;
+                let leaf_handle = writer.persist(&descriptor.kind, leaf, &[], 0)?;
                 let mut children = vec![(old_edge, handle.clone()), (new_edge, leaf_handle)];
                 children.sort_by_key(|(edge, _)| *edge);
                 let refs = children
@@ -3360,7 +3378,12 @@ fn update_one_v2(
                     .into_iter()
                     .map(|(_, child)| child.locator)
                     .collect::<Vec<_>>();
-                replacement = Some(writer.persist(&descriptor.kind, node, &locators)?);
+                replacement = Some(writer.persist(
+                    &descriptor.kind,
+                    node,
+                    &locators,
+                    locators.capacity(),
+                )?);
             }
             break;
         }
@@ -3414,7 +3437,13 @@ fn update_one_v2(
                 let stored = ancestor_stack_state_bytes(&ancestors)?
                     .checked_add(tree_node_state_bytes(&node)?)
                     .and_then(|n| {
-                        n.checked_add(tree_locator_slice_state_bytes(&loaded.child_locators).ok()?)
+                        n.checked_add(
+                            tree_locator_slice_state_bytes(
+                                &loaded.child_locators,
+                                loaded.child_locators.capacity(),
+                            )
+                            .ok()?,
+                        )
                     })
                     .and_then(|n| n.checked_add(growth))
                     .and_then(|n| {
@@ -3437,7 +3466,11 @@ fn update_one_v2(
                             .checked_add(tree_node_state_bytes(&node)?)
                             .and_then(|n| {
                                 n.checked_add(
-                                    tree_locator_slice_state_bytes(&loaded.child_locators).ok()?,
+                                    tree_locator_slice_state_bytes(
+                                        &loaded.child_locators,
+                                        loaded.child_locators.capacity(),
+                                    )
+                                    .ok()?,
                                 )
                             })
                             .and_then(|n| {
@@ -3478,7 +3511,7 @@ fn update_one_v2(
             Vec::new(),
             limits,
         )?;
-        let leaf_handle = writer.persist(&descriptor.kind, leaf, &[])?;
+        let leaf_handle = writer.persist(&descriptor.kind, leaf, &[], 0)?;
         let mut paired: Vec<(u8, TreeHandleV2)> = node
             .children
             .iter()
@@ -3555,7 +3588,7 @@ fn normalize_node_v2(
     node: TreeNode,
     child_locators: Vec<TreeLocatorV2>,
     limits: AuthenticatedTreeLimitsV1,
-    writer: &mut PackWriterV2<'_>,
+    writer: &mut PackWriterV2<'_, '_>,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> Result<Option<TreeHandleV2>> {
@@ -3576,7 +3609,9 @@ fn normalize_node_v2(
         return Ok(Some(TreeHandleV2 { reference, locator }));
     }
     let node = make_node(node.value, node.children, limits)?;
-    writer.persist(kind, node, &child_locators).map(Some)
+    writer
+        .persist(kind, node, &child_locators, child_locators.capacity())
+        .map(Some)
 }
 
 fn descriptor_root_handle(
@@ -3890,10 +3925,13 @@ fn load_node_v2(
     io_ledger: Option<&dyn AuthenticatedTreeIoLedgerV1>,
     deadline: Instant,
     cancelled: &AtomicBool,
-    mut shared_work: Option<&mut dyn FnMut() -> bool>,
+    shared_work: &mut Option<&mut dyn FnMut() -> bool>,
 ) -> Result<LoadedTreeNodeV2> {
     check(deadline, cancelled)?;
-    if shared_work.as_deref_mut().is_some_and(|charge| !charge()) {
+    if shared_work
+        .as_mut()
+        .is_some_and(|charge| !(**charge)())
+    {
         return Err(budget("authenticated tree shared work refused"));
     }
     match &handle.locator {
@@ -5429,7 +5467,7 @@ impl SegmentStore {
             io_ledger.as_deref(),
             deadline,
             cancelled,
-            shared_work.as_deref_mut(),
+            &mut shared_work,
         )?;
         drop(root);
         let root_state = loaded_node_retained_state(&loaded)?;
@@ -5529,7 +5567,7 @@ impl SegmentStore {
                 io_ledger.as_deref(),
                 deadline,
                 cancelled,
-                shared_work.as_deref_mut(),
+                &mut shared_work,
             )?;
             drop(child);
             let retained_state_bytes = loaded_node_retained_state(&loaded)?;
@@ -6082,7 +6120,7 @@ mod tests {
             None,
             deadline,
             &cancelled,
-            None,
+            &mut None,
         )
         .expect("load current root locator sidecar");
         let old_root = descriptor_root_handle(&old)
@@ -6098,7 +6136,7 @@ mod tests {
             None,
             deadline,
             &cancelled,
-            None,
+            &mut None,
         )
         .expect("load old root locator sidecar");
         let current_pack = current
