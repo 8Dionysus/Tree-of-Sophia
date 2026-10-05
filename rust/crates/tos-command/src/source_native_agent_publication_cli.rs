@@ -41,6 +41,11 @@ fn compiler_failure(error: tos_compiler::Error) -> SourceCommandError {
         | Error::PreparedUnsupported(reason)
         | Error::ManagedSourceUnsupported(reason)
         | Error::Budget(reason) => reason,
+        Error::FoundationJson {
+            code: tos_foundation::FoundationErrorCode::BudgetExceeded,
+            ..
+        } => "Agent prepared publication JSON budget",
+        Error::FoundationJson { .. } => "Agent prepared publication JSON",
         Error::Io(_) => "Agent prepared publication IO",
         Error::Sql(_) | Error::SqlitePhase { .. } => "Agent prepared publication SQLite",
         Error::Source(_) => "Agent prepared publication source validation",

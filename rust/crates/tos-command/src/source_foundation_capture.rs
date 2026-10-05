@@ -549,6 +549,13 @@ fn catalogue_error(error: tos_compiler::Error) -> Error {
         tos_compiler::Error::Budget(message)
         | tos_compiler::Error::PreparedUnsupported(message)
         | tos_compiler::Error::ManagedSourceUnsupported(message) => Error::Unsupported(message),
+        tos_compiler::Error::FoundationJson {
+            code: tos_foundation::FoundationErrorCode::BudgetExceeded,
+            ..
+        } => Error::Unsupported("authored catalogue Foundation JSON budget"),
+        tos_compiler::Error::FoundationJson { .. } => {
+            Error::Invalid("authored catalogue Foundation JSON refused")
+        }
         tos_compiler::Error::Io(_) => Error::Denied("authored catalogue descriptor custody"),
         tos_compiler::Error::Sql(_)
         | tos_compiler::Error::SqlitePhase { .. }
