@@ -29,6 +29,7 @@ fn owner_error(error: tos_command::source_command::SourceCommandError) -> Access
         E::Invalid(message) => (AccessErrorCode::InvalidRequest, message),
         E::Conflict(message) => (AccessErrorCode::StaleSelection, message),
         E::Denied(message) => (AccessErrorCode::PolicyDenied, message),
+        E::DeniedWithReason(_) => (AccessErrorCode::PolicyDenied, "source owner access refused"),
         E::Unsupported(message) => (AccessErrorCode::Unavailable, message),
         E::SchemaExecution { .. } => (
             AccessErrorCode::InvalidRequest,
