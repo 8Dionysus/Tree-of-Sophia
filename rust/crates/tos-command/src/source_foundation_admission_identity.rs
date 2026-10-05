@@ -6,6 +6,7 @@
 //! Binding its rows here does not verify or supply those historical bytes.
 use super::source_admission::{active, invalid};
 use super::source_admission_candidate::Candidate;
+use crate::source_foundation_cli::{VALIDATION_PROFILE_DECLARATION, ValidationProfile};
 use serde_json::{Value, json};
 use std::{
     cell::Cell,
@@ -65,7 +66,8 @@ pub(crate) struct GrammarIdentity {
     root_custody: RouteRootCustody,
 }
 fn grammar(path: &str) -> bool {
-    path.ends_with(".json")
+    path != VALIDATION_PROFILE_DECLARATION
+        && path.ends_with(".json")
         && PREFIXES.iter().any(|prefix| {
             path.strip_prefix(prefix)
                 .is_some_and(|tail| tail.starts_with('/'))
@@ -155,6 +157,7 @@ impl GrammarIdentity {
         limits: IdentityLimits,
         deadline: Instant,
         cancel: &AtomicBool,
+        profile: ValidationProfile,
     ) -> io::Result<Self> {
         let limits = limits.validate()?;
         if deadline > sources.deadline() {
@@ -216,6 +219,21 @@ impl GrammarIdentity {
         // logical payload accounting; actual allocator/descriptor RSS is extra.
         let mut serialization_state = state;
         reserve(&mut serialization_state, 2048, limits.max_state_bytes)?;
+        // Additional software-profile fields coexist in the serde Value/raw,
+        // FND UTF-16/UTF-8 tree and canonical buffer just like grammar strings.
+        let profile_state = profile
+            .id
+            .len()
+            .checked_add(64)
+            .and_then(|n| n.checked_mul(24))
+            .and_then(|n| n.checked_add(512))
+            .ok_or_else(|| invalid("profile identity serialization state overflow"))?;
+        reserve(
+            &mut serialization_state,
+            profile_state,
+            limits.max_state_bytes,
+        )?;
+
         for binding in &bindings {
             reserve(
                 &mut serialization_state,
@@ -229,7 +247,7 @@ impl GrammarIdentity {
             )?;
         }
         peak_state = peak_state.max(serialization_state);
-        let value = json!({"domain":"tos_native_source_validator_v1","executable_sha256":executable.to_hex(),"worker_sha256":worker.to_hex(),"grammar":bindings.iter().map(|b|json!({"path":b.path,"sha256":b.sha256.to_hex(),"size_bytes":b.size_bytes})).collect::<Vec<_>>()});
+        let value = json!({"domain":"tos_native_source_validator_v1","executable_sha256":executable.to_hex(),"worker_sha256":worker.to_hex(),"validation_profile_id":profile.id,"validation_profile_declaration_sha256":profile.declaration_sha256.to_hex(),"grammar":bindings.iter().map(|b|json!({"path":b.path,"sha256":b.sha256.to_hex(),"size_bytes":b.size_bytes})).collect::<Vec<_>>()});
         let raw = serde_json::to_vec(&value).map_err(invalid)?;
         let json_limits = JsonLimits::new(
             limits.max_state_bytes,
@@ -561,9 +579,16 @@ mod tests {
         let executable = Digest256::of_bytes(b"native executable");
         let worker = Digest256::of_bytes(b"native schema worker");
         let mut sources = RouteSources::new_until(tmp.path(), deadline).unwrap();
-        let identity =
-            GrammarIdentity::select(&mut sources, executable, worker, limits, deadline, &cancel)
-                .unwrap();
+        let identity = GrammarIdentity::select(
+            &mut sources,
+            executable,
+            worker,
+            limits,
+            deadline,
+            &cancel,
+            crate::source_foundation_cli::select_validation_profile(None).unwrap(),
+        )
+        .unwrap();
         assert_eq!(
             identity
                 .bindings()
@@ -638,6 +663,23 @@ mod tests {
                 .unwrap(),
             identity.read_bytes()
         );
+        let selected_profile = GrammarIdentity::select(
+            &mut sources,
+            executable,
+            worker,
+            limits,
+            deadline,
+            &cancel,
+            crate::source_foundation_cli::select_validation_profile(Some(
+                "selected-source-closure",
+            ))
+            .unwrap(),
+        )
+        .unwrap();
+        assert_eq!(identity.bindings(), selected_profile.bindings());
+        assert_ne!(identity.digest(), selected_profile.digest());
+        // The compiled declaration is not required at the selected immutable source root.
+        assert!(!tmp.path().join(VALIDATION_PROFILE_DECLARATION).exists());
         let other = GrammarIdentity::select(
             &mut sources,
             Digest256::of_bytes(b"different executing ELF"),
@@ -645,6 +687,7 @@ mod tests {
             limits,
             deadline,
             &cancel,
+            crate::source_foundation_cli::select_validation_profile(None).unwrap(),
         )
         .unwrap();
         assert_ne!(identity.digest(), other.digest());
@@ -682,7 +725,8 @@ mod tests {
                     ..limits
                 },
                 deadline,
-                &cancel
+                &cancel,
+                crate::source_foundation_cli::select_validation_profile(None).unwrap()
             )
             .is_err()
         );
@@ -692,8 +736,16 @@ mod tests {
         )
         .unwrap();
         assert!(
-            GrammarIdentity::select(&mut sources, executable, worker, limits, deadline, &cancel)
-                .is_err()
+            GrammarIdentity::select(
+                &mut sources,
+                executable,
+                worker,
+                limits,
+                deadline,
+                &cancel,
+                crate::source_foundation_cli::select_validation_profile(None).unwrap()
+            )
+            .is_err()
         );
     }
 }

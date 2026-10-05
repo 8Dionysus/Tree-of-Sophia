@@ -22,6 +22,7 @@ use crate::source_foundation_admission_history::{
     HistoryEvidence, HistoryLimits, HistorySelection,
 };
 use crate::source_foundation_admission_identity::{GrammarIdentity, IdentityLimits};
+use crate::source_foundation_cli::ValidationProfile;
 use serde_json::Value;
 use std::{
     ffi::OsString,
@@ -345,6 +346,7 @@ pub(crate) struct NativeSourceValidator<'c> {
     prepared: Option<Prepared<'c>>,
     evaluated: Option<FoundationBootstrapInputs<'c>>,
     grammar: GrammarIdentity,
+    validation_profile: ValidationProfile,
     history: Option<HistoryEvidence>,
     history_usage: (u64, usize),
     identity: Digest256,
@@ -526,6 +528,11 @@ impl<'c> NativeSourceValidator<'c> {
             max_discovery_entries: count(invocation.budgets.max_current_members)?,
             max_state_bytes: remaining.state_bytes,
         };
+        let validation_profile = launch.arguments.validation_profile;
+        if validation_profile.scope == tos_validation::source_foundation_default_rules::SourceFoundationDefaultRuleScope::SelectedSourceClosure
+            && !matches!(invocation.admission_representation(), foundation_entry::FoundationAdmissionRepresentation::NativeV4 | foundation_entry::FoundationAdmissionRepresentation::NativeV4SegmentV2) {
+            return Err(invalid("selected-source validation requires native-v4 admission"));
+        }
         let grammar = GrammarIdentity::select(
             &mut sources,
             invocation.executable_sha256(),
@@ -533,6 +540,7 @@ impl<'c> NativeSourceValidator<'c> {
             limits,
             deadline,
             cancel,
+            validation_profile,
         )?;
         debit(
             &mut ledger,
@@ -608,6 +616,7 @@ impl<'c> NativeSourceValidator<'c> {
             }),
             evaluated: None,
             grammar,
+            validation_profile,
             history,
             history_usage,
             identity,
@@ -2141,6 +2150,7 @@ impl<'c> NativeSourceValidator<'c> {
             max_edges,
             max_state_bytes: operation_state,
         };
+        let validation_scope = self.validation_profile.scope;
         let history = self
             .history
             .as_mut()
@@ -2163,6 +2173,7 @@ impl<'c> NativeSourceValidator<'c> {
                         json_state,
                         callback_state,
                         base_state,
+                        validation_scope,
                     )
                 },
             )
@@ -2459,6 +2470,34 @@ impl<'c> NativeSourceValidator<'c> {
         writer: &mut dyn Write,
     ) -> io::Result<()> {
         active(self.deadline, self.cancel)?;
+        let object = value
+            .as_object()
+            .ok_or_else(|| invalid("admission receipt must be an object"))?;
+        if object.contains_key("validation_profile_id")
+            || object.contains_key("validation_profile_declaration_sha256")
+            || object.contains_key("validation_input_scope")
+        {
+            return Err(invalid(
+                "admission receipt cannot override validator profile",
+            ));
+        }
+        #[derive(serde::Serialize)]
+        struct ProfileReceipt<'a> {
+            #[serde(flatten)]
+            receipt: &'a Value,
+            validation_profile_id: &'a str,
+            validation_input_scope: &'a str,
+            validation_profile_declaration_sha256: String,
+        }
+        let value = ProfileReceipt {
+            receipt: value,
+            validation_profile_id: self.validation_profile.id,
+            validation_input_scope: self.validation_profile.input_scope,
+            validation_profile_declaration_sha256: self
+                .validation_profile
+                .declaration_sha256
+                .to_hex(),
+        };
         let ticket = self
             .ledger_mut()?
             .begin_window("admission-receipt", FoundationPhaseReservation::default())
@@ -2472,7 +2511,7 @@ impl<'c> NativeSourceValidator<'c> {
             deadline: self.deadline,
             cancel: self.cancel,
         };
-        serde_json::to_writer(&mut count, value).map_err(invalid)?;
+        serde_json::to_writer(&mut count, &value).map_err(invalid)?;
         count.write_all(b"\n")?;
         let mut output = ReceiptWriter {
             inner: Some(writer),
@@ -2481,7 +2520,7 @@ impl<'c> NativeSourceValidator<'c> {
             deadline: self.deadline,
             cancel: self.cancel,
         };
-        serde_json::to_writer(&mut output, value).map_err(invalid)?;
+        serde_json::to_writer(&mut output, &value).map_err(invalid)?;
         output.write_all(b"\n")?;
         output.flush()?;
         let bytes = output.count;

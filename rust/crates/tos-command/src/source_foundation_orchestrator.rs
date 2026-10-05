@@ -1523,6 +1523,7 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
     json_state_bytes: usize,
     callback_state_bytes: usize,
     base_declared_state_bytes: usize,
+    scope: tos_validation::source_foundation_default_rules::SourceFoundationDefaultRuleScope,
 ) -> Result<
     (
         crate::source_admission_spooled_index::IndexSink<'candidate>,
@@ -2443,6 +2444,7 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
                         default_rules_limits,
                         stored_limits,
                         cancelled,
+                        scope,
                     ).map_err(|error| candidate_owner_refusal("candidate default rules receiver", error))?;
                     let replay_cost_after_rules = replay.cost();
                     let evidence_peak_state = replay_cost_after_rules
@@ -2604,28 +2606,47 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
                         )
                     })?;
                     let owner_report = &evaluated.owner_report;
-                    let clean = owner_report.cost.direct_owner_issue_count == 0
-                        && owner_report.labs.unimplemented.is_empty()
-                        && owner_report
-                            .labs
-                            .results
-                            .iter()
-                            .all(|lab| lab.unimplemented.is_empty())
-                        && owner_report.goldsets.coverage_gaps.is_empty()
-                        && owner_report.discovery.unsupported.is_empty()
-                        && owner_report.closure.unsupported.is_empty()
-                        && owner_report.cost.queued_schema_document_count
-                            == evaluated.cost.schema_check_count
-                        && evaluated.cost.diagnostic_issue_count == 0
-                        && evaluated.diagnostics.iter().all(|diagnostic| {
-                            diagnostic.input_identity() == &fence
-                                && diagnostic.prepared_execution_binding()
-                                    == schemas.prepared_execution_binding()
-                                && diagnostic.result().is_valid()
-                        });
-                    if !clean {
+                    if owner_report.scope != scope {
+                        return Err(ItemRefusal::Source("candidate default profile binding differs".into()));
+                    }
+
+                    // Preserve every failed owned predicate, without printing private
+                    // source paths, issue prose, or worker payloads. The first failed
+                    // predicate carries exact observed/expected scalar counts.
+                    let predicates = [
+                        ("default direct owner issues", owner_report.cost.direct_owner_issue_count, 0),
+                        ("default aggregate Labs coverage", owner_report.labs.as_ref().map_or(0, |labs| labs.unimplemented.len()), 0),
+                        ("default per-lab coverage", owner_report.labs.as_ref().map_or(0, |labs| labs.results.iter().filter(|lab| !lab.unimplemented.is_empty()).count()), 0),
+                        ("default Goldset coverage", owner_report.goldsets.as_ref().map_or(0, |goldsets| goldsets.coverage_gaps.len()), 0),
+                        ("default Discovery coverage", owner_report.discovery.unsupported.len(), 0),
+                        ("default Closure coverage", owner_report.closure.unsupported.len(), 0),
+                        ("default queued execution count", evaluated.cost.schema_check_count, owner_report.cost.queued_schema_document_count),
+                        ("default raw schema issue count", evaluated.cost.diagnostic_issue_count, 0),
+                        ("default diagnostic candidate identity", evaluated.diagnostics.iter().filter(|diagnostic| diagnostic.input_identity() != &fence).count(), 0),
+                        ("default diagnostic prepared identity", evaluated.diagnostics.iter().filter(|diagnostic| diagnostic.prepared_execution_binding() != schemas.prepared_execution_binding()).count(), 0),
+                        ("default schema validity", evaluated.diagnostics.iter().filter(|diagnostic| !diagnostic.result().is_valid()).count(), 0),
+                    ];
+                    let mut failed_mask = 0u16;
+                    let mut primary = None;
+                    for (index, (label, observed, expected)) in predicates.into_iter().enumerate() {
+                        if observed != expected {
+                            failed_mask |= 1u16 << index;
+                            primary.get_or_insert((label, observed, expected));
+                        }
+                    }
+                    if let Some((label, observed, expected)) = primary {
+                        let issue = owner_report.labs.as_ref().and_then(|labs| labs.ordered_issues.first()).map(|(_, text)| text.as_str())
+                            .or_else(|| owner_report.goldsets.as_ref().and_then(|goldsets| goldsets.ordered_issues.first()).map(|(_, text)| text.as_str()))
+                            .or_else(|| owner_report.discovery.issues.first().map(|issue| issue.detail.as_str()))
+                            .or_else(|| owner_report.closure.issues.first().map(|(_, text)| text.as_str()))
+                            .unwrap_or(label);
+                        // 11 predicate bits and two 64-bit hex counters fit the
+                        // existing 40-byte source-cause site bound exactly.
+                        let site = format!("pr-{failed_mask:x}-{observed:x}-{expected:x}");
                         return Err(ItemRefusal::Source(
-                            "candidate default owner predicates are incomplete or invalid".into(),
+                            crate::source_admission_spooled_index::bounded_source_cause(
+                                "receiver-source", &site, issue,
+                            ),
                         ));
                     }
                     let after_defaults = view.original_io.snapshot();

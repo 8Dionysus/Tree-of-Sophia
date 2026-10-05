@@ -83,6 +83,7 @@
 - [TOS-D-0067 - Typed historical-time source wording in Claim navigation](../TOS-D-0067-typed-time-claim-navigation.md) (`docs/decisions/TOS-D-0067-typed-time-claim-navigation.md`)
 - [TOS-D-0068 - Subject-first foundation wording with exact historical continuity](../TOS-D-0068-subject-first-foundation-wording-and-retained-history.md) (`docs/decisions/TOS-D-0068-subject-first-foundation-wording-and-retained-history.md`)
 - [TOS-D-0069 - TOS-D-0069 Rust execution foundation for corpus growth](../TOS-D-0069-rust-execution-foundation.md) (`docs/decisions/TOS-D-0069-rust-execution-foundation.md`)
+- [TOS-D-0070 - TOS-D-0070 Declared source validation scope](../TOS-D-0070-declared-source-validation-scope.md) (`docs/decisions/TOS-D-0070-declared-source-validation-scope.md`)
 
 ## derived exports
 
@@ -163,6 +164,7 @@
 - [TOS-D-0043 - TOS-D-0043 Spark And Legacy Scaffolding Retirement](../TOS-D-0043-spark-and-legacy-scaffolding-retirement.md) (`docs/decisions/TOS-D-0043-spark-and-legacy-scaffolding-retirement.md`)
 - [TOS-D-0059 - Partitioned projections and explicit query compilation](../TOS-D-0059-partitioned-projections-and-explicit-query-compilation.md) (`docs/decisions/TOS-D-0059-partitioned-projections-and-explicit-query-compilation.md`)
 - [TOS-D-0069 - TOS-D-0069 Rust execution foundation for corpus growth](../TOS-D-0069-rust-execution-foundation.md) (`docs/decisions/TOS-D-0069-rust-execution-foundation.md`)
+- [TOS-D-0070 - TOS-D-0070 Declared source validation scope](../TOS-D-0070-declared-source-validation-scope.md) (`docs/decisions/TOS-D-0070-declared-source-validation-scope.md`)
 
 ## docs/route-law
 
@@ -190,6 +192,7 @@
 - [TOS-D-0064 - Explicit Claim display fields retain source and permission boundaries](../TOS-D-0064-scoped-claim-display-fields.md) (`docs/decisions/TOS-D-0064-scoped-claim-display-fields.md`)
 - [TOS-D-0067 - Typed historical-time source wording in Claim navigation](../TOS-D-0067-typed-time-claim-navigation.md) (`docs/decisions/TOS-D-0067-typed-time-claim-navigation.md`)
 - [TOS-D-0068 - Subject-first foundation wording with exact historical continuity](../TOS-D-0068-subject-first-foundation-wording-and-retained-history.md) (`docs/decisions/TOS-D-0068-subject-first-foundation-wording-and-retained-history.md`)
+- [TOS-D-0070 - TOS-D-0070 Declared source validation scope](../TOS-D-0070-declared-source-validation-scope.md) (`docs/decisions/TOS-D-0070-declared-source-validation-scope.md`)
 
 ## examples
 
@@ -366,6 +369,7 @@
 - [TOS-D-0067 - Typed historical-time source wording in Claim navigation](../TOS-D-0067-typed-time-claim-navigation.md) (`docs/decisions/TOS-D-0067-typed-time-claim-navigation.md`)
 - [TOS-D-0068 - Subject-first foundation wording with exact historical continuity](../TOS-D-0068-subject-first-foundation-wording-and-retained-history.md) (`docs/decisions/TOS-D-0068-subject-first-foundation-wording-and-retained-history.md`)
 - [TOS-D-0069 - TOS-D-0069 Rust execution foundation for corpus growth](../TOS-D-0069-rust-execution-foundation.md) (`docs/decisions/TOS-D-0069-rust-execution-foundation.md`)
+- [TOS-D-0070 - TOS-D-0070 Declared source validation scope](../TOS-D-0070-declared-source-validation-scope.md) (`docs/decisions/TOS-D-0070-declared-source-validation-scope.md`)
 
 ## tests
 

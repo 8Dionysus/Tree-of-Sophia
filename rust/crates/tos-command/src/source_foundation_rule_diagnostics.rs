@@ -172,8 +172,9 @@ enum ProcessError {
 }
 
 /// Cost and evidence returned by the actual candidate diagnostic worker. The
-/// stored owner report contains no Records payload; Records executions are
-/// represented only by the worker's already-completed cumulative counters.
+/// stored owner report contains no Records payload. Its authenticated Records
+/// request pages execute under the same worker; local completed exchanges are
+/// checked independently of the worker's prior cumulative execution prefix.
 pub(crate) struct EvaluatedCandidateSourceFoundationRules<I> {
     pub owner_report: SourceFoundationDefaultRulesStoredReport<I>,
     pub diagnostics: Vec<CandidateCutSchemaDiagnostic<I>>,
@@ -359,7 +360,18 @@ fn candidate_request_count<I>(
     discovery_schema_requests: &dyn DiscoverySchemaRequestStore,
     closure_schema_requests: &dyn SourceFoundationClosureSchemaRequestStore,
 ) -> Result<usize, &'static str> {
-    if !lab_aggregate_matches(&owner.labs) {
+    let scope_bound = match owner.scope {
+        tos_validation::source_foundation_default_rules::SourceFoundationDefaultRuleScope::FullAudit => owner.labs.is_some() && owner.goldsets.is_some(),
+        tos_validation::source_foundation_default_rules::SourceFoundationDefaultRuleScope::SelectedSourceClosure => owner.labs.is_none() && owner.goldsets.is_none(),
+    };
+    if !scope_bound {
+        return Err("candidate stored default scope binding");
+    }
+    if owner
+        .labs
+        .as_ref()
+        .is_some_and(|labs| !lab_aggregate_matches(labs))
+    {
         return Err("candidate stored lab schema request binding");
     }
     let request_store_cost = discovery_schema_requests.cost();
@@ -616,8 +628,14 @@ fn candidate_request_count<I>(
     }
     let mut count = owner.records_schema_document_count;
     for amount in [
-        owner.labs.schema_checks.len(),
-        owner.goldsets.schema_requests.len(),
+        owner
+            .labs
+            .as_ref()
+            .map_or(0, |labs| labs.schema_checks.len()),
+        owner
+            .goldsets
+            .as_ref()
+            .map_or(0, |goldsets| goldsets.schema_requests.len()),
         owner.discovery.schema_requests.len(),
         spooled_count,
         owner.closure.schema_requests.len(),
@@ -627,15 +645,14 @@ fn candidate_request_count<I>(
             .checked_add(amount)
             .ok_or("candidate stored schema request count overflow")?;
     }
-    for lab in &owner.labs.results {
+    for lab in owner.labs.iter().flat_map(|labs| &labs.results) {
         if !request_ordinals_valid(&lab.schema_checks, lab.ordered_issues.len()) {
             return Err("candidate stored lab schema ordinals invalid");
         }
     }
-    if !request_ordinals_valid(
-        &owner.goldsets.schema_requests,
-        owner.goldsets.ordered_issues.len(),
-    ) || !request_ordinals_valid(
+    if owner.goldsets.as_ref().is_some_and(|goldsets| {
+        !request_ordinals_valid(&goldsets.schema_requests, goldsets.ordered_issues.len())
+    }) || !request_ordinals_valid(
         &owner.discovery.schema_requests,
         owner.discovery.issues.len(),
     ) || !request_ordinals_valid(&owner.closure.schema_requests, owner.closure.issues.len())
@@ -1115,7 +1132,7 @@ pub(crate) fn evaluate_candidate_stored_rules<I: Copy + Eq>(
         };
     }
     'requests: {
-        for lab in &owner_report.labs.results {
+        for lab in owner_report.labs.iter().flat_map(|labs| &labs.results) {
             for request in &lab.schema_checks {
                 run_request!(request, 0);
                 if failed.is_some() {
@@ -1220,7 +1237,11 @@ pub(crate) fn evaluate_candidate_stored_rules<I: Copy + Eq>(
             ));
             break 'requests;
         }
-        for request in &owner_report.goldsets.schema_requests {
+        for request in owner_report
+            .goldsets
+            .iter()
+            .flat_map(|goldsets| &goldsets.schema_requests)
+        {
             run_request!(request, 0);
             if failed.is_some() {
                 break 'requests;
