@@ -1267,12 +1267,20 @@ pub(crate) fn compose_selected_access_health(
                     append_health_error(&mut errors, message.into());
                 }
             }
+            let semantic_errors = counts.object_get("semantic_validation").is_some_and(|report| {
+                report.object_get("valid").and_then(JsonValue::as_bool) == Some(false)
+                    || report.object_get("violations").and_then(JsonValue::as_array)
+                        .is_some_and(|violations| !violations.is_empty())
+            });
+            if semantic_errors {
+                append_health_error(&mut errors, "knowledge graph semantic validation reports violations".into());
+            }
             knowledge_schema = JsonValue::String(JsonString::from_utf8(&graph_schema));
             knowledge_counts = counts;
             knowledge_graph_status = health_subject(
-                if graph_errors { "degraded" } else { "ready" },
-                graph_errors.then_some("coverage_incomplete"),
-                graph_errors.then_some("one or more display-coverage counts differ"),
+                if graph_errors || semantic_errors { "degraded" } else { "ready" },
+                if semantic_errors { Some("semantic_validation_failed") } else { graph_errors.then_some("coverage_incomplete") },
+                if semantic_errors { Some("mechanical semantic validation reports violations") } else { graph_errors.then_some("one or more display-coverage counts differ") },
                 Some(&graph_schema),
                 None,
             );

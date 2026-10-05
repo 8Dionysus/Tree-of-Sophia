@@ -394,6 +394,7 @@ fn health_dynamic_object(fields: Vec<(String, JsonValue)>) -> JsonValue {
 fn health_exact_object(
     value: &JsonValue,
     keys: &[&str],
+    optional_keys: &[&str],
     field: &'static str,
 ) -> Result<(), CatalogError> {
     let object = value.as_object().ok_or_else(|| {
@@ -402,21 +403,57 @@ fn health_exact_object(
             "selected graph health count object is invalid",
         )
     })?;
-    if object.len() != keys.len()
-        || object
-            .iter()
-            .any(|(key, _)| key.as_str().is_none_or(|key| !keys.contains(&key)))
+    if keys.iter().any(|key| value.object_get(key).is_none())
+        || object.iter().any(|(key, _)| {
+            key.as_str().is_none_or(|key| !keys.contains(&key) && !optional_keys.contains(&key))
+        })
     {
         return Err(error(CatalogErrorCode::CorruptSelectedCarrier, field));
     }
     Ok(())
 }
+fn validate_health_graph_counts(counts: &JsonValue) -> Result<(), CatalogError> {
+    health_exact_object(
+        counts,
+        &[
+            "nodes",
+            "relations",
+            "sources",
+            "display_coverage",
+            "semantic_mapping",
+        ],
+        &["semantic_validation"],
+        "selected graph count schema differs",
+    )
+}
+
+// Move the bounded, parsed owner report into the response. This does not
+// rerun semantic assessment or promote its meaning to source/canon authority.
+fn take_health_semantic_validation(header: &mut JsonValue) -> Result<Option<JsonValue>, CatalogError> {
+    let JsonValue::Object(fields) = header else { return Ok(None); };
+    let Some((_, JsonValue::Object(counts))) = fields.iter_mut()
+        .find(|(key, _)| key.as_str() == Some("counts")) else { return Ok(None); };
+    let Some(index) = counts.iter().position(|(key, _)| key.as_str() == Some("semantic_validation")) else {
+        return Ok(None);
+    };
+    let report = &counts[index].1;
+    if report.as_object().is_none()
+        || report.object_get("valid").and_then(JsonValue::as_bool).is_none()
+        || report.object_get("violations").and_then(JsonValue::as_array)
+            .is_none_or(|items| items.iter().any(|item| item.as_str().is_none()))
+    {
+        return Err(error(CatalogErrorCode::CorruptSelectedCarrier,
+            "selected graph semantic validation report differs"));
+    }
+    Ok(Some(counts.swap_remove(index).1))
+}
+
 fn health_fixed_counts(
     value: &JsonValue,
     keys: &[&'static str],
     message: &'static str,
 ) -> Result<JsonValue, CatalogError> {
-    health_exact_object(value, keys, message)?;
+    health_exact_object(value, keys, &[], message)?;
     let fields = keys
         .iter()
         .map(|key| {
@@ -766,7 +803,7 @@ pub fn execute_selected_knowledge_health_metadata<
             limits.max_bytes = limits.max_bytes.min(header_body.len());
             limits
         };
-        let header = meter
+        let mut header = meter
             .parse_json(&header_body, JsonMode::PublishedStrict, graph_limits)
             .map_err(|_| {
                 error(
@@ -807,17 +844,7 @@ pub fn execute_selected_knowledge_health_metadata<
                 "selected graph counts are absent",
             )
         })?;
-        health_exact_object(
-            counts,
-            &[
-                "nodes",
-                "relations",
-                "sources",
-                "display_coverage",
-                "semantic_mapping",
-            ],
-            "selected graph count schema differs",
-        )?;
+        validate_health_graph_counts(counts)?;
         let display_coverage = counts.object_get("display_coverage").ok_or_else(|| {
             error(
                 CatalogErrorCode::CorruptSelectedCarrier,
@@ -837,6 +864,7 @@ pub fn execute_selected_knowledge_health_metadata<
                 "relation_explanation_states",
                 "relations_without_source_explanation",
             ],
+            &[],
             "selected graph display coverage schema differs",
         )?;
         let semantic_mapping = counts.object_get("semantic_mapping").ok_or_else(|| {
@@ -964,20 +992,30 @@ pub fn execute_selected_knowledge_health_metadata<
                 )?),
             ),
         ]);
-        let counts = health_object(vec![
+        // Native and Python graph owners attach semantic_validation when
+        // semantic registries are selected. Preserve that owner report rather
+        // than treating this declared optional count companion as corruption.
+        let graph_schema = health_text(graph_schema);
+        let catalog_schema = health_text(catalog_schema);
+        let semantic_validation = take_health_semantic_validation(&mut header)?;
+        let mut count_fields = vec![
             ("nodes", health_number(nodes)),
             ("relations", health_number(relations)),
             ("sources", sources),
             ("display_coverage", display_coverage),
             ("semantic_mapping", semantic_mapping),
-        ]);
+        ];
+        if let Some(report) = semantic_validation {
+            count_fields.push(("semantic_validation", report));
+        }
+        let counts = health_object(count_fields);
         let output = health_object(vec![
             (
                 "schema_version",
                 health_text("tos_selected_knowledge_health_metadata_v1"),
             ),
-            ("graph_schema", health_text(graph_schema)),
-            ("catalog_schema", health_text(catalog_schema)),
+            ("graph_schema", graph_schema),
+            ("catalog_schema", catalog_schema),
             ("counts", counts),
         ]);
         let mut output_limits = budget.json;
@@ -1030,4 +1068,53 @@ pub fn execute_selected_knowledge_health_metadata<
     lease.recheck()?;
     check_abort()?;
     Ok(DisclosableCatalog { body, lease })
+}
+
+#[cfg(test)]
+mod health_count_tests {
+    use super::*;
+
+    fn header(report: Option<serde_json::Value>) -> JsonValue {
+        let mut counts = serde_json::json!({"nodes":3,"relations":2,"sources":{},
+            "display_coverage":{},"semantic_mapping":{}});
+        if let Some(report) = report { counts["semantic_validation"] = report; }
+        let raw = serde_json::to_vec(&serde_json::json!({"counts":counts})).unwrap();
+        let header = parse_json(&raw, JsonMode::PublishedStrict,
+            JsonLimits::new(raw.len(), 16, 1000, 20).unwrap()).unwrap().into_root();
+        validate_health_graph_counts(header.object_get("counts").unwrap()).unwrap();
+        header
+    }
+
+    #[test]
+    fn semantic_owner_report_is_optional_and_preserved_without_success_filtering() {
+        let mut legacy = header(None);
+        assert!(take_health_semantic_validation(&mut legacy).unwrap().is_none());
+        for report in [
+            serde_json::json!({"valid":true,"violations":[],"checked_nodes":3,"gaps":[]}),
+            serde_json::json!({"valid":false,"violations":["unresolved endpoint"],"checked_nodes":3}),
+        ] {
+            let mut native = header(Some(report));
+            let expected = native.object_get("counts").unwrap()
+                .object_get("semantic_validation").unwrap().clone();
+            assert_eq!(take_health_semantic_validation(&mut native).unwrap(), Some(expected));
+            assert!(native.object_get("counts").unwrap().object_get("semantic_validation").is_none());
+        }
+    }
+
+    #[test]
+    fn malformed_semantic_report_remains_a_corrupt_carrier() {
+        for report in [
+            serde_json::json!(null), serde_json::json!({"valid":"true","violations":[]}),
+            serde_json::json!({"valid":true,"violations":null}),
+            serde_json::json!({"valid":false,"violations":[7]}),
+        ] {
+            let error = take_health_semantic_validation(&mut header(Some(report))).unwrap_err();
+            assert_eq!(error.code, CatalogErrorCode::CorruptSelectedCarrier);
+        }
+        let value = health_object(vec![("required", health_number(1)), ("unknown", health_number(2))]);
+        assert_eq!(health_exact_object(&value, &["required"], &["optional"], "unknown count").unwrap_err().code,
+            CatalogErrorCode::CorruptSelectedCarrier);
+        let missing = health_object(vec![("optional", health_number(1))]);
+        assert!(health_exact_object(&missing, &["required"], &["optional"], "missing count").is_err());
+    }
 }
