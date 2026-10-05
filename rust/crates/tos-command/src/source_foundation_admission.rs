@@ -2036,10 +2036,11 @@ impl<'c> NativeSourceValidator<'c> {
         self.account_spooled_candidate(candidate)?;
         let remaining = self.ledger()?.remaining().map_err(command)?;
         let operation_state = remaining.state_bytes;
-        // The input's simultaneous raw callback allowance has its own selected
-        // row ceiling; the whole worker/default/catalog operation retains the
-        // actual invocation remainder independently.
-        let input_state = operation_state.min(selected_index.max_row_state_bytes);
+        // The original operation remainder bounds the simultaneous callback
+        // plus raw-member overlap. The spool's selected row ceiling continues
+        // to bound local raw/SQL workspace separately; a schema constructor is
+        // not a SQL row allocation.
+        let input_state = operation_state;
         let raw_state = observed_max
             .checked_mul(4)
             .and_then(|n| n.checked_add(16384))

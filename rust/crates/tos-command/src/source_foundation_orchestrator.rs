@@ -1419,6 +1419,9 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
         .remaining()
         .map_err(FoundationOrchestratorError::Command)?
         .state_bytes;
+    let callback_state_bytes = input
+        .restrict_operation_state(callback_state_bytes, original_operation_state)
+        .map_err(owner)?;
     let working_ram = usize::try_from(budgets.working_ram_bytes)
         .map_err(|_| incomplete("candidate working-RAM limit range"))?;
 
