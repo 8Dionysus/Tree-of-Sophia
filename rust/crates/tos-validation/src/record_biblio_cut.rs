@@ -349,8 +349,8 @@ pub struct SourceCutSchemaDiagnostic {
     pub response_buffer_bytes: usize,
     pub worker_cpu_micros: u64,
     pub retained_state_bytes: usize,
-    /// Conservative aggregate charge for the transient closure/request/output
-    /// and the report retained in this row.
+    /// Retained report state carried by this row. Exchange buffers have a
+    /// separate peak admission and do not remain charged after the call.
     pub accounted_state_bytes: usize,
 }
 
@@ -901,18 +901,39 @@ impl BiblioRecordExecutor {
             .and_then(|bytes| bytes.checked_add(root.len()))
             .and_then(|bytes| bytes.checked_mul(2))
             .ok_or(crate::item_budget_origin!())?;
-        let accounted_state_bytes = cost
-            .schema_resource_buffer_bytes
-            .checked_add(cost.input_instance_buffer_bytes)
+        let accounted_state_bytes = retained_state_bytes;
+        let previous_capacity_bytes = self
+            .pending_schema_diagnostics
+            .capacity()
+            .checked_mul(std::mem::size_of::<SourceCutSchemaDiagnostic>())
+            .ok_or(crate::item_budget_origin!())?;
+        let required_len = self
+            .pending_schema_diagnostics
+            .len()
+            .checked_add(1)
+            .ok_or(crate::item_budget_origin!())?;
+        let requested_capacity_bytes = if required_len > self.pending_schema_diagnostics.capacity()
+        {
+            required_len
+                .checked_mul(std::mem::size_of::<SourceCutSchemaDiagnostic>())
+                .ok_or(crate::item_budget_origin!())?
+        } else {
+            0
+        };
+        let mut next_state_bytes = self
+            .diagnostic_state_bytes_used
+            .checked_add(accounted_state_bytes)
+            .ok_or(crate::item_budget_origin!())?;
+        let exchange_peak = next_state_bytes
+            .checked_add(requested_capacity_bytes)
+            .and_then(|bytes| bytes.checked_add(cost.schema_resource_buffer_bytes))
+            .and_then(|bytes| bytes.checked_add(cost.input_instance_buffer_bytes))
             .and_then(|bytes| bytes.checked_add(cost.request_buffer_bytes))
             .and_then(|bytes| bytes.checked_add(cost.response_buffer_bytes))
             .and_then(|bytes| bytes.checked_add(input_metadata_bytes))
-            .and_then(|bytes| bytes.checked_add(retained_state_bytes))
             .ok_or(crate::item_budget_origin!())?;
-        let Some(next_state_bytes) = self
-            .diagnostic_state_bytes_used
-            .checked_add(accounted_state_bytes)
-            .filter(|bytes| *bytes <= diagnostic_limits.max_total_state_bytes)
+        let Some(_) =
+            Some(exchange_peak).filter(|bytes| *bytes <= diagnostic_limits.max_total_state_bytes)
         else {
             self.image
                 .as_mut()
@@ -920,13 +941,26 @@ impl BiblioRecordExecutor {
                 .poison(ExecutorFailure::InputBudget);
             return Err(ItemRefusal::BudgetCheck {
                 check: "record schema diagnostic state bytes",
-                used: self
-                    .diagnostic_state_bytes_used
-                    .checked_add(accounted_state_bytes)
-                    .and_then(|bytes| u64::try_from(bytes).ok()),
+                used: u64::try_from(exchange_peak).ok(),
                 limit: u64::try_from(diagnostic_limits.max_total_state_bytes).ok(),
             });
         };
+        self.pending_schema_diagnostics
+            .try_reserve_exact(1)
+            .map_err(|_| crate::item_budget_origin!())?;
+        let next_capacity_bytes = self
+            .pending_schema_diagnostics
+            .capacity()
+            .checked_mul(std::mem::size_of::<SourceCutSchemaDiagnostic>())
+            .ok_or(crate::item_budget_origin!())?;
+        next_state_bytes = next_state_bytes
+            .checked_add(
+                next_capacity_bytes
+                    .checked_sub(previous_capacity_bytes)
+                    .ok_or(crate::item_budget_origin!())?,
+            )
+            .filter(|bytes| *bytes <= diagnostic_limits.max_total_state_bytes)
+            .ok_or(crate::item_budget_origin!())?;
         let valid = report.status == schema_diagnostics::Status::Valid;
         let verdict = BoundedSchemaVerdict {
             instance_sha256: unit.raw_sha256,
@@ -974,6 +1008,9 @@ impl BiblioRecordExecutor {
 
     fn take_schema_diagnostics(&mut self, before_issue: usize) -> Vec<SourceCutSchemaDiagnostic> {
         let mut diagnostics = std::mem::take(&mut self.pending_schema_diagnostics);
+        // The caller now owns these reports and admits their batch/page state.
+        // No diagnostics or vector capacity remain owned by this executor.
+        self.diagnostic_state_bytes_used = 0;
         for diagnostic in &mut diagnostics {
             diagnostic.before_issue = before_issue;
         }
