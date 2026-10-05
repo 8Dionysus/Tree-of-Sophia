@@ -2479,12 +2479,29 @@ fn checked_key_sort(
             }
         }
     }
-    fn sift(
-        entries: &mut [(usize, &(JsonString, JsonValue))],
+    checked_heap_sort(entries, poll, |a, b, poll| {
+        Ok(compare(&a.1.0, &b.1.0, poll)?.then_with(|| a.0.cmp(&b.0)))
+    })
+}
+
+fn checked_heap_sort<T, F>(
+    entries: &mut [T],
+    poll: &mut JsonCheck<'_>,
+    mut compare: F,
+) -> Result<()>
+where
+    F: FnMut(&T, &T, &mut JsonCheck<'_>) -> Result<std::cmp::Ordering>,
+{
+    fn sift<T, F>(
+        entries: &mut [T],
         mut root: usize,
         end: usize,
         poll: &mut JsonCheck<'_>,
-    ) -> Result<()> {
+        compare: &mut F,
+    ) -> Result<()>
+    where
+        F: FnMut(&T, &T, &mut JsonCheck<'_>) -> Result<std::cmp::Ordering>,
+    {
         loop {
             poll.work(256)?;
             let Some(mut child) = root
@@ -2494,17 +2511,10 @@ fn checked_key_sort(
             else {
                 break;
             };
-            if child + 1 < end
-                && compare(&entries[child].1.0, &entries[child + 1].1.0, poll)?
-                    .then_with(|| entries[child].0.cmp(&entries[child + 1].0))
-                    .is_lt()
-            {
+            if child + 1 < end && compare(&entries[child], &entries[child + 1], poll)?.is_lt() {
                 child += 1;
             }
-            if !compare(&entries[root].1.0, &entries[child].1.0, poll)?
-                .then_with(|| entries[root].0.cmp(&entries[child].0))
-                .is_lt()
-            {
+            if !compare(&entries[root], &entries[child], poll)?.is_lt() {
                 break;
             }
             entries.swap(root, child);
@@ -2513,14 +2523,89 @@ fn checked_key_sort(
         Ok(())
     }
     for root in (0..entries.len() / 2).rev() {
-        sift(entries, root, entries.len(), poll)?;
+        sift(entries, root, entries.len(), poll, &mut compare)?;
     }
     for end in (1..entries.len()).rev() {
         poll.work(256)?;
         entries.swap(0, end);
-        sift(entries, 0, end, poll)?;
+        sift(entries, 0, end, poll, &mut compare)?;
     }
     poll.now()
+}
+
+/// Order object members for order-independent structural comparison only.
+/// This is not canonical emission: exact numeric lexemes, string units, values
+/// and array order remain unchanged. Uses the shared checked heapsort in place,
+/// without scratch allocation. The caller owns both retained parse trees and
+/// supplies its original remaining work allowance and cooperative cutoff.
+/// Work counts value visits, key comparisons and compared UTF-16 chunks.
+pub fn order_json_object_members_with_check(
+    value: &mut JsonValue,
+    limits: JsonLimits,
+    check: &mut dyn FnMut() -> Result<()>,
+) -> Result<usize> {
+    fn charge(work: &mut usize, limit: usize) -> Result<()> {
+        *work = work.checked_add(1).filter(|n| *n <= limit).ok_or_else(|| {
+            FoundationError::new(Code::BudgetExceeded, "JSON member ordering work budget")
+        })?;
+        Ok(())
+    }
+    fn visit(
+        value: &mut JsonValue,
+        depth: usize,
+        limits: JsonLimits,
+        work: &mut usize,
+        poll: &mut JsonCheck<'_>,
+    ) -> Result<()> {
+        poll.now()?;
+        charge(work, limits.max_visits)?;
+        if depth > limits.max_depth {
+            return Err(FoundationError::new(
+                Code::BudgetExceeded,
+                "JSON member ordering depth budget",
+            ));
+        }
+        match value {
+            JsonValue::Object(entries) => {
+                checked_heap_sort(entries, poll, |a, b, poll| {
+                    charge(work, limits.max_visits)?;
+                    for (a, b) in
+                        a.0.units()
+                            .chunks(CHECK_BYTES / 2)
+                            .zip(b.0.units().chunks(CHECK_BYTES / 2))
+                    {
+                        poll.now()?;
+                        charge(work, limits.max_visits)?;
+                        let order = a.cmp(b);
+                        if order != std::cmp::Ordering::Equal {
+                            return Ok(order);
+                        }
+                    }
+                    Ok(a.0.units().len().cmp(&b.0.units().len()))
+                })?;
+                for (_, value) in entries {
+                    visit(value, depth + 1, limits, work, poll)?;
+                }
+            }
+            JsonValue::Array(entries) => {
+                for value in entries {
+                    visit(value, depth + 1, limits, work, poll)?;
+                }
+            }
+            _ => {}
+        }
+        Ok(())
+    }
+    limits.validate()?;
+    let mut work = 0;
+    visit(
+        value,
+        1,
+        limits,
+        &mut work,
+        &mut JsonCheck::new(Some(check)),
+    )?;
+    Ok(work)
 }
 
 // Auxiliary fixed-size digest keys accelerate only exact decoded-member lookup.

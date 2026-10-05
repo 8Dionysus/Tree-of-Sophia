@@ -1,5 +1,6 @@
 //! Source-owned strict public packet comparison. HTTP supervision supplies raw
-//! bounded files; this owner reuses FND's grammar, numeric kinds and ordered keys.
+//! bounded files; this owner reuses FND grammar, numeric kinds and checked object
+//! member ordering. Object presentation order is not public packet meaning.
 use std::{
     fs::{self, File, OpenOptions},
     io::{Read, Write},
@@ -7,7 +8,10 @@ use std::{
     path::{Path, PathBuf},
     time::{Duration, Instant},
 };
-use tos_foundation::{JsonLimits, JsonMode, JsonValue, parse_json_with_state_budget};
+use tos_foundation::{
+    FoundationError, FoundationErrorCode, JsonLimits, JsonMode, JsonValue,
+    order_json_object_members_with_check, parse_json_with_state_budget_and_check,
+};
 
 const COMMAND: &str = "verify-public-packets";
 #[derive(Clone, Copy)]
@@ -156,8 +160,19 @@ fn normalized<'a>(value: &'a str, root: &str) -> &'a str {
         .and_then(|tail| tail.strip_prefix('/'))
         .unwrap_or(value)
 }
-fn equal(a: &JsonValue, b: &JsonValue, root: &str, deadline: Instant) -> Result<bool, String> {
+fn equal(
+    a: &JsonValue,
+    b: &JsonValue,
+    root: &str,
+    deadline: Instant,
+    visits: &mut usize,
+    cap: usize,
+) -> Result<bool, String> {
     active(deadline)?;
+    *visits = visits
+        .checked_add(1)
+        .filter(|n| *n <= cap)
+        .ok_or("packet aggregate comparison work cap exceeded")?;
     Ok(match (a, b) {
         (JsonValue::Null, JsonValue::Null) => true,
         (JsonValue::Bool(a), JsonValue::Bool(b)) => a == b,
@@ -172,7 +187,7 @@ fn equal(a: &JsonValue, b: &JsonValue, root: &str, deadline: Instant) -> Result<
             } else {
                 let mut same = true;
                 for (a, b) in a.iter().zip(b) {
-                    if !equal(a, b, root, deadline)? {
+                    if !equal(a, b, root, deadline, visits, cap)? {
                         same = false;
                         break;
                     }
@@ -186,7 +201,7 @@ fn equal(a: &JsonValue, b: &JsonValue, root: &str, deadline: Instant) -> Result<
             } else {
                 let mut same = true;
                 for ((ka, a), (kb, b)) in a.iter().zip(b) {
-                    if ka != kb || !equal(a, b, root, deadline)? {
+                    if ka != kb || !equal(a, b, root, deadline, visits, cap)? {
                         same = false;
                         break;
                     }
@@ -207,11 +222,20 @@ fn compare_json(a: &[u8], b: &[u8], options: &Options, visits: &mut usize) -> Re
         .ok_or("packet aggregate visit cap exceeded")?;
     let mut limits = options.json;
     limits.max_visits = remaining;
-    let left = parse_json_with_state_budget(
+    let mut check = || {
+        active(options.deadline).map_err(|_| {
+            FoundationError::new(
+                FoundationErrorCode::BudgetExceeded,
+                "public packet comparison deadline exceeded",
+            )
+        })
+    };
+    let left = parse_json_with_state_budget_and_check(
         a,
         JsonMode::PublishedStrict,
         limits,
         options.state_bytes / 2,
+        &mut check,
     )
     .map_err(|e| format!("actual packet: {e}"))?;
     active(options.deadline)?;
@@ -222,24 +246,40 @@ fn compare_json(a: &[u8], b: &[u8], options: &Options, visits: &mut usize) -> Re
         .checked_sub(*visits)
         .filter(|v| *v > 0)
         .ok_or("packet aggregate visit cap exceeded")?;
-    let right = parse_json_with_state_budget(
+    let right = parse_json_with_state_budget_and_check(
         b,
         JsonMode::PublishedStrict,
         limits,
         options.state_bytes / 2,
+        &mut check,
     )
     .map_err(|e| format!("expected packet: {e}"))?;
     *visits = visits.checked_add(right.visits()).ok_or("visit overflow")?;
     if left.root().as_object().is_none() || right.root().as_object().is_none() {
         return Err("packet requires JSON objects".into());
     }
+    let mut left = left.into_root();
+    let mut right = right.into_root();
+    for value in [&mut left, &mut right] {
+        limits.max_visits = options
+            .json
+            .max_visits
+            .checked_sub(*visits)
+            .filter(|n| *n > 0)
+            .ok_or("packet aggregate ordering work cap exceeded")?;
+        let work = order_json_object_members_with_check(value, limits, &mut check)
+            .map_err(|e| format!("packet object members: {e}"))?;
+        *visits = visits.checked_add(work).ok_or("visit overflow")?;
+    }
     if !equal(
-        left.root(),
-        right.root(),
+        &left,
+        &right,
         &options.source_root,
         options.deadline,
+        visits,
+        options.json.max_visits,
     )? {
-        return Err("public packet ordered keys/numeric lexemes/shape/value differ".into());
+        return Err("public packet keys/numeric lexemes/shape/value differ".into());
     }
     Ok(())
 }
@@ -325,7 +365,7 @@ mod tests {
         }
     }
     #[test]
-    fn typed_lexemes_magnitude_and_object_order_are_preserved() {
+    fn typed_lexemes_and_magnitude_are_preserved() {
         let options = selected(Shape::Json);
         for (actual, expected) in [
             (
@@ -334,10 +374,6 @@ mod tests {
             ),
             (br#"{"n":1.0}"#.as_slice(), br#"{"n":1}"#.as_slice()),
             (br#"{"n":-0.0}"#.as_slice(), br#"{"n":0.0}"#.as_slice()),
-            (
-                br#"{"10":1,"2":2}"#.as_slice(),
-                br#"{"2":2,"10":1}"#.as_slice(),
-            ),
         ] {
             assert!(compare(actual, expected, &options).is_err());
         }
@@ -349,6 +385,24 @@ mod tests {
             )
             .is_ok()
         );
+    }
+    #[test]
+    fn object_member_order_is_presentation_but_arrays_remain_ordered() {
+        let options = selected(Shape::Json);
+        assert!(
+            compare(
+                br#"{"10":1,"2":{"z":2,"a":1},"\ud800":3}"#,
+                br#"{"\ud800":3,"2":{"a":1,"z":2},"10":1}"#,
+                &options
+            )
+            .is_ok()
+        );
+        assert!(compare(br#"{"a":[1,2]}"#, br#"{"a":[2,1]}"#, &options).is_err());
+        assert!(compare(br#"{"a":1}"#, br#"{"b":1}"#, &options).is_err());
+        assert!(compare(br#"{"a":1,}"#, br#"{"a":1}"#, &options).is_err());
+        let mut constrained = selected(Shape::Json);
+        constrained.json.max_visits = 8; // Parsing fits; ordering/comparison must be priced too.
+        assert!(compare(br#"{"z":1,"a":2}"#, br#"{"a":2,"z":1}"#, &constrained).is_err());
     }
     #[test]
     fn prefix_normalization_preserves_keys_and_wtf16() {
