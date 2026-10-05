@@ -454,6 +454,7 @@ mod tests {
             "schema_version":"tos_growth_native_coverage_v1", "whole_route_status":"incomplete",
             "maintained_route":"native-pipeline", "bounded_native_route":"bounded",
             "reference_route":"reference", "assessment_route":"owner",
+            "native_execution_sequence":"rust_workspace", "reference_discovery":{"root":"mechanics/growth-cycle/tests"},
             "native_test_routes":[{"cargo_manifest":"native/Cargo.toml", "target_kind":"lib", "module_routes":[["owner"]]}]
         })).unwrap()).unwrap();
         touch(&root, "native/src/lib.rs");
@@ -535,6 +536,59 @@ mod tests {
                 b"test result: ok. 2 passed; 0 failed; 0 ignored;"
             )
             .is_err()
+        );
+        touch(&root, "docs/validation/validation_lanes.json");
+        let sequence = serde_json::json!({"command_sequences":{"rust_workspace":[
+            {"label":"prepare", "command":["cargo","test","--no-run","--workspace","--locked","--message-format=json"]},
+            {"label":"native", "command":[growth_native_plan::CLASS_SEQUENCE]}
+        ]}});
+        fs::write(
+            root.join("docs/validation/validation_lanes.json"),
+            serde_json::to_vec(&sequence).unwrap(),
+        )
+        .unwrap();
+        let mechanics = Plan {
+            schema_version: "fixture",
+            test_file_count: 42,
+            commands: vec![
+                Command {
+                    kind: "unittest",
+                    home: "mechanics/growth-cycle".into(),
+                    argv: vec!["reference".into()],
+                },
+                Command {
+                    kind: "unittest",
+                    home: "mechanics/other".into(),
+                    argv: vec!["other-check".into()],
+                },
+                Command {
+                    kind: "validator",
+                    home: "mechanics/growth-cycle".into(),
+                    argv: vec!["growth-validator".into()],
+                },
+            ],
+        };
+        let whole = growth_coverage::whole_steps(&root, "exact-python", &mechanics).unwrap();
+        assert!(
+            whole
+                .iter()
+                .any(|((_, argv), _)| argv.len() == 1 && argv[0] == "other-check")
+        );
+        assert!(
+            whole
+                .iter()
+                .any(|((_, argv), _)| argv.len() == 1 && argv[0] == "growth-validator")
+        );
+        assert!(
+            !whole
+                .iter()
+                .any(|((_, argv), _)| argv.len() == 1 && argv[0] == "reference")
+        );
+        assert!(
+            whole
+                .iter()
+                .any(|((_, argv), _)| argv.len() == 1
+                    && argv[0] == growth_native_plan::CLASS_SEQUENCE)
         );
         fs::remove_dir_all(root).unwrap();
     }

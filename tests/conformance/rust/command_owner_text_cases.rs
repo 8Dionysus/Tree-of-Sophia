@@ -1397,6 +1397,102 @@ for mutation in ('version','subject','source-path','form-path','duplicate'):
     assert (Path(manifest['source_root'])/manifest['source_path']).read_bytes()==source_before
     assert (Path(manifest['source_root'])/manifest['form_path']).read_bytes()==form_before
 
+# Native grammar is frozen in the explicitly selected immutable cut. A changed
+# selected object must refuse both cached and fresh reads, never use root caches.
+import hashlib
+invocation_value=json.loads(invocation.read_text())
+grammar_source=Path(manifest['source_root'])/'ToS/contracts/knowledge-assessment.schema.json'
+grammar=Path(invocation_value['corpus_store'])/'objects'/hashlib.sha256(grammar_source.read_bytes()).hexdigest()
+assert grammar.is_file() and not grammar.is_relative_to(Path(manifest['source_root']))
+grammar_before=grammar.read_bytes()
+try:
+    schema=json.loads(grammar_before)
+    schema['properties']['rationale']['const']='A new independently owned narrow grammar.'
+    grammar.write_text(json.dumps(schema))
+    for probe in (native.verify_current,
+            lambda: AssessedFormSnapshot(owner,ids,native_invocation=invocation).materialize(copy.deepcopy(nodes))):
+        try:
+            probe()
+        except (ValueError,PermissionError,JournalConflict):
+            pass
+        else:
+            raise AssertionError('selected grammar drift escaped the native batch guard')
+finally:
+    grammar.write_bytes(grammar_before)
+native.verify_current()
+assert files(journal)==journal_before and nodes==original
+
+# The builder's final guard invokes the native consumer after staging fsync.
+# Grant and publication changes at that point cannot expose a candidate.
+import os
+from unittest.mock import patch
+import source_metadata_snapshot as publication
+owner_before=owner.read_bytes()
+control=Path(manifest['source_root'])/publication.CONTROL_REF
+control_before=control.read_bytes() if control.exists() else None
+post_sync_target=owner.parent/'native-post-fsync-candidate.json'
+original_fsync=os.fsync
+for mutation in ('grant','pending','ready-epoch'):
+    changed=[]
+    def sync_then_change(descriptor):
+        original_fsync(descriptor)
+        if changed:
+            return
+        changed.append(True)
+        if mutation=='grant':
+            config=json.loads(owner_before)
+            config['subjects'][ids[0]]['access_allowed']=False
+            owner.write_text(json.dumps(config))
+        else:
+            state={'schema_version':publication.STATE_SCHEMA,'generation':1,
+                'transition_id':'1'*32,'phase':'pending' if mutation=='pending' else 'ready',
+                'transaction_id':'sha256:'+'1'*64,'manifest_sha256':'sha256:'+'2'*64,
+                'outcome':None if mutation=='pending' else 'rolled-back','recovery_authorization':None}
+            state['token']=publication._digest(publication._canonical(state))
+            control.write_text(json.dumps(state))
+    try:
+        with patch.object(os,'fsync',sync_then_change):
+            try:
+                write_assessed_candidate(post_sync_target,json.dumps(actual),native)
+            except (ValueError,PermissionError,JournalConflict,publication.PublicationStateError):
+                pass
+            else:
+                raise AssertionError('post-fsync drift escaped native final currentness: '+mutation)
+        assert changed and not post_sync_target.exists()
+        assert not list(post_sync_target.parent.glob('.tos-assessed-*'))
+    finally:
+        owner.write_bytes(owner_before)
+        if control_before is None:
+            control.unlink(missing_ok=True)
+        else:
+            control.write_bytes(control_before)
+    native.verify_current()
+    assert files(journal)==journal_before
+
+# A current expired authority cannot reuse a previously ready materialization.
+# Its actual native clock evaluates the finite configured validity interval.
+if len(ids)>1:
+    from datetime import datetime,timedelta,timezone
+    config=json.loads(owner_before)
+    for authority in config['authorities']:
+        authority['payload']['valid_until']=(datetime.now(timezone.utc)-timedelta(days=1)).isoformat()
+    try:
+        owner.write_text(json.dumps(config))
+        try:
+            native.verify_current()
+        except (ValueError,PermissionError,JournalConflict):
+            pass
+        else:
+            raise AssertionError('expired authority reused a ready native snapshot')
+        fresh_expired=AssessedFormSnapshot(owner,ids,native_invocation=invocation)
+        expired=fresh_expired.materialize(copy.deepcopy(nodes))
+        assert all(packet['state']=='needs-assessment' and packet['display_text'] is None
+            and packet['admission']['can_use'] is False for packet in selected_packets(expired))
+        assert files(journal)==journal_before
+    finally:
+        owner.write_bytes(owner_before)
+    native.verify_current()
+
 target=owner.parent/'native-assessed-candidate.json'
 if len(ids)==1:
     config=json.loads(owner.read_text())

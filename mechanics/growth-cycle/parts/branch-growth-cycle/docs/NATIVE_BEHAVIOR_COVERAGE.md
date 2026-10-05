@@ -13,10 +13,13 @@ enumerated baseline and is not used as a rule.
 
 ## Current disposition
 
-Every existing `test*.py` assertion remains comparison evidence and an obligation
-until its actual predicate is mapped to a native maintained behavior, or explicitly
-retired by owner review because the behavior itself is obsolete. Python assertions
-and APIs are not retired by changing the default executor. Native source-unit,
+The retained `test*.py` assertions contain native operational predicates,
+Python adapter/API predicates, synthetic fixture/oracle mechanisms and semantic
+assessment boundaries. Each follows its actual owner route below. Python APIs and
+reference fixtures remain explicit comparison surfaces; they do not gate native
+execution merely by existing. Native operational failures stay executable in the
+source-owned native pipeline, and no reference assertion is retired by changing
+the default executor. Native source-unit,
 Conformance, installed invocation and actual consumer results keep their individual
 scope. Selected Public, OCR or HTTP success does not accept sibling assertions.
 
@@ -27,7 +30,7 @@ owners and existing cases before proposing a new engine or broad test cohort.
 
 | Reference assertion source (`tests/`) | Native candidate (`tos-command/src/`) | Existing conformance candidate | Review or completion still needed |
 | --- | --- | --- | --- |
-| `test_assessment_read_batch.py` | `source_native_private_assessment_cli.rs::run_public_v2_batch` and `scripts/source_witness_human_forms.py` | `command_owner_text_cases.rs::native_public_v2_assessed_form_batch_matches_builder_and_rechecks_drift` | native parity, source/path/subject binding, duplicate rejection and withdrawal assertions present; independent grammar/cutoff/post-fsync controls still need matching route review |
+| `test_assessment_read_batch.py` | `source_native_private_assessment_cli.rs::run_public_v2_batch` and `scripts/source_witness_human_forms.py` | `command_owner_text_cases.rs::native_public_v2_assessed_form_batch_matches_builder_and_rechecks_drift` | native parity, source/path/subject binding, duplicate rejection and withdrawal assertions present; selected grammar, actual expiry and post-fsync grant/publication controls now have real native invocation assertions; matching execution still required |
 | `test_claim_version_reader.py` | `source_read_owner.rs` | `command_claim_cases.rs` | continuous interleaved history, later sibling corruption, catalog/current-rights drift and batched exact reads |
 | `test_historical_claim_adapter.py` | `source_legacy_historical_claim.rs` | `command_legacy_claim_cases.rs` | interleaved record/claim predecessors and separate form replay under current grammar |
 | `test_historical_claim_assessment.py` | `source_private_assessment_sources.rs` | `command_owner_text_cases.rs` | historical wording disclosure and exact historical source currentness |
@@ -78,15 +81,17 @@ owners and existing cases before proposing a new engine or broad test cohort.
 3. Obtain a matching native product and run the maintained installed entry and
    consumer with its selected source/fixture binding. Preserve prior received
    results when applicability is proven, without relabeling unrun siblings.
-4. Record the old path fate per behavior. Only then wire the complete native Growth
-   plan and admit a whole-route assessment. An `accepted` flag without a native
-   execution plan is refused by the current executor.
+4. Record old API, fixture and semantic fate at their owners. The actual native
+   default executes the contract's `native_execution_sequence` together with
+   other mechanics checks under one lane deadline. Its source-derived partition
+   includes owned command classes, generic native residuals and exact isolated
+   lifecycle cases. An assessment flag cannot replace that execution plan.
 
-The whole native Growth plan is not wired in this change. Plain execution refuses
-before children; `--native-contracts-only` remains the bounded earned route, and
-`--growth-python-oracle` remains an explicit comparison. The Rust workspace route
-continues to exercise maintained native implementations and existing conformance
-families, without claiming complete Growth acceptance.
+Plain execution now runs this finite native pipeline. `--native-contracts-only`
+remains the bounded three-home route and `--growth-python-oracle` explicitly runs
+the retained comparison APIs. This restores the native default without claiming
+reference method-for-method equivalence or semantic acceptance. Installed success
+still requires a matching Ops product and actual complete execution.
 
 ## Concrete source repair from the classification
 
@@ -115,9 +120,9 @@ need their retained producer inputs; a normal class run must not count them as
 executed. This plan provides selectors for the existing conformance product and
 library-test product routes. OPS retains product preparation and execution; there
 is no Cargo child, interpreter fallback, installed product search or execution in
-this source-plan command. The current default whole-route refusal remains until
-the maintained execution plan covers the actual behavior classes. A successfully
-described class is not an executed or accepted assertion.
+this source-plan command. The default consumes this same class authority through
+the selected maintained sequence. A successfully described class is not an
+executed or accepted assertion.
 
 The first useful existing classes are the Claim retained historical reader and
 exact protocol dispatch, command HTTP framing/trickle custody, and selected Record
@@ -154,9 +159,9 @@ input posture, and their separate received executions keep their own scope.
 This replaces the maintained lane's duplicate selection mechanism. Actual native
 source-pipeline execution, matching installed default use, method predicate
 coverage and semantic/source-language judgment remain separate evidence. The
-ordinary installed mechanics default remains incomplete until its native test
-product/consumer selection is completed; source-only class discovery cannot
-turn that default into a success.
+ordinary mechanics default has a concrete source-owned execution route; its
+matching installed product and complete run must still be received. Source-only
+class discovery cannot turn that default into an executed success.
 
 ## Assessed batch predicate disposition
 
@@ -177,8 +182,34 @@ It asserts journal and source/form bytes remain unchanged after each refusal.
 These predicates have executable native assertions; they are not pending native
 implementation simply because their old Python methods remain available.
 
-Independent selected grammar mutation, source schema/registry drift, time expiry
-and post-fsync candidate visibility remain distinct predicates requiring focused
-execution/review at their worker and builder owners. Language adequacy and quality
+The same real consumer case now changes the selected immutable grammar object
+and requires cached/fresh refusal, exercises the actual native clock with expired
+authorities and requires no ready wording, and changes grant or pending/ready
+publication state after staging fsync before the final native guard. It asserts
+no candidate/staging visibility and no journal writes. These are executable native
+predicates requiring matching execution, not semantic oracles. The Python
+root-keyed validator-cache behavior remains a reference API mechanism; native
+workers load the exact selected cut instead. Source schema/registry selection is
+owned by that cut and the native source-currentness readers. Language adequacy and quality
 judgment stay with the source-visible assessment route. Neither a source test
 declaration nor parity with retained synthetic fixtures accepts those judgments.
+
+## Finite native default and retained fate
+
+The executable owner set is the selected native Cargo targets: declared command
+Conformance modules, selected library reader/framing/publication regressions,
+remaining workspace unit tests and exact isolated lifecycle cases. Class and
+assertion names derive from source declarations; the residual tests preserve
+unselected native owners. The lane prepares native/schema/access images, selects
+current Cargo test products and executes them with the existing custody, output,
+per-step and whole-lane limits. An unavailable producer input remains explicitly
+ignored and cannot be reported as executed.
+
+The matrix's operational rows route to these native owners. Its Python-only
+contracts concern the explicit comparison/fixture API or maintained Python
+projection adapter where identified; those APIs keep their own executable
+checks. The actual batch case exercises the native/adapter boundary and complete
+publication pipeline. Source-visible judgment, including adequacy of original
+wording, translation, rights and authorized quality, stays outside mechanical
+closure. The retained method census remains navigation; the default does not
+consult its size, rename assertions into approval or claim their blanket removal.

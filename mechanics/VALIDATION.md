@@ -18,13 +18,17 @@ independent Cargo tests share those same bodies; the installed invocation reads
 the selected repository's current authored schema/example bytes. Growth Cycle's
 maintained behavior route is `rust_workspace`: it builds the native owner and
 prepared consumer, runs Rust unit tests, then runs the existing source-command
-conformance families. Plain `mechanics_local` refuses while the whole native Growth behavior and
-installed consumer route remain incomplete. It cannot silently omit Growth and
-report whole-lane success. The owner assessment lives in
+conformance families. Plain `mechanics_local` executes that actual source-owned
+pipeline alongside the retained other-mechanics checks, using one executor lane
+wall limit. The owner contract selects its command sequence and native source
+classes; preparation must select the actual current Cargo products before class
+dispatch. Missing route/product, zero-test selection, ignored-scope drift or a
+failed assertion prevents success. The owner contract lives in
 `growth-cycle/parts/branch-growth-cycle/docs/native-behavior-coverage.json`;
-`NATIVE_BEHAVIOR_COVERAGE.md` explains assertion and old-path fate. Native source
-checks exercise selected behavior; their green result does not accept the
-remaining Growth obligations.
+`NATIVE_BEHAVIOR_COVERAGE.md` describes native predicates and retained API fate.
+A successful run proves its declared native pipeline and consumer contracts;
+source-language adequacy, rights, canon and semantic assessment retain their
+actual owners. Reference file/method counts are inventory dimensions.
 
 Use the explicit retained Growth oracle only when investigating or comparing
 reference behavior:

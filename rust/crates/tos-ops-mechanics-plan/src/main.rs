@@ -928,15 +928,19 @@ fn main() {
             }),
         Action::Plan | Action::Execute { .. } => tos_ops_mechanics_plan::discover(&root, &python)
             .and_then(|mut plan| {
-                if matches!(
+                let whole_steps = if matches!(
                     action,
                     Action::Execute {
                         growth_python_oracle: false,
                         native_contracts_only: false,
                     }
                 ) {
-                    tos_ops_mechanics_plan::growth_coverage::require_whole_route(&root)?;
-                }
+                    Some(tos_ops_mechanics_plan::growth_coverage::whole_steps(
+                        &root, &python, &plan,
+                    )?)
+                } else {
+                    None
+                };
                 if matches!(
                     action,
                     Action::Execute {
@@ -969,7 +973,13 @@ fn main() {
                         }
                     }
                 }
-                tos_ops_mechanics_plan::executor::run(&root, &plan, limits, &CANCEL)
+                if let Some(steps) = whole_steps {
+                    tos_ops_mechanics_plan::executor::run_validation_sequence(
+                        &root, &python, &steps, limits, &CANCEL,
+                    )
+                } else {
+                    tos_ops_mechanics_plan::executor::run(&root, &plan, limits, &CANCEL)
+                }
             }),
     };
     let code = match result {
