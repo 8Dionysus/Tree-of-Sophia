@@ -45,7 +45,7 @@ mod controlled_original_reader;
 #[cfg(not(target_arch = "wasm32"))]
 mod controlled_philosophy_adapter;
 #[cfg(not(target_arch = "wasm32"))]
-pub use controlled_philosophy_adapter::execute_controlled_philosophy_status_response;
+pub use controlled_philosophy_adapter::{execute_controlled_philosophy_status_response, execute_controlled_philosophy_status_response_render};
 pub mod lens_plan;
 #[cfg(not(target_arch = "wasm32"))]
 pub mod philosophy_read;

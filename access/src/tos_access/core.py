@@ -3903,10 +3903,11 @@ class NativeToSAccessCore(_NativeAccessCore):
         }
         selected_release = release_root if release_root is not None else os.environ.get('TOS_RELEASE_ROOT')
         selected_root = None if selected_release and tos_root is None and not os.environ.get('TOS_DATA_ROOT') else _discover_root(tos_root)
-        if selected_root is not None and selected_root.name == 'data' and os.path.lexists(selected_root.parent / 'manifest.json'):
-            raise DataAccessUnavailable(
-                'standalone tos_access_data_snapshot_v1 requires the native snapshot-root guard; no raw fallback is allowed'
-            )
+        snapshot_root = (selected_root.parent if selected_root is not None
+                         and selected_root.name == 'data'
+                         and os.path.lexists(selected_root.parent / 'manifest.json') else None)
+        if snapshot_root is not None and native_admission_provider is not None:
+            raise ValueError('guarded snapshot selection requires the native-owned operation route')
 
         if selected_release is not None:
             if native_admission_provider is not None:
@@ -3982,6 +3983,7 @@ class NativeToSAccessCore(_NativeAccessCore):
                 core_snapshot_selection=selection,
                 core_snapshot_admission_provider=native_admission_provider,
                 core_snapshot_native_owned=(selection is not None and native_admission_provider is None),
+                core_snapshot_snapshot_root=snapshot_root,
             )
             root = self.tos_root
             query_path = None if selection is None else selection.query_store_path

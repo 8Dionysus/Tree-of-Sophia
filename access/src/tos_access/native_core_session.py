@@ -30,6 +30,20 @@ class NativeSessionRefused(ValueError):
     """Authentic bounded native refusal; message/code remain borrowed values."""
     __slots__ = ('code',)
 
+    @classmethod
+    def from_envelope(cls, envelope, state, schema):
+        if (type(envelope) is not dict or set(envelope) != {'schema_version', 'ok', 'error', 'code'}
+                or envelope.get('schema_version') != schema or envelope.get('ok') is not False
+                or type(envelope['error']) is not str or not 0 < len(envelope['error']) <= 4096
+                or type(envelope['code']) is not str or not 0 < len(envelope['code']) <= 128):
+            raise ValueError('native SDK refusal envelope differs')
+        g = state.geometry
+        state.reserve(cls.__basicsize__ + g.gc_header + g.tuple_base + 2 * g.pointer)
+        state.active()
+        refusal = cls(envelope['error'])
+        refusal.code = envelope['code']
+        return refusal
+
 
 def _unique(pairs):
     result = {}
@@ -429,22 +443,8 @@ class NativeSDKSession:
             # Kind6 is a complete refusal before any result disclosure. Decode
             # once under the ORIGINAL ledger; no new clock/counter or retry.
             envelope = state.decode(result)
-            if (type(envelope) is not dict
-                    or envelope.get('schema_version') != 'tos_native_core_snapshot_result_v1'
-                    or envelope.get('ok') is not False
-                    or len(envelope) != 4 or 'error' not in envelope or 'code' not in envelope
-                    or type(envelope['error']) is not str
-                    or not 0 < len(envelope['error']) <= 4096
-                    or type(envelope['code']) is not str
-                    or not 0 < len(envelope['code']) <= 128):
-                raise ValueError('native SDK refusal envelope differs')
-            g = state.geometry
-            state.reserve(NativeSessionRefused.__basicsize__ + g.gc_header
-                          + g.tuple_base + 2 * g.pointer)
-            state.active()
-            refusal = NativeSessionRefused(envelope['error'])
-            refusal.code = envelope['code']
-            raise refusal
+            raise NativeSessionRefused.from_envelope(envelope, state,
+                'tos_native_core_snapshot_result_v1')
         return result
 
     def close(self):
@@ -452,7 +452,13 @@ class NativeSDKSession:
             return
         self._placement.verify_current()
         self._control.send(4, self._sequence, b'')
-        self._receive(frozenset((5,)), self._sequence, 'close_ack')
+        kind, payload = self._receive(frozenset((5, 6)), self._sequence, 'close_ack')
+        if kind == 6:
+            if self._receiving_state is None:
+                raise ValueError('native SDK close refused')
+            envelope = self._receiving_state.decode(payload)
+            raise NativeSessionRefused.from_envelope(envelope, self._receiving_state,
+                'tos_native_core_snapshot_result_v1')
         self._channel.finish_control_session()
         self._placement.verify_after_shutdown()
         self._closed = True
@@ -461,7 +467,7 @@ class NativeSDKSession:
 @contextmanager
 def owned_native_sdk_session(*, prefix, root, startup_bytes, limits, cancelled,
                              receiver_buffer, frame_buffer, config, receiving_state=None,
-                             session_operation='tos_native_session'):
+                             session_operation='tos_native_session', snapshot_root=None, search_cache_path=None):
     """Launch issuer directly from SDK using original clock and child-only ticket.
 
     Encoded startup and buffers are caller-owned original receiving state; no
@@ -477,10 +483,18 @@ def owned_native_sdk_session(*, prefix, root, startup_bytes, limits, cancelled,
     if type(startup_bytes) is not bytes or len(startup_bytes) > 65536:
         raise ValueError('native SDK original bounded encoded startup required')
     selected_root = _path(root, receiving_state)
+    if snapshot_root is not None:
+        snapshot_root = _path(snapshot_root, receiving_state)
+        if selected_root != snapshot_root / 'data':
+            raise ValueError('native snapshot root/data selector differs')
     if receiving_state is not None:
         from .native_core_session_launch_state import reserve_sdk_launch
         reserve_sdk_launch(receiving_state, config, prefix, selected_root,
                            session_operation=session_operation)
+    if search_cache_path is not None:
+        search_cache_path = _path(search_cache_path, receiving_state)
+        if session_operation != 'tos_native_ordinary_session':
+            raise ValueError('native cache host selector requires ordinary operation')
     with ExitStack() as stack:
         outside = isinstance(config, NativeSDKHostSessionRequest)
         if outside and session_operation != 'tos_native_ordinary_session':
@@ -518,6 +532,13 @@ def owned_native_sdk_session(*, prefix, root, startup_bytes, limits, cancelled,
                 '--address-space-bytes', str(_CONSUMER), '--file-size-bytes', str(_SETUP), '--',
                 'core-snapshot', '--root', str(selected_root), '--operation', session_operation,
                 '--session-control-fd', str(fd), '--work-deadline-ns', str(config.original_work_deadline_ns)]
+        if outside and snapshot_root is not None:
+            arguments += ['--snapshot-root', str(snapshot_root)]
+        elif not outside and session_operation == 'tos_native_ordinary_session':
+            boundary = arguments.index('--')
+            arguments[boundary:boundary] = ['--protected-ro', str(snapshot_root if snapshot_root is not None else selected_root)]
+        if outside and search_cache_path is not None:
+            arguments += ['--search-cache-path', str(search_cache_path)]
         selected_image = None
         if receiving_state is not None:
             selected_image = stack.enter_context(native_dispatch.verified_image(
@@ -544,7 +565,7 @@ def owned_native_sdk_session(*, prefix, root, startup_bytes, limits, cancelled,
 @contextmanager
 def owned_native_snapshot_exchange(prefix, selection, state, operation_id,
                                    prior_fd=None, reply_fd=None, config=None,
-                                   *, absolute_work_deadline=None):
+                                   *, absolute_work_deadline=None, snapshot_root=None):
     """Keep authentic placement and original call custody through stdio terminal."""
     from .native_core_session_receiver import ReceiverState
     from .native_core_snapshot import NativeCoreSnapshotSelection, _INPUT_CAP, _FRAME_CAP
@@ -579,6 +600,10 @@ def owned_native_snapshot_exchange(prefix, selection, state, operation_id,
     prefix, root = _path(prefix, state), _path(selection.tos_root, state)
     reserve_sdk_launch(state, config, prefix, root, session_operation=operation_id,
                        input_cap=_INPUT_CAP, frame_cap=_FRAME_CAP)
+    if snapshot_root is not None:
+        snapshot_root = _path(snapshot_root, state)
+        if root != snapshot_root / 'data':
+            raise ValueError('native retained snapshot root/data selector differs')
     outside = isinstance(config, NativeSDKHostSessionRequest)
     with ExitStack() as stack:
         placement = NativeSDKHostCustody(config, state._cancelled) if outside else NativeSDKPlacement(config)
@@ -613,6 +638,11 @@ def owned_native_snapshot_exchange(prefix, selection, state, operation_id,
                 '--address-space-bytes', str(_CONSUMER), '--file-size-bytes', str(_SETUP), '--',
                 'core-snapshot', '--root', str(root), '--operation', operation_id,
                 '--native-ordinary-startup', '--work-deadline-ns', str(config.original_work_deadline_ns)] + roles
+        if outside and snapshot_root is not None:
+            arguments += ['--snapshot-root', str(snapshot_root)]
+        elif not outside:
+            boundary = arguments.index('--')
+            arguments[boundary:boundary] = ['--protected-ro', str(snapshot_root if snapshot_root is not None else root)]
         image = stack.enter_context(native_dispatch.verified_image(prefix,
             absolute_deadline=operation_deadline,
             absolute_cleanup_deadline=cleanup_deadline,

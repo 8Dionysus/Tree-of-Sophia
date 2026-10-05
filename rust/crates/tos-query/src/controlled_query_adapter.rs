@@ -10,7 +10,7 @@ use tos_compiler::{
     ControlledSearchKind, ControlledSidecarModel, Error as CompilerError,
     KnowledgeSelectedExpectation, KnowledgeSourceBasis, QueryVocabulary,
 };
-use tos_foundation::{JsonNumberKind, JsonValue, OwnedState};
+use tos_foundation::{JsonNumberKind, JsonValue, OwnedState, python_decimal_value_unicode16_v1};
 
 use crate::{
     knowledge_binding::{BoundCmpKnowledge, bind_controlled_knowledge_from_parts},
@@ -102,19 +102,24 @@ fn decimal_limit(raw: &str) -> Option<usize> {
     let mut previous_digit = false;
     let mut chars = digits.chars().peekable();
     while let Some(ch) = chars.next() {
-        match ch {
-            '0'..='9' => {
-                magnitude = magnitude
-                    .saturating_mul(10)
-                    .saturating_add((ch as u8 - b'0') as usize)
-                    .min(INDEXED_LIMIT_MAX + 1);
-                saw_digit = true;
-                previous_digit = true;
-            }
-            '_' if previous_digit && matches!(chars.peek().copied(), Some('0'..='9')) => {
-                previous_digit = false;
-            }
-            _ => return None,
+        if let Some(digit) = python_decimal_value_unicode16_v1(ch) {
+            magnitude = magnitude
+                .saturating_mul(10)
+                .saturating_add(usize::from(digit))
+                .min(INDEXED_LIMIT_MAX + 1);
+            saw_digit = true;
+            previous_digit = true;
+        } else if ch == '_'
+            && previous_digit
+            && chars
+                .peek()
+                .copied()
+                .and_then(python_decimal_value_unicode16_v1)
+                .is_some()
+        {
+            previous_digit = false;
+        } else {
+            return None;
         }
     }
     if !saw_digit || !previous_digit {

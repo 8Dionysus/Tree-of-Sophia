@@ -16,6 +16,17 @@ pub fn execute_controlled_philosophy_status_response<'hold,
     authority: &mut A, caps: InspectBudget,
     deliver: impl FnOnce(&[u8]) -> Result<(), SearchV2Error>,
 ) -> Result<(), SearchV2Error> {
+    execute_controlled_philosophy_status_response_render(model, bound, authority,
+        caps, false, deliver)
+}
+
+pub fn execute_controlled_philosophy_status_response_render<'hold,
+    A: InspectCurrentAuthority<'hold> + ?Sized>(
+    model: &mut ControlledKnowledgeModel<'_, '_, '_>, bound: &BoundCmpKnowledge<'_>,
+    authority: &mut A, caps: InspectBudget,
+    render: bool,
+    deliver: impl FnOnce(&[u8]) -> Result<(), SearchV2Error>,
+) -> Result<(), SearchV2Error> {
     bound.check_controlled_model(model)?;
     model.check_query_open_vm_admission(caps.max_open_vm_steps).map_err(compiler_query_error)?;
     let forecast = authority.disclosure_metadata_state_upper_bound()?;
@@ -71,8 +82,27 @@ pub fn execute_controlled_philosophy_status_response<'hold,
             heap.retain(bytes).map_err(compiler_query_error)?;
             model.charge_query_work(bytes).map_err(compiler_query_error)?;
             let packet = crate::philosophy_read::controlled_status(&header);
-            heap.retain(caps.max_response_bytes).map_err(compiler_query_error)?;
-            let body = heap.canonicalize_owned_query_json(&packet, caps.json).map_err(compiler_query_error)?;
+            let body = if render {
+                let mut limits = caps.json;
+                limits.max_bytes = limits.max_bytes.min(caps.max_response_bytes);
+                let pretty = heap.emit_python_pretty_owned_json(&packet, limits)
+                    .map_err(compiler_query_error)?;
+                heap.retain(pretty.capacity()).map_err(compiler_query_error)?;
+                let text = std::str::from_utf8(&pretty).map_err(|_| corrupt())?;
+                // UTF-8 plus a growable UTF-16 buffer and its inline JsonValue.
+                let string_state = text.len().checked_mul(1 + 2 * std::mem::size_of::<u16>())
+                    .and_then(|n| n.checked_add(std::mem::size_of::<JsonValue>())).ok_or_else(budget)?;
+                heap.retain(string_state).map_err(compiler_query_error)?;
+                heap.charge_work(text.len()).map_err(compiler_query_error)?;
+                let value = JsonValue::String(JsonString::from_utf8(text));
+                heap.canonicalize_owned_query_json(&value, caps.json).map_err(compiler_query_error)?
+            } else {
+                heap.canonicalize_owned_query_json(&packet, caps.json).map_err(compiler_query_error)?
+            };
+            // The renderer/canonical writer admitted the allocation against the
+            // original remainder; transfer actual capacity into the held query
+            // before sending, without reserving the response cap twice.
+            heap.retain(body.capacity()).map_err(compiler_query_error)?;
             if body.len() > caps.max_response_bytes { return Err(budget()); }
             authority.check_selected()?;
             let mut lease = authority.acquire_disclosure(&scope, &[])?;

@@ -323,7 +323,7 @@ class NativeCoreOrdinarySessionResultClient(NativeCoreLazySessionResultClient):
     capabilities; it cannot advertise an unimplemented method or create Stage,
     Query, Cold, publication or source authority in Python.
     """
-    __slots__ = ('_capabilities', '_ordinary_whole')
+    __slots__ = ('_capabilities', '_ordinary_whole', '_snapshot_guard')
 
     def __new__(cls, session, state, startup_frame, original_work_deadline_ns):
         owner = super().__new__(cls, session, state, startup_frame, original_work_deadline_ns)
@@ -344,6 +344,10 @@ class NativeCoreOrdinarySessionResultClient(NativeCoreLazySessionResultClient):
             raise ValueError('native ordinary original work cutoff differs')
         self._state = state
         ready = state.decode(startup_frame)
+        if type(ready) is dict and ready.get('ok') is False:
+            from .native_core_session import NativeSessionRefused
+            raise NativeSessionRefused.from_envelope(ready, state,
+                'tos_native_core_ordinary_session_ready_v1')
         if (type(ready) is not dict
                 or ready.get('schema_version') != 'tos_native_core_ordinary_session_ready_v1'
                 or ready.get('profile') != 'tos_core_ordinary_selected_v1'
@@ -372,6 +376,11 @@ class NativeCoreOrdinarySessionResultClient(NativeCoreLazySessionResultClient):
                 whole = whole or cap['profiles'][0] == 'whole_root'
             else:
                 raise ValueError('native ordinary capability shape differs')
+        guard = ready.get('snapshot_guard')
+        if guard is not None and (type(guard) is not str or len(guard) != 64
+                or any(c not in '0123456789abcdef' for c in guard)):
+            raise ValueError('native ordinary snapshot guard receipt differs')
+        self._snapshot_guard = guard
         self._capabilities, self._ordinary_whole = caps, whole
         self._supports_search = self._has_capability('tos_native_call', 'tos_knowledge_search')
         self._supports_indexed_search = self._has_capability('tos_native_call', 'tos_knowledge_search_indexed_v2', 'whole_root')

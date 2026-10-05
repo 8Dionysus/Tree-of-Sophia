@@ -154,7 +154,8 @@ class NativeAccessCore(NativeCore):
                  source_read_service: Any | None = None,
                  core_snapshot_selection: Any | None = None,
                  core_snapshot_admission_provider: Any | None = None,
-                 core_snapshot_native_owned: bool = False):
+                 core_snapshot_native_owned: bool = False,
+                 core_snapshot_snapshot_root: str | Path | None = None):
         self._lifetime_lock = RLock()
         self._closed = False
         self._ephemeral_state = None
@@ -296,7 +297,7 @@ class NativeAccessCore(NativeCore):
             if core_snapshot_native_owned:
                 self._core_snapshot_client = NativeCoreSnapshotClient(
                     prefix, core_snapshot_selection, None,
-                    search_read_model=self._search_read_model_options)
+                    search_read_model=self._search_read_model_options, snapshot_root=core_snapshot_snapshot_root)
             else:
                 self._core_snapshot_client = NativeCoreSnapshotClient(
                     prefix, core_snapshot_selection, core_snapshot_admission_provider)

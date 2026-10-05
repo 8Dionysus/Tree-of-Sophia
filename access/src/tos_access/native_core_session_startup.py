@@ -173,7 +173,7 @@ def startup_bytes(admission, selection, config, state, *, selected_probe=False, 
     return result
 
 
-def ordinary_startup_bytes(selection, transport, config, state, *, search_read_model=None):
+def ordinary_startup_bytes(selection, transport, config, state, *, search_read_model=None, snapshot_root=None, expected_snapshot_guard=None):
     """Serialize selectors for the native-issued ordinary operation profile.
 
     Native owns Stage/capture/Cold/Query admission. Python supplies no operation
@@ -215,7 +215,18 @@ def ordinary_startup_bytes(selection, transport, config, state, *, search_read_m
             if type(value) is not int or not 0 <= value < 1 << 64:
                 raise ValueError('ordinary search sidecar selector requires u64')
             w.literal(str(value).encode('ascii'))
-    w.literal(b'},"original_whole_deadline_ns":')
+    w.literal(b'}')
+    if snapshot_root is not None:
+        w.literal(b',"snapshot_root":')
+        w.path(snapshot_root)
+    if expected_snapshot_guard is not None:
+        if (snapshot_root is None or type(expected_snapshot_guard) is not str
+                or len(expected_snapshot_guard) != 64
+                or any(c not in '0123456789abcdef' for c in expected_snapshot_guard)):
+            raise ValueError('native snapshot guard receipt differs')
+        w.literal(b',"expected_snapshot_guard":')
+        w.string(expected_snapshot_guard)
+    w.literal(b',"original_whole_deadline_ns":')
     w.integer(config.original_whole_deadline_ns)
     w.literal(b'}')
     g = state.geometry

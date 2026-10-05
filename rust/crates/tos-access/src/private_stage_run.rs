@@ -846,12 +846,94 @@ struct Options {
     original: u64,
     shutdown_ms: u64,
     persistent: Option<PathBuf>,
+    protected_ro: Option<PathBuf>,
     search_cache: Option<SearchCacheSelection>,
     control_fd: Option<i32>,
     retained_fds: [Option<i32>; 2],
     sdk_phase_as: Option<SdkPhaseAs>,
     direct_custody: Option<(libc::pid_t, libc::sigset_t)>,
     command: Vec<String>,
+}
+fn verify_protected_ro(_o: &Options, path: &Path, held: &File) -> Result<(), String> {
+    identical(held, &directory(path)?)?;
+    // A selected source may live below /tmp and contain its separately issued cache.
+    // It cannot replace a fallback root or the private stage itself.
+    if FALLBACKS
+        .iter()
+        .map(Path::new)
+        .any(|p| p == path || p.starts_with(path))
+    {
+        return Err("protected read root would replace fallback root".into());
+    }
+    Ok(())
+}
+fn mount_protected_ro(o: &Options, path: &Path, held: &File) -> Result<(), String> {
+    // Fallback masking may have hidden the original name; the issuer-held FD
+    // remains the source. Recreate only the bounded target below that fallback.
+    if let Some(fallback) = FALLBACKS
+        .iter()
+        .map(Path::new)
+        .find(|p| path.starts_with(p))
+    {
+        let relative = path.strip_prefix(fallback).map_err(|e| e.to_string())?;
+        let mut cursor = fallback.to_path_buf();
+        for part in relative.components() {
+            cursor.push(part);
+            match DirBuilder::new().mode(0o700).create(&cursor) {
+                Ok(()) => (),
+                Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => {
+                    drop(directory(&cursor)?);
+                }
+                Err(e) => return Err(e.to_string()),
+            }
+        }
+    } else {
+        verify_protected_ro(o, path, held)?;
+    }
+    let source = PathBuf::from(format!("/proc/self/fd/{}", held.as_raw_fd()));
+    mount(
+        Some(source.as_os_str()),
+        path,
+        None,
+        libc::MS_BIND | libc::MS_REC,
+        None,
+    )?;
+    let mounted = directory(path)?;
+    identical(held, &mounted)?;
+    #[repr(C)]
+    struct MountAttr {
+        set: u64,
+        clear: u64,
+        propagation: u64,
+        userns_fd: u64,
+    }
+    let attr = MountAttr {
+        set: 1,
+        clear: 0,
+        propagation: 0,
+        userns_fd: 0,
+    }; // MOUNT_ATTR_RDONLY
+    if unsafe {
+        libc::syscall(
+            libc::SYS_mount_setattr,
+            mounted.as_raw_fd(),
+            c"".as_ptr(),
+            0x1000u32 | 0x8000u32,
+            &attr,
+            std::mem::size_of::<MountAttr>(),
+        )
+    } != 0
+    {
+        return Err(error()); // unsupported recursive protection fails closed
+    }
+    let mut filesystem = unsafe { std::mem::zeroed::<libc::statvfs>() };
+    if unsafe { libc::fstatvfs(mounted.as_raw_fd(), &mut filesystem) } != 0
+        || filesystem.f_flag & libc::ST_RDONLY == 0
+    {
+        return Err("protected read mount readback differs".into());
+    }
+    verify_protected_ro(o, path, held)?;
+    Ok(())
 }
 fn retained_fd_roles(fds: [Option<i32>; 2]) -> Result<(), String> {
     if let Some(fd) = fds[0] {
@@ -1007,6 +1089,7 @@ impl Leader {
         held_fd: i32,
         persistent_fd: Option<i32>,
         search_cache_fd: Option<i32>,
+        protected_ro_fd: Option<i32>,
         control_fd: Option<i32>,
         retained_fds: [Option<i32>; 2],
     ) -> Result<(Self, Option<String>), String> {
@@ -1022,11 +1105,17 @@ impl Leader {
                 if libc::syscall(libc::SYS_close_range, 3u32, u32::MAX, 4u32) < 0 {
                     return Err(std::io::Error::last_os_error());
                 }
-                for fd in [Some(held_fd), persistent_fd, search_cache_fd, control_fd]
-                    .into_iter()
-                    .chain(retained_fds)
-                    .flatten()
-                    .filter(|fd| *fd >= 3)
+                for fd in [
+                    Some(held_fd),
+                    persistent_fd,
+                    search_cache_fd,
+                    protected_ro_fd,
+                    control_fd,
+                ]
+                .into_iter()
+                .chain(retained_fds)
+                .flatten()
+                .filter(|fd| *fd >= 3)
                 {
                     let flags = libc::fcntl(fd, libc::F_GETFD);
                     if flags < 0 || libc::fcntl(fd, libc::F_SETFD, flags & !libc::FD_CLOEXEC) < 0 {
@@ -1263,6 +1352,10 @@ fn outer(o: &Options) -> Result<i32, String> {
         }
     }
     let search_cache = o.search_cache.as_ref().map(open_search_cache).transpose()?;
+    let protected_ro = o.protected_ro.as_ref().map(|p| directory(p)).transpose()?;
+    if let (Some(path), Some(held)) = (&o.protected_ro, &protected_ro) {
+        verify_protected_ro(o, path, held)?;
+    }
     let setup = membership()?;
     topology(&setup, &o.consumer, &held, o.quota, o.ram, end)?;
     if !contents(&held, "cgroup.procs", 4096)?.trim().is_empty() || consumer_populated(&held)? {
@@ -1359,6 +1452,13 @@ fn outer(o: &Options) -> Result<i32, String> {
             .arg("--search-cache-fd")
             .arg(held.as_raw_fd().to_string());
     }
+    if let (Some(path), Some(held)) = (&o.protected_ro, &protected_ro) {
+        command
+            .arg("--protected-ro")
+            .arg(path)
+            .arg("--protected-ro-fd")
+            .arg(held.as_raw_fd().to_string());
+    }
     if let (Some(fd), Some(auth)) = (o.control_fd, control.as_ref()) {
         match_control(fd, auth, end)?;
         command
@@ -1394,6 +1494,7 @@ fn outer(o: &Options) -> Result<i32, String> {
         held.as_raw_fd(),
         persistent.as_ref().map(AsRawFd::as_raw_fd),
         search_cache.as_ref().map(AsRawFd::as_raw_fd),
+        protected_ro.as_ref().map(AsRawFd::as_raw_fd),
         o.control_fd,
         o.retained_fds,
     );
@@ -1587,6 +1688,7 @@ struct Inner {
     consumer_fd: i32,
     persistent_fd: Option<i32>,
     search_cache_fd: Option<i32>,
+    protected_ro_fd: Option<i32>,
     parent_mnt: u64,
     parent_net: u64,
     host_uid: u64,
@@ -1602,7 +1704,8 @@ fn inner(o: &Options, i: &Inner) -> Result<i32, String> {
         (Some(fd), Some(auth))
             if fd != i.consumer_fd
                 && Some(fd) != i.persistent_fd
-                && Some(fd) != i.search_cache_fd =>
+                && Some(fd) != i.search_cache_fd
+                && Some(fd) != i.protected_ro_fd =>
         {
             match_control(fd, auth, end)?
         }
@@ -1679,6 +1782,25 @@ fn inner(o: &Options, i: &Inner) -> Result<i32, String> {
         }
         _ => return Err("search cache descriptor/selector mismatch".into()),
     };
+    if o.protected_ro
+        .as_ref()
+        .is_some_and(|p| p.starts_with(&i.root) || i.root.starts_with(p))
+    {
+        return Err("protected read root overlaps actual private stage".into());
+    }
+    let protected_ro = match (&o.protected_ro, i.protected_ro_fd) {
+        (None, None) => None,
+        (Some(path), Some(raw)) if raw >= 3 => {
+            let duplicate = unsafe { libc::fcntl(raw, libc::F_DUPFD_CLOEXEC, 3) };
+            if duplicate < 0 {
+                return Err(error());
+            }
+            let held = unsafe { File::from_raw_fd(duplicate) };
+            verify_protected_ro(o, path, &held)?;
+            Some(held)
+        }
+        _ => return Err("protected read root FD role differs".into()),
+    };
     let duplicate = unsafe { libc::fcntl(i.consumer_fd, libc::F_DUPFD_CLOEXEC, 3) };
     if duplicate < 0 {
         return Err(error());
@@ -1745,6 +1867,9 @@ fn inner(o: &Options, i: &Inner) -> Result<i32, String> {
     }
     // Fallback /tmp now points to private tmpfs. Restore only the explicitly
     // issued cache directory, via its held host FD, under the same public path.
+    if let (Some(path), Some(held)) = (&o.protected_ro, &protected_ro) {
+        mount_protected_ro(o, path, held)?;
+    }
     if let (Some(selected), Some(held)) = (&o.search_cache, &search_cache) {
         let parent = selected.parent()?;
         if let Some(fallback) = FALLBACKS
@@ -1764,6 +1889,10 @@ fn inner(o: &Options, i: &Inner) -> Result<i32, String> {
                     Err(e) => return Err(e.to_string()),
                 }
             }
+        }
+        if FALLBACKS.iter().map(Path::new).any(|path| parent.starts_with(path))
+            || o.protected_ro.as_ref().is_some_and(|path| parent.starts_with(path))
+        {
             let source = PathBuf::from(format!("/proc/self/fd/{}", held.as_raw_fd()));
             mount(Some(source.as_os_str()), parent, None, libc::MS_BIND, None)?;
         }
@@ -1888,6 +2017,13 @@ fn inner(o: &Options, i: &Inner) -> Result<i32, String> {
     }
     if unsafe { libc::prctl(libc::PR_SET_DUMPABLE, 0, 0, 0, 0) } != 0 {
         return Err(error());
+    }
+    if let (Some(path), Some(held)) = (&o.protected_ro, &protected_ro) {
+        verify_protected_ro(o, path, held)?;
+    }
+    drop(protected_ro);
+    if let Some(fd) = i.protected_ro_fd {
+        unsafe { libc::close(fd) };
     }
     drop_caps()?;
     end.check()?;
@@ -2065,6 +2201,14 @@ fn options(args: &[String]) -> Result<(Options, Option<Inner>), String> {
     if !inner_flag && search_cache_fd.is_some() {
         return Err("search cache FD is issuer inner handoff only".into());
     }
+    let protected_ro = values.remove("--protected-ro").map(PathBuf::from);
+    let protected_ro_fd = values
+        .remove("--protected-ro-fd")
+        .map(|v| v.parse::<i32>().map_err(|e| e.to_string()))
+        .transpose()?;
+    if !inner_flag && protected_ro_fd.is_some() {
+        return Err("protected read FD is issuer namespace handoff only".into());
+    }
     let persistent = values.remove("--persistent-store").map(PathBuf::from);
     let persistent_fd = values
         .remove("--persistent-fd")
@@ -2091,6 +2235,7 @@ fn options(args: &[String]) -> Result<(Options, Option<Inner>), String> {
         original: n!("--work-deadline-ns"),
         shutdown_ms: n!("--maximum-shutdown-ms"),
         persistent,
+        protected_ro,
         search_cache,
         control_fd,
         retained_fds,
@@ -2105,6 +2250,7 @@ fn options(args: &[String]) -> Result<(Options, Option<Inner>), String> {
             consumer_fd: i32::try_from(n!("--consumer-fd")).map_err(|e| e.to_string())?,
             persistent_fd,
             search_cache_fd,
+            protected_ro_fd,
             parent_mnt: n!("--parent-mount-namespace"),
             parent_net: n!("--parent-net-namespace"),
             host_uid: n!("--host-uid"),
@@ -2325,6 +2471,7 @@ fn sdk_python_run(args: &[String]) -> Result<i32, String> {
                 | "--work-deadline-ns"
                 | "--maximum-shutdown-ms"
                 | "--persistent-store"
+                | "--protected-ro"
                 | "--search-cache-path"
                 | "--search-cache-source-root"
                 | "--search-cache-max-build-bytes"
@@ -2482,6 +2629,7 @@ fn sdk_python_run(args: &[String]) -> Result<i32, String> {
         original,
         shutdown_ms: shutdown,
         persistent,
+        protected_ro: selected.get("--protected-ro").map(|v| PathBuf::from(*v)),
         search_cache,
         control_fd: selected
             .get("--ordinary-session-control-fd")
@@ -2597,7 +2745,8 @@ fn sdk_python_run(args: &[String]) -> Result<i32, String> {
         }
         end.check()?;
         // No cgroup handle or stage ticket is inherited by the SDK entry.
-        let (mut leader, restoration) = Leader::spawn(command, -1, None, None, None, [None, None])?;
+        let (mut leader, restoration) =
+            Leader::spawn(command, -1, None, None, None, None, [None, None])?;
         let outcome = (|| -> Result<i32, String> {
             if let Some(e) = restoration {
                 return Err(e);
@@ -2684,7 +2833,7 @@ fn host_command(
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());
-    let (mut leader, restore) = Leader::spawn(c, -1, None, None, None, [None, None])?;
+    let (mut leader, restore) = Leader::spawn(c, -1, None, None, None, None, [None, None])?;
     let result = (|| {
         if let Some(e) = restore {
             return Err(e);
@@ -2839,7 +2988,7 @@ fn host_admission(
     Ok(j)
 }
 fn sdk_host_session(args: &[String]) -> Result<i32, String> {
-    if args.len() > 17
+    if args.len() > 19
         || args.len() < 11
         || args[1] != "--expected-parent-pid"
         || args[3] != "--restore-signal-mask"
@@ -2855,6 +3004,7 @@ fn sdk_host_session(args: &[String]) -> Result<i32, String> {
         if !matches!(
             pair[0].as_str(),
             "--root"
+                | "--snapshot-root"
                 | "--consumer-control-fd"
                 | "--work-deadline-ns"
                 | "--snapshot-operation"
@@ -2878,6 +3028,17 @@ fn sdk_host_session(args: &[String]) -> Result<i32, String> {
     };
     let root = PathBuf::from(get("--root")?);
     path_shape(&root)?;
+    let snapshot_root = selected.get("--snapshot-root").map(|v| PathBuf::from(*v));
+    let snapshot_parent = snapshot_root.as_ref().map(|p| directory(p)).transpose()?;
+    if let (Some(parent), Some(held)) = (&snapshot_root, &snapshot_parent) {
+        if root != parent.join("data") {
+            return Err("snapshot root/data relation differs".into());
+        }
+        identical(held, &directory(parent)?)?;
+        directory(&root)?;
+    }
+    let protected_read_root = snapshot_root.clone().unwrap_or_else(|| root.clone());
+    let protected_read_hold = directory(&protected_read_root)?;
     let control = selected
         .get("--consumer-control-fd")
         .map(|v| v.parse::<i32>().map_err(|e| e.to_string()))
@@ -3090,6 +3251,9 @@ fn sdk_host_session(args: &[String]) -> Result<i32, String> {
             "--sdk-native-consumer".into(),
             "true".into(),
         ];
+        identical(&protected_read_hold, &directory(&protected_read_root)?)?;
+        directory(&root)?;
+        argv.extend(["--protected-ro".into(), protected_read_root.display().to_string()]);
         if let Some(fd) = control {
             argv.extend(["--ordinary-session-control-fd".into(), fd.to_string()]);
         }

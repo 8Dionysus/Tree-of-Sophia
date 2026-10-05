@@ -602,11 +602,101 @@ fn is_python_whitespace(ch: char) -> bool {
         '\u{2028}' | '\u{2029}' | '\u{202f}' | '\u{205f}' | '\u{3000}')
 }
 
-/// Python Unicode `\d`/`isdecimal` category, using the pinned Unicode 16 data.
-/// Numeric letters and superscripts are not decimal digits.
+/// Pinned Unicode 16.0.0 starts of decimal digit groups. Adjacent Nd groups
+/// are split into ten-code-point ranges so the boolean and value APIs share
+/// one source of truth.
+const PYTHON_DECIMAL_UNICODE16_ZEROES: &[u32] = &[
+    0x00030,
+    0x00660,
+    0x006F0,
+    0x007C0,
+    0x00966,
+    0x009E6,
+    0x00A66,
+    0x00AE6,
+    0x00B66,
+    0x00BE6,
+    0x00C66,
+    0x00CE6,
+    0x00D66,
+    0x00DE6,
+    0x00E50,
+    0x00ED0,
+    0x00F20,
+    0x01040,
+    0x01090,
+    0x017E0,
+    0x01810,
+    0x01946,
+    0x019D0,
+    0x01A80,
+    0x01A90,
+    0x01B50,
+    0x01BB0,
+    0x01C40,
+    0x01C50,
+    0x0A620,
+    0x0A8D0,
+    0x0A900,
+    0x0A9D0,
+    0x0A9F0,
+    0x0AA50,
+    0x0ABF0,
+    0x0FF10,
+    0x104A0,
+    0x10D30,
+    0x10D40,
+    0x11066,
+    0x110F0,
+    0x11136,
+    0x111D0,
+    0x112F0,
+    0x11450,
+    0x114D0,
+    0x11650,
+    0x116C0,
+    0x116D0,
+    0x116DA,
+    0x11730,
+    0x118E0,
+    0x11950,
+    0x11BF0,
+    0x11C50,
+    0x11D50,
+    0x11DA0,
+    0x11F50,
+    0x16130,
+    0x16A60,
+    0x16AC0,
+    0x16B50,
+    0x16D70,
+    0x1CCF0,
+    0x1D7CE,
+    0x1D7D8,
+    0x1D7E2,
+    0x1D7EC,
+    0x1D7F6,
+    0x1E140,
+    0x1E2F0,
+    0x1E4F0,
+    0x1E5F1,
+    0x1E950,
+    0x1FBF0,
+];
+
+/// Python Unicode 16 Decimal_Number numeric value for one scalar.
+pub fn python_decimal_value_unicode16_v1(ch: char) -> Option<u8> {
+    let codepoint = ch as u32;
+    let index = PYTHON_DECIMAL_UNICODE16_ZEROES.partition_point(|zero| *zero <= codepoint);
+    let zero = *PYTHON_DECIMAL_UNICODE16_ZEROES.get(index.checked_sub(1)?)?;
+    let value = codepoint.checked_sub(zero)?;
+    (value < 10).then_some(value as u8)
+}
+
+/// Python Unicode 16 Decimal_Number category. Numeric letters and superscripts
+/// are not decimal digits.
 pub fn python_decimal_unicode16_v1(ch: char) -> bool {
-    use unicode_general_category::{GeneralCategory, get_general_category};
-    matches!(get_general_category(ch), GeneralCategory::DecimalNumber)
+    python_decimal_value_unicode16_v1(ch).is_some()
 }
 
 /// Python 3.14/Unicode 16 Unicode-regex `\w`: all letter and number

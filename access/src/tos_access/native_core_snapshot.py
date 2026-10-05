@@ -369,13 +369,18 @@ class NativeCoreSnapshotClient:
     def __init__(self, native_prefix: str | Path,
                  selection: NativeCoreSnapshotSelection,
                  admission_provider: Callable[[str], NativeCoreSnapshotAdmission] | None = None,
-                 *, search_read_model=None):
+                 *, search_read_model=None, snapshot_root=None):
         self.native_prefix = _absolute_path(native_prefix, 'native_prefix')
         if not isinstance(selection, NativeCoreSnapshotSelection):
             raise TypeError('native Core snapshot requires an explicit carrier selection')
         if admission_provider is not None and not callable(admission_provider):
             raise TypeError('native Core snapshot requires a caller-owned admission provider')
         self.selection = selection
+        self._snapshot_root = None if snapshot_root is None else _absolute_path(snapshot_root, 'snapshot_root')
+        if self._snapshot_root is not None and (admission_provider is not None
+                or selection.tos_root != self._snapshot_root / 'data'):
+            raise ValueError('native guarded selection must retain snapshot root/data')
+        self._expected_snapshot_guard = None
         if search_read_model is not None:
             if admission_provider is not None:
                 raise ValueError('native-owned search sidecar selector requires native-owned operation route')
@@ -394,6 +399,28 @@ class NativeCoreSnapshotClient:
         self._published_graph = None
         self._published_catalog = None
         self._catalog_graph = None
+        if self._snapshot_root is not None:
+            from .native_core_session_factory import owned_native_ordinary_source_session
+            from .native_core_session_control import NativeSessionLimits
+            with self._operation('tos_native_guard_open') as call:
+                with owned_native_ordinary_source_session(prefix=self.native_prefix,
+                        selection=self.selection, transport=NativeSessionLimits(65536, 16777216, 258, 1, 65536, 16777216),
+                        state=call.state, cancelled=call.state._cancelled, maximum_owner_objects=100000,
+                        snapshot_root=self._snapshot_root) as client:
+                    self._accept_snapshot_guard(client._snapshot_guard)
+
+    def _accept_snapshot_guard(self, guard):
+        if self._snapshot_root is None:
+            if guard is not None:
+                raise ValueError('raw native selection returned a snapshot guard')
+            return
+        from .core import DataAccessUnavailable
+        if (type(guard) is not str or len(guard) != 64
+                or any(c not in '0123456789abcdef' for c in guard)):
+            raise DataAccessUnavailable('native snapshot guard receipt missing or invalid')
+        if self._expected_snapshot_guard is not None and guard != self._expected_snapshot_guard:
+            raise DataAccessUnavailable('native data snapshot changed since Core construction')
+        self._expected_snapshot_guard = guard
 
     @contextmanager
     def _operation(self, operation_id: str, absolute_deadline=None):
@@ -429,9 +456,17 @@ class NativeCoreSnapshotClient:
                 if self._closed:
                     raise RuntimeError('native Core snapshot client is closed')
                 retained_owner_state(state, (self.native_prefix, self.selection,
-                    self._published_graph, self._published_catalog, self._state_file, self._search_read_model),
+                    self._published_graph, self._published_catalog, self._state_file, self._search_read_model, self._snapshot_root, self._expected_snapshot_guard),
                     maximum_objects=100000)
                 yield _CallClock(None, work + 5.0, math.floor(work * 1000000000), state)
+            except Exception as error:
+                from .native_core_session import NativeSessionRefused
+                if isinstance(error, NativeSessionRefused) and error.code == 'DataAccessUnavailable':
+                    from .core import DataAccessUnavailable
+                    state.reserve(DataAccessUnavailable.__basicsize__ + state.geometry.gc_header
+                                  + state.geometry.tuple_base + state.geometry.pointer)
+                    raise DataAccessUnavailable(str(error)) from error
+                raise
             finally:
                 self._lock.release()
             return
@@ -483,7 +518,8 @@ class NativeCoreSnapshotClient:
     def _exchange(self, operation_id: str, arguments: dict[str, Any], call: _CallClock,
                   *, prior_state=None, state_reply=False):
         admission = call.admission
-        if admission is None and not state_reply:
+        if admission is None and operation_id not in ('tos_knowledge_graph', 'tos_knowledge_snapshot',
+                                                       'tos_knowledge_graph_addressed', 'tos_knowledge_snapshot_once'):
             from .native_core_session_factory import owned_native_ordinary_source_session
             from .native_core_session_control import NativeSessionLimits
             transport = NativeSessionLimits(65536, 16777216, 258, 1, 65536, 16777216)
@@ -492,7 +528,9 @@ class NativeCoreSnapshotClient:
             with owned_native_ordinary_source_session(prefix=self.native_prefix,
                     selection=self.selection, transport=transport, state=call.state,
                     cancelled=call.state._cancelled, maximum_owner_objects=100000,
-                    search_read_model=search_read_model) as client:
+                    search_read_model=search_read_model, snapshot_root=self._snapshot_root,
+                    expected_snapshot_guard=self._expected_snapshot_guard) as client:
+                self._accept_snapshot_guard(client._snapshot_guard)
                 tool = arguments['tool'] if operation_id == 'tos_native_call' else operation_id
                 values = arguments['arguments'] if operation_id == 'tos_native_call' else arguments
                 result = client.call(tool, values, absolute_deadline=call.work_deadline)
@@ -529,6 +567,9 @@ class NativeCoreSnapshotClient:
         if admission is None:
             request.pop('admission')
             request['schema_version'] = 'tos_native_core_ordinary_snapshot_startup_v1'
+            if self._snapshot_root is not None:
+                request['snapshot_root'] = str(self._snapshot_root)
+                request['expected_snapshot_guard'] = self._expected_snapshot_guard
             request['original_whole_deadline_ns'] = int(call.state._deadline * 1000000000) + 5000000000
         new_state = None
         received_state = None
@@ -554,7 +595,7 @@ class NativeCoreSnapshotClient:
                     selection=self.selection, state=call.state, operation_id=operation_id,
                     prior_fd=prior_state.fileno() if prior_state is not None else None,
                     reply_fd=sender.fileno() if sender is not None else None,
-                    absolute_work_deadline=call.work_deadline)
+                    absolute_work_deadline=call.work_deadline, snapshot_root=self._snapshot_root)
             else:
                 exchange = owned_exchange(argv, prefix=self.native_prefix,
                     input_cap=_INPUT_CAP, frame_cap=_FRAME_CAP,
@@ -573,7 +614,12 @@ class NativeCoreSnapshotClient:
                 del first_frame
                 if next(frames, None) is not None:
                     raise ValueError('native Core private CLI returned more than one JSON frame')
+                if admission is None and type(envelope) is dict and envelope.get('ok') is False:
+                    from .native_core_session import NativeSessionRefused
+                    raise NativeSessionRefused.from_envelope(envelope, call.state, _RESULT_SCHEMA)
                 base_keys = {'schema_version', 'ok', 'result'}
+                if self._snapshot_root is not None:
+                    base_keys.add('snapshot_guard')
                 weak_store = envelope.get('state_profile') == 'tos_query_store_v1'
                 expected_keys = (base_keys | {'state_reused'}) if state_reply else base_keys
                 if weak_store:
@@ -607,6 +653,7 @@ class NativeCoreSnapshotClient:
                     if received_state is not None:
                         self._validate_state_file(received_state, admission)
                         new_state, received_state = received_state, None
+                self._accept_snapshot_guard(envelope.get('snapshot_guard'))
                 return envelope['result'], envelope.get('state_reused'), new_state
         except BaseException:
             if received_state is not None:
