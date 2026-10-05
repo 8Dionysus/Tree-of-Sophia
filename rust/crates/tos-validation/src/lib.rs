@@ -6,6 +6,9 @@
 //! FND's published strict parser, exact source revisions, owner rule modules,
 //! current authority fences, and CMD's atomic seal before publishing.
 
+#[cfg(all(target_arch = "wasm32", feature = "native", feature = "wasm"))]
+compile_error!("the WASM target requires the `wasm` profile without `native`");
+
 use std::collections::{BTreeMap, BTreeSet};
 
 use jsonschema::{Draft, Registry};
@@ -14,27 +17,41 @@ use tos_foundation::{
     Digest256, Digest256Hasher, FoundationErrorCode, JsonLimits, JsonMode, JsonValue, parse_json,
 };
 
+#[cfg(feature = "native")]
 pub mod assessment;
+#[cfg(feature = "native")]
 pub mod biblio_rules;
+mod datetime_support;
+#[cfg(feature = "native")]
 pub mod executor;
 pub mod item_rules;
+#[cfg(feature = "native")]
 pub mod layer_family_cut;
 pub mod layer_family_rules;
+#[cfg(feature = "native")]
 pub mod native_compound;
+#[cfg(feature = "native")]
 pub mod operation;
 pub mod provenance_rules;
+#[cfg(feature = "native")]
 pub mod record_biblio_cut;
+#[cfg(feature = "native")]
 pub mod record_rules;
 pub mod relation_rules;
+#[cfg(feature = "native")]
 pub mod retirement_rules;
+#[cfg(feature = "native")]
 pub mod rights_rules;
 pub mod semantic_registry_rules;
 pub mod source_copy;
+#[cfg(feature = "native")]
 pub mod source_cut;
 pub mod source_forms;
+#[cfg(feature = "native")]
 pub mod source_shapes;
 pub mod text_metadata_rules;
 pub mod text_rules;
+mod validation_codec;
 
 /// An immutable private prepare view over an exact base plus proposed delta.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -1424,18 +1441,26 @@ mod tests {
     }
 }
 
+#[cfg(feature = "native")]
 pub mod source_witness_foundation;
 
+#[cfg(feature = "native")]
 pub mod source_foundation_schema;
 
+#[cfg(feature = "native")]
 pub mod source_foundation_records;
 
+#[cfg(feature = "native")]
 pub mod source_foundation_labs;
 
+#[cfg(feature = "native")]
 pub mod source_foundation_goldsets;
 
+#[cfg(feature = "native")]
 pub mod source_foundation_discovery;
 
+#[cfg(feature = "native")]
 pub mod source_foundation_closure;
 
+#[cfg(feature = "native")]
 pub mod source_foundation_default_rules;

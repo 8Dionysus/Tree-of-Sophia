@@ -16,7 +16,7 @@ pub enum FormMechanicsError {
 use FormMechanicsError as Error;
 pub type Result<T> = std::result::Result<T, FormMechanicsError>;
 fn validate_instant(value: &str) -> Result<()> {
-    crate::retirement_rules::observed_instant_order(value, value)
+    crate::datetime_support::observed_instant_order(value, value)
         .map(|_| ())
         .map_err(|_| Error::Invalid("instant requires explicit valid timezone"))
 }
@@ -617,9 +617,9 @@ fn materialize_source_forms_impl(
         // Existing output byte law; the private compound caller additionally
         // bounds the temporary emission while earlier views remain retained.
         let wire_size = if let Some(limit) = logical_limit {
-            let tree = crate::record_biblio_cut::ordered_state(&view)
+            let tree = crate::validation_codec::ordered_state(&view)
                 .map_err(|_| MaterializeError::Logical { used: None, limit })?;
-            let indexes = crate::record_biblio_cut::ordered_emit_state(&view)
+            let indexes = crate::validation_codec::ordered_emit_state(&view)
                 .map_err(|_| MaterializeError::Logical { used: None, limit })?;
             let base = logical
                 .checked_add(tree)
@@ -642,7 +642,7 @@ fn materialize_source_forms_impl(
         if let Some(limit) = logical_limit {
             logical = logical
                 .checked_add(
-                    crate::record_biblio_cut::ordered_state(&view)
+                    crate::validation_codec::ordered_state(&view)
                         .map_err(|_| MaterializeError::Logical { used: None, limit })?,
                 )
                 .ok_or(MaterializeError::Logical { used: None, limit })?;
@@ -830,7 +830,7 @@ fn materialize_one(
         ("standalone_reading", JsonValue::Bool(false)),
     ]);
     if let Some(limit) = logical_limit {
-        let used = crate::record_biblio_cut::ordered_state(&view)
+        let used = crate::validation_codec::ordered_state(&view)
             .map_err(|_| MaterializeError::Logical { used: None, limit })?;
         if used > limit {
             return Err(MaterializeError::Logical {
@@ -840,9 +840,9 @@ fn materialize_one(
         }
     }
     let view_size = if let Some(limit) = logical_limit {
-        let tree = crate::record_biblio_cut::ordered_state(&view)
+        let tree = crate::validation_codec::ordered_state(&view)
             .map_err(|_| MaterializeError::Logical { used: None, limit })?;
-        let indexes = crate::record_biblio_cut::ordered_emit_state(&view)
+        let indexes = crate::validation_codec::ordered_emit_state(&view)
             .map_err(|_| MaterializeError::Logical { used: None, limit })?;
         let base = tree
             .checked_add(indexes)

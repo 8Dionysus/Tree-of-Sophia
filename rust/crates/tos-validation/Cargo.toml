@@ -6,16 +6,26 @@ rust-version = "1.98.1"
 license = "Apache-2.0"
 description = "Owner-declared ToS validation contracts and bounded schema backend probe"
 
+[features]
+default = ["native"]
+native = ["dep:rusqlite", "dep:tos-source-store"]
+wasm = []
+
 [dependencies]
 serde = { version = "1", features = ["derive"] }
 num-bigint = "=0.4.8"
 unicode-normalization = "=0.1.24"
 jsonschema = { version = "=0.53.0", default-features = false, features = ["arbitrary-precision"] }
 serde_json = { version = "1", features = ["arbitrary_precision"] }
-rusqlite = { version = "=0.37.0", features = ["bundled"] }
+rusqlite = { version = "=0.37.0", features = ["bundled"], optional = true }
 unicode-general-category = "=1.1.0"
 tos-foundation = { path = "../tos-foundation" }
-tos-source-store = { path = "../tos-source-store" }
+tos-source-store = { path = "../tos-source-store", optional = true }
+
+[[bin]]
+name = "tos-schema-worker"
+path = "src/bin/tos-schema-worker.rs"
+required-features = ["native"]
 
 [target.'cfg(all(target_os = "linux", target_pointer_width = "64"))'.dependencies]
 libc = "0.2"

@@ -704,7 +704,7 @@
       },
       {
         "label": "check WASM validation backend target",
-        "command": ["cargo", "check", "--locked", "-p", "tos-validation", "--target", "wasm32-unknown-unknown"]
+        "command": ["cargo", "check", "--locked", "-p", "tos-validation", "--no-default-features", "--features", "wasm", "--target", "wasm32-unknown-unknown"]
       },
       {
         "label": "install native exact reader outside checkout",
