@@ -1249,7 +1249,7 @@ impl WeightedScaleProfileV1 {
 
     pub fn validate(&self) -> std::io::Result<()> {
         if self.target_records < 20
-            || self.target_records.checked_add(19).is_none()
+            || raw_fixture_directory_count_v1(self).is_err()
             || self
                 .classes
                 .iter()
@@ -1308,11 +1308,9 @@ impl WeightedScaleProfileV1 {
         }
         // Include the raw fixture root, the shared ToS/source-witnesses
         // ancestors, all class-specific ancestors, and one record directory
-        // per emitted member. The fixed prefix union is nineteen directories.
-        let raw_input_directories = self
-            .target_records
-            .checked_add(19)
-            .ok_or_else(|| io_invalid("raw fixture directory forecast overflow"))?;
+        // per emitted member. Shared ancestors are counted once from the
+        // paths of the selected classes, matching raw fixture creation.
+        let raw_input_directories = raw_fixture_directory_count_v1(self)?;
         let raw_input_inodes = raw_input_directories
             .checked_add(self.target_records)
             .ok_or_else(|| io_invalid("raw fixture inode forecast overflow"))?;
@@ -1439,7 +1437,8 @@ mod weighted_scale_profile_tests {
         assert_eq!(default_envelope.temporary_logical_bytes, 908_328_300);
         assert_eq!(default_envelope.temporary_allocated_bytes, 908_447_744);
         assert_eq!(default_envelope.temporary_file_inodes, 27);
-        assert_eq!(default_envelope.raw_input_allocated_bytes, 2_371_125_248);
+        assert_eq!(default_envelope.raw_input_allocated_bytes, 2_371_100_672);
+        assert_eq!(default.forecast_inputs().unwrap().raw_input_directory_count, 100_016);
 
         let billion =
             WeightedScaleProfileV1::weighted_for_records(seed, 1_000_000_000).unwrap();
@@ -1966,6 +1965,27 @@ fn path_for(class: WeightedScaleClassV1, ordinal: u64) -> String {
             format!("{SCALE_FIXTURE_ROOT_V1}/works/scale-fixtures/v1/works/{ordinal:020}/work.json")
         }
     }
+}
+
+// Each generated member owns one ordinal directory. All directories above
+// those ordinal directories come from the selected member paths themselves.
+fn raw_fixture_directory_count_v1(profile: &WeightedScaleProfileV1) -> std::io::Result<u64> {
+    let mut shared = BTreeSet::new();
+    shared.insert(PathBuf::new()); // the held raw fixture root
+    for row in profile.classes.iter().filter(|row| row.count != 0) {
+        let path = path_for(row.class, 0);
+        let prefix = Path::new(&path)
+            .parent()
+            .and_then(Path::parent)
+            .ok_or_else(|| io_invalid("raw fixture member directory geometry differs"))?;
+        shared.extend(prefix.ancestors().map(Path::to_path_buf));
+    }
+    let shared_count = u64::try_from(shared.len())
+        .map_err(|_| io_invalid("raw fixture shared directory count overflow"))?;
+    profile
+        .target_records
+        .checked_add(shared_count)
+        .ok_or_else(|| io_invalid("raw fixture directory forecast overflow"))
 }
 
 fn generated_path_prefix_v1(class: WeightedScaleClassV1) -> &'static str {
@@ -3368,10 +3388,7 @@ fn raw_fixture_allocation_upper_v1(
                 .ok_or_else(|| io_invalid("weighted raw file allocation overflow"))?;
         }
     }
-    let directories = profile
-        .target_records
-        .checked_add(19)
-        .ok_or_else(|| io_invalid("weighted raw directory allocation count overflow"))?;
+    let directories = raw_fixture_directory_count_v1(profile)?;
     let directory_bytes = (directories as u128)
         .checked_mul((allocation_unit as u128) * 2)
         .ok_or_else(|| io_invalid("weighted raw directory allocation overflow"))?;
