@@ -643,13 +643,18 @@ fn native_layer_journal_case() {
     let repository = super::validation_cut_cases::repository()
         .canonicalize()
         .unwrap();
-    let deadline = Instant::now() + Duration::from_secs(240);
+    let started = Instant::now();
+    let deadline = started + Duration::from_secs(240);
     let cancelled = AtomicBool::new(false);
     let temporary = tempfile::Builder::new()
         .permissions(fs::Permissions::from_mode(0o700))
         .tempdir()
         .unwrap();
     let fixture = native_layer_journal_fixture(&repository, temporary.path(), deadline);
+    eprintln!(
+        "native layer journal cost: phase=fixture elapsed_ms={}",
+        started.elapsed().as_millis()
+    );
     let owner = PathBuf::from(fixture["owner"].as_str().unwrap());
     let public = PathBuf::from(fixture["public"].as_str().unwrap());
     let context = PathBuf::from(fixture["context"].as_str().unwrap());
@@ -673,6 +678,10 @@ fn native_layer_journal_case() {
         )
     };
     let image_before: Vec<_> = images.iter().map(|path| custody(path)).collect();
+    eprintln!(
+        "native layer journal cost: phase=image-custody elapsed_ms={}",
+        started.elapsed().as_millis()
+    );
     let preserved: BTreeMap<PathBuf, Vec<u8>> = fixture["preserved"]
         .as_array()
         .unwrap()
@@ -701,8 +710,16 @@ fn native_layer_journal_case() {
     assert!(captured.values().map(Vec::len).sum::<usize>() <= 33_554_432);
     let (capture, _software, components) =
         super::command_record_cases::captured_components(&captured, deadline, &cancelled);
+    eprintln!(
+        "native layer journal cost: phase=software-capture elapsed_ms={}",
+        started.elapsed().as_millis()
+    );
     let store = temporary.path().join("layer-journal-source-cut");
     let selected = super::validation_cut_cases::write_cut_store(&authored, &store);
+    eprintln!(
+        "native layer journal cost: phase=captured elapsed_ms={}",
+        started.elapsed().as_millis()
+    );
     let invocation = serde_json::json!({"schema_version":"tos_local_native_source_invocation_v1",
         "owner_config":owner,"owner_context":context,"native_executable":images[1],"native_executable_sha256":image_before[1].4.to_prefixed(),
         "corpus_store":store,"source_revision":selected.0.to_prefixed(),"original_source_revision":selected.0.to_prefixed(),
@@ -744,13 +761,34 @@ fn native_layer_journal_case() {
     );
     fs::write(&owner, configuration_raw).unwrap();
     fs::set_permissions(&owner, fs::Permissions::from_mode(0o600)).unwrap();
+    eprintln!(
+        "native layer journal cost: phase=supporting-refusal elapsed_ms={}",
+        started.elapsed().as_millis()
+    );
+    let ordinal = std::cell::Cell::new(0usize);
     let invoke = |request: &Value| -> Value {
+        let number = ordinal.get() + 1;
+        ordinal.set(number);
+        let step_started = Instant::now();
+        eprintln!(
+            "native layer journal cost: call={number} phase=start operation={} elapsed_ms={} remaining_ms={}",
+            request["operation"].as_str().unwrap_or("<absent>"),
+            started.elapsed().as_millis(),
+            deadline.saturating_duration_since(step_started).as_millis()
+        );
         let (status, raw, errors) = super::command_text_cases::native_owner_cli_observation(
             &repository,
             &owner,
             &invocation_path,
             request,
             deadline,
+        );
+        eprintln!(
+            "native layer journal cost: call={number} phase=terminal operation={} elapsed_ms={} child_ms={} success={}",
+            request["operation"].as_str().unwrap_or("<absent>"),
+            started.elapsed().as_millis(),
+            step_started.elapsed().as_millis(),
+            status.success()
         );
         assert!(
             status.success(),
