@@ -534,6 +534,215 @@ fn health_graph_header_row(
 /// Typed health metadata from the exact selected graph header and catalog.
 /// The raw graph header stays private; only its schema and complete validated
 /// aggregate counts are returned under existing catalog authority and lease.
+pub(crate) fn controlled_knowledge_health_metadata(bound: &BoundCmpKnowledge<'_>,
+    header: &JsonValue, catalog: &JsonValue, budget: CatalogBudget) -> Result<JsonValue, CatalogError> {
+        if header.as_object().is_none() || catalog.as_object().is_none() {
+            return Err(error(
+                CatalogErrorCode::CorruptSelectedCarrier,
+                "selected health metadata object invalid",
+            ));
+        }
+        let graph_schema = header
+            .object_get("schema")
+            .and_then(JsonValue::as_str)
+            .filter(|value| !value.is_empty() && value.len() <= budget.max_packet_bytes)
+            .ok_or_else(|| {
+                error(
+                    CatalogErrorCode::CorruptSelectedCarrier,
+                    "selected graph schema is absent or invalid",
+                )
+            })?;
+        let catalog_schema = catalog
+            .object_get("schema")
+            .and_then(JsonValue::as_str)
+            .filter(|value| !value.is_empty() && value.len() <= budget.max_packet_bytes)
+            .ok_or_else(|| {
+                error(
+                    CatalogErrorCode::CorruptSelectedCarrier,
+                    "selected catalog schema is absent or invalid",
+                )
+            })?;
+        let counts = header.object_get("counts").ok_or_else(|| {
+            error(
+                CatalogErrorCode::CorruptSelectedCarrier,
+                "selected graph counts are absent",
+            )
+        })?;
+        health_exact_object(
+            counts,
+            &[
+                "nodes",
+                "relations",
+                "sources",
+                "display_coverage",
+                "semantic_mapping",
+            ],
+            "selected graph count schema differs",
+        )?;
+        let display_coverage = counts.object_get("display_coverage").ok_or_else(|| {
+            error(
+                CatalogErrorCode::CorruptSelectedCarrier,
+                "selected graph display coverage is absent",
+            )
+        })?;
+        health_exact_object(
+            display_coverage,
+            &[
+                "node_titles",
+                "node_summaries",
+                "node_summary_states",
+                "nodes_without_source_summary",
+                "relation_labels",
+                "relation_statements",
+                "relation_explanations",
+                "relation_explanation_states",
+                "relations_without_source_explanation",
+            ],
+            "selected graph display coverage schema differs",
+        )?;
+        let semantic_mapping = counts.object_get("semantic_mapping").ok_or_else(|| {
+            error(
+                CatalogErrorCode::CorruptSelectedCarrier,
+                "selected graph semantic mapping is absent",
+            )
+        })?;
+        let semantic_mapping = health_fixed_counts(
+            semantic_mapping,
+            &[
+                "mapped_nodes",
+                "unmapped_nodes",
+                "mapped_relations",
+                "unmapped_relations",
+                "cross_layer_relations",
+            ],
+            "selected graph semantic mapping schema or count differs",
+        )?;
+        let nodes = health_required_count(
+            counts,
+            "nodes",
+            "selected graph node count is absent or invalid",
+        )?;
+        let relations = health_required_count(
+            counts,
+            "relations",
+            "selected graph relation count is absent or invalid",
+        )?;
+        let source_ids = bound.vocabulary().registered_source_ids.as_slice();
+        let sources = health_count_map(
+            counts.object_get("sources").ok_or_else(|| {
+                error(
+                    CatalogErrorCode::CorruptSelectedCarrier,
+                    "selected graph source counts are absent",
+                )
+            })?,
+            source_ids.len(),
+            budget.max_packet_bytes,
+            Some(source_ids),
+        )?;
+        let node_summary_states = health_count_map(
+            display_coverage
+                .object_get("node_summary_states")
+                .ok_or_else(|| {
+                    error(
+                        CatalogErrorCode::CorruptSelectedCarrier,
+                        "selected node summary states are absent",
+                    )
+                })?,
+            budget.json.max_visits,
+            budget.max_packet_bytes,
+            None,
+        )?;
+        let relation_explanation_states = health_count_map(
+            display_coverage
+                .object_get("relation_explanation_states")
+                .ok_or_else(|| {
+                    error(
+                        CatalogErrorCode::CorruptSelectedCarrier,
+                        "selected relation explanation states are absent",
+                    )
+                })?,
+            budget.json.max_visits,
+            budget.max_packet_bytes,
+            None,
+        )?;
+        let display_coverage = health_object(vec![
+            (
+                "node_titles",
+                health_number(health_required_count(
+                    display_coverage,
+                    "node_titles",
+                    "selected graph display coverage count is absent or invalid",
+                )?),
+            ),
+            (
+                "node_summaries",
+                health_number(health_required_count(
+                    display_coverage,
+                    "node_summaries",
+                    "selected graph display coverage count is absent or invalid",
+                )?),
+            ),
+            ("node_summary_states", node_summary_states),
+            (
+                "nodes_without_source_summary",
+                health_number(health_required_count(
+                    display_coverage,
+                    "nodes_without_source_summary",
+                    "selected graph display coverage count is absent or invalid",
+                )?),
+            ),
+            (
+                "relation_labels",
+                health_number(health_required_count(
+                    display_coverage,
+                    "relation_labels",
+                    "selected graph display coverage count is absent or invalid",
+                )?),
+            ),
+            (
+                "relation_statements",
+                health_number(health_required_count(
+                    display_coverage,
+                    "relation_statements",
+                    "selected graph display coverage count is absent or invalid",
+                )?),
+            ),
+            (
+                "relation_explanations",
+                health_number(health_required_count(
+                    display_coverage,
+                    "relation_explanations",
+                    "selected graph display coverage count is absent or invalid",
+                )?),
+            ),
+            ("relation_explanation_states", relation_explanation_states),
+            (
+                "relations_without_source_explanation",
+                health_number(health_required_count(
+                    display_coverage,
+                    "relations_without_source_explanation",
+                    "selected graph display coverage count is absent or invalid",
+                )?),
+            ),
+        ]);
+        let counts = health_object(vec![
+            ("nodes", health_number(nodes)),
+            ("relations", health_number(relations)),
+            ("sources", sources),
+            ("display_coverage", display_coverage),
+            ("semantic_mapping", semantic_mapping),
+        ]);
+        Ok(health_object(vec![
+            (
+                "schema_version",
+                health_text("tos_selected_knowledge_health_metadata_v1"),
+            ),
+            ("graph_schema", health_text(graph_schema)),
+            ("catalog_schema", health_text(catalog_schema)),
+            ("counts", counts),
+        ]))
+}
+
 pub fn execute_selected_knowledge_health_metadata<
     'hold,
     A: CatalogCurrentAuthority<'hold> + ?Sized,
@@ -775,211 +984,7 @@ pub fn execute_selected_knowledge_health_metadata<
                 )
             })?
             .into_root();
-        if header.as_object().is_none() || catalog.as_object().is_none() {
-            return Err(error(
-                CatalogErrorCode::CorruptSelectedCarrier,
-                "selected health metadata object invalid",
-            ));
-        }
-        let graph_schema = header
-            .object_get("schema")
-            .and_then(JsonValue::as_str)
-            .filter(|value| !value.is_empty() && value.len() <= budget.max_packet_bytes)
-            .ok_or_else(|| {
-                error(
-                    CatalogErrorCode::CorruptSelectedCarrier,
-                    "selected graph schema is absent or invalid",
-                )
-            })?;
-        let catalog_schema = catalog
-            .object_get("schema")
-            .and_then(JsonValue::as_str)
-            .filter(|value| !value.is_empty() && value.len() <= budget.max_packet_bytes)
-            .ok_or_else(|| {
-                error(
-                    CatalogErrorCode::CorruptSelectedCarrier,
-                    "selected catalog schema is absent or invalid",
-                )
-            })?;
-        let counts = header.object_get("counts").ok_or_else(|| {
-            error(
-                CatalogErrorCode::CorruptSelectedCarrier,
-                "selected graph counts are absent",
-            )
-        })?;
-        health_exact_object(
-            counts,
-            &[
-                "nodes",
-                "relations",
-                "sources",
-                "display_coverage",
-                "semantic_mapping",
-            ],
-            "selected graph count schema differs",
-        )?;
-        let display_coverage = counts.object_get("display_coverage").ok_or_else(|| {
-            error(
-                CatalogErrorCode::CorruptSelectedCarrier,
-                "selected graph display coverage is absent",
-            )
-        })?;
-        health_exact_object(
-            display_coverage,
-            &[
-                "node_titles",
-                "node_summaries",
-                "node_summary_states",
-                "nodes_without_source_summary",
-                "relation_labels",
-                "relation_statements",
-                "relation_explanations",
-                "relation_explanation_states",
-                "relations_without_source_explanation",
-            ],
-            "selected graph display coverage schema differs",
-        )?;
-        let semantic_mapping = counts.object_get("semantic_mapping").ok_or_else(|| {
-            error(
-                CatalogErrorCode::CorruptSelectedCarrier,
-                "selected graph semantic mapping is absent",
-            )
-        })?;
-        let semantic_mapping = health_fixed_counts(
-            semantic_mapping,
-            &[
-                "mapped_nodes",
-                "unmapped_nodes",
-                "mapped_relations",
-                "unmapped_relations",
-                "cross_layer_relations",
-            ],
-            "selected graph semantic mapping schema or count differs",
-        )?;
-        let nodes = health_required_count(
-            counts,
-            "nodes",
-            "selected graph node count is absent or invalid",
-        )?;
-        let relations = health_required_count(
-            counts,
-            "relations",
-            "selected graph relation count is absent or invalid",
-        )?;
-        let source_ids = bound.vocabulary().registered_source_ids.as_slice();
-        let sources = health_count_map(
-            counts.object_get("sources").ok_or_else(|| {
-                error(
-                    CatalogErrorCode::CorruptSelectedCarrier,
-                    "selected graph source counts are absent",
-                )
-            })?,
-            source_ids.len(),
-            budget.max_packet_bytes,
-            Some(source_ids),
-        )?;
-        let node_summary_states = health_count_map(
-            display_coverage
-                .object_get("node_summary_states")
-                .ok_or_else(|| {
-                    error(
-                        CatalogErrorCode::CorruptSelectedCarrier,
-                        "selected node summary states are absent",
-                    )
-                })?,
-            budget.json.max_visits,
-            budget.max_packet_bytes,
-            None,
-        )?;
-        let relation_explanation_states = health_count_map(
-            display_coverage
-                .object_get("relation_explanation_states")
-                .ok_or_else(|| {
-                    error(
-                        CatalogErrorCode::CorruptSelectedCarrier,
-                        "selected relation explanation states are absent",
-                    )
-                })?,
-            budget.json.max_visits,
-            budget.max_packet_bytes,
-            None,
-        )?;
-        let display_coverage = health_object(vec![
-            (
-                "node_titles",
-                health_number(health_required_count(
-                    display_coverage,
-                    "node_titles",
-                    "selected graph display coverage count is absent or invalid",
-                )?),
-            ),
-            (
-                "node_summaries",
-                health_number(health_required_count(
-                    display_coverage,
-                    "node_summaries",
-                    "selected graph display coverage count is absent or invalid",
-                )?),
-            ),
-            ("node_summary_states", node_summary_states),
-            (
-                "nodes_without_source_summary",
-                health_number(health_required_count(
-                    display_coverage,
-                    "nodes_without_source_summary",
-                    "selected graph display coverage count is absent or invalid",
-                )?),
-            ),
-            (
-                "relation_labels",
-                health_number(health_required_count(
-                    display_coverage,
-                    "relation_labels",
-                    "selected graph display coverage count is absent or invalid",
-                )?),
-            ),
-            (
-                "relation_statements",
-                health_number(health_required_count(
-                    display_coverage,
-                    "relation_statements",
-                    "selected graph display coverage count is absent or invalid",
-                )?),
-            ),
-            (
-                "relation_explanations",
-                health_number(health_required_count(
-                    display_coverage,
-                    "relation_explanations",
-                    "selected graph display coverage count is absent or invalid",
-                )?),
-            ),
-            ("relation_explanation_states", relation_explanation_states),
-            (
-                "relations_without_source_explanation",
-                health_number(health_required_count(
-                    display_coverage,
-                    "relations_without_source_explanation",
-                    "selected graph display coverage count is absent or invalid",
-                )?),
-            ),
-        ]);
-        let counts = health_object(vec![
-            ("nodes", health_number(nodes)),
-            ("relations", health_number(relations)),
-            ("sources", sources),
-            ("display_coverage", display_coverage),
-            ("semantic_mapping", semantic_mapping),
-        ]);
-        let output = health_object(vec![
-            (
-                "schema_version",
-                health_text("tos_selected_knowledge_health_metadata_v1"),
-            ),
-            ("graph_schema", health_text(graph_schema)),
-            ("catalog_schema", health_text(catalog_schema)),
-            ("counts", counts),
-        ]);
+        let output = controlled_knowledge_health_metadata(bound, &header, &catalog, budget)?;
         let mut output_limits = budget.json;
         output_limits.max_bytes = output_limits.max_bytes.min(budget.max_packet_bytes);
         let body = meter

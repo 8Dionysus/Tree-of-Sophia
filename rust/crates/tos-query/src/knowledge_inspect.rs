@@ -78,6 +78,13 @@ impl InspectVisitMeter {
         self.remaining = remaining;
         Ok(())
     }
+    /// Narrow a composite query window using visits already spent by its
+    /// authentic Original parser/writer. This never grants or replenishes the
+    /// original aggregate budget and does not create an Original receipt.
+    pub fn charge_original_visits(&mut self, visits: usize) -> Result<(), FoundationError> {
+        if self.failed { return Err(Self::budget_error()); }
+        self.charge(visits)
+    }
     pub fn parse_json(
         &mut self,
         raw: &[u8],

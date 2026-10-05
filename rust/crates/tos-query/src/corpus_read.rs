@@ -228,20 +228,49 @@ pub(crate) fn controlled_metadata(header: &JsonValue, context: &CorpusReadContex
     }
 }
 
-struct CorpusRead<'a, 'b, 'c, A: ?Sized> {
-    read: &'a mut Reader<'b, 'c, A>,
+/// The maintained Corpus kernel requires only authenticated Original rows and
+/// interruption. Existing selected Reader and controlled Original owner each
+/// implement these two operations; neither kernel can open a model or mint a cut.
+pub(crate) trait CorpusOriginalRead {
+    fn check_interrupt(&mut self) -> Result<(), SearchV2Error>;
+    fn corpus_row(&mut self, receipt: &CorpusOriginalReceipt, collection: Collection,
+        selector: &Selector, after: Option<u64>) -> Result<Option<(u64, JsonValue)>, SearchV2Error>;
+    fn charge_kernel_work(&mut self, _steps: usize) -> Result<(), SearchV2Error> {
+        self.check_interrupt()
+    }
+}
+impl<'hold, A: InspectCurrentAuthority<'hold> + ?Sized> CorpusOriginalRead for Reader<'_, '_, A> {
+    fn check_interrupt(&mut self) -> Result<(), SearchV2Error> { Reader::check_interrupt(self) }
+    fn corpus_row(&mut self, receipt: &CorpusOriginalReceipt, collection: Collection,
+        selector: &Selector, after: Option<u64>) -> Result<Option<(u64, JsonValue)>, SearchV2Error> {
+        Reader::corpus_row(self, receipt, collection, selector, after)
+    }
+}
+
+pub(crate) fn compute_controlled_corpus<R: CorpusOriginalRead + ?Sized>(
+    read: &mut R, receipt: CorpusOriginalReceipt, header: JsonValue,
+    context: &CorpusReadContext, request: &CorpusReadRequest, budget: CorpusReadBudget,
+) -> Result<JsonValue, SearchV2Error> {
+    request.validate(context, budget)?;
+    let mut corpus = CorpusRead { read, receipt, header, context,
+        remaining: budget.max_work_steps };
+    corpus.packet(request)
+}
+
+struct CorpusRead<'a, R: CorpusOriginalRead + ?Sized> {
+    read: &'a mut R,
     receipt: CorpusOriginalReceipt,
     header: JsonValue,
     context: &'a CorpusReadContext,
     remaining: u64,
 }
-impl<'hold, A: InspectCurrentAuthority<'hold> + ?Sized> CorpusRead<'_, '_, '_, A> {
+impl<R: CorpusOriginalRead + ?Sized> CorpusRead<'_, R> {
     fn work(&mut self, steps: usize) -> Result<(), SearchV2Error> {
         self.remaining = self
             .remaining
             .checked_sub(u64::try_from(steps).map_err(|_| budget_error())?)
             .ok_or_else(budget_error)?;
-        self.read.check_interrupt()
+        self.read.charge_kernel_work(steps)
     }
     fn rows(
         &mut self,
@@ -899,7 +928,22 @@ fn execute_selected_corpus_health_seed_with_meter<
                     "selected corpus header invalid",
                 ));
             }
-            let index_schema = field(&header.1, "schema_version")
+            let mut corpus = CorpusRead {
+                read,
+                receipt,
+                header: header.1,
+                context,
+                remaining: budget.max_work_steps,
+            };
+            let views = corpus.views()?;
+            controlled_health_seed(&corpus.header, &views, budget.inspect.max_field_bytes)
+        },
+    )
+}
+
+pub(crate) fn controlled_health_seed(header: &JsonValue, views: &[JsonValue],
+    max_field_bytes: usize) -> Result<JsonValue, SearchV2Error> {
+            let index_schema = field(header, "schema_version")
                 .as_str()
                 .filter(|value| !value.is_empty())
                 .ok_or_else(|| {
@@ -909,19 +953,10 @@ fn execute_selected_corpus_health_seed_with_meter<
                     )
                 })?
                 .to_owned();
-            if index_schema.len() > budget.inspect.max_field_bytes {
+            if index_schema.len() > max_field_bytes {
                 return Err(budget_error());
             }
-            let mut corpus = CorpusRead {
-                read,
-                receipt,
-                header: header.1,
-                context,
-                remaining: budget.max_work_steps,
-            };
-            let first_view = corpus
-                .views()?
-                .iter()
+            let first_view = views.iter().filter(|v| field(v, "view_id").as_str().is_some_and(supported))
                 .find_map(|view| field(view, "view_id").as_str().map(str::to_owned));
             let seed = object(vec![
                 ("schema_version", text("tos_selected_corpus_health_seed_v1")),
@@ -932,8 +967,6 @@ fn execute_selected_corpus_health_seed_with_meter<
                 ),
             ]);
             Ok(seed)
-        },
-    )
 }
 
 fn bound_original_receipt<'hold, A: InspectCurrentAuthority<'hold> + ?Sized>(

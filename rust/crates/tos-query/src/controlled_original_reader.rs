@@ -35,15 +35,39 @@ pub(crate) fn read_original<'hold, 'model, 'state, 'budget,
     charges: &mut OriginalReadCharges,
     heap: &mut ControlledQueryHeap<'model, 'state, 'budget>,
 ) -> Result<Option<(i64, JsonValue)>, SearchV2Error> {
+    read_original_selected(model, authority, collection, None, after, caps, charges, heap)
+}
+
+pub(crate) fn read_corpus_selected_original<'hold, 'model, 'state, 'budget,
+    A: InspectCurrentAuthority<'hold> + ?Sized>(
+    model: &mut ControlledKnowledgeModel<'model, 'state, 'budget>, authority: &mut A,
+    collection: tos_compiler::CorpusOriginalCollection,
+    selector: &tos_compiler::CorpusOriginalSelector, after: i64, caps: InspectBudget,
+    charges: &mut OriginalReadCharges,
+    heap: &mut ControlledQueryHeap<'model, 'state, 'budget>,
+) -> Result<Option<(i64, JsonValue)>, SearchV2Error> {
+    read_original_selected(model, authority, ControlledOriginalCollection::Corpus(collection),
+        Some(selector), after, caps, charges, heap)
+}
+
+fn read_original_selected<'hold, 'model, 'state, 'budget,
+    A: InspectCurrentAuthority<'hold> + ?Sized>(
+    model: &mut ControlledKnowledgeModel<'model, 'state, 'budget>,
+    authority: &mut A,
+    collection: ControlledOriginalCollection,
+    selector: Option<&tos_compiler::CorpusOriginalSelector>,
+    after: i64,
+    caps: InspectBudget,
+    charges: &mut OriginalReadCharges,
+    heap: &mut ControlledQueryHeap<'model, 'state, 'budget>,
+) -> Result<Option<(i64, JsonValue)>, SearchV2Error> {
     authority.check_selected()?;
     if charges.rows >= caps.max_rows { return Err(budget()); }
     let decoded = caps.max_decoded_bytes.checked_sub(charges.decoded).ok_or_else(budget)?;
     let vm = caps.max_read_vm_steps.checked_sub(charges.vm).ok_or_else(budget)?;
     let mut output = None;
     let mut failure = None;
-    let scan = model.with_controlled_original_row_receipt(collection, after,
-        caps.max_payload_bytes, decoded, vm, caps.json,
-        |receipt, ordinal, digest, raw, value| {
+    let consume = |receipt, ordinal, digest, raw: &[u8], value: &JsonValue| {
             let result = (|| {
                 authority.check_selected()?;
                 match (receipt, collection) {
@@ -68,7 +92,15 @@ pub(crate) fn read_original<'hold, 'model, 'state, 'budget,
             })();
             match result { Ok(row) => output = Some(row), Err(error) => failure = Some(error) }
             Ok(())
-        }).map_err(compiler_query_error)?;
+        };
+    let scan = match (collection, selector) {
+        (ControlledOriginalCollection::Corpus(collection), Some(selector)) =>
+            model.with_controlled_corpus_selected_row_receipt(collection, selector, after,
+                caps.max_payload_bytes, decoded, vm, caps.json, consume),
+        (_, None) => model.with_controlled_original_row_receipt(collection, after,
+            caps.max_payload_bytes, decoded, vm, caps.json, consume),
+        _ => return Err(corrupt()),
+    }.map_err(compiler_query_error)?;
     charges.rows = charges.rows.checked_add(u64::from(scan.ordinal.is_some())).ok_or_else(budget)?;
     charges.decoded = charges.decoded.checked_add(scan.decoded_bytes).ok_or_else(budget)?;
     charges.vm = charges.vm.checked_add(scan.vm_steps).ok_or_else(budget)?;

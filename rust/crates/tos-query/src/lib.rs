@@ -50,7 +50,7 @@ mod controlled_original_reader;
 #[cfg(not(target_arch = "wasm32"))]
 mod controlled_philosophy_adapter;
 #[cfg(not(target_arch = "wasm32"))]
-pub use controlled_philosophy_adapter::{execute_controlled_philosophy_status_response, execute_controlled_philosophy_status_response_render};
+pub use controlled_philosophy_adapter::{execute_controlled_philosophy_status_response, execute_controlled_philosophy_status_response_render, execute_controlled_philosophy_metadata_response_render};
 pub mod lens_plan;
 #[cfg(not(target_arch = "wasm32"))]
 pub mod philosophy_read;
@@ -150,4 +150,15 @@ pub use controlled_inspect_adapter::execute_controlled_inspect_response;
 #[cfg(not(target_arch = "wasm32"))]
 mod controlled_corpus_adapter;
 #[cfg(not(target_arch = "wasm32"))]
-pub use controlled_corpus_adapter::execute_controlled_corpus_metadata_response;
+pub use controlled_corpus_adapter::{execute_controlled_corpus_metadata_response, execute_controlled_corpus_response};
+#[cfg(not(target_arch = "wasm32"))]
+mod controlled_corpus_reader;
+#[cfg(not(target_arch = "wasm32"))]
+mod controlled_philosophy_domain;
+#[cfg(not(target_arch = "wasm32"))]
+pub use controlled_philosophy_domain::execute_controlled_philosophy_domain_response;
+#[cfg(not(target_arch = "wasm32"))]
+mod controlled_health_children;
+#[cfg(not(target_arch = "wasm32"))]
+pub use controlled_health_children::{ControlledHealthSeed, execute_controlled_health_seed_response,
+    execute_controlled_knowledge_health_response};

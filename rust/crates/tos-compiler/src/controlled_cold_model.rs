@@ -195,6 +195,12 @@ impl ControlledQueryHeap<'_, '_, '_> {
     /// Maintained resource text renderer under the same original state,
     /// JSON visits, work and interruption controller as selected parsing.
     /// A returned buffer requires caller persistent admission before use.
+    /// Observation of the same Original JSON ledger for composite query windows.
+    pub fn remaining_original_json_visits(&self) -> Result<usize> {
+        self.context.check()?;
+        self.context.remaining_json_visits()
+    }
+
     pub fn emit_python_pretty_owned_json(&self, value: &JsonValue,
         mut limits: JsonLimits) -> Result<Vec<u8>> {
         self.context.check()?;
@@ -282,6 +288,32 @@ impl ControlledKnowledgeModel<'_, '_, '_> {
         json: JsonLimits,
         consume: impl FnOnce(ControlledOriginalReceipt<'_>, i64, Digest256, &[u8], &JsonValue) -> Result<()>,
     ) -> Result<ControlledOriginalRowRead> {
+        self.with_controlled_original_row_receipt_selected(collection, after_ordinal, None,
+            max_row_bytes, max_decoded_bytes, max_vm_steps, json, consume)
+    }
+
+    pub fn with_controlled_corpus_selected_row_receipt(
+        &mut self, collection: crate::CorpusOriginalCollection,
+        selector: &crate::CorpusOriginalSelector, after_ordinal: i64,
+        max_row_bytes: usize, max_decoded_bytes: u64, max_vm_steps: u64, json: JsonLimits,
+        consume: impl FnOnce(ControlledOriginalReceipt<'_>, i64, Digest256, &[u8], &JsonValue) -> Result<()>,
+    ) -> Result<ControlledOriginalRowRead> {
+        self.with_controlled_original_row_receipt_selected(
+            ControlledOriginalCollection::Corpus(collection), after_ordinal, Some(selector),
+            max_row_bytes, max_decoded_bytes, max_vm_steps, json, consume)
+    }
+
+    fn with_controlled_original_row_receipt_selected(
+        &mut self,
+        collection: ControlledOriginalCollection,
+        after_ordinal: i64,
+        corpus_selector: Option<&crate::CorpusOriginalSelector>,
+        max_row_bytes: usize,
+        max_decoded_bytes: u64,
+        max_vm_steps: u64,
+        json: JsonLimits,
+        consume: impl FnOnce(ControlledOriginalReceipt<'_>, i64, Digest256, &[u8], &JsonValue) -> Result<()>,
+    ) -> Result<ControlledOriginalRowRead> {
         self.check_pin()?;
         if max_row_bytes == 0 || max_row_bytes > i64::MAX as usize
             || max_vm_steps == 0 || after_ordinal < -2 {
@@ -321,6 +353,23 @@ impl ControlledKnowledgeModel<'_, '_, '_> {
                  "SELECT packet_sha256,packet FROM corpus_original_rows LEFT JOIN knowledge_source_carriers USING(packet_sha256,packet_len) WHERE ordinal=?1 AND collection=?2 AND packet_len=?3 AND typeof(packet_sha256)='blob' AND length(packet_sha256)=32 AND typeof(packet)='blob' AND length(packet)=?3")
             }
         };
+        let selector_forecast = corpus_selector.map(crate::knowledge_corpus_original::selection_workspace)
+            .transpose()?.unwrap_or(0);
+        let _selector_hold = self.context.owned_state().hold(selector_forecast)?;
+        self.charge_query_work(selector_forecast)?;
+        let selected_query = match (collection, corpus_selector) {
+            (ControlledOriginalCollection::Corpus(collection), Some(selector)) => {
+                let (clause, args) = crate::knowledge_corpus_original::selection(collection, selector)?;
+                let index = crate::knowledge_corpus_original::selection_index(selector);
+                let sql = format!("SELECT ordinal,packet_len FROM corpus_original_rows{index} WHERE ordinal>?1 AND collection=?2 AND ({clause}) ORDER BY ordinal LIMIT 1");
+                let mut values = vec![rusqlite::types::Value::Integer(after_ordinal),
+                    rusqlite::types::Value::Text(collection.as_str().into())];
+                values.extend(args.into_iter().map(rusqlite::types::Value::Text));
+                Some((sql, values))
+            }
+            (_, None) => None,
+            _ => return Err(Error::Invalid("controlled Corpus selector collection")),
+        };
         let fixed = tos_source_store::PinnedSqliteConnection::bounded_statement_rust_workspace_upper_bound()
             .checked_add(std::mem::size_of_val(&consume))
             .and_then(|n| n.checked_add(std::mem::size_of::<(i64, i64, Vec<u8>, Vec<u8>)>()))
@@ -330,12 +379,15 @@ impl ControlledKnowledgeModel<'_, '_, '_> {
             .ok_or(Error::Budget("controlled Original SQL work"))?)?;
         let (mut result, vm_steps) = crate::knowledge_payload_read::with_query_vm_window(
             self.context, &self.connection, max_vm_steps, || {
-                let next = match collection {
+                let next = if let Some((sql, values)) = &selected_query {
+                    self.connection.query_row(sql, rusqlite::params_from_iter(values.iter()),
+                        |row| Ok((row.get::<_, i64>(0)?, row.get::<_, i64>(1)?)))
+                } else { match collection {
                     ControlledOriginalCollection::Navigation => self.connection.query_row(
                         metadata_sql, [after_ordinal], |row| Ok((row.get::<_, i64>(0)?, row.get::<_, i64>(1)?))),
                     _ => self.connection.query_row(metadata_sql, params![after_ordinal, collection_name],
                         |row| Ok((row.get::<_, i64>(0)?, row.get::<_, i64>(1)?))),
-                }.optional()?;
+                }}.optional()?;
                 let Some((ordinal, length)) = next else {
                     return Ok(ControlledOriginalRowRead::default());
                 };

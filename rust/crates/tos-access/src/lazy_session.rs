@@ -250,7 +250,7 @@ fn call(
         let tool = checked_field(arguments, "tool", state, deadline)?
             .and_then(tos_foundation::JsonValue::as_str);
         if !(matches!(tool, Some("tos_knowledge_search" | "tos_knowledge_search_indexed_v2"))
-            || ordinary && matches!(tool, Some("tos_knowledge_catalog" | "tos_knowledge_node" | "tos_knowledge_relation" | "tos_philosophy_graph_status" | "tos_native_resource_read" | "tos_knowledge_lens_compile" | "tos_knowledge_focus" | "tos_knowledge_lens_open" | "tos_corpus_status" | "tos_corpus_summary" | "tos_corpus_graph_views")))
+            || ordinary && matches!(tool, Some("tos_knowledge_catalog" | "tos_knowledge_node" | "tos_knowledge_relation" | "tos_philosophy_graph_status" | "tos_native_resource_read" | "tos_knowledge_lens_compile" | "tos_knowledge_focus" | "tos_knowledge_lens_open" | "tos_corpus_status" | "tos_corpus_summary" | "tos_corpus_graph_views" | "tos_philosophy_graph_layers" | "tos_philosophy_graph_snapshot" | "tos.snapshot" | "tos_corpus_search" | "tos_corpus_resources" | "tos_corpus_node" | "tos_corpus_relation_pack" | "tos_corpus_graph_view" | "tos_corpus_packet" | "tos_philosophy_graph_views" | "tos_philosophy_graph_view" | "tos.view.open" | "tos_access_health")))
             || checked_field(arguments, "arguments", state, deadline)?
             .and_then(tos_foundation::JsonValue::as_object)
             .is_none()
@@ -617,7 +617,13 @@ fn with_whole_selected(
     let result = run();
     // Settle shared aggregate JSON even when builder or reader refuses.
     ledger.charge_visits(usage.json_visits)?;
-    result.map_err(|_| "Core Whole same-state writer/reader refused")?;
+    result.map_err(|error| match error {
+        tos_compiler::Error::Invalid(reason) | tos_compiler::Error::Budget(reason) => reason,
+        error => {
+            eprintln!("Core Whole same-state writer/reader: {error}");
+            "Core Whole same-state writer/reader refused"
+        }
+    })?;
     active(owner_deadline)
 }
 
@@ -1442,7 +1448,14 @@ fn serve_whole_philosophy_status(
     arguments: &tos_foundation::JsonValue,
     tool: &str,
 ) -> Result<()> {
+    let argument_geometry = arguments.retained_storage_bytes()
+        .map_err(|_| "Core Corpus arguments state")?;
+    let _argument_hold = ledger.reserve(argument_geometry.checked_mul(3)
+        .ok_or("Core Corpus arguments forecast")?)?;
+    ledger.charge_work(argument_geometry as u64)?;
+    active(cutoff)?;
     let resource = tool == "tos_native_resource_read";
+    let mut philosophy_request = tos_query::philosophy_read::PhilosophyReadRequest::Status;
     let (corpus_request, render) = if resource {
         let fields = arguments.as_object().filter(|f| f.len() == 2)
             .ok_or("Core resource strict arguments")?;
@@ -1457,9 +1470,24 @@ fn serve_whole_philosophy_status(
         ledger.charge_work(uri.len() as u64)?;
         let selected = match uri {
             "tos-philosophy://status" => None,
+            "tos-philosophy://layers" => {
+                philosophy_request = tos_query::philosophy_read::PhilosophyReadRequest::Layers; None
+            }
+            "tos-philosophy://snapshot" => {
+                philosophy_request = tos_query::philosophy_read::PhilosophyReadRequest::Snapshot; None
+            }
             "tos-corpus://status" => Some(tos_query::corpus_read::CorpusReadRequest::Status),
             "tos-corpus://summary" => Some(tos_query::corpus_read::CorpusReadRequest::Summary),
             "tos-corpus://graph-views" => Some(tos_query::corpus_read::CorpusReadRequest::GraphViews),
+            _ if uri.starts_with("tos-corpus://graph-view/") => {
+                let id = &uri["tos-corpus://graph-view/".len()..];
+                if uri.len() > 4096 || id.is_empty() || id.contains('/') {
+                    return Err("Core Corpus view resource identifier");
+                }
+                Some(tos_query::corpus_read::CorpusReadRequest::GraphView {
+                    view_id: id.to_owned(), limit: 100,
+                })
+            }
             _ => return Err("Core resource controlled owner unavailable for URI"),
         };
         let render = match checked_field(arguments, "render", ledger, cutoff)? {
@@ -1467,16 +1495,26 @@ fn serve_whole_philosophy_status(
             _ => return Err("Core resource render bool"),
         };
         (selected, render)
+    } else if tool == "tos_philosophy_graph_status" {
+        if !arguments.as_object().is_some_and(|f| f.is_empty()) {
+            return Err("Core metadata strict empty arguments");
+        }
+        (None, false)
     } else {
-        if !arguments.as_object().is_some_and(|f| f.is_empty()) { return Err("Core metadata strict empty arguments"); }
-        let selected = match tool {
-            "tos_philosophy_graph_status" => None,
-            "tos_corpus_status" => Some(tos_query::corpus_read::CorpusReadRequest::Status),
-            "tos_corpus_summary" => Some(tos_query::corpus_read::CorpusReadRequest::Summary),
-            "tos_corpus_graph_views" => Some(tos_query::corpus_read::CorpusReadRequest::GraphViews),
-            _ => return Err("Core metadata tool unavailable"),
-        };
-        (selected, false)
+        if matches!(tool, "tos_philosophy_graph_status" | "tos_philosophy_graph_layers" | "tos_philosophy_graph_snapshot" | "tos.snapshot") {
+            if !arguments.as_object().is_some_and(|f| f.is_empty()) { return Err("Core metadata strict empty arguments"); }
+            philosophy_request = match tool {
+                "tos_philosophy_graph_layers" => tos_query::philosophy_read::PhilosophyReadRequest::Layers,
+                "tos_philosophy_graph_snapshot" | "tos.snapshot" => tos_query::philosophy_read::PhilosophyReadRequest::Snapshot,
+                _ => tos_query::philosophy_read::PhilosophyReadRequest::Status,
+            };
+            (None, false)
+        } else {
+            let operation = crate::knowledge::KnowledgeOperation::from_id(tool).ok_or("Core Corpus tool unavailable")?;
+            let selected = crate::knowledge::KnowledgeRequest::from_arguments(operation, arguments).map_err(|_| "Core Corpus strict arguments")?;
+            let crate::knowledge::KnowledgeRequest::Corpus(selected) = selected else { return Err("Core Corpus typed request differs"); };
+            (Some(selected), false)
+        }
     };
     let corpus_root = root.to_str().ok_or("Core Corpus root UTF-8")?;
     let corpus_index = request.source_paths.index_path.to_str().ok_or("Core Corpus index UTF-8")?;
@@ -1491,7 +1529,7 @@ fn serve_whole_philosophy_status(
     let operation = match &corpus_request {
         Some(request) => crate::reference_root_query::ReferenceMetadataOperation::for_corpus(request),
         None => crate::reference_root_query::ReferenceMetadataOperation::for_philosophy(
-            &tos_query::philosophy_read::PhilosophyReadRequest::Status),
+            &philosophy_request),
     };
     fence()?;
     // Drop only previously held selected owners; no work/VM/JSON clock refund.
@@ -1582,18 +1620,306 @@ fn serve_whole_philosophy_status(
                                     current().map_err(map)
                                 };
                             if let Some(corpus_request) = &corpus_request {
-                                tos_query::execute_controlled_corpus_metadata_response(
+                                tos_query::execute_controlled_corpus_response(
                                     model, bound, authority, budget, corpus_request,
                                     &corpus_context, render, delivery)
                                     .map_err(|_| "Core Whole scoped Corpus metadata refused")?;
                             } else {
-                                tos_query::execute_controlled_philosophy_status_response_render(
-                                    model, bound, authority, budget, render, delivery)
+                                tos_query::execute_controlled_philosophy_metadata_response_render(
+                                    model, bound, authority, budget, &philosophy_request, render, delivery)
                                     .map_err(|_| "Core Whole scoped Philosophy metadata refused")?;
                             }
                             current()
                         }, current).map_err(tos_compiler::Error::Invalid)
                     })
+                })
+            })
+        })
+        },
+    )?;
+    *generation = next;
+    fence()
+}
+
+fn serve_whole_philosophy_domain(
+    root: &Path,
+    request: &Request,
+    isolation: &tos_compiler::private_tmpfs_stage::PrivateTmpfsStageIsolation,
+    session: &session_owner::Session,
+    driver: &mut session_transport::Driver<'_, '_>,
+    carrier: &mut Option<Carrier>,
+    store: &mut Option<lazy_store::Store>,
+    generation: &mut u64,
+    ledger: &Ledger,
+    heap: &Arc<tos_compiler::DedicatedSessionSqliteHeap>,
+    resources: &dyn tos_compiler::native_snapshot::NativeColdOpenResourceHold,
+    owner_deadline: Instant,
+    cutoff: Instant,
+    cancelled: &Arc<AtomicBool>,
+    fence: &dyn Fn() -> Result<()>,
+    arguments: &tos_foundation::JsonValue,
+    tool: &str,
+) -> Result<()> {
+    let geometry = arguments.retained_storage_bytes().map_err(|_| "Core Philosophy arguments state")?;
+    let _arguments = ledger.reserve(geometry.checked_mul(3).ok_or("Core Philosophy arguments forecast")?)?;
+    ledger.charge_work(geometry as u64)?;
+    active(cutoff)?;
+    let (selected, render) = if tool == "tos_native_resource_read" {
+        let fields = arguments.as_object().filter(|f| f.len() == 2)
+            .ok_or("Core Philosophy resource strict arguments")?;
+        if fields.iter().any(|(k,_)| !matches!(k.as_str(), Some("uri" | "render"))) {
+            return Err("Core Philosophy resource unknown argument");
+        }
+        let uri = checked_field(arguments, "uri", ledger, cutoff)?
+            .and_then(tos_foundation::JsonValue::as_str).ok_or("Core Philosophy resource URI")?;
+        if uri.len() > 4096 { return Err("Core Philosophy URI byte bound"); }
+        let selected = if uri == "tos-philosophy://views" {
+            tos_query::philosophy_read::PhilosophyReadRequest::Views
+        } else {
+            let id = uri.strip_prefix("tos-philosophy://view/").ok_or("Core Philosophy resource unavailable")?;
+            if id.is_empty() || id.contains('/') { return Err("Core Philosophy raw view identifier"); }
+            tos_query::philosophy_read::PhilosophyReadRequest::View { view_id: id.to_owned(), limit: 1000 }
+        };
+        let render = match checked_field(arguments, "render", ledger, cutoff)? {
+            Some(tos_foundation::JsonValue::Bool(v)) => *v,
+            _ => return Err("Core Philosophy render bool"),
+        };
+        (selected, render)
+    } else {
+        let operation = match tool {
+            "tos_philosophy_graph_views" => crate::knowledge::KnowledgeOperation::PhilosophyViews,
+            "tos_philosophy_graph_view" | "tos.view.open" => crate::knowledge::KnowledgeOperation::PhilosophyView,
+            _ => return Err("Core Philosophy domain tool unavailable"),
+        };
+        let crate::knowledge::KnowledgeRequest::Philosophy(selected) =
+            crate::knowledge::KnowledgeRequest::from_arguments(operation, arguments)
+                .map_err(|_| "Core Philosophy strict arguments")? else {
+                return Err("Core Philosophy domain typed request differs");
+            };
+        (selected, false)
+    };
+    let operation = crate::reference_root_query::ReferenceMetadataOperation::for_philosophy(&selected);
+    fence()?;
+    // Drop only previously held selected owners; no work/VM/JSON clock refund.
+    if let Some(old) = carrier.take() {
+        ledger.retained.set(
+            ledger
+                .retained
+                .get()
+                .checked_sub(old.retained)
+                .ok_or("Core Whole prior carrier retained removal")?,
+        );
+        drop(old);
+    }
+    if let Some(old) = store.take() {
+        ledger.retained.set(
+            ledger
+                .retained
+                .get()
+                .checked_sub(old.retained)
+                .ok_or("Core Whole prior Store retained removal")?,
+        );
+        drop(old);
+    }
+    let next = generation
+        .checked_add(1)
+        .ok_or("Core Whole generation overflow")?;
+    let _locals = ledger.reserve(
+        std::mem::size_of::<u64>()
+            + std::mem::size_of::<tos_query::InspectBudget>()
+            + std::mem::size_of::<(&Path, &Request, &Ledger, Instant, Instant)>(),
+    )?;
+    let http = request
+        .http
+        .as_ref()
+        .ok_or("Core Whole HTTP profile absent")?;
+    let mut budget = http.selected.native()?.inspect;
+    with_whole_selected(
+        root,
+        request,
+        isolation,
+        next,
+        ledger,
+        owner_deadline,
+        cutoff,
+        cancelled,
+        heap,
+        |completed, native, loan| {
+            completed.with_controlled_selected_knowledge_model(&loan, isolation,
+            request.admission.cold, request.admission.process,
+            request.admission.working_ram_bytes, resources, cutoff,
+            |model, vocabulary, descriptor, view| {
+            tos_query::with_controlled_knowledge_binding(model, vocabulary, descriptor,
+                |model, bound| {
+                let revision = bound.require_source_revision()
+                    .map_err(|_| tos_compiler::Error::Invalid("Core Whole query source revision absent"))?;
+                if revision != native.source_revision || view.source_revision() != Some(revision) {
+                    return Err(tos_compiler::Error::Invalid("Core Whole source associations differ"));
+                }
+                let overhead = whole_envelope_len(next, revision).map_err(tos_compiler::Error::Invalid)?;
+                let cap = session.limits.max_reply_bytes.checked_sub(overhead)
+                    .ok_or(tos_compiler::Error::Budget("Core Whole reply envelope cap"))?;
+                budget.max_response_bytes = budget.max_response_bytes
+                    .min(cap).min(request.admission.whole_max_graph_bytes);
+                if budget.max_response_bytes == 0 {
+                    return Err(tos_compiler::Error::Budget("Core Whole response cap"));
+                }
+                crate::reference_root_query::with_controlled_metadata_context(model,
+                    bound, view, cutoff, cancelled,
+                    |bytes| ledger.reserve(bytes).map_err(tos_compiler::Error::Invalid),
+                    |model, context| {
+                    context.with_operation(operation,
+                        |authority| {
+                        let current = || {
+                            fence()?;
+                            view.verify_current().map_err(|_| "Core Whole transport source fence")?;
+                            active(cutoff)
+                        };
+                        driver.respond(|sequence, _, reply| {
+                            reply.narrow_deadline(cutoff)?;
+                            current()?;
+                            let delivery = |body| {
+                                    let map = |_| tos_query::search_v2::SearchV2Error {
+                                        code: tos_query::search_v2::SearchV2ErrorCode::Unavailable,
+                                        message: "Core Whole philosophy status delivery refused",
+                                    };
+                                    current().map_err(map)?;
+                                    send_whole_result(ledger, reply, sequence, next, revision, body).map_err(map)?;
+                                    current().map_err(map)
+                                };
+                            tos_query::execute_controlled_philosophy_domain_response(
+                                model, bound, authority, budget, &selected, render, delivery)
+                                .map_err(|_| "Core Whole scoped Philosophy domain refused")?;
+                            current()
+                        }, current).map_err(tos_compiler::Error::Invalid)
+                    })
+                })
+            })
+        })
+        },
+    )?;
+    *generation = next;
+    fence()
+}
+
+fn serve_whole_health(
+    root: &Path,
+    request: &Request,
+    isolation: &tos_compiler::private_tmpfs_stage::PrivateTmpfsStageIsolation,
+    session: &session_owner::Session,
+    driver: &mut session_transport::Driver<'_, '_>,
+    carrier: &mut Option<Carrier>,
+    store: &mut Option<lazy_store::Store>,
+    generation: &mut u64,
+    ledger: &Ledger,
+    heap: &Arc<tos_compiler::DedicatedSessionSqliteHeap>,
+    resources: &dyn tos_compiler::native_snapshot::NativeColdOpenResourceHold,
+    owner_deadline: Instant,
+    cutoff: Instant,
+    cancelled: &Arc<AtomicBool>,
+    fence: &dyn Fn() -> Result<()>,
+    arguments: &tos_foundation::JsonValue,
+) -> Result<()> {
+    if !arguments.as_object().is_some_and(|fields| fields.is_empty()) {
+        return Err("Core Health strict empty arguments");
+    }
+    let corpus_root = root.to_str().ok_or("Core Corpus root UTF-8")?;
+    let corpus_index = request.source_paths.index_path.to_str().ok_or("Core Corpus index UTF-8")?;
+    let _corpus_context_hold = ledger.reserve(corpus_root.len().checked_add(corpus_index.len())
+        .and_then(|n| n.checked_add(std::mem::size_of::<tos_query::corpus_read::CorpusReadContext>()))
+        .ok_or("Core Corpus context state")?)?;
+    ledger.charge_work(corpus_root.len().checked_add(corpus_index.len())
+        .ok_or("Core Corpus context work")? as u64)?;
+    let corpus_context = tos_query::corpus_read::CorpusReadContext {
+        tos_root: corpus_root.to_owned(), index_path: corpus_index.to_owned(),
+    };
+    fence()?;
+    // Drop only previously held selected owners; no work/VM/JSON clock refund.
+    if let Some(old) = carrier.take() {
+        ledger.retained.set(
+            ledger
+                .retained
+                .get()
+                .checked_sub(old.retained)
+                .ok_or("Core Whole prior carrier retained removal")?,
+        );
+        drop(old);
+    }
+    if let Some(old) = store.take() {
+        ledger.retained.set(
+            ledger
+                .retained
+                .get()
+                .checked_sub(old.retained)
+                .ok_or("Core Whole prior Store retained removal")?,
+        );
+        drop(old);
+    }
+    let next = generation
+        .checked_add(1)
+        .ok_or("Core Whole generation overflow")?;
+    let _locals = ledger.reserve(
+        std::mem::size_of::<u64>()
+            + std::mem::size_of::<tos_query::InspectBudget>()
+            + std::mem::size_of::<(&Path, &Request, &Ledger, Instant, Instant)>(),
+    )?;
+    let http = request
+        .http
+        .as_ref()
+        .ok_or("Core Whole HTTP profile absent")?;
+    let mut budget = http.selected.native()?.inspect;
+    with_whole_selected(
+        root,
+        request,
+        isolation,
+        next,
+        ledger,
+        owner_deadline,
+        cutoff,
+        cancelled,
+        heap,
+        |completed, native, loan| {
+            completed.with_controlled_selected_knowledge_model(&loan, isolation,
+            request.admission.cold, request.admission.process,
+            request.admission.working_ram_bytes, resources, cutoff,
+            |model, vocabulary, descriptor, view| {
+            tos_query::with_controlled_knowledge_binding(model, vocabulary, descriptor,
+                |model, bound| {
+                let revision = bound.require_source_revision()
+                    .map_err(|_| tos_compiler::Error::Invalid("Core Whole query source revision absent"))?;
+                if revision != native.source_revision || view.source_revision() != Some(revision) {
+                    return Err(tos_compiler::Error::Invalid("Core Whole source associations differ"));
+                }
+                let overhead = whole_envelope_len(next, revision).map_err(tos_compiler::Error::Invalid)?;
+                let cap = session.limits.max_reply_bytes.checked_sub(overhead)
+                    .ok_or(tos_compiler::Error::Budget("Core Whole reply envelope cap"))?;
+                budget.max_response_bytes = budget.max_response_bytes
+                    .min(cap).min(request.admission.whole_max_graph_bytes);
+                if budget.max_response_bytes == 0 {
+                    return Err(tos_compiler::Error::Budget("Core Whole response cap"));
+                }
+                crate::reference_root_query::with_controlled_metadata_context(model,
+                    bound, view, cutoff, cancelled,
+                    |bytes| ledger.reserve(bytes).map_err(tos_compiler::Error::Invalid),
+                    |model, context| {
+                    let probe = context.abort_probe();
+                    let current = || {
+                        fence()?;
+                        view.verify_current().map_err(|_| "Core Whole health source fence")?;
+                        active(cutoff)
+                    };
+                    driver.respond(|sequence, _, reply| {
+                        reply.narrow_deadline(cutoff)?; current()?;
+                        crate::controlled_reference_health::execute_controlled_reference_health(
+                            model, bound, context, &corpus_context, budget, probe,
+                            |body| {
+                                current().map_err(tos_compiler::Error::Invalid)?;
+                                send_whole_result(ledger, reply, sequence, next, revision, body)
+                                    .map_err(tos_compiler::Error::Invalid)?;
+                                current().map_err(tos_compiler::Error::Invalid)
+                            }).map_err(|_| "Core Whole health owner refused")?;
+                        current()
+                    }, current).map_err(tos_compiler::Error::Invalid)
                 })
             })
         })
@@ -2661,7 +2987,7 @@ pub(super) fn run(
         const WHOLE_INDEXED_CAP: &[u8] = br#",{"operation":"tos_native_call","tool":"tos_knowledge_search_indexed_v2","profiles":["whole_root"]}"#;
         const STORE_INDEXED_CAP: &[u8] = br#",{"operation":"tos_native_call","tool":"tos_knowledge_search_indexed_v2","profiles":["weak_query_store"]}"#;
         const LAZY_END: &[u8] = b"]}";
-        const ORDINARY_END: &[u8] = br#",{"operation":"tos_native_call","tool":"tos_knowledge_lens_compile","profiles":["whole_root"]},{"operation":"tos_native_call","tool":"tos_knowledge_focus","profiles":["whole_root"]},{"operation":"tos_native_call","tool":"tos_knowledge_lens_open","profiles":["whole_root"]},{"operation":"tos_native_call","tool":"tos_philosophy_graph_status","profiles":["whole_root"]},{"operation":"tos_native_call","tool":"tos_corpus_status","profiles":["whole_root"]},{"operation":"tos_native_call","tool":"tos_corpus_summary","profiles":["whole_root"]},{"operation":"tos_native_call","tool":"tos_corpus_graph_views","profiles":["whole_root"]},{"operation":"tos_native_call","tool":"tos_native_resource_read","profiles":["whole_root"],"resources":["tos-philosophy://status","tos-corpus://status","tos-corpus://summary","tos-corpus://graph-views"]},{"operation":"tos_native_call","tool":"tos_knowledge_node","profiles":["whole_root"]},{"operation":"tos_native_call","tool":"tos_knowledge_relation","profiles":["whole_root"]},{"operation":"tos_native_call","tool":"tos_knowledge_catalog","profiles":["whole_root","weak_query_store"]},{"operation":"tos_source_navigation"},{"operation":"tos_knowledge_header","profiles":["whole_root","weak_query_store"]},{"operation":"tos_evidence_projection","profiles":["whole_root"]},{"operation":"tos_native_call","tool":"tos_knowledge_search","profiles":["whole_root"]}]}"#;
+        const ORDINARY_END: &[u8] = br#",{"operation":"tos_native_call","tool":"tos_knowledge_lens_compile","profiles":["whole_root"]},{"operation":"tos_native_call","tool":"tos_knowledge_focus","profiles":["whole_root"]},{"operation":"tos_native_call","tool":"tos_knowledge_lens_open","profiles":["whole_root"]},{"operation":"tos_native_call","tool":"tos_philosophy_graph_status","profiles":["whole_root"]},{"operation":"tos_native_call","tool":"tos_corpus_status","profiles":["whole_root"]},{"operation":"tos_native_call","tool":"tos_corpus_summary","profiles":["whole_root"]},{"operation":"tos_native_call","tool":"tos_corpus_graph_views","profiles":["whole_root"]},{"operation":"tos_native_call","tool":"tos_knowledge_node","profiles":["whole_root"]},{"operation":"tos_native_call","tool":"tos_knowledge_relation","profiles":["whole_root"]},{"operation":"tos_native_call","tool":"tos_knowledge_catalog","profiles":["whole_root","weak_query_store"]},{"operation":"tos_source_navigation"},{"operation":"tos_knowledge_header","profiles":["whole_root","weak_query_store"]},{"operation":"tos_evidence_projection","profiles":["whole_root"]},{"operation":"tos_native_call","tool":"tos_knowledge_search","profiles":["whole_root"]},{"operation":"tos_native_call","tool":"tos_philosophy_graph_layers","profiles":["whole_root"]},{"operation":"tos_native_call","tool":"tos_philosophy_graph_snapshot","profiles":["whole_root"]},{"operation":"tos_native_call","tool":"tos.snapshot","profiles":["whole_root"]},{"operation":"tos_native_call","tool":"tos_corpus_search","profiles":["whole_root"]},{"operation":"tos_native_call","tool":"tos_corpus_resources","profiles":["whole_root"]},{"operation":"tos_native_call","tool":"tos_corpus_node","profiles":["whole_root"]},{"operation":"tos_native_call","tool":"tos_corpus_relation_pack","profiles":["whole_root"]},{"operation":"tos_native_call","tool":"tos_corpus_graph_view","profiles":["whole_root"]},{"operation":"tos_native_call","tool":"tos_corpus_packet","profiles":["whole_root"]},{"operation":"tos_native_call","tool":"tos_philosophy_graph_views","profiles":["whole_root"]},{"operation":"tos_native_call","tool":"tos_philosophy_graph_view","profiles":["whole_root"]},{"operation":"tos_native_call","tool":"tos.view.open","profiles":["whole_root"]},{"operation":"tos_native_call","tool":"tos_access_health","profiles":["whole_root"]},{"operation":"tos_native_call","tool":"tos_native_resource_read","profiles":["whole_root"],"resources":["tos-philosophy://status","tos-corpus://status","tos-corpus://summary","tos-corpus://graph-views","tos-philosophy://layers","tos-philosophy://snapshot","tos-philosophy://views"],"resource_templates":["tos-corpus://graph-view/{view_id}","tos-philosophy://view/{view_id}"]}]}"#;
         let whole_indexed_cap = if ordinary && selected_store_at_startup { &[] } else { WHOLE_INDEXED_CAP };
         let store_indexed_cap = if ordinary && store_indexed_ready { STORE_INDEXED_CAP } else { &[] };
         let ready = [if ordinary { ORDINARY_HEAD } else { LAZY_HEAD }, COMMON,
@@ -2756,6 +3082,16 @@ pub(super) fn run(
                 let tool = checked_field(outer, "tool", &state, cutoff)?
                     .and_then(tos_foundation::JsonValue::as_str)
                     .ok_or("Core selected Search tool absent")?;
+                if tool == "tos_access_health" {
+                    with_selected_store_choice(request, &state, cutoff, |selected_store| {
+                        if selected_store { return Err("Core selected QueryStore Health owner unavailable"); }
+                        serve_whole_health(root, request, &isolation, session, driver,
+                            &mut held, &mut held_store, &mut generation, &state,
+                            &sqlite_heap, &resources, deadline, cutoff, cancelled, &fence, arguments)
+                    })?;
+                    last_whole = true;
+                    continue;
+                }
                 if matches!(tool, "tos_knowledge_lens_compile" | "tos_knowledge_focus" | "tos_knowledge_lens_open") {
                     with_selected_store_choice(request, &state, cutoff, |selected_store| {
                         if selected_store { return Err("Core selected QueryStore Lens owner unavailable"); }
@@ -2766,7 +3102,21 @@ pub(super) fn run(
                     last_whole = true;
                     continue;
                 }
-                if matches!(tool, "tos_philosophy_graph_status" | "tos_native_resource_read" | "tos_corpus_status" | "tos_corpus_summary" | "tos_corpus_graph_views") {
+                let philosophy_domain = matches!(tool, "tos_philosophy_graph_views" | "tos_philosophy_graph_view" | "tos.view.open")
+                    || tool == "tos_native_resource_read" && checked_field(arguments, "uri", &state, cutoff)?
+                        .and_then(tos_foundation::JsonValue::as_str)
+                        .is_some_and(|uri| uri == "tos-philosophy://views" || uri.starts_with("tos-philosophy://view/"));
+                if philosophy_domain {
+                    with_selected_store_choice(request, &state, cutoff, |selected_store| {
+                        if selected_store { return Err("Core selected QueryStore Philosophy domain owner unavailable"); }
+                        serve_whole_philosophy_domain(root, request, &isolation, session, driver,
+                            &mut held, &mut held_store, &mut generation, &state,
+                            &sqlite_heap, &resources, deadline, cutoff, cancelled, &fence, arguments, tool)
+                    })?;
+                    last_whole = true;
+                    continue;
+                }
+                if matches!(tool, "tos_philosophy_graph_status" | "tos_native_resource_read" | "tos_corpus_status" | "tos_corpus_summary" | "tos_corpus_graph_views" | "tos_philosophy_graph_layers" | "tos_philosophy_graph_snapshot" | "tos.snapshot" | "tos_corpus_search" | "tos_corpus_resources" | "tos_corpus_node" | "tos_corpus_relation_pack" | "tos_corpus_graph_view" | "tos_corpus_packet") {
                     with_selected_store_choice(request, &state, cutoff, |selected_store| {
                         if selected_store { return Err("Core selected QueryStore philosophy owner unavailable"); }
                         serve_whole_philosophy_status(root, request, &isolation, session, driver,

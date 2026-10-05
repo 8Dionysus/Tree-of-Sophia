@@ -753,6 +753,11 @@ impl<'view, 'capture> ReferenceMetadataContext<'view, 'capture> {
         result
     }
 
+    /// Borrow the already-held original request interruption owner.
+    pub(crate) fn abort_probe(&self) -> Arc<dyn tos_query::AbortProbe> {
+        self.hold.abort.clone()
+    }
+
     pub fn with_operation(
         &mut self,
         operation: ReferenceMetadataOperation,

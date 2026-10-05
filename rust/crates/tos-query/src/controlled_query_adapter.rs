@@ -561,6 +561,17 @@ pub fn execute_controlled_catalog_response<'hold, A>(
     deliver: impl FnOnce(&[u8]) -> Result<(), crate::CatalogError>,
 ) -> Result<(), crate::CatalogError>
 where A: crate::CatalogCurrentAuthority<'hold> + crate::InspectCurrentAuthority<'hold> {
+    execute_controlled_catalog_payload_response(model, bound, authority, budget,
+        |raw, _| deliver(raw))
+}
+
+pub(crate) fn execute_controlled_catalog_payload_response<'hold, A>(
+    model: &mut ControlledKnowledgeModel<'_, '_, '_>,
+    bound: &BoundCmpKnowledge<'_>, authority: &mut A,
+    budget: crate::CatalogBudget,
+    deliver: impl FnOnce(&[u8], &JsonValue) -> Result<(), crate::CatalogError>,
+) -> Result<(), crate::CatalogError>
+where A: crate::CatalogCurrentAuthority<'hold> + crate::InspectCurrentAuthority<'hold> {
     use crate::{CatalogCurrentAuthority as C, InspectCurrentAuthority as I};
     use crate::knowledge_catalog::{CatalogError, CatalogErrorCode};
     let refused = || CatalogError { code: CatalogErrorCode::BudgetExceeded,
@@ -603,7 +614,7 @@ where A: crate::CatalogCurrentAuthority<'hold> + crate::InspectCurrentAuthority<
                         }
                         let mut lease = C::acquire_disclosure(authority, &scope, bound.selection().catalog_packet_sha256)?;
                         lease.recheck()?;
-                        deliver(body)?;
+                        deliver(body, catalog)?;
                         lease.recheck()
                     })();
                     Ok(())

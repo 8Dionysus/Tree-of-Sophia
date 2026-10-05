@@ -964,8 +964,38 @@ pub(crate) fn compose_selected_access_health(
     max_response_bytes: usize,
     output_json: JsonLimits,
     probe: &Arc<dyn AbortProbe>,
+    child: impl FnMut(HealthChild<'_>, tos_query::InspectBudget, &mut tos_query::InspectVisitMeter) -> Result<JsonValue, AccessError>,
+) -> Result<(Vec<u8>, bool), AccessError> {
+    compose_selected_access_health_original(inspect_budget, max_response_bytes,
+        output_json, probe, None, child)
+}
+
+/// Optional borrowed Original owner for native composite delivery. Existing
+/// selected adapters retain their current visit-meter behavior.
+pub(crate) trait HealthOriginalBudget {
+    fn check(&self) -> Result<(), AccessError>;
+    fn admit_workspace(&self, bytes: usize) -> Result<(), AccessError>;
+    fn charge_work(&self, units: usize) -> Result<(), AccessError>;
+    fn emit(&self, value: &JsonValue, limits: JsonLimits,
+        meter: &mut tos_query::InspectVisitMeter) -> Result<Vec<u8>, AccessError>;
+}
+
+pub(crate) fn compose_selected_access_health_original(
+    inspect_budget: tos_query::InspectBudget,
+    max_response_bytes: usize,
+    output_json: JsonLimits,
+    probe: &Arc<dyn AbortProbe>,
+    original: Option<&dyn HealthOriginalBudget>,
     mut child: impl FnMut(HealthChild<'_>, tos_query::InspectBudget, &mut tos_query::InspectVisitMeter) -> Result<JsonValue, AccessError>,
 ) -> Result<(Vec<u8>, bool), AccessError> {
+    if let Some(original) = original {
+        original.check()?;
+        // Fixed report/subject/error envelopes. Child-owned strings/count maps
+        // are admitted from their actual geometry by the native child adapter.
+        original.admit_workspace(128 * std::mem::size_of::<(JsonString, JsonValue)>()
+            + 16 * 512 * (1 + 2 * std::mem::size_of::<u16>()))?;
+        original.charge_work(128)?;
+    }
     let mut visit_meter = tos_query::InspectVisitMeter::new(inspect_budget.json.max_visits);
     let mut errors = Vec::with_capacity(8);
     let child_json = inspect_budget.json;
@@ -1072,6 +1102,7 @@ pub(crate) fn compose_selected_access_health(
         }
     }
     check_health_visit_meter(&visit_meter)?;
+    if let Some(original) = original { original.check()?; }
 
     let mut philosophy_schema = None;
     let mut philosophy_view_id = None;
@@ -1182,6 +1213,7 @@ pub(crate) fn compose_selected_access_health(
         }
     }
     check_health_visit_meter(&visit_meter)?;
+    if let Some(original) = original { original.check()?; }
 
     let mut knowledge_schema = JsonValue::Null;
     let mut knowledge_counts = JsonValue::Null;
@@ -1326,6 +1358,7 @@ pub(crate) fn compose_selected_access_health(
         }
     }
     check_health_visit_meter(&visit_meter)?;
+    if let Some(original) = original { original.check()?; }
 
     crate::knowledge::check_abort(&probe)?;
     let final_response_limit =
@@ -1365,7 +1398,11 @@ pub(crate) fn compose_selected_access_health(
     ]);
     let mut output_limits = output_json;
     output_limits.max_bytes = final_response_limit;
-    let body = visit_meter
+    let body = if let Some(original) = original {
+        original.check()?;
+        original.emit(&report, output_limits, &mut visit_meter)?
+    } else {
+        visit_meter
         .canonical_bytes(
             &report,
             CanonicalProfile::SourceRecordDigestV1,
@@ -1376,7 +1413,8 @@ pub(crate) fn compose_selected_access_health(
                 AccessErrorCode::BudgetExceeded,
                 "selected access health response exceeds budget",
             )
-        })?;
+        })?
+    };
     if body.len() > final_response_limit {
         return Err(AccessError::new(
             AccessErrorCode::BudgetExceeded,

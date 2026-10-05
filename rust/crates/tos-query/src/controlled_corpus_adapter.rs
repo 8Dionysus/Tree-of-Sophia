@@ -18,10 +18,18 @@ pub fn execute_controlled_corpus_metadata_response<'hold,
     context: &crate::corpus_read::CorpusReadContext, render: bool,
     deliver: impl FnOnce(&[u8]) -> Result<(), SearchV2Error>,
 ) -> Result<(), SearchV2Error> {
-    if !matches!(request, crate::corpus_read::CorpusReadRequest::Status
-        | crate::corpus_read::CorpusReadRequest::Summary | crate::corpus_read::CorpusReadRequest::GraphViews) {
-        return Err(corrupt());
-    }
+    execute_controlled_corpus_response(model, bound, authority, caps,
+        request, context, render, deliver)
+}
+
+pub fn execute_controlled_corpus_response<'hold,
+    A: InspectCurrentAuthority<'hold> + ?Sized>(
+    model: &mut ControlledKnowledgeModel<'_, '_, '_>, bound: &BoundCmpKnowledge<'_>,
+    authority: &mut A, caps: InspectBudget,
+    request: &crate::corpus_read::CorpusReadRequest,
+    context: &crate::corpus_read::CorpusReadContext, render: bool,
+    deliver: impl FnOnce(&[u8]) -> Result<(), SearchV2Error>,
+) -> Result<(), SearchV2Error> {
     bound.check_controlled_model(model)?;
     model.check_query_open_vm_admission(caps.max_open_vm_steps).map_err(compiler_query_error)?;
     let forecast = authority.disclosure_metadata_state_upper_bound()?;
@@ -49,55 +57,36 @@ pub fn execute_controlled_corpus_metadata_response<'hold,
                 || receipt.membership_root != bound.selection().source_membership_root.to_hex() {
                 return Err(corrupt());
             }
-            let expected_views = receipt.collections.iter().find(|c| c.collection == "graph_views")
-                .ok_or_else(corrupt)?.rows;
-            let expected_branches = receipt.collections.iter().find(|c| c.collection == "branches")
-                .ok_or_else(corrupt)?.rows;
             let mut heap = model.new_owned_query_heap();
+            let receipt_state = model.corpus_original_receipt().ok_or_else(corrupt)?
+                .retained_state_bytes().map_err(|_| budget())?;
+            heap.retain(receipt_state).map_err(compiler_query_error)?;
+            heap.charge_work(receipt_state).map_err(compiler_query_error)?;
+            let receipt = model.corpus_original_receipt().ok_or_else(corrupt)?.clone();
             let mut charges = OriginalReadCharges::default();
             let (ordinal, header) = read_original(model, authority,
                 ControlledOriginalCollection::Corpus(CorpusOriginalCollection::Header),
                 -1, caps, &mut charges, &mut heap)?.ok_or_else(corrupt)?;
             if ordinal != 0 || header.as_object().is_none() { return Err(corrupt()); }
-            let mut read_rows = |collection| -> Result<Vec<JsonValue>, SearchV2Error> {
-                let mut rows = Vec::new(); let mut after = -1;
-                while let Some((ordinal, value)) = read_original(model, authority,
-                    ControlledOriginalCollection::Corpus(collection), after, caps, &mut charges, &mut heap)? {
-                    if ordinal <= after { return Err(corrupt()); }
-                    after = ordinal;
-                    heap.retain(2 * std::mem::size_of::<JsonValue>()).map_err(compiler_query_error)?;
-                    rows.push(value);
-                }
-                Ok(rows)
+            let header_state = header.retained_storage_bytes().map_err(|_| budget())?;
+            let context_state = context.tos_root.len().checked_add(context.index_path.len()).ok_or_else(budget)?;
+            // The existing kernel's fixed envelopes plus Original header clones.
+            // Each selected row is separately admitted by ControlledCorpusReader
+            // before entering its maps/row clones and final packet.
+            let fixed = header_state.checked_mul(4)
+                .and_then(|n| n.checked_add(context_state.checked_mul(5)?))
+                .and_then(|n| n.checked_add(32 * (std::mem::size_of::<JsonString>()
+                    + std::mem::size_of::<JsonValue>()) + 5 * 1024)).ok_or_else(budget)?;
+            heap.retain(fixed).map_err(compiler_query_error)?;
+            heap.charge_work(fixed).map_err(compiler_query_error)?;
+            let packet = {
+                let mut read = crate::controlled_corpus_reader::ControlledCorpusReader {
+                    model, authority, caps, charges: &mut charges, heap: &mut heap,
+                };
+                crate::corpus_read::compute_controlled_corpus(&mut read, receipt, header,
+                    context, request, crate::corpus_read::CorpusReadBudget {
+                        inspect: caps, max_work_steps: caps.max_read_vm_steps })?
             };
-            let views = read_rows(CorpusOriginalCollection::GraphViews)?;
-            if views.len() as u64 != expected_views { return Err(corrupt()); }
-            let branches = if matches!(request, crate::corpus_read::CorpusReadRequest::Summary) {
-                read_rows(CorpusOriginalCollection::Branches)?
-            } else { Vec::new() };
-            drop(read_rows);
-            if matches!(request, crate::corpus_read::CorpusReadRequest::Summary)
-                && branches.len() as u64 != expected_branches { return Err(corrupt()); }
-            // Same supported-view predicate as the maintained Corpus reader.
-            let views = views.into_iter().filter(|v| matches!(v.object_get("view_id")
-                .and_then(JsonValue::as_str), Some("corpus-topology" | "route-graph" | "promotion-flow")))
-                .collect::<Vec<_>>();
-            let inputs = header.retained_storage_bytes().map_err(|_| budget())?
-                .checked_add(views.retained_state_bytes().map_err(|_| budget())?)
-                .and_then(|n| n.checked_add(branches.retained_state_bytes().ok()?))
-                .and_then(|n| n.checked_add(context.tos_root.len()))
-                .and_then(|n| n.checked_add(context.index_path.len())).ok_or_else(budget)?;
-            let literals = concat!("schema", "tos_corpus_mcp_summary_v1", "tos_corpus_mcp_status_v1",
-                "tos_corpus_mcp_graph_views_v1", "index_exists", "tos_root", "index_path", "owner_repo",
-                "surface_kind", "counts", "graph_views", "authority_order", "runtime_projection_boundary",
-                "status", "branches").len();
-            let bytes = inputs.checked_mul(3)
-                .and_then(|n| n.checked_add(2 * 20 * std::mem::size_of::<(JsonString, JsonValue)>()))
-                .and_then(|n| n.checked_add(literals.checked_mul(1 + 2 * std::mem::size_of::<u16>())?))
-                .ok_or_else(budget)?;
-            heap.retain(bytes).map_err(compiler_query_error)?;
-            heap.charge_work(bytes).map_err(compiler_query_error)?;
-            let packet = crate::corpus_read::controlled_metadata(&header, context, views, branches, request)?;
             let body = if render {
                 let mut limits = caps.json;
                 limits.max_bytes = limits.max_bytes.min(caps.max_response_bytes);
