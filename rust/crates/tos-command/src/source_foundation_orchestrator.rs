@@ -358,6 +358,21 @@ impl FoundationOrchestratorError {
                         "native source index SQLite operation refused"
                     }
                     "native source index storage refused" => "native source index storage refused",
+                    "candidate Records/Item receiver budget refused" => {
+                        "candidate Records/Item receiver budget refused"
+                    }
+                    "candidate Records/Item receiver budget check refused" => {
+                        "candidate Records/Item receiver budget check refused"
+                    }
+                    "candidate Records/Item receiver deadline refused" => {
+                        "candidate Records/Item receiver deadline refused"
+                    }
+                    "candidate Records/Item receiver source refused" => {
+                        "candidate Records/Item receiver source refused"
+                    }
+                    "candidate Records/Item receiver unsupported" => {
+                        "candidate Records/Item receiver unsupported"
+                    }
                     _ => "source-foundation candidate index refused",
                 }
             }
