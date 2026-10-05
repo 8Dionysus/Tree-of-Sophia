@@ -1,0 +1,67 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/material-discovery-record.schema.json",
+  "schema_version": "tos_material_discovery_record_v1",
+  "discovery_id": "tos.discovery.synthetic-repository-template",
+  "protocol_ref": "ToS/source-witnesses/discovery/DISCOVERY_PROTOCOL.md",
+  "target": {
+    "target_kind": "artifact",
+    "known_tos_refs": [
+      "tos.artifact.synthetic-repository-template.small"
+    ],
+    "description": "Planned exact local repository route for a distinct synthetic byte resource.",
+    "required_properties": [
+      "Exact declared resource identity and byte preservation"
+    ],
+    "acceptable_substitutions": [],
+    "languages": [],
+    "formats": [
+      "application/octet-stream"
+    ],
+    "purpose_ref": "ToS/review-ledger/2026-10-05-synthetic-repository-artifact-boundary.md"
+  },
+  "channels": [
+    {
+      "channel_id": "channel-tos-fixture-repository",
+      "sequence": 1,
+      "channel_type": "specialized-scholarly-project",
+      "role": "digital-object-record",
+      "source_name": "ToS capacity-fixture repository",
+      "endpoint_url": "urn:tos:capacity-fixture:template-resource:small",
+      "interface_type": "bulk",
+      "interface_version": null,
+      "exact_query": "Planned local declared resource selection; no query or network operation has been executed by this template.",
+      "queried_at": "2026-10-05T23:26:34Z",
+      "elapsed_seconds": 0,
+      "result_order_preserved": true,
+      "results": []
+    }
+  ],
+  "channel_comparison": [
+    {
+      "channel_id": "channel-tos-fixture-repository",
+      "completeness": "unknown",
+      "metadata_precision": "unknown",
+      "rights_clarity": "unknown",
+      "machine_interface_quality": "unknown",
+      "human_minutes": 0,
+      "machine_seconds": 0,
+      "notes": "Planned template only; no performance measurement, network query, download or captured external response is asserted."
+    }
+  ],
+  "selected_result_ids": [],
+  "rejected_result_ids": [],
+  "rights_inference_from_availability_prohibited": true,
+  "general_web_search_is_last_resort": true,
+  "technical_access_bypass_used": false,
+  "maker": {
+    "maker_type": "model",
+    "agent_ref": "model:codex"
+  },
+  "started_at": "2026-10-05T23:26:34Z",
+  "ended_at": "2026-10-05T23:26:34Z",
+  "status": "planned",
+  "provenance_event_refs": [
+    "tos.event.synthetic-repository-template.small"
+  ],
+  "record_version": 1
+}
