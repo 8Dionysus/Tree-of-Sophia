@@ -2420,13 +2420,34 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
             };
             let (line, bytes, _) = selected?;
             let line = usize::try_from(line).map_err(|_| ItemRefusal::Budget)?;
-            let value: Value = serde_json::from_slice(bytes).map_err(|_| {
-                ItemRefusal::Source("verified selected Closure row is invalid JSON".into())
-            })?;
+            let header_workspace = rows
+                .len()
+                .checked_add(1)
+                .and_then(|n| n.checked_mul(std::mem::size_of::<(usize, Value)>()))
+                .ok_or(ItemRefusal::Budget)?;
+            self.include_store_workspace(header_workspace)?;
+            let available = self
+                .remaining_state()?
+                .checked_sub(header_workspace)
+                .ok_or(ItemRefusal::Budget)?;
+            let (value, value_state) = crate::record_biblio_cut::bounded_decoded_state(
+                bytes,
+                selection.row_json_limits()?,
+                available,
+                self.limits.deadline,
+                self.source.cancellation(),
+            )?;
+            self.reserve_loaded_state(
+                value_state
+                    .checked_add(std::mem::size_of::<(usize, Value)>())
+                    .ok_or(ItemRefusal::Budget)?,
+                loaded_state_bytes,
+            )?;
+            self.include_store_workspace(header_workspace)?;
+            rows.try_reserve_exact(1).map_err(|_| ItemRefusal::Budget)?;
             if let Some(schema) = schema {
                 self.request_schema(&format!("{path}:{line}"), schema, &value)?;
             }
-            self.reserve_loaded_state(std::mem::size_of::<Value>(), loaded_state_bytes)?;
             self.include_store_workspace(scratch)?;
             rows.push((line, value));
         }

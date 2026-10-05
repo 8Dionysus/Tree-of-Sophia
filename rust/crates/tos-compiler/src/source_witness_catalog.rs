@@ -26,6 +26,39 @@ use tos_validation::executor::{
 use tos_validation::source_cut::{CutSchemaExecutor, CutWorkerLimits, CutWorkerSchemaExecutor};
 use tos_validation::{FormatProfile, SchemaBackendProbe, SchemaResource};
 
+/// Decode only this owner's authored catalog stage prefixes. Foreign source
+/// details remain private; the caller fingerprints the unchanged full error.
+pub fn source_refusal_stage(reason: &str) -> Option<&'static str> {
+    let (stage, _) = reason.split_once(':')?;
+    match stage {
+        "catalog candidate guard" => Some("guard"),
+        "catalog candidate binding" => Some("binding"),
+        "catalog execution count" => Some("execution-count"),
+        "catalog exact streamed executor" => Some("stream-executor"),
+        "catalog schema operation budget" => Some("schema-budget"),
+        "catalog spool diagnostics configuration" => Some("spool-config"),
+        "catalog spool selected raw limit" => Some("spool-raw-limit"),
+        "catalog spool shared schema quota" => Some("spool-quota"),
+        "catalog receipt spool" => Some("receipt-spool"),
+        "catalog exact cut executor" => Some("cut-executor"),
+        "catalog diagnostics drain" => Some("diagnostics-drain"),
+        "catalog candidate diagnostics drain" => Some("candidate-drain"),
+        "catalog schema operation finish" => Some("schema-finish"),
+        "catalog receipt page" => Some("receipt-page"),
+        "catalog diagnostic page" => Some("diagnostic-page"),
+        "catalog spool finish" => Some("spool-finish"),
+        "catalog spool close" => Some("spool-close"),
+        "catalog spool summary" => Some("spool-summary"),
+        "catalog selected schema inventory" => Some("schema-inventory"),
+        "catalog schema execution incomplete" => Some("schema-execution"),
+        "catalog selected verifier bound" => Some("verifier-bound"),
+        "catalog selected file binding" => Some("file-binding"),
+        "catalog selected slot binding" => Some("slot-binding"),
+        "catalog selected record binding" => Some("record-binding"),
+        _ => None,
+    }
+}
+
 pub const CATALOG_SOURCE: &str = "source-witness-catalog";
 pub const SOURCE_FILES: &str = "source-files";
 pub const CONTRACT_FILES: &str = "contracts";

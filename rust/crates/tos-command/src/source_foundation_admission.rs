@@ -54,6 +54,9 @@ use tos_source_store::{
 /// may contain private paths or diagnostics and are not printed.
 #[derive(Debug)]
 pub(crate) struct NativeValidationRefusal(pub(crate) String);
+impl NativeValidationRefusal {
+    pub(crate) const MAX_PUBLIC_REASON_BYTES: usize = 192;
+}
 impl std::fmt::Display for NativeValidationRefusal {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str(&self.0)
@@ -165,7 +168,7 @@ impl NativeSpoolRefusal {
             .get_ref()
             .and_then(|cause| cause.downcast_ref::<NativeValidationRefusal>())
             .map(|reason| reason.0.as_str())
-            .filter(|reason| reason.len() <= 192);
+            .filter(|reason| reason.len() <= NativeValidationRefusal::MAX_PUBLIC_REASON_BYTES);
         NativeSpoolRefusalPacket {
             schema_version: "tos_native_spooled_admission_refusal_v1",
             publication_state: "not_committed",

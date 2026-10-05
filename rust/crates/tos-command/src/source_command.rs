@@ -114,14 +114,44 @@ pub(crate) fn public_compiler_reason(error: &tos_compiler::Error) -> String {
         {
             reason.clone()
         }
-        Error::Sql(_) | Error::SqlitePhase { .. } | Error::Source(_) => {
+        Error::Sql(sql) => compiler_sql_cause(error, "sql", sql),
+        Error::SqlitePhase { phase, error: sql } => {
+            compiler_sql_cause(error, &format!("sql-{phase:?}"), sql)
+        }
+        Error::Source(reason) => {
+            let site = tos_compiler::source_witness_catalog::source_refusal_stage(reason)
+                .map(|stage| format!("compiler-{stage}"))
+                .unwrap_or_else(|| "compiler-source".to_owned());
             crate::source_admission_spooled_index::bounded_source_cause(
                 "receiver-source",
-                "compiler",
+                &site,
                 &error.to_string(),
             )
         }
     }
+}
+
+// Only the owned phase and SQLite's numeric result code cross this boundary.
+// Preserve the fingerprint of the complete original compiler error for custody.
+fn compiler_sql_cause(
+    compiler: &tos_compiler::Error,
+    phase: &str,
+    sql: &rusqlite::Error,
+) -> String {
+    let site = match sql {
+        rusqlite::Error::SqliteFailure(code, _) => {
+            format!("compiler-{phase}-{}", code.extended_code)
+        }
+        rusqlite::Error::QueryReturnedNoRows => format!("compiler-{phase}-no-rows"),
+        rusqlite::Error::InvalidColumnType(..) => format!("compiler-{phase}-column-type"),
+        rusqlite::Error::InvalidQuery => format!("compiler-{phase}-query"),
+        _ => format!("compiler-{phase}-other"),
+    };
+    crate::source_admission_spooled_index::bounded_source_cause(
+        "receiver-source",
+        &site,
+        &compiler.to_string(),
+    )
 }
 
 #[cfg(test)]

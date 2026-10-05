@@ -2182,6 +2182,101 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
                             "receiver-source", &site, message);
                     }
                 }
+                if verified.record_issue_count() == 0 && verified.item_issue_count() != 0 {
+                    use tos_validation::source_foundation_records::{
+                        SourceFoundationRecordsCollection, SourceFoundationRecordsStoredFact,
+                    };
+                    let cap = crate::source_foundation_admission::NativeValidationRefusal::MAX_PUBLIC_REASON_BYTES;
+                    let expected = usize::try_from(verified.item_issue_count())
+                        .map_err(|_| io::Error::other("Item issue count does not fit"))?;
+                    if expected > item_limits.max_issues {
+                        return Err(io::Error::other("Item issue count exceeds original issue cap"));
+                    }
+                    // The histogram and formatting buffers coexist with one page and
+                    // its old cursor, all inside the original page-state allowance.
+                    let retained = expected.checked_mul(std::mem::size_of::<(&'static str, u64)>())
+                        .and_then(|n| n.checked_add(std::mem::size_of::<Vec<(&'static str, u64)>>()))
+                        .and_then(|n| n.checked_add(cap.checked_mul(6)?))
+                        .and_then(|n| n.checked_add(std::mem::size_of::<tos_foundation::Digest256Hasher>()))
+                        .and_then(|n| n.checked_add(page_budget.max_cursor_bytes.get()))
+                        .ok_or_else(|| io::Error::other("Item histogram state overflow"))?;
+                    let page_state = page_budget.max_state_bytes.get().checked_sub(retained)
+                        .and_then(NonZeroUsize::new)
+                        .ok_or_else(|| io::Error::other("Item histogram exceeds original page state"))?;
+                    let mut histogram: Vec<(&'static str, u64)> = Vec::new();
+                    histogram.try_reserve_exact(expected)
+                        .map_err(|_| io::Error::other("Item histogram allocation refused"))?;
+                    if histogram.capacity() > expected {
+                        return Err(io::Error::other("Item histogram capacity exceeds charge"));
+                    }
+                    let mut cursor = None;
+                    let mut observed = 0usize;
+                    loop {
+                        let page = records.index().page(
+                            SourceFoundationRecordsCollection::ItemIssues, cursor.as_ref(),
+                            SourceFoundationRecordsPageBudget {
+                                max_rows: NonZeroUsize::MIN,
+                                max_state_bytes: page_state,
+                                ..page_budget
+                            }, deadline, cancelled)
+                            .map_err(crate::source_admission_spooled_index::receiver_refusal)?;
+                        if page.rows.is_empty() && page.next_cursor.is_some() {
+                            return Err(io::Error::other("Item issue page made no progress"));
+                        }
+                        for row in &page.rows {
+                            let SourceFoundationRecordsStoredFact::ItemIssue(issue) = row else {
+                                return Err(io::Error::other("Item issue page contains another fact"));
+                            };
+                            observed = observed.checked_add(1)
+                                .filter(|n| *n <= expected)
+                                .ok_or_else(|| io::Error::other("Item issue page count drift"))?;
+                            if issue.code.is_empty() || issue.code.len() > cap ||
+                                !issue.code.bytes().all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-') {
+                                return Err(io::Error::other("Item issue code is not an owned public code"));
+                            }
+                            if let Some((_, count)) = histogram.iter_mut().find(|(code, _)| *code == issue.code) {
+                                *count += 1;
+                            } else { histogram.push((issue.code, 1)); }
+                        }
+                        cursor = page.next_cursor;
+                        if cursor.is_none() { break; }
+                    }
+                    if observed != expected {
+                        return Err(io::Error::other("Item issue EOF count drift"));
+                    }
+                    histogram.sort_unstable_by_key(|(code, _)| *code);
+                    let mut hash = tos_foundation::Digest256Hasher::new();
+                    for (code, count) in &histogram {
+                        hash.update(code.as_bytes()); hash.update(&[0]); hash.update(&count.to_le_bytes());
+                    }
+                    let digest = hash.finalize().to_hex();
+                    let mut summary = format!("{site} items={observed} codes={}", histogram.len());
+                    let complete_bytes = histogram.iter().try_fold(summary.len(), |n, (code, count)| {
+                        n.checked_add(code.len() + 2 + count.to_string().len())
+                    }).ok_or_else(|| io::Error::other("Item histogram output overflow"))?;
+                    if complete_bytes <= cap {
+                        for (code, count) in &histogram {
+                            use std::fmt::Write;
+                            write!(&mut summary, " {code}={count}").map_err(io::Error::other)?;
+                        }
+                    } else {
+                        // Full ordered histogram identity survives even when the
+                        // finite public packet cannot carry every textual code.
+                        summary.push_str(&format!(" hash={digest}"));
+                        let mut shown = 0usize;
+                        for (code, count) in &histogram {
+                            let entry = format!(" {code}={count}");
+                            let suffix = format!(" omitted={}", histogram.len() - shown);
+                            if summary.len() + entry.len() + suffix.len() > cap { break; }
+                            summary.push_str(&entry); shown += 1;
+                        }
+                        summary.push_str(&format!(" omitted={}", histogram.len() - shown));
+                    }
+                    if summary.len() > cap {
+                        return Err(io::Error::other("Item histogram exceeds public reason cap"));
+                    }
+                    return Err(io::Error::other(crate::source_command::SourceCommandError::DeniedWithReason(summary)));
+                }
                 return Err(io::Error::other(reason));
             }
             let after_records = view.original_io.snapshot();
