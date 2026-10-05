@@ -320,7 +320,10 @@ impl SourceFoundationSchemaSet {
                 .ok_or(SourceFoundationSchemaLoadFailure::SchemaResource)?
                 .to_owned();
             let digest = Digest256::of_bytes(&member.raw);
-            if contracts.insert(path.clone(), (uri.clone(), digest)).is_some() {
+            if contracts
+                .insert(path.clone(), (uri.clone(), digest))
+                .is_some()
+            {
                 return Err(SourceFoundationSchemaLoadFailure::ContractSelection);
             }
             resources.push(SchemaResource {
@@ -333,8 +336,7 @@ impl SourceFoundationSchemaSet {
                 sha256: expected_digest,
             });
         }
-        if contracts.len() != resources.len()
-        {
+        if contracts.len() != resources.len() {
             return Err(SourceFoundationSchemaLoadFailure::ContractSelection);
         }
         check_load_active(deadline, cancelled)?;
@@ -502,7 +504,10 @@ impl SourceFoundationSchemaSet {
                 .ok_or(SourceFoundationSchemaLoadFailure::SchemaResource)?
                 .to_owned();
             let digest = Digest256::of_bytes(&member.raw);
-            if contracts.insert(path.clone(), (uri.clone(), digest)).is_some() {
+            if contracts
+                .insert(path.clone(), (uri.clone(), digest))
+                .is_some()
+            {
                 return Err(SourceFoundationSchemaLoadFailure::ContractSelection);
             }
             resources.push(SchemaResource {
@@ -515,9 +520,7 @@ impl SourceFoundationSchemaSet {
                 sha256: expected_digest,
             });
         }
-        if resources.len() > limits.max_schema_resources
-            || contracts.len() != resources.len()
-        {
+        if resources.len() > limits.max_schema_resources || contracts.len() != resources.len() {
             return Err(SourceFoundationSchemaLoadFailure::ContractSelection);
         }
         check_load_active(deadline, cancelled)?;
@@ -853,9 +856,7 @@ impl<I: Copy + Eq> CandidateSourceFoundationSchemaSet<I> {
         {
             return Err(SourceFoundationSchemaLoadFailure::CutRead);
         }
-        if resources.is_empty()
-            || contracts.len() != resources.len()
-        {
+        if resources.is_empty() || contracts.len() != resources.len() {
             return Err(SourceFoundationSchemaLoadFailure::ContractSelection);
         }
         check_load_active(deadline, cancelled)?;
@@ -2268,6 +2269,157 @@ pub(crate) fn source_foundation_schema_resource_uri(value: &Value) -> Option<&st
     })
 }
 
+/// Resource-level transitive closure from the authenticated declarations.
+/// Whole resource bytes remain intact, including definitions not selected by
+/// the root pointer. URI resolution uses the same draft resolver as the worker.
+/// Dynamic scopes or annotation-shaped references conservatively retain the
+/// complete supplied set rather than risk omitting a dependency.
+pub(crate) fn source_foundation_schema_resource_dependencies(
+    resources: &[SchemaResource],
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> Result<Vec<Vec<usize>>, ExecutorFailure> {
+    fn scan(
+        value: &Value,
+        base: &str,
+        owner: usize,
+        ids: &mut BTreeMap<String, usize>,
+        references: &mut Vec<(usize, String)>,
+        conservative: &mut bool,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<(), ExecutorFailure> {
+        if cancelled.load(Ordering::Relaxed) {
+            return Err(ExecutorFailure::Cancelled);
+        }
+        if Instant::now() >= deadline {
+            return Err(ExecutorFailure::Timeout);
+        }
+        let resolve = |reference: &str| -> Option<String> {
+            let base = jsonschema::uri::from_str(base).ok()?;
+            Some(
+                jsonschema::uri::resolve_against(&base.borrow(), reference)
+                    .ok()?
+                    .as_str()
+                    .to_owned(),
+            )
+        };
+        let scoped = value.get("$id").and_then(Value::as_str).and_then(resolve);
+        let base = scoped.as_deref().unwrap_or(base);
+        if let Some(id) = &scoped {
+            let id = id.split_once('#').map_or(id.as_str(), |(base, _)| base);
+            if ids
+                .insert(id.to_owned(), owner)
+                .is_some_and(|prior| prior != owner)
+            {
+                *conservative = true;
+            }
+        }
+        if let Some(object) = value.as_object() {
+            for (keyword, child) in object {
+                if keyword == "$dynamicRef" || keyword == "$recursiveRef" {
+                    *conservative = true;
+                }
+                if keyword == "$ref" {
+                    let resolved = child.as_str().and_then(|reference| {
+                        let uri = jsonschema::uri::from_str(base).ok()?;
+                        Some(
+                            jsonschema::uri::resolve_against(&uri.borrow(), reference)
+                                .ok()?
+                                .as_str()
+                                .to_owned(),
+                        )
+                    });
+                    if let Some(target) = resolved {
+                        references.push((owner, target));
+                    } else {
+                        *conservative = true;
+                    }
+                }
+                scan(
+                    child,
+                    base,
+                    owner,
+                    ids,
+                    references,
+                    conservative,
+                    deadline,
+                    cancelled,
+                )?;
+            }
+        } else if let Some(array) = value.as_array() {
+            for child in array {
+                scan(
+                    child,
+                    base,
+                    owner,
+                    ids,
+                    references,
+                    conservative,
+                    deadline,
+                    cancelled,
+                )?;
+            }
+        }
+        Ok(())
+    }
+    if resources.len() > SchemaBackendProbe::MAX_RESOURCES {
+        return Err(ExecutorFailure::InputBudget);
+    }
+    let mut ids = BTreeMap::new();
+    let mut references = Vec::new();
+    let mut conservative = false;
+    for (owner, resource) in resources.iter().enumerate() {
+        if ids
+            .insert(resource.uri.clone(), owner)
+            .is_some_and(|prior| prior != owner)
+        {
+            conservative = true;
+        }
+        let value = crate::published_value(&resource.raw, SchemaBackendProbe::MAX_RESOURCE_BYTES)
+            .map_err(|_| ExecutorFailure::InputBudget)?;
+        scan(
+            &value,
+            &resource.uri,
+            owner,
+            &mut ids,
+            &mut references,
+            &mut conservative,
+            deadline,
+            cancelled,
+        )?;
+    }
+    let mut direct = vec![BTreeSet::new(); resources.len()];
+    for (owner, reference) in references {
+        let base = reference
+            .split_once('#')
+            .map_or(reference.as_str(), |(base, _)| base);
+        if let Some(target) = ids.get(base) {
+            direct[owner].insert(*target);
+        } else {
+            // Keep normal worker missing-reference semantics; this helper
+            // selects bytes and does not turn a catalog into schema acceptance.
+            conservative = true;
+        }
+    }
+    let mut closures = Vec::with_capacity(resources.len());
+    for root in 0..resources.len() {
+        let mut selected = BTreeSet::new();
+        let mut pending = vec![root];
+        while let Some(index) = pending.pop() {
+            if selected.insert(index) {
+                pending.extend(direct[index].iter().copied());
+            }
+        }
+        closures.push(if conservative {
+            (0..resources.len()).collect()
+        } else {
+            selected.into_iter().collect()
+        });
+    }
+    Ok(closures)
+}
+
 pub(crate) fn schema_resource_set_digest(resources: &[SchemaResource]) -> Option<Digest256> {
     let mut digests = BTreeMap::new();
     for resource in resources {
@@ -3544,4 +3696,44 @@ fn estimated_check_report_bytes(
             .saturating_add(instance_path_bytes.saturating_mul(2))
             .saturating_add(schema_path_bytes.saturating_mul(2))
     })
+}
+
+#[cfg(test)]
+mod resource_dependency_tests {
+    use super::*;
+
+    #[test]
+    fn declared_resources_follow_relative_scopes_cycles_and_future_contracts() {
+        let resource = |name: &str, body: Value| SchemaResource {
+            uri: format!("https://example.test/contracts/{name}"),
+            raw: serde_json::to_vec(&body).unwrap(),
+        };
+        let resources = vec![
+            resource(
+                "root",
+                serde_json::json!({"$id":"https://example.test/contracts/root", "$ref":"child#/$defs/value"}),
+            ),
+            resource(
+                "child",
+                serde_json::json!({"$id":"https://example.test/contracts/child", "$defs":{"value":{"$id":"nested", "$ref":"leaf"}}}),
+            ),
+            resource(
+                "leaf",
+                serde_json::json!({"$id":"https://example.test/contracts/leaf", "$ref":"root"}),
+            ),
+            resource(
+                "future-source-owned",
+                serde_json::json!({"$id":"https://example.test/contracts/future-source-owned", "type":"object"}),
+            ),
+        ];
+        let closures = source_foundation_schema_resource_dependencies(
+            &resources,
+            Instant::now() + Duration::from_secs(1),
+            &AtomicBool::new(false),
+        )
+        .unwrap();
+        assert_eq!(closures[0], vec![0, 1, 2]);
+        assert_eq!(closures[1], vec![0, 1, 2]);
+        assert_eq!(closures[3], vec![3]);
+    }
 }

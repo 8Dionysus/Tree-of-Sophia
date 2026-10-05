@@ -44,12 +44,12 @@ pub(super) fn source_failure(error: cmd::SourceCommandError) -> Error {
 }
 pub(super) fn schema_failure(error: tos_validation::item_rules::ItemRefusal) -> Error {
     use tos_validation::item_rules::ItemRefusal;
-    match error {
+    match error.compatibility_category() {
         ItemRefusal::Budget => Error::Budget("Agent selected schema budget"),
         ItemRefusal::BudgetCheck { check, .. } => Error::Budget(check),
         ItemRefusal::Deadline => Error::Budget("Agent selected schema deadline"),
         ItemRefusal::Source(_) => Error::Invalid("Agent selected schema source refusal"),
-        ItemRefusal::Unsupported(_) => {
+        ItemRefusal::Unsupported(_) | ItemRefusal::Executor(_) => {
             Error::PreparedUnsupported("Agent selected schema unsupported")
         }
     }

@@ -505,18 +505,14 @@ impl BiblioRecordExecutor {
             }
         }
         if let Some(image) = self.image.as_mut() {
-            image
-                .finish(deadline, cancelled)
-                .map_err(|reason| match reason {
-                    ExecutorFailure::Timeout => ItemRefusal::Deadline,
-                    ExecutorFailure::Cancelled => {
-                        ItemRefusal::Source("record operation cancelled".into())
-                    }
-                    other => ItemRefusal::Unsupported(format!(
-                        "record operation finalization: {other:?}; original exchange: {:?}",
-                        image.exchange_failure()
-                    )),
-                })?;
+            image.finish(deadline, cancelled).map_err(|reason| {
+                crate::item_rules::executor_refusal(
+                    "record schema operation",
+                    reason,
+                    image.exchange_failure(),
+                    self.shared_schema_worker_quota.as_ref(),
+                )
+            })?;
         }
         Ok(())
     }
@@ -555,15 +551,13 @@ impl BiblioRecordExecutor {
         if let Some(image) = self.image.as_mut() {
             image
                 .preflight(limits.deadline, cancelled)
-                .map_err(|reason| match reason {
-                    ExecutorFailure::Timeout => ItemRefusal::Deadline,
-                    ExecutorFailure::Cancelled => {
-                        ItemRefusal::Source("record operation cancelled".into())
-                    }
-                    other => ItemRefusal::Unsupported(format!(
-                        "record operation refused: {other:?}; original exchange: {:?}",
-                        image.exchange_failure()
-                    )),
+                .map_err(|reason| {
+                    crate::item_rules::executor_refusal(
+                        "record schema operation",
+                        reason,
+                        image.exchange_failure(),
+                        self.shared_schema_worker_quota.as_ref(),
+                    )
                 })?;
         } else if cancelled.load(Ordering::Relaxed) || Instant::now() >= limits.deadline {
             self.finished = true;
@@ -609,14 +603,13 @@ impl BiblioRecordExecutor {
         if self.image.is_none() {
             self.image = Some(
                 VerifiedWorkerImage::prepare(&self.worker, budget, limits.deadline, cancelled)
-                    .map_err(|reason| match reason {
-                        ExecutorFailure::Timeout => ItemRefusal::Deadline,
-                        ExecutorFailure::Cancelled => {
-                            ItemRefusal::Source("record schema cancelled".into())
-                        }
-                        other => ItemRefusal::Unsupported(format!(
-                            "record worker preparation: {other:?}"
-                        )),
+                    .map_err(|reason| {
+                        crate::item_rules::executor_refusal(
+                            "record worker preparation",
+                            reason,
+                            None,
+                            self.shared_schema_worker_quota.as_ref(),
+                        )
                     })?,
             );
         }
@@ -626,7 +619,14 @@ impl BiblioRecordExecutor {
                 .unwrap()
                 .set_operation_budget(self.operation_budget)
                 .map_err(|reason| {
-                    ItemRefusal::Unsupported(format!("record operation envelope: {reason:?}"))
+                    crate::item_rules::executor_refusal(
+                        "record operation envelope",
+                        reason,
+                        self.image
+                            .as_ref()
+                            .and_then(VerifiedWorkerImage::exchange_failure),
+                        self.shared_schema_worker_quota.as_ref(),
+                    )
                 })?;
         }
         budget.execution_wall = budget.execution_wall.saturating_sub(started.elapsed());
@@ -650,34 +650,41 @@ impl BiblioRecordExecutor {
                 .as_mut()
                 .unwrap()
                 .preflight(limits.deadline, cancelled)
-                .map_err(|reason| match reason {
-                    ExecutorFailure::Timeout => ItemRefusal::Deadline,
-                    ExecutorFailure::Cancelled => {
-                        ItemRefusal::Source("record operation cancelled".into())
-                    }
-                    other => ItemRefusal::Unsupported(format!(
-                        "record operation refused: {other:?}; original exchange: {:?}",
+                .map_err(|reason| {
+                    crate::item_rules::executor_refusal(
+                        "record schema operation",
+                        reason,
                         self.image
                             .as_ref()
-                            .and_then(VerifiedWorkerImage::exchange_failure)
-                    )),
+                            .and_then(VerifiedWorkerImage::exchange_failure),
+                        self.shared_schema_worker_quota.as_ref(),
+                    )
                 })?;
         }
         let (identity, valid) = match result {
             ExecutorOutcome::SchemaValid(identity) => (identity, true),
             ExecutorOutcome::SchemaInvalid(identity) => (identity, false),
             ExecutorOutcome::Indeterminate {
-                reason: ExecutorFailure::Timeout,
-                ..
-            } => return Err(ItemRefusal::Deadline),
-            ExecutorOutcome::Indeterminate {
-                reason: ExecutorFailure::Cancelled,
-                ..
-            } => return Err(ItemRefusal::Source("record schema cancelled".into())),
-            other => {
-                return Err(ItemRefusal::Unsupported(format!(
-                    "record schema incomplete: {other:?}"
-                )));
+                reason, exchange, ..
+            } => {
+                return Err(crate::item_rules::executor_refusal(
+                    "record schema evaluation",
+                    reason,
+                    exchange.or_else(|| {
+                        self.image
+                            .as_ref()
+                            .and_then(VerifiedWorkerImage::exchange_failure)
+                    }),
+                    self.shared_schema_worker_quota.as_ref(),
+                ));
+            }
+            ExecutorOutcome::InputRejected(_) => {
+                return Err(crate::item_rules::executor_refusal(
+                    "record schema evaluation",
+                    ExecutorFailure::ParseRejected,
+                    None,
+                    self.shared_schema_worker_quota.as_ref(),
+                ));
             }
         };
         if identity.worker_sha256 != self.worker.sha256
@@ -718,7 +725,14 @@ impl BiblioRecordExecutor {
         if let Some(image) = self.image.as_mut() {
             image
                 .preflight(limits.deadline, cancelled)
-                .map_err(diagnostics_refusal)?;
+                .map_err(|reason| {
+                    crate::item_rules::executor_refusal(
+                        "record schema diagnostics",
+                        reason,
+                        image.exchange_failure(),
+                        self.shared_schema_worker_quota.as_ref(),
+                    )
+                })?;
         } else if cancelled.load(Ordering::Relaxed) || Instant::now() >= limits.deadline {
             self.finished = true;
             return Err(ItemRefusal::Deadline);
@@ -770,18 +784,39 @@ impl BiblioRecordExecutor {
         if self.image.is_none() {
             self.image = Some(
                 VerifiedWorkerImage::prepare(&self.worker, budget, limits.deadline, cancelled)
-                    .map_err(diagnostics_refusal)?,
+                    .map_err(|reason| {
+                        crate::item_rules::executor_refusal(
+                            "record schema diagnostics",
+                            reason,
+                            None,
+                            self.shared_schema_worker_quota.as_ref(),
+                        )
+                    })?,
             );
         }
         if self.executions == 1 {
             let image = self.image.as_mut().unwrap();
             image
                 .set_operation_budget(self.operation_budget)
-                .map_err(diagnostics_refusal)?;
+                .map_err(|reason| {
+                    crate::item_rules::executor_refusal(
+                        "record schema diagnostics",
+                        reason,
+                        None,
+                        self.shared_schema_worker_quota.as_ref(),
+                    )
+                })?;
             if let Some(quota) = &self.shared_schema_worker_quota {
                 image
                     .set_shared_schema_worker_quota(quota.clone())
-                    .map_err(diagnostics_refusal)?;
+                    .map_err(|reason| {
+                        crate::item_rules::executor_refusal(
+                            "record schema diagnostics",
+                            reason,
+                            None,
+                            self.shared_schema_worker_quota.as_ref(),
+                        )
+                    })?;
             }
         }
         budget.execution_wall = budget.execution_wall.saturating_sub(started.elapsed());
@@ -802,11 +837,27 @@ impl BiblioRecordExecutor {
                 limits.deadline,
                 cancelled,
             )
-            .map_err(diagnostics_refusal)?;
+            .map_err(|reason| {
+                crate::item_rules::executor_refusal(
+                    "record schema diagnostics",
+                    reason,
+                    self.image
+                        .as_ref()
+                        .and_then(VerifiedWorkerImage::exchange_failure),
+                    self.shared_schema_worker_quota.as_ref(),
+                )
+            })?;
         let (mut units, checkpoint) = match outcome {
             SchemaDiagnosticsOutcome::Complete { units, checkpoint } => (units, checkpoint),
-            SchemaDiagnosticsOutcome::Incomplete { reason, .. } => {
-                return Err(diagnostics_refusal(reason));
+            SchemaDiagnosticsOutcome::Incomplete {
+                reason, exchange, ..
+            } => {
+                return Err(crate::item_rules::executor_refusal(
+                    "record schema diagnostics",
+                    reason,
+                    exchange,
+                    self.shared_schema_worker_quota.as_ref(),
+                ));
             }
         };
         if units.len() != 1 || checkpoint.completed_count != 1 {
@@ -1045,17 +1096,6 @@ fn diagnostics_limits_valid(
         && limits.max_total_report_bytes <= wire_capacity
         && limits.max_total_state_bytes > 0
         && limits.max_total_state_bytes <= wire_capacity
-}
-
-fn diagnostics_refusal(reason: ExecutorFailure) -> ItemRefusal {
-    match reason {
-        ExecutorFailure::Timeout => ItemRefusal::Deadline,
-        ExecutorFailure::Cancelled => {
-            ItemRefusal::Source("record schema diagnostics cancelled".into())
-        }
-        ExecutorFailure::InputBudget | ExecutorFailure::CpuLimit => crate::item_budget_origin!(),
-        _ => ItemRefusal::Unsupported("record schema diagnostics worker failed".into()),
-    }
 }
 
 fn schema_resource_encoding_bytes(resources: &[SchemaResource]) -> Option<usize> {

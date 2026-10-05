@@ -86,7 +86,19 @@ impl From<FoundationBootstrapError> for FoundationOrchestratorError {
 
 impl FoundationOrchestratorError {
     pub(crate) fn public_reason(&self) -> String {
+        if let Self::Default(
+            _,
+            FoundationDefaultReadError::Owner(ItemRefusal::Executor(evidence)),
+        ) = self
+        {
+            return evidence.summary();
+        }
         if let Self::Admission(error) = self {
+            if let Some(evidence) = error.get_ref().and_then(|error| {
+                error.downcast_ref::<tos_validation::item_rules::ItemExecutorRefusal>()
+            }) {
+                return evidence.summary();
+            }
             let source_cause = error.to_string();
             if crate::source_admission_spooled_index::is_bounded_source_cause(&source_cause) {
                 return source_cause;
@@ -105,8 +117,10 @@ impl FoundationOrchestratorError {
             _ => None,
         };
         if let Some((stage, error)) = owner {
-            if matches!(error, ItemRefusal::Source(_) | ItemRefusal::Unsupported(_))
-                || matches!(error, ItemRefusal::BudgetCheck { check, .. }
+            if matches!(
+                error,
+                ItemRefusal::Source(_) | ItemRefusal::Unsupported(_) | ItemRefusal::Executor(_)
+            ) || matches!(error, ItemRefusal::BudgetCheck { check, .. }
                     if !matches!(*check, "record_issue_sink" | "biblio_sink"))
             {
                 return crate::source_admission_spooled_index::receiver_refusal(error.clone())
@@ -118,6 +132,7 @@ impl FoundationOrchestratorError {
                 ItemRefusal::Deadline => "deadline",
                 ItemRefusal::Source(_) => "source",
                 ItemRefusal::Unsupported(_) => "unsupported",
+                ItemRefusal::Executor(_) => "executor",
             };
             use std::fmt::Write as _;
             let mut reason = String::with_capacity(MAX_PUBLIC_BUDGET_REASON_BYTES);

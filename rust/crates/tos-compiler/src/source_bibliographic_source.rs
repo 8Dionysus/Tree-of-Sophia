@@ -143,11 +143,12 @@ pub struct SourceBibliographicCandidate<B = SourceBinding> {
 /// inventing observations absent from the adapter's actual error.
 pub(crate) fn candidate_input_refusal(error: tos_validation::item_rules::ItemRefusal) -> Error {
     use tos_validation::item_rules::ItemRefusal;
-    match error {
+    match error.compatibility_category() {
         ItemRefusal::Budget => Error::Budget("candidate source input"),
         ItemRefusal::BudgetCheck { check, .. } => Error::Budget(check),
         ItemRefusal::Deadline => Error::Budget("candidate source input deadline"),
         ItemRefusal::Source(detail) => Error::Source(detail),
+        ItemRefusal::Executor(evidence) => Error::Source(evidence.summary()),
         ItemRefusal::Unsupported(detail) => {
             Error::Source(format!("unsupported candidate source input: {detail}"))
         }

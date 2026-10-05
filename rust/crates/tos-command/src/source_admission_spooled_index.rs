@@ -352,6 +352,9 @@ pub(crate) fn receiver_refusal(error: ItemRefusal) -> io::Error {
                 format!("{fingerprint}:{}:{}", counter(used), counter(limit)),
             );
         }
+        ItemRefusal::Executor(evidence) => {
+            return io::Error::new(io::ErrorKind::InvalidData, *evidence);
+        }
         ItemRefusal::Deadline => "candidate Records/Item receiver deadline refused",
         ItemRefusal::Source(reason) => {
             return if let Some(fixed) = receiver_source_reason(&reason) {
@@ -2026,5 +2029,83 @@ impl IndexView<'_> {
             .transpose()?;
         self.candidate.tick()?;
         Ok(target)
+    }
+}
+
+#[cfg(test)]
+mod executor_refusal_tests {
+    use super::*;
+    use tos_validation::executor::{
+        ChildTermination, ExchangeFailureContext, ExecutorFailure, SharedSchemaWorkerQuotaUsage,
+    };
+    use tos_validation::item_rules::ItemExecutorRefusal;
+
+    #[test]
+    fn receiver_preserves_all_executor_codes_and_committed_prefix_without_private_text() {
+        for reason in [
+            ExecutorFailure::UnsupportedHost,
+            ExecutorFailure::WorkerIdentity,
+            ExecutorFailure::InputBudget,
+            ExecutorFailure::ResourceLimitUnknown,
+            ExecutorFailure::Spawn,
+            ExecutorFailure::Timeout,
+            ExecutorFailure::Cancelled,
+            ExecutorFailure::CpuLimit,
+            ExecutorFailure::CrashSignal(9),
+            ExecutorFailure::CrashExit(7),
+            ExecutorFailure::ReapPending(12),
+            ExecutorFailure::Protocol,
+            ExecutorFailure::Backend,
+            ExecutorFailure::ParseRejected,
+            ExecutorFailure::CoverageMismatch,
+        ] {
+            let evidence = ItemExecutorRefusal {
+                stage: "private-owner-stage",
+                reason,
+                exchange: Some(ExchangeFailureContext {
+                    boundary: "private-owner-path",
+                    failure: reason,
+                    natural_termination: Some(ChildTermination::Exited(7)),
+                }),
+                quota: Some(SharedSchemaWorkerQuotaUsage {
+                    max_total_cpu_micros: 100,
+                    max_total_wire_bytes: 200,
+                    max_total_units: 3,
+                    worker_cpu_micros: 10,
+                    worker_wire_bytes: 20,
+                    worker_units: 1,
+                }),
+            };
+            if reason == ExecutorFailure::Timeout {
+                assert_eq!(
+                    ItemRefusal::Executor(Box::new(evidence.clone())).compatibility_category(),
+                    ItemRefusal::Deadline
+                );
+            }
+            if matches!(
+                reason,
+                ExecutorFailure::InputBudget | ExecutorFailure::CpuLimit
+            ) {
+                assert_eq!(
+                    ItemRefusal::Executor(Box::new(evidence.clone())).compatibility_category(),
+                    ItemRefusal::Budget
+                );
+            }
+            let expected = evidence.summary();
+            let error = receiver_refusal(ItemRefusal::Executor(Box::new(evidence)));
+            assert_eq!(error.to_string(), expected);
+            assert!(error.get_ref().unwrap().is::<ItemExecutorRefusal>());
+            assert_eq!(
+                crate::source_foundation_orchestrator::FoundationOrchestratorError::Admission(
+                    error
+                )
+                .public_reason(),
+                expected
+            );
+            assert!(expected.contains(&format!("reason={reason:?}")));
+            assert!(expected.contains("committed_quota_prefix="));
+            assert!(!expected.contains("private-owner"));
+            assert!(expected.len() < 1024);
+        }
     }
 }

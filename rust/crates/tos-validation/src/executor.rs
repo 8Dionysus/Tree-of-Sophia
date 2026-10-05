@@ -1381,6 +1381,7 @@ pub struct SharedSchemaWorkerQuotaUsage {
 
 struct SharedSchemaWorkerQuotaState {
     usage: SharedSchemaWorkerQuotaUsage,
+    refusal: Option<ExchangeFailureContext>,
     next_token: u64,
     in_flight: Option<u64>,
     poisoned: bool,
@@ -1414,6 +1415,7 @@ impl SharedSchemaWorkerQuota {
                     worker_wire_bytes: 0,
                     worker_units: 0,
                 },
+                refusal: None,
                 next_token: 1,
                 in_flight: None,
                 poisoned: false,
@@ -1432,6 +1434,18 @@ impl SharedSchemaWorkerQuota {
             return Err(ExecutorFailure::ResourceLimitUnknown);
         }
         Ok(state.usage)
+    }
+
+    /// Only already committed terminal exchanges. A poisoned quota does not
+    /// make a failed/in-flight exchange part of this prefix.
+    pub(crate) fn refusal_evidence(
+        &self,
+    ) -> Option<(Option<ExchangeFailureContext>, SharedSchemaWorkerQuotaUsage)> {
+        let state = self.inner.lock().ok()?;
+        if state.in_flight.is_some() {
+            return None;
+        }
+        Some((state.refusal, state.usage))
     }
 
     pub(crate) fn ensure_attachable(&self) -> Result<(), ExecutorFailure> {
@@ -1508,22 +1522,27 @@ impl SharedSchemaWorkerQuota {
             .max_total_units
             .checked_sub(state.usage.worker_units);
         let admission_error = if remaining_units.is_none_or(|remaining| remaining < units) {
-            Some(ExecutorFailure::InputBudget)
+            Some((ExecutorFailure::InputBudget, "shared schema quota units"))
         } else if remaining_cpu_micros.is_none_or(|remaining| remaining == 0)
             || requested_child_cpu_seconds == 0
         {
-            Some(ExecutorFailure::CpuLimit)
+            Some((ExecutorFailure::CpuLimit, "shared schema quota CPU"))
         } else if remaining_wire_bytes.is_none_or(|remaining| {
             request_bytes
                 .checked_add(minimum_response_bytes)
                 .and_then(|bytes| bytes.checked_add(1))
                 .is_none_or(|minimum| minimum > remaining)
         }) {
-            Some(ExecutorFailure::InputBudget)
+            Some((ExecutorFailure::InputBudget, "shared schema quota wire"))
         } else {
             None
         };
-        if let Some(reason) = admission_error {
+        if let Some((reason, boundary)) = admission_error {
+            state.refusal = Some(ExchangeFailureContext {
+                boundary,
+                failure: reason,
+                natural_termination: None,
+            });
             state.poisoned = true;
             return Err(reason);
         }
@@ -2826,6 +2845,15 @@ impl VerifiedWorkerImage {
 pub(crate) struct PreparedSchemaWorker;
 #[cfg(not(all(target_os = "linux", target_pointer_width = "64")))]
 impl PreparedSchemaWorker {
+    pub(crate) fn diagnostic_schema_set_digest(
+        &self,
+        _: &str,
+    ) -> Result<Digest256, ExecutorFailure> {
+        Err(ExecutorFailure::UnsupportedHost)
+    }
+    pub(crate) fn diagnostic_resource_metadata_state_bytes(&self) -> Option<usize> {
+        None
+    }
     pub(crate) fn exchange_failure(&self) -> Option<ExchangeFailureContext> {
         None
     }
@@ -3261,6 +3289,7 @@ mod native {
         encoded_resources: Vec<u8>,
         schema_set_sha256: Digest256,
         profile: FormatProfile,
+        diagnostic_resource_plans: Vec<(String, std::ops::Range<usize>, Digest256, Vec<usize>)>,
     }
 
     fn scalar_budget(budget: ExecutorBudget) -> Result<(), ExecutorFailure> {
@@ -3420,6 +3449,20 @@ mod native {
             self.poison_shared_schema_worker_quota();
             self.poisoned = Some(reason);
             reason
+        }
+        fn poison_at(
+            &mut self,
+            reason: ExecutorFailure,
+            boundary: &'static str,
+        ) -> ExecutorFailure {
+            if self.poison_exchange.is_none() {
+                self.poison_exchange = Some(ExchangeFailureContext {
+                    boundary,
+                    failure: reason,
+                    natural_termination: None,
+                });
+            }
+            self.poison(reason)
         }
         fn finish_session_inner(
             &mut self,
@@ -3962,13 +4005,19 @@ mod native {
                 .min(self.operation_budget.batch.total_execution_wall)
                 .min(operation_deadline.saturating_duration_since(start));
             if budget.execution_wall.is_zero() {
-                return Err(self.poison(ExecutorFailure::Timeout));
+                return Err(self.poison_at(
+                    ExecutorFailure::Timeout,
+                    concat!(module_path!(), ":", line!()),
+                ));
             }
             if self
                 .selected_profile
                 .is_some_and(|selected| selected != profile)
             {
-                return Err(self.poison(ExecutorFailure::Protocol));
+                return Err(self.poison_at(
+                    ExecutorFailure::Protocol,
+                    concat!(module_path!(), ":", line!()),
+                ));
             }
             if let Err(reason) = self.finish_session(operation_deadline, cancelled) {
                 return Err(reason);
@@ -3987,7 +4036,10 @@ mod native {
                     DiagnosticsUnitInputMode::LegacyPythonObservedSelected
                 }
                 DiagnosticsInputProfile::MixedSourceFoundation => {
-                    return Err(self.poison(ExecutorFailure::InputBudget));
+                    return Err(self.poison_at(
+                        ExecutorFailure::InputBudget,
+                        concat!(module_path!(), ":", line!()),
+                    ));
                 }
             };
             let selected_legacy =
@@ -3996,12 +4048,20 @@ mod native {
                 || selected_legacy != selected_resource_preparation_state_bytes.is_some()
                 || (selected_legacy && profile != FormatProfile::LegacyPythonObserved20260923)
             {
-                return Err(self.poison(ExecutorFailure::InputBudget));
+                return Err(self.poison_at(
+                    ExecutorFailure::InputBudget,
+                    concat!(module_path!(), ":", line!()),
+                ));
             }
             if let Some(limits) = selected_limits {
-                limits.validate().map_err(|reason| self.poison(reason))?;
+                limits.validate().map_err(|reason| {
+                    self.poison_at(reason, concat!(module_path!(), ":", line!()))
+                })?;
                 if raw_instance.len() > limits.max_instance_bytes {
-                    return Err(self.poison(ExecutorFailure::InputBudget));
+                    return Err(self.poison_at(
+                        ExecutorFailure::InputBudget,
+                        concat!(module_path!(), ":", line!()),
+                    ));
                 }
             }
             validate_diagnostics_batch_unit_fields(
@@ -4011,7 +4071,7 @@ mod native {
                 raw_instance.len(),
                 input_mode,
             )
-            .map_err(|reason| self.poison(reason))?;
+            .map_err(|reason| self.poison_at(reason, concat!(module_path!(), ":", line!())))?;
 
             // Admit the borrowed source slice against every raw/frame ceiling
             // before making the BatchUnit-owned copy. This also keeps callers
@@ -4030,30 +4090,57 @@ mod native {
                     | DiagnosticsUnitInputMode::FiniteJsonSelected => MAX_BATCH_RAW_BYTES,
                     DiagnosticsUnitInputMode::LegacyPythonObservedSelected => {
                         selected_limits
-                            .ok_or_else(|| self.poison(ExecutorFailure::InputBudget))?
+                            .ok_or_else(|| {
+                                self.poison_at(
+                                    ExecutorFailure::InputBudget,
+                                    concat!(module_path!(), ":", line!()),
+                                )
+                            })?
                             .max_instance_bytes
                     }
                 });
             if raw_instance.len() > batch_raw_limit {
-                return Err(self.poison(ExecutorFailure::InputBudget));
+                return Err(self.poison_at(
+                    ExecutorFailure::InputBudget,
+                    concat!(module_path!(), ":", line!()),
+                ));
             }
-            let raw_instance_bytes = u64::try_from(raw_instance.len())
-                .map_err(|_| self.poison(ExecutorFailure::InputBudget))?;
+            let raw_instance_bytes = u64::try_from(raw_instance.len()).map_err(|_| {
+                self.poison_at(
+                    ExecutorFailure::InputBudget,
+                    concat!(module_path!(), ":", line!()),
+                )
+            })?;
             let next_frames = self
                 .used_frames
                 .checked_add(1)
                 .filter(|count| *count <= self.operation_budget.max_chunks)
-                .ok_or_else(|| self.poison(ExecutorFailure::InputBudget))?;
+                .ok_or_else(|| {
+                    self.poison_at(
+                        ExecutorFailure::InputBudget,
+                        concat!(module_path!(), ":", line!()),
+                    )
+                })?;
             let next_units = self
                 .used_units
                 .checked_add(1)
                 .filter(|count| *count <= self.operation_budget.max_total_units)
-                .ok_or_else(|| self.poison(ExecutorFailure::InputBudget))?;
+                .ok_or_else(|| {
+                    self.poison_at(
+                        ExecutorFailure::InputBudget,
+                        concat!(module_path!(), ":", line!()),
+                    )
+                })?;
             let next_raw = self
                 .used_raw
                 .checked_add(raw_instance_bytes)
                 .filter(|count| *count <= self.operation_budget.max_total_raw_bytes)
-                .ok_or_else(|| self.poison(ExecutorFailure::InputBudget))?;
+                .ok_or_else(|| {
+                    self.poison_at(
+                        ExecutorFailure::InputBudget,
+                        concat!(module_path!(), ":", line!()),
+                    )
+                })?;
             let schema_key = schema_set_sha256.to_hex();
             let is_new_selector = !self
                 .selectors
@@ -4062,7 +4149,10 @@ mod native {
             if is_new_selector
                 && self.selectors.len() >= self.operation_budget.max_distinct_selectors
             {
-                return Err(self.poison(ExecutorFailure::InputBudget));
+                return Err(self.poison_at(
+                    ExecutorFailure::InputBudget,
+                    concat!(module_path!(), ":", line!()),
+                ));
             }
             let projected_request_bytes = diagnostics_scalar_request_frame_bytes(
                 encoded_resources.len(),
@@ -4073,7 +4163,12 @@ mod native {
                 raw_instance.len(),
             )
             .filter(|bytes| *bytes <= MAX_DIAGNOSTIC_REQUEST_BYTES)
-            .ok_or_else(|| self.poison(ExecutorFailure::InputBudget))?;
+            .ok_or_else(|| {
+                self.poison_at(
+                    ExecutorFailure::InputBudget,
+                    concat!(module_path!(), ":", line!()),
+                )
+            })?;
             if let (Some(limits), Some(resource_state_bytes)) =
                 (selected_limits, selected_resource_preparation_state_bytes)
             {
@@ -4082,7 +4177,12 @@ mod native {
                         schema_diagnostics::Caps::CURRENT.max_report_bytes_per_unit as usize,
                     )
                     .and_then(|bytes| bytes.checked_add(DIAGNOSTIC_FINAL_BYTES))
-                    .ok_or_else(|| self.poison(ExecutorFailure::InputBudget))?;
+                    .ok_or_else(|| {
+                        self.poison_at(
+                            ExecutorFailure::InputBudget,
+                            concat!(module_path!(), ":", line!()),
+                        )
+                    })?;
                 let required = legacy_selected_child_address_space_required(
                     resource_state_bytes,
                     projected_request_bytes,
@@ -4091,28 +4191,43 @@ mod native {
                     location.len(),
                     root_uri.len(),
                     raw_instance.len(),
-                    self.image_bytes().map_err(|reason| self.poison(reason))?,
+                    self.image_bytes().map_err(|reason| {
+                        self.poison_at(reason, concat!(module_path!(), ":", line!()))
+                    })?,
                     limits,
                 )
-                .map_err(|reason| self.poison(reason))?;
+                .map_err(|reason| self.poison_at(reason, concat!(module_path!(), ":", line!())))?;
                 let effective_child_limit = budget
                     .address_space_bytes
                     .min(self.operation_budget.batch.address_space_bytes)
                     .min(self.operation_budget.operation_address_space_bytes);
                 if required > effective_child_limit {
-                    return Err(self.poison(ExecutorFailure::InputBudget));
+                    return Err(self.poison_at(
+                        ExecutorFailure::InputBudget,
+                        concat!(module_path!(), ":", line!()),
+                    ));
                 }
             }
             let minimum_response_bytes = DIAGNOSTIC_ACK_BYTES
                 .checked_add(DIAGNOSTIC_UNIT_HEADER_BYTES)
                 .and_then(|bytes| bytes.checked_add(DIAGNOSTIC_FINAL_BYTES))
-                .ok_or_else(|| self.poison(ExecutorFailure::InputBudget))?;
+                .ok_or_else(|| {
+                    self.poison_at(
+                        ExecutorFailure::InputBudget,
+                        concat!(module_path!(), ":", line!()),
+                    )
+                })?;
             let local_remaining_wire = self
                 .operation_budget
                 .max_total_wire_bytes
                 .checked_sub(self.used_wire)
                 .filter(|remaining| *remaining != u64::MAX)
-                .ok_or_else(|| self.poison(ExecutorFailure::InputBudget))?;
+                .ok_or_else(|| {
+                    self.poison_at(
+                        ExecutorFailure::InputBudget,
+                        concat!(module_path!(), ":", line!()),
+                    )
+                })?;
             let minimum_exchange_wire = u64::try_from(projected_request_bytes)
                 .ok()
                 .and_then(|request| {
@@ -4121,32 +4236,51 @@ mod native {
                         .and_then(|response| request.checked_add(response))
                 })
                 .and_then(|bytes| bytes.checked_add(1)) // bounded-reader sentinel
-                .ok_or_else(|| self.poison(ExecutorFailure::InputBudget))?;
+                .ok_or_else(|| {
+                    self.poison_at(
+                        ExecutorFailure::InputBudget,
+                        concat!(module_path!(), ":", line!()),
+                    )
+                })?;
             if minimum_exchange_wire > local_remaining_wire {
-                return Err(self.poison(ExecutorFailure::InputBudget));
+                return Err(self.poison_at(
+                    ExecutorFailure::InputBudget,
+                    concat!(module_path!(), ":", line!()),
+                ));
             }
             if let Some(quota) = &self.shared_schema_worker_quota {
-                let usage = quota.usage().map_err(|reason| self.poison(reason))?;
+                let usage = quota.usage().map_err(|reason| {
+                    self.poison_at(reason, concat!(module_path!(), ":", line!()))
+                })?;
                 if usage
                     .max_total_units
                     .checked_sub(usage.worker_units)
                     .is_none_or(|remaining| remaining == 0)
                 {
-                    return Err(self.poison(ExecutorFailure::InputBudget));
+                    return Err(self.poison_at(
+                        ExecutorFailure::InputBudget,
+                        concat!(module_path!(), ":", line!()),
+                    ));
                 }
                 if usage
                     .max_total_cpu_micros
                     .checked_sub(usage.worker_cpu_micros)
                     .is_none_or(|remaining| remaining == 0)
                 {
-                    return Err(self.poison(ExecutorFailure::CpuLimit));
+                    return Err(self.poison_at(
+                        ExecutorFailure::CpuLimit,
+                        concat!(module_path!(), ":", line!()),
+                    ));
                 }
                 if usage
                     .max_total_wire_bytes
                     .checked_sub(usage.worker_wire_bytes)
                     .is_none_or(|remaining| minimum_exchange_wire > remaining)
                 {
-                    return Err(self.poison(ExecutorFailure::InputBudget));
+                    return Err(self.poison_at(
+                        ExecutorFailure::InputBudget,
+                        concat!(module_path!(), ":", line!()),
+                    ));
                 }
             }
 
@@ -4158,7 +4292,7 @@ mod native {
                 raw_instance: raw_instance.to_vec(),
             };
             validate_diagnostics_batch_unit(&unit, input_mode)
-                .map_err(|reason| self.poison(reason))?;
+                .map_err(|reason| self.poison_at(reason, concat!(module_path!(), ":", line!())))?;
             let input_instance_buffer_bytes = unit.raw_instance.capacity();
             let mut batch = self.operation_budget.batch;
             batch.max_units = 1;
@@ -4174,23 +4308,42 @@ mod native {
                 .operation_budget
                 .operation_cpu_seconds
                 .checked_mul(1_000_000)
-                .ok_or_else(|| self.poison(ExecutorFailure::ResourceLimitUnknown))?;
+                .ok_or_else(|| {
+                    self.poison_at(
+                        ExecutorFailure::ResourceLimitUnknown,
+                        concat!(module_path!(), ":", line!()),
+                    )
+                })?;
             let remaining_cpu_micros = local_cpu_limit_micros
                 .checked_sub(self.used_cpu_micros)
-                .ok_or_else(|| self.poison(ExecutorFailure::CpuLimit))?;
+                .ok_or_else(|| {
+                    self.poison_at(
+                        ExecutorFailure::CpuLimit,
+                        concat!(module_path!(), ":", line!()),
+                    )
+                })?;
             if remaining_cpu_micros == 0 {
-                return Err(self.poison(ExecutorFailure::CpuLimit));
+                return Err(self.poison_at(
+                    ExecutorFailure::CpuLimit,
+                    concat!(module_path!(), ":", line!()),
+                ));
             }
             let remaining_cpu_seconds = remaining_cpu_micros.div_ceil(1_000_000).max(1);
             batch.cpu_seconds = budget.cpu_seconds.min(remaining_cpu_seconds);
             let shared_quota = self.shared_schema_worker_quota.clone();
             if let Some(quota) = &shared_quota {
-                batch.cpu_seconds = quota
-                    .child_cpu_seconds(batch.cpu_seconds)
-                    .map_err(|reason| self.poison(reason))?;
+                batch.cpu_seconds =
+                    quota
+                        .child_cpu_seconds(batch.cpu_seconds)
+                        .map_err(|reason| {
+                            self.poison_at(reason, concat!(module_path!(), ":", line!()))
+                        })?;
             }
             if batch.cpu_seconds == 0 {
-                return Err(self.poison(ExecutorFailure::CpuLimit));
+                return Err(self.poison_at(
+                    ExecutorFailure::CpuLimit,
+                    concat!(module_path!(), ":", line!()),
+                ));
             }
             let expected = if let Some(limits) = selected_limits {
                 BatchCoverageExpectation::from_selected_legacy_diagnostics_units(
@@ -4225,32 +4378,61 @@ mod native {
                 || expected.count != 1
                 || expected.ordered_manifest_sha256 != prepared.ordered_manifest_sha256
             {
-                return Err(self.poison(ExecutorFailure::CoverageMismatch));
+                return Err(self.poison_at(
+                    ExecutorFailure::CoverageMismatch,
+                    concat!(module_path!(), ":", line!()),
+                ));
             }
             self.preflight(operation_deadline, cancelled)?;
 
             if prepared.frame.len() != projected_request_bytes {
-                return Err(self.poison(ExecutorFailure::Protocol));
+                return Err(self.poison_at(
+                    ExecutorFailure::Protocol,
+                    concat!(module_path!(), ":", line!()),
+                ));
             }
             let selector = (schema_key, root_uri.to_owned());
             let response_limit = DIAGNOSTIC_ACK_BYTES
                 .checked_add(schema_diagnostics::Caps::CURRENT.max_report_bytes_per_unit as usize)
                 .and_then(|bytes| bytes.checked_add(DIAGNOSTIC_FINAL_BYTES))
                 .filter(|bytes| *bytes <= schema_diagnostics::MAX_RESPONSE_BYTES)
-                .ok_or_else(|| self.poison(ExecutorFailure::InputBudget))?;
+                .ok_or_else(|| {
+                    self.poison_at(
+                        ExecutorFailure::InputBudget,
+                        concat!(module_path!(), ":", line!()),
+                    )
+                })?;
             let request_bytes = prepared.frame.len();
-            let minimum_response = diagnostics_minimum_response_bytes(&prepared)
-                .ok_or_else(|| self.poison(ExecutorFailure::InputBudget))?;
+            let minimum_response =
+                diagnostics_minimum_response_bytes(&prepared).ok_or_else(|| {
+                    self.poison_at(
+                        ExecutorFailure::InputBudget,
+                        concat!(module_path!(), ":", line!()),
+                    )
+                })?;
             let local_remaining_wire = self
                 .operation_budget
                 .max_total_wire_bytes
                 .checked_sub(self.used_wire)
-                .ok_or_else(|| self.poison(ExecutorFailure::InputBudget))?;
+                .ok_or_else(|| {
+                    self.poison_at(
+                        ExecutorFailure::InputBudget,
+                        concat!(module_path!(), ":", line!()),
+                    )
+                })?;
             let local_response_cap =
                 diagnostics_response_cap_with_wire_budget(&prepared, local_remaining_wire)
-                    .ok_or_else(|| self.poison(ExecutorFailure::InputBudget))?;
+                    .ok_or_else(|| {
+                        self.poison_at(
+                            ExecutorFailure::InputBudget,
+                            concat!(module_path!(), ":", line!()),
+                        )
+                    })?;
             if local_response_cap > response_limit || local_response_cap < minimum_response {
-                return Err(self.poison(ExecutorFailure::InputBudget));
+                return Err(self.poison_at(
+                    ExecutorFailure::InputBudget,
+                    concat!(module_path!(), ":", line!()),
+                ));
             }
             let shared_reservation = if let Some(quota) = shared_quota {
                 let reservation = quota
@@ -4261,10 +4443,15 @@ mod native {
                         batch.cpu_seconds,
                         1,
                     )
-                    .map_err(|reason| self.poison(reason))?;
+                    .map_err(|reason| {
+                        self.poison_at(reason, concat!(module_path!(), ":", line!()))
+                    })?;
                 if reservation.child_cpu_seconds() != batch.cpu_seconds {
                     drop(reservation);
-                    return Err(self.poison(ExecutorFailure::ResourceLimitUnknown));
+                    return Err(self.poison_at(
+                        ExecutorFailure::ResourceLimitUnknown,
+                        concat!(module_path!(), ":", line!()),
+                    ));
                 }
                 Some(reservation)
             } else {
@@ -4276,17 +4463,30 @@ mod native {
             );
             if response_cap < minimum_response || response_cap > local_response_cap {
                 drop(shared_reservation);
-                return Err(self.poison(ExecutorFailure::InputBudget));
+                return Err(self.poison_at(
+                    ExecutorFailure::InputBudget,
+                    concat!(module_path!(), ":", line!()),
+                ));
             }
             let reserved_wire = request_bytes
                 .checked_add(response_cap)
                 .and_then(|bytes| u64::try_from(bytes).ok())
-                .ok_or_else(|| self.poison(ExecutorFailure::InputBudget))?;
+                .ok_or_else(|| {
+                    self.poison_at(
+                        ExecutorFailure::InputBudget,
+                        concat!(module_path!(), ":", line!()),
+                    )
+                })?;
             let next_wire = self
                 .used_wire
                 .checked_add(reserved_wire)
                 .filter(|count| *count <= self.operation_budget.max_total_wire_bytes)
-                .ok_or_else(|| self.poison(ExecutorFailure::InputBudget))?;
+                .ok_or_else(|| {
+                    self.poison_at(
+                        ExecutorFailure::InputBudget,
+                        concat!(module_path!(), ":", line!()),
+                    )
+                })?;
 
             self.selected_profile = Some(profile);
             self.selectors.insert(selector);
@@ -4314,36 +4514,68 @@ mod native {
             cost.input_instance_buffer_bytes = input_instance_buffer_bytes;
             if let SchemaDiagnosticsOutcome::Complete { .. } = &outcome {
                 let Some(cpu_micros) = cost.worker_cpu_micros else {
-                    return Err(self.poison(ExecutorFailure::ResourceLimitUnknown));
+                    return Err(self.poison_at(
+                        ExecutorFailure::ResourceLimitUnknown,
+                        concat!(module_path!(), ":", line!()),
+                    ));
                 };
                 if cost.request_bytes != request_bytes
                     || cost.response_bytes < minimum_response
                     || cost.response_bytes > response_cap
                 {
-                    return Err(self.poison(ExecutorFailure::Protocol));
+                    return Err(self.poison_at(
+                        ExecutorFailure::Protocol,
+                        concat!(module_path!(), ":", line!()),
+                    ));
                 }
-                self.used_cpu_micros = self
-                    .used_cpu_micros
-                    .checked_add(cpu_micros)
-                    .ok_or_else(|| self.poison(ExecutorFailure::ResourceLimitUnknown))?;
+                self.used_cpu_micros =
+                    self.used_cpu_micros
+                        .checked_add(cpu_micros)
+                        .ok_or_else(|| {
+                            self.poison_at(
+                                ExecutorFailure::ResourceLimitUnknown,
+                                concat!(module_path!(), ":", line!()),
+                            )
+                        })?;
                 let operation_cpu_micros = self
                     .operation_budget
                     .operation_cpu_seconds
                     .checked_mul(1_000_000)
-                    .ok_or_else(|| self.poison(ExecutorFailure::ResourceLimitUnknown))?;
+                    .ok_or_else(|| {
+                        self.poison_at(
+                            ExecutorFailure::ResourceLimitUnknown,
+                            concat!(module_path!(), ":", line!()),
+                        )
+                    })?;
                 if self.used_cpu_micros > operation_cpu_micros {
-                    return Err(self.poison(ExecutorFailure::CpuLimit));
+                    return Err(self.poison_at(
+                        ExecutorFailure::CpuLimit,
+                        concat!(module_path!(), ":", line!()),
+                    ));
                 }
-                let actual_response = u64::try_from(cost.response_bytes)
-                    .map_err(|_| self.poison(ExecutorFailure::InputBudget))?;
-                let reserved_response = u64::try_from(response_cap)
-                    .map_err(|_| self.poison(ExecutorFailure::InputBudget))?;
+                let actual_response = u64::try_from(cost.response_bytes).map_err(|_| {
+                    self.poison_at(
+                        ExecutorFailure::InputBudget,
+                        concat!(module_path!(), ":", line!()),
+                    )
+                })?;
+                let reserved_response = u64::try_from(response_cap).map_err(|_| {
+                    self.poison_at(
+                        ExecutorFailure::InputBudget,
+                        concat!(module_path!(), ":", line!()),
+                    )
+                })?;
                 self.used_wire = self
                     .used_wire
                     .checked_sub(reserved_response)
                     .and_then(|used| used.checked_add(actual_response))
                     .filter(|used| *used <= self.operation_budget.max_total_wire_bytes)
-                    .ok_or_else(|| self.poison(ExecutorFailure::InputBudget))?;
+                    .ok_or_else(|| {
+                        self.poison_at(
+                            ExecutorFailure::InputBudget,
+                            concat!(module_path!(), ":", line!()),
+                        )
+                    })?;
                 if let Err(reason) = self.preflight(operation_deadline, cancelled) {
                     return Err(reason);
                 }
@@ -4356,7 +4588,7 @@ mod native {
                     .operation_budget
                     .operation_cpu_seconds
                     .saturating_mul(1_000_000);
-                self.poison(reason);
+                self.poison_at(reason, concat!(module_path!(), ":", line!()));
             }
             if matches!(&outcome, SchemaDiagnosticsOutcome::Complete { .. }) {
                 if let Some(reservation) = shared_reservation {
@@ -4569,6 +4801,29 @@ mod native {
                 .min(operation_deadline);
             preparation_check(Some(deadline), Some(cancelled))?;
             let (encoded_resources, schema_set_sha256) = encode_resources(resources)?;
+            let dependencies =
+                crate::source_foundation_schema::source_foundation_schema_resource_dependencies(
+                    resources, deadline, cancelled,
+                )?;
+            let mut diagnostic_resource_plans = Vec::with_capacity(resources.len());
+            let mut offset = 4usize;
+            for (resource, dependencies) in resources.iter().zip(dependencies) {
+                let end = offset
+                    .checked_add(8)
+                    .and_then(|bytes| bytes.checked_add(resource.uri.len()))
+                    .and_then(|bytes| bytes.checked_add(resource.raw.len()))
+                    .ok_or(ExecutorFailure::InputBudget)?;
+                diagnostic_resource_plans.push((
+                    resource.uri.clone(),
+                    offset..end,
+                    Digest256::of_bytes(&resource.raw),
+                    dependencies,
+                ));
+                offset = end;
+            }
+            if offset != encoded_resources.len() {
+                return Err(ExecutorFailure::Protocol);
+            }
             preparation_check(Some(deadline), Some(cancelled))?;
             let remaining = ExecutorBudget {
                 execution_wall: deadline.saturating_duration_since(Instant::now()),
@@ -4591,7 +4846,86 @@ mod native {
                 encoded_resources,
                 schema_set_sha256,
                 profile,
+                diagnostic_resource_plans,
             })
+        }
+
+        pub(crate) fn diagnostic_schema_set_digest(
+            &self,
+            root_uri: &str,
+        ) -> Result<Digest256, ExecutorFailure> {
+            let base = root_uri.split_once('#').map_or(root_uri, |(base, _)| base);
+            let root = self
+                .diagnostic_resource_plans
+                .iter()
+                .find(|plan| plan.0 == base)
+                .ok_or(ExecutorFailure::InputBudget)?;
+            let mut selected = std::collections::BTreeMap::new();
+            for &index in &root.3 {
+                let plan = self
+                    .diagnostic_resource_plans
+                    .get(index)
+                    .ok_or(ExecutorFailure::Protocol)?;
+                selected.insert(plan.0.as_str(), plan.2);
+            }
+            let mut hash = Digest256Hasher::new();
+            hash.update(b"tos-schema-set-v1\0");
+            for (uri, digest) in selected {
+                hash.update(&(uri.len() as u64).to_be_bytes());
+                hash.update(uri.as_bytes());
+                hash.update(digest.as_bytes());
+            }
+            Ok(hash.finalize())
+        }
+
+        fn diagnostic_resource_bytes(&self, root_uri: &str) -> Result<Vec<u8>, ExecutorFailure> {
+            let base = root_uri.split_once('#').map_or(root_uri, |(base, _)| base);
+            let root = self
+                .diagnostic_resource_plans
+                .iter()
+                .find(|plan| plan.0 == base)
+                .ok_or(ExecutorFailure::InputBudget)?;
+            let size = root
+                .3
+                .iter()
+                .try_fold(4usize, |total, &index| {
+                    total.checked_add(self.diagnostic_resource_plans.get(index)?.1.len())
+                })
+                .ok_or(ExecutorFailure::InputBudget)?;
+            let mut encoded = Vec::new();
+            encoded
+                .try_reserve_exact(size)
+                .map_err(|_| ExecutorFailure::InputBudget)?;
+            encoded.extend_from_slice(&(root.3.len() as u32).to_be_bytes());
+            for &index in &root.3 {
+                encoded.extend_from_slice(
+                    self.encoded_resources
+                        .get(self.diagnostic_resource_plans[index].1.clone())
+                        .ok_or(ExecutorFailure::Protocol)?,
+                );
+            }
+            Ok(encoded)
+        }
+
+        pub(crate) fn diagnostic_resource_metadata_state_bytes(&self) -> Option<usize> {
+            let slots =
+                self.diagnostic_resource_plans
+                    .capacity()
+                    .checked_mul(std::mem::size_of::<(
+                        String,
+                        std::ops::Range<usize>,
+                        Digest256,
+                        Vec<usize>,
+                    )>())?;
+            self.diagnostic_resource_plans
+                .iter()
+                .try_fold(slots, |total, plan| {
+                    total.checked_add(plan.0.capacity())?.checked_add(
+                        plan.3
+                            .capacity()
+                            .checked_mul(std::mem::size_of::<usize>())?,
+                    )
+                })
         }
 
         pub(crate) fn set_operation_budget(
@@ -4714,10 +5048,20 @@ mod native {
             cancelled: &AtomicBool,
         ) -> Result<(SchemaDiagnosticsOutcome, SchemaDiagnosticsExecutionCost), ExecutorFailure>
         {
-            self.image.evaluate_with_diagnostics_encoded(
-                &self.encoded_resources,
-                self.encoded_resources.capacity(),
-                self.schema_set_sha256,
+            let encoded = self.diagnostic_resource_bytes(root_uri)?;
+            let execution_digest = self.diagnostic_schema_set_digest(root_uri)?;
+            let retained_resources = self
+                .encoded_resources
+                .capacity()
+                .checked_add(
+                    self.diagnostic_resource_metadata_state_bytes()
+                        .ok_or(ExecutorFailure::InputBudget)?,
+                )
+                .ok_or(ExecutorFailure::InputBudget)?;
+            let (outcome, mut cost) = self.image.evaluate_with_diagnostics_encoded(
+                &encoded,
+                retained_resources,
+                execution_digest,
                 self.profile,
                 DiagnosticsInputProfile::FiniteJson,
                 None,
@@ -4730,7 +5074,14 @@ mod native {
                 deadline,
                 Instant::now(),
                 cancelled,
-            )
+            )?;
+            // The selected encoding exists only during this exchange; the
+            // complete authenticated catalog and dependency index remain owned.
+            cost.request_buffer_bytes = cost
+                .request_buffer_bytes
+                .checked_add(encoded.capacity())
+                .ok_or(ExecutorFailure::InputBudget)?;
+            Ok((outcome, cost))
         }
 
         pub(crate) fn evaluate_with_legacy_diagnostics(
@@ -4747,10 +5098,20 @@ mod native {
             if self.profile != FormatProfile::LegacyPythonObserved20260923 {
                 return Err(ExecutorFailure::InputBudget);
             }
-            self.image.evaluate_with_diagnostics_encoded(
-                &self.encoded_resources,
-                self.encoded_resources.capacity(),
-                self.schema_set_sha256,
+            let encoded = self.diagnostic_resource_bytes(root_uri)?;
+            let execution_digest = self.diagnostic_schema_set_digest(root_uri)?;
+            let retained_resources = self
+                .encoded_resources
+                .capacity()
+                .checked_add(
+                    self.diagnostic_resource_metadata_state_bytes()
+                        .ok_or(ExecutorFailure::InputBudget)?,
+                )
+                .ok_or(ExecutorFailure::InputBudget)?;
+            let (outcome, mut cost) = self.image.evaluate_with_diagnostics_encoded(
+                &encoded,
+                retained_resources,
+                execution_digest,
                 self.profile,
                 DiagnosticsInputProfile::LegacyPythonObserved,
                 None,
@@ -4763,7 +5124,14 @@ mod native {
                 deadline,
                 Instant::now(),
                 cancelled,
-            )
+            )?;
+            // The selected encoding exists only during this exchange; the
+            // complete authenticated catalog and dependency index remain owned.
+            cost.request_buffer_bytes = cost
+                .request_buffer_bytes
+                .checked_add(encoded.capacity())
+                .ok_or(ExecutorFailure::InputBudget)?;
+            Ok((outcome, cost))
         }
 
         pub(crate) fn evaluate_with_selected_finite_diagnostics(
@@ -4777,10 +5145,20 @@ mod native {
             cancelled: &AtomicBool,
         ) -> Result<(SchemaDiagnosticsOutcome, SchemaDiagnosticsExecutionCost), ExecutorFailure>
         {
-            self.image.evaluate_with_diagnostics_encoded(
-                &self.encoded_resources,
-                self.encoded_resources.capacity(),
-                self.schema_set_sha256,
+            let encoded = self.diagnostic_resource_bytes(root_uri)?;
+            let execution_digest = self.diagnostic_schema_set_digest(root_uri)?;
+            let retained_resources = self
+                .encoded_resources
+                .capacity()
+                .checked_add(
+                    self.diagnostic_resource_metadata_state_bytes()
+                        .ok_or(ExecutorFailure::InputBudget)?,
+                )
+                .ok_or(ExecutorFailure::InputBudget)?;
+            let (outcome, mut cost) = self.image.evaluate_with_diagnostics_encoded(
+                &encoded,
+                retained_resources,
+                execution_digest,
                 self.profile,
                 DiagnosticsInputProfile::FiniteJsonSelected,
                 None,
@@ -4793,7 +5171,14 @@ mod native {
                 deadline,
                 Instant::now(),
                 cancelled,
-            )
+            )?;
+            // The selected encoding exists only during this exchange; the
+            // complete authenticated catalog and dependency index remain owned.
+            cost.request_buffer_bytes = cost
+                .request_buffer_bytes
+                .checked_add(encoded.capacity())
+                .ok_or(ExecutorFailure::InputBudget)?;
+            Ok((outcome, cost))
         }
 
         pub(crate) fn evaluate_with_selected_legacy_diagnostics(
@@ -4812,10 +5197,20 @@ mod native {
             if self.profile != FormatProfile::LegacyPythonObserved20260923 {
                 return Err(ExecutorFailure::InputBudget);
             }
-            self.image.evaluate_with_diagnostics_encoded(
-                &self.encoded_resources,
-                self.encoded_resources.capacity(),
-                self.schema_set_sha256,
+            let encoded = self.diagnostic_resource_bytes(root_uri)?;
+            let execution_digest = self.diagnostic_schema_set_digest(root_uri)?;
+            let retained_resources = self
+                .encoded_resources
+                .capacity()
+                .checked_add(
+                    self.diagnostic_resource_metadata_state_bytes()
+                        .ok_or(ExecutorFailure::InputBudget)?,
+                )
+                .ok_or(ExecutorFailure::InputBudget)?;
+            let (outcome, mut cost) = self.image.evaluate_with_diagnostics_encoded(
+                &encoded,
+                retained_resources,
+                execution_digest,
                 self.profile,
                 DiagnosticsInputProfile::LegacyPythonObservedSelected,
                 Some(selected_limits),
@@ -4828,7 +5223,14 @@ mod native {
                 deadline,
                 Instant::now(),
                 cancelled,
-            )
+            )?;
+            // The selected encoding exists only during this exchange; the
+            // complete authenticated catalog and dependency index remain owned.
+            cost.request_buffer_bytes = cost
+                .request_buffer_bytes
+                .checked_add(encoded.capacity())
+                .ok_or(ExecutorFailure::InputBudget)?;
+            Ok((outcome, cost))
         }
 
         /// Allocation-free upper bound for one diagnostics-v2 request frame

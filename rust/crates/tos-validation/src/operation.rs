@@ -542,7 +542,7 @@ fn worker_matches<S: CutSchemaReceiptRange>(
 }
 
 fn item_error(error: ItemRefusal) -> OperationRefusal {
-    match error {
+    match error.compatibility_category() {
         ItemRefusal::Budget => OperationRefusal::Budget,
         ItemRefusal::BudgetCheck { check, used, limit } => {
             OperationRefusal::BudgetCheck { check, used, limit }
@@ -550,6 +550,7 @@ fn item_error(error: ItemRefusal) -> OperationRefusal {
         ItemRefusal::Deadline => OperationRefusal::Deadline,
         ItemRefusal::Source(reason) => OperationRefusal::Source(reason),
         ItemRefusal::Unsupported(reason) => OperationRefusal::Unsupported(reason),
+        ItemRefusal::Executor(evidence) => OperationRefusal::Unsupported(evidence.summary()),
     }
 }
 
