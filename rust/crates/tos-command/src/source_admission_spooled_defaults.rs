@@ -182,11 +182,14 @@ struct JsonCounter {
 
 impl io::Write for JsonCounter {
     fn write(&mut self, bytes: &[u8]) -> io::Result<usize> {
-        self.bytes = self
+        let next = self
             .bytes
             .checked_add(bytes.len())
-            .filter(|next| *next <= self.limit)
-            .ok_or_else(|| io::Error::other("bounded JSON size exceeded"))?;
+            .ok_or_else(|| io::Error::other("bounded JSON size overflow"))?;
+        self.bytes = next;
+        if next > self.limit {
+            return Err(io::Error::other("bounded JSON size exceeded"));
+        }
         Ok(bytes.len())
     }
 
@@ -197,7 +200,17 @@ impl io::Write for JsonCounter {
 
 fn json_len<T: serde::Serialize + ?Sized>(value: &T, limit: usize) -> Result<usize, ItemRefusal> {
     let mut writer = JsonCounter { bytes: 0, limit };
-    serde_json::to_writer(&mut writer, value).map_err(|_| ItemRefusal::Budget)?;
+    serde_json::to_writer(&mut writer, value).map_err(|_| {
+        if writer.bytes > writer.limit {
+            ItemRefusal::BudgetCheck {
+                check: "candidate default JSON encoded bytes",
+                used: u64::try_from(writer.bytes).ok(),
+                limit: u64::try_from(writer.limit).ok(),
+            }
+        } else {
+            tos_validation::item_budget_origin!()
+        }
+    })?;
     Ok(writer.bytes)
 }
 
@@ -211,7 +224,11 @@ fn encoded_json<T: serde::Serialize + ?Sized>(
         .and_then(|bytes| bytes.checked_add(size_of::<Vec<u8>>() + 1024))
         .ok_or(ItemRefusal::Budget)?;
     if workspace > max_state_bytes {
-        return Err(ItemRefusal::Budget);
+        return Err(ItemRefusal::BudgetCheck {
+            check: "candidate default JSON encoding workspace",
+            used: u64::try_from(workspace).ok(),
+            limit: u64::try_from(max_state_bytes).ok(),
+        });
     }
     let mut bytes = Vec::new();
     bytes
@@ -947,15 +964,36 @@ impl<'candidate, 'host> SpoolDefaultStore<'candidate, 'host> {
         deadline: Instant,
         cancelled: &'a AtomicBool,
     ) -> Result<ProviderContext<'candidate, 'host, 'a>, ItemRefusal> {
-        if operation_state_limit == 0
-            || operation_state_limit > self.limits.max_row_state_bytes
-            || operation_state_limit == usize::MAX
-            || page_budget.max_state_bytes.get() > operation_state_limit
-            || page_budget.max_cursor_bytes.get() > operation_state_limit
-            || page_budget.max_rows.get() == 0
-            || max_scan_rows == 0
-        {
-            return Err(ItemRefusal::Budget);
+        if operation_state_limit == 0 || operation_state_limit == usize::MAX {
+            return Err(tos_validation::item_budget_origin!());
+        }
+        for (check, used, limit) in [
+            (
+                "candidate default operation row state",
+                operation_state_limit,
+                self.limits.max_row_state_bytes,
+            ),
+            (
+                "candidate default page state",
+                page_budget.max_state_bytes.get(),
+                operation_state_limit,
+            ),
+            (
+                "candidate default cursor state",
+                page_budget.max_cursor_bytes.get(),
+                operation_state_limit,
+            ),
+        ] {
+            if used > limit {
+                return Err(ItemRefusal::BudgetCheck {
+                    check,
+                    used: u64::try_from(used).ok(),
+                    limit: u64::try_from(limit).ok(),
+                });
+            }
+        }
+        if page_budget.max_rows.get() == 0 || max_scan_rows == 0 {
+            return Err(tos_validation::item_budget_origin!());
         }
         self.bind_scan_limit(max_scan_rows)?;
         check_candidate(self.candidate, self.fence, deadline, cancelled)?;
@@ -1034,7 +1072,11 @@ impl<'candidate, 'host> SpoolDefaultStore<'candidate, 'host> {
                 .checked_add(stored_limits.page_budget.max_cursor_bytes.get())
                 .ok_or(ItemRefusal::Budget)?;
             if page_bytes > max_operation_state_bytes {
-                return Err(ItemRefusal::Budget);
+                return Err(ItemRefusal::BudgetCheck {
+                    check: "candidate default record page and cursor state",
+                    used: u64::try_from(page_bytes).ok(),
+                    limit: u64::try_from(max_operation_state_bytes).ok(),
+                });
             }
             context.row_state(stored_limits.page_budget.max_state_bytes.get())?;
             let page = records.index().page(
