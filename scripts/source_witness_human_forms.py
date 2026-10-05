@@ -28,6 +28,9 @@ from validate_tree_node_contracts import node_consistency_issues, parse_node_jso
 
 MAX_SET_BYTES = 2_097_152
 MAX_SET_OUTPUT_BYTES = 262_144
+NATIVE_ASSESSED_FORMS_REQUEST_SCHEMA = 'tos_local_assessed_forms_materialization_request_v1'
+NATIVE_ASSESSED_FORMS_RESULT_SCHEMA = 'tos_local_assessed_forms_materialization_result_v1'
+NATIVE_ASSESSED_FORMS_OPERATION = 'materialize_assessed_forms'
 CLAIM_DISPLAY_SCHEMA = 'ToS/contracts/claim-display-fields.schema.json'
 CLAIM_DISPLAY_VERSION = 'tos_claim_display_fields_v1'
 CLAIM_FORM_FIELDS = {
@@ -49,17 +52,22 @@ class AssessedFormSnapshot:
     stable for assembly, as for the underlying source-bound command.
     """
 
-    def __init__(self, owner_config: Path, form_ids: list[str]):
+    def __init__(self, owner_config: Path, form_ids: list[str], *,
+                 native_invocation: Path | None = None):
         if (not isinstance(form_ids, list) or not 1 <= len(form_ids) <= 256
                 or any(not isinstance(value, str) or not re.fullmatch(r'tos\.form\.[a-z0-9]+(?:[.-][a-z0-9]+)*', value)
                        for value in form_ids) or len(set(form_ids)) != len(form_ids)):
             raise ValueError('assessed graph input requires 1..256 distinct form IDs')
         self.owner_config = Path(owner_config)
+        self.native_invocation = (None if native_invocation is None
+                                  else Path(native_invocation))
         self.form_ids = frozenset(form_ids)
         self._snapshot = None
         self._observed = {}
         self._reader = None
         self._reader_selected = False
+        self._native_request = None
+        self._native_result = None
 
     def _bind_request(self, subject, form_ref, source_path, form_path, described):
         from assessment_journal import JournalConflict
@@ -103,8 +111,74 @@ class AssessedFormSnapshot:
         request = self._bind_request(subject, form_ref, source_path, form_path, described)
         return self._remember_reply(subject, form_ref, request, run_public_source_command(self.owner_config, request))
 
+    def _native_materialization_request(self, selections):
+        selected = []
+        for subject, form_ref, source_path, form_path in selections:
+            if (not isinstance(source_path, str) or not source_path
+                    or not isinstance(form_path, str) or not form_path):
+                raise ValueError('native assessed forms require exact source and form paths')
+            selected.append({
+                'form_ref': copy.deepcopy(form_ref),
+                'subject_ref': copy.deepcopy(subject.ref),
+                'source_path': source_path,
+                'form_path': form_path,
+            })
+        return {
+            'schema_version': NATIVE_ASSESSED_FORMS_REQUEST_SCHEMA,
+            'operation': NATIVE_ASSESSED_FORMS_OPERATION,
+            'selections': selected,
+        }
+
+    def _run_native_materialization(self, request):
+        from assessment_journal import JournalConflict
+        import source_commands
+        response = source_commands.run_local_command(
+            self.owner_config, request, native_invocation=self.native_invocation)
+        if (not isinstance(response, dict)
+                or response.get('schema_version') != 'tos_local_native_source_result_v1'
+                or response.get('grants_admission') is not False):
+            raise JournalConflict('native assessed-form owner returned an unexpected result profile')
+        result = response.get('result')
+        expected_count = len(request.get('selections', []))
+        if (not isinstance(result, dict)
+                or result.get('schema_version') != NATIVE_ASSESSED_FORMS_RESULT_SCHEMA
+                or not isinstance(result.get('owner_snapshot'), str)
+                or not re.fullmatch(r'sha256:[a-f0-9]{64}', result['owner_snapshot'])
+                or not isinstance(result.get('replies'), list)
+                or len(result['replies']) != expected_count):
+            raise JournalConflict('native assessed-form owner returned an incomplete result')
+        for reply in result['replies']:
+            if (not isinstance(reply, dict)
+                    or reply.get('schema_version') != 'tos_local_assessment_result_v1'
+                    or reply.get('owner_snapshot') != result['owner_snapshot']
+                    or reply.get('authentication') != 'local-unix-account'
+                    or not isinstance(reply.get('result'), dict)
+                    or not isinstance(reply['result'].get('materialization'), dict)
+                    or reply['result']['materialization'].get('schema_version') != 'tos_human_form_materialization_v1'):
+                raise JournalConflict('native assessed-form owner returned an invalid materialization')
+        return copy.deepcopy(result)
+
     def _resolve_batch(self, selections):
         from assessment_journal import JournalConflict
+        if self.native_invocation is not None:
+            request = self._native_materialization_request(selections)
+            result = self._run_native_materialization(request)
+            self._native_request = copy.deepcopy(request)
+            self._native_result = copy.deepcopy(result)
+            snapshot = result['owner_snapshot']
+            replies = []
+            for selection, reply in zip(selections, result['replies'], strict=True):
+                form_ref = selection[1]
+                assessed_request = {
+                    'schema_version': 'tos_local_assessment_command_v1',
+                    'operation': 'materialize-form',
+                    'subject_id': form_ref['id'],
+                    'expected_subject': form_ref,
+                    'expected_snapshot': snapshot,
+                }
+                replies.append(self._remember_reply(
+                    selection[0], form_ref, assessed_request, reply))
+            return replies
         described = self._reader.read_batch([
             {'schema_version': 'tos_local_assessment_command_v1', 'operation': 'describe', 'subject_id': form_ref['id']}
             for subject, form_ref, source_path, form_path in selections])
@@ -124,6 +198,18 @@ class AssessedFormSnapshot:
         if set(self._observed) != self.form_ids:
             raise ValueError('selected assessed forms are not all present in the graph')
         observations = [self._observed[identity] for identity in sorted(self._observed)]
+        if self.native_invocation is not None:
+            if self._native_request is None or self._native_result is None:
+                raise JournalConflict('native assessed-form snapshot has no complete materialization')
+            try:
+                current = self._run_native_materialization(self._native_request)
+            except JournalConflict:
+                raise
+            except (ValueError, PermissionError) as exc:
+                raise JournalConflict('assessment graph snapshot changed before return') from exc
+            if current != self._native_result:
+                raise JournalConflict('assessment graph snapshot changed before return')
+            return
         if self._reader is None:
             for observed in observations:
                 if run_public_source_command(self.owner_config, observed['request']) != observed['reply']:
@@ -144,7 +230,9 @@ class AssessedFormSnapshot:
         """
         from assessment_journal import JournalConflict, PublicSourceReadSession
         if not self._reader_selected:
-            self._reader = PublicSourceReadSession.for_public_owner(self.owner_config, sorted(self.form_ids))
+            if self.native_invocation is None:
+                self._reader = PublicSourceReadSession.for_public_owner(
+                    self.owner_config, sorted(self.form_ids))
             self._reader_selected = True
         output, seen, destinations, selections = [], set(), [], []
         for node in nodes:
@@ -171,7 +259,7 @@ class AssessedFormSnapshot:
                     raise ValueError('selected form must have one exact source carrier')
                 seen.add(identity)
                 selection = (subject, packet['form'], node.get('source_ref'), properties.get('human_forms_source_ref'))
-                if self._reader is None:
+                if self._reader is None and self.native_invocation is None:
                     replacement['properties']['human_forms'][index] = self._resolve(*selection)
                 else:
                     selections.append(selection)
@@ -179,7 +267,7 @@ class AssessedFormSnapshot:
             output.append(replacement)
         if seen != self.form_ids:
             raise ValueError('selected assessed forms are not all present in the graph')
-        if self._reader is not None:
+        if self._reader is not None or self.native_invocation is not None:
             for (node, index), packet in zip(destinations, self._resolve_batch(selections), strict=True):
                 node['properties']['human_forms'][index] = packet
         for node, index in destinations:
@@ -204,20 +292,27 @@ def add_assessed_build_arguments(parser):
                         help='exact source form ID to materialize; repeat for a bounded selection')
     parser.add_argument('--output', type=Path,
                         help='new local candidate JSON, outside source surfaces; required with assessment input')
+    parser.add_argument('--native-invocation', type=Path,
+                        help='protected installed-native owner selection required for assessed production builds')
 
 
-def assessed_build_input(args, repo_root, standard_path):
+def assessed_build_input(args, repo_root, standard_path, *,
+                         native_invocation: Path | None = None, require_native: bool = False):
+    native_invocation = native_invocation or args.native_invocation
     if args.assessment_owner_config is None:
-        if args.assessed_form_id or args.output is not None:
-            raise ValueError('assessed form/output selection requires --assessment-owner-config')
+        if args.assessed_form_id or args.output is not None or native_invocation is not None:
+            raise ValueError('assessed form/output/native selection requires --assessment-owner-config')
         return None, standard_path
+    if require_native and native_invocation is None:
+        raise ValueError('assessed production build requires --native-invocation')
     if args.output is None:
         raise ValueError('assessed build requires a separate --output; standard public export is not a target')
     target, root = args.output.resolve(), repo_root.resolve()
     if (target.suffix != '.json' or target == standard_path.resolve()
             or (target.is_relative_to(root) and not target.is_relative_to(root / '.git'))):
         raise ValueError('local assessed output must be JSON outside repository sources (or within .git)')
-    return AssessedFormSnapshot(args.assessment_owner_config, args.assessed_form_id), target
+    return AssessedFormSnapshot(args.assessment_owner_config, args.assessed_form_id,
+                                native_invocation=native_invocation), target
 
 
 def write_assessed_candidate(target, rendered, snapshot):

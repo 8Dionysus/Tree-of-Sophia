@@ -27,7 +27,9 @@ def main() -> int:
     args = parser.parse_args()
     publication = PublicationSnapshot(REPO_ROOT)
     try:
-        assessed, target = assessed_build_input(args, REPO_ROOT, GRAPH_PATH)
+        assessed, target = assessed_build_input(
+            args, REPO_ROOT, GRAPH_PATH, native_invocation=args.native_invocation,
+            require_native=True)
     except ValueError as exc:
         parser.error(str(exc))
     if assessed is not None:

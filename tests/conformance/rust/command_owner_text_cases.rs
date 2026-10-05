@@ -1198,6 +1198,293 @@ fn native_public_assessment_v3_append_replay_revocation_and_metadata_scope_prese
     native_public_assessment_versions(&[3]);
 }
 
+
+#[test]
+fn native_public_v2_assessed_form_batch_matches_builder_and_rechecks_drift() {
+    let repository = super::validation_cut_cases::repository()
+        .canonicalize()
+        .unwrap();
+    let deadline = Instant::now() + Duration::from_secs(600);
+    let cancelled = AtomicBool::new(false);
+    for (count, source_copy, ready) in [(1usize, false, false), (6, true, true)] {
+        let temporary = tempfile::Builder::new()
+            .permissions(fs::Permissions::from_mode(0o700))
+            .tempdir()
+            .unwrap();
+        let fixture_script = r#"
+import json,sys,tempfile
+from pathlib import Path
+repository,root=map(Path,sys.argv[1:])
+sys.path[:0]=[str(repository/'mechanics/growth-cycle/tests'),
+    str(repository/'mechanics/growth-cycle/parts/branch-growth-cycle/scripts'),str(repository/'scripts')]
+from datetime import datetime,timedelta,timezone
+import test_knowledge_assessment as policy_fixture
+policy_fixture.END=(datetime.now(timezone.utc)+timedelta(days=7)).isoformat()
+counter=0
+class OwnedTemporary:
+    def __init__(self,*args,**kwargs):
+        global counter
+        counter+=1
+        directory=root/('owned-'+str(counter))
+        directory.mkdir(mode=0o700)
+        self.name=str(directory)
+    def cleanup(self): pass
+original=tempfile.TemporaryDirectory
+tempfile.TemporaryDirectory=OwnedTemporary
+try:
+    from test_assessment_read_batch import AssessmentReadBatchTests
+    case=AssessmentReadBatchTests(methodName='runTest')
+    fx=case.fixture(__COUNT__,ready=__READY__,source_copy=__SOURCE_COPY__)
+finally:
+    tempfile.TemporaryDirectory=original
+print(json.dumps({'owner':str(fx.owner),'source_root':str(fx.root),
+    'journal':fx.config['journal_directory'],'form_ids':fx.ids,'forms':fx.forms,
+    'source':{'id':fx.source.id,'version':fx.source.version,'payload':fx.source.payload,
+        'origin_id':fx.source.origin_id,'ref':fx.source.ref},
+    'source_path':fx.config['source_records'][0]['path'],
+    'form_path':fx.config['source_records'][1]['path'],'nodes':fx.nodes},
+    ensure_ascii=False,separators=(',',':')))
+"#
+            .replace("__COUNT__", &count.to_string())
+            .replace("__READY__", if ready { "True" } else { "False" })
+            .replace(
+                "__SOURCE_COPY__",
+                if source_copy { "True" } else { "False" },
+            );
+        let fixture = fixture_json(
+            &repository,
+            temporary.path(),
+            &temporary.path().join("public-read-fixture.stdout"),
+            &temporary.path().join("public-read-fixture.stderr"),
+            deadline,
+            &fixture_script,
+        );
+        let owner = PathBuf::from(fixture["owner"].as_str().unwrap());
+        let source_root = PathBuf::from(fixture["source_root"].as_str().unwrap());
+        let invocation_path = temporary.path().join("native-assessment-read-invocation.json");
+        let manifest_path = temporary.path().join("native-assessment-read-manifest.json");
+        fs::write(&manifest_path, serde_json::to_vec(&fixture).unwrap()).unwrap();
+        let images = [
+            std::env::current_exe().unwrap(),
+            PathBuf::from(
+                std::env::var_os("TOS_NATIVE_OWNER_COMMAND_PATH").expect("native CLI required"),
+            ),
+            PathBuf::from(
+                std::env::var_os("TOS_SCHEMA_WORKER_PATH").expect("native worker required"),
+            ),
+        ];
+        let before: Vec<_> = images
+            .iter()
+            .map(|path| super::command_text_cases::alignment_image_digest(path))
+            .collect();
+        let authored = super::command_text_cases::authored_text_files(&source_root);
+        let mut captured = authored.clone();
+        for reference in assessment_feature_sources().into_iter().chain([
+            "scripts/source_witness_human_forms.py",
+            "scripts/validate_tree_node_contracts.py",
+            "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/assessment_journal.py",
+            "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/knowledge_assessment.py",
+            "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/human_forms.py",
+            "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_command_contracts.py",
+            "rust/crates/tos-command/src/source_forms.rs",
+            "rust/crates/tos-validation/src/source_forms/source_copy_kernel.rs",
+        ]) {
+            let path = repository.join(reference);
+            assert!(path.is_file() && fs::metadata(&path).unwrap().len() <= 2_097_152);
+            assert!(captured
+                .insert(reference.to_owned(), fs::read(path).unwrap())
+                .is_none());
+        }
+        assert!(
+            captured.len() <= 2048
+                && captured.values().map(Vec::len).sum::<usize>() <= 33_554_432
+        );
+        let (capture, _software, components) =
+            super::command_record_cases::captured_components(&captured, deadline, &cancelled);
+        let store = temporary.path().join("public-assessment-read-cut");
+        let selected = super::validation_cut_cases::write_cut_store(&authored, &store);
+        let invocation = serde_json::json!({
+            "schema_version":"tos_local_native_assessment_read_invocation_v1",
+            "owner_config":owner,
+            "native_executable":images[1],
+            "native_executable_sha256":before[1].to_prefixed(),
+            "corpus_store":store,
+            "source_revision":selected.0.to_prefixed(),
+            "original_source_revision":selected.0.to_prefixed(),
+            "software_capture":capture.capture,
+            "software_restored_root":capture.restored,
+            "software_selection":{"source_git_commit":capture.selection.source_git_commit,
+                "source_git_tree":capture.selection.source_git_tree,
+                "capture_manifest_sha256":capture.selection.capture_manifest_sha256.to_prefixed()},
+            "software_components":components.members().map(|member|member.path.as_str()).collect::<Vec<_>>(),
+            "schema_worker":{"absolute_path":images[2],"sha256":before[2].to_prefixed()},
+            "assessment_schema_worker":{"absolute_path":images[2],"sha256":before[2].to_prefixed()},
+            "budgets":{"max_revisions":4,"max_members":2048,"max_total_bytes":33554432,
+                "max_member_bytes":8388608,"max_schema_receipts":128,"max_schema_receipt_bytes":262144,
+                "worker_cpu_seconds":3,"worker_address_space_bytes":1073741824}
+        });
+        fs::write(&invocation_path, serde_json::to_vec(&invocation).unwrap()).unwrap();
+        fs::set_permissions(&invocation_path, fs::Permissions::from_mode(0o600)).unwrap();
+
+        let exercise = r#"
+import copy,json,sys
+from pathlib import Path
+repository,root=map(Path,sys.argv[1:])
+sys.path[:0]=[str(repository/'mechanics/growth-cycle/tests'),
+    str(repository/'mechanics/growth-cycle/parts/branch-growth-cycle/scripts'),str(repository/'scripts')]
+from source_witness_human_forms import AssessedFormSnapshot,write_assessed_candidate
+from assessment_journal import AssessmentJournal,JournalConflict,run_legacy_oracle_command
+from knowledge_assessment import Record,SubjectContext
+manifest=json.loads((root/'native-assessment-read-manifest.json').read_text())
+owner=Path(manifest['owner']); ids=manifest['form_ids']; invocation=root/'native-assessment-read-invocation.json'
+nodes=manifest['nodes']; original=copy.deepcopy(nodes)
+journal=Path(manifest['journal'])
+def files(path):
+    return {entry.relative_to(path).as_posix():entry.read_bytes()
+        for entry in path.rglob('*') if entry.is_file()}
+def normalize(nodes):
+    result=copy.deepcopy(nodes)
+    for node in result:
+        for packet in node.get('properties',{}).get('human_forms',[]):
+            if packet.get('form',{}).get('id') in ids:
+                packet['assessment_snapshot']['owner_snapshot']='same-current-snapshot'
+    return result
+def selected_packets(nodes):
+    return [packet for node in nodes for packet in node.get('properties',{}).get('human_forms',[])
+        if packet.get('form',{}).get('id') in ids]
+journal_before=files(journal)
+source_before=(Path(manifest['source_root'])/manifest['source_path']).read_bytes()
+form_before=(Path(manifest['source_root'])/manifest['form_path']).read_bytes()
+retained=AssessedFormSnapshot(owner,ids)
+expected=retained.materialize(copy.deepcopy(nodes)); retained.verify_current()
+native=AssessedFormSnapshot(owner,ids,native_invocation=invocation)
+actual=native.materialize(copy.deepcopy(nodes)); native.verify_current()
+assert normalize(actual)==normalize(expected), 'native batch differs from retained public-v2 read'
+assert nodes==original, 'batch changed its caller-owned graph'
+assert files(journal)==journal_before, 'a read batch wrote or locked the journal'
+assert (Path(manifest['source_root'])/manifest['source_path']).read_bytes()==source_before
+assert (Path(manifest['source_root'])/manifest['form_path']).read_bytes()==form_before
+packets=selected_packets(actual)
+assert len(packets)==len(ids)
+if len(ids)==1:
+    assert packets[0]['state']=='needs-assessment' and packets[0]['display_text'] is None
+else:
+    assert len(ids)==6 and all(packet['state']=='ready' and packet['admission']['can_use'] for packet in packets)
+
+# A bad final selection rejects the whole public request before any packet is returned.
+bad=copy.deepcopy(native._native_request)
+bad['selections'][-1]['form_ref']['version']+=1
+try:
+    native._run_native_materialization(bad)
+except (ValueError,PermissionError,JournalConflict):
+    pass
+else:
+    raise AssertionError('a partially bound batch unexpectedly succeeded')
+assert files(journal)==journal_before, 'a rejected batch changed journal bytes'
+
+target=owner.parent/'native-assessed-candidate.json'
+if len(ids)==1:
+    config=json.loads(owner.read_text())
+    config['authorities'][0]['payload']['state']='revoked'
+    owner.write_text(json.dumps(config))
+    try:
+        native.verify_current()
+    except JournalConflict:
+        pass
+    else:
+        raise AssertionError('owner drift did not invalidate the native snapshot')
+    try:
+        write_assessed_candidate(target,json.dumps(actual),native)
+    except JournalConflict:
+        pass
+    else:
+        raise AssertionError('candidate escaped the final currentness guard')
+    assert not target.exists() and not list(target.parent.glob('.tos-assessed-*'))
+else:
+    form=manifest['forms'][0]
+    subject=Record.from_payload(form['form_id'],form['form_version'],form)
+    source=Record.from_payload(manifest['source']['id'],manifest['source']['version'],
+        manifest['source']['payload'],origin_id=manifest['source']['origin_id'])
+    assessor_module=__import__('test_knowledge_assessment')
+    assessor_module.END=json.loads(owner.read_text())['authorities'][0]['payload']['valid_until']
+    assessor=assessor_module.AssessmentPolicyTests(methodName='runTest'); assessor.setUp()
+    for index in range(len(assessor.authorities)):
+        competence=assessor.competencies[index]
+        assessor.competencies[index]=Record.from_payload(competence.id,competence.version,
+            {**competence.payload,'assertion_layers':['human_projection']})
+        authority=assessor.authorities[index]
+        assessor.authorities[index]=Record.from_payload(authority.id,authority.version,
+            {**authority.payload,'assertion_layers':['human_projection'],'subject_prefixes':['tos.form.'],
+             'competence_refs':[assessor.competencies[index].ref]})
+    assessor.subject=subject; assessor.source=source
+    assessor.context=SubjectContext(subject,'human_projection','low',('ru','de'),'fixture-writer','research',True)
+    assessor.records=[subject,source,assessor.source_b,assessor.eval_evidence,assessor.executor]
+    history=AssessmentJournal(journal); revision,chain=history._load(subject.id)
+    old=chain[0]['events'][0]['assessment']
+    described=run_legacy_oracle_command(owner,{'schema_version':'tos_local_assessment_command_v1',
+        'operation':'describe','subject_id':subject.id})
+    withdrawn=assessor.review(profile='interpretation',decision='withdraw',
+        name='tos.review.native-read-batch-withdrawal').assessment
+    withdrawn['supersedes']=[Record.from_payload(old['assessment_id'],1,old).ref]
+    run_legacy_oracle_command(owner,{'schema_version':'tos_local_assessment_command_v1',
+        'operation':'append','subject_id':subject.id,'expected_subject':subject.ref,
+        'expected_snapshot':described['owner_snapshot'],'expected_revision':revision,
+        'command_id':'native-read-batch-withdrawal','assessments':[withdrawn]})
+    journal_after_withdrawal=files(journal)
+    try:
+        native.verify_current()
+    except JournalConflict:
+        pass
+    else:
+        raise AssertionError('committed withdrawal did not invalidate the ready snapshot')
+    try:
+        write_assessed_candidate(target,json.dumps(actual),native)
+    except JournalConflict:
+        pass
+    else:
+        raise AssertionError('withdrawn assessment escaped the final currentness guard')
+    assert not target.exists() and not list(target.parent.glob('.tos-assessed-*'))
+    fresh_retained=AssessedFormSnapshot(owner,ids)
+    expected=fresh_retained.materialize(copy.deepcopy(nodes)); fresh_retained.verify_current()
+    fresh_native=AssessedFormSnapshot(owner,ids,native_invocation=invocation)
+    actual=fresh_native.materialize(copy.deepcopy(nodes)); fresh_native.verify_current()
+    assert normalize(actual)==normalize(expected), 'fresh withdrawn native batch differs from retained reader'
+    current=selected_packets(actual)
+    assert current[0]['state']=='needs-assessment' and current[0]['display_text'] is None
+    assert current[0]['admission']['can_use'] is False
+    assert all(packet['state']=='ready' for packet in current[1:])
+    assert files(journal)==journal_after_withdrawal, 'fresh read batch wrote or locked the journal'
+    assert (Path(manifest['source_root'])/manifest['source_path']).read_bytes()==source_before
+    assert (Path(manifest['source_root'])/manifest['form_path']).read_bytes()==form_before
+print(json.dumps({'form_count':len(ids),'native_route':True,'parity':True,
+    'no_partial':True,'no_read_writes':True,'fresh_currentness_guard':True},separators=(',',':')))
+"#;
+        let result = fixture_json(
+            &repository,
+            temporary.path(),
+            &temporary.path().join("public-read-exercise.stdout"),
+            &temporary.path().join("public-read-exercise.stderr"),
+            deadline,
+            exercise,
+        );
+        assert_eq!(result["form_count"], count);
+        assert_eq!(result["native_route"], true);
+        assert_eq!(result["parity"], true);
+        assert_eq!(result["no_partial"], true);
+        assert_eq!(result["no_read_writes"], true);
+        assert_eq!(result["fresh_currentness_guard"], true);
+        for (path, expected) in images.iter().zip(&before) {
+            assert_eq!(
+                super::command_text_cases::alignment_image_digest(path),
+                *expected,
+                "native read must not modify selected executable or worker"
+            );
+        }
+        assert!(Instant::now() < deadline);
+    }
+}
+
+
 fn native_public_assessment_versions(versions: &[u8]) {
     let repository = super::validation_cut_cases::repository()
         .canonicalize()

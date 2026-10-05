@@ -173,6 +173,8 @@ pub fn run(invocation_path: &Path, input: impl Read) -> SourceCommandResult<Valu
         == "tos_local_native_metadata_publication_invocation_v1";
     let source_invocation =
         text(&invocation, "schema_version")? == "tos_local_native_source_invocation_v1";
+    let assessment_read_invocation = text(&invocation, "schema_version")?
+        == "tos_local_native_assessment_read_invocation_v1";
     let mut keys = vec![
         "schema_version",
         "owner_config",
@@ -188,7 +190,7 @@ pub fn run(invocation_path: &Path, input: impl Read) -> SourceCommandResult<Valu
         "budgets",
     ];
     keys.push(
-        if item_invocation || claim_invocation || collection_invocation {
+        if item_invocation || claim_invocation || collection_invocation || assessment_read_invocation {
             "original_source_revision"
         } else {
             "owner_context"
@@ -196,6 +198,8 @@ pub fn run(invocation_path: &Path, input: impl Read) -> SourceCommandResult<Valu
     );
     if source_invocation || agent_publication_invocation || metadata_publication_invocation {
         keys.extend(["original_source_revision", "assessment_schema_worker"]);
+    } else if assessment_read_invocation {
+        keys.push("assessment_schema_worker");
     }
     if agent_publication_invocation || metadata_publication_invocation {
         keys.extend([
@@ -222,6 +226,7 @@ pub fn run(invocation_path: &Path, input: impl Read) -> SourceCommandResult<Valu
     if !item_invocation
         && !claim_invocation
         && !source_invocation
+        && !assessment_read_invocation
         && !agent_publication_invocation
         && !metadata_publication_invocation
         && !collection_invocation
@@ -247,6 +252,26 @@ pub fn run(invocation_path: &Path, input: impl Read) -> SourceCommandResult<Valu
             "operation"
         },
     )?;
+    let request_schema = request
+        .get("schema_version")
+        .and_then(Value::as_str)
+        .unwrap_or("");
+    let assessed_forms_request = request_schema
+        == "tos_local_assessed_forms_materialization_request_v1"
+        && operation == "materialize_assessed_forms";
+    if (request_schema == "tos_local_assessed_forms_materialization_request_v1"
+        || operation == "materialize_assessed_forms")
+        && (!assessed_forms_request || !assessment_read_invocation)
+    {
+        return Err(SourceCommandError::Unsupported(
+            "native assessed-form request profile",
+        ));
+    }
+    if assessment_read_invocation && !assessed_forms_request {
+        return Err(SourceCommandError::Unsupported(
+            "native assessment read invocation requires its exact assessed-form request",
+        ));
+    }
     let implemented = if metadata_publication_invocation {
         matches!(
             operation,
@@ -270,6 +295,8 @@ pub fn run(invocation_path: &Path, input: impl Read) -> SourceCommandResult<Valu
     } else if source_invocation {
         // The fixed typed family validates its own exact operation grammar.
         true
+    } else if assessment_read_invocation {
+        operation == "materialize_assessed_forms"
     } else if claim_invocation {
         matches!(
             operation,
@@ -426,13 +453,41 @@ pub fn run(invocation_path: &Path, input: impl Read) -> SourceCommandResult<Valu
             &cancelled,
         );
     }
-    if source_invocation {
+    if source_invocation || assessment_read_invocation {
         let owner_path = absolute(text(&invocation, "owner_config")?)?;
         let hint_raw = read_absolute(&owner_path, uid, true, 8_388_608, deadline, &cancelled)?;
         let hint = cmd::parse(&hint_raw)?;
+        let owner_schema = cmd::text(&hint, "schema_version")?;
         // This protected hint routes code only. Each family independently
         // reselects its full grant/current owner boundary before any use.
-        match cmd::text(&hint, "schema_version")? {
+        if assessed_forms_request {
+            if owner_schema != "tos_local_assessment_owner_v2" {
+                return Err(SourceCommandError::Denied(
+                    "assessed-form materialization requires public assessment owner v2",
+                ));
+            }
+            let batch = private_assessment::run_public_v2_batch(
+                &invocation,
+                &request_raw,
+                &store,
+                &cut,
+                &software,
+                &components,
+                deadline,
+                &cancelled,
+            )?;
+            return Ok(serde_json::json!({
+                "schema_version": "tos_local_native_source_result_v1",
+                "grants_admission": false,
+                "result": batch,
+            }));
+        }
+        if assessment_read_invocation {
+            return Err(SourceCommandError::Unsupported(
+                "native assessment read request profile",
+            ));
+        }
+        match owner_schema {
             "tos_local_assessment_owner_v1"
             | "tos_local_assessment_owner_v2"
             | "tos_local_assessment_owner_v3"

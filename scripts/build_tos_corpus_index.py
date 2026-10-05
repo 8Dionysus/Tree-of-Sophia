@@ -26,7 +26,9 @@ def main() -> int:
     args = parse_args()
     publication = PublicationSnapshot(REPO_ROOT)
     try:
-        assessed, target = assessed_build_input(args, REPO_ROOT, TOS_CORPUS_INDEX_PATH)
+        assessed, target = assessed_build_input(
+            args, REPO_ROOT, TOS_CORPUS_INDEX_PATH, native_invocation=args.native_invocation,
+            require_native=True)
     except ValueError as exc:
         raise SystemExit(str(exc)) from exc
     if assessed is not None:

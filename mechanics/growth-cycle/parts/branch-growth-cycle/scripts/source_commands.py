@@ -38,8 +38,10 @@ ROOT = Path(__file__).resolve().parents[5]
 if str(ROOT / 'scripts') not in sys.path:
     sys.path.insert(0, str(ROOT / 'scripts'))
 from source_witness_human_forms import (MAX_SET_BYTES, CANONICAL_NODE_SCHEMA, CANONICAL_NODE_SCHEMA_REF,
-    _validator, materialize_metadata_forms, metadata_field_catalog, canonical_field_catalog,
-    materialize_canonical_forms, _read_canonical_source)
+    NATIVE_ASSESSED_FORMS_REQUEST_SCHEMA, NATIVE_ASSESSED_FORMS_RESULT_SCHEMA,
+    NATIVE_ASSESSED_FORMS_OPERATION, _validator, materialize_metadata_forms,
+    metadata_field_catalog, canonical_field_catalog, materialize_canonical_forms,
+    _read_canonical_source)
 from source_witness_human_forms import claim_field_catalog, claim_forms_path, materialize_claim_forms
 from source_witness_human_forms import metadata_subject, CLAIM_FORM_FIELDS
 
@@ -87,6 +89,9 @@ REVISION_FIELDS = {'preferred_label', 'variant_labels', 'notes', 'field_language
 PROFILE_SCOPE_REVISION_FIELDS = REVISION_FIELDS | {'semantic_scope'}
 CORPUS_REVISION_FIELDS = {'preferred_label', 'notes', 'field_languages', 'source_refs'}
 MAX_COMMAND_BYTES = 1_048_576
+MAX_ASSESSED_OWNER_CONFIG_BYTES = 8 * MAX_COMMAND_BYTES
+MAX_ASSESSED_FORMS_RESPONSE_BYTES = 16 * MAX_COMMAND_BYTES
+PUBLIC_ASSESSMENT_OWNER_V2 = 'tos_local_assessment_owner_v2'
 DISCOVERY_REQUEST = 'tos_source_command_discovery_request_v1'
 DISCOVERY_RESULT = 'tos_source_command_discovery_v1'
 
@@ -1597,19 +1602,29 @@ def _run_selected_native_owner(owner_config: Path, invocation_path: Path, reques
     deadline = time.monotonic() + 60
     if owner_config is None:
         raise PermissionError('native owner requires an owner configuration')
-    # The compatibility transport reads a protected family hint only. The
-    # native typed owner performs configuration, grammar and source checks.
+    assessed_forms_request = (
+        request.get('schema_version') == NATIVE_ASSESSED_FORMS_REQUEST_SCHEMA
+        and request.get('operation') == NATIVE_ASSESSED_FORMS_OPERATION)
+    if ((request.get('schema_version') == NATIVE_ASSESSED_FORMS_REQUEST_SCHEMA
+         or request.get('operation') == NATIVE_ASSESSED_FORMS_OPERATION)
+            and not assessed_forms_request):
+        raise PermissionError('native assessed-form operation requires its exact request profile')
+    owner_config_limit = (MAX_ASSESSED_OWNER_CONFIG_BYTES
+                          if assessed_forms_request else MAX_COMMAND_BYTES)
+    # This route alone retains the bounded assessment owner's larger snapshot.
     with os.fdopen(_owned_path(owner_config), 'rb') as selected:
         info = os.fstat(selected.fileno())
         if info.st_uid != os.getuid() or stat.S_IMODE(info.st_mode) != 0o600:
             raise PermissionError('native owner configuration must be private owner bytes')
-        config_raw = selected.read(8 * MAX_COMMAND_BYTES + 1)
-    if len(config_raw) > 8 * MAX_COMMAND_BYTES:
+        config_raw = selected.read(owner_config_limit + 1)
+    if len(config_raw) > owner_config_limit:
         raise ValueError('native owner configuration exceeds the input budget')
     config = _json_object(config_raw)
     schema = config.get('schema_version')
     if not isinstance(schema, str):
         raise ValueError('native owner configuration has no schema discriminator')
+    if assessed_forms_request and schema != PUBLIC_ASSESSMENT_OWNER_V2:
+        raise PermissionError('assessed-form materialization accepts only public assessment owner v2')
     claim = schema.startswith(('tos_local_claim_create_owner_v', 'tos_local_claim_revision_owner_v',
                                'tos_local_document_catalogue_date_', 'tos_local_identity_proposal_')) or schema == 'tos_local_claim_layer_revision_owner_v1'
     item = schema == 'tos_local_item_adoption_owner_v1'
@@ -1632,15 +1647,18 @@ def _run_selected_native_owner(owner_config: Path, invocation_path: Path, reques
     raw = _read(invocation_path, MAX_COMMAND_BYTES)
     invocation = _json_object(raw)
     publication_profile = invocation.get('schema_version')
+    assessment_read_invocation = assessed_forms_request
     publication = source and publication_profile in (
         'tos_local_native_agent_publication_invocation_v1',
         'tos_local_native_metadata_publication_invocation_v1')
     keys = {'schema_version', 'owner_config', 'native_executable', 'native_executable_sha256',
             'corpus_store', 'source_revision', 'software_capture', 'software_restored_root',
             'software_selection', 'software_components', 'schema_worker', 'budgets'}
-    keys.add('original_source_revision' if item or claim or collection else 'owner_context')
-    if source:
+    keys.add('original_source_revision' if item or claim or collection or assessment_read_invocation else 'owner_context')
+    if source and not assessment_read_invocation:
         keys.update(('original_source_revision', 'assessment_schema_worker'))
+    elif assessment_read_invocation:
+        keys.add('assessment_schema_worker')
     if publication:
         keys.update(('prepared_database', 'expected_binding_path', 'source_inputs_path',
                      'source_inputs_sha256', 'catalog_path', 'catalog_sha256',
@@ -1653,10 +1671,14 @@ def _run_selected_native_owner(owner_config: Path, invocation_path: Path, reques
                'tos_local_native_collection_invocation_v1' if collection else
                'tos_local_native_claim_invocation_v1' if claim else
                'tos_local_native_item_invocation_v1' if item else
+               'tos_local_native_assessment_read_invocation_v1' if assessment_read_invocation else
                'tos_local_native_source_invocation_v1' if source else 'tos_local_native_owner_invocation_v1')
     if (invocation.get('schema_version') != profile or invocation.get('owner_config') != str(owner_config)
             or set(invocation) != keys):
         raise PermissionError('native invocation does not select this owner')
+    output_limit = (MAX_ASSESSED_FORMS_RESPONSE_BYTES
+                    if assessed_forms_request and schema == PUBLIC_ASSESSMENT_OWNER_V2
+                    else MAX_COMMAND_BYTES)
     executable = Path(invocation['native_executable'])
     descriptor = _owned_path(executable)
     try:
@@ -1672,7 +1694,7 @@ def _run_selected_native_owner(owner_config: Path, invocation_path: Path, reques
                                      stdout=output, stderr=errors, start_new_session=True)
             try:
                 while child.poll() is None:
-                    if (time.monotonic() >= deadline or output.tell() > MAX_COMMAND_BYTES
+                    if (time.monotonic() >= deadline or output.tell() > output_limit
                             or errors.tell() > MAX_COMMAND_BYTES):
                         os.killpg(child.pid, signal.SIGKILL)
                         child.wait()
@@ -1682,7 +1704,7 @@ def _run_selected_native_owner(owner_config: Path, invocation_path: Path, reques
                 if child.poll() is None:
                     os.killpg(child.pid, signal.SIGKILL)
                     child.wait()
-            if (time.monotonic() >= deadline or output.tell() > MAX_COMMAND_BYTES
+            if (time.monotonic() >= deadline or output.tell() > output_limit
                     or errors.tell() > MAX_COMMAND_BYTES):
                 raise ValueError('native owner command refused')
             if child.returncode != 0:
@@ -1690,8 +1712,9 @@ def _run_selected_native_owner(owner_config: Path, invocation_path: Path, reques
                 reason = errors.read(4096).decode('utf-8', errors='replace').strip()
                 raise ValueError('native owner command refused' + (': ' + reason if reason else ''))
             output.seek(0)
-            response = _json_object(output.read(MAX_COMMAND_BYTES + 1))
-            expected_result = ('tos_collection_membership_result_v1' if collection else
+            response = _json_object(output.read(output_limit + 1))
+            expected_result = ('tos_local_native_source_result_v1' if assessed_forms_request else
+                               'tos_collection_membership_result_v1' if collection else
                                'tos_local_native_claim_result_v1' if claim else
                                'tos_edition_item_result_v1' if item else
                                'tos_expression_edition_result_v1' if schema == 'tos_local_expression_edition_owner_v1' else
@@ -1713,6 +1736,11 @@ def _run_selected_native_owner(owner_config: Path, invocation_path: Path, reques
                     raise ValueError('native Metadata result profile')
             if response.get('schema_version') != expected_result:
                 raise ValueError('native owner result profile')
+            if assessed_forms_request and (
+                    response.get('grants_admission') is not False
+                    or not isinstance(response.get('result'), dict)
+                    or response['result'].get('schema_version') != NATIVE_ASSESSED_FORMS_RESULT_SCHEMA):
+                raise ValueError('native assessed-form materialization result profile')
             return response
     finally:
         os.close(descriptor)
