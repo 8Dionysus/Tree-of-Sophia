@@ -368,6 +368,7 @@ pub(crate) struct NativeSourceValidator<'c> {
     segment_v2_io_accounted: (u64, u64),
     segment_v2_read_upper_accounted: u64,
     spooled_read_upper_accounted: u64,
+    spooled_write_cap: Option<u64>,
 }
 /// The only constructor is the successful complete owner callback below.
 pub(crate) struct ValidatedCandidate(Index);
@@ -622,6 +623,7 @@ impl<'c> NativeSourceValidator<'c> {
             segment_v2_io_accounted: (0, 0),
             segment_v2_read_upper_accounted: 0,
             spooled_read_upper_accounted: 0,
+            spooled_write_cap: None,
         })
     }
 
@@ -1001,6 +1003,9 @@ impl<'c> NativeSourceValidator<'c> {
             .checked_add(v2_case_state_bytes)
             .and_then(|n| n.checked_add(v2_source_root_state_bytes))
             .and_then(|n| n.checked_add(v2_target_root_state_bytes))
+            // Conservative fixed control-state envelope includes the shared
+            // write root, both local IoState blocks and their Arc headers;
+            // size_of::<PinnedSqliteIoBudget>() above counts only its handle.
             .and_then(|n| n.checked_add(4096))
             .ok_or_else(|| invalid("V2 case clone state overflow"))?;
         if case_clone_preflight > remaining.state_bytes {
@@ -1047,32 +1052,14 @@ impl<'c> NativeSourceValidator<'c> {
                 ));
             }
         }
-        let segment_v2_write_cap = if let (Some(store_bytes), Some(total_store_bytes)) =
-            (segment_v2_store_bytes, segment_v2_total_store_bytes)
-        {
-            let allocation_ceiling = if v2_case.is_some() {
-                total_store_bytes
-            } else {
-                store_bytes
-            };
-            let cap = allocation_ceiling
-                .checked_add(64 * 1024)
-                .filter(|cap| *cap < u64::MAX)
-                .ok_or_else(|| invalid("V2 store write profile overflow"))?;
-            if cap >= write_remaining {
-                return Err(invalid(
-                    "V2 store profile leaves no candidate persistent-write allowance",
-                ));
-            }
-            cap
-        } else if segment_v2_store_bytes.is_some() || segment_v2_total_store_bytes.is_some() {
-            return Err(invalid("V2 persistent allocation selection differs"));
+        // Allocation limits own resident physical bytes. Candidate and V2
+        // writes instead debit one original cumulative-write authority.
+        let segment_v2_write_cap = if segment_v2_store_bytes.is_some() {
+            write_remaining
         } else {
             0
         };
-        let candidate_write_cap = write_remaining
-            .checked_sub(segment_v2_write_cap)
-            .ok_or_else(|| invalid("V2 store write profile exceeds remaining writes"))?;
+        let candidate_write_cap = write_remaining;
         if remaining.source_read_bytes == 0
             || remaining.state_bytes < 64 * 1024
             || remaining.tmpfs_bytes < 512 * 1024
@@ -1393,6 +1380,11 @@ impl<'c> NativeSourceValidator<'c> {
             .ok_or_else(|| invalid("private stage authority disappeared"))?;
         let isolated = IsolatedCreationRoot::create(authority.root(), self.deadline, &cancelled)
             .map_err(command)?;
+        let aggregate_write = PinnedSqliteIoBudget::new(
+            original_io_read_cap,
+            write_remaining,
+        )
+        .map_err(invalid)?;
         let workspace_result =
             (|| -> io::Result<(File, PinnedSqliteIoBudget, PinnedSqliteSpaceBudget, File)> {
                 let workspace = isolated
@@ -1432,9 +1424,10 @@ impl<'c> NativeSourceValidator<'c> {
                 }
                 active(self.deadline, self.cancel)?;
 
-                let io_budget = PinnedSqliteIoBudget::new(
+                let io_budget = PinnedSqliteIoBudget::new_with_shared_write_authority(
                     original_io_read_cap,
                     candidate_limits.max_write_bytes,
+                    aggregate_write.clone(),
                 )
                 .map_err(invalid)?;
                 io_budget
@@ -1456,8 +1449,12 @@ impl<'c> NativeSourceValidator<'c> {
         };
         self.segment_v2_profile = match (segment_v2_store_bytes, segment_v2_allocation) {
             (Some(max_allocated_bytes), Some((allocation_space, allocation_reservation))) => {
-                let io = PinnedSqliteIoBudget::new(segment_v2_read_cap, segment_v2_write_cap)
-                    .map_err(invalid)?;
+                let io = PinnedSqliteIoBudget::new_with_shared_write_authority(
+                    segment_v2_read_cap,
+                    segment_v2_write_cap,
+                    aggregate_write.clone(),
+                )
+                .map_err(invalid)?;
                 let allocation_unit_bytes = v2_case
                     .as_ref()
                     .map(|case| case.allocation_unit_bytes)
@@ -1541,6 +1538,7 @@ impl<'c> NativeSourceValidator<'c> {
         };
         self.spooled_workspace = Some((retained_workspace, request.space_budget.clone()));
         self.spooled_profile = Some((index_limits, defaults_limits, request.io_budget.clone()));
+        self.spooled_write_cap = Some(write_remaining);
         let v2_allocation_accountant = self
             .segment_v2_profile
             .as_ref()
@@ -1827,8 +1825,8 @@ impl<'c> NativeSourceValidator<'c> {
         self.account_spooled_terminal_budget()
     }
 
-    /// Check the two separately escrowed physical ledgers selected by this
-    /// invocation. Their handle identity is distinct from sharing one budget.
+    /// Check the distinct local read ledgers and their common original write
+    /// authority selected by this invocation.
     pub(crate) fn verify_spooled_v2_io(
         &self,
         spool: &PinnedSqliteIoBudget,
@@ -1841,6 +1839,7 @@ impl<'c> NativeSourceValidator<'c> {
         if deadline != self.deadline
             || !std::ptr::eq(cancel, self.cancel)
             || !self.spooled_route_selected
+            || !spool.shares_write_authority_with(v2)
             || self
                 .spooled_profile
                 .as_ref()
@@ -1853,6 +1852,41 @@ impl<'c> NativeSourceValidator<'c> {
             return Err(invalid("spooled/V2 original invocation IO binding differs"));
         }
         Ok(())
+    }
+
+    /// Observe both selected local read ledgers and their single original
+    /// cumulative-write authority for runtime refusal evidence.
+    pub(crate) fn spooled_invocation_io_snapshot(
+        &self,
+    ) -> io::Result<tos_source_store::PinnedSqliteIoSnapshot> {
+        let spool = &self.spooled_profile.as_ref()
+            .ok_or_else(|| invalid("spooled original budget absent"))?.2;
+        let mut usage = spool.snapshot();
+        let writes = spool.shared_write_snapshot();
+        if let Some(v2) = self.segment_v2_profile.as_ref() {
+            if !spool.shares_write_authority_with(&v2.io) {
+                return Err(invalid("spooled/V2 original write authority differs"));
+            }
+            let segment = v2.io.snapshot();
+            usage.read_attempted_bytes = usage.read_attempted_bytes
+                .checked_add(segment.read_attempted_bytes)
+                .ok_or_else(|| invalid("invocation read snapshot overflow"))?;
+            usage.read_permitted_bytes = usage.read_permitted_bytes
+                .checked_add(segment.read_permitted_bytes)
+                .ok_or_else(|| invalid("invocation read snapshot overflow"))?;
+            usage.read_returned_bytes = usage.read_returned_bytes
+                .checked_add(segment.read_returned_bytes)
+                .ok_or_else(|| invalid("invocation read snapshot overflow"))?;
+            usage.read_upper_bound_attempted_bytes = usage.read_upper_bound_attempted_bytes
+                .checked_add(segment.read_upper_bound_attempted_bytes)
+                .ok_or_else(|| invalid("invocation read snapshot overflow"))?;
+            usage.failure = usage.failure.or(segment.failure);
+        }
+        usage.write_attempted_bytes = writes.write_attempted_bytes;
+        usage.write_permitted_bytes = writes.write_permitted_bytes;
+        usage.write_returned_bytes = writes.write_returned_bytes;
+        usage.failure = writes.failure.or(usage.failure);
+        Ok(usage)
     }
 
     /// Reserve caller-held source-operation state on the existing invocation
@@ -1904,6 +1938,9 @@ impl<'c> NativeSourceValidator<'c> {
             .ok_or_else(|| invalid("spooled original budget absent"))?
             .2;
         let usage = original.snapshot();
+        let aggregate_write = original.shared_write_snapshot();
+        let selected_write_cap = self.spooled_write_cap
+            .ok_or_else(|| invalid("spooled selected write authority absent"))?;
         let candidate_read = usage
             .read_attempted_bytes
             .checked_sub(self.candidate_io.0)
@@ -1974,10 +2011,19 @@ impl<'c> NativeSourceValidator<'c> {
             || usage.read_returned_bytes > usage.read_permitted_bytes
             || usage.write_permitted_bytes > usage.write_attempted_bytes
             || usage.write_returned_bytes > usage.write_permitted_bytes
-            || usage
-                .write_attempted_bytes
-                .checked_add(segment_v2_usage.map_or(0, |segment| segment.write_attempted_bytes))
-                .is_none_or(|bytes| bytes > self.write_cap)
+            || aggregate_write.write_attempted_bytes > selected_write_cap
+            || aggregate_write.write_permitted_bytes > aggregate_write.write_attempted_bytes
+            || aggregate_write.write_returned_bytes > aggregate_write.write_permitted_bytes
+            || aggregate_write.failure.is_some()
+            || usage.write_attempted_bytes.checked_add(
+                segment_v2_usage.map_or(0, |segment| segment.write_attempted_bytes)
+            ) != Some(aggregate_write.write_attempted_bytes)
+            || usage.write_permitted_bytes.checked_add(
+                segment_v2_usage.map_or(0, |segment| segment.write_permitted_bytes)
+            ) != Some(aggregate_write.write_permitted_bytes)
+            || usage.write_returned_bytes.checked_add(
+                segment_v2_usage.map_or(0, |segment| segment.write_returned_bytes)
+            ) != Some(aggregate_write.write_returned_bytes)
             || usage.failure.is_some()
         {
             return Err(invalid("spooled terminal physical IO accounting refused"));

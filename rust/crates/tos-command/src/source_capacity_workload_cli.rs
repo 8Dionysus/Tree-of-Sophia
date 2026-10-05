@@ -4,7 +4,8 @@
 //! typed cursor under the selected Native invocation. Its receipt is
 //! measurement only; `corpus-admit` still reopens and validates both roots.
 
-use crate::source_admission::{AdmissionWorkBudget, invalid};
+use crate::source_admission::AdmissionWorkBudget;
+use crate::source_command::{SourceCommandError, public_io_reason};
 use crate::source_admission_packed_objects::{MAX_PACKED_OBJECT_FRAMES_V2, PackedObjectLimitsV2};
 use crate::source_capacity_workload::{
     PackedScaleInputReceiptV1, WeightedScaleProducerRequestV1, WeightedScaleProfileV1,
@@ -28,6 +29,10 @@ use std::time::Instant;
 use tos_foundation::Digest256;
 
 pub const HELP: &str = "usage: tos-native-owner-command capacity-fixture --store PATH --seed-sha256 LOWERHEX64 --work-units N [--target-records N] -- --repo-root ABS --invocation ABS [native validator selections]\n\nCreate deterministic private raw and packed scale-input roots for the declared weighted record count (default 100000) under the protected artifact root. The five-class 5/40/5/15/35 distribution is priced against the exact selected Native limits before writing. Then run corpus-admit with the printed --input-root and --indexed-input-root. This fixture does not grant source, review, rights, canon, or admission authority.\n";
+
+fn invalid(reason: &'static str) -> io::Error {
+    io::Error::new(io::ErrorKind::InvalidData, SourceCommandError::Invalid(reason))
+}
 
 struct Arguments {
     store: PathBuf,
@@ -109,7 +114,8 @@ fn parse(args: &[OsString]) -> io::Result<Option<Arguments>> {
                 if text.len() != 64 || text.bytes().any(|byte| byte.is_ascii_uppercase()) {
                     return Err(invalid("capacity fixture seed must be lowercase SHA-256"));
                 }
-                seed = Some(Digest256::from_hex(text).map_err(invalid)?);
+                seed = Some(Digest256::from_hex(text)
+                    .map_err(|_| invalid("capacity fixture seed digest refused"))?);
             }
             "--work-units" if work_units.is_none() => {
                 let text = value
@@ -207,7 +213,7 @@ pub fn run_shared_cancel(
         &output_cap,
         &output_deadline,
     );
-    if result.is_err() {
+    if let Err(error) = result.as_ref() {
         let mut output = SelectedOutput {
             writer: stderr,
             bytes: &output_bytes,
@@ -216,7 +222,8 @@ pub fn run_shared_cancel(
             deadline: output_deadline.get(),
             cancelled,
         };
-        let _ = writeln!(output, "Native capacity fixture refused").and_then(|_| output.flush());
+        let _ = writeln!(output, "Native capacity fixture refused: {}", public_io_reason(error))
+            .and_then(|_| output.flush());
     }
     result
 }
@@ -267,8 +274,6 @@ fn run_selected(
         cancelled,
     };
     validator.bind_store_authority(&args.store)?;
-    let candidate = validator.candidate_limits()?;
-    let v2_profile = validator.prepared_v2_read_case_profile()?.clone();
     let execution = validator.prepared_execution_resources()?;
     let mut resources = match execution {
         PreparedAdmissionExecution::Spooled(resources) => resources,
@@ -276,6 +281,10 @@ fn run_selected(
             return Err(invalid("capacity fixture requires selected Native V2 case"));
         }
     };
+    // Resource preparation issues the selected V2 profile and narrows the
+    // candidate envelope against the same remaining operation budget.
+    let candidate = resources.candidate_limits.candidate;
+    let v2_profile = validator.prepared_v2_read_case_profile()?.clone();
     let case = resources
         .v2_case
         .as_ref()

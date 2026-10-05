@@ -66,6 +66,8 @@ struct IoState {
     // Charge and restriction share one linearization point. An atomic ceiling
     // alone would permit a charge to commit against a stale, larger limit.
     limits: Mutex<IoLimits>,
+    // One immutable root write authority, never another child. Reads stay local.
+    aggregate_write: Option<PinnedSqliteIoBudget>,
     read_attempted: AtomicU64,
     read_upper_bound_attempted: AtomicU64,
     read_upper_bound_permitted: AtomicU64,
@@ -101,6 +103,7 @@ impl PinnedSqliteIoBudget {
                 max_read: max_read_bytes,
                 max_write: max_write_bytes,
             }),
+            aggregate_write: None,
             read_attempted: AtomicU64::new(0),
             read_upper_bound_attempted: AtomicU64::new(0),
             read_upper_bound_permitted: AtomicU64::new(0),
@@ -113,19 +116,82 @@ impl PinnedSqliteIoBudget {
         })))
     }
 
+    /// Create a local read/write ledger backed by one existing cumulative
+    /// write authority. Local restrictions and counters remain independent;
+    /// every permitted write must fit both ceilings before IO begins.
+    /// Only a root may back children: this is one shared pool, not a hierarchy.
+    pub fn new_with_shared_write_authority(
+        max_read_bytes: u64,
+        max_local_write_bytes: u64,
+        aggregate_write: Self,
+    ) -> Result<Self> {
+        if aggregate_write.0.aggregate_write.is_some()
+            || aggregate_write.failure_code() != 0
+            || aggregate_write
+                .0
+                .limits
+                .lock()
+                .map_err(|_| {
+                    aggregate_write.fail(PinnedSqliteIoFailure::Io);
+                    budget_error("SQLite aggregate write limit lock is poisoned")
+                })?
+                .max_write
+                == 0
+        {
+            return Err(budget_error(
+                "SQLite shared write authority must be a live writable root",
+            ));
+        }
+        let mut local = Self::new(max_read_bytes, max_local_write_bytes)?;
+        // `new` returned the sole local Arc, and the private parent link is
+        // assigned only here before clones can escape. Cycles cannot form.
+        Arc::get_mut(&mut local.0)
+            .expect("new local IO ledger has one owner")
+            .aggregate_write = Some(aggregate_write);
+        Ok(local)
+    }
+
+    /// Exact identity of the shared write pool, including root/child pairs.
+    pub fn shares_write_authority_with(&self, other: &Self) -> bool {
+        let root = self.0.aggregate_write.as_ref().unwrap_or(self);
+        let other_root = other.0.aggregate_write.as_ref().unwrap_or(other);
+        root.shares_with(other_root)
+    }
+
+    /// The aggregate census is observed separately, never added to the local
+    /// write sum as a third producer. Root reads are not charged by children.
+    pub fn shared_write_snapshot(&self) -> PinnedSqliteIoSnapshot {
+        self.0.aggregate_write.as_ref().unwrap_or(self).snapshot()
+    }
+
+    fn failure_code(&self) -> u8 {
+        let local = self.0.failure.load(Ordering::Acquire);
+        if local != 0 {
+            local
+        } else {
+            self.0
+                .aggregate_write
+                .as_ref()
+                .map_or(0, |root| root.0.failure.load(Ordering::Acquire))
+        }
+    }
+
     /// Create one cumulative read-only logical-I/O ledger. Zero writes are a
     /// denied capability, not an artificial one-byte allowance. Reads and
     /// upper-bound guard charges retain the same identity and accounting law
     /// as a regular request ledger.
     pub fn new_read_only(max_read_bytes: u64) -> Result<Self> {
         if max_read_bytes == 0 || max_read_bytes == u64::MAX {
-            return Err(budget_error("SQLite read-only limit must be finite and nonzero"));
+            return Err(budget_error(
+                "SQLite read-only limit must be finite and nonzero",
+            ));
         }
         Ok(Self(Arc::new(IoState {
             limits: Mutex::new(IoLimits {
                 max_read: max_read_bytes,
                 max_write: 0,
             }),
+            aggregate_write: None,
             read_attempted: AtomicU64::new(0),
             read_upper_bound_attempted: AtomicU64::new(0),
             read_upper_bound_permitted: AtomicU64::new(0),
@@ -161,7 +227,7 @@ impl PinnedSqliteIoBudget {
         if upper_bound {
             saturating_add(&self.0.read_upper_bound_attempted, bytes);
         }
-        if self.0.failure.load(Ordering::Acquire) != 0 {
+        if self.failure_code() != 0 {
             saturating_add(&self.0.read_attempted, bytes);
             return Err(budget_error(
                 "SQLite logical I/O ledger has a prior failure",
@@ -186,12 +252,15 @@ impl PinnedSqliteIoBudget {
     }
 
     pub fn charge_write(&self, bytes: u64) -> Result<()> {
+        if let Some(root) = self.0.aggregate_write.as_ref() {
+            return self.charge_shared_write(root, bytes);
+        }
         let limits = self.0.limits.lock().map_err(|_| {
             saturating_add(&self.0.write_attempted, bytes);
             self.fail(PinnedSqliteIoFailure::Io);
             budget_error("SQLite logical I/O limit lock is poisoned")
         })?;
-        if self.0.failure.load(Ordering::Acquire) != 0 {
+        if self.failure_code() != 0 {
             saturating_add(&self.0.write_attempted, bytes);
             return Err(budget_error(
                 "SQLite logical I/O ledger has a prior failure",
@@ -207,6 +276,51 @@ impl PinnedSqliteIoBudget {
             self.fail(PinnedSqliteIoFailure::WriteLimit);
             budget_error("SQLite cumulative write budget exceeded")
         })
+    }
+
+    fn charge_shared_write(&self, root: &Self, bytes: u64) -> Result<()> {
+        // All children acquire local then root; roots never acquire a child.
+        // Hold both restriction locks until both permits are committed.
+        let local_limits = self.0.limits.lock().map_err(|_| {
+            saturating_add(&self.0.write_attempted, bytes);
+            saturating_add(&root.0.write_attempted, bytes);
+            self.fail(PinnedSqliteIoFailure::Io);
+            budget_error("SQLite local write limit lock is poisoned")
+        })?;
+        let root_limits = root.0.limits.lock().map_err(|_| {
+            saturating_add(&self.0.write_attempted, bytes);
+            saturating_add(&root.0.write_attempted, bytes);
+            self.fail(PinnedSqliteIoFailure::Io);
+            budget_error("SQLite aggregate write limit lock is poisoned")
+        })?;
+        saturating_add(&self.0.write_attempted, bytes);
+        saturating_add(&root.0.write_attempted, bytes);
+        if self.failure_code() != 0 {
+            return Err(budget_error(
+                "SQLite shared write ledger has a prior failure",
+            ));
+        }
+        let local_next = self
+            .0
+            .write_permitted
+            .load(Ordering::Acquire)
+            .checked_add(bytes)
+            .filter(|next| *next <= local_limits.max_write);
+        let root_next = root
+            .0
+            .write_permitted
+            .load(Ordering::Acquire)
+            .checked_add(bytes)
+            .filter(|next| *next <= root_limits.max_write);
+        let (Some(local_next), Some(root_next)) = (local_next, root_next) else {
+            self.fail(PinnedSqliteIoFailure::WriteLimit);
+            return Err(budget_error(
+                "SQLite local or aggregate cumulative write budget exceeded",
+            ));
+        };
+        self.0.write_permitted.store(local_next, Ordering::Release);
+        root.0.write_permitted.store(root_next, Ordering::Release);
+        Ok(())
     }
 
     pub fn record_read_returned(&self, bytes: u64) -> Result<()> {
@@ -248,7 +362,7 @@ impl PinnedSqliteIoBudget {
             self.fail(PinnedSqliteIoFailure::Io);
             budget_error("SQLite logical I/O limit lock is poisoned")
         })?;
-        if self.0.failure.load(Ordering::Acquire) != 0 {
+        if self.failure_code() != 0 {
             return Err(budget_error(
                 "SQLite logical I/O ledger has a prior failure",
             ));
@@ -281,6 +395,20 @@ impl PinnedSqliteIoBudget {
     }
 
     pub fn record_write_returned(&self, bytes: u64) -> Result<()> {
+        if let Some(root) = self.0.aggregate_write.as_ref() {
+            // Already permitted IO may return after a different attempt failed.
+            // Validate the local permit first so no child borrows another's.
+            record_returned(&self.0.write_returned, &self.0.write_permitted, bytes).map_err(
+                |_| {
+                    self.fail(PinnedSqliteIoFailure::Io);
+                    budget_error("SQLite local write return exceeded permitted bytes")
+                },
+            )?;
+            return root.record_write_returned(bytes).map_err(|error| {
+                self.fail(PinnedSqliteIoFailure::Io);
+                error
+            });
+        }
         record_returned(&self.0.write_returned, &self.0.write_permitted, bytes).map_err(|_| {
             self.fail(PinnedSqliteIoFailure::Io);
             budget_error("SQLite write return exceeded permitted bytes")
@@ -299,7 +427,7 @@ impl PinnedSqliteIoBudget {
             write_attempted_bytes: self.0.write_attempted.load(Ordering::Acquire),
             write_permitted_bytes: self.0.write_permitted.load(Ordering::Acquire),
             write_returned_bytes: self.0.write_returned.load(Ordering::Acquire),
-            failure: decode_failure(self.0.failure.load(Ordering::Acquire)),
+            failure: decode_failure(self.failure_code()),
         }
     }
 
@@ -308,6 +436,9 @@ impl PinnedSqliteIoBudget {
             self.0
                 .failure
                 .compare_exchange(0, reason as u8, Ordering::AcqRel, Ordering::Acquire);
+        if let Some(root) = self.0.aggregate_write.as_ref() {
+            root.fail(reason);
+        }
     }
 }
 
@@ -2200,6 +2331,96 @@ fn invalid(detail: &'static str) -> StoreError {
 #[cfg(test)]
 mod io_restriction_tests {
     use super::*;
+
+    #[test]
+    fn shared_write_pool_precharges_two_local_producers_and_preserves_actual_returns() {
+        let root = PinnedSqliteIoBudget::new(1, 10).unwrap();
+        let a =
+            PinnedSqliteIoBudget::new_with_shared_write_authority(20, 10, root.clone()).unwrap();
+        let b =
+            PinnedSqliteIoBudget::new_with_shared_write_authority(30, 10, root.clone()).unwrap();
+        assert!(!a.shares_with(&b));
+        assert!(a.shares_write_authority_with(&b));
+        assert!(a.shares_write_authority_with(&root));
+        a.charge_write(6).unwrap();
+        b.charge_write(4).unwrap();
+        assert!(b.charge_write(1).is_err());
+        assert_eq!(
+            a.snapshot().failure,
+            Some(PinnedSqliteIoFailure::WriteLimit)
+        );
+        assert_eq!(b.snapshot().write_permitted_bytes, 4);
+        // Both real transfers were permitted before the refused attempt.
+        a.record_write_returned(6).unwrap();
+        b.record_write_returned(4).unwrap();
+        let whole = root.snapshot();
+        assert_eq!(whole.write_attempted_bytes, 11);
+        assert_eq!(whole.write_permitted_bytes, 10);
+        assert_eq!(whole.write_returned_bytes, 10);
+        assert_eq!(whole.read_attempted_bytes, 0);
+        assert_eq!(a.shared_write_snapshot(), whole);
+        assert_eq!(
+            a.snapshot().write_returned_bytes + b.snapshot().write_returned_bytes,
+            10
+        );
+        assert!(a.charge_write(1).is_err());
+        assert_eq!(root.snapshot().write_permitted_bytes, 10);
+        assert_eq!(root.snapshot().write_attempted_bytes, 12);
+    }
+
+    #[test]
+    fn shared_write_children_restrict_locally_without_narrowing_peer_reads_or_writes() {
+        let root = PinnedSqliteIoBudget::new(1, 20).unwrap();
+        let a =
+            PinnedSqliteIoBudget::new_with_shared_write_authority(10, 20, root.clone()).unwrap();
+        let b =
+            PinnedSqliteIoBudget::new_with_shared_write_authority(10, 20, root.clone()).unwrap();
+        a.restrict_remaining_io(0, 0).unwrap();
+        b.charge_read(10).unwrap();
+        b.record_read_returned(10).unwrap();
+        b.charge_write(20).unwrap();
+        b.record_write_returned(20).unwrap();
+        assert_eq!(a.snapshot().read_attempted_bytes, 0);
+        assert_eq!(a.snapshot().write_attempted_bytes, 0);
+        assert_eq!(b.snapshot().read_returned_bytes, 10);
+        assert_eq!(root.snapshot().read_attempted_bytes, 0);
+        assert_eq!(root.snapshot().write_returned_bytes, 20);
+    }
+
+    #[test]
+    fn local_write_refusal_never_grants_aggregate_permits_or_borrows_peer_returns() {
+        let root = PinnedSqliteIoBudget::new(1, 20).unwrap();
+        let a = PinnedSqliteIoBudget::new_with_shared_write_authority(10, 3, root.clone()).unwrap();
+        let b =
+            PinnedSqliteIoBudget::new_with_shared_write_authority(10, 20, root.clone()).unwrap();
+        b.charge_write(5).unwrap();
+        assert!(a.charge_write(4).is_err());
+        assert_eq!(root.snapshot().write_attempted_bytes, 9);
+        assert_eq!(root.snapshot().write_permitted_bytes, 5);
+        assert_eq!(a.snapshot().write_permitted_bytes, 0);
+        assert!(a.record_write_returned(1).is_err());
+        assert_eq!(root.snapshot().write_returned_bytes, 0);
+        b.record_write_returned(5).unwrap();
+        assert_eq!(root.snapshot().write_returned_bytes, 5);
+        assert!(b.charge_write(1).is_err());
+    }
+
+    #[test]
+    fn shared_write_authority_rejects_children_as_roots_and_distinguishes_equal_pools() {
+        let root = PinnedSqliteIoBudget::new(1, 10).unwrap();
+        let other_root = PinnedSqliteIoBudget::new(1, 10).unwrap();
+        let child = PinnedSqliteIoBudget::new_with_shared_write_authority(10, 10, root).unwrap();
+        assert!(!child.shares_write_authority_with(&other_root));
+        assert!(PinnedSqliteIoBudget::new_with_shared_write_authority(10, 10, child).is_err());
+        assert!(
+            PinnedSqliteIoBudget::new_with_shared_write_authority(
+                10,
+                10,
+                PinnedSqliteIoBudget::new_read_only(10).unwrap(),
+            )
+            .is_err()
+        );
+    }
 
     #[test]
     fn guard_upper_shares_ceiling_without_becoming_payload() {

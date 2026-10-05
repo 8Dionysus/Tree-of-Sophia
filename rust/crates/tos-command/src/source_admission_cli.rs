@@ -1064,7 +1064,7 @@ fn run_spooled(
         }
         Err(error) => {
             let primary_phase = phase.get();
-            let primary_io = resources.request.io_budget.snapshot();
+            let primary_io = validator.spooled_invocation_io_snapshot();
             // Record attempted shared-ledger IO even on parse, identity, base,
             // native-kernel or publication refusal. Cleanup is exact and
             // empty-only; a replaced/nonempty workspace remains untouched.
@@ -1148,11 +1148,18 @@ fn run_spooled(
                     error,
                 ));
             }
+            let terminal_io = validator.spooled_invocation_io_snapshot();
+            let (primary_io, terminal_io) = match (primary_io, terminal_io) {
+                (Ok(primary), Ok(terminal)) => (primary, terminal),
+                // Mandatory accounting and cleanup above still run. Preserve
+                // the primary cause; never label a partial census as exact.
+                _ => return Err(error),
+            };
             let refusal = NativeSpoolRefusal::retain(
                 error,
                 primary_phase,
                 primary_io,
-                resources.request.io_budget.snapshot(),
+                terminal_io,
                 accounting.is_err(),
                 cleanup.is_err(),
             );
