@@ -627,7 +627,7 @@
         "max_tokens": 1600,
         "surfaces": [
           "kag/AGENTS.md",
-          "kag/manifest.json"
+          "kag/provider-template.json"
         ]
       },
       "public_safety": {
@@ -1172,17 +1172,17 @@
     },
     {
       "id": "kag_provider_route",
-      "owner": "kag/manifest.json",
+      "owner": "kag/provider-template.json",
       "strength": "tool",
       "family_id": "kag",
-      "family_owner": "kag/AGENTS.md, kag/manifest.json, and aoa-kag"
+      "family_owner": "kag/AGENTS.md, kag/provider-template.json, and aoa-kag"
     },
     {
       "id": "kag_source_return",
       "owner": "ToS/derived-exports/",
       "strength": "authored",
       "family_id": "kag",
-      "family_owner": "kag/AGENTS.md, kag/manifest.json, and aoa-kag"
+      "family_owner": "kag/AGENTS.md, kag/provider-template.json, and aoa-kag"
     },
     {
       "id": "mechanics_operation",
@@ -1276,7 +1276,7 @@
     {
       "id": "aoa-kag",
       "owner": "aoa-kag",
-      "handle": "kag/manifest.json",
+      "handle": "kag/provider-template.json",
       "role": "registry/composition and MCP consumer",
       "authority": "stronger external owner"
     },
@@ -1362,8 +1362,7 @@
     {
       "id": "public_entry",
       "surfaces": [
-        "ToS/zarathustra/public-entry/TINY_ENTRY_ROUTE.md",
-        "ToS/derived-exports/root_entry_map.min.json"
+        "ToS/zarathustra/public-entry/TINY_ENTRY_ROUTE.md"
       ],
       "measure": "sum",
       "max_tokens": 1200

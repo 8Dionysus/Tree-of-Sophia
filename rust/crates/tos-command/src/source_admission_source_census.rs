@@ -327,7 +327,7 @@ fn open_named_directory(
             .checked_add(component.len())
             .ok_or_else(|| invalid("source filesystem census path index overflow"))?;
         let prefix = &relative[..end];
-        if !super::source_foundation_capture::selected(prefix, true) {
+        if !super::source_current_cut::foundation_capture::selected(prefix, true) {
             return Err(invalid(
                 "source filesystem census directory is outside selection",
             ));
@@ -558,8 +558,12 @@ fn visit_directory(
         let name_os = entry.file_name();
         let name = name_os
             .to_str()
-            .filter(|name| !name.is_empty() && name.len() <= 255)
-            .ok_or_else(|| invalid("source filesystem census child name is not bounded UTF-8"))?;
+            .map_err(|_| invalid("source filesystem census child name is not bounded UTF-8"))?;
+        if name.is_empty() || name.len() > 255 {
+            return Err(invalid(
+                "source filesystem census child name is not bounded UTF-8",
+            ));
+        }
         if name == "." || name == ".." {
             continue;
         }
@@ -575,7 +579,7 @@ fn visit_directory(
         let entry_stat = rustix::fs::statat(&directory, name, AtFlags::SYMLINK_NOFOLLOW)?;
         let entry_type = FileType::from_raw_mode(entry_stat.st_mode);
         if entry_type.is_dir() {
-            if super::source_foundation_capture::selected(&child_path, true) {
+            if super::source_current_cut::foundation_capture::selected(&child_path, true) {
                 let child_depth = depth
                     .checked_add(1)
                     .ok_or_else(|| invalid("source filesystem census depth overflow"))?;
@@ -618,7 +622,7 @@ fn visit_directory(
                 )?;
             }
         } else if entry_type.is_file() {
-            if super::source_foundation_capture::selected(&child_path, false) {
+            if super::source_current_cut::foundation_capture::selected(&child_path, false) {
                 let declared_size = u64::try_from(entry_stat.st_size)
                     .map_err(|_| invalid("source filesystem census member size is negative"))?;
                 if declared_size > limits.max_member_bytes {
@@ -701,8 +705,8 @@ fn visit_directory(
                 counters.member_count = next_member_count;
                 counters.source_bytes = next_source_bytes;
             }
-        } else if super::source_foundation_capture::selected(&child_path, false)
-            || super::source_foundation_capture::selected(&child_path, true)
+        } else if super::source_current_cut::foundation_capture::selected(&child_path, false)
+            || super::source_current_cut::foundation_capture::selected(&child_path, true)
         {
             return Err(invalid(
                 "source filesystem census selected non-regular entry",
@@ -803,7 +807,7 @@ fn digest_rows(
             let size: i64 = row.get(2).map_err(sql)?;
             let mode: i64 = row.get(3).map_err(sql)?;
             if path.len() > limits.max_path_bytes
-                || !super::source_foundation_capture::selected(&path, false)
+                || !super::source_current_cut::foundation_capture::selected(&path, false)
             {
                 return Err(invalid(
                     "source filesystem census stored path is not selected",
@@ -892,7 +896,7 @@ fn census_inner(
     charge_name(io, &mut summary.metadata_read_upper_bytes, ROOT_RELATIVE)?;
     let root_stat = rustix::fs::statat(repo_root, ROOT_RELATIVE, AtFlags::SYMLINK_NOFOLLOW)?;
     if !FileType::from_raw_mode(root_stat.st_mode).is_dir()
-        || !super::source_foundation_capture::selected(ROOT_RELATIVE, true)
+        || !super::source_current_cut::foundation_capture::selected(ROOT_RELATIVE, true)
     {
         return Err(invalid("source filesystem census ToS root is not selected"));
     }
@@ -991,7 +995,7 @@ fn census_inner(
             ));
         }
         if queued.depth > limits.max_depth
-            || !super::source_foundation_capture::selected(&queued.path, true)
+            || !super::source_current_cut::foundation_capture::selected(&queued.path, true)
         {
             return Err(invalid(
                 "source filesystem census queued directory is invalid",

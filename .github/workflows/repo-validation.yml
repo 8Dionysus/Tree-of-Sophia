@@ -9,6 +9,11 @@ on:
 permissions:
   contents: read
 
+# One native CI profile for owner binaries, same-run executors and test consumers.
+env:
+  CARGO_PROFILE_DEV_DEBUG: "0"
+  CARGO_PROFILE_TEST_DEBUG: "0"
+
 concurrency:
   group: repo-validation-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true

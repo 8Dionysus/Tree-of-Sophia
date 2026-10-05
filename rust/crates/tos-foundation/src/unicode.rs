@@ -405,6 +405,171 @@ pub fn python_casefold_unicode16_v1(
     Ok(output)
 }
 
+/// The same context-free Unicode16 C+F mapping under the original caller
+/// state/work/cutoff. Before entry caller holds the shared Unicode diagnostic
+/// floor outside `available_state_bytes`, and its callback target/controller.
+/// No input vector is allocated. Count and emit use the same table visitor;
+/// each scalar/comparison/output-copy is checked before work, including empty.
+pub fn python_casefold_unicode16_v1_with_state_budget_and_check(
+    input: &str,
+    max_input_code_points: usize,
+    max_output_code_points: usize,
+    max_output_bytes: usize,
+    available_state_bytes: usize,
+    check: &mut dyn FnMut() -> Result<()>,
+) -> Result<String> {
+    let fixed = casefold_fixed_state();
+    if fixed > available_state_bytes {
+        return Err(budget_error("Unicode controller state budget exceeded"));
+    }
+    let (_, counted_bytes) = casefold_visit(
+        input,
+        max_input_code_points,
+        max_output_code_points,
+        max_output_bytes,
+        check,
+        &mut |_| Ok(()),
+    )?;
+    fixed
+        .checked_add(counted_bytes)
+        .filter(|n| *n <= available_state_bytes)
+        .ok_or_else(|| budget_error("Unicode output workspace exceeded"))?;
+    check()?;
+    let mut output = String::new();
+    output
+        .try_reserve_exact(counted_bytes)
+        .map_err(|_| budget_error("Unicode exact output reserve failed"))?;
+    if output.capacity() != counted_bytes {
+        return Err(budget_error("Unicode exact output capacity differs"));
+    }
+    let (_, emitted_bytes) = casefold_visit(
+        input,
+        max_input_code_points,
+        max_output_code_points,
+        max_output_bytes,
+        check,
+        &mut |piece| {
+            output.push_str(piece);
+            Ok(())
+        },
+    )?;
+    if emitted_bytes != counted_bytes || output.len() != counted_bytes {
+        return Err(budget_error("Unicode counted/emitted output differs"));
+    }
+    check()?;
+    Ok(output)
+}
+
+/// Same diagnostic owner as checked lowercase; all casefold static labels
+/// are members of that finite list. It is caller-held even on zero workspace.
+pub fn python_casefold_unicode16_v1_error_state_upper_bound() -> usize {
+    python_lower_unicode16_v1_error_state_upper_bound()
+}
+
+/// Typed simultaneously live helper controllers plus exact UTF-8 output.
+/// Caller input, check target, error floor and enclosing frames stay separate.
+pub fn python_casefold_unicode16_v1_fixed_state_upper_bound() -> usize {
+    casefold_fixed_state()
+}
+fn casefold_fixed_state() -> usize {
+    let main = std::mem::size_of::<String>()
+        + std::mem::size_of::<&str>()
+        + std::mem::size_of::<&mut dyn FnMut() -> Result<()>>()
+        + std::mem::size_of::<&mut String>()
+        + std::mem::size_of::<(usize, usize, usize, usize, usize, usize, usize)>()
+        + std::mem::size_of::<(usize, usize)>()
+        + std::mem::size_of::<Result<String>>()
+        + std::mem::size_of::<Result<(usize, usize)>>();
+    let visit = std::mem::size_of::<&str>()
+        + std::mem::size_of::<std::str::Chars<'_>>() * 2
+        + std::mem::size_of::<&mut dyn FnMut() -> Result<()>>()
+        + std::mem::size_of::<&mut dyn FnMut(&str) -> Result<()>>()
+        + std::mem::size_of::<(
+            usize,
+            usize,
+            usize,
+            usize,
+            usize,
+            usize,
+            usize,
+            usize,
+            usize,
+        )>()
+        + std::mem::size_of::<std::ops::Range<usize>>()
+        + std::mem::size_of::<(u32, &str)>()
+        + std::mem::size_of::<char>()
+        + std::mem::size_of::<u32>()
+        + std::mem::size_of::<Option<&str>>()
+        + std::mem::size_of::<&str>()
+        + std::mem::size_of::<[u8; 4]>()
+        + std::mem::size_of::<Result<()>>()
+        + std::mem::size_of::<Result<(usize, usize)>>();
+    main + visit
+}
+fn casefold_visit(
+    input: &str,
+    max_input: usize,
+    max_points: usize,
+    max_bytes: usize,
+    check: &mut dyn FnMut() -> Result<()>,
+    emit: &mut dyn FnMut(&str) -> Result<()>,
+) -> Result<(usize, usize)> {
+    let (mut input_points, mut points, mut bytes) = (0usize, 0usize, 0usize);
+    let mut input_scalars = input.chars();
+    loop {
+        check()?;
+        let Some(ch) = input_scalars.next() else {
+            break;
+        };
+        input_points = input_points
+            .checked_add(1)
+            .filter(|n| *n <= max_input)
+            .ok_or_else(|| budget_error("Unicode input code-point budget exceeded"))?;
+        let point = ch as u32;
+        let (mut low, mut high, mut mapped) = (0, CASEFOLD.len(), None);
+        while low < high {
+            check()?;
+            let middle = low + (high - low) / 2;
+            let (key, value) = CASEFOLD[middle];
+            if point < key {
+                high = middle;
+            } else if point > key {
+                low = middle + 1;
+            } else {
+                mapped = Some(value);
+                break;
+            }
+        }
+        let mut scalar = [0u8; 4];
+        let piece = match mapped {
+            Some(value) => value,
+            None => ch.encode_utf8(&mut scalar),
+        };
+        let mut output_scalars = piece.chars();
+        loop {
+            check()?;
+            let Some(_) = output_scalars.next() else {
+                break;
+            };
+            points = points
+                .checked_add(1)
+                .filter(|n| *n <= max_points)
+                .ok_or_else(|| budget_error("Unicode output code-point budget exceeded"))?;
+        }
+        bytes = bytes
+            .checked_add(piece.len())
+            .filter(|n| *n <= max_bytes)
+            .ok_or_else(|| budget_error("Unicode output budget exceeded"))?;
+        // Copy work is UTF-8 bytes, distinct from mapped-scalar/table work.
+        for _ in 0..piece.len() {
+            check()?;
+        }
+        emit(piece)?;
+    }
+    check()?;
+    Ok((points, bytes))
+}
+
 fn check_input(input: &str, max_code_points: usize) -> Result<()> {
     if input.chars().count() > max_code_points {
         return Err(budget_error("Unicode input code-point budget exceeded"));

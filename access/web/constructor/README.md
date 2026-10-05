@@ -107,6 +107,18 @@ and archival records. [FRAGMENTS.md](FRAGMENTS.md) describes the complete-unit
 reader, its build inputs and the distinction between text checks and rights
 assessment. A private-library build alone is not a recording edition.
 
+The two Python names are compatibility launchers for the native
+`tos-constructor-library` and `tos-constructor-fragments` products. Their
+existing source selections and output options belong to those Rust producers;
+`TOS_CONSTRUCTOR_LIBRARY_BIN` and `TOS_CONSTRUCTOR_FRAGMENTS_BIN` can select an
+explicit matched executable. Normal delivery requires the named products admitted into
+the software prefix's `bin/`; selecting a binary does not select source data
+or authorize publication. The authored inquiry and guided-walk files retain
+their wording; their bilingual coverage, textual grounds and prepared route
+binding execute through `constructor_reading_wasm_v1` after the main browser
+entry initializes its generated WASM.
+
+
 **Reading / Чтение** opens the [research reader](../src/reader/README.md).
 It provides a fragment library, text search, independent translation columns,
 reading preferences, version-specific bookmarks and a personal notebook.

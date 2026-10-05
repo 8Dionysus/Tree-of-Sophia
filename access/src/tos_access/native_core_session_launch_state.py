@@ -44,10 +44,11 @@ def reserve_sdk_launch(state, config, prefix, root, *, session_operation='tos_na
     # Nine concrete controller kinds above; two simultaneous dictionary
     # tables bound each resize. Three generator-context instances are live.
     instance_state = (9 + 2) * 2 * g.dict_bytes(names)
-    # Initial issuer argv <=21 and consumer argv17; direct parent flags add5.
+    # Original43 argv entries plus four authenticated setup-AS selectors.
+    # Existing routes retain the conservative47-slot forecast.
     # Three simultaneous source/native/Popen argument lists and exact C argv
     # pointer/descriptor arrays coexist before successful exec.
-    count = 43
+    count = 47
     argument_state = 3 * g.list_bytes(count) + (count + 1) * g.pointer + 16 * 4
     # Six selected paths have original4096-byte bound. Their cached strings are
     # caller-owned; newly formatted argument/label and encoded exec byte values
@@ -69,7 +70,7 @@ def reserve_sdk_launch(state, config, prefix, root, *, session_operation='tos_na
             raise ValueError('native launcher original path cap differs')
         argument_state += (2 * g.unicode_bytes(characters + 64)
                            + 2 * (g.bytes_base + 4 * (characters + 64)))
-    argument_state += 8 * (g.unicode_bytes(20) + g.bytes_base + 20)
+    argument_state += 10 * (g.unicode_bytes(20) + g.bytes_base + 20)
     # Popen's _fork_exec preparation encodes borrowed static argv literals
     # too. Price each actual source constant independently, not inside frame
     # scalar scratch; the direct launcher constants form a conservative owned

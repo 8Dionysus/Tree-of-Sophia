@@ -40,6 +40,7 @@ const LANGUAGE_PACKETS_ROOT: &str = "ToS/philosophy/graph-workbench/language-pac
 const BRANCH_FRAGMENTS_ROOT: &str = "ToS/philosophy/graph-workbench/branch-fragments";
 const PROMOTION_LEDGER_ROOT: &str = "ToS/philosophy/graph-workbench/promotion-ledger";
 const PHILOSOPHY_TREE: &str = "ToS/philosophy";
+const RESEARCH_DOSSIER_OUTPUT_DIR: &str = "ToS/research-packets/deep-research/philosophy/dossiers";
 const OUTPUT_MODE: u32 = 0o644;
 const FILE_CAP: u64 = 256 * 1024 * 1024;
 const JSON_CAP: usize = 256 * 1024 * 1024;
@@ -283,6 +284,81 @@ fn refs_for(table_id: &str, package: &Value) -> Result<PreparedDossierPackageRef
         ),
         promotion_ledger: format!("{PROMOTION_LEDGER_ROOT}/{table_id}-prepared-dossiers.md"),
     })
+}
+
+fn configured_research_dossier_outputs(
+    assessment: &ReadinessAssessment,
+) -> Result<BTreeSet<String>, String> {
+    let parent = Path::new(RESEARCH_DOSSIER_OUTPUT_DIR);
+    let mut references = BTreeSet::new();
+    for table_id in &assessment.supported_table_ids {
+        let package = assessment
+            .package_configs
+            .get(table_id)
+            .ok_or_else(|| format!("readiness package config missing: {table_id}"))?;
+        let refs = refs_for(table_id, package)?;
+        for reference in [refs.intake_manifest, refs.extraction_coverage] {
+            let path = checked_reference(&reference)?;
+            let canonical_reference = format!(
+                "{RESEARCH_DOSSIER_OUTPUT_DIR}/{}",
+                path.file_name()
+                    .and_then(OsStr::to_str)
+                    .ok_or_else(|| format!(
+                        "configured research dossier output has no UTF-8 leaf: {reference}"
+                    ))?
+            );
+            if reference != canonical_reference || path.parent() != Some(parent) {
+                return Err(format!(
+                    "configured research dossier output escaped its exact owner directory: {reference}"
+                ));
+            }
+            if !references.insert(reference.clone()) {
+                return Err(format!(
+                    "duplicate configured research dossier output: {reference}"
+                ));
+            }
+        }
+    }
+    if references.len() != 6 {
+        return Err(format!(
+            "expected exactly six configured research dossier outputs, found {}",
+            references.len()
+        ));
+    }
+    Ok(references)
+}
+
+fn record_research_dossier_parent_fences(
+    selected: &ResearchExecution,
+    references: &BTreeSet<String>,
+    fences: &mut DirectoryFences,
+) -> Result<(), String> {
+    if references.len() != 6 {
+        return Err(
+            "research dossier output fences require the exact six configured leaves".into(),
+        );
+    }
+    let mut current = String::new();
+    for component in Path::new(RESEARCH_DOSSIER_OUTPUT_DIR).components() {
+        let Component::Normal(name) = component else {
+            return Err("invalid research dossier output directory".into());
+        };
+        if !current.is_empty() {
+            current.push('/');
+        }
+        current.push_str(
+            name.to_str()
+                .ok_or("research dossier output directory is not UTF-8")?,
+        );
+        let absolute = selected.root().join(&current);
+        let (status, _) = record_directory(selected, &absolute, fences)?;
+        if status != PreparedDossierDirectoryStatus::Present {
+            return Err(format!(
+                "research dossier output parent is missing: {current}"
+            ));
+        }
+    }
+    Ok(())
 }
 
 fn descriptor_open_directory(
@@ -780,14 +856,24 @@ fn record_written_output(
     fences: &mut DirectoryFences,
     reference: &str,
     was_absent: bool,
+    research_outputs: &BTreeSet<String>,
 ) -> Result<(), String> {
     if !was_absent {
         return Ok(());
     }
-    let prefix = format!("{PHILOSOPHY_TREE}/");
+    let fence_root = if reference.starts_with(&format!("{PHILOSOPHY_TREE}/")) {
+        PHILOSOPHY_TREE
+    } else if research_outputs.contains(reference) {
+        RESEARCH_DOSSIER_OUTPUT_DIR
+    } else {
+        return Err(format!(
+            "planned output escaped its exact fenced roots: {reference}"
+        ));
+    };
+    let prefix = format!("{fence_root}/");
     let suffix = reference
         .strip_prefix(&prefix)
-        .ok_or_else(|| format!("planned output escaped philosophy tree: {reference}"))?;
+        .ok_or_else(|| format!("planned output is outside its fenced root: {reference}"))?;
     let path = Path::new(suffix);
     let components = path
         .components()
@@ -802,10 +888,12 @@ fn record_written_output(
     if components.is_empty() {
         return Err(format!("planned output has no leaf: {reference}"));
     }
-    let mut directory_ref = PHILOSOPHY_TREE.to_owned();
+    let mut directory_ref = fence_root.to_owned();
     let root_path = fence_path(target, &directory_ref);
     if !fences.0.contains_key(&root_path) {
-        return Err("philosophy tree root was not source-inventoried".into());
+        return Err(format!(
+            "output root was not source-inventoried: {fence_root}"
+        ));
     }
     for name in &components[..components.len() - 1] {
         let child_ref = format!("{directory_ref}/{name}");
@@ -1938,9 +2026,11 @@ pub fn run_native(
             size_bytes: pin.size_bytes,
         })
         .collect::<Vec<_>>();
+    let research_output_refs = configured_research_dossier_outputs(&assessment)?;
     let (tree, target_pins) = load_target_tree(&target, inputs.source_profile)?;
     let prehashed_obsolete_stamps = tree.obsolete_file_stamps.clone().unwrap_or_default();
     let mut target_fences = tree.directories.clone();
+    record_research_dossier_parent_fences(&target, &research_output_refs, &mut target_fences)?;
     source_pins.extend(target_pins);
     readiness_execution.verify_doc_fences()?;
     verify_directory_fences(&target, &target_fences)?;
@@ -1960,12 +2050,23 @@ pub fn run_native(
         &multilingual,
         &mut check,
     )?;
-    if plan
+    let planned_research_outputs = plan
         .outputs
         .iter()
-        .any(|output| !output.reference.starts_with(&format!("{PHILOSOPHY_TREE}/")))
+        .filter(|output| research_output_refs.contains(&output.reference))
+        .map(|output| output.reference.clone())
+        .collect::<Vec<_>>();
+    if plan.outputs.iter().any(|output| {
+        !output.reference.starts_with(&format!("{PHILOSOPHY_TREE}/"))
+            && !research_output_refs.contains(&output.reference)
+    }) || planned_research_outputs.len() != research_output_refs.len()
+        || planned_research_outputs
+            .iter()
+            .cloned()
+            .collect::<BTreeSet<_>>()
+            != research_output_refs
     {
-        return Err("prepared-dossier output escaped the source-owned philosophy tree".into());
+        return Err("prepared-dossier output escaped the philosophy tree and exact configured research dossier leaves".into());
     }
     let mut source_pin_inputs = BTreeMap::new();
     for pin in &plan.source_preimages {
@@ -2063,7 +2164,13 @@ pub fn run_native(
         target
             .write(&output.reference, &output.bytes, output_mode, was_absent)
             .map_err(|error| format!("write {}: {error}", output.reference))?;
-        record_written_output(&target, &mut target_fences, &output.reference, was_absent)?;
+        record_written_output(
+            &target,
+            &mut target_fences,
+            &output.reference,
+            was_absent,
+            &research_output_refs,
+        )?;
         if let Some(pin) = replacement_pin {
             let stamp = capture_written_stamp(
                 &target,

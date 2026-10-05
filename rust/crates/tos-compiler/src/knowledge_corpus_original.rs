@@ -1,7 +1,9 @@
 //! Named original corpus projection custody. Capture identity is distinct from
 //! authored-source identity; neither projection custody nor selection admits it.
 use crate::knowledge_selected::{ColdOpenLimits, KnowledgeSelectedExpectation};
-use crate::knowledge_stage::{KnowledgeStage, WritePhase, KnowledgePayloadLayout, KNOWLEDGE_CARRIER_ONCE_MODEL_ABI};
+use crate::knowledge_stage::{
+    KNOWLEDGE_CARRIER_ONCE_MODEL_ABI, KnowledgePayloadLayout, KnowledgeStage, WritePhase,
+};
 use crate::{Error, QueryVocabulary, Result, SourceBinding};
 use rusqlite::{Connection, OptionalExtension, params, params_from_iter};
 use serde_json::Value;
@@ -257,8 +259,76 @@ fn values(raw: &[u8], cap: usize) -> Result<Value> {
     serde_json::from_slice(raw).map_err(|_| Error::Invalid("corpus original JSON"))
 }
 pub(crate) fn component_root(r: &CorpusOriginalReceipt) -> Result<String> {
+    component_root_with_state(r, None)
+}
+pub(crate) fn component_root_with_state(
+    r: &CorpusOriginalReceipt,
+    state: Option<&crate::d1_public_capture::CreationState<'_>>,
+) -> Result<String> {
+    if let Some(state) = state {
+        if r.origin.native_producer.is_some() {
+            return Err(Error::Invalid("controlled captured corpus origin required"));
+        }
+        let mut upper = std::mem::size_of::<CorpusOriginalReceipt>();
+        for value in [
+            &r.profile,
+            &r.descriptor_sha256,
+            &r.source_cut,
+            &r.membership_root,
+            &r.header_sha256,
+            &r.component_root_sha256,
+            &r.origin.profile,
+            &r.origin.source_path,
+            &r.origin.source_sha256,
+            &r.origin.member_root_sha256,
+        ] {
+            upper = upper
+                .checked_add(value.len())
+                .ok_or(Error::Budget("owned corpus receipt strings"))?;
+        }
+        for value in [
+            &r.origin.source_git_commit,
+            &r.origin.source_git_tree,
+            &r.origin.capture_manifest_sha256,
+        ]
+        .into_iter()
+        .flatten()
+        {
+            upper = upper
+                .checked_add(value.len())
+                .ok_or(Error::Budget("owned corpus receipt optional strings"))?;
+        }
+        for member in &r.origin.members {
+            upper = upper
+                .checked_add(std::mem::size_of::<CorpusOriginalMember>())
+                .and_then(|n| n.checked_add(member.path.len()))
+                .and_then(|n| n.checked_add(member.sha256.len()))
+                .ok_or(Error::Budget("owned corpus receipt members"))?;
+        }
+        for collection in &r.collections {
+            upper = upper
+                .checked_add(std::mem::size_of::<CorpusOriginalCollectionReceipt>())
+                .and_then(|n| n.checked_add(collection.collection.len()))
+                .and_then(|n| n.checked_add(collection.ordered_root_sha256.len()))
+                .ok_or(Error::Budget("owned corpus receipt collections"))?;
+        }
+        state.retain(upper)?;
+    }
     let mut body = r.clone();
     body.component_root_sha256.clear();
+    if let Some(state) = state {
+        return state.with_json_encoded(&body, JsonLimits::default().max_bytes, |raw| {
+            let document = state.json(raw, JsonLimits::default().max_bytes)?;
+            state.with_foundation_canonical_bytes(&document, JsonLimits::default(), |canonical| {
+                state.charge_work(canonical.len())?;
+                state.retain(64)?;
+                let mut h = Digest256Hasher::new();
+                h.update(b"tos-corpus-original-component-v1\0");
+                h.update(canonical);
+                Ok(h.finalize().to_hex())
+            })
+        });
+    }
     let raw = serde_json::to_vec(&body)
         .map_err(|_| Error::Invalid("corpus original receipt encoding"))?;
     let l = JsonLimits::default();
@@ -298,11 +368,33 @@ pub fn captured_runtime_input_manifest_digest(
 }
 
 pub(crate) fn validate_receipt(r: &CorpusOriginalReceipt) -> Result<()> {
+    validate_receipt_with_state(r, None)
+}
+pub(crate) fn validate_receipt_with_state(
+    r: &CorpusOriginalReceipt,
+    state: Option<&crate::d1_public_capture::CreationState<'_>>,
+) -> Result<()> {
+    if let Some(state) = state {
+        let max_path = r
+            .origin
+            .members
+            .iter()
+            .map(|member| member.path.len())
+            .chain(std::iter::once(r.origin.source_path.len()))
+            .max()
+            .unwrap_or(0);
+        state.retain(
+            max_path
+                .checked_mul(1 + std::mem::size_of::<String>())
+                .and_then(|n| n.checked_add(64))
+                .ok_or(Error::Budget("owned corpus validation paths"))?,
+        )?;
+    }
     if ![CORPUS_ORIGINAL_PROFILE, NATIVE_CORPUS_ORIGINAL_PROFILE].contains(&r.profile.as_str())
         || r.collections.len() != CorpusOriginalCollection::ROWS.len()
         || r.total_bytes == 0
         || r.total_bytes > crate::knowledge_original_rows::MAX_TOTAL_BYTES
-        || component_root(r)? != r.component_root_sha256
+        || component_root_with_state(r, state)? != r.component_root_sha256
     {
         return Err(Error::Invalid("corpus original receipt profile/root"));
     }
@@ -351,6 +443,21 @@ pub(crate) fn validate_receipt(r: &CorpusOriginalReceipt) -> Result<()> {
         {
             return Err(Error::Invalid("mixed runtime corpus capture origin"));
         }
+        if let Some(state) = state {
+            let mut upper =
+                crate::knowledge_normalization::serde_object_slots_upper(r.origin.members.len())?;
+            for member in &r.origin.members {
+                upper = upper
+                    .checked_add(member.path.len())
+                    .and_then(|n| n.checked_add(member.sha256.len()))
+                    .ok_or(Error::Budget("owned corpus validation manifest strings"))?;
+            }
+            state.retain(
+                upper
+                    .checked_add(64)
+                    .ok_or(Error::Budget("owned corpus validation manifest"))?,
+            )?;
+        }
         let mut entries = serde_json::Map::new();
         for member in &r.origin.members {
             if entries
@@ -360,10 +467,13 @@ pub(crate) fn validate_receipt(r: &CorpusOriginalReceipt) -> Result<()> {
                 return Err(Error::Invalid("duplicate runtime corpus member"));
             }
         }
-        let digest = captured_runtime_input_manifest_digest(
-            &Value::Object(entries),
-            crate::knowledge_original_rows::MAX_TOTAL_BYTES as usize,
-        )?;
+        let entries = Value::Object(entries);
+        let cap = crate::knowledge_original_rows::MAX_TOTAL_BYTES as usize;
+        let digest = if let Some(state) = state {
+            Digest256::of_bytes(&state.encode_canonical(&entries, cap)?)
+        } else {
+            captured_runtime_input_manifest_digest(&entries, cap)?
+        };
         if r.origin.capture_manifest_sha256.as_deref() != Some(digest.to_hex().as_str()) {
             return Err(Error::Invalid("runtime corpus capture manifest SHA"));
         }
@@ -466,17 +576,30 @@ pub(crate) fn insert_original_row(
 /// Same indexed semantic row, with exact packet bytes already retained by
 /// the Stage carrier owner before the metadata transaction starts.
 pub(crate) fn insert_original_row_with_layout(
-    insert: &mut rusqlite::Statement<'_>, collection: CorpusOriginalCollection,
-    ordinal: u64, raw: &[u8], layout: KnowledgePayloadLayout,
+    insert: &mut rusqlite::Statement<'_>,
+    collection: CorpusOriginalCollection,
+    ordinal: u64,
+    raw: &[u8],
+    layout: KnowledgePayloadLayout,
 ) -> Result<()> {
     if layout == KnowledgePayloadLayout::InlineV1 {
         return insert_original_row(insert, collection, ordinal, raw);
     }
     let value = values(raw, crate::knowledge_original_rows::MAX_ROW_BYTES)?;
     let fields = indexed_fields(collection, &value)?;
-    insert.execute(params![collection.as_str(), ordinal as i64, raw.len() as i64,
-        Digest256::of_bytes(raw).as_bytes().as_slice(), fields[0], fields[1], fields[2],
-        fields[3], fields[4], fields[5], fields[6]])?;
+    insert.execute(params![
+        collection.as_str(),
+        ordinal as i64,
+        raw.len() as i64,
+        Digest256::of_bytes(raw).as_bytes().as_slice(),
+        fields[0],
+        fields[1],
+        fields[2],
+        fields[3],
+        fields[4],
+        fields[5],
+        fields[6]
+    ])?;
     Ok(())
 }
 /// Exact physical metadata size; packet bytes belong to the carrier owner.
@@ -484,17 +607,22 @@ pub(crate) fn insert_original_row_with_layout(
 /// and insertion digest pass before this planning traversal (carrier hash and
 /// collision comparison are charged separately by the carrier primitive).
 pub(crate) fn preload_original_carrier(
-    stage: &mut KnowledgeStage<'_>, collection: CorpusOriginalCollection, raw: &[u8],
+    stage: &mut KnowledgeStage<'_>,
+    collection: CorpusOriginalCollection,
+    raw: &[u8],
 ) -> Result<u64> {
-    let work = (raw.len() as u64).checked_mul(5)
+    let work = (raw.len() as u64)
+        .checked_mul(5)
         .ok_or(Error::Budget("corpus carrier metadata work"))?;
     stage.charge_preparation_work(work)?;
     let value = values(raw, crate::knowledge_original_rows::MAX_ROW_BYTES)?;
     let fields = indexed_fields(collection, &value)?;
-    let mut bytes = 48u64.checked_add(collection.as_str().len() as u64)
+    let mut bytes = 48u64
+        .checked_add(collection.as_str().len() as u64)
         .ok_or(Error::Budget("corpus carrier metadata bytes"))?;
     for field in fields.into_iter().flatten() {
-        bytes = bytes.checked_add(field.len() as u64)
+        bytes = bytes
+            .checked_add(field.len() as u64)
             .ok_or(Error::Budget("corpus carrier metadata bytes"))?;
     }
     stage.retain_exact_source_carrier(raw)?;
@@ -536,21 +664,33 @@ pub fn retain_corpus_original(
             .ok_or(Error::Budget("corpus original row count"))?;
         let layout = stage.payload_layout();
         let physical_bytes = if layout == KnowledgePayloadLayout::CarrierOnceV1 {
-            let mut bytes = preload_original_carrier(stage, CorpusOriginalCollection::Header, &plan.header)?;
+            let mut bytes =
+                preload_original_carrier(stage, CorpusOriginalCollection::Header, &plan.header)?;
             for (collection, packets) in &plan.rows {
                 for packet in packets {
-                    bytes = bytes.checked_add(preload_original_carrier(stage, *collection, packet)?)
+                    bytes = bytes
+                        .checked_add(preload_original_carrier(stage, *collection, packet)?)
                         .ok_or(Error::Budget("corpus carrier metadata total"))?;
                 }
             }
             bytes
-        } else { plan.receipt.total_bytes };
-        stage.charge_materialized(rows + 1, physical_bytes.checked_add(raw.len() as u64)
-            .ok_or(Error::Budget("corpus original materialized bytes"))?)?;
+        } else {
+            plan.receipt.total_bytes
+        };
+        stage.charge_materialized(
+            rows + 1,
+            physical_bytes
+                .checked_add(raw.len() as u64)
+                .ok_or(Error::Budget("corpus original materialized bytes"))?,
+        )?;
         stage.with_connection(WritePhase::Finalize, |db| {
             let tx = db.transaction()?;
             tx.execute_batch(META_DDL)?;
-            tx.execute_batch(if layout == KnowledgePayloadLayout::CarrierOnceV1 { ROW_DDL_CARRIER } else { ROW_DDL })?;
+            tx.execute_batch(if layout == KnowledgePayloadLayout::CarrierOnceV1 {
+                ROW_DDL_CARRIER
+            } else {
+                ROW_DDL
+            })?;
             for (_, ddl) in INDEXES {
                 tx.execute_batch(ddl)?;
             }
@@ -558,13 +698,23 @@ pub fn retain_corpus_original(
                 "INSERT INTO corpus_original_meta VALUES(1,?1)",
                 [raw.as_slice()],
             )?;
-            let mut insert = tx.prepare(if layout == KnowledgePayloadLayout::CarrierOnceV1 { INSERT_ROW_CARRIER } else { INSERT_ROW })?;
+            let mut insert = tx.prepare(if layout == KnowledgePayloadLayout::CarrierOnceV1 {
+                INSERT_ROW_CARRIER
+            } else {
+                INSERT_ROW
+            })?;
             let header = vec![plan.header.clone()];
             for (collection, rows) in std::iter::once((CorpusOriginalCollection::Header, &header))
                 .chain(plan.rows.iter().map(|(c, r)| (*c, r)))
             {
                 for (ordinal, raw) in rows.iter().enumerate() {
-                    insert_original_row_with_layout(&mut insert, collection, ordinal as u64, raw, layout)?;
+                    insert_original_row_with_layout(
+                        &mut insert,
+                        collection,
+                        ordinal as u64,
+                        raw,
+                        layout,
+                    )?;
                 }
             }
             drop(insert);
@@ -588,10 +738,21 @@ pub(crate) fn present(db: &Connection) -> Result<bool> {
 pub(crate) fn verify_ddl(db: &Connection) -> Result<()> {
     verify_ddl_with_layout(db, KnowledgePayloadLayout::InlineV1)
 }
-pub(crate) fn verify_ddl_with_layout(db: &Connection, layout: KnowledgePayloadLayout) -> Result<()> {
+pub(crate) fn verify_ddl_with_layout(
+    db: &Connection,
+    layout: KnowledgePayloadLayout,
+) -> Result<()> {
     for (kind, name, ddl) in [
         ("table", META_TABLE, META_DDL),
-        ("table", ROW_TABLE, if layout == KnowledgePayloadLayout::CarrierOnceV1 { ROW_DDL_CARRIER } else { ROW_DDL }),
+        (
+            "table",
+            ROW_TABLE,
+            if layout == KnowledgePayloadLayout::CarrierOnceV1 {
+                ROW_DDL_CARRIER
+            } else {
+                ROW_DDL
+            },
+        ),
     ]
     .into_iter()
     .chain(INDEXES.into_iter().map(|(n, d)| ("index", n, d)))
@@ -671,7 +832,16 @@ pub(crate) fn page(
     max_row_bytes: usize,
     max_page_bytes: u64,
 ) -> Result<CorpusOriginalPage> {
-    page_with_layout(db, collection, selector, after, max_rows, max_row_bytes, max_page_bytes, KnowledgePayloadLayout::InlineV1)
+    page_with_layout(
+        db,
+        collection,
+        selector,
+        after,
+        max_rows,
+        max_row_bytes,
+        max_page_bytes,
+        KnowledgePayloadLayout::InlineV1,
+    )
 }
 pub(crate) fn page_with_layout(
     db: &Connection,
@@ -706,7 +876,9 @@ pub(crate) fn page_with_layout(
     };
     let carrier_join = if layout == KnowledgePayloadLayout::CarrierOnceV1 {
         " LEFT JOIN knowledge_source_carriers USING(packet_sha256,packet_len)"
-    } else { "" };
+    } else {
+        ""
+    };
     let sql = format!(
         "SELECT ordinal,packet_len,CASE WHEN typeof(packet_sha256)='blob' AND length(packet_sha256)=32 THEN packet_sha256 ELSE NULL END,CASE WHEN typeof(packet)='blob' AND packet_len=length(packet) AND length(packet)<=? THEN packet ELSE NULL END FROM corpus_original_rows{index}{carrier_join} WHERE collection=? AND ordinal>? AND ({where_sql}) ORDER BY ordinal LIMIT ?"
     );
@@ -752,7 +924,15 @@ pub(crate) fn all_row_with_state_budget(
     max_page_bytes: u64,
     available: usize,
 ) -> Result<Option<CorpusOriginalRow>> {
-    all_row_with_state_budget_and_layout(db, collection, after, max_row_bytes, max_page_bytes, available, KnowledgePayloadLayout::InlineV1)
+    all_row_with_state_budget_and_layout(
+        db,
+        collection,
+        after,
+        max_row_bytes,
+        max_page_bytes,
+        available,
+        KnowledgePayloadLayout::InlineV1,
+    )
 }
 pub(crate) fn all_row_with_state_budget_and_layout(
     db: &Connection,
@@ -1062,7 +1242,14 @@ pub(crate) fn verify_stage(
                 [],
                 |r| r.get(0),
             )?;
-            if abi != if layout == KnowledgePayloadLayout::CarrierOnceV1 { KNOWLEDGE_CARRIER_ONCE_MODEL_ABI } else { KNOWLEDGE_CORPUS_MODEL_ABI } || sha != r.descriptor_sha256 {
+            if abi
+                != if layout == KnowledgePayloadLayout::CarrierOnceV1 {
+                    KNOWLEDGE_CARRIER_ONCE_MODEL_ABI
+                } else {
+                    KNOWLEDGE_CORPUS_MODEL_ABI
+                }
+                || sha != r.descriptor_sha256
+            {
                 return Err(Error::Invalid("corpus finish ABI/descriptor"));
             }
         }
@@ -1077,10 +1264,14 @@ pub(crate) fn verify(
 ) -> Result<Option<CorpusOriginalReceipt>> {
     let layout = if e.model_abi == KNOWLEDGE_CARRIER_ONCE_MODEL_ABI {
         KnowledgePayloadLayout::CarrierOnceV1
-    } else { KnowledgePayloadLayout::InlineV1 };
+    } else {
+        KnowledgePayloadLayout::InlineV1
+    };
     let found = present(db)?;
     if found != e.corpus_original_root_sha256.is_some()
-        || found != ([KNOWLEDGE_CORPUS_MODEL_ABI, KNOWLEDGE_CARRIER_ONCE_MODEL_ABI].contains(&e.model_abi.as_str()))
+        || found
+            != ([KNOWLEDGE_CORPUS_MODEL_ABI, KNOWLEDGE_CARRIER_ONCE_MODEL_ABI]
+                .contains(&e.model_abi.as_str()))
     {
         return Err(Error::Invalid("corpus original ABI/expected presence"));
     }

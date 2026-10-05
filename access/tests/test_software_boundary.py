@@ -755,7 +755,7 @@ server.run(transport='streamable-http')
                         expected = reference_core.zarathustra_word_analysis_task(**arguments)
                     content, structured = await server.call_tool('tos_zarathustra_prepare_word_analysis', arguments)
                     assert expected['available'] is False
-                    assert expected['reason'] == 'local source-bound word-analysis provider is not installed'
+                    assert expected['reason'] == 'installed native prefix is required for local word-analysis'
                     assert structured == expected and json.loads(content[0].text) == expected
                 asyncio.run(asyncio.wait_for(consume(), timeout=max(0, whole_deadline-time.monotonic())))
             assert not provider.exists() and not provider.is_symlink()

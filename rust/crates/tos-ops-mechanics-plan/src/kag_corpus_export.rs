@@ -136,15 +136,218 @@ fn inventory(
     }
     Ok(())
 }
+/// Source mechanics shares the original operation clock, including cancellation.
+pub(crate) fn tick(
+    s: &crate::route_cards::RouteSources,
+    cancel: &std::sync::atomic::AtomicI32,
+) -> io::Result<()> {
+    if cancel.load(Ordering::Relaxed) != 0 {
+        return Err(io::Error::new(
+            io::ErrorKind::Interrupted,
+            "selected export cancelled",
+        ));
+    }
+    crate::kag_release::budget_check()?;
+    s.check()
+}
+fn stamp(m: &fs::Metadata) -> (u64, u64, u64, u32, i64, i64, i64, i64) {
+    use std::os::unix::fs::MetadataExt;
+    (
+        m.dev(),
+        m.ino(),
+        m.len(),
+        m.mode(),
+        m.mtime(),
+        m.mtime_nsec(),
+        m.ctime(),
+        m.ctime_nsec(),
+    )
+}
+/// Constructible only by the current verifier; owns observed descriptor custody.
+pub struct VerifiedExport {
+    sources: std::cell::RefCell<crate::route_cards::RouteSources>,
+    held: BTreeMap<String, (File, fs::Metadata)>,
+    manifest: Value,
+    read_bytes: usize,
+}
+impl VerifiedExport {
+    fn new(sources: crate::route_cards::RouteSources) -> Self {
+        Self {
+            sources: std::cell::RefCell::new(sources),
+            held: BTreeMap::new(),
+            manifest: Value::Null,
+            read_bytes: 0,
+        }
+    }
+    pub(crate) fn manifest(&self) -> &Value {
+        &self.manifest
+    }
+    pub fn summary(&self) -> Value {
+        json!({"export_revision":self.manifest["export_revision"],"corpus_revision":self.manifest["corpus_revision"],"primary_source":self.manifest["primary_source"]})
+    }
+    fn inventory(&self, cancel: &std::sync::atomic::AtomicI32) -> io::Result<BTreeSet<String>> {
+        let mut sources = self.sources.borrow_mut();
+        tick(&sources, cancel)?;
+        let directories = std::cell::Cell::new(0usize);
+        let over_bound = std::cell::Cell::new(false);
+        let paths = sources.selected_physical_paths(".", &|path, directory| {
+            if directory {
+                directories.set(directories.get() + 1);
+            }
+            if Path::new(path).components().count() > 32 || directories.get() > 4096 {
+                over_bound.set(true);
+                return false;
+            }
+            true
+        })?;
+        if over_bound.get() {
+            return Err(bad("export inventory exceeds finite traversal bound"));
+        }
+        let mut files = BTreeSet::new();
+        for path in &paths {
+            tick(&sources, cancel)?;
+            let metadata = sources
+                .metadata(path)?
+                .ok_or_else(|| bad("selected export entry disappeared"))?;
+            if metadata.is_dir() {
+                continue;
+            }
+            if !metadata.is_file() {
+                return Err(bad("export contains symlink or nonregular entry"));
+            }
+            files.insert(path.strip_prefix("./").unwrap_or(path).to_owned());
+            if files.len() > 4096 {
+                return Err(bad("export inventory exceeds finite traversal bound"));
+            }
+        }
+        Ok(files)
+    }
+
+    fn read(
+        &mut self,
+        path: &str,
+        cap: u64,
+        cancel: &std::sync::atomic::AtomicI32,
+    ) -> io::Result<Vec<u8>> {
+        let mut sources = self.sources.borrow_mut();
+        tick(&sources, cancel)?;
+        let (raw, meta, file) = sources.bounded_held_bytes(
+            path,
+            usize::try_from(cap).map_err(bad)?,
+            &mut self.read_bytes,
+            4 * MAX as usize,
+        )?;
+        if let Some((held, previous)) = self.held.get(path) {
+            if stamp(previous) != stamp(&meta) || stamp(previous) != stamp(&held.metadata()?) {
+                return Err(bad("export member changed during verification"));
+            }
+        }
+        self.held.insert(path.to_owned(), (file, meta));
+        tick(&sources, cancel)?;
+        Ok(raw)
+    }
+    fn json_file(
+        &mut self,
+        path: &str,
+        cancel: &std::sync::atomic::AtomicI32,
+    ) -> io::Result<Value> {
+        let raw = self.read(path, MAX, cancel)?;
+        parse_json(
+            &raw,
+            JsonMode::PublishedStrict,
+            JsonLimits {
+                max_bytes: MAX as usize,
+                ..JsonLimits::default()
+            },
+        )
+        .map_err(bad)?;
+        serde_json::from_slice(&raw).map_err(bad)
+    }
+    fn check_local(&self, cancel: &std::sync::atomic::AtomicI32) -> io::Result<()> {
+        if self.inventory(cancel)? != self.held.keys().cloned().collect() {
+            return Err(bad("selected export inventory changed"));
+        }
+        let mut sources = self.sources.borrow_mut();
+        tick(&sources, cancel)?;
+        sources.verify_root()?;
+        for (path, (file, meta)) in &self.held {
+            tick(&sources, cancel)?;
+            let current = sources
+                .metadata(path)?
+                .ok_or_else(|| bad("selected export member disappeared"))?;
+            if stamp(meta) != stamp(&file.metadata()?) || stamp(meta) != stamp(&current) {
+                return Err(bad("selected export member binding changed"));
+            }
+        }
+        sources.verify_root()
+    }
+    pub fn check(
+        &self,
+        primary: &crate::route_cards::RouteSources,
+        cancel: &std::sync::atomic::AtomicI32,
+    ) -> io::Result<()> {
+        tick(primary, cancel)?;
+        self.check_local(cancel)
+    }
+    pub fn bind_repo(
+        &self,
+        sources: &mut crate::route_cards::RouteSources,
+        cancel: &std::sync::atomic::AtomicI32,
+    ) -> io::Result<()> {
+        self.check(sources, cancel)?;
+        let mut bytes = 0;
+        for path in SOURCE_PATHS {
+            tick(sources, cancel)?;
+            let binding = self.manifest["files"]
+                .as_array()
+                .and_then(|a| a.iter().find(|b| b["path"] == path))
+                .ok_or_else(|| bad("missing source binding"))?;
+            let size = binding["size_bytes"]
+                .as_u64()
+                .ok_or_else(|| bad("invalid source size"))?;
+            let raw = sources.bounded_bytes(
+                path,
+                usize::try_from(size).map_err(bad)?,
+                &mut bytes,
+                MAX as usize,
+            )?;
+            if raw.len() as u64 != size || digest(&raw) != binding["sha256"] {
+                return Err(bad(
+                    "selected KAG export differs from current owned source closure",
+                ));
+            }
+        }
+        self.check(sources, cancel)
+    }
+}
 /// Verify exact membership, aggregate size, every byte binding and source-return
 /// semantics. The receiver deliberately does not require the current producer.
 pub fn verify_export(root: &Path) -> io::Result<Value> {
-    let _budget = crate::kag_release::WholeBudget::begin()?;
-    crate::kag_release::budget_check()?;
-    let root_path = crate::kag_release::safe_absolute(root)?;
-    let root = root_path.as_path();
-    directory(root)?;
-    let manifest = json_file(root, "export.json")?;
+    let budget = crate::kag_release::WholeBudget::begin()?;
+    let root = crate::kag_release::safe_absolute(root)?;
+    let sources = crate::route_cards::RouteSources::new_until(&root, budget.deadline()?)?;
+    let verified = verify_receiver(
+        VerifiedExport::new(sources),
+        &std::sync::atomic::AtomicI32::new(0),
+    )?;
+    Ok(verified.manifest.clone())
+}
+/// Exact downstream handle on the caller's original shared clock and lookup ledger.
+pub fn verify_with_sources(
+    root: &Path,
+    primary: &crate::route_cards::RouteSources,
+    cancel: &std::sync::atomic::AtomicI32,
+) -> io::Result<VerifiedExport> {
+    let root = crate::kag_release::safe_absolute(root)?;
+    let sources =
+        crate::route_cards::RouteSources::new_until_related(&root, primary.deadline(), primary)?;
+    verify_receiver(VerifiedExport::new(sources), cancel)
+}
+fn verify_receiver(
+    mut receiver: VerifiedExport,
+    cancel: &std::sync::atomic::AtomicI32,
+) -> io::Result<VerifiedExport> {
+    let manifest = receiver.json_file("export.json", cancel)?;
     keys(
         &manifest,
         &[
@@ -193,24 +396,21 @@ pub fn verify_export(root: &Path) -> io::Result<Value> {
         if total > MAX {
             return Err(bad("KAG export exceeds 8MiB"));
         }
-        let raw = read(root, &format!("Tree-of-Sophia/{relative}"), size)?;
+        let raw = receiver.read(&format!("Tree-of-Sophia/{relative}"), size, cancel)?;
         if raw.len() as u64 != size || digest(&raw) != sha {
             return Err(bad("exported source fixity mismatch"));
         }
         by_path.insert(*relative, binding);
     }
-    let mut files = BTreeSet::new();
-    let mut dirs = Vec::new();
-    inventory(root, Path::new(""), &mut files, &mut dirs)?;
+    let files = receiver.inventory(cancel)?;
     let declared: BTreeSet<_> = std::iter::once("export.json".to_owned())
         .chain(expected.iter().map(|p| format!("Tree-of-Sophia/{p}")))
         .collect();
     if files != declared {
         return Err(bad("undeclared export files"));
     }
-    let source = root.join("Tree-of-Sophia");
-    let node = json_file(&source, PRIMARY)?;
-    let capsule = json_file(&source, CAPSULE)?;
+    let node = receiver.json_file(&format!("Tree-of-Sophia/{PRIMARY}"), cancel)?;
+    let capsule = receiver.json_file(&format!("Tree-of-Sophia/{CAPSULE}"), cancel)?;
     if !node.is_object() || !capsule.is_object() {
         return Err(bad("node and capsule must be objects"));
     }
@@ -222,7 +422,10 @@ pub fn verify_export(root: &Path) -> io::Result<Value> {
     if manifest["primary_source"] != primary || capsule["object_id"] != id {
         return Err(bad("capsule does not return exact canonical source"));
     }
-    let mirror = json_file(&source, "ToS/public-compatibility/source_node.example.json")?;
+    let mirror = receiver.json_file(
+        "Tree-of-Sophia/ToS/public-compatibility/source_node.example.json",
+        cancel,
+    )?;
     let entry = json!({"repo":"Tree-of-Sophia", "path":"ToS/public-compatibility/source_node.example.json", "match_key":"node_id", "match_value":id});
     let layers = mirror["interpretation_layers"]
         .as_array()
@@ -261,7 +464,9 @@ pub fn verify_export(root: &Path) -> io::Result<Value> {
             return Err(bad("missing source-return explanation"));
         }
     }
-    Ok(manifest)
+    receiver.manifest = manifest;
+    receiver.check_local(cancel)?;
+    Ok(receiver)
 }
 fn producer(repo: &Path) -> io::Result<String> {
     crate::kag_release::budget_check()?;
@@ -539,6 +744,27 @@ mod tests {
         fs::remove_file(output.join("undeclared.txt")).unwrap();
         fs::write(output.join("Tree-of-Sophia").join(PRIMARY), b"altered").unwrap();
         assert!(verify_export(&output).is_err());
+    }
+    #[test]
+    fn selected_handle_preserves_original_clock_and_refuses_named_substitution() {
+        let (base, store, revision) = fixture();
+        let output = base.0.join("export");
+        build_export(&repo(), &store, &revision, &output).unwrap();
+        let cancel = std::sync::atomic::AtomicI32::new(0);
+        let mut primary = crate::route_cards::RouteSources::new(&repo()).unwrap();
+        let verified = verify_with_sources(&output, &primary, &cancel).unwrap();
+        assert_eq!(verified.sources.borrow().deadline(), primary.deadline());
+        verified.check(&primary, &cancel).unwrap();
+        // The fixture corpus differs from this repository; a manifest is no admission.
+        assert!(verified.bind_repo(&mut primary, &cancel).is_err());
+        let path = output.join("Tree-of-Sophia").join(PRIMARY);
+        let identical = fs::read(&path).unwrap();
+        let replacement = path.with_extension("replacement");
+        fs::write(&replacement, &identical).unwrap();
+        fs::rename(replacement, &path).unwrap();
+        assert!(verified.check(&primary, &cancel).is_err());
+        cancel.store(1, Ordering::Relaxed);
+        assert!(verify_with_sources(&output, &primary, &cancel).is_err());
     }
     #[test]
     fn corrupt_selected_object_never_publishes_output() {

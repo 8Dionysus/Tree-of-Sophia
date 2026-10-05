@@ -1,7 +1,7 @@
 //! Exact selected public corpus compatibility input. Reads only explicitly
 //! selected capture members; it never claims an authored native builder result.
 use crate::knowledge_corpus_original::*;
-use crate::knowledge_stage::{KnowledgeStage, WritePhase, KnowledgePayloadLayout};
+use crate::knowledge_stage::{KnowledgePayloadLayout, KnowledgeStage, WritePhase};
 use crate::{Error, NavigationOriginalLimits, QueryVocabulary, Result, SourceBinding};
 use rusqlite::params;
 use serde_json::Value;
@@ -32,9 +32,13 @@ struct Source<'a> {
     cancelled: &'a AtomicBool,
     work: u64,
     members: BTreeMap<String, CorpusOriginalMember>,
+    owned: Option<&'a crate::d1_public_capture::CreationState<'a>>,
 }
 impl Source<'_> {
     fn check(&self) -> Result<()> {
+        if let Some(state) = self.owned {
+            state.remaining(0)?;
+        }
         if self.cancelled.load(Ordering::Relaxed) {
             return Err(Error::Invalid("corpus capture cancelled"));
         }
@@ -45,6 +49,11 @@ impl Source<'_> {
     }
     fn charge(&mut self, bytes: u64) -> Result<()> {
         self.check()?;
+        if let Some(state) = self.owned {
+            state.charge_work(
+                usize::try_from(bytes).map_err(|_| Error::Budget("owned corpus work width"))?,
+            )?;
+        }
         self.work = self
             .work
             .checked_add(bytes)
@@ -58,6 +67,23 @@ impl Source<'_> {
             && self.members.len() >= self.limits.max_members
         {
             return Err(Error::Budget("corpus capture member count"));
+        }
+        if let Some(state) = self.owned {
+            let CaptureReader::Public(reader) = &self.reader else {
+                return Err(Error::Invalid("owned corpus native capture required"));
+            };
+            let len = reader.retained_input_length(path.as_str())?;
+            if len > cap {
+                return Err(Error::Budget("owned corpus raw bytes"));
+            }
+            let node = 11 * std::mem::size_of::<(String, CorpusOriginalMember)>()
+                + 16 * std::mem::size_of::<usize>();
+            state.retain(
+                len.checked_add(64)
+                    .and_then(|n| n.checked_add(2 * path.as_str().len()))
+                    .and_then(|n| n.checked_add(node))
+                    .ok_or(Error::Budget("owned corpus read state"))?,
+            )?;
         }
         let (raw, size_bytes, sha256) = match &self.reader {
             CaptureReader::Software(reader) => {
@@ -101,6 +127,18 @@ impl Source<'_> {
             },
         );
         Ok(raw)
+    }
+    fn json(&self, raw: &[u8], cap: usize) -> Result<Value> {
+        match self.owned {
+            Some(state) => state.serde_owned(raw, cap),
+            None => json(raw, cap),
+        }
+    }
+    fn encode(&self, value: &Value, cap: usize) -> Result<Vec<u8>> {
+        match self.owned {
+            Some(state) => state.encode_canonical(value, cap),
+            None => encode(value, cap),
+        }
     }
     fn part(&mut self, d: &Value, prefix: &str) -> Result<Vec<u8>> {
         keys(
@@ -147,6 +185,16 @@ impl Source<'_> {
         } else {
             ".index.json"
         };
+        if let Some(state) = self.owned {
+            state.retain(
+                self.root
+                    .as_str()
+                    .len()
+                    .checked_add(256)
+                    .and_then(|n| n.checked_mul(4))
+                    .ok_or(Error::Budget("owned corpus part paths"))?,
+            )?;
+        }
         let relative = format!("{stem}.parts/{}/{}{suffix}", &sha[..2], sha);
         if string(d, "path")? != relative {
             return Err(Error::Invalid("corpus exact partition namespace"));
@@ -165,6 +213,16 @@ impl Source<'_> {
         }
         let stored = self.read(&path, size as usize)?;
         self.charge(decoded)?;
+        if let Some(state) = self.owned {
+            let decoder = crate::legacy::partition_decoder_workspace_upper(kind)?;
+            let output = usize::try_from(decoded)
+                .map_err(|_| Error::Budget("owned corpus decoded width"))?
+                .checked_add(1)
+                .and_then(|n| n.max(32).checked_mul(3))
+                .and_then(|n| n.checked_add(decoder))
+                .ok_or(Error::Budget("owned corpus decoder state"))?;
+            state.retain(output)?;
+        }
         let raw = crate::legacy::decode_partition_part(
             &stored,
             kind,
@@ -186,7 +244,7 @@ impl Source<'_> {
         let raw = self.part(d, prefix)?;
         let wanted = number(d, "count")?;
         if string(d, "kind")? == "index" {
-            let v = json(&raw, crate::legacy::INDEX_CAP)?;
+            let v = self.json(&raw, crate::legacy::INDEX_CAP)?;
             keys(&v, &["schema_version", "prefix", "count", "children"])?;
             if string(&v, "schema_version")? != "tos_projection_partition_index_v1"
                 || string(&v, "prefix")? != prefix
@@ -200,6 +258,14 @@ impl Source<'_> {
                 .ok_or(Error::Invalid("corpus partition children"))?;
             let mut n = 0u64;
             for (digit, child) in children {
+                if let Some(state) = self.owned {
+                    state.retain(
+                        prefix
+                            .len()
+                            .checked_add(digit.len())
+                            .ok_or(Error::Budget("owned corpus prefix"))?,
+                    )?;
+                }
                 if digit.len() != 1
                     || !digit
                         .bytes()
@@ -226,6 +292,9 @@ impl Source<'_> {
             return Err(Error::Invalid("corpus part row newline"));
         }
         let mut n = 0u64;
+        if let Some(state) = self.owned {
+            state.retain(4096 + 64)?;
+        }
         let mut previous = None::<String>;
         let body = if raw.is_empty() {
             raw.as_slice()
@@ -237,7 +306,7 @@ impl Source<'_> {
             if line.is_empty() {
                 return Err(Error::Invalid("empty corpus partition row"));
             }
-            let row = json(line, self.limits.originals.max_row_bytes)?;
+            let row = self.json(line, self.limits.originals.max_row_bytes)?;
             keys(&row, &["key", "value"])?;
             let id = string(&row, "key")?;
             if id.is_empty()
@@ -260,6 +329,15 @@ impl Source<'_> {
                             .is_ok_and(|position| position < root_count)
                 }
                 Value::Array(fields) => {
+                    if let Some(state) = self.owned {
+                        state.retain(
+                            fields
+                                .len()
+                                .checked_mul(std::mem::size_of::<&str>() + 6 * 4096)
+                                .and_then(|n| n.checked_add(32))
+                                .ok_or(Error::Budget("owned corpus composite key"))?,
+                        )?;
+                    }
                     let parts = fields
                         .iter()
                         .map(|f| {
@@ -278,7 +356,11 @@ impl Source<'_> {
             if !valid {
                 return Err(Error::Invalid("corpus partition key identity"));
             }
-            sink(self, id, value.clone())?;
+            let value = match self.owned {
+                Some(state) => state.clone_value(value)?,
+                None => value.clone(),
+            };
+            sink(self, id, value)?;
             previous = Some(id.into());
             n = n.checked_add(1).ok_or(Error::Budget("corpus leaf count"))?;
         }
@@ -374,7 +456,7 @@ fn original_packets(
         }
         rows.push((collection, encoded));
     }
-    let header = detached_header(payload, limits.max_row_bytes)?;
+    let header = detached_header(payload, limits.max_row_bytes, None)?;
     total = total
         .checked_add(header.len() as u64)
         .filter(|n| *n <= limits.max_total_bytes)
@@ -407,9 +489,19 @@ fn visit_captured_rows(
         )?;
         if root["logical_schema"] != "tos_corpus_index_v1"
             || root["header"]["schema_version"] != "tos_corpus_index_v1"
-            || root["limits"]
-                != serde_json::json!({"root_bytes":crate::legacy::ROOT_CAP,"index_bytes":crate::legacy::INDEX_CAP,
-                "part_bytes":crate::legacy::PART_CAP,"key_bytes":4096})
+            || !root["limits"].as_object().is_some_and(|fields| {
+                fields.len() == 4
+                    && [
+                        ("root_bytes", crate::legacy::ROOT_CAP),
+                        ("index_bytes", crate::legacy::INDEX_CAP),
+                        ("part_bytes", crate::legacy::PART_CAP),
+                        ("key_bytes", 4096),
+                    ]
+                    .iter()
+                    .all(|(key, expected)| {
+                        fields.get(*key).and_then(Value::as_u64) == Some(*expected as u64)
+                    })
+            })
         {
             return Err(Error::Invalid("corpus partition logical profile"));
         }
@@ -417,31 +509,19 @@ fn visit_captured_rows(
         let specs = root["collections"]
             .as_object()
             .ok_or(Error::Invalid("corpus partition collections"))?;
-        let required = [
-            ("nodes", serde_json::json!("node_id"), vec!["source_path"]),
-            ("resources", serde_json::json!("path"), vec!["path"]),
-            ("manifests", serde_json::json!("path"), vec!["path"]),
-            ("relation_packs", serde_json::json!("pack_id"), vec!["path"]),
+        let required: &[(&str, &[&str], &[&str])] = &[
+            ("nodes", &["node_id"], &["source_path"]),
+            ("resources", &["path"], &["path"]),
+            ("manifests", &["path"], &["path"]),
+            ("relation_packs", &["pack_id"], &["path"]),
             (
                 "relation_edges",
-                serde_json::json!(["pack_id", "edge_id"]),
-                vec!["pack_id", "edge_id"],
+                &["pack_id", "edge_id"],
+                &["pack_id", "edge_id"],
             ),
-            (
-                "source_navigation/nodes",
-                serde_json::json!("node_id"),
-                vec!["node_id"],
-            ),
-            (
-                "source_navigation/edges",
-                serde_json::json!("edge_id"),
-                vec!["edge_id"],
-            ),
-            (
-                "source_navigation/rights",
-                serde_json::json!("rights_id"),
-                vec!["rights_id"],
-            ),
+            ("source_navigation/nodes", &["node_id"], &["node_id"]),
+            ("source_navigation/edges", &["edge_id"], &["edge_id"]),
+            ("source_navigation/rights", &["rights_id"], &["rights_id"]),
         ];
         if specs.len() != required.len() + usize::from(specs.contains_key("diagnostics"))
             || required.iter().any(|(n, _, _)| !specs.contains_key(*n))
@@ -450,16 +530,37 @@ fn visit_captured_rows(
         }
         for (name, spec) in specs {
             keys(spec, &["key_field", "order_fields", "root"])?;
-            let (key, order) = if name == "diagnostics" {
-                (serde_json::json!([]), Vec::new())
+            let (key_fields, order): (&[&str], &[&str]) = if name == "diagnostics" {
+                (&[], &[])
             } else {
                 let (_, key, order) = required
                     .iter()
                     .find(|(n, _, _)| *n == name)
                     .ok_or(Error::Invalid("corpus partition collection"))?;
-                (key.clone(), order.clone())
+                (*key, *order)
             };
-            if spec["key_field"] != key || spec["order_fields"] != serde_json::json!(order) {
+            let key = &spec["key_field"];
+            let key_matches = if key_fields.is_empty() {
+                key.as_array().is_some_and(|items| items.is_empty())
+            } else if key_fields.len() == 1 {
+                key.as_str() == Some(key_fields[0])
+            } else {
+                key.as_array().is_some_and(|items| {
+                    items.len() == key_fields.len()
+                        && items
+                            .iter()
+                            .zip(key_fields)
+                            .all(|(item, expected)| item.as_str() == Some(*expected))
+                })
+            };
+            let order_matches = spec["order_fields"].as_array().is_some_and(|items| {
+                items.len() == order.len()
+                    && items
+                        .iter()
+                        .zip(order)
+                        .all(|(item, expected)| item.as_str() == Some(*expected))
+            });
+            if !key_matches || !order_matches {
                 return Err(Error::Invalid("corpus partition ordering policy"));
             }
             let keep = !name.starts_with("source_navigation/") && name != "diagnostics";
@@ -470,6 +571,16 @@ fn visit_captured_rows(
             let mut sink = |source: &mut Source<'_>, _: &str, v: Value| -> Result<()> {
                 if !keep {
                     return Ok(());
+                }
+                if let Some(state) = source.owned {
+                    let bytes = order.iter().try_fold(
+                        order.len() * std::mem::size_of::<String>(),
+                        |n, field| {
+                            n.checked_add(v.get(*field).and_then(Value::as_str).map_or(0, str::len))
+                                .ok_or(Error::Budget("owned corpus ordering strings"))
+                        },
+                    )?;
+                    state.retain(bytes)?;
                 }
                 let sort = order
                     .iter()
@@ -493,7 +604,7 @@ fn visit_captured_rows(
             source.walk(
                 &spec["root"],
                 "",
-                &key,
+                key,
                 number(&spec["root"], "count")?,
                 &mut sink,
             )?;
@@ -512,7 +623,7 @@ fn visit_captured_rows(
                 sink_row(source, collection, &[], value)?;
             }
         }
-        return detached_header(payload, limits.originals.max_row_bytes);
+        return detached_header(payload, limits.originals.max_row_bytes, source.owned);
     }
     if root["schema_version"] != "tos_corpus_index_v1" {
         return Err(Error::Invalid("captured corpus logical schema"));
@@ -527,9 +638,13 @@ fn visit_captured_rows(
             sink_row(source, collection, &[], value)?;
         }
     }
-    detached_header(root, limits.originals.max_row_bytes)
+    detached_header(root, limits.originals.max_row_bytes, source.owned)
 }
-fn detached_header(payload: &Value, cap: usize) -> Result<Vec<u8>> {
+fn detached_header(
+    payload: &Value,
+    cap: usize,
+    owned: Option<&crate::d1_public_capture::CreationState<'_>>,
+) -> Result<Vec<u8>> {
     let omitted = [
         "nodes",
         "edges",
@@ -544,14 +659,32 @@ fn detached_header(payload: &Value, cap: usize) -> Result<Vec<u8>> {
         "input_digests",
         "source_navigation",
     ];
-    let header = payload
+    let fields = payload
         .as_object()
-        .ok_or(Error::Invalid("corpus original header object"))?
+        .ok_or(Error::Invalid("corpus original header object"))?;
+    let mut header = serde_json::Map::new();
+    if let Some(state) = owned {
+        state.retain(crate::knowledge_normalization::serde_object_slots_upper(
+            fields.len(),
+        )?)?;
+    }
+    for (field, value) in fields
         .iter()
         .filter(|(field, _)| !omitted.contains(&field.as_str()))
-        .map(|(field, value)| (field.clone(), value.clone()))
-        .collect();
-    encode(&Value::Object(header), cap)
+    {
+        let value = if let Some(state) = owned {
+            state.retain(field.len())?;
+            state.clone_value(value)?
+        } else {
+            value.clone()
+        };
+        header.insert(field.clone(), value);
+    }
+    let header = Value::Object(header);
+    match owned {
+        Some(state) => state.encode_canonical(&header, cap),
+        None => encode(&header, cap),
+    }
 }
 fn captured_source<'a>(
     capture: &'a SoftwareCaptureReader,
@@ -578,6 +711,7 @@ fn captured_source<'a>(
         cancelled,
         work: 0,
         members: BTreeMap::new(),
+        owned: None,
     })
 }
 fn captured_receipt(
@@ -589,6 +723,32 @@ fn captured_receipt(
     collections: Vec<CorpusOriginalCollectionReceipt>,
     total: u64,
 ) -> Result<CorpusOriginalReceipt> {
+    if let Some(state) = source.owned {
+        let strings = source.members.values().try_fold(0usize, |n, member| {
+            n.checked_add(member.path.len())
+                .and_then(|n| n.checked_add(member.sha256.len()))
+                .ok_or(Error::Budget("owned corpus manifest strings"))
+        })?;
+        let upper = source
+            .members
+            .len()
+            .checked_mul(std::mem::size_of::<CorpusOriginalMember>())
+            .and_then(|n| {
+                n.checked_add(
+                    crate::knowledge_normalization::serde_object_slots_upper(source.members.len())
+                        .ok()?,
+                )
+            })
+            .and_then(|n| n.checked_add(strings))
+            .and_then(|n| n.checked_add(binding.source_cut.len()))
+            .and_then(|n| n.checked_add(binding.membership_root.len()))
+            .and_then(|n| n.checked_add(vocab.descriptor_sha256.len()))
+            .and_then(|n| n.checked_add(source.root.as_str().len()))
+            .and_then(|n| n.checked_add(8 * 64 + CORPUS_ORIGINAL_PROFILE.len() + 64))
+            .ok_or(Error::Budget("owned corpus receipt construction"))?;
+        state.retain(upper)?;
+        state.charge_work(strings)?;
+    }
     let members = std::mem::take(&mut source.members)
         .into_values()
         .collect::<Vec<_>>();
@@ -620,10 +780,13 @@ fn captured_receipt(
                     .iter()
                     .map(|member| (member.path.clone(), Value::String(member.sha256.clone())))
                     .collect();
-                let digest = captured_runtime_input_manifest_digest(
-                    &Value::Object(entries),
-                    limits_manifest_cap(source.limits)?,
-                )?;
+                let entries = Value::Object(entries);
+                let cap = limits_manifest_cap(source.limits)?;
+                let digest = if let Some(state) = source.owned {
+                    Digest256::of_bytes(&state.encode_canonical(&entries, cap)?)
+                } else {
+                    captured_runtime_input_manifest_digest(&entries, cap)?
+                };
                 (
                     "captured-runtime-projection-v1",
                     None,
@@ -654,8 +817,9 @@ fn captured_receipt(
         component_root_sha256: String::new(),
         total_bytes: total,
     };
-    receipt.component_root_sha256 = super::knowledge_corpus_original::component_root(&receipt)?;
-    super::knowledge_corpus_original::validate_receipt(&receipt)?;
+    receipt.component_root_sha256 =
+        super::knowledge_corpus_original::component_root_with_state(&receipt, source.owned)?;
+    super::knowledge_corpus_original::validate_receipt_with_state(&receipt, source.owned)?;
     Ok(receipt)
 }
 /// Finite compatibility plan. Partitioned inputs use the same traversal law,
@@ -702,6 +866,39 @@ pub(crate) fn prepare_runtime_corpus_original(
         cancelled,
         work: 0,
         members: BTreeMap::new(),
+        owned: None,
+    };
+    prepare_original_plan(source, source_path, binding, vocab, limits)
+}
+pub(crate) fn prepare_runtime_corpus_original_owned<'a>(
+    capture: &'a crate::d1_public_capture::PublicCapture,
+    source_path: &'a RelativePath,
+    binding: &SourceBinding,
+    vocab: &QueryVocabulary,
+    limits: CorpusOriginalSourceLimits,
+    deadline: Instant,
+    cancelled: &'a AtomicBool,
+    state: &'a crate::d1_public_capture::CreationState<'a>,
+) -> Result<CapturedCorpusOriginalPlan> {
+    limits.originals.validate()?;
+    if limits.max_members == 0
+        || limits.max_members > 65_536
+        || limits.max_work_bytes == 0
+        || limits.max_work_bytes > crate::knowledge_original_rows::MAX_COLD_WORK
+        || !binding.complete
+    {
+        return Err(Error::Budget("corpus captured source limits"));
+    }
+    capture.check_custody()?;
+    let source = Source {
+        reader: CaptureReader::Public(capture),
+        root: source_path,
+        limits,
+        deadline,
+        cancelled,
+        work: 0,
+        members: BTreeMap::new(),
+        owned: Some(state),
     };
     prepare_original_plan(source, source_path, binding, vocab, limits)
 }
@@ -717,7 +914,7 @@ fn prepare_original_plan(
     limits: CorpusOriginalSourceLimits,
 ) -> Result<CapturedCorpusOriginalPlan> {
     let raw = source.read(source_path, crate::legacy::PART_CAP)?;
-    let root = json(&raw, crate::legacy::PART_CAP)?;
+    let root = source.json(&raw, crate::legacy::PART_CAP)?;
     check_partition_root_size(&root, raw.len())?;
     let mut packets = BTreeMap::<String, Vec<(Vec<String>, Vec<u8>)>>::new();
     let mut count = 1u64;
@@ -728,7 +925,21 @@ fn prepare_original_plan(
                     v: &Value|
      -> Result<()> {
         indexed_fields(collection, v)?;
-        let raw = encode(v, limits.originals.max_row_bytes)?;
+        if let Some(state) = source.owned {
+            let sort_bytes = sort.iter().try_fold(0usize, |n, key| {
+                n.checked_add(key.capacity())
+                    .ok_or(Error::Budget("owned corpus sort keys"))
+            })?;
+            let slots = std::mem::size_of::<(Vec<String>, Vec<u8>)>();
+            state.retain(
+                4 * slots
+                    + sort_bytes
+                    + sort.len() * std::mem::size_of::<String>()
+                    + 11 * std::mem::size_of::<(String, Vec<(Vec<String>, Vec<u8>)>)>()
+                    + 16 * std::mem::size_of::<usize>(),
+            )?;
+        }
+        let raw = source.encode(v, limits.originals.max_row_bytes)?;
         charge_packet(&mut count, &mut total, &raw, limits.originals)?;
         source.charge(raw.len() as u64)?;
         packets
@@ -743,6 +954,34 @@ fn prepare_original_plan(
         .filter(|n| *n <= limits.originals.max_total_bytes)
         .ok_or(Error::Budget("corpus original header bytes"))?;
     source.charge(header.len() as u64)?;
+    if let Some(state) = source.owned {
+        let row_count = packets.values().try_fold(0usize, |n, rows| {
+            n.checked_add(rows.len())
+                .ok_or(Error::Budget("owned corpus packet row count"))
+        })?;
+        let row_slots = row_count
+            .checked_mul(
+                std::mem::size_of::<(Vec<String>, Vec<u8>)>() + std::mem::size_of::<Vec<u8>>(),
+            )
+            .ok_or(Error::Budget("owned corpus sort and output slots"))?;
+        let fixed = CorpusOriginalCollection::ROWS
+            .len()
+            .checked_mul(
+                std::mem::size_of::<(CorpusOriginalCollection, Vec<Vec<u8>>)>()
+                    + std::mem::size_of::<CorpusOriginalCollectionReceipt>()
+                    + 64
+                    + 32,
+            )
+            .ok_or(Error::Budget("owned corpus collection receipts"))?;
+        state.retain(
+            row_slots
+                .checked_add(fixed)
+                .ok_or(Error::Budget("owned corpus completed packets"))?,
+        )?;
+        state.charge_work(
+            usize::try_from(total).map_err(|_| Error::Budget("owned corpus packet work width"))?,
+        )?;
+    }
     let rows = CorpusOriginalCollection::ROWS
         .into_iter()
         .map(|c| {
@@ -768,6 +1007,19 @@ fn prepare_original_plan(
         collections,
         total,
     )?;
+    if let Some(state) = source.owned {
+        state.retain(
+            std::mem::size_of::<SourceBinding>()
+                .checked_add(binding.source_cut.len())
+                .and_then(|n| n.checked_add(binding.membership_root.len()))
+                .and_then(|n| n.checked_add(binding.projection_root_sha256.len()))
+                .and_then(|n| n.checked_add(binding.owner_profile.len()))
+                .and_then(|n| n.checked_add(binding.index_generation.len()))
+                .and_then(|n| n.checked_add(binding.route_map_version.len()))
+                .and_then(|n| n.checked_add(binding.reader_abi.len()))
+                .ok_or(Error::Budget("owned corpus plan binding"))?,
+        )?;
+    }
     Ok(CapturedCorpusOriginalPlan {
         binding: binding.clone(),
         receipt,
@@ -908,17 +1160,33 @@ pub fn retain_captured_corpus_original_from_capture(
         source.charge(header.len() as u64)?;
         let header_physical = if layout == KnowledgePayloadLayout::CarrierOnceV1 {
             preload_original_carrier(stage, CorpusOriginalCollection::Header, &header)?
-        } else { header.len() as u64 };
+        } else {
+            header.len() as u64
+        };
         stage.charge_materialized(1, header_physical)?;
         stage.with_connection(WritePhase::Finalize, |db| {
             let tx = db.transaction()?;
             tx.execute_batch(META_DDL)?;
-            tx.execute_batch(if layout == KnowledgePayloadLayout::CarrierOnceV1 { ROW_DDL_CARRIER } else { ROW_DDL })?;
+            tx.execute_batch(if layout == KnowledgePayloadLayout::CarrierOnceV1 {
+                ROW_DDL_CARRIER
+            } else {
+                ROW_DDL
+            })?;
             for (_, ddl) in INDEXES {
                 tx.execute_batch(ddl)?;
             }
-            let mut insert = tx.prepare(if layout == KnowledgePayloadLayout::CarrierOnceV1 { INSERT_ROW_CARRIER } else { INSERT_ROW })?;
-            insert_original_row_with_layout(&mut insert, CorpusOriginalCollection::Header, 0, &header, layout)?;
+            let mut insert = tx.prepare(if layout == KnowledgePayloadLayout::CarrierOnceV1 {
+                INSERT_ROW_CARRIER
+            } else {
+                INSERT_ROW
+            })?;
+            insert_original_row_with_layout(
+                &mut insert,
+                CorpusOriginalCollection::Header,
+                0,
+                &header,
+                layout,
+            )?;
             drop(insert);
             tx.commit()?;
             Ok(())
@@ -964,18 +1232,32 @@ pub fn retain_captured_corpus_original_from_capture(
                 let physical_bytes = if layout == KnowledgePayloadLayout::CarrierOnceV1 {
                     let mut physical = 0u64;
                     for (_, _, _, raw) in &rows {
-                        physical = physical.checked_add(preload_original_carrier(stage, collection, raw)?)
+                        physical = physical
+                            .checked_add(preload_original_carrier(stage, collection, raw)?)
                             .ok_or(Error::Budget("corpus captured metadata page bytes"))?;
                     }
                     physical
-                } else { bytes };
+                } else {
+                    bytes
+                };
                 stage.charge_materialized(rows.len() as u64, physical_bytes)?;
                 stage.with_connection(WritePhase::Finalize, |db| {
                     let tx = db.transaction()?;
-                    let mut insert = tx.prepare(if layout == KnowledgePayloadLayout::CarrierOnceV1 { INSERT_ROW_CARRIER } else { INSERT_ROW })?;
+                    let mut insert =
+                        tx.prepare(if layout == KnowledgePayloadLayout::CarrierOnceV1 {
+                            INSERT_ROW_CARRIER
+                        } else {
+                            INSERT_ROW
+                        })?;
                     for (a, b, c, raw) in &rows {
                         check_originals(deadline, cancelled)?;
-                        insert_original_row_with_layout(&mut insert, collection, ordinal, raw, layout)?;
+                        insert_original_row_with_layout(
+                            &mut insert,
+                            collection,
+                            ordinal,
+                            raw,
+                            layout,
+                        )?;
                         order_item(&mut root_hash, ordinal, raw);
                         ordinal += 1;
                         cursor = Some((a.clone(), b.clone(), *c));

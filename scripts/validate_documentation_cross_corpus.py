@@ -3,6 +3,35 @@
 
 from __future__ import annotations
 
+
+def native_main(argv=None) -> int:
+    """Maintained command dispatch; reference functions below are not a fallback."""
+    import argparse as _argparse
+    import os as _os
+    import shutil as _shutil
+    import sys as _sys
+    from pathlib import Path as _Path
+    parser = _argparse.ArgumentParser(description="Native ToS documentation operation")
+    parser.add_argument("--kag-export", type=_Path)
+    args = parser.parse_args(argv)
+    executable = _os.environ.get("TOS_OPS_MECHANICS_EXECUTOR") or _shutil.which("tos-ops-mechanics-plan")
+    if not executable:
+        print("[error] install tos-ops-mechanics-plan or set TOS_OPS_MECHANICS_EXECUTOR", file=_sys.stderr)
+        return 1
+    command = [executable, "--repo-root", str(_Path(__file__).resolve().parents[1]), "--documentation-cross-corpus-validate"]
+    command.extend(["--python", _sys.executable])
+    if args.kag_export is not None:
+        command.extend(["--kag-export", str(args.kag_export)])
+    try:
+        _os.execv(executable, command)
+    except OSError as error:
+        print(f"[error] cannot execute native documentation operation: {error}", file=_sys.stderr)
+        return 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(native_main())
+
 import json
 import re
 import subprocess
@@ -21,7 +50,6 @@ from build_documentation_family_currentness import (
     tracked_source_declaration,
     tracked_paths,
 )
-import validate_agent_surface
 import validate_decision_records
 import validate_mechanics_topology
 import validate_nested_agents
@@ -43,11 +71,11 @@ EXPECTED_FAMILY_IDS = {
     "kag",
     "mechanics",
     "scripts",
-    "rust",
     "tests",
     "manifests",
     "memo",
     "quests",
+    "rust",
 }
 ROLE_KEYS = {"authored", "generated", "executable", "runtime", "tool", "receipt"}
 MARKDOWN_SUFFIXES = {".md", ".txt", ".yaml", ".yml"}
@@ -79,7 +107,7 @@ EXPECTED_CONTEXT_PROBES = {
     "inherited_agents_stacks": {"surfaces": (".agents/agents-route.current.json",), "measure": "agents_route_max_inherited", "max_tokens": 2800},
     "mechanics_entry": {"surfaces": ("mechanics/README.md",), "measure": "sum", "max_tokens": 1400},
     "skill_discovery": {"surfaces": (".agents/README.md",), "measure": "max", "max_tokens": 1800},
-    "public_entry": {"surfaces": ("ToS/zarathustra/public-entry/TINY_ENTRY_ROUTE.md", "ToS/derived-exports/root_entry_map.min.json"), "measure": "sum", "max_tokens": 1200},
+    "public_entry": {"surfaces": ("ToS/zarathustra/public-entry/TINY_ENTRY_ROUTE.md",), "measure": "sum", "max_tokens": 1200},
     "machine_projection_summary": {"surfaces": ("docs/validation/documentation-family.current.json",), "measure": "generated_summary", "max_tokens": 1600},
 }
 EXPECTED_PUBLIC_AUTHORED_SURFACES = {
@@ -118,11 +146,11 @@ EXPECTED_FAMILY_MATCHES = {
     "kag": {"prefix": "kag/"},
     "mechanics": {"prefix": "mechanics/"},
     "scripts": {"prefix": "scripts/"},
-    "rust": {"prefix": "rust/"},
     "tests": {"prefix": "tests/"},
     "manifests": {"prefix": "manifests/"},
     "memo": {"prefix": "memo/"},
     "quests": {"prefix": "quests/"},
+    "rust": {"prefix": "rust/"},
 }
 EXPECTED_GENERATED_CARRIER_PATHS = {"docs/validation/documentation-family.current.json"}
 EXPECTED_GENERATED_CARRIER_PREFIXES = {"kag/indexes/", "kag/receipts/index_family_budget/"}
@@ -734,7 +762,6 @@ def _external_reference_allowed(line: str, start: int, end: int) -> bool:
 
 
 def validate_executable_routes(repo_root: Path, issues: list[Issue]) -> None:
-    inventory = _script_inventory_paths(repo_root)
     source_paths = [
         repo_root / path
         for path in tracked_paths(repo_root)
@@ -754,6 +781,11 @@ def validate_executable_routes(repo_root: Path, issues: list[Issue]) -> None:
         ):
             continue
         text = path.read_text(encoding="utf-8")
+        # Decision command citations preserve the historical operation, not an
+        # active executable requirement (TOS-D-0062). Local links still validate.
+        record = re.fullmatch(r"docs/decisions/(TOS-D-[0-9]{4})-[^/]+\.md", relative)
+        if record and f"Decision ID: {record.group(1)}" in text:
+            continue
         for line in text.splitlines():
             for match in COMMAND_REFERENCE_RE.finditer(line):
                 reference = match.group(1)
@@ -763,9 +795,6 @@ def validate_executable_routes(repo_root: Path, issues: list[Issue]) -> None:
                         continue
                     _issue(issues, relative, f"stale executable reference: {reference}")
                     continue
-                resolved_relative = resolved.relative_to(repo_root).as_posix()
-                if (resolved_relative.startswith("scripts/") or "/scripts/" in resolved_relative) and resolved_relative not in inventory:
-                    _issue(issues, relative, f"executable reference is absent from script inventory: {resolved_relative}")
     cards = validate_nested_agents.discover_route_cards(repo_root)
     validate_nested_agents.validate_local_script_references(repo_root, cards, issues)
 
@@ -905,17 +934,14 @@ def validate_existing_owner_contracts(repo_root: Path, issues: list[Issue]) -> N
         _issue(issues, location, f"decision validator: {message}")
     for location, message in validate_tiny_entry_route.run_validation(repo_root):
         _issue(issues, location, f"public-entry validator: {message}")
-    for location, message in validate_agent_surface.validate_manifest(repo_root, fetch_missing_budget_base=False):
+    # Use the maintained entrypoint: its domain validator is Rust. Do not
+    # import the retained Python comparison API into a production caller.
+    result = _run_existing_command(repo_root, "scripts/validate_agent_surface.py", ["--check"])
+    if result is not None:
+        location, message = result
         _issue(issues, location, f"agent-surface validator: {message}")
-    owner_commands = (
-        ("scripts/validate_root_entry_map.py", []),
-        ("scripts/validate_local_kag_provider.py", []),
-    )
-    for script, arguments in owner_commands:
-        result = _run_existing_command(repo_root, script, arguments)
-        if result is not None:
-            location, message = result
-            _issue(issues, location, f"owner validator: {message}")
+    # D0062: root-entry/KAG artifact verification belongs to the explicitly
+    # selected export consumer, not an ambient no-argument software check.
 
 
 def run_validation(repo_root: Path = REPO_ROOT, *, reuse_existing: bool = True) -> list[Issue]:
@@ -944,7 +970,7 @@ def run_validation(repo_root: Path = REPO_ROOT, *, reuse_existing: bool = True) 
     return issues
 
 
-def main() -> int:
+def legacy_main() -> int:
     issues = run_validation(REPO_ROOT)
     if issues:
         print("Cross-corpus documentation validation failed.")
@@ -955,5 +981,5 @@ def main() -> int:
     return 0
 
 
-if __name__ == "__main__":
-    raise SystemExit(main())
+def main() -> int:
+    return native_main()

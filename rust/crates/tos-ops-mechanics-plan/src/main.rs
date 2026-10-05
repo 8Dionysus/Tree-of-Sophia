@@ -9,10 +9,15 @@ use tos_ops_mechanics_plan::executor::Limits;
 static CANCEL: AtomicI32 = AtomicI32::new(0);
 static PRODUCT_CANCEL: OnceLock<Arc<AtomicBool>> = OnceLock::new();
 
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 enum Action {
     Plan,
-    Execute,
+    Execute {
+        native_contracts_only: bool,
+    },
+    LocalContracts {
+        home: String,
+    },
     ThresholdBuild {
         check: bool,
     },
@@ -25,6 +30,24 @@ enum Action {
     DerivedKagGenerate,
     MechanicsTopologyValidate,
     ActiveNamingValidate,
+    AgentSurfaceBuild {
+        check: bool,
+    },
+    AgentSurfaceValidate {
+        fetch_budget_bases: bool,
+    },
+    DocumentationFamilyBuild {
+        check: bool,
+    },
+    DocumentationCrossCorpusValidate,
+    DecisionRecordsValidate,
+    DecisionIndexBuild {
+        check: bool,
+    },
+    RootEntryMapBuild {
+        check: bool,
+    },
+    RootEntryMapValidate,
     SourceHome,
     PhilosophyTopology,
     SemanticRegistryTransition,
@@ -34,6 +57,9 @@ enum Action {
 
 #[derive(Default)]
 struct SemanticOptions {
+    selected_interpreter: Option<PathBuf>,
+    kag_export: Option<PathBuf>,
+    output: Option<PathBuf>,
     baseline_commit: Option<String>,
     allow_initial_introduction: bool,
     json_output: bool,
@@ -52,6 +78,8 @@ fn arguments() -> Result<(PathBuf, String, Action, Limits, SemanticOptions), Str
     let mut root = None;
     let mut python = "python".to_owned();
     let mut execute = false;
+    let mut native_contracts_only = false;
+    let mut local_contracts = None;
     let mut threshold_build = false;
     let mut threshold_validate = false;
     let mut relation_pack_validate = false;
@@ -65,6 +93,15 @@ fn arguments() -> Result<(PathBuf, String, Action, Limits, SemanticOptions), Str
     let mut source_home = false;
     let mut philosophy_topology = false;
     let mut semantic_registry_transition = false;
+    let mut agent_surface_build = false;
+    let mut agent_surface_validate = false;
+    let mut documentation_family_build = false;
+    let mut documentation_cross_corpus_validate = false;
+    let mut root_entry_map_build = false;
+    let mut root_entry_map_validate = false;
+    let mut decision_records_validate = false;
+    let mut decision_index_build = false;
+    let mut fetch_budget_bases = false;
     #[cfg(feature = "compiler-backed-validators")]
     let mut philosophy_graph_views = false;
     #[cfg(not(feature = "compiler-backed-validators"))]
@@ -75,6 +112,10 @@ fn arguments() -> Result<(PathBuf, String, Action, Limits, SemanticOptions), Str
     while let Some(argument) = args.next() {
         match argument.as_str() {
             "--execute" => execute = true,
+            "--native-contracts-only" => native_contracts_only = true,
+            "--local-contracts" => {
+                local_contracts = Some(args.next().ok_or("missing native assertion home")?)
+            }
             "--threshold-registry-build" => threshold_build = true,
             "--threshold-registry-validate" => threshold_validate = true,
             "--relation-pack-validate" => relation_pack_validate = true,
@@ -88,6 +129,22 @@ fn arguments() -> Result<(PathBuf, String, Action, Limits, SemanticOptions), Str
             "--source-home" => source_home = true,
             "--philosophy-topology" => philosophy_topology = true,
             "--semantic-registry-transition" => semantic_registry_transition = true,
+            "--agent-surface-build" => agent_surface_build = true,
+            "--agent-surface-validate" => agent_surface_validate = true,
+            "--documentation-family-build" => documentation_family_build = true,
+            "--documentation-cross-corpus-validate" => documentation_cross_corpus_validate = true,
+            "--root-entry-map-build" => root_entry_map_build = true,
+            "--root-entry-map-validate" => root_entry_map_validate = true,
+            "--kag-export" => {
+                semantic.kag_export =
+                    Some(PathBuf::from(args.next().ok_or("missing KAG export path")?))
+            }
+            "--decision-records-validate" => decision_records_validate = true,
+            "--decision-index-build" => decision_index_build = true,
+            "--fetch-budget-bases" => fetch_budget_bases = true,
+            "--output" => {
+                semantic.output = Some(PathBuf::from(args.next().ok_or("missing output path")?))
+            }
             #[cfg(feature = "compiler-backed-validators")]
             "--philosophy-graph-views-validate" => philosophy_graph_views = true,
             "--baseline-commit" => {
@@ -101,7 +158,10 @@ fn arguments() -> Result<(PathBuf, String, Action, Limits, SemanticOptions), Str
             "--json" => semantic.json_output = true,
             "--check" => check = true,
             "--repo-root" => root = Some(PathBuf::from(args.next().ok_or("missing repo root")?)),
-            "--python" => python = args.next().ok_or("missing Python adapter")?,
+            "--python" => {
+                python = args.next().ok_or("missing Python adapter")?;
+                semantic.selected_interpreter = Some(PathBuf::from(&python));
+            }
             "--command-timeout-ms"
             | "--lane-timeout-ms"
             | "--cleanup-grace-ms"
@@ -124,7 +184,8 @@ fn arguments() -> Result<(PathBuf, String, Action, Limits, SemanticOptions), Str
             _ => return Err(format!("unknown argument: {argument}")),
         }
     }
-    if usize::from(execute)
+    if usize::from(local_contracts.is_some())
+        + usize::from(execute)
         + usize::from(threshold_build)
         + usize::from(threshold_validate)
         + usize::from(relation_pack_validate)
@@ -138,9 +199,29 @@ fn arguments() -> Result<(PathBuf, String, Action, Limits, SemanticOptions), Str
         + usize::from(source_home)
         + usize::from(philosophy_topology)
         + usize::from(semantic_registry_transition)
+        + usize::from(agent_surface_build)
+        + usize::from(agent_surface_validate)
+        + usize::from(documentation_family_build)
+        + usize::from(documentation_cross_corpus_validate)
+        + usize::from(root_entry_map_build)
+        + usize::from(root_entry_map_validate)
+        + usize::from(decision_records_validate)
+        + usize::from(decision_index_build)
         + usize::from(philosophy_graph_views)
         > 1
-        || (check && !threshold_build)
+        || (check
+            && !(threshold_build
+                || agent_surface_build
+                || documentation_family_build
+                || decision_index_build
+                || root_entry_map_build))
+        || (fetch_budget_bases && !agent_surface_validate)
+        || (semantic.output.is_some() && !documentation_family_build)
+        || (semantic.kag_export.is_some()
+            && !(documentation_cross_corpus_validate
+                || root_entry_map_build
+                || root_entry_map_validate))
+        || (native_contracts_only && !execute)
         || (!semantic_registry_transition
             && (semantic.baseline_commit.is_some()
                 || semantic.allow_initial_introduction
@@ -148,8 +229,12 @@ fn arguments() -> Result<(PathBuf, String, Action, Limits, SemanticOptions), Str
     {
         return Err("incompatible mechanics modes".into());
     }
-    let action = if execute {
-        Action::Execute
+    let action = if let Some(home) = local_contracts {
+        Action::LocalContracts { home }
+    } else if execute {
+        Action::Execute {
+            native_contracts_only,
+        }
     } else if threshold_build {
         Action::ThresholdBuild { check }
     } else if threshold_validate {
@@ -181,6 +266,22 @@ fn arguments() -> Result<(PathBuf, String, Action, Limits, SemanticOptions), Str
         }
     } else if philosophy_topology {
         Action::PhilosophyTopology
+    } else if agent_surface_build {
+        Action::AgentSurfaceBuild { check }
+    } else if agent_surface_validate {
+        Action::AgentSurfaceValidate { fetch_budget_bases }
+    } else if documentation_family_build {
+        Action::DocumentationFamilyBuild { check }
+    } else if root_entry_map_build {
+        Action::RootEntryMapBuild { check }
+    } else if root_entry_map_validate {
+        Action::RootEntryMapValidate
+    } else if documentation_cross_corpus_validate {
+        Action::DocumentationCrossCorpusValidate
+    } else if decision_records_validate {
+        Action::DecisionRecordsValidate
+    } else if decision_index_build {
+        Action::DecisionIndexBuild { check }
     } else if source_home {
         Action::SourceHome
     } else if mechanics_topology_validate {
@@ -344,10 +445,187 @@ fn main() {
         let compiler_flag = if cfg!(feature = "compiler-backed-validators") {
             " | --philosophy-graph-views-validate"
         } else { "" };
-        eprintln!("{error}\nusage: tos-ops-mechanics-plan --repo-root PATH [--python COMMAND] [--execute | --threshold-registry-build [--check] | --threshold-registry-validate | --relation-pack-validate | --questbook-validate | --public-mirror-validate | --public-mirror-sync | --derived-kag-validate | --derived-kag-generate | --mechanics-topology-validate | --active-naming-validate | --source-home | --philosophy-topology{compiler_flag} | --semantic-registry-transition [--baseline-commit REF] [--allow-initial-introduction] [--json]] [--command-timeout-ms N] [--lane-timeout-ms N] [--cleanup-grace-ms N] [--max-output-bytes N]");
+        eprintln!("{error}\nusage: tos-ops-mechanics-plan --repo-root PATH [--python COMMAND] [--execute [--native-contracts-only] | --local-contracts HOME | --threshold-registry-build [--check] | --threshold-registry-validate | --relation-pack-validate | --questbook-validate | --public-mirror-validate | --public-mirror-sync | --derived-kag-validate | --derived-kag-generate | --mechanics-topology-validate | --active-naming-validate | --agent-surface-build [--check] | --agent-surface-validate [--fetch-budget-bases] | --documentation-family-build [--check] [--output PATH] | --documentation-cross-corpus-validate | --decision-records-validate | --decision-index-build [--check] | --root-entry-map-build [--check] [--kag-export PATH] | --root-entry-map-validate [--kag-export PATH] | --source-home | --philosophy-topology{compiler_flag} | --semantic-registry-transition [--baseline-commit REF] [--allow-initial-introduction] [--json]] [--command-timeout-ms N] [--lane-timeout-ms N] [--cleanup-grace-ms N] [--max-output-bytes N]");
         std::process::exit(2);
     });
+    if matches!(
+        action,
+        Action::AgentSurfaceBuild { .. }
+            | Action::AgentSurfaceValidate { .. }
+            | Action::DocumentationFamilyBuild { .. }
+            | Action::DocumentationCrossCorpusValidate
+            | Action::DecisionRecordsValidate
+            | Action::DecisionIndexBuild { .. }
+            | Action::RootEntryMapBuild { .. }
+            | Action::RootEntryMapValidate
+    ) {
+        #[cfg(target_os = "linux")]
+        unsafe {
+            let mut handler: libc::sigaction = std::mem::zeroed();
+            handler.sa_sigaction = cancelled as *const () as usize;
+            libc::sigemptyset(&mut handler.sa_mask);
+            for signal in [libc::SIGINT, libc::SIGTERM] {
+                if libc::sigaction(signal, &handler, std::ptr::null_mut()) != 0 {
+                    eprintln!("[error] {}", std::io::Error::last_os_error());
+                    std::process::exit(1);
+                }
+            }
+        }
+    }
     let result = match action {
+        Action::LocalContracts { ref home } => {
+            tos_ops_mechanics_plan::local_contracts::run(&root, &home).map(|count| {
+                println!("[ok] native mechanics assertions: {home}: {count} retained cases passed");
+                0
+            })
+        }
+
+        Action::DecisionRecordsValidate => root.canonicalize().and_then(|root| {
+            let mut s = tos_ops_mechanics_plan::route_cards::RouteSources::new(&root)?;
+            let issues =
+                tos_ops_mechanics_plan::decision_records::run_validation(&root, &mut s, &CANCEL)?;
+            if issues.is_empty() {
+                println!("[ok] decision records validated");
+                Ok(0)
+            } else {
+                println!("Decision record validation failed.");
+                for (path, message) in issues {
+                    println!("- {path}: {message}");
+                }
+                Ok(1)
+            }
+        }),
+        Action::DecisionIndexBuild { check } => root.canonicalize().and_then(|root| {
+            let mut s = tos_ops_mechanics_plan::route_cards::RouteSources::new(&root)?;
+            let (outputs, issues) =
+                tos_ops_mechanics_plan::decision_records::build_indexes(&mut s, &CANCEL)?;
+            if !issues.is_empty() {
+                for (path, message) in issues {
+                    println!("- {path}: {message}");
+                }
+                return Ok(1);
+            }
+            let mut stale = Vec::new();
+            for (path, text) in outputs {
+                if check {
+                    if tos_ops_mechanics_plan::route_cards::read_output(&root.join(&path))?
+                        .is_none_or(|v| v.replace("\r\n", "\n").replace('\r', "\n") != text)
+                    {
+                        stale.push(path);
+                    }
+                } else {
+                    tos_ops_mechanics_plan::route_cards::write_output(
+                        &root,
+                        std::path::Path::new(&path),
+                        &text,
+                    )?;
+                }
+            }
+            if stale.is_empty() {
+                Ok(0)
+            } else {
+                println!("Stale decision indexes:");
+                for path in stale {
+                    println!("- {path}");
+                }
+                Ok(1)
+            }
+        }),
+        Action::RootEntryMapBuild { check } => root.canonicalize().and_then(|root| {
+            let mut sources = tos_ops_mechanics_plan::route_cards::RouteSources::new(&root)?;
+            tos_ops_mechanics_plan::root_entry_map::build_with_export(
+                &root,
+                &mut sources,
+                semantic.kag_export.as_deref(),
+                &CANCEL,
+                check,
+            )
+            .map(|current| {
+                if current {
+                    println!("[ok] root-entry map is current");
+                    0
+                } else {
+                    eprintln!("root-entry map is out of date");
+                    1
+                }
+            })
+        }),
+        Action::RootEntryMapValidate => root.canonicalize().and_then(|root| {
+            let mut sources = tos_ops_mechanics_plan::route_cards::RouteSources::new(&root)?;
+            tos_ops_mechanics_plan::root_entry_map::validate_with_export(
+                &root,
+                &mut sources,
+                semantic.kag_export.as_deref(),
+                &CANCEL,
+            )
+            .map(|issues| {
+                for (path, message) in &issues {
+                    eprintln!("- {path}: {message}");
+                }
+                if issues.is_empty() {
+                    println!("[ok] validated root-entry map");
+                    0
+                } else {
+                    1
+                }
+            })
+        }),
+        Action::DocumentationFamilyBuild { check } => root.canonicalize().and_then(|root| {
+            tos_ops_mechanics_plan::documentation_family::run(
+                &root,
+                semantic.output.as_deref(),
+                check,
+                &CANCEL,
+            )
+        }),
+        Action::DocumentationCrossCorpusValidate => root.canonicalize().and_then(|root| {
+            tos_ops_mechanics_plan::documentation_cross_corpus::run_validation_with_export(
+                &root,
+                semantic.selected_interpreter.as_deref(),
+                semantic.kag_export.as_deref(),
+                &CANCEL,
+            )
+            .map(|issues| {
+                if issues.is_empty() {
+                    println!(
+                        "[ok] validated cross-corpus documentation currentness and context guards"
+                    );
+                    0
+                } else {
+                    println!("Cross-corpus documentation validation failed.");
+                    for (location, message) in issues {
+                        println!("- {location}: {message}");
+                    }
+                    1
+                }
+            })
+        }),
+        Action::AgentSurfaceBuild { check } => root
+            .canonicalize()
+            .and_then(|root| tos_ops_mechanics_plan::agent_surface::run(&root, check, &CANCEL)),
+        Action::AgentSurfaceValidate { fetch_budget_bases } => {
+            root.canonicalize().and_then(|root| {
+                tos_ops_mechanics_plan::agent_surface_validation::validate_manifest(
+                    &root,
+                    fetch_budget_bases,
+                    semantic.selected_interpreter.as_deref(),
+                    &CANCEL,
+                )
+                .map(|issues| {
+                    if issues.is_empty() {
+                        println!("[ok] validated ToS agent surface");
+                        0
+                    } else {
+                        eprintln!("Agent surface validation failed.");
+                        for (location, message) in issues {
+                            eprintln!("- {location}: {message}");
+                        }
+                        1
+                    }
+                })
+            })
+        }
+
         Action::SourceHome => {
             #[cfg(target_os = "linux")]
             unsafe {
@@ -498,8 +776,23 @@ fn main() {
                 }
             })
         }
-        Action::Plan | Action::Execute => tos_ops_mechanics_plan::discover(&root, &python)
-            .and_then(|plan| {
+        Action::Plan | Action::Execute { .. } => tos_ops_mechanics_plan::discover(&root, &python)
+            .and_then(|mut plan| {
+                if matches!(
+                    action,
+                    Action::Execute {
+                        native_contracts_only: true
+                    }
+                ) {
+                    plan.commands
+                        .retain(|command| command.kind == "native_assertions");
+                    plan.test_file_count = 5;
+                    if plan.commands.len() != 3 {
+                        return Err(std::io::Error::other(
+                            "native mechanics contracts require all three supported homes",
+                        ));
+                    }
+                }
                 if matches!(action, Action::Plan) {
                     let output = serde_json::to_string(&plan).map_err(std::io::Error::other)?;
                     println!("{output}");
@@ -530,7 +823,8 @@ fn main() {
                 std::process::exit(1);
             }
             let route = match action {
-                Action::Execute => "execution",
+                Action::Execute { .. } => "execution",
+                Action::LocalContracts { .. } => "native local contracts",
                 Action::Plan => "plan",
                 Action::ThresholdBuild { .. } | Action::ThresholdValidate => "threshold registry",
                 Action::RelationPackValidate => "relation pack",
@@ -539,6 +833,15 @@ fn main() {
                 Action::DerivedKagValidate | Action::DerivedKagGenerate => "derived KAG",
                 Action::MechanicsTopologyValidate => "mechanics topology",
                 Action::ActiveNamingValidate => "active naming",
+                Action::AgentSurfaceBuild { .. } | Action::AgentSurfaceValidate { .. } => {
+                    "agent surface"
+                }
+                Action::DocumentationFamilyBuild { .. }
+                | Action::DocumentationCrossCorpusValidate => "documentation",
+                Action::RootEntryMapBuild { .. } | Action::RootEntryMapValidate => "root-entry map",
+                Action::DecisionRecordsValidate | Action::DecisionIndexBuild { .. } => {
+                    "decision records"
+                }
                 Action::SourceHome => "source home",
                 Action::PhilosophyTopology => "philosophy topology",
                 #[cfg(feature = "compiler-backed-validators")]
@@ -551,7 +854,7 @@ fn main() {
                 format!("mechanics-local {route}: {error}\n")
             };
             #[cfg(target_os = "linux")]
-            if matches!(action, Action::Execute) {
+            if matches!(action, Action::Execute { .. }) {
                 // A stalled diagnostic sink must not undo bounded execution.
                 unsafe {
                     let flags = libc::fcntl(2, libc::F_GETFL);

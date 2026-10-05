@@ -21,10 +21,19 @@ def retained_owner_state(state, roots, *, maximum_objects):
     scalar = max(g.unicode_bytes(1), g.tuple_base + 4 * g.pointer,
                  g.range_iterator_base, int.__basicsize__ + 3 * g.int_digit)
     framework = types.FrameType.__basicsize__ + g.gc_header + slots * (g.pointer + scalar)
-    workspace = 2 * (g.list_base + maximum_objects * g.pointer) + framework
+    # One fixed identity table covers both already-retained and new owners.
+    # At most half full; every inspected slot spends the SAME original work.
+    # No growing set/dict or linear scan of every previously seen allocation.
+    identity_slots = 1
+    while identity_slots < 2 * (len(state._external_owners) + maximum_objects):
+        identity_slots <<= 1
+    workspace = (2 * (g.list_base + maximum_objects * g.pointer)
+                 + g.list_base + identity_slots * g.pointer + framework)
     state.reserve(workspace)
     seen = [None] * maximum_objects
     pending = [None] * maximum_objects
+    # Borrowed skipped type is an unambiguous empty slot, including for None.
+    identities = [types.ModuleType] * identity_slots
     pending_count = len(roots)
     if pending_count > maximum_objects:
         raise ValueError('native SDK initial owner census exceeds original cap')
@@ -32,6 +41,15 @@ def retained_owner_state(state, roots, *, maximum_objects):
         pending[index] = value
     seen_count = total = 0
     try:
+        for value in state._external_owners:
+            slot = (id(value) >> 4) & (identity_slots - 1)
+            while True:
+                state.visit()
+                existing = identities[slot]
+                if existing is types.ModuleType or existing is value:
+                    identities[slot] = value
+                    break
+                slot = (slot + 1) & (identity_slots - 1)
         while pending_count:
             state.visit()
             pending_count -= 1
@@ -41,29 +59,36 @@ def retained_owner_state(state, roots, *, maximum_objects):
                 continue
             if isinstance(value, types.FunctionType) and value.__closure__ is None:
                 continue  # global source function/code, not a created closure
-            duplicate = False
-            for existing in state._external_owners:
+            slot = (id(value) >> 4) & (identity_slots - 1)
+            while True:
                 state.visit()
-                if existing is value:
-                    duplicate = True
+                existing = identities[slot]
+                if existing is types.ModuleType or existing is value:
                     break
-            if duplicate:
+                slot = (slot + 1) & (identity_slots - 1)
+            if existing is value:
                 continue
-            for index in range(seen_count):
-                state.visit()
-                if seen[index] is value:
-                    duplicate = True
-                    break
-            if duplicate:
-                continue
+            identities[slot] = value
             if seen_count == maximum_objects:
                 raise ValueError('native SDK owner census exceeds original object cap')
             seen[seen_count] = value
             seen_count += 1
             total += sys.getsizeof(value)
+            if isinstance(value, collections.deque):
+                # deque.__sizeof__ counts active blocks only. Its per-instance
+                # freeblock cache retains up to MAXFREEBLOCKS=16 blocks, each
+                # BLOCKLEN=64 values plus two links, even after clear().
+                total += 16 * (64 + 2) * g.pointer
+            # Selected CPython3.14 GIL: INLINE_VALUES=(1 << 2). The
+            # allocation appends shared-key values after __basicsize__, so
+            # sys.getsizeof omits them even after a dict is materialized.
+            # _PyInlineValuesSize: rounded order prefix + (capacity+1) slots.
+            if sys.version_info[:2] == (3, 14) and type(value).__flags__ & 4:
+                total += ((30 + g.pointer - 1) // g.pointer) * g.pointer
+                total += (30 + 1) * g.pointer
             if total > state._limit - state._retained:
                 raise MemoryError('native SDK retained owner closure exceeds original state')
-            if isinstance(value, (str, bytes, bytearray, int, float, bool, type(None))):
+            if type(value) in (str, bytes, bytearray, int, float, bool, type(None)):
                 continue
             if isinstance(value, types.FunctionType):
                 # A created closure owns these actual tuple/cell/default owners;
@@ -75,18 +100,35 @@ def retained_owner_state(state, roots, *, maximum_objects):
                         pending[pending_count] = child
                         pending_count += 1
                 continue
-            if type(value) is dict:
+            if isinstance(value, dict):
                 references = 2 * len(value)
+                if type(value) is not dict:
+                    # subtype_traverse adds instance slots/dict/type to the
+                    # base container traversal. Do not materialize __dict__.
+                    references += type(value).__basicsize__ // g.pointer
+                    if type(value).__dictoffset__:
+                        references += 30
             elif isinstance(value, (list, tuple, set, frozenset, collections.deque)):
                 references = len(value)
+                if isinstance(value, collections.deque):
+                    # Its base traverse always visits Py_TYPE as well.
+                    references += 1
+                if type(value) not in (list, tuple, set, frozenset, collections.deque):
+                    references += type(value).__basicsize__ // g.pointer
+                    if type(value).__dictoffset__:
+                        references += 30
             elif isinstance(value, types.GeneratorType):
                 code = value.gi_code  # borrowed code; never materialize gi_frame
                 references = (type(value).__basicsize__ // g.pointer + code.co_nlocals
                               + len(code.co_cellvars) + len(code.co_freevars) + code.co_stacksize)
             else:
-                # Fixed inline pointer fields bound generic GC traversal. A
-                # dynamic __dict__ is a separately visited owner, not copied.
+                # Fixed object slots plus CPython's managed instance values.
+                # subtype_traverse visits one materialized dict OR up to
+                # SHARED_KEYS_MAX_SIZE=30 inline values; __basicsize__ omits
+                # that trailing storage. No __dict__ is materialized here.
                 references = type(value).__basicsize__ // g.pointer
+                if type(value).__dictoffset__:
+                    references += 30
             # gc.get_referents uses append; final slots and realloc overlap are
             # admitted before that existing mechanical GC owner allocates.
             referent_scratch = 2 * g.list_bytes(references)
@@ -124,6 +166,6 @@ def retained_owner_state(state, roots, *, maximum_objects):
     finally:
         # On success or failure, this function retains no traversal owners.
         # Failure is terminal; traceback-owned values cannot buy another call.
-        del pending, seen
+        del pending, seen, identities
         if sys.exception() is None:
             state.release(workspace)

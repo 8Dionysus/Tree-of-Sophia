@@ -2786,7 +2786,8 @@
       "owner_surface": "ToS/derived-exports/AGENTS.md",
       "source_truth": [
         "scripts/root_entry_map_common.py",
-        "ToS/contracts/root-entry-map.schema.json"
+        "ToS/contracts/root-entry-map.schema.json",
+        "rust/crates/tos-ops-mechanics-plan/src/root_entry_map.rs"
       ],
       "reads": [
         "ToS/contracts/root-entry-map.schema.json",
@@ -2797,7 +2798,7 @@
       "writes": [
         "ToS/derived-exports/root_entry_map.min.json unless --check is used"
       ],
-      "side_effects": "tracked generated read model",
+      "side_effects": "tracked generated read model Installed native operation; optional selected export explicit; no compile or Python fallback.",
       "validation_lane": "generated_parity",
       "ci_inclusion": "release",
       "test_target": "tests/test_root_entry_map.py",
@@ -3472,7 +3473,8 @@
       "owner_surface": "docs/decisions/AGENTS.md",
       "source_truth": [
         "docs/decisions/TOS-D-*.md",
-        "docs/decisions/indexes/index_contract.yaml"
+        "docs/decisions/indexes/index_contract.yaml",
+        "rust/crates/tos-ops-mechanics-plan/src/decision_records.rs"
       ],
       "reads": [
         "docs/decisions/TOS-D-*.md",
@@ -3481,7 +3483,7 @@
       "writes": [
         "docs/decisions/indexes/ unless --check is used"
       ],
-      "side_effects": "tracked generated decision indexes",
+      "side_effects": "tracked generated decision indexes; maintained executable dispatch uses selected installed native tos-ops-mechanics-plan without compile-on-call or fallback; retained Python functions are explicit comparison APIs",
       "validation_lane": "generated_parity",
       "ci_inclusion": "release",
       "test_target": "tests/test_decision_indexes.py",
@@ -3786,14 +3788,15 @@
       "owner_surface": "docs/decisions/AGENTS.md",
       "source_truth": [
         "docs/decisions/TOS-D-*.md",
-        "docs/decisions/indexes/index_contract.yaml"
+        "docs/decisions/indexes/index_contract.yaml",
+        "rust/crates/tos-ops-mechanics-plan/src/decision_records.rs"
       ],
       "reads": [
         "docs/decisions/TOS-D-*.md",
         "docs/decisions/indexes/"
       ],
       "writes": [],
-      "side_effects": "validation output only",
+      "side_effects": "validation output only; maintained executable dispatch uses selected installed native tos-ops-mechanics-plan without compile-on-call or fallback; retained Python functions are explicit comparison APIs",
       "validation_lane": "generated_parity",
       "ci_inclusion": "release",
       "test_target": "tests/test_decision_indexes.py",
@@ -3973,13 +3976,14 @@
       "owner_surface": "ToS/contracts/root-entry-map.schema.json",
       "source_truth": [
         "ToS/derived-exports/root_entry_map.min.json",
-        "ToS/contracts/root-entry-map.schema.json"
+        "ToS/contracts/root-entry-map.schema.json",
+        "rust/crates/tos-ops-mechanics-plan/src/root_entry_map.rs"
       ],
       "reads": [
         "ToS/derived-exports/root_entry_map.min.json"
       ],
       "writes": [],
-      "side_effects": "validation output only",
+      "side_effects": "validation output only Installed native operation; optional selected export explicit; no compile or Python fallback.",
       "validation_lane": "generated_parity",
       "ci_inclusion": "release",
       "test_target": "tests/test_root_entry_map.py",
@@ -4253,7 +4257,8 @@
         "evals/",
         "stats/",
         "kag/",
-        "memo/"
+        "memo/",
+        "rust/crates/tos-ops-mechanics-plan/src/agent_surface.rs"
       ],
       "reads": [
         "the authored agent-surface manifest",
@@ -4263,7 +4268,7 @@
       "writes": [
         ".agents/agent-surface.current.json"
       ],
-      "side_effects": "deterministic generated currentness read model only; no source, runtime, owner, or receipt mutation",
+      "side_effects": "deterministic generated currentness read model only; no source, runtime, owner, or receipt mutation; maintained executable dispatch uses selected installed native tos-ops-mechanics-plan without compile-on-call or fallback; retained Python functions are explicit comparison APIs",
       "validation_lane": "agent_surface",
       "ci_inclusion": "release",
       "test_target": "tests/test_agent_surface.py",
@@ -4281,7 +4286,8 @@
         "evals/",
         "stats/",
         "kag/",
-        "memo/"
+        "memo/",
+        "rust/crates/tos-ops-mechanics-plan/src/agent_surface_validation.rs"
       ],
       "reads": [
         "authored model-facing map and task probes",
@@ -4289,7 +4295,7 @@
         "generated currentness parity and owner-port inputs"
       ],
       "writes": [],
-      "side_effects": "validation output only",
+      "side_effects": "validation output only; maintained executable dispatch uses selected installed native tos-ops-mechanics-plan without compile-on-call or fallback; retained Python functions are explicit comparison APIs",
       "validation_lane": "agent_surface",
       "ci_inclusion": "release",
       "test_target": "tests/test_agent_surface.py",
@@ -4348,7 +4354,8 @@
       "source_truth": [
         "docs/validation/documentation_family_map.json",
         "docs/validation/documentation-family-map.schema.json",
-        "git ls-files -z"
+        "git ls-files -z",
+        "rust/crates/tos-ops-mechanics-plan/src/documentation_family.rs"
       ],
       "reads": [
         "authored family law and tracked textual, structured, and executable route surfaces"
@@ -4356,7 +4363,7 @@
       "writes": [
         "docs/validation/documentation-family.current.json"
       ],
-      "side_effects": "deterministic generated family/hash/currentness carrier only; no source, runtime, owner, or receipt mutation",
+      "side_effects": "deterministic generated family/hash/currentness carrier only; no source, runtime, owner, or receipt mutation; maintained executable dispatch uses selected installed native tos-ops-mechanics-plan without compile-on-call or fallback; retained Python functions are explicit comparison APIs",
       "validation_lane": "cross_corpus_documentation",
       "ci_inclusion": "release",
       "test_target": "tests/test_documentation_cross_corpus.py",
@@ -4371,13 +4378,14 @@
         "docs/validation/documentation_family_map.json",
         "docs/validation/validation_lanes.json",
         "docs/validation/documentation-family.current.json",
-        "existing owner validators named by the family map"
+        "existing owner validators named by the family map",
+        "rust/crates/tos-ops-mechanics-plan/src/documentation_cross_corpus.rs"
       ],
       "reads": [
         "tracked Markdown routes, local executable references, explicit authority declarations, public authored surfaces, and selected context carriers"
       ],
       "writes": [],
-      "side_effects": "validation output only; it coordinates existing validators and does not promote carriers to source or acceptance",
+      "side_effects": "validation output only; it coordinates existing validators and does not promote carriers to source or acceptance; maintained executable dispatch uses selected installed native tos-ops-mechanics-plan without compile-on-call or fallback; retained Python functions are explicit comparison APIs",
       "validation_lane": "cross_corpus_documentation",
       "ci_inclusion": "release",
       "test_target": "tests/test_documentation_cross_corpus.py",

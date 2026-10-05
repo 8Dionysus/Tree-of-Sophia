@@ -3,6 +3,37 @@
 
 from __future__ import annotations
 
+
+def native_main(argv=None) -> int:
+    """Maintained command dispatch; reference functions below are not a fallback."""
+    import argparse as _argparse
+    import os as _os
+    import shutil as _shutil
+    import sys as _sys
+    from pathlib import Path as _Path
+    parser = _argparse.ArgumentParser(description="Native ToS documentation operation")
+    parser.add_argument("--check", action="store_true")
+    parser.add_argument("--output", type=_Path)
+    args = parser.parse_args(argv)
+    executable = _os.environ.get("TOS_OPS_MECHANICS_EXECUTOR") or _shutil.which("tos-ops-mechanics-plan")
+    if not executable:
+        print("[error] install tos-ops-mechanics-plan or set TOS_OPS_MECHANICS_EXECUTOR", file=_sys.stderr)
+        return 1
+    command = [executable, "--repo-root", str(_Path(__file__).resolve().parents[1]), "--documentation-family-build"]
+    if args.check:
+        command.append("--check")
+    if args.output is not None:
+        command.extend(["--output", str(args.output)])
+    try:
+        _os.execv(executable, command)
+    except OSError as error:
+        print(f"[error] cannot execute native documentation operation: {error}", file=_sys.stderr)
+        return 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(native_main())
+
 import argparse
 from fnmatch import fnmatchcase
 import hashlib
@@ -256,7 +287,7 @@ def display_path(repo_root: Path, path: Path) -> str:
         return path.as_posix()
 
 
-def main() -> int:
+def legacy_main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--check", action="store_true", help="check the generated projection without writing")
     parser.add_argument("--output", type=Path, default=None, help="override the generated output path")
@@ -275,5 +306,5 @@ def main() -> int:
     return 0
 
 
-if __name__ == "__main__":
-    raise SystemExit(main())
+def main() -> int:
+    return native_main()

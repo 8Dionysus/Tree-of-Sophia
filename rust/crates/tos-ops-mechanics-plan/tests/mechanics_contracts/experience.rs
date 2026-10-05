@@ -352,40 +352,43 @@ fn candidate_contract(schema: &Value, example: &Value, arrays: &mut usize) {
 }
 
 macro_rules! pair {
-    ($schema:literal, $example:literal) => {{
+    ($root:expr, $schema:literal, $example:literal) => {{
         (
-            serde_json::from_slice::<Value>(include_bytes!(concat!("../../../../../", $schema)))
-                .unwrap(),
-            serde_json::from_slice::<Value>(include_bytes!(concat!("../../../../../", $example)))
-                .unwrap(),
+            serde_json::from_slice::<Value>(&std::fs::read($root.join($schema)).unwrap()).unwrap(),
+            serde_json::from_slice::<Value>(&std::fs::read($root.join($example)).unwrap()).unwrap(),
         )
     }};
 }
 
-#[test]
-fn experience_candidate_all_retained_schema_mutations() {
+pub(super) fn experience_candidate_all_retained_schema_mutations(root: &std::path::Path) {
     let pairs = [
         pair!(
+            root,
             "mechanics/experience/parts/candidate-review/schemas/aoa_experience_candidate_dossier_v1.json",
             "mechanics/experience/parts/candidate-review/examples/aoa_experience_candidate_dossier.example.json"
         ),
         pair!(
+            root,
             "mechanics/experience/parts/adoption-boundary/schemas/tos_adoption_boundary_dossier_v1.json",
             "mechanics/experience/parts/adoption-boundary/examples/tos_adoption_boundary_dossier.example.json"
         ),
         pair!(
+            root,
             "mechanics/experience/parts/candidate-review/schemas/tos_intake_boundary_decision_v1.json",
             "mechanics/experience/parts/candidate-review/examples/tos_intake_boundary_decision.example.json"
         ),
         pair!(
+            root,
             "mechanics/experience/parts/write-guards/schemas/tos_no_direct_write_guard_v1.json",
             "mechanics/experience/parts/write-guards/examples/tos_no_direct_write_guard.example.json"
         ),
         pair!(
+            root,
             "mechanics/experience/parts/adoption-boundary/schemas/tos_no_runtime_adoption_guard_v1.json",
             "mechanics/experience/parts/adoption-boundary/examples/tos_no_runtime_adoption_guard.example.json"
         ),
         pair!(
+            root,
             "mechanics/experience/parts/pattern-review/schemas/tos_pattern_review_note_v1.json",
             "mechanics/experience/parts/pattern-review/examples/tos_pattern_review_note.example.json"
         ),
@@ -398,14 +401,15 @@ fn experience_candidate_all_retained_schema_mutations() {
     assert!(arrays > 0);
 }
 
-#[test]
-fn experience_governance_all_retained_schema_mutations() {
+pub(super) fn experience_governance_all_retained_schema_mutations(root: &std::path::Path) {
     let pairs = [
         pair!(
+            root,
             "mechanics/experience/parts/governance-boundary/schemas/tos_governance_review_note_v1.json",
             "mechanics/experience/parts/governance-boundary/examples/tos_governance_review_note.example.json"
         ),
         pair!(
+            root,
             "mechanics/experience/parts/governance-boundary/schemas/tos_governance_dossier_boundary_v1.json",
             "mechanics/experience/parts/governance-boundary/examples/tos_governance_dossier_boundary_v1.example.json"
         ),
@@ -426,18 +430,20 @@ fn experience_governance_all_retained_schema_mutations() {
     }
 }
 
-#[test]
-fn experience_installation_all_retained_schema_mutations() {
+pub(super) fn experience_installation_all_retained_schema_mutations(root: &std::path::Path) {
     let pairs = [
         pair!(
+            root,
             "mechanics/experience/parts/installation-boundary/schemas/tos_installation_dossier_boundary_v1.json",
             "mechanics/experience/parts/installation-boundary/examples/tos_installation_dossier_boundary_v1.example.json"
         ),
         pair!(
+            root,
             "mechanics/experience/parts/service-office-boundary/schemas/tos_no_runtime_office_write_guard_v1.json",
             "mechanics/experience/parts/service-office-boundary/examples/tos_no_runtime_office_write_guard_v1.example.json"
         ),
         pair!(
+            root,
             "mechanics/experience/parts/service-office-boundary/schemas/tos_service_dossier_boundary_v1.json",
             "mechanics/experience/parts/service-office-boundary/examples/tos_service_dossier_boundary_v1.example.json"
         ),

@@ -245,6 +245,13 @@ impl RouteSources {
     pub fn deadline(&self) -> Instant {
         self.deadline
     }
+    /// Remaining time belongs to this same held-root operation.
+    pub fn remaining_time(&self) -> io::Result<Duration> {
+        self.deadline
+            .checked_duration_since(Instant::now())
+            .filter(|remaining| !remaining.is_zero())
+            .ok_or_else(|| invalid("route operation deadline exceeded"))
+    }
     /// Exact normalized path selected when this held root was authenticated.
     pub fn selected_root_path(&self) -> &Path {
         &self.root_path
@@ -846,7 +853,14 @@ impl RouteSources {
         max_total_bytes: u64,
         consume: impl FnMut(&[u8]) -> io::Result<()>,
     ) -> io::Result<Option<fs::Metadata>> {
-        self.stream_regular_inner(value, max_file_bytes, read_bytes, max_total_bytes, None, consume)
+        self.stream_regular_inner(
+            value,
+            max_file_bytes,
+            read_bytes,
+            max_total_bytes,
+            None,
+            consume,
+        )
     }
     /// Same held uncached reader, joined to the caller's original shared IO ledger.
     pub fn stream_regular_with_hooks(
@@ -858,7 +872,14 @@ impl RouteSources {
         hooks: &mut dyn RouteSourceReadHooks,
         consume: impl FnMut(&[u8]) -> io::Result<()>,
     ) -> io::Result<Option<fs::Metadata>> {
-        self.stream_regular_inner(value, max_file_bytes, read_bytes, max_total_bytes, Some(hooks), consume)
+        self.stream_regular_inner(
+            value,
+            max_file_bytes,
+            read_bytes,
+            max_total_bytes,
+            Some(hooks),
+            consume,
+        )
     }
     fn stream_regular_inner(
         &mut self,
@@ -1035,6 +1056,26 @@ impl RouteSources {
         max_total_bytes: usize,
     ) -> io::Result<(Vec<u8>, fs::Metadata)> {
         self.bounded_metadata_bytes_inner(value, max_file_bytes, read_bytes, max_total_bytes, None)
+            .map(|(raw, metadata, _held)| (raw, metadata))
+    }
+    /// Exact mode from the existing stable held-descriptor operand read.
+    pub fn bounded_bytes_with_mode(
+        &mut self,
+        value: &str,
+        max_file_bytes: usize,
+        read_bytes: &mut usize,
+        max_total_bytes: usize,
+    ) -> io::Result<(Vec<u8>, u32)> {
+        let (raw, metadata) =
+            self.bounded_metadata_bytes(value, max_file_bytes, read_bytes, max_total_bytes)?;
+        #[cfg(unix)]
+        let mode = {
+            use std::os::unix::fs::MetadataExt;
+            metadata.mode()
+        };
+        #[cfg(not(unix))]
+        let mode = 0;
+        Ok((raw, mode))
     }
     /// Descriptor bytes and metadata with pre-IO shared permits and actual returns.
     pub fn bounded_metadata_bytes_with_hooks(
@@ -1045,7 +1086,24 @@ impl RouteSources {
         max_total_bytes: usize,
         hooks: &mut dyn RouteSourceReadHooks,
     ) -> io::Result<(Vec<u8>, fs::Metadata)> {
-        self.bounded_metadata_bytes_inner(value, max_file_bytes, read_bytes, max_total_bytes, Some(hooks))
+        self.bounded_metadata_bytes_inner(
+            value,
+            max_file_bytes,
+            read_bytes,
+            max_total_bytes,
+            Some(hooks),
+        )
+        .map(|(raw, metadata, _held)| (raw, metadata))
+    }
+    /// Same bounded reader with the observed descriptor retained for downstream custody.
+    pub(crate) fn bounded_held_bytes(
+        &mut self,
+        value: &str,
+        max_file_bytes: usize,
+        read_bytes: &mut usize,
+        max_total_bytes: usize,
+    ) -> io::Result<(Vec<u8>, fs::Metadata, File)> {
+        self.bounded_metadata_bytes_inner(value, max_file_bytes, read_bytes, max_total_bytes, None)
     }
     fn bounded_metadata_bytes_inner(
         &mut self,
@@ -1054,7 +1112,7 @@ impl RouteSources {
         read_bytes: &mut usize,
         max_total_bytes: usize,
         mut hooks: Option<&mut dyn RouteSourceReadHooks>,
-    ) -> io::Result<(Vec<u8>, fs::Metadata)> {
+    ) -> io::Result<(Vec<u8>, fs::Metadata, File)> {
         self.verify_root()?;
         let remaining = max_total_bytes
             .checked_sub(*read_bytes)
@@ -1090,7 +1148,8 @@ impl RouteSources {
                     return Err(error);
                 }
             };
-            *read_bytes = read_bytes.checked_add(count)
+            *read_bytes = read_bytes
+                .checked_add(count)
                 .ok_or_else(|| invalid("operand aggregate byte accounting overflow"))?;
             if let Some(hooks) = hooks.as_deref_mut() {
                 hooks.read_returned(count as u64)?;
@@ -1106,15 +1165,16 @@ impl RouteSources {
             hooks.before_read(1)?;
         }
         let count = match file.read(&mut [0; 1]) {
-                Ok(count) => count,
-                Err(error) => {
-                    if let Some(hooks) = hooks.as_deref_mut() {
-                        hooks.read_returned(0)?;
-                    }
-                    return Err(error);
+            Ok(count) => count,
+            Err(error) => {
+                if let Some(hooks) = hooks.as_deref_mut() {
+                    hooks.read_returned(0)?;
                 }
-            };
-        *read_bytes = read_bytes.checked_add(count)
+                return Err(error);
+            }
+        };
+        *read_bytes = read_bytes
+            .checked_add(count)
             .ok_or_else(|| invalid("operand aggregate byte accounting overflow"))?;
         if let Some(hooks) = hooks.as_deref_mut() {
             hooks.read_returned(count as u64)?;
@@ -1149,7 +1209,7 @@ impl RouteSources {
         }
         self.verify_root()?;
         self.check()?;
-        Ok((raw, meta))
+        Ok((raw, meta, file))
     }
     /// Re-select a participating publication control on every call. This
     /// supplies physical custody only; the source-store epoch codec owns its
@@ -1342,15 +1402,13 @@ impl RouteSources {
         // A rejected overlong next filename is transient, never retained for
         // every entry. Linux getdents64 d_reclen is u16; d_name fits that record.
         // Reserve its name buffer and formatting alongside the existing prefix.
-        let failed_entry = (u16::MAX as usize)
-            .checked_mul(2)
-            .and_then(|n| {
-                let formatted = MAX_RELATIVE_PATH_BYTES
-                    .checked_add(u16::MAX as usize)?
-                    .checked_add(1)?
-                    .checked_mul(2)?;
-                n.checked_add(formatted)
-            });
+        let failed_entry = (u16::MAX as usize).checked_mul(2).and_then(|n| {
+            let formatted = MAX_RELATIVE_PATH_BYTES
+                .checked_add(u16::MAX as usize)?
+                .checked_add(1)?
+                .checked_mul(2)?;
+            n.checked_add(formatted)
+        });
         entry
             .and_then(|n| n.checked_mul(MAX_ENTRIES))
             .and_then(|n| n.checked_add(frames?))
@@ -1458,10 +1516,14 @@ fn stack(
     }
     out
 }
-fn tracked(root: &Path, cancel: &AtomicI32) -> io::Result<Option<BTreeSet<String>>> {
+fn tracked(
+    root: &Path,
+    remaining: Duration,
+    cancel: &AtomicI32,
+) -> io::Result<Option<BTreeSet<String>>> {
     let limits = Limits {
-        command_wall: Duration::from_secs(10),
-        lane_wall: Duration::from_secs(10),
+        command_wall: remaining.min(Duration::from_secs(10)),
+        lane_wall: remaining.min(Duration::from_secs(10)),
         cleanup_grace: Duration::from_secs(1),
         output_bytes: 4 * 1024 * 1024,
     };
@@ -1536,7 +1598,8 @@ fn entry_records(
 pub fn build_currentness(root: &Path, cancel: &AtomicI32) -> io::Result<Value> {
     let mut sources = RouteSources::new(root)?;
     let inventory = sources.inventory()?;
-    let tracked = tracked(root, cancel)?.ok_or_else(|| invalid("git ls-files failed"))?;
+    let tracked = tracked(root, s.remaining_time()?, cancel)?
+        .ok_or_else(|| invalid("git ls-files failed"))?;
     build_from_sources(&mut sources, &inventory, &tracked)
 }
 fn build_from_sources(
@@ -1842,7 +1905,7 @@ fn normalize(text: &str) -> io::Result<String> {
         .collect::<Vec<_>>()
         .join(" "))
 }
-fn python_repr(text: &str) -> String {
+pub(crate) fn python_repr(text: &str) -> String {
     let quote = if text.contains('\'') && !text.contains('"') {
         '"'
     } else {
@@ -2374,8 +2437,50 @@ fn inventory_issues(
 }
 /// The maintained diagnostic order: card shape, inventory/currentness, script refs,
 /// then procedural structure. Malformed inventory falls back only for discovery.
+/// Shared script-reference rule used by the documentation coordinator.
+pub fn validate_local_script_references(
+    s: &mut RouteSources,
+    cards: &[String],
+) -> io::Result<Vec<Issue>> {
+    let mut issues = Vec::new();
+    local_script_reference_issues(s, cards, &Patterns::new()?, &mut issues)?;
+    Ok(issues)
+}
+fn local_script_reference_issues(
+    s: &mut RouteSources,
+    cards: &[String],
+    p: &Patterns,
+    issues: &mut Vec<Issue>,
+) -> io::Result<()> {
+    for card in cards {
+        let text = s.text(card)?.ok_or_else(|| invalid("card disappeared"))?;
+        for m in p.script.find_iter(&text) {
+            let before = text[..m.start()].chars().next_back();
+            if before.is_some_and(|c| python_word(c) || matches!(c, '.' | '/')) {
+                continue;
+            }
+            let reference = m.as_str().trim_end_matches(['.', ',', ':', ';']);
+            if !s.is_file(reference)? {
+                issue(
+                    issues,
+                    card,
+                    format!("local executable reference points to missing path: {reference}"),
+                )?;
+            }
+        }
+    }
+    Ok(())
+}
 pub fn run_validation(root: &Path, cancel: &AtomicI32) -> io::Result<Vec<Issue>> {
-    let mut s = RouteSources::new(root)?;
+    run_validation_with_sources(root, &mut RouteSources::new(root)?, cancel)
+}
+/// Run the same route laws on the caller's existing clock and custody.
+pub fn run_validation_with_sources(
+    root: &Path,
+    mut s: &mut RouteSources,
+    cancel: &AtomicI32,
+) -> io::Result<Vec<Issue>> {
+    s.check()?;
     let inventory = s.inventory();
     if let Err(error) = &inventory {
         let message = error.to_string();
@@ -2410,7 +2515,7 @@ pub fn run_validation(root: &Path, cancel: &AtomicI32) -> io::Result<Vec<Issue>>
     }
     match inventory {
         Ok(inventory) => {
-            let tracked = tracked(root, cancel)?;
+            let tracked = tracked(root, s.remaining_time()?, cancel)?;
             inventory_issues(&mut s, &inventory, &cards, tracked.as_ref(), &mut issues)?;
         }
         Err(_) => {
@@ -2422,23 +2527,7 @@ pub fn run_validation(root: &Path, cancel: &AtomicI32) -> io::Result<Vec<Issue>>
             issue(&mut issues, INVENTORY, message)?;
         }
     }
-    for card in &cards {
-        let text = s.text(card)?.unwrap();
-        for m in p.script.find_iter(&text) {
-            let before = text[..m.start()].chars().next_back();
-            if before.is_some_and(|c| python_word(c) || matches!(c, '.' | '/')) {
-                continue;
-            }
-            let reference = m.as_str().trim_end_matches(['.', ',', ':', ';']);
-            if !s.is_file(reference)? {
-                issue(
-                    &mut issues,
-                    card,
-                    format!("local executable reference points to missing path: {reference}"),
-                )?;
-            }
-        }
-    }
+    local_script_reference_issues(s, &cards, &p, &mut issues)?;
     let discovered = cards.iter().cloned().collect();
     for card in &cards {
         let mut inherited = false;

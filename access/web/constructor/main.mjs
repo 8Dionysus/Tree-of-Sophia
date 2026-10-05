@@ -30,6 +30,7 @@ import {installConditionRules} from '../src/observatory/lens-conditions-rust.mjs
 import {installDraftRules} from '../src/observatory/lens-draft-rust.mjs';
 import {installReadingRules} from '../src/observatory/reading-resume-rust.mjs';
 import {installClaimReferenceRules} from '../src/observatory/claim-reference-rust.mjs';
+import {installConstructorReadingRules} from './reading-rules-rust.mjs';
 import {installResearchShelfRules} from '../src/research-shelf/rules.mjs';
 import initRules,* as rules from '../../deploy/cloudflare-worker/generated/tos_web_rules.js';
 await initRules(new URL('../../deploy/cloudflare-worker/generated/tos_web_rules_bg.wasm',import.meta.url));
@@ -49,6 +50,7 @@ installConditionRules(rules);
 installDraftRules(rules);
 installLiveResumeRules(rules);
 installConstructorRules(rules);
+installConstructorReadingRules(rules);
 installResearchShelfRules(rules);
 installClaimReferenceRules(rules);
 installReadingRules(rules);

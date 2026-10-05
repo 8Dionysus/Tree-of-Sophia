@@ -14,6 +14,10 @@ mod client_inspection;
 #[cfg(feature = "wasm")]
 mod client_packet;
 mod constructor_machine;
+mod constructor_reading;
+pub use constructor_reading::constructor_reading_v1;
+#[cfg(feature = "wasm")]
+pub use constructor_reading::constructor_reading_wasm_v1;
 #[cfg(feature = "wasm")]
 mod exploration_session;
 mod human_forms;

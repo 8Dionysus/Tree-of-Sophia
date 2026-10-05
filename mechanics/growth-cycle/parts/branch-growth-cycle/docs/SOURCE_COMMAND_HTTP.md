@@ -10,11 +10,27 @@ The local operator selects one existing protected owner configuration, one
 private credential file, one exact browser origin and one unused port:
 
 ```sh
-python mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_command_http.py \
+tos-native-owner-command http \
   --owner-config /absolute/protected/owner.json \
+  --native-invocation /absolute/protected/native-invocation.json \
   --token-file /absolute/protected/transport-token \
   --browser-origin http://127.0.0.1:44257 --port 44259
 ```
+
+The protected native invocation selects the same owner configuration and the
+installed owner executable identity. Every command enters the existing native
+owner engine and rereads its current grant, rights, source and software fences.
+The transport token grants no source authority. The maintained Python listener
+remains an explicit compatibility/reference surface while retirement evidence
+is collected; it is not part of this native process.
+
+The native catalog is a deterministic implementation-only capture of the
+maintained source-command discovery contract. Rebuild it with
+`python mechanics/growth-cycle/parts/branch-growth-cycle/scripts/build_source_command_catalog.py`
+and verify parity with `--check`. This build-time companion reads no owner
+configuration, source target, grant or clock. The installed listener serves its
+compiled catalog without Python or checkout discovery. Catalog entries remain
+weaker than the selected native owner and current delegation.
 
 Use the host's resource launcher where required. Starting this process is
 separate from installing, activating or restarting any existing application.

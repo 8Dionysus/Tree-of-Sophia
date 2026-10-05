@@ -2463,6 +2463,56 @@ def budget_receipt_contract_issues(
     return issues
 
 
+def _external_generated_family_issues(root: Path, port: dict[str, Any], family: dict[str, Any]) -> list[Issue]:
+    """Validate authored external-release routes; no artifact is selected here."""
+    issues: list[Issue] = []
+    for field in ("manifest", "segments", "receipt_root"):
+        path = family.get(field)
+        if not isinstance(path, str) or not path or Path(path).is_absolute() or ".." in Path(path).parts or "\x00" in path:
+            issues.append(("kag_provider", f"generated_family.{field} must be a safe external provider-relative route"))
+    for field in ("builder", "validator"):
+        if not isinstance(family.get(field), str) or not family[field].startswith("aoa-kag:"):
+            issues.append(("kag_provider", f"generated_family.{field} must keep the aoa-kag owner handle"))
+    routes: dict[str, str] = {}
+    for field in ("provider_template", "owner_route", "publication_route", "validation_route"):
+        path = family.get(field)
+        if not isinstance(path, str) or not path or Path(path).is_absolute() or ".." in Path(path).parts or "\x00" in path:
+            issues.append(("kag_provider", f"generated_family.{field} must be an authored repository-relative route"))
+            continue
+        routes[field] = path
+        if not (root / path).is_file():
+            issues.append((path, f"external KAG {field} route is missing"))
+    if routes.get("provider_template") != port.get("manifest"):
+        issues.append(("kag_provider", "external KAG provider_template must match the port manifest route"))
+    if routes.get("owner_route") != port.get("local_owner"):
+        issues.append(("kag_provider", "external KAG owner_route must match the local owner"))
+    template_path = routes.get("provider_template")
+    if template_path and (root / template_path).is_file():
+        try:
+            with (root / template_path).open("rb") as stream:
+                raw = stream.read(65537)
+            template = json.loads(raw.decode("utf-8-sig")) if len(raw) <= 65536 else None
+        except (OSError, ValueError):
+            template = None
+        files = template.get("files") if isinstance(template, dict) else None
+        declared = files.get("kag/manifest.json") if isinstance(files, dict) else None
+        route = "Tree-of-Sophia:" + routes.get("publication_route", "")
+        valid = (
+            isinstance(template, dict) and template.get("schema_version") == "tos_kag_provider_template_v1"
+            and isinstance(declared, dict) and declared.get("schema_version") == "aoa-local-kag-manifest-v1"
+            and declared.get("repo") == "Tree-of-Sophia"
+            and declared.get("owner_surface") == routes.get("owner_route")
+            and isinstance(declared.get("record_classes"), list)
+            and all(isinstance(item, str) for item in declared["record_classes"])
+            and set(declared["record_classes"]) == {"node", "edge", "index", "projection", "receipt"}
+            and isinstance(declared.get("validation_routes"), list)
+            and any(isinstance(entry, dict) and entry.get("route") == route for entry in declared["validation_routes"])
+        )
+        if not valid:
+            issues.append((template_path, "external KAG provider template does not bind its schema, owner, record classes and publication route"))
+    return issues
+
+
 def generated_family_issues(
     root: Path,
     port: dict[str, Any],
@@ -2474,6 +2524,11 @@ def generated_family_issues(
     family = port.get("generated_family")
     if not isinstance(family, dict):
         return [("kag_provider", "generated_family carrier declaration is required")]
+    scope = family.get("scope")
+    if scope == "external_integration_release":
+        return _external_generated_family_issues(root, port, family)
+    if scope not in (None, "selected_local_family"):
+        return [("kag_provider", "generated_family.scope must select external_integration_release or selected_local_family")]
     manifest_text = family.get("manifest")
     # v3/v4 carriers call this route ``shards``; segmented v5 calls it
     # ``segments``.  Keep the historical field accepted for old synthetic
@@ -2977,5 +3032,32 @@ def main(argv: list[str] | None = None) -> int:
     return 0
 
 
+def native_main(argv: list[str] | None = None) -> int:
+    """Compatibility entrypoint; domain rules execute in the installed Rust tool."""
+    import os
+    import shutil
+
+    parser = argparse.ArgumentParser(description="Native ToS agent surface")
+    parser.add_argument("--check", action="store_true")
+    parser.add_argument("--fetch-budget-bases", action="store_true")
+    args = parser.parse_args(argv)
+    if not args.check:
+        parser.print_help()
+        return 0
+    executable = os.environ.get("TOS_OPS_MECHANICS_EXECUTOR") or shutil.which("tos-ops-mechanics-plan")
+    if not executable:
+        print("[error] install tos-ops-mechanics-plan or set TOS_OPS_MECHANICS_EXECUTOR", file=sys.stderr)
+        return 1
+    command = [executable, "--repo-root", str(REPO_ROOT), "--agent-surface-validate"]
+    command.extend(["--python", sys.executable])
+    if args.fetch_budget_bases:
+        command.append("--fetch-budget-bases")
+    try:
+        os.execv(executable, command)
+    except OSError as error:
+        print(f"[error] cannot execute native agent surface: {error}", file=sys.stderr)
+        return 1
+
+
 if __name__ == "__main__":
-    raise SystemExit(main())
+    raise SystemExit(native_main())

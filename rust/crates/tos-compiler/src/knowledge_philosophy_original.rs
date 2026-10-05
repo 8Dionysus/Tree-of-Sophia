@@ -1,7 +1,10 @@
 //! Exact ordered philosophy projection input retained under the selected lease.
 //! Mechanical custody only: authored source and current policy retain authority.
 use crate::knowledge_selected::{ColdOpenLimits, KnowledgeSelectedExpectation};
-use crate::knowledge_stage::{InputCollectionReceipt, KnowledgeStage, WritePhase, KnowledgePayloadLayout, KNOWLEDGE_CARRIER_ONCE_MODEL_ABI};
+use crate::knowledge_stage::{
+    InputCollectionReceipt, KNOWLEDGE_CARRIER_ONCE_MODEL_ABI, KnowledgePayloadLayout,
+    KnowledgeStage, WritePhase,
+};
 use crate::{Error, NavigationOriginalLimits, PhilosophyPrepareReceipt, QueryVocabulary, Result};
 use rusqlite::{Connection, OptionalExtension, params};
 use tos_foundation::{Digest256, Digest256Hasher, JsonLimits, JsonMode, parse_json};
@@ -91,12 +94,25 @@ pub fn philosophy_original_rows_root(
     collection: PhilosophyOriginalCollection,
     rows: &[&[u8]],
 ) -> String {
+    philosophy_original_rows_root_with_check(collection, rows, &mut |_| Ok(()))
+        .expect("infallible original hash callback")
+}
+
+pub(crate) fn philosophy_original_rows_root_with_check(
+    collection: PhilosophyOriginalCollection,
+    rows: &[&[u8]],
+    check: &mut dyn FnMut(usize) -> Result<()>,
+) -> Result<String> {
+    check(0)?;
     let mut h = ordered_hash(collection.as_str());
     for (i, raw) in rows.iter().enumerate() {
+        check(raw.len())?;
         ordered_item(&mut h, i as u64, raw);
     }
-    h.finalize().to_hex()
+    check(0)?;
+    Ok(h.finalize().to_hex())
 }
+
 fn root(r: &PhilosophyOriginalReceipt) -> Result<String> {
     let mut h = Digest256Hasher::new();
     for s in [
@@ -297,37 +313,58 @@ pub fn retain_philosophy_original(
                 for raw in rows {
                     // Planning and insertion each parse twice; insertion also hashes.
                     // Carrier retention owns its separate hash and physical-row debit.
-                    stage.charge_preparation_work((raw.len() as u64).checked_mul(5)
-                        .ok_or(Error::Budget("philosophy original carrier planning work"))?)?;
+                    stage.charge_preparation_work(
+                        (raw.len() as u64)
+                            .checked_mul(5)
+                            .ok_or(Error::Budget("philosophy original carrier planning work"))?,
+                    )?;
                     let value = object(raw, input.limits.max_row_bytes)?;
-                    let id = if key.is_empty() { "" } else {
-                        value[key].as_str().filter(|id| !id.is_empty() && id.len() <= 4096)
+                    let id = if key.is_empty() {
+                        ""
+                    } else {
+                        value[key]
+                            .as_str()
+                            .filter(|id| !id.is_empty() && id.len() <= 4096)
                             .ok_or(Error::Invalid("philosophy original row ID"))?
                     };
-                    let row_bytes = 48u64.checked_add(collection.len() as u64)
+                    let row_bytes = 48u64
+                        .checked_add(collection.len() as u64)
                         .and_then(|n| n.checked_add(id.len() as u64))
                         .ok_or(Error::Budget("philosophy original metadata bytes"))?;
                     stage.retain_exact_source_carrier(raw)?;
-                    bytes = bytes.checked_add(row_bytes)
+                    bytes = bytes
+                        .checked_add(row_bytes)
                         .ok_or(Error::Budget("philosophy original metadata bytes"))?;
                 }
             }
             bytes
-        } else { total };
-        stage.charge_materialized(r.nodes + r.edges + 2,
-            physical_bytes.checked_add(receipt.len() as u64)
-                .ok_or(Error::Budget("philosophy original materialized bytes"))?)?;
+        } else {
+            total
+        };
+        stage.charge_materialized(
+            r.nodes + r.edges + 2,
+            physical_bytes
+                .checked_add(receipt.len() as u64)
+                .ok_or(Error::Budget("philosophy original materialized bytes"))?,
+        )?;
         stage.with_connection(WritePhase::Finalize, |db| {
             let tx = db.transaction()?;
             tx.execute_batch(META_DDL)?;
-            tx.execute_batch(if layout == KnowledgePayloadLayout::CarrierOnceV1 { ROW_DDL_CARRIER } else { ROW_DDL })?;
+            tx.execute_batch(if layout == KnowledgePayloadLayout::CarrierOnceV1 {
+                ROW_DDL_CARRIER
+            } else {
+                ROW_DDL
+            })?;
             tx.execute(
                 "INSERT INTO philosophy_original_meta VALUES(1,?1)",
                 [receipt.as_slice()],
             )?;
             {
-                let mut q =
-                    tx.prepare(if layout == KnowledgePayloadLayout::CarrierOnceV1 { "INSERT INTO philosophy_original_rows VALUES(?1,?2,?3,?4,?5)" } else { "INSERT INTO philosophy_original_rows VALUES(?1,?2,?3,?4,?5,?6)" })?;
+                let mut q = tx.prepare(if layout == KnowledgePayloadLayout::CarrierOnceV1 {
+                    "INSERT INTO philosophy_original_rows VALUES(?1,?2,?3,?4,?5)"
+                } else {
+                    "INSERT INTO philosophy_original_rows VALUES(?1,?2,?3,?4,?5,?6)"
+                })?;
                 let header_rows = [input.header];
                 for (collection, key, rows) in [
                     ("header", "", header_rows.as_slice()),
@@ -345,11 +382,22 @@ pub fn retain_philosophy_original(
                         };
                         let digest = Digest256::of_bytes(raw);
                         if layout == KnowledgePayloadLayout::CarrierOnceV1 {
-                            q.execute(params![collection, ordinal as i64, id,
-                                raw.len() as i64, digest.as_bytes().as_slice()])?;
+                            q.execute(params![
+                                collection,
+                                ordinal as i64,
+                                id,
+                                raw.len() as i64,
+                                digest.as_bytes().as_slice()
+                            ])?;
                         } else {
-                            q.execute(params![collection, ordinal as i64, id,
-                                raw.len() as i64, digest.as_bytes().as_slice(), raw])?;
+                            q.execute(params![
+                                collection,
+                                ordinal as i64,
+                                id,
+                                raw.len() as i64,
+                                digest.as_bytes().as_slice(),
+                                raw
+                            ])?;
                         }
                     }
                 }
@@ -385,8 +433,21 @@ pub(crate) fn present(db: &Connection) -> Result<bool> {
 pub(crate) fn verify_ddl(db: &Connection) -> Result<()> {
     verify_ddl_with_layout(db, KnowledgePayloadLayout::InlineV1)
 }
-pub(crate) fn verify_ddl_with_layout(db: &Connection, layout: KnowledgePayloadLayout) -> Result<()> {
-    for (table, ddl) in [(META_TABLE, META_DDL), (ROW_TABLE, if layout == KnowledgePayloadLayout::CarrierOnceV1 { ROW_DDL_CARRIER } else { ROW_DDL })] {
+pub(crate) fn verify_ddl_with_layout(
+    db: &Connection,
+    layout: KnowledgePayloadLayout,
+) -> Result<()> {
+    for (table, ddl) in [
+        (META_TABLE, META_DDL),
+        (
+            ROW_TABLE,
+            if layout == KnowledgePayloadLayout::CarrierOnceV1 {
+                ROW_DDL_CARRIER
+            } else {
+                ROW_DDL
+            },
+        ),
+    ] {
         let actual:Option<String>=db.query_row("SELECT CASE WHEN typeof(sql)='text' AND length(CAST(sql AS BLOB))<=4096 THEN sql ELSE NULL END FROM sqlite_master WHERE type='table' AND name=?1",[table],|r|r.get(0)).optional()?.flatten();
         if actual.as_deref() != Some(ddl) {
             return Err(Error::Invalid("philosophy original DDL"));
@@ -415,7 +476,15 @@ pub(crate) fn page(
     max_row_bytes: usize,
     max_page_bytes: u64,
 ) -> Result<PhilosophyOriginalPage> {
-    page_with_layout(db, collection, after, max_rows, max_row_bytes, max_page_bytes, KnowledgePayloadLayout::InlineV1)
+    page_with_layout(
+        db,
+        collection,
+        after,
+        max_rows,
+        max_row_bytes,
+        max_page_bytes,
+        KnowledgePayloadLayout::InlineV1,
+    )
 }
 pub(crate) fn page_with_layout(
     db: &Connection,
@@ -436,7 +505,7 @@ pub(crate) fn page_with_layout(
     } else {
         "SELECT ordinal,packet_len,CASE WHEN typeof(packet_sha256)='blob' AND length(packet_sha256)=32 THEN packet_sha256 ELSE NULL END,CASE WHEN typeof(packet)='blob' AND packet_len=length(packet) AND length(packet)<=?3 THEN packet ELSE NULL END FROM philosophy_original_rows WHERE collection=?1 AND ordinal>?2 ORDER BY ordinal LIMIT ?4"
     };
-    let mut q=db.prepare(sql)?;
+    let mut q = db.prepare(sql)?;
     let mut scan = q.query(params![
         collection.as_str(),
         after.map_or(-1, |n| n as i64),
@@ -645,7 +714,9 @@ pub(crate) fn verify(
 ) -> Result<Option<PhilosophyOriginalReceipt>> {
     let layout = if e.model_abi == KNOWLEDGE_CARRIER_ONCE_MODEL_ABI {
         KnowledgePayloadLayout::CarrierOnceV1
-    } else { KnowledgePayloadLayout::InlineV1 };
+    } else {
+        KnowledgePayloadLayout::InlineV1
+    };
     let found = present(db)?;
     if found != e.philosophy_original_root_sha256.is_some()
         || found

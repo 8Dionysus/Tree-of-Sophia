@@ -1756,8 +1756,9 @@ Python process through the held executable FD with the unchanged argument list.
 This association never discovers code through data roots, the working directory,
 PATH or an environment variable. Native operations and their currentness guards
 remain owned by the selected installation; association alone is not admission,
-compatibility acceptance or retirement. Unselected module calls and imported
-Python APIs retain their current reference behavior.
+compatibility acceptance or retirement. Unselected module calls and imported Python APIs retain reference behavior
+except local word-analysis: without an explicit native prefix it returns
+unavailable instead of importing the retired Python provider chain.
 
 The existing imported serving caller can select the same explicit native
 association: `build_server(native_prefix=Path('/absolute/installed-prefix'),

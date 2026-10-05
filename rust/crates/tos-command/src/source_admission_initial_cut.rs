@@ -386,7 +386,7 @@ fn verify_store_root_entries(
         let name = entry
             .file_name()
             .to_str()
-            .ok_or_else(|| invalid("initial store root contains a non-UTF8 name"))?;
+            .map_err(|_| invalid("initial store root contains a non-UTF8 name"))?;
         if name == "." || name == ".." {
             continue;
         }
@@ -453,7 +453,7 @@ fn require_empty_directory(
                 let name = entry
                     .file_name()
                     .to_str()
-                    .ok_or_else(|| invalid("initial store namespace contains a non-UTF8 name"))?;
+                    .map_err(|_| invalid("initial store namespace contains a non-UTF8 name"))?;
                 if name != "." && name != ".." {
                     return Err(invalid(reason));
                 }
@@ -498,7 +498,7 @@ fn verify_initial_store_baseline(
         "initial V2 object namespace contains pre-existing objects",
     )?;
     require_empty_directory(
-        revisions,
+        &revisions,
         io,
         work,
         deadline,
@@ -559,7 +559,7 @@ fn verify_object_inventory(
         let name = entry
             .file_name()
             .to_str()
-            .ok_or_else(|| invalid("initial V2 object name is not UTF-8"))?;
+            .map_err(|_| invalid("initial V2 object name is not UTF-8"))?;
         if name == "." || name == ".." {
             continue;
         }

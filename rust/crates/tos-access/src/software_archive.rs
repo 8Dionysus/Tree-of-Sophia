@@ -23,13 +23,15 @@ use zip::{CompressionMethod, DateTime, ZipWriter, write::SimpleFileOptions};
 
 const PROGRAM: &str = "access/src/tos_access/tos-access";
 const COMMAND_SCHEMA: &str = "tos_native_software_command_build_v1";
-const COMMANDS: [&str; 6] = [
+const COMMANDS: [&str; 8] = [
     "tos-native-owner-command",
     "tos-schema-worker",
     "tos-validation-lanes",
     "tos-release-check",
     "tos-software-ci",
     "tos-ops-mechanics-plan",
+    "tos-constructor-library",
+    "tos-constructor-fragments",
 ];
 fn command_member(name: &str) -> String {
     format!("native/bin/{name}")
@@ -1774,6 +1776,16 @@ mod role_feature_tests {
             commit = "b".repeat(40),
         );
         json(raw.as_bytes(), 4096).unwrap()
+    }
+
+    #[test]
+    fn constructor_roles_use_the_standard_empty_feature_proof() {
+        let empty = proof_with_features("[]");
+        let phi = proof_with_features(r#"["compiler-backed-validators","default"]"#);
+        for role in ["tos-constructor-library", "tos-constructor-fragments"] {
+            assert!(command_proof(role, &empty, &empty).is_ok());
+            assert!(command_proof(role, &phi, &empty).is_err());
+        }
     }
 
     #[test]

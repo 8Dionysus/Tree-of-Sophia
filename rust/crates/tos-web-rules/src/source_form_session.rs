@@ -179,7 +179,7 @@ impl BrowserSourceFormSession {
                 get(current, "revision").ok_or_else(|| JsValue::from_str("no_owner_context"))?;
             let configuration = get(current, "owner_configuration")
                 .ok_or_else(|| JsValue::from_str("no_owner_context"))?;
-            let candidate = object(vec![
+            let mut fields = vec![
                 ("schema_version", text("tos_local_source_command_v1")),
                 ("operation", text("apply")),
                 ("command_id", text(command_id)),
@@ -190,7 +190,13 @@ impl BrowserSourceFormSession {
                     "changes",
                     JsonValue::Array(vec![self.prepared.as_ref().unwrap().clone()]),
                 ),
-            ]);
+            ];
+            // Dependency guards are opaque owner-issued expectations. Retain
+            // exact supplied bytes/values; absence preserves the older wire.
+            if let Some(dependencies) = get(current, "expected_dependencies") {
+                fields.push(("expected_dependencies", dependencies.clone()));
+            }
+            let candidate = object(fields);
             // A locally unencodable command was never submitted. Retain the
             // exact ID only after the bounded bytes are ready for transport.
             let request = emit(&candidate, REQUEST_BYTES)?;

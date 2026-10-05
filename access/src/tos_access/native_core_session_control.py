@@ -193,7 +193,9 @@ class NativeSessionControl:
                 except BlockingIOError:
                     continue
             if not size:
-                raise EOFError('native session EOF before logical-frame completion')
+                raise EOFError('native session EOF before logical-frame completion; kind=' + str(kind)
+                                   + '; offset=' + str(offset) + '; total=' + str(total)
+                                   + '; packet_ordinal=' + str(chunks))
             if controls or flags & (socket.MSG_TRUNC | socket.MSG_CTRUNC):
                 raise NativeSessionProtocolError('native session truncated or ancillary control packet')
             if size < _HEADER.size:

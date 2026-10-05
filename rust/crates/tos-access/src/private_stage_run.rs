@@ -603,6 +603,7 @@ struct Options {
     persistent: Option<PathBuf>,
     control_fd: Option<i32>,
     sdk_phase_as: Option<SdkPhaseAs>,
+    direct_custody: Option<(libc::pid_t, libc::sigset_t)>,
     command: Vec<String>,
 }
 fn limits(o: &Options) -> Result<(), String> {
@@ -882,7 +883,51 @@ fn cleanup(leader: &mut Leader, held: &File, end: Cutoff) -> Result<(), String> 
         thread::sleep(Duration::from_millis(5));
     }
 }
+// The direct held-ELF SDK branch inherits its caller's temporarily blocked
+// acquisition mask. Restore exactly the original mask and bind death to the
+// explicit actual caller before installing stage handlers or spawning a child.
+fn apply_direct_custody(parent: libc::pid_t, mask: &libc::sigset_t) -> Result<(), String> {
+    if parent <= 0 || unsafe { libc::getppid() } != parent {
+        return Err("direct stage original parent differs".into());
+    }
+    if unsafe { libc::prctl(libc::PR_SET_PDEATHSIG, libc::SIGKILL, 0, 0, 0) } != 0 {
+        return Err(std::io::Error::last_os_error().to_string());
+    }
+    if unsafe { libc::getppid() } != parent {
+        return Err("direct stage original parent ended during death binding".into());
+    }
+    let mut death_signal: libc::c_int = 0;
+    if unsafe { libc::prctl(libc::PR_GET_PDEATHSIG, &mut death_signal as *mut libc::c_int, 0, 0, 0) } != 0
+        || death_signal != libc::SIGKILL
+    {
+        return Err("direct stage parent-death binding differs".into());
+    }
+    let result = unsafe { libc::pthread_sigmask(libc::SIG_SETMASK, mask, std::ptr::null_mut()) };
+    if result != 0 {
+        return Err(std::io::Error::from_raw_os_error(result).to_string());
+    }
+    let mut actual: libc::sigset_t = unsafe { std::mem::zeroed() };
+    let result = unsafe {
+        libc::pthread_sigmask(libc::SIG_SETMASK, std::ptr::null(), &mut actual)
+    };
+    if result != 0 {
+        return Err(std::io::Error::from_raw_os_error(result).to_string());
+    }
+    for signal in 1..=64 {
+        if unsafe { libc::sigismember(mask, signal) } != unsafe { libc::sigismember(&actual, signal) } {
+            return Err("direct stage original signal mask differs".into());
+        }
+    }
+    if unsafe { libc::getppid() } != parent {
+        return Err("direct stage original parent ended during mask restoration".into());
+    }
+    Ok(())
+}
+
 fn outer(o: &Options) -> Result<i32, String> {
+    if let Some((parent, mask)) = o.direct_custody.as_ref() {
+        apply_direct_custody(*parent, mask)?;
+    }
     limits(o)?;
     let end = Cutoff::select(o.original, o.shutdown_ms)?;
     if o.sdk_phase_as.is_some() && o.control_fd.is_none() { return Err("SDK phase direct parent control required".into()); }
@@ -1497,6 +1542,39 @@ fn options(args: &[String]) -> Result<(Options, Option<Inner>), String> {
         return Err("control metadata is internal namespace handoff only".into());
     }
     let sdk_phase_as=phase_pair(values.remove("--sdk-setup-as-bytes"),values.remove("--sdk-guardian-state-bytes"))?;
+    let parent = values.remove("--expected-parent-pid");
+    let original_mask = values.remove("--restore-signal-mask");
+    let direct_custody = match (parent, original_mask) {
+        (None, None) => None,
+        (Some(parent), Some(csv)) if !inner_flag => {
+            let parent = parent.parse::<libc::pid_t>().map_err(|_| "direct stage parent PID")?;
+            if parent <= 0 || csv.len() > 64 * 3 {
+                return Err("direct stage parent/mask outside original finite bound".into());
+            }
+            let mut mask: libc::sigset_t = unsafe { std::mem::zeroed() };
+            if unsafe { libc::sigemptyset(&mut mask) } != 0 {
+                return Err(std::io::Error::last_os_error().to_string());
+            }
+            if !csv.is_empty() {
+                let mut count = 0;
+                for field in csv.split(',') {
+                    count += 1;
+                    let signal = field.parse::<libc::c_int>().map_err(|_| "direct stage original signal")?;
+                    if count > 64 || !(1..=64).contains(&signal)
+                        || signal == libc::SIGKILL || signal == libc::SIGSTOP
+                        || unsafe { libc::sigismember(&mask, signal) } != 0
+                    {
+                        return Err("direct stage original signal mask malformed".into());
+                    }
+                    if unsafe { libc::sigaddset(&mut mask, signal) } != 0 {
+                        return Err(std::io::Error::last_os_error().to_string());
+                    }
+                }
+            }
+            Some((parent, mask))
+        }
+        _ => return Err("direct stage parent and mask require an outer paired selection".into()),
+    };
     let persistent = values.remove("--persistent-store").map(PathBuf::from);
     let persistent_fd = values
         .remove("--persistent-fd")
@@ -1525,6 +1603,7 @@ fn options(args: &[String]) -> Result<(Options, Option<Inner>), String> {
         persistent,
         control_fd,
         sdk_phase_as,
+        direct_custody,
         command,
     };
     let i = if inner_flag {
@@ -1859,6 +1938,7 @@ fn sdk_python_run(args: &[String]) -> Result<i32, String> {
         persistent,
         control_fd: None,
         sdk_phase_as,
+        direct_custody: None,
         command: args[split + 1..].to_vec(),
     };
     limits(&o)?;

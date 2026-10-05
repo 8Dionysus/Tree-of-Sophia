@@ -678,6 +678,13 @@ fn vocabulary(
     value: &Value,
     cap: usize,
 ) -> Result<(Value, BTreeMap<(String, String), Value>, BTreeSet<String>)> {
+    vocabulary_with_state(value, cap, None)
+}
+fn vocabulary_with_state(
+    value: &Value,
+    cap: usize,
+    state: Option<&crate::d1_public_capture::CreationState<'_>>,
+) -> Result<(Value, BTreeMap<(String, String), Value>, BTreeSet<String>)> {
     let map = value
         .as_object()
         .ok_or(Error::Invalid("context presentation object"))?;
@@ -823,22 +830,130 @@ fn vocabulary(
                     | "subject-assessment"
                     | "assessment-snapshot"
             ) || !local.insert(name)
-                || routed
-                    .insert((name.to_owned(), field.to_owned()), rule.clone())
-                    .is_some()
+            {
+                return Err(Error::Invalid("context ambiguous field rule"));
+            }
+            if let Some(state) = state {
+                // Each actual target receives its own rule copy. The geometry
+                // traversal and the subsequent copy both belong to original
+                // work; the preflight's aggregate memory hold stays live.
+                let copied = state.value_clone_state_upper_bound(rule)?;
+                state.charge_work(copied)?;
+                state.active()?;
+            }
+            if routed
+                .insert((name.to_owned(), field.to_owned()), rule.clone())
+                .is_some()
             {
                 return Err(Error::Invalid("context ambiguous field rule"));
             }
         }
     }
-    let packet = canonical(value, cap)?;
+    let digest = if let Some(state) = state {
+        state.with_json_encoded(value, cap, |raw| {
+            let document = state.json(raw, cap)?;
+            state.with_foundation_canonical_bytes(&document, json_limits(cap)?, |packet| {
+                state.charge_work(packet.len())?;
+                Ok(sha_ref(packet))
+            })
+        })?
+    } else {
+        sha_ref(&canonical(value, cap)?)
+    };
     let reference = json!({"id":value["presentation_id"],"version":value["presentation_version"],
-        "source_ref":REGISTRY_REF,"digest":sha_ref(&packet)});
+        "source_ref":REGISTRY_REF,"digest":digest});
     Ok((reference, routed, known_schemas))
 }
 
 pub(crate) fn validate_current_context_presentation(value: &Value) -> Result<()> {
     vocabulary(value, MAX_REGISTRY_BYTES).map(|_| ())
+}
+
+/// Owner-local controlled validator. All output is temporary; the caller's
+/// immutable presentation value remains held by its original CreationState.
+pub(crate) fn validate_current_context_presentation_owned(
+    value: &Value,
+    state: &crate::d1_public_capture::CreationState<'_>,
+) -> Result<()> {
+    fn add(total: &mut usize, bytes: usize) -> Result<()> {
+        *total = total
+            .checked_add(bytes)
+            .ok_or(Error::Budget("owned context vocabulary state"))?;
+        Ok(())
+    }
+    let set_node = 11 * std::mem::size_of::<String>() + 16 * std::mem::size_of::<usize>();
+    let borrowed_set_node = 11 * std::mem::size_of::<&str>() + 16 * std::mem::size_of::<usize>();
+    let map_node =
+        11 * std::mem::size_of::<((String, String), Value)>() + 16 * std::mem::size_of::<usize>();
+    let mut upper = 10 * std::mem::size_of::<Value>()
+        + crate::knowledge_normalization::serde_object_slots_upper(4)?
+        + REGISTRY_REF.len()
+        + 128;
+    add(
+        &mut upper,
+        state.value_clone_state_upper_bound(&value["presentation_id"])?,
+    )?;
+    add(
+        &mut upper,
+        state.value_clone_state_upper_bound(&value["presentation_version"])?,
+    )?;
+    if let Some(languages) = value["languages"].as_array() {
+        for language in languages {
+            state.active()?;
+            if let Some(text) = language.as_str() {
+                state.charge_work(text.len())?;
+                add(
+                    &mut upper,
+                    text.len()
+                        .checked_mul(2)
+                        .and_then(|n| n.checked_add(2 * set_node))
+                        .ok_or(Error::Budget("owned context language state"))?,
+                )?;
+            }
+        }
+    }
+    if let Some(schemas) = value["record_schema_versions"].as_array() {
+        for schema in schemas {
+            state.active()?;
+            if let Some(text) = schema.as_str() {
+                state.charge_work(text.len())?;
+                add(&mut upper, set_node + text.len())?;
+            }
+        }
+    }
+    if let Some(rules) = value["field_rules"].as_array() {
+        for rule in rules {
+            state.active()?;
+            let field = rule["field"].as_str().unwrap_or("");
+            let clone = state.value_clone_state_upper_bound(rule)?;
+            if let Some(targets) = rule["targets"].as_array() {
+                for target in targets {
+                    state.charge_work(std::mem::size_of::<Value>())?;
+                    if let Some(name) = target.as_str() {
+                        state.charge_work(
+                            name.len()
+                                .checked_add(field.len())
+                                .ok_or(Error::Budget("owned context target work"))?,
+                        )?;
+                        add(
+                            &mut upper,
+                            map_node
+                                .checked_add(name.len())
+                                .and_then(|n| n.checked_add(field.len()))
+                                .and_then(|n| n.checked_add(clone))
+                                .and_then(|n| n.checked_add(borrowed_set_node))
+                                .ok_or(Error::Budget("owned context rule state"))?,
+                        )?;
+                    }
+                }
+            }
+        }
+    }
+    let hold = state.hold(upper)?;
+    let output = vocabulary_with_state(value, MAX_REGISTRY_BYTES, Some(state))?;
+    drop(output);
+    drop(hold);
+    state.active()
 }
 
 impl ReadableContextCompiler {

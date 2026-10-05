@@ -2029,86 +2029,9 @@ class ReferenceToSAccessCore:
             return self._native_core.zarathustra_word_analysis_task(
                 query, language, rank, include_semantic_neighbors,
             )
-        normalized_query = str(query).strip()
-        if not normalized_query:
-            raise ValueError("word-analysis query is required")
-        if len(normalized_query) > 256:
-            raise ValueError("word-analysis query exceeds 256 characters")
-        normalized_language = str(language).strip().lower()
-        if normalized_language not in {"de", "ru", "en"}:
-            raise ValueError(f"unsupported word-analysis language: {normalized_language}")
-        bounded_rank = _bounded_int(rank, 1, 1, 100)
-        provider_candidate = program_path(WORD_ANALYSIS_PROVIDER_RELATIVE_PATH)
-        authority = {
-            "source_owner": "Tree-of-Sophia",
-            "access_plane_is_source": False,
-            "is_semantic_truth": False,
-            "writes_to_tree": False,
-            "reviewed": False,
-            "canon": False,
-        }
-        if provider_candidate.is_symlink() or not provider_candidate.is_file():
-            return _unavailable_word_analysis_capability(
-                "local source-bound word-analysis provider is not installed"
-            )
-        provider_path = provider_candidate.resolve()
-        stat = provider_path.stat()
-        module_name = f"tos_local_word_analysis_{stat.st_mtime_ns}_{stat.st_size}"
-        spec = importlib.util.spec_from_file_location(module_name, provider_path)
-        if spec is None or spec.loader is None:
-            raise RuntimeError(f"cannot load local word-analysis provider: {provider_path}")
-        module = importlib.util.module_from_spec(spec)
-        sys.modules[module_name] = module
-        try:
-            spec.loader.exec_module(module)
-            build_task = getattr(module, "build_task", None)
-            if not callable(build_task):
-                raise RuntimeError("local word-analysis provider has no callable build_task")
-            try:
-                task = build_task(
-                    normalized_query,
-                    normalized_language,
-                    rank=bounded_rank,
-                    include_semantic_neighbors=bool(include_semantic_neighbors),
-                )
-            except RuntimeError as exc:
-                if not str(exc).startswith(
-                    "private source-return artifact must be a regular non-symlink:"
-                ):
-                    raise
-                return _unavailable_word_analysis_capability(
-                    "private source-return artifacts are not installed"
-                )
-        finally:
-            sys.modules.pop(module_name, None)
-        task_authority = task.get("authority") if isinstance(task, dict) else None
-        task_source = task.get("source") if isinstance(task, dict) else None
-        safe_authority = isinstance(task_authority, dict) and all(
-            task_authority.get(field) is False
-            for field in ("accepted", "semantic_fact_asserted", "canon_effect")
+        return _unavailable_word_analysis_capability(
+            "installed native prefix is required for local word-analysis"
         )
-        source_bound = (
-            isinstance(task_source, dict)
-            and task_source.get("language") == "de"
-            and isinstance(task_source.get("exact_context"), str)
-            and bool(task_source["exact_context"])
-        )
-        if (
-            not isinstance(task, dict)
-            or task.get("schema_version") != "tos_zarathustra_word_analysis_task_v1"
-            or not safe_authority
-            or not source_bound
-        ):
-            raise RuntimeError("local word-analysis provider returned an unsupported task contract")
-        return {
-            "schema": "tos_zarathustra_word_analysis_capability_v1",
-            "available": True,
-            "reason": None,
-            "provider_ref": WORD_ANALYSIS_PROVIDER_RELATIVE_PATH.as_posix(),
-            "publication_posture": "local_full_tree_only",
-            "task": task,
-            "authority": authority,
-        }
 
     def zarathustra_word_analysis_public_capability(self) -> dict[str, Any]:
         """Describe the public bundle posture without loading the local provider."""

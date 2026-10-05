@@ -364,7 +364,7 @@ class DataAccessIntegrationTests(unittest.TestCase):
             self.assertFalse(result["available"])
             self.assertEqual(
                 result["reason"],
-                "local source-bound word-analysis provider is not installed",
+                "installed native prefix is required for local word-analysis",
             )
             self.assertFalse(sentinel.exists())
 

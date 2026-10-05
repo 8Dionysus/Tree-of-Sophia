@@ -789,6 +789,130 @@ fn anchor_capacity(local_bytes: usize, retained_bytes: usize, additional: usize)
     Ok(())
 }
 
+/// Shared mechanics-owned Markdown grammar for cross-corpus route checks.
+/// Source reads and cumulative budgets remain with the calling operation.
+pub struct MarkdownRules {
+    patterns: Patterns,
+}
+impl MarkdownRules {
+    pub fn new() -> io::Result<Self> {
+        Ok(Self {
+            patterns: Patterns::new()?,
+        })
+    }
+    pub fn rendered(&self, text: &str) -> io::Result<String> {
+        rendered_markdown(text, &self.patterns)
+    }
+    pub fn references(
+        &self,
+        text: &str,
+        count: usize,
+        bytes: usize,
+    ) -> io::Result<(Vec<String>, BTreeMap<String, String>)> {
+        references(text, &self.patterns, count, bytes)
+    }
+    pub fn reference_uses(&self, text: &str) -> io::Result<Vec<(String, String)>> {
+        let mut uses = Vec::new();
+        let mut bytes = 0usize;
+        for capture in self.patterns.use_ref.captures_iter(text) {
+            let whole = capture
+                .get(0)
+                .ok_or_else(|| invalid("markdown use capture"))?;
+            if text[..whole.start()].ends_with('!') {
+                continue;
+            }
+            bytes = bytes
+                .checked_add(capture[1].len() + capture[2].len())
+                .ok_or_else(|| invalid("markdown reference byte overflow"))?;
+            if uses.len() >= MAX_REFERENCES || bytes > MAX_REFERENCE_BYTES {
+                return Err(invalid("markdown reference budget exceeded"));
+            }
+            uses.push((capture[1].to_owned(), capture[2].to_owned()));
+        }
+        Ok(uses)
+    }
+    pub fn anchors(
+        &self,
+        text: &str,
+        retained_bytes: usize,
+    ) -> io::Result<(BTreeSet<String>, usize)> {
+        document_anchor_ids(text, &self.patterns, retained_bytes)
+    }
+    pub fn reference_label(&self, text: &str) -> io::Result<String> {
+        reference_label(text)
+    }
+    pub fn normalized_fragment(&self, fragment: &str) -> io::Result<String> {
+        casefold(&decoded(fragment)?)
+    }
+    pub fn reference_parts<'a>(&self, reference: &'a str) -> (&'a str, &'a str) {
+        reference_parts(reference)
+    }
+    pub fn resolve(
+        &self,
+        root: &Path,
+        document: &Path,
+        reference: &str,
+    ) -> io::Result<Option<PathBuf>> {
+        resolve_reference_root(root, document, reference)
+    }
+}
+
+fn document_anchor_ids(
+    text: &str,
+    patterns: &Patterns,
+    retained_bytes: usize,
+) -> io::Result<(BTreeSet<String>, usize)> {
+    let mut anchors = BTreeSet::new();
+    let mut local_bytes = 0usize;
+    for capture in patterns.attribute.captures_iter(text) {
+        add_anchor(
+            &mut anchors,
+            &mut local_bytes,
+            retained_bytes,
+            casefold(&decoded(&capture[1])?)?,
+        )?;
+    }
+    for capture in patterns.anchor_explicit.captures_iter(text) {
+        add_anchor(
+            &mut anchors,
+            &mut local_bytes,
+            retained_bytes,
+            casefold(&capture[1])?,
+        )?;
+    }
+    let mut counts = BTreeMap::<String, usize>::new();
+    for capture in patterns.heading.captures_iter(text) {
+        let Some(title) = capture.get(1) else {
+            continue;
+        };
+        let anchor = heading_anchor(title.as_str(), patterns)?;
+        if anchor.is_empty() {
+            continue;
+        }
+        let count = counts.get(&anchor).copied().unwrap_or_default();
+        if count == 0 {
+            if !anchors.contains(&anchor) {
+                anchor_capacity(local_bytes, retained_bytes, anchor.len())?;
+            }
+            add_anchor(
+                &mut anchors,
+                &mut local_bytes,
+                retained_bytes,
+                anchor.clone(),
+            )?;
+        } else {
+            add_anchor(
+                &mut anchors,
+                &mut local_bytes,
+                retained_bytes,
+                format!("{anchor}-{count}"),
+            )?;
+        }
+        counts.insert(anchor, count + 1);
+    }
+    Ok((anchors, local_bytes))
+}
+
 fn document_has_fragment(
     source: &mut Source<'_>,
     path: &Path,
@@ -807,54 +931,7 @@ fn document_has_fragment(
     let text = source
         .read(relative)?
         .ok_or_else(|| invalid("missing document anchor target"))?;
-    let mut anchors = BTreeSet::new();
-    let mut local_bytes = 0usize;
-    for capture in patterns.attribute.captures_iter(&text) {
-        add_anchor(
-            &mut anchors,
-            &mut local_bytes,
-            source.anchor_bytes,
-            casefold(&decoded(&capture[1])?)?,
-        )?;
-    }
-    for capture in patterns.anchor_explicit.captures_iter(&text) {
-        add_anchor(
-            &mut anchors,
-            &mut local_bytes,
-            source.anchor_bytes,
-            casefold(&capture[1])?,
-        )?;
-    }
-    let mut counts = BTreeMap::<String, usize>::new();
-    for capture in patterns.heading.captures_iter(&text) {
-        let Some(title) = capture.get(1) else {
-            continue;
-        };
-        let anchor = heading_anchor(title.as_str(), patterns)?;
-        if anchor.is_empty() {
-            continue;
-        }
-        let count = counts.get(&anchor).copied().unwrap_or_default();
-        if count == 0 {
-            if !anchors.contains(&anchor) {
-                anchor_capacity(local_bytes, source.anchor_bytes, anchor.len())?;
-            }
-            add_anchor(
-                &mut anchors,
-                &mut local_bytes,
-                source.anchor_bytes,
-                anchor.clone(),
-            )?;
-        } else {
-            add_anchor(
-                &mut anchors,
-                &mut local_bytes,
-                source.anchor_bytes,
-                format!("{anchor}-{count}"),
-            )?;
-        }
-        counts.insert(anchor, count + 1);
-    }
+    let (anchors, local_bytes) = document_anchor_ids(&text, patterns, source.anchor_bytes)?;
     source.anchor_bytes = source
         .anchor_bytes
         .checked_add(local_bytes)
@@ -866,6 +943,13 @@ fn document_has_fragment(
 
 fn resolve_reference(
     source: &Source<'_>,
+    document: &Path,
+    reference: &str,
+) -> io::Result<Option<PathBuf>> {
+    resolve_reference_root(source.root, document, reference)
+}
+fn resolve_reference_root(
+    root: &Path,
     document: &Path,
     reference: &str,
 ) -> io::Result<Option<PathBuf>> {
@@ -884,14 +968,14 @@ fn resolve_reference(
                 .parent()
                 .ok_or_else(|| invalid("document parent"))?
                 .join(target),
-            source.root.join(target),
+            root.join(target),
         ]
     };
     for candidate in candidates {
         let Ok(resolved) = fs::canonicalize(candidate) else {
             continue;
         };
-        if resolved.starts_with(source.root) {
+        if resolved.starts_with(root) {
             return Ok(Some(resolved));
         }
     }

@@ -1849,115 +1849,23 @@ class CoreContractTests(unittest.TestCase):
                     self.assertEqual(selected["tree_paths"][0]["node_ids"][-1], object_id)
                     self.assertIn("tos.work.fixture", {node["node_id"] for node in selected["chain"]["work"]})
 
-    def test_local_word_analysis_provider_is_capability_gated_and_source_bound(self) -> None:
+    def test_local_word_analysis_requires_native_prefix(self) -> None:
         with tempfile.TemporaryDirectory() as raw:
             root = Path(raw)
             write_fixture(root)
-            core = ToSAccessCore.discover(tos_root=root)
-            public_capability = core.zarathustra_word_analysis_public_capability()
-            self.assertFalse(public_capability["available"])
-            self.assertIsNone(public_capability["task"])
-            self.assertEqual(
-                public_capability["reason"],
-                "local source-bound word-analysis provider is excluded from the public bundle",
-            )
-            provider = root / "scripts/prepare_zarathustra_word_analysis_v1.py"
-            provider.parent.mkdir(parents=True)
             from tos_access import core as core_module
-
-            original_program_path = core_module.program_path
-
-            def selected_program_path(relative: str | Path) -> Path:
-                if Path(relative) == core_module.WORD_ANALYSIS_PROVIDER_RELATIVE_PATH:
-                    return provider
-                return original_program_path(relative)
-
-            provider_path_patch = patch.object(
-                core_module,
-                "program_path",
-                side_effect=selected_program_path,
-            )
-            provider_path_patch.start()
-            self.addCleanup(provider_path_patch.stop)
-
-            unavailable = core.zarathustra_word_analysis_task("судьбы", "ru", rank=2)
+            with patch.object(core_module, "program_path", side_effect=AssertionError("Python provider selected")):
+                core = ToSAccessCore.discover(tos_root=root)
+                unavailable = core.zarathustra_word_analysis_task("судьбы", "ru", rank=2)
             self.assertFalse(unavailable["available"])
             self.assertIsNone(unavailable["task"])
+            self.assertEqual(unavailable["reason"], "installed native prefix is required for local word-analysis")
             self.assertEqual(unavailable["publication_posture"], "excluded_from_public_bundle")
 
-            symlink_target = provider.parent / "provider-target.py"
-            symlink_target.write_text("raise AssertionError('must not load through symlink')\n", encoding="utf-8")
-            provider.symlink_to(symlink_target)
-            symlinked = ToSAccessCore.discover(tos_root=root).zarathustra_word_analysis_task(
-                "судьбы", "ru",
-            )
-            self.assertFalse(symlinked["available"])
-            provider.unlink()
-            provider.write_text(
-                "def build_task(*args, **kwargs):\n"
-                "    raise RuntimeError('private source-return artifact must be a regular non-symlink: fixture')\n",
-                encoding="utf-8",
-            )
-            private_missing = ToSAccessCore.discover(tos_root=root).zarathustra_word_analysis_task(
-                "судьбы", "ru",
-            )
-            self.assertFalse(private_missing["available"])
-            self.assertIsNone(private_missing["task"])
-            self.assertEqual(private_missing["reason"], "private source-return artifacts are not installed")
-            provider.write_text(
-                "def build_task(query, language, rank=1, include_semantic_neighbors=False, request_path=None):\n"
-                "    return {\n"
-                "        'schema_version': 'tos_zarathustra_word_analysis_task_v1',\n"
-                "        'analysis_task_id': 'task:fixture',\n"
-                "        'query': query, 'language': language, 'rank': rank,\n"
-                "        'include_semantic_neighbors': include_semantic_neighbors,\n"
-                "        'source': {'language': 'de', 'surface': 'Schicksal', 'exact_context': 'mein Schicksal'},\n"
-                "        'authority': {'accepted': False, 'semantic_fact_asserted': False, 'canon_effect': False},\n"
-                "    }\n",
-                encoding="utf-8",
-            )
-            available = ToSAccessCore.discover(tos_root=root).zarathustra_word_analysis_task(
-                "судьбы", "ru", rank=2, include_semantic_neighbors=True,
-            )
-            self.assertTrue(available["available"])
-            self.assertEqual(available["task"]["source"]["surface"], "Schicksal")
-            self.assertEqual(available["task"]["rank"], 2)
-            self.assertTrue(available["task"]["include_semantic_neighbors"])
-            self.assertFalse(available["authority"]["is_semantic_truth"])
-            self.assertFalse(available["authority"]["writes_to_tree"])
-
-    def test_http_exposes_same_local_word_analysis_capability(self) -> None:
+    def test_http_reports_local_word_analysis_requires_native_prefix(self) -> None:
         with tempfile.TemporaryDirectory() as raw:
             root = Path(raw)
             write_fixture(root)
-            provider = root / "scripts/prepare_zarathustra_word_analysis_v1.py"
-            provider.parent.mkdir(parents=True)
-            provider.write_text(
-                "def build_task(query, language, rank=1, include_semantic_neighbors=False, request_path=None):\n"
-                "    return {'schema_version': 'tos_zarathustra_word_analysis_task_v1', "
-                "'query': query, 'language': language, 'rank': rank, "
-                "'include_semantic_neighbors': include_semantic_neighbors, "
-                "'source': {'language': 'de', 'exact_context': 'mein Schicksal'}, "
-                "'authority': {'accepted': False, 'semantic_fact_asserted': False, 'canon_effect': False}}\n",
-                encoding="utf-8",
-            )
-            from tos_access import core as core_module
-
-            original_program_path = core_module.program_path
-
-            def selected_program_path(relative: str | Path) -> Path:
-                if Path(relative) == core_module.WORD_ANALYSIS_PROVIDER_RELATIVE_PATH:
-                    return provider
-                return original_program_path(relative)
-
-            provider_path_patch = patch.object(
-                core_module,
-                "program_path",
-                side_effect=selected_program_path,
-            )
-            provider_path_patch.start()
-            self.addCleanup(provider_path_patch.stop)
-
             server = make_server(ToSAccessCore.discover(tos_root=root), port=0)
             thread = threading.Thread(
                 target=server.serve_forever,
@@ -1969,13 +1877,10 @@ class CoreContractTests(unittest.TestCase):
                 url = (
                     f"http://127.0.0.1:{server.server_port}/api/zarathustra/word-analysis"
                     "?query=%D1%81%D1%83%D0%B4%D1%8C%D0%B1%D1%8B&language=ru&rank=3"
-                    "&include_semantic_neighbors=true"
                 )
                 packet = json.load(urllib.request.urlopen(url))
-                self.assertTrue(packet["available"])
-                self.assertEqual(packet["task"]["query"], "судьбы")
-                self.assertEqual(packet["task"]["rank"], 3)
-                self.assertTrue(packet["task"]["include_semantic_neighbors"])
+                self.assertFalse(packet["available"])
+                self.assertEqual(packet["reason"], "installed native prefix is required for local word-analysis")
             finally:
                 server.shutdown()
                 server.server_close()

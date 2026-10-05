@@ -1036,6 +1036,7 @@ impl V2ReadSession {
             &row,
             self.limits.max_object_bytes,
         )
+        .map(Some)
     }
 }
 

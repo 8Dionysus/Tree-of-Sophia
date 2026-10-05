@@ -333,7 +333,7 @@ impl AdmissionBatch {
             ),
             (
                 "base_revision",
-                base_revision.map_or(crate::source_command::JsonValue::Null, |revision| {
+                base_revision.map_or(JsonValue::Null, |revision| {
                     crate::source_command::string(&revision.to_hex())
                 }),
             ),
@@ -341,11 +341,8 @@ impl AdmissionBatch {
                 "validator_sha256",
                 crate::source_command::string(&validator_sha256.to_hex()),
             ),
-            ("updates", crate::source_command::JsonValue::Array(rows)),
-            (
-                "retirements",
-                crate::source_command::JsonValue::Array(Vec::new()),
-            ),
+            ("updates", JsonValue::Array(rows)),
+            ("retirements", JsonValue::Array(Vec::new())),
         ]);
         let mut hasher = tos_foundation::Digest256Hasher::new();
         let mut written = 0usize;
@@ -648,7 +645,7 @@ impl AdmissionBatch {
                         ),
                     ]);
                     if let Err(error) = write_item(&item) {
-                        feed_error = Some(invalid(error));
+                        feed_error = Some(invalid(&error));
                         return Err(error);
                     }
                     previous = Some(path);

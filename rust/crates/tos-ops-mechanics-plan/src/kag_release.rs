@@ -40,6 +40,13 @@ pub(crate) struct WholeBudget {
     owns_deadline: bool,
 }
 impl WholeBudget {
+    /// The original current operation's deadline, never a renewed allowance.
+    pub(crate) fn deadline(&self) -> io::Result<Instant> {
+        budget_check()?;
+        DEADLINE
+            .with(|d| d.get())
+            .ok_or_else(|| invalid("KAG operation has no active deadline"))
+    }
     pub(crate) fn begin() -> io::Result<Self> {
         budget_check()?;
         let owns_deadline = DEADLINE.with(|d| {

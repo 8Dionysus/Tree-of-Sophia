@@ -88,13 +88,13 @@ fn digest_matches_hex(digest: &Digest256, expected: &str) -> bool {
             pair[0] == HEX[(*byte >> 4) as usize] && pair[1] == HEX[(*byte & 0x0f) as usize]
         })
 }
-fn sql_blob_ref(row: &Row<'_>, column: usize) -> Result<&[u8]> {
+fn sql_blob_ref<'row>(row: &'row Row<'_>, column: usize) -> Result<&'row [u8]> {
     match row.get_ref(column)? {
         ValueRef::Blob(bytes) => Ok(bytes),
         _ => Err(Error::Invalid("public D1 semantic SQL blob")),
     }
 }
-fn sql_text_ref(row: &Row<'_>, column: usize) -> Result<&str> {
+fn sql_text_ref<'row>(row: &'row Row<'_>, column: usize) -> Result<&'row str> {
     match row.get_ref(column)? {
         ValueRef::Text(bytes) => {
             std::str::from_utf8(bytes).map_err(|_| Error::Invalid("public D1 semantic SQL text"))
@@ -102,7 +102,7 @@ fn sql_text_ref(row: &Row<'_>, column: usize) -> Result<&str> {
         _ => Err(Error::Invalid("public D1 semantic SQL text")),
     }
 }
-fn sql_optional_text_ref(row: &Row<'_>, column: usize) -> Result<Option<&str>> {
+fn sql_optional_text_ref<'row>(row: &'row Row<'_>, column: usize) -> Result<Option<&'row str>> {
     match row.get_ref(column)? {
         ValueRef::Null => Ok(None),
         ValueRef::Text(bytes) => std::str::from_utf8(bytes)

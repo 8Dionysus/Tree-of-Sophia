@@ -100,6 +100,8 @@ class NativeSDKStageConfiguration:
     original_whole_deadline_ns: int
     original_work_deadline_ns: int
     persistent_store: Path | None
+    setup_as_bytes: int | None = None
+    guardian_state_bytes: int | None = None
 
     @classmethod
     def from_bootstrap_environment(cls, *, receiving_state=None):
@@ -112,7 +114,7 @@ class NativeSDKStageConfiguration:
             g = receiving_state.geometry
             receiving_state.reserve(g.bytes_base + 4 * len(raw)
                                     + memoryview.__basicsize__ + g.gc_header
-                                    + cls.__basicsize__ + g.gc_header + g.dict_bytes(7)
+                                    + cls.__basicsize__ + g.gc_header + g.dict_bytes(9)
                                     + 2 * g.list_bytes(2))
             encoded = raw.encode('utf-8')
             if len(encoded) > 65536:
@@ -124,7 +126,7 @@ class NativeSDKStageConfiguration:
                   'unshare_exe', 'original_whole_deadline_ns', 'original_work_deadline_ns',
                   'maximum_shutdown_ms', 'quota_bytes', 'inode_limit', 'working_ram_bytes',
                   'aggregate_ram_bytes', 'swap_max_bytes'}
-        if type(v) is not dict or not fields <= v.keys() or v.keys() - fields - {'persistent_store'}:
+        if type(v) is not dict or not fields <= v.keys() or v.keys() - fields - {'persistent_store', 'setup_as_bytes', 'guardian_state_bytes'}:
             raise ValueError('native SDK bootstrap field contract differs')
         if v['schema'] != 'tos_sdk_stage_config_v1':
             raise ValueError('native SDK bootstrap schema differs')
@@ -144,9 +146,38 @@ class NativeSDKStageConfiguration:
             clocks.append(number)
         if clocks[0] - clocks[1] != 5000000000:
             raise ValueError('native SDK original shutdown reserve differs')
+        setup_as = v.get('setup_as_bytes')
+        guardian = v.get('guardian_state_bytes')
+        if (setup_as is None) != (guardian is None):
+            raise ValueError('native SDK setup address-space selectors must be paired')
+        if setup_as is not None:
+            if receiving_state is None:
+                raise ValueError('native SDK controlled setup requires original receiving state')
+            g = receiving_state.geometry
+            receiving_state.reserve(2 * g.list_bytes(4) + 4 * (g.tuple_base + 2 * g.pointer)
+                + 8 * (g.int_base + 3 * g.int_digit))
+            if (type(setup_as) is not int or type(guardian) is not int
+                    or setup_as <= 0 or guardian <= 0 or setup_as + guardian != _SETUP):
+                raise ValueError('native SDK original setup address-space split differs')
+            # The dedicated entry imports resource under its enforced aggregate
+            # setup workspace before creating the receiving ledger.
+            import resource
+            if resource.getrlimit(resource.RLIMIT_AS) != (setup_as, _CONSUMER):
+                raise ValueError('native SDK actual setup address-space pair differs')
+            for name, expected in (
+                    ('TOS_SDK_SETUP_AS_BYTES', setup_as),
+                    ('TOS_SDK_GUARDIAN_STATE_BYTES', guardian),
+                    ('TOS_SDK_ORIGINAL_WORK_DEADLINE_NS', clocks[1]),
+                    ('TOS_SDK_ORIGINAL_WHOLE_DEADLINE_NS', clocks[0])):
+                raw_projection = os.environ.get(name)
+                if (type(raw_projection) is not str or not 0 < len(raw_projection) <= 20
+                        or not raw_projection.isascii() or not raw_projection.isdigit()
+                        or int(raw_projection) != expected):
+                    raise ValueError('native SDK bounded bootstrap projection differs')
         return cls(*(_path(v[name], receiving_state) for name in ('setup_cgroup', 'consumer_cgroup',
                     'scratch_parent', 'unshare_exe')), *clocks,
-                   _path(v['persistent_store'], receiving_state) if 'persistent_store' in v else None)
+                   _path(v['persistent_store'], receiving_state) if 'persistent_store' in v else None,
+                   setup_as, guardian)
 
     def active(self):
         now = time.monotonic_ns()
@@ -233,9 +264,15 @@ class NativeSDKPlacement:
             os.close(proc_fd)
         if membership != '0::/' + str(c.setup_cgroup.relative_to('/sys/fs/cgroup')):
             raise ValueError('SDK executing outside original setup receiver')
-        for key, maximum in ((resource.RLIMIT_AS, _CONSUMER), (resource.RLIMIT_FSIZE, _SETUP)):
-            if resource.getrlimit(key) != (maximum, maximum):
-                raise ValueError('native SDK inherited original finite rlimit differs')
+        actual_as = resource.getrlimit(resource.RLIMIT_AS)
+        if c.setup_as_bytes is None:
+            valid_as = actual_as == (_CONSUMER, _CONSUMER)
+        else:
+            valid_as = (0 < actual_as[0] <= c.setup_as_bytes
+                        and actual_as[1] == _CONSUMER)
+        if (not valid_as
+                or resource.getrlimit(resource.RLIMIT_FSIZE) != (_SETUP, _SETUP)):
+            raise ValueError('native SDK inherited original finite rlimit differs')
         self._active()
 
     def verify_after_shutdown(self):
@@ -254,17 +291,45 @@ class NativeSDKPlacement:
 
 class NativeSDKSession:
     """Serialized bytes-only client; returned frame is borrowed until next call."""
-    def __init__(self, control, channel, placement, limits):
+    def __init__(self, control, channel, placement, limits, receiving_state=None):
         self._control, self._channel, self._placement, self._limits = control, channel, placement, limits
+        self._receiving_state = receiving_state
         self._sequence = 1
         self._closed = False
+
+    def _receive(self, allowed, sequence, phase):
+        try:
+            return self._control.receive(allowed, sequence)
+        except EOFError as primary:
+            # Preserve the original EOF. Drain only within the SAME original
+            # whole cutoff, while the channel still holds unreaped custody.
+            if self._receiving_state is not None:
+                g = self._receiving_state.geometry
+                try:
+                    self._receiving_state.reserve(4 * g.unicode_bytes(65536 + 1024)
+                                                  + 4 * (g.tuple_base + 4 * g.pointer))
+                except BaseException as secondary:
+                    primary.args = (str(primary) + '; diagnostic preadmission refused: '
+                                    + type(secondary).__name__ + ':' + str(secondary),)
+                    raise primary from secondary
+            context = 'terminal accepted'
+            try:
+                self._channel.finish_control_session()
+            except BaseException as secondary:
+                context = type(secondary).__name__ + ':' + str(secondary)
+            terminal = self._channel._terminal
+            status = ('unobserved' if terminal is None or self._channel._unknown
+                      else 'si_code=' + str(terminal.si_code) + ',si_status=' + str(terminal.si_status))
+            primary.args = (str(primary) + '; phase=' + phase + '; sequence=' + str(sequence)
+                            + '; native_terminal=' + status + '; context=' + context,)
+            raise
 
     def call_bytes(self, payload):
         if self._closed or self._sequence > self._limits.max_calls:
             raise ValueError('native SDK session call lifecycle exhausted')
         self._placement.verify_current()
         self._control.send(1, self._sequence, payload)
-        kind, result = self._control.receive(frozenset((3, 6)), self._sequence)
+        kind, result = self._receive(frozenset((3, 6)), self._sequence, 'reply')
         self._sequence += 1
         self._placement.verify_current()
         if kind == 6:
@@ -276,7 +341,7 @@ class NativeSDKSession:
             return
         self._placement.verify_current()
         self._control.send(4, self._sequence, b'')
-        self._control.receive(frozenset((5,)), self._sequence)
+        self._receive(frozenset((5,)), self._sequence, 'close_ack')
         self._channel.finish_control_session()
         self._placement.verify_after_shutdown()
         self._closed = True
@@ -314,6 +379,9 @@ def owned_native_sdk_session(*, prefix, root, startup_bytes, limits, cancelled,
             '--quota-bytes', str(_SETUP), '--inodes', '65536', '--working-ram-bytes', str(_CONSUMER),
             '--work-deadline-ns', str(config.original_whole_deadline_ns), '--maximum-shutdown-ms', '5000',
             '--consumer-control-fd', str(fd)]
+        if config.setup_as_bytes is not None:
+            arguments += ['--sdk-setup-as-bytes', str(config.setup_as_bytes),
+                          '--sdk-guardian-state-bytes', str(config.guardian_state_bytes)]
         if config.persistent_store is not None:
             arguments += ['--persistent-store', str(config.persistent_store)]
         # The installed image path is selected/held by native_dispatch, never root.
@@ -337,7 +405,7 @@ def owned_native_sdk_session(*, prefix, root, startup_bytes, limits, cancelled,
             cancelled=cancelled, receiver_buffer=receiver_buffer, frame_buffer=frame_buffer,
             limits=limits, progress=channel.poll_control_session)
         channel.write_input(startup_bytes, close=True)
-        _, startup = control.receive(frozenset((2,)), 0)
-        session = NativeSDKSession(control, channel, placement, limits)
+        session = NativeSDKSession(control, channel, placement, limits, receiving_state)
+        _, startup = session._receive(frozenset((2,)), 0, 'startup')
         yield session, startup
         session.close()

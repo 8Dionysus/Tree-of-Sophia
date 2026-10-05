@@ -287,6 +287,60 @@ finally:
         deadline,
         &cancellation,
     );
+    // Re-enter the native Sign owner with changed current v2 scope inputs.
+    // These are distinct route checks: requested-use fencing, Sign risk floor,
+    // and exact native-content readiness. Each refusal precedes package creation.
+    let assessment_owner = Path::new(required(&oracle, "assessment_owner"));
+    let assessment_owner_raw = fs::read(assessment_owner).unwrap();
+    let candidate_id = oracle["request"]["record"]["promotion_basis"]["candidate"]["id"]
+        .as_str()
+        .unwrap();
+    let assessment_head = PathBuf::from(required(&oracle, "head"));
+    let assessment_head_raw = fs::read(&assessment_head).unwrap();
+    let native_content = isolated.path().join(required(&oracle, "content"));
+    let native_content_raw = fs::read(&native_content).unwrap();
+    for refused_scope in ["research-use", "low-risk", "metadata-only"] {
+        let mut altered: Value = serde_json::from_slice(&assessment_owner_raw).unwrap();
+        match refused_scope {
+            "research-use" => {
+                altered["subjects"][candidate_id]["requested_use"] = serde_json::json!("research");
+            }
+            "low-risk" => {
+                altered["subjects"][candidate_id]["risk"] = serde_json::json!("low");
+            }
+            "metadata-only" => {
+                for selection in altered["native_text_units"].as_array_mut().unwrap() {
+                    selection["read_scope"] = serde_json::json!("metadata_only");
+                }
+            }
+            _ => unreachable!(),
+        }
+        fs::write(assessment_owner, canonical_json(&altered)).unwrap();
+        fs::set_permissions(assessment_owner, fs::Permissions::from_mode(0o600)).unwrap();
+        let (mut negative_local, mut negative_assessment) =
+            profile_workers(&cut, &image, deadline, &cancellation);
+        assert!(
+            prepare_sign_promotion_from_captures(
+                owner,
+                &context,
+                &cut,
+                &software,
+                &components,
+                &mut negative_local,
+                &mut negative_assessment,
+                limits,
+                &cancellation,
+            )
+            .is_err(),
+            "native Sign preparation must reject {refused_scope}"
+        );
+        fs::write(assessment_owner, &assessment_owner_raw).unwrap();
+        fs::set_permissions(assessment_owner, fs::Permissions::from_mode(0o600)).unwrap();
+        assert_eq!(fs::read(&assessment_head).unwrap(), assessment_head_raw);
+        assert_eq!(fs::read(&native_content).unwrap(), native_content_raw);
+    }
+    assert_eq!(fs::read(assessment_owner).unwrap(), assessment_owner_raw);
+
     let (mut local_worker, mut assessment_worker) =
         profile_workers(&cut, &image, deadline, &cancellation);
     let prepared = prepare_sign_promotion_from_captures(

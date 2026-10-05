@@ -15,6 +15,7 @@ from .native_core_session_result import NativeCoreSessionResultClient
 from .native_core_probe_session_result import NativeCoreProbeSessionResultClient
 from .native_core_lazy_session_result import NativeCoreLazySessionResultClient
 from .native_core_session_census import retained_owner_state
+from .native_core_session_control import _PACKET_BYTES
 from .native_core_session_startup import startup_bytes
 from .native_core_snapshot import NativeCoreSnapshotSelection
 
@@ -53,8 +54,8 @@ def owned_native_source_session(*, prefix, selection, admission, state,
         raise ValueError('native session original setup clock/cancellation/allowance differs')
     wire = startup_bytes(admission, selection, config, state, selected_probe=_selected_probe, selected_lazy=_selected_lazy)
     # Codec's owned bytearrays are a distinct original setup allocation.
-    receive_size = admission.transport.max_reply_bytes
-    frame_size = 65536
+    receive_size = _PACKET_BYTES
+    frame_size = max(admission.transport.max_call_bytes, admission.transport.max_reply_bytes)
     state.reserve(2 * bytearray.__basicsize__ + receive_size + frame_size + 2)
     receiver = bytearray(receive_size)
     frame = bytearray(frame_size)

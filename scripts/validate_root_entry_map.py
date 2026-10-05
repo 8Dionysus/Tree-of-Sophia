@@ -3,6 +3,41 @@
 
 from __future__ import annotations
 
+# Maintained command/main dispatch; pure imported helpers remain migration
+# reference APIs until receiving native CLI acceptance. No Python fallback.
+import argparse as _native_argparse
+import os as _native_os
+from pathlib import Path as _NativePath
+import shutil as _native_shutil
+import sys as _native_sys
+
+
+def native_main(argv: list[str] | None = None) -> int:
+    parser = _native_argparse.ArgumentParser(description="Native owned route operation")
+    parser.add_argument("--kag-export", type=_NativePath, help="explicit verified source-return export for runtime export_ref resolution")
+    args = parser.parse_args(argv)
+    if args.kag_export is not None and not args.kag_export.is_absolute():
+        parser.error("--kag-export must be an absolute directory")
+    selected = _native_os.environ.get("TOS_OPS_MECHANICS_EXECUTOR")
+    executable = selected if selected is not None else _native_shutil.which("tos-ops-mechanics-plan")
+    if executable is None or not _NativePath(executable).is_absolute():
+        print("[error] install tos-ops-mechanics-plan or set absolute TOS_OPS_MECHANICS_EXECUTOR", file=_native_sys.stderr)
+        return 2
+    arguments = [executable, "--repo-root", str(_NativePath(__file__).resolve().parents[1]), '--root-entry-map-validate']
+    if args.kag_export is not None:
+        arguments.extend(["--kag-export", str(args.kag_export)])
+    try:
+        _native_os.execv(executable, arguments)
+    except OSError as error:
+        print(f"[error] cannot execute native route operation: {error}", file=_native_sys.stderr)
+        return 2
+    return 2
+
+
+if __name__ == "__main__":
+    raise SystemExit(native_main())
+
+
 import json
 import shlex
 
@@ -45,7 +80,7 @@ def validate_artifact_identity(identity: object) -> None:
                 resolve_local_ref(part)
 
 
-def main() -> int:
+def legacy_main() -> int:
     expected_payload = build_payload()
     current_payload = json.loads(ROOT_ENTRY_MAP_PATH.read_text(encoding="utf-8"))
     validate_payload_schema(current_payload)
@@ -105,5 +140,5 @@ def main() -> int:
     return 0
 
 
-if __name__ == "__main__":
-    raise SystemExit(main())
+def main() -> int:
+    return native_main()

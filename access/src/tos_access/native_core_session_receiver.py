@@ -87,7 +87,7 @@ class ReceiverGeometry:
 
 
 class ReceiverState:
-    __slots__ = ('geometry', '_limit', '_retained', '_deadline', '_cancelled', '_json', '_visits', '_outputs', '_bootstrap_reserved', '_framework_reserved', '_external_owners')
+    __slots__ = ('geometry', '_limit', '_retained', '_deadline', '_cancelled', '_json', '_visits', '_outputs', '_bootstrap_reserved', '_framework_reserved', '_external_owners', '_opaque_workspace')
 
     def __new__(cls, *, original_state_bytes, caller_retained_state_bytes,
                 deadline, cancelled, json_limits):
@@ -126,7 +126,7 @@ class ReceiverState:
         fixed_scalar = max(int.__basicsize__ + 3 * sys.int_info.sizeof_digit,
                            str.__basicsize__ + 8,
                            tuple.__basicsize__ + gc + 5 * pointer)
-        for fn in (cls.decode, cls.active, cls.reserve, cls.release, cls.visit,
+        for fn in (cls.decode, cls.active, cls.reserve, cls.release, cls.reserve_opaque_workspace, cls.settle_opaque_workspace, cls.visit,
                    ReceiverGeometry.list_bytes, ReceiverGeometry.dict_bytes,
                    ReceiverGeometry.unicode_bytes):
             code = fn.__code__
@@ -159,6 +159,7 @@ class ReceiverState:
         self._visits = 0
         self._outputs = []
         self._external_owners = []
+        self._opaque_workspace = None
         # Owner-produced receiver controller/geometry and initial registry are
         # charged once in addition to the caller's distinct live allocations.
         retained = (self._framework_reserved + sys.getsizeof(self) + sys.getsizeof(self.geometry)
@@ -191,6 +192,36 @@ class ReceiverState:
         if type(amount) is not int or not 0 <= amount <= self._retained:
             raise ValueError('native receiver invalid reservation release')
         self._retained -= amount
+
+    def reserve_opaque_workspace(self):
+        """Hold the entire original remainder for controlled compile/import.
+
+        The dedicated entry's original aggregate AS ceiling separately bounds
+        the opaque operation. This ledger does not claim PyMem allocation hooks.
+        Failure preserves this debit and all traceback-retained owners.
+        """
+        self.active()
+        if self._opaque_workspace is not None:
+            raise ValueError('native receiver opaque workspace already held')
+        amount = self._limit - self._retained
+        self.reserve(amount)
+        self._opaque_workspace = amount
+        return amount
+
+    def settle_opaque_workspace(self, retained_state_bytes):
+        """Atomically replace our held peak with its conservative live owner.
+
+        Only a successful controlled operation may settle. Its entry supplies
+        a mapped-state upper bound; preexisting caller baseline is untouched.
+        No work/visit/clock refund occurs. Failure keeps the full reservation.
+        """
+        self.active()
+        amount = self._opaque_workspace
+        if (type(amount) is not int or type(retained_state_bytes) is not int
+                or not 0 <= retained_state_bytes <= amount):
+            raise ValueError('native receiver opaque retained settlement refused')
+        self._retained = self._retained - amount + retained_state_bytes
+        self._opaque_workspace = None
 
     def visit(self):
         self.active()

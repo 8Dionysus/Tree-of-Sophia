@@ -482,5 +482,27 @@ def main(argv: list[str] | None = None) -> int:
     return 0
 
 
+def native_main(argv: list[str] | None = None) -> int:
+    """Compatibility entrypoint; domain rules execute in the installed Rust tool."""
+    import os
+    import shutil
+
+    parser = argparse.ArgumentParser(description="Native ToS agent surface")
+    parser.add_argument("--check", action="store_true")
+    args = parser.parse_args(argv)
+    executable = os.environ.get("TOS_OPS_MECHANICS_EXECUTOR") or shutil.which("tos-ops-mechanics-plan")
+    if not executable:
+        print("[error] install tos-ops-mechanics-plan or set TOS_OPS_MECHANICS_EXECUTOR", file=sys.stderr)
+        return 1
+    command = [executable, "--repo-root", str(REPO_ROOT), "--agent-surface-build"]
+    if args.check:
+        command.append("--check")
+    try:
+        os.execv(executable, command)
+    except OSError as error:
+        print(f"[error] cannot execute native agent surface: {error}", file=sys.stderr)
+        return 1
+
+
 if __name__ == "__main__":
-    raise SystemExit(main())
+    raise SystemExit(native_main())

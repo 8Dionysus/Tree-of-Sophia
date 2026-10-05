@@ -9289,3 +9289,223 @@ fn identifier_tail(value: &str, prefix: &str) -> bool {
                     .all(|byte| byte.is_ascii_lowercase() || byte.is_ascii_digit())
         })
 }
+
+#[cfg(test)]
+mod retained_history_reader_regression {
+    use super::*;
+    use std::{fs, path::Path, time::Duration};
+
+    const OWNER_DIR: &str = "ToS/source-witnesses/relations/linguistic";
+    const OWNER_SOURCE: &str = "ToS/source-witnesses/relations/linguistic/source-claims.jsonl";
+    const TARGET: &str = "tos.claim.linguistic.atf-notation";
+    const SIBLING: &str = "tos.claim.linguistic.oldbab-stage";
+    const CATALOG: &str = "ToS/source-witnesses/catalog/claims.jsonl";
+
+    fn add_file(root: &Path, files: &mut Vec<SourceFile>, relative: &str) {
+        files.push(SourceFile {
+            path: path(relative).unwrap(),
+            raw: fs::read(root.join(relative)).unwrap(),
+        });
+    }
+
+    fn add_directory(root: &Path, files: &mut Vec<SourceFile>, relative: &str) {
+        for entry in fs::read_dir(root.join(relative)).unwrap() {
+            let entry = entry.unwrap();
+            if entry.file_type().unwrap().is_file() {
+                let name = entry.file_name().into_string().unwrap();
+                add_file(root, files, &format!("{relative}/{name}"));
+            }
+        }
+    }
+
+    fn selected_linguistic_owner() -> CommandContext {
+        let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../..");
+        let root = fs::canonicalize(root).unwrap();
+        let mut files = Vec::new();
+        add_file(&root, &mut files, RELATIONS);
+        add_directory(&root, &mut files, OWNER_DIR);
+
+        let history_path = format!("{OWNER_DIR}/{CLAIM_HISTORY}");
+        let history_raw = files
+            .iter()
+            .find(|file| file.path.as_str() == history_path.as_str())
+            .unwrap()
+            .raw
+            .clone();
+        let history = parse(&history_raw).unwrap();
+        let receipts = array(&history, "receipts").unwrap();
+        assert_eq!(receipts.len(), 3);
+        assert_eq!(
+            text(field(&receipts[0], "previous_source").unwrap(), "id").unwrap(),
+            TARGET
+        );
+        assert_eq!(
+            text(field(&receipts[1], "previous_source").unwrap(), "id").unwrap(),
+            SIBLING
+        );
+        assert_eq!(
+            text(field(&receipts[2], "previous_source").unwrap(), "id").unwrap(),
+            TARGET
+        );
+        for receipt in receipts {
+            add_directory(&root, &mut files, text(receipt, "archive_path").unwrap());
+        }
+
+        let mut context = CommandContext {
+            base_revision: tos_foundation::SourceRevision(
+                tos_foundation::Digest256::of_bytes(b"retained Claim reader fixture"),
+            ),
+            configuration_raw: b"{}".to_vec(),
+            request_raw: b"{}".to_vec(),
+            recorded_at: "2026-10-04T00:00:00Z".into(),
+            effective_uid: 0,
+            files,
+        };
+        let (current, line) = {
+            let raw = selected(&context, OWNER_SOURCE).unwrap();
+            let claim = rows(raw).unwrap().remove(TARGET).unwrap();
+            let line = claim_stream_line(raw, TARGET).unwrap() as usize;
+            (claim, line)
+        };
+
+        // The clean source tree omits generated catalog projections. Select one
+        // exact row derived from the maintained current Claim and relation profile.
+        let entry = catalogue_claim(&context, &current, OWNER_SOURCE, line, true, None)
+            .unwrap()
+            .construct()
+            .unwrap();
+        let mut raw = canonical(&entry).unwrap();
+        raw.push(b'\n');
+        context.files.push(SourceFile {
+            path: path(CATALOG).unwrap(),
+            raw,
+        });
+        context
+    }
+
+    fn resolve(
+        context: &CommandContext,
+        reference: &JsonValue,
+    ) -> SourceCommandResult<ResolvedClaimReference> {
+        resolve_claim_reference_evidence(
+            context,
+            None,
+            reference,
+            Instant::now() + Duration::from_secs(30),
+            &AtomicBool::new(false),
+        )
+    }
+
+    #[test]
+    fn exact_old_claim_survives_later_interleaved_corrections_without_fallback() {
+        let context = selected_linguistic_owner();
+        let history = parse(
+            selected(&context, &format!("{OWNER_DIR}/{CLAIM_HISTORY}")).unwrap(),
+        )
+        .unwrap();
+        let receipts = array(&history, "receipts").unwrap();
+        let old_ref = field(&receipts[0], "previous_source").unwrap().clone();
+        let current_raw = selected(&context, OWNER_SOURCE).unwrap();
+        let current = rows(current_raw).unwrap().remove(TARGET).unwrap();
+        let current_ref = metadata_subject(&current).unwrap();
+        assert_eq!(integer(&current, "claim_version").unwrap(), 3);
+        assert_eq!(
+            text(&old_ref, "digest").unwrap(),
+            "sha256:f349743da0a669a01ebf006b5555109203a6843d05241a68679d8e05bf4e1bb2"
+        );
+
+        let resolved = resolve(&context, &old_ref).unwrap();
+        assert_eq!(resolved.version_status, "historical");
+        assert_eq!(integer(&resolved.record, "claim_version").unwrap(), 1);
+        assert!(same(&metadata_subject(&resolved.record).unwrap(), &old_ref).unwrap());
+        assert_ne!(
+            record_digest(&resolved.record).unwrap(),
+            record_digest(&current).unwrap()
+        );
+        assert_eq!(
+            text(&resolved.record, "visibility").unwrap(),
+            "public_metadata_only"
+        );
+        assert_eq!(
+            field(field(&resolved.provenance, "catalog").unwrap(), "current_record_ref").unwrap(),
+            &current_ref
+        );
+        let verified_history = field(&resolved.provenance, "history").unwrap();
+        assert_eq!(integer(verified_history, "receipt_count").unwrap(), 3);
+        assert_eq!(
+            field(verified_history, "correction_chain_verified").unwrap(),
+            &JsonValue::Bool(true)
+        );
+        let transition = field(&resolved.provenance, "transition").unwrap();
+        assert_eq!(field(transition, "previous_source").unwrap(), &old_ref);
+        assert_eq!(
+            field(transition, "source").unwrap(),
+            field(&receipts[0], "source").unwrap()
+        );
+        assert!(transition.object_get("request").is_none());
+
+        let first_archive = text(&receipts[0], "archive_path").unwrap();
+        let manifest = parse(
+            selected(&context, &format!("{first_archive}/manifest.json")).unwrap(),
+        )
+        .unwrap();
+        let blob = text(
+            field(field(&manifest, "files").unwrap(), CLAIM_STREAM).unwrap(),
+            "blob",
+        )
+        .unwrap();
+        let source = field(&resolved.provenance, "source").unwrap();
+        assert_eq!(
+            text(source, "archive_blob_ref").unwrap(),
+            format!("{first_archive}/{blob}")
+        );
+        assert_eq!(
+            field(source, "package_revision").unwrap(),
+            field(&receipts[0], "previous_revision").unwrap()
+        );
+
+        let mut wrong_digest = old_ref.clone();
+        set(
+            &mut wrong_digest,
+            "digest",
+            string(&format!("sha256:{}", "f".repeat(64))),
+        )
+        .unwrap();
+        assert!(matches!(
+            resolve(&context, &wrong_digest),
+            Err(SourceCommandError::Unsupported(
+                "exact related Claim version not retained in selected owner history"
+            ))
+        ));
+        let mut unretained_version = old_ref.clone();
+        set(&mut unretained_version, "version", number(99)).unwrap();
+        assert!(matches!(
+            resolve(&context, &unretained_version),
+            Err(SourceCommandError::Unsupported(
+                "exact related Claim version not retained in selected owner history"
+            ))
+        ));
+
+        let later_archive = text(&receipts[2], "archive_path").unwrap();
+        let later_manifest = parse(
+            selected(&context, &format!("{later_archive}/manifest.json")).unwrap(),
+        )
+        .unwrap();
+        let later_blob = text(
+            field(field(&later_manifest, "files").unwrap(), CLAIM_STREAM).unwrap(),
+            "blob",
+        ).unwrap();
+        let damaged_path = format!("{later_archive}/{later_blob}");
+        let mut damaged = context.clone();
+        let member = damaged
+            .files
+            .iter_mut()
+            .find(|file| file.path.as_str() == damaged_path.as_str())
+            .unwrap();
+        member.raw[0] ^= 1;
+        assert!(matches!(
+            resolve(&damaged, &old_ref),
+            Err(SourceCommandError::Conflict("retained archive blob binding differs"))
+        ));
+    }
+}

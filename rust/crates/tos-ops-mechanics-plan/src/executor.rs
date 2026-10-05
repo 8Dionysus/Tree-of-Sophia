@@ -189,6 +189,86 @@ pub(crate) fn run_philosophy_product(
     }
 }
 
+/// Exact interpreter facts observation for the KAG receipt admission check.
+/// Isolated standard-library metadata only; no repository imports or fallback.
+pub(crate) fn capture_agent_surface_runtime(
+    root: &Path,
+    interpreter: &Path,
+    distributions: &[String],
+    remaining: Duration,
+    cancel: &AtomicI32,
+) -> io::Result<(i32, Vec<u8>, Vec<u8>)> {
+    const PROBE: &str = r#"import sys,json,importlib.metadata
+versions={}
+for name in json.loads(sys.argv[1]):
+ try: versions[name]={'state':'installed','version':importlib.metadata.version(name)}
+ except importlib.metadata.PackageNotFoundError: versions[name]={'state':'missing'}
+ except (TypeError,ValueError) as exc: versions[name]={'state':'error','error':str(exc)[:1024]}
+print(json.dumps({'implementation':sys.implementation.name,'version':list(sys.version_info[:3]),'dependencies':versions},separators=(',',':')))
+"#;
+    if !interpreter.is_absolute() || !interpreter.is_file() || interpreter.as_os_str().len() > 4096
+    {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            "explicit Python interpreter must be an absolute executable file",
+        ));
+    }
+    if distributions.len() > 64
+        || distributions
+            .iter()
+            .any(|n| n.is_empty() || n.len() > 256 || n.chars().any(|c| c < ' ' || c == '\u{7f}'))
+        || remaining.is_zero()
+    {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            "invalid bounded runtime facts request",
+        ));
+    }
+    let argv = vec![
+        interpreter
+            .to_str()
+            .ok_or_else(|| {
+                io::Error::new(io::ErrorKind::InvalidInput, "non-UTF-8 Python interpreter")
+            })?
+            .to_owned(),
+        "-I".into(),
+        "-c".into(),
+        PROBE.into(),
+        serde_json::to_string(distributions).map_err(io::Error::other)?,
+    ];
+    #[cfg(target_os = "linux")]
+    {
+        let plan = selected_plan(
+            &[(String::new(), argv)],
+            "tos_agent_surface_runtime_facts_v1",
+            "agent_surface_runtime",
+        );
+        let mut streams = [Vec::new(), Vec::new()];
+        let code = native::run_captured(
+            root,
+            &plan,
+            Limits {
+                command_wall: remaining.min(Duration::from_secs(10)),
+                lane_wall: remaining.min(Duration::from_secs(10)),
+                cleanup_grace: Duration::from_secs(1),
+                output_bytes: 16384,
+            },
+            cancel,
+            &mut streams,
+        )?;
+        let [stdout, stderr] = streams;
+        Ok((code, stdout, stderr))
+    }
+    #[cfg(not(target_os = "linux"))]
+    {
+        let _ = (root, argv, cancel);
+        Err(io::Error::new(
+            io::ErrorKind::Unsupported,
+            "runtime facts require Linux execution custody",
+        ))
+    }
+}
+
 fn selected_plan(
     steps: &[(String, Vec<String>)],
     schema_version: &'static str,
@@ -953,7 +1033,41 @@ mod native {
                 }
             }
             if matches!(style, Style::Mechanics) {
-                write(1, format!("[ok] completed mechanics-local unittest, builder, and validator coverage across {} test files\n", plan.test_file_count).as_bytes(), lane_deadline, cancel)?;
+                let summary = if plan
+                    .commands
+                    .iter()
+                    .all(|command| command.kind == "native_assertions")
+                {
+                    format!(
+                        "[ok] completed native mechanics assertions across {} supported homes; Growth Cycle reference cohort not run\n",
+                        plan.commands.len()
+                    )
+                } else if plan
+                    .commands
+                    .iter()
+                    .any(|command| command.kind == "native_assertions")
+                {
+                    let native = plan
+                        .commands
+                        .iter()
+                        .filter(|command| command.kind == "native_assertions")
+                        .count();
+                    let reference = plan
+                        .commands
+                        .iter()
+                        .filter(|command| command.kind == "unittest")
+                        .count();
+                    format!(
+                        "[ok] completed mechanics-local native assertions across {native} homes, reference unittest across {reference} homes, builders and validators; {} reference test files discovered\n",
+                        plan.test_file_count
+                    )
+                } else {
+                    format!(
+                        "[ok] completed mechanics-local unittest, builder, and validator coverage across {} test files\n",
+                        plan.test_file_count
+                    )
+                };
+                write(1, summary.as_bytes(), lane_deadline, cancel)?;
             }
             Ok(0)
         })();

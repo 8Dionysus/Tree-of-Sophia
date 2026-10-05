@@ -53,6 +53,7 @@ pub mod source_managed_selection;
 pub mod source_metadata_publication;
 mod source_metadata_publication_assembly;
 pub mod source_native_cli;
+mod source_work_transaction;
 pub use durable_adapter::source_cohort;
 mod source_assessment_journal;
 pub mod source_forms;
@@ -164,3 +165,5 @@ pub mod source_payload_custody;
 pub mod source_registry_acquisition;
 
 pub mod managed_native_original_cli;
+
+pub mod source_command_http;

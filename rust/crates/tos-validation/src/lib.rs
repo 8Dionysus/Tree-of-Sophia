@@ -14,6 +14,9 @@ use tos_foundation::{
     Digest256, Digest256Hasher, FoundationErrorCode, JsonLimits, JsonMode, JsonValue, parse_json,
 };
 
+mod controlled_schema;
+pub use controlled_schema::{ControlledSchemaBackendProbe, SchemaProbeControl};
+
 pub mod assessment;
 pub mod biblio_rules;
 pub mod executor;
@@ -297,6 +300,8 @@ pub enum SchemaProbeError {
     InvalidJson,
     InvalidPublishedJson(FoundationErrorCode),
     IncompatibleJsonRepresentation,
+    /// The controlled backend does not implement this schema assertion or shape.
+    UnsupportedControlledSchema,
     NotSchema202012,
     InvalidResourceId,
     DuplicateResourceId,

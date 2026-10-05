@@ -41,7 +41,10 @@ pub use knowledge_model_abi::{
 pub use logical_ref::LogicalRecordRefV1;
 pub use path::RelativePath;
 pub use unicode::{
-    UnicodeProfile, python_casefold_unicode16_v1, python_decimal_unicode16_v1,
+    UnicodeProfile, python_casefold_unicode16_v1,
+    python_casefold_unicode16_v1_error_state_upper_bound,
+    python_casefold_unicode16_v1_fixed_state_upper_bound,
+    python_casefold_unicode16_v1_with_state_budget_and_check, python_decimal_unicode16_v1,
     python_lower_unicode16_v1, python_lower_unicode16_v1_error_state_upper_bound,
     python_lower_unicode16_v1_with_state_budget_and_check, python_printable_unicode16_v1,
     python_strip_unicode16_v1, python_strip_unicode16_v1_with_check, python_word_unicode16_v1,

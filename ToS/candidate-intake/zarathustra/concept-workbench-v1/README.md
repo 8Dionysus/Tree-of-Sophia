@@ -184,10 +184,10 @@ the graph contains only its concept candidate and sets `empty_result: true`.
 The no-isolated-node invariant applies to evidence-bearing form, occurrence,
 and speaker nodes; absence is recorded rather than padded with invented edges.
 
-The maintained executable entry now dispatches native `tos` before loading the
-reference algorithm or third-party Python imports. Imported helper bodies stay
-unchanged for the live Generic access callers; their retirement awaits genuine
-native API consumer acceptance. The exact c60 recipe is retained separately as
+The maintained executable entry dispatches native `tos` before loading the
+reference algorithm or third-party Python imports. Imported helper bodies remain
+as comparison references. The Generic access word-analysis caller requires an
+explicit installed native prefix and no longer loads this Python helper chain. The exact c60 recipe is retained separately as
 NONEXECUTED source, never a fallback or the native implementation identity.
 
 An explicit `--plan-ref` selects a bounded technical successor only: a distinct

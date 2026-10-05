@@ -688,6 +688,97 @@ impl ProtectedAssessmentJournal {
         self.verify_current(deadline, cancelled)?;
         Ok(AssessmentJournalFence { owner: self, held })
     }
+
+    /// Select a fixed public-v2 read scope without creating homes or lock files.
+    pub(crate) fn read_only_subjects<'a>(
+        &'a self,
+        subject_ids: &[String],
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<AssessmentJournalReadBatch<'a>> {
+        if self.private_root.is_some()
+            || cmd::text(&self.configuration, "schema_version")? != "tos_local_assessment_owner_v2"
+        {
+            return Err(SourceCommandError::Denied(
+                "assessment read batch requires public owner v2",
+            ));
+        }
+        self.verify_current(deadline, cancelled)?;
+        if subject_ids.is_empty() || subject_ids.len() > 256 {
+            return Err(SourceCommandError::Invalid("assessment read batch scope count"));
+        }
+        let configured_subjects = cmd::field(&self.configuration, "subjects")?;
+        let mut names = BTreeMap::<String, String>::new();
+        let mut ids = BTreeSet::<String>::new();
+        for id in subject_ids {
+            if id.len() > 1_048_576
+                || !ids.insert(id.clone())
+                || tos_foundation::python_strip_unicode16_v1(id, 1_048_576)
+                    .map_err(|_| SourceCommandError::Invalid("assessment subject Unicode budget"))?
+                    .is_empty()
+            {
+                return Err(SourceCommandError::Invalid(
+                    "assessment distinct subject scope",
+                ));
+            }
+            if configured_subjects.object_get(id).is_none() {
+                return Err(SourceCommandError::Denied(
+                    "assessment subject outside configured owner scope",
+                ));
+            }
+            if names
+                .insert(Digest256::of_bytes(id.as_bytes()).to_hex(), id.clone())
+                .is_some()
+            {
+                return Err(SourceCommandError::Conflict(
+                    "assessment subject home collision",
+                ));
+            }
+        }
+        let mut subjects = BTreeMap::new();
+        for (name, subject) in names {
+            active(deadline, cancelled)?;
+            let (directory, identity) = match tos_fd_open::open_directory_at(
+                &self.directory,
+                Path::new(&name),
+            ) {
+                Ok(directory) => {
+                    protected(&directory, self.uid, true)?;
+                    let identity = inode(&directory.metadata().map_err(|_| {
+                        SourceCommandError::Invalid("assessment home identity")
+                    })?);
+                    (Some(directory), Some(identity))
+                }
+                Err(error)
+                    if error
+                        .source
+                        .as_ref()
+                        .is_some_and(|source| source.kind() == std::io::ErrorKind::NotFound) =>
+                {
+                    (None, None)
+                }
+                Err(_) => {
+                    return Err(SourceCommandError::Denied(
+                        "assessment subject home unsafe",
+                    ));
+                }
+            };
+            subjects.insert(
+                subject,
+                ReadOnlySubjectHome {
+                    name,
+                    directory,
+                    identity,
+                },
+            );
+        }
+        let selected = AssessmentJournalReadBatch {
+            owner: self,
+            subjects,
+        };
+        selected.verify_current(deadline, cancelled)?;
+        Ok(selected)
+    }
 }
 struct HeldSubject {
     name: String,
@@ -699,7 +790,200 @@ pub(crate) struct AssessmentJournalFence<'a> {
     owner: &'a ProtectedAssessmentJournal,
     held: BTreeMap<String, HeldSubject>,
 }
+pub(crate) struct AssessmentReadHome<'a> {
+    name: &'a str,
+    directory: Option<&'a File>,
+    identity: Option<(u64, u64)>,
+}
+struct ReadOnlySubjectHome {
+    name: String,
+    directory: Option<File>,
+    identity: Option<(u64, u64)>,
+}
+pub(crate) struct AssessmentJournalReadBatch<'a> {
+    owner: &'a ProtectedAssessmentJournal,
+    subjects: BTreeMap<String, ReadOnlySubjectHome>,
+}
+pub(crate) trait AssessmentJournalReadView {
+    fn owner(&self) -> &ProtectedAssessmentJournal;
+    fn home(&self, subject: &str) -> SourceCommandResult<AssessmentReadHome<'_>>;
+    fn home_named(&self, name: &str) -> SourceCommandResult<AssessmentReadHome<'_>>;
+    fn verify_current(
+        &self,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<()>;
+}
+impl AssessmentJournalReadBatch<'_> {
+    pub(crate) fn verify_current(
+        &self,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<()> {
+        self.owner.verify_current(deadline, cancelled)?;
+        for home in self.subjects.values() {
+            active(deadline, cancelled)?;
+            match (&home.directory, home.identity) {
+                (Some(retained), Some(identity)) => {
+                    protected(retained, self.owner.uid, true)?;
+                    if inode(&retained.metadata().map_err(|_| {
+                        SourceCommandError::Invalid("assessment retained home identity")
+                    })?) != identity
+                    {
+                        return Err(SourceCommandError::Conflict(
+                            "assessment retained home replaced",
+                        ));
+                    }
+                    let current = tos_fd_open::open_directory_at(
+                        &self.owner.directory,
+                        Path::new(&home.name),
+                    )
+                    .map_err(|_| {
+                        SourceCommandError::Conflict("assessment selected home disappeared")
+                    })?;
+                    protected(&current, self.owner.uid, true)?;
+                    if inode(&current.metadata().map_err(|_| {
+                        SourceCommandError::Invalid("assessment current home identity")
+                    })?) != identity
+                    {
+                        return Err(SourceCommandError::Conflict(
+                            "assessment selected home identity changed",
+                        ));
+                    }
+                }
+                (None, None) => match tos_fd_open::open_directory_at(
+                    &self.owner.directory,
+                    Path::new(&home.name),
+                ) {
+                    Err(error)
+                        if error
+                            .source
+                            .as_ref()
+                            .is_some_and(|source| source.kind() == std::io::ErrorKind::NotFound) =>
+                    {}
+                    _ => {
+                        return Err(SourceCommandError::Conflict(
+                            "assessment absent home appeared",
+                        ));
+                    }
+                },
+                _ => {
+                    return Err(SourceCommandError::Invalid(
+                        "assessment selected home identity state",
+                    ));
+                }
+            }
+        }
+        self.owner.verify_current(deadline, cancelled)
+    }
+
+    pub(crate) fn head(
+        &self,
+        subject: &str,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<Option<String>> {
+        let (head, member) = read_head(self, subject, deadline, cancelled)?;
+        if let Some(member) = member.as_ref() {
+            verify_member_current(self, member, deadline, cancelled)?;
+        } else {
+            verify_head_absent(self, subject, deadline, cancelled)?;
+        }
+        self.verify_current(deadline, cancelled)?;
+        Ok(head)
+    }
+
+    pub(crate) fn read(
+        &self,
+        subject: &str,
+        ctx: &CommandContext,
+        worker: &mut CutWorkerSchemaExecutor,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<AssessmentHistory> {
+        read_assessment_history(self, subject, ctx, worker, deadline, cancelled)
+    }
+}
+impl AssessmentJournalReadView for AssessmentJournalFence<'_> {
+    fn owner(&self) -> &ProtectedAssessmentJournal {
+        self.owner
+    }
+
+    fn home(&self, subject: &str) -> SourceCommandResult<AssessmentReadHome<'_>> {
+        let held = self.held.get(subject).ok_or(SourceCommandError::Denied(
+            "assessment subject outside held scope",
+        ))?;
+        Ok(AssessmentReadHome {
+            name: &held.name,
+            directory: Some(&held.directory),
+            identity: Some(held.identity),
+        })
+    }
+
+    fn home_named(&self, name: &str) -> SourceCommandResult<AssessmentReadHome<'_>> {
+        let held = self
+            .held
+            .values()
+            .find(|held| held.name == name)
+            .ok_or(SourceCommandError::Denied(
+                "assessment journal member outside held homes",
+            ))?;
+        Ok(AssessmentReadHome {
+            name: &held.name,
+            directory: Some(&held.directory),
+            identity: Some(held.identity),
+        })
+    }
+
+    fn verify_current(
+        &self,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<()> {
+        AssessmentJournalFence::verify_current(self, deadline, cancelled)
+    }
+}
+impl AssessmentJournalReadView for AssessmentJournalReadBatch<'_> {
+    fn owner(&self) -> &ProtectedAssessmentJournal {
+        self.owner
+    }
+
+    fn home(&self, subject: &str) -> SourceCommandResult<AssessmentReadHome<'_>> {
+        let home = self.subjects.get(subject).ok_or(SourceCommandError::Denied(
+            "assessment subject outside read batch scope",
+        ))?;
+        Ok(AssessmentReadHome {
+            name: &home.name,
+            directory: home.directory.as_ref(),
+            identity: home.identity,
+        })
+    }
+
+    fn home_named(&self, name: &str) -> SourceCommandResult<AssessmentReadHome<'_>> {
+        let home = self
+            .subjects
+            .values()
+            .find(|home| home.name == name)
+            .ok_or(SourceCommandError::Denied(
+                "assessment journal member outside read batch scope",
+            ))?;
+        Ok(AssessmentReadHome {
+            name: &home.name,
+            directory: home.directory.as_ref(),
+            identity: home.identity,
+        })
+    }
+
+    fn verify_current(
+        &self,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<()> {
+        AssessmentJournalReadBatch::verify_current(self, deadline, cancelled)
+    }
+}
 pub(crate) struct AssessmentHistory {
+    subject_id: String,
     pub(crate) head: Option<String>,
     pub(crate) batches: Vec<JsonValue>,
     pub(crate) submissions: Vec<tos_validation::assessment::AssessmentSubmissionInput>,
@@ -730,9 +1014,9 @@ impl AssessmentHistory {
     /// Keep each authenticated journal member descriptor alive through the
     /// source-currentness fence and compare its retained inode with the exact
     /// path still named under the held subject home.
-    pub(crate) fn verify_current(
+    pub(crate) fn verify_current<V: AssessmentJournalReadView>(
         &self,
-        fence: &AssessmentJournalFence<'_>,
+        fence: &V,
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> SourceCommandResult<()> {
@@ -748,9 +1032,9 @@ impl AssessmentHistory {
         self.verify_members(fence, false, deadline, cancelled)
     }
 
-    fn verify_members(
+    fn verify_members<V: AssessmentJournalReadView>(
         &self,
-        fence: &AssessmentJournalFence<'_>,
+        fence: &V,
         include_head: bool,
         deadline: Instant,
         cancelled: &AtomicBool,
@@ -761,34 +1045,65 @@ impl AssessmentHistory {
                 continue;
             }
             active(deadline, cancelled)?;
-            let held = fence
-                .held
-                .values()
-                .find(|held| held.name == member.home_name)
-                .ok_or(SourceCommandError::Denied(
-                    "assessment journal member outside held homes",
-                ))?;
             verify_member_current(fence, member, deadline, cancelled)?;
         }
+        if include_head && self.head.is_none() {
+            verify_head_absent(fence, &self.subject_id, deadline, cancelled)?;
+        }
+        fence.verify_current(deadline, cancelled)?;
         Ok(())
     }
 }
 
-fn verify_member_current(
-    fence: &AssessmentJournalFence<'_>,
+fn verify_head_absent<V: AssessmentJournalReadView>(
+    view: &V,
+    subject: &str,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<()> {
+    active(deadline, cancelled)?;
+    let home = view.home(subject)?;
+    let Some(directory) = home.directory else {
+        return match tos_fd_open::open_directory_at(&view.owner().directory, Path::new(home.name)) {
+            Err(error)
+                if error
+                    .source
+                    .as_ref()
+                    .is_some_and(|source| source.kind() == std::io::ErrorKind::NotFound) =>
+            {
+                Ok(())
+            }
+            _ => Err(SourceCommandError::Conflict("assessment selected home appeared")),
+        };
+    };
+    match tos_fd_open::open_regular_at(directory, Path::new("head")) {
+        Err(error)
+            if error
+                .source
+                .as_ref()
+                .is_some_and(|source| source.kind() == std::io::ErrorKind::NotFound) =>
+        {
+            Ok(())
+        }
+        _ => Err(SourceCommandError::Conflict(
+            "assessment head appeared after empty history read",
+        )),
+    }
+}
+
+fn verify_member_current<V: AssessmentJournalReadView>(
+    fence: &V,
     member: &HeldJournalMember,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<()> {
     active(deadline, cancelled)?;
-    let held = fence
-        .held
-        .values()
-        .find(|held| held.name == member.home_name)
-        .ok_or(SourceCommandError::Denied(
-            "assessment journal member outside held homes",
-        ))?;
-    let private = fence.owner.private_root.is_some();
+    let home = fence.home_named(&member.home_name)?;
+    let directory = home.directory.ok_or(SourceCommandError::Denied(
+        "assessment journal member has no selected home",
+    ))?;
+    let owner = fence.owner();
+    let private = owner.private_root.is_some();
     let retained = member
         .file
         .metadata()
@@ -798,12 +1113,12 @@ fn verify_member_current(
             "assessment retained member inode changed",
         ));
     }
-    let mut current = tos_fd_open::open_regular_at(&held.directory, Path::new(&member.name))
+    let mut current = tos_fd_open::open_regular_at(directory, Path::new(&member.name))
         .map_err(|_| SourceCommandError::Conflict("assessment journal member replaced"))?;
     if private {
-        protected_private(&current, fence.owner.uid, false)?;
+        protected_private(&current, owner.uid, false)?;
     } else {
-        protected(&current, fence.owner.uid, false)?;
+        protected(&current, owner.uid, false)?;
     }
     if inode(
         &current
@@ -884,91 +1199,9 @@ impl AssessmentJournalFence<'_> {
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> SourceCommandResult<Option<String>> {
-        self.read_head(subject, deadline, cancelled)
-            .map(|(head, _)| head)
+        read_head(self, subject, deadline, cancelled).map(|(head, _)| head)
     }
 
-    fn read_head(
-        &self,
-        subject: &str,
-        deadline: Instant,
-        cancelled: &AtomicBool,
-    ) -> SourceCommandResult<(Option<String>, Option<HeldJournalMember>)> {
-        self.verify_current(deadline, cancelled)?;
-        let held = self.held.get(subject).ok_or(SourceCommandError::Denied(
-            "assessment subject outside held scope",
-        ))?;
-        let current = tos_fd_open::open_directory_at(&self.owner.directory, Path::new(&held.name))
-            .map_err(|_| SourceCommandError::Conflict("assessment locked home changed"))?;
-        if self.owner.private_root.is_some() {
-            protected_private(&current, self.owner.uid, true)?;
-        } else {
-            protected(&current, self.owner.uid, true)?;
-        }
-        if inode(
-            &current
-                .metadata()
-                .map_err(|_| SourceCommandError::Invalid("assessment home identity"))?,
-        ) != held.identity
-        {
-            return Err(SourceCommandError::Conflict(
-                "assessment locked home replaced",
-            ));
-        }
-        let head_file = match tos_fd_open::open_regular_at(&held.directory, Path::new("head")) {
-            Ok(file) => Some(file),
-            Err(error)
-                if error
-                    .source
-                    .as_ref()
-                    .is_some_and(|source| source.kind() == std::io::ErrorKind::NotFound) =>
-            {
-                None
-            }
-            Err(_) => {
-                return Err(SourceCommandError::Invalid(
-                    "assessment head pointer unsafe",
-                ));
-            }
-        };
-        let (head, member) = if let Some(mut file) = head_file {
-            if self.owner.private_root.is_some() {
-                protected_private(&file, self.owner.uid, false)?;
-            } else {
-                protected(&file, self.owner.uid, false)?;
-            }
-            let identity = inode(
-                &file
-                    .metadata()
-                    .map_err(|_| SourceCommandError::Invalid("assessment head identity"))?,
-            );
-            let raw = raw(&mut file, 65, deadline, cancelled)?;
-            if !raw.is_ascii() {
-                return Err(SourceCommandError::Invalid("assessment head ASCII"));
-            }
-            let text =
-                tos_foundation::python_strip_unicode16_v1(std::str::from_utf8(&raw).unwrap(), 65)
-                    .map_err(|_| SourceCommandError::Invalid("assessment head whitespace"))?;
-            if !digest(text) {
-                return Err(SourceCommandError::Invalid("assessment head digest"));
-            }
-            (
-                Some(text.to_owned()),
-                Some(HeldJournalMember {
-                    home_name: held.name.clone(),
-                    name: "head".to_owned(),
-                    file,
-                    identity,
-                    digest: Digest256::of_bytes(&raw),
-                    size: raw.len(),
-                }),
-            )
-        } else {
-            (None, None)
-        };
-        self.verify_current(deadline, cancelled)?;
-        Ok((head, member))
-    }
     pub(crate) fn read(
         &self,
         subject: &str,
@@ -977,182 +1210,7 @@ impl AssessmentJournalFence<'_> {
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> SourceCommandResult<AssessmentHistory> {
-        let (head, head_member) = self.read_head(subject, deadline, cancelled)?;
-        let held = self.held.get(subject).ok_or(SourceCommandError::Denied(
-            "assessment subject outside held scope",
-        ))?;
-        let mut members = head_member.into_iter().collect::<Vec<_>>();
-        let contract = ctx
-            .file(&tos_foundation::RelativePath::parse(BATCH_SCHEMA).unwrap())?
-            .ok_or(SourceCommandError::Unsupported(
-                "selected assessment batch schema absent",
-            ))?;
-        if worker.source_revision() != ctx.base_revision
-            || worker.contract_digest(BATCH_SCHEMA) != Some(Digest256::of_bytes(contract))
-        {
-            return Err(SourceCommandError::Conflict(
-                "assessment journal schema/source cut differs",
-            ));
-        }
-        let mut cursor = head.clone();
-        let mut seen = BTreeSet::new();
-        let mut chain = Vec::new();
-        let mut count = 0usize;
-        let mut byte_count = 0usize;
-        while let Some(revision) = cursor {
-            active(deadline, cancelled)?;
-            if !digest(&revision) || !seen.insert(revision.clone()) || chain.len() >= MAX_EVENTS {
-                return Err(SourceCommandError::Invalid(
-                    "assessment cyclic/oversized history",
-                ));
-            }
-            let name = format!("{revision}.json");
-            let mut file = tos_fd_open::open_regular_at(&held.directory, Path::new(&name))
-                .map_err(|_| {
-                    SourceCommandError::Invalid("assessment immutable batch absent/unsafe")
-                })?;
-            if self.owner.private_root.is_some() {
-                protected_private(&file, self.owner.uid, false)?;
-            } else {
-                protected(&file, self.owner.uid, false)?;
-            }
-            let identity = inode(
-                &file
-                    .metadata()
-                    .map_err(|_| SourceCommandError::Invalid("assessment batch identity"))?,
-            );
-            let bytes = raw(&mut file, MAX_BATCH_BYTES, deadline, cancelled)?;
-            byte_count = byte_count
-                .checked_add(bytes.len())
-                .filter(|n| *n <= MAX_HISTORY_BYTES)
-                .ok_or(SourceCommandError::Invalid(
-                    "assessment complete history byte budget",
-                ))?;
-            let batch = cmd::parse(&bytes)?;
-            if !worker
-                .check(
-                    &format!("assessment-journal/{revision}.json"),
-                    &cmd::canonical(&batch)?,
-                    BATCH_SCHEMA,
-                    deadline,
-                    cancelled,
-                )
-                .map_err(|_| SourceCommandError::Invalid("assessment batch schema execution"))?
-            {
-                return Err(SourceCommandError::Invalid("assessment batch schema"));
-            }
-            let request = cmd::field(&batch, "request")?;
-            if cmd::record_digest(&batch)?.to_hex() != revision
-                || cmd::text(&batch, "schema_version")? != "tos_assessment_batch_v1"
-                || cmd::text(&batch, "subject_id")? != subject
-                || cmd::text(cmd::field(request, "subject")?, "id")? != subject
-                || cmd::record_digest(request)?.to_hex() != cmd::text(&batch, "request_digest")?
-                || !cmd::same(
-                    cmd::field(request, "expected_revision")?,
-                    cmd::field(&batch, "previous_revision")?,
-                )?
-            {
-                return Err(SourceCommandError::Invalid(
-                    "assessment batch/request identity binding",
-                ));
-            }
-            let events = cmd::array(&batch, "events")?;
-            count = count
-                .checked_add(events.len())
-                .filter(|n| *n <= MAX_EVENTS)
-                .ok_or(SourceCommandError::Invalid(
-                    "assessment complete history event budget",
-                ))?;
-            if events.is_empty() {
-                return Err(SourceCommandError::Invalid("assessment empty batch"));
-            }
-            members.push(HeldJournalMember {
-                home_name: held.name.clone(),
-                name,
-                file,
-                identity,
-                digest: Digest256::of_bytes(&bytes),
-                size: bytes.len(),
-            });
-            cursor = match cmd::field(&batch, "previous_revision")? {
-                JsonValue::Null => None,
-                value => Some(
-                    value
-                        .as_str()
-                        .ok_or(SourceCommandError::Invalid("assessment predecessor digest"))?
-                        .to_owned(),
-                ),
-            };
-            chain.push(batch);
-        }
-        chain.reverse();
-        let mut known = BTreeMap::<String, Vec<u8>>::new();
-        let mut submissions = Vec::new();
-        for (index, batch) in chain.iter().enumerate() {
-            active(deadline, cancelled)?;
-            if cmd::integer(batch, "sequence")? != (index + 1) as u64
-                || index > 0
-                    && tos_validation::retirement_rules::observed_instant_order(
-                        cmd::text(&chain[index - 1], "recorded_at")?,
-                        cmd::text(batch, "recorded_at")?,
-                    )
-                    .map_err(|_| SourceCommandError::Invalid("assessment recorded chronology"))?
-                        == std::cmp::Ordering::Greater
-            {
-                return Err(SourceCommandError::Invalid(
-                    "assessment history sequence/chronology",
-                ));
-            }
-            let request = cmd::field(batch, "request")?;
-            let mut expected = Vec::<JsonValue>::new();
-            let mut expected_bytes = BTreeSet::new();
-            for event in cmd::array(request, "events")? {
-                let id = cmd::text(cmd::field(event, "assessment")?, "assessment_id")?;
-                let bytes = cmd::canonical(event)?;
-                if let Some(original) = known.get(id) {
-                    if original != &bytes {
-                        return Err(SourceCommandError::Invalid("assessment identity rewritten"));
-                    }
-                } else if expected_bytes.insert(bytes) {
-                    expected.push(event.clone());
-                }
-            }
-            if !cmd::same(&JsonValue::Array(expected), cmd::field(batch, "events")?)? {
-                return Err(SourceCommandError::Invalid(
-                    "assessment batch does not contain exact new request events",
-                ));
-            }
-            let scope = cmd::object(vec![
-                ("assertion_layer", cmd::field(request, "layer")?.clone()),
-                ("risk", cmd::field(request, "risk")?.clone()),
-                ("languages", cmd::field(request, "languages")?.clone()),
-                ("maker_id", cmd::field(request, "maker_id")?.clone()),
-                ("requested_use", cmd::field(request, "use")?.clone()),
-            ]);
-            for event in cmd::array(batch, "events")? {
-                let id = cmd::text(cmd::field(event, "assessment")?, "assessment_id")?.to_owned();
-                if known.insert(id, cmd::canonical(event)?).is_some() {
-                    return Err(SourceCommandError::Invalid(
-                        "assessment duplicate committed event",
-                    ));
-                }
-                submissions.push(tos_validation::assessment::AssessmentSubmissionInput {
-                    assessment: cmd::canonical(cmd::field(event, "assessment")?)?,
-                    principal_id: cmd::text(event, "principal_id")?.to_owned(),
-                    execution_profile: cmd::canonical(cmd::field(event, "execution_profile")?)?,
-                    committed_scope: Some(cmd::canonical(&scope)?),
-                });
-            }
-        }
-        self.verify_current(deadline, cancelled)?;
-        let history = AssessmentHistory {
-            head,
-            batches: chain,
-            submissions,
-            members,
-        };
-        history.verify_current(self, deadline, cancelled)?;
-        Ok(history)
+        read_assessment_history(self, subject, ctx, worker, deadline, cancelled)
     }
 
     /// Publish one fully evaluated v1 assessment batch through the common
@@ -1342,4 +1400,280 @@ fn digest(value: &str) -> bool {
         && value
             .bytes()
             .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
+}
+
+fn read_head<V: AssessmentJournalReadView>(
+    view: &V,
+    subject: &str,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<(Option<String>, Option<HeldJournalMember>)> {
+    view.verify_current(deadline, cancelled)?;
+    let home = view.home(subject)?;
+    let owner = view.owner();
+    let Some(directory) = home.directory else {
+        view.verify_current(deadline, cancelled)?;
+        return Ok((None, None));
+    };
+    let expected_identity = home.identity.ok_or(SourceCommandError::Invalid(
+        "assessment selected home identity absent",
+    ))?;
+    let current = tos_fd_open::open_directory_at(&owner.directory, Path::new(home.name))
+        .map_err(|_| SourceCommandError::Conflict("assessment selected home changed"))?;
+    if owner.private_root.is_some() {
+        protected_private(&current, owner.uid, true)?;
+    } else {
+        protected(&current, owner.uid, true)?;
+    }
+    if inode(
+        &current
+            .metadata()
+            .map_err(|_| SourceCommandError::Invalid("assessment home identity"))?,
+    ) != expected_identity
+    {
+        return Err(SourceCommandError::Conflict(
+            "assessment selected home replaced",
+        ));
+    }
+    let head_file = match tos_fd_open::open_regular_at(directory, Path::new("head")) {
+        Ok(file) => Some(file),
+        Err(error)
+            if error
+                .source
+                .as_ref()
+                .is_some_and(|source| source.kind() == std::io::ErrorKind::NotFound) =>
+        {
+            None
+        }
+        Err(_) => {
+            return Err(SourceCommandError::Invalid(
+                "assessment head pointer unsafe",
+            ));
+        }
+    };
+    let (head, member) = if let Some(mut file) = head_file {
+        if owner.private_root.is_some() {
+            protected_private(&file, owner.uid, false)?;
+        } else {
+            protected(&file, owner.uid, false)?;
+        }
+        let identity = inode(
+            &file
+                .metadata()
+                .map_err(|_| SourceCommandError::Invalid("assessment head identity"))?,
+        );
+        let raw = raw(&mut file, 65, deadline, cancelled)?;
+        if !raw.is_ascii() {
+            return Err(SourceCommandError::Invalid("assessment head ASCII"));
+        }
+        let text =
+            tos_foundation::python_strip_unicode16_v1(std::str::from_utf8(&raw).unwrap(), 65)
+                .map_err(|_| SourceCommandError::Invalid("assessment head whitespace"))?;
+        if !digest(text) {
+            return Err(SourceCommandError::Invalid("assessment head digest"));
+        }
+        (
+            Some(text.to_owned()),
+            Some(HeldJournalMember {
+                home_name: home.name.to_owned(),
+                name: "head".to_owned(),
+                file,
+                identity,
+                digest: Digest256::of_bytes(&raw),
+                size: raw.len(),
+            }),
+        )
+    } else {
+        (None, None)
+    };
+    view.verify_current(deadline, cancelled)?;
+    Ok((head, member))
+}
+
+fn read_assessment_history<V: AssessmentJournalReadView>(
+    view: &V,
+    subject: &str,
+    ctx: &CommandContext,
+    worker: &mut CutWorkerSchemaExecutor,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<AssessmentHistory> {
+    let (head, head_member) = read_head(view, subject, deadline, cancelled)?;
+    let home = view.home(subject)?;
+    let owner = view.owner();
+    let mut members = head_member.into_iter().collect::<Vec<_>>();
+    let contract = ctx
+        .file(&tos_foundation::RelativePath::parse(BATCH_SCHEMA).unwrap())?
+        .ok_or(SourceCommandError::Unsupported(
+            "selected assessment batch schema absent",
+        ))?;
+    if worker.source_revision() != ctx.base_revision
+        || worker.contract_digest(BATCH_SCHEMA) != Some(Digest256::of_bytes(contract))
+    {
+        return Err(SourceCommandError::Conflict(
+            "assessment journal schema/source cut differs",
+        ));
+    }
+    let mut cursor = head.clone();
+    let mut seen = BTreeSet::new();
+    let mut chain = Vec::new();
+    let mut count = 0usize;
+    let mut byte_count = 0usize;
+    while let Some(revision) = cursor {
+        active(deadline, cancelled)?;
+        if !digest(&revision) || !seen.insert(revision.clone()) || chain.len() >= MAX_EVENTS {
+            return Err(SourceCommandError::Invalid(
+                "assessment cyclic/oversized history",
+            ));
+        }
+        let directory = home.directory.ok_or(SourceCommandError::Invalid(
+            "assessment history home absent",
+        ))?;
+        let name = format!("{revision}.json");
+        let mut file = tos_fd_open::open_regular_at(directory, Path::new(&name)).map_err(|_| {
+            SourceCommandError::Invalid("assessment immutable batch absent/unsafe")
+        })?;
+        if owner.private_root.is_some() {
+            protected_private(&file, owner.uid, false)?;
+        } else {
+            protected(&file, owner.uid, false)?;
+        }
+        let identity = inode(
+            &file
+                .metadata()
+                .map_err(|_| SourceCommandError::Invalid("assessment batch identity"))?,
+        );
+        let bytes = raw(&mut file, MAX_BATCH_BYTES, deadline, cancelled)?;
+        byte_count = byte_count
+            .checked_add(bytes.len())
+            .filter(|n| *n <= MAX_HISTORY_BYTES)
+            .ok_or(SourceCommandError::Invalid(
+                "assessment complete history byte budget",
+            ))?;
+        let batch = cmd::parse(&bytes)?;
+        if !worker
+            .check(
+                &format!("assessment-journal/{revision}.json"),
+                &cmd::canonical(&batch)?,
+                BATCH_SCHEMA,
+                deadline,
+                cancelled,
+            )
+            .map_err(|_| SourceCommandError::Invalid("assessment batch schema execution"))?
+        {
+            return Err(SourceCommandError::Invalid("assessment batch schema"));
+        }
+        let request = cmd::field(&batch, "request")?;
+        if cmd::record_digest(&batch)?.to_hex() != revision
+            || cmd::text(&batch, "schema_version")? != "tos_assessment_batch_v1"
+            || cmd::text(&batch, "subject_id")? != subject
+            || cmd::text(cmd::field(request, "subject")?, "id")? != subject
+            || cmd::record_digest(request)?.to_hex() != cmd::text(&batch, "request_digest")?
+            || !cmd::same(
+                cmd::field(request, "expected_revision")?,
+                cmd::field(&batch, "previous_revision")?,
+            )?
+        {
+            return Err(SourceCommandError::Invalid(
+                "assessment batch/request identity binding",
+            ));
+        }
+        let events = cmd::array(&batch, "events")?;
+        count = count
+            .checked_add(events.len())
+            .filter(|n| *n <= MAX_EVENTS)
+            .ok_or(SourceCommandError::Invalid(
+                "assessment complete history event budget",
+            ))?;
+        if events.is_empty() {
+            return Err(SourceCommandError::Invalid("assessment empty batch"));
+        }
+        members.push(HeldJournalMember {
+            home_name: home.name.to_owned(),
+            name,
+            file,
+            identity,
+            digest: Digest256::of_bytes(&bytes),
+            size: bytes.len(),
+        });
+        cursor = match cmd::field(&batch, "previous_revision")? {
+            JsonValue::Null => None,
+            value => Some(
+                value
+                    .as_str()
+                    .ok_or(SourceCommandError::Invalid("assessment predecessor digest"))?
+                    .to_owned(),
+            ),
+        };
+        chain.push(batch);
+    }
+    chain.reverse();
+    let mut known = BTreeMap::<String, Vec<u8>>::new();
+    let mut submissions = Vec::new();
+    for (index, batch) in chain.iter().enumerate() {
+        active(deadline, cancelled)?;
+        if cmd::integer(batch, "sequence")? != (index + 1) as u64
+            || index > 0
+                && tos_validation::retirement_rules::observed_instant_order(
+                    cmd::text(&chain[index - 1], "recorded_at")?,
+                    cmd::text(batch, "recorded_at")?,
+                )
+                .map_err(|_| SourceCommandError::Invalid("assessment recorded chronology"))?
+                    == std::cmp::Ordering::Greater
+        {
+            return Err(SourceCommandError::Invalid(
+                "assessment history sequence/chronology",
+            ));
+        }
+        let request = cmd::field(batch, "request")?;
+        let mut expected = Vec::<JsonValue>::new();
+        let mut expected_bytes = BTreeSet::new();
+        for event in cmd::array(request, "events")? {
+            let id = cmd::text(cmd::field(event, "assessment")?, "assessment_id")?;
+            let bytes = cmd::canonical(event)?;
+            if let Some(original) = known.get(id) {
+                if original != &bytes {
+                    return Err(SourceCommandError::Invalid("assessment identity rewritten"));
+                }
+            } else if expected_bytes.insert(bytes) {
+                expected.push(event.clone());
+            }
+        }
+        if !cmd::same(&JsonValue::Array(expected), cmd::field(batch, "events")?)? {
+            return Err(SourceCommandError::Invalid(
+                "assessment batch does not contain exact new request events",
+            ));
+        }
+        let scope = cmd::object(vec![
+            ("assertion_layer", cmd::field(request, "layer")?.clone()),
+            ("risk", cmd::field(request, "risk")?.clone()),
+            ("languages", cmd::field(request, "languages")?.clone()),
+            ("maker_id", cmd::field(request, "maker_id")?.clone()),
+            ("requested_use", cmd::field(request, "use")?.clone()),
+        ]);
+        for event in cmd::array(batch, "events")? {
+            let id = cmd::text(cmd::field(event, "assessment")?, "assessment_id")?.to_owned();
+            if known.insert(id, cmd::canonical(event)?).is_some() {
+                return Err(SourceCommandError::Invalid(
+                    "assessment duplicate committed event",
+                ));
+            }
+            submissions.push(tos_validation::assessment::AssessmentSubmissionInput {
+                assessment: cmd::canonical(cmd::field(event, "assessment")?)?,
+                principal_id: cmd::text(event, "principal_id")?.to_owned(),
+                execution_profile: cmd::canonical(cmd::field(event, "execution_profile")?)?,
+                committed_scope: Some(cmd::canonical(&scope)?),
+            });
+        }
+    }
+    view.verify_current(deadline, cancelled)?;
+    let history = AssessmentHistory {
+        subject_id: subject.to_owned(),
+        head,
+        batches: chain,
+        submissions,
+        members,
+    };
+    history.verify_current(view, deadline, cancelled)?;
+    Ok(history)
 }

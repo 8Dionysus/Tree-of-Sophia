@@ -940,6 +940,8 @@ fn native_private_claim_cli_preserves_create_forms_revision_and_cold_replay() {
             "expected_configuration":form_preview["owner_configuration"],
             "expected_source":form_preview["source"],
             "expected_revision":form_preview["revision"],
+            "expected_dependencies":form_preview["expected_dependencies"],
+            "expected_inputs":form_preview["source_bindings"],
             "changes":[form_preview["prepared_change"]]
         }),
     );

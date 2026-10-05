@@ -3969,6 +3969,7 @@ pub(crate) fn prepare(
                     let mut response =
                         profile_result(&grant, Some(package), Some(&state), None, false)?;
                     cmd::set(&mut response, "prepared_change", change)?;
+                    cmd::set(&mut response, "prepared_materialization", preview)?;
                     add_expected_dependencies(&mut response, &snapshot.dependencies)?;
                     Ok(readonly(response, reads, false))
                 }

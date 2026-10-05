@@ -56,3 +56,6 @@ installWorkerClassicRules(runtime);
 
 import {installSourceNavigationRules} from "../../../deploy/cloudflare-worker/src/source-navigation-rules.ts";
 installSourceNavigationRules(runtime);
+
+import {installConstructorReadingRules} from '../../constructor/reading-rules-rust.mjs';
+installConstructorReadingRules(runtime);

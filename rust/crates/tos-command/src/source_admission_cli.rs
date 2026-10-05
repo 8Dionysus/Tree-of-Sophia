@@ -18,6 +18,7 @@ use std::{
     fmt,
     io::{self, Write},
     os::unix::ffi::OsStrExt,
+    os::unix::fs::MetadataExt,
     path::{Component, PathBuf},
     sync::{
         Arc,

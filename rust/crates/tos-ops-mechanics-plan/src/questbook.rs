@@ -671,7 +671,7 @@ fn catalog_entry(id: &str, quest: &Value) -> io::Result<Value> {
     }))
 }
 
-fn dispatch_entry(id: &str, quest: &Value) -> io::Result<Value> {
+pub(crate) fn dispatch_entry(id: &str, quest: &Value) -> io::Result<Value> {
     let label = format!("quest {id}");
     let activation = quest
         .get("activation")
