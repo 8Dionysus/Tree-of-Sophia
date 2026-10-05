@@ -558,8 +558,6 @@ pub struct SourceFoundationClosureSchemaRequestStoreCost {
     pub provision_validated_event_scan_row_operations: u64,
     pub provision_validated_event_workspace_state_bytes: usize,
     pub provision_validated_event_count_verified: bool,
-    pub provision_unused_event_drained_rows: u64,
-    pub provision_unused_event_workspace_state_bytes: usize,
     pub responsibility_validated_event_rows: u64,
     pub responsibility_validated_event_serialized_read_bytes: u64,
     pub responsibility_validated_event_serialized_write_bytes: u64,
@@ -1269,7 +1267,7 @@ struct LoadedRows {
     temporary_state_bytes: usize,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct SourceFoundationClosureClaimRef {
     pub location: String,
     pub subject: String,
@@ -2462,15 +2460,15 @@ pub fn source_foundation_requires_bibliographic(
         })
 }
 
-struct ClosureRules<'a, S: LayerFamilySource + ?Sized> {
+struct ClosureRules<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> {
     source: &'a mut S,
     limits: ItemLimits,
     paths: &'a dyn SourceFoundationDefaultPaths,
     records: &'a dyn SourceFoundationDefaultRecordsLookup,
     source_events: &'a dyn SourceFoundationDefaultEventLookup,
     claims: &'a dyn SourceFoundationDefaultClaims,
-    link_store: Option<&'a mut dyn SourceFoundationClosureLinkStore>,
-    schema_request_store: Option<&'a mut dyn SourceFoundationClosureSchemaRequestStore>,
+    link_store: Option<&'link mut dyn SourceFoundationClosureLinkStore>,
+    schema_request_store: Option<&'schema mut dyn SourceFoundationClosureSchemaRequestStore>,
     link_count: u64,
     links: BTreeMap<String, (String, Value)>,
     issues: Vec<(String, String)>,
@@ -2503,15 +2501,15 @@ struct ClosureRules<'a, S: LayerFamilySource + ?Sized> {
     derivation: BTreeMap<String, SourceFoundationClosureClaimRef>,
 }
 
-impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
+impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 'schema, S> {
     fn new(
         source: &'a mut S,
         source_events: &'a dyn SourceFoundationDefaultEventLookup,
         records: &'a dyn SourceFoundationDefaultRecordsLookup,
         paths: &'a dyn SourceFoundationDefaultPaths,
         claims: &'a dyn SourceFoundationDefaultClaims,
-        link_store: Option<&'a mut dyn SourceFoundationClosureLinkStore>,
-        schema_request_store: Option<&'a mut dyn SourceFoundationClosureSchemaRequestStore>,
+        link_store: Option<&'link mut dyn SourceFoundationClosureLinkStore>,
+        schema_request_store: Option<&'schema mut dyn SourceFoundationClosureSchemaRequestStore>,
         limits: ItemLimits,
         cache_digests: bool,
         cache_recorded_checks: bool,
@@ -3101,6 +3099,7 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
         location: impl Into<String>,
         message: impl Into<String>,
     ) -> Result<(), ItemRefusal> {
+        let location = location.into();
         push_bounded_issue(
             &mut self.issues,
             &mut self.cost,
@@ -3108,7 +3107,7 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
             self.temporary_state_bytes,
             self.limits,
             self.source.cancellation(),
-            location.into(),
+            &location,
             message.into(),
         )
     }
@@ -4521,7 +4520,6 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
             // active member callback.
             let path_source = self.paths;
             let deadline = self.limits.deadline;
-            let cancelled = self.source.cancellation();
             let mut event_path_rows = 0u64;
             for path in [
                 TOPOLOGY_PROVENANCE,
@@ -4531,7 +4529,7 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
                 self.remember_candidate_event_path(path, &mut event_path_rows)?;
             }
             path_source.for_each_path(&mut |path| {
-                check(deadline, cancelled)?;
+                check(deadline, self.source.cancellation())?;
                 if path.ends_with(PROVISION_EVENT_BASENAME) {
                     self.remember_candidate_event_path(path, &mut event_path_rows)?;
                 }
@@ -4701,7 +4699,7 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
                 }
                 !inserted
             } else {
-                !self.event_ids.insert(id.clone())
+                !self.event_ids.insert(id.to_owned())
             };
             if duplicate {
                 self.issue(
@@ -5002,7 +5000,13 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
         } else {
             for reference in &self.boundary_responsibility_refs {
                 if !self.responsibility.contains_key(reference) {
-                    self.issue(
+                    push_bounded_issue(
+                        &mut self.issues,
+                        &mut self.cost,
+                        &mut self.retained_state_bytes,
+                        self.temporary_state_bytes,
+                        self.limits,
+                        self.source.cancellation(),
                         SOURCE_HOME,
                         format!(
                             "work-boundary maps reference missing responsibility claims: [{reference}]"
@@ -8130,9 +8134,10 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
                 self.expect_ref(&location, Some(edition_ref), "edition")?;
                 let temporary_baseline = self.temporary_state_bytes;
                 let same_work: Result<Option<bool>, ItemRefusal> = (|| {
-                    let Some((edition, edition_workspace)) =
-                        self.current_record_with_state_budget(edition_ref)?
-                    else {
+                    let (edition, edition_workspace) =
+                        self.current_record_with_state_budget(edition_ref)?;
+                    let Some(edition) = edition else {
+                        self.release_temporary_state(edition_workspace)?;
                         return Ok(None);
                     };
                     let expression_values = edition
