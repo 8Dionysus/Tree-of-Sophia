@@ -1118,8 +1118,8 @@ fn native_private_claim_cli_preserves_create_forms_revision_and_cold_replay() {
         &request("describe", serde_json::json!({})),
         &mut native_calls,
     );
-    assert_eq!(described["source"]["id"], revised["source"]["id"]);
-    assert_eq!(described["source"]["version"], 2);
+    assert_eq!(described["sources"][0]["id"], revised["source"]["id"]);
+    assert_eq!(described["sources"][0]["version"], 2);
     assert_eq!(described["grants_admission"], false);
     let private_final = private_snapshot(&private, deadline);
 
