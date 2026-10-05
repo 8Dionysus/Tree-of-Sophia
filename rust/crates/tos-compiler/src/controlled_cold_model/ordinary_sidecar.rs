@@ -628,7 +628,9 @@ impl ControlledKnowledgeModel<'_, '_, '_> {
                             _ => 8,
                         })?;
                     }
-                    write.execute(rusqlite::params_from_iter(values))?;
+                    write.execute(rusqlite::params_from_iter(
+                        values.map(rusqlite::types::ToSqlOutput::Borrowed),
+                    ))?;
                     position = position
                         .checked_add(1)
                         .ok_or(Error::Budget("sidecar document count"))?;

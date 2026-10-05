@@ -397,7 +397,7 @@ impl ControlledKnowledgeModel<'_, '_, '_> {
             .ok_or(Error::Budget("controlled catalog workspace"))?;
         let _hold = self.context.owned_state().hold(forecast)?;
         self.context.charge_work(64)?;
-        let descriptor = self.selection.vocabulary.descriptor_sha256.to_hex();
+        let descriptor = self.selection.descriptor_sha256.as_str();
         let (row, vm_steps) = crate::knowledge_payload_read::with_query_vm_window(
             self.context, &self.connection, max_vm_steps, || {
                 self.connection.query_row(
@@ -414,7 +414,7 @@ impl ControlledKnowledgeModel<'_, '_, '_> {
         let computed = Digest256::of_bytes(&payload);
         if length <= 0 || payload.len() != length as usize
             || computed.as_bytes() != digest.as_slice()
-            || computed != self.selection.catalog_packet_sha256 {
+            || computed.to_hex() != self.selection.catalog_packet_sha256 {
             return Err(Error::Invalid("controlled catalog digest differs"));
         }
         self.check_pin()?;
