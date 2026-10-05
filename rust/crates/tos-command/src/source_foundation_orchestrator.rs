@@ -661,6 +661,18 @@ fn bounded_usize(value: u64) -> Result<usize, FoundationOrchestratorError> {
     })
 }
 
+fn candidate_callback_refusal(stage: &'static str, error: ItemRefusal) -> io::Error {
+    let error = match error {
+        ItemRefusal::Budget => ItemRefusal::BudgetCheck {
+            check: stage,
+            used: None,
+            limit: None,
+        },
+        other => other,
+    };
+    crate::source_admission_spooled_index::receiver_refusal(error)
+}
+
 fn owner(error: ItemRefusal) -> FoundationOrchestratorError {
     FoundationOrchestratorError::Owner(error)
 }
@@ -2281,7 +2293,7 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
                     deadline,
                     cancelled,
                 )
-                .map_err(crate::source_admission_spooled_index::receiver_refusal)?;
+                .map_err(|error| candidate_callback_refusal("candidate default record event fold", error))?;
             let biblio_query_rows = tos_validation::biblio_rules::biblio_query_row_operation_budget(
                 usize::try_from(biblio_limits.max_total_bytes)
                     .map_err(|_| io::Error::other("candidate Biblio query cap range"))?,
@@ -2630,7 +2642,7 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
                 },
             );
             let dependent_evidence = providers_result
-                .map_err(crate::source_admission_spooled_index::receiver_refusal)?;
+                .map_err(|error| candidate_callback_refusal("candidate default providers", error))?;
             let final_callback_io = view.original_io.snapshot();
             if final_callback_io.read_attempted_bytes
                 .checked_sub(io_before_records.read_attempted_bytes)
