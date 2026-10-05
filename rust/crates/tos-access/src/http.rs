@@ -418,6 +418,19 @@ fn handle_get_with_probe<'hold, E: crate::common::ScopedAccessExecutor<'hold> + 
         return ScopedHttpResponse::error_for_method(413, "request target too large", method);
     }
     let (path, query) = target.split_once('?').unwrap_or((target, ""));
+    if path == "/health" {
+        let mut health_ok = false;
+        let result = checked_execute(abort_probe, |probe| {
+            let report = executor.access_health_report(probe)?;
+            health_ok = report.ok;
+            Ok(report.packet)
+        });
+        let mut response = packet_response(result, method, profile);
+        if response.status == 200 && !health_ok {
+            response.status = 503;
+        }
+        return response;
+    }
     if let Some(operation) = crate::source_read::Operation::http(method, path) {
         return packet_response(
             checked_execute(abort_probe, |probe| {

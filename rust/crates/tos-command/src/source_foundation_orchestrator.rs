@@ -901,6 +901,15 @@ pub(crate) fn prepare_candidate_schema_worker(
     if held_state_bytes < bounded_usize(image_state)? {
         return Err(incomplete("candidate held worker image is unreserved"));
     }
+    // Both initial Records and later native-index preparation use this helper.
+    // Reserve only the selected descriptor/path geometry here; passing the
+    // whole state ceiling would add that ceiling again to the overlap below.
+    let selected_metadata_state =
+        tos_validation::source_foundation_schema::CandidateSourceFoundationSchemaSet::<
+            crate::source_admission_spooled_candidate::CandidateFence,
+        >::source_resource_metadata_state_upper_bound(schema_limits.max_schema_resources)
+        .ok_or_else(|| incomplete("candidate selected schema metadata state overflow"))?;
+    let metadata_state_limit = metadata_state_limit.min(selected_metadata_state);
     let preparation = tos_validation::source_cut::source_foundation_candidate_schema_preparation_state_upper_bound(
         schema_limits, metadata_state_limit,
     ).map_err(owner)?;
