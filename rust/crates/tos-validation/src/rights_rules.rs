@@ -2,7 +2,7 @@
 //! Schema validity and stored permission wording cannot establish a current
 //! grant, revocation fence, personal consent, publication right or legal review.
 use crate::item_rules::{ItemLimits, ItemRefusal};
-use crate::source_cut::CutWorkerSchemaExecutor;
+use crate::source_cut::CutSchemaExecutor;
 use crate::{KeyState, PredicateRead};
 use serde_json::Value;
 use std::collections::BTreeSet;
@@ -135,11 +135,11 @@ fn source_refs(
 /// Execute current rights records from real selected bytes and the selected
 /// worker. The full source namespace is read to EOF; rights shapes use the
 /// ordinary decoded-field JSON profile of the existing native Item loaders.
-pub fn inspect_rights_from_cut(
+pub fn inspect_rights_from_cut<S: CutSchemaExecutor>(
     cut: &CorpusCutReader,
     limits: ItemLimits,
     cancelled: &AtomicBool,
-    schemas: &mut CutWorkerSchemaExecutor,
+    schemas: &mut S,
 ) -> Result<SourceRightsReport, ItemRefusal> {
     check(limits.deadline, cancelled)?;
     if limits.max_member_bytes == 0
@@ -154,7 +154,7 @@ pub fn inspect_rights_from_cut(
         return Err(ItemRefusal::Budget);
     }
     let revision = cut.current().revision();
-    if schemas.source_revision() != revision {
+    if schemas.selected_source_revision() != Some(revision) {
         return Err(ItemRefusal::Source(
             "rights worker selected another source cut".into(),
         ));

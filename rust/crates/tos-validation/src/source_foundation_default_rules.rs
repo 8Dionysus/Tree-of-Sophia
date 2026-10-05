@@ -1744,7 +1744,7 @@ fn inspect_source_foundation_default_rules_from_input_stored_inner<
         used_state,
         direct_owner_issue_count,
     )?;
-    let closure = if let Some(schema_request_store) = closure_schema_request_store.as_deref_mut() {
+    let closure = if let Some(schema_request_store) = closure_schema_request_store.take() {
         crate::source_foundation_closure::inspect_source_foundation_closure_with_identity_and_candidate_stores(
             &mut aggregate_source,
             input,
@@ -1754,7 +1754,7 @@ fn inspect_source_foundation_default_rules_from_input_stored_inner<
             records_lookup,
             paths,
             claims,
-            closure_link_store.as_deref_mut(),
+            closure_link_store.take(),
             Some(schema_request_store),
             closure_limits,
         )?
@@ -1768,7 +1768,7 @@ fn inspect_source_foundation_default_rules_from_input_stored_inner<
             records_lookup,
             paths,
             claims,
-            closure_link_store.as_deref_mut(),
+            closure_link_store.take(),
             closure_limits,
         )?
     };
@@ -1820,6 +1820,16 @@ fn inspect_source_foundation_default_rules_from_input_stored_inner<
     if direct_owner_issue_count > operation.max_issues {
         return Err(ItemRefusal::Budget);
     }
+    // Copy only measured scalar costs before moving their owned payload.
+    let discovery_seen_ids_peak_workspace_state_bytes = discovery
+        .cost
+        .candidate_discovery_seen_ids_peak_workspace_state_bytes;
+    let discovery_run_summaries_peak_workspace_state_bytes = discovery
+        .cost
+        .candidate_discovery_run_summary_peak_workspace_state_bytes;
+    let discovery_run_summary_scan_row_operations = discovery
+        .cost
+        .candidate_discovery_run_summary_scan_row_operations;
     Ok(SourceFoundationDefaultRulesStoredReport {
         input_identity: *input.input_identity(),
         source_membership: *records.source_membership(),
@@ -1833,15 +1843,9 @@ fn inspect_source_foundation_default_rules_from_input_stored_inner<
             later_counted_source_bytes: aggregate_source.read_bytes,
             records_state_reservation_upper_bound_bytes,
             later_district_state_bytes,
-            discovery_seen_ids_peak_workspace_state_bytes: discovery
-                .cost
-                .candidate_discovery_seen_ids_peak_workspace_state_bytes,
-            discovery_run_summaries_peak_workspace_state_bytes: discovery
-                .cost
-                .candidate_discovery_run_summary_peak_workspace_state_bytes,
-            discovery_run_summary_scan_row_operations: discovery
-                .cost
-                .candidate_discovery_run_summary_scan_row_operations,
+            discovery_seen_ids_peak_workspace_state_bytes,
+            discovery_run_summaries_peak_workspace_state_bytes,
+            discovery_run_summary_scan_row_operations,
             merged_event_state_bytes: final_event_cost.retained_state_bytes,
             aggregate_state_reservation_bytes: used_state,
             merged_event_json_bytes: final_event_cost.merged_event_json_bytes,
@@ -2197,6 +2201,16 @@ fn inspect_source_foundation_default_rules_internal<S: LayerFamilySource + ?Size
     let merged_event_json_bytes = events.json_bytes;
     let merged_event_state_bytes = events.retained_state_bytes;
 
+    // Copy only measured scalar costs before moving their owned payload.
+    let discovery_seen_ids_peak_workspace_state_bytes = discovery
+        .cost
+        .candidate_discovery_seen_ids_peak_workspace_state_bytes;
+    let discovery_run_summaries_peak_workspace_state_bytes = discovery
+        .cost
+        .candidate_discovery_run_summary_peak_workspace_state_bytes;
+    let discovery_run_summary_scan_row_operations = discovery
+        .cost
+        .candidate_discovery_run_summary_scan_row_operations;
     Ok(SourceFoundationDefaultRulesReport {
         labs,
         records,
@@ -2211,15 +2225,9 @@ fn inspect_source_foundation_default_rules_internal<S: LayerFamilySource + ?Size
             later_counted_source_bytes: later_source_read_bytes,
             records_state_reservation_upper_bound_bytes,
             later_district_state_bytes,
-            discovery_seen_ids_peak_workspace_state_bytes: discovery
-                .cost
-                .candidate_discovery_seen_ids_peak_workspace_state_bytes,
-            discovery_run_summaries_peak_workspace_state_bytes: discovery
-                .cost
-                .candidate_discovery_run_summary_peak_workspace_state_bytes,
-            discovery_run_summary_scan_row_operations: discovery
-                .cost
-                .candidate_discovery_run_summary_scan_row_operations,
+            discovery_seen_ids_peak_workspace_state_bytes,
+            discovery_run_summaries_peak_workspace_state_bytes,
+            discovery_run_summary_scan_row_operations,
             merged_event_state_bytes,
             aggregate_state_reservation_bytes,
             merged_event_json_bytes,

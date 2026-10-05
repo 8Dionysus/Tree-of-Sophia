@@ -10,7 +10,7 @@ use crate::relation_rules::{
     RelationIssue, RelationShadow, inspect_current_topology_bounded,
     inspect_current_topology_from_stored,
 };
-use crate::source_cut::{CutSchemaExecutor, CutWorkerSchemaExecutor};
+use crate::source_cut::{CutSchemaExecutor, CutSchemaReceiptRange, CutWorkerSchemaExecutor};
 use crate::source_foundation_default_rules::{
     SourceFoundationDefaultClaims, SourceFoundationDefaultEventLookup,
     SourceFoundationDefaultRecordsLookup,
@@ -838,15 +838,15 @@ fn claim_stream(path: &str) -> bool {
 
 /// Requires record-family output from the same exact current cut. EOF is
 /// checked again for this family's Claim/event/Item-manifest traversal.
-pub fn inspect_bibliography_from_cut(
+pub fn inspect_bibliography_from_cut<S: CutSchemaExecutor + CutSchemaReceiptRange>(
     cut: &CorpusCutReader,
     records: &SourceCutRecordReport,
     limits: ItemLimits,
     cancelled: &AtomicBool,
-    schemas: &mut CutWorkerSchemaExecutor,
+    schemas: &mut S,
 ) -> Result<SourceCutBiblioReport, ItemRefusal> {
     check(limits.deadline, cancelled)?;
-    if schemas.source_revision() != cut.current().revision() {
+    if schemas.selected_source_revision() != Some(cut.current().revision()) {
         return Err(ItemRefusal::Source(
             "bibliography schema cut mismatch".into(),
         ));
@@ -1458,7 +1458,9 @@ pub fn inspect_bibliography_from_input_stored<I: Copy + Eq>(
 
     // Bind the Biblio-specific bound before any provider read or write;
     // Records/default-event scans retain their independent counters.
-    stored.bind_biblio_query_budget(biblio_query_row_operation_budget(limits.max_total_bytes)?)?;
+    stored.bind_biblio_query_budget(biblio_query_row_operation_budget(
+        usize::try_from(limits.max_total_bytes).map_err(|_| ItemRefusal::Budget)?,
+    )?)?;
 
     let source = CandidateBiblioSource {
         input: input.source_input(),
@@ -2991,21 +2993,31 @@ fn inspect_claim_inner(
             let ceiling = rules.limits.max_state_bytes;
             rules.limits.max_state_bytes =
                 ceiling.checked_sub(scratch).ok_or(ItemRefusal::Budget)?;
+            let supplied: BTreeSet<_> = string_iter(row, "evidence_refs").collect();
             let mut expected_evidence = BTreeSet::new();
+            let mut missing_expected = false;
+            // Keep only references into this Claim's supplied evidence. Provider
+            // records may be scoped owned values and cannot lend retained strings.
+            let mut expect = |path: &str| {
+                if let Some(path) = supplied.get(path) {
+                    expected_evidence.insert(*path);
+                } else {
+                    missing_expected = true;
+                }
+            };
             for field in ["subject_ref", "object"] {
                 if let Some(id) = s(row, field) {
                     if let Some(record) = records.current_record(id)? {
-                        expected_evidence.insert(record.path.as_str());
+                        expect(record.path.as_str());
                         if record.kind == "item" {
                             if let Some(manifest) = s(&record.value, "item_manifest_ref") {
-                                expected_evidence.insert(manifest);
+                                expect(manifest);
                             }
                         }
                     }
                 }
             }
-            let supplied: BTreeSet<_> = string_iter(row, "evidence_refs").collect();
-            let result = if supplied != expected_evidence {
+            let result = if missing_expected || supplied != expected_evidence {
                 rules.issue("legacy-topology-exact-endpoint-evidence", &location)
             } else {
                 Ok(())
@@ -4401,9 +4413,9 @@ fn batch_configuration(
     }
     Ok(true)
 }
-fn exact_batch_inputs(
+fn exact_batch_inputs<T: AsRef<str>>(
     event: &Value,
-    expected: BTreeSet<&str>,
+    expected: BTreeSet<T>,
     rules: &mut Rules<'_>,
     location: &str,
 ) -> Result<(), ItemRefusal> {
@@ -4413,7 +4425,9 @@ fn exact_batch_inputs(
     let ceiling = rules.limits.max_state_bytes;
     rules.limits.max_state_bytes = ceiling.checked_sub(scratch).ok_or(ItemRefusal::Budget)?;
     let actual: BTreeSet<_> = rows.iter().filter_map(|r| s(r, "ref")).collect();
-    let result = if actual != expected || rows.len() != actual.len() {
+    let result = if !actual.iter().copied().eq(expected.iter().map(AsRef::as_ref))
+        || rows.len() != actual.len()
+    {
         rules.issue("bibliography-batch-exact-input-set", location)
     } else {
         Ok(())
@@ -4440,7 +4454,7 @@ fn inspect_batches(
         let location = "ToS/source-witnesses/relations/provenance.jsonl";
         if let Some(event) = events.event(TOPOLOGY_EVENT)? {
             event_posture(
-                event,
+                &event,
                 "declared-bibliographic-topology-materialization",
                 rules,
                 location,
@@ -4527,20 +4541,20 @@ fn inspect_batches(
             }
             if let Some(event) = events.event(CHRONOLOGY_EVENT)? {
                 event_posture(
-                    event,
+                    &event,
                     "faceted-first-publication-chronology-materialization",
                     rules,
                     path,
                 )?;
                 if !singleton_output(
-                    event,
+                    &event,
                     path,
                     "unreviewed-evidence-bearing-work-chronology-claims",
                     &chronology[0].raw_sha256,
                 ) {
                     rules.issue("chronology-exact-batch-output", path)?;
                 }
-                exact_batch_inputs(event, inputs, rules, path)?;
+                exact_batch_inputs(&event, inputs, rules, path)?;
                 let expected = [
                     ("works_materialized", BatchConfigValue::Count(7)),
                     ("chronology_claims_materialized", BatchConfigValue::Count(7)),
@@ -4591,8 +4605,10 @@ fn inspect_batches(
             + edge_slots * std::mem::size_of::<(&str, &str)>()
             + std::mem::size_of::<BTreeSet<&str>>()
             + endpoint_slots * std::mem::size_of::<&str>()
-            + std::mem::size_of::<BTreeSet<&str>>()
-            + input_slots * std::mem::size_of::<&str>()
+            + std::mem::size_of::<BTreeSet<Cow<'_, str>>>()
+            + input_slots
+                .checked_mul(std::mem::size_of::<Cow<'_, str>>() + 96)
+                .ok_or(ItemRefusal::Budget)?
             + std::mem::size_of::<BTreeMap<&str, usize>>()
             + endpoint_slots * std::mem::size_of::<(&str, usize)>()
             + std::mem::size_of::<Vec<&str>>()
@@ -4607,8 +4623,8 @@ fn inspect_batches(
             let mut pairs = BTreeSet::new();
             let mut endpoints = BTreeSet::new();
             let mut inputs = BTreeSet::from([
-                LEGACY_BASE,
-                "ToS/contracts/expression-derivation.schema.json",
+                Cow::Borrowed(LEGACY_BASE),
+                Cow::Borrowed("ToS/contracts/expression-derivation.schema.json"),
             ]);
             for claim in &derivations {
                 check(rules.limits.deadline, rules.cancelled)?;
@@ -4650,11 +4666,29 @@ fn inspect_batches(
                 if !evidence.clone().any(|v| v.starts_with("tos.anchor.")) {
                     rules.issue("derivation-source-anchor-return", path)?;
                 }
-                inputs.extend(evidence.filter(|v| v.starts_with("ToS/")));
+                inputs.extend(evidence.filter(|v| v.starts_with("ToS/")).map(Cow::Borrowed));
             }
             for id in &endpoints {
                 if let Some(record) = records.current_record(id)? {
-                    inputs.insert(record.path.as_str());
+                    if inputs.contains(record.path.as_str()) {
+                        continue;
+                    }
+                    let path = match record {
+                        Cow::Borrowed(record) => Cow::Borrowed(record.path.as_str()),
+                        Cow::Owned(record) => {
+                            // Transfer the provider's existing allocation; only
+                            // its live path capacity remains after the row drops.
+                            let retained = record.path.capacity();
+                            reserve_check(rules.state, retained, rules.limits.max_state_bytes)?;
+                            rules.limits.max_state_bytes = rules
+                                .limits
+                                .max_state_bytes
+                                .checked_sub(retained)
+                                .ok_or(ItemRefusal::Budget)?;
+                            Cow::Owned(record.path)
+                        }
+                    };
+                    inputs.insert(path);
                 }
             }
             // Kahn traversal preserves cycle detection without a recursive stack.
@@ -4686,20 +4720,20 @@ fn inspect_batches(
             }
             if let Some(event) = events.event(DERIVATION_EVENT)? {
                 event_posture(
-                    event,
+                    &event,
                     "source-reported-expression-derivation-materialization",
                     rules,
                     path,
                 )?;
                 if !singleton_output(
-                    event,
+                    &event,
                     path,
                     "unreviewed-source-reported-expression-derivation-claims",
                     &derivations[0].raw_sha256,
                 ) {
                     rules.issue("derivation-exact-batch-output", path)?;
                 }
-                exact_batch_inputs(event, inputs, rules, path)?;
+                exact_batch_inputs(&event, inputs, rules, path)?;
                 let expected = [
                     (
                         "expression_identities_materialized",

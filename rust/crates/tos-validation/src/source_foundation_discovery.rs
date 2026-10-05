@@ -1718,6 +1718,11 @@ impl<S: LayerFamilySource + ?Sized, I: Copy + Eq> Inspector<'_, '_, S, I> {
         Ok(())
     }
 
+    fn event_info(&mut self, value: &Value, location: &str) -> Result<EventInfo, ItemRefusal> {
+        self.source_refs(value, location)?;
+        Ok(Self::event_info_from_value(value, location))
+    }
+
     fn event_info_from_value(value: &Value, location: &str) -> EventInfo {
         let mut outputs = BTreeMap::new();
         for row in array(value, "outputs") {
@@ -2396,126 +2401,75 @@ impl<S: LayerFamilySource + ?Sized, I: Copy + Eq> Inspector<'_, '_, S, I> {
 
     fn private_route(&mut self) -> Result<(), ItemRefusal> {
         let root = "ToS/source-witnesses/access-requests/private";
-        let route = "ToS/source-witnesses/access-requests/private/README.md";
-        if !self.has_current_member(route)? {
-            let detail = "private correspondence route card is missing";
-            let diagnostic_peak = route
-                .len()
-                .checked_add(detail.len())
-                .and_then(|bytes| bytes.checked_add("private-route-card-missing".len()))
-                .and_then(|bytes| bytes.checked_add(96))
-                .ok_or(ItemRefusal::Budget)?;
-            self.check_temporary_state(diagnostic_peak)?;
-            self.issue(route, "private-route-card-missing", detail)?;
+        let route = format!("{root}/README.md");
+        if !self.has_current_member(route.as_str())? {
+            self.issue(
+                &route,
+                "private-route-card-missing",
+                "private correspondence route card is missing",
+            )?;
         } else {
-            self.metadata_git(route, route)?;
-            if let Some(git) = self.git_path_facts(route) {
+            self.metadata_git(&route, &route)?;
+            if let Some(git) = self.git_path_facts(&route) {
                 if git.ignored == Some(true) {
-                    let detail = "private correspondence route card must remain tracked";
-                    let diagnostic_peak = route
-                        .len()
-                        .checked_add(detail.len())
-                        .and_then(|bytes| bytes.checked_add("private-route-card-ignored".len()))
-                        .and_then(|bytes| bytes.checked_add(96))
-                        .ok_or(ItemRefusal::Budget)?;
-                    self.check_temporary_state(diagnostic_peak)?;
-                    self.issue(route, "private-route-card-ignored", detail)?;
+                    self.issue(
+                        &route,
+                        "private-route-card-ignored",
+                        "private correspondence route card must remain tracked",
+                    )?;
                 }
             }
         }
-        let physical = self.physical;
-        let files = match physical
-            .and_then(|facts| facts.private_inventories.get(root).map(Vec::as_slice))
-            .or_else(|| physical.and_then(|facts| facts.private_files.as_deref()))
+        let inventory_cost = match self
+            .physical
+            .and_then(|facts| facts.private_inventories.get(root))
+            .or_else(|| self.physical.and_then(|facts| facts.private_files.as_ref()))
         {
-            Some(files) => files,
+            Some(files) => files
+                .iter()
+                .try_fold(0usize, |used, path| used.checked_add(path.len() + 32))
+                .ok_or(ItemRefusal::Budget)?,
             None => {
-                let reason = "physical private-correspondence file inventory is unavailable";
-                let diagnostic_peak = root
-                    .len()
-                    .checked_add(reason.len())
-                    .and_then(|bytes| bytes.checked_add(64))
-                    .ok_or(ItemRefusal::Budget)?;
-                self.check_temporary_state(diagnostic_peak)?;
-                self.unsupported(root, reason)?;
+                self.unsupported(
+                    root,
+                    "physical private-correspondence file inventory is unavailable",
+                )?;
                 return Ok(());
             }
         };
-        let scratch_peak =
-            files
-                .iter()
-                .try_fold(0usize, |peak, file| -> Result<usize, ItemRefusal> {
-                    self.checkpoint()?;
-                    if file.starts_with("ToS/") || file == "README.md" {
-                        return Ok(peak);
-                    }
-                    let path_bytes = root
-                        .len()
-                        .checked_add(1)
-                        .and_then(|bytes| bytes.checked_add(file.len()))
-                        .ok_or(ItemRefusal::Budget)?;
-                    let scratch_bytes = path_bytes.checked_add(32).ok_or(ItemRefusal::Budget)?;
-                    Ok(peak.max(scratch_bytes))
-                })?;
-        self.reserve_state(scratch_peak)?;
+        self.reserve_state(inventory_cost)?;
+        let files = self
+            .physical
+            .and_then(|facts| facts.private_inventories.get(root).cloned())
+            .or_else(|| self.physical.and_then(|facts| facts.private_files.clone()))
+            .ok_or(ItemRefusal::Budget)?;
         for file in files {
             self.checkpoint()?;
-            let already_rooted = file.starts_with("ToS/");
-            if if already_rooted {
-                file.as_str() == route
+            let path = if file.starts_with("ToS/") {
+                file
             } else {
-                file.as_str() == "README.md"
-            } {
+                format!("{root}/{file}")
+            };
+            if path == route {
                 continue;
             }
-            let owned_path = if already_rooted {
-                None
-            } else {
-                let path_bytes = root
-                    .len()
-                    .checked_add(1)
-                    .and_then(|bytes| bytes.checked_add(file.len()))
-                    .ok_or(ItemRefusal::Budget)?;
-                let mut path = String::with_capacity(path_bytes);
-                path.push_str(root);
-                path.push('/');
-                path.push_str(file);
-                Some(path)
-            };
-            let path = owned_path.as_deref().unwrap_or(file);
-            match self.git_path_facts(path) {
+            match self.git_path_facts(&path) {
                 Some(facts) if facts.ignored == Some(true) => {}
                 Some(facts) if facts.ignored == Some(false) => {
-                    let detail = "private correspondence file is not ignored";
-                    let diagnostic_peak = path
-                        .len()
-                        .checked_add(detail.len())
-                        .and_then(|bytes| bytes.checked_add("private-file-not-git-ignored".len()))
-                        .and_then(|bytes| bytes.checked_add(96))
-                        .ok_or(ItemRefusal::Budget)?;
-                    self.check_temporary_state(diagnostic_peak)?;
-                    self.issue(path, "private-file-not-git-ignored", detail)?;
+                    self.issue(
+                        &path,
+                        "private-file-not-git-ignored",
+                        "private correspondence file is not ignored",
+                    )?;
                 }
-                Some(_) => {
-                    let reason = "private correspondence Git ignore posture is unobserved";
-                    let diagnostic_peak = path
-                        .len()
-                        .checked_add(reason.len())
-                        .and_then(|bytes| bytes.checked_add(64))
-                        .ok_or(ItemRefusal::Budget)?;
-                    self.check_temporary_state(diagnostic_peak)?;
-                    self.unsupported(path, reason)?;
-                }
-                None => {
-                    let reason = "private correspondence file has no exact Git ignore observation";
-                    let diagnostic_peak = path
-                        .len()
-                        .checked_add(reason.len())
-                        .and_then(|bytes| bytes.checked_add(64))
-                        .ok_or(ItemRefusal::Budget)?;
-                    self.check_temporary_state(diagnostic_peak)?;
-                    self.unsupported(path, reason)?;
-                }
+                Some(_) => self.unsupported(
+                    &path,
+                    "private correspondence Git ignore posture is unobserved",
+                )?,
+                None => self.unsupported(
+                    &path,
+                    "private correspondence file has no exact Git ignore observation",
+                )?,
             }
         }
         Ok(())
@@ -4700,9 +4654,9 @@ impl<I: Copy + Eq> Clone for NativeHistorySet<'_, I> {
     }
 }
 
-impl<I: Copy + Eq> NativeHistorySet<'_, I> {
-    fn get(&self, path: &str) -> Option<NativeHistoryRef<'_, I>> {
-        match self {
+impl<'a, I: Copy + Eq> NativeHistorySet<'a, I> {
+    fn get(&self, path: &str) -> Option<NativeHistoryRef<'a, I>> {
+        match *self {
             Self::Empty => None,
             Self::Cut(rows) => rows.get(path).map(NativeHistoryRef::Cut),
             Self::Candidate(rows) => rows.get(path).map(NativeHistoryRef::Candidate),
@@ -4724,9 +4678,9 @@ impl<I: Copy + Eq> Clone for ArtifactReplaySet<'_, I> {
     }
 }
 
-impl<I: Copy + Eq> ArtifactReplaySet<'_, I> {
-    fn get(&self, path: &str) -> Option<ArtifactReplayRef<'_, I>> {
-        match self {
+impl<'a, I: Copy + Eq> ArtifactReplaySet<'a, I> {
+    fn get(&self, path: &str) -> Option<ArtifactReplayRef<'a, I>> {
+        match *self {
             Self::Empty => None,
             Self::Cut(rows) => rows
                 .get(path)
@@ -6267,7 +6221,7 @@ fn check_native_artifact_history<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
             match replay.transaction_at(index) {
                 Some(replay_transaction)
                     if replay_transaction.transaction_id == transaction_id
-                        && Some(replay_transaction.manifest_sha256.as_str())
+                        && Some(replay_transaction.manifest_sha256)
                             == observation.transaction_manifest_sha256(transaction_id)
                         && replay_transaction.receipt_sha256 == current_receipt_sha256 => {}
                 _ => {
@@ -7686,8 +7640,8 @@ fn inspect_candidate_with_artifact_replays_and_records_with_proofs_impl<
         require_local_payloads,
         None,
         None,
-        discovery_seen_ids,
         None,
+        discovery_seen_ids,
         None,
         None,
         None,
@@ -8121,12 +8075,12 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
     native_cut: Option<NativeCutBinding>,
     invalid_current_artifact_schema_proofs: Option<&CurrentArtifactInvalidSchemaProofs<'_>>,
     mut candidate_artifact_evidence_provider: Option<&mut dyn CandidateArtifactEvidenceProvider<I>>,
-    discovery_seen_ids: Option<&mut dyn DiscoverySeenIds>,
-    candidate_discovery_run_summaries: Option<&mut dyn DiscoveryRunSummaryStore>,
-    candidate_discovery_event_summaries: Option<&mut dyn DiscoveryEventSummaryStore>,
+    mut discovery_seen_ids: Option<&mut dyn DiscoverySeenIds>,
+    mut candidate_discovery_run_summaries: Option<&mut dyn DiscoveryRunSummaryStore>,
+    mut candidate_discovery_event_summaries: Option<&mut dyn DiscoveryEventSummaryStore>,
     candidate_discovery_event_json_limit: Option<usize>,
-    candidate_discovery_schema_requests: Option<&mut dyn DiscoverySchemaRequestStore>,
-    candidate_discovery_digest_cache: Option<&mut dyn DiscoveryDigestCache>,
+    mut candidate_discovery_schema_requests: Option<&mut dyn DiscoverySchemaRequestStore>,
+    mut candidate_discovery_digest_cache: Option<&mut dyn DiscoveryDigestCache>,
 ) -> Result<DiscoveryKernelOutput, ItemRefusal> {
     if candidate_discovery_event_summaries.is_some()
         && (candidate_input.is_none()
@@ -8161,11 +8115,21 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
         native_histories,
         artifact_replays,
         candidate_invalid_schema_proofs,
-        candidate_discovery_seen_ids: discovery_seen_ids,
-        candidate_discovery_run_summaries,
-        candidate_discovery_event_summaries,
-        candidate_discovery_schema_requests,
-        candidate_discovery_digest_cache,
+        candidate_discovery_seen_ids: discovery_seen_ids
+            .as_mut()
+            .map(|store| &mut **store as &mut dyn DiscoverySeenIds),
+        candidate_discovery_run_summaries: candidate_discovery_run_summaries
+            .as_mut()
+            .map(|store| &mut **store as &mut dyn DiscoveryRunSummaryStore),
+        candidate_discovery_event_summaries: candidate_discovery_event_summaries
+            .as_mut()
+            .map(|store| &mut **store as &mut dyn DiscoveryEventSummaryStore),
+        candidate_discovery_schema_requests: candidate_discovery_schema_requests
+            .as_mut()
+            .map(|store| &mut **store as &mut dyn DiscoverySchemaRequestStore),
+        candidate_discovery_digest_cache: candidate_discovery_digest_cache
+            .as_mut()
+            .map(|store| &mut **store as &mut dyn DiscoveryDigestCache),
         candidate_discovery_event_json_limit,
         limits,
         physical,
@@ -8227,15 +8191,17 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
         Ok(())
     })?;
 
+    let mut prior_event_cost = 0usize;
     let mut event_ids: BTreeSet<String> = BTreeSet::new();
     if inspector.candidate_discovery_seen_ids.is_none() {
         prior_events.for_each_event(&mut |id, _| {
-            // Charge the same finite compatibility projection before its
-            // String and set node are allocated, including repeated rows.
-            inspector.reserve_state(id.len().checked_add(64).ok_or(ItemRefusal::Budget)?)?;
+            prior_event_cost = prior_event_cost
+                .checked_add(id.len().checked_add(64).ok_or(ItemRefusal::Budget)?)
+                .ok_or(ItemRefusal::Budget)?;
             event_ids.insert(id.to_owned());
             Ok(())
         })?;
+        inspector.reserve_state(prior_event_cost)?;
     }
     let mut source_event_insertions: Vec<(String, Value)> = Vec::new();
     let mut boundary_events: BTreeMap<String, EventInfo> = BTreeMap::new();
@@ -8251,7 +8217,7 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
             path,
             PROVENANCE_SCHEMA,
             &mut |inspector, location, value| {
-                inspector.source_refs(value, location)?;
+                let info = inspector.event_info(value, location)?;
                 let Some(id) = string(value, "event_id") else {
                     inspector.issue(
                         location,
@@ -8289,7 +8255,6 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
                         .checked_add(1)
                         .ok_or(ItemRefusal::Budget)?;
                 } else {
-                    let info = Inspector::<S, I>::event_info_from_value(value, location);
                     boundary_events.insert(id.clone(), info);
                     source_event_insertions.push((id, value.clone()));
                 }
@@ -8433,7 +8398,7 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
         DISCOVERY_EVENTS,
         PROVENANCE_SCHEMA,
         &mut |inspector, location, value| {
-            inspector.source_refs(value, location)?;
+            let info = inspector.event_info(value, location)?;
             let Some(id) = string(value, "event_id") else {
                 inspector.issue(
                     location,
@@ -8484,7 +8449,6 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
                         .ok_or(ItemRefusal::Budget)?;
                 }
             } else {
-                let info = Inspector::<S, I>::event_info_from_value(value, location);
                 if insert_into_owner_map {
                     source_event_insertions.push((id.clone(), value.clone()));
                 }
@@ -8761,7 +8725,7 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
                 })
         });
         let native_capture = native_artifact_capture(
-            &mut inspector,
+            &mut *inspector,
             path,
             &value,
             u64::try_from(raw.len()).map_err(|_| ItemRefusal::Budget)?,
@@ -8775,7 +8739,7 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
         if native_capture == NativeArtifactCapture::Complete {
             if !event_ref.is_empty() {
                 let first_event = remember_discovery_id(
-                    &mut inspector,
+                    &mut *inspector,
                     &mut event_ids,
                     DiscoverySeenIdNamespace::Event,
                     event_ref,

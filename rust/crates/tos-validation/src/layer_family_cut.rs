@@ -5,7 +5,7 @@ use crate::item_rules::{ItemLimits, ItemRefusal};
 use crate::layer_family_rules::{
     LayerFamilyReport, LayerFamilyRules, LayerFamilySource, LayerPayload,
 };
-use crate::source_cut::{CutSchemaExecutor, CutWorkerSchemaExecutor};
+use crate::source_cut::CutSchemaExecutor;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Instant;
 use tos_foundation::{Digest256, RelativePath, SourceRevision};
@@ -177,6 +177,309 @@ impl<S: CutSchemaExecutor> LayerFamilySource for CutLayerFamilySource<'_, S> {
         check(deadline, self.cancelled)
     }
 }
+
+/// Layer-rule source over the SQLite-indexed streamed cut. It answers each
+/// membership query against the held index and reads only the exact selected
+/// member. It owns no cloned manifest map and makes no carrier-coverage claim.
+pub struct StreamedCutLayerFamilySource<'a, S: CutSchemaExecutor + ?Sized> {
+    pub cut: &'a tos_source_store::StreamedCorpusCutReaderV1,
+    pub schemas: &'a mut S,
+    pub cancelled: &'a AtomicBool,
+    pub max_read_bytes: u64,
+    pub read_bytes: u64,
+    pub max_read_files: u64,
+    pub read_files: u64,
+    pub payloads: &'a mut dyn CutLayerPayloadReader,
+}
+
+impl<S: CutSchemaExecutor + ?Sized> StreamedCutLayerFamilySource<'_, S> {
+    fn charge_read(&mut self, bytes: u64) -> Result<(), ItemRefusal> {
+        let next_bytes = self
+            .read_bytes
+            .checked_add(bytes)
+            .filter(|total| *total <= self.max_read_bytes)
+            .ok_or(ItemRefusal::Budget)?;
+        let next_files = self
+            .read_files
+            .checked_add(1)
+            .filter(|total| *total <= self.max_read_files)
+            .ok_or(ItemRefusal::Budget)?;
+        self.read_bytes = next_bytes;
+        self.read_files = next_files;
+        Ok(())
+    }
+
+    fn read_selected(
+        &mut self,
+        revision: SourceRevision,
+        path: &RelativePath,
+        max_bytes: usize,
+        deadline: Instant,
+    ) -> Result<Option<Vec<u8>>, ItemRefusal> {
+        self.checkpoint(deadline)?;
+        let metadata = self.cut.member(revision, path).map_err(store_error)?;
+        self.checkpoint(deadline)?;
+        let Some(metadata) = metadata else {
+            return Ok(None);
+        };
+        let remaining = self
+            .max_read_bytes
+            .checked_sub(self.read_bytes)
+            .ok_or(ItemRefusal::Budget)?;
+        let remaining_files = self
+            .max_read_files
+            .checked_sub(self.read_files)
+            .ok_or(ItemRefusal::Budget)?;
+        let max_bytes = u64::try_from(max_bytes).map_err(|_| ItemRefusal::Budget)?;
+        if remaining_files == 0
+            || metadata.size_bytes > max_bytes
+            || metadata.size_bytes > remaining
+        {
+            return Err(ItemRefusal::Budget);
+        }
+        let read_cap = max_bytes.min(remaining);
+        // Charge the authenticated member size and one file before opening it.
+        // An I/O refusal keeps that bounded attempted-read charge visible.
+        self.charge_read(metadata.size_bytes)?;
+        self.checkpoint(deadline)?;
+        let member = self
+            .cut
+            .read_member(revision, path, read_cap, deadline, self.cancelled)
+            .map_err(store_error)?;
+        if member.size_bytes != metadata.size_bytes
+            || u64::try_from(member.raw.len()).ok() != Some(metadata.size_bytes)
+        {
+            return Err(ItemRefusal::Source(
+                "streamed layer member size changed".into(),
+            ));
+        }
+        self.checkpoint(deadline)?;
+        Ok(Some(member.raw))
+    }
+}
+
+impl<S: CutSchemaExecutor + ?Sized> LayerFamilySource for StreamedCutLayerFamilySource<'_, S> {
+    fn current(
+        &mut self,
+        path: &str,
+        max_bytes: usize,
+        deadline: Instant,
+    ) -> Result<Option<Vec<u8>>, ItemRefusal> {
+        let path = RelativePath::parse(path)
+            .map_err(|_| ItemRefusal::Unsupported("layer-family source path".into()))?;
+        self.read_selected(self.cut.current_revision(), &path, max_bytes, deadline)
+    }
+
+    fn recorded(
+        &mut self,
+        path: &str,
+        digest: &str,
+        max_bytes: usize,
+        deadline: Instant,
+    ) -> Result<Option<Vec<u8>>, ItemRefusal> {
+        self.checkpoint(deadline)?;
+        let expected = Digest256::from_hex(digest)
+            .map_err(|_| ItemRefusal::Unsupported("layer-family input digest".into()))?;
+        let path = RelativePath::parse(path)
+            .map_err(|_| ItemRefusal::Unsupported("layer-family retained path".into()))?;
+        let revision_count = self.cut.revision_count();
+        for ordinal in 0..revision_count {
+            self.checkpoint(deadline)?;
+            let revision = self
+                .cut
+                .revision_at(ordinal)
+                .map_err(store_error)?
+                .ok_or_else(|| {
+                    ItemRefusal::Source("streamed source revision chain changed".into())
+                })?;
+            self.checkpoint(deadline)?;
+            let metadata = self
+                .cut
+                .member(revision.revision, &path)
+                .map_err(store_error)?;
+            self.checkpoint(deadline)?;
+            if metadata.is_none_or(|member| member.sha256 != expected) {
+                continue;
+            }
+            let Some(raw) = self.read_selected(revision.revision, &path, max_bytes, deadline)?
+            else {
+                return Err(ItemRefusal::Source(
+                    "streamed retained member disappeared".into(),
+                ));
+            };
+            if Digest256::of_bytes(&raw) == expected {
+                return Ok(Some(raw));
+            }
+            return Err(ItemRefusal::Source(
+                "streamed retained member digest changed".into(),
+            ));
+        }
+        Ok(None)
+    }
+
+    fn schema(
+        &mut self,
+        path: &str,
+        raw: &[u8],
+        contract: &str,
+        deadline: Instant,
+    ) -> Result<bool, ItemRefusal> {
+        self.checkpoint(deadline)?;
+        if self.schemas.selected_source_revision() != Some(self.cut.current_revision()) {
+            return Err(ItemRefusal::Source(
+                "layer schema worker belongs to another streamed source cut".into(),
+            ));
+        }
+        let relative = RelativePath::parse(contract)
+            .map_err(|_| ItemRefusal::Unsupported("layer-family contract path".into()))?;
+        if self
+            .cut
+            .member(self.cut.current_revision(), &relative)
+            .map_err(store_error)?
+            .is_none()
+        {
+            return Err(ItemRefusal::Unsupported(
+                "missing current layer-family schema".into(),
+            ));
+        }
+        self.checkpoint(deadline)?;
+        let result =
+            self.schemas
+                .check_reusing_scalar(path, raw, contract, deadline, self.cancelled)?;
+        self.checkpoint(deadline)?;
+        Ok(result)
+    }
+
+    fn exists(&mut self, path: &str, _: usize, deadline: Instant) -> Result<bool, ItemRefusal> {
+        self.checkpoint(deadline)?;
+        let relative = RelativePath::parse(path)
+            .map_err(|_| ItemRefusal::Unsupported("layer source-ref path".into()))?;
+        let result = self
+            .cut
+            .presence(self.cut.current_revision(), &relative)
+            .map_err(store_error)?
+            .is_some();
+        self.checkpoint(deadline)?;
+        Ok(result)
+    }
+
+    fn discovered_item_manifest(
+        &mut self,
+        path: &str,
+        _: usize,
+        deadline: Instant,
+    ) -> Result<bool, ItemRefusal> {
+        self.checkpoint(deadline)?;
+        let relative = RelativePath::parse(path)
+            .map_err(|_| ItemRefusal::Unsupported("layer manifest path".into()))?;
+        let result = path.starts_with("ToS/source-witnesses/")
+            && path.ends_with("/item.manifest.json")
+            && self
+                .cut
+                .member(self.cut.current_revision(), &relative)
+                .map_err(store_error)?
+                .is_some();
+        self.checkpoint(deadline)?;
+        Ok(result)
+    }
+
+    fn payload(
+        &mut self,
+        path: &str,
+        max_bytes: usize,
+        deadline: Instant,
+    ) -> Result<LayerPayload, ItemRefusal> {
+        self.checkpoint(deadline)?;
+        let relative = RelativePath::parse(path)
+            .map_err(|_| ItemRefusal::Unsupported("layer payload path".into()))?;
+        let remaining = self
+            .max_read_bytes
+            .checked_sub(self.read_bytes)
+            .ok_or(ItemRefusal::Budget)?;
+        let remaining_files = self
+            .max_read_files
+            .checked_sub(self.read_files)
+            .ok_or(ItemRefusal::Budget)?;
+        if remaining == 0 || remaining_files == 0 {
+            return Err(ItemRefusal::Budget);
+        }
+        let bounded_max_bytes = max_bytes.min(usize::try_from(remaining).unwrap_or(usize::MAX));
+        let bounded_max_u64 = u64::try_from(bounded_max_bytes).map_err(|_| ItemRefusal::Budget)?;
+        let previous_bytes = self.read_bytes;
+        let previous_files = self.read_files;
+        let reserved_bytes = self
+            .read_bytes
+            .checked_add(bounded_max_u64)
+            .filter(|total| *total <= self.max_read_bytes)
+            .ok_or(ItemRefusal::Budget)?;
+        let reserved_files = self
+            .read_files
+            .checked_add(1)
+            .filter(|total| *total <= self.max_read_files)
+            .ok_or(ItemRefusal::Budget)?;
+        self.read_bytes = reserved_bytes;
+        self.read_files = reserved_files;
+        // Keep the bounded attempted-read charge on error; a successful result
+        // below replaces the byte reservation with its exact observed size.
+        let observation = self
+            .payloads
+            .inspect(path, bounded_max_bytes, deadline, self.cancelled);
+        let observation = match observation {
+            Ok(observation) => observation,
+            Err(error) => return Err(error),
+        };
+        self.checkpoint(deadline)?;
+        match observation {
+            LayerPayload::File {
+                byte_size,
+                sha256,
+                sha1,
+                jpeg_dimensions,
+                ..
+            } => {
+                if byte_size > bounded_max_u64 {
+                    return Err(ItemRefusal::Budget);
+                }
+                self.read_bytes = previous_bytes
+                    .checked_add(byte_size)
+                    .filter(|total| *total <= self.max_read_bytes)
+                    .ok_or(ItemRefusal::Budget)?;
+                let source_member = self
+                    .cut
+                    .member(self.cut.current_revision(), &relative)
+                    .map_err(store_error)?
+                    .is_some();
+                self.checkpoint(deadline)?;
+                Ok(LayerPayload::File {
+                    byte_size,
+                    sha256,
+                    sha1,
+                    jpeg_dimensions,
+                    source_member,
+                })
+            }
+            other => {
+                // An unavailable payload has no file bytes to charge; release
+                // the conservative admission while retaining the rule result.
+                self.read_bytes = previous_bytes;
+                self.read_files = previous_files;
+                Ok(other)
+            }
+        }
+    }
+
+    fn cancellation(&self) -> &AtomicBool {
+        self.cancelled
+    }
+
+    fn generation(&self) -> String {
+        self.cut.current_revision().0.to_hex()
+    }
+
+    fn checkpoint(&self, deadline: Instant) -> Result<(), ItemRefusal> {
+        check(deadline, self.cancelled)
+    }
+}
 #[derive(Debug)]
 pub struct SourceCutLayerFamilyReport {
     pub revision: SourceRevision,
@@ -185,11 +488,11 @@ pub struct SourceCutLayerFamilyReport {
 }
 /// Traverse current ordered bytes to EOF before executing selected family
 /// predicates. This does not claim complete Python source-foundation coverage.
-pub fn inspect_layers_from_cut(
+pub fn inspect_layers_from_cut<S: CutSchemaExecutor>(
     cut: &CorpusCutReader,
     limits: ItemLimits,
     cancelled: &AtomicBool,
-    schemas: &mut CutWorkerSchemaExecutor,
+    schemas: &mut S,
 ) -> Result<SourceCutLayerFamilyReport, ItemRefusal> {
     let mut payloads = UnavailableLayerPayloads;
     inspect_layers_with_payloads_from_cut(cut, limits, cancelled, schemas, &mut payloads, false)
@@ -218,17 +521,17 @@ impl CutLayerPayloadReader for UnavailableLayerPayloads {
         Ok(LayerPayload::Unavailable)
     }
 }
-pub fn inspect_layers_with_payloads_from_cut(
+pub fn inspect_layers_with_payloads_from_cut<S: CutSchemaExecutor>(
     cut: &CorpusCutReader,
     limits: ItemLimits,
     cancelled: &AtomicBool,
-    schemas: &mut CutWorkerSchemaExecutor,
+    schemas: &mut S,
     payloads: &mut dyn CutLayerPayloadReader,
     require_local_payloads: bool,
 ) -> Result<SourceCutLayerFamilyReport, ItemRefusal> {
     check(limits.deadline, cancelled)?;
     let revision = cut.current().revision();
-    if schemas.source_revision() != revision {
+    if schemas.selected_source_revision() != Some(revision) {
         return Err(ItemRefusal::Source(
             "layer schema worker belongs to another corpus cut".into(),
         ));

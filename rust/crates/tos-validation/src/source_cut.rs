@@ -1744,7 +1744,7 @@ impl CutWorkerSchemaExecutor {
             || self.protocol_started
             || self.diagnostic_executions != 0
             || self.diagnostics_v2_controller_state_cap.is_some()
-            || !self.receipts.is_empty()
+            || self.scalar_check_count != 0
             || self.finished
         {
             return Err(ItemRefusal::Unsupported(
@@ -1766,7 +1766,7 @@ impl CutWorkerSchemaExecutor {
     ) -> Result<(), ItemRefusal> {
         if self.diagnostics_v2.is_some()
             || self.diagnostic_executions != 0
-            || !self.receipts.is_empty()
+            || self.scalar_check_count != 0
             || self.finished
             || self.protocol_started
         {
@@ -1809,7 +1809,7 @@ impl CutWorkerSchemaExecutor {
             || self.diagnostics_v2_controller_state_cap.is_some()
             || self.protocol_started
             || self.diagnostic_executions != 0
-            || !self.receipts.is_empty()
+            || self.scalar_check_count != 0
             || self.finished
             || max_instance_bytes == 0
             || self.diagnostics_v2_legacy_selected_limits.is_some()
@@ -1845,7 +1845,7 @@ impl CutWorkerSchemaExecutor {
             || self.diagnostics_v2_shared_quota_attached
             || self.protocol_started
             || self.diagnostic_executions != 0
-            || !self.receipts.is_empty()
+            || self.scalar_check_count != 0
             || self.finished
             || limits.validate().is_err()
             || limits.max_instance_bytes > operation.batch.max_total_raw_bytes
@@ -2352,6 +2352,30 @@ impl CutWorkerSchemaExecutor {
             source_revision,
             result: self.pending_diagnostics.remove(index),
         })
+    }
+
+    fn produce_diagnostics_v2_terminal(
+        &mut self,
+        path: &str,
+        raw: &[u8],
+        contract: &str,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<SchemaDiagnosticResult, ItemRefusal> {
+        let diagnostic = if self.diagnostics_v2_legacy_selected_limits.is_some() {
+            self.check_diagnostics_v2_legacy_selected(path, raw, contract, deadline, cancelled)?
+                .result
+        } else {
+            self.check_diagnostics_v2_result(path, raw, contract, deadline, cancelled)?
+        };
+        if diagnostic.is_valid() || diagnostic.is_invalid() {
+            return Ok(diagnostic);
+        }
+        self.prepared.poison(ExecutorFailure::Protocol);
+        self.diagnostics_v2_cost_unknown = true;
+        Err(ItemRefusal::Unsupported(
+            "cut schema diagnostics status incomplete".into(),
+        ))
     }
 
     /// Spool-only opt-in for retaining a fully authenticated non-verdict
@@ -3335,61 +3359,22 @@ impl CutSchemaExecutor for CutWorkerSchemaExecutor {
         cancelled: &AtomicBool,
     ) -> Result<bool, ItemRefusal> {
         if self.diagnostics_v2.is_some() {
-            let result: Result<bool, ItemRefusal> = (|| {
-                let mut diagnostic =
-                    self.check_diagnostics_v2_result(path, raw, contract, deadline, cancelled)?;
-                if diagnostic.is_valid() {
-                    return Ok(true);
-                }
-                if diagnostic.is_invalid() {
-                    let previous_bytes = self
-                        .pending_diagnostics
-                        .capacity()
-                        .checked_mul(std::mem::size_of::<SchemaDiagnosticResult>())
-                        .ok_or(ItemRefusal::Budget)?;
-                    if self.pending_diagnostics.try_reserve(1).is_err() {
-                        self.prepared.poison(ExecutorFailure::InputBudget);
-                        return Err(ItemRefusal::Budget);
+            let result = self
+                .produce_diagnostics_v2_terminal(path, raw, contract, deadline, cancelled)
+                .and_then(|diagnostic| {
+                    if diagnostic.is_invalid() {
+                        self.retain_pending_diagnostic(diagnostic)?;
+                        Ok(false)
+                    } else if diagnostic.is_valid() {
+                        Ok(true)
+                    } else {
+                        self.diagnostics_v2_cost_unknown = true;
+                        self.prepared.poison(ExecutorFailure::Protocol);
+                        Err(ItemRefusal::Unsupported(
+                            "cut schema diagnostics status incomplete".into(),
+                        ))
                     }
-                    let next_capacity_bytes = self
-                        .pending_diagnostics
-                        .capacity()
-                        .checked_mul(std::mem::size_of::<SchemaDiagnosticResult>())
-                        .ok_or(ItemRefusal::Budget)?;
-                    let new_capacity_bytes = next_capacity_bytes.saturating_sub(previous_bytes);
-                    let limits = self.diagnostics_v2.ok_or_else(|| {
-                        ItemRefusal::Unsupported("schema diagnostics v2 not selected".into())
-                    })?;
-                    let next_state_bytes = self
-                        .diagnostic_state_bytes_used
-                        .checked_add(new_capacity_bytes)
-                        .filter(|bytes| *bytes <= limits.max_total_state_bytes)
-                        .ok_or_else(|| {
-                            self.prepared.poison(ExecutorFailure::InputBudget);
-                            self.pending_diagnostics.clear();
-                            self.pending_diagnostics.shrink_to_fit();
-                            ItemRefusal::BudgetCheck {
-                                check: "cut schema diagnostics retained vector",
-                                used: self
-                                    .diagnostic_state_bytes_used
-                                    .checked_add(new_capacity_bytes)
-                                    .and_then(|bytes| u64::try_from(bytes).ok()),
-                                limit: u64::try_from(limits.max_total_state_bytes).ok(),
-                            }
-                        })?;
-                    diagnostic.accounted_state_bytes = diagnostic
-                        .accounted_state_bytes
-                        .checked_add(new_capacity_bytes)
-                        .ok_or(ItemRefusal::Budget)?;
-                    self.diagnostic_state_bytes_used = next_state_bytes;
-                    self.pending_diagnostics.push(diagnostic);
-                    return Ok(false);
-                }
-                self.prepared.poison(ExecutorFailure::Protocol);
-                Err(ItemRefusal::Unsupported(
-                    "cut schema diagnostics status incomplete".into(),
-                ))
-            })();
+                });
             if result.is_err() {
                 self.diagnostics_v2_cost_unknown = true;
                 self.prepared.poison_shared_schema_worker_quota();

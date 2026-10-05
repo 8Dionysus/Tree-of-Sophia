@@ -2,7 +2,7 @@
 //! Routes derive from exact selected schema roots; ambiguity or an unknown
 //! version remains an explicit gap. A schema result never covers other rules.
 use crate::item_rules::{ItemLimits, ItemRefusal};
-use crate::source_cut::{CutSchemaExecutor, CutWorkerSchemaExecutor};
+use crate::source_cut::CutSchemaExecutor;
 use crate::{KeyState, PredicateRead};
 use serde_json::Value;
 use std::collections::{BTreeMap, BTreeSet};
@@ -351,15 +351,15 @@ fn root_versions(
     Ok(())
 }
 
-pub fn inspect_source_shapes_from_cut(
+pub fn inspect_source_shapes_from_cut<S: CutSchemaExecutor>(
     cut: &CorpusCutReader,
     limits: ItemLimits,
     cancelled: &AtomicBool,
-    schemas: &mut CutWorkerSchemaExecutor,
+    schemas: &mut S,
 ) -> Result<SourceShapeReport, ItemRefusal> {
     check(limits, cancelled)?;
     let revision = cut.current().revision();
-    if schemas.source_revision() != revision {
+    if schemas.selected_source_revision() != Some(revision) {
         return Err(ItemRefusal::Source(
             "shape worker belongs to another source cut".into(),
         ));

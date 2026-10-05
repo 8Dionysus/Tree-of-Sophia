@@ -12,6 +12,7 @@ num-bigint = "=0.4.8"
 unicode-normalization = "=0.1.24"
 jsonschema = { version = "=0.53.0", default-features = false, features = ["arbitrary-precision"] }
 serde_json = { version = "1", features = ["arbitrary_precision"] }
+rusqlite = { version = "=0.37.0", features = ["bundled"] }
 unicode-general-category = "=1.1.0"
 tos-foundation = { path = "../tos-foundation" }
 tos-source-store = { path = "../tos-source-store" }
