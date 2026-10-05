@@ -13,7 +13,7 @@ use std::{
     fmt,
     fs::{self, File},
     io::{self, BufReader, Read, Seek, SeekFrom, Write},
-    os::unix::fs::MetadataExt,
+    os::unix::fs::{MetadataExt, OpenOptionsExt, PermissionsExt},
     path::{Path, PathBuf},
     rc::Rc,
     sync::{
@@ -4128,6 +4128,22 @@ impl PublicCapture {
         let vm_used = creation
             .map(|state| Arc::clone(&state.sql_vm))
             .unwrap_or_else(|| Arc::new(AtomicU64::new(0)));
+        // The family writer reopens only an owned private 0600 inode. SQLite's
+        // implicit creation mode depends on ambient umask, so create this
+        // disposable capture explicitly before handing it to SQLite.
+        {
+            let _inode_hold = creation
+                .map(|state| state.hold(std::mem::size_of::<File>()))
+                .transpose()?;
+            let inode = fs::OpenOptions::new()
+                .read(true)
+                .write(true)
+                .create_new(true)
+                .mode(0o600)
+                .open(staging)?;
+            inode.set_permissions(fs::Permissions::from_mode(0o600))?;
+            drop(inode);
+        }
         let mut db = Connection::open(staging)?;
         if let Some(window) = shared_window {
             window.install(&db, deadline, Arc::clone(&cancelled));
@@ -5181,7 +5197,10 @@ impl PublicCapture {
             } else {
                 sqlite_budget::install_progress_until(db,self.limits.sqlite(),Arc::clone(&self.vm_used),deadline);
             }
-        }).map_err(|_|Error::Invalid("public D1 pinned family writer"))?;
+        }).map_err(|error| match error.code {
+            tos_source_store::StoreErrorCode::BudgetExceeded => Error::Budget(error.detail),
+            _ => Error::Invalid(error.detail),
+        })?;
         db.pragma_update(None, "cache_size", -(self.limits.sqlite_cache_kib as i64))?;
         Ok(db)
     }

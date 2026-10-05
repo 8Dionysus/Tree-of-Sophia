@@ -205,8 +205,11 @@ ceiling; `max_json_visits` bounds aggregate capture, writer and cold JSON visits
 The same dedicated SQLite heap and held creation state cover the full writer and
 the copied fs-verity cold reader. `cold_open.max_file_bytes` also narrows the
 writer's live main and temporary database ceilings before VACUUM. The held Linux
-cgroup verifies actual RAM and zero-swap limits; ticket metadata alone does not
-provide that custody. The declared process limits are checked during cold
+cgroup verifies an actual finite total ceiling and zero swap, retains that
+ceiling through cold verification, and requires room for the same declared
+tmpfs quota plus process working RAM as the stage issuer. The result reports
+this actual total ceiling separately from the working RAM ticket; ticket
+metadata alone does not provide that custody. The declared process limits are checked during cold
 verification and do not install limits for earlier capture/build phases. Use the
 owned supervisor's whole deadline and process-tree cleanup in addition to the
 cooperative build deadline.

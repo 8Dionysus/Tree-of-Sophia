@@ -40,6 +40,29 @@ impl LinuxCgroupColdOpenResourceHold {
         deadline: Instant,
         cancelled: Arc<AtomicBool>,
     ) -> Result<Self> {
+        Self::acquire_held(working_ram_bytes, None, deadline, cancelled)
+    }
+
+    /// Original production retains tmpfs pages and process working RAM in one
+    /// pre-existing finite cgroup. Authenticate the issuer's same composed
+    /// envelope without treating its RAM ticket as the total kernel ceiling.
+    /// This never installs or raises a limit.
+    pub fn acquire_original_stage(
+        working_ram_bytes: u64, tmpfs_quota_bytes: u64, deadline: Instant,
+        cancelled: Arc<AtomicBool>,
+    ) -> Result<Self> {
+        if tmpfs_quota_bytes == 0 { return Err(Error::Budget("native Original tmpfs envelope")); }
+        let composed = working_ram_bytes.checked_add(tmpfs_quota_bytes)
+            .ok_or(Error::Budget("native Original composed stage envelope"))?;
+        Self::acquire_held(working_ram_bytes, Some(composed), deadline, cancelled)
+    }
+
+    pub fn original_kernel_memory_max(&self) -> u64 { self.memory_max }
+
+    fn acquire_held(
+        working_ram_bytes: u64, composed_stage_bytes: Option<u64>, deadline: Instant,
+        cancelled: Arc<AtomicBool>,
+    ) -> Result<Self> {
         active(deadline, cancelled.as_ref())?;
         if working_ram_bytes == 0 {
             return Err(Error::Budget("native cold RAM allowance"));
@@ -49,7 +72,10 @@ impl LinuxCgroupColdOpenResourceHold {
         let identity = identity(&directory)?;
         let memory_max = scalar(&directory, b"memory.max\0", deadline, cancelled.as_ref())?;
         if memory_max == 0
-            || memory_max > working_ram_bytes
+            || match composed_stage_bytes {
+                Some(composed) => composed > memory_max,
+                None => memory_max > working_ram_bytes,
+            }
             || scalar(
                 &directory,
                 b"memory.swap.max\0",

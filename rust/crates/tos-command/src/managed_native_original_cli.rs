@@ -907,8 +907,8 @@ fn execute(request: Request) -> Result<Value> {
     limits.stage.sqlite.max_output_bytes = limits.stage.sqlite.max_output_bytes.min(request.cold_open.max_file_bytes);
     limits.stage.max_temp_bytes = limits.stage.max_temp_bytes.min(request.cold_open.max_file_bytes);
     let cancelled = Arc::new(AtomicBool::new(false));
-    let resources = LinuxCgroupColdOpenResourceHold::acquire(request.working_ram_bytes,
-        deadline, Arc::clone(&cancelled))?;
+    let resources = LinuxCgroupColdOpenResourceHold::acquire_original_stage(request.working_ram_bytes,
+        request.tmpfs_quota_bytes, deadline, Arc::clone(&cancelled))?;
     let mut caller_bytes = isolation.retained_state_upper_bound()?
         .checked_add(resources.retained_state_upper_bound()?)
         .and_then(|n| n.checked_add(historical.retained_state_upper_bound().ok()?))
@@ -1339,6 +1339,7 @@ fn execute(request: Request) -> Result<Value> {
             json!(manifest::NATIVE_PRODUCER_MIN_TMPFS_QUOTA_BYTES),
         ),
         ("working_ram_bytes", json!(request.working_ram_bytes)),
+        ("original_kernel_memory_max_bytes", json!(resources.original_kernel_memory_max())),
         ("producer_max_state_bytes", json!(request.max_state_bytes)),
         ("producer_max_json_visits", json!(request.max_json_visits)),
         ("writer_model_max_file_bytes", json!(limits.stage.sqlite.max_output_bytes)),
