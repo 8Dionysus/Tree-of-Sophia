@@ -190,8 +190,11 @@ impl PinnedSqliteConnection {
         // A partial failure permanently poisons this disposable capture; no
         // rollback/reopen/adoption claim is allowed. Keep FILE temp: this VFS
         // refuses unowned auxiliary names rather than adding a temp grant.
-        db.execute_batch("PRAGMA journal_mode=OFF; PRAGMA synchronous=FULL; PRAGMA temp_store=FILE; PRAGMA mmap_size=0;")
-            .map_err(|_|invalid("private capture pinned settings could not be enforced"))?;
+        PinnedBoundedStatement::execute_static_batch_on_owned_connection(
+            &db,
+            c"PRAGMA journal_mode=OFF; PRAGMA synchronous=FULL; PRAGMA temp_store=FILE; PRAGMA mmap_size=0;",
+            &|| Ok(()),
+        )?;
         Ok(db)
     }
 
