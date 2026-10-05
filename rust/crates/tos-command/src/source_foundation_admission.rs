@@ -2668,6 +2668,11 @@ impl<'c> NativeSourceValidator<'c> {
             record_selection: Option<&'a Value>,
             validation_profile_declaration_sha256: String,
         }
+        let ticket = self
+            .ledger_mut()?
+            .begin_window("admission-receipt", FoundationPhaseReservation::default())
+            .map_err(command)?;
+        let cap = ticket.remaining().output_bytes;
         let value = ProfileReceipt {
             receipt: value,
             validation_profile_id: self.validation_profile.id,
@@ -2678,11 +2683,6 @@ impl<'c> NativeSourceValidator<'c> {
                 .declaration_sha256
                 .to_hex(),
         };
-        let ticket = self
-            .ledger_mut()?
-            .begin_window("admission-receipt", FoundationPhaseReservation::default())
-            .map_err(command)?;
-        let cap = ticket.remaining().output_bytes;
         // Same serializer counts before emitting; no unbounded intermediate Vec.
         let mut count = ReceiptWriter {
             inner: None,

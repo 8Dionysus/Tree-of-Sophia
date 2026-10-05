@@ -41,7 +41,7 @@ use tos_validation::executor::{
     BatchBudget, ExactWorkerIdentity, ExecutorBudget, MAX_WORKER_IMAGE_BYTES,
     SharedSchemaWorkerQuota, VerifiedWorkerImageHandle,
 };
-use tos_validation::item_rules::ItemRefusal;
+use tos_validation::item_rules::{ItemLimits, ItemRefusal};
 use tos_validation::record_biblio_cut::{BiblioRecordExecutor, BiblioSchemaDiagnosticsLimits};
 use tos_validation::source_cut::{
     CutSchemaDiagnosticsLimits, CutSchemaExecutor, CutWorkerLimits, CutWorkerSchemaExecutor,
