@@ -1720,6 +1720,90 @@ impl RouteSources {
         self.verify_root()?;
         Ok(paths.into_iter().collect())
     }
+    /// Whole-documentation callers may price the existing wider finite entry
+    /// ceiling. Retain only cards and the recursive descriptor stack; payload
+    /// names are consumed one at a time, never collected into tree vectors.
+    pub fn discover_cards_with_limits(
+        &mut self,
+        inventory: &Value,
+        max_entries: usize,
+    ) -> io::Result<Vec<String>> {
+        if max_entries == 0 || max_entries > MAX_SELECTED_PATH_DISCOVERY_ENTRIES {
+            return Err(invalid("card discovery limit outside finite ceiling"));
+        }
+        let discovery = &inventory["route_card_discovery"];
+        let mut cards = BTreeSet::new();
+        for card in strings(&discovery["root_cards"])? {
+            if self.is_file(&card)? {
+                if cards.len() >= MAX_ENTRIES && !cards.contains(&card) {
+                    return Err(invalid("route card count bound exceeded"));
+                }
+                cards.insert(card);
+            }
+        }
+        let mut entries = 0usize;
+        for root in strings(&discovery["route_roots"])? {
+            if let Some(dir) = self.open(&root)? {
+                if dir.metadata()?.is_dir() {
+                    self.walk_cards_streamed(&dir, &root, &mut cards, &mut entries, max_entries)?;
+                }
+            }
+        }
+        if cards.len() > MAX_ENTRIES {
+            return Err(invalid("route card count bound exceeded"));
+        }
+        self.check()?;
+        Ok(cards.into_iter().collect())
+    }
+    fn walk_cards_streamed(
+        &mut self,
+        dir: &File,
+        rel: &str,
+        cards: &mut BTreeSet<String>,
+        entries: &mut usize,
+        max_entries: usize,
+    ) -> io::Result<()> {
+        #[cfg(target_os = "linux")]
+        let path = {
+            use std::os::fd::AsRawFd;
+            PathBuf::from(format!("/proc/self/fd/{}", dir.as_raw_fd()))
+        };
+        #[cfg(not(target_os = "linux"))]
+        let path: PathBuf = return Err(io::Error::new(
+            io::ErrorKind::Unsupported,
+            "route discovery requires Linux descriptor custody",
+        ));
+        for entry in fs::read_dir(path)? {
+            self.check()?;
+            *entries = entries.checked_add(1)
+                .ok_or_else(|| invalid("route discovery entry count overflow"))?;
+            if *entries > max_entries {
+                return Err(invalid("route discovery entry bound exceeded"));
+            }
+            let entry = entry?;
+            let kind = entry.file_type()?;
+            let component = entry.file_name().into_string()
+                .map_err(|_| invalid("non-UTF-8 route path"))?;
+            let name = format!("{rel}/{component}");
+            if name.len() > MAX_RELATIVE_PATH_BYTES {
+                return Err(invalid("route discovery path byte bound exceeded"));
+            }
+            validate_relative(&name)?;
+            if kind.is_symlink() {
+                return Err(invalid("route discovery refuses symlinks"));
+            }
+            if kind.is_dir() {
+                let child = self.open_child_directory(dir, &component)?;
+                self.walk_cards_streamed(&child, &name, cards, entries, max_entries)?;
+            } else if kind.is_file() && component == "AGENTS.md" {
+                if cards.len() >= MAX_ENTRIES && !cards.contains(&name) {
+                    return Err(invalid("route card count bound exceeded"));
+                }
+                cards.insert(name);
+            }
+        }
+        Ok(())
+    }
     pub fn discover(&mut self, inventory: &Value) -> io::Result<Vec<String>> {
         let discovery = &inventory["route_card_discovery"];
         let mut cards = BTreeSet::new();
@@ -2774,8 +2858,26 @@ pub fn run_validation(root: &Path, cancel: &AtomicI32) -> io::Result<Vec<Issue>>
 /// Run the same route laws on the caller's existing clock and custody.
 pub fn run_validation_with_sources(
     root: &Path,
+    s: &mut RouteSources,
+    cancel: &AtomicI32,
+) -> io::Result<Vec<Issue>> {
+    run_validation_with_discovery_limit(root, s, cancel, None)
+}
+/// Documentation owns a larger physical discovery pass on the same clock,
+/// custody and operation allowance. Ordinary route validation keeps its limit.
+pub fn run_validation_with_card_discovery_limit(
+    root: &Path,
+    s: &mut RouteSources,
+    cancel: &AtomicI32,
+    max_entries: usize,
+) -> io::Result<Vec<Issue>> {
+    run_validation_with_discovery_limit(root, s, cancel, Some(max_entries))
+}
+fn run_validation_with_discovery_limit(
+    root: &Path,
     mut s: &mut RouteSources,
     cancel: &AtomicI32,
+    max_entries: Option<usize>,
 ) -> io::Result<Vec<Issue>> {
     s.check()?;
     let inventory = s.inventory();
@@ -2803,7 +2905,10 @@ pub fn run_validation_with_sources(
         None => fallback,
     };
     discovery["route_card_discovery"]["root_cards"] = json!(["AGENTS.md"]);
-    let cards = s.discover(&discovery)?;
+    let cards = match max_entries {
+        Some(limit) => s.discover_cards_with_limits(&discovery, limit)?,
+        None => s.discover(&discovery)?,
+    };
     let mut issues = Vec::new();
     let p = Patterns::new()?;
     for card in &cards {

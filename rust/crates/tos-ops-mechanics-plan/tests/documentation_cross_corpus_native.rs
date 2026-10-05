@@ -502,3 +502,46 @@ fn actual_coordinator_cli_does_not_invent_an_ambient_kag_export_operation() {
             .contains("validate_local_kag_provider.py: owner validator")
     );
 }
+
+#[test]
+fn priced_card_discovery_streams_payload_names_but_refuses_untracked_cards() {
+    use std::{sync::atomic::AtomicI32, time::{Duration, Instant}};
+    use tos_ops_mechanics_plan::route_cards::{self, RouteSources};
+    let fixture = Fixture::new();
+    let mut inventory: Value = serde_json::from_str(include_str!(
+        "../../../../docs/validation/agents_route_inventory.json"
+    )).unwrap();
+    inventory["route_card_discovery"]["route_roots"] = json!(["docs", "mechanics"]);
+    fixture.write(route_cards::INVENTORY, &serde_json::to_vec(&inventory).unwrap());
+    fixture.track();
+    let sources = || RouteSources::new_until_with_operation_limit(
+        &fixture.root, Instant::now() + Duration::from_secs(30),
+        route_cards::MAX_BUDGETED_ROUTE_OPERATIONS,
+    ).unwrap();
+    let before = sources().discover(&inventory).unwrap();
+    for index in 0..10_001 {
+        fixture.write(&format!("docs/ignored-payload/{index}"), b"");
+    }
+    assert!(sources().discover(&inventory).is_err());
+    assert_eq!(sources().discover_cards_with_limits(
+        &inventory, route_cards::MAX_SELECTED_PATH_DISCOVERY_ENTRIES,
+    ).unwrap(), before);
+    fixture.write("docs/ignored-payload/AGENTS.md", b"untracked card\n");
+    let issues = route_cards::run_validation_with_card_discovery_limit(
+        &fixture.root, &mut sources(), &AtomicI32::new(0),
+        route_cards::MAX_SELECTED_PATH_DISCOVERY_ENTRIES,
+    ).unwrap();
+    assert!(issues.iter().any(|(path, message)|
+        path == "docs/ignored-payload/AGENTS.md"
+            && message == "discovered AGENTS.md is not tracked"));
+}
+#[test]
+fn tracked_executable_route_card_cannot_disappear() {
+    use tos_ops_mechanics_plan::route_cards::RouteSources;
+    let fixture = Fixture::new();
+    let mut sources = RouteSources::new(&fixture.root).unwrap();
+    let error = guards::validate_executable_routes(
+        &fixture.root, &mut sources, &["docs/AGENTS.md".into()], &mut Vec::new(),
+    ).unwrap_err();
+    assert!(error.to_string().contains("tracked route card is missing: docs/AGENTS.md"));
+}

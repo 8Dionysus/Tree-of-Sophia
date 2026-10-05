@@ -1,3 +1,8 @@
+//! Native cross-corpus documentation guards.
+//! Local script references reuse the admitted tracked atlas and inventory roots.
+//! Physical nested-card checking separately prices the existing wider traversal
+//! ceiling, streaming only card names while refusing untracked cards. Ordinary
+//! route discovery/card counts, custody, byte/path/depth and clock laws remain.
 //! Source-owned cross-corpus documentation guards and owner-validator coordination.
 use crate::{
     documentation_family as family,
@@ -1462,9 +1467,25 @@ pub fn validate_executable_routes(
         }
     }
     let inventory=read_json(s,route_cards::INVENTORY).unwrap_or_else(|_|json!({"route_card_discovery":{"root_cards":["AGENTS.md"],"route_roots":[".github","ToS","docs","mechanics","scripts","tests","evals","memo","kag","stats","manifests",".agents"]}}));
-    let mut discovery = inventory;
-    discovery["route_card_discovery"]["root_cards"] = json!(["AGENTS.md"]);
-    let cards = s.discover(&discovery)?;
+    // The inventory mandates tracked AGENTS cards. Reuse the documentation
+    // atlas membership already admitted above; physical untracked-card refusal
+    // remains with the nested-card owner validation below.
+    let roots = array(&inventory["route_card_discovery"]["route_roots"]);
+    let mut cards = Vec::new();
+    for path in tracked {
+        let eligible = path == "AGENTS.md" || (
+            Path::new(path).file_name().is_some_and(|n| n == "AGENTS.md")
+            && roots.iter().filter_map(|r| r.as_str()).any(|root| {
+                path.strip_prefix(root).is_some_and(|tail| tail.starts_with('/'))
+            })
+        );
+        if eligible {
+            if !s.is_file(path)? {
+                return Err(invalid(format!("tracked route card is missing: {path}")));
+            }
+            cards.push(path.clone());
+        }
+    }
     issues.extend(route_cards::validate_local_script_references(s, &cards)?);
     Ok(())
 }
@@ -1719,7 +1740,9 @@ fn validate_existing_owner_contracts(
     for (prefix, results) in [
         (
             "AGENTS-route validator",
-            route_cards::run_validation_with_sources(root, s, cancel)?,
+            route_cards::run_validation_with_card_discovery_limit(
+                root, s, cancel, route_cards::MAX_SELECTED_PATH_DISCOVERY_ENTRIES,
+            )?,
         ),
         (
             "mechanics topology validator",
