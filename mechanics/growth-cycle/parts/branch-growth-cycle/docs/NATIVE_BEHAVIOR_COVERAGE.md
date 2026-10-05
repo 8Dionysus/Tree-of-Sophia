@@ -27,7 +27,7 @@ owners and existing cases before proposing a new engine or broad test cohort.
 
 | Reference assertion source (`tests/`) | Native candidate (`tos-command/src/`) | Existing conformance candidate | Review or completion still needed |
 | --- | --- | --- | --- |
-| `test_assessment_read_batch.py` | `source_private_assessment_sources.rs` | `command_owner_text_cases.rs` | fresh batch cutoff, subject/grammar drift, shared prepared-view withdrawal |
+| `test_assessment_read_batch.py` | `source_native_private_assessment_cli.rs::run_public_v2_batch` and `scripts/source_witness_human_forms.py` | `command_owner_text_cases.rs::native_public_v2_assessed_form_batch_matches_builder_and_rechecks_drift` | native parity, source/path/subject binding, duplicate rejection and withdrawal assertions present; independent grammar/cutoff/post-fsync controls still need matching route review |
 | `test_claim_version_reader.py` | `source_read_owner.rs` | `command_claim_cases.rs` | continuous interleaved history, later sibling corruption, catalog/current-rights drift and batched exact reads |
 | `test_historical_claim_adapter.py` | `source_legacy_historical_claim.rs` | `command_legacy_claim_cases.rs` | interleaved record/claim predecessors and separate form replay under current grammar |
 | `test_historical_claim_assessment.py` | `source_private_assessment_sources.rs` | `command_owner_text_cases.rs` | historical wording disclosure and exact historical source currentness |
@@ -157,3 +157,28 @@ coverage and semantic/source-language judgment remain separate evidence. The
 ordinary installed mechanics default remains incomplete until its native test
 product/consumer selection is completed; source-only class discovery cannot
 turn that default into a success.
+
+## Assessed batch predicate disposition
+
+The retained batch module exercises multiple owners. Its preparation/read-call
+counts protect the Python reference session's cache implementation; they do not
+require the native worker to make that number of Python calls. The maintained
+`AssessedFormSnapshot` already requires a selected native invocation, while
+`for_retained_reference_fixture` explicitly retains the comparison API. The
+production-snapshot refusal and shared builder snapshot assertions protect that
+Python adapter/consumer seam and remain applicable there.
+
+Native `run_public_v2_batch` owns exact request identity, path/subject bindings,
+no-partial result, current journal/configuration/source/grammar guards and final
+currentness. The existing real native batch case compares retained ready/not-ready
+results and withdrawal, and now sends invalid final version, cross-subject,
+source-path, form-path and duplicate selections through the native invocation.
+It asserts journal and source/form bytes remain unchanged after each refusal.
+These predicates have executable native assertions; they are not pending native
+implementation simply because their old Python methods remain available.
+
+Independent selected grammar mutation, source schema/registry drift, time expiry
+and post-fsync candidate visibility remain distinct predicates requiring focused
+execution/review at their worker and builder owners. Language adequacy and quality
+judgment stay with the source-visible assessment route. Neither a source test
+declaration nor parity with retained synthetic fixtures accepts those judgments.

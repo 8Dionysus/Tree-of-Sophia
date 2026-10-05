@@ -1371,16 +1371,31 @@ if len(ids)==1:
 else:
     assert len(ids)==6 and all(packet['state']=='ready' and packet['admission']['can_use'] for packet in packets)
 
-# A bad final selection rejects the whole public request before any packet is returned.
-bad=copy.deepcopy(native._native_request)
-bad['selections'][-1]['form_ref']['version']+=1
-try:
-    native._run_native_materialization(bad)
-except (ValueError,PermissionError,JournalConflict):
-    pass
-else:
-    raise AssertionError('a partially bound batch unexpectedly succeeded')
-assert files(journal)==journal_before, 'a rejected batch changed journal bytes'
+# Every bad final selection goes through the real native batch consumer and
+# rejects the whole request. Cross-subject/path binding is independent of an
+# otherwise valid first row; the journal and authored source stay untouched.
+for mutation in ('version','subject','source-path','form-path','duplicate'):
+    bad=copy.deepcopy(native._native_request)
+    final=bad['selections'][-1]
+    if mutation=='version':
+        final['form_ref']['version']+=1
+    elif mutation=='subject':
+        final['subject_ref']=copy.deepcopy(final['form_ref'])
+    elif mutation=='source-path':
+        final['source_path']='ToS/source-witnesses/another/source.json'
+    elif mutation=='form-path':
+        final['form_path']='ToS/source-witnesses/another/source.human-forms.json'
+    else:
+        bad['selections'].append(copy.deepcopy(final))
+    try:
+        native._run_native_materialization(bad)
+    except (ValueError,PermissionError,JournalConflict):
+        pass
+    else:
+        raise AssertionError('a partially bound native batch unexpectedly succeeded: '+mutation)
+    assert files(journal)==journal_before, 'a rejected batch changed journal bytes'
+    assert (Path(manifest['source_root'])/manifest['source_path']).read_bytes()==source_before
+    assert (Path(manifest['source_root'])/manifest['form_path']).read_bytes()==form_before
 
 target=owner.parent/'native-assessed-candidate.json'
 if len(ids)==1:
