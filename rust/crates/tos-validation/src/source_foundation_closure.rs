@@ -6512,12 +6512,13 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
     fn check_selected_derivation_graph(&mut self) -> Result<(), ItemRefusal> {
         // Keys and edges borrow the already charged claim index. Admit the
         // complete simultaneous tree/stack workspace before constructing it.
+        // Adjacency map, per-subject edge tree and visitation map coexist.
         let graph_entry_state = 2
             * (std::mem::size_of::<BTreeMap<&str, BTreeSet<&str>>>()
                 + std::mem::size_of::<BTreeSet<&str>>()
                 + std::mem::size_of::<(&str, u8)>()
                 + 2 * std::mem::size_of::<(&str, bool)>()
-                + 12 * std::mem::size_of::<usize>());
+                + 3 * 12 * std::mem::size_of::<usize>());
         let workspace = self
             .derivation
             .len()
