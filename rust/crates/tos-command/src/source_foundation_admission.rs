@@ -983,7 +983,7 @@ impl<'c> NativeSourceValidator<'c> {
             .and_then(|prepared| prepared.invocation.v2_case())
             .map(|case| case.retained_state_bytes())
             .transpose()
-            .map_err(invalid)?
+            .map_err(command)?
             .unwrap_or(0);
         let v2_target_root_state_bytes = if v2_case_state_bytes != 0 {
             let root_path = self
@@ -1337,14 +1337,16 @@ impl<'c> NativeSourceValidator<'c> {
         let manifest_bytes = candidate_limits
             .reader
             .max_manifest_bytes
-            .min(max_manifest_allocated_bytes);
+            .min(usize::try_from(max_manifest_allocated_bytes)
+                .map_err(|_| invalid("spooled manifest allocation bound exceeds address space"))?);
         if manifest_bytes == 0 {
             return Err(invalid(
                 "selected spooled profile exceeds remaining invocation resources",
             ));
         }
         let max_members = candidate_limits.admission.max_members;
-        let max_manifest_entries = max_members;
+        let max_manifest_entries = u64::try_from(max_members)
+            .map_err(|_| invalid("spooled manifest entry bound exceeds range"))?;
         let max_member_bytes = candidate_limits.admission.max_member_bytes;
         let max_total_bytes = candidate_limits.admission.max_source_bytes;
         let max_revisions = candidate_limits.max_history_revisions;
@@ -1486,7 +1488,7 @@ impl<'c> NativeSourceValidator<'c> {
                     return Err(invalid("V2 finite row/node work profile is empty"));
                 }
                 let max_frame_bytes = max_allocated_bytes
-                    .min(candidate_limits.candidate.admission.max_member_bytes)
+                    .min(candidate_limits.admission.max_member_bytes)
                     .max(1);
                 Some(NativeSegmentV2Budget {
                     max_allocated_bytes,
@@ -2437,6 +2439,9 @@ impl<'c> NativeSourceValidator<'c> {
         self.evaluated = Some(inputs);
         self.account_candidate(candidate)?;
         Ok(ValidatedCandidate(index))
+    }
+    pub(crate) fn remaining_output_bytes(&self) -> io::Result<usize> {
+        Ok(self.ledger()?.remaining().map_err(command)?.output_bytes)
     }
     pub(crate) fn write_receipt(
         &mut self,

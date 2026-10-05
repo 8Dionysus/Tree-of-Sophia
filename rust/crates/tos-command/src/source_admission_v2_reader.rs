@@ -76,7 +76,7 @@ impl V2PointReadLimits {
             || self.tree.max_total_bytes == 0
             || self.tree.max_total_bytes == u64::MAX
             || self.tree.max_value_bytes == 0
-            || self.tree.max_value_bytes > SourceRevisionRootsV2::MAX_ENCODED_BYTES as u64
+            || self.tree.max_value_bytes > SourceRevisionRootsV2::MAX_ENCODED_BYTES
         {
             return Err(invalid("V2 point reader finite profile differs"));
         }
@@ -361,7 +361,7 @@ impl V2ReadSession {
         let row = session
             .lookup(&history, &key)?
             .ok_or_else(|| invalid("V2 point current history row absent"))?;
-        let history_decode_workspace = decode_workspace_upper_bound(row.value.len())?;
+        let history_decode_workspace = decode_workspace_upper_bound(row.len())?;
         session
             .roots
             .verify_current_history_row(&key, &row, history_decode_workspace)?;
@@ -1310,7 +1310,10 @@ impl V2ReadSession {
             return Err(invalid("V2 object extent digest width differs"));
         }
         Ok(Some((
-            Digest256::from_bytes(row.key.try_into().map_err(invalid)?),
+            Digest256::from_bytes(
+                row.key.try_into()
+                    .map_err(|_| invalid("V2 object extent digest width differs"))?,
+            ),
             PackedObjectLocationV2::decode(&row.value)?,
         )))
     }
@@ -1380,6 +1383,7 @@ impl V2ReadSession {
             .ok_or_else(|| invalid("V2 object tree byte budget exhausted"))?;
         Ok(PackedObjectLimitsV2 {
             tree_limits,
+            segment_limits: self.limits.segment,
             max_working_state_bytes: self.limits.max_state_bytes,
             caller_live_state_bytes: self.limits.caller_retained_state_bytes,
             max_work_units,
@@ -1533,7 +1537,10 @@ impl V2ReadSession {
         let name = digest.to_hex();
         let mut input = match tos_fd_open::open_regular_at(objects, Path::new(&name)) {
             Ok(input) => input,
-            Err(error) if error.kind() == io::ErrorKind::NotFound => return Ok(None),
+            Err(error)
+                if error.source.as_ref().is_some_and(|source| {
+                    source.kind() == io::ErrorKind::NotFound
+                }) => return Ok(None),
             Err(error) => return Err(invalid(error)),
         };
         let before = stamp(&input)?;
@@ -1666,6 +1673,7 @@ impl V2ReadSession {
             &row,
             self.limits.max_object_bytes,
         )
+        .map(Some)
     }
 }
 

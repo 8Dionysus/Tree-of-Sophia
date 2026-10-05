@@ -1745,7 +1745,7 @@ impl SourceCatalogSink for CatalogSinkRef<'_> {
 /// One maintained render/default/diagnostic kernel for authenticated cold and
 /// actual candidate inputs. Callbacks retain their exact typed owner receipts.
 #[allow(clippy::too_many_arguments)]
-fn compare_prepared_kernel<'candidate, 'stage, B, D>(
+fn compare_prepared_kernel<'candidate, 'stage, 'rows, B, D>(
     mut stage: KnowledgeStage<'stage>,
     validator: &SourceCatalogValidator<'_>,
     sources: &RefCell<&mut RouteSources>,
@@ -1760,13 +1760,13 @@ fn compare_prepared_kernel<'candidate, 'stage, B, D>(
         &'candidate IsolatedCreationRoot,
         DisposableCatalogTreeLimits,
     )>,
-    mut index_rows: Option<&mut dyn FreshIndexRowsWriter>,
+    mut index_rows: Option<&mut (dyn FreshIndexRowsWriter + 'rows)>,
     cancelled: &AtomicBool,
     mut prepare: impl FnMut(
         &mut KnowledgeStage<'stage>,
         &SourceCatalogValidator<'_>,
         &mut FoundationCatalogProfiles,
-        Option<&mut dyn FreshIndexRowsWriter>,
+        Option<&mut (dyn FreshIndexRowsWriter + 'rows)>,
     ) -> Result<SourceCatalogReceipt<B>>,
     mut render: impl FnMut(
         &mut KnowledgeStage<'stage>,
@@ -1804,7 +1804,7 @@ fn compare_prepared_kernel<'candidate, 'stage, B, D>(
             &mut stage,
             validator,
             &mut profiles,
-            index_rows.as_deref_mut(),
+            index_rows.as_mut().map(|rows| &mut **rows as &mut dyn FreshIndexRowsWriter),
         )?;
         let json = JsonLimits::new(limits.catalog.max_output_row_bytes, 96, 1_000_000, 4096)
             .map_err(|_| Error::Budget("catalog manifest JSON limits"))?;

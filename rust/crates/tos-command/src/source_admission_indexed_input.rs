@@ -64,6 +64,7 @@ pub(crate) struct IndexedInputSelectionV1 {
     pub(crate) held_root: File,
     pub(crate) held_segment_root: File,
     pub(crate) segment: SegmentStore,
+    segment_limits: SegmentLimits,
     manifest_file: DescriptorFile,
     pub(crate) manifest_sha256: Digest256,
     max_descriptor_bytes: usize,
@@ -545,6 +546,7 @@ pub(crate) fn open_selection_from_manifest_v1(
         held_root,
         held_segment_root,
         segment,
+        segment_limits,
         manifest_file,
         manifest_sha256,
         max_descriptor_bytes: max_manifest_bytes,
@@ -888,10 +890,18 @@ impl IndexedInputReaderV1 {
             &cancelled,
             &mut open_work,
         )?;
+        let selected_segment_limits = limits.packed_objects.segment_limits;
+        if selected_segment_limits.max_segment_bytes != selection.segment_limits.max_segment_bytes
+            || selected_segment_limits.max_frame_bytes != selection.segment_limits.max_frame_bytes
+            || selected_segment_limits.max_frames != selection.segment_limits.max_frames
+            || selected_segment_limits.max_journal_bytes != selection.segment_limits.max_journal_bytes
+        {
+            return Err(invalid("indexed-input segment profile differs from selected store"));
+        }
         if objects_descriptor.entries != selection.unique_object_count
             || selection.unique_object_count > limits.packed_objects.max_objects
             || selection.max_frames_per_pack > limits.packed_objects.max_pack_frames
-            || selection.max_frames_per_pack > selection.segment.limits().max_frames
+            || selection.max_frames_per_pack > selection.segment_limits.max_frames
             || selection.unique_payload_bytes > limits.max_source_bytes
         {
             return Err(invalid(
@@ -1279,7 +1289,7 @@ impl IndexedInputReaderV1 {
             }
             if location.frame_count > self.max_frames_per_pack
                 || location.frame_count > self.limits.packed_objects.max_pack_frames
-                || location.frame_count > self.segment.limits().max_frames
+                || location.frame_count > self.limits.packed_objects.segment_limits.max_frames
             {
                 return Err(invalid(
                     "indexed-input pack frame count exceeds selected profile",
@@ -1628,9 +1638,9 @@ impl IndexedInputReaderV1 {
             if frame_count == 0
                 || frame_count > self.max_frames_per_pack
                 || frame_count > self.limits.packed_objects.max_pack_frames
-                || frame_count > self.segment.limits().max_frames
+                || frame_count > self.limits.packed_objects.segment_limits.max_frames
                 || segment_size == 0
-                || segment_size > self.segment.limits().max_segment_bytes
+                || segment_size > self.limits.packed_objects.segment_limits.max_segment_bytes
                 || u32::try_from(coordinates.len()).ok() != Some(frame_index)
             {
                 return Err(invalid(

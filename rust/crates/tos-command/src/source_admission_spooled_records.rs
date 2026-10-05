@@ -452,6 +452,45 @@ fn static_record_code(code: &str) -> io::Result<&'static str> {
     })
 }
 
+// Decode the maintained Item owner's static issue vocabulary without
+// allocating leaked strings or changing its issue type. Unknown rows refuse.
+fn static_item_code(code: &str) -> io::Result<&'static str> {
+    Ok(match code {
+        "acquisition-event-not-local" => "acquisition-event-not-local",
+        "blank-jsonl-line" => "blank-jsonl-line",
+        "duplicate-event-id" => "duplicate-event-id",
+        "duplicate-resource-id" => "duplicate-resource-id",
+        "duplicate-rights-layer-id" => "duplicate-rights-layer-id",
+        "file-id-sha256" => "file-id-sha256",
+        "file-identity-conflict" => "file-identity-conflict",
+        "fixity-manifest-drift" => "fixity-manifest-drift",
+        "invalid-json" => "invalid-json",
+        "invalid-jsonl" => "invalid-jsonl",
+        "invalid-jsonl-utf8" => "invalid-jsonl-utf8",
+        "inventory-event-not-local" => "inventory-event-not-local",
+        "inventory-file-identity" => "inventory-file-identity",
+        "inventory-item-id" => "inventory-item-id",
+        "inventory-provenance-output" => "inventory-provenance-output",
+        "item-without-manifest" => "item-without-manifest",
+        "manifest-item-record-id" => "manifest-item-record-id",
+        "missing-companion" => "missing-companion",
+        "missing-or-wrong-record-kind" => "missing-or-wrong-record-kind",
+        "object-required" => "object-required",
+        "payload-byte-size" => "payload-byte-size",
+        "payload-path-string" => "payload-path-string",
+        "payload-sha256" => "payload-sha256",
+        "payload-source-inclusion" => "payload-source-inclusion",
+        "required-payload-unavailable" => "required-payload-unavailable",
+        "resource-count" => "resource-count",
+        "rights-file-scope" => "rights-file-scope",
+        "rights-item-scope" => "rights-item-scope",
+        "rights-manifest-visibility" => "rights-manifest-visibility",
+        "schema" => "schema",
+        "unresolved-source-ref" => "unresolved-source-ref",
+        _ => return Err(invalid("unknown static Item issue code in stored row")),
+    })
+}
+
 fn observation_from_value(value: &Value) -> io::Result<RecordObservation> {
     if uint(value, "v")? != 1 {
         return Err(invalid("unsupported RecordObservation codec"));
@@ -1082,7 +1121,7 @@ fn stored_fact_from_value(
         SourceFoundationRecordsCollection::ItemIssues => {
             SourceFoundationRecordsStoredFact::ItemIssue(ItemIssue {
                 path: owned_text(value, "path")?,
-                code: owned_text(value, "code")?,
+                code: static_item_code(text(value, "code")?)?,
             })
         }
         SourceFoundationRecordsCollection::ManifestItemIds => {
@@ -1877,6 +1916,7 @@ fn current_records_by_id_page(
             .map_err(refusal)?;
         let id = bounded_text(
             row,
+            0,
             budget
                 .max_state_bytes
                 .get()
@@ -3061,7 +3101,7 @@ impl SourceFoundationRecordsStore for IndexSink<'_> {
             .query_row(
                 "SELECT record_id FROM sf_current_paths WHERE path=?1 COLLATE BINARY",
                 [path],
-                |row| bounded_text(row, id_allowance),
+                |row| bounded_text(row, 0, id_allowance),
             )
             .optional()
             .map_err(refusal)?;

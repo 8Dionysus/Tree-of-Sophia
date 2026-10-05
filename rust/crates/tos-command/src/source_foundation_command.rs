@@ -177,10 +177,10 @@ fn run_selected(
     let config = foundation_bootstrap_config::from_invocation(&invocation)?;
     let mut inputs = FoundationBootstrapInputs::prepare(clock, launch, invocation, config)
         .map_err(foundation_orchestrator::FoundationOrchestratorError::from)
-        .map_err(|error| Error::Denied(error.public_reason()))?;
+        .map_err(|error| Error::DeniedWithReason(error.public_reason()))?;
     let outcome = inputs
         .with_initial_snapshots(git_signal, foundation_orchestrator::evaluate)
-        .map_err(|error| Error::Denied(error.public_reason()))?;
+        .map_err(|error| Error::DeniedWithReason(error.public_reason()))?;
     match outcome {
         SourceFoundationOutputOutcome::Complete(assembled) => {
             let ticket = inputs

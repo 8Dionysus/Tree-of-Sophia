@@ -2,10 +2,10 @@
 //! A completed metadata import is not validation or permission to publish.
 use super::source_admission::{AdmissionBatch, AdmissionWorkBudget, SourceUpdate, active, invalid};
 use super::source_admission_candidate::CandidateLimits;
-use super::source_admission_spooled_index::cursor_argument_state;
 use super::source_admission_packed_objects::{
     PackedObjectChangeV2, PackedObjectLocationV2, PackedObjectSourceV2,
 };
+use super::source_admission_spooled_index::cursor_argument_state;
 use super::source_admission_store::{AdmissionStore, CandidatePayloadPackV2};
 #[path = "source_admission_logical_membership.rs"]
 mod logical_membership;
@@ -285,7 +285,9 @@ pub(crate) struct SpoolCandidate<'host> {
 
 #[derive(Clone, Copy)]
 enum BasePackedObject {
-    Legacy { size: u64 },
+    Legacy {
+        size: u64,
+    },
     Packed {
         size: u64,
         location: PackedObjectLocationV2,
@@ -791,6 +793,12 @@ impl<'host> SpoolCandidate<'host> {
         self.running()?;
         self.finish_read(self.ledger.record_write_returned(n).map_err(invalid))
     }
+    /// Account actual held-destination bytes in a bootstrap's precharged
+    /// original IO reservation; no second ledger or allowance is created.
+    pub(crate) fn record_bootstrap_read_returned(&self, n: u64) -> io::Result<()> {
+        self.running()?;
+        self.finish_read(self.ledger.record_read_returned(n).map_err(invalid))
+    }
     /// A failed consuming serializer/index operation cannot reuse the candidate.
     pub(crate) fn abandon(&self) {
         self.failed.set(true);
@@ -1027,10 +1035,11 @@ impl<'host> SpoolCandidate<'host> {
                                 // current roots and the compact record are
                                 // complete. This field names the selected base;
                                 // the absent artifact/rootset makes that clear.
-                                revision: self
-                                    .batch
-                                    .base_revision
-                                    .ok_or_else(|| invalid("V2 successor base is absent"))?,
+                                revision: SourceRevision(
+                                    self.batch
+                                        .base_revision
+                                        .ok_or_else(|| invalid("V2 successor base is absent"))?,
+                                ),
                                 manifest_sha256: None,
                                 source_artifact: None,
                                 rootset_sha256: None,
@@ -1061,10 +1070,11 @@ impl<'host> SpoolCandidate<'host> {
                         },
                     )
                 })?;
-                let lock = match self
-                    .store
-                    .lock_for_v2_publication(&selected_work, self.deadline, &self.cancelled)
-                {
+                let lock = match self.store.lock_for_v2_publication(
+                    &selected_work,
+                    self.deadline,
+                    &self.cancelled,
+                ) {
                     Ok(lock) => lock,
                     Err(error) => {
                         return Err(io::Error::new(
@@ -1273,7 +1283,7 @@ impl<'host> SpoolCandidate<'host> {
                     self.store,
                     self,
                     index,
-                    revision,
+                    SourceRevision(revision),
                     manifest_sha256,
                     manifest_bytes,
                     fence.batch_sha256,
@@ -1941,7 +1951,7 @@ impl<'host> SpoolCandidate<'host> {
                     "SELECT id,path FROM v2_identity_delta WHERE id>?1 ORDER BY id LIMIT 1",
                     [after],
                     |row| {
-                        let id = bounded_text(row, 0, row_allowance)?;
+                        let id = bounded_text(row, row_allowance)?;
                         let path = match row.get_ref(1)? {
                             rusqlite::types::ValueRef::Null => None,
                             rusqlite::types::ValueRef::Text(bytes) => {
@@ -1965,7 +1975,7 @@ impl<'host> SpoolCandidate<'host> {
                     "SELECT id,path FROM v2_identity_delta ORDER BY id LIMIT 1",
                     [],
                     |row| {
-                        let id = bounded_text(row, 0, row_allowance)?;
+                        let id = bounded_text(row, row_allowance)?;
                         let path = match row.get_ref(1)? {
                             rusqlite::types::ValueRef::Null => None,
                             rusqlite::types::ValueRef::Text(bytes) => {
@@ -2235,7 +2245,9 @@ impl<'host> SpoolCandidate<'host> {
             return self.import_v2_legacy_base_objects();
         }
         if expected_count > self.max_packed_object_rows()? {
-            return Err(invalid("V2 base packed object rows exceed candidate profile"));
+            return Err(invalid(
+                "V2 base packed object rows exceed candidate profile",
+            ));
         }
         let mut after: Option<Vec<u8>> = None;
         let mut count = 0u64;
@@ -2328,13 +2340,18 @@ impl<'host> SpoolCandidate<'host> {
                 )?,
             };
             if size > self.limits.candidate.admission.max_member_bytes {
-                return Err(invalid("V2 legacy retirement object exceeds selected size bound"));
+                return Err(invalid(
+                    "V2 legacy retirement object exceeds selected size bound",
+                ));
             }
             let stored_size = size.to_be_bytes();
             self.db
                 .execute(
                     "INSERT OR IGNORE INTO base_objects(sha,size,location) VALUES(?1,?2,NULL)",
-                    params![retirement.sha256.as_bytes().as_slice(), stored_size.as_slice()],
+                    params![
+                        retirement.sha256.as_bytes().as_slice(),
+                        stored_size.as_slice()
+                    ],
                 )
                 .map_err(sql)?;
             let observed = self
@@ -2350,7 +2367,9 @@ impl<'host> SpoolCandidate<'host> {
             .query_row("SELECT COUNT(*) FROM base_objects", [], |row| row.get(0))
             .map_err(sql)?;
         if u64::try_from(count).map_err(invalid)? > self.max_packed_object_rows()? {
-            return Err(invalid("V2 legacy object closure exceeds candidate profile"));
+            return Err(invalid(
+                "V2 legacy object closure exceeds candidate profile",
+            ));
         }
         Ok(())
     }
@@ -2459,10 +2478,8 @@ impl<'host> SpoolCandidate<'host> {
                 .retained_batch_state(&self.batch)?
                 .checked_add(row_peak)
                 .ok_or_else(|| invalid("retired-only base object caller state overflow"))?;
-            let max_bytes = usize::try_from(
-                self.limits.candidate.admission.max_member_bytes,
-            )
-            .map_err(invalid)?;
+            let max_bytes = usize::try_from(self.limits.candidate.admission.max_member_bytes)
+                .map_err(invalid)?;
             let bytes = base
                 .borrow_mut()
                 .read_object_by_digest(revision, digest, Some(size), max_bytes, caller_state)?
@@ -2592,10 +2609,10 @@ impl<'host> SpoolCandidate<'host> {
     }
 
     fn max_packed_object_rows(&self) -> io::Result<u64> {
-        let members = u64::try_from(self.limits.candidate.admission.max_members)
-            .map_err(invalid)?;
-        let retirement_events = u64::try_from(self.limits.candidate.reader.max_manifest_entries)
-            .map_err(invalid)?;
+        let members =
+            u64::try_from(self.limits.candidate.admission.max_members).map_err(invalid)?;
+        let retirement_events =
+            u64::try_from(self.limits.candidate.reader.max_manifest_entries).map_err(invalid)?;
         members
             .checked_add(
                 retirement_events
@@ -2654,16 +2671,11 @@ impl<'host> SpoolCandidate<'host> {
             )
             .optional()
             .map_err(sql)?;
-        raw.map(|(size, offset)| {
-            Ok((decode_object_size(size)?, decode_object_size(offset)?))
-        })
-        .transpose()
+        raw.map(|(size, offset)| Ok((decode_object_size(size)?, decode_object_size(offset)?)))
+            .transpose()
     }
 
-    fn desired_object_after(
-        &self,
-        after: Option<&[u8]>,
-    ) -> io::Result<Option<(Digest256, u64)>> {
+    fn desired_object_after(&self, after: Option<&[u8]>) -> io::Result<Option<(Digest256, u64)>> {
         let raw: Option<(Vec<u8>, Vec<u8>)> = match after {
             Some(digest) => self
                 .db
@@ -2687,15 +2699,18 @@ impl<'host> SpoolCandidate<'host> {
         let Some((digest, size)) = raw else {
             return Ok(None);
         };
-        self.check_state(4096usize.checked_add(digest.len()).ok_or_else(|| invalid("desired object cursor state overflow"))?)?;
-        Ok(Some((decode_object_digest(digest)?, decode_object_size(size)?)))
+        self.check_state(
+            4096usize
+                .checked_add(digest.len())
+                .ok_or_else(|| invalid("desired object cursor state overflow"))?,
+        )?;
+        Ok(Some((
+            decode_object_digest(digest)?,
+            decode_object_size(size)?,
+        )))
     }
 
-    fn source_for_desired(
-        &self,
-        digest: Digest256,
-        size: u64,
-    ) -> io::Result<PackedObjectSourceV2> {
+    fn source_for_desired(&self, digest: Digest256, size: u64) -> io::Result<PackedObjectSourceV2> {
         if let Some(base) = self.base_object(digest)? {
             if base.size() != size {
                 return Err(invalid("desired object size differs from base extent"));
@@ -2716,9 +2731,7 @@ impl<'host> SpoolCandidate<'host> {
                 .as_ref()
                 .ok_or_else(|| invalid("candidate packed payload file is absent"))?
                 .file_for_sealed_slice(offset, size)?;
-            return Ok(PackedObjectSourceV2::from_slice(
-                digest, size, file, offset,
-            ));
+            return Ok(PackedObjectSourceV2::from_slice(digest, size, file, offset));
         }
         let file = self
             .store
@@ -2750,8 +2763,12 @@ impl<'host> SpoolCandidate<'host> {
         };
         let base = base_raw
             .map(|digest| {
-            self.check_state(4096usize.checked_add(digest.len()).ok_or_else(|| invalid("packed change cursor state overflow"))?)?;
-            decode_object_digest(digest)
+                self.check_state(
+                    4096usize
+                        .checked_add(digest.len())
+                        .ok_or_else(|| invalid("packed change cursor state overflow"))?,
+                )?;
+                decode_object_digest(digest)
             })
             .transpose()?;
         Ok(match (desired, base) {
@@ -2787,11 +2804,15 @@ impl<'host> SpoolCandidate<'host> {
             return Ok(());
         };
         if desired_size != size {
-            return Err(invalid("candidate update digest size differs from desired closure"));
+            return Err(invalid(
+                "candidate update digest size differs from desired closure",
+            ));
         }
         if let Some(base) = self.base_object(digest)? {
             if base.size() != size {
-                return Err(invalid("candidate update digest size differs from base extent"));
+                return Err(invalid(
+                    "candidate update digest size differs from base extent",
+                ));
             }
             return Ok(());
         }
@@ -2831,11 +2852,9 @@ impl<'host> SpoolCandidate<'host> {
         if let Some(mut cursor) = self.batch.update_cursor() {
             loop {
                 self.running()?;
-                let Some(row) = cursor.next(
-                    self.row_state_ceiling.get(),
-                    self.deadline,
-                    &self.cancelled,
-                )? else {
+                let Some(row) =
+                    cursor.next(self.row_state_ceiling.get(), self.deadline, &self.cancelled)?
+                else {
                     break;
                 };
                 self.check_state(row.workspace_state_bytes)?;
@@ -2874,7 +2893,11 @@ impl<'host> SpoolCandidate<'host> {
                     .map_err(sql)?,
             };
             let Some((digest, size)) = raw else { break };
-            self.check_state(4096usize.checked_add(digest.len()).ok_or_else(|| invalid("candidate stage plan state overflow"))?)?;
+            self.check_state(
+                4096usize
+                    .checked_add(digest.len())
+                    .ok_or_else(|| invalid("candidate stage plan state overflow"))?,
+            )?;
             if digest.len() != 32 {
                 return Err(invalid("candidate staged digest width differs"));
             }
@@ -2939,7 +2962,7 @@ impl<'host> SpoolCandidate<'host> {
     }
 
     fn stream_packed_update(
-        &mut self,
+        &self,
         path: &str,
         update: SourceUpdate,
         row_state_bytes: usize,
@@ -2997,7 +3020,11 @@ impl<'host> SpoolCandidate<'host> {
             self.db
                 .execute(
                     "INSERT INTO candidate_packed_objects(sha,size,offset) VALUES(?1,?2,?3)",
-                    params![update.sha256.as_bytes().as_slice(), size.as_slice(), offset.as_slice()],
+                    params![
+                        update.sha256.as_bytes().as_slice(),
+                        size.as_slice(),
+                        offset.as_slice()
+                    ],
                 )
                 .map_err(sql)?;
             self.db
@@ -3029,26 +3056,22 @@ impl<'host> SpoolCandidate<'host> {
         }
         let (planned_rows, planned_bytes) = self.plan_candidate_updates()?;
         if planned_rows != 0 {
-            let pack = self
-                .store
-                .begin_candidate_payload_pack(planned_bytes, self.deadline, &self.cancelled)?;
+            let pack = self.store.begin_candidate_payload_pack(
+                planned_bytes,
+                self.deadline,
+                &self.cancelled,
+            )?;
             self.payload_pack.replace(Some(pack));
         }
         if let Some(mut cursor) = self.batch.update_cursor() {
             loop {
                 self.running()?;
-                let Some(row) = cursor.next(
-                    self.row_state_ceiling.get(),
-                    self.deadline,
-                    &self.cancelled,
-                )? else {
+                let Some(row) =
+                    cursor.next(self.row_state_ceiling.get(), self.deadline, &self.cancelled)?
+                else {
                     break;
                 };
-                self.stream_packed_update(
-                    &row.path,
-                    row.update,
-                    row.workspace_state_bytes,
-                )?;
+                self.stream_packed_update(&row.path, row.update, row.workspace_state_bytes)?;
             }
         } else {
             for (path, update) in &self.batch.updates {
@@ -3069,7 +3092,9 @@ impl<'host> SpoolCandidate<'host> {
             .optional()
             .map_err(sql)?;
         if leftovers.is_some() {
-            return Err(invalid("candidate stage plan contains an unconsumed update"));
+            return Err(invalid(
+                "candidate stage plan contains an unconsumed update",
+            ));
         }
         if let Some(pack) = self.payload_pack.borrow_mut().as_mut() {
             pack.sync_and_reconcile(self.deadline, &self.cancelled)?;
@@ -3289,7 +3314,7 @@ impl<'host> SpoolCandidate<'host> {
             let next = base.borrow_mut().next_history_roots_after(
                 history_after
                     .as_ref()
-                    .map(|revision: &SourceRevision| revision.0.as_bytes()),
+                    .map(|revision: &SourceRevision| revision.0.as_bytes().as_slice()),
                 self.row_state_ceiling.get(),
             )?;
             let Some((roots, _raw_bytes)) = next else {
@@ -3766,7 +3791,8 @@ impl<'host> SpoolCandidate<'host> {
                         self.row_state_ceiling.get(),
                         self.deadline,
                         &self.cancelled,
-                    )? else {
+                    )?
+                    else {
                         break;
                     };
                     let ingest_state = row
@@ -3774,9 +3800,9 @@ impl<'host> SpoolCandidate<'host> {
                         .checked_add(crate::source_admission_store::INGEST_ACCOUNTED_SCRATCH_BYTES)
                         .ok_or_else(|| invalid("initial update ingest state overflow"))?;
                     self.check_state(ingest_state)?;
-                    let mut input = self
-                        .batch
-                        .open_verified_update(&row, self.deadline, &self.cancelled)?;
+                    let mut input =
+                        self.batch
+                            .open_verified_update(&row, self.deadline, &self.cancelled)?;
                     self.store.ingest_accounted(
                         &mut input,
                         row.update.size_bytes,
@@ -3940,9 +3966,7 @@ impl<'host> SpoolCandidate<'host> {
                 .checked_add(8192)
                 .ok_or_else(|| invalid("staged object read state overflow"))?;
             self.check_state(row_bytes)?;
-            let pack = self
-                .payload_pack
-                .borrow();
+            let pack = self.payload_pack.borrow();
             let pack = pack
                 .as_ref()
                 .ok_or_else(|| invalid("staged object pack is absent"))?;

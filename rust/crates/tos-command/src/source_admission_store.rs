@@ -8,6 +8,7 @@ use std::{
     cell::RefCell,
     fs::{File, Permissions},
     io::{self, Read, Seek, SeekFrom, Write},
+    os::fd::AsRawFd,
     os::unix::fs::FileExt,
     os::unix::fs::{MetadataExt, PermissionsExt},
     path::{Path, PathBuf},
@@ -539,8 +540,8 @@ fn partial_v2_namespace_allocation(
 ) -> io::Result<Option<u64>> {
     let root = match tos_fd_open::open_directory_at(parent, Path::new(name)) {
         Ok(root) => owned_directory(root)?,
-        Err(error) if error.kind() == io::ErrorKind::NotFound => return Ok(None),
-        Err(error) => return Err(error),
+        Err(error) if error.source.as_ref().is_some_and(|source| source.kind() == io::ErrorKind::NotFound) => return Ok(None),
+        Err(error) => return Err(invalid(error)),
     };
     let mut allocated = allocated_bytes(&root, "V2 store directory allocation overflow")?;
     for child in ["objects", "revisions", "staging"] {
@@ -554,8 +555,8 @@ fn partial_v2_namespace_allocation(
                     )?)
                     .ok_or_else(|| invalid("V2 store namespace allocation overflow"))?;
             }
-            Err(error) if error.kind() == io::ErrorKind::NotFound => (),
-            Err(error) => return Err(error),
+            Err(error) if error.source.as_ref().is_some_and(|source| source.kind() == io::ErrorKind::NotFound) => (),
+            Err(error) => return Err(invalid(error)),
         }
     }
     let parent_after = allocated_bytes(parent, "V2 store parent allocation overflow")?;
@@ -586,8 +587,8 @@ fn partial_v2_existing_root_allocation(
                     )?)
                     .ok_or_else(|| invalid("V2 store namespace allocation overflow"))?;
             }
-            Err(error) if error.kind() == io::ErrorKind::NotFound => (),
-            Err(error) => return Err(error),
+            Err(error) if error.source.as_ref().is_some_and(|source| source.kind() == io::ErrorKind::NotFound) => (),
+            Err(error) => return Err(invalid(error)),
         }
     }
     Ok(allocated)
@@ -736,8 +737,8 @@ fn lock_at_root(
                             Ok(file) => {
                                 allocated_bytes(&file, "V2 admission lock allocation overflow")?
                             }
-                            Err(error) if error.kind() == io::ErrorKind::NotFound => 0,
-                            Err(error) => return Err(error),
+                            Err(error) if error.source.as_ref().is_some_and(|source| source.kind() == io::ErrorKind::NotFound) => 0,
+                            Err(error) => return Err(invalid(error)),
                         };
                         root_bytes
                             .checked_add(lock_bytes)
@@ -1103,7 +1104,7 @@ impl AdmissionStore {
                 return Err(error.into());
             }
         }
-        let file: File = match openat(
+        let mut file: File = match openat(
             &self.root,
             temp_name.as_str(),
             OFlags::WRONLY
@@ -3635,8 +3636,8 @@ impl AdmissionStore {
                 store.attach_v2_allocation_accountant(accountant)?;
                 return Ok(store);
             }
-            Err(error) if error.kind() == io::ErrorKind::NotFound => (),
-            Err(error) => return Err(error),
+            Err(error) if error.source.as_ref().is_some_and(|source| source.kind() == io::ErrorKind::NotFound) => (),
+            Err(error) => return Err(invalid(error)),
         }
 
         let unit = accountant.selected_allocation_unit_bytes();
@@ -3774,7 +3775,7 @@ impl AdmissionStore {
             .try_into()
             .map_err(|_| invalid("V2 namespace selection width differs"))?;
         let missing_count = missing.iter().filter(|missing| **missing).count();
-        let namespace_reservation = if missing_count == 0 {
+        let mut namespace_reservation = if missing_count == 0 {
             None
         } else {
             let blocks = u64::try_from(missing_count)
@@ -4634,7 +4635,7 @@ impl AdmissionStore {
         self.verify_layout()?;
         let file = match tos_fd_open::open_regular_at(&self.objects, Path::new(&digest.to_hex())) {
             Ok(file) => file,
-            Err(error) if error.kind() == io::ErrorKind::NotFound => return Ok(None),
+            Err(error) if error.source.as_ref().is_some_and(|source| source.kind() == io::ErrorKind::NotFound) => return Ok(None),
             Err(error) => return Err(invalid(error)),
         };
         let metadata = file.metadata()?;

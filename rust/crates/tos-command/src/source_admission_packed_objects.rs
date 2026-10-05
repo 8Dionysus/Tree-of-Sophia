@@ -217,6 +217,8 @@ impl PackedObjectChangeV2 {
 #[derive(Clone, Copy)]
 pub(crate) struct PackedObjectLimitsV2 {
     pub(crate) tree_limits: AuthenticatedTreeLimitsV1,
+    /// Physical bounds selected by the enclosing invocation.
+    pub(crate) segment_limits: tos_segment_store::SegmentLimits,
     pub(crate) max_working_state_bytes: usize,
     /// All retained caller-owned state live across object tree/frame work.
     pub(crate) caller_live_state_bytes: usize,
@@ -234,6 +236,7 @@ pub(crate) struct PackedObjectLimitsV2 {
 
 impl PackedObjectLimitsV2 {
     fn validate(self) -> io::Result<Self> {
+        self.segment_limits.validate().map_err(invalid)?;
         if self.max_working_state_bytes == 0
             || self.max_working_state_bytes == usize::MAX
             || self.caller_live_state_bytes >= self.max_working_state_bytes
@@ -241,7 +244,7 @@ impl PackedObjectLimitsV2 {
             || self.tree_limits.max_nodes == u64::MAX
             || self.tree_limits.max_total_bytes == 0
             || self.tree_limits.max_total_bytes == u64::MAX
-            || self.tree_limits.max_value_bytes < EXTENT_VALUE_BYTES as u64
+            || self.tree_limits.max_value_bytes < EXTENT_VALUE_BYTES
             || self.max_work_units == 0
             || self.max_work_units == u64::MAX
             || self.max_objects == u64::MAX
@@ -280,10 +283,10 @@ impl PackedObjectWriterV2 {
         I: IntoIterator<Item = io::Result<PackedObjectSourceV2>>,
     {
         let limits = limits.validate()?;
-        if limits.max_pack_frames > segment.limits().max_frames {
+        if limits.max_pack_frames > limits.segment_limits.max_frames {
             return Err(invalid("packed object pack-frame cap exceeds segment limits"));
         }
-        let batch_cap = frame_batch_cap(segment.limits(), limits)?;
+        let batch_cap = frame_batch_cap(limits.segment_limits, limits)?;
         let batch_state = batch_state_bytes(batch_cap)?;
         let additional_live = limits
             .caller_live_state_bytes
@@ -342,13 +345,13 @@ impl PackedObjectWriterV2 {
         I: IntoIterator<Item = io::Result<PackedObjectChangeV2>>,
     {
         let limits = limits.validate()?;
-        if limits.max_pack_frames > segment.limits().max_frames {
+        if limits.max_pack_frames > limits.segment_limits.max_frames {
             return Err(invalid("packed object pack-frame cap exceeds segment limits"));
         }
         if old.kind.as_slice() != OBJECT_EXTENTS_KIND {
             return Err(invalid("packed object delta root kind differs"));
         }
-        let batch_cap = frame_batch_cap(segment.limits(), limits)?;
+        let batch_cap = frame_batch_cap(limits.segment_limits, limits)?;
         let batch_state = batch_state_bytes(batch_cap)?;
         let additional_live = limits
             .caller_live_state_bytes
@@ -527,7 +530,7 @@ where
             {
                 return Err(invalid("retained packed object size differs"));
             }
-        } else if source.size > self.segment.limits().max_frame_bytes {
+        } else if source.size > self.limits.segment_limits.max_frame_bytes {
             return Err(invalid("packed object exceeds selected frame size"));
         }
         self.last = Some(key);
@@ -594,7 +597,7 @@ where
             });
         }
         let operation_limits = seal_operation_limits(
-            self.segment.limits(),
+            self.limits.segment_limits,
             self.limits,
             self.batch_state,
             self.work.segment_work.work_units,
@@ -808,7 +811,7 @@ where
                     if source.digest != change.digest
                         || source.existing.is_some()
                         || source.source.is_none()
-                        || source.size > self.segment.limits().max_frame_bytes
+                        || source.size > self.limits.segment_limits.max_frame_bytes
                     {
                         return Err(invalid("packed object upsert payload differs"));
                     }
@@ -849,7 +852,7 @@ where
             });
         }
         let operation_limits = seal_operation_limits(
-            self.segment.limits(),
+            self.limits.segment_limits,
             self.limits,
             self.batch_state,
             self.work.segment_work.work_units,
@@ -964,7 +967,12 @@ fn seal_operation_limits(
     let max_work_bytes = segment
         .max_segment_bytes
         .checked_mul(4)
-        .and_then(|bytes| bytes.checked_add(segment.max_journal_bytes.saturating_mul(8)))
+        .and_then(|bytes| {
+            u64::try_from(segment.max_journal_bytes)
+                .ok()?
+                .checked_mul(8)
+                .and_then(|journal| bytes.checked_add(journal))
+        })
         .filter(|bytes| *bytes > 0 && *bytes < u64::MAX)
         .ok_or_else(|| invalid("packed segment work-byte bound overflow"))?;
     let chunks = segment
@@ -1052,7 +1060,7 @@ impl<'a> PackedObjectReaderV2<'a> {
             return Err(invalid("packed object descriptor kind differs"));
         }
         if descriptor.entries > limits.max_objects
-            || limits.max_pack_frames > segment.limits().max_frames
+            || limits.max_pack_frames > limits.segment_limits.max_frames
         {
             return Err(invalid("packed object root exceeds selected cardinality"));
         }
@@ -1159,7 +1167,7 @@ impl<'a> PackedObjectReaderV2<'a> {
             .map(PackedObjectLocationV2::decode)
             .transpose()?;
         if location.is_some_and(|location| {
-            location.size > self.segment.limits().max_frame_bytes
+            location.size > self.limits.segment_limits.max_frame_bytes
                 || location.frame_count > self.limits.max_pack_frames
                 || expected_size.is_some_and(|size| size != location.size)
         }) {
@@ -1193,7 +1201,7 @@ impl<'a> PackedObjectReaderV2<'a> {
         sink: &mut dyn io::Write,
     ) -> io::Result<SegmentOperationWorkV1> {
         if location.size != size
-            || size > self.segment.limits().max_frame_bytes
+            || size > self.limits.segment_limits.max_frame_bytes
             || location.frame_count > self.limits.max_pack_frames
             || self.last_lookup != Some((digest, *location))
         {
@@ -1240,7 +1248,7 @@ impl<'a> PackedObjectReaderV2<'a> {
                 sink,
             )
             .map_err(|_| invalid("packed object frame verification failed"))?;
-        self.segment_work = add_segment_work(self.segment_work, work)?;
+        add_segment_work(&mut self.segment_work, work)?;
         if self.segment_work.work_units > self.limits.max_work_units {
             return Err(invalid("packed object shared work-unit budget exceeded"));
         }

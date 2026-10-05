@@ -104,7 +104,7 @@ impl FoundationOrchestratorError {
                 // this fixed buffer; the CLI separately charges emitted bytes.
                 use std::fmt::Write as _;
                 let mut reason = String::with_capacity(MAX_PUBLIC_BUDGET_REASON_BYTES);
-                let formatted = (|| {
+                let formatted: std::fmt::Result = (|| {
                     write!(reason, "{stage}: owner budget check {check} used=")?;
                     match used {
                         Some(value) => write!(reason, "{value}")?,
@@ -2619,11 +2619,13 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
             max_claim_bytes,
             catalog_limits
                 .max_rows
-                .min(catalog_operation.output_bytes)
+                .min(u64::try_from(catalog_operation.output_bytes)
+                    .map_err(|_| incomplete("catalog output byte ceiling exceeds u64"))?)
                 .max(1),
             catalog_operation
                 .tmpfs_bytes
-                .min(catalog_operation.output_bytes)
+                .min(u64::try_from(catalog_operation.output_bytes)
+                    .map_err(|_| incomplete("catalog output byte ceiling exceeds u64"))?)
                 .max(1),
         )
         .map_err(FoundationOrchestratorError::Command)?;
@@ -2661,7 +2663,8 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
     let max_generated_bytes = usize::try_from(
         catalog_operation
             .tmpfs_bytes
-            .min(catalog_operation.output_bytes)
+            .min(u64::try_from(catalog_operation.output_bytes)
+                    .map_err(|_| incomplete("catalog output byte ceiling exceeds u64"))?)
             .min((usize::MAX - 1) as u64),
     )
     .map_err(|_| incomplete("candidate generated catalog byte cap range"))?;
@@ -2720,7 +2723,7 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
     .map_err(FoundationOrchestratorError::Catalog)?;
     let complete_catalog = match &catalog_result.outcome {
         FoundationCatalogOutcome::Complete(result)
-            if result.issues.is_empty() && result.profiles.complete =>
+            if result.issues.is_empty() && result.profiles.files().is_ok() =>
         {
             result
         }

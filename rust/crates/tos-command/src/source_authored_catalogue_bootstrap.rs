@@ -453,6 +453,8 @@ pub(crate) fn publish(
             after: Some(receipt_bytes),
         }],
         new_directories: Vec::new(),
+        source_readset: None,
+        source_successor: None,
     };
     tx::validate_plan(&plan)?;
     let transaction_result = lock.apply_initial(

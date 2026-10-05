@@ -1157,6 +1157,7 @@ impl V2SeenPackSpill {
     pub(crate) fn verify_packed_payload_segments(
         &self,
         segment: &SegmentStore,
+        segment_limits: tos_segment_store::SegmentLimits,
         io_ledger: Arc<dyn AuthenticatedTreeIoLedgerV1>,
         max_working_state_bytes: usize,
         caller_live_state_bytes: usize,
@@ -1165,6 +1166,7 @@ impl V2SeenPackSpill {
         cancelled: &AtomicBool,
     ) -> std::io::Result<()> {
         let result = (|| {
+            segment_limits.validate().map_err(invalid)?;
             self.check_context()
                 .map_err(|_| invalid("V2 packed-object context is unavailable"))?;
             if self.packed_phase.get() != PackedObjectPhase::Loading
@@ -1183,7 +1185,8 @@ impl V2SeenPackSpill {
                 if previous.is_some_and(|prior| pack.segment_digest <= prior)
                     || pack.frame_count == 0
                     || pack.frame_count > self.limits.max_pack_frames
-                    || pack.segment_size > segment.limits().max_segment_bytes
+                    || pack.frame_count > segment_limits.max_frames
+                    || pack.segment_size > segment_limits.max_segment_bytes
                 {
                     return Err(invalid("V2 packed payload pack inventory differs"));
                 }

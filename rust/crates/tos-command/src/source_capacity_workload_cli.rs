@@ -374,6 +374,8 @@ fn run_selected(
                 .segment,
             member_tree_limits: v2_profile.tree_limits,
             object_limits: PackedObjectLimitsV2 {
+                segment_limits: resources.v2_base_read_limits.as_ref()
+                    .ok_or_else(|| invalid("capacity fixture segment limits absent"))?.segment,
                 tree_limits: v2_profile.tree_limits,
                 max_working_state_bytes: v2_profile.max_working_state_bytes,
                 caller_live_state_bytes,

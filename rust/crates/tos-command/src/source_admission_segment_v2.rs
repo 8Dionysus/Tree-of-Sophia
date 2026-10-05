@@ -186,10 +186,12 @@ fn append_storage_descriptors(
         .as_array_mut()
         .ok_or_else(|| invalid("storage tuple is not an array"))?;
     if let Some(objects) = objects {
-        fields.push(tree_bytes(objects)?);
+        fields.push(serde_json::from_slice(&tree_bytes(objects)?)
+            .map_err(|_| invalid("object tree descriptor JSON differs"))?);
     }
     if let Some(identity_paths) = identity_paths {
-        fields.push(tree_bytes(identity_paths)?);
+        fields.push(serde_json::from_slice(&tree_bytes(identity_paths)?)
+            .map_err(|_| invalid("identity tree descriptor JSON differs"))?);
     }
     Ok(value)
 }
@@ -323,25 +325,25 @@ fn completion_proof_value(
     proof: Option<NativeAdmissionCompletionProofV1>,
 ) -> serde_json::Value {
     proof.map_or(serde_json::Value::Null, |proof| {
-        let (protocol, caps) = match proof.prepared_schema.protocol {
+        let (protocol, caps) = match proof.prepared_schema().protocol {
             CutPreparedSchemaProtocol::LegacyScalar => ("legacy-scalar", serde_json::Value::Null),
             CutPreparedSchemaProtocol::DiagnosticsV2 { caps_sha256 } => {
                 ("diagnostics-v2", serde_json::json!(caps_sha256.to_hex()))
             }
         };
         serde_json::json!([
-            proof.validator_sha256.to_hex(),
-            membership_v1_value(proof.membership_v1),
-            proof.source_bytes,
+            proof.validator_sha256().to_hex(),
+            membership_v1_value(proof.membership_v1()),
+            proof.source_bytes(),
             [
-                proof.prepared_schema.schema_profile.id(),
-                proof.prepared_schema.schema_set_sha256.to_hex(),
-                proof.prepared_schema.worker_sha256.to_hex(),
+                proof.prepared_schema().schema_profile.id(),
+                proof.prepared_schema().schema_set_sha256.to_hex(),
+                proof.prepared_schema().worker_sha256.to_hex(),
                 [protocol, caps]
             ],
-            proof.identity_count,
-            proof.dependency_source_count,
-            proof.dependency_count
+            proof.identity_count(),
+            proof.dependency_source_count(),
+            proof.dependency_count()
         ])
     })
 }
@@ -739,12 +741,12 @@ impl SourceRevisionRootsV2 {
                     )
         });
         let proof_matches = self.completion_proof.is_none_or(|proof| {
-            proof.validator_sha256 == self.validator_sha256
-                && proof.source_bytes == self.source_bytes
-                && proof.identity_count == self.identity_count
-                && proof.dependency_source_count == self.dependency_source_count
-                && proof.dependency_count == self.dependency_count
-                && proof.membership_v1.is_none_or(|membership| {
+            proof.validator_sha256() == self.validator_sha256
+                && proof.source_bytes() == self.source_bytes
+                && proof.identity_count() == self.identity_count
+                && proof.dependency_source_count() == self.dependency_source_count
+                && proof.dependency_count() == self.dependency_count
+                && proof.membership_v1().is_none_or(|membership| {
                     self.membership_v1 == Some(membership)
                 })
         });
@@ -1414,12 +1416,12 @@ impl CompactCommitV2 {
                     )
         });
         let proof_matches = self.completion_proof.is_none_or(|proof| {
-            proof.validator_sha256 == self.validator_sha256
-                && proof.source_bytes == self.source_bytes
-                && proof.identity_count == self.identity_count
-                && proof.dependency_source_count == self.dependency_source_count
-                && proof.dependency_count == self.dependency_count
-                && proof.membership_v1.is_none_or(|membership| {
+            proof.validator_sha256() == self.validator_sha256
+                && proof.source_bytes() == self.source_bytes
+                && proof.identity_count() == self.identity_count
+                && proof.dependency_source_count() == self.dependency_source_count
+                && proof.dependency_count() == self.dependency_count
+                && proof.membership_v1().is_none_or(|membership| {
                     self.membership_v1 == Some(membership)
                 })
         });
@@ -1964,7 +1966,7 @@ impl NativeV2TreeIo {
                     current.checked_add(actual_removed)
                 });
             let _ = self.custody.update_actual_allocated(previous_actual);
-            return Err(invalid(error.to_string()));
+            return Err(io::Error::new(io::ErrorKind::InvalidData, error));
         }
         if self
             .reserved
@@ -2106,6 +2108,18 @@ fn writer_context_state_bytes(
         .ok_or_else(|| invalid("V2 writer retained context state overflow"))
 }
 
+fn selected_segment_limits(
+    profile: &super::source_foundation_admission::NativeSegmentV2Budget,
+) -> io::Result<SegmentLimits> {
+    Ok(SegmentLimits {
+        max_segment_bytes: profile.max_allocated_bytes,
+        max_frame_bytes: profile.max_frame_bytes,
+        max_frames: u32::try_from(profile.tree_limits.max_nodes.min(u32::MAX as u64))
+            .map_err(|_| invalid("V2 segment frame limit exceeds range"))?.max(1),
+        max_journal_bytes: profile.max_working_state_bytes.min(4 * 1024 * 1024).max(128),
+    })
+}
+
 fn packed_object_limits(
     profile: &super::source_foundation_admission::NativeSegmentV2Budget,
     segment: &SegmentStore,
@@ -2139,15 +2153,14 @@ fn packed_object_limits(
         return Err(invalid("packed object shared work ceiling exhausted"));
     }
     Ok(PackedObjectLimitsV2 {
+        segment_limits: selected_segment_limits(profile)?,
         tree_limits,
         max_working_state_bytes: profile.max_working_state_bytes,
         caller_live_state_bytes,
         max_work_units,
         max_objects,
         max_delta_rows: rows_remaining,
-        max_pack_frames: segment
-            .limits()
-            .max_frames
+        max_pack_frames: selected_segment_limits(profile)?.max_frames
             .min(MAX_PACKED_OBJECT_FRAMES_V2),
     })
 }
@@ -2215,17 +2228,7 @@ pub(crate) fn build_initial_rootset_v2(
             "V2 persistent store profile is below metadata floor",
         ));
     }
-    let segment_limits = SegmentLimits {
-        max_segment_bytes: segment_bytes,
-        max_frame_bytes: profile.max_frame_bytes,
-        max_frames: u32::try_from(profile.tree_limits.max_nodes.min(u32::MAX as u64))
-            .map_err(|_| invalid("V2 segment frame limit exceeds range"))?
-            .max(1),
-        max_journal_bytes: profile
-            .max_working_state_bytes
-            .min(4 * 1024 * 1024)
-            .max(128),
-    };
+    let segment_limits = selected_segment_limits(profile)?;
     let tree_ledger: Arc<dyn AuthenticatedTreeIoLedgerV1> = tree_io.clone();
     let segment = store.segment_store_v2_with_io(
         SOURCE_ADMISSION_V2_DOMAIN,
@@ -2586,7 +2589,7 @@ pub(crate) fn build_initial_rootset_v2(
             cancelled,
             &mut debit_work,
         )
-        .map_err(tree_io_error)?;
+        .map_err(|error| io::Error::new(io::ErrorKind::InvalidData, error))?;
     add_tree_work(&mut used, history_read_work, base_limits)?;
     let current_row = current_row.ok_or_else(|| invalid("V2 current history row is absent"))?;
     if current_row.len() != current_row_len {
@@ -3077,7 +3080,7 @@ where
             cancelled,
             &mut debit_work,
         )
-        .map_err(tree_io_error)?;
+        .map_err(|error| io::Error::new(io::ErrorKind::InvalidData, error))?;
     add_tree_work(used, work, profile.tree_limits)?;
     *used_rows = (*used_rows)
         .checked_add(descriptor.entries)
@@ -3426,17 +3429,7 @@ pub(crate) fn build_v1_migration_rootset_v2(
             "V1 migration persistent profile is below metadata floor",
         ));
     }
-    let segment_limits = SegmentLimits {
-        max_segment_bytes: segment_bytes,
-        max_frame_bytes: profile.max_frame_bytes,
-        max_frames: u32::try_from(profile.tree_limits.max_nodes.min(u32::MAX as u64))
-            .map_err(|_| invalid("V1 migration segment frame limit exceeds range"))?
-            .max(1),
-        max_journal_bytes: profile
-            .max_working_state_bytes
-            .min(4 * 1024 * 1024)
-            .max(128),
-    };
+    let segment_limits = selected_segment_limits(profile)?;
     let tree_ledger: Arc<dyn AuthenticatedTreeIoLedgerV1> = tree_io.clone();
     let segment = store.segment_store_v2_with_io(
         SOURCE_ADMISSION_V2_DOMAIN,
@@ -3900,18 +3893,18 @@ pub(crate) fn build_v1_migration_rootset_v2(
             cancelled,
             &mut debit_work,
         )
-        .map_err(tree_io_error)?;
+        .map_err(|error| io::Error::new(io::ErrorKind::InvalidData, error))?;
     add_tree_work(&mut used, history_read_work, profile.tree_limits)?;
     let history_row =
         history_row.ok_or_else(|| invalid("V1 migration current history row absent"))?;
-    if history_row.value.len() != current_row_len
-        || Digest256::of_bytes(&history_row.value) != current_row_sha
+    if history_row.len() != current_row_len
+        || Digest256::of_bytes(&history_row) != current_row_sha
     {
         return Err(invalid("V1 migration current history row differs"));
     }
     drop(history_row);
-    base.verify_current_fence()
-        .map_err(|error| io::Error::new(io::ErrorKind::InvalidData, error))?;
+    // The same retained selector is rechecked below after every streamed read.
+    // The streamed V1 reader owns an immutable selected revision index.
     let selected_after =
         store.current_selection(pointer_limits, deadline, cancelled, Some(&profile.io))?;
     if selected_after != Some(selected) {
@@ -4277,6 +4270,7 @@ pub(crate) fn build_successor_rootset_v2(
             &mut work,
             &mut full_rows,
             tree_live_state,
+            shared_work,
             deadline,
             cancelled,
         )?
@@ -4574,7 +4568,7 @@ pub(crate) fn build_successor_rootset_v2(
             cancelled,
             &mut debit_work,
         )
-        .map_err(tree_io_error)?;
+        .map_err(|error| io::Error::new(io::ErrorKind::InvalidData, error))?;
     add_tree_work(&mut work, read_work, profile.tree_limits)?;
     let history_row = history_row.ok_or_else(|| invalid("V2 successor history row is absent"))?;
     if history_row.len() != expected_history_row_bytes
@@ -4656,7 +4650,7 @@ where
             cancelled,
             &mut debit_work,
         )
-        .map_err(tree_io_error)?;
+        .map_err(|error| io::Error::new(io::ErrorKind::InvalidData, error))?;
     *work = cumulative_work;
     Ok(next)
 }

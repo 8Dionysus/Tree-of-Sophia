@@ -1502,7 +1502,7 @@ pub struct WeightedScaleHistoryPlanV1 {
 
 /// Explicit inputs for the eventual OPS bill. `None` means the scale producer
 /// must measure payload sharing; it cannot claim compression or CAS savings.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct WeightedScaleForecastInputsV1 {
     pub target_records: u64,
     /// Raw filesystem input for the real source census: one member file per

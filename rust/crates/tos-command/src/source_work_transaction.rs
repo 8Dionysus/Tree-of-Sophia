@@ -500,8 +500,8 @@ fn parse_readset_presence(value: &JsonValue) -> SourceCommandResult<Option<Sourc
     match value {
         JsonValue::Null => Ok(None),
         JsonValue::String(value) => match value.as_str() {
-            "file" => Ok(Some(SourcePresenceV1::File)),
-            "materialized_directory" => Ok(Some(SourcePresenceV1::MaterializedDirectory)),
+            Some("file") => Ok(Some(SourcePresenceV1::File)),
+            Some("materialized_directory") => Ok(Some(SourcePresenceV1::MaterializedDirectory)),
             _ => Err(SourceCommandError::Invalid("retained source readset presence")),
         },
         _ => Err(SourceCommandError::Invalid("retained source readset presence")),
@@ -586,7 +586,9 @@ fn parse_source_readset(value: &JsonValue) -> SourceCommandResult<SourceCutReads
         cmd::exact_keys(entry, &["id", "expected_path"])?;
         let path = match cmd::field(entry, "expected_path")? {
             JsonValue::Null => None,
-            JsonValue::String(path) => Some(readset_relative_path(path.as_str())?),
+            JsonValue::String(path) => Some(readset_relative_path(path.as_str().ok_or(
+                SourceCommandError::Invalid("retained source identity path"),
+            )?)?),
             _ => return Err(SourceCommandError::Invalid("retained source identity path")),
         };
         readset.identities.push(SourceCutIdentityWitness {
@@ -3150,7 +3152,26 @@ impl WorkCorpusFence<'_> {
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> SourceCommandResult<WorkTransportResult> {
-        self.apply_selected(plan, snapshot, None, false, guard, None, deadline, cancelled)
+        self.apply_selected(plan, snapshot, None, false, false, guard, None, deadline, cancelled)
+    }
+    /// Initial-only publication shares the selected mover and issuer, and
+    /// refuses an existing head or journal before loading any retained plan.
+    pub(crate) fn apply_initial(
+        &self,
+        plan: WorkPlan,
+        snapshot: &PublicationSnapshot,
+        guard: impl FnMut(&JsonValue, WorkGuard<'_>) -> SourceCommandResult<()>,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<WorkTransportResult> {
+        if snapshot.token.is_some() || snapshot.generation != 0 {
+            return Err(SourceCommandError::Conflict(
+                "initial selected publication already exists",
+            ));
+        }
+        self.apply_selected(
+            plan, snapshot, None, false, true, guard, None, deadline, cancelled,
+        )
     }
     pub(crate) fn apply_retained_item(
         &self,
@@ -3172,7 +3193,7 @@ impl WorkCorpusFence<'_> {
                 "retained Item selection differs",
             ));
         }
-        self.apply_selected(plan, snapshot, renewal, true, guard, None, deadline, cancelled)
+        self.apply_selected(plan, snapshot, renewal, true, false, guard, None, deadline, cancelled)
     }
 
     /// Apply a validated SourceEntry Work delta together with its selected V2
@@ -3212,6 +3233,7 @@ impl WorkCorpusFence<'_> {
             snapshot,
             None,
             false,
+            false,
             guard,
             Some(SourceSuccessorHooks {
                 begin_source_intent: &mut begin_source_intent,
@@ -3229,6 +3251,7 @@ impl WorkCorpusFence<'_> {
         snapshot: &PublicationSnapshot,
         renewal: Option<JsonValue>,
         item_retained: bool,
+        initial_only: bool,
         mut guard: impl FnMut(&JsonValue, WorkGuard<'_>) -> SourceCommandResult<()>,
         mut source_hooks: Option<SourceSuccessorHooks<'_>>,
         deadline: Instant,
@@ -3254,7 +3277,16 @@ impl WorkCorpusFence<'_> {
             },
         )?;
         let current = read_state(self.fs, deadline, cancelled)?;
-        let existing = load_retained(self.fs, &id, deadline, cancelled)?;
+        let existing = if initial_only {
+            if current.is_some() || journal_dir(self.fs, &id, false)?.is_some() {
+                return Err(SourceCommandError::Conflict(
+                    "initial selected transaction already exists",
+                ));
+            }
+            None
+        } else {
+            load_retained(self.fs, &id, deadline, cancelled)?
+        };
         if item_retained && existing.is_none() {
             return Err(SourceCommandError::Conflict(
                 "selected Item orphan vanished",
@@ -3479,7 +3511,7 @@ impl WorkCorpusFence<'_> {
         rollback: bool,
         recovery_authorization: Option<JsonValue>,
         mut guard: impl FnMut(&JsonValue, WorkGuard<'_>) -> SourceCommandResult<()>,
-        source_hooks: Option<SourceSuccessorHooks<'_>>,
+        mut source_hooks: Option<SourceSuccessorHooks<'_>>,
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> SourceCommandResult<WorkTransportResult> {

@@ -1613,7 +1613,7 @@ impl IndexView<'_> {
         .map_err(sql)?;
         let row = row
             .map(|(id, path)| {
-                Ok((
+                Ok::<_, io::Error>((
                     id,
                     RelativePath::parse(&path)
                         .map_err(|_| invalid("native index identity path is invalid"))?,
@@ -1745,7 +1745,7 @@ impl IndexView<'_> {
         }.optional().map_err(sql)?;
         let pair = row
             .map(|(source, target)| {
-                Ok((
+                Ok::<_, io::Error>((
                     RelativePath::parse(&source)
                         .map_err(|_| invalid("native dependency source path is invalid"))?,
                     RelativePath::parse(&target)

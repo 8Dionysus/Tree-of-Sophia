@@ -558,6 +558,7 @@ fn visit_directory(
         let name_os = entry.file_name();
         let name = name_os
             .to_str()
+            .ok()
             .filter(|name| !name.is_empty() && name.len() <= 255)
             .ok_or_else(|| invalid("source filesystem census child name is not bounded UTF-8"))?;
         if name == "." || name == ".." {

@@ -11,6 +11,7 @@ use crate::source_foundation_admission::{
     NativeSourceValidator, NativeSpoolRefusal, PreparedAdmissionExecution, PreparedSpooledExecution,
 };
 use serde_json::json;
+use std::os::unix::fs::MetadataExt;
 use std::fs::File;
 use std::{
     cell::{Cell, RefCell},
@@ -1726,6 +1727,7 @@ fn run_spooled_inner(
                 reader_limits: crate::source_admission_indexed_input::IndexedInputLimitsV1 {
                     member_tree,
                     packed_objects: crate::source_admission_packed_objects::PackedObjectLimitsV2 {
+                        segment_limits: original.segment,
                         tree_limits: object_tree,
                         max_working_state_bytes,
                         caller_live_state_bytes,

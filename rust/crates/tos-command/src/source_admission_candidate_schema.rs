@@ -47,7 +47,7 @@ pub(crate) fn inspect_candidate_records_stored<'store>(
     >,
     ItemRefusal,
 > {
-    let result = (|| {
+    let result = (move || {
         let deadline = limits.operation.deadline;
         input.verify_invocation(deadline, cancelled)?;
         let mut binding = CandidateSchemaBinding::new(

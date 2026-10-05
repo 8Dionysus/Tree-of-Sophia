@@ -218,7 +218,7 @@ pub(crate) fn cover_full_member_root_v2<'a>(
                         "member path is not UTF8",
                     )
                 })?;
-                let path = RelativePath::new(text).map_err(|_| {
+                let path = RelativePath::parse(text).map_err(|_| {
                     tos_source_store::StoreError::new(
                         tos_source_store::StoreErrorCode::CorruptSelectedObject,
                         "member path is not canonical",
@@ -336,7 +336,7 @@ pub(crate) fn cover_member_interval_v2(
                     return Err(interval_refusal());
                 }
                 let text = std::str::from_utf8(leaf.key).map_err(|_| interval_refusal())?;
-                let path = RelativePath::new(text).map_err(|_| interval_refusal())?;
+                let path = RelativePath::parse(text).map_err(|_| interval_refusal())?;
                 if path.as_str().as_bytes() != leaf.key {
                     return Err(interval_refusal());
                 }

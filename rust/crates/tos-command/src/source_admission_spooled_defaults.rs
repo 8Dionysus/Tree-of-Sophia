@@ -2009,7 +2009,7 @@ struct CandidateDiscoveryRunSummaryCodecV1<'a> {
 }
 
 impl<'a> From<&'a DiscoveryRunSummary> for CandidateDiscoveryRunSummaryCodecV1<'a> {
-    fn from(summary: &DiscoveryRunSummary) -> Self {
+    fn from(summary: &'a DiscoveryRunSummary) -> Self {
         Self {
             version: 1,
             target_kind: &summary.target_kind,
@@ -2087,7 +2087,7 @@ impl DiscoveryRunSummaryStore for CandidateDiscoveryRunSummaries<'_, '_, '_, '_,
             return Err(source_refusal());
         }
         self.preflight(Self::path_workspace(path)?, max_state_bytes)?;
-        RelativePath::new(path).map_err(|_| source_refusal())?;
+        RelativePath::parse(path).map_err(|_| source_refusal())?;
         self.context.check()?;
         let codec = CandidateDiscoveryRunSummaryCodecV1::from(summary);
         let encoded_bytes = json_len(&codec, max_state_bytes)?;
@@ -2153,7 +2153,7 @@ impl DiscoveryRunSummaryStore for CandidateDiscoveryRunSummaries<'_, '_, '_, '_,
         }
         let probe_workspace = Self::path_workspace(path)?;
         self.preflight(probe_workspace, max_state_bytes)?;
-        RelativePath::new(path).map_err(|_| source_refusal())?;
+        RelativePath::parse(path).map_err(|_| source_refusal())?;
         self.charge_scan_rows(1)?;
         let mut statement = self
             .db
@@ -10037,7 +10037,7 @@ impl SourceFoundationClosureSchemaRequestStore
         {
             return Err(source_refusal());
         }
-        RelativePath::new(path).map_err(|_| source_refusal())?;
+        RelativePath::parse(path).map_err(|_| source_refusal())?;
         let workspace = Self::event_path_workspace(path.len(), 2)?;
         self.preflight(workspace, max_state_bytes)?;
         self.context.check()?;
@@ -10155,13 +10155,13 @@ impl SourceFoundationClosureSchemaRequestStore
             if self.event_path_drained_rows != self.event_path_rows {
                 return Err(source_refusal());
             }
-            self.event_path_eof_seen = true;
+            self.event_paths_eof_seen = true;
             self.last_event_path = None;
             self.event_path_workspace_state_bytes =
                 self.event_path_workspace_state_bytes.max(workspace);
             return Ok((None, workspace, 0));
         };
-        RelativePath::new(&path).map_err(|_| source_refusal())?;
+        RelativePath::parse(&path).map_err(|_| source_refusal())?;
         if path.len() > self.max_event_path_queue_bytes
             || after_path.is_some_and(|previous| previous >= path.as_str())
             || self.event_path_drained_rows >= self.event_path_rows
@@ -10191,7 +10191,7 @@ impl SourceFoundationClosureSchemaRequestStore
             || self.expected_event_path_rows != Some(expected_rows)
             || self.event_path_rows != expected_rows
             || self.event_path_drained_rows != expected_rows
-            || !self.event_path_eof_seen
+            || !self.event_paths_eof_seen
             || self.last_event_path.is_some()
         {
             return Err(source_refusal());
@@ -11887,12 +11887,12 @@ impl ClaimsProvider<'_, '_, '_, '_> {
             ),
             (Some((path, _)), false) => self.db.query_row(
                 "SELECT ordinal,path,line,raw_sha256,native,value FROM biblio_claims WHERE path=?1 AND line=?2 AND (?3 IS NULL OR ordinal>?3) ORDER BY ordinal LIMIT 1",
-                params![path, line.as_deref(), after.map(u64::to_be_bytes).as_ref().map(|value| value.as_slice())],
+                params![path, line.as_ref().map(|value| value.as_slice()), after.map(u64::to_be_bytes).as_ref().map(|value| value.as_slice())],
                 |row| decode_claim_row(self.context, row, self.max_state_bytes, self.live_state.get()).map_err(|_| rusqlite::Error::InvalidQuery),
             ),
             (Some((path, _)), true) => self.db.query_row(
                 "SELECT ordinal,path,line,raw_sha256,native,value FROM biblio_claims WHERE path=?1 AND line=?2 AND (?3 IS NULL OR ordinal<?3) ORDER BY ordinal DESC LIMIT 1",
-                params![path, line.as_deref(), after.map(u64::to_be_bytes).as_ref().map(|value| value.as_slice())],
+                params![path, line.as_ref().map(|value| value.as_slice()), after.map(u64::to_be_bytes).as_ref().map(|value| value.as_slice())],
                 |row| decode_claim_row(self.context, row, self.max_state_bytes, self.live_state.get()).map_err(|_| rusqlite::Error::InvalidQuery),
             ),
         }

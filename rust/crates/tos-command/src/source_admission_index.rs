@@ -58,7 +58,9 @@ impl SelectedNativeAdmissionRootV1 {
                 .membership_v1
                 .is_some_and(|membership| membership.count != roots.member_count)
         {
-            return Err(invalid("selected V2 completion proof differs from its root"));
+            return Err(invalid(
+                "selected V2 completion proof differs from its root",
+            ));
         }
         Ok(Self {
             revision: roots.revision,
@@ -75,17 +77,41 @@ impl SelectedNativeAdmissionRootV1 {
         })
     }
 
-    pub(crate) fn revision(self) -> SourceRevision { self.revision }
-    pub(crate) fn rootset_sha256(self) -> Digest256 { self.rootset_sha256 }
-    pub(crate) fn validator_sha256(self) -> Digest256 { self.validator_sha256 }
-    pub(crate) fn membership_v1(self) -> Option<tos_source_store::SourceMembershipV1> { self.membership_v1 }
-    pub(crate) fn member_count(self) -> u64 { self.member_count }
-    pub(crate) fn source_bytes(self) -> u64 { self.source_bytes }
-    pub(crate) fn identity_count(self) -> u64 { self.identity_count }
-    pub(crate) fn dependency_source_count(self) -> u64 { self.dependency_source_count }
-    pub(crate) fn dependency_count(self) -> u64 { self.dependency_count }
-    pub(crate) fn retirement_count(self) -> u64 { self.retirement_count }
-    pub(crate) fn completion_proof(self) -> crate::source_admission_spooled_index::NativeAdmissionCompletionProofV1 { self.completion_proof }
+    pub(crate) fn revision(self) -> SourceRevision {
+        self.revision
+    }
+    pub(crate) fn rootset_sha256(self) -> Digest256 {
+        self.rootset_sha256
+    }
+    pub(crate) fn validator_sha256(self) -> Digest256 {
+        self.validator_sha256
+    }
+    pub(crate) fn membership_v1(self) -> Option<tos_source_store::SourceMembershipV1> {
+        self.membership_v1
+    }
+    pub(crate) fn member_count(self) -> u64 {
+        self.member_count
+    }
+    pub(crate) fn source_bytes(self) -> u64 {
+        self.source_bytes
+    }
+    pub(crate) fn identity_count(self) -> u64 {
+        self.identity_count
+    }
+    pub(crate) fn dependency_source_count(self) -> u64 {
+        self.dependency_source_count
+    }
+    pub(crate) fn dependency_count(self) -> u64 {
+        self.dependency_count
+    }
+    pub(crate) fn retirement_count(self) -> u64 {
+        self.retirement_count
+    }
+    pub(crate) fn completion_proof(
+        self,
+    ) -> crate::source_admission_spooled_index::NativeAdmissionCompletionProofV1 {
+        self.completion_proof
+    }
 }
 
 /// The selected V2 read adapter implements these operations against its one
@@ -99,15 +125,9 @@ pub(crate) trait SourceEntryDeltaIndexReader {
     /// Recheck this exact accumulated readset against the session's latest
     /// selected root, using the same invocation ledger and cancellation state.
     fn verify_readset_current(&mut self) -> io::Result<SourceCutSelection>;
-    fn current_member(
-        &mut self,
-        path: &RelativePath,
-    ) -> io::Result<Option<SourceCutMemberTuple>>;
+    fn current_member(&mut self, path: &RelativePath) -> io::Result<Option<SourceCutMemberTuple>>;
     fn current_identity_path(&mut self, id: &str) -> io::Result<Option<RelativePath>>;
-    fn current_dependencies(
-        &mut self,
-        source: &RelativePath,
-    ) -> io::Result<Vec<RelativePath>>;
+    fn current_dependencies(&mut self, source: &RelativePath) -> io::Result<Vec<RelativePath>>;
     fn current_object_refcount(&mut self, digest: Digest256) -> io::Result<Option<u64>>;
     fn readset(&self) -> &SourceCutReadsetV1;
     fn json_limits(&self) -> JsonLimits;
@@ -125,9 +145,15 @@ pub(crate) struct SourceEntryDependencyDeltaV1 {
 }
 
 impl SourceEntryDependencyDeltaV1 {
-    pub(crate) fn source(&self) -> &RelativePath { &self.source }
-    pub(crate) fn before(&self) -> &[RelativePath] { &self.before }
-    pub(crate) fn after(&self) -> &[RelativePath] { &self.after }
+    pub(crate) fn source(&self) -> &RelativePath {
+        &self.source
+    }
+    pub(crate) fn before(&self) -> &[RelativePath] {
+        &self.before
+    }
+    pub(crate) fn after(&self) -> &[RelativePath] {
+        &self.after
+    }
 }
 
 /// Exact before/after tuple for one existing member row. SourceEntry replaces
@@ -141,9 +167,15 @@ pub(crate) struct SourceEntryMemberDeltaV1 {
 }
 
 impl SourceEntryMemberDeltaV1 {
-    pub(crate) fn path(&self) -> &RelativePath { &self.path }
-    pub(crate) fn before(&self) -> SourceCutMemberTuple { self.before }
-    pub(crate) fn after(&self) -> SourceCutMemberTuple { self.after }
+    pub(crate) fn path(&self) -> &RelativePath {
+        &self.path
+    }
+    pub(crate) fn before(&self) -> SourceCutMemberTuple {
+        self.before
+    }
+    pub(crate) fn after(&self) -> SourceCutMemberTuple {
+        self.after
+    }
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -154,9 +186,15 @@ pub(crate) struct SourceEntryObjectRefcountDeltaV1 {
 }
 
 impl SourceEntryObjectRefcountDeltaV1 {
-    pub(crate) fn digest(self) -> Digest256 { self.digest }
-    pub(crate) fn before_count(self) -> Option<u64> { self.before_count }
-    pub(crate) fn after_count(self) -> Option<u64> { self.after_count }
+    pub(crate) fn digest(self) -> Digest256 {
+        self.digest
+    }
+    pub(crate) fn before_count(self) -> Option<u64> {
+        self.before_count
+    }
+    pub(crate) fn after_count(self) -> Option<u64> {
+        self.after_count
+    }
 }
 
 /// A verified owner-local delta. This proves the exact three prepared member
@@ -184,22 +222,56 @@ pub(crate) struct ValidatedSourceEntryDeltaV1<'a> {
 }
 
 impl<'proposal> ValidatedSourceEntryDeltaV1<'proposal> {
-    pub(crate) fn selected_base(&self) -> SelectedNativeAdmissionRootV1 { self.selected_base }
-    pub(crate) fn observed_base_revision(&self) -> SourceRevision { self.observed_base_revision }
-    pub(crate) fn proposal(&self) -> &crate::source_command::PreparedCommand { self.proposal }
-    pub(crate) fn source_path(&self) -> &RelativePath { &self.source_path }
-    pub(crate) fn record_id(&self) -> &str { self.record_id }
-    pub(crate) fn updates(&self) -> &[&crate::source_command::SourceChange; 3] { &self.updates }
-    pub(crate) fn member_updates(&self) -> &[SourceEntryMemberDeltaV1; 3] { &self.member_updates }
-    pub(crate) fn dependency_updates(&self) -> &[SourceEntryDependencyDeltaV1; 3] { &self.dependency_updates }
-    pub(crate) fn object_refcount_updates(&self) -> &[SourceEntryObjectRefcountDeltaV1] { &self.object_refcount_updates }
-    pub(crate) fn member_count_after(&self) -> u64 { self.member_count_after }
-    pub(crate) fn source_bytes_after(&self) -> u64 { self.source_bytes_after }
-    pub(crate) fn identity_count_after(&self) -> u64 { self.identity_count_after }
-    pub(crate) fn dependency_source_count_after(&self) -> u64 { self.dependency_source_count_after }
-    pub(crate) fn dependency_count_after(&self) -> u64 { self.dependency_count_after }
-    pub(crate) fn retirement_count_after(&self) -> u64 { self.retirement_count_after }
-    pub(crate) fn prepared_schema(&self) -> tos_validation::source_cut::CutPreparedSchemaExecutionBinding { self.prepared_schema }
+    pub(crate) fn selected_base(&self) -> SelectedNativeAdmissionRootV1 {
+        self.selected_base
+    }
+    pub(crate) fn observed_base_revision(&self) -> SourceRevision {
+        self.observed_base_revision
+    }
+    pub(crate) fn proposal(&self) -> &crate::source_command::PreparedCommand {
+        self.proposal
+    }
+    pub(crate) fn source_path(&self) -> &RelativePath {
+        &self.source_path
+    }
+    pub(crate) fn record_id(&self) -> &str {
+        self.record_id
+    }
+    pub(crate) fn updates(&self) -> &[&crate::source_command::SourceChange; 3] {
+        &self.updates
+    }
+    pub(crate) fn member_updates(&self) -> &[SourceEntryMemberDeltaV1; 3] {
+        &self.member_updates
+    }
+    pub(crate) fn dependency_updates(&self) -> &[SourceEntryDependencyDeltaV1; 3] {
+        &self.dependency_updates
+    }
+    pub(crate) fn object_refcount_updates(&self) -> &[SourceEntryObjectRefcountDeltaV1] {
+        &self.object_refcount_updates
+    }
+    pub(crate) fn member_count_after(&self) -> u64 {
+        self.member_count_after
+    }
+    pub(crate) fn source_bytes_after(&self) -> u64 {
+        self.source_bytes_after
+    }
+    pub(crate) fn identity_count_after(&self) -> u64 {
+        self.identity_count_after
+    }
+    pub(crate) fn dependency_source_count_after(&self) -> u64 {
+        self.dependency_source_count_after
+    }
+    pub(crate) fn dependency_count_after(&self) -> u64 {
+        self.dependency_count_after
+    }
+    pub(crate) fn retirement_count_after(&self) -> u64 {
+        self.retirement_count_after
+    }
+    pub(crate) fn prepared_schema(
+        &self,
+    ) -> tos_validation::source_cut::CutPreparedSchemaExecutionBinding {
+        self.prepared_schema
+    }
 
     /// Recheck the captured exact readset against the latest current root and
     /// merge the bounded delta onto that root. This produces the only result
@@ -218,8 +290,7 @@ impl<'proposal> ValidatedSourceEntryDeltaV1<'proposal> {
             || current.rootset_sha256 != Some(current_base.rootset_sha256)
             || readset.base_revision != self.observed_base_revision
             || current_base.validator_sha256 != self.selected_base.validator_sha256
-            || current_base.completion_proof.prepared_schema()
-                != self.prepared_schema
+            || current_base.completion_proof.prepared_schema() != self.prepared_schema
             || current_base.member_count == 0
         {
             return Err(invalid(
@@ -254,11 +325,7 @@ impl<'proposal> ValidatedSourceEntryDeltaV1<'proposal> {
             }
         }
         for update in &self.object_refcount_updates {
-            validate_delta_object_refcount_lookup(
-                readset,
-                update.digest,
-                update.before_count,
-            )?;
+            validate_delta_object_refcount_lookup(readset, update.digest, update.before_count)?;
         }
 
         let mut source_bytes_after = current_base.source_bytes;
@@ -324,15 +391,33 @@ pub(crate) struct ValidatedSourceEntrySuccessorV1<'delta, 'proposal> {
 }
 
 impl<'delta, 'proposal> ValidatedSourceEntrySuccessorV1<'delta, 'proposal> {
-    pub(crate) fn delta(&self) -> &ValidatedSourceEntryDeltaV1<'proposal> { self.delta }
-    pub(crate) fn current_base(&self) -> SelectedNativeAdmissionRootV1 { self.current_base }
-    pub(crate) fn current_selection(&self) -> SourceCutSelection { self.current_selection }
-    pub(crate) fn member_count_after(&self) -> u64 { self.member_count_after }
-    pub(crate) fn source_bytes_after(&self) -> u64 { self.source_bytes_after }
-    pub(crate) fn identity_count_after(&self) -> u64 { self.identity_count_after }
-    pub(crate) fn dependency_source_count_after(&self) -> u64 { self.dependency_source_count_after }
-    pub(crate) fn dependency_count_after(&self) -> u64 { self.dependency_count_after }
-    pub(crate) fn retirement_count_after(&self) -> u64 { self.retirement_count_after }
+    pub(crate) fn delta(&self) -> &ValidatedSourceEntryDeltaV1<'proposal> {
+        self.delta
+    }
+    pub(crate) fn current_base(&self) -> SelectedNativeAdmissionRootV1 {
+        self.current_base
+    }
+    pub(crate) fn current_selection(&self) -> SourceCutSelection {
+        self.current_selection
+    }
+    pub(crate) fn member_count_after(&self) -> u64 {
+        self.member_count_after
+    }
+    pub(crate) fn source_bytes_after(&self) -> u64 {
+        self.source_bytes_after
+    }
+    pub(crate) fn identity_count_after(&self) -> u64 {
+        self.identity_count_after
+    }
+    pub(crate) fn dependency_source_count_after(&self) -> u64 {
+        self.dependency_source_count_after
+    }
+    pub(crate) fn dependency_count_after(&self) -> u64 {
+        self.dependency_count_after
+    }
+    pub(crate) fn retirement_count_after(&self) -> u64 {
+        self.retirement_count_after
+    }
 
     pub(crate) fn completion_proof(
         &self,
@@ -1496,9 +1581,7 @@ fn add_delta_target<R: SourceEntryDeltaIndexReader + ?Sized>(
     if targets.contains(&target) {
         return Ok(());
     }
-    let next_capacity = targets
-        .capacity()
-        .max(targets.len().saturating_add(1));
+    let next_capacity = targets.capacity().max(targets.len().saturating_add(1));
     let list_state = next_capacity
         .checked_mul(std::mem::size_of::<RelativePath>())
         .and_then(|bytes| bytes.checked_add(std::mem::size_of::<Vec<RelativePath>>()))
@@ -1564,7 +1647,11 @@ fn validate_delta_identity_target_member(
     if witness.expected_presence != Some(SourcePresenceV1::File)
         || witness.expected_member.is_none()
         || ids.windows(2).any(|pair| pair[0] >= pair[1])
-        || ids.iter().filter(|candidate| candidate.as_str() == id).count() != 1
+        || ids
+            .iter()
+            .filter(|candidate| candidate.as_str() == id)
+            .count()
+            != 1
     {
         return Err(invalid(
             "source-entry identity target does not have an exact inverse-set member witness",
@@ -1703,12 +1790,17 @@ fn readset_member<'a>(
     readset: &'a SourceCutReadsetV1,
     path: &RelativePath,
 ) -> io::Result<&'a SourceCutMemberWitness> {
-    let mut matches = readset.members.iter().filter(|witness| witness.path == *path);
+    let mut matches = readset
+        .members
+        .iter()
+        .filter(|witness| witness.path == *path);
     let witness = matches
         .next()
         .ok_or_else(|| invalid("source-entry delta member predicate was not retained"))?;
     if matches.next().is_some() {
-        return Err(invalid("source-entry delta has duplicate member predicates"));
+        return Err(invalid(
+            "source-entry delta has duplicate member predicates",
+        ));
     }
     Ok(witness)
 }
@@ -1719,7 +1811,9 @@ fn validate_delta_object_refcount_lookup(
     expected_count: Option<u64>,
 ) -> io::Result<()> {
     if expected_count == Some(0) {
-        return Err(invalid("source object refcount zero must be represented by absence"));
+        return Err(invalid(
+            "source object refcount zero must be represented by absence",
+        ));
     }
     let mut witnesses = readset
         .object_refcounts
@@ -1738,7 +1832,7 @@ fn validate_delta_object_refcount_lookup(
 }
 
 fn object_refcount_delta_state(
-    updates: &[SourceEntryObjectRefcountDeltaV1],
+    updates: &Vec<SourceEntryObjectRefcountDeltaV1>,
 ) -> io::Result<usize> {
     std::mem::size_of::<Vec<SourceEntryObjectRefcountDeltaV1>>()
         .checked_add(
@@ -1792,18 +1886,16 @@ fn source_entry_delta_state(
         )
         .and_then(|total| {
             total.checked_add(
-                std::mem::size_of::<Vec<SourceEntryDependencyDeltaV1>>()
-                    .checked_add(
-                        3usize.checked_mul(std::mem::size_of::<SourceEntryDependencyDeltaV1>())?,
-                    )?,
+                std::mem::size_of::<Vec<SourceEntryDependencyDeltaV1>>().checked_add(
+                    3usize.checked_mul(std::mem::size_of::<SourceEntryDependencyDeltaV1>())?,
+                )?,
             )
         })
         .and_then(|total| {
             total.checked_add(
-                std::mem::size_of::<Vec<SourceEntryMemberDeltaV1>>()
-                    .checked_add(
-                        3usize.checked_mul(std::mem::size_of::<SourceEntryMemberDeltaV1>())?,
-                    )?,
+                std::mem::size_of::<Vec<SourceEntryMemberDeltaV1>>().checked_add(
+                    3usize.checked_mul(std::mem::size_of::<SourceEntryMemberDeltaV1>())?,
+                )?,
             )
         })
         .ok_or_else(|| invalid("source-entry retained delta state overflow"))?;
@@ -1869,12 +1961,12 @@ fn validate_source_entry_identity_closure(
                 .identities
                 .iter()
                 .filter(|item| item.id.as_str() == id.as_str());
-            if matches.next().is_none_or(|item| item.expected_path.as_ref() != Some(path))
+            if matches
+                .next()
+                .is_none_or(|item| item.expected_path.as_ref() != Some(path))
                 || matches.next().is_some()
             {
-                return Err(invalid(
-                    "source-entry delta identity inverse is not exact",
-                ));
+                return Err(invalid("source-entry delta identity inverse is not exact"));
             }
         }
     }
@@ -1904,8 +1996,7 @@ pub(crate) fn validate_source_entry_delta<'a>(
         || selected.validator_sha256 != selected.completion_proof.validator_sha256()
         || selected.source_bytes != selected.completion_proof.source_bytes()
         || selected.identity_count != selected.completion_proof.identity_count()
-        || selected.dependency_source_count
-            != selected.completion_proof.dependency_source_count()
+        || selected.dependency_source_count != selected.completion_proof.dependency_source_count()
         || selected.dependency_count != selected.completion_proof.dependency_count()
         || selected.dependency_source_count > selected.dependency_count
         || selected.membership_v1 != selected.completion_proof.membership_v1()
@@ -1919,13 +2010,18 @@ pub(crate) fn validate_source_entry_delta<'a>(
         || schema.source_revision != reader.readset().base_revision
         || Digest256::of_bytes(configuration_raw) != proposal.configuration_raw_sha256
         || proposal.handler_id != "native-witness-link-selected-revision"
-        || !matches!(proposal.operation.as_str(), "record.revise" | "record.recover")
+        || !matches!(
+            proposal.operation.as_str(),
+            "record.revise" | "record.recover"
+        )
         || proposal.replayed
         || record_id.is_empty()
-        || schema.schema_profile
-            != selected.completion_proof.prepared_schema().schema_profile
+        || schema.schema_profile != selected.completion_proof.prepared_schema().schema_profile
         || schema.schema_set_sha256
-            != selected.completion_proof.prepared_schema().schema_set_sha256
+            != selected
+                .completion_proof
+                .prepared_schema()
+                .schema_set_sha256
         || schema.worker_sha256 != selected.completion_proof.prepared_schema().worker_sha256
         || prepared_schema != selected.completion_proof.prepared_schema()
     {
@@ -1960,19 +2056,15 @@ pub(crate) fn validate_source_entry_delta<'a>(
         || source_path.split('/').any(|part| {
             matches!(
                 part,
-                "payload"
-                    | "local-content"
-                    | "catalog"
-                    | "owner-local"
-                    | "private"
-                    | "retirements"
-            )
-                || part.starts_with('.')
+                "payload" | "local-content" | "catalog" | "owner-local" | "private" | "retirements"
+            ) || part.starts_with('.')
         })
         || !source_path.ends_with(".json")
         || source_path.ends_with(".human-forms.json")
     {
-        return Err(invalid("source-entry delta protected path is outside its owner"));
+        return Err(invalid(
+            "source-entry delta protected path is outside its owner",
+        ));
     }
     let mut expected_paths = Vec::new();
     let selected_path_state = std::mem::size_of::<Vec<RelativePath>>()
@@ -2066,8 +2158,17 @@ pub(crate) fn validate_source_entry_delta<'a>(
     let mut member_updates = Vec::new();
     reader.check_state(
         std::mem::size_of::<Vec<SourceEntryDependencyDeltaV1>>()
-            .checked_add(3usize.checked_mul(std::mem::size_of::<SourceEntryDependencyDeltaV1>()).ok_or_else(|| invalid("source-entry dependency result state overflow"))?)
-            .and_then(|bytes| bytes.checked_add(std::mem::size_of::<Vec<SourceEntryMemberDeltaV1>>() + 3 * std::mem::size_of::<SourceEntryMemberDeltaV1>()))
+            .checked_add(
+                3usize
+                    .checked_mul(std::mem::size_of::<SourceEntryDependencyDeltaV1>())
+                    .ok_or_else(|| invalid("source-entry dependency result state overflow"))?,
+            )
+            .and_then(|bytes| {
+                bytes.checked_add(
+                    std::mem::size_of::<Vec<SourceEntryMemberDeltaV1>>()
+                        + 3 * std::mem::size_of::<SourceEntryMemberDeltaV1>(),
+                )
+            })
             .ok_or_else(|| invalid("source-entry delta allocation state overflow"))?,
     )?;
     dependency_updates
@@ -2177,11 +2278,7 @@ pub(crate) fn validate_source_entry_delta<'a>(
             parse_live_state,
         )?;
         drop(document);
-        reader.tick(
-            after_targets
-                .len()
-                .saturating_mul(usize::BITS as usize + 1),
-        )?;
+        reader.tick(after_targets.len().saturating_mul(usize::BITS as usize + 1))?;
         after_targets.sort();
         after_targets.dedup();
         reader.check_state(
@@ -2217,7 +2314,7 @@ pub(crate) fn validate_source_entry_delta<'a>(
         });
         member_updates.push(SourceEntryMemberDeltaV1 {
             path: path.clone(),
-            before: *old,
+            before: old,
             after: after_tuple,
         });
     }
@@ -2243,11 +2340,10 @@ pub(crate) fn validate_source_entry_delta<'a>(
         )
         .and_then(|bytes| {
             bytes.checked_add(
-                std::mem::size_of::<Vec<SourceEntryObjectRefcountDeltaV1>>()
-                    .checked_add(
-                        object_refcount_capacity
-                            .checked_mul(std::mem::size_of::<SourceEntryObjectRefcountDeltaV1>())?,
-                    )?,
+                std::mem::size_of::<Vec<SourceEntryObjectRefcountDeltaV1>>().checked_add(
+                    object_refcount_capacity
+                        .checked_mul(std::mem::size_of::<SourceEntryObjectRefcountDeltaV1>())?,
+                )?,
             )
         })
         .ok_or_else(|| invalid("source-entry object-refcount state overflow"))?;
@@ -2312,14 +2408,9 @@ pub(crate) fn validate_source_entry_delta<'a>(
         }
     }
     reader.check_state(
-        source_entry_delta_state(
-            &expected_paths,
-            &dependency_updates,
-            &member_updates,
-            None,
-        )?
-        .checked_add(object_refcount_delta_state(&object_refcount_updates)?)
-        .ok_or_else(|| invalid("source-entry combined delta state overflow"))?,
+        source_entry_delta_state(&expected_paths, &dependency_updates, &member_updates, None)?
+            .checked_add(object_refcount_delta_state(&object_refcount_updates)?)
+            .ok_or_else(|| invalid("source-entry combined delta state overflow"))?,
     )?;
     if selected.member_count == 0 {
         return Err(invalid("source-entry selected baseline has no members"));

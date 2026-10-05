@@ -10,7 +10,7 @@ use std::{
     io::{self, Write},
     os::unix::fs::MetadataExt,
 };
-use tos_foundation::{Digest256, Digest256Hasher, JsonLimits};
+use tos_foundation::{Digest256, Digest256Hasher, JsonLimits, JsonString, JsonValue};
 use tos_source_store::PinnedSqliteSpaceReservation;
 
 /// A held output file with its original shared physical-space reservation.
@@ -26,6 +26,35 @@ pub(crate) struct ManifestStreamLimits {
     pub row_json: JsonLimits,
 }
 
+// Forecast the maintained parser's bounded owned strings, key/value slots,
+// container growth and recursive stack before any manifest row is allocated.
+// This is logical workspace, not an allocator/RSS measurement. Encoded buffers
+// and the four simultaneous row representations are reserved by the callers.
+fn row_json_state_upper_bound(limits: JsonLimits) -> io::Result<usize> {
+    let slot = std::mem::size_of::<(JsonValue, JsonValue)>()
+        .checked_add(5 * std::mem::size_of::<usize>())
+        .and_then(|n| n.checked_mul(2))
+        .ok_or_else(|| invalid("manifest JSON slot state overflow"))?;
+    let stack_slot = std::mem::size_of::<JsonValue>()
+        + std::mem::size_of::<JsonString>()
+        + std::mem::size_of::<std::collections::HashMap<Vec<u16>, usize>>()
+        + 2 * std::mem::size_of::<Vec<JsonValue>>();
+    limits
+        .max_bytes
+        .checked_mul(16)
+        .and_then(|n| {
+            limits.max_visits.min(limits.max_bytes)
+                .checked_mul(slot)
+                .and_then(|slots| n.checked_add(slots))
+        })
+        .and_then(|n| {
+            limits.max_depth.checked_add(1)
+                .and_then(|depth| depth.checked_mul(stack_slot))
+                .and_then(|stack| n.checked_add(stack))
+        })
+        .ok_or_else(|| invalid("manifest JSON retained state overflow"))
+}
+
 struct Output<'a, 'host> {
     candidate: &'a SpoolCandidate<'host>,
     sink: Option<ManifestSink<'a>>,
@@ -36,9 +65,7 @@ struct Output<'a, 'host> {
 impl Output<'_, '_> {
     fn reserve_row(&self, limits: JsonLimits, locator_bytes: usize) -> io::Result<()> {
         self.candidate.check_state(
-            limits
-                .retained_storage_bytes()
-                .map_err(invalid)?
+            row_json_state_upper_bound(limits)?
                 .checked_mul(4)
                 .and_then(|n| n.checked_add(limits.max_bytes.checked_mul(8)?))
                 .and_then(|n| n.checked_add(locator_bytes.checked_mul(16)?))
@@ -132,9 +159,7 @@ fn serialize_inner(
     // Canonical row encoding retains the input DOM, typed parse/canonical DOM,
     // original and final row buffers. Reserve their finite overlap BEFORE rows.
     candidate.check_state(
-        row_json
-            .retained_storage_bytes()
-            .map_err(invalid)?
+        row_json_state_upper_bound(row_json)?
             .checked_mul(4)
             .and_then(|n| n.checked_add(row_json.max_bytes.checked_mul(8)?))
             .ok_or_else(|| invalid("manifest row state overflow"))?,

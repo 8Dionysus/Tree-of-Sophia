@@ -169,7 +169,7 @@ impl AuthoredDiagnosticCatalogueComparison<'_, '_> {
                     self.capture.sources.try_borrow_mut().map_err(|_| {
                         Error::Conflict("authored diagnostic source already borrowed")
                     })?;
-                observation.recheck(&mut sources, self.capture.deadline, self.capture.cancelled)
+                observation.recheck(&mut sources, self.capture.deadline, self.capture.cancelled).map_err(|_| Error::Conflict("authored diagnostic catalogue recheck refused"))
             })();
         if result.is_err() {
             self.capture.poisoned.set(true);
@@ -241,7 +241,7 @@ impl<'source> AuthoredDiagnosticCapture<'source> {
                 "authored diagnostic cold catalogue receipt binding",
             ));
         }
-        super::foundation_catalog::published_manifest(epoch.token(), receipt, limits)
+        super::foundation_catalog::published_manifest(epoch.token(), receipt, limits).map_err(|_| Error::Invalid("authored diagnostic catalogue manifest refused"))
     }
     /// Invoke only after finishing the real cold stage and collecting bounded
     /// expected bytes. Reuses COMMAND's live CompareCatalog and protected-epoch
@@ -304,8 +304,9 @@ impl<'source> AuthoredDiagnosticCapture<'source> {
                     limits.max_retained_state_bytes,
                     self.deadline,
                     self.cancelled,
-                    render,
-                )?;
+                    |sink| render(sink).map_err(|_| tos_compiler::Error::Invalid(
+                        "authored diagnostic catalogue render refused")),
+                ).map_err(|_| Error::Conflict("authored diagnostic catalogue comparison refused"))?;
             Ok(AuthoredDiagnosticCatalogueComparison {
                 capture: self,
                 observation: RefCell::new(observation),

@@ -202,7 +202,7 @@ pub(crate) fn open_selected_target(
     validate_named_root_path(target.artifact_path)?;
     validate_named_root_path(target.store_path)?;
     validate_target_relative(target.store_relative)?;
-    if target.store_path.strip_prefix(target.artifact_path)
+    if target.store_path.strip_prefix(target.artifact_path).ok()
         != Some(Path::new(target.store_relative.as_str()))
     {
         return Err(invalid("V2 selected target lexical root binding differs"));
@@ -822,6 +822,7 @@ fn verify_closure(
             let caller_state = spill.packed_verifier_caller_state_bytes()?;
             spill.verify_packed_payload_segments(
                 &segment,
+                limits.segment,
                 tree_io.clone(),
                 limits.max_state_bytes,
                 caller_state,
@@ -1484,6 +1485,7 @@ fn copy_directory(
         let name = entry
             .file_name()
             .to_str()
+            .ok()
             .filter(|name| !name.is_empty() && name.len() <= 255)
             .ok_or_else(|| invalid("V2 image child name differs"))?
             .to_owned();
@@ -1667,7 +1669,7 @@ pub(crate) fn transfer_image_with_cold_spill_at(
     requests: V2SeenPackSpillRequests,
     shared_work: AdmissionWorkBudget,
     deadline: Instant,
-    cancel: &AtomicBool,
+    cancel: &Arc<AtomicBool>,
 ) -> io::Result<V2ImageOutcome> {
     if auxiliary_space.shares_with(image_space) {
         return Err(invalid(
