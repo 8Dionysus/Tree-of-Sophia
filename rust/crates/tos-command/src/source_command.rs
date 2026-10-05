@@ -84,6 +84,37 @@ pub(crate) fn public_io_reason(error: &std::io::Error) -> String {
     )
 }
 
+/// Compiler refusal detail follows the same public/private boundary as command
+/// errors: authored static guards survive, foreign source/SQL text is hashed.
+pub(crate) fn public_compiler_reason(error: &tos_compiler::Error) -> String {
+    use tos_compiler::Error;
+    match error {
+        Error::Invalid(reason) => format!("invalid compiler input: {reason}"),
+        Error::PreparedUnsupported(reason) => {
+            format!("unsupported local prepared carrier/profile: {reason}")
+        }
+        Error::ManagedSourceUnsupported(reason) => {
+            format!("unsupported managed selected source: {reason}")
+        }
+        Error::Budget(reason) => format!("compiler budget exceeded: {reason}"),
+        Error::SqliteVmBudget {
+            phase,
+            used_steps,
+            max_steps,
+        } => format!(
+            "compiler budget exceeded: SQLite VM steps in {phase:?} (used {used_steps}, max {max_steps})"
+        ),
+        Error::Io(error) => public_io_reason(error),
+        Error::Sql(_) | Error::SqlitePhase { .. } | Error::Source(_) => {
+            crate::source_admission_spooled_index::bounded_source_cause(
+                "receiver-source",
+                "compiler",
+                &error.to_string(),
+            )
+        }
+    }
+}
+
 #[cfg(test)]
 mod public_refusal_tests {
     use super::*;

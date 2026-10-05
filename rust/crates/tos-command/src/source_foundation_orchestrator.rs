@@ -347,7 +347,9 @@ impl FoundationOrchestratorError {
             },
             Self::Final(_) => "source-foundation final custody refused",
             Self::Replay(_) => "source-foundation artifact replay refused",
-            Self::Catalog(_) => "source-foundation catalog comparison refused",
+            Self::Catalog(error) => {
+                return crate::source_command::public_compiler_reason(error);
+            }
             Self::Persisted(_) => "source-foundation persisted catalog refused",
             Self::Admission(error) => {
                 // Return only known owner-authored static diagnostics. Unknown
