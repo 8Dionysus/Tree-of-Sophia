@@ -6190,8 +6190,16 @@ fn candidate_schema_resource_cost<I: Eq + Clone>(
                     resource.path
                 ))
             })?;
+        // The selected source closure contains both declared contract roots
+        // and their authenticated dependencies. Only roots belong to the
+        // worker's contract selector; every enumerated resource is still
+        // checked against the same candidate input size and raw digest below.
+        let selected_contract_digest = schema_binding.contract_digest(resource.path);
+        let is_declared_root = crate::source_foundation_schema::SOURCE_FOUNDATION_CONTRACT_PATHS
+            .contains(&resource.path);
         if actual_size != resource.size_bytes
-            || schema_binding.contract_digest(resource.path) != Some(resource.sha256)
+            || (is_declared_root && selected_contract_digest != Some(resource.sha256))
+            || selected_contract_digest.is_some_and(|digest| digest != resource.sha256)
         {
             return Err(ItemRefusal::Source(format!(
                 "candidate schema binding differs from selected source resource: {}",
