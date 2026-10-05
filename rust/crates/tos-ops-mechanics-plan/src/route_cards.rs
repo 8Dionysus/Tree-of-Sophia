@@ -1966,12 +1966,18 @@ pub fn build_currentness(root: &Path, cancel: &AtomicI32) -> io::Result<Value> {
     let inventory = sources.inventory()?;
     let tracked = tracked(root, sources.remaining_time()?, cancel)?
         .ok_or_else(|| invalid("git ls-files failed"))?;
-    build_from_sources(&mut sources, &inventory, &tracked)
+    // Card projection owns the existing wider, streamed documentation workload;
+    // generic route discovery and the retained card count keep MAX_ENTRIES.
+    let cards = sources.discover_cards_with_limits(
+        &inventory, MAX_SELECTED_PATH_DISCOVERY_ENTRIES,
+    )?;
+    build_from_sources(&mut sources, &inventory, &tracked, &cards)
 }
 fn build_from_sources(
     s: &mut RouteSources,
     inventory: &Value,
     tracked: &BTreeSet<String>,
+    cards: &[String],
 ) -> io::Result<Value> {
     let mut budget = OutputBudget::new();
     budget.reserve(4096)?;
@@ -1985,7 +1991,25 @@ fn build_from_sources(
     for name in tracked {
         budget.text(name)?;
     }
-    let cards = s.discover(inventory)?;
+    // Caller-authenticated physical cards also own projection parity. A second
+    // generic tree walk would misprice payload names and poison later routes.
+    // Validation always inspects root AGENTS.md; projection still follows the
+    // inventory's root_cards, including any separately named owner root card.
+    let discovery = &inventory["route_card_discovery"];
+    let roots = strings(&discovery["route_roots"])?;
+    let mut projection_cards: BTreeSet<String> = cards.iter().filter(|path|
+        roots.iter().any(|root| path.strip_prefix(root.as_str())
+            .is_some_and(|tail| tail.starts_with('/')))
+    ).cloned().collect();
+    for card in strings(&discovery["root_cards"])? {
+        if s.is_file(&card)? {
+            projection_cards.insert(card);
+        }
+    }
+    if projection_cards.len() > MAX_ENTRIES {
+        return Err(invalid("route card count bound exceeded"));
+    }
+    let cards: Vec<_> = projection_cards.into_iter().collect();
     let discovered: BTreeSet<_> = cards.iter().cloned().collect();
     let mut card_records = Vec::new();
     for path in &cards {
@@ -2796,7 +2820,7 @@ fn inventory_issues(
     } else {
         let expected = tracked
             .ok_or_else(|| invalid("Git unavailable for currentness"))
-            .and_then(|t| build_from_sources(s, inventory, t))
+            .and_then(|t| build_from_sources(s, inventory, t, cards))
             .and_then(|v| render_currentness(&v));
         match expected {
             Ok(expected) => {

@@ -526,6 +526,16 @@ fn priced_card_discovery_streams_payload_names_but_refuses_untracked_cards() {
     assert_eq!(sources().discover_cards_with_limits(
         &inventory, route_cards::MAX_SELECTED_PATH_DISCOVERY_ENTRIES,
     ).unwrap(), before);
+    let issues = route_cards::run_validation_with_card_discovery_limit(
+        &fixture.root, &mut sources(), &AtomicI32::new(0),
+        route_cards::MAX_SELECTED_PATH_DISCOVERY_ENTRIES,
+    ).unwrap();
+    assert!(!issues.iter().any(|(_, message)|
+        message.contains("route discovery entry bound exceeded")));
+    let generated = route_cards::build_currentness(&fixture.root, &AtomicI32::new(0)).unwrap();
+    let generated_cards: Vec<_> = generated["cards"].as_array().unwrap().iter()
+        .map(|card| card["path"].as_str().unwrap().to_owned()).collect();
+    assert_eq!(generated_cards, before);
     fixture.write("docs/ignored-payload/AGENTS.md", b"untracked card\n");
     let issues = route_cards::run_validation_with_card_discovery_limit(
         &fixture.root, &mut sources(), &AtomicI32::new(0),
