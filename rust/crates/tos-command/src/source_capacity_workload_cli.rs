@@ -302,10 +302,8 @@ fn run_selected(
     let target_records = profile.target_records;
     let class_counts = profile.classes.map(|row| row.count);
     let forecast = profile.forecast_inputs()?;
-    let envelope = weighted_scale_producer_envelope_v1(
-        &profile,
-        tree_io.selected_allocation_unit_bytes(),
-    )?;
+    let envelope =
+        weighted_scale_producer_envelope_v1(&profile, tree_io.selected_allocation_unit_bytes())?;
     let total_store_bytes = case
         .source_store_bytes
         .checked_add(case.target_store_bytes)
@@ -316,8 +314,12 @@ fn run_selected(
     } else {
         profile.target_records.to_string()
     };
-    let raw_root = artifact.path.join(format!("scale-raw-{count_label}-{seed_text}"));
-    let packed_root = artifact.path.join(format!("scale-packed-{count_label}-{seed_text}"));
+    let raw_root = artifact
+        .path
+        .join(format!("scale-raw-{count_label}-{seed_text}"));
+    let packed_root = artifact
+        .path
+        .join(format!("scale-packed-{count_label}-{seed_text}"));
     for root in [&raw_root, &packed_root] {
         if root.starts_with(&case.target)
             || case.target.starts_with(root)
@@ -518,21 +520,15 @@ fn write_receipt(
     protected_operation_elapsed_ms: u64,
 ) -> io::Result<()> {
     let forecast = &receipt.forecast;
-    let measured_source_at_1b = project_measured_bytes(
-        receipt.source_bytes,
-        receipt.member_count,
-        1_000_000_000,
-    )?;
+    let measured_source_at_1b =
+        project_measured_bytes(receipt.source_bytes, receipt.member_count, 1_000_000_000)?;
     let measured_unique_at_1b = project_measured_bytes(
         receipt.unique_payload_bytes,
         receipt.member_count,
         1_000_000_000,
     )?;
-    let measured_source_ten_copies_at_1b = project_measured_bytes(
-        receipt.source_bytes,
-        receipt.member_count,
-        10_000_000_000,
-    )?;
+    let measured_source_ten_copies_at_1b =
+        project_measured_bytes(receipt.source_bytes, receipt.member_count, 10_000_000_000)?;
     let measured_unique_ten_copies_at_1b = project_measured_bytes(
         receipt.unique_payload_bytes,
         receipt.member_count,
@@ -585,7 +581,7 @@ fn write_receipt(
         "authored_route_bridge_records": forecast.authored_route_bridge_records,
         "authored_route_bridge_coverage": forecast.authored_route_bridge_coverage
     });
-    let report = serde_json::json!({
+    let serde_json::Value::Object(mut report_fields) = serde_json::json!({
         "schema": "tos_native_weighted_capacity_fixture_receipt_v2",
         "source_status": "synthetic_private_fixture",
         "semantic_admission": false,
@@ -611,7 +607,13 @@ fn write_receipt(
         "raw_directory_count": receipt.raw_input_directory_count,
         "raw_inode_count": receipt.raw_input_inode_count,
         "raw_source_bytes": receipt.raw_input_source_bytes,
-        "raw_allocated_bytes": receipt.raw_input_allocated_bytes,
+        "raw_allocated_bytes": receipt.raw_input_allocated_bytes
+    }) else {
+        return Err(invalid(
+            "capacity fixture identity receipt must be an object",
+        ));
+    };
+    let serde_json::Value::Object(measurement_fields) = serde_json::json!({
         "unique_object_count": receipt.unique_object_count,
         "unique_payload_bytes": receipt.unique_payload_bytes,
         "max_frames_per_pack": receipt.max_frames_per_pack,
@@ -664,7 +666,11 @@ fn write_receipt(
         "producer_elapsed_ms": producer_elapsed_ms,
         "protected_operation_elapsed_ms": protected_operation_elapsed_ms,
         "forecast": forecast_report
-    });
+    }) else {
+        return Err(invalid("capacity fixture measurements must be an object"));
+    };
+    report_fields.extend(measurement_fields);
+    let report = serde_json::Value::Object(report_fields);
     validator.write_receipt(&report, output)
 }
 
@@ -682,8 +688,5 @@ fn project_measured_bytes(bytes: u64, source_records: u64, target_records: u64) 
         .checked_add(denominator - 1)
         .ok_or_else(|| invalid("capacity fixture measured projection rounding overflows"))?
         / denominator;
-    u64::try_from(rounded)
-        .map_err(|_| {
-            invalid("capacity fixture measured projection exceeds u64")
-        })
+    u64::try_from(rounded).map_err(|_| invalid("capacity fixture measured projection exceeds u64"))
 }
