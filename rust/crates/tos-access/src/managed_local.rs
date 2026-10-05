@@ -1422,7 +1422,7 @@ fn execute_selected_access_health(
             },
             visit_meter,
         )?;
-        consume_inspect_health_packet(packet, &probe, child_json, visit_meter)
+        consume_inspect_health_packet(packet, &probe, inspect_budget.json, visit_meter)
             },
             HealthChild::CorpusView(view_id) => {
                             let context = owner.corpus_context.as_ref().ok_or_else(|| {
@@ -1455,7 +1455,7 @@ fn execute_selected_access_health(
                             let value = consume_inspect_health_packet(
                                 packet,
                                 &probe,
-                                child_json,
+                                inspect_budget.json,
                                 visit_meter,
                             )?;
                             Ok(value)
@@ -1479,7 +1479,7 @@ fn execute_selected_access_health(
             },
             visit_meter,
         )?;
-        consume_inspect_health_packet(packet, &probe, child_json, visit_meter)
+        consume_inspect_health_packet(packet, &probe, inspect_budget.json, visit_meter)
             },
             HealthChild::PhilosophyView(view_id) => {
                             let mut authority = Authority::new_shared(
@@ -1509,7 +1509,7 @@ fn execute_selected_access_health(
                             let value = consume_inspect_health_packet(
                                 packet,
                                 &probe,
-                                child_json,
+                                inspect_budget.json,
                                 visit_meter,
                             )?;
                             Ok(value)
