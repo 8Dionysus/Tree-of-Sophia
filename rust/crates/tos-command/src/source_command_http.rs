@@ -91,7 +91,7 @@ fn token(path: &Path) -> Result<Vec<u8>, Error> {
         return Err(refused);
     }
     let mut raw = Vec::new();
-    file.by_ref()
+    Read::by_ref(&mut file)
         .take(67)
         .read_to_end(&mut raw)
         .map_err(|_| refused)?;

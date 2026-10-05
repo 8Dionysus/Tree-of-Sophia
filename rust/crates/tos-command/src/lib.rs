@@ -53,7 +53,7 @@ pub mod source_managed_selection;
 pub mod source_metadata_publication;
 mod source_metadata_publication_assembly;
 pub mod source_native_cli;
-mod source_work_transaction;
+pub(crate) use source_creation_store::work_transaction as source_work_transaction;
 pub use durable_adapter::source_cohort;
 mod source_assessment_journal;
 pub mod source_forms;
