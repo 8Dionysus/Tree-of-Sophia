@@ -1598,7 +1598,7 @@ fn entry_records(
 pub fn build_currentness(root: &Path, cancel: &AtomicI32) -> io::Result<Value> {
     let mut sources = RouteSources::new(root)?;
     let inventory = sources.inventory()?;
-    let tracked = tracked(root, s.remaining_time()?, cancel)?
+    let tracked = tracked(root, sources.remaining_time()?, cancel)?
         .ok_or_else(|| invalid("git ls-files failed"))?;
     build_from_sources(&mut sources, &inventory, &tracked)
 }

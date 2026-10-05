@@ -82,6 +82,12 @@ pub(super) fn retained(value: &Value, used: &mut usize, cap: usize) -> Result<()
     reserve_raw(count.bytes, used, cap)
 }
 impl LegacyStore {
+    fn source_revision(&self) -> Result<&str> {
+        self.graph_header.get("source_revision")
+            .and_then(Value::as_str)
+            .ok_or_else(|| owned_err("legacy graph source revision absent"))
+    }
+
     /// HTTP operation probe is combined with the original owner deadline and
     /// cumulative VM counter; it never replaces or resets those grants.
     pub fn query_call_with_probe(
@@ -189,7 +195,7 @@ impl LegacyStore {
             envelopes.push(doc.root().clone());
         }
         let targets =
-            crate::source_read_projection::source_read_targets(&envelopes, &self.revision, limits);
+            crate::source_read_projection::source_read_targets(&envelopes, self.source_revision()?, limits);
         let raw = tos_foundation::emit_value_preserved_json(&targets, limits).map_err(err)?;
         Ok((
             refs.into_iter().collect(),
@@ -301,7 +307,7 @@ impl LegacyStore {
                 }
                 let items: Vec<&Value> = matches.iter().chain(neighbors.iter()).collect();
                 let (source_refs, source_read_targets) = self.packet_navigation(&items)?;
-                let mut packet = json!({"schema":if relations {"tos_knowledge_relation_packet_v1"} else {"tos_knowledge_node_packet_v1"},"source_revision":self.revision,"requested_id":identifier,"ambiguous_native_id":key=="native_id" && matches.len()>1,"source_refs":source_refs,"source_read_targets":source_read_targets,"authority_boundary":self.graph_header.get("authority_boundary").cloned().unwrap_or(json!({}))});
+                let mut packet = json!({"schema":if relations {"tos_knowledge_relation_packet_v1"} else {"tos_knowledge_node_packet_v1"},"source_revision":self.source_revision()?,"requested_id":identifier,"ambiguous_native_id":key=="native_id" && matches.len()>1,"source_refs":source_refs,"source_read_targets":source_read_targets,"authority_boundary":self.graph_header.get("authority_boundary").cloned().unwrap_or(json!({}))});
                 packet["counts"] = if relations {
                     json!({"matches":matches.len(),"endpoints":neighbors.len()})
                 } else {
@@ -445,7 +451,7 @@ impl LegacyStore {
         let relations = results.pop().unwrap();
         let nodes = results.pop().unwrap();
         Ok(
-            json!({"schema":"tos_knowledge_search_v1","source_revision":self.revision,"query":query,"filters":{"sources":sources,"kind_ids":kinds,"predicate_ids":predicates},"page":{"offset":offset,"limit_per_kind":limit},"counts":{"matching_nodes":counts[0],"matching_relations":counts[1],"returned_nodes":nodes.len(),"returned_relations":relations.len()},"nodes":nodes,"relations":relations,"authority_boundary":self.graph_header.get("authority_boundary").cloned().unwrap_or(json!({}))}),
+            json!({"schema":"tos_knowledge_search_v1","source_revision":self.source_revision()?,"query":query,"filters":{"sources":sources,"kind_ids":kinds,"predicate_ids":predicates},"page":{"offset":offset,"limit_per_kind":limit},"counts":{"matching_nodes":counts[0],"matching_relations":counts[1],"returned_nodes":nodes.len(),"returned_relations":relations.len()},"nodes":nodes,"relations":relations,"authority_boundary":self.graph_header.get("authority_boundary").cloned().unwrap_or(json!({}))}),
         )
     }
 }
@@ -1332,20 +1338,22 @@ impl LegacyStore {
         )?;
         let authority = clone_serde_owned(authority, &|| budget.check(deadline, &probe))?;
         held = state_add(held, authority_state)?;
+        // Source cut and exploration owner binding are distinct identities.
+        let source_binding = self.source_revision()?;
         (budget.remaining_after_retained)(state_add(
             held,
-            state_add(self.revision.len(), "tos_knowledge_search_v1".len())?,
+            state_add(source_binding.len(), "tos_knowledge_search_v1".len())?,
         )?)?;
         search_charge(
             budget,
-            state_add(self.revision.len(), "tos_knowledge_search_v1".len())?,
+            state_add(source_binding.len(), "tos_knowledge_search_v1".len())?,
         )?;
         budget.check(deadline, &probe)?;
         // Keep both response strings admitted while the numeric token
         // reservation is added; the revision copy occurs after that admission.
         held = state_add(
             held,
-            state_add(self.revision.len(), "tos_knowledge_search_v1".len())?,
+            state_add(source_binding.len(), "tos_knowledge_search_v1".len())?,
         )?;
         // serde_json arbitrary_precision keeps decimal token strings even for
         // these six bounded unsigned output numbers. u64 max needs 20 bytes.
@@ -1355,8 +1363,8 @@ impl LegacyStore {
         (budget.remaining_after_retained)(state_add(held, number_bytes)?)?;
         search_charge(budget, number_bytes)?;
         held = state_add(held, number_bytes)?;
-        let source_revision = exact_string(&self.revision)?;
-        if source_revision.capacity() != self.revision.len() {
+        let source_revision = exact_string(source_binding)?;
+        if source_revision.capacity() != source_binding.len() {
             return Err(owned_err("legacy exact revision capacity"));
         }
         let filters = search_object(

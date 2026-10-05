@@ -1723,7 +1723,7 @@ fn validate_existing_owner_contracts(
         ),
         (
             "mechanics topology validator",
-            mechanics_topology::validate_with_deadline(root, s.remaining_time()?, cancel)?,
+            mechanics_topology::validate_with_deadline(root, s.deadline(), cancel)?,
         ),
         (
             "decision validator",

@@ -9,6 +9,8 @@ use std::fs;
 use std::io::{self, Read};
 use std::path::{Component, Path, PathBuf};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicI32, Ordering};
+use std::time::{Duration, Instant};
 use tos_foundation::python_casefold_unicode16_v1;
 use unicode_general_category::{GeneralCategory, get_general_category};
 
@@ -73,6 +75,8 @@ fn invalid(message: impl Into<String>) -> io::Error {
 
 struct Source<'a> {
     root: &'a Path,
+    deadline: Instant,
+    cancel: &'a AtomicI32,
     files: usize,
     bytes: u64,
     cache: BTreeMap<String, Arc<str>>,
@@ -83,12 +87,14 @@ struct Source<'a> {
 }
 
 impl<'a> Source<'a> {
-    fn new(root: &'a Path) -> io::Result<Self> {
+    fn new(root: &'a Path, deadline: Instant, cancel: &'a AtomicI32) -> io::Result<Self> {
         if !root.is_absolute() || fs::canonicalize(root)? != root {
             return Err(invalid("mechanics root must be an absolute canonical path"));
         }
         Ok(Self {
             root,
+            deadline,
+            cancel,
             files: 0,
             bytes: 0,
             cache: BTreeMap::new(),
@@ -99,7 +105,21 @@ impl<'a> Source<'a> {
         })
     }
 
+    fn check(&self) -> io::Result<()> {
+        if self.cancel.load(Ordering::SeqCst) != 0 {
+            return Err(io::Error::new(
+                io::ErrorKind::Interrupted,
+                "mechanics validation cancelled",
+            ));
+        }
+        if Instant::now() >= self.deadline {
+            return Err(invalid("mechanics operation deadline exceeded"));
+        }
+        Ok(())
+    }
+
     fn path(&self, relative: &str) -> io::Result<PathBuf> {
+        self.check()?;
         let path = Path::new(relative);
         if path.is_absolute()
             || path
@@ -112,6 +132,7 @@ impl<'a> Source<'a> {
     }
 
     fn read(&mut self, relative: &str) -> io::Result<Option<Arc<str>>> {
+        self.check()?;
         if let Some(text) = self.cache.get(relative) {
             return Ok(Some(text.clone()));
         }
@@ -1245,7 +1266,21 @@ fn documentation_references(
 /// Python remains the independent lane oracle until source, cost and actual
 /// native execution have been accepted by the owner.
 pub fn validate(root: &Path) -> io::Result<Vec<Issue>> {
-    let mut source = Source::new(root)?;
+    static NEVER_CANCEL: AtomicI32 = AtomicI32::new(0);
+    let deadline = Instant::now()
+        .checked_add(Duration::from_secs(30))
+        .ok_or_else(|| invalid("mechanics deadline overflow"))?;
+    validate_with_deadline(root, deadline, &NEVER_CANCEL)
+}
+
+/// Reuse the caller's original deadline rather than starting a new clock.
+pub fn validate_with_deadline(
+    root: &Path,
+    deadline: Instant,
+    cancel: &AtomicI32,
+) -> io::Result<Vec<Issue>> {
+    let mut source = Source::new(root, deadline, cancel)?;
+    source.check()?;
     let patterns = Patterns::new()?;
     let mut issues = Vec::new();
     required(&source, &mut issues, "mechanics/AGENTS.md")?;
@@ -1360,6 +1395,7 @@ pub fn validate(root: &Path) -> io::Result<Vec<Issue>> {
     if order.len() != order.iter().collect::<BTreeSet<_>>().len() {
         push(&mut issues, TOPOLOGY, "packages must be unique")?;
     }
+    source.check()?;
     context_budget(&mut source, &mut issues, &topology)?;
     route_map(
         &mut source,
@@ -1369,7 +1405,10 @@ pub fn validate(root: &Path) -> io::Result<Vec<Issue>> {
         &packages,
         &parts,
     )?;
+    source.check()?;
     documentation_references(&mut source, &mut issues, &patterns)?;
+    source.check()?;
     moved_targets(&source, &mut issues, &topology, &packages, &parts)?;
+    source.check()?;
     Ok(issues)
 }
