@@ -1045,8 +1045,10 @@ impl IndexSink<'_> {
         check_operation(self, deadline, cancelled)?;
         let (payload, state_bytes) =
             encode_json(self, source_state, value, &[]).map_err(|error| refusal(error))?;
-        let ordinal_i64 = i64::try_from(ordinal).map_err(|_| ItemRefusal::Budget)?;
-        let state_i64 = i64::try_from(state_bytes).map_err(|_| ItemRefusal::Budget)?;
+        let ordinal_i64 =
+            i64::try_from(ordinal).map_err(|_| tos_validation::item_budget_origin!())?;
+        let state_i64 =
+            i64::try_from(state_bytes).map_err(|_| tos_validation::item_budget_origin!())?;
         self.candidate.tick().map_err(|error| refusal(error))?;
         self.db.execute("INSERT INTO sf_facts(collection,ordinal,key1,payload,state_bytes) VALUES(?1,?2,?3,?4,?5)",params![fact_collection_id(collection),ordinal_i64,key,payload,state_i64]).map_err(|error| refusal(error))?;
         self.candidate.tick().map_err(|error| refusal(error))?;
@@ -1274,21 +1276,21 @@ fn rows_meta(
     };
     let capacity = limit.min(budget.max_state_bytes.get() / std::mem::size_of::<PageMeta>().max(1));
     if capacity == 0 {
-        return Err(ItemRefusal::Budget);
+        return Err(tos_validation::item_budget_origin!());
     }
     sink.candidate
         .check_state(
             capacity
                 .checked_mul(std::mem::size_of::<PageMeta>())
-                .ok_or(ItemRefusal::Budget)?,
+                .ok_or(tos_validation::item_budget_origin!())?,
         )
         .map_err(|error| refusal(error))?;
     let mut result = Vec::new();
     result
         .try_reserve_exact(capacity)
-        .map_err(|_| ItemRefusal::Budget)?;
+        .map_err(|_| tos_validation::item_budget_origin!())?;
     let mut statement = sink.db.prepare(query).map_err(|error| refusal(error))?;
-    let limit_i64 = i64::try_from(limit).map_err(|_| ItemRefusal::Budget)?;
+    let limit_i64 = i64::try_from(limit).map_err(|_| tos_validation::item_budget_origin!())?;
     let mut rows = match (sorted, after) {
         (false, _) => statement.query(params![
             collection_id(collection),
@@ -1307,7 +1309,7 @@ fn rows_meta(
     while let Some(row) = rows.next().map_err(|error| refusal(error))? {
         check_operation(sink, deadline, cancelled)?;
         if result.len() >= capacity {
-            return Err(ItemRefusal::Budget);
+            return Err(tos_validation::item_budget_origin!());
         }
         result.push(PageMeta {
             seq: row.get(0).map_err(|error| refusal(error))?,
@@ -1348,21 +1350,21 @@ fn fact_rows_meta(
     };
     let capacity = limit.min(budget.max_state_bytes.get() / std::mem::size_of::<PageMeta>().max(1));
     if capacity == 0 {
-        return Err(ItemRefusal::Budget);
+        return Err(tos_validation::item_budget_origin!());
     }
     sink.candidate
         .check_state(
             capacity
                 .checked_mul(std::mem::size_of::<PageMeta>())
-                .ok_or(ItemRefusal::Budget)?,
+                .ok_or(tos_validation::item_budget_origin!())?,
         )
         .map_err(|error| refusal(error))?;
     let mut result = Vec::new();
     result
         .try_reserve_exact(capacity)
-        .map_err(|_| ItemRefusal::Budget)?;
+        .map_err(|_| tos_validation::item_budget_origin!())?;
     let mut statement = sink.db.prepare(query).map_err(|error| refusal(error))?;
-    let limit_i64 = i64::try_from(limit).map_err(|_| ItemRefusal::Budget)?;
+    let limit_i64 = i64::try_from(limit).map_err(|_| tos_validation::item_budget_origin!())?;
     let mut rows = match (sorted, after) {
         (false, _) => statement.query(params![
             fact_collection_id(collection),
@@ -1381,7 +1383,7 @@ fn fact_rows_meta(
     while let Some(row) = rows.next().map_err(|error| refusal(error))? {
         check_operation(sink, deadline, cancelled)?;
         if result.len() >= capacity {
-            return Err(ItemRefusal::Budget);
+            return Err(tos_validation::item_budget_origin!());
         }
         result.push(PageMeta {
             seq: row.get(0).map_err(|error| refusal(error))?,
@@ -1644,20 +1646,29 @@ fn page_row_capacity(
         .checked_add(input_cursor)
         .and_then(|n| n.checked_add(budget.max_cursor_bytes.get()))
         .and_then(|n| n.checked_add(meta_size.checked_mul(2)?))
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(tos_validation::item_budget_origin!())?;
     let per = row_size
         .checked_add(meta_size)
         .and_then(|n| n.checked_add(1))
-        .ok_or(ItemRefusal::Budget)?;
-    let available = budget
-        .max_state_bytes
-        .get()
-        .checked_sub(fixed)
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(tos_validation::item_budget_origin!())?;
+    let available =
+        budget
+            .max_state_bytes
+            .get()
+            .checked_sub(fixed)
+            .ok_or(ItemRefusal::BudgetCheck {
+                check: "spooled Records page fixed state",
+                used: Some(fixed as u64),
+                limit: Some(budget.max_state_bytes.get() as u64),
+            })?;
     let by_state = available / per;
     let rows = budget.max_rows.get().min(by_state);
     if rows == 0 {
-        return Err(ItemRefusal::Budget);
+        return Err(ItemRefusal::BudgetCheck {
+            check: "spooled Records page one row state",
+            used: fixed.checked_add(per).map(|bytes| bytes as u64),
+            limit: Some(budget.max_state_bytes.get() as u64),
+        });
     }
     Ok(rows)
 }
@@ -1686,7 +1697,9 @@ fn report_page(
         .map_err(|error| refusal(error))?;
     let input_bytes = after.map_or(0, |cursor| cursor.as_bytes().len());
     let capacity = page_row_capacity(budget, input_bytes, false)?;
-    let meta_capacity = capacity.checked_add(1).ok_or(ItemRefusal::Budget)?;
+    let meta_capacity = capacity
+        .checked_add(1)
+        .ok_or(tos_validation::item_budget_origin!())?;
     let meta = rows_meta(
         sink,
         collection,
@@ -1701,7 +1714,7 @@ fn report_page(
     let mut cursor_len = if more {
         output_cursor_len(
             meta.get(take.saturating_sub(1))
-                .ok_or(ItemRefusal::Budget)?,
+                .ok_or(tos_validation::item_budget_origin!())?,
             sorted_collection(collection),
         )
         .map_err(|error| refusal(error))?
@@ -1709,7 +1722,7 @@ fn report_page(
         0
     };
     if cursor_len > budget.max_cursor_bytes.get() {
-        return Err(ItemRefusal::Budget);
+        return Err(tos_validation::item_budget_origin!());
     }
     while take > 0
         && page_cost(
@@ -1726,7 +1739,7 @@ fn report_page(
         take -= 1;
         more = meta.len() > take;
         if take == 0 {
-            return Err(ItemRefusal::Budget);
+            return Err(tos_validation::item_budget_origin!());
         }
         cursor_len = if more {
             output_cursor_len(&meta[take - 1], sorted_collection(collection))
@@ -1735,11 +1748,11 @@ fn report_page(
             0
         };
         if cursor_len > budget.max_cursor_bytes.get() {
-            return Err(ItemRefusal::Budget);
+            return Err(tos_validation::item_budget_origin!());
         }
     }
     if more && take == 0 {
-        return Err(ItemRefusal::Budget);
+        return Err(tos_validation::item_budget_origin!());
     }
     let charged = page_cost(
         &meta[..take],
@@ -1751,7 +1764,7 @@ fn report_page(
     )
     .map_err(|error| refusal(error))?;
     if charged > budget.max_state_bytes.get() {
-        return Err(ItemRefusal::Budget);
+        return Err(tos_validation::item_budget_origin!());
     }
     sink.candidate
         .check_state(charged)
@@ -1759,7 +1772,7 @@ fn report_page(
     let mut output = Vec::new();
     output
         .try_reserve_exact(capacity)
-        .map_err(|_| ItemRefusal::Budget)?;
+        .map_err(|_| tos_validation::item_budget_origin!())?;
     for row in &meta[..take] {
         check_operation(sink, deadline, cancelled)?;
         let (key1, key2, payload, aux) = read_row_for_page(
@@ -1780,8 +1793,11 @@ fn report_page(
     let next_cursor = if more {
         let last = &meta[take - 1];
         let (key1, key2) = if sorted_collection(collection) {
-            stored_fact_cursor_keys(collection, output.last().ok_or(ItemRefusal::Budget)?)
-                .map_err(|error| refusal(error))?
+            stored_fact_cursor_keys(
+                collection,
+                output.last().ok_or(tos_validation::item_budget_origin!())?,
+            )
+            .map_err(|error| refusal(error))?
         } else {
             ("", "")
         };
@@ -1805,16 +1821,16 @@ fn report_page(
             output
                 .len()
                 .checked_mul(std::mem::size_of::<SourceFoundationRecordsStoredFact>())
-                .ok_or(ItemRefusal::Budget)?,
+                .ok_or(tos_validation::item_budget_origin!())?,
         )
         .and_then(|n| n.checked_add(next_cursor.as_ref().map_or(0, |c| c.as_bytes().len())))
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(tos_validation::item_budget_origin!())?;
     if charged < minimum
         || next_cursor
             .as_ref()
             .is_some_and(|cursor| cursor.as_bytes().len() > budget.max_cursor_bytes.get())
     {
-        return Err(ItemRefusal::Budget);
+        return Err(tos_validation::item_budget_origin!());
     }
     Ok(SourceFoundationRecordsCursorPage {
         rows: output,
@@ -1849,16 +1865,18 @@ fn current_records_by_id_page(
         id.len()
             .checked_mul(16)
             .and_then(|bytes| bytes.checked_add(2048))
-            .ok_or(ItemRefusal::Budget)
+            .ok_or(tos_validation::item_budget_origin!())
     })?;
     let capacity = page_row_capacity(budget, input_cursor_bytes, false)?;
-    let metadata_capacity = capacity.checked_add(1).ok_or(ItemRefusal::Budget)?;
+    let metadata_capacity = capacity
+        .checked_add(1)
+        .ok_or(tos_validation::item_budget_origin!())?;
     let metadata_headers = metadata_capacity
         .checked_mul(std::mem::size_of::<CurrentRecordIdMeta>())
         .and_then(|bytes| bytes.checked_add(input_cursor_state))
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(tos_validation::item_budget_origin!())?;
     if metadata_headers > budget.max_state_bytes.get() {
-        return Err(ItemRefusal::Budget);
+        return Err(tos_validation::item_budget_origin!());
     }
     sink.candidate
         .check_state(metadata_headers)
@@ -1866,22 +1884,23 @@ fn current_records_by_id_page(
     let mut metadata = Vec::new();
     metadata
         .try_reserve_exact(metadata_capacity)
-        .map_err(|_| ItemRefusal::Budget)?;
+        .map_err(|_| tos_validation::item_budget_origin!())?;
     let metadata_slot_capacity = metadata.capacity();
     if metadata_slot_capacity < metadata_capacity {
-        return Err(ItemRefusal::Budget);
+        return Err(tos_validation::item_budget_origin!());
     }
     let allocated_metadata_headers = metadata_slot_capacity
         .checked_mul(std::mem::size_of::<CurrentRecordIdMeta>())
         .and_then(|bytes| bytes.checked_add(input_cursor_state))
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(tos_validation::item_budget_origin!())?;
     if allocated_metadata_headers > budget.max_state_bytes.get() {
-        return Err(ItemRefusal::Budget);
+        return Err(tos_validation::item_budget_origin!());
     }
     sink.candidate
         .check_state(allocated_metadata_headers)
         .map_err(|error| refusal(error))?;
-    let limit = i64::try_from(metadata_capacity).map_err(|_| ItemRefusal::Budget)?;
+    let limit =
+        i64::try_from(metadata_capacity).map_err(|_| tos_validation::item_budget_origin!())?;
     let mut statement = sink
         .db
         .prepare(if after_id.is_some() {
@@ -1907,7 +1926,7 @@ fn current_records_by_id_page(
     while let Some(row) = rows.next().map_err(|error| refusal(error))? {
         check_operation(sink, deadline, cancelled)?;
         if metadata.len() >= metadata_capacity {
-            return Err(ItemRefusal::Budget);
+            return Err(tos_validation::item_budget_origin!());
         }
         let raw_id_len = match row.get_ref(0).map_err(|error| refusal(error))? {
             rusqlite::types::ValueRef::Text(raw) => raw.len(),
@@ -1920,12 +1939,12 @@ fn current_records_by_id_page(
         let id_state = raw_id_len
             .checked_mul(16)
             .and_then(|bytes| bytes.checked_add(2048))
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         let next_metadata_state = metadata_state
             .checked_add(id_state)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         if next_metadata_state > budget.max_state_bytes.get() {
-            return Err(ItemRefusal::Budget);
+            return Err(tos_validation::item_budget_origin!());
         }
         sink.candidate
             .check_state(next_metadata_state)
@@ -1937,7 +1956,7 @@ fn current_records_by_id_page(
                 .max_state_bytes
                 .get()
                 .checked_sub(metadata_state)
-                .ok_or(ItemRefusal::Budget)?,
+                .ok_or(tos_validation::item_budget_origin!())?,
         )
         .map_err(|error| refusal(error))?;
         if metadata
@@ -1950,21 +1969,21 @@ fn current_records_by_id_page(
         }
         let stored_state_bytes =
             usize::try_from(row.get::<_, i64>(1).map_err(|error| refusal(error))?)
-                .map_err(|_| ItemRefusal::Budget)?;
+                .map_err(|_| tos_validation::item_budget_origin!())?;
         if stored_state_bytes == 0 || stored_state_bytes > budget.max_state_bytes.get() {
-            return Err(ItemRefusal::Budget);
+            return Err(tos_validation::item_budget_origin!());
         }
         let payload_bytes = usize::try_from(row.get::<_, i64>(2).map_err(|error| refusal(error))?)
-            .map_err(|_| ItemRefusal::Budget)?;
+            .map_err(|_| tos_validation::item_budget_origin!())?;
         let aux_bytes = usize::try_from(row.get::<_, i64>(3).map_err(|error| refusal(error))?)
-            .map_err(|_| ItemRefusal::Budget)?;
+            .map_err(|_| tos_validation::item_budget_origin!())?;
         let decode_state_bytes = payload_bytes
             .checked_add(aux_bytes)
             .and_then(|bytes| bytes.checked_add(1024))
-            .ok_or(ItemRefusal::Budget)?
+            .ok_or(tos_validation::item_budget_origin!())?
             .max(stored_state_bytes);
         if decode_state_bytes > budget.max_state_bytes.get() {
-            return Err(ItemRefusal::Budget);
+            return Err(tos_validation::item_budget_origin!());
         }
         metadata.push(CurrentRecordIdMeta {
             id,
@@ -1984,7 +2003,7 @@ fn current_records_by_id_page(
         id.len()
             .checked_mul(16)
             .and_then(|bytes| bytes.checked_add(2048))
-            .ok_or(ItemRefusal::Budget)?
+            .ok_or(tos_validation::item_budget_origin!())?
     } else {
         0
     };
@@ -1997,7 +2016,7 @@ fn current_records_by_id_page(
             .checked_add(
                 output_slots
                     .checked_mul(std::mem::size_of::<(String, BiblioCurrentRecord)>())
-                    .ok_or(ItemRefusal::Budget)?,
+                    .ok_or(tos_validation::item_budget_origin!())?,
             )
             .and_then(|bytes| {
                 metadata_slots
@@ -2006,7 +2025,7 @@ fn current_records_by_id_page(
             })
             .and_then(|bytes| bytes.checked_add(input_cursor_state))
             .and_then(|bytes| bytes.checked_add(cursor_state))
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         for row in &metadata {
             state = state
                 .checked_add(
@@ -2014,9 +2033,9 @@ fn current_records_by_id_page(
                         .len()
                         .checked_mul(16)
                         .and_then(|bytes| bytes.checked_add(2048))
-                        .ok_or(ItemRefusal::Budget)?,
+                        .ok_or(tos_validation::item_budget_origin!())?,
                 )
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(tos_validation::item_budget_origin!())?;
         }
         for row in metadata.iter().take(take) {
             state = state
@@ -2028,7 +2047,7 @@ fn current_records_by_id_page(
                         .and_then(|id_bytes| id_bytes.checked_add(2048))
                         .and_then(|id_state| bytes.checked_add(id_state))
                 })
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(tos_validation::item_budget_origin!())?;
         }
         let decode_workspace = metadata
             .iter()
@@ -2038,7 +2057,7 @@ fn current_records_by_id_page(
             .unwrap_or(0);
         state = state
             .checked_add(decode_workspace)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         Ok(state)
     };
     while take > 0
@@ -2053,13 +2072,13 @@ fn current_records_by_id_page(
                 .len()
                 .checked_mul(16)
                 .and_then(|bytes| bytes.checked_add(2048))
-                .ok_or(ItemRefusal::Budget)?
+                .ok_or(tos_validation::item_budget_origin!())?
         } else {
             0
         };
     }
     if take == 0 && !metadata.is_empty() {
-        return Err(ItemRefusal::Budget);
+        return Err(tos_validation::item_budget_origin!());
     }
     has_more = metadata.len() > take;
     output_cursor_state = if has_more {
@@ -2068,17 +2087,17 @@ fn current_records_by_id_page(
             .len()
             .checked_mul(16)
             .and_then(|bytes| bytes.checked_add(2048))
-            .ok_or(ItemRefusal::Budget)?
+            .ok_or(tos_validation::item_budget_origin!())?
     } else {
         0
     };
     if has_more && metadata[take - 1].id.len() > budget.max_cursor_bytes.get() {
-        return Err(ItemRefusal::Budget);
+        return Err(tos_validation::item_budget_origin!());
     }
     let precharged_state_bytes =
         page_state(take, output_cursor_state, capacity, metadata_slot_capacity)?;
     if precharged_state_bytes > budget.max_state_bytes.get() {
-        return Err(ItemRefusal::Budget);
+        return Err(tos_validation::item_budget_origin!());
     }
     sink.candidate
         .check_state(precharged_state_bytes)
@@ -2086,10 +2105,10 @@ fn current_records_by_id_page(
     let mut output = Vec::new();
     output
         .try_reserve_exact(capacity)
-        .map_err(|_| ItemRefusal::Budget)?;
+        .map_err(|_| tos_validation::item_budget_origin!())?;
     let output_slot_capacity = output.capacity();
     if output_slot_capacity < capacity {
-        return Err(ItemRefusal::Budget);
+        return Err(tos_validation::item_budget_origin!());
     }
     let charged_state_bytes = page_state(
         take,
@@ -2098,7 +2117,7 @@ fn current_records_by_id_page(
         metadata_slot_capacity,
     )?;
     if charged_state_bytes > budget.max_state_bytes.get() {
-        return Err(ItemRefusal::Budget);
+        return Err(tos_validation::item_budget_origin!());
     }
     sink.candidate
         .check_state(charged_state_bytes)
@@ -2112,7 +2131,7 @@ fn current_records_by_id_page(
                 .max_state_bytes
                 .get()
                 .checked_sub(input_cursor_state)
-                .ok_or(ItemRefusal::Budget)?,
+                .ok_or(tos_validation::item_budget_origin!())?,
             0,
             deadline,
             cancelled,
@@ -2164,16 +2183,16 @@ fn decode_current_record_checked(
         .0
         .checked_add(meta.1)
         .and_then(|bytes| bytes.checked_add(1024))
-        .ok_or(ItemRefusal::Budget)?
+        .ok_or(tos_validation::item_budget_origin!())?
         .max(meta.2);
     if decode_state_bytes > max_state {
-        return Err(ItemRefusal::Budget);
+        return Err(tos_validation::item_budget_origin!());
     }
     sink.candidate
         .check_state(
             base_state
                 .checked_add(decode_state_bytes)
-                .ok_or(ItemRefusal::Budget)?,
+                .ok_or(tos_validation::item_budget_origin!())?,
         )
         .map_err(|error| refusal(error))?;
     let (payload, aux) = table_read_payload(
@@ -2230,7 +2249,9 @@ fn fact_page(
         .map_err(|error| refusal(error))?;
     let input_bytes = after.map_or(0, |cursor| cursor.as_bytes().len());
     let capacity = page_row_capacity(budget, input_bytes, true)?;
-    let meta_capacity = capacity.checked_add(1).ok_or(ItemRefusal::Budget)?;
+    let meta_capacity = capacity
+        .checked_add(1)
+        .ok_or(tos_validation::item_budget_origin!())?;
     let meta = fact_rows_meta(
         sink,
         collection,
@@ -2245,7 +2266,7 @@ fn fact_page(
     let mut cursor_len = if more {
         output_cursor_len(
             meta.get(take.saturating_sub(1))
-                .ok_or(ItemRefusal::Budget)?,
+                .ok_or(tos_validation::item_budget_origin!())?,
             sorted_fact_collection(collection),
         )
         .map_err(|error| refusal(error))?
@@ -2253,7 +2274,7 @@ fn fact_page(
         0
     };
     if cursor_len > budget.max_cursor_bytes.get() {
-        return Err(ItemRefusal::Budget);
+        return Err(tos_validation::item_budget_origin!());
     }
     while take > 0
         && fact_page_cost(
@@ -2269,7 +2290,7 @@ fn fact_page(
         take -= 1;
         more = meta.len() > take;
         if take == 0 {
-            return Err(ItemRefusal::Budget);
+            return Err(tos_validation::item_budget_origin!());
         }
         cursor_len = if more {
             output_cursor_len(&meta[take - 1], sorted_fact_collection(collection))
@@ -2278,11 +2299,11 @@ fn fact_page(
             0
         };
         if cursor_len > budget.max_cursor_bytes.get() {
-            return Err(ItemRefusal::Budget);
+            return Err(tos_validation::item_budget_origin!());
         }
     }
     if more && take == 0 {
-        return Err(ItemRefusal::Budget);
+        return Err(tos_validation::item_budget_origin!());
     }
     let charged = fact_page_cost(
         &meta[..take],
@@ -2293,7 +2314,7 @@ fn fact_page(
     )
     .map_err(|error| refusal(error))?;
     if charged > budget.max_state_bytes.get() {
-        return Err(ItemRefusal::Budget);
+        return Err(tos_validation::item_budget_origin!());
     }
     sink.candidate
         .check_state(charged)
@@ -2301,7 +2322,7 @@ fn fact_page(
     let mut output = Vec::new();
     output
         .try_reserve_exact(capacity)
-        .map_err(|_| ItemRefusal::Budget)?;
+        .map_err(|_| tos_validation::item_budget_origin!())?;
     for row in &meta[..take] {
         let (key, payload) = read_fact_for_page(
             sink,
@@ -2320,8 +2341,11 @@ fn fact_page(
     let next_cursor = if more {
         let last = &meta[take - 1];
         let key = if sorted_fact_collection(collection) {
-            fact_cursor_key(collection, output.last().ok_or(ItemRefusal::Budget)?)
-                .map_err(|error| refusal(error))?
+            fact_cursor_key(
+                collection,
+                output.last().ok_or(tos_validation::item_budget_origin!())?,
+            )
+            .map_err(|error| refusal(error))?
         } else {
             ""
         };
@@ -2337,7 +2361,7 @@ fn fact_page(
         .as_ref()
         .is_some_and(|cursor| cursor.as_bytes().len() > budget.max_cursor_bytes.get())
     {
-        return Err(ItemRefusal::Budget);
+        return Err(tos_validation::item_budget_origin!());
     }
     Ok(SourceFoundationRecordFactPage {
         rows: output,
@@ -2365,13 +2389,15 @@ fn global_id_facts_by_id_page(
     let after = after_ordinal
         .map(i64::try_from)
         .transpose()
-        .map_err(|_| ItemRefusal::Budget)?;
+        .map_err(|_| tos_validation::item_budget_origin!())?;
     let mut capacity = page_row_capacity(budget, id.len(), true)?;
     while capacity > 0
         && source_foundation_global_id_fact_page_cost(
             &[],
             capacity,
-            capacity.checked_add(1).ok_or(ItemRefusal::Budget)?,
+            capacity
+                .checked_add(1)
+                .ok_or(tos_validation::item_budget_origin!())?,
             id.len(),
             true,
         )? > budget.max_state_bytes.get()
@@ -2379,15 +2405,17 @@ fn global_id_facts_by_id_page(
         capacity -= 1;
     }
     if capacity == 0 {
-        return Err(ItemRefusal::Budget);
+        return Err(tos_validation::item_budget_origin!());
     }
-    let metadata_capacity = capacity.checked_add(1).ok_or(ItemRefusal::Budget)?;
+    let metadata_capacity = capacity
+        .checked_add(1)
+        .ok_or(tos_validation::item_budget_origin!())?;
     let metadata_state = metadata_capacity
         .checked_mul(std::mem::size_of::<PageMeta>())
         .and_then(|bytes| bytes.checked_add(id.len()))
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(tos_validation::item_budget_origin!())?;
     if metadata_state > budget.max_state_bytes.get() {
-        return Err(ItemRefusal::Budget);
+        return Err(tos_validation::item_budget_origin!());
     }
     sink.candidate
         .check_state(metadata_state)
@@ -2395,14 +2423,15 @@ fn global_id_facts_by_id_page(
     let mut metadata = Vec::new();
     metadata
         .try_reserve_exact(metadata_capacity)
-        .map_err(|_| ItemRefusal::Budget)?;
+        .map_err(|_| tos_validation::item_budget_origin!())?;
     let mut statement = sink
         .db
         .prepare(
             "SELECT ordinal,length(CAST(key1 AS BLOB)),length(payload),state_bytes FROM sf_facts WHERE collection=?1 AND key1 COLLATE BINARY=?2 COLLATE BINARY AND ordinal>?3 ORDER BY ordinal LIMIT ?4",
         )
         .map_err(|error| refusal(error))?;
-    let limit = i64::try_from(metadata_capacity).map_err(|_| ItemRefusal::Budget)?;
+    let limit =
+        i64::try_from(metadata_capacity).map_err(|_| tos_validation::item_budget_origin!())?;
     let mut rows = statement
         .query(params![
             fact_collection_id(SourceFoundationRecordFactCollection::GlobalIdFacts),
@@ -2414,7 +2443,7 @@ fn global_id_facts_by_id_page(
     while let Some(row) = rows.next().map_err(|error| refusal(error))? {
         check_operation(sink, deadline, cancelled)?;
         if metadata.len() >= metadata_capacity {
-            return Err(ItemRefusal::Budget);
+            return Err(tos_validation::item_budget_origin!());
         }
         metadata.push(PageMeta {
             seq: row.get(0).map_err(|error| refusal(error))?,
@@ -2450,10 +2479,10 @@ fn global_id_facts_by_id_page(
         )?;
     }
     if charged > budget.max_state_bytes.get() {
-        return Err(ItemRefusal::Budget);
+        return Err(tos_validation::item_budget_origin!());
     }
     if more && take == 0 {
-        return Err(ItemRefusal::Budget);
+        return Err(tos_validation::item_budget_origin!());
     }
     sink.candidate
         .check_state(charged)
@@ -2461,7 +2490,7 @@ fn global_id_facts_by_id_page(
     let mut output = Vec::new();
     output
         .try_reserve_exact(capacity)
-        .map_err(|_| ItemRefusal::Budget)?;
+        .map_err(|_| tos_validation::item_budget_origin!())?;
     for meta in &metadata[..take] {
         let (key, payload) = read_fact_for_page(
             sink,
@@ -2495,7 +2524,10 @@ fn global_id_facts_by_id_page(
     }
     check_operation(sink, deadline, cancelled)?;
     let next_after_ordinal = if more {
-        Some(u64::try_from(metadata[take - 1].seq).map_err(|_| ItemRefusal::Budget)?)
+        Some(
+            u64::try_from(metadata[take - 1].seq)
+                .map_err(|_| tos_validation::item_budget_origin!())?,
+        )
     } else {
         None
     };
@@ -2518,18 +2550,18 @@ fn source_foundation_global_id_fact_page_cost(
         .checked_add(
             capacity
                 .checked_mul(std::mem::size_of::<SourceFoundationGlobalIdFact>())
-                .ok_or(ItemRefusal::Budget)?,
+                .ok_or(tos_validation::item_budget_origin!())?,
         )
         .and_then(|bytes| {
             bytes.checked_add(metadata_capacity.checked_mul(std::mem::size_of::<PageMeta>())?)
         })
         .and_then(|bytes| bytes.checked_add(id_bytes.checked_mul(2)?))
         .and_then(|bytes| bytes.checked_add(usize::from(more) * std::mem::size_of::<u64>()))
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(tos_validation::item_budget_origin!())?;
     for row in metadata {
         bytes = bytes
             .checked_add(row.state_bytes)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
     }
     Ok(bytes)
 }
@@ -3009,7 +3041,7 @@ impl SourceFoundationRecordsStore for IndexSink<'_> {
         self.record_observation_count = self
             .record_observation_count
             .checked_add(1)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         Ok(())
     }
 
@@ -3053,7 +3085,7 @@ impl SourceFoundationRecordsStore for IndexSink<'_> {
         self.record_schema_diagnostic_count = self
             .record_schema_diagnostic_count
             .checked_add(1)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         Ok(())
     }
 
@@ -3108,7 +3140,7 @@ impl SourceFoundationRecordsStore for IndexSink<'_> {
         let max_state = max_state_bytes.get();
         let path_state = string_fields(&[path]).map_err(|error| refusal(error))?;
         if path_state >= max_state {
-            return Err(ItemRefusal::Budget);
+            return Err(tos_validation::item_budget_origin!());
         }
         check_operation(self, deadline, cancelled)?;
         self.candidate
@@ -3116,7 +3148,7 @@ impl SourceFoundationRecordsStore for IndexSink<'_> {
             .map_err(|error| refusal(error))?;
         let id_allowance = max_state
             .checked_sub(path_state)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         let id_len = self
             .db
             .query_row(
@@ -3130,16 +3162,16 @@ impl SourceFoundationRecordsStore for IndexSink<'_> {
         let Some(id_len) = id_len else {
             return Ok(None);
         };
-        let id_len = usize::try_from(id_len).map_err(|_| ItemRefusal::Budget)?;
+        let id_len = usize::try_from(id_len).map_err(|_| tos_validation::item_budget_origin!())?;
         let id_state = id_len
             .checked_mul(16)
             .and_then(|bytes| bytes.checked_add(2048))
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         let lookup_state = path_state
             .checked_add(id_state)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         if lookup_state >= max_state {
-            return Err(ItemRefusal::Budget);
+            return Err(tos_validation::item_budget_origin!());
         }
         self.candidate
             .check_state(lookup_state)
@@ -3166,7 +3198,7 @@ impl SourceFoundationRecordsStore for IndexSink<'_> {
         }
         let record_allowance = max_state
             .checked_sub(lookup_state)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         let (record, _, decode_state_bytes) = decode_current_record_checked(
             self,
             &id,
@@ -3183,9 +3215,9 @@ impl SourceFoundationRecordsStore for IndexSink<'_> {
         }
         let charged_state_bytes = lookup_state
             .checked_add(decode_state_bytes)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         if charged_state_bytes > max_state {
-            return Err(ItemRefusal::Budget);
+            return Err(tos_validation::item_budget_origin!());
         }
         self.candidate
             .check_state(charged_state_bytes)
@@ -3206,11 +3238,11 @@ impl SourceFoundationRecordsStore for IndexSink<'_> {
     ) -> Result<Option<SourceFoundationArtifactRecordPathSummary>, ItemRefusal> {
         let output_state = std::mem::size_of::<SourceFoundationArtifactRecordPathSummary>()
             .checked_add(64)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         let lookup_state = string_fields(&[path])
             .map_err(|error| refusal(error))?
             .checked_add(output_state)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         if lookup_state > max_state_bytes.get() {
             return Err(ItemRefusal::BudgetCheck {
                 check: "candidate Artifact path summary lookup state",
@@ -3246,7 +3278,8 @@ impl SourceFoundationRecordsStore for IndexSink<'_> {
                 "candidate Artifact current-record path was visited more than once".into(),
             ));
         }
-        let record_count = usize::try_from(record_count).map_err(|_| ItemRefusal::Budget)?;
+        let record_count =
+            usize::try_from(record_count).map_err(|_| tos_validation::item_budget_origin!())?;
         if record_count == 0 || (schema_matches != 0 && schema_matches != 1) {
             return Err(ItemRefusal::Source(
                 "candidate Artifact current-record path summary is invalid".into(),
@@ -3325,7 +3358,7 @@ impl SourceFoundationRecordsStore for IndexSink<'_> {
         let state = string_fields(&[path])
             .map_err(|error| refusal(error))?
             .checked_add(256)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         if state > max_state_bytes.get() {
             return Err(ItemRefusal::BudgetCheck {
                 check: "candidate Artifact proof record write state",
@@ -3384,7 +3417,7 @@ impl SourceFoundationRecordsStore for IndexSink<'_> {
         .map_err(|error| refusal(error))?
         .checked_add(size_bytes.len())
         .and_then(|bytes| bytes.checked_add(256))
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(tos_validation::item_budget_origin!())?;
         if state > max_state_bytes.get() {
             return Err(ItemRefusal::BudgetCheck {
                 check: "candidate Artifact proof diagnostic write state",
@@ -3425,7 +3458,7 @@ impl SourceFoundationRecordsStore for IndexSink<'_> {
         let state = string_fields(&[path, member_sha256_hex])
             .map_err(|error| refusal(error))?
             .checked_add(std::mem::size_of::<bool>() + 256)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         if state > max_state_bytes.get() {
             return Err(ItemRefusal::BudgetCheck {
                 check: "candidate Artifact proof point lookup state",
@@ -3468,12 +3501,12 @@ impl SourceFoundationRecordsStore for IndexSink<'_> {
             path.len()
                 .checked_mul(2)
                 .and_then(|bytes| bytes.checked_add(320))
-                .ok_or(ItemRefusal::Budget)
+                .ok_or(tos_validation::item_budget_origin!())
         })?;
         let base_state = std::mem::size_of::<SourceFoundationCandidateArtifactProofPathPage>()
             .checked_add(cursor_state)
             .and_then(|bytes| bytes.checked_add(256))
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         if base_state > budget.max_state_bytes.get() {
             return Err(ItemRefusal::BudgetCheck {
                 check: "candidate Artifact proof path page cursor state",
@@ -3481,7 +3514,8 @@ impl SourceFoundationRecordsStore for IndexSink<'_> {
                 limit: Some(budget.max_state_bytes.get() as u64),
             });
         }
-        let limit = i64::try_from(budget.max_rows.get()).map_err(|_| ItemRefusal::Budget)?;
+        let limit = i64::try_from(budget.max_rows.get())
+            .map_err(|_| tos_validation::item_budget_origin!())?;
         check_operation(self, deadline, cancelled)?;
         self.candidate
             .check_state(base_state)
@@ -3503,7 +3537,7 @@ impl SourceFoundationRecordsStore for IndexSink<'_> {
         while let Some(row) = rows.next().map_err(|error| refusal(error))? {
             check_operation(self, deadline, cancelled)?;
             if paths.len() >= budget.max_rows.get() {
-                return Err(ItemRefusal::Budget);
+                return Err(tos_validation::item_budget_origin!());
             }
             let path_len = match row.get_ref(0).map_err(|error| refusal(error))? {
                 rusqlite::types::ValueRef::Text(raw) => raw.len(),
@@ -3523,18 +3557,18 @@ impl SourceFoundationRecordsStore for IndexSink<'_> {
             let next_path_bytes = path_bytes
                 .checked_add(path_len)
                 .and_then(|bytes| bytes.checked_add(64))
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(tos_validation::item_budget_origin!())?;
             paths
                 .try_reserve_exact(1)
-                .map_err(|_| ItemRefusal::Budget)?;
+                .map_err(|_| tos_validation::item_budget_origin!())?;
             let allocation_state = paths
                 .capacity()
                 .checked_mul(std::mem::size_of::<String>())
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(tos_validation::item_budget_origin!())?;
             let next_state = base_state
                 .checked_add(allocation_state)
                 .and_then(|bytes| bytes.checked_add(next_path_bytes))
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(tos_validation::item_budget_origin!())?;
             if next_state > budget.max_state_bytes.get() {
                 return Err(ItemRefusal::BudgetCheck {
                     check: "candidate Artifact proof path page state",
@@ -3570,11 +3604,11 @@ impl SourceFoundationRecordsStore for IndexSink<'_> {
         let allocation_state = paths
             .capacity()
             .checked_mul(std::mem::size_of::<String>())
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         let charged_state_bytes = base_state
             .checked_add(allocation_state)
             .and_then(|bytes| bytes.checked_add(path_bytes))
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         if charged_state_bytes > budget.max_state_bytes.get() {
             return Err(ItemRefusal::BudgetCheck {
                 check: "candidate Artifact proof path page state",
@@ -3599,7 +3633,7 @@ impl SourceFoundationRecordsStore for IndexSink<'_> {
         let max_state = max_state_bytes.get();
         let key_state = string_fields(&[item_id]).map_err(|error| refusal(error))?;
         if key_state >= max_state {
-            return Err(ItemRefusal::Budget);
+            return Err(tos_validation::item_budget_origin!());
         }
         check_operation(self, deadline, cancelled)?;
         self.candidate
@@ -3607,7 +3641,7 @@ impl SourceFoundationRecordsStore for IndexSink<'_> {
             .map_err(|error| refusal(error))?;
         let row_allowance = max_state
             .checked_sub(key_state)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         let meta = table_preflight(
             &self.db,
             collection_id(SourceFoundationRecordsCollection::ItemEditions),
@@ -3622,7 +3656,11 @@ impl SourceFoundationRecordsStore for IndexSink<'_> {
             return Ok(None);
         };
         self.candidate
-            .check_state(key_state.checked_add(meta.2).ok_or(ItemRefusal::Budget)?)
+            .check_state(
+                key_state
+                    .checked_add(meta.2)
+                    .ok_or(tos_validation::item_budget_origin!())?,
+            )
             .map_err(|error| refusal(error))?;
         check_operation(self, deadline, cancelled)?;
         let (payload, aux) = table_read_payload(
@@ -3647,9 +3685,11 @@ impl SourceFoundationRecordsStore for IndexSink<'_> {
         }
         let embodiment_ref =
             owned_text(&value, "embodiment_ref").map_err(|error| refusal(error))?;
-        let charged_state_bytes = key_state.checked_add(meta.2).ok_or(ItemRefusal::Budget)?;
+        let charged_state_bytes = key_state
+            .checked_add(meta.2)
+            .ok_or(tos_validation::item_budget_origin!())?;
         if charged_state_bytes > max_state {
-            return Err(ItemRefusal::Budget);
+            return Err(tos_validation::item_budget_origin!());
         }
         self.candidate
             .check_state(charged_state_bytes)
