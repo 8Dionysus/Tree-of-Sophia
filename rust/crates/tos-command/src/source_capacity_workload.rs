@@ -1667,7 +1667,9 @@ impl WeightedScaleTemplateSetV1 {
                 if metadata.len() > SCALE_MAX_TEMPLATE_BYTES_V1 as u64 {
                     return Err(io_invalid("pinned scale template exceeds selected bound"));
                 }
-                io.charge_read_upper_bound(metadata.len())
+                // These bytes are read into the template payload below. The
+                // guard-only upper-bound permit cannot authorize returned bytes.
+                io.charge_read(metadata.len())
                     .map_err(|_| io_invalid("pinned template read budget exhausted"))?;
                 let file_bytes = fs::read(&path)?;
                 io.record_read_returned(file_bytes.len() as u64)
