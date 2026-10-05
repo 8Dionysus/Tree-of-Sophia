@@ -726,6 +726,13 @@ pub struct CandidateSourceFoundationSchemaSet<I> {
 }
 
 impl<I: Copy + Eq> CandidateSourceFoundationSchemaSet<I> {
+    /// Pre-admit only the retained selected-resource descriptors and path
+    /// buffers. The complete operation state is not a metadata allocation.
+    /// Keep the geometry shared with from_input's before/after-allocation checks.
+    pub fn source_resource_metadata_state_upper_bound(resource_count: usize) -> Option<usize> {
+        selected_source_resource_metadata_state_upper_bound(resource_count)
+    }
+
     /// Scan the complete candidate membership once. Schema membership, raw
     /// bytes, metadata size and the final currentness fence all come from the
     /// same opaque source input; no accepted-base revision can enter this set.

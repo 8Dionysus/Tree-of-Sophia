@@ -53,7 +53,7 @@ pub mod source_read;
 
 pub use common::{
     AccessError, AccessErrorCode, AccessExecutor, AccessProfile, DisclosureFence,
-    IndexedSearchParams, NoOwner, Params, PreparedPacket, QuerySession, RegisteredOperation,
+    IndexedSearchParams, NoOwner, Params, PreparedHealth, PreparedPacket, QuerySession, RegisteredOperation,
     SEARCH_OPERATION_ID, ScopedAccessExecutor, checked_execute, descriptor, registered_operations,
 };
 

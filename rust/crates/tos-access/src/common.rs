@@ -797,6 +797,14 @@ macro_rules! access_executor_contract {
             "selected access health unavailable",
         ))
     }
+    /// HTTP health carries the outcome computed by the report owner, without
+    /// reparsing the report or attaching semantics to a disclosure fence.
+    fn access_health_report(
+        &self,
+        _: Arc<dyn AbortProbe>,
+    ) -> Result<PreparedHealth<$packet_lifetime>, AccessError> {
+        Err(AccessError::new(AccessErrorCode::Unavailable, "selected access health unavailable"))
+    }
     /// Readiness for the explicit selected prepared-publication status route.
     /// Implementations retain the prepared transaction and final file/WAL fence.
     fn prepared_status_available(&self) -> bool {
@@ -934,6 +942,9 @@ impl<'hold, T: AccessExecutor + ?Sized> ScopedAccessExecutor<'hold> for T {
     ) -> Result<PreparedPacket<'hold>, AccessError> {
         AccessExecutor::access_health(self, arg0)
     }
+    fn access_health_report(&self, probe: Arc<dyn AbortProbe>) -> Result<PreparedHealth<'hold>, AccessError> {
+        AccessExecutor::access_health_report(self, probe)
+    }
     fn prepared_status_available(&self) -> bool {
         AccessExecutor::prepared_status_available(self)
     }
@@ -967,6 +978,12 @@ pub trait DisclosureFence: Send {
 pub struct PreparedPacket<'hold> {
     pub body: Vec<u8>,
     pub fence: Box<dyn DisclosureFence + 'hold>,
+}
+
+/// One selected health report and its owner-computed HTTP readiness outcome.
+pub struct PreparedHealth<'hold> {
+    pub packet: PreparedPacket<'hold>,
+    pub ok: bool,
 }
 
 /// Retain processing cancellation through transport validation and the final

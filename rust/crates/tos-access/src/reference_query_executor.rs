@@ -185,6 +185,17 @@ where
         })
     }
 }
+struct ReferenceHealthFence<'hold> {
+    fences: [Option<Box<dyn crate::DisclosureFence + 'hold>>; 5],
+    probe: Arc<dyn AbortProbe>,
+}
+impl crate::DisclosureFence for ReferenceHealthFence<'_> {
+    fn recheck(&mut self) -> Result<(), AccessError> {
+        crate::knowledge::check_abort(&self.probe)?;
+        for fence in self.fences.iter_mut().flatten() { fence.recheck()?; }
+        crate::knowledge::check_abort(&self.probe)
+    }
+}
 struct ReferenceIndexedFence<'hold>(Box<dyn tos_query::IndexedDisclosureLease + 'hold>);
 impl crate::DisclosureFence for ReferenceIndexedFence<'_> {
     fn recheck(&mut self) -> Result<(), AccessError> {
@@ -275,6 +286,59 @@ where
                 Ok(crate::knowledge::from_inspect(packet))
             },
         )
+    }
+    fn access_health_available(&self) -> bool {
+        true
+    }
+    fn access_health(&self, probe: Arc<dyn AbortProbe>) -> Result<PreparedPacket<'delivery>, AccessError> {
+        self.access_health_report(probe).map(|report| report.packet)
+    }
+    fn access_health_report(&self, probe: Arc<dyn AbortProbe>) -> Result<crate::common::PreparedHealth<'delivery>, AccessError> {
+        use crate::managed_local::{HealthChild, compose_selected_access_health, health_child_packet, partition_health_inspect_budget};
+        crate::knowledge::check_abort(&probe)?;
+        let original = self.budgets.inspect;
+        let mut budget = partition_health_inspect_budget(original, original.max_response_bytes, original.max_decoded_bytes, original.max_rows, original.max_read_vm_steps)?;
+        budget.max_open_vm_steps = original.max_open_vm_steps;
+        let work_steps = original.max_read_vm_steps / 6;
+        let mut model = self.model.try_borrow_mut().map_err(|_| busy())?;
+        let mut context = self.context.try_borrow_mut().map_err(|_| busy())?;
+        let mut fences: [Option<Box<dyn crate::DisclosureFence + 'delivery>>; 5] = std::array::from_fn(|_| None);
+        let mut next_fence = 0usize;
+        let (body, ok) = compose_selected_access_health(budget, original.max_response_bytes, original.json, &probe,
+            |child, inspect, meter| {
+                let corpus_request = match &child {
+                    HealthChild::CorpusView(id) => tos_query::corpus_read::CorpusReadRequest::GraphView { view_id: (*id).to_owned(), limit: 1 },
+                    _ => tos_query::corpus_read::CorpusReadRequest::Status,
+                };
+                let philosophy_request = match &child {
+                    HealthChild::PhilosophyView(id) => tos_query::philosophy_read::PhilosophyReadRequest::View { view_id: (*id).to_owned(), limit: 1 },
+                    _ => tos_query::philosophy_read::PhilosophyReadRequest::Views,
+                };
+                let operation = match &child {
+                    HealthChild::CorpusSeed | HealthChild::CorpusView(_) => ReferenceMetadataOperation::for_corpus(&corpus_request),
+                    HealthChild::PhilosophySeed | HealthChild::PhilosophyView(_) => ReferenceMetadataOperation::for_philosophy(&philosophy_request),
+                    HealthChild::Knowledge => ReferenceMetadataOperation::Catalog,
+                };
+                let mut packet = context.prepare_operation(operation, Arc::clone(&probe), |catalog, authority, _| {
+                    let packet = match child {
+                        HealthChild::CorpusSeed => crate::knowledge::from_inspect(tos_query::corpus_read::execute_selected_corpus_health_seed_metered(&mut model, self.bound, authority, self.corpus.ok_or_else(|| AccessError::new(AccessErrorCode::Unavailable, "selected corpus source context unavailable"))?, tos_query::corpus_read::CorpusReadBudget { inspect, max_work_steps: work_steps }, meter)?),
+                        HealthChild::CorpusView(_) => crate::knowledge::from_inspect(tos_query::corpus_read::execute_selected_corpus_metered(&mut model, self.bound, authority, self.corpus.ok_or_else(|| AccessError::new(AccessErrorCode::Unavailable, "selected corpus source context unavailable"))?, &corpus_request, tos_query::corpus_read::CorpusReadBudget { inspect, max_work_steps: work_steps }, meter)?),
+                        HealthChild::PhilosophySeed => crate::knowledge::from_inspect(tos_query::philosophy_read::execute_selected_philosophy_health_seed_metered(&mut model, self.bound, authority, tos_query::philosophy_read::PhilosophyReadBudget { inspect, max_work_steps: work_steps }, meter)?),
+                        HealthChild::PhilosophyView(_) => crate::knowledge::from_inspect(tos_query::philosophy_read::execute_selected_philosophy_metered(&mut model, self.bound, authority, &philosophy_request, tos_query::philosophy_read::PhilosophyReadBudget { inspect, max_work_steps: work_steps }, meter)?),
+                        HealthChild::Knowledge => crate::knowledge::from_catalog(tos_query::execute_selected_knowledge_health_metadata(&mut model, self.bound, catalog, tos_query::CatalogBudget { max_open_vm_steps: original.max_open_vm_steps, max_read_vm_steps: inspect.max_read_vm_steps, max_packet_bytes: inspect.max_response_bytes, max_decoded_bytes: usize::try_from(inspect.max_decoded_bytes).unwrap_or(usize::MAX), json: inspect.json }, meter)?),
+                    };
+                    Ok(packet)
+                })?;
+                packet.fence.recheck()?;
+                crate::knowledge::check_abort(&probe)?;
+                let value = health_child_packet(&packet.body, inspect.json, meter)?;
+                fences[next_fence] = Some(packet.fence);
+                next_fence += 1;
+                Ok(value)
+            })?;
+        let mut fence = ReferenceHealthFence { fences, probe };
+        crate::DisclosureFence::recheck(&mut fence)?;
+        Ok(crate::common::PreparedHealth { ok, packet: PreparedPacket { body, fence: Box::new(fence) } })
     }
     fn knowledge_search_legacy_available(&self) -> bool {
         true

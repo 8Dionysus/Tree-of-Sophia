@@ -400,6 +400,9 @@ impl AccessExecutor for ManagedLocalExecutor {
         &self,
         probe: Arc<dyn AbortProbe>,
     ) -> Result<PreparedPacket<'static>, AccessError> {
+        self.access_health_report(probe).map(|report| report.packet)
+    }
+    fn access_health_report(&self, probe: Arc<dyn AbortProbe>) -> Result<crate::common::PreparedHealth<'static>, AccessError> {
         execute_selected_access_health(self, probe)
     }
     fn exploration_runtime_capabilities(&self) -> tos_foundation::JsonValue {
@@ -716,21 +719,24 @@ impl AccessExecutor for ManagedLocalExecutor {
     }
 }
 const HEALTH_CHILDREN: usize = 5;
-fn health_inspect_budget(
-    owner: &ManagedLocalExecutor,
+pub(crate) fn partition_health_inspect_budget(
+    mut budget: tos_query::InspectBudget,
+    max_response_bytes: usize,
+    max_work_bytes: u64,
+    max_rows: u64,
+    max_vm_steps: u64,
 ) -> Result<tos_query::InspectBudget, AccessError> {
-    let mut budget = owner.budgets().inspect;
-    let response = owner.profile.max_response_bytes / (HEALTH_CHILDREN + 1);
-    let decoded = owner.cold.max_work_bytes / (HEALTH_CHILDREN as u64 + 1);
-    let rows = owner.cold.max_rows / (HEALTH_CHILDREN as u64 + 1);
-    let vm = owner.cold.max_vm_steps / (HEALTH_CHILDREN as u64 + 1);
+    let response = max_response_bytes / (HEALTH_CHILDREN + 1);
+    let decoded = max_work_bytes / (HEALTH_CHILDREN as u64 + 1);
+    let rows = max_rows / (HEALTH_CHILDREN as u64 + 1);
+    let vm = max_vm_steps / (HEALTH_CHILDREN as u64 + 1);
     if response == 0 || decoded == 0 || rows == 0 || vm == 0 {
         return Err(AccessError::new(
             AccessErrorCode::BudgetExceeded,
             "selected access health aggregate budget unavailable",
         ));
     }
-    budget.max_open_vm_steps = owner.cold.max_vm_steps;
+    budget.max_open_vm_steps = max_vm_steps;
     budget.max_read_vm_steps = vm;
     budget.max_matches = budget.max_matches / (HEALTH_CHILDREN + 1);
     budget.max_rows = rows;
@@ -752,7 +758,7 @@ fn health_inspect_budget(
     }
     Ok(budget)
 }
-fn health_child_packet(
+pub(crate) fn health_child_packet(
     body: &[u8],
     limits: JsonLimits,
     meter: &mut tos_query::InspectVisitMeter,
@@ -930,61 +936,30 @@ fn consume_catalog_health_packet(
     crate::knowledge::check_abort(probe)?;
     health_child_packet(&body, limits, meter)
 }
-fn execute_selected_access_health(
-    owner: &ManagedLocalExecutor,
-    probe: Arc<dyn AbortProbe>,
-) -> Result<PreparedPacket<'static>, AccessError> {
-    crate::knowledge::check_abort(&probe)?;
-    let inspect_budget = health_inspect_budget(owner)?;
-    let work_steps = owner.cold.max_vm_steps / (HEALTH_CHILDREN as u64 + 1);
+pub(crate) enum HealthChild<'a> {
+    CorpusSeed,
+    CorpusView(&'a str),
+    PhilosophySeed,
+    PhilosophyView(&'a str),
+    Knowledge,
+}
+/// The same five maintained health checks, under one aggregate visit meter.
+/// Adapters supply genuine child authorities and retain their disclosure fences.
+pub(crate) fn compose_selected_access_health(
+    inspect_budget: tos_query::InspectBudget,
+    max_response_bytes: usize,
+    output_json: JsonLimits,
+    probe: &Arc<dyn AbortProbe>,
+    mut child: impl FnMut(HealthChild<'_>, tos_query::InspectBudget, &mut tos_query::InspectVisitMeter) -> Result<JsonValue, AccessError>,
+) -> Result<(Vec<u8>, bool), AccessError> {
     let mut visit_meter = tos_query::InspectVisitMeter::new(inspect_budget.json.max_visits);
-    let mut lease = owner.release.acquire()?;
-    if owner.corpus_original.is_some() {
-        lease.retain_member_guards(&owner.corpus_guards)?;
-    }
-    let shared_lease = Arc::new(Mutex::new(lease));
-    let cold = owner
-        .model
-        .lock()
-        .map_err(|_| unavailable("selected native model lock poisoned"))?;
-    let mut model = cold
-        .fork_reader_with_vm_budget(owner.cold.max_vm_steps)
-        .map_err(|_| unavailable("selected native reader unavailable"))?;
-    drop(cold);
-    let bound = tos_query::bind_verified_knowledge(&model, &owner.vocabulary, &owner.descriptor)?;
-
     let mut errors = Vec::with_capacity(8);
     let child_json = inspect_budget.json;
     let mut corpus_source_schema = None;
     let mut corpus_view_id = None;
     let mut corpus_index_status = health_subject("unavailable", None, None, None, None);
     let mut corpus_view_status = health_subject("not_checked", None, None, None, None);
-    let corpus_seed = (|| {
-        let context = owner
-            .corpus_context
-            .as_ref()
-            .ok_or_else(|| unavailable("selected corpus source context unavailable"))?;
-        let mut authority = Authority::new_shared(
-            owner,
-            &bound,
-            O::CorpusStatus.id(),
-            tos_query::corpus_read::CORPUS_INTENDED_USE,
-            Arc::clone(&shared_lease),
-            Arc::clone(&probe),
-        )?;
-        let packet = tos_query::corpus_read::execute_selected_corpus_health_seed_metered(
-            &mut model,
-            &bound,
-            &mut authority,
-            context,
-            tos_query::corpus_read::CorpusReadBudget {
-                inspect: inspect_budget,
-                max_work_steps: work_steps,
-            },
-            &mut visit_meter,
-        )?;
-        consume_inspect_health_packet(packet, &probe, child_json, &mut visit_meter)
-    })();
+    let corpus_seed = child(HealthChild::CorpusSeed, inspect_budget, &mut visit_meter);
     match corpus_seed {
         Ok(seed) => {
             health_child_schema(&seed, "tos_selected_corpus_health_seed_v1")?;
@@ -1027,40 +1002,7 @@ fn execute_selected_access_health(
                         );
                     }
                     Some(view_id) => {
-                        let sample = (|| {
-                            let context = owner.corpus_context.as_ref().ok_or_else(|| {
-                                unavailable("selected corpus source context unavailable")
-                            })?;
-                            let mut authority = Authority::new_shared(
-                                owner,
-                                &bound,
-                                O::CorpusGraphView.id(),
-                                tos_query::corpus_read::CORPUS_INTENDED_USE,
-                                Arc::clone(&shared_lease),
-                                Arc::clone(&probe),
-                            )?;
-                            let request = tos_query::corpus_read::CorpusReadRequest::GraphView {
-                                view_id: view_id.to_owned(),
-                                limit: 1,
-                            };
-                            let packet = tos_query::corpus_read::execute_selected_corpus_metered(
-                                &mut model,
-                                &bound,
-                                &mut authority,
-                                context,
-                                &request,
-                                tos_query::corpus_read::CorpusReadBudget {
-                                    inspect: inspect_budget,
-                                    max_work_steps: work_steps,
-                                },
-                                &mut visit_meter,
-                            )?;
-                            let value = consume_inspect_health_packet(
-                                packet,
-                                &probe,
-                                child_json,
-                                &mut visit_meter,
-                            )?;
+                        let sample = child(HealthChild::CorpusView(view_id), inspect_budget, &mut visit_meter).and_then(|value| {
                             if value.object_get("schema").and_then(JsonValue::as_str)
                                 != Some("tos_corpus_mcp_graph_view_v1")
                                 || value
@@ -1075,7 +1017,7 @@ fn execute_selected_access_health(
                                 ));
                             }
                             Ok::<(), AccessError>(())
-                        })();
+                        });
                         match sample {
                             Ok(()) => {
                                 corpus_view_status = health_subject(
@@ -1121,27 +1063,7 @@ fn execute_selected_access_health(
     let mut philosophy_view_id = None;
     let mut philosophy_projection_status = health_subject("unavailable", None, None, None, None);
     let mut philosophy_view_status = health_subject("not_checked", None, None, None, None);
-    let philosophy_seed = (|| {
-        let mut authority = Authority::new_shared(
-            owner,
-            &bound,
-            O::PhilosophyViews.id(),
-            tos_query::philosophy_read::PHILOSOPHY_INTENDED_USE,
-            Arc::clone(&shared_lease),
-            Arc::clone(&probe),
-        )?;
-        let packet = tos_query::philosophy_read::execute_selected_philosophy_health_seed_metered(
-            &mut model,
-            &bound,
-            &mut authority,
-            tos_query::philosophy_read::PhilosophyReadBudget {
-                inspect: inspect_budget,
-                max_work_steps: work_steps,
-            },
-            &mut visit_meter,
-        )?;
-        consume_inspect_health_packet(packet, &probe, child_json, &mut visit_meter)
-    })();
+    let philosophy_seed = child(HealthChild::PhilosophySeed, inspect_budget, &mut visit_meter);
     match philosophy_seed {
         Ok(seed) => {
             health_child_schema(&seed, "tos_selected_philosophy_health_seed_v1")?;
@@ -1190,37 +1112,7 @@ fn execute_selected_access_health(
                         );
                     }
                     Some(view_id) => {
-                        let sample = (|| {
-                            let mut authority = Authority::new_shared(
-                                owner,
-                                &bound,
-                                O::PhilosophyView.id(),
-                                tos_query::philosophy_read::PHILOSOPHY_INTENDED_USE,
-                                Arc::clone(&shared_lease),
-                                Arc::clone(&probe),
-                            )?;
-                            let request = tos_query::philosophy_read::PhilosophyReadRequest::View {
-                                view_id: view_id.to_owned(),
-                                limit: 1,
-                            };
-                            let packet =
-                                tos_query::philosophy_read::execute_selected_philosophy_metered(
-                                    &mut model,
-                                    &bound,
-                                    &mut authority,
-                                    &request,
-                                    tos_query::philosophy_read::PhilosophyReadBudget {
-                                        inspect: inspect_budget,
-                                        max_work_steps: work_steps,
-                                    },
-                                    &mut visit_meter,
-                                )?;
-                            let value = consume_inspect_health_packet(
-                                packet,
-                                &probe,
-                                child_json,
-                                &mut visit_meter,
-                            )?;
+                        let sample = child(HealthChild::PhilosophyView(view_id), inspect_budget, &mut visit_meter).and_then(|value| {
                             if value.object_get("schema").and_then(JsonValue::as_str)
                                 != Some("tos_philosophy_mcp_view_v1")
                                 || value
@@ -1235,7 +1127,7 @@ fn execute_selected_access_health(
                                 ));
                             }
                             Ok::<(), AccessError>(())
-                        })();
+                        });
                         match sample {
                             Ok(()) => {
                                 philosophy_view_status = health_subject(
@@ -1281,31 +1173,7 @@ fn execute_selected_access_health(
     let mut knowledge_counts = JsonValue::Null;
     let mut knowledge_graph_status = health_subject("unavailable", None, None, None, None);
     let mut knowledge_catalog_status = health_subject("unavailable", None, None, None, None);
-    let knowledge = (|| {
-        let mut authority = Authority::new_shared(
-            owner,
-            &bound,
-            O::Catalog.id(),
-            tos_query::CATALOG_INTENDED_USE,
-            Arc::clone(&shared_lease),
-            Arc::clone(&probe),
-        )?;
-        let packet = tos_query::execute_selected_knowledge_health_metadata(
-            &mut model,
-            &bound,
-            &mut authority,
-            tos_query::CatalogBudget {
-                max_open_vm_steps: owner.cold.max_vm_steps,
-                max_read_vm_steps: inspect_budget.max_read_vm_steps,
-                max_packet_bytes: inspect_budget.max_response_bytes,
-                max_decoded_bytes: usize::try_from(inspect_budget.max_decoded_bytes)
-                    .unwrap_or(usize::MAX),
-                json: inspect_budget.json,
-            },
-            &mut visit_meter,
-        )?;
-        consume_catalog_health_packet(packet, &probe, inspect_budget.json, &mut visit_meter)
-    })();
+    let knowledge = child(HealthChild::Knowledge, inspect_budget, &mut visit_meter);
     match knowledge {
         Ok(metadata) => {
             health_child_schema(&metadata, "tos_selected_knowledge_health_metadata_v1")?;
@@ -1447,13 +1315,14 @@ fn execute_selected_access_health(
 
     crate::knowledge::check_abort(&probe)?;
     let final_response_limit =
-        owner.profile.max_response_bytes - inspect_budget.max_response_bytes * HEALTH_CHILDREN;
+        max_response_bytes - inspect_budget.max_response_bytes * HEALTH_CHILDREN;
     if final_response_limit == 0 {
         return Err(AccessError::new(
             AccessErrorCode::BudgetExceeded,
             "selected access health response budget unavailable",
         ));
     }
+    let ok = errors.is_empty();
     let report = health_object(vec![
         (
             "schema_version",
@@ -1463,7 +1332,7 @@ fn execute_selected_access_health(
             "service",
             JsonValue::String(JsonString::from_utf8("tree-of-sophia-access")),
         ),
-        ("ok", JsonValue::Bool(errors.is_empty())),
+        ("ok", JsonValue::Bool(ok)),
         ("write_enabled", JsonValue::Bool(false)),
         ("errors", JsonValue::Array(errors)),
         ("knowledge_schema", knowledge_schema),
@@ -1480,7 +1349,7 @@ fn execute_selected_access_health(
             ]),
         ),
     ]);
-    let mut output_limits = owner.budgets().inspect.json;
+    let mut output_limits = output_json;
     output_limits.max_bytes = final_response_limit;
     let body = visit_meter
         .canonical_bytes(
@@ -1501,6 +1370,177 @@ fn execute_selected_access_health(
         ));
     }
     crate::knowledge::check_abort(&probe)?;
+    Ok((body, ok))
+}
+
+fn execute_selected_access_health(
+    owner: &ManagedLocalExecutor,
+    probe: Arc<dyn AbortProbe>,
+) -> Result<crate::common::PreparedHealth<'static>, AccessError> {
+    crate::knowledge::check_abort(&probe)?;
+    let inspect_budget = partition_health_inspect_budget(owner.budgets().inspect, owner.profile.max_response_bytes, owner.cold.max_work_bytes, owner.cold.max_rows, owner.cold.max_vm_steps)?;
+    let work_steps = owner.cold.max_vm_steps / (HEALTH_CHILDREN as u64 + 1);
+    let mut lease = owner.release.acquire()?;
+    if owner.corpus_original.is_some() {
+        lease.retain_member_guards(&owner.corpus_guards)?;
+    }
+    let shared_lease = Arc::new(Mutex::new(lease));
+    let cold = owner
+        .model
+        .lock()
+        .map_err(|_| unavailable("selected native model lock poisoned"))?;
+    let mut model = cold
+        .fork_reader_with_vm_budget(owner.cold.max_vm_steps)
+        .map_err(|_| unavailable("selected native reader unavailable"))?;
+    drop(cold);
+    let bound = tos_query::bind_verified_knowledge(&model, &owner.vocabulary, &owner.descriptor)?;
+
+    let (body, ok) = compose_selected_access_health(
+        inspect_budget, owner.profile.max_response_bytes, owner.budgets().inspect.json, &probe,
+        |child, inspect_budget, visit_meter| match child {
+            HealthChild::CorpusSeed => {
+        let context = owner
+            .corpus_context
+            .as_ref()
+            .ok_or_else(|| unavailable("selected corpus source context unavailable"))?;
+        let mut authority = Authority::new_shared(
+            owner,
+            &bound,
+            O::CorpusStatus.id(),
+            tos_query::corpus_read::CORPUS_INTENDED_USE,
+            Arc::clone(&shared_lease),
+            Arc::clone(&probe),
+        )?;
+        let packet = tos_query::corpus_read::execute_selected_corpus_health_seed_metered(
+            &mut model,
+            &bound,
+            &mut authority,
+            context,
+            tos_query::corpus_read::CorpusReadBudget {
+                inspect: inspect_budget,
+                max_work_steps: work_steps,
+            },
+            visit_meter,
+        )?;
+        consume_inspect_health_packet(packet, &probe, child_json, visit_meter)
+            },
+            HealthChild::CorpusView(view_id) => {
+                            let context = owner.corpus_context.as_ref().ok_or_else(|| {
+                                unavailable("selected corpus source context unavailable")
+                            })?;
+                            let mut authority = Authority::new_shared(
+                                owner,
+                                &bound,
+                                O::CorpusGraphView.id(),
+                                tos_query::corpus_read::CORPUS_INTENDED_USE,
+                                Arc::clone(&shared_lease),
+                                Arc::clone(&probe),
+                            )?;
+                            let request = tos_query::corpus_read::CorpusReadRequest::GraphView {
+                                view_id: view_id.to_owned(),
+                                limit: 1,
+                            };
+                            let packet = tos_query::corpus_read::execute_selected_corpus_metered(
+                                &mut model,
+                                &bound,
+                                &mut authority,
+                                context,
+                                &request,
+                                tos_query::corpus_read::CorpusReadBudget {
+                                    inspect: inspect_budget,
+                                    max_work_steps: work_steps,
+                                },
+                                visit_meter,
+                            )?;
+                            let value = consume_inspect_health_packet(
+                                packet,
+                                &probe,
+                                child_json,
+                                visit_meter,
+                            )?;
+                            Ok(value)
+            },
+            HealthChild::PhilosophySeed => {
+        let mut authority = Authority::new_shared(
+            owner,
+            &bound,
+            O::PhilosophyViews.id(),
+            tos_query::philosophy_read::PHILOSOPHY_INTENDED_USE,
+            Arc::clone(&shared_lease),
+            Arc::clone(&probe),
+        )?;
+        let packet = tos_query::philosophy_read::execute_selected_philosophy_health_seed_metered(
+            &mut model,
+            &bound,
+            &mut authority,
+            tos_query::philosophy_read::PhilosophyReadBudget {
+                inspect: inspect_budget,
+                max_work_steps: work_steps,
+            },
+            visit_meter,
+        )?;
+        consume_inspect_health_packet(packet, &probe, child_json, visit_meter)
+            },
+            HealthChild::PhilosophyView(view_id) => {
+                            let mut authority = Authority::new_shared(
+                                owner,
+                                &bound,
+                                O::PhilosophyView.id(),
+                                tos_query::philosophy_read::PHILOSOPHY_INTENDED_USE,
+                                Arc::clone(&shared_lease),
+                                Arc::clone(&probe),
+                            )?;
+                            let request = tos_query::philosophy_read::PhilosophyReadRequest::View {
+                                view_id: view_id.to_owned(),
+                                limit: 1,
+                            };
+                            let packet =
+                                tos_query::philosophy_read::execute_selected_philosophy_metered(
+                                    &mut model,
+                                    &bound,
+                                    &mut authority,
+                                    &request,
+                                    tos_query::philosophy_read::PhilosophyReadBudget {
+                                        inspect: inspect_budget,
+                                        max_work_steps: work_steps,
+                                    },
+                                    visit_meter,
+                                )?;
+                            let value = consume_inspect_health_packet(
+                                packet,
+                                &probe,
+                                child_json,
+                                visit_meter,
+                            )?;
+                            Ok(value)
+            },
+            HealthChild::Knowledge => {
+        let mut authority = Authority::new_shared(
+            owner,
+            &bound,
+            O::Catalog.id(),
+            tos_query::CATALOG_INTENDED_USE,
+            Arc::clone(&shared_lease),
+            Arc::clone(&probe),
+        )?;
+        let packet = tos_query::execute_selected_knowledge_health_metadata(
+            &mut model,
+            &bound,
+            &mut authority,
+            tos_query::CatalogBudget {
+                max_open_vm_steps: owner.cold.max_vm_steps,
+                max_read_vm_steps: inspect_budget.max_read_vm_steps,
+                max_packet_bytes: inspect_budget.max_response_bytes,
+                max_decoded_bytes: usize::try_from(inspect_budget.max_decoded_bytes)
+                    .unwrap_or(usize::MAX),
+                json: inspect_budget.json,
+            },
+            visit_meter,
+        )?;
+        consume_catalog_health_packet(packet, &probe, inspect_budget.json, visit_meter)
+            },
+        },
+    )?;
     shared_lease
         .lock()
         .map_err(|_| {
@@ -1511,12 +1551,15 @@ fn execute_selected_access_health(
         })?
         .recheck()?;
     crate::knowledge::check_abort(&probe)?;
-    Ok(PreparedPacket {
+    Ok(crate::common::PreparedHealth {
+        ok,
+        packet: PreparedPacket {
         body,
         fence: Box::new(AccessHealthFence {
             lease: shared_lease,
             probe,
         }),
+        },
     })
 }
 
