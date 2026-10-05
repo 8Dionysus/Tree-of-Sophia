@@ -553,6 +553,7 @@ fn catalogue_error(error: tos_compiler::Error) -> Error {
         tos_compiler::Error::Sql(_)
         | tos_compiler::Error::SqlitePhase { .. }
         | tos_compiler::Error::SqliteVmBudget { .. }
+        | tos_compiler::Error::ControlledColdClose { .. }
         | tos_compiler::Error::Source(_) => Error::Invalid("authored catalogue owner refused"),
     }
 }

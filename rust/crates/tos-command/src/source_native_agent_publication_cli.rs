@@ -45,6 +45,7 @@ fn compiler_failure(error: tos_compiler::Error) -> SourceCommandError {
         Error::Sql(_) | Error::SqlitePhase { .. } => "Agent prepared publication SQLite",
         Error::Source(_) => "Agent prepared publication source validation",
         Error::SqliteVmBudget { .. } => "Agent prepared publication SQLite VM budget",
+        Error::ControlledColdClose { .. } => "Agent prepared publication controlled cold close",
     };
     SourceCommandError::Conflict(reason)
 }
