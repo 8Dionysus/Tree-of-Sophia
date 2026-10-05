@@ -12,83 +12,23 @@ from jsonschema import Draft202012Validator
 REPO_ROOT = Path(__file__).resolve().parents[1]
 ROOT_ENTRY_MAP_PATH = REPO_ROOT / "ToS" / "derived-exports" / "root_entry_map.min.json"
 SCHEMA_REF = "ToS/contracts/root-entry-map.schema.json"
-VALIDATION_REFS = (
-    "scripts/build_root_entry_map.py",
-    "scripts/validate_root_entry_map.py",
-    "tests/test_root_entry_map.py",
-)
+SOURCE_PATH = REPO_ROOT / "scripts/root_entry_map.source.json"
 FORBIDDEN_LOW_CONTEXT_PREFIXES = ("src/", "scripts/")
-ARTIFACT_IDENTITY = {
-    "artifact_class": "tree_of_sophia_generated_readmodel_bundle",
-    "surface_state": "public_generated_root_entry_surface",
-    "owner_repo": "Tree-of-Sophia",
-    "authority_ref": "ToS/derived-exports/AGENTS.md",
-    "producer": "scripts/build_root_entry_map.py from scripts/root_entry_map_common.py",
-    "consumer_expectation": (
-        "consumers verify schema_version, schema_ref, owner_repo, authority_ref, route refs, "
-        "and build_root_entry_map --check plus validate_root_entry_map before treating this "
-        "capsule as usable root-entry orientation, then verify the OS Abyss ABI bundle when release-facing"
-    ),
-    "privacy_boundary": (
-        "Public route and derived-export references, with private host, session, corpus, runtime and credential material kept in their owning private storage routes."
-    ),
-    "content_identity": (
-        "ToS/derived-exports/root_entry_map.min.json rebuilt from scripts/root_entry_map_common.py "
-        "and compared by build_root_entry_map --check"
-    ),
-    "abi_epoch": "tree_of_sophia_generated_readmodel_bundle_v1",
-    "contract_version": SCHEMA_REF,
-    "trust_layer": ["abi_contract_signature", "source_schema_validation"],
-    "verification": [
-        "python scripts/build_root_entry_map.py --check",
-        "python scripts/validate_root_entry_map.py",
-        "python -m unittest tests/test_root_entry_map.py",
-    ],
-    "action": "ADD_CONSUMER_EXPECTATION",
-}
 
-SURFACE_PAYLOAD = {
-    "schema_version": "tos_root_entry_map_v1",
-    "schema_ref": SCHEMA_REF,
-    "owner_repo": "Tree-of-Sophia",
-    "surface_kind": "root_entry_map",
-    "authority_ref": "CHARTER.md",
-    "public_root_ref": "README.md",
-    "current_tiny_entry_ref": "ToS/public-compatibility/tos_tiny_entry_route.example.json",
-    "export_ref": "ToS/derived-exports/kag_export.min.json",
-    "validation_refs": list(VALIDATION_REFS),
-}
 
-ROUTES = (
-    {
-        "route_id": "current-tiny-entry",
-        "need": "enter the current bounded ToS route through the source-owned tiny-entry seam",
-        "surface_ref": "ToS/public-compatibility/tos_tiny_entry_route.example.json",
-        "verification_refs": [
-            "ToS/zarathustra/public-entry/TINY_ENTRY_ROUTE.md",
-            "ToS/zarathustra/prologue-1/TRILINGUAL_ENTRY.md",
-        ],
-    },
-    {
-        "route_id": "tree-first-model",
-        "need": "restore the tree-first model and repository boundary before following derived downstream layers",
-        "surface_ref": "ToS/doctrine/KNOWLEDGE_MODEL.md",
-        "verification_refs": ["CHARTER.md", "BOUNDARIES.md"],
-    },
-    {
-        "route_id": "bounded-export",
-        "need": "inspect the current bounded downstream export seam without mistaking it for ToS authority",
-        "surface_ref": "ToS/derived-exports/kag_export.min.json",
-        "verification_refs": ["mechanics/boundary-bridge/parts/derived-kag-seam/docs/KAG_EXPORT.md", "ToS/public-compatibility/source_node.example.json"],
-    },
-)
-CORE_ROUTE_IDS = frozenset(
-    {
-        "current-tiny-entry",
-        "tree-first-model",
-        "bounded-export",
-    }
-)
+def source_payload() -> dict[str, object]:
+    """The one authored generator input, shared with the native held-root reader."""
+    return json.loads(SOURCE_PATH.read_text(encoding="utf-8"))
+
+
+# Retained comparison API names expose the same owner input; build_payload reloads
+# it on every call so an edited declaration cannot hide behind an imported cache.
+_source = source_payload()
+ARTIFACT_IDENTITY = _source["artifact_identity"]
+SURFACE_PAYLOAD = {key: value for key, value in _source.items() if key not in ("artifact_identity", "routes")}
+VALIDATION_REFS = tuple(SURFACE_PAYLOAD["validation_refs"])
+ROUTES = tuple(_source["routes"])
+CORE_ROUTE_IDS = frozenset(route["route_id"] for route in ROUTES)
 
 
 def resolve_local_ref(value: str) -> Path:
@@ -128,37 +68,16 @@ def validate_payload_schema(payload: dict[str, object]) -> None:
 
 
 def build_payload() -> dict[str, object]:
-    for key in (
-        "schema_ref",
-        "authority_ref",
-        "public_root_ref",
-        "current_tiny_entry_ref",
-        "export_ref",
-    ):
-        validate_low_context_local_ref(str(SURFACE_PAYLOAD[key]), f"surface.{key}")
-    for ref in SURFACE_PAYLOAD["validation_refs"]:
+    payload = source_payload()
+    validate_payload_schema(payload)
+    for key in ("schema_ref", "authority_ref", "public_root_ref", "current_tiny_entry_ref", "export_ref"):
+        validate_low_context_local_ref(str(payload[key]), f"surface.{key}")
+    for ref in payload["validation_refs"]:
         resolve_local_ref(ref)
-
-    routes: list[dict[str, object]] = []
-    for route in ROUTES:
+    for route in payload["routes"]:
         validate_low_context_local_ref(route["surface_ref"], f"route:{route['route_id']}.surface_ref")
         for ref in route["verification_refs"]:
             validate_low_context_local_ref(ref, f"route:{route['route_id']}.verification_refs")
-        routes.append(
-            {
-                "route_id": route["route_id"],
-                "need": route["need"],
-                "surface_ref": route["surface_ref"],
-                "verification_refs": list(route["verification_refs"]),
-            }
-        )
-
-    payload = {
-        **SURFACE_PAYLOAD,
-        "artifact_identity": dict(ARTIFACT_IDENTITY),
-        "routes": routes,
-    }
-    validate_payload_schema(payload)
     return payload
 
 

@@ -2787,13 +2787,15 @@
       "source_truth": [
         "scripts/root_entry_map_common.py",
         "ToS/contracts/root-entry-map.schema.json",
-        "rust/crates/tos-ops-mechanics-plan/src/root_entry_map.rs"
+        "rust/crates/tos-ops-mechanics-plan/src/root_entry_map.rs",
+        "scripts/root_entry_map.source.json"
       ],
       "reads": [
         "ToS/contracts/root-entry-map.schema.json",
         "AGENTS.md",
         "README.md",
-        "ROADMAP.md"
+        "ROADMAP.md",
+        "scripts/root_entry_map.source.json"
       ],
       "writes": [
         "ToS/derived-exports/root_entry_map.min.json unless --check is used"
@@ -3556,10 +3558,12 @@
       "organ_lane": "shared-library",
       "owner_surface": "ToS/contracts/root-entry-map.schema.json",
       "source_truth": [
-        "ToS/contracts/root-entry-map.schema.json"
+        "ToS/contracts/root-entry-map.schema.json",
+        "scripts/root_entry_map.source.json"
       ],
       "reads": [
-        "root entry surfaces"
+        "root entry surfaces",
+        "scripts/root_entry_map.source.json"
       ],
       "writes": [],
       "side_effects": "library only",
@@ -3954,10 +3958,12 @@
       "source_truth": [
         "ToS/derived-exports/root_entry_map.min.json",
         "ToS/contracts/root-entry-map.schema.json",
-        "rust/crates/tos-ops-mechanics-plan/src/root_entry_map.rs"
+        "rust/crates/tos-ops-mechanics-plan/src/root_entry_map.rs",
+        "scripts/root_entry_map.source.json"
       ],
       "reads": [
-        "ToS/derived-exports/root_entry_map.min.json"
+        "ToS/derived-exports/root_entry_map.min.json",
+        "scripts/root_entry_map.source.json"
       ],
       "writes": [],
       "side_effects": "validation output only Installed native operation; optional selected export explicit; no compile or Python fallback.",

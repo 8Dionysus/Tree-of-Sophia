@@ -417,6 +417,12 @@ meaning, rights or canon.
 
 ## Maintained currentness and root-entry commands
 
+Root-entry route values have one authored generator input,
+`scripts/root_entry_map.source.json`. Native operations read it through held
+`RouteSources` and the current root-entry schema; the explicit Python comparison
+API reads the same declaration. The compact output ABI and selected export
+verification stay unchanged.
+
 Agent surface, documentation family, decision indexes and root-entry map use
 `tos-ops-mechanics-plan --repo-root PATH` directly in the validation manifest.
 Select `--agent-surface-build [--check]`, `--agent-surface-validate

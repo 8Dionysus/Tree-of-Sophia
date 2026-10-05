@@ -11,7 +11,7 @@ use tos_foundation::{JsonLimits, JsonMode, parse_json};
 pub type Issue = (String, String);
 pub const OUTPUT: &str = "ToS/derived-exports/root_entry_map.min.json";
 const SCHEMA: &str = "ToS/contracts/root-entry-map.schema.json";
-const CANONICAL_JSON: &str = r##"{"schema_version":"tos_root_entry_map_v1","schema_ref":"ToS/contracts/root-entry-map.schema.json","owner_repo":"Tree-of-Sophia","surface_kind":"root_entry_map","authority_ref":"CHARTER.md","public_root_ref":"README.md","current_tiny_entry_ref":"ToS/public-compatibility/tos_tiny_entry_route.example.json","export_ref":"ToS/derived-exports/kag_export.min.json","validation_refs":["scripts/build_root_entry_map.py","scripts/validate_root_entry_map.py","tests/test_root_entry_map.py"],"artifact_identity":{"artifact_class":"tree_of_sophia_generated_readmodel_bundle","surface_state":"public_generated_root_entry_surface","owner_repo":"Tree-of-Sophia","authority_ref":"ToS/derived-exports/AGENTS.md","producer":"scripts/build_root_entry_map.py from scripts/root_entry_map_common.py","consumer_expectation":"consumers verify schema_version, schema_ref, owner_repo, authority_ref, route refs, and build_root_entry_map --check plus validate_root_entry_map before treating this capsule as usable root-entry orientation, then verify the OS Abyss ABI bundle when release-facing","privacy_boundary":"Public route and derived-export references, with private host, session, corpus, runtime and credential material kept in their owning private storage routes.","content_identity":"ToS/derived-exports/root_entry_map.min.json rebuilt from scripts/root_entry_map_common.py and compared by build_root_entry_map --check","abi_epoch":"tree_of_sophia_generated_readmodel_bundle_v1","contract_version":"ToS/contracts/root-entry-map.schema.json","trust_layer":["abi_contract_signature","source_schema_validation"],"verification":["python scripts/build_root_entry_map.py --check","python scripts/validate_root_entry_map.py","python -m unittest tests/test_root_entry_map.py"],"action":"ADD_CONSUMER_EXPECTATION"},"routes":[{"route_id":"current-tiny-entry","need":"enter the current bounded ToS route through the source-owned tiny-entry seam","surface_ref":"ToS/public-compatibility/tos_tiny_entry_route.example.json","verification_refs":["ToS/zarathustra/public-entry/TINY_ENTRY_ROUTE.md","ToS/zarathustra/prologue-1/TRILINGUAL_ENTRY.md"]},{"route_id":"tree-first-model","need":"restore the tree-first model and repository boundary before following derived downstream layers","surface_ref":"ToS/doctrine/KNOWLEDGE_MODEL.md","verification_refs":["CHARTER.md","BOUNDARIES.md"]},{"route_id":"bounded-export","need":"inspect the current bounded downstream export seam without mistaking it for ToS authority","surface_ref":"ToS/derived-exports/kag_export.min.json","verification_refs":["mechanics/boundary-bridge/parts/derived-kag-seam/docs/KAG_EXPORT.md","ToS/public-compatibility/source_node.example.json"]}]}"##;
+pub const SOURCE: &str = "scripts/root_entry_map.source.json";
 fn tick(s: &RouteSources, cancel: &AtomicI32) -> io::Result<()> {
     if cancel.load(Ordering::Relaxed) != 0 {
         return Err(io::Error::other("root-entry-map operation cancelled"));
@@ -133,7 +133,10 @@ fn build_payload_verified(
     cancel: &AtomicI32,
 ) -> io::Result<Value> {
     tick(s, cancel)?;
-    let payload = parse(CANONICAL_JSON.as_bytes())?;
+    let payload = parse(&s.bytes(SOURCE)?)?;
+    // The authored declaration is untrusted until the current owner schema passes.
+    // Validate before route field indexing or unwraps, then resolve held source refs.
+    schema(s, &payload, cancel)?;
     for key in [
         "schema_ref",
         "authority_ref",
@@ -187,7 +190,7 @@ fn build_payload_verified(
             )?;
         }
     }
-    schema(s, &payload, cancel)?;
+    tick(s, cancel)?;
     Ok(payload)
 }
 pub fn render(payload: &Value) -> io::Result<String> {
@@ -405,7 +408,8 @@ mod tests {
             std::fs::create_dir_all(path.parent().unwrap()).unwrap();
             std::fs::write(path, text).unwrap();
         };
-        let p = parse(CANONICAL_JSON.as_bytes()).unwrap();
+        let source = include_str!("../../../../scripts/root_entry_map.source.json");
+        let p = parse(source.as_bytes()).unwrap();
         for key in [
             "schema_ref",
             "authority_ref",
@@ -432,6 +436,7 @@ mod tests {
             SCHEMA,
             include_str!("../../../../ToS/contracts/root-entry-map.schema.json"),
         );
+        write(SOURCE, source);
         let cancel = AtomicI32::new(0);
         assert!(
             build(
@@ -448,6 +453,21 @@ mod tests {
                 .unwrap()
                 .is_empty()
         );
+        // The declaration, rather than a compiled duplicate, owns route wording.
+        let mut authored = p.clone();
+        authored["routes"][0]["need"] = Value::String("edited authored entry need".into());
+        write(SOURCE, &render(&authored).unwrap());
+        assert_eq!(
+            build_payload(&root, &mut RouteSources::new(&root).unwrap(), &cancel).unwrap(),
+            authored
+        );
+        authored["routes"][0].as_object_mut().unwrap().remove("surface_ref");
+        write(SOURCE, &render(&authored).unwrap());
+        assert!(
+            build_payload(&root, &mut RouteSources::new(&root).unwrap(), &cancel)
+                .unwrap_err().to_string().contains("schema violation")
+        );
+        write(SOURCE, source);
         let mut changed = p.clone();
         changed["routes"][0]["route_id"] = Value::String("drift".into());
         write(OUTPUT, &render(&changed).unwrap());
@@ -475,8 +495,9 @@ mod tests {
     }
     #[test]
     fn canonical_compact_render_and_route_ids() {
-        let p = parse(CANONICAL_JSON.as_bytes()).unwrap();
-        assert_eq!(render(&p).unwrap(), format!("{CANONICAL_JSON}\n"));
+        let source = include_str!("../../../../scripts/root_entry_map.source.json");
+        let p = parse(source.as_bytes()).unwrap();
+        assert_eq!(render(&p).unwrap(), source);
         assert_eq!(p["routes"].as_array().unwrap().len(), 3);
         assert_eq!(p["routes"][0]["route_id"], "current-tiny-entry");
         assert_eq!(
