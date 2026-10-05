@@ -563,10 +563,12 @@ fn run_with_cancel_owner(
                         crate::source_foundation_admission::NativeValidationRefusal,
                     >()
                 })
-                .map_or(phase.get(), |refusal| refusal.0.as_str());
+                .map(|refusal| refusal.0.clone())
+                .unwrap_or_else(|| crate::source_command::public_io_reason(&error));
             let _ = writeln!(
                 output,
-                "Native corpus admission refused during {}",
+                "Native corpus admission refused during {}: {}",
+                phase.get(),
                 public_phase
             )
             .and_then(|_| output.flush());

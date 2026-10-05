@@ -86,6 +86,11 @@ impl From<FoundationBootstrapError> for FoundationOrchestratorError {
 
 impl FoundationOrchestratorError {
     pub(crate) fn public_reason(&self) -> String {
+        if let Self::Command(error) | Self::Bootstrap(FoundationBootstrapError::Command(error)) =
+            self
+        {
+            return error.public_reason();
+        }
         if let Self::Default(
             _,
             FoundationDefaultReadError::Owner(ItemRefusal::Executor(evidence)),

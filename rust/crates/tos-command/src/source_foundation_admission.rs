@@ -288,7 +288,10 @@ fn command(error: crate::source_command::SourceCommandError) -> io::Error {
             NativeValidationRefusal("protected invocation ancestor ownership boundary".into()),
         );
     }
-    invalid(format!("native admission foundation boundary: {error:?}"))
+    io::Error::new(
+        io::ErrorKind::InvalidData,
+        NativeValidationRefusal(error.public_reason()),
+    )
 }
 fn count(value: u64) -> io::Result<usize> {
     usize::try_from(value).map_err(|_| invalid("admission limit exceeds address space"))
@@ -611,10 +614,24 @@ impl<'c> NativeSourceValidator<'c> {
                         max_verify_state_bytes: verify_state,
                     },
                 )
-                .map_err(|_| invalid("record selection manifest refused"))?;
-                let binding = selection
-                    .binding()
-                    .map_err(|_| invalid("record selection binding refused"))?;
+                .map_err(|error| {
+                    io::Error::new(
+                        io::ErrorKind::InvalidData,
+                        NativeValidationRefusal(
+                            crate::source_admission_spooled_index::receiver_refusal(error)
+                                .to_string(),
+                        ),
+                    )
+                })?;
+                let binding = selection.binding().map_err(|error| {
+                    io::Error::new(
+                        io::ErrorKind::InvalidData,
+                        NativeValidationRefusal(
+                            crate::source_admission_spooled_index::receiver_refusal(error)
+                                .to_string(),
+                        ),
+                    )
+                })?;
                 let state = selection
                     .charged_state_bytes()
                     .checked_add(
