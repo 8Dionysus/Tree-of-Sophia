@@ -19,16 +19,23 @@ pub(crate) struct CandidateRecordsInput<'a, 'host> {
     max_owned_state_bytes: Cell<usize>,
     callback_retained_state_bytes: Cell<usize>,
 }
+#[track_caller]
 fn input_refusal(error: io::Error) -> ItemRefusal {
-    let message = error.to_string();
-    ItemRefusal::Source(
-        crate::source_admission_spooled_index::receiver_source_reason(&message)
-            .unwrap_or("candidate Records input refused")
-            .into(),
-    )
+    let site = std::panic::Location::caller().line();
+    ItemRefusal::Source(crate::source_admission_spooled_index::bounded_source_cause(
+        "candidate-input",
+        &site.to_string(),
+        &error.to_string(),
+    ))
 }
+#[track_caller]
 fn refused() -> ItemRefusal {
-    ItemRefusal::Source("candidate Records input refused".into())
+    let site = std::panic::Location::caller().line();
+    ItemRefusal::Source(crate::source_admission_spooled_index::bounded_source_cause(
+        "candidate-input",
+        &site.to_string(),
+        "candidate Records input refused",
+    ))
 }
 impl<'a, 'host> CandidateRecordsInput<'a, 'host> {
     pub(crate) fn shares_io_budget(&self, budget: &PinnedSqliteIoBudget) -> bool {
@@ -99,7 +106,7 @@ impl<'a, 'host> CandidateRecordsInput<'a, 'host> {
         {
             return Err(ItemRefusal::Budget);
         }
-        let fence = candidate.fence().map_err(input_refusal)?;
+        let fence = candidate.fence().map_err(|error| input_refusal(error))?;
         Ok(Self {
             candidate,
             fence,
@@ -110,7 +117,11 @@ impl<'a, 'host> CandidateRecordsInput<'a, 'host> {
     }
     fn check(&self, deadline: Instant, cancelled: &AtomicBool) -> Result<(), ItemRefusal> {
         if !self.candidate.matches_invocation(deadline, cancelled)
-            || self.candidate.fence().map_err(input_refusal)? != self.fence
+            || self
+                .candidate
+                .fence()
+                .map_err(|error| input_refusal(error))?
+                != self.fence
         {
             self.candidate.abandon();
             return Err(refused());
@@ -174,7 +185,7 @@ impl SourceCutInput for CandidateRecordsInput<'_, '_> {
                 let row = self
                     .candidate
                     .member_under_after_bounded(&directory_path, previous.as_ref(), allowance)
-                    .map_err(input_refusal)?;
+                    .map_err(|error| input_refusal(error))?;
                 let Some(row) = row else {
                     break;
                 };
@@ -226,7 +237,7 @@ impl SourceCutInput for CandidateRecordsInput<'_, '_> {
             let member = self
                 .candidate
                 .read_member_bound(&path, max_bytes, allowance)
-                .map_err(input_refusal)?;
+                .map_err(|error| input_refusal(error))?;
             visit(
                 SourceCutMemberMeta {
                     path: member.metadata().path.as_str(),
@@ -273,7 +284,7 @@ impl SourceCutInput for CandidateRecordsInput<'_, '_> {
             if let Some(error) = callback_error {
                 return Err(error);
             }
-            let membership = membership.map_err(input_refusal)?;
+            let membership = membership.map_err(|error| input_refusal(error))?;
             self.check(deadline, cancelled)?;
             let (count, bytes) = self.candidate.membership_counts();
             Ok(SourceCutInputCoverage::after_verified_eof(
@@ -308,7 +319,7 @@ impl SourceCutInput for CandidateRecordsInput<'_, '_> {
             let size = self
                 .candidate
                 .member_bounded(&relative, allowance)
-                .map_err(input_refusal)?
+                .map_err(|error| input_refusal(error))?
                 .map(|member| member.size_bytes);
             self.check(deadline, cancelled)?;
             Ok(size)
@@ -341,7 +352,7 @@ impl SourceCutInput for CandidateRecordsInput<'_, '_> {
             let presence = if self
                 .candidate
                 .member_bounded(&relative, allowance)
-                .map_err(input_refusal)?
+                .map_err(|error| input_refusal(error))?
                 .is_some()
             {
                 Some(SourcePresenceV1::File)
@@ -362,7 +373,7 @@ impl SourceCutInput for CandidateRecordsInput<'_, '_> {
                     let Some(next) = self
                         .candidate
                         .member_after_bounded(Some(&after), row_allowance)
-                        .map_err(input_refusal)?
+                        .map_err(|error| input_refusal(error))?
                     else {
                         break None;
                     };

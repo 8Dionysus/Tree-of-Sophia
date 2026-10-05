@@ -302,6 +302,10 @@ impl FoundationOrchestratorError {
             Self::Catalog(_) => "source-foundation catalog comparison refused",
             Self::Persisted(_) => "source-foundation persisted catalog refused",
             Self::Admission(error) => {
+                let source_cause = error.to_string();
+                if crate::source_admission_spooled_index::is_bounded_source_cause(&source_cause) {
+                    return source_cause;
+                }
                 // Return only known owner-authored static diagnostics. Unknown
                 // errors may contain private paths or payloads and remain opaque.
                 match error.to_string().as_str() {

@@ -109,8 +109,14 @@ pub(crate) struct CandidateSchemaBinding<'a, 'input, 'host> {
     max_state_bytes: usize,
     failed: Cell<bool>,
 }
+#[track_caller]
 fn refused() -> ItemRefusal {
-    ItemRefusal::Source("candidate schema binding refused".into())
+    let site = std::panic::Location::caller().line();
+    ItemRefusal::Source(crate::source_admission_spooled_index::bounded_source_cause(
+        "candidate-schema",
+        &site.to_string(),
+        "candidate schema binding refused",
+    ))
 }
 impl<'a, 'input, 'host> CandidateSchemaBinding<'a, 'input, 'host> {
     /// `retained_state_bytes` includes the caller's held schema/worker/input,

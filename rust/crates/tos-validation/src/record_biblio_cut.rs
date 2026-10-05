@@ -4235,6 +4235,18 @@ pub(crate) fn current(
     account(used, member.raw.len(), limits.max_total_bytes)?;
     Ok(member.raw)
 }
+pub(crate) fn source_store_cause(error: &tos_source_store::StoreError) -> String {
+    // StoreError.detail is owner-authored &'static str; its optional raw IO
+    // source may contain paths, so only the typed code and detail digest travel.
+    let code = match &error.source {
+        Some(source) => format!("{:?}-{:?}", error.code, source.kind()),
+        None => format!("{:?}", error.code),
+    };
+    format!(
+        "source-cause:source-store:{code}:{}",
+        tos_foundation::Digest256::of_bytes(error.detail.as_bytes()).to_hex()
+    )
+}
 pub(crate) fn store_error(error: tos_source_store::StoreError) -> ItemRefusal {
     use tos_source_store::StoreErrorCode;
     match error.code {
@@ -4242,7 +4254,7 @@ pub(crate) fn store_error(error: tos_source_store::StoreError) -> ItemRefusal {
         StoreErrorCode::UnsupportedFormat | StoreErrorCode::UnsupportedPlatform => {
             ItemRefusal::Unsupported(error.to_string())
         }
-        _ => ItemRefusal::Source(error.to_string()),
+        _ => ItemRefusal::Source(source_store_cause(&error)),
     }
 }
 

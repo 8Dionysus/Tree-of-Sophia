@@ -4963,6 +4963,66 @@ pub fn inspect_source_foundation_records_from_cut_rolling_stored<'a>(
     ))
 }
 
+fn source_refusal_origin(error: ItemRefusal, stage: &'static str) -> ItemRefusal {
+    match error {
+        ItemRefusal::Source(reason) if !reason.starts_with("source-cause:") => {
+            // Complete formatted-Source constructor shapes in this receiver.
+            // Context values remain private; the fixed originating operation
+            // and full cause digest are enough to match the owned source/input.
+            let origin = if reason.starts_with("Biblio adapter omitted required member: ") {
+                "biblio-adapter-member-missing"
+            } else if reason.starts_with("Biblio ")
+                && reason.ends_with(" fact cursor coverage differs from emitted observations")
+            {
+                "biblio-fact-coverage"
+            } else if reason
+                .starts_with("source-foundation current member missing from captured cut: ")
+            {
+                "current-member-missing"
+            } else if reason.starts_with("Item schema is absent from captured cut: ") {
+                "item-schema-absent-cut"
+            } else if reason.starts_with("Item schema worker does not use captured bytes: ") {
+                "item-schema-worker-not-captured"
+            } else if reason
+                .starts_with("Item schema worker resource differs from captured bytes: ")
+            {
+                "item-schema-worker-resource-differs"
+            } else if reason.starts_with("selected Item schema is absent from candidate input: ") {
+                "selected-item-schema-absent"
+            } else if reason
+                .starts_with("candidate schema binding differs from selected source resource: ")
+            {
+                "candidate-schema-resource-binding"
+            } else if reason.starts_with("selected Item schema disappeared during digest read: ") {
+                "selected-item-schema-disappeared"
+            } else if reason.starts_with("candidate schema bytes differ from selected digest: ") {
+                "candidate-schema-digest-differs"
+            } else if reason.starts_with("record member missing from captured cut: ") {
+                "record-member-missing"
+            } else if reason
+                .starts_with("source-foundation Item member missing from captured cut: ")
+            {
+                "item-member-missing"
+            } else if reason
+                .starts_with("source-foundation payload reader disagrees with physical facts: ")
+            {
+                "payload-reader-facts-disagree"
+            } else if reason
+                .starts_with("source-foundation payload reader differs from physical facts: ")
+            {
+                "payload-reader-facts-differ"
+            } else {
+                stage
+            };
+            ItemRefusal::Source(format!(
+                "source-cause:receiver-source:{origin}:{}",
+                Digest256::of_bytes(reason.as_bytes()).to_hex()
+            ))
+        }
+        other => other,
+    }
+}
+
 /// Candidate-fenced, current-only Records+Item receiver. The command adapter
 /// supplies one immutable input view, its matching prepared schema binding,
 /// and the already-owned bounded store. The returned identity remains opaque
@@ -5020,7 +5080,8 @@ pub fn inspect_source_foundation_records_from_input_stored<'a, I: Eq + Clone>(
         limits.max_schema_resource_bytes,
         report_header_state_bytes,
         cancelled,
-    )?;
+    )
+    .map_err(|error| source_refusal_origin(error, "candidate-schema-cost"))?;
     let record_summary = inspect_records_from_input_stored(
         source_input,
         store,
@@ -5029,7 +5090,8 @@ pub fn inspect_source_foundation_records_from_input_stored<'a, I: Eq + Clone>(
         page_budget,
         cancelled,
         record_executor,
-    )?;
+    )
+    .map_err(|error| source_refusal_origin(error, "biblio-record-scan"))?;
     if record_summary.current_member_count() != record_summary.input_coverage().member_count()
         || record_summary.current_source_bytes()
             != record_summary.input_coverage().source_bytes_read()
@@ -5063,7 +5125,8 @@ pub fn inspect_source_foundation_records_from_input_stored<'a, I: Eq + Clone>(
         schema_cost,
         Some(&record_summary),
         Some(&mut *store),
-    )?;
+    )
+    .map_err(|error| source_refusal_origin(error, "records-item-core"))?;
     let record_usage = core.record_usage.ok_or(ItemRefusal::Budget)?;
     let items = streamed_item_summary(&core.items);
     Ok(SourceFoundationRecordsStreamedReport::new_completed(
@@ -7152,5 +7215,5 @@ fn check_deadline(deadline: Instant, cancelled: &AtomicBool) -> Result<(), ItemR
 }
 
 fn store_error(error: tos_source_store::StoreError) -> ItemRefusal {
-    ItemRefusal::Source(format!("source-foundation cut read: {error:?}"))
+    ItemRefusal::Source(crate::record_biblio_cut::source_store_cause(&error))
 }

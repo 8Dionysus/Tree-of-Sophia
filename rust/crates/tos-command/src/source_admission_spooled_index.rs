@@ -284,6 +284,46 @@ pub(crate) fn receiver_source_reason(reason: &str) -> Option<&'static str> {
     }
 }
 
+/// A total private-data-free identifier for source errors that have no fixed
+/// public literal. The module/site belongs to this source; only the digest of
+/// the original reason crosses the boundary.
+pub(crate) fn bounded_source_cause(module: &str, site: &str, reason: &str) -> String {
+    format!(
+        "source-cause:{module}:{site}:{}",
+        Digest256::of_bytes(reason.as_bytes()).to_hex()
+    )
+}
+pub(crate) fn is_bounded_source_cause(reason: &str) -> bool {
+    let mut parts = reason.split(':');
+    let schema = parts.next();
+    let module = parts.next();
+    let site = parts.next();
+    let digest = parts.next();
+    schema == Some("source-cause")
+        && matches!(
+            module,
+            Some(
+                "candidate-input"
+                    | "candidate-schema"
+                    | "spooled-records"
+                    | "source-store"
+                    | "receiver-source"
+            )
+        )
+        && site.is_some_and(|site| {
+            !site.is_empty()
+                && site.len() <= 40
+                && site.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'-')
+        })
+        && digest.is_some_and(|digest| {
+            digest.len() == 64
+                && digest
+                    .bytes()
+                    .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
+        })
+        && parts.next().is_none()
+}
+
 fn receiver_refusal(error: ItemRefusal) -> io::Error {
     // Keep only the bounded primary owner class; source paths and parser text
     // remain private while the real refusal stage survives the IO boundary.
@@ -292,10 +332,16 @@ fn receiver_refusal(error: ItemRefusal) -> io::Error {
         ItemRefusal::BudgetCheck { .. } => "candidate Records/Item receiver budget check refused",
         ItemRefusal::Deadline => "candidate Records/Item receiver deadline refused",
         ItemRefusal::Source(reason) => {
-            return invalid(
-                receiver_source_reason(&reason)
-                    .unwrap_or("candidate Records/Item receiver source refused"),
-            );
+            return if let Some(fixed) = receiver_source_reason(&reason) {
+                invalid(fixed)
+            } else if is_bounded_source_cause(&reason) {
+                io::Error::new(io::ErrorKind::InvalidData, reason)
+            } else {
+                io::Error::new(
+                    io::ErrorKind::InvalidData,
+                    bounded_source_cause("receiver-source", "ItemRefusal-Source", &reason),
+                )
+            };
         }
         ItemRefusal::Unsupported(_) => "candidate Records/Item receiver unsupported",
     };
