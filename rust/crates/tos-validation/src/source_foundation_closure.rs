@@ -4706,8 +4706,6 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
                     format!("{path}:{line}"),
                     format!("duplicate event_id: {id}"),
                 )?;
-            } else if self.schema_request_store.is_none() {
-                self.events.insert(id.to_owned(), event);
             }
             if path.ends_with(PROVISION_EVENT_BASENAME) {
                 if candidate_store_active {
@@ -4718,6 +4716,10 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
                     )?;
                     self.provision_event_ids.insert(id.to_owned());
                 }
+            }
+            // All borrowed event-id observations finish before ownership moves.
+            if !duplicate && self.schema_request_store.is_none() {
+                self.events.insert(id.to_owned(), event);
             }
         }
         self.release_loaded_rows(loaded_state_bytes)?;
