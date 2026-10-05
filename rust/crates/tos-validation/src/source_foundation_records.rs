@@ -4973,6 +4973,14 @@ pub fn inspect_source_foundation_records_from_cut_rolling_stored<'a>(
 
 fn source_refusal_origin(error: ItemRefusal, stage: &'static str) -> ItemRefusal {
     match error {
+        // This district composes several owners. If an older owner still
+        // supplies only its budget class, retain the actual dispatch stage
+        // without fabricating a guard counter or replacing a richer refusal.
+        ItemRefusal::Budget => ItemRefusal::BudgetCheck {
+            check: stage,
+            used: None,
+            limit: None,
+        },
         ItemRefusal::Source(reason) if !reason.starts_with("source-cause:") => {
             // Complete formatted-Source constructor shapes in this receiver.
             // Context values remain private; the fixed originating operation
@@ -6245,9 +6253,7 @@ fn candidate_schema_resource_cost<I: Eq + Clone>(
         // Its contract binding and raw bytes must agree with this exact input;
         // record-family selection remains a separate owner decision.
         let selected_contract_digest = schema_binding.contract_digest(resource.path);
-        if actual_size != resource.size_bytes
-            || selected_contract_digest != Some(resource.sha256)
-        {
+        if actual_size != resource.size_bytes || selected_contract_digest != Some(resource.sha256) {
             return Err(ItemRefusal::Source(format!(
                 "candidate schema binding differs from selected source resource: {}",
                 resource.path

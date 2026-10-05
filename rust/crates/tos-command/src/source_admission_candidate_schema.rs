@@ -95,7 +95,16 @@ pub(crate) fn inspect_candidate_records_stored<'store>(
     if result.is_err() {
         input.abandon();
     }
-    result
+    result.map_err(|error| match error {
+        // Records owns its internal stage evidence. A legacy budget refusal
+        // reaching this seam without it belongs to the adapter's input fences.
+        ItemRefusal::Budget => ItemRefusal::BudgetCheck {
+            check: "candidate Records adapter input fence",
+            used: None,
+            limit: None,
+        },
+        other => other,
+    })
 }
 
 pub(crate) struct CandidateSchemaBinding<'a, 'input, 'host> {
