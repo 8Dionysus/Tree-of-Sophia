@@ -76,7 +76,28 @@ export async function compareNativePackets({nativeBase, workerBase, profile, dea
   async function fetchPacket(base, path, body, expectedMedia = 'application/json') {
     const response = await fetch(base + path, {redirect: 'error', signal: AbortSignal.timeout(Math.min(30_000, remaining())),
       ...(body === undefined ? {} : {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)})});
-    if (response.status !== 200) throw new Error(`${path} returned HTTP ${response.status}`);
+    if (response.status !== 200) {
+      // Preserve the same refused response before lifecycle cleanup. This is
+      // diagnostic custody only: no extra request or response acceptance.
+      const cap = Math.min(maximumResponseBytes, 8192);
+      const chunks = []; let count = 0, complete = false;
+      if (response.body) {
+        const reader = response.body.getReader();
+        try {
+          for (;;) {
+            remaining(); const {done, value} = await reader.read();
+            if (done) {complete = true; break;}
+            const kept = value.subarray(0, Math.max(0, cap - count));
+            chunks.push(kept); count += kept.byteLength;
+            if (value.byteLength > kept.byteLength || count === cap) break;
+          }
+        } finally {await reader.cancel();}
+      }
+      const diagnostic = {schema: 'tos_native_packet_refusal_v1', path,
+        status: response.status, retained_bytes: count, complete,
+        body_base64: Buffer.concat(chunks, count).toString('base64')};
+      throw new Error(`${path} returned HTTP ${response.status} ${JSON.stringify(diagnostic)}`);
+    }
     const media = response.headers.get('content-type')?.split(';')[0].trim().toLowerCase();
     if (media !== expectedMedia) throw new Error(`${path} returned wrong content type: ${media}`);
     if (!response.body) throw new Error(`${path} response body absent`);
