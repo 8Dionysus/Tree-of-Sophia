@@ -6009,7 +6009,7 @@ struct PackageState {
     forms: BTreeMap<String, JsonValue>,
     history: JsonValue,
     receipt: JsonValue,
-    initial_archive_revision: Option<String>,
+    initial_archive_stream_digest: Option<String>,
     archive_locations: Vec<JsonValue>,
 }
 
@@ -6512,15 +6512,18 @@ fn verify_creation_integrity(
         required_package_file(current_files, CREATE_PROVENANCE)?.to_vec(),
     );
     validate_receipt_ref_files(receipt, &initial_files)?;
-    let expected_initial_revision = match &state.initial_archive_revision {
-        Some(revision) => revision.clone(),
-        None => package_revision(current_files)?,
+    let expected_initial_stream_digest = match &state.initial_archive_stream_digest {
+        Some(digest) => digest.clone(),
+        None => Digest256::of_bytes(required_package_file(current_files, CLAIM_STREAM)?)
+            .to_prefixed(),
     };
     initial_files.insert(
         RECEIPT_FILE.to_owned(),
         required_package_file(current_files, RECEIPT_FILE)?.to_vec(),
     );
-    if package_revision(&initial_files)? != expected_initial_revision
+    if Digest256::of_bytes(required_package_file(&initial_files, CLAIM_STREAM)?)
+        .to_prefixed()
+        != expected_initial_stream_digest
         || required_package_file(current_files, CONFIG_FILE)?
             != required_package_file(&initial_files, CONFIG_FILE)?
     {
@@ -6753,7 +6756,7 @@ fn package_state(
         }
     }
     let mut archive_locations = Vec::new();
-    let mut initial_archive_revision = None;
+    let mut initial_archive_stream_digest = None;
     let mut expected_stream_digest: Option<String> = None;
     let mut history_commands = BTreeSet::new();
     for receipt in cmd::array(&history, "receipts")? {
@@ -6844,7 +6847,7 @@ fn package_state(
             ));
         }
         if expected_stream_digest.is_none() {
-            initial_archive_revision = Some(package_revision(&package)?);
+            initial_archive_stream_digest = Some(archived_stream_digest.clone());
             for row in previous.values() {
                 if cmd::integer(row, "claim_version")? != 1 {
                     return Err(SourceCommandError::Conflict(
@@ -6987,7 +6990,7 @@ fn package_state(
         forms,
         history,
         receipt,
-        initial_archive_revision,
+        initial_archive_stream_digest,
         archive_locations,
     })
 }
