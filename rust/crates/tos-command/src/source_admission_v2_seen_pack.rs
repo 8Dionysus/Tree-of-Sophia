@@ -3,6 +3,7 @@
 //! fixed at construction; the segment-store callback alone can complete rows.
 
 use super::source_admission_segment_v2::{SourceRevisionRootsV2, decode_workspace_upper_bound};
+use super::source_admission_packed_objects::PackedObjectLocationV2;
 use rusqlite::{OptionalExtension, params, types::ValueRef};
 use std::{
     cell::{Cell, RefCell},
@@ -16,13 +17,15 @@ use std::{
 };
 use tos_foundation::Digest256;
 use tos_segment_store::{
-    AuthenticatedTreeEntryV1, AuthenticatedTreePackSetV2, Result as SegmentResult, SegmentError,
-    SegmentErrorCode,
+    AuthenticatedTreeEntryV1, AuthenticatedTreeIoLedgerV1, AuthenticatedTreePackSetV2,
+    FrameCoordinate, Result as SegmentResult, SegmentError, SegmentErrorCode,
+    SegmentOperationLimitsV1, SegmentOperationWorkV1, SegmentStore,
 };
 use tos_source_store::{
     PinnedSqliteAuxRequest, PinnedSqliteAuxScope, PinnedSqliteConnection, PinnedSqliteIoBudget,
     PinnedSqliteSpaceBudget,
 };
+use super::source_admission::AdmissionWorkBudget;
 
 const DIGEST_BYTES: usize = 32;
 
@@ -73,6 +76,13 @@ pub(crate) struct V2SeenPackSpillLimits {
     /// Existing retained-history ceiling; the spill does not create a larger
     /// row grant.
     pub max_history_roots: u64,
+    /// Cumulative retained object-reference rows across all revisions.
+    pub max_object_rows: u64,
+    /// Producer/profile maximum for any one immutable packed payload segment.
+    pub max_pack_frames: u32,
+    /// Largest key in the selected authenticated tree profile, used to bound
+    /// the two keyed identity rows retained by the semantic cross-check.
+    pub max_identity_key_bytes: usize,
     /// Source-owned maximum canonical history-row encoding.
     pub max_history_row_bytes: usize,
     pub cache_bytes: usize,
@@ -96,6 +106,12 @@ pub struct V2SeenPackSpillRequest {
 pub struct V2SeenPackSpillRequests {
     pub source: V2SeenPackSpillRequest,
     pub target: V2SeenPackSpillRequest,
+}
+
+pub(crate) struct V2ColdPayloadFrameRow {
+    pub frame_index: u32,
+    pub digest: Digest256,
+    pub location: PackedObjectLocationV2,
 }
 
 impl V2SeenPackSpillRequests {
@@ -173,11 +189,31 @@ impl V2SeenPackSpillLimits {
             .checked_add(history_decode_workspace)
             .and_then(|bytes| bytes.checked_add(history_decoded_state))
             .ok_or_else(|| invalid("V2 pack spill history row state overflow"))?;
+        let payload_frame_cursor_state = size_of::<PackedObjectLocationV2>()
+            .checked_add(size_of::<Digest256>() * 2)
+            .and_then(|bytes| bytes.checked_add(64))
+            .ok_or_else(|| invalid("V2 packed payload row state overflow"))?;
+        let identity_pair_state = self
+            .max_identity_key_bytes
+            .checked_mul(2)
+            .and_then(|bytes| bytes.checked_add(2 * size_of::<Vec<u8>>() + 4096))
+            .ok_or_else(|| invalid("V2 identity pair state overflow"))?;
+        let coordinate_state = usize::try_from(self.max_pack_frames)
+            .map_err(|_| invalid("V2 packed payload frame state overflow"))?
+            .checked_mul(size_of::<FrameCoordinate>())
+            .and_then(|bytes| bytes.checked_add(65_536))
+            .ok_or_else(|| invalid("V2 packed payload frame state overflow"))?;
         let cache_kib = self.cache_bytes / 1024;
         if self.max_tree_nodes == 0
             || self.max_tree_nodes == u64::MAX
             || self.max_history_roots == 0
             || self.max_history_roots == u64::MAX
+            || self.max_object_rows == 0
+            || self.max_object_rows == u64::MAX
+            || self.max_pack_frames == 0
+            || self.max_pack_frames == u32::MAX
+            || self.max_identity_key_bytes == 0
+            || self.max_identity_key_bytes == usize::MAX
             || self.max_history_row_bytes == 0
             || self.max_history_row_bytes == usize::MAX
             || cache_kib == 0
@@ -202,6 +238,9 @@ impl V2SeenPackSpillLimits {
             // retained while its closure is checked. SQLite's native
             // row/page-cache residency is separately covered below.
             .and_then(|bytes| bytes.checked_add(history_row_state))
+            .and_then(|bytes| bytes.checked_add(payload_frame_cursor_state))
+            .and_then(|bytes| bytes.checked_add(identity_pair_state))
+            .and_then(|bytes| bytes.checked_add(coordinate_state))
             .and_then(|bytes| bytes.checked_add(self.sqlite_native_overhead_bytes))
             .ok_or_else(|| invalid("V2 pack spill state charge overflow"))?;
         if self
@@ -237,6 +276,27 @@ pub(crate) struct V2SeenPackSpill {
     binding_checked: Cell<bool>,
     history_entries: Cell<u64>,
     history_phase: Cell<HistoryPhase>,
+    expected_object_rows: Cell<u64>,
+    actual_object_rows: Cell<u64>,
+    identity_expected_rows: Cell<u64>,
+    identity_inverse_rows: Cell<u64>,
+    payload_frame_rows: Cell<u64>,
+    packed_revision_count: Cell<u64>,
+    packed_phase: Cell<PackedObjectPhase>,
+}
+
+#[derive(Clone, Copy, Eq, PartialEq)]
+enum PackedObjectPhase {
+    Loading,
+    Verifying,
+    Complete,
+    Failed,
+}
+
+pub(crate) struct V2ColdPayloadPackRow {
+    pub segment_digest: [u8; DIGEST_BYTES],
+    pub segment_size: u64,
+    pub frame_count: u32,
 }
 
 impl V2SeenPackSpill {
@@ -277,7 +337,49 @@ impl V2SeenPackSpill {
              CREATE INDEX v2_cold_history_unvisited ON v2_cold_history(revision)\
                  WHERE color=0;\
              CREATE INDEX v2_cold_history_walk ON v2_cold_history(walk_root)\
-                 WHERE color=1;",
+                 WHERE color=1;\
+             CREATE TABLE v2_cold_object_expected(\
+                 revision BLOB NOT NULL CHECK(length(revision)=32),\
+                 digest BLOB NOT NULL CHECK(length(digest)=32),\
+                 size BLOB CHECK(size IS NULL OR length(size)=8),\
+                 PRIMARY KEY(revision,digest)\
+             ) WITHOUT ROWID;\
+             CREATE TABLE v2_cold_object_extent(\
+                 revision BLOB NOT NULL CHECK(length(revision)=32),\
+                 digest BLOB NOT NULL CHECK(length(digest)=32),\
+                 size BLOB NOT NULL CHECK(length(size)=8),\
+                 segment_digest BLOB NOT NULL CHECK(length(segment_digest)=32),\
+                 segment_size BLOB NOT NULL CHECK(length(segment_size)=8),\
+                 frame_index BLOB NOT NULL CHECK(length(frame_index)=4),\
+                 frame_count BLOB NOT NULL CHECK(length(frame_count)=4),\
+                 header_offset BLOB NOT NULL CHECK(length(header_offset)=8),\
+                 PRIMARY KEY(revision,digest)\
+             ) WITHOUT ROWID;\
+             CREATE INDEX v2_cold_object_extent_pack ON v2_cold_object_extent(\
+                 segment_digest,frame_index);\
+             CREATE TABLE v2_cold_payload_frame(\
+                 segment_digest BLOB NOT NULL CHECK(length(segment_digest)=32),\
+                 frame_index BLOB NOT NULL CHECK(length(frame_index)=4),\
+                 segment_size BLOB NOT NULL CHECK(length(segment_size)=8),\
+                 frame_count BLOB NOT NULL CHECK(length(frame_count)=4),\
+                 digest BLOB NOT NULL CHECK(length(digest)=32),\
+                 size BLOB NOT NULL CHECK(length(size)=8),\
+                 header_offset BLOB NOT NULL CHECK(length(header_offset)=8),\
+                 PRIMARY KEY(segment_digest,frame_index)\
+             ) WITHOUT ROWID;\
+             CREATE TABLE v2_cold_identity_expected(\
+                 revision BLOB NOT NULL CHECK(length(revision)=32),\
+                 id BLOB NOT NULL CHECK(length(id)>0),\
+                 path BLOB NOT NULL CHECK(length(path)>0),\
+                 PRIMARY KEY(revision,id)\
+             ) WITHOUT ROWID;\
+             CREATE TABLE v2_cold_identity_inverse(\
+                 revision BLOB NOT NULL CHECK(length(revision)=32),\
+                 path BLOB NOT NULL CHECK(length(path)>0),\
+                 id BLOB NOT NULL CHECK(length(id)>0),\
+                 PRIMARY KEY(revision,path,id),\
+                 UNIQUE(revision,id)\
+             ) WITHOUT ROWID;",
         )
         .map_err(sql_invalid)?;
         let spill = Arc::new(Self {
@@ -297,6 +399,13 @@ impl V2SeenPackSpill {
             binding_checked: Cell::new(false),
             history_entries: Cell::new(0),
             history_phase: Cell::new(HistoryPhase::Loading),
+            expected_object_rows: Cell::new(0),
+            actual_object_rows: Cell::new(0),
+            identity_expected_rows: Cell::new(0),
+            identity_inverse_rows: Cell::new(0),
+            payload_frame_rows: Cell::new(0),
+            packed_revision_count: Cell::new(0),
+            packed_phase: Cell::new(PackedObjectPhase::Loading),
         });
         spill
             .check_context()
@@ -306,6 +415,23 @@ impl V2SeenPackSpill {
 
     pub(crate) fn state_charge(&self) -> std::io::Result<usize> {
         self.limits.state_charge()
+    }
+
+    pub(crate) fn packed_verifier_caller_state_bytes(&self) -> std::io::Result<usize> {
+        let coordinate_state = usize::try_from(self.limits.max_pack_frames)
+            .map_err(|_| invalid("V2 packed payload frame state overflow"))?
+            .checked_mul(size_of::<FrameCoordinate>())
+            .and_then(|bytes| bytes.checked_add(65_536))
+            .ok_or_else(|| invalid("V2 packed payload frame state overflow"))?;
+        self.limits
+            .retained_operation_state_bytes
+            .checked_add(self.limits.state_charge()?)
+            .and_then(|bytes| bytes.checked_sub(coordinate_state))
+            .ok_or_else(|| invalid("V2 packed verifier state overflow"))
+    }
+
+    pub(crate) fn has_packed_revisions(&self) -> bool {
+        self.packed_revision_count.get() != 0
     }
 
     pub(crate) fn observe_history(
@@ -600,6 +726,655 @@ impl V2SeenPackSpill {
         Ok(())
     }
 
+    /// Capture the ID->path rows so a revision's optional path->ID tree can be
+    /// checked as an exact inverse during cold closure. Values stay in the
+    /// selected AUX SQLite scope; no corpus-sized Rust map is retained.
+    pub(crate) fn observe_identity_binding(
+        &self,
+        revision: [u8; DIGEST_BYTES],
+        id: &[u8],
+        path: &[u8],
+    ) -> std::io::Result<()> {
+        let result = (|| {
+            self.check_context()
+                .map_err(|_| invalid("V2 identity cross-check context is unavailable"))?;
+            if self.packed_phase.get() != PackedObjectPhase::Loading
+                || id.is_empty()
+                || id.len() > self.limits.max_identity_key_bytes
+                || id.contains(&0)
+                || path.is_empty()
+                || path.len() > self.limits.max_identity_key_bytes
+            {
+                return Err(invalid("V2 identity cross-check row exceeds profile"));
+            }
+            let next = self
+                .identity_expected_rows
+                .get()
+                .checked_add(1)
+                .filter(|count| *count <= self.limits.max_object_rows)
+                .ok_or_else(|| invalid("V2 identity cross-check row ceiling exceeded"))?;
+            let changed = self
+                .db
+                .borrow()
+                .execute(
+                    "INSERT INTO v2_cold_identity_expected(revision,id,path) VALUES(?1,?2,?3)",
+                    params![revision.as_slice(), id, path],
+                )
+                .map_err(sql_invalid)?;
+            if changed != 1 {
+                return Err(invalid("V2 identity cross-check row insertion differs"));
+            }
+            self.identity_expected_rows.set(next);
+            self.check_context()
+                .map_err(|_| invalid("V2 identity cross-check context is unavailable"))
+        })();
+        if result.is_err() {
+            self.packed_phase.set(PackedObjectPhase::Failed);
+        }
+        result
+    }
+
+    /// Capture one `path\0id` row from the reverse index and bind it to the
+    /// exact ID->path member row already observed for this revision.
+    pub(crate) fn observe_identity_path_key(
+        &self,
+        revision: [u8; DIGEST_BYTES],
+        key: &[u8],
+    ) -> std::io::Result<()> {
+        let result = (|| {
+            self.check_context()
+                .map_err(|_| invalid("V2 identity inverse context is unavailable"))?;
+            if self.packed_phase.get() != PackedObjectPhase::Loading {
+                return Err(invalid("V2 identity inverse is not loading"));
+            }
+            let separator = key
+                .iter()
+                .position(|byte| *byte == 0)
+                .ok_or_else(|| invalid("V2 identity inverse delimiter absent"))?;
+            let (path, suffix) = key.split_at(separator);
+            let id = &suffix[1..];
+            if path.is_empty()
+                || id.is_empty()
+                || path.len() > self.limits.max_identity_key_bytes
+                || id.len() > self.limits.max_identity_key_bytes
+                || id.contains(&0)
+            {
+                return Err(invalid("V2 identity inverse key exceeds profile"));
+            }
+            let next = self
+                .identity_inverse_rows
+                .get()
+                .checked_add(1)
+                .filter(|count| *count <= self.limits.max_object_rows)
+                .ok_or_else(|| invalid("V2 identity inverse row ceiling exceeded"))?;
+            let changed = self
+                .db
+                .borrow()
+                .execute(
+                    "INSERT INTO v2_cold_identity_inverse(revision,path,id) VALUES(?1,?2,?3)",
+                    params![revision.as_slice(), path, id],
+                )
+                .map_err(sql_invalid)?;
+            if changed != 1 {
+                return Err(invalid("V2 identity inverse row insertion differs"));
+            }
+            self.identity_inverse_rows.set(next);
+            self.check_context()
+                .map_err(|_| invalid("V2 identity inverse context is unavailable"))
+        })();
+        if result.is_err() {
+            self.packed_phase.set(PackedObjectPhase::Failed);
+        }
+        result
+    }
+
+    pub(crate) fn finish_identity_paths_revision(
+        &self,
+        revision: [u8; DIGEST_BYTES],
+        expected_count: u64,
+    ) -> std::io::Result<()> {
+        let result = (|| {
+            self.check_context()
+                .map_err(|_| invalid("V2 identity inverse context is unavailable"))?;
+            if self.packed_phase.get() != PackedObjectPhase::Loading {
+                return Err(invalid("V2 identity inverse is not loading"));
+            }
+            let (expected, actual): (u64, u64) = {
+                let db = self.db.borrow();
+                (
+                    db.query_row(
+                        "SELECT count(*) FROM v2_cold_identity_expected WHERE revision=?1",
+                        params![revision.as_slice()],
+                        |row| row.get(0),
+                    )
+                    .map_err(sql_invalid)?,
+                    db.query_row(
+                        "SELECT count(*) FROM v2_cold_identity_inverse WHERE revision=?1",
+                        params![revision.as_slice()],
+                        |row| row.get(0),
+                    )
+                    .map_err(sql_invalid)?,
+                )
+            };
+            let mismatch = self
+                .db
+                .borrow()
+                .query_row(
+                    "SELECT 1 FROM v2_cold_identity_expected AS expected \
+                     LEFT JOIN v2_cold_identity_inverse AS actual \
+                       ON actual.revision=expected.revision AND actual.id=expected.id \
+                     WHERE expected.revision=?1 AND \
+                       (actual.id IS NULL OR actual.path!=expected.path) LIMIT 1",
+                    params![revision.as_slice()],
+                    |_| Ok(()),
+                )
+                .optional()
+                .map_err(sql_invalid)?
+                .is_some()
+                || self
+                    .db
+                    .borrow()
+                    .query_row(
+                        "SELECT 1 FROM v2_cold_identity_inverse AS actual \
+                         LEFT JOIN v2_cold_identity_expected AS expected \
+                           ON expected.revision=actual.revision AND expected.id=actual.id \
+                         WHERE actual.revision=?1 AND \
+                           (expected.id IS NULL OR expected.path!=actual.path) LIMIT 1",
+                        params![revision.as_slice()],
+                        |_| Ok(()),
+                    )
+                    .optional()
+                    .map_err(sql_invalid)?
+                    .is_some();
+            if expected != expected_count || actual != expected_count || mismatch {
+                return Err(invalid("V2 inverse identity root differs from identity root"));
+            }
+            self.check_context()
+                .map_err(|_| invalid("V2 identity inverse context is unavailable"))
+        })();
+        if result.is_err() {
+            self.packed_phase.set(PackedObjectPhase::Failed);
+        }
+        result
+    }
+
+    /// Record one member or retirement digest expected by a packed revision.
+    /// A null size is reserved for retired target bytes whose historical size
+    /// is not part of the V2 retirement tuple; the digest remains mandatory.
+    pub(crate) fn expect_packed_object(
+        &self,
+        revision: [u8; DIGEST_BYTES],
+        digest: Digest256,
+        expected_size: Option<u64>,
+    ) -> std::io::Result<()> {
+        let result = (|| {
+            self.check_context()
+                .map_err(|_| invalid("V2 packed-object context is unavailable"))?;
+            if self.packed_phase.get() != PackedObjectPhase::Loading {
+                return Err(invalid("V2 packed-object inventory is not loading"));
+            }
+            let digest_bytes = *digest.as_bytes();
+            let encoded_size = expected_size.map(u64_bytes);
+            let existing = self
+                .db
+                .borrow()
+                .query_row(
+                    "SELECT size FROM v2_cold_object_expected WHERE revision=?1 AND digest=?2",
+                    params![revision.as_slice(), digest_bytes.as_slice()],
+                    |row| optional_u64_blob(row, 0),
+                )
+                .optional()
+                .map_err(sql_invalid)?;
+            match existing {
+                Some(old) => {
+                    if old.is_some() && encoded_size.is_some() && old != encoded_size {
+                        return Err(invalid("V2 packed-object expected sizes conflict"));
+                    }
+                    if old.is_none() && encoded_size.is_some() {
+                        let changed = self
+                            .db
+                            .borrow()
+                            .execute(
+                                "UPDATE v2_cold_object_expected SET size=?3 WHERE revision=?1 AND digest=?2 AND size IS NULL",
+                                params![revision.as_slice(), digest_bytes.as_slice(), encoded_size.as_ref().map(|bytes| bytes.as_slice())],
+                            )
+                            .map_err(sql_invalid)?;
+                        if changed != 1 {
+                            return Err(invalid("V2 packed-object expected size update differs"));
+                        }
+                    }
+                }
+                None => {
+                    let next = self
+                        .expected_object_rows
+                        .get()
+                        .checked_add(1)
+                        .filter(|count| *count <= self.limits.max_object_rows)
+                        .ok_or_else(|| invalid("V2 packed-object expected row ceiling exceeded"))?;
+                    let changed = self
+                        .db
+                        .borrow()
+                        .execute(
+                            "INSERT INTO v2_cold_object_expected(revision,digest,size) VALUES(?1,?2,?3)",
+                            params![revision.as_slice(), digest_bytes.as_slice(), encoded_size.as_ref().map(|bytes| bytes.as_slice())],
+                        )
+                        .map_err(sql_invalid)?;
+                    if changed != 1 {
+                        return Err(invalid("V2 packed-object expected insert differs"));
+                    }
+                    self.expected_object_rows.set(next);
+                }
+            }
+            self.check_context()
+                .map_err(|_| invalid("V2 packed-object context is unavailable"))
+        })();
+        if result.is_err() {
+            self.packed_phase.set(PackedObjectPhase::Failed);
+        }
+        result
+    }
+
+    /// Record the exact authenticated extent row and union its immutable
+    /// physical coordinate into the bounded per-operation pack inventory.
+    pub(crate) fn observe_packed_extent(
+        &self,
+        revision: [u8; DIGEST_BYTES],
+        digest: Digest256,
+        location: PackedObjectLocationV2,
+    ) -> std::io::Result<()> {
+        let result = (|| {
+            self.check_context()
+                .map_err(|_| invalid("V2 packed-object context is unavailable"))?;
+            if self.packed_phase.get() != PackedObjectPhase::Loading
+                || location.frame_count > self.limits.max_pack_frames
+            {
+                return Err(invalid("V2 packed-object extent exceeds its profile"));
+            }
+            let digest_bytes = *digest.as_bytes();
+            let segment_bytes = *location.segment_digest.as_bytes();
+            let size = u64_bytes(location.size);
+            let segment_size = u64_bytes(location.segment_size);
+            let frame_index = u32_bytes(location.frame_index);
+            let frame_count = u32_bytes(location.frame_count);
+            let header_offset = u64_bytes(location.header_offset);
+            let next = self
+                .actual_object_rows
+                .get()
+                .checked_add(1)
+                .filter(|count| *count <= self.limits.max_object_rows)
+                .ok_or_else(|| invalid("V2 packed-object extent row ceiling exceeded"))?;
+            let changed = self
+                .db
+                .borrow()
+                .execute(
+                    "INSERT INTO v2_cold_object_extent(\
+                         revision,digest,size,segment_digest,segment_size,frame_index,frame_count,header_offset\
+                     ) VALUES(?1,?2,?3,?4,?5,?6,?7,?8)",
+                    params![
+                        revision.as_slice(),
+                        digest_bytes.as_slice(),
+                        size.as_slice(),
+                        segment_bytes.as_slice(),
+                        segment_size.as_slice(),
+                        frame_index.as_slice(),
+                        frame_count.as_slice(),
+                        header_offset.as_slice(),
+                    ],
+                )
+                .map_err(sql_invalid)?;
+            if changed != 1 {
+                return Err(invalid("V2 packed-object extent insertion differs"));
+            }
+            self.actual_object_rows.set(next);
+
+            let existing = self
+                .db
+                .borrow()
+                .query_row(
+                    "SELECT segment_size,frame_count,digest,size,header_offset \
+                     FROM v2_cold_payload_frame WHERE segment_digest=?1 AND frame_index=?2",
+                    params![segment_bytes.as_slice(), frame_index.as_slice()],
+                    |row| {
+                        Ok((
+                            u64_blob(row, 0)?,
+                            u32_blob(row, 1)?,
+                            digest_row_at(row, 2)?,
+                            u64_blob(row, 3)?,
+                            u64_blob(row, 4)?,
+                        ))
+                    },
+                )
+                .optional()
+                .map_err(sql_invalid)?;
+            let expected = (
+                location.segment_size,
+                location.frame_count,
+                digest_bytes,
+                location.size,
+                location.header_offset,
+            );
+            if let Some(existing) = existing {
+                if existing != expected {
+                    return Err(invalid("V2 packed frame is multiply bound"));
+                }
+            } else {
+                let next = self
+                    .payload_frame_rows
+                    .get()
+                    .checked_add(1)
+                    .filter(|count| *count <= self.limits.max_object_rows)
+                    .ok_or_else(|| invalid("V2 packed-frame row ceiling exceeded"))?;
+                let changed = self
+                    .db
+                    .borrow()
+                    .execute(
+                        "INSERT INTO v2_cold_payload_frame(\
+                             segment_digest,frame_index,segment_size,frame_count,digest,size,header_offset\
+                         ) VALUES(?1,?2,?3,?4,?5,?6,?7)",
+                        params![
+                            segment_bytes.as_slice(),
+                            frame_index.as_slice(),
+                            segment_size.as_slice(),
+                            frame_count.as_slice(),
+                            digest_bytes.as_slice(),
+                            size.as_slice(),
+                            header_offset.as_slice(),
+                        ],
+                    )
+                    .map_err(sql_invalid)?;
+                if changed != 1 {
+                    return Err(invalid("V2 packed-frame row insertion differs"));
+                }
+                self.payload_frame_rows.set(next);
+            }
+            self.check_context()
+                .map_err(|_| invalid("V2 packed-object context is unavailable"))
+        })();
+        if result.is_err() {
+            self.packed_phase.set(PackedObjectPhase::Failed);
+        }
+        result
+    }
+
+    pub(crate) fn finish_packed_revision(
+        &self,
+        revision: [u8; DIGEST_BYTES],
+    ) -> std::io::Result<()> {
+        let result = (|| {
+            self.check_context()
+                .map_err(|_| invalid("V2 packed-object context is unavailable"))?;
+            if self.packed_phase.get() != PackedObjectPhase::Loading {
+                return Err(invalid("V2 packed-object inventory is not loading"));
+            }
+            let missing_or_size_mismatch = self
+                .db
+                .borrow()
+                .query_row(
+                    "SELECT 1 FROM v2_cold_object_expected AS expected \
+                     LEFT JOIN v2_cold_object_extent AS actual \
+                       ON actual.revision=expected.revision AND actual.digest=expected.digest \
+                     WHERE expected.revision=?1 AND \
+                       (actual.digest IS NULL OR (expected.size IS NOT NULL AND expected.size!=actual.size)) LIMIT 1",
+                    params![revision.as_slice()],
+                    |_| Ok(()),
+                )
+                .optional()
+                .map_err(sql_invalid)?
+                .is_some();
+            let orphan = self
+                .db
+                .borrow()
+                .query_row(
+                    "SELECT 1 FROM v2_cold_object_extent AS actual \
+                     LEFT JOIN v2_cold_object_expected AS expected \
+                       ON expected.revision=actual.revision AND expected.digest=actual.digest \
+                     WHERE actual.revision=?1 AND expected.digest IS NULL LIMIT 1",
+                    params![revision.as_slice()],
+                    |_| Ok(()),
+                )
+                .optional()
+                .map_err(sql_invalid)?
+                .is_some();
+            if missing_or_size_mismatch || orphan {
+                return Err(invalid("V2 packed extent root differs from revision object closure"));
+            }
+            let next = self
+                .packed_revision_count
+                .get()
+                .checked_add(1)
+                .filter(|count| *count <= self.limits.max_history_roots)
+                .ok_or_else(|| invalid("V2 packed revision closure count exceeded"))?;
+            self.packed_revision_count.set(next);
+            self.check_context()
+                .map_err(|_| invalid("V2 packed-object context is unavailable"))
+        })();
+        if result.is_err() {
+            self.packed_phase.set(PackedObjectPhase::Failed);
+        }
+        result
+    }
+
+    pub(crate) fn verify_packed_payload_segments(
+        &self,
+        segment: &SegmentStore,
+        io_ledger: Arc<dyn AuthenticatedTreeIoLedgerV1>,
+        max_working_state_bytes: usize,
+        caller_live_state_bytes: usize,
+        work: AdmissionWorkBudget,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> std::io::Result<()> {
+        let result = (|| {
+            self.check_context()
+                .map_err(|_| invalid("V2 packed-object context is unavailable"))?;
+            if self.packed_phase.get() != PackedObjectPhase::Loading
+                || max_working_state_bytes == 0
+                || max_working_state_bytes == usize::MAX
+                || caller_live_state_bytes >= max_working_state_bytes
+            {
+                return Err(invalid("V2 packed-object verifier profile differs"));
+            }
+            self.packed_phase.set(PackedObjectPhase::Verifying);
+            let mut previous = None;
+            let mut processed = 0u64;
+            while let Some(pack) = self.next_payload_pack(previous)? {
+                self.check_context()
+                    .map_err(|_| invalid("V2 packed-object context is unavailable"))?;
+                if previous.is_some_and(|prior| pack.segment_digest <= prior)
+                    || pack.frame_count == 0
+                    || pack.frame_count > self.limits.max_pack_frames
+                    || pack.segment_size > segment.limits().max_segment_bytes
+                {
+                    return Err(invalid("V2 packed payload pack inventory differs"));
+                }
+                let remaining = work.remaining()?;
+                if remaining == 0 {
+                    return Err(invalid("V2 image shared work ceiling exhausted"));
+                }
+                let mut debit = || work.charge(()).is_ok();
+                let mut operation_work = SegmentOperationWorkV1::default();
+                let operation_limits = SegmentOperationLimitsV1 {
+                    max_working_state_bytes,
+                    caller_live_state_bytes,
+                    max_work_bytes: pack.segment_size,
+                    max_work_units: remaining,
+                };
+                let coordinates = segment
+                    .verify_packed_segment_accounted(
+                        Digest256::from_bytes(pack.segment_digest),
+                        pack.segment_size,
+                        pack.frame_count,
+                        io_ledger.clone(),
+                        operation_limits,
+                        deadline,
+                        cancelled,
+                        &mut debit,
+                        &mut operation_work,
+                    )
+                    .map_err(|_| invalid("V2 packed payload segment closure failed"))?;
+                if coordinates.len() != pack.frame_count as usize {
+                    return Err(invalid("V2 packed payload frame coverage differs"));
+                }
+                let mut frame_after = None;
+                let mut seen = 0u32;
+                while let Some(row) = self.next_payload_frame(pack.segment_digest, frame_after)? {
+                    self.check_context()
+                        .map_err(|_| invalid("V2 packed-object context is unavailable"))?;
+                    let Some(coordinate) = coordinates.get(row.frame_index as usize) else {
+                        return Err(invalid("V2 packed payload extent index exceeds pack"));
+                    };
+                    if frame_after.is_some_and(|prior| row.frame_index <= prior)
+                        || row.frame_index != seen
+                        || row.location.segment_digest.as_bytes() != &pack.segment_digest
+                        || row.location.segment_size != pack.segment_size
+                        || row.location.frame_count != pack.frame_count
+                        || coordinate.header_offset != row.location.header_offset
+                        || coordinate.size_bytes != row.location.size
+                        || coordinate.sha256 != row.digest
+                    {
+                        return Err(invalid("V2 packed payload extent coordinate differs"));
+                    }
+                    seen = seen
+                        .checked_add(1)
+                        .ok_or_else(|| invalid("V2 packed payload frame count overflow"))?;
+                    frame_after = Some(row.frame_index);
+                }
+                if seen != pack.frame_count {
+                    return Err(invalid("V2 packed payload segment has unreferenced frames"));
+                }
+                processed = processed
+                    .checked_add(1)
+                    .filter(|count| *count <= self.limits.max_object_rows)
+                    .ok_or_else(|| invalid("V2 packed payload pack count exceeded"))?;
+                previous = Some(pack.segment_digest);
+            }
+            self.check_context()
+                .map_err(|_| invalid("V2 packed-object context is unavailable"))?;
+            self.packed_phase.set(PackedObjectPhase::Complete);
+            Ok(())
+        })();
+        if result.is_err() {
+            self.packed_phase.set(PackedObjectPhase::Failed);
+        }
+        result
+    }
+
+    fn next_payload_pack(
+        &self,
+        after: Option<[u8; DIGEST_BYTES]>,
+    ) -> std::io::Result<Option<V2ColdPayloadPackRow>> {
+        self.check_context()
+            .map_err(|_| invalid("V2 packed-object context is unavailable"))?;
+        let row = {
+            let db = self.db.borrow();
+            let digest: Option<[u8; DIGEST_BYTES]> = if let Some(after) = after {
+                db.query_row(
+                    "SELECT segment_digest FROM v2_cold_payload_frame WHERE segment_digest>?1 \
+                     GROUP BY segment_digest ORDER BY segment_digest LIMIT 1",
+                    params![after.as_slice()],
+                    digest_row,
+                )
+                .optional()
+            } else {
+                db.query_row(
+                    "SELECT segment_digest FROM v2_cold_payload_frame \
+                     GROUP BY segment_digest ORDER BY segment_digest LIMIT 1",
+                    [],
+                    digest_row,
+                )
+                .optional()
+            }
+            .map_err(sql_invalid)?;
+            if let Some(digest) = digest {
+                let (segment_size, frame_count, row_count) = db
+                    .query_row(
+                        "SELECT min(segment_size),min(frame_count),count(*) \
+                         FROM v2_cold_payload_frame WHERE segment_digest=?1",
+                        params![digest.as_slice()],
+                        |row| Ok((u64_blob(row, 0)?, u32_blob(row, 1)?, row.get::<_, u64>(2)?)),
+                    )
+                    .map_err(sql_invalid)?;
+                let inconsistent = db
+                    .query_row(
+                        "SELECT 1 FROM v2_cold_payload_frame WHERE segment_digest=?1 \
+                         AND (segment_size!=?2 OR frame_count!=?3) LIMIT 1",
+                        params![digest.as_slice(), u64_bytes(segment_size).as_slice(), u32_bytes(frame_count).as_slice()],
+                        |_| Ok(()),
+                    )
+                    .optional()
+                    .map_err(sql_invalid)?
+                    .is_some();
+                if inconsistent || row_count != u64::from(frame_count) {
+                    return Err(invalid("V2 packed payload pack inventory is not bijective"));
+                }
+                Some(V2ColdPayloadPackRow {
+                    segment_digest: digest,
+                    segment_size,
+                    frame_count,
+                })
+            } else {
+                None
+            }
+        };
+        self.check_context()
+            .map_err(|_| invalid("V2 packed-object context is unavailable"))?;
+        Ok(row)
+    }
+
+    fn next_payload_frame(
+        &self,
+        segment_digest: [u8; DIGEST_BYTES],
+        after: Option<u32>,
+    ) -> std::io::Result<Option<V2ColdPayloadFrameRow>> {
+        self.check_context()
+            .map_err(|_| invalid("V2 packed-object context is unavailable"))?;
+        let db = self.db.borrow();
+        let decode = |row: &rusqlite::Row<'_>| {
+            let frame_index = u32_blob(row, 0)?;
+            let segment_size = u64_blob(row, 1)?;
+            let frame_count = u32_blob(row, 2)?;
+            let digest = Digest256::from_bytes(digest_row_at(row, 3)?);
+            let size = u64_blob(row, 4)?;
+            let header_offset = u64_blob(row, 5)?;
+            Ok(V2ColdPayloadFrameRow {
+                frame_index,
+                digest,
+                location: PackedObjectLocationV2 {
+                    size,
+                    segment_digest: Digest256::from_bytes(segment_digest),
+                    segment_size,
+                    frame_index,
+                    frame_count,
+                    header_offset,
+                },
+            })
+        };
+        let row = if let Some(after) = after {
+            db.query_row(
+                "SELECT frame_index,segment_size,frame_count,digest,size,header_offset \
+                 FROM v2_cold_payload_frame WHERE segment_digest=?1 AND frame_index>?2 \
+                 ORDER BY frame_index LIMIT 1",
+                params![segment_digest.as_slice(), u32_bytes(after).as_slice()],
+                decode,
+            )
+            .optional()
+        } else {
+            db.query_row(
+                "SELECT frame_index,segment_size,frame_count,digest,size,header_offset \
+                 FROM v2_cold_payload_frame WHERE segment_digest=?1 \
+                 ORDER BY frame_index LIMIT 1",
+                params![segment_digest.as_slice()],
+                decode,
+            )
+            .optional()
+        }
+        .map_err(sql_invalid)?;
+        drop(db);
+        self.check_context()
+            .map_err(|_| invalid("V2 packed-object context is unavailable"))?;
+        Ok(row)
+    }
+
     fn check_context(&self) -> SegmentResult<()> {
         if self.phase.get() == SpillPhase::Failed {
             return Err(segment_error(
@@ -880,6 +1655,54 @@ fn digest_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<[u8; DIGEST_BYTES]> {
         }
         _ => Err(rusqlite::Error::InvalidQuery),
     }
+}
+
+fn digest_row_at(row: &rusqlite::Row<'_>, index: usize) -> rusqlite::Result<[u8; DIGEST_BYTES]> {
+    match row.get_ref(index)? {
+        ValueRef::Blob(raw) if raw.len() == DIGEST_BYTES => {
+            let mut digest = [0; DIGEST_BYTES];
+            digest.copy_from_slice(raw);
+            Ok(digest)
+        }
+        _ => Err(rusqlite::Error::InvalidQuery),
+    }
+}
+
+fn optional_u64_blob(row: &rusqlite::Row<'_>, index: usize) -> rusqlite::Result<Option<[u8; 8]>> {
+    match row.get_ref(index)? {
+        ValueRef::Null => Ok(None),
+        ValueRef::Blob(raw) if raw.len() == 8 => {
+            let mut bytes = [0; 8];
+            bytes.copy_from_slice(raw);
+            Ok(Some(bytes))
+        }
+        _ => Err(rusqlite::Error::InvalidQuery),
+    }
+}
+
+fn u64_blob(row: &rusqlite::Row<'_>, index: usize) -> rusqlite::Result<u64> {
+    optional_u64_blob(row, index)?
+        .map(u64::from_be_bytes)
+        .ok_or(rusqlite::Error::InvalidQuery)
+}
+
+fn u32_blob(row: &rusqlite::Row<'_>, index: usize) -> rusqlite::Result<u32> {
+    match row.get_ref(index)? {
+        ValueRef::Blob(raw) if raw.len() == 4 => {
+            let mut bytes = [0; 4];
+            bytes.copy_from_slice(raw);
+            Ok(u32::from_be_bytes(bytes))
+        }
+        _ => Err(rusqlite::Error::InvalidQuery),
+    }
+}
+
+fn u64_bytes(value: u64) -> [u8; 8] {
+    value.to_be_bytes()
+}
+
+fn u32_bytes(value: u32) -> [u8; 4] {
+    value.to_be_bytes()
 }
 
 fn segment_error(code: SegmentErrorCode, detail: &'static str) -> SegmentError {

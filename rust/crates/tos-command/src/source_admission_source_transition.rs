@@ -365,7 +365,9 @@ fn derive_updates(
     cancel: &AtomicBool,
 ) -> io::Result<BTreeMap<String, SourceUpdate>> {
     if roots.revision != original_base
-        || roots.member_count != roots.membership_v1.count
+        || roots
+            .membership_v1
+            .is_some_and(|membership| roots.member_count != membership.count)
         || roots.member_count != roots.members.entries
         || roots.source_bytes > profile.admission.max_source_bytes
         || roots.member_count > profile.census.max_files

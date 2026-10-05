@@ -1,7 +1,7 @@
 //! Finite cold backup/fresh-restore of the private native V2 store.
 //! A copied selector is installed last, after the independent copy passes
 //! authenticated current/history closure checks. Bytes confer no admission.
-use super::source_admission::{active, invalid};
+use super::source_admission::{active, invalid, AdmissionWorkBudget};
 use super::source_admission_segment_v2::{
     CompactCommitV2, MAX_COMPACT_COMMIT_V2_BYTES, SourceRevisionArtifactV2, SourceRevisionRootsV2,
     SourceRootSetV2, decode_workspace_upper_bound,
@@ -10,6 +10,9 @@ use super::source_admission_store::AdmissionStore;
 use super::source_admission_v2_seen_pack::{
     V2SeenPackSpill, V2SeenPackSpillLimits, V2SeenPackSpillRequest, V2SeenPackSpillRequests,
     history_row_holder_upper_bound,
+};
+use super::source_admission_packed_objects::{
+    PackedObjectLocationV2, MAX_PACKED_OBJECT_FRAMES_V2,
 };
 use rustix::fs::{AtFlags, FileType, Mode, OFlags, RawDir, RenameFlags};
 use std::{
@@ -27,7 +30,8 @@ use std::{
 use tos_foundation::{Digest256, Digest256Hasher, RelativePath};
 use tos_segment_store::{
     AuthenticatedTreeCoverageV1, AuthenticatedTreeIoLedgerV1, AuthenticatedTreeLimitsV1,
-    AuthenticatedTreePackSetV2, AuthenticatedTreeWorkV1, SegmentLimits, SegmentStore,
+    AuthenticatedTreePackSetV2, AuthenticatedTreeRowStreamV2, AuthenticatedTreeWorkV1,
+    SegmentLimits, SegmentStore,
 };
 use tos_source_store::{
     CorpusCurrentSelection, CorpusPointerFormat, PinnedSqliteIoBudget, PinnedSqliteSpaceBudget,
@@ -294,9 +298,16 @@ impl V2ImageLimits {
             .ok_or_else(|| invalid("V2 image cold-spill state overflow"))?;
         let max_tree_nodes = u64::try_from(nodes).map_err(invalid)?;
         let max_history_roots = u64::try_from(limits.max_history_roots).map_err(invalid)?;
+        let max_pack_frames = limits
+            .segment
+            .max_frames
+            .min(MAX_PACKED_OBJECT_FRAMES_V2);
         let profile = |request: &V2SeenPackSpillRequest| V2SeenPackSpillLimits {
             max_tree_nodes,
             max_history_roots,
+            max_object_rows: limits.tree.max_rows,
+            max_pack_frames,
+            max_identity_key_bytes: limits.tree.max_key_bytes,
             max_history_row_bytes: SourceRevisionRootsV2::MAX_ENCODED_BYTES,
             cache_bytes: request.cache_bytes,
             max_operation_state_bytes: limits.max_state_bytes,
@@ -425,10 +436,12 @@ impl AuthenticatedTreeIoLedgerV1 for TreeIo {
 struct Work {
     tree_nodes: u64,
     tree_bytes: u64,
+    tree_rows: u64,
     files: u64,
     directories: u64,
     allocated: u64,
     allocation_upper: u64,
+    shared_work: Option<AdmissionWorkBudget>,
 }
 
 #[derive(Default)]
@@ -466,11 +479,17 @@ impl Work {
             .checked_sub(self.tree_bytes)
             .filter(|n| *n > 0)
             .ok_or_else(|| invalid("V2 image cumulative tree bytes exceeded"))?;
+        tree.max_rows = tree
+            .max_rows
+            .checked_sub(self.tree_rows)
+            .filter(|n| *n > 0)
+            .ok_or_else(|| invalid("V2 image cumulative tree rows exceeded"))?;
         Ok(tree)
     }
     fn record_tree(
         &mut self,
         work: AuthenticatedTreeWorkV1,
+        rows: u64,
         limits: V2ImageLimits,
     ) -> io::Result<()> {
         self.tree_nodes = self
@@ -483,7 +502,16 @@ impl Work {
             .checked_add(work.read_bytes)
             .filter(|n| *n <= limits.tree.max_total_bytes)
             .ok_or_else(|| invalid("V2 image cumulative tree bytes exceeded"))?;
+        self.tree_rows = self
+            .tree_rows
+            .checked_add(rows)
+            .filter(|n| *n <= limits.tree.max_rows)
+            .ok_or_else(|| invalid("V2 image cumulative tree rows exceeded"))?;
         Ok(())
+    }
+
+    fn shared_work(&self) -> Option<&AdmissionWorkBudget> {
+        self.shared_work.as_ref()
     }
 }
 
@@ -533,20 +561,35 @@ fn verify_tree_v2(
     tree_io: Arc<dyn AuthenticatedTreeIoLedgerV1>,
     pack_set: Option<&Arc<V2SeenPackSpill>>,
     closure_binding: Digest256,
+    shared_work: Option<&AdmissionWorkBudget>,
     deadline: Instant,
     cancel: &AtomicBool,
 ) -> tos_segment_store::Result<AuthenticatedTreeCoverageV1> {
     if let Some(pack_set) = pack_set {
         let pack_set: Arc<dyn AuthenticatedTreePackSetV2> = pack_set.clone();
-        segment.verify_authenticated_tree_v2_with_pack_set(
-            descriptor,
-            limits,
-            Some(tree_io),
-            pack_set,
-            closure_binding,
-            deadline,
-            cancel,
-        )
+        if let Some(shared_work) = shared_work {
+            let mut debit = || shared_work.charge(()).is_ok();
+            segment.verify_authenticated_tree_v2_with_pack_set_and_work_callback(
+                descriptor,
+                limits,
+                Some(tree_io),
+                pack_set,
+                closure_binding,
+                deadline,
+                cancel,
+                &mut debit,
+            )
+        } else {
+            segment.verify_authenticated_tree_v2_with_pack_set(
+                descriptor,
+                limits,
+                Some(tree_io),
+                pack_set,
+                closure_binding,
+                deadline,
+                cancel,
+            )
+        }
     } else {
         segment.verify_authenticated_tree_v2_with_io(
             descriptor,
@@ -555,6 +598,20 @@ fn verify_tree_v2(
             deadline,
             cancel,
         )
+    }
+}
+
+fn next_tree_row(
+    stream: &mut AuthenticatedTreeRowStreamV2,
+    shared_work: Option<&AdmissionWorkBudget>,
+    deadline: Instant,
+    cancel: &AtomicBool,
+) -> tos_segment_store::Result<Option<tos_segment_store::AuthenticatedTreeEntryV1>> {
+    if let Some(shared_work) = shared_work {
+        let mut debit = || shared_work.charge(()).is_ok();
+        stream.next_row_with_work_callback(deadline, cancel, &mut debit)
+    } else {
+        stream.next_row(deadline, cancel)
     }
 }
 
@@ -612,11 +669,12 @@ fn verify_closure(
         tree_io.clone(),
         pack_set.as_ref(),
         closure_binding,
+        work.shared_work(),
         deadline,
         cancel,
     )
     .map_err(invalid)?;
-    work.record_tree(coverage.work, limits)?;
+    work.record_tree(coverage.work, coverage.entries, limits)?;
     let mut stream = segment
         .stream_authenticated_tree_v2_with_io(
             &roots.history,
@@ -630,7 +688,9 @@ fn verify_closure(
         Some(Vec::new())
     };
     let mut history_cursor = V2ColdHistoryCursorState::default();
-    while let Some(row) = stream.next_row(deadline, cancel).map_err(invalid)? {
+    while let Some(row) = next_tree_row(&mut stream, work.shared_work(), deadline, cancel)
+        .map_err(invalid)?
+    {
         active(deadline, cancel)?;
         history_cursor.row_count = history_cursor
             .row_count
@@ -672,7 +732,7 @@ fn verify_closure(
     let coverage = stream
         .coverage()
         .ok_or_else(|| invalid("V2 image history EOF absent"))?;
-    work.record_tree(coverage.work, limits)?;
+    work.record_tree(coverage.work, coverage.entries, limits)?;
     drop(stream);
     if !history_cursor.current_seen {
         return Err(invalid(
@@ -754,6 +814,22 @@ fn verify_closure(
             history_cursor.after_revision = Some(row.revision);
         }
         spill.finish_history(history_cursor.processed)?;
+        if spill.has_packed_revisions() {
+            let shared_work = work
+                .shared_work()
+                .cloned()
+                .ok_or_else(|| invalid("V2 packed image lacks the original shared work meter"))?;
+            let caller_state = spill.packed_verifier_caller_state_bytes()?;
+            spill.verify_packed_payload_segments(
+                &segment,
+                tree_io.clone(),
+                limits.max_state_bytes,
+                caller_state,
+                shared_work,
+                deadline,
+                cancel,
+            )?;
+        }
     }
     store.verify_layout()?;
     active(deadline, cancel)
@@ -773,6 +849,12 @@ fn verify_revision_closure(
     deadline: Instant,
     cancel: &AtomicBool,
 ) -> io::Result<()> {
+    let packed = revision.objects.as_ref();
+    if packed.is_some() && (pack_set.is_none() || work.shared_work().is_none()) {
+        return Err(invalid(
+            "packed V2 closure requires a cold spill and original shared work meter",
+        ));
+    }
     let (_, _, revisions) = store.backup_namespaces()?;
     let revision_name = revision.revision.0.to_hex();
     debit_name_resolution(io, &revision_name)?;
@@ -792,13 +874,104 @@ fn verify_revision_closure(
             tree_io.clone(),
             pack_set,
             closure_binding,
+            work.shared_work(),
             deadline,
             cancel,
         )
         .map_err(invalid)?;
-        work.record_tree(coverage.work, limits)?;
+        work.record_tree(coverage.work, coverage.entries, limits)?;
+    }
+    if let Some(identity_paths) = revision.identity_paths.as_ref() {
+        let coverage = verify_tree_v2(
+            segment,
+            identity_paths,
+            work.tree_limits(limits)?,
+            tree_io.clone(),
+            pack_set,
+            closure_binding,
+            work.shared_work(),
+            deadline,
+            cancel,
+        )
+        .map_err(invalid)?;
+        work.record_tree(coverage.work, coverage.entries, limits)?;
+    }
+    if let Some(objects_root) = packed {
+        let coverage = verify_tree_v2(
+            segment,
+            objects_root,
+            work.tree_limits(limits)?,
+            tree_io.clone(),
+            pack_set,
+            closure_binding,
+            work.shared_work(),
+            deadline,
+            cancel,
+        )
+        .map_err(invalid)?;
+        work.record_tree(coverage.work, coverage.entries, limits)?;
     }
     let (_, objects, _) = store.backup_namespaces()?;
+    let revision_id = *revision.revision.0.as_bytes();
+    if let (Some(spill), Some(identity_paths)) = (pack_set, revision.identity_paths.as_ref()) {
+        let mut identities = segment
+            .stream_authenticated_tree_v2_with_io(
+                &revision.identities,
+                work.tree_limits(limits)?,
+                Some(tree_io.clone()),
+            )
+            .map_err(invalid)?;
+        while let Some(row) = next_tree_row(&mut identities, work.shared_work(), deadline, cancel)
+            .map_err(invalid)?
+        {
+            active(deadline, cancel)?;
+            let id = std::str::from_utf8(&row.key).map_err(invalid)?;
+            if id.is_empty() || id.as_bytes().contains(&0) {
+                return Err(invalid("V2 identity key encoding differs"));
+            }
+            let path = std::str::from_utf8(&row.value).map_err(invalid)?;
+            tos_foundation::RelativePath::parse(path).map_err(invalid)?;
+            spill.observe_identity_binding(revision_id, &row.key, &row.value)?;
+        }
+        let coverage = identities
+            .coverage()
+            .ok_or_else(|| invalid("V2 image identities EOF absent"))?;
+        work.record_tree(coverage.work, coverage.entries, limits)?;
+        drop(identities);
+
+        let mut inverse = segment
+            .stream_authenticated_tree_v2_with_io(
+                identity_paths,
+                work.tree_limits(limits)?,
+                Some(tree_io.clone()),
+            )
+            .map_err(invalid)?;
+        while let Some(row) = next_tree_row(&mut inverse, work.shared_work(), deadline, cancel)
+            .map_err(invalid)?
+        {
+            active(deadline, cancel)?;
+            if !row.value.is_empty() {
+                return Err(invalid("V2 identity inverse value is not empty"));
+            }
+            let separator = row
+                .key
+                .iter()
+                .position(|byte| *byte == 0)
+                .ok_or_else(|| invalid("V2 identity inverse delimiter absent"))?;
+            let path = std::str::from_utf8(&row.key[..separator]).map_err(invalid)?;
+            tos_foundation::RelativePath::parse(path).map_err(invalid)?;
+            let id = std::str::from_utf8(&row.key[separator + 1..]).map_err(invalid)?;
+            if id.is_empty() || id.as_bytes().contains(&0) {
+                return Err(invalid("V2 identity inverse identifier differs"));
+            }
+            spill.observe_identity_path_key(revision_id, &row.key)?;
+        }
+        let coverage = inverse
+            .coverage()
+            .ok_or_else(|| invalid("V2 image identity inverse EOF absent"))?;
+        work.record_tree(coverage.work, coverage.entries, limits)?;
+        spill.finish_identity_paths_revision(revision_id, revision.identity_count)?;
+    }
     let mut members = segment
         .stream_authenticated_tree_v2_with_io(
             &revision.members,
@@ -807,7 +980,9 @@ fn verify_revision_closure(
         )
         .map_err(invalid)?;
     let mut source_bytes = 0u64;
-    while let Some(row) = members.next_row(deadline, cancel).map_err(invalid)? {
+    while let Some(row) = next_tree_row(&mut members, work.shared_work(), deadline, cancel)
+        .map_err(invalid)?
+    {
         active(deadline, cancel)?;
         let path = std::str::from_utf8(&row.key).map_err(invalid)?;
         tos_foundation::RelativePath::parse(path).map_err(invalid)?;
@@ -823,7 +998,11 @@ fn verify_revision_closure(
         source_bytes = source_bytes
             .checked_add(size)
             .ok_or_else(|| invalid("V2 image source byte overflow"))?;
-        verify_object(objects, digest, size, io, deadline, cancel)?;
+        if let Some(spill) = pack_set.filter(|_| packed.is_some()) {
+            spill.expect_packed_object(revision_id, digest, Some(size))?;
+        } else {
+            verify_object(objects, digest, size, io, deadline, cancel)?;
+        }
     }
     if source_bytes != revision.source_bytes {
         return Err(invalid("V2 image source byte count differs"));
@@ -831,7 +1010,7 @@ fn verify_revision_closure(
     let coverage = members
         .coverage()
         .ok_or_else(|| invalid("V2 image members EOF absent"))?;
-    work.record_tree(coverage.work, limits)?;
+    work.record_tree(coverage.work, coverage.entries, limits)?;
     drop(members);
     let mut retirements = segment
         .stream_authenticated_tree_v2_with_io(
@@ -841,7 +1020,9 @@ fn verify_revision_closure(
         )
         .map_err(invalid)?;
     let mut ordinal = 0u64;
-    while let Some(row) = retirements.next_row(deadline, cancel).map_err(invalid)? {
+    while let Some(row) = next_tree_row(&mut retirements, work.shared_work(), deadline, cancel)
+        .map_err(invalid)?
+    {
         active(deadline, cancel)?;
         if row.key.as_slice() != ordinal.to_be_bytes() {
             return Err(invalid("V2 image retirement ordinal differs"));
@@ -858,24 +1039,67 @@ fn verify_revision_closure(
         if !raw.is_empty() {
             return Err(invalid("V2 image retirement tuple trailing bytes"));
         }
-        let retired_name = retired_digest.to_hex();
-        debit_name_resolution(io, &retired_name)?;
-        let retired =
-            tos_fd_open::open_regular_at(objects, Path::new(&retired_name)).map_err(invalid)?;
-        verify_object(
-            objects,
-            retired_digest,
-            retired.metadata()?.len(),
-            io,
-            deadline,
-            cancel,
-        )?;
-        verify_object(objects, event_digest, event_size, io, deadline, cancel)?;
+        if let Some(spill) = pack_set.filter(|_| packed.is_some()) {
+            spill.expect_packed_object(revision_id, retired_digest, None)?;
+            spill.expect_packed_object(revision_id, event_digest, Some(event_size))?;
+        } else {
+            let retired_name = retired_digest.to_hex();
+            debit_name_resolution(io, &retired_name)?;
+            let retired =
+                tos_fd_open::open_regular_at(objects, Path::new(&retired_name)).map_err(invalid)?;
+            verify_object(
+                objects,
+                retired_digest,
+                retired.metadata()?.len(),
+                io,
+                deadline,
+                cancel,
+            )?;
+            verify_object(objects, event_digest, event_size, io, deadline, cancel)?;
+        }
     }
     let coverage = retirements
         .coverage()
         .ok_or_else(|| invalid("V2 image retirement EOF absent"))?;
-    work.record_tree(coverage.work, limits)?;
+    work.record_tree(coverage.work, coverage.entries, limits)?;
+    if let Some(objects_root) = packed {
+        let spill = pack_set
+            .ok_or_else(|| invalid("V2 packed closure spill is absent"))?;
+        let mut extents = segment
+            .stream_authenticated_tree_v2_with_io(
+                objects_root,
+                work.tree_limits(limits)?,
+                Some(tree_io.clone()),
+            )
+            .map_err(invalid)?;
+        let mut previous = None;
+        while let Some(row) = next_tree_row(&mut extents, work.shared_work(), deadline, cancel)
+            .map_err(invalid)?
+        {
+            active(deadline, cancel)?;
+            if row.key.len() != 32 {
+                return Err(invalid("V2 packed extent digest width differs"));
+            }
+            let digest = Digest256::from_bytes(row.key.as_slice().try_into().map_err(invalid)?);
+            if previous.is_some_and(|last| digest <= last) {
+                return Err(invalid("V2 packed extent digest cursor did not advance"));
+            }
+            previous = Some(digest);
+            let location = PackedObjectLocationV2::decode(&row.value)?;
+            if location.size > limits.segment.max_frame_bytes
+                || location.segment_size > limits.segment.max_segment_bytes
+                || location.frame_count > MAX_PACKED_OBJECT_FRAMES_V2.min(limits.segment.max_frames)
+            {
+                return Err(invalid("V2 packed extent exceeds selected segment limits"));
+            }
+            spill.observe_packed_extent(revision_id, digest, location)?;
+        }
+        let coverage = extents
+            .coverage()
+            .ok_or_else(|| invalid("V2 packed extent EOF absent"))?;
+        work.record_tree(coverage.work, coverage.entries, limits)?;
+        spill.finish_packed_revision(revision_id)?;
+    }
     Ok(())
 }
 
@@ -894,15 +1118,19 @@ fn verify_revision_artifact(
     let size = file.metadata()?.len();
     if size > limits.max_compatibility_manifest_bytes
         || artifact.bytes().is_some_and(|expected| expected != size)
-        || matches!(artifact, SourceRevisionArtifactV2::CompactCommitV2 { .. })
-            && size > MAX_COMPACT_COMMIT_V2_BYTES as u64
+        || matches!(
+            artifact,
+            SourceRevisionArtifactV2::CompactCommitV2 { .. }
+                | SourceRevisionArtifactV2::CompactPackedV2 { .. }
+        ) && size > MAX_COMPACT_COMMIT_V2_BYTES as u64
     {
         return Err(invalid("V2 image revision record size differs"));
     }
     drop(file);
 
     match artifact {
-        SourceRevisionArtifactV2::CompactCommitV2 { .. } => {
+        SourceRevisionArtifactV2::CompactCommitV2 { .. }
+        | SourceRevisionArtifactV2::CompactPackedV2 { .. } => {
             let raw = read_and_verify_compact_record(
                 directory,
                 name,
@@ -1381,6 +1609,7 @@ pub fn transfer_image(
         cancel,
         None,
         None,
+        None,
     )
 }
 
@@ -1421,6 +1650,7 @@ pub fn transfer_image_with_cold_spill(
         cancel,
         Some(plan),
         None,
+        None,
     )
 }
 
@@ -1435,6 +1665,7 @@ pub(crate) fn transfer_image_with_cold_spill_at(
     image_space: &PinnedSqliteSpaceBudget,
     auxiliary_space: &PinnedSqliteSpaceBudget,
     requests: V2SeenPackSpillRequests,
+    shared_work: AdmissionWorkBudget,
     deadline: Instant,
     cancel: &AtomicBool,
 ) -> io::Result<V2ImageOutcome> {
@@ -1473,6 +1704,7 @@ pub(crate) fn transfer_image_with_cold_spill_at(
             target,
             target_store_identity,
         }),
+        Some(shared_work),
     )
 }
 
@@ -1486,6 +1718,7 @@ fn transfer_image_inner(
     cancel: &AtomicBool,
     mut cold: Option<V2ImageColdSpillPlan>,
     held_roots: Option<V2HeldImageRoots<'_>>,
+    shared_work: Option<AdmissionWorkBudget>,
 ) -> io::Result<V2ImageOutcome> {
     let limits = if cold.is_some() {
         limits.validate_layout()?.0
@@ -1543,7 +1776,10 @@ fn transfer_image_inner(
             .map_err(invalid)?,
     );
     let result = (|| {
-        let mut work = Work::default();
+        let mut work = Work {
+            shared_work,
+            ..Work::default()
+        };
         let closure_binding = selection
             .rootset_sha256
             .ok_or_else(|| invalid("V2 image closure selector digest absent"))?;

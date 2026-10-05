@@ -43,6 +43,24 @@ fn main() {
     }
     if std::env::args_os()
         .nth(1)
+        .is_some_and(|arg| arg == "capacity-fixture")
+    {
+        // One sentinel past the command's 64-argument bound preserves refusal
+        // without collecting an unbounded process argument sequence.
+        let args = std::env::args_os().skip(2).take(65).collect::<Vec<_>>();
+        let cancelled = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
+        let git_signal = std::sync::atomic::AtomicI32::new(0);
+        let result = tos_command::source_capacity_workload_cli::run_shared_cancel(
+            &args,
+            &cancelled,
+            &git_signal,
+            &mut std::io::stdout().lock(),
+            &mut std::io::stderr().lock(),
+        );
+        std::process::exit(result.unwrap_or(2));
+    }
+    if std::env::args_os()
+        .nth(1)
         .is_some_and(|arg| arg == "foundation")
     {
         // One sentinel beyond the command's 64-argument cap preserves refusal
@@ -70,7 +88,7 @@ fn main() {
             .is_some_and(|arg| arg == "--help" || arg == "-h")
     {
         println!(
-            "usage: tos-native-owner-command --invocation ABSOLUTE_INVOCATION\n       tos-native-owner-command foundation --help\n       tos-native-owner-command backup|restore --help\n       tos-native-owner-command source-capture --help\n\nSource commands read their request from stdin and require the selected invocation.\nFoundation requires an explicit repository root and protected invocation.\nBackup and restore require explicit owner-selected database, store and tool inputs."
+            "usage: tos-native-owner-command --invocation ABSOLUTE_INVOCATION\n       tos-native-owner-command foundation --help\n       tos-native-owner-command corpus-admit --help\n       tos-native-owner-command capacity-fixture --help\n       tos-native-owner-command backup|restore --help\n       tos-native-owner-command source-capture --help\n\nSource commands read their request from stdin and require the selected invocation.\nFoundation requires an explicit repository root and protected invocation.\nBackup and restore require explicit owner-selected database, store and tool inputs."
         );
         return;
     }

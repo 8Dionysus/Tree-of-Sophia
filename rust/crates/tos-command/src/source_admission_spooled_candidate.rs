@@ -1,9 +1,12 @@
 //! Private candidate membership/index workspace for the additive admission route.
 //! A completed metadata import is not validation or permission to publish.
-use super::source_admission::{AdmissionBatch, active, invalid};
+use super::source_admission::{AdmissionBatch, AdmissionWorkBudget, SourceUpdate, active, invalid};
 use super::source_admission_candidate::CandidateLimits;
 use super::source_admission_spooled_index::cursor_argument_state;
-use super::source_admission_store::AdmissionStore;
+use super::source_admission_packed_objects::{
+    PackedObjectChangeV2, PackedObjectLocationV2, PackedObjectSourceV2,
+};
+use super::source_admission_store::{AdmissionStore, CandidatePayloadPackV2};
 #[path = "source_admission_logical_membership.rs"]
 mod logical_membership;
 use super::source_admission_v2_reader::{V2ReadSession, V2RootKind};
@@ -274,9 +277,27 @@ pub(crate) struct SpoolCandidate<'host> {
     row_state_ceiling: Cell<usize>,
     retirement_count: u64,
     new_retirement_start: u64,
+    payload_pack: RefCell<Option<CandidatePayloadPackV2>>,
     failed: Cell<bool>,
     deadline: Instant,
     cancelled: Arc<AtomicBool>,
+}
+
+#[derive(Clone, Copy)]
+enum BasePackedObject {
+    Legacy { size: u64 },
+    Packed {
+        size: u64,
+        location: PackedObjectLocationV2,
+    },
+}
+
+impl BasePackedObject {
+    fn size(self) -> u64 {
+        match self {
+            Self::Legacy { size } | Self::Packed { size, .. } => size,
+        }
+    }
 }
 fn sql(error: rusqlite::Error) -> io::Error {
     invalid(error)
@@ -518,7 +539,26 @@ impl<'host> SpoolCandidate<'host> {
         .map_err(sql)?;
         let clock_cancel = cancelled.clone();
         db.progress_handler(1000, Some(move || active(deadline, &clock_cancel).is_err()));
-        db.execute_batch("CREATE TABLE members(path TEXT COLLATE BINARY PRIMARY KEY,sha BLOB NOT NULL CHECK(length(sha)=32),size BLOB NOT NULL CHECK(length(size)=8),mode INTEGER NOT NULL,changed INTEGER NOT NULL,touched INTEGER NOT NULL) WITHOUT ROWID; CREATE INDEX members_changed_path ON members(path COLLATE BINARY) WHERE changed=1; CREATE TABLE retirements(ordinal INTEGER PRIMARY KEY,path TEXT,sha BLOB,event_ref TEXT,event_sha BLOB,event_size BLOB); CREATE INDEX retirements_by_path ON retirements(path COLLATE BINARY,ordinal); CREATE TABLE affected(path TEXT COLLATE BINARY PRIMARY KEY,visited INTEGER NOT NULL) WITHOUT ROWID; CREATE TABLE reverse_dependencies(target TEXT COLLATE BINARY,source TEXT COLLATE BINARY,PRIMARY KEY(target,source)) WITHOUT ROWID; CREATE INDEX reverse_dependencies_by_source ON reverse_dependencies(source COLLATE BINARY,target COLLATE BINARY); CREATE TABLE historical_ids(id TEXT COLLATE BINARY PRIMARY KEY,path TEXT NOT NULL) WITHOUT ROWID; CREATE INDEX historical_ids_by_path ON historical_ids(path COLLATE BINARY,id COLLATE BINARY); CREATE INDEX affected_queue ON affected(visited,path); CREATE TABLE v1_migration_history(revision BLOB PRIMARY KEY CHECK(length(revision)=32),raw BLOB NOT NULL CHECK(length(raw)<=65536)) WITHOUT ROWID;").map_err(sql)?;
+        db.execute_batch(
+            "CREATE TABLE members(path TEXT COLLATE BINARY PRIMARY KEY,sha BLOB NOT NULL CHECK(length(sha)=32),size BLOB NOT NULL CHECK(length(size)=8),mode INTEGER NOT NULL,changed INTEGER NOT NULL,touched INTEGER NOT NULL) WITHOUT ROWID;
+             CREATE INDEX members_changed_path ON members(path COLLATE BINARY) WHERE changed=1;
+             CREATE INDEX members_by_digest ON members(sha,size,path);
+             CREATE TABLE retirements(ordinal INTEGER PRIMARY KEY,path TEXT,sha BLOB,event_ref TEXT,event_sha BLOB,event_size BLOB);
+             CREATE INDEX retirements_by_path ON retirements(path COLLATE BINARY,ordinal);
+             CREATE INDEX retirements_by_digest ON retirements(sha,event_sha);
+             CREATE TABLE base_objects(sha BLOB PRIMARY KEY CHECK(length(sha)=32),size BLOB NOT NULL CHECK(length(size)=8),location BLOB CHECK(location IS NULL OR length(location)=76)) WITHOUT ROWID;
+             CREATE TABLE candidate_packed_objects(sha BLOB PRIMARY KEY CHECK(length(sha)=32),size BLOB NOT NULL CHECK(length(size)=8),offset BLOB NOT NULL CHECK(length(offset)=8)) WITHOUT ROWID;
+             CREATE TABLE candidate_stage_plan(sha BLOB PRIMARY KEY CHECK(length(sha)=32),size BLOB NOT NULL CHECK(length(size)=8)) WITHOUT ROWID;
+             CREATE TABLE desired_objects(sha BLOB PRIMARY KEY CHECK(length(sha)=32),size BLOB NOT NULL CHECK(length(size)=8)) WITHOUT ROWID;
+             CREATE TABLE affected(path TEXT COLLATE BINARY PRIMARY KEY,visited INTEGER NOT NULL) WITHOUT ROWID;
+             CREATE TABLE reverse_dependencies(target TEXT COLLATE BINARY,source TEXT COLLATE BINARY,PRIMARY KEY(target,source)) WITHOUT ROWID;
+             CREATE INDEX reverse_dependencies_by_source ON reverse_dependencies(source COLLATE BINARY,target COLLATE BINARY);
+             CREATE TABLE historical_ids(id TEXT COLLATE BINARY PRIMARY KEY,path TEXT NOT NULL) WITHOUT ROWID;
+             CREATE INDEX historical_ids_by_path ON historical_ids(path COLLATE BINARY,id COLLATE BINARY);
+             CREATE INDEX affected_queue ON affected(visited,path);
+             CREATE TABLE v1_migration_history(revision BLOB PRIMARY KEY CHECK(length(revision)=32),raw BLOB NOT NULL CHECK(length(raw)<=65536)) WITHOUT ROWID;",
+        )
+        .map_err(sql)?;
         let batch_bytes = batch.bytes_read();
         let mut candidate = Self {
             store,
@@ -544,6 +584,7 @@ impl<'host> SpoolCandidate<'host> {
             row_state_ceiling: Cell::new(limits.max_row_state_bytes),
             retirement_count: 0,
             new_retirement_start: 0,
+            payload_pack: RefCell::new(None),
             failed: Cell::new(true),
             deadline,
             cancelled,
@@ -1005,9 +1046,24 @@ impl<'host> SpoolCandidate<'host> {
                 let source_artifact = built.roots.current.source_artifact.clone();
                 let rootset_sha256 = built.sha256;
                 let custody = built.tree_io.custody_reservation();
+                let selected_work = self.admission_work_budget().map_err(|error| {
+                    io::Error::new(
+                        error.kind(),
+                        SpooledPublicationV2Refusal {
+                            revision,
+                            manifest_sha256: None,
+                            source_artifact: Some(source_artifact.clone()),
+                            rootset_sha256: Some(rootset_sha256),
+                            batch_sha256: fence.batch_sha256,
+                            validator_sha256: fence.validator_sha256,
+                            persistent_store_custody: Some(custody),
+                            cause: error,
+                        },
+                    )
+                })?;
                 let lock = match self
                     .store
-                    .lock_for_v2_publication(self.deadline, &self.cancelled)
+                    .lock_for_v2_publication(&selected_work, self.deadline, &self.cancelled)
                 {
                     Ok(lock) => lock,
                     Err(error) => {
@@ -1180,9 +1236,10 @@ impl<'host> SpoolCandidate<'host> {
                         },
                     )
                 };
+                let selected_work = self.admission_work_budget().map_err(&initial_refusal)?;
                 let lock = self
                     .store
-                    .lock_for_v2_publication(self.deadline, &self.cancelled)
+                    .lock_for_v2_publication(&selected_work, self.deadline, &self.cancelled)
                     .map_err(&initial_refusal)?;
                 if let Some(check) = before_initial_publish.as_deref_mut() {
                     let initial_fence_result = (|| {
@@ -2161,6 +2218,865 @@ impl<'host> SpoolCandidate<'host> {
         Ok(base)
     }
 
+    fn import_v2_base_objects(&mut self) -> io::Result<()> {
+        let base = self
+            .base_v2
+            .ok_or_else(|| invalid("V2 base reader absent during extent import"))?;
+        let (revision, expected_count, has_objects) = {
+            let reader = base.borrow();
+            let roots = reader.current_roots();
+            (
+                reader.selected_revision(),
+                roots.objects.as_ref().map_or(0, |objects| objects.entries),
+                roots.objects.is_some(),
+            )
+        };
+        if !has_objects {
+            return self.import_v2_legacy_base_objects();
+        }
+        if expected_count > self.max_packed_object_rows()? {
+            return Err(invalid("V2 base packed object rows exceed candidate profile"));
+        }
+        let mut after: Option<Vec<u8>> = None;
+        let mut count = 0u64;
+        loop {
+            self.running()?;
+            let caller_state = self
+                .limits
+                .retained_batch_state(&self.batch)?
+                .checked_add(after.as_ref().map_or(0, Vec::len))
+                .and_then(|bytes| bytes.checked_add(4096))
+                .ok_or_else(|| invalid("base object cursor caller state overflow"))?;
+            let next = base.borrow_mut().next_object_extent_after(
+                revision,
+                after.as_deref(),
+                caller_state,
+            )?;
+            let Some((digest, location)) = next else {
+                break;
+            };
+            self.check_state(
+                4096usize
+                    .checked_add(after.as_ref().map_or(0, Vec::len))
+                    .ok_or_else(|| invalid("base object cursor row state overflow"))?,
+            )?;
+            if after
+                .as_deref()
+                .is_some_and(|previous| digest.as_bytes().as_slice() <= previous)
+                || location.size > self.limits.candidate.admission.max_member_bytes as u64
+            {
+                return Err(invalid("base object extent ordering or size differs"));
+            }
+            let encoded_location = location.encode()?;
+            let size = location.size.to_be_bytes();
+            self.db
+                .execute(
+                    "INSERT INTO base_objects(sha,size,location) VALUES(?1,?2,?3)",
+                    params![
+                        digest.as_bytes().as_slice(),
+                        size.as_slice(),
+                        encoded_location.as_slice()
+                    ],
+                )
+                .map_err(sql)?;
+            count = count
+                .checked_add(1)
+                .filter(|count| *count <= expected_count)
+                .ok_or_else(|| invalid("base object extent count exceeded"))?;
+            after = Some(digest.as_bytes().to_vec());
+        }
+        if count != expected_count {
+            return Err(invalid("base object extent EOF differs"));
+        }
+        Ok(())
+    }
+
+    fn import_v2_legacy_base_objects(&mut self) -> io::Result<()> {
+        let inconsistent: Option<()> = self
+            .db
+            .query_row(
+                "SELECT 1 FROM (SELECT sha,size FROM members UNION ALL SELECT event_sha,event_size FROM retirements) GROUP BY sha HAVING MIN(size)<>MAX(size) LIMIT 1",
+                [],
+                |_| Ok(()),
+            )
+            .optional()
+            .map_err(sql)?;
+        if inconsistent.is_some() {
+            return Err(invalid("V2 legacy object closure has conflicting sizes"));
+        }
+        self.db
+            .execute(
+                "INSERT INTO base_objects(sha,size,location) SELECT sha,MIN(size),NULL FROM (SELECT sha,size FROM members UNION ALL SELECT event_sha,event_size FROM retirements) GROUP BY sha",
+                [],
+            )
+            .map_err(sql)?;
+        for ordinal in 0..self.retirement_count {
+            self.running()?;
+            let retirement = self
+                .retirement_at_raw(ordinal)?
+                .ok_or_else(|| invalid("legacy base retirement disappeared"))?;
+            let existing = self
+                .base_object(retirement.sha256)?
+                .map(BasePackedObject::size);
+            let size = match existing {
+                Some(size) => size,
+                None => self.store.object_size(
+                    retirement.sha256,
+                    self.limits.candidate.admission.max_member_bytes,
+                    self.deadline,
+                    &self.cancelled,
+                )?,
+            };
+            if size > self.limits.candidate.admission.max_member_bytes {
+                return Err(invalid("V2 legacy retirement object exceeds selected size bound"));
+            }
+            let stored_size = size.to_be_bytes();
+            self.db
+                .execute(
+                    "INSERT OR IGNORE INTO base_objects(sha,size,location) VALUES(?1,?2,NULL)",
+                    params![retirement.sha256.as_bytes().as_slice(), stored_size.as_slice()],
+                )
+                .map_err(sql)?;
+            let observed = self
+                .base_object(retirement.sha256)?
+                .ok_or_else(|| invalid("V2 legacy retirement object import failed"))?
+                .size();
+            if observed != size {
+                return Err(invalid("V2 legacy retirement object size differs"));
+            }
+        }
+        let count: i64 = self
+            .db
+            .query_row("SELECT COUNT(*) FROM base_objects", [], |row| row.get(0))
+            .map_err(sql)?;
+        if u64::try_from(count).map_err(invalid)? > self.max_packed_object_rows()? {
+            return Err(invalid("V2 legacy object closure exceeds candidate profile"));
+        }
+        Ok(())
+    }
+
+    fn verify_v2_base_object_closure(&mut self) -> io::Result<()> {
+        let Some(base) = self.base_v2 else {
+            return Ok(());
+        };
+        let revision = {
+            let reader = base.borrow();
+            reader.selected_revision()
+        };
+        let missing_member: Option<()> = self
+            .db
+            .query_row(
+                "SELECT 1 FROM members m LEFT JOIN base_objects b ON b.sha=m.sha WHERE b.sha IS NULL OR b.size<>m.size LIMIT 1",
+                [],
+                |_| Ok(()),
+            )
+            .optional()
+            .map_err(sql)?;
+        let missing_target: Option<()> = self
+            .db
+            .query_row(
+                "SELECT 1 FROM retirements r LEFT JOIN base_objects b ON b.sha=r.sha WHERE b.sha IS NULL LIMIT 1",
+                [],
+                |_| Ok(()),
+            )
+            .optional()
+            .map_err(sql)?;
+        let missing_event: Option<()> = self
+            .db
+            .query_row(
+                "SELECT 1 FROM retirements r LEFT JOIN base_objects b ON b.sha=r.event_sha WHERE b.sha IS NULL OR b.size<>r.event_size LIMIT 1",
+                [],
+                |_| Ok(()),
+            )
+            .optional()
+            .map_err(sql)?;
+        let extra_extent: Option<()> = self
+            .db
+            .query_row(
+                "SELECT 1 FROM base_objects b WHERE NOT EXISTS(SELECT 1 FROM members m WHERE m.sha=b.sha) AND NOT EXISTS(SELECT 1 FROM retirements r WHERE r.sha=b.sha OR r.event_sha=b.sha) LIMIT 1",
+                [],
+                |_| Ok(()),
+            )
+            .optional()
+            .map_err(sql)?;
+        if missing_member.is_some()
+            || missing_target.is_some()
+            || missing_event.is_some()
+            || extra_extent.is_some()
+        {
+            return Err(invalid("V2 base object extent closure differs"));
+        }
+
+        // Current member bytes are read by the complete Foundation stream.
+        // Retired-only objects have no current member path, so validate those
+        // exact old tuples here through the same held base reader before a
+        // successor may discard or carry their extent rows.
+        let mut after: Option<Vec<u8>> = None;
+        loop {
+            self.running()?;
+            let row: Option<(Vec<u8>, Vec<u8>)> = match after.as_deref() {
+                Some(digest) => self
+                    .db
+                    .query_row(
+                        "SELECT b.sha,b.size FROM base_objects b WHERE b.sha>?1 AND NOT EXISTS(SELECT 1 FROM members m WHERE m.sha=b.sha) ORDER BY b.sha LIMIT 1",
+                        [digest],
+                        |row| Ok((row.get(0)?, row.get(1)?)),
+                    )
+                    .optional()
+                    .map_err(sql)?,
+                None => self
+                    .db
+                    .query_row(
+                        "SELECT b.sha,b.size FROM base_objects b WHERE NOT EXISTS(SELECT 1 FROM members m WHERE m.sha=b.sha) ORDER BY b.sha LIMIT 1",
+                        [],
+                        |row| Ok((row.get(0)?, row.get(1)?)),
+                    )
+                    .optional()
+                    .map_err(sql)?,
+            };
+            let Some((digest, size)) = row else { break };
+            self.check_state(
+                4096usize
+                    .checked_add(digest.len())
+                    .ok_or_else(|| invalid("retired-only base object state overflow"))?,
+            )?;
+            let digest: [u8; 32] = digest
+                .try_into()
+                .map_err(|_| invalid("base object digest width differs"))?;
+            let size: [u8; 8] = size
+                .try_into()
+                .map_err(|_| invalid("base object size width differs"))?;
+            let digest = Digest256::from_bytes(digest);
+            let size = u64::from_be_bytes(size);
+            let row_peak = usize::try_from(size)
+                .map_err(invalid)?
+                .checked_mul(3)
+                .and_then(|bytes| bytes.checked_add(8192))
+                .ok_or_else(|| invalid("retired-only base object retained state overflow"))?;
+            self.check_state(row_peak)?;
+            let caller_state = self
+                .limits
+                .retained_batch_state(&self.batch)?
+                .checked_add(row_peak)
+                .ok_or_else(|| invalid("retired-only base object caller state overflow"))?;
+            let max_bytes = usize::try_from(
+                self.limits.candidate.admission.max_member_bytes,
+            )
+            .map_err(invalid)?;
+            let bytes = base
+                .borrow_mut()
+                .read_object_by_digest(revision, digest, Some(size), max_bytes, caller_state)?
+                .ok_or_else(|| invalid("V2 retired-only base object is absent"))?;
+            if bytes.len() as u64 != size {
+                return Err(invalid("V2 retired-only base object length differs"));
+            }
+            drop(bytes);
+            after = Some(digest.as_bytes().to_vec());
+        }
+        Ok(())
+    }
+
+    fn add_desired_object(&self, digest: Digest256, size: u64) -> io::Result<()> {
+        self.running()?;
+        if size > self.limits.candidate.admission.max_member_bytes as u64 {
+            return Err(invalid("candidate packed object exceeds member bound"));
+        }
+        let encoded_size = size.to_be_bytes();
+        let old: Option<Vec<u8>> = self
+            .db
+            .query_row(
+                "SELECT size FROM desired_objects WHERE sha=?1",
+                [digest.as_bytes().as_slice()],
+                |row| row.get(0),
+            )
+            .optional()
+            .map_err(sql)?;
+        if let Some(old) = old {
+            let old: [u8; 8] = old
+                .try_into()
+                .map_err(|_| invalid("candidate desired object size width differs"))?;
+            if u64::from_be_bytes(old) != size {
+                return Err(invalid("candidate object digest maps to different sizes"));
+            }
+            return Ok(());
+        }
+        self.db
+            .execute(
+                "INSERT INTO desired_objects(sha,size) VALUES(?1,?2)",
+                params![digest.as_bytes().as_slice(), encoded_size.as_slice()],
+            )
+            .map_err(sql)?;
+        Ok(())
+    }
+
+    fn build_desired_object_index(&self) -> io::Result<()> {
+        self.running()?;
+        let inconsistent_members: Option<()> = self
+            .db
+            .query_row(
+                "SELECT 1 FROM members GROUP BY sha HAVING MIN(size)<>MAX(size) LIMIT 1",
+                [],
+                |_| Ok(()),
+            )
+            .optional()
+            .map_err(sql)?;
+        if inconsistent_members.is_some() {
+            return Err(invalid("candidate member digest maps to different sizes"));
+        }
+        self.db
+            .execute(
+                "INSERT INTO desired_objects(sha,size) SELECT sha,MIN(size) FROM members GROUP BY sha",
+                [],
+            )
+            .map_err(sql)?;
+        for ordinal in 0..self.retirement_count {
+            self.running()?;
+            let retirement = self
+                .retirement_at_raw(ordinal)?
+                .ok_or_else(|| invalid("candidate retirement missing in object index"))?;
+            self.add_desired_object(retirement.event_sha256, retirement.event_size_bytes)?;
+            let target_size = if let Some(update) = self
+                .batch
+                .update(retirement.path.as_str(), self.row_state_ceiling.get())?
+                .filter(|update| update.sha256 == retirement.sha256)
+            {
+                update.size_bytes
+            } else if let Some(size) = self
+                .db
+                .query_row(
+                    "SELECT size FROM desired_objects WHERE sha=?1",
+                    [retirement.sha256.as_bytes().as_slice()],
+                    |row| row.get::<_, Vec<u8>>(0),
+                )
+                .optional()
+                .map_err(sql)?
+            {
+                let size: [u8; 8] = size
+                    .try_into()
+                    .map_err(|_| invalid("candidate object size width differs"))?;
+                u64::from_be_bytes(size)
+            } else if let Some(size) = self
+                .db
+                .query_row(
+                    "SELECT size FROM base_objects WHERE sha=?1",
+                    [retirement.sha256.as_bytes().as_slice()],
+                    |row| row.get::<_, Vec<u8>>(0),
+                )
+                .optional()
+                .map_err(sql)?
+            {
+                let size: [u8; 8] = size
+                    .try_into()
+                    .map_err(|_| invalid("base object size width differs"))?;
+                u64::from_be_bytes(size)
+            } else if let Some(size) = self.store.object_size_if_present(
+                retirement.sha256,
+                self.limits.candidate.admission.max_member_bytes as u64,
+                self.deadline,
+                &self.cancelled,
+            )? {
+                size
+            } else {
+                return Err(invalid("candidate retirement target payload is absent"));
+            };
+            self.add_desired_object(retirement.sha256, target_size)?;
+        }
+        let desired_count: i64 = self
+            .db
+            .query_row("SELECT COUNT(*) FROM desired_objects", [], |row| row.get(0))
+            .map_err(sql)?;
+        if u64::try_from(desired_count).map_err(invalid)? > self.max_packed_object_rows()? {
+            return Err(invalid("candidate packed object closure exceeds row bound"));
+        }
+        self.running()
+    }
+
+    fn max_packed_object_rows(&self) -> io::Result<u64> {
+        let members = u64::try_from(self.limits.candidate.admission.max_members)
+            .map_err(invalid)?;
+        let retirement_events = u64::try_from(self.limits.candidate.reader.max_manifest_entries)
+            .map_err(invalid)?;
+        members
+            .checked_add(
+                retirement_events
+                    .checked_mul(2)
+                    .ok_or_else(|| invalid("packed retirement closure bound overflow"))?,
+            )
+            .ok_or_else(|| invalid("packed object row bound overflow"))
+    }
+
+    fn desired_object_size(&self, digest: Digest256) -> io::Result<Option<u64>> {
+        let raw: Option<Vec<u8>> = self
+            .db
+            .query_row(
+                "SELECT size FROM desired_objects WHERE sha=?1",
+                [digest.as_bytes().as_slice()],
+                |row| row.get(0),
+            )
+            .optional()
+            .map_err(sql)?;
+        raw.map(decode_object_size).transpose()
+    }
+
+    fn base_object(&self, digest: Digest256) -> io::Result<Option<BasePackedObject>> {
+        let raw: Option<(Vec<u8>, Option<Vec<u8>>)> = self
+            .db
+            .query_row(
+                "SELECT size,location FROM base_objects WHERE sha=?1",
+                [digest.as_bytes().as_slice()],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .optional()
+            .map_err(sql)?;
+        raw.map(|(size, location)| {
+            let size = decode_object_size(size)?;
+            match location {
+                Some(location) => {
+                    let location = PackedObjectLocationV2::decode(&location)?;
+                    if location.size != size {
+                        return Err(invalid("base object location size differs"));
+                    }
+                    Ok(BasePackedObject::Packed { size, location })
+                }
+                None => Ok(BasePackedObject::Legacy { size }),
+            }
+        })
+        .transpose()
+    }
+
+    fn candidate_payload(&self, digest: Digest256) -> io::Result<Option<(u64, u64)>> {
+        let raw: Option<(Vec<u8>, Vec<u8>)> = self
+            .db
+            .query_row(
+                "SELECT size,offset FROM candidate_packed_objects WHERE sha=?1",
+                [digest.as_bytes().as_slice()],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .optional()
+            .map_err(sql)?;
+        raw.map(|(size, offset)| {
+            Ok((decode_object_size(size)?, decode_object_size(offset)?))
+        })
+        .transpose()
+    }
+
+    fn desired_object_after(
+        &self,
+        after: Option<&[u8]>,
+    ) -> io::Result<Option<(Digest256, u64)>> {
+        let raw: Option<(Vec<u8>, Vec<u8>)> = match after {
+            Some(digest) => self
+                .db
+                .query_row(
+                    "SELECT sha,size FROM desired_objects WHERE sha>?1 ORDER BY sha LIMIT 1",
+                    [digest],
+                    |row| Ok((row.get(0)?, row.get(1)?)),
+                )
+                .optional()
+                .map_err(sql)?,
+            None => self
+                .db
+                .query_row(
+                    "SELECT sha,size FROM desired_objects ORDER BY sha LIMIT 1",
+                    [],
+                    |row| Ok((row.get(0)?, row.get(1)?)),
+                )
+                .optional()
+                .map_err(sql)?,
+        };
+        let Some((digest, size)) = raw else {
+            return Ok(None);
+        };
+        self.check_state(4096usize.checked_add(digest.len()).ok_or_else(|| invalid("desired object cursor state overflow"))?)?;
+        Ok(Some((decode_object_digest(digest)?, decode_object_size(size)?)))
+    }
+
+    fn source_for_desired(
+        &self,
+        digest: Digest256,
+        size: u64,
+    ) -> io::Result<PackedObjectSourceV2> {
+        if let Some(base) = self.base_object(digest)? {
+            if base.size() != size {
+                return Err(invalid("desired object size differs from base extent"));
+            }
+            if let BasePackedObject::Packed { location, .. } = base {
+                return Ok(PackedObjectSourceV2::retain_existing(
+                    digest, size, location,
+                ));
+            }
+        }
+        if let Some((packed_size, offset)) = self.candidate_payload(digest)? {
+            if packed_size != size {
+                return Err(invalid("desired object size differs from staged payload"));
+            }
+            let file = self
+                .payload_pack
+                .borrow()
+                .as_ref()
+                .ok_or_else(|| invalid("candidate packed payload file is absent"))?
+                .file_for_sealed_slice(offset, size)?;
+            return Ok(PackedObjectSourceV2::from_slice(
+                digest, size, file, offset,
+            ));
+        }
+        let file = self
+            .store
+            .open_object_source(digest, size, self.deadline, &self.cancelled)?;
+        Ok(PackedObjectSourceV2::from_file(digest, size, file))
+    }
+
+    fn next_change_digest(&self, after: Option<&[u8]>) -> io::Result<Option<Digest256>> {
+        let desired = self.desired_object_after(after)?.map(|row| row.0);
+        let base_raw: Option<Vec<u8>> = match after {
+            Some(digest) => self
+                .db
+                .query_row(
+                    "SELECT sha FROM base_objects WHERE sha>?1 ORDER BY sha LIMIT 1",
+                    [digest],
+                    |row| row.get(0),
+                )
+                .optional()
+                .map_err(sql)?,
+            None => self
+                .db
+                .query_row(
+                    "SELECT sha FROM base_objects ORDER BY sha LIMIT 1",
+                    [],
+                    |row| row.get(0),
+                )
+                .optional()
+                .map_err(sql)?,
+        };
+        let base = base_raw
+            .map(|digest| {
+            self.check_state(4096usize.checked_add(digest.len()).ok_or_else(|| invalid("packed change cursor state overflow"))?)?;
+            decode_object_digest(digest)
+            })
+            .transpose()?;
+        Ok(match (desired, base) {
+            (Some(desired), Some(base)) => {
+                if desired.as_bytes() <= base.as_bytes() {
+                    Some(desired)
+                } else {
+                    Some(base)
+                }
+            }
+            (Some(desired), None) => Some(desired),
+            (None, Some(base)) => Some(base),
+            (None, None) => None,
+        })
+    }
+
+    fn candidate_stage_planned(&self, digest: Digest256) -> io::Result<Option<u64>> {
+        let raw: Option<Vec<u8>> = self
+            .db
+            .query_row(
+                "SELECT size FROM candidate_stage_plan WHERE sha=?1",
+                [digest.as_bytes().as_slice()],
+                |row| row.get(0),
+            )
+            .optional()
+            .map_err(sql)?;
+        raw.map(decode_object_size).transpose()
+    }
+
+    fn plan_candidate_payload(&self, digest: Digest256, size: u64) -> io::Result<()> {
+        self.running()?;
+        let Some(desired_size) = self.desired_object_size(digest)? else {
+            return Ok(());
+        };
+        if desired_size != size {
+            return Err(invalid("candidate update digest size differs from desired closure"));
+        }
+        if let Some(base) = self.base_object(digest)? {
+            if base.size() != size {
+                return Err(invalid("candidate update digest size differs from base extent"));
+            }
+            return Ok(());
+        }
+        if let Some((packed_size, _)) = self.candidate_payload(digest)? {
+            if packed_size != size {
+                return Err(invalid("candidate packed digest size differs"));
+            }
+            return Ok(());
+        }
+        if let Some(raw_size) = self.store.object_size_if_present(
+            digest,
+            self.limits.candidate.admission.max_member_bytes as u64,
+            self.deadline,
+            &self.cancelled,
+        )? {
+            if raw_size != size {
+                return Err(invalid("legacy object digest size differs from update"));
+            }
+            return Ok(());
+        }
+        if let Some(planned_size) = self.candidate_stage_planned(digest)? {
+            if planned_size != size {
+                return Err(invalid("candidate staged digest size differs"));
+            }
+            return Ok(());
+        }
+        self.db
+            .execute(
+                "INSERT INTO candidate_stage_plan(sha,size) VALUES(?1,?2)",
+                params![digest.as_bytes().as_slice(), size.to_be_bytes().as_slice()],
+            )
+            .map_err(sql)?;
+        Ok(())
+    }
+
+    fn plan_candidate_updates(&self) -> io::Result<(u64, u64)> {
+        if let Some(mut cursor) = self.batch.update_cursor() {
+            loop {
+                self.running()?;
+                let Some(row) = cursor.next(
+                    self.row_state_ceiling.get(),
+                    self.deadline,
+                    &self.cancelled,
+                )? else {
+                    break;
+                };
+                self.check_state(row.workspace_state_bytes)?;
+                self.plan_candidate_payload(row.update.sha256, row.update.size_bytes)?;
+            }
+        } else {
+            for update in self.batch.updates.values() {
+                self.plan_candidate_payload(update.sha256, update.size_bytes)?;
+            }
+        }
+
+        let update_source_bytes = self.batch.update_source_bytes()?;
+        let mut after: Option<Vec<u8>> = None;
+        let mut count = 0u64;
+        let mut bytes = 0u64;
+        loop {
+            self.running()?;
+            let raw: Option<(Vec<u8>, Vec<u8>)> = match after.as_deref() {
+                Some(digest) => self
+                    .db
+                    .query_row(
+                        "SELECT sha,size FROM candidate_stage_plan WHERE sha>?1 ORDER BY sha LIMIT 1",
+                        [digest],
+                        |row| Ok((row.get(0)?, row.get(1)?)),
+                    )
+                    .optional()
+                    .map_err(sql)?,
+                None => self
+                    .db
+                    .query_row(
+                        "SELECT sha,size FROM candidate_stage_plan ORDER BY sha LIMIT 1",
+                        [],
+                        |row| Ok((row.get(0)?, row.get(1)?)),
+                    )
+                    .optional()
+                    .map_err(sql)?,
+            };
+            let Some((digest, size)) = raw else { break };
+            self.check_state(4096usize.checked_add(digest.len()).ok_or_else(|| invalid("candidate stage plan state overflow"))?)?;
+            if digest.len() != 32 {
+                return Err(invalid("candidate staged digest width differs"));
+            }
+            let size = decode_object_size(size)?;
+            bytes = bytes
+                .checked_add(size)
+                .filter(|total| *total <= update_source_bytes)
+                .ok_or_else(|| invalid("candidate payload stage bound overflow"))?;
+            count = count
+                .checked_add(1)
+                .ok_or_else(|| invalid("candidate payload stage count overflow"))?;
+            after = Some(digest);
+        }
+        Ok((count, bytes))
+    }
+
+    pub(crate) fn packed_object_sources(&self) -> PackedObjectSources<'_, 'host> {
+        PackedObjectSources {
+            candidate: self,
+            after: None,
+            failed: false,
+        }
+    }
+
+    pub(crate) fn packed_object_changes(&self) -> PackedObjectChanges<'_, 'host> {
+        PackedObjectChanges {
+            candidate: self,
+            after: None,
+            failed: false,
+        }
+    }
+
+    pub(crate) fn desired_object_count(&self) -> io::Result<u64> {
+        self.tick()?;
+        let result = (|| {
+            let count: i64 = self
+                .db
+                .query_row("SELECT COUNT(*) FROM desired_objects", [], |row| row.get(0))
+                .map_err(sql)?;
+            let count = u64::try_from(count).map_err(invalid)?;
+            if count > self.max_packed_object_rows()? {
+                return Err(invalid("candidate packed object closure exceeds row bound"));
+            }
+            Ok(count)
+        })();
+        self.finish_read(result)
+    }
+
+    pub(crate) fn cleanup_packed_sources_after_seal(&mut self) -> io::Result<()> {
+        self.tick()?;
+        let result = (|| {
+            let pack = self.payload_pack.take();
+            if let Some(pack) = pack {
+                pack.cleanup_after_seal(self.deadline, &self.cancelled)?;
+                self.db
+                    .execute("DELETE FROM candidate_packed_objects", [])
+                    .map_err(sql)?;
+            }
+            Ok(())
+        })();
+        self.finish_read(result)
+    }
+
+    fn stream_packed_update(
+        &mut self,
+        path: &str,
+        update: SourceUpdate,
+        row_state_bytes: usize,
+    ) -> io::Result<()> {
+        let retained = self.limits.retained_batch_state(&self.batch)?;
+        let caller_live_state = retained
+            .checked_add(row_state_bytes)
+            .and_then(|bytes| bytes.checked_add(size_of::<CandidatePayloadSink<'_>>()))
+            .and_then(|bytes| {
+                bytes.checked_add(crate::source_admission_store::INGEST_ACCOUNTED_SCRATCH_BYTES)
+            })
+            .ok_or_else(|| invalid("verified update caller state overflow"))?;
+        self.check_state(
+            row_state_bytes
+                .checked_add(size_of::<CandidatePayloadSink<'_>>())
+                .and_then(|bytes| {
+                    bytes.checked_add(crate::source_admission_store::INGEST_ACCOUNTED_SCRATCH_BYTES)
+                })
+                .ok_or_else(|| invalid("verified update transient state overflow"))?,
+        )?;
+
+        if let Some(planned_size) = self.candidate_stage_planned(update.sha256)? {
+            if planned_size != update.size_bytes {
+                return Err(invalid("candidate stage plan update size differs"));
+            }
+            let mut payload = self.payload_pack.borrow_mut();
+            let pack = payload
+                .as_mut()
+                .ok_or_else(|| invalid("candidate staging pack was not precharged"))?;
+            let offset = pack.appended_bytes();
+            let mut sink = CandidatePayloadSink {
+                pack,
+                ledger: &self.ledger,
+                failed: &self.failed,
+                deadline: self.deadline,
+                cancelled: &self.cancelled,
+                offset,
+                size: update.size_bytes,
+                written: 0,
+            };
+            let work = self.batch.stream_verified_update(
+                path,
+                update,
+                caller_live_state,
+                self.deadline,
+                &self.cancelled,
+                &mut sink,
+            )?;
+            sink.finish()?;
+            if work.source_bytes != update.size_bytes {
+                return Err(invalid("verified update stream byte count differs"));
+            }
+            let offset = offset.to_be_bytes();
+            let size = update.size_bytes.to_be_bytes();
+            self.db
+                .execute(
+                    "INSERT INTO candidate_packed_objects(sha,size,offset) VALUES(?1,?2,?3)",
+                    params![update.sha256.as_bytes().as_slice(), size.as_slice(), offset.as_slice()],
+                )
+                .map_err(sql)?;
+            self.db
+                .execute(
+                    "DELETE FROM candidate_stage_plan WHERE sha=?1",
+                    [update.sha256.as_bytes().as_slice()],
+                )
+                .map_err(sql)?;
+        } else {
+            let mut sink = io::sink();
+            let work = self.batch.stream_verified_update(
+                path,
+                update,
+                caller_live_state,
+                self.deadline,
+                &self.cancelled,
+                &mut sink,
+            )?;
+            if work.source_bytes != update.size_bytes {
+                return Err(invalid("verified discarded update byte count differs"));
+            }
+        }
+        self.running()
+    }
+
+    fn ingest_packed_updates(&mut self) -> io::Result<()> {
+        if self.payload_pack.borrow().is_some() {
+            return Err(invalid("candidate payload pack was already initialized"));
+        }
+        let (planned_rows, planned_bytes) = self.plan_candidate_updates()?;
+        if planned_rows != 0 {
+            let pack = self
+                .store
+                .begin_candidate_payload_pack(planned_bytes, self.deadline, &self.cancelled)?;
+            self.payload_pack.replace(Some(pack));
+        }
+        if let Some(mut cursor) = self.batch.update_cursor() {
+            loop {
+                self.running()?;
+                let Some(row) = cursor.next(
+                    self.row_state_ceiling.get(),
+                    self.deadline,
+                    &self.cancelled,
+                )? else {
+                    break;
+                };
+                self.stream_packed_update(
+                    &row.path,
+                    row.update,
+                    row.workspace_state_bytes,
+                )?;
+            }
+        } else {
+            for (path, update) in &self.batch.updates {
+                let path_state = path
+                    .len()
+                    .checked_mul(16)
+                    .and_then(|bytes| bytes.checked_add(2048))
+                    .ok_or_else(|| invalid("update path caller state overflow"))?;
+                self.stream_packed_update(path, *update, path_state)?;
+            }
+        }
+        // The source owner performs EOF and held-input/root fencing here,
+        // after every streamed update and before any candidate pack is sealed.
+        self.batch.finish_streamed_updates()?;
+        let leftovers: Option<()> = self
+            .db
+            .query_row("SELECT 1 FROM candidate_stage_plan LIMIT 1", [], |_| Ok(()))
+            .optional()
+            .map_err(sql)?;
+        if leftovers.is_some() {
+            return Err(invalid("candidate stage plan contains an unconsumed update"));
+        }
+        if let Some(pack) = self.payload_pack.borrow_mut().as_mut() {
+            pack.sync_and_reconcile(self.deadline, &self.cancelled)?;
+        }
+        self.running()
+    }
+
     fn import_v2_base(&mut self) -> io::Result<()> {
         self.db
             .execute_batch(
@@ -2263,7 +3179,7 @@ impl<'host> SpoolCandidate<'host> {
         };
         if count != expected_member_count
             || bytes != expected_source_bytes
-            || membership != expected_membership
+            || expected_membership.is_some_and(|expected| membership != expected)
         {
             return Err(invalid("V2 base member EOF or membership differs"));
         }
@@ -2647,6 +3563,8 @@ impl<'host> SpoolCandidate<'host> {
             }
         } else if self.base_v2.is_some() {
             self.import_v2_base()?;
+            self.import_v2_base_objects()?;
+            self.verify_v2_base_object_closure()?;
         }
         self.new_retirement_start = self.retirement_count;
         // Plan complete membership before the first immutable object ingest.
@@ -2789,6 +3707,7 @@ impl<'host> SpoolCandidate<'host> {
             digest: hash.finalize(),
         };
         self.source_bytes = bytes;
+        self.build_desired_object_index()?;
         // The fixed point uses indexed incoming edges and a disk-backed queue.
         loop {
             self.running()?;
@@ -2810,9 +3729,14 @@ impl<'host> SpoolCandidate<'host> {
         // Reserve the COMPLETE immutable-object work before the first ingest.
         // Pager work continues to debit this same ledger independently.
         let update_bytes = self.batch.update_source_bytes()?;
-        let mut object_reads = update_bytes
-            .checked_mul(3)
-            .ok_or_else(|| invalid("candidate read charge overflow"))?;
+        let per_update_reads = if self.v2_io.is_some() {
+            update_bytes
+        } else {
+            update_bytes
+                .checked_mul(3)
+                .ok_or_else(|| invalid("candidate read charge overflow"))?
+        };
+        let mut object_reads = per_update_reads;
         let mut object_writes = update_bytes;
         for i in self.new_retirement_start..self.retirement_count {
             self.running()?;
@@ -2824,12 +3748,7 @@ impl<'host> SpoolCandidate<'host> {
                 .update(r.path.as_str(), self.row_state_ceiling.get())?
             {
                 Some(update) if update.sha256 == r.sha256 => update.size_bytes,
-                _ => self.store.object_size(
-                    r.sha256,
-                    self.limits.candidate.admission.max_member_bytes,
-                    self.deadline,
-                    &self.cancelled,
-                )?,
+                _ => self.object_source_size(r.sha256)?,
             };
             object_reads = object_reads
                 .checked_add(size)
@@ -2837,85 +3756,91 @@ impl<'host> SpoolCandidate<'host> {
                 .ok_or_else(|| invalid("retirement read charge overflow"))?;
         }
         self.reserve_logical(object_reads, object_writes)?;
-        if let Some(mut cursor) = self.batch.update_cursor() {
-            loop {
-                self.running()?;
-                let Some(row) =
-                    cursor.next(self.row_state_ceiling.get(), self.deadline, &self.cancelled)?
-                else {
-                    break;
-                };
-                let ingest_state = row
-                    .workspace_state_bytes
-                    .checked_add(crate::source_admission_store::INGEST_ACCOUNTED_SCRATCH_BYTES)
-                    .ok_or_else(|| invalid("initial update ingest state overflow"))?;
-                self.check_state(ingest_state)?;
-                let mut input =
-                    self.batch
-                        .open_verified_update(&row, self.deadline, &self.cancelled)?;
-                self.store.ingest_accounted(
-                    &mut input,
-                    row.update.size_bytes,
-                    row.update.sha256,
-                    self.deadline,
-                    &self.cancelled,
-                    &|n| self.debit_read(n),
-                    &|n| self.debit_write(n),
-                    &|n| self.ledger.record_read_returned(n).map_err(invalid),
-                    &|n| self.ledger.record_write_returned(n).map_err(invalid),
-                )?;
-                drop(input);
-                drop(row);
-            }
+        if self.v2_io.is_some() {
+            self.ingest_packed_updates()?;
         } else {
-            for (path, update) in &self.batch.updates {
-                let mut input = self
-                    .batch
-                    .open_update(path, self.deadline, &self.cancelled)?;
-                self.store.ingest_accounted(
-                    &mut input,
-                    update.size_bytes,
-                    update.sha256,
-                    self.deadline,
-                    &self.cancelled,
-                    &|n| self.debit_read(n),
-                    &|n| self.debit_write(n),
-                    &|n| self.ledger.record_read_returned(n).map_err(invalid),
-                    &|n| self.ledger.record_write_returned(n).map_err(invalid),
-                )?;
+            if let Some(mut cursor) = self.batch.update_cursor() {
+                loop {
+                    self.running()?;
+                    let Some(row) = cursor.next(
+                        self.row_state_ceiling.get(),
+                        self.deadline,
+                        &self.cancelled,
+                    )? else {
+                        break;
+                    };
+                    let ingest_state = row
+                        .workspace_state_bytes
+                        .checked_add(crate::source_admission_store::INGEST_ACCOUNTED_SCRATCH_BYTES)
+                        .ok_or_else(|| invalid("initial update ingest state overflow"))?;
+                    self.check_state(ingest_state)?;
+                    let mut input = self
+                        .batch
+                        .open_verified_update(&row, self.deadline, &self.cancelled)?;
+                    self.store.ingest_accounted(
+                        &mut input,
+                        row.update.size_bytes,
+                        row.update.sha256,
+                        self.deadline,
+                        &self.cancelled,
+                        &|n| self.debit_read(n),
+                        &|n| self.debit_write(n),
+                        &|n| self.ledger.record_read_returned(n).map_err(invalid),
+                        &|n| self.ledger.record_write_returned(n).map_err(invalid),
+                    )?;
+                    drop(input);
+                    drop(row);
+                }
+            } else {
+                for (path, update) in &self.batch.updates {
+                    let mut input = self
+                        .batch
+                        .open_update(path, self.deadline, &self.cancelled)?;
+                    self.store.ingest_accounted(
+                        &mut input,
+                        update.size_bytes,
+                        update.sha256,
+                        self.deadline,
+                        &self.cancelled,
+                        &|n| self.debit_read(n),
+                        &|n| self.debit_write(n),
+                        &|n| self.ledger.record_read_returned(n).map_err(invalid),
+                        &|n| self.ledger.record_write_returned(n).map_err(invalid),
+                    )?;
+                }
             }
+            self.store.sync_objects(self.deadline, &self.cancelled)?;
         }
-        self.store.sync_objects(self.deadline, &self.cancelled)?;
         for i in self.new_retirement_start..self.retirement_count {
             let r = self
                 .retirement_at_raw(i)?
                 .ok_or_else(|| invalid("new retirement absent"))?;
-            let size = self.store.object_size(
-                r.sha256,
-                self.limits.candidate.admission.max_member_bytes,
-                self.deadline,
-                &self.cancelled,
-            )?;
-            self.store.verify_object_accounted(
-                r.sha256,
-                size,
-                self.deadline,
-                &self.cancelled,
-                &|n| self.debit_read(n),
-                &|_| Ok(()),
-                &|n| self.ledger.record_read_returned(n).map_err(invalid),
-                &|n| self.ledger.record_write_returned(n).map_err(invalid),
-            )?;
-            self.store.verify_object_accounted(
-                r.event_sha256,
-                r.event_size_bytes,
-                self.deadline,
-                &self.cancelled,
-                &|n| self.debit_read(n),
-                &|_| Ok(()),
-                &|n| self.ledger.record_read_returned(n).map_err(invalid),
-                &|n| self.ledger.record_write_returned(n).map_err(invalid),
-            )?;
+            let size = self.object_source_size(r.sha256)?;
+            if self.v2_io.is_some() {
+                self.verify_object_source_accounted(r.sha256, size)?;
+                self.verify_object_source_accounted(r.event_sha256, r.event_size_bytes)?;
+            } else {
+                self.store.verify_object_accounted(
+                    r.sha256,
+                    size,
+                    self.deadline,
+                    &self.cancelled,
+                    &|n| self.debit_read(n),
+                    &|_| Ok(()),
+                    &|n| self.ledger.record_read_returned(n).map_err(invalid),
+                    &|n| self.ledger.record_write_returned(n).map_err(invalid),
+                )?;
+                self.store.verify_object_accounted(
+                    r.event_sha256,
+                    r.event_size_bytes,
+                    self.deadline,
+                    &self.cancelled,
+                    &|n| self.debit_read(n),
+                    &|_| Ok(()),
+                    &|n| self.ledger.record_read_returned(n).map_err(invalid),
+                    &|n| self.ledger.record_write_returned(n).map_err(invalid),
+                )?;
+            }
         }
         self.running()
     }
@@ -2956,6 +3881,192 @@ impl<'host> SpoolCandidate<'host> {
             .map_err(sql)?;
         Ok(())
     }
+
+    fn object_source_size(&self, digest: Digest256) -> io::Result<u64> {
+        if let Some(base) = self.base_object(digest)? {
+            return Ok(base.size());
+        }
+        if let Some((size, _)) = self.candidate_payload(digest)? {
+            return Ok(size);
+        }
+        self.store.object_size(
+            digest,
+            self.limits.candidate.admission.max_member_bytes,
+            self.deadline,
+            &self.cancelled,
+        )
+    }
+
+    fn read_object_source_accounted(
+        &self,
+        digest: Digest256,
+        size: u64,
+        cap: usize,
+    ) -> io::Result<Vec<u8>> {
+        if size > cap as u64 {
+            return Err(invalid("candidate object read exceeds bound"));
+        }
+        if self.base_object(digest)?.is_some() {
+            let row_bytes = usize::try_from(size)
+                .map_err(invalid)?
+                .checked_mul(3)
+                .and_then(|bytes| bytes.checked_add(8192))
+                .ok_or_else(|| invalid("base object read state overflow"))?;
+            self.check_state(row_bytes)?;
+            let caller_state = self
+                .limits
+                .retained_batch_state(&self.batch)?
+                .checked_add(row_bytes)
+                .ok_or_else(|| invalid("base object caller state overflow"))?;
+            let base = self
+                .base_v2
+                .ok_or_else(|| invalid("base extent has no V2 reader"))?;
+            let revision = base.borrow().selected_revision();
+            let bytes = base
+                .borrow_mut()
+                .read_object_by_digest(revision, digest, Some(size), cap, caller_state)?
+                .ok_or_else(|| invalid("base packed object is absent"))?;
+            if bytes.len() as u64 != size {
+                return Err(invalid("base packed object length differs"));
+            }
+            return Ok(bytes);
+        }
+        if let Some((packed_size, offset)) = self.candidate_payload(digest)? {
+            if packed_size != size {
+                return Err(invalid("staged object source size differs"));
+            }
+            let row_bytes = usize::try_from(size)
+                .map_err(invalid)?
+                .checked_add(8192)
+                .ok_or_else(|| invalid("staged object read state overflow"))?;
+            self.check_state(row_bytes)?;
+            let pack = self
+                .payload_pack
+                .borrow();
+            let pack = pack
+                .as_ref()
+                .ok_or_else(|| invalid("staged object pack is absent"))?;
+            return self.store.read_candidate_payload_slice_accounted(
+                pack,
+                offset,
+                size,
+                digest,
+                cap,
+                self.deadline,
+                &self.cancelled,
+                &|n| self.debit_read(n),
+                &|n| self.ledger.record_read_returned(n).map_err(invalid),
+            );
+        }
+        self.store.read_object_accounted(
+            digest,
+            size,
+            cap,
+            self.deadline,
+            &self.cancelled,
+            &|n| self.debit_read(n),
+            &|_| Ok(()),
+            &|n| self.ledger.record_read_returned(n).map_err(invalid),
+            &|_| Ok(()),
+        )
+    }
+
+    fn verify_object_source_accounted(&self, digest: Digest256, size: u64) -> io::Result<()> {
+        if self.base_object(digest)?.is_some() {
+            let _ = self.read_object_source_accounted(
+                digest,
+                size,
+                usize::try_from(self.limits.candidate.admission.max_member_bytes)
+                    .map_err(invalid)?,
+            )?;
+            return Ok(());
+        }
+        if let Some((packed_size, offset)) = self.candidate_payload(digest)? {
+            if packed_size != size {
+                return Err(invalid("staged object verify size differs"));
+            }
+            let pack = self.payload_pack.borrow();
+            let pack = pack
+                .as_ref()
+                .ok_or_else(|| invalid("staged object pack is absent"))?;
+            return self.store.verify_candidate_payload_slice_accounted(
+                pack,
+                offset,
+                size,
+                digest,
+                self.deadline,
+                &self.cancelled,
+                &|n| self.debit_read(n),
+                &|n| self.ledger.record_read_returned(n).map_err(invalid),
+            );
+        }
+        self.store.verify_object_accounted(
+            digest,
+            size,
+            self.deadline,
+            &self.cancelled,
+            &|n| self.debit_read(n),
+            &|_| Ok(()),
+            &|n| self.ledger.record_read_returned(n).map_err(invalid),
+            &|_| Ok(()),
+        )
+    }
+
+    fn copy_object_source_accounted(
+        &self,
+        digest: Digest256,
+        size: u64,
+        sink: &mut dyn Write,
+    ) -> io::Result<()> {
+        if self.base_object(digest)?.is_some() {
+            let bytes = self.read_object_source_accounted(
+                digest,
+                size,
+                usize::try_from(self.limits.candidate.admission.max_member_bytes)
+                    .map_err(invalid)?,
+            )?;
+            for chunk in bytes.chunks(64 * 1024) {
+                self.running()?;
+                self.debit_write(chunk.len() as u64)?;
+                sink.write_all(chunk)?;
+                self.record_write_returned(chunk.len() as u64)?;
+            }
+            return Ok(());
+        }
+        if let Some((packed_size, offset)) = self.candidate_payload(digest)? {
+            if packed_size != size {
+                return Err(invalid("staged object copy size differs"));
+            }
+            let pack = self.payload_pack.borrow();
+            let pack = pack
+                .as_ref()
+                .ok_or_else(|| invalid("staged object pack is absent"))?;
+            return self.store.copy_candidate_payload_slice_accounted(
+                pack,
+                offset,
+                size,
+                digest,
+                sink,
+                self.deadline,
+                &self.cancelled,
+                &|n| self.debit_read(n),
+                &|n| self.debit_write(n),
+                &|n| self.ledger.record_read_returned(n).map_err(invalid),
+                &|n| self.record_write_returned(n),
+            );
+        }
+        self.store.copy_object_accounted(
+            digest,
+            size,
+            sink,
+            self.deadline,
+            &self.cancelled,
+            &|n| self.debit_read(n),
+            &|n| self.debit_write(n),
+            &|n| self.ledger.record_read_returned(n).map_err(invalid),
+            &|n| self.record_write_returned(n),
+        )
+    }
     pub(crate) fn read(&self, path: &str, cap: usize) -> io::Result<Vec<u8>> {
         self.tick()?;
         self.failed.set(true);
@@ -2975,17 +4086,7 @@ impl<'host> SpoolCandidate<'host> {
         }
         self.check_state(usize::try_from(m.size_bytes).map_err(invalid)?)?;
         self.reserve_logical(m.size_bytes, 0)?;
-        let raw = self.store.read_object_accounted(
-            m.sha256,
-            m.size_bytes,
-            cap,
-            self.deadline,
-            &self.cancelled,
-            &|n| self.debit_read(n),
-            &|_| Ok(()),
-            &|n| self.ledger.record_read_returned(n).map_err(invalid),
-            &|n| self.ledger.record_write_returned(n).map_err(invalid),
-        )?;
+        let raw = self.read_object_source_accounted(m.sha256, m.size_bytes, cap)?;
         self.mark_read(path)?;
         self.running()?;
         Ok(raw)
@@ -3038,16 +4139,7 @@ impl<'host> SpoolCandidate<'host> {
                 .raw_member(&RelativePath::parse(path).map_err(invalid)?)?
                 .ok_or_else(|| invalid("verify outside candidate membership"))?;
             self.reserve_logical(m.size_bytes, 0)?;
-            self.store.verify_object_accounted(
-                m.sha256,
-                m.size_bytes,
-                self.deadline,
-                &self.cancelled,
-                &|n| self.debit_read(n),
-                &|_| Ok(()),
-                &|n| self.ledger.record_read_returned(n).map_err(invalid),
-                &|n| self.ledger.record_write_returned(n).map_err(invalid),
-            )?;
+            self.verify_object_source_accounted(m.sha256, m.size_bytes)?;
             self.mark_read(path)?;
             self.running()
         })();
@@ -3064,17 +4156,7 @@ impl<'host> SpoolCandidate<'host> {
                 .raw_member(&RelativePath::parse(path).map_err(invalid)?)?
                 .ok_or_else(|| invalid("copy outside candidate membership"))?;
             self.reserve_logical(m.size_bytes, 0)?;
-            self.store.copy_object_accounted(
-                m.sha256,
-                m.size_bytes,
-                sink,
-                self.deadline,
-                &self.cancelled,
-                &|n| self.debit_read(n),
-                &|n| self.debit_write(n),
-                &|n| self.ledger.record_read_returned(n).map_err(invalid),
-                &|n| self.ledger.record_write_returned(n).map_err(invalid),
-            )?;
+            self.copy_object_source_accounted(m.sha256, m.size_bytes, sink)?;
             self.mark_read(path)?;
             self.running()
         })();
@@ -3680,6 +4762,12 @@ impl<'host> SpoolCandidate<'host> {
     pub(crate) fn batch_sha256(&self) -> Digest256 {
         self.batch.batch_sha256
     }
+    /// The packed writer and streamed census updates share this selected
+    /// invocation meter. Ordinary file batches have no such meter and cannot
+    /// enter the native V2 packed route.
+    pub(crate) fn admission_work_budget(&self) -> io::Result<AdmissionWorkBudget> {
+        self.batch.admission_work_budget()
+    }
     /// Exact native public ledger rows, length-framed in original retained order.
     /// This private candidate fence is not a source-store revision or authority.
     pub(crate) fn retirement_fence(&self) -> io::Result<(u64, Digest256)> {
@@ -3731,16 +4819,7 @@ impl<'host> SpoolCandidate<'host> {
                 let Some(row) = row else { break };
                 let row = member(row)?;
                 self.reserve_logical(row.size_bytes, 0)?;
-                self.store.verify_object_accounted(
-                    row.sha256,
-                    row.size_bytes,
-                    self.deadline,
-                    &self.cancelled,
-                    &|n| self.debit_read(n),
-                    &|_| Ok(()),
-                    &|n| self.ledger.record_read_returned(n).map_err(invalid),
-                    &|n| self.ledger.record_write_returned(n).map_err(invalid),
-                )?;
+                self.verify_object_source_accounted(row.sha256, row.size_bytes)?;
                 after = Some(row.path.as_str().to_owned());
             }
             self.running()
@@ -3751,6 +4830,167 @@ impl<'host> SpoolCandidate<'host> {
         result
     }
 }
+struct CandidatePayloadSink<'a> {
+    pack: &'a mut CandidatePayloadPackV2,
+    ledger: &'a PinnedSqliteIoBudget,
+    failed: &'a Cell<bool>,
+    deadline: Instant,
+    cancelled: &'a Arc<AtomicBool>,
+    offset: u64,
+    size: u64,
+    written: u64,
+}
+
+impl CandidatePayloadSink<'_> {
+    fn finish(&mut self) -> io::Result<()> {
+        if self.written != self.size {
+            self.failed.set(true);
+            return Err(invalid("candidate staged update length differs"));
+        }
+        Ok(())
+    }
+}
+
+impl Write for CandidatePayloadSink<'_> {
+    fn write(&mut self, raw: &[u8]) -> io::Result<usize> {
+        let result = (|| {
+            active(self.deadline, self.cancelled)?;
+            if raw.is_empty() {
+                return Ok(0);
+            }
+            let next = self
+                .written
+                .checked_add(raw.len() as u64)
+                .filter(|bytes| *bytes <= self.size)
+                .ok_or_else(|| invalid("candidate staged update exceeds declared size"))?;
+            self.ledger
+                .charge_write(raw.len() as u64)
+                .map_err(invalid)?;
+            let offset = self
+                .offset
+                .checked_add(self.written)
+                .ok_or_else(|| invalid("candidate staged update offset overflow"))?;
+            self.pack.append_at(offset, raw)?;
+            self.ledger
+                .record_write_returned(raw.len() as u64)
+                .map_err(invalid)?;
+            self.written = next;
+            active(self.deadline, self.cancelled)?;
+            Ok(raw.len())
+        })();
+        if result.is_err() {
+            self.failed.set(true);
+        }
+        result
+    }
+
+    fn flush(&mut self) -> io::Result<()> {
+        active(self.deadline, self.cancelled)
+    }
+}
+
+pub(crate) struct PackedObjectSources<'a, 'host> {
+    candidate: &'a SpoolCandidate<'host>,
+    after: Option<Vec<u8>>,
+    failed: bool,
+}
+
+impl Iterator for PackedObjectSources<'_, '_> {
+    type Item = io::Result<PackedObjectSourceV2>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.failed {
+            return None;
+        }
+        let next = match self.candidate.desired_object_after(self.after.as_deref()) {
+            Ok(Some(next)) => next,
+            Ok(None) => return None,
+            Err(error) => {
+                self.failed = true;
+                self.candidate.abandon();
+                return Some(Err(error));
+            }
+        };
+        self.after = Some(next.0.as_bytes().to_vec());
+        match self.candidate.source_for_desired(next.0, next.1) {
+            Ok(source) => Some(Ok(source)),
+            Err(error) => {
+                self.failed = true;
+                self.candidate.abandon();
+                Some(Err(error))
+            }
+        }
+    }
+}
+
+pub(crate) struct PackedObjectChanges<'a, 'host> {
+    candidate: &'a SpoolCandidate<'host>,
+    after: Option<Vec<u8>>,
+    failed: bool,
+}
+
+impl Iterator for PackedObjectChanges<'_, '_> {
+    type Item = io::Result<PackedObjectChangeV2>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.failed {
+            return None;
+        }
+        loop {
+            let digest = match self.candidate.next_change_digest(self.after.as_deref()) {
+                Ok(Some(digest)) => digest,
+                Ok(None) => return None,
+                Err(error) => {
+                    self.failed = true;
+                    self.candidate.abandon();
+                    return Some(Err(error));
+                }
+            };
+            self.after = Some(digest.as_bytes().to_vec());
+            let result = (|| {
+                let desired = self.candidate.desired_object_size(digest)?;
+                let base = self.candidate.base_object(digest)?;
+                match (desired, base) {
+                    (Some(desired_size), Some(base)) => {
+                        if desired_size != base.size() {
+                            return Err(invalid("desired object size differs from base extent"));
+                        }
+                        Ok(None)
+                    }
+                    (Some(size), None) => Ok(Some(PackedObjectChangeV2::upsert(
+                        self.candidate.source_for_desired(digest, size)?,
+                    ))),
+                    (None, Some(_)) => Ok(Some(PackedObjectChangeV2::delete(digest))),
+                    (None, None) => Err(invalid("packed object change key disappeared")),
+                }
+            })();
+            match result {
+                Ok(Some(change)) => return Some(Ok(change)),
+                Ok(None) => continue,
+                Err(error) => {
+                    self.failed = true;
+                    self.candidate.abandon();
+                    return Some(Err(error));
+                }
+            }
+        }
+    }
+}
+
+fn decode_object_digest(raw: Vec<u8>) -> io::Result<Digest256> {
+    let digest: [u8; 32] = raw
+        .try_into()
+        .map_err(|_| invalid("packed object digest width differs"))?;
+    Ok(Digest256::from_bytes(digest))
+}
+
+fn decode_object_size(raw: Vec<u8>) -> io::Result<u64> {
+    let size: [u8; 8] = raw
+        .try_into()
+        .map_err(|_| invalid("packed object size width differs"))?;
+    Ok(u64::from_be_bytes(size))
+}
+
 fn feed(hash: &mut Digest256Hasher, m: &MemberMetadata) {
     hash.update(&(m.path.as_str().len() as u64).to_be_bytes());
     hash.update(m.path.as_str().as_bytes());

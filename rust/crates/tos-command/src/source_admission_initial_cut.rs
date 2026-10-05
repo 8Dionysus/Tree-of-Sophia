@@ -37,6 +37,7 @@ const ROOT_PATH_BYTES: usize = 4096;
 const ROOT_PATH_COMPONENTS: usize = 128;
 const ROOT_METADATA_GUARD_BYTES: u64 = 4096;
 const OBJECT_VERIFY_BLOCK_BYTES: usize = 65_536;
+const INDEXED_MANIFEST_PARSE_STATE_BYTES: usize = 128 * 1024;
 // The census helper performs two CREATE TABLE statements, a SAVEPOINT, and a
 // RELEASE on success. Reserving six control units also covers a failed RELEASE
 // followed by its bounded ROLLBACK TO + RELEASE cleanup path.
@@ -70,6 +71,7 @@ impl InitialCutProfile {
         admission: AdmissionLimits,
         sqlite_cache_bytes: usize,
         sqlite_native_overhead_bytes: usize,
+        indexed_input: bool,
         // A finite slice selected by the caller from the original invocation
         // budget. The locally derived operation bound must fit inside it.
         selected_work_units: u64,
@@ -117,8 +119,8 @@ impl InitialCutProfile {
         let update_rows_state_bytes = update_rows_state_upper_bound(census)?;
         let batch_builder_state_bytes = batch_builder_state_upper_bound(census)?;
         let store_namespace_state_bytes = store_namespace_state_upper_bound()?;
-        let retained_fence_state_bytes = retained_fence_state_upper_bound()?;
-        let max_work_units = maximum_work_units(census)?;
+        let retained_fence_state_bytes = retained_fence_state_upper_bound(indexed_input)?;
+        let max_work_units = maximum_work_units(census, indexed_input)?;
         if max_work_units > selected_work_units {
             return Err(invalid(
                 "initial source cut work bound exceeds the caller-selected ceiling",
@@ -249,11 +251,18 @@ fn batch_builder_state_upper_bound(census: SourceCensusLimits) -> io::Result<usi
         .ok_or_else(|| invalid("initial canonical batch state overflow"))
 }
 
-fn retained_fence_state_upper_bound() -> io::Result<usize> {
+fn retained_fence_state_upper_bound(indexed_input: bool) -> io::Result<usize> {
     size_of::<InitialCutPrepared<'static>>()
         .checked_add(AdmissionWorkBudget::retained_allocation_upper_bound_bytes())
         .and_then(|bytes| bytes.checked_add(4 * size_of::<usize>()))
         .and_then(|bytes| bytes.checked_add(16_384))
+        .and_then(|bytes| {
+            bytes.checked_add(if indexed_input {
+                INDEXED_MANIFEST_PARSE_STATE_BYTES
+            } else {
+                0
+            })
+        })
         .ok_or_else(|| invalid("initial source cut retained fence state overflow"))
 }
 
@@ -296,7 +305,7 @@ fn check_state_partition(profile: InitialCutProfile) -> io::Result<()> {
     Ok(())
 }
 
-fn maximum_work_units(census: SourceCensusLimits) -> io::Result<u64> {
+fn maximum_work_units(census: SourceCensusLimits, indexed_input: bool) -> io::Result<u64> {
     // The census owner charges at most entries + 4*directories + 4*members +
     // 4 row-probe/aggregate/EOF units per pass. The caller separately
     // precharges six control units for its two schema DDLs, savepoint, and
@@ -326,28 +335,117 @@ fn maximum_work_units(census: SourceCensusLimits) -> io::Result<u64> {
         })
         .and_then(|blocks| blocks.checked_add(census.max_files.checked_mul(2)?))
         .ok_or_else(|| invalid("initial source object-read work bound overflow"))?;
+    let indexed_pack_scan_work = if indexed_input {
+        // Each unique payload appears in at most one pack and total unique
+        // payload bytes cannot exceed the source cut. A pack adds a 48-byte
+        // segment header, a 40-byte frame header per object and an 8-byte
+        // trailer. In the worst case there is one pack per source member.
+        // The verifier reads frame payloads in 64 KiB chunks, plus one read
+        // for each frame header and each segment header/trailer. The extra
+        // per-member terms cover per-frame chunk rounding and verifier calls
+        // without treating manifest object counts as a grant. This prices the
+        // normal regular-file read shape; every actual short read still
+        // debits the same shared meter and can refuse safely if fragmented.
+        let framing_bytes = census
+            .max_files
+            .checked_mul(96)
+            .ok_or_else(|| invalid("initial indexed pack framing bound overflow"))?;
+        let scan_bytes = census
+            .max_source_bytes
+            .checked_add(framing_bytes)
+            .ok_or_else(|| invalid("initial indexed pack scan byte bound overflow"))?;
+        let blocks = scan_bytes
+            .checked_div(OBJECT_VERIFY_BLOCK_BYTES as u64)
+            .and_then(|blocks| {
+                blocks.checked_add(u64::from(
+                    scan_bytes % OBJECT_VERIFY_BLOCK_BYTES as u64 != 0,
+                ))
+            })
+            .ok_or_else(|| invalid("initial indexed pack scan block bound overflow"))?;
+        blocks
+            .checked_add(
+                census
+                    .max_files
+                    .checked_mul(6)
+                    .ok_or_else(|| invalid("initial indexed pack scan operation bound overflow"))?,
+            )
+            .ok_or_else(|| invalid("initial indexed pack scan work bound overflow"))?
+    } else {
+        0
+    };
+    let file_reopen_work = if indexed_input {
+        0
+    } else {
+        u64::try_from(census.max_depth)
+            .map_err(|_| invalid("initial source reopen depth range differs"))?
+            .checked_add(2)
+            .and_then(|components| census.max_files.checked_mul(components))
+            .ok_or_else(|| invalid("initial source reopen work bound overflow"))?
+    };
+    let selector_fence_work = if indexed_input {
+        let rounded_blocks = |bytes: usize| -> io::Result<u64> {
+            let bytes = u64::try_from(bytes)
+                .map_err(|_| invalid("indexed-input evidence size range differs"))?;
+            bytes
+                .checked_div(OBJECT_VERIFY_BLOCK_BYTES as u64)
+                .and_then(|blocks| {
+                    blocks.checked_add(u64::from(bytes % OBJECT_VERIFY_BLOCK_BYTES as u64 != 0))
+                })
+                .ok_or_else(|| invalid("indexed-input evidence block bound overflow"))
+        };
+        let descriptor_blocks =
+            rounded_blocks(crate::source_admission_indexed_input::DESCRIPTOR_MAX_BYTES)?
+                .checked_mul(3)
+                .ok_or_else(|| invalid("indexed-input descriptor work bound overflow"))?;
+        let one_pass =
+            rounded_blocks(crate::source_admission_indexed_input::PROFILE_SIDECAR_MAX_BYTES_V1)?
+                .checked_add(rounded_blocks(
+                    crate::source_admission_indexed_input::DEPENDENCY_CLOSURE_MAX_BYTES_V1,
+                )?)
+                .and_then(|blocks| blocks.checked_add(descriptor_blocks))
+                .ok_or_else(|| invalid("indexed-input evidence work bound overflow"))?;
+        (ROOT_PATH_COMPONENTS as u64 * 3)
+            .checked_add(160)
+            .and_then(|units| {
+                one_pass
+                    .checked_mul(3)
+                    .and_then(|passes| units.checked_add(passes))
+            })
+            .ok_or_else(|| invalid("indexed-input selector fence work bound overflow"))?
+    } else {
+        (ROOT_PATH_COMPONENTS * 2 + 160) as u64
+    };
     per_scan
         .checked_mul(2)
         // Canonical row streaming replaces the prior map import/builder work;
         // candidate membership and ingestion each revisit every update row
         // through a charged one-row keyset cursor.
         .and_then(|units| units.checked_add(census.max_files.checked_mul(13)?))
-        // Initial payload ingest reopens each selected file from the held
-        // repository descriptor. A file at maximum selected depth traverses
-        // the `ToS` root prefix, its nested directories, and the leaf.
-        .and_then(|units| {
-            u64::try_from(census.max_depth)
-                .ok()?
-                .checked_add(2)
-                .and_then(|components| census.max_files.checked_mul(components))
-                .and_then(|opens| units.checked_add(opens))
-        })
+        // The explicit packed-input selector compares producer deduplication
+        // evidence with the exact source census by a bounded digest GROUP BY.
+        // Reserve one input-row scan plus at most one digest output row per
+        // input member before that query is issued.
+        .and_then(|units| units.checked_add(census.max_files.checked_mul(2)?))
+        // The file fallback reopens each selected path from the held
+        // repository descriptor. Indexed mode reads the same selected
+        // members from its authenticated tree and pack, so it reserves no
+        // redundant filesystem reopen traversal here.
+        .and_then(|units| units.checked_add(file_reopen_work))
         // Input rows consumed by the expected-object GROUP BY are charged
         // before SQLite starts that aggregate; output rows are charged below.
         .and_then(|units| units.checked_add(census.max_files))
+        // The indexed-input reader records each authenticated unique extent
+        // in the owned AUX ledger, then streams that bounded table once for
+        // whole-pack closure. Two units per input row cover the extent-row
+        // write/check, and one covers the final closure cursor row.
+        .and_then(|units| units.checked_add(census.max_files.checked_mul(3)?))
+        .and_then(|units| units.checked_add(2))
         .and_then(|units| units.checked_add(object_verify_reads))
-        // Includes bounded query setup and root/selector fences.
-        .and_then(|units| units.checked_add((ROOT_PATH_COMPONENTS * 2 + 160) as u64))
+        .and_then(|units| units.checked_add(indexed_pack_scan_work))
+        // Includes bounded query setup and root/selector fences, plus the
+        // repeated maximum-leaf hash passes used to open and recheck indexed
+        // evidence files.
+        .and_then(|units| units.checked_add(selector_fence_work))
         .ok_or_else(|| invalid("initial source cut work bound overflow"))
 }
 
@@ -386,7 +484,7 @@ fn verify_store_root_entries(
         let name = entry
             .file_name()
             .to_str()
-            .ok_or_else(|| invalid("initial store root contains a non-UTF8 name"))?;
+            .map_err(|_| invalid("initial store root contains a non-UTF8 name"))?;
         if name == "." || name == ".." {
             continue;
         }
@@ -453,7 +551,7 @@ fn require_empty_directory(
                 let name = entry
                     .file_name()
                     .to_str()
-                    .ok_or_else(|| invalid("initial store namespace contains a non-UTF8 name"))?;
+                    .map_err(|_| invalid("initial store namespace contains a non-UTF8 name"))?;
                 if name != "." && name != ".." {
                     return Err(invalid(reason));
                 }
@@ -498,7 +596,7 @@ fn verify_initial_store_baseline(
         "initial V2 object namespace contains pre-existing objects",
     )?;
     require_empty_directory(
-        revisions,
+        &revisions,
         io,
         work,
         deadline,
@@ -530,6 +628,61 @@ fn create_object_inventory_table(
     .map_err(|_| invalid("initial V2 object inventory scratch table refused"))
 }
 
+fn verify_indexed_unique_totals(
+    db: &PinnedSqliteConnection,
+    scan: SourceCensusScan,
+    proposal: SourceCensusSummary,
+    expected_objects: u64,
+    expected_unique_bytes: u64,
+    work: &mut InitialCutWork,
+    deadline: Instant,
+    cancel: &AtomicBool,
+) -> io::Result<()> {
+    active(deadline, cancel)?;
+    let bounded_rows = proposal
+        .member_count
+        .checked_mul(2)
+        .and_then(|units| units.checked_add(1))
+        .ok_or_else(|| invalid("indexed input deduplication work overflow"))?;
+    work.charge_many(bounded_rows)?;
+    let (objects, unique_bytes, conflicting_sizes): (i64, i64, i64) = db
+        .query_row(
+            "SELECT COUNT(*), COALESCE(SUM(min_size),0), \
+             COALESCE(SUM(CASE WHEN min_size != max_size THEN 1 ELSE 0 END),0) \
+             FROM (SELECT MIN(size) AS min_size, MAX(size) AS max_size \
+                   FROM source_member_census WHERE scan_label=?1 GROUP BY sha256)",
+            params![scan.label()],
+            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+        )
+        .map_err(|_| invalid("indexed input census deduplication query refused"))?;
+    active(deadline, cancel)?;
+    if conflicting_sizes != 0
+        || u64::try_from(objects).ok() != Some(expected_objects)
+        || u64::try_from(unique_bytes).ok() != Some(expected_unique_bytes)
+        || expected_objects == 0
+        || expected_unique_bytes > proposal.source_bytes
+    {
+        return Err(invalid(
+            "indexed input deduplication totals differ from the exact census",
+        ));
+    }
+    work.charge_many(2)?;
+    db.execute_batch(
+        "CREATE TABLE source_indexed_pack_extent_v1(\
+            digest BLOB NOT NULL PRIMARY KEY CHECK(length(digest)=32),\
+            size INTEGER NOT NULL CHECK(size >= 0),\
+            segment_digest BLOB NOT NULL CHECK(length(segment_digest)=32),\
+            segment_size INTEGER NOT NULL CHECK(segment_size > 0),\
+            frame_index INTEGER NOT NULL CHECK(frame_index >= 0),\
+            frame_count INTEGER NOT NULL CHECK(frame_count > 0),\
+            header_offset INTEGER NOT NULL CHECK(header_offset >= 0),\
+            UNIQUE(segment_digest, frame_index)\
+         ) WITHOUT ROWID;",
+    )
+    .map_err(|_| invalid("indexed input extent closure scratch table refused"))?;
+    Ok(())
+}
+
 fn verify_object_inventory(
     store: &AdmissionStore,
     db: &PinnedSqliteConnection,
@@ -559,7 +712,7 @@ fn verify_object_inventory(
         let name = entry
             .file_name()
             .to_str()
-            .ok_or_else(|| invalid("initial V2 object name is not UTF-8"))?;
+            .map_err(|_| invalid("initial V2 object name is not UTF-8"))?;
         if name == "." || name == ".." {
             continue;
         }
@@ -893,6 +1046,7 @@ pub(crate) fn prepare_initial_cut<'a>(
     profile: InitialCutProfile,
     workspace: File,
     aux: PinnedSqliteAuxRequest,
+    indexed_input: Option<crate::source_admission_indexed_input::IndexedInputRequestV1>,
     deadline: Instant,
     cancel: &AtomicBool,
 ) -> io::Result<InitialCutPrepared<'a>> {
@@ -952,7 +1106,53 @@ pub(crate) fn prepare_initial_cut<'a>(
         )?
     };
     drop(callback);
-    let batch = AdmissionBatch::from_verified_census_rows(
+    let indexed_reader = if let Some(request) = indexed_input {
+        let selection = crate::source_admission_indexed_input::open_selection_from_manifest_v1(
+            &request.named_root,
+            request.segment_limits,
+            request.reader_limits.max_descriptor_bytes,
+            request.max_profile_bytes,
+            request.max_dependency_closure_bytes,
+            &spool_io,
+            deadline,
+            cancel,
+            &work,
+        )?;
+        if selection.member_count != proposal.member_count
+            || selection.source_bytes != proposal.source_bytes
+        {
+            return Err(invalid(
+                "indexed input totals differ from the held source census",
+            ));
+        }
+        {
+            let db_guard = db.borrow_mut();
+            verify_indexed_unique_totals(
+                &db_guard,
+                SourceCensusScan::Proposal,
+                proposal,
+                selection.unique_object_count,
+                selection.unique_payload_bytes,
+                &mut work,
+                deadline,
+                cancel,
+            )?;
+        }
+        Some(
+            crate::source_admission_indexed_input::IndexedInputReaderV1::open(
+                selection,
+                request.reader_limits,
+                db.clone(),
+                spool_io.clone(),
+                deadline,
+                Arc::clone(&retained_cancel),
+                work.clone(),
+            )?,
+        )
+    } else {
+        None
+    };
+    let mut batch = AdmissionBatch::from_verified_census_rows(
         db.clone(),
         SourceCensusScan::Proposal.label(),
         proposal.member_count,
@@ -969,6 +1169,9 @@ pub(crate) fn prepare_initial_cut<'a>(
         deadline,
         cancel,
     )?;
+    if let Some(reader) = indexed_reader {
+        batch.attach_indexed_input(reader, proposal.member_count, proposal.source_bytes)?;
+    }
     Ok(InitialCutPrepared {
         batch: Some(batch),
         fence: InitialCutFence {

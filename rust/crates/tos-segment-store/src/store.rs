@@ -18,6 +18,7 @@ use tos_foundation::{Digest256, Digest256Hasher};
 use crate::authenticated_tree::AuthenticatedTreeIoLedgerV1;
 use crate::error::{Result, SegmentError, SegmentErrorCode as Code};
 use crate::format::{self, FrameCoordinate, SegmentLimits};
+use crate::format::SegmentIoObserver;
 use crate::generation::{
     GenerationShapeLimits, KeyComparatorV1, PackedPartitionRefV1, describe_placement_partition,
     placement_catalog_shape_root,
@@ -178,6 +179,309 @@ pub enum DurabilityClass {
     LinuxFileAndDirectorySyncReopenSha256V1,
 }
 
+/// Exact bytes and bounded work units observed by one ledger-bound segment
+/// operation. Read guards stay separate from bytes actually returned so a
+/// caller does not mistake pathname/metadata checks for payload traffic.
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub struct SegmentOperationWorkV1 {
+    pub read_bytes: u64,
+    pub read_upper_bound_bytes: u64,
+    pub write_bytes: u64,
+    pub allocation_reserved_bytes: u64,
+    pub allocated_bytes: u64,
+    pub work_units: u64,
+    pub work_bytes: u64,
+}
+
+/// Finite Rust-side and work ceiling for one physical segment operation.
+/// `caller_live_state_bytes` is the caller's already retained state, including
+/// any owner-owned cursor or input rows that overlap this call.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct SegmentOperationLimitsV1 {
+    pub max_working_state_bytes: usize,
+    pub caller_live_state_bytes: usize,
+    pub max_work_bytes: u64,
+    pub max_work_units: u64,
+}
+
+struct SegmentOperationBudgetV1<'a> {
+    io: Arc<dyn AuthenticatedTreeIoLedgerV1>,
+    deadline: Instant,
+    cancelled: &'a AtomicBool,
+    limits: SegmentOperationLimitsV1,
+    work: &'a mut dyn FnMut() -> bool,
+    stats: &'a mut SegmentOperationWorkV1,
+}
+
+impl SegmentOperationBudgetV1<'_> {
+    fn checkpoint(&self) -> Result<()> {
+        check_generation(self.deadline, self.cancelled)
+    }
+
+    fn work_unit(&mut self) -> Result<()> {
+        self.checkpoint()?;
+        let next = self
+            .stats
+            .work_units
+            .checked_add(1)
+            .filter(|value| *value <= self.limits.max_work_units)
+            .ok_or_else(|| SegmentError::new(Code::BudgetExceeded, "segment work limit exceeded"))?;
+        if !(self.work)() {
+            return Err(SegmentError::new(Code::BudgetExceeded, "segment shared work refused"));
+        }
+        self.stats.work_units = next;
+        Ok(())
+    }
+
+    fn work_bytes(&mut self, bytes: u64) -> Result<()> {
+        let next = self
+            .stats
+            .work_bytes
+            .checked_add(bytes)
+            .filter(|value| *value <= self.limits.max_work_bytes)
+            .ok_or_else(|| SegmentError::new(Code::BudgetExceeded, "segment byte-work limit exceeded"))?;
+        self.stats.work_bytes = next;
+        Ok(())
+    }
+
+    fn read_guard(&mut self, bytes: u64) -> Result<()> {
+        self.checkpoint()?;
+        if !self.io.charge_read_upper_bound(bytes) {
+            return Err(SegmentError::new(Code::BudgetExceeded, "segment metadata read guard refused"));
+        }
+        self.stats.read_upper_bound_bytes = self
+            .stats
+            .read_upper_bound_bytes
+            .checked_add(bytes)
+            .ok_or_else(|| SegmentError::new(Code::BudgetExceeded, "segment read guard count overflow"))?;
+        Ok(())
+    }
+
+    fn read_request(&mut self, bytes: usize) -> Result<()> {
+        self.checkpoint()?;
+        let bytes = u64::try_from(bytes)
+            .map_err(|_| SegmentError::new(Code::BudgetExceeded, "segment read request range"))?;
+        if !self.io.charge_read(bytes) {
+            return Err(SegmentError::new(Code::BudgetExceeded, "segment payload read refused"));
+        }
+        self.work_bytes(bytes)?;
+        self.work_unit()?;
+        Ok(())
+    }
+
+    fn read_returned(&mut self, bytes: usize) -> Result<()> {
+        let bytes = u64::try_from(bytes)
+            .map_err(|_| SegmentError::new(Code::BudgetExceeded, "segment read return range"))?;
+        self.stats.read_bytes = self
+            .stats
+            .read_bytes
+            .checked_add(bytes)
+            .ok_or_else(|| SegmentError::new(Code::BudgetExceeded, "segment read count overflow"))?;
+        if !self.io.record_read_returned(bytes) {
+            return Err(SegmentError::new(Code::BudgetExceeded, "segment read return refused"));
+        }
+        Ok(())
+    }
+
+    fn write_request(&mut self, bytes: usize) -> Result<()> {
+        self.checkpoint()?;
+        let bytes = u64::try_from(bytes)
+            .map_err(|_| SegmentError::new(Code::BudgetExceeded, "segment write request range"))?;
+        if !self.io.charge_write(bytes) {
+            return Err(SegmentError::new(Code::BudgetExceeded, "segment write refused"));
+        }
+        self.work_bytes(bytes)?;
+        self.work_unit()?;
+        Ok(())
+    }
+
+    fn write_returned(&mut self, bytes: usize) -> Result<()> {
+        let bytes = u64::try_from(bytes)
+            .map_err(|_| SegmentError::new(Code::BudgetExceeded, "segment write return range"))?;
+        self.stats.write_bytes = self
+            .stats
+            .write_bytes
+            .checked_add(bytes)
+            .ok_or_else(|| SegmentError::new(Code::BudgetExceeded, "segment write count overflow"))?;
+        if !self.io.record_write_returned(bytes) {
+            return Err(SegmentError::new(Code::BudgetExceeded, "segment write return refused"));
+        }
+        Ok(())
+    }
+
+    fn operation(&mut self) -> Result<()> {
+        self.work_unit()
+    }
+
+    fn reserve_allocation(&mut self, bytes: u64) -> Result<u64> {
+        self.checkpoint()?;
+        let unit = self.io.allocation_unit_bytes();
+        let upper = allocation_upper_bound(bytes, unit)?;
+        if !self.io.reserve_allocated_bytes(upper) {
+            return Err(SegmentError::new(
+                Code::BudgetExceeded,
+                "segment persistent allocation reservation refused",
+            ));
+        }
+        self.stats.allocation_reserved_bytes = self
+            .stats
+            .allocation_reserved_bytes
+            .checked_add(upper)
+            .ok_or_else(|| SegmentError::new(Code::BudgetExceeded, "segment allocation count overflow"))?;
+        Ok(upper)
+    }
+
+    fn reconcile_allocation(&mut self, reserved: u64, actual: u64) -> Result<()> {
+        self.checkpoint()?;
+        if !self.io.reconcile_allocated_bytes(reserved, actual) {
+            return Err(SegmentError::new(
+                Code::BudgetExceeded,
+                "segment persistent allocation reconciliation refused",
+            ));
+        }
+        self.stats.allocated_bytes = self
+            .stats
+            .allocated_bytes
+            .checked_add(actual)
+            .ok_or_else(|| SegmentError::new(Code::BudgetExceeded, "segment allocation count overflow"))?;
+        Ok(())
+    }
+
+    fn state(&self, transient_bytes: usize) -> Result<()> {
+        self.checkpoint()?;
+        if self
+            .limits
+            .caller_live_state_bytes
+            .checked_add(transient_bytes)
+            .is_none_or(|bytes| bytes > self.limits.max_working_state_bytes)
+        {
+            return Err(SegmentError::new(
+                Code::BudgetExceeded,
+                "segment working-state ceiling exceeded",
+            ));
+        }
+        Ok(())
+    }
+}
+
+fn validate_segment_operation_limits(limits: SegmentOperationLimitsV1) -> Result<()> {
+    if limits.max_working_state_bytes == 0
+        || limits.max_working_state_bytes == usize::MAX
+        || limits.caller_live_state_bytes == usize::MAX
+        || limits.max_work_bytes == 0
+        || limits.max_work_bytes == u64::MAX
+        || limits.max_work_units == 0
+        || limits.max_work_units == u64::MAX
+    {
+        return Err(SegmentError::new(
+            Code::BudgetExceeded,
+            "invalid segment operation limits",
+        ));
+    }
+    Ok(())
+}
+
+fn write_all_accounted(
+    file: &mut File,
+    bytes: &[u8],
+    budget: &mut SegmentOperationBudgetV1<'_>,
+) -> Result<()> {
+    if bytes.is_empty() {
+        return Ok(());
+    }
+    budget.write_request(bytes.len())?;
+    let mut written = 0usize;
+    let mut attempted = false;
+    while written < bytes.len() {
+        if attempted {
+            budget.operation()?;
+        }
+        attempted = true;
+        match file.write(&bytes[written..]) {
+            Ok(0) => {
+                return Err(SegmentError::io(
+                    "cannot write staged segment",
+                    std::io::Error::from(std::io::ErrorKind::WriteZero),
+                ));
+            }
+            Ok(count) => {
+                budget.write_returned(count)?;
+                written += count;
+            }
+            Err(error) if error.kind() == std::io::ErrorKind::Interrupted => continue,
+            Err(error) => return Err(SegmentError::io("cannot write staged segment", error)),
+        }
+    }
+    Ok(())
+}
+
+fn write_file_bytes(
+    file: &mut File,
+    bytes: &[u8],
+    budget: Option<&mut SegmentOperationBudgetV1<'_>>,
+    detail: &'static str,
+) -> Result<()> {
+    match budget {
+        Some(budget) => write_all_accounted(file, bytes, budget),
+        None => file
+            .write_all(bytes)
+            .map_err(|error| SegmentError::io(detail, error)),
+    }
+}
+
+fn read_frame_input(
+    reader: &mut dyn Read,
+    buffer: &mut [u8],
+    budget: Option<&mut SegmentOperationBudgetV1<'_>>,
+) -> Result<usize> {
+    let Some(budget) = budget else {
+        return reader
+            .read(buffer)
+            .map_err(|error| SegmentError::io("cannot read proposed frame bytes", error));
+    };
+    loop {
+        budget.read_request(buffer.len())?;
+        match reader.read(buffer) {
+            Ok(count) => {
+                budget.read_returned(count)?;
+                return Ok(count);
+            }
+            Err(error) if error.kind() == std::io::ErrorKind::Interrupted => continue,
+            Err(error) => return Err(SegmentError::io("cannot read proposed frame bytes", error)),
+        }
+    }
+}
+
+impl SegmentIoObserver for SegmentOperationBudgetV1<'_> {
+    fn checkpoint(&mut self) -> Result<()> {
+        SegmentOperationBudgetV1::checkpoint(self)
+    }
+
+    fn reserve_state(&mut self, bytes: usize) -> Result<()> {
+        self.state(bytes)
+    }
+
+    fn work_unit(&mut self) -> Result<()> {
+        SegmentOperationBudgetV1::work_unit(self)
+    }
+
+    fn before_read(&mut self, bytes: usize) -> Result<()> {
+        self.read_request(bytes)
+    }
+
+    fn after_read(&mut self, bytes: usize) -> Result<()> {
+        self.read_returned(bytes)
+    }
+
+    fn before_write(&mut self, bytes: usize) -> Result<()> {
+        self.write_request(bytes)
+    }
+
+    fn after_write(&mut self, bytes: usize) -> Result<()> {
+        self.write_returned(bytes)
+    }
+}
+
 /// Caller-selected finite budget for pre-commit full-byte verification.
 #[derive(Clone, Copy, Debug)]
 pub struct VerificationBudget {
@@ -250,6 +554,9 @@ impl ByteDurabilityReceipt {
     }
     pub fn store_id(&self) -> [u8; 16] {
         self.inner.store_id
+    }
+    pub fn limits(&self) -> SegmentLimits {
+        self.inner.limits
     }
     pub fn domain_digest(&self) -> Digest256 {
         self.inner.domain_digest
@@ -1490,7 +1797,7 @@ impl SegmentStore {
         prepare_id: &[u8],
         frames: &mut [FrameInput<'_>],
     ) -> Result<Vec<ByteDurabilityReceipt>> {
-        self.seal_segment_with_intent(prepare_id, None, frames)
+        self.seal_segment_with_intent(prepare_id, None, frames, None)
     }
 
     /// CMD2's fenced one-segment profile. The intent is synced before any
@@ -1515,7 +1822,107 @@ impl SegmentStore {
                 "unsupported multi-segment attempt",
             ));
         }
-        self.seal_segment_with_intent(prepare_id, Some((attempt_fence, segment_slot)), frames)
+        self.seal_segment_with_intent(prepare_id, Some((attempt_fence, segment_slot)), frames, None)
+    }
+
+    /// Ledger-bound fenced segment seal for packed source objects. The same
+    /// original IO ledger, deadline, cancellation flag and caller work debit
+    /// cover intent, pin, frame source, staged writes, full readback and pin
+    /// transition. Partial counters remain in `work_out` when this returns an
+    /// error; on failure all persistent allocation reservation remains held.
+    #[allow(clippy::too_many_arguments)]
+    pub fn seal_segment_fenced_accounted(
+        &self,
+        prepare_id: &[u8],
+        attempt_fence: u64,
+        segment_slot: u32,
+        frames: &mut [FrameInput<'_>],
+        io: Arc<dyn AuthenticatedTreeIoLedgerV1>,
+        operation_limits: SegmentOperationLimitsV1,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+        work: &mut dyn FnMut() -> bool,
+        work_out: &mut SegmentOperationWorkV1,
+    ) -> Result<Vec<ByteDurabilityReceipt>> {
+        if attempt_fence == 0 || segment_slot != 0 {
+            return Err(SegmentError::new(
+                if attempt_fence == 0 {
+                    Code::InvalidReceipt
+                } else {
+                    Code::UnsupportedOversized
+                },
+                if attempt_fence == 0 {
+                    "invalid attempt fence"
+                } else {
+                    "unsupported multi-segment attempt"
+                },
+            ));
+        }
+        self.seal_segment_accounted_inner(
+            prepare_id,
+            Some((attempt_fence, segment_slot)),
+            frames,
+            io,
+            operation_limits,
+            deadline,
+            cancelled,
+            work,
+            work_out,
+        )
+    }
+
+    /// Ledger-bound segment seal for owners that do not have a CMD2 attempt
+    /// fence. The durable intent remains keyed by `prepare_id`; a caller must
+    /// retain its own scoped admission decision around that store operation.
+    #[allow(clippy::too_many_arguments)]
+    pub fn seal_segment_accounted(
+        &self,
+        prepare_id: &[u8],
+        frames: &mut [FrameInput<'_>],
+        io: Arc<dyn AuthenticatedTreeIoLedgerV1>,
+        operation_limits: SegmentOperationLimitsV1,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+        work: &mut dyn FnMut() -> bool,
+        work_out: &mut SegmentOperationWorkV1,
+    ) -> Result<Vec<ByteDurabilityReceipt>> {
+        self.seal_segment_accounted_inner(
+            prepare_id,
+            None,
+            frames,
+            io,
+            operation_limits,
+            deadline,
+            cancelled,
+            work,
+            work_out,
+        )
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn seal_segment_accounted_inner(
+        &self,
+        prepare_id: &[u8],
+        fenced: Option<(u64, u32)>,
+        frames: &mut [FrameInput<'_>],
+        io: Arc<dyn AuthenticatedTreeIoLedgerV1>,
+        operation_limits: SegmentOperationLimitsV1,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+        work: &mut dyn FnMut() -> bool,
+        work_out: &mut SegmentOperationWorkV1,
+    ) -> Result<Vec<ByteDurabilityReceipt>> {
+        validate_segment_operation_limits(operation_limits)?;
+        let mut budget = SegmentOperationBudgetV1 {
+            io,
+            deadline,
+            cancelled,
+            limits: operation_limits,
+            work,
+            stats: work_out,
+        };
+        budget.checkpoint()?;
+        self.seal_segment_with_intent(prepare_id, fenced, frames, Some(&mut budget))
     }
 
     fn seal_segment_with_intent(
@@ -1523,6 +1930,7 @@ impl SegmentStore {
         prepare_id: &[u8],
         fenced: Option<(u64, u32)>,
         frames: &mut [FrameInput<'_>],
+        mut budget: Option<&mut SegmentOperationBudgetV1<'_>>,
     ) -> Result<Vec<ByteDurabilityReceipt>> {
         let limits = self.inner.limits;
         if prepare_id.is_empty()
@@ -1535,12 +1943,32 @@ impl SegmentStore {
                 "invalid segment frame or prepare count",
             ));
         }
+        if let Some(budget) = budget.as_deref_mut() {
+            budget.operation()?;
+            let count = frames.len();
+            let state = count
+                .checked_mul(
+                    std::mem::size_of::<FrameCoordinate>()
+                        .checked_add(std::mem::size_of::<JournalFrame>())
+                        .and_then(|bytes| bytes.checked_add(std::mem::size_of::<ByteDurabilityReceipt>()))
+                        .and_then(|bytes| bytes.checked_add(std::mem::size_of::<u32>() * 4))
+                        .ok_or_else(|| SegmentError::new(Code::BudgetExceeded, "segment frame state overflow"))?,
+                )
+                .and_then(|bytes| bytes.checked_add(limits.max_journal_bytes.checked_mul(3)?))
+                .and_then(|bytes| bytes.checked_add(BLOCK_BYTES.checked_mul(2)?))
+                .and_then(|bytes| bytes.checked_add(prepare_id.len().checked_mul(3)?))
+                .ok_or_else(|| SegmentError::new(Code::BudgetExceeded, "segment operation state overflow"))?;
+            budget.state(state)?;
+        }
         let mut planned = format::HEADER_BYTES + format::END_BYTES;
         let mut journal_bytes = 166usize
             .checked_add(prepare_id.len())
             .ok_or_else(|| SegmentError::new(Code::BudgetExceeded, "pin journal size overflow"))?;
         let mut member_slots = HashSet::with_capacity(frames.len());
         for frame in frames.iter() {
+            if let Some(budget) = budget.as_deref_mut() {
+                budget.operation()?;
+            }
             if frame.binding.profile_id.is_empty()
                 || frame.binding.profile_version.is_empty()
                 || frame.binding.subject_key.is_empty()
@@ -1590,6 +2018,21 @@ impl SegmentStore {
                 ));
             }
         }
+        let mut allocation_reserved = 0u64;
+        if let Some(budget) = budget.as_deref_mut() {
+            let intent_bytes = (if fenced.is_some() { 118usize } else { 106usize })
+                .checked_add(prepare_id.len())
+                .ok_or_else(|| {
+                    SegmentError::new(Code::BudgetExceeded, "attempt intent size overflow")
+                })?;
+            for bytes in [planned, intent_bytes as u64, journal_bytes as u64, journal_bytes as u64] {
+                allocation_reserved = allocation_reserved
+                    .checked_add(budget.reserve_allocation(bytes)?)
+                    .ok_or_else(|| {
+                        SegmentError::new(Code::BudgetExceeded, "segment allocation bound overflow")
+                    })?;
+            }
+        }
         let mut pin_id = [0u8; 16];
         getrandom::fill(&mut pin_id)
             .map_err(|_| SegmentError::new(Code::Io, "cannot create pin ID"))?;
@@ -1610,16 +2053,37 @@ impl SegmentStore {
         // profile refuses reuse; reconciliation precedes any retry.
         match fenced {
             Some((attempt_fence, segment_slot)) => {
-                self.write_attempt_intent_fenced(prepare_id, attempt_fence, segment_slot, pin_id)?
+                self.write_attempt_intent_fenced_accounted(
+                    prepare_id,
+                    attempt_fence,
+                    segment_slot,
+                    pin_id,
+                    budget.as_deref_mut(),
+                )?
             }
-            None => self.write_attempt_intent(prepare_id, pin_id)?,
+            None => self.write_attempt_intent_accounted(
+                prepare_id,
+                pin_id,
+                budget.as_deref_mut(),
+            )?,
         }
         #[cfg(test)]
         crash_test_barrier("intent-synced", pin_id);
-        write_initial_pin(&self.inner.pins, &pin_name, &journal.encode(limits)?)?;
+        if let Some(budget) = budget.as_deref_mut() {
+            budget.operation()?;
+        }
+        write_initial_pin(
+            &self.inner.pins,
+            &pin_name,
+            &journal.encode(limits)?,
+            budget.as_deref_mut(),
+        )?;
         #[cfg(test)]
         crash_test_barrier("pin-synced", pin_id);
         let stage_name = format!("{pin_name}.part");
+        if let Some(budget) = budget.as_deref_mut() {
+            budget.operation()?;
+        }
         let mut stage = create_exclusive(&self.inner.staging, &stage_name)?;
         let mut segment_hash = Digest256Hasher::new();
         let mut actual = 0u64;
@@ -1629,6 +2093,7 @@ impl SegmentStore {
             &mut actual,
             &format::header(self.inner.domain_digest, frames.len() as u32),
             limits,
+            budget.as_deref_mut(),
         )?;
         let mut coordinates = Vec::with_capacity(frames.len());
         let mut block = [0u8; BLOCK_BYTES];
@@ -1644,16 +2109,18 @@ impl SegmentStore {
                 &mut actual,
                 &format::frame_header(frame.declared_size, frame.declared_sha256),
                 limits,
+                budget.as_deref_mut(),
             )?;
             let mut frame_hash = Digest256Hasher::new();
             let mut remaining = frame.declared_size;
             while remaining > 0 {
                 let request =
                     usize::try_from(remaining.min(BLOCK_BYTES as u64)).expect("bounded block");
-                let count = frame
-                    .reader
-                    .read(&mut block[..request])
-                    .map_err(|error| SegmentError::io("cannot read proposed frame bytes", error))?;
+                let count = read_frame_input(
+                    frame.reader,
+                    &mut block[..request],
+                    budget.as_deref_mut(),
+                )?;
                 if count == 0 {
                     return Err(SegmentError::new(
                         Code::CorruptBytes,
@@ -1667,15 +2134,12 @@ impl SegmentStore {
                     &mut actual,
                     &block[..count],
                     limits,
+                    budget.as_deref_mut(),
                 )?;
                 remaining -= count as u64;
             }
             let mut extra = [0u8; 1];
-            if frame
-                .reader
-                .read(&mut extra)
-                .map_err(|error| SegmentError::io("cannot check proposed frame length", error))?
-                != 0
+            if read_frame_input(frame.reader, &mut extra, budget.as_deref_mut())? != 0
                 || frame_hash.finalize() != frame.declared_sha256
             {
                 return Err(SegmentError::new(
@@ -1691,7 +2155,11 @@ impl SegmentStore {
             &mut actual,
             format::END,
             limits,
+            budget.as_deref_mut(),
         )?;
+        if let Some(budget) = budget.as_deref_mut() {
+            budget.operation()?;
+        }
         stage
             .sync_all()
             .map_err(|error| SegmentError::io("cannot sync staged segment", error))?;
@@ -1700,6 +2168,10 @@ impl SegmentStore {
         crash_test_barrier("stage-synced", pin_id);
         let segment_digest = segment_hash.finalize();
         let segment_name = segment_digest.to_hex();
+        let mut segment_installed = false;
+        if let Some(budget) = budget.as_deref_mut() {
+            budget.operation()?;
+        }
         match linkat(
             &self.inner.staging,
             stage_name.as_str(),
@@ -1707,24 +2179,41 @@ impl SegmentStore {
             segment_name.as_str(),
             AtFlags::empty(),
         ) {
-            Ok(()) => {}
+            Ok(()) => segment_installed = true,
             Err(Errno::EXIST) => {
                 // A digest-named candidate must be fully verified before reuse.
+                if let Some(budget) = budget.as_deref_mut() {
+                    budget.operation()?;
+                }
                 let existing = open_regular(&self.inner.segments, &segment_name)?;
-                let found = format::verify_whole(
-                    existing.try_clone().map_err(|error| {
-                        SegmentError::io("cannot clone existing segment", error)
-                    })?,
-                    segment_digest,
-                    actual,
-                    self.inner.domain_digest,
-                    limits,
-                )?;
+                let existing_copy = existing.try_clone().map_err(|error| {
+                    SegmentError::io("cannot clone existing segment", error)
+                })?;
+                let found = match budget.as_deref_mut() {
+                    Some(budget) => format::verify_whole_accounted(
+                        existing_copy,
+                        segment_digest,
+                        actual,
+                        self.inner.domain_digest,
+                        limits,
+                        budget,
+                    )?,
+                    None => format::verify_whole(
+                        existing_copy,
+                        segment_digest,
+                        actual,
+                        self.inner.domain_digest,
+                        limits,
+                    )?,
+                };
                 if found != coordinates {
                     return Err(SegmentError::new(
                         Code::CorruptBytes,
                         "existing segment frames differ",
                     ));
+                }
+                if let Some(budget) = budget.as_deref_mut() {
+                    budget.operation()?;
                 }
                 existing
                     .sync_all()
@@ -1739,27 +2228,49 @@ impl SegmentStore {
         }
         #[cfg(test)]
         crash_test_barrier("segment-installed", pin_id);
+        if let Some(budget) = budget.as_deref_mut() {
+            budget.operation()?;
+        }
         fsync(&self.inner.segments)
             .map_err(|error| SegmentError::io("cannot sync segment directory", error.into()))?;
         #[cfg(test)]
         crash_test_barrier("segments-dir-synced", pin_id);
+        if let Some(budget) = budget.as_deref_mut() {
+            budget.operation()?;
+        }
         unlinkat(&self.inner.staging, stage_name.as_str(), AtFlags::empty())
             .map_err(|error| SegmentError::io("cannot unlink staged alias", error.into()))?;
+        if let Some(budget) = budget.as_deref_mut() {
+            budget.operation()?;
+        }
         fsync(&self.inner.staging)
             .map_err(|error| SegmentError::io("cannot sync staging directory", error.into()))?;
         #[cfg(test)]
         crash_test_barrier("staging-dir-synced", pin_id);
+        if let Some(budget) = budget.as_deref_mut() {
+            budget.operation()?;
+        }
         let installed = open_regular(&self.inner.segments, &segment_name)?;
         let metadata = installed
             .metadata()
             .map_err(|error| SegmentError::io("cannot stat installed segment", error))?;
-        let found = format::verify_whole(
-            installed,
-            segment_digest,
-            actual,
-            self.inner.domain_digest,
-            limits,
-        )?;
+        let found = match budget.as_deref_mut() {
+            Some(budget) => format::verify_whole_accounted(
+                installed,
+                segment_digest,
+                actual,
+                self.inner.domain_digest,
+                limits,
+                budget,
+            )?,
+            None => format::verify_whole(
+                installed,
+                segment_digest,
+                actual,
+                self.inner.domain_digest,
+                limits,
+            )?,
+        };
         if found != coordinates {
             return Err(SegmentError::new(
                 Code::CorruptBytes,
@@ -1777,7 +2288,48 @@ impl SegmentStore {
                 binding: frame.binding.clone(),
             })
             .collect();
-        replace_pin(&self.inner.pins, &pin_name, &journal.encode(limits)?)?;
+        if let Some(budget) = budget.as_deref_mut() {
+            budget.operation()?;
+        }
+        replace_pin_with_budget(
+            &self.inner.pins,
+            &pin_name,
+            &journal.encode(limits)?,
+            budget.as_deref_mut(),
+        )?;
+        if let Some(budget) = budget.as_deref_mut() {
+            budget.operation()?;
+            let attempts = self.inner.attempts.as_ref().ok_or_else(|| {
+                SegmentError::new(Code::InvalidRoot, "store lacks durable attempt intents")
+            })?;
+            let intent = open_regular(attempts, &attempt_name(prepare_id))?;
+            let pin = open_regular(&self.inner.pins, &pin_name)?;
+            let intent_bytes = intent
+                .metadata()
+                .map_err(|error| SegmentError::io("cannot stat sealed attempt intent", error))?
+                .blocks()
+                .checked_mul(512)
+                .ok_or_else(|| SegmentError::new(Code::BudgetExceeded, "intent allocation overflow"))?;
+            let pin_bytes = pin
+                .metadata()
+                .map_err(|error| SegmentError::io("cannot stat sealed pin", error))?
+                .blocks()
+                .checked_mul(512)
+                .ok_or_else(|| SegmentError::new(Code::BudgetExceeded, "pin allocation overflow"))?;
+            let segment_bytes = if segment_installed {
+                metadata
+                    .blocks()
+                    .checked_mul(512)
+                    .ok_or_else(|| SegmentError::new(Code::BudgetExceeded, "segment allocation overflow"))?
+            } else {
+                0
+            };
+            let actual_allocation = intent_bytes
+                .checked_add(pin_bytes)
+                .and_then(|bytes| bytes.checked_add(segment_bytes))
+                .ok_or_else(|| SegmentError::new(Code::BudgetExceeded, "segment allocation overflow"))?;
+            budget.reconcile_allocation(allocation_reserved, actual_allocation)?;
+        }
         #[cfg(test)]
         crash_test_barrier("sealed-pin-synced", pin_id);
         Ok(self.receipts_from_journal(journal, metadata.dev(), metadata.ino()))
@@ -1878,22 +2430,28 @@ impl SegmentStore {
         })
     }
 
-    fn write_attempt_intent(&self, prepare_id: &[u8], pin_id: [u8; 16]) -> Result<()> {
+    fn write_attempt_intent_accounted(
+        &self,
+        prepare_id: &[u8],
+        pin_id: [u8; 16],
+        budget: Option<&mut SegmentOperationBudgetV1<'_>>,
+    ) -> Result<()> {
         let raw = encode_attempt_intent(
             self.inner.store_id,
             self.inner.domain_digest,
             prepare_id,
             pin_id,
         )?;
-        self.write_intent_raw(prepare_id, &raw)
+        self.write_intent_raw(prepare_id, &raw, budget)
     }
 
-    fn write_attempt_intent_fenced(
+    fn write_attempt_intent_fenced_accounted(
         &self,
         prepare_id: &[u8],
         attempt_fence: u64,
         segment_slot: u32,
         pin_id: [u8; 16],
+        budget: Option<&mut SegmentOperationBudgetV1<'_>>,
     ) -> Result<()> {
         let raw = encode_attempt_intent_fenced(
             self.inner.store_id,
@@ -1903,14 +2461,22 @@ impl SegmentStore {
             segment_slot,
             pin_id,
         )?;
-        self.write_intent_raw(prepare_id, &raw)
+        self.write_intent_raw(prepare_id, &raw, budget)
     }
 
-    fn write_intent_raw(&self, prepare_id: &[u8], raw: &[u8]) -> Result<()> {
+    fn write_intent_raw(
+        &self,
+        prepare_id: &[u8],
+        raw: &[u8],
+        mut budget: Option<&mut SegmentOperationBudgetV1<'_>>,
+    ) -> Result<()> {
         let name = attempt_name(prepare_id);
         let attempts = self.inner.attempts.as_ref().ok_or_else(|| {
             SegmentError::new(Code::InvalidRoot, "store lacks durable attempt intents")
         })?;
+        if let Some(budget) = budget.as_deref_mut() {
+            budget.operation()?;
+        }
         let mut file = match create_exclusive(attempts, &name) {
             Ok(file) => file,
             Err(error)
@@ -1926,10 +2492,20 @@ impl SegmentStore {
             }
             Err(error) => return Err(error),
         };
-        file.write_all(&raw)
-            .map_err(|error| SegmentError::io("cannot write attempt intent", error))?;
+        write_file_bytes(
+            &mut file,
+            raw,
+            budget.as_deref_mut(),
+            "cannot write attempt intent",
+        )?;
+        if let Some(budget) = budget.as_deref_mut() {
+            budget.operation()?;
+        }
         file.sync_all()
             .map_err(|error| SegmentError::io("cannot sync attempt intent", error))?;
+        if let Some(budget) = budget.as_deref_mut() {
+            budget.operation()?;
+        }
         fsync(attempts)
             .map_err(|error| SegmentError::io("cannot sync attempt directory", error.into()))
     }
@@ -2357,6 +2933,249 @@ impl SegmentStore {
         )
     }
 
+    /// Read one content-addressed frame through the exact held store root.
+    /// The extent row supplies the pack and frame coordinates; the frame's
+    /// ordinal, envelope, and content digest are checked before any bytes are
+    /// written to `sink`. Full pack-digest closure is a separate cold audit.
+    #[allow(clippy::too_many_arguments)]
+    pub fn read_packed_frame_accounted(
+        &self,
+        segment_digest: Digest256,
+        segment_size: u64,
+        header_offset: u64,
+        payload_digest: Digest256,
+        payload_size: u64,
+        frame_index: u32,
+        frame_count: u32,
+        max_bytes: u64,
+        io: Arc<dyn AuthenticatedTreeIoLedgerV1>,
+        operation_limits: SegmentOperationLimitsV1,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+        work: &mut dyn FnMut() -> bool,
+        work_out: &mut SegmentOperationWorkV1,
+        sink: &mut dyn Write,
+    ) -> Result<u64> {
+        validate_segment_operation_limits(operation_limits)?;
+        if segment_size > self.inner.limits.max_segment_bytes
+            || frame_count == 0
+            || frame_count > self.inner.limits.max_frames
+            || payload_size > self.inner.limits.max_frame_bytes
+        {
+            return Err(SegmentError::new(
+                Code::BudgetExceeded,
+                "packed segment or frame exceeds store limits",
+            ));
+        }
+        let mut budget = SegmentOperationBudgetV1 {
+            io,
+            deadline,
+            cancelled,
+            limits: operation_limits,
+            work,
+            stats: work_out,
+        };
+        budget.operation()?;
+
+        let root_before = self
+            .inner
+            ._root
+            .metadata()
+            .map_err(|error| SegmentError::io("cannot stat held segment root", error))?;
+        let segments_before = self
+            .inner
+            .segments
+            .metadata()
+            .map_err(|error| SegmentError::io("cannot stat held segment directory", error))?;
+        require_segment_root_and_directory(&root_before, &segments_before)?;
+        let named_segments_before = open_directory(&self.inner._root, "segments")?;
+        if !same_directory(&segments_before, &named_segments_before.metadata().map_err(|error| {
+            SegmentError::io("cannot stat named segment directory", error)
+        })?) {
+            return Err(SegmentError::new(
+                Code::CorruptBytes,
+                "held segment directory no longer matches root entry",
+            ));
+        }
+
+        let name = segment_digest.to_hex();
+        let file = open_regular(&self.inner.segments, &name)?;
+        let before = file
+            .metadata()
+            .map_err(|error| SegmentError::io("cannot stat packed segment", error))?;
+        require_packed_segment_file(&before, segment_size, segments_before.dev())?;
+        let selected_result = format::read_selected_accounted(
+            file.try_clone()
+                .map_err(|error| SegmentError::io("cannot clone packed segment", error))?,
+            segment_size,
+            header_offset,
+            payload_digest,
+            payload_size,
+            self.inner.domain_digest,
+            frame_count,
+            frame_index,
+            self.inner.limits.max_frame_bytes,
+            max_bytes.min(self.inner.limits.max_frame_bytes),
+            &mut budget,
+        );
+        budget.operation()?;
+
+        let after = file
+            .metadata()
+            .map_err(|error| SegmentError::io("cannot restat packed segment", error))?;
+        let selected_path = open_regular(&self.inner.segments, &name)?;
+        let selected_path_metadata = selected_path
+            .metadata()
+            .map_err(|error| SegmentError::io("cannot restat packed segment path", error))?;
+        let root_after = self
+            .inner
+            ._root
+            .metadata()
+            .map_err(|error| SegmentError::io("cannot restat held segment root", error))?;
+        let segments_after = self
+            .inner
+            .segments
+            .metadata()
+            .map_err(|error| SegmentError::io("cannot restat held segment directory", error))?;
+        let named_segments_after = open_directory(&self.inner._root, "segments")?;
+        let named_segments_metadata = named_segments_after
+            .metadata()
+            .map_err(|error| SegmentError::io("cannot restat named segment directory", error))?;
+        require_segment_root_and_directory(&root_after, &segments_after)?;
+        if !same_directory(&root_before, &root_after)
+            || !same_directory(&segments_before, &segments_after)
+            || !same_directory(&segments_after, &named_segments_metadata)
+            || !same_packed_segment(&before, &after)
+            || !same_packed_segment(&after, &selected_path_metadata)
+        {
+            return Err(SegmentError::new(
+                Code::CorruptBytes,
+                "packed segment root or file custody changed during read",
+            ));
+        }
+        let verified = selected_result?;
+        budget.operation()?;
+        sink.write_all(&verified)
+            .map_err(|error| SegmentError::io("cannot write verified packed frame", error))?;
+        Ok(payload_size)
+    }
+
+    /// Verify a complete digest-named packed segment under the same IO, work
+    /// and state ledgers used by selected frame reads. The returned ordered
+    /// coordinates bind every frame ordinal to its exact on-disk offset.
+    #[allow(clippy::too_many_arguments)]
+    pub fn verify_packed_segment_accounted(
+        &self,
+        segment_digest: Digest256,
+        segment_size: u64,
+        expected_frame_count: u32,
+        io: Arc<dyn AuthenticatedTreeIoLedgerV1>,
+        operation_limits: SegmentOperationLimitsV1,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+        work: &mut dyn FnMut() -> bool,
+        work_out: &mut SegmentOperationWorkV1,
+    ) -> Result<Vec<FrameCoordinate>> {
+        validate_segment_operation_limits(operation_limits)?;
+        if segment_size > self.inner.limits.max_segment_bytes
+            || expected_frame_count == 0
+            || expected_frame_count > self.inner.limits.max_frames
+        {
+            return Err(SegmentError::new(
+                Code::BudgetExceeded,
+                "packed segment closure exceeds store limits",
+            ));
+        }
+        let mut budget = SegmentOperationBudgetV1 {
+            io,
+            deadline,
+            cancelled,
+            limits: operation_limits,
+            work,
+            stats: work_out,
+        };
+        budget.operation()?;
+        let root_before = self
+            .inner
+            ._root
+            .metadata()
+            .map_err(|error| SegmentError::io("cannot stat held segment root", error))?;
+        let segments_before = self
+            .inner
+            .segments
+            .metadata()
+            .map_err(|error| SegmentError::io("cannot stat held segment directory", error))?;
+        require_segment_root_and_directory(&root_before, &segments_before)?;
+        let named_segments_before = open_directory(&self.inner._root, "segments")?;
+        let named_before = named_segments_before
+            .metadata()
+            .map_err(|error| SegmentError::io("cannot stat named segment directory", error))?;
+        if !same_directory(&segments_before, &named_before) {
+            return Err(SegmentError::new(
+                Code::CorruptBytes,
+                "held segment directory no longer matches root entry",
+            ));
+        }
+
+        let name = segment_digest.to_hex();
+        let file = open_regular(&self.inner.segments, &name)?;
+        let before = file
+            .metadata()
+            .map_err(|error| SegmentError::io("cannot stat packed segment", error))?;
+        require_packed_segment_file(&before, segment_size, segments_before.dev())?;
+        let verified = format::verify_whole_accounted(
+            file.try_clone()
+                .map_err(|error| SegmentError::io("cannot clone packed segment", error))?,
+            segment_digest,
+            segment_size,
+            self.inner.domain_digest,
+            self.inner.limits,
+            &mut budget,
+        )?;
+        if verified.len() != expected_frame_count as usize {
+            return Err(SegmentError::new(
+                Code::CorruptBytes,
+                "packed segment frame count differs from authenticated extent",
+            ));
+        }
+        budget.operation()?;
+        let after = file
+            .metadata()
+            .map_err(|error| SegmentError::io("cannot restat packed segment", error))?;
+        let selected_path = open_regular(&self.inner.segments, &name)?;
+        let selected_path_metadata = selected_path
+            .metadata()
+            .map_err(|error| SegmentError::io("cannot restat packed segment path", error))?;
+        let root_after = self
+            .inner
+            ._root
+            .metadata()
+            .map_err(|error| SegmentError::io("cannot restat held segment root", error))?;
+        let segments_after = self
+            .inner
+            .segments
+            .metadata()
+            .map_err(|error| SegmentError::io("cannot restat held segment directory", error))?;
+        let named_segments_after = open_directory(&self.inner._root, "segments")?;
+        let named_after = named_segments_after
+            .metadata()
+            .map_err(|error| SegmentError::io("cannot restat named segment directory", error))?;
+        require_segment_root_and_directory(&root_after, &segments_after)?;
+        if !same_directory(&root_before, &root_after)
+            || !same_directory(&segments_before, &segments_after)
+            || !same_directory(&segments_after, &named_after)
+            || !same_packed_segment(&before, &after)
+            || !same_packed_segment(&after, &selected_path_metadata)
+        {
+            return Err(SegmentError::new(
+                Code::CorruptBytes,
+                "packed segment root or file custody changed during closure",
+            ));
+        }
+        budget.operation()?;
+        Ok(verified)
+    }
+
     fn read_pin(&self, pin_id: [u8; 16]) -> Result<PinJournal> {
         let mut raw = Vec::new();
         open_regular(&self.inner.pins, &hex_id(pin_id))?
@@ -2487,6 +3306,7 @@ fn write_part(
     actual: &mut u64,
     bytes: &[u8],
     limits: SegmentLimits,
+    budget: Option<&mut SegmentOperationBudgetV1<'_>>,
 ) -> Result<()> {
     *actual = actual
         .checked_add(bytes.len() as u64)
@@ -2497,8 +3317,7 @@ fn write_part(
             "segment actual bytes exceed limit",
         ));
     }
-    file.write_all(bytes)
-        .map_err(|error| SegmentError::io("cannot write staged segment", error))?;
+    write_file_bytes(file, bytes, budget, "cannot write staged segment")?;
     hasher.update(bytes);
     Ok(())
 }
@@ -2564,6 +3383,68 @@ fn require_private_generation_file(metadata: &std::fs::Metadata) -> Result<()> {
         ));
     }
     Ok(())
+}
+
+fn require_segment_root_and_directory(
+    root: &std::fs::Metadata,
+    segments: &std::fs::Metadata,
+) -> Result<()> {
+    if !root.is_dir()
+        || !segments.is_dir()
+        || root.dev() != segments.dev()
+        || segments.uid() != rustix::process::geteuid().as_raw()
+        || segments.mode() & 0o7777 != 0o700
+    {
+        return Err(SegmentError::new(
+            Code::UnsafePath,
+            "packed segment root custody differs",
+        ));
+    }
+    Ok(())
+}
+
+fn same_directory(left: &std::fs::Metadata, right: &std::fs::Metadata) -> bool {
+    left.is_dir()
+        && right.is_dir()
+        && left.dev() == right.dev()
+        && left.ino() == right.ino()
+        && left.uid() == right.uid()
+        && left.mode() == right.mode()
+}
+
+fn require_packed_segment_file(
+    metadata: &std::fs::Metadata,
+    expected_size: u64,
+    parent_device: u64,
+) -> Result<()> {
+    if !metadata.is_file()
+        || metadata.len() != expected_size
+        || metadata.dev() != parent_device
+        || metadata.nlink() != 1
+        || metadata.uid() != rustix::process::geteuid().as_raw()
+        || metadata.mode() & 0o7777 != 0o600
+    {
+        return Err(SegmentError::new(
+            Code::CorruptBytes,
+            "packed segment file custody or size differs",
+        ));
+    }
+    Ok(())
+}
+
+fn same_packed_segment(left: &std::fs::Metadata, right: &std::fs::Metadata) -> bool {
+    left.is_file()
+        && right.is_file()
+        && left.dev() == right.dev()
+        && left.ino() == right.ino()
+        && left.len() == right.len()
+        && left.uid() == right.uid()
+        && left.mode() == right.mode()
+        && left.nlink() == right.nlink()
+        && left.mtime() == right.mtime()
+        && left.mtime_nsec() == right.mtime_nsec()
+        && left.ctime() == right.ctime()
+        && left.ctime_nsec() == right.ctime_nsec()
 }
 
 fn require_same_generation_file(
@@ -2652,28 +3533,71 @@ fn create_exclusive(parent: &File, name: &str) -> Result<File> {
         .map_err(|error| SegmentError::io("cannot create exclusive segment file", error.into()))
 }
 
-fn write_initial_pin(parent: &File, name: &str, raw: &[u8]) -> Result<()> {
+fn write_initial_pin(
+    parent: &File,
+    name: &str,
+    raw: &[u8],
+    mut budget: Option<&mut SegmentOperationBudgetV1<'_>>,
+) -> Result<()> {
+    if let Some(budget) = budget.as_deref_mut() {
+        budget.operation()?;
+    }
     let mut file = create_exclusive(parent, name)?;
-    file.write_all(raw)
-        .map_err(|error| SegmentError::io("cannot write initial pin", error))?;
+    write_file_bytes(
+        &mut file,
+        raw,
+        budget.as_deref_mut(),
+        "cannot write initial pin",
+    )?;
+    if let Some(budget) = budget.as_deref_mut() {
+        budget.operation()?;
+    }
     file.sync_all()
         .map_err(|error| SegmentError::io("cannot sync initial pin", error))?;
+    if let Some(budget) = budget.as_deref_mut() {
+        budget.operation()?;
+    }
     fsync(parent).map_err(|error| SegmentError::io("cannot sync pin directory", error.into()))
 }
 
 fn replace_pin(parent: &File, name: &str, raw: &[u8]) -> Result<()> {
+    replace_pin_with_budget(parent, name, raw, None)
+}
+
+fn replace_pin_with_budget(
+    parent: &File,
+    name: &str,
+    raw: &[u8],
+    mut budget: Option<&mut SegmentOperationBudgetV1<'_>>,
+) -> Result<()> {
     let mut temp_id = [0u8; 16];
     getrandom::fill(&mut temp_id)
         .map_err(|_| SegmentError::new(Code::Io, "cannot create pin transition ID"))?;
     let next = format!("{name}.next-{}", hex_id(temp_id));
+    if let Some(budget) = budget.as_deref_mut() {
+        budget.operation()?;
+    }
     let mut file = create_exclusive(parent, &next)?;
-    file.write_all(raw)
-        .map_err(|error| SegmentError::io("cannot write sealed pin", error))?;
+    write_file_bytes(
+        &mut file,
+        raw,
+        budget.as_deref_mut(),
+        "cannot write sealed pin",
+    )?;
+    if let Some(budget) = budget.as_deref_mut() {
+        budget.operation()?;
+    }
     file.sync_all()
         .map_err(|error| SegmentError::io("cannot sync sealed pin", error))?;
     drop(file);
+    if let Some(budget) = budget.as_deref_mut() {
+        budget.operation()?;
+    }
     renameat(parent, next.as_str(), parent, name)
         .map_err(|error| SegmentError::io("cannot atomically install sealed pin", error.into()))?;
+    if let Some(budget) = budget.as_deref_mut() {
+        budget.operation()?;
+    }
     fsync(parent)
         .map_err(|error| SegmentError::io("cannot sync sealed pin directory", error.into()))
 }

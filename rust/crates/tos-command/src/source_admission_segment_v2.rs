@@ -21,14 +21,102 @@ use tos_segment_store::{
 };
 use tos_source_store::{
     CorpusCurrentSelection, CorpusPointerFormat, MemberMetadata, RetirementMetadata,
-    SourceMembershipV1, StreamedCorpusCutReaderV1, StreamedRevisionV1,
+    SourceMembershipV1, SourceMembershipV2, StreamedCorpusCutReaderV1, StreamedRevisionV1,
+};
+use tos_validation::{
+    FormatProfile,
+    source_cut::{CutPreparedSchemaExecutionBinding, CutPreparedSchemaProtocol},
+};
+use super::source_admission::AdmissionWorkBudget;
+use super::source_admission_spooled_index::NativeAdmissionCompletionProofV1;
+use super::source_admission_packed_objects::{
+    MAX_PACKED_OBJECT_FRAMES_V2, PackedObjectLimitsV2, PackedObjectWriterV2,
 };
 
 const ROOTSET_SCHEMA: &str = "tos-native-source-rootset-v2";
 const LEGACY_REVISION_ROOT_SCHEMA: &str = "tos-native-source-revision-roots-v2";
+const LEGACY_IDENTITY_PATHS_REVISION_ROOT_SCHEMA: &str =
+    "tos-native-source-revision-roots-v2-identity-paths";
 const TYPED_REVISION_ROOT_SCHEMA: &str = "tos-native-source-revision-roots-v2-records";
+const PACKED_REVISION_ROOT_SCHEMA: &str = "tos-native-source-revision-roots-packed-v2";
+const IDENTITY_PATHS_REVISION_ROOT_SCHEMA: &str =
+    "tos-native-source-revision-roots-identity-paths-v2";
+const PACKED_IDENTITY_PATHS_REVISION_ROOT_SCHEMA: &str =
+    "tos-native-source-revision-roots-packed-identity-paths-v2";
+const LEGACY_REVISION_ROOT_V3_SCHEMA: &str = "tos-native-source-revision-roots-legacy-v3";
+const LEGACY_IDENTITY_PATHS_REVISION_ROOT_V3_SCHEMA: &str =
+    "tos-native-source-revision-roots-legacy-identity-paths-v3";
+const TYPED_REVISION_ROOT_V3_SCHEMA: &str = "tos-native-source-revision-roots-v3";
+const PACKED_REVISION_ROOT_V3_SCHEMA: &str = "tos-native-source-revision-roots-packed-v3";
+const IDENTITY_PATHS_REVISION_ROOT_V3_SCHEMA: &str =
+    "tos-native-source-revision-roots-identity-paths-v3";
+const PACKED_IDENTITY_PATHS_REVISION_ROOT_V3_SCHEMA: &str =
+    "tos-native-source-revision-roots-packed-identity-paths-v3";
+const TYPED_REVISION_ROOT_V4_SCHEMA: &str = "tos-native-source-revision-roots-v4";
+const PACKED_REVISION_ROOT_V4_SCHEMA: &str = "tos-native-source-revision-roots-packed-v4";
+const IDENTITY_PATHS_REVISION_ROOT_V4_SCHEMA: &str =
+    "tos-native-source-revision-roots-identity-paths-v4";
+const PACKED_IDENTITY_PATHS_REVISION_ROOT_V4_SCHEMA: &str =
+    "tos-native-source-revision-roots-packed-identity-paths-v4";
 const COMPACT_COMMIT_SCHEMA: &str = "tos-native-source-compact-commit-v2";
+const PACKED_COMPACT_COMMIT_SCHEMA: &str = "tos-native-source-compact-commit-packed-v2";
+const IDENTITY_PATHS_COMPACT_COMMIT_SCHEMA: &str =
+    "tos-native-source-compact-commit-identity-paths-v2";
+const PACKED_IDENTITY_PATHS_COMPACT_COMMIT_SCHEMA: &str =
+    "tos-native-source-compact-commit-packed-identity-paths-v2";
+const COMPACT_COMMIT_V3_SCHEMA: &str = "tos-native-source-compact-commit-v3";
+const PACKED_COMPACT_COMMIT_V3_SCHEMA: &str = "tos-native-source-compact-commit-packed-v3";
+const IDENTITY_PATHS_COMPACT_COMMIT_V3_SCHEMA: &str =
+    "tos-native-source-compact-commit-identity-paths-v3";
+const PACKED_IDENTITY_PATHS_COMPACT_COMMIT_V3_SCHEMA: &str =
+    "tos-native-source-compact-commit-packed-identity-paths-v3";
+const COMPACT_COMMIT_V4_SCHEMA: &str = "tos-native-source-compact-commit-v4";
+const PACKED_COMPACT_COMMIT_V4_SCHEMA: &str = "tos-native-source-compact-commit-packed-v4";
+const IDENTITY_PATHS_COMPACT_COMMIT_V4_SCHEMA: &str =
+    "tos-native-source-compact-commit-identity-paths-v4";
+const PACKED_IDENTITY_PATHS_COMPACT_COMMIT_V4_SCHEMA: &str =
+    "tos-native-source-compact-commit-packed-identity-paths-v4";
+const IDENTITY_PATHS_COMPACT_PREIMAGE_SCHEMA: &str =
+    "tos-native-source-compact-commit-identity-paths-v2-preimage";
+const PACKED_IDENTITY_PATHS_COMPACT_PREIMAGE_SCHEMA: &str =
+    "tos-native-source-compact-commit-packed-identity-paths-v2-preimage";
+const COMPACT_COMMIT_V3_PREIMAGE_SCHEMA: &str = "tos-native-source-compact-commit-v3-preimage";
+const PACKED_COMPACT_COMMIT_V3_PREIMAGE_SCHEMA: &str =
+    "tos-native-source-compact-commit-packed-v3-preimage";
+const IDENTITY_PATHS_COMPACT_COMMIT_V3_PREIMAGE_SCHEMA: &str =
+    "tos-native-source-compact-commit-identity-paths-v3-preimage";
+const PACKED_IDENTITY_PATHS_COMPACT_COMMIT_V3_PREIMAGE_SCHEMA: &str =
+    "tos-native-source-compact-commit-packed-identity-paths-v3-preimage";
+const COMPACT_COMMIT_V4_PREIMAGE_SCHEMA: &str = "tos-native-source-compact-commit-v4-preimage";
+const PACKED_COMPACT_COMMIT_V4_PREIMAGE_SCHEMA: &str =
+    "tos-native-source-compact-commit-packed-v4-preimage";
+const IDENTITY_PATHS_COMPACT_COMMIT_V4_PREIMAGE_SCHEMA: &str =
+    "tos-native-source-compact-commit-identity-paths-v4-preimage";
+const PACKED_IDENTITY_PATHS_COMPACT_COMMIT_V4_PREIMAGE_SCHEMA: &str =
+    "tos-native-source-compact-commit-packed-identity-paths-v4-preimage";
+const PACKED_COMPACT_REVISION_DOMAIN: &[u8] =
+    b"tos-native-source-compact-commit-packed-revision-v2\0";
 const COMPACT_COMMIT_REVISION_DOMAIN: &[u8] = b"tos-native-source-compact-commit-revision-v2\0";
+const IDENTITY_PATHS_COMPACT_REVISION_DOMAIN: &[u8] =
+    b"tos-native-source-compact-commit-identity-paths-revision-v2\0";
+const PACKED_IDENTITY_PATHS_COMPACT_REVISION_DOMAIN: &[u8] =
+    b"tos-native-source-compact-commit-packed-identity-paths-revision-v2\0";
+const COMPACT_COMMIT_V3_REVISION_DOMAIN: &[u8] =
+    b"tos-native-source-compact-commit-revision-v3\0";
+const PACKED_COMPACT_COMMIT_V3_REVISION_DOMAIN: &[u8] =
+    b"tos-native-source-compact-commit-packed-revision-v3\0";
+const IDENTITY_PATHS_COMPACT_COMMIT_V3_REVISION_DOMAIN: &[u8] =
+    b"tos-native-source-compact-commit-identity-paths-revision-v3\0";
+const PACKED_IDENTITY_PATHS_COMPACT_COMMIT_V3_REVISION_DOMAIN: &[u8] =
+    b"tos-native-source-compact-commit-packed-identity-paths-revision-v3\0";
+const COMPACT_COMMIT_V4_REVISION_DOMAIN: &[u8] =
+    b"tos-native-source-compact-commit-revision-v4\0";
+const PACKED_COMPACT_COMMIT_V4_REVISION_DOMAIN: &[u8] =
+    b"tos-native-source-compact-commit-packed-revision-v4\0";
+const IDENTITY_PATHS_COMPACT_COMMIT_V4_REVISION_DOMAIN: &[u8] =
+    b"tos-native-source-compact-commit-identity-paths-revision-v4\0";
+const PACKED_IDENTITY_PATHS_COMPACT_COMMIT_V4_REVISION_DOMAIN: &[u8] =
+    b"tos-native-source-compact-commit-packed-identity-paths-revision-v4\0";
 const ROOTSET_MAX_BYTES: usize = 65_536;
 const TREE_DESCRIPTOR_MAX_BYTES: usize = 12_288;
 const ENCODE_WORKSPACE_FIXED_OVERHEAD: usize = 64 * 1024;
@@ -37,6 +125,8 @@ pub(crate) const MEMBERS_KIND: &[u8] = b"source-members-v2";
 pub(crate) const IDENTITIES_KIND: &[u8] = b"source-identities-v2";
 pub(crate) const DEPENDENCIES_KIND: &[u8] = b"source-dependencies-v2";
 pub(crate) const RETIREMENTS_KIND: &[u8] = b"source-retirements-v2";
+pub(crate) const OBJECT_EXTENTS_KIND: &[u8] = b"source-object-extents-v2";
+pub(crate) const IDENTITY_PATHS_KIND: &[u8] = b"source-identity-paths-v2";
 pub(crate) const HISTORY_KIND: &[u8] = b"source-history-v2";
 pub(crate) const SOURCE_ADMISSION_V2_DOMAIN: &[u8] = b"tos-native-admission-source-v2";
 
@@ -63,6 +153,45 @@ fn validate_tree_binding(
         return Err(invalid("source root tree roundtrip differs"));
     }
     Ok(())
+}
+
+fn revision_descriptor_refs<'a>(
+    members: &'a AuthenticatedTreeDescriptorV2,
+    identities: &'a AuthenticatedTreeDescriptorV2,
+    dependencies: &'a AuthenticatedTreeDescriptorV2,
+    retirements: &'a AuthenticatedTreeDescriptorV2,
+    objects: Option<&'a AuthenticatedTreeDescriptorV2>,
+    identity_paths: Option<&'a AuthenticatedTreeDescriptorV2>,
+) -> ([&'a AuthenticatedTreeDescriptorV2; 6], usize) {
+    // Stack-only view: unused optional slots create no clone or allocation.
+    (
+        [
+            members,
+            identities,
+            dependencies,
+            retirements,
+            objects.unwrap_or(retirements),
+            identity_paths.unwrap_or(retirements),
+        ],
+        4 + usize::from(objects.is_some()) + usize::from(identity_paths.is_some()),
+    )
+}
+
+fn append_storage_descriptors(
+    mut value: serde_json::Value,
+    objects: Option<&AuthenticatedTreeDescriptorV2>,
+    identity_paths: Option<&AuthenticatedTreeDescriptorV2>,
+) -> io::Result<serde_json::Value> {
+    let fields = value
+        .as_array_mut()
+        .ok_or_else(|| invalid("storage tuple is not an array"))?;
+    if let Some(objects) = objects {
+        fields.push(tree_bytes(objects)?);
+    }
+    if let Some(identity_paths) = identity_paths {
+        fields.push(tree_bytes(identity_paths)?);
+    }
+    Ok(value)
 }
 
 fn invalid(message: &'static str) -> io::Error {
@@ -141,6 +270,130 @@ fn number(value: &JsonValue) -> io::Result<u64> {
     value
         .as_u64()
         .ok_or_else(|| invalid("source rootset count is not unsigned"))
+}
+
+fn membership_v1_value(membership: Option<SourceMembershipV1>) -> serde_json::Value {
+    membership.map_or(serde_json::Value::Null, |membership| {
+        serde_json::json!([membership.count, membership.digest.to_hex()])
+    })
+}
+
+fn membership_v1_from(value: &JsonValue) -> io::Result<Option<SourceMembershipV1>> {
+    if value.is_null() {
+        return Ok(None);
+    }
+    let fields = value
+        .as_array()
+        .filter(|fields| fields.len() == 2)
+        .ok_or_else(|| invalid("source V1 membership tuple shape differs"))?;
+    Ok(Some(SourceMembershipV1 {
+        count: number(&fields[0])?,
+        digest: digest(&fields[1])?,
+    }))
+}
+
+fn membership_v2_value(membership: Option<SourceMembershipV2>) -> serde_json::Value {
+    membership.map_or(serde_json::Value::Null, |membership| {
+        serde_json::json!([
+            membership.count,
+            membership.source_bytes,
+            membership.members_tree_commitment.to_hex(),
+            membership.commitment.to_hex()
+        ])
+    })
+}
+
+fn membership_v2_from(value: &JsonValue) -> io::Result<Option<SourceMembershipV2>> {
+    if value.is_null() {
+        return Ok(None);
+    }
+    let fields = value
+        .as_array()
+        .filter(|fields| fields.len() == 4)
+        .ok_or_else(|| invalid("source V2 membership tuple shape differs"))?;
+    Ok(Some(SourceMembershipV2 {
+        count: number(&fields[0])?,
+        source_bytes: number(&fields[1])?,
+        members_tree_commitment: digest(&fields[2])?,
+        commitment: digest(&fields[3])?,
+    }))
+}
+
+fn completion_proof_value(
+    proof: Option<NativeAdmissionCompletionProofV1>,
+) -> serde_json::Value {
+    proof.map_or(serde_json::Value::Null, |proof| {
+        let (protocol, caps) = match proof.prepared_schema.protocol {
+            CutPreparedSchemaProtocol::LegacyScalar => ("legacy-scalar", serde_json::Value::Null),
+            CutPreparedSchemaProtocol::DiagnosticsV2 { caps_sha256 } => {
+                ("diagnostics-v2", serde_json::json!(caps_sha256.to_hex()))
+            }
+        };
+        serde_json::json!([
+            proof.validator_sha256.to_hex(),
+            membership_v1_value(proof.membership_v1),
+            proof.source_bytes,
+            [
+                proof.prepared_schema.schema_profile.id(),
+                proof.prepared_schema.schema_set_sha256.to_hex(),
+                proof.prepared_schema.worker_sha256.to_hex(),
+                [protocol, caps]
+            ],
+            proof.identity_count,
+            proof.dependency_source_count,
+            proof.dependency_count
+        ])
+    })
+}
+
+fn completion_proof_from(
+    value: &JsonValue,
+) -> io::Result<Option<NativeAdmissionCompletionProofV1>> {
+    if value.is_null() {
+        return Ok(None);
+    }
+    let fields = value
+        .as_array()
+        .filter(|fields| fields.len() == 7)
+        .ok_or_else(|| invalid("native completion proof tuple shape differs"))?;
+    let schema = fields[3]
+        .as_array()
+        .filter(|fields| fields.len() == 4)
+        .ok_or_else(|| invalid("native completion schema tuple shape differs"))?;
+    let schema_profile = match schema[0].as_str() {
+        Some("tos.schema.format.legacy-python-observed-20260923") => {
+            FormatProfile::LegacyPythonObserved20260923
+        }
+        Some("tos.schema.format.asserted-source-candidate-v1") => {
+            FormatProfile::AssertedSourceCandidateV1
+        }
+        _ => return Err(invalid("native completion schema profile differs")),
+    };
+    let protocol_fields = schema[3]
+        .as_array()
+        .filter(|fields| fields.len() == 2)
+        .ok_or_else(|| invalid("native completion protocol tuple shape differs"))?;
+    let protocol = match (protocol_fields[0].as_str(), protocol_fields[1].is_null()) {
+        (Some("legacy-scalar"), true) => CutPreparedSchemaProtocol::LegacyScalar,
+        (Some("diagnostics-v2"), false) => CutPreparedSchemaProtocol::DiagnosticsV2 {
+            caps_sha256: digest(&protocol_fields[1])?,
+        },
+        _ => return Err(invalid("native completion schema protocol differs")),
+    };
+    Ok(Some(NativeAdmissionCompletionProofV1 {
+        validator_sha256: digest(&fields[0])?,
+        membership_v1: membership_v1_from(&fields[1])?,
+        source_bytes: number(&fields[2])?,
+        prepared_schema: CutPreparedSchemaExecutionBinding {
+            schema_profile,
+            schema_set_sha256: digest(&schema[1])?,
+            worker_sha256: digest(&schema[2])?,
+            protocol,
+        },
+        identity_count: number(&fields[4])?,
+        dependency_source_count: number(&fields[5])?,
+        dependency_count: number(&fields[6])?,
+    }))
 }
 
 fn tree_bytes(tree: &AuthenticatedTreeDescriptorV2) -> io::Result<Vec<u8>> {
@@ -261,6 +514,7 @@ pub(crate) enum SourceRevisionArtifactV2 {
     LegacyManifestV1 { sha256: Digest256 },
     SnapshotV1 { sha256: Digest256, bytes: u64 },
     CompactCommitV2 { sha256: Digest256, bytes: u64 },
+    CompactPackedV2 { sha256: Digest256, bytes: u64 },
 }
 
 impl SourceRevisionArtifactV2 {
@@ -269,6 +523,7 @@ impl SourceRevisionArtifactV2 {
             Self::LegacyManifestV1 { .. } => "legacy-manifest-v1",
             Self::SnapshotV1 { .. } => "tos-corpus-snapshot-v1",
             Self::CompactCommitV2 { .. } => "tos-native-source-compact-commit-v2",
+            Self::CompactPackedV2 { .. } => "tos-native-source-compact-commit-packed-v2",
         }
     }
 
@@ -276,14 +531,17 @@ impl SourceRevisionArtifactV2 {
         match self {
             Self::LegacyManifestV1 { sha256 }
             | Self::SnapshotV1 { sha256, .. }
-            | Self::CompactCommitV2 { sha256, .. } => *sha256,
+            | Self::CompactCommitV2 { sha256, .. }
+            | Self::CompactPackedV2 { sha256, .. } => *sha256,
         }
     }
 
     pub(crate) fn bytes(&self) -> Option<u64> {
         match self {
             Self::LegacyManifestV1 { .. } => None,
-            Self::SnapshotV1 { bytes, .. } | Self::CompactCommitV2 { bytes, .. } => Some(*bytes),
+            Self::SnapshotV1 { bytes, .. }
+            | Self::CompactCommitV2 { bytes, .. }
+            | Self::CompactPackedV2 { bytes, .. } => Some(*bytes),
         }
     }
 
@@ -291,6 +549,7 @@ impl SourceRevisionArtifactV2 {
         match self {
             Self::LegacyManifestV1 { .. } | Self::SnapshotV1 { .. } => "snapshot.json",
             Self::CompactCommitV2 { .. } => "commit-v2.json",
+            Self::CompactPackedV2 { .. } => "commit-packed-v2.json",
         }
     }
 
@@ -302,6 +561,9 @@ impl SourceRevisionArtifactV2 {
             }
             Self::CompactCommitV2 { sha256, bytes } => {
                 serde_json::json!(["compact-commit-v2", sha256.to_hex(), bytes])
+            }
+            Self::CompactPackedV2 { sha256, bytes } => {
+                serde_json::json!(["compact-packed-v2", sha256.to_hex(), bytes])
             }
         }
     }
@@ -325,6 +587,10 @@ impl SourceRevisionArtifactV2 {
                 Ok(Self::CompactCommitV2 { sha256, bytes })
             }
             "compact-commit-v2" => Err(invalid("compact source commit exceeds its byte profile")),
+            "compact-packed-v2" if bytes <= MAX_COMPACT_COMMIT_V2_BYTES as u64 => {
+                Ok(Self::CompactPackedV2 { sha256, bytes })
+            }
+            "compact-packed-v2" => Err(invalid("packed compact commit exceeds its byte profile")),
             _ => Err(invalid("source revision artifact format is unsupported")),
         }
     }
@@ -342,7 +608,17 @@ pub(crate) struct SourceRevisionRootsV2 {
     pub manifest_sha256: Digest256,
     pub source_artifact: SourceRevisionArtifactV2,
     pub batch_sha256: Option<Digest256>,
-    pub membership_v1: SourceMembershipV1,
+    /// The V1 ordered-row digest is retained when available. New addressed
+    /// successor writes may omit it and use the separately versioned V2
+    /// authenticated-tree commitment instead.
+    pub membership_v1: Option<SourceMembershipV1>,
+    /// Present in V3 root tuples. Old roots decode with `None` and can derive
+    /// a read-only equivalent from their already authenticated member root.
+    pub membership_v2: Option<SourceMembershipV2>,
+    /// Proof issued only by a genuine sealed full native IndexView, or by a
+    /// bounded successor derived from that proof and an exact addressed delta.
+    /// The optional field is committed by the history tuple and source revision.
+    pub completion_proof: Option<NativeAdmissionCompletionProofV1>,
     pub source_bytes: u64,
     pub member_count: u64,
     pub identity_count: u64,
@@ -353,37 +629,66 @@ pub(crate) struct SourceRevisionRootsV2 {
     pub identities: AuthenticatedTreeDescriptorV2,
     pub dependencies: AuthenticatedTreeDescriptorV2,
     pub retirements: AuthenticatedTreeDescriptorV2,
+    /// None preserves the exact historical digest-file interpretation. A
+    /// packed root is authenticated by this revision, never a lookup cache.
+    pub objects: Option<AuthenticatedTreeDescriptorV2>,
+    /// Optional on legacy roots so their exact historical wire remains
+    /// decodable. Newly written V2 roots carry the path-keyed reverse identity
+    /// index used by bounded warm reads.
+    pub identity_paths: Option<AuthenticatedTreeDescriptorV2>,
 }
 
 impl SourceRevisionRootsV2 {
     pub(crate) const MAX_ENCODED_BYTES: usize = ROOTSET_MAX_BYTES;
 
-    pub(crate) fn retained_state_bytes(&self) -> io::Result<usize> {
-        [
-            tree_retained_state_bytes(&self.members),
-            tree_retained_state_bytes(&self.identities),
-            tree_retained_state_bytes(&self.dependencies),
-            tree_retained_state_bytes(&self.retirements),
-        ]
-        .into_iter()
-        .try_fold(size_of::<Self>(), |total, tree| {
-            total
-                .checked_add(tree?)
-                .ok_or_else(|| invalid("V2 root state overflow"))
+    /// Return the V2 membership commitment declared by this root, or derive
+    /// the equivalent read-only value for a legacy root. The derivation is
+    /// bound to the authenticated members descriptor and exact counts; it is
+    /// never exposed as a V1 ordered-row digest.
+    pub(crate) fn source_membership_v2(&self) -> Option<SourceMembershipV2> {
+        self.membership_v2.or_else(|| {
+            Some(SourceMembershipV2::from_members_tree(
+                self.member_count,
+                self.source_bytes,
+                self.members.commitment,
+            ))
         })
+    }
+
+    pub(crate) fn retained_state_bytes(&self) -> io::Result<usize> {
+        {
+            let (roots, count) = revision_descriptor_refs(
+                &self.members,
+                &self.identities,
+                &self.dependencies,
+                &self.retirements,
+                self.objects.as_ref(),
+                self.identity_paths.as_ref(),
+            );
+            roots[..count]
+                .iter()
+                .try_fold(size_of::<Self>(), |total, root| {
+                    total
+                        .checked_add(tree_retained_state_bytes(root)?)
+                        .ok_or_else(|| invalid("revision descriptor state overflow"))
+                })
+        }
     }
 
     pub(crate) fn encode_state_upper_bound(
         &self,
         additional_live_bytes: usize,
     ) -> io::Result<usize> {
+        let (roots, count) = revision_descriptor_refs(
+            &self.members,
+            &self.identities,
+            &self.dependencies,
+            &self.retirements,
+            self.objects.as_ref(),
+            self.identity_paths.as_ref(),
+        );
         descriptor_json_workspace_upper_bound(
-            &[
-                &self.members,
-                &self.identities,
-                &self.dependencies,
-                &self.retirements,
-            ],
+            &roots[..count],
             self.retained_state_bytes()?,
             additional_live_bytes,
         )
@@ -419,8 +724,35 @@ impl SourceRevisionRootsV2 {
         store_id: [u8; 16],
         domain_digest: Digest256,
     ) -> io::Result<()> {
+        let v1_count_matches = self
+            .membership_v1
+            .is_none_or(|membership| membership.count == self.member_count);
+        let v2_matches = self.membership_v2.is_none_or(|membership| {
+            membership.count == self.member_count
+                && membership.source_bytes == self.source_bytes
+                && membership.members_tree_commitment == self.members.commitment
+                && membership
+                    == SourceMembershipV2::from_members_tree(
+                        self.member_count,
+                        self.source_bytes,
+                        self.members.commitment,
+                    )
+        });
+        let proof_matches = self.completion_proof.is_none_or(|proof| {
+            proof.validator_sha256 == self.validator_sha256
+                && proof.source_bytes == self.source_bytes
+                && proof.identity_count == self.identity_count
+                && proof.dependency_source_count == self.dependency_source_count
+                && proof.dependency_count == self.dependency_count
+                && proof.membership_v1.is_none_or(|membership| {
+                    self.membership_v1 == Some(membership)
+                })
+        });
         if self.manifest_sha256 != self.source_artifact.sha256()
-            || self.member_count != self.membership_v1.count
+            || !v1_count_matches
+            || !v2_matches
+            || !proof_matches
+            || (self.membership_v1.is_none() && self.membership_v2.is_none())
             || self.dependency_source_count > self.dependency_count
             || (self.dependency_source_count == 0) != (self.dependency_count == 0)
         {
@@ -430,11 +762,58 @@ impl SourceRevisionRootsV2 {
             (SourceRevisionArtifactV2::LegacyManifestV1 { .. }, _, None) => (),
             (SourceRevisionArtifactV2::SnapshotV1 { bytes, .. }, None, Some(_)) if *bytes > 0 => (),
             (SourceRevisionArtifactV2::CompactCommitV2 { bytes, .. }, Some(_), Some(_))
-                if *bytes > 0 && *bytes <= MAX_COMPACT_COMMIT_V2_BYTES as u64 =>
+                if self.objects.is_none()
+                    && *bytes > 0
+                    && *bytes <= MAX_COMPACT_COMMIT_V2_BYTES as u64 =>
+            {
+                ()
+            }
+            (SourceRevisionArtifactV2::CompactPackedV2 { bytes, .. }, Some(_), Some(_))
+                if self.objects.is_some()
+                    && *bytes > 0
+                    && *bytes <= MAX_COMPACT_COMMIT_V2_BYTES as u64 =>
             {
                 ()
             }
             _ => return Err(invalid("source revision artifact and batch binding differ")),
+        }
+        if let Some(objects) = &self.objects {
+            if matches!(
+                self.source_artifact,
+                SourceRevisionArtifactV2::LegacyManifestV1 { .. }
+            ) {
+                return Err(invalid(
+                    "legacy revision cannot select a packed object root",
+                ));
+            }
+            // The extent index belongs to this revision's reachable source
+            // closure. Historical revisions bind their own index; they do not
+            // authorize an unrelated accumulating object catalogue here.
+            let reachable_slots = self
+                .retirement_count
+                .checked_mul(2)
+                .and_then(|slots| slots.checked_add(self.member_count))
+                .ok_or_else(|| invalid("packed revision object count overflow"))?;
+            if objects.entries > reachable_slots || (objects.entries == 0) != (reachable_slots == 0)
+            {
+                return Err(invalid("packed revision object closure count differs"));
+            }
+            validate_tree_binding(
+                objects,
+                store_id,
+                domain_digest,
+                OBJECT_EXTENTS_KIND,
+                objects.entries,
+            )?;
+        }
+        if let Some(identity_paths) = &self.identity_paths {
+            validate_tree_binding(
+                identity_paths,
+                store_id,
+                domain_digest,
+                IDENTITY_PATHS_KIND,
+                self.identity_count,
+            )?;
         }
         for (root, kind, count) in [
             (&self.members, MEMBERS_KIND, self.member_count),
@@ -483,18 +862,28 @@ impl SourceRevisionRootsV2 {
 
     fn wire_value(&self) -> io::Result<serde_json::Value> {
         self.validate_store_binding(self.members.store_id, self.members.domain_digest)?;
-        if matches!(
+        let legacy = matches!(
             self.source_artifact,
             SourceRevisionArtifactV2::LegacyManifestV1 { .. }
-        ) {
-            return Ok(serde_json::json!([
-                LEGACY_REVISION_ROOT_SCHEMA,
+        );
+        if self.membership_v2.is_some() && self.completion_proof.is_some() {
+            let value = serde_json::json!([
+                match (self.objects.is_some(), self.identity_paths.is_some()) {
+                    (true, true) => PACKED_IDENTITY_PATHS_REVISION_ROOT_V4_SCHEMA,
+                    (true, false) => PACKED_REVISION_ROOT_V4_SCHEMA,
+                    (false, true) => IDENTITY_PATHS_REVISION_ROOT_V4_SCHEMA,
+                    (false, false) => TYPED_REVISION_ROOT_V4_SCHEMA,
+                },
                 self.revision.0.to_hex(),
                 self.base_revision.map(|revision| revision.0.to_hex()),
                 self.validator_sha256.to_hex(),
-                self.manifest_sha256.to_hex(),
-                self.membership_v1.count,
-                self.membership_v1.digest.to_hex(),
+                self.source_artifact.wire_value(),
+                self.batch_sha256
+                    .ok_or_else(|| invalid("typed source revision lacks its batch digest"))?
+                    .to_hex(),
+                membership_v1_value(self.membership_v1),
+                membership_v2_value(self.membership_v2),
+                completion_proof_value(self.completion_proof),
                 self.source_bytes,
                 self.member_count,
                 self.identity_count,
@@ -505,42 +894,201 @@ impl SourceRevisionRootsV2 {
                 tree_bytes(&self.identities)?,
                 tree_bytes(&self.dependencies)?,
                 tree_bytes(&self.retirements)?
-            ]));
+            ]);
+            return append_storage_descriptors(
+                value,
+                self.objects.as_ref(),
+                self.identity_paths.as_ref(),
+            );
         }
-        Ok(serde_json::json!([
-            TYPED_REVISION_ROOT_SCHEMA,
-            self.revision.0.to_hex(),
-            self.base_revision.map(|revision| revision.0.to_hex()),
-            self.validator_sha256.to_hex(),
-            self.source_artifact.wire_value(),
-            self.batch_sha256
-                .ok_or_else(|| invalid("typed source revision lacks its batch digest"))?
-                .to_hex(),
-            self.membership_v1.count,
-            self.membership_v1.digest.to_hex(),
-            self.source_bytes,
-            self.member_count,
-            self.identity_count,
-            self.dependency_source_count,
-            self.dependency_count,
-            self.retirement_count,
-            tree_bytes(&self.members)?,
-            tree_bytes(&self.identities)?,
-            tree_bytes(&self.dependencies)?,
-            tree_bytes(&self.retirements)?
-        ]))
+        if self.completion_proof.is_some() {
+            return Err(invalid("native completion proof requires V2 membership"));
+        }
+        if self.membership_v2.is_some() {
+            if legacy {
+                let value = serde_json::json!([
+                    if self.identity_paths.is_some() {
+                        LEGACY_IDENTITY_PATHS_REVISION_ROOT_V3_SCHEMA
+                    } else {
+                        LEGACY_REVISION_ROOT_V3_SCHEMA
+                    },
+                    self.revision.0.to_hex(),
+                    self.base_revision.map(|revision| revision.0.to_hex()),
+                    self.validator_sha256.to_hex(),
+                    self.manifest_sha256.to_hex(),
+                    membership_v1_value(self.membership_v1),
+                    membership_v2_value(self.membership_v2),
+                    self.source_bytes,
+                    self.member_count,
+                    self.identity_count,
+                    self.dependency_source_count,
+                    self.dependency_count,
+                    self.retirement_count,
+                    tree_bytes(&self.members)?,
+                    tree_bytes(&self.identities)?,
+                    tree_bytes(&self.dependencies)?,
+                    tree_bytes(&self.retirements)?
+                ]);
+                return append_storage_descriptors(value, None, self.identity_paths.as_ref());
+            }
+            return append_storage_descriptors(
+                serde_json::json!([
+                    match (self.objects.is_some(), self.identity_paths.is_some()) {
+                        (true, true) => PACKED_IDENTITY_PATHS_REVISION_ROOT_V3_SCHEMA,
+                        (true, false) => PACKED_REVISION_ROOT_V3_SCHEMA,
+                        (false, true) => IDENTITY_PATHS_REVISION_ROOT_V3_SCHEMA,
+                        (false, false) => TYPED_REVISION_ROOT_V3_SCHEMA,
+                    },
+                    self.revision.0.to_hex(),
+                    self.base_revision.map(|revision| revision.0.to_hex()),
+                    self.validator_sha256.to_hex(),
+                    self.source_artifact.wire_value(),
+                    self.batch_sha256
+                        .ok_or_else(|| invalid("typed source revision lacks its batch digest"))?
+                        .to_hex(),
+                    membership_v1_value(self.membership_v1),
+                    membership_v2_value(self.membership_v2),
+                    self.source_bytes,
+                    self.member_count,
+                    self.identity_count,
+                    self.dependency_source_count,
+                    self.dependency_count,
+                    self.retirement_count,
+                    tree_bytes(&self.members)?,
+                    tree_bytes(&self.identities)?,
+                    tree_bytes(&self.dependencies)?,
+                    tree_bytes(&self.retirements)?
+                ]),
+                self.objects.as_ref(),
+                self.identity_paths.as_ref(),
+            );
+        }
+        let membership_v1 = self
+            .membership_v1
+            .ok_or_else(|| invalid("legacy source root lacks its V1 membership digest"))?;
+        if matches!(
+            self.source_artifact,
+            SourceRevisionArtifactV2::LegacyManifestV1 { .. }
+        ) {
+            let value = serde_json::json!([
+                if self.identity_paths.is_some() {
+                    LEGACY_IDENTITY_PATHS_REVISION_ROOT_SCHEMA
+                } else {
+                    LEGACY_REVISION_ROOT_SCHEMA
+                },
+                self.revision.0.to_hex(),
+                self.base_revision.map(|revision| revision.0.to_hex()),
+                self.validator_sha256.to_hex(),
+                self.manifest_sha256.to_hex(),
+                membership_v1.count,
+                membership_v1.digest.to_hex(),
+                self.source_bytes,
+                self.member_count,
+                self.identity_count,
+                self.dependency_source_count,
+                self.dependency_count,
+                self.retirement_count,
+                tree_bytes(&self.members)?,
+                tree_bytes(&self.identities)?,
+                tree_bytes(&self.dependencies)?,
+                tree_bytes(&self.retirements)?
+            ]);
+            return append_storage_descriptors(value, None, self.identity_paths.as_ref());
+        }
+        append_storage_descriptors(
+            serde_json::json!([
+                match (self.objects.is_some(), self.identity_paths.is_some()) {
+                    (true, true) => PACKED_IDENTITY_PATHS_REVISION_ROOT_SCHEMA,
+                    (true, false) => PACKED_REVISION_ROOT_SCHEMA,
+                    (false, true) => IDENTITY_PATHS_REVISION_ROOT_SCHEMA,
+                    (false, false) => TYPED_REVISION_ROOT_SCHEMA,
+                },
+                self.revision.0.to_hex(),
+                self.base_revision.map(|revision| revision.0.to_hex()),
+                self.validator_sha256.to_hex(),
+                self.source_artifact.wire_value(),
+                self.batch_sha256
+                    .ok_or_else(|| invalid("typed source revision lacks its batch digest"))?
+                    .to_hex(),
+                membership_v1.count,
+                membership_v1.digest.to_hex(),
+                self.source_bytes,
+                self.member_count,
+                self.identity_count,
+                self.dependency_source_count,
+                self.dependency_count,
+                self.retirement_count,
+                tree_bytes(&self.members)?,
+                tree_bytes(&self.identities)?,
+                tree_bytes(&self.dependencies)?,
+                tree_bytes(&self.retirements)?
+            ]),
+            self.objects.as_ref(),
+            self.identity_paths.as_ref(),
+        )
     }
 
     fn from_wire(value: &JsonValue) -> io::Result<Self> {
         let fields = value
             .as_array()
             .ok_or_else(|| invalid("source revision root tuple shape differs"))?;
-        let legacy = fields.len() == 17 && fields[0].as_str() == Some(LEGACY_REVISION_ROOT_SCHEMA);
-        let typed = fields.len() == 18 && fields[0].as_str() == Some(TYPED_REVISION_ROOT_SCHEMA);
-        if !legacy && !typed {
+        let schema = fields.first().and_then(JsonValue::as_str);
+        let legacy = schema == Some(LEGACY_REVISION_ROOT_SCHEMA) && fields.len() == 17;
+        let legacy_identity_paths =
+            schema == Some(LEGACY_IDENTITY_PATHS_REVISION_ROOT_SCHEMA) && fields.len() == 18;
+        let typed = schema == Some(TYPED_REVISION_ROOT_SCHEMA) && fields.len() == 18;
+        let packed = schema == Some(PACKED_REVISION_ROOT_SCHEMA) && fields.len() == 19;
+        let typed_identity_paths =
+            schema == Some(IDENTITY_PATHS_REVISION_ROOT_SCHEMA) && fields.len() == 19;
+        let packed_identity_paths =
+            schema == Some(PACKED_IDENTITY_PATHS_REVISION_ROOT_SCHEMA) && fields.len() == 20;
+        let legacy_v3 = schema == Some(LEGACY_REVISION_ROOT_V3_SCHEMA) && fields.len() == 17;
+        let legacy_identity_paths_v3 =
+            schema == Some(LEGACY_IDENTITY_PATHS_REVISION_ROOT_V3_SCHEMA) && fields.len() == 18;
+        let typed_v3 = schema == Some(TYPED_REVISION_ROOT_V3_SCHEMA) && fields.len() == 18;
+        let packed_v3 = schema == Some(PACKED_REVISION_ROOT_V3_SCHEMA) && fields.len() == 19;
+        let typed_identity_paths_v3 =
+            schema == Some(IDENTITY_PATHS_REVISION_ROOT_V3_SCHEMA) && fields.len() == 19;
+        let packed_identity_paths_v3 =
+            schema == Some(PACKED_IDENTITY_PATHS_REVISION_ROOT_V3_SCHEMA) && fields.len() == 20;
+        let typed_v4 = schema == Some(TYPED_REVISION_ROOT_V4_SCHEMA) && fields.len() == 19;
+        let packed_v4 = schema == Some(PACKED_REVISION_ROOT_V4_SCHEMA) && fields.len() == 20;
+        let typed_identity_paths_v4 =
+            schema == Some(IDENTITY_PATHS_REVISION_ROOT_V4_SCHEMA) && fields.len() == 20;
+        let packed_identity_paths_v4 =
+            schema == Some(PACKED_IDENTITY_PATHS_REVISION_ROOT_V4_SCHEMA) && fields.len() == 21;
+        if !legacy && !legacy_identity_paths && !typed && !packed
+            && !typed_identity_paths && !packed_identity_paths
+            && !legacy_v3 && !legacy_identity_paths_v3 && !typed_v3 && !packed_v3
+            && !typed_identity_paths_v3 && !packed_identity_paths_v3
+            && !typed_v4 && !packed_v4 && !typed_identity_paths_v4 && !packed_identity_paths_v4
+        {
             return Err(invalid("source revision root version or shape differs"));
         }
-        let (artifact, batch_sha256, membership_index) = if legacy {
+        let is_legacy = legacy || legacy_identity_paths || legacy_v3 || legacy_identity_paths_v3;
+        let has_v3_membership = legacy_v3
+            || legacy_identity_paths_v3
+            || typed_v3
+            || packed_v3
+            || typed_identity_paths_v3
+            || packed_identity_paths_v3
+            || typed_v4
+            || packed_v4
+            || typed_identity_paths_v4
+            || packed_identity_paths_v4;
+        let has_v4_proof = typed_v4 || packed_v4 || typed_identity_paths_v4 || packed_identity_paths_v4;
+        let has_objects = packed || packed_identity_paths || packed_v3 || packed_identity_paths_v3
+            || packed_v4 || packed_identity_paths_v4;
+        let has_identity_paths =
+            legacy_identity_paths
+                || typed_identity_paths
+                || packed_identity_paths
+                || legacy_identity_paths_v3
+                || typed_identity_paths_v3
+                || packed_identity_paths_v3
+                || typed_identity_paths_v4
+                || packed_identity_paths_v4;
+        let (artifact, batch_sha256, membership_index) = if is_legacy {
             let sha256 = digest(&fields[4])?;
             (
                 SourceRevisionArtifactV2::LegacyManifestV1 { sha256 },
@@ -554,7 +1102,7 @@ impl SourceRevisionRootsV2 {
                 6,
             )
         };
-        let tree_index = membership_index + 8;
+        let tree_index = membership_index + 8 + usize::from(has_v4_proof);
         let result = Self {
             revision: SourceRevision(digest(&fields[1])?),
             base_revision: optional_revision(&fields[2])?,
@@ -562,20 +1110,44 @@ impl SourceRevisionRootsV2 {
             manifest_sha256: artifact.sha256(),
             source_artifact: artifact,
             batch_sha256,
-            membership_v1: SourceMembershipV1 {
-                count: number(&fields[membership_index])?,
-                digest: digest(&fields[membership_index + 1])?,
+            membership_v1: if has_v3_membership {
+                membership_v1_from(&fields[membership_index])?
+            } else {
+                Some(SourceMembershipV1 {
+                    count: number(&fields[membership_index])?,
+                    digest: digest(&fields[membership_index + 1])?,
+                })
             },
-            source_bytes: number(&fields[membership_index + 2])?,
-            member_count: number(&fields[membership_index + 3])?,
-            identity_count: number(&fields[membership_index + 4])?,
-            dependency_source_count: number(&fields[membership_index + 5])?,
-            dependency_count: number(&fields[membership_index + 6])?,
-            retirement_count: number(&fields[membership_index + 7])?,
+            membership_v2: if has_v3_membership {
+                membership_v2_from(&fields[membership_index + 1])?
+            } else {
+                None
+            },
+            completion_proof: if has_v4_proof {
+                completion_proof_from(&fields[membership_index + 2])?
+            } else {
+                None
+            },
+            source_bytes: number(&fields[membership_index + 2 + usize::from(has_v4_proof)])?,
+            member_count: number(&fields[membership_index + 3 + usize::from(has_v4_proof)])?,
+            identity_count: number(&fields[membership_index + 4 + usize::from(has_v4_proof)])?,
+            dependency_source_count: number(&fields[membership_index + 5 + usize::from(has_v4_proof)])?,
+            dependency_count: number(&fields[membership_index + 6 + usize::from(has_v4_proof)])?,
+            retirement_count: number(&fields[membership_index + 7 + usize::from(has_v4_proof)])?,
             members: tree(&fields[tree_index])?,
             identities: tree(&fields[tree_index + 1])?,
             dependencies: tree(&fields[tree_index + 2])?,
             retirements: tree(&fields[tree_index + 3])?,
+            objects: if has_objects {
+                Some(tree(&fields[tree_index + 4])?)
+            } else {
+                None
+            },
+            identity_paths: if has_identity_paths {
+                Some(tree(&fields[tree_index + 4 + usize::from(has_objects)])?)
+            } else {
+                None
+            },
         };
         result.validate_store_binding(result.members.store_id, result.members.domain_digest)?;
         Ok(result)
@@ -591,7 +1163,9 @@ pub(crate) struct CompactCommitV2 {
     pub base_revision: SourceRevision,
     pub validator_sha256: Digest256,
     pub batch_sha256: Digest256,
-    pub membership_v1: SourceMembershipV1,
+    pub membership_v1: Option<SourceMembershipV1>,
+    pub membership_v2: Option<SourceMembershipV2>,
+    pub completion_proof: Option<NativeAdmissionCompletionProofV1>,
     pub source_bytes: u64,
     pub member_count: u64,
     pub identity_count: u64,
@@ -602,6 +1176,10 @@ pub(crate) struct CompactCommitV2 {
     pub identities: AuthenticatedTreeDescriptorV2,
     pub dependencies: AuthenticatedTreeDescriptorV2,
     pub retirements: AuthenticatedTreeDescriptorV2,
+    /// None preserves the exact historical digest-file interpretation. A
+    /// packed root is authenticated by this revision, never a lookup cache.
+    pub objects: Option<AuthenticatedTreeDescriptorV2>,
+    pub identity_paths: Option<AuthenticatedTreeDescriptorV2>,
 }
 
 impl CompactCommitV2 {
@@ -615,12 +1193,15 @@ impl CompactCommitV2 {
             .base_revision
             .ok_or_else(|| invalid("compact source successor lacks its base revision"))?;
         let roots_retained = roots.retained_state_bytes()?;
-        let descriptors = [
+        let (descriptor_array, descriptor_count) = revision_descriptor_refs(
             &roots.members,
             &roots.identities,
             &roots.dependencies,
             &roots.retirements,
-        ];
+            roots.objects.as_ref(),
+            roots.identity_paths.as_ref(),
+        );
+        let descriptors = &descriptor_array[..descriptor_count];
         // Reserve the compact row workspace against the source descriptors
         // before cloning them into the record. The peak includes the original
         // roots and any retained caller state.
@@ -649,6 +1230,8 @@ impl CompactCommitV2 {
             validator_sha256: roots.validator_sha256,
             batch_sha256,
             membership_v1: roots.membership_v1,
+            membership_v2: roots.membership_v2,
+            completion_proof: roots.completion_proof,
             source_bytes: roots.source_bytes,
             member_count: roots.member_count,
             identity_count: roots.identity_count,
@@ -659,6 +1242,8 @@ impl CompactCommitV2 {
             identities: roots.identities.clone(),
             dependencies: roots.dependencies.clone(),
             retirements: roots.retirements.clone(),
+            objects: roots.objects.clone(),
+            identity_paths: roots.identity_paths.clone(),
         };
         if commit.encode_state_upper_bound(encode_additional_live)? > max_state_bytes {
             return Err(invalid("compact successor exceeds reserved state"));
@@ -669,65 +1254,179 @@ impl CompactCommitV2 {
         roots.revision = commit.revision;
         roots.batch_sha256 = Some(batch_sha256);
         roots.manifest_sha256 = sha256;
-        roots.source_artifact = SourceRevisionArtifactV2::CompactCommitV2 {
-            sha256,
-            bytes: u64::try_from(bytes.len())
-                .map_err(|_| invalid("compact source commit length exceeds range"))?,
+        let record_bytes = u64::try_from(bytes.len())
+            .map_err(|_| invalid("compact source commit length exceeds range"))?;
+        roots.source_artifact = if roots.objects.is_some() {
+            SourceRevisionArtifactV2::CompactPackedV2 {
+                sha256,
+                bytes: record_bytes,
+            }
+        } else {
+            SourceRevisionArtifactV2::CompactCommitV2 {
+                sha256,
+                bytes: record_bytes,
+            }
         };
         Ok((roots, commit, bytes))
     }
 
     fn retained_state_bytes(&self) -> io::Result<usize> {
-        [
-            tree_retained_state_bytes(&self.members),
-            tree_retained_state_bytes(&self.identities),
-            tree_retained_state_bytes(&self.dependencies),
-            tree_retained_state_bytes(&self.retirements),
-        ]
-        .into_iter()
-        .try_fold(size_of::<Self>(), |total, tree| {
-            total
-                .checked_add(tree?)
-                .ok_or_else(|| invalid("compact source commit state overflow"))
-        })
-    }
-
-    fn encode_state_upper_bound(&self, additional_live_bytes: usize) -> io::Result<usize> {
-        descriptor_json_workspace_upper_bound(
-            &[
+        {
+            let (roots, count) = revision_descriptor_refs(
                 &self.members,
                 &self.identities,
                 &self.dependencies,
                 &self.retirements,
-            ],
+                self.objects.as_ref(),
+                self.identity_paths.as_ref(),
+            );
+            roots[..count]
+                .iter()
+                .try_fold(size_of::<Self>(), |total, root| {
+                    total
+                        .checked_add(tree_retained_state_bytes(root)?)
+                        .ok_or_else(|| invalid("revision descriptor state overflow"))
+                })
+        }
+    }
+
+    fn encode_state_upper_bound(&self, additional_live_bytes: usize) -> io::Result<usize> {
+        let (roots, count) = revision_descriptor_refs(
+            &self.members,
+            &self.identities,
+            &self.dependencies,
+            &self.retirements,
+            self.objects.as_ref(),
+            self.identity_paths.as_ref(),
+        );
+        descriptor_json_workspace_upper_bound(
+            &roots[..count],
             self.retained_state_bytes()?,
             additional_live_bytes,
         )
     }
 
     fn root_fields(&self) -> io::Result<serde_json::Value> {
-        Ok(serde_json::json!([
-            "tos-native-source-compact-commit-v2-preimage",
-            self.base_revision.0.to_hex(),
-            self.validator_sha256.to_hex(),
-            self.batch_sha256.to_hex(),
-            self.membership_v1.count,
-            self.membership_v1.digest.to_hex(),
-            self.source_bytes,
-            self.member_count,
-            self.identity_count,
-            self.dependency_source_count,
-            self.dependency_count,
-            self.retirement_count,
-            tree_bytes(&self.members)?,
-            tree_bytes(&self.identities)?,
-            tree_bytes(&self.dependencies)?,
-            tree_bytes(&self.retirements)?
-        ]))
+        if self.membership_v2.is_some() && self.completion_proof.is_some() {
+            return append_storage_descriptors(
+                serde_json::json!([
+                    match (self.objects.is_some(), self.identity_paths.is_some()) {
+                        (true, true) => PACKED_IDENTITY_PATHS_COMPACT_COMMIT_V4_PREIMAGE_SCHEMA,
+                        (true, false) => PACKED_COMPACT_COMMIT_V4_PREIMAGE_SCHEMA,
+                        (false, true) => IDENTITY_PATHS_COMPACT_COMMIT_V4_PREIMAGE_SCHEMA,
+                        (false, false) => COMPACT_COMMIT_V4_PREIMAGE_SCHEMA,
+                    },
+                    self.base_revision.0.to_hex(),
+                    self.validator_sha256.to_hex(),
+                    self.batch_sha256.to_hex(),
+                    membership_v1_value(self.membership_v1),
+                    membership_v2_value(self.membership_v2),
+                    completion_proof_value(self.completion_proof),
+                    self.source_bytes,
+                    self.member_count,
+                    self.identity_count,
+                    self.dependency_source_count,
+                    self.dependency_count,
+                    self.retirement_count,
+                    tree_bytes(&self.members)?,
+                    tree_bytes(&self.identities)?,
+                    tree_bytes(&self.dependencies)?,
+                    tree_bytes(&self.retirements)?
+                ]),
+                self.objects.as_ref(),
+                self.identity_paths.as_ref(),
+            );
+        }
+        if self.membership_v2.is_some() {
+            return append_storage_descriptors(
+                serde_json::json!([
+                    match (self.objects.is_some(), self.identity_paths.is_some()) {
+                        (true, true) => PACKED_IDENTITY_PATHS_COMPACT_COMMIT_V3_PREIMAGE_SCHEMA,
+                        (true, false) => PACKED_COMPACT_COMMIT_V3_PREIMAGE_SCHEMA,
+                        (false, true) => IDENTITY_PATHS_COMPACT_COMMIT_V3_PREIMAGE_SCHEMA,
+                        (false, false) => COMPACT_COMMIT_V3_PREIMAGE_SCHEMA,
+                    },
+                    self.base_revision.0.to_hex(),
+                    self.validator_sha256.to_hex(),
+                    self.batch_sha256.to_hex(),
+                    membership_v1_value(self.membership_v1),
+                    membership_v2_value(self.membership_v2),
+                    self.source_bytes,
+                    self.member_count,
+                    self.identity_count,
+                    self.dependency_source_count,
+                    self.dependency_count,
+                    self.retirement_count,
+                    tree_bytes(&self.members)?,
+                    tree_bytes(&self.identities)?,
+                    tree_bytes(&self.dependencies)?,
+                    tree_bytes(&self.retirements)?
+                ]),
+                self.objects.as_ref(),
+                self.identity_paths.as_ref(),
+            );
+        }
+        let membership_v1 = self
+            .membership_v1
+            .ok_or_else(|| invalid("V2 compact commit lacks V1 membership"))?;
+        append_storage_descriptors(
+            serde_json::json!([
+                match (self.objects.is_some(), self.identity_paths.is_some()) {
+                    (true, true) => PACKED_IDENTITY_PATHS_COMPACT_PREIMAGE_SCHEMA,
+                    (true, false) => "tos-native-source-compact-commit-packed-v2-preimage",
+                    (false, true) => IDENTITY_PATHS_COMPACT_PREIMAGE_SCHEMA,
+                    (false, false) => "tos-native-source-compact-commit-v2-preimage",
+                },
+                self.base_revision.0.to_hex(),
+                self.validator_sha256.to_hex(),
+                self.batch_sha256.to_hex(),
+                membership_v1.count,
+                membership_v1.digest.to_hex(),
+                self.source_bytes,
+                self.member_count,
+                self.identity_count,
+                self.dependency_source_count,
+                self.dependency_count,
+                self.retirement_count,
+                tree_bytes(&self.members)?,
+                tree_bytes(&self.identities)?,
+                tree_bytes(&self.dependencies)?,
+                tree_bytes(&self.retirements)?
+            ]),
+            self.objects.as_ref(),
+            self.identity_paths.as_ref(),
+        )
     }
 
     fn derived_revision_precharged(&self) -> io::Result<SourceRevision> {
-        if self.member_count != self.membership_v1.count
+        let v1_count_matches = self
+            .membership_v1
+            .is_none_or(|membership| membership.count == self.member_count);
+        let v2_matches = self.membership_v2.is_none_or(|membership| {
+            membership.count == self.member_count
+                && membership.source_bytes == self.source_bytes
+                && membership.members_tree_commitment == self.members.commitment
+                && membership
+                    == SourceMembershipV2::from_members_tree(
+                        self.member_count,
+                        self.source_bytes,
+                        self.members.commitment,
+                    )
+        });
+        let proof_matches = self.completion_proof.is_none_or(|proof| {
+            proof.validator_sha256 == self.validator_sha256
+                && proof.source_bytes == self.source_bytes
+                && proof.identity_count == self.identity_count
+                && proof.dependency_source_count == self.dependency_source_count
+                && proof.dependency_count == self.dependency_count
+                && proof.membership_v1.is_none_or(|membership| {
+                    self.membership_v1 == Some(membership)
+                })
+        });
+        if !v1_count_matches
+            || !v2_matches
+            || !proof_matches
+            || (self.membership_v1.is_none() && self.membership_v2.is_none())
             || self.dependency_source_count > self.dependency_count
             || (self.dependency_source_count == 0) != (self.dependency_count == 0)
         {
@@ -736,7 +1435,33 @@ impl CompactCommitV2 {
         let preimage = serde_json::to_vec(&self.root_fields()?)
             .map_err(|_| invalid("compact source revision preimage failed"))?;
         let mut hasher = Digest256Hasher::new();
-        hasher.update(COMPACT_COMMIT_REVISION_DOMAIN);
+        let revision_domain = if self.completion_proof.is_some() {
+            if self.membership_v2.is_none() {
+                return Err(invalid("native completion proof requires V2 membership"));
+            }
+            match (self.objects.is_some(), self.identity_paths.is_some()) {
+                (true, true) => PACKED_IDENTITY_PATHS_COMPACT_COMMIT_V4_REVISION_DOMAIN,
+                (true, false) => PACKED_COMPACT_COMMIT_V4_REVISION_DOMAIN,
+                (false, true) => IDENTITY_PATHS_COMPACT_COMMIT_V4_REVISION_DOMAIN,
+                (false, false) => COMPACT_COMMIT_V4_REVISION_DOMAIN,
+            }
+        } else {
+            match (
+            self.membership_v2.is_some(),
+            self.objects.is_some(),
+            self.identity_paths.is_some(),
+            ) {
+            (true, true, true) => PACKED_IDENTITY_PATHS_COMPACT_COMMIT_V3_REVISION_DOMAIN,
+            (true, true, false) => PACKED_COMPACT_COMMIT_V3_REVISION_DOMAIN,
+            (true, false, true) => IDENTITY_PATHS_COMPACT_COMMIT_V3_REVISION_DOMAIN,
+            (true, false, false) => COMPACT_COMMIT_V3_REVISION_DOMAIN,
+            (false, true, true) => PACKED_IDENTITY_PATHS_COMPACT_REVISION_DOMAIN,
+            (false, true, false) => PACKED_COMPACT_REVISION_DOMAIN,
+            (false, false, true) => IDENTITY_PATHS_COMPACT_REVISION_DOMAIN,
+            (false, false, false) => COMPACT_COMMIT_REVISION_DOMAIN,
+            }
+        };
+        hasher.update(revision_domain);
         hasher.update(&preimage);
         Ok(SourceRevision(hasher.finalize()))
     }
@@ -754,26 +1479,100 @@ impl CompactCommitV2 {
         if self.derived_revision_precharged()? != self.revision {
             return Err(invalid("compact source revision derivation differs"));
         }
-        let raw = serde_json::to_vec(&serde_json::json!([
-            COMPACT_COMMIT_SCHEMA,
-            self.revision.0.to_hex(),
-            self.base_revision.0.to_hex(),
-            self.validator_sha256.to_hex(),
-            self.batch_sha256.to_hex(),
-            self.membership_v1.count,
-            self.membership_v1.digest.to_hex(),
-            self.source_bytes,
-            self.member_count,
-            self.identity_count,
-            self.dependency_source_count,
-            self.dependency_count,
-            self.retirement_count,
-            tree_bytes(&self.members)?,
-            tree_bytes(&self.identities)?,
-            tree_bytes(&self.dependencies)?,
-            tree_bytes(&self.retirements)?
-        ]))
-        .map_err(|_| invalid("compact source commit serialization failed"))?;
+        let value = if self.membership_v2.is_some() && self.completion_proof.is_some() {
+            append_storage_descriptors(
+                serde_json::json!([
+                    match (self.objects.is_some(), self.identity_paths.is_some()) {
+                        (true, true) => PACKED_IDENTITY_PATHS_COMPACT_COMMIT_V4_SCHEMA,
+                        (true, false) => PACKED_COMPACT_COMMIT_V4_SCHEMA,
+                        (false, true) => IDENTITY_PATHS_COMPACT_COMMIT_V4_SCHEMA,
+                        (false, false) => COMPACT_COMMIT_V4_SCHEMA,
+                    },
+                    self.revision.0.to_hex(),
+                    self.base_revision.0.to_hex(),
+                    self.validator_sha256.to_hex(),
+                    self.batch_sha256.to_hex(),
+                    membership_v1_value(self.membership_v1),
+                    membership_v2_value(self.membership_v2),
+                    completion_proof_value(self.completion_proof),
+                    self.source_bytes,
+                    self.member_count,
+                    self.identity_count,
+                    self.dependency_source_count,
+                    self.dependency_count,
+                    self.retirement_count,
+                    tree_bytes(&self.members)?,
+                    tree_bytes(&self.identities)?,
+                    tree_bytes(&self.dependencies)?,
+                    tree_bytes(&self.retirements)?
+                ]),
+                self.objects.as_ref(),
+                self.identity_paths.as_ref(),
+            )?
+        } else if self.membership_v2.is_some() {
+            append_storage_descriptors(
+                serde_json::json!([
+                    match (self.objects.is_some(), self.identity_paths.is_some()) {
+                        (true, true) => PACKED_IDENTITY_PATHS_COMPACT_COMMIT_V3_SCHEMA,
+                        (true, false) => PACKED_COMPACT_COMMIT_V3_SCHEMA,
+                        (false, true) => IDENTITY_PATHS_COMPACT_COMMIT_V3_SCHEMA,
+                        (false, false) => COMPACT_COMMIT_V3_SCHEMA,
+                    },
+                    self.revision.0.to_hex(),
+                    self.base_revision.0.to_hex(),
+                    self.validator_sha256.to_hex(),
+                    self.batch_sha256.to_hex(),
+                    membership_v1_value(self.membership_v1),
+                    membership_v2_value(self.membership_v2),
+                    self.source_bytes,
+                    self.member_count,
+                    self.identity_count,
+                    self.dependency_source_count,
+                    self.dependency_count,
+                    self.retirement_count,
+                    tree_bytes(&self.members)?,
+                    tree_bytes(&self.identities)?,
+                    tree_bytes(&self.dependencies)?,
+                    tree_bytes(&self.retirements)?
+                ]),
+                self.objects.as_ref(),
+                self.identity_paths.as_ref(),
+            )?
+        } else {
+            let membership = self
+                .membership_v1
+                .ok_or_else(|| invalid("V2 compact commit lacks V1 membership"))?;
+            append_storage_descriptors(
+                serde_json::json!([
+                    match (self.objects.is_some(), self.identity_paths.is_some()) {
+                        (true, true) => PACKED_IDENTITY_PATHS_COMPACT_COMMIT_SCHEMA,
+                        (true, false) => PACKED_COMPACT_COMMIT_SCHEMA,
+                        (false, true) => IDENTITY_PATHS_COMPACT_COMMIT_SCHEMA,
+                        (false, false) => COMPACT_COMMIT_SCHEMA,
+                    },
+                    self.revision.0.to_hex(),
+                    self.base_revision.0.to_hex(),
+                    self.validator_sha256.to_hex(),
+                    self.batch_sha256.to_hex(),
+                    membership.count,
+                    membership.digest.to_hex(),
+                    self.source_bytes,
+                    self.member_count,
+                    self.identity_count,
+                    self.dependency_source_count,
+                    self.dependency_count,
+                    self.retirement_count,
+                    tree_bytes(&self.members)?,
+                    tree_bytes(&self.identities)?,
+                    tree_bytes(&self.dependencies)?,
+                    tree_bytes(&self.retirements)?
+                ]),
+                self.objects.as_ref(),
+                self.identity_paths.as_ref(),
+            )?
+        };
+        let raw = serde_json::to_vec(&value)
+            .map_err(|_| invalid("compact source commit serialization failed"))?;
         if raw.is_empty() || raw.len() > MAX_COMPACT_COMMIT_V2_BYTES {
             return Err(invalid("compact source commit byte profile exceeded"));
         }
@@ -793,11 +1592,40 @@ impl CompactCommitV2 {
         let fields = document
             .root()
             .as_array()
-            .filter(|fields| fields.len() == 17)
             .ok_or_else(|| invalid("compact source commit tuple shape differs"))?;
-        if fields[0].as_str() != Some(COMPACT_COMMIT_SCHEMA) {
+        let schema = fields.first().and_then(JsonValue::as_str);
+        let legacy = schema == Some(COMPACT_COMMIT_SCHEMA) && fields.len() == 17;
+        let packed = schema == Some(PACKED_COMPACT_COMMIT_SCHEMA) && fields.len() == 18;
+        let identity_paths =
+            schema == Some(IDENTITY_PATHS_COMPACT_COMMIT_SCHEMA) && fields.len() == 18;
+        let packed_identity_paths = schema == Some(PACKED_IDENTITY_PATHS_COMPACT_COMMIT_SCHEMA)
+            && fields.len() == 19;
+        let legacy_v3 = schema == Some(COMPACT_COMMIT_V3_SCHEMA) && fields.len() == 17;
+        let packed_v3 = schema == Some(PACKED_COMPACT_COMMIT_V3_SCHEMA) && fields.len() == 18;
+        let identity_paths_v3 =
+            schema == Some(IDENTITY_PATHS_COMPACT_COMMIT_V3_SCHEMA) && fields.len() == 18;
+        let packed_identity_paths_v3 =
+            schema == Some(PACKED_IDENTITY_PATHS_COMPACT_COMMIT_V3_SCHEMA) && fields.len() == 19;
+        let legacy_v4 = schema == Some(COMPACT_COMMIT_V4_SCHEMA) && fields.len() == 18;
+        let packed_v4 = schema == Some(PACKED_COMPACT_COMMIT_V4_SCHEMA) && fields.len() == 19;
+        let identity_paths_v4 =
+            schema == Some(IDENTITY_PATHS_COMPACT_COMMIT_V4_SCHEMA) && fields.len() == 19;
+        let packed_identity_paths_v4 =
+            schema == Some(PACKED_IDENTITY_PATHS_COMPACT_COMMIT_V4_SCHEMA) && fields.len() == 20;
+        if !legacy && !packed && !identity_paths && !packed_identity_paths
+            && !legacy_v3 && !packed_v3 && !identity_paths_v3 && !packed_identity_paths_v3
+            && !legacy_v4 && !packed_v4 && !identity_paths_v4 && !packed_identity_paths_v4
+        {
             return Err(invalid("compact source commit version differs"));
         }
+        let has_v3_membership = legacy_v3 || packed_v3 || identity_paths_v3 || packed_identity_paths_v3
+            || legacy_v4 || packed_v4 || identity_paths_v4 || packed_identity_paths_v4;
+        let has_v4_proof = legacy_v4 || packed_v4 || identity_paths_v4 || packed_identity_paths_v4;
+        let has_objects = packed || packed_identity_paths || packed_v3 || packed_identity_paths_v3
+            || packed_v4 || packed_identity_paths_v4;
+        let has_identity_paths =
+            identity_paths || packed_identity_paths || identity_paths_v3 || packed_identity_paths_v3
+                || identity_paths_v4 || packed_identity_paths_v4;
         let base_revision = optional_revision(&fields[2])?
             .ok_or_else(|| invalid("compact source commit base revision is absent"))?;
         let result = Self {
@@ -805,20 +1633,44 @@ impl CompactCommitV2 {
             base_revision,
             validator_sha256: digest(&fields[3])?,
             batch_sha256: digest(&fields[4])?,
-            membership_v1: SourceMembershipV1 {
-                count: number(&fields[5])?,
-                digest: digest(&fields[6])?,
+            membership_v1: if has_v3_membership {
+                membership_v1_from(&fields[5])?
+            } else {
+                Some(SourceMembershipV1 {
+                    count: number(&fields[5])?,
+                    digest: digest(&fields[6])?,
+                })
             },
-            source_bytes: number(&fields[7])?,
-            member_count: number(&fields[8])?,
-            identity_count: number(&fields[9])?,
-            dependency_source_count: number(&fields[10])?,
-            dependency_count: number(&fields[11])?,
-            retirement_count: number(&fields[12])?,
-            members: tree(&fields[13])?,
-            identities: tree(&fields[14])?,
-            dependencies: tree(&fields[15])?,
-            retirements: tree(&fields[16])?,
+            membership_v2: if has_v3_membership {
+                membership_v2_from(&fields[6])?
+            } else {
+                None
+            },
+            completion_proof: if has_v4_proof {
+                completion_proof_from(&fields[7])?
+            } else {
+                None
+            },
+            source_bytes: number(&fields[7 + usize::from(has_v4_proof)])?,
+            member_count: number(&fields[8 + usize::from(has_v4_proof)])?,
+            identity_count: number(&fields[9 + usize::from(has_v4_proof)])?,
+            dependency_source_count: number(&fields[10 + usize::from(has_v4_proof)])?,
+            dependency_count: number(&fields[11 + usize::from(has_v4_proof)])?,
+            retirement_count: number(&fields[12 + usize::from(has_v4_proof)])?,
+            members: tree(&fields[13 + usize::from(has_v4_proof)])?,
+            identities: tree(&fields[14 + usize::from(has_v4_proof)])?,
+            dependencies: tree(&fields[15 + usize::from(has_v4_proof)])?,
+            retirements: tree(&fields[16 + usize::from(has_v4_proof)])?,
+            objects: if has_objects {
+                Some(tree(&fields[17 + usize::from(has_v4_proof)])?)
+            } else {
+                None
+            },
+            identity_paths: if has_identity_paths {
+                Some(tree(&fields[17 + usize::from(has_v4_proof) + usize::from(has_objects)])?)
+            } else {
+                None
+            },
         };
         if result.encode_state_upper_bound(raw.len())? > workspace {
             return Err(invalid(
@@ -838,6 +1690,7 @@ impl CompactCommitV2 {
             && self.validator_sha256 == roots.validator_sha256
             && Some(self.batch_sha256) == roots.batch_sha256
             && self.membership_v1 == roots.membership_v1
+            && self.completion_proof == roots.completion_proof
             && self.source_bytes == roots.source_bytes
             && self.member_count == roots.member_count
             && self.identity_count == roots.identity_count
@@ -848,9 +1701,12 @@ impl CompactCommitV2 {
             && self.identities == roots.identities
             && self.dependencies == roots.dependencies
             && self.retirements == roots.retirements
+            && self.objects == roots.objects
+            && self.identity_paths == roots.identity_paths
             && matches!(
                 roots.source_artifact,
                 SourceRevisionArtifactV2::CompactCommitV2 { .. }
+                    | SourceRevisionArtifactV2::CompactPackedV2 { .. }
             )
     }
 }
@@ -888,14 +1744,28 @@ impl SourceRootSetV2 {
         &self,
         additional_live_bytes: usize,
     ) -> io::Result<usize> {
+        let mut roots = [
+            &self.current.members,
+            &self.current.identities,
+            &self.current.dependencies,
+            &self.current.retirements,
+            &self.history,
+            &self.history,
+            &self.history,
+        ];
+        let mut count = 4;
+        if let Some(objects) = self.current.objects.as_ref() {
+            roots[count] = objects;
+            count += 1;
+        }
+        if let Some(identity_paths) = self.current.identity_paths.as_ref() {
+            roots[count] = identity_paths;
+            count += 1;
+        }
+        roots[count] = &self.history;
+        count += 1;
         descriptor_json_workspace_upper_bound(
-            &[
-                &self.current.members,
-                &self.current.identities,
-                &self.current.dependencies,
-                &self.current.retirements,
-                &self.history,
-            ],
+            &roots[..count],
             self.retained_state_bytes()?,
             additional_live_bytes,
         )
@@ -1072,6 +1942,51 @@ impl NativeV2TreeIo {
             .map_err(|_| invalid("V2 persistent allocation precharge regressed"))
     }
 
+    /// Release an exactly removed temporary inode after its earlier physical
+    /// reconciliation. Both the outstanding precharge and observed allocation
+    /// are reversed; ambiguous callers must keep the charge instead.
+    pub(crate) fn release_temporary_file_allocation(
+        &self,
+        reserved: u64,
+        actual_removed: u64,
+    ) -> io::Result<()> {
+        let previous_actual = self
+            .actual
+            .fetch_update(Ordering::AcqRel, Ordering::Acquire, |current| {
+                current.checked_sub(actual_removed)
+            })
+            .map_err(|_| invalid("V2 temporary allocation actual regressed"))?;
+        let next_actual = previous_actual - actual_removed;
+        if let Err(error) = self.custody.update_actual_allocated(next_actual) {
+            let _ = self
+                .actual
+                .fetch_update(Ordering::AcqRel, Ordering::Acquire, |current| {
+                    current.checked_add(actual_removed)
+                });
+            let _ = self.custody.update_actual_allocated(previous_actual);
+            return Err(invalid(error.to_string()));
+        }
+        if self
+            .reserved
+            .fetch_update(Ordering::AcqRel, Ordering::Acquire, |current| {
+                current.checked_sub(reserved)
+            })
+            .is_err()
+        {
+            let restored = self
+                .actual
+                .fetch_update(Ordering::AcqRel, Ordering::Acquire, |current| {
+                    current.checked_add(actual_removed)
+                })
+                .is_ok();
+            if restored {
+                let _ = self.custody.update_actual_allocated(previous_actual);
+            }
+            return Err(invalid("V2 temporary allocation precharge regressed"));
+        }
+        Ok(())
+    }
+
     pub(crate) fn selected_allocation_unit_bytes(&self) -> u64 {
         self.allocation_unit_bytes
     }
@@ -1098,6 +2013,9 @@ impl NativeV2TreeIo {
 impl AuthenticatedTreeIoLedgerV1 for NativeV2TreeIo {
     fn charge_read(&self, bytes: u64) -> bool {
         self.io.charge_read(bytes).is_ok()
+    }
+    fn charge_read_upper_bound(&self, bytes: u64) -> bool {
+        self.io.charge_read_upper_bound(bytes).is_ok()
     }
     fn record_read_returned(&self, bytes: u64) -> bool {
         self.io.record_read_returned(bytes).is_ok()
@@ -1188,6 +2106,52 @@ fn writer_context_state_bytes(
         .ok_or_else(|| invalid("V2 writer retained context state overflow"))
 }
 
+fn packed_object_limits(
+    profile: &super::source_foundation_admission::NativeSegmentV2Budget,
+    segment: &SegmentStore,
+    used: AuthenticatedTreeWorkV1,
+    rows_used: u64,
+    max_objects: u64,
+    caller_live_state_bytes: usize,
+    shared_work: &AdmissionWorkBudget,
+    cumulative_tree_work: bool,
+) -> io::Result<PackedObjectLimitsV2> {
+    if caller_live_state_bytes >= profile.max_working_state_bytes {
+        return Err(invalid("packed object caller state exceeds selected profile"));
+    }
+    let mut tree_limits = if cumulative_tree_work {
+        profile.tree_limits
+    } else {
+        remaining_tree_limits(profile.tree_limits, used)?
+    };
+    let rows_remaining = profile
+        .tree_limits
+        .max_rows
+        .checked_sub(rows_used)
+        .ok_or_else(|| invalid("packed object cumulative row profile regressed"))?;
+    if !cumulative_tree_work {
+        // The tree API requires a positive finite row cap even for an empty
+        // root; `max_objects` and the source iterator still prevent any row.
+        tree_limits.max_rows = rows_remaining.max(1);
+    }
+    let max_work_units = shared_work.remaining()?;
+    if max_work_units == 0 {
+        return Err(invalid("packed object shared work ceiling exhausted"));
+    }
+    Ok(PackedObjectLimitsV2 {
+        tree_limits,
+        max_working_state_bytes: profile.max_working_state_bytes,
+        caller_live_state_bytes,
+        max_work_units,
+        max_objects,
+        max_delta_rows: rows_remaining,
+        max_pack_frames: segment
+            .limits()
+            .max_frames
+            .min(MAX_PACKED_OBJECT_FRAMES_V2),
+    })
+}
+
 pub(crate) struct BuiltInitialRootSetV2 {
     pub(crate) roots: SourceRootSetV2,
     pub(crate) bytes: Vec<u8>,
@@ -1236,6 +2200,7 @@ pub(crate) fn build_initial_rootset_v2(
     let profile = index
         .segment_v2_budget()
         .ok_or_else(|| invalid("V2 root builder lacks the native completion profile"))?;
+    let shared_work = candidate.admission_work_budget()?;
     index.verify_candidate()?;
     let tree_io = NativeV2TreeIo::from_budget(profile);
     if !store.has_v2_allocation_accountant(&tree_io) {
@@ -1320,6 +2285,7 @@ pub(crate) fn build_initial_rootset_v2(
         &mut used,
         &mut used_rows,
         writer_live_state,
+        &shared_work,
         deadline,
         cancelled,
     )?;
@@ -1351,12 +2317,32 @@ pub(crate) fn build_initial_rootset_v2(
         writer_live_state
             .checked_add(prior_roots_state)
             .ok_or_else(|| invalid("V2 identity roots state overflow"))?,
+        &shared_work,
         deadline,
         cancelled,
     )?;
     prior_roots_state = prior_roots_state
         .checked_add(tree_retained_state_bytes(&identities)?)
         .ok_or_else(|| invalid("V2 identity roots state overflow"))?;
+
+    let identity_paths = build_index_identity_paths_v2(
+        candidate,
+        index,
+        &segment,
+        profile,
+        &tree_io,
+        &mut used,
+        &mut used_rows,
+        writer_live_state
+            .checked_add(prior_roots_state)
+            .ok_or_else(|| invalid("V2 reverse identity roots state overflow"))?,
+        &shared_work,
+        deadline,
+        cancelled,
+    )?;
+    prior_roots_state = prior_roots_state
+        .checked_add(tree_retained_state_bytes(&identity_paths)?)
+        .ok_or_else(|| invalid("V2 reverse identity roots state overflow"))?;
 
     let dependency_rows = {
         use super::source_admission_index::NativeDependencyDirectionV1::Forward;
@@ -1409,6 +2395,7 @@ pub(crate) fn build_initial_rootset_v2(
         writer_live_state
             .checked_add(prior_roots_state)
             .ok_or_else(|| invalid("V2 dependency roots state overflow"))?,
+        &shared_work,
         deadline,
         cancelled,
     )?;
@@ -1444,9 +2431,41 @@ pub(crate) fn build_initial_rootset_v2(
         writer_live_state
             .checked_add(prior_roots_state)
             .ok_or_else(|| invalid("V2 retirement roots state overflow"))?,
+        &shared_work,
         deadline,
         cancelled,
     )?;
+    let retirement_root_state = tree_retained_state_bytes(&retirements)?;
+    let object_live_state = writer_live_state
+        .checked_add(prior_roots_state)
+        .and_then(|bytes| bytes.checked_add(retirement_root_state))
+        .ok_or_else(|| invalid("V2 object root live-state overflow"))?;
+    let object_limits = packed_object_limits(
+        profile,
+        &segment,
+        used,
+        used_rows,
+        candidate.desired_object_count()?,
+        object_live_state,
+        &shared_work,
+        false,
+    )?;
+    let object_work_budget = shared_work.clone();
+    let mut object_debit_work = move || object_work_budget.charge_many(1).is_ok();
+    let (objects, object_work) = PackedObjectWriterV2::build(
+        &segment,
+        candidate.packed_object_sources(),
+        object_limits,
+        tree_io.clone(),
+        deadline,
+        cancelled,
+        &mut object_debit_work,
+    )?;
+    add_tree_work(&mut used, object_work.tree_work, base_limits)?;
+    used_rows = used_rows
+        .checked_add(objects.entries)
+        .filter(|rows| *rows <= base_limits.max_rows)
+        .ok_or_else(|| invalid("V2 packed object cumulative row profile exceeded"))?;
 
     let fence = index.fence();
     let (member_count, source_bytes) = candidate.membership_counts();
@@ -1465,7 +2484,13 @@ pub(crate) fn build_initial_rootset_v2(
             bytes: manifest_bytes,
         },
         batch_sha256: Some(batch_sha256),
-        membership_v1: fence.membership,
+        membership_v1: Some(fence.membership),
+        membership_v2: Some(SourceMembershipV2::from_members_tree(
+            member_count,
+            source_bytes,
+            members.commitment,
+        )),
+        completion_proof: Some(index.completion_proof()?),
         source_bytes,
         member_count,
         identity_count: index.identity_count(),
@@ -1474,8 +2499,10 @@ pub(crate) fn build_initial_rootset_v2(
         retirement_count: candidate.retirement_count(),
         members,
         identities,
+        identity_paths: Some(identity_paths),
         dependencies,
         retirements,
+        objects: Some(objects),
     };
     let current_retained = current.retained_state_bytes()?;
     let current_validate_state = writer_live_state
@@ -1517,6 +2544,7 @@ pub(crate) fn build_initial_rootset_v2(
             .checked_add(current_retained)
             .and_then(|bytes| bytes.checked_add(history_entry_state))
             .ok_or_else(|| invalid("V2 initial history live state overflow"))?,
+        &shared_work,
         deadline,
         cancelled,
     )?;
@@ -1546,14 +2574,17 @@ pub(crate) fn build_initial_rootset_v2(
     if history_lookup_live_state > profile.max_working_state_bytes {
         return Err(invalid("V2 initial history lookup exceeds state profile"));
     }
+    let work_budget = shared_work.clone();
+    let mut debit_work = move || work_budget.charge_many(1).is_ok();
     let (current_row, history_read_work) = segment
-        .lookup_authenticated_tree_v2_with_work_and_io(
+        .lookup_authenticated_tree_v2_with_work_and_io_and_callback(
             &roots.history,
             revision.0.as_bytes(),
             remaining_tree_limits(base_limits, used)?,
             Some(tree_io.clone()),
             deadline,
             cancelled,
+            &mut debit_work,
         )
         .map_err(tree_io_error)?;
     add_tree_work(&mut used, history_read_work, base_limits)?;
@@ -1594,6 +2625,7 @@ fn build_legacy_revision_roots_v2(
     tree_io: &Arc<NativeV2TreeIo>,
     used: &mut AuthenticatedTreeWorkV1,
     used_rows: &mut u64,
+    shared_work: &AdmissionWorkBudget,
     writer_live_state: usize,
     deadline: Instant,
     cancelled: &std::sync::atomic::AtomicBool,
@@ -1689,6 +2721,7 @@ fn build_legacy_revision_roots_v2(
             writer_live_state
                 .checked_add(retained_families_state)
                 .ok_or_else(|| invalid("legacy member family state overflow"))?,
+            shared_work,
             deadline,
             cancelled,
         )?
@@ -1751,6 +2784,7 @@ fn build_legacy_revision_roots_v2(
             writer_live_state
                 .checked_add(retained_families_state)
                 .ok_or_else(|| invalid("legacy identity family state overflow"))?,
+            shared_work,
             deadline,
             cancelled,
         )?
@@ -1761,6 +2795,26 @@ fn build_legacy_revision_roots_v2(
     if observed_identities.get() != metadata.identity_count {
         return Err(invalid("legacy V1 identity EOF differs"));
     }
+
+    let identity_paths = build_streamed_identity_paths_v2(
+        reader,
+        metadata.revision,
+        metadata.identity_count,
+        segment,
+        profile,
+        tree_io,
+        used,
+        used_rows,
+        writer_live_state
+            .checked_add(retained_families_state)
+            .ok_or_else(|| invalid("legacy reverse identity family state overflow"))?,
+        shared_work,
+        deadline,
+        cancelled,
+    )?;
+    retained_families_state = retained_families_state
+        .checked_add(tree_retained_state_bytes(&identity_paths)?)
+        .ok_or_else(|| invalid("legacy reverse identity family state overflow"))?;
 
     let source_visits = Cell::new(0u64);
     let edge_visits = Cell::new(0u64);
@@ -1862,6 +2916,7 @@ fn build_legacy_revision_roots_v2(
             writer_live_state
                 .checked_add(retained_families_state)
                 .ok_or_else(|| invalid("legacy dependency family state overflow"))?,
+            shared_work,
             deadline,
             cancelled,
         )?
@@ -1914,6 +2969,7 @@ fn build_legacy_revision_roots_v2(
             writer_live_state
                 .checked_add(retained_families_state)
                 .ok_or_else(|| invalid("legacy retirement family state overflow"))?,
+            shared_work,
             deadline,
             cancelled,
         )?
@@ -1935,7 +2991,13 @@ fn build_legacy_revision_roots_v2(
             sha256: artifact_sha256,
         },
         batch_sha256: None,
-        membership_v1: membership,
+        membership_v1: Some(membership),
+        membership_v2: Some(SourceMembershipV2::from_members_tree(
+            observed_members.get(),
+            observed_source_bytes.get(),
+            members.commitment,
+        )),
+        completion_proof: None,
         source_bytes: observed_source_bytes.get(),
         member_count: observed_members.get(),
         identity_count: observed_identities.get(),
@@ -1946,6 +3008,8 @@ fn build_legacy_revision_roots_v2(
         identities,
         dependencies,
         retirements,
+        objects: None,
+        identity_paths: Some(identity_paths),
     };
     let roots_retained = roots.retained_state_bytes()?;
     let post_build_live_state = writer_live_state
@@ -1976,6 +3040,7 @@ fn build_full_tree_v2<I>(
     used: &mut AuthenticatedTreeWorkV1,
     used_rows: &mut u64,
     additional_live_state: usize,
+    shared_work: &AdmissionWorkBudget,
     deadline: Instant,
     cancelled: &std::sync::atomic::AtomicBool,
 ) -> io::Result<AuthenticatedTreeDescriptorV2>
@@ -1995,8 +3060,10 @@ where
         .filter(|rows| *rows > 0)
         .ok_or_else(|| invalid("V2 migration cumulative row profile exceeded"))?;
     let io_ledger: Arc<dyn AuthenticatedTreeIoLedgerV1> = tree_io.clone();
+    let work_budget = shared_work.clone();
+    let mut debit_work = move || work_budget.charge_many(1).is_ok();
     let (descriptor, work) = segment
-        .build_authenticated_tree_v2_with_work_and_io_and_state(
+        .build_authenticated_tree_v2_with_work_and_io_and_state_and_callback(
             kind,
             rows,
             limits,
@@ -2005,6 +3072,7 @@ where
             additional_live_state,
             deadline,
             cancelled,
+            &mut debit_work,
         )
         .map_err(tree_io_error)?;
     add_tree_work(used, work, profile.tree_limits)?;
@@ -2012,6 +3080,213 @@ where
         .checked_add(descriptor.entries)
         .filter(|rows| *rows <= profile.tree_limits.max_rows)
         .ok_or_else(|| invalid("V2 migration cumulative row count exceeded"))?;
+    Ok(descriptor)
+}
+
+/// Build the reverse identity index in path/id byte order without retaining
+/// the corpus identity list. Source member paths and each path's IDs are
+/// already exposed as bounded ordered cursors by the candidate and index.
+fn build_index_identity_paths_v2(
+    candidate: &super::source_admission_spooled_candidate::SpoolCandidate<'_>,
+    index: &super::source_admission_spooled_index::IndexView<'_>,
+    segment: &SegmentStore,
+    profile: &super::source_foundation_admission::NativeSegmentV2Budget,
+    tree_io: &Arc<NativeV2TreeIo>,
+    used: &mut AuthenticatedTreeWorkV1,
+    used_rows: &mut u64,
+    additional_live_state: usize,
+    shared_work: &AdmissionWorkBudget,
+    deadline: Instant,
+    cancelled: &std::sync::atomic::AtomicBool,
+) -> io::Result<AuthenticatedTreeDescriptorV2> {
+    let cursor_state = profile
+        .tree_limits
+        .max_key_bytes
+        .checked_mul(4)
+        .and_then(|bytes| {
+            bytes.checked_add(
+                4 * size_of::<Option<RelativePath>>()
+                    + 4 * size_of::<Option<String>>()
+                    + size_of::<Cell<u64>>(),
+            )
+        })
+        .ok_or_else(|| invalid("reverse identity cursor state overflow"))?;
+    let live_state = additional_live_state
+        .checked_add(cursor_state)
+        .ok_or_else(|| invalid("reverse identity live state overflow"))?;
+    if live_state > profile.max_working_state_bytes {
+        return Err(invalid("reverse identity cursor exceeds state profile"));
+    }
+    let expected = index.identity_count();
+    let observed = Cell::new(0u64);
+    let observed_rows = &observed;
+    let row_allowance = profile.max_working_state_bytes / 8;
+    let rows = {
+        let mut after_path: Option<RelativePath> = None;
+        let mut current_path: Option<RelativePath> = None;
+        let mut after_id: Option<String> = None;
+        std::iter::from_fn(move || loop {
+            if let Some(path) = current_path.as_ref() {
+                match index.identity_for_path_after(path, after_id.as_deref()) {
+                    Ok(Some(id)) => {
+                        after_id = Some(id.clone());
+                        observed_rows.set(observed_rows.get().saturating_add(1));
+                        let key = match identity_path_tree_key(
+                            path,
+                            &id,
+                            profile.tree_limits.max_key_bytes,
+                        ) {
+                            Ok(key) => key,
+                            Err(error) => return Some(Err(tree_io_error(error))),
+                        };
+                        return Some(Ok(AuthenticatedTreeEntryV1 {
+                            key,
+                            value: Vec::new(),
+                        }));
+                    }
+                    Ok(None) => {
+                        current_path = None;
+                        after_id = None;
+                    }
+                    Err(error) => return Some(Err(tree_io_error(error))),
+                }
+                continue;
+            }
+            match candidate.member_after_bounded(after_path.as_ref(), row_allowance) {
+                Ok(Some(member)) => {
+                    after_path = Some(member.path.clone());
+                    current_path = Some(member.path);
+                }
+                Ok(None) => return None,
+                Err(error) => return Some(Err(tree_io_error(error))),
+            }
+        })
+    };
+    let descriptor = build_full_tree_v2(
+        segment,
+        IDENTITY_PATHS_KIND,
+        rows,
+        profile,
+        tree_io,
+        used,
+        used_rows,
+        live_state,
+        shared_work,
+        deadline,
+        cancelled,
+    )?;
+    if observed.get() != expected || descriptor.entries != expected {
+        return Err(invalid("reverse identity cursor EOF or count differs"));
+    }
+    Ok(descriptor)
+}
+
+fn build_streamed_identity_paths_v2(
+    reader: &StreamedCorpusCutReaderV1,
+    revision: SourceRevision,
+    expected: u64,
+    segment: &SegmentStore,
+    profile: &super::source_foundation_admission::NativeSegmentV2Budget,
+    tree_io: &Arc<NativeV2TreeIo>,
+    used: &mut AuthenticatedTreeWorkV1,
+    used_rows: &mut u64,
+    additional_live_state: usize,
+    shared_work: &AdmissionWorkBudget,
+    deadline: Instant,
+    cancelled: &std::sync::atomic::AtomicBool,
+) -> io::Result<AuthenticatedTreeDescriptorV2> {
+    let cursor_state = profile
+        .tree_limits
+        .max_key_bytes
+        .checked_mul(4)
+        .and_then(|bytes| {
+            bytes.checked_add(
+                4 * size_of::<Option<RelativePath>>()
+                    + 4 * size_of::<Option<String>>()
+                    + size_of::<Cell<u64>>(),
+            )
+        })
+        .ok_or_else(|| invalid("legacy reverse identity cursor state overflow"))?;
+    let live_state = additional_live_state
+        .checked_add(cursor_state)
+        .ok_or_else(|| invalid("legacy reverse identity live state overflow"))?;
+    if live_state > profile.max_working_state_bytes {
+        return Err(invalid(
+            "legacy reverse identity cursor exceeds state profile",
+        ));
+    }
+    let limits = profile.tree_limits;
+    let observed = Cell::new(0u64);
+    let observed_rows = &observed;
+    let rows = {
+        let mut after_path: Option<RelativePath> = None;
+        let mut current_path: Option<RelativePath> = None;
+        let mut after_id: Option<String> = None;
+        std::iter::from_fn(move || loop {
+            if let Some(path) = current_path.as_ref() {
+                match reader.identity_for_path_after(revision, path, after_id.as_deref()) {
+                    Ok(Some(id)) => {
+                        after_id = Some(id.clone());
+                        let Some(next) = observed_rows.get().checked_add(1).filter(|n| *n <= expected)
+                        else {
+                            return Some(Err(tree_error(
+                                "legacy reverse identity count exceeded",
+                            )));
+                        };
+                        observed_rows.set(next);
+                        let key = match identity_path_tree_key(path, &id, limits.max_key_bytes) {
+                            Ok(key) => key,
+                            Err(error) => return Some(Err(tree_io_error(error))),
+                        };
+                        return Some(Ok(AuthenticatedTreeEntryV1 {
+                            key,
+                            value: Vec::new(),
+                        }));
+                    }
+                    Ok(None) => {
+                        current_path = None;
+                        after_id = None;
+                    }
+                    Err(error) => {
+                        return Some(Err(tree_io_error(io::Error::new(
+                            io::ErrorKind::InvalidData,
+                            error,
+                        ))));
+                    }
+                }
+                continue;
+            }
+            match reader.member_after(revision, after_path.as_ref()) {
+                Ok(Some(member)) => {
+                    after_path = Some(member.path.clone());
+                    current_path = Some(member.path);
+                }
+                Ok(None) => return None,
+                Err(error) => {
+                    return Some(Err(tree_io_error(io::Error::new(
+                        io::ErrorKind::InvalidData,
+                        error,
+                    ))));
+                }
+            }
+        })
+    };
+    let descriptor = build_full_tree_v2(
+        segment,
+        IDENTITY_PATHS_KIND,
+        rows,
+        profile,
+        tree_io,
+        used,
+        used_rows,
+        live_state,
+        shared_work,
+        deadline,
+        cancelled,
+    )?;
+    if observed.get() != expected || descriptor.entries != expected {
+        return Err(invalid("legacy reverse identity EOF or count differs"));
+    }
     Ok(descriptor)
 }
 
@@ -2032,6 +3307,7 @@ pub(crate) fn build_v1_migration_rootset_v2(
     let profile = index
         .segment_v2_budget()
         .ok_or_else(|| invalid("V1 migration lacks native V2 completion profile"))?;
+    let shared_work = candidate.admission_work_budget()?;
     index.verify_candidate()?;
     let fence = candidate.fence()?;
     let expected_base = fence
@@ -2112,11 +3388,13 @@ pub(crate) fn build_v1_migration_rootset_v2(
     let current_dependency_sources = index.dependency_source_count();
     let current_dependency_count = index.dependency_count();
     let current_retirement_count = candidate.retirement_count();
+    let current_object_count = candidate.desired_object_count()?;
     for count in [
         current_members,
         current_identity_count,
         current_dependency_count,
         current_retirement_count,
+        current_object_count,
     ] {
         expected_rows = expected_rows
             .checked_add(count)
@@ -2209,6 +3487,7 @@ pub(crate) fn build_v1_migration_rootset_v2(
             &tree_io,
             &mut used,
             &mut used_rows,
+            &shared_work,
             writer_live_state,
             deadline,
             cancelled,
@@ -2261,6 +3540,7 @@ pub(crate) fn build_v1_migration_rootset_v2(
         writer_live_state
             .checked_add(current_family_state)
             .ok_or_else(|| invalid("migration member family state overflow"))?,
+        &shared_work,
         deadline,
         cancelled,
     )?;
@@ -2291,12 +3571,32 @@ pub(crate) fn build_v1_migration_rootset_v2(
         writer_live_state
             .checked_add(current_family_state)
             .ok_or_else(|| invalid("migration identity family state overflow"))?,
+        &shared_work,
         deadline,
         cancelled,
     )?;
     current_family_state = current_family_state
         .checked_add(tree_retained_state_bytes(&identities)?)
         .ok_or_else(|| invalid("migration identity family state overflow"))?;
+
+    let identity_paths = build_index_identity_paths_v2(
+        candidate,
+        index,
+        &segment,
+        profile,
+        &tree_io,
+        &mut used,
+        &mut used_rows,
+        writer_live_state
+            .checked_add(current_family_state)
+            .ok_or_else(|| invalid("migration reverse identity family state overflow"))?,
+        &shared_work,
+        deadline,
+        cancelled,
+    )?;
+    current_family_state = current_family_state
+        .checked_add(tree_retained_state_bytes(&identity_paths)?)
+        .ok_or_else(|| invalid("migration reverse identity family state overflow"))?;
 
     let dependency_source_rows = Cell::new(0u64);
     let dependency_rows = {
@@ -2349,6 +3649,7 @@ pub(crate) fn build_v1_migration_rootset_v2(
         writer_live_state
             .checked_add(current_family_state)
             .ok_or_else(|| invalid("migration dependency family state overflow"))?,
+        &shared_work,
         deadline,
         cancelled,
     )?;
@@ -2385,9 +3686,13 @@ pub(crate) fn build_v1_migration_rootset_v2(
         writer_live_state
             .checked_add(current_family_state)
             .ok_or_else(|| invalid("migration retirement family state overflow"))?,
+        &shared_work,
         deadline,
         cancelled,
     )?;
+    current_family_state = current_family_state
+        .checked_add(tree_retained_state_bytes(&retirements)?)
+        .ok_or_else(|| invalid("migration retirement family state overflow"))?;
     if members.entries != current_members
         || identities.entries != current_identity_count
         || dependencies.entries != current_dependency_count
@@ -2405,18 +3710,57 @@ pub(crate) fn build_v1_migration_rootset_v2(
         return Err(invalid("migration current retirement rows exceed count"));
     }
 
+    let object_live_state = writer_live_state
+        .checked_add(current_family_state)
+        .ok_or_else(|| invalid("migration object root live-state overflow"))?;
+    let object_limits = packed_object_limits(
+        profile,
+        &segment,
+        used,
+        used_rows,
+        current_object_count,
+        object_live_state,
+        &shared_work,
+        false,
+    )?;
+    let object_work_budget = shared_work.clone();
+    let mut object_debit_work = move || object_work_budget.charge_many(1).is_ok();
+    let (objects, object_work) = PackedObjectWriterV2::build(
+        &segment,
+        candidate.packed_object_sources(),
+        object_limits,
+        tree_io.clone(),
+        deadline,
+        cancelled,
+        &mut object_debit_work,
+    )?;
+    add_tree_work(&mut used, object_work.tree_work, profile.tree_limits)?;
+    used_rows = used_rows
+        .checked_add(objects.entries)
+        .filter(|rows| *rows <= profile.tree_limits.max_rows)
+        .ok_or_else(|| invalid("migration packed object row profile exceeded"))?;
+    current_family_state = current_family_state
+        .checked_add(tree_retained_state_bytes(&objects)?)
+        .ok_or_else(|| invalid("migration packed object family state overflow"))?;
+
     let placeholder = Digest256::of_bytes(&[]);
     let provisional = SourceRevisionRootsV2 {
         revision: expected_base,
         base_revision: Some(expected_base),
         validator_sha256: fence.validator_sha256,
         manifest_sha256: placeholder,
-        source_artifact: SourceRevisionArtifactV2::CompactCommitV2 {
+        source_artifact: SourceRevisionArtifactV2::CompactPackedV2 {
             sha256: placeholder,
             bytes: 1,
         },
         batch_sha256: Some(fence.batch_sha256),
-        membership_v1: fence.membership,
+        membership_v1: Some(fence.membership),
+        membership_v2: Some(SourceMembershipV2::from_members_tree(
+            current_members,
+            current_source_bytes,
+            members.commitment,
+        )),
+        completion_proof: Some(index.completion_proof()?),
         source_bytes: current_source_bytes,
         member_count: current_members,
         identity_count: current_identity_count,
@@ -2425,8 +3769,10 @@ pub(crate) fn build_v1_migration_rootset_v2(
         retirement_count: current_retirement_count,
         members,
         identities,
+        identity_paths: Some(identity_paths),
         dependencies,
         retirements,
+        objects: Some(objects),
     };
     let provisional_retained_state = provisional.retained_state_bytes()?;
     let provisional_validate_state = writer_live_state
@@ -2510,6 +3856,7 @@ pub(crate) fn build_v1_migration_rootset_v2(
         &mut used,
         &mut used_rows,
         history_builder_live_state,
+        &shared_work,
         deadline,
         cancelled,
     )?;
@@ -2538,14 +3885,17 @@ pub(crate) fn build_v1_migration_rootset_v2(
     if history_lookup_live_state > profile.max_working_state_bytes {
         return Err(invalid("V1 migration history lookup exceeds state profile"));
     }
+    let work_budget = shared_work.clone();
+    let mut debit_work = move || work_budget.charge_many(1).is_ok();
     let (history_row, history_read_work) = segment
-        .lookup_authenticated_tree_v2_with_work_and_io(
+        .lookup_authenticated_tree_v2_with_work_and_io_and_callback(
             &roots.history,
             roots.current.revision.0.as_bytes(),
             remaining_tree_limits(profile.tree_limits, used)?,
             Some(tree_io.clone()),
             deadline,
             cancelled,
+            &mut debit_work,
         )
         .map_err(tree_io_error)?;
     add_tree_work(&mut used, history_read_work, profile.tree_limits)?;
@@ -2601,6 +3951,7 @@ pub(crate) fn build_successor_rootset_v2(
     let profile = index
         .segment_v2_budget()
         .ok_or_else(|| invalid("V2 successor lacks the native completion profile"))?;
+    let shared_work = candidate.admission_work_budget()?;
     index.verify_candidate()?;
     let candidate_fence = candidate.fence()?;
     if candidate_fence != index.fence()
@@ -2728,6 +4079,7 @@ pub(crate) fn build_successor_rootset_v2(
             &tree_io,
             &mut work,
             tree_live_state,
+            &shared_work,
             deadline,
             cancelled,
         )?
@@ -2794,11 +4146,139 @@ pub(crate) fn build_successor_rootset_v2(
             &tree_io,
             &mut work,
             tree_live_state,
+            &shared_work,
             deadline,
             cancelled,
         )?
     };
     current.identities = identities;
+
+    // Maintain the path-keyed identity index by merging bounded old and new
+    // identity cursors for each changed source path. An older root without
+    // this secondary index gets one ordered full build from the current
+    // candidate; no corpus-sized identity vector is retained.
+    let identity_paths = if let Some(old_root) = current.identity_paths.as_ref() {
+        let mut changed_after: Option<RelativePath> = None;
+        let mut current_path: Option<RelativePath> = None;
+        let mut old_after: Option<String> = None;
+        let mut new_after: Option<String> = None;
+        let mut old_id: Option<String> = None;
+        let mut new_id: Option<String> = None;
+        let mut old_loaded = false;
+        let mut new_loaded = false;
+        let mut old_done = false;
+        let mut new_done = false;
+        let changes = std::iter::from_fn(move || loop {
+            if current_path.is_none() {
+                let path = match candidate.changed_source_after(changed_after.as_ref(), row_allowance)
+                {
+                    Ok(Some(path)) => path,
+                    Ok(None) => return None,
+                    Err(error) => return Some(Err(tree_io_error(error))),
+                };
+                changed_after = Some(path.clone());
+                current_path = Some(path);
+                old_after = None;
+                new_after = None;
+                old_id = None;
+                new_id = None;
+                old_loaded = false;
+                new_loaded = false;
+                old_done = false;
+                new_done = false;
+            }
+            let Some(path) = current_path.as_ref() else {
+                return Some(Err(tree_error("reverse identity path cursor is absent")));
+            };
+            if !old_loaded && !old_done {
+                match candidate.v2_base_identity_for_path_after(
+                    path,
+                    old_after.as_deref(),
+                    row_allowance,
+                ) {
+                    Ok(Some(id)) => {
+                        old_after = Some(id.clone());
+                        old_id = Some(id);
+                    }
+                    Ok(None) => old_done = true,
+                    Err(error) => return Some(Err(tree_io_error(error))),
+                }
+                old_loaded = true;
+            }
+            if !new_loaded && !new_done {
+                match index.identity_for_path_after(path, new_after.as_deref()) {
+                    Ok(Some(id)) => {
+                        new_after = Some(id.clone());
+                        new_id = Some(id);
+                    }
+                    Ok(None) => new_done = true,
+                    Err(error) => return Some(Err(tree_io_error(error))),
+                }
+                new_loaded = true;
+            }
+            if old_id.is_none() && new_id.is_none() && old_done && new_done {
+                current_path = None;
+                continue;
+            }
+            if old_id.as_deref().zip(new_id.as_deref()).is_some_and(|(a, b)| a == b) {
+                old_id = None;
+                new_id = None;
+                old_loaded = false;
+                new_loaded = false;
+                continue;
+            }
+            let (id, value, consume_old) = match (old_id.as_deref(), new_id.as_deref()) {
+                (Some(old), Some(new)) if old < new => (old, None, true),
+                (Some(_), Some(new)) => (new, Some(Vec::new()), false),
+                (Some(old), None) => (old, None, true),
+                (None, Some(new)) => (new, Some(Vec::new()), false),
+                (None, None) => {
+                    return Some(Err(tree_error(
+                        "reverse identity cursor stopped before path EOF",
+                    )));
+                }
+            };
+            let key = match identity_path_tree_key(path, id, profile.tree_limits.max_key_bytes) {
+                Ok(key) => key,
+                Err(error) => return Some(Err(tree_io_error(error))),
+            };
+            if consume_old {
+                old_id = None;
+                old_loaded = false;
+            } else {
+                new_id = None;
+                new_loaded = false;
+            }
+            return counted_delta(&row_count, row_limit, key, value);
+        });
+        apply_successor_delta(
+            &segment,
+            old_root,
+            changes,
+            profile,
+            &tree_io,
+            &mut work,
+            tree_live_state,
+            &shared_work,
+            deadline,
+            cancelled,
+        )?
+    } else {
+        let mut full_rows = row_count.get();
+        build_index_identity_paths_v2(
+            candidate,
+            index,
+            &segment,
+            profile,
+            &tree_io,
+            &mut work,
+            &mut full_rows,
+            tree_live_state,
+            deadline,
+            cancelled,
+        )?
+    };
+    current.identity_paths = Some(identity_paths);
 
     // Reverse-adjacency candidate rows are indexed by source/target. Remove
     // old outgoing edges first, then merge the native current edge rows; SQL
@@ -2848,6 +4328,7 @@ pub(crate) fn build_successor_rootset_v2(
             &tree_io,
             &mut work,
             tree_live_state,
+            &shared_work,
             deadline,
             cancelled,
         )?
@@ -2896,11 +4377,62 @@ pub(crate) fn build_successor_rootset_v2(
             &tree_io,
             &mut work,
             tree_live_state,
+            &shared_work,
             deadline,
             cancelled,
         )?
     };
     current.retirements = retirements;
+
+    let desired_object_count = candidate.desired_object_count()?;
+    let object_limits = packed_object_limits(
+        profile,
+        &segment,
+        work,
+        row_count.get(),
+        desired_object_count,
+        tree_live_state,
+        &shared_work,
+        current.objects.is_some(),
+    )?;
+    let object_work_budget = shared_work.clone();
+    let mut object_debit_work = move || object_work_budget.charge_many(1).is_ok();
+    let (objects, object_work) = if let Some(old_objects) = current.objects.as_ref() {
+        PackedObjectWriterV2::apply_delta(
+            &segment,
+            old_objects,
+            candidate.packed_object_changes(),
+            object_limits,
+            tree_io.clone(),
+            work,
+            deadline,
+            cancelled,
+            &mut object_debit_work,
+        )?
+    } else {
+        PackedObjectWriterV2::build(
+            &segment,
+            candidate.packed_object_sources(),
+            object_limits,
+            tree_io.clone(),
+            deadline,
+            cancelled,
+            &mut object_debit_work,
+        )?
+    };
+    if current.objects.is_some() {
+        work = object_work.tree_work;
+    } else {
+        add_tree_work(&mut work, object_work.tree_work, profile.tree_limits)?;
+    }
+    row_count.set(
+        row_count
+            .get()
+            .checked_add(object_work.object_rows)
+            .filter(|rows| *rows <= row_limit)
+            .ok_or_else(|| invalid("V2 packed object delta row profile exceeded"))?,
+    );
+    current.objects = Some(objects);
 
     let fence = index.fence();
     let (member_count, source_bytes) = candidate.membership_counts();
@@ -2924,7 +4456,13 @@ pub(crate) fn build_successor_rootset_v2(
         bytes: 1,
     };
     current.batch_sha256 = Some(candidate.batch_sha256());
-    current.membership_v1 = fence.membership;
+    current.membership_v1 = Some(fence.membership);
+    current.membership_v2 = Some(SourceMembershipV2::from_members_tree(
+        member_count,
+        source_bytes,
+        current.members.commitment,
+    ));
+    current.completion_proof = Some(index.completion_proof()?);
     current.source_bytes = source_bytes;
     current.member_count = member_count;
     current.identity_count = index.identity_count();
@@ -2979,9 +4517,10 @@ pub(crate) fn build_successor_rootset_v2(
         history_changes,
         profile,
         &tree_io,
-        &mut work,
-        history_additional_live,
-        deadline,
+            &mut work,
+            history_additional_live,
+            &shared_work,
+            deadline,
         cancelled,
     )?;
     if history.entries
@@ -3020,14 +4559,17 @@ pub(crate) fn build_successor_rootset_v2(
     if history_read_extra > profile.max_working_state_bytes {
         return Err(invalid("V2 history read exceeds source state profile"));
     }
+    let work_budget = shared_work.clone();
+    let mut debit_work = move || work_budget.charge_many(1).is_ok();
     let (history_row, read_work) = segment
-        .lookup_authenticated_tree_v2_with_work_and_io(
+        .lookup_authenticated_tree_v2_with_work_and_io_and_callback(
             &roots.history,
             revision.0.as_bytes(),
             remaining_tree_limits(profile.tree_limits, work)?,
             Some(tree_io.clone()),
             deadline,
             cancelled,
+            &mut debit_work,
         )
         .map_err(tree_io_error)?;
     add_tree_work(&mut work, read_work, profile.tree_limits)?;
@@ -3085,6 +4627,7 @@ fn apply_successor_delta<I>(
     tree_io: &Arc<NativeV2TreeIo>,
     work: &mut AuthenticatedTreeWorkV1,
     additional_live_state_bytes: usize,
+    shared_work: &AdmissionWorkBudget,
     deadline: Instant,
     cancelled: &std::sync::atomic::AtomicBool,
 ) -> io::Result<AuthenticatedTreeDescriptorV2>
@@ -3095,8 +4638,10 @@ where
         return Err(invalid("V2 COW live state exceeds source profile"));
     }
     let io_ledger: Arc<dyn AuthenticatedTreeIoLedgerV1> = tree_io.clone();
+    let work_budget = shared_work.clone();
+    let mut debit_work = move || work_budget.charge_many(1).is_ok();
     let (next, cumulative_work) = segment
-        .apply_authenticated_tree_delta_v2_with_work_and_io_and_state_cumulative(
+        .apply_authenticated_tree_delta_v2_with_work_and_io_and_state_cumulative_and_callback(
             old,
             changes,
             profile.tree_limits,
@@ -3106,6 +4651,7 @@ where
             additional_live_state_bytes,
             deadline,
             cancelled,
+            &mut debit_work,
         )
         .map_err(tree_io_error)?;
     *work = cumulative_work;
@@ -3130,6 +4676,30 @@ fn dependency_tree_key(
     key.extend_from_slice(source.as_str().as_bytes());
     key.push(0);
     key.extend_from_slice(target.as_str().as_bytes());
+    Ok(key)
+}
+
+fn identity_path_tree_key(
+    path: &RelativePath,
+    id: &str,
+    maximum: usize,
+) -> io::Result<Vec<u8>> {
+    if id.is_empty() || id.as_bytes().contains(&0) {
+        return Err(invalid("V2 reverse identity identifier is invalid"));
+    }
+    let length = path
+        .as_str()
+        .len()
+        .checked_add(1)
+        .and_then(|length| length.checked_add(id.len()))
+        .filter(|length| *length <= maximum)
+        .ok_or_else(|| invalid("V2 reverse identity key exceeds profile"))?;
+    let mut key = Vec::new();
+    key.try_reserve_exact(length)
+        .map_err(|_| invalid("V2 reverse identity key allocation failed"))?;
+    key.extend_from_slice(path.as_str().as_bytes());
+    key.push(0);
+    key.extend_from_slice(id.as_bytes());
     Ok(key)
 }
 

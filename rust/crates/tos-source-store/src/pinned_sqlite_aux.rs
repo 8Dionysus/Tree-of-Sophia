@@ -113,6 +113,31 @@ impl PinnedSqliteIoBudget {
         })))
     }
 
+    /// Create one cumulative read-only logical-I/O ledger. Zero writes are a
+    /// denied capability, not an artificial one-byte allowance. Reads and
+    /// upper-bound guard charges retain the same identity and accounting law
+    /// as a regular request ledger.
+    pub fn new_read_only(max_read_bytes: u64) -> Result<Self> {
+        if max_read_bytes == 0 || max_read_bytes == u64::MAX {
+            return Err(budget_error("SQLite read-only limit must be finite and nonzero"));
+        }
+        Ok(Self(Arc::new(IoState {
+            limits: Mutex::new(IoLimits {
+                max_read: max_read_bytes,
+                max_write: 0,
+            }),
+            read_attempted: AtomicU64::new(0),
+            read_upper_bound_attempted: AtomicU64::new(0),
+            read_upper_bound_permitted: AtomicU64::new(0),
+            read_permitted: AtomicU64::new(0),
+            read_returned: AtomicU64::new(0),
+            write_attempted: AtomicU64::new(0),
+            write_permitted: AtomicU64::new(0),
+            write_returned: AtomicU64::new(0),
+            failure: AtomicU8::new(0),
+        })))
+    }
+
     pub fn charge_read(&self, bytes: u64) -> Result<()> {
         self.charge_read_classified(bytes, false)
     }
@@ -2238,5 +2263,22 @@ mod io_restriction_tests {
             clone.snapshot().failure,
             Some(PinnedSqliteIoFailure::WriteLimit)
         );
+    }
+
+    #[test]
+    fn read_only_ledger_denies_every_nonzero_write_without_a_synthetic_write_cap() {
+        let io = PinnedSqliteIoBudget::new_read_only(19).unwrap();
+        assert!(io.shares_with(&io.clone()));
+        io.charge_read_upper_bound(4).unwrap();
+        io.charge_read(15).unwrap();
+        io.record_read_returned(15).unwrap();
+        assert!(io.charge_write(1).is_err());
+        let seen = io.snapshot();
+        assert_eq!(seen.read_upper_bound_attempted_bytes, 4);
+        assert_eq!(seen.read_returned_bytes, 15);
+        assert_eq!(seen.write_attempted_bytes, 1);
+        assert_eq!(seen.write_permitted_bytes, 0);
+        assert_eq!(seen.failure, Some(PinnedSqliteIoFailure::WriteLimit));
+        assert!(PinnedSqliteIoBudget::new_read_only(0).is_err());
     }
 }

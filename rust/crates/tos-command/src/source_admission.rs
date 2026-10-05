@@ -8,7 +8,7 @@ use std::{
     cell::{Cell, RefCell},
     collections::BTreeMap,
     fs::File,
-    io::{self, Read},
+    io::{self, Read, Write},
     mem::size_of,
     os::unix::fs::MetadataExt,
     path::Path,
@@ -17,8 +17,8 @@ use std::{
     time::Instant,
 };
 use tos_foundation::{
-    CanonicalProfile, Digest256, FoundationError, FoundationErrorCode, JsonLimits, JsonMode,
-    JsonValue, RelativePath, canonical_bytes_v1, parse_json,
+    CanonicalProfile, Digest256, Digest256Hasher, FoundationError, FoundationErrorCode, JsonLimits,
+    JsonMode, JsonValue, RelativePath, canonical_bytes_v1, parse_json,
 };
 use tos_source_store::PinnedSqliteConnection;
 
@@ -92,10 +92,28 @@ pub struct AdmissionBatch {
     pub validator_sha256: Digest256,
     pub updates: BTreeMap<String, SourceUpdate>,
     pub retirements: BTreeMap<String, SourceRetirement>,
-    initial_updates: Option<VerifiedCensusUpdates>,
+    initial_updates: Option<Rc<VerifiedCensusUpdates>>,
+    selected_work_budget: Option<AdmissionWorkBudget>,
+    indexed_input: Option<crate::source_admission_indexed_input::IndexedInputReaderV1>,
+    indexed_input_heap_state_upper_bound_bytes: usize,
+    source_stream_failed: bool,
+    source_stream_finished: bool,
     input: File,
     bytes_read: u64,
     budgeted_io: Option<tos_source_store::PinnedSqliteIoBudget>,
+}
+
+/// Counters returned by one source update stream. They report the source-byte
+/// count and deltas from the same original IO/work ledgers across its census
+/// lookup and payload operation; they are not independent budgets. The caller
+/// owns sink-write accounting. Root and terminal descriptor fences run outside
+/// this per-update window but remain on the shared ledgers.
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub(crate) struct AdmissionUpdateStreamWorkV1 {
+    pub(crate) source_bytes: u64,
+    pub(crate) read_bytes: u64,
+    pub(crate) read_upper_bound_bytes: u64,
+    pub(crate) work_units: u64,
 }
 
 #[derive(Clone)]
@@ -141,6 +159,17 @@ impl AdmissionWorkBudget {
         self.inner.used.get()
     }
 
+    pub(crate) fn remaining(&self) -> io::Result<u64> {
+        self.inner
+            .maximum
+            .checked_sub(self.inner.used.get())
+            .ok_or_else(|| invalid("selected source work meter regressed"))
+    }
+
+    pub(crate) fn maximum(&self) -> u64 {
+        self.inner.maximum
+    }
+
     pub(crate) fn retained_allocation_upper_bound_bytes() -> usize {
         size_of::<AdmissionWorkState>() + 2 * size_of::<usize>()
     }
@@ -158,8 +187,8 @@ struct VerifiedCensusUpdates {
     identity: Rc<()>,
 }
 
-pub(crate) struct AdmissionUpdateCursor<'a> {
-    source: &'a VerifiedCensusUpdates,
+pub(crate) struct AdmissionUpdateCursor {
+    source: Rc<VerifiedCensusUpdates>,
     after: Option<String>,
     seen_rows: u64,
     seen_bytes: u64,
@@ -333,7 +362,7 @@ impl AdmissionBatch {
             ),
             (
                 "base_revision",
-                base_revision.map_or(crate::source_command::JsonValue::Null, |revision| {
+                base_revision.map_or(JsonValue::Null, |revision| {
                     crate::source_command::string(&revision.to_hex())
                 }),
             ),
@@ -341,11 +370,8 @@ impl AdmissionBatch {
                 "validator_sha256",
                 crate::source_command::string(&validator_sha256.to_hex()),
             ),
-            ("updates", crate::source_command::JsonValue::Array(rows)),
-            (
-                "retirements",
-                crate::source_command::JsonValue::Array(Vec::new()),
-            ),
+            ("updates", JsonValue::Array(rows)),
+            ("retirements", JsonValue::Array(Vec::new())),
         ]);
         let mut hasher = tos_foundation::Digest256Hasher::new();
         let mut written = 0usize;
@@ -370,6 +396,11 @@ impl AdmissionBatch {
             updates,
             retirements: BTreeMap::new(),
             initial_updates: None,
+            selected_work_budget: None,
+            indexed_input: None,
+            indexed_input_heap_state_upper_bound_bytes: 0,
+            source_stream_failed: false,
+            source_stream_finished: false,
             input,
             // The rows were derived from held source bytes, not read from an
             // external JSON batch. Payload reads are charged when the usual
@@ -377,6 +408,37 @@ impl AdmissionBatch {
             bytes_read: 0,
             budgeted_io: Some(io.clone()),
         })
+    }
+
+    /// SourceEntry can derive a bounded verified-row batch from its selected
+    /// readset and carry that invocation's original work meter into the packed
+    /// successor writer. The legacy constructor remains unchanged.
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn from_verified_rows_with_work(
+        base_revision: Option<Digest256>,
+        validator_sha256: Digest256,
+        updates: BTreeMap<String, SourceUpdate>,
+        input: File,
+        limits: AdmissionLimits,
+        additional_state_bytes: usize,
+        io: &tos_source_store::PinnedSqliteIoBudget,
+        work: AdmissionWorkBudget,
+        deadline: Instant,
+        cancel: &AtomicBool,
+    ) -> io::Result<Self> {
+        let mut batch = Self::from_verified_rows(
+            base_revision,
+            validator_sha256,
+            updates,
+            input,
+            limits,
+            additional_state_bytes,
+            io,
+            deadline,
+            cancel,
+        )?;
+        batch.selected_work_budget = Some(work);
+        Ok(batch)
     }
 
     /// Construct an initial-only batch from the proposal rows already held in
@@ -648,7 +710,7 @@ impl AdmissionBatch {
                         ),
                     ]);
                     if let Err(error) = write_item(&item) {
-                        feed_error = Some(invalid(error));
+                        feed_error = Some(invalid(&error));
                         return Err(error);
                     }
                     previous = Some(path);
@@ -681,7 +743,7 @@ impl AdmissionBatch {
             validator_sha256,
             updates: BTreeMap::new(),
             retirements: BTreeMap::new(),
-            initial_updates: Some(VerifiedCensusUpdates {
+            initial_updates: Some(Rc::new(VerifiedCensusUpdates {
                 db,
                 scan_label,
                 expected_rows,
@@ -691,7 +753,12 @@ impl AdmissionBatch {
                 row_state_bytes,
                 work,
                 identity: Rc::new(()),
-            }),
+            })),
+            selected_work_budget: None,
+            indexed_input: None,
+            indexed_input_heap_state_upper_bound_bytes: 0,
+            source_stream_failed: false,
+            source_stream_finished: false,
             input,
             bytes_read: 0,
             budgeted_io: Some(io.clone()),
@@ -868,6 +935,11 @@ impl AdmissionBatch {
             updates,
             retirements,
             initial_updates: None,
+            selected_work_budget: None,
+            indexed_input: None,
+            indexed_input_heap_state_upper_bound_bytes: 0,
+            source_stream_failed: false,
+            source_stream_finished: false,
             input,
             bytes_read: raw.len() as u64,
             budgeted_io: io.cloned(),
@@ -919,18 +991,326 @@ impl AdmissionBatch {
         }
     }
 
-    /// Additional heap retained only by the initial census-backed source.
-    /// The `VerifiedCensusUpdates` carrier itself is inline in `AdmissionBatch`
-    /// and therefore already covered by `size_of::<SpoolCandidate>()`; its
-    /// database and work-meter allocations are owned and charged by the
-    /// retained initial-cut fence. This batch creates one new `Rc<()>` identity
-    /// token so rows cannot cross batch sources, which retains the Rc counters
-    /// even though the payload is zero-sized.
+    pub(crate) fn admission_work_budget(&self) -> io::Result<AdmissionWorkBudget> {
+        self.selected_work_budget
+            .clone()
+            .or_else(|| self.initial_updates.as_ref().map(|updates| updates.work.clone()))
+            .ok_or_else(|| invalid("admission batch has no selected shared work meter"))
+    }
+
+    /// Additional heap retained by the initial census-backed source. The
+    /// owned cursor and batch share one Rc-carried update source so the caller
+    /// can stream each row without borrowing the batch. The source carrier and
+    /// row-identity Rc header are charged here; the database and work-meter
+    /// allocations remain owned by the retained initial-cut fence.
     pub(crate) fn retained_update_source_state_upper_bound_bytes(&self) -> usize {
-        if self.initial_updates.is_some() {
-            2 * size_of::<usize>()
+        let census_identity = if self.initial_updates.is_some() {
+            size_of::<VerifiedCensusUpdates>() + 2 * size_of::<usize>()
         } else {
             0
+        };
+        census_identity.saturating_add(self.indexed_input_heap_state_upper_bound_bytes)
+    }
+
+    /// Attach a held packed source only to the exact census-backed initial
+    /// proposal. The provider stays inside this batch so the ordinary
+    /// candidate consumes its rows and payloads under the same operation.
+    pub(crate) fn attach_indexed_input(
+        &mut self,
+        reader: crate::source_admission_indexed_input::IndexedInputReaderV1,
+        expected_member_count: u64,
+        expected_source_bytes: u64,
+    ) -> io::Result<()> {
+        let source = self
+            .initial_updates
+            .as_ref()
+            .ok_or_else(|| invalid("indexed input requires the initial census source"))?;
+        if self.indexed_input.is_some()
+            || self.source_stream_failed
+            || source.expected_rows != expected_member_count
+            || source.expected_source_bytes != expected_source_bytes
+            || reader.expected_totals() != (expected_member_count, expected_source_bytes)
+        {
+            return Err(invalid(
+                "indexed input does not match the held initial census",
+            ));
+        }
+        self.indexed_input_heap_state_upper_bound_bytes =
+            reader.retained_heap_state_upper_bound_bytes()?;
+        self.indexed_input = Some(reader);
+        Ok(())
+    }
+
+    /// Stream exactly one selected update into a caller-owned sink. Indexed
+    /// mode advances the authenticated path cursor and streams its packed
+    /// payload; file mode retains the held-root fallback. Both paths match the
+    /// census or checked batch metadata and verify digest, length, mode, and
+    /// EOF before success. Source reads and work are charged here once; the
+    /// sink owner charges its own writes.
+    pub(crate) fn stream_verified_update(
+        &mut self,
+        path: &str,
+        update: SourceUpdate,
+        caller_live_state_bytes: usize,
+        deadline: Instant,
+        cancel: &AtomicBool,
+        sink: &mut dyn Write,
+    ) -> io::Result<AdmissionUpdateStreamWorkV1> {
+        if self.source_stream_failed || self.source_stream_finished {
+            return Err(invalid("source update stream was already refused"));
+        }
+        let shared_work_before = self
+            .initial_updates
+            .as_ref()
+            .map(|source| source.work.remaining())
+            .transpose()?;
+        let io_before = self.budgeted_io.as_ref().map(|io| io.snapshot());
+        let result = (|| {
+            active(deadline, cancel)?;
+            let expected = self
+                .update(path, caller_live_state_bytes)?
+                .ok_or_else(|| invalid("streamed update is absent from the selected batch"))?;
+            if expected != update {
+                return Err(invalid(
+                    "streamed update differs from selected census metadata",
+                ));
+            }
+
+            if let Some(reader) = self.indexed_input.as_mut() {
+                let before = reader.cost();
+                let member = reader
+                    .next_member(caller_live_state_bytes)?
+                    .ok_or_else(|| invalid("indexed input ended before the update cursor"))?;
+                if member.path.as_str() != path
+                    || member.sha256 != update.sha256
+                    || member.size_bytes != update.size_bytes
+                    || member.source_mode != update.mode
+                {
+                    return Err(invalid(
+                        "indexed input member differs from the held census row",
+                    ));
+                }
+                let member_size_bytes = member.size_bytes;
+                reader.read_member_payload(
+                    &member,
+                    caller_live_state_bytes
+                        .checked_add(size_of::<&mut dyn Write>() + size_of::<Digest256Hasher>())
+                        .ok_or_else(|| invalid("indexed input sink state overflow"))?,
+                    sink,
+                )?;
+                if reader.cost().payload_members == reader.expected_totals().0 {
+                    drop(member);
+                    if reader.next_member(caller_live_state_bytes)?.is_some() {
+                        return Err(invalid("indexed input has rows beyond the selected census"));
+                    }
+                }
+                let after = reader.cost();
+                let tree_read_bytes = after
+                    .member_tree
+                    .read_bytes
+                    .checked_sub(before.member_tree.read_bytes)
+                    .ok_or_else(|| invalid("indexed input tree read counter moved backwards"))?;
+                let object_read_bytes = after
+                    .object_reads
+                    .read_bytes
+                    .checked_sub(before.object_reads.read_bytes)
+                    .ok_or_else(|| invalid("indexed input object read counter moved backwards"))?;
+                let object_tree_read_bytes = after
+                    .object_tree
+                    .read_bytes
+                    .checked_sub(before.object_tree.read_bytes)
+                    .ok_or_else(|| invalid("indexed input object-tree counter moved backwards"))?;
+                let read_upper_bound_bytes = after
+                    .object_reads
+                    .read_upper_bound_bytes
+                    .checked_sub(before.object_reads.read_upper_bound_bytes)
+                    .ok_or_else(|| invalid("indexed input read guard counter moved backwards"))?;
+                let work_units = after
+                    .shared_work_units
+                    .checked_sub(before.shared_work_units)
+                    .ok_or_else(|| invalid("indexed input work counter moved backwards"))?;
+                Ok(AdmissionUpdateStreamWorkV1 {
+                    source_bytes: member_size_bytes,
+                    read_bytes: tree_read_bytes
+                        .checked_add(object_read_bytes)
+                        .and_then(|bytes| bytes.checked_add(object_tree_read_bytes))
+                        .ok_or_else(|| invalid("indexed input read counter overflow"))?,
+                    read_upper_bound_bytes,
+                    work_units,
+                })
+            } else {
+                self.stream_file_update(path, update, deadline, cancel, sink)
+            }
+        })()
+        .and_then(|mut streamed| {
+            if let Some(before) = shared_work_before {
+                let after = self
+                    .initial_updates
+                    .as_ref()
+                    .ok_or_else(|| invalid("initial source work meter disappeared"))?
+                    .work
+                    .remaining()?;
+                streamed.work_units = before
+                    .checked_sub(after)
+                    .ok_or_else(|| invalid("initial source work counter regressed"))?;
+            }
+            if let Some(before) = io_before {
+                let after = self
+                    .budgeted_io
+                    .as_ref()
+                    .ok_or_else(|| invalid("initial source IO ledger disappeared"))?
+                    .snapshot();
+                streamed.read_bytes = after
+                    .read_returned_bytes
+                    .checked_sub(before.read_returned_bytes)
+                    .ok_or_else(|| invalid("initial source read counter regressed"))?;
+                streamed.read_upper_bound_bytes = after
+                    .read_upper_bound_attempted_bytes
+                    .checked_sub(before.read_upper_bound_attempted_bytes)
+                    .ok_or_else(|| invalid("initial source guard counter regressed"))?;
+            }
+            Ok(streamed)
+        });
+        if result.is_err() {
+            self.source_stream_failed = true;
+        }
+        result
+    }
+
+    fn stream_file_update(
+        &self,
+        path: &str,
+        update: SourceUpdate,
+        deadline: Instant,
+        cancel: &AtomicBool,
+        sink: &mut dyn Write,
+    ) -> io::Result<AdmissionUpdateStreamWorkV1> {
+        let source_path = source_path(path)?;
+        let source = self.initial_updates.as_ref();
+        let io = self
+            .budgeted_io
+            .as_ref()
+            .ok_or_else(|| invalid("streamed update lacks the original IO ledger"))?;
+        let mut file = open_member(
+            &self.input,
+            &source_path,
+            deadline,
+            cancel,
+            Some(io),
+            source.map(|source| &source.work),
+        )?;
+        let before = file.metadata()?;
+        if !before.is_file()
+            || before.len() != update.size_bytes
+            || before.mode() & 0o7777 != update.mode
+        {
+            return Err(invalid("streamed source inode differs from its census row"));
+        }
+
+        let read_limit = update
+            .size_bytes
+            .checked_add(1)
+            .ok_or_else(|| invalid("streamed source size overflow"))?;
+        let mut bounded = (&mut file).take(read_limit);
+        let mut buffer = [0u8; 64 * 1024];
+        let mut hasher = Digest256Hasher::new();
+        let mut bytes_read = 0u64;
+        let mut work_units = 0u64;
+        loop {
+            active(deadline, cancel)?;
+            let remaining = read_limit
+                .checked_sub(bytes_read)
+                .ok_or_else(|| invalid("streamed source length overflow"))?;
+            if remaining == 0 {
+                break;
+            }
+            if let Some(source) = source {
+                source.work.charge_many(1)?;
+            }
+            work_units = work_units
+                .checked_add(1)
+                .ok_or_else(|| invalid("streamed source work counter overflow"))?;
+            let requested = usize::try_from(remaining.min(buffer.len() as u64))
+                .map_err(|_| invalid("streamed source read request exceeds range"))?;
+            io.charge_read(requested as u64).map_err(invalid)?;
+            let read = bounded.read(&mut buffer[..requested]);
+            let count = match read {
+                Ok(count) => count,
+                Err(error) => return Err(error),
+            };
+            io.record_read_returned(count as u64).map_err(invalid)?;
+            active(deadline, cancel)?;
+            if count == 0 {
+                break;
+            }
+            let next = bytes_read
+                .checked_add(count as u64)
+                .ok_or_else(|| invalid("streamed source byte count overflow"))?;
+            if next > update.size_bytes {
+                return Err(invalid("streamed source exceeds its declared size"));
+            }
+            hasher.update(&buffer[..count]);
+            sink.write_all(&buffer[..count])?;
+            bytes_read = next;
+        }
+        if bytes_read != update.size_bytes || hasher.finalize() != update.sha256 {
+            return Err(invalid("streamed source fixity, size, or EOF differs"));
+        }
+        active(deadline, cancel)?;
+        let after = file.metadata()?;
+        if stamp(&before) != stamp(&after) || before.mode() & 0o7777 != after.mode() & 0o7777 {
+            return Err(invalid("streamed source inode changed while reading"));
+        }
+        let named = open_member(
+            &self.input,
+            &source_path,
+            deadline,
+            cancel,
+            Some(io),
+            source.map(|source| &source.work),
+        )?;
+        let named_metadata = named.metadata()?;
+        if stamp(&after) != stamp(&named_metadata)
+            || after.mode() & 0o7777 != named_metadata.mode() & 0o7777
+        {
+            return Err(invalid(
+                "streamed source name no longer selects the held inode",
+            ));
+        }
+        Ok(AdmissionUpdateStreamWorkV1 {
+            source_bytes: bytes_read,
+            read_bytes: bytes_read,
+            read_upper_bound_bytes: 0,
+            work_units,
+        })
+    }
+
+    /// Final fence for indexed source custody. It succeeds only after the
+    /// complete authenticated member cursor and every payload have been read.
+    /// File mode already uses the held filesystem root and leaves this extra
+    /// packed-container fence absent.
+    pub(crate) fn finish_streamed_updates(
+        &mut self,
+    ) -> io::Result<Option<crate::source_admission_indexed_input::IndexedInputCostV1>> {
+        if self.source_stream_failed {
+            return Err(invalid("source update stream was already refused"));
+        }
+        if self.source_stream_finished {
+            return Err(invalid("source update stream was already finalized"));
+        }
+        let Some(reader) = self.indexed_input.as_mut() else {
+            self.source_stream_finished = true;
+            return Ok(None);
+        };
+        match reader.finish() {
+            Ok(cost) => {
+                self.source_stream_finished = true;
+                Ok(Some(cost))
+            }
+            Err(error) => {
+                self.source_stream_failed = true;
+                Err(error)
+            }
         }
     }
 
@@ -990,11 +1370,11 @@ impl AdmissionBatch {
         }))
     }
 
-    pub(crate) fn update_cursor(&self) -> Option<AdmissionUpdateCursor<'_>> {
+    pub(crate) fn update_cursor(&self) -> Option<AdmissionUpdateCursor> {
         self.initial_updates
             .as_ref()
             .map(|source| AdmissionUpdateCursor {
-                source,
+                source: source.clone(),
                 after: None,
                 seen_rows: 0,
                 seen_bytes: 0,
@@ -1030,7 +1410,7 @@ impl AdmissionBatch {
     }
 }
 
-impl AdmissionUpdateCursor<'_> {
+impl AdmissionUpdateCursor {
     pub(crate) fn next(
         &mut self,
         max_state_bytes: usize,
@@ -1041,7 +1421,7 @@ impl AdmissionUpdateCursor<'_> {
             return Err(invalid("initial update cursor was read after EOF"));
         }
         active(deadline, cancel)?;
-        let source = self.source;
+        let source = self.source.as_ref();
         let previous_len = self.after.as_ref().map_or(0, String::len);
         let max_workspace = source
             .max_path_bytes

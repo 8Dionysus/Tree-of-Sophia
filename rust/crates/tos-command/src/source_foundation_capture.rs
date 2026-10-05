@@ -25,8 +25,8 @@ use tos_foundation::{
 use tos_ops_mechanics_plan::route_cards::RouteSources;
 use tos_source_store::{
     CorpusCutReader, CorpusReader, CutReadLimits, MemberMetadata, MetadataPublicationEpoch,
-    ReadLimits, SourceMembershipV1, StreamedCorpusCutReaderV1,
-    has_authored_source_descendants_v1, is_authored_source_path_v1,
+    ReadLimits, SourceMembershipV1, StreamedCorpusCutReaderV1, has_authored_source_descendants_v1,
+    is_authored_source_path_v1,
 };
 
 const CONTROL: &str = "ToS/source-witnesses/.metadata-publication.json";
@@ -848,10 +848,7 @@ impl FoundationCapturedCut {
             .map(|(path, member)| (path.as_str(), member))
     }
 
-    pub(crate) fn member(
-        &self,
-        path: &RelativePath,
-    ) -> io::Result<Option<MemberMetadata>> {
+    pub(crate) fn member(&self, path: &RelativePath) -> io::Result<Option<MemberMetadata>> {
         match &self.cut {
             FoundationCutBacking::Resident(_) => Ok(self
                 .metadata
@@ -868,15 +865,18 @@ impl FoundationCapturedCut {
         after: Option<&RelativePath>,
     ) -> io::Result<Option<MemberMetadata>> {
         match &self.cut {
-            FoundationCutBacking::Resident(_) => Ok(self.metadata.as_ref().and_then(|metadata| {
-                match after {
+            FoundationCutBacking::Resident(_) => {
+                Ok(self.metadata.as_ref().and_then(|metadata| match after {
                     Some(after) => metadata
-                        .range::<str, _>((std::ops::Bound::Excluded(after.as_str()), std::ops::Bound::Unbounded))
+                        .range::<str, _>((
+                            std::ops::Bound::Excluded(after.as_str()),
+                            std::ops::Bound::Unbounded,
+                        ))
                         .next()
                         .map(|(_, member)| member.clone()),
                     None => metadata.values().next().cloned(),
-                }
-            })),
+                }))
+            }
             FoundationCutBacking::Streamed(cut) => cut
                 .member_after(self.revision(), after)
                 .map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "captured member cursor")),
@@ -915,14 +915,14 @@ impl FoundationCapturedCut {
     ) -> io::Result<()> {
         match &self.cut {
             FoundationCutBacking::Resident(_) => {
-                let metadata = self
-                    .metadata
-                    .as_ref()
-                    .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidData, "capture metadata absent"))?;
+                let metadata = self.metadata.as_ref().ok_or_else(|| {
+                    io::Error::new(io::ErrorKind::InvalidData, "capture metadata absent")
+                })?;
                 if membership(metadata) != self.membership
-                    || metadata.values().try_fold(0u64, |total, member| {
-                        total.checked_add(member.size_bytes)
-                    }) != Some(self.source_bytes)
+                    || metadata
+                        .values()
+                        .try_fold(0u64, |total, member| total.checked_add(member.size_bytes))
+                        != Some(self.source_bytes)
                 {
                     return Err(io::Error::new(
                         io::ErrorKind::InvalidData,
@@ -931,7 +931,10 @@ impl FoundationCapturedCut {
                 }
                 for member in metadata.values() {
                     active(deadline, cancel).map_err(|_| {
-                        io::Error::new(io::ErrorKind::Interrupted, "captured member walk interrupted")
+                        io::Error::new(
+                            io::ErrorKind::Interrupted,
+                            "captured member walk interrupted",
+                        )
                     })?;
                     visit(member)?;
                 }
@@ -944,25 +947,40 @@ impl FoundationCapturedCut {
                 let mut observed_bytes = 0u64;
                 loop {
                     active(deadline, cancel).map_err(|_| {
-                        io::Error::new(io::ErrorKind::Interrupted, "captured member walk interrupted")
+                        io::Error::new(
+                            io::ErrorKind::Interrupted,
+                            "captured member walk interrupted",
+                        )
                     })?;
                     let next = self.member_after(after.as_ref());
                     active(deadline, cancel).map_err(|_| {
-                        io::Error::new(io::ErrorKind::Interrupted, "captured member cursor interrupted")
+                        io::Error::new(
+                            io::ErrorKind::Interrupted,
+                            "captured member cursor interrupted",
+                        )
                     })?;
                     let Some(member) = next? else { break };
-                    count = count
-                        .checked_add(1)
-                        .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidData, "member count overflow"))?;
-                    observed_bytes = observed_bytes
-                        .checked_add(member.size_bytes)
-                        .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidData, "member byte count overflow"))?;
+                    count = count.checked_add(1).ok_or_else(|| {
+                        io::Error::new(io::ErrorKind::InvalidData, "member count overflow")
+                    })?;
+                    observed_bytes =
+                        observed_bytes
+                            .checked_add(member.size_bytes)
+                            .ok_or_else(|| {
+                                io::Error::new(
+                                    io::ErrorKind::InvalidData,
+                                    "member byte count overflow",
+                                )
+                            })?;
                     feed_membership(&mut hash, &member.path, member.size_bytes, member.sha256);
                     visit(&member)?;
                     after = Some(member.path);
                 }
                 active(deadline, cancel).map_err(|_| {
-                    io::Error::new(io::ErrorKind::Interrupted, "captured member EOF interrupted")
+                    io::Error::new(
+                        io::ErrorKind::Interrupted,
+                        "captured member EOF interrupted",
+                    )
                 })?;
                 if count != self.membership.count
                     || (SourceMembershipV1 {
@@ -1076,15 +1094,14 @@ impl FoundationCapturedCut {
             }
             FoundationCutBacking::Streamed(_) => self
                 .for_each_member(deadline, cancel, |metadata| {
-                    let raw = self
-                        .read_member(
-                            &metadata.path,
-                            usize::try_from(metadata.size_bytes).map_err(|_| {
-                                io::Error::new(io::ErrorKind::InvalidData, "member size range")
-                            })?,
-                            deadline,
-                            cancel,
-                        )?;
+                    let raw = self.read_member(
+                        &metadata.path,
+                        usize::try_from(metadata.size_bytes).map_err(|_| {
+                            io::Error::new(io::ErrorKind::InvalidData, "member size range")
+                        })?,
+                        deadline,
+                        cancel,
+                    )?;
                     member_bytes = member_bytes
                         .checked_add(raw.len())
                         .filter(|bytes| *bytes <= member_allowance)
@@ -1126,10 +1143,9 @@ impl FoundationCapturedCut {
         deadline: Instant,
         cancel: &AtomicBool,
     ) -> Result<(usize, usize)> {
-        let metadata = self
-            .metadata
-            .as_ref()
-            .ok_or(Error::Invalid("foundation live capture metadata unavailable"))?;
+        let metadata = self.metadata.as_ref().ok_or(Error::Invalid(
+            "foundation live capture metadata unavailable",
+        ))?;
         let current = paths(sources, deadline, cancel)?;
         if !current
             .iter()

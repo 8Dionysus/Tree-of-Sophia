@@ -16,7 +16,12 @@ use std::os::unix::fs::MetadataExt;
 use std::path::Path;
 use std::sync::atomic::AtomicBool;
 use std::time::Instant;
-use tos_foundation::{Digest256, JsonString, JsonValue, RelativePath};
+use tos_foundation::{Digest256, JsonString, JsonValue, RelativePath, SourceRevision};
+use tos_source_store::{
+    SourceCutDependencyWitness, SourceCutDirectoryWitness, SourceCutIdentityWitness,
+    SourceCutMemberTuple, SourceCutMemberWitness, SourceCutReadsetV1, SourcePresenceV1,
+};
+use super::source_admission_store::PreparedV2SuccessorLocatorV2;
 
 const HOME: &str = "ToS/source-witnesses";
 const CONTROL: &str = ".metadata-publication.json";
@@ -32,6 +37,7 @@ const TRANSACTIONS: &str = ".metadata-transactions";
 const MANIFEST_SCHEMA: &str = "tos_selected_metadata_transaction_v1";
 const PROFILED_MANIFEST_SCHEMA: &str = "tos_selected_metadata_transaction_v2";
 const CANONICAL_FORM_MANIFEST_SCHEMA: &str = "tos_selected_metadata_transaction_v3";
+const SOURCE_READSET_MANIFEST_SCHEMA: &str = "tos_selected_metadata_transaction_v4";
 const COMPLETION_SCHEMA: &str = "tos_selected_metadata_completion_v1";
 
 #[derive(Clone)]
@@ -280,6 +286,12 @@ pub(crate) struct WorkPlan {
     pub(crate) item_path_profile: Option<RelativePath>,
     pub(crate) files: Vec<SelectedFile>,
     pub(crate) new_directories: Vec<RelativePath>,
+    /// Optional exact V2 source observations carried across durable Work
+    /// intent and selected recovery. Legacy V1 plans leave this absent.
+    pub(crate) source_readset: Option<SourceCutReadsetV1>,
+    /// Exact immutable V2 target prepared from the selected native writer.
+    /// V1/legacy metadata transports leave this absent.
+    pub(crate) source_successor: Option<PreparedV2SuccessorLocatorV2>,
 }
 
 #[derive(Clone)]
@@ -288,6 +300,8 @@ struct FrozenPlan {
     files: Vec<SelectedFile>,
     directories: Vec<RelativePath>,
     blobs: BTreeMap<String, Vec<u8>>,
+    source_readset: Option<SourceCutReadsetV1>,
+    source_successor: Option<PreparedV2SuccessorLocatorV2>,
 }
 fn path(value: &str, directory: bool) -> SourceCommandResult<RelativePath> {
     profiled_path(value, directory, &BTreeSet::new(), None)
@@ -458,6 +472,473 @@ fn binding(bytes: Option<&[u8]>) -> JsonValue {
         ]),
     }
 }
+
+fn readset_presence(value: Option<SourcePresenceV1>) -> JsonValue {
+    match value {
+        None => JsonValue::Null,
+        Some(SourcePresenceV1::File) => cmd::string("file"),
+        Some(SourcePresenceV1::MaterializedDirectory) => {
+            cmd::string("materialized_directory")
+        }
+    }
+}
+
+fn source_readset_value(readset: &SourceCutReadsetV1) -> SourceCommandResult<JsonValue> {
+    validate_source_readset(readset)?;
+    source_readset_value_unchecked(readset)
+}
+
+fn readset_relative_path(value: &str) -> SourceCommandResult<RelativePath> {
+    if value.is_empty() || value.len() > 1024 || value.contains('\\') || value.contains('\0') {
+        return Err(SourceCommandError::Invalid("retained source readset path"));
+    }
+    RelativePath::parse(value)
+        .map_err(|_| SourceCommandError::Invalid("retained source readset path"))
+}
+
+fn parse_readset_presence(value: &JsonValue) -> SourceCommandResult<Option<SourcePresenceV1>> {
+    match value {
+        JsonValue::Null => Ok(None),
+        JsonValue::String(value) => match value.as_str() {
+            "file" => Ok(Some(SourcePresenceV1::File)),
+            "materialized_directory" => Ok(Some(SourcePresenceV1::MaterializedDirectory)),
+            _ => Err(SourceCommandError::Invalid("retained source readset presence")),
+        },
+        _ => Err(SourceCommandError::Invalid("retained source readset presence")),
+    }
+}
+
+fn parse_readset_digest(value: &JsonValue, key: &str) -> SourceCommandResult<Digest256> {
+    let text = cmd::text(value, key)?;
+    if !hash(text) {
+        return Err(SourceCommandError::Invalid("retained source readset digest"));
+    }
+    Digest256::from_hex(&text[7..])
+        .map_err(|_| SourceCommandError::Invalid("retained source readset digest"))
+}
+
+fn parse_source_readset(value: &JsonValue) -> SourceCommandResult<SourceCutReadsetV1> {
+    cmd::exact_keys(
+        value,
+        &[
+            "base_revision",
+            "members",
+            "identities",
+            "directories",
+            "dependencies",
+        ],
+    )?;
+    let base_revision = SourceRevision(parse_readset_digest(value, "base_revision")?);
+    let mut readset = SourceCutReadsetV1::new(base_revision);
+    for entry in cmd::array(value, "members")? {
+        cmd::exact_keys(
+            entry,
+            &[
+                "path",
+                "expected_presence",
+                "expected_member",
+                "expected_indexed_ids",
+            ],
+        )?;
+        let presence = parse_readset_presence(cmd::field(entry, "expected_presence")?)?;
+        let member_value = cmd::field(entry, "expected_member")?;
+        let member = if member_value == &JsonValue::Null {
+            None
+        } else {
+            cmd::exact_keys(member_value, &["sha256", "size_bytes", "mode"])?;
+            Some(SourceCutMemberTuple {
+                sha256: parse_readset_digest(member_value, "sha256")?,
+                size_bytes: cmd::integer(member_value, "size_bytes")?,
+                mode: u32::try_from(cmd::integer(member_value, "mode")?)
+                    .map_err(|_| SourceCommandError::Invalid("retained source readset mode"))?,
+            })
+        };
+        let ids_value = cmd::field(entry, "expected_indexed_ids")?;
+        let ids = if ids_value == &JsonValue::Null {
+            None
+        } else {
+            Some(
+                ids_value
+                    .as_array()
+                    .ok_or(SourceCommandError::Invalid(
+                        "retained source readset identity array",
+                    ))?
+                    .iter()
+                    .map(|value| {
+                        value
+                            .as_str()
+                            .map(str::to_owned)
+                            .ok_or(SourceCommandError::Invalid(
+                                "retained source readset identity",
+                            ))
+                    })
+                    .collect::<SourceCommandResult<Vec<_>>>()?,
+            )
+        };
+        readset.members.push(SourceCutMemberWitness {
+            path: readset_relative_path(cmd::text(entry, "path")?)?,
+            expected_presence: presence,
+            expected_member: member,
+            expected_indexed_ids: ids,
+        });
+    }
+    for entry in cmd::array(value, "identities")? {
+        cmd::exact_keys(entry, &["id", "expected_path"])?;
+        let path = match cmd::field(entry, "expected_path")? {
+            JsonValue::Null => None,
+            JsonValue::String(path) => Some(readset_relative_path(path.as_str())?),
+            _ => return Err(SourceCommandError::Invalid("retained source identity path")),
+        };
+        readset.identities.push(SourceCutIdentityWitness {
+            id: cmd::text(entry, "id")?.to_owned(),
+            expected_path: path,
+        });
+    }
+    for entry in cmd::array(value, "directories")? {
+        cmd::exact_keys(entry, &["path", "expected_presence", "expected_children"])?;
+        let mut children = Vec::new();
+        for child in cmd::array(entry, "expected_children")? {
+            let pair = child.as_array().ok_or(SourceCommandError::Invalid(
+                "retained source directory child",
+            ))?;
+            if pair.len() != 2 {
+                return Err(SourceCommandError::Invalid(
+                    "retained source directory child",
+                ));
+            }
+            let name = pair[0]
+                .as_str()
+                .ok_or(SourceCommandError::Invalid("retained source directory child"))?;
+            let is_directory = pair[1]
+                .as_bool()
+                .ok_or(SourceCommandError::Invalid("retained source directory child"))?;
+            if name.is_empty()
+                || name.len() > 255
+                || name == "."
+                || name == ".."
+                || name.contains('/')
+                || name.contains('\\')
+                || name.contains('\0')
+            {
+                return Err(SourceCommandError::Invalid(
+                    "retained source directory child",
+                ));
+            }
+            children.push((name.to_owned(), is_directory));
+        }
+        readset.directories.push(SourceCutDirectoryWitness {
+            path: readset_relative_path(cmd::text(entry, "path")?)?,
+            expected_presence: parse_readset_presence(cmd::field(entry, "expected_presence")?)?,
+            expected_children: children,
+        });
+    }
+    for entry in cmd::array(value, "dependencies")? {
+        cmd::exact_keys(entry, &["path", "expected_targets"])?;
+        let targets = cmd::array(entry, "expected_targets")?
+            .iter()
+            .map(|value| {
+                value
+                    .as_str()
+                    .ok_or(SourceCommandError::Invalid("retained source dependency path"))
+                    .and_then(readset_relative_path)
+            })
+            .collect::<SourceCommandResult<Vec<_>>>()?;
+        readset.dependencies.push(SourceCutDependencyWitness {
+            path: readset_relative_path(cmd::text(entry, "path")?)?,
+            expected_targets: targets,
+        });
+    }
+    validate_source_readset(&readset)?;
+    Ok(readset)
+}
+
+fn validate_source_readset(readset: &SourceCutReadsetV1) -> SourceCommandResult<()> {
+    let state = readset
+        .retained_state_upper_bound()
+        .ok_or(SourceCommandError::Invalid("source readset state overflow"))?;
+    let encoded_bytes = cmd::canonical(&source_readset_value_unchecked(readset)?)?.len();
+    if state == 0 || state == usize::MAX || encoded_bytes > MAX_MANIFEST {
+        return Err(SourceCommandError::Invalid("source readset exceeds manifest budget"));
+    }
+    for witness in &readset.members {
+        match (witness.expected_presence, witness.expected_member) {
+            (Some(SourcePresenceV1::File), Some(member))
+                if matches!(member.mode, 0o600 | 0o644 | 0o755) => {}
+            (None, None) | (Some(SourcePresenceV1::MaterializedDirectory), None) => {}
+            _ => return Err(SourceCommandError::Invalid("source readset member shape differs")),
+        }
+        if witness.expected_presence != Some(SourcePresenceV1::File)
+            && witness.expected_indexed_ids.is_some()
+        {
+            return Err(SourceCommandError::Invalid("source readset identity shape differs"));
+        }
+    }
+    for witness in &readset.directories {
+        if witness.expected_presence.is_some_and(|value| value != SourcePresenceV1::MaterializedDirectory)
+            || witness.expected_children.windows(2).any(|pair| pair[0].0 >= pair[1].0)
+        {
+            return Err(SourceCommandError::Invalid("source readset directory shape differs"));
+        }
+    }
+    for witness in &readset.dependencies {
+        if witness.expected_targets.windows(2).any(|pair| pair[0] >= pair[1]) {
+            return Err(SourceCommandError::Invalid("source readset dependency order differs"));
+        }
+    }
+    if readset.members.windows(2).any(|pair| pair[0].path >= pair[1].path)
+        || readset.identities.windows(2).any(|pair| pair[0].id >= pair[1].id)
+        || readset.directories.windows(2).any(|pair| pair[0].path >= pair[1].path)
+        || readset.dependencies.windows(2).any(|pair| pair[0].path >= pair[1].path)
+        || readset.members.iter().any(|witness| {
+            witness.expected_indexed_ids.as_ref().is_some_and(|ids| {
+                ids.iter().any(|id| id.is_empty() || id.as_bytes().contains(&0))
+                    || ids.windows(2).any(|pair| pair[0] >= pair[1])
+            })
+        })
+        || readset.identities.iter().any(|witness| {
+            witness.id.is_empty() || witness.id.len() > 4096 || witness.id.as_bytes().contains(&0)
+        })
+    {
+        return Err(SourceCommandError::Invalid("source readset order or key differs"));
+    }
+    Ok(())
+}
+
+fn validate_source_successor(
+    readset: &SourceCutReadsetV1,
+    locator: &PreparedV2SuccessorLocatorV2,
+) -> SourceCommandResult<()> {
+    use super::source_admission_segment_v2::SourceRevisionArtifactV2;
+    let selection = locator.expected_selection;
+    let compact_artifact = matches!(
+        &locator.source_artifact,
+        SourceRevisionArtifactV2::CompactCommitV2 { .. }
+            | SourceRevisionArtifactV2::CompactPackedV2 { .. }
+    );
+    if selection.format != tos_source_store::CorpusPointerFormat::V2
+        || selection.revision != readset.base_revision
+        || selection.rootset_sha256.is_none()
+        || locator.target_revision == readset.base_revision
+        || !compact_artifact
+        || locator.source_artifact.bytes().is_none_or(|bytes| bytes == 0)
+    {
+        return Err(SourceCommandError::Invalid("prepared V2 successor binding differs"));
+    }
+    Ok(())
+}
+
+fn source_readset_value_unchecked(readset: &SourceCutReadsetV1) -> SourceCommandResult<JsonValue> {
+    // Separate helper breaks the validation/encoding recursion while retaining
+    // one canonical wire shape for both the durable manifest and its digest.
+    let members = readset
+        .members
+        .iter()
+        .map(|witness| {
+            let member = witness.expected_member.map(|member| {
+                cmd::object(vec![
+                    ("sha256", cmd::string(&member.sha256.to_prefixed())),
+                    ("size_bytes", cmd::number(member.size_bytes)),
+                    ("mode", cmd::number(u64::from(member.mode))),
+                ])
+            });
+            let ids = witness.expected_indexed_ids.as_ref().map(|ids| {
+                JsonValue::Array(ids.iter().map(|id| cmd::string(id)).collect())
+            });
+            cmd::object(vec![
+                ("path", cmd::string(witness.path.as_str())),
+                ("expected_presence", readset_presence(witness.expected_presence)),
+                ("expected_member", member.unwrap_or(JsonValue::Null)),
+                ("expected_indexed_ids", ids.unwrap_or(JsonValue::Null)),
+            ])
+        })
+        .collect();
+    let identities = readset
+        .identities
+        .iter()
+        .map(|witness| {
+            cmd::object(vec![
+                ("id", cmd::string(&witness.id)),
+                (
+                    "expected_path",
+                    witness.expected_path.as_ref().map_or(JsonValue::Null, |path| {
+                        cmd::string(path.as_str())
+                    }),
+                ),
+            ])
+        })
+        .collect();
+    let directories = readset
+        .directories
+        .iter()
+        .map(|witness| {
+            cmd::object(vec![
+                ("path", cmd::string(witness.path.as_str())),
+                ("expected_presence", readset_presence(witness.expected_presence)),
+                (
+                    "expected_children",
+                    JsonValue::Array(
+                        witness
+                            .expected_children
+                            .iter()
+                            .map(|(name, is_directory)| {
+                                JsonValue::Array(vec![
+                                    cmd::string(name),
+                                    JsonValue::Bool(*is_directory),
+                                ])
+                            })
+                            .collect(),
+                    ),
+                ),
+            ])
+        })
+        .collect();
+    let dependencies = readset
+        .dependencies
+        .iter()
+        .map(|witness| {
+            cmd::object(vec![
+                ("path", cmd::string(witness.path.as_str())),
+                (
+                    "expected_targets",
+                    JsonValue::Array(
+                        witness
+                            .expected_targets
+                            .iter()
+                            .map(|path| cmd::string(path.as_str()))
+                            .collect(),
+                    ),
+                ),
+            ])
+        })
+        .collect();
+    Ok(cmd::object(vec![
+        (
+            "base_revision",
+            cmd::string(&readset.base_revision.0.to_prefixed()),
+        ),
+        ("members", JsonValue::Array(members)),
+        ("identities", JsonValue::Array(identities)),
+        ("directories", JsonValue::Array(directories)),
+        ("dependencies", JsonValue::Array(dependencies)),
+    ]))
+}
+
+fn source_successor_value(
+    locator: &PreparedV2SuccessorLocatorV2,
+) -> SourceCommandResult<JsonValue> {
+    use super::source_admission_segment_v2::SourceRevisionArtifactV2;
+    let artifact_bytes = locator
+        .source_artifact
+        .bytes()
+        .ok_or(SourceCommandError::Invalid("prepared V2 source artifact length absent"))?;
+    let artifact_format = match &locator.source_artifact {
+        SourceRevisionArtifactV2::CompactCommitV2 { .. }
+        | SourceRevisionArtifactV2::CompactPackedV2 { .. } => locator.source_artifact.format(),
+        _ => return Err(SourceCommandError::Invalid("prepared V2 source artifact format")),
+    };
+    let selection = locator.expected_selection;
+    Ok(cmd::object(vec![
+        (
+            "expected_selection",
+            cmd::object(vec![
+                ("format", cmd::string("v2")),
+                ("revision", cmd::string(&selection.revision.0.to_prefixed())),
+                (
+                    "previous",
+                    selection.previous.map_or(JsonValue::Null, |revision| {
+                        cmd::string(&revision.0.to_prefixed())
+                    }),
+                ),
+                (
+                    "rootset_sha256",
+                    selection.rootset_sha256.map_or(JsonValue::Null, |digest| {
+                        cmd::string(&digest.to_prefixed())
+                    }),
+                ),
+            ]),
+        ),
+        (
+            "target_revision",
+            cmd::string(&locator.target_revision.0.to_prefixed()),
+        ),
+        ("rootset_sha256", cmd::string(&locator.rootset_sha256.to_prefixed())),
+        (
+            "source_artifact",
+            cmd::object(vec![
+                ("format", cmd::string(artifact_format)),
+                (
+                    "sha256",
+                    cmd::string(&locator.source_artifact.sha256().to_prefixed()),
+                ),
+                ("bytes", cmd::number(artifact_bytes)),
+            ]),
+        ),
+    ]))
+}
+
+fn parse_source_successor(
+    value: &JsonValue,
+) -> SourceCommandResult<PreparedV2SuccessorLocatorV2> {
+    use super::source_admission_segment_v2::SourceRevisionArtifactV2;
+    cmd::exact_keys(
+        value,
+        &[
+            "expected_selection",
+            "target_revision",
+            "rootset_sha256",
+            "source_artifact",
+        ],
+    )?;
+    let selection_value = cmd::field(value, "expected_selection")?;
+    cmd::exact_keys(
+        selection_value,
+        &["format", "revision", "previous", "rootset_sha256"],
+    )?;
+    if cmd::text(selection_value, "format")? != "v2" {
+        return Err(SourceCommandError::Invalid("prepared source selector format"));
+    }
+    let selection_revision = SourceRevision(parse_readset_digest(selection_value, "revision")?);
+    let selection_previous = match cmd::field(selection_value, "previous")? {
+        JsonValue::Null => None,
+        JsonValue::String(_) => Some(SourceRevision(parse_readset_digest(selection_value, "previous")?)),
+        _ => return Err(SourceCommandError::Invalid("prepared source selector previous")),
+    };
+    let selection_rootset = match cmd::field(selection_value, "rootset_sha256")? {
+        JsonValue::Null => None,
+        JsonValue::String(_) => Some(parse_readset_digest(selection_value, "rootset_sha256")?),
+        _ => return Err(SourceCommandError::Invalid("prepared source selector rootset")),
+    };
+    let artifact_value = cmd::field(value, "source_artifact")?;
+    cmd::exact_keys(artifact_value, &["format", "sha256", "bytes"])?;
+    let artifact_sha256 = parse_readset_digest(artifact_value, "sha256")?;
+    let artifact_bytes = cmd::integer(artifact_value, "bytes")?;
+    let source_artifact = match cmd::text(artifact_value, "format")? {
+        "tos-native-source-compact-commit-v2" => SourceRevisionArtifactV2::CompactCommitV2 {
+            sha256: artifact_sha256,
+            bytes: artifact_bytes,
+        },
+        "tos-native-source-compact-commit-packed-v2" => SourceRevisionArtifactV2::CompactPackedV2 {
+            sha256: artifact_sha256,
+            bytes: artifact_bytes,
+        },
+        _ => return Err(SourceCommandError::Invalid("prepared source artifact format")),
+    };
+    let locator = PreparedV2SuccessorLocatorV2 {
+        expected_selection: tos_source_store::CorpusCurrentSelection {
+            revision: selection_revision,
+            previous: selection_previous,
+            format: tos_source_store::CorpusPointerFormat::V2,
+            rootset_sha256: selection_rootset,
+        },
+        target_revision: SourceRevision(parse_readset_digest(value, "target_revision")?),
+        rootset_sha256: parse_readset_digest(value, "rootset_sha256")?,
+        source_artifact,
+    };
+    if artifact_bytes == 0 {
+        return Err(SourceCommandError::Invalid("prepared source artifact length"));
+    }
+    Ok(locator)
+}
 /// Validate a fixed owner's in-memory transport plan before retaining any
 /// auxiliary archive bytes. This is the existing byte/path law, not admission.
 pub(crate) fn validate_plan(plan: &WorkPlan) -> SourceCommandResult<()> {
@@ -474,6 +955,67 @@ fn freeze(plan: WorkPlan) -> SourceCommandResult<FrozenPlan> {
         return Err(SourceCommandError::Invalid(
             "selected metadata plan budget/authorization",
         ));
+    }
+    match (&plan.source_readset, &plan.source_successor) {
+        (Some(readset), Some(successor)) => {
+            validate_source_readset(readset)?;
+            validate_source_successor(readset, successor)?;
+            // The durable selector must describe the same exact base members
+            // as the physical Work delta. Otherwise recovery could recheck a
+            // valid but unrelated readset before moving different bytes.
+            for file in &plan.files {
+                let witness = readset
+                    .members
+                    .binary_search_by(|witness| witness.path.cmp(&file.path))
+                    .ok()
+                    .map(|index| &readset.members[index])
+                    .ok_or(SourceCommandError::Invalid(
+                        "source Work member is absent from the durable readset",
+                    ))?;
+                match file.before.as_deref() {
+                    Some(bytes) => {
+                        let digest = Digest256::of_bytes(bytes);
+                        let size = u64::try_from(bytes.len()).map_err(|_| {
+                            SourceCommandError::Invalid("source Work before size exceeds range")
+                        })?;
+                        if witness.expected_presence != Some(SourcePresenceV1::File)
+                            || witness.expected_member.is_none_or(|member| {
+                                member.sha256 != digest || member.size_bytes != size
+                            })
+                        {
+                            return Err(SourceCommandError::Invalid(
+                                "source Work before bytes differ from the durable readset",
+                            ));
+                        }
+                    }
+                    None => {
+                        if witness.expected_presence.is_some()
+                            || witness.expected_member.is_some()
+                        {
+                            return Err(SourceCommandError::Invalid(
+                                "source Work absence differs from the durable readset",
+                            ));
+                        }
+                    }
+                }
+            }
+            let encoded_readset = cmd::canonical(&source_readset_value(readset)?)?.len();
+            let encoded_successor = cmd::canonical(&source_successor_value(successor)?)?.len();
+            if encoded_readset
+                .checked_add(encoded_successor)
+                .is_none_or(|bytes| bytes > MAX_MANIFEST)
+            {
+                return Err(SourceCommandError::Invalid(
+                    "source transaction witness byte budget",
+                ));
+            }
+        }
+        (None, None) => {}
+        _ => {
+            return Err(SourceCommandError::Invalid(
+                "source readset and prepared successor must be paired",
+            ));
+        }
     }
     let companions = item_companions(&plan.authorization, plan.item_path_profile.as_ref())?;
     let canonical_form = CanonicalFormsPathProfile::from_authorization(&plan.authorization)?;
@@ -609,6 +1151,8 @@ fn freeze(plan: WorkPlan) -> SourceCommandResult<FrozenPlan> {
         files,
         directories: dirs,
         blobs,
+        source_readset: plan.source_readset,
+        source_successor: plan.source_successor,
     })
 }
 
@@ -730,26 +1274,24 @@ fn manifest(
     snapshot: &PublicationSnapshot,
     plan: &FrozenPlan,
     parents: JsonValue,
-) -> JsonValue {
-    cmd::object(vec![
-        (
-            "schema_version",
-            cmd::string(
-                if plan
-                    .summary
-                    .object_get("path_profile")
-                    .and_then(|p| p.object_get("schema_version"))
-                    .and_then(JsonValue::as_str)
-                    == Some("tos_canonical_form_metadata_paths_v1")
-                {
-                    CANONICAL_FORM_MANIFEST_SCHEMA
-                } else if plan.summary.object_get("path_profile").is_some() {
-                    PROFILED_MANIFEST_SCHEMA
-                } else {
-                    MANIFEST_SCHEMA
-                },
-            ),
-        ),
+) -> SourceCommandResult<JsonValue> {
+    let schema = if plan.source_readset.is_some() || plan.source_successor.is_some() {
+        SOURCE_READSET_MANIFEST_SCHEMA
+    } else if plan
+        .summary
+        .object_get("path_profile")
+        .and_then(|p| p.object_get("schema_version"))
+        .and_then(JsonValue::as_str)
+        == Some("tos_canonical_form_metadata_paths_v1")
+    {
+        CANONICAL_FORM_MANIFEST_SCHEMA
+    } else if plan.summary.object_get("path_profile").is_some() {
+        PROFILED_MANIFEST_SCHEMA
+    } else {
+        MANIFEST_SCHEMA
+    };
+    let mut fields = vec![
+        ("schema_version", cmd::string(schema)),
         ("transaction_id", cmd::string(id)),
         (
             "base_publication",
@@ -767,7 +1309,12 @@ fn manifest(
         ),
         ("plan", plan.summary.clone()),
         ("parents", parents),
-    ])
+    ];
+    if let (Some(readset), Some(successor)) = (&plan.source_readset, &plan.source_successor) {
+        fields.push(("source_readset", source_readset_value(readset)?));
+        fields.push(("source_successor", source_successor_value(successor)?));
+    }
+    Ok(cmd::object(fields))
 }
 pub(crate) fn read_at(
     parent: &File,
@@ -1769,25 +2316,53 @@ fn load_retained_with_limits(
         ));
     }
     let manifest = cmd::parse(&raw)?;
-    cmd::exact_keys(
-        &manifest,
-        &[
-            "schema_version",
-            "transaction_id",
-            "base_publication",
-            "plan",
-            "parents",
-        ],
-    )?;
-    if !matches!(
-        cmd::text(&manifest, "schema_version")?,
-        MANIFEST_SCHEMA | PROFILED_MANIFEST_SCHEMA | CANONICAL_FORM_MANIFEST_SCHEMA
-    ) || cmd::text(&manifest, "transaction_id")? != id
-    {
+    let manifest_schema = cmd::text(&manifest, "schema_version")?;
+    match manifest_schema {
+        MANIFEST_SCHEMA | PROFILED_MANIFEST_SCHEMA | CANONICAL_FORM_MANIFEST_SCHEMA => {
+            cmd::exact_keys(
+                &manifest,
+                &[
+                    "schema_version",
+                    "transaction_id",
+                    "base_publication",
+                    "plan",
+                    "parents",
+                ],
+            )?;
+        }
+        SOURCE_READSET_MANIFEST_SCHEMA => {
+            cmd::exact_keys(
+                &manifest,
+                &[
+                    "schema_version",
+                    "transaction_id",
+                    "base_publication",
+                    "plan",
+                    "parents",
+                    "source_readset",
+                    "source_successor",
+                ],
+            )?;
+        }
+        _ => {
+            return Err(SourceCommandError::Conflict(
+                "retained transaction manifest identity",
+            ));
+        }
+    }
+    if cmd::text(&manifest, "transaction_id")? != id {
         return Err(SourceCommandError::Conflict(
             "retained transaction manifest identity",
         ));
     }
+    let (source_readset, source_successor) = if manifest_schema == SOURCE_READSET_MANIFEST_SCHEMA {
+        let readset = parse_source_readset(cmd::field(&manifest, "source_readset")?)?;
+        let successor = parse_source_successor(cmd::field(&manifest, "source_successor")?)?;
+        validate_source_successor(&readset, &successor)?;
+        (Some(readset), Some(successor))
+    } else {
+        (None, None)
+    };
     let base = cmd::field(&manifest, "base_publication")?;
     cmd::exact_keys(base, &["token", "generation"])?;
     let generation = cmd::integer(base, "generation")?;
@@ -1811,9 +2386,9 @@ fn load_retained_with_limits(
     }
     let item_path_profile = selected_profile(summary)?;
     let canonical_form = canonical_forms_profile(summary)?;
-    if (cmd::text(&manifest, "schema_version")? == PROFILED_MANIFEST_SCHEMA)
+    if (manifest_schema == PROFILED_MANIFEST_SCHEMA)
         != item_path_profile.is_some()
-        || (cmd::text(&manifest, "schema_version")? == CANONICAL_FORM_MANIFEST_SCHEMA)
+        || (manifest_schema == CANONICAL_FORM_MANIFEST_SCHEMA)
             != canonical_form.is_some()
     {
         return Err(SourceCommandError::Conflict(
@@ -1945,6 +2520,8 @@ fn load_retained_with_limits(
         item_path_profile,
         files,
         new_directories: directories,
+        source_readset,
+        source_successor,
     };
     let plan = freeze(raw_plan.clone())?;
     if !cmd::same(&plan.summary, summary)? {
@@ -2290,6 +2867,33 @@ pub(crate) struct WorkTransportResult {
     pub(crate) publication: JsonValue,
     pub(crate) committed: bool,
 }
+
+/// The source owner keeps its exact V2 read session and validated writer
+/// context outside this transport layer. These callbacks recheck the durable
+/// witness set at each guarded phase and publish the prepared selector only
+/// after the physical Work delta is durable.
+pub(crate) struct SourceSuccessorHooks<'a> {
+    pub(crate) begin_source_intent: &'a mut dyn FnMut(
+        &SourceCutReadsetV1,
+        &PreparedV2SuccessorLocatorV2,
+        &str,
+        &str,
+    ) -> SourceCommandResult<()>,
+    pub(crate) verify_readset: &'a mut dyn FnMut(
+        &SourceCutReadsetV1,
+        &PreparedV2SuccessorLocatorV2,
+    ) -> SourceCommandResult<()>,
+    pub(crate) publish_successor: &'a mut dyn FnMut(
+        &SourceCutReadsetV1,
+        &PreparedV2SuccessorLocatorV2,
+    ) -> SourceCommandResult<()>,
+    pub(crate) finish_source_intent: &'a mut dyn FnMut(
+        &SourceCutReadsetV1,
+        &PreparedV2SuccessorLocatorV2,
+        &str,
+        &str,
+    ) -> SourceCommandResult<()>,
+}
 pub(crate) fn still_pending(
     fs: &CreationFilesystem,
     pending: &JsonValue,
@@ -2311,11 +2915,19 @@ fn move_pending(
     recovery_authorization: Option<JsonValue>,
     initial_full_membership: bool,
     guard: &mut impl FnMut(&JsonValue, WorkGuard<'_>) -> SourceCommandResult<()>,
+    mut source_hooks: Option<SourceSuccessorHooks<'_>>,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<WorkTransportResult> {
     let fs = fence.fs;
     let id = cmd::text(&retained.manifest, "transaction_id")?;
+    if retained.plan.source_readset.is_some() != source_hooks.is_some()
+        || rollback && retained.plan.source_successor.is_some()
+    {
+        return Err(SourceCommandError::Denied(
+            "V2 source successor recovery requires forward publication",
+        ));
+    }
     let journal_members = journal_members(id, &retained.plan)?;
     let mut check = |full_membership: bool| -> SourceCommandResult<()> {
         fence.verify(deadline, cancelled)?;
@@ -2340,6 +2952,19 @@ fn move_pending(
         )
     };
     check(initial_full_membership)?;
+    if let Some(hooks) = source_hooks.as_mut() {
+        let readset = retained
+            .plan
+            .source_readset
+            .as_ref()
+            .ok_or(SourceCommandError::Invalid("source readset absent"))?;
+        let successor = retained
+            .plan
+            .source_successor
+            .as_ref()
+            .ok_or(SourceCommandError::Invalid("source successor absent"))?;
+        (hooks.verify_readset)(readset, successor)?;
+    }
     let mut parents = Parents::new(fs, &retained.manifest)?;
     parents.check_files(&retained.plan, None, deadline, cancelled)?;
     if !rollback {
@@ -2435,7 +3060,28 @@ fn move_pending(
     parents.sync_selected(&retained.plan, deadline, cancelled)?;
     parents.check_files(&retained.plan, Some(!rollback), deadline, cancelled)?;
     check(true)?;
+    drop(check);
     parents.verify()?;
+    if !rollback {
+        if let Some(hooks) = source_hooks.as_mut() {
+            let readset = retained
+                .plan
+                .source_readset
+                .as_ref()
+                .ok_or(SourceCommandError::Invalid("source readset absent"))?;
+            let successor = retained
+                .plan
+                .source_successor
+                .as_ref()
+                .ok_or(SourceCommandError::Invalid("source successor absent"))?;
+            // Recheck the addressed predicates after every physical mover is
+            // durable and immediately before the V2 selector compare-and-swap.
+            // Intermediate Work guard calls need not replay the whole V2
+            // readset against the same cumulative operation ledger.
+            (hooks.verify_readset)(readset, successor)?;
+            (hooks.publish_successor)(readset, successor)?;
+        }
+    }
     let terminal = publication_state(
         &retained.manifest,
         &retained.digest,
@@ -2472,6 +3118,19 @@ fn move_pending(
     {
         return Err(SourceCommandError::Conflict("terminal completion changed"));
     }
+    if let Some(hooks) = source_hooks.as_mut() {
+        let readset = retained
+            .plan
+            .source_readset
+            .as_ref()
+            .ok_or(SourceCommandError::Invalid("source readset absent"))?;
+        let successor = retained
+            .plan
+            .source_successor
+            .as_ref()
+            .ok_or(SourceCommandError::Invalid("source successor absent"))?;
+        (hooks.finish_source_intent)(readset, successor, id, &retained.digest)?;
+    }
     Ok(WorkTransportResult {
         transaction_id: id.to_owned(),
         manifest_sha256: retained.digest.clone(),
@@ -2491,7 +3150,7 @@ impl WorkCorpusFence<'_> {
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> SourceCommandResult<WorkTransportResult> {
-        self.apply_selected(plan, snapshot, None, false, guard, deadline, cancelled)
+        self.apply_selected(plan, snapshot, None, false, guard, None, deadline, cancelled)
     }
     pub(crate) fn apply_retained_item(
         &self,
@@ -2513,7 +3172,56 @@ impl WorkCorpusFence<'_> {
                 "retained Item selection differs",
             ));
         }
-        self.apply_selected(plan, snapshot, renewal, true, guard, deadline, cancelled)
+        self.apply_selected(plan, snapshot, renewal, true, guard, None, deadline, cancelled)
+    }
+
+    /// Apply a validated SourceEntry Work delta together with its selected V2
+    /// successor. The Work intent retains the exact readset and prepared
+    /// locator before any file mover runs; the source owner supplies the
+    /// currentness and selector-CAS operations under the agreed lock order.
+    pub(crate) fn apply_source_successor(
+        &self,
+        plan: WorkPlan,
+        snapshot: &PublicationSnapshot,
+        guard: impl FnMut(&JsonValue, WorkGuard<'_>) -> SourceCommandResult<()>,
+        mut begin_source_intent: impl FnMut(
+            &SourceCutReadsetV1,
+            &PreparedV2SuccessorLocatorV2,
+            &str,
+            &str,
+        ) -> SourceCommandResult<()>,
+        mut verify_readset: impl FnMut(
+            &SourceCutReadsetV1,
+            &PreparedV2SuccessorLocatorV2,
+        ) -> SourceCommandResult<()>,
+        mut publish_successor: impl FnMut(
+            &SourceCutReadsetV1,
+            &PreparedV2SuccessorLocatorV2,
+        ) -> SourceCommandResult<()>,
+        mut finish_source_intent: impl FnMut(
+            &SourceCutReadsetV1,
+            &PreparedV2SuccessorLocatorV2,
+            &str,
+            &str,
+        ) -> SourceCommandResult<()>,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<WorkTransportResult> {
+        self.apply_selected(
+            plan,
+            snapshot,
+            None,
+            false,
+            guard,
+            Some(SourceSuccessorHooks {
+                begin_source_intent: &mut begin_source_intent,
+                verify_readset: &mut verify_readset,
+                publish_successor: &mut publish_successor,
+                finish_source_intent: &mut finish_source_intent,
+            }),
+            deadline,
+            cancelled,
+        )
     }
     fn apply_selected(
         &self,
@@ -2522,6 +3230,7 @@ impl WorkCorpusFence<'_> {
         renewal: Option<JsonValue>,
         item_retained: bool,
         mut guard: impl FnMut(&JsonValue, WorkGuard<'_>) -> SourceCommandResult<()>,
+        mut source_hooks: Option<SourceSuccessorHooks<'_>>,
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> SourceCommandResult<WorkTransportResult> {
@@ -2529,6 +3238,11 @@ impl WorkCorpusFence<'_> {
         snapshot.verify_current(self.fs, deadline, cancelled)?;
         let id = plan.transaction_id.clone();
         let frozen = freeze(plan)?;
+        if frozen.source_readset.is_some() != source_hooks.is_some() {
+            return Err(SourceCommandError::Denied(
+                "V2 source successor requires source-bound Work publication",
+            ));
+        }
         let no_journal = BTreeSet::new();
         guard(
             &frozen.summary,
@@ -2548,6 +3262,8 @@ impl WorkCorpusFence<'_> {
         }
         if let Some(existing) = &existing {
             if !cmd::same(&existing.plan.summary, &frozen.summary)?
+                || existing.plan.source_readset != frozen.source_readset
+                || existing.plan.source_successor != frozen.source_successor
                 || existing
                     .plan
                     .files
@@ -2621,7 +3337,7 @@ impl WorkCorpusFence<'_> {
         let manifest = if let Some(existing) = &existing {
             existing.manifest.clone()
         } else {
-            manifest(&id, snapshot, &frozen, capture_parents(self.fs, &frozen)?)
+            manifest(&id, snapshot, &frozen, capture_parents(self.fs, &frozen)?)?
         };
         let mut opened = Parents::new(self.fs, &manifest)?;
         opened.check_files(&frozen, Some(false), deadline, cancelled)?;
@@ -2642,6 +3358,21 @@ impl WorkCorpusFence<'_> {
             },
         )?;
         opened.check_files(&frozen, Some(false), deadline, cancelled)?;
+        if let Some(hooks) = source_hooks.as_mut() {
+            let readset = frozen
+                .source_readset
+                .as_ref()
+                .ok_or(SourceCommandError::Invalid("source readset absent"))?;
+            let successor = frozen
+                .source_successor
+                .as_ref()
+                .ok_or(SourceCommandError::Invalid("source successor absent"))?;
+            // The complete immutable Work manifest and after-side blobs are
+            // durable now. Install the store-owned writer fence before the
+            // Work pending head or any source-file mover can become visible.
+            (hooks.begin_source_intent)(readset, successor, &id, &digest)?;
+            (hooks.verify_readset)(readset, successor)?;
+        }
         let pending = publication_state(&manifest, &digest, true, None, None)?;
         publish_state(self.fs, &pending, current.as_ref(), deadline, cancelled)?;
         let retained = Retained {
@@ -2654,10 +3385,21 @@ impl WorkCorpusFence<'_> {
                 item_path_profile: selected_profile(&frozen.summary)?,
                 files: frozen.files.clone(),
                 new_directories: frozen.directories.clone(),
+                source_readset: frozen.source_readset.clone(),
+                source_successor: frozen.source_successor.clone(),
             },
         };
         move_pending(
-            self, &retained, &pending, false, renewal, false, &mut guard, deadline, cancelled,
+            self,
+            &retained,
+            &pending,
+            false,
+            renewal,
+            false,
+            &mut guard,
+            source_hooks,
+            deadline,
+            cancelled,
         )
     }
 
@@ -2669,7 +3411,75 @@ impl WorkCorpusFence<'_> {
         selected: &PendingWork,
         rollback: bool,
         recovery_authorization: Option<JsonValue>,
+        guard: impl FnMut(&JsonValue, WorkGuard<'_>) -> SourceCommandResult<()>,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<WorkTransportResult> {
+        self.recover_selected(
+            selected,
+            rollback,
+            recovery_authorization,
+            guard,
+            None,
+            deadline,
+            cancelled,
+        )
+    }
+
+    /// Forward-only selected recovery for a V2 SourceEntry publication. The
+    /// source owner rechecks the same durable witnesses and replays the exact
+    /// prepared selector operation before Work can become terminal.
+    pub(crate) fn recover_source_successor(
+        &self,
+        selected: &PendingWork,
+        recovery_authorization: Option<JsonValue>,
+        guard: impl FnMut(&JsonValue, WorkGuard<'_>) -> SourceCommandResult<()>,
+        mut begin_source_intent: impl FnMut(
+            &SourceCutReadsetV1,
+            &PreparedV2SuccessorLocatorV2,
+            &str,
+            &str,
+        ) -> SourceCommandResult<()>,
+        mut verify_readset: impl FnMut(
+            &SourceCutReadsetV1,
+            &PreparedV2SuccessorLocatorV2,
+        ) -> SourceCommandResult<()>,
+        mut finish_source_intent: impl FnMut(
+            &SourceCutReadsetV1,
+            &PreparedV2SuccessorLocatorV2,
+            &str,
+            &str,
+        ) -> SourceCommandResult<()>,
+        mut publish_successor: impl FnMut(
+            &SourceCutReadsetV1,
+            &PreparedV2SuccessorLocatorV2,
+        ) -> SourceCommandResult<()>,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<WorkTransportResult> {
+        self.recover_selected(
+            selected,
+            false,
+            recovery_authorization,
+            guard,
+            Some(SourceSuccessorHooks {
+                begin_source_intent: &mut begin_source_intent,
+                verify_readset: &mut verify_readset,
+                publish_successor: &mut publish_successor,
+                finish_source_intent: &mut finish_source_intent,
+            }),
+            deadline,
+            cancelled,
+        )
+    }
+
+    fn recover_selected(
+        &self,
+        selected: &PendingWork,
+        rollback: bool,
+        recovery_authorization: Option<JsonValue>,
         mut guard: impl FnMut(&JsonValue, WorkGuard<'_>) -> SourceCommandResult<()>,
+        source_hooks: Option<SourceSuccessorHooks<'_>>,
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> SourceCommandResult<WorkTransportResult> {
@@ -2697,6 +3507,22 @@ impl WorkCorpusFence<'_> {
                 ));
             }
         }
+        if let Some(hooks) = source_hooks.as_mut() {
+            let readset = retained
+                .plan
+                .source_readset
+                .as_ref()
+                .ok_or(SourceCommandError::Invalid("source readset absent"))?;
+            let successor = retained
+                .plan
+                .source_successor
+                .as_ref()
+                .ok_or(SourceCommandError::Invalid("source successor absent"))?;
+            // A crash may have occurred after the store marker but before
+            // Work published pending; recovery reinstalls the exact binding.
+            (hooks.begin_source_intent)(readset, successor, id, &retained.digest)?;
+            (hooks.verify_readset)(readset, successor)?;
+        }
         move_pending(
             self,
             &retained,
@@ -2705,6 +3531,7 @@ impl WorkCorpusFence<'_> {
             recovery_authorization,
             true,
             &mut guard,
+            source_hooks,
             deadline,
             cancelled,
         )

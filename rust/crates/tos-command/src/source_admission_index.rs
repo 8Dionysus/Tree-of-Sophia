@@ -12,9 +12,334 @@ use std::{
     ops::Bound,
 };
 use tos_foundation::{
-    Digest256, FoundationErrorCode, JsonLimits, JsonMode, JsonValue, RelativePath, parse_json,
-    parse_json_with_state_budget,
+    Digest256, FoundationErrorCode, JsonLimits, JsonMode, JsonValue, RelativePath, SourceRevision,
+    parse_json, parse_json_with_state_budget,
 };
+use tos_source_store::{
+    SourceCutFormat, SourceCutMemberTuple, SourceCutMemberWitness, SourceCutReadsetV1,
+    SourceCutSelection, SourcePresenceV1,
+};
+use tos_validation::source_cut::{CutExecutionBinding, CutPreparedSchemaExecutionBinding};
+
+/// Metadata copied only from the already selected V2 current root. The rootset
+/// digest and revision let the delta validator reject a proof borrowed from a
+/// historical row or a stale selection without walking the global History
+/// tree.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) struct SelectedNativeAdmissionRootV1 {
+    revision: SourceRevision,
+    rootset_sha256: Digest256,
+    validator_sha256: Digest256,
+    membership_v1: Option<tos_source_store::SourceMembershipV1>,
+    member_count: u64,
+    source_bytes: u64,
+    identity_count: u64,
+    dependency_source_count: u64,
+    dependency_count: u64,
+    retirement_count: u64,
+    completion_proof: crate::source_admission_spooled_index::NativeAdmissionCompletionProofV1,
+}
+
+impl SelectedNativeAdmissionRootV1 {
+    pub(crate) fn from_selected_current_roots(
+        roots: &super::source_admission_segment_v2::SourceRevisionRootsV2,
+        rootset_sha256: Digest256,
+    ) -> io::Result<Self> {
+        let completion_proof = roots
+            .completion_proof
+            .ok_or_else(|| invalid("selected V2 root has no native completion proof"))?;
+        if completion_proof.validator_sha256() != roots.validator_sha256
+            || completion_proof.source_bytes() != roots.source_bytes
+            || completion_proof.identity_count() != roots.identity_count
+            || completion_proof.dependency_source_count() != roots.dependency_source_count
+            || completion_proof.dependency_count() != roots.dependency_count
+            || completion_proof.membership_v1() != roots.membership_v1
+            || roots
+                .membership_v1
+                .is_some_and(|membership| membership.count != roots.member_count)
+        {
+            return Err(invalid("selected V2 completion proof differs from its root"));
+        }
+        Ok(Self {
+            revision: roots.revision,
+            rootset_sha256,
+            validator_sha256: roots.validator_sha256,
+            membership_v1: roots.membership_v1,
+            member_count: roots.member_count,
+            source_bytes: roots.source_bytes,
+            identity_count: roots.identity_count,
+            dependency_source_count: roots.dependency_source_count,
+            dependency_count: roots.dependency_count,
+            retirement_count: roots.retirement_count,
+            completion_proof,
+        })
+    }
+
+    pub(crate) fn revision(self) -> SourceRevision { self.revision }
+    pub(crate) fn rootset_sha256(self) -> Digest256 { self.rootset_sha256 }
+    pub(crate) fn validator_sha256(self) -> Digest256 { self.validator_sha256 }
+    pub(crate) fn membership_v1(self) -> Option<tos_source_store::SourceMembershipV1> { self.membership_v1 }
+    pub(crate) fn member_count(self) -> u64 { self.member_count }
+    pub(crate) fn source_bytes(self) -> u64 { self.source_bytes }
+    pub(crate) fn identity_count(self) -> u64 { self.identity_count }
+    pub(crate) fn dependency_source_count(self) -> u64 { self.dependency_source_count }
+    pub(crate) fn dependency_count(self) -> u64 { self.dependency_count }
+    pub(crate) fn retirement_count(self) -> u64 { self.retirement_count }
+    pub(crate) fn completion_proof(self) -> crate::source_admission_spooled_index::NativeAdmissionCompletionProofV1 { self.completion_proof }
+}
+
+/// The selected V2 read adapter implements these operations against its one
+/// held current-root session. Each lookup must append its exact positive or
+/// negative witness to the retained `SourceCutReadsetV1`; `tick` and
+/// `check_state` must charge the same invocation clock/work/state/cancel
+/// handles used by SourceEntry preparation.
+pub(crate) trait SourceEntryDeltaIndexReader {
+    fn tick(&mut self, work_units: usize) -> io::Result<()>;
+    fn check_state(&mut self, additional_bytes: usize) -> io::Result<()>;
+    /// Recheck this exact accumulated readset against the session's latest
+    /// selected root, using the same invocation ledger and cancellation state.
+    fn verify_readset_current(&mut self) -> io::Result<SourceCutSelection>;
+    fn current_member(
+        &mut self,
+        path: &RelativePath,
+    ) -> io::Result<Option<SourceCutMemberTuple>>;
+    fn current_identity_path(&mut self, id: &str) -> io::Result<Option<RelativePath>>;
+    fn current_dependencies(
+        &mut self,
+        source: &RelativePath,
+    ) -> io::Result<Vec<RelativePath>>;
+    fn current_object_refcount(&mut self, digest: Digest256) -> io::Result<Option<u64>>;
+    fn readset(&self) -> &SourceCutReadsetV1;
+    fn json_limits(&self) -> JsonLimits;
+    /// Remaining parse-state capacity under the same selected invocation
+    /// profile before accounting the delta result currently held by this
+    /// validator. The validator subtracts that local reservation explicitly.
+    fn json_state_bytes(&self) -> usize;
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct SourceEntryDependencyDeltaV1 {
+    source: RelativePath,
+    before: Vec<RelativePath>,
+    after: Vec<RelativePath>,
+}
+
+impl SourceEntryDependencyDeltaV1 {
+    pub(crate) fn source(&self) -> &RelativePath { &self.source }
+    pub(crate) fn before(&self) -> &[RelativePath] { &self.before }
+    pub(crate) fn after(&self) -> &[RelativePath] { &self.after }
+}
+
+/// Exact before/after tuple for one existing member row. SourceEntry replaces
+/// bytes only, so the source mode is preserved from the authenticated base.
+/// The matching `SourceChange` retains the full after bytes.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct SourceEntryMemberDeltaV1 {
+    path: RelativePath,
+    before: SourceCutMemberTuple,
+    after: SourceCutMemberTuple,
+}
+
+impl SourceEntryMemberDeltaV1 {
+    pub(crate) fn path(&self) -> &RelativePath { &self.path }
+    pub(crate) fn before(&self) -> SourceCutMemberTuple { self.before }
+    pub(crate) fn after(&self) -> SourceCutMemberTuple { self.after }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) struct SourceEntryObjectRefcountDeltaV1 {
+    digest: Digest256,
+    before_count: Option<u64>,
+    after_count: Option<u64>,
+}
+
+impl SourceEntryObjectRefcountDeltaV1 {
+    pub(crate) fn digest(self) -> Digest256 { self.digest }
+    pub(crate) fn before_count(self) -> Option<u64> { self.before_count }
+    pub(crate) fn after_count(self) -> Option<u64> { self.after_count }
+}
+
+/// A verified owner-local delta. This proves the exact three prepared member
+/// replacements and the resulting outgoing dependency rows over the selected
+/// authenticated base. It is not a synthetic full `IndexView`; the caller
+/// must still publish these bounded COW updates through the V2 root builder.
+#[derive(Debug)]
+pub(crate) struct ValidatedSourceEntryDeltaV1<'a> {
+    selected_base: SelectedNativeAdmissionRootV1,
+    observed_base_revision: SourceRevision,
+    proposal: &'a crate::source_command::PreparedCommand,
+    source_path: RelativePath,
+    record_id: &'a str,
+    updates: [&'a crate::source_command::SourceChange; 3],
+    member_updates: [SourceEntryMemberDeltaV1; 3],
+    dependency_updates: [SourceEntryDependencyDeltaV1; 3],
+    object_refcount_updates: Vec<SourceEntryObjectRefcountDeltaV1>,
+    member_count_after: u64,
+    source_bytes_after: u64,
+    identity_count_after: u64,
+    dependency_source_count_after: u64,
+    dependency_count_after: u64,
+    retirement_count_after: u64,
+    prepared_schema: tos_validation::source_cut::CutPreparedSchemaExecutionBinding,
+}
+
+impl<'proposal> ValidatedSourceEntryDeltaV1<'proposal> {
+    pub(crate) fn selected_base(&self) -> SelectedNativeAdmissionRootV1 { self.selected_base }
+    pub(crate) fn observed_base_revision(&self) -> SourceRevision { self.observed_base_revision }
+    pub(crate) fn proposal(&self) -> &crate::source_command::PreparedCommand { self.proposal }
+    pub(crate) fn source_path(&self) -> &RelativePath { &self.source_path }
+    pub(crate) fn record_id(&self) -> &str { self.record_id }
+    pub(crate) fn updates(&self) -> &[&crate::source_command::SourceChange; 3] { &self.updates }
+    pub(crate) fn member_updates(&self) -> &[SourceEntryMemberDeltaV1; 3] { &self.member_updates }
+    pub(crate) fn dependency_updates(&self) -> &[SourceEntryDependencyDeltaV1; 3] { &self.dependency_updates }
+    pub(crate) fn object_refcount_updates(&self) -> &[SourceEntryObjectRefcountDeltaV1] { &self.object_refcount_updates }
+    pub(crate) fn member_count_after(&self) -> u64 { self.member_count_after }
+    pub(crate) fn source_bytes_after(&self) -> u64 { self.source_bytes_after }
+    pub(crate) fn identity_count_after(&self) -> u64 { self.identity_count_after }
+    pub(crate) fn dependency_source_count_after(&self) -> u64 { self.dependency_source_count_after }
+    pub(crate) fn dependency_count_after(&self) -> u64 { self.dependency_count_after }
+    pub(crate) fn retirement_count_after(&self) -> u64 { self.retirement_count_after }
+    pub(crate) fn prepared_schema(&self) -> tos_validation::source_cut::CutPreparedSchemaExecutionBinding { self.prepared_schema }
+
+    /// Recheck the captured exact readset against the latest current root and
+    /// merge the bounded delta onto that root. This produces the only result
+    /// from which the incremental route may issue a successor completion
+    /// proof; callers cannot carry stale absolute counts across unrelated
+    /// accepted writers.
+    pub(crate) fn validate_current_successor<'delta>(
+        &'delta self,
+        reader: &mut dyn SourceEntryDeltaIndexReader,
+        current_base: SelectedNativeAdmissionRootV1,
+    ) -> io::Result<ValidatedSourceEntrySuccessorV1<'delta, 'proposal>> {
+        let current = reader.verify_readset_current()?;
+        let readset = reader.readset();
+        if current.format != SourceCutFormat::NativeAdmissionV2
+            || current.current_revision != current_base.revision
+            || current.rootset_sha256 != Some(current_base.rootset_sha256)
+            || readset.base_revision != self.observed_base_revision
+            || current_base.validator_sha256 != self.selected_base.validator_sha256
+            || current_base.completion_proof.prepared_schema()
+                != self.prepared_schema
+            || current_base.member_count == 0
+        {
+            return Err(invalid(
+                "source-entry delta cannot be rebased onto the latest current root",
+            ));
+        }
+
+        for update in &self.member_updates {
+            let witness = readset_member(readset, &update.path)?;
+            if witness.expected_presence != Some(SourcePresenceV1::File)
+                || witness.expected_member != Some(update.before)
+                || witness.expected_indexed_ids.is_none()
+            {
+                return Err(invalid(
+                    "source-entry delta member changed before latest-root rebase",
+                ));
+            }
+        }
+        for update in &self.dependency_updates {
+            let mut witnesses = readset
+                .dependencies
+                .iter()
+                .filter(|witness| witness.path == update.source);
+            if witnesses
+                .next()
+                .is_none_or(|witness| witness.expected_targets != update.before)
+                || witnesses.next().is_some()
+            {
+                return Err(invalid(
+                    "source-entry dependencies changed before latest-root rebase",
+                ));
+            }
+        }
+        for update in &self.object_refcount_updates {
+            validate_delta_object_refcount_lookup(
+                readset,
+                update.digest,
+                update.before_count,
+            )?;
+        }
+
+        let mut source_bytes_after = current_base.source_bytes;
+        let mut dependency_count_after = current_base.dependency_count;
+        let mut dependency_source_count_after = current_base.dependency_source_count;
+        for update in &self.member_updates {
+            source_bytes_after = source_bytes_after
+                .checked_sub(update.before.size_bytes)
+                .and_then(|bytes| bytes.checked_add(update.after.size_bytes))
+                .ok_or_else(|| invalid("rebased source byte count overflow"))?;
+        }
+        for update in &self.dependency_updates {
+            let before_count = u64::try_from(update.before.len())
+                .map_err(|_| invalid("rebased prior dependency count overflow"))?;
+            let after_count = u64::try_from(update.after.len())
+                .map_err(|_| invalid("rebased successor dependency count overflow"))?;
+            dependency_count_after = dependency_count_after
+                .checked_sub(before_count)
+                .and_then(|count| count.checked_add(after_count))
+                .ok_or_else(|| invalid("rebased dependency count overflow"))?;
+            match (before_count != 0, after_count != 0) {
+                (false, true) => {
+                    dependency_source_count_after = dependency_source_count_after
+                        .checked_add(1)
+                        .ok_or_else(|| invalid("rebased dependency source count overflow"))?;
+                }
+                (true, false) => {
+                    dependency_source_count_after = dependency_source_count_after
+                        .checked_sub(1)
+                        .ok_or_else(|| invalid("rebased dependency source count underflow"))?;
+                }
+                _ => {}
+            }
+        }
+        if dependency_source_count_after > dependency_count_after {
+            return Err(invalid("rebased dependency counts are inconsistent"));
+        }
+        Ok(ValidatedSourceEntrySuccessorV1 {
+            delta: self,
+            current_base,
+            current_selection: current,
+            member_count_after: current_base.member_count,
+            source_bytes_after,
+            identity_count_after: current_base.identity_count,
+            dependency_source_count_after,
+            dependency_count_after,
+            retirement_count_after: current_base.retirement_count,
+        })
+    }
+}
+
+#[derive(Debug)]
+pub(crate) struct ValidatedSourceEntrySuccessorV1<'delta, 'proposal> {
+    delta: &'delta ValidatedSourceEntryDeltaV1<'proposal>,
+    current_base: SelectedNativeAdmissionRootV1,
+    current_selection: SourceCutSelection,
+    member_count_after: u64,
+    source_bytes_after: u64,
+    identity_count_after: u64,
+    dependency_source_count_after: u64,
+    dependency_count_after: u64,
+    retirement_count_after: u64,
+}
+
+impl<'delta, 'proposal> ValidatedSourceEntrySuccessorV1<'delta, 'proposal> {
+    pub(crate) fn delta(&self) -> &ValidatedSourceEntryDeltaV1<'proposal> { self.delta }
+    pub(crate) fn current_base(&self) -> SelectedNativeAdmissionRootV1 { self.current_base }
+    pub(crate) fn current_selection(&self) -> SourceCutSelection { self.current_selection }
+    pub(crate) fn member_count_after(&self) -> u64 { self.member_count_after }
+    pub(crate) fn source_bytes_after(&self) -> u64 { self.source_bytes_after }
+    pub(crate) fn identity_count_after(&self) -> u64 { self.identity_count_after }
+    pub(crate) fn dependency_source_count_after(&self) -> u64 { self.dependency_source_count_after }
+    pub(crate) fn dependency_count_after(&self) -> u64 { self.dependency_count_after }
+    pub(crate) fn retirement_count_after(&self) -> u64 { self.retirement_count_after }
+
+    pub(crate) fn completion_proof(
+        &self,
+    ) -> crate::source_admission_spooled_index::NativeAdmissionCompletionProofV1 {
+        crate::source_admission_spooled_index::NativeAdmissionCompletionProofV1::from_validated_source_entry_successor(self)
+    }
+}
 
 pub const RETIREMENT_SCHEMA: &str = "ToS/contracts/provenance-event.schema.json";
 pub const MAX_EVENT_BYTES: usize = 1_048_576;
@@ -1159,6 +1484,864 @@ fn references(
         _ => {}
     }
     Ok(())
+}
+
+fn add_delta_target<R: SourceEntryDeltaIndexReader + ?Sized>(
+    reader: &mut R,
+    targets: &mut Vec<RelativePath>,
+    target: RelativePath,
+    retained_state_bytes: usize,
+) -> io::Result<()> {
+    reader.tick(targets.len().saturating_add(1))?;
+    if targets.contains(&target) {
+        return Ok(());
+    }
+    let next_capacity = targets
+        .capacity()
+        .max(targets.len().saturating_add(1));
+    let list_state = next_capacity
+        .checked_mul(std::mem::size_of::<RelativePath>())
+        .and_then(|bytes| bytes.checked_add(std::mem::size_of::<Vec<RelativePath>>()))
+        .and_then(|bytes| {
+            targets.iter().try_fold(bytes, |total, path| {
+                total.checked_add(path.as_str().len().saturating_mul(4))
+            })
+        })
+        .and_then(|bytes| bytes.checked_add(target.as_str().len().saturating_mul(4)))
+        .and_then(|bytes| bytes.checked_add(128))
+        .ok_or_else(|| invalid("source-entry dependency delta state overflow"))?;
+    reader.check_state(
+        retained_state_bytes
+            .checked_add(list_state)
+            .ok_or_else(|| invalid("source-entry dependency delta state overflow"))?,
+    )?;
+    targets
+        .try_reserve_exact(1)
+        .map_err(|_| invalid("source-entry dependency delta allocation"))?;
+    reader.check_state(
+        retained_state_bytes
+            .checked_add(relative_path_vec_state(targets)?)
+            .and_then(|bytes| {
+                bytes.checked_add(
+                    std::mem::size_of::<RelativePath>()
+                        .checked_add(target.as_str().len().saturating_mul(4))?,
+                )
+            })
+            .ok_or_else(|| invalid("source-entry dependency delta state overflow"))?,
+    )?;
+    targets.push(target);
+    reader.tick(1)
+}
+
+fn validate_delta_identity_lookup(
+    readset: &SourceCutReadsetV1,
+    id: &str,
+    expected_path: Option<&RelativePath>,
+) -> io::Result<()> {
+    let mut witnesses = readset.identities.iter().filter(|witness| witness.id == id);
+    if witnesses
+        .next()
+        .is_none_or(|witness| witness.expected_path.as_ref() != expected_path)
+        || witnesses.next().is_some()
+    {
+        return Err(invalid(
+            "source-entry delta identity lookup lacks one exact readset witness",
+        ));
+    }
+    Ok(())
+}
+
+fn validate_delta_identity_target_member(
+    readset: &SourceCutReadsetV1,
+    id: &str,
+    path: &RelativePath,
+) -> io::Result<()> {
+    let witness = readset_member(readset, path)?;
+    let ids = witness
+        .expected_indexed_ids
+        .as_deref()
+        .ok_or_else(|| invalid("source-entry identity target lacks its inverse-set witness"))?;
+    if witness.expected_presence != Some(SourcePresenceV1::File)
+        || witness.expected_member.is_none()
+        || ids.windows(2).any(|pair| pair[0] >= pair[1])
+        || ids.iter().filter(|candidate| candidate.as_str() == id).count() != 1
+    {
+        return Err(invalid(
+            "source-entry identity target does not have an exact inverse-set member witness",
+        ));
+    }
+    Ok(())
+}
+
+fn validate_delta_member_lookup(
+    readset: &SourceCutReadsetV1,
+    path: &RelativePath,
+    selected: Option<SourceCutMemberTuple>,
+) -> io::Result<()> {
+    let witness = readset_member(readset, path)?;
+    let exact_file = selected.is_some_and(|member| {
+        witness.expected_presence == Some(SourcePresenceV1::File)
+            && witness.expected_member == Some(member)
+            && witness
+                .expected_indexed_ids
+                .as_ref()
+                .is_some_and(|ids| ids.windows(2).all(|pair| pair[0] < pair[1]))
+    });
+    let exact_non_file = selected.is_none()
+        && witness.expected_member.is_none()
+        && witness.expected_indexed_ids.is_none()
+        && witness.expected_presence != Some(SourcePresenceV1::File);
+    if !exact_file && !exact_non_file {
+        return Err(invalid(
+            "source-entry delta member lookup lacks one exact positive or negative witness",
+        ));
+    }
+    Ok(())
+}
+
+/// Apply the exact global-kernel reference interpretation to one proposed
+/// JSON member, using the selected current root for identity and membership
+/// lookups. The adapter records every lookup in the same SourceCut readset.
+fn collect_source_entry_references<R: SourceEntryDeltaIndexReader + ?Sized>(
+    reader: &mut R,
+    value: &JsonValue,
+    source: &RelativePath,
+    changed_paths: &[RelativePath; 3],
+    targets: &mut Vec<RelativePath>,
+    retained_state_bytes: usize,
+) -> io::Result<()> {
+    reader.tick(1)?;
+    match value {
+        JsonValue::String(text) => {
+            if let Some(text) = text.as_str() {
+                if !text.is_empty() {
+                    let identity_target = reader.current_identity_path(text)?;
+                    validate_delta_identity_lookup(
+                        reader.readset(),
+                        text,
+                        identity_target.as_ref(),
+                    )?;
+                    if let Some(target) = identity_target {
+                        validate_delta_identity_target_member(reader.readset(), text, &target)?;
+                        if target != *source {
+                            add_delta_target(reader, targets, target, retained_state_bytes)?;
+                        }
+                    }
+                }
+                if text.starts_with("ToS/") {
+                    let path_text = reference_path(text);
+                    if let Ok(path) = RelativePath::parse(path_text.as_ref()) {
+                        let present = if changed_paths.contains(&path) {
+                            true
+                        } else {
+                            let member = reader.current_member(&path)?;
+                            validate_delta_member_lookup(reader.readset(), &path, member)?;
+                            member.is_some()
+                        };
+                        if present && path != *source {
+                            add_delta_target(reader, targets, path, retained_state_bytes)?;
+                        }
+                    }
+                }
+            } else {
+                // Match the full-source kernel's scalar-prefix rule for a
+                // surrogate-bearing JSON string without treating it as an ID.
+                let prefix = text
+                    .units()
+                    .split(|unit| *unit == b'#' as u16)
+                    .next()
+                    .unwrap_or(text.units());
+                if let Ok(prefix) = String::from_utf16(prefix)
+                    && prefix.starts_with("ToS/")
+                {
+                    let path_text = reference_path(&prefix);
+                    if let Ok(path) = RelativePath::parse(path_text.as_ref()) {
+                        let present = if changed_paths.contains(&path) {
+                            true
+                        } else {
+                            let member = reader.current_member(&path)?;
+                            validate_delta_member_lookup(reader.readset(), &path, member)?;
+                            member.is_some()
+                        };
+                        if present && path != *source {
+                            add_delta_target(reader, targets, path, retained_state_bytes)?;
+                        }
+                    }
+                }
+            }
+        }
+        JsonValue::Array(values) => {
+            for value in values {
+                collect_source_entry_references(
+                    reader,
+                    value,
+                    source,
+                    changed_paths,
+                    targets,
+                    retained_state_bytes,
+                )?;
+            }
+        }
+        JsonValue::Object(values) => {
+            for (_, value) in values {
+                collect_source_entry_references(
+                    reader,
+                    value,
+                    source,
+                    changed_paths,
+                    targets,
+                    retained_state_bytes,
+                )?;
+            }
+        }
+        _ => {}
+    }
+    Ok(())
+}
+
+fn readset_member<'a>(
+    readset: &'a SourceCutReadsetV1,
+    path: &RelativePath,
+) -> io::Result<&'a SourceCutMemberWitness> {
+    let mut matches = readset.members.iter().filter(|witness| witness.path == *path);
+    let witness = matches
+        .next()
+        .ok_or_else(|| invalid("source-entry delta member predicate was not retained"))?;
+    if matches.next().is_some() {
+        return Err(invalid("source-entry delta has duplicate member predicates"));
+    }
+    Ok(witness)
+}
+
+fn validate_delta_object_refcount_lookup(
+    readset: &SourceCutReadsetV1,
+    digest: Digest256,
+    expected_count: Option<u64>,
+) -> io::Result<()> {
+    if expected_count == Some(0) {
+        return Err(invalid("source object refcount zero must be represented by absence"));
+    }
+    let mut witnesses = readset
+        .object_refcounts
+        .iter()
+        .filter(|witness| witness.digest == digest);
+    if witnesses
+        .next()
+        .is_none_or(|witness| witness.expected_count != expected_count)
+        || witnesses.next().is_some()
+    {
+        return Err(invalid(
+            "source-entry object refcount lacks one exact readset witness",
+        ));
+    }
+    Ok(())
+}
+
+fn object_refcount_delta_state(
+    updates: &[SourceEntryObjectRefcountDeltaV1],
+) -> io::Result<usize> {
+    std::mem::size_of::<Vec<SourceEntryObjectRefcountDeltaV1>>()
+        .checked_add(
+            updates
+                .capacity()
+                .checked_mul(std::mem::size_of::<SourceEntryObjectRefcountDeltaV1>())
+                .ok_or_else(|| invalid("source-entry object-refcount state overflow"))?,
+        )
+        .ok_or_else(|| invalid("source-entry object-refcount state overflow"))
+}
+
+fn relative_path_vec_state(paths: &Vec<RelativePath>) -> io::Result<usize> {
+    paths.iter().try_fold(
+        std::mem::size_of::<Vec<RelativePath>>()
+            .checked_add(
+                paths
+                    .capacity()
+                    .checked_mul(std::mem::size_of::<RelativePath>())
+                    .ok_or_else(|| invalid("source-entry path vector state overflow"))?,
+            )
+            .ok_or_else(|| invalid("source-entry path vector state overflow"))?,
+        |total, path| {
+            total
+                .checked_add(
+                    std::mem::size_of::<RelativePath>()
+                        .checked_add(path.as_str().len().saturating_mul(4))
+                        .ok_or_else(|| invalid("source-entry path text state overflow"))?,
+                )
+                .ok_or_else(|| invalid("source-entry path vector state overflow"))
+        },
+    )
+}
+
+fn source_entry_delta_state(
+    expected_paths: &[RelativePath; 3],
+    dependency_updates: &[SourceEntryDependencyDeltaV1],
+    member_updates: &[SourceEntryMemberDeltaV1],
+    current_before: Option<&Vec<RelativePath>>,
+) -> io::Result<usize> {
+    let mut bytes = std::mem::size_of::<ValidatedSourceEntryDeltaV1<'_>>()
+        .checked_add(
+            expected_paths
+                .iter()
+                .try_fold(0usize, |total, path| {
+                    total.checked_add(
+                        std::mem::size_of::<RelativePath>()
+                            .checked_add(path.as_str().len().saturating_mul(4))?,
+                    )
+                })
+                .ok_or_else(|| invalid("source-entry selected path state overflow"))?,
+        )
+        .and_then(|total| {
+            total.checked_add(
+                std::mem::size_of::<Vec<SourceEntryDependencyDeltaV1>>()
+                    .checked_add(
+                        3usize.checked_mul(std::mem::size_of::<SourceEntryDependencyDeltaV1>())?,
+                    )?,
+            )
+        })
+        .and_then(|total| {
+            total.checked_add(
+                std::mem::size_of::<Vec<SourceEntryMemberDeltaV1>>()
+                    .checked_add(
+                        3usize.checked_mul(std::mem::size_of::<SourceEntryMemberDeltaV1>())?,
+                    )?,
+            )
+        })
+        .ok_or_else(|| invalid("source-entry retained delta state overflow"))?;
+    for update in dependency_updates {
+        bytes = bytes
+            .checked_add(update.source.as_str().len().saturating_mul(4))
+            .ok_or_else(|| invalid("source-entry dependency result state overflow"))?;
+        bytes = bytes
+            .checked_add(relative_path_vec_state(&update.before)?)
+            .ok_or_else(|| invalid("source-entry dependency result state overflow"))?;
+        bytes = bytes
+            .checked_add(relative_path_vec_state(&update.after)?)
+            .ok_or_else(|| invalid("source-entry dependency result state overflow"))?;
+    }
+    for update in member_updates {
+        bytes = bytes
+            .checked_add(update.path.as_str().len().saturating_mul(4))
+            .ok_or_else(|| invalid("source-entry member result state overflow"))?;
+    }
+    bytes
+        .checked_add(
+            current_before
+                .map(relative_path_vec_state)
+                .transpose()?
+                .unwrap_or(0),
+        )
+        .and_then(|total| {
+            total.checked_add(if current_before.is_some() {
+                std::mem::size_of::<Vec<RelativePath>>()
+            } else {
+                0
+            })
+        })
+        .and_then(|total| total.checked_add(4096))
+        .ok_or_else(|| invalid("source-entry retained delta state overflow"))
+}
+
+fn validate_source_entry_identity_closure(
+    readset: &SourceCutReadsetV1,
+    record_path: &RelativePath,
+    form_path: &RelativePath,
+    history_path: &RelativePath,
+    record_id: &str,
+) -> io::Result<()> {
+    let record_ids = [record_id.to_owned()];
+    let no_ids: &[String] = &[];
+    for (path, expected_ids) in [
+        (record_path, record_ids.as_slice()),
+        (form_path, no_ids),
+        (history_path, no_ids),
+    ] {
+        let witness = readset_member(readset, path)?;
+        if witness.expected_presence != Some(SourcePresenceV1::File)
+            || witness.expected_member.is_none()
+            || witness.expected_indexed_ids.as_deref() != Some(expected_ids)
+        {
+            return Err(invalid(
+                "source-entry delta changes or omits an indexed identity path",
+            ));
+        }
+        for id in expected_ids {
+            let mut matches = readset
+                .identities
+                .iter()
+                .filter(|item| item.id.as_str() == id.as_str());
+            if matches.next().is_none_or(|item| item.expected_path.as_ref() != Some(path))
+                || matches.next().is_some()
+            {
+                return Err(invalid(
+                    "source-entry delta identity inverse is not exact",
+                ));
+            }
+        }
+    }
+    Ok(())
+}
+
+/// Verify and compute the bounded SourceEntry successor index delta. The
+/// source handler has already prepared and schema-checked these exact bytes;
+/// this function reuses the global kernel's recursive reference semantics and
+/// adds every positive/negative root lookup to the retained readset before the
+/// caller performs its final currentness check.
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn validate_source_entry_delta<'a>(
+    current: SourceCutSelection,
+    selected: SelectedNativeAdmissionRootV1,
+    reader: &mut dyn SourceEntryDeltaIndexReader,
+    proposal: &'a crate::source_command::PreparedCommand,
+    configuration_raw: &[u8],
+    source_path: &'a str,
+    record_id: &'a str,
+    schema: &CutExecutionBinding,
+    prepared_schema: CutPreparedSchemaExecutionBinding,
+) -> io::Result<ValidatedSourceEntryDeltaV1<'a>> {
+    if current.format != SourceCutFormat::NativeAdmissionV2
+        || current.current_revision != selected.revision
+        || current.rootset_sha256 != Some(selected.rootset_sha256)
+        || selected.validator_sha256 != selected.completion_proof.validator_sha256()
+        || selected.source_bytes != selected.completion_proof.source_bytes()
+        || selected.identity_count != selected.completion_proof.identity_count()
+        || selected.dependency_source_count
+            != selected.completion_proof.dependency_source_count()
+        || selected.dependency_count != selected.completion_proof.dependency_count()
+        || selected.dependency_source_count > selected.dependency_count
+        || selected.membership_v1 != selected.completion_proof.membership_v1()
+    {
+        return Err(invalid(
+            "source-entry delta selected root lacks a matching completed baseline",
+        ));
+    }
+    if reader.readset().base_revision != selected.revision
+        || proposal.base_revision != reader.readset().base_revision
+        || schema.source_revision != reader.readset().base_revision
+        || Digest256::of_bytes(configuration_raw) != proposal.configuration_raw_sha256
+        || proposal.handler_id != "native-witness-link-selected-revision"
+        || !matches!(proposal.operation.as_str(), "record.revise" | "record.recover")
+        || proposal.replayed
+        || record_id.is_empty()
+        || schema.schema_profile
+            != selected.completion_proof.prepared_schema().schema_profile
+        || schema.schema_set_sha256
+            != selected.completion_proof.prepared_schema().schema_set_sha256
+        || schema.worker_sha256 != selected.completion_proof.prepared_schema().worker_sha256
+        || prepared_schema != selected.completion_proof.prepared_schema()
+    {
+        return Err(invalid(
+            "source-entry delta proposal or prepared schema differs from its baseline",
+        ));
+    }
+
+    let name_state = std::mem::size_of::<[String; 3]>()
+        .checked_add(
+            source_path
+                .len()
+                .checked_mul(12)
+                .ok_or_else(|| invalid("source-entry selected name state overflow"))?,
+        )
+        .and_then(|bytes| bytes.checked_add(512))
+        .ok_or_else(|| invalid("source-entry selected name state overflow"))?;
+    reader.check_state(name_state)?;
+    let mut expected_names = crate::source_revisions::names(source_path)
+        .map_err(|_| invalid("source-entry delta protected path is invalid"))?;
+    expected_names.sort();
+    if proposal.changes.len() != expected_names.len() {
+        return Err(invalid(
+            "source-entry delta does not contain the exact maintained file set",
+        ));
+    }
+    let (parent, _) = source_path
+        .rsplit_once('/')
+        .ok_or_else(|| invalid("source-entry delta source path has no parent"))?;
+    if !source_path.starts_with("ToS/source-witnesses/")
+        || source_path.split('/').count() < 5
+        || source_path.split('/').any(|part| {
+            matches!(
+                part,
+                "payload"
+                    | "local-content"
+                    | "catalog"
+                    | "owner-local"
+                    | "private"
+                    | "retirements"
+            )
+                || part.starts_with('.')
+        })
+        || !source_path.ends_with(".json")
+        || source_path.ends_with(".human-forms.json")
+    {
+        return Err(invalid("source-entry delta protected path is outside its owner"));
+    }
+    let mut expected_paths = Vec::new();
+    let selected_path_state = std::mem::size_of::<Vec<RelativePath>>()
+        .checked_add(
+            3usize
+                .checked_mul(std::mem::size_of::<RelativePath>())
+                .ok_or_else(|| invalid("source-entry selected path state overflow"))?,
+        )
+        .and_then(|bytes| {
+            expected_names.iter().try_fold(bytes, |total, name| {
+                name.len()
+                    .checked_add(parent.len())
+                    .and_then(|len| len.checked_mul(4))
+                    .and_then(|path_bytes| total.checked_add(path_bytes))
+            })
+        })
+        .and_then(|bytes| bytes.checked_add(512))
+        .ok_or_else(|| invalid("source-entry selected path state overflow"))?;
+    reader.check_state(selected_path_state)?;
+    expected_paths
+        .try_reserve_exact(3)
+        .map_err(|_| invalid("source-entry delta path allocation"))?;
+    for name in &expected_names {
+        expected_paths.push(
+            RelativePath::parse(&format!("{parent}/{name}"))
+                .map_err(|_| invalid("source-entry delta exact path is invalid"))?,
+        );
+    }
+    expected_paths.sort();
+    if expected_paths.windows(2).any(|pair| pair[0] == pair[1]) {
+        return Err(invalid("source-entry delta exact paths are not unique"));
+    }
+    let expected_paths: [RelativePath; 3] = expected_paths
+        .try_into()
+        .map_err(|_| invalid("source-entry delta exact path count differs"))?;
+    let mut updates: [Option<&crate::source_command::SourceChange>; 3] = [None, None, None];
+    for change in &proposal.changes {
+        let index = expected_paths
+            .iter()
+            .position(|path| path == &change.path)
+            .ok_or_else(|| invalid("source-entry delta changes an unselected path"))?;
+        if updates[index].replace(change).is_some() || change.after.is_none() {
+            return Err(invalid(
+                "source-entry delta has a duplicate path or deletes a selected file",
+            ));
+        }
+    }
+    let updates = [
+        updates[0].ok_or_else(|| invalid("source-entry delta omitted a selected file"))?,
+        updates[1].ok_or_else(|| invalid("source-entry delta omitted a selected file"))?,
+        updates[2].ok_or_else(|| invalid("source-entry delta omitted a selected file"))?,
+    ];
+
+    let source_relative = RelativePath::parse(source_path)
+        .map_err(|_| invalid("source-entry delta source path is invalid"))?;
+    let form_relative = expected_paths
+        .iter()
+        .find(|path| path.as_str().ends_with(".human-forms.json"))
+        .cloned()
+        .ok_or_else(|| invalid("source-entry delta human-form path absent"))?;
+    let history_relative = expected_paths
+        .iter()
+        .find(|path| path.as_str().ends_with("/source-revision-history.json"))
+        .cloned()
+        .ok_or_else(|| invalid("source-entry delta history path absent"))?;
+    validate_source_entry_identity_closure(
+        reader.readset(),
+        &source_relative,
+        &form_relative,
+        &history_relative,
+        record_id,
+    )?;
+
+    for dependency in &proposal.reads {
+        let witness = readset_member(reader.readset(), &dependency.path)?;
+        if witness.expected_presence != Some(SourcePresenceV1::File)
+            || witness
+                .expected_member
+                .is_none_or(|member| member.sha256 != dependency.raw_sha256)
+        {
+            return Err(invalid(
+                "source-entry delta schema or owner dependency is outside its exact readset",
+            ));
+        }
+    }
+
+    let mut source_bytes_after = selected.source_bytes;
+    let mut dependency_count_after = selected.dependency_count;
+    let mut dependency_source_count_after = selected.dependency_source_count;
+    let mut dependency_updates = Vec::new();
+    let mut member_updates = Vec::new();
+    reader.check_state(
+        std::mem::size_of::<Vec<SourceEntryDependencyDeltaV1>>()
+            .checked_add(3usize.checked_mul(std::mem::size_of::<SourceEntryDependencyDeltaV1>()).ok_or_else(|| invalid("source-entry dependency result state overflow"))?)
+            .and_then(|bytes| bytes.checked_add(std::mem::size_of::<Vec<SourceEntryMemberDeltaV1>>() + 3 * std::mem::size_of::<SourceEntryMemberDeltaV1>()))
+            .ok_or_else(|| invalid("source-entry delta allocation state overflow"))?,
+    )?;
+    dependency_updates
+        .try_reserve_exact(3)
+        .map_err(|_| invalid("source-entry dependency result allocation"))?;
+    member_updates
+        .try_reserve_exact(3)
+        .map_err(|_| invalid("source-entry member result allocation"))?;
+    for (path, change) in expected_paths.iter().zip(updates.iter()) {
+        let old = readset_member(reader.readset(), path)?
+            .expected_member
+            .ok_or_else(|| invalid("source-entry delta selected prior file is absent"))?;
+        if change.before != Some(old.sha256) {
+            return Err(invalid(
+                "source-entry delta before digest differs from selected member",
+            ));
+        }
+        let after = change
+            .after
+            .as_deref()
+            .ok_or_else(|| invalid("source-entry delta selected file is deleted"))?;
+        let after_bytes = u64::try_from(after.len())
+            .map_err(|_| invalid("source-entry delta member length overflow"))?;
+        let after_tuple = SourceCutMemberTuple {
+            sha256: Digest256::of_bytes(after),
+            size_bytes: after_bytes,
+            mode: old.mode,
+        };
+        source_bytes_after = source_bytes_after
+            .checked_sub(old.size_bytes)
+            .and_then(|bytes| bytes.checked_add(after_bytes))
+            .ok_or_else(|| invalid("source-entry delta source byte count overflow"))?;
+
+        let before_targets = reader.current_dependencies(path)?;
+        if before_targets.windows(2).any(|pair| pair[0] >= pair[1]) {
+            return Err(invalid(
+                "source-entry delta prior dependencies are not strictly ordered",
+            ));
+        }
+        let retained_delta_state = source_entry_delta_state(
+            &expected_paths,
+            &dependency_updates,
+            &member_updates,
+            Some(&before_targets),
+        )?;
+        let limits = reader.json_limits();
+        if after.len() > limits.max_bytes {
+            return Err(decode_budget());
+        }
+        let parse_state = after
+            .len()
+            .checked_mul(3)
+            .and_then(|bytes| {
+                bytes.checked_add(
+                    std::mem::size_of::<JsonValue>()
+                        .checked_add(std::mem::size_of::<Vec<RelativePath>>())?,
+                )
+            })
+            .ok_or_else(|| invalid("source-entry JSON validation state overflow"))?;
+        let parse_live_state = retained_delta_state
+            .checked_add(parse_state)
+            .ok_or_else(|| invalid("source-entry JSON validation state overflow"))?;
+        reader.check_state(parse_live_state)?;
+        reader.tick(after.len())?;
+        let json_state_bytes = reader
+            .json_state_bytes()
+            .checked_sub(retained_delta_state)
+            .map(|remaining| remaining.min(parse_state))
+            .ok_or_else(|| invalid("source-entry JSON workspace is exhausted"))?;
+        let document = document(
+            after,
+            JsonMode::LegacyPythonObserved,
+            limits,
+            json_state_bytes,
+        )?
+        .ok_or_else(|| invalid("source-entry proposed member is not valid JSON"))?;
+        reader.tick(after.len())?;
+        let mut after_targets = Vec::new();
+        if path == &source_relative {
+            let identity_field = match document
+                .object_get("schema_version")
+                .and_then(JsonValue::as_str)
+            {
+                Some("tos_artifact_source_witness_v1" | "tos_artifact_source_witness_v2") => {
+                    "artifact_id"
+                }
+                Some("tos_scholarly_composite_witness_v1") => "composite_id",
+                Some("tos_source_link_v1") => "record_id",
+                _ => return Err(invalid("source-entry delta record schema is not native")),
+            };
+            if document
+                .object_get(identity_field)
+                .and_then(JsonValue::as_str)
+                != Some(record_id)
+            {
+                return Err(invalid(
+                    "source-entry delta changed the selected record identity",
+                ));
+            }
+        }
+        collect_source_entry_references(
+            reader,
+            &document,
+            path,
+            &expected_paths,
+            &mut after_targets,
+            parse_live_state,
+        )?;
+        drop(document);
+        reader.tick(
+            after_targets
+                .len()
+                .saturating_mul(usize::BITS as usize + 1),
+        )?;
+        after_targets.sort();
+        after_targets.dedup();
+        reader.check_state(
+            retained_delta_state
+                .checked_add(relative_path_vec_state(&after_targets)?)
+                .ok_or_else(|| invalid("source-entry dependency result state overflow"))?,
+        )?;
+        let before_edges = u64::try_from(before_targets.len())
+            .map_err(|_| invalid("source-entry prior dependency count overflow"))?;
+        let after_edges = u64::try_from(after_targets.len())
+            .map_err(|_| invalid("source-entry new dependency count overflow"))?;
+        dependency_count_after = dependency_count_after
+            .checked_sub(before_edges)
+            .and_then(|count| count.checked_add(after_edges))
+            .ok_or_else(|| invalid("source-entry dependency count overflow"))?;
+        match (before_edges != 0, after_edges != 0) {
+            (false, true) => {
+                dependency_source_count_after = dependency_source_count_after
+                    .checked_add(1)
+                    .ok_or_else(|| invalid("source-entry dependency source count overflow"))?;
+            }
+            (true, false) => {
+                dependency_source_count_after = dependency_source_count_after
+                    .checked_sub(1)
+                    .ok_or_else(|| invalid("source-entry dependency source count underflow"))?;
+            }
+            _ => {}
+        }
+        dependency_updates.push(SourceEntryDependencyDeltaV1 {
+            source: path.clone(),
+            before: before_targets,
+            after: after_targets,
+        });
+        member_updates.push(SourceEntryMemberDeltaV1 {
+            path: path.clone(),
+            before: *old,
+            after: after_tuple,
+        });
+    }
+    if dependency_source_count_after > dependency_count_after {
+        return Err(invalid("source-entry dependency counts are inconsistent"));
+    }
+    let dependency_updates: [SourceEntryDependencyDeltaV1; 3] = dependency_updates
+        .try_into()
+        .map_err(|_| invalid("source-entry dependency update cardinality differs"))?;
+    let member_updates: [SourceEntryMemberDeltaV1; 3] = member_updates
+        .try_into()
+        .map_err(|_| invalid("source-entry member update cardinality differs"))?;
+
+    let object_refcount_capacity = member_updates
+        .len()
+        .checked_mul(2)
+        .ok_or_else(|| invalid("source-entry object-refcount delta capacity overflow"))?;
+    let object_refcount_result_state = std::mem::size_of::<Vec<Digest256>>()
+        .checked_add(
+            object_refcount_capacity
+                .checked_mul(std::mem::size_of::<Digest256>())
+                .ok_or_else(|| invalid("source-entry object-refcount state overflow"))?,
+        )
+        .and_then(|bytes| {
+            bytes.checked_add(
+                std::mem::size_of::<Vec<SourceEntryObjectRefcountDeltaV1>>()
+                    .checked_add(
+                        object_refcount_capacity
+                            .checked_mul(std::mem::size_of::<SourceEntryObjectRefcountDeltaV1>())?,
+                    )?,
+            )
+        })
+        .ok_or_else(|| invalid("source-entry object-refcount state overflow"))?;
+    reader.check_state(object_refcount_result_state)?;
+    let mut object_digests = Vec::new();
+    object_digests
+        .try_reserve_exact(object_refcount_capacity)
+        .map_err(|_| invalid("source-entry object digest allocation"))?;
+    for update in &member_updates {
+        object_digests.push(update.before.sha256);
+        object_digests.push(update.after.sha256);
+    }
+    object_digests.sort_unstable();
+    object_digests.dedup();
+    let mut object_refcount_updates = Vec::new();
+    object_refcount_updates
+        .try_reserve_exact(object_digests.len())
+        .map_err(|_| invalid("source-entry object-refcount result allocation"))?;
+    for digest in object_digests {
+        reader.tick(1)?;
+        let before_count = reader.current_object_refcount(digest)?;
+        validate_delta_object_refcount_lookup(reader.readset(), digest, before_count)?;
+        let removed = u64::try_from(
+            member_updates
+                .iter()
+                .filter(|update| update.before.sha256 == digest)
+                .count(),
+        )
+        .map_err(|_| invalid("source-entry removed object reference count overflow"))?;
+        let added = u64::try_from(
+            member_updates
+                .iter()
+                .filter(|update| update.after.sha256 == digest)
+                .count(),
+        )
+        .map_err(|_| invalid("source-entry added object reference count overflow"))?;
+        let after_total = before_count
+            .unwrap_or(0)
+            .checked_sub(removed)
+            .and_then(|count| count.checked_add(added))
+            .ok_or_else(|| invalid("source-entry object reference count is inconsistent"))?;
+        object_refcount_updates.push(SourceEntryObjectRefcountDeltaV1 {
+            digest,
+            before_count,
+            after_count: (after_total != 0).then_some(after_total),
+        });
+    }
+    let readset = reader.readset();
+    for update in &dependency_updates {
+        let mut witnesses = readset
+            .dependencies
+            .iter()
+            .filter(|witness| witness.path == update.source);
+        if witnesses
+            .next()
+            .is_none_or(|witness| witness.expected_targets != update.before)
+            || witnesses.next().is_some()
+        {
+            return Err(invalid(
+                "source-entry delta outgoing dependency witness differs",
+            ));
+        }
+    }
+    reader.check_state(
+        source_entry_delta_state(
+            &expected_paths,
+            &dependency_updates,
+            &member_updates,
+            None,
+        )?
+        .checked_add(object_refcount_delta_state(&object_refcount_updates)?)
+        .ok_or_else(|| invalid("source-entry combined delta state overflow"))?,
+    )?;
+    if selected.member_count == 0 {
+        return Err(invalid("source-entry selected baseline has no members"));
+    }
+    Ok(ValidatedSourceEntryDeltaV1 {
+        selected_base: selected,
+        observed_base_revision: readset.base_revision,
+        proposal,
+        source_path: source_relative,
+        record_id,
+        updates,
+        member_updates,
+        dependency_updates,
+        object_refcount_updates,
+        member_count_after: selected.member_count,
+        source_bytes_after,
+        identity_count_after: selected.identity_count,
+        dependency_source_count_after,
+        dependency_count_after,
+        retirement_count_after: selected.retirement_count,
+        prepared_schema,
+    })
 }
 
 /// Existing standalone kernel callers retain the original return contract.

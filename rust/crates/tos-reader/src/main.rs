@@ -11,11 +11,11 @@ use std::process::ExitCode;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{Duration, Instant};
 
-use tos_foundation::{Digest256, JsonLimits, SourceRevision};
+use tos_foundation::{Digest256, JsonLimits, RelativePath, SourceRevision};
 use tos_segment_store::{AuthenticatedTreeLimitsV1, SegmentLimits};
 use tos_source_store::{CorpusReader, PinnedSqliteIoBudget, ReadLimits, Selector};
 
-const USAGE: &str = "tos-reader --store ABSOLUTE_ROOT --revision SHA256 --source-id ID \
+const USAGE: &str = "tos-reader --store ABSOLUTE_ROOT --revision SHA256 (--source-id ID | --member-path NORMALIZED_RELATIVE_PATH) \
 --stage-dir ABSOLUTE_PRIVATE_DIR [--format v1|v2] --max-manifest-bytes N \
 --max-manifest-entries N --max-selected-object-bytes N --json-max-depth N \
 --json-max-visits N --json-max-integer-digits N \
@@ -25,7 +25,7 @@ V2 additionally requires --max-read-bytes N --max-write-bytes N \
 --tree-max-node-bytes N --tree-max-children N --tree-max-nodes N \
 --tree-max-total-bytes N --tree-max-rows N --max-state-bytes N \
 --deadline-seconds N";
-const CAPABILITIES: &str = "{\"schema_version\":\"tos_reader_capabilities_v1\",\"store_format\":\"tos_corpus_snapshot_v1\",\"supported_store_formats\":[\"tos_corpus_snapshot_v1\",\"tos_native_admission_v2\"],\"default_format\":\"v1\",\"selection\":\"exact_revision_and_source_id\",\"platform\":\"linux\",\"minimum_kernel\":\"5.6\",\"required_open_api\":\"openat2\",\"path_traversal\":\"beneath_no_symlinks\",\"unsafe_fallback\":false}";
+const CAPABILITIES: &str = "{\"schema_version\":\"tos_reader_capabilities_v1\",\"store_format\":\"tos_corpus_snapshot_v1\",\"supported_store_formats\":[\"tos_corpus_snapshot_v1\",\"tos_native_admission_v2\"],\"default_format\":\"v1\",\"selection\":\"exact_revision_and_source_id_or_v2_member_path\",\"platform\":\"linux\",\"minimum_kernel\":\"5.6\",\"required_open_api\":\"openat2\",\"path_traversal\":\"beneath_no_symlinks\",\"unsafe_fallback\":false}";
 const MAX_ARGUMENTS: usize = 64;
 const MAX_ARGUMENT_BYTES: usize = 16 * 1024;
 const OUTPUT_BUFFER_BYTES: usize = 64 * 1024;
@@ -36,6 +36,51 @@ static STAGE_SEQUENCE: AtomicU64 = AtomicU64::new(1);
 struct ParsedArguments {
     values: BTreeMap<String, OsString>,
     retained_state_bytes: usize,
+}
+
+enum ReadSelector {
+    SourceId(String),
+    MemberPath(RelativePath),
+}
+
+fn parse_selector(
+    values: &mut BTreeMap<String, OsString>,
+    format: &str,
+) -> Result<ReadSelector, String> {
+    let source_id = values
+        .remove("--source-id")
+        .map(|value| {
+            value
+                .into_string()
+                .map_err(|_| "--source-id must be UTF-8 text".to_owned())
+        })
+        .transpose()?;
+    let member_path = values
+        .remove("--member-path")
+        .map(|value| {
+            value
+                .into_string()
+                .map_err(|_| "--member-path must be UTF-8 text".to_owned())
+        })
+        .transpose()?;
+    match (source_id, member_path) {
+        (Some(_), Some(_)) => {
+            Err("--source-id and --member-path are mutually exclusive".to_owned())
+        }
+        (None, None) => Err(format!(
+            "exactly one of --source-id or --member-path is required; usage: {USAGE}"
+        )),
+        (Some(id), None) => Ok(ReadSelector::SourceId(id)),
+        (None, Some(path)) => {
+            if format != "v2" {
+                return Err("--member-path requires --format v2".to_owned());
+            }
+            let path = RelativePath::parse(&path).map_err(|error| {
+                format!("--member-path is not a canonical relative corpus path: {error}")
+            })?;
+            Ok(ReadSelector::MemberPath(path))
+        }
+    }
 }
 
 fn required(values: &mut BTreeMap<String, OsString>, name: &str) -> Result<OsString, String> {
@@ -182,7 +227,7 @@ fn run() -> Result<(), String> {
         Digest256::from_hex(&required_text(&mut values, "--revision")?)
             .map_err(|error| error.to_string())?,
     );
-    let source_id = required_text(&mut values, "--source-id")?;
+    let selector = parse_selector(&mut values, &format)?;
     let max_manifest_bytes = required_usize(&mut values, "--max-manifest-bytes")?;
     let max_manifest_entries = required_usize(&mut values, "--max-manifest-entries")?;
     let max_selected_object_bytes = required_u64(&mut values, "--max-selected-object-bytes")?;
@@ -209,7 +254,7 @@ fn run() -> Result<(), String> {
             store,
             stage_dir,
             revision,
-            source_id,
+            selector,
             limits,
             max_selected_object_bytes,
             argument_state_bytes,
@@ -223,6 +268,9 @@ fn run() -> Result<(), String> {
     let snapshot = reader
         .load_exact(revision)
         .map_err(|error| error.to_string())?;
+    let ReadSelector::SourceId(source_id) = selector else {
+        return Err("--member-path requires --format v2".to_owned());
+    };
     let descriptor = reader
         .resolve(&snapshot, Selector::SourceId(&source_id))
         .map_err(|error| error.to_string())?;
@@ -252,7 +300,7 @@ fn run_v2(
     store: PathBuf,
     stage_dir: PathBuf,
     revision: SourceRevision,
-    source_id: String,
+    selector: ReadSelector,
     pointer: ReadLimits,
     max_object_bytes: u64,
     argument_state_bytes: usize,
@@ -282,11 +330,17 @@ fn run_v2(
     }
     let max_object_bytes = usize::try_from(max_object_bytes)
         .map_err(|_| "--max-selected-object-bytes exceeds address space".to_owned())?;
+    let selector_state_bytes = match &selector {
+        ReadSelector::SourceId(id) => id.len(),
+        ReadSelector::MemberPath(path) => std::mem::size_of::<RelativePath>()
+            .checked_add(path.as_str().len())
+            .ok_or_else(|| "V2 member-path state estimate overflow".to_owned())?,
+    };
     let caller_retained_state_bytes = argument_state_bytes
         .checked_add(OUTPUT_BUFFER_BYTES)
         .and_then(|n| n.checked_add(store.as_os_str().as_encoded_bytes().len()))
         .and_then(|n| n.checked_add(stage_dir.as_os_str().as_encoded_bytes().len()))
-        .and_then(|n| n.checked_add(source_id.len()))
+        .and_then(|n| n.checked_add(selector_state_bytes))
         .and_then(|n| n.checked_add(4096))
         .ok_or_else(|| "V2 caller state estimate overflow".to_owned())?;
     let point = tos_command::source_admission_v2_reader::V2PointReadLimits {
@@ -313,13 +367,25 @@ fn run_v2(
         cancelled.clone(),
     )
     .map_err(|error| error.to_string())?;
-    let observation = reader
-        .read_identity(revision, &source_id)
-        .map_err(|error| error.to_string())?
-        .ok_or_else(|| "selected V2 identity is absent at the requested revision".to_owned())?;
+    let (observation, absent_message) = match &selector {
+        ReadSelector::SourceId(source_id) => (
+            reader
+                .read_identity(revision, source_id)
+                .map_err(|error| error.to_string())?,
+            "selected V2 identity is absent at the requested revision",
+        ),
+        ReadSelector::MemberPath(path) => (
+            reader
+                .read_member(revision, path)
+                .map_err(|error| error.to_string())?,
+            "selected V2 member path is absent at the requested revision",
+        ),
+    };
+    let observation = observation.ok_or_else(|| absent_message.to_owned())?;
     if observation.revision != revision
         || observation.bytes.len() > max_object_bytes
         || observation.bytes.len() as u64 != observation.size_bytes
+        || matches!(&selector, ReadSelector::MemberPath(path) if &observation.path != path)
     {
         return Err("selected V2 member differs from its exact bounded observation".to_owned());
     }
@@ -631,6 +697,49 @@ fn check_active_io(
         return Err(io::Error::new(io::ErrorKind::TimedOut, "V2 reader deadline exceeded"));
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{ReadSelector, parse_selector};
+    use std::collections::BTreeMap;
+    use std::ffi::OsString;
+
+    #[test]
+    fn source_id_selector_remains_available_in_both_formats() {
+        for format in ["v1", "v2"] {
+            let mut values =
+                BTreeMap::from([("--source-id".to_owned(), OsString::from("tos.item.example"))]);
+            assert!(
+                matches!(parse_selector(&mut values, format), Ok(ReadSelector::SourceId(id)) if id == "tos.item.example")
+            );
+            assert!(values.is_empty());
+        }
+    }
+
+    #[test]
+    fn member_path_is_v2_only_and_canonical() {
+        let path = "ToS/source-witnesses/example/item.json";
+        let mut values = BTreeMap::from([("--member-path".to_owned(), OsString::from(path))]);
+        assert!(
+            matches!(parse_selector(&mut values, "v2"), Ok(ReadSelector::MemberPath(found)) if found.as_str() == path)
+        );
+        let mut values =
+            BTreeMap::from([("--member-path".to_owned(), OsString::from("../escape"))]);
+        assert!(parse_selector(&mut values, "v2").is_err());
+        let mut values = BTreeMap::from([("--member-path".to_owned(), OsString::from(path))]);
+        assert!(parse_selector(&mut values, "v1").is_err());
+    }
+
+    #[test]
+    fn selector_is_required_and_mutually_exclusive() {
+        assert!(parse_selector(&mut BTreeMap::new(), "v2").is_err());
+        let mut values = BTreeMap::from([
+            ("--source-id".to_owned(), OsString::from("tos.item.example")),
+            ("--member-path".to_owned(), OsString::from("ToS/item.json")),
+        ]);
+        assert!(parse_selector(&mut values, "v2").is_err());
+    }
 }
 
 fn main() -> ExitCode {

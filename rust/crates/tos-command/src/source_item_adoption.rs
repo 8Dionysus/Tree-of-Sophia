@@ -264,6 +264,8 @@ impl ItemOwner {
             item_path_profile: Some(self.item_path.clone()),
             files,
             new_directories,
+            source_readset: None,
+            source_successor: None,
         })
     }
 

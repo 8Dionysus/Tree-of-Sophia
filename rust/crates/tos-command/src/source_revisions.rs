@@ -404,6 +404,38 @@ pub trait ReadonlyRecordFiles {
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> SourceCommandResult<Vec<(String, bool)>>;
+
+    /// Retained source bytes already held by the caller. Bounded transports
+    /// use this value when preflighting the next selected read; legacy readers
+    /// may keep the compatibility no-op.
+    fn set_retained_state_bytes(
+        &mut self,
+        _bytes: usize,
+        _deadline: Instant,
+        _cancelled: &AtomicBool,
+    ) -> SourceCommandResult<()> {
+        Ok(())
+    }
+
+    fn retained_state_bytes(&self) -> usize {
+        0
+    }
+
+    /// Test one exact member name. Bounded readers should override this with
+    /// an addressed point lookup; the compatibility default derives the answer
+    /// from an immediate-child listing for older transports.
+    fn has_file(
+        &mut self,
+        path: &str,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<bool> {
+        let (parent, basename) = split(path)?;
+        Ok(self
+            .list_directory(parent, deadline, cancelled)?
+            .iter()
+            .any(|(name, is_directory)| name == basename && !is_directory))
+    }
 }
 const READONLY_RECORD_MAX_BYTES: usize = 64 * 1024 * 1024;
 const READONLY_RECORD_MEMBER_BYTES: usize = 8 * 1024 * 1024;
@@ -431,10 +463,29 @@ struct ReadonlyFileCollector<'a, T> {
     transport: &'a mut T,
     files: BTreeMap<String, Vec<u8>>,
     bytes: usize,
+    external_retained_state_bytes: usize,
     deadline: Instant,
     cancelled: &'a AtomicBool,
 }
 impl<T: ReadonlyRecordFiles> ReadonlyFileCollector<'_, T> {
+    fn retained_state_bytes(&self) -> SourceCommandResult<usize> {
+        self.files.iter().try_fold(
+            self.external_retained_state_bytes
+                .checked_add(self.bytes)
+                .ok_or(SourceCommandError::Unsupported(
+                    "readonly record retained state budget",
+                ))?,
+            |total, (name, _)| {
+                total
+                    .checked_add(name.len().saturating_mul(4))
+                    .and_then(|bytes| bytes.checked_add(256))
+                    .ok_or(SourceCommandError::Unsupported(
+                        "readonly record retained state budget",
+                    ))
+            },
+        )
+    }
+
     fn read(&mut self, name: &str) -> SourceCommandResult<()> {
         path(name)?;
         if self.files.contains_key(name) {
@@ -450,6 +501,15 @@ impl<T: ReadonlyRecordFiles> ReadonlyFileCollector<'_, T> {
         }
         let allowance =
             READONLY_RECORD_MEMBER_BYTES.min(READONLY_RECORD_MAX_BYTES.saturating_sub(self.bytes));
+        let state = self
+            .retained_state_bytes()?
+            .checked_add(name.len().saturating_mul(4))
+            .and_then(|bytes| bytes.checked_add(256))
+            .ok_or(SourceCommandError::Unsupported(
+                "readonly record retained state budget",
+            ))?;
+        self.transport
+            .set_retained_state_bytes(state, self.deadline, self.cancelled)?;
         let raw = self
             .transport
             .read(name, allowance, self.deadline, self.cancelled)?;
@@ -466,6 +526,9 @@ impl<T: ReadonlyRecordFiles> ReadonlyFileCollector<'_, T> {
                 "readonly record collection byte budget",
             ))?;
         self.files.insert(name.to_owned(), raw);
+        let state = self.retained_state_bytes()?;
+        self.transport
+            .set_retained_state_bytes(state, self.deadline, self.cancelled)?;
         Ok(())
     }
     fn parsed(&self, name: &str) -> SourceCommandResult<JsonValue> {
@@ -536,6 +599,7 @@ pub fn collect_readonly_record_files(
     selected_metadata_path(owner_path)?;
     let (parent, base) = split(owner_path)?;
     let mut reader = ReadonlyFileCollector {
+        external_retained_state_bytes: transport.retained_state_bytes(),
         transport,
         files: BTreeMap::new(),
         bytes: 0,
@@ -615,16 +679,11 @@ pub fn collect_readonly_record_files(
         collect_schema_refs(&reader.parsed(&name)?, &name, &mut schemas, 0)?;
         checked.insert(name);
     }
-    let children = reader
+    let history_path = format!("{parent}/{HISTORY}");
+    if reader
         .transport
-        .list_directory(parent, deadline, cancelled)?;
-    if children.len() > cmd::SELECTED_SOURCE_MAX_FILES {
-        return Err(SourceCommandError::Unsupported(
-            "record home directory budget",
-        ));
-    }
-    if children.iter().any(|(name, _)| name == HISTORY) {
-        let history_path = format!("{parent}/{HISTORY}");
+        .has_file(&history_path, deadline, cancelled)?
+    {
         reader.read(&history_path)?;
         let history = reader.parsed(&history_path)?;
         let receipts = cmd::array(&history, "receipts")?;
@@ -683,6 +742,7 @@ pub(crate) fn collect_readonly_schema_files(
         ));
     }
     let mut reader = ReadonlyFileCollector {
+        external_retained_state_bytes: transport.retained_state_bytes(),
         transport,
         files: BTreeMap::new(),
         bytes: 0,
@@ -3027,7 +3087,9 @@ where
 
 const CANDIDATE_REPLAY_FILE_NODE_UPPER: usize = 512;
 
-fn candidate_source_refusal(refusal: tos_validation::item_rules::ItemRefusal) -> SourceCommandError {
+fn candidate_source_refusal(
+    refusal: tos_validation::item_rules::ItemRefusal,
+) -> SourceCommandError {
     use tos_validation::item_rules::ItemRefusal;
     match refusal {
         ItemRefusal::Budget | ItemRefusal::BudgetCheck { .. } => {
@@ -3120,9 +3182,9 @@ fn candidate_current_member_file<I: Copy + Eq>(
                 if next_read > max_total_bytes {
                     return Err(tos_validation::item_rules::ItemRefusal::Budget);
                 }
-                if expected_digest.is_some_and(|digest| {
-                    Digest256::of_bytes(raw).to_prefixed() != digest
-                }) {
+                if expected_digest
+                    .is_some_and(|digest| Digest256::of_bytes(raw).to_prefixed() != digest)
+                {
                     return Err(tos_validation::item_rules::ItemRefusal::Source(
                         "candidate Artifact replay member digest changed".into(),
                     ));
@@ -3201,7 +3263,13 @@ fn candidate_insert_owned_package_file(
     copy.try_reserve_exact(raw.len())
         .map_err(|_| SourceCommandError::Invalid("candidate Artifact replay allocation"))?;
     copy.extend_from_slice(raw);
-    files.insert(file_path, SourceFile { path: relative, raw: copy });
+    files.insert(
+        file_path,
+        SourceFile {
+            path: relative,
+            raw: copy,
+        },
+    );
     *state_bytes = charge;
     Ok(())
 }
@@ -3247,7 +3315,11 @@ fn candidate_replay_source_files<I: Copy + Eq>(
                 "candidate Artifact replay history-read deadline",
             ));
         }
-        if let PredicateRead::ExactPath { path: read_path, digest } = read {
+        if let PredicateRead::ExactPath {
+            path: read_path,
+            digest,
+        } = read
+        {
             candidate_current_member_file(
                 input,
                 input_identity,
@@ -3289,10 +3361,7 @@ fn candidate_replay_source_files<I: Copy + Eq>(
             ));
         }
         let id = transaction.transaction_id();
-        let directory = format!(
-            "ToS/source-witnesses/.metadata-transactions/{}",
-            &id[7..]
-        );
+        let directory = format!("ToS/source-witnesses/.metadata-transactions/{}", &id[7..]);
         let manifest_path = format!("{directory}/manifest.json");
         candidate_current_member_file(
             input,
@@ -3378,7 +3447,10 @@ fn candidate_replay_source_files<I: Copy + Eq>(
 #[allow(clippy::too_many_arguments)]
 pub(crate) fn replay_artifact_corrections_from_candidate<I: Copy + Eq>(
     input: &dyn SourceCutInputWithIdentity<I>,
-    records: &tos_validation::source_foundation_records::SourceFoundationRecordsStreamedReport<'_, I>,
+    records: &tos_validation::source_foundation_records::SourceFoundationRecordsStreamedReport<
+        '_,
+        I,
+    >,
     source_root: &str,
     effective_uid: u64,
     native_history: &CandidateNativeRecordHistoryReadObservation<I>,
