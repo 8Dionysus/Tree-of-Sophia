@@ -304,6 +304,10 @@ impl FoundationOrchestratorError {
                 // Return only known owner-authored static diagnostics. Unknown
                 // errors may contain private paths or payloads and remain opaque.
                 match error.to_string().as_str() {
+                    "candidate spool is unusable" => "candidate spool is unusable",
+                    "native source candidate membership did not reach its fenced EOF" => {
+                        "native source candidate membership did not reach its fenced EOF"
+                    }
                     "candidate spool per-row state exceeded" => {
                         "candidate spool per-row state exceeded"
                     }
