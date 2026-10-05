@@ -2949,6 +2949,18 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
     )
     .map_err(|_| incomplete("candidate catalog file cap range"))?;
     let max_catalog_row_bytes = max_catalog_file_bytes.min(1024 * 1024).max(1);
+    // Contract closure is aggregate retained input, independent of any one
+    // file/row. The authenticated physical census bounds all contract bytes.
+    let max_catalog_contract_bytes = usize::try_from(
+        observed_catalog_bytes
+            .min(catalog_operation.source_read_bytes)
+            .min(catalog_state_cap as u64)
+            .min(
+                tos_compiler::source_witness_catalog::SourceCatalogLimits::MAX_CONTRACT_BYTES
+                    as u64,
+            ),
+    )
+    .map_err(|_| incomplete("candidate catalog contract cap range"))?;
     let max_catalog_output_row_bytes = usize::try_from(
         catalog_operation
             .tmpfs_bytes
@@ -2963,7 +2975,7 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
             max_catalog_rows,
             max_catalog_file_bytes,
             max_catalog_row_bytes,
-            max_catalog_row_bytes,
+            max_catalog_contract_bytes,
             max_catalog_output_row_bytes,
         )
         .map_err(FoundationOrchestratorError::Command)?;
@@ -4679,6 +4691,17 @@ fn run<'work, 'receive, 'observe, 'cancel, 'signal>(
     )
     .map_err(|_| incomplete("catalog file cap range"))?;
     let max_catalog_row_bytes = max_catalog_file_bytes.min(1024 * 1024).max(1);
+    let max_catalog_contract_bytes = usize::try_from(
+        captured
+            .source_bytes()
+            .min(catalog_operation.source_read_bytes)
+            .min(catalog_operation.state_bytes as u64)
+            .min(
+                tos_compiler::source_witness_catalog::SourceCatalogLimits::MAX_CONTRACT_BYTES
+                    as u64,
+            ),
+    )
+    .map_err(|_| incomplete("catalog contract cap range"))?;
     let max_catalog_output_row_bytes = usize::try_from(
         catalog_operation
             .tmpfs_bytes
@@ -4691,7 +4714,7 @@ fn run<'work, 'receive, 'observe, 'cancel, 'signal>(
         max_catalog_rows,
         max_catalog_file_bytes,
         max_catalog_row_bytes,
-        max_catalog_row_bytes,
+        max_catalog_contract_bytes,
         max_catalog_output_row_bytes,
     ) {
         Ok(limits) => limits,

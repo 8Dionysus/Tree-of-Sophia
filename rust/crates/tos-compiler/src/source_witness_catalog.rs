@@ -147,6 +147,9 @@ pub struct SourceCatalogLimits {
     pub max_output_row_bytes: usize,
 }
 impl SourceCatalogLimits {
+    /// Aggregate raw contract closure retained by the catalog compiler.
+    pub const MAX_CONTRACT_BYTES: usize = 16 * 1024 * 1024;
+
     pub fn validate(self) -> Result<()> {
         if self.max_files == 0
             || self.max_rows == 0
@@ -155,7 +158,7 @@ impl SourceCatalogLimits {
             || self.max_row_bytes == 0
             || self.max_row_bytes > 1024 * 1024
             || self.max_contract_bytes == 0
-            || self.max_contract_bytes > 16 * 1024 * 1024
+            || self.max_contract_bytes > Self::MAX_CONTRACT_BYTES
             || self.max_output_row_bytes == 0
             || self.max_output_row_bytes > 4 * 1024 * 1024
         {

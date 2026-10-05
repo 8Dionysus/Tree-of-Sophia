@@ -1294,7 +1294,8 @@ fn retain_direct_schema_check_input(
         legacy_raw_instance: legacy_raw_instance.map(<[u8]>::to_vec),
         owner_issue,
     };
-    let insertion = source_jsonl_check_insertion(checks, &check.location).unwrap_or(checks.len());
+    let insertion =
+        source_jsonl_check_insertion(checks, &check.location, check.family).unwrap_or(checks.len());
     checks.insert(insertion, check);
     *state_bytes = next_state;
     Ok(())
@@ -1303,6 +1304,7 @@ fn retain_direct_schema_check_input(
 fn source_jsonl_check_insertion(
     checks: &[SourceFoundationRecordsSchemaCheck],
     location: &str,
+    family: SourceFoundationRecordsSchemaFamily,
 ) -> Option<usize> {
     let (path, ordinal) = location.rsplit_once(':')?;
     if !path.ends_with(".jsonl") {
@@ -1310,6 +1312,9 @@ fn source_jsonl_check_insertion(
     }
     let ordinal = ordinal.parse::<usize>().ok()?;
     checks.iter().position(|check| {
+        if check.family != family {
+            return false;
+        }
         check
             .location
             .rsplit_once(':')
