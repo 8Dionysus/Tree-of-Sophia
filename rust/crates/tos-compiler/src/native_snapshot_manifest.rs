@@ -374,7 +374,7 @@ impl NativeDataManifestLimits {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct NativeDataSnapshotManifestInput<'a> {
     /// Selected admitted corpus revision. Keep this separate from the
     /// producer selection's `native-projection:<source revision>` source cut.
