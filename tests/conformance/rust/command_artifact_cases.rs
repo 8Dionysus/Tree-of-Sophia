@@ -11,6 +11,24 @@ use std::sync::atomic::AtomicBool;
 use std::time::{Duration, Instant};
 use tos_command::source_creation_store::IsolatedCreationRoot;
 
+fn source_cut_read_envelope(snapshots: &[&BTreeMap<String, Vec<u8>>]) -> (usize, u64, u64, u64) {
+    assert!(!snapshots.is_empty());
+    let mut members = 0_u64;
+    let mut total_bytes = 0_u64;
+    let mut member_bytes = 0_u64;
+    for snapshot in snapshots {
+        members = members
+            .checked_add(u64::try_from(snapshot.len()).unwrap())
+            .unwrap();
+        for raw in snapshot.values() {
+            let size = u64::try_from(raw.len()).unwrap();
+            total_bytes = total_bytes.checked_add(size).unwrap();
+            member_bytes = member_bytes.max(size);
+        }
+    }
+    (snapshots.len(), members, total_bytes, member_bytes.max(1))
+}
+
 // Consumer-only physical scratch envelope; library budgets stay unchanged.
 // Sixteen full fixture allocations cover source/oracle roots, archive capture,
 // compressed archive, restored software, cut object copies and transaction
@@ -181,6 +199,8 @@ fn native_artifact_cli_describes_prepares_creates_and_cold_replays_exact_bytes()
         .map(|(path, raw)| (path.clone(), raw.clone()))
         .collect::<BTreeMap<_, _>>();
     let base = super::validation_cut_cases::write_cut_store(&authored, &store);
+    let (max_revisions, max_members, max_total_bytes, max_member_bytes) =
+        source_cut_read_envelope(&[&authored]);
     let isolated = IsolatedCreationRoot::create(temporary.path(), deadline, &cancelled).unwrap();
     for (path, raw) in &files {
         let path = isolated.path().join(path);
@@ -200,7 +220,7 @@ fn native_artifact_cli_describes_prepares_creates_and_cold_replays_exact_bytes()
     fs::write(&owner, serde_json::to_vec(&config).unwrap()).unwrap();
     fs::set_permissions(&owner, fs::Permissions::from_mode(0o600)).unwrap();
     let invocation_path = temporary.path().join("artifact-invocation.json");
-    let mut invocation = serde_json::json!({"schema_version":"tos_local_native_source_invocation_v1","owner_config":owner,"owner_context":null,"assessment_schema_worker":null,"native_executable":native,"native_executable_sha256":alignment_image_digest(&native).to_prefixed(),"corpus_store":store,"source_revision":base.0.to_prefixed(),"original_source_revision":base.0.to_prefixed(),"software_capture":capture.capture,"software_restored_root":capture.restored,"software_selection":{"source_git_commit":capture.selection.source_git_commit,"source_git_tree":capture.selection.source_git_tree,"capture_manifest_sha256":capture.selection.capture_manifest_sha256.to_prefixed()},"software_components":components.members().map(|member|member.path.as_str()).collect::<Vec<_>>(),"schema_worker":{"absolute_path":worker,"sha256":alignment_image_digest(&worker).to_prefixed()},"budgets":{"max_revisions":4,"max_members":256,"max_total_bytes":8388608,"max_member_bytes":8388608,"max_schema_receipts":128,"max_schema_receipt_bytes":262144,"worker_cpu_seconds":3,"worker_address_space_bytes":1073741824}});
+    let mut invocation = serde_json::json!({"schema_version":"tos_local_native_source_invocation_v1","owner_config":owner,"owner_context":null,"assessment_schema_worker":null,"native_executable":native,"native_executable_sha256":alignment_image_digest(&native).to_prefixed(),"corpus_store":store,"source_revision":base.0.to_prefixed(),"original_source_revision":base.0.to_prefixed(),"software_capture":capture.capture,"software_restored_root":capture.restored,"software_selection":{"source_git_commit":capture.selection.source_git_commit,"source_git_tree":capture.selection.source_git_tree,"capture_manifest_sha256":capture.selection.capture_manifest_sha256.to_prefixed()},"software_components":components.members().map(|member|member.path.as_str()).collect::<Vec<_>>(),"schema_worker":{"absolute_path":worker,"sha256":alignment_image_digest(&worker).to_prefixed()},"budgets":{"max_revisions":max_revisions,"max_members":max_members,"max_total_bytes":max_total_bytes,"max_member_bytes":max_member_bytes,"max_schema_receipts":128,"max_schema_receipt_bytes":262144,"worker_cpu_seconds":3,"worker_address_space_bytes":1073741824}});
     let write_invocation = |value: &Value| {
         fs::write(&invocation_path, serde_json::to_vec(value).unwrap()).unwrap();
         fs::set_permissions(&invocation_path, fs::Permissions::from_mode(0o600)).unwrap();
@@ -297,25 +317,54 @@ fn native_artifact_cli_describes_prepares_creates_and_cold_replays_exact_bytes()
         event["authority_boundary"]["validator_role"],
         "mechanics_and_closure_only_not_truth"
     );
-    assert!(
-        event["method"]["software_components"]
-            .as_array()
-            .unwrap()
-            .iter()
-            .any(|v| v["artifact_ref"] == "runtime:tos-native-executable")
-    );
-    assert!(
-        event["method"]["software_components"]
-            .as_array()
-            .unwrap()
-            .iter()
-            .all(|v| v["artifact_ref"] != "runtime:python-executable")
-    );
+    assert!(event["method"]["software_components"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|v| v["artifact_ref"] == "runtime:tos-native-executable"));
+    assert!(event["method"]["software_components"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .all(|v| v["artifact_ref"] != "runtime:python-executable"));
     let mut current_files = authored_text_files(isolated.path());
     current_files.remove("ToS/source-witnesses/.historical-create.writer.lock");
     physical_fixture_budget(&current_files);
     let current = successor(&current_files, &store, base);
+    let base_manifest: Value = serde_json::from_slice(
+        &fs::read(
+            store
+                .join("revisions")
+                .join(base.0.to_hex())
+                .join("snapshot.json"),
+        )
+        .unwrap(),
+    )
+    .unwrap();
+    let current_manifest: Value = serde_json::from_slice(
+        &fs::read(
+            store
+                .join("revisions")
+                .join(current.0.to_hex())
+                .join("snapshot.json"),
+        )
+        .unwrap(),
+    )
+    .unwrap();
+    assert!(base_manifest["base_revision"].is_null());
+    assert_eq!(current_manifest["base_revision"], base.0.to_hex());
+    let (max_revisions, max_members, max_total_bytes, max_member_bytes) =
+        source_cut_read_envelope(&[&current_files, &authored]);
+    assert_eq!(max_revisions, 2);
+    eprintln!(
+        "Artifact selected-cut read envelope revisions={} members={} declared_member_bytes={} max_member_bytes={}",
+        max_revisions, max_members, max_total_bytes, max_member_bytes
+    );
     invocation["source_revision"] = serde_json::json!(current.0.to_prefixed());
+    invocation["budgets"]["max_revisions"] = serde_json::json!(max_revisions);
+    invocation["budgets"]["max_members"] = serde_json::json!(max_members);
+    invocation["budgets"]["max_total_bytes"] = serde_json::json!(max_total_bytes);
+    invocation["budgets"]["max_member_bytes"] = serde_json::json!(max_member_bytes);
     write_invocation(&invocation);
     let cold = alignment_native_cli(&repository, &owner, &invocation_path, &request, deadline);
     assert_eq!(cold["result"]["replayed"], true);
