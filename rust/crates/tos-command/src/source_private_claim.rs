@@ -6421,7 +6421,10 @@ fn verify_creation_integrity(
         || !cmd::field(&request, "expected_source")?.is_null()
         || !cmd::field(&request, "expected_revision")?.is_null()
         || cmd::field(receipt, "dependencies")? != cmd::field(&request, "expected_dependencies")?
-        || cmd::field(receipt, "source_bindings")? != cmd::field(&request, "expected_inputs")?
+        || !same_json(
+            cmd::field(receipt, "source_bindings")?,
+            cmd::field(&request, "expected_inputs")?,
+        )?
     {
         return Err(SourceCommandError::Conflict(
             "private Claim creation receipt differs from its exact retained request",
@@ -6791,7 +6794,10 @@ fn package_state(
             || cmd::field(receipt, "owner_configuration")?
                 != cmd::field(request, "expected_configuration")?
             || cmd::field(receipt, "dependencies")? != cmd::field(request, "expected_dependencies")?
-            || cmd::field(receipt, "source_bindings")? != cmd::field(request, "expected_inputs")?
+            || !same_json(
+                cmd::field(receipt, "source_bindings")?,
+                cmd::field(request, "expected_inputs")?,
+            )?
             || cmd::field(receipt, "reason")? != cmd::field(request, "reason")?
             || cmd::field(receipt, "grants_admission")? != &JsonValue::Bool(false)
         {
@@ -7972,8 +7978,10 @@ pub(crate) fn prepare(
                 || cmd::text(&request, "expected_configuration")? != grant.digest
                 || cmd::field(receipt, "dependencies")?
                     != cmd::field(&request, "expected_dependencies")?
-                || cmd::field(receipt, "source_bindings")?
-                    != cmd::field(&request, "expected_inputs")?
+                || !same_json(
+                    cmd::field(receipt, "source_bindings")?,
+                    cmd::field(&request, "expected_inputs")?,
+                )?
                 || !cmd::field(&request, "expected_source")?.is_null()
                 || !cmd::field(&request, "expected_revision")?.is_null()
             {
