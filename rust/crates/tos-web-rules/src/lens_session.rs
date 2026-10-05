@@ -197,7 +197,8 @@ fn header_query(query: &LensHeaderQuery) -> JsonValue {
 }
 
 pub struct LensSession {
-    plan: LensPlan,
+    // Published plans own their normalized spec, metadata and authority.
+    plan: LensPlan<'static>,
     budget: PublishedLensBudget,
 }
 impl LensSession {
