@@ -424,7 +424,7 @@ fn tree_retained_state_bytes(tree: &AuthenticatedTreeDescriptorV2) -> io::Result
 
 fn segment_store_retained_state_bytes(segment: &SegmentStore) -> io::Result<usize> {
     size_of::<SegmentStore>()
-        .checked_add(segment.retained_heap_state_bytes().map_err(tree_io_error)?)
+        .checked_add(segment.retained_heap_state_bytes().map_err(io::Error::other)?)
         .ok_or_else(|| invalid("V2 segment store retained state overflow"))
 }
 
