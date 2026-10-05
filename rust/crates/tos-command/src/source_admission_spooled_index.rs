@@ -49,6 +49,9 @@ fn sql(error: rusqlite::Error) -> io::Error {
             17 => "native source index SQLite schema changed",
             _ => "native source index SQLite operation refused",
         },
+        rusqlite::Error::QueryReturnedNoRows => "native source index SQLite scalar missing",
+        rusqlite::Error::InvalidColumnType(..) => "native source index SQLite column type refused",
+        rusqlite::Error::InvalidQuery => "native source index SQLite query shape refused",
         _ => "native source index storage refused",
     };
     invalid(reason)

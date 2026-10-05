@@ -304,6 +304,15 @@ impl FoundationOrchestratorError {
                 // Return only known owner-authored static diagnostics. Unknown
                 // errors may contain private paths or payloads and remain opaque.
                 match error.to_string().as_str() {
+                    "native source index SQLite scalar missing" => {
+                        "native source index SQLite scalar missing"
+                    }
+                    "native source index SQLite column type refused" => {
+                        "native source index SQLite column type refused"
+                    }
+                    "native source index SQLite query shape refused" => {
+                        "native source index SQLite query shape refused"
+                    }
                     "candidate spool is unusable" => "candidate spool is unusable",
                     "native source candidate membership did not reach its fenced EOF" => {
                         "native source candidate membership did not reach its fenced EOF"
