@@ -277,6 +277,39 @@ impl SourceCutInput for CandidateRecordsInput<'_, '_> {
         }
         result
     }
+    fn current_member_size(
+        &self,
+        path: &str,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<Option<u64>, ItemRefusal> {
+        let result = (|| {
+            self.check(deadline, cancelled)?;
+            let relative = self.path(path)?;
+            let overlap = path
+                .len()
+                .checked_mul(16)
+                .and_then(|n| n.checked_add(self.callback_retained_state_bytes.get()))
+                .and_then(|n| n.checked_add(8192))
+                .ok_or(ItemRefusal::Budget)?;
+            let allowance = self
+                .max_owned_state_bytes
+                .get()
+                .checked_sub(overlap)
+                .ok_or(ItemRefusal::Budget)?;
+            let size = self
+                .candidate
+                .member_bounded(&relative, allowance)
+                .map_err(|_| refused())?
+                .map(|member| member.size_bytes);
+            self.check(deadline, cancelled)?;
+            Ok(size)
+        })();
+        if result.is_err() {
+            self.candidate.abandon();
+        }
+        result
+    }
     fn path_presence(
         &self,
         path: &str,

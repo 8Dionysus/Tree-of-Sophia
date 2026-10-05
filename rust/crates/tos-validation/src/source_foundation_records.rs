@@ -30,11 +30,11 @@ use tos_source_store::{CorpusCutReader, SourceMembershipV1, SourcePresenceV1};
 #[path = "source_foundation_records_storage.rs"]
 mod source_foundation_records_storage;
 pub use source_foundation_records_storage::{
-    SourceFoundationArtifactRecordPathSummary, SourceFoundationCandidateSchemaIdentity,
-    SourceFoundationCandidateArtifactProofPathPage,
-    SourceFoundationCurrentRecordPathLookup,
-    SourceFoundationCurrentRecordsPage, SourceFoundationFileDescriptorLookup,
-    SourceFoundationGlobalIdFact, SourceFoundationGlobalIdFactPage, SourceFoundationItemEditionLookup,
+    NATIVE_ARTIFACT_RECORD_SCHEMA_URI, SourceFoundationArtifactRecordPathSummary,
+    SourceFoundationCandidateArtifactProofPathPage, SourceFoundationCandidateSchemaIdentity,
+    SourceFoundationCurrentRecordPathLookup, SourceFoundationCurrentRecordsPage,
+    SourceFoundationFileDescriptorLookup, SourceFoundationGlobalIdFact,
+    SourceFoundationGlobalIdFactPage, SourceFoundationItemEditionLookup,
     SourceFoundationItemSelectionLookup, SourceFoundationLinkUriFact, SourceFoundationRecordFact,
     SourceFoundationRecordFactCollection, SourceFoundationRecordFactPage,
     SourceFoundationRecordIdCarrier, SourceFoundationRecordObservation,
@@ -44,7 +44,7 @@ pub use source_foundation_records_storage::{
     SourceFoundationRecordsPageBudget, SourceFoundationRecordsStore,
     SourceFoundationRecordsStoredFact, SourceFoundationRecordsStreamedItemSummary,
     SourceFoundationRecordsStreamedReport, SourceFoundationTypedIdRefFact,
-    SourceFoundationUriOwnerLookup, NATIVE_ARTIFACT_RECORD_SCHEMA_URI,
+    SourceFoundationUriOwnerLookup,
 };
 
 /// One exact resource selected into the candidate-bound Item schema closure.
@@ -533,18 +533,7 @@ impl SourceFoundationCurrentInput<'_> {
                 .member(&relative)
                 .map(|member| member.size_bytes),
             Self::Stream(input) => {
-                let mut found = None;
-                input.for_each_current_member_meta(deadline, cancelled, &mut |meta| {
-                    if meta.path == relative.as_str() {
-                        if found.replace(meta.size_bytes).is_some() {
-                            return Err(ItemRefusal::Source(
-                                "source input repeated a current member path".into(),
-                            ));
-                        }
-                    }
-                    Ok(())
-                })?;
-                found
+                input.current_member_size(relative.as_str(), deadline, cancelled)?
             }
         };
         check_deadline(deadline, cancelled)?;
