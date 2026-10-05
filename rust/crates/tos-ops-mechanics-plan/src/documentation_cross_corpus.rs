@@ -1473,12 +1473,14 @@ pub fn validate_executable_routes(
     let roots = array(&inventory["route_card_discovery"]["route_roots"]);
     let mut cards = Vec::new();
     for path in tracked {
-        let eligible = path == "AGENTS.md" || (
-            Path::new(path).file_name().is_some_and(|n| n == "AGENTS.md")
-            && roots.iter().filter_map(|r| r.as_str()).any(|root| {
-                path.strip_prefix(root).is_some_and(|tail| tail.starts_with('/'))
-            })
-        );
+        let eligible = path == "AGENTS.md"
+            || (Path::new(path)
+                .file_name()
+                .is_some_and(|n| n == "AGENTS.md")
+                && roots.iter().filter_map(|r| r.as_str()).any(|root| {
+                    path.strip_prefix(root)
+                        .is_some_and(|tail| tail.starts_with('/'))
+                }));
         if eligible {
             if !s.is_file(path)? {
                 return Err(invalid(format!("tracked route card is missing: {path}")));
@@ -1741,7 +1743,10 @@ fn validate_existing_owner_contracts(
         (
             "AGENTS-route validator",
             route_cards::run_validation_with_card_discovery_limit(
-                root, s, cancel, route_cards::MAX_SELECTED_PATH_DISCOVERY_ENTRIES,
+                root,
+                s,
+                cancel,
+                route_cards::MAX_SELECTED_PATH_DISCOVERY_ENTRIES,
             )?,
         ),
         (

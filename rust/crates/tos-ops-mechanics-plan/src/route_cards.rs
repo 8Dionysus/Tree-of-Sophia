@@ -1776,14 +1776,17 @@ impl RouteSources {
         ));
         for entry in fs::read_dir(path)? {
             self.check()?;
-            *entries = entries.checked_add(1)
+            *entries = entries
+                .checked_add(1)
                 .ok_or_else(|| invalid("route discovery entry count overflow"))?;
             if *entries > max_entries {
                 return Err(invalid("route discovery entry bound exceeded"));
             }
             let entry = entry?;
             let kind = entry.file_type()?;
-            let component = entry.file_name().into_string()
+            let component = entry
+                .file_name()
+                .into_string()
                 .map_err(|_| invalid("non-UTF-8 route path"))?;
             let name = format!("{rel}/{component}");
             if name.len() > MAX_RELATIVE_PATH_BYTES {
@@ -1968,9 +1971,8 @@ pub fn build_currentness(root: &Path, cancel: &AtomicI32) -> io::Result<Value> {
         .ok_or_else(|| invalid("git ls-files failed"))?;
     // Card projection owns the existing wider, streamed documentation workload;
     // generic route discovery and the retained card count keep MAX_ENTRIES.
-    let cards = sources.discover_cards_with_limits(
-        &inventory, MAX_SELECTED_PATH_DISCOVERY_ENTRIES,
-    )?;
+    let cards =
+        sources.discover_cards_with_limits(&inventory, MAX_SELECTED_PATH_DISCOVERY_ENTRIES)?;
     build_from_sources(&mut sources, &inventory, &tracked, &cards)
 }
 fn build_from_sources(
@@ -1997,10 +1999,16 @@ fn build_from_sources(
     // inventory's root_cards, including any separately named owner root card.
     let discovery = &inventory["route_card_discovery"];
     let roots = strings(&discovery["route_roots"])?;
-    let mut projection_cards: BTreeSet<String> = cards.iter().filter(|path|
-        roots.iter().any(|root| path.strip_prefix(root.as_str())
-            .is_some_and(|tail| tail.starts_with('/')))
-    ).cloned().collect();
+    let mut projection_cards: BTreeSet<String> = cards
+        .iter()
+        .filter(|path| {
+            roots.iter().any(|root| {
+                path.strip_prefix(root.as_str())
+                    .is_some_and(|tail| tail.starts_with('/'))
+            })
+        })
+        .cloned()
+        .collect();
     for card in strings(&discovery["root_cards"])? {
         if s.is_file(&card)? {
             projection_cards.insert(card);
@@ -2074,12 +2082,16 @@ impl Write for BoundedOutput {
 struct OutputCounter(usize);
 impl Write for OutputCounter {
     fn write(&mut self, bytes: &[u8]) -> io::Result<usize> {
-        self.0 = self.0.checked_add(bytes.len())
+        self.0 = self
+            .0
+            .checked_add(bytes.len())
             .filter(|count| *count <= MAX_OUTPUT)
             .ok_or_else(|| invalid("route output byte bound exceeded"))?;
         Ok(bytes.len())
     }
-    fn flush(&mut self) -> io::Result<()> { Ok(()) }
+    fn flush(&mut self) -> io::Result<()> {
+        Ok(())
+    }
 }
 /// Python ensure_ascii=False, sort_keys=True, indent=2, including empty containers.
 pub fn render_currentness(value: &Value) -> io::Result<String> {
@@ -3511,15 +3523,20 @@ mod foundation_custody_cases {
     fn currentness_preflight_counts_encoded_bytes_with_same_ceiling() {
         // Small records can exceed the old per-container estimate while their
         // real JSON remains comfortably within the existing byte contract.
-        let row = json!({"path":"owned/route", "family_id":"source", "bytes":1, "sha256":"bounded"});
+        let row =
+            json!({"path":"owned/route", "family_id":"source", "bytes":1, "sha256":"bounded"});
         let value = Value::Array(vec![row; 8_000]);
         assert!(OutputBudget::new().value(&value).is_err());
         let rendered = render_currentness(&value).unwrap();
         assert!(rendered.len() < MAX_OUTPUT);
         assert_eq!(serde_json::from_str::<Value>(&rendered).unwrap(), value);
         let oversized = Value::String("a".repeat(MAX_OUTPUT));
-        assert!(render_currentness(&oversized).unwrap_err().to_string()
-            .contains("route output byte bound exceeded"));
+        assert!(
+            render_currentness(&oversized)
+                .unwrap_err()
+                .to_string()
+                .contains("route output byte bound exceeded")
+        );
     }
 
     #[test]

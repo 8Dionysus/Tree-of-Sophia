@@ -746,8 +746,7 @@ fn native_layer_journal_case(derived: bool) {
             "operation":"describe","subject_id":fixture["layer_subject"]["id"]}),
         deadline,
     );
-    let denied_prefix =
-        String::from_utf8_lossy(&denied_error[..denied_error.len().min(16_384)]);
+    let denied_prefix = String::from_utf8_lossy(&denied_error[..denied_error.len().min(16_384)]);
     assert!(
         !denied_status.success(),
         "supporting-only native refusal unexpectedly succeeded: status={denied_status:?} stderr_bytes={} prefix={denied_prefix}",
@@ -1053,12 +1052,18 @@ print(json.dumps(f['prepare'](repository,root),separators=(',',':')))
         if request["schema_version"] == "tos_local_assessment_command_v1" {
             envelope
         } else {
-            assert_eq!(envelope["schema_version"], "tos_local_native_source_result_v1");
+            assert_eq!(
+                envelope["schema_version"],
+                "tos_local_native_source_result_v1"
+            );
             assert_eq!(envelope["authentication"], "local-unix-account");
             assert_eq!(envelope["grants_admission"], false);
             let result = envelope["result"].clone();
             assert!(result.is_object());
-            assert_eq!(result["schema_version"], "tos_local_text_layer_derive_result_v1");
+            assert_eq!(
+                result["schema_version"],
+                "tos_local_text_layer_derive_result_v1"
+            );
             assert_eq!(result["content_disclosure"], "withheld");
             assert_eq!(result["grants_admission"], false);
             assert!(result["owner_configuration"].is_string());
@@ -1198,7 +1203,6 @@ fn native_public_assessment_v3_append_replay_revocation_and_metadata_scope_prese
     native_public_assessment_versions(&[3]);
 }
 
-
 #[test]
 fn native_public_v2_assessed_form_batch_matches_builder_and_rechecks_drift() {
     let repository = super::validation_cut_cases::repository()
@@ -1261,8 +1265,12 @@ print(json.dumps({'owner':str(fx.owner),'source_root':str(fx.root),
         );
         let owner = PathBuf::from(fixture["owner"].as_str().unwrap());
         let source_root = PathBuf::from(fixture["source_root"].as_str().unwrap());
-        let invocation_path = temporary.path().join("native-assessment-read-invocation.json");
-        let manifest_path = temporary.path().join("native-assessment-read-manifest.json");
+        let invocation_path = temporary
+            .path()
+            .join("native-assessment-read-invocation.json");
+        let manifest_path = temporary
+            .path()
+            .join("native-assessment-read-manifest.json");
         fs::write(&manifest_path, serde_json::to_vec(&fixture).unwrap()).unwrap();
         let images = [
             std::env::current_exe().unwrap(),
@@ -1291,13 +1299,14 @@ print(json.dumps({'owner':str(fx.owner),'source_root':str(fx.root),
         ]) {
             let path = repository.join(reference);
             assert!(path.is_file() && fs::metadata(&path).unwrap().len() <= 2_097_152);
-            assert!(captured
-                .insert(reference.to_owned(), fs::read(path).unwrap())
-                .is_none());
+            assert!(
+                captured
+                    .insert(reference.to_owned(), fs::read(path).unwrap())
+                    .is_none()
+            );
         }
         assert!(
-            captured.len() <= 2048
-                && captured.values().map(Vec::len).sum::<usize>() <= 33_554_432
+            captured.len() <= 2048 && captured.values().map(Vec::len).sum::<usize>() <= 33_554_432
         );
         let (capture, _software, components) =
             super::command_record_cases::captured_components(&captured, deadline, &cancelled);
@@ -1594,7 +1603,6 @@ print(json.dumps({'form_count':len(ids),'native_route':True,'parity':True,
         assert!(Instant::now() < deadline);
     }
 }
-
 
 fn native_public_assessment_versions(versions: &[u8]) {
     let repository = super::validation_cut_cases::repository()

@@ -1136,13 +1136,23 @@ fn documentation_references(
     // Inventory describes optional navigation. TOS-D-0062 gives executable
     // membership to the authenticated tracked namespace, not manual rows.
     let mut held = RouteSources::new_until(source.root, source.deadline)?;
-    let tracked: BTreeSet<_> = documentation_family::tracked_paths(
-        source.root, &held, source.cancel,
-    )?.into_iter().collect();
-    let scripts: BTreeSet<_> = tracked.iter().filter(|path| {
-        Path::new(path).components().any(|part| part.as_os_str() == "scripts")
-            && matches!(Path::new(path).extension().and_then(|v| v.to_str()), Some("py" | "sh"))
-    }).cloned().collect();
+    let tracked: BTreeSet<_> =
+        documentation_family::tracked_paths(source.root, &held, source.cancel)?
+            .into_iter()
+            .collect();
+    let scripts: BTreeSet<_> = tracked
+        .iter()
+        .filter(|path| {
+            Path::new(path)
+                .components()
+                .any(|part| part.as_os_str() == "scripts")
+                && matches!(
+                    Path::new(path).extension().and_then(|v| v.to_str()),
+                    Some("py" | "sh")
+                )
+        })
+        .cloned()
+        .collect();
     let _described_scripts = inventory(
         source,
         issues,

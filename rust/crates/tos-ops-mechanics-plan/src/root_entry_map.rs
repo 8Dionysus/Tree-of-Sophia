@@ -461,11 +461,16 @@ mod tests {
             build_payload(&root, &mut RouteSources::new(&root).unwrap(), &cancel).unwrap(),
             authored
         );
-        authored["routes"][0].as_object_mut().unwrap().remove("surface_ref");
+        authored["routes"][0]
+            .as_object_mut()
+            .unwrap()
+            .remove("surface_ref");
         write(SOURCE, &render(&authored).unwrap());
         assert!(
             build_payload(&root, &mut RouteSources::new(&root).unwrap(), &cancel)
-                .unwrap_err().to_string().contains("schema violation")
+                .unwrap_err()
+                .to_string()
+                .contains("schema violation")
         );
         write(SOURCE, source);
         let mut changed = p.clone();

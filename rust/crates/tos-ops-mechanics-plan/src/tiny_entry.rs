@@ -184,42 +184,67 @@ fn fixed_surface(
     Ok(result)
 }
 fn policy_strings(value: &Value, allow_empty: bool) -> io::Result<Vec<&str>> {
-    let array = value.as_array().ok_or_else(|| io::Error::other("tiny-entry policy token list"))?;
+    let array = value
+        .as_array()
+        .ok_or_else(|| io::Error::other("tiny-entry policy token list"))?;
     if array.len() > 64 || (!allow_empty && array.is_empty()) {
         return Err(io::Error::other("tiny-entry policy token count bound"));
     }
-    array.iter().map(|value| {
-        let token = value.as_str().ok_or_else(|| io::Error::other("tiny-entry policy token type"))?;
-        if token.len() > 4096 || normalize(token)?.is_empty() {
-            return Err(io::Error::other("tiny-entry policy token bound"));
-        }
-        Ok(token)
-    }).collect()
+    array
+        .iter()
+        .map(|value| {
+            let token = value
+                .as_str()
+                .ok_or_else(|| io::Error::other("tiny-entry policy token type"))?;
+            if token.len() > 4096 || normalize(token)?.is_empty() {
+                return Err(io::Error::other("tiny-entry policy token bound"));
+            }
+            Ok(token)
+        })
+        .collect()
 }
 fn documentation_policy(s: &mut RouteSources) -> io::Result<Value> {
-    if s.metadata(DOCUMENTATION_POLICY)?.is_some_and(|m| m.len() > 65536) {
-        return Err(io::Error::other("tiny-entry documentation policy byte bound"));
+    if s.metadata(DOCUMENTATION_POLICY)?
+        .is_some_and(|m| m.len() > 65536)
+    {
+        return Err(io::Error::other(
+            "tiny-entry documentation policy byte bound",
+        ));
     }
-    let text = s.text(DOCUMENTATION_POLICY)?
+    let text = s
+        .text(DOCUMENTATION_POLICY)?
         .ok_or_else(|| io::Error::other("missing tiny-entry documentation policy"))?;
     if text.len() > 65536 {
-        return Err(io::Error::other("tiny-entry documentation policy byte bound"));
+        return Err(io::Error::other(
+            "tiny-entry documentation policy byte bound",
+        ));
     }
-    parse_json(text.as_bytes(), JsonMode::PublishedStrict, JsonLimits::default())
-        .map_err(|e| io::Error::other(format!("tiny-entry policy JSON: {e:?}")))?;
+    parse_json(
+        text.as_bytes(),
+        JsonMode::PublishedStrict,
+        JsonLimits::default(),
+    )
+    .map_err(|e| io::Error::other(format!("tiny-entry policy JSON: {e:?}")))?;
     let value: Value = serde_json::from_str(&text).map_err(io::Error::other)?;
-    let object = value.as_object().ok_or_else(|| io::Error::other("tiny-entry policy object"))?;
+    let object = value
+        .as_object()
+        .ok_or_else(|| io::Error::other("tiny-entry policy object"))?;
     if object.len() != 2 || value["schema_version"] != "tos_tiny_entry_documentation_policy_v1" {
         return Err(io::Error::other("tiny-entry documentation policy schema"));
     }
-    let rows = value["documentation_requirements"].as_object()
+    let rows = value["documentation_requirements"]
+        .as_object()
         .ok_or_else(|| io::Error::other("tiny-entry documentation requirements"))?;
     if rows.is_empty() || rows.len() > 64 {
         return Err(io::Error::other("tiny-entry documentation surface bound"));
     }
     for (path, row) in rows {
-        if path.len() > 4096 || Path::new(path).components().count() > 128
-            || !Path::new(path).components().all(|part| matches!(part, std::path::Component::Normal(_))) {
+        if path.len() > 4096
+            || Path::new(path).components().count() > 128
+            || !Path::new(path)
+                .components()
+                .all(|part| matches!(part, std::path::Component::Normal(_)))
+        {
             return Err(io::Error::other("tiny-entry documentation policy path"));
         }
         if row.as_object().is_none_or(|row| row.len() != 2) {
@@ -349,14 +374,30 @@ pub fn validate(_root: &Path, s: &mut RouteSources, cancel: &AtomicI32) -> io::R
             )?;
         }
     }
-    for (path, row) in policy["documentation_requirements"].as_object()
-        .ok_or_else(|| io::Error::other("tiny-entry documentation policy changed"))? {
+    for (path, row) in policy["documentation_requirements"]
+        .as_object()
+        .ok_or_else(|| io::Error::other("tiny-entry documentation policy changed"))?
+    {
         if !s.is_file(path)? {
             issues.push(path, "missing required documentation surface")?;
             continue;
         }
-        tokens(s, path, &policy_strings(&row["required_tokens"], false)?, false, &mut issues, cancel)?;
-        tokens(s, path, &policy_strings(&row["forbidden_tokens"], true)?, true, &mut issues, cancel)?;
+        tokens(
+            s,
+            path,
+            &policy_strings(&row["required_tokens"], false)?,
+            false,
+            &mut issues,
+            cancel,
+        )?;
+        tokens(
+            s,
+            path,
+            &policy_strings(&row["forbidden_tokens"], true)?,
+            true,
+            &mut issues,
+            cancel,
+        )?;
     }
     Ok(issues.rows)
 }
@@ -385,9 +426,18 @@ mod tests {
         write(DOCUMENTATION_POLICY, policy_text);
         let policy: Value = serde_json::from_str(policy_text).unwrap();
         for (path, row) in policy["documentation_requirements"].as_object().unwrap() {
-            write(path, &policy_strings(&row["required_tokens"], false).unwrap().join("\n"));
+            write(
+                path,
+                &policy_strings(&row["required_tokens"], false)
+                    .unwrap()
+                    .join("\n"),
+            );
         }
-        let readme_refs = policy_strings(&policy["documentation_requirements"][README_PATH]["required_tokens"], false).unwrap();
+        let readme_refs = policy_strings(
+            &policy["documentation_requirements"][README_PATH]["required_tokens"],
+            false,
+        )
+        .unwrap();
         write(SOURCE_NODE_PATH, r#"{"node_id":"fixture-node"}"#);
         let mut route = serde_json::json!({"route_id":EXPECTED_ROUTE_ID,"root_surface":EXPECTED_ROOT_SURFACE,"node_kind":EXPECTED_NODE_KIND,"node_id":"fixture-node","capsule_surface":EXPECTED_CAPSULE_SURFACE,"authority_surface":EXPECTED_AUTHORITY_SURFACE,"bounded_hop":EXPECTED_BOUNDED_HOP,"fallback":EXPECTED_FALLBACK,"non_identity_boundary":BOUNDARY_REQUIRED_TOKENS.join(" ")});
         write(ROUTE_PATH, &route.to_string());
