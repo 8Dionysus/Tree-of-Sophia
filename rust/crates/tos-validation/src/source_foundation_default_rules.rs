@@ -2666,6 +2666,18 @@ fn remaining_limits(
     })
 }
 
+fn default_owner_refusal(stage: &'static str, error: ItemRefusal) -> ItemRefusal {
+    match error {
+        ItemRefusal::Budget => ItemRefusal::BudgetCheck {
+            check: stage,
+            used: None,
+            limit: None,
+        },
+        other => other,
+    }
+}
+
+
 fn add_state(current: usize, additional: usize, limit: usize) -> Result<usize, ItemRefusal> {
     current
         .checked_add(additional)
