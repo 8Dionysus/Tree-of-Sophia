@@ -248,7 +248,10 @@ fn arguments() -> Result<(PathBuf, String, Action, Limits, SemanticOptions), Str
                 || root_entry_map_build
                 || agents_route_currentness_build))
         || (fetch_budget_bases && !agent_surface_validate)
-        || (semantic.output.is_some() && !(documentation_family_build || agents_route_currentness_build || kag_source_export_build))
+        || (semantic.output.is_some()
+            && !(documentation_family_build
+                || agents_route_currentness_build
+                || kag_source_export_build))
         || (!kag_source_export_build
             && (semantic.source_store.is_some() || semantic.source_revision.is_some()))
         || (kag_source_export_build
@@ -723,7 +726,11 @@ fn main() {
                         .ok_or_else(|| std::io::Error::other("missing currentness output path"))?,
                 )
             };
-            let path = if chosen.is_absolute() { chosen } else { root.join(chosen) };
+            let path = if chosen.is_absolute() {
+                chosen
+            } else {
+                root.join(chosen)
+            };
             let display = path.strip_prefix(&root).unwrap_or(&path).display();
             if check {
                 let actual = tos_ops_mechanics_plan::route_cards::read_output(&path)?;
@@ -750,7 +757,8 @@ fn main() {
                 return Ok(1);
             }
             let inventory = tos_ops_mechanics_plan::route_cards::load_inventory(&root)?;
-            let count = tos_ops_mechanics_plan::route_cards::discover_route_cards(&root, &inventory)?.len();
+            let count =
+                tos_ops_mechanics_plan::route_cards::discover_route_cards(&root, &inventory)?.len();
             println!("Nested AGENTS route-card check passed for {count} files.");
             Ok(0)
         }),
@@ -910,26 +918,10 @@ fn main() {
                     action,
                     Action::Execute {
                         growth_python_oracle: false,
-                        ..
+                        native_contracts_only: false,
                     }
                 ) {
-                    let reference_count = plan
-                        .commands
-                        .iter()
-                        .filter(|command| {
-                            command.kind == "unittest"
-                                && command.home == "mechanics/growth-cycle"
-                        })
-                        .count();
-                    if reference_count != 1 {
-                        return Err(std::io::Error::other(
-                            "expected exactly one Growth Cycle Python reference home",
-                        ));
-                    }
-                    plan.commands.retain(|command| {
-                        command.kind != "unittest"
-                            || command.home != "mechanics/growth-cycle"
-                    });
+                    tos_ops_mechanics_plan::growth_coverage::require_whole_route(&root)?;
                 }
                 if matches!(
                     action,

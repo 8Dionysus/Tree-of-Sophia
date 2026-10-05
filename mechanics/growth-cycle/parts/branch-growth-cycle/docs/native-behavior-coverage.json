@@ -1,0 +1,13 @@
+{
+  "schema_version": "tos_growth_native_coverage_v1",
+  "whole_route_status": "incomplete",
+  "maintained_route": "rust_workspace",
+  "bounded_native_route": "--native-contracts-only",
+  "reference_route": "--growth-python-oracle",
+  "assessment_route": "mechanics/growth-cycle/parts/branch-growth-cycle/docs/NATIVE_BEHAVIOR_COVERAGE.md",
+  "reference_discovery": {
+    "root": "mechanics/growth-cycle/tests",
+    "pattern": "test*.py"
+  },
+  "completion_rule": "Review actual assertions and maintained entry/installed consumer evidence; module presence and corpus counts do not establish equivalence."
+}

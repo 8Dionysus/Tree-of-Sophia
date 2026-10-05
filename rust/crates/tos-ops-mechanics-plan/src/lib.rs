@@ -13,6 +13,7 @@ pub mod derived_kag;
 pub mod documentation_cross_corpus;
 pub mod documentation_family;
 pub mod executor;
+pub mod growth_coverage;
 #[cfg(target_os = "linux")]
 pub mod kag_corpus_export;
 #[cfg(target_os = "linux")]
@@ -415,6 +416,33 @@ mod tests {
         let path = root.join(path);
         fs::create_dir_all(path.parent().unwrap()).unwrap();
         fs::write(path, b"").unwrap();
+    }
+
+    #[test]
+    fn whole_growth_cannot_succeed_without_a_native_execution_plan() {
+        let root = fixture();
+        let path = root.join(growth_coverage::CONTRACT);
+        fs::create_dir_all(path.parent().unwrap()).unwrap();
+        for status in ["incomplete", "accepted"] {
+            let contract = serde_json::json!({
+                "schema_version": "tos_growth_native_coverage_v1",
+                "whole_route_status": status,
+                "maintained_route": "selected-native-source",
+                "bounded_native_route": "bounded-native",
+                "reference_route": "explicit-reference",
+                "assessment_route": "source-owned-assessment"
+            });
+            fs::write(&path, serde_json::to_vec(&contract).unwrap()).unwrap();
+            let result = growth_coverage::require_whole_route(&root);
+            assert!(
+                result.is_err(),
+                "an assessment alone must not omit Growth and succeed"
+            );
+            if status == "incomplete" {
+                assert_eq!(result.unwrap_err().kind(), io::ErrorKind::Unsupported);
+            }
+        }
+        fs::remove_dir_all(root).unwrap();
     }
 
     #[test]
