@@ -1364,14 +1364,16 @@ impl<'c> NativeSourceValidator<'c> {
                 max_member_bytes,
             },
             manifest_json: candidate_limits.admission.json,
-            max_manifest_entries,
+            max_manifest_entries: usize::try_from(max_manifest_entries)
+                .map_err(|_| invalid("spooled manifest entry count exceeds address space"))?,
             max_index_bytes: reader_partition,
             max_manifest_row_bytes: usize::try_from(max_member_bytes.min(usize::MAX as u64 - 1))
                 .map_err(|_| invalid("spooled member byte limit exceeds range"))?,
             sqlite_cache_bytes: cache_bytes,
         };
         let manifest_limits = ManifestStreamLimits {
-            max_manifest_bytes: manifest_bytes,
+            max_manifest_bytes: u64::try_from(manifest_bytes)
+                .map_err(|_| invalid("spooled manifest bytes exceed u64"))?,
             row_json: candidate_limits.admission.json,
         };
 

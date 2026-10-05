@@ -5,10 +5,11 @@
 //! interpretation only.
 
 use std::{
+    cell::RefCell,
     collections::VecDeque,
     fs::File,
     io::{self, Read},
-    mem::size_of,
+    mem::{size_of, size_of_val},
     os::unix::fs::FileExt,
     sync::{Arc, atomic::AtomicBool},
     time::Instant,
@@ -236,7 +237,7 @@ pub(crate) struct PackedObjectLimitsV2 {
 
 impl PackedObjectLimitsV2 {
     fn validate(self) -> io::Result<Self> {
-        self.segment_limits.validate().map_err(invalid)?;
+        self.segment_limits.validate().map_err(|_| invalid("packed object segment limits differ"))?;
         if self.max_working_state_bytes == 0
             || self.max_working_state_bytes == usize::MAX
             || self.caller_live_state_bytes >= self.max_working_state_bytes
@@ -288,6 +289,16 @@ impl PackedObjectWriterV2 {
         }
         let batch_cap = frame_batch_cap(limits.segment_limits, limits)?;
         let batch_state = batch_state_bytes(batch_cap)?;
+        // Tree callbacks and iterator-driven sealing run serially against the
+        // same invocation debit; neither receives an independent work grant.
+        let shared_debit = RefCell::new(debit_work);
+        let mut frame_debit = || (*shared_debit.borrow_mut())();
+        let mut tree_debit = || (*shared_debit.borrow_mut())();
+        let batch_state = batch_state
+            .checked_add(size_of_val(&shared_debit))
+            .and_then(|bytes| bytes.checked_add(size_of_val(&frame_debit)))
+            .and_then(|bytes| bytes.checked_add(size_of_val(&tree_debit)))
+            .ok_or_else(|| invalid("packed callback state overflow"))?;
         let additional_live = limits
             .caller_live_state_bytes
             .checked_add(size_of::<PackedObjectBuildWorkV2>())
@@ -307,7 +318,7 @@ impl PackedObjectWriterV2 {
             batch_state,
             deadline,
             cancelled,
-            debit_work,
+            &mut frame_debit,
             &mut work,
         )?;
         let (descriptor, tree_work) = segment
@@ -320,7 +331,7 @@ impl PackedObjectWriterV2 {
                 additional_live,
                 deadline,
                 cancelled,
-                debit_work,
+                &mut tree_debit,
             )
             .map_err(|_| invalid("packed object extent tree build failed"))?;
         work.tree_work = tree_work;
@@ -353,6 +364,16 @@ impl PackedObjectWriterV2 {
         }
         let batch_cap = frame_batch_cap(limits.segment_limits, limits)?;
         let batch_state = batch_state_bytes(batch_cap)?;
+        // Tree callbacks and iterator-driven sealing run serially against the
+        // same invocation debit; neither receives an independent work grant.
+        let shared_debit = RefCell::new(debit_work);
+        let mut frame_debit = || (*shared_debit.borrow_mut())();
+        let mut tree_debit = || (*shared_debit.borrow_mut())();
+        let batch_state = batch_state
+            .checked_add(size_of_val(&shared_debit))
+            .and_then(|bytes| bytes.checked_add(size_of_val(&frame_debit)))
+            .and_then(|bytes| bytes.checked_add(size_of_val(&tree_debit)))
+            .ok_or_else(|| invalid("packed callback state overflow"))?;
         let additional_live = limits
             .caller_live_state_bytes
             .checked_add(size_of::<PackedObjectBuildWorkV2>())
@@ -372,7 +393,7 @@ impl PackedObjectWriterV2 {
             batch_state,
             deadline,
             cancelled,
-            debit_work,
+            &mut frame_debit,
             &mut work,
         )?;
         let (descriptor, tree_work) = segment
@@ -386,7 +407,7 @@ impl PackedObjectWriterV2 {
                 additional_live,
                 deadline,
                 cancelled,
-                debit_work,
+                &mut tree_debit,
             )
             .map_err(|_| invalid("packed object extent COW failed"))?;
         work.tree_work = tree_work;
@@ -636,7 +657,9 @@ where
                 frame_count,
                 header_offset: receipt.coordinate().header_offset,
             };
-            self.push_extent(source.digest, location)?;
+            Self::push_extent_row(
+                &mut self.ready, self.batch_cap, self.work, source.digest, location,
+            )?;
             self.work.payload_bytes = self
                 .work
                 .payload_bytes
@@ -651,17 +674,25 @@ where
         digest: Digest256,
         location: PackedObjectLocationV2,
     ) -> io::Result<()> {
+        Self::push_extent_row(&mut self.ready, self.batch_cap, self.work, digest, location)
+    }
+
+    fn push_extent_row(
+        ready: &mut VecDeque<AuthenticatedTreeEntryV1>,
+        batch_cap: usize,
+        work: &mut PackedObjectBuildWorkV2,
+        digest: Digest256,
+        location: PackedObjectLocationV2,
+    ) -> io::Result<()> {
         let value = location.encode()?.to_vec();
-        self.ready.push_back(AuthenticatedTreeEntryV1 {
+        ready.push_back(AuthenticatedTreeEntryV1 {
             key: digest.as_bytes().to_vec(),
             value,
         });
-        if self.ready.len() > self.batch_cap {
+        if ready.len() > batch_cap {
             return Err(invalid("packed extent row buffer exceeds selected state"));
         }
-        self.work.object_rows = self
-            .work
-            .object_rows
+        work.object_rows = work.object_rows
             .checked_add(1)
             .ok_or_else(|| invalid("packed object row count overflow"))?;
         Ok(())

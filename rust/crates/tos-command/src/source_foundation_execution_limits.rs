@@ -1627,7 +1627,6 @@ impl FoundationExecutionLimits {
         let total_raw = shape
             .max_total_raw_bytes
             .min(total_wire)
-            .min(BatchBudget::MAX_RAW_BYTES as u64)
             .min(u64::MAX - 1);
         let total_units = shape.max_total_units.min(u64::MAX - 1);
         let chunks = shape.max_chunks.min(u64::MAX - 1);

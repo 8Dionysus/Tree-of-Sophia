@@ -1065,7 +1065,7 @@ impl<'host> SpoolCandidate<'host> {
                             rootset_sha256: Some(rootset_sha256),
                             batch_sha256: fence.batch_sha256,
                             validator_sha256: fence.validator_sha256,
-                            persistent_store_custody: Some(custody),
+                            persistent_store_custody: Some(Arc::clone(&custody)),
                             cause: error,
                         },
                     )
@@ -1390,6 +1390,7 @@ impl<'host> SpoolCandidate<'host> {
             // only after its temporary backing has closed.
             let custody = match if index.segment_v2_budget().is_some() {
                 v2_custody
+                    .clone()
                     .or_else(|| self.store.v2_store_custody())
                     .ok_or_else(|| invalid("V2 store custody absent after publication"))
             } else {
@@ -2962,7 +2963,7 @@ impl<'host> SpoolCandidate<'host> {
     }
 
     fn stream_packed_update(
-        &self,
+        &mut self,
         path: &str,
         update: SourceUpdate,
         row_state_bytes: usize,
@@ -3074,13 +3075,36 @@ impl<'host> SpoolCandidate<'host> {
                 self.stream_packed_update(&row.path, row.update, row.workspace_state_bytes)?;
             }
         } else {
-            for (path, update) in &self.batch.updates {
+            let mut after: Option<String> = None;
+            loop {
+                self.running()?;
+                let next = match after.as_deref() {
+                    Some(after) => self
+                        .batch
+                        .updates
+                        .range::<str, _>((
+                            std::ops::Bound::Excluded(after),
+                            std::ops::Bound::Unbounded,
+                        ))
+                        .next(),
+                    None => self.batch.updates.iter().next(),
+                };
+                let Some((path, update)) = next else {
+                    break;
+                };
+                // Account the retained cursor and owned next path before copying,
+                // then release the map borrow before the consuming source stream.
                 let path_state = path
                     .len()
-                    .checked_mul(16)
+                    .checked_add(after.as_ref().map_or(0, String::len))
+                    .and_then(|bytes| bytes.checked_mul(16))
                     .and_then(|bytes| bytes.checked_add(2048))
                     .ok_or_else(|| invalid("update path caller state overflow"))?;
-                self.stream_packed_update(path, *update, path_state)?;
+                self.check_state(path_state)?;
+                let path = path.clone();
+                let update = *update;
+                self.stream_packed_update(&path, update, path_state)?;
+                after = Some(path);
             }
         }
         // The source owner performs EOF and held-input/root fencing here,

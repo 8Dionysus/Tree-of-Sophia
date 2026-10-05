@@ -796,7 +796,7 @@ pub(crate) struct IndexedInputReaderV1 {
 
 impl IndexedInputReaderV1 {
     pub(crate) fn open(
-        selection: IndexedInputSelectionV1,
+        mut selection: IndexedInputSelectionV1,
         limits: IndexedInputLimitsV1,
         extents_db: Rc<RefCell<PinnedSqliteConnection>>,
         io_budget: PinnedSqliteIoBudget,

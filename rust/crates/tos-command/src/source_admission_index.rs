@@ -2407,6 +2407,7 @@ pub(crate) fn validate_source_entry_delta<'a>(
             ));
         }
     }
+    let observed_base_revision = readset.base_revision;
     reader.check_state(
         source_entry_delta_state(&expected_paths, &dependency_updates, &member_updates, None)?
             .checked_add(object_refcount_delta_state(&object_refcount_updates)?)
@@ -2417,7 +2418,7 @@ pub(crate) fn validate_source_entry_delta<'a>(
     }
     Ok(ValidatedSourceEntryDeltaV1 {
         selected_base: selected,
-        observed_base_revision: readset.base_revision,
+        observed_base_revision,
         proposal,
         source_path: source_relative,
         record_id,

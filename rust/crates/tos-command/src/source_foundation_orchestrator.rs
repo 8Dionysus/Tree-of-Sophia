@@ -57,6 +57,7 @@ pub(crate) enum FoundationOrchestratorError {
     Bootstrap(FoundationBootstrapError),
     Command(SourceCommandError),
     Owner(ItemRefusal),
+    OwnerAt(&'static str, ItemRefusal),
     Default(FoundationDefaultStage, FoundationDefaultReadError),
     Final(FoundationFinalInputError),
     Replay(ArtifactReplayFailure),
@@ -229,8 +230,10 @@ impl FoundationOrchestratorError {
                 }
             },
             Self::Command(_) => "source-foundation invocation refused",
-            Self::Owner(_) => "source-foundation owner phase refused",
+            Self::Owner(_) | Self::OwnerAt(_, _) => "source-foundation owner phase refused",
             Self::Default(stage, error) => match (stage, error) {
+                (_, FoundationDefaultReadError::Owner(ItemRefusal::Executor(_))) =>
+                    "source-foundation default owner executor refused",
                 (
                     FoundationDefaultStage::CapturedCurrentPaths,
                     FoundationDefaultReadError::Owner(ItemRefusal::Budget),
@@ -2033,7 +2036,7 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
                 max_checks,
                 cancelled,
             );
-            let replay = match replay_result {
+            let mut replay = match replay_result {
                 Ok(replay) => replay,
                 Err(error) => {
                     let history_after = view.history.as_deref().map(|history| history.usage());
@@ -2339,6 +2342,7 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
                     }
                     rule_source.recheck_auxiliary()?;
                     let reader_cost = rule_source.cost();
+                    drop(rule_source);
                     let reader_io_after = view.original_io.snapshot();
                     let history_usage_after_rules =
                         view.history.as_deref().map(|history| history.usage());
@@ -2394,10 +2398,9 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
                             .checked_add(reader_external_reads)
                             .ok_or(ItemRefusal::Budget)?,
                     );
-                    drop(rule_source);
                     drop(schema_executor);
                     drop(replay);
-                    let schemas = schema_worker.into_inner();
+                    let mut schemas = schema_worker.borrow_mut();
                     let owner_state = stored_report.cost.aggregate_state_reservation_bytes;
                     let diagnostic_state_cap = available_after_biblio
                         .checked_sub(owner_state)
@@ -2417,7 +2420,7 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
                         stored_report,
                         discovery_schema_requests,
                         closure_schema_requests,
-                        schemas,
+                        &mut **schemas,
                         schema_limits,
                         deadline,
                         cancelled,
@@ -2724,7 +2727,6 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
         max_total_raw_bytes: catalog_operation
             .source_read_bytes
             .min(catalog_operation.worker_wire_bytes)
-            .min(BatchBudget::MAX_RAW_BYTES as u64)
             .max(1),
         max_total_wire_bytes: catalog_operation.worker_wire_bytes,
         max_distinct_selectors: max_checks.max(1).min(1024),
@@ -2890,6 +2892,7 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
         catalog_usage,
     )?;
     drop(catalog_result);
+    drop(validator);
     item_schemas.finish(deadline, cancelled).map_err(owner)?;
     if !item_schemas.is_finished() {
         return Err(incomplete(
@@ -3110,11 +3113,12 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
         state_bytes: final_held_state,
         ..FoundationPhaseReservation::default()
     };
+    let original_io = view.original_io;
     let _payload_completion = finish_candidate_payload_and_physical(
         &mut view,
         candidate,
         input,
-        view.original_io,
+        original_io,
         payloads,
         &item_schemas,
         &mut record_executor,
@@ -4439,7 +4443,6 @@ fn run<'work, 'receive, 'cancel, 'signal>(
         max_total_raw_bytes: catalog_operation
             .source_read_bytes
             .min(catalog_operation.worker_wire_bytes)
-            .min(BatchBudget::MAX_RAW_BYTES as u64)
             .max(1),
         max_total_wire_bytes: catalog_operation.worker_wire_bytes,
         max_distinct_selectors: max_checks.max(1).min(1024),

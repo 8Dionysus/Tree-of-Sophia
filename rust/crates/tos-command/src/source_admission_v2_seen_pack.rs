@@ -1166,7 +1166,7 @@ impl V2SeenPackSpill {
         cancelled: &AtomicBool,
     ) -> std::io::Result<()> {
         let result = (|| {
-            segment_limits.validate().map_err(invalid)?;
+            segment_limits.validate().map_err(|_| invalid("V2 packed segment limits differ"))?;
             self.check_context()
                 .map_err(|_| invalid("V2 packed-object context is unavailable"))?;
             if self.packed_phase.get() != PackedObjectPhase::Loading

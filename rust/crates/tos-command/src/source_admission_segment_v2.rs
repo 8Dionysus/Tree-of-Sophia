@@ -2955,7 +2955,7 @@ fn build_legacy_revision_roots_v2(
             match reader.retirement_at(metadata.revision, current) {
                 Ok(Some(row)) => {
                     observed_retirements_ref.set(ordinal);
-                    Some(encode_retirement_entry(current, row).map_err(tree_io_error))
+                    Some(encode_retirement_entry(current, row))
                 }
                 Ok(None) => Some(Err(tree_error("legacy retirement ordinal ended early"))),
                 Err(error) => Some(Err(tree_io_error(io::Error::new(
@@ -3665,7 +3665,7 @@ pub(crate) fn build_v1_migration_rootset_v2(
             let current = ordinal;
             ordinal += 1;
             match candidate.retirement_at_bounded(current, profile.max_working_state_bytes / 8) {
-                Ok(Some(row)) => Some(encode_retirement_entry(current, row).map_err(tree_io_error)),
+                Ok(Some(row)) => Some(encode_retirement_entry(current, row)),
                 Ok(None) => Some(Err(tree_error("migration current retirement ended early"))),
                 Err(error) => Some(Err(tree_io_error(error))),
             }
@@ -4270,7 +4270,7 @@ pub(crate) fn build_successor_rootset_v2(
             &mut work,
             &mut full_rows,
             tree_live_state,
-            shared_work,
+            &shared_work,
             deadline,
             cancelled,
         )?
