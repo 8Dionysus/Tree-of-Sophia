@@ -551,6 +551,18 @@ fn bounded_usize(value: u64) -> Result<usize, FoundationOrchestratorError> {
     })
 }
 
+fn candidate_owner_refusal(stage: &'static str, error: ItemRefusal) -> ItemRefusal {
+    match error {
+        ItemRefusal::Budget => ItemRefusal::BudgetCheck {
+            check: stage,
+            used: None,
+            limit: None,
+        },
+        other => other,
+    }
+}
+
+
 fn owner(error: ItemRefusal) -> FoundationOrchestratorError {
     FoundationOrchestratorError::Owner(error)
 }
