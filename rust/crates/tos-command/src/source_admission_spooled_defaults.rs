@@ -749,7 +749,7 @@ impl<'candidate, 'host> SpoolDefaultStore<'candidate, 'host> {
                  claim_id TEXT NOT NULL COLLATE BINARY PRIMARY KEY,\
                  subject TEXT NOT NULL COLLATE BINARY\
              ) WITHOUT ROWID;\
-             CREATE INDEX sf_closure_membership_subject_order\
+             CREATE INDEX sf_closure_membership_subject_order \
                  ON sf_closure_membership_claims(subject COLLATE BINARY, claim_id COLLATE BINARY);\
              CREATE TABLE sf_closure_responsibility_claims(\
                  claim_id TEXT NOT NULL COLLATE BINARY PRIMARY KEY,\
@@ -760,7 +760,7 @@ impl<'candidate, 'host> SpoolDefaultStore<'candidate, 'host> {
                  event TEXT NOT NULL COLLATE BINARY,\
                  native INTEGER NOT NULL CHECK(native IN (0,1))\
              ) WITHOUT ROWID;\
-             CREATE INDEX sf_closure_responsibility_subject_order\
+             CREATE INDEX sf_closure_responsibility_subject_order \
                  ON sf_closure_responsibility_claims(subject COLLATE BINARY, claim_id COLLATE BINARY);\
              CREATE TABLE sf_closure_publication_claims(\
                  claim_id TEXT NOT NULL COLLATE BINARY PRIMARY KEY,\
@@ -771,7 +771,7 @@ impl<'candidate, 'host> SpoolDefaultStore<'candidate, 'host> {
                  event TEXT NOT NULL COLLATE BINARY,\
                  native INTEGER NOT NULL CHECK(native IN (0,1))\
              ) WITHOUT ROWID;\
-             CREATE INDEX sf_closure_publication_subject_order\
+             CREATE INDEX sf_closure_publication_subject_order \
                  ON sf_closure_publication_claims(subject COLLATE BINARY, claim_id COLLATE BINARY);\
              CREATE TABLE sf_closure_validated_events(\
                  check_kind TEXT NOT NULL COLLATE BINARY CHECK(check_kind IN ('responsibility','publication')),\
