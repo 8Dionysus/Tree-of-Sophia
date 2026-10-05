@@ -9,7 +9,7 @@ use crate::{
 use rusqlite::{Connection, OptionalExtension, params};
 use std::{
     fs::File,
-    io::Seek,
+    io::{Read, Seek},
     path::Path,
     sync::{
         Arc,
@@ -664,6 +664,137 @@ fn open_sqlite(
     Ok((db, used))
 }
 
+/// Charge and hash the exact sealed selected file on the authentic builder
+/// state before SQLite opens it. Work is debited before each bounded read so a
+/// failed or shortened source never refunds the original owner.
+pub(crate) fn digest_selected_file_with_owned_context(
+    pinned: &mut File,
+    expected: &KnowledgeSelectedExpectation,
+    limits: ColdOpenLimits,
+    context: &crate::knowledge_payload_read::RuntimeKnowledgeReadContext<'_, '_>,
+) -> Result<u64> {
+    use crate::d1_public_capture::{CreationStateHold, CreationState};
+    use std::io::SeekFrom;
+
+    let state = context.owned_state();
+    let fixed = std::mem::size_of::<(
+        &mut File,
+        &KnowledgeSelectedExpectation,
+        ColdOpenLimits,
+        &crate::knowledge_payload_read::RuntimeKnowledgeReadContext<'_, '_>,
+        &CreationState<'_>,
+        CreationStateHold<'_, '_>,
+        std::fs::Metadata,
+        Digest256Hasher,
+        [u8; 65_536],
+        u64,
+        usize,
+        Digest256,
+        Result<u64>,
+    )>();
+    let _hold = state.hold(fixed)?;
+    if expected.model_size_bytes > limits.max_file_bytes || limits.max_work_bytes == 0 {
+        return Err(Error::Budget("controlled selected file digest admission"));
+    }
+    let metadata = pinned.metadata()?;
+    if !metadata.is_file() || metadata.len() != expected.model_size_bytes {
+        return Err(Error::Invalid("controlled selected file size"));
+    }
+    let expected_digest = Digest256::from_hex(&expected.model_sha256)
+        .map_err(|_| Error::Invalid("controlled selected file digest expectation"))?;
+    pinned.seek(SeekFrom::Start(0))?;
+    context.check()?;
+    let mut hasher = Digest256Hasher::new();
+    let mut buffer = [0u8; 65_536];
+    let mut total = 0u64;
+    let mut charged = 0u64;
+    while total < expected.model_size_bytes {
+        context.check()?;
+        let remaining = expected
+            .model_size_bytes
+            .checked_sub(total)
+            .ok_or(Error::Budget("controlled selected digest bytes"))?;
+        let amount = usize::try_from(remaining.min(buffer.len() as u64))
+            .map_err(|_| Error::Budget("controlled selected digest read size"))?;
+        charged = charged
+            .checked_add(amount as u64)
+            .filter(|next| *next <= limits.max_work_bytes)
+            .ok_or(Error::Budget("controlled selected digest work"))?;
+        context.charge_work(amount)?;
+        let count = pinned.read(&mut buffer[..amount])?;
+        if count == 0 {
+            return Err(Error::Invalid("controlled selected file truncated during digest"));
+        }
+        total = total
+            .checked_add(count as u64)
+            .ok_or(Error::Budget("controlled selected digest bytes"))?;
+        hasher.update(&buffer[..count]);
+    }
+    context.check()?;
+    let final_metadata = pinned.metadata()?;
+    if !final_metadata.is_file()
+        || final_metadata.len() != expected.model_size_bytes
+        || total != expected.model_size_bytes
+        || hasher.finalize() != expected_digest
+    {
+        return Err(Error::Invalid("controlled selected file digest mismatch"));
+    }
+    context.check()?;
+    Ok(total)
+}
+
+/// Configure the one immutable selected SQLite connection before verification
+/// or QRY. This keeps cache/temp/mmap policy with the compiler owner and
+/// charges the pragma/update/read sequence on the existing state and VM hook.
+pub(crate) fn configure_selected_sql_with_owned_context(
+    db: &Connection,
+    limits: ColdOpenLimits,
+    context: &crate::knowledge_payload_read::RuntimeKnowledgeReadContext<'_, '_>,
+) -> Result<()> {
+    use crate::d1_public_capture::CreationStateHold;
+
+    let state = context.owned_state();
+    let statement_state =
+        tos_source_store::PinnedBoundedStatement::owned_connection_rust_workspace_upper_bound()
+            .checked_mul(2)
+            .ok_or(Error::Budget("controlled selected pragma workspace"))?;
+    let fixed = std::mem::size_of::<(
+        &Connection,
+        ColdOpenLimits,
+        &crate::knowledge_payload_read::RuntimeKnowledgeReadContext<'_, '_>,
+        CreationStateHold<'_, '_>,
+        i64,
+        Result<()>,
+    )>()
+    .checked_add(statement_state)
+    .ok_or(Error::Budget("controlled selected pragma frame"))?;
+    let _hold = state.hold(fixed)?;
+    if limits.sqlite_cache_kib == 0 || limits.sqlite_cache_kib > i64::MAX as u64 {
+        return Err(Error::Budget("controlled selected SQLite cache cap"));
+    }
+    const PRAGMAS: &str =
+        "PRAGMA query_only=ON; PRAGMA trusted_schema=OFF; PRAGMA temp_store=FILE; PRAGMA mmap_size=0;";
+    state.charge_work(PRAGMAS.len())?;
+    context.check()?;
+    db.execute_batch(PRAGMAS)?;
+    context.check()?;
+    let cache_kib = i64::try_from(limits.sqlite_cache_kib)
+        .map_err(|_| Error::Budget("controlled selected SQLite cache cap"))?;
+    state.charge_work(std::mem::size_of::<i64>())?;
+    context.check()?;
+    db.pragma_update(None, "cache_size", -cache_kib)?;
+    with_owned_schema_statement(db, c"PRAGMA cache_size", state, |statement| {
+        if !owned_schema_step(statement, state)? {
+            return Err(Error::Invalid("controlled selected SQLite cache absent"));
+        }
+        let effective = statement.integer(0).map_err(owned_schema_sql_error)?;
+        if effective != -cache_kib {
+            return Err(Error::Invalid("controlled selected SQLite cache budget"));
+        }
+        context.check()
+    })
+}
+
 fn metadata_matches(db: &Connection, key: &str, max_bytes: usize, expected: &str) -> Result<bool> {
     let mut statement = db.prepare(
         "SELECT CAST(value AS BLOB) FROM metadata WHERE key=?1 AND typeof(value) IN ('text','blob') AND length(CAST(value AS BLOB))<=?2",
@@ -808,6 +939,118 @@ fn nonnegative(value: i64) -> Result<u64> {
 fn catalog_text(row: &rusqlite::Row<'_>, col: usize) -> Result<String> {
     row.get::<_, Option<String>>(col)?
         .ok_or(Error::Budget("knowledge catalog text bytes"))
+}
+
+fn owned_metadata_matches(db:&Connection,key:&str,cap:usize,expected:&str,state:&crate::d1_public_capture::CreationState<'_>)->Result<bool> {
+    let _frame=state.hold(std::mem::size_of::<(
+        &Connection,&str,usize,&str,&crate::d1_public_capture::CreationState<'_>,
+        &[u8],&str,Result<bool>,crate::d1_public_capture::CreationStateHold<'_,'_>,
+    )>())?;
+    if cap>i64::MAX as usize {return Err(Error::Budget("metadata addressable cap"));}
+    with_owned_schema_statement(db,c"SELECT CAST(value AS BLOB) FROM metadata WHERE key=?1 AND typeof(value) IN ('text','blob') AND length(CAST(value AS BLOB))<=?2",state,|statement| {
+        state.charge_work(key.len().checked_add(8).ok_or(Error::Budget("metadata bind work"))?)?;
+        statement.bind_text(1,key).map_err(owned_schema_sql_error)?;
+        statement.bind_i64(2,cap as i64).map_err(owned_schema_sql_error)?;
+        if !owned_schema_step(statement,state)? {return Err(Error::Invalid("knowledge metadata absent/oversized"));}
+        let rusqlite::types::ValueRef::Blob(value)=statement.value_ref(0).map_err(owned_schema_sql_error)? else {return Err(Error::Invalid("knowledge metadata BLOB"));};
+        if value.len()>cap {return Err(Error::Budget("knowledge metadata bytes"));}
+        state.charge_work(value.len())?;state.active()?;
+        let value=std::str::from_utf8(value).map_err(|_|Error::Invalid("knowledge metadata UTF8"))?;
+        owned_schema_equal(state,value.as_bytes(),expected.as_bytes())
+    })
+}
+pub(crate) fn check_native_metadata_with_owned_context(db:&Connection,expected:&KnowledgeSelectedExpectation,cap:usize,context:&crate::knowledge_payload_read::RuntimeKnowledgeReadContext<'_,'_>)->Result<()> {
+    let state=context.owned_state();
+    let _frame=state.hold(std::mem::size_of::<(
+        &Connection,&KnowledgeSelectedExpectation,usize,
+        &crate::knowledge_payload_read::RuntimeKnowledgeReadContext<'_,'_>,
+        &crate::d1_public_capture::CreationState<'_>,
+        std::array::IntoIter<(&str,&str),21>,std::array::IntoIter<(&str,u64),4>,
+        [(&str,&str);21],[(&str,u64);4],&str,&str,u64,[u8;20],
+        Result<()>,crate::d1_public_capture::CreationStateHold<'_,'_>,
+    )>())?;
+    if expected.managed_source_root_sha256.is_some() {return Err(Error::Invalid("native metadata profile required"));}
+    for (key, value) in [
+        ("model_abi", expected.model_abi.as_str()),
+        ("descriptor_sha256", expected.descriptor_sha256.as_str()),
+        (
+            "semantic_primitive_profile",
+            expected.semantic_primitive_profile.as_str(),
+        ),
+        ("source_cut", expected.source_cut.as_str()),
+        ("membership_root", expected.membership_root.as_str()),
+        ("entity_registry_id", expected.entity_registry_id.as_str()),
+        (
+            "entity_registry_version",
+            expected.entity_registry_version.as_str(),
+        ),
+        (
+            "entity_registry_sha256",
+            expected.entity_registry_sha256.as_str(),
+        ),
+        (
+            "relation_registry_id",
+            expected.relation_registry_id.as_str(),
+        ),
+        (
+            "relation_registry_version",
+            expected.relation_registry_version.as_str(),
+        ),
+        (
+            "relation_registry_sha256",
+            expected.relation_registry_sha256.as_str(),
+        ),
+        ("graph_root_sha256", expected.graph_root_sha256.as_str()),
+        (
+            "catalog_packet_sha256",
+            expected.catalog_packet_sha256.as_str(),
+        ),
+        (
+            "catalog_index_root_sha256",
+            expected.catalog_index_root_sha256.as_str(),
+        ),
+        (
+            "source_scope_root_sha256",
+            expected.source_scope_root_sha256.as_str(),
+        ),
+        (
+            "search_index_root_sha256",
+            expected.search_index_root_sha256.as_str(),
+        ),
+        ("index_generation", expected.index_generation.as_str()),
+        ("route_map_version", expected.route_map_version.as_str()),
+        ("reader_abi", expected.reader_abi.as_str()),
+        ("authority_boundary", expected.authority_boundary.as_str()),
+        ("complete", "true"),
+    ] {
+        if !owned_metadata_matches(db,key,cap,value,state)? {return Err(Error::Invalid("knowledge metadata binding"));}
+    }
+    with_owned_schema_statement(db,c"SELECT CASE WHEN typeof(value) IN ('text','blob') AND length(CAST(value AS BLOB))=64 THEN CAST(value AS BLOB) ELSE NULL END FROM metadata WHERE key='managed_source_root_sha256'",state,|statement| {
+        if owned_schema_step(statement,state)? && !matches!(statement.value_ref(0).map_err(owned_schema_sql_error)?,rusqlite::types::ValueRef::Null) {return Err(Error::Invalid("knowledge managed source metadata binding"));}Ok(())
+    })?;
+    for (key, value) in [
+        ("descriptor_version", expected.descriptor_version),
+        ("through_commit_seq", expected.through_commit_seq),
+        ("node_count", expected.node_count),
+        ("relation_count", expected.relation_count),
+    ] {
+        let mut decimal=[0u8;20];state.charge_work(20)?;state.active()?;
+        if !owned_metadata_matches(db,key,32,decimal_u64(value,&mut decimal),state)? {return Err(Error::Invalid("knowledge metadata count/version"));}
+    }
+    state.active()
+}
+pub(crate) fn verify_integrity_with_owned_context(db:&Connection,context:&crate::knowledge_payload_read::RuntimeKnowledgeReadContext<'_,'_>)->Result<()> {
+    let state=context.owned_state();
+    let _frame=state.hold(std::mem::size_of::<(
+        &Connection,&crate::knowledge_payload_read::RuntimeKnowledgeReadContext<'_,'_>,
+        &crate::d1_public_capture::CreationState<'_>,&[u8],Result<()>,
+        crate::d1_public_capture::CreationStateHold<'_,'_>,
+    )>())?;
+    with_owned_schema_statement(db,c"PRAGMA integrity_check",state,|statement| {
+        if !owned_schema_step(statement,state)? {return Err(Error::Invalid("knowledge integrity missing"));}
+        let rusqlite::types::ValueRef::Text(first)=statement.value_ref(0).map_err(owned_schema_sql_error)? else {return Err(Error::Invalid("knowledge integrity result type"));};
+        if first.len()!=2||!owned_schema_equal(state,first,b"ok")?||owned_schema_step(statement,state)? {return Err(Error::Invalid("knowledge SQLite integrity"));}Ok(())
+    })
 }
 
 fn verify_catalog(
@@ -1336,6 +1579,227 @@ fn verify_integrity(db: &Connection) -> Result<()> {
 /// Acyclic graph root over the exact canonical header packet and the two
 /// independently rescanned normalized-core roots. No search/catalog/scope or
 /// graph root appears in the header itself.
+// Native cut header validation uses the same canonical/type/count/root laws
+// as verify_graph_root, with authentic borrowed SQL and original owned state.
+fn owned_header_field<'a>(
+    value: &'a JsonValue,
+    name: &str,
+    state: &crate::d1_public_capture::CreationState<'_>,
+) -> Result<&'a JsonValue> {
+    let _frame = state.hold(std::mem::size_of::<(
+        &JsonValue,
+        &str,
+        &crate::d1_public_capture::CreationState<'_>,
+        std::slice::Iter<'_, (tos_foundation::JsonString, JsonValue)>,
+        &(tos_foundation::JsonString, JsonValue),
+        &str,
+        Result<&JsonValue>,
+    )>())?;
+    let fields = value
+        .as_object()
+        .ok_or(Error::Invalid("knowledge graph header object"))?;
+    state.charge_work(name.len())?;
+    for (key, value) in fields {
+        state.active()?;
+        let key = key
+            .as_str()
+            .ok_or(Error::Invalid("knowledge graph header key"))?;
+        state.charge_work(
+            key.len()
+                .checked_add(name.len())
+                .ok_or(Error::Budget("owned header lookup work"))?,
+        )?;
+        if key == name {
+            return Ok(value);
+        }
+    }
+    Err(Error::Invalid("knowledge graph header field"))
+}
+fn owned_header_keys(
+    value: &JsonValue,
+    expected: &[&str],
+    state: &crate::d1_public_capture::CreationState<'_>,
+) -> Result<()> {
+    let _frame = state.hold(std::mem::size_of::<(
+        &JsonValue,
+        &[&str],
+        &crate::d1_public_capture::CreationState<'_>,
+        std::iter::Zip<
+            std::slice::Iter<'_, (tos_foundation::JsonString, JsonValue)>,
+            std::slice::Iter<'_, &str>,
+        >,
+        &str,
+        &str,
+        Result<()>,
+    )>())?;
+    let fields = value
+        .as_object()
+        .ok_or(Error::Invalid("knowledge graph header object"))?;
+    if fields.len() != expected.len() {
+        return Err(Error::Invalid("knowledge graph header keys"));
+    }
+    for ((key, _), name) in fields.iter().zip(expected.iter()) {
+        state.active()?;
+        let key = key
+            .as_str()
+            .ok_or(Error::Invalid("knowledge graph header key"))?;
+        if !owned_schema_equal(state, key.as_bytes(), name.as_bytes())? {
+            return Err(Error::Invalid("knowledge graph header keys"));
+        }
+    }
+    Ok(())
+}
+fn owned_header_u64(
+    value: &JsonValue,
+    state: &crate::d1_public_capture::CreationState<'_>,
+) -> Result<Option<u64>> {
+    let _frame = state.hold(std::mem::size_of::<(
+        &JsonValue,
+        &crate::d1_public_capture::CreationState<'_>,
+        Option<u64>,
+        Result<Option<u64>>,
+    )>())?;
+    if let JsonValue::Number(number) = value {
+        state.charge_work(number.lexeme.len())?;
+    }
+    state.active()?;
+    let value = value.as_u64();
+    state.active()?;
+    Ok(value)
+}
+/// Same Native v1 graph header semantics; Managed profiles are not claimed.
+/// Escaping T ownership must be persistently pre-admitted by the caller under
+/// the same state while SQL/header/tree/canonical/basis owners remain live.
+pub(crate) fn verify_native_graph_root_with_owned_context<T>(
+    db: &Connection,
+    expected: &KnowledgeSelectedExpectation,
+    limits: ColdOpenLimits,
+    node_root: Digest256,
+    relation_root: Digest256,
+    context: &crate::knowledge_payload_read::RuntimeKnowledgeReadContext<'_, '_>,
+    consume: impl FnOnce(&crate::KnowledgeSourceBasis) -> Result<T>,
+) -> Result<T> {
+    let state = context.owned_state();
+    let fixed = std::mem::size_of::<(
+        &Connection,
+        &KnowledgeSelectedExpectation,
+        ColdOpenLimits,
+        Digest256,
+        Digest256,
+        &crate::knowledge_payload_read::RuntimeKnowledgeReadContext<'_, '_>,
+        &crate::d1_public_capture::CreationState<'_>,
+        JsonLimits,
+        JsonLimits,
+        JsonLimits,
+        T,
+        i64,
+        i64,
+        &[u8],
+        &[u8],
+        Digest256,
+        Digest256Hasher,
+        std::slice::Chunks<'_, u8>,
+        Result<T>,
+        Result<T>,
+        &JsonValue,
+        &JsonValue,
+        &JsonValue,
+        &JsonValue,
+        usize,
+        usize,
+        std::slice::Iter<'_, (tos_foundation::JsonString, JsonValue)>,
+        std::slice::Iter<'_, ExpectedSourceScope>,
+        std::array::IntoIter<&str, 4>,
+        &str,
+        &str,
+        Option<u64>,
+    )>()
+    .checked_add(std::mem::size_of_val(&consume))
+    .ok_or(Error::Budget("native graph header state"))?;
+    let _frame = state.hold(fixed)?;
+    if expected.managed_source_root_sha256.is_some()
+        || limits.max_row_bytes == 0
+        || limits.max_row_bytes > i64::MAX as usize
+    {
+        return Err(Error::Invalid("native cut graph header profile"));
+    }
+    with_owned_schema_statement(db,c"SELECT singleton,packet_len,CASE WHEN typeof(packet_sha256)='blob' AND length(packet_sha256)=32 THEN packet_sha256 ELSE NULL END,CASE WHEN typeof(packet)='blob' AND length(packet)<=?1 THEN packet ELSE NULL END FROM graph_header",state,|statement| {
+        statement.bind_i64(1,limits.max_row_bytes as i64).map_err(owned_schema_sql_error)?;
+        if !owned_schema_step(statement,state)? {return Err(Error::Invalid("knowledge graph header missing"));}
+        let singleton=statement.integer(0).map_err(owned_schema_sql_error)?;
+        let packet_len=statement.integer(1).map_err(owned_schema_sql_error)?;
+        let rusqlite::types::ValueRef::Blob(packet_sha)=statement.value_ref(2).map_err(owned_schema_sql_error)? else {return Err(Error::Invalid("knowledge graph header digest"));};
+        let rusqlite::types::ValueRef::Blob(packet)=statement.value_ref(3).map_err(owned_schema_sql_error)? else {return Err(Error::Budget("knowledge graph header bytes"));};
+        if singleton!=1 || packet_len<0 || usize::try_from(packet_len).ok()!=Some(packet.len()) || packet_sha.len()!=32 {return Err(Error::Invalid("knowledge graph header packet"));}
+        state.charge_work(packet.len())?;
+        let mut hash=Digest256Hasher::new();
+        for chunk in packet.chunks(4096) {state.active()?;hash.update(chunk);}
+        let actual_packet_sha=hash.finalize();
+        if actual_packet_sha.as_bytes().as_slice()!=packet_sha {return Err(Error::Invalid("knowledge graph header packet"));}
+        let visits=context.remaining_json_visits()?.min(packet.len().checked_add(1).ok_or(Error::Budget("graph header parser visits"))?);
+        let json_limits=JsonLimits::new(limits.max_row_bytes,96,visits,4096).map_err(|_|Error::Budget("knowledge graph header JSON limits"))?;
+        let result=context.with_foundation_owned_with_limits(packet,json_limits,|header| {
+            let writer_limits=JsonLimits::new(limits.max_row_bytes,96,context.remaining_json_visits()?.min(1_000_000),4096).map_err(|_|Error::Budget("knowledge graph header writer limits"))?;
+            let check_header=|canonical: &[u8]| {
+                if !owned_schema_equal(state,canonical,packet)? {return Err(Error::Invalid("knowledge graph header canonical bytes"));}
+                crate::managed_source::with_native_cut_header_basis_owned(header,state,|basis| {
+                    owned_header_keys(header,&["authority_boundary","counts","normalization_binding","query_properties","schema","source_revision"],state)?;
+                    let authority=owned_header_field(header,"authority_boundary",state)?;
+                    if authority.as_object().is_none() || owned_header_field(header,"query_properties",state)?.as_array().is_none() {return Err(Error::Invalid("knowledge graph header shape"));}
+                    let authority_limits=JsonLimits::new(limits.max_row_bytes,96,context.remaining_json_visits()?.min(1_000_000),4096).map_err(|_|Error::Budget("knowledge graph authority writer limits"))?;
+                    let check_authority=|raw: &[u8]| {
+                        if !owned_schema_equal(state,raw,expected.authority_boundary.as_bytes())? {return Err(Error::Invalid("knowledge graph header shape"));}
+                        Ok(())
+                    };
+                    let _authority_callback=state.hold(std::mem::size_of_val(&check_authority))?;
+                    state.with_foundation_canonical_bytes(authority,authority_limits,check_authority)?;
+                    let normalization=owned_header_field(header,"normalization_binding",state)?;
+                    owned_header_keys(normalization,&["configuration_digest","entity_registry_digest","processor_digest","relation_registry_digest","schema"],state)?;
+                    let schema=owned_header_field(normalization,"schema",state)?.as_str().ok_or(Error::Invalid("knowledge normalization profile"))?;
+                    if !owned_schema_equal(state,schema.as_bytes(),b"tos_knowledge_graph_normalization_binding_v1")? {return Err(Error::Invalid("knowledge normalization profile"));}
+                    for field in ["configuration_digest","entity_registry_digest","processor_digest","relation_registry_digest"] {
+                        let digest=owned_header_field(normalization,field,state)?.as_str().ok_or(Error::Invalid("knowledge normalization digest"))?;
+                        state.charge_work(digest.len())?;state.active()?;checked_digest(digest)?;
+                    }
+                    let counts=owned_header_field(header,"counts",state)?;
+                    let sources=owned_header_field(counts,"sources",state)?.as_object().ok_or(Error::Invalid("knowledge graph source counts"))?;
+                    let mut source_cursor=0usize;
+                    for (key,value) in sources {
+                        state.active()?;
+                        let name=key.as_str().ok_or(Error::Invalid("knowledge graph source key"))?;
+                        while source_cursor<expected.source_scopes.len() && expected.source_scopes[source_cursor].node_count==0 {state.charge_work(1)?;state.active()?;source_cursor+=1;}
+                        if source_cursor==expected.source_scopes.len() {return Err(Error::Invalid("knowledge graph source count coverage"));}
+                        let scope=&expected.source_scopes[source_cursor];
+                        if !owned_schema_equal(state,name.as_bytes(),scope.source_graph.as_bytes())? || owned_header_u64(value,state)?!=Some(scope.node_count) {return Err(Error::Invalid("knowledge graph source count coverage"));}
+                        source_cursor+=1;
+                    }
+                    for scope in &expected.source_scopes[source_cursor..] {state.charge_work(1)?;state.active()?;if scope.node_count>0 {return Err(Error::Invalid("knowledge graph source count omitted"));}}
+                    if owned_header_u64(owned_header_field(counts,"nodes",state)?,state)?!=Some(expected.node_count)
+                        || owned_header_u64(owned_header_field(counts,"relations",state)?,state)?!=Some(expected.relation_count)
+                        || owned_header_field(counts,"display_coverage",state)?.as_object().is_none()
+                        || owned_header_field(counts,"semantic_mapping",state)?.as_object().is_none() {return Err(Error::Invalid("knowledge graph header counts"));}
+                    state.charge_work(8+b"tos-knowledge-graph-root-v1".len()+32+8+8+32+32+64)?;
+                    state.active()?;
+                    let mut root=Digest256Hasher::new();
+                    hash_text(&mut root,"tos-knowledge-graph-root-v1");
+                    root.update(actual_packet_sha.as_bytes());root.update(&expected.node_count.to_be_bytes());root.update(&expected.relation_count.to_be_bytes());root.update(node_root.as_bytes());root.update(relation_root.as_bytes());
+                    if root.finalize()!=Digest256::from_hex(&expected.graph_root_sha256).map_err(|_|Error::Invalid("knowledge graph root expectation"))? {return Err(Error::Invalid("knowledge graph root mismatch"));}
+                    state.active()?;
+                    consume(basis)
+                })
+            };
+            let _header_callback=state.hold(std::mem::size_of_val(&check_header))?;
+            state.with_foundation_canonical_bytes(header,writer_limits,check_header)
+        });
+        // Stop immediately on failure; no further SQL may mask the primary error.
+        let value=result?;
+        // SQL row/statement and escaping output remain admitted through the fence.
+        if owned_schema_step(statement,state)? {return Err(Error::Invalid("knowledge graph header packet"));}
+        state.active()?;
+        Ok(value)
+    })
+}
+
 fn verify_graph_root(
     db: &Connection,
     expected: &KnowledgeSelectedExpectation,
@@ -1607,7 +2071,7 @@ const SELECTED_TABLES: [(&str, &str); 13] = [
 ];
 
 const SELECTED_COLUMN_SPECS: &[(&str, &[&str])] = &[
-    ("metadata", &["key:TEXT:1", "value:BLOB:0"]),
+    ("metadata", &["key:TEXT:1", "value:BLOB:0"][..]),
     (
         "graph_header",
         &[
@@ -1615,7 +2079,7 @@ const SELECTED_COLUMN_SPECS: &[(&str, &[&str])] = &[
             "packet_len:INTEGER:0",
             "packet_sha256:BLOB:0",
             "packet:BLOB:0",
-        ],
+        ][..],
     ),
     (
         "knowledge_nodes",
@@ -1630,7 +2094,7 @@ const SELECTED_COLUMN_SPECS: &[(&str, &[&str])] = &[
             "payload_len:INTEGER:0",
             "payload_sha256:BLOB:0",
             "payload:BLOB:0",
-        ],
+        ][..],
     ),
     (
         "knowledge_relations",
@@ -1646,7 +2110,7 @@ const SELECTED_COLUMN_SPECS: &[(&str, &[&str])] = &[
             "payload_len:INTEGER:0",
             "payload_sha256:BLOB:0",
             "payload:BLOB:0",
-        ],
+        ][..],
     ),
     (
         "source_scope",
@@ -1658,7 +2122,7 @@ const SELECTED_COLUMN_SPECS: &[(&str, &[&str])] = &[
             "expected_relation_count:INTEGER:0",
             "node_root_sha256:BLOB:0",
             "relation_root_sha256:BLOB:0",
-        ],
+        ][..],
     ),
     (
         "search_documents",
@@ -1675,7 +2139,7 @@ const SELECTED_COLUMN_SPECS: &[(&str, &[&str])] = &[
             "visible_values:TEXT:0",
             "document_chars:INTEGER:0",
             "document_digest:BLOB:0",
-        ],
+        ][..],
     ),
     (
         "search_posting_blocks",
@@ -1687,7 +2151,7 @@ const SELECTED_COLUMN_SPECS: &[(&str, &[&str])] = &[
             "first_position:INTEGER:0",
             "postings:INTEGER:0",
             "deltas:BLOB:0",
-        ],
+        ][..],
     ),
     (
         "search_gram_stats",
@@ -1696,7 +2160,7 @@ const SELECTED_COLUMN_SPECS: &[(&str, &[&str])] = &[
             "n:INTEGER:2",
             "gram:BLOB:3",
             "postings:INTEGER:0",
-        ],
+        ][..],
     ),
     (
         "catalog_index_meta",
@@ -1713,7 +2177,7 @@ const SELECTED_COLUMN_SPECS: &[(&str, &[&str])] = &[
             "packet_len:INTEGER:0",
             "packet_sha256:BLOB:0",
             "packet:BLOB:0",
-        ],
+        ][..],
     ),
     (
         "catalog_facet_fields",
@@ -1723,7 +2187,7 @@ const SELECTED_COLUMN_SPECS: &[(&str, &[&str])] = &[
             "field_id:TEXT:3",
             "value_count:INTEGER:0",
             "total_count:INTEGER:0",
-        ],
+        ][..],
     ),
     (
         "catalog_facets",
@@ -1734,7 +2198,7 @@ const SELECTED_COLUMN_SPECS: &[(&str, &[&str])] = &[
             "ordinal:INTEGER:4",
             "value_json:TEXT:0",
             "item_count:INTEGER:0",
-        ],
+        ][..],
     ),
     (
         "catalog_routes",
@@ -1750,7 +2214,7 @@ const SELECTED_COLUMN_SPECS: &[(&str, &[&str])] = &[
             "packet_len:INTEGER:0",
             "packet_sha256:BLOB:0",
             "packet:BLOB:0",
-        ],
+        ][..],
     ),
     (
         "catalog_source_counts",
@@ -1759,7 +2223,7 @@ const SELECTED_COLUMN_SPECS: &[(&str, &[&str])] = &[
             "source_graph_id:TEXT:2",
             "node_count:INTEGER:0",
             "relation_count:INTEGER:0",
-        ],
+        ][..],
     ),
 ];
 
@@ -1913,7 +2377,7 @@ pub(crate) fn verify_schema(db: &Connection) -> Result<()> {
 
 // A borrowed statement remains inside its actual owner; all Rust/native error
 // paths are bounded before work. The caller installs the same prepaid SQL hook.
-fn with_owned_schema_statement<T>(
+pub(crate) fn with_owned_schema_statement<T>(
     db: &Connection,
     sql: &std::ffi::CStr,
     state: &crate::d1_public_capture::CreationState<'_>,
@@ -1940,36 +2404,51 @@ fn with_owned_schema_statement<T>(
     state.active()?;
     result
 }
-fn owned_schema_sql_error(error: tos_source_store::StoreError) -> Error {
+pub(crate) fn owned_schema_sql_error(error: tos_source_store::StoreError) -> Error {
     if error.code == tos_source_store::StoreErrorCode::BudgetExceeded {
         Error::Budget("owned selected schema SQL")
     } else {
         Error::Invalid("owned selected schema SQL")
     }
 }
-fn owned_schema_step(
+pub(crate) fn owned_schema_step(
     statement: &mut tos_source_store::PinnedBoundedStatement<'_>,
     state: &crate::d1_public_capture::CreationState<'_>,
 ) -> Result<bool> {
+    let _frame=state.hold(std::mem::size_of::<(
+        &mut tos_source_store::PinnedBoundedStatement<'_>,
+        &crate::d1_public_capture::CreationState<'_>,bool,Result<bool>,
+        crate::d1_public_capture::CreationStateHold<'_,'_>,
+    )>())?;
     state.active()?;
     let row = statement.step().map_err(owned_schema_sql_error)?;
     state.active()?;
     Ok(row)
 }
-fn owned_schema_equal(
+pub(crate) fn owned_schema_equal(
     state: &crate::d1_public_capture::CreationState<'_>,
     a: &[u8],
     b: &[u8],
 ) -> Result<bool> {
+    let _frame=state.hold(std::mem::size_of::<(
+        &crate::d1_public_capture::CreationState<'_>,&[u8],&[u8],
+        std::iter::Zip<std::slice::Chunks<'_,u8>,std::slice::Chunks<'_,u8>>,
+        (&[u8],&[u8]),bool,Result<bool>,
+        crate::d1_public_capture::CreationStateHold<'_,'_>,
+    )>())?;
     state.charge_work(
         a.len()
             .checked_add(b.len())
             .ok_or(Error::Budget("schema comparison work"))?,
     )?;
     state.active()?;
-    let equal = a == b;
+    if a.len()!=b.len() {return Ok(false);}
+    for (left,right) in a.chunks(4096).zip(b.chunks(4096)) {
+        state.active()?;
+        if left!=right {return Ok(false);}
+    }
     state.active()?;
-    Ok(equal)
+    Ok(true)
 }
 fn owned_schema_present(
     db: &Connection,
@@ -2171,6 +2650,18 @@ pub(crate) fn verify_schema_with_layout(
         bool,
         Option<usize>,
         std::slice::Iter<'a, (&'a str, &'a str)>,
+        std::iter::Enumerate<
+            std::iter::Chain<
+                std::slice::Iter<'a, (&'a str, &'a str)>,
+                std::slice::Iter<'a, (&'a str, &'a str)>,
+            >,
+        >,
+        std::iter::Enumerate<std::slice::Iter<'a, Option<&'static str>>>,
+        std::slice::Iter<'a, bool>,
+        std::array::IntoIter<(bool, &'a [&'a str]), 3>,
+        std::slice::Iter<'a, &'a str>,
+        std::array::IntoIter<(&'a str, &'a str), 3>,
+        std::iter::Copied<std::slice::Iter<'a, (&'a str, &'a [&'a str])>>,
         Result<()>,
     );
     let _frame = state.hold(std::mem::size_of::<Frame<'_>>())?;
@@ -2368,6 +2859,238 @@ pub(crate) fn verify_schema_with_layout(
         },
     )?;
     state.active()
+}
+
+fn owned_core_compare(state:&crate::d1_public_capture::CreationState<'_>,left:&[u8],right:&[u8])->Result<std::cmp::Ordering> {
+    let _frame=state.hold(std::mem::size_of::<(
+        &crate::d1_public_capture::CreationState<'_>,&[u8],&[u8],
+        std::iter::Zip<std::slice::Chunks<'_,u8>,std::slice::Chunks<'_,u8>>,
+        (&[u8],&[u8]),std::cmp::Ordering,Result<std::cmp::Ordering>,
+        crate::d1_public_capture::CreationStateHold<'_,'_>,
+    )>())?;
+    state.charge_work(left.len().min(right.len()))?;
+    for (a,b) in left.chunks(4096).zip(right.chunks(4096)) {
+        state.active()?;
+        let order=a.cmp(b);
+        if order!=std::cmp::Ordering::Equal {return Ok(order);}
+    }
+    state.active()?;
+    Ok(left.len().cmp(&right.len()))
+}
+fn owned_core_hash_item(state:&crate::d1_public_capture::CreationState<'_>,hash:&mut Digest256Hasher,id:&str,digest:&[u8])->Result<()> {
+    let _frame=state.hold(std::mem::size_of::<(
+        &crate::d1_public_capture::CreationState<'_>,&mut Digest256Hasher,&str,&[u8],
+        std::slice::Chunks<'_,u8>,&[u8],Result<()>,
+        crate::d1_public_capture::CreationStateHold<'_,'_>,
+    )>())?;
+    state.charge_work(id.len().checked_add(40).ok_or(Error::Budget("core hash work"))?)?;
+    hash.update(&(id.len() as u64).to_be_bytes());
+    for chunk in id.as_bytes().chunks(4096) {state.active()?;hash.update(chunk);}
+    state.active()?;hash.update(digest);Ok(())
+}
+/// Destination bytes and its persistent String controller are already held
+/// by the caller; this helper holds only its own activation through transfer.
+fn owned_core_key_copy(state:&crate::d1_public_capture::CreationState<'_>,input:&str)->Result<String> {
+    let _frame=state.hold(std::mem::size_of::<(
+        &crate::d1_public_capture::CreationState<'_>,&str,String,
+        std::str::Chars<'_>,char,Result<String>,
+        crate::d1_public_capture::CreationStateHold<'_,'_>,
+    )>())?;
+    state.charge_work(input.len())?;state.active()?;
+    let mut output=String::new();
+    output.try_reserve_exact(input.len()).map_err(|_|Error::Budget("core key allocation"))?;
+    for value in input.chars() {state.active()?;output.push(value);}
+    state.active()?;Ok(output)
+}
+/// Scans the actual normalized rows under the verified explicit layout. Physical
+/// envelope/carrier borrowing survives logical hydration and hash verification;
+/// no physical payload is mistaken for the logical normalized packet.
+fn scan_core_with_owned_context(
+    db:&Connection, nodes:bool, layout:knowledge_stage::KnowledgePayloadLayout,
+    expected:&KnowledgeSelectedExpectation, accumulators:&mut[ScopeAcc],
+    global:&mut Digest256Hasher, limits:ColdOpenLimits,
+    context:&crate::knowledge_payload_read::RuntimeKnowledgeReadContext<'_,'_>,
+)->Result<u64> {
+    let state=context.owned_state();
+    let fixed=std::mem::size_of::<(
+        &Connection,&std::ffi::CStr,bool,knowledge_stage::KnowledgePayloadLayout,
+        &KnowledgeSelectedExpectation,&mut[ScopeAcc],&mut Digest256Hasher,
+        ColdOpenLimits,&crate::knowledge_payload_read::RuntimeKnowledgeReadContext<'_,'_>,
+        &crate::d1_public_capture::CreationState<'_>,
+        u64,usize,Option<(String,String,crate::d1_public_capture::CreationStateHold<'_,'_>)>,
+        &str,&str,i64,i64,&[u8],&[u8],i64,Option<Digest256>,Option<&[u8]>,
+        crate::knowledge_payload_read::SelectedPayloadRow<'_>,JsonLimits,JsonLimits,
+        std::slice::Chunks<'_,u8>,Digest256Hasher,Digest256,
+        usize,String,String,crate::d1_public_capture::CreationStateHold<'_,'_>,
+        Result<u64>,Result<()>,std::cmp::Ordering,
+    )>();
+    let _fixed=state.hold(fixed)?;
+    let sql=match (nodes,layout) {
+        (true,knowledge_stage::KnowledgePayloadLayout::InlineV1)=>c"SELECT id,source_graph,source_order,payload_len,payload_sha256,payload,0,NULL,NULL,NULL FROM knowledge_nodes ORDER BY source_order",
+        (false,knowledge_stage::KnowledgePayloadLayout::InlineV1)=>c"SELECT id,source_graph,source_order,payload_len,payload_sha256,payload,0,NULL,NULL,NULL FROM knowledge_relations ORDER BY source_order",
+        (true,knowledge_stage::KnowledgePayloadLayout::CarrierOnceV1)=>c"SELECT n.id,n.source_graph,n.source_order,n.payload_len,n.payload_sha256,n.payload,n.payload_codec,n.source_packet_sha256,c.packet_len,c.packet FROM knowledge_nodes n LEFT JOIN knowledge_source_carriers c ON c.packet_sha256=n.source_packet_sha256 ORDER BY n.source_order",
+        (false,knowledge_stage::KnowledgePayloadLayout::CarrierOnceV1)=>c"SELECT n.id,n.source_graph,n.source_order,n.payload_len,n.payload_sha256,n.payload,n.payload_codec,n.source_packet_sha256,c.packet_len,c.packet FROM knowledge_relations n LEFT JOIN knowledge_source_carriers c ON c.packet_sha256=n.source_packet_sha256 ORDER BY n.source_order",
+    };
+    let mut count=0u64;let mut source_index=0usize;
+    let mut previous:Option<(String,String,crate::d1_public_capture::CreationStateHold<'_,'_>)>=None;
+    with_owned_schema_statement(db,sql,state,|statement| {
+        while owned_schema_step(statement,state)? {
+            let rusqlite::types::ValueRef::Text(id)=statement.value_ref(0).map_err(owned_schema_sql_error)? else {return Err(Error::Invalid("knowledge core ID type"));};
+            let rusqlite::types::ValueRef::Text(source)=statement.value_ref(1).map_err(owned_schema_sql_error)? else {return Err(Error::Invalid("knowledge core source type"));};
+            if id.is_empty()||source.is_empty() {return Err(Error::Invalid("knowledge core text empty"));}
+            if id.len()>limits.max_row_bytes||source.len()>limits.max_metadata_bytes {return Err(Error::Budget("knowledge core text bytes"));}
+            state.charge_work(id.len().checked_add(source.len()).ok_or(Error::Budget("core UTF8 work"))?)?;state.active()?;
+            let id=std::str::from_utf8(id).map_err(|_|Error::Invalid("core ID UTF8"))?;
+            let source=std::str::from_utf8(source).map_err(|_|Error::Invalid("core source UTF8"))?;
+            let order=statement.integer(2).map_err(owned_schema_sql_error)?;
+            let logical_len=statement.integer(3).map_err(owned_schema_sql_error)?;
+            let rusqlite::types::ValueRef::Blob(digest)=statement.value_ref(4).map_err(owned_schema_sql_error)? else {return Err(Error::Invalid("core digest type"));};
+            let rusqlite::types::ValueRef::Blob(physical)=statement.value_ref(5).map_err(owned_schema_sql_error)? else {return Err(Error::Invalid("core payload type"));};
+            if order<0||order as u64!=count||logical_len<0||digest.len()!=32 {return Err(Error::Invalid("knowledge core order/packet"));}
+            if usize::try_from(logical_len).ok().is_none_or(|n|n>limits.max_row_bytes)||physical.len()>limits.max_row_bytes {return Err(Error::Budget("knowledge core payload bytes"));}
+            if count>=limits.max_rows {return Err(Error::Budget("knowledge core rows"));}
+            if let Some((previous_source,previous_id,_))=&previous {
+                let source_order=owned_core_compare(state,previous_source.as_bytes(),source.as_bytes())?;
+                if source_order==std::cmp::Ordering::Greater || (source_order==std::cmp::Ordering::Equal && owned_core_compare(state,previous_id.as_bytes(),id.as_bytes())?!=std::cmp::Ordering::Less) {return Err(Error::Invalid("knowledge core source order"));}
+            }
+            while source_index<expected.source_scopes.len() && owned_core_compare(state,expected.source_scopes[source_index].source_graph.as_bytes(),source.as_bytes())?==std::cmp::Ordering::Less {source_index+=1;}
+            if source_index>=expected.source_scopes.len()||!owned_schema_equal(state,expected.source_scopes[source_index].source_graph.as_bytes(),source.as_bytes())? {return Err(Error::Invalid("knowledge unregistered core source"));}
+            let codec=statement.integer(6).map_err(owned_schema_sql_error)?;
+            if !(0..=1).contains(&codec) {return Err(Error::Invalid("core payload codec"));}
+            let source_sha=match statement.value_ref(7).map_err(owned_schema_sql_error)? {
+                rusqlite::types::ValueRef::Null=>None,
+                rusqlite::types::ValueRef::Blob(bytes) if bytes.len()==32=>Some(Digest256::from_bytes(bytes.try_into().map_err(|_|Error::Invalid("source digest length"))?)),
+                _=>return Err(Error::Invalid("core source digest type")),
+            };
+            let source_packet=match statement.value_ref(9).map_err(owned_schema_sql_error)? {
+                rusqlite::types::ValueRef::Null=>None,
+                rusqlite::types::ValueRef::Blob(bytes) if bytes.len()<=limits.max_row_bytes=>{
+                    let length=statement.integer(8).map_err(owned_schema_sql_error)?;
+                    if length<0||usize::try_from(length).ok()!=Some(bytes.len()) {return Err(Error::Invalid("core source packet length"));} Some(bytes)
+                },
+                _=>return Err(Error::Budget("core source packet bytes")),
+            };
+            let row=crate::knowledge_payload_read::SelectedPayloadRow {
+                payload_codec:codec as u8,physical,logical_len:usize::try_from(logical_len).map_err(|_|Error::Budget("core logical length"))?,
+                logical_sha256:Digest256::from_bytes(digest.try_into().map_err(|_|Error::Invalid("core digest length"))?),
+                source_packet_sha256:source_sha,source_packet,
+            };
+            // Inline verification does not parse JSON; do not demand an unused
+            // remaining grammar visit when merely hashing logical bytes.
+            let visits=if codec==0 {1} else {context.remaining_json_visits()?.min(1_000_000)};
+            let json=JsonLimits::new(limits.max_row_bytes,96,visits,4096).map_err(|_|Error::Budget("core codec JSON limits"))?;
+            crate::knowledge_payload_read::with_logical_payload_for_verified_layout(context,layout,&row,json,json,limits.max_row_bytes,|_,_|Ok(()))?;
+            let key_bytes=id.len().checked_add(source.len()).and_then(|n|n.checked_add(2*std::mem::size_of::<String>())).ok_or(Error::Budget("core prior key state"))?;
+            let key_hold=state.hold(key_bytes)?;
+            let owned_id=owned_core_key_copy(state,id)?;
+            let owned_source=owned_core_key_copy(state,source)?;
+            previous=Some((owned_source,owned_id,key_hold));
+            owned_core_hash_item(state,global,id,digest)?;
+            let acc=&mut accumulators[source_index];
+            if nodes {acc.node_count=acc.node_count.checked_add(1).ok_or(Error::Budget("core node count"))?;owned_core_hash_item(state,&mut acc.nodes,id,digest)?;}
+            else {acc.relation_count=acc.relation_count.checked_add(1).ok_or(Error::Budget("core relation count"))?;owned_core_hash_item(state,&mut acc.relations,id,digest)?;}
+            count=count.checked_add(1).ok_or(Error::Budget("core row count"))?;
+        }
+        Ok(count)
+    })
+}
+
+fn owned_scope_hash_text(state:&crate::d1_public_capture::CreationState<'_>,hash:&mut Digest256Hasher,text:&str)->Result<()> {
+    let _frame=state.hold(std::mem::size_of::<(
+        &crate::d1_public_capture::CreationState<'_>,&mut Digest256Hasher,&str,
+        std::slice::Chunks<'_,u8>,&[u8],Result<()>,
+        crate::d1_public_capture::CreationStateHold<'_,'_>,
+    )>())?;
+    state.charge_work(text.len().checked_add(8).ok_or(Error::Budget("scope text hash work"))?)?;
+    hash.update(&(text.len() as u64).to_be_bytes());
+    for chunk in text.as_bytes().chunks(4096) {state.active()?;hash.update(chunk);}
+    state.active()
+}
+fn owned_scope_sql_text<'a>(statement:&'a tos_source_store::PinnedBoundedStatement<'_>,column:usize,cap:usize,state:&crate::d1_public_capture::CreationState<'_>)->Result<&'a str> {
+    let _frame=state.hold(std::mem::size_of::<(
+        &tos_source_store::PinnedBoundedStatement<'_>,usize,usize,
+        &crate::d1_public_capture::CreationState<'_>,&[u8],Result<&str>,
+        crate::d1_public_capture::CreationStateHold<'_,'_>,
+    )>())?;
+    let rusqlite::types::ValueRef::Text(bytes)=statement.value_ref(column).map_err(owned_schema_sql_error)? else {return Err(Error::Invalid("scope text type"));};
+    if bytes.len()>cap {return Err(Error::Budget("scope text bytes"));}
+    state.charge_work(bytes.len())?;state.active()?;
+    std::str::from_utf8(bytes).map_err(|_|Error::Invalid("scope text UTF8"))
+}
+/// Same core/scope receipt law as the established cold verifier, using owned
+/// state before the accumulator vector and each borrowed SQL scan. Layout is
+/// supplied only by the authentic expected model ABI caller.
+pub(crate) fn verify_core_and_scope_with_owned_context(
+    db:&Connection, expected:&KnowledgeSelectedExpectation,
+    limits:ColdOpenLimits,layout:knowledge_stage::KnowledgePayloadLayout,
+    context:&crate::knowledge_payload_read::RuntimeKnowledgeReadContext<'_,'_>,
+)->Result<(Digest256,Digest256)> {
+    let state=context.owned_state();
+    let fixed=std::mem::size_of::<(
+        &Connection,&KnowledgeSelectedExpectation,ColdOpenLimits,
+        knowledge_stage::KnowledgePayloadLayout,
+        &crate::knowledge_payload_read::RuntimeKnowledgeReadContext<'_,'_>,
+        &crate::d1_public_capture::CreationState<'_>,Vec<ScopeAcc>,
+        Digest256Hasher,Digest256Hasher,Digest256Hasher,Digest256Hasher,
+        Digest256,Digest256,u64,u64,
+        std::iter::Enumerate<std::slice::Iter<'_,ExpectedSourceScope>>,
+        usize,&ExpectedSourceScope,&ScopeAcc,&str,&str,&str,i64,i64,&[u8],&[u8],
+        Result<(Digest256,Digest256)>,
+        crate::d1_public_capture::CreationStateHold<'_,'_>,
+        crate::d1_public_capture::CreationStateHold<'_,'_>,
+    )>();
+    let capacity=expected.source_scopes.len().checked_mul(std::mem::size_of::<ScopeAcc>()).ok_or(Error::Budget("scope accumulator bytes"))?;
+    let _hold=state.hold(fixed.checked_add(capacity).ok_or(Error::Budget("scope accumulator controller"))?)?;
+    state.charge_work(capacity)?;state.active()?;
+    let mut accumulators=Vec::new();
+    accumulators.try_reserve_exact(expected.source_scopes.len()).map_err(|_|Error::Budget("scope accumulator allocation"))?;
+    if accumulators.capacity()!=expected.source_scopes.len() {return Err(Error::Budget("scope accumulator exact capacity"));}
+    for _ in &expected.source_scopes {state.active()?;accumulators.push(ScopeAcc {node_count:0,relation_count:0,nodes:Digest256Hasher::new(),relations:Digest256Hasher::new()});}
+    let mut node_root=Digest256Hasher::new();let mut relation_root=Digest256Hasher::new();
+    let nodes=scan_core_with_owned_context(db,true,layout,expected,&mut accumulators,&mut node_root,limits,context)?;
+    let relations=scan_core_with_owned_context(db,false,layout,expected,&mut accumulators,&mut relation_root,limits,context)?;
+    if nodes!=expected.node_count||relations!=expected.relation_count {return Err(Error::Invalid("knowledge core count/owner expectation"));}
+    with_owned_schema_statement(db,c"SELECT 1 FROM knowledge_relations r WHERE NOT EXISTS (SELECT 1 FROM knowledge_nodes n WHERE n.id=r.from_id) OR NOT EXISTS (SELECT 1 FROM knowledge_nodes n WHERE n.id=r.to_id) LIMIT 1",state,|statement| {
+        if owned_schema_step(statement,state)? {return Err(Error::Invalid("knowledge relation endpoint closure"));}Ok(())
+    })?;
+    let mut scope_root=Digest256Hasher::new();
+    with_owned_schema_statement(db,c"SELECT source_graph,input_role,adapter_profile,expected_node_count,expected_relation_count,node_root_sha256,relation_root_sha256 FROM source_scope ORDER BY source_graph",state,|statement| {
+        for (index,expected_scope) in expected.source_scopes.iter().enumerate() {
+            if !owned_schema_step(statement,state)? {return Err(Error::Invalid("knowledge source scope omitted"));}
+            let source=owned_scope_sql_text(statement,0,limits.max_metadata_bytes,state)?;
+            let role=owned_scope_sql_text(statement,1,limits.max_metadata_bytes,state)?;
+            let adapter=owned_scope_sql_text(statement,2,limits.max_metadata_bytes,state)?;
+            let node_count=statement.integer(3).map_err(owned_schema_sql_error)?;
+            let relation_count=statement.integer(4).map_err(owned_schema_sql_error)?;
+            let rusqlite::types::ValueRef::Blob(node_digest)=statement.value_ref(5).map_err(owned_schema_sql_error)? else {return Err(Error::Invalid("scope node digest type"));};
+            let rusqlite::types::ValueRef::Blob(relation_digest)=statement.value_ref(6).map_err(owned_schema_sql_error)? else {return Err(Error::Invalid("scope relation digest type"));};
+            if node_digest.len()!=32||relation_digest.len()!=32 {return Err(Error::Invalid("scope digest length"));}
+            let acc=&accumulators[index];
+            state.charge_work(2*std::mem::size_of::<Digest256Hasher>()+128)?;state.active()?;
+            let calculated_node=acc.nodes.clone().finalize();let calculated_relation=acc.relations.clone().finalize();
+            if !owned_schema_equal(state,source.as_bytes(),expected_scope.source_graph.as_bytes())?
+                ||!owned_schema_equal(state,role.as_bytes(),expected_scope.input_role.as_bytes())?
+                ||!owned_schema_equal(state,adapter.as_bytes(),expected_scope.adapter_profile.as_bytes())?
+                ||node_count<0||relation_count<0||node_count as u64!=expected_scope.node_count||relation_count as u64!=expected_scope.relation_count
+                ||acc.node_count!=expected_scope.node_count||acc.relation_count!=expected_scope.relation_count
+                ||node_digest!=calculated_node.as_bytes()||relation_digest!=calculated_relation.as_bytes()
+                ||Digest256::from_hex(&expected_scope.node_root_sha256).map_err(|_|Error::Invalid("scope node root expectation"))?!=calculated_node
+                ||Digest256::from_hex(&expected_scope.relation_root_sha256).map_err(|_|Error::Invalid("scope relation root expectation"))?!=calculated_relation {
+                return Err(Error::Invalid("knowledge source scope closure"));
+            }
+            owned_scope_hash_text(state,&mut scope_root,source)?;
+            owned_scope_hash_text(state,&mut scope_root,role)?;
+            owned_scope_hash_text(state,&mut scope_root,adapter)?;
+            state.charge_work(80)?;state.active()?;
+            scope_root.update(&(node_count as u64).to_be_bytes());scope_root.update(&(relation_count as u64).to_be_bytes());scope_root.update(node_digest);scope_root.update(relation_digest);
+        }
+        if owned_schema_step(statement,state)? {return Err(Error::Invalid("knowledge source scope extra row"));}
+        state.charge_work(64)?;state.active()?;
+        if scope_root.clone().finalize()!=Digest256::from_hex(&expected.source_scope_root_sha256).map_err(|_|Error::Invalid("scope root expectation"))? {return Err(Error::Invalid("knowledge source scope root"));}
+        Ok(())
+    })?;
+    state.active()?;
+    Ok((node_root.finalize(),relation_root.finalize()))
 }
 
 struct ScopeAcc {
@@ -2632,6 +3355,123 @@ fn verify_search(
     limits: ColdOpenLimits,
     work: &mut u64,
 ) -> Result<()> {
+    verify_search_inner(db, expected, limits, work, None)
+}
+
+pub(crate) fn verify_search_with_owned_context(
+    db: &Connection,
+    expected: &KnowledgeSelectedExpectation,
+    limits: ColdOpenLimits,
+    context: &crate::knowledge_payload_read::RuntimeKnowledgeReadContext<'_, '_>,
+) -> Result<()> {
+    let state = context.owned_state();
+    let retained_rows = limits
+        .max_row_bytes
+        .checked_mul(8)
+        .and_then(|n| n.checked_add(limits.max_metadata_bytes.checked_mul(4)?))
+        .and_then(|n| n.checked_add(MAX_POSTING_DELTA_BYTES))
+        .and_then(|n| n.checked_add(MAX_POSTINGS_PER_BLOCK.checked_mul(std::mem::size_of::<u64>())?))
+        .and_then(|n| n.checked_add(2048))
+        .ok_or(Error::Budget("owned Search row workspace"))?;
+    let statements = tos_source_store::PinnedSqliteConnection::bounded_statement_rust_workspace_upper_bound()
+        .checked_mul(6)
+        .ok_or(Error::Budget("owned Search statement workspace"))?;
+    let frame = std::mem::size_of::<(
+        &Connection,
+        &KnowledgeSelectedExpectation,
+        ColdOpenLimits,
+        &crate::knowledge_payload_read::RuntimeKnowledgeReadContext<'_, '_>,
+        &crate::d1_public_capture::CreationState<'_>,
+        Digest256Hasher,
+        [u64; 2],
+        Option<(String, Vec<u8>, u64, u16)>,
+        Option<rusqlite::Statement<'_>>,
+        Option<rusqlite::Rows<'_>>,
+        Result<()>,
+        crate::d1_public_capture::CreationStateHold<'_, '_>,
+    )>()
+    .checked_add(std::mem::size_of::<Result<()>>())
+    .and_then(|n| n.checked_add(retained_rows))
+    .and_then(|n| n.checked_add(statements))
+    .ok_or(Error::Budget("owned Search verification frame"))?;
+    let _frame = state.hold(frame)?;
+    state.active()?;
+    let mut work = 0u64;
+    verify_search_inner(db, expected, limits, &mut work, Some(context))
+}
+
+fn owned_search_charge(
+    work: &mut u64,
+    amount: usize,
+    cap: u64,
+    context: Option<&crate::knowledge_payload_read::RuntimeKnowledgeReadContext<'_, '_>>,
+) -> Result<()> {
+    charge(work, amount, cap)?;
+    if let Some(context) = context {
+        context.charge_work(amount)?;
+    }
+    Ok(())
+}
+
+fn owned_hash_sql_row(
+    hash: &mut Digest256Hasher,
+    row: &rusqlite::Row<'_>,
+    work: &mut u64,
+    cap: u64,
+    context: Option<&crate::knowledge_payload_read::RuntimeKnowledgeReadContext<'_, '_>>,
+) -> Result<()> {
+    for col in 0..row.as_ref().column_count() {
+        if let Some(context) = context {
+            context.check()?;
+        }
+        match row.get_ref(col)? {
+            rusqlite::types::ValueRef::Text(bytes) | rusqlite::types::ValueRef::Blob(bytes) => {
+                owned_search_charge(work, bytes.len().checked_add(8).ok_or(Error::Budget("Search row charge"))?, cap, context)?;
+                hash_bytes(hash, bytes);
+            }
+            rusqlite::types::ValueRef::Integer(value) => {
+                owned_search_charge(work, 16, cap, context)?;
+                hash_bytes(hash, &value.to_be_bytes());
+            }
+            _ => return Err(Error::Invalid("knowledge search root value type")),
+        }
+    }
+    Ok(())
+}
+
+fn rank_array_with_owned_context(
+    raw: &str,
+    limits: ColdOpenLimits,
+    context: &crate::knowledge_payload_read::RuntimeKnowledgeReadContext<'_, '_>,
+) -> Result<()> {
+    let json_limits = JsonLimits::new(limits.max_row_bytes, 96, 1_000_000, 4096)
+        .map_err(|_| Error::Budget("knowledge rank JSON limits"))?;
+    context.with_foundation_owned_with_limits(raw.as_bytes(), json_limits, |root| {
+        let array = root
+            .as_array()
+            .ok_or(Error::Invalid("knowledge rank array"))?;
+        for value in array {
+            context.check()?;
+            let JsonValue::String(text) = value else {
+                return Err(Error::Invalid("knowledge rank array value"));
+            };
+            let text = text
+                .as_str()
+                .ok_or(Error::Invalid("knowledge rank array string"))?;
+            context.charge_work(text.len())?;
+        }
+        Ok(())
+    })
+}
+
+fn verify_search_inner(
+    db: &Connection,
+    expected: &KnowledgeSelectedExpectation,
+    limits: ColdOpenLimits,
+    work: &mut u64,
+    context: Option<&crate::knowledge_payload_read::RuntimeKnowledgeReadContext<'_, '_>>,
+) -> Result<()> {
+
     let mut root = Digest256Hasher::new();
     hash_bytes(&mut root, b"tos-knowledge-search-posting-blocks-v1");
     hash_bytes(&mut root, &[0]);
@@ -2665,6 +3505,7 @@ fn verify_search(
          FROM knowledge_relations WHERE source_order=?1",
     )?;
     while let Some(row) = doc_rows.next()? {
+        if let Some(context) = context { context.check()?; }
         let kind: String = row
             .get::<_, Option<String>>(0)?
             .ok_or(Error::Invalid("knowledge search kind bytes"))?;
@@ -2715,8 +3556,13 @@ fn verify_search(
         {
             return Err(Error::Invalid("knowledge search document shape"));
         }
-        rank_array(&identity, limits)?;
-        rank_array(&visible, limits)?;
+        if let Some(context) = context {
+            rank_array_with_owned_context(&identity, limits, context)?;
+            rank_array_with_owned_context(&visible, limits, context)?;
+        } else {
+            rank_array(&identity, limits)?;
+            rank_array(&visible, limits)?;
+        }
         let (core_id, core_source, core_term): (String, String, String) = if k == 0 {
             core_node.query_row(
                 params![
@@ -2748,12 +3594,13 @@ fn verify_search(
         {
             return Err(Error::Invalid("knowledge search/core document mismatch"));
         }
-        charge(
+        owned_search_charge(
             work,
             id_lower.len() + native_lower.len() + identity.len() + visible.len(),
             limits.max_work_bytes,
+            context,
         )?;
-        hash_sql_row(&mut root, row, work, limits.max_work_bytes)?;
+        owned_hash_sql_row(&mut root, row, work, limits.max_work_bytes, context)?;
         documents[k] = documents[k]
             .checked_add(1)
             .ok_or(Error::Budget("knowledge search documents"))?;
@@ -2764,6 +3611,10 @@ fn verify_search(
     if documents != [expected.node_count, expected.relation_count] {
         return Err(Error::Invalid("knowledge search document coverage"));
     }
+    drop(doc_rows);
+    drop(doc_statement);
+    drop(core_node);
+    drop(core_relation);
     hash_bytes(&mut root, &[1]);
     let mut postings = 0u64;
     let mut previous_block: Option<(String, Vec<u8>, u64, u16)> = None;
@@ -2779,6 +3630,7 @@ fn verify_search(
     )?;
     let mut gram_rows = gram_statement.query([MAX_POSTING_DELTA_BYTES as i64])?;
     while let Some(row) = gram_rows.next()? {
+        if let Some(context) = context { context.check()?; }
         let kind: String = row
             .get::<_, Option<String>>(0)?
             .ok_or(Error::Invalid("knowledge gram kind bytes"))?;
@@ -2814,7 +3666,7 @@ fn verify_search(
             return Err(Error::Invalid("knowledge gram block shape"));
         }
         let positions = decode_posting_block(first as u64, last as u64, count as u16, &deltas)?;
-        charge(work, positions.len() * 8, limits.max_work_bytes)?;
+        owned_search_charge(work, positions.len() * 8, limits.max_work_bytes, context)?;
         if positions.iter().any(|position| *position >= documents[k]) {
             return Err(Error::Invalid("knowledge gram block orphan"));
         }
@@ -2827,7 +3679,7 @@ fn verify_search(
             }
         }
         previous_block = Some((kind, gram, last as u64, count as u16));
-        hash_sql_row(&mut root, row, work, limits.max_work_bytes)?;
+        owned_hash_sql_row(&mut root, row, work, limits.max_work_bytes, context)?;
         postings = postings
             .checked_add(count as u64)
             .ok_or(Error::Budget("knowledge postings"))?;
@@ -2835,6 +3687,8 @@ fn verify_search(
             return Err(Error::Budget("knowledge postings"));
         }
     }
+    drop(gram_rows);
+    drop(gram_statement);
     hash_bytes(&mut root, &[2]);
     let mut aggregate = db.prepare(
         "SELECT CASE WHEN typeof(kind)='text' AND length(CAST(kind AS BLOB))<=16 THEN kind ELSE NULL END,n,CASE WHEN typeof(gram)='blob' AND length(gram)<=12 THEN gram ELSE NULL END,SUM(postings) FROM search_posting_blocks GROUP BY kind,n,gram ORDER BY kind,n,gram",
@@ -2847,6 +3701,7 @@ fn verify_search(
     let mut stat_rows = stat_statement.query([])?;
     let mut distinct = 0u64;
     while let Some(row) = stat_rows.next()? {
+        if let Some(context) = context { context.check()?; }
         let grouped = grouped_rows
             .next()?
             .ok_or(Error::Invalid("knowledge gram stats extra"))?;
@@ -2873,7 +3728,7 @@ fn verify_search(
         {
             return Err(Error::Invalid("knowledge gram stats mismatch"));
         }
-        hash_sql_row(&mut root, row, work, limits.max_work_bytes)?;
+        owned_hash_sql_row(&mut root, row, work, limits.max_work_bytes, context)?;
         distinct = distinct
             .checked_add(1)
             .ok_or(Error::Budget("knowledge gram stats"))?;
@@ -2886,8 +3741,7 @@ fn verify_search(
     {
         return Err(Error::Invalid("knowledge search index root/coverage"));
     }
-    Ok(())
-}
+    Ok(())}
 
 #[cfg(test)]
 mod tests {
@@ -3057,4 +3911,1155 @@ mod tests {
         assert!(rank_array("[\"a\",4]", limits()).is_err());
         assert!(rank_array("[\"a\",]", limits()).is_err());
     }
+}
+/// Borrowed cold verifier for the authenticated Native v1 catalog.
+/// The caller must pass the once-clipped cold RuntimeKnowledgeReadContext; this
+/// helper shares its absolute work, SQL, JSON-visit, heap, cancellation and
+/// deadline owners and never initializes or refunds a local counter.
+/// This Native cold path charges the same original aggregate phase more
+/// precisely and may refuse earlier; it makes no claim of legacy-fit parity.
+pub(crate) fn verify_catalog_with_owned_context(
+    db: &Connection,
+    expected: &KnowledgeSelectedExpectation,
+    limits: ColdOpenLimits,
+    context: &crate::knowledge_payload_read::RuntimeKnowledgeReadContext<'_, '_>,
+) -> Result<()> {
+    let state = context.owned_state();
+    let frame = std::mem::size_of::<(
+        &Connection,
+        &KnowledgeSelectedExpectation,
+        ColdOpenLimits,
+        &crate::knowledge_payload_read::RuntimeKnowledgeReadContext<'_, '_>,
+        &crate::d1_public_capture::CreationState<'_>,
+        &str,
+        Digest256Hasher,
+        [u64; 4],
+        [u64; 4],
+        Option<(String, String, crate::d1_public_capture::CreationStateHold<'_, '_>, crate::d1_public_capture::CreationStateHold<'_, '_>, crate::d1_public_capture::CreationStateHold<'_, '_>, crate::d1_public_capture::CreationStateHold<'_, '_>)>,
+        Option<(String, crate::d1_public_capture::CreationStateHold<'_, '_>)>,
+        std::slice::Iter<'_, ExpectedSourceScope>,
+        [i64; 2],
+        u64,
+        bool,
+        Result<(Digest256Hasher, u64, u64, u64, u64, bool)>,
+        Result<()>,
+        usize,
+        [(&'static std::ffi::CStr, u64); 4],
+        std::array::IntoIter<(&'static std::ffi::CStr, u64), 4>,
+        (&'static std::ffi::CStr, u64),
+        std::cmp::Ordering,
+        JsonLimits,
+        crate::d1_public_capture::CreationStateHold<'_, '_>,
+    )>();
+    let _frame = state.hold(frame)?;
+    state.active()?;
+    if expected.managed_source_root_sha256.is_some() {
+        return Err(Error::ManagedSourceUnsupported(
+            "managed catalog owner parser is required",
+        ));
+    }
+    if limits.max_rows == 0
+        || limits.max_sources == 0
+        || expected.source_scopes.len() > limits.max_sources
+        || limits.max_metadata_bytes == 0
+        || limits.max_row_bytes == 0
+    {
+        return Err(Error::Budget("knowledge catalog cold limits"));
+    }
+    let descriptor = expected.descriptor_sha256.as_str();
+    let metadata_cap = i64::try_from(limits.max_metadata_bytes)
+        .map_err(|_| Error::Budget("knowledge catalog metadata cap"))?;
+    let packet_cap = i64::try_from(limits.max_row_bytes)
+        .map_err(|_| Error::Budget("knowledge catalog packet cap"))?;
+    if owned_catalog_count(
+        db,
+        c"SELECT COUNT(*) FROM catalog_index_meta",
+        state,
+    )? != 1
+    {
+        return Err(Error::Invalid("knowledge catalog meta coverage"));
+    }
+
+    let (mut root, sources, fields, values, routes, legacy_ascii) =
+        with_owned_schema_statement(
+            db,
+            c"SELECT CASE WHEN length(CAST(catalog_packet_sha256 AS BLOB))<=?2 THEN catalog_packet_sha256 ELSE NULL END,
+                    CASE WHEN length(CAST(index_schema AS BLOB))<=?2 THEN index_schema ELSE NULL END,
+                    CASE WHEN length(CAST(order_profile AS BLOB))<=?2 THEN order_profile ELSE NULL END,
+                    source_count,facet_field_count,facet_value_count,route_count,
+                    CASE WHEN length(CAST(catalog_index_root_sha256 AS BLOB))<=?2 THEN catalog_index_root_sha256 ELSE NULL END,
+                    packet_len,
+                    CASE WHEN typeof(packet_sha256)='blob' AND length(packet_sha256)=32 THEN packet_sha256 ELSE NULL END,
+                    CASE WHEN length(packet)<=?3 THEN packet ELSE NULL END
+             FROM catalog_index_meta WHERE descriptor_sha256=?1",
+            state,
+            |statement| {
+                let _callback_frame = state.hold(std::mem::size_of::<(
+                    &mut tos_source_store::PinnedBoundedStatement<'_>,
+                    &crate::d1_public_capture::CreationState<'_>,
+                    &crate::knowledge_payload_read::RuntimeKnowledgeReadContext<'_, '_>,
+                    &KnowledgeSelectedExpectation,
+                    ColdOpenLimits,
+                    &str,
+                    (&str, &str, &str, &str),
+                    (u64, u64, u64, u64, u64, u64, u64),
+                    (&[u8], &[u8]),
+                    Digest256,
+                    Digest256Hasher,
+                    usize,
+                    JsonLimits,
+                    std::slice::Iter<'_, ExpectedSourceScope>,
+                    &ExpectedSourceScope,
+                    [u64; 6],
+                    std::array::IntoIter<u64, 6>,
+                    u64,
+                    [u8; 8],
+                    Result<(Digest256Hasher, u64, u64, u64, u64, bool)>,
+                    Result<()>,
+                    crate::d1_public_capture::CreationStateHold<'_, '_>,
+                )>())?;
+                state.charge_work(descriptor.len().checked_add(16).ok_or(
+                    Error::Budget("knowledge catalog metadata bind work"),
+                )?)?;
+                statement
+                    .bind_text(1, descriptor)
+                    .map_err(owned_schema_sql_error)?;
+                statement
+                    .bind_i64(2, metadata_cap)
+                    .map_err(owned_schema_sql_error)?;
+                statement
+                    .bind_i64(3, packet_cap)
+                    .map_err(owned_schema_sql_error)?;
+                if !owned_schema_step(statement, state)? {
+                    return Err(Error::Invalid("knowledge catalog meta missing"));
+                }
+
+                let catalog_sha =
+                    owned_catalog_sql_text(statement, 0, limits.max_metadata_bytes, state)?;
+                let schema =
+                    owned_catalog_sql_text(statement, 1, limits.max_metadata_bytes, state)?;
+                let order_profile =
+                    owned_catalog_sql_text(statement, 2, limits.max_metadata_bytes, state)?;
+                let sources = nonnegative(statement.integer(3).map_err(owned_schema_sql_error)?)?;
+                let fields = nonnegative(statement.integer(4).map_err(owned_schema_sql_error)?)?;
+                let values = nonnegative(statement.integer(5).map_err(owned_schema_sql_error)?)?;
+                let routes = nonnegative(statement.integer(6).map_err(owned_schema_sql_error)?)?;
+                let index_root =
+                    owned_catalog_sql_text(statement, 7, limits.max_metadata_bytes, state)?;
+                let packet_len =
+                    nonnegative(statement.integer(8).map_err(owned_schema_sql_error)?)?;
+                let rusqlite::types::ValueRef::Blob(packet_sha) =
+                    statement.value_ref(9).map_err(owned_schema_sql_error)?
+                else {
+                    return Err(Error::Invalid("knowledge catalog packet SHA type"));
+                };
+                let packet = match statement.value_ref(10).map_err(owned_schema_sql_error)? {
+                    rusqlite::types::ValueRef::Blob(packet) => packet,
+                    rusqlite::types::ValueRef::Null => {
+                        return Err(Error::Budget("knowledge catalog packet bytes"));
+                    }
+                    _ => return Err(Error::Invalid("knowledge catalog packet bytes type")),
+                };
+
+                let expected_sources = u64::try_from(expected.source_scopes.len())
+                    .map_err(|_| Error::Budget("knowledge catalog source count"))?;
+                let packet_bytes = u64::try_from(packet.len())
+                    .map_err(|_| Error::Budget("knowledge catalog packet addressability"))?;
+                if !owned_schema_equal(state, schema.as_bytes(), b"tos_catalog_index_v1")?
+                    || !(owned_schema_equal(
+                        state,
+                        order_profile.as_bytes(),
+                        crate::knowledge_catalog_index::ORDER_PROFILE.as_bytes(),
+                    )? || owned_schema_equal(
+                        state,
+                        order_profile.as_bytes(),
+                        crate::knowledge_catalog_index::LEGACY_ORDER_PROFILE.as_bytes(),
+                    )?)
+                    || !owned_schema_equal(
+                        state,
+                        catalog_sha.as_bytes(),
+                        expected.catalog_packet_sha256.as_bytes(),
+                    )?
+                    || !owned_schema_equal(
+                        state,
+                        index_root.as_bytes(),
+                        expected.catalog_index_root_sha256.as_bytes(),
+                    )?
+                    || sources != expected_sources
+                    || sources > limits.max_sources as u64
+                    || packet_len != packet_bytes
+                {
+                    return Err(Error::Invalid("knowledge catalog packet/meta binding"));
+                }
+                let packet_digest = owned_catalog_digest(packet, state)?;
+                if !owned_schema_equal(state, packet_sha, packet_digest.as_bytes())?
+                    || !owned_catalog_lower_hex_matches(state, &packet_digest, catalog_sha)?
+                {
+                    return Err(Error::Invalid("knowledge catalog packet digest binding"));
+                }
+
+                let legacy_ascii = owned_schema_equal(
+                    state,
+                    order_profile.as_bytes(),
+                    crate::knowledge_catalog_index::LEGACY_ORDER_PROFILE.as_bytes(),
+                )?;
+                if legacy_ascii {
+                    for scope in &expected.source_scopes {
+                        if !owned_catalog_is_ascii(scope.source_graph.as_bytes(), state)? {
+                            return Err(Error::Invalid("legacy catalog ASCII source profile"));
+                        }
+                    }
+                }
+
+                let visits = context.remaining_json_visits()?.min(1_000_000);
+                let packet_limits = JsonLimits::new(
+                    limits.max_row_bytes,
+                    96,
+                    visits,
+                    4096,
+                )
+                .map_err(|_| Error::Budget("knowledge catalog JSON limits"))?;
+                let validate_packet_json = |_document: &JsonValue| {
+                    let _json_callback_frame = state.hold(std::mem::size_of::<(
+                        &JsonValue,
+                        &crate::d1_public_capture::CreationState<'_>,
+                        Result<()>,
+                        crate::d1_public_capture::CreationStateHold<'_, '_>,
+                    )>())?;
+                    Ok(())
+                };
+                let _json_operation_hold = state.hold(std::mem::size_of_val(&validate_packet_json))?;
+                let context_result = context
+                    .with_foundation_owned_with_limits(packet, packet_limits, validate_packet_json)
+                    .map_err(|error| match error {
+                        Error::Invalid("runtime carrier creation JSON") => {
+                            Error::Invalid("knowledge catalog packet JSON")
+                        }
+                        other => other,
+                    });
+                drop(_json_operation_hold);
+                let _ = context_result?;
+                let mut root = Digest256Hasher::new();
+                owned_scope_hash_text(state, &mut root, schema)?;
+                owned_scope_hash_text(state, &mut root, order_profile)?;
+                owned_scope_hash_text(state, &mut root, descriptor)?;
+                owned_scope_hash_text(state, &mut root, catalog_sha)?;
+                state.charge_work(80)?;
+                root.update(packet_sha);
+                for count in [
+                    expected.node_count,
+                    expected.relation_count,
+                    fields,
+                    values,
+                    routes,
+                    sources,
+                ] {
+                    state.active()?;
+                    root.update(&count.to_be_bytes());
+                }
+                if owned_schema_step(statement, state)? {
+                    return Err(Error::Invalid("knowledge duplicate catalog meta"));
+                }
+                Ok((root, sources, fields, values, routes, legacy_ascii))
+            },
+        )?;
+
+    let mut seen = [0u64; 4];
+    with_owned_schema_statement(
+        db,
+        c"SELECT CASE WHEN length(CAST(domain AS BLOB))<=?2 THEN domain ELSE NULL END,
+                 CASE WHEN length(CAST(field_id AS BLOB))<=?2 THEN field_id ELSE NULL END,
+                 value_count,total_count
+          FROM catalog_facet_fields WHERE descriptor_sha256=?1 ORDER BY domain,field_id",
+        state,
+        |statement| {
+            let _callback_frame = state.hold(std::mem::size_of::<(
+                &mut tos_source_store::PinnedBoundedStatement<'_>,
+                &crate::d1_public_capture::CreationState<'_>,
+                &mut Digest256Hasher,
+                &mut [u64; 4],
+                &str,
+                &str,
+                u64,
+                u64,
+                bool,
+                &[&str; 2],
+                Result<bool>,
+                [u8; 8],
+                crate::d1_public_capture::CreationStateHold<'_, '_>,
+            )>())?;
+            state
+                .charge_work(descriptor.len().checked_add(8).ok_or(
+                    Error::Budget("knowledge catalog fields bind work"),
+                )?)?;
+            statement
+                .bind_text(1, descriptor)
+                .map_err(owned_schema_sql_error)?;
+            statement
+                .bind_i64(2, metadata_cap)
+                .map_err(owned_schema_sql_error)?;
+            while owned_schema_step(statement, state)? {
+                state.charge_work(1)?;
+                let domain =
+                    owned_catalog_sql_text(statement, 0, limits.max_metadata_bytes, state)?;
+                let field =
+                    owned_catalog_sql_text(statement, 1, limits.max_metadata_bytes, state)?;
+                let value_count =
+                    nonnegative(statement.integer(2).map_err(owned_schema_sql_error)?)?;
+                let total_count =
+                    nonnegative(statement.integer(3).map_err(owned_schema_sql_error)?)?;
+                if !owned_catalog_text_equals_any(state, domain, &["node", "relation"])?
+                    || field.is_empty()
+                {
+                    return Err(Error::Invalid("knowledge catalog field shape"));
+                }
+                state.charge_work(17)?;
+                root.update(b"F");
+                owned_scope_hash_text(state, &mut root, domain)?;
+                owned_scope_hash_text(state, &mut root, field)?;
+                root.update(&value_count.to_be_bytes());
+                root.update(&total_count.to_be_bytes());
+                seen[0] = seen[0]
+                    .checked_add(1)
+                    .ok_or(Error::Budget("catalog field rows"))?;
+                if seen[0] > limits.max_rows {
+                    return Err(Error::Budget("catalog field rows"));
+                }
+            }
+            Ok(())
+        },
+    )?;
+
+    let mut previous_field: Option<(
+        String,
+        String,
+        crate::d1_public_capture::CreationStateHold<'_, '_>,
+        crate::d1_public_capture::CreationStateHold<'_, '_>,
+        crate::d1_public_capture::CreationStateHold<'_, '_>,
+        crate::d1_public_capture::CreationStateHold<'_, '_>,
+    )> = None;
+    let mut previous_fold = None;
+    let mut ordinal_for_field = 0u64;
+    with_owned_schema_statement(
+        db,
+        c"SELECT CASE WHEN length(CAST(domain AS BLOB))<=?2 THEN domain ELSE NULL END,
+                 CASE WHEN length(CAST(field_id AS BLOB))<=?2 THEN field_id ELSE NULL END,
+                 ordinal,
+                 CASE WHEN length(CAST(value_json AS BLOB))<=?3 THEN value_json ELSE NULL END,
+                 item_count
+          FROM catalog_facets WHERE descriptor_sha256=?1
+          ORDER BY domain,field_id,ordinal",
+        state,
+        |statement| {
+            let _callback_frame = state.hold(std::mem::size_of::<(
+                &mut tos_source_store::PinnedBoundedStatement<'_>,
+                &crate::d1_public_capture::CreationState<'_>,
+                &crate::knowledge_payload_read::RuntimeKnowledgeReadContext<'_, '_>,
+                &mut Digest256Hasher,
+                &mut [u64; 4],
+                &mut Option<(String, String, crate::d1_public_capture::CreationStateHold<'_, '_>, crate::d1_public_capture::CreationStateHold<'_, '_>)>,
+                &mut Option<(String, crate::d1_public_capture::CreationStateHold<'_, '_>)>,
+                &mut u64,
+                (&str, &str, &str),
+                (u64, u64),
+                (bool, usize, usize, JsonLimits),
+                (String, String, String),
+                crate::d1_public_capture::CreationStateHold<'_, '_>,
+                crate::d1_public_capture::CreationStateHold<'_, '_>,
+                crate::d1_public_capture::CreationStateHold<'_, '_>,
+                crate::d1_public_capture::CreationStateHold<'_, '_>,
+                Result<(String, crate::d1_public_capture::CreationStateHold<'_, '_>, crate::d1_public_capture::CreationStateHold<'_, '_>)>,
+                Result<(String, crate::d1_public_capture::CreationStateHold<'_, '_>, crate::d1_public_capture::CreationStateHold<'_, '_>)>,
+                Result<String>,
+                std::cmp::Ordering,
+                Result<()>,
+                crate::d1_public_capture::CreationStateHold<'_, '_>,
+            )>())?;
+            state.charge_work(descriptor.len().checked_add(16).ok_or(
+                Error::Budget("knowledge catalog facets bind work"),
+            )?)?;
+            statement
+                .bind_text(1, descriptor)
+                .map_err(owned_schema_sql_error)?;
+            statement
+                .bind_i64(2, metadata_cap)
+                .map_err(owned_schema_sql_error)?;
+            statement
+                .bind_i64(3, packet_cap)
+                .map_err(owned_schema_sql_error)?;
+            while owned_schema_step(statement, state)? {
+                state.charge_work(1)?;
+                let domain =
+                    owned_catalog_sql_text(statement, 0, limits.max_metadata_bytes, state)?;
+                let field =
+                    owned_catalog_sql_text(statement, 1, limits.max_metadata_bytes, state)?;
+                let ordinal =
+                    nonnegative(statement.integer(2).map_err(owned_schema_sql_error)?)?;
+                let value_json =
+                    owned_catalog_sql_text(statement, 3, limits.max_row_bytes, state)?;
+                let item_count =
+                    nonnegative(statement.integer(4).map_err(owned_schema_sql_error)?)?;
+                let group_start = match previous_field.as_ref() {
+                    Some((prior_domain, prior_field, _, _, _, _)) => {
+                        owned_catalog_compare(state, prior_domain, domain)?
+                            != std::cmp::Ordering::Equal
+                            || owned_catalog_compare(state, prior_field, field)?
+                                != std::cmp::Ordering::Equal
+                    }
+                    None => true,
+                };
+                if group_start {
+                    ordinal_for_field = 0;
+                    previous_fold = None;
+                    previous_field = None;
+                }
+                if ordinal != ordinal_for_field || item_count == 0 {
+                    return Err(Error::Invalid("knowledge catalog facet ordinal/count"));
+                }
+                if group_start {
+                    let (domain_copy, domain_hold, domain_capacity_hold) =
+                        owned_catalog_key_copy(domain, state)?;
+                    let (field_copy, field_hold, field_capacity_hold) =
+                        owned_catalog_key_copy(field, state)?;
+                    previous_field = Some((
+                        domain_copy,
+                        field_copy,
+                        domain_hold,
+                        domain_capacity_hold,
+                        field_hold,
+                        field_capacity_hold,
+                    ));
+                }
+                ordinal_for_field = ordinal_for_field
+                    .checked_add(1)
+                    .ok_or(Error::Budget("knowledge catalog facet ordinal"))?;
+
+                let visits = context.remaining_json_visits()?.min(1_000_000);
+                let value_limits =
+                    JsonLimits::new(limits.max_row_bytes, 96, visits, 4096)
+                        .map_err(|_| Error::Budget("knowledge catalog facet JSON limits"))?;
+                let fold_cap = usize::try_from(limits.max_work_bytes)
+                    .map_err(|_| Error::Budget("knowledge catalog casefold cap"))?;
+                let fold_operation = |document: &JsonValue| {
+                    let _json_callback_frame = state.hold(std::mem::size_of::<(
+                        &JsonValue,
+                        &crate::d1_public_capture::CreationState<'_>,
+                        &str,
+                        bool,
+                        usize,
+                        Result<String>,
+                        crate::d1_public_capture::CreationStateHold<'_, '_>,
+                    )>())?;
+                    let value = document.as_str().ok_or(Error::Invalid(
+                        "knowledge catalog facet JSON string",
+                    ))?;
+                    if legacy_ascii && !owned_catalog_is_ascii(value.as_bytes(), state)? {
+                        return Err(Error::Invalid(
+                            "legacy catalog ASCII facet profile",
+                        ));
+                    }
+                    crate::catalog::python_casefold_with_state(value, state, fold_cap)
+                };
+                let _fold_operation_hold = state.hold(std::mem::size_of_val(&fold_operation))?;
+                let context_result = context
+                    .with_foundation_owned_with_limits(
+                        value_json.as_bytes(),
+                        value_limits,
+                        fold_operation,
+                    )
+                    .map_err(|error| match error {
+                        Error::Invalid("runtime carrier creation JSON") => {
+                            Error::Invalid("knowledge catalog facet JSON string")
+                        }
+                        other => other,
+                    });
+                drop(_fold_operation_hold);
+                let (folded, folded_hold) = context_result?;
+                if !group_start {
+                    if let Some((previous, _)) = previous_fold.as_ref() {
+                        if owned_catalog_compare(state, previous, &folded)?
+                            == std::cmp::Ordering::Greater
+                        {
+                            return Err(Error::Invalid("knowledge catalog casefold order"));
+                        }
+                    }
+                }
+                state.charge_work(17)?;
+                root.update(b"V");
+                owned_scope_hash_text(state, &mut root, domain)?;
+                owned_scope_hash_text(state, &mut root, field)?;
+                root.update(&ordinal.to_be_bytes());
+                owned_scope_hash_text(state, &mut root, value_json)?;
+                root.update(&item_count.to_be_bytes());
+                seen[1] = seen[1]
+                    .checked_add(1)
+                    .ok_or(Error::Budget("catalog facet rows"))?;
+                if seen[1] > limits.max_rows {
+                    return Err(Error::Budget("catalog facet rows"));
+                }
+                previous_fold = Some((folded, folded_hold));
+            }
+            Ok(())
+        },
+    )?;
+
+    with_owned_schema_statement(
+        db,
+        c"SELECT CASE WHEN length(CAST(route_id AS BLOB))<=?2 THEN route_id ELSE NULL END,
+                 ordinal,node_count,confirming_relation_count,semantic_confirming_relation_count,
+                 CASE WHEN length(CAST(availability AS BLOB))<=?2 THEN availability ELSE NULL END,
+                 CASE WHEN length(CAST(role_readiness AS BLOB))<=?2 THEN role_readiness ELSE NULL END,
+                 packet_len,
+                 CASE WHEN typeof(packet_sha256)='blob' AND length(packet_sha256)=32 THEN packet_sha256 ELSE NULL END,
+                 CASE WHEN length(packet)<=?3 THEN packet ELSE NULL END
+          FROM catalog_routes WHERE descriptor_sha256=?1 ORDER BY ordinal",
+        state,
+        |statement| {
+            let _callback_frame = state.hold(std::mem::size_of::<(
+                &mut tos_source_store::PinnedBoundedStatement<'_>,
+                &crate::d1_public_capture::CreationState<'_>,
+                &mut Digest256Hasher,
+                &mut [u64; 4],
+                &str,
+                (&str, &str, &str),
+                (u64, u64, u64, u64, u64, u64),
+                (&[u8], &[u8]),
+                Digest256,
+                [u64; 4],
+                std::array::IntoIter<u64, 4>,
+                u64,
+                Result<()>,
+                crate::d1_public_capture::CreationStateHold<'_, '_>,
+            )>())?;
+            state.charge_work(descriptor.len().checked_add(16).ok_or(
+                Error::Budget("knowledge catalog route bind work"),
+            )?)?;
+            statement
+                .bind_text(1, descriptor)
+                .map_err(owned_schema_sql_error)?;
+            statement
+                .bind_i64(2, metadata_cap)
+                .map_err(owned_schema_sql_error)?;
+            statement
+                .bind_i64(3, packet_cap)
+                .map_err(owned_schema_sql_error)?;
+            while owned_schema_step(statement, state)? {
+                state.charge_work(1)?;
+                let id =
+                    owned_catalog_sql_text(statement, 0, limits.max_metadata_bytes, state)?;
+                let ordinal =
+                    nonnegative(statement.integer(1).map_err(owned_schema_sql_error)?)?;
+                let nodes =
+                    nonnegative(statement.integer(2).map_err(owned_schema_sql_error)?)?;
+                let confirming =
+                    nonnegative(statement.integer(3).map_err(owned_schema_sql_error)?)?;
+                let semantic =
+                    nonnegative(statement.integer(4).map_err(owned_schema_sql_error)?)?;
+                let availability =
+                    owned_catalog_sql_text(statement, 5, limits.max_metadata_bytes, state)?;
+                let readiness =
+                    owned_catalog_sql_text(statement, 6, limits.max_metadata_bytes, state)?;
+                let packet_len =
+                    nonnegative(statement.integer(7).map_err(owned_schema_sql_error)?)?;
+                let rusqlite::types::ValueRef::Blob(digest) =
+                    statement.value_ref(8).map_err(owned_schema_sql_error)?
+                else {
+                    return Err(Error::Invalid("catalog route SHA type"));
+                };
+                let packet = match statement.value_ref(9).map_err(owned_schema_sql_error)? {
+                    rusqlite::types::ValueRef::Blob(packet) => packet,
+                    rusqlite::types::ValueRef::Null => {
+                        return Err(Error::Budget("catalog route packet bytes"));
+                    }
+                    _ => return Err(Error::Invalid("catalog route packet bytes type")),
+                };
+                let packet_bytes = u64::try_from(packet.len())
+                    .map_err(|_| Error::Budget("catalog route packet length"))?;
+                if id.is_empty()
+                    || ordinal != seen[2]
+                    || nodes > expected.node_count
+                    || confirming > expected.relation_count
+                    || semantic > expected.relation_count
+                    || !owned_catalog_text_equals_any(
+                        state,
+                        availability,
+                        &["available", "not_projected"],
+                    )?
+                    || !owned_catalog_text_equals_any(
+                        state,
+                        readiness,
+                        &["not_projected", "kind_only", "confirmed"],
+                    )?
+                    || packet_len != packet_bytes
+                {
+                    return Err(Error::Invalid("knowledge catalog route closure"));
+                }
+                let actual_digest = owned_catalog_digest(packet, state)?;
+                if !owned_schema_equal(state, digest, actual_digest.as_bytes())? {
+                    return Err(Error::Invalid("knowledge catalog route digest"));
+                }
+                state.charge_work(73)?;
+                root.update(b"R");
+                owned_scope_hash_text(state, &mut root, id)?;
+                for count in [ordinal, nodes, confirming, semantic] {
+                    root.update(&count.to_be_bytes());
+                }
+                owned_scope_hash_text(state, &mut root, availability)?;
+                owned_scope_hash_text(state, &mut root, readiness)?;
+                root.update(&packet_len.to_be_bytes());
+                root.update(digest);
+                seen[2] = seen[2]
+                    .checked_add(1)
+                    .ok_or(Error::Budget("catalog route rows"))?;
+                if seen[2] > limits.max_rows {
+                    return Err(Error::Budget("catalog route rows"));
+                }
+            }
+            Ok(())
+        },
+    )?;
+
+    with_owned_schema_statement(
+        db,
+        c"SELECT CASE WHEN length(CAST(source_graph_id AS BLOB))<=?2 THEN source_graph_id ELSE NULL END,
+                 node_count,relation_count
+          FROM catalog_source_counts WHERE descriptor_sha256=?1 ORDER BY source_graph_id",
+        state,
+        |statement| {
+            let _callback_frame = state.hold(std::mem::size_of::<(
+                &mut tos_source_store::PinnedBoundedStatement<'_>,
+                &crate::d1_public_capture::CreationState<'_>,
+                &Connection,
+                &KnowledgeSelectedExpectation,
+                &str,
+                std::slice::Iter<'_, ExpectedSourceScope>,
+                &ExpectedSourceScope,
+                &str,
+                (u64, u64),
+                usize,
+                [(&str, u64); 2],
+                std::array::IntoIter<(&str, u64), 2>,
+                (&str, u64),
+                usize,
+                Result<()>,
+                Result<&str>,
+                crate::d1_public_capture::CreationStateHold<'_, '_>,
+            )>())?;
+            state.charge_work(descriptor.len().checked_add(8).ok_or(
+                Error::Budget("knowledge catalog source bind work"),
+            )?)?;
+            statement
+                .bind_text(1, descriptor)
+                .map_err(owned_schema_sql_error)?;
+            statement
+                .bind_i64(2, metadata_cap)
+                .map_err(owned_schema_sql_error)?;
+            for scope in &expected.source_scopes {
+                if !owned_schema_step(statement, state)? {
+                    return Err(Error::Invalid("catalog source omitted"));
+                }
+                state.charge_work(1)?;
+                let source =
+                    owned_catalog_sql_text(statement, 0, limits.max_metadata_bytes, state)?;
+                let nodes =
+                    nonnegative(statement.integer(1).map_err(owned_schema_sql_error)?)?;
+                let relations =
+                    nonnegative(statement.integer(2).map_err(owned_schema_sql_error)?)?;
+                if !owned_schema_equal(
+                    state,
+                    source.as_bytes(),
+                    scope.source_graph.as_bytes(),
+                )? || nodes != scope.node_count
+                    || relations != scope.relation_count
+                {
+                    return Err(Error::Invalid("knowledge catalog source counts"));
+                }
+                if seen[3] >= limits.max_rows {
+                    return Err(Error::Budget("catalog source rows"));
+                }
+
+                let serialized_cap = scope
+                    .source_graph
+                    .len()
+                    .checked_mul(6)
+                    .and_then(|n| n.checked_add(2))
+                    .ok_or(Error::Budget("catalog source JSON cap"))?;
+                let callback = |wire: &[u8]| -> Result<()> {
+                    let _json_callback_frame = state.hold(std::mem::size_of::<(
+                        &[u8],
+                        &crate::d1_public_capture::CreationState<'_>,
+                        &str,
+                        [(&str, u64); 2],
+                        std::array::IntoIter<(&str, u64), 2>,
+                        (&str, u64),
+                        &Connection,
+                        &str,
+                        usize,
+                        u64,
+                        Result<()>,
+                        crate::d1_public_capture::CreationStateHold<'_, '_>,
+                    )>())?;
+                    let json = owned_catalog_utf8(wire, state)?;
+                    for (domain, count) in [("node", nodes), ("relation", relations)] {
+                        with_owned_schema_statement(
+                            db,
+                            c"SELECT item_count FROM catalog_facets WHERE descriptor_sha256=?1 AND domain=?2 AND field_id='source_graph' AND value_json=?3",
+                            state,
+                            |facet| {
+                                let _facet_callback_frame = state.hold(std::mem::size_of::<(
+                                    &mut tos_source_store::PinnedBoundedStatement<'_>,
+                                    &crate::d1_public_capture::CreationState<'_>,
+                                    &str,
+                                    &str,
+                                    &str,
+                                    u64,
+                                    usize,
+                                    u64,
+                                    bool,
+                                    Result<()>,
+                                    crate::d1_public_capture::CreationStateHold<'_, '_>,
+                                )>())?;
+                                let bind_work = descriptor
+                                    .len()
+                                    .checked_add(domain.len())
+                                    .and_then(|n| n.checked_add(json.len()))
+                                    .ok_or(Error::Budget(
+                                        "knowledge catalog source facet bind work",
+                                    ))?;
+                                state.charge_work(bind_work)?;
+                                facet
+                                    .bind_text(1, descriptor)
+                                    .map_err(owned_schema_sql_error)?;
+                                facet
+                                    .bind_text(2, domain)
+                                    .map_err(owned_schema_sql_error)?;
+                                facet
+                                    .bind_text(3, json)
+                                    .map_err(owned_schema_sql_error)?;
+                                if !owned_schema_step(facet, state)? {
+                                    if count != 0 {
+                                        return Err(Error::Invalid(
+                                            "knowledge catalog source facet coverage",
+                                        ));
+                                    }
+                                    return Ok(());
+                                }
+                                let actual = facet
+                                    .unsigned_integer(0)
+                                    .map_err(owned_schema_sql_error)?;
+                                if owned_schema_step(facet, state)? {
+                                    return Err(Error::Invalid(
+                                        "knowledge catalog duplicate source facet",
+                                    ));
+                                }
+                                if actual != count {
+                                    return Err(Error::Invalid(
+                                        "knowledge catalog source facet coverage",
+                                    ));
+                                }
+                                Ok(())
+                            },
+                        )?;
+                    }
+                    Ok(())
+                };
+                let _callback_hold = state.hold(std::mem::size_of_val(&callback))?;
+                state.with_json_encoded(&scope.source_graph, serialized_cap, callback)?;
+
+                state.charge_work(17)?;
+                root.update(b"S");
+                owned_scope_hash_text(state, &mut root, source)?;
+                root.update(&nodes.to_be_bytes());
+                root.update(&relations.to_be_bytes());
+                seen[3] = seen[3]
+                    .checked_add(1)
+                    .ok_or(Error::Budget("catalog source rows"))?;
+            }
+            if owned_schema_step(statement, state)? {
+                return Err(Error::Invalid("catalog source extra row"));
+            }
+            Ok(())
+        },
+    )?;
+
+    if seen != [fields, values, routes, sources] {
+        return Err(Error::Invalid("knowledge catalog index coverage"));
+    }
+    if !owned_catalog_lower_hex_matches(state, &root.finalize(), &expected.catalog_index_root_sha256)? {
+        return Err(Error::Invalid("knowledge catalog index root"));
+    }
+    if owned_catalog_has_row(
+        db,
+        c"SELECT 1 FROM catalog_facets v WHERE NOT EXISTS(
+              SELECT 1 FROM catalog_facet_fields f WHERE f.descriptor_sha256=v.descriptor_sha256
+              AND f.domain=v.domain AND f.field_id=v.field_id) LIMIT 1",
+        state,
+    )? {
+        return Err(Error::Invalid("knowledge catalog orphan facet"));
+    }
+    if owned_catalog_has_row(
+        db,
+        c"SELECT 1 FROM catalog_facet_fields f WHERE
+              f.value_count != (SELECT COUNT(*) FROM catalog_facets v WHERE v.descriptor_sha256=f.descriptor_sha256 AND v.domain=f.domain AND v.field_id=f.field_id)
+              OR f.total_count != COALESCE((SELECT SUM(item_count) FROM catalog_facets v WHERE v.descriptor_sha256=f.descriptor_sha256 AND v.domain=f.domain AND v.field_id=f.field_id),0)
+              LIMIT 1",
+        state,
+    )? {
+        return Err(Error::Invalid("knowledge catalog field aggregates"));
+    }
+
+    for (sql, expected_count) in [
+        (
+            c"SELECT COUNT(*) FROM catalog_facet_fields",
+            fields,
+        ),
+        (c"SELECT COUNT(*) FROM catalog_facets", values),
+        (c"SELECT COUNT(*) FROM catalog_routes", routes),
+        (c"SELECT COUNT(*) FROM catalog_source_counts", sources),
+    ] {
+        if owned_catalog_count(db, sql, state)? != expected_count {
+            return Err(Error::Invalid("knowledge catalog foreign descriptor row"));
+        }
+    }
+    state.active()
+}
+
+fn owned_catalog_count(
+    db: &Connection,
+    sql: &'static std::ffi::CStr,
+    state: &crate::d1_public_capture::CreationState<'_>,
+) -> Result<u64> {
+    with_owned_schema_statement(db, sql, state, |statement| {
+        let _callback_frame = state.hold(std::mem::size_of::<(
+            &mut tos_source_store::PinnedBoundedStatement<'_>,
+            &crate::d1_public_capture::CreationState<'_>,
+            u64,
+            bool,
+            Result<u64>,
+            crate::d1_public_capture::CreationStateHold<'_, '_>,
+        )>())?;
+        if !owned_schema_step(statement, state)? {
+            return Err(Error::Invalid("knowledge catalog count missing"));
+        }
+        let count = nonnegative(statement.integer(0).map_err(owned_schema_sql_error)?)?;
+        if owned_schema_step(statement, state)? {
+            return Err(Error::Invalid("knowledge catalog count duplicate"));
+        }
+        Ok(count)
+    })
+}
+
+fn owned_catalog_has_row(
+    db: &Connection,
+    sql: &'static std::ffi::CStr,
+    state: &crate::d1_public_capture::CreationState<'_>,
+) -> Result<bool> {
+    with_owned_schema_statement(db, sql, state, |statement| {
+        let _callback_frame = state.hold(std::mem::size_of::<(
+            &mut tos_source_store::PinnedBoundedStatement<'_>,
+            &crate::d1_public_capture::CreationState<'_>,
+            bool,
+            Result<bool>,
+            crate::d1_public_capture::CreationStateHold<'_, '_>,
+        )>())?;
+        let found = owned_schema_step(statement, state)?;
+        if found && owned_schema_step(statement, state)? {
+            return Err(Error::Invalid("knowledge catalog existence duplicate"));
+        }
+        Ok(found)
+    })
+}
+
+fn owned_catalog_sql_text<'a>(
+    statement: &'a tos_source_store::PinnedBoundedStatement<'_>,
+    column: i32,
+    cap: usize,
+    state: &crate::d1_public_capture::CreationState<'_>,
+) -> Result<&'a str> {
+    let frame = std::mem::size_of::<(
+        &'a tos_source_store::PinnedBoundedStatement<'_>,
+        i32,
+        usize,
+        &crate::d1_public_capture::CreationState<'_>,
+        &str,
+        Result<&str>,
+        Result<&[u8]>,
+        rusqlite::types::ValueRef<'_>,
+        Result<rusqlite::types::ValueRef<'_>>,
+        usize,
+        tos_source_store::StoreError,
+        Result<()>,
+        &mut dyn FnMut(usize) -> tos_source_store::Result<()>,
+        crate::d1_public_capture::CreationStateHold<'_, '_>,
+    )>();
+    let _frame = state.hold(
+        frame
+            .checked_add(
+                tos_source_store::PinnedBoundedStatement::text_validation_rust_workspace_upper_bound(),
+            )
+            .ok_or(Error::Budget("knowledge catalog text workspace"))?,
+    )?;
+    match statement.value_ref(column).map_err(owned_schema_sql_error)? {
+        rusqlite::types::ValueRef::Text(bytes) if bytes.len() <= cap => {}
+        rusqlite::types::ValueRef::Null => {
+            return Err(Error::Budget("knowledge catalog text bytes"));
+        }
+        rusqlite::types::ValueRef::Text(_) => {
+            return Err(Error::Budget("knowledge catalog text bytes"));
+        }
+        _ => return Err(Error::Invalid("knowledge catalog text type")),
+    }
+    let mut check = |bytes| {
+        state.charge_work(bytes).map_err(|_| {
+            tos_source_store::StoreError::new(
+                tos_source_store::StoreErrorCode::BudgetExceeded,
+                "knowledge catalog text validation work",
+            )
+        })
+    };
+    let _check = state.hold(std::mem::size_of_val(&check))?;
+    let text = statement
+        .text_with_check(column, &mut check)
+        .map_err(owned_schema_sql_error)?;
+    Ok(text)
+}
+
+fn owned_catalog_text_equals_any(
+    state: &crate::d1_public_capture::CreationState<'_>,
+    text: &str,
+    choices: &[&str],
+) -> Result<bool> {
+    let _frame = state.hold(std::mem::size_of::<(
+        &crate::d1_public_capture::CreationState<'_>,
+        &str,
+        &[&str],
+        std::slice::Iter<'_, &str>,
+        Result<bool>,
+        crate::d1_public_capture::CreationStateHold<'_, '_>,
+    )>())?;
+    for choice in choices {
+        if owned_schema_equal(state, text.as_bytes(), choice.as_bytes())? {
+            return Ok(true);
+        }
+    }
+    Ok(false)
+}
+
+fn owned_catalog_key_copy<'state, 'budget>(
+    value: &str,
+    state: &'state crate::d1_public_capture::CreationState<'budget>,
+) -> Result<(
+    String,
+    crate::d1_public_capture::CreationStateHold<'state, 'budget>,
+    crate::d1_public_capture::CreationStateHold<'state, 'budget>,
+)> {
+    let frame = std::mem::size_of::<(
+        &str,
+        &crate::d1_public_capture::CreationState<'_>,
+        String,
+        std::str::Chars<'_>,
+        usize,
+        usize,
+        usize,
+        char,
+        Result<(
+            String,
+            crate::d1_public_capture::CreationStateHold<'state, 'budget>,
+            crate::d1_public_capture::CreationStateHold<'state, 'budget>,
+        )>,
+        std::result::Result<(), std::collections::TryReserveError>,
+        Option<usize>,
+        crate::Result<usize>,
+        crate::Result<()>,
+        Result<crate::d1_public_capture::CreationStateHold<'state, 'budget>>,
+        Result<crate::d1_public_capture::CreationStateHold<'state, 'budget>>,
+        crate::d1_public_capture::CreationStateHold<'state, 'budget>,
+        crate::d1_public_capture::CreationStateHold<'state, 'budget>,
+    )>();
+    let _frame = state.hold(frame)?;
+    let requested = value.len();
+    let hold = state.hold(requested)?;
+    state.charge_work(requested)?;
+    state.active()?;
+    let mut owned = String::new();
+    let reserve_result = owned.try_reserve_exact(requested);
+    reserve_result.map_err(|_| Error::Budget("catalog previous facet key"))?;
+    let actual_capacity = owned.capacity();
+    let excess = actual_capacity
+        .checked_sub(requested)
+        .ok_or(Error::Budget("catalog previous facet key"))?;
+    let capacity_hold = state.hold(excess)?;
+    for character in value.chars() {
+        state.active()?;
+        owned.push(character);
+    }
+    state.active()?;
+    Ok((owned, hold, capacity_hold))
+}
+
+fn owned_catalog_digest(
+    raw: &[u8],
+    state: &crate::d1_public_capture::CreationState<'_>,
+) -> Result<Digest256> {
+    let _frame = state.hold(std::mem::size_of::<(
+        &[u8],
+        &crate::d1_public_capture::CreationState<'_>,
+        Digest256Hasher,
+        std::slice::Chunks<'_, u8>,
+        &[u8],
+        &[u8],
+        Result<Digest256>,
+        crate::d1_public_capture::CreationStateHold<'_, '_>,
+    )>())?;
+    state.charge_work(raw.len())?;
+    let mut digest = Digest256Hasher::new();
+    for chunk in raw.chunks(4096) {
+        state.active()?;
+        digest.update(chunk);
+    }
+    state.active()?;
+    Ok(digest.finalize())
+}
+
+fn owned_catalog_compare(
+    state: &crate::d1_public_capture::CreationState<'_>,
+    left: &str,
+    right: &str,
+) -> Result<std::cmp::Ordering> {
+    let _frame = state.hold(std::mem::size_of::<(
+        &crate::d1_public_capture::CreationState<'_>,
+        &str,
+        &str,
+        std::slice::Chunks<'_, u8>,
+        std::slice::Chunks<'_, u8>,
+        std::iter::Zip<std::slice::Chunks<'_, u8>, std::slice::Chunks<'_, u8>>,
+        (&[u8], &[u8]),
+        usize,
+        std::cmp::Ordering,
+        Result<std::cmp::Ordering>,
+        crate::d1_public_capture::CreationStateHold<'_, '_>,
+    )>())?;
+    let left_bytes = left.as_bytes();
+    let right_bytes = right.as_bytes();
+    let common = left_bytes.len().min(right_bytes.len());
+    state.charge_work(common)?;
+    for (left_chunk, right_chunk) in left_bytes[..common]
+        .chunks(4096)
+        .zip(right_bytes[..common].chunks(4096))
+    {
+        state.active()?;
+        let order = left_chunk.cmp(right_chunk);
+        if order != std::cmp::Ordering::Equal {
+            return Ok(order);
+        }
+    }
+    state.active()?;
+    Ok(left_bytes.len().cmp(&right_bytes.len()))
+}
+
+fn owned_catalog_lower_hex_matches(
+    state: &crate::d1_public_capture::CreationState<'_>,
+    digest: &Digest256,
+    text: &str,
+) -> Result<bool> {
+    let _frame = state.hold(std::mem::size_of::<(
+        &crate::d1_public_capture::CreationState<'_>,
+        &Digest256,
+        &str,
+        std::iter::Enumerate<std::slice::Iter<'_, u8>>,
+        usize,
+        &u8,
+        usize,
+        Option<u8>,
+        Option<u8>,
+        u8,
+        u8,
+        Result<bool>,
+        crate::d1_public_capture::CreationStateHold<'_, '_>,
+    )>())?;
+    if text.len() != 64 {
+        return Ok(false);
+    }
+    fn nibble(byte: u8) -> Option<u8> {
+        match byte {
+            b'0'..=b'9' => Some(byte - b'0'),
+            b'a'..=b'f' => Some(byte - b'a' + 10),
+            _ => None,
+        }
+    }
+    let bytes = text.as_bytes();
+    for (index, expected) in digest.as_bytes().iter().enumerate() {
+        state.charge_work(2)?;
+        state.active()?;
+        let offset = index * 2;
+        let Some(high) = nibble(bytes[offset]) else {
+            return Ok(false);
+        };
+        let Some(low) = nibble(bytes[offset + 1]) else {
+            return Ok(false);
+        };
+        if (high << 4) | low != *expected {
+            return Ok(false);
+        }
+    }
+    Ok(true)
+}
+
+fn owned_catalog_is_ascii(
+    raw: &[u8],
+    state: &crate::d1_public_capture::CreationState<'_>,
+) -> Result<bool> {
+    let _frame = state.hold(std::mem::size_of::<(
+        &[u8],
+        &crate::d1_public_capture::CreationState<'_>,
+        std::slice::Chunks<'_, u8>,
+        &[u8],
+        Result<bool>,
+        crate::d1_public_capture::CreationStateHold<'_, '_>,
+    )>())?;
+    state.charge_work(raw.len())?;
+    for chunk in raw.chunks(4096) {
+        state.active()?;
+        if !chunk.is_ascii() {
+            return Ok(false);
+        }
+    }
+    state.active()?;
+    Ok(true)
+}
+
+fn owned_catalog_utf8<'a>(
+    raw: &'a [u8],
+    state: &crate::d1_public_capture::CreationState<'_>,
+) -> Result<&'a str> {
+    let _frame = state.hold(std::mem::size_of::<(
+        &'a [u8],
+        &crate::d1_public_capture::CreationState<'_>,
+        usize,
+        usize,
+        &[u8],
+        std::str::Utf8Error,
+        Result<&'a str>,
+        crate::d1_public_capture::CreationStateHold<'_, '_>,
+    )>())?;
+    let mut at = 0usize;
+    while at < raw.len() {
+        let end = at.saturating_add(65536).min(raw.len());
+        state.charge_work(end - at)?;
+        match std::str::from_utf8(&raw[at..end]) {
+            Ok(_) => at = end,
+            Err(error)
+                if error.error_len().is_none()
+                    && end < raw.len()
+                    && error.valid_up_to() > 0 =>
+            {
+                at += error.valid_up_to();
+            }
+            Err(_) => return Err(Error::Invalid("knowledge catalog source JSON UTF8")),
+        }
+    }
+    state.active()?;
+    // Every byte was checked in bounded chunks; the borrowed serializer output
+    // remains immutable for the full callback.
+    Ok(unsafe { std::str::from_utf8_unchecked(raw) })
 }

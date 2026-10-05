@@ -3,8 +3,9 @@
 
 use tos_compiler::{
     KNOWLEDGE_CORPUS_MODEL_ABI, KNOWLEDGE_MANAGED_MODEL_ABI, KNOWLEDGE_MODEL_ABI,
-    KNOWLEDGE_NAVIGATION_MODEL_ABI, KNOWLEDGE_PHILOSOPHY_MODEL_ABI, KnowledgeSourceBasis,
-    ManagedSourceProofV1, QueryVocabulary, VerifiedKnowledgeModel,
+    KNOWLEDGE_NAVIGATION_MODEL_ABI, KNOWLEDGE_PHILOSOPHY_MODEL_ABI, ControlledKnowledgeModel,
+    KnowledgeSelectedExpectation, KnowledgeSourceBasis, ManagedSourceProofV1, QueryVocabulary,
+    VerifiedKnowledgeModel,
 };
 use tos_foundation::Digest256;
 
@@ -223,6 +224,25 @@ impl BoundCmpKnowledge<'_> {
         }
         Ok(())
     }
+
+    /// The exact compiler-owned controlled model has the same semantic
+    /// binding check, while its cold custody and live currentness remain held
+    /// by the compiler/Access callbacks around the complete operation.
+    pub fn check_controlled_model(
+        &self,
+        model: &ControlledKnowledgeModel<'_, '_, '_>,
+    ) -> Result<(), SearchV2Error> {
+        model
+            .check_pin()
+            .map_err(|_| stale("selected knowledge pin changed"))?;
+        if digest(&model.selection().model_sha256)? != self.selection.index_root_sha256
+            || model.source_basis() != &self.source_basis
+            || model.search_index_profile() != self.selection.search_unicode_profile
+        {
+            return Err(stale("selected controlled model differs from query binding"));
+        }
+        Ok(())
+    }
 }
 
 impl SelectedQueryVocabulary for BoundCmpKnowledge<'_> {
@@ -301,13 +321,51 @@ fn bind_knowledge<'a>(
     model
         .check_pin()
         .map_err(|_| stale("selected knowledge pin changed"))?;
-    let selected = model.selection();
+    let descriptor = tos_foundation::parse_json(
+        authored_descriptor,
+        tos_foundation::JsonMode::PublishedStrict,
+        tos_foundation::JsonLimits::default(),
+    )
+    .map_err(|_| stale("authored query vocabulary JSON invalid"))?
+    .into_root();
+    bind_knowledge_from_parts(
+        model.selection(),
+        model.source_basis(),
+        model.search_index_profile(),
+        vocabulary,
+        descriptor,
+    )
+}
+
+pub(crate) fn bind_controlled_knowledge_from_parts<'a>(
+    model: &ControlledKnowledgeModel<'_, '_, '_>,
+    vocabulary: &'a QueryVocabulary,
+    authored_descriptor: &tos_foundation::JsonValue,
+) -> Result<BoundCmpKnowledge<'a>, SearchV2Error> {
     model
-        .source_basis()
+        .check_pin()
+        .map_err(|_| stale("selected controlled knowledge pin changed"))?;
+    bind_knowledge_from_parts(
+        model.selection(),
+        model.source_basis(),
+        model.search_index_profile(),
+        vocabulary,
+        authored_descriptor.clone(),
+    )
+}
+
+fn bind_knowledge_from_parts<'a>(
+    selected: &KnowledgeSelectedExpectation,
+    source_basis: &KnowledgeSourceBasis,
+    search_index_profile: &str,
+    vocabulary: &'a QueryVocabulary,
+    descriptor: tos_foundation::JsonValue,
+) -> Result<BoundCmpKnowledge<'a>, SearchV2Error> {
+    source_basis
         .validate()
         .map_err(|_| stale("selected knowledge source basis is invalid"))?;
     if matches!(
-        model.source_basis(),
+        source_basis,
         KnowledgeSourceBasis::ManagedCurrent { .. } | KnowledgeSourceBasis::ManagedCurrentV2 { .. }
     ) != (selected.model_abi == KNOWLEDGE_MANAGED_MODEL_ABI)
     {
@@ -323,7 +381,7 @@ fn bind_knowledge<'a>(
             && selected.model_abi != KNOWLEDGE_MANAGED_MODEL_ABI)
         || selected.semantic_primitive_profile != QUERY_PRIMITIVE_PROFILE
         || selected.semantic_primitive_profile != vocabulary.semantic_primitive_profile
-        || model.search_index_profile() != SEARCH_UNICODE_PROFILE
+        || search_index_profile != SEARCH_UNICODE_PROFILE
         || selected.descriptor_sha256 != vocabulary.descriptor_sha256
         || selected.descriptor_version != vocabulary.descriptor_version
         || selected.entity_registry_id != vocabulary.entity_registry_id
@@ -358,7 +416,7 @@ fn bind_knowledge<'a>(
             descriptor_version: selected.descriptor_version,
         },
         semantic_primitive_profile: selected.semantic_primitive_profile.clone(),
-        search_unicode_profile: model.search_index_profile().into(),
+        search_unicode_profile: search_index_profile.into(),
         source_cut: selected.source_cut.clone(),
         through_commit_seq: selected.through_commit_seq,
         source_membership_root: digest(&selected.membership_root)?,
@@ -383,16 +441,10 @@ fn bind_knowledge<'a>(
     Ok(BoundCmpKnowledge {
         selection,
         vocabulary,
-        source_basis: model.source_basis().clone(),
+        source_basis: source_basis.clone(),
         authority_boundary: selected.authority_boundary.clone(),
         owner_receipt_id: selected.owner_receipt_id.clone(),
-        descriptor: tos_foundation::parse_json(
-            authored_descriptor,
-            tos_foundation::JsonMode::PublishedStrict,
-            tos_foundation::JsonLimits::default(),
-        )
-        .map_err(|_| stale("authored query vocabulary JSON invalid"))?
-        .into_root(),
+        descriptor,
     })
 }
 

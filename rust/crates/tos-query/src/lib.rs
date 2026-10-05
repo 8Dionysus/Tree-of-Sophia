@@ -34,6 +34,8 @@ pub mod knowledge_presentation;
 mod knowledge_sqlite;
 #[cfg(not(target_arch = "wasm32"))]
 mod knowledge_temporal;
+#[cfg(not(target_arch = "wasm32"))]
+mod controlled_query_adapter;
 pub mod lens_plan;
 #[cfg(not(target_arch = "wasm32"))]
 pub mod philosophy_read;
@@ -91,6 +93,10 @@ pub use knowledge_packet::{
     DisclosableIndexedSearch, DisclosableScopedIndexedSearch, INDEXED_SEARCH_INTENDED_USE, INDEXED_SEARCH_OPERATION_ID,
     IndexedDisclosureLease, IndexedDisclosureScope, IndexedKnowledgeAuthority, IndexedPageBudget,
     IndexedWireCursorCodec, ScopedIndexedKnowledgeAuthority, execute_indexed_search_page, execute_scoped_indexed_search_page,
+};
+#[cfg(not(target_arch = "wasm32"))]
+pub use controlled_query_adapter::{
+    execute_scoped_controlled_indexed_search_response, with_controlled_knowledge_binding,
 };
 #[cfg(not(target_arch = "wasm32"))]
 pub use knowledge_temporal::execute_selected_temporal;

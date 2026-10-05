@@ -121,6 +121,8 @@ mod knowledge_scope;
 mod knowledge_seal;
 mod knowledge_search;
 mod knowledge_selected;
+mod controlled_cold_model;
+pub use controlled_cold_model::{ControlledKnowledgeModel, ControlledSearchKind, ControlledGramStat, ControlledPostingPage, ControlledSearchCandidate};
 mod knowledge_semantic_join;
 pub mod knowledge_source_claims;
 mod knowledge_source_claims_prepare;
@@ -314,6 +316,77 @@ pub enum Error {
         used_steps: u64,
         max_steps: u64,
     },
+    ControlledColdClose {
+        operation: Option<ColdOperationFailure>,
+        close: rusqlite::Error,
+    },
+}
+
+/// Non-recursive evidence retained when an opened controlled cold database
+/// reports both an operation failure and an explicit SQLite close failure.
+#[derive(Debug)]
+pub enum ColdOperationFailure {
+    Io(std::io::Error),
+    Sql(rusqlite::Error),
+    SqlitePhase {
+        phase: knowledge_stage::WritePhase,
+        error: rusqlite::Error,
+    },
+    Invalid(&'static str),
+    PreparedUnsupported(&'static str),
+    ManagedSourceUnsupported(&'static str),
+    Source(String),
+    Budget(&'static str),
+    SqliteVmBudget {
+        phase: knowledge_stage::WritePhase,
+        used_steps: u64,
+        max_steps: u64,
+    },
+    NestedControlledColdClose,
+}
+impl fmt::Display for ColdOperationFailure {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Io(error) => write!(f, "I/O: {error}"),
+            Self::Sql(error) => write!(f, "SQLite: {error}"),
+            Self::SqlitePhase { phase, error } => write!(f, "SQLite in {phase:?}: {error}"),
+            Self::Invalid(message) => write!(f, "invalid compiler input: {message}"),
+            Self::PreparedUnsupported(message) => {
+                write!(f, "unsupported local prepared carrier/profile: {message}")
+            }
+            Self::ManagedSourceUnsupported(message) => {
+                write!(f, "unsupported managed selected source: {message}")
+            }
+            Self::Source(message) => write!(f, "source carrier: {message}"),
+            Self::Budget(message) => write!(f, "compiler budget exceeded: {message}"),
+            Self::SqliteVmBudget { phase, used_steps, max_steps } => write!(
+                f,
+                "compiler budget exceeded: SQLite VM steps in {phase:?} (used {used_steps}, max {max_steps})"
+            ),
+            Self::NestedControlledColdClose => {
+                f.write_str("nested controlled cold operation and close failure")
+            }
+        }
+    }
+}
+impl std::error::Error for ColdOperationFailure {}
+impl From<Error> for ColdOperationFailure {
+    fn from(error: Error) -> Self {
+        match error {
+            Error::Io(error) => Self::Io(error),
+            Error::Sql(error) => Self::Sql(error),
+            Error::SqlitePhase { phase, error } => Self::SqlitePhase { phase, error },
+            Error::Invalid(message) => Self::Invalid(message),
+            Error::PreparedUnsupported(message) => Self::PreparedUnsupported(message),
+            Error::ManagedSourceUnsupported(message) => Self::ManagedSourceUnsupported(message),
+            Error::Source(message) => Self::Source(message),
+            Error::Budget(message) => Self::Budget(message),
+            Error::SqliteVmBudget { phase, used_steps, max_steps } => {
+                Self::SqliteVmBudget { phase, used_steps, max_steps }
+            }
+            Error::ControlledColdClose { .. } => Self::NestedControlledColdClose,
+        }
+    }
 }
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -338,6 +411,13 @@ impl fmt::Display for Error {
                 f,
                 "compiler budget exceeded: SQLite VM steps in {phase:?} (used {used_steps}, max {max_steps})"
             ),
+            Self::ControlledColdClose { operation, close } => match operation {
+                Some(operation) => write!(
+                    f,
+                    "controlled cold operation failed ({operation}); explicit SQLite close failed ({close})"
+                ),
+                None => write!(f, "explicit controlled cold SQLite close failed ({close})"),
+            },
         }
     }
 }

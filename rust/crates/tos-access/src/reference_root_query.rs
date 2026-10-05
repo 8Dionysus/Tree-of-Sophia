@@ -871,6 +871,130 @@ pub fn with_selected_metadata_context(
     )
 }
 
+/// Same ReferenceRoot authority owner over the already admitted controlled
+/// model/view. The original Ledger issues the reservation before any holder
+/// clone; model, vocabulary and query workspace remain borrowed aliases.
+pub(crate) fn with_controlled_metadata_context<'view, 'capture, 'model, 'state, 'budget, H>(
+    model: &mut tos_compiler::ControlledKnowledgeModel<'model, 'state, 'budget>,
+    bound: &BoundCmpKnowledge<'_>,
+    view: &'view CompletedCaptureCarriers<'capture>,
+    deadline: Instant,
+    cancelled: &Arc<AtomicBool>,
+    reserve_original: impl FnOnce(usize) -> Result<H>,
+    consume: impl FnOnce(
+        &mut tos_compiler::ControlledKnowledgeModel<'model, 'state, 'budget>,
+        &mut ReferenceMetadataContext<'view, 'capture>,
+    ) -> Result<()>,
+) -> Result<()> {
+    use tos_foundation::OwnedState;
+    model.check_pin()?;
+    view.verify_current()?;
+    let revision = bound
+        .require_source_revision()
+        .map_err(|_| Error::Invalid("controlled Reference source revision absent"))?;
+    if view.source_revision() != Some(revision) {
+        return Err(Error::Invalid("controlled Reference source view differs"));
+    }
+    // This full carrier authority is issued only after all three original
+    // receipts have passed the controlled cold owner, never from wire roots.
+    let corpus_root = &model
+        .corpus_original_receipt()
+        .ok_or(Error::Invalid(
+            "controlled Reference corpus original absent",
+        ))?
+        .component_root_sha256;
+    let philosophy_root = &model
+        .philosophy_original_receipt()
+        .ok_or(Error::Invalid(
+            "controlled Reference philosophy original absent",
+        ))?
+        .component_root_sha256;
+    let navigation_root = &model
+        .navigation_original_receipt()
+        .ok_or(Error::Invalid(
+            "controlled Reference navigation original absent",
+        ))?
+        .component_root_sha256;
+    let strings = [
+        "reference_root_local_metadata_v1",
+        "tos-access/reference-root",
+        "reference-metadata:",
+        bound.owner_receipt_id(),
+        bound.owner_receipt_id(),
+        revision,
+        "not-a-publication-registry",
+        corpus_root.as_str(),
+        philosophy_root.as_str(),
+        navigation_root.as_str(),
+    ]
+    .into_iter()
+    .try_fold(0usize, |sum, value| {
+        sum.checked_add(value.len())
+            .ok_or(Error::Budget("controlled Reference holder strings"))
+    })?;
+    let selection = bound
+        .selection()
+        .owned_heap_bytes()
+        .map_err(|_| Error::Budget("controlled Reference selection forecast"))?;
+    let forecast = std::mem::size_of::<ReferenceMetadataContext<'_, '_>>()
+        .checked_add(selection)
+        .and_then(|n| n.checked_add(strings))
+        .and_then(|n| {
+            n.checked_add(std::mem::size_of::<ReferenceAbort>() + 2 * std::mem::size_of::<usize>())
+        })
+        // The one actual indexed disclosure lease and its Box remain live
+        // through final transport delivery under this original reservation.
+        .and_then(|n| n.checked_add(std::mem::size_of::<ReferenceDisclosureLease<'_, '_>>()))
+        .and_then(|n| {
+            n.checked_add(std::mem::size_of::<
+                Box<dyn tos_query::IndexedDisclosureLease>,
+            >())
+        })
+        .and_then(|n| n.checked_add(std::mem::size_of::<H>()))
+        .and_then(|n| n.checked_add(std::mem::size_of_val(&consume)))
+        .and_then(|n| n.checked_add(3 * std::mem::size_of::<Result<()>>()))
+        .ok_or(Error::Budget("controlled Reference holder forecast"))?;
+    let _original_hold = reserve_original(forecast)?;
+    let authorization_bytes = "reference-metadata:"
+        .len()
+        .checked_add(bound.owner_receipt_id().len())
+        .ok_or(Error::Budget("controlled Reference receipt capacity"))?;
+    let mut authorization_receipt_id = String::with_capacity(authorization_bytes);
+    authorization_receipt_id.push_str("reference-metadata:");
+    authorization_receipt_id.push_str(bound.owner_receipt_id());
+    let policy = CurrentPolicyBinding {
+        scope: "reference_root_local_metadata_v1".into(),
+        issuer_ref: "tos-access/reference-root".into(),
+        authorization_receipt_id,
+        policy_epoch: revision.into(),
+        withdrawal_generation: "not-a-publication-registry".into(),
+    };
+    let hold = ReferenceRootMetadataHold {
+        view,
+        selection: bound.selection().clone(),
+        owner_receipt: bound.owner_receipt_id().into(),
+        policy,
+        operation: ReferenceMetadataOperation::IndexedSearch,
+        abort: Arc::new(ReferenceAbort {
+            deadline,
+            cancelled: Arc::clone(cancelled),
+        }),
+        corpus_root: Some(corpus_root.clone()),
+        philosophy_root: Some(philosophy_root.clone()),
+        navigation_root: Some(navigation_root.clone()),
+    };
+    let mut context = ReferenceMetadataContext {
+        hold,
+        scope_peak: std::cell::Cell::new(0),
+        resource_scope_reservation: std::cell::Cell::new(None),
+    };
+    let result = consume(model, &mut context);
+    context.hold.recheck_delivery()?;
+    model.check_pin()?;
+    view.verify_current()?;
+    result
+}
+
 /// Single-operation convenience delegates to the same admitted context.
 pub fn with_selected_metadata(
     capture: &PublicCapture,

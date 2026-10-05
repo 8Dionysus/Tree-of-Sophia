@@ -246,12 +246,13 @@ fn call(
                 return Err("Core Store Search strict generic key");
             }
         }
-        if checked_field(arguments, "tool", state, deadline)?
-            .and_then(tos_foundation::JsonValue::as_str)
-            != Some("tos_knowledge_search")
-            || checked_field(arguments, "arguments", state, deadline)?
-                .and_then(tos_foundation::JsonValue::as_object)
-                .is_none()
+        if !matches!(
+            checked_field(arguments, "tool", state, deadline)?
+                .and_then(tos_foundation::JsonValue::as_str),
+            Some("tos_knowledge_search" | "tos_knowledge_search_indexed_v2")
+        ) || checked_field(arguments, "arguments", state, deadline)?
+            .and_then(tos_foundation::JsonValue::as_object)
+            .is_none()
         {
             return Err("Core Store Search exact tool DTO");
         }
@@ -383,18 +384,18 @@ fn selected_paths_size(s: &Sources) -> Result<usize> {
         },
     )
 }
-fn create_carrier(
+fn create_selected_capture(
     root: &Path,
     request: &Request,
     isolation: &tos_compiler::private_tmpfs_stage::PrivateTmpfsStageIsolation,
-    role: tos_compiler::RuntimeCaptureRole,
+    profile: tos_compiler::RuntimeCaptureProfile,
     generation: u64,
     ledger: &Ledger,
     owner_deadline: Instant,
     deadline: Instant,
     cancelled: &Arc<AtomicBool>,
     sqlite_heap: &Arc<tos_compiler::DedicatedSessionSqliteHeap>,
-) -> Result<Carrier> {
+) -> Result<tos_compiler::PublicCapture> {
     active(deadline)?;
     let mut limits = tos_compiler::native_snapshot_manifest::portable_native_snapshot_limits(
         request.admission.max_build_seconds,
@@ -430,7 +431,7 @@ fn create_carrier(
         std::mem::size_of::<tos_compiler::RuntimeCaptureCreationUsage>()
             + std::mem::size_of::<tos_compiler::RuntimeCaptureOwnedBudget<'_>>()
             + std::mem::size_of::<tos_compiler::RuntimeCaptureProfile>()
-            + std::mem::size_of::<Result<Carrier>>()
+            + std::mem::size_of::<Result<tos_compiler::PublicCapture>>()
             + std::mem::size_of_val(&remaining)
             + 4 * std::mem::size_of::<usize>(),
     )?;
@@ -449,7 +450,7 @@ fn create_carrier(
     let result = tos_compiler::PublicCapture::create_runtime_selected_with_owned_budget(
         root,
         &paths,
-        tos_compiler::RuntimeCaptureProfile::Carrier(role),
+        profile,
         &path,
         limits,
         owner_deadline,
@@ -462,14 +463,135 @@ fn create_carrier(
     let capture = result.map_err(|_| "Core lazy owned carrier creation refused")?;
     let retained = capture
         .retained_state_upper_bound()
-        .map_err(|_| "Core lazy carrier census")?;
+        .map_err(|_| "Core lazy selected capture census")?;
     ledger.remaining(retained)?;
+    Ok(capture)
+}
+
+fn create_carrier(
+    root: &Path,
+    request: &Request,
+    isolation: &tos_compiler::private_tmpfs_stage::PrivateTmpfsStageIsolation,
+    role: tos_compiler::RuntimeCaptureRole,
+    generation: u64,
+    ledger: &Ledger,
+    owner_deadline: Instant,
+    deadline: Instant,
+    cancelled: &Arc<AtomicBool>,
+    sqlite_heap: &Arc<tos_compiler::DedicatedSessionSqliteHeap>,
+) -> Result<Carrier> {
+    let capture = create_selected_capture(
+        root,
+        request,
+        isolation,
+        tos_compiler::RuntimeCaptureProfile::Carrier(role),
+        generation,
+        ledger,
+        owner_deadline,
+        deadline,
+        cancelled,
+        sqlite_heap,
+    )?;
+    let retained = capture
+        .retained_state_upper_bound()
+        .map_err(|_| "Core lazy carrier census")?;
     Ok(Carrier {
         capture,
         role,
         retained,
     })
 }
+
+/// Promote once inside the existing lazy owner. The callback owns the full
+/// remaining synchronous Driver lifetime; no model/state loan escapes it.
+fn with_whole_selected(
+    root: &Path,
+    request: &Request,
+    isolation: &tos_compiler::private_tmpfs_stage::PrivateTmpfsStageIsolation,
+    generation: u64,
+    ledger: &Ledger,
+    owner_deadline: Instant,
+    deadline: Instant,
+    cancelled: &Arc<AtomicBool>,
+    sqlite_heap: &Arc<tos_compiler::DedicatedSessionSqliteHeap>,
+    consume: impl for<'scope, 'budget> FnOnce(
+        &'scope tos_compiler::native_snapshot::CompletedNativeSnapshot,
+        &'scope tos_compiler::native_snapshot::NativeKnowledgeSnapshot,
+        tos_compiler::native_snapshot::NativeSnapshotOwnedReadLoan<'scope, 'budget>,
+    ) -> tos_compiler::Result<()>,
+) -> Result<()> {
+    active(deadline)?;
+    let capture = create_selected_capture(
+        root,
+        request,
+        isolation,
+        tos_compiler::RuntimeCaptureProfile::Whole,
+        generation,
+        ledger,
+        owner_deadline,
+        deadline,
+        cancelled,
+        sqlite_heap,
+    )?;
+    let retained = capture
+        .retained_state_upper_bound()
+        .map_err(|_| "Core Whole capture retained state")?;
+    let _capture = ledger.reserve(retained)?;
+    let candidate_workspace = isolation
+        .root()
+        .as_os_str()
+        .len()
+        .checked_add(128)
+        .and_then(|n| n.checked_add(std::mem::size_of::<PathBuf>() + std::mem::size_of::<String>()))
+        .ok_or("Core Whole candidate path state")?;
+    let _candidate_workspace = ledger.reserve(candidate_workspace)?;
+    let stem = format!("tos-core-whole-{generation}");
+    let candidate = fresh(isolation.root(), &stem)?;
+    let remaining = |bytes| {
+        ledger
+            .remaining(bytes)
+            .map_err(tos_compiler::Error::Invalid)
+    };
+    let mut usage = tos_compiler::native_snapshot::NativeSnapshotCreationUsage::default();
+    let limits = tos_compiler::native_snapshot_manifest::portable_native_snapshot_limits(
+        request.admission.max_build_seconds,
+    )
+    .map_err(|_| "Core Whole native limits")?;
+    let budget = tos_compiler::native_snapshot::NativeSnapshotOwnedBudget {
+        remaining_after_retained: &remaining,
+        original_sqlite_heap: sqlite_heap,
+        max_creation_json_visits: ledger.remaining_visits()?,
+        creation_deadline: owner_deadline,
+    };
+    let run = || {
+        tos_compiler::native_snapshot::with_native_knowledge_snapshot_from_capture_with_owned_budget_and_layout_for_session(
+        &capture, &candidate,
+        tos_compiler::native_snapshot_manifest::RUNTIME_DATA_DECLARATION,
+        isolation, limits, request.admission.whole().map_err(tos_compiler::Error::Invalid)?,
+        false, false, owner_deadline, cancelled.as_ref(), deadline, budget, &mut usage,
+        tos_compiler::knowledge_stage::KnowledgePayloadLayout::CarrierOnceV1,
+        consume,
+    )
+    };
+    let local_bytes = std::mem::size_of_val(&run)
+        .checked_add(std::mem::size_of_val(&remaining))
+        .and_then(|n| {
+            n.checked_add(
+                std::mem::size_of::<tos_compiler::NativeSnapshotCreationUsage>()
+                    + std::mem::size_of::<tos_compiler::NativeSnapshotOwnedBudget<'_>>()
+                    + std::mem::size_of::<tos_compiler::native_snapshot::NativeSnapshotLimits>()
+                    + std::mem::size_of::<tos_compiler::Result<()>>(),
+            )
+        })
+        .ok_or("Core Whole original caller frame")?;
+    let _local = ledger.reserve(local_bytes)?;
+    let result = run();
+    // Settle shared aggregate JSON even when builder or reader refuses.
+    ledger.charge_visits(usage.json_visits)?;
+    result.map_err(|_| "Core Whole same-state writer/reader refused")?;
+    active(owner_deadline)
+}
+
 struct Decimal {
     bytes: [u8; 20],
     start: usize,
@@ -683,6 +805,189 @@ fn serve_carrier(
     }).map_err(|_|"Core lazy held carrier call refused")
 }
 
+const WHOLE_PROFILE: &[u8] = br#", "profile":"whole_root","source_revision":""#;
+const WHOLE_SUFFIX: &[u8] =
+    br#"","data_revision":null,"exploration_revision":null,"state_reused":false},"result":"#;
+fn whole_envelope_len(generation: u64, revision: &str) -> Result<usize> {
+    [
+        RESULT_PREFIX.len(),
+        Decimal::new(generation).bytes().len(),
+        WHOLE_PROFILE.len(),
+        revision.len(),
+        WHOLE_SUFFIX.len(),
+        1,
+    ]
+    .into_iter()
+    .try_fold(0usize, |sum, n| {
+        sum.checked_add(n)
+            .ok_or("Core Whole result envelope geometry")
+    })
+}
+fn send_whole_result(
+    ledger: &Ledger,
+    reply: &mut session_transport::Reply<'_, '_>,
+    sequence: u64,
+    generation: u64,
+    revision: &str,
+    body: &[u8],
+) -> Result<()> {
+    ledger.charge_work(revision.len() as u64)?;
+    if revision.len() != 64
+        || !revision
+            .bytes()
+            .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
+    {
+        return Err("Core Whole source revision is not canonical SHA256");
+    }
+    let _frame = ledger.reserve(
+        std::mem::size_of::<Decimal>()
+            + std::mem::size_of::<[&[u8]; 7]>()
+            + std::mem::size_of::<(&Ledger, &str, &[u8], u64, u64)>(),
+    )?;
+    let generation = Decimal::new(generation);
+    reply.send(
+        session_transport::REPLY,
+        sequence,
+        &[
+            RESULT_PREFIX,
+            generation.bytes(),
+            WHOLE_PROFILE,
+            revision.as_bytes(),
+            WHOLE_SUFFIX,
+            body,
+            b"}",
+        ],
+    )
+}
+
+/// One genuine Whole SourceRoot Search call. All root/model/query/authority
+/// owners remain inside synchronous scopes; the cold DB closes before return.
+fn serve_whole_indexed_search(
+    root: &Path,
+    request: &Request,
+    isolation: &tos_compiler::private_tmpfs_stage::PrivateTmpfsStageIsolation,
+    session: &session_owner::Session,
+    driver: &mut session_transport::Driver<'_, '_>,
+    carrier: &mut Option<Carrier>,
+    store: &mut Option<lazy_store::Store>,
+    generation: &mut u64,
+    ledger: &Ledger,
+    heap: &Arc<tos_compiler::DedicatedSessionSqliteHeap>,
+    resources: &dyn tos_compiler::native_snapshot::NativeColdOpenResourceHold,
+    owner_deadline: Instant,
+    cutoff: Instant,
+    cancelled: &Arc<AtomicBool>,
+    fence: &dyn Fn() -> Result<()>,
+    arguments: &tos_foundation::JsonValue,
+) -> Result<()> {
+    fence()?;
+    // Drop only previously held selected owners; no work/VM/JSON clock refund.
+    if let Some(old) = carrier.take() {
+        ledger.retained.set(
+            ledger
+                .retained
+                .get()
+                .checked_sub(old.retained)
+                .ok_or("Core Whole prior carrier retained removal")?,
+        );
+        drop(old);
+    }
+    if let Some(old) = store.take() {
+        ledger.retained.set(
+            ledger
+                .retained
+                .get()
+                .checked_sub(old.retained)
+                .ok_or("Core Whole prior Store retained removal")?,
+        );
+        drop(old);
+    }
+    let next = generation
+        .checked_add(1)
+        .ok_or("Core Whole generation overflow")?;
+    let _locals = ledger.reserve(
+        std::mem::size_of::<u64>()
+            + std::mem::size_of::<tos_query::IndexedPageBudget>()
+            + std::mem::size_of::<(&Path, &Request, &Ledger, Instant, Instant)>(),
+    )?;
+    let http = request
+        .http
+        .as_ref()
+        .ok_or("Core Whole HTTP profile absent")?;
+    let mut budget = http.indexed.native()?;
+    let cursor = match checked_field(arguments, "cursor", ledger, cutoff)? {
+        None | Some(tos_foundation::JsonValue::Null) => None,
+        Some(value) => Some(value.as_str().ok_or("Core Whole cursor type")?),
+    };
+    with_whole_selected(
+        root,
+        request,
+        isolation,
+        next,
+        ledger,
+        owner_deadline,
+        cutoff,
+        cancelled,
+        heap,
+        |completed, native, loan| {
+            completed.with_controlled_selected_knowledge_model(&loan, isolation,
+            request.admission.cold, request.admission.process,
+            request.admission.working_ram_bytes, resources, cutoff,
+            |model, vocabulary, descriptor, view| {
+            tos_query::with_controlled_knowledge_binding(model, vocabulary, descriptor,
+                |model, bound| {
+                let revision = bound.require_source_revision()
+                    .map_err(|_| tos_compiler::Error::Invalid("Core Whole query source revision absent"))?;
+                if revision != native.source_revision || view.source_revision() != Some(revision) {
+                    return Err(tos_compiler::Error::Invalid("Core Whole source associations differ"));
+                }
+                let overhead = whole_envelope_len(next, revision).map_err(tos_compiler::Error::Invalid)?;
+                let cap = session.limits.max_reply_bytes.checked_sub(overhead)
+                    .ok_or(tos_compiler::Error::Budget("Core Whole reply envelope cap"))?;
+                budget.max_response_bytes = budget.max_response_bytes
+                    .min(cap).min(request.admission.whole_max_graph_bytes);
+                if budget.max_response_bytes == 0 {
+                    return Err(tos_compiler::Error::Budget("Core Whole response cap"));
+                }
+                crate::reference_root_query::with_controlled_metadata_context(model,
+                    bound, view, cutoff, cancelled,
+                    |bytes| ledger.reserve(bytes).map_err(tos_compiler::Error::Invalid),
+                    |model, context| {
+                    context.with_operation(crate::reference_root_query::ReferenceMetadataOperation::IndexedSearch,
+                        |authority| {
+                        let current = || {
+                            fence()?;
+                            view.verify_current().map_err(|_| "Core Whole transport source fence")?;
+                            active(cutoff)
+                        };
+                        driver.respond(|sequence, _, reply| {
+                            reply.narrow_deadline(cutoff)?;
+                            current()?;
+                            tos_query::execute_scoped_controlled_indexed_search_response(
+                                model, bound, authority, arguments, cursor, budget,
+                                |initial, receipt| Ok(crate::indexed_cursor::NativeIndexedCursorCodec::new(initial, receipt)),
+                                |body| {
+                                    let map = |_| tos_query::search_v2::SearchV2Error {
+                                        code: tos_query::search_v2::SearchV2ErrorCode::Unavailable,
+                                        message: "Core Whole transport delivery refused",
+                                    };
+                                    current().map_err(map)?;
+                                    send_whole_result(ledger, reply, sequence, next, revision, body).map_err(map)?;
+                                    current().map_err(map)
+                                },
+                            ).map_err(|_| "Core Whole scoped Search refused")?;
+                            current()
+                        }, current).map_err(tos_compiler::Error::Invalid)
+                    })
+                })
+            })
+        })
+        },
+    )?;
+    *generation = next;
+    fence()
+}
+
 fn serve_store(
     request: &Request,
     session: &session_owner::Session,
@@ -806,17 +1111,11 @@ pub(super) fn run(
         state_limit: request.admission.whole_max_state_bytes,
         reserved: std::cell::Cell::new(0),
         work: Arc::new(std::sync::atomic::AtomicU64::new(0)),
-        work_limit: request
-            .admission
-            .cold
-            .max_work_bytes
-            .min(capture_limits.max_work_bytes),
+        // Whole lifetime uses the existing portable capture owner ceiling.
+        // Cold limits narrow its own operation using the same original ledger.
+        work_limit: capture_limits.max_work_bytes,
         sql_vm: Arc::new(std::sync::atomic::AtomicU64::new(0)),
-        sql_vm_limit: request
-            .admission
-            .cold
-            .max_vm_steps
-            .min(capture_limits.max_sql_vm_steps),
+        sql_vm_limit: capture_limits.max_sql_vm_steps,
         store_steps: Arc::new(std::sync::atomic::AtomicU64::new(0)),
         store_sql_vm: Arc::new(std::sync::atomic::AtomicU64::new(0)),
         visits: Arc::new(std::sync::atomic::AtomicUsize::new(session.startup_visits)),
@@ -941,7 +1240,7 @@ pub(super) fn run(
         active(deadline)
     };
     let consume = |driver: &mut session_transport::Driver<'_, '_>| {
-        const READY:&[u8]=br#"{"schema_version":"tos_native_core_lazy_session_ready_v1","ok":true,"profile":"tos_core_lazy_selected_v1","reference_semantics":"cpython_pathlib_is_file_3_14","source_revision":null,"data_revision":null,"state_reused":false,"selection":{"schema_version":"tos_native_core_selected_profile_v1","generation":0,"profile":"selected_paths","source_revision":null,"data_revision":null,"exploration_revision":null,"state_reused":false},"capabilities":[{"operation":"tos_corpus_index_exists"},{"operation":"tos_philosophy_projection_exists"},{"operation":"tos_evidence_projection_exists"},{"operation":"tos_philosophy_audit_exists"},{"operation":"tos_corpus_index"},{"operation":"tos_bibliographic_graph"},{"operation":"tos_philosophy_projection"},{"operation":"tos_philosophy_audit_payload"},{"operation":"tos_corpus_header"},{"operation":"tos_native_call","tool":"tos_knowledge_search","profiles":["weak_query_store"]}]}"#;
+        const READY:&[u8]=br#"{"schema_version":"tos_native_core_lazy_session_ready_v1","ok":true,"profile":"tos_core_lazy_selected_v1","reference_semantics":"cpython_pathlib_is_file_3_14","source_revision":null,"data_revision":null,"state_reused":false,"selection":{"schema_version":"tos_native_core_selected_profile_v1","generation":0,"profile":"selected_paths","source_revision":null,"data_revision":null,"exploration_revision":null,"state_reused":false},"capabilities":[{"operation":"tos_corpus_index_exists"},{"operation":"tos_philosophy_projection_exists"},{"operation":"tos_evidence_projection_exists"},{"operation":"tos_philosophy_audit_exists"},{"operation":"tos_corpus_index"},{"operation":"tos_bibliographic_graph"},{"operation":"tos_philosophy_projection"},{"operation":"tos_philosophy_audit_payload"},{"operation":"tos_corpus_header"},{"operation":"tos_native_call","tool":"tos_knowledge_search","profiles":["weak_query_store"]},{"operation":"tos_native_call","tool":"tos_knowledge_search_indexed_v2","profiles":["whole_root"]}]}"#;
         // Exactly nine connected operations; CorpusHeader selects its authentic
         // configured/default Store owner before any Corpus carrier construction.
         if READY.len()
@@ -960,6 +1259,10 @@ pub(super) fn run(
         let mut held: Option<Carrier> = None;
         let mut held_store: Option<lazy_store::Store> = None;
         let mut generation = 0u64;
+        let _whole_flag = state.reserve(
+            std::mem::size_of::<bool>() + std::mem::size_of::<native_ledger::Reservation<'_>>(),
+        )?;
+        let mut last_whole = false;
         loop {
             let more = {
                 let owner_fence = || {
@@ -997,9 +1300,36 @@ pub(super) fn run(
                     .ok_or("Core Store Search envelope arguments")?;
                 let arguments = checked_field(outer, "arguments", &state, cutoff)?
                     .ok_or("Core Store Search tool arguments")?;
+                let tool = checked_field(outer, "tool", &state, cutoff)?
+                    .and_then(tos_foundation::JsonValue::as_str)
+                    .ok_or("Core selected Search tool absent")?;
+                if tool == "tos_knowledge_search_indexed_v2" {
+                    serve_whole_indexed_search(
+                        root,
+                        request,
+                        &isolation,
+                        session,
+                        driver,
+                        &mut held,
+                        &mut held_store,
+                        &mut generation,
+                        &state,
+                        &sqlite_heap,
+                        &resources,
+                        deadline,
+                        cutoff,
+                        cancelled,
+                        &fence,
+                        arguments,
+                    )?;
+                    last_whole = true;
+                    continue;
+                }
                 with_selected_store_choice(request, &state, cutoff, |selected_store| {
                     if !selected_store {
-                        return Err("Core SourceRoot Search owner not yet available");
+                        // The maintained offset/limit legacy contract is not
+                        // reinterpreted as cursor/per-kind indexedV2 output.
+                        return Err("Core SourceRoot legacy Search owner not yet available");
                     }
                     serve_store(
                         request,
@@ -1017,10 +1347,17 @@ pub(super) fn run(
                         Some(arguments),
                     )
                 })?;
+                last_whole = false;
                 continue;
             }
             let operation = operation.ok_or("Core lazy selected operation absent")?;
             if let Operation::Exists(kind) = operation {
+                if last_whole && held.is_none() && held_store.is_none() {
+                    generation = generation
+                        .checked_add(1)
+                        .ok_or("Core Whole to selected-paths generation overflow")?;
+                    last_whole = false;
+                }
                 let path = match kind {
                     ExistsKind::Index => &request.source_paths.index_path,
                     ExistsKind::Philosophy => {
@@ -1160,6 +1497,7 @@ pub(super) fn run(
             } else {
                 execute_carrier(driver, &mut held, &mut held_store, &mut generation)?;
             }
+            last_whole = false;
         }
         // Native close ACK must succeed while all selected owners remain held.
         drop(held);

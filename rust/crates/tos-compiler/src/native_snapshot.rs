@@ -2762,6 +2762,153 @@ impl CompletedNativeSnapshot {
         }
     }
 
+    /// Serve one bounded controlled Whole/Site indexed-query operation from
+    /// this completed selection. The loan supplies the authentic capture and
+    /// original CreationState; no second state, raw file/connection accessor,
+    /// or Verified fallback is introduced. Cold copy/hash/schema/Original
+    /// verification run under the ColdOpenLimits delta, which is restored
+    /// before the same held model enters QRY.
+    #[allow(clippy::too_many_arguments)]
+    pub fn with_controlled_selected_knowledge_model<'completed, 'owner, 'budget>(
+        &'completed self,
+        loan: &NativeSnapshotOwnedReadLoan<'owner, 'budget>,
+        isolation: &dyn StageIsolation,
+        cold: crate::ColdOpenLimits,
+        process: crate::NativeProcessLimits,
+        working_ram_bytes: u64,
+        resource_hold: &dyn NativeColdOpenResourceHold,
+        operation_deadline: Instant,
+        consume: impl for<'model, 'view> FnOnce(
+            &mut crate::ControlledKnowledgeModel<'model, 'owner, 'budget>,
+            &QueryVocabulary,
+            &[u8],
+            &'view CompletedCaptureCarriers<'completed>,
+        ) -> Result<()>,
+    ) -> Result<()>
+    where
+        'owner: 'completed,
+    {
+        let capture = loan.capture();
+        if operation_deadline > loan.operation_deadline()
+            || operation_deadline <= Instant::now()
+            || working_ram_bytes == 0
+            || process.address_space_bytes == 0
+            || process.file_size_bytes < self.expectation.model_size_bytes
+            || process.address_space_bytes > working_ram_bytes
+            || process.address_space_bytes >= libc::RLIM_INFINITY as u64
+            || process.file_size_bytes >= libc::RLIM_INFINITY as u64
+            || cold.max_file_bytes < self.expectation.model_size_bytes
+            || cold.max_work_bytes == 0
+            || cold.max_vm_steps == 0
+        {
+            return Err(Error::Invalid("native controlled selected cold-open admission"));
+        }
+        crate::knowledge_selected::validate(&self.expectation, cold)?;
+        check_snapshot_active(capture.cancellation(), operation_deadline)?;
+        crate::native_knowledge_selection::verify_native_process_limits(process)?;
+        crate::native_knowledge_selection::verify_native_file_size_limit(
+            self.expectation.model_size_bytes,
+        )?;
+        self.check_capture_binding(capture)?;
+
+        capture.with_owned_operation_deadline_and_limits(
+            operation_deadline,
+            Some((cold.max_work_bytes, cold.max_vm_steps)),
+            || {
+                self.with_capture_carriers(capture, |view| {
+                    view.verify_current()?;
+                    self.verify_stage_model(
+                        isolation,
+                        operation_deadline,
+                        capture.cancellation(),
+                    )?;
+                    resource_hold.verify_cold_open(
+                        cold,
+                        process,
+                        working_ram_bytes,
+                        self.stage_model_identity.size,
+                        self.expectation.model_size_bytes,
+                        self.expectation.model_size_bytes,
+                        65_536,
+                        operation_deadline,
+                        capture.cancellation(),
+                    )?;
+                    let model_copy = self.sealed_model_copy(
+                        capture,
+                        isolation,
+                        cold,
+                        process,
+                        working_ram_bytes,
+                        resource_hold,
+                        operation_deadline,
+                        capture.cancellation(),
+                    )?;
+                    let model_identity = snapshot_model_identity(&model_copy)?;
+                    verify_snapshot_model_memfd(&model_copy, model_identity)?;
+                    let custody = SnapshotModelMemfdCustody {
+                        file: &model_copy,
+                        identity: model_identity,
+                        expected: &self.expectation,
+                        cold,
+                        process,
+                        working_ram_bytes,
+                        stage_model_bytes: self.stage_model_identity.size,
+                        resource_hold,
+                        deadline: operation_deadline,
+                        cancelled: capture.cancellation(),
+                    };
+                    let mut pinned = model_copy.try_clone()?;
+                    let operation = crate::knowledge_payload_read::
+                        with_snapshot_owned_knowledge_read_context(
+                            loan,
+                            operation_deadline,
+                            |context| {
+                                crate::controlled_cold_model::
+                                    with_controlled_selected_knowledge_model(
+                                        &mut pinned,
+                                        &self.expectation,
+                                        &custody,
+                                        cold,
+                                        loan,
+                                        context,
+                                        |model| {
+                                            consume(
+                                                model,
+                                                &self.vocabulary,
+                                                &self.descriptor,
+                                                view,
+                                            )
+                                        },
+                                    )
+                            },
+                        );
+                    drop(pinned);
+                    let current = (|| {
+                        check_snapshot_active(capture.cancellation(), operation_deadline)?;
+                        view.verify_current()?;
+                        self.check_capture_binding(capture)?;
+                        self.verify_stage_model(
+                            isolation,
+                            operation_deadline,
+                            capture.cancellation(),
+                        )?;
+                        crate::ImmutableKnowledgeCustody::verify(
+                            &custody,
+                            &model_copy,
+                            &self.expectation,
+                        )?;
+                        Ok(())
+                    })();
+                    match (current, operation) {
+                        (Err(error), _) => Err(error),
+                        (_, Err(error)) => Err(error),
+                        (Ok(()), Ok(())) => Ok(()),
+                    }
+                })
+            },
+        )
+    }
+
     /// Lend the exact finished Evidence Lens output only when its independent
     /// source/output closure is bound to this exact completed graph capture.
     pub fn with_evidence_projection<'a, T>(
@@ -3325,7 +3472,60 @@ where
         NativeSnapshotOwnedReadLoan<'scope, 'budget>,
     ) -> Result<()>,
 {
+    let build_deadline = budget.creation_deadline;
+    with_native_knowledge_snapshot_from_capture_with_owned_budget_and_layout_for_session(
+        capture,
+        candidate,
+        declaration_raw,
+        isolation,
+        limits,
+        whole_limits,
+        include_catalog_inputs,
+        retain_state,
+        owner_deadline,
+        cancelled,
+        build_deadline,
+        budget,
+        usage,
+        payload_layout,
+        consume,
+    )
+}
+
+#[allow(clippy::too_many_arguments)]
+pub fn with_native_knowledge_snapshot_from_capture_with_owned_budget_and_layout_for_session<
+    'budget,
+    F,
+>(
+    capture: &'budget PublicCapture,
+    candidate: &Path,
+    declaration_raw: &[u8],
+    isolation: &dyn StageIsolation,
+    limits: NativeSnapshotLimits,
+    whole_limits: NativeWholeSnapshotLimits,
+    include_catalog_inputs: bool,
+    retain_state: bool,
+    owner_deadline: Instant,
+    cancelled: &AtomicBool,
+    build_deadline: Instant,
+    budget: NativeSnapshotOwnedBudget<'budget>,
+    usage: &mut NativeSnapshotCreationUsage,
+    payload_layout: crate::knowledge_stage::KnowledgePayloadLayout,
+    consume: F,
+) -> Result<()>
+where
+    F: for<'scope> FnOnce(
+        &'scope CompletedNativeSnapshot,
+        &'scope NativeKnowledgeSnapshot,
+        NativeSnapshotOwnedReadLoan<'scope, 'budget>,
+    ) -> Result<()>,
+{
     *usage = NativeSnapshotCreationUsage::default();
+    if build_deadline > budget.creation_deadline {
+        return Err(Error::Invalid(
+            "snapshot initial build cutoff exceeds retained owner",
+        ));
+    }
     if owner_deadline != capture.deadline() || !std::ptr::eq(cancelled, capture.cancellation()) {
         return Err(Error::Invalid(
             "owned native snapshot admission context changed",
@@ -3365,8 +3565,7 @@ where
         let _frame_hold = state.hold(frame_bytes)?;
         // Result and its owned outputs are declared after the frame hold;
         // they drop first on callback success, refusal or unwind.
-        let (completed, snapshot) =
-            capture.with_owned_operation_deadline(budget.creation_deadline, build)?;
+        let (completed, snapshot) = capture.with_owned_operation_deadline(build_deadline, build)?;
         let snapshot = snapshot.ok_or(Error::Invalid("native whole snapshot output absent"))?;
         state.active()?;
         completed.check_capture_binding(capture)?;
@@ -3527,7 +3726,9 @@ fn build_native_snapshot_from_capture_inner(
             "carrier layout requires controlled whole owner",
         ));
     }
-    let deadline = state.map_or(deadline, |state| state.operation_deadline());
+    let deadline = state
+        .map_or(deadline, |state| state.operation_deadline())
+        .min(capture.active_deadline()?);
     check_snapshot_active(cancelled, deadline)?;
     if let Some((whole_limits, _, _)) = whole_mode {
         whole_limits.validate()?;

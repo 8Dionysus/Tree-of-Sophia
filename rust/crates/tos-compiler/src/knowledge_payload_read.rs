@@ -160,6 +160,74 @@ impl<'state, 'budget> RuntimeKnowledgeReadContext<'state, 'budget> {
         result
     }
 }
+/// Run one bounded typed-query SQL primitive against the same original VM
+/// counter. The query ceiling is an absolute temporary endpoint derived from
+/// the already-used counter; installing/restoring callbacks never resets or
+/// refunds that counter. Only compiler-owned typed primitives call this
+/// helper, so a caller never receives the connection handle.
+pub(crate) fn with_query_vm_window<T>(
+    context: &RuntimeKnowledgeReadContext<'_, '_>,
+    db: &Connection,
+    max_vm_steps: u64,
+    operation: impl FnOnce() -> Result<T>,
+) -> Result<(T, u64)> {
+    use crate::sqlite_budget::SharedVmWindow;
+    use std::sync::atomic::Ordering;
+
+    if max_vm_steps == 0 {
+        return Err(Error::Budget("controlled query VM window"));
+    }
+    let state = context.state;
+    let fixed = std::mem::size_of::<(
+        &RuntimeKnowledgeReadContext<'_, '_>,
+        &Connection,
+        u64,
+        SharedVmWindow,
+        Result<SharedVmWindow>,
+        Arc<AtomicU64>,
+        Arc<AtomicBool>,
+        Result<T>,
+        Result<()>,
+    )>()
+    .checked_add(std::mem::size_of_val(&operation))
+    .and_then(|n| n.checked_add(2 * SharedVmWindow::callback_state_upper_bound()))
+    .ok_or(Error::Budget("controlled query VM controller state"))?;
+    let _hold = state.hold(fixed)?;
+    context.check()?;
+    let counter = state.sql_vm_counter();
+    let original_cap = state.sql_vm_limit();
+    let current = counter.load(Ordering::Acquire);
+    // The installed callback reserves one instruction slot before the query
+    // begins. That slot is charged to the caller's per-query cap.
+    let query_cap = current
+        .checked_add(max_vm_steps)
+        .filter(|cap| *cap <= original_cap)
+        .ok_or(Error::Budget("controlled query VM admission"))?;
+    SharedVmWindow::reserve(Arc::clone(&counter), query_cap)?.install(
+        db,
+        state.operation_deadline(),
+        state.cancellation_handle(),
+    );
+    let result = operation();
+    let after = counter.load(Ordering::Acquire);
+    let used = after
+        .saturating_sub(current)
+        .saturating_sub(1); // exclude this query window's prepaid first slot
+    let active = context.check();
+    // Restore the original owner endpoint even when SQL refuses. If the owner
+    // has exhausted its aggregate allowance, this replacement also fails
+    // closed and the enclosing operation must terminate.
+    let restore = SharedVmWindow::reserve(counter, original_cap).map(|window| {
+        window.install(db, state.operation_deadline(), state.cancellation_handle());
+    });
+    match (active, result, restore) {
+        (Err(error), _, _) => Err(error),
+        (_, Err(error), _) => Err(error),
+        (_, Ok(_), Err(error)) => Err(error),
+        (Ok(()), Ok(value), Ok(())) => Ok((value, used)),
+    }
+}
+
 /// Scoped replacement overlap for one already-admitted connection callback.
 /// Dropping on failure retains charged VM windows; the caller must terminate.
 /// The persistent callback slot stays in the outer model/connection census.
@@ -230,6 +298,47 @@ pub(crate) fn with_runtime_knowledge_read_context<'budget, T>(
     })();
     usage.json_visits = state.json_visits();
     outcome
+}
+
+/// Borrow the authentic whole builder state for one explicitly clipped cold
+/// read. This does not create, reset or return a second CreationState; JSON,
+/// work, VM, SQLite heap, cancellation and retained-byte charges all remain on
+/// the loan's original owner.
+pub(crate) fn with_snapshot_owned_knowledge_read_context<'owner, 'budget>(
+    loan: &crate::native_snapshot::NativeSnapshotOwnedReadLoan<'owner, 'budget>,
+    operation_deadline: Instant,
+    consume: impl FnOnce(&RuntimeKnowledgeReadContext<'owner, 'budget>) -> Result<()>,
+) -> Result<()> {
+    let state = loan.owned_state();
+    if operation_deadline > loan.operation_deadline()
+        || operation_deadline <= Instant::now()
+    {
+        return Err(Error::Budget("snapshot cold-read operation deadline"));
+    }
+    let fixed = std::mem::size_of::<(
+        &crate::native_snapshot::NativeSnapshotOwnedReadLoan<'_, '_>,
+        &CreationState<'_>,
+        Instant,
+        RuntimeKnowledgeReadContext<'_, '_>,
+        CreationStateHold<'_, '_>,
+        Result<()>,
+        Result<()>,
+    )>()
+    .checked_add(std::mem::size_of_val(&consume))
+    .ok_or(Error::Budget("snapshot cold-read context frame"))?;
+    let _frame = state.hold(fixed)?;
+    state.active()?;
+    let context = RuntimeKnowledgeReadContext {
+        state,
+        owner_deadline: operation_deadline,
+    };
+    let outcome = consume(&context);
+    let active = state.active();
+    match (active, outcome) {
+        (Err(error), _) => Err(error),
+        (_, Err(error)) => Err(error),
+        (Ok(()), Ok(())) => Ok(()),
+    }
 }
 
 fn charged_digest(state: &CreationState<'_>, bytes: &[u8]) -> Result<Digest256> {

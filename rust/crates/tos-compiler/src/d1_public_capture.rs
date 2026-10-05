@@ -208,6 +208,14 @@ impl ControlledCaptureIdentity {
     }
 }
 
+#[derive(Clone, Copy)]
+struct CaptureOperation {
+    deadline: Instant,
+    work_limit: u64,
+    vm_limit: u64,
+    phase_limited: bool,
+}
+
 pub struct PublicCapture {
     root: PathBuf,
     prepared_profile: bool,
@@ -224,7 +232,7 @@ pub struct PublicCapture {
     work_bytes: Arc<AtomicU64>,
     max_work_bytes: u64,
     deadline: Instant,
-    operation_deadline: Mutex<Option<Instant>>,
+    operation_deadline: Mutex<Option<CaptureOperation>>,
     limits: PublicCaptureLimits,
     vm_used: Arc<AtomicU64>,
     shared_vm: bool,
@@ -423,6 +431,8 @@ pub(crate) struct CreationState<'a> {
     deadline: Instant,
     cancelled: &'a std::sync::atomic::AtomicBool,
     cancelled_handle: Arc<std::sync::atomic::AtomicBool>,
+    // Only model/read state borrows its authentic retained capture phase owner.
+    capture_owner: Option<&'a PublicCapture>,
 }
 pub(crate) struct CreationStateHold<'a, 'budget> {
     owner: &'a CreationState<'budget>,
@@ -476,6 +486,7 @@ impl<'budget> CreationState<'budget> {
             deadline: budget.operation_deadline,
             cancelled: budget.cancelled.as_ref(),
             cancelled_handle: Arc::clone(budget.cancelled),
+            capture_owner: None,
         })
     }
     pub(crate) fn remaining_json_visits(&self) -> Result<usize> {
@@ -513,7 +524,11 @@ impl<'budget> CreationState<'budget> {
         Arc::clone(&self.cancelled_handle)
     }
     pub(crate) fn sql_vm_limit(&self) -> u64 {
-        self.sql_vm_limit
+        self.capture_owner.map_or(self.sql_vm_limit, |owner| {
+            owner
+                .active_vm_limit()
+                .map_or(0, |limit| limit.min(self.sql_vm_limit))
+        })
     }
     pub(crate) fn heap(&self) -> &Arc<sqlite_budget::DedicatedSessionSqliteHeap> {
         &self.sqlite_heap
@@ -675,7 +690,12 @@ impl<'budget> CreationState<'budget> {
     }
     pub(crate) fn charge_work(&self, bytes: usize) -> Result<()> {
         self.remaining(0)?;
-        checked_add(&self.work, bytes, self.work_limit)
+        let limit = self.capture_owner.map_or(Ok(self.work_limit), |owner| {
+            owner
+                .active_work_limit()
+                .map(|limit| limit.min(self.work_limit))
+        })?;
+        checked_add(&self.work, bytes, limit)
     }
     pub(crate) fn encode_json<T: serde::Serialize + ?Sized>(
         &self,
@@ -997,7 +1017,11 @@ impl<'budget> CreationState<'budget> {
         result
     }
     pub(crate) fn remaining(&self, prospective: usize) -> Result<usize> {
-        check_capture_active(Some(self.cancelled), self.deadline)?;
+        let deadline = match self.capture_owner {
+            Some(capture) => self.deadline.min(capture.active_deadline()?),
+            None => self.deadline,
+        };
+        check_capture_active(Some(self.cancelled), deadline)?;
         let total = self
             .retained
             .get()
@@ -3751,6 +3775,7 @@ impl PublicCapture {
             deadline: creation_deadline,
             cancelled: cancelled.as_ref(),
             cancelled_handle: Arc::clone(&cancelled),
+            capture_owner: None,
         };
         let result = (|| {
             state.sqlite_heap.verify_current()?;
@@ -3942,6 +3967,7 @@ impl PublicCapture {
             deadline: creation_deadline,
             cancelled: self.cancelled.as_ref(),
             cancelled_handle: Arc::clone(&self.cancelled),
+            capture_owner: Some(self),
         })
     }
 
@@ -4545,6 +4571,17 @@ impl PublicCapture {
         deadline: Instant,
         operation: impl FnOnce() -> Result<T>,
     ) -> Result<T> {
+        self.with_owned_operation_deadline_and_limits(deadline, None, operation)
+    }
+
+    /// Phase limits are deltas against the original monotonic counters. They
+    /// narrow this serial operation without resetting or refunding prior work.
+    pub(crate) fn with_owned_operation_deadline_and_limits<T>(
+        &self,
+        deadline: Instant,
+        phase_limits: Option<(u64, u64)>,
+        operation: impl FnOnce() -> Result<T>,
+    ) -> Result<T> {
         if !self.shared_vm || deadline > self.deadline {
             return Err(Error::Invalid("controlled capture operation deadline"));
         }
@@ -4557,9 +4594,29 @@ impl PublicCapture {
             if active.is_some() {
                 return Err(Error::Invalid("overlapping controlled capture operation"));
             }
-            *active = Some(deadline);
+            let (work_limit, vm_limit) = match phase_limits {
+                Some((work, vm)) => (
+                    self.work_bytes
+                        .load(std::sync::atomic::Ordering::Acquire)
+                        .checked_add(work)
+                        .ok_or(Error::Budget("capture phase work overflow"))?
+                        .min(self.max_work_bytes),
+                    self.vm_used
+                        .load(std::sync::atomic::Ordering::Acquire)
+                        .checked_add(vm)
+                        .ok_or(Error::Budget("capture phase VM overflow"))?
+                        .min(self.limits.max_sql_vm_steps),
+                ),
+                None => (self.max_work_bytes, self.limits.max_sql_vm_steps),
+            };
+            *active = Some(CaptureOperation {
+                deadline,
+                work_limit,
+                vm_limit,
+                phase_limited: phase_limits.is_some(),
+            });
         }
-        struct Restore<'a>(&'a Mutex<Option<Instant>>);
+        struct Restore<'a>(&'a Mutex<Option<CaptureOperation>>);
         impl Drop for Restore<'_> {
             fn drop(&mut self) {
                 match self.0.lock() {
@@ -4572,16 +4629,64 @@ impl PublicCapture {
         let result = operation();
         if result.is_ok() {
             check_capture_active(Some(self.cancelled.as_ref()), self.active_deadline()?)?;
+            if self.work_bytes.load(std::sync::atomic::Ordering::Acquire)
+                > self.active_work_limit()?
+                || self.vm_used.load(std::sync::atomic::Ordering::Acquire)
+                    > self.active_vm_limit()?
+            {
+                return Err(Error::Budget("capture operation final work/VM fence"));
+            }
         }
         result
     }
 
-    fn active_deadline(&self) -> Result<Instant> {
+    /// End the verified cold scan's work/VM intersection while keeping this
+    /// operation's original cutoff and monotonic counters through QRY/close.
+    /// The caller reinstalls its SQL progress hook with the original ceiling
+    /// before the independently budgeted query begins.
+    pub(crate) fn finish_owned_operation_phase_limits(&self) -> Result<()> {
+        let mut active = self
+            .operation_deadline
+            .lock()
+            .map_err(|_| Error::Invalid("capture operation deadline poisoned"))?;
+        let phase = active
+            .as_mut()
+            .filter(|phase| phase.phase_limited)
+            .ok_or(Error::Invalid("capture limited operation phase absent"))?;
+        check_capture_active(Some(self.cancelled.as_ref()), phase.deadline)?;
+        if self.work_bytes.load(std::sync::atomic::Ordering::Acquire) > phase.work_limit
+            || self.vm_used.load(std::sync::atomic::Ordering::Acquire) > phase.vm_limit
+        {
+            return Err(Error::Budget("capture cold phase final work/VM fence"));
+        }
+        phase.work_limit = self.max_work_bytes;
+        phase.vm_limit = self.limits.max_sql_vm_steps;
+        phase.phase_limited = false;
+        Ok(())
+    }
+
+    pub(crate) fn active_deadline(&self) -> Result<Instant> {
         let active = self
             .operation_deadline
             .lock()
             .map_err(|_| Error::Invalid("capture operation deadline poisoned"))?;
-        Ok(active.map_or(self.deadline, |deadline| deadline.min(self.deadline)))
+        Ok(active.map_or(self.deadline, |phase| phase.deadline.min(self.deadline)))
+    }
+
+    fn active_work_limit(&self) -> Result<u64> {
+        let active = self
+            .operation_deadline
+            .lock()
+            .map_err(|_| Error::Invalid("capture operation deadline poisoned"))?;
+        Ok(active.map_or(self.max_work_bytes, |phase| phase.work_limit))
+    }
+
+    fn active_vm_limit(&self) -> Result<u64> {
+        let active = self
+            .operation_deadline
+            .lock()
+            .map_err(|_| Error::Invalid("capture operation deadline poisoned"))?;
+        Ok(active.map_or(self.limits.max_sql_vm_steps, |phase| phase.vm_limit))
     }
 
     pub fn charge_work(&self, bytes: u64) -> Result<()> {
@@ -4589,11 +4694,12 @@ impl PublicCapture {
         if Instant::now() >= self.active_deadline()? {
             return Err(Error::Budget("public D1 build deadline"));
         }
+        let limit = self.active_work_limit()?;
         let mut current = self.work_bytes.load(std::sync::atomic::Ordering::Acquire);
         loop {
             let next = current
                 .checked_add(bytes)
-                .filter(|value| *value <= self.max_work_bytes)
+                .filter(|value| *value <= limit)
                 .ok_or(Error::Budget("public D1 build work bytes"))?;
             match self.work_bytes.compare_exchange_weak(
                 current,
@@ -4950,7 +5056,7 @@ impl PublicCapture {
         let shared_window = if self.shared_vm {
             Some(sqlite_budget::SharedVmWindow::reserve(
                 Arc::clone(&self.vm_used),
-                self.limits.max_sql_vm_steps,
+                self.active_vm_limit()?,
             )?)
         } else {
             None
@@ -5000,7 +5106,7 @@ impl PublicCapture {
         let shared_window = if self.shared_vm {
             Some(sqlite_budget::SharedVmWindow::reserve(
                 Arc::clone(&self.vm_used),
-                self.limits.max_sql_vm_steps,
+                self.active_vm_limit()?,
             )?)
         } else {
             None
@@ -5024,7 +5130,7 @@ impl PublicCapture {
         let shared_window = if self.shared_vm {
             Some(sqlite_budget::SharedVmWindow::reserve(
                 Arc::clone(&self.vm_used),
-                self.limits.max_sql_vm_steps,
+                self.active_vm_limit()?,
             )?)
         } else {
             None
