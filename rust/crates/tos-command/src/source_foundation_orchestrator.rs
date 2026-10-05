@@ -86,6 +86,9 @@ impl From<FoundationBootstrapError> for FoundationOrchestratorError {
 
 impl FoundationOrchestratorError {
     pub(crate) fn public_reason(&self) -> String {
+        if let Self::Catalog(error) = self {
+            return crate::source_command::public_compiler_reason(error);
+        }
         if let Self::Command(error) | Self::Bootstrap(FoundationBootstrapError::Command(error)) =
             self
         {
@@ -347,9 +350,7 @@ impl FoundationOrchestratorError {
             },
             Self::Final(_) => "source-foundation final custody refused",
             Self::Replay(_) => "source-foundation artifact replay refused",
-            Self::Catalog(error) => {
-                return crate::source_command::public_compiler_reason(error);
-            }
+            Self::Catalog(_) => "source-foundation catalog comparison refused",
             Self::Persisted(_) => "source-foundation persisted catalog refused",
             Self::Admission(error) => {
                 // Return only known owner-authored static diagnostics. Unknown
