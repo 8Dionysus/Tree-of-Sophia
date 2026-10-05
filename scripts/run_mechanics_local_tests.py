@@ -1,8 +1,8 @@
 """Compatibility entrypoint for the installed native mechanics-local runner.
 
 The native executor owns discovery, ordering and bounded process custody.
-Agon, Experience and Questbook assertions execute natively. Growth Cycle
-remains a retained Python reference cohort in the whole route.
+Growth Cycle behavior runs through the Rust owner and conformance route; the
+retained Python assertions are available only with --growth-python-oracle.
 """
 from __future__ import annotations
 
@@ -19,8 +19,12 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--native-contracts-only", action="store_true",
-        help="run only retained native Agon/Experience/Questbook assertions; Growth Cycle remains pending")
+        help="run only retained native Agon/Experience/Questbook assertions")
+    parser.add_argument("--growth-python-oracle", action="store_true",
+        help="include the retained Growth Cycle Python reference cohort explicitly")
     args = parser.parse_args()
+    if args.native_contracts_only and args.growth_python_oracle:
+        parser.error("--native-contracts-only excludes --growth-python-oracle")
     selected = os.environ.get("TOS_OPS_MECHANICS_EXECUTOR")
     executable = selected or shutil.which("tos-ops-mechanics-plan")
     if not executable:
@@ -42,6 +46,8 @@ def main() -> int:
         ]
         if args.native_contracts_only:
             argv.append("--native-contracts-only")
+        if args.growth_python_oracle:
+            argv.append("--growth-python-oracle")
         os.execv(executable, argv)
     except OSError as error:
         print(f"[error] cannot execute native mechanics-local runner: {error}", file=sys.stderr)

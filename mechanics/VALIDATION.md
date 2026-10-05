@@ -15,9 +15,20 @@ prove operation shape only; they do not author ToS meaning or runtime policy.
 The installed `tos-ops-mechanics-plan` executor runs the retained Agon,
 Experience and Questbook assertion bodies as native children. Their five
 independent Cargo tests share those same bodies; the installed invocation reads
-the selected repository's current authored schema/example bytes.
+the selected repository's current authored schema/example bytes. Growth Cycle's
+maintained behavior route is `rust_workspace`: it builds the native owner and
+prepared consumer, runs Rust unit tests, then runs the existing source-command
+conformance families. `mechanics_local` no longer treats the 39 Growth Python
+reference files as its default behavior implementation.
 
-For that bounded three-home cohort, use:
+Use the explicit retained Growth oracle only when investigating or comparing
+reference behavior:
+
+```bash
+python scripts/run_mechanics_local_tests.py --growth-python-oracle
+```
+
+For the bounded three-home native mechanics cohort, use:
 
 ```bash
 python scripts/run_mechanics_local_tests.py --native-contracts-only
@@ -30,7 +41,6 @@ The maintained assertion source is `rust/crates/tos-ops-mechanics-plan/tests/mec
 
 This runs the installed executor with its existing time, cancellation and output
 limits. It refuses an incomplete three-home selection and has no Cargo or
-Python test fallback. The whole `mechanics_local` route still includes the 39
-Growth Cycle Python reference files; their assertion/fixture/engine migration
-remains separate. A three-home success does not declare that whole route native
-or retire Growth Cycle reference coverage.
+Python test fallback. The Rust route proves native implementation and selected
+conformance behavior only; the retained Python oracle remains a separate
+comparison surface until its per-assertion removal conditions are reviewed.

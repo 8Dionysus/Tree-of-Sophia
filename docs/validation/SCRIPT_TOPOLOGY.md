@@ -38,10 +38,11 @@ exact tracked-card set, root-plus-nearest-ancestor inheritance from each task
 target, explicit owner handoffs when an owner is outside that target stack,
 preserved non-card references, influencing surfaces, representative task
 routes, and context budgets. The generated `.agents/agents-route.current.json` companion
-records hashes and counts; `scripts/build_agents_route_currentness.py` owns its
-deterministic projection, `scripts/validate_nested_agents.py` owns structural
-and currentness admission, and `scripts/agents_route_harness.py` owns the
-route-shape probe. These three surfaces do not claim model behavior, semantic
+records hashes and counts. The maintained `scripts/build_agents_route_currentness.py`
+and `scripts/validate_nested_agents.py` entrypoints delegate to the installed
+`tos-ops-mechanics-plan` route-card actions; their Python APIs remain available
+for tests and cross-corpus composition. `scripts/agents_route_harness.py` owns
+the route-shape probe. These three surfaces do not claim model behavior, semantic
 acceptance, human time-to-owner, or owner acceptance.
 
 The harness reports inherited target-stack tokens, declared on-demand tokens,

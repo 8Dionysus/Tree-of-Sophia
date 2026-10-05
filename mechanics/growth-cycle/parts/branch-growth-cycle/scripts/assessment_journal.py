@@ -1503,6 +1503,14 @@ def run_public_source_command(owner_config: Path, request: dict[str, Any], *,
                              accepted_owner_versions=PUBLIC_SOURCE_OWNER_VERSIONS)
 
 
+def run_legacy_oracle_command(owner_config: Path, request: dict[str, Any], *,
+                              contract_root: Path | None = None,
+                              accepted_owner_versions: frozenset[str] | None = None) -> dict[str, Any]:
+    """Explicit retained fixture oracle; owned commands use the native dispatcher."""
+    return run_local_command(owner_config, request, contract_root=contract_root,
+                             accepted_owner_versions=accepted_owner_versions)
+
+
 def run_local_command(owner_config: Path, request: dict[str, Any], *,
                       contract_root: Path | None = None,
                       accepted_owner_versions: frozenset[str] | None = None) -> dict[str, Any]:

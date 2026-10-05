@@ -6,7 +6,10 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
+import shutil
 import subprocess
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -235,18 +238,22 @@ def main() -> int:
     parser.add_argument("--check", action="store_true", help="check generated currentness without writing")
     parser.add_argument("--output", type=Path, default=None, help="override the generated output path")
     args = parser.parse_args()
-    output = resolve_output_path(REPO_ROOT, args.output)
-    rendered = render_currentness(build_currentness(REPO_ROOT))
+    selected = os.environ.get("TOS_OPS_MECHANICS_EXECUTOR")
+    executable = selected if selected is not None else shutil.which("tos-ops-mechanics-plan")
+    if not executable:
+        print("[error] install tos-ops-mechanics-plan or set TOS_OPS_MECHANICS_EXECUTOR", file=sys.stderr)
+        return 1
+    argv = [executable, "--repo-root", str(REPO_ROOT), "--agents-route-currentness-build"]
     if args.check:
-        if not output.is_file() or output.read_text(encoding="utf-8") != rendered:
-            print(f"AGENTS route currentness is stale or missing: {display_output_path(REPO_ROOT, output)}")
-            return 1
-        print(f"AGENTS route currentness is current: {display_output_path(REPO_ROOT, output)}")
-        return 0
-    output.parent.mkdir(parents=True, exist_ok=True)
-    output.write_text(rendered, encoding="utf-8")
-    print(f"wrote {display_output_path(REPO_ROOT, output)}")
-    return 0
+        argv.append("--check")
+    if args.output is not None:
+        argv.extend(["--output", str(args.output)])
+    try:
+        os.execv(executable, argv)
+    except OSError as error:
+        print(f"[error] cannot execute native AGENTS route-currentness builder: {error}", file=sys.stderr)
+        return 1
+    return 1
 
 
 if __name__ == "__main__":

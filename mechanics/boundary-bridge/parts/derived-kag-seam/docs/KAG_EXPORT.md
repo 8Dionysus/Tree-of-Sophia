@@ -35,11 +35,13 @@ supporting ToS surfaces; the public entry remains a compatibility mirror.
 
 ## Tooling
 
-`scripts/build_kag_export.py` is the explicit export builder and verifier:
+The standard installed `tos-ops-mechanics-plan` entry exposes the explicit
+accepted-corpus export builder and verifier. `scripts/build_kag_export.py` is
+a compatibility API selecting the same native operations:
 
 ```text
-tos-kag-release export-build --store STORE --revision REVISION --output EXPORT
-tos-kag-release export-verify --release EXPORT
+tos-ops-mechanics-plan --repo-root REPO --kag-source-export-build --store STORE --revision REVISION --output EXPORT
+tos-ops-mechanics-plan --repo-root REPO --kag-source-export-verify --kag-export EXPORT
 ```
 
 The installed native builder reads the selected CorpusStore revision and calls
@@ -65,8 +67,8 @@ admission, public deployment, or the consumer's semantic validation.
 
 ## Current verification
 
-For an already built export, run `python scripts/build_kag_export.py verify
-EXPORT`. Verification checks the exact source membership, bytes, manifest
+For an already built export, run the native `--kag-source-export-verify
+--kag-export EXPORT` operation above. Verification checks the exact source membership, bytes, manifest
 identity, source return, capsule structure, and bounded relation targets.
 
 For a published downstream result, use the `status` command above. The release

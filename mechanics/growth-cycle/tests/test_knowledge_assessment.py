@@ -12,6 +12,7 @@ import hashlib
 import itertools
 import json
 import os
+import shutil
 from pathlib import Path
 import sys
 import tempfile
@@ -418,6 +419,8 @@ class AssessmentPolicyTests(unittest.TestCase):
         clock.start().now.return_value = datetime.fromisoformat(NOW.replace('Z', '+00:00'))
         path, config, _, records, fixity = self.real_source_command_fixture()
         root = path.parent / 'sources'
+        # Native schema preparation derives its grammar from this selected cut.
+        shutil.copytree(ROOT / 'ToS/contracts', root / 'ToS/contracts')
         for item in fixity:
             target = root / item['path']
             target.parent.mkdir(parents=True, exist_ok=True)

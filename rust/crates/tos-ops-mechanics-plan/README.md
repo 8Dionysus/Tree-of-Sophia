@@ -396,3 +396,41 @@ is documented in [PLANTING_INTERFACE.md](PLANTING_INTERFACE.md). A supported
 installation of this role requires its own coherent source/profile/product
 proof and managed manifest membership. Installing the access, owner and worker
 roles alone does not install this command.
+
+## Accepted-corpus source export through the installed Ops entry
+
+`tos-ops-mechanics-plan --repo-root PATH --kag-source-export-build
+--store STORE --revision SHA256 --output NEW_DIRECTORY` selects the existing
+`kag_corpus_export::build_export` implementation. Verify that exact directory
+with `--kag-source-export-verify --kag-export DIRECTORY`. The maintained
+`build_kag_export.py` compatibility entry selects this standard installed Ops
+frontdoor; it has no compile-on-call or Python export fallback.
+
+This is the bounded six-source return carrier from an actually admitted corpus
+revision. It retains the authoritative export verifier, eight-file inventory,
+source/producer/executing-image identity, private staging and atomic publication,
+8 MiB export input/output limit and original 600-second operation clock. The
+standalone `tos-kag-release` entry retains the same export engine; its broader
+KAG integration build/status/verify operations have a separate owner scope and
+still retain their existing host adapters. Neither export entry admits source
+meaning, rights or canon.
+
+## Maintained currentness and root-entry commands
+
+Agent surface, documentation family, decision indexes and root-entry map use
+`tos-ops-mechanics-plan --repo-root PATH` directly in the validation manifest.
+Select `--agent-surface-build [--check]`, `--agent-surface-validate
+[--fetch-budget-bases]`, `--documentation-family-build [--check]`,
+`--documentation-cross-corpus-validate`, `--decision-index-build [--check]`,
+`--decision-records-validate`, `--root-entry-map-build [--check]`, or
+`--root-entry-map-validate`. The two root-entry operations accept an explicit
+`--kag-export PATH`; selected exports require the genuine corpus admission and
+installed Ops `--kag-source-export-build` / `--kag-source-export-verify` route.
+
+The corresponding eight Python scripts are compatibility launchers. Their
+imported producer/validator helpers and `root_entry_map_common.py` are retained
+comparison APIs for regression oracles; maintained recipes do not import or
+execute those implementations, and native execution has no Python fallback.
+Their presence is an explicit reference-only fate, not deletion or acceptance
+of the selected KAG export. Compatible generated format markers can retain
+historical script names without requiring those launchers.

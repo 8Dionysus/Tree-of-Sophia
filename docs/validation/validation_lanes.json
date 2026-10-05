@@ -794,16 +794,20 @@
       {
         "label": "check root entry map",
         "command": [
-          "python",
-          "scripts/build_root_entry_map.py",
+          "tos-ops-mechanics-plan",
+          "--repo-root",
+          ".",
+          "--root-entry-map-build",
           "--check"
         ]
       },
       {
         "label": "validate root entry map",
         "command": [
-          "python",
-          "scripts/validate_root_entry_map.py"
+          "tos-ops-mechanics-plan",
+          "--repo-root",
+          ".",
+          "--root-entry-map-validate"
         ]
       },
       {
@@ -900,16 +904,20 @@
       {
         "label": "check decision indexes",
         "command": [
-          "python",
-          "scripts/generate_decision_indexes.py",
+          "tos-ops-mechanics-plan",
+          "--repo-root",
+          ".",
+          "--decision-index-build",
           "--check"
         ]
       },
       {
         "label": "validate decision records",
         "command": [
-          "python",
-          "scripts/validate_decision_records.py"
+          "tos-ops-mechanics-plan",
+          "--repo-root",
+          ".",
+          "--decision-records-validate"
         ]
       }
     ],
@@ -978,17 +986,20 @@
       {
         "label": "check agent-surface currentness",
         "command": [
-          "python",
-          "scripts/build_agent_surface_currentness.py",
+          "tos-ops-mechanics-plan",
+          "--repo-root",
+          ".",
+          "--agent-surface-build",
           "--check"
         ]
       },
       {
         "label": "validate agent-surface routes",
         "command": [
-          "python",
-          "scripts/validate_agent_surface.py",
-          "--check",
+          "tos-ops-mechanics-plan",
+          "--repo-root",
+          ".",
+          "--agent-surface-validate",
           "--fetch-budget-bases"
         ]
       }
@@ -997,16 +1008,20 @@
       {
         "label": "check documentation family currentness",
         "command": [
-          "python",
-          "scripts/build_documentation_family_currentness.py",
+          "tos-ops-mechanics-plan",
+          "--repo-root",
+          ".",
+          "--documentation-family-build",
           "--check"
         ]
       },
       {
         "label": "validate cross-corpus documentation guards",
         "command": [
-          "python",
-          "scripts/validate_documentation_cross_corpus.py"
+          "tos-ops-mechanics-plan",
+          "--repo-root",
+          ".",
+          "--documentation-cross-corpus-validate"
         ]
       }
     ],

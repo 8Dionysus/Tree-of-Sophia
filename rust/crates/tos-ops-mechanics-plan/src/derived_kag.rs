@@ -280,7 +280,7 @@ fn text_equal(root: &Path, relative: &str, expected: &[u8], label: &str) -> io::
     let actual = actual.replace("\r\n", "\n").replace('\r', "\n");
     if actual.as_bytes() != expected {
         return Err(invalid(format!(
-            "{label} is out of date; run python {GENERATOR}"
+            "{label} is out of date; regenerate through the maintained installed export owner (reference renderer: {GENERATOR})"
         )));
     }
     Ok(actual.into_bytes())

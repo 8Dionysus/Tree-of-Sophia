@@ -21,11 +21,23 @@ PROGRAM_PATHS = tuple(sorted((
 )))
 
 def _native(arguments: list[str]) -> dict:
-    selected = os.environ.get('TOS_KAG_RELEASE_BIN') or shutil.which('tos-kag-release')
-    if not selected:
-        raise CorpusStoreError('install tos-kag-release or set TOS_KAG_RELEASE_BIN')
+    if arguments and arguments[0] in ('export-build', 'export-verify'):
+        selected = os.environ.get('TOS_OPS_MECHANICS_EXECUTOR') or shutil.which('tos-ops-mechanics-plan')
+        if not selected:
+            raise CorpusStoreError('install tos-ops-mechanics-plan or set TOS_OPS_MECHANICS_EXECUTOR')
+        if arguments[0] == 'export-build':
+            command = [selected, '--repo-root', str(ROOT), '--kag-source-export-build', *arguments[1:]]
+        else:
+            if len(arguments) != 3 or arguments[1] != '--release':
+                raise CorpusStoreError('source export verification requires one exact release path')
+            command = [selected, '--repo-root', str(ROOT), '--kag-source-export-verify', '--kag-export', arguments[2]]
+    else:
+        selected = os.environ.get('TOS_KAG_RELEASE_BIN') or shutil.which('tos-kag-release')
+        if not selected:
+            raise CorpusStoreError('install tos-kag-release or set TOS_KAG_RELEASE_BIN')
+        command = [selected, '--repo-root', str(ROOT), '--python', str(Path(sys.executable).resolve()), *arguments]
     child = subprocess.Popen(
-        [selected, '--repo-root', str(ROOT), '--python', str(Path(sys.executable).resolve()), *arguments],
+        command,
         stdout=subprocess.PIPE, stderr=subprocess.PIPE,
     )
     try:

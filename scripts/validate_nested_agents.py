@@ -2,8 +2,11 @@
 from __future__ import annotations
 
 import json
+import os
 import re
+import shutil
 import subprocess
+import sys
 from pathlib import Path
 from typing import Any, TypeAlias
 
@@ -590,15 +593,17 @@ def run_validation(repo_root: Path | None = None) -> list[Issue]:
 
 
 def main() -> int:
-    issues = run_validation(REPO_ROOT)
-    if issues:
-        print("Nested AGENTS route-card check failed.")
-        for location, message in issues:
-            print(f"- {location}: {message}")
+    selected = os.environ.get("TOS_OPS_MECHANICS_EXECUTOR")
+    executable = selected if selected is not None else shutil.which("tos-ops-mechanics-plan")
+    if not executable:
+        print("[error] install tos-ops-mechanics-plan or set TOS_OPS_MECHANICS_EXECUTOR", file=sys.stderr)
         return 1
-
-    print(f"Nested AGENTS route-card check passed for {len(discover_route_cards(REPO_ROOT))} files.")
-    return 0
+    try:
+        os.execv(executable, [executable, "--repo-root", str(REPO_ROOT), "--nested-agents-validate"])
+    except OSError as error:
+        print(f"[error] cannot execute native nested-AGENTS validator: {error}", file=sys.stderr)
+        return 1
+    return 1
 
 
 if __name__ == "__main__":
