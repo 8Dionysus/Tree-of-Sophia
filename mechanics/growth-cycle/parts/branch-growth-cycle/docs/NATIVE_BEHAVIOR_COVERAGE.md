@@ -87,3 +87,13 @@ before children; `--native-contracts-only` remains the bounded earned route, and
 `--growth-python-oracle` remains an explicit comparison. The Rust workspace route
 continues to exercise maintained native implementations and existing conformance
 families, without claiming complete Growth acceptance.
+
+## Concrete source repair from the classification
+
+Native Claim dispatch formerly parsed an owner-schema numeric suffix and accepted
+unpublished `v01`, `v001` and `v+1` aliases. The reference handler catalog selects
+exact published owner-schema strings. `source_claims::family` now retains numeric
+protocol bounds and requires canonical spelling before selecting a handler. Its
+existing regression module covers canonical create/revision versions and these
+refused aliases. This is one repaired dispatch predicate; it does not establish
+whole discovery, Claim or Growth equivalence. Execution remains to be verified.

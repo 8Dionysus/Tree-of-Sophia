@@ -293,7 +293,9 @@ pub(crate) fn family(schema: &str) -> SourceCommandResult<(String, bool, u8)> {
             let version = suffix
                 .parse::<u8>()
                 .map_err(|_| SourceCommandError::Unsupported("Claim configuration version"))?;
-            if (1..=4).contains(&version) {
+            // The published handler catalog selects exact protocol tags.
+            // Parsing a number must not authorize v01, v001 or v+1 aliases.
+            if (1..=4).contains(&version) && suffix.len() == 1 {
                 return Ok((
                     format!(
                         "public-claim-{}-v{version}",
@@ -9294,6 +9296,27 @@ fn identifier_tail(value: &str, prefix: &str) -> bool {
 mod retained_history_reader_regression {
     use super::*;
     use std::{fs, path::Path, time::Duration};
+
+    #[test]
+    fn claim_owner_version_requires_exact_published_protocol_tag() {
+        for operation in ["create", "revision"] {
+            for version in 1..=4 {
+                let canonical = format!("tos_local_claim_{operation}_owner_v{version}");
+                assert!(family(&canonical).is_ok());
+                for alias in [
+                    format!("0{version}"),
+                    format!("00{version}"),
+                    format!("+{version}"),
+                ] {
+                    let unpublished = format!("tos_local_claim_{operation}_owner_v{alias}");
+                    assert!(matches!(
+                        family(&unpublished),
+                        Err(SourceCommandError::Unsupported(_))
+                    ));
+                }
+            }
+        }
+    }
 
     const OWNER_DIR: &str = "ToS/source-witnesses/relations/linguistic";
     const OWNER_SOURCE: &str = "ToS/source-witnesses/relations/linguistic/source-claims.jsonl";
