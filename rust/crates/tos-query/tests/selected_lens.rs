@@ -1424,9 +1424,25 @@ print(encoded.decode())
 
 #[test]
 fn normalized_selected_philosophy_reads_match_original_python_packets_and_hold_projection() {
+    use tos_compiler::knowledge_full_fixture::PhilosophyFixtureViewVariant;
+    for variant in [
+        PhilosophyFixtureViewVariant::ReferencesV2,
+        PhilosophyFixtureViewVariant::InlineBothV1,
+        PhilosophyFixtureViewVariant::InlineNodesV1,
+        PhilosophyFixtureViewVariant::InlineEdgesV1,
+        PhilosophyFixtureViewVariant::DuplicateInlineV1,
+        PhilosophyFixtureViewVariant::DuplicateDanglingReferencesV1,
+    ] {
+        selected_philosophy_variant_parity(variant);
+    }
+}
+
+fn selected_philosophy_variant_parity(
+    variant: tos_compiler::knowledge_full_fixture::PhilosophyFixtureViewVariant,
+) {
     use tos_compiler::{
         PhilosophyOriginalCollection,
-        knowledge_full_fixture::build_native_fixture_with_philosophy_original,
+        knowledge_full_fixture::build_native_fixture_with_philosophy_view_variant,
     };
     use tos_query::philosophy_read::{
         PHILOSOPHY_INTENDED_USE, PhilosophyDirection, PhilosophyReadBudget, PhilosophyReadRequest,
@@ -1435,7 +1451,7 @@ fn normalized_selected_philosophy_reads_match_original_python_packets_and_hold_p
     // One finite software fixture goes through the normal producer, seal and
     // cold open. Its exact originals feed the independent maintained reader;
     // this is not authored philosophy, source or publication admission.
-    let fixture = build_native_fixture_with_philosophy_original();
+    let fixture = build_native_fixture_with_philosophy_view_variant(variant);
     let mut cold = fixture.open().unwrap();
     let receipt = cold.philosophy_original_receipt().unwrap().clone();
     let mut originals = |collection, count| {
@@ -1499,6 +1515,8 @@ cases={
  'path-excluded':core.philosophy_path_between(left,right,max_depth=3,direction='either',excluded_edge_ids=[edge]),
  'view':core.philosophy_view(view,limit=1),
  'views':core.philosophy_views(),
+ 'view-full':core.philosophy_view(view,limit=1000),
+ 'search':core.philosophy_search(view,limit=10),
  'layers':core.philosophy_layers(),
  'clusters':core.philosophy_clusters(view_id=view,limit=1),
  'review':core.philosophy_review_packet(view),
@@ -1606,6 +1624,20 @@ json.dump({'left':left,'right':right,'edge':edge,'view':view,'cases':cases},sys.
             },
         ),
         ("views", PhilosophyReadRequest::Views),
+        (
+            "view-full",
+            PhilosophyReadRequest::View {
+                view_id: id("view"),
+                limit: 1000,
+            },
+        ),
+        (
+            "search",
+            PhilosophyReadRequest::Search {
+                query: id("view"),
+                limit: 10,
+            },
+        ),
         ("layers", PhilosophyReadRequest::Layers),
         (
             "clusters",
@@ -1642,14 +1674,23 @@ json.dump({'left':left,'right':right,'edge':edge,'view':view,'cases':cases},sys.
         a.originals_denied = false;
         a
     };
+    let full_family = matches!(
+        variant,
+        tos_compiler::knowledge_full_fixture::PhilosophyFixtureViewVariant::ReferencesV2
+    );
     for (name, request) in &requests {
+        // Existing generic reads and lease refusals run once. Compatibility
+        // variants exercise exactly the view/count/search behavior that moved.
+        if !full_family && !matches!(*name, "view" | "view-full" | "views" | "search") {
+            continue;
+        }
         let mut authority = current(request);
         let mut packet =
             execute_selected_philosophy(&mut cold, &bound, &mut authority, request, caps).unwrap();
         assert_eq!(
             &*packet,
             canonical(field(field(&oracle, "cases"), name)),
-            "{name}"
+            "{variant:?}: {name}"
         );
         if *name == "view" {
             let decoded = parse_json(&packet, JsonMode::PublishedStrict, caps.inspect.json)
@@ -1666,11 +1707,14 @@ json.dump({'left':left,'right':right,'edge':edge,'view':view,'cases':cases},sys.
                 field(view, "edge_count"),
                 field(&decoded, "available_edge_count")
             );
-            assert_eq!(field(view, "node_ids").as_array().unwrap().len(), 1);
+            assert!(field(view, "node_ids").as_array().unwrap().len() <= 1);
             assert!(view.object_get("nodes").is_none());
             assert!(view.object_get("edges").is_none());
         }
         packet.recheck().unwrap();
+    }
+    if !full_family {
+        return;
     }
     let request = &requests[0].1;
     let mut denied = current(request);

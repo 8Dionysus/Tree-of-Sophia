@@ -776,7 +776,25 @@ use crate::knowledge_philosophy_prepare::{
 };
 /// One finite synthetic software fixture, using the unchanged existing native
 /// preparation inputs; no authored-growth, rights or review admission is claimed.
+#[derive(Clone, Copy, Debug)]
+pub enum PhilosophyFixtureViewVariant {
+    ReferencesV2,
+    InlineBothV1,
+    InlineNodesV1,
+    InlineEdgesV1,
+    DuplicateInlineV1,
+    DuplicateDanglingReferencesV1,
+}
+
 pub fn build_native_fixture_with_philosophy_original() -> FullKnowledgeFixture {
+    build_native_fixture_with_philosophy_view_variant(PhilosophyFixtureViewVariant::ReferencesV2)
+}
+
+/// Keep authentic compatibility view rows in the original header. They are never
+/// flattened into references or added to the independently selected base rows.
+pub fn build_native_fixture_with_philosophy_view_variant(
+    variant: PhilosophyFixtureViewVariant,
+) -> FullKnowledgeFixture {
     let nodes = [
         PHILOSOPHY_FIXTURE_0.as_bytes(),
         PHILOSOPHY_FIXTURE_1.as_bytes(),
@@ -811,11 +829,49 @@ pub fn build_native_fixture_with_philosophy_original() -> FullKnowledgeFixture {
         .iter()
         .map(|id| json!({"view_id":id,"unresolved_diagnostics":[]}))
         .collect::<Vec<_>>();
-    let header = json!({"schema_version":"tos_philosophy_graph_projection_v2","counts":{"nodes":nodes.len(),"edges":edges.len(),"views":views.len(),"clusters":1},
+    let mut header = json!({"schema_version":"tos_philosophy_graph_projection_v2","counts":{"nodes":nodes.len(),"edges":edges.len(),"views":views.len(),"clusters":1},
       "graph_layers":[{"layer_id":"philosophy","label":"Philosophy"}],"layer_counts":[{"layer_id":"philosophy","nodes":nodes.len(),"edges":edges.len()}],
       "visibility_model":{},"runtime_projection_boundary":{"is_source_authority":false,"writes_to_tree":false,"scope":"synthetic-native-philosophy-fixture"},
       "views":view_records,"clusters":[{"cluster_id":"fixture-phi-pair","cluster_kind":"pair","label":"Pair","view_ids":views,"member_node_ids":node_ids,"member_edge_ids":edge_ids,"source_ref":source,"properties":{"member_count":nodes.len(),"edge_count":edges.len()}}],
       "review_packets":review,"snapshot_review":{"snapshot_schema_version":"tos_philosophy_graph_projection_snapshot_v1"},"unresolved_review_surfaces":[],"source_refs":{}});
+    if !matches!(variant, PhilosophyFixtureViewVariant::ReferencesV2) {
+        header["schema_version"] = json!("tos_philosophy_graph_projection_v1");
+        for view in header["views"].as_array_mut().unwrap() {
+            match variant {
+                PhilosophyFixtureViewVariant::InlineBothV1 => {
+                    let mut inline_node = nv[0].clone();
+                    inline_node["node_id"] = json!("fixture-inline-only");
+                    let mut inline_edge = ev[0].clone();
+                    inline_edge["edge_id"] = json!("fixture-inline-edge");
+                    inline_edge["from_id"] = inline_node["node_id"].clone();
+                    inline_edge["to_id"] = nv[1]["node_id"].clone();
+                    view["nodes"] = json!([inline_node, nv[1]]);
+                    view["edges"] = json!([inline_edge]);
+                    // Valid but conflicting references cannot select the base
+                    // version or introduce another row while inline is present.
+                    view["node_ids"] = json!([nv[0]["node_id"]]);
+                    view["edge_ids"] = json!([ev[0]["edge_id"]]);
+                }
+                PhilosophyFixtureViewVariant::InlineNodesV1 => {
+                    view["nodes"] = json!([nv[1]]);
+                    view["edges"] = json!([]);
+                }
+                PhilosophyFixtureViewVariant::InlineEdgesV1 => {
+                    view["nodes"] = json!([]);
+                    view["edges"] = json!([ev[0]]);
+                }
+                PhilosophyFixtureViewVariant::DuplicateInlineV1 => {
+                    view["nodes"] = json!([nv[1], nv[0], nv[1]]);
+                    view["edges"] = json!([ev[0], ev[0]]);
+                }
+                PhilosophyFixtureViewVariant::DuplicateDanglingReferencesV1 => {
+                    view["node_ids"] = json!([nv[1]["node_id"], nv[1]["node_id"], "missing-node"]);
+                    view["edge_ids"] = json!([ev[0]["edge_id"], ev[0]["edge_id"], "missing-edge"]);
+                }
+                PhilosophyFixtureViewVariant::ReferencesV2 => unreachable!(),
+            }
+        }
+    }
     let raw = serde_json::to_vec(&header).unwrap();
     build_native_fixture_with_philosophy_inputs(&raw, &nodes, &edges)
 }
