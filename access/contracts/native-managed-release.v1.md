@@ -122,3 +122,58 @@ merely by declaring the format.
 Corpus projection uses the CMP ABI5 original component and versioned native selection companion v3. The captured-public origin records software Git commit/tree/capture manifest identity separately from the authored source cut; their joint selected release does not assert native builder ancestry. The original index source path must be the corpus-index subject declared by runtime-data.v1.json, with its existing query-core/http-reader/native-mcp roles. The data snapshot declares `data/<source_path>` and every original captured member in the receipt, with exact size/SHA and the original source SHA in input_bindings; input_bindings also binds the exact runtime-data declaration. Missing or differing members refuse admission and availability. Corpus payloads and ambient source reads are not admitted.
 
 Under the same ReleaseLease, cold admission checks the complete raw original member closure once. Each later addressed corpus query keeps DataGuard identity `(device,inode,size,mtime,ctime)` for these members and checks it under the held release lock through final flush. The retained immutable selected model owns original row bytes; ordinary addressed reads do not reread the entire corpus. Status display paths identify the actual declared index member and its selected data root. SQL component presence alone cannot assert index_exists. The eight maintained MCP tools and six existing HTTP GET/HEAD routes call the same QRY corpus kernel; resources and packet remain MCP-only, and no corpus one-shot CLI is introduced. This profile still requires the managed native cold custody/resource prerequisites before its installed entrypoint serves data.
+
+
+## Native pair publication
+
+On Linux, `native-release-promote --request ABS --request-sha256 HEX
+--work-deadline-ns ORIGINAL_NS` publishes the existing NativeData pair format.
+The request is independently pinned canonical JSON. It selects the exact
+candidate pair, bindings, candidate manifest and producer selection digests,
+installed software prefix, expected current pair (or null for first publication)
+and finite resource profile. It neither discovers a root nor accepts a
+caller-supplied verification boolean or Python callback.
+
+Before taking the exclusive release lock, the native owner verifies the
+complete declared candidate closure, shared manifest and Original provenance
+law, exact producer selection, immutable selected model cold admission, accepted
+software archive and both installed Access and Owner command roles. Archive,
+installed manifest and build proofs must describe the same software. The
+candidate remains independent of `current.json`; first publication does not
+open a fabricated current release. Verification retains file identities and
+rechecks them around publication. Source, rights, canon and semantic acceptance
+are not issued by these mechanical checks.
+
+The filesystem owner takes the existing process-owned exclusive lock and
+revalidates layout, current pointer, immutable pair and bindings, all three
+revocation kinds and expected-current CAS. Identical immutable records may be
+reused; differing records refuse without overwrite. Same-current publication
+still verifies bindings and revocations. Immutable records use a fsynced
+exclusive temporary, atomic Linux `renameat2(RENAME_NOREPLACE)` and parent
+directory fsync. This preserves immutable no-clobber publication without a
+hard-link/unlink crash interval that would leave link count two. A host or
+filesystem lacking the atomic no-replace operation refuses; it does not fall
+back to overwrite. The
+current pointer uses a fsynced temporary, atomic replacement, root fsync and
+canonical readback. A failure after replacement preserves the committed state
+and reports durability separately; it does not roll back another publication.
+
+The promotion scope accepts at most 3600 seconds remaining. A longer admitted
+Site attempt narrows this scope to `min(site_deadline, scope_entry + 3600s)`
+and pins that same monotonic value in the request and CLI. This narrows the
+existing attempt; it does not renew its overall clock.
+
+All stages consume the original monotonic deadline and declared metadata,
+state, IO, descriptor, archive, candidate and model bounds. Explicit
+`max_installed_io_bytes` and `max_installed_state_bytes` reserve slices of the
+same aggregate budgets before installed verification; both roles and their
+post-publication rechecks consume those same slices. Filesystem reads, writes
+and bounded metadata decoding charge the remaining shared budget. Installed software
+checks and publication checkpoints observe that deadline directly. Existing
+archive and selected-model cold owners additionally enforce finite member,
+byte, row and SQLite-work limits, but their current public scan APIs have no
+inner cancellation hook. Their external admitted process/unit remains the hard
+wall-time owner; a completed scan must pass the same original deadline before
+publication. These structural counters do not certify allocator RSS or host
+memory. Publication, durable readback and subsequent installed cold reopen are
+separate evidence claims.

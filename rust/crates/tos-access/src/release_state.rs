@@ -1,4 +1,4 @@
-//! Native reader of the existing managed-local ReleaseStore contract.
+//! Native holder of the existing managed-local ReleaseStore contract.
 //! A shared `.release.lock` remains held until the prepared packet is dropped.
 //! This holder authorizes only the selected admitted projection, not source bytes.
 use crate::{AccessError, AccessErrorCode};
@@ -48,6 +48,64 @@ fn keys(value: &JsonValue, expected: &[&str]) -> Result<()> {
             .any(|(key, _)| !key.as_str().is_some_and(|key| expected.contains(&key)))
     {
         return Err(unavailable("release object field set invalid"));
+    }
+    Ok(())
+}
+// One decoder for the existing persisted ReleaseStore wire contract.
+fn validate_release_pair(value: &JsonValue, raw: &[u8]) -> Result<String> {
+    keys(
+        value,
+        &[
+            "schema_version",
+            "software_sha256",
+            "data_revision",
+            "data_manifest_sha256",
+            "corpus_revision",
+            "query_schema",
+            "compiler_version",
+        ],
+    )?;
+    if text(value, "schema_version")? != "tos_access_release_pair_v1" {
+        return Err(unavailable("release pair schema invalid"));
+    }
+    for name in [
+        "software_sha256",
+        "data_revision",
+        "data_manifest_sha256",
+        "corpus_revision",
+    ] {
+        digest(value, name)?;
+    }
+    text(value, "query_schema")?;
+    text(value, "compiler_version")?;
+    Ok(Digest256::of_bytes(raw).to_hex())
+}
+fn validate_release_pointer(value: &JsonValue) -> Result<(String, Option<String>)> {
+    keys(value, &["schema_version", "current", "previous"])?;
+    if text(value, "schema_version")? != "tos_access_release_pointer_v1" {
+        return Err(unavailable("release pointer schema invalid"));
+    }
+    let current = digest(value, "current")?.to_hex();
+    let previous = match value.object_get("previous") {
+        Some(JsonValue::Null) => None,
+        Some(JsonValue::String(_)) => {
+            let previous = digest(value, "previous")?.to_hex();
+            if previous == current {
+                return Err(unavailable("release previous pointer invalid"));
+            }
+            Some(previous)
+        }
+        _ => return Err(unavailable("release previous pointer invalid")),
+    };
+    Ok((current, previous))
+}
+fn validate_release_bindings(value: &JsonValue) -> Result<()> {
+    keys(value, &["data_root", "software_archive"])?;
+    for key in ["data_root", "software_archive"] {
+        let raw = text(value, key)?;
+        if !safe_reference_absolute_path(raw, Path::new(raw)) {
+            return Err(unavailable("release absolute binding invalid"));
+        }
     }
     Ok(())
 }
@@ -387,37 +445,14 @@ impl ReferenceReleaseGuard {
         let lock_identity = lock.as_ref().map(identity).transpose()?;
 
         let (pointer, pointer_raw) = canonical_read(&root, "current.json")?;
-        keys(&pointer, &["schema_version", "current", "previous"])?;
-        if text(&pointer, "schema_version")? != "tos_access_release_pointer_v1" {
-            return Err(unavailable("Reference release pointer schema invalid"));
-        }
-        let pair_id = digest(&pointer, "current")?.to_hex();
-        match pointer.object_get("previous") {
-            Some(JsonValue::Null) => {}
-            Some(JsonValue::String(_)) if digest(&pointer, "previous")?.to_hex() != pair_id => {}
-            _ => return Err(unavailable("Reference release previous pointer invalid")),
-        }
+        let (pair_id, _) = validate_release_pointer(&pointer)?;
         let (pair, pair_raw) = canonical_read(&root, &format!("pairs/{pair_id}.json"))?;
-        keys(
-            &pair,
-            &[
-                "schema_version",
-                "software_sha256",
-                "data_revision",
-                "data_manifest_sha256",
-                "corpus_revision",
-                "query_schema",
-                "compiler_version",
-            ],
-        )?;
-        if text(&pair, "schema_version")? != "tos_access_release_pair_v1"
-            || Digest256::of_bytes(&pair_raw).to_hex() != pair_id
-        {
-            return Err(unavailable("Reference release pair identity invalid"));
+        if validate_release_pair(&pair, &pair_raw)? != pair_id {
+            return Err(unavailable("release pair identity invalid"));
         }
         let pair_data_manifest = digest(&pair, "data_manifest_sha256")?;
         let (bindings, bindings_raw) = canonical_read(&root, &format!("bindings/{pair_id}.json"))?;
-        keys(&bindings, &["data_root", "software_archive"])?;
+        validate_release_bindings(&bindings)?;
         let bound_data_text = text(&bindings, "data_root")?;
         let archive_text = text(&bindings, "software_archive")?;
         let bound_data = PathBuf::from(bound_data_text);
@@ -601,6 +636,161 @@ pub fn run_reference_root_if_requested(
     })
 }
 
+struct DecodedNativeManifest {
+    selection_path: String,
+    members: BTreeMap<String, Member>,
+    source_bindings: BTreeMap<String, Digest256>,
+    compiler_bindings: BTreeMap<String, Digest256>,
+}
+
+fn decode_native_manifest(
+    manifest: &JsonValue,
+    manifest_raw: &[u8],
+    pair: &JsonValue,
+) -> Result<DecodedNativeManifest> {
+    keys(
+        &manifest,
+        &[
+            "schema_version",
+            "corpus_revision",
+            "input_bindings",
+            "compiler",
+            "members",
+            "data_revision",
+            "native_selection",
+        ],
+    )?;
+    if text(&manifest, "schema_version")? != NATIVE_DATA_SCHEMA
+        || Digest256::of_bytes(&manifest_raw) != digest(&pair, "data_manifest_sha256")?
+        || text(&manifest, "corpus_revision")? != text(&pair, "corpus_revision")?
+        || text(&manifest, "data_revision")? != text(&pair, "data_revision")?
+    {
+        return Err(unavailable("selected native snapshot binding invalid"));
+    }
+    let mut body = manifest.clone();
+    if let JsonValue::Object(fields) = &mut body {
+        fields.retain(|(key, _)| key.as_str() != Some("data_revision"));
+    }
+    if Digest256::of_bytes(
+        &canonical_bytes_v1(&body, CanonicalProfile::CorpusSnapshotV1, METADATA_LIMITS)
+            .map_err(|_| unavailable("native snapshot revision failed"))?,
+    ) != digest(&manifest, "data_revision")?
+    {
+        return Err(unavailable("native snapshot revision mismatch"));
+    }
+    let compiler = manifest
+        .object_get("compiler")
+        .ok_or_else(|| unavailable("native snapshot compiler absent"))?;
+    keys(
+        compiler,
+        &[
+            "schema",
+            "compiler_version",
+            "compiler_sha256",
+            "compiler_paths",
+            "input_bindings",
+        ],
+    )?;
+    digest(compiler, "compiler_sha256")?;
+    input_bindings(
+        compiler
+            .object_get("input_bindings")
+            .ok_or_else(|| unavailable("compiler input bindings absent"))?,
+    )?;
+    input_bindings(
+        manifest
+            .object_get("input_bindings")
+            .ok_or_else(|| unavailable("snapshot input bindings absent"))?,
+    )?;
+    let source_bindings = manifest
+        .object_get("input_bindings")
+        .unwrap()
+        .as_object()
+        .unwrap()
+        .iter()
+        .map(|(key, value)| {
+            Ok((
+                key.as_str().unwrap().to_owned(),
+                Digest256::from_hex(value.as_str().unwrap())
+                    .map_err(|_| unavailable("snapshot input digest invalid"))?,
+            ))
+        })
+        .collect::<Result<BTreeMap<_, _>>>()?;
+    let compiler_bindings = compiler
+        .object_get("input_bindings")
+        .unwrap()
+        .as_object()
+        .unwrap()
+        .iter()
+        .map(|(key, value)| {
+            Ok((
+                key.as_str().unwrap().to_owned(),
+                Digest256::from_hex(value.as_str().unwrap())
+                    .map_err(|_| unavailable("compiler input binding invalid"))?,
+            ))
+        })
+        .collect::<Result<BTreeMap<_, _>>>()?;
+    let mut prior = String::new();
+    let compiler_paths = compiler
+        .object_get("compiler_paths")
+        .and_then(JsonValue::as_array)
+        .filter(|paths| !paths.is_empty())
+        .ok_or_else(|| unavailable("compiler paths absent"))?;
+    for path in compiler_paths {
+        let path = path
+            .as_str()
+            .ok_or_else(|| unavailable("compiler path invalid"))?;
+        RelativePath::parse(path).map_err(|_| unavailable("compiler path invalid"))?;
+        if path <= prior.as_str() {
+            return Err(unavailable("compiler paths not sorted and unique"));
+        }
+        prior = path.to_owned();
+    }
+    if text(compiler, "schema")? != text(&pair, "query_schema")?
+        || text(compiler, "compiler_version")? != text(&pair, "compiler_version")?
+    {
+        return Err(unavailable("release compiler pairing mismatch"));
+    }
+    let mut members = BTreeMap::new();
+    let mut previous = String::new();
+    for item in manifest
+        .object_get("members")
+        .and_then(JsonValue::as_array)
+        .ok_or_else(|| unavailable("native snapshot members absent"))?
+    {
+        keys(item, &["path", "size_bytes", "sha256"])?;
+        let path = text(item, "path")?;
+        RelativePath::parse(path).map_err(|_| unavailable("native snapshot member invalid"))?;
+        if !path.starts_with("data/") || path <= previous.as_str() || path == "data/manifest.json" {
+            return Err(unavailable("native snapshot members not sorted and unique"));
+        }
+        let size = item
+            .object_get("size_bytes")
+            .and_then(JsonValue::as_u64)
+            .ok_or_else(|| unavailable("native snapshot member size invalid"))?;
+        members.insert(
+            path.to_owned(),
+            Member {
+                size,
+                digest: digest(item, "sha256")?,
+            },
+        );
+        previous = path.to_owned();
+    }
+    let selection_path = text(&manifest, "native_selection")?.to_owned();
+    if !members.contains_key(&selection_path) {
+        return Err(unavailable(
+            "native selection is not a declared snapshot member",
+        ));
+    }
+    Ok(DecodedNativeManifest {
+        selection_path,
+        members,
+        source_bindings,
+        compiler_bindings,
+    })
+}
+
 impl ManagedRelease {
     /// Selection is explicit; no data or authority is discovered through cwd.
     pub fn open(root_path: &Path) -> Result<Arc<Self>> {
@@ -624,36 +814,13 @@ impl ManagedRelease {
             .map_err(|_| unavailable("managed release holder busy or unavailable"))?;
         let lock_identity = identity(&lock)?;
         let (pointer, pointer_raw) = canonical_read(&root, "current.json")?;
-        keys(&pointer, &["schema_version", "current", "previous"])?;
-        if text(&pointer, "schema_version")? != "tos_access_release_pointer_v1" {
-            return Err(unavailable("release pointer schema invalid"));
-        }
-        let pair_id = digest(&pointer, "current")?.to_hex();
-        match pointer.object_get("previous") {
-            Some(JsonValue::Null) => {}
-            Some(JsonValue::String(_)) if digest(&pointer, "previous")?.to_hex() != pair_id => {}
-            _ => return Err(unavailable("release previous pointer invalid")),
-        }
+        let (pair_id, _) = validate_release_pointer(&pointer)?;
         let (pair, pair_raw) = canonical_read(&root, &format!("pairs/{pair_id}.json"))?;
-        keys(
-            &pair,
-            &[
-                "schema_version",
-                "software_sha256",
-                "data_revision",
-                "data_manifest_sha256",
-                "corpus_revision",
-                "query_schema",
-                "compiler_version",
-            ],
-        )?;
-        if text(&pair, "schema_version")? != "tos_access_release_pair_v1"
-            || Digest256::of_bytes(&pair_raw).to_hex() != pair_id
-        {
+        if validate_release_pair(&pair, &pair_raw)? != pair_id {
             return Err(unavailable("release pair identity invalid"));
         }
         let (bindings, bindings_raw) = canonical_read(&root, &format!("bindings/{pair_id}.json"))?;
-        keys(&bindings, &["data_root", "software_archive"])?;
+        validate_release_bindings(&bindings)?;
         // ReleaseStore binds the archive, but installation verification remains
         // the software release owner; the reader cannot manufacture that proof.
         let archive = Path::new(text(&bindings, "software_archive")?);
@@ -669,144 +836,12 @@ impl ManagedRelease {
         let (data_path, data) = absolute_directory(bound_data_root)?;
         let data_identity = identity(&data)?;
         let (manifest, manifest_raw) = canonical_read(&data, "data/manifest.json")?;
-        keys(
-            &manifest,
-            &[
-                "schema_version",
-                "corpus_revision",
-                "input_bindings",
-                "compiler",
-                "members",
-                "data_revision",
-                "native_selection",
-            ],
-        )?;
-        if text(&manifest, "schema_version")? != NATIVE_DATA_SCHEMA
-            || Digest256::of_bytes(&manifest_raw) != digest(&pair, "data_manifest_sha256")?
-            || text(&manifest, "corpus_revision")? != text(&pair, "corpus_revision")?
-            || text(&manifest, "data_revision")? != text(&pair, "data_revision")?
-        {
-            return Err(unavailable("selected native snapshot binding invalid"));
-        }
-        let mut body = manifest.clone();
-        if let JsonValue::Object(fields) = &mut body {
-            fields.retain(|(key, _)| key.as_str() != Some("data_revision"));
-        }
-        if Digest256::of_bytes(
-            &canonical_bytes_v1(&body, CanonicalProfile::CorpusSnapshotV1, METADATA_LIMITS)
-                .map_err(|_| unavailable("native snapshot revision failed"))?,
-        ) != digest(&manifest, "data_revision")?
-        {
-            return Err(unavailable("native snapshot revision mismatch"));
-        }
-        let compiler = manifest
-            .object_get("compiler")
-            .ok_or_else(|| unavailable("native snapshot compiler absent"))?;
-        keys(
-            compiler,
-            &[
-                "schema",
-                "compiler_version",
-                "compiler_sha256",
-                "compiler_paths",
-                "input_bindings",
-            ],
-        )?;
-        digest(compiler, "compiler_sha256")?;
-        input_bindings(
-            compiler
-                .object_get("input_bindings")
-                .ok_or_else(|| unavailable("compiler input bindings absent"))?,
-        )?;
-        input_bindings(
-            manifest
-                .object_get("input_bindings")
-                .ok_or_else(|| unavailable("snapshot input bindings absent"))?,
-        )?;
-        let source_bindings = manifest
-            .object_get("input_bindings")
-            .unwrap()
-            .as_object()
-            .unwrap()
-            .iter()
-            .map(|(key, value)| {
-                Ok((
-                    key.as_str().unwrap().to_owned(),
-                    Digest256::from_hex(value.as_str().unwrap())
-                        .map_err(|_| unavailable("snapshot input digest invalid"))?,
-                ))
-            })
-            .collect::<Result<BTreeMap<_, _>>>()?;
-        let compiler_bindings = compiler
-            .object_get("input_bindings")
-            .unwrap()
-            .as_object()
-            .unwrap()
-            .iter()
-            .map(|(key, value)| {
-                Ok((
-                    key.as_str().unwrap().to_owned(),
-                    Digest256::from_hex(value.as_str().unwrap())
-                        .map_err(|_| unavailable("compiler input binding invalid"))?,
-                ))
-            })
-            .collect::<Result<BTreeMap<_, _>>>()?;
-        let mut prior = String::new();
-        let compiler_paths = compiler
-            .object_get("compiler_paths")
-            .and_then(JsonValue::as_array)
-            .filter(|paths| !paths.is_empty())
-            .ok_or_else(|| unavailable("compiler paths absent"))?;
-        for path in compiler_paths {
-            let path = path
-                .as_str()
-                .ok_or_else(|| unavailable("compiler path invalid"))?;
-            RelativePath::parse(path).map_err(|_| unavailable("compiler path invalid"))?;
-            if path <= prior.as_str() {
-                return Err(unavailable("compiler paths not sorted and unique"));
-            }
-            prior = path.to_owned();
-        }
-        if text(compiler, "schema")? != text(&pair, "query_schema")?
-            || text(compiler, "compiler_version")? != text(&pair, "compiler_version")?
-        {
-            return Err(unavailable("release compiler pairing mismatch"));
-        }
-        let mut members = BTreeMap::new();
-        let mut previous = String::new();
-        for item in manifest
-            .object_get("members")
-            .and_then(JsonValue::as_array)
-            .ok_or_else(|| unavailable("native snapshot members absent"))?
-        {
-            keys(item, &["path", "size_bytes", "sha256"])?;
-            let path = text(item, "path")?;
-            RelativePath::parse(path).map_err(|_| unavailable("native snapshot member invalid"))?;
-            if !path.starts_with("data/")
-                || path <= previous.as_str()
-                || path == "data/manifest.json"
-            {
-                return Err(unavailable("native snapshot members not sorted and unique"));
-            }
-            let size = item
-                .object_get("size_bytes")
-                .and_then(JsonValue::as_u64)
-                .ok_or_else(|| unavailable("native snapshot member size invalid"))?;
-            members.insert(
-                path.to_owned(),
-                Member {
-                    size,
-                    digest: digest(item, "sha256")?,
-                },
-            );
-            previous = path.to_owned();
-        }
-        let selection_path = text(&manifest, "native_selection")?.to_owned();
-        if !members.contains_key(&selection_path) {
-            return Err(unavailable(
-                "native selection is not a declared snapshot member",
-            ));
-        }
+        let DecodedNativeManifest {
+            selection_path,
+            members,
+            source_bindings,
+            compiler_bindings,
+        } = decode_native_manifest(&manifest, &manifest_raw, &pair)?;
         let release = Arc::new(Self {
             root_path: root_path.to_owned(),
             root,
@@ -935,6 +970,195 @@ impl ManagedRelease {
         &self.root_path
     }
 }
+struct CorpusMetadata<'a> {
+    members: &'a BTreeMap<String, Member>,
+    source_bindings: &'a BTreeMap<String, Digest256>,
+    compiler_bindings: &'a BTreeMap<String, Digest256>,
+    corpus_revision: &'a str,
+}
+// Shared source/provenance law for both selected readers and unpublished native candidates.
+// This validates metadata only; each caller must retain and hash the planned files.
+fn corpus_source_plan(
+    release: CorpusMetadata<'_>,
+    receipt: &tos_compiler::CorpusOriginalReceipt,
+    max_bytes: usize,
+) -> Result<(String, Vec<String>)> {
+    let declaration = parse_json(
+        RUNTIME_DATA_DECLARATION,
+        JsonMode::PublishedStrict,
+        METADATA_LIMITS,
+    )
+    .map_err(|_| unavailable("runtime-data declaration invalid"))?;
+    let source = declaration
+        .root()
+        .object_get("subjects")
+        .and_then(JsonValue::as_array)
+        .and_then(|subjects| {
+            subjects.iter().find(|subject| {
+                subject.object_get("subject_id").and_then(JsonValue::as_str)
+                    == Some("tos-corpus-index")
+            })
+        })
+        .ok_or_else(|| unavailable("declared corpus index absent"))?;
+    let path = text(source, "source_path")?;
+    let roles = source
+        .object_get("consumer_roles")
+        .and_then(JsonValue::as_array)
+        .ok_or_else(|| unavailable("corpus consumer roles absent"))?;
+    if path != receipt.origin.source_path
+        || !["query-core", "http-reader", "native-mcp"]
+            .iter()
+            .all(|role| roles.iter().any(|v| v.as_str() == Some(*role)))
+        || release.source_bindings.get(RUNTIME_DATA_DECLARATION_PATH)
+            != Some(&Digest256::of_bytes(RUNTIME_DATA_DECLARATION))
+    {
+        return Err(unavailable("corpus original declaration binding differs"));
+    }
+    // Native produced output and captured public input have disjoint
+    // provenance. Neither selection nor this check grants authored rights.
+    let runtime_capture = receipt.origin.profile == "captured-runtime-projection-v1";
+    let native = match receipt.origin.profile.as_str() {
+        "captured-public-corpus-v1" if receipt.origin.native_producer.is_none() => None,
+        // A held runtime projection has no invented Git or authored producer origin.
+        // The compiler's typed receipt decoder verifies its complete member digest.
+        "captured-runtime-projection-v1"
+            if receipt.origin.native_producer.is_none()
+                && receipt.origin.source_git_commit.is_none()
+                && receipt.origin.source_git_tree.is_none()
+                && receipt.origin.capture_manifest_sha256.is_some() =>
+        {
+            None
+        }
+        "native-corpus-producer-v1" => {
+            let proof = receipt
+                .origin
+                .native_producer
+                .as_ref()
+                .ok_or_else(|| unavailable("native corpus producer missing"))?;
+            if proof.source_revision != release.corpus_revision
+                || proof.source_cut != receipt.source_cut
+                || proof.source_membership_sha256 != receipt.membership_root
+                || proof.descriptor_sha256 != receipt.descriptor_sha256
+                || proof.output_sha256 != receipt.origin.source_sha256
+                || proof.output_bytes != receipt.origin.source_size_bytes
+                || release
+                    .compiler_bindings
+                    .get("scripts/tos_corpus_index_common.py")
+                    .map(|sha| sha.to_hex())
+                    != Some(proof.owner_program_sha256.clone())
+                || release
+                    .compiler_bindings
+                    .get("ToS/contracts/tos-corpus-index.schema.json")
+                    .map(|sha| sha.to_hex())
+                    != Some(proof.owner_schema_sha256.clone())
+            {
+                return Err(unavailable(
+                    "native corpus source/software/output binding differs",
+                ));
+            }
+            Some(proof)
+        }
+        _ => {
+            return Err(unavailable(
+                "corpus original provenance profile unsupported",
+            ));
+        }
+    };
+    let mut total = 0u64;
+    let mut planned = vec![];
+    let mut source_seen = false;
+    for member in &receipt.origin.members {
+        let selected = format!("data/{}", member.path);
+        let member_binding = release
+            .members
+            .get(&selected)
+            .ok_or_else(|| unavailable("selection path is not a declared snapshot member"))?;
+        let (size, sha) = (member_binding.size, member_binding.digest);
+        if size != member.size_bytes
+            || sha.to_hex() != member.sha256
+            || match native {
+                None if runtime_capture => {
+                    // The selected component root authenticates the complete captured
+                    // member digest; DataGuard still binds every part below. Only the
+                    // declared root needs a redundant source binding. Any supplied
+                    // part binding must agree rather than silently overriding custody.
+                    (member.path == receipt.origin.source_path
+                        && release.source_bindings.get(&member.path) != Some(&sha))
+                        || release
+                            .source_bindings
+                            .get(&member.path)
+                            .is_some_and(|bound| bound != &sha)
+                }
+                None => release.source_bindings.get(&member.path) != Some(&sha),
+                Some(proof) => {
+                    release.source_bindings.contains_key(&member.path)
+                        || member.path != receipt.origin.source_path
+                        || member.sha256 != proof.output_sha256
+                        || member.size_bytes != proof.output_bytes
+                }
+            }
+        {
+            return Err(unavailable("corpus source member binding differs"));
+        }
+        total = total
+            .checked_add(size)
+            .filter(|n| *n <= max_bytes as u64)
+            .ok_or_else(|| unavailable("corpus original closure exceeds cold envelope"))?;
+        if member.path == path {
+            source_seen = size == receipt.origin.source_size_bytes
+                && member.sha256 == receipt.origin.source_sha256;
+        }
+        planned.push(selected);
+    }
+    if !source_seen {
+        return Err(unavailable("complete corpus index source member absent"));
+    }
+    Ok((path.to_owned(), planned))
+}
+fn query_source_plan(
+    release: CorpusMetadata<'_>,
+    source_paths: &[&str],
+    max_bytes: usize,
+) -> Result<Vec<(String, u64)>> {
+    if source_paths.is_empty() || source_paths.len() > 7 || max_bytes == 0 {
+        return Err(unavailable("query source member admission bounds invalid"));
+    }
+    if release.source_bindings.get(RUNTIME_DATA_DECLARATION_PATH)
+        != Some(&Digest256::of_bytes(RUNTIME_DATA_DECLARATION))
+    {
+        return Err(unavailable("runtime-data declaration binding differs"));
+    }
+    let declared = declared_query_source_paths()?;
+    let max_bytes =
+        u64::try_from(max_bytes).map_err(|_| unavailable("query source byte budget invalid"))?;
+    let mut seen = BTreeSet::new();
+    let mut planned = Vec::with_capacity(source_paths.len());
+    let mut total = 0u64;
+    for source_path in source_paths {
+        RelativePath::parse(source_path)
+            .map_err(|_| unavailable("query source member path invalid"))?;
+        if !declared.contains(*source_path) || !seen.insert((*source_path).to_owned()) {
+            return Err(unavailable(
+                "query source member is undeclared or duplicated",
+            ));
+        }
+        let member_path = format!("data/{source_path}");
+        let member = release
+            .members
+            .get(&member_path)
+            .ok_or_else(|| unavailable("selection path is not a declared snapshot member"))?;
+        let (size, sha) = (member.size, member.digest);
+        if release.source_bindings.get(*source_path) != Some(&sha) {
+            return Err(unavailable("query source input binding differs"));
+        }
+        total = total
+            .checked_add(size)
+            .filter(|bytes| *bytes <= max_bytes)
+            .ok_or_else(|| unavailable("query source member byte budget exceeded"))?;
+        planned.push((member_path, size));
+    }
+    Ok(planned)
+}
 impl ReleaseLease {
     /// Full raw closure is verified once at cold admission; subsequent addressed
     /// reads retain DataGuard identity checks under the existing release lock.
@@ -948,139 +1172,27 @@ impl ReleaseLease {
     )> {
         self.check_hold()?;
         let release = &self.release;
-        let declaration = parse_json(
-            RUNTIME_DATA_DECLARATION,
-            JsonMode::PublishedStrict,
-            METADATA_LIMITS,
-        )
-        .map_err(|_| unavailable("runtime-data declaration invalid"))?;
-        let source = declaration
-            .root()
-            .object_get("subjects")
-            .and_then(JsonValue::as_array)
-            .and_then(|subjects| {
-                subjects.iter().find(|subject| {
-                    subject.object_get("subject_id").and_then(JsonValue::as_str)
-                        == Some("tos-corpus-index")
-                })
-            })
-            .ok_or_else(|| unavailable("declared corpus index absent"))?;
-        let path = text(source, "source_path")?;
-        let roles = source
-            .object_get("consumer_roles")
-            .and_then(JsonValue::as_array)
-            .ok_or_else(|| unavailable("corpus consumer roles absent"))?;
-        if path != receipt.origin.source_path
-            || !["query-core", "http-reader", "native-mcp"]
-                .iter()
-                .all(|role| roles.iter().any(|v| v.as_str() == Some(*role)))
-            || release.source_bindings.get(RUNTIME_DATA_DECLARATION_PATH)
-                != Some(&Digest256::of_bytes(RUNTIME_DATA_DECLARATION))
-        {
-            return Err(unavailable("corpus original declaration binding differs"));
-        }
-        // Native produced output and captured public input have disjoint
-        // provenance. Neither selection nor this check grants authored rights.
-        let runtime_capture = receipt.origin.profile == "captured-runtime-projection-v1";
-        let native = match receipt.origin.profile.as_str() {
-            "captured-public-corpus-v1" if receipt.origin.native_producer.is_none() => None,
-            // A held runtime projection has no invented Git or authored producer origin.
-            // The compiler's typed receipt decoder verifies its complete member digest.
-            "captured-runtime-projection-v1"
-                if receipt.origin.native_producer.is_none()
-                    && receipt.origin.source_git_commit.is_none()
-                    && receipt.origin.source_git_tree.is_none()
-                    && receipt.origin.capture_manifest_sha256.is_some() =>
-            {
-                None
-            }
-            "native-corpus-producer-v1" => {
-                let proof = receipt
-                    .origin
-                    .native_producer
-                    .as_ref()
-                    .ok_or_else(|| unavailable("native corpus producer missing"))?;
-                if proof.source_revision != release.corpus_revision
-                    || proof.source_cut != receipt.source_cut
-                    || proof.source_membership_sha256 != receipt.membership_root
-                    || proof.descriptor_sha256 != receipt.descriptor_sha256
-                    || proof.output_sha256 != receipt.origin.source_sha256
-                    || proof.output_bytes != receipt.origin.source_size_bytes
-                    || release
-                        .compiler_bindings
-                        .get("scripts/tos_corpus_index_common.py")
-                        .map(|sha| sha.to_hex())
-                        != Some(proof.owner_program_sha256.clone())
-                    || release
-                        .compiler_bindings
-                        .get("ToS/contracts/tos-corpus-index.schema.json")
-                        .map(|sha| sha.to_hex())
-                        != Some(proof.owner_schema_sha256.clone())
-                {
-                    return Err(unavailable(
-                        "native corpus source/software/output binding differs",
-                    ));
-                }
-                Some(proof)
-            }
-            _ => {
-                return Err(unavailable(
-                    "corpus original provenance profile unsupported",
-                ));
-            }
-        };
-        let mut total = 0u64;
-        let mut guards = vec![];
-        let mut source_seen = false;
-        for member in &receipt.origin.members {
-            let selected = format!("data/{}", member.path);
-            let (size, sha) = release.member_binding(&selected)?;
-            if size != member.size_bytes
-                || sha.to_hex() != member.sha256
-                || match native {
-                    None if runtime_capture => {
-                        // The selected component root authenticates the complete captured
-                        // member digest; DataGuard still binds every part below. Only the
-                        // declared root needs a redundant source binding. Any supplied
-                        // part binding must agree rather than silently overriding custody.
-                        (member.path == receipt.origin.source_path
-                            && release.source_bindings.get(&member.path) != Some(&sha))
-                            || release
-                                .source_bindings
-                                .get(&member.path)
-                                .is_some_and(|bound| bound != &sha)
-                    }
-                    None => release.source_bindings.get(&member.path) != Some(&sha),
-                    Some(proof) => {
-                        release.source_bindings.contains_key(&member.path)
-                            || member.path != receipt.origin.source_path
-                            || member.sha256 != proof.output_sha256
-                            || member.size_bytes != proof.output_bytes
-                    }
-                }
-            {
-                return Err(unavailable("corpus source member binding differs"));
-            }
-            total = total
-                .checked_add(size)
-                .filter(|n| *n <= max_bytes as u64)
-                .ok_or_else(|| unavailable("corpus original closure exceeds cold envelope"))?;
+        let (path, planned) = corpus_source_plan(
+            CorpusMetadata {
+                members: &release.members,
+                source_bindings: &release.source_bindings,
+                compiler_bindings: &release.compiler_bindings,
+                corpus_revision: &release.corpus_revision,
+            },
+            receipt,
+            max_bytes,
+        )?;
+        let mut guards = Vec::with_capacity(planned.len());
+        for selected in planned {
             let before = member_identity(&child(&release.data, &selected)?)?;
             release.member_bytes(&selected, max_bytes)?;
             if before != member_identity(&child(&release.data, &selected)?)? {
                 return Err(unavailable("corpus member changed during admission"));
             }
-            if member.path == path {
-                source_seen = size == receipt.origin.source_size_bytes
-                    && member.sha256 == receipt.origin.source_sha256;
-            }
             guards.push(ReleaseMemberGuard {
                 path: selected,
                 identity: before,
             });
-        }
-        if !source_seen {
-            return Err(unavailable("complete corpus index source member absent"));
         }
         let index = release.member_path(&format!("data/{path}"))?;
         let root = release.data_path.join("data");
@@ -1107,43 +1219,17 @@ impl ReleaseLease {
         source_paths: &[&str],
         max_bytes: usize,
     ) -> Result<Vec<PathBuf>> {
-        if source_paths.is_empty() || source_paths.len() > 7 || max_bytes == 0 {
-            return Err(unavailable("query source member admission bounds invalid"));
-        }
         self.check_hold()?;
-        if self
-            .release
-            .source_bindings
-            .get(RUNTIME_DATA_DECLARATION_PATH)
-            != Some(&Digest256::of_bytes(RUNTIME_DATA_DECLARATION))
-        {
-            return Err(unavailable("runtime-data declaration binding differs"));
-        }
-        let declared = declared_query_source_paths()?;
-        let max_bytes = u64::try_from(max_bytes)
-            .map_err(|_| unavailable("query source byte budget invalid"))?;
-        let mut seen = BTreeSet::new();
-        let mut planned = Vec::with_capacity(source_paths.len());
-        let mut total = 0u64;
-        for source_path in source_paths {
-            RelativePath::parse(source_path)
-                .map_err(|_| unavailable("query source member path invalid"))?;
-            if !declared.contains(*source_path) || !seen.insert((*source_path).to_owned()) {
-                return Err(unavailable(
-                    "query source member is undeclared or duplicated",
-                ));
-            }
-            let member_path = format!("data/{source_path}");
-            let (size, sha) = self.release.member_binding(&member_path)?;
-            if self.release.source_bindings.get(*source_path) != Some(&sha) {
-                return Err(unavailable("query source input binding differs"));
-            }
-            total = total
-                .checked_add(size)
-                .filter(|bytes| *bytes <= max_bytes)
-                .ok_or_else(|| unavailable("query source member byte budget exceeded"))?;
-            planned.push((member_path, size));
-        }
+        let planned = query_source_plan(
+            CorpusMetadata {
+                members: &self.release.members,
+                source_bindings: &self.release.source_bindings,
+                compiler_bindings: &self.release.compiler_bindings,
+                corpus_revision: &self.release.corpus_revision,
+            },
+            source_paths,
+            max_bytes,
+        )?;
         let mut paths = Vec::with_capacity(planned.len());
         let mut guards = Vec::with_capacity(planned.len());
         for (member_path, size) in planned {
@@ -1331,3 +1417,7 @@ impl ReleaseLease {
         self.release.check_locked()
     }
 }
+
+#[cfg(target_os = "linux")]
+#[path = "release_state_promotion.rs"]
+pub mod promotion;

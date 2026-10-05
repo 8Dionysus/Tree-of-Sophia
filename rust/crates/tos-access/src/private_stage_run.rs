@@ -3015,15 +3015,25 @@ fn host_json(
 // crosses this diagnostic seam. All fields come from the SAME bounded reply.
 const HOST_REFUSAL_BYTES: usize = 4096;
 fn host_public_label(value: &serde_json::Value) -> serde_json::Value {
-    value.as_str().filter(|text| text.len() <= 128 && text.bytes().all(|b| b.is_ascii_graphic() || b == b' '))
-        .map(|text| serde_json::Value::String(text.to_owned())).unwrap_or(serde_json::Value::Null)
+    value
+        .as_str()
+        .filter(|text| text.len() <= 128 && text.bytes().all(|b| b.is_ascii_graphic() || b == b' '))
+        .map(|text| serde_json::Value::String(text.to_owned()))
+        .unwrap_or(serde_json::Value::Null)
 }
 fn host_public_counter(value: &serde_json::Value) -> serde_json::Value {
-    value.as_number().filter(|number| number.to_string().len() <= 32)
-        .map(|number| serde_json::Value::Number(number.clone())).unwrap_or(serde_json::Value::Null)
+    value
+        .as_number()
+        .filter(|number| number.to_string().len() <= 32)
+        .map(|number| serde_json::Value::Number(number.clone()))
+        .unwrap_or(serde_json::Value::Null)
 }
-fn host_refusal_diagnostic(reply: &serde_json::Value, request: &serde_json::Value,
-    response_bytes: usize, cleanup_only: bool) -> String {
+fn host_refusal_diagnostic(
+    reply: &serde_json::Value,
+    request: &serde_json::Value,
+    response_bytes: usize,
+    cleanup_only: bool,
+) -> String {
     let plan = &reply["plan"];
     let mut diagnostic = serde_json::json!({
         "schema":"tos_sdk_host_admission_refusal_v1",
@@ -3048,19 +3058,39 @@ fn host_refusal_diagnostic(reply: &serde_json::Value, request: &serde_json::Valu
         "policy_fail_closed":reply["policy"]["fail_closed"].as_bool(),
         "truncated":false
     });
-    for key in ["blocked_reasons", "denied_reasons", "warnings", "contract_errors"] {
-        let values = reply.get(key).or_else(|| plan.get(key)).and_then(serde_json::Value::as_array);
-        let kept: Vec<_> = values.into_iter().flatten().take(4).map(host_public_label)
-            .filter(|value| !value.is_null()).collect();
+    for key in [
+        "blocked_reasons",
+        "denied_reasons",
+        "warnings",
+        "contract_errors",
+    ] {
+        let values = reply
+            .get(key)
+            .or_else(|| plan.get(key))
+            .and_then(serde_json::Value::as_array);
+        let kept: Vec<_> = values
+            .into_iter()
+            .flatten()
+            .take(4)
+            .map(host_public_label)
+            .filter(|value| !value.is_null())
+            .collect();
         let omitted = values.map_or(0, Vec::len).saturating_sub(kept.len());
         diagnostic[key] = serde_json::Value::Array(kept);
         diagnostic[format!("{key}_omitted")] = serde_json::json!(omitted);
     }
     let encoded = diagnostic.to_string();
-    if encoded.len() <= HOST_REFUSAL_BYTES { return encoded; }
+    if encoded.len() <= HOST_REFUSAL_BYTES {
+        return encoded;
+    }
     // Labels can require JSON escaping. Preserve stage/decision/counters even
     // when the admitted diagnostic would otherwise exceed its fixed bound.
-    for key in ["blocked_reasons", "denied_reasons", "warnings", "contract_errors"] {
+    for key in [
+        "blocked_reasons",
+        "denied_reasons",
+        "warnings",
+        "contract_errors",
+    ] {
         let removed = diagnostic[key].as_array().map_or(0, Vec::len);
         let omitted_key = format!("{key}_omitted");
         let previous = diagnostic[&omitted_key].as_u64().unwrap_or(0);
@@ -3127,8 +3157,10 @@ fn host_admission(
     }
     let j: serde_json::Value = serde_json::from_slice(&response).map_err(|e| e.to_string())?;
     if j["ok"] != true {
-        return Err(format!("normal host admission refused: {}",
-            host_refusal_diagnostic(&j, &payload, response.len(), cleanup_only)));
+        return Err(format!(
+            "normal host admission refused: {}",
+            host_refusal_diagnostic(&j, &payload, response.len(), cleanup_only)
+        ));
     }
     Ok(j)
 }
@@ -3338,11 +3370,16 @@ fn sdk_host_session(args: &[String]) -> Result<i32, String> {
             }
             thread::sleep(Duration::from_millis(5));
         };
-        let cgroup = common
-            .strip_prefix("/sys/fs/cgroup")
-            .map_err(|e| e.to_string())?
-            .to_str()
-            .ok_or("cgroup text")?;
+        // The host owner contract uses the rooted hierarchy from
+        // /proc/self/cgroup, not a relative path or the filesystem mount path.
+        let cgroup = format!(
+            "/{}",
+            common
+                .strip_prefix("/sys/fs/cgroup")
+                .map_err(|e| e.to_string())?
+                .to_str()
+                .ok_or("cgroup text")?
+        );
         // Conditional startup bill for cgroup-charged RAM under this native
         // scope's configured MemoryMax and swap-zero envelope. This is a full
         // ceiling forecast, not a measured peak or total host-overhead estimate.
@@ -3699,30 +3736,33 @@ mod host_refusal_tests {
             "lease":{"id":"PRIVATE_CAPABILITY"},"release_token":"PRIVATE_CAPABILITY"});
         let request = serde_json::json!({"request":{"memory_demand_mib":3840,
             "release_token":"PRIVATE_CAPABILITY","owner_cgroup":"PRIVATE_CGROUP"}});
-        let encoded = host_refusal_diagnostic(&reply,&request,1024,false);
+        let encoded = host_refusal_diagnostic(&reply, &request, 1024, false);
         assert!(encoded.len() <= HOST_REFUSAL_BYTES);
         assert!(!encoded.contains("PRIVATE_CAPABILITY") && !encoded.contains("PRIVATE_CGROUP"));
         let parsed: serde_json::Value = serde_json::from_str(&encoded).unwrap();
         assert_eq!(parsed["denied_reasons"], reply["denied_reasons"]);
         assert_eq!(parsed["contract_errors"], reply["contract_errors"]);
-        assert_eq!(parsed["projected_memory"], reply["plan"]["projected_memory"]);
+        assert_eq!(
+            parsed["projected_memory"],
+            reply["plan"]["projected_memory"]
+        );
         assert_eq!(parsed["swap_reserve"], reply["plan"]["swap_reserve"]);
-        assert_eq!(parsed["stage"],"workload_start");
-        assert_eq!(parsed["memory_demand_mib"],3840);
+        assert_eq!(parsed["stage"], "workload_start");
+        assert_eq!(parsed["memory_demand_mib"], 3840);
     }
 
     #[test]
     fn refusal_escaping_and_large_lists_stay_bounded_with_omission_counts() {
         let text = "\"".repeat(128);
-        let reasons = serde_json::json!(vec![text.clone();100]);
+        let reasons = serde_json::json!(vec![text.clone(); 100]);
         let reply = serde_json::json!({"decision":text,"command":text,"error_type":text,
             "blocked_reasons":reasons,"denied_reasons":reasons,"warnings":reasons,
             "plan":{"projected_memory":{"class":text},"swap_reserve":{"state":text}}});
-        let encoded = host_refusal_diagnostic(&reply,&serde_json::json!({}),65536,true);
+        let encoded = host_refusal_diagnostic(&reply, &serde_json::json!({}), 65536, true);
         assert!(encoded.len() <= HOST_REFUSAL_BYTES);
         let parsed: serde_json::Value = serde_json::from_str(&encoded).unwrap();
-        assert_eq!(parsed["stage"],"cleanup_release");
-        for key in ["blocked_reasons","denied_reasons","warnings"] {
+        assert_eq!(parsed["stage"], "cleanup_release");
+        for key in ["blocked_reasons", "denied_reasons", "warnings"] {
             assert!(parsed[key].as_array().unwrap().len() <= 4);
             assert!(parsed[format!("{key}_omitted")].as_u64().unwrap() >= 96);
         }
