@@ -332,8 +332,15 @@ impl GrammarIdentity {
             record_selection: binding,
         };
         serde_json::to_writer(&mut count, &envelope).map_err(invalid)?;
+        // CorpusSnapshotV1 owns a terminal LF beyond serde's compact envelope.
+        // Keep that byte inside the same caller-derived serialization cap.
+        let canonical_bytes = count
+            .bytes
+            .checked_add(1)
+            .filter(|bytes| *bytes <= cap)
+            .ok_or_else(|| invalid("record selection identity state bound"))?;
         let limits = JsonLimits::new(
-            count.bytes,
+            canonical_bytes,
             32,
             count
                 .bytes

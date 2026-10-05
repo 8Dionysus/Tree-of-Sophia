@@ -3008,12 +3008,21 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
             catalog_operation.tmpfs_bytes.min(64 * 1024 * 1024),
         )
         .map_err(FoundationOrchestratorError::Command)?;
+    // This worker belongs to the catalog phase, whose reservation may be
+    // smaller than the schema phase. Every count dimension uses its own wire
+    // envelope rather than mixing receipts from one phase with units of another.
+    let catalog_max_checks = bounded_usize(
+        u64::try_from(max_checks)
+            .unwrap_or(u64::MAX - 1)
+            .min(catalog_operation.worker_wire_bytes),
+    )?
+    .max(1);
     let catalog_worker_shape = FoundationCatalogWorkerShape {
         batch: BatchBudget::laboratory(),
-        max_chunks: max_checks
+        max_chunks: catalog_max_checks
             .div_ceil(BatchBudget::laboratory().max_units)
             .max(1) as u64,
-        max_total_units: u64::try_from(max_checks)
+        max_total_units: u64::try_from(catalog_max_checks)
             .unwrap_or(u64::MAX - 1)
             .min(catalog_operation.worker_wire_bytes)
             .max(1),
@@ -3023,8 +3032,8 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
             .min(BatchBudget::MAX_RAW_BYTES as u64)
             .max(1),
         max_total_wire_bytes: catalog_operation.worker_wire_bytes,
-        max_distinct_selectors: max_checks.max(1).min(1024),
-        max_receipts: max_checks.max(1),
+        max_distinct_selectors: catalog_max_checks.max(1).min(1024),
+        max_receipts: catalog_max_checks.max(1),
         max_receipt_bytes: catalog_state_cap.min(1024 * 1024).max(1),
     };
     let (catalog_executor, _catalog_cut_limits, _catalog_stream, _catalog_diagnostics) = view
@@ -4770,12 +4779,21 @@ fn run<'work, 'receive, 'observe, 'cancel, 'signal>(
             );
         }
     };
+    // This worker belongs to the catalog phase, whose reservation may be
+    // smaller than the schema phase. Every count dimension uses its own wire
+    // envelope rather than mixing receipts from one phase with units of another.
+    let catalog_max_checks = bounded_usize(
+        u64::try_from(max_checks)
+            .unwrap_or(u64::MAX - 1)
+            .min(catalog_operation.worker_wire_bytes),
+    )?
+    .max(1);
     let catalog_worker_shape = FoundationCatalogWorkerShape {
         batch: BatchBudget::laboratory(),
-        max_chunks: max_checks
+        max_chunks: catalog_max_checks
             .div_ceil(BatchBudget::laboratory().max_units)
             .max(1) as u64,
-        max_total_units: u64::try_from(max_checks)
+        max_total_units: u64::try_from(catalog_max_checks)
             .unwrap_or(u64::MAX - 1)
             .min(catalog_operation.worker_wire_bytes)
             .max(1),
@@ -4785,8 +4803,8 @@ fn run<'work, 'receive, 'observe, 'cancel, 'signal>(
             .min(BatchBudget::MAX_RAW_BYTES as u64)
             .max(1),
         max_total_wire_bytes: catalog_operation.worker_wire_bytes,
-        max_distinct_selectors: max_checks.max(1).min(1024),
-        max_receipts: max_checks.max(1),
+        max_distinct_selectors: catalog_max_checks.max(1).min(1024),
+        max_receipts: catalog_max_checks.max(1),
         max_receipt_bytes: catalog_operation.state_bytes.min(1024 * 1024).max(1),
     };
     let (catalog_executor, catalog_worker_limits, catalog_stream, catalog_diagnostic_limits) =
