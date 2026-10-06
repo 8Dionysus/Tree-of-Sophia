@@ -2200,7 +2200,7 @@ pub(crate) fn compare_spooled_candidate<'candidate>(
     limits: BibliographicLimits,
     validator: &SourceCatalogValidator<'_>,
     build_bibliographic: bool,
-    max_version_files: usize,
+    max_version_read_calls: usize,
     max_version_bytes: usize,
     max_generated_bytes: usize,
     max_generated_files: usize,
@@ -2276,7 +2276,7 @@ pub(crate) fn compare_spooled_candidate<'candidate>(
     )?;
     let sources = RefCell::new(sources);
     let read_ledger = RefCell::new(tos_compiler::StreamedBibliographicReadLedger::new(
-        max_version_files as u64,
+        max_version_read_calls as u64,
         max_version_bytes as u64,
     )?);
     let mut render_work = SourceCatalogRenderWorkV1::default();
