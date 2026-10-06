@@ -59,15 +59,28 @@ fn row_json_state_upper_bound(limits: JsonLimits) -> io::Result<usize> {
         .ok_or_else(|| invalid("manifest JSON retained state overflow"))
 }
 
+// Snapshot rows are scalars or flat objects with at most five fields.
+// Six escaped bytes per input byte plus 512 bytes cover keys, digests,
+// punctuation and integer fields. Preserve every caller ceiling.
+fn row_limits(limits: JsonLimits, locator_bytes: usize) -> io::Result<JsonLimits> {
+    let bytes = locator_bytes.checked_mul(6)
+        .and_then(|n| n.checked_add(512))
+        .ok_or_else(|| invalid("manifest encoded row bound overflow"))?;
+    JsonLimits::new(limits.max_bytes.min(bytes), limits.max_depth.min(2),
+        limits.max_visits.min(16), limits.max_integer_digits).map_err(invalid)
+}
+
 struct Output<'a, 'host> {
     candidate: &'a SpoolCandidate<'host>,
     sink: Option<ManifestSink<'a>>,
     limit: u64,
     bytes: u64,
     hash: Digest256Hasher,
+    row_json: JsonLimits,
 }
 impl Output<'_, '_> {
-    fn reserve_row(&self, limits: JsonLimits, locator_bytes: usize) -> io::Result<()> {
+    fn reserve_row(&mut self, limits: JsonLimits, locator_bytes: usize) -> io::Result<()> {
+        let limits = row_limits(limits, locator_bytes)?;
         self.candidate.check_state(
             row_json_state_upper_bound(limits)?
                 .checked_mul(4)
@@ -75,7 +88,9 @@ impl Output<'_, '_> {
                 .and_then(|n| n.checked_add(locator_bytes.checked_mul(16)?))
                 .and_then(|n| n.checked_add(4096))
                 .ok_or_else(|| invalid("manifest row/locator overlap overflow"))?,
-        )
+        )?;
+        self.row_json = limits;
+        Ok(())
     }
     fn emit(&mut self, raw: &[u8]) -> io::Result<()> {
         self.candidate.tick()?;
@@ -114,9 +129,9 @@ impl Output<'_, '_> {
         self.bytes = next;
         self.candidate.tick()
     }
-    fn value(&mut self, value: &Value, limits: JsonLimits) -> io::Result<()> {
+    fn value(&mut self, value: &Value) -> io::Result<()> {
         self.candidate.tick()?;
-        let raw = canonical(value, limits)?;
+        let raw = canonical(value, self.row_json)?;
         self.candidate.tick()?;
         let body = raw
             .strip_suffix(b"\n")
@@ -160,14 +175,6 @@ fn serialize_inner(
         limits.row_json.max_integer_digits,
     )
     .map_err(invalid)?;
-    // Canonical row encoding retains the input DOM, typed parse/canonical DOM,
-    // original and final row buffers. Reserve their finite overlap BEFORE rows.
-    candidate.check_state(
-        row_json_state_upper_bound(row_json)?
-            .checked_mul(4)
-            .and_then(|n| n.checked_add(row_json.max_bytes.checked_mul(8)?))
-            .ok_or_else(|| invalid("manifest row state overflow"))?,
-    )?;
     index.verify_candidate()?;
     let fence = index.fence();
     if candidate.fence()? != fence {
@@ -179,6 +186,7 @@ fn serialize_inner(
         limit: limits.max_manifest_bytes,
         bytes: 0,
         hash: Digest256Hasher::new(),
+        row_json,
     };
     out.reserve_row(row_json, 0)?;
     // Exact lexicographic root-key order of CorpusSnapshotV1 canonical bytes.
@@ -188,7 +196,6 @@ fn serialize_inner(
             .base_revision
             .map(|r| Value::String(r.0.to_hex()))
             .unwrap_or(Value::Null),
-        row_json,
     )?;
     out.emit(b",\"dependencies\":{")?;
     let mut source_after = None;
@@ -209,7 +216,7 @@ fn serialize_inner(
         if sources != 0 {
             out.emit(b",")?;
         }
-        out.value(&Value::String(source.as_str().into()), row_json)?;
+        out.value(&Value::String(source.as_str().into()))?;
         out.emit(b":[")?;
         let mut after = None;
         let mut count = 0u64;
@@ -230,7 +237,7 @@ fn serialize_inner(
             if count != 0 {
                 out.emit(b",")?;
             }
-            out.value(&Value::String(target.as_str().into()), row_json)?;
+            out.value(&Value::String(target.as_str().into()))?;
             after = Some(target);
             count = count
                 .checked_add(1)
@@ -271,7 +278,6 @@ fn serialize_inner(
         out.value(
             &json!({"path":row.path.as_str(),"sha256":row.sha256.to_hex(),
             "size_bytes":row.size_bytes,"mode":row.mode}),
-            row_json,
         )?;
         source_bytes = source_bytes
             .checked_add(row.size_bytes)
@@ -302,9 +308,9 @@ fn serialize_inner(
         if identities != 0 {
             out.emit(b",")?;
         }
-        out.value(&Value::String(id.clone()), row_json)?;
+        out.value(&Value::String(id.clone()))?;
         out.emit(b":")?;
-        out.value(&Value::String(path.as_str().into()), row_json)?;
+        out.value(&Value::String(path.as_str().into()))?;
         after = Some(id);
         identities = identities
             .checked_add(1)
@@ -334,16 +340,15 @@ fn serialize_inner(
             &json!({"path":row.path.as_str(),"sha256":row.sha256.to_hex(),
             "event_ref":row.event_ref.as_str(),"event_sha256":row.event_sha256.to_hex(),
             "event_size_bytes":row.event_size_bytes}),
-            row_json,
         )?;
     }
     out.emit(b"]")?;
     if let Some(revision) = revision {
         out.emit(b",\"revision\":")?;
-        out.value(&Value::String(revision.to_hex()), row_json)?;
+        out.value(&Value::String(revision.to_hex()))?;
     }
     out.emit(b",\"schema_version\":\"tos_corpus_snapshot_v1\",\"validator_sha256\":")?;
-    out.value(&Value::String(fence.validator_sha256.to_hex()), row_json)?;
+    out.value(&Value::String(fence.validator_sha256.to_hex()))?;
     out.emit(b"}\n")?;
     index.verify_candidate()?;
     if candidate.fence()? != fence {
@@ -351,4 +356,24 @@ fn serialize_inner(
     }
     candidate.tick()?;
     Ok((out.bytes, out.hash.finalize()))
+}
+
+#[cfg(test)]
+mod row_profile_tests {
+    use super::*;
+
+    #[test]
+    fn actual_flat_retirement_row_preserves_canonical_bytes_with_escaped_locators() {
+        let path = "a\"\\\n".repeat(1024);
+        let event = "é".repeat(1024);
+        let row = json!({"path": path, "sha256": "a".repeat(64), "event_ref": event,
+            "event_sha256": "b".repeat(64), "event_size_bytes": u64::MAX});
+        let full = JsonLimits::default();
+        let bounded = row_limits(full, path.len() + event.len()).unwrap();
+        assert_eq!(canonical(&row, bounded).unwrap(), canonical(&row, full).unwrap());
+        assert!(row_json_state_upper_bound(bounded).unwrap() < 1024 * 1024);
+        let scalar = row_limits(full, 0).unwrap();
+        assert_eq!(canonical(&Value::String("a".repeat(64)), scalar).unwrap(),
+            canonical(&Value::String("a".repeat(64)), full).unwrap());
+    }
 }

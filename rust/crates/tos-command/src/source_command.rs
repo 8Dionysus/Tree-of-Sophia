@@ -32,6 +32,155 @@ pub enum SourceCommandError {
 }
 pub type SourceCommandResult<T> = Result<T, SourceCommandError>;
 
+impl SourceCommandError {
+    /// Preserve authored public reasons while keeping selected paths and roots
+    /// inside their owner. The CLI's existing output envelope bounds emission.
+    pub fn public_reason(&self) -> String {
+        match self {
+            Self::Invalid(reason) => format!("invalid: {reason}"),
+            Self::Conflict(reason) => format!("conflict: {reason}"),
+            Self::Denied(reason) => format!("denied: {reason}"),
+            Self::DeniedWithReason(reason) => reason.clone(),
+            Self::Unsupported(reason) => format!("unsupported: {reason}"),
+            Self::SchemaExecution { reason, .. } => {
+                crate::source_admission_spooled_index::receiver_refusal(reason.clone()).to_string()
+            }
+            Self::MissingProductionAdmission => "missing production admission".to_owned(),
+        }
+    }
+}
+
+impl std::fmt::Display for SourceCommandError {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter.write_str(&self.public_reason())
+    }
+}
+
+impl std::error::Error for SourceCommandError {}
+
+/// An IO carrier may contain an already bounded command/worker refusal. Other
+/// IO text can contain private host paths; retain its kind and fingerprint.
+pub(crate) fn public_io_reason(error: &std::io::Error) -> String {
+    if let Some(reason) = error
+        .get_ref()
+        .and_then(|inner| inner.downcast_ref::<SourceCommandError>())
+    {
+        return reason.public_reason();
+    }
+    if let Some(reason) = error
+        .get_ref()
+        .and_then(|inner| inner.downcast_ref::<tos_validation::item_rules::ItemExecutorRefusal>())
+    {
+        return reason.summary();
+    }
+    let message = error.to_string();
+    if crate::source_admission_spooled_index::is_bounded_source_cause(&message) {
+        return message;
+    }
+    format!(
+        "IO {:?}: {}",
+        error.kind(),
+        crate::source_admission_spooled_index::bounded_source_cause(
+            "receiver-source",
+            "command-io",
+            &message,
+        )
+    )
+}
+
+/// Compiler refusal detail follows the same public/private boundary as command
+/// errors: authored static guards survive, foreign source/SQL text is hashed.
+pub(crate) fn public_compiler_reason(error: &tos_compiler::Error) -> String {
+    use tos_compiler::Error;
+    match error {
+        Error::Invalid(reason) => format!("invalid compiler input: {reason}"),
+        Error::PreparedUnsupported(reason) => {
+            format!("unsupported local prepared carrier/profile: {reason}")
+        }
+        Error::ManagedSourceUnsupported(reason) => {
+            format!("unsupported managed selected source: {reason}")
+        }
+        Error::Budget(reason) => format!("compiler budget exceeded: {reason}"),
+        Error::SqliteVmBudget {
+            phase,
+            used_steps,
+            max_steps,
+        } => format!(
+            "compiler budget exceeded: SQLite VM steps in {phase:?} (used {used_steps}, max {max_steps})"
+        ),
+        Error::Io(error) => public_io_reason(error),
+        Error::Source(reason)
+            if crate::source_admission_spooled_index::is_bounded_source_cause(reason) =>
+        {
+            reason.clone()
+        }
+        Error::Sql(sql) => compiler_sql_cause(error, "sql", sql),
+        Error::SqlitePhase { phase, error: sql } => {
+            compiler_sql_cause(error, &format!("sql-{phase:?}"), sql)
+        }
+        Error::Source(reason) => {
+            let site = tos_compiler::source_witness_catalog::source_refusal_stage(reason)
+                .map(|stage| format!("compiler-{stage}"))
+                .unwrap_or_else(|| "compiler-source".to_owned());
+            crate::source_admission_spooled_index::bounded_source_cause(
+                "receiver-source",
+                &site,
+                &error.to_string(),
+            )
+        }
+    }
+}
+
+// Only the owned phase and SQLite's numeric result code cross this boundary.
+// Preserve the fingerprint of the complete original compiler error for custody.
+fn compiler_sql_cause(
+    compiler: &tos_compiler::Error,
+    phase: &str,
+    sql: &rusqlite::Error,
+) -> String {
+    let site = match sql {
+        rusqlite::Error::SqliteFailure(code, _) => {
+            format!("compiler-{phase}-{}", code.extended_code)
+        }
+        rusqlite::Error::QueryReturnedNoRows => format!("compiler-{phase}-no-rows"),
+        rusqlite::Error::InvalidColumnType(..) => format!("compiler-{phase}-column-type"),
+        rusqlite::Error::InvalidQuery => format!("compiler-{phase}-query"),
+        _ => format!("compiler-{phase}-other"),
+    };
+    crate::source_admission_spooled_index::bounded_source_cause(
+        "receiver-source",
+        &site,
+        &compiler.to_string(),
+    )
+}
+
+#[cfg(test)]
+mod public_refusal_tests {
+    use super::*;
+
+    #[test]
+    fn owned_reason_survives_io_while_foreign_paths_remain_private() {
+        let owned = std::io::Error::other(SourceCommandError::Invalid("V2 profile absent"));
+        assert!(public_io_reason(&owned).contains("V2 profile absent"));
+        let foreign = std::io::Error::new(std::io::ErrorKind::NotFound, "/private/owner/input");
+        let reason = public_io_reason(&foreign);
+        assert!(reason.contains("NotFound"));
+        assert!(!reason.contains("/private/owner/input"));
+        let execution = SourceCommandError::SchemaExecution {
+            path: "/private/member".into(),
+            root: "/private/root".into(),
+            reason: tos_validation::item_rules::ItemRefusal::BudgetCheck {
+                check: "declared work",
+                used: Some(11),
+                limit: Some(10),
+            },
+        };
+        let reason = public_io_reason(&std::io::Error::other(execution));
+        assert!(reason.ends_with(":11:10"));
+        assert!(!reason.contains("/private/"));
+    }
+}
+
 /// Match the source owner's aware Python `_instant` comparison. The parser
 /// remains with VAL's existing source chronology implementation; this supplies
 /// no clock authority and does not reread a protected configuration.

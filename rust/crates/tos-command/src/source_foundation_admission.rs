@@ -7,6 +7,7 @@ use crate::source_admission_spooled_candidate::{SpoolCandidate, SpoolLimits};
 use crate::source_admission_spooled_index::{CandidateRecordsReportVerified, SpoolIndexLimits};
 use crate::source_admission_spooled_manifest::ManifestStreamLimits;
 use crate::source_creation_store::IsolatedCreationRoot;
+use crate::source_current_cut::foundation_cli::ValidationProfile;
 use crate::source_current_cut::{
     foundation_bootstrap::{FoundationBootstrapInputs, verify_invocation_with_budget},
     foundation_entry::{
@@ -53,6 +54,9 @@ use tos_source_store::{
 /// may contain private paths or diagnostics and are not printed.
 #[derive(Debug)]
 pub(crate) struct NativeValidationRefusal(pub(crate) String);
+impl NativeValidationRefusal {
+    pub(crate) const MAX_PUBLIC_REASON_BYTES: usize = 192;
+}
 impl std::fmt::Display for NativeValidationRefusal {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str(&self.0)
@@ -88,6 +92,7 @@ pub(crate) struct NativeSpoolRefusalPacket<'a> {
     publication_state: &'static str,
     phase: &'static str,
     primary_error_kind: &'static str,
+    primary_error_sha256: Option<String>,
     native_validation_reason: Option<&'a str>,
     primary_io: NativeSpoolIoPacket,
     terminal_io: NativeSpoolIoPacket,
@@ -125,6 +130,27 @@ impl From<PinnedSqliteIoSnapshot> for NativeSpoolIoPacket {
             }),
         }
     }
+}
+// Correlate an opaque IO cause without exporting private paths or text.
+// Formatting is bounded and incomplete output never produces a fingerprint.
+fn bounded_error_sha256(error: &io::Error) -> Option<String> {
+    struct Fingerprint {
+        hash: tos_foundation::Digest256Hasher,
+        remaining: usize,
+    }
+    impl std::fmt::Write for Fingerprint {
+        fn write_str(&mut self, text: &str) -> std::fmt::Result {
+            self.remaining = self.remaining.checked_sub(text.len()).ok_or(std::fmt::Error)?;
+            self.hash.update(text.as_bytes());
+            Ok(())
+        }
+    }
+    let mut sink = Fingerprint {
+        hash: tos_foundation::Digest256Hasher::new(),
+        remaining: 4096,
+    };
+    std::fmt::write(&mut sink, format_args!("{error}")).ok()?;
+    Some(sink.hash.finalize().to_hex())
 }
 impl NativeSpoolRefusal {
     pub(crate) fn retain(
@@ -164,7 +190,7 @@ impl NativeSpoolRefusal {
             .get_ref()
             .and_then(|cause| cause.downcast_ref::<NativeValidationRefusal>())
             .map(|reason| reason.0.as_str())
-            .filter(|reason| reason.len() <= 192);
+            .filter(|reason| reason.len() <= NativeValidationRefusal::MAX_PUBLIC_REASON_BYTES);
         NativeSpoolRefusalPacket {
             schema_version: "tos_native_spooled_admission_refusal_v1",
             publication_state: "not_committed",
@@ -179,6 +205,7 @@ impl NativeSpoolRefusal {
                 io::ErrorKind::AlreadyExists => "already_exists",
                 _ => "other",
             },
+            primary_error_sha256: bounded_error_sha256(&self.primary),
             native_validation_reason: reason,
             primary_io: self.primary_io.into(),
             terminal_io: self.terminal_io.into(),
@@ -287,7 +314,10 @@ fn command(error: crate::source_command::SourceCommandError) -> io::Error {
             NativeValidationRefusal("protected invocation ancestor ownership boundary".into()),
         );
     }
-    invalid(format!("native admission foundation boundary: {error:?}"))
+    io::Error::new(
+        io::ErrorKind::InvalidData,
+        NativeValidationRefusal(error.public_reason()),
+    )
 }
 fn count(value: u64) -> io::Result<usize> {
     usize::try_from(value).map_err(|_| invalid("admission limit exceeds address space"))
@@ -345,6 +375,10 @@ pub(crate) struct NativeSourceValidator<'c> {
     prepared: Option<Prepared<'c>>,
     evaluated: Option<FoundationBootstrapInputs<'c>>,
     grammar: GrammarIdentity,
+    validation_profile: ValidationProfile,
+    record_selection: Option<Arc<tos_validation::source_record_selection::SourceRecordSelection>>,
+    record_selection_held: Option<crate::source_text_owner::HeldOwnerFile>,
+    record_selection_binding: Option<Value>,
     history: Option<HistoryEvidence>,
     history_usage: (u64, usize),
     identity: Digest256,
@@ -519,6 +553,130 @@ impl<'c> NativeSourceValidator<'c> {
         debit(&mut ledger, "admission-entry", entry_read, 0)?;
         let selected = invocation.selected_roots(&launch).map_err(command)?;
         let mut sources = RouteSources::new_until(Path::new(&selected.repo_root), deadline)?;
+        let (record_selection, record_selection_held, record_selection_binding) =
+            if let Some(path) = &launch.arguments.record_selection_manifest {
+                use std::os::unix::ffi::OsStrExt;
+                use tos_validation::source_record_selection::{
+                    SelectionLimits, SourceRecordSelection, selection_state_upper_bound,
+                };
+                let remaining = ledger.remaining().map_err(command)?;
+                let custody_bound = path
+                    .as_os_str()
+                    .as_bytes()
+                    .len()
+                    .checked_mul(3)
+                    .and_then(|n| {
+                        n.checked_add(size_of::<crate::source_text_owner::HeldOwnerFile>())
+                            .and_then(|n| {
+                                n.checked_add(
+                                    size_of::<Arc<SourceRecordSelection>>()
+                                        + 2 * size_of::<usize>(),
+                                )
+                            })
+                    })
+                    .ok_or_else(|| invalid("record selection custody state overflow"))?;
+                let model_state = remaining
+                    .state_bytes
+                    .checked_sub(custody_bound)
+                    .ok_or_else(|| invalid("record selection custody state bound"))?;
+                let mut low = 0usize;
+                let mut high = count(invocation.budgets.max_member_bytes)?
+                    .min(count(remaining.source_read_bytes / 2)?);
+                // Invert the model owner's existing simultaneous state bound;
+                // no copied parser ratio or physical-file/row count assumption.
+                while low < high {
+                    let middle = low + (high - low).div_ceil(2);
+                    if selection_state_upper_bound(middle).is_ok_and(|state| state < model_state) {
+                        low = middle;
+                    } else {
+                        high = middle - 1;
+                    }
+                }
+                if low == 0 {
+                    return Err(invalid("record selection manifest budget"));
+                }
+                let ticket = ledger
+                    .begin_window(
+                        "record-selection-manifest-read",
+                        FoundationPhaseReservation::default(),
+                    )
+                    .map_err(command)?;
+                ledger
+                    .complete_window(
+                        ticket,
+                        FoundationPhaseUse {
+                            source_read_bytes: FoundationCharge::admitted_upper_bound(
+                                (low as u64)
+                                    .checked_mul(2)
+                                    .ok_or_else(|| invalid("record selection read overflow"))?,
+                            ),
+                            ..FoundationPhaseUse::default()
+                        },
+                    )
+                    .map_err(command)?;
+                let (held, raw) = crate::source_text_owner::select_held_file(
+                    path,
+                    unsafe { libc::geteuid() },
+                    false,
+                    low,
+                    deadline,
+                    cancel,
+                )
+                .map_err(command)?;
+                let retained = selection_state_upper_bound(raw.len())
+                    .map_err(|_| invalid("record selection model state"))?;
+                let verify_state = model_state
+                    .checked_sub(retained)
+                    .filter(|n| *n > 0)
+                    .ok_or_else(|| invalid("record selection verification state"))?;
+                let selection = SourceRecordSelection::parse(
+                    &raw,
+                    SelectionLimits {
+                        max_manifest_bytes: low,
+                        max_records: raw.len(),
+                        max_slots: raw.len(),
+                        max_roots: raw.len(),
+                        max_owned_state_bytes: model_state,
+                        max_row_bytes: count(invocation.budgets.max_member_bytes)?,
+                        max_verify_state_bytes: verify_state,
+                    },
+                )
+                .map_err(|error| {
+                    io::Error::new(
+                        io::ErrorKind::InvalidData,
+                        NativeValidationRefusal(
+                            crate::source_admission_spooled_index::receiver_refusal(error)
+                                .to_string(),
+                        ),
+                    )
+                })?;
+                let binding = selection.binding().map_err(|error| {
+                    io::Error::new(
+                        io::ErrorKind::InvalidData,
+                        NativeValidationRefusal(
+                            crate::source_admission_spooled_index::receiver_refusal(error)
+                                .to_string(),
+                        ),
+                    )
+                })?;
+                let state = selection
+                    .charged_state_bytes()
+                    .checked_add(
+                        held.retained_state_bytes()
+                            .ok_or_else(|| invalid("record selection custody state overflow"))?,
+                    )
+                    .and_then(|n| {
+                        n.checked_add(
+                            size_of::<Arc<SourceRecordSelection>>() + 2 * size_of::<usize>(),
+                        )
+                    })
+                    .ok_or_else(|| invalid("record selection state overflow"))?;
+                drop(raw);
+                debit(&mut ledger, "record-selection-retained-state", 0, state)?;
+                (Some(Arc::new(selection)), Some(held), Some(binding))
+            } else {
+                (None, None, None)
+            };
         let remaining = ledger.remaining().map_err(command)?;
         let limits = IdentityLimits {
             max_read_bytes: remaining.source_read_bytes,
@@ -527,13 +685,19 @@ impl<'c> NativeSourceValidator<'c> {
             max_discovery_entries: count(invocation.budgets.max_current_members)?,
             max_state_bytes: remaining.state_bytes,
         };
-        let grammar = GrammarIdentity::select(
+        let validation_profile = launch.arguments.validation_profile;
+        if validation_profile.scope != tos_validation::source_foundation_default_rules::SourceFoundationDefaultRuleScope::FullAudit
+            && !matches!(invocation.admission_representation(), foundation_entry::FoundationAdmissionRepresentation::NativeV4 | foundation_entry::FoundationAdmissionRepresentation::NativeV4SegmentV2) {
+            return Err(invalid("selected-source validation requires native-v4 admission"));
+        }
+        let mut grammar = GrammarIdentity::select(
             &mut sources,
             invocation.executable_sha256(),
             invocation.schema_worker.sha256,
             limits,
             deadline,
             cancel,
+            validation_profile,
         )?;
         debit(
             &mut ledger,
@@ -541,6 +705,13 @@ impl<'c> NativeSourceValidator<'c> {
             grammar.read_bytes(),
             grammar.retained_state_bytes(),
         )?;
+        if let Some(binding) = &record_selection_binding {
+            grammar.bind_record_selection(
+                binding,
+                ledger.remaining().map_err(command)?.state_bytes,
+                cancel,
+            )?;
+        }
         let history = if captures.is_empty() {
             None
         } else {
@@ -609,6 +780,10 @@ impl<'c> NativeSourceValidator<'c> {
             }),
             evaluated: None,
             grammar,
+            validation_profile,
+            record_selection,
+            record_selection_held,
+            record_selection_binding,
             history,
             history_usage,
             identity,
@@ -2142,9 +2317,14 @@ impl<'c> NativeSourceValidator<'c> {
         }
         // Opaque SQLite heap/pins and process fit retain the original external
         // Host/controller prerequisite; nominal cache is not an RSS bound.
+        self.verify_record_selection()?;
+        // A local shared owner keeps the immutable model alive while mutable
+        // validator accounting advances; this clones no manifest rows.
+        let record_selection = self.record_selection.clone();
         let input =
             CandidateRecordsInput::new(candidate, observed_max, input_state, callback_state)
-                .map_err(|_| invalid("candidate callback source profile refused"))?;
+                .map_err(|_| invalid("candidate callback source profile refused"))?
+                .with_record_selection(record_selection);
         if let Some(history) = &mut self.history {
             history.bind_candidate_io_budget(&input, &original_io)?;
         }
@@ -2209,6 +2389,7 @@ impl<'c> NativeSourceValidator<'c> {
             max_edges,
             max_state_bytes: operation_state,
         };
+        let validation_scope = self.validation_profile.scope;
         let history = self
             .history
             .as_mut()
@@ -2231,6 +2412,7 @@ impl<'c> NativeSourceValidator<'c> {
                         json_state,
                         callback_state,
                         base_state,
+                        validation_scope,
                     )
                 },
             )
@@ -2273,6 +2455,10 @@ impl<'c> NativeSourceValidator<'c> {
             invocation: inputs.invocation,
             ledger: inputs.remaining_budget,
             sources: inputs.sources,
+        });
+        let result = result.and_then(|earned| {
+            self.verify_record_selection()?;
+            Ok(earned)
         });
         // Attempted suffixes remain visible even if any final fence failed.
         let primary_io = candidate.io_snapshot();
@@ -2521,17 +2707,93 @@ impl<'c> NativeSourceValidator<'c> {
     pub(crate) fn remaining_output_bytes(&self) -> io::Result<usize> {
         Ok(self.ledger()?.remaining().map_err(command)?.output_bytes)
     }
+    fn verify_record_selection(&mut self) -> io::Result<()> {
+        let Some(held) = &self.record_selection_held else {
+            return Ok(());
+        };
+        let read = u64::try_from(held.size_bytes())
+            .ok()
+            .and_then(|n| n.checked_mul(2))
+            .ok_or_else(|| invalid("record selection verification read overflow"))?;
+        let verify_state = usize::try_from(read)
+            .ok()
+            .and_then(|n| n.checked_add(size_of::<crate::source_text_owner::HeldOwnerFile>()))
+            .ok_or_else(|| invalid("record selection custody verification state overflow"))?;
+        if verify_state > self.ledger()?.remaining().map_err(command)?.state_bytes {
+            return Err(invalid("record selection custody verification state bound"));
+        }
+        let ticket = self
+            .ledger_mut()?
+            .begin_window(
+                "record-selection-custody",
+                FoundationPhaseReservation::default(),
+            )
+            .map_err(command)?;
+        self.ledger_mut()?
+            .complete_window(
+                ticket,
+                FoundationPhaseUse {
+                    source_read_bytes: FoundationCharge::admitted_upper_bound(read),
+                    ..FoundationPhaseUse::default()
+                },
+            )
+            .map_err(command)?;
+        let held = self
+            .record_selection_held
+            .as_ref()
+            .expect("selection custody held");
+        crate::source_text_owner::verify_held_file(
+            held,
+            unsafe { libc::geteuid() },
+            self.deadline,
+            self.cancel,
+        )
+        .map_err(command)
+    }
     pub(crate) fn write_receipt(
         &mut self,
         value: &Value,
         writer: &mut dyn Write,
     ) -> io::Result<()> {
         active(self.deadline, self.cancel)?;
+        self.verify_record_selection()?;
+        let object = value
+            .as_object()
+            .ok_or_else(|| invalid("admission receipt must be an object"))?;
+        if object.contains_key("validation_profile_id")
+            || object.contains_key("validation_profile_declaration_sha256")
+            || object.contains_key("validation_input_scope")
+            || object.contains_key("record_selection")
+        {
+            return Err(invalid(
+                "admission receipt cannot override validator profile",
+            ));
+        }
+        #[derive(serde::Serialize)]
+        struct ProfileReceipt<'a> {
+            #[serde(flatten)]
+            receipt: &'a Value,
+            validation_profile_id: &'a str,
+            validation_input_scope: &'a str,
+            #[serde(skip_serializing_if = "Option::is_none")]
+            record_selection: Option<&'a Value>,
+            validation_profile_declaration_sha256: String,
+        }
         let ticket = self
             .ledger_mut()?
             .begin_window("admission-receipt", FoundationPhaseReservation::default())
             .map_err(command)?;
         let cap = ticket.remaining().output_bytes;
+        let value = ProfileReceipt {
+            receipt: value,
+            validation_profile_id: self.validation_profile.id,
+            validation_input_scope: self.validation_profile.input_scope,
+            record_selection: self.record_selection_binding.as_ref(),
+            validation_profile_declaration_sha256: self
+                .validation_profile
+                .declaration_sha256
+                .to_hex(),
+        };
         // Same serializer counts before emitting; no unbounded intermediate Vec.
         let mut count = ReceiptWriter {
             inner: None,
@@ -2540,7 +2802,7 @@ impl<'c> NativeSourceValidator<'c> {
             deadline: self.deadline,
             cancel: self.cancel,
         };
-        serde_json::to_writer(&mut count, value).map_err(invalid)?;
+        serde_json::to_writer(&mut count, &value).map_err(invalid)?;
         count.write_all(b"\n")?;
         let mut output = ReceiptWriter {
             inner: Some(writer),
@@ -2549,7 +2811,7 @@ impl<'c> NativeSourceValidator<'c> {
             deadline: self.deadline,
             cancel: self.cancel,
         };
-        serde_json::to_writer(&mut output, value).map_err(invalid)?;
+        serde_json::to_writer(&mut output, &value).map_err(invalid)?;
         output.write_all(b"\n")?;
         output.flush()?;
         let bytes = output.count;
@@ -2594,5 +2856,79 @@ impl Write for ReceiptWriter<'_> {
             writer.flush()?;
         }
         active(self.deadline, self.cancel)
+    }
+}
+
+#[cfg(test)]
+mod refusal_transport_tests {
+    use super::*;
+
+    #[test]
+    fn opaque_error_fingerprint_is_bounded_and_does_not_export_text() {
+        let text = "/private/sentinel: publication failed";
+        assert_eq!(bounded_error_sha256(&io::Error::other(text)),
+            Some(tos_foundation::Digest256::of_bytes(text.as_bytes()).to_hex()));
+        assert!(bounded_error_sha256(&io::Error::other("x".repeat(4097))).is_none());
+        let snapshot = PinnedSqliteIoSnapshot::default();
+        let refusal = NativeSpoolRefusal::retain(io::Error::other(text),
+            "native-v4 corpus publication", snapshot, snapshot, false, false);
+        let encoded = serde_json::to_string(&refusal.packet()).unwrap();
+        assert!(!encoded.contains("private/sentinel"));
+        assert!(serde_json::from_str::<Value>(&encoded).unwrap()["native_validation_reason"].is_null());
+    }
+
+    #[test]
+    fn item_histogram_survives_admission_packet_transport() {
+        let full = "ri-4-0-1d-pc77fbf954bad items=29 codes=2 invalid-json=24 missing-companion=5"
+            .to_owned();
+        let overflow = format!(
+            "ri-4-0-1d-pc77fbf954bad items=29 codes=20 hash={} invalid-json=24 omitted=19",
+            tos_foundation::Digest256::of_bytes(b"representative complete ordered histogram")
+                .to_hex(),
+        );
+        for expected in [full, overflow] {
+            assert!(expected.len() <= NativeValidationRefusal::MAX_PUBLIC_REASON_BYTES);
+            let error =
+                foundation_orchestrator::FoundationOrchestratorError::Admission(io::Error::other(
+                    crate::source_command::SourceCommandError::DeniedWithReason(expected.clone()),
+                ));
+            let public = error.public_reason();
+            assert_eq!(public, expected);
+            let snapshot = PinnedSqliteIoSnapshot::default();
+            let refusal = NativeSpoolRefusal::retain(
+                io::Error::new(io::ErrorKind::InvalidData, NativeValidationRefusal(public)),
+                "native-v4 foundation evaluation",
+                snapshot,
+                snapshot,
+                false,
+                false,
+            );
+            let encoded = serde_json::to_vec(&refusal.packet()).unwrap();
+            let decoded: Value = serde_json::from_slice(&encoded).unwrap();
+            assert_eq!(decoded["publication_state"], "not_committed");
+            assert_eq!(decoded["primary_error_kind"], "invalid_data");
+            assert_eq!(
+                decoded["native_validation_reason"].as_str(),
+                Some(expected.as_str())
+            );
+        }
+        let overlong = "private-sentinel".repeat(NativeValidationRefusal::MAX_PUBLIC_REASON_BYTES);
+        let snapshot = PinnedSqliteIoSnapshot::default();
+        let refusal = NativeSpoolRefusal::retain(
+            io::Error::other(NativeValidationRefusal(overlong)),
+            "native-v4 foundation evaluation",
+            snapshot,
+            snapshot,
+            false,
+            false,
+        );
+        let encoded = serde_json::to_vec(&refusal.packet()).unwrap();
+        let decoded: Value = serde_json::from_slice(&encoded).unwrap();
+        assert!(decoded["native_validation_reason"].is_null());
+        assert!(
+            !String::from_utf8(encoded)
+                .unwrap()
+                .contains("private-sentinel")
+        );
     }
 }

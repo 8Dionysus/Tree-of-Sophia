@@ -2330,6 +2330,12 @@ fn evaluate_selected_subject(
 }
 
 fn map_assessment_refusal(error: AssessmentRefusal) -> SourceCommandError {
+    let error = match error {
+        AssessmentRefusal::Schema(error) => {
+            AssessmentRefusal::Schema(error.compatibility_category())
+        }
+        other => other,
+    };
     match error {
         AssessmentRefusal::InvalidInput(_) => {
             SourceCommandError::Invalid("private current assessment input")
@@ -2348,7 +2354,10 @@ fn map_assessment_refusal(error: AssessmentRefusal) -> SourceCommandError {
         AssessmentRefusal::Schema(tos_validation::item_rules::ItemRefusal::Deadline) => {
             SourceCommandError::Denied("private assessment schema deadline")
         }
-        AssessmentRefusal::Schema(tos_validation::item_rules::ItemRefusal::Unsupported(_))
+        AssessmentRefusal::Schema(
+            tos_validation::item_rules::ItemRefusal::Unsupported(_)
+            | tos_validation::item_rules::ItemRefusal::Executor(_),
+        )
         | AssessmentRefusal::Unsupported(_) => {
             SourceCommandError::Unsupported("private assessment evaluation")
         }

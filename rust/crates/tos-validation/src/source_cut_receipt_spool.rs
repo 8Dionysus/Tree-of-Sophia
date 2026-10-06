@@ -711,7 +711,7 @@ impl CutWorkerSchemaExecutorSpooling {
                 self.deadline.min(deadline),
                 cancelled,
             );
-        let mut diagnostic = match result {
+        let diagnostic = match result {
             Ok(diagnostic) => diagnostic,
             Err(error) => {
                 self.release_reservation(encoded_upper_bound);
@@ -723,9 +723,7 @@ impl CutWorkerSchemaExecutorSpooling {
         };
         let status = diagnostic.status();
         if status != schema_diagnostics::Status::Valid
-            && let Err(error) = self
-                .inner
-                .precharge_pending_diagnostic(&mut diagnostic.result)
+            && let Err(error) = self.inner.precharge_pending_diagnostic()
         {
             self.release_reservation(encoded_upper_bound);
             self.mark_storage_failure();
@@ -755,7 +753,10 @@ impl CutWorkerSchemaExecutorSpooling {
             return Err(error);
         }
         match status {
-            schema_diagnostics::Status::Valid => Ok(true),
+            schema_diagnostics::Status::Valid => {
+                self.inner.release_diagnostic_state(&diagnostic.result)?;
+                Ok(true)
+            }
             schema_diagnostics::Status::Invalid => {
                 // Keep the same move-only invalid report available through
                 // the legacy immediate rejection drain. Its report state and

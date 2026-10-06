@@ -9,6 +9,7 @@ use std::path::{Path, PathBuf};
 use tos_foundation::{
     JsonEmissionProfile, JsonLimits, JsonMode, emit_json_profile, parse_json_with_state_budget,
 };
+use tos_validation::source_foundation_default_rules::SourceFoundationDefaultRuleScope;
 use tos_validation::source_foundation_labs::SourceFoundationLab;
 use tos_validation::source_foundation_schema::SourceFoundationSchemaReport;
 
@@ -162,12 +163,131 @@ pub(crate) fn format_lab_report(
     .map_err(|_| "foundation report output limit")
 }
 
+/// Software-owner declaration, independent of any immutable candidate grammar.
+pub(crate) const VALIDATION_PROFILE_DECLARATION: &str =
+    "ToS/doctrine/semantic-interchange/source-validation-profiles.v1.json";
+const VALIDATION_PROFILE_BYTES: &[u8] = include_bytes!(
+    "../../../../ToS/doctrine/semantic-interchange/source-validation-profiles.v1.json"
+);
+#[derive(Clone, Copy, Debug)]
+pub(crate) struct ValidationProfile {
+    pub id: &'static str,
+    pub input_scope: &'static str,
+    pub declaration_sha256: tos_foundation::Digest256,
+    pub scope: SourceFoundationDefaultRuleScope,
+}
+#[derive(serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ValidationProfileRegistry<'a> {
+    schema_version: &'a str,
+    registry_id: &'a str,
+    registry_version: u64,
+    default_profile: &'a str,
+    #[serde(borrow)]
+    profiles: Vec<ValidationProfileDeclaration<'a>>,
+}
+#[derive(serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ValidationProfileDeclaration<'a> {
+    profile_id: &'a str,
+    input_scope: &'a str,
+    #[serde(borrow)]
+    required_owners: Vec<&'a str>,
+    authority_posture: &'a str,
+}
+fn select_validation_profile_from_bytes(
+    raw: &'static [u8],
+    selected: Option<&str>,
+) -> Result<ValidationProfile, &'static str> {
+    if raw.len() > 65536 {
+        return Err("validation profile declaration byte bound");
+    }
+    let limits = JsonLimits::new(65536, 16, 8192, 20).map_err(|_| "validation profile limits")?;
+    parse_json_with_state_budget(raw, JsonMode::PublishedStrict, limits, 1024 * 1024)
+        .map_err(|_| "validation profile declaration JSON")?;
+    let registry: ValidationProfileRegistry<'static> =
+        serde_json::from_slice(raw).map_err(|_| "validation profile declaration shape")?;
+    if registry.schema_version != "tos_source_validation_profile_registry_v1"
+        || registry.registry_id != "tos.source-validation-profiles"
+        || registry.registry_version != 1
+        || registry.profiles.is_empty()
+        || registry.profiles.len() > 64
+    {
+        return Err("validation profile registry identity/count");
+    }
+    const CORE: [&str; 8] = [
+        "records",
+        "bibliography",
+        "rights",
+        "review",
+        "references",
+        "dependency-closure",
+        "discovery",
+        "closure",
+    ];
+    let mut ids = std::collections::BTreeSet::new();
+    let wanted = selected.unwrap_or(registry.default_profile);
+    let mut result = None;
+    let mut default_is_full = false;
+    for declaration in registry.profiles {
+        let id = declaration.profile_id;
+        if id.is_empty()
+            || id.len() > 128
+            || !id
+                .bytes()
+                .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-')
+            || !ids.insert(id)
+            || declaration.authority_posture != "mechanical_validation_only"
+        {
+            return Err("validation profile ID/posture");
+        }
+        let scope = match declaration.input_scope {
+            "full_audit" => SourceFoundationDefaultRuleScope::FullAudit,
+            "selected_source_closure" => SourceFoundationDefaultRuleScope::SelectedSourceClosure,
+            "selected_record_closure" => SourceFoundationDefaultRuleScope::SelectedRecordClosure,
+            _ => return Err("unsupported validation profile input scope"),
+        };
+        let owners: std::collections::BTreeSet<_> =
+            declaration.required_owners.iter().copied().collect();
+        let mut expected: std::collections::BTreeSet<_> = CORE.into_iter().collect();
+        if scope == SourceFoundationDefaultRuleScope::FullAudit {
+            expected.extend(["laboratories", "goldsets"]);
+        }
+        if owners.len() != declaration.required_owners.len() || owners != expected {
+            return Err("validation profile required owner closure");
+        }
+        if id == registry.default_profile {
+            default_is_full = scope == SourceFoundationDefaultRuleScope::FullAudit;
+        }
+        if id == wanted {
+            result = Some(ValidationProfile {
+                id,
+                input_scope: declaration.input_scope,
+                declaration_sha256: tos_foundation::Digest256::of_bytes(raw),
+                scope,
+            });
+        }
+    }
+    if !default_is_full {
+        return Err("validation profile default must be full audit");
+    }
+    result.ok_or("unknown validation profile ID")
+}
+pub(crate) fn select_validation_profile(
+    selected: Option<&str>,
+) -> Result<ValidationProfile, &'static str> {
+    select_validation_profile_from_bytes(VALIDATION_PROFILE_BYTES, selected)
+}
+
 #[derive(Debug)]
 pub(crate) struct FoundationArguments {
     pub repo_root: Option<PathBuf>,
     pub payload_source_root: Option<PathBuf>,
     pub require_local_payloads: bool,
     pub selected_lab: Option<SourceFoundationLab>,
+    pub validation_profile: ValidationProfile,
+    pub validation_profile_explicit: bool,
+    pub record_selection_manifest: Option<PathBuf>,
     pub help: bool,
 }
 
@@ -218,6 +338,9 @@ pub(crate) fn parse_arguments(
         payload_source_root: None,
         require_local_payloads: false,
         selected_lab: None,
+        validation_profile: select_validation_profile(None)?,
+        validation_profile_explicit: false,
+        record_selection_manifest: None,
         help: false,
     };
     let mut selected = [false; 6];
@@ -229,6 +352,28 @@ pub(crate) fn parse_arguments(
         match arg {
             "--help" | "-h" => parsed.help = true,
             "--require-local-payloads" => parsed.require_local_payloads = true,
+            "--validation-profile" => {
+                if parsed.validation_profile_explicit {
+                    return Err("validation profile selected more than once");
+                }
+                index += 1;
+                let id = args
+                    .get(index)
+                    .and_then(|v| v.to_str())
+                    .ok_or("validation profile requires UTF-8 ID")?;
+                parsed.validation_profile = select_validation_profile(Some(id))?;
+                parsed.validation_profile_explicit = true;
+            }
+            "--record-selection-manifest" => {
+                index += 1;
+                let path = PathBuf::from(
+                    args.get(index)
+                        .ok_or("record selection manifest requires a path")?,
+                );
+                if parsed.record_selection_manifest.replace(path).is_some() {
+                    return Err("record selection manifest selected more than once");
+                }
+            }
             "--repo-root" | "--payload-source-root" => {
                 index += 1;
                 let path = PathBuf::from(
@@ -244,6 +389,22 @@ pub(crate) fn parse_arguments(
             _ => {
                 if let Some((flag, value)) = arg.split_once('=') {
                     match flag {
+                        "--validation-profile" => {
+                            if parsed.validation_profile_explicit {
+                                return Err("validation profile selected more than once");
+                            }
+                            parsed.validation_profile = select_validation_profile(Some(value))?;
+                            parsed.validation_profile_explicit = true;
+                        }
+                        "--record-selection-manifest" => {
+                            if parsed
+                                .record_selection_manifest
+                                .replace(PathBuf::from(value))
+                                .is_some()
+                            {
+                                return Err("record selection manifest selected more than once");
+                            }
+                        }
                         "--repo-root" => parsed.repo_root = Some(PathBuf::from(value)),
                         "--payload-source-root" => {
                             parsed.payload_source_root = Some(PathBuf::from(value))
@@ -265,13 +426,37 @@ pub(crate) fn parse_arguments(
         .iter()
         .enumerate()
         .find_map(|(n, (_, lab))| selected[n].then_some(*lab));
+    if parsed.validation_profile_explicit && parsed.selected_lab.is_some() {
+        return Err("validation profile is separate from lab-only selection");
+    }
+    if parsed.record_selection_manifest.is_some()
+        != (parsed.validation_profile.scope
+            == SourceFoundationDefaultRuleScope::SelectedRecordClosure)
+    {
+        return Err("selected-record-closure requires its exclusive record selection manifest");
+    }
+    if parsed
+        .record_selection_manifest
+        .as_ref()
+        .is_some_and(|path| {
+            !path.is_absolute()
+                || path.components().any(|c| {
+                    !matches!(
+                        c,
+                        std::path::Component::RootDir | std::path::Component::Normal(_)
+                    )
+                })
+        })
+    {
+        return Err("record selection manifest path must be absolute and normalized");
+    }
     if !parsed.help && parsed.repo_root.is_none() {
         return Err("foundation requires an explicitly selected --repo-root");
     }
     Ok(parsed)
 }
 
-pub(crate) const HELP: &str = "usage: validate_source_witness_foundation [--repo-root PATH] [--require-local-payloads] [--payload-source-root PATH] [--source-anchor-v2-lab-only] [--source-text-layer-lab-only] [--provenance-v2-lab-only] [--semantic-annotation-v2-lab-only] [--translation-alignment-v1-lab-only] [--source-text-unit-v1-lab-only]\n";
+pub(crate) const HELP: &str = "usage: validate_source_witness_foundation [--repo-root PATH] [--validation-profile ID (native admission only; omit=full audit)] [--record-selection-manifest PATH (selected-record-closure only)] [--require-local-payloads] [--payload-source-root PATH] [--source-anchor-v2-lab-only] [--source-text-layer-lab-only] [--provenance-v2-lab-only] [--semantic-annotation-v2-lab-only] [--translation-alignment-v1-lab-only] [--source-text-unit-v1-lab-only]\n";
 
 fn lab_output(lab: SourceFoundationLab) -> Result<(&'static str, &'static str), &'static str> {
     Ok(match lab {
@@ -440,4 +625,102 @@ pub(crate) fn measure_result(
         },
     )?;
     Ok((code, bytes.get()))
+}
+
+#[cfg(test)]
+mod validation_profile_tests {
+    use super::*;
+    #[test]
+    fn explicit_catalog_profiles_preserve_full_default_and_refuse_unknown_or_repeated_selection() {
+        let parse = |args: &[&str]| {
+            parse_arguments(
+                &args.iter().map(OsString::from).collect::<Vec<_>>(),
+                Some(Path::new("/selected")),
+            )
+        };
+        let omitted = parse(&[]).unwrap();
+        assert_eq!(
+            omitted.validation_profile.scope,
+            SourceFoundationDefaultRuleScope::FullAudit
+        );
+        assert!(!omitted.validation_profile_explicit);
+        let selected = parse(&["--validation-profile", "selected-source-closure"]).unwrap();
+        assert_eq!(
+            selected.validation_profile.scope,
+            SourceFoundationDefaultRuleScope::SelectedSourceClosure
+        );
+        assert!(selected.validation_profile_explicit);
+        assert!(selected.selected_lab.is_none());
+        let records = parse(&[
+            "--validation-profile=selected-record-closure",
+            "--record-selection-manifest",
+            "/selection.json",
+        ])
+        .unwrap();
+        assert_eq!(
+            records.validation_profile.scope,
+            SourceFoundationDefaultRuleScope::SelectedRecordClosure
+        );
+        assert_eq!(
+            records.record_selection_manifest.as_deref(),
+            Some(Path::new("/selection.json"))
+        );
+        for args in [
+            vec!["--validation-profile=selected-record-closure"],
+            vec!["--record-selection-manifest=/selection.json"],
+            vec![
+                "--validation-profile=selected-source-closure",
+                "--record-selection-manifest=/selection.json",
+            ],
+            vec![
+                "--validation-profile=selected-record-closure",
+                "--record-selection-manifest=relative.json",
+            ],
+            vec![
+                "--validation-profile=selected-record-closure",
+                "--record-selection-manifest=/selection.json",
+                "--record-selection-manifest=/other.json",
+            ],
+        ] {
+            assert!(parse(&args).is_err());
+        }
+
+        for args in [
+            vec!["--validation-profile=unknown"],
+            vec![
+                "--validation-profile=full-audit",
+                "--validation-profile=full-audit",
+            ],
+            vec![
+                "--validation-profile=selected-source-closure",
+                "--source-anchor-v2-lab-only",
+            ],
+        ] {
+            assert!(parse(&args).is_err());
+        }
+    }
+    #[test]
+    fn profile_ids_are_catalog_owned_and_exact_declaration_bytes_bound() {
+        let original = select_validation_profile(Some("selected-source-closure")).unwrap();
+        let alternate: &'static [u8] = Box::leak(
+            String::from_utf8(VALIDATION_PROFILE_BYTES.to_vec())
+                .unwrap()
+                .replace("selected-source-closure", "member-closure-v1")
+                .into_bytes()
+                .into_boxed_slice(),
+        );
+        let renamed =
+            select_validation_profile_from_bytes(alternate, Some("member-closure-v1")).unwrap();
+        assert_eq!(renamed.scope, original.scope);
+        assert_ne!(renamed.declaration_sha256, original.declaration_sha256);
+        assert!(select_validation_profile_from_bytes(alternate, Some(original.id)).is_err());
+        let unsupported: &'static [u8] = Box::leak(
+            String::from_utf8(VALIDATION_PROFILE_BYTES.to_vec())
+                .unwrap()
+                .replace("selected_source_closure", "skip_all")
+                .into_bytes()
+                .into_boxed_slice(),
+        );
+        assert!(select_validation_profile_from_bytes(unsupported, None).is_err());
+    }
 }

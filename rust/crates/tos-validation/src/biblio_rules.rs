@@ -1390,7 +1390,7 @@ pub fn inspect_bibliography_from_cut<S: CutSchemaExecutor + CutSchemaReceiptRang
         &membership.digest.to_prefixed(),
         &mut rules,
     )?;
-    inspect_batches(&claims, &events, &records.records, &mut rules)?;
+    inspect_batches(&claims, &events, &records.records, None, &mut rules)?;
     // No complete-source verdict escapes this family. Other native compounds
     // and retained profile execution remain explicit missing owner coverage.
     rules.skip("other-native-compound-transaction-reconstruction-and-current-parent-lineage")?;
@@ -1548,6 +1548,25 @@ pub fn inspect_bibliography_from_input_stored<I: Copy + Eq>(
                         .ok_or(ItemRefusal::Budget)?;
                 reserve(&mut rules.state, member_state, rules.limits.max_state_bytes)?;
                 if path.ends_with("/item.manifest.json") {
+                    if let Some(selection) = source.input.record_selection() {
+                        // Physical companions remain in the raw byte census;
+                        // only the selected Item owns semantic manifest facts.
+                        let lookup_state = path.len().checked_mul(2)
+                            .and_then(|n| n.checked_add(std::mem::size_of::<String>()))
+                            .ok_or(ItemRefusal::Budget)?;
+                        reserve(&mut rules.state, lookup_state, rules.limits.max_state_bytes)?;
+                        let sibling = format!("{}item.json", path.strip_suffix("item.manifest.json").unwrap());
+                        if sibling.capacity() + std::mem::size_of::<String>() > lookup_state {
+                            return Err(ItemRefusal::Budget);
+                        }
+                        let selected = selection.record(&sibling).is_some();
+                        drop(sibling);
+                        rules.state -= lookup_state;
+                        if !selected {
+                            rules.state -= member_state;
+                            return Ok(());
+                        }
+                    }
                     let (value, value_state) = legacy_decoded(raw, &rules)?;
                     reserve(&mut rules.state, value_state, rules.limits.max_state_bytes)?;
                     if let (Some(id), Some(edition)) =
@@ -1577,9 +1596,17 @@ pub fn inspect_bibliography_from_input_stored<I: Copy + Eq>(
                     },
                 )?;
                 let member_digest = Digest256::of_bytes(raw).to_hex();
-                for (index, line) in raw.split(|byte| *byte == b'\n').enumerate() {
+                for (index, (_, line)) in crate::source_record_selection::source_rows(raw).enumerate() {
                     check(limits.deadline, cancelled)?;
                     if line.iter().all(u8::is_ascii_whitespace) {
+                        continue;
+                    }
+                    // Records already verified exact selected row/file bindings.
+                    // Do not admit unrelated rows merely because their complete
+                    // physical JSONL companion was preserved for restoration.
+                    if source.input.record_selection().is_some_and(|selection| {
+                        !selection.selected_row(path, (index + 1) as u64)
+                    }) {
                         continue;
                     }
                     let (value, value_state) = if path.ends_with("/source-claims.jsonl") {
@@ -2096,7 +2123,11 @@ pub fn inspect_bibliography_from_input_stored<I: Copy + Eq>(
         &scanned.membership().digest.to_prefixed(),
         &mut rules,
     )?;
-    inspect_batches(&batch_claims, event_lookup, &record_lookup, &mut rules)?;
+    inspect_batches(
+        &batch_claims, event_lookup, &record_lookup,
+        source.input.record_selection().is_some().then_some(&source as &dyn BiblioSourceAccess),
+        &mut rules,
+    )?;
     drop(batch_claims);
     rules.state = rules
         .state
@@ -4273,12 +4304,12 @@ mod tests {
         let mut events = BTreeMap::from([(TOPOLOGY_EVENT.into(), event)]);
         let records = BTreeMap::new();
         let mut good = rules(&cancelled);
-        inspect_batches(&[row.clone()], &events, &records, &mut good).unwrap();
+        inspect_batches(&[row.clone()], &events, &records, None, &mut good).unwrap();
         assert!(good.shadow.issues.is_empty());
         events.get_mut(TOPOLOGY_EVENT).unwrap()["method"]["configuration"]["source_text_admitted"] =
             json!(true);
         let mut bad = rules(&cancelled);
-        inspect_batches(&[row.clone()], &events, &records, &mut bad).unwrap();
+        inspect_batches(&[row.clone()], &events, &records, None, &mut bad).unwrap();
         assert!(
             bad.shadow
                 .issues
@@ -4286,7 +4317,7 @@ mod tests {
                 .any(|i| i.code == "topology-exact-legacy-batch-configuration")
         );
         let mut absent = rules(&cancelled);
-        inspect_batches(&[row], &BTreeMap::new(), &records, &mut absent).unwrap();
+        inspect_batches(&[row], &BTreeMap::new(), &records, None, &mut absent).unwrap();
         assert!(
             absent
                 .shadow
@@ -4295,6 +4326,42 @@ mod tests {
                 .any(|i| i.code == "topology-owned-batch-event-missing")
         );
     }
+    #[test]
+    fn selected_topology_uses_digest_bound_original_batch_counts() {
+        struct Source(BTreeMap<String, Vec<u8>>);
+        impl BiblioSourceAccess for Source {
+            fn read_current(&self, path: &str, rules: &mut Rules<'_>) -> Result<Vec<u8>, ItemRefusal> {
+                let raw = self.0.get(path).unwrap();
+                account(&mut rules.bytes, raw.len(), rules.limits.max_total_bytes)?;
+                Ok(raw.clone())
+            }
+            fn path_presence(&self, _: &str, _: &Rules<'_>) -> Result<bool, ItemRefusal> { unreachable!() }
+            fn resolve_recorded_input(&self, _: &str, _: Digest256, _: &mut Rules<'_>, _: &str)
+                -> Result<RecordedInputResolution, ItemRefusal> { unreachable!() }
+        }
+        let cancelled = AtomicBool::new(false);
+        let mut source = Source(BTreeMap::new());
+        let mut outputs = Vec::new();
+        for (i, basename) in LEGACY_TOPOLOGY.iter().enumerate() {
+            let path = format!("ToS/source-witnesses/relations/{basename}");
+            let predicate = ["has_expression", "embodied_by", "exemplified_by"][i];
+            let line = format!("{{\"predicate\":\"{predicate}\"}}");
+            // The unselected physical row and bare-CR delimiter remain part of
+            // the original batch, without creating another admitted Claim.
+            let raw = if i == 0 { format!("{line}\r{line}\r") } else { format!("{line}\n") }.into_bytes();
+            outputs.push(json!({"ref":path,"sha256":Digest256::of_bytes(&raw).to_hex()}));
+            source.0.insert(path, raw);
+        }
+        let mut event = json!({"outputs":outputs});
+        let mut good = rules(&cancelled);
+        assert_eq!(topology_batch_counts(&source, &event, &mut good, "batch").unwrap(), [2, 1, 1]);
+        assert!(good.shadow.issues.is_empty());
+        event["outputs"][0]["sha256"] = json!("00".repeat(32));
+        let mut bad = rules(&cancelled);
+        topology_batch_counts(&source, &event, &mut bad, "batch").unwrap();
+        assert!(bad.shadow.issues.iter().any(|issue| issue.code == "topology-original-output-binding"));
+    }
+
     #[test]
     fn cancellation_and_state_budgets_refuse_without_success_projection() {
         let cancelled = AtomicBool::new(true);
@@ -4441,10 +4508,69 @@ fn exact_batch_inputs<T: AsRef<str>>(
     result
 }
 
+// Read only the finite transport facts needed to verify the original batch.
+// These rows never enter the selected Claim store or semantic admission.
+fn topology_batch_counts(
+    source: &dyn BiblioSourceAccess,
+    event: &Value,
+    rules: &mut Rules<'_>,
+    location: &str,
+) -> Result<[u64; 3], ItemRefusal> {
+    let mut counts = [0u64; 3];
+    for basename in LEGACY_TOPOLOGY {
+        check(rules.limits.deadline, rules.cancelled)?;
+        let mut outputs = event["outputs"].as_array().into_iter().flatten()
+            .filter(|row| s(row, "ref").and_then(|path| path.rsplit('/').next()) == Some(basename));
+        let Some(output) = outputs.next() else {
+            rules.issue("topology-original-output-binding", location)?;
+            return Ok(counts);
+        };
+        if outputs.next().is_some() {
+            rules.issue("topology-original-output-binding", location)?;
+            return Ok(counts);
+        }
+        let path = s(output, "ref").unwrap();
+        let raw_state = rules.limits.max_member_bytes
+            .checked_add(std::mem::size_of::<Vec<u8>>() + std::mem::size_of_val(&counts)
+                + std::mem::size_of::<String>() + 64)
+            .ok_or(ItemRefusal::Budget)?;
+        reserve(&mut rules.state, raw_state, rules.limits.max_state_bytes)?;
+        let raw = source.read_current(path, rules)?;
+        if raw.capacity() + std::mem::size_of::<Vec<u8>>() + std::mem::size_of_val(&counts) > raw_state {
+            return Err(ItemRefusal::Budget);
+        }
+        let expected = Digest256::of_bytes(&raw);
+        let digest = expected.to_hex();
+        if s(output, "sha256") != Some(digest.as_str()) {
+            rules.issue("topology-original-output-binding", location)?;
+        } else {
+            rules.read(path.len() + 71, || PredicateRead::ExactPath {
+                path: path.into(), digest: expected.to_prefixed(),
+            })?;
+            for (_, line) in crate::source_record_selection::source_rows(&raw) {
+                check(rules.limits.deadline, rules.cancelled)?;
+                if line.iter().all(u8::is_ascii_whitespace) { continue; }
+                let (value, value_state) = legacy_decoded(line, rules)?;
+                reserve(&mut rules.state, value_state, rules.limits.max_state_bytes)?;
+                if let Some(index) = ["has_expression", "embodied_by", "exemplified_by"]
+                    .iter().position(|predicate| s(&value, "predicate") == Some(*predicate)) {
+                    counts[index] = counts[index].checked_add(1).ok_or(ItemRefusal::Budget)?;
+                }
+                drop(value);
+                rules.state -= value_state;
+            }
+        }
+        drop(raw);
+        rules.state -= raw_state;
+    }
+    Ok(counts)
+}
+
 fn inspect_batches(
     claims: &[BiblioClaim],
     events: &dyn SourceFoundationDefaultEventLookup,
     records: &dyn BiblioRecordLookup,
+    physical_source: Option<&dyn BiblioSourceAccess>,
     rules: &mut Rules<'_>,
 ) -> Result<(), ItemRefusal> {
     let topology = claims.iter().filter(|c| {
@@ -4462,11 +4588,20 @@ fn inspect_batches(
                 rules,
                 location,
             )?;
+            // A selected semantic cohort may contain only part of this
+            // historical batch. Its original configuration still describes
+            // the complete digest-bound physical outputs, not the selection.
+            let physical_counts = physical_source
+                .map(|source| topology_batch_counts(source, &event, rules, location))
+                .transpose()?;
             let count = |predicate: &str| {
-                topology
-                    .clone()
-                    .filter(|c| s(&c.value, "predicate") == Some(predicate))
-                    .count()
+                if let Some(counts) = physical_counts {
+                    let index = ["has_expression", "embodied_by", "exemplified_by"]
+                        .iter().position(|p| *p == predicate).unwrap();
+                    counts[index]
+                } else {
+                    topology.clone().filter(|c| s(&c.value, "predicate") == Some(predicate)).count() as u64
+                }
             };
             let expected = [
                 (

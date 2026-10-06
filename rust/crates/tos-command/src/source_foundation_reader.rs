@@ -314,6 +314,7 @@ impl<'a, 'cancel> FoundationRuleSource<'a, 'cancel> {
         cancelled: &'cancel AtomicBool,
         limits: FoundationRuleReadLimits,
         retained_state_bytes: usize,
+        max_callback_state_bytes: usize,
         max_operation_state_bytes: usize,
     ) -> Result<Self, ItemRefusal> {
         // The adapter retains its raw callback bytes while this reader copies
@@ -330,8 +331,14 @@ impl<'a, 'cancel> FoundationRuleSource<'a, 'cancel> {
             .checked_add(std::mem::size_of::<Self>())
             .and_then(|bytes| bytes.checked_add(limits.max_auxiliary_state_bytes))
             .and_then(|bytes| bytes.checked_add(limits.max_member_bytes))
-            .filter(|bytes| *bytes <= max_operation_state_bytes)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
+        if callback_state > max_callback_state_bytes {
+            return Err(ItemRefusal::BudgetCheck {
+                check: "candidate rule reader simultaneous callback state",
+                used: u64::try_from(callback_state).ok(),
+                limit: u64::try_from(max_callback_state_bytes).ok(),
+            });
+        }
         input.require_callback_state(callback_state, max_operation_state_bytes)?;
         let mut source = Self::new_inner(
             FoundationRuleInput::Candidate(input),
@@ -358,7 +365,7 @@ impl<'a, 'cancel> FoundationRuleSource<'a, 'cancel> {
             || limits.max_auxiliary_paths == 0
             || limits.max_auxiliary_state_bytes == 0
         {
-            return Err(ItemRefusal::Budget);
+            return Err(tos_validation::item_budget_origin!());
         }
         let selected = Self {
             input,
@@ -680,6 +687,15 @@ fn contract_name(path: &str) -> bool {
 }
 
 impl LayerFamilySource for FoundationRuleSource<'_, '_> {
+    fn record_selection(
+        &self,
+    ) -> Option<std::sync::Arc<tos_validation::source_record_selection::SourceRecordSelection>>
+    {
+        match &self.input {
+            FoundationRuleInput::Candidate(input) => input.record_selection(),
+            FoundationRuleInput::Cut(_) => None,
+        }
+    }
     fn current(
         &mut self,
         path: &str,
@@ -689,11 +705,21 @@ impl LayerFamilySource for FoundationRuleSource<'_, '_> {
         self.checkpoint(deadline)?;
         allowed(path)?;
         if self
+            .record_selection()
+            .is_some_and(|selection| !selection.contains_member(path))
+        {
+            return Ok(None);
+        }
+        if self
             .history
             .as_deref()
             .is_some_and(|history| history.selected(path))
         {
-            return self.historical_read(path, None, requested, deadline);
+            let raw = self.historical_read(path, None, requested, deadline)?;
+            if let (Some(selection), Some(bytes)) = (self.record_selection(), raw.as_ref()) {
+                selection.verify_metadata_member(path, bytes)?;
+            }
+            return Ok(raw);
         }
         if is_authored_source_path_v1(path) {
             let relative = RelativePath::parse(path)
@@ -739,6 +765,9 @@ impl LayerFamilySource for FoundationRuleSource<'_, '_> {
                                 return Err(ItemRefusal::Source(
                                     "foundation candidate member custody".into(),
                                 ));
+                            }
+                            if let Some(selection) = input.record_selection() {
+                                selection.verify_metadata_member(path, bytes)?;
                             }
                             let mut raw = Vec::new();
                             raw.try_reserve_exact(bytes.len())
@@ -786,6 +815,12 @@ impl LayerFamilySource for FoundationRuleSource<'_, '_> {
         deadline: Instant,
     ) -> Result<Option<Vec<u8>>, ItemRefusal> {
         allowed(path)?;
+        if self
+            .record_selection()
+            .is_some_and(|selection| !selection.contains_member(path))
+        {
+            return Ok(None);
+        }
         let Ok(expected) = Digest256::from_hex(digest) else {
             return Ok(None);
         };
@@ -858,6 +893,12 @@ impl LayerFamilySource for FoundationRuleSource<'_, '_> {
     fn exists(&mut self, path: &str, _: usize, deadline: Instant) -> Result<bool, ItemRefusal> {
         self.checkpoint(deadline)?;
         allowed(path)?;
+        if self
+            .record_selection()
+            .is_some_and(|selection| !selection.contains_member(path))
+        {
+            return Ok(false);
+        }
         let remaining_read = self
             .limits
             .max_read_bytes

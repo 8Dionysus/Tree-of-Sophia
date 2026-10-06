@@ -27,7 +27,7 @@ pub(super) fn encoded_scalar_receipt_len(path: &str, contract: &str) -> Result<u
     let total = RECEIPT_FIXED_BYTES
         .checked_add(path_bytes)
         .and_then(|bytes| bytes.checked_add(contract_bytes))
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     ensure_sqlite_length(total)?;
     Ok(total)
 }
@@ -41,7 +41,7 @@ pub(in crate::source_cut) fn encoded_receipt_len(
         } else {
             0
         })
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     ensure_sqlite_length(total)?;
     Ok(total)
 }
@@ -52,12 +52,12 @@ pub(super) fn diagnostic_row_encoded_upper_bound(
 ) -> Result<usize, ItemRefusal> {
     let top_level_strings = encoded_string_len(path_len)?
         .checked_add(encoded_string_len(contract_len)?)
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     let unit_strings = (3 * 4usize)
         .checked_add(MAX_UNIT_MEMBER_ID_BYTES)
         .and_then(|bytes| bytes.checked_add(MAX_UNIT_RELATIVE_PATH_BYTES))
         .and_then(|bytes| bytes.checked_add(MAX_UNIT_ROOT_URI_BYTES))
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
 
     // The issue payload is the same bounded representation used by the
     // diagnostics protocol. Reserving its whole cap also covers report
@@ -67,7 +67,7 @@ pub(super) fn diagnostic_row_encoded_upper_bound(
         .and_then(|bytes| bytes.checked_add(4 + 4 + 2 + 4))
         .and_then(|bytes| bytes.checked_add(1 + 1 + 8 + 1 + 32 + 32 + 4))
         .and_then(|bytes| bytes.checked_add(schema_diagnostics::MAX_REPORT_BYTES_PER_UNIT as usize))
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
 
     // Six checkpoint digests, profile/count/byte counters, and the largest
     // legal optional exceptional-usage vectors.
@@ -76,7 +76,7 @@ pub(super) fn diagnostic_row_encoded_upper_bound(
         .and_then(|bytes| bytes.checked_add(1 + 8))
         .and_then(|bytes| bytes.checked_add(1 + 9 * 8))
         .and_then(|bytes| bytes.checked_add(1 + 9 * 8))
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
 
     let fixed = (RECEIPT_HEADER_BYTES)
         .checked_add(4 * 32) // source revision and three source/caps digests
@@ -85,11 +85,11 @@ pub(super) fn diagnostic_row_encoded_upper_bound(
         .and_then(|bytes| bytes.checked_add(unit_strings))
         .and_then(|bytes| bytes.checked_add(report_and_issues))
         .and_then(|bytes| bytes.checked_add(12 * 8)) // every byte/cpu/state counter
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
 
     let total = fixed
         .checked_add(top_level_strings)
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     ensure_sqlite_length(total)?;
     Ok(total)
 }
@@ -172,8 +172,13 @@ pub(super) fn encode_diagnostic(diagnostic: &CutSchemaDiagnostic) -> Result<Vec<
         return Err(invalid_payload());
     }
     let capacity = encoded_diagnostic_len(diagnostic)?;
-    if capacity > diagnostic_row_encoded_upper_bound(result.path.len(), result.contract.len())? {
-        return Err(ItemRefusal::Budget);
+    let upper_bound = diagnostic_row_encoded_upper_bound(result.path.len(), result.contract.len())?;
+    if capacity > upper_bound {
+        return Err(ItemRefusal::BudgetCheck {
+            check: "cut schema spool diagnostic encoded row bound",
+            used: u64::try_from(capacity).ok(),
+            limit: u64::try_from(upper_bound).ok(),
+        });
     }
     let mut writer = Writer::with_capacity(capacity)?;
     writer.header(DIAGNOSTIC_MAGIC)?;
@@ -210,14 +215,14 @@ fn encoded_diagnostic_len(diagnostic: &CutSchemaDiagnostic) -> Result<usize, Ite
     let result = &diagnostic.result;
     let top_level_strings = encoded_string_len(result.path.len())?
         .checked_add(encoded_string_len(result.contract.len())?)
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     let member_id = encoded_string_len(result.unit.member_id.len())?;
     let relative_path = encoded_string_len(result.unit.relative_path.len())?;
     let root_uri = encoded_string_len(result.unit.root_uri.len())?;
     let unit_strings = member_id
         .checked_add(relative_path)
         .and_then(|bytes| bytes.checked_add(root_uri))
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     let report = encoded_report_len(&result.unit.report)?;
     let checkpoint = encoded_diagnostics_checkpoint_len(result.checkpoint)?;
     let total = RECEIPT_HEADER_BYTES
@@ -228,7 +233,7 @@ fn encoded_diagnostic_len(diagnostic: &CutSchemaDiagnostic) -> Result<usize, Ite
         .and_then(|bytes| bytes.checked_add(unit_strings))
         .and_then(|bytes| bytes.checked_add(report))
         .and_then(|bytes| bytes.checked_add(12 * 8))
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     ensure_sqlite_length(total)?;
     Ok(total)
 }
@@ -248,7 +253,7 @@ fn encoded_diagnostics_checkpoint_len(
         .and_then(|bytes| bytes.checked_add(worker_cpu))
         .and_then(|bytes| bytes.checked_add(exceptional_remaining))
         .and_then(|bytes| bytes.checked_add(exceptional_usage))
-        .ok_or(ItemRefusal::Budget)
+        .ok_or(crate::item_budget_origin!())
 }
 
 fn optional_exceptional_usage_len(usage: Option<crate::executor::ExceptionalSchemaUsage>) -> usize {
@@ -264,11 +269,11 @@ fn encoded_report_len(report: &schema_diagnostics::Report) -> Result<usize, Item
             .checked_add(4 * 32)
             .and_then(|bytes| bytes.checked_add(4 + 4 + 2 + 4))
             .and_then(|bytes| bytes.checked_add(1 + 1 + 8 + 1 + 32 + 32 + 4))
-            .ok_or(ItemRefusal::Budget)?,
+            .ok_or(crate::item_budget_origin!())?,
         |total, issue| {
             total
                 .checked_add(encoded_issue_len(issue)?)
-                .ok_or(ItemRefusal::Budget)
+                .ok_or(crate::item_budget_origin!())
         },
     )
 }
@@ -282,11 +287,11 @@ fn encoded_issue_len(issue: &schema_diagnostics::Issue) -> Result<usize, ItemRef
         .and_then(|bytes| bytes.checked_add(2))
         .and_then(|bytes| bytes.checked_add(schema_path))
         .and_then(|bytes| bytes.checked_add(1))
-        .ok_or(ItemRefusal::Budget)
+        .ok_or(crate::item_budget_origin!())
 }
 
 fn encoded_path_len(path: &[schema_diagnostics::PathSegment]) -> Result<usize, ItemRefusal> {
-    u16::try_from(path.len()).map_err(|_| ItemRefusal::Budget)?;
+    u16::try_from(path.len()).map_err(|_| crate::item_budget_origin!())?;
     path.iter().try_fold(2usize, |total, segment| {
         let segment_len = match segment {
             schema_diagnostics::PathSegment::Property(value) => {
@@ -294,8 +299,10 @@ fn encoded_path_len(path: &[schema_diagnostics::PathSegment]) -> Result<usize, I
             }
             schema_diagnostics::PathSegment::Index(_) => Some(1 + 8),
         }
-        .ok_or(ItemRefusal::Budget)?;
-        total.checked_add(segment_len).ok_or(ItemRefusal::Budget)
+        .ok_or(crate::item_budget_origin!())?;
+        total
+            .checked_add(segment_len)
+            .ok_or(crate::item_budget_origin!())
     })
 }
 
@@ -514,7 +521,7 @@ fn write_report(
     writer.bool(report.truncated)?;
     writer.digest(report.issues_sha256)?;
     writer.digest(report.report_sha256)?;
-    writer.u32(u32::try_from(report.issues.len()).map_err(|_| ItemRefusal::Budget)?)?;
+    writer.u32(u32::try_from(report.issues.len()).map_err(|_| crate::item_budget_origin!())?)?;
     for issue in &report.issues {
         write_issue(writer, issue)?;
     }
@@ -550,7 +557,7 @@ fn read_report(reader: &mut Reader<'_>) -> Result<schema_diagnostics::Report, It
     let mut issues = Vec::new();
     issues
         .try_reserve_exact(issue_count)
-        .map_err(|_| ItemRefusal::Budget)?;
+        .map_err(|_| crate::item_budget_origin!())?;
     for _ in 0..issue_count {
         issues.push(read_issue(reader, caps)?);
     }
@@ -612,7 +619,7 @@ fn write_path(
     writer: &mut Writer,
     path: &[schema_diagnostics::PathSegment],
 ) -> Result<(), ItemRefusal> {
-    writer.u16(u16::try_from(path.len()).map_err(|_| ItemRefusal::Budget)?)?;
+    writer.u16(u16::try_from(path.len()).map_err(|_| crate::item_budget_origin!())?)?;
     for segment in path {
         match segment {
             schema_diagnostics::PathSegment::Property(value) => {
@@ -638,7 +645,7 @@ fn read_path(
     }
     let mut path = Vec::new();
     path.try_reserve_exact(count)
-        .map_err(|_| ItemRefusal::Budget)?;
+        .map_err(|_| crate::item_budget_origin!())?;
     let mut path_bytes = 0usize;
     for _ in 0..count {
         match reader.u8()? {
@@ -667,14 +674,18 @@ fn read_path(
 }
 
 fn encoded_string_len(len: usize) -> Result<usize, ItemRefusal> {
-    u32::try_from(len).map_err(|_| ItemRefusal::Budget)?;
-    len.checked_add(4).ok_or(ItemRefusal::Budget)
+    u32::try_from(len).map_err(|_| crate::item_budget_origin!())?;
+    len.checked_add(4).ok_or(crate::item_budget_origin!())
 }
 
 fn ensure_sqlite_length(len: usize) -> Result<(), ItemRefusal> {
-    let len = u64::try_from(len).map_err(|_| ItemRefusal::Budget)?;
+    let len = u64::try_from(len).map_err(|_| crate::item_budget_origin!())?;
     if len > i64::MAX as u64 {
-        return Err(ItemRefusal::Budget);
+        return Err(ItemRefusal::BudgetCheck {
+            check: "cut schema spool SQLite row bytes",
+            used: Some(len),
+            limit: Some(i64::MAX as u64),
+        });
     }
     Ok(())
 }
@@ -694,7 +705,7 @@ impl Writer {
         let mut bytes = Vec::new();
         bytes
             .try_reserve_exact(capacity)
-            .map_err(|_| ItemRefusal::Budget)?;
+            .map_err(|_| crate::item_budget_origin!())?;
         Ok(Self {
             bytes,
             maximum: capacity,
@@ -707,7 +718,7 @@ impl Writer {
     }
 
     fn string(&mut self, value: &str) -> Result<(), ItemRefusal> {
-        self.u32(u32::try_from(value.len()).map_err(|_| ItemRefusal::Budget)?)?;
+        self.u32(u32::try_from(value.len()).map_err(|_| crate::item_budget_origin!())?)?;
         self.extend(value.as_bytes())
     }
 
@@ -727,7 +738,7 @@ impl Writer {
     }
 
     fn usize(&mut self, value: usize) -> Result<(), ItemRefusal> {
-        self.u64(u64::try_from(value).map_err(|_| ItemRefusal::Budget)?)
+        self.u64(u64::try_from(value).map_err(|_| crate::item_budget_origin!())?)
     }
 
     fn u8(&mut self, value: u8) -> Result<(), ItemRefusal> {
@@ -751,10 +762,20 @@ impl Writer {
             .bytes
             .len()
             .checked_add(value.len())
-            .filter(|length| *length <= self.maximum)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
+        if next > self.maximum {
+            return Err(ItemRefusal::BudgetCheck {
+                check: "cut schema spool writer declared row bytes",
+                used: u64::try_from(next).ok(),
+                limit: u64::try_from(self.maximum).ok(),
+            });
+        }
         if next > self.bytes.capacity() {
-            return Err(ItemRefusal::Budget);
+            return Err(ItemRefusal::BudgetCheck {
+                check: "cut schema spool writer allocated row bytes",
+                used: u64::try_from(next).ok(),
+                limit: u64::try_from(self.bytes.capacity()).ok(),
+            });
         }
         self.bytes.extend_from_slice(value);
         Ok(())
@@ -762,7 +783,11 @@ impl Writer {
 
     fn finish(self, bound: usize) -> Result<Vec<u8>, ItemRefusal> {
         if self.bytes.len() != bound {
-            return Err(ItemRefusal::Budget);
+            return Err(ItemRefusal::BudgetCheck {
+                check: "cut schema spool writer exact encoded row bytes",
+                used: u64::try_from(self.bytes.len()).ok(),
+                limit: u64::try_from(bound).ok(),
+            });
         }
         Ok(self.bytes)
     }
@@ -806,7 +831,7 @@ impl<'a> Reader<'a> {
         let mut result = String::new();
         result
             .try_reserve_exact(value.len())
-            .map_err(|_| ItemRefusal::Budget)?;
+            .map_err(|_| crate::item_budget_origin!())?;
         result.push_str(value);
         Ok(result)
     }

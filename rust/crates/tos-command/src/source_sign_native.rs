@@ -1253,7 +1253,7 @@ impl<R: SignNativeRead + ?Sized> Native<'_, R> {
             self.deadline,
             self.cancelled,
         )
-        .map_err(|refusal| match refusal {
+        .map_err(|refusal| match refusal.compatibility_category() {
             tos_validation::item_rules::ItemRefusal::Deadline => {
                 SourceCommandError::Unsupported("native edit replay deadline")
             }
@@ -1261,7 +1261,8 @@ impl<R: SignNativeRead + ?Sized> Native<'_, R> {
             | tos_validation::item_rules::ItemRefusal::BudgetCheck { .. } => {
                 SourceCommandError::Unsupported("native edit replay backend budget")
             }
-            tos_validation::item_rules::ItemRefusal::Unsupported(_) => {
+            tos_validation::item_rules::ItemRefusal::Unsupported(_)
+            | tos_validation::item_rules::ItemRefusal::Executor(_) => {
                 SourceCommandError::Unsupported("native edit replay scalar or backend profile")
             }
             tos_validation::item_rules::ItemRefusal::Source(_) => SourceCommandError::Invalid(

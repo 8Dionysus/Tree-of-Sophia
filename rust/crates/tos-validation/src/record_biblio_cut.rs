@@ -114,6 +114,13 @@ impl SourceCutPrefixCoverage {
 /// The command adapter keeps raw member bytes borrowed inside each visitor and
 /// retains its own opaque input identity; this interface creates no revision.
 pub trait SourceCutInput {
+    /// A semantic record/slot scope is independent of full physical input EOF.
+    fn record_selection(
+        &self,
+    ) -> Option<std::sync::Arc<crate::source_record_selection::SourceRecordSelection>> {
+        None
+    }
+
     fn for_each_current_member_meta(
         &self,
         deadline: Instant,
@@ -198,7 +205,9 @@ pub trait SourceCutInput {
                         "noncanonical current-member path".into(),
                     ));
                 }
-                member_count = member_count.checked_add(1).ok_or(ItemRefusal::Budget)?;
+                member_count = member_count
+                    .checked_add(1)
+                    .ok_or(crate::item_budget_origin!())?;
                 visit(meta)?;
             }
             Ok(())
@@ -292,8 +301,8 @@ impl BiblioSchemaDiagnosticsLimits {
         max_executions: usize,
         operation: BatchStreamBudget,
     ) -> Result<Self, ItemRefusal> {
-        let issue_capacity =
-            diagnostics_issue_capacity(max_executions, operation).ok_or(ItemRefusal::Budget)?;
+        let issue_capacity = diagnostics_issue_capacity(max_executions, operation)
+            .ok_or(crate::item_budget_origin!())?;
         let issue_capacity = usize::try_from(issue_capacity).unwrap_or(usize::MAX);
         let wire_capacity = usize::try_from(operation.max_total_wire_bytes).unwrap_or(usize::MAX);
         let limits = Self {
@@ -309,7 +318,7 @@ impl BiblioSchemaDiagnosticsLimits {
         {
             Ok(limits)
         } else {
-            Err(ItemRefusal::Budget)
+            Err(crate::item_budget_origin!())
         }
     }
 }
@@ -347,8 +356,8 @@ pub struct SourceCutSchemaDiagnostic {
     pub response_buffer_bytes: usize,
     pub worker_cpu_micros: u64,
     pub retained_state_bytes: usize,
-    /// Conservative aggregate charge for the transient closure/request/output
-    /// and the report retained in this row.
+    /// Retained report state carried by this row. Exchange buffers have a
+    /// separate peak admission and do not remain charged after the call.
     pub accounted_state_bytes: usize,
 }
 
@@ -503,18 +512,14 @@ impl BiblioRecordExecutor {
             }
         }
         if let Some(image) = self.image.as_mut() {
-            image
-                .finish(deadline, cancelled)
-                .map_err(|reason| match reason {
-                    ExecutorFailure::Timeout => ItemRefusal::Deadline,
-                    ExecutorFailure::Cancelled => {
-                        ItemRefusal::Source("record operation cancelled".into())
-                    }
-                    other => ItemRefusal::Unsupported(format!(
-                        "record operation finalization: {other:?}; original exchange: {:?}",
-                        image.exchange_failure()
-                    )),
-                })?;
+            image.finish(deadline, cancelled).map_err(|reason| {
+                crate::item_rules::executor_refusal(
+                    "record schema operation",
+                    reason,
+                    image.exchange_failure(),
+                    self.shared_schema_worker_quota.as_ref(),
+                )
+            })?;
         }
         Ok(())
     }
@@ -553,15 +558,13 @@ impl BiblioRecordExecutor {
         if let Some(image) = self.image.as_mut() {
             image
                 .preflight(limits.deadline, cancelled)
-                .map_err(|reason| match reason {
-                    ExecutorFailure::Timeout => ItemRefusal::Deadline,
-                    ExecutorFailure::Cancelled => {
-                        ItemRefusal::Source("record operation cancelled".into())
-                    }
-                    other => ItemRefusal::Unsupported(format!(
-                        "record operation refused: {other:?}; original exchange: {:?}",
-                        image.exchange_failure()
-                    )),
+                .map_err(|reason| {
+                    crate::item_rules::executor_refusal(
+                        "record schema operation",
+                        reason,
+                        image.exchange_failure(),
+                        self.shared_schema_worker_quota.as_ref(),
+                    )
                 })?;
         } else if cancelled.load(Ordering::Relaxed) || Instant::now() >= limits.deadline {
             self.finished = true;
@@ -607,14 +610,13 @@ impl BiblioRecordExecutor {
         if self.image.is_none() {
             self.image = Some(
                 VerifiedWorkerImage::prepare(&self.worker, budget, limits.deadline, cancelled)
-                    .map_err(|reason| match reason {
-                        ExecutorFailure::Timeout => ItemRefusal::Deadline,
-                        ExecutorFailure::Cancelled => {
-                            ItemRefusal::Source("record schema cancelled".into())
-                        }
-                        other => ItemRefusal::Unsupported(format!(
-                            "record worker preparation: {other:?}"
-                        )),
+                    .map_err(|reason| {
+                        crate::item_rules::executor_refusal(
+                            "record worker preparation",
+                            reason,
+                            None,
+                            self.shared_schema_worker_quota.as_ref(),
+                        )
                     })?,
             );
         }
@@ -624,7 +626,14 @@ impl BiblioRecordExecutor {
                 .unwrap()
                 .set_operation_budget(self.operation_budget)
                 .map_err(|reason| {
-                    ItemRefusal::Unsupported(format!("record operation envelope: {reason:?}"))
+                    crate::item_rules::executor_refusal(
+                        "record operation envelope",
+                        reason,
+                        self.image
+                            .as_ref()
+                            .and_then(VerifiedWorkerImage::exchange_failure),
+                        self.shared_schema_worker_quota.as_ref(),
+                    )
                 })?;
         }
         budget.execution_wall = budget.execution_wall.saturating_sub(started.elapsed());
@@ -648,34 +657,41 @@ impl BiblioRecordExecutor {
                 .as_mut()
                 .unwrap()
                 .preflight(limits.deadline, cancelled)
-                .map_err(|reason| match reason {
-                    ExecutorFailure::Timeout => ItemRefusal::Deadline,
-                    ExecutorFailure::Cancelled => {
-                        ItemRefusal::Source("record operation cancelled".into())
-                    }
-                    other => ItemRefusal::Unsupported(format!(
-                        "record operation refused: {other:?}; original exchange: {:?}",
+                .map_err(|reason| {
+                    crate::item_rules::executor_refusal(
+                        "record schema operation",
+                        reason,
                         self.image
                             .as_ref()
-                            .and_then(VerifiedWorkerImage::exchange_failure)
-                    )),
+                            .and_then(VerifiedWorkerImage::exchange_failure),
+                        self.shared_schema_worker_quota.as_ref(),
+                    )
                 })?;
         }
         let (identity, valid) = match result {
             ExecutorOutcome::SchemaValid(identity) => (identity, true),
             ExecutorOutcome::SchemaInvalid(identity) => (identity, false),
             ExecutorOutcome::Indeterminate {
-                reason: ExecutorFailure::Timeout,
-                ..
-            } => return Err(ItemRefusal::Deadline),
-            ExecutorOutcome::Indeterminate {
-                reason: ExecutorFailure::Cancelled,
-                ..
-            } => return Err(ItemRefusal::Source("record schema cancelled".into())),
-            other => {
-                return Err(ItemRefusal::Unsupported(format!(
-                    "record schema incomplete: {other:?}"
-                )));
+                reason, exchange, ..
+            } => {
+                return Err(crate::item_rules::executor_refusal(
+                    "record schema evaluation",
+                    reason,
+                    exchange.or_else(|| {
+                        self.image
+                            .as_ref()
+                            .and_then(VerifiedWorkerImage::exchange_failure)
+                    }),
+                    self.shared_schema_worker_quota.as_ref(),
+                ));
+            }
+            ExecutorOutcome::InputRejected(_) => {
+                return Err(crate::item_rules::executor_refusal(
+                    "record schema evaluation",
+                    ExecutorFailure::ParseRejected,
+                    None,
+                    self.shared_schema_worker_quota.as_ref(),
+                ));
             }
         };
         if identity.worker_sha256 != self.worker.sha256
@@ -716,7 +732,14 @@ impl BiblioRecordExecutor {
         if let Some(image) = self.image.as_mut() {
             image
                 .preflight(limits.deadline, cancelled)
-                .map_err(diagnostics_refusal)?;
+                .map_err(|reason| {
+                    crate::item_rules::executor_refusal(
+                        "record schema diagnostics",
+                        reason,
+                        image.exchange_failure(),
+                        self.shared_schema_worker_quota.as_ref(),
+                    )
+                })?;
         } else if cancelled.load(Ordering::Relaxed) || Instant::now() >= limits.deadline {
             self.finished = true;
             return Err(ItemRefusal::Deadline);
@@ -768,18 +791,39 @@ impl BiblioRecordExecutor {
         if self.image.is_none() {
             self.image = Some(
                 VerifiedWorkerImage::prepare(&self.worker, budget, limits.deadline, cancelled)
-                    .map_err(diagnostics_refusal)?,
+                    .map_err(|reason| {
+                        crate::item_rules::executor_refusal(
+                            "record schema diagnostics",
+                            reason,
+                            None,
+                            self.shared_schema_worker_quota.as_ref(),
+                        )
+                    })?,
             );
         }
         if self.executions == 1 {
             let image = self.image.as_mut().unwrap();
             image
                 .set_operation_budget(self.operation_budget)
-                .map_err(diagnostics_refusal)?;
+                .map_err(|reason| {
+                    crate::item_rules::executor_refusal(
+                        "record schema diagnostics",
+                        reason,
+                        None,
+                        self.shared_schema_worker_quota.as_ref(),
+                    )
+                })?;
             if let Some(quota) = &self.shared_schema_worker_quota {
                 image
                     .set_shared_schema_worker_quota(quota.clone())
-                    .map_err(diagnostics_refusal)?;
+                    .map_err(|reason| {
+                        crate::item_rules::executor_refusal(
+                            "record schema diagnostics",
+                            reason,
+                            None,
+                            self.shared_schema_worker_quota.as_ref(),
+                        )
+                    })?;
             }
         }
         budget.execution_wall = budget.execution_wall.saturating_sub(started.elapsed());
@@ -800,11 +844,27 @@ impl BiblioRecordExecutor {
                 limits.deadline,
                 cancelled,
             )
-            .map_err(diagnostics_refusal)?;
+            .map_err(|reason| {
+                crate::item_rules::executor_refusal(
+                    "record schema diagnostics",
+                    reason,
+                    self.image
+                        .as_ref()
+                        .and_then(VerifiedWorkerImage::exchange_failure),
+                    self.shared_schema_worker_quota.as_ref(),
+                )
+            })?;
         let (mut units, checkpoint) = match outcome {
             SchemaDiagnosticsOutcome::Complete { units, checkpoint } => (units, checkpoint),
-            SchemaDiagnosticsOutcome::Incomplete { reason, .. } => {
-                return Err(diagnostics_refusal(reason));
+            SchemaDiagnosticsOutcome::Incomplete {
+                reason, exchange, ..
+            } => {
+                return Err(crate::item_rules::executor_refusal(
+                    "record schema diagnostics",
+                    reason,
+                    exchange,
+                    self.shared_schema_worker_quota.as_ref(),
+                ));
             }
         };
         if units.len() != 1 || checkpoint.completed_count != 1 {
@@ -890,27 +950,48 @@ impl BiblioRecordExecutor {
             });
         };
         let schema_resource_bytes =
-            schema_resource_encoding_bytes(resources).ok_or(ItemRefusal::Budget)?;
-        let retained_state_bytes =
-            schema_diagnostic_state_bytes(location, root, &unit).ok_or(ItemRefusal::Budget)?;
+            schema_resource_encoding_bytes(resources).ok_or(crate::item_budget_origin!())?;
+        let retained_state_bytes = schema_diagnostic_state_bytes(location, root, &unit)
+            .ok_or(crate::item_budget_origin!())?;
         let input_metadata_bytes = "biblio-record-schema-unit"
             .len()
             .checked_add(location.len())
             .and_then(|bytes| bytes.checked_add(root.len()))
             .and_then(|bytes| bytes.checked_mul(2))
-            .ok_or(ItemRefusal::Budget)?;
-        let accounted_state_bytes = cost
-            .schema_resource_buffer_bytes
-            .checked_add(cost.input_instance_buffer_bytes)
+            .ok_or(crate::item_budget_origin!())?;
+        let accounted_state_bytes = retained_state_bytes;
+        let previous_capacity_bytes = self
+            .pending_schema_diagnostics
+            .capacity()
+            .checked_mul(std::mem::size_of::<SourceCutSchemaDiagnostic>())
+            .ok_or(crate::item_budget_origin!())?;
+        let required_len = self
+            .pending_schema_diagnostics
+            .len()
+            .checked_add(1)
+            .ok_or(crate::item_budget_origin!())?;
+        let requested_capacity_bytes = if required_len > self.pending_schema_diagnostics.capacity()
+        {
+            required_len
+                .checked_mul(std::mem::size_of::<SourceCutSchemaDiagnostic>())
+                .ok_or(crate::item_budget_origin!())?
+        } else {
+            0
+        };
+        let mut next_state_bytes = self
+            .diagnostic_state_bytes_used
+            .checked_add(accounted_state_bytes)
+            .ok_or(crate::item_budget_origin!())?;
+        let exchange_peak = next_state_bytes
+            .checked_add(requested_capacity_bytes)
+            .and_then(|bytes| bytes.checked_add(cost.schema_resource_buffer_bytes))
+            .and_then(|bytes| bytes.checked_add(cost.input_instance_buffer_bytes))
             .and_then(|bytes| bytes.checked_add(cost.request_buffer_bytes))
             .and_then(|bytes| bytes.checked_add(cost.response_buffer_bytes))
             .and_then(|bytes| bytes.checked_add(input_metadata_bytes))
-            .and_then(|bytes| bytes.checked_add(retained_state_bytes))
-            .ok_or(ItemRefusal::Budget)?;
-        let Some(next_state_bytes) = self
-            .diagnostic_state_bytes_used
-            .checked_add(accounted_state_bytes)
-            .filter(|bytes| *bytes <= diagnostic_limits.max_total_state_bytes)
+            .ok_or(crate::item_budget_origin!())?;
+        let Some(_) =
+            Some(exchange_peak).filter(|bytes| *bytes <= diagnostic_limits.max_total_state_bytes)
         else {
             self.image
                 .as_mut()
@@ -918,13 +999,26 @@ impl BiblioRecordExecutor {
                 .poison(ExecutorFailure::InputBudget);
             return Err(ItemRefusal::BudgetCheck {
                 check: "record schema diagnostic state bytes",
-                used: self
-                    .diagnostic_state_bytes_used
-                    .checked_add(accounted_state_bytes)
-                    .and_then(|bytes| u64::try_from(bytes).ok()),
+                used: u64::try_from(exchange_peak).ok(),
                 limit: u64::try_from(diagnostic_limits.max_total_state_bytes).ok(),
             });
         };
+        self.pending_schema_diagnostics
+            .try_reserve_exact(1)
+            .map_err(|_| crate::item_budget_origin!())?;
+        let next_capacity_bytes = self
+            .pending_schema_diagnostics
+            .capacity()
+            .checked_mul(std::mem::size_of::<SourceCutSchemaDiagnostic>())
+            .ok_or(crate::item_budget_origin!())?;
+        next_state_bytes = next_state_bytes
+            .checked_add(
+                next_capacity_bytes
+                    .checked_sub(previous_capacity_bytes)
+                    .ok_or(crate::item_budget_origin!())?,
+            )
+            .filter(|bytes| *bytes <= diagnostic_limits.max_total_state_bytes)
+            .ok_or(crate::item_budget_origin!())?;
         let valid = report.status == schema_diagnostics::Status::Valid;
         let verdict = BoundedSchemaVerdict {
             instance_sha256: unit.raw_sha256,
@@ -972,6 +1066,9 @@ impl BiblioRecordExecutor {
 
     fn take_schema_diagnostics(&mut self, before_issue: usize) -> Vec<SourceCutSchemaDiagnostic> {
         let mut diagnostics = std::mem::take(&mut self.pending_schema_diagnostics);
+        // The caller now owns these reports and admits their batch/page state.
+        // No diagnostics or vector capacity remain owned by this executor.
+        self.diagnostic_state_bytes_used = 0;
         for diagnostic in &mut diagnostics {
             diagnostic.before_issue = before_issue;
         }
@@ -1006,17 +1103,6 @@ fn diagnostics_limits_valid(
         && limits.max_total_report_bytes <= wire_capacity
         && limits.max_total_state_bytes > 0
         && limits.max_total_state_bytes <= wire_capacity
-}
-
-fn diagnostics_refusal(reason: ExecutorFailure) -> ItemRefusal {
-    match reason {
-        ExecutorFailure::Timeout => ItemRefusal::Deadline,
-        ExecutorFailure::Cancelled => {
-            ItemRefusal::Source("record schema diagnostics cancelled".into())
-        }
-        ExecutorFailure::InputBudget | ExecutorFailure::CpuLimit => ItemRefusal::Budget,
-        _ => ItemRefusal::Unsupported("record schema diagnostics worker failed".into()),
-    }
 }
 
 fn schema_resource_encoding_bytes(resources: &[SchemaResource]) -> Option<usize> {
@@ -1246,7 +1332,10 @@ struct FactCoverageDigest {
 
 impl FactCoverageDigest {
     fn add(&mut self, digest: Digest256) -> Result<(), ItemRefusal> {
-        self.count = self.count.checked_add(1).ok_or(ItemRefusal::Budget)?;
+        self.count = self
+            .count
+            .checked_add(1)
+            .ok_or(crate::item_budget_origin!())?;
         for (slot, byte) in self.xor.iter_mut().zip(digest.as_bytes()) {
             *slot ^= *byte;
         }
@@ -1255,7 +1344,7 @@ impl FactCoverageDigest {
             let value = u16::from(self.sum[index])
                 .checked_add(u16::from(digest.as_bytes()[index]))
                 .and_then(|value| value.checked_add(carry))
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
             self.sum[index] = value as u8;
             carry = value >> 8;
         }
@@ -1284,7 +1373,10 @@ impl OrderedRecordDigest {
             ));
         }
         let leaf = hash_record_observation(ordinal, row)?;
-        let next_count = self.count.checked_add(1).ok_or(ItemRefusal::Budget)?;
+        let next_count = self
+            .count
+            .checked_add(1)
+            .ok_or(crate::item_budget_origin!())?;
         let mut hash = Digest256Hasher::new();
         hash.update(b"tos-biblio-record-observation-sequence-v1\0");
         hash.update(self.digest.as_bytes());
@@ -1325,7 +1417,7 @@ impl BiblioRecordProgress {
 }
 
 fn digest_frame(hash: &mut Digest256Hasher, bytes: &[u8]) -> Result<(), ItemRefusal> {
-    let size = u64::try_from(bytes.len()).map_err(|_| ItemRefusal::Budget)?;
+    let size = u64::try_from(bytes.len()).map_err(|_| crate::item_budget_origin!())?;
     hash.update(&size.to_be_bytes());
     hash.update(bytes);
     Ok(())
@@ -1560,19 +1652,19 @@ impl StoredRecordObservationSink<'_> {
         let observed_state = self
             .state_bytes
             .checked_add(row_state)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         let projection_peak = observed_state
             .checked_add(row_state)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         let progress = self.progress.borrow();
         let page_state = progress.live_page_state_bytes;
         drop(progress);
         let live_observed = observed_state
             .checked_add(page_state)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         let live_projection_peak = projection_peak
             .checked_add(page_state)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         if live_projection_peak > self.max_state_bytes {
             return Err(ItemRefusal::BudgetCheck {
                 check: "Biblio stored observation transient state",
@@ -1605,7 +1697,7 @@ impl StoredRecordObservationSink<'_> {
             progress.issue_count = progress
                 .issue_count
                 .checked_add(1)
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
         }
         Ok(())
     }
@@ -1619,13 +1711,13 @@ impl StoredRecordObservationSink<'_> {
         let temporary = self
             .state_bytes
             .checked_add(self.live_page_reservation)
-            .ok_or(ItemRefusal::Budget)?
+            .ok_or(crate::item_budget_origin!())?
             .checked_add(std::mem::size_of::<BiblioCurrentRecord>())
             .and_then(|bytes| bytes.checked_add(id.len()))
             .and_then(|bytes| bytes.checked_add(record.path.len()))
             .and_then(|bytes| bytes.checked_add(record.kind.len()))
             .and_then(|bytes| bytes.checked_add(decoded))
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         if temporary > self.max_state_bytes {
             return Err(ItemRefusal::BudgetCheck {
                 check: "Biblio stored record transient state",
@@ -1713,10 +1805,10 @@ fn record_observation_state_bytes(row: &RecordObservation) -> Result<usize, Item
             .and_then(|bytes| bytes.checked_add(raw_sha256.len())),
         RecordObservation::Issue { path, code } => path.len().checked_add(code.len()),
     }
-    .ok_or(ItemRefusal::Budget)?;
+    .ok_or(crate::item_budget_origin!())?;
     std::mem::size_of::<RecordObservation>()
         .checked_add(payload)
-        .ok_or(ItemRefusal::Budget)
+        .ok_or(crate::item_budget_origin!())
 }
 
 impl RecordSink for StoredRecordObservationSink<'_> {
@@ -1783,23 +1875,23 @@ fn reserve_record_fact_reader_state(
         .max_cursor_bytes
         .get()
         .checked_mul(2)
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     let page_reservation = page_budget
         .max_state_bytes
         .get()
         .checked_mul(3)
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     let per_reader = std::mem::size_of::<RecordFactPageReader<'static>>()
         .checked_add(cursor_reservation)
         .and_then(|bytes| bytes.checked_add(page_reservation))
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     let reservation = per_reader
         .checked_mul(reader_count)
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     let total = sink
         .state_bytes
         .checked_add(reservation)
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     if total > sink.max_state_bytes {
         return Err(ItemRefusal::BudgetCheck {
             check: "Biblio join readers, pages, and cursor overlap reservation",
@@ -1815,7 +1907,7 @@ fn reserve_record_fact_reader_state(
         .state_bytes
         .checked_add(reservation)
         .and_then(|bytes| bytes.checked_sub(per_reader))
-        .ok_or(ItemRefusal::Budget)?)
+        .ok_or(crate::item_budget_origin!())?)
 }
 
 fn release_record_fact_reader_state(sink: &mut StoredRecordObservationSink<'_>) {
@@ -1877,12 +1969,12 @@ impl<'a> RecordFactPageReader<'a> {
             .checked_add(cursor_bytes)
             .and_then(|bytes| bytes.checked_add(last_key_bytes))
             .and_then(|bytes| bytes.checked_add(self.page_budget.max_cursor_bytes.get()))
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         let available_total = self
             .total_state_limit
             .checked_sub(self.base_state_bytes)
             .and_then(|bytes| bytes.checked_sub(fixed_bytes))
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         let page_limit = available_total.min(self.page_budget.max_state_bytes.get());
         let Some(page_limit) = std::num::NonZeroUsize::new(page_limit) else {
             return Err(ItemRefusal::BudgetCheck {
@@ -1923,7 +2015,7 @@ impl<'a> RecordFactPageReader<'a> {
             .base_state_bytes
             .checked_add(self.page_charge)
             .and_then(|bytes| bytes.checked_add(fixed_bytes))
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         if total > self.total_state_limit {
             return Err(ItemRefusal::BudgetCheck {
                 check: "Biblio fact page retained state",
@@ -1938,7 +2030,7 @@ impl<'a> RecordFactPageReader<'a> {
             .and_then(|bytes| bytes.checked_add(cursor_bytes))
             .and_then(|bytes| bytes.checked_add(pending_cursor_bytes))
             .and_then(|bytes| bytes.checked_add(last_key_bytes))
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         let mut progress = self.progress.borrow_mut();
         progress.peak_state_bytes = progress.peak_state_bytes.max(total);
         progress.peak_state_bytes = progress.peak_state_bytes.max(actual_total);
@@ -2010,7 +2102,7 @@ impl<'a> RecordFactPageReader<'a> {
                         .as_ref()
                         .map_or(0, |cursor| cursor.as_bytes().len()),
                 )
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
             let total = self
                 .base_state_bytes
                 .checked_add(self.page_charge)
@@ -2018,7 +2110,7 @@ impl<'a> RecordFactPageReader<'a> {
                 .and_then(|bytes| bytes.checked_add(cursor_bytes))
                 .and_then(|bytes| bytes.checked_add(old_key_capacity))
                 .and_then(|bytes| bytes.checked_add(requested_key_capacity))
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
             if total > self.total_state_limit {
                 return Err(ItemRefusal::BudgetCheck {
                     check: "Biblio sorted-key cursor state",
@@ -2030,7 +2122,7 @@ impl<'a> RecordFactPageReader<'a> {
             let mut next_key = String::new();
             next_key
                 .try_reserve_exact(key.len())
-                .map_err(|_| ItemRefusal::Budget)?;
+                .map_err(|_| crate::item_budget_origin!())?;
             let actual_total = self
                 .base_state_bytes
                 .checked_add(self.page_charge)
@@ -2038,7 +2130,7 @@ impl<'a> RecordFactPageReader<'a> {
                 .and_then(|bytes| bytes.checked_add(cursor_bytes))
                 .and_then(|bytes| bytes.checked_add(old_key_capacity))
                 .and_then(|bytes| bytes.checked_add(next_key.capacity()))
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
             if actual_total > self.total_state_limit {
                 return Err(ItemRefusal::BudgetCheck {
                     check: "Biblio sorted-key allocation overlap",
@@ -2248,65 +2340,72 @@ fn add_schema_diagnostic_cost(
     total.completed_exchanges = total
         .completed_exchanges
         .checked_add(1)
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     total.issue_count = total
         .issue_count
         .checked_add(
-            u64::try_from(diagnostic.unit.report.issues.len()).map_err(|_| ItemRefusal::Budget)?,
+            u64::try_from(diagnostic.unit.report.issues.len())
+                .map_err(|_| crate::item_budget_origin!())?,
         )
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     total.schema_resource_bytes = total
         .schema_resource_bytes
         .checked_add(
-            u64::try_from(diagnostic.schema_resource_bytes).map_err(|_| ItemRefusal::Budget)?,
+            u64::try_from(diagnostic.schema_resource_bytes)
+                .map_err(|_| crate::item_budget_origin!())?,
         )
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     total.schema_resource_buffer_bytes = total
         .schema_resource_buffer_bytes
         .checked_add(diagnostic.schema_resource_buffer_bytes)
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     total.input_instance_bytes = total
         .input_instance_bytes
         .checked_add(
-            u64::try_from(diagnostic.input_instance_bytes).map_err(|_| ItemRefusal::Budget)?,
+            u64::try_from(diagnostic.input_instance_bytes)
+                .map_err(|_| crate::item_budget_origin!())?,
         )
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     total.input_instance_buffer_bytes = total
         .input_instance_buffer_bytes
         .checked_add(diagnostic.input_instance_buffer_bytes)
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     total.input_metadata_bytes = total
         .input_metadata_bytes
         .checked_add(diagnostic.input_metadata_bytes)
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     total.request_bytes = total
         .request_bytes
-        .checked_add(u64::try_from(diagnostic.request_bytes).map_err(|_| ItemRefusal::Budget)?)
-        .ok_or(ItemRefusal::Budget)?;
+        .checked_add(
+            u64::try_from(diagnostic.request_bytes).map_err(|_| crate::item_budget_origin!())?,
+        )
+        .ok_or(crate::item_budget_origin!())?;
     total.request_buffer_bytes = total
         .request_buffer_bytes
         .checked_add(diagnostic.request_buffer_bytes)
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     total.response_bytes = total
         .response_bytes
-        .checked_add(u64::try_from(diagnostic.response_bytes).map_err(|_| ItemRefusal::Budget)?)
-        .ok_or(ItemRefusal::Budget)?;
+        .checked_add(
+            u64::try_from(diagnostic.response_bytes).map_err(|_| crate::item_budget_origin!())?,
+        )
+        .ok_or(crate::item_budget_origin!())?;
     total.response_buffer_bytes = total
         .response_buffer_bytes
         .checked_add(diagnostic.response_buffer_bytes)
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     total.worker_cpu_micros = total
         .worker_cpu_micros
         .checked_add(diagnostic.worker_cpu_micros)
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     total.retained_state_bytes = total
         .retained_state_bytes
         .checked_add(diagnostic.retained_state_bytes)
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     total.accounted_state_bytes = total
         .accounted_state_bytes
         .checked_add(diagnostic.accounted_state_bytes)
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     Ok(())
 }
 
@@ -2319,14 +2418,15 @@ fn finish_schema_cost(
     let expected_exchanges = executor
         .executions
         .checked_sub(initial_executions)
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     let expected_issues = executor
         .diagnostic_issues_used
         .checked_sub(initial_diagnostic_issues)
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     if total.completed_exchanges
-        != u64::try_from(expected_exchanges).map_err(|_| ItemRefusal::Budget)?
-        || total.issue_count != u64::try_from(expected_issues).map_err(|_| ItemRefusal::Budget)?
+        != u64::try_from(expected_exchanges).map_err(|_| crate::item_budget_origin!())?
+        || total.issue_count
+            != u64::try_from(expected_issues).map_err(|_| crate::item_budget_origin!())?
     {
         return Err(ItemRefusal::Unsupported(
             "record schema diagnostics cost coverage incomplete".into(),
@@ -2458,7 +2558,7 @@ fn refresh_sink_issue_limit(
 ) -> Result<(), ItemRefusal> {
     let record_issue_limit = total_issue_limit
         .checked_sub(diagnostic_issues_used)
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     if sink.issues > record_issue_limit {
         return Err(ItemRefusal::BudgetCheck {
             check: "record issue sink after schema diagnostics",
@@ -2482,21 +2582,21 @@ fn retain_stored_schema_diagnostics(
             diagnostics
                 .capacity()
                 .checked_mul(std::mem::size_of::<SourceCutSchemaDiagnostic>())
-                .ok_or(ItemRefusal::Budget)?,
+                .ok_or(crate::item_budget_origin!())?,
         )
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     let mut batch_state_bytes = 0usize;
     for diagnostic in &diagnostics {
         batch_state_bytes = batch_state_bytes
             .checked_add(diagnostic.accounted_state_bytes)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
     }
     let transient_state_bytes = sink
         .state_bytes
         .checked_add(sink.live_page_reservation)
         .and_then(|bytes| bytes.checked_add(vector_state_bytes))
         .and_then(|bytes| bytes.checked_add(batch_state_bytes))
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     if transient_state_bytes > sink.max_state_bytes {
         return Err(ItemRefusal::BudgetCheck {
             check: "Biblio terminal schema diagnostics batch state",
@@ -2531,7 +2631,7 @@ fn refresh_stored_sink_issue_limit(
 ) -> Result<(), ItemRefusal> {
     let record_issue_limit = total_issue_limit
         .checked_sub(diagnostic_issues_used)
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     if sink.progress.borrow().issue_count > record_issue_limit {
         return Err(ItemRefusal::BudgetCheck {
             check: "stored record issues after schema diagnostics",
@@ -2554,11 +2654,11 @@ fn current_input_member(
     check(limits.deadline, cancelled)?;
     let relative_path_state = std::mem::size_of::<RelativePath>()
         .checked_add(path.len())
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     let path_parse_peak = retained_state_bytes
         .checked_add(relative_path_state)
         .and_then(|bytes| bytes.checked_add(std::mem::size_of::<Option<Vec<u8>>>()))
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     if path_parse_peak > limits.max_state_bytes {
         return Err(ItemRefusal::BudgetCheck {
             check: "Biblio current-member path parse state",
@@ -2592,7 +2692,7 @@ fn current_input_member(
                 .and_then(|both| both.checked_add(std::mem::size_of::<Option<Vec<u8>>>()))
                 .and_then(|both| both.checked_add(relative_path_state))
                 .and_then(|both| both.checked_add(retained_state_bytes))
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
             if overlap > limits.max_state_bytes {
                 return Err(ItemRefusal::BudgetCheck {
                     check: "Biblio borrowed and owned source member overlap",
@@ -2604,7 +2704,7 @@ fn current_input_member(
             let mut owned = Vec::new();
             owned
                 .try_reserve_exact(bytes.len())
-                .map_err(|_| ItemRefusal::Budget)?;
+                .map_err(|_| crate::item_budget_origin!())?;
             let actual_overlap = owned
                 .capacity()
                 .checked_add(bytes.len())
@@ -2612,7 +2712,7 @@ fn current_input_member(
                 .and_then(|both| both.checked_add(std::mem::size_of::<Option<Vec<u8>>>()))
                 .and_then(|both| both.checked_add(relative_path_state))
                 .and_then(|both| both.checked_add(retained_state_bytes))
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
             if actual_overlap > limits.max_state_bytes {
                 return Err(ItemRefusal::BudgetCheck {
                     check: "Biblio borrowed and owned source member capacity",
@@ -2684,7 +2784,7 @@ pub fn inspect_records_from_input_stored(
         .checked_add(std::mem::size_of::<SourceCutStreamedRecordSummary>())
         .and_then(|bytes| bytes.checked_add(std::mem::size_of::<Vec<SourceCutSchemaDiagnostic>>()))
         .and_then(|bytes| bytes.checked_add(std::mem::size_of::<String>()))
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     let registry = current_input_member(
         input,
         REGISTRY,
@@ -2696,7 +2796,7 @@ pub fn inspect_records_from_input_stored(
     let registry_retained_state = fixed_header_state
         .checked_add(registry.len())
         .and_then(|bytes| bytes.checked_add(std::mem::size_of::<Vec<u8>>()))
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     let contract = current_input_member(
         input,
         REGISTRY_SCHEMA,
@@ -2714,9 +2814,9 @@ pub fn inspect_records_from_input_stored(
                 .checked_mul(2)
                 .and_then(|headers| bytes.checked_add(headers))
         })
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     if base_state > limits.max_state_bytes {
-        return Err(ItemRefusal::Budget);
+        return Err(crate::item_budget_origin!());
     }
 
     let mut schema_paths = Vec::<String>::new();
@@ -2724,19 +2824,19 @@ pub fn inspect_records_from_input_stored(
     let mut metadata_bytes = 0u64;
     let mut metadata_state = std::mem::size_of::<Vec<String>>()
         .checked_add(std::mem::size_of::<String>())
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     let mut schema_path_bytes = 0usize;
     let mut previous_metadata_path = String::new();
     input.for_each_current_member_meta(limits.deadline, cancelled, &mut |meta| {
         check(limits.deadline, cancelled)?;
         let path_parse_state = std::mem::size_of::<RelativePath>()
             .checked_add(meta.path.len())
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         let path_parse_peak = base_state
             .checked_add(metadata_state)
             .and_then(|bytes| bytes.checked_add(previous_metadata_path.capacity()))
             .and_then(|bytes| bytes.checked_add(path_parse_state))
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         if path_parse_peak > limits.max_state_bytes {
             return Err(ItemRefusal::BudgetCheck {
                 check: "Biblio metadata path parse precharge",
@@ -2752,16 +2852,18 @@ pub fn inspect_records_from_input_stored(
                 "Biblio source metadata paths are not strictly ordered".into(),
             ));
         }
-        metadata_members = metadata_members.checked_add(1).ok_or(ItemRefusal::Budget)?;
+        metadata_members = metadata_members
+            .checked_add(1)
+            .ok_or(crate::item_budget_origin!())?;
         metadata_bytes = metadata_bytes
             .checked_add(meta.size_bytes)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         let previous_capacity = previous_metadata_path.capacity();
         let previous_requested_capacity = previous_capacity.max(meta.path.len());
         let previous_overlap_capacity = if previous_requested_capacity > previous_capacity {
             previous_capacity
                 .checked_add(previous_requested_capacity)
-                .ok_or(ItemRefusal::Budget)?
+                .ok_or(crate::item_budget_origin!())?
         } else {
             previous_capacity
         };
@@ -2772,12 +2874,12 @@ pub fn inspect_records_from_input_stored(
             let next_len = schema_paths
                 .len()
                 .checked_add(1)
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
             let old_capacity = schema_paths.capacity();
             let requested_capacity = old_capacity.max(next_len);
             let requested_slots = requested_capacity
                 .checked_mul(std::mem::size_of::<String>())
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
             let vector_reallocation_overlap = if requested_capacity > old_capacity {
                 requested_slots
             } else {
@@ -2785,13 +2887,13 @@ pub fn inspect_records_from_input_stored(
             };
             let local_schema_path = std::mem::size_of::<String>()
                 .checked_add(meta.path.len())
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
             let metadata_peak = base_state
                 .checked_add(metadata_state)
                 .and_then(|bytes| bytes.checked_add(vector_reallocation_overlap))
                 .and_then(|bytes| bytes.checked_add(local_schema_path))
                 .and_then(|bytes| bytes.checked_add(previous_overlap_capacity))
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
             if metadata_peak > limits.max_state_bytes {
                 return Err(ItemRefusal::BudgetCheck {
                     check: "Biblio source metadata state",
@@ -2801,7 +2903,7 @@ pub fn inspect_records_from_input_stored(
             }
             schema_paths
                 .try_reserve_exact(1)
-                .map_err(|_| ItemRefusal::Budget)?;
+                .map_err(|_| crate::item_budget_origin!())?;
             let next_capacity = schema_paths.capacity();
             let actual_metadata_state = std::mem::size_of::<Vec<String>>()
                 .checked_add(std::mem::size_of::<String>())
@@ -2809,11 +2911,11 @@ pub fn inspect_records_from_input_stored(
                     bytes.checked_add(next_capacity.checked_mul(std::mem::size_of::<String>())?)
                 })
                 .and_then(|bytes| bytes.checked_add(schema_path_bytes))
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
             let actual_vector_overlap = if next_capacity > old_capacity {
                 next_capacity
                     .checked_mul(std::mem::size_of::<String>())
-                    .ok_or(ItemRefusal::Budget)?
+                    .ok_or(crate::item_budget_origin!())?
             } else {
                 0
             };
@@ -2822,7 +2924,7 @@ pub fn inspect_records_from_input_stored(
                 .and_then(|bytes| bytes.checked_add(actual_vector_overlap))
                 .and_then(|bytes| bytes.checked_add(local_schema_path))
                 .and_then(|bytes| bytes.checked_add(previous_overlap_capacity))
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
             if actual_peak > limits.max_state_bytes {
                 return Err(ItemRefusal::BudgetCheck {
                     check: "Biblio source metadata vector capacity",
@@ -2833,11 +2935,11 @@ pub fn inspect_records_from_input_stored(
             previous_metadata_path.clear();
             previous_metadata_path
                 .try_reserve_exact(meta.path.len())
-                .map_err(|_| ItemRefusal::Budget)?;
+                .map_err(|_| crate::item_budget_origin!())?;
             let previous_actual_overlap = if previous_metadata_path.capacity() > previous_capacity {
                 previous_capacity
                     .checked_add(previous_metadata_path.capacity())
-                    .ok_or(ItemRefusal::Budget)?
+                    .ok_or(crate::item_budget_origin!())?
             } else {
                 previous_metadata_path.capacity()
             };
@@ -2845,7 +2947,7 @@ pub fn inspect_records_from_input_stored(
                 .checked_add(actual_metadata_state)
                 .and_then(|bytes| bytes.checked_add(local_schema_path))
                 .and_then(|bytes| bytes.checked_add(previous_actual_overlap))
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
             if actual_peak > limits.max_state_bytes {
                 return Err(ItemRefusal::BudgetCheck {
                     check: "Biblio source metadata simultaneous path state",
@@ -2855,21 +2957,21 @@ pub fn inspect_records_from_input_stored(
             }
             let mut path = String::new();
             path.try_reserve_exact(meta.path.len())
-                .map_err(|_| ItemRefusal::Budget)?;
+                .map_err(|_| crate::item_budget_origin!())?;
             path.push_str(meta.path);
             previous_metadata_path.push_str(meta.path);
             schema_paths.push(path);
             schema_path_bytes = schema_path_bytes
                 .checked_add(meta.path.len())
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
             metadata_state = actual_metadata_state
                 .checked_add(meta.path.len())
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
         } else {
             let metadata_peak = base_state
                 .checked_add(metadata_state)
                 .and_then(|bytes| bytes.checked_add(previous_overlap_capacity))
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
             if metadata_peak > limits.max_state_bytes {
                 return Err(ItemRefusal::BudgetCheck {
                     check: "Biblio source metadata last-path precharge",
@@ -2880,11 +2982,11 @@ pub fn inspect_records_from_input_stored(
             previous_metadata_path.clear();
             previous_metadata_path
                 .try_reserve_exact(meta.path.len())
-                .map_err(|_| ItemRefusal::Budget)?;
+                .map_err(|_| crate::item_budget_origin!())?;
             let actual_peak = base_state
                 .checked_add(metadata_state)
                 .and_then(|bytes| bytes.checked_add(previous_metadata_path.capacity()))
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
             if actual_peak > limits.max_state_bytes {
                 return Err(ItemRefusal::BudgetCheck {
                     check: "Biblio source metadata last-path state",
@@ -2901,19 +3003,19 @@ pub fn inspect_records_from_input_stored(
     drop(previous_metadata_path);
     metadata_state = metadata_state
         .checked_sub(std::mem::size_of::<String>())
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     let mut schemas = Vec::<(String, Vec<u8>)>::new();
     let schema_slots = schema_paths
         .len()
         .checked_mul(std::mem::size_of::<(String, Vec<u8>)>())
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     let mut schemas_state = std::mem::size_of::<Vec<(String, Vec<u8>)>>()
         .checked_add(schema_slots)
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     let schema_preallocation_peak = base_state
         .checked_add(metadata_state)
         .and_then(|bytes| bytes.checked_add(schemas_state))
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     if schema_preallocation_peak > limits.max_state_bytes {
         return Err(ItemRefusal::BudgetCheck {
             check: "Biblio schema row capacity precharge",
@@ -2923,19 +3025,19 @@ pub fn inspect_records_from_input_stored(
     }
     schemas
         .try_reserve_exact(schema_paths.len())
-        .map_err(|_| ItemRefusal::Budget)?;
+        .map_err(|_| crate::item_budget_origin!())?;
     schemas_state = std::mem::size_of::<Vec<(String, Vec<u8>)>>()
         .checked_add(
             schemas
                 .capacity()
                 .checked_mul(std::mem::size_of::<(String, Vec<u8>)>())
-                .ok_or(ItemRefusal::Budget)?,
+                .ok_or(crate::item_budget_origin!())?,
         )
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     let actual_preallocation_peak = base_state
         .checked_add(metadata_state)
         .and_then(|bytes| bytes.checked_add(schemas_state))
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     if actual_preallocation_peak > limits.max_state_bytes {
         return Err(ItemRefusal::BudgetCheck {
             check: "Biblio schema row capacity",
@@ -2947,12 +3049,12 @@ pub fn inspect_records_from_input_stored(
         check(limits.deadline, cancelled)?;
         let path_clone_state = std::mem::size_of::<String>()
             .checked_add(path.len())
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         let path_clone_peak = base_state
             .checked_add(metadata_state)
             .and_then(|bytes| bytes.checked_add(schemas_state))
             .and_then(|bytes| bytes.checked_add(path_clone_state))
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         if path_clone_peak > limits.max_state_bytes {
             return Err(ItemRefusal::BudgetCheck {
                 check: "Biblio source schema path clone precharge",
@@ -2963,17 +3065,17 @@ pub fn inspect_records_from_input_stored(
         let mut owned_path = String::new();
         owned_path
             .try_reserve_exact(path.len())
-            .map_err(|_| ItemRefusal::Budget)?;
+            .map_err(|_| crate::item_budget_origin!())?;
         owned_path.push_str(path);
         let raw = current_input_member(input, path, limits, cancelled, &mut used, path_clone_peak)?;
         schemas_state = schemas_state
             .checked_add(path.len())
             .and_then(|bytes| bytes.checked_add(raw.len()))
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         let schema_profile_state = base_state
             .checked_add(metadata_state)
             .and_then(|bytes| bytes.checked_add(schemas_state))
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         if schema_profile_state > limits.max_state_bytes {
             return Err(ItemRefusal::BudgetCheck {
                 check: "Biblio source schema profile state",
@@ -2990,7 +3092,7 @@ pub fn inspect_records_from_input_stored(
             bytes.checked_add(std::mem::size_of::<StoredRecordObservationSink<'static>>())
         })
         .and_then(|bytes| bytes.checked_add(std::mem::size_of::<BiblioRecordProgress>()))
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     if base_state > limits.max_state_bytes {
         return Err(ItemRefusal::BudgetCheck {
             check: "Biblio current profile state",
@@ -3024,7 +3126,7 @@ pub fn inspect_records_from_input_stored(
         executor
             .diagnostic_issues_used
             .checked_sub(initial_diagnostic_issues)
-            .ok_or(ItemRefusal::Budget)?,
+            .ok_or(crate::item_budget_origin!())?,
     )?;
     let mut family = RecordFamily::new_with_bounded_registry(
         &registry,
@@ -3040,21 +3142,23 @@ pub fn inspect_records_from_input_stored(
         .map_err(|error| stored_record_rule_error(&progress, error))?;
     check_stored_record_progress(&progress)?;
 
+    let record_selection = input.record_selection();
+    let mut selected_record_count = 0usize;
     let mut scan_members = 0u64;
     let mut scan_bytes = 0u64;
     let mut previous_path = String::new();
     let coverage =
         input.for_each_current_member(limits.deadline, cancelled, &mut |meta, raw| {
             check(limits.deadline, cancelled)?;
-            let raw_len = u64::try_from(raw.len()).map_err(|_| ItemRefusal::Budget)?;
+            let raw_len = u64::try_from(raw.len()).map_err(|_| crate::item_budget_origin!())?;
             let path_parse_state = std::mem::size_of::<RelativePath>()
                 .checked_add(meta.path.len())
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
             let path_parse_peak = base_state
                 .checked_add(raw.len())
                 .and_then(|bytes| bytes.checked_add(previous_path.capacity()))
                 .and_then(|bytes| bytes.checked_add(path_parse_state))
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
             if path_parse_peak > limits.max_state_bytes {
                 return Err(ItemRefusal::BudgetCheck {
                     check: "Biblio streamed path parse and member precharge",
@@ -3077,22 +3181,26 @@ pub fn inspect_records_from_input_stored(
                     "Biblio current stream paths are not strictly ordered".into(),
                 ));
             }
-            scan_members = scan_members.checked_add(1).ok_or(ItemRefusal::Budget)?;
-            scan_bytes = scan_bytes.checked_add(raw_len).ok_or(ItemRefusal::Budget)?;
+            scan_members = scan_members
+                .checked_add(1)
+                .ok_or(crate::item_budget_origin!())?;
+            scan_bytes = scan_bytes
+                .checked_add(raw_len)
+                .ok_or(crate::item_budget_origin!())?;
             account(&mut used, raw.len(), limits.max_total_bytes)?;
             let old_path_capacity = previous_path.capacity();
             let requested_path_capacity = old_path_capacity.max(meta.path.len());
             let path_overlap_capacity = if requested_path_capacity > old_path_capacity {
                 old_path_capacity
                     .checked_add(requested_path_capacity)
-                    .ok_or(ItemRefusal::Budget)?
+                    .ok_or(crate::item_budget_origin!())?
             } else {
                 old_path_capacity
             };
             let path_peak = base_state
                 .checked_add(raw.len())
                 .and_then(|bytes| bytes.checked_add(path_overlap_capacity))
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
             if path_peak > limits.max_state_bytes {
                 return Err(ItemRefusal::BudgetCheck {
                     check: "Biblio stream borrowed member and prior-path overlap",
@@ -3103,11 +3211,11 @@ pub fn inspect_records_from_input_stored(
             previous_path.clear();
             previous_path
                 .try_reserve_exact(meta.path.len())
-                .map_err(|_| ItemRefusal::Budget)?;
+                .map_err(|_| crate::item_budget_origin!())?;
             let actual_path_peak = base_state
                 .checked_add(raw.len())
                 .and_then(|bytes| bytes.checked_add(previous_path.capacity()))
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
             if actual_path_peak > limits.max_state_bytes {
                 return Err(ItemRefusal::BudgetCheck {
                     check: "Biblio stream path buffer state",
@@ -3125,6 +3233,28 @@ pub fn inspect_records_from_input_stored(
             if !path.starts_with("ToS/source-witnesses/") || !path.ends_with(".json") {
                 sink.state_bytes = base_state;
                 return Ok(());
+            }
+            if let Some(selection) = record_selection.as_ref() {
+                if selection.record(path).is_none() {
+                    sink.state_bytes = base_state;
+                    return Ok(());
+                }
+                let verification_state =
+                    crate::source_record_selection::selection_state_upper_bound(raw.len())?;
+                let peak = actual_path_peak
+                    .checked_add(verification_state)
+                    .ok_or(crate::item_budget_origin!())?;
+                if peak > limits.max_state_bytes {
+                    return Err(ItemRefusal::BudgetCheck {
+                        check: "Biblio selected record verification state",
+                        used: Some(peak as u64),
+                        limit: Some(limits.max_state_bytes as u64),
+                    });
+                }
+                selection.verify_record(path, raw, limits.deadline, cancelled)?;
+                selected_record_count = selected_record_count
+                    .checked_add(1)
+                    .ok_or(crate::item_budget_origin!())?;
             }
             let basename = path.rsplit('/').next().unwrap_or("");
             let semantic =
@@ -3160,7 +3290,7 @@ pub fn inspect_records_from_input_stored(
                         executor
                             .diagnostic_issues_used
                             .checked_sub(initial_diagnostic_issues)
-                            .ok_or(ItemRefusal::Budget)?,
+                            .ok_or(crate::item_budget_origin!())?,
                     )?;
                     let common = executor.evaluate(
                         &plan.resources,
@@ -3183,7 +3313,7 @@ pub fn inspect_records_from_input_stored(
                         executor
                             .diagnostic_issues_used
                             .checked_sub(initial_diagnostic_issues)
-                            .ok_or(ItemRefusal::Budget)?,
+                            .ok_or(crate::item_budget_origin!())?,
                     )?;
                     family
                         .inspect_member_with_bounded_schema(
@@ -3222,7 +3352,7 @@ pub fn inspect_records_from_input_stored(
                         executor
                             .diagnostic_issues_used
                             .checked_sub(initial_diagnostic_issues)
-                            .ok_or(ItemRefusal::Budget)?,
+                            .ok_or(crate::item_budget_origin!())?,
                     )?;
                     family
                         .inspect_native_with_bounded_schema(path, raw, &verdict, &mut sink)
@@ -3256,6 +3386,14 @@ pub fn inspect_records_from_input_stored(
             "Biblio current member coverage differs from metadata and observed stream".into(),
         ));
     }
+    if record_selection
+        .as_ref()
+        .is_some_and(|selection| selection.record_count() != selected_record_count)
+    {
+        return Err(ItemRefusal::Source(
+            "selected Biblio records did not reach exact physical membership EOF".into(),
+        ));
+    }
     input.verify_current_fence(&coverage, limits.deadline, cancelled)?;
     check_stored_record_progress(&progress)?;
     let membership = coverage.membership();
@@ -3282,7 +3420,7 @@ pub fn inspect_records_from_input_stored(
             )
             .map_err(|error| stored_record_rule_error(&progress, error))?,
         )
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     check_stored_record_progress(&progress)?;
     verify_fact_page_coverage(
         &progress.borrow(),
@@ -3312,7 +3450,7 @@ pub fn inspect_records_from_input_stored(
             )
             .map_err(|error| stored_record_rule_error(&progress, error))?,
         )
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     check_stored_record_progress(&progress)?;
     verify_fact_page_coverage(
         &progress.borrow(),
@@ -3354,7 +3492,7 @@ pub fn inspect_records_from_input_stored(
             )
             .map_err(|error| stored_record_rule_error(&progress, error))?,
         )
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     check_stored_record_progress(&progress)?;
     verify_fact_page_coverage(
         &progress.borrow(),
@@ -3394,9 +3532,38 @@ pub fn inspect_records_from_input_stored(
         if !row.target_path.starts_with("ToS/") {
             continue;
         }
-        let relative = RelativePath::parse(&row.target_path)
+        let selected_row = record_selection
+            .as_ref()
+            .and_then(|_| row.target_path.rsplit_once(':'))
+            .and_then(|(path, line)| {
+                line.parse::<u64>()
+                    .ok()
+                    .filter(|line| *line > 0)
+                    .filter(|_| path.ends_with(".jsonl"))
+                    .map(|line| (path, line))
+            });
+        let target_path = selected_row.map_or(row.target_path.as_str(), |(path, _)| path);
+        let relative = RelativePath::parse(target_path)
             .map_err(|_| ItemRefusal::Unsupported("record reference path".into()))?;
-        let presence = input.path_presence(relative.as_str(), limits.deadline, cancelled)?;
+        let selected_target = record_selection.as_ref().is_none_or(|selection| {
+            if let Some((path, line)) = selected_row {
+                selection.selected_row(path, line)
+            } else {
+                selection.contains_member(relative.as_str())
+                    || row.check != PathReferenceCheck::FileIfToS
+                        && selection.members().any(|member| {
+                            member
+                                .source_ref
+                                .strip_prefix(relative.as_str())
+                                .is_some_and(|suffix| suffix.starts_with('/'))
+                        })
+            }
+        });
+        let presence = if selected_target {
+            input.path_presence(relative.as_str(), limits.deadline, cancelled)?
+        } else {
+            None
+        };
         if presence.is_none()
             || (row.check == PathReferenceCheck::FileIfToS
                 && presence != Some(SourcePresenceV1::File))
@@ -3405,7 +3572,9 @@ pub fn inspect_records_from_input_stored(
                 path: row.from_path,
                 code: "record_path_reference_missing",
             })?;
-            global_issues = global_issues.checked_add(1).ok_or(ItemRefusal::Budget)?;
+            global_issues = global_issues
+                .checked_add(1)
+                .ok_or(crate::item_budget_origin!())?;
         }
     }
     check_stored_record_progress(&progress)?;
@@ -3471,12 +3640,12 @@ pub fn inspect_records_from_input_stored(
     let diagnostic_issues = executor
         .diagnostic_issues_used
         .checked_sub(initial_diagnostic_issues)
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     let observed_issue_count = progress
         .borrow()
         .issue_count
         .checked_add(diagnostic_issues)
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     if observed_issue_count > limits.max_issues {
         return Err(ItemRefusal::BudgetCheck {
             check: "Biblio final issue count",
@@ -3530,9 +3699,9 @@ pub fn inspect_records_from_cut(
         .len()
         .checked_add(contract.len())
         .and_then(|bytes| bytes.checked_add(std::mem::size_of::<SourceCutRecordUsage>()))
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     if state > limits.max_state_bytes {
-        return Err(ItemRefusal::Budget);
+        return Err(crate::item_budget_origin!());
     }
     for metadata in cut.current().members() {
         check(limits.deadline, cancelled)?;
@@ -3567,11 +3736,11 @@ pub fn inspect_records_from_cut(
     let registry_diagnostic_issues = executor
         .diagnostic_issues_used
         .checked_sub(initial_diagnostic_issues)
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     let initial_record_issue_limit = limits
         .max_issues
         .checked_sub(registry_diagnostic_issues)
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     let mut family = RecordFamily::new_with_bounded_registry(
         &registry,
         &contract,
@@ -3601,7 +3770,7 @@ pub fn inspect_records_from_cut(
         check(limits.deadline, cancelled)?;
         account(&mut used, member.raw.len(), limits.max_total_bytes)?;
         if member.raw.len() > limits.max_member_bytes {
-            return Err(ItemRefusal::Budget);
+            return Err(crate::item_budget_origin!());
         }
         let path = member.path.as_str();
         if !path.starts_with("ToS/source-witnesses/") || !path.ends_with(".json") {
@@ -3640,7 +3809,7 @@ pub fn inspect_records_from_cut(
                     executor
                         .diagnostic_issues_used
                         .checked_sub(initial_diagnostic_issues)
-                        .ok_or(ItemRefusal::Budget)?,
+                        .ok_or(crate::item_budget_origin!())?,
                 )?;
                 let common = executor.evaluate(
                     &plan.resources,
@@ -3664,7 +3833,7 @@ pub fn inspect_records_from_cut(
                     executor
                         .diagnostic_issues_used
                         .checked_sub(initial_diagnostic_issues)
-                        .ok_or(ItemRefusal::Budget)?,
+                        .ok_or(crate::item_budget_origin!())?,
                 )?;
                 family
                     .inspect_member_with_bounded_schema(
@@ -3704,7 +3873,7 @@ pub fn inspect_records_from_cut(
                     executor
                         .diagnostic_issues_used
                         .checked_sub(initial_diagnostic_issues)
-                        .ok_or(ItemRefusal::Budget)?,
+                        .ok_or(crate::item_budget_origin!())?,
                 )?;
                 family
                     .inspect_native_with_bounded_schema(path, &member.raw, &verdict, &mut sink)
@@ -3820,12 +3989,12 @@ pub fn inspect_records_from_cut(
     let current_diagnostic_issues = executor
         .diagnostic_issues_used
         .checked_sub(initial_diagnostic_issues)
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     let mut remaining_issues = limits
         .max_issues
         .checked_sub(sink.issues)
         .and_then(|remaining| remaining.checked_sub(current_diagnostic_issues))
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     let mut record_issue_observations = sink.issues;
     let mut versions = BTreeMap::<(String, u64), String>::new();
     for row in &sink.rows {
@@ -3900,10 +4069,10 @@ pub fn inspect_records_from_cut(
         let history_registry_diagnostic_issues = executor
             .diagnostic_issues_used
             .checked_sub(history_diagnostic_start)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         let history_record_issue_limit = remaining_issues
             .checked_sub(history_registry_diagnostic_issues)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         let mut historical_family = RecordFamily::new_with_bounded_registry(
             &historical_registry,
             &historical_contract,
@@ -3944,7 +4113,7 @@ pub fn inspect_records_from_cut(
             account(&mut used, member.raw.len(), limits.max_total_bytes)?;
             check(limits.deadline, cancelled)?;
             if member.raw.len() > limits.max_member_bytes {
-                return Err(ItemRefusal::Budget);
+                return Err(crate::item_budget_origin!());
             }
             let path = member.path.as_str();
             if !path.starts_with("ToS/source-witnesses/") || !path.ends_with(".json") {
@@ -3984,7 +4153,7 @@ pub fn inspect_records_from_cut(
                         executor
                             .diagnostic_issues_used
                             .checked_sub(history_diagnostic_start)
-                            .ok_or(ItemRefusal::Budget)?,
+                            .ok_or(crate::item_budget_origin!())?,
                     )?;
                     let common = executor.evaluate(
                         &plan.resources,
@@ -4008,7 +4177,7 @@ pub fn inspect_records_from_cut(
                         executor
                             .diagnostic_issues_used
                             .checked_sub(history_diagnostic_start)
-                            .ok_or(ItemRefusal::Budget)?,
+                            .ok_or(crate::item_budget_origin!())?,
                     )?;
                     historical_family
                         .inspect_member_with_bounded_schema(
@@ -4048,7 +4217,7 @@ pub fn inspect_records_from_cut(
                         executor
                             .diagnostic_issues_used
                             .checked_sub(history_diagnostic_start)
-                            .ok_or(ItemRefusal::Budget)?,
+                            .ok_or(crate::item_budget_origin!())?,
                     )?;
                     historical_family
                         .inspect_native_with_bounded_schema(
@@ -4101,15 +4270,15 @@ pub fn inspect_records_from_cut(
         historical_state = historical_sink.bytes;
         record_issue_observations = record_issue_observations
             .checked_add(historical_sink.issues)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         let history_diagnostic_issues = executor
             .diagnostic_issues_used
             .checked_sub(history_diagnostic_start)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         remaining_issues = remaining_issues
             .checked_sub(historical_sink.issues)
             .and_then(|remaining| remaining.checked_sub(history_diagnostic_issues))
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         retained_memberships.push((revision, membership));
         retained_record_profiles.push(RetainedRecordProfile {
             source_revision: revision,
@@ -4124,10 +4293,10 @@ pub fn inspect_records_from_cut(
     let diagnostic_issue_count = executor
         .diagnostic_issues_used
         .checked_sub(initial_diagnostic_issues)
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     let observed_issue_count = record_issue_observations
         .checked_add(diagnostic_issue_count)
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     let schema_diagnostics_v2 = aggregate_schema_cost(
         &schema_diagnostics,
         &retained_record_profiles,
@@ -4250,7 +4419,7 @@ pub(crate) fn source_store_cause(error: &tos_source_store::StoreError) -> String
 pub(crate) fn store_error(error: tos_source_store::StoreError) -> ItemRefusal {
     use tos_source_store::StoreErrorCode;
     match error.code {
-        StoreErrorCode::BudgetExceeded => ItemRefusal::Budget,
+        StoreErrorCode::BudgetExceeded => crate::item_budget_origin!(),
         StoreErrorCode::UnsupportedFormat | StoreErrorCode::UnsupportedPlatform => {
             ItemRefusal::Unsupported(error.to_string())
         }
@@ -4328,8 +4497,8 @@ pub(crate) fn decoded_state(value: &serde_json::Value) -> Result<usize, ItemRefu
         }
     }
     std::mem::size_of::<serde_json::Value>()
-        .checked_add(heap(value).ok_or(ItemRefusal::Budget)?)
-        .ok_or(ItemRefusal::Budget)
+        .checked_add(heap(value).ok_or(crate::item_budget_origin!())?)
+        .ok_or(crate::item_budget_origin!())
 }
 pub(crate) fn ordered_state(value: &tos_foundation::JsonValue) -> Result<usize, ItemRefusal> {
     fn string(s: &tos_foundation::JsonString) -> Option<usize> {
@@ -4357,8 +4526,8 @@ pub(crate) fn ordered_state(value: &tos_foundation::JsonValue) -> Result<usize, 
         }
     }
     std::mem::size_of::<tos_foundation::JsonValue>()
-        .checked_add(heap(value).ok_or(ItemRefusal::Budget)?)
-        .ok_or(ItemRefusal::Budget)
+        .checked_add(heap(value).ok_or(crate::item_budget_origin!())?)
+        .ok_or(crate::item_budget_origin!())
 }
 // Peak logical strict-parser tree plus duplicate-key index slots/payloads.
 // Ancestor object indexes can coexist; summing the actual object indexes is a
@@ -4382,8 +4551,8 @@ pub(crate) fn ordered_codec_state(value: &tos_foundation::JsonValue) -> Result<u
         }
     }
     ordered_state(value)?
-        .checked_add(indexes(value).ok_or(ItemRefusal::Budget)?)
-        .ok_or(ItemRefusal::Budget)
+        .checked_add(indexes(value).ok_or(crate::item_budget_origin!())?)
+        .ok_or(crate::item_budget_origin!())
 }
 // Canonical emission keeps borrowed duplicate-key and sorted-entry indexes.
 // Nested object indexes can coexist; this prices their logical slots, without
@@ -4407,7 +4576,7 @@ pub(crate) fn ordered_emit_state(value: &tos_foundation::JsonValue) -> Result<us
             _ => Some(0),
         }
     }
-    indexes(value).ok_or(ItemRefusal::Budget)
+    indexes(value).ok_or(crate::item_budget_origin!())
 }
 pub(crate) fn bounded_ordered(
     raw: &[u8],
@@ -4447,7 +4616,7 @@ fn bounded_ordered_mode(
         let strings = raw
             .len()
             .checked_mul(2 * std::mem::size_of::<u16>() + std::mem::size_of::<u8>())
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         let slot = std::mem::size_of::<tos_foundation::JsonValue>()
             + std::mem::size_of::<tos_foundation::JsonString>()
             + std::mem::size_of::<(Vec<u16>, usize)>()
@@ -4528,7 +4697,7 @@ pub(crate) fn bounded_legacy_decoded_state(
 ) -> Result<(serde_json::Value, usize), ItemRefusal> {
     let limits =
         tos_foundation::JsonLimits::new(max_bytes, 128, available.max(1), max_bytes.max(1))
-            .map_err(|_| ItemRefusal::Budget)?;
+            .map_err(|_| crate::item_budget_origin!())?;
     bounded_legacy_decoded_state_inner(raw, limits, available, deadline, cancelled, false, false)
 }
 // The named source-layer caller has the original native decoded-field JSON
@@ -4618,7 +4787,7 @@ fn record_error(error: RecordRuleError) -> ItemRefusal {
             used: None,
             limit: None,
         },
-        RecordRuleError::Sink { detail } if detail == "budget" => ItemRefusal::Budget,
+        RecordRuleError::Sink { detail } if detail == "budget" => crate::item_budget_origin!(),
         RecordRuleError::Sink { detail } if detail == "deadline" => ItemRefusal::Deadline,
         RecordRuleError::Sink { detail } if detail == "cancelled" => {
             ItemRefusal::Source("record family cancelled".into())
@@ -4704,5 +4873,5 @@ pub(crate) fn predicate_state(read: &crate::PredicateRead) -> Result<usize, Item
         .try_fold(std::mem::size_of::<crate::PredicateRead>(), |sum, s| {
             sum.checked_add(s.len())
         })
-        .ok_or(ItemRefusal::Budget)
+        .ok_or(crate::item_budget_origin!())
 }

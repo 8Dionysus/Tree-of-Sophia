@@ -487,7 +487,9 @@ fn store(error: tos_source_store::StoreError) -> RetirementRefusal {
 fn schema_error(error: ItemRefusal) -> RetirementRefusal {
     match error {
         ItemRefusal::Budget => RetirementRefusal::Budget,
-        error @ ItemRefusal::BudgetCheck { .. } => RetirementRefusal::Schema(error),
+        error @ (ItemRefusal::BudgetCheck { .. } | ItemRefusal::Executor(_)) => {
+            RetirementRefusal::Schema(error)
+        }
         ItemRefusal::Deadline => RetirementRefusal::Deadline,
         ItemRefusal::Source(s) => RetirementRefusal::Source(s),
         ItemRefusal::Unsupported(s) => RetirementRefusal::Unsupported(s),

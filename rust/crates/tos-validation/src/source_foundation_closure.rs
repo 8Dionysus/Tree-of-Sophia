@@ -24,14 +24,17 @@ use crate::source_witness_foundation::SourceFileMembershipIndex;
 use serde_json::Value;
 use std::borrow::Cow;
 use std::collections::{BTreeMap, BTreeSet};
-use std::sync::atomic::Ordering;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Instant;
 use tos_foundation::{CanonicalProfile, Digest256, JsonLimits, RelativePath, canonical_bytes_v1};
 use tos_source_store::CorpusCutReader;
 
+use crate::source_foundation_default_rules::SourceFoundationDefaultRuleScope;
+
 const SOURCE_HOME: &str = "ToS/source-witnesses/";
 const CLAIM_SCHEMA: &str = "ToS/contracts/claim-packet.schema.json";
 const PROVENANCE_SCHEMA: &str = "ToS/contracts/provenance-event.schema.json";
+const PROVENANCE_V2_SCHEMA: &str = "ToS/contracts/provenance-event-v2.schema.json";
 const ANCHOR_SCHEMA: &str = "ToS/contracts/source-anchor.schema.json";
 const BOUNDARY_MAP_SCHEMA: &str = "ToS/contracts/collection-work-boundary-map.schema.json";
 const DERIVATION_SCHEMA: &str = "ToS/contracts/expression-derivation.schema.json";
@@ -695,6 +698,7 @@ pub fn inspect_source_foundation_closure<S: LayerFamilySource + ?Sized>(
         limits,
         true,
         true,
+        SourceFoundationDefaultRuleScope::FullAudit,
     )
 }
 
@@ -728,6 +732,7 @@ pub fn inspect_source_foundation_closure_with_identity<I: Eq, S: LayerFamilySour
         None,
         limits,
         true,
+        SourceFoundationDefaultRuleScope::FullAudit,
     )
 }
 
@@ -760,6 +765,7 @@ pub fn inspect_source_foundation_closure_with_identity_and_link_store<
         None,
         limits,
         false,
+        SourceFoundationDefaultRuleScope::FullAudit,
     )
 }
 
@@ -793,6 +799,42 @@ pub fn inspect_source_foundation_closure_with_identity_and_candidate_stores<
         schema_request_store,
         limits,
         false,
+        SourceFoundationDefaultRuleScope::FullAudit,
+    )
+}
+
+#[allow(clippy::too_many_arguments)]
+pub fn inspect_source_foundation_closure_with_identity_and_candidate_stores_with_scope<
+    I: Eq,
+    S: LayerFamilySource + ?Sized,
+>(
+    source: &mut S,
+    input: &dyn SourceCutInputWithIdentity<I>,
+    expected_identity: &I,
+    coverage: &SourceCutInputCoverage,
+    source_events: &dyn SourceFoundationDefaultEventLookup,
+    records: &dyn SourceFoundationDefaultRecordsLookup,
+    paths: &dyn SourceFoundationDefaultPaths,
+    claims: &dyn SourceFoundationDefaultClaims,
+    link_store: Option<&mut dyn SourceFoundationClosureLinkStore>,
+    schema_request_store: Option<&mut dyn SourceFoundationClosureSchemaRequestStore>,
+    limits: ItemLimits,
+    scope: SourceFoundationDefaultRuleScope,
+) -> Result<SourceFoundationClosureReport, ItemRefusal> {
+    inspect_source_foundation_closure_with_identity_and_link_store_cache(
+        source,
+        input,
+        expected_identity,
+        coverage,
+        source_events,
+        records,
+        paths,
+        claims,
+        link_store,
+        schema_request_store,
+        limits,
+        false,
+        scope,
     )
 }
 
@@ -813,6 +855,7 @@ fn inspect_source_foundation_closure_with_identity_and_link_store_cache<
     schema_request_store: Option<&mut dyn SourceFoundationClosureSchemaRequestStore>,
     limits: ItemLimits,
     cache_recorded_checks: bool,
+    scope: SourceFoundationDefaultRuleScope,
 ) -> Result<SourceFoundationClosureReport, ItemRefusal> {
     let cancelled = source.cancellation();
     check(limits.deadline, cancelled)?;
@@ -835,6 +878,7 @@ fn inspect_source_foundation_closure_with_identity_and_link_store_cache<
         limits,
         false,
         cache_recorded_checks,
+        scope,
     );
     check(limits.deadline, source.cancellation())?;
     if input.input_identity() != expected_identity {
@@ -859,6 +903,7 @@ fn run_source_foundation_closure<S: LayerFamilySource + ?Sized>(
     limits: ItemLimits,
     cache_digests: bool,
     cache_recorded_checks: bool,
+    scope: SourceFoundationDefaultRuleScope,
 ) -> Result<SourceFoundationClosureReport, ItemRefusal> {
     let mut has_declared_profile_kind = false;
     records.for_each_profile_kind(&mut |kind| {
@@ -870,6 +915,12 @@ fn run_source_foundation_closure<S: LayerFamilySource + ?Sized>(
     let mut requires_bibliographic = has_declared_profile_kind;
     paths.for_each_path(&mut |path| {
         check(limits.deadline, source.cancellation())?;
+        if source
+            .record_selection()
+            .is_some_and(|selection| !selection.selects_semantic_member(path))
+        {
+            return Ok(());
+        }
         requires_bibliographic |= path.starts_with(SOURCE_HOME)
             && (path.ends_with("/historical-claims.jsonl")
                 || path.ends_with("/source-claims.jsonl"));
@@ -886,17 +937,28 @@ fn run_source_foundation_closure<S: LayerFamilySource + ?Sized>(
         limits,
         cache_digests,
         cache_recorded_checks,
+        scope,
     )?;
     rules.check_records_map()?;
     rules.collect_events()?;
     rules.check_boundary_maps_and_anchors()?;
     rules.check_claim_streams()?;
-    rules.check_topology()?;
-    rules.check_derivation()?;
+    if scope.is_scoped() {
+        rules.check_selected_derivation_graph()?;
+        for (_, predicate, subject_kind, _, backref, _) in TOPOLOGY_ROUTES {
+            rules.check_topology_backrefs(subject_kind, backref, predicate)?;
+        }
+    }
+    if scope == SourceFoundationDefaultRuleScope::FullAudit {
+        rules.check_topology()?;
+        rules.check_derivation()?;
+    }
     rules.check_responsibility_claims()?;
     rules.check_publication_claims()?;
     rules.check_provision_activity()?;
-    rules.check_chronology()?;
+    if scope == SourceFoundationDefaultRuleScope::FullAudit {
+        rules.check_chronology()?;
+    }
     rules.check_object_links()?;
     rules.check_record_backlinks()?;
 
@@ -1659,6 +1721,48 @@ pub fn source_foundation_requires_bibliographic(
 }
 
 // Store object bounds remain independent from this short inspection borrow.
+fn directed_cycle<K: Ord + Clone>(
+    edges: &BTreeMap<K, BTreeSet<K>>,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> Result<bool, ItemRefusal> {
+    let mut visited = BTreeMap::<K, u8>::new();
+    let mut cycle = false;
+    for start in edges.keys() {
+        if visited.get(start).copied().unwrap_or_default() != 0 {
+            continue;
+        }
+        let mut stack = vec![(start.clone(), false)];
+        while let Some((node, leaving)) = stack.pop() {
+            check(deadline, cancelled)?;
+            if leaving {
+                visited.insert(node, 2);
+                continue;
+            }
+            match visited.get(&node).copied().unwrap_or_default() {
+                1 => {
+                    cycle = true;
+                    continue;
+                }
+                2 => continue,
+                _ => {}
+            }
+            visited.insert(node.clone(), 1);
+            stack.push((node.clone(), true));
+            if let Some(children) = edges.get(&node) {
+                for child in children.iter().rev() {
+                    match visited.get(child).copied().unwrap_or_default() {
+                        1 => cycle = true,
+                        0 => stack.push((child.clone(), false)),
+                        _ => {}
+                    }
+                }
+            }
+        }
+    }
+    Ok(cycle)
+}
+
 struct ClosureRules<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> {
     source: &'a mut S,
     limits: ItemLimits,
@@ -1678,6 +1782,7 @@ struct ClosureRules<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> {
     temporary_state_bytes: usize,
     cache_digests: bool,
     cache_recorded_checks: bool,
+    scope: SourceFoundationDefaultRuleScope,
     loaded: BTreeMap<String, LoadedRows>,
     digests: BTreeMap<String, String>,
     recorded_checks: BTreeMap<(String, String), bool>,
@@ -1714,6 +1819,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
         limits: ItemLimits,
         cache_digests: bool,
         cache_recorded_checks: bool,
+        scope: SourceFoundationDefaultRuleScope,
     ) -> Result<Self, ItemRefusal> {
         check(limits.deadline, source.cancellation())?;
         Ok(Self {
@@ -1735,6 +1841,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
             temporary_state_bytes: 0,
             cache_digests,
             cache_recorded_checks,
+            scope,
             loaded: BTreeMap::new(),
             digests: BTreeMap::new(),
             recorded_checks: BTreeMap::new(),
@@ -1900,6 +2007,13 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
     }
 
     fn path_exists(&self, path: &str) -> Result<bool, ItemRefusal> {
+        if self
+            .source
+            .record_selection()
+            .is_some_and(|selection| !selection.contains_member(path))
+        {
+            return Ok(false);
+        }
         let deadline = self.limits.deadline;
         let cancelled = self.source.cancellation();
         let mut checkpoint = || check(deadline, cancelled);
@@ -2143,9 +2257,14 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
             .ok_or(ItemRefusal::Budget)?;
         let mut used = 0usize;
         let mut found = BTreeSet::new();
+        let selection = self.source.record_selection();
         path_source.for_each_path(&mut |path| {
             check(deadline, cancelled)?;
-            if !matches(path) {
+            if !matches(path)
+                || selection
+                    .as_ref()
+                    .is_some_and(|selection| !selection.selects_semantic_member(path))
+            {
                 return Ok(());
             }
             let row_bytes = path
@@ -2273,6 +2392,68 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
             .min(usize::try_from(remaining_total).unwrap_or(usize::MAX)))
     }
 
+    fn selected_jsonl_values(
+        &mut self,
+        path: &str,
+        raw: &[u8],
+        schema: Option<&str>,
+        loaded_state_bytes: &mut usize,
+    ) -> Result<Vec<(usize, Value)>, ItemRefusal> {
+        let selection = self.source.record_selection().ok_or(ItemRefusal::Budget)?;
+        let scratch = selection
+            .slots()
+            .filter(|slot| slot.source.source_ref == path)
+            .try_fold(0usize, |peak, slot| {
+                Ok::<_, ItemRefusal>(peak.max(slot.verification_state_upper_bound()?))
+            })?;
+        self.include_store_workspace(scratch)?;
+        let verified =
+            selection.verify_file(path, raw, self.limits.deadline, self.source.cancellation())?;
+        let mut rows = Vec::new();
+        let mut selected_rows = verified.row_cursor();
+        loop {
+            self.include_store_workspace(scratch)?;
+            let Some(selected) =
+                selected_rows.next_checked(self.limits.deadline, self.source.cancellation())
+            else {
+                break;
+            };
+            let (line, bytes, _) = selected?;
+            let line = usize::try_from(line).map_err(|_| ItemRefusal::Budget)?;
+            let header_workspace = rows
+                .len()
+                .checked_add(1)
+                .and_then(|n| n.checked_mul(std::mem::size_of::<(usize, Value)>()))
+                .ok_or(ItemRefusal::Budget)?;
+            self.include_store_workspace(header_workspace)?;
+            let available = self
+                .remaining_state()?
+                .checked_sub(header_workspace)
+                .ok_or(ItemRefusal::Budget)?;
+            let (value, value_state) = crate::record_biblio_cut::bounded_decoded_state(
+                bytes,
+                selection.row_json_limits()?,
+                available,
+                self.limits.deadline,
+                self.source.cancellation(),
+            )?;
+            self.reserve_loaded_state(
+                value_state
+                    .checked_add(std::mem::size_of::<(usize, Value)>())
+                    .ok_or(ItemRefusal::Budget)?,
+                loaded_state_bytes,
+            )?;
+            self.include_store_workspace(header_workspace)?;
+            rows.try_reserve_exact(1).map_err(|_| ItemRefusal::Budget)?;
+            if let Some(schema) = schema {
+                self.request_schema(&format!("{path}:{line}"), schema, &value)?;
+            }
+            self.include_store_workspace(scratch)?;
+            rows.push((line, value));
+        }
+        Ok(rows)
+    }
+
     fn json_rows(
         &mut self,
         path: &str,
@@ -2342,7 +2523,14 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
         if !candidate_cached {
             self.reserve_loaded_state(state_cost, &mut loaded_state_bytes)?;
         }
-        if jsonl {
+        if jsonl && self.source.record_selection().is_some() {
+            rows = self.selected_jsonl_values(
+                path,
+                &raw,
+                first_load.then_some(schema),
+                &mut loaded_state_bytes,
+            )?;
+        } else if jsonl {
             let segments: Vec<&[u8]> = raw.split(|byte| *byte == b'\n').collect();
             for (zero_index, bytes) in segments.iter().enumerate() {
                 check(self.limits.deadline, self.source.cancellation())?;
@@ -2474,35 +2662,39 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
             )?;
         }
         let mut rows = Vec::new();
-        let segments: Vec<&[u8]> = raw.split(|byte| *byte == b'\n').collect();
-        for (zero_index, bytes) in segments.iter().enumerate() {
-            check(self.limits.deadline, self.source.cancellation())?;
-            if bytes.iter().all(u8::is_ascii_whitespace) {
-                if zero_index + 1 == segments.len() && raw.ends_with(b"\n") {
+        if self.source.record_selection().is_some() {
+            rows = self.selected_jsonl_values(path, &raw, None, &mut loaded_state_bytes)?;
+        } else {
+            let segments: Vec<&[u8]> = raw.split(|byte| *byte == b'\n').collect();
+            for (zero_index, bytes) in segments.iter().enumerate() {
+                check(self.limits.deadline, self.source.cancellation())?;
+                if bytes.iter().all(u8::is_ascii_whitespace) {
+                    if zero_index + 1 == segments.len() && raw.ends_with(b"\n") {
+                        continue;
+                    }
+                    if first_load {
+                        self.issue(
+                            format!("{path}:{}", zero_index + 1),
+                            "blank JSONL line is not allowed",
+                        )?;
+                    }
                     continue;
                 }
-                if first_load {
-                    self.issue(
-                        format!("{path}:{}", zero_index + 1),
-                        "blank JSONL line is not allowed",
-                    )?;
+                let line = zero_index + 1;
+                match serde_json::from_slice::<Value>(bytes) {
+                    Ok(value) => {
+                        self.reserve_loaded_state(
+                            std::mem::size_of::<Value>(),
+                            &mut loaded_state_bytes,
+                        )?;
+                        rows.push((line, value));
+                    }
+                    Err(error) if first_load => self.issue(
+                        format!("{path}:{line}"),
+                        format!("invalid JSON: {}", json_parse_reason(&error)),
+                    )?,
+                    Err(_) => {}
                 }
-                continue;
-            }
-            let line = zero_index + 1;
-            match serde_json::from_slice::<Value>(bytes) {
-                Ok(value) => {
-                    self.reserve_loaded_state(
-                        std::mem::size_of::<Value>(),
-                        &mut loaded_state_bytes,
-                    )?;
-                    rows.push((line, value));
-                }
-                Err(error) if first_load => self.issue(
-                    format!("{path}:{line}"),
-                    format!("invalid JSON: {}", json_parse_reason(&error)),
-                )?,
-                Err(_) => {}
             }
         }
         self.cost.decoded_rows = self
@@ -3157,16 +3349,30 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
             let path_source = self.paths;
             let deadline = self.limits.deadline;
             let mut event_path_rows = 0u64;
-            for path in [
-                TOPOLOGY_PROVENANCE,
-                DERIVATION_PROVENANCE,
-                CHRONOLOGY_PROVENANCE,
-            ] {
-                self.remember_candidate_event_path(path, &mut event_path_rows)?;
+            if self.scope == SourceFoundationDefaultRuleScope::FullAudit {
+                for path in [
+                    TOPOLOGY_PROVENANCE,
+                    DERIVATION_PROVENANCE,
+                    CHRONOLOGY_PROVENANCE,
+                ] {
+                    self.remember_candidate_event_path(path, &mut event_path_rows)?;
+                }
             }
             path_source.for_each_path(&mut |path| {
                 check(deadline, self.source.cancellation())?;
-                if path.ends_with(PROVISION_EVENT_BASENAME) {
+                if self
+                    .source
+                    .record_selection()
+                    .is_some_and(|selection| !selection.selects_semantic_member(path))
+                {
+                    return Ok(());
+                }
+                if path.ends_with(PROVISION_EVENT_BASENAME)
+                    || self.scope.is_scoped()
+                        && path.starts_with(SOURCE_HOME)
+                        && (path.ends_with("/provenance.jsonl")
+                            || path.contains("/provenance.") && path.ends_with(".jsonl"))
+                {
                     self.remember_candidate_event_path(path, &mut event_path_rows)?;
                 }
                 Ok(())
@@ -3288,13 +3494,28 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
     }
 
     fn collect_event_path(&mut self, path: &str) -> Result<(), ItemRefusal> {
-        let Some(loaded) = self.json_rows(path, PROVENANCE_SCHEMA, false)? else {
+        let loaded = if self.scope.is_scoped() {
+            self.unchecked_jsonl_rows(path)?
+        } else {
+            self.json_rows(path, PROVENANCE_SCHEMA, false)?
+        };
+        let Some(loaded) = loaded else {
             return Ok(());
         };
         let loaded_state_bytes = loaded.temporary_state_bytes;
         for (line, event) in loaded.rows {
             check(self.limits.deadline, self.source.cancellation())?;
-            self.validate_source_refs(&format!("{path}:{line}"), &event)?;
+            let location = format!("{path}:{line}");
+            if self.scope.is_scoped() {
+                let contract = if text(&event, "schema_version") == Some("tos_provenance_event_v2")
+                {
+                    PROVENANCE_V2_SCHEMA
+                } else {
+                    PROVENANCE_SCHEMA
+                };
+                self.request_schema(&location, contract, &event)?;
+            }
+            self.validate_source_refs(&location, &event)?;
             let Some(id) = text(&event, "event_id").map(str::to_owned) else {
                 continue;
             };
@@ -3325,8 +3546,43 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
                 0
             };
             let source_has_id = self.source_events.event_contains(&id)?;
-            let duplicate = if source_has_id {
+            let selected_first = if self.scope.is_scoped() {
+                if candidate_store_active {
+                    let remaining = self.remaining_state()?;
+                    let (inserted, workspace) = self
+                        .schema_request_store
+                        .as_deref_mut()
+                        .ok_or(crate::item_budget_origin!())?
+                        .remember_event(&id, path, line, &loaded.digest, &event, remaining)?;
+                    self.include_store_workspace(workspace)?;
+                    if inserted {
+                        self.cost.candidate_event_count = self
+                            .cost
+                            .candidate_event_count
+                            .checked_add(1)
+                            .ok_or(crate::item_budget_origin!())?;
+                    }
+                    inserted
+                } else {
+                    self.event_ids.insert(id.clone())
+                }
+            } else {
                 true
+            };
+            let duplicate = if !selected_first {
+                true
+            } else if source_has_id {
+                if self.scope.is_scoped() {
+                    let prior_events = self.source_events;
+                    match prior_events.event(&id)? {
+                        Some(prior) => !self.python_equal(&prior, &event)?,
+                        None => true,
+                    }
+                } else {
+                    true
+                }
+            } else if self.scope.is_scoped() {
+                false
             } else if candidate_store_active {
                 let remaining = self.remaining_state()?;
                 let (inserted, workspace) = self
@@ -4237,40 +4493,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
             },
         )?;
         self.reserve(graph_workspace)?;
-        let mut visited = BTreeMap::<String, u8>::new();
-        let mut cycle = false;
-        for start in edges.keys() {
-            if visited.get(start).copied().unwrap_or_default() != 0 {
-                continue;
-            }
-            let mut stack = vec![(start.clone(), false)];
-            while let Some((node, leaving)) = stack.pop() {
-                check(self.limits.deadline, self.source.cancellation())?;
-                if leaving {
-                    visited.insert(node, 2);
-                    continue;
-                }
-                match visited.get(&node).copied().unwrap_or_default() {
-                    1 => {
-                        cycle = true;
-                        continue;
-                    }
-                    2 => continue,
-                    _ => {}
-                }
-                visited.insert(node.clone(), 1);
-                stack.push((node.clone(), true));
-                if let Some(children) = edges.get(&node) {
-                    for child in children.iter().rev() {
-                        match visited.get(child).copied().unwrap_or_default() {
-                            1 => cycle = true,
-                            0 => stack.push((child.clone(), false)),
-                            _ => {}
-                        }
-                    }
-                }
-            }
-        }
+        let cycle = directed_cycle(&edges, self.limits.deadline, self.source.cancellation())?;
         if cycle {
             self.issue(claim_path, "Expression derivation cycle detected")?;
         }
@@ -5768,6 +5991,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
         let publication = &self.publication;
         let provision = &self.provision;
         let chronology = &self.chronology;
+        let scope = self.scope;
         let deadline = self.limits.deadline;
         let cancelled = self.source.cancellation();
         let limits = self.limits;
@@ -5777,7 +6001,8 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
         let retained = &mut self.retained_state_bytes;
         records.for_each_current_record(&mut |id, record| {
             check(deadline, cancelled)?;
-            let is_era_work = record.kind == "work"
+            let is_era_work = scope == SourceFoundationDefaultRuleScope::FullAudit
+                && record.kind == "work"
                 && record
                     .path
                     .starts_with("ToS/source-witnesses/works/friedrich-nietzsche/");
@@ -6290,6 +6515,10 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
                     ));
                 }
             }
+            if scope.is_scoped() && record.kind == "work" {
+                findings.extend(exact_backref_messages(&record.value, "chronology_claim_refs", id,
+                    "chronology", chronology));
+            }
             if candidate_mode {
                 refresh_candidate_findings_state(
                     &findings,
@@ -6377,6 +6606,131 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
         Ok(())
     }
 
+    fn check_selected_derivation_graph(&mut self) -> Result<(), ItemRefusal> {
+        // Keys and edges borrow the already charged claim index. Admit the
+        // complete simultaneous tree/stack workspace before constructing it.
+        // Adjacency map, per-subject edge tree and visitation map coexist.
+        let graph_entry_state = 2
+            * (std::mem::size_of::<BTreeMap<&str, BTreeSet<&str>>>()
+                + std::mem::size_of::<BTreeSet<&str>>()
+                + std::mem::size_of::<(&str, u8)>()
+                + 2 * std::mem::size_of::<(&str, bool)>()
+                + 3 * 12 * std::mem::size_of::<usize>());
+        let workspace = self
+            .derivation
+            .len()
+            .checked_mul(graph_entry_state)
+            .and_then(|bytes| {
+                bytes.checked_add(
+                    std::mem::size_of::<BTreeMap<&str, BTreeSet<&str>>>()
+                        + std::mem::size_of::<BTreeMap<&str, u8>>()
+                        + std::mem::size_of::<Vec<(&str, bool)>>(),
+                )
+            })
+            .ok_or(crate::item_budget_origin!())?;
+        self.reserve_temporary(workspace)?;
+        let cycle = {
+            let mut edges = BTreeMap::<&str, BTreeSet<&str>>::new();
+            for claim in self.derivation.values() {
+                edges
+                    .entry(claim.subject.as_str())
+                    .or_default()
+                    .insert(claim.object.as_str());
+            }
+            directed_cycle(&edges, self.limits.deadline, self.source.cancellation())?
+        };
+        self.release_temporary_state(workspace)?;
+        if cycle {
+            self.issue(SOURCE_HOME, "Expression derivation cycle detected")?;
+        }
+        Ok(())
+    }
+
+    /// Selected closure follows the declared semantic family, not the
+    /// historical corpus path, event identity or materialization cardinality.
+    fn check_selected_specialized_claim(
+        &mut self,
+        location: &str,
+        claim: &Value,
+    ) -> Result<(), ItemRefusal> {
+        let predicate = text(claim, "predicate").unwrap_or_default();
+        let subject = text(claim, "subject_ref");
+        let object = text(claim, "object");
+        for (_, topology_predicate, subject_kind, object_kind, _, _) in TOPOLOGY_ROUTES {
+            if predicate == topology_predicate {
+                self.expect_ref(location, subject, subject_kind)?;
+                self.expect_ref(location, object, object_kind)?;
+                if predicate == "exemplified_by" {
+                    if let (Some(edition), Some(item)) = (subject, object) {
+                        if self.records.item_edition(item)?.as_deref() != Some(edition) {
+                            self.issue(
+                                location,
+                                "declared edition-item topology differs from its item embodiment",
+                            )?;
+                        }
+                    }
+                }
+            }
+        }
+        if predicate == "is_derivative_of" {
+            self.expect_ref(location, subject, "expression")?;
+            self.expect_ref(location, object, "expression")?;
+            if subject == object {
+                self.issue(location, "Expression derivation is irreflexive")?;
+            }
+            self.request_schema(
+                &format!("{location}['qualifiers']"),
+                DERIVATION_SCHEMA,
+                claim.get("qualifiers").unwrap_or(&Value::Null),
+            )?;
+        }
+        if predicate == "first_publication_chronology" {
+            self.expect_ref(location, subject, "work")?;
+            let chronology = claim.get("object").unwrap_or(&Value::Null);
+            self.request_schema(
+                &format!("{location}['object']"),
+                CHRONOLOGY_SCHEMA,
+                chronology,
+            )?;
+            let interval = chronology.get("interval").unwrap_or(&Value::Null);
+            if text(interval, "start")
+                .zip(text(interval, "end"))
+                .is_some_and(|(start, end)| start > end)
+            {
+                self.issue(location, "work chronology interval starts after it ends")?;
+            }
+            let mut prior_date: Option<&str> = None;
+            for stage in chronology
+                .get("stages")
+                .and_then(Value::as_array)
+                .into_iter()
+                .flatten()
+            {
+                if let Some(date) = text(stage, "date") {
+                    if prior_date.is_some_and(|prior| prior > date) {
+                        self.issue(location, "work chronology stages are not ordered")?;
+                    }
+                    prior_date = Some(date);
+                }
+                if let Some(edition) = text(stage, "edition_ref") {
+                    self.expect_ref(location, Some(edition), "edition")?;
+                    let (record, workspace) = self.current_record_with_state_budget(edition)?;
+                    if let Some(record) = record.as_ref() {
+                        if text(&record.value, "work_ref") != subject {
+                            self.issue(
+                                location,
+                                "chronology stage edition belongs to another Work",
+                            )?;
+                        }
+                    }
+                    drop(record);
+                    self.release_temporary_state(workspace)?;
+                }
+            }
+        }
+        Ok(())
+    }
+
     fn register_claim(
         &mut self,
         path: &str,
@@ -6389,6 +6743,9 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
         let mut candidate_claim_fields_state_bytes = 0usize;
         let mut candidate_membership_state_bytes = 0usize;
         let result = (|| {
+            if self.scope.is_scoped() {
+                self.check_selected_specialized_claim(&location, claim)?;
+            }
             let subject = text(claim, "subject_ref").unwrap_or_default();
             let predicate = text(claim, "predicate").unwrap_or_default();
             let object = text(claim, "object").unwrap_or_default();
@@ -6518,7 +6875,9 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
                 self.provision_values.insert(id.clone(), claim.clone());
                 self.provision.insert(id.clone(), reference.clone());
             }
-            if path == CHRONOLOGY_CLAIMS {
+            if path == CHRONOLOGY_CLAIMS
+                || self.scope.is_scoped() && predicate == "first_publication_chronology"
+            {
                 self.expect_ref(&location, Some(&subject), "work")?;
                 self.reserve(claim_reference_index_state(&id, &reference)?)?;
                 self.chronology.insert(id.clone(), reference.clone());
@@ -7146,6 +7505,7 @@ fn assessment_refusal(error: crate::assessment::AssessmentRefusal) -> ItemRefusa
             ItemRefusal::BudgetCheck { check, used, limit }
         }
         AssessmentRefusal::Schema(ItemRefusal::Deadline) => ItemRefusal::Deadline,
+        AssessmentRefusal::Schema(error @ ItemRefusal::Executor(_)) => error,
         AssessmentRefusal::Schema(ItemRefusal::Source(_)) => {
             ItemRefusal::Source("source-foundation equality source check failed".into())
         }

@@ -1,0 +1,55 @@
+{
+  "schema_version": "tos_source_validation_profile_registry_v1",
+  "registry_id": "tos.source-validation-profiles",
+  "registry_version": 1,
+  "default_profile": "full-audit",
+  "profiles": [
+    {
+      "profile_id": "full-audit",
+      "input_scope": "full_audit",
+      "required_owners": [
+        "records",
+        "bibliography",
+        "rights",
+        "review",
+        "references",
+        "dependency-closure",
+        "discovery",
+        "closure",
+        "laboratories",
+        "goldsets"
+      ],
+      "authority_posture": "mechanical_validation_only"
+    },
+    {
+      "profile_id": "selected-source-closure",
+      "input_scope": "selected_source_closure",
+      "required_owners": [
+        "records",
+        "bibliography",
+        "rights",
+        "review",
+        "references",
+        "dependency-closure",
+        "discovery",
+        "closure"
+      ],
+      "authority_posture": "mechanical_validation_only"
+    },
+    {
+      "profile_id": "selected-record-closure",
+      "input_scope": "selected_record_closure",
+      "required_owners": [
+        "records",
+        "bibliography",
+        "rights",
+        "review",
+        "references",
+        "dependency-closure",
+        "discovery",
+        "closure"
+      ],
+      "authority_posture": "mechanical_validation_only"
+    }
+  ]
+}

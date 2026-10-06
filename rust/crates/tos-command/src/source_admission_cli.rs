@@ -28,7 +28,7 @@ use std::{
 };
 use tos_foundation::{Digest256, SourceRevision};
 
-pub const HELP: &str = "usage: tos-native-owner-command corpus-admit --store PATH --batch PATH --input-root PATH --grammar-root PATH --invocation PATH [--payload-source-root PATH] [--historical-capture PATH --historical-root PATH]...\n       tos-native-owner-command corpus-admit --store PATH --input-root PATH --fresh-record-owner ABSOLUTE_OWNER_CONFIG --fresh-record-id ID --fresh-record-transaction ID --fresh-record-base REVISION_SHA256 --grammar-root PATH --invocation PATH\n       tos-native-owner-command corpus-admit --store PATH --input-root PATH --initial-cut --grammar-root PATH --invocation PATH\n       tos-native-owner-command corpus-admit --store PATH --input-root PATH --source-transition-base ORIGINAL_REVISION_SHA256 --grammar-root PATH --invocation PATH\n       tos-native-owner-command corpus-admit --validator-identity --grammar-root PATH --invocation PATH [validation selections]\n\nAdmit exact proposed source bytes through the selected complete native validator.\nThe invocation selects finite operation resources and pinned workers. No semantic admission or rights change is granted.\n";
+pub const HELP: &str = "usage: tos-native-owner-command corpus-admit --store PATH --batch PATH --input-root PATH --grammar-root PATH --invocation PATH [--payload-source-root PATH] [--historical-capture PATH --historical-root PATH]...\n       tos-native-owner-command corpus-admit --store PATH --input-root PATH --fresh-record-owner ABSOLUTE_OWNER_CONFIG --fresh-record-id ID --fresh-record-transaction ID --fresh-record-base REVISION_SHA256 --grammar-root PATH --invocation PATH\n       tos-native-owner-command corpus-admit --store PATH --input-root PATH --initial-cut --grammar-root PATH --invocation PATH\n       tos-native-owner-command corpus-admit --store PATH --input-root PATH --source-transition-base ORIGINAL_REVISION_SHA256 --grammar-root PATH --invocation PATH\n       tos-native-owner-command corpus-admit --validator-identity --grammar-root PATH --invocation PATH [--validation-profile ID] [--record-selection-manifest PATH]\n\nAdmit exact proposed source bytes through the selected complete native validator.\nThe invocation selects finite operation resources and pinned workers. No semantic admission or rights change is granted.\n";
 pub const AUTHORED_BOOTSTRAP_HELP: &str = "usage: tos-native-owner-command authored-bootstrap --authored-bootstrap-owner ABSOLUTE_OWNER_CONFIG --store PATH --batch PATH --input-root PATH --grammar-root PATH --invocation PATH\n\nValidate the complete native-v4 candidate and publish its exact technical metadata bootstrap in the protected new private source root. The owner configuration pins the initial candidate and selects the fixed new metadata receipt; the existing transaction owner issues the ready epoch. An epoch-bound catalogue must subsequently complete under held source/currentness fences.\n";
 
 struct FreshRevisionSelection {
@@ -220,6 +220,8 @@ fn parse(args: &[OsString]) -> io::Result<Arguments> {
     let mut fresh_base = None;
     let mut grammar = None;
     let mut invocation = None;
+    let mut validation_profile = None;
+    let mut record_selection_manifest = None;
     let mut payload = None;
     let mut captures = Vec::new();
     let mut roots = Vec::new();
@@ -229,6 +231,41 @@ fn parse(args: &[OsString]) -> io::Result<Arguments> {
             .to_str()
             .ok_or_else(|| invalid("corpus admission option must be UTF-8"))?;
         position += 1;
+        if option == "--validation-profile" || option.starts_with("--validation-profile=") {
+            let id = if let Some(id) = option.strip_prefix("--validation-profile=") {
+                OsString::from(id)
+            } else {
+                let id = args
+                    .get(position)
+                    .ok_or_else(|| invalid("corpus admission validation profile requires an ID"))?;
+                position += 1;
+                id.clone()
+            };
+            // The software-owner catalog validates this ID inside the same
+            // immutable Foundation launch used for identity and admission.
+            if validation_profile.replace(id).is_some() {
+                return Err(invalid("duplicate corpus admission validation profile"));
+            }
+            continue;
+        }
+        if option == "--record-selection-manifest"
+            || option.starts_with("--record-selection-manifest=")
+        {
+            let selected = if let Some(value) = option.strip_prefix("--record-selection-manifest=")
+            {
+                path(&OsString::from(value))?
+            } else {
+                let value = args
+                    .get(position)
+                    .ok_or_else(|| invalid("record selection manifest requires a path"))?;
+                position += 1;
+                path(value)?
+            };
+            if record_selection_manifest.replace(selected).is_some() {
+                return Err(invalid("duplicate record selection manifest"));
+            }
+            continue;
+        }
         match option {
             "--help" | "-h" => {
                 result.help = true;
@@ -446,6 +483,17 @@ fn parse(args: &[OsString]) -> io::Result<Arguments> {
         OsString::from("--invocation"),
         invocation.into_os_string(),
     ]);
+    if let Some(id) = validation_profile {
+        result
+            .validator
+            .extend([OsString::from("--validation-profile"), id]);
+    }
+    if let Some(manifest) = record_selection_manifest {
+        result.validator.extend([
+            OsString::from("--record-selection-manifest"),
+            manifest.into_os_string(),
+        ]);
+    }
     if let Some(payload) = payload {
         result.validator.extend([
             OsString::from("--payload-source-root"),
@@ -672,10 +720,12 @@ fn run_with_cancel_owner(
                         crate::source_foundation_admission::NativeValidationRefusal,
                     >()
                 })
-                .map_or(phase.get(), |refusal| refusal.0.as_str());
+                .map(|refusal| refusal.0.clone())
+                .unwrap_or_else(|| crate::source_command::public_io_reason(&error));
             let _ = writeln!(
                 output,
-                "Native corpus admission refused during {}",
+                "Native corpus admission refused during {}: {}",
+                phase.get(),
                 public_phase
             )
             .and_then(|_| output.flush());
@@ -2335,4 +2385,78 @@ fn spooled_receipt(publication: &SpooledPublicationReceipt) -> serde_json::Value
         }
     }
     receipt
+}
+
+#[cfg(test)]
+mod validation_profile_forwarding_tests {
+    use super::*;
+
+    fn identity_args(extra: &[&str]) -> Vec<OsString> {
+        [
+            "--validator-identity",
+            "--grammar-root",
+            "/grammar",
+            "--invocation",
+            "/invocation",
+        ]
+        .into_iter()
+        .chain(extra.iter().copied())
+        .map(OsString::from)
+        .collect()
+    }
+
+    #[test]
+    fn profile_selection_reaches_the_same_foundation_launch() {
+        let default = parse(&identity_args(&[])).unwrap();
+        assert!(
+            !default
+                .validator
+                .iter()
+                .any(|arg| arg == "--validation-profile")
+        );
+        for extra in [
+            vec!["--validation-profile", "selected-source-closure"],
+            vec!["--validation-profile=selected-source-closure"],
+        ] {
+            let selected = parse(&identity_args(&extra)).unwrap();
+            assert_eq!(
+                &selected.validator[selected.validator.len() - 2..],
+                &[
+                    OsString::from("--validation-profile"),
+                    OsString::from("selected-source-closure")
+                ]
+            );
+        }
+
+        for extra in [
+            vec!["--record-selection-manifest", "/selection.json"],
+            vec!["--record-selection-manifest=/selection.json"],
+        ] {
+            let selected = parse(&identity_args(&extra)).unwrap();
+            assert_eq!(
+                &selected.validator[selected.validator.len() - 2..],
+                &[
+                    OsString::from("--record-selection-manifest"),
+                    OsString::from("/selection.json")
+                ]
+            );
+        }
+        assert!(parse(&identity_args(&["--record-selection-manifest"])).is_err());
+        assert!(
+            parse(&identity_args(&[
+                "--record-selection-manifest=/selection.json",
+                "--record-selection-manifest=/other.json"
+            ]))
+            .is_err()
+        );
+        assert!(parse(&identity_args(&["--validation-profile"])).is_err());
+        assert!(
+            parse(&identity_args(&[
+                "--validation-profile",
+                "full-audit",
+                "--validation-profile=selected-source-closure"
+            ]))
+            .is_err()
+        );
+    }
 }

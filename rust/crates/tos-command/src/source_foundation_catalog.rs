@@ -1483,7 +1483,7 @@ impl SourceCatalogProfileObserver for SpoolingCatalogProfileObserver<'_, '_> {
     fn native_semantic_identity(&mut self, id: &str, packet_ref: &str) -> Result<()> {
         self.rows
             .push_native_semantic(id, packet_ref)
-            .map_err(|_| Error::Invalid("native semantic row spool refused"))
+            .map_err(Error::Io)
     }
 
     fn completed_record_profiles(&mut self) -> Result<()> {

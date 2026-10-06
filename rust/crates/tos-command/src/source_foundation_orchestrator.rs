@@ -19,7 +19,8 @@ use super::foundation_output::{self, SourceFoundationOutputOutcome};
 use super::foundation_payload::FoundationPayloadSources;
 use super::foundation_reader::FoundationRuleReadLimits;
 use super::foundation_rule_diagnostics::{
-    SourceFoundationRuleDiagnosticsError, SourceFoundationRuleDiagnosticsLimits,
+    CandidateRuleDiagnosticsError, SourceFoundationRuleDiagnosticsError,
+    SourceFoundationRuleDiagnosticsLimits,
 };
 use super::foundation_run::{
     self, EvaluatedFoundationDefault, FinalizedFoundationDefaultInputs, FoundationBiblioEvidence,
@@ -40,7 +41,7 @@ use tos_validation::executor::{
     BatchBudget, ExactWorkerIdentity, ExecutorBudget, MAX_WORKER_IMAGE_BYTES,
     SharedSchemaWorkerQuota, VerifiedWorkerImageHandle,
 };
-use tos_validation::item_rules::ItemRefusal;
+use tos_validation::item_rules::{ItemLimits, ItemRefusal};
 use tos_validation::record_biblio_cut::{BiblioRecordExecutor, BiblioSchemaDiagnosticsLimits};
 use tos_validation::source_cut::{
     CutSchemaDiagnosticsLimits, CutSchemaExecutor, CutWorkerLimits, CutWorkerSchemaExecutor,
@@ -85,10 +86,38 @@ impl From<FoundationBootstrapError> for FoundationOrchestratorError {
 
 impl FoundationOrchestratorError {
     pub(crate) fn public_reason(&self) -> String {
+        if let Self::Catalog(error) = self {
+            return crate::source_command::public_compiler_reason(error);
+        }
+        if let Self::Command(error) | Self::Bootstrap(FoundationBootstrapError::Command(error)) =
+            self
+        {
+            return error.public_reason();
+        }
+        if let Self::Default(
+            _,
+            FoundationDefaultReadError::Owner(ItemRefusal::Executor(evidence)),
+        ) = self
+        {
+            return evidence.summary();
+        }
         if let Self::Admission(error) = self {
+            if error.get_ref().is_some_and(|cause| {
+                cause.is::<crate::source_command::SourceCommandError>()
+                    || cause.is::<tos_validation::item_rules::ItemExecutorRefusal>()
+            }) {
+                return crate::source_command::public_io_reason(error);
+            }
             let source_cause = error.to_string();
             if crate::source_admission_spooled_index::is_bounded_source_cause(&source_cause) {
                 return source_cause;
+            }
+            if self.static_public_reason() == "source-foundation candidate index refused" {
+                return crate::source_admission_spooled_index::bounded_source_cause(
+                    "receiver-source",
+                    "candidate-index-admission",
+                    &source_cause,
+                );
             }
         }
         let owner = match self {
@@ -97,12 +126,22 @@ impl FoundationOrchestratorError {
             _ => None,
         };
         if let Some((stage, error)) = owner {
+            if matches!(
+                error,
+                ItemRefusal::Source(_) | ItemRefusal::Unsupported(_) | ItemRefusal::Executor(_)
+            ) || matches!(error, ItemRefusal::BudgetCheck { check, .. }
+                    if !matches!(*check, "record_issue_sink" | "biblio_sink"))
+            {
+                return crate::source_admission_spooled_index::receiver_refusal(error.clone())
+                    .to_string();
+            }
             let kind = match error {
                 ItemRefusal::Budget => "budget",
                 ItemRefusal::BudgetCheck { .. } => "budget check",
                 ItemRefusal::Deadline => "deadline",
                 ItemRefusal::Source(_) => "source",
                 ItemRefusal::Unsupported(_) => "unsupported",
+                ItemRefusal::Executor(_) => "executor",
             };
             use std::fmt::Write as _;
             let mut reason = String::with_capacity(MAX_PUBLIC_BUDGET_REASON_BYTES);
@@ -204,6 +243,13 @@ impl FoundationOrchestratorError {
             Self::Command(_) => "source-foundation invocation refused",
             Self::Owner(_) | Self::OwnerAt(_, _) => "source-foundation owner phase refused",
             Self::Default(stage, error) => match (stage, error) {
+                (stage, FoundationDefaultReadError::Owner(error @ ItemRefusal::Executor(_))) => {
+                    Self::Default(
+                        *stage,
+                        FoundationDefaultReadError::Owner(error.clone().compatibility_category()),
+                    )
+                    .static_public_reason()
+                }
                 (
                     FoundationDefaultStage::CapturedCurrentPaths,
                     FoundationDefaultReadError::Owner(ItemRefusal::Budget),
@@ -624,6 +670,21 @@ fn bounded_usize(value: u64) -> Result<usize, FoundationOrchestratorError> {
     })
 }
 
+fn candidate_callback_refusal(stage: &'static str, error: ItemRefusal) -> io::Error {
+    crate::source_admission_spooled_index::receiver_refusal(candidate_owner_refusal(stage, error))
+}
+
+fn candidate_owner_refusal(stage: &'static str, error: ItemRefusal) -> ItemRefusal {
+    match error {
+        ItemRefusal::Budget => ItemRefusal::BudgetCheck {
+            check: stage,
+            used: None,
+            limit: None,
+        },
+        other => other,
+    }
+}
+
 fn owner(error: ItemRefusal) -> FoundationOrchestratorError {
     FoundationOrchestratorError::Owner(error)
 }
@@ -770,6 +831,8 @@ fn schema_limits_for_ticket(
     max_checks: usize,
 ) -> Result<SourceFoundationSchemaLimits, FoundationOrchestratorError> {
     let operation = ticket.operation_limits();
+    let max_checks =
+        max_checks.min(tos_validation::source_foundation_schema::MAX_SOURCE_FOUNDATION_CHECKS);
     let instance_cap = bounded_usize(operation.source_read_bytes)?
         .min(bounded_usize(limits.invocation_budgets.max_member_bytes)?)
         .min(tos_validation::executor::BatchBudget::MAX_RAW_BYTES);
@@ -810,16 +873,14 @@ fn cut_worker_shape(
     let units = units.min(operation.worker_wire_bytes).min(u64::MAX - 1);
     FoundationCutWorkerShape {
         batch,
-        max_chunks: units
-            .saturating_add(batch.max_units as u64 - 1)
-            .checked_div(batch.max_units as u64)
-            .unwrap_or(1)
-            .max(1),
+        // Record and cut diagnostics submit one unit per physical frame.
+        // The batch capacity is an upper bound, not guaranteed occupancy.
+        // Keep the finite unit envelope while admitting its scalar transport.
+        max_chunks: units.max(1),
         max_total_units: units.max(1),
         max_total_raw_bytes: operation
             .source_read_bytes
             .min(operation.worker_wire_bytes)
-            .min(tos_validation::executor::BatchBudget::MAX_RAW_BYTES as u64)
             .max(1),
         aggregate_wire_upper_bound_bytes: operation.worker_wire_bytes,
         max_distinct_selectors: max_checks.max(1).min(1024),
@@ -1100,7 +1161,15 @@ pub(crate) fn build_candidate_native_index(
             }
         };
         index
-            .build(records, limits, json, json_state_bytes, &mut schema_check)
+            .build(
+                records,
+                limits,
+                json,
+                json_state_bytes,
+                &mut schema_check,
+                deadline,
+                cancelled,
+            )
             .map_err(FoundationOrchestratorError::Admission)?
     };
     schemas.finish(deadline, cancelled).map_err(owner)?;
@@ -1472,6 +1541,7 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
     json_state_bytes: usize,
     callback_state_bytes: usize,
     base_declared_state_bytes: usize,
+    scope: tos_validation::source_foundation_default_rules::SourceFoundationDefaultRuleScope,
 ) -> Result<
     (
         crate::source_admission_spooled_index::IndexSink<'candidate>,
@@ -1491,6 +1561,14 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
     use tos_validation::source_foundation_records::SourceFoundationRecordsPageBudget;
 
     let owner = |error| FoundationOrchestratorError::OwnerAt("candidate entry", error);
+    if (scope == tos_validation::source_foundation_default_rules::SourceFoundationDefaultRuleScope::SelectedRecordClosure)
+        != input.record_selection().is_some()
+    {
+        return Err(owner(tos_validation::item_rules::ItemRefusal::Source(
+            "candidate record selection does not match declared validation scope".into(),
+        )));
+    }
+
     let deadline = view.invocation.deadline();
     let cancelled = view.cancelled;
     let budgets = view.invocation.budgets;
@@ -1694,7 +1772,10 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
     if schema_count == 0 || schema_bytes == 0 || schema_max_bytes == 0 || largest_member == 0 {
         return Err(incomplete("candidate selected schema closure is empty"));
     }
-    let max_checks = max_members.min(65_536).max(1);
+    // Every diagnostic exchange charges at least one actual wire byte. The
+    // selected finite wire envelope bounds execution count independently of
+    // physical member count or the local schema loader's report capacity.
+    let max_checks = bounded_usize(schema_operation.worker_wire_bytes)?.max(1);
     let schema_limits = schema_limits_for_ticket(
         view.execution_limits,
         &schema_ticket,
@@ -2056,14 +2137,148 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
         original_operation_state,
         records_callback_state,
         |records, verified, schemas, record_executor, payload_reader| {
-            if verified.fence() != fence
-                || verified.record_issue_count() != 0
-                || verified.item_issue_count() != 0
-                || records.input_identity() != &fence
-                || records.source_membership() != &fence.membership
-                || records.cost().selected_current_member_bytes != fence.source_bytes
-            {
-                return Err(io::Error::other("candidate Records report is not clean and bound"));
+            let predicates = [
+                verified.fence() != fence,
+                verified.record_issue_count() != 0,
+                verified.item_issue_count() != 0,
+                records.input_identity() != &fence,
+                records.source_membership() != &fence.membership,
+                records.cost().selected_current_member_bytes != fence.source_bytes,
+            ];
+            let mask = predicates.into_iter().enumerate().fold(0u8, |mask, (bit, failed)| {
+                mask | if failed { 1u8 << bit } else { 0 }
+            });
+            if mask != 0 {
+                let mut site = format!("ri-{mask:x}-{:x}-{:x}",
+                    verified.record_issue_count(), verified.item_issue_count());
+                let mut reason = crate::source_admission_spooled_index::bounded_source_cause(
+                    "receiver-source", &site, "candidate Records report is not clean and bound");
+                if verified.record_issue_count() != 0 || verified.item_issue_count() != 0 {
+                    use tos_validation::source_foundation_records::{
+                        SourceFoundationRecordsCollection, SourceFoundationRecordsStoredFact,
+                    };
+                    let collection = if verified.record_issue_count() != 0 {
+                        SourceFoundationRecordsCollection::OrderedIssues
+                    } else {
+                        SourceFoundationRecordsCollection::ItemIssues
+                    };
+                    let page = records.index().page(collection, None,
+                        SourceFoundationRecordsPageBudget {
+                            max_rows: NonZeroUsize::MIN,
+                            ..page_budget
+                        }, deadline, cancelled)
+                        .map_err(crate::source_admission_spooled_index::receiver_refusal)?;
+                    let first = page.rows.first().and_then(|row| match row {
+                        SourceFoundationRecordsStoredFact::OrderedIssue(issue) =>
+                            Some((issue.location.as_str(), issue.message.as_str())),
+                        SourceFoundationRecordsStoredFact::ItemIssue(issue) =>
+                            Some((issue.path.as_str(), issue.code)),
+                        _ => None,
+                    });
+                    if let Some((location, message)) = first {
+                        let digest = Digest256::of_bytes(location.as_bytes()).to_hex();
+                        let issue_site = format!("{site}-p{}", &digest[..12]);
+                        if issue_site.len() <= 40 { site = issue_site; }
+                        reason = crate::source_admission_spooled_index::bounded_source_cause(
+                            "receiver-source", &site, message);
+                    }
+                }
+                if verified.record_issue_count() == 0 && verified.item_issue_count() != 0 {
+                    use tos_validation::source_foundation_records::{
+                        SourceFoundationRecordsCollection, SourceFoundationRecordsStoredFact,
+                    };
+                    let cap = crate::source_foundation_admission::NativeValidationRefusal::MAX_PUBLIC_REASON_BYTES;
+                    let expected = usize::try_from(verified.item_issue_count())
+                        .map_err(|_| io::Error::other("Item issue count does not fit"))?;
+                    if expected > item_limits.max_issues {
+                        return Err(io::Error::other("Item issue count exceeds original issue cap"));
+                    }
+                    // The histogram and formatting buffers coexist with one page and
+                    // its old cursor, all inside the original page-state allowance.
+                    let retained = expected.checked_mul(std::mem::size_of::<(&'static str, u64)>())
+                        .and_then(|n| n.checked_add(std::mem::size_of::<Vec<(&'static str, u64)>>()))
+                        .and_then(|n| n.checked_add(cap.checked_mul(6)?))
+                        .and_then(|n| n.checked_add(std::mem::size_of::<tos_foundation::Digest256Hasher>()))
+                        .and_then(|n| n.checked_add(page_budget.max_cursor_bytes.get()))
+                        .ok_or_else(|| io::Error::other("Item histogram state overflow"))?;
+                    let page_state = page_budget.max_state_bytes.get().checked_sub(retained)
+                        .and_then(NonZeroUsize::new)
+                        .ok_or_else(|| io::Error::other("Item histogram exceeds original page state"))?;
+                    let mut histogram: Vec<(&'static str, u64)> = Vec::new();
+                    histogram.try_reserve_exact(expected)
+                        .map_err(|_| io::Error::other("Item histogram allocation refused"))?;
+                    if histogram.capacity() > expected {
+                        return Err(io::Error::other("Item histogram capacity exceeds charge"));
+                    }
+                    let mut cursor = None;
+                    let mut observed = 0usize;
+                    loop {
+                        let page = records.index().page(
+                            SourceFoundationRecordsCollection::ItemIssues, cursor.as_ref(),
+                            SourceFoundationRecordsPageBudget {
+                                max_rows: NonZeroUsize::MIN,
+                                max_state_bytes: page_state,
+                                ..page_budget
+                            }, deadline, cancelled)
+                            .map_err(crate::source_admission_spooled_index::receiver_refusal)?;
+                        if page.rows.is_empty() && page.next_cursor.is_some() {
+                            return Err(io::Error::other("Item issue page made no progress"));
+                        }
+                        for row in &page.rows {
+                            let SourceFoundationRecordsStoredFact::ItemIssue(issue) = row else {
+                                return Err(io::Error::other("Item issue page contains another fact"));
+                            };
+                            observed = observed.checked_add(1)
+                                .filter(|n| *n <= expected)
+                                .ok_or_else(|| io::Error::other("Item issue page count drift"))?;
+                            if issue.code.is_empty() || issue.code.len() > cap ||
+                                !issue.code.bytes().all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-') {
+                                return Err(io::Error::other("Item issue code is not an owned public code"));
+                            }
+                            if let Some((_, count)) = histogram.iter_mut().find(|(code, _)| *code == issue.code) {
+                                *count += 1;
+                            } else { histogram.push((issue.code, 1)); }
+                        }
+                        cursor = page.next_cursor;
+                        if cursor.is_none() { break; }
+                    }
+                    if observed != expected {
+                        return Err(io::Error::other("Item issue EOF count drift"));
+                    }
+                    histogram.sort_unstable_by_key(|(code, _)| *code);
+                    let mut hash = tos_foundation::Digest256Hasher::new();
+                    for (code, count) in &histogram {
+                        hash.update(code.as_bytes()); hash.update(&[0]); hash.update(&count.to_le_bytes());
+                    }
+                    let digest = hash.finalize().to_hex();
+                    let mut summary = format!("{site} items={observed} codes={}", histogram.len());
+                    let complete_bytes = histogram.iter().try_fold(summary.len(), |n, (code, count)| {
+                        n.checked_add(code.len() + 2 + count.to_string().len())
+                    }).ok_or_else(|| io::Error::other("Item histogram output overflow"))?;
+                    if complete_bytes <= cap {
+                        for (code, count) in &histogram {
+                            use std::fmt::Write;
+                            write!(&mut summary, " {code}={count}").map_err(io::Error::other)?;
+                        }
+                    } else {
+                        // Full ordered histogram identity survives even when the
+                        // finite public packet cannot carry every textual code.
+                        summary.push_str(&format!(" hash={digest}"));
+                        let mut shown = 0usize;
+                        for (code, count) in &histogram {
+                            let entry = format!(" {code}={count}");
+                            let suffix = format!(" omitted={}", histogram.len() - shown);
+                            if summary.len() + entry.len() + suffix.len() > cap { break; }
+                            summary.push_str(&entry); shown += 1;
+                        }
+                        summary.push_str(&format!(" omitted={}", histogram.len() - shown));
+                    }
+                    if summary.len() > cap {
+                        return Err(io::Error::other("Item histogram exceeds public reason cap"));
+                    }
+                    return Err(io::Error::other(crate::source_command::SourceCommandError::DeniedWithReason(summary)));
+                }
+                return Err(io::Error::other(reason));
             }
             let after_records = view.original_io.snapshot();
             let read_used = after_records
@@ -2153,7 +2368,13 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
                     {
                         callback_external_reads.set(external);
                     }
-                    return Err(io::Error::other("candidate Artifact history/replay refused"));
+                    return Err(io::Error::other(
+                        crate::source_admission_spooled_index::bounded_source_cause(
+                            "receiver-source",
+                            "artifact-replay",
+                            &format!("{:?}:{:?}", error.stage, error.class),
+                        ),
+                    ));
                 }
             };
             let replay_cost = replay.cost();
@@ -2239,7 +2460,7 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
                     deadline,
                     cancelled,
                 )
-                .map_err(|_| io::Error::other("candidate stored Records events refused"))?;
+                .map_err(|error| candidate_callback_refusal("candidate default record event fold", error))?;
             let biblio_query_rows = tos_validation::biblio_rules::biblio_query_row_operation_budget(
                 usize::try_from(biblio_limits.max_total_bytes)
                     .map_err(|_| io::Error::other("candidate Biblio query cap range"))?,
@@ -2274,16 +2495,31 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
                         &mut **biblio_schema_worker,
                         biblio_limits,
                         cancelled,
-                    )?;
+                    ).map_err(|error| candidate_owner_refusal("candidate bibliography receiver", error))?;
                     drop(biblio_schema_worker);
-                    if biblio_report.input_identity() != &fence
-                        || biblio_report.source_membership() != fence.membership
-                        || !biblio_report.owner_predicates_complete()
-                        || biblio_report.shadow().issue_sink_truncated
-                        || !biblio_report.shadow().issues.is_empty()
-                    {
+                    let biblio_failures = [
+                        biblio_report.input_identity() != &fence,
+                        biblio_report.source_membership() != fence.membership,
+                        !biblio_report.owner_predicates_complete(),
+                        biblio_report.shadow().issue_sink_truncated,
+                        !biblio_report.shadow().issues.is_empty(),
+                    ];
+                    let biblio_mask = biblio_failures.into_iter().enumerate()
+                        .fold(0u8, |mask, (bit, failed)| mask | if failed { 1u8 << bit } else { 0 });
+                    if biblio_mask != 0 {
+                        // Preserve the failed predicates and first owner issue as
+                        // bounded fingerprints; source locators stay private.
+                        let issues = &biblio_report.shadow().issues;
+                        let mut site = format!("bi-{biblio_mask:x}-{:x}", issues.len());
+                        let mut cause = "candidate Biblio owner predicates are incomplete or invalid";
+                        if let Some(issue) = issues.first() {
+                            let location = Digest256::of_bytes(issue.location.as_bytes()).to_hex();
+                            site.push_str(&format!("-p{}", &location[..12]));
+                            cause = issue.code;
+                        }
                         return Err(ItemRefusal::Source(
-                            "candidate Biblio owner predicates are incomplete or invalid".into(),
+                            crate::source_admission_spooled_index::bounded_source_cause(
+                                "receiver-source", &site, cause),
                         ));
                     }
                     let claims: &dyn tos_validation::source_foundation_default_rules::SourceFoundationDefaultClaims =
@@ -2292,20 +2528,36 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
                     let available_after_biblio = biblio_operation
                         .state_bytes
                         .checked_sub(biblio_state)
-                        .ok_or(ItemRefusal::Budget)?;
-                    let mut reader_limits = FoundationRuleReadLimits {
-                        max_member_bytes: max_member_bytes.min(after_replay_headroom as usize).max(1),
+                        .ok_or(tos_validation::item_budget_origin!())?;
+                    let reader_member_bytes = max_member_bytes
+                        .min(after_replay_headroom as usize)
+                        .max(1)
+                        .min(usize::try_from(biblio_limits.max_member_bytes)
+                            .map_err(|_| tos_validation::item_budget_origin!())?);
+                    // The same callback retains the Records header while the
+                    // rule reader owns its header, copied member and auxiliary
+                    // map. Project those simultaneous allocations from the one
+                    // remaining state reservation before assigning the map cap.
+                    let reader_retained_state = callback_held
+                        .checked_add(callback_header_state)
+                        .and_then(|state| state.checked_add(replay_state))
+                        .and_then(|state| state.checked_add(biblio_state))
+                        .ok_or(tos_validation::item_budget_origin!())?;
+                    let reader_auxiliary_state_bytes = available_after_biblio
+                        .checked_sub(std::mem::size_of::<FoundationRuleSource<'_, '_>>())
+                        .and_then(|state| state.checked_sub(reader_member_bytes))
+                        .filter(|state| *state != 0)
+                        .ok_or(tos_validation::item_budget_origin!())?;
+                    let reader_limits = FoundationRuleReadLimits {
+                        max_member_bytes: reader_member_bytes,
                         max_read_bytes: after_replay_headroom,
                         max_auxiliary_paths: max_members
-                            .min(available_after_biblio / std::mem::size_of::<(String, Option<(Digest256, u64)>)>().max(1))
+                            .min(reader_auxiliary_state_bytes
+                                / std::mem::size_of::<(String, Option<(Digest256, u64)>)>().max(1))
                             .max(1),
-                        max_auxiliary_state_bytes: available_after_biblio,
+                        max_auxiliary_state_bytes: reader_auxiliary_state_bytes,
                         deadline,
                     };
-                    reader_limits.max_member_bytes = reader_limits
-                        .max_member_bytes
-                        .min(usize::try_from(biblio_limits.max_member_bytes)
-                            .map_err(|_| ItemRefusal::Budget)?);
                     let history_usage_before_rules =
                         view.history.as_deref().map(|history| history.usage());
                     let history_shared_before_rules = view
@@ -2315,8 +2567,57 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
                         .map(|history| history.shared_runtime_read_bytes_returned());
                     let worker_usage_before_rules = worker_quota
                         .usage()
-                        .map_err(|_| ItemRefusal::Budget)?;
+                        .map_err(|_| tos_validation::item_budget_origin!())?;
                     let reader_io_before = view.original_io.snapshot();
+                    if let Some(selection) = input.record_selection() {
+                        let mut checked_claims = 0usize;
+                        for member in selection.members().filter(|member|
+                            selection.file_slots(&member.source_ref).iter().any(|slot| slot.kind == "claim"))
+                        {
+                            input.with_current_member(&member.source_ref, reader_member_bytes, deadline, cancelled,
+                                &mut |meta, raw| {
+                                    if meta.path != member.source_ref || meta.size_bytes != raw.len() as u64 {
+                                        return Err(ItemRefusal::Source("selected Claim member custody differs".into()));
+                                    }
+                                    let verification_state = selection.file_slots(&member.source_ref).iter()
+                                        .try_fold(0usize, |peak, slot| Ok::<_, ItemRefusal>(peak.max(slot.verification_state_upper_bound()?)))?;
+                                    let held = reader_retained_state.checked_add(raw.len())
+                                        .and_then(|state| state.checked_add(verification_state))
+                                        .ok_or(tos_validation::item_budget_origin!())?;
+                                    let local_state = callback_state_bytes.checked_sub(held)
+                                        .filter(|state| *state != 0).ok_or(tos_validation::item_budget_origin!())?;
+                                    input.require_callback_state(callback_state_bytes, original_operation_state)?;
+                                    let local_limits = ItemLimits {
+                                        max_member_bytes: reader_member_bytes.min(local_state),
+                                        max_total_bytes: after_replay_headroom,
+                                        max_state_bytes: local_state,
+                                        max_issues: biblio_limits.max_issues,
+                                        deadline,
+                                    };
+                                    let verified = selection.verify_file(&member.source_ref, raw, deadline, cancelled)?;
+                                    let mut rows = verified.row_cursor();
+                                    while let Some(row) = rows.next_checked(deadline, cancelled) {
+                                        let (_, bytes, slot) = row?;
+                                        if slot.kind != "claim" { continue; }
+                                        let mut worker = schema_worker.borrow_mut();
+                                        let report = tos_validation::record_rules::validate_source_claim_from_input(
+                                            input, records, bytes, &mut **worker, local_limits, cancelled)?;
+                                        if report.input_identity != fence || report.current_membership != fence.membership
+                                            || report.source_input_sha256 != Digest256::of_bytes(bytes) || !report.is_valid()
+                                        {
+                                            return Err(ItemRefusal::Source("selected Claim owner local forms are invalid or unbound".into()));
+                                        }
+                                        drop(report);
+                                        checked_claims = checked_claims.checked_add(1)
+                                            .ok_or(tos_validation::item_budget_origin!())?;
+                                    }
+                                    Ok(())
+                                })?;
+                        }
+                        if checked_claims != selection.slots().filter(|slot| slot.kind == "claim").count() {
+                            return Err(ItemRefusal::Source("selected Claim local owner coverage did not reach EOF".into()));
+                        }
+                    }
                     let mut schema_executor =
                         CandidateArtifactSchemaExecutor::new(&schema_worker);
                     let mut rule_source = FoundationRuleSource::from_candidate(
@@ -2327,14 +2628,13 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
                         payload_reader,
                         cancelled,
                         reader_limits,
-                        callback_held
-                            .checked_add(replay_state)
-                            .and_then(|state| state.checked_add(biblio_state))
-                            .ok_or(ItemRefusal::Budget)?,
+                        reader_retained_state,
                         callback_state_bytes,
-                    )?;
+                        original_operation_state,
+                    ).map_err(|error| candidate_owner_refusal("candidate default source preparation", error))?;
                     if let Some(history) = view.history.as_deref_mut() {
-                        rule_source = rule_source.with_history(history)?;
+                        rule_source = rule_source.with_history(history)
+                            .map_err(|error| candidate_owner_refusal("candidate default history binding", error))?;
                     }
                     let event_state_cap = biblio_operation
                         .state_bytes
@@ -2371,7 +2671,8 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
                         default_rules_limits,
                         stored_limits,
                         cancelled,
-                    )?;
+                        scope,
+                    ).map_err(|error| candidate_owner_refusal("candidate default rules receiver", error))?;
                     let replay_cost_after_rules = replay.cost();
                     let evidence_peak_state = replay_cost_after_rules
                         .candidate_artifact_evidence_peak_state_bytes
@@ -2403,23 +2704,23 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
                     replay_state = replay_cost_after_rules
                         .retained_state_upper_bound_bytes()
                         .and_then(|state| state.checked_add(evidence_peak_state))
-                        .ok_or(ItemRefusal::Budget)?;
+                        .ok_or(tos_validation::item_budget_origin!())?;
                     let replay_had_skips = replay.has_skips();
                     let worker_usage_after_discovery = worker_quota
                         .usage()
-                        .map_err(|_| ItemRefusal::Budget)?;
+                        .map_err(|_| tos_validation::item_budget_origin!())?;
                     let replay_worker_cpu = worker_usage_after_discovery
                         .worker_cpu_micros
                         .checked_sub(worker_usage_before_rules.worker_cpu_micros)
-                        .ok_or(ItemRefusal::Budget)?;
+                        .ok_or(tos_validation::item_budget_origin!())?;
                     let replay_worker_wire = worker_usage_after_discovery
                         .worker_wire_bytes
                         .checked_sub(worker_usage_before_rules.worker_wire_bytes)
-                        .ok_or(ItemRefusal::Budget)?;
+                        .ok_or(tos_validation::item_budget_origin!())?;
                     let replay_worker_units = worker_usage_after_discovery
                         .worker_units
                         .checked_sub(worker_usage_before_rules.worker_units)
-                        .ok_or(ItemRefusal::Budget)?;
+                        .ok_or(tos_validation::item_budget_origin!())?;
                     if replay_cost_after_rules.candidate_replay_worker_cpu_micros
                         > replay_worker_cpu
                         || replay_cost_after_rules.candidate_replay_worker_wire_bytes
@@ -2427,9 +2728,10 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
                         || replay_cost_after_rules.candidate_replay_worker_units
                             > replay_worker_units
                     {
-                        return Err(ItemRefusal::Budget);
+                        return Err(tos_validation::item_budget_origin!());
                     }
-                    rule_source.recheck_auxiliary()?;
+                    rule_source.recheck_auxiliary()
+                        .map_err(|error| candidate_owner_refusal("candidate default auxiliary recheck", error))?;
                     let reader_cost = rule_source.cost();
                     drop(rule_source);
                     let reader_io_after = view.original_io.snapshot();
@@ -2440,7 +2742,7 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
                         history_usage_after_rules,
                     ) {
                         (Some((before, _)), Some((after, _))) => {
-                            after.checked_sub(before).ok_or(ItemRefusal::Budget)?
+                            after.checked_sub(before).ok_or(tos_validation::item_budget_origin!())?
                         }
                         _ => 0,
                     };
@@ -2454,26 +2756,26 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
                         (Some(before), Some(after)) => after
                             .checked_sub(before)
                             .filter(|bytes| *bytes <= history_rule_read)
-                            .ok_or(ItemRefusal::Budget)?,
+                            .ok_or(tos_validation::item_budget_origin!())?,
                         (None, None) => 0,
-                        _ => return Err(ItemRefusal::Budget),
+                        _ => return Err(tos_validation::item_budget_origin!()),
                     };
                     let reader_shared_attempts = reader_io_after
                         .read_attempted_bytes
                         .checked_sub(reader_io_before.read_attempted_bytes)
-                        .ok_or(ItemRefusal::Budget)?;
+                        .ok_or(tos_validation::item_budget_origin!())?;
                     let reader_external_reads = reader_cost
                         .bytes_read
                         .checked_sub(reader_cost.shared_read_bytes_returned)
-                        .ok_or(ItemRefusal::Budget)?;
+                        .ok_or(tos_validation::item_budget_origin!())?;
                     if history_rule_read
                         > reader_cost
                             .bytes_read
                             .checked_add(replay_cost_after_rules.native_history_source_read_bytes)
-                            .ok_or(ItemRefusal::Budget)?
+                            .ok_or(tos_validation::item_budget_origin!())?
                         || reader_cost.shared_read_bytes_returned > reader_shared_attempts
                     {
-                        return Err(ItemRefusal::Budget);
+                        return Err(tos_validation::item_budget_origin!());
                     }
                     let provider_shared_history = history_shared_rule_read
                         .saturating_sub(reader_cost.shared_read_bytes_returned);
@@ -2481,11 +2783,11 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
                         .native_history_source_read_bytes
                         .checked_add(replay_cost_after_rules.readonly.read_bytes)
                         .and_then(|reads| reads.checked_sub(provider_shared_history))
-                        .ok_or(ItemRefusal::Budget)?;
+                        .ok_or(tos_validation::item_budget_origin!())?;
                     callback_external_reads.set(
                         replay_external_reads_after_rules
                             .checked_add(reader_external_reads)
-                            .ok_or(ItemRefusal::Budget)?,
+                            .ok_or(tos_validation::item_budget_origin!())?,
                     );
                     drop(schema_executor);
                     drop(replay);
@@ -2494,7 +2796,7 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
                     let diagnostic_state_cap = available_after_biblio
                         .checked_sub(owner_state)
                         .and_then(|state| state.checked_sub(reader_cost.auxiliary_state_bytes))
-                        .ok_or(ItemRefusal::Budget)?;
+                        .ok_or(tos_validation::item_budget_origin!())?;
                     if replay_had_skips {
                         return Err(ItemRefusal::Source(
                             "candidate Artifact evidence is incomplete".into(),
@@ -2507,6 +2809,8 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
                     };
                     let evaluated = super::foundation_rule_diagnostics::evaluate_candidate_stored_rules(
                         stored_report,
+                        records,
+                        page_budget,
                         discovery_schema_requests,
                         closure_schema_requests,
                         &mut **schemas,
@@ -2515,44 +2819,97 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
                         cancelled,
                         rule_diag_limits,
                     )
-                    .map_err(|_| ItemRefusal::Source(
-                        "candidate stored default diagnostics are incomplete".into(),
-                    ))?;
+                    .map_err(|error| {
+                        let (site, reason) = match error {
+                            CandidateRuleDiagnosticsError::Refused { reason, .. } =>
+                                ("default-refused", reason.to_owned()),
+                            CandidateRuleDiagnosticsError::Incomplete { reason, .. } =>
+                                ("default-incomplete", reason.to_owned()),
+                        };
+                        ItemRefusal::Source(
+                            crate::source_admission_spooled_index::bounded_source_cause(
+                                "receiver-source", site, &reason,
+                            ),
+                        )
+                    })?;
                     let owner_report = &evaluated.owner_report;
-                    let clean = owner_report.cost.direct_owner_issue_count == 0
-                        && owner_report.labs.unimplemented.is_empty()
-                        && owner_report
-                            .labs
-                            .results
-                            .iter()
-                            .all(|lab| lab.unimplemented.is_empty())
-                        && owner_report.goldsets.coverage_gaps.is_empty()
-                        && owner_report.discovery.unsupported.is_empty()
-                        && owner_report.closure.unsupported.is_empty()
-                        && owner_report.cost.queued_schema_document_count
-                            == evaluated.cost.schema_check_count
-                        && evaluated.cost.diagnostic_issue_count == 0
-                        && evaluated.diagnostics.iter().all(|diagnostic| {
-                            diagnostic.input_identity() == &fence
-                                && diagnostic.prepared_execution_binding()
-                                    == schemas.prepared_execution_binding()
-                                && diagnostic.result().is_valid()
-                        });
-                    if !clean {
+                    if owner_report.scope != scope {
+                        return Err(ItemRefusal::Source("candidate default profile binding differs".into()));
+                    }
+
+                    // Preserve every failed owned predicate, without printing private
+                    // source paths, issue prose, or worker payloads. The first failed
+                    // predicate carries exact observed/expected scalar counts.
+                    let predicates = [
+                        ("default direct owner issues", owner_report.cost.direct_owner_issue_count, 0),
+                        ("default aggregate Labs coverage", owner_report.labs.as_ref().map_or(0, |labs| labs.unimplemented.len()), 0),
+                        ("default per-lab coverage", owner_report.labs.as_ref().map_or(0, |labs| labs.results.iter().filter(|lab| !lab.unimplemented.is_empty()).count()), 0),
+                        ("default Goldset coverage", owner_report.goldsets.as_ref().map_or(0, |goldsets| goldsets.coverage_gaps.len()), 0),
+                        ("default Discovery coverage", owner_report.discovery.unsupported.len(), 0),
+                        ("default Closure coverage", owner_report.closure.unsupported.len(), 0),
+                        ("default queued execution count", evaluated.cost.schema_check_count, owner_report.cost.queued_schema_document_count),
+                        ("default raw schema issue count", evaluated.cost.diagnostic_issue_count, 0),
+                        ("default diagnostic candidate identity", evaluated.diagnostics.iter().filter(|diagnostic| diagnostic.input_identity() != &fence).count(), 0),
+                        ("default diagnostic prepared identity", evaluated.diagnostics.iter().filter(|diagnostic| diagnostic.prepared_execution_binding() != schemas.prepared_execution_binding()).count(), 0),
+                        ("default schema validity", evaluated.diagnostics.iter().filter(|diagnostic| !diagnostic.result().is_valid()).count(), 0),
+                    ];
+                    let mut failed_mask = 0u16;
+                    let mut primary = None;
+                    for (index, (label, observed, expected)) in predicates.into_iter().enumerate() {
+                        if observed != expected {
+                            failed_mask |= 1u16 << index;
+                            primary.get_or_insert((label, observed, expected));
+                        }
+                    }
+                    if let Some((label, observed, expected)) = primary {
+                        let issue = owner_report.labs.as_ref().and_then(|labs| labs.ordered_issues.first()).map(|(_, text)| text.as_str())
+                            .or_else(|| owner_report.goldsets.as_ref().and_then(|goldsets| goldsets.ordered_issues.first()).map(|(_, text)| text.as_str()))
+                            .or_else(|| owner_report.discovery.issues.first().map(|issue| issue.detail.as_str()))
+                            .or_else(|| owner_report.closure.issues.first().map(|(_, text)| text.as_str()))
+                            .unwrap_or(label);
+                        // 11 predicate bits and two 64-bit hex counters fit the
+                        // existing 40-byte source-cause site bound exactly.
+                        let mut site = format!("pr-{failed_mask:x}-{observed:x}-{expected:x}");
+                        let mut cause = issue;
+                        if let Some(diagnostic) = evaluated.diagnostics.iter()
+                            .find(|diagnostic| !diagnostic.result().is_valid())
+                        {
+                            let result = diagnostic.result();
+                            let contract = Digest256::of_bytes(result.contract().as_bytes()).to_hex();
+                            let reason = result.report().issues.first()
+                                .map_or(0, |issue| issue.reason as u16);
+                            let diagnostic_site = format!(
+                                "{site}-s{:x}-r{reason:x}-c{}",
+                                result.status() as u8, &contract[..12],
+                            );
+                            // The full source-path digest remains the cause, while
+                            // this bounded navigation prefix names the selected
+                            // contract and its owned structured reason code.
+                            if diagnostic_site.len() <= 40 {
+                                site = diagnostic_site;
+                                cause = result.path();
+                            }
+                        }
                         return Err(ItemRefusal::Source(
-                            "candidate default owner predicates are incomplete or invalid".into(),
+                            crate::source_admission_spooled_index::bounded_source_cause(
+                                "receiver-source", &site, cause,
+                            ),
                         ));
                     }
                     let after_defaults = view.original_io.snapshot();
                     let candidate_read = after_defaults
                         .read_attempted_bytes
                         .checked_sub(io_before_records.read_attempted_bytes)
-                        .ok_or(ItemRefusal::Budget)?;
+                        .ok_or(tos_validation::item_budget_origin!())?;
                     let total_candidate_and_external = candidate_read
                         .checked_add(callback_external_reads.get())
-                        .ok_or(ItemRefusal::Budget)?;
+                        .ok_or(tos_validation::item_budget_origin!())?;
                     if total_candidate_and_external > records_ticket.remaining().source_read_bytes {
-                        return Err(ItemRefusal::Budget);
+                        return Err(ItemRefusal::BudgetCheck {
+                            check: "candidate dependent source read attempts and external returns",
+                            used: Some(total_candidate_and_external),
+                            limit: Some(records_ticket.remaining().source_read_bytes),
+                        });
                     }
                     let callback_evidence_state = replay_state
                         .checked_add(biblio_state)
@@ -2561,16 +2918,20 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
                         .and_then(|state| {
                             state.checked_add(evaluated.cost.peak_additional_state_upper_bound_bytes)
                         })
-                        .ok_or(ItemRefusal::Budget)?;
+                        .ok_or(tos_validation::item_budget_origin!())?;
                     if callback_evidence_state > callback_workspace_state {
-                        return Err(ItemRefusal::Budget);
+                        return Err(ItemRefusal::BudgetCheck {
+                            check: "candidate dependent evidence state upper bound",
+                            used: u64::try_from(callback_evidence_state).ok(),
+                            limit: u64::try_from(callback_workspace_state).ok(),
+                        });
                     }
                     let _ = biblio_query_rows;
                     Ok((callback_evidence_state, callback_external_reads.get()))
                 },
             );
             let dependent_evidence = providers_result
-                .map_err(|_| io::Error::other("candidate Biblio/default stored providers refused"))?;
+                .map_err(|error| candidate_callback_refusal("candidate default providers", error))?;
             let final_callback_io = view.original_io.snapshot();
             if final_callback_io.read_attempted_bytes
                 .checked_sub(io_before_records.read_attempted_bytes)
@@ -2700,21 +3061,23 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
     let mut observed_catalog_bytes = 0u64;
     input
         .for_each_current_member_meta(deadline, cancelled, &mut |member| {
-            if member.path.starts_with("ToS/source-witnesses/") {
-                observed_catalog_members = observed_catalog_members
-                    .checked_add(1)
-                    .ok_or(ItemRefusal::Budget)?;
-                largest_catalog_member = largest_catalog_member.max(member.size_bytes);
-                observed_catalog_bytes = observed_catalog_bytes
-                    .checked_add(member.size_bytes)
-                    .ok_or(ItemRefusal::Budget)?;
-            }
+            // This is the physical preparation envelope, not the semantic
+            // SourceWitness census. The producer also reads declared grammar,
+            // registries and native source members from this same held input.
+            observed_catalog_members = observed_catalog_members
+                .checked_add(1)
+                .ok_or(tos_validation::item_budget_origin!())?;
+            largest_catalog_member = largest_catalog_member.max(member.size_bytes);
+            observed_catalog_bytes = observed_catalog_bytes
+                .checked_add(member.size_bytes)
+                .ok_or(tos_validation::item_budget_origin!())?;
             Ok(())
         })
         .map_err(owner)?;
     if observed_catalog_members == 0
         || observed_catalog_members > max_members
-        || observed_catalog_bytes > fence.source_bytes
+        || u64::try_from(observed_catalog_members).ok() != Some(view.coverage.member_count())
+        || observed_catalog_bytes != fence.source_bytes
     {
         return fail_window(
             view.execution_limits,
@@ -2736,6 +3099,18 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
     )
     .map_err(|_| incomplete("candidate catalog file cap range"))?;
     let max_catalog_row_bytes = max_catalog_file_bytes.min(1024 * 1024).max(1);
+    // Contract closure is aggregate retained input, independent of any one
+    // file/row. The authenticated physical census bounds all contract bytes.
+    let max_catalog_contract_bytes = usize::try_from(
+        observed_catalog_bytes
+            .min(catalog_operation.source_read_bytes)
+            .min(catalog_state_cap as u64)
+            .min(
+                tos_compiler::source_witness_catalog::SourceCatalogLimits::MAX_CONTRACT_BYTES
+                    as u64,
+            ),
+    )
+    .map_err(|_| incomplete("candidate catalog contract cap range"))?;
     let max_catalog_output_row_bytes = usize::try_from(
         catalog_operation
             .tmpfs_bytes
@@ -2750,7 +3125,7 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
             max_catalog_rows,
             max_catalog_file_bytes,
             max_catalog_row_bytes,
-            max_catalog_row_bytes,
+            max_catalog_contract_bytes,
             max_catalog_output_row_bytes,
         )
         .map_err(FoundationOrchestratorError::Command)?;
@@ -2798,12 +3173,21 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
             catalog_operation.tmpfs_bytes.min(64 * 1024 * 1024),
         )
         .map_err(FoundationOrchestratorError::Command)?;
+    // This worker belongs to the catalog phase, whose reservation may be
+    // smaller than the schema phase. Every count dimension uses its own wire
+    // envelope rather than mixing receipts from one phase with units of another.
+    let catalog_max_checks = bounded_usize(
+        u64::try_from(max_checks)
+            .unwrap_or(u64::MAX - 1)
+            .min(catalog_operation.worker_wire_bytes),
+    )?
+    .max(1);
     let catalog_worker_shape = FoundationCatalogWorkerShape {
         batch: BatchBudget::laboratory(),
-        max_chunks: max_checks
+        max_chunks: catalog_max_checks
             .div_ceil(BatchBudget::laboratory().max_units)
             .max(1) as u64,
-        max_total_units: u64::try_from(max_checks)
+        max_total_units: u64::try_from(catalog_max_checks)
             .unwrap_or(u64::MAX - 1)
             .min(catalog_operation.worker_wire_bytes)
             .max(1),
@@ -2813,8 +3197,8 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
             .min(BatchBudget::MAX_RAW_BYTES as u64)
             .max(1),
         max_total_wire_bytes: catalog_operation.worker_wire_bytes,
-        max_distinct_selectors: max_checks.max(1).min(1024),
-        max_receipts: max_checks.max(1),
+        max_distinct_selectors: catalog_max_checks.max(1).min(1024),
+        max_receipts: catalog_max_checks.max(1),
         max_receipt_bytes: catalog_state_cap.min(1024 * 1024).max(1),
     };
     let (catalog_executor, _catalog_cut_limits, _catalog_stream, _catalog_diagnostics) = view
@@ -2839,7 +3223,7 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
         max_state_bytes: catalog_state_cap,
         max_inodes: usize::try_from(max_catalog_files)
             .unwrap_or(usize::MAX - 4)
-            .saturating_add(3),
+            .saturating_add(4),
     };
     let candidate_catalog_path = view.isolated.path().join("source-foundation.sqlite");
     let io_before_catalog = candidate
@@ -2871,7 +3255,8 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
         &validator,
         true,
         max_catalog_files as usize,
-        max_catalog_file_bytes,
+        // Version resolution charges cumulative reads, not the largest member.
+        bounded_usize(catalog_operation.source_read_bytes)?,
         max_generated_bytes,
         max_generated_files,
         catalog_state_cap,
@@ -2974,7 +3359,8 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
     )?;
     drop(catalog_result);
     drop(validator);
-    item_schemas.finish(deadline, cancelled).map_err(owner)?;
+    // The catalog owner already closes the borrowed executor before returning
+    // complete output. Verify its terminal state; a second finish is refused.
     if !item_schemas.is_finished() {
         return Err(incomplete(
             "candidate catalog schema worker EOF is incomplete",
@@ -3134,7 +3520,7 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
             0,
         ),
     )?;
-    native_schemas.finish(deadline, cancelled).map_err(owner)?;
+    // build_candidate_native_index owns the successful worker close.
     if !native_schemas.is_finished() {
         return Err(incomplete(
             "candidate native-index worker EOF is incomplete",
@@ -4457,6 +4843,17 @@ fn run<'work, 'receive, 'observe, 'cancel, 'signal>(
     )
     .map_err(|_| incomplete("catalog file cap range"))?;
     let max_catalog_row_bytes = max_catalog_file_bytes.min(1024 * 1024).max(1);
+    let max_catalog_contract_bytes = usize::try_from(
+        captured
+            .source_bytes()
+            .min(catalog_operation.source_read_bytes)
+            .min(catalog_operation.state_bytes as u64)
+            .min(
+                tos_compiler::source_witness_catalog::SourceCatalogLimits::MAX_CONTRACT_BYTES
+                    as u64,
+            ),
+    )
+    .map_err(|_| incomplete("catalog contract cap range"))?;
     let max_catalog_output_row_bytes = usize::try_from(
         catalog_operation
             .tmpfs_bytes
@@ -4469,7 +4866,7 @@ fn run<'work, 'receive, 'observe, 'cancel, 'signal>(
         max_catalog_rows,
         max_catalog_file_bytes,
         max_catalog_row_bytes,
-        max_catalog_row_bytes,
+        max_catalog_contract_bytes,
         max_catalog_output_row_bytes,
     ) {
         Ok(limits) => limits,
@@ -4560,12 +4957,21 @@ fn run<'work, 'receive, 'observe, 'cancel, 'signal>(
             );
         }
     };
+    // This worker belongs to the catalog phase, whose reservation may be
+    // smaller than the schema phase. Every count dimension uses its own wire
+    // envelope rather than mixing receipts from one phase with units of another.
+    let catalog_max_checks = bounded_usize(
+        u64::try_from(max_checks)
+            .unwrap_or(u64::MAX - 1)
+            .min(catalog_operation.worker_wire_bytes),
+    )?
+    .max(1);
     let catalog_worker_shape = FoundationCatalogWorkerShape {
         batch: BatchBudget::laboratory(),
-        max_chunks: max_checks
+        max_chunks: catalog_max_checks
             .div_ceil(BatchBudget::laboratory().max_units)
             .max(1) as u64,
-        max_total_units: u64::try_from(max_checks)
+        max_total_units: u64::try_from(catalog_max_checks)
             .unwrap_or(u64::MAX - 1)
             .min(catalog_operation.worker_wire_bytes)
             .max(1),
@@ -4575,8 +4981,8 @@ fn run<'work, 'receive, 'observe, 'cancel, 'signal>(
             .min(BatchBudget::MAX_RAW_BYTES as u64)
             .max(1),
         max_total_wire_bytes: catalog_operation.worker_wire_bytes,
-        max_distinct_selectors: max_checks.max(1).min(1024),
-        max_receipts: max_checks.max(1),
+        max_distinct_selectors: catalog_max_checks.max(1).min(1024),
+        max_receipts: catalog_max_checks.max(1),
         max_receipt_bytes: catalog_operation.state_bytes.min(1024 * 1024).max(1),
     };
     let (catalog_executor, catalog_worker_limits, catalog_stream, catalog_diagnostic_limits) =
@@ -4637,7 +5043,8 @@ fn run<'work, 'receive, 'observe, 'cancel, 'signal>(
             catalog_diagnostic_limits,
             true,
             usize::try_from(max_catalog_files).unwrap_or(usize::MAX - 1),
-            max_catalog_file_bytes,
+            // Version resolution charges cumulative reads, not the largest member.
+            bounded_usize(catalog_operation.source_read_bytes)?,
             usize::try_from(
                 catalog_operation
                     .source_read_bytes
@@ -4664,7 +5071,7 @@ fn run<'work, 'receive, 'observe, 'cancel, 'signal>(
                 max_state_bytes: catalog_operation.state_bytes,
                 max_inodes: usize::try_from(max_catalog_files)
                     .unwrap_or(usize::MAX - 4)
-                    .saturating_add(3),
+                    .saturating_add(4),
             },
             None,
             cancelled,
@@ -4710,7 +5117,8 @@ fn run<'work, 'receive, 'observe, 'cancel, 'signal>(
             catalog_diagnostic_limits,
             true,
             usize::try_from(max_catalog_files).unwrap_or(usize::MAX - 1),
-            max_catalog_file_bytes,
+            // Version resolution charges cumulative reads, not the largest member.
+            bounded_usize(catalog_operation.source_read_bytes)?,
             usize::try_from(
                 catalog_operation
                     .source_read_bytes

@@ -74,7 +74,7 @@ pub(crate) fn inspect_candidate_records_stored<'store>(
             .baseline_state_bytes
             .checked_add(limits.operation.max_state_bytes)
             .filter(|state| *state <= max_operation_state_bytes)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         input.require_callback_state(callback_state, max_operation_state_bytes)?;
         let report = tos_validation::source_foundation_records::inspect_source_foundation_records_from_input_stored(
             input,
@@ -95,7 +95,16 @@ pub(crate) fn inspect_candidate_records_stored<'store>(
     if result.is_err() {
         input.abandon();
     }
-    result
+    result.map_err(|error| match error {
+        // Records owns its internal stage evidence. A legacy budget refusal
+        // reaching this seam without it belongs to the adapter's input fences.
+        ItemRefusal::Budget => ItemRefusal::BudgetCheck {
+            check: "candidate Records adapter input fence",
+            used: None,
+            limit: None,
+        },
+        other => other,
+    })
 }
 
 pub(crate) struct CandidateSchemaBinding<'a, 'input, 'host> {
@@ -164,7 +173,7 @@ impl<'a, 'input, 'host> CandidateSchemaBinding<'a, 'input, 'host> {
         let baseline_state_bytes = retained_state_bytes
             .checked_add(binding_retained_state_upper_bound_bytes())
             .filter(|n| *n <= max_state_bytes)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         let mut previous: Option<&str> = None;
         for resource in worker.source_resources() {
             input.verify_invocation(deadline, cancelled)?;
@@ -220,7 +229,7 @@ impl<'a, 'input, 'host> CandidateSchemaBinding<'a, 'input, 'host> {
         {
             self.failed.set(true);
             self.input.abandon();
-            return Err(ItemRefusal::Budget);
+            return Err(tos_validation::item_budget_origin!());
         }
         Ok(())
     }
@@ -250,7 +259,7 @@ impl<'a, 'input, 'host> CandidateSchemaBinding<'a, 'input, 'host> {
         {
             self.failed.set(true);
             self.input.abandon();
-            return Err(ItemRefusal::Budget);
+            return Err(tos_validation::item_budget_origin!());
         }
         self.guard(self.deadline, self.cancelled)
     }
@@ -322,7 +331,7 @@ impl<'a, 'input, 'host> CandidateSchemaBinding<'a, 'input, 'host> {
         }) {
             self.failed.set(true);
             self.input.abandon();
-            return Err(ItemRefusal::Budget);
+            return Err(tos_validation::item_budget_origin!());
         }
         if let Some(value) = &report {
             self.verify_diagnostic(value)?;

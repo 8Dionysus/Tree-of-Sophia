@@ -1,6 +1,6 @@
 //! Bounded, exact-cut schema diagnostics for the maintained source foundation.
 //!
-//! This adapter selects only the source-foundation root contracts listed below
+//! This adapter selects the authored schema declarations in `ToS/contracts/`
 //! from the caller's immutable current cut. Schema resources are read from that
 //! same cut so local `$ref` resolution cannot silently fall back to checkout or
 //! host files. Diagnostics are opt-in protocol v2 results; the legacy v1
@@ -33,82 +33,11 @@ pub(crate) const MAX_LOCATION_BYTES: usize = 4096;
 const MAX_CONTRACTS: usize = SchemaBackendProbe::MAX_RESOURCES;
 const MAX_SCHEMA_RESOURCE_BYTES: usize = SchemaBackendProbe::MAX_RESOURCE_BYTES;
 const MAX_SCHEMA_TOTAL_BYTES: usize = SchemaBackendProbe::MAX_TOTAL_BYTES;
-const MAX_SOURCE_FOUNDATION_CHECKS: usize = 65_536;
+pub const MAX_SOURCE_FOUNDATION_CHECKS: usize = 65_536;
 const MAX_SOURCE_FOUNDATION_CHUNKS: usize = 1_024;
 const MAX_SOURCE_FOUNDATION_INSTANCE_BYTES: usize = 128 * 1024 * 1024;
 const MAX_SOURCE_FOUNDATION_CPU_SECONDS: u64 = 3_600;
 const SOURCE_FOUNDATION_PROFILE: FormatProfile = FormatProfile::LegacyPythonObserved20260923;
-
-/// Root contracts explicitly selected by the maintained source-foundation
-/// validator. This list is a route boundary: a record-plan or another ToS
-/// schema family must add its own exact selector instead of borrowing this one.
-pub const SOURCE_FOUNDATION_CONTRACT_PATHS: &[&str] = &[
-    "ToS/contracts/corpus-record.schema.json",
-    "ToS/contracts/source-link.schema.json",
-    "ToS/contracts/source-item-manifest.schema.json",
-    "ToS/contracts/source-resource-inventory.schema.json",
-    "ToS/contracts/rights-record.schema.json",
-    "ToS/contracts/artifact-source-witness.schema.json",
-    "ToS/contracts/artifact-source-witness-v2.schema.json",
-    "ToS/contracts/artifact-visual-representation.schema.json",
-    "ToS/contracts/scholarly-composite-witness.schema.json",
-    "ToS/contracts/scholarly-composite-file-representation.schema.json",
-    "ToS/contracts/provenance-event.schema.json",
-    "ToS/contracts/claim-packet.schema.json",
-    "ToS/contracts/object-link-claim.schema.json",
-    "ToS/contracts/expression-derivation.schema.json",
-    "ToS/contracts/provision-activity.schema.json",
-    "ToS/contracts/first-publication-chronology.schema.json",
-    "ToS/contracts/source-witness-catalog.schema.json",
-    "ToS/contracts/source-anchor.schema.json",
-    "ToS/contracts/source-anchor-v2.schema.json",
-    "ToS/contracts/source-text-layer.schema.json",
-    "ToS/contracts/provenance-event-v2.schema.json",
-    "ToS/contracts/semantic-annotation-packet-v2.schema.json",
-    "ToS/contracts/translation-alignment-packet-v1.schema.json",
-    "ToS/contracts/witness-text-collation-packet-v1.schema.json",
-    "ToS/contracts/authored-route-evidence-bridge-v1.schema.json",
-    "ToS/contracts/source-text-unit-packet-v1.schema.json",
-    "ToS/contracts/collection-work-boundary-map.schema.json",
-    "ToS/contracts/laboratory-sample-plan.schema.json",
-    "ToS/contracts/ocr-visual-sample-plan.schema.json",
-    "ToS/contracts/manual-gold-status.schema.json",
-    "ToS/contracts/manual-gold-assurance.schema.json",
-    "ToS/contracts/translation-sample-plan.schema.json",
-    "ToS/contracts/translation-source-review-plan.schema.json",
-    "ToS/contracts/translation-laboratory-plan.schema.json",
-    "ToS/contracts/translation-exposure-aware-plan.schema.json",
-    "ToS/contracts/translation-reference-register.schema.json",
-    "ToS/contracts/translation-pre-draft-analysis.schema.json",
-    "ToS/contracts/translation-packet.schema.json",
-    "ToS/contracts/semantic-ladder-packet.schema.json",
-    "ToS/contracts/golden-kernel-transfer-plan.schema.json",
-    "ToS/contracts/source-gated-evaluation-plan.schema.json",
-    "ToS/contracts/source-gated-semantic-evaluation-plan.schema.json",
-    "ToS/contracts/source-gated-llm-evaluation-plan.schema.json",
-    "ToS/contracts/material-discovery-record.schema.json",
-    "ToS/contracts/access-request.schema.json",
-    "ToS/contracts/server-import-contract.schema.json",
-    "ToS/contracts/retrieval-query-plan.schema.json",
-    "ToS/contracts/visual-retrieval-plan.schema.json",
-    "ToS/contracts/graph-query-plan.schema.json",
-    "ToS/contracts/private-laboratory-evidence-handoff.schema.json",
-    "ToS/contracts/public-laboratory-evidence-derivative.schema.json",
-    "ToS/contracts/manual-error-ledger-record.schema.json",
-    "ToS/contracts/transfer-candidate-structural-crosswalk.schema.json",
-    "ToS/contracts/hierarchical-target-numbered-unit-page-map.schema.json",
-    "ToS/contracts/transfer-candidate-target-structural-crosswalk.schema.json",
-    "ToS/contracts/german-assisted-source-review.schema.json",
-    "ToS/contracts/private-transfer-source-visible-review-bundle.schema.json",
-    "ToS/contracts/transfer-source-visible-review-receipt.schema.json",
-    "ToS/contracts/critical-edition-witness-admission.schema.json",
-    "ToS/contracts/critical-edition-citation-witness-decision.schema.json",
-    "ToS/contracts/edition-reading-admission.schema.json",
-    "ToS/contracts/german-source-triangulation.schema.json",
-    "ToS/contracts/bounded-translation-research-input.schema.json",
-    "ToS/contracts/experimental-translation-candidate.schema.json",
-    "ToS/contracts/experimental-translation-episode.schema.json",
-];
 
 /// Caller-supplied ceilings for schema selection and one complete source
 /// foundation diagnostics call. The worker's lower protocol caps remain
@@ -237,9 +166,10 @@ pub enum SourceFoundationSchemaLoadFailure {
     ContractSelection,
 }
 
-/// Exact source-cut schema resources and approved source-foundation root
-/// contracts. The digest covers every selected ToS contract resource, including
-/// resources used only through `$ref` by a root contract.
+/// Exact source-cut schema declarations and their authenticated resources.
+/// Every valid `$id` declaration in the contract namespace is available to
+/// callers. Record-family dispatch and admission remain separate owner checks;
+/// making a contract available never executes it or admits a source record.
 #[derive(Clone)]
 pub struct SourceFoundationSchemaSet {
     source_revision: SourceRevision,
@@ -340,13 +270,6 @@ impl SourceFoundationSchemaSet {
             return Err(SourceFoundationSchemaLoadFailure::InvalidLimits);
         }
 
-        let expected_contracts = SOURCE_FOUNDATION_CONTRACT_PATHS
-            .iter()
-            .copied()
-            .collect::<BTreeSet<_>>();
-        if expected_contracts.len() != SOURCE_FOUNDATION_CONTRACT_PATHS.len() {
-            return Err(SourceFoundationSchemaLoadFailure::ContractSelection);
-        }
         let mut resources = Vec::with_capacity(members.len());
         let mut source_resources = Vec::new();
         source_resources
@@ -397,8 +320,11 @@ impl SourceFoundationSchemaSet {
                 .ok_or(SourceFoundationSchemaLoadFailure::SchemaResource)?
                 .to_owned();
             let digest = Digest256::of_bytes(&member.raw);
-            if expected_contracts.contains(path.as_str()) {
-                contracts.insert(path.clone(), (uri.clone(), digest));
+            if contracts
+                .insert(path.clone(), (uri.clone(), digest))
+                .is_some()
+            {
+                return Err(SourceFoundationSchemaLoadFailure::ContractSelection);
             }
             resources.push(SchemaResource {
                 uri,
@@ -410,11 +336,7 @@ impl SourceFoundationSchemaSet {
                 sha256: expected_digest,
             });
         }
-        if contracts.len() != expected_contracts.len()
-            || expected_contracts
-                .iter()
-                .any(|path| !contracts.contains_key(*path))
-        {
+        if contracts.len() != resources.len() {
             return Err(SourceFoundationSchemaLoadFailure::ContractSelection);
         }
         check_load_active(deadline, cancelled)?;
@@ -430,13 +352,14 @@ impl SourceFoundationSchemaSet {
             }
         };
         check_load_active(deadline, cancelled)?;
+        let contract_selection_sha256 = contract_selection_digest(&contracts);
         Ok(Self {
             source_revision,
             profile,
             resources,
             source_resources,
             contracts,
-            contract_selection_sha256: contract_selection_digest(&expected_contracts),
+            contract_selection_sha256,
             schema_set_sha256,
             limits_sha256: limits.digest(),
             schema_bytes: total_bytes,
@@ -517,13 +440,6 @@ impl SourceFoundationSchemaSet {
             return Err(SourceFoundationSchemaLoadFailure::InvalidLimits);
         }
 
-        let expected_contracts = SOURCE_FOUNDATION_CONTRACT_PATHS
-            .iter()
-            .copied()
-            .collect::<BTreeSet<_>>();
-        if expected_contracts.len() != SOURCE_FOUNDATION_CONTRACT_PATHS.len() {
-            return Err(SourceFoundationSchemaLoadFailure::ContractSelection);
-        }
         let mut resources = Vec::new();
         resources
             .try_reserve_exact(members.len())
@@ -588,8 +504,11 @@ impl SourceFoundationSchemaSet {
                 .ok_or(SourceFoundationSchemaLoadFailure::SchemaResource)?
                 .to_owned();
             let digest = Digest256::of_bytes(&member.raw);
-            if expected_contracts.contains(path.as_str()) {
-                contracts.insert(path.clone(), (uri.clone(), digest));
+            if contracts
+                .insert(path.clone(), (uri.clone(), digest))
+                .is_some()
+            {
+                return Err(SourceFoundationSchemaLoadFailure::ContractSelection);
             }
             resources.push(SchemaResource {
                 uri,
@@ -601,12 +520,7 @@ impl SourceFoundationSchemaSet {
                 sha256: expected_digest,
             });
         }
-        if resources.len() > limits.max_schema_resources
-            || contracts.len() != expected_contracts.len()
-            || expected_contracts
-                .iter()
-                .any(|path| !contracts.contains_key(*path))
-        {
+        if resources.len() > limits.max_schema_resources || contracts.len() != resources.len() {
             return Err(SourceFoundationSchemaLoadFailure::ContractSelection);
         }
         check_load_active(deadline, cancelled)?;
@@ -618,13 +532,14 @@ impl SourceFoundationSchemaSet {
             }
         };
         check_load_active(deadline, cancelled)?;
+        let contract_selection_sha256 = contract_selection_digest(&contracts);
         Ok(Self {
             source_revision,
             profile,
             resources,
             source_resources,
             contracts,
-            contract_selection_sha256: contract_selection_digest(&expected_contracts),
+            contract_selection_sha256,
             schema_set_sha256,
             limits_sha256: limits.digest(),
             schema_bytes: total_bytes,
@@ -754,13 +669,6 @@ impl<I: Copy + Eq> CandidateSourceFoundationSchemaSet<I> {
 
         let input_identity = *input.input_identity();
         let source = input.source_input();
-        let expected_contracts = SOURCE_FOUNDATION_CONTRACT_PATHS
-            .iter()
-            .copied()
-            .collect::<BTreeSet<_>>();
-        if expected_contracts.len() != SOURCE_FOUNDATION_CONTRACT_PATHS.len() {
-            return Err(SourceFoundationSchemaLoadFailure::ContractSelection);
-        }
 
         let mut resources = Vec::new();
         let mut source_resources = Vec::new();
@@ -900,10 +808,9 @@ impl<I: Copy + Eq> CandidateSourceFoundationSchemaSet<I> {
                 selection_failure = Some(SourceFoundationSchemaLoadFailure::InvalidLimits);
                 return Err(crate::item_rules::ItemRefusal::Budget);
             }
-            if expected_contracts.contains(meta.path)
-                && contracts
-                    .insert(selected_path.clone(), (uri.clone(), digest))
-                    .is_some()
+            if contracts
+                .insert(selected_path.clone(), (uri.clone(), digest))
+                .is_some()
             {
                 selection_failure = Some(SourceFoundationSchemaLoadFailure::ContractSelection);
                 return Err(crate::item_rules::ItemRefusal::Budget);
@@ -949,12 +856,7 @@ impl<I: Copy + Eq> CandidateSourceFoundationSchemaSet<I> {
         {
             return Err(SourceFoundationSchemaLoadFailure::CutRead);
         }
-        if resources.is_empty()
-            || contracts.len() != expected_contracts.len()
-            || expected_contracts
-                .iter()
-                .any(|path| !contracts.contains_key(*path))
-        {
+        if resources.is_empty() || contracts.len() != resources.len() {
             return Err(SourceFoundationSchemaLoadFailure::ContractSelection);
         }
         check_load_active(deadline, cancelled)?;
@@ -966,13 +868,14 @@ impl<I: Copy + Eq> CandidateSourceFoundationSchemaSet<I> {
             }
         };
         check_load_active(deadline, cancelled)?;
+        let contract_selection_sha256 = contract_selection_digest(&contracts);
         Ok(Self {
             input_identity,
             profile,
             resources,
             source_resources,
             contracts,
-            contract_selection_sha256: contract_selection_digest(&expected_contracts),
+            contract_selection_sha256,
             schema_set_sha256,
             limits_sha256: limits.digest(),
             schema_bytes: total_schema_bytes,
@@ -2366,6 +2269,157 @@ pub(crate) fn source_foundation_schema_resource_uri(value: &Value) -> Option<&st
     })
 }
 
+/// Resource-level transitive closure from the authenticated declarations.
+/// Whole resource bytes remain intact, including definitions not selected by
+/// the root pointer. URI resolution uses the same draft resolver as the worker.
+/// Dynamic scopes or annotation-shaped references conservatively retain the
+/// complete supplied set rather than risk omitting a dependency.
+pub(crate) fn source_foundation_schema_resource_dependencies(
+    resources: &[SchemaResource],
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> Result<Vec<Vec<usize>>, ExecutorFailure> {
+    fn scan(
+        value: &Value,
+        base: &str,
+        owner: usize,
+        ids: &mut BTreeMap<String, usize>,
+        references: &mut Vec<(usize, String)>,
+        conservative: &mut bool,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<(), ExecutorFailure> {
+        if cancelled.load(Ordering::Relaxed) {
+            return Err(ExecutorFailure::Cancelled);
+        }
+        if Instant::now() >= deadline {
+            return Err(ExecutorFailure::Timeout);
+        }
+        let resolve = |reference: &str| -> Option<String> {
+            let base = jsonschema::uri::from_str(base).ok()?;
+            Some(
+                jsonschema::uri::resolve_against(&base.borrow(), reference)
+                    .ok()?
+                    .as_str()
+                    .to_owned(),
+            )
+        };
+        let scoped = value.get("$id").and_then(Value::as_str).and_then(resolve);
+        let base = scoped.as_deref().unwrap_or(base);
+        if let Some(id) = &scoped {
+            let id = id.split_once('#').map_or(id.as_str(), |(base, _)| base);
+            if ids
+                .insert(id.to_owned(), owner)
+                .is_some_and(|prior| prior != owner)
+            {
+                *conservative = true;
+            }
+        }
+        if let Some(object) = value.as_object() {
+            for (keyword, child) in object {
+                if keyword == "$dynamicRef" || keyword == "$recursiveRef" {
+                    *conservative = true;
+                }
+                if keyword == "$ref" {
+                    let resolved = child.as_str().and_then(|reference| {
+                        let uri = jsonschema::uri::from_str(base).ok()?;
+                        Some(
+                            jsonschema::uri::resolve_against(&uri.borrow(), reference)
+                                .ok()?
+                                .as_str()
+                                .to_owned(),
+                        )
+                    });
+                    if let Some(target) = resolved {
+                        references.push((owner, target));
+                    } else {
+                        *conservative = true;
+                    }
+                }
+                scan(
+                    child,
+                    base,
+                    owner,
+                    ids,
+                    references,
+                    conservative,
+                    deadline,
+                    cancelled,
+                )?;
+            }
+        } else if let Some(array) = value.as_array() {
+            for child in array {
+                scan(
+                    child,
+                    base,
+                    owner,
+                    ids,
+                    references,
+                    conservative,
+                    deadline,
+                    cancelled,
+                )?;
+            }
+        }
+        Ok(())
+    }
+    if resources.len() > SchemaBackendProbe::MAX_RESOURCES {
+        return Err(ExecutorFailure::InputBudget);
+    }
+    let mut ids = BTreeMap::new();
+    let mut references = Vec::new();
+    let mut conservative = false;
+    for (owner, resource) in resources.iter().enumerate() {
+        if ids
+            .insert(resource.uri.clone(), owner)
+            .is_some_and(|prior| prior != owner)
+        {
+            conservative = true;
+        }
+        let value = crate::published_value(&resource.raw, SchemaBackendProbe::MAX_RESOURCE_BYTES)
+            .map_err(|_| ExecutorFailure::InputBudget)?;
+        scan(
+            &value,
+            &resource.uri,
+            owner,
+            &mut ids,
+            &mut references,
+            &mut conservative,
+            deadline,
+            cancelled,
+        )?;
+    }
+    let mut direct = vec![BTreeSet::new(); resources.len()];
+    for (owner, reference) in references {
+        let base = reference
+            .split_once('#')
+            .map_or(reference.as_str(), |(base, _)| base);
+        if let Some(target) = ids.get(base) {
+            direct[owner].insert(*target);
+        } else {
+            // Keep normal worker missing-reference semantics; this helper
+            // selects bytes and does not turn a catalog into schema acceptance.
+            conservative = true;
+        }
+    }
+    let mut closures = Vec::with_capacity(resources.len());
+    for root in 0..resources.len() {
+        let mut selected = BTreeSet::new();
+        let mut pending = vec![root];
+        while let Some(index) = pending.pop() {
+            if selected.insert(index) {
+                pending.extend(direct[index].iter().copied());
+            }
+        }
+        closures.push(if conservative {
+            (0..resources.len()).collect()
+        } else {
+            selected.into_iter().collect()
+        });
+    }
+    Ok(closures)
+}
+
 pub(crate) fn schema_resource_set_digest(resources: &[SchemaResource]) -> Option<Digest256> {
     let mut digests = BTreeMap::new();
     for resource in resources {
@@ -3450,11 +3504,11 @@ fn manifest_digest(checks: &[SourceFoundationSchemaCheckReport]) -> Digest256 {
     hash.finalize()
 }
 
-fn contract_selection_digest(paths: &BTreeSet<&str>) -> Digest256 {
+fn contract_selection_digest(contracts: &BTreeMap<String, (String, Digest256)>) -> Digest256 {
     let mut hash = Digest256Hasher::new();
     hash.update(b"tos-source-foundation-schema-contract-selection-v1\0");
-    hash.update(&(paths.len() as u64).to_be_bytes());
-    for path in paths {
+    hash.update(&(contracts.len() as u64).to_be_bytes());
+    for path in contracts.keys() {
         hash.update(&(path.len() as u64).to_be_bytes());
         hash.update(path.as_bytes());
     }
@@ -3642,4 +3696,44 @@ fn estimated_check_report_bytes(
             .saturating_add(instance_path_bytes.saturating_mul(2))
             .saturating_add(schema_path_bytes.saturating_mul(2))
     })
+}
+
+#[cfg(test)]
+mod resource_dependency_tests {
+    use super::*;
+
+    #[test]
+    fn declared_resources_follow_relative_scopes_cycles_and_future_contracts() {
+        let resource = |name: &str, body: Value| SchemaResource {
+            uri: format!("https://example.test/contracts/{name}"),
+            raw: serde_json::to_vec(&body).unwrap(),
+        };
+        let resources = vec![
+            resource(
+                "root",
+                serde_json::json!({"$id":"https://example.test/contracts/root", "$ref":"child#/$defs/value"}),
+            ),
+            resource(
+                "child",
+                serde_json::json!({"$id":"https://example.test/contracts/child", "$defs":{"value":{"$id":"nested", "$ref":"leaf"}}}),
+            ),
+            resource(
+                "leaf",
+                serde_json::json!({"$id":"https://example.test/contracts/leaf", "$ref":"root"}),
+            ),
+            resource(
+                "future-source-owned",
+                serde_json::json!({"$id":"https://example.test/contracts/future-source-owned", "type":"object"}),
+            ),
+        ];
+        let closures = source_foundation_schema_resource_dependencies(
+            &resources,
+            Instant::now() + Duration::from_secs(1),
+            &AtomicBool::new(false),
+        )
+        .unwrap();
+        assert_eq!(closures[0], vec![0, 1, 2]);
+        assert_eq!(closures[1], vec![0, 1, 2]);
+        assert_eq!(closures[3], vec![3]);
+    }
 }

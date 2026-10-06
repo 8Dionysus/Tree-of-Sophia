@@ -19,9 +19,9 @@ use tos_validation::operation::{
 use tos_validation::record_rules::{RecordFamily, RecordSchema};
 use tos_validation::source_cut::{CutWorkerLimits, CutWorkerSchemaExecutor, MetadataOnlyPayloads};
 use tos_validation::source_foundation_schema::{
-    SOURCE_FOUNDATION_CONTRACT_PATHS, SourceFoundationLegacySchemaInput,
-    SourceFoundationMixedSchemaInput, SourceFoundationSchemaFailure, SourceFoundationSchemaInput,
-    SourceFoundationSchemaLimits, SourceFoundationSchemaOutcome, SourceFoundationSchemaSet,
+    SourceFoundationLegacySchemaInput, SourceFoundationMixedSchemaInput,
+    SourceFoundationSchemaFailure, SourceFoundationSchemaInput, SourceFoundationSchemaLimits,
+    SourceFoundationSchemaOutcome, SourceFoundationSchemaSet,
     evaluate_source_foundation_mixed_schema_checks,
 };
 
@@ -184,9 +184,27 @@ pub(super) fn selected_worker_path() -> PathBuf {
 
 fn selected_source_foundation_contracts() -> BTreeMap<String, Vec<u8>> {
     let root = repository();
-    SOURCE_FOUNDATION_CONTRACT_PATHS
-        .iter()
-        .map(|path| ((*path).to_owned(), fs::read(root.join(path)).unwrap()))
+    fs::read_dir(root.join("ToS/contracts"))
+        .unwrap()
+        .map(|entry| entry.unwrap().path())
+        .filter(|path| {
+            path.is_file()
+                && path
+                    .file_name()
+                    .unwrap()
+                    .to_str()
+                    .unwrap()
+                    .ends_with(".schema.json")
+        })
+        .map(|path| {
+            let relative = path
+                .strip_prefix(&root)
+                .unwrap()
+                .to_str()
+                .unwrap()
+                .to_owned();
+            (relative, fs::read(path).unwrap())
+        })
         .collect()
 }
 
@@ -229,7 +247,7 @@ fn source_foundation_schema_set_from_fixture(
         store,
         ReadLimits {
             max_manifest_bytes: 1_048_576,
-            max_manifest_entries: 128,
+            max_manifest_entries: limits.max_schema_resources,
             max_selected_object_bytes: 1_048_576,
             json: JsonLimits::default(),
         },
@@ -240,7 +258,7 @@ fn source_foundation_schema_set_from_fixture(
             revision,
             CutReadLimits {
                 max_revisions: 4,
-                max_members: 128,
+                max_members: limits.max_schema_resources,
                 max_total_bytes: 2_097_152,
                 max_member_bytes: 1_048_576,
             },
@@ -2127,11 +2145,140 @@ fn actual_cut_schema_batch_binds_ordered_units_and_refuses_partial_receipts() {
 }
 
 #[test]
+fn actual_cut_diagnostics_bounds_residency_across_report_lifetimes() {
+    use tos_validation::source_cut::{CutSchemaDiagnosticsLimits, CutSchemaExecutor};
+
+    const CONTRACT: &str = "ToS/contracts/residency-fixture.schema.json";
+    const STATE_CAP: usize = 1024 * 1024;
+    let files = BTreeMap::from([(
+        CONTRACT.to_owned(),
+        br#"{"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"https://tree-of-sophia.local/residency-fixture.schema.json","type":"string"}"#.to_vec(),
+    )]);
+    let temporary = tempfile::tempdir().unwrap();
+    let revision = write_cut_store(&files, temporary.path());
+    let cancelled = AtomicBool::new(false);
+    let deadline = Instant::now() + Duration::from_secs(120);
+    let reader = CorpusReader::open_existing(
+        temporary.path(),
+        ReadLimits {
+            max_manifest_bytes: 1024 * 1024,
+            max_manifest_entries: files.len(),
+            max_selected_object_bytes: 1024 * 1024,
+            json: JsonLimits::default(),
+        },
+    )
+    .unwrap();
+    let cut = reader
+        .open_source_cut(
+            revision,
+            CutReadLimits {
+                max_revisions: 1,
+                max_members: files.len(),
+                max_total_bytes: 1024 * 1024,
+                max_member_bytes: 1024 * 1024,
+            },
+            deadline,
+            &cancelled,
+        )
+        .unwrap();
+    let image =
+        super::command_form_cases::schema_image(ExecutorBudget::laboratory(), deadline, &cancelled);
+    let mut schemas = CutWorkerSchemaExecutor::from_cut_with_image(
+        &cut,
+        FormatProfile::LegacyPythonObserved20260923,
+        &image,
+        ExecutorBudget::laboratory(),
+        CutWorkerLimits {
+            max_receipts: 20,
+            max_receipt_bytes: 32_768,
+        },
+        deadline,
+        &cancelled,
+    )
+    .unwrap();
+    schemas
+        .enable_diagnostics_v2(CutSchemaDiagnosticsLimits {
+            max_total_issues: 20 * 128,
+            max_total_report_bytes: 1024 * 1024,
+            max_total_state_bytes: STATE_CAP,
+        })
+        .unwrap();
+    let raw = serde_json::to_vec(&"x".repeat(64 * 1024)).unwrap();
+    for _ in 0..16 {
+        assert!(
+            schemas
+                .check(
+                    "fixture/resident-string",
+                    &raw,
+                    CONTRACT,
+                    deadline,
+                    &cancelled
+                )
+                .unwrap()
+        );
+    }
+    let work = schemas.diagnostics_v2_cumulative_cost().unwrap();
+    assert_eq!(work.completed_exchanges(), 16);
+    assert!(work.request_bytes() > STATE_CAP as u64);
+    assert!(work.response_bytes() > 0);
+
+    // Invalid reports retain their allocation until the receiving owner drains
+    // them; the internal Vec remains available for the next actual exchange.
+    assert!(
+        !schemas
+            .check(
+                "fixture/invalid-string",
+                b"0",
+                CONTRACT,
+                deadline,
+                &cancelled
+            )
+            .unwrap()
+    );
+    let rejected = schemas.take_schema_diagnostic_rejection().unwrap();
+    assert!(rejected.is_invalid());
+    assert_eq!(
+        rejected.accounted_state_bytes(),
+        rejected.retained_state_bytes()
+    );
+    drop(rejected);
+    assert!(
+        schemas
+            .check(
+                "fixture/resident-string",
+                &raw,
+                CONTRACT,
+                deadline,
+                &cancelled
+            )
+            .unwrap()
+    );
+    assert_eq!(
+        schemas
+            .diagnostics_v2_cumulative_cost()
+            .unwrap()
+            .completed_exchanges(),
+        18
+    );
+    schemas.finish(deadline, &cancelled).unwrap();
+}
+
+#[test]
 fn actual_source_foundation_inventory_profile2_binds_exceptional_schema_results() {
     use tos_validation::executor::schema_diagnostics::{PathSegment, Reason, Status};
 
-    let contracts = selected_source_foundation_contracts();
-    assert_eq!(contracts.len(), SOURCE_FOUNDATION_CONTRACT_PATHS.len());
+    let mut contracts = selected_source_foundation_contracts();
+    // A future source-owned declaration needs no Rust selector edit.
+    const NEW_DECLARATION: &str = "ToS/contracts/future-source-owned.schema.json";
+    contracts.insert(
+        NEW_DECLARATION.to_owned(),
+        serde_json::to_vec(&serde_json::json!({
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "$id": "https://tree-of-sophia.local/future-source-owned.schema.json",
+            "type": "object"
+        }))
+        .unwrap(),
+    );
     let limits = source_foundation_schema_limits(&contracts, 8);
     assert!(limits.validate());
     let cancelled = AtomicBool::new(false);
@@ -2144,8 +2291,7 @@ fn actual_source_foundation_inventory_profile2_binds_exceptional_schema_results(
     };
     let temporary = tempfile::tempdir().unwrap();
 
-    // The first cut contains only the exact 63 source-foundation contracts
-    // selected by the maintained source API; it never reads corpus members.
+    // The cut owns the exact schema declarations; it never reads corpus members.
     let original_store = temporary.path().join("original-schema-cut");
     let original_revision = write_cut_store(&contracts, &original_store);
     let original_schemas = source_foundation_schema_set_from_fixture(
@@ -2156,6 +2302,13 @@ fn actual_source_foundation_inventory_profile2_binds_exceptional_schema_results(
         &cancelled,
     );
     assert_eq!(original_schemas.source_revision(), original_revision);
+    assert_eq!(original_schemas.schema_resource_count(), contracts.len());
+    for (path, raw) in &contracts {
+        assert_eq!(
+            original_schemas.contract_digest(path),
+            Some(Digest256::of_bytes(raw)),
+        );
+    }
 
     let inventory_schema: Value = serde_json::from_slice(&contracts[INVENTORY_SCHEMA]).unwrap();
     let inventory_uri = inventory_schema["$id"].as_str().unwrap();

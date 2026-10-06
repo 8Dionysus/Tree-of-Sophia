@@ -29,8 +29,8 @@ use crate::item_rules::{
 use crate::provenance_rules::{ProvenanceReport, ProvenanceRules, ProvenanceSource};
 use crate::record_rules::RecordFamily;
 use crate::source_foundation_schema::{
-    CandidateSourceFoundationSchemaSet, SOURCE_FOUNDATION_CONTRACT_PATHS, SelectedSchemaResource,
-    schema_resource_set_digest, source_foundation_schema_resource_uri,
+    CandidateSourceFoundationSchemaSet, SelectedSchemaResource, schema_resource_set_digest,
+    source_foundation_schema_resource_uri,
 };
 use crate::{FormatProfile, SchemaBackendProbe, SchemaResource, published_value};
 
@@ -222,11 +222,11 @@ pub(crate) fn collect_schema_receipt_range<S: CutSchemaReceiptRange>(
         return Ok(Vec::new());
     }
     if page_rows == 0 || page_bytes == 0 {
-        return Err(ItemRefusal::Budget);
+        return Err(crate::item_budget_origin!());
     }
     let output_slots = count
         .checked_mul(std::mem::size_of::<CutSchemaReceipt>())
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     if output_slots > max_state_bytes {
         return Err(ItemRefusal::BudgetCheck {
             check: "operation schema receipt output slots",
@@ -237,11 +237,11 @@ pub(crate) fn collect_schema_receipt_range<S: CutSchemaReceiptRange>(
     let mut receipts = Vec::new();
     receipts
         .try_reserve_exact(count)
-        .map_err(|_| ItemRefusal::Budget)?;
+        .map_err(|_| crate::item_budget_origin!())?;
     let mut ordinal = start;
     let mut after = start
         .checked_sub(1)
-        .map(|value| u64::try_from(value).map_err(|_| ItemRefusal::Budget))
+        .map(|value| u64::try_from(value).map_err(|_| crate::item_budget_origin!()))
         .transpose()?;
     let mut retained_bytes = output_slots;
     while ordinal < end {
@@ -249,11 +249,16 @@ pub(crate) fn collect_schema_receipt_range<S: CutSchemaReceiptRange>(
         let mut rows = (end - ordinal).min(page_rows);
         let remaining = max_state_bytes
             .checked_sub(retained_bytes)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         let max_bytes = page_bytes.min(remaining);
         let page = loop {
             match schemas.read_receipts_after(after, rows, max_bytes, deadline, cancelled) {
                 Err(ItemRefusal::Budget) if rows > 1 => rows = rows.div_ceil(2),
+                Err(ItemRefusal::BudgetCheck { check, .. })
+                    if rows > 1 && check.starts_with(concat!(module_path!(), ":")) =>
+                {
+                    rows = rows.div_ceil(2);
+                }
                 result => break result?,
             }
         };
@@ -282,15 +287,18 @@ pub(crate) fn collect_schema_receipt_range<S: CutSchemaReceiptRange>(
             }
             after = Some(row_ordinal);
             receipts.push(receipt);
-            ordinal = ordinal.checked_add(1).ok_or(ItemRefusal::Budget)?;
+            ordinal = ordinal.checked_add(1).ok_or(crate::item_budget_origin!())?;
         }
     }
     check(deadline, cancelled)?;
     Ok(receipts)
 }
 
-/// Caller-owned aggregate ceilings for the opt-in source-cut diagnostics-v2
-/// path. The legacy scalar and batch receipts remain a separate protocol.
+/// Caller-owned ceilings for the opt-in source-cut diagnostics-v2 path.
+/// Issues and report bytes accumulate; state bounds resident executor results
+/// plus the current exchange peak. Returned results transfer retained-state
+/// custody to their caller, which must admit its own output/page allocations.
+/// The legacy scalar and batch receipts remain a separate protocol.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct CutSchemaDiagnosticsLimits {
     pub max_total_issues: usize,
@@ -305,8 +313,8 @@ impl CutSchemaDiagnosticsLimits {
         max_receipts: usize,
         operation: BatchStreamBudget,
     ) -> Result<Self, ItemRefusal> {
-        let issue_capacity =
-            cut_diagnostics_issue_capacity(max_receipts, operation).ok_or(ItemRefusal::Budget)?;
+        let issue_capacity = cut_diagnostics_issue_capacity(max_receipts, operation)
+            .ok_or(crate::item_budget_origin!())?;
         let issue_capacity = usize::try_from(issue_capacity).unwrap_or(usize::MAX);
         let wire_capacity = usize::try_from(operation.max_total_wire_bytes).unwrap_or(usize::MAX);
         let limits = Self {
@@ -322,7 +330,7 @@ impl CutSchemaDiagnosticsLimits {
         {
             Ok(limits)
         } else {
-            Err(ItemRefusal::Budget)
+            Err(crate::item_budget_origin!())
         }
     }
 }
@@ -456,6 +464,8 @@ impl SchemaDiagnosticResult {
     pub fn retained_state_bytes(&self) -> usize {
         self.retained_state_bytes
     }
+    /// Retained result state transferred to the receiving owner. Historical
+    /// exchange buffers and the executor's retained vector are excluded.
     pub fn accounted_state_bytes(&self) -> usize {
         self.accounted_state_bytes
     }
@@ -612,7 +622,7 @@ pub fn cut_schema_resource_preparation_state_upper_bound(
 
         stats.add_schema(
             path,
-            usize::try_from(member.size_bytes).map_err(|_| ItemRefusal::Budget)?,
+            usize::try_from(member.size_bytes).map_err(|_| crate::item_budget_origin!())?,
         )?;
     }
     let upper_bound = stats.upper_bound()?;
@@ -635,7 +645,7 @@ pub fn streamed_cut_schema_resource_preparation_state_upper_bound(
         if path.starts_with("ToS/contracts/") && path.ends_with(".schema.json") {
             stats.add_schema(
                 path,
-                usize::try_from(member.size_bytes).map_err(|_| ItemRefusal::Budget)?,
+                usize::try_from(member.size_bytes).map_err(|_| crate::item_budget_origin!())?,
             )?;
         }
         Ok(())
@@ -710,33 +720,33 @@ struct SchemaResourcePreparationStats {
 impl SchemaResourcePreparationStats {
     fn add_schema(&mut self, path: &str, bytes: usize) -> Result<(), ItemRefusal> {
         if bytes > SchemaBackendProbe::MAX_RESOURCE_BYTES {
-            return Err(ItemRefusal::Budget);
+            return Err(crate::item_budget_origin!());
         }
         self.count = self
             .count
             .checked_add(1)
             .filter(|count| *count <= SchemaBackendProbe::MAX_RESOURCES)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         self.raw_bytes = self
             .raw_bytes
             .checked_add(bytes)
             .filter(|total| *total <= SchemaBackendProbe::MAX_TOTAL_BYTES)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         self.path_bytes = self
             .path_bytes
             .checked_add(path.len())
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         self.largest_resource = self.largest_resource.max(bytes);
         self.serde_workspace = self
             .serde_workspace
             .checked_add(finite_serde_json_controller_workspace_upper_bound(bytes)?)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         Ok(())
     }
 
     fn upper_bound(&self) -> Result<usize, ItemRefusal> {
         if self.count == 0 {
-            return Err(ItemRefusal::Budget);
+            return Err(crate::item_budget_origin!());
         }
         let foundation_slot = std::mem::size_of::<tos_foundation::JsonValue>()
             .checked_add(std::mem::size_of::<(
@@ -744,31 +754,42 @@ impl SchemaResourcePreparationStats {
                 tos_foundation::JsonValue,
             )>())
             .and_then(|bytes| bytes.checked_mul(2))
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         let foundation_workspace = self
             .largest_resource
             .checked_add(1)
             .and_then(|bytes| bytes.checked_mul(foundation_slot))
             .and_then(|bytes| bytes.checked_add(self.largest_resource.checked_mul(16)?))
             .and_then(|bytes| bytes.checked_add(65usize.checked_mul(foundation_slot)?))
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         let closure_buffers = self
             .raw_bytes
             .checked_mul(16)
             .and_then(|bytes| bytes.checked_add(self.path_bytes.checked_mul(8)?))
             .and_then(|bytes| bytes.checked_add(self.count.checked_mul(4096)?))
             .and_then(|bytes| bytes.checked_add(65536))
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         let selected_resource_metadata =
             crate::source_foundation_schema::selected_source_resource_metadata_state_upper_bound(
                 self.count,
             )
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
+        let diagnostic_index = self
+            .count
+            .checked_mul(self.count)
+            .and_then(|slots| slots.checked_mul(std::mem::size_of::<usize>()))
+            .and_then(|bytes| {
+                bytes.checked_add(self.count.checked_mul(
+                std::mem::size_of::<(String, std::ops::Range<usize>, Digest256, Vec<usize>)>()
+                    .checked_add(crate::source_foundation_schema::MAX_LOCATION_BYTES)?)?)
+            })
+            .ok_or_else(|| crate::item_budget_origin!())?;
         self.serde_workspace
             .checked_add(foundation_workspace)
+            .and_then(|bytes| bytes.checked_add(diagnostic_index))
             .and_then(|bytes| bytes.checked_add(closure_buffers))
             .and_then(|bytes| bytes.checked_add(selected_resource_metadata))
-            .ok_or(ItemRefusal::Budget)
+            .ok_or(crate::item_budget_origin!())
     }
 }
 
@@ -783,7 +804,7 @@ pub fn source_foundation_candidate_schema_preparation_state_upper_bound(
     max_source_resource_metadata_state_bytes: usize,
 ) -> Result<usize, ItemRefusal> {
     if !limits.validate() || max_source_resource_metadata_state_bytes == 0 {
-        return Err(ItemRefusal::Budget);
+        return Err(crate::item_budget_origin!());
     }
     let count = limits.max_schema_resources;
     let total_bytes = limits.max_total_schema_bytes;
@@ -791,31 +812,31 @@ pub fn source_foundation_candidate_schema_preparation_state_upper_bound(
     let per_extra_resource = std::mem::size_of::<serde_json::Value>()
         .checked_mul(129)
         .and_then(|bytes| bytes.checked_add(64))
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     let serde_workspace = one_resource_serde
         .checked_add(
             count
                 .saturating_sub(1)
                 .checked_mul(per_extra_resource)
-                .ok_or(ItemRefusal::Budget)?,
+                .ok_or(crate::item_budget_origin!())?,
         )
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     let stats = SchemaResourcePreparationStats {
         count,
         raw_bytes: total_bytes,
         path_bytes: count
             .checked_mul(crate::source_foundation_schema::MAX_LOCATION_BYTES)
-            .ok_or(ItemRefusal::Budget)?,
+            .ok_or(crate::item_budget_origin!())?,
         largest_resource: limits.max_schema_resource_bytes.min(total_bytes),
         serde_workspace,
     };
     let preparation = stats.upper_bound()?;
     let selected_metadata =
         crate::source_foundation_schema::selected_source_resource_metadata_state_upper_bound(count)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
     preparation
         .checked_add(max_source_resource_metadata_state_bytes.saturating_sub(selected_metadata))
-        .ok_or(ItemRefusal::Budget)
+        .ok_or(crate::item_budget_origin!())
 }
 
 pub struct CutWorkerSchemaExecutor {
@@ -835,7 +856,7 @@ pub struct CutWorkerSchemaExecutor {
     diagnostics_v2_controller_state_cap: Option<usize>,
     diagnostics_v2_legacy_raw_instance_limit: usize,
     diagnostics_v2_legacy_selected_limits: Option<LegacySelectedDiagnosticsLimits>,
-    diagnostics_v2_shared_quota_attached: bool,
+    diagnostics_v2_shared_quota_attached: Option<SharedSchemaWorkerQuota>,
     diagnostics_v2_cost: Option<CutSchemaDiagnosticsCumulativeCost>,
     diagnostics_v2_cost_unknown: bool,
     diagnostic_executions: usize,
@@ -886,7 +907,7 @@ impl<I: Copy + Eq> CandidateCutWorkerSchemaExecutor<I> {
             || limits.max_receipt_bytes == 0
             || limits.max_receipt_bytes == usize::MAX
         {
-            return Err(ItemRefusal::Budget);
+            return Err(crate::item_budget_origin!());
         }
         if schema_set.resources.is_empty()
             || schema_set.resources.len() != schema_set.source_resources.len()
@@ -922,7 +943,7 @@ impl<I: Copy + Eq> CandidateCutWorkerSchemaExecutor<I> {
             }
         }
         if worker_contracts.len() != schema_set.resources.len()
-            || schema_set.contracts.len() != SOURCE_FOUNDATION_CONTRACT_PATHS.len()
+            || worker_contracts != schema_set.contracts
         {
             return Err(ItemRefusal::Source(
                 "candidate schema root selection is incomplete".into(),
@@ -933,7 +954,7 @@ impl<I: Copy + Eq> CandidateCutWorkerSchemaExecutor<I> {
                 &schema_set.source_resources,
                 schema_set.source_resources.capacity(),
             )
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         let profile = schema_set.profile;
         let schema_set_digest = schema_set.schema_set_sha256;
         let contract_selection_digest = schema_set.contract_selection_sha256;
@@ -1086,8 +1107,9 @@ impl<I: Copy + Eq> CandidateCutWorkerSchemaExecutor<I> {
         let typed_and_boxed = envelope
             .checked_mul(2)
             .and_then(|bytes| bytes.checked_sub(shared_result))
-            .ok_or(ItemRefusal::Budget)?;
-        base.checked_add(typed_and_boxed).ok_or(ItemRefusal::Budget)
+            .ok_or(crate::item_budget_origin!())?;
+        base.checked_add(typed_and_boxed)
+            .ok_or(crate::item_budget_origin!())
     }
 
     pub fn check_diagnostics_v2(
@@ -1102,6 +1124,7 @@ impl<I: Copy + Eq> CandidateCutWorkerSchemaExecutor<I> {
             .inner
             .check_diagnostics_v2_result(path, raw, contract, deadline, cancelled)?;
         self.account_candidate_envelope_state(&mut result)?;
+        self.inner.release_diagnostic_state(&result)?;
         Ok(self.envelope(result))
     }
 
@@ -1125,6 +1148,7 @@ impl<I: Copy + Eq> CandidateCutWorkerSchemaExecutor<I> {
             path, raw, schema_raw, deadline, cancelled,
         )?;
         self.account_candidate_envelope_state(&mut result)?;
+        self.inner.release_diagnostic_state(&result)?;
         Ok(self.envelope(result))
     }
 
@@ -1160,9 +1184,8 @@ impl<I: Copy + Eq> CandidateCutWorkerSchemaExecutor<I> {
         let envelope_bytes = std::mem::size_of::<CandidateCutSchemaDiagnostic<I>>();
         let result_header_bytes = std::mem::size_of::<SchemaDiagnosticResult>();
         let extra = envelope_bytes
-            .checked_mul(2)
-            .and_then(|bytes| bytes.checked_sub(result_header_bytes))
-            .ok_or(ItemRefusal::Budget)?;
+            .checked_sub(result_header_bytes)
+            .ok_or(crate::item_budget_origin!())?;
         let limits = self
             .inner
             .diagnostics_v2
@@ -1171,22 +1194,29 @@ impl<I: Copy + Eq> CandidateCutWorkerSchemaExecutor<I> {
             .inner
             .diagnostic_state_bytes_used
             .checked_add(extra)
-            .ok_or(ItemRefusal::Budget)?;
-        if used > limits.max_total_state_bytes {
+            .ok_or(crate::item_budget_origin!())?;
+        let transfer_peak = used
+            .checked_add(envelope_bytes)
+            .ok_or(crate::item_budget_origin!())?;
+        if transfer_peak > limits.max_total_state_bytes {
             self.inner.prepared.poison(ExecutorFailure::InputBudget);
             self.inner.pending_diagnostics.clear();
             self.inner.pending_diagnostics.shrink_to_fit();
             return Err(ItemRefusal::BudgetCheck {
                 check: "candidate schema diagnostics typed envelope state",
-                used: u64::try_from(used).ok(),
+                used: u64::try_from(transfer_peak).ok(),
                 limit: u64::try_from(limits.max_total_state_bytes).ok(),
             });
         }
         let accounted_state_bytes = result
             .accounted_state_bytes
             .checked_add(extra)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         result.accounted_state_bytes = accounted_state_bytes;
+        result.retained_state_bytes = result
+            .retained_state_bytes
+            .checked_add(extra)
+            .ok_or(crate::item_budget_origin!())?;
         self.inner.diagnostic_state_bytes_used = used;
         Ok(())
     }
@@ -1208,7 +1238,7 @@ impl<I: Copy + Eq> CutSchemaExecutor for CandidateCutWorkerSchemaExecutor<I> {
                 .inner
                 .pending_diagnostics
                 .pop()
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
             self.account_candidate_envelope_state(&mut diagnostic)?;
             self.inner.pending_diagnostics.push(diagnostic);
         }
@@ -1392,7 +1422,7 @@ impl CutWorkerSchemaExecutor {
             || limits.max_receipt_bytes == 0
             || limits.max_receipt_bytes == usize::MAX
         {
-            return Err(ItemRefusal::Budget);
+            return Err(crate::item_budget_origin!());
         }
         let revision = cut.current().revision();
         let mut resources = Vec::new();
@@ -1419,11 +1449,11 @@ impl CutWorkerSchemaExecutor {
             total_bytes = total_bytes
                 .checked_add(member.raw.len())
                 .filter(|n| *n <= SchemaBackendProbe::MAX_TOTAL_BYTES)
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
             if resources.len() >= SchemaBackendProbe::MAX_RESOURCES
                 || member.raw.len() > SchemaBackendProbe::MAX_RESOURCE_BYTES
             {
-                return Err(ItemRefusal::Budget);
+                return Err(crate::item_budget_origin!());
             }
             let value = published_value(&member.raw, SchemaBackendProbe::MAX_RESOURCE_BYTES)
                 .map_err(|error| {
@@ -1480,7 +1510,7 @@ impl CutWorkerSchemaExecutor {
             || limits.max_receipt_bytes == 0
             || limits.max_receipt_bytes == usize::MAX
         {
-            return Err(ItemRefusal::Budget);
+            return Err(crate::item_budget_origin!());
         }
         let mut resources = Vec::new();
         let mut contracts = BTreeMap::new();
@@ -1506,11 +1536,11 @@ impl CutWorkerSchemaExecutor {
                 total_bytes = total_bytes
                     .checked_add(member.raw.len())
                     .filter(|n| *n <= SchemaBackendProbe::MAX_TOTAL_BYTES)
-                    .ok_or(ItemRefusal::Budget)?;
+                    .ok_or(crate::item_budget_origin!())?;
                 if resources.len() >= SchemaBackendProbe::MAX_RESOURCES
                     || member.raw.len() > SchemaBackendProbe::MAX_RESOURCE_BYTES
                 {
-                    return Err(ItemRefusal::Budget);
+                    return Err(crate::item_budget_origin!());
                 }
                 let value = published_value(&member.raw, SchemaBackendProbe::MAX_RESOURCE_BYTES)
                     .map_err(|error| {
@@ -1593,20 +1623,20 @@ impl CutWorkerSchemaExecutor {
             || limits.max_receipt_bytes == 0
             || limits.max_receipt_bytes == usize::MAX
         {
-            return Err(ItemRefusal::Budget);
+            return Err(crate::item_budget_origin!());
         }
         if resources.is_empty()
             || resources.len() > SchemaBackendProbe::MAX_RESOURCES
             || contracts.len() != resources.len()
         {
-            return Err(ItemRefusal::Budget);
+            return Err(crate::item_budget_origin!());
         }
         let mut resource_preparation = SchemaResourcePreparationStats::default();
         for (path, (uri, _)) in &contracts {
             let resource = resources
                 .iter()
                 .find(|resource| resource.uri == *uri)
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
             resource_preparation.add_schema(path, resource.raw.len())?;
         }
         let resource_preparation_state_upper_bound = resource_preparation.upper_bound()?;
@@ -1635,7 +1665,7 @@ impl CutWorkerSchemaExecutor {
             total_bytes = total_bytes
                 .checked_add(matching[0].raw.len())
                 .filter(|n| *n <= SchemaBackendProbe::MAX_TOTAL_BYTES)
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
         }
         for resource in &resources {
             check(deadline, cancelled)?;
@@ -1658,12 +1688,8 @@ impl CutWorkerSchemaExecutor {
                 &worker, &resources, profile, budget, deadline, cancelled,
             ),
         };
-        let mut prepared = prepared_result.map_err(|reason| match reason {
-            ExecutorFailure::Timeout => ItemRefusal::Deadline,
-            ExecutorFailure::Cancelled => {
-                ItemRefusal::Source("schema preparation cancelled".into())
-            }
-            other => ItemRefusal::Unsupported(format!("schema worker preparation: {other:?}")),
+        let mut prepared = prepared_result.map_err(|reason| {
+            crate::item_rules::executor_refusal("schema preparation", reason, None, None)
         })?;
         check(deadline, cancelled)?;
         prepared.set_operation_origin(operation_origin);
@@ -1692,7 +1718,7 @@ impl CutWorkerSchemaExecutor {
             diagnostics_v2_controller_state_cap: None,
             diagnostics_v2_legacy_raw_instance_limit: SchemaBackendProbe::MAX_INSTANCE_BYTES,
             diagnostics_v2_legacy_selected_limits: None,
-            diagnostics_v2_shared_quota_attached: false,
+            diagnostics_v2_shared_quota_attached: None,
             diagnostics_v2_cost: None,
             diagnostics_v2_cost_unknown: false,
             diagnostic_executions: 0,
@@ -1752,9 +1778,9 @@ impl CutWorkerSchemaExecutor {
             ));
         }
         self.prepared
-            .set_shared_schema_worker_quota(quota)
+            .set_shared_schema_worker_quota(quota.clone())
             .map_err(operation_failure)?;
-        self.diagnostics_v2_shared_quota_attached = true;
+        self.diagnostics_v2_shared_quota_attached = Some(quota);
         Ok(())
     }
 
@@ -1842,7 +1868,7 @@ impl CutWorkerSchemaExecutor {
             || self.diagnostics_v2_legacy_raw_instance_limit
                 != SchemaBackendProbe::MAX_INSTANCE_BYTES
             || self.diagnostics_v2_controller_state_cap.is_some()
-            || self.diagnostics_v2_shared_quota_attached
+            || self.diagnostics_v2_shared_quota_attached.is_some()
             || self.protocol_started
             || self.diagnostic_executions != 0
             || self.scalar_check_count != 0
@@ -1867,7 +1893,7 @@ impl CutWorkerSchemaExecutor {
     /// prepared worker's URI and raw resource bytes are compared as well.
     pub fn selected_contract_for_schema_raw(&self, schema_raw: &[u8]) -> Result<&str, ItemRefusal> {
         if schema_raw.is_empty() || schema_raw.len() > SchemaBackendProbe::MAX_RESOURCE_BYTES {
-            return Err(ItemRefusal::Budget);
+            return Err(crate::item_budget_origin!());
         }
         let digest = Digest256::of_bytes(schema_raw);
         let mut selected = None;
@@ -1911,7 +1937,7 @@ impl CutWorkerSchemaExecutor {
             || max_path_bytes == 0
             || max_path_bytes > 4096
         {
-            return Err(ItemRefusal::Budget);
+            return Err(crate::item_budget_origin!());
         }
         // Validate the exact retained closure without copying it. The
         // pre-callback owner may select a valid fragment URI whose rendered
@@ -1996,10 +2022,10 @@ impl CutWorkerSchemaExecutor {
             || max_contract_bytes == 0
             || max_contract_bytes > 4096
         {
-            return Err(ItemRefusal::Budget);
+            return Err(crate::item_budget_origin!());
         }
         if root_uri_bytes == 0 || root_uri_bytes > 4096 {
-            return Err(ItemRefusal::Budget);
+            return Err(crate::item_budget_origin!());
         }
         let member_id_bytes = "source-cut-schema-unit".len();
         let request_bytes = if self.diagnostics_v2_legacy_selected_limits.is_some() {
@@ -2030,9 +2056,9 @@ impl CutWorkerSchemaExecutor {
                 self.pending_diagnostics
                     .capacity()
                     .checked_mul(std::mem::size_of::<SchemaDiagnosticResult>())
-                    .ok_or(ItemRefusal::Budget)?,
+                    .ok_or(crate::item_budget_origin!())?,
             )
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         let pending_state_bytes = self
             .pending_diagnostics
             .iter()
@@ -2044,7 +2070,7 @@ impl CutWorkerSchemaExecutor {
                     &diagnostic.checkpoint,
                 )?)
             })
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         let retained_schema_closure_bytes = self.prepared.encoded_schema_resource_buffer_bytes();
         let issue_workspace = diagnostic_issue_workspace_upper_bound()?;
         let future_diagnostic_state = std::mem::size_of::<SchemaDiagnosticResult>()
@@ -2056,16 +2082,16 @@ impl CutWorkerSchemaExecutor {
             .and_then(|bytes| bytes.checked_add(max_contract_bytes))
             .and_then(|bytes| bytes.checked_add(root_uri_bytes.checked_mul(3)?))
             .and_then(|bytes| bytes.checked_add(member_id_bytes.checked_mul(3)?))
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         let future_pending_capacity = self
             .pending_diagnostics
             .capacity()
             .max(1)
             .checked_mul(std::mem::size_of::<SchemaDiagnosticResult>())
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         let input_instance_copies = max_instance_bytes
             .checked_mul(2)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         let request_buffer_multiplier = if self.diagnostics_v2_legacy_selected_limits.is_some() {
             3
         } else {
@@ -2077,18 +2103,18 @@ impl CutWorkerSchemaExecutor {
             .and_then(|bytes| bytes.checked_add(input_instance_copies))
             .and_then(|bytes| bytes.checked_add(future_diagnostic_state))
             .and_then(|bytes| bytes.checked_add(future_pending_capacity))
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         let decode_peak = if self.diagnostics_v2_uses_legacy_raw_input() {
             0
         } else {
             finite_serde_json_controller_workspace_upper_bound(max_instance_bytes)?
                 .checked_add(max_instance_bytes)
-                .ok_or(ItemRefusal::Budget)?
+                .ok_or(crate::item_budget_origin!())?
         };
         pending_state_bytes
             .checked_add(retained_schema_closure_bytes)
             .and_then(|bytes| bytes.checked_add(exchange_peak.max(decode_peak)))
-            .ok_or(ItemRefusal::Budget)
+            .ok_or(crate::item_budget_origin!())
     }
 
     fn admit_diagnostics_v2_controller_state(
@@ -2101,7 +2127,7 @@ impl CutWorkerSchemaExecutor {
             return Ok(());
         };
         if raw_bytes > self.diagnostics_v2_instance_limit() {
-            return Err(ItemRefusal::Budget);
+            return Err(crate::item_budget_origin!());
         }
         let Some(root_uri_bytes) = self.selected_contract_root_uri_bytes(contract) else {
             // The existing input validator will return the specific static
@@ -2132,7 +2158,7 @@ impl CutWorkerSchemaExecutor {
         limits: LegacySelectedDiagnosticsLimits,
     ) -> Result<(), ItemRefusal> {
         if raw_bytes > limits.max_instance_bytes {
-            return Err(ItemRefusal::Budget);
+            return Err(crate::item_budget_origin!());
         }
         let root_uri_bytes = self
             .selected_contract_root_uri_bytes(contract)
@@ -2200,6 +2226,7 @@ impl CutWorkerSchemaExecutor {
         let result = self.check_diagnostics_v2_for_schema_raw_result(
             path, raw, schema_raw, deadline, cancelled,
         )?;
+        self.release_diagnostic_state(&result)?;
         Ok(CutSchemaDiagnostic {
             source_revision,
             result,
@@ -2242,6 +2269,7 @@ impl CutWorkerSchemaExecutor {
             )
         })?;
         let result = self.check_diagnostics_v2_result(path, raw, contract, deadline, cancelled)?;
+        self.release_diagnostic_state(&result)?;
         Ok(CutSchemaDiagnostic {
             source_revision,
             result,
@@ -2307,7 +2335,9 @@ impl CutWorkerSchemaExecutor {
             self.diagnostics_v2_cost_unknown = true;
             self.prepared.poison(ExecutorFailure::Protocol);
         }
-        result.map(|result| CutSchemaDiagnostic {
+        let result = result?;
+        self.release_diagnostic_state(&result)?;
+        Ok(CutSchemaDiagnostic {
             source_revision,
             result,
         })
@@ -2321,9 +2351,11 @@ impl CutWorkerSchemaExecutor {
             .pending_diagnostics
             .iter()
             .position(SchemaDiagnosticResult::is_invalid)?;
+        let result = self.pending_diagnostics.remove(index);
+        self.release_diagnostic_state(&result).ok()?;
         Some(CutSchemaDiagnostic {
             source_revision,
-            result: self.pending_diagnostics.remove(index),
+            result,
         })
     }
 
@@ -2334,7 +2366,9 @@ impl CutWorkerSchemaExecutor {
             .pending_diagnostics
             .iter()
             .position(SchemaDiagnosticResult::is_invalid)?;
-        Some(self.pending_diagnostics.remove(index))
+        let result = self.pending_diagnostics.remove(index);
+        self.release_diagnostic_state(&result).ok()?;
+        Some(result)
     }
 
     /// Retrieve a fully authenticated non-verdict terminal retained only by
@@ -2348,9 +2382,11 @@ impl CutWorkerSchemaExecutor {
             .pending_diagnostics
             .iter()
             .position(|diagnostic| !diagnostic.is_valid() && !diagnostic.is_invalid())?;
+        let result = self.pending_diagnostics.remove(index);
+        self.release_diagnostic_state(&result).ok()?;
         Some(CutSchemaDiagnostic {
             source_revision,
-            result: self.pending_diagnostics.remove(index),
+            result,
         })
     }
 
@@ -2363,8 +2399,15 @@ impl CutWorkerSchemaExecutor {
         cancelled: &AtomicBool,
     ) -> Result<SchemaDiagnosticResult, ItemRefusal> {
         let diagnostic = if self.diagnostics_v2_legacy_selected_limits.is_some() {
-            self.check_diagnostics_v2_legacy_selected(path, raw, contract, deadline, cancelled)?
-                .result
+            self.check_diagnostics_v2_inner_with_selected_limits(
+                path,
+                raw,
+                contract,
+                deadline,
+                cancelled,
+                self.diagnostics_v2_legacy_selected_limits,
+                false,
+            )?
         } else {
             self.check_diagnostics_v2_result(path, raw, contract, deadline, cancelled)?
         };
@@ -2417,8 +2460,7 @@ impl CutWorkerSchemaExecutor {
         &mut self,
         diagnostic: SchemaDiagnosticResult,
     ) -> Result<(), ItemRefusal> {
-        let mut diagnostic = diagnostic;
-        self.precharge_pending_diagnostic(&mut diagnostic)?;
+        self.precharge_pending_diagnostic()?;
         if self.pending_diagnostics.len() >= self.pending_diagnostics.capacity() {
             self.prepared.poison(ExecutorFailure::Protocol);
             return Err(ItemRefusal::Unsupported(
@@ -2429,10 +2471,28 @@ impl CutWorkerSchemaExecutor {
         Ok(())
     }
 
-    fn precharge_pending_diagnostic(
+    /// Remove the retained result charge when this owner drops it or transfers
+    /// it to a caller that accounts its own returned/report state. Closure and
+    /// retained vector capacity remain charged independently.
+    fn release_diagnostic_state(
         &mut self,
-        diagnostic: &mut SchemaDiagnosticResult,
+        diagnostic: &SchemaDiagnosticResult,
     ) -> Result<(), ItemRefusal> {
+        let Some(remaining) = self
+            .diagnostic_state_bytes_used
+            .checked_sub(diagnostic.accounted_state_bytes)
+        else {
+            self.prepared.poison(ExecutorFailure::Protocol);
+            self.diagnostics_v2_cost_unknown = true;
+            return Err(ItemRefusal::Unsupported(
+                "schema diagnostic retained state ownership differs".into(),
+            ));
+        };
+        self.diagnostic_state_bytes_used = remaining;
+        Ok(())
+    }
+
+    fn precharge_pending_diagnostic(&mut self) -> Result<(), ItemRefusal> {
         let limits = self
             .diagnostics_v2
             .ok_or_else(|| ItemRefusal::Unsupported("schema diagnostics v2 not selected".into()))?;
@@ -2440,12 +2500,12 @@ impl CutWorkerSchemaExecutor {
             .pending_diagnostics
             .len()
             .checked_add(1)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         let previous_bytes = self
             .pending_diagnostics
             .capacity()
             .checked_mul(std::mem::size_of::<SchemaDiagnosticResult>())
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         let will_grow = required_len > self.pending_diagnostics.capacity();
         let requested_capacity = if will_grow {
             required_len
@@ -2454,7 +2514,7 @@ impl CutWorkerSchemaExecutor {
         };
         let requested_capacity_bytes = requested_capacity
             .checked_mul(std::mem::size_of::<SchemaDiagnosticResult>())
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         let transient_state_bytes = self
             .diagnostic_state_bytes_used
             .checked_add(if will_grow {
@@ -2462,7 +2522,7 @@ impl CutWorkerSchemaExecutor {
             } else {
                 0
             })
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         if transient_state_bytes > limits.max_total_state_bytes {
             self.prepared.poison(ExecutorFailure::InputBudget);
             return Err(ItemRefusal::BudgetCheck {
@@ -2473,13 +2533,13 @@ impl CutWorkerSchemaExecutor {
         }
         if self.pending_diagnostics.try_reserve_exact(1).is_err() {
             self.prepared.poison(ExecutorFailure::InputBudget);
-            return Err(ItemRefusal::Budget);
+            return Err(crate::item_budget_origin!());
         }
         let next_capacity_bytes = self
             .pending_diagnostics
             .capacity()
             .checked_mul(std::mem::size_of::<SchemaDiagnosticResult>())
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         let Some(new_capacity_bytes) = next_capacity_bytes.checked_sub(previous_bytes) else {
             self.prepared.poison(ExecutorFailure::Protocol);
             return Err(ItemRefusal::Unsupported(
@@ -2502,10 +2562,6 @@ impl CutWorkerSchemaExecutor {
                 limit: u64::try_from(limits.max_total_state_bytes).ok(),
             });
         };
-        diagnostic.accounted_state_bytes = diagnostic
-            .accounted_state_bytes
-            .checked_add(new_capacity_bytes)
-            .ok_or(ItemRefusal::Budget)?;
         self.diagnostic_state_bytes_used = next_state_bytes;
         Ok(())
     }
@@ -2580,14 +2636,14 @@ impl CutWorkerSchemaExecutor {
             })?;
         self.admit_diagnostics_v2_controller_state(raw.len(), path.len(), contract)?;
         let input_mode = if selected_limits.is_some() {
-            let selected = selected_limits.ok_or(ItemRefusal::Budget)?;
+            let selected = selected_limits.ok_or_else(|| crate::item_budget_origin!())?;
             if raw.len() > selected.max_instance_bytes {
-                return Err(ItemRefusal::Budget);
+                return Err(crate::item_budget_origin!());
             }
             DiagnosticsUnitInputMode::LegacyPythonObservedSelected
         } else if self.diagnostics_v2_uses_legacy_raw_input() {
             if raw.len() > self.diagnostics_v2_legacy_raw_instance_limit {
-                return Err(ItemRefusal::Budget);
+                return Err(crate::item_budget_origin!());
             }
             DiagnosticsUnitInputMode::LegacyPythonObserved
         } else {
@@ -2635,7 +2691,12 @@ impl CutWorkerSchemaExecutor {
         }
         .map_err(|_| {
             self.prepared.poison(ExecutorFailure::CoverageMismatch);
-            ItemRefusal::Budget
+            crate::item_rules::executor_refusal(
+                "cut diagnostics coverage expectation",
+                ExecutorFailure::CoverageMismatch,
+                None,
+                self.diagnostics_v2_shared_quota_attached.as_ref(),
+            )
         })?;
         let expected_unit_sha = if let Some(selected) = selected_limits {
             selected_legacy_diagnostics_batch_unit_digest(&expected_unit, selected)
@@ -2644,7 +2705,12 @@ impl CutWorkerSchemaExecutor {
         }
         .map_err(|_| {
             self.prepared.poison(ExecutorFailure::CoverageMismatch);
-            ItemRefusal::Budget
+            crate::item_rules::executor_refusal(
+                "cut diagnostics coverage expectation",
+                ExecutorFailure::CoverageMismatch,
+                None,
+                self.diagnostics_v2_shared_quota_attached.as_ref(),
+            )
         })?;
         let decoded_sha256 = Digest256::of_bytes(&expected_unit.raw_instance);
         let source_raw_sha256 = Digest256::of_bytes(raw);
@@ -2655,13 +2721,17 @@ impl CutWorkerSchemaExecutor {
                 .ok_or(ItemRefusal::Deadline)?,
         );
         self.protocol_started = true;
+        let execution_digest = self
+            .prepared
+            .diagnostic_schema_set_digest(&expected_unit.root_uri)
+            .map_err(operation_failure)?;
         let execution = if input_mode == DiagnosticsUnitInputMode::LegacyPythonObservedSelected {
             self.prepared.evaluate_with_selected_legacy_diagnostics(
                 "source-cut-schema-unit",
                 path,
                 &expected_unit.root_uri,
                 &expected_unit.raw_instance,
-                selected_limits.ok_or(ItemRefusal::Budget)?,
+                selected_limits.ok_or_else(|| crate::item_budget_origin!())?,
                 self.resource_preparation_state_upper_bound,
                 budget,
                 deadline,
@@ -2688,14 +2758,25 @@ impl CutWorkerSchemaExecutor {
                 cancelled,
             )
         };
-        let (outcome, cost) = execution
-            .map_err(|reason| diagnostics_refusal(reason, self.prepared.exchange_failure()))?;
+        let (outcome, cost) = execution.map_err(|reason| {
+            crate::item_rules::executor_refusal(
+                "cut schema diagnostics",
+                reason,
+                self.prepared.exchange_failure(),
+                self.diagnostics_v2_shared_quota_attached.as_ref(),
+            )
+        })?;
         let (mut units, checkpoint) = match outcome {
             SchemaDiagnosticsOutcome::Complete { units, checkpoint } => (units, checkpoint),
             SchemaDiagnosticsOutcome::Incomplete {
                 reason, exchange, ..
             } => {
-                return Err(diagnostics_refusal(reason, exchange));
+                return Err(crate::item_rules::executor_refusal(
+                    "cut schema diagnostics",
+                    reason,
+                    exchange,
+                    self.diagnostics_v2_shared_quota_attached.as_ref(),
+                ));
             }
         };
         let unit = units.pop().ok_or_else(|| {
@@ -2708,7 +2789,7 @@ impl CutWorkerSchemaExecutor {
             || checkpoint.completed_count != 1
             || checkpoint.worker_sha256 != self.worker.sha256
             || checkpoint.profile != self.profile
-            || checkpoint.schema_set_sha256 != self.schema_set_digest
+            || checkpoint.schema_set_sha256 != execution_digest
             || checkpoint.ordered_manifest_sha256 != expected.ordered_manifest_sha256
             || checkpoint.caps_sha256 != caps_sha256
             || checkpoint.request_sha256 != report.request_sha256
@@ -2721,7 +2802,7 @@ impl CutWorkerSchemaExecutor {
             || report.worker_sha256 != self.worker.sha256
             || report.request_sha256 != checkpoint.request_sha256
             || report.unit_sha256 != unit.unit_sha256
-            || report.schema_set_sha256 != self.schema_set_digest
+            || report.schema_set_sha256 != execution_digest
             || report.caps_sha256() != caps_sha256
             || !report.is_well_formed()
             || cost.worker_cpu_micros.is_none()
@@ -2781,12 +2862,12 @@ impl CutWorkerSchemaExecutor {
             .and_then(|bytes| bytes.checked_add(expected_unit.root_uri.capacity()))
             .and_then(|bytes| bytes.checked_add(path.len()))
             .and_then(|bytes| bytes.checked_add(contract.len()))
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         let retained_path = path.to_owned();
         let retained_contract = contract.to_owned();
         let retained_state_bytes =
             cut_diagnostic_state_bytes(&retained_path, &retained_contract, &unit, &checkpoint)
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
         let closure_charge = if self.diagnostic_executions == 0 {
             cost.schema_resource_buffer_bytes
         } else {
@@ -2796,26 +2877,29 @@ impl CutWorkerSchemaExecutor {
             .raw_instance
             .capacity()
             .checked_add(cost.input_instance_buffer_bytes)
-            .ok_or(ItemRefusal::Budget)?;
-        let accounted_state_bytes = closure_charge
+            .ok_or(crate::item_budget_origin!())?;
+        // State is residency, while report/wire/CPU remain cumulative work.
+        // Temporary exchange buffers overlap the retained closure and results
+        // only during this exchange; they must not survive in the state ledger.
+        let accounted_state_bytes = retained_state_bytes;
+        let next_state_bytes = self
+            .diagnostic_state_bytes_used
+            .checked_add(closure_charge)
+            .and_then(|bytes| bytes.checked_add(accounted_state_bytes))
+            .ok_or(crate::item_budget_origin!())?;
+        let exchange_peak = next_state_bytes
             .checked_add(input_buffer_bytes)
             .and_then(|bytes| bytes.checked_add(cost.request_buffer_bytes))
             .and_then(|bytes| bytes.checked_add(cost.response_buffer_bytes))
             .and_then(|bytes| bytes.checked_add(input_metadata_bytes))
-            .and_then(|bytes| bytes.checked_add(retained_state_bytes))
-            .ok_or(ItemRefusal::Budget)?;
-        let next_state_bytes = self
-            .diagnostic_state_bytes_used
-            .checked_add(accounted_state_bytes)
+            .ok_or(crate::item_budget_origin!())?;
+        let _ = Some(exchange_peak)
             .filter(|bytes| *bytes <= limits.max_total_state_bytes)
             .ok_or_else(|| {
                 self.prepared.poison(ExecutorFailure::InputBudget);
                 ItemRefusal::BudgetCheck {
                     check: "cut schema diagnostics state bytes",
-                    used: self
-                        .diagnostic_state_bytes_used
-                        .checked_add(accounted_state_bytes)
-                        .and_then(|n| u64::try_from(n).ok()),
+                    used: u64::try_from(exchange_peak).ok(),
                     limit: u64::try_from(limits.max_total_state_bytes).ok(),
                 }
             })?;
@@ -2962,14 +3046,14 @@ impl CutWorkerSchemaExecutor {
             base_uri.len().checked_add(1)?.checked_add(suffix.len())
         });
         if uri_bytes.is_none_or(|bytes| bytes > 4096) {
-            return Err(ItemRefusal::Budget);
+            return Err(crate::item_budget_origin!());
         }
         Ok(fragment.map_or_else(|| base_uri.clone(), |f| format!("{base_uri}#{f}")))
     }
 
     fn decoded_input(&self, raw: &[u8], contract: &str) -> Result<(String, Vec<u8>), ItemRefusal> {
         if raw.len() > SchemaBackendProbe::MAX_INSTANCE_BYTES {
-            return Err(ItemRefusal::Budget);
+            return Err(crate::item_budget_origin!());
         }
         let uri = self.contract_root_uri(contract)?;
         let decoded: serde_json::Value = serde_json::from_slice(raw).map_err(|_| {
@@ -2978,7 +3062,7 @@ impl CutWorkerSchemaExecutor {
         let worker_raw = serde_json::to_vec(&decoded)
             .map_err(|_| ItemRefusal::Unsupported("native decoded JSON serialization".into()))?;
         if worker_raw.len() > SchemaBackendProbe::MAX_INSTANCE_BYTES {
-            return Err(ItemRefusal::Budget);
+            return Err(crate::item_budget_origin!());
         }
         Ok((uri, worker_raw))
     }
@@ -3116,7 +3200,7 @@ impl CutSchemaExecutor for CutWorkerSchemaExecutor {
             root_uri: uri.clone(),
             raw_instance: worker_raw,
         };
-        crate::executor::validate_batch_unit(&unit).map_err(|_| ItemRefusal::Budget)?;
+        crate::executor::validate_batch_unit(&unit).map_err(|_| crate::item_budget_origin!())?;
         let (operation, frame, wire) = self
             .prepared
             .wire_cost(
@@ -3132,7 +3216,7 @@ impl CutSchemaExecutor for CutWorkerSchemaExecutor {
             .len()
             .checked_add(contract.len())
             .and_then(|n| n.checked_add(std::mem::size_of::<CutSchemaReceipt>()))
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         Ok(CutSchemaInputCost {
             decoded_instance_bytes: unit.raw_instance.len() as u64,
             unit_wire_bytes: wire,
@@ -3207,7 +3291,7 @@ impl CutSchemaExecutor for CutWorkerSchemaExecutor {
                 .filter(|n| *n <= self.limits.max_receipts)
                 .is_none()
         {
-            return Err(ItemRefusal::Budget);
+            return Err(crate::item_budget_origin!());
         }
         let mut next_bytes = self.receipt_bytes;
         let mut total_raw = 0usize;
@@ -3226,12 +3310,12 @@ impl CutSchemaExecutor for CutWorkerSchemaExecutor {
                 .and_then(|n| n.checked_add(std::mem::size_of::<CutSchemaReceipt>()))
                 .and_then(|n| next_bytes.checked_add(n))
                 .filter(|n| *n <= self.limits.max_receipt_bytes)
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
             let (uri, worker_raw) = self.decoded_input(&input.raw, &input.contract)?;
             total_raw = total_raw
                 .checked_add(worker_raw.len())
                 .filter(|n| *n <= budget.max_total_raw_bytes)
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
             raw_digests.push(Digest256::of_bytes(&input.raw));
             units.push(BatchUnit {
                 ordinal: ordinal as u64,
@@ -3241,8 +3325,8 @@ impl CutSchemaExecutor for CutWorkerSchemaExecutor {
                 raw_instance: worker_raw,
             });
         }
-        let expected =
-            BatchCoverageExpectation::from_units(&units).map_err(|_| ItemRefusal::Budget)?;
+        let expected = BatchCoverageExpectation::from_units(&units)
+            .map_err(|_| crate::item_budget_origin!())?;
         let remaining = deadline
             .checked_duration_since(Instant::now())
             .ok_or(ItemRefusal::Deadline)?;
@@ -3345,7 +3429,7 @@ impl CutSchemaExecutor for CutWorkerSchemaExecutor {
         self.scalar_check_count = self
             .scalar_check_count
             .checked_add(checks.len())
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         self.receipts.extend(staged);
         Ok(verdicts)
     }
@@ -3366,6 +3450,7 @@ impl CutSchemaExecutor for CutWorkerSchemaExecutor {
                         self.retain_pending_diagnostic(diagnostic)?;
                         Ok(false)
                     } else if diagnostic.is_valid() {
+                        self.release_diagnostic_state(&diagnostic)?;
                         Ok(true)
                     } else {
                         self.diagnostics_v2_cost_unknown = true;
@@ -3409,7 +3494,7 @@ impl CutSchemaExecutor for CutWorkerSchemaExecutor {
             .len()
             .checked_add(contract.len())
             .and_then(|n| n.checked_add(192))
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         let attempted_bytes = self.receipt_bytes.checked_add(receipt_bytes);
         let next_bytes = attempted_bytes
             .filter(|n| *n <= self.limits.max_receipt_bytes)
@@ -3539,16 +3624,16 @@ impl CutSchemaReceiptRange for CutWorkerSchemaExecutor {
             || max_rows > self.limits.max_receipts
             || max_bytes > self.limits.max_receipt_bytes
         {
-            return Err(ItemRefusal::Budget);
+            return Err(crate::item_budget_origin!());
         }
         let start = after_ordinal
-            .map(|ordinal| ordinal.checked_add(1).ok_or(ItemRefusal::Budget))
+            .map(|ordinal| ordinal.checked_add(1).ok_or(crate::item_budget_origin!()))
             .transpose()?
-            .map(|ordinal| usize::try_from(ordinal).map_err(|_| ItemRefusal::Budget))
+            .map(|ordinal| usize::try_from(ordinal).map_err(|_| crate::item_budget_origin!()))
             .transpose()?
             .unwrap_or(0);
         if start > self.receipts.len() {
-            return Err(ItemRefusal::Budget);
+            return Err(crate::item_budget_origin!());
         }
         let take = max_rows.min(self.receipts.len().saturating_sub(start));
         let mut page_state_bytes = std::mem::size_of::<Vec<(u64, CutSchemaReceipt)>>();
@@ -3560,20 +3645,20 @@ impl CutSchemaReceiptRange for CutWorkerSchemaExecutor {
                 .and_then(|bytes| bytes.checked_add(receipt.path.len()))
                 .and_then(|bytes| bytes.checked_add(receipt.contract.len()))
                 .filter(|bytes| *bytes <= max_bytes)
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
             encoded_bytes = encoded_bytes
                 .checked_add(
                     receipt_spool::receipt_codec::encoded_receipt_len(receipt)
-                        .map_err(|_| ItemRefusal::Budget)?,
+                        .map_err(|_| crate::item_budget_origin!())?,
                 )
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
         }
         let mut rows = Vec::new();
         rows.try_reserve_exact(take)
-            .map_err(|_| ItemRefusal::Budget)?;
+            .map_err(|_| crate::item_budget_origin!())?;
         for (index, receipt) in self.receipts[start..start + take].iter().enumerate() {
             check(deadline, cancelled)?;
-            let ordinal = u64::try_from(start + index).map_err(|_| ItemRefusal::Budget)?;
+            let ordinal = u64::try_from(start + index).map_err(|_| crate::item_budget_origin!())?;
             rows.push((ordinal, receipt.clone()));
         }
         check(deadline, cancelled)?;
@@ -3870,7 +3955,7 @@ pub fn inspect_items_from_cut(
     let mut index_bytes =
         2 * std::mem::size_of::<Vec<String>>() + std::mem::size_of::<BTreeMap<String, String>>();
     if index_bytes > limits.max_state_bytes {
-        return Err(ItemRefusal::Budget);
+        return Err(crate::item_budget_origin!());
     }
     let mut total_bytes = 0u64;
     while let Some(member) = stream
@@ -3881,7 +3966,7 @@ pub fn inspect_items_from_cut(
         total_bytes = total_bytes
             .checked_add(member.raw.len() as u64)
             .filter(|bytes| *bytes <= limits.max_total_bytes)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         let path = member.path.as_str();
         if path.starts_with("ToS/source-witnesses/") && path.ends_with("/item.manifest.json") {
             reserve(
@@ -3897,7 +3982,7 @@ pub fn inspect_items_from_cut(
         // profile. Named strict declared-profile validation remains separate.
         if path.ends_with(".json") {
             if member.raw.len() > limits.max_member_bytes {
-                return Err(ItemRefusal::Budget);
+                return Err(crate::item_budget_origin!());
             }
             if let Some(carrier) = record_routes
                 .classify_current_member(path, &member.raw)
@@ -3935,7 +4020,7 @@ pub fn inspect_items_from_cut(
     rule_limits.max_state_bytes = limits
         .max_state_bytes
         .checked_sub(index_bytes)
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     let mut rules = ItemRules::new(rule_limits, require_local_payloads);
     let mut source = CutItemSource {
         cut,
@@ -4042,7 +4127,7 @@ fn reserve(total: &mut usize, bytes: usize, max: usize) -> Result<(), ItemRefusa
     *total = total
         .checked_add(bytes)
         .filter(|n| *n <= max)
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     Ok(())
 }
 fn check(deadline: Instant, cancelled: &AtomicBool) -> Result<(), ItemRefusal> {
@@ -4155,25 +4240,29 @@ fn finite_serde_json_controller_workspace_upper_bound(
     const SERDE_JSON_ARRAY_BYTES_PER_INPUT_BYTE: usize = 64;
     const SERDE_JSON_MAX_DEPTH: usize = 128;
 
-    let nodes = max_input_bytes.checked_add(1).ok_or(ItemRefusal::Budget)?;
+    let nodes = max_input_bytes
+        .checked_add(1)
+        .ok_or(crate::item_budget_origin!())?;
     let array_workspace = nodes
         .checked_mul(SERDE_JSON_ARRAY_BYTES_PER_INPUT_BYTE)
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     let map_entries = max_input_bytes / 5;
     let map_workspace = map_entries
         .checked_mul(SERDE_JSON_BTREE_NODE_BYTES_PER_ENTRY)
-        .ok_or(ItemRefusal::Budget)?;
-    let lexical_workspace = max_input_bytes.checked_mul(4).ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
+    let lexical_workspace = max_input_bytes
+        .checked_mul(4)
+        .ok_or(crate::item_budget_origin!())?;
     let recursion_workspace = SERDE_JSON_MAX_DEPTH
         .checked_add(1)
         .and_then(|depth| depth.checked_mul(std::mem::size_of::<serde_json::Value>()))
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     array_workspace
         .checked_add(map_workspace)
-        .ok_or(ItemRefusal::Budget)?
+        .ok_or(crate::item_budget_origin!())?
         .checked_add(lexical_workspace)
         .and_then(|bytes| bytes.checked_add(recursion_workspace))
-        .ok_or(ItemRefusal::Budget)
+        .ok_or(crate::item_budget_origin!())
 }
 
 fn diagnostic_issue_workspace_upper_bound() -> Result<usize, ItemRefusal> {
@@ -4185,19 +4274,19 @@ fn diagnostic_issue_workspace_upper_bound() -> Result<usize, ItemRefusal> {
         .checked_mul(2)
         .and_then(|count| count.checked_mul(path_segments))
         .and_then(|count| count.checked_mul(std::mem::size_of::<schema_diagnostics::PathSegment>()))
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     let path_text = (caps.max_report_bytes_per_unit as usize)
         .checked_mul(2)
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     std::mem::size_of::<schema_diagnostics::Report>()
         .checked_add(
             issue_count
                 .checked_mul(one_issue)
-                .ok_or(ItemRefusal::Budget)?,
+                .ok_or(crate::item_budget_origin!())?,
         )
         .and_then(|bytes| bytes.checked_add(segment_slots))
         .and_then(|bytes| bytes.checked_add(path_text))
-        .ok_or(ItemRefusal::Budget)
+        .ok_or(crate::item_budget_origin!())
 }
 
 fn cut_diagnostic_state_bytes(
@@ -4243,18 +4332,6 @@ fn cut_diagnostic_state_bytes(
     Some(total)
 }
 
-fn diagnostics_refusal(
-    reason: ExecutorFailure,
-    _exchange: Option<crate::executor::ExchangeFailureContext>,
-) -> ItemRefusal {
-    match reason {
-        ExecutorFailure::Timeout => ItemRefusal::Deadline,
-        ExecutorFailure::Cancelled => ItemRefusal::Source("schema diagnostics cancelled".into()),
-        ExecutorFailure::InputBudget | ExecutorFailure::CpuLimit => ItemRefusal::Budget,
-        _ => ItemRefusal::Unsupported("schema diagnostics worker failed".into()),
-    }
-}
-
 fn diagnostic_status_refusal(report: &schema_diagnostics::Report) -> ItemRefusal {
     let status = match report.status {
         schema_diagnostics::Status::Valid => "valid",
@@ -4286,7 +4363,7 @@ fn diagnostic_status_refusal(report: &schema_diagnostics::Report) -> ItemRefusal
 fn store_error(error: tos_source_store::StoreError) -> ItemRefusal {
     use tos_source_store::StoreErrorCode;
     match error.code {
-        StoreErrorCode::BudgetExceeded => ItemRefusal::Budget,
+        StoreErrorCode::BudgetExceeded => crate::item_budget_origin!(),
         StoreErrorCode::UnsupportedFormat | StoreErrorCode::UnsupportedPlatform => {
             ItemRefusal::Unsupported(error.to_string())
         }
@@ -4301,13 +4378,7 @@ fn operation_failure_with_context(
     reason: ExecutorFailure,
     exchange: Option<crate::executor::ExchangeFailureContext>,
 ) -> ItemRefusal {
-    match reason {
-        ExecutorFailure::Timeout => ItemRefusal::Deadline,
-        ExecutorFailure::Cancelled => ItemRefusal::Source("schema operation cancelled".into()),
-        other => ItemRefusal::Unsupported(format!(
-            "schema operation refused: {other:?}; original exchange: {exchange:?}"
-        )),
-    }
+    crate::item_rules::executor_refusal("schema operation", reason, exchange, None)
 }
 
 #[cfg(test)]
@@ -4395,27 +4466,29 @@ pub fn cut_schema_preparation_state_upper_bound(
         if !path.starts_with("ToS/contracts/") || !path.ends_with(".schema.json") {
             continue;
         }
-        let bytes = usize::try_from(member.size_bytes).map_err(|_| ItemRefusal::Budget)?;
+        let bytes = usize::try_from(member.size_bytes).map_err(|_| crate::item_budget_origin!())?;
         if bytes > SchemaBackendProbe::MAX_RESOURCE_BYTES {
-            return Err(ItemRefusal::Budget);
+            return Err(crate::item_budget_origin!());
         }
         count = count
             .checked_add(1)
             .filter(|n| *n <= SchemaBackendProbe::MAX_RESOURCES)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         raw = raw
             .checked_add(bytes)
             .filter(|n| *n <= SchemaBackendProbe::MAX_TOTAL_BYTES)
-            .ok_or(ItemRefusal::Budget)?;
-        paths = paths.checked_add(path.len()).ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
+        paths = paths
+            .checked_add(path.len())
+            .ok_or(crate::item_budget_origin!())?;
         largest = largest.max(bytes);
         // Probe::new retains all converted serde trees simultaneously.
         serde_workspace = serde_workspace
             .checked_add(finite_serde_json_controller_workspace_upper_bound(bytes)?)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
     }
     if count == 0 {
-        return Err(ItemRefusal::Budget);
+        return Err(crate::item_budget_origin!());
     }
     // PublishedStrict's one live resource tree and its conversion overlap.
     // Vec capacities < 2*length; each input byte bounds a node and a key slot.
@@ -4425,13 +4498,13 @@ pub fn cut_schema_preparation_state_upper_bound(
             tos_foundation::JsonValue,
         )>())
         .and_then(|n| n.checked_mul(2))
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     let foundation_workspace = largest
         .checked_add(1)
         .and_then(|n| n.checked_mul(foundation_slot))
         .and_then(|n| n.checked_add(largest.checked_mul(16)?))
         .and_then(|n| n.checked_add(65usize.checked_mul(foundation_slot)?))
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     // Original+cloned raw buffers, extracted URI (bounded by raw), contract/
     // URI maps, encoded resource Vec growth and temporary framing buffers.
     let closure_buffers = raw
@@ -4439,7 +4512,7 @@ pub fn cut_schema_preparation_state_upper_bound(
         .and_then(|n| n.checked_add(paths.checked_mul(8)?))
         .and_then(|n| n.checked_add(count.checked_mul(4096)?))
         .and_then(|n| n.checked_add(65536))
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     // Sealed worker backing plus transient verification image/buffer. The two
     // schema/worker phases do not overlap completely; their sum is conservative.
     let identity_workspace = worker
@@ -4451,16 +4524,16 @@ pub fn cut_schema_preparation_state_upper_bound(
         .and_then(|n| {
             n.checked_add(16 * std::mem::size_of::<crate::executor::ExactWorkerIdentity>())
         })
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     let image_workspace = usize::try_from(crate::executor::MAX_WORKER_IMAGE_BYTES)
-        .map_err(|_| ItemRefusal::Budget)?
+        .map_err(|_| crate::item_budget_origin!())?
         .checked_mul(2)
         .and_then(|n| n.checked_add(65536))
         .and_then(|n| n.checked_add(identity_workspace))
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     serde_workspace
         .checked_add(foundation_workspace)
         .and_then(|n| n.checked_add(closure_buffers))
         .and_then(|n| n.checked_add(image_workspace))
-        .ok_or(ItemRefusal::Budget)
+        .ok_or(crate::item_budget_origin!())
 }

@@ -156,8 +156,9 @@ impl<'root, 'manifest, 'cancel, 'rows> FreshCatalogSink<'root, 'manifest, 'cance
         {
             return Err(Error::Budget("fresh catalog retained row state"));
         }
-        let tree = DisposableCatalogTree::create(isolated, tree_limits, deadline, cancelled)
-            .map_err(map_source_error)?;
+        let tree =
+            DisposableCatalogTree::create_in_child(isolated, tree_limits, deadline, cancelled)
+                .map_err(map_source_error)?;
         let mut sink = Self {
             tree,
             source_limits,
@@ -441,9 +442,7 @@ impl SourceCatalogSink for FreshCatalogSink<'_, '_, '_, '_> {
                         .rows_writer
                         .as_deref_mut()
                         .ok_or(Error::Invalid("fresh catalog row spool absent"))?;
-                    writer
-                        .push_record(id, source_ref)
-                        .map_err(|_| Error::Invalid("fresh catalog row spool refused"))?;
+                    writer.push_record(id, source_ref).map_err(Error::Io)?;
                 } else {
                     self.rows.records.push(pair);
                 }
@@ -473,9 +472,7 @@ impl SourceCatalogSink for FreshCatalogSink<'_, '_, '_, '_> {
                         .rows_writer
                         .as_deref_mut()
                         .ok_or(Error::Invalid("fresh catalog row spool absent"))?;
-                    writer
-                        .push_claim(id, source_ref)
-                        .map_err(|_| Error::Invalid("fresh catalog row spool refused"))?;
+                    writer.push_claim(id, source_ref).map_err(Error::Io)?;
                 } else {
                     self.rows.claims.push(pair);
                 }
@@ -578,14 +575,11 @@ fn pair_state_upper_bound(id: &Value, source_ref: &Value) -> Result<usize> {
 
 fn map_source_error(error: SourceCommandError) -> Error {
     match error {
-        SourceCommandError::Invalid(_) => Error::Invalid("fresh catalog private writer input"),
-        SourceCommandError::Conflict(_) => {
-            Error::PreparedUnsupported("fresh catalog private output custody refused")
-        }
-        SourceCommandError::Denied(_) | SourceCommandError::DeniedWithReason(_) => {
-            Error::PreparedUnsupported("fresh catalog private output access refused")
-        }
-        SourceCommandError::Unsupported(_) => Error::Budget("fresh catalog resource limit"),
+        SourceCommandError::Invalid(reason) => Error::Invalid(reason),
+        SourceCommandError::Conflict(reason) => Error::PreparedUnsupported(reason),
+        SourceCommandError::Denied(reason) => Error::PreparedUnsupported(reason),
+        SourceCommandError::DeniedWithReason(reason) => Error::Source(reason),
+        SourceCommandError::Unsupported(reason) => Error::Budget(reason),
         SourceCommandError::SchemaExecution { .. } => {
             Error::PreparedUnsupported("fresh catalog schema capture incomplete")
         }

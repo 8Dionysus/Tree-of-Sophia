@@ -24,7 +24,8 @@ use tos_source_store::{
     SourceMembershipV1,
 };
 use tos_validation::{
-    item_rules::ItemRefusal, source_cut::CutPreparedSchemaExecutionBinding,
+    item_rules::ItemRefusal, record_biblio_cut::SourceCutInput,
+    source_cut::CutPreparedSchemaExecutionBinding,
     source_foundation_records::SourceFoundationRecordsStreamedReport,
 };
 
@@ -337,7 +338,7 @@ pub(crate) fn is_bounded_source_cause(reason: &str) -> bool {
         }
 }
 
-fn receiver_refusal(error: ItemRefusal) -> io::Error {
+pub(crate) fn receiver_refusal(error: ItemRefusal) -> io::Error {
     // Keep only the bounded primary owner class; source paths and parser text
     // remain private while the real refusal stage survives the IO boundary.
     let reason = match error {
@@ -352,6 +353,9 @@ fn receiver_refusal(error: ItemRefusal) -> io::Error {
                 format!("{fingerprint}:{}:{}", counter(used), counter(limit)),
             );
         }
+        ItemRefusal::Executor(evidence) => {
+            return io::Error::new(io::ErrorKind::InvalidData, *evidence);
+        }
         ItemRefusal::Deadline => "candidate Records/Item receiver deadline refused",
         ItemRefusal::Source(reason) => {
             return if let Some(fixed) = receiver_source_reason(&reason) {
@@ -365,7 +369,12 @@ fn receiver_refusal(error: ItemRefusal) -> io::Error {
                 )
             };
         }
-        ItemRefusal::Unsupported(_) => "candidate Records/Item receiver unsupported",
+        ItemRefusal::Unsupported(reason) => {
+            return io::Error::new(
+                io::ErrorKind::InvalidData,
+                bounded_source_cause("receiver-source", "ItemRefusal-Unsupported", &reason),
+            );
+        }
     };
     invalid(reason)
 }
@@ -577,6 +586,7 @@ pub(crate) struct CandidateRecordsReportVerified {
     record_issue_count: usize,
     item_issue_count: usize,
     manifest_item_id_count: usize,
+    record_selection: Option<Arc<tos_validation::source_record_selection::SourceRecordSelection>>,
 }
 
 /// Logical retained state for the private callback boundary and its stable
@@ -761,9 +771,20 @@ struct SpoolInput<'a> {
     json: JsonLimits,
     json_state_bytes: usize,
     row_state_limit: usize,
+    record_selection: Option<Arc<tos_validation::source_record_selection::SourceRecordSelection>>,
+    deadline: Instant,
+    cancelled: &'a AtomicBool,
 }
 
 impl CandidateIndexInput for SpoolInput<'_> {
+    fn record_selection(
+        &self,
+    ) -> Option<Arc<tos_validation::source_record_selection::SourceRecordSelection>> {
+        self.record_selection.clone()
+    }
+    fn selection_verification(&self) -> Option<(Instant, &AtomicBool)> {
+        Some((self.deadline, self.cancelled))
+    }
     fn tick(&mut self) -> io::Result<()> {
         self.candidate.tick()
     }
@@ -778,6 +799,13 @@ impl CandidateIndexInput for SpoolInput<'_> {
 
     fn member(&mut self, path: &str) -> io::Result<bool> {
         self.candidate.tick()?;
+        if self
+            .record_selection
+            .as_ref()
+            .is_some_and(|selection| !selection.contains_member(path))
+        {
+            return Ok(false);
+        }
         let Ok(path) = RelativePath::parse(path) else {
             return Ok(false);
         };
@@ -816,7 +844,17 @@ impl CandidateIndexInput for SpoolInput<'_> {
     }
 
     fn read_raw(&mut self, path: &str, cap: usize) -> io::Result<Vec<u8>> {
-        self.candidate.read(path, cap)
+        let raw = self.candidate.read(path, cap)?;
+        if let Some(selection) = &self.record_selection {
+            if !path.starts_with("ToS/contracts/")
+                && !path.starts_with("ToS/doctrine/semantic-interchange/")
+            {
+                selection
+                    .verify_metadata_member(path, &raw)
+                    .map_err(receiver_refusal)?;
+            }
+        }
+        Ok(raw)
     }
 
     fn verify_member(&mut self, path: &str) -> io::Result<()> {
@@ -1054,7 +1092,7 @@ impl<'candidate> IndexSink<'candidate> {
             // This report was constructed directly by the maintained receiver
             // over this exact mutable store loan. No externally supplied
             // report or reconstructed private report constructor enters here.
-            let verified = Self::verify_records_report_bound(
+            let mut verified = Self::verify_records_report_bound(
                 candidate,
                 fence,
                 &sink_identity,
@@ -1063,6 +1101,7 @@ impl<'candidate> IndexSink<'candidate> {
                 deadline,
                 cancelled,
             )?;
+            verified.record_selection = input.record_selection();
             let value = receive(&report, &verified, worker, record_executor, payloads)?;
             candidate.tick()?;
             if candidate.fence()? != fence {
@@ -1086,6 +1125,8 @@ impl<'candidate> IndexSink<'candidate> {
         json: JsonLimits,
         json_state_bytes: usize,
         schemas: &mut SchemaCheck<'_>,
+        deadline: Instant,
+        cancelled: &AtomicBool,
     ) -> io::Result<usize> {
         self.candidate.tick()?;
         if records.fence != self.fence
@@ -1109,6 +1150,9 @@ impl<'candidate> IndexSink<'candidate> {
             json,
             json_state_bytes,
             row_state_limit: self.row_limit,
+            record_selection: records.record_selection.clone(),
+            deadline,
+            cancelled,
         };
         let mut base_identity = |id: &str, max_state_bytes: usize| {
             candidate
@@ -1210,6 +1254,7 @@ impl<'candidate> IndexSink<'candidate> {
             record_issue_count,
             item_issue_count,
             manifest_item_id_count,
+            record_selection: None,
         })
     }
 
@@ -2021,5 +2066,83 @@ impl IndexView<'_> {
             .transpose()?;
         self.candidate.tick()?;
         Ok(target)
+    }
+}
+
+#[cfg(test)]
+mod executor_refusal_tests {
+    use super::*;
+    use tos_validation::executor::{
+        ChildTermination, ExchangeFailureContext, ExecutorFailure, SharedSchemaWorkerQuotaUsage,
+    };
+    use tos_validation::item_rules::ItemExecutorRefusal;
+
+    #[test]
+    fn receiver_preserves_all_executor_codes_and_committed_prefix_without_private_text() {
+        for reason in [
+            ExecutorFailure::UnsupportedHost,
+            ExecutorFailure::WorkerIdentity,
+            ExecutorFailure::InputBudget,
+            ExecutorFailure::ResourceLimitUnknown,
+            ExecutorFailure::Spawn,
+            ExecutorFailure::Timeout,
+            ExecutorFailure::Cancelled,
+            ExecutorFailure::CpuLimit,
+            ExecutorFailure::CrashSignal(9),
+            ExecutorFailure::CrashExit(7),
+            ExecutorFailure::ReapPending(12),
+            ExecutorFailure::Protocol,
+            ExecutorFailure::Backend,
+            ExecutorFailure::ParseRejected,
+            ExecutorFailure::CoverageMismatch,
+        ] {
+            let evidence = ItemExecutorRefusal {
+                stage: "private-owner-stage",
+                reason,
+                exchange: Some(ExchangeFailureContext {
+                    boundary: "private-owner-path",
+                    failure: reason,
+                    natural_termination: Some(ChildTermination::Exited(7)),
+                }),
+                quota: Some(SharedSchemaWorkerQuotaUsage {
+                    max_total_cpu_micros: 100,
+                    max_total_wire_bytes: 200,
+                    max_total_units: 3,
+                    worker_cpu_micros: 10,
+                    worker_wire_bytes: 20,
+                    worker_units: 1,
+                }),
+            };
+            if reason == ExecutorFailure::Timeout {
+                assert_eq!(
+                    ItemRefusal::Executor(Box::new(evidence.clone())).compatibility_category(),
+                    ItemRefusal::Deadline
+                );
+            }
+            if matches!(
+                reason,
+                ExecutorFailure::InputBudget | ExecutorFailure::CpuLimit
+            ) {
+                assert_eq!(
+                    ItemRefusal::Executor(Box::new(evidence.clone())).compatibility_category(),
+                    ItemRefusal::Budget
+                );
+            }
+            let expected = evidence.summary();
+            let error = receiver_refusal(ItemRefusal::Executor(Box::new(evidence)));
+            assert_eq!(error.to_string(), expected);
+            assert!(error.get_ref().unwrap().is::<ItemExecutorRefusal>());
+            assert_eq!(
+                crate::source_current_cut::foundation_orchestrator::FoundationOrchestratorError::Admission(
+                    error
+                )
+                .public_reason(),
+                expected
+            );
+            assert!(expected.contains(&format!("reason={reason:?}")));
+            assert!(expected.contains("committed_quota_prefix="));
+            assert!(!expected.contains("private-owner"));
+            assert!(expected.len() < 1024);
+        }
     }
 }

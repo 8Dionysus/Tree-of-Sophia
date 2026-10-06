@@ -7,6 +7,49 @@ registry 45 state their definitions through each subject’s properties, purpose
 and relations. Source-specific uncertainty and substantive negation remain
 part of the authored meaning.
 
+## Source validation profiles
+
+[`source-validation-profiles.v1.json`](source-validation-profiles.v1.json)
+declares the software-owned mechanical validation scope selected by native
+admission with `--validation-profile ID`. Omission selects `full-audit`, which
+continues to require the whole repository's laboratory and Goldset districts.
+The explicit `selected-source-closure` profile validates the authenticated
+selected source membership through Records, bibliography, rights, review,
+references, dependency closure, Discovery and Closure. It does not claim that
+whole-repository laboratories or Goldsets were executed, including any such
+files present in selected membership. Their bytes still participate in
+applicable Records and reference checks; this is never a whole-audit certificate.
+
+Scope comes from the declaration, never from whether a directory exists.
+The selected scope does not require the historical whole-tree private/handoff,
+server-plan coverage, topology, derivation or chronology demonstration batches.
+Discovery traverses authenticated selected family members and provenance streams;
+Closure validates their declared Claims, endpoints, backlinks and dependencies.
+A selected record's required target or contract remains mandatory even when the
+historical demonstration packet is outside this scope. Full audit retains its
+original batch requirements.
+
+Required selected references and their exact dependencies must resolve;
+missing inputs, unsupported contracts and incomplete owner checks refuse
+admission. This profile does not accept source meaning, rights, canon or
+publication. The software catalog's exact bytes and selected profile ID bind
+the validator identity and admission receipt. Unknown IDs or scope dialects
+refuse selection. The existing lab-only evaluation mode remains ineligible
+for corpus admission; ordinary foundation commands reject explicit admission
+profiles rather than ignoring them.
+
+The distinct `selected-record-closure` profile requires
+`--record-selection-manifest PATH` with the
+[source record selection grammar](../../contracts/source-record-closure-selection.schema.json).
+It binds stable roots and exact catalog slot addresses to the same candidate
+fence. Whole physical files remain retained with their original bytes and EOF;
+only the verified selected records and required closure receive mechanical
+acceptance. Validator identity and receipts bind the exact selection manifest,
+software grammar, roots and slot bindings. Downstream semantic catalogs must
+consume that selected index without accepting other retained ledger rows.
+Required references, rights and payload custody remain mandatory. The existing
+whole-file selected profile and full-audit default keep their original scope.
+
 ## Query vocabulary for derived readers
 
 [`query-vocabulary.v1.json`](query-vocabulary.v1.json) registers the source

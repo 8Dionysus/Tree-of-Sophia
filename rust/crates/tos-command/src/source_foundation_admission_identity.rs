@@ -6,6 +6,9 @@
 //! Binding its rows here does not verify or supply those historical bytes.
 use super::source_admission::{active, invalid};
 use super::source_admission_candidate::Candidate;
+use crate::source_current_cut::foundation_cli::{
+    VALIDATION_PROFILE_DECLARATION, ValidationProfile,
+};
 use serde_json::{Value, json};
 use std::{
     cell::Cell,
@@ -65,7 +68,9 @@ pub(crate) struct GrammarIdentity {
     root_custody: RouteRootCustody,
 }
 fn grammar(path: &str) -> bool {
-    path.ends_with(".json")
+    path != tos_validation::source_record_selection::SELECTION_SCHEMA_PATH
+        && path != VALIDATION_PROFILE_DECLARATION
+        && path.ends_with(".json")
         && PREFIXES.iter().any(|prefix| {
             path.strip_prefix(prefix)
                 .is_some_and(|tail| tail.starts_with('/'))
@@ -155,6 +160,7 @@ impl GrammarIdentity {
         limits: IdentityLimits,
         deadline: Instant,
         cancel: &AtomicBool,
+        profile: ValidationProfile,
     ) -> io::Result<Self> {
         let limits = limits.validate()?;
         if deadline > sources.deadline() {
@@ -216,6 +222,21 @@ impl GrammarIdentity {
         // logical payload accounting; actual allocator/descriptor RSS is extra.
         let mut serialization_state = state;
         reserve(&mut serialization_state, 2048, limits.max_state_bytes)?;
+        // Additional software-profile fields coexist in the serde Value/raw,
+        // FND UTF-16/UTF-8 tree and canonical buffer just like grammar strings.
+        let profile_state = profile
+            .id
+            .len()
+            .checked_add(64)
+            .and_then(|n| n.checked_mul(24))
+            .and_then(|n| n.checked_add(512))
+            .ok_or_else(|| invalid("profile identity serialization state overflow"))?;
+        reserve(
+            &mut serialization_state,
+            profile_state,
+            limits.max_state_bytes,
+        )?;
+
         for binding in &bindings {
             reserve(
                 &mut serialization_state,
@@ -229,7 +250,7 @@ impl GrammarIdentity {
             )?;
         }
         peak_state = peak_state.max(serialization_state);
-        let value = json!({"domain":"tos_native_source_validator_v1","executable_sha256":executable.to_hex(),"worker_sha256":worker.to_hex(),"grammar":bindings.iter().map(|b|json!({"path":b.path,"sha256":b.sha256.to_hex(),"size_bytes":b.size_bytes})).collect::<Vec<_>>()});
+        let value = json!({"domain":"tos_native_source_validator_v1","executable_sha256":executable.to_hex(),"worker_sha256":worker.to_hex(),"validation_profile_id":profile.id,"validation_profile_declaration_sha256":profile.declaration_sha256.to_hex(),"grammar":bindings.iter().map(|b|json!({"path":b.path,"sha256":b.sha256.to_hex(),"size_bytes":b.size_bytes})).collect::<Vec<_>>()});
         let raw = serde_json::to_vec(&value).map_err(invalid)?;
         let json_limits = JsonLimits::new(
             limits.max_state_bytes,
@@ -263,6 +284,81 @@ impl GrammarIdentity {
         sources.verify_root()?;
         Ok(result)
     }
+    /// Bind the owner's exact record/slot selection separately from physical
+    /// grammar membership and its EOF proof. Existing profiles keep their digest.
+    pub(crate) fn bind_record_selection(
+        &mut self,
+        binding: &Value,
+        remaining_state: usize,
+        cancel: &AtomicBool,
+    ) -> io::Result<()> {
+        struct Count<'a> {
+            bytes: usize,
+            cap: usize,
+            deadline: Instant,
+            cancel: &'a AtomicBool,
+        }
+        impl io::Write for Count<'_> {
+            fn write(&mut self, bytes: &[u8]) -> io::Result<usize> {
+                active(self.deadline, self.cancel)?;
+                self.bytes = self
+                    .bytes
+                    .checked_add(bytes.len())
+                    .filter(|n| *n <= self.cap)
+                    .ok_or_else(|| invalid("record selection identity state bound"))?;
+                Ok(bytes.len())
+            }
+            fn flush(&mut self) -> io::Result<()> {
+                active(self.deadline, self.cancel)
+            }
+        }
+        let cap = remaining_state
+            .checked_sub(2048)
+            .ok_or_else(|| invalid("record selection identity state bound"))?
+            / 24;
+        let mut count = Count {
+            bytes: 0,
+            cap,
+            deadline: self.deadline,
+            cancel,
+        };
+        #[derive(serde::Serialize)]
+        struct Binding<'a> {
+            grammar_validator: String,
+            record_selection: &'a Value,
+        }
+        let envelope = Binding {
+            grammar_validator: self.digest.to_hex(),
+            record_selection: binding,
+        };
+        serde_json::to_writer(&mut count, &envelope).map_err(invalid)?;
+        // CorpusSnapshotV1 owns a terminal LF beyond serde's compact envelope.
+        // Keep that byte inside the same caller-derived serialization cap.
+        let canonical_bytes = count
+            .bytes
+            .checked_add(1)
+            .filter(|bytes| *bytes <= cap)
+            .ok_or_else(|| invalid("record selection identity state bound"))?;
+        let limits = JsonLimits::new(
+            canonical_bytes,
+            32,
+            count
+                .bytes
+                .checked_mul(2)
+                .ok_or_else(|| invalid("record selection identity visit bound"))?,
+            20,
+        )
+        .map_err(invalid)?;
+        let raw = serde_json::to_vec(&envelope).map_err(invalid)?;
+        let parsed = parse_json(&raw, JsonMode::PublishedStrict, limits).map_err(invalid)?;
+        let canonical =
+            canonical_bytes_v1(parsed.root(), CanonicalProfile::CorpusSnapshotV1, limits)
+                .map_err(invalid)?;
+        active(self.deadline, cancel)?;
+        self.digest = Digest256::of_bytes(&canonical);
+        Ok(())
+    }
+
     /// Preserve the maintained canonical envelope while streaming one exact
     /// authenticated member row at a time. No full history Value/Vec is cloned.
     pub(crate) fn bind_history<'r>(
@@ -561,9 +657,16 @@ mod tests {
         let executable = Digest256::of_bytes(b"native executable");
         let worker = Digest256::of_bytes(b"native schema worker");
         let mut sources = RouteSources::new_until(tmp.path(), deadline).unwrap();
-        let identity =
-            GrammarIdentity::select(&mut sources, executable, worker, limits, deadline, &cancel)
-                .unwrap();
+        let identity = GrammarIdentity::select(
+            &mut sources,
+            executable,
+            worker,
+            limits,
+            deadline,
+            &cancel,
+            crate::source_current_cut::foundation_cli::select_validation_profile(None).unwrap(),
+        )
+        .unwrap();
         assert_eq!(
             identity
                 .bindings()
@@ -638,6 +741,38 @@ mod tests {
                 .unwrap(),
             identity.read_bytes()
         );
+        let mut selected_profile = GrammarIdentity::select(
+            &mut sources,
+            executable,
+            worker,
+            limits,
+            deadline,
+            &cancel,
+            crate::source_current_cut::foundation_cli::select_validation_profile(Some(
+                "selected-source-closure",
+            ))
+            .unwrap(),
+        )
+        .unwrap();
+        assert_eq!(identity.bindings(), selected_profile.bindings());
+        assert_ne!(identity.digest(), selected_profile.digest());
+        let before_selection = selected_profile.digest();
+        assert!(
+            selected_profile
+                .bind_record_selection(&json!("selected-record-a"), 64, &cancel)
+                .is_err()
+        );
+        assert_eq!(before_selection, selected_profile.digest());
+        selected_profile
+            .bind_record_selection(&json!("selected-record-a"), limits.max_state_bytes, &cancel)
+            .unwrap();
+        assert_ne!(before_selection, selected_profile.digest());
+        assert!(!grammar(
+            tos_validation::source_record_selection::SELECTION_SCHEMA_PATH
+        ));
+
+        // The compiled declaration is not required at the selected immutable source root.
+        assert!(!tmp.path().join(VALIDATION_PROFILE_DECLARATION).exists());
         let other = GrammarIdentity::select(
             &mut sources,
             Digest256::of_bytes(b"different executing ELF"),
@@ -645,6 +780,7 @@ mod tests {
             limits,
             deadline,
             &cancel,
+            crate::source_current_cut::foundation_cli::select_validation_profile(None).unwrap(),
         )
         .unwrap();
         assert_ne!(identity.digest(), other.digest());
@@ -682,7 +818,8 @@ mod tests {
                     ..limits
                 },
                 deadline,
-                &cancel
+                &cancel,
+                crate::source_current_cut::foundation_cli::select_validation_profile(None).unwrap()
             )
             .is_err()
         );
@@ -692,8 +829,16 @@ mod tests {
         )
         .unwrap();
         assert!(
-            GrammarIdentity::select(&mut sources, executable, worker, limits, deadline, &cancel)
-                .is_err()
+            GrammarIdentity::select(
+                &mut sources,
+                executable,
+                worker,
+                limits,
+                deadline,
+                &cancel,
+                crate::source_current_cut::foundation_cli::select_validation_profile(None).unwrap()
+            )
+            .is_err()
         );
     }
 }

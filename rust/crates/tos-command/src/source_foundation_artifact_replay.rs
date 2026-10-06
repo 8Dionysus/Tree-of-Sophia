@@ -354,11 +354,13 @@ fn failure(
 }
 
 fn refusal_class(refusal: &ItemRefusal) -> ArtifactReplayFailureClass {
-    match refusal {
+    match refusal.clone().compatibility_category() {
         ItemRefusal::Budget | ItemRefusal::BudgetCheck { .. } => ArtifactReplayFailureClass::Budget,
         ItemRefusal::Deadline => ArtifactReplayFailureClass::Deadline,
         ItemRefusal::Source(_) => ArtifactReplayFailureClass::Source,
-        ItemRefusal::Unsupported(_) => ArtifactReplayFailureClass::Incomplete,
+        ItemRefusal::Unsupported(_) | ItemRefusal::Executor(_) => {
+            ArtifactReplayFailureClass::Incomplete
+        }
     }
 }
 
