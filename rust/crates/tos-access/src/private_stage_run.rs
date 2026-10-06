@@ -1375,6 +1375,204 @@ fn apply_direct_custody(parent: libc::pid_t, mask: &libc::sigset_t) -> Result<()
     Ok(())
 }
 
+// The namespace consumer is not the SDK's directly held child. Keep its
+// reply endpoint private to that owned subtree, then relay one bounded packet
+// from this guardian after successful terminal and cleanup observation. The
+// SDK can retain its exact leader SCM_CREDENTIALS check across this boundary.
+struct RetainedReplyRelay {
+    target: i32,
+    receiver: File,
+    sender: Option<File>,
+    bytes: [u8; 4096],
+    length: Option<usize>,
+    descriptor: Option<File>,
+}
+impl RetainedReplyRelay {
+    fn new(target: i32) -> Result<Self, String> {
+        let mut pair = [-1; 2];
+        if unsafe {
+            libc::socketpair(
+                libc::AF_UNIX,
+                libc::SOCK_SEQPACKET | libc::SOCK_CLOEXEC | libc::SOCK_NONBLOCK,
+                0,
+                pair.as_mut_ptr(),
+            )
+        } != 0
+        {
+            return Err(control_syscall_failure("retained-relay-create"));
+        }
+        let receiver = unsafe { File::from_raw_fd(pair[0]) };
+        let sender = unsafe { File::from_raw_fd(pair[1]) };
+        let enabled: libc::c_int = 1;
+        if unsafe {
+            libc::setsockopt(
+                receiver.as_raw_fd(),
+                libc::SOL_SOCKET,
+                libc::SO_PASSCRED,
+                (&enabled as *const libc::c_int).cast(),
+                std::mem::size_of_val(&enabled) as libc::socklen_t,
+            )
+        } != 0
+        {
+            return Err(control_syscall_failure("retained-relay-credentials"));
+        }
+        Ok(Self {
+            target,
+            receiver,
+            sender: Some(sender),
+            bytes: [0; 4096],
+            length: None,
+            descriptor: None,
+        })
+    }
+    fn sender_fd(&self) -> i32 {
+        self.sender
+            .as_ref()
+            .expect("relay sender held before spawn")
+            .as_raw_fd()
+    }
+    fn receive(&mut self, end: Cutoff) -> Result<(), String> {
+        end.check()?;
+        let mut bytes = [0u8; 4096];
+        let mut ancillary = [0usize; 32];
+        let mut iov = libc::iovec {
+            iov_base: bytes.as_mut_ptr().cast(),
+            iov_len: bytes.len(),
+        };
+        let mut message: libc::msghdr = unsafe { std::mem::zeroed() };
+        message.msg_iov = &mut iov;
+        message.msg_iovlen = 1;
+        message.msg_control = ancillary.as_mut_ptr().cast();
+        message.msg_controllen = std::mem::size_of_val(&ancillary);
+        let received = unsafe {
+            libc::recvmsg(
+                self.receiver.as_raw_fd(),
+                &mut message,
+                libc::MSG_DONTWAIT | libc::MSG_CMSG_CLOEXEC,
+            )
+        };
+        if received < 0 {
+            return match std::io::Error::last_os_error().kind() {
+                std::io::ErrorKind::WouldBlock | std::io::ErrorKind::Interrupted => Ok(()),
+                _ => Err(control_syscall_failure("retained-relay-receive")),
+            };
+        }
+        let mut descriptor = None;
+        let mut credentials = None;
+        let mut rights = false;
+        let mut malformed = false;
+        // Register or close every FD before rejecting the envelope.
+        unsafe {
+            let mut header = libc::CMSG_FIRSTHDR(&message);
+            while !header.is_null() {
+                let base = libc::CMSG_LEN(0) as usize;
+                if (*header).cmsg_len < base {
+                    malformed = true;
+                    break;
+                }
+                let size = (*header).cmsg_len - base;
+                if (*header).cmsg_level == libc::SOL_SOCKET
+                    && (*header).cmsg_type == libc::SCM_RIGHTS
+                {
+                    if rights || size != std::mem::size_of::<i32>() {
+                        malformed = true;
+                    }
+                    rights = true;
+                    for index in 0..size / std::mem::size_of::<i32>() {
+                        let fd = std::ptr::read_unaligned(
+                            libc::CMSG_DATA(header).cast::<i32>().add(index),
+                        );
+                        let file = File::from_raw_fd(fd);
+                        if descriptor.is_none() {
+                            descriptor = Some(file);
+                        } else {
+                            malformed = true;
+                            drop(file);
+                        }
+                    }
+                } else if (*header).cmsg_level == libc::SOL_SOCKET
+                    && (*header).cmsg_type == libc::SCM_CREDENTIALS
+                    && size == std::mem::size_of::<libc::ucred>()
+                {
+                    if credentials.is_some() {
+                        malformed = true;
+                    }
+                    credentials = Some(std::ptr::read_unaligned(
+                        libc::CMSG_DATA(header).cast::<libc::ucred>(),
+                    ));
+                } else {
+                    malformed = true;
+                }
+                header = libc::CMSG_NXTHDR(&message, header);
+            }
+        }
+        if received == 0 && message.msg_controllen == 0 {
+            return Ok(());
+        }
+        if malformed
+            || received <= 0
+            || received as usize > bytes.len()
+            || message.msg_flags & (libc::MSG_TRUNC | libc::MSG_CTRUNC) != 0
+            || self.length.is_some()
+            || !credentials.is_some_and(|peer| {
+                peer.pid > 0
+                    && peer.uid == unsafe { libc::getuid() }
+                    && peer.gid == unsafe { libc::getgid() }
+            })
+        {
+            return Err("private stage retained reply envelope differs".into());
+        }
+        self.bytes[..received as usize].copy_from_slice(&bytes[..received as usize]);
+        self.length = Some(received as usize);
+        self.descriptor = descriptor;
+        Ok(())
+    }
+    fn forward(&self, end: Cutoff) -> Result<(), String> {
+        let length = self.length.ok_or("private stage retained reply absent")?;
+        let mut iov = libc::iovec {
+            iov_base: self.bytes.as_ptr().cast_mut().cast(),
+            iov_len: length,
+        };
+        let mut ancillary = [0usize; 4];
+        let mut message: libc::msghdr = unsafe { std::mem::zeroed() };
+        message.msg_iov = &mut iov;
+        message.msg_iovlen = 1;
+        if let Some(file) = &self.descriptor {
+            message.msg_control = ancillary.as_mut_ptr().cast();
+            message.msg_controllen =
+                unsafe { libc::CMSG_SPACE(std::mem::size_of::<i32>() as u32) } as usize;
+            unsafe {
+                let header = libc::CMSG_FIRSTHDR(&message);
+                (*header).cmsg_level = libc::SOL_SOCKET;
+                (*header).cmsg_type = libc::SCM_RIGHTS;
+                (*header).cmsg_len = libc::CMSG_LEN(std::mem::size_of::<i32>() as u32) as usize;
+                std::ptr::write_unaligned(libc::CMSG_DATA(header).cast::<i32>(), file.as_raw_fd());
+            }
+        }
+        loop {
+            end.check()?;
+            let sent = unsafe {
+                libc::sendmsg(
+                    self.target,
+                    &message,
+                    libc::MSG_DONTWAIT | libc::MSG_NOSIGNAL,
+                )
+            };
+            if sent == length as isize {
+                return Ok(());
+            }
+            if sent >= 0 {
+                return Err("private stage retained reply truncated".into());
+            }
+            match std::io::Error::last_os_error().kind() {
+                std::io::ErrorKind::Interrupted => continue,
+                std::io::ErrorKind::WouldBlock => thread::sleep(Duration::from_millis(1)),
+                _ => return Err(control_syscall_failure("retained-relay-send")),
+            }
+        }
+    }
+}
+
 fn outer(o: &Options) -> Result<i32, String> {
     if let Some((parent, mask)) = o.direct_custody.as_ref() {
         apply_direct_custody(*parent, mask)?;
@@ -1461,6 +1659,13 @@ fn outer(o: &Options) -> Result<i32, String> {
     if let (Some(selected), Some(held)) = (&o.search_cache, &search_cache) {
         selected.verify(held, &root)?;
     }
+    let mut retained_reply = o.retained_fds[0]
+        .map(RetainedReplyRelay::new)
+        .transpose()?;
+    let child_retained_fds = [
+        retained_reply.as_ref().map(RetainedReplyRelay::sender_fd),
+        o.retained_fds[1],
+    ];
     DirBuilder::new()
         .mode(0o700)
         .create(&root)
@@ -1545,7 +1750,7 @@ fn outer(o: &Options) -> Result<i32, String> {
     }
     for (key, fd) in ["--state-reply-fd", "--snapshot-state-fd"]
         .into_iter()
-        .zip(o.retained_fds)
+        .zip(child_retained_fds)
     {
         if let Some(fd) = fd {
             command.arg(key).arg(fd.to_string());
@@ -1563,8 +1768,15 @@ fn outer(o: &Options) -> Result<i32, String> {
         .arg(&root)
         .arg("--setup-cgroup")
         .arg(&setup)
-        .arg("--")
-        .args(&o.command);
+        .arg("--");
+    for (index, argument) in o.command.iter().enumerate() {
+        if retained_reply.is_some() && index > 0 && o.command[index - 1] == "--state-reply-fd" {
+            if argument.parse::<i32>().ok() != o.retained_fds[0] {
+                return Err("private stage retained reply argument differs".into());
+            }
+            command.arg(child_retained_fds[0].ok_or("retained relay sender absent")?.to_string());
+        } else { command.arg(argument); }
+    }
     let spawned = Leader::spawn(
         command,
         held.as_raw_fd(),
@@ -1573,7 +1785,7 @@ fn outer(o: &Options) -> Result<i32, String> {
         protected_ro.as_ref().map(AsRawFd::as_raw_fd),
         release_ro.as_ref().map(AsRawFd::as_raw_fd),
         o.control_fd,
-        o.retained_fds,
+        child_retained_fds,
     );
     let (mut leader, restoration_error) = match spawned {
         Ok(leader) => leader,
@@ -1582,13 +1794,22 @@ fn outer(o: &Options) -> Result<i32, String> {
             return Err(e);
         }
     };
+    if let Some(relay) = retained_reply.as_mut() {
+        drop(relay.sender.take());
+    }
     let result = (|| {
         if let Some(e) = restoration_error {
             return Err(format!("parent signal mask restoration failed: {e}"));
         }
         loop {
             end.check()?;
+            if let Some(relay) = retained_reply.as_mut() {
+                relay.receive(end)?;
+            }
             if let Some(code) = leader.exited()? {
+                if let Some(relay) = retained_reply.as_mut() {
+                    relay.receive(end)?;
+                }
                 return Ok(code);
             }
             thread::sleep(Duration::from_millis(5));
@@ -1603,6 +1824,11 @@ fn outer(o: &Options) -> Result<i32, String> {
     }
     fs::remove_dir(&root).map_err(|e| format!("backing directory cleanup failed: {e}"))?;
     end.cleanup_check()?;
+    if matches!(&result, Ok(0)) {
+        if let Some(relay) = retained_reply.as_ref() {
+            relay.forward(end)?;
+        }
+    }
     result
 }
 fn stage_failure(site: &'static str, error: &str) -> String {
