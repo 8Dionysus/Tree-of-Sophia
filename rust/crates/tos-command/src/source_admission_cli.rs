@@ -769,8 +769,9 @@ fn run_with_cancel_owner(
                 .map_or(phase.get(), |refusal| refusal.0.as_str());
             let _ = writeln!(
                 output,
-                "Native corpus admission refused during {}",
-                public_phase
+                "Native corpus admission refused during {}: {}",
+                public_phase,
+                crate::source_command::public_io_reason(&error)
             )
             .and_then(|_| output.flush());
         }
