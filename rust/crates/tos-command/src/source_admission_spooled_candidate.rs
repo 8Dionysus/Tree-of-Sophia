@@ -2092,7 +2092,10 @@ impl<'host> SpoolCandidate<'host> {
     ) -> io::Result<SourceMembershipV1> {
         self.tick()?;
         let result = (|| {
-            if max_member_bytes == 0 || max_owned_state_bytes > self.row_state_ceiling.get() {
+            let local_state_bytes = max_owned_state_bytes
+                .checked_sub(callback_retained_state_bytes)
+                .ok_or_else(|| invalid("candidate full member callback state"))?;
+            if max_member_bytes == 0 || local_state_bytes > self.row_state_ceiling.get() {
                 return Err(invalid("candidate full member visitor profile"));
             }
             let baseline = max_member_bytes
@@ -2100,7 +2103,9 @@ impl<'host> SpoolCandidate<'host> {
                 .and_then(|n| n.checked_add(callback_retained_state_bytes))
                 .and_then(|n| n.checked_add(16384))
                 .ok_or_else(|| invalid("candidate full member visitor state"))?;
-            self.check_state(max_owned_state_bytes)?;
+            // The callback is admitted by its owner against the inclusive
+            // operation bound. Only local raw/metadata state is a spool row.
+            self.check_state(local_state_bytes)?;
             let before = self.fence()?;
             let mut hash = Digest256Hasher::new();
             hash.update(b"tos-val-full-membership-v1\0");
@@ -2134,7 +2139,10 @@ impl<'host> SpoolCandidate<'host> {
                     .and_then(|n| n.checked_add(metadata.path.as_str().len().checked_mul(32)?))
                     .filter(|n| *n <= max_owned_state_bytes)
                     .ok_or_else(|| invalid("candidate full member raw/metadata overlap"))?;
-                self.check_state(peak)?;
+                self.check_state(
+                    peak.checked_sub(callback_retained_state_bytes)
+                        .ok_or_else(|| invalid("candidate full member local state"))?,
+                )?;
                 let raw = self.read_current_raw(metadata.path.as_str(), max_member_bytes)?;
                 if raw.len() as u64 != metadata.size_bytes
                     || Digest256::of_bytes(&raw) != metadata.sha256
