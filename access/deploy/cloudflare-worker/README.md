@@ -830,3 +830,20 @@ host.
 The former Cloudflare Tunnel profile remains a temporary recovery and local
 preview route only. It is not the production availability architecture because
 it requires a continuously powered origin machine.
+
+## Web Analytics
+
+The production Worker inserts one Cloudflare Web Analytics beacon into successful
+HTML responses on `treeofsophia.com`, using the public `WEB_ANALYTICS_TOKEN`
+binding. Its beacon configuration uses Cloudflare’s proxied-site ingestion
+endpoint (`/cdn-cgi/rum`), verified with HTTP 204 from a real browser. The HTML `no-transform` cache directive prevents automatic edge
+injection from duplicating this manually installed beacon. EU visitors remain excluded using the
+request's Cloudflare geography. HTML responses are private/no-store because
+their beacon presence varies by geography; static assets retain direct caching.
+
+Worker and generated asset headers narrowly allow the beacon script and ingestion
+endpoint. `strict-origin-when-cross-origin` lets analytics requests identify this
+site without sending its full URL to external origins. Local/off-domain previews
+do not insert the production beacon. Verify script loading, a successful beacon
+POST, and a controlled external referrer in Web Analytics after deployment.
+Enabling collection cannot reconstruct previously uncollected referral history.
