@@ -1548,6 +1548,25 @@ pub fn inspect_bibliography_from_input_stored<I: Copy + Eq>(
                         .ok_or(ItemRefusal::Budget)?;
                 reserve(&mut rules.state, member_state, rules.limits.max_state_bytes)?;
                 if path.ends_with("/item.manifest.json") {
+                    if let Some(selection) = source.input.record_selection() {
+                        // Physical companions remain in the raw byte census;
+                        // only the selected Item owns semantic manifest facts.
+                        let lookup_state = path.len().checked_mul(2)
+                            .and_then(|n| n.checked_add(std::mem::size_of::<String>()))
+                            .ok_or(ItemRefusal::Budget)?;
+                        reserve(&mut rules.state, lookup_state, rules.limits.max_state_bytes)?;
+                        let sibling = format!("{}item.json", path.strip_suffix("item.manifest.json").unwrap());
+                        if sibling.capacity() + std::mem::size_of::<String>() > lookup_state {
+                            return Err(ItemRefusal::Budget);
+                        }
+                        let selected = selection.record(&sibling).is_some();
+                        drop(sibling);
+                        rules.state -= lookup_state;
+                        if !selected {
+                            rules.state -= member_state;
+                            return Ok(());
+                        }
+                    }
                     let (value, value_state) = legacy_decoded(raw, &rules)?;
                     reserve(&mut rules.state, value_state, rules.limits.max_state_bytes)?;
                     if let (Some(id), Some(edition)) =
@@ -1580,6 +1599,14 @@ pub fn inspect_bibliography_from_input_stored<I: Copy + Eq>(
                 for (index, line) in raw.split(|byte| *byte == b'\n').enumerate() {
                     check(limits.deadline, cancelled)?;
                     if line.iter().all(u8::is_ascii_whitespace) {
+                        continue;
+                    }
+                    // Records already verified exact selected row/file bindings.
+                    // Do not admit unrelated rows merely because their complete
+                    // physical JSONL companion was preserved for restoration.
+                    if source.input.record_selection().is_some_and(|selection| {
+                        !selection.selected_row(path, (index + 1) as u64)
+                    }) {
                         continue;
                     }
                     let (value, value_state) = if path.ends_with("/source-claims.jsonl") {
