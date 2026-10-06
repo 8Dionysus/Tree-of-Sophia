@@ -83,6 +83,16 @@ fn read_held_fd(
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<Vec<u8>> {
+    read_held_fd_with_io(file, max, deadline, cancelled, None)
+}
+
+fn read_held_fd_with_io(
+    file: &File,
+    max: usize,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+    io: Option<&tos_source_store::PinnedSqliteIoBudget>,
+) -> SourceCommandResult<Vec<u8>> {
     let mut raw = Vec::new();
     let mut offset = 0u64;
     let mut block = [0u8; 65_536];
@@ -96,9 +106,17 @@ fn read_held_fd(
         if limit == 0 {
             return Err(SourceCommandError::Invalid("owner-local file byte budget"));
         }
+        if let Some(io) = io {
+            io.charge_read(limit as u64)
+                .map_err(|_| SourceCommandError::Denied("owner-local retained read permit"))?;
+        }
         let count = file
             .read_at(&mut block[..limit], offset)
             .map_err(|_| SourceCommandError::Denied("owner-local retained file read"))?;
+        if let Some(io) = io {
+            io.record_read_returned(count as u64)
+                .map_err(|_| SourceCommandError::Denied("owner-local retained read return"))?;
+        }
         if count == 0 {
             break;
         }
@@ -149,6 +167,30 @@ pub(crate) fn select_held_file(
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<(HeldOwnerFile, Vec<u8>)> {
+    select_held_file_with_optional_io(path, uid, confidential, max, deadline, cancelled, None)
+}
+
+pub(crate) fn select_held_file_with_io(
+    path: &Path,
+    uid: u32,
+    confidential: bool,
+    max: usize,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+    io: &tos_source_store::PinnedSqliteIoBudget,
+) -> SourceCommandResult<(HeldOwnerFile, Vec<u8>)> {
+    select_held_file_with_optional_io(path, uid, confidential, max, deadline, cancelled, Some(io))
+}
+
+fn select_held_file_with_optional_io(
+    path: &Path,
+    uid: u32,
+    confidential: bool,
+    max: usize,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+    io: Option<&tos_source_store::PinnedSqliteIoBudget>,
+) -> SourceCommandResult<(HeldOwnerFile, Vec<u8>)> {
     active(deadline, cancelled)?;
     protected_configuration_parents(path, uid)?;
     let parent_path = path
@@ -166,14 +208,23 @@ pub(crate) fn select_held_file(
     let mut file = tos_fd_open::open_regular_at(&parent, Path::new(&name))
         .map_err(|_| SourceCommandError::Denied("owner-local selected file"))?;
     let before = checked_file(&file, uid, confidential)?;
-    let raw = raw(&mut file, max, deadline, cancelled)?;
+    let raw = if io.is_some() {
+        if before.len() > max as u64 {
+            return Err(SourceCommandError::Invalid(
+                "creation read byte/type budget",
+            ));
+        }
+        read_held_fd_with_io(&file, max, deadline, cancelled, io)?
+    } else {
+        raw(&mut file, max, deadline, cancelled)?
+    };
     let after = checked_file(&file, uid, confidential)?;
     let current = tos_fd_open::open_regular_at(&parent, Path::new(&name))
         .map_err(|_| SourceCommandError::Conflict("owner-local selected file changed"))?;
     let at_path = checked_file(&current, uid, confidential)?;
     if stamp(&before) != stamp(&after)
         || held_file_identity(&before) != held_file_identity(&at_path)
-        || read_held_fd(&current, max, deadline, cancelled)? != raw
+        || read_held_fd_with_io(&current, max, deadline, cancelled, io)? != raw
     {
         return Err(SourceCommandError::Conflict(
             "owner-local selected file changed during read",
@@ -199,6 +250,26 @@ pub(crate) fn verify_held_file(
     uid: u32,
     deadline: Instant,
     cancelled: &AtomicBool,
+) -> SourceCommandResult<()> {
+    verify_held_file_with_optional_io(held, uid, deadline, cancelled, None)
+}
+
+pub(crate) fn verify_held_file_with_io(
+    held: &HeldOwnerFile,
+    uid: u32,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+    io: &tos_source_store::PinnedSqliteIoBudget,
+) -> SourceCommandResult<()> {
+    verify_held_file_with_optional_io(held, uid, deadline, cancelled, Some(io))
+}
+
+fn verify_held_file_with_optional_io(
+    held: &HeldOwnerFile,
+    uid: u32,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+    io: Option<&tos_source_store::PinnedSqliteIoBudget>,
 ) -> SourceCommandResult<()> {
     active(deadline, cancelled)?;
     let parent_meta = checked_directory(&held.parent, uid, held.confidential)?;
@@ -230,8 +301,8 @@ pub(crate) fn verify_held_file(
     let named_current_meta = named_current
         .metadata()
         .map_err(|_| SourceCommandError::Conflict("owner-local file identity changed"))?;
-    let retained_raw = read_held_fd(&held.file, held.size, deadline, cancelled)?;
-    let current_raw = read_held_fd(&current, held.size, deadline, cancelled)?;
+    let retained_raw = read_held_fd_with_io(&held.file, held.size, deadline, cancelled, io)?;
+    let current_raw = read_held_fd_with_io(&current, held.size, deadline, cancelled, io)?;
     if held_file_identity(&current_meta) != held.file_identity
         || held_file_identity(&current_meta) != held_file_identity(&named_current_meta)
         || retained_raw != current_raw

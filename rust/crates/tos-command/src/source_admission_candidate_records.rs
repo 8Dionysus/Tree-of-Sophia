@@ -1,25 +1,31 @@
 //! Candidate-fenced borrowed input to the SAME native Records validation.
 //! This input mints neither a source revision nor a completed inventory token.
 use crate::source_admission_spooled_candidate::{CandidateFence, SpoolCandidate};
-use std::{cell::Cell, io, sync::atomic::AtomicBool, time::Instant};
+use std::{
+    cell::Cell,
+    io,
+    sync::{Arc, atomic::AtomicBool},
+    time::Instant,
+};
 use tos_foundation::RelativePath;
 use tos_source_store::{PinnedSqliteIoBudget, SourcePresenceV1};
 use tos_validation::{
     item_rules::ItemRefusal,
     record_biblio_cut::{
-        SourceCutInput, SourceCutInputCoverage, SourceCutInputWithIdentity, SourceCutMemberMeta,
-        SourceCutPrefixCoverage,
+        GeneratedSourceSelection, SourceCutInput, SourceCutInputCoverage,
+        SourceCutInputWithIdentity, SourceCutMemberMeta, SourceCutPrefixCoverage,
     },
 };
 
 pub(crate) struct CandidateRecordsInput<'a, 'host> {
     candidate: &'a SpoolCandidate<'host>,
-    record_selection:
-        Option<std::sync::Arc<tos_validation::source_record_selection::SourceRecordSelection>>,
     fence: CandidateFence,
     max_member_bytes: usize,
     max_owned_state_bytes: Cell<usize>,
     callback_retained_state_bytes: Cell<usize>,
+    record_selection: Option<Arc<tos_validation::source_record_selection::SourceRecordSelection>>,
+    generated_selection:
+        Option<Arc<super::source_admission_generated_selection::GeneratedCandidateSelectionV1>>,
 }
 #[track_caller]
 fn input_refusal(error: io::Error) -> ItemRefusal {
@@ -42,14 +48,26 @@ fn refused() -> ItemRefusal {
 impl<'a, 'host> CandidateRecordsInput<'a, 'host> {
     pub(crate) fn with_record_selection(
         mut self,
-        selection: Option<
-            std::sync::Arc<tos_validation::source_record_selection::SourceRecordSelection>,
-        >,
+        selection: Option<Arc<tos_validation::source_record_selection::SourceRecordSelection>>,
     ) -> Self {
         self.record_selection = selection;
         self
     }
-
+    fn generated_caller_state(&self) -> Result<usize, ItemRefusal> {
+        // Native debits the provider's owned state before deriving this
+        // remaining callback envelope. The provider adds its own state once
+        // against the original pre-debit input envelope.
+        Ok(self.callback_retained_state_bytes.get())
+    }
+    pub(crate) fn with_generated_selection(
+        mut self,
+        selection: Option<
+            Arc<super::source_admission_generated_selection::GeneratedCandidateSelectionV1>,
+        >,
+    ) -> Self {
+        self.generated_selection = selection;
+        self
+    }
     pub(crate) fn shares_io_budget(&self, budget: &PinnedSqliteIoBudget) -> bool {
         self.candidate.shares_io_budget(budget)
     }
@@ -95,11 +113,21 @@ impl<'a, 'host> CandidateRecordsInput<'a, 'host> {
         required_state_bytes: usize,
         max_operation_state_bytes: usize,
     ) -> Result<(), ItemRefusal> {
-        if self.callback_retained_state_bytes.get() < required_state_bytes
-            || self.max_owned_state_bytes.get() > max_operation_state_bytes
-        {
+        if self.callback_retained_state_bytes.get() < required_state_bytes {
             self.candidate.abandon();
-            return Err(tos_validation::item_budget_origin!());
+            return Err(ItemRefusal::BudgetCheck {
+                check: "candidate callback retained state",
+                used: Some(required_state_bytes as u64),
+                limit: Some(self.callback_retained_state_bytes.get() as u64),
+            });
+        }
+        if self.max_owned_state_bytes.get() > max_operation_state_bytes {
+            self.candidate.abandon();
+            return Err(ItemRefusal::BudgetCheck {
+                check: "candidate input operation state",
+                used: Some(self.max_owned_state_bytes.get() as u64),
+                limit: Some(max_operation_state_bytes as u64),
+            });
         }
         Ok(())
     }
@@ -120,12 +148,13 @@ impl<'a, 'host> CandidateRecordsInput<'a, 'host> {
         }
         let fence = candidate.fence().map_err(|error| input_refusal(error))?;
         Ok(Self {
-            record_selection: None,
             candidate,
             fence,
             max_member_bytes,
             max_owned_state_bytes: Cell::new(max_owned_state_bytes),
             callback_retained_state_bytes: Cell::new(callback_retained_state_bytes),
+            record_selection: None,
+            generated_selection: None,
         })
     }
     fn check(&self, deadline: Instant, cancelled: &AtomicBool) -> Result<(), ItemRefusal> {
@@ -167,9 +196,13 @@ impl SourceCutInputWithIdentity<CandidateFence> for CandidateRecordsInput<'_, '_
 impl SourceCutInput for CandidateRecordsInput<'_, '_> {
     fn record_selection(
         &self,
-    ) -> Option<std::sync::Arc<tos_validation::source_record_selection::SourceRecordSelection>>
-    {
+    ) -> Option<Arc<tos_validation::source_record_selection::SourceRecordSelection>> {
         self.record_selection.clone()
+    }
+    fn generated_selection(&self) -> Option<Arc<dyn GeneratedSourceSelection>> {
+        self.generated_selection
+            .as_ref()
+            .map(|selection| Arc::clone(selection) as Arc<dyn GeneratedSourceSelection>)
     }
     fn for_each_current_member_meta(
         &self,
@@ -177,11 +210,33 @@ impl SourceCutInput for CandidateRecordsInput<'_, '_> {
         cancelled: &AtomicBool,
         visit: &mut dyn FnMut(SourceCutMemberMeta<'_>) -> Result<(), ItemRefusal>,
     ) -> Result<(), ItemRefusal> {
-        // This initial bridge deliberately verifies full raw bytes even for
-        // metadata traversal. Its physical reads are charged, never inferred.
-        self.for_each_current_member(deadline, cancelled, &mut |meta, _| visit(meta))?;
-        Ok(())
+        let result = (|| {
+            self.check(deadline, cancelled)?;
+            let allowance = self.max_owned_state_bytes.get()
+                .checked_sub(self.callback_retained_state_bytes.get())
+                .ok_or(tos_validation::item_budget_origin!())?;
+            let mut callback_error = None;
+            let walked = self.candidate.for_each_verified_member_metadata(
+                allowance,
+                &mut |meta| {
+                    visit(SourceCutMemberMeta {
+                        path: meta.path.as_str(),
+                        size_bytes: meta.size_bytes,
+                    }).map_err(|error| {
+                        callback_error = Some(error);
+                        io::Error::other("native Records metadata callback refused")
+                    })
+                },
+            );
+            if let Some(error) = callback_error { return Err(error); }
+            walked.map_err(|error| ItemRefusal::Source(
+                crate::source_command::public_io_reason(&error)))?;
+            self.check(deadline, cancelled)
+        })();
+        if result.is_err() { self.candidate.abandon(); }
+        result
     }
+
     fn for_each_current_member_meta_under(
         &self,
         directory: &str,
@@ -242,6 +297,11 @@ impl SourceCutInput for CandidateRecordsInput<'_, '_> {
     ) -> Result<(), ItemRefusal> {
         let result = (|| {
             self.check(deadline, cancelled)?;
+            // The caller supplies a ceiling, while this adapter retains the
+            // verified maximum of the candidate's actual members. Intersect
+            // both bounds before reading; a wider caller ceiling must not
+            // reject a smaller candidate or expand its allocation allowance.
+            let max_bytes = max_bytes.min(self.max_member_bytes);
             if max_bytes == 0 {
                 return Err(tos_validation::item_budget_origin!());
             }
@@ -259,6 +319,17 @@ impl SourceCutInput for CandidateRecordsInput<'_, '_> {
                 .candidate
                 .read_member_bound(&path, max_bytes, allowance)
                 .map_err(|error| input_refusal(error))?;
+            if let Some(selection) = &self.generated_selection {
+                if selection.selects_member(member.metadata().path.as_str())? {
+                    selection.verify_member(
+                        member.metadata().path.as_str(),
+                        member.raw(),
+                        self.generated_caller_state()?,
+                        deadline,
+                        cancelled,
+                    )?;
+                }
+            }
             visit(
                 SourceCutMemberMeta {
                     path: member.metadata().path.as_str(),
@@ -284,11 +355,36 @@ impl SourceCutInput for CandidateRecordsInput<'_, '_> {
         let result = (|| {
             self.check(deadline, cancelled)?;
             let mut callback_error = None;
+            let mut generated_traversal = self
+                .generated_selection
+                .as_ref()
+                .map(|selection| selection.begin_traversal());
+            let caller_live = self.generated_caller_state()?;
             let membership = self.candidate.for_each_verified_member(
                 self.max_member_bytes,
                 self.max_owned_state_bytes.get(),
                 self.callback_retained_state_bytes.get(),
                 &mut |meta, raw| {
+                    if let (Some(selection), Some(traversal)) =
+                        (&self.generated_selection, &mut generated_traversal)
+                    {
+                        if let Err(error) = selection.observe_member(
+                            traversal,
+                            meta.path.as_str(),
+                            raw,
+                            self.fence,
+                            caller_live,
+                            deadline,
+                            cancelled,
+                        ) {
+                            callback_error = Some(ItemRefusal::Source(
+                                crate::source_command::public_io_reason(&error),
+                            ));
+                            return Err(io::Error::other(
+                                "generated physical member proof refused",
+                            ));
+                        }
+                    }
                     visit(
                         SourceCutMemberMeta {
                             path: meta.path.as_str(),
@@ -308,9 +404,17 @@ impl SourceCutInput for CandidateRecordsInput<'_, '_> {
             let membership = membership.map_err(|error| input_refusal(error))?;
             self.check(deadline, cancelled)?;
             let (count, bytes) = self.candidate.membership_counts();
-            Ok(SourceCutInputCoverage::after_verified_eof(
-                membership, count, bytes,
-            ))
+            let coverage = SourceCutInputCoverage::after_verified_eof(membership, count, bytes);
+            if let (Some(selection), Some(traversal)) =
+                (&self.generated_selection, generated_traversal)
+            {
+                selection
+                    .finish_traversal(traversal, self.fence, &coverage, deadline, cancelled)
+                    .map_err(|error| {
+                        ItemRefusal::Source(crate::source_command::public_io_reason(&error))
+                    })?;
+            }
+            Ok(coverage)
         })();
         if result.is_err() {
             self.candidate.abandon();

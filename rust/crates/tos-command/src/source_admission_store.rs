@@ -1,13 +1,15 @@
 //! Physical custody for the maintained immutable corpus store.
 //! Installing bytes is not admission. Only the complete native validator's
 //! caller may perform the accepted-pointer compare-and-swap.
-use super::source_admission::{active, invalid};
+use super::source_admission::{AdmissionWorkBudget, active, invalid};
 use rustix::fs::{AtFlags, FlockOperation, Mode, OFlags, RenameFlags, openat};
 use rustix::io::Errno;
 use std::{
     cell::RefCell,
     fs::{File, Permissions},
     io::{self, Read, Seek, SeekFrom, Write},
+    os::fd::AsRawFd,
+    os::unix::fs::FileExt,
     os::unix::fs::{MetadataExt, PermissionsExt},
     path::{Path, PathBuf},
     sync::{Arc, atomic::AtomicBool},
@@ -22,6 +24,9 @@ const V2_LAYOUT_COMPONENT_METADATA_BYTES: u64 = 4_096;
 const V2_LAYOUT_PATH_BYTES: usize = 4_096;
 const V2_LAYOUT_PATH_COMPONENTS: usize = 128;
 const ADMISSION_IO_BLOCK_BYTES: usize = 65_536;
+const SOURCE_WORK_MARKER: &str = ".source-work-intent.v1";
+const SOURCE_WORK_MARKER_MAGIC: &[u8; 8] = b"TOSSWI01";
+const SOURCE_WORK_MARKER_MAX_BYTES: usize = 512;
 // `ingest_accounted` retains its copy block while final fixity verification
 // calls `verify_file_recorded`, which owns a second block.
 pub(crate) const INGEST_ACCOUNTED_SCRATCH_BYTES: usize = 2 * ADMISSION_IO_BLOCK_BYTES;
@@ -93,6 +98,59 @@ pub(crate) struct V2SuccessorPublicationCommittedRefusal {
     pub(crate) rootset_sha256: Digest256,
     pub(crate) custody: Arc<tos_source_store::PinnedSqliteSpaceReservation>,
     cause: io::Error,
+}
+
+/// Durable identity of immutable V2 successor files prepared for publication.
+/// This binds one target rootset to the exact selector it was built from; it
+/// does not itself authorize a selector change.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct PreparedV2SuccessorLocatorV2 {
+    pub(crate) expected_selection: tos_source_store::CorpusCurrentSelection,
+    pub(crate) target_revision: tos_foundation::SourceRevision,
+    pub(crate) rootset_sha256: Digest256,
+    pub(crate) source_artifact: super::source_admission_segment_v2::SourceRevisionArtifactV2,
+}
+
+/// In-memory prepared successor. The durable Work intent stores only its
+/// locator; the built rootset and its original IO/work/allocation ledgers stay
+/// live until the matching selector CAS commits or refuses.
+pub(crate) struct PreparedV2SuccessorV2 {
+    pub(crate) locator: PreparedV2SuccessorLocatorV2,
+    built: super::source_admission_segment_v2::BuiltSuccessorRootSetV2,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum PreparedV2SuccessorSelectionV2 {
+    BaseSelected,
+    TargetSelected,
+    Advanced(Option<tos_source_store::CorpusCurrentSelection>),
+}
+
+impl PreparedV2SuccessorV2 {
+    pub(crate) fn locator(&self) -> &PreparedV2SuccessorLocatorV2 {
+        &self.locator
+    }
+}
+
+#[derive(Debug)]
+pub(crate) struct V2SuccessorBaseAdvanced;
+
+impl std::fmt::Display for V2SuccessorBaseAdvanced {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("V2 successor base selection advanced")
+    }
+}
+
+impl std::error::Error for V2SuccessorBaseAdvanced {}
+
+pub(crate) fn is_v2_successor_base_advanced(error: &io::Error) -> bool {
+    error
+        .get_ref()
+        .is_some_and(|source| source.is::<V2SuccessorBaseAdvanced>())
+}
+
+fn v2_base_advanced() -> io::Error {
+    io::Error::new(io::ErrorKind::WouldBlock, V2SuccessorBaseAdvanced)
 }
 
 impl std::fmt::Debug for V2SuccessorPublicationCommittedRefusal {
@@ -185,6 +243,11 @@ impl Drop for SnapshotStage<'_> {
                         rustix::fs::unlinkat(&self.directory, "rootset-v2.json", AtFlags::empty());
                     let _ =
                         rustix::fs::unlinkat(&self.directory, "commit-v2.json", AtFlags::empty());
+                    let _ = rustix::fs::unlinkat(
+                        &self.directory,
+                        "commit-packed-v2.json",
+                        AtFlags::empty(),
+                    );
                 }
                 let _ = rustix::fs::unlinkat(self.parent, self.name.as_str(), AtFlags::REMOVEDIR);
             }
@@ -275,6 +338,175 @@ struct V2ObjectPrecharge {
     accountant: Arc<super::source_admission_segment_v2::NativeV2TreeIo>,
     reserved: u64,
     linked: bool,
+}
+
+/// One private, append-only payload spool used only while a native V2
+/// candidate is converted into packed source frames. Its single file can hold
+/// many digest-ordered object slices; it never creates one staging inode per
+/// corpus member. Failure deliberately leaves the reservation and named
+/// staging inode in custody. The success path must call `cleanup_after_seal`
+/// after the packed writer has consumed and dropped every slice.
+pub(crate) struct CandidatePayloadPackV2 {
+    directory: File,
+    name: String,
+    file: Arc<File>,
+    accountant: Arc<super::source_admission_segment_v2::NativeV2TreeIo>,
+    reserved: u64,
+    max_bytes: u64,
+    directory_allocated_before: u64,
+    actual_allocated: Option<u64>,
+    appended_bytes: u64,
+}
+
+impl CandidatePayloadPackV2 {
+    pub(crate) fn file_for_sealed_slice(&self, offset: u64, size: u64) -> io::Result<Arc<File>> {
+        self.verify_named()?;
+        if self.actual_allocated.is_none()
+            || offset
+                .checked_add(size)
+                .is_none_or(|end| end > self.appended_bytes)
+        {
+            return Err(invalid(
+                "candidate payload source slice is outside sealed pack",
+            ));
+        }
+        Ok(Arc::clone(&self.file))
+    }
+
+    pub(crate) fn appended_bytes(&self) -> u64 {
+        self.appended_bytes
+    }
+
+    fn verify_named(&self) -> io::Result<()> {
+        let selected = tos_fd_open::open_regular_at(&self.directory, Path::new(&self.name))
+            .map_err(invalid)?;
+        let held = self.file.metadata()?;
+        let named = selected.metadata()?;
+        if identity(&selected)? != identity(&self.file)?
+            || !held.is_file()
+            || held.uid() != rustix::process::geteuid().as_raw()
+            || held.mode() & 0o777 != 0o400
+            || named.len() != held.len()
+            || held.len() != self.appended_bytes
+            || held.len() > self.max_bytes
+        {
+            return Err(invalid("candidate payload staging custody changed"));
+        }
+        Ok(())
+    }
+
+    pub(crate) fn append_at(&mut self, offset: u64, raw: &[u8]) -> io::Result<()> {
+        if offset != self.appended_bytes {
+            return Err(invalid("candidate payload pack append cursor differs"));
+        }
+        let next = offset
+            .checked_add(raw.len() as u64)
+            .ok_or_else(|| invalid("candidate payload pack offset overflow"))?;
+        if next > self.max_bytes {
+            return Err(invalid(
+                "candidate payload pack exceeds selected byte bound",
+            ));
+        }
+        let mut written = 0usize;
+        while written < raw.len() {
+            let at = offset
+                .checked_add(written as u64)
+                .ok_or_else(|| invalid("candidate payload pack offset overflow"))?;
+            match self.file.write_at(&raw[written..], at) {
+                Ok(0) => return Err(io::Error::new(io::ErrorKind::WriteZero, "candidate pack")),
+                Ok(count) => {
+                    written = written
+                        .checked_add(count)
+                        .filter(|count| *count <= raw.len())
+                        .ok_or_else(|| invalid("candidate payload pack write overflow"))?
+                }
+                Err(error) if error.kind() == io::ErrorKind::Interrupted => continue,
+                Err(error) => return Err(error),
+            }
+        }
+        self.appended_bytes = self.appended_bytes.max(next);
+        Ok(())
+    }
+
+    /// Durably close the writer side and reconcile its physical peak before
+    /// any row can be handed to the authenticated segment writer.
+    pub(crate) fn sync_and_reconcile(
+        &mut self,
+        deadline: Instant,
+        cancel: &AtomicBool,
+    ) -> io::Result<()> {
+        active(deadline, cancel)?;
+        self.file.set_permissions(Permissions::from_mode(0o400))?;
+        self.file.sync_all()?;
+        self.verify_named()?;
+        active(deadline, cancel)?;
+        let file_bytes = allocated_bytes(&self.file, "candidate payload file allocation overflow")?;
+        let directory_after = allocated_bytes(
+            &self.directory,
+            "candidate payload staging directory allocation overflow",
+        )?;
+        let directory_growth = directory_after
+            .checked_sub(self.directory_allocated_before)
+            .ok_or_else(|| invalid("candidate payload staging directory allocation regressed"))?;
+        let actual = file_bytes
+            .checked_add(directory_growth)
+            .ok_or_else(|| invalid("candidate payload physical allocation overflow"))?;
+        self.accountant
+            .reconcile_file_allocation(self.reserved, actual)?;
+        self.actual_allocated = Some(actual);
+        Ok(())
+    }
+
+    /// Release only after the packed source writer has returned success and
+    /// all row-held Arcs are gone. The path and held descriptor must still be
+    /// the same inode; an uncertain unlink keeps the original custody charge.
+    pub(crate) fn cleanup_after_seal(
+        self,
+        deadline: Instant,
+        cancel: &AtomicBool,
+    ) -> io::Result<()> {
+        active(deadline, cancel)?;
+        self.verify_named()?;
+        if self.actual_allocated.is_none() {
+            return Err(invalid("candidate payload pack was not reconciled"));
+        }
+        if Arc::strong_count(&self.file) != 1 {
+            return Err(invalid("candidate payload slice is still held by writer"));
+        }
+        let selected = tos_fd_open::open_regular_at(&self.directory, Path::new(&self.name))
+            .map_err(invalid)?;
+        if identity(&selected)? != identity(&self.file)? {
+            return Err(invalid("candidate payload staging inode changed"));
+        }
+        let file_allocated =
+            allocated_bytes(&self.file, "candidate payload file allocation overflow")?;
+        let directory_before = allocated_bytes(
+            &self.directory,
+            "candidate payload staging directory allocation overflow",
+        )?;
+        let directory_growth_before = directory_before
+            .checked_sub(self.directory_allocated_before)
+            .ok_or_else(|| invalid("candidate payload staging directory allocation regressed"))?;
+        rustix::fs::unlinkat(&self.directory, self.name.as_str(), AtFlags::empty())?;
+        self.directory.sync_all()?;
+        let directory_after = allocated_bytes(
+            &self.directory,
+            "candidate payload staging directory allocation overflow",
+        )?;
+        let directory_growth_after = directory_after
+            .checked_sub(self.directory_allocated_before)
+            .ok_or_else(|| invalid("candidate payload staging directory allocation regressed"))?;
+        let actual_removed = file_allocated
+            .checked_add(directory_growth_before)
+            .and_then(|bytes| bytes.checked_sub(directory_growth_after))
+            .ok_or_else(|| invalid("candidate payload removed allocation is ambiguous"))?;
+        drop(selected);
+        drop(self.file);
+        active(deadline, cancel)?;
+        self.accountant
+            .release_temporary_file_allocation(self.reserved, actual_removed)?;
+        active(deadline, cancel)
+    }
 }
 impl Drop for V2ObjectPrecharge {
     fn drop(&mut self) {
@@ -390,6 +622,80 @@ impl Drop for AdmissionLock {
         // unrelated concurrent process fork briefly inherited this CLOEXEC fd.
         let _ = rustix::fs::flock(&self.0, FlockOperation::Unlock);
     }
+}
+
+fn digest_from_work_identity(value: &str) -> io::Result<Digest256> {
+    let hex = value
+        .strip_prefix("sha256:")
+        .filter(|hex| hex.len() == 64)
+        .ok_or_else(|| invalid("source Work identity is malformed"))?;
+    if !hex
+        .bytes()
+        .all(|byte| byte.is_ascii_hexdigit() && !byte.is_ascii_uppercase())
+    {
+        return Err(invalid("source Work identity is not canonical"));
+    }
+    Digest256::from_hex(hex).map_err(invalid)
+}
+
+fn marker_optional_digest(output: &mut Vec<u8>, value: Option<Digest256>) {
+    match value {
+        Some(value) => {
+            output.push(1);
+            output.extend_from_slice(value.as_bytes());
+        }
+        None => {
+            output.push(0);
+            output.extend_from_slice(&[0; 32]);
+        }
+    }
+}
+
+fn source_work_marker_bytes(
+    readset: &tos_source_store::SourceCutReadsetV1,
+    locator: &PreparedV2SuccessorLocatorV2,
+    transaction_id: &str,
+    manifest_sha256: &str,
+) -> io::Result<Vec<u8>> {
+    let transaction_id = digest_from_work_identity(transaction_id)?;
+    let manifest_sha256 = digest_from_work_identity(manifest_sha256)?;
+    let mut raw = Vec::new();
+    raw.try_reserve_exact(SOURCE_WORK_MARKER_MAX_BYTES)
+        .map_err(|_| invalid("source Work marker allocation failed"))?;
+    raw.extend_from_slice(SOURCE_WORK_MARKER_MAGIC);
+    raw.extend_from_slice(transaction_id.as_bytes());
+    raw.extend_from_slice(manifest_sha256.as_bytes());
+    raw.extend_from_slice(readset.base_revision.0.as_bytes());
+    raw.push(match locator.expected_selection.format {
+        tos_source_store::CorpusPointerFormat::V1 => 1,
+        tos_source_store::CorpusPointerFormat::V2 => 2,
+    });
+    raw.extend_from_slice(locator.expected_selection.revision.0.as_bytes());
+    marker_optional_digest(
+        &mut raw,
+        locator.expected_selection.previous.map(|value| value.0),
+    );
+    marker_optional_digest(&mut raw, locator.expected_selection.rootset_sha256);
+    raw.extend_from_slice(locator.target_revision.0.as_bytes());
+    raw.extend_from_slice(locator.rootset_sha256.as_bytes());
+    raw.push(match locator.source_artifact {
+        super::source_admission_segment_v2::SourceRevisionArtifactV2::LegacyManifestV1 {
+            ..
+        } => 1,
+        super::source_admission_segment_v2::SourceRevisionArtifactV2::SnapshotV1 { .. } => 2,
+        super::source_admission_segment_v2::SourceRevisionArtifactV2::CompactCommitV2 {
+            ..
+        } => 3,
+        super::source_admission_segment_v2::SourceRevisionArtifactV2::CompactPackedV2 {
+            ..
+        } => 4,
+    });
+    raw.extend_from_slice(locator.source_artifact.sha256().as_bytes());
+    raw.extend_from_slice(&locator.source_artifact.bytes().unwrap_or(0).to_be_bytes());
+    if raw.len() > SOURCE_WORK_MARKER_MAX_BYTES {
+        return Err(invalid("source Work marker byte bound exceeded"));
+    }
+    Ok(raw)
 }
 
 fn lock_at_root(
@@ -531,6 +837,10 @@ pub(crate) struct AdmissionStore {
     // The original selected V2 IO ledger also accounts each later private
     // root/namespace identity fence. Legacy V1 stores keep this unbound.
     v2_layout_io: RefCell<Option<tos_source_store::PinnedSqliteIoBudget>>,
+    // Same-process accounting receipt for the transient store-owned Work
+    // marker. A recovered marker is charged conservatively as retained store
+    // baseline and is never subtracted from an unrelated invocation ledger.
+    source_work_marker_accounting: RefCell<Option<(Digest256, Digest256, u64, u64)>>,
 }
 impl AdmissionStore {
     pub(crate) fn retained_path_capacity(&self) -> usize {
@@ -599,12 +909,350 @@ impl AdmissionStore {
         self.verify_layout()?;
         Ok(self.v2_segments.borrow().is_some())
     }
+    fn source_work_ledgers(
+        &self,
+    ) -> io::Result<(
+        tos_source_store::PinnedSqliteIoBudget,
+        Arc<super::source_admission_segment_v2::NativeV2TreeIo>,
+    )> {
+        let io = self
+            .v2_layout_io
+            .borrow()
+            .as_ref()
+            .cloned()
+            .ok_or_else(|| invalid("V2 Work intent lacks its selected IO ledger"))?;
+        let accountant = self
+            .v2_allocation_accountant
+            .borrow()
+            .as_ref()
+            .cloned()
+            .ok_or_else(|| invalid("V2 Work intent lacks selected allocation custody"))?;
+        if !io.shares_with(accountant.io_budget()) {
+            return Err(invalid("V2 Work intent IO ledgers differ"));
+        }
+        Ok((io, accountant))
+    }
+
+    fn read_source_work_marker(
+        &self,
+        io: &tos_source_store::PinnedSqliteIoBudget,
+        work: &AdmissionWorkBudget,
+        deadline: Instant,
+        cancel: &AtomicBool,
+    ) -> io::Result<Option<(File, Vec<u8>, u64)>> {
+        active(deadline, cancel)?;
+        work.charge(())?;
+        io.charge_read_upper_bound(SOURCE_WORK_MARKER_MAX_BYTES as u64 + 1)
+            .map_err(invalid)?;
+        let mut file = match openat(
+            &self.root,
+            SOURCE_WORK_MARKER,
+            OFlags::RDONLY | OFlags::NOFOLLOW | OFlags::NONBLOCK | OFlags::CLOEXEC,
+            Mode::empty(),
+        ) {
+            Ok(fd) => File::from(fd),
+            Err(Errno::NOENT) => {
+                io.record_read_returned(0).map_err(invalid)?;
+                return Ok(None);
+            }
+            Err(error) => return Err(error.into()),
+        };
+        let before = file.metadata()?;
+        if !before.is_file()
+            || before.uid() != rustix::process::geteuid().as_raw()
+            || before.mode() & 0o7000 != 0
+            || before.mode() & 0o777 != 0o600
+            || before.nlink() != 1
+            || before.len() > SOURCE_WORK_MARKER_MAX_BYTES as u64
+        {
+            return Err(invalid("V2 source Work marker custody differs"));
+        }
+        let mut bytes = Vec::new();
+        bytes
+            .try_reserve_exact(SOURCE_WORK_MARKER_MAX_BYTES + 1)
+            .map_err(|_| invalid("V2 source Work marker read allocation failed"))?;
+        (&mut file)
+            .take(SOURCE_WORK_MARKER_MAX_BYTES as u64 + 1)
+            .read_to_end(&mut bytes)?;
+        io.record_read_returned(bytes.len() as u64)
+            .map_err(invalid)?;
+        let after = file.metadata()?;
+        let selected: File = openat(
+            &self.root,
+            SOURCE_WORK_MARKER,
+            OFlags::RDONLY | OFlags::NOFOLLOW | OFlags::NONBLOCK | OFlags::CLOEXEC,
+            Mode::empty(),
+        )
+        .map(File::from)?;
+        let current = selected.metadata()?;
+        if bytes.len() > SOURCE_WORK_MARKER_MAX_BYTES
+            || identity(&file)? != identity(&selected)?
+            || before.len() != after.len()
+            || before.len() != current.len()
+            || before.mtime() != after.mtime()
+            || before.mtime_nsec() != after.mtime_nsec()
+            || before.ctime() != after.ctime()
+            || before.ctime_nsec() != after.ctime_nsec()
+            || before.mode() != current.mode()
+            || before.uid() != current.uid()
+        {
+            return Err(invalid("V2 source Work marker changed while read"));
+        }
+        let allocated = allocated_bytes(&file, "V2 source Work marker allocation overflow")?;
+        Ok(Some((file, bytes, allocated)))
+    }
+
     pub(crate) fn lock_for_v2_publication(
         &self,
+        work: &AdmissionWorkBudget,
         deadline: Instant,
         cancel: &AtomicBool,
     ) -> io::Result<AdmissionLock> {
-        self.lock(deadline, cancel)
+        let lock = self.lock(deadline, cancel)?;
+        if let Some(io) = self.v2_layout_io.borrow().as_ref() {
+            match self.read_source_work_marker(io, work, deadline, cancel)? {
+                Some(_) => {
+                    return Err(io::Error::new(
+                        io::ErrorKind::WouldBlock,
+                        "source Work successor requires forward recovery",
+                    ));
+                }
+                None => (),
+            }
+        }
+        Ok(lock)
+    }
+
+    /// Recovery holds the same private store lock and may proceed only when
+    /// its durable Work manifest names this exact store marker. An absent
+    /// marker is allowed for crash repair before the Work pending head.
+    pub(crate) fn lock_for_v2_source_work_recovery(
+        &self,
+        transaction_id: &str,
+        manifest_sha256: &str,
+        readset: &tos_source_store::SourceCutReadsetV1,
+        locator: &PreparedV2SuccessorLocatorV2,
+        work: &AdmissionWorkBudget,
+        deadline: Instant,
+        cancel: &AtomicBool,
+    ) -> io::Result<AdmissionLock> {
+        let (io, _) = self.source_work_ledgers()?;
+        let lock = self.lock(deadline, cancel)?;
+        let expected = source_work_marker_bytes(readset, locator, transaction_id, manifest_sha256)?;
+        if self
+            .read_source_work_marker(&io, work, deadline, cancel)?
+            .is_some_and(|(_, actual, _)| actual != expected)
+        {
+            return Err(io::Error::new(
+                io::ErrorKind::WouldBlock,
+                "source Work marker identity differs",
+            ));
+        }
+        Ok(lock)
+    }
+
+    /// Install the marker only after the Work transaction has durably retained
+    /// its exact plan, and before it publishes pending or moves source files.
+    pub(crate) fn begin_v2_source_work_intent(
+        &self,
+        _lock: &AdmissionLock,
+        readset: &tos_source_store::SourceCutReadsetV1,
+        locator: &PreparedV2SuccessorLocatorV2,
+        transaction_id: &str,
+        manifest_sha256: &str,
+        work: &AdmissionWorkBudget,
+        deadline: Instant,
+        cancel: &AtomicBool,
+    ) -> io::Result<()> {
+        let (io, accountant) = self.source_work_ledgers()?;
+        let expected = source_work_marker_bytes(readset, locator, transaction_id, manifest_sha256)?;
+        if let Some((mut existing, bytes, _)) =
+            self.read_source_work_marker(&io, work, deadline, cancel)?
+        {
+            if bytes == expected {
+                return Ok(());
+            }
+            let identity_len = SOURCE_WORK_MARKER_MAGIC.len() + 32 + 32;
+            if !expected.starts_with(&bytes)
+                || bytes.len() < identity_len
+                || bytes.len() >= expected.len()
+            {
+                return Err(io::Error::new(
+                    io::ErrorKind::WouldBlock,
+                    "another source Work successor owns the store marker",
+                ));
+            }
+            active(deadline, cancel)?;
+            work.charge(())?;
+            io.charge_write(expected.len() as u64).map_err(invalid)?;
+            let mut writable: File = openat(
+                &self.root,
+                SOURCE_WORK_MARKER,
+                OFlags::RDWR | OFlags::NOFOLLOW | OFlags::NONBLOCK | OFlags::CLOEXEC,
+                Mode::empty(),
+            )
+            .map(File::from)?;
+            if identity(&existing)? != identity(&writable)? {
+                return Err(invalid("V2 source Work marker changed before repair"));
+            }
+            writable.seek(SeekFrom::Start(0))?;
+            writable.write_all(&expected)?;
+            writable.set_len(expected.len() as u64)?;
+            writable.sync_all()?;
+            self.root.sync_all()?;
+            io.record_write_returned(expected.len() as u64)
+                .map_err(invalid)?;
+            return Ok(());
+        }
+
+        active(deadline, cancel)?;
+        work.charge(())?;
+        io.charge_write(expected.len() as u64).map_err(invalid)?;
+        let unit = accountant.selected_allocation_unit_bytes();
+        let reservation_request = unit;
+        let reserved = accountant.reserve_file_allocation(reservation_request)?;
+        let root_before = allocated_bytes(&self.root, "V2 source Work root allocation overflow")?;
+        let temp_name = format!("{SOURCE_WORK_MARKER}.tmp");
+        match openat(
+            &self.root,
+            temp_name.as_str(),
+            OFlags::RDONLY | OFlags::NOFOLLOW | OFlags::NONBLOCK | OFlags::CLOEXEC,
+            Mode::empty(),
+        ) {
+            Ok(_) => {
+                accountant.release_file_allocation(reserved)?;
+                return Err(io::Error::new(
+                    io::ErrorKind::WouldBlock,
+                    "V2 source Work marker staging file requires recovery",
+                ));
+            }
+            Err(Errno::NOENT) => (),
+            Err(error) => {
+                accountant.release_file_allocation(reserved)?;
+                return Err(error.into());
+            }
+        }
+        let mut file: File = match openat(
+            &self.root,
+            temp_name.as_str(),
+            OFlags::WRONLY
+                | OFlags::CREATE
+                | OFlags::EXCL
+                | OFlags::NOFOLLOW
+                | OFlags::NONBLOCK
+                | OFlags::CLOEXEC,
+            Mode::from_raw_mode(0o600),
+        ) {
+            Ok(fd) => File::from(fd),
+            Err(error) => {
+                accountant.release_file_allocation(reserved)?;
+                return Err(error.into());
+            }
+        };
+        let write_result = (|| {
+            file.write_all(&expected)?;
+            file.sync_all()?;
+            rustix::fs::renameat_with(
+                &self.root,
+                temp_name.as_str(),
+                &self.root,
+                SOURCE_WORK_MARKER,
+                RenameFlags::NOREPLACE,
+            )?;
+            self.root.sync_all()?;
+            Ok::<(), io::Error>(())
+        })();
+        let file_allocated = allocated_bytes(&file, "V2 source Work marker allocation overflow")?;
+        let root_after = allocated_bytes(&self.root, "V2 source Work root allocation overflow")?;
+        let directory_growth = root_after
+            .checked_sub(root_before)
+            .ok_or_else(|| invalid("V2 source Work root allocation regressed"))?;
+        let actual = file_allocated
+            .checked_add(directory_growth)
+            .ok_or_else(|| invalid("V2 source Work marker allocation overflow"))?;
+        accountant.reconcile_file_allocation(reserved, actual)?;
+        io.record_write_returned(file.metadata()?.len())
+            .map_err(invalid)?;
+        let tx = digest_from_work_identity(transaction_id)?;
+        let manifest = digest_from_work_identity(manifest_sha256)?;
+        *self.source_work_marker_accounting.borrow_mut() =
+            Some((tx, manifest, reserved, file_allocated));
+        write_result?;
+        Ok(())
+    }
+
+    /// Clear the marker only after the exact target selector is selected and
+    /// the Work terminal state plus completion record are durable.
+    pub(crate) fn finish_v2_source_work_intent(
+        &self,
+        _lock: &AdmissionLock,
+        readset: &tos_source_store::SourceCutReadsetV1,
+        locator: &PreparedV2SuccessorLocatorV2,
+        transaction_id: &str,
+        manifest_sha256: &str,
+        read_limits: ReadLimits,
+        work: &AdmissionWorkBudget,
+        deadline: Instant,
+        cancel: &AtomicBool,
+    ) -> io::Result<()> {
+        let (io, accountant) = self.source_work_ledgers()?;
+        let expected = source_work_marker_bytes(readset, locator, transaction_id, manifest_sha256)?;
+        let current = self.current_selection(read_limits, deadline, cancel, Some(&io))?;
+        let selected = current.ok_or_else(|| invalid("V2 target selector is absent"))?;
+        if selected.revision != locator.target_revision
+            || selected.format != tos_source_store::CorpusPointerFormat::V2
+            || selected.previous != Some(locator.expected_selection.revision)
+            || selected.rootset_sha256 != Some(locator.rootset_sha256)
+        {
+            return Err(io::Error::new(
+                io::ErrorKind::WouldBlock,
+                "V2 Work marker target selector is not current",
+            ));
+        }
+        match self.read_source_work_marker(&io, work, deadline, cancel)? {
+            Some((file, bytes, file_allocated)) => {
+                if bytes != expected {
+                    return Err(io::Error::new(
+                        io::ErrorKind::WouldBlock,
+                        "V2 source Work marker identity differs",
+                    ));
+                }
+                active(deadline, cancel)?;
+                work.charge(())?;
+                io.charge_write(bytes.len() as u64).map_err(invalid)?;
+                rustix::fs::unlinkat(&self.root, SOURCE_WORK_MARKER, AtFlags::empty())?;
+                self.root.sync_all()?;
+                io.record_write_returned(bytes.len() as u64)
+                    .map_err(invalid)?;
+                let tx = digest_from_work_identity(transaction_id)?;
+                let manifest = digest_from_work_identity(manifest_sha256)?;
+                if let Some((tracked_tx, tracked_manifest, reserved, tracked_file_bytes)) =
+                    *self.source_work_marker_accounting.borrow()
+                {
+                    if tracked_tx == tx && tracked_manifest == manifest {
+                        let removed = tracked_file_bytes.min(file_allocated);
+                        accountant.release_temporary_file_allocation(reserved, removed)?;
+                        *self.source_work_marker_accounting.borrow_mut() = None;
+                    }
+                }
+                let _ = file;
+            }
+            None => {
+                // Terminal cleanup may be retried after the marker unlink was
+                // durable but before its in-memory same-process release receipt.
+                let tx = digest_from_work_identity(transaction_id)?;
+                let manifest = digest_from_work_identity(manifest_sha256)?;
+                if let Some((tracked_tx, tracked_manifest, reserved, file_bytes)) =
+                    *self.source_work_marker_accounting.borrow()
+                {
+                    if tracked_tx == tx && tracked_manifest == manifest {
+                        accountant.release_temporary_file_allocation(reserved, file_bytes)?;
+                        *self.source_work_marker_accounting.borrow_mut() = None;
+                    }
+                }
+            }
+        }
+        Ok(())
     }
     /// Recovery is an existing-store operation. A typo may not create a
     /// different blank store or mutate its parent namespaces.
@@ -701,6 +1349,7 @@ impl AdmissionStore {
             v2_store_custody: RefCell::new(None),
             v2_allocation_accountant: RefCell::new(None),
             v2_layout_io: RefCell::new(io),
+            source_work_marker_accounting: RefCell::new(None),
         };
         store.verify_layout()?;
         active(deadline, cancel)?;
@@ -750,6 +1399,40 @@ impl AdmissionStore {
         active(deadline, cancel)?;
         self.verify_layout()?;
         Ok(selection)
+    }
+
+    /// Typed observation for forward recovery: only a current pointer that
+    /// still names the exact prepared base or exact target is reported as
+    /// such. Any other well-formed pointer advance remains distinct from IO,
+    /// budget, cancellation, or corruption errors.
+    pub(crate) fn observe_prepared_v2_successor(
+        &self,
+        locator: &PreparedV2SuccessorLocatorV2,
+        limits: ReadLimits,
+        io_budget: &tos_source_store::PinnedSqliteIoBudget,
+        deadline: Instant,
+        cancel: &AtomicBool,
+    ) -> io::Result<PreparedV2SuccessorSelectionV2> {
+        if locator.expected_selection.format != tos_source_store::CorpusPointerFormat::V2
+            || locator.expected_selection.rootset_sha256.is_none()
+            || locator.target_revision == locator.expected_selection.revision
+        {
+            return Err(invalid("prepared V2 selector locator shape differs"));
+        }
+        let selected = self
+            .current_selection(limits, deadline, cancel, Some(io_budget))?
+            .ok_or_else(|| invalid("prepared V2 current selector is absent"))?;
+        if selected == locator.expected_selection {
+            return Ok(PreparedV2SuccessorSelectionV2::BaseSelected);
+        }
+        if selected.format == tos_source_store::CorpusPointerFormat::V2
+            && selected.revision == locator.target_revision
+            && selected.previous == Some(locator.expected_selection.revision)
+            && selected.rootset_sha256 == Some(locator.rootset_sha256)
+        {
+            return Ok(PreparedV2SuccessorSelectionV2::TargetSelected);
+        }
+        Ok(PreparedV2SuccessorSelectionV2::Advanced(Some(selected)))
     }
 
     /// Read the exact immutable rootset selected by a V2 pointer. The held
@@ -987,6 +1670,7 @@ impl AdmissionStore {
         if matches!(
             artifact,
             super::source_admission_segment_v2::SourceRevisionArtifactV2::CompactCommitV2 { .. }
+                | super::source_admission_segment_v2::SourceRevisionArtifactV2::CompactPackedV2 { .. }
         ) && size > super::source_admission_segment_v2::MAX_COMPACT_COMMIT_V2_BYTES as u64
         {
             return Err(invalid("compact source artifact exceeds its wire bound"));
@@ -1198,6 +1882,73 @@ impl AdmissionStore {
         deadline: Instant,
         cancel: &AtomicBool,
     ) -> io::Result<()> {
+        let prepared = self.prepare_v2_successor(built, limits, lock, deadline, cancel)?;
+        self.commit_prepared_v2_successor(
+            &prepared,
+            &prepared.locator,
+            limits,
+            lock,
+            deadline,
+            cancel,
+        )
+    }
+
+    /// Install an immutable validated V2 rootset and its revision record
+    /// without changing `current.json`. The returned locator is safe to put
+    /// in a durable owner intent before applying related physical changes.
+    pub(crate) fn prepare_v2_successor(
+        &self,
+        built: super::source_admission_segment_v2::BuiltSuccessorRootSetV2,
+        limits: ReadLimits,
+        lock: &AdmissionLock,
+        deadline: Instant,
+        cancel: &AtomicBool,
+    ) -> io::Result<PreparedV2SuccessorV2> {
+        self.publish_v2_successor_inner(&built, limits, lock, deadline, cancel)?;
+        let locator = PreparedV2SuccessorLocatorV2 {
+            expected_selection: built.expected_selection,
+            target_revision: built.roots.current.revision,
+            rootset_sha256: built.sha256,
+            source_artifact: built.roots.current.source_artifact.clone(),
+        };
+        Ok(PreparedV2SuccessorV2 { locator, built })
+    }
+
+    /// Compare-and-swap the current selector to an immutable prepared
+    /// successor. Reopening/rebuilding the validated candidate remains the
+    /// source owner's responsibility; this store owner accepts only the
+    /// typed prepared carrier made from `BuiltSuccessorRootSetV2`.
+    pub(crate) fn commit_prepared_v2_successor(
+        &self,
+        prepared: &PreparedV2SuccessorV2,
+        expected_locator: &PreparedV2SuccessorLocatorV2,
+        limits: ReadLimits,
+        lock: &AdmissionLock,
+        deadline: Instant,
+        cancel: &AtomicBool,
+    ) -> io::Result<()> {
+        let built = &prepared.built;
+        if &prepared.locator != expected_locator
+            || prepared.locator.expected_selection != built.expected_selection
+            || prepared.locator.target_revision != built.roots.current.revision
+            || prepared.locator.rootset_sha256 != built.sha256
+            || prepared.locator.source_artifact != built.roots.current.source_artifact
+        {
+            return Err(invalid(
+                "prepared V2 successor locator differs from validated rootset",
+            ));
+        }
+        self.commit_prepared_v2_successor_inner(prepared, limits, lock, deadline, cancel)
+    }
+
+    fn publish_v2_successor_inner(
+        &self,
+        built: &super::source_admission_segment_v2::BuiltSuccessorRootSetV2,
+        limits: ReadLimits,
+        lock: &AdmissionLock,
+        deadline: Instant,
+        cancel: &AtomicBool,
+    ) -> io::Result<()> {
         use super::source_admission_segment_v2::{
             CompactCommitV2, SourceRevisionArtifactV2, decode_workspace_upper_bound,
         };
@@ -1237,11 +1988,13 @@ impl AdmissionStore {
         let expected_base = built.expected_base.0;
         let expected_selection = built.expected_selection.clone();
         let artifact = current.source_artifact.clone();
+        let artifact_filename = artifact.filename();
         let record_sha256 = Digest256::of_bytes(&built.source_record);
         let record_len = u64::try_from(built.source_record.len())
             .map_err(|_| invalid("V2 compact record length exceeds range"))?;
         let (artifact_sha256, artifact_bytes) = match &artifact {
-            SourceRevisionArtifactV2::CompactCommitV2 { sha256, bytes } => (*sha256, *bytes),
+            SourceRevisionArtifactV2::CompactCommitV2 { sha256, bytes }
+            | SourceRevisionArtifactV2::CompactPackedV2 { sha256, bytes } => (*sha256, *bytes),
             _ => return Err(invalid("V2 successor source record format differs")),
         };
         let expected_pointer_binding = match expected_selection.format {
@@ -1340,10 +2093,14 @@ impl AdmissionStore {
         let pointer_io = Some(io_budget);
         self.verify_layout()?;
         let selected = self.current_selection(limits, deadline, cancel, pointer_io)?;
-        if selected.as_ref() != Some(&expected_selection) {
-            return Err(invalid(
-                "V2 successor expected selected-pointer tuple differs",
-            ));
+        let target_already_selected = selected.is_some_and(|selection| {
+            selection.format == tos_source_store::CorpusPointerFormat::V2
+                && selection.revision.0 == revision
+                && selection.previous == Some(built.expected_base)
+                && selection.rootset_sha256 == Some(built.sha256)
+        });
+        if selected.as_ref() != Some(&expected_selection) && !target_already_selected {
+            return Err(v2_base_advanced());
         }
         charge_v2_component_guard(io_budget, ".admission.lock")?;
         let selected_lock = tos_fd_open::open_regular_at(&self.root, Path::new(".admission.lock"))
@@ -1353,6 +2110,101 @@ impl AdmissionStore {
         }
 
         let revision_name = revision.to_hex();
+        match openat(
+            &self.revisions,
+            revision_name.as_str(),
+            OFlags::RDONLY | OFlags::DIRECTORY | OFlags::NOFOLLOW | OFlags::CLOEXEC,
+            Mode::empty(),
+        ) {
+            Ok(fd) => {
+                let directory = File::from(fd);
+                let directory_before = directory.metadata()?;
+                if directory_before.uid() != rustix::process::geteuid().as_raw()
+                    || directory_before.mode() & 0o777 != 0o700
+                {
+                    return Err(invalid("prepared V2 revision directory ownership differs"));
+                }
+                let mut names = std::collections::BTreeSet::new();
+                for entry in std::fs::read_dir(format!("/proc/self/fd/{}", directory.as_raw_fd()))?
+                {
+                    active(deadline, cancel)?;
+                    let name = entry?
+                        .file_name()
+                        .into_string()
+                        .map_err(|_| invalid("prepared V2 revision entry name differs"))?;
+                    if !names.insert(name) || names.len() > 2 {
+                        return Err(invalid("prepared V2 revision directory has extra entries"));
+                    }
+                }
+                if names
+                    != std::collections::BTreeSet::from([
+                        artifact_filename.to_owned(),
+                        "rootset-v2.json".to_owned(),
+                    ])
+                {
+                    return Err(invalid("prepared V2 revision member set differs"));
+                }
+                charge_v2_component_guard(io_budget, artifact_filename)?;
+                let mut record =
+                    tos_fd_open::open_regular_at(&directory, Path::new(artifact_filename))
+                        .map_err(invalid)?;
+                let record_metadata = record.metadata()?;
+                if record_metadata.uid() != rustix::process::geteuid().as_raw()
+                    || record_metadata.mode() & 0o222 != 0
+                {
+                    return Err(invalid("prepared V2 compact record permissions differ"));
+                }
+                verify_file_recorded(
+                    &mut record,
+                    record_len,
+                    record_sha256,
+                    deadline,
+                    cancel,
+                    charge_read,
+                    record_read,
+                )?;
+                charge_v2_component_guard(io_budget, "rootset-v2.json")?;
+                let mut rootset =
+                    tos_fd_open::open_regular_at(&directory, Path::new("rootset-v2.json"))
+                        .map_err(invalid)?;
+                let rootset_metadata = rootset.metadata()?;
+                if rootset_metadata.uid() != rustix::process::geteuid().as_raw()
+                    || rootset_metadata.mode() & 0o222 != 0
+                {
+                    return Err(invalid("prepared V2 rootset permissions differ"));
+                }
+                verify_file_recorded(
+                    &mut rootset,
+                    built.bytes.len() as u64,
+                    built.sha256,
+                    deadline,
+                    cancel,
+                    charge_read,
+                    record_read,
+                )?;
+                let directory_after = directory.metadata()?;
+                charge_v2_component_guard(io_budget, &revision_name)?;
+                let named =
+                    tos_fd_open::open_directory_at(&self.revisions, Path::new(&revision_name))
+                        .map_err(invalid)?;
+                if identity(&directory)? != identity(&named)?
+                    || directory_before.dev() != directory_after.dev()
+                    || directory_before.ino() != directory_after.ino()
+                    || directory_before.mtime() != directory_after.mtime()
+                    || directory_before.ctime() != directory_after.ctime()
+                {
+                    return Err(invalid("prepared V2 revision changed during verification"));
+                }
+                self.verify_layout()?;
+                let selected = self.current_selection(limits, deadline, cancel, pointer_io)?;
+                if selected.as_ref() != Some(&expected_selection) && !target_already_selected {
+                    return Err(v2_base_advanced());
+                }
+                return Ok(());
+            }
+            Err(Errno::NOENT) => {}
+            Err(error) => return Err(error.into()),
+        }
         let stage_name = random_name()?;
         let record_rootset_bytes = record_len
             .checked_add(built.bytes.len() as u64)
@@ -1393,10 +2245,10 @@ impl AdmissionStore {
             v2_rootset: true,
         };
 
-        charge_v2_component_guard(io_budget, "commit-v2.json")?;
+        charge_v2_component_guard(io_budget, artifact_filename)?;
         let mut record_file = File::from(rustix::fs::openat(
             &stage.directory,
-            "commit-v2.json",
+            artifact_filename,
             OFlags::RDWR | OFlags::CREATE | OFlags::EXCL | OFlags::NOFOLLOW | OFlags::CLOEXEC,
             Mode::from_raw_mode(0o600),
         )?);
@@ -1482,8 +2334,8 @@ impl AdmissionStore {
             return Err(invalid("V2 successor revision directory binding differs"));
         }
         let verify_immutable_pair = |directory: &File| -> io::Result<u64> {
-            charge_v2_component_guard(io_budget, "commit-v2.json")?;
-            let mut record = tos_fd_open::open_regular_at(directory, Path::new("commit-v2.json"))
+            charge_v2_component_guard(io_budget, artifact_filename)?;
+            let mut record = tos_fd_open::open_regular_at(directory, Path::new(artifact_filename))
                 .map_err(invalid)?;
             let record_metadata = record.metadata()?;
             if record_metadata.uid() != rustix::process::geteuid().as_raw()
@@ -1544,8 +2396,135 @@ impl AdmissionStore {
         // a different base/rootset pair.
         let selected = self.current_selection(limits, deadline, cancel, pointer_io)?;
         if selected.as_ref() != Some(&expected_selection) {
-            return Err(invalid("V2 successor base changed before selector CAS"));
+            return Err(v2_base_advanced());
         }
+
+        Ok(())
+    }
+
+    fn commit_prepared_v2_successor_inner(
+        &self,
+        prepared: &PreparedV2SuccessorV2,
+        limits: ReadLimits,
+        lock: &AdmissionLock,
+        deadline: Instant,
+        cancel: &AtomicBool,
+    ) -> io::Result<()> {
+        use super::source_admission_segment_v2::{
+            CompactCommitV2, SourceRevisionArtifactV2, decode_workspace_upper_bound,
+        };
+
+        active(deadline, cancel)?;
+        let limits = limits.validate().map_err(invalid)?;
+        let built = &prepared.built;
+        let tree_io = Arc::clone(&built.tree_io);
+        let custody = tree_io.custody_reservation();
+        self.retain_v2_store_custody(Arc::clone(&custody));
+        let io_budget = tree_io.io_budget();
+        let charge_read = &|n| {
+            tree_io
+                .charge_read(n)
+                .then_some(())
+                .ok_or_else(|| invalid("V2 successor read allowance refused"))
+        };
+        let record_read = &|n| {
+            tree_io
+                .record_read_returned(n)
+                .then_some(())
+                .ok_or_else(|| invalid("V2 successor read return refused"))
+        };
+        let charge_write = &|n| {
+            tree_io
+                .charge_write(n)
+                .then_some(())
+                .ok_or_else(|| invalid("V2 successor write allowance refused"))
+        };
+        let record_write = &|n| {
+            tree_io
+                .record_write_returned(n)
+                .then_some(())
+                .ok_or_else(|| invalid("V2 successor write return refused"))
+        };
+        let current = &built.roots.current;
+        let revision = current.revision.0;
+        let expected_base = built.expected_base.0;
+        let expected_selection = built.expected_selection;
+        let artifact = current.source_artifact.clone();
+        let artifact_filename = artifact.filename();
+        let record_sha256 = Digest256::of_bytes(&built.source_record);
+        let record_len = u64::try_from(built.source_record.len())
+            .map_err(|_| invalid("V2 compact record length exceeds range"))?;
+        let (artifact_sha256, artifact_bytes) = match &artifact {
+            SourceRevisionArtifactV2::CompactCommitV2 { sha256, bytes }
+            | SourceRevisionArtifactV2::CompactPackedV2 { sha256, bytes } => (*sha256, *bytes),
+            _ => return Err(invalid("V2 successor source record format differs")),
+        };
+        if prepared.locator.expected_selection != expected_selection
+            || prepared.locator.target_revision != current.revision
+            || prepared.locator.rootset_sha256 != built.sha256
+            || prepared.locator.source_artifact != current.source_artifact
+            || expected_selection.revision.0 != expected_base
+            || expected_selection.rootset_sha256 != built.expected_previous_rootset_sha256
+            || current.base_revision != Some(built.expected_base)
+            || current.manifest_sha256 != record_sha256
+            || artifact_sha256 != record_sha256
+            || artifact_bytes != record_len
+            || Digest256::of_bytes(&built.bytes) != built.sha256
+            || !self.has_v2_allocation_accountant(&tree_io)
+            || !self.has_v2_segments()?
+        {
+            return Err(invalid(
+                "prepared V2 successor custody or root binding differs",
+            ));
+        }
+        let rootset_additional =
+            std::mem::size_of::<super::source_admission_segment_v2::BuiltSuccessorRootSetV2>()
+                .checked_add(built.bytes.capacity())
+                .and_then(|bytes| bytes.checked_add(built.source_record.capacity()))
+                .ok_or_else(|| invalid("V2 prepared rootset state overflow"))?;
+        if built.roots.encode_state_upper_bound(rootset_additional)?
+            > tree_io.max_working_state_bytes()
+        {
+            return Err(invalid("V2 prepared rootset state exceeds profile"));
+        }
+        let segment_root = self
+            .v2_segments
+            .borrow()
+            .as_ref()
+            .ok_or_else(|| invalid("V2 successor segment namespace is absent"))?
+            .try_clone()?;
+        charge_v2_component_guard(io_budget, "segments-v2")?;
+        if identity(&segment_root)?
+            != built
+                .segment_store
+                .physical_root_identity()
+                .map_err(invalid)?
+            || built.segment_store.custody_domain()
+                != super::source_admission_segment_v2::SOURCE_ADMISSION_V2_DOMAIN
+        {
+            return Err(invalid("V2 prepared physical store binding differs"));
+        }
+        built.roots.validate_store_binding(
+            built.segment_store.store_id(),
+            built.segment_store.domain_digest(),
+        )?;
+        let compact_workspace = decode_workspace_upper_bound(built.source_record.len())?;
+        let compact_live =
+            std::mem::size_of::<super::source_admission_segment_v2::BuiltSuccessorRootSetV2>()
+                .checked_add(built.roots.retained_state_bytes()?)
+                .and_then(|bytes| bytes.checked_add(built.bytes.capacity()))
+                .and_then(|bytes| bytes.checked_add(built.source_record.capacity()))
+                .and_then(|bytes| bytes.checked_add(compact_workspace))
+                .ok_or_else(|| invalid("V2 prepared compact state overflow"))?;
+        if compact_live > tree_io.max_working_state_bytes() {
+            return Err(invalid("V2 prepared compact state exceeds profile"));
+        }
+        let compact =
+            CompactCommitV2::decode_with_workspace(&built.source_record, compact_workspace)?;
+        if !compact.matches_roots(current) {
+            return Err(invalid("V2 prepared compact record differs from rootset"));
+        }
+        drop(compact);
 
         let pointer_live_state =
             std::mem::size_of::<super::source_admission_segment_v2::BuiltSuccessorRootSetV2>()
@@ -1557,6 +2536,80 @@ impl AdmissionStore {
         if pointer_live_state > tree_io.max_working_state_bytes() {
             return Err(invalid("V2 pointer encoding exceeds source state profile"));
         }
+
+        let pointer_io = Some(io_budget);
+        self.verify_layout()?;
+        let selected = self.current_selection(limits, deadline, cancel, pointer_io)?;
+        let target_already_selected = selected.as_ref().is_some_and(|selection| {
+            selection.format == tos_source_store::CorpusPointerFormat::V2
+                && selection.revision == current.revision
+                && selection.previous == Some(expected_selection.revision)
+                && selection.rootset_sha256 == Some(built.sha256)
+        });
+        if selected.as_ref() != Some(&expected_selection) && !target_already_selected {
+            return Err(v2_base_advanced());
+        }
+        charge_v2_component_guard(io_budget, ".admission.lock")?;
+        let selected_lock = tos_fd_open::open_regular_at(&self.root, Path::new(".admission.lock"))
+            .map_err(invalid)?;
+        if identity(&selected_lock)? != identity(&lock.0)? {
+            return Err(invalid("V2 prepared publication lock was replaced"));
+        }
+
+        let revision_name = revision.to_hex();
+        charge_v2_component_guard(io_budget, &revision_name)?;
+        let published_directory =
+            tos_fd_open::open_directory_at(&self.revisions, Path::new(&revision_name))
+                .map_err(invalid)?;
+        let verify_immutable_pair = |directory: &File| -> io::Result<u64> {
+            charge_v2_component_guard(io_budget, artifact_filename)?;
+            let mut record = tos_fd_open::open_regular_at(directory, Path::new(artifact_filename))
+                .map_err(invalid)?;
+            let record_metadata = record.metadata()?;
+            if record_metadata.uid() != rustix::process::geteuid().as_raw()
+                || record_metadata.mode() & 0o222 != 0
+            {
+                return Err(invalid("V2 compact record permissions differ"));
+            }
+            let record_blocks = record_metadata.blocks();
+            verify_file_recorded(
+                &mut record,
+                record_len,
+                record_sha256,
+                deadline,
+                cancel,
+                charge_read,
+                record_read,
+            )?;
+            charge_v2_component_guard(io_budget, "rootset-v2.json")?;
+            let mut rootset = tos_fd_open::open_regular_at(directory, Path::new("rootset-v2.json"))
+                .map_err(invalid)?;
+            let rootset_metadata = rootset.metadata()?;
+            if rootset_metadata.uid() != rustix::process::geteuid().as_raw()
+                || rootset_metadata.mode() & 0o222 != 0
+            {
+                return Err(invalid("V2 rootset permissions differ"));
+            }
+            let allocated = record_blocks
+                .checked_add(rootset_metadata.blocks())
+                .and_then(|blocks| blocks.checked_mul(512))
+                .ok_or_else(|| invalid("V2 successor file allocation overflow"))?;
+            verify_file_recorded(
+                &mut rootset,
+                built.bytes.len() as u64,
+                built.sha256,
+                deadline,
+                cancel,
+                charge_read,
+                record_read,
+            )?;
+            Ok(allocated)
+        };
+        verify_immutable_pair(&published_directory)?;
+        if target_already_selected {
+            return Ok(());
+        }
+
         let pointer_value = serde_json::json!({
             "schema_version":"tos_corpus_pointer_v2",
             "current":revision.to_hex(),
@@ -1612,12 +2665,12 @@ impl AdmissionStore {
             .map_err(invalid)?;
         if identity(&selected_lock)? != identity(&lock.0)? {
             return Err(invalid(
-                "V2 successor publication lock was replaced before CAS",
+                "V2 prepared publication lock was replaced before CAS",
             ));
         }
         let selected = self.current_selection(limits, deadline, cancel, pointer_io)?;
         if selected.as_ref() != Some(&expected_selection) {
-            return Err(invalid("V2 successor selector compare failed"));
+            return Err(v2_base_advanced());
         }
         active(deadline, cancel)?;
         charge_v2_component_guard(io_budget, "current.json")?;
@@ -2667,6 +3720,7 @@ impl AdmissionStore {
                 v2_store_custody: RefCell::new(None),
                 v2_allocation_accountant: RefCell::new(None),
                 v2_layout_io: RefCell::new(None),
+                source_work_marker_accounting: RefCell::new(None),
             };
             store.verify_layout()?;
             store.attach_v2_allocation_accountant(Arc::clone(&accountant))?;
@@ -2825,6 +3879,7 @@ impl AdmissionStore {
                 v2_store_custody: RefCell::new(None),
                 v2_allocation_accountant: RefCell::new(None),
                 v2_layout_io: RefCell::new(Some(accountant.io_budget().clone())),
+                source_work_marker_accounting: RefCell::new(None),
             };
             store.attach_v2_allocation_accountant(Arc::clone(&accountant))?;
             if let Some(precharge) = namespace_reservation.as_ref() {
@@ -2926,6 +3981,7 @@ impl AdmissionStore {
             v2_store_custody: RefCell::new(None),
             v2_allocation_accountant: RefCell::new(None),
             v2_layout_io: RefCell::new(None),
+            source_work_marker_accounting: RefCell::new(None),
         };
         store.verify_layout()?;
         active(deadline, cancel)?;
@@ -3411,6 +4467,185 @@ impl AdmissionStore {
         )?;
         self.verify_layout()
     }
+
+    pub(crate) fn copy_candidate_payload_slice_accounted(
+        &self,
+        pack: &CandidatePayloadPackV2,
+        offset: u64,
+        size: u64,
+        digest: Digest256,
+        sink: &mut dyn Write,
+        deadline: Instant,
+        cancel: &AtomicBool,
+        charge_read: &dyn Fn(u64) -> io::Result<()>,
+        charge_write: &dyn Fn(u64) -> io::Result<()>,
+        record_read: &dyn Fn(u64) -> io::Result<()>,
+        record_write: &dyn Fn(u64) -> io::Result<()>,
+    ) -> io::Result<()> {
+        self.verify_layout()?;
+        pack.verify_named()?;
+        if pack.actual_allocated.is_none()
+            || offset
+                .checked_add(size)
+                .is_none_or(|end| end > pack.appended_bytes)
+        {
+            return Err(invalid("candidate payload slice is outside sealed pack"));
+        }
+        stream_payload_slice_recorded(
+            &pack.file,
+            offset,
+            size,
+            digest,
+            deadline,
+            cancel,
+            sink,
+            charge_read,
+            charge_write,
+            record_read,
+            record_write,
+        )?;
+        self.verify_layout()
+    }
+
+    pub(crate) fn read_candidate_payload_slice_accounted(
+        &self,
+        pack: &CandidatePayloadPackV2,
+        offset: u64,
+        size: u64,
+        digest: Digest256,
+        cap: usize,
+        deadline: Instant,
+        cancel: &AtomicBool,
+        charge_read: &dyn Fn(u64) -> io::Result<()>,
+        record_read: &dyn Fn(u64) -> io::Result<()>,
+    ) -> io::Result<Vec<u8>> {
+        if size > cap as u64 {
+            return Err(invalid(
+                "candidate payload slice exceeds selected read bound",
+            ));
+        }
+        let mut bytes = Vec::with_capacity(usize::try_from(size).map_err(invalid)?);
+        self.copy_candidate_payload_slice_accounted(
+            pack,
+            offset,
+            size,
+            digest,
+            &mut bytes,
+            deadline,
+            cancel,
+            charge_read,
+            &|_| Ok(()),
+            record_read,
+            &|_| Ok(()),
+        )?;
+        Ok(bytes)
+    }
+
+    pub(crate) fn verify_candidate_payload_slice_accounted(
+        &self,
+        pack: &CandidatePayloadPackV2,
+        offset: u64,
+        size: u64,
+        digest: Digest256,
+        deadline: Instant,
+        cancel: &AtomicBool,
+        charge_read: &dyn Fn(u64) -> io::Result<()>,
+        record_read: &dyn Fn(u64) -> io::Result<()>,
+    ) -> io::Result<()> {
+        self.copy_candidate_payload_slice_accounted(
+            pack,
+            offset,
+            size,
+            digest,
+            &mut io::sink(),
+            deadline,
+            cancel,
+            charge_read,
+            &|_| Ok(()),
+            record_read,
+            &|_| Ok(()),
+        )
+    }
+
+    /// Create the single append-only candidate payload spool before reading
+    /// any streamed update bytes. `max_bytes` is the complete selected source
+    /// payload upper bound for this batch, so the physical peak is reserved
+    /// before the first write. A failed candidate keeps this reservation and
+    /// inode; only the packed writer's successful seal authorizes cleanup.
+    pub(crate) fn begin_candidate_payload_pack(
+        &self,
+        max_bytes: u64,
+        deadline: Instant,
+        cancel: &AtomicBool,
+    ) -> io::Result<CandidatePayloadPackV2> {
+        active(deadline, cancel)?;
+        self.verify_layout()?;
+        let accountant = self
+            .v2_allocation_accountant
+            .borrow()
+            .as_ref()
+            .map(Arc::clone)
+            .ok_or_else(|| invalid("candidate payload pack needs native V2 allocation"))?;
+        let unit = accountant.selected_allocation_unit_bytes();
+        if unit == 0 || unit == u64::MAX || self.staging.metadata()?.blksize() > unit {
+            return Err(invalid("candidate payload allocation quantum differs"));
+        }
+        let input_bytes = max_bytes
+            .checked_add(unit)
+            .ok_or_else(|| invalid("candidate payload allocation profile overflow"))?;
+        let reserved = accountant.reserve_file_allocation(input_bytes)?;
+        let directory_allocated_before = match allocated_bytes(
+            &self.staging,
+            "candidate payload staging directory allocation overflow",
+        ) {
+            Ok(bytes) => bytes,
+            Err(error) => {
+                let _ = accountant.release_file_allocation(reserved);
+                return Err(error);
+            }
+        };
+        let name = match random_name() {
+            Ok(name) => name,
+            Err(error) => {
+                let _ = accountant.release_file_allocation(reserved);
+                return Err(error);
+            }
+        };
+        let file = match rustix::fs::openat(
+            &self.staging,
+            name.as_str(),
+            OFlags::RDWR | OFlags::CREATE | OFlags::EXCL | OFlags::NOFOLLOW | OFlags::CLOEXEC,
+            Mode::from_raw_mode(0o600),
+        ) {
+            Ok(file) => File::from(file),
+            Err(error) => {
+                let _ = accountant.release_file_allocation(reserved);
+                return Err(error.into());
+            }
+        };
+        let pack = CandidatePayloadPackV2 {
+            directory: self.staging.try_clone()?,
+            name,
+            file: Arc::new(file),
+            accountant,
+            reserved,
+            max_bytes,
+            directory_allocated_before,
+            actual_allocated: None,
+            appended_bytes: 0,
+        };
+        let metadata = pack.file.metadata()?;
+        if !metadata.is_file()
+            || metadata.uid() != rustix::process::geteuid().as_raw()
+            || metadata.mode() & 0o777 != 0o600
+        {
+            return Err(invalid("candidate payload staging custody differs"));
+        }
+        self.verify_layout()?;
+        active(deadline, cancel)?;
+        Ok(pack)
+    }
+
     /// Retirement v1 binds the retired digest but omits its length. The
     /// selected held regular object supplies a bounded length for a subsequent
     /// complete digest verification; this is not a new manifest fact.
@@ -3433,6 +4668,69 @@ impl AdmissionStore {
         active(deadline, cancel)?;
         Ok(size)
     }
+
+    pub(crate) fn object_size_if_present(
+        &self,
+        digest: Digest256,
+        cap: u64,
+        deadline: Instant,
+        cancel: &AtomicBool,
+    ) -> io::Result<Option<u64>> {
+        active(deadline, cancel)?;
+        self.verify_layout()?;
+        let file = match tos_fd_open::open_regular_at(&self.objects, Path::new(&digest.to_hex())) {
+            Ok(file) => file,
+            Err(error)
+                if error
+                    .source
+                    .as_ref()
+                    .is_some_and(|source| source.kind() == io::ErrorKind::NotFound) =>
+            {
+                return Ok(None);
+            }
+            Err(error) => return Err(invalid(error)),
+        };
+        let metadata = file.metadata()?;
+        if !metadata.is_file()
+            || metadata.uid() != rustix::process::geteuid().as_raw()
+            || metadata.mode() & 0o222 != 0
+        {
+            return Err(invalid("candidate object source custody differs"));
+        }
+        if metadata.len() > cap {
+            return Err(invalid(
+                "candidate object source exceeds selected read bound",
+            ));
+        }
+        self.verify_layout()?;
+        active(deadline, cancel)?;
+        Ok(Some(metadata.len()))
+    }
+
+    pub(crate) fn open_object_source(
+        &self,
+        digest: Digest256,
+        size: u64,
+        deadline: Instant,
+        cancel: &AtomicBool,
+    ) -> io::Result<File> {
+        active(deadline, cancel)?;
+        self.verify_layout()?;
+        let file = tos_fd_open::open_regular_at(&self.objects, Path::new(&digest.to_hex()))
+            .map_err(invalid)?;
+        let metadata = file.metadata()?;
+        if !metadata.is_file()
+            || metadata.uid() != rustix::process::geteuid().as_raw()
+            || metadata.mode() & 0o222 != 0
+            || metadata.len() != size
+        {
+            return Err(invalid("candidate object source metadata differs"));
+        }
+        self.verify_layout()?;
+        active(deadline, cancel)?;
+        Ok(file)
+    }
+
     pub(crate) fn verify_object(
         &self,
         digest: Digest256,
@@ -3634,6 +4932,77 @@ fn stream_verified_recorded(
         || before.ctime_nsec() != after.ctime_nsec()
     {
         return Err(invalid("corpus object fixity differs"));
+    }
+    active(deadline, cancel)
+}
+
+fn stream_payload_slice_recorded(
+    file: &File,
+    offset: u64,
+    size: u64,
+    digest: Digest256,
+    deadline: Instant,
+    cancel: &AtomicBool,
+    sink: &mut (impl Write + ?Sized),
+    charge_read: &dyn Fn(u64) -> io::Result<()>,
+    charge_write: &dyn Fn(u64) -> io::Result<()>,
+    record_read: &dyn Fn(u64) -> io::Result<()>,
+    record_write: &dyn Fn(u64) -> io::Result<()>,
+) -> io::Result<()> {
+    let before = file.metadata()?;
+    let end = offset
+        .checked_add(size)
+        .ok_or_else(|| invalid("candidate payload slice end overflow"))?;
+    if !before.is_file() || end > before.len() {
+        return Err(invalid("candidate payload slice file bounds differ"));
+    }
+    let stable = |metadata: &std::fs::Metadata| {
+        (
+            metadata.dev(),
+            metadata.ino(),
+            metadata.len(),
+            metadata.mtime(),
+            metadata.mtime_nsec(),
+            metadata.ctime(),
+            metadata.ctime_nsec(),
+        )
+    };
+    let mut copied = 0u64;
+    let mut hash = Digest256Hasher::new();
+    let mut block = [0u8; ADMISSION_IO_BLOCK_BYTES];
+    while copied < size {
+        active(deadline, cancel)?;
+        let wanted = usize::try_from((size - copied).min(block.len() as u64)).map_err(invalid)?;
+        charge_read(wanted as u64)?;
+        let at = offset
+            .checked_add(copied)
+            .ok_or_else(|| invalid("candidate payload slice cursor overflow"))?;
+        let read = loop {
+            match file.read_at(&mut block[..wanted], at) {
+                Err(error) if error.kind() == io::ErrorKind::Interrupted => continue,
+                value => break value?,
+            }
+        };
+        record_read(read as u64)?;
+        if read == 0 {
+            return Err(invalid("candidate payload slice early EOF"));
+        }
+        copied = copied
+            .checked_add(read as u64)
+            .filter(|bytes| *bytes <= size)
+            .ok_or_else(|| invalid("candidate payload slice grew"))?;
+        hash.update(&block[..read]);
+        write_recorded(
+            sink,
+            &block[..read],
+            deadline,
+            cancel,
+            charge_write,
+            record_write,
+        )?;
+    }
+    if stable(&before) != stable(&file.metadata()?) || hash.finalize() != digest {
+        return Err(invalid("candidate payload slice fixity differs"));
     }
     active(deadline, cancel)
 }

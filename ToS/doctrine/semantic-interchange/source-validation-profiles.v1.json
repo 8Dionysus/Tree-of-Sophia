@@ -50,6 +50,21 @@
         "closure"
       ],
       "authority_posture": "mechanical_validation_only"
+    },
+    {
+      "profile_id": "selected-generated-record-closure",
+      "input_scope": "selected_generated_record_closure",
+      "required_owners": [
+        "records",
+        "bibliography",
+        "rights",
+        "review",
+        "references",
+        "dependency-closure",
+        "discovery",
+        "closure"
+      ],
+      "authority_posture": "mechanical_validation_only"
     }
   ]
 }

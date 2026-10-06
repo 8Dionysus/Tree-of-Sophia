@@ -292,6 +292,41 @@ impl GrammarIdentity {
         remaining_state: usize,
         cancel: &AtomicBool,
     ) -> io::Result<()> {
+        self.bind_selection_output(
+            "record_selection",
+            remaining_state,
+            cancel,
+            |writer, _cap| serde_json::to_writer(writer, binding).map_err(invalid),
+        )
+        .map(|_| ())
+    }
+
+    pub(crate) fn bind_generated_input(
+        &mut self,
+        declaration: &crate::source_admission_indexed_input::HeldIndexedInputDeclarationV1,
+        remaining_state: usize,
+        cancel: &AtomicBool,
+    ) -> io::Result<Vec<u8>> {
+        let deadline = self.deadline;
+        self.bind_selection_output(
+            "generated_input",
+            remaining_state,
+            cancel,
+            |mut writer, cap| {
+                declaration
+                    .write_identity_binding_v1(&mut writer, cap, deadline, cancel)
+                    .map(|_| ())
+            },
+        )
+    }
+
+    fn bind_selection_output(
+        &mut self,
+        key: &'static str,
+        remaining_state: usize,
+        cancel: &AtomicBool,
+        mut write_binding: impl FnMut(&mut dyn io::Write, usize) -> io::Result<()>,
+    ) -> io::Result<Vec<u8>> {
         struct Count<'a> {
             bytes: usize,
             cap: usize,
@@ -322,16 +357,17 @@ impl GrammarIdentity {
             deadline: self.deadline,
             cancel,
         };
-        #[derive(serde::Serialize)]
-        struct Binding<'a> {
-            grammar_validator: String,
-            record_selection: &'a Value,
-        }
-        let envelope = Binding {
-            grammar_validator: self.digest.to_hex(),
-            record_selection: binding,
+        let digest = self.digest.to_hex();
+        let mut emit = |writer: &mut dyn io::Write| -> io::Result<()> {
+            writer.write_all(b"{\"grammar_validator\":\"")?;
+            writer.write_all(digest.as_bytes())?;
+            writer.write_all(b"\",")?;
+            serde_json::to_writer(&mut *writer, key).map_err(invalid)?;
+            writer.write_all(b":")?;
+            write_binding(writer, cap)?;
+            writer.write_all(b"}")
         };
-        serde_json::to_writer(&mut count, &envelope).map_err(invalid)?;
+        emit(&mut count)?;
         // CorpusSnapshotV1 owns a terminal LF beyond serde's compact envelope.
         // Keep that byte inside the same caller-derived serialization cap.
         let canonical_bytes = count
@@ -349,14 +385,19 @@ impl GrammarIdentity {
             20,
         )
         .map_err(invalid)?;
-        let raw = serde_json::to_vec(&envelope).map_err(invalid)?;
+        let mut raw = Vec::new();
+        raw.try_reserve_exact(count.bytes).map_err(invalid)?;
+        emit(&mut raw)?;
+        if raw.len() != count.bytes {
+            return Err(invalid("selection identity serialization differs"));
+        }
         let parsed = parse_json(&raw, JsonMode::PublishedStrict, limits).map_err(invalid)?;
         let canonical =
             canonical_bytes_v1(parsed.root(), CanonicalProfile::CorpusSnapshotV1, limits)
                 .map_err(invalid)?;
         active(self.deadline, cancel)?;
         self.digest = Digest256::of_bytes(&canonical);
-        Ok(())
+        Ok(canonical)
     }
 
     /// Preserve the maintained canonical envelope while streaming one exact
@@ -553,7 +594,15 @@ impl GrammarIdentity {
         if let Some(error) = failure {
             return Err(error);
         }
-        let coverage = coverage.map_err(|_| invalid("native candidate grammar input refused"))?;
+        let coverage = coverage.map_err(|error| {
+            let cause = crate::source_admission_spooled_index::receiver_refusal(error);
+            io::Error::new(
+                io::ErrorKind::InvalidData,
+                super::source_foundation_admission::NativeValidationRefusal(
+                    crate::source_command::public_io_reason(&cause),
+                ),
+            )
+        })?;
         if count != self.bindings.len() {
             return Err(invalid(
                 "candidate grammar differs from selected native validator grammar",

@@ -172,6 +172,8 @@ fn plan(ctx: &CommandContext, proposal: &PreparedCommand) -> SourceCommandResult
             after: change.after.clone(),
         }],
         new_directories: vec![],
+        source_readset: None,
+        source_successor: None,
     })
 }
 

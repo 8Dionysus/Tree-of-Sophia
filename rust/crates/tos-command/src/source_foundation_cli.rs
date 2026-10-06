@@ -245,6 +245,9 @@ fn select_validation_profile_from_bytes(
             "full_audit" => SourceFoundationDefaultRuleScope::FullAudit,
             "selected_source_closure" => SourceFoundationDefaultRuleScope::SelectedSourceClosure,
             "selected_record_closure" => SourceFoundationDefaultRuleScope::SelectedRecordClosure,
+            "selected_generated_record_closure" => {
+                SourceFoundationDefaultRuleScope::SelectedGeneratedRecordClosure
+            }
             _ => return Err("unsupported validation profile input scope"),
         };
         let owners: std::collections::BTreeSet<_> =
@@ -288,6 +291,7 @@ pub(crate) struct FoundationArguments {
     pub validation_profile: ValidationProfile,
     pub validation_profile_explicit: bool,
     pub record_selection_manifest: Option<PathBuf>,
+    pub indexed_input_root: Option<PathBuf>,
     pub help: bool,
 }
 
@@ -341,6 +345,7 @@ pub(crate) fn parse_arguments(
         validation_profile: select_validation_profile(None)?,
         validation_profile_explicit: false,
         record_selection_manifest: None,
+        indexed_input_root: None,
         help: false,
     };
     let mut selected = [false; 6];
@@ -374,6 +379,16 @@ pub(crate) fn parse_arguments(
                     return Err("record selection manifest selected more than once");
                 }
             }
+            "--indexed-input-root" => {
+                index += 1;
+                let path = PathBuf::from(
+                    args.get(index)
+                        .ok_or("indexed input root requires a path")?,
+                );
+                if parsed.indexed_input_root.replace(path).is_some() {
+                    return Err("indexed input root selected more than once");
+                }
+            }
             "--repo-root" | "--payload-source-root" => {
                 index += 1;
                 let path = PathBuf::from(
@@ -405,6 +420,15 @@ pub(crate) fn parse_arguments(
                                 return Err("record selection manifest selected more than once");
                             }
                         }
+                        "--indexed-input-root" => {
+                            if parsed
+                                .indexed_input_root
+                                .replace(PathBuf::from(value))
+                                .is_some()
+                            {
+                                return Err("indexed input root selected more than once");
+                            }
+                        }
                         "--repo-root" => parsed.repo_root = Some(PathBuf::from(value)),
                         "--payload-source-root" => {
                             parsed.payload_source_root = Some(PathBuf::from(value))
@@ -430,8 +454,11 @@ pub(crate) fn parse_arguments(
         return Err("validation profile is separate from lab-only selection");
     }
     if parsed.record_selection_manifest.is_some()
-        != (parsed.validation_profile.scope
-            == SourceFoundationDefaultRuleScope::SelectedRecordClosure)
+        != matches!(
+            parsed.validation_profile.scope,
+            SourceFoundationDefaultRuleScope::SelectedRecordClosure
+                | SourceFoundationDefaultRuleScope::SelectedGeneratedRecordClosure
+        )
     {
         return Err("selected-record-closure requires its exclusive record selection manifest");
     }
@@ -450,13 +477,30 @@ pub(crate) fn parse_arguments(
     {
         return Err("record selection manifest path must be absolute and normalized");
     }
+    if parsed.indexed_input_root.is_some()
+        != (parsed.validation_profile.scope
+            == SourceFoundationDefaultRuleScope::SelectedGeneratedRecordClosure)
+    {
+        return Err("selected-generated-record-closure requires its exclusive indexed input root");
+    }
+    if parsed.indexed_input_root.as_ref().is_some_and(|path| {
+        !path.is_absolute()
+            || path.components().any(|c| {
+                !matches!(
+                    c,
+                    std::path::Component::RootDir | std::path::Component::Normal(_)
+                )
+            })
+    }) {
+        return Err("indexed input root must be absolute and normalized");
+    }
     if !parsed.help && parsed.repo_root.is_none() {
         return Err("foundation requires an explicitly selected --repo-root");
     }
     Ok(parsed)
 }
 
-pub(crate) const HELP: &str = "usage: validate_source_witness_foundation [--repo-root PATH] [--validation-profile ID (native admission only; omit=full audit)] [--record-selection-manifest PATH (selected-record-closure only)] [--require-local-payloads] [--payload-source-root PATH] [--source-anchor-v2-lab-only] [--source-text-layer-lab-only] [--provenance-v2-lab-only] [--semantic-annotation-v2-lab-only] [--translation-alignment-v1-lab-only] [--source-text-unit-v1-lab-only]\n";
+pub(crate) const HELP: &str = "usage: validate_source_witness_foundation [--repo-root PATH] [--validation-profile ID (native admission only; omit=full audit)] [--record-selection-manifest PATH (record closure profiles only)] [--indexed-input-root PATH (selected-generated-record-closure only)] [--require-local-payloads] [--payload-source-root PATH] [--source-anchor-v2-lab-only] [--source-text-layer-lab-only] [--provenance-v2-lab-only] [--semantic-annotation-v2-lab-only] [--translation-alignment-v1-lab-only] [--source-text-unit-v1-lab-only]\n";
 
 fn lab_output(lab: SourceFoundationLab) -> Result<(&'static str, &'static str), &'static str> {
     Ok(match lab {
@@ -685,6 +729,48 @@ mod validation_profile_tests {
             assert!(parse(&args).is_err());
         }
 
+        let generated = parse(&[
+            "--validation-profile=selected-generated-record-closure",
+            "--record-selection-manifest=/selection.json",
+            "--indexed-input-root=/indexed",
+        ])
+        .unwrap();
+        assert_eq!(
+            generated.validation_profile.scope,
+            SourceFoundationDefaultRuleScope::SelectedGeneratedRecordClosure
+        );
+        assert_eq!(
+            generated.indexed_input_root.as_deref(),
+            Some(Path::new("/indexed"))
+        );
+        for args in [
+            vec![
+                "--validation-profile=selected-generated-record-closure",
+                "--record-selection-manifest=/selection.json",
+            ],
+            vec![
+                "--validation-profile=selected-generated-record-closure",
+                "--indexed-input-root=/indexed",
+            ],
+            vec![
+                "--validation-profile=selected-record-closure",
+                "--record-selection-manifest=/selection.json",
+                "--indexed-input-root=/indexed",
+            ],
+            vec![
+                "--validation-profile=selected-generated-record-closure",
+                "--record-selection-manifest=/selection.json",
+                "--indexed-input-root=relative",
+            ],
+            vec![
+                "--validation-profile=selected-generated-record-closure",
+                "--record-selection-manifest=/selection.json",
+                "--indexed-input-root=/indexed",
+                "--indexed-input-root=/other",
+            ],
+        ] {
+            assert!(parse(&args).is_err());
+        }
         for args in [
             vec!["--validation-profile=unknown"],
             vec![

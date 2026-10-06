@@ -245,21 +245,81 @@ pub struct ColdSourceCatalogSpoolLimits {
     pub max_sql_vm_steps: u64,
     pub max_workspace_bytes: usize,
 }
+enum PlanningDatabase {
+    Owned(tos_source_store::PinnedSqliteConnection),
+    Shared(std::rc::Rc<tos_source_store::PinnedSqliteConnection>),
+}
+impl std::ops::Deref for PlanningDatabase {
+    type Target = tos_source_store::PinnedSqliteConnection;
+    fn deref(&self) -> &Self::Target {
+        match self {
+            Self::Owned(db) => db,
+            Self::Shared(db) => db,
+        }
+    }
+}
 struct DiskEntries<'a> {
-    db: tos_source_store::PinnedSqliteConnection,
-    file: std::fs::File,
-    isolation: &'a dyn ColdSourceCatalogSpoolIsolation,
+    db: PlanningDatabase,
+    file: Option<std::fs::File>,
+    isolation: Option<&'a dyn ColdSourceCatalogSpoolIsolation>,
     limits: ColdSourceCatalogSpoolLimits,
     rows: u64,
     logical_bytes: u64,
     deadline: Instant,
     cancelled: &'a AtomicBool,
+    cleanup_complete: std::cell::Cell<bool>,
 }
 impl DiskEntries<'_> {
     fn guard(&self, phase: ColdSourceCatalogSpoolPhase) -> Result<()> {
         check(self.deadline, self.cancelled)?;
-        self.isolation.verify(&self.file, self.limits, phase)?;
+        if let (Some(file), Some(isolation)) = (&self.file, self.isolation) {
+            isolation.verify(file, self.limits, phase)?;
+        } else {
+            // SAME pinned native connection: its VFS owns prewrite whole IO,
+            // original allocation, deadline/cancellation and auxiliary caps.
+            let page: u64 = self.db.query_row("PRAGMA page_size", [], |r| r.get(0))?;
+            let count: u64 = self.db.query_row("PRAGMA page_count", [], |r| r.get(0))?;
+            if page
+                .checked_mul(count)
+                .is_none_or(|bytes| bytes > self.limits.max_sqlite_bytes)
+            {
+                return Err(Error::Budget("candidate catalog shared SQLite ceiling"));
+            }
+        }
         check(self.deadline, self.cancelled)
+    }
+    fn finish_candidate_cleanup(&self) -> Result<()> {
+        if !matches!(self.db, PlanningDatabase::Shared(_)) || self.cleanup_complete.get() {
+            return Ok(());
+        }
+        self.guard(ColdSourceCatalogSpoolPhase::Finish)?;
+        let selected: u64 = self
+            .db
+            .query_row("SELECT COUNT(*) FROM selected", [], |r| r.get(0))?;
+        let pending: u64 = self
+            .db
+            .query_row("SELECT COUNT(*) FROM pending", [], |r| r.get(0))?;
+        if selected != self.rows || pending != 0 {
+            return Err(Error::Invalid("candidate catalog planner cleanup EOF"));
+        }
+        self.db
+            .execute_batch("DROP TABLE selected; DROP TABLE pending; DROP TABLE scanned;")?;
+        let remaining: u64 = self.db.query_row("SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name IN ('selected','pending','scanned')", [], |r| r.get(0))?;
+        if remaining != 0 {
+            return Err(Error::Invalid("candidate catalog planner cleanup closure"));
+        }
+        self.guard(ColdSourceCatalogSpoolPhase::Finish)?;
+        self.cleanup_complete.set(true);
+        Ok(())
+    }
+}
+impl Drop for DiskEntries<'_> {
+    fn drop(&mut self) {
+        if matches!(self.db, PlanningDatabase::Shared(_)) && !self.cleanup_complete.get() {
+            // Failure remains in the original pinned VFS/IO owner; this does
+            // not refund a cumulative byte or physical reservation.
+            let _ = self.db.execute_batch("DROP TABLE IF EXISTS selected; DROP TABLE IF EXISTS pending; DROP TABLE IF EXISTS scanned;");
+        }
     }
 }
 enum PlanningEntries<'a> {
@@ -478,6 +538,50 @@ impl PlanningCut<'_> {
         match self {
             Self::Candidate(input) => input.record_selection(),
             _ => None,
+        }
+    }
+    fn generated_selection(
+        &self,
+    ) -> Option<std::sync::Arc<dyn tos_validation::record_biblio_cut::GeneratedSourceSelection>>
+    {
+        match self {
+            Self::Candidate(input) => input.generated_selection(),
+            _ => None,
+        }
+    }
+    fn selects_semantic_member(&self, path: &str) -> Result<bool> {
+        match self {
+            Self::Candidate(input) => input
+                .selects_semantic_member(path)
+                .map_err(candidate_input_refusal),
+            _ => Ok(true),
+        }
+    }
+    fn selects_catalog_member(&self, path: &str) -> Result<bool> {
+        let finite = self.record_selection();
+        let generated = self.generated_selection();
+        if finite.is_none() && generated.is_none() {
+            return Ok(true);
+        }
+        if finite
+            .as_ref()
+            .is_some_and(|selection| selection.selects_semantic_member(path))
+        {
+            return Ok(true);
+        }
+        generated
+            .as_ref()
+            .map_or(Ok(false), |selection| {
+                selection.selects_catalog_member(path)
+            })
+            .map_err(candidate_input_refusal)
+    }
+    fn selects_required_member(&self, path: &str) -> Result<bool> {
+        match self {
+            Self::Candidate(input) => input
+                .selects_required_member(path)
+                .map_err(candidate_input_refusal),
+            _ => Ok(true),
         }
     }
     fn member(
@@ -783,13 +887,11 @@ impl Planning<'_, '_> {
         // Only actual positive public metadata members join the raw recipe.
         // Payload/corpus bytes and generated catalog carriers remain outside.
         if public_path(path) {
-            if let Some(selection) = self.cut.record_selection() {
-                if !selection.contains_member(path) {
-                    // Optional producer companions do not enlarge the
-                    // declared closure. Required-reference validity remains
-                    // with the already executed Records/Discovery/Closure owners.
-                    return Ok(());
-                }
+            if !self.cut.selects_required_member(path)? {
+                // Optional producer companions do not enlarge the
+                // declared closure. Required-reference validity remains
+                // with the already executed Records/Discovery/Closure owners.
+                return Ok(());
             }
             self.select(path, NATIVE_TEXT)?;
             self.select(path, BIBLIOGRAPHIC_FILES)?;
@@ -824,20 +926,21 @@ impl Planning<'_, '_> {
             self.select(path, CONTRACT_FILES)?;
         }
         if path.starts_with("ToS/source-witnesses/") {
-            if let Some(selection) = self.cut.record_selection() {
-                if !selection.selects_semantic_member(path) {
-                    return Ok(());
-                }
+            if !self.cut.selects_catalog_member(path)? {
+                return Ok(());
             }
-            if basenames.contains(basename)
-                || basename.ends_with(".jsonl")
-                    && (basename.contains("provenance") || basename.contains("anchor"))
+            // Native packets retain their taxonomy and one collection root;
+            // a profile basename must not count the same packet as a record.
+            if basename != "source-text-unit-packet.v1.json"
+                && (basenames.contains(basename)
+                    || basename.ends_with(".jsonl")
+                        && (basename.contains("provenance") || basename.contains("anchor")))
             {
                 catalog::source_ref(path)?;
                 self.select(path, SOURCE_FILES)?;
             }
-            if basename.starts_with("semantic-annotation")
-                && basename.ends_with(".json")
+            if (basename.starts_with("semantic-annotation") && basename.ends_with(".json")
+                || basename == "source-text-unit-packet.v1.json")
                 && !path
                     .split('/')
                     .any(|part| matches!(part, "payload" | "local-content" | "catalog"))
@@ -850,16 +953,37 @@ impl Planning<'_, '_> {
     }
     fn packet(&mut self, path: &str, raw: &[u8]) -> Result<()> {
         let selection = self.cut.record_selection();
-        if let Some(selection) = &selection {
-            if !path.starts_with("ToS/contracts/") && path != ENTITY && path != RELATION {
+        let generated = self.cut.generated_selection();
+        let generated_member = generated
+            .as_ref()
+            .map_or(Ok(false), |selection| {
+                selection.selects_required_member(path)
+            })
+            .map_err(candidate_input_refusal)?;
+        if !path.starts_with("ToS/contracts/") && path != ENTITY && path != RELATION {
+            if generated_member {
+                let caller_state = self
+                    .plan_bytes
+                    .checked_add(self.live_raw_bytes)
+                    .ok_or(Error::Budget("generated catalog verifier overlap"))?;
+                generated
+                    .as_ref()
+                    .ok_or(Error::Invalid("generated catalog selection absent"))?
+                    .verify_member(
+                        path,
+                        raw,
+                        caller_state,
+                        self.graph_limits.deadline,
+                        self.cancelled,
+                    )
+                    .map_err(candidate_input_refusal)?;
+            } else if let Some(selection) = &selection {
                 selection
                     .verify_metadata_member(path, raw)
                     .map_err(candidate_input_refusal)?;
-                // Held evidence remains available to the renderer, but it is not
-                // an additional semantic root of this explicit selection.
-                if !selection.selects_semantic_member(path) {
-                    return Ok(());
-                }
+            }
+            if !self.cut.selects_semantic_member(path)? {
+                return Ok(());
             }
         }
         let member = self
@@ -890,7 +1014,7 @@ impl Planning<'_, '_> {
                 ))?;
             }
         } else if path.ends_with(".jsonl") {
-            if let Some(selection) = &selection {
+            if let Some(selection) = selection.as_ref().filter(|_| !generated_member) {
                 let mut scratch = 0;
                 for slot in selection.file_slots(path) {
                     scratch = scratch.max(
@@ -971,16 +1095,25 @@ fn collection_receipts(
     for collection in COLLECTIONS {
         let mut hash = Digest256Hasher::new();
         let mut count = 0u64;
+        let mut annotation_count = 0u64;
         for (path, member) in members {
             if member.collections.contains(collection) {
                 count = count
                     .checked_add(1)
                     .filter(|n| *n <= l.catalog.max_files)
                     .ok_or(Error::Budget("cold catalog collection files"))?;
-                if collection == NATIVE_IDENTITIES && count > 1024 {
-                    return Err(Error::Budget(
-                        "cold catalog native identity inventory packets",
-                    ));
+                if collection == NATIVE_IDENTITIES
+                    && path
+                        .rsplit('/')
+                        .next()
+                        .is_some_and(|name| name.starts_with("semantic-annotation"))
+                {
+                    annotation_count = annotation_count
+                        .checked_add(1)
+                        .filter(|n| *n <= 1024)
+                        .ok_or(Error::Budget(
+                            "cold catalog native identity inventory packets",
+                        ))?;
                 }
                 frame(&mut hash, path, &member.sha);
             }
@@ -1061,8 +1194,7 @@ pub fn render_streamed_source_bibliographic_spool(
             validator.cancelled,
         )?;
         if let PlanningEntries::Disk(d) = &plan.entries {
-            d.isolation
-                .verify(&d.file, d.limits, ColdSourceCatalogSpoolPhase::Finish)?;
+            d.guard(ColdSourceCatalogSpoolPhase::Finish)?;
         }
         check(l.deadline, validator.cancelled)?;
         Ok(SourceBibliographicCandidate {
@@ -1252,6 +1384,7 @@ fn spool_receipts(
     for collection in COLLECTIONS {
         let mut hash = Digest256Hasher::new();
         let mut count = 0u64;
+        let mut annotation_count = 0u64;
         let mut after = None;
         while let Some((path, member)) = next_spool_member(entries, after.as_deref(), l, cancelled)?
         {
@@ -1261,10 +1394,18 @@ fn spool_receipts(
                     .checked_add(1)
                     .filter(|n| *n <= l.catalog.max_files)
                     .ok_or(Error::Budget("cold catalog collection files"))?;
-                if collection == NATIVE_IDENTITIES && count > 1024 {
-                    return Err(Error::Budget(
-                        "cold catalog native identity inventory packets",
-                    ));
+                if collection == NATIVE_IDENTITIES
+                    && path
+                        .rsplit('/')
+                        .next()
+                        .is_some_and(|name| name.starts_with("semantic-annotation"))
+                {
+                    annotation_count = annotation_count
+                        .checked_add(1)
+                        .filter(|n| *n <= 1024)
+                        .ok_or(Error::Budget(
+                            "cold catalog native identity inventory packets",
+                        ))?;
                 }
                 frame(&mut hash, &path, &member.sha);
             }
@@ -1360,11 +1501,12 @@ pub fn plan_streamed_cold_source_catalog_inputs<'a>(
         graph_limits: l,
         cancelled,
         entries: PlanningEntries::Disk(DiskEntries {
-            db,
-            file,
-            isolation,
+            db: PlanningDatabase::Owned(db),
+            file: Some(file),
+            isolation: Some(isolation),
             limits,
             rows: 0,
+            cleanup_complete: std::cell::Cell::new(false),
             logical_bytes: 0,
             deadline: l.deadline,
             cancelled,
@@ -1645,8 +1787,12 @@ fn plan_inputs_kernel<B: catalog::CatalogInputBinding>(
         PlanningCut::Candidate(input) => {
             input
                 .for_each_current_member_meta(l.deadline, cancelled, &mut |meta| {
-                    plan.initial(meta.path, &basenames)
-                        .map_err(|e| tos_validation::item_rules::ItemRefusal::Source(e.to_string()))
+                    plan.initial(meta.path, &basenames).map_err(|e| match e {
+                        Error::Budget(_) | Error::SqliteVmBudget { .. } => {
+                            tos_validation::item_rules::ItemRefusal::Budget
+                        }
+                        other => tos_validation::item_rules::ItemRefusal::Source(other.to_string()),
+                    })
                 })
                 .map_err(candidate_input_refusal)?;
             check(l.deadline, cancelled)?;
@@ -1956,12 +2102,14 @@ fn prepare_catalog_plan_kernel<B: catalog::CatalogInputBinding>(
             }
         }
         let record_selection = cut.record_selection();
-        let receipt = catalog::prepare_catalog_receipt_observed_with_selection(
+        let generated_selection = cut.generated_selection();
+        let receipt = catalog::prepare_catalog_receipt_observed_with_selections(
             target,
             validator,
             l.catalog,
             observer,
             record_selection.as_deref(),
+            generated_selection.as_deref(),
             plan.temporary_workspace_limit(),
         )?;
 
@@ -2134,8 +2282,32 @@ fn verify_candidate_input_eof<I: Eq>(
 }
 /// Unpublished input recipe. It carries opaque source identity and verified EOF,
 /// never a source revision, metadata publication epoch or cold-publication receipt.
+enum CandidateCatalogPlanning<'a, I: Copy + Eq + 'static> {
+    Resident(SourceCatalogInputPlan<CandidateValidationBinding<I>>),
+    Disk {
+        entries: PlanningEntries<'a>,
+        recipe: PlanInput<CandidateValidationBinding<I>>,
+        limits: SourceCatalogInputLimits,
+        raw_input_max_bytes: usize,
+        workspace: usize,
+    },
+}
+impl<I: Copy + Eq + 'static> CandidateCatalogPlanning<'_, I> {
+    fn recipe(&self) -> &PlanInput<CandidateValidationBinding<I>> {
+        match self {
+            Self::Resident(plan) => &plan.receipt,
+            Self::Disk { recipe, .. } => recipe,
+        }
+    }
+    fn limits(&self) -> SourceCatalogInputLimits {
+        match self {
+            Self::Resident(plan) => plan.limits,
+            Self::Disk { limits, .. } => *limits,
+        }
+    }
+}
 pub struct CandidateSourceCatalogInputPlan<'a, I: Copy + Eq + 'static> {
-    plan: SourceCatalogInputPlan<CandidateValidationBinding<I>>,
+    plan: CandidateCatalogPlanning<'a, I>,
     consumed: bool,
     deadline: Instant,
     cancelled: &'a AtomicBool,
@@ -2180,7 +2352,7 @@ impl<I: Copy + Eq + 'static> CandidateSourceCatalogInputPlan<'_, I> {
             .checked_add(identity_heap_bytes)
             .and_then(|n| n.checked_add(128))
             .ok_or(Error::Budget("candidate receipt clone state"))?;
-        for collection in &self.plan.receipt.collections {
+        for collection in &self.plan.recipe().collections {
             bytes = std::mem::size_of::<InputCollectionReceipt>()
                 .checked_mul(2)
                 .and_then(|n| bytes.checked_add(n))
@@ -2205,8 +2377,8 @@ impl<I: Copy + Eq + 'static> CandidateSourceCatalogInputPlan<'_, I> {
     }
     pub fn input_receipt(&self) -> CandidateExactInputReceipt<I> {
         CandidateExactInputReceipt {
-            binding: self.plan.receipt.binding.clone(),
-            collections: self.plan.receipt.collections.clone(),
+            binding: self.plan.recipe().binding.clone(),
+            collections: self.plan.recipe().collections.clone(),
         }
     }
     pub fn observed_work_bytes(&self) -> u64 {
@@ -2270,7 +2442,7 @@ pub fn plan_candidate_source_catalog_inputs_with_workspace<'a, I: Copy + Eq + 's
     }
     let work_bytes = plan.work_bytes;
     Ok(CandidateSourceCatalogInputPlan {
-        plan,
+        plan: CandidateCatalogPlanning::Resident(plan),
         consumed: false,
         deadline: l.deadline,
         cancelled,
@@ -2296,7 +2468,7 @@ pub fn prepare_candidate_source_catalog_plan_observed<I: Copy + Eq + 'static>(
         }
         l.deadline = l.deadline.min(plan.deadline);
         check(l.deadline, validator.cancelled)?;
-        let binding = &plan.plan.receipt.binding;
+        let binding = &plan.plan.recipe().binding;
         if input.input_identity() != binding.input_identity() {
             return Err(Error::Invalid("candidate catalog input identity"));
         }
@@ -2304,37 +2476,291 @@ pub fn prepare_candidate_source_catalog_plan_observed<I: Copy + Eq + 'static>(
             .verify_current_fence(binding.coverage(), l.deadline, validator.cancelled)
             .map_err(candidate_input_refusal)?;
         validator.verify_candidate_schema_binding(binding.input_identity())?;
-        let receipt = prepare_catalog_plan_kernel(
-            &plan.plan,
-            PlanningCut::Candidate(input.source_input()),
-            None,
-            binding.coverage().membership(),
-            target,
-            validator,
-            l,
-            observer,
-            observed,
-            plan.work_bytes,
-            &mut plan.work_bytes,
-        )?;
+        let receipt = match &plan.plan {
+            CandidateCatalogPlanning::Resident(resident) => prepare_catalog_plan_kernel(
+                resident,
+                PlanningCut::Candidate(input.source_input()),
+                None,
+                binding.coverage().membership(),
+                target,
+                validator,
+                l,
+                observer,
+                observed,
+                plan.work_bytes,
+                &mut plan.work_bytes,
+            )?,
+            CandidateCatalogPlanning::Disk {
+                entries,
+                raw_input_max_bytes,
+                workspace,
+                ..
+            } => {
+                let actual = spool_receipts(entries, l, validator.cancelled)?;
+                let expected = target.input_collections();
+                if actual.len() != expected.len()
+                    || actual.iter().any(|a| {
+                        !expected.iter().any(|e| {
+                            a.source_graph == e.source_graph
+                                && a.collection == e.collection
+                                && a.input_role == e.input_role
+                                && a.adapter_profile == e.adapter_profile
+                                && a.expected_count == e.expected_count
+                                && a.expected_root_sha256 == e.expected_root_sha256
+                        })
+                    })
+                {
+                    return Err(Error::Invalid(
+                        "candidate catalog independent disk recipe roots",
+                    ));
+                }
+                let cut = PlanningCut::Candidate(input.source_input());
+                let mut after = None;
+                while let Some((path, member)) =
+                    next_spool_member(entries, after.as_deref(), l, validator.cancelled)?
+                {
+                    let read_workspace = usize::try_from(member.size)
+                        .ok()
+                        .and_then(|n| n.checked_mul(4))
+                        .and_then(|n| n.checked_add(128 * 1024))
+                        .ok_or(Error::Budget("candidate disk transfer state"))?;
+                    if read_workspace > *workspace {
+                        return Err(Error::Budget("candidate disk transfer state"));
+                    }
+                    let raw = cut.read(
+                        None,
+                        &RelativePath::parse(&path)
+                            .map_err(|_| Error::Invalid("candidate disk transfer path"))?,
+                        *raw_input_max_bytes as u64,
+                        l.deadline,
+                        validator.cancelled,
+                    )?;
+                    if raw.len() as u64 != member.size || Digest256::of_bytes(&raw) != member.sha {
+                        return Err(Error::Invalid("candidate disk transfer exact bytes"));
+                    }
+                    plan.work_bytes = plan
+                        .work_bytes
+                        .checked_add(raw.len() as u64)
+                        .filter(|n| *n <= plan.plan.limits().max_work_bytes)
+                        .ok_or(Error::Budget("candidate disk cumulative work"))?;
+                    charge_render_work(&mut observed.source_members_returned, 1)?;
+                    charge_render_work(
+                        &mut observed.source_payload_bytes_returned,
+                        raw.len() as u64,
+                    )?;
+                    for collection in &member.collections {
+                        target.ingest_input(InputRow {
+                            source_graph: CATALOG_SOURCE,
+                            collection,
+                            id: &path,
+                            payload: &raw,
+                        })?;
+                        charge_render_work(&mut observed.input_rows_staged, 1)?;
+                        charge_render_work(
+                            &mut observed.input_payload_bytes_staged,
+                            raw.len() as u64,
+                        )?;
+                    }
+                    after = Some(path);
+                }
+                let finite = cut.record_selection();
+                let generated = cut.generated_selection();
+                catalog::prepare_catalog_receipt_observed_with_selections(
+                    target,
+                    validator,
+                    l.catalog,
+                    observer,
+                    finite.as_deref(),
+                    generated.as_deref(),
+                    Some(*workspace),
+                )?
+            }
+        };
         verify_candidate_input_eof(
             input,
             binding.input_identity(),
             binding.coverage(),
             l.deadline,
             validator.cancelled,
-            plan.plan.limits.max_manifest_members,
+            plan.plan.limits().max_manifest_members,
             l.catalog.max_file_bytes,
             &mut plan.work_bytes,
-            plan.plan.limits.max_work_bytes,
+            plan.plan.limits().max_work_bytes,
         )?;
         target.verify_candidate_inputs::<I>()?;
         validator.verify_candidate_schema_binding(binding.input_identity())?;
         check(l.deadline, validator.cancelled)?;
+        if let CandidateCatalogPlanning::Disk {
+            entries: PlanningEntries::Disk(entries),
+            ..
+        } = &plan.plan
+        {
+            entries.finish_candidate_cleanup()?;
+        }
         Ok(receipt)
     })();
     if result.is_err() {
         target.poison();
     }
     result
+}
+
+/// Storage-backed candidate plan on the SAME native index connection. The
+/// caller supplies that existing pinned authority and its configured ceiling;
+/// no additional SQLite family, inode, source revision or allowance is issued.
+pub fn plan_candidate_source_catalog_inputs_spooled<'a, I: Copy + Eq + 'static>(
+    input: &dyn SourceCutInputWithIdentity<I>,
+    expected_identity: &I,
+    coverage: &SourceCutInputCoverage,
+    limits: SourceCatalogInputLimits,
+    storage: std::rc::Rc<tos_source_store::PinnedSqliteConnection>,
+    disk_limits: ColdSourceCatalogSpoolLimits,
+    l: BibliographicLimits,
+    cancelled: &'a AtomicBool,
+) -> Result<CandidateSourceCatalogInputPlan<'a, I>> {
+    l.validate()?;
+    l.catalog.validate()?;
+    if limits.max_manifest_members == 0
+        || limits.max_manifest_members == u64::MAX
+        || limits.max_work_bytes == 0
+        || limits.max_work_bytes == u64::MAX
+        || disk_limits.max_selected_members == 0
+        || disk_limits.max_selected_members > limits.max_manifest_members
+        || disk_limits.max_selected_members > l.catalog.max_files
+        || disk_limits.max_locator_bytes == 0
+        || disk_limits.max_locator_bytes == u64::MAX
+        || disk_limits.max_sqlite_bytes < 4096
+        || disk_limits.max_sqlite_bytes == u64::MAX
+        || disk_limits.max_workspace_bytes < 16 * 1024
+        || disk_limits.max_work_bytes != limits.max_work_bytes
+    {
+        return Err(Error::Budget("candidate disk catalog explicit limits"));
+    }
+    let binding = CandidateValidationBinding::from_verified_input(
+        input,
+        expected_identity,
+        coverage.clone(),
+        l.deadline,
+        cancelled,
+    )?;
+    let mut initial_work = 0;
+    verify_candidate_input_eof(
+        input,
+        expected_identity,
+        coverage,
+        l.deadline,
+        cancelled,
+        limits.max_manifest_members,
+        l.catalog.max_file_bytes,
+        &mut initial_work,
+        limits.max_work_bytes,
+    )?;
+
+    let baseline = std::mem::size_of::<CandidateSourceCatalogInputPlan<'a, I>>()
+        .checked_add(CandidateSourceCatalogInputPlan::<I>::receipt_state_upper_bound(0)?)
+        .and_then(|n| n.checked_add(4096))
+        .filter(|n| *n < disk_limits.max_workspace_bytes)
+        .ok_or(Error::Budget("candidate disk catalog fixed state"))?;
+    storage.execute_batch("CREATE TABLE selected(path TEXT PRIMARY KEY,size BLOB NOT NULL,sha BLOB NOT NULL,flags INTEGER NOT NULL) WITHOUT ROWID; CREATE TABLE pending(path TEXT PRIMARY KEY) WITHOUT ROWID; CREATE TABLE scanned(path TEXT PRIMARY KEY) WITHOUT ROWID;")?;
+    let mut plan = Planning {
+        cut: PlanningCut::Candidate(input.source_input()),
+        revision: None,
+        limits,
+        graph_limits: l,
+        cancelled,
+        entries: PlanningEntries::Disk(DiskEntries {
+            db: PlanningDatabase::Shared(storage),
+            file: None,
+            isolation: None,
+            limits: disk_limits,
+            rows: 0,
+            cleanup_complete: std::cell::Cell::new(false),
+            logical_bytes: 0,
+            deadline: l.deadline,
+            cancelled,
+        }),
+        plan_bytes: baseline,
+        work_bytes: initial_work,
+        raw_input_max_bytes: l.catalog.max_file_bytes,
+        json_input_max_bytes: l.catalog.max_file_bytes,
+        cold_raw_parser: true,
+        workspace_limit: Some(disk_limits.max_workspace_bytes),
+        live_raw_bytes: 0,
+        live_parser_upper: 0,
+    };
+    for registry in [ENTITY, RELATION] {
+        if !plan.select(registry, CONTRACT_FILES)? {
+            return Err(Error::Invalid("candidate catalog source registry absent"));
+        }
+    }
+    let raw = plan.raw(ENTITY)?;
+    let entities = plan.parse_packet(&raw, l.catalog.max_row_bytes)?;
+    plan.live_parser_upper = plan
+        .live_parser_upper
+        .checked_mul(2)
+        .ok_or(Error::Budget("candidate catalog registry state"))?;
+    plan.check_workspace()?;
+    let basenames = catalog::source_basenames(entities.value())?;
+    let observed = input
+        .for_each_current_member(l.deadline, cancelled, &mut |meta, raw| {
+            if raw.len() > l.catalog.max_file_bytes {
+                return Err(tos_validation::item_rules::ItemRefusal::BudgetCheck {
+                    check: "candidate disk catalog physical member bytes",
+                    used: u64::try_from(raw.len()).ok(),
+                    limit: u64::try_from(l.catalog.max_file_bytes).ok(),
+                });
+            }
+            plan.work_bytes = plan
+                .work_bytes
+                .checked_add(meta.size_bytes)
+                .filter(|n| *n <= limits.max_work_bytes)
+                .ok_or(tos_validation::item_rules::ItemRefusal::Budget)?;
+            if raw.len() as u64 != meta.size_bytes {
+                return Err(tos_validation::item_rules::ItemRefusal::Source(
+                    "candidate disk full membership binding".into(),
+                ));
+            }
+            plan.initial(meta.path, &basenames)
+                .map_err(|e| tos_validation::item_rules::ItemRefusal::Source(e.to_string()))
+        })
+        .map_err(candidate_input_refusal)?;
+    if &observed != coverage {
+        return Err(Error::Invalid("candidate disk planning physical EOF"));
+    }
+    drop(basenames);
+    drop(entities);
+    drop(raw);
+    plan.live_raw_bytes = 0;
+    plan.live_parser_upper = 0;
+    while let Some(path) = plan.entries.pop()? {
+        let raw = plan.raw(&path)?;
+        plan.packet(&path, &raw)?;
+        drop(raw);
+        plan.live_raw_bytes = 0;
+        plan.live_parser_upper = 0;
+    }
+    let collections = spool_receipts(&plan.entries, l, cancelled)?;
+    input
+        .verify_current_fence(coverage, l.deadline, cancelled)
+        .map_err(candidate_input_refusal)?;
+    if input.input_identity() != expected_identity {
+        return Err(Error::Invalid("candidate disk final identity"));
+    }
+    let work_bytes = plan.work_bytes;
+    Ok(CandidateSourceCatalogInputPlan {
+        plan: CandidateCatalogPlanning::Disk {
+            entries: plan.entries,
+            recipe: PlanInput {
+                binding,
+                collections,
+            },
+            limits,
+            raw_input_max_bytes: plan.raw_input_max_bytes,
+            workspace: disk_limits.max_workspace_bytes,
+        },
+        consumed: false,
+        deadline: l.deadline,
+        cancelled,
+        work_bytes,
+    })
 }

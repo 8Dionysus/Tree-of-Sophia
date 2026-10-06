@@ -64,14 +64,23 @@ impl std::fmt::Display for NativeValidationRefusal {
 }
 impl std::error::Error for NativeValidationRefusal {}
 
+/// The invocation joins two distinct read authorities. Keep their raw
+/// snapshots beside aggregate counters; an aggregate has no single ceiling.
+#[derive(Clone, Copy, Debug, Default)]
+pub(crate) struct NativeInvocationIoSnapshot {
+    aggregate: PinnedSqliteIoSnapshot,
+    spool: PinnedSqliteIoSnapshot,
+    segment_v2: Option<PinnedSqliteIoSnapshot>,
+}
+
 /// Pre-publication refusal owns its original cause before terminal accounting.
 /// Only the reviewed validator reason and fixed operation labels reach output.
 #[derive(Debug)]
 pub(crate) struct NativeSpoolRefusal {
     primary: io::Error,
     phase: &'static str,
-    primary_io: PinnedSqliteIoSnapshot,
-    terminal_io: PinnedSqliteIoSnapshot,
+    primary_io: NativeInvocationIoSnapshot,
+    terminal_io: NativeInvocationIoSnapshot,
     accounting_failed: bool,
     cleanup_failed: bool,
     output_failed: bool,
@@ -103,31 +112,71 @@ pub(crate) struct NativeSpoolRefusalPacket<'a> {
 #[derive(serde::Serialize)]
 struct NativeSpoolIoPacket {
     read_attempted_bytes: u64,
+    read_upper_bound_attempted_bytes: u64,
     read_permitted_bytes: u64,
     read_returned_bytes: u64,
     write_attempted_bytes: u64,
     write_permitted_bytes: u64,
     write_returned_bytes: u64,
     first_failure: Option<&'static str>,
+    spool_reads: NativeSpoolReadPacket,
+    segment_v2_reads: Option<NativeSpoolReadPacket>,
 }
-impl From<PinnedSqliteIoSnapshot> for NativeSpoolIoPacket {
+#[derive(serde::Serialize)]
+struct NativeSpoolReadPacket {
+    limit_bytes: Option<u64>,
+    limit_source: Option<&'static str>,
+    limit_line: Option<u32>,
+    attempted_bytes: u64,
+    upper_bound_attempted_bytes: u64,
+    permitted_bytes: u64,
+    returned_bytes: u64,
+    local_failure: Option<&'static str>,
+    effective_failure: Option<&'static str>,
+}
+fn io_failure_name(failure: PinnedSqliteIoFailure) -> &'static str {
+    match failure {
+        PinnedSqliteIoFailure::ReadLimit => "read_limit",
+        PinnedSqliteIoFailure::WriteLimit => "write_limit",
+        PinnedSqliteIoFailure::Deadline => "deadline",
+        PinnedSqliteIoFailure::Cancelled => "cancelled",
+        PinnedSqliteIoFailure::FileLimit => "file_limit",
+        PinnedSqliteIoFailure::SpaceLimit => "space_limit",
+        PinnedSqliteIoFailure::Io => "io",
+    }
+}
+impl From<PinnedSqliteIoSnapshot> for NativeSpoolReadPacket {
     fn from(value: PinnedSqliteIoSnapshot) -> Self {
         Self {
-            read_attempted_bytes: value.read_attempted_bytes,
-            read_permitted_bytes: value.read_permitted_bytes,
-            read_returned_bytes: value.read_returned_bytes,
-            write_attempted_bytes: value.write_attempted_bytes,
-            write_permitted_bytes: value.write_permitted_bytes,
-            write_returned_bytes: value.write_returned_bytes,
-            first_failure: value.failure.map(|failure| match failure {
-                PinnedSqliteIoFailure::ReadLimit => "read_limit",
-                PinnedSqliteIoFailure::WriteLimit => "write_limit",
-                PinnedSqliteIoFailure::Deadline => "deadline",
-                PinnedSqliteIoFailure::Cancelled => "cancelled",
-                PinnedSqliteIoFailure::FileLimit => "file_limit",
-                PinnedSqliteIoFailure::SpaceLimit => "space_limit",
-                PinnedSqliteIoFailure::Io => "io",
-            }),
+            limit_bytes: value.read_limit_bytes,
+            // Rust source basename only: never emit an absolute build path.
+            limit_source: value
+                .read_limit_origin
+                .and_then(|origin| origin.file().rsplit('/').next()),
+            limit_line: value.read_limit_origin.map(|origin| origin.line()),
+            attempted_bytes: value.read_attempted_bytes,
+            upper_bound_attempted_bytes: value.read_upper_bound_attempted_bytes,
+            permitted_bytes: value.read_permitted_bytes,
+            returned_bytes: value.read_returned_bytes,
+            local_failure: value.local_failure.map(io_failure_name),
+            effective_failure: value.failure.map(io_failure_name),
+        }
+    }
+}
+impl From<NativeInvocationIoSnapshot> for NativeSpoolIoPacket {
+    fn from(value: NativeInvocationIoSnapshot) -> Self {
+        let aggregate = value.aggregate;
+        Self {
+            read_attempted_bytes: aggregate.read_attempted_bytes,
+            read_upper_bound_attempted_bytes: aggregate.read_upper_bound_attempted_bytes,
+            read_permitted_bytes: aggregate.read_permitted_bytes,
+            read_returned_bytes: aggregate.read_returned_bytes,
+            write_attempted_bytes: aggregate.write_attempted_bytes,
+            write_permitted_bytes: aggregate.write_permitted_bytes,
+            write_returned_bytes: aggregate.write_returned_bytes,
+            first_failure: aggregate.failure.map(io_failure_name),
+            spool_reads: value.spool.into(),
+            segment_v2_reads: value.segment_v2.map(Into::into),
         }
     }
 }
@@ -140,7 +189,10 @@ fn bounded_error_sha256(error: &io::Error) -> Option<String> {
     }
     impl std::fmt::Write for Fingerprint {
         fn write_str(&mut self, text: &str) -> std::fmt::Result {
-            self.remaining = self.remaining.checked_sub(text.len()).ok_or(std::fmt::Error)?;
+            self.remaining = self
+                .remaining
+                .checked_sub(text.len())
+                .ok_or(std::fmt::Error)?;
             self.hash.update(text.as_bytes());
             Ok(())
         }
@@ -150,14 +202,15 @@ fn bounded_error_sha256(error: &io::Error) -> Option<String> {
         remaining: 4096,
     };
     std::fmt::write(&mut sink, format_args!("{error}")).ok()?;
-    Some(sink.hash.finalize().to_hex())
+    let digest = sink.hash.finalize().to_hex();
+    Some(digest)
 }
 impl NativeSpoolRefusal {
     pub(crate) fn retain(
         primary: io::Error,
         phase: &'static str,
-        primary_io: PinnedSqliteIoSnapshot,
-        terminal_io: PinnedSqliteIoSnapshot,
+        primary_io: NativeInvocationIoSnapshot,
+        terminal_io: NativeInvocationIoSnapshot,
         accounting_failed: bool,
         cleanup_failed: bool,
     ) -> Self {
@@ -291,6 +344,7 @@ impl NativeAdmissionComplete {
 #[derive(Clone)]
 pub(crate) struct NativeSegmentV2Budget {
     pub(crate) max_allocated_bytes: u64,
+    pub(crate) max_frame_bytes: u64,
     pub(crate) allocation_space: PinnedSqliteSpaceBudget,
     pub(crate) allocation_reservation: Arc<tos_source_store::PinnedSqliteSpaceReservation>,
     pub(crate) allocation_unit_bytes: u64,
@@ -371,6 +425,17 @@ pub(crate) struct PreparedV2ArtifactRoot {
     pub(crate) identity: (u64, u64),
 }
 
+// The existing IO control envelope is charged before either the early issuer
+// or ordinary spooled factory allocates its original shared control blocks.
+const SPOOLED_IO_CONTROL_STATE_BYTES: usize = 4096;
+
+struct GeneratedInputPrelude {
+    declaration: Option<crate::source_admission_indexed_input::HeldIndexedInputDeclarationV1>,
+    io: PinnedSqliteIoBudget,
+    aggregate_write: PinnedSqliteIoBudget,
+    identity_binding: Option<String>,
+}
+
 pub(crate) struct NativeSourceValidator<'c> {
     prepared: Option<Prepared<'c>>,
     evaluated: Option<FoundationBootstrapInputs<'c>>,
@@ -379,6 +444,7 @@ pub(crate) struct NativeSourceValidator<'c> {
     record_selection: Option<Arc<tos_validation::source_record_selection::SourceRecordSelection>>,
     record_selection_held: Option<crate::source_text_owner::HeldOwnerFile>,
     record_selection_binding: Option<Value>,
+    generated_input: Option<GeneratedInputPrelude>,
     history: Option<HistoryEvidence>,
     history_usage: (u64, usize),
     identity: Digest256,
@@ -397,10 +463,14 @@ pub(crate) struct NativeSourceValidator<'c> {
     // the whole borrowed validator after the resource DTO moves to its caller.
     spooled_profile: Option<(SpoolIndexLimits, SpoolIndexLimits, PinnedSqliteIoBudget)>,
     spooled_workspace: Option<(File, PinnedSqliteSpaceBudget)>,
+    // Declared after the retained workspace FD; the root also holds this Arc.
+    _spooled_persistent_root_allocation:
+        Option<Arc<tos_source_store::PinnedSqliteSpaceReservation>>,
     segment_v2_profile: Option<NativeSegmentV2Budget>,
     segment_v2_io_accounted: (u64, u64),
     segment_v2_read_upper_accounted: u64,
     spooled_read_upper_accounted: u64,
+    spooled_write_cap: Option<u64>,
 }
 /// The only constructor is the successful complete owner callback below.
 pub(crate) struct ValidatedCandidate(Index);
@@ -677,6 +747,81 @@ impl<'c> NativeSourceValidator<'c> {
             } else {
                 (None, None, None)
             };
+        let mut generated_input = if let Some(root) = &launch.arguments.indexed_input_root {
+            if !matches!(
+                invocation.admission_representation(),
+                foundation_entry::FoundationAdmissionRepresentation::NativeV4SegmentV2
+            ) {
+                return Err(invalid(
+                    "generated record closure requires native-v4-segment-v2",
+                ));
+            }
+            let selection = record_selection
+                .as_ref()
+                .ok_or_else(|| invalid("generated input requires finite authored selection"))?;
+            let meter_state = SPOOLED_IO_CONTROL_STATE_BYTES.checked_add(crate::source_admission::AdmissionWorkBudget::retained_allocation_upper_bound_bytes())
+                .ok_or_else(|| invalid("generated input original meter state overflow"))?;
+            debit(
+                &mut ledger,
+                "generated-input-original-meters",
+                0,
+                meter_state,
+            )?;
+            let remaining = ledger.remaining().map_err(command)?;
+            let aggregate_write = PinnedSqliteIoBudget::new(remaining.source_read_bytes, write_cap)
+                .map_err(invalid)?;
+            let io = PinnedSqliteIoBudget::new_with_shared_write_authority(
+                remaining.source_read_bytes,
+                write_cap,
+                aggregate_write.clone(),
+            )
+            .map_err(invalid)?;
+            // The maintained initial-cut selector uses the original read ceiling
+            // as its work authority. Its later phase selection only narrows this
+            // same owner; every early descriptor/aux row remains in the prefix.
+            let work =
+                crate::source_admission::AdmissionWorkBudget::new(remaining.source_read_bytes)?;
+            let declaration =
+                crate::source_admission_indexed_input::open_indexed_input_declaration_v1(
+                    root,
+                    count(invocation.budgets.max_member_bytes)?
+                        .min(crate::source_admission_indexed_input::DESCRIPTOR_MAX_BYTES),
+                    count(invocation.budgets.max_member_bytes)?
+                        .min(crate::source_admission_indexed_input::PROFILE_SIDECAR_MAX_BYTES_V1),
+                    &io,
+                    deadline,
+                    cancel,
+                    &work,
+                    selection,
+                    remaining.state_bytes,
+                );
+            let usage = io.snapshot();
+            let measured = usage
+                .read_attempted_bytes
+                .checked_sub(usage.read_upper_bound_attempted_bytes)
+                .ok_or_else(|| invalid("generated input attempted read classification"))?;
+            ledger
+                .record_terminal_source_read_suffix(
+                    measured,
+                    usage.read_upper_bound_attempted_bytes,
+                )
+                .map_err(command)?;
+            let declaration = declaration?;
+            debit(
+                &mut ledger,
+                "generated-input-held-declaration",
+                0,
+                declaration.retained_state_bytes_v1()?,
+            )?;
+            Some(GeneratedInputPrelude {
+                declaration: Some(declaration),
+                io,
+                aggregate_write,
+                identity_binding: None,
+            })
+        } else {
+            None
+        };
         let remaining = ledger.remaining().map_err(command)?;
         let limits = IdentityLimits {
             max_read_bytes: remaining.source_read_bytes,
@@ -711,6 +856,24 @@ impl<'c> NativeSourceValidator<'c> {
                 ledger.remaining().map_err(command)?.state_bytes,
                 cancel,
             )?;
+        }
+        if let Some(early) = &mut generated_input {
+            let binding = grammar.bind_generated_input(
+                early.declaration.as_ref().expect("generated issuer held"),
+                ledger.remaining().map_err(command)?.state_bytes,
+                cancel,
+            )?;
+            let binding = String::from_utf8(binding).map_err(invalid)?;
+            debit(
+                &mut ledger,
+                "generated-input-identity-binding",
+                0,
+                binding
+                    .capacity()
+                    .checked_add(size_of::<String>())
+                    .ok_or_else(|| invalid("generated binding retained state overflow"))?,
+            )?;
+            early.identity_binding = Some(binding);
         }
         let history = if captures.is_empty() {
             None
@@ -791,7 +954,13 @@ impl<'c> NativeSourceValidator<'c> {
             cancel,
             git_signal,
             write_cap,
-            candidate_io: (0, 0),
+            candidate_io: generated_input
+                .as_ref()
+                .map(|early| {
+                    let usage = early.io.snapshot();
+                    (usage.read_attempted_bytes, usage.write_attempted_bytes)
+                })
+                .unwrap_or((0, 0)),
             candidate_state: 0,
             batch_charged: false,
             store_authority: None,
@@ -800,10 +969,16 @@ impl<'c> NativeSourceValidator<'c> {
             execution_resources_taken: false,
             spooled_profile: None,
             spooled_workspace: None,
+            _spooled_persistent_root_allocation: None,
             segment_v2_profile: None,
             segment_v2_io_accounted: (0, 0),
             segment_v2_read_upper_accounted: 0,
-            spooled_read_upper_accounted: 0,
+            spooled_read_upper_accounted: generated_input
+                .as_ref()
+                .map(|early| early.io.snapshot().read_upper_bound_attempted_bytes)
+                .unwrap_or(0),
+            generated_input,
+            spooled_write_cap: None,
         })
     }
 
@@ -1090,8 +1265,7 @@ impl<'c> NativeSourceValidator<'c> {
             },
             reader: ReadLimits {
                 max_manifest_bytes: bytes,
-                // Entries include files, identities, dependency sources/edges and
-                // retirements. The file cap cannot bound their aggregate.
+                // Index entries also include identities, edges and retirements.
                 max_manifest_entries: bytes.min(json.max_visits),
                 max_selected_object_bytes: caps.max_member_bytes.min(remaining.source_read_bytes),
                 json,
@@ -1185,7 +1359,10 @@ impl<'c> NativeSourceValidator<'c> {
             .checked_add(v2_case_state_bytes)
             .and_then(|n| n.checked_add(v2_source_root_state_bytes))
             .and_then(|n| n.checked_add(v2_target_root_state_bytes))
-            .and_then(|n| n.checked_add(4096))
+            // Conservative fixed control-state envelope includes the shared
+            // write root, both local IoState blocks and their Arc headers;
+            // size_of::<PinnedSqliteIoBudget>() above counts only its handle.
+            .and_then(|n| n.checked_add(SPOOLED_IO_CONTROL_STATE_BYTES))
             .ok_or_else(|| invalid("V2 case clone state overflow"))?;
         if case_clone_preflight > remaining.state_bytes {
             return Err(invalid("V2 case clone exceeds remaining state"));
@@ -1221,7 +1398,10 @@ impl<'c> NativeSourceValidator<'c> {
             })
             .flatten();
         if let Some(case) = v2_case.as_ref() {
-            if case.source_store_bytes.checked_add(case.target_store_bytes)
+            if case
+                .source_store_bytes
+                .checked_add(case.target_store_bytes)
+                .and_then(|bytes| bytes.checked_add(case.sqlite_store_bytes))
                 != segment_v2_total_store_bytes
                 || Some(case.source_store_bytes) != segment_v2_store_bytes
                 || case.state_bytes > remaining.state_bytes
@@ -1231,32 +1411,14 @@ impl<'c> NativeSourceValidator<'c> {
                 ));
             }
         }
-        let segment_v2_write_cap = if let (Some(store_bytes), Some(total_store_bytes)) =
-            (segment_v2_store_bytes, segment_v2_total_store_bytes)
-        {
-            let allocation_ceiling = if v2_case.is_some() {
-                total_store_bytes
-            } else {
-                store_bytes
-            };
-            let cap = allocation_ceiling
-                .checked_add(64 * 1024)
-                .filter(|cap| *cap < u64::MAX)
-                .ok_or_else(|| invalid("V2 store write profile overflow"))?;
-            if cap >= write_remaining {
-                return Err(invalid(
-                    "V2 store profile leaves no candidate persistent-write allowance",
-                ));
-            }
-            cap
-        } else if segment_v2_store_bytes.is_some() || segment_v2_total_store_bytes.is_some() {
-            return Err(invalid("V2 persistent allocation selection differs"));
+        // Allocation limits own resident physical bytes. Candidate and V2
+        // writes instead debit one original cumulative-write authority.
+        let segment_v2_write_cap = if segment_v2_store_bytes.is_some() {
+            write_remaining
         } else {
             0
         };
-        let candidate_write_cap = write_remaining
-            .checked_sub(segment_v2_write_cap)
-            .ok_or_else(|| invalid("V2 store write profile exceeds remaining writes"))?;
+        let candidate_write_cap = write_remaining;
         if remaining.source_read_bytes == 0
             || remaining.state_bytes < 64 * 1024
             || remaining.tmpfs_bytes < 512 * 1024
@@ -1393,7 +1555,27 @@ impl<'c> NativeSourceValidator<'c> {
                 "selected spooled profile exceeds remaining invocation resources",
             ));
         }
-        let sqlite_space = declared_profile - ROOT_METADATA_BOUND;
+        // Opt-in provider placement is an explicit slice of the ORIGINAL
+        // persistent envelope. Absence leaves the historical TMPFS route intact.
+        let persistent_sqlite_bytes = v2_case.as_ref().map_or(0, |case| case.sqlite_store_bytes);
+        let persistent_root_bound = if persistent_sqlite_bytes != 0 {
+            v2_case
+                .as_ref()
+                .ok_or_else(|| invalid("persistent SQLite case absent"))?
+                .allocation_unit_bytes
+                .checked_mul(2)
+                .ok_or_else(|| invalid("persistent SQLite root metadata overflow"))?
+        } else {
+            0
+        };
+        let sqlite_space = if persistent_sqlite_bytes != 0 {
+            persistent_sqlite_bytes
+                .checked_sub(persistent_root_bound)
+                .filter(|bytes| *bytes != 0)
+                .ok_or_else(|| invalid("persistent SQLite slice leaves no provider space"))?
+        } else {
+            declared_profile - ROOT_METADATA_BOUND
+        };
         let candidate_partition = sqlite_space / 4;
         let index_partition = sqlite_space / 4;
         let reader_partition = sqlite_space / 4;
@@ -1421,6 +1603,18 @@ impl<'c> NativeSourceValidator<'c> {
                 "selected spooled profile exceeds remaining invocation resources",
             ));
         }
+        // Keep the already-selected consumer ceilings. The filesystem's
+        // measured root quota cost must fit beside all five retained main
+        // handles and all three auxiliary families in this same profile.
+        let retained_consumer_inodes = u64::try_from(max_live_aux)
+            .ok()
+            .and_then(|aux| aux.checked_mul(3))
+            .and_then(|aux| aux.checked_add(5))
+            .ok_or_else(|| invalid("spooled inode consumer reservation overflow"))?;
+        let root_inode_bound = inode_profile
+            .checked_sub(retained_consumer_inodes)
+            .filter(|bound| *bound != 0)
+            .ok_or_else(|| invalid("spooled inode profile leaves no root allowance"))?;
         let Some(candidate_sqlite) = sqlite_aux_limits(candidate_partition, max_live_aux) else {
             return Err(invalid(
                 "selected spooled profile exceeds remaining invocation resources",
@@ -1437,6 +1631,28 @@ impl<'c> NativeSourceValidator<'c> {
                 "selected defaults scope exceeds remaining invocation resources",
             ));
         };
+
+        // The existing creation plan has three auxiliary families plus one
+        // strict-reader main and one manifest main. Their simultaneous ceilings
+        // must fit ONLY the SQL slice, even though the ledger also owns the
+        // distinct source and target reservations.
+        let family_upper = |limits: PinnedSqliteAuxLimits| {
+            limits
+                .main_allocated_bytes
+                .checked_add(limits.temp_db_allocated_bytes)
+                .and_then(|n| n.checked_add(limits.main_journal_allocated_bytes))
+                .and_then(|n| n.checked_add(limits.temp_journal_allocated_bytes))
+                .and_then(|n| n.checked_add(limits.other_aux_aggregate_allocated_bytes))
+        };
+        let sqlite_consumer_upper = family_upper(candidate_sqlite)
+            .and_then(|n| n.checked_add(family_upper(index_sqlite)?))
+            .and_then(|n| n.checked_add(family_upper(defaults_sqlite)?))
+            .and_then(|n| n.checked_add(reader_partition))
+            .and_then(|n| n.checked_add(manifest_partition))
+            .ok_or_else(|| invalid("spooled consumer allocation overflow"))?;
+        if sqlite_consumer_upper > sqlite_space {
+            return Err(invalid("spooled consumers exceed selected SQL slice"));
+        }
 
         let root_len = self
             .store_authority
@@ -1518,19 +1734,23 @@ impl<'c> NativeSourceValidator<'c> {
             ));
         }
         let max_manifest_allocated_bytes = manifest_partition;
-        let manifest_bytes = u64::try_from(candidate_limits.reader.max_manifest_bytes)
-            .map_err(|_| invalid("spooled manifest byte limit exceeds range"))?
-            .min(max_manifest_allocated_bytes);
+        let manifest_bytes = candidate_limits.reader.max_manifest_bytes.min(
+            usize::try_from(max_manifest_allocated_bytes)
+                .map_err(|_| invalid("spooled manifest allocation bound exceeds address space"))?,
+        );
         if manifest_bytes == 0 {
             return Err(invalid(
                 "selected spooled profile exceeds remaining invocation resources",
             ));
         }
         let max_members = candidate_limits.admission.max_members;
-        let max_manifest_entries = candidate_limits.reader.max_manifest_entries.min(
-            usize::try_from(manifest_bytes)
-                .map_err(|_| invalid("spooled manifest entry ceiling exceeds range"))?,
-        );
+        let max_manifest_entries = u64::try_from(
+            candidate_limits
+                .reader
+                .max_manifest_entries
+                .min(manifest_bytes),
+        )
+        .map_err(|_| invalid("spooled manifest entry bound exceeds range"))?;
         let max_member_bytes = candidate_limits.admission.max_member_bytes;
         let max_total_bytes = candidate_limits.admission.max_source_bytes;
         let max_revisions = candidate_limits.max_history_revisions;
@@ -1548,14 +1768,16 @@ impl<'c> NativeSourceValidator<'c> {
                 max_member_bytes,
             },
             manifest_json: candidate_limits.admission.json,
-            max_manifest_entries,
+            max_manifest_entries: usize::try_from(max_manifest_entries)
+                .map_err(|_| invalid("spooled manifest entry count exceeds address space"))?,
             max_index_bytes: reader_partition,
             max_manifest_row_bytes: usize::try_from(max_member_bytes.min(usize::MAX as u64 - 1))
                 .map_err(|_| invalid("spooled member byte limit exceeds range"))?,
             sqlite_cache_bytes: cache_bytes,
         };
         let manifest_limits = ManifestStreamLimits {
-            max_manifest_bytes: manifest_bytes,
+            max_manifest_bytes: u64::try_from(manifest_bytes)
+                .map_err(|_| invalid("spooled manifest bytes exceed u64"))?,
             row_json: candidate_limits.admission.json,
         };
 
@@ -1573,8 +1795,87 @@ impl<'c> NativeSourceValidator<'c> {
             .store_authority
             .as_ref()
             .ok_or_else(|| invalid("private stage authority disappeared"))?;
-        let isolated = IsolatedCreationRoot::create(authority.root(), self.deadline, &cancelled)
-            .map_err(command)?;
+        let aggregate_write = match &self.generated_input {
+            Some(early) => {
+                early
+                    .aggregate_write
+                    .restrict_remaining_io(original_io_read_cap, write_remaining)
+                    .map_err(invalid)?;
+                early.aggregate_write.clone()
+            }
+            None => {
+                PinnedSqliteIoBudget::new(original_io_read_cap, write_remaining).map_err(invalid)?
+            }
+        };
+        let io_budget = match &self.generated_input {
+            Some(early) => early.io.clone(),
+            None => PinnedSqliteIoBudget::new_with_shared_write_authority(
+                original_io_read_cap,
+                candidate_limits.max_write_bytes,
+                aggregate_write.clone(),
+            )
+            .map_err(invalid)?,
+        };
+        io_budget
+            .restrict_remaining_io(
+                candidate_limits.max_read_bytes,
+                candidate_limits.max_write_bytes,
+            )
+            .map_err(invalid)?;
+        let persistent_parent = if persistent_sqlite_bytes != 0 {
+            let parent = authority
+                .persistent_store()
+                .ok_or_else(|| invalid("persistent SQLite original store absent"))?;
+            let held = authority
+                .persistent_store_custody(parent)
+                .map_err(invalid)?
+                .try_clone()?;
+            let before = held
+                .metadata()?
+                .blocks()
+                .checked_mul(512)
+                .ok_or_else(|| invalid("persistent SQLite parent allocation overflow"))?;
+            Some((held, before))
+        } else {
+            None
+        };
+        let persistent_root_allocation = if persistent_sqlite_bytes != 0 {
+            let (space, _) = segment_v2_allocation
+                .as_ref()
+                .ok_or_else(|| invalid("persistent SQLite original allocation absent"))?;
+            Some(Arc::new(
+                space.reserve(persistent_root_bound).map_err(invalid)?,
+            ))
+        } else {
+            None
+        };
+        let isolated = if persistent_sqlite_bytes != 0 {
+            let parent = authority
+                .persistent_store()
+                .ok_or_else(|| invalid("persistent SQLite original store absent"))?;
+            let held = authority
+                .persistent_store_custody(parent)
+                .map_err(invalid)?;
+            // This is a bounded metadata-work permit, not returned payload.
+            io_budget
+                .charge_write(persistent_root_bound)
+                .map_err(invalid)?;
+            IsolatedCreationRoot::create_with_held_parent(
+                parent,
+                held,
+                Arc::clone(
+                    persistent_root_allocation
+                        .as_ref()
+                        .ok_or_else(|| invalid("persistent SQLite root custody absent"))?,
+                ),
+                self.deadline,
+                &cancelled,
+            )
+            .map_err(command)?
+        } else {
+            IsolatedCreationRoot::create(authority.root(), self.deadline, &cancelled)
+                .map_err(command)?
+        };
         let workspace_result =
             (|| -> io::Result<(File, PinnedSqliteIoBudget, PinnedSqliteSpaceBudget, File)> {
                 let workspace = isolated
@@ -1597,37 +1898,96 @@ impl<'c> NativeSourceValidator<'c> {
                     });
                 self.charge_store_guard(PRIVATE_TMPFS_VERIFY_COST.read_bytes, 0)?;
                 let after_usage = after_usage_result?;
-                if after_usage.used_bytes < usage.used_bytes
-                    || after_usage
-                        .used_bytes
-                        .checked_sub(usage.used_bytes)
-                        .is_none_or(|n| n > ROOT_METADATA_BOUND)
-                    || after_usage.used_inodes < usage.used_inodes
-                    || after_usage
-                        .used_inodes
-                        .checked_sub(usage.used_inodes)
-                        .is_none_or(|n| n > 1)
+                if persistent_sqlite_bytes == 0
+                    && (after_usage.used_bytes < usage.used_bytes
+                        || after_usage
+                            .used_bytes
+                            .checked_sub(usage.used_bytes)
+                            .is_none_or(|n| n > ROOT_METADATA_BOUND)
+                        || after_usage.used_inodes < usage.used_inodes
+                        || after_usage
+                            .used_inodes
+                            .checked_sub(usage.used_inodes)
+                            .is_none_or(|n| n == 0 || n > root_inode_bound))
                 {
-                    return Err(invalid(
-                        "private spooled workspace creation exceeded its precharge",
+                    // Only fixed labels and numeric quota observations cross
+                    // the public refusal boundary; paths and raw IO stay sealed.
+                    return Err(io::Error::new(
+                        io::ErrorKind::InvalidData,
+                        crate::source_command::SourceCommandError::DeniedWithReason(format!(
+                            "private spooled workspace creation exceeded its precharge: \
+                             before_used_bytes={} before_used_inodes={} \
+                             after_used_bytes={} after_used_inodes={} \
+                             root_metadata_bound_bytes={} root_inode_bound={} \
+                             inode_profile={} retained_consumer_inodes={} \
+                             selected_tmpfs_quota_bytes={} selected_tmpfs_inode_limit={} \
+                             bytes_decreased={} inodes_decreased={} \
+                             bytes_excess={} root_inode_delta_invalid={}",
+                            usage.used_bytes,
+                            usage.used_inodes,
+                            after_usage.used_bytes,
+                            after_usage.used_inodes,
+                            ROOT_METADATA_BOUND,
+                            root_inode_bound,
+                            inode_profile,
+                            retained_consumer_inodes,
+                            caps.tmpfs_quota_bytes,
+                            caps.tmpfs_inode_limit,
+                            after_usage.used_bytes < usage.used_bytes,
+                            after_usage.used_inodes < usage.used_inodes,
+                            after_usage
+                                .used_bytes
+                                .checked_sub(usage.used_bytes)
+                                .is_some_and(|n| n > ROOT_METADATA_BOUND),
+                            after_usage
+                                .used_inodes
+                                .checked_sub(usage.used_inodes)
+                                .is_some_and(|n| n == 0 || n > root_inode_bound),
+                        )),
                     ));
                 }
                 active(self.deadline, self.cancel)?;
 
-                let io_budget = PinnedSqliteIoBudget::new(
-                    original_io_read_cap,
-                    candidate_limits.max_write_bytes,
-                )
-                .map_err(invalid)?;
-                io_budget
-                    .restrict_remaining_io(
-                        candidate_limits.max_read_bytes,
-                        candidate_limits.max_write_bytes,
-                    )
-                    .map_err(invalid)?;
-                let space_budget = PinnedSqliteSpaceBudget::new(sqlite_space).map_err(invalid)?;
+                let space_budget = if persistent_sqlite_bytes != 0 {
+                    let (space, _) = segment_v2_allocation.as_ref().ok_or_else(|| {
+                        invalid("persistent SQLite original allocation disappeared")
+                    })?;
+                    let allocation = persistent_root_allocation
+                        .as_ref()
+                        .ok_or_else(|| invalid("persistent SQLite root custody disappeared"))?;
+                    let metadata = workspace.metadata()?;
+                    let (held_parent, before) = persistent_parent
+                        .as_ref()
+                        .ok_or_else(|| invalid("persistent SQLite parent custody disappeared"))?;
+                    let after = held_parent
+                        .metadata()?
+                        .blocks()
+                        .checked_mul(512)
+                        .ok_or_else(|| invalid("persistent SQLite parent allocation overflow"))?;
+                    let parent_delta = after
+                        .checked_sub(*before)
+                        .ok_or_else(|| invalid("persistent SQLite parent allocation regressed"))?;
+                    let actual = metadata
+                        .blocks()
+                        .checked_mul(512)
+                        .and_then(|bytes| bytes.checked_add(parent_delta))
+                        .ok_or_else(|| invalid("persistent SQLite root allocation overflow"))?;
+                    allocation
+                        .update_actual_allocated(actual)
+                        .map_err(invalid)?;
+                    // Per-family limits partition only sqlite_space; the source
+                    // reservation already consumes its distinct original slice.
+                    space.clone()
+                } else {
+                    PinnedSqliteSpaceBudget::new(sqlite_space).map_err(invalid)?
+                };
                 let retained_workspace = workspace.try_clone()?;
-                Ok((workspace, io_budget, space_budget, retained_workspace))
+                Ok((
+                    workspace,
+                    io_budget.clone(),
+                    space_budget,
+                    retained_workspace,
+                ))
             })();
         let (workspace, io_budget, space_budget, retained_workspace) = match workspace_result {
             Ok(prepared) => prepared,
@@ -1638,8 +1998,12 @@ impl<'c> NativeSourceValidator<'c> {
         };
         self.segment_v2_profile = match (segment_v2_store_bytes, segment_v2_allocation) {
             (Some(max_allocated_bytes), Some((allocation_space, allocation_reservation))) => {
-                let io = PinnedSqliteIoBudget::new(segment_v2_read_cap, segment_v2_write_cap)
-                    .map_err(invalid)?;
+                let io = PinnedSqliteIoBudget::new_with_shared_write_authority(
+                    segment_v2_read_cap,
+                    segment_v2_write_cap,
+                    aggregate_write.clone(),
+                )
+                .map_err(invalid)?;
                 let allocation_unit_bytes = v2_case
                     .as_ref()
                     .map(|case| case.allocation_unit_bytes)
@@ -1671,8 +2035,12 @@ impl<'c> NativeSourceValidator<'c> {
                 if max_rows == 0 || max_nodes == 0 {
                     return Err(invalid("V2 finite row/node work profile is empty"));
                 }
+                let max_frame_bytes = max_allocated_bytes
+                    .min(candidate_limits.admission.max_member_bytes)
+                    .max(1);
                 Some(NativeSegmentV2Budget {
                     max_allocated_bytes,
+                    max_frame_bytes,
                     allocation_space,
                     allocation_reservation,
                     allocation_unit_bytes,
@@ -1717,8 +2085,10 @@ impl<'c> NativeSourceValidator<'c> {
             cache_bytes,
             max_row_state_bytes: row_state,
         };
+        self._spooled_persistent_root_allocation = persistent_root_allocation;
         self.spooled_workspace = Some((retained_workspace, request.space_budget.clone()));
         self.spooled_profile = Some((index_limits, defaults_limits, request.io_budget.clone()));
+        self.spooled_write_cap = Some(write_remaining);
         let v2_allocation_accountant = self
             .segment_v2_profile
             .as_ref()
@@ -1728,7 +2098,7 @@ impl<'c> NativeSourceValidator<'c> {
                 pointer: candidate_limits.candidate.reader,
                 segment: SegmentLimits {
                     max_segment_bytes: profile.max_allocated_bytes,
-                    max_frame_bytes: profile.max_allocated_bytes.min(4 * 1024 * 1024).max(1),
+                    max_frame_bytes: profile.max_frame_bytes,
                     max_frames: u32::try_from(profile.tree_limits.max_nodes.min(u32::MAX as u64))
                         .map_err(|_| invalid("V2 base segment frame limit exceeds range"))?
                         .max(1),
@@ -1770,7 +2140,7 @@ impl<'c> NativeSourceValidator<'c> {
                 .store_authority
                 .as_ref()
                 .and_then(PrivateTmpfsStageIsolation::persistent_store)
-                .ok_or_else(|| invalid("V2 source root custody disappeared"))?;
+                .ok_or_else(|| invalid("V2 selected persistent store disappeared"))?;
             let held = self
                 .store_authority
                 .as_ref()
@@ -1905,20 +2275,12 @@ impl<'c> NativeSourceValidator<'c> {
     ) -> io::Result<()> {
         let result = self.account_spooled_candidate_inner(candidate);
         match result {
-            Err(error) => {
-                let primary_io = candidate.io_snapshot();
-                let accounting_failed =
-                    self.prepared.is_some() && self.account_spooled_terminal_io(candidate).is_err();
-                Err(io::Error::other(NativeSpoolRefusal::retain(
-                    error,
-                    "native-v4 candidate accounting",
-                    primary_io,
-                    candidate.io_snapshot(),
-                    accounting_failed,
-                    false,
-                )))
-            }
-            Ok(()) => Ok(()),
+            Err(primary) if self.prepared.is_some() => Err(self.retain_spooled_refusal(
+                candidate,
+                primary,
+                "native-v4 candidate accounting",
+            )),
+            other => other,
         }
     }
 
@@ -2017,8 +2379,8 @@ impl<'c> NativeSourceValidator<'c> {
         self.account_spooled_terminal_budget()
     }
 
-    /// Check the two separately escrowed physical ledgers selected by this
-    /// invocation. Their handle identity is distinct from sharing one budget.
+    /// Check the distinct local read ledgers and their common original write
+    /// authority selected by this invocation.
     pub(crate) fn verify_spooled_v2_io(
         &self,
         spool: &PinnedSqliteIoBudget,
@@ -2031,6 +2393,7 @@ impl<'c> NativeSourceValidator<'c> {
         if deadline != self.deadline
             || !std::ptr::eq(cancel, self.cancel)
             || !self.spooled_route_selected
+            || !spool.shares_write_authority_with(v2)
             || self
                 .spooled_profile
                 .as_ref()
@@ -2045,6 +2408,58 @@ impl<'c> NativeSourceValidator<'c> {
         Ok(())
     }
 
+    /// Observe both selected local read ledgers and their single original
+    /// cumulative-write authority for runtime refusal evidence.
+    pub(crate) fn spooled_invocation_io_snapshot(&self) -> io::Result<NativeInvocationIoSnapshot> {
+        let spool = &self
+            .spooled_profile
+            .as_ref()
+            .ok_or_else(|| invalid("spooled original budget absent"))?
+            .2;
+        let spool_snapshot = spool.snapshot();
+        let mut usage = spool_snapshot;
+        let mut segment_snapshot = None;
+        let writes = spool.shared_write_snapshot();
+        if let Some(v2) = self.segment_v2_profile.as_ref() {
+            if !spool.shares_write_authority_with(&v2.io) {
+                return Err(invalid("spooled/V2 original write authority differs"));
+            }
+            let segment = v2.io.snapshot();
+            segment_snapshot = Some(segment);
+            usage.read_attempted_bytes = usage
+                .read_attempted_bytes
+                .checked_add(segment.read_attempted_bytes)
+                .ok_or_else(|| invalid("invocation read snapshot overflow"))?;
+            usage.read_permitted_bytes = usage
+                .read_permitted_bytes
+                .checked_add(segment.read_permitted_bytes)
+                .ok_or_else(|| invalid("invocation read snapshot overflow"))?;
+            usage.read_returned_bytes = usage
+                .read_returned_bytes
+                .checked_add(segment.read_returned_bytes)
+                .ok_or_else(|| invalid("invocation read snapshot overflow"))?;
+            usage.read_upper_bound_attempted_bytes = usage
+                .read_upper_bound_attempted_bytes
+                .checked_add(segment.read_upper_bound_attempted_bytes)
+                .ok_or_else(|| invalid("invocation read snapshot overflow"))?;
+            usage.failure = usage.failure.or(segment.failure);
+        }
+        usage.write_attempted_bytes = writes.write_attempted_bytes;
+        usage.write_permitted_bytes = writes.write_permitted_bytes;
+        usage.write_returned_bytes = writes.write_returned_bytes;
+        usage.failure = writes.failure.or(usage.failure);
+        // Aggregate counters are arithmetic observations, not another read
+        // authority. Its distinct read ceilings remain in the raw snapshots.
+        usage.read_limit_bytes = None;
+        usage.read_limit_origin = None;
+        usage.local_failure = None;
+        Ok(NativeInvocationIoSnapshot {
+            aggregate: usage,
+            spool: spool_snapshot,
+            segment_v2: segment_snapshot,
+        })
+    }
+
     /// Reserve caller-held source-operation state on the existing invocation
     /// ledger before an external bounded preparation allocates it. The debit
     /// remains monotonic through candidate validation and publication.
@@ -2054,14 +2469,19 @@ impl<'c> NativeSourceValidator<'c> {
         io: &PinnedSqliteIoBudget,
     ) -> io::Result<()> {
         active(self.deadline, self.cancel)?;
-        if bytes == 0
-            || bytes == usize::MAX
-            || !self.spooled_route_selected
+        // The capacity producer reads its authored selection through the
+        // selected V2 slice; other preparations use the candidate spool slice.
+        // Both retain state on this invocation's ledger. Require exact IO
+        // identity with one of its issued slices, never merely shared writes.
+        let selected_io = self
+            .spooled_profile
+            .as_ref()
+            .is_some_and(|profile| profile.2.shares_with(io))
             || self
-                .spooled_profile
+                .segment_v2_profile
                 .as_ref()
-                .is_none_or(|profile| !profile.2.shares_with(io))
-        {
+                .is_some_and(|profile| profile.io.shares_with(io));
+        if bytes == 0 || bytes == usize::MAX || !self.spooled_route_selected || !selected_io {
             return Err(invalid("spooled external state original owner differs"));
         }
         debit(
@@ -2094,6 +2514,10 @@ impl<'c> NativeSourceValidator<'c> {
             .ok_or_else(|| invalid("spooled original budget absent"))?
             .2;
         let usage = original.snapshot();
+        let aggregate_write = original.shared_write_snapshot();
+        let selected_write_cap = self
+            .spooled_write_cap
+            .ok_or_else(|| invalid("spooled selected write authority absent"))?;
         let candidate_read = usage
             .read_attempted_bytes
             .checked_sub(self.candidate_io.0)
@@ -2164,10 +2588,22 @@ impl<'c> NativeSourceValidator<'c> {
             || usage.read_returned_bytes > usage.read_permitted_bytes
             || usage.write_permitted_bytes > usage.write_attempted_bytes
             || usage.write_returned_bytes > usage.write_permitted_bytes
+            || aggregate_write.write_attempted_bytes > selected_write_cap
+            || aggregate_write.write_permitted_bytes > aggregate_write.write_attempted_bytes
+            || aggregate_write.write_returned_bytes > aggregate_write.write_permitted_bytes
+            || aggregate_write.failure.is_some()
             || usage
                 .write_attempted_bytes
                 .checked_add(segment_v2_usage.map_or(0, |segment| segment.write_attempted_bytes))
-                .is_none_or(|bytes| bytes > self.write_cap)
+                != Some(aggregate_write.write_attempted_bytes)
+            || usage
+                .write_permitted_bytes
+                .checked_add(segment_v2_usage.map_or(0, |segment| segment.write_permitted_bytes))
+                != Some(aggregate_write.write_permitted_bytes)
+            || usage
+                .write_returned_bytes
+                .checked_add(segment_v2_usage.map_or(0, |segment| segment.write_returned_bytes))
+                != Some(aggregate_write.write_returned_bytes)
             || usage.failure.is_some()
         {
             return Err(invalid("spooled terminal physical IO accounting refused"));
@@ -2184,6 +2620,27 @@ impl<'c> NativeSourceValidator<'c> {
         Ok(())
     }
 
+    fn retain_spooled_refusal(
+        &mut self,
+        candidate: &SpoolCandidate<'_>,
+        primary: io::Error,
+        phase: &'static str,
+    ) -> io::Error {
+        let before = self.spooled_invocation_io_snapshot();
+        let accounting = self.account_spooled_terminal_io(candidate);
+        if accounting.is_ok() {
+            return primary;
+        }
+        // Failed phases may poison the ledger. Retain the primary cause and
+        // the accounting failure separately, as the outer CLI already does.
+        match (before, self.spooled_invocation_io_snapshot()) {
+            (Ok(before), Ok(after)) => io::Error::other(NativeSpoolRefusal::retain(
+                primary, phase, before, after, true, false,
+            )),
+            _ => primary,
+        }
+    }
+
     pub(crate) fn validate_spooled<'candidate>(
         &mut self,
         candidate: &'candidate SpoolCandidate<'_>,
@@ -2194,20 +2651,12 @@ impl<'c> NativeSourceValidator<'c> {
         // a phase window. Preserve that attempted suffix under the original
         // ledger as well; never regrant a completed view after an error.
         match result {
-            Err(error) => {
-                let primary_io = candidate.io_snapshot();
-                let accounting_failed =
-                    self.prepared.is_some() && self.account_spooled_terminal_io(candidate).is_err();
-                Err(io::Error::other(NativeSpoolRefusal::retain(
-                    error,
-                    "native-v4 whole foundation validation",
-                    primary_io,
-                    candidate.io_snapshot(),
-                    accounting_failed,
-                    false,
-                )))
-            }
-            Ok(index) => Ok(index),
+            Err(primary) if self.prepared.is_some() => Err(self.retain_spooled_refusal(
+                candidate,
+                primary,
+                "native-v4 whole foundation validation",
+            )),
+            other => other,
         }
     }
 
@@ -2283,12 +2732,12 @@ impl<'c> NativeSourceValidator<'c> {
         drop(after);
         self.account_spooled_candidate(candidate)?;
         let remaining = self.ledger()?.remaining().map_err(command)?;
-        let operation_state = remaining.state_bytes;
+        let mut operation_state = remaining.state_bytes;
         // The original operation remainder bounds the simultaneous callback
         // plus raw-member overlap. The spool's selected row ceiling continues
         // to bound local raw/SQL workspace separately; a schema constructor is
         // not a SQL row allocation.
-        let input_state = operation_state;
+        let mut input_state = operation_state;
         let raw_state = observed_max
             .checked_mul(4)
             .and_then(|n| n.checked_add(16384))
@@ -2306,7 +2755,7 @@ impl<'c> NativeSourceValidator<'c> {
         let callback_reserve = raw_state
             .checked_add(metadata_state)
             .ok_or_else(|| invalid("candidate raw/member callback state overflow"))?;
-        let callback_state = input_state
+        let mut callback_state = input_state
             .checked_sub(callback_reserve)
             .ok_or_else(|| invalid("candidate raw/member callback exceeds selected state"))?;
         let held_declared = candidate
@@ -2326,10 +2775,73 @@ impl<'c> NativeSourceValidator<'c> {
         // A local shared owner keeps the immutable model alive while mutable
         // validator accounting advances; this clones no manifest rows.
         let record_selection = self.record_selection.clone();
+        let generated_selection = if self.generated_input.is_some() {
+            use crate::source_admission_generated_selection::GeneratedCandidateSelectionV1;
+            use crate::source_capacity_workload::{
+                WeightedScaleGeneratedAllV1, WeightedScaleTemplateSetV1,
+            };
+            use tos_validation::record_biblio_cut::GeneratedSourceSelection;
+            let issued = candidate
+                .selected_generated_declaration_v1()?
+                .ok_or_else(|| invalid("generated candidate issued declaration absent"))?;
+            let finite = record_selection
+                .as_ref()
+                .ok_or_else(|| invalid("generated candidate finite selection absent"))?;
+            let root = self
+                .prepared
+                .as_ref()
+                .and_then(|prepared| prepared.launch.arguments.repo_root.as_deref())
+                .ok_or_else(|| invalid("generated template source root absent"))?;
+            let work = candidate.admission_work_budget()?;
+            // This is the unallocated callback remainder, not total process RAM.
+            // The finite model and Native baseline were already debited above.
+            let templates = WeightedScaleTemplateSetV1::load_from_selected_declaration_accounted(
+                root,
+                issued,
+                &original_io,
+                self.deadline,
+                self.cancel,
+                &work,
+                input_state,
+                0,
+            )?;
+            let fence = candidate.fence()?;
+            let provider = WeightedScaleGeneratedAllV1::from_selected_declaration(
+                issued,
+                templates,
+                finite.clone(),
+                fence,
+                input_state,
+                0,
+                work,
+                self.deadline,
+                self.cancel,
+            )?;
+            let wrapper = GeneratedCandidateSelectionV1::new(provider, fence)?;
+            let owned = wrapper
+                .retained_state_bytes()
+                .checked_add(2 * size_of::<usize>())
+                .ok_or_else(|| invalid("generated selection Arc state overflow"))?;
+            debit(
+                self.ledger_mut()?,
+                "generated-candidate-retained-state",
+                0,
+                owned,
+            )?;
+            operation_state = self.ledger()?.remaining().map_err(command)?.state_bytes;
+            input_state = operation_state;
+            callback_state = input_state
+                .checked_sub(callback_reserve)
+                .ok_or_else(|| invalid("generated callback exceeds remaining selected state"))?;
+            Some(Arc::new(wrapper))
+        } else {
+            None
+        };
         let input =
             CandidateRecordsInput::new(candidate, observed_max, input_state, callback_state)
                 .map_err(|_| invalid("candidate callback source profile refused"))?
-                .with_record_selection(record_selection);
+                .with_record_selection(record_selection)
+                .with_generated_selection(generated_selection);
         if let Some(history) = &mut self.history {
             history.bind_candidate_io_budget(&input, &original_io)?;
         }
@@ -2368,21 +2880,15 @@ impl<'c> NativeSourceValidator<'c> {
                     ledger: failed.remaining_budget,
                     sources: failed.sources,
                 });
+                // The outer validator accounts this restored failed phase
+                // without replacing its primary refusal with a finalizer error.
                 let reason =
                     foundation_orchestrator::FoundationOrchestratorError::Bootstrap(failed.error)
                         .public_reason();
-                let primary =
-                    io::Error::new(io::ErrorKind::InvalidData, NativeValidationRefusal(reason));
-                let primary_io = candidate.io_snapshot();
-                let accounting_failed = self.account_spooled_terminal_io(candidate).is_err();
-                return Err(io::Error::other(NativeSpoolRefusal::retain(
-                    primary,
-                    "native-v4 candidate foundation bootstrap",
-                    primary_io,
-                    candidate.io_snapshot(),
-                    accounting_failed,
-                    false,
-                )));
+                return Err(io::Error::new(
+                    io::ErrorKind::InvalidData,
+                    NativeValidationRefusal(reason),
+                ));
             }
         };
         let mut json = JsonLimits::default();
@@ -2466,21 +2972,8 @@ impl<'c> NativeSourceValidator<'c> {
             Ok(earned)
         });
         // Attempted suffixes remain visible even if any final fence failed.
-        let primary_io = candidate.io_snapshot();
         let terminal = self.account_spooled_terminal_io(candidate);
-        let (sink, records) = match result {
-            Ok(earned) => earned,
-            Err(error) => {
-                return Err(io::Error::other(NativeSpoolRefusal::retain(
-                    error,
-                    "native-v4 foundation evaluation and final fences",
-                    primary_io,
-                    candidate.io_snapshot(),
-                    terminal.is_err(),
-                    false,
-                )));
-            }
-        };
+        let (sink, records) = result?;
         terminal?;
         self.account_spooled_candidate(candidate)?;
         let (workspace, space) = self
@@ -2506,21 +2999,8 @@ impl<'c> NativeSourceValidator<'c> {
         let finished = sink.finish(complete);
         // finish authenticates the index membership EOF under the same ledger;
         // its attempted suffix is charged on both success and refusal.
-        let primary_io = candidate.io_snapshot();
         let terminal = self.account_spooled_terminal_io(candidate);
-        let view = match finished {
-            Ok(view) => view,
-            Err(error) => {
-                return Err(io::Error::other(NativeSpoolRefusal::retain(
-                    error,
-                    "native-v4 validated index membership EOF",
-                    primary_io,
-                    candidate.io_snapshot(),
-                    terminal.is_err(),
-                    false,
-                )));
-            }
-        };
+        let view = finished?;
         terminal?;
         // The joined candidate phases already charged runtime history attempts
         // and retained state. Keep the owner totals for later custody checks.
@@ -2709,6 +3189,24 @@ impl<'c> NativeSourceValidator<'c> {
         self.account_candidate(candidate)?;
         Ok(ValidatedCandidate(index))
     }
+    pub(crate) fn take_indexed_input_declaration_v1(
+        &mut self,
+    ) -> io::Result<Option<crate::source_admission_indexed_input::HeldIndexedInputDeclarationV1>>
+    {
+        let Some(early) = &mut self.generated_input else {
+            return Ok(None);
+        };
+        early
+            .declaration
+            .as_ref()
+            .ok_or_else(|| invalid("generated input declaration already consumed"))?
+            .verify_v1(&early.io, self.deadline, self.cancel)?;
+        early
+            .declaration
+            .take()
+            .map(Some)
+            .ok_or_else(|| invalid("generated input declaration already consumed"))
+    }
     pub(crate) fn remaining_output_bytes(&self) -> io::Result<usize> {
         Ok(self.ledger()?.remaining().map_err(command)?.output_bytes)
     }
@@ -2769,6 +3267,8 @@ impl<'c> NativeSourceValidator<'c> {
             || object.contains_key("validation_profile_declaration_sha256")
             || object.contains_key("validation_input_scope")
             || object.contains_key("record_selection")
+            || object.contains_key("generated_input_identity_binding_json")
+            || object.contains_key("generated_input_identity_binding_sha256")
         {
             return Err(invalid(
                 "admission receipt cannot override validator profile",
@@ -2782,6 +3282,12 @@ impl<'c> NativeSourceValidator<'c> {
             validation_input_scope: &'a str,
             #[serde(skip_serializing_if = "Option::is_none")]
             record_selection: Option<&'a Value>,
+            // Exact owner-serialized canonical binding, retained once and
+            // borrowed here. It includes the issued tuple, not physical EOF.
+            #[serde(skip_serializing_if = "Option::is_none")]
+            generated_input_identity_binding_json: Option<&'a str>,
+            #[serde(skip_serializing_if = "Option::is_none")]
+            generated_input_identity_binding_sha256: Option<String>,
             validation_profile_declaration_sha256: String,
         }
         let ticket = self
@@ -2794,6 +3300,15 @@ impl<'c> NativeSourceValidator<'c> {
             validation_profile_id: self.validation_profile.id,
             validation_input_scope: self.validation_profile.input_scope,
             record_selection: self.record_selection_binding.as_ref(),
+            generated_input_identity_binding_json: self
+                .generated_input
+                .as_ref()
+                .and_then(|early| early.identity_binding.as_deref()),
+            generated_input_identity_binding_sha256: self
+                .generated_input
+                .as_ref()
+                .and_then(|early| early.identity_binding.as_ref())
+                .map(|binding| Digest256::of_bytes(binding.as_bytes()).to_hex()),
             validation_profile_declaration_sha256: self
                 .validation_profile
                 .declaration_sha256
@@ -2871,15 +3386,25 @@ mod refusal_transport_tests {
     #[test]
     fn opaque_error_fingerprint_is_bounded_and_does_not_export_text() {
         let text = "/private/sentinel: publication failed";
-        assert_eq!(bounded_error_sha256(&io::Error::other(text)),
-            Some(tos_foundation::Digest256::of_bytes(text.as_bytes()).to_hex()));
+        assert_eq!(
+            bounded_error_sha256(&io::Error::other(text)),
+            Some(tos_foundation::Digest256::of_bytes(text.as_bytes()).to_hex())
+        );
         assert!(bounded_error_sha256(&io::Error::other("x".repeat(4097))).is_none());
-        let snapshot = PinnedSqliteIoSnapshot::default();
-        let refusal = NativeSpoolRefusal::retain(io::Error::other(text),
-            "native-v4 corpus publication", snapshot, snapshot, false, false);
+        let snapshot = NativeInvocationIoSnapshot::default();
+        let refusal = NativeSpoolRefusal::retain(
+            io::Error::other(text),
+            "native-v4 corpus publication",
+            snapshot,
+            snapshot,
+            false,
+            false,
+        );
         let encoded = serde_json::to_string(&refusal.packet()).unwrap();
         assert!(!encoded.contains("private/sentinel"));
-        assert!(serde_json::from_str::<Value>(&encoded).unwrap()["native_validation_reason"].is_null());
+        assert!(
+            serde_json::from_str::<Value>(&encoded).unwrap()["native_validation_reason"].is_null()
+        );
     }
 
     #[test]
@@ -2899,7 +3424,7 @@ mod refusal_transport_tests {
                 ));
             let public = error.public_reason();
             assert_eq!(public, expected);
-            let snapshot = PinnedSqliteIoSnapshot::default();
+            let snapshot = NativeInvocationIoSnapshot::default();
             let refusal = NativeSpoolRefusal::retain(
                 io::Error::new(io::ErrorKind::InvalidData, NativeValidationRefusal(public)),
                 "native-v4 foundation evaluation",
@@ -2918,7 +3443,7 @@ mod refusal_transport_tests {
             );
         }
         let overlong = "private-sentinel".repeat(NativeValidationRefusal::MAX_PUBLIC_REASON_BYTES);
-        let snapshot = PinnedSqliteIoSnapshot::default();
+        let snapshot = NativeInvocationIoSnapshot::default();
         let refusal = NativeSpoolRefusal::retain(
             io::Error::other(NativeValidationRefusal(overlong)),
             "native-v4 foundation evaluation",

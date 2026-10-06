@@ -134,6 +134,8 @@ fn plan(
         item_path_profile: None,
         files,
         new_directories: Vec::new(),
+        source_readset: None,
+        source_successor: None,
     };
     tx::validate_plan(&plan)?;
     Ok(plan)

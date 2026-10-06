@@ -73,9 +73,9 @@ pub(crate) fn public_io_reason(error: &std::io::Error) -> String {
     {
         return reason.summary();
     }
-    if let Some(reason) = error.get_ref().and_then(|inner|
-        inner.downcast_ref::<tos_compiler::source_witness_catalog::CatalogSchemaRefusal>())
-    {
+    if let Some(reason) = error.get_ref().and_then(|inner| {
+        inner.downcast_ref::<tos_compiler::source_witness_catalog::CatalogSchemaRefusal>()
+    }) {
         let owned = crate::source_admission_spooled_index::receiver_refusal(reason.0.clone());
         return public_io_reason(&owned);
     }

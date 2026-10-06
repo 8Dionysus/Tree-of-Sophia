@@ -1,7 +1,10 @@
 //! Bounded exact-revision point reads from the private native V2 store.
 //! These observations confer no admission, rights or currentness after the
 //! selected immutable session. Strict legacy V1 readers remain unchanged.
-use super::source_admission::{active, invalid};
+use super::source_admission::{AdmissionWorkBudget, active, invalid};
+use super::source_admission_packed_objects::{
+    MAX_PACKED_OBJECT_FRAMES_V2, PackedObjectLimitsV2, PackedObjectLocationV2, PackedObjectReaderV2,
+};
 use super::source_admission_segment_v2::{
     SourceRevisionRootsV2, SourceRootSetV2, decode_workspace_upper_bound,
 };
@@ -22,7 +25,7 @@ use tos_segment_store::{
 };
 use tos_source_store::{
     CorpusCurrentSelection, CorpusPointerFormat, PinnedSqliteIoBudget, ReadLimits,
-    SourceMembershipV1,
+    SourceMembershipV1, SourceMembershipV2,
 };
 
 const DOMAIN: &[u8] = b"tos-native-admission-source-v2";
@@ -39,6 +42,15 @@ pub struct V2PointReadLimits {
     /// overlap and one returned object. No independently reset state grant.
     pub max_state_bytes: usize,
     pub caller_retained_state_bytes: usize,
+}
+
+/// Result of a typed current-selector observation. `Advanced` is reserved for
+/// a successfully decoded selector that no longer names this retained cut;
+/// custody, IO, layout, deadline, cancellation and decode errors stay errors.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum V2CurrentSelectionObservation {
+    StillSelected,
+    Advanced,
 }
 
 impl V2PointReadLimits {
@@ -117,6 +129,9 @@ impl AuthenticatedTreeIoLedgerV1 for TreeIo {
     fn charge_read(&self, n: u64) -> bool {
         self.0.charge_read(n).is_ok()
     }
+    fn charge_read_upper_bound(&self, n: u64) -> bool {
+        self.0.charge_read_upper_bound(n).is_ok()
+    }
     fn record_read_returned(&self, n: u64) -> bool {
         self.0.record_read_returned(n).is_ok()
     }
@@ -155,6 +170,8 @@ pub enum V2RootKind {
     Identities,
     Dependencies,
     Retirements,
+    Objects,
+    IdentityPaths,
     History,
 }
 
@@ -168,7 +185,8 @@ pub(crate) struct AcceptedV2Publication {
     pub(crate) base_revision: Option<SourceRevision>,
     pub(crate) batch_sha256: Digest256,
     pub(crate) validator_sha256: Digest256,
-    pub(crate) membership_v1: SourceMembershipV1,
+    pub(crate) membership_v1: Option<SourceMembershipV1>,
+    pub(crate) membership_v2: Option<SourceMembershipV2>,
     pub(crate) source_bytes: u64,
     pub(crate) member_count: u64,
     pub(crate) identity_count: u64,
@@ -190,10 +208,15 @@ pub struct V2ReadSession {
     limits: V2PointReadLimits,
     io: PinnedSqliteIoBudget,
     tree_io: Arc<dyn AuthenticatedTreeIoLedgerV1>,
+    /// Optional caller-owned invocation work meter. Packed object reads and
+    /// warm SourceCut reads require this original meter; it is never rebuilt
+    /// from a structural tree limit.
+    work: Option<AdmissionWorkBudget>,
     deadline: Instant,
     cancel: Arc<AtomicBool>,
     read_nodes: u64,
     tree_read_bytes: u64,
+    read_work_units: u64,
     failed: bool,
     observation: Option<V2MemberObservation>,
 }
@@ -208,7 +231,7 @@ impl V2ReadSession {
     ) -> io::Result<Self> {
         let store =
             AdmissionStore::open_existing_with_io(path, original_io.clone(), deadline, &cancel)?;
-        Self::open_store(store, limits, original_io, deadline, cancel)
+        Self::open_store(store, limits, original_io, None, deadline, cancel)
     }
 
     /// Open from an exact held root while checking its normalized name before
@@ -240,13 +263,36 @@ impl V2ReadSession {
             deadline,
             &cancel,
         )?;
-        Self::open_store(store, limits, original_io, deadline, cancel)
+        Self::open_store(store, limits, original_io, None, deadline, cancel)
+    }
+
+    /// Open a selected V2 source cut using the caller's original invocation
+    /// work meter. Tree visits, packed-frame operations and later cursors all
+    /// debit this same handle.
+    pub(crate) fn open_at_named_with_work(
+        path: &Path,
+        held_root: &File,
+        limits: V2PointReadLimits,
+        original_io: PinnedSqliteIoBudget,
+        work: AdmissionWorkBudget,
+        deadline: Instant,
+        cancel: Arc<AtomicBool>,
+    ) -> io::Result<Self> {
+        let store = AdmissionStore::open_existing_at_named_with_io(
+            path,
+            held_root,
+            original_io.clone(),
+            deadline,
+            &cancel,
+        )?;
+        Self::open_store(store, limits, original_io, Some(work), deadline, cancel)
     }
 
     fn open_store(
         store: AdmissionStore,
         limits: V2PointReadLimits,
         original_io: PinnedSqliteIoBudget,
+        work: Option<AdmissionWorkBudget>,
         deadline: Instant,
         cancel: Arc<AtomicBool>,
     ) -> io::Result<Self> {
@@ -300,10 +346,12 @@ impl V2ReadSession {
             limits,
             io: original_io,
             tree_io,
+            work,
             deadline,
             cancel,
             read_nodes: 0,
             tree_read_bytes: 0,
+            read_work_units: 0,
             failed: false,
             observation: None,
         };
@@ -331,6 +379,15 @@ impl V2ReadSession {
 
     pub(crate) fn current_roots(&self) -> &SourceRevisionRootsV2 {
         &self.roots.current
+    }
+
+    pub(crate) fn selected_native_admission_root(
+        &self,
+    ) -> io::Result<super::source_admission_index::SelectedNativeAdmissionRootV1> {
+        super::source_admission_index::SelectedNativeAdmissionRootV1::from_selected_current_roots(
+            &self.roots.current,
+            self.selected_rootset_sha256()?,
+        )
     }
 
     pub(crate) fn current_rootset(&self) -> &SourceRootSetV2 {
@@ -477,6 +534,7 @@ impl V2ReadSession {
                             batch_sha256,
                             validator_sha256,
                             membership_v1: roots.membership_v1,
+                            membership_v2: roots.membership_v2,
                             source_bytes: roots.source_bytes,
                             member_count: roots.member_count,
                             identity_count: roots.identity_count,
@@ -558,6 +616,14 @@ impl V2ReadSession {
         self.revision_roots(revision)
     }
 
+    pub(crate) fn roots_for_revision_with_caller_state(
+        &mut self,
+        revision: SourceRevision,
+        caller_retained_state_bytes: usize,
+    ) -> io::Result<Option<SourceRevisionRootsV2>> {
+        self.revision_roots_with_caller_state(revision, caller_retained_state_bytes)
+    }
+
     pub(crate) fn next_history_roots_after(
         &mut self,
         after_revision: Option<&[u8]>,
@@ -618,13 +684,30 @@ impl V2ReadSession {
         revision: SourceRevision,
         id: &str,
     ) -> io::Result<Option<RelativePath>> {
+        self.identity_path_with_caller_state(revision, id, 0)
+    }
+
+    pub(crate) fn identity_path_with_caller_state(
+        &mut self,
+        revision: SourceRevision,
+        id: &str,
+        caller_retained_state_bytes: usize,
+    ) -> io::Result<Option<RelativePath>> {
         if id.is_empty() || id.len() > self.limits.tree.max_key_bytes {
             return Err(invalid("V2 base identity key exceeds profile"));
         }
-        let Some(roots) = self.revision_roots(revision)? else {
+        let Some(roots) =
+            self.revision_roots_with_caller_state(revision, caller_retained_state_bytes)?
+        else {
             return Ok(None);
         };
-        let Some(path) = self.lookup(&roots.identities, id.as_bytes())? else {
+        let root_state = roots.retained_state_bytes()?;
+        let retained = caller_retained_state_bytes
+            .checked_add(root_state)
+            .ok_or_else(|| invalid("V2 identity lookup retained state overflow"))?;
+        let Some(path) =
+            self.lookup_with_caller_state(&roots.identities, id.as_bytes(), retained)?
+        else {
             return Ok(None);
         };
         RelativePath::parse(std::str::from_utf8(&path).map_err(invalid)?)
@@ -635,17 +718,31 @@ impl V2ReadSession {
     /// Explicit mutable-pointer fence for a caller that requires a current
     /// view; exact-revision reads themselves use the retained immutable cut.
     pub fn verify_current_fence(&self) -> io::Result<()> {
-        if self.store.current_selection(
+        match self.observe_current_selection()? {
+            V2CurrentSelectionObservation::StillSelected => Ok(()),
+            V2CurrentSelectionObservation::Advanced => {
+                Err(invalid("V2 point current selection advanced"))
+            }
+        }
+    }
+
+    /// Observe whether the protected selector still names this exact retained
+    /// cut while preserving every real observation error for callers that may
+    /// rebase only on a valid selector advance.
+    pub(crate) fn observe_current_selection(&self) -> io::Result<V2CurrentSelectionObservation> {
+        let current = self.store.current_selection(
             self.limits.pointer,
             self.deadline,
             &self.cancel,
             Some(&self.io),
-        )? != Some(self.selection.clone())
-        {
-            return Err(invalid("V2 point current selection advanced"));
-        }
+        )?;
         self.store.verify_layout()?;
-        active(self.deadline, &self.cancel)
+        active(self.deadline, &self.cancel)?;
+        Ok(if current.as_ref() == Some(&self.selection) {
+            V2CurrentSelectionObservation::StillSelected
+        } else {
+            V2CurrentSelectionObservation::Advanced
+        })
     }
 
     /// Return one row from an authenticated, ordered key interval. The
@@ -672,6 +769,25 @@ impl V2ReadSession {
         )
     }
 
+    pub(crate) fn next_row_after_with_caller_state(
+        &mut self,
+        revision: SourceRevision,
+        kind: V2RootKind,
+        lower_inclusive: Option<&[u8]>,
+        upper_exclusive: Option<&[u8]>,
+        after_exclusive: Option<&[u8]>,
+        caller_retained_state_bytes: usize,
+    ) -> io::Result<Option<AuthenticatedTreeEntryV1>> {
+        self.next_row_after_with_retained(
+            revision,
+            kind,
+            lower_inclusive,
+            upper_exclusive,
+            after_exclusive,
+            caller_retained_state_bytes,
+        )
+    }
+
     fn next_row_after_with_retained(
         &mut self,
         revision: SourceRevision,
@@ -687,22 +803,34 @@ impl V2ReadSession {
         self.observation = None;
         let result = (|| {
             active(self.deadline, &self.cancel)?;
-            let root = if kind == V2RootKind::History {
+            let (root, root_state) = if kind == V2RootKind::History {
                 if revision != self.selection.revision {
                     return Err(invalid("V2 history cursor revision differs"));
                 }
-                self.roots.history.clone()
+                (self.roots.history.clone(), 0)
             } else {
-                let Some(roots) = self.revision_roots(revision)? else {
+                let Some(roots) = self.revision_roots_with_caller_state(
+                    revision,
+                    additional_caller_retained_state_bytes,
+                )?
+                else {
                     return Ok(None);
                 };
-                match kind {
+                let state = roots.retained_state_bytes()?;
+                let root = match kind {
                     V2RootKind::Members => roots.members,
                     V2RootKind::Identities => roots.identities,
                     V2RootKind::Dependencies => roots.dependencies,
                     V2RootKind::Retirements => roots.retirements,
+                    V2RootKind::Objects => roots
+                        .objects
+                        .ok_or_else(|| invalid("selected revision has no packed object root"))?,
+                    V2RootKind::IdentityPaths => roots
+                        .identity_paths
+                        .ok_or_else(|| invalid("selected revision lacks inverse identity root"))?,
                     V2RootKind::History => unreachable!(),
-                }
+                };
+                (root, state)
             };
             let mut limits = self.limits.tree;
             limits.max_nodes = limits
@@ -715,27 +843,47 @@ impl V2ReadSession {
                 .checked_sub(self.tree_read_bytes)
                 .filter(|n| *n > 0)
                 .ok_or_else(|| invalid("V2 point cumulative tree bytes exceeded"))?;
+            let retained_for_cursor = additional_caller_retained_state_bytes
+                .checked_add(root_state)
+                .ok_or_else(|| invalid("V2 point cursor retained state overflow"))?;
             let range_state = self
                 .limits
                 .max_state_bytes
                 .checked_sub(self.limits.base_state_bytes()?)
-                .and_then(|bytes| bytes.checked_sub(additional_caller_retained_state_bytes))
+                .and_then(|bytes| bytes.checked_sub(retained_for_cursor))
                 .filter(|n| *n > 0)
                 .ok_or_else(|| invalid("V2 point range state allowance absent"))?;
-            let (row, work) = self
-                .segment
-                .lookup_authenticated_tree_v2_after_with_work_and_io(
-                    &root,
-                    lower_inclusive,
-                    upper_exclusive,
-                    after_exclusive,
-                    limits,
-                    range_state,
-                    Some(self.tree_io.clone()),
-                    self.deadline,
-                    &self.cancel,
-                )
-                .map_err(invalid)?;
+            let (row, work) = if let Some(shared_work) = self.work.clone() {
+                let mut debit = || shared_work.charge_many(1).is_ok();
+                self.segment
+                    .lookup_authenticated_tree_v2_after_with_work_and_io_and_callback(
+                        &root,
+                        lower_inclusive,
+                        upper_exclusive,
+                        after_exclusive,
+                        limits,
+                        range_state,
+                        Some(self.tree_io.clone()),
+                        self.deadline,
+                        &self.cancel,
+                        &mut debit,
+                    )
+                    .map_err(invalid)?
+            } else {
+                self.segment
+                    .lookup_authenticated_tree_v2_after_with_work_and_io(
+                        &root,
+                        lower_inclusive,
+                        upper_exclusive,
+                        after_exclusive,
+                        limits,
+                        range_state,
+                        Some(self.tree_io.clone()),
+                        self.deadline,
+                        &self.cancel,
+                    )
+                    .map_err(invalid)?
+            };
             self.record_work(work.read_nodes, work.read_bytes)?;
             self.store.verify_layout()?;
             active(self.deadline, &self.cancel)?;
@@ -810,15 +958,30 @@ impl V2ReadSession {
         revision: SourceRevision,
         path: &RelativePath,
     ) -> io::Result<Option<V2MemberTupleObservation>> {
+        self.member_tuple_with_caller_state(revision, path, 0)
+    }
+
+    pub(crate) fn member_tuple_with_caller_state(
+        &mut self,
+        revision: SourceRevision,
+        path: &RelativePath,
+        caller_retained_state_bytes: usize,
+    ) -> io::Result<Option<V2MemberTupleObservation>> {
         if self.failed {
             return Err(invalid("V2 point session already refused"));
         }
         self.observation = None;
         let result = (|| {
-            let Some(roots) = self.revision_roots(revision)? else {
+            let Some(roots) =
+                self.revision_roots_with_caller_state(revision, caller_retained_state_bytes)?
+            else {
                 return Ok(None);
             };
-            self.member_tuple_from_roots(&roots, path)
+            let roots_state = roots.retained_state_bytes()?;
+            let retained = caller_retained_state_bytes
+                .checked_add(roots_state)
+                .ok_or_else(|| invalid("V2 member tuple state overflow"))?;
+            self.member_tuple_from_roots_with_caller_state(&roots, path, retained)
         })();
         if result.is_err() {
             self.failed = true;
@@ -831,8 +994,39 @@ impl V2ReadSession {
         root: &AuthenticatedTreeDescriptorV2,
         key: &[u8],
     ) -> io::Result<Option<Vec<u8>>> {
+        self.lookup_with_caller_state(root, key, 0)
+    }
+
+    fn lookup_with_caller_state(
+        &mut self,
+        root: &AuthenticatedTreeDescriptorV2,
+        key: &[u8],
+        caller_retained_state_bytes: usize,
+    ) -> io::Result<Option<Vec<u8>>> {
         if self.failed {
             return Err(invalid("V2 point session already refused"));
+        }
+        let lookup_state = self
+            .limits
+            .tree
+            .max_node_bytes
+            .checked_mul(64)
+            .and_then(|bytes| {
+                usize::try_from(self.limits.tree.max_value_bytes)
+                    .ok()?
+                    .checked_mul(4)
+                    .and_then(|value_bytes| bytes.checked_add(value_bytes))
+            })
+            .and_then(|bytes| bytes.checked_add(2048))
+            .ok_or_else(|| invalid("V2 point lookup state overflow"))?;
+        if self
+            .limits
+            .base_state_bytes()?
+            .checked_add(caller_retained_state_bytes)
+            .and_then(|bytes| bytes.checked_add(lookup_state))
+            .is_none_or(|bytes| bytes > self.limits.max_state_bytes)
+        {
+            return Err(invalid("V2 point lookup exceeds original state slice"));
         }
         active(self.deadline, &self.cancel)?;
         let mut limits = self.limits.tree;
@@ -846,17 +1040,31 @@ impl V2ReadSession {
             .checked_sub(self.tree_read_bytes)
             .filter(|n| *n > 0)
             .ok_or_else(|| invalid("V2 point cumulative tree bytes exceeded"))?;
-        let lookup = self
-            .segment
-            .lookup_authenticated_tree_v2_with_work_and_io(
-                root,
-                key,
-                limits,
-                Some(self.tree_io.clone()),
-                self.deadline,
-                &self.cancel,
-            )
-            .map_err(invalid);
+        let lookup = if let Some(shared_work) = self.work.clone() {
+            let mut debit = || shared_work.charge_many(1).is_ok();
+            self.segment
+                .lookup_authenticated_tree_v2_with_work_and_io_and_callback(
+                    root,
+                    key,
+                    limits,
+                    Some(self.tree_io.clone()),
+                    self.deadline,
+                    &self.cancel,
+                    &mut debit,
+                )
+                .map_err(invalid)
+        } else {
+            self.segment
+                .lookup_authenticated_tree_v2_with_work_and_io(
+                    root,
+                    key,
+                    limits,
+                    Some(self.tree_io.clone()),
+                    self.deadline,
+                    &self.cancel,
+                )
+                .map_err(invalid)
+        };
         let (value, work) = match lookup {
             Ok(value) => value,
             Err(error) => {
@@ -881,6 +1089,10 @@ impl V2ReadSession {
             .checked_add(bytes)
             .filter(|n| *n <= self.limits.tree.max_total_bytes)
             .ok_or_else(|| invalid("V2 point cumulative tree bytes exceeded"))?;
+        self.read_work_units = self
+            .read_work_units
+            .checked_add(nodes)
+            .ok_or_else(|| invalid("V2 point cumulative work count overflow"))?;
         Ok(())
     }
 
@@ -888,7 +1100,25 @@ impl V2ReadSession {
         &mut self,
         revision: SourceRevision,
     ) -> io::Result<Option<SourceRevisionRootsV2>> {
+        self.revision_roots_with_caller_state(revision, 0)
+    }
+
+    fn revision_roots_with_caller_state(
+        &mut self,
+        revision: SourceRevision,
+        caller_retained_state_bytes: usize,
+    ) -> io::Result<Option<SourceRevisionRootsV2>> {
         if revision == self.roots.current.revision {
+            let clone_state = self.roots.current.retained_state_bytes()?;
+            if self
+                .limits
+                .base_state_bytes()?
+                .checked_add(caller_retained_state_bytes)
+                .and_then(|bytes| bytes.checked_add(clone_state))
+                .is_none_or(|bytes| bytes > self.limits.max_state_bytes)
+            {
+                return Err(invalid("V2 current roots exceed caller state slice"));
+            }
             return Ok(Some(self.roots.current.clone()));
         }
         if let Some(cached) = self
@@ -896,16 +1126,41 @@ impl V2ReadSession {
             .as_ref()
             .filter(|roots| roots.revision == revision)
         {
+            let clone_state = cached.retained_state_bytes()?;
+            if self
+                .limits
+                .base_state_bytes()?
+                .checked_add(caller_retained_state_bytes)
+                .and_then(|bytes| bytes.checked_add(clone_state))
+                .is_none_or(|bytes| bytes > self.limits.max_state_bytes)
+            {
+                return Err(invalid("V2 cached roots exceed caller state slice"));
+            }
             return Ok(Some(cached.clone()));
         }
         let history = self.roots.history.clone();
-        let Some(raw) = self.lookup(&history, revision.0.as_bytes())? else {
+        self.history_roots_cache = None;
+        let Some(raw) = self.lookup_with_caller_state(
+            &history,
+            revision.0.as_bytes(),
+            caller_retained_state_bytes,
+        )?
+        else {
             return Ok(None);
         };
         let workspace = decode_workspace_upper_bound(raw.len())?;
-        // Replacing the one-entry cache must not overlap an obsolete cached
-        // revision with both the decoded row and its new cached copy.
-        self.history_roots_cache = None;
+        let result_state = SourceRevisionRootsV2::retained_state_upper_bound_for_value(raw.len())?;
+        if self
+            .limits
+            .base_state_bytes()?
+            .checked_add(caller_retained_state_bytes)
+            .and_then(|bytes| bytes.checked_add(raw.len()))
+            .and_then(|bytes| bytes.checked_add(workspace))
+            .and_then(|bytes| bytes.checked_add(result_state.checked_mul(2)?))
+            .is_none_or(|bytes| bytes > self.limits.max_state_bytes)
+        {
+            return Err(invalid("V2 history roots exceed caller state slice"));
+        }
         let roots = SourceRevisionRootsV2::decode_with_workspace(&raw, workspace)?;
         if roots.revision != revision {
             return Err(invalid("V2 point history revision differs"));
@@ -920,14 +1175,40 @@ impl V2ReadSession {
         revision: SourceRevision,
         path: &RelativePath,
     ) -> io::Result<Option<&V2MemberObservation>> {
+        self.read_member_with_caller_state(revision, path, 0)
+    }
+
+    pub(crate) fn read_member_with_caller_state(
+        &mut self,
+        revision: SourceRevision,
+        path: &RelativePath,
+        caller_retained_state_bytes: usize,
+    ) -> io::Result<Option<&V2MemberObservation>> {
         // Keep one owned observation. A live borrowed result prevents another
         // mutable read; explicit caller copies belong to its retained state.
         self.observation = None;
-        let Some(roots) = self.revision_roots(revision)? else {
-            return Ok(None);
-        };
-        self.observation = self.read_from_roots(&roots, path)?;
-        Ok(self.observation.as_ref())
+        let result = (|| {
+            let Some(roots) =
+                self.revision_roots_with_caller_state(revision, caller_retained_state_bytes)?
+            else {
+                return Ok(None);
+            };
+            let roots_state = roots.retained_state_bytes()?;
+            let retained = caller_retained_state_bytes
+                .checked_add(roots_state)
+                .ok_or_else(|| invalid("V2 member read retained state overflow"))?;
+            self.read_from_roots_with_caller_state(&roots, path, retained)
+        })();
+        match result {
+            Ok(observation) => {
+                self.observation = observation;
+                Ok(self.observation.as_ref())
+            }
+            Err(error) => {
+                self.failed = true;
+                Err(error)
+            }
+        }
     }
 
     pub fn read_identity(
@@ -935,51 +1216,366 @@ impl V2ReadSession {
         revision: SourceRevision,
         id: &str,
     ) -> io::Result<Option<&V2MemberObservation>> {
+        self.read_identity_with_caller_state(revision, id, 0)
+    }
+
+    pub(crate) fn read_identity_with_caller_state(
+        &mut self,
+        revision: SourceRevision,
+        id: &str,
+        caller_retained_state_bytes: usize,
+    ) -> io::Result<Option<&V2MemberObservation>> {
         self.observation = None;
         if id.is_empty() || id.len() > self.limits.tree.max_key_bytes {
             return Err(invalid("V2 point identity key exceeds profile"));
         }
-        let Some(roots) = self.revision_roots(revision)? else {
-            return Ok(None);
-        };
-        let Some(path) = self.lookup(&roots.identities, id.as_bytes())? else {
-            return Ok(None);
-        };
-        let path =
-            RelativePath::parse(std::str::from_utf8(&path).map_err(invalid)?).map_err(invalid)?;
-        self.observation = Some(
-            self.read_from_roots(&roots, &path)?
-                .ok_or_else(|| invalid("V2 point identity member absent"))?,
-        );
-        Ok(self.observation.as_ref())
+        let result = (|| {
+            let Some(roots) =
+                self.revision_roots_with_caller_state(revision, caller_retained_state_bytes)?
+            else {
+                return Ok(None);
+            };
+            let roots_state = roots.retained_state_bytes()?;
+            let retained = caller_retained_state_bytes
+                .checked_add(roots_state)
+                .ok_or_else(|| invalid("V2 identity read retained state overflow"))?;
+            let Some(path) =
+                self.lookup_with_caller_state(&roots.identities, id.as_bytes(), retained)?
+            else {
+                return Ok(None);
+            };
+            let path = RelativePath::parse(std::str::from_utf8(&path).map_err(invalid)?)
+                .map_err(invalid)?;
+            let observation = self
+                .read_from_roots_with_caller_state(&roots, &path, retained)?
+                .ok_or_else(|| invalid("V2 point identity member absent"))?;
+            Ok(Some(observation))
+        })();
+        match result {
+            Ok(observation) => {
+                self.observation = observation;
+                Ok(self.observation.as_ref())
+            }
+            Err(error) => {
+                self.failed = true;
+                Err(error)
+            }
+        }
     }
 
-    fn read_from_roots(
+    pub(crate) fn object_location_by_digest(
         &mut self,
-        roots: &SourceRevisionRootsV2,
-        path: &RelativePath,
-    ) -> io::Result<Option<V2MemberObservation>> {
-        let Some(member) = self.member_tuple_from_roots(roots, path)? else {
+        revision: SourceRevision,
+        digest: Digest256,
+        caller_retained_state_bytes: usize,
+    ) -> io::Result<Option<PackedObjectLocationV2>> {
+        let Some(roots) =
+            self.revision_roots_with_caller_state(revision, caller_retained_state_bytes)?
+        else {
             return Ok(None);
         };
-        let digest = member.sha256;
-        let size = member.size_bytes;
-        let mode = member.source_mode;
+        let Some(descriptor) = roots.objects.as_ref() else {
+            return Ok(None);
+        };
+        let roots_state = roots.retained_state_bytes()?;
+        let retained = caller_retained_state_bytes
+            .checked_add(roots_state)
+            .ok_or_else(|| invalid("V2 object lookup retained state overflow"))?;
+        self.lookup_packed_object_location(descriptor, digest, retained)
+    }
+
+    pub(crate) fn next_object_extent_after(
+        &mut self,
+        revision: SourceRevision,
+        after_digest: Option<&[u8]>,
+        caller_retained_state_bytes: usize,
+    ) -> io::Result<Option<(Digest256, PackedObjectLocationV2)>> {
+        let Some(row) = self.next_row_after_with_caller_state(
+            revision,
+            V2RootKind::Objects,
+            None,
+            None,
+            after_digest,
+            caller_retained_state_bytes,
+        )?
+        else {
+            return Ok(None);
+        };
+        if row.key.len() != 32 {
+            return Err(invalid("V2 object extent digest width differs"));
+        }
+        Ok(Some((
+            Digest256::from_bytes(
+                row.key
+                    .try_into()
+                    .map_err(|_| invalid("V2 object extent digest width differs"))?,
+            ),
+            PackedObjectLocationV2::decode(&row.value)?,
+        )))
+    }
+
+    fn lookup_packed_object_location(
+        &mut self,
+        descriptor: &AuthenticatedTreeDescriptorV2,
+        digest: Digest256,
+        caller_retained_state_bytes: usize,
+    ) -> io::Result<Option<PackedObjectLocationV2>> {
+        let limits = self.remaining_object_limits()?;
+        let remaining_work = limits.max_work_units;
+        let mut debited = 0u64;
+        let mut debit = || {
+            let Some(next) = debited
+                .checked_add(1)
+                .filter(|units| *units <= remaining_work)
+            else {
+                return false;
+            };
+            debited = next;
+            true
+        };
+        let result = (|| {
+            let mut reader = PackedObjectReaderV2::new(
+                &self.segment,
+                descriptor,
+                limits,
+                self.tree_io.clone(),
+                self.deadline,
+                &self.cancel,
+                caller_retained_state_bytes,
+                &mut debit,
+            )?;
+            let (location, work) = reader.lookup_with_work(digest, None)?;
+            Ok((location, work))
+        })();
+        let (location, work) = match result {
+            Ok(found) => found,
+            Err(error) => {
+                self.failed = true;
+                return Err(error);
+            }
+        };
+        self.account_object_operation(debited, Some(work), None)?;
+        self.store.verify_layout()?;
+        active(self.deadline, &self.cancel)?;
+        Ok(location)
+    }
+
+    fn remaining_object_limits(&self) -> io::Result<PackedObjectLimitsV2> {
+        let max_work_units = self
+            .work
+            .as_ref()
+            .ok_or_else(|| invalid("packed V2 reads require the selected invocation work meter"))?
+            .remaining()?;
+        if max_work_units == 0 {
+            return Err(invalid("V2 object shared work-unit budget exhausted"));
+        }
+        let mut tree_limits = self.limits.tree;
+        tree_limits.max_nodes = tree_limits
+            .max_nodes
+            .checked_sub(self.read_nodes)
+            .filter(|nodes| *nodes > 0)
+            .ok_or_else(|| invalid("V2 object tree node budget exhausted"))?;
+        tree_limits.max_total_bytes = tree_limits
+            .max_total_bytes
+            .checked_sub(self.tree_read_bytes)
+            .filter(|bytes| *bytes > 0)
+            .ok_or_else(|| invalid("V2 object tree byte budget exhausted"))?;
+        Ok(PackedObjectLimitsV2 {
+            tree_limits,
+            segment_limits: self.limits.segment,
+            max_working_state_bytes: self.limits.max_state_bytes,
+            caller_live_state_bytes: self.limits.caller_retained_state_bytes,
+            max_work_units,
+            max_objects: self.limits.tree.max_rows,
+            max_delta_rows: self.limits.tree.max_rows,
+            max_pack_frames: self
+                .limits
+                .segment
+                .max_frames
+                .min(MAX_PACKED_OBJECT_FRAMES_V2),
+        })
+    }
+
+    fn account_object_operation(
+        &mut self,
+        callback_units: u64,
+        tree_work: Option<AuthenticatedTreeWorkV1>,
+        segment_work: Option<tos_segment_store::SegmentOperationWorkV1>,
+    ) -> io::Result<()> {
+        let tree_work = tree_work.unwrap_or_default();
+        let segment_work = segment_work.unwrap_or_default();
+        let tree_units = tree_work.read_nodes;
+        let expected_units = tree_units
+            .checked_add(segment_work.work_units)
+            .ok_or_else(|| invalid("V2 object operation work count overflow"))?;
+        if callback_units != expected_units {
+            return Err(invalid("V2 object work callback and measured work differ"));
+        }
+        self.record_work(tree_work.read_nodes, tree_work.read_bytes)?;
+        self.read_work_units = self
+            .read_work_units
+            .checked_add(segment_work.work_units)
+            .ok_or_else(|| invalid("V2 object shared work-unit counter overflow"))?;
+        Ok(())
+    }
+
+    pub(crate) fn read_object_by_digest(
+        &mut self,
+        revision: SourceRevision,
+        digest: Digest256,
+        expected_size: Option<u64>,
+        max_bytes: usize,
+        caller_retained_state_bytes: usize,
+    ) -> io::Result<Option<Vec<u8>>> {
+        if max_bytes == 0 || max_bytes == usize::MAX {
+            return Err(invalid("V2 digest read cap is not finite"));
+        }
+        let result = (|| {
+            let Some(roots) =
+                self.revision_roots_with_caller_state(revision, caller_retained_state_bytes)?
+            else {
+                return Ok(None);
+            };
+            self.read_object_from_roots_with_caller_state(
+                &roots,
+                digest,
+                expected_size,
+                max_bytes,
+                caller_retained_state_bytes
+                    .checked_add(roots.retained_state_bytes()?)
+                    .ok_or_else(|| invalid("V2 digest read retained state overflow"))?,
+            )
+        })();
+        if result.is_err() {
+            self.failed = true;
+        }
+        result
+    }
+
+    fn read_object_from_roots_with_caller_state(
+        &mut self,
+        roots: &SourceRevisionRootsV2,
+        digest: Digest256,
+        expected_size: Option<u64>,
+        max_bytes: usize,
+        caller_retained_state_bytes: usize,
+    ) -> io::Result<Option<Vec<u8>>> {
+        if let Some(descriptor) = roots.objects.as_ref() {
+            let remaining_work = self.remaining_object_limits()?.max_work_units;
+            let limits = self.remaining_object_limits()?;
+            let mut debited = 0u64;
+            let mut debit = || {
+                let Some(next) = debited
+                    .checked_add(1)
+                    .filter(|units| *units <= remaining_work)
+                else {
+                    return false;
+                };
+                debited = next;
+                true
+            };
+            let result = (|| {
+                let mut reader = PackedObjectReaderV2::new(
+                    &self.segment,
+                    descriptor,
+                    limits,
+                    self.tree_io.clone(),
+                    self.deadline,
+                    &self.cancel,
+                    caller_retained_state_bytes,
+                    &mut debit,
+                )?;
+                let (location, tree_work) = reader.lookup_with_work(digest, expected_size)?;
+                let Some(location) = location else {
+                    return Ok((None, tree_work, None));
+                };
+                if location.size > max_bytes as u64 {
+                    return Err(invalid("V2 packed digest object exceeds caller cap"));
+                }
+                let size = usize::try_from(location.size).map_err(invalid)?;
+                let mut bytes = Vec::new();
+                bytes.try_reserve_exact(size).map_err(invalid)?;
+                let segment_work = reader.read_exact_with_caller_state(
+                    &location,
+                    digest,
+                    location.size,
+                    size,
+                    &mut bytes,
+                )?;
+                Ok((Some(bytes), tree_work, Some(segment_work)))
+            })();
+            let callback_units = debited;
+            let accounting = result
+                .as_ref()
+                .ok()
+                .map(|(_, tree_work, segment_work)| (*tree_work, *segment_work));
+            match accounting {
+                Some((tree_work, segment_work)) => {
+                    self.account_object_operation(callback_units, Some(tree_work), segment_work)?
+                }
+                None => {
+                    self.failed = true;
+                    return Err(result
+                        .err()
+                        .unwrap_or_else(|| invalid("V2 packed read failed")));
+                }
+            }
+            self.store.verify_layout()?;
+            active(self.deadline, &self.cancel)?;
+            return result.map(|(bytes, _, _)| bytes);
+        }
+        self.read_legacy_object_by_digest(
+            digest,
+            expected_size,
+            max_bytes,
+            caller_retained_state_bytes,
+        )
+    }
+
+    fn read_legacy_object_by_digest(
+        &mut self,
+        digest: Digest256,
+        expected_size: Option<u64>,
+        max_bytes: usize,
+        caller_retained_state_bytes: usize,
+    ) -> io::Result<Option<Vec<u8>>> {
         let (_, objects, _) = self.store.backup_namespaces()?;
         let name = digest.to_hex();
-        let mut input = tos_fd_open::open_regular_at(objects, Path::new(&name)).map_err(invalid)?;
+        let mut input = match tos_fd_open::open_regular_at(objects, Path::new(&name)) {
+            Ok(input) => input,
+            Err(error)
+                if error
+                    .source
+                    .as_ref()
+                    .is_some_and(|source| source.kind() == io::ErrorKind::NotFound) =>
+            {
+                return Ok(None);
+            }
+            Err(error) => return Err(invalid(error)),
+        };
         let before = stamp(&input)?;
         let metadata = input.metadata()?;
+        let size = metadata.len();
         if metadata.uid() != rustix::process::geteuid().as_raw()
             || metadata.mode() & 0o222 != 0
-            || metadata.len() != size
+            || size > max_bytes as u64
+            || expected_size.is_some_and(|expected| expected != size)
+            || size > self.limits.max_object_bytes as u64
         {
-            return Err(invalid("V2 point object custody differs"));
+            return Err(invalid("V2 legacy object custody or size differs"));
+        }
+        let size_usize = usize::try_from(size).map_err(invalid)?;
+        let base_state = self.limits.base_state_bytes()?;
+        if base_state
+            .checked_add(caller_retained_state_bytes)
+            .and_then(|bytes| bytes.checked_add(size_usize.checked_mul(2)?))
+            .and_then(|bytes| bytes.checked_add(BLOCK_BYTES))
+            .is_none_or(|bytes| bytes > self.limits.max_state_bytes)
+        {
+            return Err(invalid("V2 legacy object exceeds caller state slice"));
         }
         let mut bytes = Vec::new();
-        bytes
-            .try_reserve_exact(usize::try_from(size).map_err(invalid)?)
-            .map_err(invalid)?;
+        bytes.try_reserve_exact(size_usize).map_err(invalid)?;
         let mut block = [0u8; BLOCK_BYTES];
         let mut hash = Digest256Hasher::new();
         let mut remaining = size;
@@ -988,12 +1584,12 @@ impl V2ReadSession {
             let wanted = usize::try_from(remaining.min(BLOCK_BYTES as u64)).map_err(invalid)?;
             self.io.charge_read(wanted as u64).map_err(invalid)?;
             let read = match input.read(&mut block[..wanted]) {
-                Err(e) if e.kind() == io::ErrorKind::Interrupted => continue,
-                value => value?,
+                Err(error) if error.kind() == io::ErrorKind::Interrupted => continue,
+                result => result?,
             };
             self.io.record_read_returned(read as u64).map_err(invalid)?;
             if read == 0 {
-                return Err(invalid("V2 point object early EOF"));
+                return Err(invalid("V2 legacy object early EOF"));
             }
             bytes.extend_from_slice(&block[..read]);
             hash.update(&block[..read]);
@@ -1008,9 +1604,53 @@ impl V2ReadSession {
             || stamp(&input)? != before
             || stamp(&named)? != before
         {
-            return Err(invalid("V2 point object digest or EOF differs"));
+            return Err(invalid("V2 legacy object fixity or EOF differs"));
         }
         self.store.verify_layout()?;
+        active(self.deadline, &self.cancel)?;
+        Ok(Some(bytes))
+    }
+
+    fn read_from_roots(
+        &mut self,
+        roots: &SourceRevisionRootsV2,
+        path: &RelativePath,
+    ) -> io::Result<Option<V2MemberObservation>> {
+        self.read_from_roots_with_caller_state(roots, path, 0)
+    }
+
+    fn read_from_roots_with_caller_state(
+        &mut self,
+        roots: &SourceRevisionRootsV2,
+        path: &RelativePath,
+        caller_retained_state_bytes: usize,
+    ) -> io::Result<Option<V2MemberObservation>> {
+        let Some(member) = self.member_tuple_from_roots_with_caller_state(
+            roots,
+            path,
+            caller_retained_state_bytes,
+        )?
+        else {
+            return Ok(None);
+        };
+        let digest = member.sha256;
+        let size = member.size_bytes;
+        let mode = member.source_mode;
+        let member_state = size_of::<V2MemberTupleObservation>()
+            .checked_add(member.path.as_str().len())
+            .and_then(|bytes| bytes.checked_add(256))
+            .and_then(|bytes| bytes.checked_add(caller_retained_state_bytes))
+            .ok_or_else(|| invalid("V2 member output retained state overflow"))?;
+        let Some(bytes) = self.read_object_from_roots_with_caller_state(
+            roots,
+            digest,
+            Some(size),
+            self.limits.max_object_bytes,
+            member_state,
+        )?
+        else {
+            return Err(invalid("V2 member object is absent from its revision"));
+        };
         active(self.deadline, &self.cancel)?;
         Ok(Some(V2MemberObservation {
             revision: member.revision,
@@ -1027,7 +1667,21 @@ impl V2ReadSession {
         roots: &SourceRevisionRootsV2,
         path: &RelativePath,
     ) -> io::Result<Option<V2MemberTupleObservation>> {
-        let Some(row) = self.lookup(&roots.members, path.as_str().as_bytes())? else {
+        self.member_tuple_from_roots_with_caller_state(roots, path, 0)
+    }
+
+    fn member_tuple_from_roots_with_caller_state(
+        &mut self,
+        roots: &SourceRevisionRootsV2,
+        path: &RelativePath,
+        caller_retained_state_bytes: usize,
+    ) -> io::Result<Option<V2MemberTupleObservation>> {
+        let Some(row) = self.lookup_with_caller_state(
+            &roots.members,
+            path.as_str().as_bytes(),
+            caller_retained_state_bytes,
+        )?
+        else {
             return Ok(None);
         };
         decode_member_tuple(

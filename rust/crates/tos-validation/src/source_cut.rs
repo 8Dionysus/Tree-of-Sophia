@@ -319,10 +319,7 @@ impl CutSchemaDiagnosticsLimits {
         let wire_capacity = usize::try_from(operation.max_total_wire_bytes).unwrap_or(usize::MAX);
         let limits = Self {
             max_total_issues: ceilings.max_total_issues.min(issue_capacity),
-            max_total_report_bytes: ceilings
-                .max_total_report_bytes
-                .min(schema_diagnostics::MAX_RESPONSE_BYTES)
-                .min(wire_capacity),
+            max_total_report_bytes: ceilings.max_total_report_bytes.min(wire_capacity),
             max_total_state_bytes: ceilings.max_total_state_bytes.min(wire_capacity),
         };
         if operation.validate().is_ok()

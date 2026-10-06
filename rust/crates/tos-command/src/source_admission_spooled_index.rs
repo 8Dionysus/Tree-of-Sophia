@@ -13,7 +13,7 @@ use crate::{
         self, AdmissionIndexBackend, BaseIdentityPath, CandidateIndexInput, FreshIndexRowsWriter,
         IndexLimits, NativeSemanticStep, SchemaCheck,
     },
-    source_admission_spooled_candidate::{CandidateFence, SpoolCandidate},
+    source_admission_spooled_candidate::{CandidateFence, CandidateMemberRead, SpoolCandidate},
     source_foundation_admission::NativeAdmissionComplete,
 };
 use rusqlite::{OptionalExtension, params};
@@ -629,6 +629,120 @@ impl CandidateRecordsReportVerified {
     }
 }
 
+/// Durable mechanical binding for a current root produced by the native
+/// admission route. This records the full V1 membership digest only when the
+/// exact ordered membership was actually validated. Incremental V2 successors
+/// may omit it; their current membership remains bound by the separate V2
+/// authenticated tree commitment.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) struct NativeAdmissionCompletionProofV1 {
+    validator_sha256: Digest256,
+    membership_v1: Option<SourceMembershipV1>,
+    source_bytes: u64,
+    prepared_schema: CutPreparedSchemaExecutionBinding,
+    identity_count: u64,
+    dependency_source_count: u64,
+    dependency_count: u64,
+}
+
+impl NativeAdmissionCompletionProofV1 {
+    /// Reconstitute only a completion binding decoded from an authenticated
+    /// current-root tuple. Fresh proof issuance remains on `IndexView`.
+    pub(crate) fn from_authenticated_root_fields(
+        validator_sha256: Digest256,
+        membership_v1: Option<SourceMembershipV1>,
+        source_bytes: u64,
+        prepared_schema: CutPreparedSchemaExecutionBinding,
+        identity_count: u64,
+        dependency_source_count: u64,
+        dependency_count: u64,
+    ) -> io::Result<Self> {
+        if dependency_source_count > dependency_count {
+            return Err(invalid("native completion root counts are inconsistent"));
+        }
+        Ok(Self {
+            validator_sha256,
+            membership_v1,
+            source_bytes,
+            prepared_schema,
+            identity_count,
+            dependency_source_count,
+            dependency_count,
+        })
+    }
+
+    /// Carry an exact bounded delta onto a rechecked latest root without
+    /// claiming a current V1 membership digest. The typed successor includes
+    /// both the authenticated current-root binding and latest readset proof.
+    pub(crate) fn from_validated_source_entry_successor(
+        successor: &crate::source_admission_index::ValidatedSourceEntrySuccessorV1<'_, '_>,
+    ) -> Self {
+        let selected = successor.current_base();
+        Self {
+            validator_sha256: selected.validator_sha256(),
+            membership_v1: None,
+            source_bytes: successor.source_bytes_after(),
+            prepared_schema: selected.completion_proof().prepared_schema(),
+            identity_count: successor.identity_count_after(),
+            dependency_source_count: successor.dependency_source_count_after(),
+            dependency_count: successor.dependency_count_after(),
+        }
+    }
+
+    pub(crate) fn validator_sha256(self) -> Digest256 {
+        self.validator_sha256
+    }
+
+    pub(crate) fn membership_v1(self) -> Option<SourceMembershipV1> {
+        self.membership_v1
+    }
+
+    pub(crate) fn source_bytes(self) -> u64 {
+        self.source_bytes
+    }
+
+    pub(crate) fn prepared_schema(self) -> CutPreparedSchemaExecutionBinding {
+        self.prepared_schema
+    }
+
+    pub(crate) fn identity_count(self) -> u64 {
+        self.identity_count
+    }
+
+    pub(crate) fn dependency_source_count(self) -> u64 {
+        self.dependency_source_count
+    }
+
+    pub(crate) fn dependency_count(self) -> u64 {
+        self.dependency_count
+    }
+
+    /// Copy the exact payload fields needed by the V2 rootset codec. Keeping
+    /// the tuple conversion here lets the sibling segment codec serialize the
+    /// proof without reaching through its private fields.
+    pub(crate) fn authenticated_root_fields(
+        self,
+    ) -> (
+        Digest256,
+        Option<SourceMembershipV1>,
+        u64,
+        CutPreparedSchemaExecutionBinding,
+        u64,
+        u64,
+        u64,
+    ) {
+        (
+            self.validator_sha256,
+            self.membership_v1,
+            self.source_bytes,
+            self.prepared_schema,
+            self.identity_count,
+            self.dependency_source_count,
+            self.dependency_count,
+        )
+    }
+}
+
 #[derive(Clone, Copy)]
 enum FreshPairTable {
     Record,
@@ -659,6 +773,12 @@ trait CandidateFenceSource {
         &self,
         after: Option<&RelativePath>,
     ) -> io::Result<Option<tos_source_store::MemberMetadata>>;
+    fn read_member_bound(
+        &self,
+        path: &RelativePath,
+        cap: usize,
+        max_owned_state_bytes: usize,
+    ) -> io::Result<CandidateMemberRead>;
     fn read(&self, path: &str, cap: usize) -> io::Result<Vec<u8>>;
     fn verify(&self, path: &str) -> io::Result<()>;
     fn base_identity_path_bounded(
@@ -711,6 +831,15 @@ impl CandidateFenceSource for SpoolCandidate<'_> {
         after: Option<&RelativePath>,
     ) -> io::Result<Option<tos_source_store::MemberMetadata>> {
         SpoolCandidate::member_after(self, after)
+    }
+
+    fn read_member_bound(
+        &self,
+        path: &RelativePath,
+        cap: usize,
+        max_owned_state_bytes: usize,
+    ) -> io::Result<CandidateMemberRead> {
+        SpoolCandidate::read_member_bound(self, path, cap, max_owned_state_bytes)
     }
 
     fn read(&self, path: &str, cap: usize) -> io::Result<Vec<u8>> {
@@ -799,13 +928,6 @@ impl CandidateIndexInput for SpoolInput<'_> {
 
     fn member(&mut self, path: &str) -> io::Result<bool> {
         self.candidate.tick()?;
-        if self
-            .record_selection
-            .as_ref()
-            .is_some_and(|selection| !selection.contains_member(path))
-        {
-            return Ok(false);
-        }
         let Ok(path) = RelativePath::parse(path) else {
             return Ok(false);
         };
@@ -886,7 +1008,7 @@ pub(crate) struct IndexSink<'candidate> {
     record_schema_diagnostic_count: u64,
     native_index_built: bool,
     selected_profile: SpoolIndexLimits,
-    db: PinnedSqliteConnection,
+    db: std::rc::Rc<PinnedSqliteConnection>,
     _scope: PinnedSqliteAuxScope,
 }
 
@@ -915,6 +1037,11 @@ impl<'candidate> IndexSink<'candidate> {
         candidate.check_state(sink_identity_state)?;
         let sink_identity = Arc::new(());
         let mut scope = candidate.open_index_scope(limits.sqlite)?;
+        candidate.check_state(
+            std::mem::size_of::<PinnedSqliteConnection>()
+                .checked_add(2 * std::mem::size_of::<usize>())
+                .ok_or_else(|| invalid("native shared connection state overflow"))?,
+        )?;
         let db = scope
             .open_connection()
             .map_err(|_| invalid("native source index shared-budget SQLite open refused"))?;
@@ -954,7 +1081,7 @@ impl<'candidate> IndexSink<'candidate> {
             record_observation_count: 0,
             record_schema_diagnostic_count: 0,
             native_index_built: false,
-            db,
+            db: std::rc::Rc::new(db),
             _scope: scope,
         })
     }
@@ -1041,31 +1168,20 @@ impl<'candidate> IndexSink<'candidate> {
                 "candidate dependent callback state omits owned result",
             ));
         }
-        let report_header_state = CANDIDATE_RECORDS_REPORT_RETAINED_STATE_UPPER_BOUND_BYTES
-            .checked_add(std::mem::size_of::<Arc<()>>())
-            .ok_or_else(|| invalid("candidate dependent report header exceeds operation"))?;
-        let schema_held = retained_state_bytes
-            .checked_add(report_header_state)
-            .ok_or_else(|| invalid("candidate dependent held state exceeds operation"))?;
-        let retained = schema_held
+        let retained_base = retained_state_bytes
+            .checked_add(CANDIDATE_RECORDS_REPORT_RETAINED_STATE_UPPER_BOUND_BYTES)
+            .and_then(|bytes| bytes.checked_add(std::mem::size_of::<Arc<()>>()))
+            .ok_or_else(|| invalid("candidate retained Records state overflow"))?;
+        let retained = retained_base
             .checked_add(callback_state_bytes)
-            .and_then(|bytes| {
-                bytes.checked_add(
-                    source_admission_candidate_schema::binding_retained_state_upper_bound_bytes(),
-                )
-            })
             .filter(|bytes| *bytes <= max_operation_state_bytes)
             .ok_or_else(|| invalid("candidate dependent callback state exceeds operation"))?;
-        // This includes the held store, report and dependent callback, so it
-        // belongs to the existing whole callback grant, not a single SQL row.
-        if input
-            .require_callback_state(retained, max_operation_state_bytes)
-            .is_err()
-        {
+        // This is the whole dependent callback envelope, not an individual
+        // SQLite row. The input owns its already selected callback grant;
+        // row readers/writers continue to use the candidate's local row cap.
+        if let Err(error) = input.require_callback_state(retained, max_operation_state_bytes) {
             input.abandon();
-            return Err(invalid(
-                "candidate dependent callback state exceeds operation",
-            ));
+            return Err(receiver_refusal(error));
         }
         // Clone the stable scope handle before lending the store mutably to
         // the kernel. Its allocation has already been admitted above.
@@ -1085,7 +1201,9 @@ impl<'candidate> IndexSink<'candidate> {
                 fact_budget,
                 page_budget,
                 self,
-                schema_held,
+                // Records executes before receive. The later callback's
+                // workspace is not simultaneously retained by this engine.
+                retained_base,
                 max_operation_state_bytes,
             )
             .map_err(receiver_refusal)?;
@@ -1260,6 +1378,11 @@ impl<'candidate> IndexSink<'candidate> {
 
     fn validate_fresh_tables(&self) -> io::Result<()> {
         self.candidate.tick()?;
+        if std::rc::Rc::strong_count(&self.db) != 1 {
+            return Err(invalid(
+                "native catalog planning connection remains live at seal",
+            ));
+        }
         let records = row_count(&self.db, "SELECT COUNT(*) FROM fresh_record_rows")?;
         let claims = row_count(&self.db, "SELECT COUNT(*) FROM fresh_claim_rows")?;
         let semantic = row_count(&self.db, "SELECT COUNT(*) FROM fresh_semantic_rows")?;
@@ -1460,6 +1583,11 @@ impl<'candidate> IndexSink<'candidate> {
             complete.deadline(),
             complete.cancelled(),
         )?;
+        if std::rc::Rc::strong_count(&self.db) != 1 {
+            return Err(invalid(
+                "native catalog planning connection remains live at completion",
+            ));
+        }
         let records = complete.records();
         if records.fence != self.fence
             || records.membership != self.fence.membership
@@ -1515,6 +1643,22 @@ impl FreshIndexRowsWriter for IndexSink<'_> {
 
     fn push_native_semantic(&mut self, id: &str, path: &str) -> io::Result<()> {
         self.push_fresh_pair(FreshPairTable::Semantic, id, path)
+    }
+    fn catalog_planning_storage(
+        &self,
+    ) -> io::Result<Option<(std::rc::Rc<PinnedSqliteConnection>, u64)>> {
+        self.candidate.tick()?;
+        if self.fresh_sealed || self.native_index_built {
+            return Err(invalid("native catalog planning custody already sealed"));
+        }
+        self.candidate.check_state(
+            std::mem::size_of::<std::rc::Rc<PinnedSqliteConnection>>()
+                + 2 * std::mem::size_of::<usize>(),
+        )?;
+        Ok(Some((
+            std::rc::Rc::clone(&self.db),
+            self.selected_profile.sqlite.main_logical_bytes,
+        )))
     }
 }
 
@@ -1760,18 +1904,52 @@ pub(crate) struct IndexView<'candidate> {
     dependency_source_count: u64,
     dependency_count: u64,
     row_limit: usize,
-    db: PinnedSqliteConnection,
+    db: std::rc::Rc<PinnedSqliteConnection>,
     _scope: PinnedSqliteAuxScope,
 }
 
 impl IndexView<'_> {
+    /// Issue the root-bound seed for later bounded owner deltas. `IndexView`
+    /// can only be constructed from `NativeAdmissionComplete`, which the full
+    /// candidate validator creates after exact membership, Records/Item,
+    /// schema, identity, semantic, and dependency checks have completed.
+    ///
+    /// This is intentionally a pure projection of that sealed result: it does
+    /// not restart a clock, allocate another ledger, or repeat the full source
+    /// walk while the publisher holds its short serialization lock.
+    pub(crate) fn completion_proof(&self) -> io::Result<NativeAdmissionCompletionProofV1> {
+        let records = self.complete.records();
+        if records.fence() != self.fence
+            || records.membership() != self.fence.membership
+            || records.selected_member_bytes() != self.fence.source_bytes
+            || records.record_issue_count() != 0
+            || records.item_issue_count() != 0
+            || self.dependency_source_count > self.dependency_count
+        {
+            return Err(invalid(
+                "native full completion binding differs from its sealed index",
+            ));
+        }
+        Ok(NativeAdmissionCompletionProofV1 {
+            validator_sha256: self.fence.validator_sha256,
+            membership_v1: Some(self.fence.membership),
+            source_bytes: self.fence.source_bytes,
+            prepared_schema: records.prepared_schema(),
+            identity_count: self.identity_count,
+            dependency_source_count: self.dependency_source_count,
+            dependency_count: self.dependency_count,
+        })
+    }
+
     /// Declared retained Rust and nominal SQLite-cache state while publication
     /// consumes the completed index. Opaque SQLite allocator pages and process
     /// RSS remain under the enclosing native operation's existing external
     /// memory prerequisite.
     pub(crate) fn declared_retained_state_bytes(&self) -> io::Result<usize> {
         std::mem::size_of::<Self>()
-            .checked_add(self.complete.index_profile().cache_bytes)
+            .checked_add(std::mem::size_of::<PinnedSqliteConnection>())
+            .and_then(|bytes| bytes.checked_add(2 * std::mem::size_of::<usize>()))
+            .and_then(|bytes| bytes.checked_add(self.complete.index_profile().cache_bytes))
             .and_then(|bytes| bytes.checked_add(2 * std::mem::size_of::<usize>()))
             .ok_or_else(|| invalid("native index retained state overflow"))
     }
@@ -1881,8 +2059,8 @@ impl IndexView<'_> {
         .optional()
         .map_err(sql)?;
         let row = row
-            .map(|(id, path)| -> io::Result<_> {
-                Ok((
+            .map(|(id, path)| {
+                Ok::<_, io::Error>((
                     id,
                     RelativePath::parse(&path)
                         .map_err(|_| invalid("native index identity path is invalid"))?,
@@ -2013,8 +2191,8 @@ impl IndexView<'_> {
                 |row| bounded_text_pair(row,0,1,returned_row_limit)),
         }.optional().map_err(sql)?;
         let pair = row
-            .map(|(source, target)| -> io::Result<_> {
-                Ok((
+            .map(|(source, target)| {
+                Ok::<_, io::Error>((
                     RelativePath::parse(&source)
                         .map_err(|_| invalid("native dependency source path is invalid"))?,
                     RelativePath::parse(&target)

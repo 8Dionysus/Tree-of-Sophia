@@ -795,7 +795,9 @@ fn merge_census_with_base(
     cancel: &AtomicBool,
 ) -> io::Result<BTreeMap<String, SourceUpdate>> {
     if roots.revision != original_base
-        || roots.member_count != roots.membership_v1.count
+        || roots
+            .membership_v1
+            .is_some_and(|membership| roots.member_count != membership.count)
         || roots.member_count != roots.members.entries
         || roots.source_bytes > profile.admission.max_source_bytes
     {
@@ -1083,7 +1085,9 @@ fn updates_from_work_base(
     cancel: &AtomicBool,
 ) -> io::Result<BTreeMap<String, SourceUpdate>> {
     if roots.revision != original_base
-        || roots.member_count != roots.membership_v1.count
+        || roots
+            .membership_v1
+            .is_some_and(|membership| roots.member_count != membership.count)
         || roots.member_count != roots.members.entries
     {
         return Err(invalid("fresh retry V2 base root counts differ"));

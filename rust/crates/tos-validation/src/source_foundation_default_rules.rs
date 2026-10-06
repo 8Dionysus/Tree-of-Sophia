@@ -7,7 +7,7 @@
 
 use crate::biblio_rules::BiblioClaim;
 use crate::item_rules::{ItemLimits, ItemRefusal};
-use crate::layer_family_rules::{LayerFamilySource, LayerPayload};
+use crate::layer_family_rules::{DiscoveryEventLookup, LayerFamilySource, LayerPayload};
 use crate::native_compound::NativeRecordHistoryReadObservation;
 use crate::record_rules::RecordObservation;
 use crate::source_foundation_closure::{
@@ -564,12 +564,26 @@ pub enum SourceFoundationDefaultRuleScope {
     /// Authenticated record/slot manifest selects a semantic closure while
     /// retaining exact full physical members independently.
     SelectedRecordClosure,
+    /// Exact finite closure plus an authenticated workload-owned generated cohort.
+    SelectedGeneratedRecordClosure,
 }
 
 impl SourceFoundationDefaultRuleScope {
     pub fn is_scoped(self) -> bool {
         self != Self::FullAudit
     }
+}
+
+/// Actual selected layer-owner executions. Per-record findings are bounded
+/// and dropped after success; any issue or coverage gap refuses the pass.
+#[derive(Debug, Clone, Copy, Default)]
+pub struct SelectedLayerOwnerPass {
+    pub artifact_records: u64,
+    pub text_unit_records: u64,
+    pub checked_predicates: u64,
+    pub addressed_event_scan_rows: u64,
+    pub addressed_event_read_bytes: u64,
+    pub addressed_event_workspace_peak_bytes: usize,
 }
 
 /// Default district findings from one genuine stored Records operation.
@@ -586,6 +600,7 @@ pub struct SourceFoundationDefaultRulesStoredReport<I> {
     pub goldsets: Option<SourceFoundationGoldsetsReport>,
     pub discovery: SourceFoundationDefaultDiscoveryFindings,
     pub closure: SourceFoundationClosureReport,
+    pub selected_layer_owners: Option<SelectedLayerOwnerPass>,
     pub cost: SourceFoundationDefaultRulesCost,
 }
 
@@ -1367,6 +1382,16 @@ fn inspect_source_foundation_default_rules_from_input_stored_inner<
 ) -> Result<SourceFoundationDefaultRulesStoredReport<I>, ItemRefusal> {
     let operation = limits.operation;
     source.checkpoint(operation.deadline)?;
+    let generated_scope = scope == SourceFoundationDefaultRuleScope::SelectedGeneratedRecordClosure;
+    if input.generated_selection().is_some() != generated_scope
+        || source.generated_selection().is_some() != generated_scope
+        || (generated_scope
+            && (input.record_selection().is_none() || source.record_selection().is_none()))
+    {
+        return Err(ItemRefusal::Source(
+            "source-foundation generated profile/provider binding differs".into(),
+        ));
+    }
     if !std::ptr::eq(source.cancellation(), cancelled)
         || input.input_identity() != records.input_identity()
         || coverage.membership() != *records.source_membership()
@@ -1807,7 +1832,7 @@ fn inspect_source_foundation_default_rules_from_input_stored_inner<
         used_state,
         direct_owner_issue_count,
     )?;
-    let closure = (|| { Ok(if let Some(schema_request_store) = closure_schema_request_store.take() {
+    let closure = (|| { Ok(if let Some(schema_request_store) = closure_schema_request_store.as_mut() {
         crate::source_foundation_closure::inspect_source_foundation_closure_with_identity_and_candidate_stores_with_scope(
             &mut aggregate_source,
             input,
@@ -1818,7 +1843,7 @@ fn inspect_source_foundation_default_rules_from_input_stored_inner<
             paths,
             claims,
             closure_link_store.take(),
-            Some(schema_request_store),
+            Some(&mut **schema_request_store),
             closure_limits,
             scope,
         )?
@@ -1844,6 +1869,29 @@ fn inspect_source_foundation_default_rules_from_input_stored_inner<
         closure.cost.reserved_state_bytes,
         operation.max_state_bytes,
     )?;
+    let selected_layer_owners = if generated_scope {
+        let store = closure_schema_request_store.as_mut().ok_or_else(|| {
+            ItemRefusal::Source(
+                "selected layer owners require the sealed candidate event index".into(),
+            )
+        })?;
+        let pass_limits = remaining_limits(
+            operation,
+            records_read_reservation_bytes,
+            aggregate_source.read_bytes,
+            used_state,
+            direct_owner_issue_count,
+        )?;
+        Some(inspect_selected_layer_owners(
+            &mut aggregate_source,
+            paths,
+            &mut **store,
+            pass_limits,
+            require_local_payloads,
+        )?)
+    } else {
+        None
+    };
     let final_event_cost = charge_stored_events(
         events,
         &mut used_state,
@@ -1916,6 +1964,7 @@ fn inspect_source_foundation_default_rules_from_input_stored_inner<
         goldsets,
         discovery,
         closure,
+        selected_layer_owners,
         cost: SourceFoundationDefaultRulesCost {
             records_observed_read_bytes: records_cost.record_observed_read_bytes,
             records_read_reservation_bytes,
@@ -2317,6 +2366,191 @@ fn inspect_source_foundation_default_rules_internal<S: LayerFamilySource + ?Size
     })
 }
 
+fn inspect_selected_layer_owners<S: LayerFamilySource + ?Sized>(
+    source: &mut AggregateLayerFamilySource<'_, S>,
+    paths: &dyn SourceFoundationDefaultPaths,
+    events: &mut dyn crate::source_foundation_closure::SourceFoundationClosureSchemaRequestStore,
+    limits: ItemLimits,
+    require_local_payloads: bool,
+) -> Result<SelectedLayerOwnerPass, ItemRefusal> {
+    let before = events.cost();
+    let mut result = SelectedLayerOwnerPass::default();
+    // The owner and point-lookup provider may be live together. Give each a
+    // disjoint state allowance, preserving the enclosing operation ceiling.
+    let mut row_limits = limits;
+    row_limits.max_state_bytes /= 2;
+    if row_limits.max_state_bytes == 0 {
+        return Err(ItemRefusal::Budget);
+    }
+    let mut selected = SealedLayerFamilySource {
+        source,
+        events,
+        max_lookup_state_bytes: limits.max_state_bytes - row_limits.max_state_bytes,
+    };
+    paths.for_each_path(&mut |path| {
+        selected.checkpoint(limits.deadline)?;
+        if !selected.selects_semantic_member(path)? {
+            return Ok(());
+        }
+        let name = path.rsplit('/').next().unwrap_or("");
+        let artifact =
+            path.starts_with("ToS/source-witnesses/artifacts/") && name == "artifact-witness.json";
+        let text_unit = path.starts_with("ToS/source-witnesses/works/")
+            && (name.starts_with("source-text-unit.") || name == "source-text-unit-packet.v1.json");
+        if !artifact && !text_unit {
+            return Ok(());
+        }
+        let mut rules = crate::layer_family_rules::LayerFamilyRules::new(row_limits);
+        rules.require_local_payloads(require_local_payloads);
+        rules.inspect(&mut selected, path)?;
+        let report = rules.finish();
+        if let Some(issue) = report.issues.first() {
+            return Err(ItemRefusal::Source(format!(
+                "selected layer owner {}:{}",
+                issue.code,
+                tos_foundation::Digest256::of_bytes(path.as_bytes()).to_hex()
+            )));
+        }
+        if !report.unsupported.is_empty() || report.checked_predicates.is_empty() {
+            return Err(ItemRefusal::Unsupported(
+                "selected layer owner coverage".into(),
+            ));
+        }
+        let count = if artifact {
+            &mut result.artifact_records
+        } else {
+            &mut result.text_unit_records
+        };
+        *count = count.checked_add(1).ok_or(ItemRefusal::Budget)?;
+        result.checked_predicates = result
+            .checked_predicates
+            .checked_add(
+                u64::try_from(report.checked_predicates.len()).map_err(|_| ItemRefusal::Budget)?,
+            )
+            .ok_or(ItemRefusal::Budget)?;
+        Ok(())
+    })?;
+    let after = selected.events.cost();
+    result.addressed_event_scan_rows = after
+        .event_scan_row_operations
+        .checked_sub(before.event_scan_row_operations)
+        .ok_or(ItemRefusal::Budget)?;
+    result.addressed_event_read_bytes = after
+        .event_serialized_read_bytes
+        .checked_sub(before.event_serialized_read_bytes)
+        .ok_or(ItemRefusal::Budget)?;
+    // High-water state is not an additive counter and must not be subtracted.
+    result.addressed_event_workspace_peak_bytes = after.event_workspace_state_bytes;
+    selected.checkpoint(limits.deadline)?;
+    Ok(result)
+}
+
+struct SealedLayerFamilySource<'a, 'b, S: LayerFamilySource + ?Sized> {
+    source: &'a mut AggregateLayerFamilySource<'b, S>,
+    events: &'a mut dyn crate::source_foundation_closure::SourceFoundationClosureSchemaRequestStore,
+    max_lookup_state_bytes: usize,
+}
+impl<S: LayerFamilySource + ?Sized> LayerFamilySource for SealedLayerFamilySource<'_, '_, S> {
+    fn record_selection(
+        &self,
+    ) -> Option<std::sync::Arc<crate::source_record_selection::SourceRecordSelection>> {
+        self.source.record_selection()
+    }
+    fn generated_selection(
+        &self,
+    ) -> Option<std::sync::Arc<dyn crate::record_biblio_cut::GeneratedSourceSelection>> {
+        self.source.generated_selection()
+    }
+    fn discovery_event(
+        &mut self,
+        id: &str,
+        max_bytes: usize,
+        deadline: Instant,
+    ) -> Result<DiscoveryEventLookup, ItemRefusal> {
+        self.source.checkpoint(deadline)?;
+        let cap = self.source.bounded_request(max_bytes)?;
+        let (event, _) = self
+            .events
+            .sealed_event_raw(id, cap, self.max_lookup_state_bytes)?;
+        self.source.checkpoint(deadline)?;
+        let Some(event) = event else {
+            return Ok(DiscoveryEventLookup::Missing);
+        };
+        if !self.source.selects_required_member(&event.path)? {
+            return Err(ItemRefusal::Source(
+                "sealed event is outside the selected raw closure".into(),
+            ));
+        }
+        self.source
+            .charge_read(u64::try_from(event.raw.len()).map_err(|_| ItemRefusal::Budget)?)?;
+        Ok(DiscoveryEventLookup::Found {
+            source_path: event.path,
+            physical_line: event.line,
+            raw: event.raw,
+        })
+    }
+    fn current(
+        &mut self,
+        path: &str,
+        max_bytes: usize,
+        deadline: Instant,
+    ) -> Result<Option<Vec<u8>>, ItemRefusal> {
+        self.source.current(path, max_bytes, deadline)
+    }
+    fn recorded(
+        &mut self,
+        path: &str,
+        digest: &str,
+        max_bytes: usize,
+        deadline: Instant,
+    ) -> Result<Option<Vec<u8>>, ItemRefusal> {
+        self.source.recorded(path, digest, max_bytes, deadline)
+    }
+    fn schema(
+        &mut self,
+        path: &str,
+        raw: &[u8],
+        contract: &str,
+        deadline: Instant,
+    ) -> Result<bool, ItemRefusal> {
+        self.source.schema(path, raw, contract, deadline)
+    }
+    fn payload(
+        &mut self,
+        path: &str,
+        max_bytes: usize,
+        deadline: Instant,
+    ) -> Result<LayerPayload, ItemRefusal> {
+        self.source.payload(path, max_bytes, deadline)
+    }
+    fn exists(
+        &mut self,
+        path: &str,
+        max_bytes: usize,
+        deadline: Instant,
+    ) -> Result<bool, ItemRefusal> {
+        self.source.exists(path, max_bytes, deadline)
+    }
+    fn discovered_item_manifest(
+        &mut self,
+        path: &str,
+        max_bytes: usize,
+        deadline: Instant,
+    ) -> Result<bool, ItemRefusal> {
+        self.source
+            .discovered_item_manifest(path, max_bytes, deadline)
+    }
+    fn cancellation(&self) -> &AtomicBool {
+        self.source.cancellation()
+    }
+    fn generation(&self) -> String {
+        self.source.generation()
+    }
+    fn checkpoint(&self, deadline: Instant) -> Result<(), ItemRefusal> {
+        self.source.checkpoint(deadline)
+    }
+}
+
 struct AggregateLayerFamilySource<'a, S: LayerFamilySource + ?Sized> {
     inner: &'a mut S,
     read_allowance: u64,
@@ -2350,6 +2584,11 @@ impl<S: LayerFamilySource + ?Sized> LayerFamilySource for AggregateLayerFamilySo
         &self,
     ) -> Option<std::sync::Arc<crate::source_record_selection::SourceRecordSelection>> {
         self.inner.record_selection()
+    }
+    fn generated_selection(
+        &self,
+    ) -> Option<std::sync::Arc<dyn crate::record_biblio_cut::GeneratedSourceSelection>> {
+        self.inner.generated_selection()
     }
 
     fn current(
@@ -2385,6 +2624,23 @@ impl<S: LayerFamilySource + ?Sized> LayerFamilySource for AggregateLayerFamilySo
             self.charge_read(bytes.len() as u64)?;
         }
         Ok(raw)
+    }
+
+    fn discovery_event(
+        &mut self,
+        id: &str,
+        max_bytes: usize,
+        deadline: Instant,
+    ) -> Result<DiscoveryEventLookup, ItemRefusal> {
+        let request_limit = self.bounded_request(max_bytes)?;
+        let event = self.inner.discovery_event(id, request_limit, deadline)?;
+        if let DiscoveryEventLookup::Found { raw, .. } = &event {
+            if raw.len() > request_limit {
+                return Err(ItemRefusal::Budget);
+            }
+            self.charge_read(raw.len() as u64)?;
+        }
+        Ok(event)
     }
 
     fn schema(

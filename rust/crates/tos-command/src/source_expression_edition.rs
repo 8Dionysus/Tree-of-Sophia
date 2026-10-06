@@ -531,6 +531,8 @@ impl ExpressionEditionOwner {
             item_path_profile: None,
             files,
             new_directories,
+            source_readset: None,
+            source_successor: None,
         })
     }
 }

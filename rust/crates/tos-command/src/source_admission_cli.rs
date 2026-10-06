@@ -12,6 +12,7 @@ use crate::source_foundation_admission::{
 };
 use serde_json::json;
 use std::fs::File;
+use std::os::unix::fs::MetadataExt;
 use std::{
     cell::{Cell, RefCell},
     ffi::OsString,
@@ -28,7 +29,7 @@ use std::{
 };
 use tos_foundation::{Digest256, SourceRevision};
 
-pub const HELP: &str = "usage: tos-native-owner-command corpus-admit --store PATH --batch PATH --input-root PATH --grammar-root PATH --invocation PATH [--payload-source-root PATH] [--historical-capture PATH --historical-root PATH]...\n       tos-native-owner-command corpus-admit --store PATH --input-root PATH --fresh-record-owner ABSOLUTE_OWNER_CONFIG --fresh-record-id ID --fresh-record-transaction ID --fresh-record-base REVISION_SHA256 --grammar-root PATH --invocation PATH\n       tos-native-owner-command corpus-admit --store PATH --input-root PATH --initial-cut --grammar-root PATH --invocation PATH\n       tos-native-owner-command corpus-admit --store PATH --input-root PATH --source-transition-base ORIGINAL_REVISION_SHA256 --grammar-root PATH --invocation PATH\n       tos-native-owner-command corpus-admit --validator-identity --grammar-root PATH --invocation PATH [--validation-profile ID] [--record-selection-manifest PATH]\n\nAdmit exact proposed source bytes through the selected complete native validator.\nThe invocation selects finite operation resources and pinned workers. No semantic admission or rights change is granted.\n";
+pub const HELP: &str = "usage: tos-native-owner-command corpus-admit --store PATH --batch PATH --input-root PATH --grammar-root PATH --invocation PATH [--payload-source-root PATH] [--historical-capture PATH --historical-root PATH]...\n       tos-native-owner-command corpus-admit --store PATH --input-root PATH --fresh-record-owner ABSOLUTE_OWNER_CONFIG --fresh-record-id ID --fresh-record-transaction ID --fresh-record-base REVISION_SHA256 --grammar-root PATH --invocation PATH\n       tos-native-owner-command corpus-admit --store PATH --input-root PATH --initial-cut [--indexed-input-root PATH] --grammar-root PATH --invocation PATH\n       tos-native-owner-command corpus-admit --store PATH --input-root PATH --source-transition-base ORIGINAL_REVISION_SHA256 --grammar-root PATH --invocation PATH\n       tos-native-owner-command corpus-admit --validator-identity --grammar-root PATH --invocation PATH [--validation-profile ID] [--record-selection-manifest PATH] [validation selections]\n\nAdmit exact proposed source bytes through the selected complete native validator.\nThe invocation selects finite operation resources and pinned workers. No semantic admission or rights change is granted.\n";
 pub const AUTHORED_BOOTSTRAP_HELP: &str = "usage: tos-native-owner-command authored-bootstrap --authored-bootstrap-owner ABSOLUTE_OWNER_CONFIG --store PATH --batch PATH --input-root PATH --grammar-root PATH --invocation PATH\n\nValidate the complete native-v4 candidate and publish its exact technical metadata bootstrap in the protected new private source root. The owner configuration pins the initial candidate and selects the fixed new metadata receipt; the existing transaction owner issues the ready epoch. An epoch-bound catalogue must subsequently complete under held source/currentness fences.\n";
 
 struct FreshRevisionSelection {
@@ -46,6 +47,7 @@ struct Arguments {
     initial_cut: bool,
     batch: Option<PathBuf>,
     input: Option<PathBuf>,
+    indexed_input_root: Option<PathBuf>,
     validator: Vec<OsString>,
     identity_only: bool,
     help: bool,
@@ -210,6 +212,7 @@ fn parse(args: &[OsString]) -> io::Result<Arguments> {
         initial_cut: false,
         batch: None,
         input: None,
+        indexed_input_root: None,
         validator: Vec::new(),
         identity_only: false,
         help: false,
@@ -355,6 +358,7 @@ fn parse(args: &[OsString]) -> io::Result<Arguments> {
             | "--authored-bootstrap-owner"
             | "--batch"
             | "--input-root"
+            | "--indexed-input-root"
             | "--grammar-root"
             | "--invocation"
             | "--payload-source-root"
@@ -372,6 +376,7 @@ fn parse(args: &[OsString]) -> io::Result<Arguments> {
             | "--authored-bootstrap-owner"
             | "--batch"
             | "--input-root"
+            | "--indexed-input-root"
             | "--grammar-root"
             | "--payload-source-root" => {
                 let selected = match option {
@@ -379,8 +384,10 @@ fn parse(args: &[OsString]) -> io::Result<Arguments> {
                     "--authored-bootstrap-owner" => &mut result.authored_bootstrap_owner,
                     "--batch" => &mut result.batch,
                     "--input-root" => &mut result.input,
+                    "--indexed-input-root" => &mut result.indexed_input_root,
                     "--grammar-root" => &mut grammar,
-                    _ => &mut payload,
+                    "--payload-source-root" => &mut payload,
+                    _ => unreachable!(),
                 };
                 if selected.replace(value).is_some() {
                     return Err(invalid(format!("duplicate corpus admission {option}")));
@@ -438,6 +445,34 @@ fn parse(args: &[OsString]) -> io::Result<Arguments> {
             "initial source cut cannot select JSON batch, identity-only, authored bootstrap, or fresh revision",
         ));
     }
+    let selected_scope = validation_profile
+        .as_ref()
+        .map(|id| {
+            let id = id
+                .to_str()
+                .ok_or_else(|| invalid("validation profile must be UTF-8"))?;
+            crate::source_current_cut::foundation_cli::select_validation_profile(Some(id))
+                .map(|profile| profile.scope)
+                .map_err(invalid)
+        })
+        .transpose()?;
+    let generated_profile = selected_scope == Some(tos_validation::source_foundation_default_rules::SourceFoundationDefaultRuleScope::SelectedGeneratedRecordClosure);
+    if generated_profile && result.indexed_input_root.is_none() {
+        return Err(invalid(
+            "generated record closure requires indexed input root",
+        ));
+    }
+    if selected_scope == Some(tos_validation::source_foundation_default_rules::SourceFoundationDefaultRuleScope::SelectedRecordClosure) && result.indexed_input_root.is_some() {
+        return Err(invalid("finite record closure cannot select generated indexed input"));
+    }
+    if result.indexed_input_root.is_some()
+        && !result.initial_cut
+        && !(result.identity_only && generated_profile)
+    {
+        return Err(invalid(
+            "indexed input requires the explicit initial source cut selector",
+        ));
+    }
     if result.source_transition_base.is_some()
         && (result.batch.is_some()
             || result.identity_only
@@ -492,6 +527,17 @@ fn parse(args: &[OsString]) -> io::Result<Arguments> {
         result.validator.extend([
             OsString::from("--record-selection-manifest"),
             manifest.into_os_string(),
+        ]);
+    }
+    if generated_profile {
+        result.validator.extend([
+            OsString::from("--indexed-input-root"),
+            result
+                .indexed_input_root
+                .as_ref()
+                .expect("generated input selected")
+                .as_os_str()
+                .to_owned(),
         ]);
     }
     if let Some(payload) = payload {
@@ -1102,7 +1148,7 @@ fn run_spooled(
         }
         Err(error) => {
             let primary_phase = phase.get();
-            let primary_io = resources.request.io_budget.snapshot();
+            let primary_io = validator.spooled_invocation_io_snapshot();
             // Record attempted shared-ledger IO even on parse, identity, base,
             // native-kernel or publication refusal. Cleanup is exact and
             // empty-only; a replaced/nonempty workspace remains untouched.
@@ -1186,11 +1232,18 @@ fn run_spooled(
                     error,
                 ));
             }
+            let terminal_io = validator.spooled_invocation_io_snapshot();
+            let (primary_io, terminal_io) = match (primary_io, terminal_io) {
+                (Ok(primary), Ok(terminal)) => (primary, terminal),
+                // Mandatory accounting and cleanup above still run. Preserve
+                // the primary cause; never label a partial census as exact.
+                _ => return Err(error),
+            };
             let refusal = NativeSpoolRefusal::retain(
                 error,
                 primary_phase,
                 primary_io,
-                resources.request.io_budget.snapshot(),
+                terminal_io,
                 accounting.is_err(),
                 cleanup.is_err(),
             );
@@ -1249,6 +1302,7 @@ fn run_selected_v2_case(
     deadline: std::time::Instant,
     cancelled: &Arc<AtomicBool>,
     caller_retained_state_bytes: usize,
+    work: crate::source_admission::AdmissionWorkBudget,
 ) -> io::Result<crate::source_admission_v2_case::V2CaseOutcome> {
     use crate::source_admission_v2_backup_restore::V2ImageLimits;
     use crate::source_admission_v2_case::{
@@ -1295,7 +1349,10 @@ fn run_selected_v2_case(
     point_tree.max_total_bytes = selected.point_tree_bytes;
     let segment = tos_segment_store::SegmentLimits {
         max_segment_bytes: profile.max_allocated_bytes,
-        max_frame_bytes: profile.max_allocated_bytes.min(4 * 1024 * 1024).max(1),
+        max_frame_bytes: profile
+            .max_frame_bytes
+            .min(selected.object_bytes as u64)
+            .max(1),
         max_frames: u32::try_from(profile.tree_limits.max_nodes.min(u32::MAX as u64))
             .map_err(|_| invalid("V2 case segment frame range"))?
             .max(1),
@@ -1392,6 +1449,7 @@ fn run_selected_v2_case(
         &profile.allocation_space,
         &resources.request.space_budget,
         paired,
+        work,
         deadline,
         cancelled.clone(),
     )
@@ -1449,6 +1507,7 @@ fn select_fresh_revision_profile(
 
 fn select_initial_cut_profile(
     limits: crate::source_admission_spooled_candidate::SpoolLimits,
+    indexed_input: bool,
 ) -> io::Result<crate::source_admission_initial_cut::InitialCutProfile> {
     use crate::source_admission_initial_cut::InitialCutProfile;
     use crate::source_admission_source_census::SourceCensusLimits;
@@ -1483,6 +1542,7 @@ fn select_initial_cut_profile(
             .max_row_state_bytes
             .checked_sub(limits.sqlite_cache_bytes)
             .ok_or_else(|| invalid("initial SQL original native-state slice underflow"))?,
+        indexed_input,
         original.max_read_bytes,
     )
 }
@@ -1623,7 +1683,10 @@ fn run_spooled_inner(
     }
 
     let initial_profile = if args.initial_cut {
-        Some(select_initial_cut_profile(limits)?)
+        Some(select_initial_cut_profile(
+            limits,
+            args.indexed_input_root.is_some(),
+        )?)
     } else {
         None
     };
@@ -1718,6 +1781,73 @@ fn run_spooled_inner(
         let store = initial_store
             .as_ref()
             .ok_or_else(|| invalid("initial V2 store absent"))?;
+        let indexed_input = if let Some(named_root) = args.indexed_input_root.as_deref() {
+            let original = resources
+                .v2_base_read_limits
+                .ok_or_else(|| invalid("indexed input requires the selected V2 read profile"))?;
+            // The base reader authenticates metadata only and deliberately has
+            // a one-byte payload bound. Indexed source bytes instead inherit
+            // the initial-cut census bound selected by this invocation.
+            let max_input_bytes = usize::try_from(profile.census.max_member_bytes)
+                .map_err(|_| invalid("indexed input member bound exceeds range"))?;
+            let max_members = profile.census.max_files.min(original.tree.max_rows);
+            let max_objects = max_members
+                .min(original.tree.max_rows)
+                .min(original.tree.max_nodes);
+            let caller_live_state_bytes = profile
+                .census_state_bytes
+                .checked_add(profile.update_rows_state_bytes)
+                .and_then(|bytes| bytes.checked_add(profile.batch_builder_state_bytes))
+                .and_then(|bytes| bytes.checked_add(profile.store_namespace_state_bytes))
+                .and_then(|bytes| bytes.checked_add(profile.retained_fence_state_bytes))
+                .and_then(|bytes| bytes.checked_add(profile.sqlite_cache_bytes))
+                .and_then(|bytes| bytes.checked_add(profile.sqlite_native_overhead_bytes))
+                .ok_or_else(|| invalid("indexed input retained state bound overflow"))?;
+            let max_working_state_bytes =
+                profile.max_state_slice_bytes.min(original.max_state_bytes);
+            let mut member_tree = original.tree;
+            member_tree.max_rows = member_tree.max_rows.min(max_members);
+            member_tree.max_key_bytes =
+                member_tree.max_key_bytes.min(profile.census.max_path_bytes);
+            member_tree.max_value_bytes = member_tree.max_value_bytes.min(44);
+            let mut object_tree = original.tree;
+            object_tree.max_rows = object_tree.max_rows.min(max_objects);
+            object_tree.max_key_bytes = object_tree.max_key_bytes.min(32);
+            object_tree.max_value_bytes = object_tree.max_value_bytes.min(76);
+            Some(crate::source_admission_indexed_input::IndexedInputRequestV1 {
+                held_declaration: validator.take_indexed_input_declaration_v1()?,
+                named_root: named_root.to_path_buf(),
+                segment_limits: original.segment,
+                max_profile_bytes: max_input_bytes.min(
+                    crate::source_admission_indexed_input::PROFILE_SIDECAR_MAX_BYTES_V1,
+                ),
+                max_dependency_closure_bytes: max_input_bytes.min(
+                    crate::source_admission_indexed_input::DEPENDENCY_CLOSURE_MAX_BYTES_V1,
+                ),
+                reader_limits: crate::source_admission_indexed_input::IndexedInputLimitsV1 {
+                    member_tree,
+                    packed_objects: crate::source_admission_packed_objects::PackedObjectLimitsV2 {
+                        segment_limits: original.segment,
+                        tree_limits: object_tree,
+                        max_working_state_bytes,
+                        caller_live_state_bytes,
+                        max_work_units: profile.max_work_units,
+                        max_objects,
+                        max_delta_rows: max_objects,
+                        max_pack_frames: original.segment.max_frames.min(
+                            crate::source_admission_packed_objects::MAX_PACKED_OBJECT_FRAMES_V2,
+                        ),
+                    },
+                    max_members,
+                    max_member_bytes: profile.census.max_member_bytes,
+                    max_source_bytes: profile.census.max_source_bytes,
+                    max_descriptor_bytes: (12 * 1024).min(max_input_bytes),
+                    caller_retained_state_bytes: caller_live_state_bytes,
+                },
+            })
+        } else {
+            None
+        };
         let mut prepared = crate::source_admission_initial_cut::prepare_initial_cut(
             args.input.as_deref().unwrap(),
             validator,
@@ -1733,6 +1863,7 @@ fn run_spooled_inner(
                 deadline: request.deadline,
                 cancelled: request.cancelled.clone(),
             },
+            indexed_input,
             deadline,
             &request.cancelled,
         )?;
@@ -1978,12 +2109,18 @@ fn run_spooled_inner(
             drop(transition_prepared);
             drop(transition_root);
             drop(reader);
+            let case_work = resources
+                .v2_case
+                .as_ref()
+                .map(|_| batch.admission_work_budget());
             drop(batch);
             drop(store); // The case reopens only from the original held root.
             let case = resources.v2_case.as_ref().map(|selection| {
                 validator
                     .prepared_v2_read_case_profile()
                     .and_then(|profile| {
+                        let work = case_work
+                            .ok_or_else(|| invalid("selected V2 case work meter absent"))??;
                         run_selected_v2_case(
                             selection,
                             profile,
@@ -1995,6 +2132,7 @@ fn run_spooled_inner(
                             std::mem::size_of::<
                                 crate::source_admission_v2_reader::AcceptedV2Publication,
                             >(),
+                            work,
                         )
                     })
             });
@@ -2281,6 +2419,10 @@ fn run_spooled_inner(
     };
     // Keep receipt JSON out of the cold phase; the fixed publication tuple
     // remains live and is debited from the same original case state below.
+    let case_work = resources
+        .v2_case
+        .as_ref()
+        .map(|_| candidate.admission_work_budget());
     drop(index);
     drop(candidate);
     drop(fresh_prepared);
@@ -2291,6 +2433,7 @@ fn run_spooled_inner(
     drop(base_v2);
     drop(store); // Publication custody survives; no duplicate store stays live.
     let case = resources.v2_case.as_ref().map(|selection| {
+        let work = case_work.ok_or_else(|| invalid("selected V2 case work meter absent"))??;
         run_selected_v2_case(
             selection,
             case_profile
@@ -2306,6 +2449,7 @@ fn run_spooled_inner(
                     Option<crate::source_foundation_admission::NativeSegmentV2Budget>,
                 >())
                 .ok_or_else(|| invalid("V2 case retained publication/profile state overflow"))?,
+            work,
         )
     });
     let receipt = spooled_receipt(&publication);
@@ -2441,6 +2585,32 @@ mod validation_profile_forwarding_tests {
                 ]
             );
         }
+        let generated = parse(&identity_args(&[
+            "--validation-profile=selected-generated-record-closure",
+            "--record-selection-manifest=/selection.json",
+            "--indexed-input-root",
+            "/indexed",
+        ]))
+        .unwrap();
+        assert_eq!(
+            generated.indexed_input_root.as_deref(),
+            Some(std::path::Path::new("/indexed"))
+        );
+        assert!(generated.validator.windows(2).any(|pair| pair
+            == [
+                OsString::from("--indexed-input-root"),
+                OsString::from("/indexed")
+            ]));
+        assert!(parse(&identity_args(&["--indexed-input-root", "/indexed"])).is_err());
+        assert!(
+            parse(&identity_args(&[
+                "--validation-profile=selected-record-closure",
+                "--record-selection-manifest=/selection.json",
+                "--indexed-input-root",
+                "/indexed",
+            ]))
+            .is_err()
+        );
         assert!(parse(&identity_args(&["--record-selection-manifest"])).is_err());
         assert!(
             parse(&identity_args(&[

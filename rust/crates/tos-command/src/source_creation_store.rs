@@ -704,6 +704,8 @@ pub struct IsolatedCreationRoot {
     name: String,
     directory: File,
     identity: (u64, u64),
+    // Declared last: held directory FD closes before its physical charge.
+    _allocation_custody: Option<Arc<tos_source_store::PinnedSqliteSpaceReservation>>,
 }
 impl IsolatedCreationRoot {
     pub fn create(
@@ -711,10 +713,63 @@ impl IsolatedCreationRoot {
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> SourceCommandResult<Self> {
-        let uid = rustix::process::geteuid().as_raw();
         let parent_fd = tos_fd_open::open_absolute_directory(parent)
             .map_err(|_| SourceCommandError::Denied("isolated creation parent unsafe"))?;
-        owned(&parent_fd, uid, true)?;
+        owned(&parent_fd, rustix::process::geteuid().as_raw(), true)?;
+        Self::create_selected(parent, parent_fd, None, deadline, cancelled)
+    }
+
+    /// Create only through an originally selected parent descriptor. Recheck
+    /// its named identity before mutation; retain that same FD for cleanup.
+    pub(crate) fn create_with_held_parent(
+        parent: &Path,
+        held_parent: &File,
+        allocation_custody: Arc<tos_source_store::PinnedSqliteSpaceReservation>,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<Self> {
+        active(deadline, cancelled)?;
+        let uid = rustix::process::geteuid().as_raw();
+        let named = tos_fd_open::open_absolute_directory(parent)
+            .map_err(|_| SourceCommandError::Denied("isolated creation parent unsafe"))?;
+        if inode(&owned(&named, uid, true)?) != inode(&owned(held_parent, uid, true)?) {
+            return Err(SourceCommandError::Conflict(
+                "isolated creation parent replaced",
+            ));
+        }
+        // The persistent capability holds O_PATH custody. Reopen that same
+        // directory for fsync; cloning O_PATH cannot provide this operation.
+        let parent_fd = File::from(
+            rustix::fs::openat(
+                held_parent,
+                ".",
+                OFlags::RDONLY | OFlags::DIRECTORY | OFlags::NOFOLLOW | OFlags::CLOEXEC,
+                Mode::empty(),
+            )
+            .map_err(|_| SourceCommandError::Invalid("isolated root parent custody"))?,
+        );
+        if inode(&owned(&parent_fd, uid, true)?) != inode(&owned(held_parent, uid, true)?) {
+            return Err(SourceCommandError::Conflict(
+                "isolated creation parent replaced",
+            ));
+        }
+        Self::create_selected(
+            parent,
+            parent_fd,
+            Some(allocation_custody),
+            deadline,
+            cancelled,
+        )
+    }
+
+    fn create_selected(
+        parent: &Path,
+        parent_fd: File,
+        allocation_custody: Option<Arc<tos_source_store::PinnedSqliteSpaceReservation>>,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<Self> {
+        let uid = rustix::process::geteuid().as_raw();
         for _ in 0..32 {
             active(deadline, cancelled)?;
             let mut entropy = [0u8; 24];
@@ -740,6 +795,7 @@ impl IsolatedCreationRoot {
                         name,
                         directory,
                         identity,
+                        _allocation_custody: allocation_custody,
                     });
                 }
                 Err(Errno::EXIST) => continue,

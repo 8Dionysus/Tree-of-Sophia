@@ -54,6 +54,8 @@ mod public_text;
 mod responsibility;
 #[path = "source_native_revisions_cli.rs"]
 mod revisions;
+#[path = "source_native_source_session.rs"]
+mod source_session;
 #[path = "source_native_text_cli.rs"]
 mod text_owner;
 #[path = "source_native_work_cli.rs"]

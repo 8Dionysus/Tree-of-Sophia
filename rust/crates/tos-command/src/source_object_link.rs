@@ -684,6 +684,8 @@ fn compose(
         item_path_profile: None,
         files,
         new_directories: directories,
+        source_readset: None,
+        source_successor: None,
     };
     let selected = shared::selected_sides(&plan)?;
     shared::after_cut_budget(cut, &selected)?;

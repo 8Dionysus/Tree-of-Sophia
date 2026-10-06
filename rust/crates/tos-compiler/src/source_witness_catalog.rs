@@ -485,6 +485,7 @@ pub struct SourceCatalogReceipt<B = crate::SourceBinding> {
     row_count: u64,
     summary_sha256: String,
     record_selection_sha256: Option<Digest256>,
+    generated_selection_sha256: Option<Digest256>,
 }
 
 pub type ColdSourceCatalogReceipt =
@@ -813,6 +814,9 @@ fn summary<B: CatalogInputBinding>(
         "inputs":receipt.input_root});
     if let Some(digest) = &receipt.record_selection_sha256 {
         value["record_selection_sha256"] = Value::String(digest.to_hex());
+    }
+    if let Some(digest) = &receipt.generated_selection_sha256 {
+        value["generated_selection_sha256"] = Value::String(digest.to_hex());
     }
     let raw = encode(&value, l.max_output_row_bytes)?;
     Ok(Digest256::of_bytes(&raw).to_hex())
@@ -1506,10 +1510,14 @@ impl<'a> SourceCatalogValidator<'a> {
             .schemas
             .try_borrow_mut()
             .map_err(|_| Error::Invalid("catalog executor already in use"))?;
-        let valid = schemas.check(path, raw, &contract, self.deadline, self.cancelled)
-            .map_err(|refusal| Error::Io(std::io::Error::new(
-                std::io::ErrorKind::InvalidData, CatalogSchemaRefusal(refusal),
-            )))?;
+        let valid = schemas
+            .check(path, raw, &contract, self.deadline, self.cancelled)
+            .map_err(|refusal| {
+                Error::Io(std::io::Error::new(
+                    std::io::ErrorKind::InvalidData,
+                    CatalogSchemaRefusal(refusal),
+                ))
+            })?;
         if !valid {
             return Err(Error::Invalid(
                 "source catalog exact native schema rejected",
@@ -2123,50 +2131,120 @@ fn insert(
     })
 }
 
+fn verify_generated_catalog_member(
+    generated: &dyn tos_validation::record_biblio_cut::GeneratedSourceSelection,
+    path: &str,
+    raw: &[u8],
+    validator: &SourceCatalogValidator<'_>,
+    workspace: Option<usize>,
+) -> Result<()> {
+    let limit = workspace.ok_or(Error::Budget("generated catalog verifier workspace"))?;
+    if raw.len() > limit {
+        return Err(Error::Budget("generated catalog raw workspace"));
+    }
+    generated
+        .verify_member(
+            path,
+            raw,
+            raw.len(),
+            validator.deadline,
+            validator.cancelled,
+        )
+        .map_err(|error| Error::Source(format!("catalog generated binding: {error:?}")))
+}
 fn native_inventory(
     stage: &mut KnowledgeStage<'_>,
     c: &Contracts,
     validator: &SourceCatalogValidator<'_>,
     l: SourceCatalogLimits,
     observer: &mut impl SourceCatalogProfileObserver,
-) -> Result<()> {
+    generated: Option<&dyn tos_validation::record_biblio_cut::GeneratedSourceSelection>,
+    verification_workspace: Option<usize>,
+) -> Result<u64> {
     let mut after = None;
     let mut packet_count = 0usize;
+    let mut generated_count = 0u64;
     loop {
         let page = stage.scan_input(CATALOG_SOURCE, NATIVE_IDENTITIES, after.as_deref(), 1)?;
         for row in page.rows {
-            packet_count += 1;
-            if packet_count > 1024 {
-                return Err(Error::Budget("catalog native identity inventory packets"));
+            let generated_member = generated
+                .map_or(Ok(false), |selection| {
+                    selection.selects_catalog_member(&row.id)
+                })
+                .map_err(|error| Error::Source(format!("catalog generated selector: {error:?}")))?;
+            if generated_member {
+                verify_generated_catalog_member(
+                    generated.ok_or(Error::Invalid("generated catalog selector absent"))?,
+                    &row.id,
+                    &row.payload,
+                    validator,
+                    verification_workspace,
+                )?;
+                generated_count = generated_count
+                    .checked_add(1)
+                    .filter(|n| *n <= l.max_rows)
+                    .ok_or(Error::Budget("catalog generated identity packets"))?;
+            } else {
+                packet_count = packet_count
+                    .checked_add(1)
+                    .filter(|n| *n <= 1024)
+                    .ok_or(Error::Budget("catalog native identity inventory packets"))?;
             }
             let basename = source_ref(&row.id)?;
-            if !basename.starts_with("semantic-annotation") || !basename.ends_with(".json") {
-                return Err(Error::Invalid("catalog native identity inventory locator"));
-            }
             let packet = SourceRow::parse(&row.payload, l.max_row_bytes)?;
-            if text(packet.value(), "schema_version")? != "tos_semantic_annotation_packet_v2" {
-                return Err(Error::Invalid("catalog native identity packet schema"));
-            }
-            validator.check_at(
-                c,
-                &row.id,
-                "ToS/contracts/semantic-annotation-packet-v2.schema.json",
-                "",
-                &row.payload,
-            )?;
-            for entity in array(packet.value(), "entities")? {
-                let id = text(entity, "entity_id")?;
-                if id.len() > 4096 {
-                    return Err(Error::Budget("catalog native identity"));
+            if basename.starts_with("semantic-annotation") && basename.ends_with(".json") {
+                if text(packet.value(), "schema_version")? != "tos_semantic_annotation_packet_v2" {
+                    return Err(Error::Invalid("catalog native identity packet schema"));
                 }
-                stage.with_connection(WritePhase::Catalog, |db| {
-                    db.execute(
-                        "INSERT OR IGNORE INTO source_catalog_reserved(id) VALUES(?1)",
-                        [id],
-                    )?;
-                    Ok(())
-                })?;
-                observer.native_semantic_identity(id, &row.id)?;
+                validator.check_at(
+                    c,
+                    &row.id,
+                    "ToS/contracts/semantic-annotation-packet-v2.schema.json",
+                    "",
+                    &row.payload,
+                )?;
+                for entity in array(packet.value(), "entities")? {
+                    let id = text(entity, "entity_id")?;
+                    if id.len() > 4096 {
+                        return Err(Error::Budget("catalog native identity"));
+                    }
+                    stage.with_connection(WritePhase::Catalog, |db| {
+                        db.execute(
+                            "INSERT OR IGNORE INTO source_catalog_reserved(id) VALUES(?1)",
+                            [id],
+                        )?;
+                        Ok(())
+                    })?;
+                    observer.native_semantic_identity(id, &row.id)?;
+                }
+            } else if basename == "source-text-unit-packet.v1.json" {
+                if text(packet.value(), "schema_version")? != "tos_source_text_unit_packet_v1" {
+                    return Err(Error::Invalid("catalog native TextUnit packet schema"));
+                }
+                validator.check_at(
+                    c,
+                    &row.id,
+                    "ToS/contracts/source-text-unit-packet-v1.schema.json",
+                    "",
+                    &row.payload,
+                )?;
+                observer.native_semantic_identity(text(packet.value(), "packet_id")?, &row.id)?;
+                for (field, key) in [
+                    ("anchors", "anchor_ref"),
+                    ("schemes", "scheme_id"),
+                    ("segmentations", "segmentation_id"),
+                    ("units", "unit_id"),
+                ] {
+                    for member in array(packet.value(), field)? {
+                        let id = text(member, key)?;
+                        if id.len() > 4096 {
+                            return Err(Error::Budget("catalog native TextUnit identity"));
+                        }
+                        observer.native_semantic_identity(id, &row.id)?;
+                    }
+                }
+            } else {
+                return Err(Error::Invalid("catalog native identity inventory locator"));
             }
         }
         after = page.next_id;
@@ -2174,10 +2252,7 @@ fn native_inventory(
             break;
         }
     }
-    // Native text closure is validated from each exact declared description,
-    // metadata only; unused sealed dependencies acquire no graph/rights role.
-
-    Ok(())
+    Ok(generated_count)
 }
 
 fn source_files(
@@ -2185,19 +2260,45 @@ fn source_files(
     c: &Contracts,
     validator: &SourceCatalogValidator<'_>,
     l: SourceCatalogLimits,
+    observer: &mut impl SourceCatalogProfileObserver,
     selection: Option<&tos_validation::source_record_selection::SourceRecordSelection>,
+    generated: Option<&dyn tos_validation::record_biblio_cut::GeneratedSourceSelection>,
     verification_workspace: Option<usize>,
-) -> Result<()> {
+) -> Result<u64> {
     let mut after = None;
     let mut count = 0u64;
     let mut selected_records = 0usize;
     let mut selected_slots = 0usize;
+    let mut generated_count = 0u64;
     loop {
         let page = stage.scan_input(CATALOG_SOURCE, SOURCE_FILES, after.as_deref(), 1)?;
         for file in page.rows {
-            if selection.is_some_and(|selection| !selection.selects_semantic_member(&file.id)) {
-                continue;
+            let generated_member = generated
+                .map_or(Ok(false), |selection| {
+                    selection.selects_catalog_member(&file.id)
+                })
+                .map_err(|error| Error::Source(format!("catalog generated selector: {error:?}")))?;
+            let finite_member =
+                selection.is_some_and(|selection| selection.selects_semantic_member(&file.id));
+            if selection.is_some() || generated.is_some() {
+                if !finite_member && !generated_member {
+                    continue;
+                }
             }
+            if generated_member {
+                verify_generated_catalog_member(
+                    generated.ok_or(Error::Invalid("generated catalog selector absent"))?,
+                    &file.id,
+                    &file.payload,
+                    validator,
+                    verification_workspace,
+                )?;
+                generated_count = generated_count
+                    .checked_add(1)
+                    .filter(|n| *n <= l.max_rows)
+                    .ok_or(Error::Budget("catalog generated member count"))?;
+            }
+            let selection = selection.filter(|_| finite_member);
             let basename = source_ref(&file.id)?;
             let verified = selection
                 .map(|selection| {
@@ -2277,6 +2378,16 @@ fn source_files(
                         "cr"
                     };
                     let raw = &file.payload[start..end];
+                    if generated_member
+                        && !generated
+                            .ok_or(Error::Invalid("generated catalog selector absent"))?
+                            .selects_row(&file.id, line)
+                            .map_err(|error| {
+                                Error::Source(format!("catalog generated row selector: {error:?}"))
+                            })?
+                    {
+                        continue;
+                    }
                     let kind = if let Some(selection) = selection {
                         if !selection.selected_row(&file.id, line) {
                             continue;
@@ -2360,6 +2471,17 @@ fn source_files(
                         let addressed = json!({"claim_id":id,"entry":entry,"source_slot_key":key,
                             "claim_ref":{"id":id,"version":version(v.value(),"claim_version")?,"digest":format!("sha256:{canonical_sha}")}});
                         insert(stage, "claims", "claim", id, &addressed, l)?;
+                        observer.native_semantic_identity(id, &file.id)?;
+                    }
+                }
+                if let Some(cursor) = &mut cursor {
+                    if cursor
+                        .next_checked(validator.deadline, validator.cancelled)
+                        .is_some()
+                    {
+                        return Err(Error::Invalid(
+                            "catalog selected slots missing at physical EOF",
+                        ));
                     }
                 }
                 if let Some(cursor) = &mut cursor {
@@ -2412,6 +2534,7 @@ fn source_files(
                     "source_ref":file.id,"raw_sha256":file.payload_sha256,"raw_bytes":file.payload.len(),
                     "record_ref":{"id":id,"version":version(source.value(),"record_version")?,"digest":format!("sha256:{}",entry["record_sha256"].as_str().ok_or(Error::Invalid("catalog source digest"))?)}}});
                 insert(stage, "records", kind, id, &addressed, l)?;
+                observer.native_semantic_identity(id, &file.id)?;
             }
         }
         after = page.next_id;
@@ -2426,7 +2549,7 @@ fn source_files(
             "catalog selected semantic source EOF counts",
         ));
     }
-    Ok(())
+    Ok(generated_count)
 }
 
 /// Visit verified, bounded stage rows in one exact category/kind order.
@@ -2675,6 +2798,25 @@ pub(crate) fn prepare_catalog_receipt_observed_with_selection<B: CatalogInputBin
     selection: Option<&tos_validation::source_record_selection::SourceRecordSelection>,
     verification_workspace: Option<usize>,
 ) -> Result<SourceCatalogReceipt<B>> {
+    prepare_catalog_receipt_observed_with_selections(
+        stage,
+        validator,
+        l,
+        observer,
+        selection,
+        None,
+        verification_workspace,
+    )
+}
+pub(crate) fn prepare_catalog_receipt_observed_with_selections<B: CatalogInputBinding>(
+    stage: &mut KnowledgeStage<'_>,
+    validator: &SourceCatalogValidator<'_>,
+    l: SourceCatalogLimits,
+    observer: &mut impl SourceCatalogProfileObserver,
+    selection: Option<&tos_validation::source_record_selection::SourceRecordSelection>,
+    generated: Option<&dyn tos_validation::record_biblio_cut::GeneratedSourceSelection>,
+    verification_workspace: Option<usize>,
+) -> Result<SourceCatalogReceipt<B>> {
     let result = (|| {
         l.validate()?;
         let selected_binding = B::selected(stage)?;
@@ -2689,8 +2831,34 @@ pub(crate) fn prepare_catalog_receipt_observed_with_selection<B: CatalogInputBin
                 CREATE INDEX source_catalog_rows_kind ON source_catalog_rows(category,kind,id);
                 CREATE TABLE source_catalog_reserved(id TEXT PRIMARY KEY) WITHOUT ROWID;")?; Ok(())
         })?;
-        native_inventory(stage, &c, validator, l, observer)?;
-        source_files(stage, &c, validator, l, selection, verification_workspace)?;
+        let generated_native = native_inventory(
+            stage,
+            &c,
+            validator,
+            l,
+            observer,
+            generated,
+            verification_workspace,
+        )?;
+        let generated_records = source_files(
+            stage,
+            &c,
+            validator,
+            l,
+            observer,
+            selection,
+            generated,
+            verification_workspace,
+        )?;
+        if let Some(generated) = generated {
+            if generated_native.checked_add(generated_records)
+                != Some(generated.declared_member_count())
+            {
+                return Err(Error::Invalid(
+                    "catalog generated semantic member EOF count",
+                ));
+            }
+        }
         let (manifest, file_sha256, record_count, claim_count) = outputs(stage, &c, l)?;
         let source_slot_count = visit_rows(stage, "slots", None, l, |_, _, _| Ok(()))?;
         let (row_count, row_root_sha256) = row_root(stage, l)?;
@@ -2718,6 +2886,7 @@ pub(crate) fn prepare_catalog_receipt_observed_with_selection<B: CatalogInputBin
             row_count,
             summary_sha256: String::new(),
             record_selection_sha256: selection.map(|selection| selection.digest()),
+            generated_selection_sha256: generated.map(|selection| selection.binding_digest()),
         };
         receipt.summary_sha256 = summary(&receipt, l)?;
         Ok(receipt)

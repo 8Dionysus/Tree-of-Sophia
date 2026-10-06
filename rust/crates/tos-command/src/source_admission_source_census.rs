@@ -31,6 +31,8 @@ const CENSUS_DIGEST_DOMAIN: &[u8] = b"tos-native-source-filesystem-census-v1\0";
 pub(crate) enum SourceCensusScan {
     Proposal,
     Terminal,
+    // Authenticated logical input rows, distinct from the physical source.
+    IndexedProposal,
 }
 
 impl SourceCensusScan {
@@ -38,6 +40,7 @@ impl SourceCensusScan {
         match self {
             Self::Proposal => "proposal",
             Self::Terminal => "terminal",
+            Self::IndexedProposal => "indexed_proposal",
         }
     }
 }
@@ -327,7 +330,7 @@ fn open_named_directory(
             .checked_add(component.len())
             .ok_or_else(|| invalid("source filesystem census path index overflow"))?;
         let prefix = &relative[..end];
-        if !super::source_current_cut::foundation_capture::selected(prefix, true) {
+        if !crate::source_current_cut::foundation_capture::selected(prefix, true) {
             return Err(invalid(
                 "source filesystem census directory is outside selection",
             ));
@@ -558,12 +561,9 @@ fn visit_directory(
         let name_os = entry.file_name();
         let name = name_os
             .to_str()
-            .map_err(|_| invalid("source filesystem census child name is not bounded UTF-8"))?;
-        if name.is_empty() || name.len() > 255 {
-            return Err(invalid(
-                "source filesystem census child name is not bounded UTF-8",
-            ));
-        }
+            .ok()
+            .filter(|name| !name.is_empty() && name.len() <= 255)
+            .ok_or_else(|| invalid("source filesystem census child name is not bounded UTF-8"))?;
         if name == "." || name == ".." {
             continue;
         }
@@ -579,7 +579,7 @@ fn visit_directory(
         let entry_stat = rustix::fs::statat(&directory, name, AtFlags::SYMLINK_NOFOLLOW)?;
         let entry_type = FileType::from_raw_mode(entry_stat.st_mode);
         if entry_type.is_dir() {
-            if super::source_current_cut::foundation_capture::selected(&child_path, true) {
+            if crate::source_current_cut::foundation_capture::selected(&child_path, true) {
                 let child_depth = depth
                     .checked_add(1)
                     .ok_or_else(|| invalid("source filesystem census depth overflow"))?;
@@ -622,7 +622,7 @@ fn visit_directory(
                 )?;
             }
         } else if entry_type.is_file() {
-            if super::source_current_cut::foundation_capture::selected(&child_path, false) {
+            if crate::source_current_cut::foundation_capture::selected(&child_path, false) {
                 let declared_size = u64::try_from(entry_stat.st_size)
                     .map_err(|_| invalid("source filesystem census member size is negative"))?;
                 if declared_size > limits.max_member_bytes {
@@ -705,8 +705,8 @@ fn visit_directory(
                 counters.member_count = next_member_count;
                 counters.source_bytes = next_source_bytes;
             }
-        } else if super::source_current_cut::foundation_capture::selected(&child_path, false)
-            || super::source_current_cut::foundation_capture::selected(&child_path, true)
+        } else if crate::source_current_cut::foundation_capture::selected(&child_path, false)
+            || crate::source_current_cut::foundation_capture::selected(&child_path, true)
         {
             return Err(invalid(
                 "source filesystem census selected non-regular entry",
@@ -807,7 +807,7 @@ fn digest_rows(
             let size: i64 = row.get(2).map_err(sql)?;
             let mode: i64 = row.get(3).map_err(sql)?;
             if path.len() > limits.max_path_bytes
-                || !super::source_current_cut::foundation_capture::selected(&path, false)
+                || !crate::source_current_cut::foundation_capture::selected(&path, false)
             {
                 return Err(invalid(
                     "source filesystem census stored path is not selected",
@@ -860,6 +860,49 @@ fn digest_rows(
     Ok(hasher.finalize())
 }
 
+/// Check the SQL-backed logical proposal without claiming a filesystem scan.
+/// The caller populated these rows from the held authenticated member tree;
+/// payload ingestion and the separate physical-source fence remain required.
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn summarize_indexed_proposal_rows(
+    db: &PinnedSqliteConnection,
+    expected_members: u64,
+    expected_bytes: u64,
+    limits: SourceCensusLimits,
+    work: &mut dyn FnMut(SourceCensusWorkKind) -> io::Result<()>,
+    deadline: Instant,
+    cancel: &AtomicBool,
+) -> io::Result<SourceCensusSummary> {
+    finite_limits(limits)?;
+    check_state(limits)?;
+    if expected_members == 0
+        || expected_members > limits.max_files
+        || expected_bytes > limits.max_source_bytes
+    {
+        return Err(invalid("indexed proposal exceeds selected census limits"));
+    }
+    let mut summary = SourceCensusSummary {
+        member_count: expected_members,
+        source_bytes: expected_bytes,
+        directory_count: 0,
+        entry_count: expected_members,
+        payload_read_bytes: 0,
+        metadata_read_upper_bytes: 0,
+        sql_row_operations: 0,
+        digest: Digest256::from_bytes([0; 32]),
+    };
+    summary.digest = digest_rows(
+        db,
+        SourceCensusScan::IndexedProposal,
+        limits,
+        &mut summary,
+        work,
+        deadline,
+        cancel,
+    )?;
+    Ok(summary)
+}
+
 #[allow(clippy::too_many_arguments)]
 fn census_inner(
     repo_root: &File,
@@ -896,7 +939,7 @@ fn census_inner(
     charge_name(io, &mut summary.metadata_read_upper_bytes, ROOT_RELATIVE)?;
     let root_stat = rustix::fs::statat(repo_root, ROOT_RELATIVE, AtFlags::SYMLINK_NOFOLLOW)?;
     if !FileType::from_raw_mode(root_stat.st_mode).is_dir()
-        || !super::source_current_cut::foundation_capture::selected(ROOT_RELATIVE, true)
+        || !crate::source_current_cut::foundation_capture::selected(ROOT_RELATIVE, true)
     {
         return Err(invalid("source filesystem census ToS root is not selected"));
     }
@@ -995,7 +1038,7 @@ fn census_inner(
             ));
         }
         if queued.depth > limits.max_depth
-            || !super::source_current_cut::foundation_capture::selected(&queued.path, true)
+            || !crate::source_current_cut::foundation_capture::selected(&queued.path, true)
         {
             return Err(invalid(
                 "source filesystem census queued directory is invalid",

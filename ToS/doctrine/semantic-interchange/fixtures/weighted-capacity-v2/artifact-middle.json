@@ -1,0 +1,126 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/artifact-source-witness.schema.json",
+  "schema_version": "tos_artifact_source_witness_v1",
+  "artifact_id": "tos.artifact.synthetic-repository-template.middle",
+  "artifact_kind": "other",
+  "path_identity": {
+    "basis": "repository_identity",
+    "provider_independent": true,
+    "note": "A synthetic repository byte object, distinct from its witness JSON; runtime identity and actual resource binding are supplied by the declared producer."
+  },
+  "identifiers": [
+    {
+      "scheme": "synthetic repository resource",
+      "value": "urn:tos:capacity-fixture:template-resource:middle",
+      "source_ref": "urn:tos:capacity-fixture:template-resource:middle"
+    }
+  ],
+  "physical_description": {
+    "material": "A deterministic repository byte object; no archaeological material asserted.",
+    "height_mm": null,
+    "width_mm": null,
+    "thickness_mm": null,
+    "source_ref": "urn:tos:capacity-fixture:template-resource:middle"
+  },
+  "dating": {
+    "period_label": "Synthetic fixture",
+    "display_date": "Historical date not applicable; production is separately observed.",
+    "certainty": "unknown",
+    "period_stage_separation_required": true,
+    "source_ref": "urn:tos:capacity-fixture:template-resource:middle"
+  },
+  "find_context": {
+    "site": null,
+    "findspot": null,
+    "excavation_numbers": [],
+    "source_note": null,
+    "documentation_limit": "No excavation, findspot or archaeological discovery is asserted for this software-produced repository resource.",
+    "source_ref": "urn:tos:capacity-fixture:template-resource:middle"
+  },
+  "custody": {
+    "current_repository": "Selected private ToS capacity-fixture resource custody",
+    "inventory_numbers": [
+      "urn:tos:capacity-fixture:template-resource:middle"
+    ],
+    "source_ref": "urn:tos:capacity-fixture:template-resource:middle"
+  },
+  "digital_catalog_record": {
+    "provider": "ToS synthetic repository fixture metadata",
+    "record_id": "tos.artifact.synthetic-repository-template.middle",
+    "record_url": "urn:tos:capacity-fixture:template-resource:middle",
+    "api_url": null,
+    "checked_at": "2026-10-05T23:26:34Z",
+    "mutable": true,
+    "response_fingerprints": [
+      {
+        "surface": "urn:tos:capacity-fixture:template-resource:middle",
+        "byte_size": 48,
+        "sha256": "b0cdbc79629cbfdd6b72d62813c4d3ddeb4742cc9b0dd8aab1e09581eba6142e",
+        "captured": false
+      }
+    ]
+  },
+  "inscription_layer": {
+    "availability": "unavailable",
+    "language_status": "unknown",
+    "provider_language_code": null,
+    "normalized_language_code": null,
+    "script": null,
+    "transliteration_stored": false,
+    "translation_stored": false,
+    "source_refs": [
+      "urn:tos:capacity-fixture:template-resource:middle"
+    ]
+  },
+  "composite_layer": {
+    "status": "absent",
+    "external_refs": [],
+    "relationship": "No scholarly composite or ancient physical-object identity is asserted.",
+    "is_physical_artifact_identity": false
+  },
+  "visual_layers": [],
+  "scholarly_classification": {
+    "genre": "Synthetic repository identity fixture",
+    "corpus_labels": [
+      "explicit capacity experiment",
+      "middle source prototype"
+    ],
+    "classification_is_interpretive": true,
+    "source_refs": [
+      "urn:tos:capacity-fixture:template-resource:middle"
+    ]
+  },
+  "bibliography": [],
+  "layer_separation": {
+    "physical_artifact_is_catalog_record": false,
+    "catalog_record_is_inscription": false,
+    "inscription_is_composite": false,
+    "visual_is_artifact": false,
+    "sign_has_fixed_translation": false,
+    "artifact_is_philosophy": false
+  },
+  "rights_ref": "ToS/doctrine/semantic-interchange/fixtures/weighted-capacity-v2/rights-template.json",
+  "discovery_ref": "ToS/doctrine/semantic-interchange/fixtures/weighted-capacity-v2/discovery-template.json",
+  "provenance_event_ref": "tos.event.synthetic-repository-template.middle",
+  "research_ref": "ToS/review-ledger/2026-10-05-synthetic-repository-artifact-boundary.md",
+  "philosophy_planting_refs": [
+    "ToS/review-ledger/2026-10-05-synthetic-repository-artifact-boundary.md"
+  ],
+  "authority": {
+    "evidence_status": "metadata_witness",
+    "review_status": "unreviewed",
+    "visibility": "public_metadata_only",
+    "source_text_admitted": false,
+    "semantic_authority": false,
+    "graph_authority": false,
+    "canon_authority": false,
+    "publication_authority": false
+  },
+  "maker": {
+    "maker_type": "model",
+    "agent_ref": "model:codex",
+    "human_review_performed": false
+  },
+  "created_at": "2026-10-05T23:26:34Z",
+  "record_version": 1
+}

@@ -5605,8 +5605,8 @@ impl DurablePgCoordinator {
 }
 
 // Small PG pages are separate from the finite complete maps returned to the
-// creation owner. Neither a wider generation profile nor streaming custody
-// raises the existing command input or finite owner-metadata ceilings.
+// creation owner. An explicit generation profile owns the metadata envelope;
+// legacy callers without a profile retain the finite default ceilings.
 const COLD_SOURCE_PAGE_ROWS: i64 = 8;
 fn admit_cold_source_metadata(
     tx: &mut Transaction<'_>,
@@ -5615,7 +5615,7 @@ fn admit_cold_source_metadata(
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> DurableResult<[u64; 3]> {
-    let row_limit = profile.map_or(100_000, |p| p.max_metadata_rows.min(100_000)) as u64;
+    let row_limit = profile.map_or(100_000, |p| p.max_metadata_rows) as u64;
     let mut counts = [0; 3];
     let mut rows = 0u64;
     let mut bytes = 0u64;
@@ -5642,10 +5642,7 @@ fn admit_cold_source_metadata(
             .checked_add(as_u64(admitted.get(2))?)
             .ok_or(DurableError::Refused("cold source metadata byte overflow"))?;
         if rows > row_limit
-            || bytes
-                > profile.map_or(64 * 1024 * 1024, |p| {
-                    p.max_metadata_bytes.min(64 * 1024 * 1024)
-                }) as u64
+            || bytes > profile.map_or(64 * 1024 * 1024, |p| p.max_metadata_bytes) as u64
             || admitted.get::<_, i32>(1) > 1_048_576
         {
             return Err(DurableError::Refused(

@@ -1,0 +1,120 @@
+{
+  "schema": "tos_native_v2_writer_source_pin_v1",
+  "status": "SOURCE_PREPARATION_ONLY",
+  "base_commit": "8ae37958985c1ec603bd2c3360ec2ada7f12184e",
+  "files": [
+    {
+      "path": "rust/crates/tos-command/src/lib.rs",
+      "pre_sha256": "9da6be48a3be2b0f0754cd165bd9ceaa7ea4e329aa9167d27b41f4db7ba38f5d",
+      "post_sha256": "95684287e134ef15793fed194694b10a24d854f1ac7280c4e20221c033f204dd",
+      "bytes": 4839
+    },
+    {
+      "path": "rust/crates/tos-command/src/source_admission_spooled_candidate.rs",
+      "pre_sha256": "9d3ec8a9623c9eb89fa87baff27cc41b5ef3546d8f3866cce95cf68946d4eea6",
+      "post_sha256": "a251afd2e14aca484638f52c1138cfe80bdd1a04dfe3ebd8388104c4ae9822f7",
+      "bytes": 106941
+    },
+    {
+      "path": "rust/crates/tos-command/src/source_admission_spooled_index.rs",
+      "pre_sha256": "192013d43ab63927469857c0c257e260ed59a47ec1ea18b98083e738e6000f67",
+      "post_sha256": "79edf1bd17e5b783d66a64fa8c48601863317be9c49325eda7b3ccc6c5679d3a",
+      "bytes": 64992
+    },
+    {
+      "path": "rust/crates/tos-command/src/source_admission_store.rs",
+      "pre_sha256": "cddbdbc8bcffe2fae2abe9de3b3c049750dc89ff4d7575f69583a43b3fded5aa",
+      "post_sha256": "40147d0096a9d50eccf5376c7f5c3ae06975a1a5a570f3face951ec00d928a6b",
+      "bytes": 83084
+    },
+    {
+      "path": "rust/crates/tos-command/src/source_foundation_admission.rs",
+      "pre_sha256": "d44b5ee7ff111db782b17b713d843647e2e2c63408691a77360b9aedc7420bdd",
+      "post_sha256": "ab13bb2202ea2d0164a829218d35a8c5589029a3680623f22d668abacb0b69de",
+      "bytes": 85743
+    },
+    {
+      "path": "rust/crates/tos-command/src/source_foundation_entry.rs",
+      "pre_sha256": "ba2014c869f6fd5cee67f0eba7a38bcdbc284bc066a94862b35cf974c2b5a168",
+      "post_sha256": "0eb01e0fa79a2f38a54da46747ebafeca8ae4f29163316f88ca38b6220a15519",
+      "bytes": 53854
+    },
+    {
+      "path": "rust/crates/tos-command/src/source_admission_segment_v2.rs",
+      "pre_sha256": null,
+      "post_sha256": "486363dbd8692842025e3bbc5d70de40e84d8f11dedb156dc26f657fe10d1a76",
+      "bytes": 32515
+    },
+    {
+      "path": "rust/crates/tos-command/src/source_admission_v2_reader.rs",
+      "pre_sha256": null,
+      "post_sha256": "5e95bc510cb413ad3ff396d77868a99b36c1e5eeabab3b6e6f513da73c9c5394",
+      "bytes": 15096
+    },
+    {
+      "path": "rust/crates/tos-command/src/source_admission_v2_backup_restore.rs",
+      "pre_sha256": null,
+      "post_sha256": "ebe7aab65171b72a38c239a75565b2d749ebdd6978c7f80bb76d9592021a1741",
+      "bytes": 32669
+    },
+    {
+      "path": "rust/crates/tos-command/src/source_admission_v2_case.rs",
+      "pre_sha256": null,
+      "post_sha256": "9938306066782947f38c72ef236a49c55e16e2bae089d61c499be3c8ec74221a",
+      "bytes": 6130
+    },
+    {
+      "path": "rust/crates/tos-segment-store/src/lib.rs",
+      "pre_sha256": "9e779d0b1aea68ea6e3811412a8b8624f49ee4b34df616f6704e96ea9a21e812",
+      "post_sha256": "8122fb5e7a91d1a713cbd597b78a4508f8ad09a79e241f5982eddada1f0eebd0",
+      "bytes": 1868
+    },
+    {
+      "path": "rust/crates/tos-segment-store/src/authenticated_tree.rs",
+      "pre_sha256": "681c8ad8ac1875167c1cbedd098d7a1e052be389e483ee456987127a656e273c",
+      "post_sha256": "48a757170a2229f15461f2a2d2978ab2d5ae99f305954ce9ff7f674bc6a3868c",
+      "bytes": 169975
+    },
+    {
+      "path": "rust/crates/tos-segment-store/src/store.rs",
+      "pre_sha256": "d6fbbfe87b75aa3b942a3dd4a17ba36a0b06b01cc9ee5fd14db358361c9a29ce",
+      "post_sha256": "6cb0a7a1f52cedb9a4f4745601cb3b0f1e0f4747404a124a1ad2e99716680c7f",
+      "bytes": 167272
+    },
+    {
+      "path": "rust/crates/tos-source-store/src/lib.rs",
+      "pre_sha256": "3450b08142d66a38cb94ea0bbf7ba688f7b624ab8c1cdeb292cce41c9eb749c9",
+      "post_sha256": "55293ebeed8fe2f2a3ccb7b4e2c7f3ac6403fd7265bc3b734415728ac5e47a9f",
+      "bytes": 3865
+    },
+    {
+      "path": "rust/crates/tos-source-store/src/manifest.rs",
+      "pre_sha256": "8a8a4bb2e27b1b428837bad59afcbee5c48dc9f7a98a8f1a3517713a98464f13",
+      "post_sha256": "8cf2ba978e2184e1148bdf17ce59b9c833cd528badd607673ae0146da04243bf",
+      "bytes": 29158
+    }
+  ],
+  "change": {
+    "writer": "Authentic NativeAdmissionComplete-gated V2 initial admission writes immutable V1 snapshot and typed V2 rootset in one revision, then advances one current.json selector by expected-base CAS. Legacy V1 publication refuses after V2 selection.",
+    "rootset": "Typed membership, identity, dependency, retirement and history roots bind actual SegmentStore identity/domain, kinds/counts and authenticated history row.",
+    "resource_contract": "Opt-in native-v4-segment-v2 requires explicit finite write and incremental persistent-allocation reservations; source-stage tmpfs policy and default V1 route remain unchanged.",
+    "consumers": "Additive V2 point reader and private-store backup/fresh-restore source adapters preserve exact held store, shared IO fences and separate target custody."
+  },
+  "validation": {
+    "rustfmt": "1.98.1 edition2024 PASS on the 15 listed Rust files",
+    "git_diff_check": "PASS",
+    "cargo": "NOT RUN by instruction; runtime_ops owns type/build/heavy execution",
+    "typecheck": "NOT RUN",
+    "runtime": "NOT RUN"
+  },
+  "checkpoint_review": {
+    "state": "source pin is ready for owner checkpoint review",
+    "scope": "Review this exact commit and its listed paths; unrelated provider discovery/orchestrator/capture/source-revisions and seen-pack drafts are excluded."
+  },
+  "remaining": [
+    "Writer supports initial empty V2 publication only; no genuine warm existing-base COW update route yet.",
+    "The V2 case adapter is exported but not yet wired to an invocation-owned target path and independent target allocation budget.",
+    "Cold full-closure verifier still needs the held seen-pack spill hook and global retained-work proof.",
+    "No installed/default/retirement case, 1B-scale constant-memory claim, Cargo/typecheck, or runtime acceptance is established."
+  ]
+}

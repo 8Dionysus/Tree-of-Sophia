@@ -90,6 +90,14 @@ pub struct AuthenticatedTreeDeltaV1 {
 /// accounting only; it carries no source authorization.
 pub trait AuthenticatedTreeIoLedgerV1: Send + Sync {
     fn charge_read(&self, bytes: u64) -> bool;
+    /// Debit a source-owned conservative name/metadata guard on the same
+    /// cumulative read ceiling without classifying it as returned payload.
+    /// Adapters backed by a ledger with separate upper-bound accounting should
+    /// override this method; the default preserves compatibility for existing
+    /// non-classifying ledgers.
+    fn charge_read_upper_bound(&self, bytes: u64) -> bool {
+        self.charge_read(bytes)
+    }
     fn record_read_returned(&self, bytes: u64) -> bool;
     fn charge_write(&self, bytes: u64) -> bool;
     fn record_write_returned(&self, bytes: u64) -> bool;
@@ -682,6 +690,26 @@ impl AuthenticatedTreeRowStreamV2 {
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> Result<Option<AuthenticatedTreeEntryV1>> {
+        self.next_row_inner_with_callback(deadline, cancelled, None)
+    }
+
+    /// Return one exact row while charging the caller's existing cumulative
+    /// work callback before every node visit in this traversal step.
+    pub fn next_row_with_work_callback(
+        &mut self,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+        callback: &mut dyn FnMut() -> bool,
+    ) -> Result<Option<AuthenticatedTreeEntryV1>> {
+        self.next_row_inner_with_callback(deadline, cancelled, Some(callback))
+    }
+
+    fn next_row_inner_with_callback(
+        &mut self,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+        mut shared_work: Option<&mut dyn FnMut() -> bool>,
+    ) -> Result<Option<AuthenticatedTreeEntryV1>> {
         if self.failed {
             return Err(SegmentError::new(
                 Code::InvalidReceipt,
@@ -691,7 +719,7 @@ impl AuthenticatedTreeRowStreamV2 {
         if self.done {
             return Ok(None);
         }
-        let result = self.next_row_inner(deadline, cancelled);
+        let result = self.next_row_inner(deadline, cancelled, &mut shared_work);
         if result.is_err() {
             self.failed = true;
         }
@@ -715,6 +743,7 @@ impl AuthenticatedTreeRowStreamV2 {
         &mut self,
         deadline: Instant,
         cancelled: &AtomicBool,
+        shared_work: &mut Option<&mut dyn FnMut() -> bool>,
     ) -> Result<Option<AuthenticatedTreeEntryV1>> {
         loop {
             check(deadline, cancelled)?;
@@ -731,6 +760,7 @@ impl AuthenticatedTreeRowStreamV2 {
                         self.io_ledger.as_deref(),
                         deadline,
                         cancelled,
+                        shared_work,
                     )?;
                     if let Some(digest) = loaded.physical_pack_digest {
                         self.pack_capture.observe(digest)?;
@@ -792,6 +822,7 @@ impl AuthenticatedTreeRowStreamV2 {
                     self.io_ledger.as_deref(),
                     deadline,
                     cancelled,
+                    shared_work,
                 )?;
                 if let Some(digest) = loaded.physical_pack_digest {
                     self.pack_capture.observe(digest)?;
@@ -1340,7 +1371,7 @@ struct ActivePackV2 {
     frame_count: u64,
 }
 
-struct PackWriterV2<'a> {
+struct PackWriterV2<'a, 'shared> {
     store: &'a SegmentStore,
     limits: AuthenticatedTreeLimitsV1,
     pack_cap: usize,
@@ -1352,6 +1383,7 @@ struct PackWriterV2<'a> {
     root_live_state_bytes: usize,
     deadline: Instant,
     cancelled: &'a AtomicBool,
+    shared_work: Option<&'shared mut dyn FnMut() -> bool>,
 }
 
 #[derive(Clone, Copy)]
@@ -1361,7 +1393,7 @@ struct CowStateLimitV2 {
     old_descriptor_bytes: usize,
 }
 
-impl<'a> PackWriterV2<'a> {
+impl<'a, 'shared> PackWriterV2<'a, 'shared> {
     fn new(
         store: &'a SegmentStore,
         limits: AuthenticatedTreeLimitsV1,
@@ -1370,6 +1402,7 @@ impl<'a> PackWriterV2<'a> {
         io_ledger: Option<Arc<dyn AuthenticatedTreeIoLedgerV1>>,
         deadline: Instant,
         cancelled: &'a AtomicBool,
+        shared_work: Option<&'shared mut dyn FnMut() -> bool>,
     ) -> Self {
         Self {
             store,
@@ -1383,7 +1416,17 @@ impl<'a> PackWriterV2<'a> {
             root_live_state_bytes: 0,
             deadline,
             cancelled,
+            shared_work,
         }
+    }
+
+    fn debit_shared_work(&mut self) -> Result<()> {
+        if let Some(charge) = self.shared_work.as_mut() {
+            if !(**charge)() {
+                return Err(budget("authenticated tree shared work refused"));
+            }
+        }
+        Ok(())
     }
 
     fn with_state_limit(mut self, limit: CowStateLimitV2) -> Self {
@@ -1429,6 +1472,7 @@ impl<'a> PackWriterV2<'a> {
         child_locator_capacity: usize,
     ) -> Result<TreeHandleV2> {
         check(self.deadline, self.cancelled)?;
+        self.debit_shared_work()?;
         validate_node(&node, self.limits)?;
         if child_locators.len() != node.children.len() {
             return Err(invalid("packed child locator count differs"));
@@ -1726,6 +1770,7 @@ impl SegmentStore {
             AUTHENTICATED_PACK_MAX_BYTES,
             io_ledger,
             None,
+            None,
             deadline,
             cancelled,
         )
@@ -1756,6 +1801,37 @@ impl SegmentStore {
             AUTHENTICATED_PACK_MAX_BYTES,
             io_ledger,
             Some((max_working_state_bytes, additional_live_state_bytes)),
+            None,
+            deadline,
+            cancelled,
+        )
+    }
+
+    /// State-limited bulk build that also debits the caller's shared
+    /// invocation work meter before each tree-node visit or node creation.
+    pub fn build_authenticated_tree_v2_with_work_and_io_and_state_and_callback<I>(
+        &self,
+        kind: &[u8],
+        rows: I,
+        limits: AuthenticatedTreeLimitsV1,
+        io_ledger: Option<Arc<dyn AuthenticatedTreeIoLedgerV1>>,
+        max_working_state_bytes: usize,
+        additional_live_state_bytes: usize,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+        callback: &mut dyn FnMut() -> bool,
+    ) -> Result<(AuthenticatedTreeDescriptorV2, AuthenticatedTreeWorkV1)>
+    where
+        I: IntoIterator<Item = Result<AuthenticatedTreeEntryV1>>,
+    {
+        self.build_authenticated_tree_v2_with_pack_cap(
+            kind,
+            rows,
+            limits,
+            AUTHENTICATED_PACK_MAX_BYTES,
+            io_ledger,
+            Some((max_working_state_bytes, additional_live_state_bytes)),
+            Some(callback),
             deadline,
             cancelled,
         )
@@ -1769,6 +1845,7 @@ impl SegmentStore {
         pack_cap: usize,
         io_ledger: Option<Arc<dyn AuthenticatedTreeIoLedgerV1>>,
         state_limit: Option<(usize, usize)>,
+        mut shared_work: Option<&mut dyn FnMut() -> bool>,
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> Result<(AuthenticatedTreeDescriptorV2, AuthenticatedTreeWorkV1)>
@@ -1784,7 +1861,14 @@ impl SegmentStore {
         let _pin_lock = self.hold_generation_pin()?;
         let mut work = AuthenticatedTreeWorkV1::default();
         let mut writer = PackWriterV2::new(
-            self, limits, pack_cap, &mut work, io_ledger, deadline, cancelled,
+            self,
+            limits,
+            pack_cap,
+            &mut work,
+            io_ledger,
+            deadline,
+            cancelled,
+            shared_work.take(),
         );
         if let Some((maximum_bytes, additional_live_bytes)) = state_limit {
             writer = writer.with_state_limit(CowStateLimitV2 {
@@ -2103,6 +2187,7 @@ impl SegmentStore {
             io_ledger,
             AuthenticatedTreeWorkV1::default(),
             None,
+            None,
             deadline,
             cancelled,
         )
@@ -2134,6 +2219,7 @@ impl SegmentStore {
             io_ledger,
             AuthenticatedTreeWorkV1::default(),
             Some((max_working_state_bytes, additional_live_state_bytes)),
+            None,
             deadline,
             cancelled,
         )
@@ -2164,6 +2250,39 @@ impl SegmentStore {
             io_ledger,
             initial_work,
             Some((max_working_state_bytes, additional_live_state_bytes)),
+            None,
+            deadline,
+            cancelled,
+        )
+    }
+
+    /// State-limited cumulative COW form that debits the caller's original
+    /// work meter before each old-node visit and new-node creation.
+    pub fn apply_authenticated_tree_delta_v2_with_work_and_io_and_state_cumulative_and_callback<I>(
+        &self,
+        old: &AuthenticatedTreeDescriptorV2,
+        changes: I,
+        limits: AuthenticatedTreeLimitsV1,
+        io_ledger: Option<Arc<dyn AuthenticatedTreeIoLedgerV1>>,
+        initial_work: AuthenticatedTreeWorkV1,
+        max_working_state_bytes: usize,
+        additional_live_state_bytes: usize,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+        callback: &mut dyn FnMut() -> bool,
+    ) -> Result<(AuthenticatedTreeDescriptorV2, AuthenticatedTreeWorkV1)>
+    where
+        I: IntoIterator<Item = Result<AuthenticatedTreeDeltaV1>>,
+    {
+        self.apply_authenticated_tree_delta_v2_with_pack_cap_and_state(
+            old,
+            changes,
+            limits,
+            AUTHENTICATED_PACK_MAX_BYTES,
+            io_ledger,
+            initial_work,
+            Some((max_working_state_bytes, additional_live_state_bytes)),
+            Some(callback),
             deadline,
             cancelled,
         )
@@ -2178,6 +2297,7 @@ impl SegmentStore {
         io_ledger: Option<Arc<dyn AuthenticatedTreeIoLedgerV1>>,
         initial_work: AuthenticatedTreeWorkV1,
         state_limit: Option<(usize, usize)>,
+        mut shared_work: Option<&mut dyn FnMut() -> bool>,
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> Result<(AuthenticatedTreeDescriptorV2, AuthenticatedTreeWorkV1)>
@@ -2201,7 +2321,14 @@ impl SegmentStore {
         let _pin_lock = self.hold_generation_pin()?;
         let mut work = initial_work;
         let mut writer = PackWriterV2::new(
-            self, limits, pack_cap, &mut work, io_ledger, deadline, cancelled,
+            self,
+            limits,
+            pack_cap,
+            &mut work,
+            io_ledger,
+            deadline,
+            cancelled,
+            shared_work.take(),
         );
         if let Some((maximum_bytes, additional_live_bytes)) = state_limit {
             let old_descriptor_bytes = tree_descriptor_state_bytes(old)?;
@@ -2345,6 +2472,7 @@ impl SegmentStore {
             io_ledger,
             AuthenticatedTreeWorkV1::default(),
             None,
+            None,
             deadline,
             cancelled,
         )
@@ -2384,6 +2512,45 @@ impl SegmentStore {
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> Result<(Option<Vec<u8>>, AuthenticatedTreeWorkV1)> {
+        self.lookup_authenticated_tree_v2_with_work_and_io_inner(
+            descriptor, key, limits, io_ledger, deadline, cancelled, None,
+        )
+    }
+
+    /// Point lookup variant that charges the caller's existing cumulative
+    /// work callback immediately before each authenticated node visit. It does
+    /// not clone or wrap that callback in the Send+Sync IO ledger.
+    pub fn lookup_authenticated_tree_v2_with_work_and_io_and_callback(
+        &self,
+        descriptor: &AuthenticatedTreeDescriptorV2,
+        key: &[u8],
+        limits: AuthenticatedTreeLimitsV1,
+        io_ledger: Option<Arc<dyn AuthenticatedTreeIoLedgerV1>>,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+        callback: &mut dyn FnMut() -> bool,
+    ) -> Result<(Option<Vec<u8>>, AuthenticatedTreeWorkV1)> {
+        self.lookup_authenticated_tree_v2_with_work_and_io_inner(
+            descriptor,
+            key,
+            limits,
+            io_ledger,
+            deadline,
+            cancelled,
+            Some(callback),
+        )
+    }
+
+    fn lookup_authenticated_tree_v2_with_work_and_io_inner(
+        &self,
+        descriptor: &AuthenticatedTreeDescriptorV2,
+        key: &[u8],
+        limits: AuthenticatedTreeLimitsV1,
+        io_ledger: Option<Arc<dyn AuthenticatedTreeIoLedgerV1>>,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+        mut shared_work: Option<&mut dyn FnMut() -> bool>,
+    ) -> Result<(Option<Vec<u8>>, AuthenticatedTreeWorkV1)> {
         let limits = limits.validate()?;
         validate_descriptor_for_store(self, &descriptor.semantic, limits)?;
         validate_descriptor_v2_shape(descriptor)?;
@@ -2405,6 +2572,7 @@ impl SegmentStore {
                 io_ledger.as_deref(),
                 deadline,
                 cancelled,
+                &mut shared_work,
             )?;
             let node = loaded.node;
             let prefix_len = node_prefix_nibbles(&node);
@@ -2607,6 +2775,69 @@ impl SegmentStore {
             )
         })
     }
+
+    /// Full cold closure with the caller's existing cumulative work meter.
+    /// The callback is charged before each traversed authenticated node and
+    /// once before each distinct immutable pack is physically verified.
+    pub fn verify_authenticated_tree_v2_with_pack_set_and_work_callback(
+        &self,
+        descriptor: &AuthenticatedTreeDescriptorV2,
+        limits: AuthenticatedTreeLimitsV1,
+        io_ledger: Option<Arc<dyn AuthenticatedTreeIoLedgerV1>>,
+        pack_set: Arc<dyn AuthenticatedTreePackSetV2>,
+        closure_binding: Digest256,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+        shared_work: &mut dyn FnMut() -> bool,
+    ) -> Result<AuthenticatedTreeCoverageV1> {
+        check(deadline, cancelled)?;
+        pack_set.check_binding(
+            self.physical_root_identity()?,
+            self.store_id(),
+            self.domain_digest(),
+            closure_binding,
+        )?;
+        let mut stream = self.stream_authenticated_tree_v2_with_capture(
+            descriptor,
+            limits,
+            io_ledger.clone(),
+            PackCaptureV2::External(pack_set.clone()),
+        )?;
+        while stream
+            .next_row_with_work_callback(deadline, cancelled, shared_work)?
+            .is_some()
+        {}
+        let mut verify = |digest: Digest256| {
+            check(deadline, cancelled)?;
+            if !shared_work() {
+                return Err(budget("authenticated tree shared work refused"));
+            }
+            let remaining = remaining_bytes(stream.work, stream.limits)?;
+            if remaining == 0 {
+                return Err(budget("authenticated tree byte budget exceeded"));
+            }
+            let raw = self.read_authenticated_blob_with_io(
+                digest,
+                AUTHENTICATED_PACK_MAX_BYTES.min(remaining),
+                io_ledger.as_deref(),
+                deadline,
+                cancelled,
+            )?;
+            let frame_count = scan_packed_chunk(&raw)?;
+            stream
+                .work
+                .charge_pack_read(raw.len(), frame_count, stream.limits)
+        };
+        pack_set.verify_pending(&mut verify)?;
+        drop(verify);
+        check(deadline, cancelled)?;
+        stream.coverage().ok_or_else(|| {
+            SegmentError::new(
+                Code::InvalidReceipt,
+                "packed authenticated tree coverage unavailable",
+            )
+        })
+    }
 }
 
 fn work_from_install(install: ImmutableBlobInstallV1) -> AuthenticatedTreeWorkV1 {
@@ -2620,7 +2851,7 @@ fn work_from_install(install: ImmutableBlobInstallV1) -> AuthenticatedTreeWorkV1
 }
 
 fn close_build_frame_v2(
-    writer: &mut PackWriterV2<'_>,
+    writer: &mut PackWriterV2<'_, '_>,
     kind: &[u8],
     frame: BuildFrameV2,
     limits: AuthenticatedTreeLimitsV1,
@@ -2720,7 +2951,7 @@ fn close_build_frame_v2(
 }
 
 fn attach_build_child_v2(
-    writer: &mut PackWriterV2<'_>,
+    writer: &mut PackWriterV2<'_, '_>,
     parent: &mut BuildFrameV2,
     edge: u8,
     child: TreeHandleV2,
@@ -2834,7 +3065,7 @@ fn build_cursor_state_bytes<I>(cursor: &BuildCursor<I>) -> Result<usize> {
 }
 
 fn check_build_state<I>(
-    writer: &mut PackWriterV2<'_>,
+    writer: &mut PackWriterV2<'_, '_>,
     frames: &Vec<BuildFrameV2>,
     cursor: &BuildCursor<I>,
     _limits: AuthenticatedTreeLimitsV1,
@@ -3034,7 +3265,7 @@ fn update_one_v2(
     root: Option<TreeHandleV2>,
     change: AuthenticatedTreeDeltaV1,
     limits: AuthenticatedTreeLimitsV1,
-    writer: &mut PackWriterV2<'_>,
+    writer: &mut PackWriterV2<'_, '_>,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> Result<Option<TreeHandleV2>> {
@@ -3091,6 +3322,7 @@ fn update_one_v2(
             writer.io_ledger.as_deref(),
             deadline,
             cancelled,
+            &mut writer.shared_work,
         )?;
         let node = loaded.node;
         if writer.state_limit.is_some() {
@@ -3361,7 +3593,7 @@ fn normalize_node_v2(
     node: TreeNode,
     child_locators: Vec<TreeLocatorV2>,
     limits: AuthenticatedTreeLimitsV1,
-    writer: &mut PackWriterV2<'_>,
+    writer: &mut PackWriterV2<'_, '_>,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> Result<Option<TreeHandleV2>> {
@@ -3698,7 +3930,12 @@ fn load_node_v2(
     io_ledger: Option<&dyn AuthenticatedTreeIoLedgerV1>,
     deadline: Instant,
     cancelled: &AtomicBool,
+    shared_work: &mut Option<&mut dyn FnMut() -> bool>,
 ) -> Result<LoadedTreeNodeV2> {
+    check(deadline, cancelled)?;
+    if shared_work.as_mut().is_some_and(|charge| !(**charge)()) {
+        return Err(budget("authenticated tree shared work refused"));
+    }
     match &handle.locator {
         TreeLocatorV2::Legacy(digest) => {
             if *digest != handle.reference.digest {
@@ -5084,6 +5321,64 @@ impl SegmentStore {
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> Result<(Option<AuthenticatedTreeEntryV1>, AuthenticatedTreeWorkV1)> {
+        self.lookup_authenticated_tree_v2_after_with_work_and_io_inner(
+            descriptor,
+            lower_inclusive,
+            upper_exclusive,
+            after_exclusive,
+            limits,
+            max_state_bytes,
+            io_ledger,
+            deadline,
+            cancelled,
+            None,
+        )
+    }
+
+    /// Strict-after keyset lookup that charges the caller's existing
+    /// cumulative work callback immediately before every authenticated node
+    /// visit. The callback remains a call-scoped mutable reference and is not
+    /// wrapped in the Send+Sync IO ledger.
+    pub fn lookup_authenticated_tree_v2_after_with_work_and_io_and_callback(
+        &self,
+        descriptor: &AuthenticatedTreeDescriptorV2,
+        lower_inclusive: Option<&[u8]>,
+        upper_exclusive: Option<&[u8]>,
+        after_exclusive: Option<&[u8]>,
+        limits: AuthenticatedTreeLimitsV1,
+        max_state_bytes: usize,
+        io_ledger: Option<Arc<dyn AuthenticatedTreeIoLedgerV1>>,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+        callback: &mut dyn FnMut() -> bool,
+    ) -> Result<(Option<AuthenticatedTreeEntryV1>, AuthenticatedTreeWorkV1)> {
+        self.lookup_authenticated_tree_v2_after_with_work_and_io_inner(
+            descriptor,
+            lower_inclusive,
+            upper_exclusive,
+            after_exclusive,
+            limits,
+            max_state_bytes,
+            io_ledger,
+            deadline,
+            cancelled,
+            Some(callback),
+        )
+    }
+
+    fn lookup_authenticated_tree_v2_after_with_work_and_io_inner(
+        &self,
+        descriptor: &AuthenticatedTreeDescriptorV2,
+        lower_inclusive: Option<&[u8]>,
+        upper_exclusive: Option<&[u8]>,
+        after_exclusive: Option<&[u8]>,
+        limits: AuthenticatedTreeLimitsV1,
+        max_state_bytes: usize,
+        io_ledger: Option<Arc<dyn AuthenticatedTreeIoLedgerV1>>,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+        mut shared_work: Option<&mut dyn FnMut() -> bool>,
+    ) -> Result<(Option<AuthenticatedTreeEntryV1>, AuthenticatedTreeWorkV1)> {
         let limits = limits.validate()?;
         validate_descriptor_for_store(self, &descriptor.semantic, limits)?;
         validate_descriptor_v2_shape(descriptor)?;
@@ -5174,6 +5469,7 @@ impl SegmentStore {
             io_ledger.as_deref(),
             deadline,
             cancelled,
+            &mut shared_work,
         )?;
         drop(root);
         let root_state = loaded_node_retained_state(&loaded)?;
@@ -5273,6 +5569,7 @@ impl SegmentStore {
                 io_ledger.as_deref(),
                 deadline,
                 cancelled,
+                &mut shared_work,
             )?;
             drop(child);
             let retained_state_bytes = loaded_node_retained_state(&loaded)?;
@@ -5694,6 +5991,7 @@ mod tests {
                 600,
                 None,
                 None,
+                None,
                 deadline,
                 &cancelled,
             )
@@ -5824,6 +6122,7 @@ mod tests {
             None,
             deadline,
             &cancelled,
+            &mut None,
         )
         .expect("load current root locator sidecar");
         let old_root = descriptor_root_handle(&old)
@@ -5839,6 +6138,7 @@ mod tests {
             None,
             deadline,
             &cancelled,
+            &mut None,
         )
         .expect("load old root locator sidecar");
         let current_pack = current

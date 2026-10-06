@@ -404,6 +404,38 @@ pub trait ReadonlyRecordFiles {
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> SourceCommandResult<Vec<(String, bool)>>;
+
+    /// Retained source bytes already held by the caller. Bounded transports
+    /// use this value when preflighting the next selected read; legacy readers
+    /// may keep the compatibility no-op.
+    fn set_retained_state_bytes(
+        &mut self,
+        _bytes: usize,
+        _deadline: Instant,
+        _cancelled: &AtomicBool,
+    ) -> SourceCommandResult<()> {
+        Ok(())
+    }
+
+    fn retained_state_bytes(&self) -> usize {
+        0
+    }
+
+    /// Test one exact member name. Bounded readers should override this with
+    /// an addressed point lookup; the compatibility default derives the answer
+    /// from an immediate-child listing for older transports.
+    fn has_file(
+        &mut self,
+        path: &str,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<bool> {
+        let (parent, basename) = split(path)?;
+        Ok(self
+            .list_directory(parent, deadline, cancelled)?
+            .iter()
+            .any(|(name, is_directory)| name == basename && !is_directory))
+    }
 }
 const READONLY_RECORD_MAX_BYTES: usize = 64 * 1024 * 1024;
 const READONLY_RECORD_MEMBER_BYTES: usize = 8 * 1024 * 1024;
@@ -431,10 +463,29 @@ struct ReadonlyFileCollector<'a, T> {
     transport: &'a mut T,
     files: BTreeMap<String, Vec<u8>>,
     bytes: usize,
+    external_retained_state_bytes: usize,
     deadline: Instant,
     cancelled: &'a AtomicBool,
 }
 impl<T: ReadonlyRecordFiles> ReadonlyFileCollector<'_, T> {
+    fn retained_state_bytes(&self) -> SourceCommandResult<usize> {
+        self.files.iter().try_fold(
+            self.external_retained_state_bytes
+                .checked_add(self.bytes)
+                .ok_or(SourceCommandError::Unsupported(
+                    "readonly record retained state budget",
+                ))?,
+            |total, (name, _)| {
+                total
+                    .checked_add(name.len().saturating_mul(4))
+                    .and_then(|bytes| bytes.checked_add(256))
+                    .ok_or(SourceCommandError::Unsupported(
+                        "readonly record retained state budget",
+                    ))
+            },
+        )
+    }
+
     fn read(&mut self, name: &str) -> SourceCommandResult<()> {
         path(name)?;
         if self.files.contains_key(name) {
@@ -450,6 +501,15 @@ impl<T: ReadonlyRecordFiles> ReadonlyFileCollector<'_, T> {
         }
         let allowance =
             READONLY_RECORD_MEMBER_BYTES.min(READONLY_RECORD_MAX_BYTES.saturating_sub(self.bytes));
+        let state = self
+            .retained_state_bytes()?
+            .checked_add(name.len().saturating_mul(4))
+            .and_then(|bytes| bytes.checked_add(256))
+            .ok_or(SourceCommandError::Unsupported(
+                "readonly record retained state budget",
+            ))?;
+        self.transport
+            .set_retained_state_bytes(state, self.deadline, self.cancelled)?;
         let raw = self
             .transport
             .read(name, allowance, self.deadline, self.cancelled)?;
@@ -466,6 +526,9 @@ impl<T: ReadonlyRecordFiles> ReadonlyFileCollector<'_, T> {
                 "readonly record collection byte budget",
             ))?;
         self.files.insert(name.to_owned(), raw);
+        let state = self.retained_state_bytes()?;
+        self.transport
+            .set_retained_state_bytes(state, self.deadline, self.cancelled)?;
         Ok(())
     }
     fn parsed(&self, name: &str) -> SourceCommandResult<JsonValue> {
@@ -536,6 +599,7 @@ pub fn collect_readonly_record_files(
     selected_metadata_path(owner_path)?;
     let (parent, base) = split(owner_path)?;
     let mut reader = ReadonlyFileCollector {
+        external_retained_state_bytes: transport.retained_state_bytes(),
         transport,
         files: BTreeMap::new(),
         bytes: 0,
@@ -615,16 +679,11 @@ pub fn collect_readonly_record_files(
         collect_schema_refs(&reader.parsed(&name)?, &name, &mut schemas, 0)?;
         checked.insert(name);
     }
-    let children = reader
+    let history_path = format!("{parent}/{HISTORY}");
+    if reader
         .transport
-        .list_directory(parent, deadline, cancelled)?;
-    if children.len() > cmd::SELECTED_SOURCE_MAX_FILES {
-        return Err(SourceCommandError::Unsupported(
-            "record home directory budget",
-        ));
-    }
-    if children.iter().any(|(name, _)| name == HISTORY) {
-        let history_path = format!("{parent}/{HISTORY}");
+        .has_file(&history_path, deadline, cancelled)?
+    {
         reader.read(&history_path)?;
         let history = reader.parsed(&history_path)?;
         let receipts = cmd::array(&history, "receipts")?;
@@ -683,6 +742,7 @@ pub(crate) fn collect_readonly_schema_files(
         ));
     }
     let mut reader = ReadonlyFileCollector {
+        external_retained_state_bytes: transport.retained_state_bytes(),
         transport,
         files: BTreeMap::new(),
         bytes: 0,

@@ -472,8 +472,13 @@ impl SourceFoundationCurrentInput<'_> {
     ) -> Option<std::sync::Arc<crate::source_record_selection::SourceRecordSelection>> {
         self.input().and_then(SourceCutInput::record_selection)
     }
-    fn semantic_member(&self, path: &str) -> bool {
-        self.selection().is_none_or(|s| s.contains_member(path))
+    fn semantic_member(&self, path: &str) -> Result<bool, ItemRefusal> {
+        self.input()
+            .map_or(Ok(true), |input| input.selects_required_member(path))
+    }
+    fn selected_record_member(&self, path: &str) -> Result<bool, ItemRefusal> {
+        self.input()
+            .map_or(Ok(true), |input| input.selects_semantic_member(path))
     }
     fn cut(&self) -> Option<&CorpusCutReader> {
         match self {
@@ -712,7 +717,8 @@ impl SourceFoundationCurrentInput<'_> {
                         if let Some(selection) = input.record_selection() {
                             if selection.contains_member(path) {
                                 selection.verify_metadata_member(path, bytes)?;
-                            } else if !path.starts_with(SCHEMA_HOME)
+                            } else if !input.selects_required_member(path)?
+                                && !path.starts_with(SCHEMA_HOME)
                                 && !path.starts_with("ToS/doctrine/semantic-interchange/")
                             {
                                 return Err(ItemRefusal::Source(
@@ -1435,12 +1441,8 @@ fn current_source_paths_matching(
     let mut path_bytes = 0usize;
     source.for_each_member_meta(deadline, cancelled, &mut |meta| {
         let path = meta.path;
-        if !source.semantic_member(path)
-            || basename.is_some_and(|_| {
-                source
-                    .selection()
-                    .is_some_and(|selection| selection.record(path).is_none())
-            })
+        if !source.semantic_member(path)?
+            || basename.is_some() && !source.selected_record_member(path)?
             || !path.starts_with(prefix)
             || excluded_prefix.is_some_and(|excluded| path.starts_with(excluded))
             || basename.is_some_and(|name| path.rsplit('/').next() != Some(name))
@@ -5803,10 +5805,9 @@ fn inspect_source_foundation_records_with_mode(
     };
     source.for_each_member_meta(limits.items.deadline, cancelled, &mut |member| {
         let path = member.path;
-        if source.semantic_member(path)
+        if source.semantic_member(path)?
             && path.starts_with(SOURCE_HOME)
             && path.ends_with(ITEM_MANIFEST_SUFFIX)
-            && item_manifest_in_scope(source.selection().is_some(), &selected_items.records, path)
         {
             check(limits.items, cancelled)?;
             item_rules.inspect_manifest(&mut item_source, path)?;

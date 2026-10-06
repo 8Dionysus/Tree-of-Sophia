@@ -440,6 +440,8 @@ pub(crate) struct FoundationV2CaseSelection {
     pub member_path: RelativePath,
     pub source_store_bytes: u64,
     pub target_store_bytes: u64,
+    /// Optional original persistent slice for the existing SQLite provider.
+    pub sqlite_store_bytes: u64,
     pub tree_nodes: u64,
     pub tree_bytes: u64,
     pub point_tree_nodes: u64,
@@ -513,7 +515,11 @@ impl FoundationV2CaseSelection {
             "sqlite_cache_bytes",
             "sqlite_native_overhead_bytes",
         ];
-        crate::source_command::exact_keys(limits, KEYS)
+        let mut keys = KEYS.to_vec();
+        if limits.object_get("sqlite_store_bytes").is_some() {
+            keys.push("sqlite_store_bytes");
+        }
+        crate::source_command::exact_keys(limits, &keys)
             .map_err(|_| Error::Invalid("V2 case limit fields"))?;
         let number = |key: &str| -> Result<u64> {
             let n = crate::source_command::integer(limits, key)?;
@@ -536,6 +542,11 @@ impl FoundationV2CaseSelection {
             member_path,
             source_store_bytes: number("source_store_bytes")?,
             target_store_bytes: number("target_store_bytes")?,
+            sqlite_store_bytes: if limits.object_get("sqlite_store_bytes").is_some() {
+                number("sqlite_store_bytes")?
+            } else {
+                0
+            },
             tree_nodes: number("tree_nodes")?,
             tree_bytes: number("tree_bytes")?,
             point_tree_nodes: number("point_tree_nodes")?,
@@ -557,6 +568,7 @@ impl FoundationV2CaseSelection {
         if selected
             .source_store_bytes
             .checked_add(selected.target_store_bytes)
+            .and_then(|bytes| bytes.checked_add(selected.sqlite_store_bytes))
             != budgets.max_admission_store_bytes
             || selected
                 .point_tree_nodes

@@ -966,11 +966,7 @@ impl<S: LayerFamilySource + ?Sized, I: Copy + Eq> Inspector<'_, '_, S, I> {
     }
 
     fn has_current_member(&self, path: &str) -> Result<bool, ItemRefusal> {
-        if self
-            .source
-            .record_selection()
-            .is_some_and(|selection| !selection.contains_member(path))
-        {
+        if !self.source.selects_required_member(path)? {
             return Ok(false);
         }
         self.paths.contains(path)
@@ -983,11 +979,7 @@ impl<S: LayerFamilySource + ?Sized, I: Copy + Eq> Inspector<'_, '_, S, I> {
         let paths = self.paths;
         paths.for_each_discovery_path(&mut |path| {
             self.checkpoint()?;
-            if self
-                .source
-                .record_selection()
-                .is_some_and(|selection| !selection.selects_semantic_member(path))
-            {
+            if !self.source.selects_semantic_member(path)? {
                 return Ok(());
             }
             visit(self, path)
@@ -1524,7 +1516,20 @@ impl<S: LayerFamilySource + ?Sized, I: Copy + Eq> Inspector<'_, '_, S, I> {
         })?;
         self.checkpoint()?;
         if let Some(selection) = self.source.record_selection() {
-            selection.verify_metadata_member(path, &raw)?;
+            if selection.contains_member(path) {
+                selection.verify_metadata_member(path, &raw)?;
+            } else if !self.source.selects_required_member(path)? {
+                return Err(ItemRefusal::Source(
+                    "Discovery member is outside the explicit selected closure".into(),
+                ));
+            }
+        }
+        if raw.len() > self.limits.max_member_bytes {
+            return Err(ItemRefusal::BudgetCheck {
+                check: "Discovery current member bytes",
+                used: u64::try_from(raw.len()).ok(),
+                limit: u64::try_from(self.limits.max_member_bytes).ok(),
+            });
         }
         discovery_budget(
             "Discovery current member bytes",
@@ -1793,6 +1798,67 @@ impl<S: LayerFamilySource + ?Sized, I: Copy + Eq> Inspector<'_, '_, S, I> {
         }
     }
 
+    fn visit_selected_jsonl_row(
+        &mut self,
+        path: &str,
+        line: u64,
+        bytes: &[u8],
+        contract: &str,
+        scope: SourceFoundationDefaultRuleScope,
+        json_limits: tos_foundation::JsonLimits,
+        scratch: usize,
+        visit: &mut dyn FnMut(&mut Self, &str, Value) -> Result<(), ItemRefusal>,
+    ) -> Result<(), ItemRefusal> {
+        let location_bytes = path
+            .len()
+            .checked_add((u64::MAX.ilog10() as usize) + 1)
+            .and_then(|n| n.checked_add(1))
+            .ok_or(crate::item_budget_origin!())?;
+        let location_state = location_bytes
+            .checked_add(std::mem::size_of::<String>())
+            .ok_or(crate::item_budget_origin!())?;
+        let available = self
+            .remaining_state_bytes()?
+            .checked_sub(scratch)
+            .and_then(|n| n.checked_sub(location_state))
+            .ok_or(crate::item_budget_origin!())?;
+        let (value, value_state) = crate::record_biblio_cut::bounded_decoded_state(
+            bytes,
+            json_limits,
+            available,
+            self.limits.deadline,
+            self.source.cancellation(),
+        )?;
+        // Retain the original row charge and dominate actual owned decoding.
+        let row_state = bytes
+            .len()
+            .checked_mul(8)
+            .ok_or(crate::item_budget_origin!())?
+            .max(value_state);
+        self.reserve_state(
+            row_state
+                .checked_add(location_state)
+                .ok_or(crate::item_budget_origin!())?,
+        )?;
+        self.check_temporary_state(scratch)?;
+        let mut location = String::new();
+        location
+            .try_reserve_exact(location_bytes)
+            .map_err(|_| crate::item_budget_origin!())?;
+        if location.capacity() > location_bytes {
+            return Err(crate::item_budget_origin!());
+        }
+        use std::fmt::Write;
+        write!(&mut location, "{path}:{line}").map_err(|_| crate::item_budget_origin!())?;
+        let Some(declared_contract) =
+            self.declared_provenance_contract(&location, &value, contract, scope)?
+        else {
+            return Ok(());
+        };
+        self.request_schema(&location, declared_contract, &value, bytes.len())?;
+        visit(self, &location, value)
+    }
+
     fn for_each_selected_jsonl(
         &mut self,
         path: &str,
@@ -1805,42 +1871,87 @@ impl<S: LayerFamilySource + ?Sized, I: Copy + Eq> Inspector<'_, '_, S, I> {
             .source
             .record_selection()
             .ok_or(crate::item_budget_origin!())?;
-        let scratch = selection
-            .slots()
-            .filter(|slot| slot.source.source_ref == path)
-            .try_fold(0usize, |peak, slot| {
-                Ok::<_, ItemRefusal>(peak.max(slot.verification_state_upper_bound()?))
-            })?;
-        self.check_temporary_state(scratch)?;
-        let verified =
-            selection.verify_file(path, raw, self.limits.deadline, self.source.cancellation())?;
-        let mut selected_rows = verified.row_cursor();
-        loop {
+        let json_limits = selection.row_json_limits()?;
+        if selection.contains_member(path) {
+            let scratch = selection
+                .file_slots(path)
+                .iter()
+                .try_fold(0usize, |peak, slot| {
+                    Ok::<_, ItemRefusal>(peak.max(slot.verification_state_upper_bound()?))
+                })?;
             self.check_temporary_state(scratch)?;
-            let Some(selected) =
-                selected_rows.next_checked(self.limits.deadline, self.source.cancellation())
-            else {
-                break;
-            };
-            let (line, bytes, _) = selected?;
-            let location = format!("{path}:{line}");
-            let value: Value = serde_json::from_slice(bytes).map_err(|_| {
-                ItemRefusal::Source("verified selected Discovery row is invalid JSON".into())
-            })?;
-            self.reserve_state(
-                bytes
-                    .len()
-                    .checked_mul(8)
-                    .ok_or(crate::item_budget_origin!())?,
+            let verified = selection.verify_file(
+                path,
+                raw,
+                self.limits.deadline,
+                self.source.cancellation(),
             )?;
-            self.check_temporary_state(scratch)?;
-            let Some(declared_contract) =
-                self.declared_provenance_contract(&location, &value, contract, scope)?
-            else {
-                continue;
-            };
-            self.request_schema(&location, declared_contract, &value, bytes.len())?;
-            visit(self, &location, value)?;
+            let mut selected_rows = verified.row_cursor();
+            loop {
+                self.check_temporary_state(scratch)?;
+                let Some(selected) =
+                    selected_rows.next_checked(self.limits.deadline, self.source.cancellation())
+                else {
+                    break;
+                };
+                let (line, bytes, _) = selected?;
+                self.visit_selected_jsonl_row(
+                    path,
+                    line,
+                    bytes,
+                    contract,
+                    scope,
+                    json_limits,
+                    scratch,
+                    visit,
+                )?;
+            }
+        } else {
+            let generated = self
+                .source
+                .generated_selection()
+                .ok_or(crate::item_budget_origin!())?;
+            if !generated.selects_member(path)? {
+                return Err(ItemRefusal::Source(
+                    "Discovery stream is outside the declared generated selection".into(),
+                ));
+            }
+            let caller_state = self
+                .limits
+                .max_state_bytes
+                .checked_sub(self.remaining_state_bytes()?)
+                .ok_or(crate::item_budget_origin!())?;
+            generated.verify_member(
+                path,
+                raw,
+                caller_state,
+                self.limits.deadline,
+                self.source.cancellation(),
+            )?;
+            let mut selected_count = 0u64;
+            for (line, bytes) in crate::source_record_selection::source_rows(raw) {
+                self.checkpoint()?;
+                if generated.selects_row(path, line)? {
+                    self.visit_selected_jsonl_row(
+                        path,
+                        line,
+                        bytes,
+                        contract,
+                        scope,
+                        json_limits,
+                        0,
+                        visit,
+                    )?;
+                    selected_count = selected_count
+                        .checked_add(1)
+                        .ok_or(crate::item_budget_origin!())?;
+                }
+            }
+            if selected_count == 0 {
+                return Err(ItemRefusal::Source(
+                    "Generated Discovery stream has no required selected row".into(),
+                ));
+            }
         }
         Ok(())
     }

@@ -9,18 +9,21 @@ use std::io::{self, Write};
 use std::mem::size_of;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Instant;
+use tos_foundation::{Digest256, Digest256Hasher};
 use tos_validation::FormatProfile;
 use tos_validation::executor::{
     ExactWorkerIdentity, SharedSchemaWorkerQuota, VerifiedWorkerImageHandle,
 };
 use tos_validation::source_cut::{
     CandidateCutSchemaDiagnostic, CandidateCutWorkerSchemaExecutor, CutPreparedSchemaProtocol,
+    CutSchemaDiagnosticsCumulativeCost,
 };
 use tos_validation::source_foundation_closure::{
     SourceFoundationClosureSchemaRequest, SourceFoundationClosureSchemaRequestStore,
 };
 use tos_validation::source_foundation_default_rules::{
-    SourceFoundationDefaultRulesReport, SourceFoundationDefaultRulesStoredReport,
+    SourceFoundationDefaultRuleScope, SourceFoundationDefaultRulesReport,
+    SourceFoundationDefaultRulesStoredReport,
 };
 use tos_validation::source_foundation_discovery::{
     DiscoverySchemaRequestStore, Issue as DiscoveryIssue, SchemaRequest as DiscoverySchemaRequest,
@@ -177,8 +180,170 @@ enum ProcessError {
 /// checked independently of the worker's prior cumulative execution prefix.
 pub(crate) struct EvaluatedCandidateSourceFoundationRules<I> {
     pub owner_report: SourceFoundationDefaultRulesStoredReport<I>,
-    pub diagnostics: Vec<CandidateCutSchemaDiagnostic<I>>,
+    diagnostics: CandidateRuleDiagnosticSummary<I>,
+    phases: [CandidateRuleDiagnosticPhase; 5],
     pub cost: CandidateSourceFoundationRuleDiagnosticsCost,
+}
+
+impl<I: Copy + Eq> EvaluatedCandidateSourceFoundationRules<I> {
+    /// Rebind the private owner-built reduction to this same still-live worker.
+    /// Worker EOF remains the orchestrator's separate final custody obligation.
+    pub(crate) fn diagnostics_bound_to(
+        &self,
+        worker: &CandidateCutWorkerSchemaExecutor<I>,
+        scope: SourceFoundationDefaultRuleScope,
+    ) -> bool {
+        let d = &self.diagnostics;
+        let status_total = d
+            .status_counts
+            .iter()
+            .try_fold(0usize, |n, x| n.checked_add(*x));
+        let phases_total = self
+            .phases
+            .iter()
+            .try_fold(0usize, |n, phase| n.checked_add(phase.queued));
+        d.input_identity == *worker.input_identity()
+            && d.scope == scope
+            && self.owner_report.scope == scope
+            && d.prepared == worker.prepared_execution_binding()
+            && d.selection_sha256 == worker.contract_selection_digest()
+            && d.limits_sha256 == worker.limits_sha256()
+            && !worker.is_finished()
+            && worker.diagnostic_execution_count().ok() == Some(d.after_count)
+            && worker.diagnostics_v2_cumulative_cost().ok() == Some(d.after_cost)
+            && d.before_cost.completed_exchanges() == d.before_count as u64
+            && d.after_cost.completed_exchanges() == d.after_count as u64
+            && d.after_count.checked_sub(d.before_count) == Some(d.terminal_count)
+            && d.terminal_count == self.cost.schema_check_count
+            && d.terminal_count == self.owner_report.cost.queued_schema_document_count
+            && status_total == Some(d.terminal_count)
+            && d.status_counts[2..].iter().all(|count| *count == 0)
+            && phases_total == Some(d.terminal_count)
+            && d.raw_issue_count == self.cost.diagnostic_issue_count
+            && self
+                .phases
+                .first()
+                .is_some_and(|phase| phase.before_count == d.before_count)
+            && self
+                .phases
+                .last()
+                .is_some_and(|phase| phase.after_count == d.after_count)
+            && self.phases.windows(2).all(|pair| {
+                pair[0].after_count == pair[1].before_count
+                    && pair[0].after_cost == pair[1].before_cost
+            })
+            && self.phases.iter().enumerate().all(|(index, phase)| {
+                phase.queue_eof
+                    && phase.after_count.checked_sub(phase.before_count) == Some(phase.queued)
+                    && phase.scope_omitted
+                        == (matches!(index, 0 | 2)
+                            && scope == SourceFoundationDefaultRuleScope::SelectedSourceClosure)
+                    && (!phase.scope_omitted || phase.queued == 0)
+            })
+    }
+    pub(crate) fn semantic_failure_count(&self) -> Option<usize> {
+        self.phases.iter().try_fold(0usize, |count, phase| {
+            count.checked_add(phase.semantic_failure_count)
+        })
+    }
+    pub(crate) fn first_invalid(&self) -> Option<&CandidateCutSchemaDiagnostic<I>> {
+        self.diagnostics.first_invalid.as_ref()
+    }
+    pub(crate) fn ordered_observation_sha256(&self) -> Digest256 {
+        self.diagnostics.ordered_observation_sha256
+    }
+}
+
+/// Original selected whole-worker ceilings, independent of finite schema loading.
+#[derive(Clone, Copy)]
+pub(crate) struct CandidateRuleDiagnosticOperationLimits {
+    pub max_checks: usize,
+    pub max_total_instance_bytes: usize,
+}
+
+/// Authenticated bounded local-rule reduction. The opaque live fence remains
+/// typed custody, and this checkpoint is explicitly not the worker EOF verdict.
+pub(crate) struct CandidateRuleDiagnosticSummary<I> {
+    input_identity: I,
+    scope: SourceFoundationDefaultRuleScope,
+    prepared: tos_validation::source_cut::CutPreparedSchemaExecutionBinding,
+    selection_sha256: Digest256,
+    limits_sha256: Digest256,
+    ordered_observation_sha256: Digest256,
+    status_counts: [usize; 5],
+    raw_issue_count: usize,
+    terminal_count: usize,
+    before_count: usize,
+    after_count: usize,
+    before_cost: CutSchemaDiagnosticsCumulativeCost,
+    after_cost: CutSchemaDiagnosticsCumulativeCost,
+    first_invalid: Option<CandidateCutSchemaDiagnostic<I>>,
+}
+
+/// Fixed order: Labs, Records, Gold, Discovery, Closure. Counts are global
+/// worker observations; local ordinals derive from the genuine observed worker prefix.
+#[derive(Debug, Clone, Copy, Default)]
+pub(crate) struct CandidateRuleDiagnosticPhase {
+    pub scope_omitted: bool,
+    pub queued: usize,
+    pub before_count: usize,
+    pub after_count: usize,
+    pub before_cost: Option<CutSchemaDiagnosticsCumulativeCost>,
+    pub after_cost: Option<CutSchemaDiagnosticsCumulativeCost>,
+    pub queue_eof: bool,
+    pub semantic_failure_count: usize,
+}
+
+pub(crate) struct CandidateRuleDiagnosticProgress<I> {
+    phases: [CandidateRuleDiagnosticPhase; 5],
+    pub first_refusal: Option<CandidateCutSchemaDiagnostic<I>>,
+    pub first_invalid: Option<CandidateCutSchemaDiagnostic<I>>,
+    ordered: Digest256Hasher,
+    terminal_count: usize,
+    status_counts: [usize; 5],
+}
+impl<I> CandidateRuleDiagnosticProgress<I> {
+    fn new() -> Self {
+        Self {
+            phases: [CandidateRuleDiagnosticPhase::default(); 5],
+            first_refusal: None,
+            first_invalid: None,
+            ordered: Digest256Hasher::new(),
+            terminal_count: 0,
+            status_counts: [0; 5],
+        }
+    }
+    fn retain_nonverdict(&mut self, diagnostic: CandidateCutSchemaDiagnostic<I>) {
+        if self.first_refusal.is_none() {
+            self.first_refusal = Some(diagnostic);
+        }
+    }
+}
+
+fn candidate_lab_semantic_failure_count<I>(
+    diagnostic: &CandidateCutSchemaDiagnostic<I>,
+    lab: Option<&SourceFoundationSchemaCheck>,
+) -> Option<usize> {
+    let valid = diagnostic.is_valid();
+    let Some(request) = lab else {
+        return Some(usize::from(!valid));
+    };
+    let rejected = !valid || request.semantic_rejected.unwrap_or(false);
+    let mismatch = if request.negative_control.is_some() {
+        request
+            .expected_rejected
+            .is_some_and(|expected| expected != rejected)
+    } else {
+        request
+            .expected_valid
+            .is_some_and(|expected| expected != valid)
+    };
+    let issues = if request.negative_control.is_none() {
+        diagnostic.report().issues.len()
+    } else {
+        0
+    };
+    issues.checked_add(usize::from(mismatch))
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -186,7 +351,7 @@ pub(crate) struct CandidateSourceFoundationRuleDiagnosticsCost {
     pub schema_check_count: usize,
     pub schema_input_instance_bytes: usize,
     pub schema_result_state_upper_bound_bytes: usize,
-    pub typed_diagnostic_vector_state_upper_bound_bytes: usize,
+    pub fixed_diagnostic_summary_state_upper_bound_bytes: usize,
     pub diagnostic_issue_count: usize,
     pub worker_schema_resource_bytes: u64,
     pub worker_request_bytes: u64,
@@ -198,17 +363,17 @@ pub(crate) struct CandidateSourceFoundationRuleDiagnosticsCost {
 }
 
 /// A refused or incomplete candidate run keeps the real stored owner report
-/// and every complete typed diagnostic already produced. It never introduces
+/// and fixed partial phase evidence with bounded first refusal. It never introduces
 /// a SourceRevision-shaped placeholder.
 pub(crate) enum CandidateRuleDiagnosticsError<I> {
     Refused {
         owner_report: SourceFoundationDefaultRulesStoredReport<I>,
-        diagnostics: Vec<CandidateCutSchemaDiagnostic<I>>,
+        diagnostics: CandidateRuleDiagnosticProgress<I>,
         reason: &'static str,
     },
     Incomplete {
         owner_report: SourceFoundationDefaultRulesStoredReport<I>,
-        diagnostics: Vec<CandidateCutSchemaDiagnostic<I>>,
+        diagnostics: CandidateRuleDiagnosticProgress<I>,
         reason: &'static str,
     },
 }
@@ -362,7 +527,8 @@ fn candidate_request_count<I>(
 ) -> Result<usize, &'static str> {
     let scope_bound = match owner.scope {
         tos_validation::source_foundation_default_rules::SourceFoundationDefaultRuleScope::FullAudit => owner.labs.is_some() && owner.goldsets.is_some(),
-        tos_validation::source_foundation_default_rules::SourceFoundationDefaultRuleScope::SelectedSourceClosure | tos_validation::source_foundation_default_rules::SourceFoundationDefaultRuleScope::SelectedRecordClosure => owner.labs.is_none() && owner.goldsets.is_none(),
+        tos_validation::source_foundation_default_rules::SourceFoundationDefaultRuleScope::SelectedSourceClosure | tos_validation::source_foundation_default_rules::SourceFoundationDefaultRuleScope::SelectedRecordClosure => owner.labs.is_none() && owner.goldsets.is_none() && owner.selected_layer_owners.is_none(),
+        tos_validation::source_foundation_default_rules::SourceFoundationDefaultRuleScope::SelectedGeneratedRecordClosure => owner.labs.is_none() && owner.goldsets.is_none() && owner.selected_layer_owners.is_some(),
     };
     if !scope_bound {
         return Err("candidate stored default scope binding");
@@ -390,6 +556,25 @@ fn candidate_request_count<I>(
     let reported_closure_spooled_count = owner.closure.cost.candidate_schema_request_count;
     let reported_loaded_document_count = owner.closure.cost.candidate_loaded_document_count;
     let reported_event_count = owner.closure.cost.candidate_event_count;
+    let layer_cost = owner.selected_layer_owners.unwrap_or_default();
+    let expected_event_read_bytes = owner
+        .closure
+        .cost
+        .candidate_event_serialized_read_bytes
+        .checked_add(layer_cost.addressed_event_read_bytes)
+        .ok_or("candidate selected event read cost overflow")?;
+    let expected_event_scan_rows = owner
+        .closure
+        .cost
+        .candidate_event_scan_row_operations
+        .checked_add(layer_cost.addressed_event_scan_rows)
+        .ok_or("candidate selected event scan cost overflow")?;
+    let expected_event_workspace = owner
+        .closure
+        .cost
+        .candidate_event_peak_workspace_state_bytes
+        .max(layer_cost.addressed_event_workspace_peak_bytes);
+
     let reported_claim_id_count = owner.closure.cost.candidate_claim_id_count;
     let reported_membership_claim_count = owner.closure.cost.candidate_membership_claim_count;
     let reported_responsibility_claim_count =
@@ -407,11 +592,27 @@ fn candidate_request_count<I>(
         .closure
         .cost
         .candidate_boundary_responsibility_ref_count;
+    let reported_provision_claim_count = owner.closure.cost.candidate_provision_claim_count;
+    let reported_provision_event_id_count = owner.closure.cost.candidate_provision_event_id_count;
+    let reported_provision_used_event_count =
+        owner.closure.cost.candidate_provision_used_event_count;
+    let reported_provision_validated_event_count =
+        owner.closure.cost.candidate_provision_validated_event_count;
+    let reported_provision_unused_event_count =
+        owner.closure.cost.candidate_provision_unused_event_count;
     let closure_spooled_count = usize::try_from(reported_closure_spooled_count)
         .map_err(|_| "candidate stored Closure schema spool count overflow")?;
     let closure_total_count = usize::try_from(owner.closure.cost.schema_requests)
         .map_err(|_| "candidate stored Closure schema request count overflow")?;
     if closure_store_cost.observation_rows != reported_closure_spooled_count
+        || closure_store_cost.derivation != owner.closure.cost.candidate_derivation_store
+        || closure_store_cost.topology != owner.closure.cost.candidate_topology_store
+        || closure_store_cost.object_links != owner.closure.cost.candidate_object_link_store
+        || !closure_store_cost.object_links.count_verified
+        || closure_store_cost.boundary_membership_refs
+            != owner.closure.cost.candidate_boundary_membership_refs
+        || !closure_store_cost.boundary_membership_refs.count_verified
+        || closure_store_cost.anchors != owner.closure.cost.candidate_anchor_store
         || closure_store_cost.loaded_document_rows != reported_loaded_document_count
         || closure_store_cost.loaded_document_serialized_read_bytes
             != owner
@@ -433,18 +634,14 @@ fn candidate_request_count<I>(
                 .closure
                 .cost
                 .candidate_loaded_document_peak_workspace_state_bytes
+        || closure_store_cost.loaded_rows != owner.closure.cost.candidate_loaded_row_store
+        || !closure_store_cost.loaded_rows.count_verified
         || closure_store_cost.event_rows != reported_event_count
-        || closure_store_cost.event_serialized_read_bytes
-            != owner.closure.cost.candidate_event_serialized_read_bytes
+        || closure_store_cost.event_serialized_read_bytes != expected_event_read_bytes
         || closure_store_cost.event_serialized_write_bytes
             != owner.closure.cost.candidate_event_serialized_write_bytes
-        || closure_store_cost.event_scan_row_operations
-            != owner.closure.cost.candidate_event_scan_row_operations
-        || closure_store_cost.event_workspace_state_bytes
-            != owner
-                .closure
-                .cost
-                .candidate_event_peak_workspace_state_bytes
+        || closure_store_cost.event_scan_row_operations != expected_event_scan_rows
+        || closure_store_cost.event_workspace_state_bytes != expected_event_workspace
         || closure_store_cost.event_path_rows != owner.closure.cost.candidate_event_path_count
         || closure_store_cost.event_path_serialized_read_bytes
             != owner
@@ -620,6 +817,149 @@ fn candidate_request_count<I>(
                 .closure
                 .cost
                 .candidate_boundary_responsibility_ref_peak_workspace_state_bytes
+        || closure_store_cost.provision_claim_rows != reported_provision_claim_count
+        || closure_store_cost.provision_claim_drained_rows != reported_provision_claim_count
+        || !closure_store_cost.provision_claim_eof_seen
+        || !closure_store_cost.provision_claim_count_verified
+        || owner.closure.cost.candidate_provision_claim_drained_rows
+            != closure_store_cost.provision_claim_drained_rows
+        || owner.closure.cost.candidate_provision_claim_eof_seen
+            != closure_store_cost.provision_claim_eof_seen
+        || owner.closure.cost.candidate_provision_claim_count_verified
+            != closure_store_cost.provision_claim_count_verified
+        || closure_store_cost.provision_claim_serialized_read_bytes
+            != owner
+                .closure
+                .cost
+                .candidate_provision_claim_serialized_read_bytes
+        || closure_store_cost.provision_claim_serialized_write_bytes
+            != owner
+                .closure
+                .cost
+                .candidate_provision_claim_serialized_write_bytes
+        || closure_store_cost.provision_claim_scan_row_operations
+            != owner
+                .closure
+                .cost
+                .candidate_provision_claim_scan_row_operations
+        || closure_store_cost.provision_claim_workspace_state_bytes
+            != owner
+                .closure
+                .cost
+                .candidate_provision_claim_peak_workspace_state_bytes
+        || closure_store_cost.provision_event_id_rows != reported_provision_event_id_count
+        || closure_store_cost.provision_event_id_drained_rows != reported_provision_event_id_count
+        || closure_store_cost.provision_event_id_lookup_rows != reported_provision_event_id_count
+        || !closure_store_cost.provision_event_id_eof_seen
+        || !closure_store_cost.provision_event_id_count_verified
+        || owner.closure.cost.candidate_provision_event_id_drained_rows
+            != closure_store_cost.provision_event_id_drained_rows
+        || owner.closure.cost.candidate_provision_event_id_lookup_rows
+            != closure_store_cost.provision_event_id_lookup_rows
+        || owner.closure.cost.candidate_provision_event_id_eof_seen
+            != closure_store_cost.provision_event_id_eof_seen
+        || owner
+            .closure
+            .cost
+            .candidate_provision_event_id_count_verified
+            != closure_store_cost.provision_event_id_count_verified
+        || closure_store_cost.provision_event_id_serialized_read_bytes
+            != owner
+                .closure
+                .cost
+                .candidate_provision_event_id_serialized_read_bytes
+        || closure_store_cost.provision_event_id_serialized_write_bytes
+            != owner
+                .closure
+                .cost
+                .candidate_provision_event_id_serialized_write_bytes
+        || closure_store_cost.provision_event_id_scan_row_operations
+            != owner
+                .closure
+                .cost
+                .candidate_provision_event_id_scan_row_operations
+        || closure_store_cost.provision_event_id_workspace_state_bytes
+            != owner
+                .closure
+                .cost
+                .candidate_provision_event_id_peak_workspace_state_bytes
+        || closure_store_cost.provision_used_event_rows != reported_provision_used_event_count
+        || !closure_store_cost.provision_used_event_count_verified
+        || closure_store_cost.provision_used_event_serialized_read_bytes
+            != owner
+                .closure
+                .cost
+                .candidate_provision_used_event_serialized_read_bytes
+        || closure_store_cost.provision_used_event_serialized_write_bytes
+            != owner
+                .closure
+                .cost
+                .candidate_provision_used_event_serialized_write_bytes
+        || closure_store_cost.provision_used_event_scan_row_operations
+            != owner
+                .closure
+                .cost
+                .candidate_provision_used_event_scan_row_operations
+        || closure_store_cost.provision_used_event_workspace_state_bytes
+            != owner
+                .closure
+                .cost
+                .candidate_provision_used_event_peak_workspace_state_bytes
+        || closure_store_cost.provision_validated_event_rows
+            != reported_provision_validated_event_count
+        || !closure_store_cost.provision_validated_event_count_verified
+        || closure_store_cost.provision_validated_event_serialized_read_bytes
+            != owner
+                .closure
+                .cost
+                .candidate_provision_validated_event_serialized_read_bytes
+        || closure_store_cost.provision_validated_event_serialized_write_bytes
+            != owner
+                .closure
+                .cost
+                .candidate_provision_validated_event_serialized_write_bytes
+        || closure_store_cost.provision_validated_event_scan_row_operations
+            != owner
+                .closure
+                .cost
+                .candidate_provision_validated_event_scan_row_operations
+        || closure_store_cost.provision_validated_event_workspace_state_bytes
+            != owner
+                .closure
+                .cost
+                .candidate_provision_validated_event_peak_workspace_state_bytes
+        || closure_store_cost.provision_unused_event_rows != reported_provision_unused_event_count
+        || closure_store_cost.provision_unused_event_drained_rows
+            != reported_provision_unused_event_count
+        || !closure_store_cost.provision_unused_event_eof_seen
+        || !closure_store_cost.provision_unused_event_count_verified
+        || owner
+            .closure
+            .cost
+            .candidate_provision_unused_event_drained_rows
+            != closure_store_cost.provision_unused_event_drained_rows
+        || owner.closure.cost.candidate_provision_unused_event_eof_seen
+            != closure_store_cost.provision_unused_event_eof_seen
+        || owner
+            .closure
+            .cost
+            .candidate_provision_unused_event_count_verified
+            != closure_store_cost.provision_unused_event_count_verified
+        || closure_store_cost.provision_unused_event_serialized_read_bytes
+            != owner
+                .closure
+                .cost
+                .candidate_provision_unused_event_serialized_read_bytes
+        || closure_store_cost.provision_unused_event_scan_row_operations
+            != owner
+                .closure
+                .cost
+                .candidate_provision_unused_event_scan_row_operations
+        || closure_store_cost.provision_unused_event_workspace_state_bytes
+            != owner
+                .closure
+                .cost
+                .candidate_provision_unused_event_peak_workspace_state_bytes
         || (reported_closure_spooled_count > 0 && !owner.closure.schema_requests.is_empty())
         || closure_spooled_count.checked_add(owner.closure.schema_requests.len())
             != Some(closure_total_count)
@@ -684,6 +1024,7 @@ fn check_candidate_rule_request<I: Copy + Eq>(
     worker: &mut CandidateCutWorkerSchemaExecutor<I>,
     expected_binding: tos_validation::source_cut::CutPreparedSchemaExecutionBinding,
     schema_limits: SourceFoundationSchemaLimits,
+    operation: CandidateRuleDiagnosticOperationLimits,
     deadline: Instant,
     cancelled: &AtomicBool,
     limits: SourceFoundationRuleDiagnosticsLimits,
@@ -729,7 +1070,7 @@ fn check_candidate_rule_request<I: Copy + Eq>(
         .max_state_bytes
         .checked_sub(base_state)
         .ok_or_else(|| fail("candidate rule diagnostics state limit", None))?;
-    let remaining_instance_bytes = schema_limits
+    let remaining_instance_bytes = operation
         .max_total_instance_bytes
         .checked_sub(input_bytes_used)
         .ok_or_else(|| fail("candidate rule diagnostics aggregate input limit", None))?;
@@ -762,7 +1103,7 @@ fn check_candidate_rule_request<I: Copy + Eq>(
     }
     let input_bytes = input_bytes_used
         .checked_add(encoded_len)
-        .filter(|used| *used <= schema_limits.max_total_instance_bytes)
+        .filter(|used| *used <= operation.max_total_instance_bytes)
         .ok_or_else(|| fail("candidate rule diagnostics aggregate input limit", None))?;
     let worker_controller_state = worker
         .diagnostics_v2_controller_state_upper_bound(encoded_len, location.len())
@@ -931,11 +1272,12 @@ pub(crate) fn evaluate_candidate_stored_rules<I: Copy + Eq>(
     closure_schema_requests: &mut dyn SourceFoundationClosureSchemaRequestStore,
     schema_worker: &mut CandidateCutWorkerSchemaExecutor<I>,
     schema_limits: SourceFoundationSchemaLimits,
+    operation: CandidateRuleDiagnosticOperationLimits,
     deadline: Instant,
     cancelled: &AtomicBool,
     limits: SourceFoundationRuleDiagnosticsLimits,
 ) -> Result<EvaluatedCandidateSourceFoundationRules<I>, CandidateRuleDiagnosticsError<I>> {
-    let mut diagnostics = Vec::new();
+    let mut diagnostics = CandidateRuleDiagnosticProgress::new();
     let request_count = match candidate_request_count(
         &owner_report,
         discovery_schema_requests,
@@ -982,8 +1324,8 @@ pub(crate) fn evaluate_candidate_stored_rules<I: Copy + Eq>(
             reason: "candidate stored rule diagnostics deadline or cancellation",
         });
     }
-    if request_count > schema_limits.max_checks
-        || owner_report.cost.queued_schema_document_count > schema_limits.max_checks
+    if request_count > operation.max_checks
+        || owner_report.cost.queued_schema_document_count > operation.max_checks
     {
         return Err(CandidateRuleDiagnosticsError::Refused {
             owner_report,
@@ -1025,50 +1367,101 @@ pub(crate) fn evaluate_candidate_stored_rules<I: Copy + Eq>(
             reason: "candidate stored rule prior worker exchange count binding invalid",
         });
     }
-    let requested_vector_state =
-        match request_count.checked_mul(size_of::<CandidateCutSchemaDiagnostic<I>>()) {
-            Some(bytes) if bytes <= limits.max_state_bytes => bytes,
-            _ => {
-                return Err(CandidateRuleDiagnosticsError::Refused {
-                    owner_report,
-                    diagnostics,
-                    reason: "candidate stored rule diagnostic vector state limit",
-                });
-            }
-        };
-    if requested_vector_state
-        .checked_add(size_of::<EvaluatedCandidateSourceFoundationRules<I>>())
-        .is_none_or(|bytes| bytes > limits.max_state_bytes)
+    if before_count
+        .checked_add(request_count)
+        .is_none_or(|n| n > operation.max_checks)
     {
         return Err(CandidateRuleDiagnosticsError::Refused {
             owner_report,
             diagnostics,
-            reason: "candidate stored rule output header state limit",
+            reason: "candidate stored rule original whole-worker count limit",
         });
     }
-    if diagnostics.try_reserve_exact(request_count).is_err() {
-        return Err(CandidateRuleDiagnosticsError::Refused {
-            owner_report,
-            diagnostics: Vec::new(),
-            reason: "candidate stored rule diagnostic allocation",
-        });
+    let vector_state = size_of::<CandidateRuleDiagnosticProgress<I>>();
+    diagnostics
+        .ordered
+        .update(b"tos-candidate-rules-inline-diagnostics-v1\0");
+    diagnostics
+        .ordered
+        .update(worker_binding.worker_sha256.as_bytes());
+    diagnostics
+        .ordered
+        .update(schema_worker.schema_set_digest().as_bytes());
+    diagnostics
+        .ordered
+        .update(schema_worker.contract_selection_digest().as_bytes());
+    diagnostics
+        .ordered
+        .update(schema_worker.limits_sha256().as_bytes());
+    diagnostics
+        .ordered
+        .update(&[worker_binding.schema_profile as u8]);
+    if let CutPreparedSchemaProtocol::DiagnosticsV2 { caps_sha256 } = worker_binding.protocol {
+        diagnostics.ordered.update(caps_sha256.as_bytes());
     }
-    let Some(vector_state) = diagnostics
-        .capacity()
-        .checked_mul(size_of::<CandidateCutSchemaDiagnostic<I>>())
-    else {
-        return Err(CandidateRuleDiagnosticsError::Refused {
-            owner_report,
-            diagnostics,
-            reason: "candidate stored rule diagnostic vector capacity limit",
-        });
-    };
-    if vector_state > limits.max_state_bytes || vector_state < requested_vector_state {
-        return Err(CandidateRuleDiagnosticsError::Refused {
-            owner_report,
-            diagnostics,
-            reason: "candidate stored rule diagnostic vector capacity limit",
-        });
+    diagnostics
+        .ordered
+        .update(&(before_count as u64).to_be_bytes());
+    diagnostics.ordered.update(&[match owner_report.scope {
+        SourceFoundationDefaultRuleScope::FullAudit => 0,
+        SourceFoundationDefaultRuleScope::SelectedSourceClosure => 1,
+        SourceFoundationDefaultRuleScope::SelectedRecordClosure => 2,
+        SourceFoundationDefaultRuleScope::SelectedGeneratedRecordClosure => 3,
+    }]);
+    if let Some(layer) = owner_report.selected_layer_owners {
+        diagnostics
+            .ordered
+            .update(b"selected-layer-owner-pass-v1\0");
+        for value in [
+            layer.artifact_records,
+            layer.text_unit_records,
+            layer.checked_predicates,
+            layer.addressed_event_scan_rows,
+            layer.addressed_event_read_bytes,
+        ] {
+            diagnostics.ordered.update(&value.to_be_bytes());
+        }
+    }
+    let phase_counts = [
+        owner_report
+            .labs
+            .as_ref()
+            .map_or(Some(0), |labs| Some(labs.schema_checks.len())),
+        Some(owner_report.records_schema_document_count),
+        owner_report
+            .goldsets
+            .as_ref()
+            .map_or(Some(0), |gold| Some(gold.schema_requests.len())),
+        usize::try_from(
+            owner_report
+                .discovery
+                .cost
+                .candidate_discovery_schema_request_count,
+        )
+        .ok()
+        .and_then(|n| n.checked_add(owner_report.discovery.schema_requests.len())),
+        usize::try_from(owner_report.closure.cost.candidate_schema_request_count)
+            .ok()
+            .and_then(|n| n.checked_add(owner_report.closure.schema_requests.len())),
+    ];
+    for (index, count) in phase_counts.into_iter().enumerate() {
+        let Some(count) = count else {
+            return Err(CandidateRuleDiagnosticsError::Refused {
+                owner_report,
+                diagnostics,
+                reason: "candidate phase count overflow",
+            });
+        };
+        diagnostics.phases[index].queued = count;
+        diagnostics.phases[index].scope_omitted = matches!(index, 0 | 2)
+            && owner_report.scope == SourceFoundationDefaultRuleScope::SelectedSourceClosure;
+        if diagnostics.phases[index].scope_omitted && count != 0 {
+            return Err(CandidateRuleDiagnosticsError::Refused {
+                owner_report,
+                diagnostics,
+                reason: "candidate omitted scope phase contains requests",
+            });
+        }
     }
     let mut input_bytes = 0usize;
     let mut result_state = 0usize;
@@ -1085,17 +1478,36 @@ pub(crate) fn evaluate_candidate_stored_rules<I: Copy + Eq>(
             }
         };
     let mut failed = None;
+    let mut current_phase = 0usize;
     macro_rules! run_request {
         ($request:expr, $workspace_state:expr) => {
+            run_request!(
+                $request,
+                $workspace_state,
+                None::<&SourceFoundationSchemaCheck>
+            );
+        };
+        ($request:expr, $workspace_state:expr, $lab:expr) => {
             run_request!(
                 $request.location(),
                 $request.contract(),
                 Some($request.instance()),
                 None,
-                $workspace_state
+                $workspace_state,
+                $lab
             );
         };
         ($location:expr, $contract:expr, $decoded:expr, $legacy:expr, $workspace_state:expr) => {
+            run_request!(
+                $location,
+                $contract,
+                $decoded,
+                $legacy,
+                $workspace_state,
+                None::<&SourceFoundationSchemaCheck>
+            );
+        };
+        ($location:expr, $contract:expr, $decoded:expr, $legacy:expr, $workspace_state:expr, $lab:expr) => {
             match check_candidate_rule_request(
                 $location,
                 $contract,
@@ -1105,6 +1517,7 @@ pub(crate) fn evaluate_candidate_stored_rules<I: Copy + Eq>(
                 schema_worker,
                 worker_binding,
                 schema_limits,
+                operation,
                 deadline,
                 cancelled,
                 limits,
@@ -1118,28 +1531,145 @@ pub(crate) fn evaluate_candidate_stored_rules<I: Copy + Eq>(
                 Ok(success) => {
                     input_bytes = success.input_bytes;
                     issue_count = success.issue_count;
-                    result_state = success.diagnostic_state;
+                    // Bind the genuine verified body before reducing and dropping it.
+                    // Report digest includes exact raw issue payload digest and caps.
                     peak_state = success.peak_state;
-                    diagnostics.push(success.diagnostic);
+                    let semantic = candidate_lab_semantic_failure_count(&success.diagnostic, $lab)
+                        .and_then(|n| {
+                            diagnostics.phases[current_phase]
+                                .semantic_failure_count
+                                .checked_add(n)
+                        });
+                    let status = success.diagnostic.status() as usize;
+                    let next_status = diagnostics
+                        .status_counts
+                        .get(status)
+                        .and_then(|n| n.checked_add(1));
+                    let next_terminal = diagnostics.terminal_count.checked_add(1);
+                    if let (Some(semantic), Some(next_status), Some(next_terminal)) =
+                        (semantic, next_status, next_terminal)
+                    {
+                        let phase_failures_before =
+                            diagnostics.phases[current_phase].semantic_failure_count;
+                        diagnostics.phases[current_phase].semantic_failure_count = semantic;
+                        diagnostics.status_counts[status] = next_status;
+                        diagnostics.terminal_count = next_terminal;
+                        let result = success.diagnostic.result();
+                        diagnostics
+                            .ordered
+                            .update(&(current_phase as u64).to_be_bytes());
+                        diagnostics
+                            .ordered
+                            .update(&(next_terminal as u64).to_be_bytes());
+                        diagnostics
+                            .ordered
+                            .update(result.source_raw_sha256().as_bytes());
+                        diagnostics
+                            .ordered
+                            .update(result.decoded_instance_sha256().as_bytes());
+                        diagnostics
+                            .ordered
+                            .update(result.aggregate_caps_sha256().as_bytes());
+                        diagnostics
+                            .ordered
+                            .update(result.unit().unit_sha256.as_bytes());
+                        diagnostics
+                            .ordered
+                            .update(result.report().report_sha256.as_bytes());
+                        diagnostics
+                            .ordered
+                            .update(result.checkpoint().result_stream_sha256.as_bytes());
+                        diagnostics
+                            .ordered
+                            .update(&(result.schema_resource_bytes() as u64).to_be_bytes());
+                        diagnostics
+                            .ordered
+                            .update(&(result.request_bytes() as u64).to_be_bytes());
+                        diagnostics
+                            .ordered
+                            .update(&(result.response_bytes() as u64).to_be_bytes());
+                        diagnostics
+                            .ordered
+                            .update(&result.worker_cpu_micros().to_be_bytes());
+                        if semantic != phase_failures_before
+                            && success.diagnostic.is_invalid()
+                            && diagnostics.first_invalid.is_none()
+                        {
+                            result_state = success.diagnostic_state;
+                            diagnostics.first_invalid = Some(success.diagnostic);
+                        } else {
+                            drop(success.diagnostic);
+                        }
+                    } else {
+                        failed = Some(("candidate inline diagnostic count overflow", false));
+                    }
                 }
                 Err(failure) => {
                     if let Some(diagnostic) = failure.diagnostic {
-                        diagnostics.push(diagnostic);
+                        diagnostics.retain_nonverdict(diagnostic);
                     }
                     failed = Some((failure.reason, failure.incomplete));
                 }
             }
         };
     }
+    macro_rules! phase_begin {
+        ($phase:expr, $exit:lifetime) => {
+            current_phase = $phase;
+            match (
+                schema_worker.diagnostic_execution_count(),
+                schema_worker.diagnostics_v2_cumulative_cost(),
+            ) {
+                (Ok(count), Ok(cost)) if cost.completed_exchanges() == count as u64 => {
+                    diagnostics.phases[current_phase].before_count = count;
+                    diagnostics.phases[current_phase].before_cost = Some(cost);
+                }
+                _ => {
+                    failed = Some(("candidate phase start binding unavailable", false));
+                    break $exit;
+                }
+            }
+        };
+    }
+    macro_rules! phase_end {
+        ($exit:lifetime) => {
+            match (
+                schema_worker.diagnostic_execution_count(),
+                schema_worker.diagnostics_v2_cumulative_cost(),
+            ) {
+                (Ok(count), Ok(cost)) => {
+                    let phase = &mut diagnostics.phases[current_phase];
+                    phase.after_count = count;
+                    phase.after_cost = Some(cost);
+                    phase.queue_eof = count.checked_sub(phase.before_count) == Some(phase.queued)
+                        && cost
+                            .completed_exchanges()
+                            .checked_sub(phase.before_cost.unwrap().completed_exchanges())
+                            == Some(phase.queued as u64);
+                    if !phase.queue_eof {
+                        failed = Some(("candidate phase EOF execution count invalid", false));
+                        break $exit;
+                    }
+                }
+                _ => {
+                    failed = Some(("candidate phase final binding unavailable", false));
+                    break $exit;
+                }
+            }
+        };
+    }
     'requests: {
+        phase_begin!(0, 'requests);
         for lab in owner_report.labs.iter().flat_map(|labs| &labs.results) {
             for request in &lab.schema_checks {
-                run_request!(request, 0);
+                run_request!(request, 0, Some(request));
                 if failed.is_some() {
                     break 'requests;
                 }
             }
         }
+        phase_end!('requests);
+        phase_begin!(1, 'requests);
         let mut records_cursor = None;
         let mut records_count = 0usize;
         loop {
@@ -1237,6 +1767,8 @@ pub(crate) fn evaluate_candidate_stored_rules<I: Copy + Eq>(
             ));
             break 'requests;
         }
+        phase_end!('requests);
+        phase_begin!(2, 'requests);
         for request in owner_report
             .goldsets
             .iter()
@@ -1247,6 +1779,8 @@ pub(crate) fn evaluate_candidate_stored_rules<I: Copy + Eq>(
                 break 'requests;
             }
         }
+        phase_end!('requests);
+        phase_begin!(3, 'requests);
         for request in &owner_report.discovery.schema_requests {
             run_request!(request, 0);
             if failed.is_some() {
@@ -1361,6 +1895,8 @@ pub(crate) fn evaluate_candidate_stored_rules<I: Copy + Eq>(
         if failed.is_some() {
             break 'requests;
         }
+        phase_end!('requests);
+        phase_begin!(4, 'requests);
         let expected_closure_requests =
             usize::try_from(owner_report.closure.cost.candidate_schema_request_count);
         let expected_closure_requests = match expected_closure_requests {
@@ -1439,8 +1975,35 @@ pub(crate) fn evaluate_candidate_stored_rules<I: Copy + Eq>(
             .closure
             .cost
             .candidate_boundary_responsibility_ref_count;
+        let expected_provision_claims = owner_report.closure.cost.candidate_provision_claim_count;
+        let expected_provision_event_ids =
+            owner_report.closure.cost.candidate_provision_event_id_count;
+        let expected_provision_used_events = owner_report
+            .closure
+            .cost
+            .candidate_provision_used_event_count;
+        let expected_provision_validated_events = owner_report
+            .closure
+            .cost
+            .candidate_provision_validated_event_count;
+        let expected_provision_unused_events = owner_report
+            .closure
+            .cost
+            .candidate_provision_unused_event_count;
         if closure_spool_cost.observation_rows
             != owner_report.closure.cost.candidate_schema_request_count
+            || closure_spool_cost.derivation != owner_report.closure.cost.candidate_derivation_store
+            || closure_spool_cost.topology != owner_report.closure.cost.candidate_topology_store
+            || closure_spool_cost.object_links
+                != owner_report.closure.cost.candidate_object_link_store
+            || !closure_spool_cost.object_links.count_verified
+            || closure_spool_cost.boundary_membership_refs
+                != owner_report.closure.cost.candidate_boundary_membership_refs
+            || !closure_spool_cost.boundary_membership_refs.count_verified
+            || closure_spool_cost.anchors != owner_report.closure.cost.candidate_anchor_store
+            || closure_spool_cost.loaded_rows
+                != owner_report.closure.cost.candidate_loaded_row_store
+            || !closure_spool_cost.loaded_rows.count_verified
             || usize::try_from(closure_spool_cost.observation_rows).ok()
                 != Some(expected_closure_requests)
             || closure_spool_cost.serialized_write_bytes
@@ -1568,6 +2131,167 @@ pub(crate) fn evaluate_candidate_stored_rules<I: Copy + Eq>(
                     .closure
                     .cost
                     .candidate_boundary_responsibility_ref_peak_workspace_state_bytes
+            || closure_spool_cost.provision_claim_rows != expected_provision_claims
+            || closure_spool_cost.provision_claim_drained_rows != expected_provision_claims
+            || !closure_spool_cost.provision_claim_eof_seen
+            || !closure_spool_cost.provision_claim_count_verified
+            || owner_report
+                .closure
+                .cost
+                .candidate_provision_claim_drained_rows
+                != closure_spool_cost.provision_claim_drained_rows
+            || owner_report.closure.cost.candidate_provision_claim_eof_seen
+                != closure_spool_cost.provision_claim_eof_seen
+            || owner_report
+                .closure
+                .cost
+                .candidate_provision_claim_count_verified
+                != closure_spool_cost.provision_claim_count_verified
+            || closure_spool_cost.provision_claim_serialized_read_bytes
+                != owner_report
+                    .closure
+                    .cost
+                    .candidate_provision_claim_serialized_read_bytes
+            || closure_spool_cost.provision_claim_serialized_write_bytes
+                != owner_report
+                    .closure
+                    .cost
+                    .candidate_provision_claim_serialized_write_bytes
+            || closure_spool_cost.provision_claim_scan_row_operations
+                != owner_report
+                    .closure
+                    .cost
+                    .candidate_provision_claim_scan_row_operations
+            || closure_spool_cost.provision_claim_workspace_state_bytes
+                != owner_report
+                    .closure
+                    .cost
+                    .candidate_provision_claim_peak_workspace_state_bytes
+            || closure_spool_cost.provision_event_id_rows != expected_provision_event_ids
+            || closure_spool_cost.provision_event_id_drained_rows != expected_provision_event_ids
+            || closure_spool_cost.provision_event_id_lookup_rows != expected_provision_event_ids
+            || !closure_spool_cost.provision_event_id_eof_seen
+            || !closure_spool_cost.provision_event_id_count_verified
+            || owner_report
+                .closure
+                .cost
+                .candidate_provision_event_id_drained_rows
+                != closure_spool_cost.provision_event_id_drained_rows
+            || owner_report
+                .closure
+                .cost
+                .candidate_provision_event_id_lookup_rows
+                != closure_spool_cost.provision_event_id_lookup_rows
+            || owner_report
+                .closure
+                .cost
+                .candidate_provision_event_id_eof_seen
+                != closure_spool_cost.provision_event_id_eof_seen
+            || owner_report
+                .closure
+                .cost
+                .candidate_provision_event_id_count_verified
+                != closure_spool_cost.provision_event_id_count_verified
+            || closure_spool_cost.provision_event_id_serialized_read_bytes
+                != owner_report
+                    .closure
+                    .cost
+                    .candidate_provision_event_id_serialized_read_bytes
+            || closure_spool_cost.provision_event_id_serialized_write_bytes
+                != owner_report
+                    .closure
+                    .cost
+                    .candidate_provision_event_id_serialized_write_bytes
+            || closure_spool_cost.provision_event_id_scan_row_operations
+                != owner_report
+                    .closure
+                    .cost
+                    .candidate_provision_event_id_scan_row_operations
+            || closure_spool_cost.provision_event_id_workspace_state_bytes
+                != owner_report
+                    .closure
+                    .cost
+                    .candidate_provision_event_id_peak_workspace_state_bytes
+            || closure_spool_cost.provision_used_event_rows != expected_provision_used_events
+            || !closure_spool_cost.provision_used_event_count_verified
+            || closure_spool_cost.provision_used_event_serialized_read_bytes
+                != owner_report
+                    .closure
+                    .cost
+                    .candidate_provision_used_event_serialized_read_bytes
+            || closure_spool_cost.provision_used_event_serialized_write_bytes
+                != owner_report
+                    .closure
+                    .cost
+                    .candidate_provision_used_event_serialized_write_bytes
+            || closure_spool_cost.provision_used_event_scan_row_operations
+                != owner_report
+                    .closure
+                    .cost
+                    .candidate_provision_used_event_scan_row_operations
+            || closure_spool_cost.provision_used_event_workspace_state_bytes
+                != owner_report
+                    .closure
+                    .cost
+                    .candidate_provision_used_event_peak_workspace_state_bytes
+            || closure_spool_cost.provision_validated_event_rows
+                != expected_provision_validated_events
+            || !closure_spool_cost.provision_validated_event_count_verified
+            || closure_spool_cost.provision_validated_event_serialized_read_bytes
+                != owner_report
+                    .closure
+                    .cost
+                    .candidate_provision_validated_event_serialized_read_bytes
+            || closure_spool_cost.provision_validated_event_serialized_write_bytes
+                != owner_report
+                    .closure
+                    .cost
+                    .candidate_provision_validated_event_serialized_write_bytes
+            || closure_spool_cost.provision_validated_event_scan_row_operations
+                != owner_report
+                    .closure
+                    .cost
+                    .candidate_provision_validated_event_scan_row_operations
+            || closure_spool_cost.provision_validated_event_workspace_state_bytes
+                != owner_report
+                    .closure
+                    .cost
+                    .candidate_provision_validated_event_peak_workspace_state_bytes
+            || closure_spool_cost.provision_unused_event_rows != expected_provision_unused_events
+            || closure_spool_cost.provision_unused_event_drained_rows
+                != expected_provision_unused_events
+            || !closure_spool_cost.provision_unused_event_eof_seen
+            || !closure_spool_cost.provision_unused_event_count_verified
+            || owner_report
+                .closure
+                .cost
+                .candidate_provision_unused_event_drained_rows
+                != closure_spool_cost.provision_unused_event_drained_rows
+            || owner_report
+                .closure
+                .cost
+                .candidate_provision_unused_event_eof_seen
+                != closure_spool_cost.provision_unused_event_eof_seen
+            || owner_report
+                .closure
+                .cost
+                .candidate_provision_unused_event_count_verified
+                != closure_spool_cost.provision_unused_event_count_verified
+            || closure_spool_cost.provision_unused_event_serialized_read_bytes
+                != owner_report
+                    .closure
+                    .cost
+                    .candidate_provision_unused_event_serialized_read_bytes
+            || closure_spool_cost.provision_unused_event_scan_row_operations
+                != owner_report
+                    .closure
+                    .cost
+                    .candidate_provision_unused_event_scan_row_operations
+            || closure_spool_cost.provision_unused_event_workspace_state_bytes
+                != owner_report
+                    .closure
+                    .cost
+                    .candidate_provision_unused_event_peak_workspace_state_bytes
             || (failed.is_none()
                 && (!closure_eof
                     || (closure_spool_cost.serialized_read_bytes == 0
@@ -1610,6 +2334,7 @@ pub(crate) fn evaluate_candidate_stored_rules<I: Copy + Eq>(
                 break 'requests;
             }
         }
+        phase_end!('requests);
     }
     if let Some((reason, incomplete)) = failed {
         return Err(if incomplete {
@@ -1709,14 +2434,83 @@ pub(crate) fn evaluate_candidate_stored_rules<I: Copy + Eq>(
             reason: "candidate stored rule retained diagnostic state limit",
         });
     }
+    if diagnostics.terminal_count != request_count
+        || diagnostics.phases.iter().any(|phase| !phase.queue_eof)
+        || diagnostics
+            .phases
+            .windows(2)
+            .any(|pair| pair[0].after_count != pair[1].before_count)
+    {
+        return Err(CandidateRuleDiagnosticsError::Incomplete {
+            owner_report,
+            diagnostics,
+            reason: "candidate inline phase range binding incomplete",
+        });
+    }
+    // Close the local ordered reduction with explicit empty/omitted phase
+    // ranges and exact observed counters. This creates no durable projection.
+    for (index, phase) in diagnostics.phases.iter().enumerate() {
+        diagnostics.ordered.update(&(index as u64).to_be_bytes());
+        diagnostics
+            .ordered
+            .update(&[u8::from(phase.scope_omitted), u8::from(phase.queue_eof)]);
+        diagnostics
+            .ordered
+            .update(&(phase.queued as u64).to_be_bytes());
+        diagnostics
+            .ordered
+            .update(&(phase.before_count as u64).to_be_bytes());
+        diagnostics
+            .ordered
+            .update(&(phase.after_count as u64).to_be_bytes());
+        diagnostics
+            .ordered
+            .update(&(phase.semantic_failure_count as u64).to_be_bytes());
+    }
+    for count in diagnostics.status_counts {
+        diagnostics.ordered.update(&(count as u64).to_be_bytes());
+    }
+    diagnostics
+        .ordered
+        .update(&(issue_count as u64).to_be_bytes());
+    diagnostics
+        .ordered
+        .update(&(input_bytes as u64).to_be_bytes());
+    diagnostics
+        .ordered
+        .update(&worker_schema_resource_bytes.to_be_bytes());
+    diagnostics
+        .ordered
+        .update(&worker_request_bytes.to_be_bytes());
+    diagnostics
+        .ordered
+        .update(&worker_response_bytes.to_be_bytes());
+    diagnostics.ordered.update(&worker_cpu_micros.to_be_bytes());
+    let summary = CandidateRuleDiagnosticSummary {
+        input_identity,
+        scope: owner_report.scope,
+        prepared: worker_binding,
+        selection_sha256: schema_worker.contract_selection_digest(),
+        limits_sha256: schema_worker.limits_sha256(),
+        ordered_observation_sha256: diagnostics.ordered.finalize(),
+        status_counts: diagnostics.status_counts,
+        raw_issue_count: issue_count,
+        terminal_count: diagnostics.terminal_count,
+        before_count,
+        after_count,
+        before_cost,
+        after_cost,
+        first_invalid: diagnostics.first_invalid,
+    };
     Ok(EvaluatedCandidateSourceFoundationRules {
         owner_report,
-        diagnostics,
+        phases: diagnostics.phases,
+        diagnostics: summary,
         cost: CandidateSourceFoundationRuleDiagnosticsCost {
             schema_check_count: request_count,
             schema_input_instance_bytes: input_bytes,
             schema_result_state_upper_bound_bytes: result_state,
-            typed_diagnostic_vector_state_upper_bound_bytes: vector_state,
+            fixed_diagnostic_summary_state_upper_bound_bytes: vector_state,
             diagnostic_issue_count: issue_count,
             worker_schema_resource_bytes,
             worker_request_bytes,

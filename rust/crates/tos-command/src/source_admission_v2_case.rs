@@ -1,7 +1,7 @@
 //! Actual bounded V2 read -> cold image -> fresh restored read consumer.
 //! The writer/Native owner supplies the earned revision and original budgets.
 //! This consumer creates no admission token and does not synthesize history.
-use super::source_admission::{active, invalid};
+use super::source_admission::{active, invalid, AdmissionWorkBudget};
 use super::source_admission_v2_backup_restore::{
     V2HeldImageRoots, V2HeldSourceRoot, V2HeldTargetRoot, V2ImageLimits, V2ImageReceipt,
     open_selected_target, transfer_image, transfer_image_with_cold_spill,
@@ -122,6 +122,7 @@ enum ImageMode<'a> {
         auxiliary_space: &'a PinnedSqliteSpaceBudget,
         requests: V2SeenPackSpillRequests,
         held_roots: Option<V2HeldImageRoots<'a>>,
+        shared_work: Option<AdmissionWorkBudget>,
     },
 }
 
@@ -201,6 +202,7 @@ pub fn read_backup_restore_case_with_cold_spill(
             auxiliary_space: original_auxiliary_space,
             requests,
             held_roots: None,
+            shared_work: None,
         },
     )
 }
@@ -223,6 +225,7 @@ pub fn read_backup_restore_case_with_cold_spill_at(
     persistent_space: &PinnedSqliteSpaceBudget,
     original_auxiliary_space: &PinnedSqliteSpaceBudget,
     requests: V2SeenPackSpillRequests,
+    shared_work: AdmissionWorkBudget,
     deadline: Instant,
     cancel: Arc<AtomicBool>,
 ) -> io::Result<V2CaseOutcome> {
@@ -276,6 +279,7 @@ pub fn read_backup_restore_case_with_cold_spill_at(
             auxiliary_space: original_auxiliary_space,
             requests,
             held_roots: Some(roots),
+            shared_work: Some(shared_work),
         },
     )
 }
@@ -299,6 +303,10 @@ fn read_backup_restore_case_inner(
     };
     active(deadline, &cancel)?;
     let held_roots = image_mode.held_roots();
+    let shared_work = match &image_mode {
+        ImageMode::ColdSpill { shared_work, .. } => shared_work.clone(),
+        ImageMode::Compatibility => None,
+    };
     let (digest, bytes, mode) = {
         let mut session = if let Some(roots) = held_roots {
             verify_named_root(
@@ -309,14 +317,26 @@ fn read_backup_restore_case_inner(
                 deadline,
                 &cancel,
             )?;
-            V2ReadSession::open_at_named_with_io(
-                source,
-                roots.source.held,
-                limits.point,
-                original_io.clone(),
-                deadline,
-                cancel.clone(),
-            )?
+            if let Some(work) = shared_work.clone() {
+                V2ReadSession::open_at_named_with_work(
+                    source,
+                    roots.source.held,
+                    limits.point,
+                    original_io.clone(),
+                    work,
+                    deadline,
+                    cancel.clone(),
+                )?
+            } else {
+                V2ReadSession::open_at_named_with_io(
+                    source,
+                    roots.source.held,
+                    limits.point,
+                    original_io.clone(),
+                    deadline,
+                    cancel.clone(),
+                )?
+            }
         } else {
             V2ReadSession::open(
                 source,
@@ -363,6 +383,7 @@ fn read_backup_restore_case_inner(
             auxiliary_space,
             requests,
             held_roots,
+            ..
         } => {
             if let Some(roots) = held_roots {
                 transfer_image_with_cold_spill_at(
@@ -376,6 +397,9 @@ fn read_backup_restore_case_inner(
                     persistent_space,
                     auxiliary_space,
                     requests,
+                    shared_work
+                        .clone()
+                        .ok_or_else(|| invalid("V2 cold held case lacks original shared work meter"))?,
                     deadline,
                     &cancel,
                 )?
@@ -413,14 +437,26 @@ fn read_backup_restore_case_inner(
                 deadline,
                 &cancel,
             )?;
-            V2ReadSession::open_at_named_with_io(
-                fresh_target,
-                target_root,
-                limits.point,
-                original_io.clone(),
-                deadline,
-                cancel.clone(),
-            )?
+            if let Some(work) = shared_work.clone() {
+                V2ReadSession::open_at_named_with_work(
+                    fresh_target,
+                    target_root,
+                    limits.point,
+                    original_io.clone(),
+                    work,
+                    deadline,
+                    cancel.clone(),
+                )?
+            } else {
+                V2ReadSession::open_at_named_with_io(
+                    fresh_target,
+                    target_root,
+                    limits.point,
+                    original_io.clone(),
+                    deadline,
+                    cancel.clone(),
+                )?
+            }
         } else {
             V2ReadSession::open(
                 fresh_target,

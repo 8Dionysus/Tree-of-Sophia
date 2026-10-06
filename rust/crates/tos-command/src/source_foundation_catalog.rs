@@ -1751,7 +1751,7 @@ impl SourceCatalogSink for CatalogSinkRef<'_> {
 /// One maintained render/default/diagnostic kernel for authenticated cold and
 /// actual candidate inputs. Callbacks retain their exact typed owner receipts.
 #[allow(clippy::too_many_arguments)]
-fn compare_prepared_kernel<'candidate, 'stage, B, D>(
+fn compare_prepared_kernel<'candidate, 'stage, 'rows, B, D>(
     mut stage: KnowledgeStage<'stage>,
     validator: &SourceCatalogValidator<'_>,
     sources: &RefCell<&mut RouteSources>,
@@ -1766,13 +1766,13 @@ fn compare_prepared_kernel<'candidate, 'stage, B, D>(
         &'candidate IsolatedCreationRoot,
         DisposableCatalogTreeLimits,
     )>,
-    mut index_rows: Option<&mut dyn FreshIndexRowsWriter>,
+    mut index_rows: Option<&mut (dyn FreshIndexRowsWriter + 'rows)>,
     cancelled: &AtomicBool,
     mut prepare: impl FnMut(
         &mut KnowledgeStage<'stage>,
         &SourceCatalogValidator<'_>,
         &mut FoundationCatalogProfiles,
-        Option<&mut dyn FreshIndexRowsWriter>,
+        Option<&mut (dyn FreshIndexRowsWriter + 'rows)>,
     ) -> Result<SourceCatalogReceipt<B>>,
     mut render: impl FnMut(
         &mut KnowledgeStage<'stage>,
@@ -2235,15 +2235,47 @@ pub(crate) fn compare_spooled_candidate<'candidate>(
         .and_then(|n| n.checked_sub(owner_inline))
         .filter(|n| *n >= 16 * 1024)
         .ok_or(Error::Budget("spool catalog retained plan/workspace state"))?;
-    let mut plan = plan_candidate_source_catalog_inputs_with_workspace(
-        input,
-        input.input_identity(),
-        coverage,
-        source_limits,
-        limits,
-        cancelled,
-        max_generated_state_bytes - owner_inline,
-    )?;
+    let mut plan = if input.generated_selection().is_some() {
+        let (storage, max_sqlite_bytes) = index_rows
+            .catalog_planning_storage()
+            .map_err(|_| Error::Invalid("catalog original native planning custody refused"))?
+            .ok_or(Error::Invalid(
+                "generated catalog requires original storage-backed planner",
+            ))?;
+        // Selected count belongs to the actual workload/fence and configured
+        // catalog output ceiling. No resident 4096-member map is enlarged.
+        let disk = tos_compiler::ColdSourceCatalogSpoolLimits {
+            max_selected_members: coverage.member_count().min(limits.catalog.max_files),
+            max_locator_bytes: max_sqlite_bytes,
+            max_sqlite_bytes,
+            max_work_bytes: source_limits.max_work_bytes,
+            // Existing native connection/cache/VM policy remains in custody;
+            // these cold-only installation fields do not create extra caps.
+            sqlite_cache_kib: 0,
+            max_sql_vm_steps: 0,
+            max_workspace_bytes: max_generated_state_bytes - owner_inline,
+        };
+        tos_compiler::plan_candidate_source_catalog_inputs_spooled(
+            input,
+            input.input_identity(),
+            coverage,
+            source_limits,
+            storage,
+            disk,
+            limits,
+            cancelled,
+        )?
+    } else {
+        plan_candidate_source_catalog_inputs_with_workspace(
+            input,
+            input.input_identity(),
+            coverage,
+            source_limits,
+            limits,
+            cancelled,
+            max_generated_state_bytes - owner_inline,
+        )?
+    };
     let observed_plan_work_bytes = plan.observed_work_bytes();
     // Clone state is measured from the retained owner's actual collection
     // strings BEFORE both owner and stage receipt clones. The original receipt

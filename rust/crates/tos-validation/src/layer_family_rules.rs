@@ -4,6 +4,7 @@
 //! text helpers retain their separate strict published profile.
 use crate::text_metadata_rules::{self, TextMetadataLimits, TextMetadataReport, TextMetadataState};
 use std::collections::{BTreeMap, BTreeSet};
+use std::fmt::Write as _;
 use std::sync::atomic::AtomicBool;
 use std::time::Instant;
 static NO_METADATA_CANCELLATION: AtomicBool = AtomicBool::new(false);
@@ -23,6 +24,72 @@ pub trait LayerFamilySource {
         None
     }
 
+    fn generated_selection(
+        &self,
+    ) -> Option<std::sync::Arc<dyn crate::record_biblio_cut::GeneratedSourceSelection>> {
+        None
+    }
+    /// Explicit semantic membership differs from full physical/raw membership.
+    fn selects_semantic_member(&self, path: &str) -> Result<bool, ItemRefusal> {
+        let finite = self.record_selection();
+        let generated = self.generated_selection();
+        if finite.is_none() && generated.is_none() {
+            return Ok(true);
+        }
+        if finite
+            .as_ref()
+            .is_some_and(|selection| selection.selects_semantic_member(path))
+        {
+            return Ok(true);
+        }
+        generated
+            .as_ref()
+            .map_or(Ok(false), |selection| selection.selects_member(path))
+    }
+    /// Required raw evidence remains available without becoming a semantic root.
+    fn selects_required_member(&self, path: &str) -> Result<bool, ItemRefusal> {
+        let finite = self.record_selection();
+        let generated = self.generated_selection();
+        if finite.is_none() && generated.is_none() {
+            return Ok(true);
+        }
+        if finite
+            .as_ref()
+            .is_some_and(|selection| selection.contains_member(path))
+        {
+            return Ok(true);
+        }
+        generated.as_ref().map_or(Ok(false), |selection| {
+            selection.selects_required_member(path)
+        })
+    }
+    fn selects_source_row(&self, path: &str, physical_line: u64) -> Result<bool, ItemRefusal> {
+        let finite = self.record_selection();
+        let generated = self.generated_selection();
+        if finite.is_none() && generated.is_none() {
+            return Ok(true);
+        }
+        if finite
+            .as_ref()
+            .is_some_and(|selection| selection.selected_row(path, physical_line))
+        {
+            return Ok(true);
+        }
+        generated.as_ref().map_or(Ok(false), |selection| {
+            selection.selects_row(path, physical_line)
+        })
+    }
+    /// An addressed observation from the same selected source owner. Missing
+    /// is authoritative for this selection; Unsupported preserves the legacy
+    /// complete-ledger reader. Neither case permits another source lookup.
+    fn discovery_event(
+        &mut self,
+        _id: &str,
+        _max_bytes: usize,
+        _deadline: Instant,
+    ) -> Result<DiscoveryEventLookup, ItemRefusal> {
+        Ok(DiscoveryEventLookup::Unsupported)
+    }
     fn current(
         &mut self,
         path: &str,
@@ -77,6 +144,17 @@ pub trait LayerFamilySource {
     }
     fn generation(&self) -> String;
     fn checkpoint(&self, deadline: Instant) -> Result<(), ItemRefusal>;
+}
+/// The provider must authenticate the row's raw bytes and physical locator,
+/// and enforce event-ID uniqueness through its existing selected index.
+pub enum DiscoveryEventLookup {
+    Unsupported,
+    Missing,
+    Found {
+        source_path: String,
+        physical_line: u64,
+        raw: Vec<u8>,
+    },
 }
 /// Observation supplied only by the explicitly selected immutable payload
 /// custody owner. A declaration in the representation is not such evidence.
@@ -2782,17 +2860,88 @@ impl LayerFamilyRules {
         digests: bool,
         payload_path: Option<&str>,
     ) -> Result<(), ItemRefusal> {
-        self.load_discovery_events(source)?;
-        let entry = self
-            .discovery_events
-            .as_ref()
-            .and_then(|events| events.get(id))
-            .cloned();
+        source.checkpoint(self.limits.deadline)?;
+        let mut raw_state_reserved = false;
+        let entry =
+            match source.discovery_event(id, self.limits.max_member_bytes, self.limits.deadline)? {
+                DiscoveryEventLookup::Unsupported => {
+                    self.load_discovery_events(source)?;
+                    self.discovery_events
+                        .as_ref()
+                        .and_then(|events| events.get(id))
+                        .cloned()
+                }
+                DiscoveryEventLookup::Missing => None,
+                DiscoveryEventLookup::Found {
+                    source_path,
+                    physical_line,
+                    raw,
+                } => {
+                    let location_capacity = source_path
+                        .len()
+                        .checked_add(u64::MAX.ilog10() as usize + 2)
+                        .ok_or(ItemRefusal::Budget)?;
+                    if physical_line == 0
+                        || raw.capacity() > self.limits.max_member_bytes
+                        || !source_path.starts_with("ToS/source-witnesses/discovery/")
+                        || source_path.split('/').any(|part| {
+                            part.starts_with('.')
+                                || ["payload", "local-content", "owner-local", "catalog"]
+                                    .contains(&part)
+                        })
+                    {
+                        return Err(ItemRefusal::Unsupported(
+                            "addressed discovery event locator or byte bound".into(),
+                        ));
+                    }
+                    self.reserve(
+                        raw.capacity()
+                            .checked_mul(8)
+                            .and_then(|bytes| bytes.checked_add(source_path.capacity()))
+                            .and_then(|bytes| bytes.checked_add(location_capacity))
+                            .and_then(|bytes| bytes.checked_add(id.len().checked_mul(2)?))
+                            .and_then(|bytes| {
+                                bytes.checked_add(std::mem::size_of::<(String, Value, Vec<u8>)>())
+                            })
+                            .and_then(|bytes| bytes.checked_add(std::mem::size_of::<String>()))
+                            .ok_or(ItemRefusal::Budget)?,
+                    )?;
+                    raw_state_reserved = true;
+                    if RelativePath::parse(&source_path).is_err() {
+                        return Err(ItemRefusal::Unsupported(
+                            "addressed discovery event source path".into(),
+                        ));
+                    }
+                    let event: Value = serde_json::from_slice(&raw).map_err(|_| {
+                        ItemRefusal::Unsupported("addressed discovery event JSON".into())
+                    })?;
+                    if !event.is_object() || event["event_id"].as_str() != Some(id) {
+                        return Err(ItemRefusal::Unsupported(
+                            "addressed discovery event identity differs".into(),
+                        ));
+                    }
+                    let mut location = String::with_capacity(location_capacity);
+                    if location.capacity() > location_capacity {
+                        return Err(ItemRefusal::Budget);
+                    }
+                    write!(&mut location, "{source_path}:{physical_line}").map_err(|_| {
+                        ItemRefusal::Unsupported("addressed discovery event locator format".into())
+                    })?;
+                    self.read(PredicateRead::UniqueKey {
+                        namespace: "discovery-provenance/event_id".into(),
+                        key: id.to_owned(),
+                        owner: location.clone(),
+                    })?;
+                    Some((location, event, raw))
+                }
+            };
         self.endpoint(path, "discovery-provenance-event", id, entry.is_some())?;
         let Some((location, event, raw)) = entry else {
             return Ok(());
         };
-        self.reserve(raw.len().checked_mul(8).ok_or(ItemRefusal::Budget)?)?;
+        if !raw_state_reserved {
+            self.reserve(raw.len().checked_mul(8).ok_or(ItemRefusal::Budget)?)?;
+        }
         if !self.schema(
             source,
             &location,

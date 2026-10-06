@@ -42,5 +42,6 @@ pub use selected::{
 };
 pub use store::{
     AttemptRecovery, AuditedStoreRoot, ByteDurabilityReceipt, DurabilityClass, FrameInput,
-    OwnerBinding, SegmentStore, VerificationBudget, VerifiedSealGuard,
+    OwnerBinding, SegmentOperationLimitsV1, SegmentOperationWorkV1, SegmentStore,
+    VerificationBudget, VerifiedSealGuard,
 };

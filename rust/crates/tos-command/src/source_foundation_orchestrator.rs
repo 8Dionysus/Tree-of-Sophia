@@ -26,7 +26,6 @@ use super::foundation_run::{
     self, EvaluatedFoundationDefault, FinalizedFoundationDefaultInputs, FoundationBiblioEvidence,
     FoundationDefaultReadError, FoundationFinalInputError,
 };
-use crate::source_admission_candidate_schema::binding_retained_state_upper_bound_bytes;
 use crate::source_command::SourceCommandError;
 use crate::source_creation_store::DisposableCatalogTreeLimits;
 use std::cell::RefCell;
@@ -89,10 +88,17 @@ impl FoundationOrchestratorError {
         if let Self::Catalog(error) = self {
             return crate::source_command::public_compiler_reason(error);
         }
-        if let Self::Command(error) | Self::Bootstrap(FoundationBootstrapError::Command(error)) =
-            self
+        if let Self::Command(error)
+        | Self::Bootstrap(
+            FoundationBootstrapError::Command(error)
+            | FoundationBootstrapError::Capture(error)
+            | FoundationBootstrapError::IsolatedRoot(error),
+        ) = self
         {
             return error.public_reason();
+        }
+        if let Self::Bootstrap(FoundationBootstrapError::RouteRoot(error)) = self {
+            return crate::source_command::public_io_reason(error);
         }
         if let Self::Default(
             _,
@@ -123,6 +129,15 @@ impl FoundationOrchestratorError {
         let owner = match self {
             Self::Owner(error) => Some(("owner", error)),
             Self::OwnerAt(stage, error) => Some((*stage, error)),
+            Self::Bootstrap(FoundationBootstrapError::Selection(error)) => {
+                Some(("bootstrap-selection", error))
+            }
+            Self::Bootstrap(FoundationBootstrapError::Payload(error)) => {
+                Some(("bootstrap-payload", error))
+            }
+            Self::Bootstrap(FoundationBootstrapError::Physical(error)) => {
+                Some(("bootstrap-physical", error))
+            }
             _ => None,
         };
         if let Some((stage, error)) = owner {
@@ -830,9 +845,9 @@ fn schema_limits_for_ticket(
     total_resource_bytes: usize,
     max_checks: usize,
 ) -> Result<SourceFoundationSchemaLimits, FoundationOrchestratorError> {
-    let operation = ticket.operation_limits();
     let max_checks =
         max_checks.min(tos_validation::source_foundation_schema::MAX_SOURCE_FOUNDATION_CHECKS);
+    let operation = ticket.operation_limits();
     let instance_cap = bounded_usize(operation.source_read_bytes)?
         .min(bounded_usize(limits.invocation_budgets.max_member_bytes)?)
         .min(tos_validation::executor::BatchBudget::MAX_RAW_BYTES);
@@ -1111,8 +1126,23 @@ pub(crate) fn prepare_candidate_schema_worker(
     let controller = worker
         .diagnostics_v2_controller_state_upper_bound(schema_limits.max_instance_bytes, 4096)
         .map_err(owner)?;
-    let controller_overlap = required
-        .checked_add(controller)
+    // from_schema_set has consumed/dropped raw constructor and parser
+    // workspace. Price the retained worker with the same bound charged by the
+    // caller, plus its next controller exchange; constructor peak is separate.
+    let retained_schema = schema_state_upper_bound(
+        worker.schema_bytes(),
+        worker.source_resource_count(),
+        worker
+            .source_resource_metadata_state_bytes()
+            .ok_or_else(|| incomplete("candidate selected schema metadata state unavailable"))?,
+    )?;
+    let controller_overlap = held_state_bytes
+        .checked_add(retained_schema)
+        .and_then(|bytes| {
+            bytes.checked_add(worker_identity_path_clone_bytes(image.identity(), 2).ok()?)
+        })
+        .and_then(|bytes| bytes.checked_add(std::mem::size_of_val(&worker)))
+        .and_then(|bytes| bytes.checked_add(controller))
         .ok_or_else(|| incomplete("candidate schema controller overlap overflow"))?;
     input
         .require_callback_state(controller_overlap, max_operation_state_bytes)
@@ -1560,7 +1590,7 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
     use tos_validation::source_foundation_records::SourceFoundationRecordsPageBudget;
 
     let owner = |error| FoundationOrchestratorError::OwnerAt("candidate entry", error);
-    if (scope == tos_validation::source_foundation_default_rules::SourceFoundationDefaultRuleScope::SelectedRecordClosure)
+    if matches!(scope, tos_validation::source_foundation_default_rules::SourceFoundationDefaultRuleScope::SelectedRecordClosure | tos_validation::source_foundation_default_rules::SourceFoundationDefaultRuleScope::SelectedGeneratedRecordClosure)
         != input.record_selection().is_some()
     {
         return Err(owner(tos_validation::item_rules::ItemRefusal::Source(
@@ -1697,15 +1727,16 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
         .io_usage()
         .map_err(FoundationOrchestratorError::Admission)?;
     let worker_image_max = MAX_WORKER_IMAGE_BYTES;
-    let image_read_reserve = schema_ticket
+    // Preflight the worst-case external image read before preparation. No
+    // candidate IO runs until it returns. Its shared physical ceiling only
+    // narrows, so do not permanently spend the unused maximum here; apply the
+    // verified actual image charge below before any candidate read resumes.
+    schema_ticket
         .remaining()
         .source_read_bytes
         .checked_sub(worker_image_max)
         .ok_or_else(|| incomplete("candidate worker image exceeds source-read reservation"))?;
     let remaining_write_before_schema = *view.remaining_write_bytes;
-    candidate
-        .restrict_remaining_io(image_read_reserve, remaining_write_before_schema)
-        .map_err(FoundationOrchestratorError::Admission)?;
     let image_budget =
         ticket_worker_budget(&schema_ticket, deadline, budgets.worker_address_space_bytes)?;
     let worker_image = VerifiedWorkerImageHandle::prepare(
@@ -1771,19 +1802,28 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
     if schema_count == 0 || schema_bytes == 0 || schema_max_bytes == 0 || largest_member == 0 {
         return Err(incomplete("candidate selected schema closure is empty"));
     }
-    // Every diagnostic exchange charges at least one actual wire byte. The
-    // selected finite wire envelope bounds execution count independently of
-    // physical member count or the local schema loader's report capacity.
-    let max_checks = bounded_usize(schema_operation.worker_wire_bytes)?.max(1);
+    // Resource preparation retains a finite report. Whole streamed execution
+    // instead follows the selected member bound and original operation ledgers.
+    // Every completed framed exchange costs at least one wire byte. This
+    // original selected finite ceiling admits cardinality without a member
+    // multiplicity guess; actual wire/raw/CPU ledgers remain independently held.
+    let max_checks = usize::try_from(schema_operation.worker_wire_bytes)
+        .ok()
+        .filter(|n| *n > 0 && *n < usize::MAX)
+        .ok_or_else(|| incomplete("candidate diagnostic whole-operation count range"))?;
+    let schema_loader_checks =
+        max_checks.min(tos_validation::source_foundation_schema::MAX_SOURCE_FOUNDATION_CHECKS);
     let schema_limits = schema_limits_for_ticket(
         view.execution_limits,
         &schema_ticket,
         schema_count,
         schema_max_bytes,
         schema_bytes,
-        max_checks,
+        schema_loader_checks,
     )?;
-    let first_worker_shape = cut_worker_shape(schema_operation, max_checks);
+    let mut first_worker_shape = cut_worker_shape(schema_operation, max_checks);
+    // Scalar DiagnosticsV2 executes one framed exchange per check.
+    first_worker_shape.max_chunks = first_worker_shape.max_total_units;
     let first_worker_stream = view
         .execution_limits
         .cut_worker_stream_budget(schema_operation, first_worker_shape)
@@ -1801,19 +1841,22 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
         max_total_state_bytes: schema_operation.state_bytes.max(1),
     };
     let image_path_state = worker_identity_path_clone_bytes(worker_image.identity(), 4)?;
-    let first_worker_held = candidate_owned_state
-        .checked_add(base_declared_state_bytes)
-        .and_then(|state| state.checked_add(selected_index.cache_bytes))
-        .and_then(|state| state.checked_add(defaults_limits.cache_bytes))
-        .and_then(|state| state.checked_add(worker_image_state))
+    // account_spooled_candidate_inner already charged candidate_owned_state
+    // before this input received the remaining callback envelope. Keep that
+    // baseline in whole-process/final held-state checks, but do not reserve it
+    // again inside this remainder (including the later Records/native callbacks).
+    // IndexSink and SpoolDefaultStore (and their caches/report) do not exist
+    // until the Records phase below. They remain in callback_held there.
+    let first_worker_held = base_declared_state_bytes
+        .checked_add(worker_image_state)
         .and_then(|state| state.checked_add(image_path_state))
         .and_then(|state| state.checked_add(payload_initial.peak_state_bytes))
         .and_then(|state| state.checked_add(physical_initial.retained_state_bytes))
-        .and_then(|state| {
-            state.checked_add(CANDIDATE_RECORDS_REPORT_RETAINED_STATE_UPPER_BOUND_BYTES)
-        })
         .ok_or_else(|| incomplete("candidate schema worker held-state overflow"))?;
-    if first_worker_held > working_ram {
+    if first_worker_held
+        .checked_add(candidate_owned_state)
+        .is_none_or(|state| state > working_ram)
+    {
         return fail_window(
             view.execution_limits,
             view.remaining_budget,
@@ -1933,9 +1976,8 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
             incomplete("candidate Records operation reservation exhausted"),
         );
     }
-    let callback_held = candidate_owned_state
-        .checked_add(base_declared_state_bytes)
-        .and_then(|state| state.checked_add(selected_index.cache_bytes))
+    let callback_held = base_declared_state_bytes
+        .checked_add(selected_index.cache_bytes)
         .and_then(|state| state.checked_add(defaults_limits.cache_bytes))
         .and_then(|state| state.checked_add(worker_image_state))
         .and_then(|state| state.checked_add(image_path_state))
@@ -1948,9 +1990,14 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
             state.checked_add(std::mem::size_of::<SpoolDefaultStore<'candidate, 'host>>())
         })
         .ok_or_else(|| incomplete("candidate dependent callback held-state overflow"))?;
+    let binding_state =
+        crate::source_admission_candidate_schema::candidate_schema_binding_additional_state_bytes(
+            &item_schemas,
+        )
+        .map_err(owner)?;
     let callback_header_state = CANDIDATE_RECORDS_REPORT_RETAINED_STATE_UPPER_BOUND_BYTES
         .checked_add(std::mem::size_of::<std::sync::Arc<()>>())
-        .and_then(|state| state.checked_add(binding_retained_state_upper_bound_bytes()))
+        .and_then(|bytes| bytes.checked_add(binding_state))
         .ok_or_else(|| incomplete("candidate callback report-header state overflow"))?;
     let callback_workspace_state = callback_state_bytes
         .checked_sub(callback_held)
@@ -1982,7 +2029,12 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
         .execution_limits
         .rolling_records_limits(records_profile, records_schema_request_state)
         .map_err(FoundationOrchestratorError::Command)?;
-    let records_shape = cut_worker_shape(records_profile, max_checks);
+    let records_max_checks = usize::try_from(records_profile.worker_wire_bytes)
+        .ok()
+        .filter(|n| *n > 0 && *n < usize::MAX)
+        .ok_or_else(|| incomplete("candidate Records diagnostic count range"))?;
+    let mut records_shape = cut_worker_shape(records_profile, records_max_checks);
+    records_shape.max_chunks = records_shape.max_total_units;
     let records_stream = view
         .execution_limits
         .cut_worker_stream_budget(records_profile, records_shape)
@@ -1996,7 +2048,7 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
         &worker_image,
         record_executor_budget,
         FormatProfile::LegacyPythonObserved20260923,
-        max_checks,
+        records_max_checks,
         deadline,
         cancelled,
     )
@@ -2008,7 +2060,7 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
     };
     let record_diagnostic_limits = BiblioSchemaDiagnosticsLimits::from_operation_ceilings(
         record_diagnostic_ceilings,
-        max_checks,
+        records_max_checks,
         records_stream,
     )
     .map_err(owner)?;
@@ -2649,6 +2701,51 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
                             return Err(ItemRefusal::Source("selected Claim local owner coverage did not reach EOF".into()));
                         }
                     }
+                    if let Some(generated) = input.generated_selection() {
+                        // Every physical member reaches the existing provider traversal EOF;
+                        // only exact Claim geometry enters the maintained local Claim owner.
+                        let generated_coverage = input.for_each_current_member(deadline, cancelled,
+                            &mut |meta, raw| {
+                                if !generated.selects_claim_row(meta.path, 1)? { return Ok(()); }
+                                let held = reader_retained_state.checked_add(raw.len())
+                                    .ok_or(tos_validation::item_budget_origin!())?;
+                                let local_state = callback_state_bytes.checked_sub(held)
+                                    .filter(|state| *state != 0).ok_or(tos_validation::item_budget_origin!())?;
+                                input.require_callback_state(callback_state_bytes, original_operation_state)?;
+                                let local_limits = tos_validation::item_rules::ItemLimits {
+                                    max_member_bytes: reader_member_bytes.min(local_state),
+                                    max_total_bytes: after_replay_headroom,
+                                    max_state_bytes: local_state,
+                                    max_issues: biblio_limits.max_issues,
+                                    deadline,
+                                };
+                                let mut checked_rows = 0u64;
+                                for (line, bytes) in tos_validation::source_record_selection::source_rows(raw) {
+                                    if !generated.selects_claim_row(meta.path, line)? { continue; }
+                                    let mut worker = schema_worker.borrow_mut();
+                                    let report = tos_validation::record_rules::validate_source_claim_from_input(
+                                        input, records, bytes, &mut **worker, local_limits, cancelled)?;
+                                    if report.input_identity != fence || report.current_membership != fence.membership
+                                        || report.source_input_sha256 != Digest256::of_bytes(bytes) || !report.is_valid()
+                                    {
+                                        return Err(ItemRefusal::Source("generated Claim owner local forms are invalid or unbound".into()));
+                                    }
+                                    drop(report);
+                                    checked_rows = checked_rows.checked_add(1)
+                                        .ok_or(tos_validation::item_budget_origin!())?;
+                                }
+                                if checked_rows != 1 {
+                                    return Err(ItemRefusal::Source("generated Claim local owner row coverage differs".into()));
+                                }
+                                Ok(())
+                            })?;
+                        if generated_coverage.membership() != fence.membership
+                            || generated_coverage.member_count() != fence.membership.count
+                            || generated_coverage.source_bytes_read() != fence.source_bytes
+                        {
+                            return Err(ItemRefusal::Source("generated Claim physical owner traversal is incomplete".into()));
+                        }
+                    }
                     let mut schema_executor =
                         CandidateArtifactSchemaExecutor::new(&schema_worker);
                     let mut rule_source = FoundationRuleSource::from_candidate(
@@ -2846,6 +2943,11 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
                         closure_schema_requests,
                         &mut **schemas,
                         schema_limits,
+                        super::foundation_rule_diagnostics::CandidateRuleDiagnosticOperationLimits {
+                            max_checks,
+                            max_total_instance_bytes: usize::try_from(first_worker_stream.max_total_raw_bytes)
+                                .map_err(|_| ItemRefusal::Budget)?,
+                        },
                         deadline,
                         cancelled,
                         rule_diag_limits,
@@ -2879,10 +2981,8 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
                         ("default Discovery coverage", owner_report.discovery.unsupported.len(), 0),
                         ("default Closure coverage", owner_report.closure.unsupported.len(), 0),
                         ("default queued execution count", evaluated.cost.schema_check_count, owner_report.cost.queued_schema_document_count),
-                        ("default raw schema issue count", evaluated.cost.diagnostic_issue_count, 0),
-                        ("default diagnostic candidate identity", evaluated.diagnostics.iter().filter(|diagnostic| diagnostic.input_identity() != &fence).count(), 0),
-                        ("default diagnostic prepared identity", evaluated.diagnostics.iter().filter(|diagnostic| diagnostic.prepared_execution_binding() != schemas.prepared_execution_binding()).count(), 0),
-                        ("default schema validity", evaluated.diagnostics.iter().filter(|diagnostic| !diagnostic.result().is_valid()).count(), 0),
+                        ("default resolved schema issues", evaluated.semantic_failure_count().ok_or(ItemRefusal::Budget)?, 0),
+                        ("default diagnostic live binding", usize::from(!evaluated.diagnostics_bound_to(&**schemas, scope)), 0),
                     ];
                     let mut failed_mask = 0u16;
                     let mut primary = None;
@@ -2918,8 +3018,7 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
                                 }
                             }
                         }
-                        if let Some(diagnostic) = evaluated.diagnostics.iter()
-                            .find(|diagnostic| !diagnostic.result().is_valid())
+                        if let Some(diagnostic) = evaluated.first_invalid()
                         {
                             let result = diagnostic.result();
                             let contract = Digest256::of_bytes(result.contract().as_bytes()).to_hex();
@@ -2943,6 +3042,7 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
                             ),
                         ));
                     }
+                    let _ordered_rule_observations = evaluated.ordered_observation_sha256();
                     let after_defaults = view.original_io.snapshot();
                     let candidate_read = after_defaults
                         .read_attempted_bytes
@@ -3490,21 +3590,26 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
         FoundationPhaseReservation::default(),
     )?;
     let native_operation = native_ticket.operation_limits();
+    let native_max_checks = usize::try_from(native_operation.worker_wire_bytes)
+        .ok()
+        .filter(|n| *n > 0 && *n < usize::MAX)
+        .ok_or_else(|| incomplete("candidate native diagnostic count range"))?;
     let native_schema_limits = schema_limits_for_ticket(
         view.execution_limits,
         &native_ticket,
         schema_count,
         schema_max_bytes,
         schema_bytes,
-        max_checks,
+        schema_loader_checks,
     )?;
-    let native_shape = cut_worker_shape(native_operation, max_checks);
+    let mut native_shape = cut_worker_shape(native_operation, native_max_checks);
+    native_shape.max_chunks = native_shape.max_total_units;
     let native_stream = view
         .execution_limits
         .cut_worker_stream_budget(native_operation, native_shape)
         .map_err(FoundationOrchestratorError::Command)?;
     let native_worker_limits = CutWorkerLimits {
-        max_receipts: max_checks,
+        max_receipts: native_max_checks,
         max_receipt_bytes: native_operation.state_bytes.min(1024 * 1024).max(1),
     };
     let native_diagnostics = CutSchemaDiagnosticsLimits {
@@ -3512,9 +3617,8 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
         max_total_report_bytes: bounded_usize(native_operation.worker_wire_bytes)?.max(1),
         max_total_state_bytes: native_operation.state_bytes.max(1),
     };
-    let held_native = candidate_owned_state
-        .checked_add(base_declared_state_bytes)
-        .and_then(|state| state.checked_add(selected_index.cache_bytes))
+    let held_native = base_declared_state_bytes
+        .checked_add(selected_index.cache_bytes)
         .and_then(|state| state.checked_add(defaults_limits.cache_bytes))
         .and_then(|state| state.checked_add(worker_image_state))
         .and_then(|state| state.checked_add(image_path_state))

@@ -343,7 +343,7 @@ fn bounded_legacy_decoded_state_inner(
     check(deadline, cancelled)?;
     Ok((value, state))
 }
-pub(crate) fn bounded_decoded_state(
+pub fn bounded_decoded_state(
     raw: &[u8],
     limits: tos_foundation::JsonLimits,
     available: usize,
