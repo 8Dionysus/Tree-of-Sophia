@@ -3205,11 +3205,7 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
             catalog_limits,
             max_claim_rows,
             max_claim_bytes,
-            catalog_limits.max_rows.min(catalog_output_bytes).max(1),
-            catalog_operation
-                .tmpfs_bytes
-                .min(catalog_output_bytes)
-                .max(1),
+            catalog_operation.tmpfs_bytes,
         )
         .map_err(FoundationOrchestratorError::Command)?;
     let stage_limits = view
@@ -5030,11 +5026,7 @@ fn run<'work, 'receive, 'observe, 'cancel, 'signal>(
         catalog_limits,
         max_claim_rows,
         max_claim_bytes,
-        catalog_limits
-            .max_rows
-            .min(catalog_operation.tmpfs_bytes)
-            .max(1),
-        catalog_operation.tmpfs_bytes.max(1),
+        catalog_operation.tmpfs_bytes,
     ) {
         Ok(limits) => limits,
         Err(error) => {
