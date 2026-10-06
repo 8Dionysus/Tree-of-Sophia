@@ -2095,10 +2095,15 @@ fn run_inner(
     };
     if let Some(completed) = held.completed.as_ref() {
         completed.with_capture_carriers(&held.capture, |_| deliver())
+    } else if let WholeSnapshotOutcome::Reused(reused) = &held.snapshot {
+        reused.with_current_capture(&held.capture, deliver)
     } else {
-        held.capture.with_captured_carriers(|_| deliver())
+        return Err("Core completed whole capture absent");
     }
-    .map_err(|_| "Core whole disclosure currentness refused")
+    .map_err(|error| {
+        compiler_terminal_diagnostic("Core whole disclosure", &error);
+        "Core whole disclosure currentness refused"
+    })
 }
 
 fn run(

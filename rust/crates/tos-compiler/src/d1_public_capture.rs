@@ -658,17 +658,20 @@ impl<'budget> CreationState<'budget> {
     pub(crate) fn heap(&self) -> &Arc<sqlite_budget::DedicatedSessionSqliteHeap> {
         &self.sqlite_heap
     }
+    #[track_caller]
     pub(crate) fn json<'a>(&'a self, raw: &[u8], cap: usize) -> Result<CreationJson<'a>> {
         creation_json(self, raw, cap)
     }
     /// Same strict JSON grammar and pinned serde decode, admitted before any
     /// owned serde tree. The metered FND tree is dropped before the serde tree;
     /// its original visitor usage persists on success and failure.
+    #[track_caller]
     pub(crate) fn serde_owned(&self, raw: &[u8], cap: usize) -> Result<serde_json::Value> {
         let limits = JsonLimits::new(cap, 96, 1_000_000, 4096)
             .map_err(|_| Error::Budget("owned model serde limits"))?;
         self.serde_owned_with_limits(raw, limits)
     }
+    #[track_caller]
     pub(crate) fn with_foundation_owned_with_limits<T>(
         &self,
         raw: &[u8],
@@ -680,6 +683,7 @@ impl<'budget> CreationState<'budget> {
         drop(document);
         result
     }
+    #[track_caller]
     pub(crate) fn foundation_owned_with_limits(
         &self,
         raw: &[u8],
@@ -687,6 +691,7 @@ impl<'budget> CreationState<'budget> {
     ) -> Result<JsonValue> {
         creation_json_with_limits(self, raw, limits)?.into_retained_root()
     }
+    #[track_caller]
     pub(crate) fn serde_owned_with_limits(
         &self,
         raw: &[u8],
@@ -703,9 +708,19 @@ impl<'budget> CreationState<'budget> {
         let upper =
             crate::knowledge_normalization::serde_input_workspace_upper(&document, raw.len())?;
         drop(document);
-        self.retain(upper)?;
-        self.decode_serde_raw(raw)
+        let temporary = crate::knowledge_normalization::serde_input_temporary_upper(raw.len())?;
+        let retained = upper
+            .checked_sub(temporary)
+            .ok_or(Error::Budget("owned serde retained geometry"))?;
+        // Admit the same full decode peak before execution. Only the actual
+        // returned tree survives: decoder scratch/frames end inside decode.
+        self.retain(retained)?;
+        let scratch = self.hold(temporary)?;
+        let value = self.decode_serde_raw(raw)?;
+        drop(scratch);
+        Ok(value)
     }
+    #[track_caller]
     pub(crate) fn serde_scoped_with_limits<'s>(
         &'s self,
         raw: &[u8],
@@ -724,6 +739,7 @@ impl<'budget> CreationState<'budget> {
         let value = self.decode_serde_raw(raw)?;
         Ok((value, hold))
     }
+    #[track_caller]
     pub(crate) fn with_serde_owned_with_limits<T>(
         &self,
         raw: &[u8],
@@ -750,6 +766,7 @@ impl<'budget> CreationState<'budget> {
         drop(hold);
         result
     }
+    #[track_caller]
     pub(crate) fn with_serde_owned_value_with_limits<T>(
         &self,
         raw: &[u8],
@@ -1705,6 +1722,7 @@ fn json_field<'a>(value: &'a JsonValue, name: &str) -> Option<&'a JsonValue> {
         .map(|(_, value)| value)
 }
 
+#[track_caller]
 fn creation_json<'a>(
     owner: &'a CreationState<'a>,
     raw: &[u8],
@@ -1717,6 +1735,7 @@ fn creation_json<'a>(
             .map_err(|_| Error::Budget("runtime carrier creation JSON limits"))?,
     )
 }
+#[track_caller]
 fn creation_json_with_limits<'a>(
     owner: &'a CreationState<'a>,
     raw: &[u8],
@@ -1761,6 +1780,7 @@ fn creation_json_with_limits<'a>(
             )
         })
     };
+    let site = std::panic::Location::caller();
     let parsed = parse_json_with_state_budget_and_check(
         raw,
         JsonMode::PublishedStrict,
@@ -1768,7 +1788,13 @@ fn creation_json_with_limits<'a>(
         available,
         &mut check,
     )
-    .map_err(foundation_json_error)?;
+    .map_err(|error| {
+        eprintln!(
+            "Native JSON parse refused at {}:{}: input_bytes={} available_state={} retained_state={}",
+            site.file(), site.line(), raw.len(), available, owner.retained.get(),
+        );
+        foundation_json_error(error)
+    })?;
     owner.json_visits.set(
         before
             .checked_add(parsed.visits())

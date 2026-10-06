@@ -279,6 +279,23 @@ pub(crate) fn serde_retained_heap_upper(value: &serde_json::Value, depth: usize)
     Ok(bytes)
 }
 
+/// Decoder-only scratch and recursive frames. These owners are gone when
+/// `decode_serde_raw` returns; retaining a value must not retain this allowance.
+pub(crate) fn serde_input_temporary_upper(raw_bytes: usize) -> Result<usize> {
+    raw_bytes
+        .checked_mul(8)
+        .and_then(|bytes| {
+            (MAX_JSON_DEPTH + 1)
+                .checked_mul(
+                    std::mem::size_of::<Value>()
+                        + std::mem::size_of::<tos_foundation::JsonValue>()
+                        + 512,
+                )
+                .and_then(|frames| bytes.checked_add(frames))
+        })
+        .ok_or(Error::Budget("raw input serde workspace"))
+}
+
 pub(crate) fn serde_input_workspace_upper(
     root: &tos_foundation::JsonValue,
     raw_bytes: usize,
@@ -328,14 +345,7 @@ pub(crate) fn serde_input_workspace_upper(
         Ok(())
     }
     // Deserializer escaped-string/numeric scratch plus bounded recursive frames.
-    let mut total = slots(raw_bytes, 8)?;
-    add(
-        &mut total,
-        slots(
-            MAX_JSON_DEPTH + 1,
-            std::mem::size_of::<Value>() + std::mem::size_of::<tos_foundation::JsonValue>() + 512,
-        )?,
-    )?;
+    let mut total = serde_input_temporary_upper(raw_bytes)?;
     walk(root, 0, &mut total)?;
     Ok(total)
 }

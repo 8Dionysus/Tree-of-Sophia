@@ -314,6 +314,7 @@ impl ImportedCoreSnapshotState {
 /// existing descriptor when this value is returned; it must not retain this
 /// detached result as a new state authority.
 pub struct ReusedNativeKnowledgeSnapshot {
+    capture_identity: (u64, u64, u64, i64, i64, i64, i64),
     pub graph: serde_json::Value,
     pub catalog: serde_json::Value,
     pub source_revision: String,
@@ -322,6 +323,30 @@ pub struct ReusedNativeKnowledgeSnapshot {
     pub graph_root_sha256: String,
     pub catalog_sha256: String,
     pub state_receipt_sha256: String,
+}
+
+impl ReusedNativeKnowledgeSnapshot {
+    /// Disclose a reused result only through the exact full capture which
+    /// authenticated its prior state. Partial-carrier profiles are a different
+    /// route; full captures keep the same physical pre/post input fence here.
+    pub fn with_current_capture<T>(
+        &self,
+        capture: &PublicCapture,
+        consume: impl FnOnce() -> Result<T>,
+    ) -> Result<T> {
+        let check = || {
+            if capture.capture_identity()? != self.capture_identity {
+                return Err(Error::Invalid("reused snapshot capture binding"));
+            }
+            capture.verify_captured_inputs()
+        };
+        check()?;
+        let result = consume();
+        match check() {
+            Err(error) => Err(error),
+            Ok(()) => result,
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -1827,6 +1852,7 @@ pub fn reuse_native_knowledge_snapshot_if_current(
         .map(|(path, digest, bytes)| (path, digest.to_hex(), bytes))
         .collect();
     Ok(Some(ReusedNativeKnowledgeSnapshot {
+        capture_identity: capture.capture_identity()?,
         graph: previous.graph,
         catalog: previous.catalog,
         source_revision,
