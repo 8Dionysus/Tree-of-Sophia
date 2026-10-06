@@ -1784,6 +1784,11 @@ fn run_spooled_inner(
             let original = resources
                 .v2_base_read_limits
                 .ok_or_else(|| invalid("indexed input requires the selected V2 read profile"))?;
+            // The base reader authenticates metadata only and deliberately has
+            // a one-byte payload bound. Indexed source bytes instead inherit
+            // the initial-cut census bound selected by this invocation.
+            let max_input_bytes = usize::try_from(profile.census.max_member_bytes)
+                .map_err(|_| invalid("indexed input member bound exceeds range"))?;
             let max_members = profile.census.max_files.min(original.tree.max_rows);
             let max_objects = max_members
                 .min(original.tree.max_rows)
@@ -1812,10 +1817,10 @@ fn run_spooled_inner(
                 held_declaration: validator.take_indexed_input_declaration_v1()?,
                 named_root: named_root.to_path_buf(),
                 segment_limits: original.segment,
-                max_profile_bytes: original.max_object_bytes.min(
+                max_profile_bytes: max_input_bytes.min(
                     crate::source_admission_indexed_input::PROFILE_SIDECAR_MAX_BYTES_V1,
                 ),
-                max_dependency_closure_bytes: original.max_object_bytes.min(
+                max_dependency_closure_bytes: max_input_bytes.min(
                     crate::source_admission_indexed_input::DEPENDENCY_CLOSURE_MAX_BYTES_V1,
                 ),
                 reader_limits: crate::source_admission_indexed_input::IndexedInputLimitsV1 {
@@ -1833,12 +1838,9 @@ fn run_spooled_inner(
                         ),
                     },
                     max_members,
-                    max_member_bytes: profile
-                        .census
-                        .max_member_bytes
-                        .min(original.max_object_bytes as u64),
+                    max_member_bytes: profile.census.max_member_bytes,
                     max_source_bytes: profile.census.max_source_bytes,
-                    max_descriptor_bytes: (12 * 1024).min(original.max_object_bytes),
+                    max_descriptor_bytes: (12 * 1024).min(max_input_bytes),
                     caller_retained_state_bytes: caller_live_state_bytes,
                 },
             })
