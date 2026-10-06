@@ -37,6 +37,7 @@ import {parseNativeRequest, type NativeRef} from './native-lens.ts';
 import {nativeLensResponse, nativePacketResponse} from './native-lens-response.ts';
 import {NativeBudgetExceeded} from '../../../shared/native-semantics.ts';
 import {nativeStrip,nativeIntegerString} from '../../../shared/native-unicode.ts';
+import { withWebAnalytics } from "./web-analytics";
 
 const STATIC_CORPUS_LIMITS = new Set([1, 100, 700, 1000]);
 const STATIC_PHILOSOPHY_LIMITS = new Set([1, 1000]);
@@ -496,6 +497,6 @@ export default {
         return jsonResponse({ error: "Cloudflare edge request failed" }, 500, request.method);
       }
     }
-    return withSecurity(await env.ASSETS.fetch(request));
+    return withWebAnalytics(request, withSecurity(await env.ASSETS.fetch(request)), env.WEB_ANALYTICS_TOKEN);
   },
 } satisfies ExportedHandler<Env>;
