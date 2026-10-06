@@ -5032,12 +5032,9 @@ fn run<'work, 'receive, 'observe, 'cancel, 'signal>(
         max_claim_bytes,
         catalog_limits
             .max_rows
-            .min(catalog_operation.output_bytes as u64)
+            .min(catalog_operation.tmpfs_bytes)
             .max(1),
-        catalog_operation
-            .tmpfs_bytes
-            .min(catalog_operation.output_bytes as u64)
-            .max(1),
+        catalog_operation.tmpfs_bytes.max(1),
     ) {
         Ok(limits) => limits,
         Err(error) => {

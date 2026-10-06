@@ -1567,6 +1567,8 @@ impl FoundationExecutionLimits {
     /// Biblio construction is conditional and follows the catalog producer.
     /// All row/cohort/output caps are exact caller-provided shape limits and
     /// must remain inside the same catalog-and-persisted reservation.
+    /// These rows stay in the staged database; its tmpfs capacity bounds them.
+    /// The CLI output reservation independently bounds the final receipt.
     pub(crate) fn bibliography_limits(
         &self,
         catalog: SourceCatalogLimits,
@@ -1584,7 +1586,6 @@ impl FoundationExecutionLimits {
             || max_output_rows > max_output_bytes
             || max_output_bytes == 0
             || max_output_bytes > reservation.tmpfs_bytes
-            || max_output_bytes > reservation.output_bytes as u64
         {
             return Err(Error::Unsupported(
                 "foundation bibliography exceeds its named reservation",
