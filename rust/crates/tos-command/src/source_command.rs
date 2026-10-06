@@ -108,6 +108,8 @@ pub(crate) fn public_compiler_reason(error: &tos_compiler::Error) -> String {
         } => format!(
             "compiler budget exceeded: SQLite VM steps in {phase:?} (used {used_steps}, max {max_steps})"
         ),
+        Error::FoundationJson { .. } => error.to_string(),
+        Error::ControlledColdClose { close, .. } => compiler_sql_cause(error, "cold-close", close),
         Error::Io(error) => public_io_reason(error),
         Error::Source(reason)
             if crate::source_admission_spooled_index::is_bounded_source_cause(reason) =>
