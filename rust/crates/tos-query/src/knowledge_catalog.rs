@@ -637,6 +637,7 @@ pub(crate) fn controlled_knowledge_health_metadata(
             "display_coverage",
             "semantic_mapping",
         ],
+        &[],
         "selected graph count schema differs",
     )?;
     let display_coverage = counts.object_get("display_coverage").ok_or_else(|| {
@@ -658,6 +659,7 @@ pub(crate) fn controlled_knowledge_health_metadata(
             "relation_explanation_states",
             "relations_without_source_explanation",
         ],
+        &[],
         "selected graph display coverage schema differs",
     )?;
     let semantic_mapping = counts.object_get("semantic_mapping").ok_or_else(|| {
