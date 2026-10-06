@@ -5495,63 +5495,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
                     continue;
                 };
                 self.expect_ref(&location, Some(edition_ref), "edition")?;
-                let temporary_baseline = self.temporary_state_bytes;
-                let same_work: Result<Option<bool>, ItemRefusal> = (|| {
-                    let (edition, edition_workspace) =
-                        self.current_record_with_state_budget(edition_ref)?;
-                    let Some(edition) = edition else {
-                        self.release_temporary_state(edition_workspace)?;
-                        return Ok(None);
-                    };
-                    let expression_values = edition
-                        .value
-                        .get("embodies_expression_refs")
-                        .and_then(Value::as_array);
-                    let mut expression_refs_state = std::mem::size_of::<Vec<String>>();
-                    if let Some(values) = expression_values {
-                        expression_refs_state = expression_refs_state
-                            .checked_add(
-                                values
-                                    .len()
-                                    .checked_mul(std::mem::size_of::<String>())
-                                    .ok_or(ItemRefusal::Budget)?,
-                            )
-                            .ok_or(ItemRefusal::Budget)?;
-                        for expression_ref in values.iter().filter_map(Value::as_str) {
-                            expression_refs_state = expression_refs_state
-                                .checked_add(estimate_string_storage(expression_ref)?)
-                                .ok_or(ItemRefusal::Budget)?;
-                        }
-                    }
-                    self.reserve_temporary(expression_refs_state)?;
-                    let mut expression_refs: Vec<String> =
-                        Vec::with_capacity(expression_values.map_or(0, Vec::len));
-                    if let Some(values) = expression_values {
-                        expression_refs
-                            .extend(values.iter().filter_map(Value::as_str).map(str::to_owned));
-                    }
-                    drop(edition);
-                    self.release_temporary_state(edition_workspace)?;
-
-                    let mut same_work = false;
-                    for expression_ref in &expression_refs {
-                        let (expression, expression_workspace) =
-                            self.current_record_with_state_budget(expression_ref)?;
-                        let matches = expression.as_ref().is_some_and(|expression| {
-                            text(&expression.value, "work_ref") == Some(subject.as_str())
-                        });
-                        drop(expression);
-                        self.release_temporary_state(expression_workspace)?;
-                        if matches {
-                            same_work = true;
-                            break;
-                        }
-                    }
-                    drop(expression_refs);
-                    self.release_temporary_state(expression_refs_state)?;
-                    Ok(Some(same_work))
-                })();
-                self.release_temporary_since(temporary_baseline);
+                let same_work = self.edition_matches_work(edition_ref, &subject);
                 let Some(same_work) = same_work? else {
                     continue;
                 };
@@ -6646,6 +6590,71 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
         Ok(())
     }
 
+    fn edition_matches_work(
+        &mut self,
+        edition_ref: &str,
+        subject: &str,
+    ) -> Result<Option<bool>, ItemRefusal> {
+        let temporary_baseline = self.temporary_state_bytes;
+        let same_work: Result<Option<bool>, ItemRefusal> = (|| {
+            let (edition, edition_workspace) =
+                self.current_record_with_state_budget(edition_ref)?;
+            let Some(edition) = edition else {
+                self.release_temporary_state(edition_workspace)?;
+                return Ok(None);
+            };
+            let expression_values = edition
+                .value
+                .get("embodies_expression_refs")
+                .and_then(Value::as_array);
+            let mut expression_refs_state = std::mem::size_of::<Vec<String>>();
+            if let Some(values) = expression_values {
+                expression_refs_state = expression_refs_state
+                    .checked_add(
+                        values
+                            .len()
+                            .checked_mul(std::mem::size_of::<String>())
+                            .ok_or(ItemRefusal::Budget)?,
+                    )
+                    .ok_or(ItemRefusal::Budget)?;
+                for expression_ref in values.iter().filter_map(Value::as_str) {
+                    expression_refs_state = expression_refs_state
+                        .checked_add(estimate_string_storage(expression_ref)?)
+                        .ok_or(ItemRefusal::Budget)?;
+                }
+            }
+            self.reserve_temporary(expression_refs_state)?;
+            let mut expression_refs: Vec<String> =
+                Vec::with_capacity(expression_values.map_or(0, Vec::len));
+            if let Some(values) = expression_values {
+                expression_refs
+                    .extend(values.iter().filter_map(Value::as_str).map(str::to_owned));
+            }
+            drop(edition);
+            self.release_temporary_state(edition_workspace)?;
+
+            let mut same_work = false;
+            for expression_ref in &expression_refs {
+                let (expression, expression_workspace) =
+                    self.current_record_with_state_budget(expression_ref)?;
+                let matches = expression.as_ref().is_some_and(|expression| {
+                    text(&expression.value, "work_ref") == Some(subject)
+                });
+                drop(expression);
+                self.release_temporary_state(expression_workspace)?;
+                if matches {
+                    same_work = true;
+                    break;
+                }
+            }
+            drop(expression_refs);
+            self.release_temporary_state(expression_refs_state)?;
+            Ok(Some(same_work))
+        })();
+        self.release_temporary_since(temporary_baseline);
+        same_work
+    }
+
     /// Selected closure follows the declared semantic family, not the
     /// historical corpus path, event identity or materialization cardinality.
     fn check_selected_specialized_claim(
@@ -6714,17 +6723,11 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
                 }
                 if let Some(edition) = text(stage, "edition_ref") {
                     self.expect_ref(location, Some(edition), "edition")?;
-                    let (record, workspace) = self.current_record_with_state_budget(edition)?;
-                    if let Some(record) = record.as_ref() {
-                        if text(&record.value, "work_ref") != subject {
-                            self.issue(
-                                location,
-                                "chronology stage edition belongs to another Work",
-                            )?;
+                    if let Some(subject) = subject {
+                        if self.edition_matches_work(edition, subject)? == Some(false) {
+                            self.issue(location, format!("chronology stage edition belongs to another Work: {edition}"))?;
                         }
                     }
-                    drop(record);
-                    self.release_temporary_state(workspace)?;
                 }
             }
         }
