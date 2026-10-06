@@ -3240,7 +3240,8 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
         &validator,
         true,
         max_catalog_files as usize,
-        max_catalog_file_bytes,
+        // Version resolution charges cumulative reads, not the largest member.
+        bounded_usize(catalog_operation.source_read_bytes)?,
         max_generated_bytes,
         max_generated_files,
         catalog_state_cap,
@@ -5026,7 +5027,8 @@ fn run<'work, 'receive, 'observe, 'cancel, 'signal>(
             catalog_diagnostic_limits,
             true,
             usize::try_from(max_catalog_files).unwrap_or(usize::MAX - 1),
-            max_catalog_file_bytes,
+            // Version resolution charges cumulative reads, not the largest member.
+            bounded_usize(catalog_operation.source_read_bytes)?,
             usize::try_from(
                 catalog_operation
                     .source_read_bytes
@@ -5099,7 +5101,8 @@ fn run<'work, 'receive, 'observe, 'cancel, 'signal>(
             catalog_diagnostic_limits,
             true,
             usize::try_from(max_catalog_files).unwrap_or(usize::MAX - 1),
-            max_catalog_file_bytes,
+            // Version resolution charges cumulative reads, not the largest member.
+            bounded_usize(catalog_operation.source_read_bytes)?,
             usize::try_from(
                 catalog_operation
                     .source_read_bytes
