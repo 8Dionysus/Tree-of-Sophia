@@ -1175,8 +1175,10 @@ pub struct ExchangeFailureContext {
     pub natural_termination: Option<ChildTermination>,
     /// Actual wait4 CPU for a naturally reaped child; never elapsed-wall inference.
     pub child_cpu_micros: Option<u64>,
+    /// Zero when a guard refuses before a child exists.
     pub child_pid: i32,
-    /// One-based exchange count on this child; retained sessions share its CPU cap.
+    /// One-based exchange count on this child; zero before any exchange.
+    /// Retained sessions share the child CPU cap.
     pub child_exchange_ordinal: u64,
     pub retained_session: bool,
 }
@@ -1548,6 +1550,10 @@ impl SharedSchemaWorkerQuota {
                 boundary,
                 failure: reason,
                 natural_termination: None,
+                child_cpu_micros: None,
+                child_pid: 0,
+                child_exchange_ordinal: 0,
+                retained_session: false,
             });
             state.poisoned = true;
             return Err(reason);
@@ -3466,6 +3472,16 @@ mod native {
                     boundary,
                     failure: reason,
                     natural_termination: None,
+                    child_cpu_micros: self
+                        .session
+                        .as_ref()
+                        .and_then(|s| s.child.natural_cpu_micros),
+                    child_pid: self.session.as_ref().map_or(0, |s| s.child.pid),
+                    child_exchange_ordinal: self
+                        .session
+                        .as_ref()
+                        .map_or(0, |s| s.child.exchanges_started),
+                    retained_session: self.session.is_some(),
                 });
             }
             self.poison(reason)
