@@ -594,7 +594,15 @@ impl GrammarIdentity {
         if let Some(error) = failure {
             return Err(error);
         }
-        let coverage = coverage.map_err(|_| invalid("native candidate grammar input refused"))?;
+        let coverage = coverage.map_err(|error| {
+            let cause = crate::source_admission_spooled_index::receiver_refusal(error);
+            io::Error::new(
+                io::ErrorKind::InvalidData,
+                super::source_foundation_admission::NativeValidationRefusal(
+                    crate::source_command::public_io_reason(&cause),
+                ),
+            )
+        })?;
         if count != self.bindings.len() {
             return Err(invalid(
                 "candidate grammar differs from selected native validator grammar",

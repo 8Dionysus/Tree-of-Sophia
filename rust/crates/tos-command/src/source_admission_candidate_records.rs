@@ -307,7 +307,9 @@ impl SourceCutInput for CandidateRecordsInput<'_, '_> {
             if let Some(error) = callback_error {
                 return Err(error);
             }
-            let membership = membership.map_err(|_| refused())?;
+            let membership = membership.map_err(|error| {
+                ItemRefusal::Source(crate::source_command::public_io_reason(&error))
+            })?;
             self.check(deadline, cancelled)?;
             let (count, bytes) = self.candidate.membership_counts();
             let coverage = SourceCutInputCoverage::after_verified_eof(membership, count, bytes);
