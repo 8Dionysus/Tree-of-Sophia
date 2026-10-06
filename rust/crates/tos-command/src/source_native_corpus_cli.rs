@@ -13,6 +13,12 @@ use std::time::Instant;
 use tos_foundation::{JsonLimits, SourceRevision};
 use tos_source_store::{PinnedSqliteIoBudget, ReadLimits, Selector};
 
+const MAX_MANIFEST_BYTES: u64 = 4_194_304;
+const MAX_MANIFEST_ENTRIES: u64 = 32_768;
+// State follows the same resident forecast as the admitted manifest profile.
+// Each invocation still selects its own smaller bound under the outer quota.
+const MAX_RETAINED_STATE_BYTES: u64 = 16 * MAX_MANIFEST_BYTES + 256 * MAX_MANIFEST_ENTRIES;
+
 fn refuse(_: impl std::fmt::Debug) -> E {
     E::Invalid("corpus consumer mechanical verification")
 }
@@ -72,11 +78,11 @@ pub(super) fn run(
     )?;
     let read_cap = capped(budgets, "max_read_bytes", 1_342_177_280)?;
     let write_cap = capped(budgets, "max_write_bytes", 268_435_456)?;
-    let manifest_cap = capped(budgets, "max_manifest_bytes", 4_194_304)? as usize;
-    let max_entries = capped(budgets, "max_manifest_entries", 32_768)? as usize;
+    let manifest_cap = capped(budgets, "max_manifest_bytes", MAX_MANIFEST_BYTES)? as usize;
+    let max_entries = capped(budgets, "max_manifest_entries", MAX_MANIFEST_ENTRIES)? as usize;
     let object_cap = capped(budgets, "max_object_bytes", 16_777_216)?;
     let max_directories = capped(budgets, "max_directories", 2048)? as usize;
-    let max_state = capped(budgets, "max_state_bytes", 4_194_304)? as usize;
+    let max_state = capped(budgets, "max_state_bytes", MAX_RETAINED_STATE_BYTES)? as usize;
     let millis = capped(budgets, "max_elapsed_ms", 60_000)?;
     let deadline = deadline.min(Instant::now() + std::time::Duration::from_millis(millis));
     // Conservative declared retained-state forecast for bounded JSON, snapshot
