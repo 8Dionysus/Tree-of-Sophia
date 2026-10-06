@@ -414,6 +414,10 @@ fn load_original_navigation<'hold, A: InspectCurrentAuthority<'hold> + ?Sized>(
     {
         return Err(corrupt("selected dossier original binding differs"));
     }
+    let mut budget = budget;
+    let (inspect, normalized_max, normalized_count) =
+        read.navigation_payload_ceiling(&receipt, source)?;
+    budget.inspect = inspect;
     let navigation_state_base = if let Some(cap) = max_retained_bytes {
         // The receipt total covers header/rights; member_index_bytes
         // covers metadata, not node/edge raw bodies. Price those bodies
@@ -493,7 +497,6 @@ fn load_original_navigation<'hold, A: InspectCurrentAuthority<'hold> + ?Sized>(
             .and_then(|n| n.checked_add(members.checked_mul(512)?))
             .and_then(|n| n.checked_add(candidates.checked_mul(observed_slot)?))
             .and_then(|n| n.checked_add(budget.block_size.checked_mul(page_slot)?))
-            .and_then(|n| n.checked_add(budget.inspect.max_response_bytes.checked_mul(4)?))
             .and_then(|n| n.checked_add(4096))
             .ok_or_else(|| {
                 err(
@@ -552,12 +555,39 @@ fn load_original_navigation<'hold, A: InspectCurrentAuthority<'hold> + ?Sized>(
                     "navigation original DOM state overflow",
                 )
             })?;
-        if state > cap {
-            return Err(err(
-                SearchV2ErrorCode::BudgetExceeded,
-                "navigation original DOM exceeds owner allowance",
-            ));
-        }
+        // Reserve all original/member/candidate/page/payload states first.
+        // The response uses the same existing four-copy logical bill, but
+        // receives only the operation allowance that actually remains.
+        let response = cap
+            .checked_sub(state)
+            .map(|remaining| remaining / 4)
+            .map(|remaining| remaining.min(budget.inspect.max_response_bytes))
+            .filter(|bytes| *bytes > 0)
+            .ok_or_else(|| {
+                err(
+                    SearchV2ErrorCode::BudgetExceeded,
+                    "navigation original DOM leaves no response allowance",
+                )
+            })?;
+        read.limit_navigation_response(response)?;
+        budget.inspect.max_response_bytes = response;
+        // One fixed numeric observation of this same operation projection;
+        // no source identities, paths, rights or provider text are disclosed.
+        // This is a logical allowance bill, never an RSS/allocator assertion.
+        read.check_interrupt()?;
+        eprintln!(
+            "native navigation logical allowance: original_total={} member_index={} scoped_max={} scoped_count={} raw_sum={} payload_cap={} nonresponse={} response_cap={} retained_cap={}",
+            receipt.total_bytes,
+            receipt.member_index_bytes,
+            normalized_max,
+            normalized_count,
+            raw_bytes,
+            budget.inspect.max_payload_bytes,
+            state,
+            response,
+            cap
+        );
+        read.check_interrupt()?;
     }
     let mut candidate_work = 0;
     let nodes = original_payloads(

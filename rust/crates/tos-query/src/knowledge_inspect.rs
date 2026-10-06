@@ -357,6 +357,15 @@ impl InspectWorkspace {
     }
 }
 
+// One private owner of the normalized source-order table/index association.
+fn source_order_table(kind: SearchKind) -> (&'static str, &'static str) {
+    if kind == SearchKind::Nodes {
+        ("knowledge_nodes", "knowledge_nodes_source_order")
+    } else {
+        ("knowledge_relations", "knowledge_relations_source_order")
+    }
+}
+
 pub(crate) struct Reader<'a, 'b, A: ?Sized> {
     model: &'a mut VerifiedKnowledgeModel<'b>,
     authority: &'a mut A,
@@ -890,6 +899,92 @@ impl<'hold, A: InspectCurrentAuthority<'hold> + ?Sized> Reader<'_, '_, A> {
     pub(crate) fn disclosure_scope(&self) -> &IndexedDisclosureScope {
         self.scope
     }
+    /// Price only the selected navigation operation's physical carriers.
+    /// The shared inspect allowance also admits unrelated catalog packets;
+    /// that allowance is not evidence that navigation retains such a packet.
+    pub(crate) fn navigation_payload_ceiling(
+        &mut self,
+        receipt: &tos_compiler::NavigationOriginalReceipt,
+        source: &str,
+    ) -> Result<(InspectBudget, usize, u64), SearchV2Error> {
+        self.check_interrupt()?;
+        self.model
+            .check_pin()
+            .map_err(|_| corrupt("navigation selection changed"))?;
+        if receipt.source_graph != source {
+            return Err(corrupt("navigation payload scope differs"));
+        }
+        // Every original row is bounded by the authenticated aggregate, and
+        // each original member descriptor by its authenticated index bill.
+        let mut ceiling = usize::try_from(receipt.total_bytes.max(receipt.member_index_bytes))
+            .map_err(|_| budget_error())?;
+        let sources = [source.to_owned()];
+        let mut normalized_max = 0usize;
+        let mut normalized_count = 0u64;
+        for kind in [SearchKind::Nodes, SearchKind::Relations] {
+            let expected = self.scope_count(kind, &sources)?;
+            let (table, index) = source_order_table(kind);
+            // Metadata-only admission under the existing VM/cancellation
+            // handler. No body is copied before the operation cap is known.
+            let sql = format!(
+                "SELECT COUNT(*),MAX(payload_len),
+                 COALESCE(SUM(CASE WHEN typeof(payload_len)='integer'
+                   AND payload_len BETWEEN 1 AND ?2
+                   AND typeof(payload)='blob' AND length(payload)=payload_len
+                   THEN 0 ELSE 1 END),0) FROM {table} INDEXED BY {index} WHERE source_graph=?1"
+            );
+            let (count, maximum, invalid): (i64, Option<i64>, i64) = self
+                .model
+                .connection()
+                .query_row(
+                    &sql,
+                    params![source, self.budget.max_payload_bytes as i64],
+                    |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+                )
+                .map_err(sql_error)?;
+            if count < 0
+                || count as u64 != expected
+                || invalid != 0
+                || (count == 0) != maximum.is_none()
+            {
+                return Err(corrupt("navigation payload metadata closure differs"));
+            }
+            if let Some(maximum) = maximum {
+                let maximum = usize::try_from(maximum).map_err(|_| budget_error())?;
+                normalized_max = normalized_max.max(maximum);
+                ceiling = ceiling.max(maximum);
+            }
+            normalized_count = normalized_count
+                .checked_add(count as u64)
+                .ok_or_else(budget_error)?;
+            self.charge_original(
+                usize::try_from(count)
+                    .map_err(|_| budget_error())?
+                    .checked_add(1)
+                    .ok_or_else(budget_error)?,
+                3 * std::mem::size_of::<i64>() as u64,
+            )?;
+        }
+        self.model
+            .check_pin()
+            .map_err(|_| corrupt("navigation selection changed"))?;
+        self.check_interrupt()?;
+        if ceiling == 0 || ceiling > self.budget.max_payload_bytes {
+            return Err(budget_error());
+        }
+        self.budget.max_payload_bytes = ceiling;
+        Ok((self.budget, normalized_max, normalized_count))
+    }
+    /// Apply the response share derived from the original operation's held
+    /// retention allowance. It can only narrow the existing response limit.
+    pub(crate) fn limit_navigation_response(&mut self, bytes: usize) -> Result<(), SearchV2Error> {
+        self.check_interrupt()?;
+        if bytes == 0 || bytes > self.budget.max_response_bytes {
+            return Err(budget_error());
+        }
+        self.budget.max_response_bytes = bytes;
+        Ok(())
+    }
     /// Exact same-cut certified normalized scope counts. Does not walk graph
     /// rows to rediscover a producer count already bound by cold admission.
     pub(crate) fn scope_count(
@@ -1075,11 +1170,7 @@ impl<'hold, A: InspectCurrentAuthority<'hold> + ?Sized> Reader<'_, '_, A> {
             .map_err(|_| budget_error())?;
         let encoded =
             std::str::from_utf8(&encoded).map_err(|_| corrupt("candidate sources invalid"))?;
-        let (table, index) = if kind == SearchKind::Nodes {
-            ("knowledge_nodes", "knowledge_nodes_source_order")
-        } else {
-            ("knowledge_relations", "knowledge_relations_source_order")
-        };
+        let (table, index) = source_order_table(kind);
         let (source, position) = after.unwrap_or(("", -1));
         let sql = format!(
             "SELECT CASE WHEN length(CAST(source_graph AS BLOB))<=?5 THEN source_graph END,source_order,CASE WHEN length(CAST(id AS BLOB))<=?5 THEN id END FROM {table} INDEXED BY {index} WHERE source_graph IN (SELECT value FROM json_each(?1)) AND (source_graph,source_order)>(?2,?3) ORDER BY source_graph,source_order LIMIT ?4"
@@ -1768,8 +1859,8 @@ where
         };
         let value = compute(&mut read)?;
         check_abort()?;
-        let mut limits = budget.json;
-        limits.max_bytes = limits.max_bytes.min(budget.max_response_bytes);
+        let mut limits = read.budget.json;
+        limits.max_bytes = limits.max_bytes.min(read.budget.max_response_bytes);
         let body = if read.state.is_some() {
             let mut state_limits = read.state_json_limits()?;
             state_limits.max_bytes = limits.max_bytes;
