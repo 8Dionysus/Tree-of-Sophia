@@ -1776,6 +1776,12 @@ fn recheck_private_prefix(
                 stopped.set(true);
                 return false;
             }
+            // The callback checks the selected root too, but the returned
+            // inventory contains only descendants. The prefix has already
+            // been observed and priced separately above.
+            if path == prefix {
+                return true;
+            }
             let next = local_count.get().saturating_add(1);
             if next > remaining {
                 over_paths.set(true);
@@ -1937,6 +1943,11 @@ fn enumerate_private_prefix(
         {
             stopped.set(true);
             return false;
+        }
+        // Root admission is not a returned descendant. Its existing physical
+        // observation owns that cost; count only this inventory's entries.
+        if path == prefix {
+            return true;
         }
         let next = local_count.get().saturating_add(1);
         if next > remaining {
