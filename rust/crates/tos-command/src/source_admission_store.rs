@@ -3753,7 +3753,12 @@ impl AdmissionStore {
         // lock and three child namespace lookups, and their metadata checks.
         // It is charged as an upper bound, never reported as returned bytes.
         charge_v2_layout_guard(accountant.io_budget(), path)?;
-        let root = owned_directory(held_root.try_clone()?)?;
+        // The stage retains an O_PATH capability. Reopen the same held inode
+        // for namespace fsync; cloning O_PATH would preserve its EBADF on sync.
+        let root = owned_directory(tos_fd_open::reopen_directory(held_root).map_err(invalid)?)?;
+        if identity(&root)? != identity(held_root)? {
+            return Err(invalid("reopened V2 corpus root differs from held root"));
+        }
         let named = owned_directory(tos_fd_open::open_absolute_directory(path).map_err(invalid)?)?;
         if identity(&named)? != identity(&root)? {
             return Err(invalid("named V2 corpus root differs from held root"));
