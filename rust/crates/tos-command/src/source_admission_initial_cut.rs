@@ -9,7 +9,7 @@ use super::source_admission::{
 use super::source_admission_segment_v2::NativeV2TreeIo;
 use super::source_admission_source_census::{
     SourceCensusLimits, SourceCensusScan, SourceCensusSummary, SourceCensusWorkKind,
-    census_selected_to_scratch, working_state_upper_bound,
+    census_selected_to_scratch, summarize_indexed_proposal_rows, working_state_upper_bound,
 };
 use super::source_admission_store::AdmissionStore;
 use super::source_admission_v2_seen_pack::configure_db;
@@ -120,12 +120,17 @@ impl InitialCutProfile {
         let batch_builder_state_bytes = batch_builder_state_upper_bound(census)?;
         let store_namespace_state_bytes = store_namespace_state_upper_bound()?;
         let retained_fence_state_bytes = retained_fence_state_upper_bound(indexed_input)?;
-        let max_work_units = maximum_work_units(census, indexed_input)?;
-        if max_work_units > selected_work_units {
+        let census_work_units = maximum_work_units(census, indexed_input)?;
+        if census_work_units > selected_work_units {
             return Err(invalid(
                 "initial source cut work bound exceeds the caller-selected ceiling",
             ));
         }
+        // Authenticated-tree work depends on the selected tree geometry, not
+        // only filesystem entries. Keep the original finite operation meter
+        // for indexed input; every metadata, node and payload visit debits it.
+        // The census estimate above remains a feasibility floor, not a new grant.
+        let max_work_units = if indexed_input { selected_work_units } else { census_work_units };
         let profile = Self {
             census,
             admission,
@@ -219,6 +224,8 @@ struct InitialCutFence<'a> {
     root_identity: (u64, u64),
     root_stamp: (u64, u64, u64, i64, i64, i64, i64),
     proposal: SourceCensusSummary,
+    published_proposal: SourceCensusSummary,
+    published_scan: SourceCensusScan,
     profile: InitialCutProfile,
     _scope: PinnedSqliteAuxScope,
     db: Rc<RefCell<PinnedSqliteConnection>>,
@@ -446,6 +453,11 @@ fn maximum_work_units(census: SourceCensusLimits, indexed_input: bool) -> io::Re
         // repeated maximum-leaf hash passes used to open and recheck indexed
         // evidence files.
         .and_then(|units| units.checked_add(selector_fence_work))
+        // Composed input inventories one logical row pass in AUX, summarizes
+        // it, and compares every authored row through its indexed key.
+        .and_then(|units| units.checked_add(if indexed_input {
+            census.max_files.checked_mul(5)?.checked_add(12)?
+        } else { 0 }))
         .ok_or_else(|| invalid("initial source cut work bound overflow"))
 }
 
@@ -628,6 +640,100 @@ fn create_object_inventory_table(
     .map_err(|_| invalid("initial V2 object inventory scratch table refused"))
 }
 
+fn compose_indexed_proposal(
+    reader: &mut crate::source_admission_indexed_input::IndexedInputReaderV1,
+    db: &PinnedSqliteConnection,
+    physical: SourceCensusSummary,
+    profile: InitialCutProfile,
+    work: &mut InitialCutWork,
+    deadline: Instant,
+    cancel: &AtomicBool,
+) -> io::Result<SourceCensusSummary> {
+    let composition = reader.composition
+        .ok_or_else(|| invalid("indexed proposal lacks selected authored composition"))?;
+    if composition.auxiliary_member_count != physical.member_count
+        || composition.auxiliary_source_bytes != physical.source_bytes
+    {
+        return Err(invalid("indexed authored composition differs from physical source census"));
+    }
+    active(deadline, cancel)?;
+    // Prepay setup, label probe, release and potential rollback/release.
+    work.charge_many(6)?;
+    db.execute_batch("SAVEPOINT initial_indexed_proposal")
+        .map_err(|_| invalid("indexed proposal transaction refused"))?;
+    let result = (|| {
+        let existing: i64 = db.query_row(
+            "SELECT COUNT(*) FROM source_member_census WHERE scan_label=?1",
+            [SourceCensusScan::IndexedProposal.label()], |row| row.get(0),
+        ).map_err(|_| invalid("indexed proposal existing-row probe refused"))?;
+        if existing != 0 {
+            return Err(invalid("indexed proposal label already contains rows"));
+        }
+        {
+            let mut insert = db.prepare(
+                "INSERT INTO source_member_census(scan_label,path,sha256,size,mode) VALUES(?1,?2,?3,?4,?5)",
+            ).map_err(|_| invalid("indexed proposal row statement refused"))?;
+            reader.visit_initial_member_metadata(&mut |member| {
+                active(deadline, cancel)?;
+                if member.path.as_str().len() > profile.census.max_path_bytes
+                    || !matches!(member.source_mode, 0o600 | 0o644 | 0o755)
+                {
+                    return Err(invalid("indexed proposal row exceeds source profile"));
+                }
+                work.charge_many(1)?;
+                let changed = insert.execute(params![
+                    SourceCensusScan::IndexedProposal.label(), member.path.as_str(),
+                    member.sha256.as_bytes().as_slice(),
+                    i64::try_from(member.size_bytes)
+                        .map_err(|_| invalid("indexed proposal size exceeds SQLite range"))?,
+                    i64::from(member.source_mode),
+                ]).map_err(|_| invalid("indexed proposal row insertion refused"))?;
+                if changed != 1 {
+                    return Err(invalid("indexed proposal row insertion was not unique"));
+                }
+                Ok(())
+            })?;
+        }
+        let (members, bytes) = reader.expected_totals();
+        let mut debit = |kind| work.charge(kind);
+        let summary = summarize_indexed_proposal_rows(db, members, bytes, profile.census,
+            &mut debit, deadline, cancel)?;
+        drop(debit);
+        // Every physical source row must survive with exact path, digest,
+        // length and mode. Generated extras still require the selected native
+        // generated-closure validator and actual packed payload verification.
+        work.charge_many(physical.member_count.checked_mul(2)
+            .and_then(|n| n.checked_add(1))
+            .ok_or_else(|| invalid("indexed authored comparison work overflow"))?)?;
+        let differs: bool = db.query_row(
+            "SELECT EXISTS(SELECT 1 FROM source_member_census p \
+             LEFT JOIN source_member_census i ON i.scan_label=?1 AND i.path=p.path \
+             WHERE p.scan_label=?2 AND (i.path IS NULL OR i.sha256!=p.sha256 \
+             OR i.size!=p.size OR i.mode!=p.mode))",
+            params![SourceCensusScan::IndexedProposal.label(), SourceCensusScan::Proposal.label()],
+            |row| row.get(0),
+        ).map_err(|_| invalid("indexed authored row comparison refused"))?;
+        if differs {
+            return Err(invalid("indexed proposal lost or changed an authored source member"));
+        }
+        active(deadline, cancel)?;
+        Ok(summary)
+    })();
+    match result {
+        Ok(summary) => {
+            if db.execute_batch("RELEASE SAVEPOINT initial_indexed_proposal").is_err() {
+                let _ = db.execute_batch("ROLLBACK TO SAVEPOINT initial_indexed_proposal; RELEASE SAVEPOINT initial_indexed_proposal");
+                return Err(invalid("indexed proposal transaction release refused"));
+            }
+            Ok(summary)
+        }
+        Err(error) => {
+            let _ = db.execute_batch("ROLLBACK TO SAVEPOINT initial_indexed_proposal; RELEASE SAVEPOINT initial_indexed_proposal");
+            Err(error)
+        }
+    }
+}
+
 fn verify_indexed_unique_totals(
     db: &PinnedSqliteConnection,
     scan: SourceCensusScan,
@@ -691,6 +797,7 @@ fn verify_object_inventory(
     payload_io: &PinnedSqliteIoBudget,
     profile: InitialCutProfile,
     proposal: SourceCensusSummary,
+    proposal_scan: SourceCensusScan,
     work: &mut InitialCutWork,
     deadline: Instant,
     cancel: &AtomicBool,
@@ -781,7 +888,7 @@ fn verify_object_inventory(
         )
         .map_err(|_| invalid("initial V2 expected-object cursor refused"))?;
     let mut expected_rows = expected
-        .query(params![SourceCensusScan::Proposal.label()])
+        .query(params![proposal_scan.label()])
         .map_err(|_| invalid("initial V2 expected-object rows refused"))?;
     let mut actual = db
         .prepare("SELECT name,size FROM initial_cut_actual_objects ORDER BY name COLLATE BINARY")
@@ -860,6 +967,7 @@ fn verify_terminal_store_namespaces(
     payload_io: &PinnedSqliteIoBudget,
     profile: InitialCutProfile,
     proposal: SourceCensusSummary,
+    proposal_scan: SourceCensusScan,
     work: &mut InitialCutWork,
     deadline: Instant,
     cancel: &AtomicBool,
@@ -890,6 +998,7 @@ fn verify_terminal_store_namespaces(
         payload_io,
         profile,
         proposal,
+        proposal_scan,
         work,
         deadline,
         cancel,
@@ -1116,6 +1225,8 @@ pub(crate) fn prepare_initial_cut<'a>(
         )?
     };
     drop(callback);
+    let mut published_proposal = proposal;
+    let mut published_scan = SourceCensusScan::Proposal;
     let indexed_reader = if let Some(request) = indexed_input {
         let selection = match request.held_declaration {
             Some(declaration) => {
@@ -1145,45 +1256,37 @@ pub(crate) fn prepare_initial_cut<'a>(
                 &work,
             )?,
         };
-        if selection.member_count != proposal.member_count
-            || selection.source_bytes != proposal.source_bytes
+        let unique_objects = selection.unique_object_count;
+        let unique_bytes = selection.unique_payload_bytes;
+        let composed = selection.composition.is_some();
+        if !composed && (selection.member_count != proposal.member_count
+            || selection.source_bytes != proposal.source_bytes)
         {
-            return Err(invalid(
-                "indexed input totals differ from the held source census",
-            ));
+            return Err(invalid("indexed input totals differ from the held source census"));
         }
+        let mut reader = crate::source_admission_indexed_input::IndexedInputReaderV1::open(
+            selection, request.reader_limits, db.clone(), spool_io.clone(), deadline,
+            Arc::clone(&retained_cancel), work.clone(),
+        )?;
         {
             let db_guard = db.borrow_mut();
-            verify_indexed_unique_totals(
-                &db_guard,
-                SourceCensusScan::Proposal,
-                proposal,
-                selection.unique_object_count,
-                selection.unique_payload_bytes,
-                &mut work,
-                deadline,
-                cancel,
-            )?;
+            if composed {
+                published_proposal = compose_indexed_proposal(&mut reader, &db_guard,
+                    proposal, profile, &mut work, deadline, cancel)?;
+                published_scan = SourceCensusScan::IndexedProposal;
+            }
+            verify_indexed_unique_totals(&db_guard, published_scan, published_proposal,
+                unique_objects, unique_bytes, &mut work, deadline, cancel)?;
         }
-        Some(
-            crate::source_admission_indexed_input::IndexedInputReaderV1::open(
-                selection,
-                request.reader_limits,
-                db.clone(),
-                spool_io.clone(),
-                deadline,
-                Arc::clone(&retained_cancel),
-                work.clone(),
-            )?,
-        )
+        Some(reader)
     } else {
         None
     };
     let mut batch = AdmissionBatch::from_verified_census_rows(
         db.clone(),
-        SourceCensusScan::Proposal.label(),
-        proposal.member_count,
-        proposal.source_bytes,
+        published_scan.label(),
+        published_proposal.member_count,
+        published_proposal.source_bytes,
         invocation.identity(),
         root.try_clone()
             .map_err(|_| invalid("initial source root descriptor clone refused"))?,
@@ -1197,7 +1300,7 @@ pub(crate) fn prepare_initial_cut<'a>(
         cancel,
     )?;
     if let Some(reader) = indexed_reader {
-        batch.attach_indexed_input(reader, proposal.member_count, proposal.source_bytes)?;
+        batch.attach_indexed_input(reader, published_proposal.member_count, published_proposal.source_bytes)?;
     }
     Ok(InitialCutPrepared {
         batch: Some(batch),
@@ -1209,6 +1312,8 @@ pub(crate) fn prepare_initial_cut<'a>(
             root_identity,
             root_stamp,
             proposal,
+            published_proposal,
+            published_scan,
             profile,
             _scope: scope,
             db,
@@ -1326,7 +1431,8 @@ impl InitialCutFence<'_> {
                 &self.v2_io,
                 &self.spool_io,
                 self.profile,
-                self.proposal,
+                self.published_proposal,
+                self.published_scan,
                 &mut self.work,
                 self.deadline,
                 &self.cancel,

@@ -2480,6 +2480,8 @@ impl IndexedInputMemberV1 {
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub(crate) struct IndexedInputCostV1 {
+    // Metadata visits include the optional initial proposal pass. Payload
+    // counters below describe the separately verified byte stream.
     pub(crate) member_rows: u64,
     pub(crate) source_bytes: u64,
     pub(crate) member_tree: AuthenticatedTreeWorkV1,
@@ -2529,6 +2531,7 @@ pub(crate) struct IndexedInputReaderV1 {
     expected_unique_payload_bytes: u64,
     max_frames_per_pack: u32,
     max_caller_live_state_bytes: usize,
+    metadata_inventory_complete: bool,
     eof: bool,
     failed: bool,
     cost: IndexedInputCostV1,
@@ -2814,6 +2817,7 @@ impl IndexedInputReaderV1 {
             expected_unique_payload_bytes: selection.unique_payload_bytes,
             max_frames_per_pack: selection.max_frames_per_pack,
             max_caller_live_state_bytes: 0,
+            metadata_inventory_complete: false,
             eof: false,
             failed: false,
             cost: IndexedInputCostV1::default(),
@@ -2822,6 +2826,52 @@ impl IndexedInputReaderV1 {
         };
         reader.verify_root_identity(&mut open_work)?;
         Ok(reader)
+    }
+
+    /// Inventory the authenticated logical rows once before payload ingestion.
+    /// This only constructs a proposal: it cannot finish the input or issue
+    /// payload evidence. The ordinary stream must still read every payload,
+    /// verify every placement and reach its own EOF before publication.
+    pub(crate) fn visit_initial_member_metadata(
+        &mut self,
+        visit: &mut dyn FnMut(&IndexedInputMemberV1) -> io::Result<()>,
+    ) -> io::Result<()> {
+        if self.metadata_inventory_complete
+            || self.generated_declaration.is_none()
+            || self.failed || self.eof || self.after.is_some()
+            || self.pending_payload.is_some()
+            || self.member_count != 0 || self.source_bytes != 0
+            || self.cost.payload_members != 0 || self.cost.payload_bytes != 0
+        {
+            return Err(invalid("indexed-input metadata inventory requires a fresh composed source"));
+        }
+        let result = (|| {
+            // The initial-cut census/SQL workspace is already included in
+            // this caller-owned state slice; no extra unbounded row buffer.
+            while let Some(member) = self.next_member(self.limits.caller_retained_state_bytes)? {
+                visit(&member)?;
+                // Metadata alone does not consume or validate the payload.
+                // Only this private preparation pass may advance without it.
+                self.pending_payload = None;
+            }
+            let work_budget = self.work.clone();
+            let work_meter = self.work_debits.clone();
+            let mut debit = move || debit_work(&work_budget, &work_meter);
+            self.verify_root_identity(&mut debit)?;
+            Ok(())
+        })();
+        if result.is_err() {
+            self.failed = true;
+            return result;
+        }
+        // Rewind only the logical cursor. IO and work accounting, including
+        // metadata-tree reads above, remain cumulative on the original meters.
+        self.after = None;
+        self.member_count = 0;
+        self.source_bytes = 0;
+        self.eof = false;
+        self.metadata_inventory_complete = true;
+        Ok(())
     }
 
     /// Seek one BINARY-ordered logical ToS member. The caller's retained data
@@ -2981,8 +3031,10 @@ impl IndexedInputReaderV1 {
         self.member_count = next_count;
         self.source_bytes = next_bytes;
         self.pending_payload = Some((digest, size_bytes));
-        self.cost.member_rows = next_count;
-        self.cost.source_bytes = next_bytes;
+        self.cost.member_rows = self.cost.member_rows.checked_add(1)
+            .ok_or_else(|| invalid("indexed-input metadata row cost overflow"))?;
+        self.cost.source_bytes = self.cost.source_bytes.checked_add(size_bytes)
+            .ok_or_else(|| invalid("indexed-input metadata byte cost overflow"))?;
         Ok(Some(IndexedInputMemberV1 {
             path,
             sha256: digest,

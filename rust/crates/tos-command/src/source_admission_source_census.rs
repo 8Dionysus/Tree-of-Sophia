@@ -31,6 +31,8 @@ const CENSUS_DIGEST_DOMAIN: &[u8] = b"tos-native-source-filesystem-census-v1\0";
 pub(crate) enum SourceCensusScan {
     Proposal,
     Terminal,
+    // Authenticated logical input rows, distinct from the physical source.
+    IndexedProposal,
 }
 
 impl SourceCensusScan {
@@ -38,6 +40,7 @@ impl SourceCensusScan {
         match self {
             Self::Proposal => "proposal",
             Self::Terminal => "terminal",
+            Self::IndexedProposal => "indexed_proposal",
         }
     }
 }
@@ -855,6 +858,41 @@ fn digest_rows(
     hasher.update(&observed_count.to_be_bytes());
     hasher.update(&observed_bytes.to_be_bytes());
     Ok(hasher.finalize())
+}
+
+/// Check the SQL-backed logical proposal without claiming a filesystem scan.
+/// The caller populated these rows from the held authenticated member tree;
+/// payload ingestion and the separate physical-source fence remain required.
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn summarize_indexed_proposal_rows(
+    db: &PinnedSqliteConnection,
+    expected_members: u64,
+    expected_bytes: u64,
+    limits: SourceCensusLimits,
+    work: &mut dyn FnMut(SourceCensusWorkKind) -> io::Result<()>,
+    deadline: Instant,
+    cancel: &AtomicBool,
+) -> io::Result<SourceCensusSummary> {
+    finite_limits(limits)?;
+    check_state(limits)?;
+    if expected_members == 0 || expected_members > limits.max_files
+        || expected_bytes > limits.max_source_bytes
+    {
+        return Err(invalid("indexed proposal exceeds selected census limits"));
+    }
+    let mut summary = SourceCensusSummary {
+        member_count: expected_members,
+        source_bytes: expected_bytes,
+        directory_count: 0,
+        entry_count: expected_members,
+        payload_read_bytes: 0,
+        metadata_read_upper_bytes: 0,
+        sql_row_operations: 0,
+        digest: Digest256::from_bytes([0; 32]),
+    };
+    summary.digest = digest_rows(db, SourceCensusScan::IndexedProposal, limits,
+        &mut summary, work, deadline, cancel)?;
+    Ok(summary)
 }
 
 #[allow(clippy::too_many_arguments)]
