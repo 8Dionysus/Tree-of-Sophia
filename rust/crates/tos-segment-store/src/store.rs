@@ -618,16 +618,6 @@ impl ByteDurabilityReceipt {
 }
 
 impl SegmentStore {
-    /// Identity of the exact physical root directory held by this instance.
-    /// It distinguishes a same-metadata clone from the selected source store.
-    pub fn physical_root_identity(&self) -> Result<(u64, u64)> {
-        let metadata = self
-            .inner
-            ._root
-            .metadata()
-            .map_err(|error| SegmentError::io("cannot stat held segment root", error))?;
-        Ok((metadata.dev(), metadata.ino()))
-    }
     /// Initialize an already existing empty, owner-controlled directory.
     /// This makes no corpus or CMD metadata and accepts no live source bytes.
     pub fn initialize_empty(root: &Path, domain: &[u8], limits: SegmentLimits) -> Result<Self> {
