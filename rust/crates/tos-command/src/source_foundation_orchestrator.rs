@@ -3299,7 +3299,8 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
         biblio_catalog_limits,
         &validator,
         true,
-        max_catalog_files as usize,
+        // Version resolution charges repeated reads, not distinct input members.
+        bounded_usize(budgets.max_readonly_record_read_calls)?,
         // Version resolution charges cumulative reads, not the largest member.
         bounded_usize(catalog_operation.source_read_bytes)?,
         max_generated_bytes,
