@@ -2859,7 +2859,7 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
                 },
             );
             let dependent_evidence = providers_result
-                .map_err(|_| io::Error::other("candidate Biblio/default stored providers refused"))?;
+                .map_err(crate::source_admission_spooled_index::receiver_refusal)?;
             let final_callback_io = view.original_io.snapshot();
             if final_callback_io.read_attempted_bytes
                 .checked_sub(io_before_records.read_attempted_bytes)

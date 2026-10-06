@@ -56,16 +56,60 @@ use tos_validation::{
 const EVENT_CODEC_VERSION: i64 = 1;
 const CLAIM_CODEC_VERSION: i64 = 1;
 
+#[track_caller]
 fn source_refusal() -> ItemRefusal {
-    ItemRefusal::Source("candidate default store refused".into())
+    // Own invariant failures retain their source site without exporting paths.
+    let site = std::panic::Location::caller().line().to_string();
+    ItemRefusal::Source(crate::source_admission_spooled_index::bounded_source_cause(
+        "receiver-source",
+        &site,
+        "candidate default store refused",
+    ))
 }
 
-fn sql_refusal(_: rusqlite::Error) -> ItemRefusal {
-    source_refusal()
+fn source_reason(site: &str, reason: String) -> ItemRefusal {
+    ItemRefusal::Source(
+        if crate::source_admission_spooled_index::is_bounded_source_cause(&reason) {
+            reason
+        } else {
+            crate::source_admission_spooled_index::bounded_source_cause(
+                "receiver-source",
+                site,
+                &reason,
+            )
+        },
+    )
 }
 
-fn invalid(_: io::Error) -> ItemRefusal {
-    source_refusal()
+fn sql_refusal(error: rusqlite::Error) -> ItemRefusal {
+    // A row decoder can carry the existing sanitized Item refusal through
+    // rusqlite's callback ABI. Other SQL errors expose only their primary class.
+    if let rusqlite::Error::FromSqlConversionFailure(_, _, cause) = &error {
+        if let Some(cause) = cause.downcast_ref::<io::Error>() {
+            return source_reason("default-row", cause.to_string());
+        }
+    }
+    let class = match &error {
+        rusqlite::Error::SqliteFailure(code, _) => {
+            format!("sqlite-primary:{}", code.extended_code & 255)
+        }
+        _ => format!("sqlite-variant:{:?}", std::mem::discriminant(&error)),
+    };
+    source_reason("default-sql", class)
+}
+
+fn row_refusal(error: ItemRefusal, column: usize, kind: rusqlite::types::Type) -> rusqlite::Error {
+    rusqlite::Error::FromSqlConversionFailure(
+        column,
+        kind,
+        Box::new(crate::source_admission_spooled_index::receiver_refusal(
+            error,
+        )),
+    )
+}
+
+fn invalid(error: io::Error) -> ItemRefusal {
+    source_reason("default-io", error.to_string())
 }
 
 fn storage_error(message: &'static str) -> io::Error {
@@ -73,7 +117,8 @@ fn storage_error(message: &'static str) -> io::Error {
 }
 
 fn checked_add(left: usize, right: usize) -> Result<usize, ItemRefusal> {
-    left.checked_add(right).ok_or(ItemRefusal::Budget)
+    left.checked_add(right)
+        .ok_or(tos_validation::item_budget_origin!())
 }
 
 fn estimate_string_state(value: &str) -> Result<usize, ItemRefusal> {
@@ -84,13 +129,13 @@ fn estimate_string_state_len(length: usize) -> Result<usize, ItemRefusal> {
     length
         .checked_mul(2)
         .and_then(|bytes| bytes.checked_add(size_of::<String>() + 32))
-        .ok_or(ItemRefusal::Budget)
+        .ok_or(tos_validation::item_budget_origin!())
 }
 
 fn estimate_value_state(value: &Value) -> Result<usize, ItemRefusal> {
     fn walk(value: &Value, depth: usize) -> Result<usize, ItemRefusal> {
         if depth > 128 {
-            return Err(ItemRefusal::Budget);
+            return Err(tos_validation::item_budget_origin!());
         }
         let mut bytes = size_of::<Value>();
         match value {
@@ -105,7 +150,7 @@ fn estimate_value_state(value: &Value) -> Result<usize, ItemRefusal> {
                     .len()
                     .checked_mul(size_of::<Value>() * 2)
                     .and_then(|bytes| bytes.checked_add(64))
-                    .ok_or(ItemRefusal::Budget)?;
+                    .ok_or(tos_validation::item_budget_origin!())?;
                 bytes = checked_add(bytes, capacity)?;
                 for child in values {
                     bytes = checked_add(bytes, walk(child, depth + 1)?)?;
@@ -115,7 +160,7 @@ fn estimate_value_state(value: &Value) -> Result<usize, ItemRefusal> {
                 let nodes = values
                     .len()
                     .checked_mul(size_of::<(String, Value)>() + 96)
-                    .ok_or(ItemRefusal::Budget)?;
+                    .ok_or(tos_validation::item_budget_origin!())?;
                 bytes = checked_add(bytes, nodes)?;
                 for (key, child) in values {
                     bytes = checked_add(bytes, estimate_string_state(key)?)?;
@@ -139,11 +184,14 @@ struct JsonCounter {
 
 impl io::Write for JsonCounter {
     fn write(&mut self, bytes: &[u8]) -> io::Result<usize> {
-        self.bytes = self
+        let next = self
             .bytes
             .checked_add(bytes.len())
-            .filter(|next| *next <= self.limit)
-            .ok_or_else(|| io::Error::other("bounded JSON size exceeded"))?;
+            .ok_or_else(|| io::Error::other("bounded JSON size overflow"))?;
+        self.bytes = next;
+        if next > self.limit {
+            return Err(io::Error::other("bounded JSON size exceeded"));
+        }
         Ok(bytes.len())
     }
 
@@ -154,7 +202,17 @@ impl io::Write for JsonCounter {
 
 fn json_len<T: serde::Serialize + ?Sized>(value: &T, limit: usize) -> Result<usize, ItemRefusal> {
     let mut writer = JsonCounter { bytes: 0, limit };
-    serde_json::to_writer(&mut writer, value).map_err(|_| ItemRefusal::Budget)?;
+    serde_json::to_writer(&mut writer, value).map_err(|_| {
+        if writer.bytes > writer.limit {
+            ItemRefusal::BudgetCheck {
+                check: "candidate default JSON encoded bytes",
+                used: u64::try_from(writer.bytes).ok(),
+                limit: u64::try_from(writer.limit).ok(),
+            }
+        } else {
+            tos_validation::item_budget_origin!()
+        }
+    })?;
     Ok(writer.bytes)
 }
 
@@ -166,15 +224,19 @@ fn encoded_json<T: serde::Serialize + ?Sized>(
     let workspace = expected_bytes
         .checked_mul(2)
         .and_then(|bytes| bytes.checked_add(size_of::<Vec<u8>>() + 1024))
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(tos_validation::item_budget_origin!())?;
     if workspace > max_state_bytes {
-        return Err(ItemRefusal::Budget);
+        return Err(ItemRefusal::BudgetCheck {
+            check: "candidate default JSON encoding workspace",
+            used: u64::try_from(workspace).ok(),
+            limit: u64::try_from(max_state_bytes).ok(),
+        });
     }
     let mut bytes = Vec::new();
     bytes
         .try_reserve_exact(expected_bytes)
-        .map_err(|_| ItemRefusal::Budget)?;
-    serde_json::to_writer(&mut bytes, value).map_err(|_| ItemRefusal::Budget)?;
+        .map_err(|_| tos_validation::item_budget_origin!())?;
+    serde_json::to_writer(&mut bytes, value).map_err(|_| tos_validation::item_budget_origin!())?;
     if bytes.len() != expected_bytes {
         return Err(source_refusal());
     }
@@ -227,7 +289,7 @@ fn bounded_row_text_precharged(
     let state = row_text_state(row, column)?;
     context
         .active_state(state)
-        .map_err(|_| rusqlite::Error::InvalidQuery)?;
+        .map_err(|error| row_refusal(error, column, rusqlite::types::Type::Text))?;
     bounded_row_text(row, column, cap)
 }
 
@@ -237,7 +299,7 @@ fn checked_u64_blob(bytes: &[u8]) -> Result<u64, ItemRefusal> {
 }
 
 fn usize_u64(value: usize) -> Result<u64, ItemRefusal> {
-    u64::try_from(value).map_err(|_| ItemRefusal::Budget)
+    u64::try_from(value).map_err(|_| tos_validation::item_budget_origin!())
 }
 
 fn check_candidate(
@@ -277,7 +339,11 @@ impl ProviderContext<'_, '_, '_> {
 
     fn row_state(&self, bytes: usize) -> Result<(), ItemRefusal> {
         if bytes > self.row_state_limit || bytes > self.operation_state_limit {
-            return Err(ItemRefusal::Budget);
+            return Err(ItemRefusal::BudgetCheck {
+                check: "candidate default row state",
+                used: u64::try_from(bytes).ok(),
+                limit: u64::try_from(self.row_state_limit.min(self.operation_state_limit)).ok(),
+            });
         }
         self.candidate.check_state(bytes).map_err(invalid)
     }
@@ -287,14 +353,24 @@ impl ProviderContext<'_, '_, '_> {
             .get()
             .checked_add(usize_u64(rows)?)
             .filter(|next| self.max_scan_rows != 0 && *next <= self.max_scan_rows)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(ItemRefusal::BudgetCheck {
+                check: "candidate default scan rows",
+                used: u64::try_from(rows)
+                    .ok()
+                    .and_then(|rows| scanned.get().checked_add(rows)),
+                limit: Some(self.max_scan_rows),
+            })?;
         scanned.set(next);
         Ok(())
     }
 
     fn active_state(&self, bytes: usize) -> Result<(), ItemRefusal> {
         if bytes > self.operation_state_limit {
-            return Err(ItemRefusal::Budget);
+            return Err(ItemRefusal::BudgetCheck {
+                check: "candidate default active state",
+                used: u64::try_from(bytes).ok(),
+                limit: u64::try_from(self.operation_state_limit).ok(),
+            });
         }
         self.candidate.check_state(bytes).map_err(invalid)
     }
@@ -332,7 +408,7 @@ impl<'candidate, 'input, 'host, 'cancel, 'budget>
             || max_scan_rows == 0
             || input.input_identity() != &fence
         {
-            return Err(ItemRefusal::Budget);
+            return Err(tos_validation::item_budget_origin!());
         }
         input.verify_invocation(deadline, cancelled)?;
         check_candidate(candidate, fence, deadline, cancelled)?;
@@ -366,14 +442,14 @@ impl<'candidate, 'input, 'host, 'cancel, 'budget>
             .len()
             .checked_mul(16)
             .and_then(|bytes| bytes.checked_add(8192))
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         self.context.active_state(path_state)?;
         let allowance = self
             .context
             .operation_state_limit
             .checked_sub(path_state)
             .filter(|bytes| *bytes != 0)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         let path = RelativePath::parse(target).map_err(|_| source_refusal())?;
         self.context.add_scan_rows(self.path_rows, 1)?;
         let found = self
@@ -396,7 +472,7 @@ impl<'candidate, 'input, 'host, 'cancel, 'budget>
                 .len()
                 .checked_mul(16)
                 .and_then(|bytes| bytes.checked_add(2048))
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(tos_validation::item_budget_origin!())?;
             self.context
                 .active_state(checked_add(path_state, row_state)?)?;
             Ok(true)
@@ -429,14 +505,14 @@ impl<'candidate, 'input, 'host, 'cancel, 'budget>
                 count = count
                     .checked_add(1)
                     .filter(|n| *n <= self.max_paths_per_scan)
-                    .ok_or(ItemRefusal::Budget)?;
+                    .ok_or(tos_validation::item_budget_origin!())?;
                 bytes = bytes
                     .checked_add(usize_u64(path.len())?)
                     .filter(|n| *n <= self.max_path_bytes_per_scan)
-                    .ok_or(ItemRefusal::Budget)?;
+                    .ok_or(tos_validation::item_budget_origin!())?;
                 observed_source_bytes = observed_source_bytes
                     .checked_add(meta.size_bytes)
-                    .ok_or(ItemRefusal::Budget)?;
+                    .ok_or(tos_validation::item_budget_origin!())?;
                 self.context.add_scan_rows(self.path_rows, 1)?;
                 let previous_state = previous
                     .as_deref()
@@ -560,7 +636,7 @@ impl BiblioQueryBudget {
 
     fn bind(&self, owner_limit: u64) -> Result<(), ItemRefusal> {
         if owner_limit == 0 || owner_limit == u64::MAX {
-            return Err(ItemRefusal::Budget);
+            return Err(tos_validation::item_budget_origin!());
         }
         let limit = self
             .bound_limit
@@ -569,7 +645,7 @@ impl BiblioQueryBudget {
             .unwrap_or(owner_limit.min(self.selected_limit));
         self.bound_limit.set(Some(limit));
         if self.used.get() > limit {
-            return Err(ItemRefusal::Budget);
+            return Err(tos_validation::item_budget_origin!());
         }
         Ok(())
     }
@@ -581,7 +657,11 @@ impl BiblioQueryBudget {
             .get()
             .checked_add(1)
             .filter(|next| *next <= limit)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(ItemRefusal::BudgetCheck {
+                check: "candidate Biblio query rows",
+                used: self.used.get().checked_add(1),
+                limit: Some(limit),
+            })?;
         self.used.set(next);
         Ok(())
     }
@@ -952,7 +1032,7 @@ impl<'candidate, 'host> SpoolDefaultStore<'candidate, 'host> {
 
     fn bind_scan_limit(&self, max_scan_rows: u64) -> Result<(), ItemRefusal> {
         if max_scan_rows == 0 {
-            return Err(ItemRefusal::Budget);
+            return Err(tos_validation::item_budget_origin!());
         }
         match self.scan_limit.get() {
             Some(existing) if existing != max_scan_rows => Err(source_refusal()),
@@ -972,15 +1052,36 @@ impl<'candidate, 'host> SpoolDefaultStore<'candidate, 'host> {
         deadline: Instant,
         cancelled: &'a AtomicBool,
     ) -> Result<ProviderContext<'candidate, 'host, 'a>, ItemRefusal> {
-        if operation_state_limit == 0
-            || operation_state_limit > self.limits.max_row_state_bytes
-            || operation_state_limit == usize::MAX
-            || page_budget.max_state_bytes.get() > operation_state_limit
-            || page_budget.max_cursor_bytes.get() > operation_state_limit
-            || page_budget.max_rows.get() == 0
-            || max_scan_rows == 0
-        {
-            return Err(ItemRefusal::Budget);
+        if operation_state_limit == 0 || operation_state_limit == usize::MAX {
+            return Err(tos_validation::item_budget_origin!());
+        }
+        for (check, used, limit) in [
+            (
+                "candidate default operation row state",
+                operation_state_limit,
+                self.limits.max_row_state_bytes,
+            ),
+            (
+                "candidate default page state",
+                page_budget.max_state_bytes.get(),
+                operation_state_limit,
+            ),
+            (
+                "candidate default cursor state",
+                page_budget.max_cursor_bytes.get(),
+                operation_state_limit,
+            ),
+        ] {
+            if used > limit {
+                return Err(ItemRefusal::BudgetCheck {
+                    check,
+                    used: u64::try_from(used).ok(),
+                    limit: u64::try_from(limit).ok(),
+                });
+            }
+        }
+        if page_budget.max_rows.get() == 0 || max_scan_rows == 0 {
+            return Err(tos_validation::item_budget_origin!());
         }
         self.bind_scan_limit(max_scan_rows)?;
         check_candidate(self.candidate, self.fence, deadline, cancelled)?;
@@ -1057,9 +1158,13 @@ impl<'candidate, 'host> SpoolDefaultStore<'candidate, 'host> {
                 .max_state_bytes
                 .get()
                 .checked_add(stored_limits.page_budget.max_cursor_bytes.get())
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(tos_validation::item_budget_origin!())?;
             if page_bytes > max_operation_state_bytes {
-                return Err(ItemRefusal::Budget);
+                return Err(ItemRefusal::BudgetCheck {
+                    check: "candidate default record page and cursor state",
+                    used: u64::try_from(page_bytes).ok(),
+                    limit: u64::try_from(max_operation_state_bytes).ok(),
+                });
             }
             context.row_state(stored_limits.page_budget.max_state_bytes.get())?;
             let page = records.index().page(
@@ -1183,7 +1288,7 @@ fn event_json_addition(
         .checked_add(1) // colon
         .and_then(|bytes| bytes.checked_add(value_json_bytes))
         .and_then(|bytes| bytes.checked_add(separator))
-        .ok_or(ItemRefusal::Budget)
+        .ok_or(tos_validation::item_budget_origin!())
 }
 
 fn check_event_operation(
@@ -1209,7 +1314,7 @@ fn next_event_json_total(
         old_total
             .checked_sub(old)
             .and_then(|base| base.checked_add(new_value_bytes))
-            .ok_or(ItemRefusal::Budget)?
+            .ok_or(tos_validation::item_budget_origin!())?
     } else {
         old_total
             .checked_add(event_json_addition(
@@ -1217,10 +1322,10 @@ fn next_event_json_total(
                 new_value_bytes,
                 unique_ids != 0,
             )?)
-            .ok_or(ItemRefusal::Budget)?
+            .ok_or(tos_validation::item_budget_origin!())?
     };
     if next > limit {
-        return Err(ItemRefusal::Budget);
+        return Err(tos_validation::item_budget_origin!());
     }
     Ok(next)
 }
@@ -1254,9 +1359,10 @@ fn query_event_value(
                 row,
                 1,
                 json_limit,
-                estimate_string_state(&id_text).map_err(|_| rusqlite::Error::InvalidQuery)?,
+                estimate_string_state(&id_text)
+                    .map_err(|error| row_refusal(error, 0, rusqlite::types::Type::Text))?,
             )
-            .map_err(|_| rusqlite::Error::InvalidQuery)
+            .map_err(|error| row_refusal(error, 1, rusqlite::types::Type::Blob))
         })
         .optional()
         .map_err(sql_refusal)?;
@@ -1284,9 +1390,9 @@ fn event_for_each(
                 [after.as_deref()],
                 |row| {
                     let id = bounded_row_text_precharged(context, row, 0, context.operation_state_limit)?;
-                    let id_state = estimate_string_state(&id).map_err(|_| rusqlite::Error::InvalidQuery)?;
+                    let id_state = estimate_string_state(&id).map_err(|error| row_refusal(error, 0, rusqlite::types::Type::Text))?;
                     let value = value_from_row(context, row, 1, json_limit, id_state)
-                        .map_err(|_| rusqlite::Error::InvalidQuery)?;
+                        .map_err(|error| row_refusal(error, 1, rusqlite::types::Type::Blob))?;
                     Ok((id, value))
                 },
             ),
@@ -1295,9 +1401,9 @@ fn event_for_each(
                 [after.as_deref()],
                 |row| {
                     let id = bounded_row_text_precharged(context, row, 0, context.operation_state_limit)?;
-                    let id_state = estimate_string_state(&id).map_err(|_| rusqlite::Error::InvalidQuery)?;
+                    let id_state = estimate_string_state(&id).map_err(|error| row_refusal(error, 0, rusqlite::types::Type::Text))?;
                     let value = value_from_row(context, row, 1, json_limit, id_state)
-                        .map_err(|_| rusqlite::Error::InvalidQuery)?;
+                        .map_err(|error| row_refusal(error, 1, rusqlite::types::Type::Blob))?;
                     Ok((id, value))
                 },
             ),
@@ -1338,7 +1444,7 @@ impl DefaultEventsProvider<'_, '_, '_, '_> {
         let encoded_state = json_bytes
             .checked_mul(2)
             .and_then(|bytes| bytes.checked_add(size_of::<Vec<u8>>() + 1024))
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         checked_add(checked_add(id_state, value_state)?, encoded_state)
     }
 
@@ -1383,7 +1489,7 @@ impl SourceFoundationDefaultEventLookup for DefaultEventsProvider<'_, '_, '_, '_
     fn event_contains(&self, id: &str) -> Result<bool, ItemRefusal> {
         let workspace = estimate_string_state(id)?
             .checked_add(256)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         self.context.row_state(workspace)?;
         self.context.add_scan_rows(self.scan_rows, 1)?;
         self.context.check()?;
@@ -1431,12 +1537,8 @@ impl SourceFoundationDefaultEventStore for DefaultEventsProvider<'_, '_, '_, '_>
         max_state_bytes: usize,
     ) -> Result<(), ItemRefusal> {
         self.context.check()?;
-        if max_state_bytes == 0
-            || max_state_bytes > self.context.operation_state_limit
-            || max_json_bytes < 2
-            || max_json_bytes > self.json_ceiling
-        {
-            return Err(ItemRefusal::Budget);
+        if max_state_bytes == 0 || max_json_bytes < 2 || max_json_bytes > self.json_ceiling {
+            return Err(tos_validation::item_budget_origin!());
         }
         let json_bytes = json_len(value, max_json_bytes)?;
         let workspace = self.insertion_workspace(id, value, json_bytes)?;
@@ -1447,7 +1549,7 @@ impl SourceFoundationDefaultEventStore for DefaultEventsProvider<'_, '_, '_, '_>
             workspace,
         )?;
         if workspace > max_state_bytes {
-            return Err(ItemRefusal::Budget);
+            return Err(tos_validation::item_budget_origin!());
         }
         let old_bytes = self.value_length(id)?;
         let id_json_bytes = json_len(&id, max_json_bytes)?;
@@ -1461,7 +1563,9 @@ impl SourceFoundationDefaultEventStore for DefaultEventsProvider<'_, '_, '_, '_>
         )?;
         let encoded = encoded_json(value, json_bytes, max_state_bytes)?;
         let ordinal = self.state.observation_rows;
-        let next_observations = ordinal.checked_add(1).ok_or(ItemRefusal::Budget)?;
+        let next_observations = ordinal
+            .checked_add(1)
+            .ok_or(tos_validation::item_budget_origin!())?;
         let slot = ordinal.to_be_bytes();
         self.context.check()?;
         if old_bytes.is_some() {
@@ -1482,7 +1586,7 @@ impl SourceFoundationDefaultEventStore for DefaultEventsProvider<'_, '_, '_, '_>
                 .state
                 .unique_ids
                 .checked_add(1)
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(tos_validation::item_budget_origin!())?;
         }
         self.context.check()?;
         self.state.observation_rows = next_observations;
@@ -1527,10 +1631,7 @@ struct CandidateClosureLinks<'a, 'candidate, 'host, 'cancel, 'budget> {
 
 impl CandidateClosureLinks<'_, '_, '_, '_, '_> {
     fn preflight(&self, workspace: usize, max_state_bytes: usize) -> Result<usize, ItemRefusal> {
-        if self.finished
-            || max_state_bytes == 0
-            || max_state_bytes > self.context.operation_state_limit
-        {
+        if self.finished || max_state_bytes == 0 {
             return Err(source_refusal());
         }
         let total = self
@@ -1538,7 +1639,7 @@ impl CandidateClosureLinks<'_, '_, '_, '_, '_> {
             .get()
             .checked_add(workspace)
             .filter(|bytes| *bytes <= max_state_bytes)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         self.context.row_state(workspace)?;
         self.context.active_state(total)?;
         self.context.check()?;
@@ -1554,7 +1655,7 @@ impl CandidateClosureLinks<'_, '_, '_, '_, '_> {
         self.scan_row_operations = self
             .scan_row_operations
             .checked_add(usize_u64(rows)?)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         Ok(())
     }
 
@@ -1590,20 +1691,20 @@ impl SourceFoundationClosureLinkStore for CandidateClosureLinks<'_, '_, '_, '_, 
         let json_bytes = json_len(value, max_state_bytes)?;
         let text_state = estimate_string_state(id)?
             .checked_add(estimate_string_state(path)?)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         let serialization_workspace = json_bytes
             .checked_mul(2)
             .and_then(|bytes| bytes.checked_add(size_of::<Vec<u8>>() + 1024))
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         let workspace = text_state
             .checked_add(serialization_workspace)
             .and_then(|bytes| bytes.checked_add(size_of::<(String, String, Value)>() + 256))
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         let total_workspace = self.preflight(workspace, max_state_bytes)?;
         let encode_limit = max_state_bytes
             .checked_sub(self.active_records_page_state.get())
             .and_then(|bytes| bytes.checked_sub(text_state))
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         let encoded = encoded_json(value, json_bytes, encode_limit)?;
         self.charge_scan_row()?;
         self.context.check()?;
@@ -1621,16 +1722,16 @@ impl SourceFoundationClosureLinkStore for CandidateClosureLinks<'_, '_, '_, '_, 
         self.inserted_rows = self
             .inserted_rows
             .checked_add(1)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         self.serialized_write_bytes = self
             .serialized_write_bytes
             .checked_add(usize_u64(
                 id.len()
                     .checked_add(path.len())
                     .and_then(|bytes| bytes.checked_add(json_bytes))
-                    .ok_or(ItemRefusal::Budget)?,
+                    .ok_or(tos_validation::item_budget_origin!())?,
             )?)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         self.workspace_peak_bytes = self.workspace_peak_bytes.max(total_workspace);
         Ok(total_workspace)
     }
@@ -1646,7 +1747,7 @@ impl SourceFoundationClosureLinkStore for CandidateClosureLinks<'_, '_, '_, '_, 
         }
         let workspace = estimate_string_state(id)?
             .checked_add(size_of::<bool>() + 256)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         let total_workspace = self.preflight(workspace, max_state_bytes)?;
         self.charge_scan_row()?;
         let mut statement = self
@@ -1672,7 +1773,7 @@ impl SourceFoundationClosureLinkStore for CandidateClosureLinks<'_, '_, '_, '_, 
             self.serialized_read_bytes = self
                 .serialized_read_bytes
                 .checked_add(usize_u64(id.len())?)
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(tos_validation::item_budget_origin!())?;
         }
         self.workspace_peak_bytes = self.workspace_peak_bytes.max(total_workspace);
         Ok((found, total_workspace))
@@ -1725,20 +1826,20 @@ impl SourceFoundationClosureLinkStore for CandidateClosureLinks<'_, '_, '_, '_, 
         let path_state = estimate_string_state_len(path_bytes.len())?;
         let additional_state = id_state
             .checked_add(path_state)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         let decoded_upper = json_state_upper_bound(raw_value.len())?;
         let encoded_workspace = raw_value
             .len()
             .checked_mul(2)
             .and_then(|bytes| bytes.checked_add(size_of::<Vec<u8>>() + 1024))
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         let workspace = query_workspace
             .checked_add(additional_state)
             .and_then(|bytes| bytes.checked_add(decoded_upper))
             .and_then(|bytes| bytes.checked_add(raw_value.len()))
             .and_then(|bytes| bytes.checked_add(encoded_workspace))
             .and_then(|bytes| bytes.checked_add(size_of::<SourceFoundationClosureLink>() + 128))
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         let total_workspace = self.preflight(workspace, max_state_bytes)?;
         let id = std::str::from_utf8(id_bytes)
             .map_err(|_| source_refusal())?
@@ -1768,7 +1869,7 @@ impl SourceFoundationClosureLinkStore for CandidateClosureLinks<'_, '_, '_, '_, 
             .and_then(|bytes| bytes.checked_sub(additional_state))
             .and_then(|bytes| bytes.checked_sub(decoded_upper))
             .and_then(|bytes| bytes.checked_sub(raw_value.len()))
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         let canonical = encoded_json(&value, canonical_len, encode_limit)?;
         if canonical.as_slice() != raw_value {
             return Err(source_refusal());
@@ -1777,7 +1878,7 @@ impl SourceFoundationClosureLinkStore for CandidateClosureLinks<'_, '_, '_, '_, 
             .len()
             .checked_add(path.len())
             .and_then(|bytes| bytes.checked_add(raw_value.len()))
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         drop(canonical);
         drop(rows);
         drop(statement);
@@ -1785,11 +1886,11 @@ impl SourceFoundationClosureLinkStore for CandidateClosureLinks<'_, '_, '_, '_, 
         self.drained_rows = self
             .drained_rows
             .checked_add(1)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         self.serialized_read_bytes = self
             .serialized_read_bytes
             .checked_add(usize_u64(serialized_bytes)?)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         self.workspace_peak_bytes = self.workspace_peak_bytes.max(total_workspace);
         Ok((
             Some(SourceFoundationClosureLink { id, path, value }),
@@ -1812,9 +1913,9 @@ impl SourceFoundationClosureLinkStore for CandidateClosureLinks<'_, '_, '_, '_, 
         let workspace = size_of::<i64>() + 256;
         let total_workspace = self.preflight(workspace, max_state_bytes)?;
         let count_scan_rows = usize::try_from(expected_rows)
-            .map_err(|_| ItemRefusal::Budget)?
+            .map_err(|_| tos_validation::item_budget_origin!())?
             .checked_add(1)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         self.charge_scan_rows(count_scan_rows)?;
         let mut statement = self
             .db
@@ -1863,21 +1964,21 @@ impl CandidateDiscoverySeenIds<'_, '_, '_, '_, '_> {
         first_path: Option<&str>,
         max_state_bytes: usize,
     ) -> Result<usize, ItemRefusal> {
-        if max_state_bytes == 0 || max_state_bytes > self.context.operation_state_limit {
-            return Err(ItemRefusal::Budget);
+        if max_state_bytes == 0 {
+            return Err(tos_validation::item_budget_origin!());
         }
         let input_bytes = namespace
             .storage_key()
             .len()
             .checked_add(id.len())
             .and_then(|bytes| bytes.checked_add(first_path.map_or(0, str::len)))
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         let workspace = input_bytes
             .checked_mul(2)
             .and_then(|bytes| bytes.checked_add(size_of::<(String, String, String)>() + 256))
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         if workspace > max_state_bytes {
-            return Err(ItemRefusal::Budget);
+            return Err(tos_validation::item_budget_origin!());
         }
         self.context.row_state(workspace)?;
         self.context.check()?;
@@ -2039,29 +2140,30 @@ impl CandidateDiscoveryRunSummaries<'_, '_, '_, '_, '_> {
     fn path_workspace(path: &str) -> Result<usize, ItemRefusal> {
         estimate_string_state(path)?
             .checked_add(size_of::<(String, Vec<u8>)>() + 512)
-            .ok_or(ItemRefusal::Budget)
+            .ok_or(tos_validation::item_budget_origin!())
     }
 
     fn encoded_summary_workspace(path: &str, encoded_bytes: usize) -> Result<usize, ItemRefusal> {
         encoded_bytes
             .checked_mul(2)
             .and_then(|bytes| bytes.checked_add(Self::path_workspace(path).ok()?))
-            .ok_or(ItemRefusal::Budget)
+            .ok_or(tos_validation::item_budget_origin!())
     }
 
     fn decoded_summary_workspace(path: &str, encoded_bytes: usize) -> Result<usize, ItemRefusal> {
         json_state_upper_bound(encoded_bytes)?
-            .checked_add(encoded_bytes.checked_mul(2).ok_or(ItemRefusal::Budget)?)
+            .checked_add(
+                encoded_bytes
+                    .checked_mul(2)
+                    .ok_or(tos_validation::item_budget_origin!())?,
+            )
             .and_then(|bytes| bytes.checked_add(Self::path_workspace(path).ok()?))
-            .ok_or(ItemRefusal::Budget)
+            .ok_or(tos_validation::item_budget_origin!())
     }
 
     fn preflight(&self, workspace: usize, max_state_bytes: usize) -> Result<(), ItemRefusal> {
-        if max_state_bytes == 0
-            || max_state_bytes > self.context.operation_state_limit
-            || workspace > max_state_bytes
-        {
-            return Err(ItemRefusal::Budget);
+        if max_state_bytes == 0 || workspace > max_state_bytes {
+            return Err(tos_validation::item_budget_origin!());
         }
         self.context.row_state(workspace)?;
         self.context.check()
@@ -2072,7 +2174,7 @@ impl CandidateDiscoveryRunSummaries<'_, '_, '_, '_, '_> {
         self.scan_row_operations = self
             .scan_row_operations
             .checked_add(usize_u64(rows)?)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         Ok(())
     }
 }
@@ -2114,7 +2216,7 @@ impl DiscoveryRunSummaryStore for CandidateDiscoveryRunSummaries<'_, '_, '_, '_,
                 self.unique_paths = self
                     .unique_paths
                     .checked_add(1)
-                    .ok_or(ItemRefusal::Budget)?;
+                    .ok_or(tos_validation::item_budget_origin!())?;
             }
             0 => {
                 self.charge_scan_rows(1)?;
@@ -2135,11 +2237,13 @@ impl DiscoveryRunSummaryStore for CandidateDiscoveryRunSummaries<'_, '_, '_, '_,
         self.observation_rows = self
             .observation_rows
             .checked_add(1)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         self.serialized_summary_write_bytes = self
             .serialized_summary_write_bytes
-            .checked_add(u64::try_from(value.len()).map_err(|_| ItemRefusal::Budget)?)
-            .ok_or(ItemRefusal::Budget)?;
+            .checked_add(
+                u64::try_from(value.len()).map_err(|_| tos_validation::item_budget_origin!())?,
+            )
+            .ok_or(tos_validation::item_budget_origin!())?;
         self.workspace_peak_bytes = self.workspace_peak_bytes.max(workspace);
         Ok(workspace)
     }
@@ -2202,8 +2306,10 @@ impl DiscoveryRunSummaryStore for CandidateDiscoveryRunSummaries<'_, '_, '_, '_,
             .ok_or_else(source_refusal)?;
         self.serialized_summary_read_bytes = self
             .serialized_summary_read_bytes
-            .checked_add(u64::try_from(value.len()).map_err(|_| ItemRefusal::Budget)?)
-            .ok_or(ItemRefusal::Budget)?;
+            .checked_add(
+                u64::try_from(value.len()).map_err(|_| tos_validation::item_budget_origin!())?,
+            )
+            .ok_or(tos_validation::item_budget_origin!())?;
         if rows.next().map_err(sql_refusal)?.is_some() {
             return Err(source_refusal());
         }
@@ -2234,9 +2340,9 @@ impl DiscoveryRunSummaryStore for CandidateDiscoveryRunSummaries<'_, '_, '_, '_,
         let workspace = size_of::<i64>() + 256;
         self.preflight(workspace, max_state_bytes)?;
         let count_scan_rows = usize::try_from(self.unique_paths)
-            .map_err(|_| ItemRefusal::Budget)?
+            .map_err(|_| tos_validation::item_budget_origin!())?
             .checked_add(1)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         self.charge_scan_rows(count_scan_rows)?;
         let mut statement = self
             .db
@@ -2294,26 +2400,33 @@ impl CandidateDiscoveryEventSummaries<'_, '_, '_, '_, '_> {
         let id_state = id_bytes
             .checked_mul(2)
             .and_then(|bytes| bytes.checked_add(size_of::<String>() + 32))
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         let location_state = location_bytes
             .checked_mul(2)
             .and_then(|bytes| bytes.checked_add(size_of::<String>() + 32))
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         id_state
             .checked_add(location_state)
             .and_then(|bytes| bytes.checked_add(encoded_value_bytes))
             .and_then(|bytes| bytes.checked_add(json_state_upper_bound(encoded_value_bytes).ok()?))
             .and_then(|bytes| bytes.checked_add(size_of::<Value>() + 512))
-            .ok_or(ItemRefusal::Budget)
+            .ok_or(tos_validation::item_budget_origin!())
     }
 
     fn preflight(&self, workspace: usize, max_state_bytes: usize) -> Result<(), ItemRefusal> {
-        if max_state_bytes == 0
-            || max_state_bytes > self.context.operation_state_limit
-            || workspace > max_state_bytes
-        {
-            return Err(ItemRefusal::Budget);
+        if max_state_bytes == 0 {
+            return Err(tos_validation::item_budget_origin!());
         }
+        if workspace > max_state_bytes {
+            return Err(ItemRefusal::BudgetCheck {
+                check: "candidate Discovery event summary caller workspace",
+                used: u64::try_from(workspace).ok(),
+                limit: u64::try_from(max_state_bytes).ok(),
+            });
+        }
+        // The caller supplies an available ceiling, not an allocation request.
+        // Both caller and provider ceilings constrain the actual workspace.
+
         self.context.row_state(workspace)?;
         self.context.check()
     }
@@ -2323,7 +2436,7 @@ impl CandidateDiscoveryEventSummaries<'_, '_, '_, '_, '_> {
         self.scan_row_operations = self
             .scan_row_operations
             .checked_add(usize_u64(rows)?)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         Ok(())
     }
 
@@ -2367,7 +2480,7 @@ impl DiscoveryEventSummaryStore for CandidateDiscoveryEventSummaries<'_, '_, '_,
                         .checked_add(size_of::<Vec<u8>>() + size_of::<[u8; 8]>() + 1024)?,
                 )
             })
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         self.preflight(workspace, max_state_bytes)?;
         let encoded = encoded_json(value, encoded_value_bytes, max_state_bytes)?;
         let ordinal = self.observation_rows.to_be_bytes();
@@ -2394,22 +2507,22 @@ impl DiscoveryEventSummaryStore for CandidateDiscoveryEventSummaries<'_, '_, '_,
         self.observation_rows = self
             .observation_rows
             .checked_add(1)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         if insert_into_owner_map {
             self.owner_insertion_rows = self
                 .owner_insertion_rows
                 .checked_add(1)
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(tos_validation::item_budget_origin!())?;
         }
         let logical_bytes = id
             .len()
             .checked_add(location.len())
             .and_then(|bytes| bytes.checked_add(encoded.len()))
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         self.serialized_write_bytes = self
             .serialized_write_bytes
             .checked_add(usize_u64(logical_bytes)?)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         self.workspace_peak_bytes = self.workspace_peak_bytes.max(workspace);
         Ok(workspace)
     }
@@ -2425,7 +2538,7 @@ impl DiscoveryEventSummaryStore for CandidateDiscoveryEventSummaries<'_, '_, '_,
         }
         let probe_workspace = estimate_string_state(id)?
             .checked_add(size_of::<([u8; 8], i64, i64)>() + 256)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         self.preflight(probe_workspace, max_state_bytes)?;
         self.context.check()?;
         self.charge_scan_rows(1)?;
@@ -2509,9 +2622,9 @@ impl DiscoveryEventSummaryStore for CandidateDiscoveryEventSummaries<'_, '_, '_,
                 id.len()
                     .checked_add(location.len())
                     .and_then(|bytes| bytes.checked_add(raw.len()))
-                    .ok_or(ItemRefusal::Budget)?,
+                    .ok_or(tos_validation::item_budget_origin!())?,
             )?)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         self.context.check()?;
         self.workspace_peak_bytes = self.workspace_peak_bytes.max(workspace);
         Ok((Some((location, value)), workspace))
@@ -2532,9 +2645,9 @@ impl DiscoveryEventSummaryStore for CandidateDiscoveryEventSummaries<'_, '_, '_,
         let workspace = size_of::<(i64, i64)>() + 256;
         self.preflight(workspace, max_state_bytes)?;
         let scan_rows = usize::try_from(self.observation_rows)
-            .map_err(|_| ItemRefusal::Budget)?
+            .map_err(|_| tos_validation::item_budget_origin!())?
             .checked_add(1)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         self.charge_scan_rows(scan_rows)?;
         let mut statement = self
             .db
@@ -2671,11 +2784,13 @@ impl DiscoveryEventSummaryStore for CandidateDiscoveryEventSummaries<'_, '_, '_,
                     id.len()
                         .checked_add(location.len())
                         .and_then(|bytes| bytes.checked_add(raw.len()))
-                        .ok_or(ItemRefusal::Budget)?,
+                        .ok_or(tos_validation::item_budget_origin!())?,
                 )?)
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(tos_validation::item_budget_origin!())?;
             visit(&id, &value, workspace)?;
-            visited = visited.checked_add(1).ok_or(ItemRefusal::Budget)?;
+            visited = visited
+                .checked_add(1)
+                .ok_or(tos_validation::item_budget_origin!())?;
             self.workspace_peak_bytes = self.workspace_peak_bytes.max(workspace);
             after = Some(ordinal);
         }
@@ -2713,7 +2828,7 @@ impl CandidateDiscoverySchemaRequests<'_, '_, '_, '_, '_> {
         bytes
             .checked_mul(16)
             .and_then(|state| state.checked_add(2048))
-            .ok_or(ItemRefusal::Budget)
+            .ok_or(tos_validation::item_budget_origin!())
     }
 
     fn request_workspace(
@@ -2729,15 +2844,12 @@ impl CandidateDiscoverySchemaRequests<'_, '_, '_, '_, '_> {
                     size_of::<Vec<u8>>() + size_of::<DiscoverySchemaRequest>() + 1024,
                 )?)
             })
-            .ok_or(ItemRefusal::Budget)
+            .ok_or(tos_validation::item_budget_origin!())
     }
 
     fn preflight(&self, workspace: usize, max_state_bytes: usize) -> Result<(), ItemRefusal> {
-        if max_state_bytes == 0
-            || max_state_bytes > self.context.operation_state_limit
-            || workspace > max_state_bytes
-        {
-            return Err(ItemRefusal::Budget);
+        if max_state_bytes == 0 || workspace > max_state_bytes {
+            return Err(tos_validation::item_budget_origin!());
         }
         self.context.row_state(workspace)?;
         self.context.check()
@@ -2748,7 +2860,7 @@ impl CandidateDiscoverySchemaRequests<'_, '_, '_, '_, '_> {
         self.scan_row_operations = self
             .scan_row_operations
             .checked_add(usize_u64(rows)?)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         Ok(())
     }
 
@@ -2803,7 +2915,7 @@ impl DiscoverySchemaRequestStore for CandidateDiscoverySchemaRequests<'_, '_, '_
             .checked_add(Self::row_text_state(contract.len())?)
             .and_then(|state| state.checked_add(estimate_value_state(document).ok()?))
             .and_then(|state| state.checked_add(size_of::<DiscoverySchemaRequest>() + 512))
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         self.preflight(base_workspace, max_state_bytes)?;
         let document_bytes = json_len(document, max_document_bytes)?;
         if document_bytes == 0 {
@@ -2836,14 +2948,15 @@ impl DiscoverySchemaRequestStore for CandidateDiscoverySchemaRequests<'_, '_, '_
         self.observation_rows = self
             .observation_rows
             .checked_add(1)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         self.serialized_write_bytes = self
             .serialized_write_bytes
             .checked_add(usize_u64(encoded.len())?)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         self.max_document_bytes = Some(max_document_bytes);
         self.last_before_issue = Some(
-            usize::try_from(u64::from_be_bytes(before_issue)).map_err(|_| ItemRefusal::Budget)?,
+            usize::try_from(u64::from_be_bytes(before_issue))
+                .map_err(|_| tos_validation::item_budget_origin!())?,
         );
         self.workspace_peak_bytes = self.workspace_peak_bytes.max(workspace);
         Ok(workspace)
@@ -2867,9 +2980,9 @@ impl DiscoverySchemaRequestStore for CandidateDiscoverySchemaRequests<'_, '_, '_
         let workspace = size_of::<(i64, [u8; 8], [u8; 8])>() + 256;
         self.preflight(workspace, max_state_bytes)?;
         let count_scan_rows = usize::try_from(expected_rows)
-            .map_err(|_| ItemRefusal::Budget)?
+            .map_err(|_| tos_validation::item_budget_origin!())?
             .checked_add(1)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         self.charge_scan_rows(count_scan_rows)?;
         let mut statement = self
             .db
@@ -3057,8 +3170,11 @@ impl DiscoverySchemaRequestStore for CandidateDiscoverySchemaRequests<'_, '_, '_
         self.serialized_read_bytes = self
             .serialized_read_bytes
             .checked_add(usize_u64(raw.len())?)
-            .ok_or(ItemRefusal::Budget)?;
-        self.read_rows = self.read_rows.checked_add(1).ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
+        self.read_rows = self
+            .read_rows
+            .checked_add(1)
+            .ok_or(tos_validation::item_budget_origin!())?;
         self.last_read_before_issue = Some(before_issue);
         self.cursor_ordinal = Some(ordinal);
         self.workspace_peak_bytes = self.workspace_peak_bytes.max(workspace);
@@ -3291,7 +3407,7 @@ impl CandidateClosureSchemaRequests<'_, '_, '_, '_, '_> {
         bytes
             .checked_mul(16)
             .and_then(|state| state.checked_add(2048))
-            .ok_or(ItemRefusal::Budget)
+            .ok_or(tos_validation::item_budget_origin!())
     }
 
     fn request_workspace(
@@ -3307,15 +3423,12 @@ impl CandidateClosureSchemaRequests<'_, '_, '_, '_, '_> {
                     size_of::<Vec<u8>>() + size_of::<SourceFoundationClosureSchemaRequest>() + 1024,
                 )?)
             })
-            .ok_or(ItemRefusal::Budget)
+            .ok_or(tos_validation::item_budget_origin!())
     }
 
     fn preflight(&self, workspace: usize, max_state_bytes: usize) -> Result<(), ItemRefusal> {
-        if max_state_bytes == 0
-            || max_state_bytes > self.context.operation_state_limit
-            || workspace > max_state_bytes
-        {
-            return Err(ItemRefusal::Budget);
+        if max_state_bytes == 0 || workspace > max_state_bytes {
+            return Err(tos_validation::item_budget_origin!());
         }
         self.context.row_state(workspace)?;
         self.context.check()
@@ -3331,7 +3444,7 @@ impl CandidateClosureSchemaRequests<'_, '_, '_, '_, '_> {
         self.scan_row_operations = self
             .scan_row_operations
             .checked_add(usize_u64(rows)?)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         Ok(())
     }
 
@@ -3350,7 +3463,7 @@ impl CandidateClosureSchemaRequests<'_, '_, '_, '_, '_> {
             .loaded_rows
             .scan_row_operations
             .checked_add(usize_u64(rows)?)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         Ok(())
     }
 
@@ -3359,7 +3472,7 @@ impl CandidateClosureSchemaRequests<'_, '_, '_, '_, '_> {
         self.event_scan_row_operations = self
             .event_scan_row_operations
             .checked_add(usize_u64(rows)?)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         Ok(())
     }
 
@@ -3367,14 +3480,14 @@ impl CandidateClosureSchemaRequests<'_, '_, '_, '_, '_> {
         Self::row_text_state(path_bytes)?
             .checked_mul(copies)
             .and_then(|state| state.checked_add(size_of::<(String, String)>() + 512))
-            .ok_or(ItemRefusal::Budget)
+            .ok_or(tos_validation::item_budget_origin!())
     }
 
     fn claim_id_workspace(id_bytes: usize, copies: usize) -> Result<usize, ItemRefusal> {
         Self::row_text_state(id_bytes)?
             .checked_mul(copies)
             .and_then(|state| state.checked_add(size_of::<(String, String)>() + 512))
-            .ok_or(ItemRefusal::Budget)
+            .ok_or(tos_validation::item_budget_origin!())
     }
 
     fn membership_claim_workspace(
@@ -3393,7 +3506,7 @@ impl CandidateClosureSchemaRequests<'_, '_, '_, '_, '_> {
                     .and_then(|subject_state| state.checked_add(subject_state))
             })
             .and_then(|state| state.checked_add(size_of::<(String, String)>() + 768))
-            .ok_or(ItemRefusal::Budget)
+            .ok_or(tos_validation::item_budget_origin!())
     }
 
     fn responsibility_claim_workspace(
@@ -3407,9 +3520,9 @@ impl CandidateClosureSchemaRequests<'_, '_, '_, '_, '_> {
                     .checked_add(
                         Self::row_text_state(*bytes)?
                             .checked_mul(copies)
-                            .ok_or(ItemRefusal::Budget)?,
+                            .ok_or(tos_validation::item_budget_origin!())?,
                     )
-                    .ok_or(ItemRefusal::Budget)
+                    .ok_or(tos_validation::item_budget_origin!())
             },
         )
     }
@@ -3430,7 +3543,7 @@ impl CandidateClosureSchemaRequests<'_, '_, '_, '_, '_> {
             |state, text| {
                 state
                     .checked_add(estimate_string_state(text)?)
-                    .ok_or(ItemRefusal::Budget)
+                    .ok_or(tos_validation::item_budget_origin!())
             },
         )
     }
@@ -3440,7 +3553,7 @@ impl CandidateClosureSchemaRequests<'_, '_, '_, '_, '_> {
         self.claim_id_scan_row_operations = self
             .claim_id_scan_row_operations
             .checked_add(usize_u64(rows)?)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         Ok(())
     }
 
@@ -3841,7 +3954,7 @@ impl CandidateClosureSchemaRequests<'_, '_, '_, '_, '_> {
         self.membership_claim_scan_row_operations = self
             .membership_claim_scan_row_operations
             .checked_add(usize_u64(rows)?)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         Ok(())
     }
 
@@ -3850,7 +3963,7 @@ impl CandidateClosureSchemaRequests<'_, '_, '_, '_, '_> {
         self.responsibility_claim_scan_row_operations = self
             .responsibility_claim_scan_row_operations
             .checked_add(usize_u64(rows)?)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         Ok(())
     }
 
@@ -3907,7 +4020,7 @@ impl CandidateClosureSchemaRequests<'_, '_, '_, '_, '_> {
         self.provision_unused_event_scan_row_operations = self
             .provision_unused_event_scan_row_operations
             .checked_add(usize_u64(rows)?)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         Ok(())
     }
 
@@ -3919,7 +4032,7 @@ impl CandidateClosureSchemaRequests<'_, '_, '_, '_, '_> {
         self.responsibility_validated_event_scan_row_operations = self
             .responsibility_validated_event_scan_row_operations
             .checked_add(usize_u64(rows)?)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         Ok(())
     }
 
@@ -3931,7 +4044,7 @@ impl CandidateClosureSchemaRequests<'_, '_, '_, '_, '_> {
         self.publication_validated_event_scan_row_operations = self
             .publication_validated_event_scan_row_operations
             .checked_add(usize_u64(rows)?)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         Ok(())
     }
 
@@ -3943,7 +4056,7 @@ impl CandidateClosureSchemaRequests<'_, '_, '_, '_, '_> {
         self.boundary_responsibility_ref_scan_row_operations = self
             .boundary_responsibility_ref_scan_row_operations
             .checked_add(usize_u64(rows)?)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         Ok(())
     }
 
@@ -3971,7 +4084,7 @@ impl CandidateClosureSchemaRequests<'_, '_, '_, '_, '_> {
         self.event_path_scan_row_operations = self
             .event_path_scan_row_operations
             .checked_add(usize_u64(rows)?)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         Ok(())
     }
 
@@ -4003,13 +4116,13 @@ impl CandidateClosureSchemaRequests<'_, '_, '_, '_, '_> {
         Self::row_text_state(path_bytes)?
             .checked_add(Self::row_text_state(digest_bytes)?)
             .and_then(|state| state.checked_add(size_of::<(String, [u8; 8], String)>() + 512))
-            .ok_or(ItemRefusal::Budget)
+            .ok_or(tos_validation::item_budget_origin!())
     }
 
     fn event_lookup_workspace(id_bytes: usize) -> Result<usize, ItemRefusal> {
         Self::row_text_state(id_bytes)?
             .checked_add(size_of::<bool>() + 512)
-            .ok_or(ItemRefusal::Budget)
+            .ok_or(tos_validation::item_budget_origin!())
     }
 
     fn event_insert_workspace(
@@ -4021,13 +4134,13 @@ impl CandidateClosureSchemaRequests<'_, '_, '_, '_, '_> {
         let serialization_workspace = json_bytes
             .checked_mul(2)
             .and_then(|state| state.checked_add(size_of::<Vec<u8>>() + 1024))
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         Self::row_text_state(id_bytes)?
             .checked_add(Self::row_text_state(path_bytes)?)
             .and_then(|state| state.checked_add(Self::row_text_state(digest_bytes).ok()?))
             .and_then(|state| state.checked_add(serialization_workspace))
             .and_then(|state| state.checked_add(size_of::<(String, String, Value)>() + 512))
-            .ok_or(ItemRefusal::Budget)
+            .ok_or(tos_validation::item_budget_origin!())
     }
 
     fn event_read_workspace(
@@ -4041,7 +4154,7 @@ impl CandidateClosureSchemaRequests<'_, '_, '_, '_, '_> {
             .and_then(|state| state.checked_add(Self::row_text_state(digest_bytes).ok()?))
             .and_then(|state| state.checked_add(json_state_upper_bound(json_bytes).ok()?))
             .and_then(|state| state.checked_add(size_of::<SourceFoundationClosureEvent>() + 512))
-            .ok_or(ItemRefusal::Budget)
+            .ok_or(tos_validation::item_budget_origin!())
     }
 
     fn event_drain_workspace(
@@ -4056,7 +4169,7 @@ impl CandidateClosureSchemaRequests<'_, '_, '_, '_, '_> {
             .and_then(|state| {
                 state.checked_add(size_of::<(String, String, [u8; 8], String)>() + 512)
             })
-            .ok_or(ItemRefusal::Budget)
+            .ok_or(tos_validation::item_budget_origin!())
     }
 
     fn finish_events(
@@ -4121,8 +4234,8 @@ impl CandidateClosureSchemaRequests<'_, '_, '_, '_, '_> {
                     {
                         return Err(rusqlite::Error::InvalidQuery);
                     }
-                    let line_number =
-                        checked_u64_blob(line).map_err(|_| rusqlite::Error::InvalidQuery)?;
+                    let line_number = checked_u64_blob(line)
+                        .map_err(|error| row_refusal(error, 2, rusqlite::types::Type::Blob))?;
                     if line_number == 0 {
                         return Err(rusqlite::Error::InvalidQuery);
                     }
@@ -4150,10 +4263,12 @@ impl CandidateClosureSchemaRequests<'_, '_, '_, '_, '_> {
                         .and_then(|bytes| bytes.checked_add(line_bytes))
                         .and_then(|bytes| bytes.checked_add(digest.len()))
                         .and_then(|bytes| bytes.checked_add(digest.len()))
-                        .ok_or(ItemRefusal::Budget)?,
+                        .ok_or(tos_validation::item_budget_origin!())?,
                 )?)
-                .ok_or(ItemRefusal::Budget)?;
-            drained = drained.checked_add(1).ok_or(ItemRefusal::Budget)?;
+                .ok_or(tos_validation::item_budget_origin!())?;
+            drained = drained
+                .checked_add(1)
+                .ok_or(tos_validation::item_budget_origin!())?;
             after = Some(id);
         }
         if drained != expected_event_rows {
@@ -4197,7 +4312,7 @@ impl CandidateClosureSchemaRequests<'_, '_, '_, '_, '_> {
             context.add_scan_rows(scan_rows, 1)?;
             scan_row_operations = scan_row_operations
                 .checked_add(1)
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(tos_validation::item_budget_origin!())?;
             let Some(row) = rows.next().map_err(sql_refusal)? else {
                 break;
             };
@@ -4207,13 +4322,15 @@ impl CandidateClosureSchemaRequests<'_, '_, '_, '_, '_> {
             {
                 return Err(source_refusal());
             }
-            drained = drained.checked_add(1).ok_or(ItemRefusal::Budget)?;
+            drained = drained
+                .checked_add(1)
+                .ok_or(tos_validation::item_budget_origin!())?;
             if drained > expected_rows {
                 return Err(source_refusal());
             }
             serialized_read_bytes = serialized_read_bytes
                 .checked_add(usize_u64(id.len())?)
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(tos_validation::item_budget_origin!())?;
             previous = Some(id);
         }
         drop(rows);
@@ -4226,11 +4343,11 @@ impl CandidateClosureSchemaRequests<'_, '_, '_, '_, '_> {
         self.claim_id_serialized_read_bytes = self
             .claim_id_serialized_read_bytes
             .checked_add(serialized_read_bytes)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         self.claim_id_scan_row_operations = self
             .claim_id_scan_row_operations
             .checked_add(scan_row_operations)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         self.claim_id_eof_seen = true;
         Ok(())
     }
@@ -4276,7 +4393,7 @@ impl CandidateClosureSchemaRequests<'_, '_, '_, '_, '_> {
             context.add_scan_rows(scan_rows, 1)?;
             scan_row_operations = scan_row_operations
                 .checked_add(1)
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(tos_validation::item_budget_origin!())?;
             let Some(row) = rows.next().map_err(sql_refusal)? else {
                 break;
             };
@@ -4288,7 +4405,9 @@ impl CandidateClosureSchemaRequests<'_, '_, '_, '_, '_> {
             {
                 return Err(source_refusal());
             }
-            drained = drained.checked_add(1).ok_or(ItemRefusal::Budget)?;
+            drained = drained
+                .checked_add(1)
+                .ok_or(tos_validation::item_budget_origin!())?;
             if drained > expected_rows {
                 return Err(source_refusal());
             }
@@ -4296,9 +4415,9 @@ impl CandidateClosureSchemaRequests<'_, '_, '_, '_, '_> {
                 .checked_add(usize_u64(
                     id.len()
                         .checked_add(subject.len())
-                        .ok_or(ItemRefusal::Budget)?,
+                        .ok_or(tos_validation::item_budget_origin!())?,
                 )?)
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(tos_validation::item_budget_origin!())?;
             previous = Some(id);
         }
         drop(rows);
@@ -4311,11 +4430,11 @@ impl CandidateClosureSchemaRequests<'_, '_, '_, '_, '_> {
         self.membership_claim_serialized_read_bytes = self
             .membership_claim_serialized_read_bytes
             .checked_add(read_bytes)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         self.membership_claim_scan_row_operations = self
             .membership_claim_scan_row_operations
             .checked_add(scan_row_operations)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         self.membership_claim_eof_seen = true;
         Ok(())
     }
@@ -4341,9 +4460,9 @@ impl CandidateClosureSchemaRequests<'_, '_, '_, '_, '_> {
             .max(workspace);
         self.context.check()?;
         let count_scan_rows = usize::try_from(expected_rows)
-            .map_err(|_| ItemRefusal::Budget)?
+            .map_err(|_| tos_validation::item_budget_origin!())?
             .checked_add(1)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         self.charge_responsibility_claim_scan_rows(count_scan_rows)?;
         let mut statement = self
             .db
@@ -4368,7 +4487,7 @@ impl CandidateClosureSchemaRequests<'_, '_, '_, '_, '_> {
         self.responsibility_claim_serialized_read_bytes = self
             .responsibility_claim_serialized_read_bytes
             .checked_add(size_of::<i64>() as u64)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         Ok(())
     }
 
@@ -4391,9 +4510,9 @@ impl CandidateClosureSchemaRequests<'_, '_, '_, '_, '_> {
         self.preflight(workspace, max_state_bytes)?;
         self.context.check()?;
         let count_scan_rows = usize::try_from(expected_rows)
-            .map_err(|_| ItemRefusal::Budget)?
+            .map_err(|_| tos_validation::item_budget_origin!())?
             .checked_add(1)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         self.charge_publication_claim_scan_rows(count_scan_rows)?;
         let mut statement = self
             .db
@@ -4418,7 +4537,7 @@ impl CandidateClosureSchemaRequests<'_, '_, '_, '_, '_> {
         self.publication_claim_serialized_read_bytes = self
             .publication_claim_serialized_read_bytes
             .checked_add(size_of::<i64>() as u64)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         self.publication_claim_workspace_state_bytes =
             self.publication_claim_workspace_state_bytes.max(workspace);
         self.publication_claim_count_verified = true;
@@ -4439,9 +4558,9 @@ impl CandidateClosureSchemaRequests<'_, '_, '_, '_, '_> {
         self.preflight(workspace, max_state_bytes)?;
         self.context.check()?;
         let count_scan_rows = usize::try_from(expected_rows)
-            .map_err(|_| ItemRefusal::Budget)?
+            .map_err(|_| tos_validation::item_budget_origin!())?
             .checked_add(1)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         self.charge_responsibility_validated_event_scan_rows(count_scan_rows)?;
         let mut statement = self
             .db
@@ -4468,7 +4587,7 @@ impl CandidateClosureSchemaRequests<'_, '_, '_, '_, '_> {
         self.responsibility_validated_event_serialized_read_bytes = self
             .responsibility_validated_event_serialized_read_bytes
             .checked_add(size_of::<i64>() as u64)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         self.responsibility_validated_event_workspace_state_bytes = self
             .responsibility_validated_event_workspace_state_bytes
             .max(workspace);
@@ -4491,9 +4610,9 @@ impl CandidateClosureSchemaRequests<'_, '_, '_, '_, '_> {
         self.preflight(workspace, max_state_bytes)?;
         self.context.check()?;
         let count_scan_rows = usize::try_from(expected_rows)
-            .map_err(|_| ItemRefusal::Budget)?
+            .map_err(|_| tos_validation::item_budget_origin!())?
             .checked_add(1)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         self.charge_publication_validated_event_scan_rows(count_scan_rows)?;
         let mut statement = self
             .db
@@ -4520,7 +4639,7 @@ impl CandidateClosureSchemaRequests<'_, '_, '_, '_, '_> {
         self.publication_validated_event_serialized_read_bytes = self
             .publication_validated_event_serialized_read_bytes
             .checked_add(size_of::<i64>() as u64)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         self.publication_validated_event_workspace_state_bytes = self
             .publication_validated_event_workspace_state_bytes
             .max(workspace);
@@ -4547,9 +4666,9 @@ impl CandidateClosureSchemaRequests<'_, '_, '_, '_, '_> {
         self.preflight(workspace, max_state_bytes)?;
         self.context.check()?;
         let count_scan_rows = usize::try_from(expected_rows)
-            .map_err(|_| ItemRefusal::Budget)?
+            .map_err(|_| tos_validation::item_budget_origin!())?
             .checked_add(1)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         self.charge_boundary_responsibility_ref_scan_rows(count_scan_rows)?;
         let mut statement = self
             .db
@@ -4574,7 +4693,7 @@ impl CandidateClosureSchemaRequests<'_, '_, '_, '_, '_> {
         self.boundary_responsibility_ref_serialized_read_bytes = self
             .boundary_responsibility_ref_serialized_read_bytes
             .checked_add(size_of::<i64>() as u64)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         self.boundary_responsibility_ref_workspace_state_bytes = self
             .boundary_responsibility_ref_workspace_state_bytes
             .max(workspace);
@@ -6314,16 +6433,16 @@ impl SourceFoundationClosureSchemaRequestStore
         self.claim_id_serialized_read_bytes = self
             .claim_id_serialized_read_bytes
             .checked_add(usize_u64(id.len())?)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         if inserted == 1 {
             self.claim_id_rows = self
                 .claim_id_rows
                 .checked_add(1)
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(tos_validation::item_budget_origin!())?;
             self.claim_id_serialized_write_bytes = self
                 .claim_id_serialized_write_bytes
                 .checked_add(usize_u64(id.len())?)
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(tos_validation::item_budget_origin!())?;
         }
         self.max_claim_id_bytes = self.max_claim_id_bytes.max(id.len());
         self.claim_id_workspace_state_bytes = self.claim_id_workspace_state_bytes.max(workspace);
@@ -6366,7 +6485,7 @@ impl SourceFoundationClosureSchemaRequestStore
             self.claim_id_serialized_read_bytes = self
                 .claim_id_serialized_read_bytes
                 .checked_add(usize_u64(id.len())?)
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(tos_validation::item_budget_origin!())?;
         }
         self.claim_id_workspace_state_bytes = self.claim_id_workspace_state_bytes.max(workspace);
         Ok((found.is_some(), workspace))
@@ -6431,22 +6550,22 @@ impl SourceFoundationClosureSchemaRequestStore
                 id.len()
                     .checked_add(subject.len())
                     .and_then(|bytes| bytes.checked_add(key_probe_bytes))
-                    .ok_or(ItemRefusal::Budget)?,
+                    .ok_or(tos_validation::item_budget_origin!())?,
             )?)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         self.membership_claim_serialized_write_bytes = self
             .membership_claim_serialized_write_bytes
             .checked_add(usize_u64(
                 id.len()
                     .checked_add(subject.len())
-                    .ok_or(ItemRefusal::Budget)?,
+                    .ok_or(tos_validation::item_budget_origin!())?,
             )?)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         if !existed {
             self.membership_claim_rows = self
                 .membership_claim_rows
                 .checked_add(1)
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(tos_validation::item_budget_origin!())?;
         }
         self.max_membership_claim_id_bytes = self.max_membership_claim_id_bytes.max(id.len());
         self.max_membership_subject_bytes = self.max_membership_subject_bytes.max(subject.len());
@@ -6490,7 +6609,7 @@ impl SourceFoundationClosureSchemaRequestStore
             self.membership_claim_serialized_read_bytes = self
                 .membership_claim_serialized_read_bytes
                 .checked_add(usize_u64(id.len())?)
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(tos_validation::item_budget_origin!())?;
         }
         self.membership_claim_workspace_state_bytes =
             self.membership_claim_workspace_state_bytes.max(workspace);
@@ -6526,7 +6645,7 @@ impl SourceFoundationClosureSchemaRequestStore
             context.add_scan_rows(scan_rows, 1)?;
             scan_row_operations = scan_row_operations
                 .checked_add(1)
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(tos_validation::item_budget_origin!())?;
             let Some(row) = rows.next().map_err(sql_refusal)? else {
                 break;
             };
@@ -6541,9 +6660,9 @@ impl SourceFoundationClosureSchemaRequestStore
                 .checked_add(previous_state)
                 .and_then(|state| state.checked_add(subject_state.checked_mul(2)?))
                 .and_then(|state| state.checked_add(size_of::<(String, String)>() + 768))
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(tos_validation::item_budget_origin!())?;
             if workspace > max_state_bytes {
-                return Err(ItemRefusal::Budget);
+                return Err(tos_validation::item_budget_origin!());
             }
             context.row_state(workspace)?;
             let id = bounded_row_text(row, 0, workspace).map_err(sql_refusal)?;
@@ -6551,10 +6670,12 @@ impl SourceFoundationClosureSchemaRequestStore
                 return Err(source_refusal());
             }
             visit(&id)?;
-            drained = drained.checked_add(1).ok_or(ItemRefusal::Budget)?;
+            drained = drained
+                .checked_add(1)
+                .ok_or(tos_validation::item_budget_origin!())?;
             read_bytes = read_bytes
                 .checked_add(usize_u64(id.len())?)
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(tos_validation::item_budget_origin!())?;
             workspace_peak = workspace_peak.max(workspace);
             previous = Some(id);
             context.check()?;
@@ -6565,11 +6686,11 @@ impl SourceFoundationClosureSchemaRequestStore
         self.membership_claim_serialized_read_bytes = self
             .membership_claim_serialized_read_bytes
             .checked_add(read_bytes)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         self.membership_claim_scan_row_operations = self
             .membership_claim_scan_row_operations
             .checked_add(scan_row_operations)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         self.membership_claim_workspace_state_bytes = self
             .membership_claim_workspace_state_bytes
             .max(workspace_peak);
@@ -6669,7 +6790,9 @@ impl SourceFoundationClosureSchemaRequestStore
         drop(stored);
         self.context.check()?;
         let serialized_fields = field_bytes.iter().try_fold(0usize, |bytes, field| {
-            bytes.checked_add(*field).ok_or(ItemRefusal::Budget)
+            bytes
+                .checked_add(*field)
+                .ok_or(tos_validation::item_budget_origin!())
         })?;
         self.responsibility_claim_serialized_read_bytes = self
             .responsibility_claim_serialized_read_bytes
@@ -6677,22 +6800,22 @@ impl SourceFoundationClosureSchemaRequestStore
                 serialized_fields
                     .checked_add(if existed { id.len() } else { 0 })
                     .and_then(|bytes| bytes.checked_add(size_of::<i64>()))
-                    .ok_or(ItemRefusal::Budget)?,
+                    .ok_or(tos_validation::item_budget_origin!())?,
             )?)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         self.responsibility_claim_serialized_write_bytes = self
             .responsibility_claim_serialized_write_bytes
             .checked_add(usize_u64(
                 serialized_fields
                     .checked_add(size_of::<i64>())
-                    .ok_or(ItemRefusal::Budget)?,
+                    .ok_or(tos_validation::item_budget_origin!())?,
             )?)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         if !existed {
             self.responsibility_claim_rows = self
                 .responsibility_claim_rows
                 .checked_add(1)
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(tos_validation::item_budget_origin!())?;
         }
         for (maximum, actual) in self
             .max_responsibility_claim_bytes
@@ -6771,9 +6894,9 @@ impl SourceFoundationClosureSchemaRequestStore
                         .and_then(|bytes| bytes.checked_add(reference.object.len()))
                         .and_then(|bytes| bytes.checked_add(reference.event.len()))
                         .and_then(|bytes| bytes.checked_add(size_of::<i64>()))
-                        .ok_or(ItemRefusal::Budget)?,
+                        .ok_or(tos_validation::item_budget_origin!())?,
                 )?)
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(tos_validation::item_budget_origin!())?;
         }
         self.responsibility_claim_workspace_state_bytes = self
             .responsibility_claim_workspace_state_bytes
@@ -6816,7 +6939,7 @@ impl SourceFoundationClosureSchemaRequestStore
             self.responsibility_claim_serialized_read_bytes = self
                 .responsibility_claim_serialized_read_bytes
                 .checked_add(usize_u64(id.len())?)
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(tos_validation::item_budget_origin!())?;
         }
         self.responsibility_claim_workspace_state_bytes = self
             .responsibility_claim_workspace_state_bytes
@@ -6844,7 +6967,7 @@ impl SourceFoundationClosureSchemaRequestStore
         let base_workspace = Self::responsibility_claim_workspace([0; 6], 0)?
             .checked_add(estimate_string_state(subject)?)
             .and_then(|state| state.checked_add(size_of::<Option<String>>() + 512))
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         self.preflight(base_workspace, max_state_bytes)?;
         self.context.check()?;
         let context = self.context;
@@ -6868,7 +6991,7 @@ impl SourceFoundationClosureSchemaRequestStore
             context.add_scan_rows(scan_rows, 1)?;
             scan_row_operations = scan_row_operations
                 .checked_add(1)
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(tos_validation::item_budget_origin!())?;
             let Some(row) = rows.next().map_err(sql_refusal)? else {
                 break;
             };
@@ -6895,14 +7018,16 @@ impl SourceFoundationClosureSchemaRequestStore
                 .unwrap_or_default();
             let workspace = Self::responsibility_claim_workspace(field_lengths, 3)?
                 .checked_add(field_bytes.iter().try_fold(0usize, |state, bytes| {
-                    state.checked_add(*bytes).ok_or(ItemRefusal::Budget)
+                    state
+                        .checked_add(*bytes)
+                        .ok_or(tos_validation::item_budget_origin!())
                 })?)
                 .and_then(|state| state.checked_add(previous_state))
                 .and_then(|state| state.checked_add(estimate_string_state(subject).ok()?))
                 .and_then(|state| state.checked_add(size_of::<Option<String>>() + 512))
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(tos_validation::item_budget_origin!())?;
             if workspace > max_state_bytes {
-                return Err(ItemRefusal::Budget);
+                return Err(tos_validation::item_budget_origin!());
             }
             context.row_state(workspace)?;
             let id = bounded_row_text(row, 0, workspace).map_err(sql_refusal)?;
@@ -6924,7 +7049,9 @@ impl SourceFoundationClosureSchemaRequestStore
                 return Err(source_refusal());
             }
             visit(&id, &reference, workspace)?;
-            drained = drained.checked_add(1).ok_or(ItemRefusal::Budget)?;
+            drained = drained
+                .checked_add(1)
+                .ok_or(tos_validation::item_budget_origin!())?;
             read_bytes = read_bytes
                 .checked_add(usize_u64(
                     id.len()
@@ -6934,9 +7061,9 @@ impl SourceFoundationClosureSchemaRequestStore
                         .and_then(|bytes| bytes.checked_add(reference.object.len()))
                         .and_then(|bytes| bytes.checked_add(reference.event.len()))
                         .and_then(|bytes| bytes.checked_add(size_of::<i64>()))
-                        .ok_or(ItemRefusal::Budget)?,
+                        .ok_or(tos_validation::item_budget_origin!())?,
                 )?)
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(tos_validation::item_budget_origin!())?;
             workspace_peak = workspace_peak.max(workspace);
             previous = Some(id);
             context.check()?;
@@ -6947,11 +7074,11 @@ impl SourceFoundationClosureSchemaRequestStore
         self.responsibility_claim_serialized_read_bytes = self
             .responsibility_claim_serialized_read_bytes
             .checked_add(read_bytes)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         self.responsibility_claim_scan_row_operations = self
             .responsibility_claim_scan_row_operations
             .checked_add(scan_row_operations)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         self.responsibility_claim_workspace_state_bytes = self
             .responsibility_claim_workspace_state_bytes
             .max(workspace_peak);
@@ -7051,29 +7178,31 @@ impl SourceFoundationClosureSchemaRequestStore
         drop(stored);
         self.context.check()?;
         let serialized_fields = field_bytes.iter().try_fold(0usize, |bytes, field| {
-            bytes.checked_add(*field).ok_or(ItemRefusal::Budget)
+            bytes
+                .checked_add(*field)
+                .ok_or(tos_validation::item_budget_origin!())
         })?;
         let read_bytes = serialized_fields
             .checked_add(if existed { id.len() } else { 0 })
             .and_then(|bytes| bytes.checked_add(size_of::<i64>()))
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         self.publication_claim_serialized_read_bytes = self
             .publication_claim_serialized_read_bytes
             .checked_add(usize_u64(read_bytes)?)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         self.publication_claim_serialized_write_bytes = self
             .publication_claim_serialized_write_bytes
             .checked_add(usize_u64(
                 serialized_fields
                     .checked_add(size_of::<i64>())
-                    .ok_or(ItemRefusal::Budget)?,
+                    .ok_or(tos_validation::item_budget_origin!())?,
             )?)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         if !existed {
             self.publication_claim_rows = self
                 .publication_claim_rows
                 .checked_add(1)
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(tos_validation::item_budget_origin!())?;
         }
         for (maximum, actual) in self.max_publication_claim_bytes.iter_mut().zip(field_bytes) {
             *maximum = (*maximum).max(actual);
@@ -7129,7 +7258,7 @@ impl SourceFoundationClosureSchemaRequestStore
                         .as_deref()
                         .unwrap_or_default(),
                 )?)
-                .ok_or(ItemRefusal::Budget)?
+                .ok_or(tos_validation::item_budget_origin!())?
         } else {
             size_of::<([usize; 6], Option<String>)>() + 512
         };
@@ -7209,12 +7338,12 @@ impl SourceFoundationClosureSchemaRequestStore
         self.context.active_state(
             row_state
                 .checked_add(cursor_state)
-                .ok_or(ItemRefusal::Budget)?,
+                .ok_or(tos_validation::item_budget_origin!())?,
         )?;
         self.publication_claim_drained_rows = self
             .publication_claim_drained_rows
             .checked_add(1)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         self.publication_claim_serialized_read_bytes = self
             .publication_claim_serialized_read_bytes
             .checked_add(usize_u64(
@@ -7225,9 +7354,9 @@ impl SourceFoundationClosureSchemaRequestStore
                     .and_then(|bytes| bytes.checked_add(reference.object.len()))
                     .and_then(|bytes| bytes.checked_add(reference.event.len()))
                     .and_then(|bytes| bytes.checked_add(size_of::<i64>()))
-                    .ok_or(ItemRefusal::Budget)?,
+                    .ok_or(tos_validation::item_budget_origin!())?,
             )?)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         self.last_publication_claim_id = Some(id.clone());
         self.publication_claim_workspace_state_bytes =
             self.publication_claim_workspace_state_bytes.max(workspace);
@@ -7795,9 +7924,9 @@ impl SourceFoundationClosureSchemaRequestStore
                         .and_then(|bytes| bytes.checked_add(reference.object.len()))
                         .and_then(|bytes| bytes.checked_add(reference.event.len()))
                         .and_then(|bytes| bytes.checked_add(size_of::<i64>()))
-                        .ok_or(ItemRefusal::Budget)?,
+                        .ok_or(tos_validation::item_budget_origin!())?,
                 )?)
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(tos_validation::item_budget_origin!())?;
         }
         self.publication_claim_workspace_state_bytes =
             self.publication_claim_workspace_state_bytes.max(workspace);
@@ -7824,7 +7953,7 @@ impl SourceFoundationClosureSchemaRequestStore
         let base_workspace = Self::responsibility_claim_workspace([0; 6], 0)?
             .checked_add(estimate_string_state(subject)?)
             .and_then(|state| state.checked_add(size_of::<Option<String>>() + 512))
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         self.preflight(base_workspace, max_state_bytes)?;
         self.context.check()?;
         let context = self.context;
@@ -7848,7 +7977,7 @@ impl SourceFoundationClosureSchemaRequestStore
             context.add_scan_rows(scan_rows, 1)?;
             scan_row_operations = scan_row_operations
                 .checked_add(1)
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(tos_validation::item_budget_origin!())?;
             let Some(row) = rows.next().map_err(sql_refusal)? else {
                 break;
             };
@@ -7875,14 +8004,16 @@ impl SourceFoundationClosureSchemaRequestStore
                 .unwrap_or_default();
             let workspace = Self::responsibility_claim_workspace(field_lengths, 3)?
                 .checked_add(field_bytes.iter().try_fold(0usize, |state, bytes| {
-                    state.checked_add(*bytes).ok_or(ItemRefusal::Budget)
+                    state
+                        .checked_add(*bytes)
+                        .ok_or(tos_validation::item_budget_origin!())
                 })?)
                 .and_then(|state| state.checked_add(previous_state))
                 .and_then(|state| state.checked_add(estimate_string_state(subject).ok()?))
                 .and_then(|state| state.checked_add(size_of::<Option<String>>() + 512))
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(tos_validation::item_budget_origin!())?;
             if workspace > max_state_bytes {
-                return Err(ItemRefusal::Budget);
+                return Err(tos_validation::item_budget_origin!());
             }
             context.row_state(workspace)?;
             let id = bounded_row_text(row, 0, workspace).map_err(sql_refusal)?;
@@ -7904,7 +8035,9 @@ impl SourceFoundationClosureSchemaRequestStore
                 return Err(source_refusal());
             }
             visit(&id, &reference, workspace)?;
-            drained = drained.checked_add(1).ok_or(ItemRefusal::Budget)?;
+            drained = drained
+                .checked_add(1)
+                .ok_or(tos_validation::item_budget_origin!())?;
             read_bytes = read_bytes
                 .checked_add(usize_u64(
                     id.len()
@@ -7914,9 +8047,9 @@ impl SourceFoundationClosureSchemaRequestStore
                         .and_then(|bytes| bytes.checked_add(reference.object.len()))
                         .and_then(|bytes| bytes.checked_add(reference.event.len()))
                         .and_then(|bytes| bytes.checked_add(size_of::<i64>()))
-                        .ok_or(ItemRefusal::Budget)?,
+                        .ok_or(tos_validation::item_budget_origin!())?,
                 )?)
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(tos_validation::item_budget_origin!())?;
             workspace_peak = workspace_peak.max(workspace);
             previous = Some(id);
             context.check()?;
@@ -7927,11 +8060,11 @@ impl SourceFoundationClosureSchemaRequestStore
         self.publication_claim_serialized_read_bytes = self
             .publication_claim_serialized_read_bytes
             .checked_add(read_bytes)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         self.publication_claim_scan_row_operations = self
             .publication_claim_scan_row_operations
             .checked_add(scan_row_operations)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         self.publication_claim_workspace_state_bytes = self
             .publication_claim_workspace_state_bytes
             .max(workspace_peak);
@@ -8858,10 +8991,10 @@ impl SourceFoundationClosureSchemaRequestStore
             .checked_add(
                 Self::row_text_state(event_id.len())?
                     .checked_mul(3)
-                    .ok_or(ItemRefusal::Budget)?,
+                    .ok_or(tos_validation::item_budget_origin!())?,
             )
             .and_then(|state| state.checked_add(size_of::<(String, String)>() + 512))
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         self.preflight(workspace, max_state_bytes)?;
         self.context.check()?;
         self.charge_responsibility_validated_event_scan_rows(2)?;
@@ -8914,23 +9047,23 @@ impl SourceFoundationClosureSchemaRequestStore
                 check_kind
                     .len()
                     .checked_add(event_id.len())
-                    .ok_or(ItemRefusal::Budget)?,
+                    .ok_or(tos_validation::item_budget_origin!())?,
             )?)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         if inserted == 1 {
             self.responsibility_validated_event_rows = self
                 .responsibility_validated_event_rows
                 .checked_add(1)
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(tos_validation::item_budget_origin!())?;
             self.responsibility_validated_event_serialized_write_bytes = self
                 .responsibility_validated_event_serialized_write_bytes
                 .checked_add(usize_u64(
                     check_kind
                         .len()
                         .checked_add(event_id.len())
-                        .ok_or(ItemRefusal::Budget)?,
+                        .ok_or(tos_validation::item_budget_origin!())?,
                 )?)
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(tos_validation::item_budget_origin!())?;
         }
         self.responsibility_validated_event_workspace_state_bytes = self
             .responsibility_validated_event_workspace_state_bytes
@@ -8951,10 +9084,10 @@ impl SourceFoundationClosureSchemaRequestStore
             .checked_add(
                 Self::row_text_state(event_id.len())?
                     .checked_mul(3)
-                    .ok_or(ItemRefusal::Budget)?,
+                    .ok_or(tos_validation::item_budget_origin!())?,
             )
             .and_then(|state| state.checked_add(size_of::<(String, String)>() + 512))
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         self.preflight(workspace, max_state_bytes)?;
         self.context.check()?;
         self.charge_publication_validated_event_scan_rows(2)?;
@@ -9005,21 +9138,21 @@ impl SourceFoundationClosureSchemaRequestStore
             check_kind
                 .len()
                 .checked_add(event_id.len())
-                .ok_or(ItemRefusal::Budget)?,
+                .ok_or(tos_validation::item_budget_origin!())?,
         )?;
         self.publication_validated_event_serialized_read_bytes = self
             .publication_validated_event_serialized_read_bytes
             .checked_add(bytes)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         if inserted == 1 {
             self.publication_validated_event_rows = self
                 .publication_validated_event_rows
                 .checked_add(1)
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(tos_validation::item_budget_origin!())?;
             self.publication_validated_event_serialized_write_bytes = self
                 .publication_validated_event_serialized_write_bytes
                 .checked_add(bytes)
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(tos_validation::item_budget_origin!())?;
         }
         self.publication_validated_event_workspace_state_bytes = self
             .publication_validated_event_workspace_state_bytes
@@ -9072,16 +9205,16 @@ impl SourceFoundationClosureSchemaRequestStore
         self.boundary_responsibility_ref_serialized_read_bytes = self
             .boundary_responsibility_ref_serialized_read_bytes
             .checked_add(usize_u64(id.len())?)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         if inserted == 1 {
             self.boundary_responsibility_ref_rows = self
                 .boundary_responsibility_ref_rows
                 .checked_add(1)
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(tos_validation::item_budget_origin!())?;
             self.boundary_responsibility_ref_serialized_write_bytes = self
                 .boundary_responsibility_ref_serialized_write_bytes
                 .checked_add(usize_u64(id.len())?)
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(tos_validation::item_budget_origin!())?;
         }
         self.max_boundary_responsibility_ref_bytes =
             self.max_boundary_responsibility_ref_bytes.max(id.len());
@@ -9174,7 +9307,7 @@ impl SourceFoundationClosureSchemaRequestStore
         self.boundary_responsibility_ref_serialized_read_bytes = self
             .boundary_responsibility_ref_serialized_read_bytes
             .checked_add(id_bytes)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         if id.len() > self.max_boundary_responsibility_ref_bytes
             || self
                 .last_boundary_responsibility_ref
@@ -9186,7 +9319,7 @@ impl SourceFoundationClosureSchemaRequestStore
         self.boundary_responsibility_ref_drained_rows = self
             .boundary_responsibility_ref_drained_rows
             .checked_add(1)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         if self.boundary_responsibility_ref_drained_rows > expected_rows {
             return Err(source_refusal());
         }
@@ -9194,7 +9327,7 @@ impl SourceFoundationClosureSchemaRequestStore
         let retained_cursor_state = Self::row_text_state(id.len())?;
         let active_state = row_state
             .checked_add(retained_cursor_state)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         self.context.active_state(active_state)?;
         self.last_boundary_responsibility_ref = Some(id.clone());
         self.context.check()?;
@@ -9764,12 +9897,12 @@ impl SourceFoundationClosureSchemaRequestStore
         let cursor_state = estimate_string_state(&id)?;
         let active_state = row_state
             .checked_add(cursor_state)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         self.context.active_state(active_state)?;
         self.responsibility_claim_drained_rows = self
             .responsibility_claim_drained_rows
             .checked_add(1)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         self.responsibility_claim_serialized_read_bytes = self
             .responsibility_claim_serialized_read_bytes
             .checked_add(usize_u64(
@@ -9780,9 +9913,9 @@ impl SourceFoundationClosureSchemaRequestStore
                     .and_then(|bytes| bytes.checked_add(reference.object.len()))
                     .and_then(|bytes| bytes.checked_add(reference.event.len()))
                     .and_then(|bytes| bytes.checked_add(size_of::<i64>()))
-                    .ok_or(ItemRefusal::Budget)?,
+                    .ok_or(tos_validation::item_budget_origin!())?,
             )?)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         self.last_responsibility_claim_id = Some(id);
         self.responsibility_claim_workspace_state_bytes = self
             .responsibility_claim_workspace_state_bytes
@@ -9844,7 +9977,10 @@ impl SourceFoundationClosureSchemaRequestStore
             return Err(source_refusal());
         }
         if inserted == 1 {
-            self.event_rows = self.event_rows.checked_add(1).ok_or(ItemRefusal::Budget)?;
+            self.event_rows = self
+                .event_rows
+                .checked_add(1)
+                .ok_or(tos_validation::item_budget_origin!())?;
             self.event_serialized_write_bytes = self
                 .event_serialized_write_bytes
                 .checked_add(usize_u64(
@@ -9853,9 +9989,9 @@ impl SourceFoundationClosureSchemaRequestStore
                         .and_then(|bytes| bytes.checked_add(line.len()))
                         .and_then(|bytes| bytes.checked_add(document_sha256.len()))
                         .and_then(|bytes| bytes.checked_add(encoded.len()))
-                        .ok_or(ItemRefusal::Budget)?,
+                        .ok_or(tos_validation::item_budget_origin!())?,
                 )?)
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(tos_validation::item_budget_origin!())?;
             self.max_event_id_bytes = self.max_event_id_bytes.max(id.len());
             self.max_event_path_bytes = self.max_event_path_bytes.max(path.len());
             self.max_event_json_bytes = self.max_event_json_bytes.max(encoded.len());
@@ -9975,7 +10111,8 @@ impl SourceFoundationClosureSchemaRequestStore
                 {
                     return Err(rusqlite::Error::InvalidQuery);
                 }
-                let line = checked_u64_blob(line).map_err(|_| rusqlite::Error::InvalidQuery)?;
+                let line = checked_u64_blob(line)
+                    .map_err(|error| row_refusal(error, 1, rusqlite::types::Type::Blob))?;
                 let line = usize::try_from(line).map_err(|_| rusqlite::Error::InvalidQuery)?;
                 let value = serde_json::from_slice::<Value>(raw)
                     .map_err(|_| rusqlite::Error::InvalidQuery)?;
@@ -10007,9 +10144,9 @@ impl SourceFoundationClosureSchemaRequestStore
                     .and_then(|bytes| bytes.checked_add(document_sha256.len()))
                     .and_then(|bytes| bytes.checked_add(raw_bytes))
                     .and_then(|bytes| bytes.checked_add(3 * size_of::<i64>()))
-                    .ok_or(ItemRefusal::Budget)?,
+                    .ok_or(tos_validation::item_budget_origin!())?,
             )?)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         self.event_workspace_state_bytes = self.event_workspace_state_bytes.max(workspace);
         Ok((
             Some(SourceFoundationClosureEvent {
@@ -10199,16 +10336,16 @@ impl SourceFoundationClosureSchemaRequestStore
         self.event_path_serialized_read_bytes = self
             .event_path_serialized_read_bytes
             .checked_add(usize_u64(stored.len())?)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         if inserted == 1 {
             self.event_path_rows = self
                 .event_path_rows
                 .checked_add(1)
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(tos_validation::item_budget_origin!())?;
             self.event_path_serialized_write_bytes = self
                 .event_path_serialized_write_bytes
                 .checked_add(usize_u64(path.len())?)
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(tos_validation::item_budget_origin!())?;
             self.max_event_path_queue_bytes = self.max_event_path_queue_bytes.max(path.len());
         }
         self.event_path_workspace_state_bytes =
@@ -10294,11 +10431,11 @@ impl SourceFoundationClosureSchemaRequestStore
         self.event_path_drained_rows = self
             .event_path_drained_rows
             .checked_add(1)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         self.event_path_serialized_read_bytes = self
             .event_path_serialized_read_bytes
             .checked_add(usize_u64(path.len())?)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         self.last_event_path = Some(path.clone());
         self.event_path_workspace_state_bytes =
             self.event_path_workspace_state_bytes.max(workspace);
@@ -10364,7 +10501,7 @@ impl SourceFoundationClosureSchemaRequestStore
                 self.loaded_document_serialized_read_bytes = self
                     .loaded_document_serialized_read_bytes
                     .checked_add(usize_u64(digest.len())?)
-                    .ok_or(ItemRefusal::Budget)?;
+                    .ok_or(tos_validation::item_budget_origin!())?;
                 false
             }
             Some(_) => return Err(source_refusal()),
@@ -10385,15 +10522,15 @@ impl SourceFoundationClosureSchemaRequestStore
                 self.loaded_document_rows = self
                     .loaded_document_rows
                     .checked_add(1)
-                    .ok_or(ItemRefusal::Budget)?;
+                    .ok_or(tos_validation::item_budget_origin!())?;
                 self.loaded_document_serialized_write_bytes = self
                     .loaded_document_serialized_write_bytes
                     .checked_add(usize_u64(
                         path.len()
                             .checked_add(digest.len())
-                            .ok_or(ItemRefusal::Budget)?,
+                            .ok_or(tos_validation::item_budget_origin!())?,
                     )?)
-                    .ok_or(ItemRefusal::Budget)?;
+                    .ok_or(tos_validation::item_budget_origin!())?;
                 true
             }
         };
@@ -10447,7 +10584,7 @@ impl SourceFoundationClosureSchemaRequestStore
             self.loaded_document_serialized_read_bytes = self
                 .loaded_document_serialized_read_bytes
                 .checked_add(usize_u64(value.len())?)
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(tos_validation::item_budget_origin!())?;
             self.loaded_rows.serialized_read_bytes = self
                 .loaded_rows
                 .serialized_read_bytes
@@ -10938,7 +11075,7 @@ impl SourceFoundationClosureSchemaRequestStore
             .and_then(|state| {
                 state.checked_add(size_of::<SourceFoundationClosureSchemaRequest>() + 512)
             })
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         self.preflight(base_workspace, max_state_bytes)?;
         let document_bytes = json_len(&request.document, max_document_bytes)?;
         if document_bytes == 0 {
@@ -10975,11 +11112,11 @@ impl SourceFoundationClosureSchemaRequestStore
         self.observation_rows = self
             .observation_rows
             .checked_add(1)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         self.serialized_write_bytes = self
             .serialized_write_bytes
             .checked_add(usize_u64(encoded.len())?)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         self.max_document_bytes = Some(max_document_bytes);
         self.last_before_issue = Some(request.before_issue);
         self.workspace_peak_bytes = self.workspace_peak_bytes.max(workspace);
@@ -11112,9 +11249,9 @@ impl SourceFoundationClosureSchemaRequestStore
         let workspace = size_of::<(i64, [u8; 8], [u8; 8])>() + 256;
         self.preflight(workspace, max_state_bytes)?;
         let scan_rows = usize::try_from(expected_rows)
-            .map_err(|_| ItemRefusal::Budget)?
+            .map_err(|_| tos_validation::item_budget_origin!())?
             .checked_add(1)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         self.charge_schema_scan_rows(scan_rows)?;
         let mut statement = self
             .db
@@ -11170,9 +11307,9 @@ impl SourceFoundationClosureSchemaRequestStore
         let loaded_count_workspace = size_of::<(i64, i64)>() + 256;
         self.preflight(loaded_count_workspace, max_state_bytes)?;
         let loaded_scan_rows = usize::try_from(expected_loaded_documents)
-            .map_err(|_| ItemRefusal::Budget)?
+            .map_err(|_| tos_validation::item_budget_origin!())?
             .checked_add(1)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         self.charge_loaded_document_scan_rows(loaded_scan_rows)?;
         let mut statement = self
             .db
@@ -11240,7 +11377,7 @@ impl SourceFoundationClosureSchemaRequestStore
             .loaded_rows
             .serialized_read_bytes
             .checked_add(size_of::<i64>() as u64)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         drop(rows);
         drop(statement);
         self.loaded_rows.count_verified = true;
@@ -11418,8 +11555,11 @@ impl SourceFoundationClosureSchemaRequestStore
         self.serialized_read_bytes = self
             .serialized_read_bytes
             .checked_add(usize_u64(raw.len())?)
-            .ok_or(ItemRefusal::Budget)?;
-        self.read_rows = self.read_rows.checked_add(1).ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
+        self.read_rows = self
+            .read_rows
+            .checked_add(1)
+            .ok_or(tos_validation::item_budget_origin!())?;
         self.last_read_before_issue = Some(before_issue);
         self.cursor_ordinal = Some(ordinal);
         self.workspace_peak_bytes = self.workspace_peak_bytes.max(workspace);
@@ -11463,7 +11603,7 @@ impl CandidateDiscoveryDigestCache<'_, '_, '_, '_, '_> {
         bytes
             .checked_mul(16)
             .and_then(|state| state.checked_add(2048))
-            .ok_or(ItemRefusal::Budget)
+            .ok_or(tos_validation::item_budget_origin!())
     }
 
     fn valid_digest(value: &str) -> bool {
@@ -11473,11 +11613,7 @@ impl CandidateDiscoveryDigestCache<'_, '_, '_, '_, '_> {
     }
 
     fn preflight(&self, workspace: usize, max_state_bytes: usize) -> Result<(), ItemRefusal> {
-        if self.finished
-            || max_state_bytes == 0
-            || max_state_bytes > self.context.operation_state_limit
-            || workspace > max_state_bytes
-        {
+        if self.finished || max_state_bytes == 0 || workspace > max_state_bytes {
             return Err(source_refusal());
         }
         self.context.row_state(workspace)?;
@@ -11489,7 +11625,7 @@ impl CandidateDiscoveryDigestCache<'_, '_, '_, '_, '_> {
         self.scan_row_operations = self
             .scan_row_operations
             .checked_add(usize_u64(rows)?)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         Ok(())
     }
 
@@ -11514,7 +11650,7 @@ impl DiscoveryDigestCache for CandidateDiscoveryDigestCache<'_, '_, '_, '_, '_> 
         let workspace = Self::row_text_state(path.len())?
             .checked_add(Self::row_text_state(64)?)
             .and_then(|state| state.checked_add(size_of::<(String, String)>() + 256))
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         if path.is_empty() {
             return Err(source_refusal());
         }
@@ -11546,7 +11682,7 @@ impl DiscoveryDigestCache for CandidateDiscoveryDigestCache<'_, '_, '_, '_, '_> 
             self.serialized_read_bytes = self
                 .serialized_read_bytes
                 .checked_add(usize_u64(value.len())?)
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(tos_validation::item_budget_origin!())?;
         }
         self.workspace_peak_bytes = self.workspace_peak_bytes.max(workspace);
         Ok((value, workspace))
@@ -11561,7 +11697,7 @@ impl DiscoveryDigestCache for CandidateDiscoveryDigestCache<'_, '_, '_, '_, '_> 
         let workspace = Self::row_text_state(path.len())?
             .checked_add(Self::row_text_state(digest.len())?)
             .and_then(|state| state.checked_add(size_of::<(String, String)>() + 256))
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         if path.is_empty() || !Self::valid_digest(digest) {
             return Err(source_refusal());
         }
@@ -11602,25 +11738,25 @@ impl DiscoveryDigestCache for CandidateDiscoveryDigestCache<'_, '_, '_, '_, '_> 
         self.observation_rows = self
             .observation_rows
             .checked_add(1)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         if inserted == 1 {
             self.unique_paths = self
                 .unique_paths
                 .checked_add(1)
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(tos_validation::item_budget_origin!())?;
             self.serialized_write_bytes = self
                 .serialized_write_bytes
                 .checked_add(usize_u64(
                     path.len()
                         .checked_add(digest.len())
-                        .ok_or(ItemRefusal::Budget)?,
+                        .ok_or(tos_validation::item_budget_origin!())?,
                 )?)
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(tos_validation::item_budget_origin!())?;
         }
         self.serialized_read_bytes = self
             .serialized_read_bytes
             .checked_add(usize_u64(stored.len())?)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         self.max_path_bytes = self.max_path_bytes.max(path.len());
         self.workspace_peak_bytes = self.workspace_peak_bytes.max(workspace);
         Ok((inserted == 1, workspace))
@@ -11644,12 +11780,12 @@ impl DiscoveryDigestCache for CandidateDiscoveryDigestCache<'_, '_, '_, '_, '_> 
             .checked_mul(2)
             .and_then(|state| state.checked_add(digest_state))
             .and_then(|state| state.checked_add(size_of::<(String, String)>() + 512))
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         self.preflight(workspace, max_state_bytes)?;
         let audit_rows = usize::try_from(expected_unique_paths)
-            .map_err(|_| ItemRefusal::Budget)?
+            .map_err(|_| tos_validation::item_budget_origin!())?
             .checked_add(1)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         self.charge_scan_rows(audit_rows)?;
         self.context.check()?;
         let mut statement = self
@@ -11682,11 +11818,13 @@ impl DiscoveryDigestCache for CandidateDiscoveryDigestCache<'_, '_, '_, '_, '_> 
                 .checked_add(usize_u64(
                     path.len()
                         .checked_add(digest.len())
-                        .ok_or(ItemRefusal::Budget)?,
+                        .ok_or(tos_validation::item_budget_origin!())?,
                 )?)
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(tos_validation::item_budget_origin!())?;
             previous_path = Some(path);
-            visited = visited.checked_add(1).ok_or(ItemRefusal::Budget)?;
+            visited = visited
+                .checked_add(1)
+                .ok_or(tos_validation::item_budget_origin!())?;
         }
         drop(rows);
         drop(statement);
@@ -11780,11 +11918,11 @@ impl SourceFoundationBiblioEventSink for BiblioEventsProvider<'_, '_, '_, '_> {
         let encoded_state = value_json_bytes
             .checked_mul(2)
             .and_then(|bytes| bytes.checked_add(size_of::<Vec<u8>>() + 1024))
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         let workspace = checked_add(checked_add(value_state, id_state)?, encoded_state)?;
         check_event_operation(self.context, 0, self.state.retained_state_bytes, workspace)?;
         if workspace > self.max_state_bytes {
-            return Err(ItemRefusal::Budget);
+            return Err(tos_validation::item_budget_origin!());
         }
         let previous: Option<([u8; 8], [u8; 8], usize)> = self
             .query_budget
@@ -11817,7 +11955,7 @@ impl SourceFoundationBiblioEventSink for BiblioEventsProvider<'_, '_, '_, '_> {
         let observation_count = previous_count
             .unwrap_or(0)
             .checked_add(1)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         let id_json_bytes = json_len(&id, self.max_json_bytes)?;
         let merged_json_bytes = next_event_json_total(
             self.state.merged_json_bytes,
@@ -11849,13 +11987,13 @@ impl SourceFoundationBiblioEventSink for BiblioEventsProvider<'_, '_, '_, '_> {
                 .state
                 .unique_ids
                 .checked_add(1)
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(tos_validation::item_budget_origin!())?;
         }
         self.state.observation_rows = self
             .state
             .observation_rows
             .checked_add(1)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         self.state.last_source_ordinal = Some(ordinal);
         self.state.merged_json_bytes = merged_json_bytes;
         self.state.workspace_peak_bytes = self.state.workspace_peak_bytes.max(workspace);
@@ -11915,7 +12053,7 @@ fn decode_claim_row(
         length
             .checked_mul(16)
             .and_then(|bytes| bytes.checked_add(2048))
-            .ok_or(ItemRefusal::Budget)
+            .ok_or(tos_validation::item_budget_origin!())
     };
     let strings_state = checked_add(text_state(path_ref.len())?, text_state(digest_ref.len())?)?;
     let upper = json_state_upper_bound(raw_value.len())?;
@@ -11927,7 +12065,7 @@ fn decode_claim_row(
         )?,
     )?;
     if raw_value.is_empty() || precharge > max_state_bytes {
-        return Err(ItemRefusal::Budget);
+        return Err(tos_validation::item_budget_origin!());
     }
     context.active_state(precharge)?;
     let path = std::str::from_utf8(path_ref)
@@ -11958,7 +12096,7 @@ fn decode_claim_row(
         )?,
     )?;
     if actual > max_state_bytes {
-        return Err(ItemRefusal::Budget);
+        return Err(tos_validation::item_budget_origin!());
     }
     context.active_state(checked_add(actual, size_of::<u64>())?)?;
     Ok((ordinal, claim))
@@ -12001,22 +12139,30 @@ impl ClaimsProvider<'_, '_, '_, '_> {
             (None, false) => self.db.query_row(
                 "SELECT ordinal,path,line,raw_sha256,native,value FROM biblio_claims WHERE (?1 IS NULL OR ordinal>?1) ORDER BY ordinal LIMIT 1",
                 [after.map(u64::to_be_bytes).as_ref().map(|value| value.as_slice())],
-                |row| decode_claim_row(self.context, row, self.max_state_bytes, self.live_state.get()).map_err(|_| rusqlite::Error::InvalidQuery),
+                |row| decode_claim_row(self.context, row, self.max_state_bytes, self.live_state.get()).map_err(|error| row_refusal(error, 0, rusqlite::types::Type::Blob)),
             ),
             (None, true) => self.db.query_row(
                 "SELECT ordinal,path,line,raw_sha256,native,value FROM biblio_claims WHERE (?1 IS NULL OR ordinal<?1) ORDER BY ordinal DESC LIMIT 1",
                 [after.map(u64::to_be_bytes).as_ref().map(|value| value.as_slice())],
-                |row| decode_claim_row(self.context, row, self.max_state_bytes, self.live_state.get()).map_err(|_| rusqlite::Error::InvalidQuery),
+                |row| decode_claim_row(self.context, row, self.max_state_bytes, self.live_state.get()).map_err(|error| row_refusal(error, 0, rusqlite::types::Type::Blob)),
             ),
             (Some((path, _)), false) => self.db.query_row(
                 "SELECT ordinal,path,line,raw_sha256,native,value FROM biblio_claims WHERE path=?1 AND line=?2 AND (?3 IS NULL OR ordinal>?3) ORDER BY ordinal LIMIT 1",
-                params![path, line.as_ref().map(|value| value.as_slice()), after.map(u64::to_be_bytes).as_ref().map(|value| value.as_slice())],
-                |row| decode_claim_row(self.context, row, self.max_state_bytes, self.live_state.get()).map_err(|_| rusqlite::Error::InvalidQuery),
+                params![
+                    path,
+                    line.as_ref().map(|value| value.as_slice()),
+                    after.map(u64::to_be_bytes).as_ref().map(|value| value.as_slice()),
+                ],
+                |row| decode_claim_row(self.context, row, self.max_state_bytes, self.live_state.get()).map_err(|error| row_refusal(error, 0, rusqlite::types::Type::Blob)),
             ),
             (Some((path, _)), true) => self.db.query_row(
                 "SELECT ordinal,path,line,raw_sha256,native,value FROM biblio_claims WHERE path=?1 AND line=?2 AND (?3 IS NULL OR ordinal<?3) ORDER BY ordinal DESC LIMIT 1",
-                params![path, line.as_ref().map(|value| value.as_slice()), after.map(u64::to_be_bytes).as_ref().map(|value| value.as_slice())],
-                |row| decode_claim_row(self.context, row, self.max_state_bytes, self.live_state.get()).map_err(|_| rusqlite::Error::InvalidQuery),
+                params![
+                    path,
+                    line.as_ref().map(|value| value.as_slice()),
+                    after.map(u64::to_be_bytes).as_ref().map(|value| value.as_slice()),
+                ],
+                |row| decode_claim_row(self.context, row, self.max_state_bytes, self.live_state.get()).map_err(|error| row_refusal(error, 0, rusqlite::types::Type::Blob)),
             ),
         }
         .optional()
@@ -12046,7 +12192,7 @@ impl ClaimsProvider<'_, '_, '_, '_> {
         let found = self.db.query_row(
             "SELECT ordinal,path,line,raw_sha256,native,value FROM biblio_claims WHERE claim_id=?1 ORDER BY ordinal LIMIT 1",
             [id],
-            |row| decode_claim_row(self.context, row, self.max_state_bytes, self.live_state.get()).map_err(|_| rusqlite::Error::InvalidQuery),
+            |row| decode_claim_row(self.context, row, self.max_state_bytes, self.live_state.get()).map_err(|error| row_refusal(error, 0, rusqlite::types::Type::Blob)),
         ).optional().map_err(sql_refusal)?;
         self.context.check()?;
         Ok(found)
@@ -12069,14 +12215,14 @@ impl ClaimsProvider<'_, '_, '_, '_> {
         let encoded_state = value_bytes
             .checked_mul(2)
             .and_then(|bytes| bytes.checked_add(size_of::<Vec<u8>>() + 1024))
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         let workspace = checked_add(
             checked_add(checked_add(value_state, path_state)?, digest_state)?,
             checked_add(encoded_state, size_of::<BiblioClaim>())?,
         )?;
         check_event_operation(self.context, 0, 0, workspace)?;
         if workspace > self.max_state_bytes {
-            return Err(ItemRefusal::Budget);
+            return Err(tos_validation::item_budget_origin!());
         }
         let claim_id = claim.value.get("claim_id").and_then(Value::as_str);
         let encoded = encoded_json(&claim.value, value_bytes, self.max_state_bytes)?;
@@ -12093,7 +12239,7 @@ impl ClaimsProvider<'_, '_, '_, '_> {
             .state
             .inserted_rows
             .checked_add(1)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         self.state.last_ordinal = Some(ordinal);
         self.state.workspace_peak_bytes = self.state.workspace_peak_bytes.max(workspace);
         Ok(())
@@ -12238,7 +12384,7 @@ impl CandidateDefaultRecords<'_, '_, '_, '_, '_, '_> {
             )?;
             self.context.check()?;
             if page.charged_state_bytes > self.context.page_budget.max_state_bytes.get() {
-                return Err(ItemRefusal::Budget);
+                return Err(tos_validation::item_budget_origin!());
             }
             self.context
                 .add_scan_rows(self.scan_rows, page.rows.len())?;
@@ -12255,8 +12401,8 @@ impl CandidateDefaultRecords<'_, '_, '_, '_, '_, '_> {
 
     fn current_record_owned(&self, id: &str) -> Result<Option<BiblioCurrentRecord>, ItemRefusal> {
         self.context.check()?;
-        let max_state =
-            std::num::NonZeroUsize::new(self.lookup_state_limit).ok_or(ItemRefusal::Budget)?;
+        let max_state = std::num::NonZeroUsize::new(self.lookup_state_limit)
+            .ok_or(tos_validation::item_budget_origin!())?;
         let found = self.report.index().lookup_current_record(
             id,
             max_state,
@@ -12283,9 +12429,9 @@ impl CandidateDefaultRecords<'_, '_, '_, '_, '_, '_> {
             .min(self.context.operation_state_limit);
         let lookup_argument_state = estimate_string_state(id)?
             .checked_add(256)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         if lookup_argument_state >= allowance {
-            return Err(ItemRefusal::Budget);
+            return Err(tos_validation::item_budget_origin!());
         }
         // The caller supplies its current remainder. Check that whole joint
         // envelope before the held-index read, then pass only the remainder
@@ -12294,8 +12440,9 @@ impl CandidateDefaultRecords<'_, '_, '_, '_, '_, '_> {
         self.context.add_scan_rows(self.scan_rows, 1)?;
         let row_allowance = allowance
             .checked_sub(lookup_argument_state)
-            .ok_or(ItemRefusal::Budget)?;
-        let max_state = std::num::NonZeroUsize::new(row_allowance).ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
+        let max_state = std::num::NonZeroUsize::new(row_allowance)
+            .ok_or(tos_validation::item_budget_origin!())?;
         let found = self.report.index().lookup_current_record(
             id,
             max_state,
@@ -12309,9 +12456,9 @@ impl CandidateDefaultRecords<'_, '_, '_, '_, '_, '_> {
         };
         let charged_state_bytes = lookup_argument_state
             .checked_add(found.charged_state_bytes)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         if charged_state_bytes > allowance {
-            return Err(ItemRefusal::Budget);
+            return Err(tos_validation::item_budget_origin!());
         }
         self.context.active_state(charged_state_bytes)?;
         Ok((Some(found.record), charged_state_bytes))
@@ -12332,7 +12479,7 @@ impl CandidateDefaultRecords<'_, '_, '_, '_, '_, '_> {
             )?;
             self.context.check()?;
             if page.charged_state_bytes > self.context.operation_state_limit {
-                return Err(ItemRefusal::Budget);
+                return Err(tos_validation::item_budget_origin!());
             }
             self.context
                 .add_scan_rows(self.scan_rows, page.rows.len())?;
@@ -12366,16 +12513,17 @@ impl CandidateDefaultRecords<'_, '_, '_, '_, '_, '_> {
         // already includes `size_of::<String>() + 32` of that overhead.
         let query_overhead = 320usize
             .checked_sub(size_of::<String>() + 32)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         let workspace_state = estimate_string_state(path)?
             .checked_add(query_overhead)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         let max_state = max_state_bytes.min(self.lookup_state_limit);
         if workspace_state > max_state {
-            return Err(ItemRefusal::Budget);
+            return Err(tos_validation::item_budget_origin!());
         }
         self.context.row_state(workspace_state)?;
-        let max_state = std::num::NonZeroUsize::new(max_state).ok_or(ItemRefusal::Budget)?;
+        let max_state =
+            std::num::NonZeroUsize::new(max_state).ok_or(tos_validation::item_budget_origin!())?;
         self.context.add_scan_rows(self.scan_rows, 1)?;
         let found = self.report.index().lookup_current_record_by_path(
             path,
@@ -12447,8 +12595,8 @@ impl SourceFoundationDefaultRecordsLookup for CandidateDefaultRecords<'_, '_, '_
 
     fn item_edition(&self, id: &str) -> Result<Option<Cow<'_, str>>, ItemRefusal> {
         self.context.check()?;
-        let max_state =
-            std::num::NonZeroUsize::new(self.lookup_state_limit).ok_or(ItemRefusal::Budget)?;
+        let max_state = std::num::NonZeroUsize::new(self.lookup_state_limit)
+            .ok_or(tos_validation::item_budget_origin!())?;
         let found = self.report.index().lookup_item_edition(
             id,
             max_state,
@@ -12496,8 +12644,8 @@ impl SourceFoundationDefaultRecordsLookup for CandidateDefaultRecords<'_, '_, '_
             return Ok(None);
         };
         self.context.check()?;
-        let max_state =
-            std::num::NonZeroUsize::new(self.lookup_state_limit).ok_or(ItemRefusal::Budget)?;
+        let max_state = std::num::NonZeroUsize::new(self.lookup_state_limit)
+            .ok_or(tos_validation::item_budget_origin!())?;
         let found = self.report.index().lookup_file_descriptor(
             file_id,
             max_state,
@@ -12686,7 +12834,7 @@ impl tos_validation::biblio_rules::SourceFoundationBiblioManifestSink
         let workspace = checked_add(id_state, edition_state)?;
         check_event_operation(self.context, 0, 0, workspace)?;
         if workspace > self.max_state_bytes {
-            return Err(ItemRefusal::Budget);
+            return Err(tos_validation::item_budget_origin!());
         }
         let previous: Option<[u8; 8]> = self.query_budget.charge().and_then(|()| {
             self.db
@@ -12708,7 +12856,7 @@ impl tos_validation::biblio_rules::SourceFoundationBiblioManifestSink
             .map(|count| u64::from_be_bytes(count))
             .unwrap_or(0)
             .checked_add(1)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         let ordinal = self.state.observations;
         let slot = ordinal.to_be_bytes();
         let count_bytes = count.to_be_bytes();
@@ -12725,13 +12873,13 @@ impl tos_validation::biblio_rules::SourceFoundationBiblioManifestSink
             .state
             .observations
             .checked_add(1)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(tos_validation::item_budget_origin!())?;
         if !duplicate {
             self.state.unique_ids = self
                 .state
                 .unique_ids
                 .checked_add(1)
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(tos_validation::item_budget_origin!())?;
         }
         self.state.workspace_peak_bytes = self.state.workspace_peak_bytes.max(workspace);
         Ok(duplicate)
@@ -12759,7 +12907,7 @@ impl tos_validation::biblio_rules::SourceFoundationBiblioManifestSink
                             .ok_or(rusqlite::Error::InvalidQuery)?;
                         self.context
                             .active_state(strings_state)
-                            .map_err(|_| rusqlite::Error::InvalidQuery)?;
+                            .map_err(|error| row_refusal(error, 1, rusqlite::types::Type::Text))?;
                         let id = bounded_row_text(row, 1, self.max_state_bytes)?;
                         let edition = bounded_row_text(row, 2, self.max_state_bytes)?;
                         Ok((slot, id, edition))
@@ -12878,7 +13026,7 @@ impl<'candidate, 'host> SpoolDefaultStore<'candidate, 'host> {
             let max_path_bytes_per_scan = usize_u64(max_operation_state_bytes)?
                 .checked_mul(stored_limits.max_scan_rows)
                 .filter(|bytes| *bytes != 0)
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(tos_validation::item_budget_origin!())?;
             let path_rows = &self.path_rows;
             let paths = CandidateDefaultPaths::new(
                 candidate,
@@ -13214,7 +13362,15 @@ impl<'candidate, 'host> SpoolDefaultStore<'candidate, 'host> {
                 &mut discovery_schema_requests,
                 &mut discovery_digest_cache,
                 &mut biblio,
-            )?;
+            )
+            .map_err(|error| match error {
+                ItemRefusal::Budget => ItemRefusal::BudgetCheck {
+                    check: "candidate default provider callback",
+                    used: None,
+                    limit: None,
+                },
+                other => other,
+            })?;
             closure_links.verify_finished()?;
             drop(closure_links);
             closure_schema_requests.verify_finished()?;
@@ -13237,6 +13393,13 @@ impl<'candidate, 'host> SpoolDefaultStore<'candidate, 'host> {
         if result.is_err() {
             self.candidate.abandon();
         }
-        result
+        result.map_err(|error| match error {
+            ItemRefusal::Budget => ItemRefusal::BudgetCheck {
+                check: "candidate default provider preparation or final fences",
+                used: None,
+                limit: None,
+            },
+            other => other,
+        })
     }
 }
