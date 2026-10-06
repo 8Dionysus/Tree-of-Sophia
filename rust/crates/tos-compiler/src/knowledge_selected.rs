@@ -97,6 +97,11 @@ pub struct ColdOpenLimits {
     pub max_sources: usize,
 }
 
+impl ColdOpenLimits {
+    /// Maximum metadata envelope accepted by the selected cold reader.
+    pub const MAX_METADATA_BYTES: usize = 256 * 1024;
+}
+
 /// This owner-held guard must maintain a kernel-enforced immutable custody
 /// lease (for example sealed read-only generation or fs-verity) for the full
 /// reader lifetime. FD pin blocks path replacement, not in-place same-inode
@@ -502,7 +507,7 @@ pub(crate) fn validate(
         || limits.max_row_bytes == 0
         || limits.max_row_bytes > 64 * 1024 * 1024
         || limits.max_metadata_bytes == 0
-        || limits.max_metadata_bytes > 256 * 1024
+        || limits.max_metadata_bytes > ColdOpenLimits::MAX_METADATA_BYTES
         || limits.max_sources == 0
         || limits.max_sources > 4096
     {

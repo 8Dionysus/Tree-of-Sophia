@@ -206,7 +206,7 @@ pub fn native_fixture_cold_limits(
         max_rows,
         max_work_bytes: 100 * 1024 * 1024,
         max_row_bytes: 1024 * 1024,
-        max_metadata_bytes: 256 * 1024,
+        max_metadata_bytes: ColdOpenLimits::MAX_METADATA_BYTES,
         max_sources: source_count,
     }
 }

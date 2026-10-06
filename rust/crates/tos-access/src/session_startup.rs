@@ -285,7 +285,7 @@ impl AdmissionLimits {
                 max_rows: 10_000_000,
                 max_work_bytes: 16 * 1024 * 1024 * 1024,
                 max_row_bytes: 16 * 1024 * 1024,
-                max_metadata_bytes: 4 * 1024 * 1024,
+                max_metadata_bytes: tos_compiler::ColdOpenLimits::MAX_METADATA_BYTES,
                 max_sources: 4096,
             },
             process,
