@@ -119,6 +119,16 @@ pub(crate) fn public_compiler_reason(error: &tos_compiler::Error) -> String {
             compiler_sql_cause(error, &format!("sql-{phase:?}"), sql)
         }
         Error::Source(reason) => {
+            // Temporary private owner probe: exact fingerprint opt-in only.
+            // Remove after the retained KAG refusal has been diagnosed.
+            #[cfg(debug_assertions)]
+            if reason.len() <= 4096
+                && std::env::var("TOS_PRIVATE_COMPILER_ERROR_SHA256").is_ok_and(|expected| {
+                    expected == Digest256::of_bytes(error.to_string().as_bytes()).to_hex()
+                })
+            {
+                eprintln!("private-owner-compiler-error: {error:?}");
+            }
             let site = tos_compiler::source_witness_catalog::source_refusal_stage(reason)
                 .map(|stage| format!("compiler-{stage}"))
                 .unwrap_or_else(|| "compiler-source".to_owned());
