@@ -3096,8 +3096,6 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
     )?;
     let owner = |error| FoundationOrchestratorError::OwnerAt("candidate catalogue", error);
     let catalog_operation = catalog_ticket.operation_limits();
-    let catalog_output_bytes = u64::try_from(catalog_operation.output_bytes)
-        .map_err(|_| incomplete("candidate catalog output byte range"))?;
     let catalog_identity_state = worker_identity_path_clone_bytes(worker_image.identity(), 3)?;
     let catalog_state_cap = catalog_operation
         .state_bytes
@@ -3248,10 +3246,12 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
         .execution_limits
         .catalog_worker_limits(catalog_worker_shape)
         .map_err(FoundationOrchestratorError::Command)?;
+    // Fresh catalog files are staged bytes read back for comparison, not the
+    // final CLI receipt. Both physical and cumulative read meters still apply.
     let max_generated_bytes = usize::try_from(
         catalog_operation
             .tmpfs_bytes
-            .min(catalog_output_bytes)
+            .min(catalog_operation.source_read_bytes)
             .min((usize::MAX - 1) as u64),
     )
     .map_err(|_| incomplete("candidate generated catalog byte cap range"))?;
