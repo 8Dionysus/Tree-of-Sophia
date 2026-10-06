@@ -580,18 +580,86 @@ fn fail_window<T>(
     Err(error)
 }
 
-/// Close a failed candidate phase against the exact attempted-read prefix of
-/// the shared original ledger. The adopted counters move only when that exact
-/// read amount is visible in the budget's measured charge.
+/// Complete one candidate phase and adopt its original read/write/upper-bound
+/// prefix only when Foundation retained both read classifications.
 #[allow(clippy::too_many_arguments)]
-fn fail_candidate_window_with_measured_io<T>(
+fn complete_candidate_window(
+    execution_limits: &mut FoundationExecutionLimits,
+    remaining_budget: &mut FoundationRemainingBudget<'_>,
+    ticket: FoundationBudgetTicket,
+    usage: FoundationPhaseUse,
+    io_before: tos_source_store::PinnedSqliteIoSnapshot,
+    io_after: tos_source_store::PinnedSqliteIoSnapshot,
+    adopted: &mut (u64, u64, u64),
+    remaining_write_bytes: &mut u64,
+    remaining_write: u64,
+) -> Result<(), FoundationOrchestratorError> {
+    let upper = io_after
+        .read_upper_bound_attempted_bytes
+        .checked_sub(io_before.read_upper_bound_attempted_bytes);
+    if *adopted
+        != (
+            io_before.read_attempted_bytes,
+            io_before.write_attempted_bytes,
+            io_before.read_upper_bound_attempted_bytes,
+        )
+        || upper.is_none_or(|upper| upper > usage.source_read_bytes.amount)
+    {
+        return fail_window(
+            execution_limits,
+            remaining_budget,
+            ticket,
+            FoundationOrchestratorError::Incomplete("candidate classified IO prefix differs"),
+        );
+    }
+    let upper = upper.expect("checked upper-bound suffix");
+    let measured_before = remaining_budget.measured_charged().source_read_bytes;
+    let upper_before = remaining_budget.admitted_charged().source_read_bytes;
+    let total_read = usage.source_read_bytes.amount;
+    let completion = match execution_limits.clear_window(&ticket) {
+        Ok(()) => remaining_budget
+            .complete_window_with_source_read_upper_bound(ticket, usage, upper)
+            .map_err(FoundationOrchestratorError::Command),
+        Err(error) => {
+            let worst = failure_use(&ticket);
+            let _ = remaining_budget
+                .fail_window_with_classified_source_reads(ticket, worst, total_read, upper);
+            Err(FoundationOrchestratorError::Command(error))
+        }
+    };
+    if remaining_budget
+        .measured_charged()
+        .source_read_bytes
+        .checked_sub(measured_before)
+        == Some(total_read - upper)
+        && remaining_budget
+            .admitted_charged()
+            .source_read_bytes
+            .checked_sub(upper_before)
+            == Some(upper)
+    {
+        *adopted = (
+            io_after.read_attempted_bytes,
+            io_after.write_attempted_bytes,
+            io_after.read_upper_bound_attempted_bytes,
+        );
+        *remaining_write_bytes = remaining_write;
+    }
+    completion
+}
+
+/// Close a failed candidate phase against the exact attempted-read prefix of
+/// the shared original ledger. The adopted counters move only when measured
+/// and admitted-upper-bound read amounts are both retained by Foundation.
+#[allow(clippy::too_many_arguments)]
+fn fail_candidate_window_with_classified_io<T>(
     execution_limits: &mut FoundationExecutionLimits,
     remaining_budget: &mut FoundationRemainingBudget<'_>,
     ticket: FoundationBudgetTicket,
     original_io: &tos_source_store::PinnedSqliteIoBudget,
     io_before: tos_source_store::PinnedSqliteIoSnapshot,
     external_reads: u64,
-    adopted: &mut (u64, u64),
+    adopted: &mut (u64, u64, u64),
     remaining_write_bytes: &mut u64,
     error: FoundationOrchestratorError,
 ) -> Result<T, FoundationOrchestratorError> {
@@ -620,17 +688,40 @@ fn fail_candidate_window_with_measured_io<T>(
         let _ = remaining_budget.fail_window(ticket, worst);
         return Err(error);
     };
+    let Some(upper) = io_after
+        .read_upper_bound_attempted_bytes
+        .checked_sub(io_before.read_upper_bound_attempted_bytes)
+        .filter(|upper| *upper <= shared_read)
+    else {
+        let worst = failure_use(&ticket);
+        let _ = execution_limits.clear_window(&ticket);
+        let _ = remaining_budget.fail_window(ticket, worst);
+        return Err(error);
+    };
+    let upper_before = remaining_budget.admitted_charged().source_read_bytes;
     let measured_before = remaining_budget.measured_charged().source_read_bytes;
     let worst = failure_use(&ticket);
     let _ = execution_limits.clear_window(&ticket);
-    let _ = remaining_budget.fail_window_with_measured_source_reads(ticket, worst, actual_read);
+    let _ = remaining_budget.fail_window_with_classified_source_reads(
+        ticket,
+        worst,
+        actual_read,
+        upper,
+    );
     let measured_after = remaining_budget.measured_charged().source_read_bytes;
     let measured_delta = measured_after.checked_sub(measured_before);
-    if measured_delta == Some(actual_read) {
-        // The measured read suffix is adopted independently of write
-        // headroom. A denied write must not make terminal accounting charge
-        // this already-recorded read prefix a second time.
+    if measured_delta == Some(actual_read - upper)
+        && remaining_budget
+            .admitted_charged()
+            .source_read_bytes
+            .checked_sub(upper_before)
+            == Some(upper)
+    {
+        // Both read classifications advance independently of write headroom.
+        // A denied write must not make terminal accounting charge this
+        // already-recorded read prefix a second time.
         adopted.0 = io_after.read_attempted_bytes;
+        adopted.2 = io_after.read_upper_bound_attempted_bytes;
         if let Some(write_after) = remaining_write_bytes.checked_sub(write_delta) {
             adopted.1 = io_after.write_attempted_bytes;
             *remaining_write_bytes = write_after;
@@ -1513,7 +1604,7 @@ pub(crate) fn finish_candidate_payload_and_physical<'candidate, 'host>(
     let (completion, usage, remaining_write) = match result {
         Ok(result) => result,
         Err(error) => {
-            return fail_candidate_window_with_measured_io(
+            return fail_candidate_window_with_classified_io(
                 view.execution_limits,
                 view.remaining_budget,
                 ticket,
@@ -1526,20 +1617,17 @@ pub(crate) fn finish_candidate_payload_and_physical<'candidate, 'host>(
             );
         }
     };
-    let measured_before = view.remaining_budget.measured_charged().source_read_bytes;
-    let phase_read = usage.source_read_bytes.amount;
-    let completion_result =
-        complete_window(view.execution_limits, view.remaining_budget, ticket, usage);
-    let measured_after = view.remaining_budget.measured_charged().source_read_bytes;
-    if measured_after.checked_sub(measured_before) == Some(phase_read) {
-        let io_after = original_io.snapshot();
-        *view.candidate_io_adopted = (
-            io_after.read_attempted_bytes,
-            io_after.write_attempted_bytes,
-        );
-        *view.remaining_write_bytes = remaining_write;
-    }
-    completion_result?;
+    complete_candidate_window(
+        view.execution_limits,
+        view.remaining_budget,
+        ticket,
+        usage,
+        io_before,
+        original_io.snapshot(),
+        view.candidate_io_adopted,
+        view.remaining_write_bytes,
+        remaining_write,
+    )?;
     let remaining = view
         .remaining_budget
         .remaining()
@@ -1676,6 +1764,7 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
         != (
             io_entry.read_attempted_bytes,
             io_entry.write_attempted_bytes,
+            io_entry.read_upper_bound_attempted_bytes,
         )
     {
         return Err(incomplete("candidate runner IO adoption differs"));
@@ -1904,10 +1993,15 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
     ) {
         Ok(worker) => worker,
         Err(error) => {
-            return fail_window(
+            return fail_candidate_window_with_classified_io(
                 view.execution_limits,
                 view.remaining_budget,
                 schema_ticket,
+                view.original_io,
+                io_before_schema,
+                worker_image_read,
+                view.candidate_io_adopted,
+                view.remaining_write_bytes,
                 error,
             );
         }
@@ -1953,7 +2047,7 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
         checked_add_usize(base_declared_state_bytes, worker_image_state)?,
         checked_add_usize(schema_state, image_path_state)?,
     )?;
-    complete_window(
+    complete_candidate_window(
         view.execution_limits,
         view.remaining_budget,
         schema_ticket,
@@ -1966,12 +2060,12 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
             0,
             0,
         ),
+        io_before_schema,
+        io_after_schema,
+        view.candidate_io_adopted,
+        view.remaining_write_bytes,
+        remaining_write,
     )?;
-    *view.candidate_io_adopted = (
-        io_after_schema.read_attempted_bytes,
-        io_after_schema.write_attempted_bytes,
-    );
-    *view.remaining_write_bytes = remaining_write;
     let remaining = view
         .remaining_budget
         .remaining()
@@ -3122,7 +3216,7 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
     ) {
         Ok(result) => result,
         Err(error) => {
-            return fail_candidate_window_with_measured_io(
+            return fail_candidate_window_with_classified_io(
                 view.execution_limits,
                 view.remaining_budget,
                 records_ticket,
@@ -3197,23 +3291,17 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
             incomplete("candidate Records and dependent-owner report exceeds reservation"),
         );
     }
-    let measured_before_records = view.remaining_budget.measured_charged().source_read_bytes;
-    let records_phase_read = records_usage.source_read_bytes.amount;
-    let records_completion = complete_window(
+    complete_candidate_window(
         view.execution_limits,
         view.remaining_budget,
         records_ticket,
         records_usage,
-    );
-    let measured_after_records = view.remaining_budget.measured_charged().source_read_bytes;
-    if measured_after_records.checked_sub(measured_before_records) == Some(records_phase_read) {
-        *view.candidate_io_adopted = (
-            io_after_records.read_attempted_bytes,
-            io_after_records.write_attempted_bytes,
-        );
-        *view.remaining_write_bytes = remaining_write;
-    }
-    records_completion?;
+        io_before_records,
+        io_after_records,
+        view.candidate_io_adopted,
+        view.remaining_write_bytes,
+        remaining_write,
+    )?;
 
     let catalog_ticket = open_window(
         view.execution_limits,
@@ -3224,6 +3312,11 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
     )?;
     let owner = |error| FoundationOrchestratorError::OwnerAt("candidate catalogue", error);
     let catalog_operation = catalog_ticket.operation_limits();
+    // The physical census below already reads the original candidate ledger.
+    // Include it in this phase's observed prefix, before any source traversal.
+    let io_before_catalog = candidate
+        .io_usage()
+        .map_err(FoundationOrchestratorError::Admission)?;
     let catalog_identity_state = worker_identity_path_clone_bytes(worker_image.identity(), 3)?;
     let catalog_state_cap = catalog_operation
         .state_bytes
@@ -3397,9 +3490,6 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
             .saturating_add(4),
     };
     let candidate_catalog_path = view.isolated.path().join("source-foundation.sqlite");
-    let io_before_catalog = candidate
-        .io_usage()
-        .map_err(FoundationOrchestratorError::Admission)?;
     let quota_before_catalog = worker_quota
         .usage()
         .map_err(|_| incomplete("candidate catalog schema quota unavailable"))?;
@@ -3582,11 +3672,16 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
         fresh.cost().created_inodes as u64,
     );
     let _ = tmpfs_before;
-    complete_window(
+    complete_candidate_window(
         view.execution_limits,
         view.remaining_budget,
         catalog_ticket,
         catalog_usage,
+        io_before_catalog,
+        io_after_catalog,
+        view.candidate_io_adopted,
+        view.remaining_write_bytes,
+        remaining_write,
     )?;
     drop(catalog_result);
     drop(validator);
@@ -3597,11 +3692,6 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
             "candidate catalog schema worker EOF is incomplete",
         ));
     }
-    *view.candidate_io_adopted = (
-        io_after_catalog.read_attempted_bytes,
-        io_after_catalog.write_attempted_bytes,
-    );
-    *view.remaining_write_bytes = remaining_write;
     let remaining = view
         .remaining_budget
         .remaining()
@@ -3682,10 +3772,15 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
     ) {
         Ok(worker) => worker,
         Err(error) => {
-            return fail_window(
+            return fail_candidate_window_with_classified_io(
                 view.execution_limits,
                 view.remaining_budget,
                 native_ticket,
+                view.original_io,
+                io_before_native,
+                0,
+                view.candidate_io_adopted,
+                view.remaining_write_bytes,
                 error,
             );
         }
@@ -3741,7 +3836,7 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
             incomplete("candidate native-index evidence exceeds reservation"),
         );
     }
-    complete_window(
+    complete_candidate_window(
         view.execution_limits,
         view.remaining_budget,
         native_ticket,
@@ -3754,6 +3849,11 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
             0,
             0,
         ),
+        io_before_native,
+        native_io_after,
+        view.candidate_io_adopted,
+        view.remaining_write_bytes,
+        remaining_write,
     )?;
     // build_candidate_native_index owns the successful worker close.
     if !native_schemas.is_finished() {
@@ -3834,6 +3934,7 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
     *view.candidate_io_adopted = (
         io_terminal.read_attempted_bytes,
         io_terminal.write_attempted_bytes,
+        io_terminal.read_upper_bound_attempted_bytes,
     );
     *view.remaining_write_bytes = remaining_write
         .checked_sub(

@@ -506,7 +506,7 @@ fn ordinary_search_kind() -> serde_json::Value {
     serde_json::json!({
         "grams": {
             "max_lookups": 4096,
-            "max_candidates": 1_000_000,
+            "max_candidates": 100_000,
             "max_vm_steps": 100_000_000,
             "max_rows": 1_000_000,
             "max_decoded_bytes": 64 * 1024 * 1024

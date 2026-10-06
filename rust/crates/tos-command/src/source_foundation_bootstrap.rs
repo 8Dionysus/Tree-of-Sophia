@@ -11,7 +11,7 @@ use super::foundation_entry::{
     FoundationLaunchArguments, FoundationSelectedRoots,
 };
 use super::foundation_execution_limits::{
-    FoundationBudgetTicket, FoundationCharge, FoundationExecutionLimits,
+    FoundationBudgetTicket, FoundationCharge, FoundationChargeBasis, FoundationExecutionLimits,
     FoundationPhaseReservation, FoundationPhaseUse, FoundationRemainingBudget,
     FoundationWindowKind, FoundationWorkerCpuUse,
 };
@@ -224,7 +224,8 @@ pub(crate) struct CandidateFoundationBootstrapInputs<'input, 'cancel> {
     pub coverage: tos_validation::record_biblio_cut::SourceCutInputCoverage,
     pub original_epoch: tos_source_store::MetadataPublicationEpoch,
     original_io: tos_source_store::PinnedSqliteIoBudget,
-    pub candidate_io_adopted: (u64, u64),
+    // Attempted reads, attempted writes, and admitted-upper-bound reads.
+    pub candidate_io_adopted: (u64, u64, u64),
     remaining_write_bytes: u64,
     pub selection: FoundationPhysicalSelection,
     pub cost: FoundationSourceBootstrapCost,
@@ -248,7 +249,7 @@ pub(crate) struct CandidateFoundationBootstrapView<'work, 'input, 'cancel, 'sign
     pub coverage: &'work tos_validation::record_biblio_cut::SourceCutInputCoverage,
     pub original_epoch: &'work tos_source_store::MetadataPublicationEpoch,
     pub original_io: &'work tos_source_store::PinnedSqliteIoBudget,
-    pub candidate_io_adopted: &'work mut (u64, u64),
+    pub candidate_io_adopted: &'work mut (u64, u64, u64),
     pub remaining_write_bytes: &'work mut u64,
     pub selection: &'work FoundationPhysicalSelection,
     pub physical: &'work mut FoundationPhysicalSnapshot<'cancel, 'signal>,
@@ -1099,7 +1100,7 @@ impl<'input, 'cancel> CandidateFoundationBootstrapInputs<'input, 'cancel> {
         coverage: tos_validation::record_biblio_cut::SourceCutInputCoverage,
         original_io: &tos_source_store::PinnedSqliteIoBudget,
         mut remaining_write_bytes: u64,
-        candidate_io_adopted: &mut (u64, u64),
+        candidate_io_adopted: &mut (u64, u64, u64),
         mut sources: RouteSources,
     ) -> Result<Self, CandidateFoundationBootstrapFailure<'cancel>> {
         let prepared: Result<_, FoundationBootstrapError> = (|| {
@@ -1119,6 +1120,7 @@ impl<'input, 'cancel> CandidateFoundationBootstrapInputs<'input, 'cancel> {
                 != (
                     entry_io.read_attempted_bytes,
                     entry_io.write_attempted_bytes,
+                    entry_io.read_upper_bound_attempted_bytes,
                 )
             {
                 return Err(FoundationBootstrapError::Configuration(
@@ -1785,8 +1787,8 @@ impl<'input, 'cancel> CandidateFoundationBootstrapInputs<'input, 'cancel> {
 }
 
 /// Candidate windows account all hooked IO through the one original ledger.
-/// On failure only the shared read term is known exactly; other unknown terms
-/// retain the ordinary window's conservative failure law.
+/// Both shared read classifications retain their original basis on failure;
+/// other unknown terms retain the ordinary window's conservative failure law.
 fn run_candidate_shared_budget_window<T, F>(
     budget: &mut FoundationRemainingBudget<'_>,
     execution_limits: &mut FoundationExecutionLimits,
@@ -1794,7 +1796,7 @@ fn run_candidate_shared_budget_window<T, F>(
     kind: FoundationWindowKind,
     already_admitted: FoundationPhaseReservation,
     original_io: &tos_source_store::PinnedSqliteIoBudget,
-    adopted: &mut (u64, u64),
+    adopted: &mut (u64, u64, u64),
     remaining_write_bytes: &mut u64,
     work: F,
 ) -> Result<T, FoundationBootstrapError>
@@ -1818,33 +1820,55 @@ where
     let clear_result = execution_limits.clear_window(&ticket);
     let usage = original_io.snapshot();
     let read = usage.read_attempted_bytes.checked_sub(adopted.0);
+    let upper = usage
+        .read_upper_bound_attempted_bytes
+        .checked_sub(adopted.2);
     let write = usage.write_attempted_bytes.checked_sub(adopted.1);
     let remaining_write = write.and_then(|used| remaining_write_bytes.checked_sub(used));
-    let Some(read) = read else {
+    let (Some(read), Some(upper)) = (read, upper) else {
         let _ = budget.fail_window(ticket, worst);
         return Err(FoundationBootstrapError::Configuration(
-            "candidate shared read accounting regressed",
+            "candidate classified shared read accounting regressed",
         ));
     };
-    // This read term is observable even when a denied permit made the shared
-    // ledger sticky-failed. Keep its actual attempt debit without refund.
+    if upper > read {
+        let _ = budget.fail_window(ticket, worst);
+        return Err(FoundationBootstrapError::Configuration(
+            "candidate upper-bound suffix exceeds attempted reads",
+        ));
+    }
     let accounting = validate_candidate_shared_io_snapshot(&usage).and_then(|()| {
         remaining_write.ok_or(FoundationBootstrapError::Configuration(
             "candidate shared write headroom exceeded",
         ))
     });
+    let measured_before = budget.measured_charged().source_read_bytes;
+    let upper_before = budget.admitted_charged().source_read_bytes;
+    let expected;
     let result = match (outcome, clear_result, accounting) {
         (Ok((value, mut actual)), Ok(()), Ok(_)) => {
-            match actual.source_read_bytes.amount.checked_add(read) {
-                Some(total) => {
+            let external_upper =
+                if actual.source_read_bytes.basis == FoundationChargeBasis::AdmittedUpperBound {
+                    actual.source_read_bytes.amount
+                } else {
+                    0
+                };
+            match (
+                actual.source_read_bytes.amount.checked_add(read),
+                external_upper.checked_add(upper),
+            ) {
+                (Some(total), Some(total_upper)) => {
+                    expected = Some((total, total_upper));
                     actual.source_read_bytes = FoundationCharge::measured(total);
                     budget
-                        .complete_window(ticket, actual)
+                        .complete_window_with_source_read_upper_bound(ticket, actual, total_upper)
                         .map_err(FoundationBootstrapError::Command)
                         .map(|()| value)
                 }
-                None => {
-                    let _ = budget.fail_window_with_measured_source_reads(ticket, worst, read);
+                _ => {
+                    expected = Some((read, upper));
+                    let _ =
+                        budget.fail_window_with_classified_source_reads(ticket, worst, read, upper);
                     Err(FoundationBootstrapError::Configuration(
                         "candidate shared read charge overflow",
                     ))
@@ -1852,25 +1876,41 @@ where
             }
         }
         (Err(error), _, _) => {
-            let _ = budget.fail_window_with_measured_source_reads(ticket, worst, read);
+            expected = Some((read, upper));
+            let _ = budget.fail_window_with_classified_source_reads(ticket, worst, read, upper);
             Err(error)
         }
         (_, Err(error), _) => {
-            let _ = budget.fail_window_with_measured_source_reads(ticket, worst, read);
+            expected = Some((read, upper));
+            let _ = budget.fail_window_with_classified_source_reads(ticket, worst, read, upper);
             Err(FoundationBootstrapError::Command(error))
         }
         (_, _, Err(error)) => {
-            let _ = budget.fail_window_with_measured_source_reads(ticket, worst, read);
+            expected = Some((read, upper));
+            let _ = budget.fail_window_with_classified_source_reads(ticket, worst, read, upper);
             Err(error)
         }
     };
-    // Both close paths retained the shared read debit, including terminal Err.
-    adopted.0 = usage.read_attempted_bytes;
-    if write.is_some() {
-        adopted.1 = usage.write_attempted_bytes;
-    }
-    if let Some(remaining) = remaining_write {
-        *remaining_write_bytes = remaining;
+    // Preserve one shared prefix only when both of its read classifications
+    // have reached Foundation, including when a phase terminally refuses.
+    if let Some((total, total_upper)) = expected
+        && budget
+            .measured_charged()
+            .source_read_bytes
+            .checked_sub(measured_before)
+            == total.checked_sub(total_upper)
+        && budget
+            .admitted_charged()
+            .source_read_bytes
+            .checked_sub(upper_before)
+            == Some(total_upper)
+    {
+        adopted.0 = usage.read_attempted_bytes;
+        adopted.2 = usage.read_upper_bound_attempted_bytes;
+        if let Some(remaining) = remaining_write {
+            adopted.1 = usage.write_attempted_bytes;
+            *remaining_write_bytes = remaining;
+        }
     }
     result
 }
@@ -1879,6 +1919,7 @@ fn validate_candidate_shared_io_snapshot(
     usage: &tos_source_store::PinnedSqliteIoSnapshot,
 ) -> Result<(), FoundationBootstrapError> {
     if usage.failure.is_some()
+        || usage.read_upper_bound_attempted_bytes > usage.read_attempted_bytes
         || usage.read_permitted_bytes > usage.read_attempted_bytes
         || usage.read_returned_bytes > usage.read_permitted_bytes
         || usage.write_permitted_bytes > usage.write_attempted_bytes
@@ -1896,7 +1937,7 @@ fn validate_candidate_shared_io_snapshot(
 /// before it bills any later candidate delta.
 pub(crate) fn adopt_candidate_shared_io_with_budget(
     original_io: &tos_source_store::PinnedSqliteIoBudget,
-    adopted: &mut (u64, u64),
+    adopted: &mut (u64, u64, u64),
     remaining_write_bytes: &mut u64,
     budget: &mut FoundationRemainingBudget<'_>,
 ) -> Result<(), FoundationBootstrapError> {
@@ -1905,6 +1946,13 @@ pub(crate) fn adopt_candidate_shared_io_with_budget(
     let read = usage.read_attempted_bytes.checked_sub(adopted.0).ok_or(
         FoundationBootstrapError::Configuration("candidate shared read accounting regressed"),
     )?;
+    let upper = usage
+        .read_upper_bound_attempted_bytes
+        .checked_sub(adopted.2)
+        .filter(|upper| *upper <= read)
+        .ok_or(FoundationBootstrapError::Configuration(
+            "candidate shared upper-bound accounting regressed",
+        ))?;
     let write = usage.write_attempted_bytes.checked_sub(adopted.1).ok_or(
         FoundationBootstrapError::Configuration("candidate shared write accounting regressed"),
     )?;
@@ -1920,16 +1968,34 @@ pub(crate) fn adopt_candidate_shared_io_with_budget(
             FoundationPhaseReservation::default(),
         )
         .map_err(FoundationBootstrapError::Command)?;
-    let debit = budget.complete_window(
+    let measured_before = budget.measured_charged().source_read_bytes;
+    let upper_before = budget.admitted_charged().source_read_bytes;
+    let debit = budget.complete_window_with_source_read_upper_bound(
         ticket,
         FoundationPhaseUse {
             source_read_bytes: FoundationCharge::measured(read),
             ..FoundationPhaseUse::default()
         },
+        upper,
     );
-    // complete_window retains the measured debit even on terminal refusal.
-    *adopted = (usage.read_attempted_bytes, usage.write_attempted_bytes);
-    *remaining_write_bytes = remaining_write;
+    if budget
+        .measured_charged()
+        .source_read_bytes
+        .checked_sub(measured_before)
+        == Some(read - upper)
+        && budget
+            .admitted_charged()
+            .source_read_bytes
+            .checked_sub(upper_before)
+            == Some(upper)
+    {
+        *adopted = (
+            usage.read_attempted_bytes,
+            usage.write_attempted_bytes,
+            usage.read_upper_bound_attempted_bytes,
+        );
+        *remaining_write_bytes = remaining_write;
+    }
     debit.map_err(FoundationBootstrapError::Command)?;
     let remaining = budget
         .remaining()

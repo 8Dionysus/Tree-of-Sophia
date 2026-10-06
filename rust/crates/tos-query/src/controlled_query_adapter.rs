@@ -167,6 +167,7 @@ fn controlled_kind(kind: SearchKind) -> ControlledSearchKind {
 /// query trait or ranking policy from this crate.
 trait ControlledSearchSource {
     fn source_check_pin(&self) -> tos_compiler::Result<()>;
+    fn available_query_workspace_bytes(&self) -> tos_compiler::Result<usize>;
     fn source_charge_query_work(&self, bytes: usize) -> tos_compiler::Result<()>;
     fn source_check_open_vm_admission(&self, maximum: u64) -> tos_compiler::Result<()>;
     fn selected_expectation(&self) -> &KnowledgeSelectedExpectation;
@@ -213,6 +214,9 @@ macro_rules! impl_controlled_search_source {
         impl<$($lifetime),+> ControlledSearchSource for $model<$($lifetime),+> {
             fn source_check_pin(&self) -> tos_compiler::Result<()> {
                 self.check_pin()
+            }
+            fn available_query_workspace_bytes(&self) -> tos_compiler::Result<usize> {
+                self.available_query_workspace_bytes()
             }
             fn source_charge_query_work(&self, bytes: usize) -> tos_compiler::Result<()> {
                 self.charge_query_work(bytes)
@@ -922,22 +926,15 @@ fn kind_workspace(budget: SearchKindBudget) -> Result<usize, SearchV2Error> {
         &mut bytes,
         mul(
             budget.max_observed_candidates,
-            std::mem::size_of::<crate::search_execute::ObservedSearchCandidate>(),
+            2 * std::mem::size_of::<crate::search_execute::ObservedSearchCandidate>(),
         )?,
     )?;
-    // Page-backed postings and their decoded/returned positions.
+    // QRY retains one page of positions. Aggregate decoded bytes are work,
+    // not a resident posting list; compiler-owned decode buffers have their
+    // own live original-state holds inside seek_postings.
     add(
         &mut bytes,
-        usize::try_from(budget.postings.max_decoded_bytes).map_err(|_| {
-            error(
-                SearchV2ErrorCode::BudgetExceeded,
-                "posting cap exceeds address space",
-            )
-        })?,
-    )?;
-    add(
-        &mut bytes,
-        mul(budget.postings.page_rows, std::mem::size_of::<u64>())?,
+        mul(budget.postings.page_rows, 2 * std::mem::size_of::<u64>())?,
     )?;
     // Candidate fields/payload can overlap the verifier's parsed document and
     // the retained top-(limit+1) result set.
@@ -962,10 +959,7 @@ fn kind_workspace(budget: SearchKindBudget) -> Result<usize, SearchV2Error> {
     add(&mut bytes, mul(budget.verify.document.json.max_bytes, 2)?)?;
     add(
         &mut bytes,
-        mul(
-            budget.verify.max_rank_values,
-            budget.verify.max_rank_field_bytes,
-        )?,
+        crate::search_candidate::rank_workspace_upper_bound(budget.verify)?,
     )?;
     add(&mut bytes, budget.max_selected_result_bytes)?;
     // Heap slots and order keys for at most the protocol's fixed limit+1 hits.
@@ -1036,6 +1030,70 @@ fn query_workspace_upper_bound(
         ));
     }
     Ok(bytes)
+}
+
+/// Derive simultaneously affordable sublimits from the original live owner.
+/// The advertised work ceilings remain upper bounds, never reservations of
+/// equally large resident buffers. Narrowing is monotone and happens before
+/// query work; it neither resets counters nor retries a partially run query.
+fn fit_query_workspace(
+    request: &JsonValue,
+    bound: &BoundCmpKnowledge<'_>,
+    mut budget: crate::IndexedPageBudget,
+    available: usize,
+) -> Result<(crate::IndexedPageBudget, usize), SearchV2Error> {
+    fn halve(value: &mut usize) -> bool {
+        let next = (*value / 2).max(1).min(*value);
+        let changed = next != *value;
+        *value = next;
+        changed
+    }
+    fn halve_u64(value: &mut u64) -> bool {
+        let next = (*value / 2).max(1).min(*value);
+        let changed = next != *value;
+        *value = next;
+        changed
+    }
+    fn narrow(kind: &mut SearchKindBudget) -> bool {
+        let mut changed = false;
+        for value in [
+            &mut kind.max_observed_candidates,
+            &mut kind.max_selected_result_bytes,
+            &mut kind.candidate.max_payload_bytes,
+            &mut kind.candidate.max_field_bytes,
+            &mut kind.verify.document.max_carrier_bytes,
+            &mut kind.verify.document.max_document_bytes,
+            &mut kind.verify.document.json.max_bytes,
+            &mut kind.verify.max_rank_values,
+            &mut kind.verify.max_rank_field_bytes,
+        ] {
+            changed |= halve(value);
+        }
+        changed |= halve_u64(&mut kind.max_observed_bytes);
+        changed |= halve_u64(&mut kind.candidate.max_decoded_bytes);
+        // Every scanned gram candidate must fit the retained observation
+        // ceiling. Keep the existing relationship when that ceiling narrows.
+        kind.grams.max_candidates = kind
+            .grams
+            .max_candidates
+            .min(u64::try_from(kind.max_observed_candidates).unwrap_or(u64::MAX));
+        changed
+    }
+    for _ in 0..=u64::BITS {
+        let forecast = query_workspace_upper_bound(request, bound, budget)?;
+        if forecast <= available {
+            return Ok((budget, forecast));
+        }
+        let changed_nodes = narrow(&mut budget.nodes);
+        let changed_relations = narrow(&mut budget.relations);
+        if !changed_nodes && !changed_relations {
+            break;
+        }
+    }
+    Err(error(
+        SearchV2ErrorCode::BudgetExceeded,
+        "controlled query simultaneous workspace unavailable",
+    ))
 }
 
 /// Full controlled indexed-QRY response. The original admitted argument value
@@ -1113,7 +1171,33 @@ where
     C: IndexedWireCursorCodec,
     A: ScopedIndexedKnowledgeAuthority<'hold> + ?Sized,
 {
-    let forecast = query_workspace_upper_bound(request_value, bound, budget)?;
+    // The compiler adds its actual reservation-controller frame at admission.
+    // Keep the captured closures and a bounded local frame outside the QRY
+    // workspace. The original owner still checks the final complete overlap.
+    let controller = std::mem::size_of_val(&cursor_factory)
+        .checked_add(std::mem::size_of_val(&deliver))
+        .and_then(|bytes| bytes.checked_add(4096))
+        .ok_or_else(|| {
+            error(
+                SearchV2ErrorCode::BudgetExceeded,
+                "query controller overflow",
+            )
+        })?;
+    let available = model
+        .available_query_workspace_bytes()
+        .map_err(compiler_query_error)?
+        .checked_sub(controller)
+        .ok_or_else(|| {
+            error(
+                SearchV2ErrorCode::BudgetExceeded,
+                "query controller state unavailable",
+            )
+        })?;
+    // Retained QRY owners coexist with compiler-owned row decoding and SQL
+    // callbacks, which debit the same ledger dynamically. Keep half of this
+    // remaining envelope for those nested owners rather than reserving all
+    // headroom before the first row can be read.
+    let (budget, forecast) = fit_query_workspace(request_value, bound, budget, available / 2)?;
     let request_heap = request_value.owned_heap_bytes().map_err(|_| {
         error(
             SearchV2ErrorCode::BudgetExceeded,

@@ -4291,7 +4291,13 @@ fn finite_serde_json_controller_workspace_upper_bound(
     // feature unification enables `preserve_order`; it is not a BTreeMap-only
     // representation claim. Bound inline arrays, array Vec growth, decoded
     // strings/numbers, and the deserializer recursion stack from the caller's
-    // bounded input size. This is logical controller workspace; allocator
+    // bounded input size. Array slots and map entries spend disjoint syntax:
+    // an array element owns its '[' or ','; an object entry owns its key's two
+    // quotes, ':' and '{' or ','. Thus slots + 4 * entries <= input bytes.
+    // Charge the larger per-syntax-byte cost, rather than assuming that every
+    // byte simultaneously maximizes both array and map storage. This also
+    // covers nested containers; their separators remain distinct.
+    // This is logical controller workspace; allocator
     // bookkeeping and process RSS remain governed by the existing host limit.
     const SERDE_JSON_BTREE_NODE_BYTES_PER_ENTRY: usize = 768;
     const SERDE_JSON_ARRAY_BYTES_PER_INPUT_BYTE: usize = 64;
@@ -4300,12 +4306,10 @@ fn finite_serde_json_controller_workspace_upper_bound(
     let nodes = max_input_bytes
         .checked_add(1)
         .ok_or(crate::item_budget_origin!())?;
-    let array_workspace = nodes
-        .checked_mul(SERDE_JSON_ARRAY_BYTES_PER_INPUT_BYTE)
-        .ok_or(crate::item_budget_origin!())?;
-    let map_entries = max_input_bytes / 5;
-    let map_workspace = map_entries
-        .checked_mul(SERDE_JSON_BTREE_NODE_BYTES_PER_ENTRY)
+    let container_bytes_per_syntax_byte = SERDE_JSON_ARRAY_BYTES_PER_INPUT_BYTE
+        .max(SERDE_JSON_BTREE_NODE_BYTES_PER_ENTRY.div_ceil(4));
+    let container_workspace = nodes
+        .checked_mul(container_bytes_per_syntax_byte)
         .ok_or(crate::item_budget_origin!())?;
     let lexical_workspace = max_input_bytes
         .checked_mul(4)
@@ -4314,9 +4318,7 @@ fn finite_serde_json_controller_workspace_upper_bound(
         .checked_add(1)
         .and_then(|depth| depth.checked_mul(std::mem::size_of::<serde_json::Value>()))
         .ok_or(crate::item_budget_origin!())?;
-    array_workspace
-        .checked_add(map_workspace)
-        .ok_or(crate::item_budget_origin!())?
+    container_workspace
         .checked_add(lexical_workspace)
         .and_then(|bytes| bytes.checked_add(recursion_workspace))
         .ok_or(crate::item_budget_origin!())

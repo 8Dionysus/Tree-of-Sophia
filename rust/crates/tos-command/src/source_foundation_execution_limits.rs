@@ -369,6 +369,17 @@ impl<'cancel> FoundationRemainingBudget<'cancel> {
         ticket: FoundationBudgetTicket,
         incremental_use: FoundationPhaseUse,
     ) -> Result<()> {
+        self.complete_window_with_source_read_upper_bound(ticket, incremental_use, 0)
+    }
+
+    /// A shared IO prefix may contain measured reads and an admitted envelope.
+    /// The total is already in incremental_use; retain its two bases atomically.
+    pub(crate) fn complete_window_with_source_read_upper_bound(
+        &mut self,
+        ticket: FoundationBudgetTicket,
+        incremental_use: FoundationPhaseUse,
+        source_read_upper_bound: u64,
+    ) -> Result<()> {
         self.close_ticket(&ticket)?;
         let amounts = match incremental_use.amounts() {
             Ok(amounts) => amounts,
@@ -378,7 +389,10 @@ impl<'cancel> FoundationRemainingBudget<'cancel> {
             }
         };
         let within_budget = reservation_fits(amounts, ticket.remaining);
-        if self.charge(incremental_use).is_err() {
+        if self
+            .charge_with_source_read_upper_bound(incremental_use, source_read_upper_bound)
+            .is_err()
+        {
             self.poisoned = true;
             return Err(Error::Unsupported("foundation budget charge overflow"));
         }
@@ -410,6 +424,7 @@ impl<'cancel> FoundationRemainingBudget<'cancel> {
             ticket,
             admitted_worst_use,
             FoundationChargeBasis::AdmittedUpperBound,
+            0,
         )
     }
 
@@ -426,6 +441,25 @@ impl<'cancel> FoundationRemainingBudget<'cancel> {
             ticket,
             admitted_worst_use,
             FoundationChargeBasis::Measured,
+            0,
+        )
+    }
+
+    /// Retain a failed phase's exact attempted-read total and the portion
+    /// already classified as an admitted upper bound by the shared IO owner.
+    pub(crate) fn fail_window_with_classified_source_reads(
+        &mut self,
+        ticket: FoundationBudgetTicket,
+        mut admitted_worst_use: FoundationPhaseUse,
+        attempted_read_bytes: u64,
+        source_read_upper_bound: u64,
+    ) -> Result<()> {
+        admitted_worst_use.source_read_bytes = FoundationCharge::measured(attempted_read_bytes);
+        self.fail_window_with_source_basis(
+            ticket,
+            admitted_worst_use,
+            FoundationChargeBasis::Measured,
+            source_read_upper_bound,
         )
     }
 
@@ -434,6 +468,7 @@ impl<'cancel> FoundationRemainingBudget<'cancel> {
         ticket: FoundationBudgetTicket,
         admitted_worst_use: FoundationPhaseUse,
         source_read_basis: FoundationChargeBasis,
+        source_read_upper_bound: u64,
     ) -> Result<()> {
         self.close_ticket(&ticket)?;
         self.poisoned = true;
@@ -447,7 +482,7 @@ impl<'cancel> FoundationRemainingBudget<'cancel> {
         worst.tmpfs_inodes.basis = FoundationChargeBasis::AdmittedUpperBound;
         let amounts = worst.amounts()?;
         let within_budget = reservation_fits(amounts, ticket.remaining);
-        self.charge(worst)?;
+        self.charge_with_source_read_upper_bound(worst, source_read_upper_bound)?;
         if within_budget {
             Ok(())
         } else {
@@ -574,6 +609,24 @@ impl<'cancel> FoundationRemainingBudget<'cancel> {
         measured_bytes: u64,
         admitted_upper_bound_bytes: u64,
     ) -> Result<()> {
+        self.record_observed_terminal_source_read_suffix(
+            measured_bytes,
+            admitted_upper_bound_bytes,
+        )?;
+        if let Err(error) = self.check_live() {
+            self.poisoned = true;
+            return Err(error);
+        }
+        Ok(())
+    }
+
+    /// Observational finalization only. A recorded suffix never grants a new
+    /// window, revives a poisoned ledger, or proves operation success.
+    pub(crate) fn record_observed_terminal_source_read_suffix(
+        &mut self,
+        measured_bytes: u64,
+        admitted_upper_bound_bytes: u64,
+    ) -> Result<()> {
         let suffix = measured_bytes.checked_add(admitted_upper_bound_bytes);
         let total = suffix.and_then(|bytes| self.charged.source_read_bytes.checked_add(bytes));
         let measured = self
@@ -605,27 +658,50 @@ impl<'cancel> FoundationRemainingBudget<'cancel> {
                 "foundation terminal classified source reads with open window",
             ));
         }
-        if let Err(error) = self.check_live() {
-            self.poisoned = true;
-            return Err(error);
-        }
         Ok(())
     }
 
     fn charge(&mut self, usage: FoundationPhaseUse) -> Result<()> {
+        self.charge_with_source_read_upper_bound(usage, 0)
+    }
+
+    fn charge_with_source_read_upper_bound(
+        &mut self,
+        usage: FoundationPhaseUse,
+        source_read_upper_bound: u64,
+    ) -> Result<()> {
         let amounts = usage.amounts()?;
-        self.charged = reservation_add(self.charged, amounts)
+        let mut measured = usage_amounts_by_basis(usage, FoundationChargeBasis::Measured)?;
+        let mut admitted =
+            usage_amounts_by_basis(usage, FoundationChargeBasis::AdmittedUpperBound)?;
+        if source_read_upper_bound != 0 {
+            if usage.source_read_bytes.basis != FoundationChargeBasis::Measured {
+                return Err(Error::Unsupported(
+                    "foundation mixed source-read basis differs",
+                ));
+            }
+            measured.source_read_bytes = measured
+                .source_read_bytes
+                .checked_sub(source_read_upper_bound)
+                .ok_or(Error::Unsupported(
+                    "foundation upper reads exceed attempted reads",
+                ))?;
+            admitted.source_read_bytes = admitted
+                .source_read_bytes
+                .checked_add(source_read_upper_bound)
+                .ok_or(Error::Unsupported(
+                    "foundation upper source-read charge overflow",
+                ))?;
+        }
+        let total = reservation_add(self.charged, amounts)
             .ok_or(Error::Unsupported("foundation aggregate usage overflow"))?;
-        self.measured_charged = reservation_add(
-            self.measured_charged,
-            usage_amounts_by_basis(usage, FoundationChargeBasis::Measured)?,
-        )
-        .ok_or(Error::Unsupported("foundation measured usage overflow"))?;
-        self.admitted_charged = reservation_add(
-            self.admitted_charged,
-            usage_amounts_by_basis(usage, FoundationChargeBasis::AdmittedUpperBound)?,
-        )
-        .ok_or(Error::Unsupported("foundation admitted usage overflow"))?;
+        let measured = reservation_add(self.measured_charged, measured)
+            .ok_or(Error::Unsupported("foundation measured usage overflow"))?;
+        let admitted = reservation_add(self.admitted_charged, admitted)
+            .ok_or(Error::Unsupported("foundation admitted usage overflow"))?;
+        self.charged = total;
+        self.measured_charged = measured;
+        self.admitted_charged = admitted;
         Ok(())
     }
 }
@@ -2229,4 +2305,149 @@ fn checked_sum_u64(values: [u64; 11]) -> Option<u64> {
 
 fn checked_sum_usize(values: [usize; 11]) -> Option<usize> {
     values.into_iter().try_fold(0usize, usize::checked_add)
+}
+
+#[cfg(test)]
+mod classified_io_tests {
+    use super::*;
+    use std::sync::atomic::AtomicBool;
+
+    fn ledger(cancelled: &AtomicBool) -> FoundationRemainingBudget<'_> {
+        let caps = FoundationInvocationBudgets {
+            operation_wall_ms: 60_000,
+            tmpfs_quota_bytes: 1024,
+            tmpfs_inode_limit: 32,
+            working_ram_bytes: 4096,
+            worker_cpu_seconds: 1,
+            worker_address_space_bytes: 4096,
+            sqlite_max_vm_steps: 1024,
+            max_member_bytes: 1024,
+            max_total_read_bytes: 1024,
+            max_admission_write_bytes: None,
+            max_admission_store_bytes: None,
+            max_total_worker_wire_bytes: 1024,
+            max_current_members: 32,
+            max_state_bytes: 4096,
+            max_issues: 32,
+            max_output_bytes: 1024,
+            max_readonly_record_files: 32,
+            max_readonly_record_bytes: 1024,
+            max_readonly_record_directory_entries: 32,
+            max_readonly_record_read_calls: 32,
+        };
+        FoundationRemainingBudget {
+            caps,
+            deadline: Instant::now() + Duration::from_secs(60),
+            cancelled,
+            charged: FoundationPhaseReservation::default(),
+            measured_charged: FoundationPhaseReservation::default(),
+            admitted_charged: FoundationPhaseReservation::default(),
+            worker_cpu_cap_micros: 1_000_000,
+            next_ticket_id: 1,
+            open_ticket_id: None,
+            poisoned: false,
+        }
+    }
+
+    #[test]
+    fn mixed_read_windows_keep_bases_and_terminal_observation_cannot_resume() {
+        let cancelled = AtomicBool::new(false);
+        let mut ledger = ledger(&cancelled);
+        let ticket = ledger
+            .begin_window("first", FoundationPhaseReservation::default())
+            .unwrap();
+        ledger
+            .complete_window_with_source_read_upper_bound(
+                ticket,
+                FoundationPhaseUse {
+                    source_read_bytes: FoundationCharge::measured(100),
+                    ..FoundationPhaseUse::default()
+                },
+                30,
+            )
+            .unwrap();
+        assert_eq!(ledger.remaining().unwrap().source_read_bytes, 924);
+        let ticket = ledger
+            .begin_window("failed", FoundationPhaseReservation::default())
+            .unwrap();
+        ledger
+            .fail_window_with_classified_source_reads(ticket, FoundationPhaseUse::default(), 20, 5)
+            .unwrap();
+        ledger
+            .record_observed_terminal_source_read_suffix(10, 3)
+            .unwrap();
+        assert_eq!(ledger.charged().source_read_bytes, 133);
+        assert_eq!(ledger.measured_charged().source_read_bytes, 95);
+        assert_eq!(ledger.admitted_charged().source_read_bytes, 38);
+        assert!(ledger.remaining().is_err());
+        assert!(
+            ledger
+                .begin_window("must-not-resume", FoundationPhaseReservation::default())
+                .is_err()
+        );
+        ledger
+            .record_observed_terminal_source_read_suffix(0, 0)
+            .unwrap();
+        assert_eq!(ledger.charged().source_read_bytes, 133);
+    }
+
+    #[test]
+    fn invalid_mixed_basis_and_aggregate_overflow_leave_all_charges_atomic() {
+        let cancelled = AtomicBool::new(false);
+        let mut ledger = ledger(&cancelled);
+        let ticket = ledger
+            .begin_window("invalid", FoundationPhaseReservation::default())
+            .unwrap();
+        assert!(
+            ledger
+                .complete_window_with_source_read_upper_bound(
+                    ticket,
+                    FoundationPhaseUse {
+                        source_read_bytes: FoundationCharge::measured(4),
+                        state_bytes: FoundationCharge::measured(1),
+                        ..FoundationPhaseUse::default()
+                    },
+                    5
+                )
+                .is_err()
+        );
+        assert_eq!(ledger.charged(), FoundationPhaseReservation::default());
+        assert_eq!(
+            ledger.measured_charged(),
+            FoundationPhaseReservation::default()
+        );
+        assert_eq!(
+            ledger.admitted_charged(),
+            FoundationPhaseReservation::default()
+        );
+        assert!(ledger.remaining().is_err());
+
+        ledger.charged.source_read_bytes = u64::MAX;
+        ledger.measured_charged.source_read_bytes = u64::MAX;
+        let before = (
+            ledger.charged(),
+            ledger.measured_charged(),
+            ledger.admitted_charged(),
+        );
+        assert!(
+            ledger
+                .charge_with_source_read_upper_bound(
+                    FoundationPhaseUse {
+                        source_read_bytes: FoundationCharge::measured(1),
+                        state_bytes: FoundationCharge::measured(1),
+                        ..FoundationPhaseUse::default()
+                    },
+                    1
+                )
+                .is_err()
+        );
+        assert_eq!(
+            (
+                ledger.charged(),
+                ledger.measured_charged(),
+                ledger.admitted_charged()
+            ),
+            before
+        );
+    }
 }

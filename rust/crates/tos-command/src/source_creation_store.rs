@@ -809,6 +809,11 @@ impl IsolatedCreationRoot {
     pub fn path(&self) -> &Path {
         &self.path
     }
+    /// Identity already held since creation; this grants no fresh path access.
+    pub(crate) fn held_identity(&self) -> (u64, u64) {
+        self.identity
+    }
+
     pub(crate) fn verify_current(
         &self,
         deadline: Instant,

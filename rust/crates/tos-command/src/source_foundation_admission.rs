@@ -488,6 +488,7 @@ pub(crate) struct NativeSourceValidator<'c> {
     shared_cancel: Option<Arc<AtomicBool>>,
     spooled_route_selected: bool,
     execution_resources_taken: bool,
+    spooled_cleanup_identity: Option<(u64, u64)>,
     // Exact protected profiles and original shared IO authority retained for
     // the whole borrowed validator after the resource DTO moves to its caller.
     spooled_profile: Option<(SpoolIndexLimits, SpoolIndexLimits, PinnedSqliteIoBudget)>,
@@ -996,6 +997,7 @@ impl<'c> NativeSourceValidator<'c> {
             shared_cancel: None,
             spooled_route_selected,
             execution_resources_taken: false,
+            spooled_cleanup_identity: None,
             spooled_profile: None,
             spooled_workspace: None,
             _spooled_persistent_root_allocation: None,
@@ -1244,9 +1246,9 @@ impl<'c> NativeSourceValidator<'c> {
         self.charge_store_guard(PRIVATE_TMPFS_VERIFY_COST.read_bytes, 0)?;
         result.map_err(|error| invalid(format!("admission store authority refused: {error:?}")))
     }
-    /// Remove only the invocation's empty verified workspace root. Reuse the
-    /// existing private-TMPFS verification allowance and charge the attempted
-    /// custody guard even when the unlink/fsync refuses.
+    /// Spend the cleanup allowance admitted before workspace creation. No new
+    /// phase or allowance is granted after a semantic refusal poisons the ledger.
+    /// The retained identity binds this one attempt to this invocation's root.
     pub(crate) fn cleanup_spooled_workspace(
         &mut self,
         isolated: &IsolatedCreationRoot,
@@ -1260,16 +1262,13 @@ impl<'c> NativeSourceValidator<'c> {
         {
             return Err(invalid("spooled cleanup cancellation owner differs"));
         }
-        self.preflight_store_guard(PRIVATE_TMPFS_VERIFY_COST.read_bytes, 0)?;
-        let cleanup = isolated
-            .cleanup_empty(self.deadline, cancelled)
-            .map_err(command);
-        let charged = self.charge_store_guard(PRIVATE_TMPFS_VERIFY_COST.read_bytes, 0);
-        match (cleanup, charged) {
-            (Err(error), _) => Err(error),
-            (Ok(()), Err(error)) => Err(error),
-            (Ok(()), Ok(())) => Ok(()),
+        if self.spooled_cleanup_identity != Some(isolated.held_identity()) {
+            return Err(invalid("spooled cleanup root or allowance differs"));
         }
+        self.spooled_cleanup_identity = None;
+        isolated
+            .cleanup_empty(self.deadline, cancelled)
+            .map_err(command)
     }
     pub(crate) fn candidate_limits(&self) -> io::Result<CandidateLimits> {
         active(self.deadline, self.cancel)?;
@@ -1347,6 +1346,12 @@ impl<'c> NativeSourceValidator<'c> {
             return Err(invalid("spooled cancellation owner changed or cancelled"));
         }
 
+        // Retain the existing verification envelope before any workspace can
+        // be created. It remains charged even if creation or cleanup refuses.
+        self.charge_store_guard(
+            PRIVATE_TMPFS_VERIFY_COST.read_bytes,
+            PRIVATE_TMPFS_VERIFY_COST.workspace_bytes,
+        )?;
         let remaining = self.ledger()?.remaining().map_err(command)?;
         let caps = self.ledger()?.caps();
         let v2_source_root_state_bytes = if self.prepared.as_ref().is_some_and(|prepared| {
@@ -1696,6 +1701,7 @@ impl<'c> NativeSourceValidator<'c> {
             >())
             .and_then(|n| n.checked_add(size_of::<Option<(File, PinnedSqliteSpaceBudget)>>()))
             .and_then(|n| n.checked_add(size_of::<IsolatedCreationRoot>()))
+            .and_then(|n| n.checked_add(size_of::<Option<(u64, u64)>>()))
             .and_then(|n| n.checked_add(size_of::<PinnedSqliteIoBudget>()))
             .and_then(|n| n.checked_add(size_of::<PinnedSqliteSpaceBudget>()))
             .and_then(|n| n.checked_add(size_of::<Option<NativeSegmentV2Budget>>()))
@@ -1905,6 +1911,7 @@ impl<'c> NativeSourceValidator<'c> {
             IsolatedCreationRoot::create(authority.root(), self.deadline, &cancelled)
                 .map_err(command)?
         };
+        self.spooled_cleanup_identity = Some(isolated.held_identity());
         let workspace_result =
             (|| -> io::Result<(File, PinnedSqliteIoBudget, PinnedSqliteSpaceBudget, File)> {
                 let workspace = isolated
@@ -2339,6 +2346,8 @@ impl<'c> NativeSourceValidator<'c> {
             return Err(invalid("spooled candidate physical IO accounting refused"));
         }
         self.account_spooled_terminal_io(candidate)?;
+        // Observing a terminal suffix does not revive continuation authority.
+        self.ledger()?.remaining().map_err(command)?;
         let retained = candidate.own_retained_state_upper_bound_bytes()?;
         let state = retained
             .checked_sub(self.candidate_state)
@@ -2595,7 +2604,7 @@ impl<'c> NativeSourceValidator<'c> {
         let upper_before = self.ledger()?.admitted_charged().source_read_bytes;
         let classified = self
             .ledger_mut()?
-            .record_terminal_source_read_suffix(read, upper);
+            .record_observed_terminal_source_read_suffix(read, upper);
         let measured_after = self.ledger()?.measured_charged().source_read_bytes;
         let upper_after = self.ledger()?.admitted_charged().source_read_bytes;
         let measured_recorded = measured_after.checked_sub(measured_before);
@@ -2888,6 +2897,11 @@ impl<'c> NativeSourceValidator<'c> {
             .write_cap
             .checked_sub(self.candidate_io.1)
             .ok_or_else(|| invalid("candidate persistent write ceiling exceeded"))?;
+        let mut shared_accounted = (
+            self.candidate_io.0,
+            self.candidate_io.1,
+            self.spooled_read_upper_accounted,
+        );
         let preparation = CandidateFoundationBootstrapInputs::prepare(
             prepared.clock,
             prepared.launch,
@@ -2897,9 +2911,13 @@ impl<'c> NativeSourceValidator<'c> {
             coverage,
             &original_io,
             remaining_write,
-            &mut self.candidate_io,
+            &mut shared_accounted,
             prepared.sources,
         );
+        // Bootstrap may refuse after it retained an observed prefix. Restore
+        // both read classifications together before finalizing that refusal.
+        self.candidate_io = (shared_accounted.0, shared_accounted.1);
+        self.spooled_read_upper_accounted = shared_accounted.2;
         let mut inputs = match preparation {
             Ok(inputs) => inputs,
             Err(failed) => {
@@ -2988,7 +3006,8 @@ impl<'c> NativeSourceValidator<'c> {
             .map_err(|_| invalid("candidate final original epoch refused"))?;
             Ok(earned)
         });
-        self.candidate_io = inputs.candidate_io_adopted;
+        self.candidate_io = (inputs.candidate_io_adopted.0, inputs.candidate_io_adopted.1);
+        self.spooled_read_upper_accounted = inputs.candidate_io_adopted.2;
         let original_epoch = inputs.original_epoch;
         self.prepared = Some(Prepared {
             clock: inputs.clock,

@@ -66,6 +66,10 @@ impl ControlledSidecarModel<'_, '_, '_, '_> {
         self.source.check_query_open_vm_admission(n)?;
         self.check_pin()
     }
+    pub fn available_query_workspace_bytes(&self) -> Result<usize> {
+        self.check_pin()?;
+        self.source.available_query_workspace_bytes()
+    }
     pub fn with_owned_query_workspace(
         &mut self,
         n: usize,

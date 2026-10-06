@@ -783,6 +783,14 @@ impl ControlledKnowledgeModel<'_, '_, '_> {
         self.corpus_original
     }
 
+    /// Observe current headroom for deriving narrower query sublimits. This
+    /// observation grants no allocation; with_owned_query_workspace performs
+    /// the actual same-owner admission before the query starts.
+    pub fn available_query_workspace_bytes(&self) -> Result<usize> {
+        self.check_pin()?;
+        self.context.remaining_after_retained(0)
+    }
+
     /// Same-owner admission around Query-owned allocation. The caller supplies
     /// only a forecast computed by the maintained Query adapter from its actual
     /// request geometry; this method exposes neither counters nor a new grant.

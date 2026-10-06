@@ -156,6 +156,27 @@ fn rank_values(
     Ok(values)
 }
 
+/// Two rank vectors coexist, but max_rank_field_bytes bounds the aggregate
+/// UTF-8 in each vector, not each value. Empty strings still require slots.
+/// Also retain the one selected_array conversion and its bounded encoding,
+/// plus lower-case identity strings and one in-progress lower operation.
+pub(crate) fn rank_workspace_upper_bound(
+    budget: CandidateVerifyBudget,
+) -> Result<usize, SearchV2Error> {
+    budget
+        .max_rank_values
+        .checked_mul(4 * std::mem::size_of::<String>())
+        .and_then(|bytes| {
+            bytes.checked_add(
+                budget
+                    .max_rank_values
+                    .checked_mul(2 * std::mem::size_of::<JsonValue>())?,
+            )
+        })
+        .and_then(|bytes| bytes.checked_add(budget.max_rank_field_bytes.checked_mul(32)?))
+        .ok_or_else(|| error(SearchV2ErrorCode::BudgetExceeded, "rank workspace overflow"))
+}
+
 fn selected_array(values: &[String], cap: usize) -> Result<String, SearchV2Error> {
     let array = JsonValue::Array(
         values
