@@ -2926,7 +2926,7 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
         max_state_bytes: catalog_state_cap,
         max_inodes: usize::try_from(max_catalog_files)
             .unwrap_or(usize::MAX - 4)
-            .saturating_add(3),
+            .saturating_add(4),
     };
     let candidate_catalog_path = view.isolated.path().join("source-foundation.sqlite");
     let io_before_catalog = candidate
@@ -4760,7 +4760,7 @@ fn run<'work, 'receive, 'cancel, 'signal>(
                 max_state_bytes: catalog_operation.state_bytes,
                 max_inodes: usize::try_from(max_catalog_files)
                     .unwrap_or(usize::MAX - 4)
-                    .saturating_add(3),
+                    .saturating_add(4),
             },
             None,
             cancelled,

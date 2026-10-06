@@ -848,6 +848,13 @@ impl IsolatedCreationRoot {
         cancelled: &AtomicBool,
     ) -> SourceCommandResult<()> {
         active(deadline, cancelled)?;
+        self.cleanup_empty_inner(Some((deadline, cancelled)))
+    }
+
+    fn cleanup_empty_inner(
+        &self,
+        active_scope: Option<(Instant, &AtomicBool)>,
+    ) -> SourceCommandResult<()> {
         let uid = rustix::process::geteuid().as_raw();
         if rustix::process::getuid().as_raw() != uid {
             return Err(SourceCommandError::Denied("isolated root account changed"));
@@ -872,7 +879,9 @@ impl IsolatedCreationRoot {
             ));
         }
         drop(current);
-        active(deadline, cancelled)?;
+        if let Some((deadline, cancelled)) = active_scope {
+            active(deadline, cancelled)?;
+        }
         rustix::fs::unlinkat(&self.parent, self.name.as_str(), AtFlags::REMOVEDIR)
             .map_err(|_| SourceCommandError::Conflict("isolated root not empty or replaced"))?;
         self.parent
@@ -932,6 +941,7 @@ pub(crate) struct DisposableCatalogTree<'a> {
     isolated: &'a IsolatedCreationRoot,
     root: File,
     root_identity: (u64, u64),
+    output_root: Option<IsolatedCreationRoot>,
     tos: Option<File>,
     tos_identity: Option<(u64, u64)>,
     witness: Option<File>,
@@ -953,7 +963,7 @@ pub(crate) struct DisposableCatalogTree<'a> {
 
 impl<'a> DisposableCatalogTree<'a> {
     fn directory_chain_scratch_bytes() -> Option<usize> {
-        4usize
+        5usize
             .checked_mul(std::mem::size_of::<File>())?
             .checked_add(2usize.checked_mul(std::mem::size_of::<Metadata>())?)?
             .checked_add(std::mem::size_of::<[&File; 3]>())
@@ -969,25 +979,100 @@ impl<'a> DisposableCatalogTree<'a> {
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> SourceCommandResult<Self> {
+        Self::create_inner(isolated, limits, deadline, cancelled, false)
+    }
+
+    pub(crate) fn create_in_child(
+        isolated: &'a IsolatedCreationRoot,
+        limits: DisposableCatalogTreeLimits,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<Self> {
+        Self::create_inner(isolated, limits, deadline, cancelled, true)
+    }
+
+    fn create_inner(
+        isolated: &'a IsolatedCreationRoot,
+        limits: DisposableCatalogTreeLimits,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+        separate_output_root: bool,
+    ) -> SourceCommandResult<Self> {
         if limits.max_total_bytes == 0
             || limits.max_file_bytes == 0
             || limits.max_files == 0
-            || limits.max_inodes < 3
+            || limits.max_inodes < 3 + usize::from(separate_output_root)
         {
             return Err(SourceCommandError::Unsupported(
                 "catalog candidate tree limits",
             ));
         }
         active(deadline, cancelled)?;
-        let root = isolated.verify_current(deadline, cancelled)?;
-        let root_metadata = owned(&root, rustix::process::geteuid().as_raw(), true)?;
+        let outer_root = isolated.verify_current(deadline, cancelled)?;
+        let output_root_state = if separate_output_root {
+            isolated
+                .path()
+                .as_os_str()
+                .len()
+                .checked_add("tos-isolated-create-".len() + 64)
+                .and_then(|n| n.checked_mul(2))
+                .and_then(|n| n.checked_add(1))
+                .ok_or(SourceCommandError::Unsupported(
+                    "catalog candidate child state overflow",
+                ))?
+        } else {
+            0
+        };
+        if Self::minimum_state_upper_bound()
+            .and_then(|n| n.checked_add(output_root_state))
+            .is_none_or(|n| n > limits.max_state_bytes)
+        {
+            return Err(SourceCommandError::Unsupported(
+                "catalog candidate child state budget",
+            ));
+        }
+        let output_root = if separate_output_root {
+            Some(IsolatedCreationRoot::create(
+                isolated.path(),
+                deadline,
+                cancelled,
+            )?)
+        } else {
+            None
+        };
+        let root = match &output_root {
+            Some(child) => match child.verify_current(deadline, cancelled) {
+                Ok(root) => root,
+                Err(error) => {
+                    let _ = child.cleanup_empty_inner(None);
+                    return Err(error);
+                }
+            },
+            None => outer_root,
+        };
+        let root_metadata = match owned(&root, rustix::process::geteuid().as_raw(), true) {
+            Ok(metadata) => metadata,
+            Err(error) => {
+                if let Some(child) = &output_root {
+                    let _ = child.cleanup_empty_inner(None);
+                }
+                return Err(error);
+            }
+        };
         if root_metadata.mode() & 0o7777 != 0o700 {
+            if let Some(child) = &output_root {
+                let _ = child.cleanup_empty_inner(None);
+            }
             return Err(SourceCommandError::Denied(
                 "catalog candidate isolated root mode changed",
             ));
         }
         let root_identity = inode(&root_metadata);
-        let path_state = std::mem::size_of::<Self>();
+        let path_state = std::mem::size_of::<Self>()
+            .checked_add(output_root_state)
+            .ok_or(SourceCommandError::Unsupported(
+                "catalog candidate retained child state overflow",
+            ))?;
         if Self::minimum_state_upper_bound().is_none_or(|minimum| minimum > limits.max_state_bytes)
         {
             return Err(SourceCommandError::Unsupported(
@@ -998,6 +1083,7 @@ impl<'a> DisposableCatalogTree<'a> {
             isolated,
             root,
             root_identity,
+            output_root,
             tos: None,
             tos_identity: None,
             witness: None,
@@ -1012,7 +1098,7 @@ impl<'a> DisposableCatalogTree<'a> {
             peak_state_bytes: path_state,
             output_bytes: 0,
             readback_bytes: 0,
-            created_inodes: 0,
+            created_inodes: usize::from(separate_output_root),
             manifest_written: false,
             eof_verified: false,
         };
@@ -1145,7 +1231,11 @@ impl<'a> DisposableCatalogTree<'a> {
             ))?,
         )?;
         let uid = rustix::process::geteuid().as_raw();
-        let current_root = self.isolated.verify_current(deadline, cancelled)?;
+        self.isolated.verify_current(deadline, cancelled)?;
+        let current_root = match &self.output_root {
+            Some(child) => child.verify_current(deadline, cancelled)?,
+            None => self.isolated.verify_current(deadline, cancelled)?,
+        };
         if inode(&owned(&current_root, uid, true)?) != self.root_identity
             || inode(&owned(&self.root, uid, true)?) != self.root_identity
             || owned(&current_root, uid, true)?.mode() & 0o7777 != 0o700
@@ -1263,7 +1353,9 @@ impl<'a> DisposableCatalogTree<'a> {
     }
 
     pub(crate) fn root_path(&self) -> &Path {
-        self.isolated.path()
+        self.output_root
+            .as_ref()
+            .map_or(self.isolated.path(), IsolatedCreationRoot::path)
     }
 
     pub(crate) fn output_file_count(&self) -> usize {
@@ -1954,6 +2046,9 @@ impl<'a> DisposableCatalogTree<'a> {
 impl Drop for DisposableCatalogTree<'_> {
     fn drop(&mut self) {
         let _ = self.rollback();
+        if let Some(child) = &self.output_root {
+            let _ = child.cleanup_empty_inner(None);
+        }
     }
 }
 

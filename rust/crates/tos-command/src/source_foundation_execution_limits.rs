@@ -1539,7 +1539,9 @@ impl FoundationExecutionLimits {
             || max_row_bytes == 0
             || max_row_bytes > max_file_bytes
             || max_contract_bytes == 0
-            || max_contract_bytes > max_file_bytes
+            || max_contract_bytes > reservation.state_bytes
+            || u64::try_from(max_contract_bytes)
+                .map_or(true, |bytes| bytes > reservation.source_read_bytes)
             || max_output_row_bytes == 0
             || u64::try_from(max_output_row_bytes)
                 .map_or(true, |bytes| bytes > reservation.tmpfs_bytes)
@@ -1630,6 +1632,7 @@ impl FoundationExecutionLimits {
         let total_raw = shape
             .max_total_raw_bytes
             .min(total_wire)
+            .min(BatchBudget::MAX_RAW_BYTES as u64)
             .min(u64::MAX - 1);
         let total_units = shape.max_total_units.min(u64::MAX - 1);
         let chunks = shape.max_chunks.min(u64::MAX - 1);

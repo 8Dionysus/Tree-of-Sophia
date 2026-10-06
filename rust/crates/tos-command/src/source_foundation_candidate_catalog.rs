@@ -156,8 +156,9 @@ impl<'root, 'manifest, 'cancel, 'rows> FreshCatalogSink<'root, 'manifest, 'cance
         {
             return Err(Error::Budget("fresh catalog retained row state"));
         }
-        let tree = DisposableCatalogTree::create(isolated, tree_limits, deadline, cancelled)
-            .map_err(map_source_error)?;
+        let tree =
+            DisposableCatalogTree::create_in_child(isolated, tree_limits, deadline, cancelled)
+                .map_err(map_source_error)?;
         let mut sink = Self {
             tree,
             source_limits,
