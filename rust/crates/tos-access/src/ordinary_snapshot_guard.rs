@@ -946,6 +946,15 @@ impl StandaloneSnapshotGuard {
             {
                 return Err("Core snapshot selected source is a symlink");
             }
+            // Optional carriers need not have a directory in this snapshot.
+            // Declared members must still exist; a later undeclared file is
+            // refused by the normal membership check on the next operation.
+            if metadata.is_none() {
+                if self.files.contains_key(&format!("data/{relative}")) {
+                    return Err("Core snapshot declared selected member is missing");
+                }
+                continue;
+            }
             if let Some(metadata) = metadata {
                 if !metadata.is_file() {
                     return Err("Core snapshot selected source is not a regular file");
