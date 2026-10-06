@@ -2559,7 +2559,10 @@ impl LegacyStore {
                     state_add(page_fixed, metadata_heap)?,
                     state_add(node_data.retained_bytes, relation_data.retained_bytes)?,
                 )?;
-                (budget.remaining_after_retained)(page_retained)?;
+                // The callback accounts for the whole live owner, not only the
+                // returned page. `held` includes the Store, temporaries and both
+                // kind pages; reserve the response's fixed state alongside them.
+                (budget.remaining_after_retained)(state_add(held, page_fixed)?)?;
                 Ok(QueryStoreIndexedPage {
                     store_revision,
                     source_revision,
