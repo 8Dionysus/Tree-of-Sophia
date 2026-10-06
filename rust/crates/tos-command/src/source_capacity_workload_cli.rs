@@ -914,7 +914,9 @@ fn write_receipt(
                 total
                     .checked_add(*bytes)
                     .ok_or_else(|| invalid("capacity fixture generated source total overflow"))
-            })?;
+            })?
+            .checked_add(receipt.generated_support_source_bytes)
+            .ok_or_else(|| invalid("capacity fixture generated support total overflow"))?;
     let (
         measured_source_at_1b,
         measured_source_ten_copies_at_1b,
@@ -925,7 +927,8 @@ fn write_receipt(
             != Some(receipt.source_bytes)
             || composition
                 .generated_record_count
-                .checked_add(composition.auxiliary_member_count)
+                .checked_add(composition.generated_support_member_count)
+                .and_then(|count| count.checked_add(composition.auxiliary_member_count))
                 != Some(receipt.member_count)
         {
             return Err(invalid("capacity fixture composed receipt totals differ"));
@@ -1032,6 +1035,7 @@ fn write_receipt(
         "standalone_raw_mirror": receipt.raw_input.is_some(),
         "member_count": receipt.member_count,
         "source_bytes": receipt.source_bytes,
+        "generated_support_source_bytes": receipt.generated_support_source_bytes,
         "deduplicated_payload_bytes": receipt.source_bytes.saturating_sub(receipt.unique_payload_bytes),
         "class_source_bytes": {
             "artifact": receipt.class_source_bytes[0],
@@ -1094,6 +1098,7 @@ fn write_receipt(
             "generated_declaration_sha256": composition.generated_declaration_sha256.to_hex(),
             "auxiliary_members_sha256": composition.auxiliary_members_sha256.to_hex(),
             "generated_record_count": composition.generated_record_count,
+            "generated_support_member_count": composition.generated_support_member_count,
             "auxiliary_member_count": composition.auxiliary_member_count,
             "auxiliary_source_bytes": composition.auxiliary_source_bytes,
             "members_descriptor_sha256": composition.members_descriptor_sha256.to_hex(),

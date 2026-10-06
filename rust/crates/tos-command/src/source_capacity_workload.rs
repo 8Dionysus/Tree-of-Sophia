@@ -6922,6 +6922,7 @@ pub(crate) struct PackedScaleInputReceiptV1 {
     pub(crate) composition: Option<WeightedScaleCompositionBindingV1>,
     pub(crate) source_bytes: u64,
     pub(crate) class_source_bytes: [u64; 5],
+    pub(crate) generated_support_source_bytes: u64,
     pub(crate) unique_object_count: u64,
     pub(crate) unique_payload_bytes: u64,
     pub(crate) max_frames_per_pack: u32,
@@ -7280,6 +7281,7 @@ fn produce_weighted_scale_input_composed_v1(
                     auxiliary,
                     auxiliary_index: 0,
                     auxiliary_bytes: 0,
+                    support_source_bytes: 0,
                     support_ordinals: [0; 4],
                     phase,
                     observation: templates.output_observation.as_ref(),
@@ -7332,6 +7334,7 @@ fn produce_weighted_scale_input_composed_v1(
         auxiliary,
         auxiliary_index: 0,
         auxiliary_bytes: 0,
+        support_source_bytes: 0,
         support_ordinals: [0; 4],
         phase: ScalePhysicalPhaseV2::All,
         observation: templates.output_observation.as_ref(),
@@ -7401,6 +7404,7 @@ fn produce_weighted_scale_input_composed_v1(
     let member_count = member_rows.cursor.member_count();
     let source_bytes = member_rows.cursor.source_bytes();
     let class_source_bytes = member_rows.cursor.class_source_bytes();
+    let generated_support_source_bytes = member_rows.cursor.support_source_bytes;
     let closure = member_rows.cursor.closure().clone();
     drop(member_rows);
     let raw_input = raw_fixture
@@ -7682,6 +7686,7 @@ fn produce_weighted_scale_input_composed_v1(
         composition,
         source_bytes,
         class_source_bytes,
+        generated_support_source_bytes,
         unique_object_count,
         unique_payload_bytes,
         max_frames_per_pack,
@@ -8420,6 +8425,7 @@ struct ComposedScaleMemberIterV1<'a, 'profile> {
     auxiliary: Option<&'a WeightedScaleAuthoredAuxSelectionV1>,
     auxiliary_index: usize,
     auxiliary_bytes: u64,
+    support_source_bytes: u64,
     support_ordinals: [u64; 4],
     phase: ScalePhysicalPhaseV2,
     observation: Option<&'a WeightedScaleArtifactOutputObservationV1>,
@@ -8525,6 +8531,10 @@ impl ComposedScaleMemberIterV1<'_, '_> {
                 ordinal,
                 self.observation,
             )?;
+            self.support_source_bytes = self
+                .support_source_bytes
+                .checked_add(bytes.len() as u64)
+                .ok_or_else(|| io_invalid("support observed source bytes overflow"))?;
             self.support_ordinals[index] = ordinal
                 .checked_add(1)
                 .ok_or_else(|| io_invalid("support ordinal overflow"))?;
