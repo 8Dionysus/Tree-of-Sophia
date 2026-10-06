@@ -2987,12 +2987,71 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
         {
             result
         }
-        _ => {
+        FoundationCatalogOutcome::SchemaRejected {
+            diagnostic,
+            bibliographic_phase,
+            ..
+        } => {
+            let result = diagnostic.result();
+            let contract = Digest256::of_bytes(result.contract().as_bytes()).to_hex();
+            let issue = result.report().issues.first();
+            let reason = issue.map_or(0, |issue| issue.reason as u16);
+            let mut location = tos_foundation::Digest256Hasher::new();
+            if let Some(issue) = issue {
+                for segment in &issue.instance_path {
+                    use tos_validation::executor::schema_diagnostics::PathSegment;
+                    match segment {
+                        PathSegment::Property(name) => {
+                            location.update(b"p");
+                            location.update(&(name.len() as u64).to_be_bytes());
+                            location.update(name.as_bytes());
+                        }
+                        PathSegment::Index(index) => {
+                            location.update(b"i");
+                            location.update(&index.to_be_bytes());
+                        }
+                    }
+                }
+            }
+            let location = location.finalize().to_hex();
+            let site = format!(
+                "cat-b{}-s{}-r{reason:x}-c{}-i{}",
+                u8::from(*bibliographic_phase),
+                result.status() as u8,
+                &contract[..12],
+                &location[..6],
+            );
             return fail_window(
                 view.execution_limits,
                 view.remaining_budget,
                 catalog_ticket,
-                incomplete("candidate catalog owner comparison is incomplete or invalid"),
+                owner(ItemRefusal::Source(
+                    crate::source_admission_spooled_index::bounded_source_cause(
+                        "receiver-source",
+                        &site,
+                        result.path(),
+                    ),
+                )),
+            );
+        }
+        FoundationCatalogOutcome::Complete(result) => {
+            let refusal = if let Some((path, detail)) = result.issues.first() {
+                let path = Digest256::of_bytes(path.as_bytes()).to_hex();
+                owner(ItemRefusal::Source(
+                    crate::source_admission_spooled_index::bounded_source_cause(
+                        "receiver-source",
+                        &format!("cat-issues-{:x}-p{}", result.issues.len(), &path[..12]),
+                        detail,
+                    ),
+                ))
+            } else {
+                incomplete("candidate catalog record profile selection incomplete")
+            };
+            return fail_window(
+                view.execution_limits,
+                view.remaining_budget,
+                catalog_ticket,
+                refusal,
             );
         }
     };
