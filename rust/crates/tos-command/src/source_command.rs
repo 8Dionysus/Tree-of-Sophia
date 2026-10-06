@@ -94,6 +94,72 @@ pub(crate) fn public_io_reason(error: &std::io::Error) -> String {
     )
 }
 
+/// Compiler refusal detail follows the same public/private boundary as command
+/// errors: authored static guards survive, foreign source/SQL text is hashed.
+pub(crate) fn public_compiler_reason(error: &tos_compiler::Error) -> String {
+    use tos_compiler::Error;
+    match error {
+        Error::Invalid(reason) => format!("invalid compiler input: {reason}"),
+        Error::PreparedUnsupported(reason) => {
+            format!("unsupported local prepared carrier/profile: {reason}")
+        }
+        Error::ManagedSourceUnsupported(reason) => {
+            format!("unsupported managed selected source: {reason}")
+        }
+        Error::Budget(reason) => format!("compiler budget exceeded: {reason}"),
+        Error::SqliteVmBudget {
+            phase,
+            used_steps,
+            max_steps,
+        } => format!(
+            "compiler budget exceeded: SQLite VM steps in {phase:?} (used {used_steps}, max {max_steps})"
+        ),
+        Error::Io(error) => public_io_reason(error),
+        Error::Source(reason)
+            if crate::source_admission_spooled_index::is_bounded_source_cause(reason) =>
+        {
+            reason.clone()
+        }
+        Error::Sql(sql) => compiler_sql_cause(error, "sql", sql),
+        Error::SqlitePhase { phase, error: sql } => {
+            compiler_sql_cause(error, &format!("sql-{phase:?}"), sql)
+        }
+        Error::Source(reason) => {
+            let site = tos_compiler::source_witness_catalog::source_refusal_stage(reason)
+                .map(|stage| format!("compiler-{stage}"))
+                .unwrap_or_else(|| "compiler-source".to_owned());
+            crate::source_admission_spooled_index::bounded_source_cause(
+                "receiver-source",
+                &site,
+                &error.to_string(),
+            )
+        }
+    }
+}
+
+// Only the owned phase and SQLite's numeric result code cross this boundary.
+// Preserve the fingerprint of the complete original compiler error for custody.
+fn compiler_sql_cause(
+    compiler: &tos_compiler::Error,
+    phase: &str,
+    sql: &rusqlite::Error,
+) -> String {
+    let site = match sql {
+        rusqlite::Error::SqliteFailure(code, _) => {
+            format!("compiler-{phase}-{}", code.extended_code)
+        }
+        rusqlite::Error::QueryReturnedNoRows => format!("compiler-{phase}-no-rows"),
+        rusqlite::Error::InvalidColumnType(..) => format!("compiler-{phase}-column-type"),
+        rusqlite::Error::InvalidQuery => format!("compiler-{phase}-query"),
+        _ => format!("compiler-{phase}-other"),
+    };
+    crate::source_admission_spooled_index::bounded_source_cause(
+        "receiver-source",
+        &site,
+        &compiler.to_string(),
+    )
+}
+
 #[cfg(test)]
 mod public_refusal_tests {
     use super::*;
