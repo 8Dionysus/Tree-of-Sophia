@@ -3344,7 +3344,8 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
     )?;
     drop(catalog_result);
     drop(validator);
-    item_schemas.finish(deadline, cancelled).map_err(owner)?;
+    // The catalog owner already closes the borrowed executor before returning
+    // complete output. Verify its terminal state; a second finish is refused.
     if !item_schemas.is_finished() {
         return Err(incomplete(
             "candidate catalog schema worker EOF is incomplete",
