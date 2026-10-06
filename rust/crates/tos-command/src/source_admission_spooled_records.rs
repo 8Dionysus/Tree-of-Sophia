@@ -53,8 +53,14 @@ fn is_candidate_artifact_record_path(path: &str) -> bool {
     path.starts_with(NATIVE_ARTIFACT_RECORD_PREFIX) && path.ends_with(NATIVE_ARTIFACT_RECORD_SUFFIX)
 }
 
-fn refusal(_: impl std::fmt::Display) -> ItemRefusal {
-    ItemRefusal::Source("source-foundation bounded index operation refused".into())
+#[track_caller]
+fn refusal(error: impl std::fmt::Display) -> ItemRefusal {
+    let site = std::panic::Location::caller().line();
+    ItemRefusal::Source(super::bounded_source_cause(
+        "spooled-records",
+        &site.to_string(),
+        &error.to_string(),
+    ))
 }
 
 fn checked_add(a: usize, b: usize) -> io::Result<usize> {
@@ -986,7 +992,7 @@ fn check_operation(
             "source-foundation index invocation identity changed".into(),
         ));
     }
-    sink.candidate.tick().map_err(refusal)
+    sink.candidate.tick().map_err(|error| refusal(error))
 }
 
 fn observation_state(row: &RecordObservation) -> io::Result<usize> {
@@ -1095,12 +1101,12 @@ impl IndexSink<'_> {
     ) -> Result<(), ItemRefusal> {
         check_operation(self, deadline, cancelled)?;
         let (payload, state_bytes) =
-            encode_json(self, source_state, value, &[]).map_err(refusal)?;
+            encode_json(self, source_state, value, &[]).map_err(|error| refusal(error))?;
         let ordinal_i64 = i64::try_from(ordinal).map_err(|_| ItemRefusal::Budget)?;
         let state_i64 = i64::try_from(state_bytes).map_err(|_| ItemRefusal::Budget)?;
-        self.candidate.tick().map_err(refusal)?;
-        self.db.execute("INSERT INTO sf_facts(collection,ordinal,key1,payload,state_bytes) VALUES(?1,?2,?3,?4,?5)",params![fact_collection_id(collection),ordinal_i64,key,payload,state_i64]).map_err(refusal)?;
-        self.candidate.tick().map_err(refusal)?;
+        self.candidate.tick().map_err(|error| refusal(error))?;
+        self.db.execute("INSERT INTO sf_facts(collection,ordinal,key1,payload,state_bytes) VALUES(?1,?2,?3,?4,?5)",params![fact_collection_id(collection),ordinal_i64,key,payload,state_i64]).map_err(|error| refusal(error))?;
+        self.candidate.tick().map_err(|error| refusal(error))?;
         Ok(())
     }
 }
@@ -1335,12 +1341,12 @@ fn rows_meta(
                 .checked_mul(std::mem::size_of::<PageMeta>())
                 .ok_or(ItemRefusal::Budget)?,
         )
-        .map_err(refusal)?;
+        .map_err(|error| refusal(error))?;
     let mut result = Vec::new();
     result
         .try_reserve_exact(capacity)
         .map_err(|_| ItemRefusal::Budget)?;
-    let mut statement = sink.db.prepare(query).map_err(refusal)?;
+    let mut statement = sink.db.prepare(query).map_err(|error| refusal(error))?;
     let limit_i64 = i64::try_from(limit).map_err(|_| ItemRefusal::Budget)?;
     let mut rows = match (sorted, after) {
         (false, _) => statement.query(params![
@@ -1356,19 +1362,19 @@ fn rows_meta(
             limit_i64
         ]),
     }
-    .map_err(refusal)?;
-    while let Some(row) = rows.next().map_err(refusal)? {
+    .map_err(|error| refusal(error))?;
+    while let Some(row) = rows.next().map_err(|error| refusal(error))? {
         check_operation(sink, deadline, cancelled)?;
         if result.len() >= capacity {
             return Err(ItemRefusal::Budget);
         }
         result.push(PageMeta {
-            seq: row.get(0).map_err(refusal)?,
-            key1_bytes: sqlite_usize(row, 1).map_err(refusal)?,
-            key2_bytes: sqlite_usize(row, 2).map_err(refusal)?,
-            payload_bytes: sqlite_usize(row, 3).map_err(refusal)?,
-            aux_bytes: sqlite_usize(row, 4).map_err(refusal)?,
-            state_bytes: sqlite_usize(row, 5).map_err(refusal)?,
+            seq: row.get(0).map_err(|error| refusal(error))?,
+            key1_bytes: sqlite_usize(row, 1).map_err(|error| refusal(error))?,
+            key2_bytes: sqlite_usize(row, 2).map_err(|error| refusal(error))?,
+            payload_bytes: sqlite_usize(row, 3).map_err(|error| refusal(error))?,
+            aux_bytes: sqlite_usize(row, 4).map_err(|error| refusal(error))?,
+            state_bytes: sqlite_usize(row, 5).map_err(|error| refusal(error))?,
         });
     }
     drop(rows);
@@ -1409,12 +1415,12 @@ fn fact_rows_meta(
                 .checked_mul(std::mem::size_of::<PageMeta>())
                 .ok_or(ItemRefusal::Budget)?,
         )
-        .map_err(refusal)?;
+        .map_err(|error| refusal(error))?;
     let mut result = Vec::new();
     result
         .try_reserve_exact(capacity)
         .map_err(|_| ItemRefusal::Budget)?;
-    let mut statement = sink.db.prepare(query).map_err(refusal)?;
+    let mut statement = sink.db.prepare(query).map_err(|error| refusal(error))?;
     let limit_i64 = i64::try_from(limit).map_err(|_| ItemRefusal::Budget)?;
     let mut rows = match (sorted, after) {
         (false, _) => statement.query(params![
@@ -1430,19 +1436,19 @@ fn fact_rows_meta(
             limit_i64
         ]),
     }
-    .map_err(refusal)?;
-    while let Some(row) = rows.next().map_err(refusal)? {
+    .map_err(|error| refusal(error))?;
+    while let Some(row) = rows.next().map_err(|error| refusal(error))? {
         check_operation(sink, deadline, cancelled)?;
         if result.len() >= capacity {
             return Err(ItemRefusal::Budget);
         }
         result.push(PageMeta {
-            seq: row.get(0).map_err(refusal)?,
-            key1_bytes: sqlite_usize(row, 1).map_err(refusal)?,
+            seq: row.get(0).map_err(|error| refusal(error))?,
+            key1_bytes: sqlite_usize(row, 1).map_err(|error| refusal(error))?,
             key2_bytes: 0,
-            payload_bytes: sqlite_usize(row, 2).map_err(refusal)?,
+            payload_bytes: sqlite_usize(row, 2).map_err(|error| refusal(error))?,
             aux_bytes: 0,
-            state_bytes: sqlite_usize(row, 3).map_err(refusal)?,
+            state_bytes: sqlite_usize(row, 3).map_err(|error| refusal(error))?,
         });
     }
     drop(rows);
@@ -1608,7 +1614,7 @@ fn read_row_for_page(
             limit: Some(max_state as u64),
         });
     }
-    sink.candidate.check_state(state).map_err(refusal)?;
+    sink.candidate.check_state(state).map_err(|error| refusal(error))?;
     let row = sink
         .db
         .query_row(
@@ -1623,7 +1629,7 @@ fn read_row_for_page(
                 ))
             },
         )
-        .map_err(refusal)?;
+        .map_err(|error| refusal(error))?;
     if row.0.len() != expected.key1_bytes
         || row.1.len() != expected.key2_bytes
         || row.2.len() != expected.payload_bytes
@@ -1655,7 +1661,7 @@ fn read_fact_for_page(
             limit: Some(max_state as u64),
         });
     }
-    sink.candidate.check_state(state).map_err(refusal)?;
+    sink.candidate.check_state(state).map_err(|error| refusal(error))?;
     let row = sink
         .db
         .query_row(
@@ -1663,7 +1669,7 @@ fn read_fact_for_page(
             params![fact_collection_id(collection), ordinal],
             |row| Ok((row.get::<_, String>(0)?, row.get::<_, Vec<u8>>(1)?)),
         )
-        .map_err(refusal)?;
+        .map_err(|error| refusal(error))?;
     if row.0.len() != expected.key1_bytes || row.1.len() != expected.payload_bytes {
         return Err(ItemRefusal::Source(
             "Biblio fact changed during page read".into(),
@@ -1731,7 +1737,7 @@ fn report_page(
     check_operation(sink, deadline, cancelled)?;
     let id = cursor_tag_rows(collection);
     let mode = if sorted_collection(collection) { 3 } else { 1 };
-    let parsed = parse_cursor(after, id, mode, budget.max_cursor_bytes.get()).map_err(refusal)?;
+    let parsed = parse_cursor(after, id, mode, budget.max_cursor_bytes.get()).map_err(|error| refusal(error))?;
     let input_bytes = after.map_or(0, |cursor| cursor.as_bytes().len());
     let capacity = page_row_capacity(budget, input_bytes, false)?;
     let meta_capacity = capacity.checked_add(1).ok_or(ItemRefusal::Budget)?;
@@ -1752,7 +1758,7 @@ fn report_page(
                 .ok_or(ItemRefusal::Budget)?,
             sorted_collection(collection),
         )
-        .map_err(refusal)?
+        .map_err(|error| refusal(error))?
     } else {
         0
     };
@@ -1768,7 +1774,7 @@ fn report_page(
             cursor_len,
             true,
         )
-        .map_err(refusal)?
+        .map_err(|error| refusal(error))?
             > budget.max_state_bytes.get()
     {
         take -= 1;
@@ -1777,7 +1783,7 @@ fn report_page(
             return Err(ItemRefusal::Budget);
         }
         cursor_len = if more {
-            output_cursor_len(&meta[take - 1], sorted_collection(collection)).map_err(refusal)?
+            output_cursor_len(&meta[take - 1], sorted_collection(collection)).map_err(|error| refusal(error))?
         } else {
             0
         };
@@ -1796,11 +1802,11 @@ fn report_page(
         cursor_len,
         true,
     )
-    .map_err(refusal)?;
+    .map_err(|error| refusal(error))?;
     if charged > budget.max_state_bytes.get() {
         return Err(ItemRefusal::Budget);
     }
-    sink.candidate.check_state(charged).map_err(refusal)?;
+    sink.candidate.check_state(charged).map_err(|error| refusal(error))?;
     let mut output = Vec::new();
     output
         .try_reserve_exact(capacity)
@@ -1816,16 +1822,16 @@ fn report_page(
             deadline,
             cancelled,
         )?;
-        let value = decode_value(&payload, budget.max_state_bytes.get()).map_err(refusal)?;
+        let value = decode_value(&payload, budget.max_state_bytes.get()).map_err(|error| refusal(error))?;
         let fact = stored_fact_from_value(sink, row.state_bytes, collection, &value, &aux)
-            .map_err(refusal)?;
+            .map_err(|error| refusal(error))?;
         output.push(fact);
     }
     let next_cursor = if more {
         let last = &meta[take - 1];
         let (key1, key2) = if sorted_collection(collection) {
             stored_fact_cursor_keys(collection, output.last().ok_or(ItemRefusal::Budget)?)
-                .map_err(refusal)?
+                .map_err(|error| refusal(error))?
         } else {
             ("", "")
         };
@@ -1838,7 +1844,7 @@ fn report_page(
                 key2,
                 budget.max_cursor_bytes.get(),
             )
-            .map_err(refusal)?,
+            .map_err(|error| refusal(error))?,
         )
     } else {
         None
@@ -1906,7 +1912,7 @@ fn current_records_by_id_page(
     }
     sink.candidate
         .check_state(metadata_headers)
-        .map_err(refusal)?;
+        .map_err(|error| refusal(error))?;
     let mut metadata = Vec::new();
     metadata
         .try_reserve_exact(metadata_capacity)
@@ -1924,7 +1930,7 @@ fn current_records_by_id_page(
     }
     sink.candidate
         .check_state(allocated_metadata_headers)
-        .map_err(refusal)?;
+        .map_err(|error| refusal(error))?;
     let limit = i64::try_from(metadata_capacity).map_err(|_| ItemRefusal::Budget)?;
     let mut statement = sink
         .db
@@ -1933,7 +1939,7 @@ fn current_records_by_id_page(
         } else {
             "SELECT key1,state_bytes,length(payload),length(aux) FROM sf_rows WHERE collection=?1 ORDER BY key1 COLLATE BINARY LIMIT ?2"
         })
-        .map_err(refusal)?;
+        .map_err(|error| refusal(error))?;
     let mut rows = if let Some(after_id) = after_id {
         statement.query(params![
             collection_id(SourceFoundationRecordsCollection::CurrentRecords),
@@ -1946,14 +1952,14 @@ fn current_records_by_id_page(
             limit
         ])
     }
-    .map_err(refusal)?;
+    .map_err(|error| refusal(error))?;
     let mut metadata_state = allocated_metadata_headers;
-    while let Some(row) = rows.next().map_err(refusal)? {
+    while let Some(row) = rows.next().map_err(|error| refusal(error))? {
         check_operation(sink, deadline, cancelled)?;
         if metadata.len() >= metadata_capacity {
             return Err(ItemRefusal::Budget);
         }
-        let raw_id_len = match row.get_ref(0).map_err(refusal)? {
+        let raw_id_len = match row.get_ref(0).map_err(|error| refusal(error))? {
             rusqlite::types::ValueRef::Text(raw) => raw.len(),
             _ => {
                 return Err(ItemRefusal::Source(
@@ -1973,7 +1979,7 @@ fn current_records_by_id_page(
         }
         sink.candidate
             .check_state(next_metadata_state)
-            .map_err(refusal)?;
+            .map_err(|error| refusal(error))?;
         let id = bounded_text(
             row,
             0,
@@ -1983,7 +1989,7 @@ fn current_records_by_id_page(
                 .checked_sub(metadata_state)
                 .ok_or(ItemRefusal::Budget)?,
         )
-        .map_err(refusal)?;
+        .map_err(|error| refusal(error))?;
         if metadata
             .last()
             .is_some_and(|previous: &CurrentRecordIdMeta| previous.id >= id)
@@ -1992,14 +1998,14 @@ fn current_records_by_id_page(
                 "stored current Record ID index order changed".into(),
             ));
         }
-        let stored_state_bytes = usize::try_from(row.get::<_, i64>(1).map_err(refusal)?)
+        let stored_state_bytes = usize::try_from(row.get::<_, i64>(1).map_err(|error| refusal(error))?)
             .map_err(|_| ItemRefusal::Budget)?;
         if stored_state_bytes == 0 || stored_state_bytes > budget.max_state_bytes.get() {
             return Err(ItemRefusal::Budget);
         }
-        let payload_bytes = usize::try_from(row.get::<_, i64>(2).map_err(refusal)?)
+        let payload_bytes = usize::try_from(row.get::<_, i64>(2).map_err(|error| refusal(error))?)
             .map_err(|_| ItemRefusal::Budget)?;
-        let aux_bytes = usize::try_from(row.get::<_, i64>(3).map_err(refusal)?)
+        let aux_bytes = usize::try_from(row.get::<_, i64>(3).map_err(|error| refusal(error))?)
             .map_err(|_| ItemRefusal::Budget)?;
         let decode_state_bytes = payload_bytes
             .checked_add(aux_bytes)
@@ -2125,7 +2131,7 @@ fn current_records_by_id_page(
     }
     sink.candidate
         .check_state(precharged_state_bytes)
-        .map_err(refusal)?;
+        .map_err(|error| refusal(error))?;
     let mut output = Vec::new();
     output
         .try_reserve_exact(capacity)
@@ -2145,7 +2151,7 @@ fn current_records_by_id_page(
     }
     sink.candidate
         .check_state(charged_state_bytes)
-        .map_err(refusal)?;
+        .map_err(|error| refusal(error))?;
     for row in metadata.iter().take(take) {
         check_operation(sink, deadline, cancelled)?;
         let (record, stored_state_bytes, _) = decode_current_record_checked(
@@ -2198,7 +2204,7 @@ fn decode_current_record_checked(
         max_state,
         sink.candidate,
     )
-    .map_err(refusal)?;
+    .map_err(|error| refusal(error))?;
     check_operation(sink, deadline, cancelled)?;
     let Some(meta) = meta else {
         return Ok(None);
@@ -2218,7 +2224,7 @@ fn decode_current_record_checked(
                 .checked_add(decode_state_bytes)
                 .ok_or(ItemRefusal::Budget)?,
         )
-        .map_err(refusal)?;
+        .map_err(|error| refusal(error))?;
     let (payload, aux) = table_read_payload(
         &sink.db,
         collection_id(SourceFoundationRecordsCollection::CurrentRecords),
@@ -2226,22 +2232,22 @@ fn decode_current_record_checked(
         "",
         meta,
     )
-    .map_err(refusal)?;
+    .map_err(|error| refusal(error))?;
     check_operation(sink, deadline, cancelled)?;
     if !aux.is_empty() {
         return Err(ItemRefusal::Source(
             "current Record row auxiliary data changed".into(),
         ));
     }
-    let value = decode_value(&payload, max_state).map_err(refusal)?;
-    if text(&value, "record_id").map_err(refusal)? != id {
+    let value = decode_value(&payload, max_state).map_err(|error| refusal(error))?;
+    if text(&value, "record_id").map_err(|error| refusal(error))? != id {
         return Err(ItemRefusal::Source(
             "current Record row ID differs from its index key".into(),
         ));
     }
     let record =
-        biblio_record_from_locator(sink, field(&value, "record").map_err(refusal)?, meta.2)
-            .map_err(refusal)?;
+        biblio_record_from_locator(sink, field(&value, "record").map_err(|error| refusal(error))?, meta.2)
+            .map_err(|error| refusal(error))?;
     check_operation(sink, deadline, cancelled)?;
     Ok(Some((record, meta.2, decode_state_bytes)))
 }
@@ -2270,7 +2276,7 @@ fn fact_page(
     } else {
         2
     };
-    let parsed = parse_cursor(after, id, mode, budget.max_cursor_bytes.get()).map_err(refusal)?;
+    let parsed = parse_cursor(after, id, mode, budget.max_cursor_bytes.get()).map_err(|error| refusal(error))?;
     let input_bytes = after.map_or(0, |cursor| cursor.as_bytes().len());
     let capacity = page_row_capacity(budget, input_bytes, true)?;
     let meta_capacity = capacity.checked_add(1).ok_or(ItemRefusal::Budget)?;
@@ -2291,7 +2297,7 @@ fn fact_page(
                 .ok_or(ItemRefusal::Budget)?,
             sorted_fact_collection(collection),
         )
-        .map_err(refusal)?
+        .map_err(|error| refusal(error))?
     } else {
         0
     };
@@ -2306,7 +2312,7 @@ fn fact_page(
             input_bytes,
             cursor_len,
         )
-        .map_err(refusal)?
+        .map_err(|error| refusal(error))?
             > budget.max_state_bytes.get()
     {
         take -= 1;
@@ -2316,7 +2322,7 @@ fn fact_page(
         }
         cursor_len = if more {
             output_cursor_len(&meta[take - 1], sorted_fact_collection(collection))
-                .map_err(refusal)?
+                .map_err(|error| refusal(error))?
         } else {
             0
         };
@@ -2334,11 +2340,11 @@ fn fact_page(
         input_bytes,
         cursor_len,
     )
-    .map_err(refusal)?;
+    .map_err(|error| refusal(error))?;
     if charged > budget.max_state_bytes.get() {
         return Err(ItemRefusal::Budget);
     }
-    sink.candidate.check_state(charged).map_err(refusal)?;
+    sink.candidate.check_state(charged).map_err(|error| refusal(error))?;
     let mut output = Vec::new();
     output
         .try_reserve_exact(capacity)
@@ -2353,21 +2359,21 @@ fn fact_page(
             deadline,
             cancelled,
         )?;
-        let value = decode_value(&payload, budget.max_state_bytes.get()).map_err(refusal)?;
-        let fact = fact_from_value(&value, collection).map_err(refusal)?;
+        let value = decode_value(&payload, budget.max_state_bytes.get()).map_err(|error| refusal(error))?;
+        let fact = fact_from_value(&value, collection).map_err(|error| refusal(error))?;
         output.push(fact);
     }
     let next_cursor = if more {
         let last = &meta[take - 1];
         let key = if sorted_fact_collection(collection) {
             fact_cursor_key(collection, output.last().ok_or(ItemRefusal::Budget)?)
-                .map_err(refusal)?
+                .map_err(|error| refusal(error))?
         } else {
             ""
         };
         Some(
             make_cursor(id, mode, last.seq, key, "", budget.max_cursor_bytes.get())
-                .map_err(refusal)?,
+                .map_err(|error| refusal(error))?,
         )
     } else {
         None
@@ -2431,7 +2437,7 @@ fn global_id_facts_by_id_page(
     }
     sink.candidate
         .check_state(metadata_state)
-        .map_err(refusal)?;
+        .map_err(|error| refusal(error))?;
     let mut metadata = Vec::new();
     metadata
         .try_reserve_exact(metadata_capacity)
@@ -2441,7 +2447,7 @@ fn global_id_facts_by_id_page(
         .prepare(
             "SELECT ordinal,length(CAST(key1 AS BLOB)),length(payload),state_bytes FROM sf_facts WHERE collection=?1 AND key1 COLLATE BINARY=?2 COLLATE BINARY AND ordinal>?3 ORDER BY ordinal LIMIT ?4",
         )
-        .map_err(refusal)?;
+        .map_err(|error| refusal(error))?;
     let limit = i64::try_from(metadata_capacity).map_err(|_| ItemRefusal::Budget)?;
     let mut rows = statement
         .query(params![
@@ -2450,19 +2456,19 @@ fn global_id_facts_by_id_page(
             after.unwrap_or(-1),
             limit
         ])
-        .map_err(refusal)?;
-    while let Some(row) = rows.next().map_err(refusal)? {
+        .map_err(|error| refusal(error))?;
+    while let Some(row) = rows.next().map_err(|error| refusal(error))? {
         check_operation(sink, deadline, cancelled)?;
         if metadata.len() >= metadata_capacity {
             return Err(ItemRefusal::Budget);
         }
         metadata.push(PageMeta {
-            seq: row.get(0).map_err(refusal)?,
-            key1_bytes: sqlite_usize(row, 1).map_err(refusal)?,
+            seq: row.get(0).map_err(|error| refusal(error))?,
+            key1_bytes: sqlite_usize(row, 1).map_err(|error| refusal(error))?,
             key2_bytes: 0,
-            payload_bytes: sqlite_usize(row, 2).map_err(refusal)?,
+            payload_bytes: sqlite_usize(row, 2).map_err(|error| refusal(error))?,
             aux_bytes: 0,
-            state_bytes: sqlite_usize(row, 3).map_err(refusal)?,
+            state_bytes: sqlite_usize(row, 3).map_err(|error| refusal(error))?,
         });
     }
     drop(rows);
@@ -2495,7 +2501,7 @@ fn global_id_facts_by_id_page(
     if more && take == 0 {
         return Err(ItemRefusal::Budget);
     }
-    sink.candidate.check_state(charged).map_err(refusal)?;
+    sink.candidate.check_state(charged).map_err(|error| refusal(error))?;
     let mut output = Vec::new();
     output
         .try_reserve_exact(capacity)
@@ -2515,9 +2521,9 @@ fn global_id_facts_by_id_page(
                 "GlobalId exact-key row differs from its held index key".into(),
             ));
         }
-        let value = decode_value(&payload, budget.max_state_bytes.get()).map_err(refusal)?;
+        let value = decode_value(&payload, budget.max_state_bytes.get()).map_err(|error| refusal(error))?;
         let fact = fact_from_value(&value, SourceFoundationRecordFactCollection::GlobalIdFacts)
-            .map_err(refusal)?;
+            .map_err(|error| refusal(error))?;
         let SourceFoundationRecordFact::GlobalId(fact) = fact else {
             return Err(ItemRefusal::Source(
                 "GlobalId exact-key page contains another fact kind".into(),
@@ -2579,9 +2585,9 @@ impl SourceFoundationRecordsStore for IndexSink<'_> {
     ) -> Result<(), ItemRefusal> {
         let input = string_fields(&[id, &record.path, &record.kind])
             .and_then(|n| checked_add(n, value_state(&record.value)?))
-            .map_err(refusal)?;
-        preflight_row_clone(self, input).map_err(refusal)?;
-        self.candidate.tick().map_err(refusal)?;
+            .map_err(|error| refusal(error))?;
+        preflight_row_clone(self, input).map_err(|error| refusal(error))?;
+        self.candidate.tick().map_err(|error| refusal(error))?;
         let already_retained = self
             .db
             .query_row(
@@ -2589,9 +2595,9 @@ impl SourceFoundationRecordsStore for IndexSink<'_> {
                 params![collection_id(SourceFoundationRecordsCollection::CurrentRecords), id],
                 |row| row.get::<_, bool>(0),
             )
-            .map_err(refusal)?;
-        self.candidate.tick().map_err(refusal)?;
-        if self.candidate.fence().map_err(refusal)? != self.fence {
+            .map_err(|error| refusal(error))?;
+        self.candidate.tick().map_err(|error| refusal(error))?;
+        if self.candidate.fence().map_err(|error| refusal(error))? != self.fence {
             return Err(ItemRefusal::Source(
                 "current Record candidate fence changed".into(),
             ));
@@ -2601,22 +2607,22 @@ impl SourceFoundationRecordsStore for IndexSink<'_> {
         let metadata = self
             .candidate
             .member(&path)
-            .map_err(refusal)?
+            .map_err(|error| refusal(error))?
             .ok_or_else(|| {
                 ItemRefusal::Source("current Record outside candidate membership".into())
             })?;
         let size = usize::try_from(metadata.size_bytes).map_err(|_| ItemRefusal::Budget)?;
-        let read_state = current_record_read_state(&record.path, size).map_err(refusal)?;
+        let read_state = current_record_read_state(&record.path, size).map_err(|error| refusal(error))?;
         // Keep the full value/read workspace in state_bytes so every page and
         // lookup precharges it before reading or decoding the lazy document.
-        let input = checked_add(input, read_state).map_err(refusal)?;
+        let input = checked_add(input, read_state).map_err(|error| refusal(error))?;
         let locator = json!({
             "v":CURRENT_RECORD_LOCATOR_CODEC_VERSION,
             "path":record.path,
             "kind":record.kind,
             "sha256":metadata.sha256.to_hex(),
             "size_bytes":metadata.size_bytes,
-            "decoded_state_bytes":value_state(&record.value).map_err(refusal)?,
+            "decoded_state_bytes":value_state(&record.value).map_err(|error| refusal(error))?,
         });
         let value = json!({"v":STORE_CODEC_VERSION,"record_id":id,"record":locator});
         self.append_stored_row(
@@ -2630,12 +2636,12 @@ impl SourceFoundationRecordsStore for IndexSink<'_> {
             None,
             None,
         )
-        .map_err(refusal)?;
+        .map_err(|error| refusal(error))?;
         drop(value);
         if !already_retained {
-            preflight_row_clone(self, string_fields(&[id, &record.path]).map_err(refusal)?)
-                .map_err(refusal)?;
-            self.candidate.tick().map_err(refusal)?;
+            preflight_row_clone(self, string_fields(&[id, &record.path]).map_err(|error| refusal(error))?)
+                .map_err(|error| refusal(error))?;
+            self.candidate.tick().map_err(|error| refusal(error))?;
             let schema_matches = record.value.get("$schema").and_then(Value::as_str)
                 == Some(NATIVE_ARTIFACT_RECORD_SCHEMA_URI);
             let artifact_scope = is_candidate_artifact_record_path(&record.path);
@@ -2644,14 +2650,14 @@ impl SourceFoundationRecordsStore for IndexSink<'_> {
                     "INSERT INTO sf_current_paths(path,record_id,record_count,schema_matches,artifact_scope,artifact_visited) VALUES(?1,?2,1,?3,?4,0) ON CONFLICT(path) DO UPDATE SET record_count=sf_current_paths.record_count+1,record_id=CASE WHEN excluded.record_id COLLATE BINARY < sf_current_paths.record_id COLLATE BINARY THEN excluded.record_id ELSE sf_current_paths.record_id END,schema_matches=CASE WHEN excluded.record_id COLLATE BINARY < sf_current_paths.record_id COLLATE BINARY THEN excluded.schema_matches ELSE sf_current_paths.schema_matches END",
                     params![record.path, id, schema_matches, artifact_scope],
                 )
-                .map_err(refusal)?;
-            self.candidate.tick().map_err(refusal)?;
+                .map_err(|error| refusal(error))?;
+            self.candidate.tick().map_err(|error| refusal(error))?;
         }
         Ok(())
     }
 
     fn used_profile_kind(&mut self, kind: &str) -> Result<(), ItemRefusal> {
-        preflight_row_clone(self, string_fields(&[kind]).map_err(refusal)?).map_err(refusal)?;
+        preflight_row_clone(self, string_fields(&[kind]).map_err(|error| refusal(error))?).map_err(|error| refusal(error))?;
         let value = json!({"v":STORE_CODEC_VERSION,"value":kind});
         self.append_stored_row(
             SourceFoundationRecordsCollection::UsedDeclaredProfileKinds,
@@ -2659,12 +2665,12 @@ impl SourceFoundationRecordsStore for IndexSink<'_> {
             "",
             &value,
             &[],
-            string_fields(&[kind]).map_err(refusal)?,
+            string_fields(&[kind]).map_err(|error| refusal(error))?,
             WriteLaw::First,
             None,
             None,
         )
-        .map_err(refusal)?;
+        .map_err(|error| refusal(error))?;
         Ok(())
     }
 
@@ -2674,8 +2680,8 @@ impl SourceFoundationRecordsStore for IndexSink<'_> {
     ) -> Result<(), ItemRefusal> {
         let state = string_fields(&[&row.record_id, &row.path])
             .and_then(|n| checked_add(n, value_state(&row.value)?))
-            .map_err(refusal)?;
-        preflight_row_clone(self, state).map_err(refusal)?;
+            .map_err(|error| refusal(error))?;
+        preflight_row_clone(self, state).map_err(|error| refusal(error))?;
         let value = json!({"v":STORE_CODEC_VERSION,"selection":item_selection_value(row)});
         self.append_stored_row(
             SourceFoundationRecordsCollection::ItemRecordSelections,
@@ -2688,16 +2694,16 @@ impl SourceFoundationRecordsStore for IndexSink<'_> {
             None,
             None,
         )
-        .map_err(refusal)?;
+        .map_err(|error| refusal(error))?;
         Ok(())
     }
 
     fn item_edition(&mut self, item_id: &str, embodiment_ref: &str) -> Result<(), ItemRefusal> {
         preflight_row_clone(
             self,
-            string_fields(&[item_id, embodiment_ref]).map_err(refusal)?,
+            string_fields(&[item_id, embodiment_ref]).map_err(|error| refusal(error))?,
         )
-        .map_err(refusal)?;
+        .map_err(|error| refusal(error))?;
         let value =
             json!({"v":STORE_CODEC_VERSION,"item_id":item_id,"embodiment_ref":embodiment_ref});
         self.append_stored_row(
@@ -2706,17 +2712,17 @@ impl SourceFoundationRecordsStore for IndexSink<'_> {
             "",
             &value,
             &[],
-            string_fields(&[item_id, embodiment_ref]).map_err(refusal)?,
+            string_fields(&[item_id, embodiment_ref]).map_err(|error| refusal(error))?,
             WriteLaw::Replace,
             None,
             None,
         )
-        .map_err(refusal)?;
+        .map_err(|error| refusal(error))?;
         Ok(())
     }
 
     fn rights_id(&mut self, id: &str) -> Result<(), ItemRefusal> {
-        preflight_row_clone(self, string_fields(&[id]).map_err(refusal)?).map_err(refusal)?;
+        preflight_row_clone(self, string_fields(&[id]).map_err(|error| refusal(error))?).map_err(|error| refusal(error))?;
         let value = json!({"v":STORE_CODEC_VERSION,"value":id});
         self.append_stored_row(
             SourceFoundationRecordsCollection::RightsIds,
@@ -2724,12 +2730,12 @@ impl SourceFoundationRecordsStore for IndexSink<'_> {
             "",
             &value,
             &[],
-            string_fields(&[id]).map_err(refusal)?,
+            string_fields(&[id]).map_err(|error| refusal(error))?,
             WriteLaw::First,
             None,
             None,
         )
-        .map_err(refusal)?;
+        .map_err(|error| refusal(error))?;
         Ok(())
     }
 
@@ -2739,8 +2745,8 @@ impl SourceFoundationRecordsStore for IndexSink<'_> {
     ) -> Result<(), ItemRefusal> {
         let state = string_fields(&[&row.0])
             .and_then(|n| checked_add(n, value_state(&row.1)?))
-            .map_err(refusal)?;
-        preflight_row_clone(self, state).map_err(refusal)?;
+            .map_err(|error| refusal(error))?;
+        preflight_row_clone(self, state).map_err(|error| refusal(error))?;
         let value = json!({"v":STORE_CODEC_VERSION,"event_id":row.0,"event":row.1});
         self.append_stored_row(
             SourceFoundationRecordsCollection::SourceEventInsertions,
@@ -2753,7 +2759,7 @@ impl SourceFoundationRecordsStore for IndexSink<'_> {
             None,
             None,
         )
-        .map_err(refusal)?;
+        .map_err(|error| refusal(error))?;
         Ok(())
     }
 
@@ -2766,10 +2772,10 @@ impl SourceFoundationRecordsStore for IndexSink<'_> {
     ) -> Result<(), ItemRefusal> {
         let state = [sha256, byte_size, media_type]
             .into_iter()
-            .try_fold(string_fields(&[file_id]).map_err(refusal)?, |n, v| {
-                checked_add(n, value_state(v).map_err(refusal)?).map_err(refusal)
+            .try_fold(string_fields(&[file_id]).map_err(|error| refusal(error))?, |n, v| {
+                checked_add(n, value_state(v).map_err(|error| refusal(error))?).map_err(|error| refusal(error))
             })?;
-        preflight_row_clone(self, state).map_err(refusal)?;
+        preflight_row_clone(self, state).map_err(|error| refusal(error))?;
         let value = json!({"v":STORE_CODEC_VERSION,"file_id":file_id,"sha256":sha256,"byte_size":byte_size,"media_type":media_type});
         self.append_stored_row(
             SourceFoundationRecordsCollection::FileDescriptors,
@@ -2782,13 +2788,13 @@ impl SourceFoundationRecordsStore for IndexSink<'_> {
             None,
             None,
         )
-        .map_err(refusal)?;
+        .map_err(|error| refusal(error))?;
         Ok(())
     }
 
     fn item_file_membership(&mut self, file_id: &str, item_id: &str) -> Result<(), ItemRefusal> {
-        preflight_row_clone(self, string_fields(&[file_id, item_id]).map_err(refusal)?)
-            .map_err(refusal)?;
+        preflight_row_clone(self, string_fields(&[file_id, item_id]).map_err(|error| refusal(error))?)
+            .map_err(|error| refusal(error))?;
         let value = json!({"v":STORE_CODEC_VERSION,"file_id":file_id,"item_id":item_id});
         self.append_stored_row(
             SourceFoundationRecordsCollection::ItemFileMemberships,
@@ -2796,12 +2802,12 @@ impl SourceFoundationRecordsStore for IndexSink<'_> {
             item_id,
             &value,
             &[],
-            string_fields(&[file_id, item_id]).map_err(refusal)?,
+            string_fields(&[file_id, item_id]).map_err(|error| refusal(error))?,
             WriteLaw::First,
             None,
             None,
         )
-        .map_err(refusal)?;
+        .map_err(|error| refusal(error))?;
         Ok(())
     }
 
@@ -2810,7 +2816,7 @@ impl SourceFoundationRecordsStore for IndexSink<'_> {
         path: &str,
         before_issue: usize,
     ) -> Result<(), ItemRefusal> {
-        preflight_row_clone(self, string_fields(&[path]).map_err(refusal)?).map_err(refusal)?;
+        preflight_row_clone(self, string_fields(&[path]).map_err(|error| refusal(error))?).map_err(|error| refusal(error))?;
         let value = json!({"v":STORE_CODEC_VERSION,"path":path,"before_issue":before_issue});
         self.append_stored_row(
             SourceFoundationRecordsCollection::RecordSchemaPositions,
@@ -2818,21 +2824,21 @@ impl SourceFoundationRecordsStore for IndexSink<'_> {
             "",
             &value,
             &[],
-            string_fields(&[path]).map_err(refusal)?,
+            string_fields(&[path]).map_err(|error| refusal(error))?,
             WriteLaw::Append,
             None,
             None,
         )
-        .map_err(refusal)?;
+        .map_err(|error| refusal(error))?;
         Ok(())
     }
 
     fn ordered_issue(&mut self, row: &SourceFoundationRecordsIssue) -> Result<(), ItemRefusal> {
         preflight_row_clone(
             self,
-            string_fields(&[&row.location, &row.message]).map_err(refusal)?,
+            string_fields(&[&row.location, &row.message]).map_err(|error| refusal(error))?,
         )
-        .map_err(refusal)?;
+        .map_err(|error| refusal(error))?;
         let value = issue_value(row);
         self.append_stored_row(
             SourceFoundationRecordsCollection::OrderedIssues,
@@ -2840,12 +2846,12 @@ impl SourceFoundationRecordsStore for IndexSink<'_> {
             "",
             &value,
             &[],
-            string_fields(&[&row.location, &row.message]).map_err(refusal)?,
+            string_fields(&[&row.location, &row.message]).map_err(|error| refusal(error))?,
             WriteLaw::Append,
             None,
             None,
         )
-        .map_err(refusal)?;
+        .map_err(|error| refusal(error))?;
         Ok(())
     }
 
@@ -2853,13 +2859,13 @@ impl SourceFoundationRecordsStore for IndexSink<'_> {
         &mut self,
         row: &SourceFoundationRecordsSchemaCheck,
     ) -> Result<(), ItemRefusal> {
-        let mut state = string_fields(&[&row.location, &row.contract]).map_err(refusal)?;
+        let mut state = string_fields(&[&row.location, &row.contract]).map_err(|error| refusal(error))?;
         if let Some(decoded) = &row.decoded_instance {
-            state = checked_add(state, value_state(decoded).map_err(refusal)?).map_err(refusal)?;
+            state = checked_add(state, value_state(decoded).map_err(|error| refusal(error))?).map_err(|error| refusal(error))?;
         }
         state = checked_add(state, row.legacy_raw_instance.as_ref().map_or(0, Vec::len))
-            .map_err(refusal)?;
-        preflight_row_clone(self, state).map_err(refusal)?;
+            .map_err(|error| refusal(error))?;
+        preflight_row_clone(self, state).map_err(|error| refusal(error))?;
         let (value, raw) = schema_check_value(row);
         self.append_stored_row(
             SourceFoundationRecordsCollection::SchemaChecks,
@@ -2872,16 +2878,16 @@ impl SourceFoundationRecordsStore for IndexSink<'_> {
             None,
             None,
         )
-        .map_err(refusal)?;
+        .map_err(|error| refusal(error))?;
         Ok(())
     }
 
     fn item_issue(&mut self, row: &ItemIssue) -> Result<(), ItemRefusal> {
         preflight_row_clone(
             self,
-            string_fields(&[&row.path, &row.code]).map_err(refusal)?,
+            string_fields(&[&row.path, &row.code]).map_err(|error| refusal(error))?,
         )
-        .map_err(refusal)?;
+        .map_err(|error| refusal(error))?;
         let value = json!({"v":STORE_CODEC_VERSION,"path":row.path,"code":row.code});
         self.append_stored_row(
             SourceFoundationRecordsCollection::ItemIssues,
@@ -2889,17 +2895,17 @@ impl SourceFoundationRecordsStore for IndexSink<'_> {
             "",
             &value,
             &[],
-            string_fields(&[&row.path, &row.code]).map_err(refusal)?,
+            string_fields(&[&row.path, &row.code]).map_err(|error| refusal(error))?,
             WriteLaw::Append,
             None,
             None,
         )
-        .map_err(refusal)?;
+        .map_err(|error| refusal(error))?;
         Ok(())
     }
 
     fn manifest_item_id(&mut self, id: &str) -> Result<(), ItemRefusal> {
-        preflight_row_clone(self, string_fields(&[id]).map_err(refusal)?).map_err(refusal)?;
+        preflight_row_clone(self, string_fields(&[id]).map_err(|error| refusal(error))?).map_err(|error| refusal(error))?;
         let value = json!({"v":STORE_CODEC_VERSION,"value":id});
         self.append_stored_row(
             SourceFoundationRecordsCollection::ManifestItemIds,
@@ -2907,12 +2913,12 @@ impl SourceFoundationRecordsStore for IndexSink<'_> {
             "",
             &value,
             &[],
-            string_fields(&[id]).map_err(refusal)?,
+            string_fields(&[id]).map_err(|error| refusal(error))?,
             WriteLaw::Append,
             None,
             None,
         )
-        .map_err(refusal)?;
+        .map_err(|error| refusal(error))?;
         Ok(())
     }
 
@@ -2929,8 +2935,8 @@ impl SourceFoundationRecordsStore for IndexSink<'_> {
                 "Biblio observation ordinal is not contiguous".into(),
             ));
         }
-        let state = observation_state(row).map_err(refusal)?;
-        preflight_row_clone(self, state).map_err(refusal)?;
+        let state = observation_state(row).map_err(|error| refusal(error))?;
+        preflight_row_clone(self, state).map_err(|error| refusal(error))?;
         let value =
             json!({"v":STORE_CODEC_VERSION,"ordinal":ordinal,"observation":observation_value(row)});
         let stored_seq = self
@@ -2945,14 +2951,14 @@ impl SourceFoundationRecordsStore for IndexSink<'_> {
                 Some(deadline),
                 Some(cancelled),
             )
-            .map_err(refusal)?;
+            .map_err(|error| refusal(error))?;
         if u64::try_from(stored_seq).ok() != Some(ordinal) {
             return Err(ItemRefusal::Source(
                 "Biblio observation storage order changed".into(),
             ));
         }
         drop(value);
-        preflight_row_clone(self, state).map_err(refusal)?;
+        preflight_row_clone(self, state).map_err(|error| refusal(error))?;
         let fact = |tag: &str, fields: Value| json!({"v":FACT_CODEC_VERSION,"tag":tag,"ordinal":ordinal,"fields":fields});
         match row {
             RecordObservation::IdOwner { id, kind, path, .. } => {
@@ -3072,7 +3078,7 @@ impl SourceFoundationRecordsStore for IndexSink<'_> {
         let state = row
             .accounted_state_bytes
             .max(std::mem::size_of::<SourceCutSchemaDiagnostic>());
-        preflight_row_clone(self, state).map_err(refusal)?;
+        preflight_row_clone(self, state).map_err(|error| refusal(error))?;
         let value =
             json!({"v":STORE_CODEC_VERSION,"ordinal":ordinal,"diagnostic":diagnostic_value(row)});
         let seq = self
@@ -3087,7 +3093,7 @@ impl SourceFoundationRecordsStore for IndexSink<'_> {
                 Some(deadline),
                 Some(cancelled),
             )
-            .map_err(refusal)?;
+            .map_err(|error| refusal(error))?;
         if u64::try_from(seq).ok() != Some(ordinal) {
             return Err(ItemRefusal::Source(
                 "Biblio diagnostic storage order changed".into(),
@@ -3149,12 +3155,12 @@ impl SourceFoundationRecordsStore for IndexSink<'_> {
         cancelled: &AtomicBool,
     ) -> Result<Option<SourceFoundationCurrentRecordPathLookup>, ItemRefusal> {
         let max_state = max_state_bytes.get();
-        let path_state = string_fields(&[path]).map_err(refusal)?;
+        let path_state = string_fields(&[path]).map_err(|error| refusal(error))?;
         if path_state >= max_state {
             return Err(ItemRefusal::Budget);
         }
         check_operation(self, deadline, cancelled)?;
-        self.candidate.check_state(path_state).map_err(refusal)?;
+        self.candidate.check_state(path_state).map_err(|error| refusal(error))?;
         let id_allowance = max_state
             .checked_sub(path_state)
             .ok_or(ItemRefusal::Budget)?;
@@ -3166,7 +3172,7 @@ impl SourceFoundationRecordsStore for IndexSink<'_> {
                 |row| row.get::<_, i64>(0),
             )
             .optional()
-            .map_err(refusal)?;
+            .map_err(|error| refusal(error))?;
         check_operation(self, deadline, cancelled)?;
         let Some(id_len) = id_len else {
             return Ok(None);
@@ -3182,7 +3188,7 @@ impl SourceFoundationRecordsStore for IndexSink<'_> {
         if lookup_state >= max_state {
             return Err(ItemRefusal::Budget);
         }
-        self.candidate.check_state(lookup_state).map_err(refusal)?;
+        self.candidate.check_state(lookup_state).map_err(|error| refusal(error))?;
         let id = self
             .db
             .query_row(
@@ -3191,7 +3197,7 @@ impl SourceFoundationRecordsStore for IndexSink<'_> {
                 |row| bounded_text(row, 0, id_allowance),
             )
             .optional()
-            .map_err(refusal)?;
+            .map_err(|error| refusal(error))?;
         check_operation(self, deadline, cancelled)?;
         let Some(id) = id else {
             return Err(ItemRefusal::Source(
@@ -3228,7 +3234,7 @@ impl SourceFoundationRecordsStore for IndexSink<'_> {
         }
         self.candidate
             .check_state(charged_state_bytes)
-            .map_err(refusal)?;
+            .map_err(|error| refusal(error))?;
         check_operation(self, deadline, cancelled)?;
         Ok(Some(SourceFoundationCurrentRecordPathLookup {
             record,
@@ -3247,7 +3253,7 @@ impl SourceFoundationRecordsStore for IndexSink<'_> {
             .checked_add(64)
             .ok_or(ItemRefusal::Budget)?;
         let lookup_state = string_fields(&[path])
-            .map_err(refusal)?
+            .map_err(|error| refusal(error))?
             .checked_add(output_state)
             .ok_or(ItemRefusal::Budget)?;
         if lookup_state > max_state_bytes.get() {
@@ -3258,7 +3264,7 @@ impl SourceFoundationRecordsStore for IndexSink<'_> {
             });
         }
         check_operation(self, deadline, cancelled)?;
-        self.candidate.check_state(lookup_state).map_err(refusal)?;
+        self.candidate.check_state(lookup_state).map_err(|error| refusal(error))?;
         let found = self
             .db
             .query_row(
@@ -3273,7 +3279,7 @@ impl SourceFoundationRecordsStore for IndexSink<'_> {
                 },
             )
             .optional()
-            .map_err(refusal)?;
+            .map_err(|error| refusal(error))?;
         check_operation(self, deadline, cancelled)?;
         let Some((record_count, schema_matches, artifact_visited)) = found else {
             return Ok(None);
@@ -3296,7 +3302,7 @@ impl SourceFoundationRecordsStore for IndexSink<'_> {
                 "UPDATE sf_current_paths SET artifact_visited=1 WHERE path=?1 COLLATE BINARY AND artifact_scope=1 AND artifact_visited=0",
                 [path],
             )
-            .map_err(refusal)?;
+            .map_err(|error| refusal(error))?;
         check_operation(self, deadline, cancelled)?;
         if updated != 1 {
             return Err(ItemRefusal::Source(
@@ -3317,7 +3323,7 @@ impl SourceFoundationRecordsStore for IndexSink<'_> {
     ) -> Result<bool, ItemRefusal> {
         let state = std::mem::size_of::<bool>() + 128;
         check_operation(self, deadline, cancelled)?;
-        self.candidate.check_state(state).map_err(refusal)?;
+        self.candidate.check_state(state).map_err(|error| refusal(error))?;
         let unvisited = self
             .db
             .query_row(
@@ -3325,7 +3331,7 @@ impl SourceFoundationRecordsStore for IndexSink<'_> {
                 [],
                 |row| row.get::<_, bool>(0),
             )
-            .map_err(refusal)?;
+            .map_err(|error| refusal(error))?;
         check_operation(self, deadline, cancelled)?;
         Ok(unvisited)
     }
@@ -3336,10 +3342,10 @@ impl SourceFoundationRecordsStore for IndexSink<'_> {
         cancelled: &AtomicBool,
     ) -> Result<(), ItemRefusal> {
         check_operation(self, deadline, cancelled)?;
-        self.candidate.check_state(256).map_err(refusal)?;
+        self.candidate.check_state(256).map_err(|error| refusal(error))?;
         self.db
             .execute("DELETE FROM sf_candidate_artifact_schema_proofs", [])
-            .map_err(refusal)?;
+            .map_err(|error| refusal(error))?;
         check_operation(self, deadline, cancelled)
     }
 
@@ -3356,7 +3362,7 @@ impl SourceFoundationRecordsStore for IndexSink<'_> {
             ));
         }
         let state = string_fields(&[path])
-            .map_err(refusal)?
+            .map_err(|error| refusal(error))?
             .checked_add(256)
             .ok_or(ItemRefusal::Budget)?;
         if state > max_state_bytes.get() {
@@ -3367,13 +3373,13 @@ impl SourceFoundationRecordsStore for IndexSink<'_> {
             });
         }
         check_operation(self, deadline, cancelled)?;
-        self.candidate.check_state(state).map_err(refusal)?;
+        self.candidate.check_state(state).map_err(|error| refusal(error))?;
         self.db
             .execute(
                 "INSERT INTO sf_candidate_artifact_schema_proofs(path,record_count,target_diagnostic_count,member_sha256_hex,member_size_bytes,diagnostic_unit_sha256_hex,diagnostic_report_sha256_hex,invalid) VALUES(?1,1,0,NULL,NULL,NULL,NULL,0) ON CONFLICT(path) DO UPDATE SET record_count=record_count+1,invalid=0",
                 [path],
             )
-            .map_err(refusal)?;
+            .map_err(|error| refusal(error))?;
         check_operation(self, deadline, cancelled)
     }
 
@@ -3412,7 +3418,7 @@ impl SourceFoundationRecordsStore for IndexSink<'_> {
             diagnostic_unit_sha256_hex,
             diagnostic_report_sha256_hex,
         ])
-        .map_err(refusal)?
+        .map_err(|error| refusal(error))?
         .checked_add(size_bytes.len())
         .and_then(|bytes| bytes.checked_add(256))
         .ok_or(ItemRefusal::Budget)?;
@@ -3424,7 +3430,7 @@ impl SourceFoundationRecordsStore for IndexSink<'_> {
             });
         }
         check_operation(self, deadline, cancelled)?;
-        self.candidate.check_state(state).map_err(refusal)?;
+        self.candidate.check_state(state).map_err(|error| refusal(error))?;
         self.db
             .execute(
                 "UPDATE sf_candidate_artifact_schema_proofs SET target_diagnostic_count=target_diagnostic_count+1,member_sha256_hex=CASE WHEN target_diagnostic_count=0 THEN ?2 ELSE member_sha256_hex END,member_size_bytes=CASE WHEN target_diagnostic_count=0 THEN ?3 ELSE member_size_bytes END,diagnostic_unit_sha256_hex=CASE WHEN target_diagnostic_count=0 THEN ?4 ELSE diagnostic_unit_sha256_hex END,diagnostic_report_sha256_hex=CASE WHEN target_diagnostic_count=0 THEN ?5 ELSE diagnostic_report_sha256_hex END,invalid=CASE WHEN target_diagnostic_count=0 AND record_count=1 AND ?6 AND ?7 THEN 1 ELSE 0 END WHERE path=?1 COLLATE BINARY",
@@ -3438,7 +3444,7 @@ impl SourceFoundationRecordsStore for IndexSink<'_> {
                     complete_invalid,
                 ],
             )
-            .map_err(refusal)?;
+            .map_err(|error| refusal(error))?;
         check_operation(self, deadline, cancelled)
     }
 
@@ -3452,7 +3458,7 @@ impl SourceFoundationRecordsStore for IndexSink<'_> {
         cancelled: &AtomicBool,
     ) -> Result<bool, ItemRefusal> {
         let state = string_fields(&[path, member_sha256_hex])
-            .map_err(refusal)?
+            .map_err(|error| refusal(error))?
             .checked_add(std::mem::size_of::<bool>() + 256)
             .ok_or(ItemRefusal::Budget)?;
         if state > max_state_bytes.get() {
@@ -3463,7 +3469,7 @@ impl SourceFoundationRecordsStore for IndexSink<'_> {
             });
         }
         check_operation(self, deadline, cancelled)?;
-        self.candidate.check_state(state).map_err(refusal)?;
+        self.candidate.check_state(state).map_err(|error| refusal(error))?;
         let size_bytes = member_size_bytes.to_be_bytes();
         let proved = self
             .db
@@ -3472,7 +3478,7 @@ impl SourceFoundationRecordsStore for IndexSink<'_> {
                 params![path, member_sha256_hex, &size_bytes[..]],
                 |row| row.get::<_, bool>(0),
             )
-            .map_err(refusal)?;
+            .map_err(|error| refusal(error))?;
         check_operation(self, deadline, cancelled)?;
         Ok(proved)
     }
@@ -3510,7 +3516,7 @@ impl SourceFoundationRecordsStore for IndexSink<'_> {
         }
         let limit = i64::try_from(budget.max_rows.get()).map_err(|_| ItemRefusal::Budget)?;
         check_operation(self, deadline, cancelled)?;
-        self.candidate.check_state(base_state).map_err(refusal)?;
+        self.candidate.check_state(base_state).map_err(|error| refusal(error))?;
         // Use a direct range predicate for successor pages. An optional-cursor
         // OR predicate prevents SQLite from seeking to the primary-key cursor
         // and repeats the prefix scan as the candidate grows.
@@ -3519,18 +3525,18 @@ impl SourceFoundationRecordsStore for IndexSink<'_> {
         } else {
             "SELECT path FROM sf_candidate_artifact_schema_proofs ORDER BY path COLLATE BINARY LIMIT ?2"
         };
-        let mut statement = self.db.prepare(page_sql).map_err(refusal)?;
+        let mut statement = self.db.prepare(page_sql).map_err(|error| refusal(error))?;
         let mut rows = statement
             .query(params![after_path, limit])
-            .map_err(refusal)?;
+            .map_err(|error| refusal(error))?;
         let mut paths = Vec::new();
         let mut path_bytes = 0usize;
-        while let Some(row) = rows.next().map_err(refusal)? {
+        while let Some(row) = rows.next().map_err(|error| refusal(error))? {
             check_operation(self, deadline, cancelled)?;
             if paths.len() >= budget.max_rows.get() {
                 return Err(ItemRefusal::Budget);
             }
-            let path_len = match row.get_ref(0).map_err(refusal)? {
+            let path_len = match row.get_ref(0).map_err(|error| refusal(error))? {
                 rusqlite::types::ValueRef::Text(raw) => raw.len(),
                 _ => {
                     return Err(ItemRefusal::Source(
@@ -3567,8 +3573,8 @@ impl SourceFoundationRecordsStore for IndexSink<'_> {
                     limit: Some(budget.max_state_bytes.get() as u64),
                 });
             }
-            self.candidate.check_state(next_state).map_err(refusal)?;
-            paths.push(row.get::<_, String>(0).map_err(refusal)?);
+            self.candidate.check_state(next_state).map_err(|error| refusal(error))?;
+            paths.push(row.get::<_, String>(0).map_err(|error| refusal(error))?);
             path_bytes = next_path_bytes;
         }
         drop(rows);
@@ -3576,14 +3582,14 @@ impl SourceFoundationRecordsStore for IndexSink<'_> {
         let last_path = paths.last().map(String::as_str).or(after_path);
         let has_more = if let Some(last_path) = last_path {
             check_operation(self, deadline, cancelled)?;
-            self.candidate.check_state(base_state).map_err(refusal)?;
+            self.candidate.check_state(base_state).map_err(|error| refusal(error))?;
             self.db
                 .query_row(
                     "SELECT EXISTS(SELECT 1 FROM sf_candidate_artifact_schema_proofs WHERE path COLLATE BINARY>?1 COLLATE BINARY)",
                     [last_path],
                     |row| row.get::<_, bool>(0),
                 )
-                .map_err(refusal)?
+                .map_err(|error| refusal(error))?
         } else {
             false
         };
@@ -3618,12 +3624,12 @@ impl SourceFoundationRecordsStore for IndexSink<'_> {
         cancelled: &AtomicBool,
     ) -> Result<Option<SourceFoundationItemEditionLookup>, ItemRefusal> {
         let max_state = max_state_bytes.get();
-        let key_state = string_fields(&[item_id]).map_err(refusal)?;
+        let key_state = string_fields(&[item_id]).map_err(|error| refusal(error))?;
         if key_state >= max_state {
             return Err(ItemRefusal::Budget);
         }
         check_operation(self, deadline, cancelled)?;
-        self.candidate.check_state(key_state).map_err(refusal)?;
+        self.candidate.check_state(key_state).map_err(|error| refusal(error))?;
         let row_allowance = max_state
             .checked_sub(key_state)
             .ok_or(ItemRefusal::Budget)?;
@@ -3635,14 +3641,14 @@ impl SourceFoundationRecordsStore for IndexSink<'_> {
             row_allowance,
             self.candidate,
         )
-        .map_err(refusal)?;
+        .map_err(|error| refusal(error))?;
         check_operation(self, deadline, cancelled)?;
         let Some(meta) = meta else {
             return Ok(None);
         };
         self.candidate
             .check_state(key_state.checked_add(meta.2).ok_or(ItemRefusal::Budget)?)
-            .map_err(refusal)?;
+            .map_err(|error| refusal(error))?;
         check_operation(self, deadline, cancelled)?;
         let (payload, aux) = table_read_payload(
             &self.db,
@@ -3651,27 +3657,27 @@ impl SourceFoundationRecordsStore for IndexSink<'_> {
             "",
             meta,
         )
-        .map_err(refusal)?;
+        .map_err(|error| refusal(error))?;
         check_operation(self, deadline, cancelled)?;
         if !aux.is_empty() {
             return Err(ItemRefusal::Source(
                 "Item edition row auxiliary data changed".into(),
             ));
         }
-        let value = decode_value(&payload, row_allowance).map_err(refusal)?;
-        if text(&value, "item_id").map_err(refusal)? != item_id {
+        let value = decode_value(&payload, row_allowance).map_err(|error| refusal(error))?;
+        if text(&value, "item_id").map_err(|error| refusal(error))? != item_id {
             return Err(ItemRefusal::Source(
                 "Item edition row key differs from its index key".into(),
             ));
         }
-        let embodiment_ref = owned_text(&value, "embodiment_ref").map_err(refusal)?;
+        let embodiment_ref = owned_text(&value, "embodiment_ref").map_err(|error| refusal(error))?;
         let charged_state_bytes = key_state.checked_add(meta.2).ok_or(ItemRefusal::Budget)?;
         if charged_state_bytes > max_state {
             return Err(ItemRefusal::Budget);
         }
         self.candidate
             .check_state(charged_state_bytes)
-            .map_err(refusal)?;
+            .map_err(|error| refusal(error))?;
         check_operation(self, deadline, cancelled)?;
         Ok(Some(SourceFoundationItemEditionLookup {
             embodiment_ref,
@@ -3707,19 +3713,19 @@ impl SourceFoundationRecordsStore for IndexSink<'_> {
             max_state_bytes.get(),
             self.candidate,
         )
-        .map_err(refusal)?;
+        .map_err(|error| refusal(error))?;
         if let Some(meta) = prior {
             let (payload, _) =
-                table_read_payload(&self.db, collection, uri, "", meta).map_err(refusal)?;
-            let value = decode_value(&payload, max_state_bytes.get()).map_err(refusal)?;
+                table_read_payload(&self.db, collection, uri, "", meta).map_err(|error| refusal(error))?;
+            let value = decode_value(&payload, max_state_bytes.get()).map_err(|error| refusal(error))?;
             check_operation(self, deadline, cancelled)?;
             return Ok(Some(SourceFoundationUriOwnerLookup {
-                record_id: owned_text(&value, "record_id").map_err(refusal)?,
+                record_id: owned_text(&value, "record_id").map_err(|error| refusal(error))?,
                 charged_state_bytes: meta.2,
             }));
         }
-        preflight_row_clone(self, string_fields(&[uri, record_id]).map_err(refusal)?)
-            .map_err(refusal)?;
+        preflight_row_clone(self, string_fields(&[uri, record_id]).map_err(|error| refusal(error))?)
+            .map_err(|error| refusal(error))?;
         let value = json!({"v":STORE_CODEC_VERSION,"uri":uri,"record_id":record_id});
         self.append_stored_row(
             SourceFoundationRecordsCollection::LinkUriOwners,
@@ -3727,12 +3733,12 @@ impl SourceFoundationRecordsStore for IndexSink<'_> {
             "",
             &value,
             &[],
-            string_fields(&[uri, record_id]).map_err(refusal)?,
+            string_fields(&[uri, record_id]).map_err(|error| refusal(error))?,
             WriteLaw::First,
             Some(deadline),
             Some(cancelled),
         )
-        .map_err(refusal)?;
+        .map_err(|error| refusal(error))?;
         check_operation(self, deadline, cancelled)?;
         Ok(None)
     }
@@ -3754,15 +3760,15 @@ impl SourceFoundationRecordsStore for IndexSink<'_> {
             max_state_bytes.get(),
             self.candidate,
         )
-        .map_err(refusal)?
+        .map_err(|error| refusal(error))?
         else {
             return Ok(None);
         };
         let (payload, aux) =
-            table_read_payload(&self.db, collection, item_id, "", meta).map_err(refusal)?;
-        let value = decode_value(&payload, max_state_bytes.get()).map_err(refusal)?;
-        let selection = item_selection_from_value(field(&value, "selection").map_err(refusal)?)
-            .map_err(refusal)?;
+            table_read_payload(&self.db, collection, item_id, "", meta).map_err(|error| refusal(error))?;
+        let value = decode_value(&payload, max_state_bytes.get()).map_err(|error| refusal(error))?;
+        let selection = item_selection_from_value(field(&value, "selection").map_err(|error| refusal(error))?)
+            .map_err(|error| refusal(error))?;
         check_operation(self, deadline, cancelled)?;
         Ok(Some(SourceFoundationItemSelectionLookup {
             selection,
@@ -3787,19 +3793,19 @@ impl SourceFoundationRecordsStore for IndexSink<'_> {
             max_state_bytes.get(),
             self.candidate,
         )
-        .map_err(refusal)?
+        .map_err(|error| refusal(error))?
         else {
             return Ok(None);
         };
         let (payload, _) =
-            table_read_payload(&self.db, collection, file_id, "", meta).map_err(refusal)?;
-        let value = decode_value(&payload, max_state_bytes.get()).map_err(refusal)?;
+            table_read_payload(&self.db, collection, file_id, "", meta).map_err(|error| refusal(error))?;
+        let value = decode_value(&payload, max_state_bytes.get()).map_err(|error| refusal(error))?;
         check_operation(self, deadline, cancelled)?;
         Ok(Some(SourceFoundationFileDescriptorLookup {
-            file_id: owned_text(&value, "file_id").map_err(refusal)?,
-            sha256: field(&value, "sha256").map_err(refusal)?.clone(),
-            byte_size: field(&value, "byte_size").map_err(refusal)?.clone(),
-            media_type: field(&value, "media_type").map_err(refusal)?.clone(),
+            file_id: owned_text(&value, "file_id").map_err(|error| refusal(error))?,
+            sha256: field(&value, "sha256").map_err(|error| refusal(error))?.clone(),
+            byte_size: field(&value, "byte_size").map_err(|error| refusal(error))?.clone(),
+            media_type: field(&value, "media_type").map_err(|error| refusal(error))?.clone(),
             charged_state_bytes: meta.2,
         }))
     }
@@ -3812,7 +3818,7 @@ impl SourceFoundationRecordsStore for IndexSink<'_> {
         cancelled: &AtomicBool,
     ) -> Result<bool, ItemRefusal> {
         check_operation(self, deadline, cancelled)?;
-        let contains=self.db.query_row("SELECT EXISTS(SELECT 1 FROM sf_rows WHERE collection=?1 AND key1=?2 COLLATE BINARY AND key2=?3 COLLATE BINARY)",params![collection_id(SourceFoundationRecordsCollection::ItemFileMemberships),file_id,item_id],|row|row.get::<_,bool>(0)).map_err(refusal)?;
+        let contains=self.db.query_row("SELECT EXISTS(SELECT 1 FROM sf_rows WHERE collection=?1 AND key1=?2 COLLATE BINARY AND key2=?3 COLLATE BINARY)",params![collection_id(SourceFoundationRecordsCollection::ItemFileMemberships),file_id,item_id],|row|row.get::<_,bool>(0)).map_err(|error| refusal(error))?;
         check_operation(self, deadline, cancelled)?;
         Ok(contains)
     }
@@ -3831,7 +3837,7 @@ impl SourceFoundationRecordsStore for IndexSink<'_> {
                 params![collection_id(SourceFoundationRecordsCollection::RightsIds), id],
                 |row| row.get::<_, bool>(0),
             )
-            .map_err(refusal)?;
+            .map_err(|error| refusal(error))?;
         check_operation(self, deadline, cancelled)?;
         Ok(contains)
     }
