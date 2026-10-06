@@ -64,6 +64,7 @@ struct Node {
     raw_present: bool,
     payload: Vec<u8>,
     sha: Vec<u8>,
+    source_packet: Option<Vec<u8>>,
 }
 
 fn page(
@@ -72,6 +73,35 @@ fn page(
     after: &str,
     limits: NavigationFinalizeLimits,
 ) -> Result<Vec<Node>> {
+    if let Some(state) = stage.owned_creation_state() {
+        let mut result = Vec::with_capacity(1);
+        stage.with_next_normalized_node_by_id_owned(
+            source,
+            if after.is_empty() { None } else { Some(after) },
+            limits.max_row_bytes,
+            |_, metadata, logical, source| {
+                let native = metadata
+                    .native_id
+                    .ok_or(Error::Invalid("navigation finalization native ID"))?;
+                state.charge_work(
+                    logical
+                        .len()
+                        .checked_add(source.map_or(0, <[u8]>::len))
+                        .ok_or(Error::Budget("navigation finalization copy work"))?,
+                )?;
+                result.push(Node {
+                    id: metadata.id.to_owned(),
+                    native_id: native.to_owned(),
+                    raw_present: metadata.raw_input_present,
+                    payload: logical.to_vec(),
+                    sha: metadata.logical_digest.as_bytes().to_vec(),
+                    source_packet: source.map(<[u8]>::to_vec),
+                });
+                Ok(())
+            },
+        )?;
+        return Ok(result);
+    }
     stage.with_connection(WritePhase::Sort, |db| {
         let mut stmt = db.prepare(
             "SELECT n.id,n.native_id,r.id IS NOT NULL, \
@@ -103,6 +133,7 @@ fn page(
                 sha: row
                     .get::<_, Option<Vec<u8>>>(4)?
                     .ok_or(Error::Invalid("navigation finalization digest"))?,
+                source_packet: None,
             });
         }
         Ok(out)
@@ -162,6 +193,9 @@ fn apply_inner(
     let mut updated = 0u64;
     let mut work = 0u64;
     loop {
+        let creation = stage.owned_creation_state();
+        let _page_hold =
+            stage.hold_normalized_page(1, limits.max_row_bytes, limits.max_row_bytes)?;
         let batch = page(stage, &prepared.source_graph, &after, limits)?;
         if batch.is_empty() {
             break;
@@ -184,7 +218,18 @@ fn apply_inner(
             if seen > limits.max_nodes || work > limits.max_work_bytes {
                 return Err(Error::Budget("navigation finalization scan"));
             }
-            let parsed = SourceRow::parse(&node.payload, limits.max_row_bytes)?;
+            let parsed = SourceRow::parse_scoped_with_optional_owned_state(
+                &node.payload,
+                limits.max_row_bytes,
+                creation,
+            )?;
+            let _clone_hold = creation
+                .map(|state| {
+                    state
+                        .value_clone_state_upper_bound(parsed.value())
+                        .and_then(|bytes| state.hold(bytes))
+                })
+                .transpose()?;
             let mut value = parsed.value().clone();
             if value.get("id").and_then(Value::as_str) != Some(node.id.as_str())
                 || value.get("source_graph").and_then(Value::as_str)
@@ -195,25 +240,47 @@ fn apply_inner(
             }
             let views = endpoint_inherited_views(stage, &node.id, limits.max_view_ids_per_node)?;
             if apply_views(&mut value, &views, limits.max_row_bytes)? {
-                let bytes = serde_json::to_vec(&value)
-                    .map_err(|_| Error::Invalid("navigation finalization JSON"))?;
-                if bytes.len() > limits.max_row_bytes {
-                    return Err(Error::Budget("navigation finalization output bytes"));
-                }
-                work = work
-                    .checked_add(bytes.len() as u64)
-                    .ok_or(Error::Budget("navigation finalization work"))?;
-                if work > limits.max_work_bytes {
-                    return Err(Error::Budget("navigation finalization work"));
-                }
-                stage.charge_materialized(1, bytes.len() as u64)?;
-                let digest = Digest256::of_bytes(&bytes);
-                let changed = stage.with_connection(WritePhase::Finalize, |db| {
+                if let Some(state) = creation {
+                    state.with_json_encoded(&value, limits.max_row_bytes, |bytes| {
+                        work = work
+                            .checked_add(bytes.len() as u64)
+                            .filter(|work| *work <= limits.max_work_bytes)
+                            .ok_or(Error::Budget("navigation finalization work"))?;
+                        stage.with_write_page(
+                            WritePhase::Finalize,
+                            1,
+                            limits.max_row_bytes as u64,
+                            |stage| {
+                                stage.replace_node_logical_payload_if_current(
+                                    &node.id,
+                                    bytes,
+                                    node.source_packet.as_deref(),
+                                    Some(Digest256::of_bytes(&node.payload)),
+                                )
+                            },
+                        )
+                    })?;
+                } else {
+                    let bytes = serde_json::to_vec(&value)
+                        .map_err(|_| Error::Invalid("navigation finalization JSON"))?;
+                    if bytes.len() > limits.max_row_bytes {
+                        return Err(Error::Budget("navigation finalization output bytes"));
+                    }
+                    work = work
+                        .checked_add(bytes.len() as u64)
+                        .ok_or(Error::Budget("navigation finalization work"))?;
+                    if work > limits.max_work_bytes {
+                        return Err(Error::Budget("navigation finalization work"));
+                    }
+                    stage.charge_materialized(1, bytes.len() as u64)?;
+                    let digest = Digest256::of_bytes(&bytes);
+                    let changed = stage.with_connection(WritePhase::Finalize, |db| {
                     Ok(db.execute("UPDATE knowledge_nodes SET payload_len=?1,payload_sha256=?2,payload=?3 WHERE id=?4 AND source_graph=?5 AND payload_sha256=?6",
                         params![bytes.len() as i64, digest.as_bytes().as_slice(), bytes, node.id, prepared.source_graph, node.sha])?)
                 })?;
-                if changed != 1 {
-                    return Err(Error::Invalid("navigation finalization concurrent change"));
+                    if changed != 1 {
+                        return Err(Error::Invalid("navigation finalization concurrent change"));
+                    }
                 }
                 updated += 1;
             }

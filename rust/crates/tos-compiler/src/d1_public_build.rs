@@ -5,7 +5,9 @@ use crate::{
     Error, Limits, NATIVE_KNOWLEDGE_ADAPTER_PROFILES, NativeFamilyInputs, NativeProducerLimits,
     NavigationHeaderClaim, QueryVocabulary, Result,
     catalog::{CatalogLimits, compile_catalog_with_state},
-    d1_public_capture::{PublicCapture, PublicCaptureLimits, RuntimeCaptureOwnedBudget, RuntimeCaptureCreationUsage},
+    d1_public_capture::{
+        PublicCapture, PublicCaptureLimits, RuntimeCaptureCreationUsage, RuntimeCaptureOwnedBudget,
+    },
     d1_public_graph::{
         PublicRepositoryRoot, PublicStageOwner, exact_receipt_owned, ingest_family_rows_owned,
         prepare_family_rows_owned,
@@ -27,10 +29,13 @@ use fs2::FileExt;
 use serde_json::{Value, json};
 use std::{
     cell::Cell,
-    sync::{Arc, atomic::{AtomicBool, AtomicU64}},
     fs::{self, OpenOptions},
     io::{self, Write},
     path::{Path, PathBuf},
+    sync::{
+        Arc,
+        atomic::{AtomicBool, AtomicU64},
+    },
     time::{Duration, Instant, SystemTime, UNIX_EPOCH},
 };
 
@@ -414,7 +419,9 @@ pub fn build_public_d1(request: PublicD1Build<'_>) -> Result<Value> {
         limits,
     } = request;
     if limits.max_state_bytes < 131072 || limits.max_json_visits == 0 {
-        return Err(Error::Budget("public D1 explicit state/JSON owner required"));
+        return Err(Error::Budget(
+            "public D1 explicit state/JSON owner required",
+        ));
     }
     checked_paths(source_root, output, runtime)?;
     limits.validate()?;
@@ -444,22 +451,37 @@ pub fn build_public_d1(request: PublicD1Build<'_>) -> Result<Value> {
     let private = private_directory(runtime, "tos-public-d1")?;
     // This entry runs in a dedicated native process. Establish the original
     // finite SQLite pool before any capture/Stage connection is initialized.
-    let retained = Cell::new(std::mem::size_of::<PublicD1Build<'_>>()
-        + std::mem::size_of::<PublicD1BuildLimits>()
-        + 4 * std::mem::size_of::<Arc<AtomicU64>>());
-    let remaining = |extra: usize| limits.max_state_bytes
-        .checked_sub(retained.get()).and_then(|n| n.checked_sub(extra))
-        .ok_or(Error::Budget("public D1 simultaneous state bytes"));
+    let retained = Cell::new(
+        std::mem::size_of::<PublicD1Build<'_>>()
+            + std::mem::size_of::<PublicD1BuildLimits>()
+            + 4 * std::mem::size_of::<Arc<AtomicU64>>(),
+    );
+    let remaining = |extra: usize| {
+        limits
+            .max_state_bytes
+            .checked_sub(retained.get())
+            .and_then(|n| n.checked_sub(extra))
+            .ok_or(Error::Budget("public D1 simultaneous state bytes"))
+    };
     let cancelled = Arc::new(AtomicBool::new(false));
     let heap = crate::sqlite_budget::DedicatedSessionSqliteHeap::establish(
         crate::sqlite_budget::dedicated_session_heap_bytes(limits.max_state_bytes)?,
-        &remaining, deadline, cancelled.as_ref(),
+        &remaining,
+        deadline,
+        cancelled.as_ref(),
     )?;
-    retained.set(retained.get().checked_add(heap.reserved_state_bytes())
-        .ok_or(Error::Budget("public D1 heap holder state"))?);
+    retained.set(
+        retained
+            .get()
+            .checked_add(heap.reserved_state_bytes())
+            .ok_or(Error::Budget("public D1 heap holder state"))?,
+    );
     let mut creation_usage = RuntimeCaptureCreationUsage::default();
     let capture = PublicCapture::create_public_with_owned_budget(
-        source_root, &private.path.join("capture.sqlite3"), limits.capture, deadline,
+        source_root,
+        &private.path.join("capture.sqlite3"),
+        limits.capture,
+        deadline,
         cancelled,
         RuntimeCaptureOwnedBudget {
             remaining_after_retained: &remaining,
@@ -471,54 +493,95 @@ pub fn build_public_d1(request: PublicD1Build<'_>) -> Result<Value> {
             original_sqlite_heap: Arc::clone(&heap),
             max_creation_json_visits: limits.max_json_visits,
             creation_deadline: deadline,
-        }, &mut creation_usage,
+        },
+        &mut creation_usage,
     )?;
-    retained.set(retained.get().checked_add(capture.retained_state_upper_bound()?)
-        .ok_or(Error::Budget("public D1 retained capture state"))?);
-    let remaining_json = limits.max_json_visits.checked_sub(creation_usage.json_visits)
-        .filter(|n| *n != 0).ok_or(Error::Budget("public D1 JSON visits"))?;
+    retained.set(
+        retained
+            .get()
+            .checked_add(capture.retained_state_upper_bound()?)
+            .ok_or(Error::Budget("public D1 retained capture state"))?,
+    );
+    let remaining_json = limits
+        .max_json_visits
+        .checked_sub(creation_usage.json_visits)
+        .filter(|n| *n != 0)
+        .ok_or(Error::Budget("public D1 JSON visits"))?;
     let state = capture.model_creation_state(&remaining, &heap, remaining_json, deadline)?;
     let source_revision = if capture.partitioned() {
         capture.partitioned_source_revision()?
     } else {
         capture.legacy_source_revision()?
     };
-    state.retain(capture.retained_input_length("ToS/doctrine/semantic-interchange/entity-types.v1.json")?)?;
+    state.retain(
+        capture.retained_input_length("ToS/doctrine/semantic-interchange/entity-types.v1.json")?,
+    )?;
     let entity = input(
         &capture,
         "ToS/doctrine/semantic-interchange/entity-types.v1.json",
         4 * 1024 * 1024,
     )?;
-    state.retain(capture.retained_input_length("ToS/doctrine/semantic-interchange/relation-types.v1.json")?)?;
+    state.retain(
+        capture
+            .retained_input_length("ToS/doctrine/semantic-interchange/relation-types.v1.json")?,
+    )?;
     let relation = input(
         &capture,
         "ToS/doctrine/semantic-interchange/relation-types.v1.json",
         4 * 1024 * 1024,
     )?;
-    state.retain(capture.retained_input_length("ToS/doctrine/semantic-interchange/query-vocabulary.v1.json")?)?;
+    state
+        .retain(capture.retained_input_length(
+            "ToS/doctrine/semantic-interchange/query-vocabulary.v1.json",
+        )?)?;
     let descriptor = input(
         &capture,
         "ToS/doctrine/semantic-interchange/query-vocabulary.v1.json",
         4 * 1024 * 1024,
     )?;
     let registry = validate_public_current_registries_owned(&capture, &entity, &relation, &state)?;
-    let vocabulary = QueryVocabulary::parse_with_owned_state(&descriptor, NATIVE_KNOWLEDGE_ADAPTER_PROFILES, &state)?;
+    let vocabulary = QueryVocabulary::parse_with_owned_state(
+        &descriptor,
+        NATIVE_KNOWLEDGE_ADAPTER_PROFILES,
+        &state,
+    )?;
     prepare_family_rows_owned(&capture, limits.capture, &state)?;
     let receipt = exact_receipt_owned(&capture, &vocabulary, &source_revision, &state)?;
     // The owner retains its own exact receipt while the Stage takes the
     // original. Price the clone before allocating its vector and strings.
     let clone_bytes = receipt.collections.iter().try_fold(
-        std::mem::size_of_val(&receipt) + receipt.collections.len()
-            * std::mem::size_of::<crate::knowledge_stage::InputCollectionReceipt>(),
-        |total, row| [&row.source_graph, &row.collection, &row.input_role,
-            &row.adapter_profile, &row.expected_root_sha256].into_iter()
-            .try_fold(total, |n, value| n.checked_add(value.len())
-                .ok_or(Error::Budget("public D1 receipt clone state"))))?;
-    let clone_bytes = [&receipt.binding.owner_profile, &receipt.binding.source_cut,
-        &receipt.binding.membership_root, &receipt.binding.index_generation,
-        &receipt.binding.route_map_version, &receipt.binding.reader_abi,
-        &receipt.binding.projection_root_sha256].into_iter().try_fold(clone_bytes,
-        |n, value| n.checked_add(value.len()).ok_or(Error::Budget("public D1 receipt clone state")))?;
+        std::mem::size_of_val(&receipt)
+            + receipt.collections.len()
+                * std::mem::size_of::<crate::knowledge_stage::InputCollectionReceipt>(),
+        |total, row| {
+            [
+                &row.source_graph,
+                &row.collection,
+                &row.input_role,
+                &row.adapter_profile,
+                &row.expected_root_sha256,
+            ]
+            .into_iter()
+            .try_fold(total, |n, value| {
+                n.checked_add(value.len())
+                    .ok_or(Error::Budget("public D1 receipt clone state"))
+            })
+        },
+    )?;
+    let clone_bytes = [
+        &receipt.binding.owner_profile,
+        &receipt.binding.source_cut,
+        &receipt.binding.membership_root,
+        &receipt.binding.index_generation,
+        &receipt.binding.route_map_version,
+        &receipt.binding.reader_abi,
+        &receipt.binding.projection_root_sha256,
+    ]
+    .into_iter()
+    .try_fold(clone_bytes, |n, value| {
+        n.checked_add(value.len())
+            .ok_or(Error::Budget("public D1 receipt clone state"))
+    })?;
     state.retain(clone_bytes)?;
     let owner = PublicStageOwner {
         capture: &capture,
@@ -538,8 +601,14 @@ pub fn build_public_d1(request: PublicD1Build<'_>) -> Result<Value> {
         &stage_remaining,
         &state,
     )?;
-    ingest_family_rows_owned(&mut stage, &capture, limits.max_stage_transfer_work_bytes, &state)?;
-    let navigation = capture.header_object_owned("corpus", "source_navigation", 1024 * 1024, &state)?;
+    ingest_family_rows_owned(
+        &mut stage,
+        &capture,
+        limits.max_stage_transfer_work_bytes,
+        &state,
+    )?;
+    let navigation =
+        capture.header_object_owned("corpus", "source_navigation", 1024 * 1024, &state)?;
     let nav_raw = state.encode_json(&navigation, 1024 * 1024)?;
     let nav_claim = NavigationHeaderClaim {
         expected_sha256: Digest256::of_bytes(&nav_raw).to_hex(),
@@ -579,10 +648,9 @@ pub fn build_public_d1(request: PublicD1Build<'_>) -> Result<Value> {
     stage.close_inputs_for_full_components()?;
     let scope = write_source_scope(&mut stage, &vocabulary, limits.scope)?;
     let lenses = saved_lenses_owned(&capture, &state)?;
-    let entity_value: Value =
-        state.serde_owned(&entity, 4 * 1024 * 1024)?;
-    let relation_value: Value =
-        state.serde_owned(&relation, 4 * 1024 * 1024)?;
+    let entity_value: Value = state.serde_owned(&entity, 4 * 1024 * 1024)?;
+    let relation_value: Value = state.serde_owned(&relation, 4 * 1024 * 1024)?;
+    let payload_layout = stage.payload_layout();
     let catalog = stage.with_connection(WritePhase::Catalog, |db| {
         compile_catalog_with_state(
             db,
@@ -594,6 +662,7 @@ pub fn build_public_d1(request: PublicD1Build<'_>) -> Result<Value> {
             &descriptor,
             limits.catalog,
             Some(&state),
+            payload_layout,
         )
     })?;
     let remaining_work = capture

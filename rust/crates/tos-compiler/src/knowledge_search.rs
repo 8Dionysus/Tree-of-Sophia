@@ -212,9 +212,35 @@ fn build_inner(
                 page.clear();
                 page_text_bytes = 0;
             }
-            let row = stage.with_connection(WritePhase::Search, |db| {
-                fetch_next(db, table, after, limits.max_payload_bytes, creation)
-            })?;
+            let row = if let Some(owner) = creation {
+                let row_hold = stage.hold_normalized_page(1, limits.max_payload_bytes, 0)?;
+                let mut received = None;
+                stage.with_normalized_rows_owned(
+                    table == "knowledge_relations",
+                    after,
+                    1,
+                    limits.max_payload_bytes,
+                    |_, metadata, raw, _| {
+                        owner.charge_work(raw.len())?;
+                        received = Some(SourceRow {
+                            position: metadata.source_order,
+                            id: metadata.id.to_owned(),
+                            source_graph: metadata.source_graph.to_owned(),
+                            native_id: metadata.native_id.map(str::to_owned),
+                            term_id: metadata.semantic_key.to_owned(),
+                            payload_len: raw.len() as i64,
+                            payload_sha256: metadata.logical_digest.as_bytes().to_vec(),
+                            payload: Some(raw.to_vec()),
+                        });
+                        Ok(())
+                    },
+                )?;
+                received.map(|row| (row, row_hold, None))
+            } else {
+                stage.with_connection(WritePhase::Search, |db| {
+                    fetch_next(db, table, after, limits.max_payload_bytes, None)
+                })?
+            };
             let Some((mut row, row_hold, payload_hold)) = row else {
                 break;
             };

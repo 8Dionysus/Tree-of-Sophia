@@ -128,13 +128,6 @@ fn with_checked_row_owned<T>(
         .map_err(|_| Error::Budget("public D1 semantic row limits"))?;
     state.with_serde_owned_with_limits(raw, limits, operation)
 }
-fn semantic_sql_error(error: tos_source_store::StoreError) -> Error {
-    if error.code == tos_source_store::StoreErrorCode::BudgetExceeded {
-        Error::Budget("public semantic carrier SQL budget")
-    } else {
-        Error::Invalid("public semantic carrier SQL refusal")
-    }
-}
 fn with_semantic_physical_row_owned<T>(
     db: &rusqlite::Connection,
     row: &Row<'_>,
@@ -143,83 +136,29 @@ fn with_semantic_physical_row_owned<T>(
     state: &CreationState<'_>,
     operation: impl FnOnce(&Value) -> Result<T>,
 ) -> Result<T> {
-    let logical_len = usize::try_from(row.get::<_, i64>(0)?)
-        .map_err(|_| Error::Invalid("public semantic logical length"))?;
-    if logical_len == 0 || logical_len > MAX_ROW_BYTES {
-        return Err(Error::Budget("public semantic logical bytes"));
-    }
+    let logical_len: i64 = row.get(0)?;
     let digest = sql_blob_ref(row, 1)?;
     let stored = sql_blob_ref(row, 2)?;
-    if digest.len() != 32 || stored.len() > MAX_ROW_BYTES {
-        return Err(Error::Invalid("public semantic physical row bound"));
-    }
-    if layout == KnowledgePayloadLayout::InlineV1 {
-        if logical_len != stored.len() {
-            return Err(Error::Invalid("public D1 semantic row length"));
-        }
-        return with_checked_row_owned(stored, digest, state, operation);
-    }
-    let codec: i64 = row.get(codec_column)?;
-    if codec == 0 {
-        if !matches!(row.get_ref(codec_column + 1)?, ValueRef::Null) || logical_len != stored.len()
-        {
-            return Err(Error::Invalid("public semantic inline physical row"));
-        }
-        return with_checked_row_owned(stored, digest, state, operation);
-    }
-    if codec != 1 {
-        return Err(Error::Invalid("public semantic physical codec"));
-    }
-    let source_sha = sql_blob_ref(row, codec_column + 1)?;
-    if source_sha.len() != 32 {
-        return Err(Error::Invalid("public semantic carrier key"));
-    }
-    let sql = c"SELECT packet_len,packet FROM knowledge_source_carriers WHERE packet_sha256=?1 AND typeof(packet_len)='integer' AND packet_len BETWEEN 1 AND 8388608 AND typeof(packet)='blob' AND length(packet)=packet_len";
-    let _statement_hold = state.hold(
-        tos_source_store::PinnedBoundedStatement::owned_connection_rust_workspace_upper_bound(),
-    )?;
-    state.active()?;
-    state.charge_work(
-        sql.to_bytes()
-            .len()
-            .checked_add(source_sha.len())
-            .ok_or(Error::Budget("public semantic carrier SQL work"))?,
-    )?;
-    let mut statement =
-        tos_source_store::PinnedBoundedStatement::prepare_on_owned_connection(db, sql)
-            .map_err(semantic_sql_error)?;
-    statement
-        .bind_blob(1, source_sha)
-        .map_err(semantic_sql_error)?;
-    state.active()?;
-    if !statement.step().map_err(semantic_sql_error)? {
-        return Err(Error::Invalid("public semantic carrier absent"));
-    }
-    let packet_len = usize::try_from(statement.integer(0).map_err(semantic_sql_error)?)
-        .map_err(|_| Error::Invalid("public semantic carrier length"))?;
-    let source = match statement.value_ref(1).map_err(semantic_sql_error)? {
-        ValueRef::Blob(source) => source,
-        _ => return Err(Error::Invalid("public semantic carrier type")),
+    let (codec, source_key) = if layout == KnowledgePayloadLayout::CarrierOnceV1 {
+        let key = match row.get_ref(codec_column + 1)? {
+            ValueRef::Null => None,
+            ValueRef::Blob(key) => Some(key),
+            _ => return Err(Error::Invalid("public semantic carrier key type")),
+        };
+        (row.get::<_, i64>(codec_column)?, key)
+    } else {
+        (0, None)
     };
-    if packet_len != source.len() || source.len() > MAX_ROW_BYTES {
-        return Err(Error::Invalid("public semantic carrier length"));
-    }
-    state.charge_work(source.len())?;
-    if Digest256::of_bytes(source).as_bytes() != source_sha {
-        return Err(Error::Invalid("public semantic carrier digest"));
-    }
-    let limits = crate::knowledge_normalization::SourceRow::json_limits(MAX_ROW_BYTES)?;
-    let mut logical_sha = [0u8; 32];
-    logical_sha.copy_from_slice(digest);
-    crate::knowledge_payload_codec::with_hydrated_payload(
+    crate::knowledge_payload_codec::with_sql_logical_payload(
+        db,
         state,
-        stored,
-        source,
-        limits,
-        limits,
-        MAX_ROW_BYTES,
+        layout,
         logical_len,
-        Digest256::from_bytes(logical_sha),
+        digest,
+        stored,
+        codec,
+        source_key,
+        MAX_ROW_BYTES,
         |logical| with_checked_row_owned(logical, digest, state, operation),
     )
 }

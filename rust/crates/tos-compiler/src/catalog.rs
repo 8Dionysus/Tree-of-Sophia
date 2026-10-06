@@ -6,6 +6,7 @@
 use crate::{
     Error, QueryVocabulary, Result,
     d1_public_capture::{CreationState, CreationStateHold},
+    knowledge_stage::KnowledgePayloadLayout,
 };
 use rusqlite::{Connection, OptionalExtension, params};
 use serde_json::{Map, Value, json};
@@ -1183,20 +1184,51 @@ fn ensure_row(
     Ok(())
 }
 
+#[allow(clippy::too_many_arguments)]
 fn with_catalog_item<T>(
+    db: &Connection,
+    row: &rusqlite::Row<'_>,
+    codec_column: usize,
+    layout: KnowledgePayloadLayout,
     raw: &[u8],
+    logical_len: i64,
+    digest: &[u8],
     max_bytes: usize,
     invalid: &'static str,
     creation: Option<&CreationState<'_>>,
-    operation: impl FnOnce(&Value) -> Result<T>,
+    operation: impl FnOnce(&Value, &[u8]) -> Result<T>,
 ) -> Result<T> {
     if let Some(creation) = creation {
         let limits = JsonLimits::new(max_bytes, 96, 1_000_000, 4096)
             .map_err(|_| Error::Budget("catalog row JSON limits"))?;
-        creation.with_serde_owned_with_limits(raw, limits, operation)
+        let codec: i64 = row.get(codec_column)?;
+        let source_key = match row.get_ref(codec_column + 1)? {
+            rusqlite::types::ValueRef::Null => None,
+            rusqlite::types::ValueRef::Blob(key) => Some(key),
+            _ => return Err(Error::Invalid("catalog source key type")),
+        };
+        crate::knowledge_payload_codec::with_sql_logical_payload(
+            db,
+            creation,
+            layout,
+            logical_len,
+            digest,
+            raw,
+            codec,
+            source_key,
+            max_bytes,
+            |logical| {
+                creation.with_serde_owned_with_limits(logical, limits, |value| {
+                    operation(value, logical)
+                })
+            },
+        )
     } else {
+        if layout != KnowledgePayloadLayout::InlineV1 {
+            return Err(Error::Invalid("catalog compact payload owner absent"));
+        }
         let item: Value = serde_json::from_slice(raw).map_err(|_| Error::Invalid(invalid))?;
-        operation(&item)
+        operation(&item, raw)
     }
 }
 
@@ -1225,13 +1257,19 @@ fn ingest_nodes(
     route_defs: &[Route],
     limits: CatalogLimits,
     creation: Option<&CreationState<'_>>,
+    layout: KnowledgePayloadLayout,
 ) -> Result<u64> {
     let facets = facet_names(vocab, NODE, creation)?;
-    let mut stmt = db.prepare(
+    let codec_fields = if layout == KnowledgePayloadLayout::CarrierOnceV1 {
+        "payload_codec,source_packet_sha256"
+    } else {
+        "0,NULL"
+    };
+    let mut stmt = db.prepare(&format!(
         "SELECT id,source_graph,kind_id,type_id,source_order,length(payload),payload,payload_len,payload_sha256,
-            length(CAST(id AS BLOB)),length(CAST(source_graph AS BLOB)),length(CAST(kind_id AS BLOB)),length(CAST(type_id AS BLOB)),length(payload_sha256)
+            length(CAST(id AS BLOB)),length(CAST(source_graph AS BLOB)),length(CAST(kind_id AS BLOB)),length(CAST(type_id AS BLOB)),length(payload_sha256),{codec_fields}
         FROM knowledge_nodes ORDER BY source_order",
-    )?;
+    ))?;
     let mut rows = stmt.query([])?;
     let registered = array(vocab, "sources")?;
     for source in registered {
@@ -1334,12 +1372,18 @@ fn ingest_nodes(
             return Err(Error::Invalid("unregistered catalog node source"));
         }
         with_catalog_item(
+            db,
+            r,
+            14,
+            layout,
             &raw,
+            len,
+            &sha,
             limits.max_row_bytes,
             "catalog node JSON",
             creation,
-            |item| {
-                ensure_row(item, &id, &source, &raw, len, &sha, limits)?;
+            |item, raw| {
+                ensure_row(item, &id, &source, raw, len, &sha, limits)?;
                 if text(item, "kind_id")? != kind || text(item, "type_id")? != type_id {
                     return Err(Error::Invalid("catalog node columns"));
                 }
@@ -1560,11 +1604,17 @@ fn ingest_relations(
     cross_source_ids: &[Value],
     limits: CatalogLimits,
     creation: Option<&CreationState<'_>>,
+    layout: KnowledgePayloadLayout,
 ) -> Result<u64> {
     let facets = facet_names(vocab, RELATION, creation)?;
-    let mut stmt=db.prepare("SELECT id,source_graph,from_id,to_id,predicate_id,relation_type_id,source_order,length(payload),payload,payload_len,payload_sha256,
-        length(CAST(id AS BLOB)),length(CAST(source_graph AS BLOB)),length(CAST(from_id AS BLOB)),length(CAST(to_id AS BLOB)),length(CAST(predicate_id AS BLOB)),length(CAST(relation_type_id AS BLOB)),length(payload_sha256)
-        FROM knowledge_relations ORDER BY source_order")?;
+    let codec_fields = if layout == KnowledgePayloadLayout::CarrierOnceV1 {
+        "payload_codec,source_packet_sha256"
+    } else {
+        "0,NULL"
+    };
+    let mut stmt=db.prepare(&format!("SELECT id,source_graph,from_id,to_id,predicate_id,relation_type_id,source_order,length(payload),payload,payload_len,payload_sha256,
+        length(CAST(id AS BLOB)),length(CAST(source_graph AS BLOB)),length(CAST(from_id AS BLOB)),length(CAST(to_id AS BLOB)),length(CAST(predicate_id AS BLOB)),length(CAST(relation_type_id AS BLOB)),length(payload_sha256),{codec_fields}
+        FROM knowledge_relations ORDER BY source_order"))?;
     let mut rows = stmt.query([])?;
     let registered = array(vocab, "sources")?;
     let mut prior = None;
@@ -1666,12 +1716,18 @@ fn ingest_relations(
             return Err(Error::Invalid("unregistered catalog relation source"));
         }
         with_catalog_item(
+            db,
+            r,
+            18,
+            layout,
             &raw,
+            len,
+            &sha,
             limits.max_row_bytes,
             "catalog relation JSON",
             creation,
-            |item| {
-                ensure_row(item, &id, &source, &raw, len, &sha, limits)?;
+            |item, raw| {
+                ensure_row(item, &id, &source, raw, len, &sha, limits)?;
                 for (key, expected) in [
                     ("from_id", &from),
                     ("to_id", &to),
@@ -2824,6 +2880,7 @@ pub fn compile_catalog(
         authored_descriptor,
         limits,
         None,
+        KnowledgePayloadLayout::InlineV1,
     )
 }
 
@@ -2838,7 +2895,11 @@ pub(crate) fn compile_catalog_with_state(
     authored_descriptor: &[u8],
     limits: CatalogLimits,
     creation: Option<&CreationState<'_>>,
+    layout: KnowledgePayloadLayout,
 ) -> Result<CatalogReceipt> {
+    if layout == KnowledgePayloadLayout::CarrierOnceV1 && creation.is_none() {
+        return Err(Error::Invalid("catalog compact payload owner absent"));
+    }
     let _digest_hold = creation.map(|owner| owner.hold(64)).transpose()?;
     if let Some(owner) = creation {
         owner.charge_work(authored_descriptor.len())?;
@@ -2872,6 +2933,7 @@ pub(crate) fn compile_catalog_with_state(
                     &descriptor,
                     limits,
                     Some(creation),
+                    layout,
                 )
             },
         )
@@ -2888,6 +2950,7 @@ pub(crate) fn compile_catalog_with_state(
             &descriptor,
             limits,
             None,
+            layout,
         )
     }
 }
@@ -2903,6 +2966,7 @@ fn compile_catalog_from_descriptor(
     descriptor: &Value,
     limits: CatalogLimits,
     creation: Option<&CreationState<'_>>,
+    layout: KnowledgePayloadLayout,
 ) -> Result<CatalogReceipt> {
     if text(entity_registry, "registry_id")? != vocabulary.entity_registry_id
         || text(relation_registry, "registry_id")? != vocabulary.relation_registry_id
@@ -2992,6 +3056,7 @@ fn compile_catalog_from_descriptor(
             &route_defs,
             limits,
             creation,
+            layout,
         )?;
         let cross_source_ids = array(descriptor, "sources")?;
         let relations = ingest_relations(
@@ -3009,6 +3074,7 @@ fn compile_catalog_from_descriptor(
                 ..limits
             },
             creation,
+            layout,
         )?;
         if nodes
             .checked_add(relations)

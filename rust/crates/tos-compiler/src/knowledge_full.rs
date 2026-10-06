@@ -131,6 +131,7 @@ fn compile_inner(
     // This borrow points at the original invocation state, not a phase-local
     // copy. Capture it before taking the mutable SQLite connection.
     let creation = stage.owned_creation_state();
+    let payload_layout = stage.payload_layout();
     let packet: CatalogReceipt = stage.with_connection(WritePhase::Catalog, |db| {
         compile_catalog_with_state(
             db,
@@ -142,6 +143,7 @@ fn compile_inner(
             descriptor_bytes,
             limits.catalog,
             creation,
+            payload_layout,
         )
     })?;
     let catalog = materialize_catalog(stage, &packet, vocabulary, limits.catalog_index)?;

@@ -1318,7 +1318,9 @@ impl<'a> KnowledgeStage<'a> {
             heap: creation_state.heap(),
             creation_state,
             cancelled: Arc::clone(&cancelled),
-            original_sql_limit: creation_state.sql_vm_limit().min(limits.sqlite.max_sql_vm_steps),
+            original_sql_limit: creation_state
+                .sql_vm_limit()
+                .min(limits.sqlite.max_sql_vm_steps),
             retained_rust_bytes: 0,
         };
         Self::create_inner_owned(
@@ -3809,10 +3811,15 @@ impl<'a> KnowledgeStage<'a> {
     ) -> Result<usize> {
         valid_id(from_id)?;
         self.seek_indexed(
-            "SELECT id,source_graph,source_order,payload,payload_sha256 FROM knowledge_relations
-              WHERE from_id=?1 AND source_order>?2 AND length(payload)<=?3
-                AND payload_len=length(payload)
-              ORDER BY source_order,id LIMIT ?4",
+            match self.payload_layout() {
+                KnowledgePayloadLayout::InlineV1 => "SELECT id,source_graph,source_order,payload,payload_sha256 FROM knowledge_relations
+                  WHERE from_id=?1 AND source_order>?2 AND length(payload)<=?3
+                    AND payload_len=length(payload)
+                  ORDER BY source_order,id LIMIT ?4",
+                KnowledgePayloadLayout::CarrierOnceV1 => "SELECT id,source_graph,source_order,payload,payload_sha256,payload_len,payload_codec,source_packet_sha256 FROM knowledge_relations
+                  WHERE from_id=?1 AND source_order>?2 AND length(payload)<=?3
+                  ORDER BY source_order,id LIMIT ?4",
+            },
             from_id,
             after_order,
             max_rows,
@@ -3828,10 +3835,15 @@ impl<'a> KnowledgeStage<'a> {
     ) -> Result<usize> {
         valid_id(to_id)?;
         self.seek_indexed(
-            "SELECT id,source_graph,source_order,payload,payload_sha256 FROM knowledge_relations
-              WHERE to_id=?1 AND source_order>?2 AND length(payload)<=?3
-                AND payload_len=length(payload)
-              ORDER BY source_order,id LIMIT ?4",
+            match self.payload_layout() {
+                KnowledgePayloadLayout::InlineV1 => "SELECT id,source_graph,source_order,payload,payload_sha256 FROM knowledge_relations
+                  WHERE to_id=?1 AND source_order>?2 AND length(payload)<=?3
+                    AND payload_len=length(payload)
+                  ORDER BY source_order,id LIMIT ?4",
+                KnowledgePayloadLayout::CarrierOnceV1 => "SELECT id,source_graph,source_order,payload,payload_sha256,payload_len,payload_codec,source_packet_sha256 FROM knowledge_relations
+                  WHERE to_id=?1 AND source_order>?2 AND length(payload)<=?3
+                  ORDER BY source_order,id LIMIT ?4",
+            },
             to_id,
             after_order,
             max_rows,
@@ -3859,14 +3871,75 @@ impl<'a> KnowledgeStage<'a> {
         let mut count = 0usize;
         let mut bytes = 0u64;
         while let Some(row) = rows.next()? {
-            let item = verify_seek_row(
-                read_seek_row_with_state(
-                    row,
-                    self.owned_creation_state(),
+            let item = if self.payload_layout() == KnowledgePayloadLayout::CarrierOnceV1 {
+                let state = self
+                    .owned_creation_state()
+                    .ok_or(Error::Invalid("compact stage seek owner absent"))?;
+                let id: &str = row
+                    .get_ref(0)?
+                    .as_str()
+                    .map_err(|_| Error::Invalid("stage seek id type"))?;
+                let graph: &str = row
+                    .get_ref(1)?
+                    .as_str()
+                    .map_err(|_| Error::Invalid("stage seek graph type"))?;
+                if id.len() > MAX_NAME_BYTES || graph.len() > MAX_NAME_BYTES {
+                    return Err(Error::Budget("owned stage seek text bytes"));
+                }
+                state.charge_work(id.len() + graph.len())?;
+                valid_id(id)?;
+                let digest = row
+                    .get_ref(4)?
+                    .as_blob()
+                    .map_err(|_| Error::Invalid("stage seek digest type"))?;
+                let key = match row.get_ref(7)? {
+                    rusqlite::types::ValueRef::Null => None,
+                    rusqlite::types::ValueRef::Blob(key) => Some(key),
+                    _ => return Err(Error::Invalid("stage seek source key")),
+                };
+                crate::knowledge_payload_codec::with_sql_logical_payload(
+                    self.db(),
+                    state,
+                    self.payload_layout(),
+                    row.get(5)?,
+                    digest,
+                    row.get_ref(3)?
+                        .as_blob()
+                        .map_err(|_| Error::Invalid("stage seek payload type"))?,
+                    row.get(6)?,
+                    key,
                     self.limits.sqlite.max_row_bytes,
-                )?,
-                self.limits.sqlite.max_row_bytes,
-            )?;
+                    |logical| {
+                        state.retain(
+                            std::mem::size_of::<SeekRow>()
+                                + id.len()
+                                + graph.len()
+                                + logical.len()
+                                + 64,
+                        )?;
+                        state.charge_work(logical.len() + id.len() + graph.len())?;
+                        let digest: [u8; 32] = digest
+                            .try_into()
+                            .map_err(|_| Error::Invalid("stage seek digest bytes"))?;
+                        Ok(SeekRow {
+                            id: id.to_owned(),
+                            source_graph: graph.to_owned(),
+                            source_order: row.get(2)?,
+                            payload: logical.to_owned(),
+                            payload_sha256: Digest256::from_bytes(digest).to_hex(),
+                        })
+                    },
+                )?
+            } else {
+                verify_seek_row(
+                    read_seek_row_with_state(
+                        row,
+                        self.owned_creation_state(),
+                        self.limits.sqlite.max_row_bytes,
+                    )?,
+                    self.limits.sqlite.max_row_bytes,
+                )?
+            };
             bytes = bytes
                 .checked_add(item.payload.len() as u64)
                 .ok_or(Error::Budget("stage seek bytes"))?;
@@ -4057,7 +4130,11 @@ impl<'a> KnowledgeStage<'a> {
             stage_integrity_first_row_owned(self.db(), state)?
         } else {
             self.db().query_row("PRAGMA integrity_check", [], |row| {
-                Ok(row.get_ref(0)?.as_str()? == "ok")
+                Ok(row
+                    .get_ref(0)?
+                    .as_str()
+                    .map_err(|_| Error::Invalid("stage seek id type"))?
+                    == "ok")
             })?
         };
         if !integrity_ok {

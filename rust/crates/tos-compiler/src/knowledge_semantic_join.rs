@@ -366,11 +366,51 @@ pub fn prepare_semantic_joins(
         if let (Some(claims), Some(nav)) = (&claims, &navigation) {
             let mut after = (String::new(), String::new());
             loop {
-                let pairs=stage.with_connection(WritePhase::Sort,|db| {
-                    let mut stmt=db.prepare("SELECT l.id,r.id,l.entity_id,CASE WHEN l.payload_len=length(l.payload) AND length(l.payload)<=?5 THEN l.payload ELSE NULL END,CASE WHEN r.payload_len=length(r.payload) AND length(r.payload)<=?5 THEN r.payload ELSE NULL END,l.payload_sha256,r.payload_sha256 FROM knowledge_nodes l JOIN knowledge_nodes r ON l.entity_id=r.entity_id WHERE l.source_graph=?1 AND r.source_graph=?2 AND (l.id>?3 OR (l.id=?3 AND r.id>?4)) ORDER BY l.id,r.id LIMIT ?6")?;
-                    let mut rows=stmt.query(params![claims,nav,after.0,after.1,limits.max_row_bytes as i64,limits.max_page_rows as i64])?;let mut out=Vec::new();
-                    while let Some(row)=rows.next()? {out.push((row.get::<_,String>(0)?,row.get::<_,String>(1)?,row.get::<_,String>(2)?,row.get::<_,Option<Vec<u8>>>(3)?.ok_or(Error::Budget("semantic pair bytes"))?,row.get::<_,Option<Vec<u8>>>(4)?.ok_or(Error::Budget("semantic pair bytes"))?,row.get::<_,Vec<u8>>(5)?,row.get::<_,Vec<u8>>(6)?));}Ok(out)
+                let creation = stage.owned_creation_state();
+                let page_rows = if creation.is_some() {
+                    1
+                } else {
+                    limits.max_page_rows
+                };
+                let _page_hold = stage.hold_normalized_page(
+                    page_rows,
+                    limits.max_row_bytes,
+                    limits.max_row_bytes,
+                )?;
+                let mut pairs=stage.with_connection(WritePhase::Sort,|db| {
+                    let payloads = if creation.is_some() { "NULL,NULL" } else {
+                        "CASE WHEN l.payload_len=length(l.payload) AND length(l.payload)<=?5 THEN l.payload ELSE NULL END,CASE WHEN r.payload_len=length(r.payload) AND length(r.payload)<=?5 THEN r.payload ELSE NULL END"
+                    };
+                    let mut stmt=db.prepare(&format!("SELECT CASE WHEN length(CAST(l.id AS BLOB))<=4096 THEN l.id END,CASE WHEN length(CAST(r.id AS BLOB))<=4096 THEN r.id END,CASE WHEN length(CAST(l.entity_id AS BLOB))<=4096 THEN l.entity_id END,{payloads},CASE WHEN length(l.payload_sha256)=32 THEN l.payload_sha256 END,CASE WHEN length(r.payload_sha256)=32 THEN r.payload_sha256 END FROM knowledge_nodes l JOIN knowledge_nodes r ON l.entity_id=r.entity_id WHERE l.source_graph=?1 AND r.source_graph=?2 AND (l.id>?3 OR (l.id=?3 AND r.id>?4)) ORDER BY l.id,r.id LIMIT ?6"))?;
+                    let mut rows=stmt.query(params![claims,nav,after.0,after.1,limits.max_row_bytes as i64,page_rows as i64])?;let mut out=Vec::new();
+                    while let Some(row)=rows.next()? {
+                        let left = row.get::<_,Option<Vec<u8>>>(3)?;
+                        let right = row.get::<_,Option<Vec<u8>>>(4)?;
+                        out.push((row.get::<_,String>(0)?,row.get::<_,String>(1)?,row.get::<_,String>(2)?,
+                            if creation.is_some() { Vec::new() } else { left.ok_or(Error::Budget("semantic pair bytes"))? },
+                            if creation.is_some() { Vec::new() } else { right.ok_or(Error::Budget("semantic pair bytes"))? },
+                            row.get::<_,Vec<u8>>(5)?,row.get::<_,Vec<u8>>(6)?));
+                    }
+                    Ok(out)
                 })?;
+                if let Some(state) = creation {
+                    for pair in &mut pairs {
+                        stage
+                            .with_node_payload_owned(&pair.0, limits.max_row_bytes, |_, raw| {
+                                state.charge_work(raw.len())?;
+                                pair.3 = raw.to_vec();
+                                Ok(())
+                            })?
+                            .ok_or(Error::Invalid("semantic left node disappeared"))?;
+                        stage
+                            .with_node_payload_owned(&pair.1, limits.max_row_bytes, |_, raw| {
+                                state.charge_work(raw.len())?;
+                                pair.4 = raw.to_vec();
+                                Ok(())
+                            })?
+                            .ok_or(Error::Invalid("semantic right node disappeared"))?;
+                    }
+                }
                 if pairs.is_empty() {
                     break;
                 }
@@ -385,8 +425,16 @@ pub fn prepare_semantic_joins(
                     if !entity.starts_with(&prefix) {
                         continue;
                     }
-                    let left = SourceRow::parse(&left, limits.max_row_bytes)?;
-                    let right = SourceRow::parse(&right, limits.max_row_bytes)?;
+                    let left = SourceRow::parse_scoped_with_optional_owned_state(
+                        &left,
+                        limits.max_row_bytes,
+                        creation,
+                    )?;
+                    let right = SourceRow::parse_scoped_with_optional_owned_state(
+                        &right,
+                        limits.max_row_bytes,
+                        creation,
+                    )?;
                     let pair = shared_identity_pair(
                         &left, &right, &left_id, &right_id, &entity, claims, nav, entity_ref,
                         &prefix,
