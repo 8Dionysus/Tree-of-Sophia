@@ -52,7 +52,6 @@ pub mod source_claims;
 pub mod source_command;
 pub mod source_creation;
 pub mod source_creation_store;
-pub(crate) use source_creation_store::work_transaction as source_work_transaction;
 pub mod source_current_cut;
 mod source_managed_query;
 pub mod source_managed_selection;

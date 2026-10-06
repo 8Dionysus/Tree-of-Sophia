@@ -12,7 +12,6 @@ use crate::source_foundation_admission::{
 };
 use serde_json::json;
 use std::fs::File;
-use std::os::unix::fs::MetadataExt;
 use std::{
     cell::{Cell, RefCell},
     ffi::OsString,
