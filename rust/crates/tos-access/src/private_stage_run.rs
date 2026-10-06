@@ -560,6 +560,13 @@ struct ControlAuth {
 fn socket_option<T: Copy>(fd: i32, name: i32) -> Result<T, String> {
     let mut value = unsafe { std::mem::zeroed::<T>() };
     let mut len = std::mem::size_of::<T>() as libc::socklen_t;
+    let site = match name {
+        libc::SO_DOMAIN => "control.read-socket-domain",
+        libc::SO_TYPE => "control.read-socket-type",
+        libc::SO_COOKIE => "control.read-socket-cookie",
+        libc::SO_PEERCRED => "control.read-peer-credentials",
+        _ => "control.read-socket-option",
+    };
     if unsafe {
         libc::getsockopt(
             fd,
@@ -569,8 +576,10 @@ fn socket_option<T: Copy>(fd: i32, name: i32) -> Result<T, String> {
             &mut len,
         )
     } != 0
-        || len as usize != std::mem::size_of::<T>()
     {
+        return Err(control_syscall_failure(site));
+    }
+    if len as usize != std::mem::size_of::<T>() {
         return Err("control socket option unavailable".into());
     }
     Ok(value)
@@ -580,8 +589,10 @@ fn socket_identity(fd: i32) -> Result<(u64, u64, u64), String> {
         return Err("control FD must be an explicit inherited descriptor >=3".into());
     }
     let mut st = unsafe { std::mem::zeroed::<libc::stat>() };
-    if unsafe { libc::fstat(fd, &mut st) } != 0
-        || st.st_mode & libc::S_IFMT != libc::S_IFSOCK
+    if unsafe { libc::fstat(fd, &mut st) } != 0 {
+        return Err(control_syscall_failure("control.stat-socket"));
+    }
+    if st.st_mode & libc::S_IFMT != libc::S_IFSOCK
         || socket_option::<i32>(fd, libc::SO_DOMAIN)? != libc::AF_UNIX
         || socket_option::<i32>(fd, libc::SO_TYPE)? != libc::SOCK_SEQPACKET
     {
@@ -597,7 +608,14 @@ fn socket_identity(fd: i32) -> Result<(u64, u64, u64), String> {
                 libc::getsockname(fd, &mut addr as *mut _ as *mut libc::sockaddr, &mut len)
             }
         };
-        if result != 0 || addr.ss_family as i32 != libc::AF_UNIX {
+        if result != 0 {
+            return Err(control_syscall_failure(if peer {
+                "control.read-peer-socket-address"
+            } else {
+                "control.read-local-socket-address"
+            }));
+        }
+        if addr.ss_family as i32 != libc::AF_UNIX {
             return Err("connected AF_UNIX control channel required".into());
         }
     }
@@ -884,6 +902,7 @@ fn mount_protected_ro(
     held: &File,
     bind_site: &'static str,
     protect_site: &'static str,
+    readback_site: &'static str,
 ) -> Result<(), String> {
     // Fallback masking may have hidden the original name; the issuer-held FD
     // remains the source. Recreate only the bounded target below that fallback.
@@ -899,13 +918,19 @@ fn mount_protected_ro(
             match DirBuilder::new().mode(0o700).create(&cursor) {
                 Ok(()) => (),
                 Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => {
-                    drop(directory(&cursor)?);
+                    drop(stage_result(
+                        "mount.open-protected-read-target",
+                        directory(&cursor),
+                    )?);
                 }
-                Err(e) => return Err(e.to_string()),
+                Err(e) => return Err(io_failure("mount.prepare-protected-read-target", e)),
             }
         }
     } else {
-        verify_protected_ro(o, path, held)?;
+        stage_result(
+            "mount.verify-protected-source",
+            verify_protected_ro(o, path, held),
+        )?;
     }
     let source = PathBuf::from(format!("/proc/self/fd/{}", held.as_raw_fd()));
     mount(
@@ -916,8 +941,11 @@ fn mount_protected_ro(
         libc::MS_BIND | libc::MS_REC,
         None,
     )?;
-    let mounted = directory(path)?;
-    identical(held, &mounted)?;
+    let mounted = stage_result("mount.open-protected-read-target", directory(path))?;
+    stage_result(
+        "mount.verify-protected-root-identity",
+        identical(held, &mounted),
+    )?;
     #[repr(C)]
     struct MountAttr {
         set: u64,
@@ -945,12 +973,16 @@ fn mount_protected_ro(
         return Err(syscall_failure(protect_site)); // unsupported recursive protection fails closed
     }
     let mut filesystem = unsafe { std::mem::zeroed::<libc::statvfs>() };
-    if unsafe { libc::fstatvfs(mounted.as_raw_fd(), &mut filesystem) } != 0
-        || filesystem.f_flag & libc::ST_RDONLY == 0
-    {
+    if unsafe { libc::fstatvfs(mounted.as_raw_fd(), &mut filesystem) } != 0 {
+        return Err(syscall_failure(readback_site));
+    }
+    if filesystem.f_flag & libc::ST_RDONLY == 0 {
         return Err("protected read mount readback differs".into());
     }
-    verify_protected_ro(o, path, held)?;
+    stage_result(
+        "mount.verify-protected-readback",
+        verify_protected_ro(o, path, held),
+    )?;
     Ok(())
 }
 fn retained_fd_roles(fds: [Option<i32>; 2]) -> Result<(), String> {
@@ -968,11 +1000,15 @@ fn retained_fd_roles(fds: [Option<i32>; 2]) -> Result<(), String> {
         let seals = unsafe { libc::fcntl(fd, libc::F_GET_SEALS) };
         let required =
             libc::F_SEAL_SEAL | libc::F_SEAL_SHRINK | libc::F_SEAL_GROW | libc::F_SEAL_WRITE;
-        if unsafe { libc::fstat(fd, &mut st) } != 0
-            || st.st_mode & libc::S_IFMT != libc::S_IFREG
+        if unsafe { libc::fstat(fd, &mut st) } != 0 {
+            return Err(syscall_failure("fd.inspect-retained-state"));
+        }
+        if seals < 0 {
+            return Err(syscall_failure("fd.read-retained-state-seals"));
+        }
+        if st.st_mode & libc::S_IFMT != libc::S_IFREG
             || st.st_size <= 0
             || st.st_size as u64 > SDK_SETUP_BYTES
-            || seals < 0
             || seals & required != required
         {
             return Err("native prior state requires bounded sealed regular FD".into());
@@ -1559,9 +1595,49 @@ fn outer(o: &Options) -> Result<i32, String> {
     end.cleanup_check()?;
     result
 }
+fn stage_failure(site: &'static str, error: &str) -> String {
+    let errno = error
+        .rsplit_once("(os error ")
+        .and_then(|(_, value)| value.strip_suffix(')'))
+        .and_then(|value| value.parse::<i32>().ok());
+    match errno {
+        Some(errno) => format!("namespace-inner site={site} errno={errno}"),
+        None => format!("namespace-inner site={site} refusal"),
+    }
+}
+fn stage_result<T>(site: &'static str, result: Result<T, String>) -> Result<T, String> {
+    result.map_err(|error| stage_failure(site, &error))
+}
 fn syscall_failure(site: &'static str) -> String {
-    let errno = std::io::Error::last_os_error().raw_os_error().unwrap_or(0);
-    format!("namespace-inner site={site} errno={errno}")
+    match std::io::Error::last_os_error().raw_os_error() {
+        Some(errno) => format!("namespace-inner site={site} errno={errno}"),
+        None => format!("namespace-inner site={site} errno=unavailable"),
+    }
+}
+fn control_syscall_failure(site: &'static str) -> String {
+    match std::io::Error::last_os_error().raw_os_error() {
+        Some(errno) => format!("private-stage-control site={site} errno={errno}"),
+        None => format!("private-stage-control site={site} errno=unavailable"),
+    }
+}
+fn io_failure(site: &'static str, error: std::io::Error) -> String {
+    if let Some(errno) = error.raw_os_error() {
+        return format!("namespace-inner site={site} errno={errno}");
+    }
+    let kind = match error.kind() {
+        std::io::ErrorKind::NotFound => "not-found",
+        std::io::ErrorKind::PermissionDenied => "permission-denied",
+        std::io::ErrorKind::AlreadyExists => "already-exists",
+        std::io::ErrorKind::InvalidInput => "invalid-input",
+        std::io::ErrorKind::InvalidData => "invalid-data",
+        std::io::ErrorKind::TimedOut => "timed-out",
+        std::io::ErrorKind::WriteZero => "write-zero",
+        std::io::ErrorKind::Interrupted => "interrupted",
+        std::io::ErrorKind::WouldBlock => "would-block",
+        std::io::ErrorKind::UnexpectedEof => "unexpected-eof",
+        _ => "other",
+    };
+    format!("namespace-inner site={site} kind={kind}")
 }
 fn mount(
     site: &'static str,
@@ -1593,23 +1669,24 @@ fn mount(
 fn loopback() -> Result<(), String> {
     let fd = unsafe { libc::socket(libc::AF_INET, libc::SOCK_DGRAM | libc::SOCK_CLOEXEC, 0) };
     if fd < 0 {
-        return Err(error());
+        return Err(syscall_failure("loopback.socket"));
     }
     let socket = unsafe { File::from_raw_fd(fd) };
     let mut request = [0u8; 40];
     request[..2].copy_from_slice(b"lo");
     if unsafe { libc::ioctl(socket.as_raw_fd(), 0x8913u64, request.as_mut_ptr()) } < 0 {
-        return Err(error());
+        return Err(syscall_failure("loopback.read-flags"));
     }
     let flags = i16::from_ne_bytes([request[16], request[17]]) | 1;
     request[16..18].copy_from_slice(&flags.to_ne_bytes());
     if unsafe { libc::ioctl(socket.as_raw_fd(), 0x8914u64, request.as_mut_ptr()) } < 0 {
-        return Err(error());
+        return Err(syscall_failure("loopback.set-flags"));
     }
-    if unsafe { libc::ioctl(socket.as_raw_fd(), 0x8913u64, request.as_mut_ptr()) } < 0
-        || i16::from_ne_bytes([request[16], request[17]]) & 1 == 0
-    {
-        return Err("isolated loopback did not become UP".into());
+    if unsafe { libc::ioctl(socket.as_raw_fd(), 0x8913u64, request.as_mut_ptr()) } < 0 {
+        return Err(syscall_failure("loopback.verify-flags"));
+    }
+    if i16::from_ne_bytes([request[16], request[17]]) & 1 == 0 {
+        return Err("namespace-inner site=loopback.verify-flags refusal".into());
     }
     Ok(())
 }
@@ -1632,6 +1709,9 @@ fn confine(
         return Err("Landlock syscall architecture unsupported".into());
     }
     let abi = unsafe { libc::syscall(444, 0, 0, 1) };
+    if abi < 0 {
+        return Err(syscall_failure("landlock.query-abi"));
+    }
     if abi < 3 {
         return Err("Landlock ABI>=3 required".into());
     }
@@ -1639,18 +1719,19 @@ fn confine(
     let attr = Ruleset { handled };
     let raw = unsafe { libc::syscall(444, &attr, std::mem::size_of::<Ruleset>(), 0) };
     if raw < 0 {
-        return Err(error());
+        return Err(syscall_failure("landlock.create-ruleset"));
     }
     let rules = unsafe { File::from_raw_fd(raw as i32) };
     for path in std::iter::once(root).chain(fallbacks.iter().map(Path::new)) {
-        let resolved = fs::canonicalize(path).map_err(|e| e.to_string())?;
-        let parent = directory(&resolved)?;
+        let resolved =
+            fs::canonicalize(path).map_err(|e| io_failure("confinement.resolve-stage-path", e))?;
+        let parent = stage_result("confinement.open-stage-path", directory(&resolved))?;
         let rule = PathRule {
             allowed: handled,
             parent: parent.as_raw_fd(),
         };
         if unsafe { libc::syscall(445, rules.as_raw_fd(), 1, &rule, 0) } < 0 {
-            return Err(error());
+            return Err(syscall_failure("landlock.add-stage-path-rule"));
         }
     }
     for held in persistent.into_iter().chain(search_cache) {
@@ -1659,13 +1740,14 @@ fn confine(
             parent: held.as_raw_fd(),
         };
         if unsafe { libc::syscall(445, rules.as_raw_fd(), 1, &rule, 0) } < 0 {
-            return Err(error());
+            return Err(syscall_failure("landlock.add-held-store-rule"));
         }
     }
-    if unsafe { libc::prctl(libc::PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0) } != 0
-        || unsafe { libc::syscall(446, rules.as_raw_fd(), 0) } < 0
-    {
-        return Err(error());
+    if unsafe { libc::prctl(libc::PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0) } != 0 {
+        return Err(syscall_failure("landlock.set-no-new-privileges"));
+    }
+    if unsafe { libc::syscall(446, rules.as_raw_fd(), 0) } < 0 {
+        return Err(syscall_failure("landlock.restrict-self"));
     }
     Ok(())
 }
@@ -1677,7 +1759,7 @@ fn drop_caps() -> Result<(), String> {
     }
     for cap in 0..=last {
         if unsafe { libc::prctl(libc::PR_CAPBSET_DROP, cap, 0, 0, 0) } != 0 {
-            return Err(error());
+            return Err(syscall_failure("capabilities.drop-bounding-set"));
         }
     }
     if unsafe {
@@ -1690,7 +1772,7 @@ fn drop_caps() -> Result<(), String> {
         )
     } != 0
     {
-        return Err(error());
+        return Err(syscall_failure("capabilities.clear-ambient-set"));
     }
     #[repr(C)]
     struct Header {
@@ -1714,7 +1796,7 @@ fn drop_caps() -> Result<(), String> {
         inheritable: 0,
     }; 2];
     if unsafe { libc::syscall(libc::SYS_capset, &header, &data) } < 0 {
-        return Err(error());
+        return Err(syscall_failure("capabilities.clear-effective-set"));
     }
     Ok(())
 }
@@ -1758,14 +1840,20 @@ fn inner(o: &Options, i: &Inner) -> Result<i32, String> {
     }
     if let Some(auth) = i.control_auth.as_ref() {
         if let Some(p) = auth.sdk_phase_as {
-            phase_environment(p.selected, end)?;
-            let actual = actual_as()?;
+            stage_result(
+                "sdk-phase.verify-environment",
+                phase_environment(p.selected, end),
+            )?;
+            let actual = stage_result("sdk-phase.read-inherited-as", actual_as())?;
             if actual.rlim_cur != p.role_soft_as_bytes as libc::rlim_t
                 || actual.rlim_max != SDK_CONSUMER_BYTES as libc::rlim_t
             {
                 return Err("inner inherited phase AS drift".into());
             }
-            guardian_as(p.role_soft_as_bytes, end)?;
+            stage_result(
+                "sdk-phase.apply-guardian-as",
+                guardian_as(p.role_soft_as_bytes, end),
+            )?;
         }
     }
     path_shape(&i.root)?;
@@ -1773,10 +1861,10 @@ fn inner(o: &Options, i: &Inner) -> Result<i32, String> {
         return Err("inner selected backing root or held consumer FD invalid".into());
     }
     let mnt = fs::metadata("/proc/self/ns/mnt")
-        .map_err(|e| e.to_string())?
+        .map_err(|e| io_failure("namespace.read-current-mount-id", e))?
         .ino();
     let net = fs::metadata("/proc/self/ns/net")
-        .map_err(|e| e.to_string())?
+        .map_err(|e| io_failure("namespace.read-current-network-id", e))?
         .ino();
     if mnt == i.parent_mnt || net == i.parent_net || i.host_uid == 0 {
         return Err("fresh ordinary user/mount/network namespaces required".into());
@@ -1785,7 +1873,12 @@ fn inner(o: &Options, i: &Inner) -> Result<i32, String> {
         ("/proc/self/uid_map", i.host_uid),
         ("/proc/self/gid_map", i.host_gid),
     ] {
-        let raw = kernel(Path::new(path), 4096, 16, 1024)?;
+        let site = if path == "/proc/self/uid_map" {
+            "namespace.read-uid-map"
+        } else {
+            "namespace.read-gid-map"
+        };
+        let raw = stage_result(site, kernel(Path::new(path), 4096, 16, 1024))?;
         if raw.split_whitespace().collect::<Vec<_>>() != ["0", &id.to_string(), "1"] {
             return Err("exact ordinary single UID/GID mapping required".into());
         }
@@ -1795,10 +1888,13 @@ fn inner(o: &Options, i: &Inner) -> Result<i32, String> {
         (Some(path), Some(fd)) if fd >= 3 => {
             let duplicate = unsafe { libc::fcntl(fd, libc::F_DUPFD_CLOEXEC, 3) };
             if duplicate < 0 {
-                return Err(error());
+                return Err(syscall_failure("fd.duplicate-persistent-store"));
             }
             let held = unsafe { File::from_raw_fd(duplicate) };
-            verify_persistent(path, &held, &i.root)?;
+            stage_result(
+                "fd.verify-persistent-store",
+                verify_persistent(path, &held, &i.root),
+            )?;
             Some(held)
         }
         _ => {
@@ -1812,10 +1908,10 @@ fn inner(o: &Options, i: &Inner) -> Result<i32, String> {
         (Some(selected), Some(raw)) if raw >= 3 => {
             let duplicate = unsafe { libc::fcntl(raw, libc::F_DUPFD_CLOEXEC, 3) };
             if duplicate < 0 {
-                return Err(error());
+                return Err(syscall_failure("fd.duplicate-search-cache"));
             }
             let held = unsafe { File::from_raw_fd(duplicate) };
-            selected.verify(&held, &i.root)?;
+            stage_result("fd.verify-search-cache", selected.verify(&held, &i.root))?;
             Some(held)
         }
         _ => return Err("search cache descriptor/selector mismatch".into()),
@@ -1831,15 +1927,18 @@ fn inner(o: &Options, i: &Inner) -> Result<i32, String> {
         (Some(path), Some(raw)) if raw >= 3 => {
             let duplicate = unsafe { libc::fcntl(raw, libc::F_DUPFD_CLOEXEC, 3) };
             if duplicate < 0 {
-                return Err(error());
+                return Err(syscall_failure("fd.duplicate-protected-read-root"));
             }
             let held = unsafe { File::from_raw_fd(duplicate) };
-            verify_protected_ro(o, path, &held)?;
+            stage_result(
+                "fd.verify-protected-read-root",
+                verify_protected_ro(o, path, &held),
+            )?;
             Some(held)
         }
         _ => return Err("protected read root FD role differs".into()),
     };
-    let release_ro_path = selected_release_ro()?;
+    let release_ro_path = stage_result("release-root.select", selected_release_ro())?;
     let release_ro = match (&release_ro_path, i.release_ro_fd) {
         (None, None) => None,
         (Some(path), Some(raw)) if raw >= 3 => {
@@ -1860,27 +1959,36 @@ fn inner(o: &Options, i: &Inner) -> Result<i32, String> {
             }
             let duplicate = unsafe { libc::fcntl(raw, libc::F_DUPFD_CLOEXEC, 3) };
             if duplicate < 0 {
-                return Err(error());
+                return Err(syscall_failure("fd.duplicate-release-root"));
             }
             let held = unsafe { File::from_raw_fd(duplicate) };
             // Below fallback paths the public name still denotes the original host
             // view here; the held FD survives its replacement by private tmpfs.
-            verify_protected_ro(o, path, &held)?;
+            stage_result(
+                "fd.verify-release-root",
+                verify_protected_ro(o, path, &held),
+            )?;
             Some(held)
         }
         _ => return Err("Reference release read FD role differs".into()),
     };
     let duplicate = unsafe { libc::fcntl(i.consumer_fd, libc::F_DUPFD_CLOEXEC, 3) };
     if duplicate < 0 {
-        return Err(error());
+        return Err(syscall_failure("fd.duplicate-consumer-cgroup"));
     }
     let held = unsafe { File::from_raw_fd(duplicate) };
-    let actual = membership()?;
+    let actual = stage_result("cgroup.read-current-membership", membership())?;
     if actual != i.setup {
         return Err("actual preplacement setup membership differs".into());
     }
-    topology(&actual, &o.consumer, &held, o.quota, o.ram, end)?;
-    if consumer_populated(&held)? {
+    stage_result(
+        "cgroup.verify-before-placement",
+        topology(&actual, &o.consumer, &held, o.quota, o.ram, end),
+    )?;
+    if stage_result(
+        "cgroup.read-populated-before-placement",
+        consumer_populated(&held),
+    )? {
         return Err("consumer became populated before placement".into());
     }
     end.check()?;
@@ -1903,25 +2011,39 @@ fn inner(o: &Options, i: &Inner) -> Result<i32, String> {
     )?;
     for name in ["tmp", "capture", "stage", "output"] {
         end.check()?;
+        let site = match name {
+            "tmp" => "stage.create-private-tmp",
+            "capture" => "stage.create-private-capture",
+            "stage" => "stage.create-private-stage",
+            _ => "stage.create-private-output",
+        };
         DirBuilder::new()
             .mode(0o700)
             .create(i.root.join(name))
-            .map_err(|e| e.to_string())?;
+            .map_err(|e| io_failure(site, e))?;
     }
     let temporary = i.root.join("tmp");
-    let temp = fs::metadata(&temporary).map_err(|e| e.to_string())?;
+    let temp =
+        fs::metadata(&temporary).map_err(|e| io_failure("stage.read-private-tmp-metadata", e))?;
     let mut fallbacks: Vec<String> = Vec::new();
     for (index, name) in FALLBACKS.iter().enumerate() {
         let name = *name;
         end.check()?;
         let path = Path::new(name);
+        let site = match index {
+            0 => "fallback.inspect-entry-0",
+            1 => "fallback.inspect-entry-1",
+            2 => "fallback.inspect-entry-2",
+            _ => "fallback.inspect-entry-other",
+        };
         let info = match fs::symlink_metadata(path) {
             Ok(info) => info,
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => continue,
-            Err(e) => return Err(e.to_string()),
+            Err(e) => return Err(io_failure(site, e)),
         };
         if info.file_type().is_symlink() {
-            let named = fs::canonicalize(path).map_err(|e| e.to_string())?;
+            let named =
+                fs::canonicalize(path).map_err(|e| io_failure("fallback.resolve-alias", e))?;
             if !fallbacks.iter().any(|p| Path::new(p) == named) {
                 return Err("unsupported SQLite fallback alias".into());
             }
@@ -1944,7 +2066,7 @@ fn inner(o: &Options, i: &Inner) -> Result<i32, String> {
                 None,
             )?;
         }
-        let info = fs::metadata(path).map_err(|e| e.to_string())?;
+        let info = fs::metadata(path).map_err(|e| io_failure(site, e))?;
         if info.dev() != temp.dev() || info.ino() != temp.ino() {
             return Err("fallback does not share aggregate private quota".into());
         }
@@ -1959,6 +2081,7 @@ fn inner(o: &Options, i: &Inner) -> Result<i32, String> {
             held,
             "mount.protected-read-root-bind",
             "mount.protected-read-root-setattr",
+            "mount.protected-read-root-readback",
         )?;
     }
     if let (Some(path), Some(held)) = (&release_ro_path, &release_ro) {
@@ -1968,6 +2091,7 @@ fn inner(o: &Options, i: &Inner) -> Result<i32, String> {
             held,
             "mount.release-root-bind",
             "mount.release-root-setattr",
+            "mount.release-root-readback",
         )?;
     }
     if let (Some(selected), Some(held)) = (&o.search_cache, &search_cache) {
@@ -1977,16 +2101,21 @@ fn inner(o: &Options, i: &Inner) -> Result<i32, String> {
             .map(Path::new)
             .find(|p| parent.starts_with(p))
         {
-            let relative = parent.strip_prefix(fallback).map_err(|e| e.to_string())?;
+            let relative = parent
+                .strip_prefix(fallback)
+                .map_err(|_| "search-cache parent escaped fallback".to_owned())?;
             let mut cursor = fallback.to_path_buf();
             for component in relative.components() {
                 cursor.push(component);
                 match DirBuilder::new().mode(0o700).create(&cursor) {
                     Ok(()) => (),
                     Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => {
-                        drop(directory(&cursor)?);
+                        drop(stage_result(
+                            "search-cache.open-existing-parent",
+                            directory(&cursor),
+                        )?);
                     }
-                    Err(e) => return Err(e.to_string()),
+                    Err(e) => return Err(io_failure("search-cache.create-parent", e)),
                 }
             }
         }
@@ -2011,15 +2140,20 @@ fn inner(o: &Options, i: &Inner) -> Result<i32, String> {
                 None,
             )?;
         }
-        selected.verify(held, &i.root)?;
+        stage_result(
+            "search-cache.verify-after-placement",
+            selected.verify(held, &i.root),
+        )?;
     }
-    let root = directory(&i.root)?;
-    let meta = root.metadata().map_err(|e| e.to_string())?;
+    let root = stage_result("mount.open-private-root", directory(&i.root))?;
+    let meta = root
+        .metadata()
+        .map_err(|e| io_failure("mount.read-private-root-metadata", e))?;
     let mut stats = unsafe { std::mem::zeroed::<libc::statvfs>() };
-    if unsafe { libc::fstatvfs(root.as_raw_fd(), &mut stats) } != 0
-        || stats.f_blocks.checked_mul(stats.f_frsize) != Some(o.quota)
-        || stats.f_files != o.inodes
-    {
+    if unsafe { libc::fstatvfs(root.as_raw_fd(), &mut stats) } != 0 {
+        return Err(syscall_failure("mount.verify-private-tmpfs-statvfs"));
+    }
+    if stats.f_blocks.checked_mul(stats.f_frsize) != Some(o.quota) || stats.f_files != o.inodes {
         return Err("actual kernel tmpfs byte/inode ceiling differs".into());
     }
     let mut mount_id = unsafe { std::mem::zeroed::<libc::statx>() };
@@ -2032,14 +2166,19 @@ fn inner(o: &Options, i: &Inner) -> Result<i32, String> {
             &mut mount_id,
         )
     } != 0
-        || mount_id.stx_mask & libc::STATX_MNT_ID == 0
     {
+        return Err(syscall_failure("mount.read-private-mount-id"));
+    }
+    if mount_id.stx_mask & libc::STATX_MNT_ID == 0 {
         return Err("actual private mount ID unavailable".into());
     }
     let mut ticket = serde_json::json!({"schema":SCHEMA,"quota_bytes":o.quota,"inode_limit":o.inodes,"working_ram_bytes":o.ram,"root":i.root,"root_device":meta.dev(),"root_inode":meta.ino(),"mount_id":mount_id.stx_mnt_id,"mount_namespace_inode":mnt,"parent_mount_namespace_inode":i.parent_mnt,"fallbacks":fallbacks,"lifetime":"consumer-process-mount-namespace","capabilities":"dropped-before-exec","write_confinement":"landlock-v3","consumer_requires_dumpable_zero":true});
     if let Some(held) = persistent.as_ref() {
         let path = o.persistent.as_ref().ok_or("persistent selection absent")?;
-        let info = verify_persistent(path, held, &i.root)?;
+        let info = stage_result(
+            "ticket.verify-persistent-store",
+            verify_persistent(path, held, &i.root),
+        )?;
         if info.dev() == meta.dev() {
             return Err("persistent store must be outside private tmpfs device".into());
         }
@@ -2047,7 +2186,7 @@ fn inner(o: &Options, i: &Inner) -> Result<i32, String> {
         ticket["persistent_store"] = serde_json::json!({"root":path,"root_device":info.dev(),"root_inode":info.ino(),"quota_scope":"outside-private-tmpfs"});
     }
     if let (Some(selected), Some(held)) = (&o.search_cache, &search_cache) {
-        let info = selected.verify(held, &i.root)?;
+        let info = stage_result("ticket.verify-search-cache", selected.verify(held, &i.root))?;
         if info.dev() == meta.dev() {
             return Err("search cache must be outside private tmpfs device".into());
         }
@@ -2071,10 +2210,12 @@ fn inner(o: &Options, i: &Inner) -> Result<i32, String> {
         )
     };
     if fd < 0 {
-        return Err(error());
+        return Err(syscall_failure("ticket.create-sealed-memfd"));
     }
     let mut custody = unsafe { File::from_raw_fd(fd) };
-    custody.write_all(&bytes).map_err(|e| e.to_string())?;
+    custody
+        .write_all(&bytes)
+        .map_err(|e| io_failure("ticket.write-sealed-memfd", e))?;
     if unsafe {
         libc::fcntl(
             fd,
@@ -2083,29 +2224,44 @@ fn inner(o: &Options, i: &Inner) -> Result<i32, String> {
         )
     } < 0
     {
-        return Err(error());
+        return Err(syscall_failure("ticket.apply-seals"));
     }
     end.check()?;
     loopback()?;
-    topology(&i.setup, &o.consumer, &held, o.quota, o.ram, end)?;
-    let mut placement = member(&held, "cgroup.procs", true)?;
-    placement.write_all(b"0\n").map_err(|e| e.to_string())?;
+    stage_result(
+        "cgroup.recheck-before-placement",
+        topology(&i.setup, &o.consumer, &held, o.quota, o.ram, end),
+    )?;
+    let mut placement = stage_result(
+        "cgroup.open-placement-control",
+        member(&held, "cgroup.procs", true),
+    )?;
+    placement
+        .write_all(b"0\n")
+        .map_err(|e| io_failure("cgroup.place-consumer", e))?;
     drop(placement);
-    if membership()? != o.consumer {
+    if stage_result("cgroup.verify-consumer-placement", membership())? != o.consumer {
         return Err("actual consumer membership differs after self placement".into());
     }
-    consumer_limits(&held, o.ram)?;
+    stage_result(
+        "cgroup.verify-consumer-limits",
+        consumer_limits(&held, o.ram),
+    )?;
     if o.sdk_phase_as.is_some() {
-        phase_restore_consumer(
-            o,
-            i.control_auth.as_ref().ok_or("phase auth absent")?,
-            o.control_fd.ok_or("phase FD absent")?,
-            end,
+        stage_result(
+            "sdk-phase.restore-consumer-as",
+            phase_restore_consumer(
+                o,
+                i.control_auth.as_ref().ok_or("phase auth absent")?,
+                o.control_fd.ok_or("phase FD absent")?,
+                end,
+            ),
         )?;
     }
     drop(held);
     unsafe { libc::close(i.consumer_fd) };
-    std::env::set_current_dir(&i.root).map_err(|e| e.to_string())?;
+    std::env::set_current_dir(&i.root)
+        .map_err(|e| io_failure("stage.set-private-current-directory", e))?;
     confine(
         &i.root,
         &fallbacks,
@@ -2113,17 +2269,23 @@ fn inner(o: &Options, i: &Inner) -> Result<i32, String> {
         search_cache.as_ref(),
     )?;
     if let (Some(selected), Some(held)) = (&o.search_cache, &search_cache) {
-        selected.verify(held, &i.root)?;
+        stage_result(
+            "search-cache.verify-before-exec",
+            selected.verify(held, &i.root),
+        )?;
     }
     // Exact issuer-held cache FD survives exec; compiler duplicates this FD from sealed ticket.
     if let Some(raw) = i.search_cache_fd {
         unsafe { libc::close(raw) };
     }
     if let Some(held) = persistent.as_ref() {
-        verify_persistent(
-            o.persistent.as_ref().ok_or("persistent selection absent")?,
-            held,
-            &i.root,
+        stage_result(
+            "fd.reverify-persistent-store",
+            verify_persistent(
+                o.persistent.as_ref().ok_or("persistent selection absent")?,
+                held,
+                &i.root,
+            ),
         )?;
     }
     drop(persistent);
@@ -2131,17 +2293,23 @@ fn inner(o: &Options, i: &Inner) -> Result<i32, String> {
         unsafe { libc::close(fd) };
     }
     if unsafe { libc::prctl(libc::PR_SET_DUMPABLE, 0, 0, 0, 0) } != 0 {
-        return Err(error());
+        return Err(syscall_failure("confinement.set-nondumpable"));
     }
     if let (Some(path), Some(held)) = (&o.protected_ro, &protected_ro) {
-        verify_protected_ro(o, path, held)?;
+        stage_result(
+            "fd.reverify-protected-read-root",
+            verify_protected_ro(o, path, held),
+        )?;
     }
     drop(protected_ro);
     if let Some(fd) = i.protected_ro_fd {
         unsafe { libc::close(fd) };
     }
     if let (Some(path), Some(held)) = (&release_ro_path, &release_ro) {
-        verify_protected_ro(o, path, held)?;
+        stage_result(
+            "fd.reverify-release-root",
+            verify_protected_ro(o, path, held),
+        )?;
     }
     drop(release_ro);
     if let Some(fd) = i.release_ro_fd {
@@ -2152,33 +2320,43 @@ fn inner(o: &Options, i: &Inner) -> Result<i32, String> {
     // All other inherited descriptors become CLOEXEC; only genuine sealed ticket
     // survives the explicit consumer exec. No writable cgroup FD reaches it.
     if unsafe { libc::syscall(libc::SYS_close_range, 3u32, u32::MAX, 4u32) } < 0 {
-        return Err(error());
+        return Err(syscall_failure("exec.close-inherited-fds"));
     }
     let flags = unsafe { libc::fcntl(fd, libc::F_GETFD) };
-    if flags < 0 || unsafe { libc::fcntl(fd, libc::F_SETFD, flags & !libc::FD_CLOEXEC) } < 0 {
-        return Err(error());
+    if flags < 0 {
+        return Err(syscall_failure("exec.read-ticket-fd-flags"));
+    }
+    if unsafe { libc::fcntl(fd, libc::F_SETFD, flags & !libc::FD_CLOEXEC) } < 0 {
+        return Err(syscall_failure("exec.retain-ticket-fd"));
     }
     if let Some(held) = search_cache.as_ref() {
         let raw = held.as_raw_fd();
         let flags = unsafe { libc::fcntl(raw, libc::F_GETFD) };
-        if flags < 0 || unsafe { libc::fcntl(raw, libc::F_SETFD, flags & !libc::FD_CLOEXEC) } < 0 {
-            return Err(error());
+        if flags < 0 {
+            return Err(syscall_failure("exec.read-search-cache-fd-flags"));
+        }
+        if unsafe { libc::fcntl(raw, libc::F_SETFD, flags & !libc::FD_CLOEXEC) } < 0 {
+            return Err(syscall_failure("exec.retain-search-cache-fd"));
         }
     }
     if let (Some(control_fd), Some(auth)) = (o.control_fd, i.control_auth.as_ref()) {
         match_control(control_fd, auth, end)?;
         let flags = unsafe { libc::fcntl(control_fd, libc::F_GETFD) };
-        if flags < 0
-            || unsafe { libc::fcntl(control_fd, libc::F_SETFD, flags & !libc::FD_CLOEXEC) } < 0
-        {
-            return Err(error());
+        if flags < 0 {
+            return Err(syscall_failure("exec.read-control-fd-flags"));
+        }
+        if unsafe { libc::fcntl(control_fd, libc::F_SETFD, flags & !libc::FD_CLOEXEC) } < 0 {
+            return Err(syscall_failure("exec.retain-control-fd"));
         }
     }
     retained_fd_roles(o.retained_fds)?;
     for fd in o.retained_fds.into_iter().flatten() {
         let flags = unsafe { libc::fcntl(fd, libc::F_GETFD) };
-        if flags < 0 || unsafe { libc::fcntl(fd, libc::F_SETFD, flags & !libc::FD_CLOEXEC) } < 0 {
-            return Err(error());
+        if flags < 0 {
+            return Err(syscall_failure("exec.read-retained-state-fd-flags"));
+        }
+        if unsafe { libc::fcntl(fd, libc::F_SETFD, flags & !libc::FD_CLOEXEC) } < 0 {
+            return Err(syscall_failure("exec.retain-state-fd"));
         }
     }
     let mut command = Command::new(&o.command[0]);
@@ -2188,8 +2366,11 @@ fn inner(o: &Options, i: &Inner) -> Result<i32, String> {
     if let Some(held) = search_cache.as_ref() {
         let raw = held.as_raw_fd();
         let flags = unsafe { libc::fcntl(raw, libc::F_GETFD) };
-        if flags < 0 || unsafe { libc::fcntl(raw, libc::F_SETFD, flags & !libc::FD_CLOEXEC) } < 0 {
-            return Err(error());
+        if flags < 0 {
+            return Err(syscall_failure("exec.reread-search-cache-fd-flags"));
+        }
+        if unsafe { libc::fcntl(raw, libc::F_SETFD, flags & !libc::FD_CLOEXEC) } < 0 {
+            return Err(syscall_failure("exec.reretain-search-cache-fd"));
         }
     }
     if let (Some(control_fd), Some(auth)) = (o.control_fd, i.control_auth.as_ref()) {
@@ -2206,7 +2387,7 @@ fn inner(o: &Options, i: &Inner) -> Result<i32, String> {
         .env("ABYSS_STAGE_TICKET_FD", fd.to_string())
         .env("TMPDIR", &temporary)
         .env("SQLITE_TMPDIR", &temporary);
-    Err(command.exec().to_string())
+    Err(io_failure("exec.consumer", command.exec()))
 }
 fn selected_direct_custody(
     parent: Option<&str>,
