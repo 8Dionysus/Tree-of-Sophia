@@ -4244,7 +4244,7 @@ mod tests {
         let reference =
             |id: &str| json!({"id":id,"version":1,"digest":format!("sha256:{}","00".repeat(32))});
         let proposal = json!({"claim_id":"tos.claim.p","subject_ref":"tos.work.a","supersedes_claim_ref":null,"object":{"operation":"merge","members":["tos.work.a","tos.work.b","tos.work.c"],"predecessors":[reference("tos.work.a"),reference("tos.work.b")],"successors":[reference("tos.work.c")],"mapping":[{"predecessor":"tos.work.a","successor":"tos.work.c"},{"predecessor":"tos.work.b","successor":"tos.work.c"}],"supersedes_proposal":null,"unresolved_links":[]}});
-        let records = ["a", "b", "c"]
+        let records: BTreeMap<String, BiblioCurrentRecord> = ["a", "b", "c"]
             .into_iter()
             .map(|suffix| {
                 (
