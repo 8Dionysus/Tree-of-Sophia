@@ -23,7 +23,7 @@ export function withWebAnalytics(request: Request, response: Response, token: st
       element(element) {
         element.onEndTag((tag) => {
           if (!present) tag.before(
-            `<script type="module" crossorigin="anonymous" src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='${JSON.stringify({ token })}'></script>`,
+            `<script type="module" crossorigin="anonymous" src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='${JSON.stringify({ token, version: "2026.10.0", r: 1, spa: 2 })}'></script>`,
             { html: true },
           );
         });

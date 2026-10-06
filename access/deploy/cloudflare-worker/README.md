@@ -835,7 +835,8 @@ it requires a continuously powered origin machine.
 
 The production Worker inserts one Cloudflare Web Analytics beacon into successful
 HTML responses on `treeofsophia.com`, using the public `WEB_ANALYTICS_TOKEN`
-binding. The HTML `no-transform` cache directive prevents automatic edge
+binding. Its beacon configuration uses Cloudflare’s proxied-site ingestion
+endpoint (`/cdn-cgi/rum`), verified with HTTP 204 from a real browser. The HTML `no-transform` cache directive prevents automatic edge
 injection from duplicating this manually installed beacon. EU visitors remain excluded using the
 request's Cloudflare geography. HTML responses are private/no-store because
 their beacon presence varies by geography; static assets retain direct caching.
