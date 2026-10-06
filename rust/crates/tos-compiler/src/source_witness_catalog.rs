@@ -1495,7 +1495,16 @@ impl<'a> SourceCatalogValidator<'a> {
             .try_borrow_mut()
             .map_err(|_| Error::Invalid("catalog executor already in use"))?;
         let valid = schemas.check(path, raw, &contract, self.deadline, self.cancelled)
-            .map_err(|e| Error::Source(format!("catalog schema execution incomplete: path={path}; contract={contract}; reason={e:?}")))?;
+            .map_err(|e| match e {
+                // Keep bounded mechanical worker/quota evidence typed across
+                // the compiler boundary; the command already renders this
+                // owned error without exposing instance or foreign paths.
+                tos_validation::item_rules::ItemRefusal::Executor(evidence) => {
+                    Error::Io(std::io::Error::new(std::io::ErrorKind::InvalidData, *evidence))
+                }
+                tos_validation::item_rules::ItemRefusal::Budget => Error::Budget("catalog schema execution"),
+                other => Error::Source(format!("catalog schema execution incomplete: path={path}; contract={contract}; reason={other:?}")),
+            })?;
         if !valid {
             return Err(Error::Invalid(
                 "source catalog exact native schema rejected",
