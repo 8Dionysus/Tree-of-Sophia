@@ -21,7 +21,7 @@ tos-foundation = { path = "../tos-foundation" }
 tos-source-store = { path = "../tos-source-store" }
 tos-compiler = { path = "../tos-compiler", optional = true }
 tos-validation = { path = "../tos-validation" }
-toml = { version = "=0.9.11", default-features = false, features = ["std", "parse"] }
+toml = { version = "=0.9.11", default-features = false, features = ["std", "parse", "serde"] }
 unicode-general-category = "=1.1.0"
 yaml-rust2 = { version = "=0.13.0", default-features = false }
 
