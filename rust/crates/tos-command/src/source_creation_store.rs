@@ -737,9 +737,22 @@ impl IsolatedCreationRoot {
                 "isolated creation parent replaced",
             ));
         }
-        let parent_fd = held_parent
-            .try_clone()
-            .map_err(|_| SourceCommandError::Invalid("isolated root parent custody"))?;
+        // The persistent capability holds O_PATH custody. Reopen that same
+        // directory for fsync; cloning O_PATH cannot provide this operation.
+        let parent_fd = File::from(
+            rustix::fs::openat(
+                held_parent,
+                ".",
+                OFlags::RDONLY | OFlags::DIRECTORY | OFlags::NOFOLLOW | OFlags::CLOEXEC,
+                Mode::empty(),
+            )
+            .map_err(|_| SourceCommandError::Invalid("isolated root parent custody"))?,
+        );
+        if inode(&owned(&parent_fd, uid, true)?) != inode(&owned(held_parent, uid, true)?) {
+            return Err(SourceCommandError::Conflict(
+                "isolated creation parent replaced",
+            ));
+        }
         Self::create_selected(
             parent,
             parent_fd,

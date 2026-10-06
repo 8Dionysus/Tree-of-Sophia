@@ -1563,17 +1563,21 @@ impl FoundationExecutionLimits {
     }
 
     /// Biblio construction is conditional and follows the catalog producer.
-    /// All row/cohort/output caps are exact caller-provided shape limits and
-    /// must remain inside the same catalog-and-persisted reservation.
+    /// Cohort shape and retained capacity come from the current catalog phase.
+    /// Derive both retained row and byte limits here so candidate and ordinary
+    /// callers cannot accidentally substitute the final receipt capacity.
+    /// These rows stay in the staged database; its tmpfs capacity bounds them.
+    /// The CLI output reservation independently bounds the final receipt.
     pub(crate) fn bibliography_limits(
         &self,
         catalog: SourceCatalogLimits,
         max_claim_cohort_rows: usize,
         max_claim_cohort_bytes: usize,
-        max_output_rows: u64,
-        max_output_bytes: u64,
+        retained_capacity_bytes: u64,
     ) -> Result<BibliographicLimits> {
         let reservation = self.reservations.catalog_and_persisted;
+        let max_output_bytes = retained_capacity_bytes;
+        let max_output_rows = catalog.max_rows.min(max_output_bytes);
         if max_claim_cohort_rows == 0
             || max_claim_cohort_bytes == 0
             || max_claim_cohort_bytes > reservation.state_bytes
@@ -1582,7 +1586,6 @@ impl FoundationExecutionLimits {
             || max_output_rows > max_output_bytes
             || max_output_bytes == 0
             || max_output_bytes > reservation.tmpfs_bytes
-            || max_output_bytes > reservation.output_bytes as u64
         {
             return Err(Error::Unsupported(
                 "foundation bibliography exceeds its named reservation",

@@ -2875,20 +2875,7 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
             catalog_limits,
             max_claim_rows,
             max_claim_bytes,
-            catalog_limits
-                .max_rows
-                .min(
-                    u64::try_from(catalog_operation.output_bytes)
-                        .map_err(|_| incomplete("catalog output byte ceiling exceeds u64"))?,
-                )
-                .max(1),
-            catalog_operation
-                .tmpfs_bytes
-                .min(
-                    u64::try_from(catalog_operation.output_bytes)
-                        .map_err(|_| incomplete("catalog output byte ceiling exceeds u64"))?,
-                )
-                .max(1),
+            catalog_operation.tmpfs_bytes,
         )
         .map_err(FoundationOrchestratorError::Command)?;
     let stage_limits = view
@@ -2924,10 +2911,7 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
     let max_generated_bytes = usize::try_from(
         catalog_operation
             .tmpfs_bytes
-            .min(
-                u64::try_from(catalog_operation.output_bytes)
-                    .map_err(|_| incomplete("catalog output byte ceiling exceeds u64"))?,
-            )
+            .min(catalog_operation.source_read_bytes)
             .min((usize::MAX - 1) as u64),
     )
     .map_err(|_| incomplete("candidate generated catalog byte cap range"))?;
@@ -4647,14 +4631,7 @@ fn run<'work, 'receive, 'cancel, 'signal>(
         catalog_limits,
         max_claim_rows,
         max_claim_bytes,
-        catalog_limits
-            .max_rows
-            .min(catalog_operation.output_bytes as u64)
-            .max(1),
-        catalog_operation
-            .tmpfs_bytes
-            .min(catalog_operation.output_bytes as u64)
-            .max(1),
+        catalog_operation.tmpfs_bytes,
     ) {
         Ok(limits) => limits,
         Err(error) => {
