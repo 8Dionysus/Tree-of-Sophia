@@ -37,6 +37,10 @@ pub enum PinnedSqliteIoFailure {
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub struct PinnedSqliteIoSnapshot {
+    /// The current finite ceiling and the caller that last lowered it. Missing
+    /// values mean the limit lock could not be observed, never an unlimited grant.
+    pub read_limit_bytes: Option<u64>,
+    pub read_limit_origin: Option<&'static std::panic::Location<'static>>,
     pub read_attempted_bytes: u64,
     /// Admitted logical guard envelopes included in attempted reads. These
     /// are upper bounds, not measured payload or kernel transfer bytes.
@@ -59,6 +63,7 @@ pub struct PinnedSqliteIoSnapshot {
 struct IoLimits {
     max_read: u64,
     max_write: u64,
+    read_origin: &'static std::panic::Location<'static>,
 }
 
 #[derive(Debug)]
@@ -90,6 +95,7 @@ impl PinnedSqliteIoBudget {
         Arc::ptr_eq(&self.0, &other.0)
     }
 
+    #[track_caller]
     pub fn new(max_read_bytes: u64, max_write_bytes: u64) -> Result<Self> {
         if max_read_bytes == 0
             || max_write_bytes == 0
@@ -102,6 +108,7 @@ impl PinnedSqliteIoBudget {
             limits: Mutex::new(IoLimits {
                 max_read: max_read_bytes,
                 max_write: max_write_bytes,
+                read_origin: std::panic::Location::caller(),
             }),
             aggregate_write: None,
             read_attempted: AtomicU64::new(0),
@@ -120,6 +127,7 @@ impl PinnedSqliteIoBudget {
     /// write authority. Local restrictions and counters remain independent;
     /// every permitted write must fit both ceilings before IO begins.
     /// Only a root may back children: this is one shared pool, not a hierarchy.
+    #[track_caller]
     pub fn new_with_shared_write_authority(
         max_read_bytes: u64,
         max_local_write_bytes: u64,
@@ -180,6 +188,7 @@ impl PinnedSqliteIoBudget {
     /// denied capability, not an artificial one-byte allowance. Reads and
     /// upper-bound guard charges retain the same identity and accounting law
     /// as a regular request ledger.
+    #[track_caller]
     pub fn new_read_only(max_read_bytes: u64) -> Result<Self> {
         if max_read_bytes == 0 || max_read_bytes == u64::MAX {
             return Err(budget_error(
@@ -190,6 +199,7 @@ impl PinnedSqliteIoBudget {
             limits: Mutex::new(IoLimits {
                 max_read: max_read_bytes,
                 max_write: 0,
+                read_origin: std::panic::Location::caller(),
             }),
             aggregate_write: None,
             read_attempted: AtomicU64::new(0),
@@ -353,6 +363,7 @@ impl PinnedSqliteIoBudget {
     /// This mechanical restriction neither verifies that outer accounting nor
     /// grants a larger limit: repeated calls can only retain or lower ceilings.
     /// Zero remaining bytes are valid. No new Arc/request identity is created.
+    #[track_caller]
     pub fn restrict_remaining_io(
         &self,
         remaining_read_bytes: u64,
@@ -389,7 +400,10 @@ impl PinnedSqliteIoBudget {
         let max_write = used_write
             .checked_add(remaining_write_bytes)
             .ok_or_else(|| budget_error("SQLite remaining write slice overflow"))?;
-        limits.max_read = limits.max_read.min(max_read);
+        if max_read < limits.max_read {
+            limits.max_read = max_read;
+            limits.read_origin = std::panic::Location::caller();
+        }
         limits.max_write = limits.max_write.min(max_write);
         Ok(())
     }
@@ -416,7 +430,10 @@ impl PinnedSqliteIoBudget {
     }
 
     pub fn snapshot(&self) -> PinnedSqliteIoSnapshot {
+        let limits = self.0.limits.lock().ok();
         PinnedSqliteIoSnapshot {
+            read_limit_bytes: limits.as_ref().map(|limits| limits.max_read),
+            read_limit_origin: limits.as_ref().map(|limits| limits.read_origin),
             read_attempted_bytes: self.0.read_attempted.load(Ordering::Acquire),
             read_upper_bound_attempted_bytes: self
                 .0

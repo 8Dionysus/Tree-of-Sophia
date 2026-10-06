@@ -99,7 +99,11 @@ pub(crate) struct NativeSpoolRefusalPacket<'a> {
 }
 #[derive(serde::Serialize)]
 struct NativeSpoolIoPacket {
+    read_limit_bytes: Option<u64>,
+    read_limit_source: Option<&'static str>,
+    read_limit_line: Option<u32>,
     read_attempted_bytes: u64,
+    read_upper_bound_attempted_bytes: u64,
     read_permitted_bytes: u64,
     read_returned_bytes: u64,
     write_attempted_bytes: u64,
@@ -110,7 +114,14 @@ struct NativeSpoolIoPacket {
 impl From<PinnedSqliteIoSnapshot> for NativeSpoolIoPacket {
     fn from(value: PinnedSqliteIoSnapshot) -> Self {
         Self {
+            read_limit_bytes: value.read_limit_bytes,
+            // Rust source basename only: never emit an absolute build path.
+            read_limit_source: value
+                .read_limit_origin
+                .and_then(|origin| origin.file().rsplit('/').next()),
+            read_limit_line: value.read_limit_origin.map(|origin| origin.line()),
             read_attempted_bytes: value.read_attempted_bytes,
+            read_upper_bound_attempted_bytes: value.read_upper_bound_attempted_bytes,
             read_permitted_bytes: value.read_permitted_bytes,
             read_returned_bytes: value.read_returned_bytes,
             write_attempted_bytes: value.write_attempted_bytes,
@@ -137,7 +148,10 @@ fn bounded_error_sha256(error: &io::Error) -> Option<String> {
     }
     impl std::fmt::Write for Fingerprint {
         fn write_str(&mut self, text: &str) -> std::fmt::Result {
-            self.remaining = self.remaining.checked_sub(text.len()).ok_or(std::fmt::Error)?;
+            self.remaining = self
+                .remaining
+                .checked_sub(text.len())
+                .ok_or(std::fmt::Error)?;
             self.hash.update(text.as_bytes());
             Ok(())
         }
@@ -1679,7 +1693,10 @@ impl<'c> NativeSourceValidator<'c> {
         }
         let max_members = candidate_limits.admission.max_members;
         let max_manifest_entries = u64::try_from(
-            candidate_limits.reader.max_manifest_entries.min(manifest_bytes),
+            candidate_limits
+                .reader
+                .max_manifest_entries
+                .min(manifest_bytes),
         )
         .map_err(|_| invalid("spooled manifest entry bound exceeds range"))?;
         let max_member_bytes = candidate_limits.admission.max_member_bytes;
@@ -2402,11 +2419,7 @@ impl<'c> NativeSourceValidator<'c> {
                 .segment_v2_profile
                 .as_ref()
                 .is_some_and(|profile| profile.io.shares_with(io));
-        if bytes == 0
-            || bytes == usize::MAX
-            || !self.spooled_route_selected
-            || !selected_io
-        {
+        if bytes == 0 || bytes == usize::MAX || !self.spooled_route_selected || !selected_io {
             return Err(invalid("spooled external state original owner differs"));
         }
         debit(
@@ -3311,15 +3324,24 @@ mod refusal_transport_tests {
     #[test]
     fn opaque_error_fingerprint_is_bounded_and_does_not_export_text() {
         let text = "/private/sentinel: publication failed";
-        assert_eq!(bounded_error_sha256(&io::Error::other(text)),
-            Some(tos_foundation::Digest256::of_bytes(text.as_bytes()).to_hex()));
+        assert_eq!(
+            bounded_error_sha256(&io::Error::other(text)),
+            Some(tos_foundation::Digest256::of_bytes(text.as_bytes()).to_hex())
+        );
         assert!(bounded_error_sha256(&io::Error::other("x".repeat(4097))).is_none());
         let snapshot = PinnedSqliteIoSnapshot::default();
-        let refusal = NativeSpoolRefusal::retain(io::Error::other(text),
-            "native-v4 corpus publication", snapshot, snapshot, false, false);
+        let refusal = NativeSpoolRefusal::retain(
+            io::Error::other(text),
+            "native-v4 corpus publication",
+            snapshot,
+            snapshot,
+            false,
+            false,
+        );
         let encoded = serde_json::to_string(&refusal.packet()).unwrap();
         assert!(!encoded.contains("private/sentinel"));
-        assert!(serde_json::from_str::<Value>(&encoded).unwrap()["native_validation_reason"].is_null());
+        assert!(
+            serde_json::from_str::<Value>(&encoded).unwrap()["native_validation_reason"].is_null()
+        );
     }
-
 }

@@ -726,13 +726,14 @@ impl<'host> SpoolCandidate<'host> {
         self.finish_read(self.limits.retained_batch_state(&self.batch))
     }
     /// Narrow cumulative logical ceilings without resetting usage or shared physical IO.
+    #[track_caller]
     pub(crate) fn restrict_remaining_io(
         &self,
         remaining_read: u64,
         remaining_write: u64,
     ) -> io::Result<()> {
         self.tick()?;
-        let result = (|| {
+        let ceilings = (|| {
             let reads = self
                 .logical_reads
                 .get()
@@ -743,17 +744,26 @@ impl<'host> SpoolCandidate<'host> {
                 .get()
                 .checked_add(remaining_write)
                 .ok_or_else(|| invalid("candidate remaining write ceiling overflow"))?;
-            // External Foundation phases may consume the outer allowance.
-            // Narrow the SAME physical ledger before final EOF, without reset.
-            self.ledger
-                .restrict_remaining_io(remaining_read, remaining_write)
-                .map_err(invalid)?;
-            self.logical_read_ceiling
-                .set(self.logical_read_ceiling.get().min(reads));
-            self.logical_write_ceiling
-                .set(self.logical_write_ceiling.get().min(writes));
-            Ok(())
+            Ok((reads, writes))
         })();
+        // Keep the tracked caller outside a closure, so a refusal identifies
+        // the phase that selected this slice instead of this forwarding adapter.
+        let result = match ceilings {
+            Ok((reads, writes)) => match self
+                .ledger
+                .restrict_remaining_io(remaining_read, remaining_write)
+            {
+                Ok(()) => {
+                    self.logical_read_ceiling
+                        .set(self.logical_read_ceiling.get().min(reads));
+                    self.logical_write_ceiling
+                        .set(self.logical_write_ceiling.get().min(writes));
+                    Ok(())
+                }
+                Err(error) => Err(invalid(error)),
+            },
+            Err(error) => Err(error),
+        };
         self.finish_read(result)
     }
     /// Total owned state includes the retained baseline. Only its checked
