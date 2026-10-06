@@ -683,32 +683,32 @@ impl<I: Copy + Eq> CandidateSourceFoundationSchemaSet<I> {
         let coverage = source.for_each_current_member(deadline, cancelled, &mut |meta, raw| {
             if let Err(failure) = check_load_active(deadline, cancelled) {
                 selection_failure = Some(failure);
-                return Err(crate::item_rules::ItemRefusal::Budget);
+                return Err(crate::item_budget_origin!());
             }
             observed_members = match observed_members.checked_add(1) {
                 Some(count) => count,
                 None => {
                     selection_failure = Some(SourceFoundationSchemaLoadFailure::InvalidLimits);
-                    return Err(crate::item_rules::ItemRefusal::Budget);
+                    return Err(crate::item_budget_origin!());
                 }
             };
             let raw_size = match u64::try_from(raw.len()) {
                 Ok(size) => size,
                 Err(_) => {
                     selection_failure = Some(SourceFoundationSchemaLoadFailure::InvalidLimits);
-                    return Err(crate::item_rules::ItemRefusal::Budget);
+                    return Err(crate::item_budget_origin!());
                 }
             };
             observed_source_bytes = match observed_source_bytes.checked_add(raw_size) {
                 Some(total) => total,
                 None => {
                     selection_failure = Some(SourceFoundationSchemaLoadFailure::InvalidLimits);
-                    return Err(crate::item_rules::ItemRefusal::Budget);
+                    return Err(crate::item_budget_origin!());
                 }
             };
             if raw_size != meta.size_bytes {
                 selection_failure = Some(SourceFoundationSchemaLoadFailure::CutRead);
-                return Err(crate::item_rules::ItemRefusal::Budget);
+                return Err(crate::item_budget_origin!());
             }
 
             if !meta.path.starts_with(CONTRACT_PREFIX) || !meta.path.ends_with(CONTRACT_SUFFIX) {
@@ -719,7 +719,7 @@ impl<I: Copy + Eq> CandidateSourceFoundationSchemaSet<I> {
                 || source_resources.len() >= limits.max_schema_resources
             {
                 selection_failure = Some(SourceFoundationSchemaLoadFailure::InvalidLimits);
-                return Err(crate::item_rules::ItemRefusal::Budget);
+                return Err(crate::item_budget_origin!());
             }
             if source_resources
                 .last()
@@ -728,7 +728,7 @@ impl<I: Copy + Eq> CandidateSourceFoundationSchemaSet<I> {
                 })
             {
                 selection_failure = Some(SourceFoundationSchemaLoadFailure::ContractSelection);
-                return Err(crate::item_rules::ItemRefusal::Budget);
+                return Err(crate::item_budget_origin!());
             }
             total_schema_bytes = match total_schema_bytes
                 .checked_add(raw.len())
@@ -737,7 +737,7 @@ impl<I: Copy + Eq> CandidateSourceFoundationSchemaSet<I> {
                 Some(total) => total,
                 None => {
                     selection_failure = Some(SourceFoundationSchemaLoadFailure::InvalidLimits);
-                    return Err(crate::item_rules::ItemRefusal::Budget);
+                    return Err(crate::item_budget_origin!());
                 }
             };
 
@@ -745,7 +745,7 @@ impl<I: Copy + Eq> CandidateSourceFoundationSchemaSet<I> {
                 Some(count) => count,
                 None => {
                     selection_failure = Some(SourceFoundationSchemaLoadFailure::InvalidLimits);
-                    return Err(crate::item_rules::ItemRefusal::Budget);
+                    return Err(crate::item_budget_origin!());
                 }
             };
             let requested_descriptor_capacity =
@@ -759,14 +759,14 @@ impl<I: Copy + Eq> CandidateSourceFoundationSchemaSet<I> {
                 .is_none_or(|state| state > max_source_resource_metadata_state_bytes)
             {
                 selection_failure = Some(SourceFoundationSchemaLoadFailure::InvalidLimits);
-                return Err(crate::item_rules::ItemRefusal::Budget);
+                return Err(crate::item_budget_origin!());
             }
 
             let value = match crate::published_value(raw, limits.max_schema_resource_bytes) {
                 Ok(value) => value,
                 Err(_) => {
                     selection_failure = Some(SourceFoundationSchemaLoadFailure::SchemaResource);
-                    return Err(crate::item_rules::ItemRefusal::Budget);
+                    return Err(crate::item_budget_origin!());
                 }
             };
             if meta.path == SOURCE_FOUNDATION_CATALOG_PATH {
@@ -782,21 +782,21 @@ impl<I: Copy + Eq> CandidateSourceFoundationSchemaSet<I> {
                 Some(uri) => uri.to_owned(),
                 None => {
                     selection_failure = Some(SourceFoundationSchemaLoadFailure::SchemaResource);
-                    return Err(crate::item_rules::ItemRefusal::Budget);
+                    return Err(crate::item_budget_origin!());
                 }
             };
             let digest = Digest256::of_bytes(raw);
             let mut selected_path = String::new();
             if selected_path.try_reserve_exact(meta.path.len()).is_err() {
                 selection_failure = Some(SourceFoundationSchemaLoadFailure::InvalidLimits);
-                return Err(crate::item_rules::ItemRefusal::Budget);
+                return Err(crate::item_budget_origin!());
             }
             selected_path.push_str(meta.path);
             if resources.try_reserve_exact(1).is_err()
                 || source_resources.try_reserve_exact(1).is_err()
             {
                 selection_failure = Some(SourceFoundationSchemaLoadFailure::InvalidLimits);
-                return Err(crate::item_rules::ItemRefusal::Budget);
+                return Err(crate::item_budget_origin!());
             }
             let actual_metadata_state = selected_source_resource_metadata_state(
                 &source_resources,
@@ -807,19 +807,19 @@ impl<I: Copy + Eq> CandidateSourceFoundationSchemaSet<I> {
                 .is_none_or(|state| state > max_source_resource_metadata_state_bytes)
             {
                 selection_failure = Some(SourceFoundationSchemaLoadFailure::InvalidLimits);
-                return Err(crate::item_rules::ItemRefusal::Budget);
+                return Err(crate::item_budget_origin!());
             }
             if contracts
                 .insert(selected_path.clone(), (uri.clone(), digest))
                 .is_some()
             {
                 selection_failure = Some(SourceFoundationSchemaLoadFailure::ContractSelection);
-                return Err(crate::item_rules::ItemRefusal::Budget);
+                return Err(crate::item_budget_origin!());
             }
             let mut resource_raw = Vec::new();
             if resource_raw.try_reserve_exact(raw.len()).is_err() {
                 selection_failure = Some(SourceFoundationSchemaLoadFailure::InvalidLimits);
-                return Err(crate::item_rules::ItemRefusal::Budget);
+                return Err(crate::item_budget_origin!());
             }
             resource_raw.extend_from_slice(raw);
             resources.push(SchemaResource {
@@ -837,7 +837,7 @@ impl<I: Copy + Eq> CandidateSourceFoundationSchemaSet<I> {
             );
             if metadata_state.is_none_or(|state| state > max_source_resource_metadata_state_bytes) {
                 selection_failure = Some(SourceFoundationSchemaLoadFailure::InvalidLimits);
-                return Err(crate::item_rules::ItemRefusal::Budget);
+                return Err(crate::item_budget_origin!());
             }
             Ok(())
         });

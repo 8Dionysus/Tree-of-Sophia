@@ -1446,6 +1446,7 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
     use tos_validation::record_biblio_cut::{SourceCutInput, SourceCutInputWithIdentity};
     use tos_validation::source_foundation_records::SourceFoundationRecordsPageBudget;
 
+    let owner = |error| FoundationOrchestratorError::OwnerAt("candidate entry", error);
     let deadline = view.invocation.deadline();
     let cancelled = view.cancelled;
     let budgets = view.invocation.budgets;
@@ -1561,6 +1562,7 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
         FoundationWindowKind::Schema,
         FoundationPhaseReservation::default(),
     )?;
+    let owner = |error| FoundationOrchestratorError::OwnerAt("candidate schema", error);
     let schema_operation = schema_ticket.operation_limits();
     let worker_quota = SharedSchemaWorkerQuota::new(
         view.remaining_budget
@@ -1806,6 +1808,7 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
         FoundationWindowKind::RecordsAndBibliography,
         FoundationPhaseReservation::default(),
     )?;
+    let owner = |error| FoundationOrchestratorError::OwnerAt("candidate records", error);
     let records_operation = records_ticket.operation_limits();
     if records_operation.source_read_bytes == 0
         || records_operation.state_bytes == 0
@@ -2811,6 +2814,7 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
         FoundationWindowKind::CatalogAndPersisted,
         FoundationPhaseReservation::default(),
     )?;
+    let owner = |error| FoundationOrchestratorError::OwnerAt("candidate catalogue", error);
     let catalog_operation = catalog_ticket.operation_limits();
     let catalog_identity_state = worker_identity_path_clone_bytes(worker_image.identity(), 3)?;
     let catalog_state_cap = catalog_operation
