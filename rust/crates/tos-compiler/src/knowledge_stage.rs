@@ -2435,7 +2435,11 @@ impl<'a> KnowledgeStage<'a> {
             valid_id(id)?;
             let stage_cap = usize::try_from(self.limits.sqlite.max_row_bytes)
                 .map_err(|_| Error::Budget("normalized Stage row conversion"))?;
-            if max_bytes == 0 || max_bytes > stage_cap {
+            // Both values are upper bounds, not requested allocations. A
+            // consumer may accept larger rows than this selected Stage does;
+            // apply the stricter bound to the actual row below.
+            let max_bytes = max_bytes.min(stage_cap);
+            if max_bytes == 0 {
                 return Err(Error::Budget("normalized payload read cap"));
             }
             // This reference is the same retained owner, not a fresh allowance.
@@ -2657,7 +2661,8 @@ impl<'a> KnowledgeStage<'a> {
             }
             let cap = usize::try_from(self.limits.sqlite.max_row_bytes)
                 .map_err(|_| Error::Budget("normalized cursor row conversion"))?;
-            if max_bytes == 0 || max_bytes > cap {
+            let max_bytes = max_bytes.min(cap);
+            if max_bytes == 0 {
                 return Err(Error::Budget("normalized cursor row cap"));
             }
             let state = self
@@ -2748,7 +2753,10 @@ impl<'a> KnowledgeStage<'a> {
             }
             let cap = usize::try_from(self.limits.sqlite.max_row_bytes)
                 .map_err(|_| Error::Budget("normalized ID cursor row conversion"))?;
-            if max_bytes == 0 || max_bytes > cap || max_bytes as u64 > self.limits.max_seek_bytes {
+            let max_bytes = max_bytes
+                .min(cap)
+                .min(self.limits.max_seek_bytes.min(usize::MAX as u64) as usize);
+            if max_bytes == 0 {
                 return Err(Error::Budget("normalized ID cursor row cap"));
             }
             let state = self
