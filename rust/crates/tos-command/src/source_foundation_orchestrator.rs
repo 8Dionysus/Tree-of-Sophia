@@ -709,7 +709,9 @@ fn ticket_worker_budget(
 ) -> Result<ExecutorBudget, FoundationOrchestratorError> {
     let operation = ticket.operation_limits();
     let wall = deadline.saturating_duration_since(Instant::now());
-    let cpu_seconds = operation.worker_cpu_seconds.min(ExecutorBudget::MAX_SCALAR_CPU_SECONDS);
+    let cpu_seconds = operation
+        .worker_cpu_seconds
+        .min(ExecutorBudget::MAX_SCALAR_CPU_SECONDS);
     if wall.is_zero() || cpu_seconds == 0 || address_space_bytes < 64 * 1024 * 1024 {
         return Err(incomplete("source-foundation worker reservation exhausted"));
     }
@@ -729,7 +731,8 @@ fn schema_limits_for_ticket(
     total_resource_bytes: usize,
     max_checks: usize,
 ) -> Result<SourceFoundationSchemaLimits, FoundationOrchestratorError> {
-    let max_checks = max_checks.min(tos_validation::source_foundation_schema::MAX_SOURCE_FOUNDATION_CHECKS);
+    let max_checks =
+        max_checks.min(tos_validation::source_foundation_schema::MAX_SOURCE_FOUNDATION_CHECKS);
     let operation = ticket.operation_limits();
     let instance_cap = bounded_usize(operation.source_read_bytes)?
         .min(bounded_usize(limits.invocation_budgets.max_member_bytes)?)
@@ -1689,9 +1692,12 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
         max_total_state_bytes: schema_operation.state_bytes.max(1),
     };
     let image_path_state = worker_identity_path_clone_bytes(worker_image.identity(), 4)?;
-    let first_worker_held = candidate_owned_state
-        .checked_add(base_declared_state_bytes)
-        .and_then(|state| state.checked_add(selected_index.cache_bytes))
+    // account_spooled_candidate_inner already charged candidate_owned_state
+    // before this input received the remaining callback envelope. Keep that
+    // baseline in whole-process/final held-state checks, but do not reserve it
+    // again inside this remainder (including the later Records/native callbacks).
+    let first_worker_held = base_declared_state_bytes
+        .checked_add(selected_index.cache_bytes)
         .and_then(|state| state.checked_add(defaults_limits.cache_bytes))
         .and_then(|state| state.checked_add(worker_image_state))
         .and_then(|state| state.checked_add(image_path_state))
@@ -1701,7 +1707,10 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
             state.checked_add(CANDIDATE_RECORDS_REPORT_RETAINED_STATE_UPPER_BOUND_BYTES)
         })
         .ok_or_else(|| incomplete("candidate schema worker held-state overflow"))?;
-    if first_worker_held > working_ram {
+    if first_worker_held
+        .checked_add(candidate_owned_state)
+        .is_none_or(|state| state > working_ram)
+    {
         return fail_window(
             view.execution_limits,
             view.remaining_budget,
@@ -1821,9 +1830,8 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
             incomplete("candidate Records operation reservation exhausted"),
         );
     }
-    let callback_held = candidate_owned_state
-        .checked_add(base_declared_state_bytes)
-        .and_then(|state| state.checked_add(selected_index.cache_bytes))
+    let callback_held = base_declared_state_bytes
+        .checked_add(selected_index.cache_bytes)
         .and_then(|state| state.checked_add(defaults_limits.cache_bytes))
         .and_then(|state| state.checked_add(worker_image_state))
         .and_then(|state| state.checked_add(image_path_state))
@@ -3210,9 +3218,8 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
         max_total_report_bytes: bounded_usize(native_operation.worker_wire_bytes)?.max(1),
         max_total_state_bytes: native_operation.state_bytes.max(1),
     };
-    let held_native = candidate_owned_state
-        .checked_add(base_declared_state_bytes)
-        .and_then(|state| state.checked_add(selected_index.cache_bytes))
+    let held_native = base_declared_state_bytes
+        .checked_add(selected_index.cache_bytes)
         .and_then(|state| state.checked_add(defaults_limits.cache_bytes))
         .and_then(|state| state.checked_add(worker_image_state))
         .and_then(|state| state.checked_add(image_path_state))
