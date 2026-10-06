@@ -1725,14 +1725,15 @@ impl FoundationExecutionLimits {
             .ok_or(Error::Unsupported(
                 "foundation catalog diagnostic report capacity overflow",
             ))?;
-        let max_total_report_bytes = reservation
-            .output_bytes
-            .min(report_byte_capacity)
+        // Diagnostic reports are worker responses; the same cumulative wire
+        // reservation already covers request and response transport together.
+        // Final CLI output keeps its separate, unchanged output reservation.
+        let max_total_report_bytes = report_byte_capacity
             .min(total_wire.min(usize::MAX as u64) as usize);
         let max_total_issues = reservation.issue_count.min(receipt_issue_capacity);
         if max_total_report_bytes == 0 || max_total_issues == 0 {
             return Err(Error::Unsupported(
-                "foundation catalog diagnostics exceed named output or wire reservation",
+                "foundation catalog diagnostics exceed named wire reservation",
             ));
         }
         let diagnostics = CutSchemaDiagnosticsLimits::from_operation_ceilings(
@@ -1880,7 +1881,7 @@ impl FoundationExecutionLimits {
             || max_total_issues == 0
             || max_total_issues > work.issue_count
             || max_total_report_bytes == 0
-            || max_total_report_bytes > work.output_bytes
+            || u64::try_from(max_total_report_bytes).map_or(true, |bytes| bytes > work.worker_wire_bytes)
             || per_batch_raw == 0
         {
             return Err(Error::Unsupported(
