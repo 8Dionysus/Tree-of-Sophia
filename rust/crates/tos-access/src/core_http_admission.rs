@@ -602,7 +602,7 @@ impl HttpAdmission {
             "max_line_bytes": 16 * 1024 * 1024,
             "query_seconds": 30.0,
             "checkpoint_ttl_seconds": 900,
-            "checkpoint_max_entries": 256,
+            "checkpoint_max_entries": 128,
             "checkpoint_max_encoded_bytes": 16 * 1024 * 1024
         });
         let profile: Self = serde_json::from_value(raw)
