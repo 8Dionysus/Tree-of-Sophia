@@ -1153,9 +1153,12 @@ impl<'candidate> IndexSink<'candidate> {
             .and_then(|bytes| bytes.checked_add(std::mem::size_of::<Arc<()>>()))
             .filter(|bytes| *bytes <= max_operation_state_bytes)
             .ok_or_else(|| invalid("candidate dependent callback state exceeds operation"))?;
-        if let Err(error) = candidate.check_state(retained) {
+        // This is the whole dependent callback envelope, not an individual
+        // SQLite row. The input owns its already selected callback grant;
+        // row readers/writers continue to use the candidate's local row cap.
+        if let Err(error) = input.require_callback_state(retained, max_operation_state_bytes) {
             input.abandon();
-            return Err(error);
+            return Err(receiver_refusal(error));
         }
         // Clone the stable scope handle before lending the store mutably to
         // the kernel. Its allocation has already been admitted above.
