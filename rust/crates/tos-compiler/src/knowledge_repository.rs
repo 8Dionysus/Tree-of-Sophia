@@ -5,7 +5,7 @@ use crate::d1_public_capture::{CreationState, CreationStateHold};
 use crate::knowledge_base::{BaseNodeOverrides, KnowledgeBaseNormalizer};
 use crate::knowledge_global_titles::CompleteBaseNodes;
 use crate::knowledge_normalization::SourceRow;
-use crate::knowledge_stage::{KnowledgeStage, NodeRow, RelationRow, WritePhase};
+use crate::knowledge_stage::{KnowledgePayloadLayout, KnowledgeStage, NodeRow, RelationRow, WritePhase};
 use crate::{Error, QueryVocabulary, Result};
 use rusqlite::{OptionalExtension, params};
 use serde_json::{Value, json};
@@ -1283,6 +1283,28 @@ pub fn materialize_repository_nodes(
     result
 }
 
+// Exact-source writes may insert a new carrier as well as the normalized
+// row. Reserve both physical writes while keeping each page inside the
+// existing Stage ceilings; a reused carrier simply consumes less.
+fn repository_owned_write_limits(
+    stage: &KnowledgeStage<'_>,
+    mut limits: TopologyLimits,
+) -> Result<(TopologyLimits, usize)> {
+    limits.validate()?;
+    let physical_rows = match stage.payload_layout() {
+        KnowledgePayloadLayout::InlineV1 => 1,
+        KnowledgePayloadLayout::CarrierOnceV1 => 2,
+    };
+    let (rows, bytes) = stage.write_page_limits();
+    let physical_bytes = limits.max_row_bytes.checked_mul(physical_rows)
+        .ok_or(Error::Budget("repository physical row bytes"))?;
+    limits.max_page_rows = limits.max_page_rows
+        .min(rows / physical_rows)
+        .min(usize::try_from(bytes).map_err(|_| Error::Budget("repository page bytes conversion"))? / physical_bytes);
+    limits.validate()?;
+    Ok((limits, physical_rows))
+}
+
 fn materialize_repository_nodes_owned(
     stage: &mut KnowledgeStage<'_>,
     receipt: &RepositoryPrepareReceipt,
@@ -1295,6 +1317,7 @@ fn materialize_repository_nodes_owned(
             .ok_or(Error::Invalid("repository owned material state absent"))?;
         normalizer.ensure_same_owned_state(state)?;
         verify_owned(stage, receipt, limits)?;
+        let (limits, physical_rows) = repository_owned_write_limits(stage, limits)?;
         let mut order = next_repository_node_order_owned(stage, state)?;
         let mut count = 0u64;
         let mut cursor: Option<OwnedMaterialCursor<'_, '_>> = None;
@@ -1307,10 +1330,11 @@ fn materialize_repository_nodes_owned(
                 }
                 let node_rows = &rows[..node_count];
                 let page_bytes = node_count
-                    .checked_mul(limits.max_row_bytes)
+                    .checked_mul(physical_rows)
+                    .and_then(|rows| rows.checked_mul(limits.max_row_bytes))
                     .and_then(|bytes| u64::try_from(bytes).ok())
                     .ok_or(Error::Budget("repository node page bytes"))?;
-                stage.with_write_page(WritePhase::Normalized, node_count, page_bytes, |stage| {
+                stage.with_write_page(WritePhase::Normalized, node_count * physical_rows, page_bytes, |stage| {
                     for row in node_rows {
                         state.active()?;
                         let source = SourceRow::parse_scoped_with_owned_state(
@@ -1488,6 +1512,7 @@ pub(crate) fn materialize_repository_relations_with_titles_owned(
             .ok_or(Error::Invalid("repository owned material state absent"))?;
         normalizer.ensure_same_owned_state(state)?;
         verify_owned(stage, receipt, limits)?;
+        let (limits, physical_rows) = repository_owned_write_limits(stage, limits)?;
         if titles.source_cut != receipt.source_cut
             || Digest256::from_hex(&titles.title_root_sha256).is_err()
             || max_title_bytes == 0
@@ -1507,10 +1532,11 @@ pub(crate) fn materialize_repository_relations_with_titles_owned(
                 }
                 let page_bytes = rows
                     .len()
-                    .checked_mul(limits.max_row_bytes)
+                    .checked_mul(physical_rows)
+                    .and_then(|rows| rows.checked_mul(limits.max_row_bytes))
                     .and_then(|bytes| u64::try_from(bytes).ok())
                     .ok_or(Error::Budget("repository relation page bytes"))?;
-                stage.with_write_page(WritePhase::Normalized, rows.len(), page_bytes, |stage| {
+                stage.with_write_page(WritePhase::Normalized, rows.len() * physical_rows, page_bytes, |stage| {
                     for row in rows {
                         state.active()?;
                         let source = SourceRow::parse_scoped_with_owned_state(
