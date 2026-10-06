@@ -171,42 +171,9 @@ impl NativeKnowledgeSnapshot {
                 .ok_or(Error::Budget("whole snapshot retained state"))?;
             Ok(())
         }
-        fn value_heap(value: &serde_json::Value, depth: usize) -> Result<usize> {
-            if depth > 96 {
-                return Err(Error::Budget("whole snapshot retained depth"));
-            }
-            let mut bytes = 0usize;
-            match value {
-                serde_json::Value::Null | serde_json::Value::Bool(_) => {}
-                serde_json::Value::Number(number) => {
-                    bytes = crate::knowledge_normalization::serde_text_workspace_upper(
-                        number.as_str().len(),
-                    )?;
-                }
-                serde_json::Value::String(text) => bytes = text.capacity(),
-                serde_json::Value::Array(rows) => {
-                    bytes = rows
-                        .capacity()
-                        .checked_mul(std::mem::size_of::<serde_json::Value>())
-                        .ok_or(Error::Budget("whole snapshot retained array"))?;
-                    for row in rows {
-                        add(&mut bytes, value_heap(row, depth + 1)?)?;
-                    }
-                }
-                serde_json::Value::Object(fields) => {
-                    // Same pinned container geometry as original decode owner.
-                    bytes = crate::knowledge_normalization::serde_object_slots_upper(fields.len())?;
-                    for (key, item) in fields {
-                        add(&mut bytes, key.capacity())?;
-                        add(&mut bytes, value_heap(item, depth + 1)?)?;
-                    }
-                }
-            }
-            Ok(bytes)
-        }
         let mut bytes = std::mem::size_of::<Self>();
-        add(&mut bytes, value_heap(&self.graph, 0)?)?;
-        add(&mut bytes, value_heap(&self.catalog, 0)?)?;
+        add(&mut bytes, crate::knowledge_normalization::serde_retained_heap_upper(&self.graph, 0)?)?;
+        add(&mut bytes, crate::knowledge_normalization::serde_retained_heap_upper(&self.catalog, 0)?)?;
         if let Some(inputs) = &self.catalog_inputs {
             for value in [
                 &inputs.header,

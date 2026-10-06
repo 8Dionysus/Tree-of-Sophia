@@ -664,7 +664,7 @@ impl ControlledKnowledgeModel<'_, '_, '_> {
             .source_basis
             .owned_heap_bytes()
             .map_err(|_| Error::Budget("controlled source-basis retained state"))?;
-        let vocab = vocabulary.query_delivery_heap_bytes()?;
+        let vocab = vocabulary.retained_heap_bytes()?;
         let descriptor_bytes = descriptor
             .len()
             .checked_mul(16)

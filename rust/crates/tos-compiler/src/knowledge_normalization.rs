@@ -240,6 +240,45 @@ pub(crate) fn serde_text_workspace_upper(units: usize) -> Result<usize> {
         .ok_or(Error::Budget("raw input serde string workspace"))
 }
 
+/// Retained serde storage, using the same pinned container geometry as decode.
+pub(crate) fn serde_retained_heap_upper(value: &serde_json::Value, depth: usize) -> Result<usize> {
+    fn add(total: &mut usize, amount: usize) -> Result<()> {
+        *total = total.checked_add(amount).ok_or(Error::Budget("serde retained state"))?;
+        Ok(())
+    }
+    if depth > 96 {
+        return Err(Error::Budget("serde retained depth"));
+    }
+    let mut bytes = 0usize;
+    match value {
+        serde_json::Value::Null | serde_json::Value::Bool(_) => {}
+        serde_json::Value::Number(number) => {
+            bytes = serde_text_workspace_upper(
+                number.as_str().len(),
+            )?;
+        }
+        serde_json::Value::String(text) => bytes = text.capacity(),
+        serde_json::Value::Array(rows) => {
+            bytes = rows
+                .capacity()
+                .checked_mul(std::mem::size_of::<serde_json::Value>())
+                .ok_or(Error::Budget("serde retained array"))?;
+            for row in rows {
+                add(&mut bytes, serde_retained_heap_upper(row, depth + 1)?)?;
+            }
+        }
+        serde_json::Value::Object(fields) => {
+            // Same pinned container geometry as original decode owner.
+            bytes = serde_object_slots_upper(fields.len())?;
+            for (key, item) in fields {
+                add(&mut bytes, key.capacity())?;
+                add(&mut bytes, serde_retained_heap_upper(item, depth + 1)?)?;
+            }
+        }
+    }
+    Ok(bytes)
+}
+
 pub(crate) fn serde_input_workspace_upper(
     root: &tos_foundation::JsonValue,
     raw_bytes: usize,

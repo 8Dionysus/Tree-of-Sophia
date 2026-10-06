@@ -528,7 +528,6 @@ impl QueryVocabulary {
     }
 
     pub(crate) fn query_delivery_heap_bytes(&self) -> Result<usize> {
-        use tos_foundation::{OwnedState, checked_state_add};
         if !self.query_delivery_caches_retired
             || !self.identity_policy.is_null()
             || !self.overview_policy.is_null()
@@ -537,7 +536,19 @@ impl QueryVocabulary {
                 "query delivery policy caches still retained",
             ));
         }
+        self.retained_heap_bytes()
+    }
+
+    /// Both ordinary SDK vocabularies and retired Reference delivery retain
+    /// their actual policy state; retirement is not a general query precondition.
+    pub(crate) fn retained_heap_bytes(&self) -> Result<usize> {
+        use tos_foundation::{OwnedState, checked_state_add};
         let mut bytes = 0usize;
+        for policy in [&self.identity_policy, &self.overview_policy] {
+            bytes = checked_state_add(bytes,
+                crate::knowledge_normalization::serde_retained_heap_upper(policy, 0)?)
+                .map_err(|_| Error::Budget("query vocabulary retained policy state"))?;
+        }
         macro_rules! charge { ($($field:ident),*) => { $(
             bytes = checked_state_add(bytes, self.$field.owned_heap_bytes()
                 .map_err(|_| Error::Budget("query vocabulary retained state"))?)
