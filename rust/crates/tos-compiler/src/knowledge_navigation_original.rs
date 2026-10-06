@@ -843,6 +843,7 @@ pub(crate) fn verify_stage(
     stage: &mut KnowledgeStage<'_>,
     descriptor: Option<&str>,
 ) -> Result<Option<NavigationOriginalReceipt>> {
+    let layout = stage.payload_layout();
     let binding = stage.exact_receipt()?.binding.clone();
     stage.with_connection(WritePhase::Finalize, |db| {
         if !present(db)? {
@@ -868,7 +869,12 @@ pub(crate) fn verify_stage(
         )?;
         if descriptor.is_none() {
             let abi: String=db.query_row("SELECT CAST(value AS TEXT) FROM metadata WHERE key='model_abi'",[],|r|r.get(0))?;
-            if ![KNOWLEDGE_NAVIGATION_MODEL_ABI,crate::KNOWLEDGE_PHILOSOPHY_MODEL_ABI,crate::KNOWLEDGE_CORPUS_MODEL_ABI,crate::KNOWLEDGE_MANAGED_MODEL_ABI].contains(&abi.as_str()){return Err(Error::Invalid("navigation original finish ABI"));}
+            let abi_matches = if layout == crate::knowledge_stage::KnowledgePayloadLayout::CarrierOnceV1 {
+                abi == crate::knowledge_stage::KNOWLEDGE_CARRIER_ONCE_MODEL_ABI
+            } else {
+                [KNOWLEDGE_NAVIGATION_MODEL_ABI, crate::KNOWLEDGE_PHILOSOPHY_MODEL_ABI, crate::KNOWLEDGE_CORPUS_MODEL_ABI, crate::KNOWLEDGE_MANAGED_MODEL_ABI].contains(&abi.as_str())
+            };
+            if !abi_matches { return Err(Error::Invalid("navigation original finish ABI")); }
             for (key,wanted) in [("descriptor_sha256",r.descriptor_sha256.as_str()),("navigation_original_root_sha256",r.component_root_sha256.as_str())] {
                 let actual:Option<String>=db.query_row("SELECT CAST(value AS TEXT) FROM metadata WHERE key=?1 AND length(CAST(value AS BLOB))<=128",[key],|r|r.get(0)).optional()?;
                 if actual.as_deref()!=Some(wanted){return Err(Error::Invalid("navigation original finish seal"));}
@@ -925,7 +931,8 @@ pub(crate) fn verify_with_owned_state(
 ) -> Result<Option<NavigationOriginalReceipt>> {
     use crate::d1_public_capture::CreationStateHold;
     let state = context.owned_state();
-    let statement_bytes = tos_source_store::PinnedSqliteConnection::bounded_statement_rust_workspace_upper_bound();
+    let statement_bytes =
+        tos_source_store::PinnedSqliteConnection::bounded_statement_rust_workspace_upper_bound();
     let fixed = std::mem::size_of::<(
         &Connection,
         &KnowledgeSelectedExpectation,
@@ -939,7 +946,11 @@ pub(crate) fn verify_with_owned_state(
         Result<String>,
         Result<()>,
     )>()
-    .checked_add(statement_bytes.checked_mul(2).ok_or(Error::Budget("owned navigation statement workspace"))?)
+    .checked_add(
+        statement_bytes
+            .checked_mul(2)
+            .ok_or(Error::Budget("owned navigation statement workspace"))?,
+    )
     .ok_or(Error::Budget("owned navigation verifier frame"))?;
     let _fixed = state.hold(fixed)?;
     context.check()?;
@@ -977,7 +988,9 @@ pub(crate) fn verify_with_owned_state(
     }
     verify_ddl(db)?;
     let receipt = receipt(db)?;
-    let receipt_work = receipt.profile.len()
+    let receipt_work = receipt
+        .profile
+        .len()
         .checked_add(receipt.descriptor_sha256.len())
         .and_then(|n| n.checked_add(receipt.source_cut.len()))
         .and_then(|n| n.checked_add(receipt.membership_root.len()))
@@ -992,7 +1005,10 @@ pub(crate) fn verify_with_owned_state(
         || receipt.descriptor_sha256 != expected.descriptor_sha256
         || receipt.source_cut != expected.source_cut
         || receipt.membership_root != expected.membership_root
-        || receipt.rights.checked_add(1).is_none_or(|n| n > limits.max_rows)
+        || receipt
+            .rights
+            .checked_add(1)
+            .is_none_or(|n| n > limits.max_rows)
         || receipt.total_bytes > limits.max_work_bytes
         || !expected.source_scopes.iter().any(|scope| {
             scope.source_graph == receipt.source_graph
@@ -1028,21 +1044,25 @@ fn verify_rows_with_owned_state(
     context: &crate::knowledge_payload_read::RuntimeKnowledgeReadContext<'_, '_>,
 ) -> Result<()> {
     let state = context.owned_state();
-    if receipt.rights
+    if receipt
+        .rights
         .checked_add(receipt.nodes)
         .and_then(|n| n.checked_add(receipt.edges))
         .is_none_or(|n| n > limits.max_rows)
-        || receipt.total_bytes
+        || receipt
+            .total_bytes
             .checked_add(receipt.member_index_bytes)
             .is_none_or(|n| n > limits.max_total_bytes)
     {
         return Err(Error::Budget("navigation original aggregate limits"));
     }
-    let row_workspace = limits.max_row_bytes
+    let row_workspace = limits
+        .max_row_bytes
         .checked_mul(3)
         .and_then(|n| n.checked_add(std::mem::size_of::<NavigationOriginalPage>() + 4096))
         .ok_or(Error::Budget("owned navigation row workspace"))?;
-    let statement_bytes = tos_source_store::PinnedSqliteConnection::bounded_statement_rust_workspace_upper_bound();
+    let statement_bytes =
+        tos_source_store::PinnedSqliteConnection::bounded_statement_rust_workspace_upper_bound();
     let mut after = None;
     let mut count = 0u64;
     let mut bytes = 0u64;
@@ -1063,7 +1083,11 @@ fn verify_rows_with_owned_state(
         for (ordinal, raw) in &page.rows {
             // Charge the authenticated row bytes and its fixed hash fields before
             // JSON decode/canonical checks or digest work.
-            state.charge_work(raw.len().checked_add(40).ok_or(Error::Budget("owned navigation row work"))?)?;
+            state.charge_work(
+                raw.len()
+                    .checked_add(40)
+                    .ok_or(Error::Budget("owned navigation row work"))?,
+            )?;
             context.check()?;
             let want = count as i64 - 1;
             if *ordinal != want {
@@ -1107,7 +1131,8 @@ fn verify_members_with_owned_state(
     context: &crate::knowledge_payload_read::RuntimeKnowledgeReadContext<'_, '_>,
 ) -> Result<()> {
     let state = context.owned_state();
-    let statement_bytes = tos_source_store::PinnedSqliteConnection::bounded_statement_rust_workspace_upper_bound();
+    let statement_bytes =
+        tos_source_store::PinnedSqliteConnection::bounded_statement_rust_workspace_upper_bound();
     let row_workspace = 8192usize
         .checked_add(16 * std::mem::size_of::<NavigationOriginalMember>() + 8192)
         .and_then(|n| n.checked_add(statement_bytes))
