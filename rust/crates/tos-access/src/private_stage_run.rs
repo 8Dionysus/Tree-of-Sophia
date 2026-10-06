@@ -1596,6 +1596,49 @@ fn outer(o: &Options) -> Result<i32, String> {
     result
 }
 fn stage_failure(site: &'static str, error: &str) -> String {
+    // Preserve the bounded diagnostic emitted by our syscall/IO helpers when
+    // another stage adds context. Arbitrary error text may contain private paths.
+    if error.len() <= 160 {
+        let mut fields = error.split(' ');
+        let prefix = fields.next();
+        let source_site = fields.next().and_then(|value| value.strip_prefix("site="));
+        let reason = fields.next();
+        let owned_site = source_site.is_some_and(|value| {
+            !value.is_empty()
+                && value.len() <= 96
+                && value
+                    .bytes()
+                    .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b".-".contains(&b))
+        });
+        let owned_reason = reason.is_some_and(|value| {
+            value.strip_prefix("errno=").is_some_and(|errno| {
+                errno == "unavailable"
+                    || (!errno.is_empty()
+                        && errno.bytes().all(|b| b.is_ascii_digit())
+                        && errno.parse::<u16>().is_ok_and(|n| (1..=4095).contains(&n)))
+            }) || matches!(
+                value,
+                "kind=not-found"
+                    | "kind=permission-denied"
+                    | "kind=already-exists"
+                    | "kind=invalid-input"
+                    | "kind=invalid-data"
+                    | "kind=timed-out"
+                    | "kind=write-zero"
+                    | "kind=interrupted"
+                    | "kind=would-block"
+                    | "kind=unexpected-eof"
+                    | "kind=other"
+            )
+        });
+        if matches!(prefix, Some("namespace-inner" | "private-stage-control"))
+            && owned_site
+            && owned_reason
+            && fields.next().is_none()
+        {
+            return error.to_owned();
+        }
+    }
     let errno = error
         .rsplit_once("(os error ")
         .and_then(|(_, value)| value.strip_suffix(')'))
@@ -3953,6 +3996,33 @@ pub fn run_if_requested(args: &[String]) -> Option<i32> {
 #[cfg(test)]
 mod host_refusal_tests {
     use super::*;
+
+    #[test]
+    fn nested_stage_failure_preserves_owned_errno_without_private_text() {
+        for diagnostic in [
+            "private-stage-control site=control.stat-socket errno=22",
+            "namespace-inner site=mount.read-only errno=unavailable",
+            "namespace-inner site=fd.read kind=unexpected-eof",
+        ] {
+            let once = stage_failure("sdk-phase.socket-identity", diagnostic);
+            assert_eq!(once, diagnostic);
+            assert_eq!(stage_failure("sdk-phase.restore", &once), diagnostic);
+        }
+        for private in [
+            "private-stage-control site=/private/socket errno=22",
+            "private-stage-control site=control.stat-socket errno=22 PRIVATE_CAPABILITY",
+            "namespace-inner site=fd.read kind=PRIVATE_CAPABILITY",
+        ] {
+            assert_eq!(
+                stage_failure("sdk-phase.restore", private),
+                "namespace-inner site=sdk-phase.restore refusal"
+            );
+        }
+        assert_eq!(
+            stage_failure("sdk-phase.restore", "/private/socket (os error 22)"),
+            "namespace-inner site=sdk-phase.restore errno=22"
+        );
+    }
 
     #[test]
     fn refusal_retains_same_reply_public_reasons_without_capabilities() {
