@@ -1171,7 +1171,7 @@ impl ControlledKnowledgeModel<'_, '_, '_> {
         let layout = KnowledgePayloadLayout::CarrierOnceV1;
         let sql_inline = match kind {
             ControlledSearchKind::Nodes => {
-                "SELECT\
+                "SELECT \
                  CASE WHEN typeof(d.id)='text' AND length(CAST(d.id AS BLOB))<=?3 THEN d.id END,\
                  CASE WHEN typeof(d.source_graph)='text' AND length(CAST(d.source_graph AS BLOB))<=?3 THEN d.source_graph END,\
                  CASE WHEN typeof(d.kind_id)='text' AND length(CAST(d.kind_id AS BLOB))<=?3 THEN d.kind_id END,\
@@ -1188,7 +1188,7 @@ impl ControlledKnowledgeModel<'_, '_, '_> {
                  0,NULL,NULL,NULL,NULL FROM search_documents d JOIN knowledge_nodes c ON c.source_order=d.position WHERE d.kind=?1 AND d.position=?2"
             }
             ControlledSearchKind::Relations => {
-                "SELECT\
+                "SELECT \
                  CASE WHEN typeof(d.id)='text' AND length(CAST(d.id AS BLOB))<=?3 THEN d.id END,\
                  CASE WHEN typeof(d.source_graph)='text' AND length(CAST(d.source_graph AS BLOB))<=?3 THEN d.source_graph END,\
                  CASE WHEN typeof(d.kind_id)='text' AND length(CAST(d.kind_id AS BLOB))<=?3 THEN d.kind_id END,CASE WHEN typeof(d.predicate_id)='text' AND length(CAST(d.predicate_id AS BLOB))<=?3 THEN d.predicate_id END,\
@@ -1206,7 +1206,7 @@ impl ControlledKnowledgeModel<'_, '_, '_> {
         };
         let sql_carrier = match kind {
             ControlledSearchKind::Nodes => {
-                "SELECT\
+                "SELECT \
                  CASE WHEN typeof(d.id)='text' AND length(CAST(d.id AS BLOB))<=?3 THEN d.id END,\
                  CASE WHEN typeof(d.source_graph)='text' AND length(CAST(d.source_graph AS BLOB))<=?3 THEN d.source_graph END,\
                  CASE WHEN typeof(d.kind_id)='text' AND length(CAST(d.kind_id AS BLOB))<=?3 THEN d.kind_id END,\
@@ -1224,13 +1224,13 @@ impl ControlledKnowledgeModel<'_, '_, '_> {
                  CASE WHEN typeof(c.source_packet_sha256)='blob' AND length(c.source_packet_sha256)=32 THEN c.source_packet_sha256 END,\
                  CASE WHEN typeof(s.packet_len)='integer' AND s.packet_len>=0 AND s.packet_len<=?4 THEN s.packet_len END,\
                  CASE WHEN typeof(s.packet_sha256)='blob' AND length(s.packet_sha256)=32 THEN s.packet_sha256 END,\
-                 CASE WHEN typeof(s.packet)='blob' AND s.packet_len>=0 AND s.packet_len<=?4 AND length(s.packet)=s.packet_len THEN s.packet END\
-                 FROM search_documents d JOIN knowledge_nodes c ON c.source_order=d.position\
-                 LEFT JOIN knowledge_source_carriers s ON s.packet_sha256=c.source_packet_sha256\
+                 CASE WHEN typeof(s.packet)='blob' AND s.packet_len>=0 AND s.packet_len<=?4 AND length(s.packet)=s.packet_len THEN s.packet END \
+                 FROM search_documents d JOIN knowledge_nodes c ON c.source_order=d.position \
+                 LEFT JOIN knowledge_source_carriers s ON s.packet_sha256=c.source_packet_sha256 \
                  WHERE d.kind=?1 AND d.position=?2"
             }
             ControlledSearchKind::Relations => {
-                "SELECT\
+                "SELECT \
                  CASE WHEN typeof(d.id)='text' AND length(CAST(d.id AS BLOB))<=?3 THEN d.id END,\
                  CASE WHEN typeof(d.source_graph)='text' AND length(CAST(d.source_graph AS BLOB))<=?3 THEN d.source_graph END,\
                  CASE WHEN typeof(d.kind_id)='text' AND length(CAST(d.kind_id AS BLOB))<=?3 THEN d.kind_id END,CASE WHEN typeof(d.predicate_id)='text' AND length(CAST(d.predicate_id AS BLOB))<=?3 THEN d.predicate_id END,\
@@ -1247,9 +1247,9 @@ impl ControlledKnowledgeModel<'_, '_, '_> {
                  CASE WHEN typeof(c.source_packet_sha256)='blob' AND length(c.source_packet_sha256)=32 THEN c.source_packet_sha256 END,\
                  CASE WHEN typeof(s.packet_len)='integer' AND s.packet_len>=0 AND s.packet_len<=?4 THEN s.packet_len END,\
                  CASE WHEN typeof(s.packet_sha256)='blob' AND length(s.packet_sha256)=32 THEN s.packet_sha256 END,\
-                 CASE WHEN typeof(s.packet)='blob' AND s.packet_len>=0 AND s.packet_len<=?4 AND length(s.packet)=s.packet_len THEN s.packet END\
-                 FROM search_documents d JOIN knowledge_relations c ON c.source_order=d.position\
-                 LEFT JOIN knowledge_source_carriers s ON s.packet_sha256=c.source_packet_sha256\
+                 CASE WHEN typeof(s.packet)='blob' AND s.packet_len>=0 AND s.packet_len<=?4 AND length(s.packet)=s.packet_len THEN s.packet END \
+                 FROM search_documents d JOIN knowledge_relations c ON c.source_order=d.position \
+                 LEFT JOIN knowledge_source_carriers s ON s.packet_sha256=c.source_packet_sha256 \
                  WHERE d.kind=?1 AND d.position=?2"
             }
         };

@@ -2285,6 +2285,10 @@ mod executor_refusal_tests {
                     boundary: "private-owner-path",
                     failure: reason,
                     natural_termination: Some(ChildTermination::Exited(7)),
+                    child_cpu_micros: Some(10),
+                    child_pid: 42,
+                    child_exchange_ordinal: 1,
+                    retained_session: false,
                 }),
                 quota: Some(SharedSchemaWorkerQuotaUsage {
                     max_total_cpu_micros: 100,

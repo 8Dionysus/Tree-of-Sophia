@@ -19,7 +19,6 @@ use tos_foundation::{Digest256, Digest256Hasher};
 use tos_segment_store::AuthenticatedTreeIoLedgerV1;
 use tos_source_store::{CorpusReader, ReadLimits};
 
-const V2_LAYOUT_ROOT_GUARD_BYTES: u64 = 65_537;
 const V2_LAYOUT_COMPONENT_METADATA_BYTES: u64 = 4_096;
 const V2_LAYOUT_PATH_BYTES: usize = 4_096;
 const V2_LAYOUT_PATH_COMPONENTS: usize = 128;
@@ -31,7 +30,7 @@ const SOURCE_WORK_MARKER_MAX_BYTES: usize = 512;
 // calls `verify_file_recorded`, which owns a second block.
 pub(crate) const INGEST_ACCOUNTED_SCRATCH_BYTES: usize = 2 * ADMISSION_IO_BLOCK_BYTES;
 
-fn v2_component_guard_bytes(name: &str) -> io::Result<u64> {
+fn v2_component_guard_bytes(name: &[u8]) -> io::Result<u64> {
     u64::try_from(name.len())
         .map_err(|_| invalid("V2 layout component length exceeds range"))?
         .checked_add(1)
@@ -43,7 +42,7 @@ fn charge_v2_component_guard(
     io: &tos_source_store::PinnedSqliteIoBudget,
     name: &str,
 ) -> io::Result<()> {
-    io.charge_read_upper_bound(v2_component_guard_bytes(name)?)
+    io.charge_read_upper_bound(v2_component_guard_bytes(name.as_bytes())?)
         .map_err(invalid)
 }
 
@@ -66,12 +65,16 @@ fn charge_v2_layout_guard(
     let relative_names = ["objects", "revisions", "staging", "segments-v2"]
         .into_iter()
         .try_fold(0u64, |total, name| {
-            let component = v2_component_guard_bytes(name)?;
+            let component = v2_component_guard_bytes(name.as_bytes())?;
             total
                 .checked_add(component)
                 .ok_or_else(|| invalid("V2 layout guard overflow"))
         })?;
-    let upper = V2_LAYOUT_ROOT_GUARD_BYTES
+    // Reopening the root consumes its name and metadata, exactly like the
+    // child namespaces. No 64 KiB file is read by this layout fence. The
+    // existing metadata allowance covers owned_directory plus both identity
+    // observations; keep every original openat2 and inode comparison below.
+    let upper = v2_component_guard_bytes(path.as_os_str().as_encoded_bytes())?
         .checked_add(relative_names)
         .ok_or_else(|| invalid("V2 layout guard overflow"))?;
     io.charge_read_upper_bound(upper).map_err(invalid)
