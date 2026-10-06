@@ -66,6 +66,7 @@ struct Row {
     order: i64,
     payload: Vec<u8>,
     sha: Vec<u8>,
+    source_packet: Option<Vec<u8>>,
 }
 
 fn page(
@@ -74,6 +75,24 @@ fn page(
     after: i64,
     limits: NativeFinalizeLimits,
 ) -> Result<Vec<Row>> {
+    if let Some(state) = stage.owned_creation_state() {
+        let mut batch = Vec::with_capacity(limits.max_page_rows);
+        stage.with_normalized_rows_owned(
+            table == "knowledge_relations", after, limits.max_page_rows,
+            limits.max_row_bytes, |_, metadata, logical, source| {
+                state.charge_work(logical.len().checked_add(source.map_or(0, <[u8]>::len))
+                    .ok_or(Error::Budget("native final page copy work"))?)?;
+                batch.push(Row {
+                    id: metadata.id.to_owned(), source: metadata.source_graph.to_owned(),
+                    native: metadata.native_id.map(str::to_owned), order: metadata.source_order,
+                    payload: logical.to_vec(), sha: metadata.logical_digest.as_bytes().to_vec(),
+                    source_packet: source.map(<[u8]>::to_vec),
+                });
+                Ok(())
+            },
+        )?;
+        return Ok(batch);
+    }
     stage.with_connection(WritePhase::Finalize, |db| {
         let sql = format!("SELECT id,source_graph,native_id,source_order,
             CASE WHEN typeof(payload)='blob' AND payload_len=length(payload) AND length(payload)<=?2 THEN payload ELSE NULL END,
@@ -83,7 +102,7 @@ fn page(
         let mut out = Vec::new();
         while let Some(row) = rows.next()? {
             out.push(Row {id:row.get(0)?,source:row.get(1)?,native:row.get(2)?,order:row.get(3)?,
-                payload:row.get::<_,Option<Vec<u8>>>(4)?.ok_or(Error::Budget("native final carrier bytes"))?,sha:row.get(5)?});
+                payload:row.get::<_,Option<Vec<u8>>>(4)?.ok_or(Error::Budget("native final carrier bytes"))?,sha:row.get(5)?,source_packet:None});
         }
         Ok(out)
     })
@@ -174,6 +193,9 @@ where
         for table in ["knowledge_nodes", "knowledge_relations"] {
             let mut after = -1i64;
             loop {
+                let _page_hold = stage.hold_normalized_page(
+                    limits.max_page_rows, limits.max_row_bytes, limits.max_row_bytes,
+                )?;
                 let batch = page(stage, table, after, limits)?;
                 if batch.is_empty() {
                     break;
@@ -199,7 +221,14 @@ where
                     if total > limits.max_rows || work > limits.max_work_bytes {
                         return Err(Error::Budget("native final scan"));
                     }
-                    let parsed = SourceRow::parse(&row.payload, limits.max_row_bytes)?;
+                    let state = stage.owned_creation_state();
+                    let parsed = SourceRow::parse_scoped_with_optional_owned_state(
+                        &row.payload, limits.max_row_bytes, state,
+                    )?;
+                    let _clone_hold = state.map(|state| {
+                        state.value_clone_state_upper_bound(parsed.value())
+                            .and_then(|bytes| state.hold(bytes))
+                    }).transpose()?;
                     let mut value = parsed.value().clone();
                     if value.get("id").and_then(Value::as_str) != Some(row.id.as_str())
                         || value.get("source_graph").and_then(Value::as_str)
@@ -362,23 +391,46 @@ where
                         changed = true;
                     }
                     if changed {
-                        stamp_content_revision(&mut value, limits.max_row_bytes)?;
-                        let raw = serde_json::to_vec(&value)
-                            .map_err(|_| Error::Invalid("native final JSON"))?;
+                        let mut write = |raw: &[u8]| -> Result<()> {
                         work = work
                             .checked_add(raw.len() as u64)
                             .ok_or(Error::Budget("native final output work"))?;
                         if raw.len() > limits.max_row_bytes || work > limits.max_work_bytes {
                             return Err(Error::Budget("native final output bytes"));
                         }
-                        stage.charge_materialized(1, raw.len() as u64)?;
-                        let sha = Digest256::of_bytes(&raw);
-                        let changed = stage.with_connection(WritePhase::Finalize, |db| {
-                            Ok(db.execute(&format!("UPDATE {table} SET payload_len=?1,payload_sha256=?2,payload=?3 WHERE id=?4 AND payload_sha256=?5"),
-                                params![raw.len() as i64,sha.as_bytes().as_slice(),raw,row.id,row.sha])?)
-                        })?;
-                        if changed != 1 {
-                            return Err(Error::Invalid("native final concurrent row change"));
+                        if stage.owned_creation_state().is_some() {
+                            let previous = Some(Digest256::of_bytes(&row.payload));
+                            if table == "knowledge_relations" {
+                                stage.replace_relation_logical_payload_if_current(
+                                    &row.id, raw, row.source_packet.as_deref(), previous,
+                                )?;
+                            } else {
+                                stage.replace_node_logical_payload_if_current(
+                                    &row.id, raw, row.source_packet.as_deref(), previous,
+                                )?;
+                            }
+                        } else {
+                            stage.charge_materialized(1, raw.len() as u64)?;
+                            let sha = Digest256::of_bytes(&raw);
+                            let changed = stage.with_connection(WritePhase::Finalize, |db| {
+                                Ok(db.execute(&format!("UPDATE {table} SET payload_len=?1,payload_sha256=?2,payload=?3 WHERE id=?4 AND payload_sha256=?5"),
+                                    params![raw.len() as i64,sha.as_bytes().as_slice(),raw,row.id,row.sha])?)
+                            })?;
+                            if changed != 1 {
+                                return Err(Error::Invalid("native final concurrent row change"));
+                            }
+                        }
+                            Ok(())
+                        };
+                        if let Some(state) = state {
+                            crate::knowledge_normalization::with_content_revision_owned(
+                                state, value, limits.max_row_bytes, |_, raw| write(raw),
+                            )?;
+                        } else {
+                            stamp_content_revision(&mut value, limits.max_row_bytes)?;
+                            let raw = serde_json::to_vec(&value)
+                                .map_err(|_| Error::Invalid("native final JSON"))?;
+                            write(&raw)?;
                         }
                     }
                     after = row.order;

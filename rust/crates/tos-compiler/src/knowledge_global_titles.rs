@@ -74,17 +74,21 @@ fn page(
     after_order: i64,
     limits: GlobalTitleLimits,
 ) -> Result<Vec<BaseRow>> {
-    stage.with_connection(WritePhase::Sort, |db| {
-        let mut statement = db.prepare(
-            "SELECT CASE WHEN typeof(id)='text' AND length(CAST(id AS BLOB))<=4096 THEN id ELSE NULL END,
-             source_order,CASE WHEN typeof(payload)='blob' AND payload_len=length(payload)
-             AND length(payload)<=?2 THEN payload ELSE NULL END,
+    let owned = stage.owned_creation_state();
+    let mut batch = stage.with_connection(WritePhase::Sort, |db| {
+        let payload = if owned.is_some() {
+            "NULL"
+        } else {
+            "CASE WHEN typeof(payload)='blob' AND payload_len=length(payload) AND length(payload)<=?2 THEN payload ELSE NULL END"
+        };
+        let sql = format!("SELECT CASE WHEN typeof(id)='text' AND length(CAST(id AS BLOB))<=4096 THEN id ELSE NULL END,
+             source_order,{payload},
              CASE WHEN typeof(payload_sha256)='blob' AND length(payload_sha256)=32
              THEN payload_sha256 ELSE NULL END
-             FROM knowledge_nodes WHERE source_order>?1 ORDER BY source_order LIMIT ?3",
-        )?;
+             FROM knowledge_nodes WHERE source_order>?1 ORDER BY source_order LIMIT ?3");
+        let mut statement = db.prepare(&sql)?;
         let mut rows = statement.query(params![after_order, limits.max_node_bytes as i64, limits.max_page_rows as i64])?;
-        let mut out = Vec::new();
+        let mut out = Vec::with_capacity(limits.max_page_rows);
         while let Some(row) = rows.next()? {
             let id: Option<String> = row.get(0)?;
             let payload: Option<Vec<u8>> = row.get(2)?;
@@ -94,12 +98,23 @@ fn page(
             out.push(BaseRow {
                 id: id.ok_or(Error::Budget("global title node ID bytes"))?,
                 order: row.get(1)?,
-                payload: payload.ok_or(Error::Budget("global title node bytes"))?,
+                payload: if owned.is_some() { Vec::new() } else { payload.ok_or(Error::Budget("global title node bytes"))? },
                 sha,
             });
         }
         Ok(out)
-    })
+    })?;
+    if let Some(state) = owned {
+        for row in &mut batch {
+            let payload = &mut row.payload;
+            stage.with_node_payload_owned(&row.id, limits.max_node_bytes, |_, logical| {
+                state.charge_work(logical.len())?;
+                *payload = logical.to_vec();
+                Ok(())
+            })?.ok_or(Error::Invalid("global title node disappeared"))?;
+        }
+    }
+    Ok(batch)
 }
 
 fn root_item(hash: &mut Digest256Hasher, id: &str, sha: &[u8; 32]) {
@@ -147,6 +162,9 @@ fn build_inner(
             .as_bytes(),
     );
     loop {
+        let _page_hold = stage.hold_normalized_page(
+            limits.max_page_rows, limits.max_node_bytes, limits.max_title_bytes,
+        )?;
         let batch = page(stage, after, limits)?;
         if batch.is_empty() {
             break;

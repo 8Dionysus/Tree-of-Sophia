@@ -79,18 +79,25 @@ fn read_page(
     after: Option<(&str, &str)>,
     limits: InheritedViewLimits,
 ) -> Result<Vec<RelationInput>> {
-    stage.with_connection(WritePhase::Sort, |db| {
-        let mut statement = db.prepare(if after.is_some() {
-            "SELECT id,source_graph,from_id,to_id,source_order,payload,payload_sha256
+    let owned = stage.owned_creation_state();
+    let mut batch = stage.with_connection(WritePhase::Sort, |db| {
+        let payload = if owned.is_some() { "NULL" } else { "payload" };
+        let columns = if owned.is_some() {
+            "CASE WHEN length(CAST(id AS BLOB)) BETWEEN 1 AND 4096 THEN id END,CASE WHEN length(CAST(source_graph AS BLOB)) BETWEEN 1 AND 4096 THEN source_graph END,CASE WHEN length(CAST(from_id AS BLOB)) BETWEEN 1 AND 4096 THEN from_id END,CASE WHEN length(CAST(to_id AS BLOB)) BETWEEN 1 AND 4096 THEN to_id END"
+        } else { "id,source_graph,from_id,to_id" };
+        let predicate = if owned.is_some() { "payload_len" } else { "length(payload)" };
+        let inline = if owned.is_some() { "" } else { " AND payload_len=length(payload)" };
+        let sql = if after.is_some() {
+            format!("SELECT {columns},source_order,{payload},payload_sha256
              FROM knowledge_relations WHERE
              (source_graph>?1 OR (source_graph=?1 AND id>?2))
-             AND length(payload)<=?3 AND payload_len=length(payload)
-             ORDER BY source_graph,id LIMIT ?4"
+             AND {predicate}<=?3{inline} ORDER BY source_graph,id LIMIT ?4")
         } else {
-            "SELECT id,source_graph,from_id,to_id,source_order,payload,payload_sha256
-             FROM knowledge_relations WHERE length(payload)<=?1 AND payload_len=length(payload)
-             ORDER BY source_graph,id LIMIT ?2"
-        })?;
+            format!("SELECT {columns},source_order,{payload},payload_sha256
+             FROM knowledge_relations WHERE {predicate}<=?1{inline}
+             ORDER BY source_graph,id LIMIT ?2")
+        };
+        let mut statement = db.prepare(&sql)?;
         let mut rows = match after {
             Some((source, id)) => statement.query(params![
                 source,
@@ -103,10 +110,10 @@ fn read_page(
                 limits.max_page_rows as i64
             ])?,
         };
-        let mut result = Vec::new();
+        let mut result = Vec::with_capacity(limits.max_page_rows);
         let mut bytes = 0u64;
         while let Some(row) = rows.next()? {
-            let payload: Vec<u8> = row.get(5)?;
+            let payload: Vec<u8> = if owned.is_some() { Vec::new() } else { row.get(5)? };
             bytes = bytes
                 .checked_add(payload.len() as u64)
                 .ok_or(Error::Budget("inherited page bytes"))?;
@@ -130,7 +137,24 @@ fn read_page(
             });
         }
         Ok(result)
-    })
+    })?;
+    if let Some(state) = owned {
+        let mut bytes = 0u64;
+        for row in &mut batch {
+            let payload = &mut row.payload;
+            stage.with_relation_payload_owned(&row.id, limits.max_row_bytes, |_, logical| {
+                bytes = bytes.checked_add(logical.len() as u64)
+                    .ok_or(Error::Budget("inherited page bytes"))?;
+                if bytes > limits.max_page_bytes {
+                    return Err(Error::Budget("inherited page bytes"));
+                }
+                state.charge_work(logical.len())?;
+                *payload = logical.to_vec();
+                Ok(())
+            })?.ok_or(Error::Invalid("inherited relation disappeared"))?;
+        }
+    }
+    Ok(batch)
 }
 
 fn text<'a>(value: &'a Value, key: &str) -> Result<&'a str> {
@@ -244,6 +268,9 @@ fn prepare_inner(
     let mut endpoint_evidence_limit_count = 0u64;
     let mut hash = Digest256Hasher::new();
     loop {
+        let _page_hold = stage.hold_normalized_page(
+            limits.max_page_rows, limits.max_row_bytes, limits.max_row_bytes,
+        )?;
         let page = read_page(
             stage,
             after.as_ref().map(|(s, i)| (s.as_str(), i.as_str())),
@@ -278,7 +305,9 @@ fn prepare_inner(
                         return Err(Error::Invalid("inherited relation payload digest"));
                     }
                     root_item(&mut hash, &relation.id, &relation.payload_sha);
-                    let parsed = SourceRow::parse(&relation.payload, limits.max_row_bytes)?;
+                    let parsed = SourceRow::parse_scoped_with_optional_owned_state(
+                        &relation.payload, limits.max_row_bytes, stage.owned_creation_state(),
+                    )?;
                     let value = parsed.value();
                     for (field, expected) in [
                         ("id", relation.id.as_str()),

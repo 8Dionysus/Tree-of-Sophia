@@ -725,6 +725,30 @@ impl<'a> KnowledgeStage<'a> {
         self.controlled.as_ref().map(|budget| budget.creation_state)
     }
 
+    /// Retain one late normalization page while logical bytes, exact source
+    /// packets and the caller's bounded output coexist. Codec reads keep their
+    /// own transient holds; this covers only the copies escaping each callback.
+    pub(crate) fn hold_normalized_page(
+        &self,
+        rows: usize,
+        row_bytes: usize,
+        extra_output_bytes_per_row: usize,
+    ) -> Result<Option<crate::d1_public_capture::CreationStateHold<'a, 'a>>> {
+        let Some(state) = self.owned_creation_state() else {
+            return Ok(None);
+        };
+        if rows == 0 || rows > 1024 || row_bytes == 0 || row_bytes > 8 * 1024 * 1024 {
+            return Err(Error::Budget("normalized late page limits"));
+        }
+        let bytes = row_bytes
+            .checked_mul(2)
+            .and_then(|n| n.checked_add(5 * 4096 + 512))
+            .and_then(|n| n.checked_add(extra_output_bytes_per_row))
+            .and_then(|n| n.checked_mul(rows))
+            .ok_or(Error::Budget("normalized late page state"))?;
+        Ok(Some(state.hold(bytes)?))
+    }
+
     /// Price only a planning/read traversal; physical rows/bytes are charged
     /// separately by their materialization owners, using the same original caps.
     pub(crate) fn charge_preparation_work(&mut self, bytes: u64) -> Result<()> {
