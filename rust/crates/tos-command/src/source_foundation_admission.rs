@@ -89,6 +89,7 @@ pub(crate) struct NativeSpoolRefusalPacket<'a> {
     publication_state: &'static str,
     phase: &'static str,
     primary_error_kind: &'static str,
+    primary_error_sha256: Option<String>,
     native_validation_reason: Option<&'a str>,
     primary_io: NativeSpoolIoPacket,
     terminal_io: NativeSpoolIoPacket,
@@ -126,6 +127,27 @@ impl From<PinnedSqliteIoSnapshot> for NativeSpoolIoPacket {
             }),
         }
     }
+}
+// Correlate an opaque IO cause without exporting private paths or text.
+// Formatting is bounded and incomplete output never produces a fingerprint.
+fn bounded_error_sha256(error: &io::Error) -> Option<String> {
+    struct Fingerprint {
+        hash: tos_foundation::Digest256Hasher,
+        remaining: usize,
+    }
+    impl std::fmt::Write for Fingerprint {
+        fn write_str(&mut self, text: &str) -> std::fmt::Result {
+            self.remaining = self.remaining.checked_sub(text.len()).ok_or(std::fmt::Error)?;
+            self.hash.update(text.as_bytes());
+            Ok(())
+        }
+    }
+    let mut sink = Fingerprint {
+        hash: tos_foundation::Digest256Hasher::new(),
+        remaining: 4096,
+    };
+    std::fmt::write(&mut sink, format_args!("{error}")).ok()?;
+    Some(sink.hash.finalize().to_hex())
 }
 impl NativeSpoolRefusal {
     pub(crate) fn retain(
@@ -180,6 +202,7 @@ impl NativeSpoolRefusal {
                 io::ErrorKind::AlreadyExists => "already_exists",
                 _ => "other",
             },
+            primary_error_sha256: bounded_error_sha256(&self.primary),
             native_validation_reason: reason,
             primary_io: self.primary_io.into(),
             terminal_io: self.terminal_io.into(),
@@ -3229,4 +3252,24 @@ impl Write for ReceiptWriter<'_> {
         }
         active(self.deadline, self.cancel)
     }
+}
+
+#[cfg(test)]
+mod refusal_transport_tests {
+    use super::*;
+
+    #[test]
+    fn opaque_error_fingerprint_is_bounded_and_does_not_export_text() {
+        let text = "/private/sentinel: publication failed";
+        assert_eq!(bounded_error_sha256(&io::Error::other(text)),
+            Some(tos_foundation::Digest256::of_bytes(text.as_bytes()).to_hex()));
+        assert!(bounded_error_sha256(&io::Error::other("x".repeat(4097))).is_none());
+        let snapshot = PinnedSqliteIoSnapshot::default();
+        let refusal = NativeSpoolRefusal::retain(io::Error::other(text),
+            "native-v4 corpus publication", snapshot, snapshot, false, false);
+        let encoded = serde_json::to_string(&refusal.packet()).unwrap();
+        assert!(!encoded.contains("private/sentinel"));
+        assert!(serde_json::from_str::<Value>(&encoded).unwrap()["native_validation_reason"].is_null());
+    }
+
 }
