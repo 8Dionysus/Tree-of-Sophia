@@ -57,6 +57,8 @@ pub struct PinnedSqliteIoSnapshot {
     /// First bounded failure observed by any clone. This keeps a SQLite
     /// `IOERR` attributable to its originating envelope or deadline.
     pub failure: Option<PinnedSqliteIoFailure>,
+    /// Local failure before any failure inherited from the shared write owner.
+    pub local_failure: Option<PinnedSqliteIoFailure>,
 }
 
 #[derive(Debug)]
@@ -445,6 +447,7 @@ impl PinnedSqliteIoBudget {
             write_permitted_bytes: self.0.write_permitted.load(Ordering::Acquire),
             write_returned_bytes: self.0.write_returned.load(Ordering::Acquire),
             failure: decode_failure(self.failure_code()),
+            local_failure: decode_failure(self.0.failure.load(Ordering::Acquire)),
         }
     }
 

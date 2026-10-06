@@ -61,14 +61,23 @@ impl std::fmt::Display for NativeValidationRefusal {
 }
 impl std::error::Error for NativeValidationRefusal {}
 
+/// The invocation joins two distinct read authorities. Keep their raw
+/// snapshots beside aggregate counters; an aggregate has no single ceiling.
+#[derive(Clone, Copy, Debug, Default)]
+pub(crate) struct NativeInvocationIoSnapshot {
+    aggregate: PinnedSqliteIoSnapshot,
+    spool: PinnedSqliteIoSnapshot,
+    segment_v2: Option<PinnedSqliteIoSnapshot>,
+}
+
 /// Pre-publication refusal owns its original cause before terminal accounting.
 /// Only the reviewed validator reason and fixed operation labels reach output.
 #[derive(Debug)]
 pub(crate) struct NativeSpoolRefusal {
     primary: io::Error,
     phase: &'static str,
-    primary_io: PinnedSqliteIoSnapshot,
-    terminal_io: PinnedSqliteIoSnapshot,
+    primary_io: NativeInvocationIoSnapshot,
+    terminal_io: NativeInvocationIoSnapshot,
     accounting_failed: bool,
     cleanup_failed: bool,
     output_failed: bool,
@@ -99,9 +108,6 @@ pub(crate) struct NativeSpoolRefusalPacket<'a> {
 }
 #[derive(serde::Serialize)]
 struct NativeSpoolIoPacket {
-    read_limit_bytes: Option<u64>,
-    read_limit_source: Option<&'static str>,
-    read_limit_line: Option<u32>,
     read_attempted_bytes: u64,
     read_upper_bound_attempted_bytes: u64,
     read_permitted_bytes: u64,
@@ -110,32 +116,64 @@ struct NativeSpoolIoPacket {
     write_permitted_bytes: u64,
     write_returned_bytes: u64,
     first_failure: Option<&'static str>,
+    spool_reads: NativeSpoolReadPacket,
+    segment_v2_reads: Option<NativeSpoolReadPacket>,
 }
-impl From<PinnedSqliteIoSnapshot> for NativeSpoolIoPacket {
+#[derive(serde::Serialize)]
+struct NativeSpoolReadPacket {
+    limit_bytes: Option<u64>,
+    limit_source: Option<&'static str>,
+    limit_line: Option<u32>,
+    attempted_bytes: u64,
+    upper_bound_attempted_bytes: u64,
+    permitted_bytes: u64,
+    returned_bytes: u64,
+    local_failure: Option<&'static str>,
+    effective_failure: Option<&'static str>,
+}
+fn io_failure_name(failure: PinnedSqliteIoFailure) -> &'static str {
+    match failure {
+        PinnedSqliteIoFailure::ReadLimit => "read_limit",
+        PinnedSqliteIoFailure::WriteLimit => "write_limit",
+        PinnedSqliteIoFailure::Deadline => "deadline",
+        PinnedSqliteIoFailure::Cancelled => "cancelled",
+        PinnedSqliteIoFailure::FileLimit => "file_limit",
+        PinnedSqliteIoFailure::SpaceLimit => "space_limit",
+        PinnedSqliteIoFailure::Io => "io",
+    }
+}
+impl From<PinnedSqliteIoSnapshot> for NativeSpoolReadPacket {
     fn from(value: PinnedSqliteIoSnapshot) -> Self {
         Self {
-            read_limit_bytes: value.read_limit_bytes,
+            limit_bytes: value.read_limit_bytes,
             // Rust source basename only: never emit an absolute build path.
-            read_limit_source: value
+            limit_source: value
                 .read_limit_origin
                 .and_then(|origin| origin.file().rsplit('/').next()),
-            read_limit_line: value.read_limit_origin.map(|origin| origin.line()),
-            read_attempted_bytes: value.read_attempted_bytes,
-            read_upper_bound_attempted_bytes: value.read_upper_bound_attempted_bytes,
-            read_permitted_bytes: value.read_permitted_bytes,
-            read_returned_bytes: value.read_returned_bytes,
-            write_attempted_bytes: value.write_attempted_bytes,
-            write_permitted_bytes: value.write_permitted_bytes,
-            write_returned_bytes: value.write_returned_bytes,
-            first_failure: value.failure.map(|failure| match failure {
-                PinnedSqliteIoFailure::ReadLimit => "read_limit",
-                PinnedSqliteIoFailure::WriteLimit => "write_limit",
-                PinnedSqliteIoFailure::Deadline => "deadline",
-                PinnedSqliteIoFailure::Cancelled => "cancelled",
-                PinnedSqliteIoFailure::FileLimit => "file_limit",
-                PinnedSqliteIoFailure::SpaceLimit => "space_limit",
-                PinnedSqliteIoFailure::Io => "io",
-            }),
+            limit_line: value.read_limit_origin.map(|origin| origin.line()),
+            attempted_bytes: value.read_attempted_bytes,
+            upper_bound_attempted_bytes: value.read_upper_bound_attempted_bytes,
+            permitted_bytes: value.read_permitted_bytes,
+            returned_bytes: value.read_returned_bytes,
+            local_failure: value.local_failure.map(io_failure_name),
+            effective_failure: value.failure.map(io_failure_name),
+        }
+    }
+}
+impl From<NativeInvocationIoSnapshot> for NativeSpoolIoPacket {
+    fn from(value: NativeInvocationIoSnapshot) -> Self {
+        let aggregate = value.aggregate;
+        Self {
+            read_attempted_bytes: aggregate.read_attempted_bytes,
+            read_upper_bound_attempted_bytes: aggregate.read_upper_bound_attempted_bytes,
+            read_permitted_bytes: aggregate.read_permitted_bytes,
+            read_returned_bytes: aggregate.read_returned_bytes,
+            write_attempted_bytes: aggregate.write_attempted_bytes,
+            write_permitted_bytes: aggregate.write_permitted_bytes,
+            write_returned_bytes: aggregate.write_returned_bytes,
+            first_failure: aggregate.failure.map(io_failure_name),
+            spool_reads: value.spool.into(),
+            segment_v2_reads: value.segment_v2.map(Into::into),
         }
     }
 }
@@ -168,8 +206,8 @@ impl NativeSpoolRefusal {
     pub(crate) fn retain(
         primary: io::Error,
         phase: &'static str,
-        primary_io: PinnedSqliteIoSnapshot,
-        terminal_io: PinnedSqliteIoSnapshot,
+        primary_io: NativeInvocationIoSnapshot,
+        terminal_io: NativeInvocationIoSnapshot,
         accounting_failed: bool,
         cleanup_failed: bool,
     ) -> Self {
@@ -2358,21 +2396,22 @@ impl<'c> NativeSourceValidator<'c> {
 
     /// Observe both selected local read ledgers and their single original
     /// cumulative-write authority for runtime refusal evidence.
-    pub(crate) fn spooled_invocation_io_snapshot(
-        &self,
-    ) -> io::Result<tos_source_store::PinnedSqliteIoSnapshot> {
+    pub(crate) fn spooled_invocation_io_snapshot(&self) -> io::Result<NativeInvocationIoSnapshot> {
         let spool = &self
             .spooled_profile
             .as_ref()
             .ok_or_else(|| invalid("spooled original budget absent"))?
             .2;
-        let mut usage = spool.snapshot();
+        let spool_snapshot = spool.snapshot();
+        let mut usage = spool_snapshot;
+        let mut segment_snapshot = None;
         let writes = spool.shared_write_snapshot();
         if let Some(v2) = self.segment_v2_profile.as_ref() {
             if !spool.shares_write_authority_with(&v2.io) {
                 return Err(invalid("spooled/V2 original write authority differs"));
             }
             let segment = v2.io.snapshot();
+            segment_snapshot = Some(segment);
             usage.read_attempted_bytes = usage
                 .read_attempted_bytes
                 .checked_add(segment.read_attempted_bytes)
@@ -2395,7 +2434,16 @@ impl<'c> NativeSourceValidator<'c> {
         usage.write_permitted_bytes = writes.write_permitted_bytes;
         usage.write_returned_bytes = writes.write_returned_bytes;
         usage.failure = writes.failure.or(usage.failure);
-        Ok(usage)
+        // Aggregate counters are arithmetic observations, not another read
+        // authority. Its distinct read ceilings remain in the raw snapshots.
+        usage.read_limit_bytes = None;
+        usage.read_limit_origin = None;
+        usage.local_failure = None;
+        Ok(NativeInvocationIoSnapshot {
+            aggregate: usage,
+            spool: spool_snapshot,
+            segment_v2: segment_snapshot,
+        })
     }
 
     /// Reserve caller-held source-operation state on the existing invocation
@@ -3329,7 +3377,7 @@ mod refusal_transport_tests {
             Some(tos_foundation::Digest256::of_bytes(text.as_bytes()).to_hex())
         );
         assert!(bounded_error_sha256(&io::Error::other("x".repeat(4097))).is_none());
-        let snapshot = PinnedSqliteIoSnapshot::default();
+        let snapshot = NativeInvocationIoSnapshot::default();
         let refusal = NativeSpoolRefusal::retain(
             io::Error::other(text),
             "native-v4 corpus publication",
