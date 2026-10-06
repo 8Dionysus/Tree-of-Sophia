@@ -8560,7 +8560,7 @@ impl ComposedScaleMemberIterV1<'_, '_> {
         } else if next_aux.is_some_and(|aux| next_generated.as_ref().is_none_or(|g| aux.path < *g))
         {
             let aux = next_aux.ok_or_else(|| io_invalid("authored auxiliary cursor differs"))?;
-            let bytes = read_authored_aux_member_v1(
+            let (bytes, source_mode) = read_authored_aux_member_v1(
                 self.repository_root,
                 aux,
                 self.io,
@@ -8577,7 +8577,7 @@ impl ComposedScaleMemberIterV1<'_, '_> {
                 path: aux.path.clone(),
                 digest: aux.raw_sha256,
                 source_bytes: bytes,
-                mode: 0o644,
+                mode: source_mode,
                 generated: false,
             }
         } else if let Some(generated) = if self.phase == ScalePhysicalPhaseV2::Event {
@@ -8623,7 +8623,7 @@ fn read_authored_aux_member_v1(
     work: &AdmissionWorkBudget,
     deadline: Instant,
     cancelled: &AtomicBool,
-) -> std::io::Result<Vec<u8>> {
+) -> std::io::Result<(Vec<u8>, u32)> {
     // Walk held directory descriptors: a source ancestor replacement cannot
     // turn the selected read into a symlink-following open. Only the current
     // ancestor and its child are live, independent of selected member count.
@@ -8668,7 +8668,10 @@ fn read_authored_aux_member_v1(
     };
     drop(directory);
     let meta = file.metadata()?;
-    if !meta.is_file() || meta.len() != member.raw_bytes {
+    let source_mode = meta.mode() & 0o777;
+    if !meta.is_file() || meta.len() != member.raw_bytes
+        || !matches!(source_mode, 0o600 | 0o644 | 0o755)
+    {
         return Err(io_invalid("authored auxiliary source descriptor differs"));
     }
     let size = usize::try_from(member.raw_bytes)
@@ -8699,13 +8702,17 @@ fn read_authored_aux_member_v1(
         }
         bytes.extend_from_slice(&buffer[..returned]);
     }
+    let after = file.metadata()?;
     if bytes.len() != size
-        || file.metadata()?.len() != member.raw_bytes
+        || after.len() != member.raw_bytes
+        || after.mode() != meta.mode()
+        || after.mtime() != meta.mtime() || after.mtime_nsec() != meta.mtime_nsec()
+        || after.ctime() != meta.ctime() || after.ctime_nsec() != meta.ctime_nsec()
         || Digest256::of_bytes(&bytes) != member.raw_sha256
     {
         return Err(io_invalid("authored auxiliary full EOF or SHA differs"));
     }
-    Ok(bytes)
+    Ok((bytes, source_mode))
 }
 
 struct WeightedMemberTreeRowsV1<'a, 'source, 'profile> {
