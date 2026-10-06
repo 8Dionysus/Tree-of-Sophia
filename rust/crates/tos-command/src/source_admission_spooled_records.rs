@@ -454,6 +454,10 @@ fn static_record_code(code: &str) -> io::Result<&'static str> {
         "id_facts_unsorted" => "id_facts_unsorted",
         "record_reference_wrong_kind" => "record_reference_wrong_kind",
         "link_uri_facts_unsorted" => "link_uri_facts_unsorted",
+        "historical_identity_version_conflict" => "historical_identity_version_conflict",
+        "native_record_json" => "native_record_json",
+        "record_id" => "record_id",
+        "record_path_reference_missing" => "record_path_reference_missing",
         _ => return Err(invalid("unknown static record issue code in stored row")),
     })
 }
