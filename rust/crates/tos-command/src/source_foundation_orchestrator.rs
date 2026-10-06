@@ -2497,14 +2497,29 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
                         cancelled,
                     ).map_err(|error| candidate_owner_refusal("candidate bibliography receiver", error))?;
                     drop(biblio_schema_worker);
-                    if biblio_report.input_identity() != &fence
-                        || biblio_report.source_membership() != fence.membership
-                        || !biblio_report.owner_predicates_complete()
-                        || biblio_report.shadow().issue_sink_truncated
-                        || !biblio_report.shadow().issues.is_empty()
-                    {
+                    let biblio_failures = [
+                        biblio_report.input_identity() != &fence,
+                        biblio_report.source_membership() != fence.membership,
+                        !biblio_report.owner_predicates_complete(),
+                        biblio_report.shadow().issue_sink_truncated,
+                        !biblio_report.shadow().issues.is_empty(),
+                    ];
+                    let biblio_mask = biblio_failures.into_iter().enumerate()
+                        .fold(0u8, |mask, (bit, failed)| mask | if failed { 1u8 << bit } else { 0 });
+                    if biblio_mask != 0 {
+                        // Preserve the failed predicates and first owner issue as
+                        // bounded fingerprints; source locators stay private.
+                        let issues = &biblio_report.shadow().issues;
+                        let mut site = format!("bi-{biblio_mask:x}-{:x}", issues.len());
+                        let mut cause = "candidate Biblio owner predicates are incomplete or invalid";
+                        if let Some(issue) = issues.first() {
+                            let location = Digest256::of_bytes(issue.location.as_bytes()).to_hex();
+                            site.push_str(&format!("-p{}", &location[..12]));
+                            cause = issue.code;
+                        }
                         return Err(ItemRefusal::Source(
-                            "candidate Biblio owner predicates are incomplete or invalid".into(),
+                            crate::source_admission_spooled_index::bounded_source_cause(
+                                "receiver-source", &site, cause),
                         ));
                     }
                     let claims: &dyn tos_validation::source_foundation_default_rules::SourceFoundationDefaultClaims =
