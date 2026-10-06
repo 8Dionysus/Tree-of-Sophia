@@ -1458,6 +1458,30 @@ mod weighted_scale_profile_tests {
     use super::*;
 
     #[test]
+    fn artifact_support_edges_bind_role_ordinal_and_recipe() {
+        let seed = Digest256::of_bytes(b"seed");
+        let recipe = Digest256::of_bytes(b"recipe");
+        for (pointer, reference) in [
+            ("/rights_ref", WeightedScaleArtifactSupportRoleV1::Rights.path(7)),
+            ("/discovery_ref", WeightedScaleArtifactSupportRoleV1::Discovery.path(7)),
+            ("/custody/inventory_numbers/1", WeightedScaleArtifactSupportRoleV1::Resource.path(7)),
+            ("/provenance_event_ref", artifact_support_identity_v1(seed, recipe, 7, "event")),
+        ] {
+            let edge = ScaleReferenceEdgeV1 { pointer: pointer.to_owned(), reference };
+            assert!(generated_artifact_support_edge_v1(&edge, seed, recipe, 7));
+            assert!(!generated_artifact_support_edge_v1(&edge, seed, recipe, 8));
+            let wrong_pointer = ScaleReferenceEdgeV1 { pointer: "/unrelated_ref".to_owned(), ..edge.clone() };
+            assert!(!generated_artifact_support_edge_v1(&wrong_pointer, seed, recipe, 7));
+        }
+        let event = ScaleReferenceEdgeV1 {
+            pointer: "/provenance_event_ref".to_owned(),
+            reference: artifact_support_identity_v1(seed, recipe, 7, "event"),
+        };
+        assert!(!generated_artifact_support_edge_v1(&event, seed, Digest256::of_bytes(b"other"), 7));
+    }
+
+
+    #[test]
     fn weighted_record_ladder_preserves_100k_and_prices_billion_without_a_fake_cap() {
         let seed = Digest256::of_bytes(b"weighted-record-ladder");
         let default = WeightedScaleProfileV1::weighted_for_records(seed, 100_000).unwrap();
@@ -3901,6 +3925,7 @@ impl<'a> WeightedScaleMemberIterV1<'a> {
             self.profile.seed,
             class_row.class,
             ordinal,
+            self.templates.artifact_recipe.as_ref(),
             &mut self.closure,
         )?;
         // Claim templates are selected from a JSONL source. Keep each generated
@@ -5390,17 +5415,51 @@ fn generated_id_exists_v1(
     })
 }
 
+fn generated_artifact_support_edge_v1(
+    edge: &ScaleReferenceEdgeV1,
+    seed: Digest256,
+    recipe: Digest256,
+    ordinal: u64,
+) -> bool {
+    let expected = match edge.pointer.as_str() {
+        "/rights_ref" => WeightedScaleArtifactSupportRoleV1::Rights.path(ordinal),
+        "/discovery_ref" => WeightedScaleArtifactSupportRoleV1::Discovery.path(ordinal),
+        "/custody/inventory_numbers/1" => WeightedScaleArtifactSupportRoleV1::Resource.path(ordinal),
+        "/provenance_event_ref" => artifact_support_identity_v1(seed, recipe, ordinal, "event"),
+        _ => return false,
+    };
+    edge.reference == expected
+}
+
 fn audit_fixture_references_v1(
     value: &serde_json::Value,
     template: &WeightedScaleTemplateV1,
     profile: &WeightedScaleProfileV1,
     seed: Digest256,
     class: WeightedScaleClassV1,
-    _ordinal: u64,
+    ordinal: u64,
+    artifact_recipe: Option<&WeightedScaleLoadedArtifactRecipeV1>,
     closure: &mut WeightedScaleClosureAccumulatorV1,
 ) -> std::io::Result<()> {
     let local_generated_ids = collect_generated_ids_v1(value);
+    let artifact_recipe_digest = if class == WeightedScaleClassV1::Artifact {
+        artifact_recipe.map(|recipe| recipe.selection.immutable_digest()).transpose()?
+    } else {
+        None
+    };
     for edge in collect_reference_edges_v1(value)? {
+        // Only the declared Artifact recipe introduces these four support
+        // relations. Bind pointer, role, recipe, and this exact generated row;
+        // ordinary template references retain their existing pinned closure.
+        if artifact_recipe_digest.is_some_and(|recipe| {
+            generated_artifact_support_edge_v1(&edge, seed, recipe, ordinal)
+        }) {
+            closure.generated_dependency_edges = closure
+                .generated_dependency_edges
+                .checked_add(1)
+                .ok_or_else(|| io_invalid("generated dependency edge count overflow"))?;
+            continue;
+        }
         if edge.reference == SCALE_GENERATOR_AGENT_REF_V1 && edge.pointer.ends_with("/agent_ref") {
             closure.generator_reference_edges = closure
                 .generator_reference_edges
