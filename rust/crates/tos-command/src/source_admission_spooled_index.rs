@@ -1145,12 +1145,12 @@ impl<'candidate> IndexSink<'candidate> {
                 "candidate dependent callback state omits owned result",
             ));
         }
-        let retained = retained_state_bytes
-            .checked_add(callback_state_bytes)
-            .and_then(|bytes| {
-                bytes.checked_add(CANDIDATE_RECORDS_REPORT_RETAINED_STATE_UPPER_BOUND_BYTES)
-            })
+        let retained_base = retained_state_bytes
+            .checked_add(CANDIDATE_RECORDS_REPORT_RETAINED_STATE_UPPER_BOUND_BYTES)
             .and_then(|bytes| bytes.checked_add(std::mem::size_of::<Arc<()>>()))
+            .ok_or_else(|| invalid("candidate retained Records state overflow"))?;
+        let retained = retained_base
+            .checked_add(callback_state_bytes)
             .filter(|bytes| *bytes <= max_operation_state_bytes)
             .ok_or_else(|| invalid("candidate dependent callback state exceeds operation"))?;
         // This is the whole dependent callback envelope, not an individual
@@ -1178,10 +1178,12 @@ impl<'candidate> IndexSink<'candidate> {
                 fact_budget,
                 page_budget,
                 self,
-                retained,
+                // Records executes before receive. The later callback's
+                // workspace is not simultaneously retained by this engine.
+                retained_base,
                 max_operation_state_bytes,
             )
-            .map_err(|_| invalid("candidate Records/Item receiver refused"))?;
+            .map_err(receiver_refusal)?;
             // This report was constructed directly by the maintained receiver
             // over this exact mutable store loan. No externally supplied
             // report or reconstructed private report constructor enters here.

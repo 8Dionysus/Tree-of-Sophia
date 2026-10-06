@@ -1856,8 +1856,14 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
             state.checked_add(std::mem::size_of::<SpoolDefaultStore<'candidate, 'host>>())
         })
         .ok_or_else(|| incomplete("candidate dependent callback held-state overflow"))?;
+    let binding_state =
+        crate::source_admission_candidate_schema::candidate_schema_binding_additional_state_bytes(
+            &item_schemas,
+        )
+        .map_err(owner)?;
     let callback_header_state = CANDIDATE_RECORDS_REPORT_RETAINED_STATE_UPPER_BOUND_BYTES
         .checked_add(std::mem::size_of::<std::sync::Arc<()>>())
+        .and_then(|bytes| bytes.checked_add(binding_state))
         .ok_or_else(|| incomplete("candidate callback report-header state overflow"))?;
     let callback_workspace_state = callback_state_bytes
         .checked_sub(callback_held)

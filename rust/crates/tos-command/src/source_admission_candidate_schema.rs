@@ -21,6 +21,20 @@ use tos_validation::{
 
 type CandidateDiagnostic = CandidateCutSchemaDiagnostic<CandidateFence>;
 
+/// Additional adapter state beyond the caller's retained worker/store state.
+/// Reserve it before dividing the remaining grant between Records and its
+/// later dependent callback; both users consume the same existing envelope.
+pub(crate) fn candidate_schema_binding_additional_state_bytes(
+    worker: &CandidateCutWorkerSchemaExecutor<CandidateFence>,
+) -> Result<usize, ItemRefusal> {
+    worker
+        .source_resource_metadata_state_bytes()
+        .and_then(|bytes| {
+            bytes.checked_add(size_of::<CandidateSchemaBinding<'_, '_, '_>>() + 16384)
+        })
+        .ok_or(ItemRefusal::Budget)
+}
+
 /// Invoke the maintained Records+Item receiver over the actual candidate input
 /// and prepared candidate schema worker. This district report is not whole native
 /// admission or a CMD creation-inventory completion. The caller owns the real
@@ -145,12 +159,7 @@ impl<'a, 'input, 'host> CandidateSchemaBinding<'a, 'input, 'host> {
             return Err(refused());
         }
         let baseline_state_bytes = retained_state_bytes
-            .checked_add(
-                worker
-                    .source_resource_metadata_state_bytes()
-                    .ok_or(ItemRefusal::Budget)?,
-            )
-            .and_then(|n| n.checked_add(size_of::<Self>() + 16384))
+            .checked_add(candidate_schema_binding_additional_state_bytes(worker)?)
             .filter(|n| *n <= max_state_bytes)
             .ok_or(ItemRefusal::Budget)?;
         let mut previous: Option<&str> = None;
