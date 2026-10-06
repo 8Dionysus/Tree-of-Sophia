@@ -1506,6 +1506,18 @@ fn prepare_impl<B: catalog::CatalogInputBinding>(
             .transpose()?;
         let entities = json_file(stage, ENTITY, l)?;
         let registry = json_file(stage, RELATION, l)?;
+        // The selected corpus retains its exact projection contract. Older
+        // node grammars predate navigation-only `display`; keep source-backed
+        // node properties intact and emit this optional projection only when
+        // that selected grammar owns it. Schema validation still checks every
+        // emitted node against the unmodified selected contract.
+        let graph_schema = json_file(stage, SCHEMA, l)?;
+        let node_properties = graph_schema
+            .pointer("/$defs/node/properties")
+            .and_then(Value::as_object)
+            .ok_or(Error::Invalid("bibliographic selected node grammar absent"))?;
+        let node_display_supported = node_properties.contains_key("display");
+        drop(graph_schema);
         stage.with_connection(WritePhase::Schema,|db|{db.execute_batch("CREATE TABLE source_bibliographic_rows(collection TEXT NOT NULL,id TEXT NOT NULL,payload_len INTEGER NOT NULL,payload_sha256 BLOB NOT NULL,payload BLOB NOT NULL,PRIMARY KEY(collection,id)) WITHOUT ROWID;
 CREATE TABLE source_bibliographic_totals(singleton INTEGER PRIMARY KEY CHECK(singleton=1),row_count INTEGER NOT NULL,byte_count INTEGER NOT NULL);
 INSERT INTO source_bibliographic_totals VALUES(1,0,0);")?;Ok(())})?;
@@ -1547,7 +1559,12 @@ INSERT INTO source_bibliographic_totals VALUES(1,0,0);")?;Ok(())})?;
                     vec![cohort.trace],
                 ),
             ] {
-                for value in rows {
+                for mut value in rows {
+                    if collection == "nodes" && !node_display_supported {
+                        value.as_object_mut()
+                            .ok_or(Error::Invalid("bibliographic emitted node is not an object"))?
+                            .remove("display");
+                    }
                     catalog::check_catalog_schema(
                         stage,
                         validator,
