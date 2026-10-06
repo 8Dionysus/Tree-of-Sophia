@@ -4079,6 +4079,20 @@ fn sdk_host_session(args: &[String]) -> Result<i32, String> {
                 argv.extend([key.into(), fd.to_string()]);
             }
         }
+        // Cache custody belongs to the SDK stage issuer, before its command
+        // separator. Core receives the issued ticket, not stage-only flags.
+        if let Some(cache) = search_cache.as_ref() {
+            argv.extend([
+                "--search-cache-path".into(),
+                cache.path.display().to_string(),
+                "--search-cache-source-root".into(),
+                cache.source_root.display().to_string(),
+                "--search-cache-max-build-bytes".into(),
+                cache.max_build_bytes.to_string(),
+                "--search-cache-max-temp-bytes".into(),
+                cache.max_temp_bytes.to_string(),
+            ]);
+        }
         argv.extend([
             "--".into(),
             "/proc/self/exe".into(),
@@ -4108,18 +4122,6 @@ fn sdk_host_session(args: &[String]) -> Result<i32, String> {
             if let Some(fd) = fd {
                 argv.extend([key.into(), fd.to_string()]);
             }
-        }
-        if let Some(cache) = search_cache.as_ref() {
-            argv.extend([
-                "--search-cache-path".into(),
-                cache.path.display().to_string(),
-                "--search-cache-source-root".into(),
-                cache.source_root.display().to_string(),
-                "--search-cache-max-build-bytes".into(),
-                cache.max_build_bytes.to_string(),
-                "--search-cache-max-temp-bytes".into(),
-                cache.max_temp_bytes.to_string(),
-            ]);
         }
         sdk_python_run(&argv)
     })();
