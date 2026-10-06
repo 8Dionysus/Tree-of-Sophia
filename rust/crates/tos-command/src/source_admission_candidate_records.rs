@@ -191,11 +191,33 @@ impl SourceCutInput for CandidateRecordsInput<'_, '_> {
         cancelled: &AtomicBool,
         visit: &mut dyn FnMut(SourceCutMemberMeta<'_>) -> Result<(), ItemRefusal>,
     ) -> Result<(), ItemRefusal> {
-        // This initial bridge deliberately verifies full raw bytes even for
-        // metadata traversal. Its physical reads are charged, never inferred.
-        self.for_each_current_member(deadline, cancelled, &mut |meta, _| visit(meta))?;
-        Ok(())
+        let result = (|| {
+            self.check(deadline, cancelled)?;
+            let allowance = self.max_owned_state_bytes.get()
+                .checked_sub(self.callback_retained_state_bytes.get())
+                .ok_or(tos_validation::item_budget_origin!())?;
+            let mut callback_error = None;
+            let walked = self.candidate.for_each_verified_member_metadata(
+                allowance,
+                &mut |meta| {
+                    visit(SourceCutMemberMeta {
+                        path: meta.path.as_str(),
+                        size_bytes: meta.size_bytes,
+                    }).map_err(|error| {
+                        callback_error = Some(error);
+                        io::Error::other("native Records metadata callback refused")
+                    })
+                },
+            );
+            if let Some(error) = callback_error { return Err(error); }
+            walked.map_err(|error| ItemRefusal::Source(
+                crate::source_command::public_io_reason(&error)))?;
+            self.check(deadline, cancelled)
+        })();
+        if result.is_err() { self.candidate.abandon(); }
+        result
     }
+
     fn for_each_current_member_meta_under(
         &self,
         directory: &str,

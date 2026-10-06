@@ -2088,6 +2088,54 @@ impl<'host> SpoolCandidate<'host> {
         })();
         self.finish_read(result)
     }
+    /// Authenticate the metadata census without reading payloads or issuing
+    /// full-input coverage. Raw fixity and generated coverage belong to the
+    /// full-member traversal and selected member reads.
+    pub(crate) fn for_each_verified_member_metadata(
+        &self,
+        max_owned_state_bytes: usize,
+        visit: &mut dyn FnMut(&MemberMetadata) -> io::Result<()>,
+    ) -> io::Result<()> {
+        self.tick()?;
+        let result = (|| {
+            self.check_state(max_owned_state_bytes)?;
+            let before = self.fence()?;
+            let mut hash = Digest256Hasher::new();
+            hash.update(b"tos-val-full-membership-v1\0");
+            let mut count = 0u64;
+            let mut source_bytes = 0u64;
+            let mut after: Option<RelativePath> = None;
+            loop {
+                self.tick()?;
+                let allowance = max_owned_state_bytes
+                    .checked_sub(4096)
+                    .ok_or_else(|| invalid("candidate metadata visitor state"))?;
+                let Some(metadata) = self.member_after_bounded(after.as_ref(), allowance)? else {
+                    break;
+                };
+                if after.as_ref().is_some_and(|p| metadata.path.as_str() <= p.as_str()) {
+                    return Err(invalid("candidate metadata visitor order"));
+                }
+                count = count.checked_add(1)
+                    .filter(|n| *n <= before.membership.count)
+                    .ok_or_else(|| invalid("candidate metadata visitor count"))?;
+                source_bytes = source_bytes.checked_add(metadata.size_bytes)
+                    .filter(|n| *n <= before.source_bytes)
+                    .ok_or_else(|| invalid("candidate metadata visitor bytes"))?;
+                feed(&mut hash, &metadata);
+                visit(&metadata)?;
+                self.tick()?;
+                after = Some(metadata.path);
+            }
+            if (SourceMembershipV1 { count, digest: hash.finalize() }) != before.membership
+                || source_bytes != before.source_bytes || self.fence()? != before {
+                return Err(invalid("candidate metadata visitor EOF/fence differs"));
+            }
+            self.tick()
+        })();
+        if result.is_err() { self.failed.set(true); }
+        result
+    }
     /// Borrow one verified current member at a time. The callback's genuine
     /// retained native-parser state is supplied separately and charged together
     /// with the raw/metadata/keyset overlap BEFORE allocation. Membership is
