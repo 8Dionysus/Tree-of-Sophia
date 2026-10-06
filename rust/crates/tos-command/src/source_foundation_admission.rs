@@ -147,7 +147,14 @@ fn bounded_error_sha256(error: &io::Error) -> Option<String> {
         remaining: 4096,
     };
     std::fmt::write(&mut sink, format_args!("{error}")).ok()?;
-    Some(sink.hash.finalize().to_hex())
+    let digest = sink.hash.finalize().to_hex();
+    #[cfg(debug_assertions)]
+    if std::env::var("TOS_PRIVATE_COMMAND_IO_ERROR_SHA256").ok().as_deref()
+        == Some(digest.as_str())
+    {
+        eprintln!("private-owner-spool reason={error:?}");
+    }
+    Some(digest)
 }
 impl NativeSpoolRefusal {
     pub(crate) fn retain(
